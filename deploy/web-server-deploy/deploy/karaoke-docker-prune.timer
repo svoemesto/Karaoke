@@ -1,0 +1,10 @@
+[Unit]
+Description=Karaoke: ежедневная очистка неиспользуемых Docker-образов
+
+[Timer]
+OnCalendar=*-*-* 04:15:00
+Persistent=true
+RandomizedDelaySec=600
+
+[Install]
+WantedBy=timers.target

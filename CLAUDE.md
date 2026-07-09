@@ -429,6 +429,19 @@ true` на нужных полях в `fields` + `v-model:sort-by` (data `sortBy
   + 8px зазора), как в `Songs/filter/SongsFilterModal.vue`; для select-полей рядом добавить
   `select.xxx-input-field { appearance: none; ... }`. Любой новый `FilterModal.vue` — копировать этот
   CSS-блок сразу, не `width: fit-content`.
+- **Прод-сервер: диск заполняется старыми Docker-образами.** `do.sh` пушит образы всегда под
+  один и тот же тег (`APP_VERSION`/`BUILD_VERSION` статичны, фактически всегда `:1`) — каждый
+  новый деплой оставляет предыдущий слой образа untagged/dangling; без регулярной чистки диск
+  (40GB) заполняется до 100% за несколько месяцев деплоев, Postgres перестаёт писать (`No space
+  left on device`) и весь сайт падает (инцидент 2026-07-09 — 131 образ, из них 3 в реальном
+  использовании). **Защита уже установлена — не создавать заново:** systemd-таймер
+  `karaoke-docker-prune.timer` на сервере (ежедневно 04:15 МСК, `docker image prune -a -f`,
+  безопасен — не трогает образы используемых контейнеров), юниты и скрипт —
+  `deploy/web-server-deploy/deploy/{prune-images.sh,karaoke-docker-prune.service,karaoke-docker-prune.timer}`,
+  синхронизируются rsync'ом вместе с остальными серверными конфигами. Проверка состояния:
+  `ssh root@79.174.95.69 "systemctl status karaoke-docker-prune.timer"`. Если на проде снова
+  «сайт не отвечает»/DB-ошибки — сначала `df -h /` на сервере, до глубокой диагностики кода.
+  Детали → memory `project_prod_disk_full_incident`.
 
 ## Git — что НЕ добавлять в репозиторий
 

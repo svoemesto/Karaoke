@@ -362,24 +362,24 @@ interface KaraokeDbTable {
             try {
                 ps.executeUpdate(sql, Statement.RETURN_GENERATED_KEYS)
             } catch (_: Exception) {
-                // Проверяем последнее значение сиквенса и айдишника таблицы
-                val statement = connection.createStatement()
-                val rsLastId = statement.executeQuery("select max(id) as last_value from ${entity.getTableName()};")
-                val rsLastSeq = statement.executeQuery("select last_value from ${entity.getTableName()}_id_seq;")
-                val lastId = if (rsLastId.isClosed) {
-                    0
-                } else {
-                    rsLastId.next()
-                    rsLastId.getLong("last_value")
+                // Проверяем последнее значение сиквенса и айдишника таблицы. Важно: каждый executeQuery —
+                // на СВОЁМ Statement, иначе второй executeQuery на том же Statement закрывает ResultSet
+                // первого (по контракту JDBC) и lastId всегда читался бы как 0 — самолечение дрейфа
+                // сиквенса (после SERVER_TO_LOCAL sync с OVERRIDING SYSTEM VALUE) никогда не срабатывало.
+                val lastId = connection.createStatement().use { st ->
+                    st.executeQuery("select max(id) as last_value from ${entity.getTableName()};").use { rs ->
+                        if (rs.next()) rs.getLong("last_value") else 0
+                    }
                 }
-                val lastSeq = if (rsLastSeq.isClosed) {
-                    0
-                } else {
-                    rsLastSeq.next()
-                    rsLastSeq.getLong("last_value")
+                val lastSeq = connection.createStatement().use { st ->
+                    st.executeQuery("select last_value from ${entity.getTableName()}_id_seq;").use { rs ->
+                        if (rs.next()) rs.getLong("last_value") else 0
+                    }
                 }
                 if (lastSeq < lastId) {
-                    statement.execute("alter sequence ${entity.getTableName()}_id_seq restart with ${lastId+1};")
+                    connection.createStatement().use {
+                        it.execute("alter sequence ${entity.getTableName()}_id_seq restart with ${lastId+1};")
+                    }
                     ps.executeUpdate(sql, Statement.RETURN_GENERATED_KEYS)
                 }
             }

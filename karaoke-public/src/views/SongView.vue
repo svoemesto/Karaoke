@@ -82,6 +82,10 @@
               <span class="km-meta-label">Темп (уд/м)</span>
               <span class="km-meta-value">{{ currentSong.bpm }}</span>
             </div>
+            <div class="km-meta-actions">
+              <FavoriteIcon :song-id="currentSong.id" label="В избранное" />
+              <PlaylistIcon :song-id="currentSong.id" label="В плейлист" />
+            </div>
           </div>
         </div>
 
@@ -248,10 +252,13 @@ import { useRoute } from 'vue-router'
 import { mapGetters, mapActions } from 'vuex'
 import PlatformLink from '../components/PlatformLink.vue'
 import AuthStatusWidget from '../components/AuthStatusWidget.vue'
+import FavoriteIcon from '../components/FavoriteIcon.vue'
+import PlaylistIcon from '../components/PlaylistIcon.vue'
 import { useDesign } from '../composables/useDesign'
 import { useEngagementTracking } from '../composables/useEngagementTracking'
 import { useAuth } from '../composables/useAuth'
 import { usePlayerAccess } from '../composables/usePlayerAccess'
+import { usePlaylistMembership } from '../composables/usePlaylistMembership'
 import { trackPlay, trackMetaClick } from '../services/tracking'
 import { pluralDays } from '../utils/pluralRu'
 import SongSubscriptionModal from '../components/SongSubscriptionModal.vue'
@@ -259,7 +266,7 @@ import { useCart } from '../composables/useCart'
 
 export default {
   name: 'SongView',
-  components: { PlatformLink, AuthStatusWidget, SongSubscriptionModal },
+  components: { PlatformLink, AuthStatusWidget, SongSubscriptionModal, FavoriteIcon, PlaylistIcon },
   setup() {
     const route = useRoute()
     useEngagementTracking('song', () => route.query.id)
@@ -268,7 +275,8 @@ export default {
     const { isLoggedIn } = useAuth()
     const playerAccess = usePlayerAccess()
     const cart = useCart()
-    return { theme, setTheme, isLoggedIn, playerAccess, cart }
+    const playlistMembership = usePlaylistMembership()
+    return { theme, setTheme, isLoggedIn, playerAccess, cart, playlistMembership }
   },
   computed: {
     ...mapGetters('songs', ['currentSong', 'currentSongIsLoading']),
@@ -316,6 +324,7 @@ export default {
         if (song) document.title = `${song.songName} — ${song.author}`
         document.body.style.background = song?.contentRemoved ? 'var(--km-bg)' : ''
         if (song?.id) this.playerAccess.checkAccess(song.id)
+        if (song?.id) this.playlistMembership.load([song.id])
         this.playerDisplayMode = 'embed'
       }
     }
@@ -521,6 +530,37 @@ export default {
 .km-meta-item { display: flex; flex-direction: column; gap: 0.15rem; }
 .km-meta-label { font-size: 0.7rem; color: var(--km-text2); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
 .km-meta-value { font-size: 0.95rem; font-weight: 600; color: var(--km-text); }
+
+/* Избранное / плейлисты — в той же сетке карточки метаданных, без отдельного блока */
+.km-meta-actions {
+  grid-column: span 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  align-self: end;
+  gap: 0.6rem;
+}
+.km-meta-actions :deep(.fav-icon),
+.km-meta-actions :deep(.pl-icon) {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0.4rem 0.85rem;
+  background: var(--km-bg);
+  border: 1px solid var(--km-border);
+  border-radius: 999px;
+  color: var(--km-text);
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+.km-meta-actions :deep(.fav-icon:hover),
+.km-meta-actions :deep(.pl-icon:hover) {
+  border-color: var(--km-accent);
+}
+.km-meta-actions :deep(.fav-icon.fav-on) { color: #e11d2a; border-color: #e11d2a; }
+.km-meta-actions :deep(.pl-icon.pl-on) { color: #0077ff; border-color: #0077ff; }
 
 /* Ссылки */
 .km-links-card {

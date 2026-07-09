@@ -4,11 +4,12 @@
     v-else
     href="#"
     class="pl-icon"
-    :class="{ 'pl-on': state === 'on' }"
+    :class="{ 'pl-on': state === 'on', 'has-label': label }"
     title="Плейлисты"
     @click.prevent="openMenu"
   >
     <SvgIcon name="playlist" :active="state === 'on'" :size="18" />
+    <span v-if="label" class="pl-label">{{ label }}</span>
   </a>
 
   <teleport to="body">
@@ -71,7 +72,8 @@ export default {
   name: 'PlaylistIcon',
   components: { SvgIcon },
   props: {
-    songId: { type: [Number, String], required: true }
+    songId: { type: [Number, String], required: true },
+    label: { type: String, default: '' }
   },
   setup(props) {
     const router = useRouter()
@@ -184,6 +186,9 @@ const PREMIUM_BENEFITS = [
 <style scoped>
 .pl-icon { display: inline-flex; align-items: center; justify-content: center; cursor: pointer; line-height: 0; }
 .pl-icon:hover { transform: scale(1.12); }
+.pl-icon.has-label { line-height: normal; justify-content: flex-start; gap: 6px; }
+.pl-icon.has-label:hover { transform: none; }
+.pl-label { font-size: 0.9rem; color: inherit; }
 .pl-spinner {
   display: inline-block; width: 13px; height: 13px;
   border: 2px solid #b9c9e0; border-top-color: #0077ff; border-radius: 50%;

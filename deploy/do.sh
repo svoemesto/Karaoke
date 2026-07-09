@@ -52,7 +52,7 @@ function do_build() {
 function build_jars() {
   echo "Building jars"
   cd ${BASE_DIR} && ${GRADLE} clean karaoke-app:bootJar karaoke-web:bootJar --parallel
-  announce "Все модули скомпилированы"
+  announce "Все модули скомпилированы" "Все м+одули скомпил+ированы"
 }
 
 function build_images() {
@@ -76,7 +76,7 @@ function build_images() {
   ${DOCKER} image build $BASE_DIR/ --build-arg VERSION=${BUILD_VERSION} \
     -t "$DOCKER_REGISTRY/karaoke-webvue:${BUILD_VERSION}" -f $DEPLOY_DIR/karaoke-webvue/Dockerfile
 
-  announce "Все модули собраны"
+  announce "Все модули собраны" "Все м+одули с+обраны"
 }
 
 function build_start_app() {
@@ -187,7 +187,7 @@ function do_start() {
   echo "Старт LOCAL"
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose.yml ${DATABASE} config
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose.yml ${DATABASE} up -d
-  announce "Все контейнеры запущены"
+  announce "Все контейнеры запущены" "Все конт+эйнеры зап+ущены"
 }
 
 function do_stop() {
@@ -204,7 +204,7 @@ function do_start_db() {
   do_stop_db
   echo "Старт DATABASE"
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-database.yml up -d
-  announce "DATABASE запущен"
+  announce "DATABASE запущен" "Конт+эйнер б+азы д+анных зап+ущен"
 }
 
 function do_stop_db() {
@@ -216,7 +216,7 @@ function do_start_web() {
   do_stop_web
   echo "Старт WEB"
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-web.yml up -d
-  announce "WEB запущен"
+  announce "WEB запущен" "Конт+эйнер бэк+энда с+айта лок+ально зап+ущен"
 }
 
 function do_stop_web() {
@@ -228,51 +228,52 @@ function do_start_webvue() {
   do_stop_webvue
   echo "Старт WEBVUE"
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-webvue.yml up -d
-  announce "Адм+инка зап+ущена"
+  announce "Старт WEBVUE" "Конт+эйнер адм+инки лок+ально зап+ущен"
 }
 
 function do_start_webvue3() {
   do_stop_webvue3
   echo "Старт WEBVUE3"
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-webvue3.yml up -d
-  announce "Адм+инка зап+ущена"
+  announce "Старт WEBVUE3" "Конт+эйнер адм+инки лок+ально зап+ущен"
 }
 
 function do_stop_webvue() {
   echo "Остановка WEBVUE"
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-webvue.yml down
-  announce "Адм+инка остан+овлена"
+  announce "Остановка WEBVUE" "Конт+эйнер адм+инки лок+ально остан+овлен"
 }
 
 function do_stop_webvue3() {
   echo "Остановка WEBVUE3"
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-webvue3.yml down
-  announce "Адм+инка остан+овлена"
+  announce "Остановка WEBVUE3" "Конт+эйнер адм+инки лок+ально остан+овлен"
 }
 
 function do_start_public() {
   do_stop_public
   echo "Старт PUBLIC"
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-public.yml up -d
-  announce "Фр+онт с+айта лок+ально зап+ущен"
+  announce "Старт PUBLIC" "Конт+эйнер фронт+энда с+айта лок+ально зап+ущен"
 }
 
 function do_stop_public() {
   echo "Остановка PUBLIC"
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-public.yml down
-  announce "Фр+онт с+айта лок+ально остан+овлен"
+  announce "Остановка PUBLIC" "Конт+эйнер фронт+энда с+айта лок+ально остан+овлен"
 }
 
 function do_start_app() {
   do_stop_webvue
   echo "Старт APP"
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-app.yml up -d
-  announce "APP запущен"
+  announce "Старт APP" "Конт+эйнер бэк+энда прилож+ения лок+ально зап+ущен"
 }
 
 function do_stop_app() {
   echo "Остановка APP"
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-app.yml down
+  announce "Остановка APP" "Конт+эйнер бэк+энда прилож+ения лок+ально остан+овлен"
 }
 
 function do_push() {

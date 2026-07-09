@@ -14,10 +14,13 @@ function announce() {
   local rate="$4"
   [ -z "$speak_text" ] && speak_text="$notify_text"
   command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "$notify_text"
+  [ "$speak_text" = "-" ] && return 0
+  # Синхронно (без фонового &): иначе при нескольких announce подряд фразы
+  # накладываются друг на друга — сперва должна договорить одна, потом следующая.
   if [ -x "$SILERO_PY" ] && [ -f "$SILERO_SCRIPT" ]; then
-    ("$SILERO_PY" "$SILERO_SCRIPT" "$speak_text" "$speaker" "$rate" &> /dev/null &)
+    "$SILERO_PY" "$SILERO_SCRIPT" "$speak_text" "$speaker" "$rate" &> /dev/null
   elif command -v spd-say &> /dev/null; then
-    spd-say -o rhvoice -l ru "$speak_text"
+    spd-say -w -o rhvoice -l ru "$speak_text"
   elif command -v paplay &> /dev/null; then
     paplay /usr/share/sounds/freedesktop/stereo/complete.oga
   fi

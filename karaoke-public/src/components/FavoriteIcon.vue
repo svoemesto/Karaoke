@@ -4,11 +4,12 @@
     v-else
     href="#"
     class="fav-icon"
-    :class="{ 'fav-on': state === 'on' }"
+    :class="{ 'fav-on': state === 'on', 'has-label': label }"
     :title="state === 'on' ? 'Убрать из избранного' : 'В избранное'"
     @click.prevent="onClick"
   >
     <SvgIcon name="favorite" :active="state === 'on'" :size="18" />
+    <span v-if="label" class="fav-label">{{ label }}</span>
   </a>
 </template>
 
@@ -25,7 +26,8 @@ export default {
   name: 'FavoriteIcon',
   components: { SvgIcon },
   props: {
-    songId: { type: [Number, String], required: true }
+    songId: { type: [Number, String], required: true },
+    label: { type: String, default: '' }
   },
   setup(props) {
     const router = useRouter()
@@ -67,6 +69,9 @@ export default {
 <style scoped>
 .fav-icon { display: inline-flex; align-items: center; justify-content: center; cursor: pointer; line-height: 0; }
 .fav-icon:hover { transform: scale(1.12); }
+.fav-icon.has-label { line-height: normal; justify-content: flex-start; gap: 6px; }
+.fav-icon.has-label:hover { transform: none; }
+.fav-label { font-size: 0.9rem; color: inherit; }
 .fav-spinner {
   display: inline-block;
   width: 13px;

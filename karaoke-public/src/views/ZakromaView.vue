@@ -18,6 +18,21 @@
       </div>
     </header>
 
+    <!-- Быстрый фильтр по названию песни (только когда автор выбран) -->
+    <div v-if="authorChosen" class="km-filter-bar">
+      <div class="km-filter-inner">
+        <span class="km-filter-icon">🔎</span>
+        <input
+          v-model="songFilter"
+          type="text"
+          class="km-input km-filter-input"
+          placeholder="Быстрый фильтр по названию песни..."
+          @keydown.esc="songFilter = ''"
+        />
+        <button v-if="songFilter" type="button" class="km-filter-clear" @click="songFilter = ''" title="Очистить">×</button>
+      </div>
+    </div>
+
     <!-- Фильтр автора -->
     <div class="km-content">
       <AuthorTiles
@@ -31,7 +46,11 @@
 
       <div v-if="authorChosen && isLoading" class="km-loading">Загрузка...</div>
 
-      <div v-for="zak in (authorChosen ? zakroma : [])" :key="zak.author" class="km-author-block">
+      <div v-if="authorChosen && !isLoading && songFilter && filteredZakroma.length === 0" class="km-loading">
+        Ничего не найдено по запросу «{{ songFilter }}»
+      </div>
+
+      <div v-for="zak in (authorChosen ? filteredZakroma : [])" :key="zak.author" class="km-author-block">
         <!-- Заголовок автора -->
         <div class="km-author-header">
           <img
@@ -170,6 +189,12 @@ import { usePlaylistMembership } from '../composables/usePlaylistMembership'
 import { useCart } from '../composables/useCart'
 import { useAuth } from '../composables/useAuth'
 
+// Нормализация строки для быстрого фильтра по названию: регистронезависимо, без краевых
+// пробелов, Ё приравнивается к Е (чтобы «ёлка»/«елка» находили друг друга).
+function normalize(s) {
+  return (s || '').toLowerCase().replace(/ё/g, 'е').trim()
+}
+
 export default {
   name: 'ZakromaView',
   components: { PlatformLink, PlayerIcon, PremiumIcon, SongSubscriptionModal, FavoriteIcon, PlaylistIcon, CartIcon, AuthStatusWidget, AuthorTiles },
@@ -189,13 +214,33 @@ export default {
       authorChosen: !!this.$route.query.author,
       // Модалка подписки на конкретную песню — открывается кликом по золотой иконке плеера.
       subscribingSongId: null,
-      subscribingSongName: ''
+      subscribingSongName: '',
+      // Быстрый клиентский фильтр по названию песни (без запроса к бэку).
+      songFilter: ''
     }
   },
   computed: {
     ...mapGetters('zakroma', ['authorTiles', 'zakroma', 'isLoading']),
     isPremium() {
       return !!(this.user && this.user.effectivePremium)
+    },
+    // Тот же zakroma, но с albumSettings/альбомами/авторами, отфильтрованными по songFilter.
+    // Watch/загрузка readiness-membership намеренно завязаны на исходный zakroma (см. watch ниже),
+    // а не на этот computed — иначе каждое нажатие клавиши будет дёргать сетевые запросы готовности.
+    filteredZakroma() {
+      const q = normalize(this.songFilter)
+      if (!q) return this.zakroma
+      return (this.zakroma || [])
+        .map(zak => ({
+          ...zak,
+          albums: (zak.albums || [])
+            .map(alb => ({
+              ...alb,
+              albumSettings: (alb.albumSettings || []).filter(s => normalize(s.songName).includes(q))
+            }))
+            .filter(alb => alb.albumSettings.length > 0)
+        }))
+        .filter(zak => zak.albums.length > 0)
     },
   },
   watch: {
@@ -252,12 +297,14 @@ export default {
     onAuthorSelect(author) {
       this.selectedAuthor = author
       this.authorChosen = true
+      this.songFilter = ''
       this.$router.replace({ path: '/zakroma', query: author ? { author } : {} })
       this.loadZakroma(author)
     },
     backToAuthors() {
       this.selectedAuthor = ''
       this.authorChosen = false
+      this.songFilter = ''
       this.$router.replace({ path: '/zakroma', query: {} })
     }
   }
@@ -325,6 +372,56 @@ export default {
 }
 .km-tb:hover { background: var(--km-hover); color: var(--km-text); }
 .km-tb.active { background: var(--km-accent); color: #fff; }
+
+/* Быстрый фильтр по названию песни — sticky-панель сразу под хедером */
+.km-filter-bar {
+  position: sticky;
+  top: 53px; /* высота .km-header: padding 0.5rem*2 + логотип 36px + border 1px */
+  z-index: 90;
+  background: var(--km-header);
+  border-bottom: 1px solid var(--km-border);
+  padding: 0.5rem 1rem;
+}
+.km-filter-inner {
+  max-width: 900px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.km-filter-icon {
+  color: var(--km-text2);
+  font-size: 0.9rem;
+}
+.km-filter-input {
+  flex: 1;
+}
+.km-filter-clear {
+  background: transparent;
+  border: none;
+  color: var(--km-text2);
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0.2rem 0.4rem;
+}
+.km-filter-clear:hover { color: var(--km-text); }
+
+/* Поле ввода (общий стиль km-input, как в SearchView/LoginView/AccountView) */
+.km-input {
+  background: var(--km-input);
+  color: var(--km-text);
+  border: 1px solid var(--km-border);
+  border-radius: 8px;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.9rem;
+  width: 100%;
+  transition: border-color 0.15s;
+}
+.km-input:focus {
+  outline: none;
+  border-color: var(--km-accent);
+}
 
 /* Контент */
 .km-content {

@@ -448,7 +448,10 @@ true` на нужных полях в `fields` + `v-model:sort-by` (data `sortBy
 - **karaoke-public (Vue SPA).** Публичный фронт (Vue 3 + Vite, Bootstrap 5), заменяет Thymeleaf `karaoke-web`.
   **Двойной дизайн** classic/modern (`composables/useDesign.js`, выбор в localStorage; тонкие view-обёртки
   `v-if design==='modern'`, каталоги `views/classic|modern`, CSS-переменные `--km-*`). Таблицы Закрома/Поиск —
-  `table-layout: fixed` с явной шириной. Сборка — `nvm use v25.7.0`. Детали → memory `project_karaoke_public_views`,
+  `table-layout: fixed` с явной шириной. Сборка — `nvm use v25.7.0`. Закрома (`ZakromaView.vue`) — быстрый
+  клиентский фильтр по названию песни (sticky-панель под шапкой, `computed filteredZakroma` над Vuex-геттером
+  `zakroma`, без запроса к бэку); watch на готовность плеера/плейлистов остаётся на исходном `zakroma`, не на
+  отфильтрованном — иначе каждая нажатая клавиша дёргала бы сеть. Детали → memory `project_karaoke_public_views`,
   `project_dual_design`, `project_zakroma_*`.
 - **Онлайн-плеер (`/player/:id`).** Браузерный плеер, визуально идентичный MLT-рендеру. **ДВЕ намеренные копии**
   `KaraokePlayer.js` (`webvue3/src/player/` — admin, читает локальные файлы `/api/song/{id}/...`; и

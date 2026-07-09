@@ -119,6 +119,25 @@ class PublicSubscriptionController(
 
         val tariff = tariffFor(scope, songId, tariffId)
             ?: return ResponseEntity.status(HttpStatus.NOT_FOUND).body(mapOf("error" to "no_tariff"))
+
+        // Повторный клик "Оформить" до того, как первый заказ обработан (см. инцидент 2026-07-09 —
+        // двойной клик создал две отдельные PENDING-подписки и два отдельных платежа в ЮKassa):
+        // если у пользователя уже есть незавершённый заказ на этот же тариф сайта, не создаём новый —
+        // перепроверяем платёж у ЮKassa и, если он всё ещё pending, отдаём фронту тот же confirmationUrl.
+        if (scope == Subscription.SCOPE_SITE) {
+            val pending = Subscription.findPendingSite(user.id, tariff.id, db, storageService, storageApiClient)
+            if (pending != null && pending.yookassaPaymentId.isNotBlank()) {
+                val existingPayment = paymentService.verifyAndFetch(pending.yookassaPaymentId)
+                if (existingPayment?.status == "pending") {
+                    return ResponseEntity.ok(mapOf(
+                        "subscriptionId" to pending.id,
+                        "status" to pending.status,
+                        "confirmationUrl" to existingPayment.confirmation?.confirmation_url,
+                    ))
+                }
+            }
+        }
+
         val price = priceService.computePrice(tariff, user, db, storageService, storageApiClient)
 
         val sub = Subscription.createNew(

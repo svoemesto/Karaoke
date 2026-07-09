@@ -48,6 +48,28 @@ export default class KaraokePlayer {
     this._accVol = 100
     this._vocVol = 0
 
+    // Скорость воспроизведения (множитель). Персистентна на весь инстанс — как и громкость выше,
+    // наследуется следующим треком плейлиста. _rateAnchorPos — позиция в буфере (сек) на момент
+    // последней перепривязки startedAt (старт/сик/смена скорости); вместе с startedAt и
+    // audioCtx.currentTime даёт текущую позицию без рестарта звуковых источников при смене
+    // скорости на лету (playbackRate — живой AudioParam, меняется прямо на playing-источниках).
+    this._playbackRate = 1
+    this._rateAnchorPos = 0
+
+    // Громкость/якорь/скорость сверх этого ещё и глобально персистентны в localStorage (на машину
+    // пользователя, не привязаны к конкретной песне) — открытие плеера на ЛЮБОЙ другой песне (не
+    // только следующий трек плейлиста) подхватывает последние использованные значения.
+    const saved = KaraokePlayer._loadPersistedSettings()
+    if (saved) {
+      if (saved.accVol !== null) this._accVol = saved.accVol
+      if (saved.vocVol !== null) this._vocVol = saved.vocVol
+      if (saved.anchored !== null) this._volumeAnchored = saved.anchored
+      if (saved.playbackRate !== null) this._playbackRate = saved.playbackRate
+    }
+
+    // Значок ▶/⏸ по центру экрана при клике по видео-области (fade+pop, см. _renderScreenIconAnim)
+    this._screenIconAnim = null
+
     // Pre-roll: splash (5s) + silent offset before first syllable
     this._splashDur = 5.0
     this._silentOffset = 0
@@ -181,7 +203,7 @@ export default class KaraokePlayer {
       const elapsed = this.isPlaying ? (Date.now() - this._prerollRef) / 1000 : 0
       return this._dtPaused + elapsed
     }
-    return this._preroll + (this.isPlaying ? this.audioCtx.currentTime - this.startedAt : this.pausedAt)
+    return this._preroll + (this.isPlaying ? this._rateAnchorPos + (this.audioCtx.currentTime - this.startedAt) * this._playbackRate : this.pausedAt)
   }
 
   // ─── Parsing ──────────────────────────────────────────────────────────────
@@ -575,13 +597,25 @@ export default class KaraokePlayer {
           <div id="kp-progress-wrap" style="flex:1;height:5px;background:#333;border-radius:3px;cursor:pointer;position:relative">
             <div id="kp-progress-bar" style="height:100%;background:#f80;border-radius:3px;width:0%;pointer-events:none"></div>
           </div>
-          <!-- Меню (☰) целиком убрано из публичного плеера: пункт "Открыть файл..." больше не
-               нужен — публичная монетизация не предоставляет файлы пользователю (см. план
-               монетизации: только онлайн-разблокировка, никаких .smkaraoke наружу), а "Экспорт
-               аудио..." был единственным другим пунктом. #kp-file-input/#kp-menu-wrap намеренно НЕ
-               рендерятся здесь (в отличие от admin-копии webvue3/src/player/KaraokePlayer.js, где
-               меню нужно для работы с локальными файлами) — _buildMenu() ниже безопасно
-               no-op'ает, если #kp-menu-btn не найден. -->
+          <!-- Меню (☰) в публичном плеере урезано ДО ОДНОГО пункта — «Скорость». Пункты "Открыть
+               файл..."/"Сохранить файл"/#kp-file-input из admin-копии
+               (webvue3/src/player/KaraokePlayer.js) сюда намеренно не перенесены: публичная
+               монетизация не отдаёт файлы пользователю наружу (см. план монетизации — только
+               онлайн-разблокировка, никаких .smkaraoke). "Экспорт аудио..." — отдельная,
+               существовавшая до этого фича (canExport), сюда тоже не подмешивается, чтобы не
+               плодить лишние пункты; #kp-menu-export просто не рендерится, _updateExportMenuAvailability()
+               ниже безопасно no-op'ает на отсутствующей разметке. -->
+          <div id="kp-menu-wrap" style="position:relative">
+            <button id="kp-menu-btn" title="Меню" style="background:none;border:none;color:#ccc;font-size:16px;cursor:pointer;padding:0 4px">☰</button>
+            <div id="kp-menu" class="kp-menu">
+              <div class="kp-menu-item kp-menu-parent" id="kp-menu-speed">
+                <span>Скорость: <span id="kp-speed-label">1x</span></span><span class="kp-menu-arrow">▸</span>
+                <div class="kp-submenu" id="kp-submenu-speed">
+                  ${KaraokePlayer.SPEED_OPTIONS.map(o => `<div class="kp-menu-item" data-rate="${o.value}"><span>${o.label}</span></div>`).join('')}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>`
 
@@ -591,6 +625,9 @@ export default class KaraokePlayer {
 
     window.addEventListener('resize', this._resizeHandler)
     document.addEventListener('fullscreenchange', this._fsHandler)
+
+    const canvasWrap = this.container.querySelector('#kp-canvas-wrap')
+    canvasWrap.addEventListener('click', () => this._onScreenClick())
 
     this.container.querySelector('#kp-play').addEventListener('click', () => this._togglePlay())
     this.container.querySelector('#kp-fs').addEventListener('click', () => this._toggleFullscreen())
@@ -620,11 +657,13 @@ export default class KaraokePlayer {
       this._accVol = Number(e.target.value)
       if (this.accGain) this.accGain.gain.value = e.target.value / 100
       if (this._volumeAnchored) this._syncVolumeSliders(e.target.value, accSlider)
+      this._savePersistedSettings()
     })
     vocSlider.addEventListener('input', e => {
       this._vocVol = Number(e.target.value)
       if (this.vocGain) this.vocGain.gain.value = e.target.value / 100
       if (this._volumeAnchored) this._syncVolumeSliders(e.target.value, vocSlider)
+      this._savePersistedSettings()
     })
 
     const anchorBtn = this.container.querySelector('#kp-anchor')
@@ -634,6 +673,7 @@ export default class KaraokePlayer {
       this._renderAnchorIcon(anchorBtn, this._volumeAnchored)
       // Turning the anchor on brings every track to the "Музыка" (accompaniment) level.
       if (this._volumeAnchored) this._syncVolumeSliders(accSlider.value, accSlider)
+      this._savePersistedSettings()
     })
   }
 
@@ -670,6 +710,46 @@ export default class KaraokePlayer {
 
   // ─── Menu (load file / export audio) ───────────────────────────────────────
 
+  static LS_SETTINGS_KEY = 'karaoke-player-settings'
+
+  static _loadPersistedSettings() {
+    try {
+      const raw = localStorage.getItem(KaraokePlayer.LS_SETTINGS_KEY)
+      if (!raw) return null
+      const s = JSON.parse(raw)
+      return {
+        accVol: Number.isFinite(s.accVol) ? Math.min(100, Math.max(0, s.accVol)) : null,
+        vocVol: Number.isFinite(s.vocVol) ? Math.min(100, Math.max(0, s.vocVol)) : null,
+        anchored: typeof s.anchored === 'boolean' ? s.anchored : null,
+        playbackRate: Number.isFinite(s.playbackRate) && s.playbackRate > 0 ? s.playbackRate : null
+      }
+    } catch (e) { return null }
+  }
+
+  // Вызывается при каждом изменении громкости/якоря/скорости — не только на плейлист-переходах,
+  // но и глобально, чтобы следующее открытие плеера (любая другая песня) подхватило те же значения.
+  _savePersistedSettings() {
+    try {
+      localStorage.setItem(KaraokePlayer.LS_SETTINGS_KEY, JSON.stringify({
+        accVol: this._accVol,
+        vocVol: this._vocVol,
+        anchored: this._volumeAnchored,
+        playbackRate: this._playbackRate
+      }))
+    } catch (e) { /* localStorage недоступен (приватный режим/квота) — просто не персистится */ }
+  }
+
+  static SPEED_OPTIONS = [
+    { value: 0.5, label: '0.5x' },
+    { value: 0.75, label: '0.75x' },
+    { value: 1, label: '1x' },
+    { value: 1.25, label: '1.25x' },
+    { value: 1.5, label: '1.5x' },
+    { value: 1.75, label: '1.75x' },
+    { value: 2, label: '2x' },
+    { value: 3, label: '3x' }
+  ]
+
   static STEM_EXPORT_MAP = {
     vocals: { urlField: 'audioVocalsUrl', suffix: 'voice' },
     accompaniment: { urlField: 'audioAccompanimentUrl', suffix: 'accompaniment' },
@@ -677,15 +757,15 @@ export default class KaraokePlayer {
     drums: { urlField: 'audioDrumsUrl', suffix: 'drums' }
   }
 
+  // Публичное меню намеренно содержит ТОЛЬКО пункт «Скорость» (см. комментарий в шаблоне _buildUI)
+  // — в отличие от admin-копии (webvue3/src/player/KaraokePlayer.js), здесь нет «Открыть файл...»/
+  // «Сохранить файл»/«Экспорт аудио...», поэтому их wiring сюда не переносится вовсе.
   _buildMenu() {
     const menuBtn = this.container.querySelector('#kp-menu-btn')
-    // Меню целиком убрано из публичного плеера (см. комментарий в шаблоне выше) — no-op, если
-    // разметки нет. Admin-копия (webvue3) рендерит меню и доходит до реальной инициализации ниже.
     if (!menuBtn) return
     const menu = this.container.querySelector('#kp-menu')
-    const exportItem = this.container.querySelector('#kp-menu-export')
-    const submenu = this.container.querySelector('#kp-submenu-export')
-    const openItem = this.container.querySelector('#kp-menu-open')
+    const speedItem = this.container.querySelector('#kp-menu-speed')
+    const speedSubmenu = this.container.querySelector('#kp-submenu-speed')
 
     menuBtn.addEventListener('click', e => {
       e.stopPropagation()
@@ -696,31 +776,38 @@ export default class KaraokePlayer {
 
     // The submenu already opens on hover via CSS (:hover); click toggles a class so it also
     // works without a pointing device that supports hover (touch, or a deliberate click).
-    exportItem.addEventListener('click', e => {
+    speedItem.addEventListener('click', e => {
       e.stopPropagation()
-      exportItem.classList.toggle('kp-submenu-open')
+      speedItem.classList.toggle('kp-submenu-open')
     })
 
-    openItem.addEventListener('click', () => {
-      this._closeMenu()
-      this.container.querySelector('#kp-file-input').click()
-    })
-
-    for (const el of submenu.querySelectorAll('[data-stem]')) {
+    for (const el of speedSubmenu.querySelectorAll('[data-rate]')) {
       el.addEventListener('click', () => {
         this._closeMenu()
-        this._exportStem(el.dataset.stem)
+        this.setPlaybackRate(Number(el.dataset.rate))
       })
     }
+    this._updateSpeedMenu()
 
     document.addEventListener('click', this._menuOutsideClickHandler)
   }
 
+  // Подсвечивает текущую выбранную скорость в подменю + обновляет лейбл в родительском пункте.
+  _updateSpeedMenu() {
+    const label = this.container?.querySelector('#kp-speed-label')
+    const opt = KaraokePlayer.SPEED_OPTIONS.find(o => o.value === this._playbackRate)
+    if (label) label.textContent = opt ? opt.label : `${this._playbackRate}x`
+    for (const el of this.container?.querySelectorAll('#kp-submenu-speed [data-rate]') || []) {
+      const active = Number(el.dataset.rate) === this._playbackRate
+      el.style.background = active ? '#08f' : 'none'
+      el.style.color = active ? '#fff' : '#eee'
+    }
+  }
+
   _closeMenu() {
     const menu = this.container.querySelector('#kp-menu')
-    const exportItem = this.container.querySelector('#kp-menu-export')
     if (menu) menu.style.display = 'none'
-    if (exportItem) exportItem.classList.remove('kp-submenu-open')
+    for (const el of this.container.querySelectorAll('.kp-menu-parent')) el.classList.remove('kp-submenu-open')
   }
 
   // "Экспорт аудио..." целиком доступен только для локально открытого файла ('blob'/'url-smkaraoke'
@@ -951,7 +1038,7 @@ export default class KaraokePlayer {
 
   _getCurrentTime() {
     if (!this.audioCtx) return 0
-    return this.isPlaying ? this.audioCtx.currentTime - this.startedAt : this.pausedAt
+    return this.isPlaying ? this._rateAnchorPos + (this.audioCtx.currentTime - this.startedAt) * this._playbackRate : this.pausedAt
   }
 
   // Трекинг play/pause вешается именно здесь, а не внутри _play()/_pause() — те два метода также
@@ -966,6 +1053,14 @@ export default class KaraokePlayer {
       this._play()
       if (this._mode === 'api') trackPlayerPlay(this.songId)
     }
+  }
+
+  // Клик по видео-области = play/pause (как в большинстве видеоплееров). Игнорируется, пока песня
+  // не готова (_play() всё равно не начнёт играть без буферов — не запускаем анимацию впустую).
+  _onScreenClick() {
+    if (!this._ready) return
+    this._togglePlay()
+    this._screenIconAnim = { playing: this.isPlaying, startedAt: Date.now() }
   }
 
   async _play() {
@@ -1007,7 +1102,10 @@ export default class KaraokePlayer {
     vocSrc.connect(this.vocGain)
     this.accSource = accSrc
     this.vocSource = vocSrc
-    this.startedAt = this.audioCtx.currentTime - offset
+    accSrc.playbackRate.value = this._playbackRate
+    vocSrc.playbackRate.value = this._playbackRate
+    this.startedAt = this.audioCtx.currentTime
+    this._rateAnchorPos = offset
     accSrc.start(0, offset)
     vocSrc.start(0, offset)
     this.isPlaying = true
@@ -1063,6 +1161,25 @@ export default class KaraokePlayer {
   play() { this._play() }
   pause() { this._pause() }
   togglePlay() { this._togglePlay() }
+
+  // Меняет скорость воспроизведения. Если аудио уже играет (не в preroll) — перепривязывает
+  // позицию (startedAt/_rateAnchorPos) к текущему моменту на СТАРОЙ скорости, затем меняет
+  // playbackRate прямо на уже запущенных AudioBufferSourceNode — без остановки/рестарта
+  // источников, значит без щелчка/рассинхронизации. Во время preroll или на паузе скорость просто
+  // запоминается и применится в _startAudio() при следующем реальном старте аудио.
+  setPlaybackRate(rate) {
+    rate = Number(rate)
+    if (!isFinite(rate) || rate <= 0 || rate === this._playbackRate) return
+    if (this.isPlaying && !this._isPrerolling && this.audioCtx) {
+      this._rateAnchorPos = this._getCurrentTime()
+      this.startedAt = this.audioCtx.currentTime
+    }
+    this._playbackRate = rate
+    if (this.accSource) this.accSource.playbackRate.value = rate
+    if (this.vocSource) this.vocSource.playbackRate.value = rate
+    this._updateSpeedMenu()
+    this._savePersistedSettings()
+  }
 
   // Сменить проигрываемую песню в api-режиме, переиспользуя инстанс (без destroy). Зеркалит
   // teardown/сброс состояния из _loadNewFile, но остаётся в 'api' и заново дёргает init().
@@ -1508,7 +1625,71 @@ export default class KaraokePlayer {
     }
 
     this._renderLogo(ctx, W, H, logoAlpha)
+    this._renderSpeedBadge(ctx, W, H)
+    this._renderScreenIconAnim(ctx, W, H)
     this._updateControls(dt)
+  }
+
+  // Бейдж со скоростью в углу экрана, пока она отличается от 1x — постоянный, а не «мелькающий»
+  // (в отличие от _renderScreenIconAnim ниже), т.к. пользователь должен видеть текущий режим всегда.
+  _renderSpeedBadge(ctx, W, H) {
+    if (this._playbackRate === 1) return
+    const scale = H / 1080
+    const opt = KaraokePlayer.SPEED_OPTIONS.find(o => o.value === this._playbackRate)
+    const label = opt ? opt.label : `${this._playbackRate}x`
+
+    const fs = Math.max(14, Math.round(24 * scale))
+    ctx.font = `700 ${fs}px sans-serif`
+    const padX = Math.round(14 * scale), padY = Math.round(7 * scale)
+    const boxW = ctx.measureText(label).width + padX * 2
+    const boxH = fs + padY * 2
+    const margin = Math.round(20 * scale)
+    const x = W - boxW - margin
+    const y = margin
+
+    ctx.save()
+    ctx.fillStyle = 'rgba(0,0,0,0.55)'
+    ctx.beginPath(); ctx.roundRect(x, y, boxW, boxH, boxH / 2); ctx.fill()
+    ctx.fillStyle = '#f80'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText(label, x + boxW / 2, y + boxH / 2 + 1)
+    ctx.restore()
+  }
+
+  // Затухающий значок ▶/⏸ по центру экрана после клика на видео-область (см. _onScreenClick) —
+  // показывает, какое именно действие только что произошло, и гаснет за ANIM_DUR секунд.
+  _renderScreenIconAnim(ctx, W, H) {
+    const anim = this._screenIconAnim
+    if (!anim) return
+    const ANIM_DUR = 0.6
+    const t = (Date.now() - anim.startedAt) / 1000
+    if (t > ANIM_DUR) { this._screenIconAnim = null; return }
+
+    const alpha = 1 - t / ANIM_DUR
+    const growth = 1 + (t / ANIM_DUR) * 0.35
+    const cx = W / 2, cy = H / 2
+    const r = Math.min(W, H) * 0.09 * growth
+
+    ctx.save()
+    ctx.globalAlpha = alpha
+    ctx.fillStyle = 'rgba(0,0,0,0.5)'
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill()
+    ctx.fillStyle = '#fff'
+    if (anim.playing) {
+      const s = r * 0.5
+      ctx.beginPath()
+      ctx.moveTo(cx - s * 0.5, cy - s)
+      ctx.lineTo(cx - s * 0.5, cy + s)
+      ctx.lineTo(cx + s * 0.85, cy)
+      ctx.closePath()
+      ctx.fill()
+    } else {
+      const barW = r * 0.28, barH = r * 0.9, gap = r * 0.22
+      ctx.fillRect(cx - gap - barW, cy - barH / 2, barW, barH)
+      ctx.fillRect(cx + gap, cy - barH / 2, barW, barH)
+    }
+    ctx.restore()
   }
 
   // Site logo overlay while a song is loaded: hidden the whole way through, except a fade-in over

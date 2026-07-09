@@ -215,6 +215,31 @@ class Subscription(
             ).mapNotNull { (it as Subscription).idSong }.toSet()
         }
 
+        // Незавершённый (PENDING) заказ пользователя на конкретный тариф сайта — используется, чтобы
+        // повторный клик "Оформить" до перехода на страницу оплаты не плодил дублирующие подписки и
+        // платежи в ЮKassa (см. PublicSubscriptionController.create): вместо новой записи переиспользуем
+        // confirmationUrl уже созданного платежа.
+        fun findPendingSite(
+            siteUserId: Long,
+            tariffId: Long,
+            database: KaraokeConnection,
+            storageService: KaraokeStorageService,
+            storageApiClient: StorageApiClient,
+        ): Subscription? = KaraokeDbTable.loadList(
+            clazz = Subscription::class,
+            tableName = TABLE_NAME,
+            whereList = listOf(
+                "site_user_id=$siteUserId",
+                "scope='$SCOPE_SITE'",
+                "tariff_id=$tariffId",
+                "status='$STATUS_PENDING'",
+            ),
+            limit = 1,
+            database = database,
+            storageService = storageService,
+            storageApiClient = storageApiClient,
+        ).firstOrNull() as? Subscription
+
         // Счётчик оплаченных подписок юзера в рамках scope — нужен для акции NTH_FREE.
         fun countPaid(
             siteUserId: Long,

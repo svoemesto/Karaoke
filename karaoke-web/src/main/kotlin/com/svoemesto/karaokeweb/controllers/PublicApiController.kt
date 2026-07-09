@@ -1,5 +1,6 @@
 package com.svoemesto.karaokeweb.controllers
 
+import com.svoemesto.karaokeapp.model.Author
 import com.svoemesto.karaokeapp.model.EventType
 import com.svoemesto.karaokeapp.model.Pictures
 import com.svoemesto.karaokeapp.model.RestName
@@ -122,7 +123,22 @@ class PublicApiController(
     ): List<SettingsPublicDto> {
         val attr: MutableMap<String, String> = mutableMapOf()
         if (!songName.isNullOrEmpty()) attr["song_name"] = songName
-        if (!author.isNullOrEmpty()) attr["author"] = author
+        // Поиск по автору: сначала резолвим term (может быть и реальным именем, и алиасом —
+        // солист/участник группы) через tbl_authors, затем ищем песни по НАБОРУ реальных имён.
+        // Если совпадений в tbl_authors нет (автор не заведён как отслеживаемый) — фолбэк на
+        // прежнее строгое равенство, чтобы не потерять существующее поведение поиска.
+        var aliasByAuthor: Map<String, String> = emptyMap()
+        if (!author.isNullOrEmpty()) {
+            val matches = Author.resolveByTerm(author, WORKING_DATABASE)
+            if (matches.isNotEmpty()) {
+                attr["author_in"] = matches.joinToString(Settings.AUTHOR_IN_DELIMITER) { it.author }
+                aliasByAuthor = matches
+                    .filter { it.matchedAliases.isNotEmpty() }
+                    .associate { it.author.lowercase() to it.matchedAliases.joinToString(", ") }
+            } else {
+                attr["author"] = author
+            }
+        }
         if (!text.isNullOrEmpty()) attr["text"] = text
         if (!album.isNullOrEmpty()) attr["song_album"] = album
 
@@ -139,7 +155,10 @@ class PublicApiController(
         if (!album.isNullOrEmpty()) data["album"] = album
         mainController.doRegisterEvent(mapOf("eventType" to EventType.CALL_REST.dbValue, "restName" to RestName.FILTER.dbValue, "parameters" to data, "anonId" to (anonId ?: ""), "referrer" to (referrer ?: "")), request, siteUserResolver.resolve(request)?.id ?: 0)
 
-        return settings.map { SettingsPublicDto.fromSettings(it, includeDetails = false) }
+        return settings.map {
+            val dto = SettingsPublicDto.fromSettings(it, includeDetails = false)
+            dto.copy(authorAlias = aliasByAuthor[dto.author.lowercase()] ?: "")
+        }
     }
 
     @GetMapping("/song/{id}")

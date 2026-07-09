@@ -37,7 +37,15 @@ interface TextFileDictionary {
     /** Имя словаря (колонка dict_name в tbl_dictionaries) — раньше был путь к текстовому файлу. */
     fun dictName(): String
 
-    val dict: List<String> get() = Dictionary.loadValues(dictName(), WORKING_DATABASE)
+    // karaoke-web не имеет полноценной инициализации ConstantsKt/Connection (см. «karaoke-web Settings
+    // trap» в CLAUDE.md) — обращение к WORKING_DATABASE там может бросить NoClassDefFoundError (Error,
+    // не Exception), роняя весь запрос (Zakroma, страница песни и т.п.). Деградируем до пустого словаря,
+    // а не валим вызывающий эндпоинт.
+    val dict: List<String> get() = try {
+        Dictionary.loadValues(dictName(), WORKING_DATABASE)
+    } catch (e: Throwable) {
+        emptyList()
+    }
 
     fun clear() {
         Dictionary.clear(dictName(), WORKING_DATABASE)

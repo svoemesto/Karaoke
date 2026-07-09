@@ -220,7 +220,13 @@ SyncIdsDictionary` оставлены тонким фасадом над `Dictio
 Разовый перенос старых `.txt` в БД — `POST /api/dictionaries/importfromfiles`. **Ловушка:** Kotlin
 поддерживает вложенные `/* */`-комментарии — путь вида `/sm-karaoke/system/*.txt` внутри
 `/** KDoc */` содержит `/*` и обрывает комментарий («Unclosed comment» + каскад ошибок по всем
-зависимым файлам); в line-комментариях (`//`, `--`) проблемы нет. **Детали** → memory
+зависимым файлам); в line-комментариях (`//`, `--`) проблемы нет. Админ-раздел «Словари» в webvue3
+(`/dictionaries`, `DictionariesController` — `list/names/create/update/delete`, только LOCAL) даёт
+полноценный CRUD по образцу Authors (фильтр, сортировка) + Tariffs (inline-добавление/удаление); имя
+словаря выбирается select'ом из уже существующих значений, свободный ввод не допускается. Уникальность
+пары `dict_name`+`dict_value` гарантирована `UNIQUE`-индексом в БД; при этом `KaraokeDbTable.save()`
+молча глотает исключение конфликта на UPDATE (см. инвариант reflection-loader ниже), поэтому
+контроллер проверяет конфликт сам, до вызова `save()`. **Детали** → memory
 `project_dictionaries_migration.md`.
 
 **Async job pipeline (`KaraokeProcess*`).** Тяжёлая работа (ffmpeg/`melt`-рендер, Demucs, Sheetsage key/BPM/chords,
@@ -332,7 +338,12 @@ true` на нужных полях в `fields` + `v-model:sort-by` (data `sortBy
   `rs.wasNull()` — **до фикса** молча подменял `NULL` на `0`, что ломало `.save()` (мнимый diff → попытка
   записать строку `"null"` в числовую колонку → тихо проваленный `UPDATE`, ошибка проглатывается). Любая
   новая модель над таблицей с nullable-колонками (строка, timestamp, число) — объявляет соответствующее
-  Kotlin-поле nullable.
+  Kotlin-поле nullable. **Тот же swallow бьёт и по UNIQUE-конфликтам**: `try/catch` вокруг
+  `ps.executeUpdate()` в `save()` глотает любое SQL-исключение, включая нарушение уникального индекса
+  при редактировании записи в конфликтующее состояние — `save()` не бросает и не сигнализирует об
+  ошибке. Для сущности с `UNIQUE`-индексом, редактируемой через UI, — проверять конфликт (`get*`-поиск
+  по новым значениям, сравнить id) в контроллере **до** вызова `.save()`, не полагаться на `try/catch`
+  вокруг него (см. `DictionariesController.update()`).
 - **Тег SKIP.** `tags` содержит `SKIP` → публичные страницы показывают заглушку «удалено по требованию
   правообладателя» (`song-removed.html` в karaoke-web; `SettingsPublicDto.contentRemoved` в karaoke-public, теги
   наружу не утекают).
@@ -371,6 +382,13 @@ true` на нужных полях в `fields` + `v-model:sort-by` (data `sortBy
   совпадают, т.к. реальная ширина `<input>` без явного `size`/`width` считается непрозрачным UA-
   алгоритмом). Единственный надёжный способ — задать **один и тот же явный `width`** одним CSS-правилом
   сразу на оба типа полей (общий класс), чтобы совпадение было гарантированным, а не подогнанным на глаз.
+- **Круглая кнопка очистки в `<Entity>FilterModal.vue`.** Ряд фильтра — поле (`.xxx-input-field`) +
+  кнопка «X» (`.xxx-button-clear-field`, `margin-left: -10px`, специально сдвинута к полю). Если у
+  поля не задана явная ширина (`width: fit-content`), оно растягивается на весь 200px-контейнер, и
+  кнопка наезжает на текст. Фикс — `width: calc(100% - 18px)` на `-input-field` (10px под сдвиг кнопки
+  + 8px зазора), как в `Songs/filter/SongsFilterModal.vue`; для select-полей рядом добавить
+  `select.xxx-input-field { appearance: none; ... }`. Любой новый `FilterModal.vue` — копировать этот
+  CSS-блок сразу, не `width: fit-content`.
 
 ## Git — что НЕ добавлять в репозиторий
 

@@ -16,6 +16,7 @@ import SyncView from '../views/SyncView.vue';
 import TariffsView from '../views/TariffsView.vue';
 import PromotionsView from '../views/PromotionsView.vue';
 import SponsrSyncView from '../views/SponsrSyncView.vue';
+import DictionariesView from '../views/DictionariesView.vue';
 
 const routes = [
   {
@@ -97,6 +98,11 @@ const routes = [
     path: '/sponsrsync',
     name: 'sponsrsync',
     component: SponsrSyncView
+  },
+  {
+    path: '/dictionaries',
+    name: 'dictionaries',
+    component: DictionariesView
   },
   {
     path: '/player/:id',

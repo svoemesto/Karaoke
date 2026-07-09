@@ -328,9 +328,17 @@ export default {
   border-width: thin;
 }
 
+/* Рамка/паддинг/фон/ШИРИНА заданы ЯВНО — поле сужено на 18px (10px под сдвиг кнопки
+   margin-left:-10px + 8px видимого зазора), иначе круглая кнопка очистки наезжает на поле
+   (было при width: fit-content). Паттерн — как в SongsFilterModal.vue. */
 .afm-input-field {
+  box-sizing: border-box;
+  border: 1px solid #767676;
   border-radius: 5px;
-  width: fit-content;
+  padding: 1px 4px;
+  font: inherit;
+  background-color: white;
+  width: calc(100% - 18px);
 }
 
 .afm-input-field:hover {
@@ -338,6 +346,13 @@ export default {
 }
 .afm-input-field:focus {
   background-color: cyan;
+}
+
+select.afm-input-field {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  cursor: pointer;
 }
 
 </style>

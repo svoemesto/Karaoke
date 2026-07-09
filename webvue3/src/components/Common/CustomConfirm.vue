@@ -11,6 +11,11 @@
               <button class="сс-group-button-boolean" :class="fld.fldValue === 'true' || fld.fldValue === true ? 'сс-group-button-boolean-active' : ''"  type="button" value="true"  @click="fld.fldValue='true'" :disabled="fld.disabled">TRUE</button>
               <button class="сс-group-button-boolean" :class="fld.fldValue === 'false' || fld.fldValue === false ? 'сс-group-button-boolean-active' : ''" type="button" value="false" @click="fld.fldValue='false'" :disabled="fld.disabled">FALSE</button>
             </div>
+            <div v-else-if="fld.fldIsSelect" class="сс-param-line-buttons">
+              <select class="сс-select-field" v-model="fld.fldValue" :style="fld.fldValueStyle" :disabled="fld.disabled">
+                <option v-for="opt in fld.fldOptions" :key="opt" :value="opt" v-text="opt"></option>
+              </select>
+            </div>
             <div v-else class="сс-param-line-buttons">
               <input v-model="fld.fldValue" :style="fld.fldValueStyle" :disabled="fld.disabled">
             </div>
@@ -232,5 +237,19 @@ export default {
 }
 .сс-group-button-boolean-active {
   background-color: dodgerblue;
+}
+
+/* Инвариант CLAUDE.md: нативный select рисует свою ОС-рамку/паддинг/высоту поверх заданных
+   стилей — appearance:none обязателен. Ширину/border-radius задаёт fld.fldValueStyle (тот же
+   объект стиля, что и у текстового поля этого ряда) — отдельный border здесь только чтобы select
+   не остался совсем без рамки после сброса appearance. */
+.сс-select-field {
+  box-sizing: border-box;
+  border: 1px solid gray;
+  padding: 2px 4px;
+  background-color: white;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
 }
 </style>

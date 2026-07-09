@@ -52,6 +52,13 @@
           <col v-for="field in scope.fields" :key="field.key" :style="field.style">
         </template>
 
+        <template #cell(effectivePremium)="data">
+          <div
+              style="text-align: center"
+              :title="data.value ? 'Премиум активен сейчас' : 'Премиума нет'"
+          >{{ data.value ? '🪙' : '' }}</div>
+        </template>
+
         <template #cell(email)="data">
           <div class="fld-email" v-text="data.value" @click.left="editUser(data.item.id, data.item)"></div>
         </template>
@@ -62,6 +69,10 @@
           </div>
         </template>
 
+        <template #cell(banReason)="data">
+          <div class="fld-ellipsis" :title="data.value">{{ data.value }}</div>
+        </template>
+
         <template #cell(premium)="data">
           <div style="text-align: center">{{ data.value ? 'Да' : '' }}</div>
         </template>
@@ -70,8 +81,32 @@
           <div style="text-align: center">{{ data.value ? 'Да' : '' }}</div>
         </template>
 
+        <template #cell(editor)="data">
+          <div style="text-align: center">{{ data.value ? 'Да' : '' }}</div>
+        </template>
+
+        <template #cell(sponsrPremiumUntil)="data">
+          <div style="text-align: center">{{ formatDate(data.value) }}</div>
+        </template>
+
+        <template #cell(sitePremiumUntil)="data">
+          <div style="text-align: center">{{ formatDate(data.value) }}</div>
+        </template>
+
         <template #cell(personalDiscountPercent)="data">
           <div style="text-align: center">{{ data.value > 0 ? `${data.value}%` : '' }}</div>
+        </template>
+
+        <template #cell(maxFavorites)="data">
+          <div style="text-align: center">{{ data.value > 0 ? data.value : '—' }}</div>
+        </template>
+
+        <template #cell(maxPlaylists)="data">
+          <div style="text-align: center">{{ data.value > 0 ? data.value : '—' }}</div>
+        </template>
+
+        <template #cell(maxPlaylistItems)="data">
+          <div style="text-align: center">{{ data.value > 0 ? data.value : '—' }}</div>
         </template>
       </b-table>
     </div>
@@ -116,13 +151,21 @@ export default {
     siteUserDigestFields() {
       return [
         { key: 'id', label: 'ID', sortable: true, style: { minWidth: '50px', maxWidth: '50px', textAlign: 'center', fontSize: 'small' } },
+        { key: 'effectivePremium', label: '🪙', sortable: true, style: { minWidth: '36px', maxWidth: '36px', textAlign: 'center', fontSize: 'small' } },
         { key: 'email', label: 'Email', sortable: true, style: { minWidth: '260px', maxWidth: '260px', textAlign: 'left', fontSize: 'small' } },
         { key: 'displayName', label: 'Имя', sortable: true, style: { minWidth: '200px', maxWidth: '200px', textAlign: 'left', fontSize: 'small' } },
         { key: 'sponsrUid', label: 'Sponsr UID', sortable: true, style: { minWidth: '110px', maxWidth: '110px', textAlign: 'center', fontSize: 'small' } },
         { key: 'premium', label: 'Премиум', sortable: true, style: { minWidth: '90px', maxWidth: '90px', textAlign: 'center', fontSize: 'small' } },
         { key: 'permanentPremium', label: 'Постоянный премиум', sortable: true, style: { minWidth: '90px', maxWidth: '90px', textAlign: 'center', fontSize: 'small' } },
+        { key: 'sponsrPremiumUntil', label: 'Sponsr до', sortable: true, style: { minWidth: '110px', maxWidth: '110px', textAlign: 'center', fontSize: 'small' } },
+        { key: 'sitePremiumUntil', label: 'Премиум сайта до', sortable: true, style: { minWidth: '110px', maxWidth: '110px', textAlign: 'center', fontSize: 'small' } },
         { key: 'personalDiscountPercent', label: 'Скидка', sortable: true, style: { minWidth: '70px', maxWidth: '70px', textAlign: 'center', fontSize: 'small' } },
+        { key: 'editor', label: 'Редактор', sortable: true, style: { minWidth: '80px', maxWidth: '80px', textAlign: 'center', fontSize: 'small' } },
         { key: 'banned', label: 'Статус', sortable: true, style: { minWidth: '100px', maxWidth: '100px', textAlign: 'center', fontSize: 'small' } },
+        { key: 'banReason', label: 'Причина бана', sortable: true, style: { minWidth: '160px', maxWidth: '160px', textAlign: 'left', fontSize: 'small' } },
+        { key: 'maxFavorites', label: 'Лимит Избр.', sortable: true, style: { minWidth: '70px', maxWidth: '70px', textAlign: 'center', fontSize: 'small' } },
+        { key: 'maxPlaylists', label: 'Лимит Плейл.', sortable: true, style: { minWidth: '70px', maxWidth: '70px', textAlign: 'center', fontSize: 'small' } },
+        { key: 'maxPlaylistItems', label: 'Лимит Тр/Пл', sortable: true, style: { minWidth: '70px', maxWidth: '70px', textAlign: 'center', fontSize: 'small' } },
         { key: 'createdAt', label: 'Регистрация', sortable: true, style: { minWidth: '160px', maxWidth: '160px', textAlign: 'center', fontSize: 'small' } },
         { key: 'lastLoginAt', label: 'Последний вход', sortable: true, style: { minWidth: '160px', maxWidth: '160px', textAlign: 'center', fontSize: 'small' } },
       ]
@@ -153,6 +196,12 @@ export default {
     },
     onRowClicked(item) {
       this.editUser(item.id, item);
+    },
+    formatDate(ts) {
+      if (!ts) return '—';
+      return new Date(ts.replace(' ', 'T')).toLocaleString('ru-RU', {
+        timeZone: 'Europe/Moscow', day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit'
+      });
     }
   }
 }
@@ -185,7 +234,7 @@ export default {
 }
 .sut-btn:hover { background-color: lightpink; }
 .sut-table-header { width: fit-content; }
-.sut-table-body { width: fit-content; }
+.sut-table-body { width: fit-content; max-width: 100%; overflow-x: auto; }
 .sut-table-body :deep(th) { position: relative; }
 .sut-table-body :deep(th svg.bi) {
   position: absolute;
@@ -205,4 +254,10 @@ export default {
   text-overflow: ellipsis;
 }
 .fld-email:hover { text-decoration: underline; cursor: pointer; }
+.fld-ellipsis {
+  font-size: small;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 </style>

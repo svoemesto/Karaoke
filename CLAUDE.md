@@ -95,7 +95,12 @@ bash do.sh start [all] / stop [all] / start_db / stop_db / push / pull / ps
 сервере). **Ловушка:** модель Silero не только падает на фразах без единой кириллической буквы, но и молча
 проглатывает латинские слова/акронимы даже в смешанных русско-английских фразах (без исключения) — поэтому
 `deploy/tts/silero_say.py` транслитерирует ЛЮБЫЕ латинские слова в кириллицу перед синтезом, а не только
-когда во всей фразе нет кириллицы. **Детали** → memory `project_do_sh_voice_announce.md`.
+когда во всей фразе нет кириллицы. **Ловушка 2:** невалидный номер голоса (не 1-5, например паразитный
+`"0"`) роняет синтез с ненулевым кодом возврата, а `set -e` в `deploy_web.sh`/`deploy_public.sh` из-за
+этого валит exit code всего скрипта в 1 — даже если сам деплой (push/pull/restart) уже полностью успешно
+прошёл. При диагностике «деплой упал» — всегда сверяться с реальными логами (`Downloaded newer image`,
+`Started ...Application`), не только с exit code обёртки. **Детали** → memory
+`project_do_sh_voice_announce.md`.
 
 **Сборка/запуск локальных контейнеров (`karaoke-app`, `karaoke-web`, `webvue3`) — ВСЕГДА из разных
 папок.** Реальный локальный контейнер поднимается из `/sm-karaoke/system/deploy` (свой `do.sh`, свои
@@ -463,8 +468,13 @@ true` на нужных полях в `fields` + `v-model:sort-by` (data `sortBy
   `SiteUserTokenService` на каждый запрос делает живой SELECT (бан/logout мгновенны). Защита —
   `SiteAuthInterceptor` (не Spring Security chain). Премиум — `is_premium` + независимый «вечный»
   `is_permanent_premium` → вычисляемый `isEffectivePremium` (единая точка проверки доступа). Капча — Yandex
-  SmartCaptcha (ключи в `tbl_public_settings`, fail-open). Детали → memory `project_site_user_auth`,
-  `project_captcha_mtu_proxy`.
+  SmartCaptcha (ключи в `tbl_public_settings`, fail-open). Админ-таблица «Пользователи сайта» (webvue3,
+  `SiteUsersTable.vue`) показывает `isEffectivePremium` золотой монеткой сразу после ID (колонка живёт
+  под JSON-ключом `effectivePremium` — Jackson `isX`→`x` — и отражает премиум по ЛЮБОМУ источнику: флаг,
+  вечный грант, непросроченный Sponsr/сайт-премиум), плюс остальные поля `SiteUserDto`, которых раньше не
+  было в таблице (даты истечения премиума, `is_editor`, причина бана, персональные лимиты) — бэкенд их уже
+  отдавал, менять не пришлось. Детали → memory `project_site_user_auth`, `project_captcha_mtu_proxy`,
+  `project_site_users_table_premium_column`.
 - **Онлайн-редактор разметки (`/account/editor`) с модерацией.** Упрощённый публичный аналог `SubsEdit.vue`:
   пользователь расставляет слоговые маркеры для ВСЕХ голосов песни (задание = вся песня целиком), админ
   модерирует (workflow `assigned→in_progress→submitted→approved/rejected`). **ДВЕ таблицы** (sync-движок
@@ -507,8 +517,13 @@ true` на нужных полях в `fields` + `v-model:sort-by` (data `sortBy
   блокирует кнопку «Оплатить» на фронте, пока ключи ЮKassa не заданы. Оферта — `/oferta`. ЮKassa одобрена
   и работает на проде с 2026-07-09. **Автопродление подписки на сайт временно отключено**
   (`saveMethod=false` в `PublicSubscriptionController.kt`) — сохранение платёжных данных даёт `403` от
-  ЮKassa, требует отдельного разрешения в их кабинете; вернуть флаг, когда разрешение получено. Детали →
-  memory `project_monetization_subscriptions`.
+  ЮKassa, требует отдельного разрешения в их кабинете; вернуть флаг, когда разрешение получено.
+  **Идемпотентность повторного клика (scope=SITE):** `PublicSubscriptionController.create()` перед
+  созданием новой подписки ищет уже существующий незавершённый (`PENDING`) заказ пользователя на тот же
+  тариф (`Subscription.findPendingSite`) и, если платёж по нему у ЮKassa всё ещё `pending`, возвращает
+  тот же `confirmationUrl` вместо создания дубля — до фикса 2026-07-09 двойной клик «Оформить» плодил
+  отдельные PENDING-подписки и отдельные платежи в ЮKassa. Детали →
+  memory `project_monetization_subscriptions`, `project_site_subscription_double_click_duplicate`.
 - **Корзина** — пакетная покупка нескольких подписок на песни одним заказом (второй путь параллельно
   мгновенной покупке через золотую иконку плеера). `tbl_cart_items`, `tbl_subscriptions.order_id` (общий
   для всех позиций заказа), акция `CART_BULK_PERCENT` (скидка от N штук в заказе, отличается от `NTH_FREE`

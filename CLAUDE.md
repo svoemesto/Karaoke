@@ -355,6 +355,16 @@ true` на нужных полях в `fields` + `v-model:sort-by` (data `sortBy
   ошибке. Для сущности с `UNIQUE`-индексом, редактируемой через UI, — проверять конфликт (`get*`-поиск
   по новым значениям, сравнить id) в контроллере **до** вызова `.save()`, не полагаться на `try/catch`
   вокруг него (см. `DictionariesController.update()`).
+- **Identity-sequence дрейф после `SERVER_TO_LOCAL` sync + самолечение в `createDbInstance`.** Sync
+  вставляет строки с явным серверным `id` через `INSERT ... OVERRIDING SYSTEM VALUE` — это **не двигает**
+  локальную `GENERATED ALWAYS AS IDENTITY`-последовательность, поэтому у любой такой таблицы (плейлисты,
+  site users, subscriptions, song assignments и т.п.) `nextval()` рано или поздно попадает на уже занятый
+  id. `KaraokeDbTable.createDbInstance()` при конфликте PK должен сам обнаружить дрейф и рестартнуть
+  sequence — но делал это через **два `executeQuery()` на одном `Statement`**, а второй запрос по
+  контракту JDBC закрывает `ResultSet` первого, из-за чего самолечение никогда не срабатывало и вставка
+  молча проваливалась (баг вскрылся на «Избранном» — сердечко «загоралось», но не сохранялось; чинено
+  2026-07-09, раздельные `Statement` на каждый запрос). **Правило:** никогда не переиспользовать один
+  `Statement` для нескольких последовательных `executeQuery()`, если оба `ResultSet` нужны одновременно.
 - **Тег SKIP.** `tags` содержит `SKIP` → публичные страницы показывают заглушку «удалено по требованию
   правообладателя» (`song-removed.html` в karaoke-web; `SettingsPublicDto.contentRemoved` в karaoke-public, теги
   наружу не утекают).

@@ -38,6 +38,23 @@ echo "DOCKER = $DOCKER"
 echo "COMPOSE = $COMPOSE"
 echo "DOCKER_REGISTRY = $DOCKER_REGISTRY"
 
+SILERO_PY="/home/nsa/.venvs/karaoke-tts/bin/python"
+SILERO_SCRIPT="/home/nsa/Karaoke/deploy/tts/silero_say.py"
+
+function announce() {
+  local msg="$1"
+  local speaker="$2"
+  local rate="$3"
+  command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "$msg"
+  if [ -x "$SILERO_PY" ] && [ -f "$SILERO_SCRIPT" ]; then
+    ("$SILERO_PY" "$SILERO_SCRIPT" "$msg" "$speaker" "$rate" &> /dev/null &)
+  elif command -v spd-say &> /dev/null; then
+    spd-say -o rhvoice -l ru "$msg"
+  elif command -v paplay &> /dev/null; then
+    paplay /usr/share/sounds/freedesktop/stereo/complete.oga
+  fi
+}
+
 function do_build() {
   bl_begin karaoke-web "build" karaoke-app karaoke-web; local rc=$?
   [ "$rc" = 10 ] && return 0
@@ -50,8 +67,7 @@ function do_build() {
 function build_jars() {
   echo "Building jars"
   cd ${BASE_DIR} && ${GRADLE} clean karaoke-app:bootJar karaoke-web:bootJar --parallel
-  command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga
-  command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "Все модули скомпилированы"
+  announce "Все модули скомпилированы"
 }
 
 function build_images() {
@@ -75,8 +91,7 @@ function build_images() {
   ${DOCKER} image build $BASE_DIR/ --build-arg VERSION=${BUILD_VERSION} \
     -t "$DOCKER_REGISTRY/karaoke-webvue:${BUILD_VERSION}" -f $DEPLOY_DIR/karaoke-webvue/Dockerfile
 
-  command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga
-  command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "Все модули собраны"
+  announce "Все модули собраны"
 }
 
 function build_start_app() {
@@ -187,8 +202,7 @@ function do_start() {
   echo "Старт LOCAL"
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose.yml ${DATABASE} config
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose.yml ${DATABASE} up -d
-  command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga
-  command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "Все контейнеры запущены"
+  announce "Все контейнеры запущены"
 }
 
 function do_stop() {
@@ -205,8 +219,7 @@ function do_start_db() {
   do_stop_db
   echo "Старт DATABASE"
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-database.yml up -d
-  command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga
-  command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "DATABASE запущен"
+  announce "DATABASE запущен"
 }
 
 function do_stop_db() {
@@ -218,8 +231,7 @@ function do_start_web() {
   do_stop_web
   echo "Старт WEB"
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-web.yml up -d
-  command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga
-  command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "WEB запущен"
+  announce "WEB запущен"
 }
 
 function do_stop_web() {
@@ -231,16 +243,14 @@ function do_start_webvue() {
   do_stop_webvue
   echo "Старт WEBVUE"
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-webvue.yml up -d
-  command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga
-  command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "WEBVUE запущен"
+  announce "WEBVUE запущен"
 }
 
 function do_start_webvue3() {
   do_stop_webvue3
   echo "Старт WEBVUE3"
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-webvue3.yml up -d
-  command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga
-  command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "WEBVUE3 запущен"
+  announce "WEBVUE3 запущен"
 }
 
 function do_stop_webvue() {
@@ -257,8 +267,7 @@ function do_start_public() {
   do_stop_public
   echo "Старт PUBLIC"
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-public.yml up -d
-  command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga
-  command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "PUBLIC запущен"
+  announce "PUBLIC запущен"
 }
 
 function do_stop_public() {
@@ -270,8 +279,7 @@ function do_start_app() {
   do_stop_webvue
   echo "Старт APP"
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-app.yml up -d
-  command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga
-  command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "APP запущен"
+  announce "APP запущен"
 }
 
 function do_stop_app() {
@@ -286,63 +294,55 @@ function do_push() {
   ${DOCKER} image push "$DOCKER_REGISTRY/karaoke-web:${BUILD_VERSION}"
   ${DOCKER} image push "$DOCKER_REGISTRY/karaoke-webvue:${BUILD_VERSION}"
   ${DOCKER} image push "$DOCKER_REGISTRY/karaoke-webvue3:${BUILD_VERSION}"
-  command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga
-  command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "Pushing!"
+  announce "Pushing!"
 }
 
 function do_push_app() {
   echo "Pushing APP"
   ${DOCKER} login --username ${DOCKER_REGISTRY} --password ${DOCKER_PASSWORD}
   ${DOCKER} image push "$DOCKER_REGISTRY/karaoke-app:${BUILD_VERSION}"
-  command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga
-  command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "Pushing APP!"
+  announce "Pushing APP!"
 }
 
 function do_push_demucs() {
   echo "Pushing DEMUCS"
   ${DOCKER} login --username ${DOCKER_REGISTRY} --password ${DOCKER_PASSWORD}
   ${DOCKER} image push "$DOCKER_REGISTRY/demucs:latest"
-  command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga
-  command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "Pushing DEMUCS!"
+  announce "Pushing DEMUCS!"
 }
 
 function do_push_web() {
   echo "Pushing WEB"
   ${DOCKER} login --username ${DOCKER_REGISTRY} --password ${DOCKER_PASSWORD}
   ${DOCKER} image push "$DOCKER_REGISTRY/karaoke-web:${BUILD_VERSION}"
-  command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga
-  command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "Pushing WEB!"
+  announce "Pushing WEB!"
 }
 
 function do_push_webvue() {
   echo "Pushing WEBVUE"
   ${DOCKER} login --username ${DOCKER_REGISTRY} --password ${DOCKER_PASSWORD}
   ${DOCKER} image push "$DOCKER_REGISTRY/karaoke-webvue:${BUILD_VERSION}"
-  command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga
-  command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "Pushing WEBVUE!"
+  announce "Pushing WEBVUE!"
 }
 
 function do_push_webvue3() {
   echo "Pushing WEBVUE3"
   ${DOCKER} login --username ${DOCKER_REGISTRY} --password ${DOCKER_PASSWORD}
   ${DOCKER} image push "$DOCKER_REGISTRY/karaoke-webvue3:${BUILD_VERSION}"
-  command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga
-  command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "Pushing WEBVUE3!"
+  announce "Pushing WEBVUE3!"
 }
 
 function do_push_public() {
   echo "Pushing PUBLIC"
   ${DOCKER} login --username ${DOCKER_REGISTRY} --password ${DOCKER_PASSWORD}
   ${DOCKER} image push "$DOCKER_REGISTRY/karaoke-public:${BUILD_VERSION}"
-  command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga
-  command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "Pushing PUBLIC!"
+  announce "Pushing PUBLIC!"
 }
 
 function do_pull() {
   echo "Pulling images"
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose.yml ${DATABASE} pull
-  command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga
-  command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "Pulling!"
+  announce "Pulling!"
 }
 
 function do_rmi() {
@@ -353,8 +353,7 @@ function do_rmi() {
   ${DOCKER} image rm "$DOCKER_REGISTRY/karaoke-web:${BUILD_VERSION}"
   ${DOCKER} image rm "$DOCKER_REGISTRY/karaoke-webvue:${BUILD_VERSION}"
   ${DOCKER} image rm "$DOCKER_REGISTRY/karaoke-webvue3:${BUILD_VERSION}"
-  command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga
-  command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "Removing!"
+  announce "Removing!"
 }
 
 function do_ps() {

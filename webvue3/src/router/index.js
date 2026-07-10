@@ -17,6 +17,8 @@ import TariffsView from '../views/TariffsView.vue';
 import PromotionsView from '../views/PromotionsView.vue';
 import SponsrSyncView from '../views/SponsrSyncView.vue';
 import DictionariesView from '../views/DictionariesView.vue';
+import ChatView from '../views/ChatView.vue';
+import NewsView from '../views/NewsView.vue';
 
 const routes = [
   {
@@ -103,6 +105,16 @@ const routes = [
     path: '/dictionaries',
     name: 'dictionaries',
     component: DictionariesView
+  },
+  {
+    path: '/chat',
+    name: 'chat',
+    component: ChatView
+  },
+  {
+    path: '/news',
+    name: 'news',
+    component: NewsView
   },
   {
     path: '/player/:id',

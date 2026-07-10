@@ -5,11 +5,13 @@ import com.svoemesto.karaokeapp.KaraokeProperties
 import com.svoemesto.karaokeapp.model.Author
 import com.svoemesto.karaokeapp.model.Dictionary
 import com.svoemesto.karaokeapp.model.KaraokeDbTable
+import com.svoemesto.karaokeapp.model.News
 import com.svoemesto.karaokeapp.model.Pictures
 import com.svoemesto.karaokeapp.model.PriceTariff
 import com.svoemesto.karaokeapp.model.RecordDiff
 import com.svoemesto.karaokeapp.model.RecordHash
 import com.svoemesto.karaokeapp.model.Settings
+import com.svoemesto.karaokeapp.model.SiteChatMessage
 import com.svoemesto.karaokeapp.model.SitePlaylist
 import com.svoemesto.karaokeapp.model.SitePlaylistItem
 import com.svoemesto.karaokeapp.model.SiteUser
@@ -183,6 +185,17 @@ val DictionariesSyncTarget = GenericKaraokeDbTableSyncTarget(
     rowChunkSize = 500,
 )
 
+val NewsSyncTarget = GenericKaraokeDbTableSyncTarget(
+    key = "news",
+    tableName = News.TABLE_NAME,
+    displayName = "Новости",
+    oneClickDirection = SyncDirection.LOCAL_TO_SERVER,
+    clazz = News::class,
+    labelFn = { "id=${it.id} ${it.title}" },
+    // Лёгкие строки (заголовок/текст короткие) — по 500 фактически один запрос, как dictionaries.
+    rowChunkSize = 500,
+)
+
 val SiteUsersSyncTarget = GenericKaraokeDbTableSyncTarget(
     key = "siteusers",
     tableName = SiteUser.TABLE_NAME,
@@ -281,6 +294,22 @@ val SubscriptionsSyncTarget = GenericKaraokeDbTableSyncTarget(
     rowChunkSize = 500,
 )
 
+// «Чат с автором проекта» — сообщения создаются почти всегда на PROD (пользователи пишут через
+// karaoke-web, автор обычно отвечает через webvue3 с target=remote напрямую) — как pull
+// пользователей/статистики/подписок, а не push с LOCAL. is_read (отметка прочтения) меняется на
+// существующей строке — участвует в diff (UPDATE), поэтому таблица нуждается в pull_update, не
+// только pull_insert (иначе локальная копия «зависала» бы со старым состоянием прочтения).
+val SiteChatMessagesSyncTarget = GenericKaraokeDbTableSyncTarget(
+    key = "chatmessages",
+    tableName = SiteChatMessage.TABLE_NAME,
+    displayName = "Чат",
+    oneClickDirection = SyncDirection.SERVER_TO_LOCAL,
+    clazz = SiteChatMessage::class,
+    labelFn = { "id=${it.id} user=${it.siteUserId} ${if (it.isFromAuthor) "автор" else "юзер"}" },
+    // Лёгкие строки (короткий текст сообщения) — по 500 фактически один запрос.
+    rowChunkSize = 500,
+)
+
 object SyncRegistry {
     // Размер пачки для операций УДАЛЕНИЯ на удалённом сервере (зеркальное удаление в цели + move-удаление
     // из источника, оба идут как зашифрованный "DELETE ... WHERE id=X" на /changerecords). Payload одной
@@ -294,6 +323,7 @@ object SyncRegistry {
         PicturesSyncTarget,
         AuthorsSyncTarget,
         DictionariesSyncTarget,
+        NewsSyncTarget,
         SiteUsersSyncTarget,
         SitePlaylistsSyncTarget,
         SitePlaylistItemsSyncTarget,
@@ -302,6 +332,7 @@ object SyncRegistry {
         EventsSyncTarget,
         PriceTariffsSyncTarget,
         SubscriptionsSyncTarget,
+        SiteChatMessagesSyncTarget,
     )
 
     fun byKey(key: String): SyncTarget<*>? = all.find { it.key == key }

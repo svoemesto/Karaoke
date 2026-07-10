@@ -105,7 +105,7 @@
                   </td>
                   <td class="km-td km-td-date">
                     <span v-if="showDate(sett)" class="km-date-text">{{ sett.datePublish }}</span>
-                    <PremiumIcon v-if="showCoin(sett)" :state="readiness.contentReadyFor(sett.id)" />
+                    <PremiumIcon v-if="showCoin(sett)" :state="readiness.contentReadyFor(sett.id)" :clickable="showCartIcon(sett)" @subscribe="onSubscribeClick(sett, zak.author)" />
                   </td>
                   <td class="km-td km-td-center">
                     <CartIcon v-if="showCartIcon(sett)" :song-id="sett.id" />
@@ -115,8 +115,6 @@
                       :song-id="sett.id"
                       :watch-state="readiness.stateFor(sett.id)"
                       :content-ready-state="readiness.contentReadyFor(sett.id)"
-                      :subscribable="sett.songSubscriptionAvailable"
-                      @subscribe="onSubscribeClick(sett, zak.author)"
                     />
                   </td>
                   <td class="km-td km-td-center">
@@ -144,8 +142,6 @@
                   :song-id="sett.id"
                   :watch-state="readiness.stateFor(sett.id)"
                   :content-ready-state="readiness.contentReadyFor(sett.id)"
-                  :subscribable="sett.songSubscriptionAvailable"
-                  @subscribe="onSubscribeClick(sett, zak.author)"
                 />
                 <PlatformLink link-name="sponsr" :link-value="sett.linkSponsrPlay" :song-id="sett.id" song-version="all" />
                 <FavoriteIcon :song-id="sett.id" />
@@ -153,7 +149,7 @@
               </div>
               <div v-if="showDate(sett) || showCoin(sett)" class="km-card-date">
                 <span v-if="showDate(sett)" class="km-date-text">{{ sett.datePublish }}</span>
-                <PremiumIcon v-if="showCoin(sett)" :state="readiness.contentReadyFor(sett.id)" />
+                <PremiumIcon v-if="showCoin(sett)" :state="readiness.contentReadyFor(sett.id)" :clickable="showCartIcon(sett)" @subscribe="onSubscribeClick(sett, zak.author)" />
               </div>
             </div>
           </div>

@@ -235,6 +235,14 @@ val listKaraokeProperties = listOf(
     KaraokeProperty(key = "sync_dictionaries_pull_update_allowed", defaultValue = false, description = "Синхронизация: Словари — pull, Изменение"),
     KaraokeProperty(key = "sync_dictionaries_pull_delete_allowed", defaultValue = false, description = "Синхронизация: Словари — pull, Удаление"),
     KaraokeProperty(key = "sync_dictionaries_pull_move_allowed", defaultValue = false, description = "Синхронизация: Словари — pull, Перемещение"),
+    KaraokeProperty(key = "sync_news_push_insert_allowed", defaultValue = false, description = "Синхронизация: Новости — push, Добавление"),
+    KaraokeProperty(key = "sync_news_push_update_allowed", defaultValue = false, description = "Синхронизация: Новости — push, Изменение"),
+    KaraokeProperty(key = "sync_news_push_delete_allowed", defaultValue = false, description = "Синхронизация: Новости — push, Удаление"),
+    KaraokeProperty(key = "sync_news_push_move_allowed", defaultValue = false, description = "Синхронизация: Новости — push, Перемещение"),
+    KaraokeProperty(key = "sync_news_pull_insert_allowed", defaultValue = false, description = "Синхронизация: Новости — pull, Добавление"),
+    KaraokeProperty(key = "sync_news_pull_update_allowed", defaultValue = false, description = "Синхронизация: Новости — pull, Изменение"),
+    KaraokeProperty(key = "sync_news_pull_delete_allowed", defaultValue = false, description = "Синхронизация: Новости — pull, Удаление"),
+    KaraokeProperty(key = "sync_news_pull_move_allowed", defaultValue = false, description = "Синхронизация: Новости — pull, Перемещение"),
     KaraokeProperty(key = "sync_siteusers_push_insert_allowed", defaultValue = false, description = "Синхронизация: Пользователи сайта — push, Добавление"),
     KaraokeProperty(key = "sync_siteusers_push_update_allowed", defaultValue = false, description = "Синхронизация: Пользователи сайта — push, Изменение"),
     KaraokeProperty(key = "sync_siteusers_push_delete_allowed", defaultValue = false, description = "Синхронизация: Пользователи сайта — push, Удаление"),
@@ -299,6 +307,18 @@ val listKaraokeProperties = listOf(
     KaraokeProperty(key = "sync_subscriptions_pull_update_allowed", defaultValue = true, description = "Синхронизация: Подписки — pull, Изменение"),
     KaraokeProperty(key = "sync_subscriptions_pull_delete_allowed", defaultValue = false, description = "Синхронизация: Подписки — pull, Удаление"),
     KaraokeProperty(key = "sync_subscriptions_pull_move_allowed", defaultValue = true, description = "Синхронизация: Подписки — pull, Перемещение"),
+    // Чат создаётся почти всегда на PROD (пользователи пишут через karaoke-web) — pull включён по
+    // умолчанию (insert новых сообщений + update отметки is_read), как у subscriptions/siteusers.
+    // pull_move ЗАПРЕЩЁН намеренно — MOVE удаляет строку из источника (PROD) после переноса, а для
+    // чата это означало бы стирание переписки с сервера, где живут реальные пользователи.
+    KaraokeProperty(key = "sync_chatmessages_push_insert_allowed", defaultValue = false, description = "Синхронизация: Чат — push, Добавление"),
+    KaraokeProperty(key = "sync_chatmessages_push_update_allowed", defaultValue = false, description = "Синхронизация: Чат — push, Изменение"),
+    KaraokeProperty(key = "sync_chatmessages_push_delete_allowed", defaultValue = false, description = "Синхронизация: Чат — push, Удаление"),
+    KaraokeProperty(key = "sync_chatmessages_push_move_allowed", defaultValue = false, description = "Синхронизация: Чат — push, Перемещение"),
+    KaraokeProperty(key = "sync_chatmessages_pull_insert_allowed", defaultValue = true, description = "Синхронизация: Чат — pull, Добавление"),
+    KaraokeProperty(key = "sync_chatmessages_pull_update_allowed", defaultValue = true, description = "Синхронизация: Чат — pull, Изменение"),
+    KaraokeProperty(key = "sync_chatmessages_pull_delete_allowed", defaultValue = false, description = "Синхронизация: Чат — pull, Удаление"),
+    KaraokeProperty(key = "sync_chatmessages_pull_move_allowed", defaultValue = false, description = "Синхронизация: Чат — pull, Перемещение"),
     KaraokeProperty(key = "backgroundFolderPath", defaultValue = "/sm-karaoke/system/SpaceBox4096", description = "Путь к папке с фонами"),
     KaraokeProperty(key = "createLogotype", defaultValue = true, description = "Создавать логотип"),
     KaraokeProperty(key = "createMicrophone", defaultValue = false, description = "Создавать микрофон"),

@@ -10,6 +10,10 @@ import { getAnonId } from './clientId'
 // клонируется в same-origin вкладку, открытую через window.open, так что токен уже на месте).
 // Получить токен доступа к плееру песни БЕЗ открытия новой вкладки — для встроенного плеера на
 // странице плейлиста. Возвращает { canWatch, token } (или { canWatch:false } при недоступности).
+// НАМЕРЕННО строгий (canWatch===true) в отличие от openPlayer() ниже: плейлисты (в т.ч. «Избранное»
+// не-премиум пользователя) — премиум-фича, демо-режим внутри них не предусмотрен (см. план
+// демо-режима — плейлисты вне scope), поэтому очередной трек плейлиста ("need-token" в
+// usePlaylistPlayer.js) не должен тихо подменяться демо-фрагментом.
 export async function fetchPlayerToken(songId) {
   const token = localStorage.getItem('km_auth_token')
   try {
@@ -24,6 +28,10 @@ export async function fetchPlayerToken(songId) {
   return { canWatch: false, token: null }
 }
 
+// canWatch=false + token заполнен = демо-режим (см. PublicPlayerController.access): плеер всё
+// равно открывается — просто отдаёт ограниченный по времени фрагмент вместо полной песни. В
+// отличие от fetchPlayerToken() выше, здесь это осознанно допускается — единичное открытие плеера
+// из Закромов/Поиска/страницы песни, не элемент плейлист-очереди.
 export async function openPlayer(songId) {
   const token = localStorage.getItem('km_auth_token')
   try {
@@ -31,7 +39,7 @@ export async function openPlayer(songId) {
       `/api/public/player/${songId}/access?source=list&anonId=${encodeURIComponent(getAnonId())}`,
       token
     )
-    if (status === 200 && body && body.canWatch && body.token) {
+    if (status === 200 && body && body.token) {
       sessionStorage.setItem(`kp_token_${songId}`, body.token)
       window.open(`/player/${songId}`, '_blank')
       return true

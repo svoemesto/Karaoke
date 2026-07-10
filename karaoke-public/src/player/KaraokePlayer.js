@@ -1065,6 +1065,7 @@ export default class KaraokePlayer {
 
   async _play() {
     if (!this.accBuffer || !this.vocBuffer) return
+    this._hideDemoEndOverlay() // клик "▶"/по экрану после конца демо-фрагмента = переслушать заново
     const dt = this._getDisplayTime()
     this._startFadeStartedAt = null // cancel logo→splash start transition
     this._endFadeStartedAt = null   // cancel any in-progress post-track idle transition
@@ -1154,7 +1155,38 @@ export default class KaraokePlayer {
     if (btn) btn.textContent = '▶'
     if (this._mode === 'api') trackPlayerEnded(this.songId)
     this._progressFlags = { 25: false, 50: false, 75: false }
+    if (this.data?.isDemo) this._showDemoEndOverlay()
     if (this.onTrackEnded) { try { this.onTrackEnded() } catch (e) { console.error('onTrackEnded error:', e) } }
+  }
+
+  // ─── Демо-режим: оверлей в конце фрагмента ─────────────────────────────────
+  // Самодостаточный DOM-оверлей (не Vue) — плеер открывается двумя разными путями (встроенным
+  // iframe на странице песни И отдельной вкладкой /player/:id из Закромов/Поиска), у которых нет
+  // общего родительского Vue-контекста для переиспользования SongSubscriptionModal напрямую;
+  // вместо этого кнопка уводит на страницу песни (её карточка предложения подписки видна там же,
+  // где показывается сам демо-плеер — см. SongView.vue).
+  _showDemoEndOverlay() {
+    if (this.container.querySelector('#kp-demo-overlay')) return
+    const wrap = this.container.querySelector('#kp-canvas-wrap')
+    if (!wrap) return
+    const overlay = document.createElement('div')
+    overlay.id = 'kp-demo-overlay'
+    overlay.style.cssText = 'position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:rgba(0,0,0,0.72);text-align:center;padding:24px;z-index:20'
+    overlay.innerHTML = `
+      <div style="color:#fff;font-size:20px;font-weight:700">Это демо-фрагмент</div>
+      <div style="color:#ccc;font-size:14px;max-width:360px">Оформите подписку, чтобы прослушать песню целиком</div>
+      <button id="kp-demo-cta" style="background:#f80;border:none;color:#fff;font-size:15px;font-weight:600;padding:10px 22px;border-radius:6px;cursor:pointer">Оформить подписку →</button>
+    `
+    wrap.appendChild(overlay)
+    overlay.querySelector('#kp-demo-cta').addEventListener('click', e => {
+      e.stopPropagation() // не дать клику долететь до canvasWrap (иначе он же запустит replay)
+      const target = `/song?id=${this.songId}`
+      try { window.top.location.href = target } catch (_e) { window.location.href = target }
+    })
+  }
+
+  _hideDemoEndOverlay() {
+    this.container.querySelector('#kp-demo-overlay')?.remove()
   }
 
   // --- Публичное управление (для страницы плейлиста) ------------------------------------------
@@ -1186,6 +1218,7 @@ export default class KaraokePlayer {
   // autoplay=true — начать воспроизведение сразу после готовности (авто-переход в плейлисте).
   async playSong(songId, token, authToken, autoplay = true) {
     if (this.animId) { cancelAnimationFrame(this.animId); this.animId = null }
+    this._hideDemoEndOverlay()
     this._endedHandled = true
     this._stopSources()
     if (this.audioCtx) { await this.audioCtx.close(); this.audioCtx = null }
@@ -1610,6 +1643,16 @@ export default class KaraokePlayer {
       ? Math.min(1, (audioTime - (this.duration - FADE_OUT)) / FADE_OUT)
       : 0
 
+    // Демо-режим: тот же угасающий alpha дополнительно применяется к громкости — фрагмент не
+    // обрывается резко, а плавно стихает за последнюю секунду. this.duration уже равен длине
+    // демо-фрагмента (сервер физически обрезал байты стема, см. Mp3Trimmer/PublicPlayerController),
+    // поэтому отдельного вычисления границы на клиенте не требуется.
+    if (this.data?.isDemo && this.accGain && this.vocGain) {
+      const demoFadeMul = 1 - fadeOutAlpha
+      this.accGain.gain.value = (this._accVol / 100) * demoFadeMul
+      this.vocGain.gain.value = (this._vocVol / 100) * demoFadeMul
+    }
+
     const FADE = 1.0
     if (dt < this._splashDur) {
       // Splash handles its own fade-out internally; background shows through. alphaOverride drives
@@ -1627,7 +1670,32 @@ export default class KaraokePlayer {
     this._renderLogo(ctx, W, H, logoAlpha)
     this._renderSpeedBadge(ctx, W, H)
     this._renderScreenIconAnim(ctx, W, H)
+    this._renderDemoWatermark(ctx, W, H)
     this._updateControls(dt)
+  }
+
+  // Демо-режим: полупрозрачная диагональная плашка "ДЕМО" поверх всего кадра (весь показ, не
+  // только конец) — постоянно напоминает, что это ограниченный фрагмент, и служит слабой защитой
+  // от скриншотов/записи экрана как полноценного контента.
+  _renderDemoWatermark(ctx, W, H) {
+    if (!this.data?.isDemo) return
+    ctx.save()
+    ctx.globalAlpha = 0.14
+    ctx.fillStyle = '#fff'
+    const fontSize = Math.max(26, Math.round(H * 0.05))
+    ctx.font = `900 ${fontSize}px Roboto, sans-serif`
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.translate(W / 2, H / 2)
+    ctx.rotate(-Math.PI / 10)
+    const stepX = fontSize * 6
+    const stepY = fontSize * 3.2
+    for (let y = -H; y < H; y += stepY) {
+      for (let x = -W; x < W; x += stepX) {
+        ctx.fillText('ДЕМО', x, y)
+      }
+    }
+    ctx.restore()
   }
 
   // Бейдж со скоростью в углу экрана, пока она отличается от 1x — постоянный, а не «мелькающий»

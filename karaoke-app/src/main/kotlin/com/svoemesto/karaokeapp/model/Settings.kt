@@ -2192,6 +2192,70 @@ class Settings(
         return  if (timeFirstSyllable > 5000L) 0L else 5000L - timeFirstSyllable
     }
 
+    // Демо-режим онлайн-плеера: ищет границу "конец первого куплета" в потоке маркеров основного
+    // голоса (voice 0), повторяя логику разбиения на строки/куплеты из KaraokePlayer.js::_parseMarkers
+    // (newline = явный разделитель куплета; endofline без накопленных слогов = пустая строка-
+    // разделитель; смена setting GROUP|N = смена стиля/куплета). Возвращает время (сек) первой такой
+    // границы, найденной ПОСЛЕ того как уже закрыта хотя бы одна строка — иначе null (маркеров нет
+    // либо граница не определяется; вызывающая сторона обязана подставить дефолт, см. demoFragmentEndSeconds).
+    fun computeDemoEndSeconds(): Double? {
+        if (sourceMarkersList.isEmpty()) return null
+        val markers = sourceMarkersList[0].sortedBy { it.time }
+        if (markers.isEmpty()) return null
+
+        var openSyllablesCount = 0
+        var closedLinesCount = 0
+        var currentGroupId = 0
+
+        for (m in markers) {
+            when (m.markertype) {
+                Markertype.SETTING.value -> {
+                    val parts = m.label.split("|")
+                    if (parts.getOrNull(0) == "GROUP") {
+                        val newGroupId = parts.getOrNull(1)?.toIntOrNull() ?: 0
+                        if (newGroupId != currentGroupId && closedLinesCount > 0) return m.time
+                        currentGroupId = newGroupId
+                    }
+                }
+                Markertype.SYLLABLES.value -> {
+                    openSyllablesCount++
+                }
+                Markertype.ENDOFLINE.value -> {
+                    if (openSyllablesCount > 0) {
+                        closedLinesCount++
+                        openSyllablesCount = 0
+                    } else if (closedLinesCount > 0) {
+                        return m.time
+                    }
+                }
+                Markertype.NEWLINE.value -> {
+                    if (openSyllablesCount > 0) {
+                        closedLinesCount++
+                        openSyllablesCount = 0
+                    }
+                    if (closedLinesCount > 0) return m.time
+                }
+            }
+        }
+        return null
+    }
+
+    // Итоговая длина демо-фрагмента (сек), всегда возвращает валидное значение: граница первого
+    // куплета по маркерам, если она найдена и не подозрительно короткая (см. DEMO_FRAGMENT_MIN_SECONDS —
+    // защита от обрыва разметки на первой же строке), иначе DEMO_FRAGMENT_DEFAULT_SECONDS; в обоих
+    // случаях не длиннее самой песни.
+    @get:JsonIgnore
+    val demoFragmentEndSeconds: Double get() {
+        val songLengthSeconds = songLengthMs / 1000.0
+        val boundary = computeDemoEndSeconds()
+        val candidate = if (boundary != null && boundary >= DEMO_FRAGMENT_MIN_SECONDS) {
+            boundary
+        } else {
+            DEMO_FRAGMENT_DEFAULT_SECONDS
+        }
+        return if (songLengthSeconds > 0) candidate.coerceAtMost(songLengthSeconds) else candidate
+    }
+
     fun getSourceMarkers(voice: Int): List<SourceMarker> {
         return if (sourceMarkersList.size > voice) {
             sourceMarkersList[voice]
@@ -3243,7 +3307,7 @@ class Settings(
             "альбом «$album»"
         }
 
-        val text = "$author, $albumText $year-го года -${if (exclusive) " ЭКСКЛЮЗИВНО" else ""} на https://sponsr.ru/smkaraoke${if (free) " в открытом доступе" else ""}${if (!exclusive) "\nВ эфире - в $month." else ""}\nЧтобы всегда иметь доступ к самой полной коллекции и поддержать автора проекта - подписываетесь на sponsr."
+        val text = "$author, $albumText $year-го года -${if (exclusive) " ЭКСКЛЮЗИВНО" else ""} на https://sm-karaoke.ru${if (!exclusive) "\nВ эфире - в $month." else ""}\nЧтобы всегда иметь доступ к самой полной коллекции и поддержать автора проекта - оформляйте премиум-доступ прямо на сайте hppt://sm-karaoke.ru"
 
         return  text
     }
@@ -4177,6 +4241,14 @@ class Settings(
         // используется при резолвинге алиаса автора в реальные имена, см. Author.resolveByTerm).
         // Управляющий символ, а не ';'/','/пробел, чтобы не пересечься с символами в именах авторов.
         const val AUTHOR_IN_DELIMITER = "\u0001"
+
+        // Демо-режим онлайн-плеера (не-премиум/неавторизованный пользователь): фрагмент
+        // "от начала до конца первого куплета", см. computeDemoEndSeconds()/demoFragmentEndSeconds.
+        // Если границу куплета не удалось определить по маркерам — играем дефолт секунд песни;
+        // если найденная граница подозрительно короткая (обрыв разметки на первой строке) — тоже
+        // считаем её ненадёжной и уходим в дефолт.
+        const val DEMO_FRAGMENT_DEFAULT_SECONDS = 60.0
+        const val DEMO_FRAGMENT_MIN_SECONDS = 8.0
 
         // Автоматизация публикации в Telegram (TelegramUpdatesConsumer): сопоставление вышедшего
         // channel_post с песней/версией по СОДЕРЖИМОМУ поста, без отдельного маркера. Каждый пост,

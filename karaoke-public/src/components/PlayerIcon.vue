@@ -1,9 +1,11 @@
 <template>
   <!-- Готовность плеера подгружается асинхронно после отрисовки таблицы: пока не пришёл ответ —
-       спиннер. Дальше три исхода: зелёная (можно смотреть прямо сейчас) — открывает плеер; золотая
-       (контент готов, но зрителю сейчас недоступен, а подписка на песню разрешена) — кликабельна,
-       предлагает оформить подписку (или войти/зарегистрироваться, если анонимный); серая — либо
-       подписка на эту песню запрещена автором, либо контент ещё не готов (title меняется). -->
+       спиннер. Дальше три исхода: зелёная (полный доступ прямо сейчас — премиум/в эфире/подписан)
+       — открывает плеер; золотая (контент готов, но полного доступа нет) — тоже открывает плеер,
+       но он сам решит (см. PublicPlayerController.access) отдать демо-фрагмент вместо paywall —
+       мотивация подписаться идёт уже внутри самого плеера (водяной знак + оверлей по окончании
+       фрагмента), а не мгновенным отказом по клику; серая — контент ещё не готов (title меняется).
+       -->
   <span v-if="showSpinner" class="player-icon-spinner" title="Проверка доступности плеера…" />
   <a
     v-else-if="watchState === 'active'"
@@ -15,24 +17,22 @@
     <SvgIcon name="player" :active="true" :size="20" />
   </a>
   <a
-    v-else-if="showSubscribeCta"
+    v-else-if="showDemoCta"
     href="#"
     class="platform-icon"
-    title="Оформить подписку на эту песню"
-    @click.prevent="onSubscribeClick"
+    title="Прослушать демо-фрагмент (полная версия — по подписке)"
+    @click.prevent="onOpen"
   >
     <SvgIcon name="player" variant="gold" :size="20" />
   </a>
-  <span v-else class="platform-icon disabled" :title="disabledTitle">
+  <span v-else class="platform-icon disabled" title="Плеер недоступен">
     <SvgIcon name="player" :active="false" :size="20" />
   </span>
 </template>
 
 <script>
-import { useRouter, useRoute } from 'vue-router'
 import SvgIcon from './SvgIcon.vue'
 import { openPlayer } from '../services/playerLauncher'
-import { useAuth } from '../composables/useAuth'
 
 export default {
   name: 'PlayerIcon',
@@ -42,42 +42,22 @@ export default {
     // 'loading' | 'active' | 'disabled' — может ли ТЕКУЩИЙ посетитель открыть плеер прямо сейчас.
     watchState: { type: String, default: 'loading' },
     // 'loading' | 'ready' | 'notready' — готовность контента независимо от прав зрителя.
-    contentReadyState: { type: String, default: 'loading' },
-    // Разрешена ли отдельная подписка на эту песню (id_tariff !== -1 у автора в карточке песни).
-    subscribable: { type: Boolean, default: false }
-  },
-  emits: ['subscribe'],
-  setup() {
-    const router = useRouter()
-    const route = useRoute()
-    const { token } = useAuth()
-    return { router, route, token }
+    contentReadyState: { type: String, default: 'loading' }
   },
   computed: {
     showSpinner() {
       return this.watchState === 'loading' || this.contentReadyState === 'loading'
     },
-    showSubscribeCta() {
-      return this.subscribable && this.contentReadyState === 'ready'
-    },
-    disabledTitle() {
-      if (this.subscribable && this.contentReadyState === 'notready') {
-        return 'На эту песню можно будет оформить подписку, когда она будет готова'
-      }
-      return 'Плеер недоступен'
+    // Демо доступно любому посетителю (даже анониму), как только контент готов — независимо от
+    // того, разрешена ли для этой песни отдельная подписка (subscribable): в отличие от старого
+    // прямого перехода к paywall, демо не требует входа на сайт.
+    showDemoCta() {
+      return this.contentReadyState === 'ready'
     }
   },
   methods: {
     onOpen() {
       openPlayer(this.songId)
-    },
-    onSubscribeClick() {
-      // Аноним — предлагаем войти/зарегистрироваться (после входа вернём на текущую страницу).
-      if (!this.token) {
-        this.router.push({ path: '/login', query: { redirect: this.route.fullPath } })
-        return
-      }
-      this.$emit('subscribe', this.songId)
     }
   }
 }

@@ -10,6 +10,7 @@ import RegisterView from '../views/RegisterView.vue'
 import AccountView from '../views/AccountView.vue'
 import PlaylistsView from '../views/PlaylistsView.vue'
 import PlaylistEditView from '../views/PlaylistEditView.vue'
+import ChatView from '../views/ChatView.vue'
 import AuthorPlaylistView from '../views/AuthorPlaylistView.vue'
 import EditorTasksView from '../views/EditorTasksView.vue'
 import EditorWorkView from '../views/EditorWorkView.vue'
@@ -18,6 +19,7 @@ import PremiumView from '../views/PremiumView.vue'
 import SubscriptionsView from '../views/SubscriptionsView.vue'
 import CartView from '../views/CartView.vue'
 import OfertaView from '../views/OfertaView.vue'
+import NewsView from '../views/NewsView.vue'
 
 // Быстрая синхронная проверка токена для защищённых маршрутов личного кабинета — сами страницы
 // перепроверяют через fetchMe(); здесь лишь чтобы не мигнуть защищённым контентом анониму.
@@ -34,6 +36,8 @@ const routes = [
   { path: '/register', name: 'register', component: RegisterView },
   { path: '/premium', name: 'premium', component: PremiumView },
   { path: '/oferta', name: 'oferta', component: OfertaView },
+  // Публично, без requireAuth — новости видны и анонимам.
+  { path: '/news', name: 'news', component: NewsView },
   {
     path: '/account',
     name: 'account',
@@ -45,6 +49,7 @@ const routes = [
   // Без requireAuth: аноним не редиректится, а видит внутри страницы сообщение «только для
   // зарегистрированных» с кнопками Войти/Регистрация (LoginRequired).
   { path: '/account/playlists', name: 'playlists', component: PlaylistsView },
+  { path: '/account/chat', name: 'chat', component: ChatView, beforeEnter: requireAuth },
   { path: '/account/subscriptions', name: 'subscriptions', component: SubscriptionsView, beforeEnter: requireAuth },
   { path: '/account/cart', name: 'cart', component: CartView, beforeEnter: requireAuth },
   { path: '/account/playlists/:id', name: 'playlist-edit', component: PlaylistEditView },

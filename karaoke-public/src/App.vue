@@ -10,14 +10,18 @@
     </footer>
   </template>
   <PremiumUpsellModal />
+  <ChatUnreadBadge />
+  <NewsBell />
 </template>
 
 <script>
 import PremiumUpsellModal from './components/PremiumUpsellModal.vue'
+import ChatUnreadBadge from './components/ChatUnreadBadge.vue'
+import NewsBell from './components/NewsBell.vue'
 
 export default {
   name: 'App',
-  components: { PremiumUpsellModal },
+  components: { PremiumUpsellModal, ChatUnreadBadge, NewsBell },
   computed: {
     isHomePage() {
       return this.$route.path === '/'

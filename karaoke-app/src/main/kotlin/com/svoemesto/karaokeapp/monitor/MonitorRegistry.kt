@@ -4,6 +4,7 @@ import com.svoemesto.karaokeapp.monitor.checks.ProdContainerCheck
 import com.svoemesto.karaokeapp.monitor.checks.RenderQueueStalledCheck
 import com.svoemesto.karaokeapp.monitor.checks.TelegramHorizonCheck
 import com.svoemesto.karaokeapp.monitor.checks.TelegramPollingDisabledCheck
+import com.svoemesto.karaokeapp.monitor.checks.UnreadChatMessagesCheck
 
 /**
  * Реестр всех проверок мониторинга. Добавление новой проверки - один object : MonitorCheck в
@@ -15,5 +16,6 @@ object MonitorRegistry {
         ProdContainerCheck,
         RenderQueueStalledCheck,
         TelegramPollingDisabledCheck,
+        UnreadChatMessagesCheck,
     )
 }

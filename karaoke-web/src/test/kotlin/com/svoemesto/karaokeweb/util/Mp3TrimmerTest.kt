@@ -29,7 +29,7 @@ class Mp3TrimmerTest {
     }
 
     @Test
-    fun `trims a real VBR mp3 to the requested duration at a frame boundary`(@TempDir tmp: java.nio.file.Path) {
+    fun `trims a real VBR mp3 to the requested end at a frame boundary`(@TempDir tmp: java.nio.file.Path) {
         assumeTrue(toolAvailable("ffmpeg"), "ffmpeg not available — skipping")
         assumeTrue(toolAvailable("ffprobe"), "ffprobe not available — skipping")
 
@@ -44,7 +44,7 @@ class Mp3TrimmerTest {
 
         val sourceBytes = source.readBytes()
         val targetSeconds = 5.0
-        val trimmedBytes = Mp3Trimmer.trimToSeconds(sourceBytes, targetSeconds)
+        val trimmedBytes = Mp3Trimmer.trimToRange(sourceBytes, 0.0, targetSeconds)
         assertTrue(trimmedBytes.size < sourceBytes.size, "trimmed output should be smaller than the 20s source")
 
         val trimmed = tmp.resolve("trimmed.mp3").toFile()
@@ -56,16 +56,45 @@ class Mp3TrimmerTest {
     }
 
     @Test
-    fun `falls back to original bytes on unparsable input`() {
-        val garbage = ByteArray(100) { it.toByte() }
-        val result = Mp3Trimmer.trimToSeconds(garbage, 5.0)
-        assertTrue(result.contentEquals(garbage), "unparsable input should fall back to the original bytes")
+    fun `trims a real VBR mp3 to a mid-track range at a frame boundary`(@TempDir tmp: java.nio.file.Path) {
+        assumeTrue(toolAvailable("ffmpeg"), "ffmpeg not available — skipping")
+        assumeTrue(toolAvailable("ffprobe"), "ffprobe not available — skipping")
+
+        val source = tmp.resolve("source.mp3").toFile()
+        val gen = ProcessBuilder(
+            "ffmpeg", "-y", "-f", "lavfi", "-i", "sine=frequency=440:duration=20",
+            "-codec:a", "libmp3lame", "-qscale:a", "2", source.absolutePath
+        ).redirectErrorStream(true).start()
+        gen.waitFor()
+        assertTrue(source.exists() && source.length() > 0, "ffmpeg failed to generate fixture")
+
+        val sourceBytes = source.readBytes()
+        // Демо-фрагмент "куплет минус 5 секунд отступа": начинается НЕ с нуля.
+        val trimmedBytes = Mp3Trimmer.trimToRange(sourceBytes, 8.0, 13.0)
+        assertTrue(trimmedBytes.isNotEmpty(), "mid-track range should not be empty")
+        assertTrue(trimmedBytes.size < sourceBytes.size, "trimmed range should be smaller than the 20s source")
+
+        val trimmed = tmp.resolve("trimmed.mp3").toFile()
+        trimmed.writeBytes(trimmedBytes)
+
+        val actualDuration = probeDurationSeconds(trimmed)
+        assertTrue(actualDuration in 4.5..5.5, "expected ~5s range, got ${actualDuration}s")
     }
 
     @Test
-    fun `zero or negative seconds returns empty`() {
+    fun `returns empty when no valid mp3 frame is found (garbage input, no exception)`() {
+        // Мусорные байты не бросают исключение при разборе — цикл просто не находит ни одного
+        // валидного фрейма и завершается штатно. Пустой результат безопаснее, чем отдать исходные
+        // (потенциально непредсказуемые) байты целиком для демо-фрагмента.
+        val garbage = ByteArray(100) { it.toByte() }
+        val result = Mp3Trimmer.trimToRange(garbage, 0.0, 5.0)
+        assertTrue(result.isEmpty(), "unparsable input with no exception should return empty, not leak original bytes")
+    }
+
+    @Test
+    fun `empty or inverted range returns empty`() {
         val garbage = ByteArray(10)
-        assertTrue(Mp3Trimmer.trimToSeconds(garbage, 0.0).isEmpty())
-        assertTrue(Mp3Trimmer.trimToSeconds(garbage, -1.0).isEmpty())
+        assertTrue(Mp3Trimmer.trimToRange(garbage, 0.0, 0.0).isEmpty())
+        assertTrue(Mp3Trimmer.trimToRange(garbage, 5.0, 2.0).isEmpty())
     }
 }

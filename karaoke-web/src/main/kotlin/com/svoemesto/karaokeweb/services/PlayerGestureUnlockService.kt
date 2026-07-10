@@ -20,10 +20,21 @@ class PlayerGestureUnlockService {
     // assignmentId (опционально) — токен выдан онлайн-редактором для конкретного задания: наряду с
     // доступом к стемам он же авторизует playerdata подставить НЕОДОБРЕННЫЙ черновик этого задания
     // вместо опубликованных маркеров (см. PublicPlayerController.playerData + assignmentIdForToken).
-    // demoLimitSeconds (опционально) — токен демо-режима (не-премиум/не-подписан/не-в-эфире):
-    // ограничивает и байты стема (см. PublicPlayerController.stemResponse + Mp3Trimmer), и маркеры
-    // playerdata временем окончания демо-фрагмента. null = обычный токен, доступ без ограничения.
-    private data class TokenInfo(val songId: Long, val expiresAt: Long, val assignmentId: Long? = null, val demoLimitSeconds: Double? = null)
+    // demoStart/demoEndSeconds (опционально, оба сразу или оба null) — токен демо-режима
+    // (не-премиум/не-подписан/не-в-эфире): ограничивает и байты стема (см.
+    // PublicPlayerController.stemResponse + Mp3Trimmer.trimToRange), и маркеры playerdata диапазоном
+    // демо-фрагмента "куплет минус отступ под фейд-ин" (см. Settings.demoFragmentStartSeconds/
+    // demoFragmentEndSeconds). null = обычный токен, доступ без ограничения.
+    private data class TokenInfo(
+        val songId: Long,
+        val expiresAt: Long,
+        val assignmentId: Long? = null,
+        val demoStartSeconds: Double? = null,
+        val demoEndSeconds: Double? = null,
+    )
+
+    // Диапазон демо-фрагмента (в системе координат исходного файла) для конкретного токена.
+    data class DemoRange(val startSeconds: Double, val endSeconds: Double)
 
     private val clickBuckets = ConcurrentHashMap<String, ClickBucket>()
     private val tokens = ConcurrentHashMap<String, TokenInfo>()
@@ -71,10 +82,12 @@ class PlayerGestureUnlockService {
     // владение заданием уже проверено вызывающей стороной (PublicSongEditorController) до выдачи.
     fun issueDirectAccessTokenForAssignment(songId: Long, assignmentId: Long): String = issueToken(songId, assignmentId)
 
-    // Демо-режим (PublicPlayerController.access, ветка !canWatch): токен, ограниченный по времени —
-    // stemResponse обрежет байты стема через Mp3Trimmer, playerdata обрежет маркеры — оба по этому
-    // же значению, взятому из Settings.demoFragmentEndSeconds на момент выдачи.
-    fun issueDemoAccessToken(songId: Long, demoLimitSeconds: Double): String = issueToken(songId, demoLimitSeconds = demoLimitSeconds)
+    // Демо-режим (PublicPlayerController.access, ветка !canWatch): токен, ограниченный диапазоном —
+    // stemResponse обрежет байты стема через Mp3Trimmer.trimToRange, playerdata обрежет и перебазирует
+    // маркеры — оба по этому же диапазону, взятому из Settings.demoFragmentStartSeconds/
+    // demoFragmentEndSeconds на момент выдачи.
+    fun issueDemoAccessToken(songId: Long, startSeconds: Double, endSeconds: Double): String =
+        issueToken(songId, demoStartSeconds = startSeconds, demoEndSeconds = endSeconds)
 
     // Для playerdata: если токен был выдан онлайн-редактором для задания, возвращает его id
     // (иначе null — обычный токен плеера, без переопределения маркеров). null и при невалидном токене.
@@ -85,20 +98,27 @@ class PlayerGestureUnlockService {
         return info.assignmentId
     }
 
-    // Лимит демо-фрагмента (сек) для данного токена, если он был выдан как демо-токен; иначе null
+    // Диапазон демо-фрагмента для данного токена, если он был выдан как демо-токен; иначе null
     // (обычный токен — полный доступ). null и при невалидном/просроченном/чужом токене.
-    fun demoLimitForToken(token: String?, songId: Long): Double? {
+    fun demoRangeForToken(token: String?, songId: Long): DemoRange? {
         pruneExpiredTokens()
         val info = token?.let { tokens[it] } ?: return null
         if (info.songId != songId || info.expiresAt <= System.currentTimeMillis()) return null
-        return info.demoLimitSeconds
+        val start = info.demoStartSeconds ?: return null
+        val end = info.demoEndSeconds ?: return null
+        return DemoRange(start, end)
     }
 
-    private fun issueToken(songId: Long, assignmentId: Long? = null, demoLimitSeconds: Double? = null): String {
+    private fun issueToken(
+        songId: Long,
+        assignmentId: Long? = null,
+        demoStartSeconds: Double? = null,
+        demoEndSeconds: Double? = null,
+    ): String {
         pruneExpiredTokens()
         val bytes = ByteArray(24).also { random.nextBytes(it) }
         val token = bytes.joinToString("") { "%02x".format(it) }
-        tokens[token] = TokenInfo(songId, System.currentTimeMillis() + TOKEN_TTL_MS, assignmentId, demoLimitSeconds)
+        tokens[token] = TokenInfo(songId, System.currentTimeMillis() + TOKEN_TTL_MS, assignmentId, demoStartSeconds, demoEndSeconds)
         return token
     }
 

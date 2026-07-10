@@ -65,10 +65,13 @@ export default {
     categoryIcon(category) { return (CATEGORY_META[category] || CATEGORY_META.general).icon },
     categoryLabel(category) { return (CATEGORY_META[category] || CATEGORY_META.general).label },
     async poll() {
-      const { status, body } = await fetchNewsSince(lastSeenId())
-      if (status !== 200 || !body) return
-      this.unread = body.count || 0
-      const items = body.items || []
+      // apiGet (services/api.js) резолвит уже распарсенным телом ответа, БЕЗ обёртки {status, body}
+      // (в отличие от authGet/authPost, использующихся в chatApi.js для приватных эндпоинтов).
+      let data
+      try { data = await fetchNewsSince(lastSeenId()) } catch (e) { return }
+      if (!data) return
+      this.unread = data.count || 0
+      const items = data.items || []
       if (!items.length) return
       // items отсортированы по publish_at DESC — items[0] самая свежая. Тост показываем один раз
       // на новый максимальный id, не на каждый опрос, пока пользователь не открыл ленту.
@@ -109,7 +112,9 @@ export default {
 <style scoped>
 .nwb-wrap {
   position: fixed;
-  top: 14px;
+  /* 64px, не 14px — с запасом ниже шапки/AuthStatusWidget (~45-50px), иначе тост на пару секунд
+     наезжает на переключатель темы в правом углу шапки. */
+  top: 64px;
   /* 74px, не 14px — правый верхний угол уже занят ChatUnreadBadge.vue (48px кнопка + отступ);
      оба индикатора могут быть видны одновременно залогиненному премиум-пользователю. */
   right: 74px;

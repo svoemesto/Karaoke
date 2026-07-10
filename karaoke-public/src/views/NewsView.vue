@@ -52,11 +52,16 @@ export default {
     return { news: [], loading: true }
   },
   async mounted() {
-    const { status, body } = await fetchNews()
-    if (status === 200 && Array.isArray(body)) {
-      this.news = body
-      this.markAllSeen()
-    }
+    // apiGet (services/api.js) резолвит уже распарсенным телом ответа, БЕЗ обёртки {status, body}
+    // (в отличие от authGet/authPost из authApi.js, который использует chatApi.js) — новости
+    // публичны и не требуют авторизованного клиента.
+    try {
+      const data = await fetchNews()
+      if (Array.isArray(data)) {
+        this.news = data
+        this.markAllSeen()
+      }
+    } catch (e) { /* пустая лента при сетевой ошибке */ }
     this.loading = false
   },
   methods: {

@@ -9,8 +9,10 @@ import { getAnonId } from '../services/tracking'
 // под тем же ключом kp_token_<id>, который читает существующий /player/:id роут, так что сам
 // плеер (PlayerView.vue, router guard) переиспользуется без изменений — просто встраивается через
 // iframe вместо открытия в новой вкладке. isDemo=true (canWatch остаётся false) — тот же токен, но
-// ограниченный по времени: плеер всё равно встраивается и сам обрежет себя до демо-фрагмента
-// (см. KaraokePlayer.js — духа/watermark/оверлей включаются по data.isDemo из playerdata).
+// ограниченный диапазоном: плеер всё равно встраивается и сам обрежет себя до демо-фрагмента (см.
+// KaraokePlayer.js — фейд-ин/watermark/оверлей включаются по data.isDemo/data.demoFadeInSeconds,
+// пришедшим уже из playerdata, а не отсюда — demoFadeInSeconds здесь дублируется лишь на случай,
+// если понадобится показать длительность фрагмента ДО открытия плеера).
 export function usePlayerAccess() {
   const { token } = useAuth()
   const ready = ref(false)
@@ -18,7 +20,7 @@ export function usePlayerAccess() {
   const canWatch = ref(false)
   const canExport = ref(false)
   const isDemo = ref(false)
-  const demoLimitSeconds = ref(null)
+  const demoFadeInSeconds = ref(null)
   const loaded = ref(false)
 
   async function checkAccess(songId) {
@@ -28,7 +30,7 @@ export function usePlayerAccess() {
     canExport.value = false
     isPremiumUser.value = false
     isDemo.value = false
-    demoLimitSeconds.value = null
+    demoFadeInSeconds.value = null
     if (!songId) return
     try {
       const { status, body } = await authGet(`/api/public/player/${songId}/access?anonId=${encodeURIComponent(getAnonId())}`, token.value)
@@ -38,7 +40,7 @@ export function usePlayerAccess() {
         canWatch.value = !!body.canWatch
         canExport.value = !!body.canExport
         isDemo.value = !!body.isDemo
-        demoLimitSeconds.value = body.demoLimitSeconds ?? null
+        demoFadeInSeconds.value = body.demoFadeInSeconds ?? null
         if ((canWatch.value || isDemo.value) && body.token) {
           sessionStorage.setItem(`kp_token_${songId}`, body.token)
         }
@@ -50,5 +52,5 @@ export function usePlayerAccess() {
     loaded.value = true
   }
 
-  return { ready, isPremiumUser, canWatch, canExport, isDemo, demoLimitSeconds, loaded, checkAccess }
+  return { ready, isPremiumUser, canWatch, canExport, isDemo, demoFadeInSeconds, loaded, checkAccess }
 }

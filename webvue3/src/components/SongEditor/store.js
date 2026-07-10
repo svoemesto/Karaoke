@@ -23,6 +23,9 @@ export default {
         // Статус назначения по songId (батч, для кнопки «Назначить»/«Назначено» в таблице/карточке песни):
         // songId -> {assignmentId, status, assigneeName}.
         assignmentStatusBySongId: {},
+        // Количество заданий "на проверке" — бейдж пункта меню «Задания редактора» в App.vue (по
+        // образцу chatUnreadTotal).
+        submittedAssignmentsCount: 0,
     },
     getters: {
         getAssignmentsDigest(state) { return state.assignmentsDigest },
@@ -32,6 +35,7 @@ export default {
         getAssignmentCurrent(state) { return state.assignmentCurrent },
         getEditorDefaultTarget(state) { return state.defaultTarget },
         getAssignmentStatusBySongId(state) { return state.assignmentStatusBySongId },
+        getSubmittedAssignmentsCount(state) { return state.submittedAssignmentsCount },
     },
     mutations: {
         setAssignmentsDigest(state, result) { state.assignmentsDigest = result },
@@ -41,6 +45,7 @@ export default {
         setAssignmentCurrent(state, a) { state.assignmentCurrent = a },
         setEditorDefaultTarget(state, t) { state.defaultTarget = t },
         setAssignmentStatusBySongId(state, map) { state.assignmentStatusBySongId = map },
+        setSubmittedAssignmentsCount(state, v) { state.submittedAssignmentsCount = v },
     },
     actions: {
         loadAssignmentsDigest(ctx, params) {
@@ -138,6 +143,15 @@ export default {
         deleteAssignment(ctx, id) {
             return promisedXMLHttpRequest({ method: 'POST', url: "/api/songeditor/delete", params: { id, target: ctx.state.assignmentsTarget } })
                 .then(data => JSON.parse(data));
+        },
+        // Бейдж пункта меню «Задания редактора» (App.vue, по образцу loadChatUnreadCount) — target
+        // берётся из defaultTarget ('remote' по умолчанию), т.к. реальный рабочий цикл чаще всего
+        // идёт целиком на PROD.
+        loadSubmittedAssignmentsCount(ctx) {
+            const params = { target: ctx.state.defaultTarget };
+            return promisedXMLHttpRequest({ method: 'POST', url: "/api/songeditor/submittedcount", params })
+                .then(data => { ctx.commit('setSubmittedAssignmentsCount', parseInt(data, 10) || 0); })
+                .catch(error => console.log(error));
         },
     }
 }

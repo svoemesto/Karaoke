@@ -193,5 +193,22 @@ class SongAssignment(
 
         fun delete(id: Long, database: KaraokeConnection): Boolean =
             KaraokeDbTable.delete(tableName = TABLE_NAME, id = id, database = database)
+
+        // Количество заданий со статусом "на проверке" (SUBMITTED) — бейдж пункта меню «Задания
+        // редактора» в webvue3 и монитор-проверка SubmittedAssignmentsCheck. Композитный статус не
+        // хранится отдельной колонкой (см. SongAssignmentStatus.resolve) — считаем так же, как digest().
+        fun countSubmitted(
+            database: KaraokeConnection,
+            storageService: KaraokeStorageService,
+            storageApiClient: StorageApiClient,
+        ): Int {
+            val assignments = loadAll(database, storageService, storageApiClient)
+            if (assignments.isEmpty()) return 0
+            val drafts = SongAssignmentDraft.loadByAssignments(assignments.map { it.id }, database, storageService, storageApiClient)
+            return assignments.count { a ->
+                val draft = drafts[a.id]
+                SongAssignmentStatus.resolve(a.adminStatus, draft?.userStatus, a.reviewedAt, draft?.submittedAt) == SongAssignmentStatus.SUBMITTED
+            }
+        }
     }
 }

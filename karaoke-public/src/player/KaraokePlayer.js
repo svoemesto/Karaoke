@@ -1643,12 +1643,19 @@ export default class KaraokePlayer {
       ? Math.min(1, (audioTime - (this.duration - FADE_OUT)) / FADE_OUT)
       : 0
 
-    // Демо-режим: тот же угасающий alpha дополнительно применяется к громкости — фрагмент не
-    // обрывается резко, а плавно стихает за последнюю секунду. this.duration уже равен длине
-    // демо-фрагмента (сервер физически обрезал байты стема, см. Mp3Trimmer/PublicPlayerController),
-    // поэтому отдельного вычисления границы на клиенте не требуется.
+    // Демо-режим: фрагмент теперь начинается НЕ с нуля песни (куплет минус отступ под фейд-ин, см.
+    // Settings.demoFragmentStartSeconds), поэтому в начале — плавный фейд-ин аудио на протяжении
+    // demoFadeInSeconds (пришёл в playerdata, ≤5с; 0 — если сработал фолбэк "с начала песни", там
+    // фейдить нечего), а в конце — тот же угасающий fadeOutAlpha, что и у визуала (обрыв не резкий).
+    // this.duration уже равен длине демо-фрагмента (сервер физически обрезал байты стема по тому же
+    // диапазону, см. Mp3Trimmer.trimToRange/PublicPlayerController), поэтому отдельного вычисления
+    // границ на клиенте не требуется.
     if (this.data?.isDemo && this.accGain && this.vocGain) {
-      const demoFadeMul = 1 - fadeOutAlpha
+      const demoFadeInSeconds = this.data.demoFadeInSeconds || 0
+      const fadeInMul = (demoFadeInSeconds > 0 && audioTime < demoFadeInSeconds)
+        ? Math.max(0, Math.min(1, audioTime / demoFadeInSeconds))
+        : 1
+      const demoFadeMul = fadeInMul * (1 - fadeOutAlpha)
       this.accGain.gain.value = (this._accVol / 100) * demoFadeMul
       this.vocGain.gain.value = (this._vocVol / 100) * demoFadeMul
     }

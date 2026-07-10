@@ -21,7 +21,5 @@ function announce() {
     "$SILERO_PY" "$SILERO_SCRIPT" "$speak_text" "$speaker" "$rate" &> /dev/null
   elif command -v spd-say &> /dev/null; then
     spd-say -w -o rhvoice -l ru "$speak_text"
-  elif command -v paplay &> /dev/null; then
-    paplay /usr/share/sounds/freedesktop/stereo/complete.oga
   fi
 }

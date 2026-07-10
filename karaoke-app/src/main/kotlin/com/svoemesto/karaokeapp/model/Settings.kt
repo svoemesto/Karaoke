@@ -2192,20 +2192,24 @@ class Settings(
         return  if (timeFirstSyllable > 5000L) 0L else 5000L - timeFirstSyllable
     }
 
-    // Демо-режим онлайн-плеера: ищет границу "конец первого куплета" в потоке маркеров основного
-    // голоса (voice 0), повторяя логику разбиения на строки/куплеты из KaraokePlayer.js::_parseMarkers
-    // (newline = явный разделитель куплета; endofline без накопленных слогов = пустая строка-
-    // разделитель; смена setting GROUP|N = смена стиля/куплета). Возвращает время (сек) первой такой
-    // границы, найденной ПОСЛЕ того как уже закрыта хотя бы одна строка — иначе null (маркеров нет
-    // либо граница не определяется; вызывающая сторона обязана подставить дефолт, см. demoFragmentEndSeconds).
-    fun computeDemoEndSeconds(): Double? {
+    // Демо-режим онлайн-плеера: "первый куплет" = текст группы 0 (по умолчанию currentGroupId=0 —
+    // если в маркерах сразу идёт текст без явного SETTING GROUP|N, он уже в группе 0). Ищет
+    // (начало, конец) этого куплета в потоке маркеров основного голоса (voice 0): начало — время
+    // первого SYLLABLES-маркера, встреченного, пока действует группа 0; конец — первая из границ
+    // ПОСЛЕ начала куплета: смена группы (SETTING GROUP|N ≠ текущей) или принудительная пустая
+    // строка (ENDOFLINE без накопленных слогов, либо явный NEWLINE — та же логика разбиения на
+    // строки/куплеты, что и в KaraokePlayer.js::_parseMarkers). Возвращает null, если куплет не
+    // начался (нет SYLLABLES в группе 0) или граница конца не найдена — вызывающая сторона обязана
+    // подставить дефолт, см. demoFragmentStartSeconds/demoFragmentEndSeconds ниже.
+    private fun computeDemoVerseBounds(): Pair<Double, Double>? {
         if (sourceMarkersList.isEmpty()) return null
         val markers = sourceMarkersList[0].sortedBy { it.time }
         if (markers.isEmpty()) return null
 
-        var openSyllablesCount = 0
-        var closedLinesCount = 0
         var currentGroupId = 0
+        var openSyllablesCount = 0
+        var closedLinesInVerse = 0
+        var verseStart: Double? = null
 
         for (m in markers) {
             when (m.markertype) {
@@ -2213,48 +2217,69 @@ class Settings(
                     val parts = m.label.split("|")
                     if (parts.getOrNull(0) == "GROUP") {
                         val newGroupId = parts.getOrNull(1)?.toIntOrNull() ?: 0
-                        if (newGroupId != currentGroupId && closedLinesCount > 0) return m.time
+                        if (verseStart != null && newGroupId != currentGroupId) return Pair(verseStart, m.time)
                         currentGroupId = newGroupId
                     }
                 }
                 Markertype.SYLLABLES.value -> {
-                    openSyllablesCount++
+                    if (verseStart == null && currentGroupId == 0) verseStart = m.time
+                    if (verseStart != null) openSyllablesCount++
                 }
                 Markertype.ENDOFLINE.value -> {
-                    if (openSyllablesCount > 0) {
-                        closedLinesCount++
-                        openSyllablesCount = 0
-                    } else if (closedLinesCount > 0) {
-                        return m.time
+                    if (verseStart != null) {
+                        if (openSyllablesCount > 0) {
+                            closedLinesInVerse++
+                            openSyllablesCount = 0
+                        } else if (closedLinesInVerse > 0) {
+                            return Pair(verseStart, m.time)
+                        }
                     }
                 }
                 Markertype.NEWLINE.value -> {
-                    if (openSyllablesCount > 0) {
-                        closedLinesCount++
-                        openSyllablesCount = 0
+                    if (verseStart != null) {
+                        if (openSyllablesCount > 0) {
+                            closedLinesInVerse++
+                            openSyllablesCount = 0
+                        }
+                        if (closedLinesInVerse > 0) return Pair(verseStart, m.time)
                     }
-                    if (closedLinesCount > 0) return m.time
                 }
             }
         }
         return null
     }
 
-    // Итоговая длина демо-фрагмента (сек), всегда возвращает валидное значение: граница первого
-    // куплета по маркерам, если она найдена и не подозрительно короткая (см. DEMO_FRAGMENT_MIN_SECONDS —
-    // защита от обрыва разметки на первой же строке), иначе DEMO_FRAGMENT_DEFAULT_SECONDS; в обоих
-    // случаях не длиннее самой песни.
+    // Итоговые границы демо-фрагмента (сек, в системе координат ИСХОДНОЙ песни — не обрезанного
+    // файла): (начало куплета − DEMO_FRAGMENT_LEAD_IN_SECONDS, с фейд-ином аудио на этом отступе) …
+    // (конец куплета). Если куплет не определён надёжно (не найден либо подозрительно короткий,
+    // см. DEMO_FRAGMENT_MIN_SECONDS) — фолбэк: первые DEMO_FRAGMENT_DEFAULT_SECONDS с начала песни,
+    // без отступа (отступать не от чего) и без фейд-ина. Конец никогда не длиннее самой песни.
     @get:JsonIgnore
-    val demoFragmentEndSeconds: Double get() {
+    private val demoFragmentBounds: Triple<Double, Double, Double> get() {
         val songLengthSeconds = songLengthMs / 1000.0
-        val boundary = computeDemoEndSeconds()
-        val candidate = if (boundary != null && boundary >= DEMO_FRAGMENT_MIN_SECONDS) {
-            boundary
-        } else {
-            DEMO_FRAGMENT_DEFAULT_SECONDS
+        val bounds = computeDemoVerseBounds()
+        if (bounds == null || (bounds.second - bounds.first) < DEMO_FRAGMENT_MIN_SECONDS) {
+            val fallbackEnd = (if (songLengthSeconds > 0) DEMO_FRAGMENT_DEFAULT_SECONDS.coerceAtMost(songLengthSeconds) else DEMO_FRAGMENT_DEFAULT_SECONDS)
+                .coerceAtLeast(1.0)
+            return Triple(0.0, fallbackEnd, 0.0)
         }
-        return if (songLengthSeconds > 0) candidate.coerceAtMost(songLengthSeconds) else candidate
+        val (verseStart, verseEnd) = bounds
+        val fragmentStart = (verseStart - DEMO_FRAGMENT_LEAD_IN_SECONDS).coerceAtLeast(0.0)
+        val fadeInSeconds = verseStart - fragmentStart
+        val fragmentEnd = (if (songLengthSeconds > 0) verseEnd.coerceAtMost(songLengthSeconds) else verseEnd)
+            .coerceAtLeast(fragmentStart + 1.0)
+        return Triple(fragmentStart, fragmentEnd, fadeInSeconds)
     }
+
+    @get:JsonIgnore
+    val demoFragmentStartSeconds: Double get() = demoFragmentBounds.first
+    @get:JsonIgnore
+    val demoFragmentEndSeconds: Double get() = demoFragmentBounds.second
+    // Сколько секунд в начале обрезанного демо-фрагмента — реально существующий "разгон" перед
+    // куплетом (≤ DEMO_FRAGMENT_LEAD_IN_SECONDS — короче, если куплет и так начинается рано в песне):
+    // клиент растягивает fade-in аудио ровно на этот отрезок (см. KaraokePlayer.js).
+    @get:JsonIgnore
+    val demoFragmentFadeInSeconds: Double get() = demoFragmentBounds.third
 
     fun getSourceMarkers(voice: Int): List<SourceMarker> {
         return if (sourceMarkersList.size > voice) {
@@ -4242,13 +4267,14 @@ class Settings(
         // Управляющий символ, а не ';'/','/пробел, чтобы не пересечься с символами в именах авторов.
         const val AUTHOR_IN_DELIMITER = "\u0001"
 
-        // Демо-режим онлайн-плеера (не-премиум/неавторизованный пользователь): фрагмент
-        // "от начала до конца первого куплета", см. computeDemoEndSeconds()/demoFragmentEndSeconds.
-        // Если границу куплета не удалось определить по маркерам — играем дефолт секунд песни;
-        // если найденная граница подозрительно короткая (обрыв разметки на первой строке) — тоже
-        // считаем её ненадёжной и уходим в дефолт.
+        // Демо-режим онлайн-плеера (не-премиум/неавторизованный пользователь): фрагмент "первый
+        // куплет (группа 0) минус отступ под фейд-ин" — см. demoFragmentStartSeconds/
+        // demoFragmentEndSeconds/demoFragmentFadeInSeconds. Если границу куплета не удалось
+        // определить по маркерам, либо она подозрительно короткая (обрыв разметки на первой
+        // строке) — фолбэк: дефолт секунд с начала песни, без отступа.
         const val DEMO_FRAGMENT_DEFAULT_SECONDS = 60.0
         const val DEMO_FRAGMENT_MIN_SECONDS = 8.0
+        const val DEMO_FRAGMENT_LEAD_IN_SECONDS = 5.0
 
         // Автоматизация публикации в Telegram (TelegramUpdatesConsumer): сопоставление вышедшего
         // channel_post с песней/версией по СОДЕРЖИМОМУ поста, без отдельного маркера. Каждый пост,

@@ -39,13 +39,15 @@ import java.util.zip.ZipOutputStream
  *
  * ДЕМО-РЕЖИМ: если контент готов ([stemsReady]), но пользователь не может смотреть целиком
  * (не премиум/не подписан/не "в эфире"), [access] всё равно выдаёт токен — но демо-токен,
- * ограниченный по времени (см. Settings.demoFragmentEndSeconds — фрагмент "от начала до конца
- * первого куплета" по маркерам разметки). Ограничение применяется на СЕРВЕРЕ в двух местах:
+ * ограниченный ДИАПАЗОНОМ (см. Settings.demoFragmentStartSeconds/demoFragmentEndSeconds — фрагмент
+ * "первый куплет (текст группы 0) минус отступ под фейд-ин" по маркерам разметки; куплет закрывает
+ * смена группы или принудительная пустая строка). Ограничение применяется на СЕРВЕРЕ в двух местах:
  * [stemResponse] обрезает байты стема через [Mp3Trimmer] (полный файл физически не отдаётся —
  * тот же принцип, что и у постоянно-публичного URL, см. комментарий у stemResponse ниже), а
- * [playerData] обрезает список маркеров, чтобы разметка не показывала текст за пределами
- * фрагмента. Различить обычный и демо-токен на фронте позволяют поля isDemo/demoLimitSeconds
- * в ответах [access]/[playerData].
+ * [playerData] обрезает список маркеров ДО диапазона и ПЕРЕБАЗИРУЕТ их время (вычитает начало
+ * диапазона), чтобы совпадать с обрезанным аудио, которое для плеера снова "начинается с нуля".
+ * Различить обычный и демо-токен на фронте позволяют поля isDemo/demoFadeInSeconds в ответах
+ * [access]/[playerData] — demoFadeInSeconds задаёт длину фейд-ина в начале фрагмента.
  *
  * ВАЖНО: karaoke-web выполняется на другом хосте, чем karaoke-app (тот, где физически лежат FLAC
  * и работает Demucs/ffmpeg) — доступа к локальным путям вроде Settings.accompanimentNameFlac у
@@ -107,13 +109,13 @@ class PublicPlayerController(
         val canWatch = ready && (settings.onAir || premium || subscribed)
         val canExport = canWatch && premium
         // Демо-режим: контент готов, но полного доступа нет — вместо отказа выдаём токен,
-        // ограниченный по времени (фрагмент "до конца первого куплета"), чтобы не-премиум мог
-        // послушать и оценить разметку/качество перед подпиской.
+        // ограниченный диапазоном (фрагмент "куплет минус отступ под фейд-ин"), чтобы не-премиум
+        // мог послушать и оценить разметку/качество перед подпиской.
         val isDemo = ready && !canWatch
-        val demoLimitSeconds = if (isDemo) settings.demoFragmentEndSeconds else null
+        val demoFadeInSeconds = if (isDemo) settings.demoFragmentFadeInSeconds else null
         val token = when {
             canWatch -> gestureUnlockService.issueDirectAccessToken(id)
-            isDemo -> gestureUnlockService.issueDemoAccessToken(id, demoLimitSeconds!!)
+            isDemo -> gestureUnlockService.issueDemoAccessToken(id, settings.demoFragmentStartSeconds, settings.demoFragmentEndSeconds)
             else -> null
         }
         if (canWatch || isDemo) {
@@ -138,7 +140,7 @@ class PublicPlayerController(
             "canWatch" to canWatch,
             "canExport" to canExport,
             "isDemo" to isDemo,
-            "demoLimitSeconds" to demoLimitSeconds,
+            "demoFadeInSeconds" to demoFadeInSeconds,
             "token" to token,
         ))
     }
@@ -212,12 +214,12 @@ class PublicPlayerController(
     // MinIO дальше был доступен бессрочно и без проверки токена вообще (закладка/шаринг ссылки/кэш
     // download-менеджера обходили токен и его 30-минутный TTL). Проксирование байтов устраняет этот
     // постоянный публичный URL — каждый запрос снова проверяет token.
-    private fun stemResponse(settings: Settings, fileType: KaraokeFileType, demoLimitSeconds: Double?): ResponseEntity<ByteArray> {
+    private fun stemResponse(settings: Settings, fileType: KaraokeFileType, demoRange: PlayerGestureUnlockService.DemoRange?): ResponseEntity<ByteArray> {
         val storageKey = stemStorageKey(settings, fileType)
         val bytes = fetchFromMinIO(storageKey) ?: return ResponseEntity.notFound().build()
         // Демо-токен — обрезаем байты стема на границе mp3-фрейма (Mp3Trimmer), чтобы полный
         // файл физически не покидал сервер. Обычный токен получает bytes как есть.
-        val payload = if (demoLimitSeconds != null) Mp3Trimmer.trimToSeconds(bytes, demoLimitSeconds) else bytes
+        val payload = if (demoRange != null) Mp3Trimmer.trimToRange(bytes, demoRange.startSeconds, demoRange.endSeconds) else bytes
         return ResponseEntity.ok().contentType(MediaType.valueOf("audio/mpeg")).body(payload)
     }
 
@@ -228,28 +230,28 @@ class PublicPlayerController(
     fun fileAccompaniment(@PathVariable id: Long, @RequestParam token: String?): ResponseEntity<ByteArray> {
         if (!authorized(id, token)) return ResponseEntity.notFound().build()
         val settings = loadSettings(id) ?: return ResponseEntity.notFound().build()
-        return stemResponse(settings, KaraokeFileType.MP3_ACCOMPANIMENT, gestureUnlockService.demoLimitForToken(token, id))
+        return stemResponse(settings, KaraokeFileType.MP3_ACCOMPANIMENT, gestureUnlockService.demoRangeForToken(token, id))
     }
 
     @GetMapping("/{id}/filevoice.mp3")
     fun fileVocals(@PathVariable id: Long, @RequestParam token: String?): ResponseEntity<ByteArray> {
         if (!authorized(id, token)) return ResponseEntity.notFound().build()
         val settings = loadSettings(id) ?: return ResponseEntity.notFound().build()
-        return stemResponse(settings, KaraokeFileType.MP3_VOCAL, gestureUnlockService.demoLimitForToken(token, id))
+        return stemResponse(settings, KaraokeFileType.MP3_VOCAL, gestureUnlockService.demoRangeForToken(token, id))
     }
 
     @GetMapping("/{id}/filebass.mp3")
     fun fileBass(@PathVariable id: Long, @RequestParam token: String?): ResponseEntity<ByteArray> {
         if (!authorized(id, token)) return ResponseEntity.notFound().build()
         val settings = loadSettings(id) ?: return ResponseEntity.notFound().build()
-        return stemResponse(settings, KaraokeFileType.MP3_BASS, gestureUnlockService.demoLimitForToken(token, id))
+        return stemResponse(settings, KaraokeFileType.MP3_BASS, gestureUnlockService.demoRangeForToken(token, id))
     }
 
     @GetMapping("/{id}/filedrums.mp3")
     fun fileDrums(@PathVariable id: Long, @RequestParam token: String?): ResponseEntity<ByteArray> {
         if (!authorized(id, token)) return ResponseEntity.notFound().build()
         val settings = loadSettings(id) ?: return ResponseEntity.notFound().build()
-        return stemResponse(settings, KaraokeFileType.MP3_DRUMS, gestureUnlockService.demoLimitForToken(token, id))
+        return stemResponse(settings, KaraokeFileType.MP3_DRUMS, gestureUnlockService.demoRangeForToken(token, id))
     }
 
     @GetMapping("/{id}/playerdata")
@@ -272,12 +274,19 @@ class PublicPlayerController(
             }
         }
 
-        // Демо-токен — обрезаем маркеры по границе фрагмента, чтобы плеер не показывал/не
-        // подсвечивал текст за пределами того, что реально можно прослушать (stemResponse
-        // обрезает сами байты стема тем же значением, см. Mp3Trimmer).
-        val demoLimitSeconds = gestureUnlockService.demoLimitForToken(token, id)
-        if (demoLimitSeconds != null) {
-            markersList = markersList.map { voiceMarkers -> voiceMarkers.filter { it.time <= demoLimitSeconds } }
+        // Демо-токен — обрезаем маркеры до диапазона фрагмента и ПЕРЕБАЗИРУЕМ их время (вычитаем
+        // начало диапазона), чтобы совпасть с обрезанным аудио — stemResponse обрезает те же байты
+        // стема тем же диапазоном через Mp3Trimmer.trimToRange, и для плеера итоговый файл снова
+        // "начинается с нуля".
+        val demoRange = gestureUnlockService.demoRangeForToken(token, id)
+        var demoFadeInSeconds: Double? = null
+        if (demoRange != null) {
+            markersList = markersList.map { voiceMarkers ->
+                voiceMarkers
+                    .filter { it.time in demoRange.startSeconds..demoRange.endSeconds }
+                    .map { it.copy(time = it.time - demoRange.startSeconds) }
+            }
+            demoFadeInSeconds = settings.demoFragmentFadeInSeconds
         }
 
         val tokenSuffix = "?token=${token}"
@@ -308,8 +317,8 @@ class PublicPlayerController(
             // флагом не ограничена — эти же URL нужны и для обычного воспроизведения всем, у кого
             // есть валидный token; canExport — только про предложение сохранить файл себе.
             "canExport" to isPremiumUser(request),
-            "isDemo" to (demoLimitSeconds != null),
-            "demoLimitSeconds" to demoLimitSeconds,
+            "isDemo" to (demoRange != null),
+            "demoFadeInSeconds" to demoFadeInSeconds,
         )
         return ResponseEntity.ok(data)
     }

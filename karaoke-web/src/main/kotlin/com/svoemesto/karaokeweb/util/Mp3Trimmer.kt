@@ -10,8 +10,13 @@ import java.io.ByteArrayOutputStream
 // секундах. Вместо этого разбираем реальные MPEG-фреймы (11-битный sync + таблицы битрейта/
 // частоты дискретизации) и режем строго по их границе — работает и с CBR, и с VBR.
 // Используется из PublicPlayerController.stemResponse только для demo-токенов (см.
-// Settings.demoFragmentEndSeconds / PlayerGestureUnlockService.demoLimitForToken) — обычный
-// (не-демо) токен получает исходные байты без изменений.
+// Settings.demoFragmentStartSeconds/demoFragmentEndSeconds, PlayerGestureUnlockService.demoRangeForToken)
+// — обычный (не-демо) токен получает исходные байты без изменений.
+// ВАЖНО: фрагмент теперь может начинаться НЕ с нуля (демо = "куплет минус 5 секунд отступа"), а
+// значит режем и по НАЧАЛУ, отбрасывая всё до него. У LAME есть bit reservoir (кадр может занимать
+// биты у соседних кадров) — начало вырезанного диапазона в редких случаях может дать минимальный
+// артефакт на первые ~1-2 кадра (~30-50мс); полноценно этого избежать можно только перекодированием
+// (ffmpeg), которого в этом образе нет — сочтено приемлемым компромиссом для демо-фрагмента.
 object Mp3Trimmer {
 
     private val BITRATES_V1_L1 = intArrayOf(0, 32, 64, 96, 128, 160, 192, 224, 256, 288, 320, 352, 384, 416, 448)
@@ -27,33 +32,42 @@ object Mp3Trimmer {
     private data class FrameInfo(val frameLength: Int, val durationSeconds: Double, val isXingHeader: Boolean)
 
     /**
-     * Обрезает mp3 так, чтобы суммарная длительность оставленных аудио-фреймов не превышала
-     * [seconds]. Режет строго по границе фрейма (перекодирование не требуется). Xing/Info/VBRI
-     * служебный фрейм (несёт таблицу для seek/общую длину — после обрезки уже неактуален)
-     * выбрасывается, остальные копируются как есть. Если распарсить поток не удалось —
-     * защитный фолбэк: возвращает исходные байты целиком (лучше отдать длиннее задуманного,
-     * чем сломанный файл).
+     * Обрезает mp3 до диапазона [[startSeconds], [endSeconds]] (в системе координат исходного
+     * файла), строго по границам фреймов (перекодирование не требуется). Фреймы, чей интервал
+     * полностью до [startSeconds] или после [endSeconds], отбрасываются; Xing/Info/VBRI служебный
+     * фрейм (несёт таблицу для seek/общую длину — после обрезки уже неактуален) исключается всегда,
+     * даже если он попадает в диапазон. Если распарсить поток не удалось — защитный фолбэк:
+     * возвращает исходные байты целиком (лучше отдать длиннее задуманного, чем сломанный файл).
+     * Если поток разобрался, но ни один фрейм не попал в диапазон (некорректный/слишком поздний
+     * [startSeconds]) — возвращает пустой массив, а не полный файл (диапазона просто нет).
      */
-    fun trimToSeconds(bytes: ByteArray, seconds: Double): ByteArray {
-        if (seconds <= 0) return ByteArray(0)
+    fun trimToRange(bytes: ByteArray, startSeconds: Double, endSeconds: Double): ByteArray {
+        val start = startSeconds.coerceAtLeast(0.0)
+        val end = endSeconds.coerceAtLeast(start)
+        if (end <= start) return ByteArray(0)
         return try {
             val headerEnd = skipId3v2(bytes)
-            val out = ByteArrayOutputStream(minOf(bytes.size, headerEnd + 2_000_000))
-            out.write(bytes, 0, headerEnd)
+            val out = ByteArrayOutputStream(minOf(bytes.size, 2_000_000))
+            if (start <= 0.0) out.write(bytes, 0, headerEnd) // ID3v2 бессмысленно сохранять, если фрагмент начинается не с нуля
 
             var pos = headerEnd
             var accumulated = 0.0
-            while (pos + 4 <= bytes.size && accumulated < seconds) {
+            var wroteAnyFrame = false
+            while (pos + 4 <= bytes.size && accumulated < end) {
                 val frame = parseFrameHeader(bytes, pos)
                 if (frame == null) { pos++; continue }
                 if (pos + frame.frameLength > bytes.size) break
                 if (!frame.isXingHeader) {
-                    out.write(bytes, pos, frame.frameLength)
-                    accumulated += frame.durationSeconds
+                    val frameEnd = accumulated + frame.durationSeconds
+                    if (frameEnd > start) {
+                        out.write(bytes, pos, frame.frameLength)
+                        wroteAnyFrame = true
+                    }
+                    accumulated = frameEnd
                 }
                 pos += frame.frameLength
             }
-            if (accumulated <= 0.0) bytes else out.toByteArray()
+            if (!wroteAnyFrame) ByteArray(0) else out.toByteArray()
         } catch (e: Exception) {
             bytes
         }

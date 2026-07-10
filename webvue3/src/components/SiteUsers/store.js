@@ -11,7 +11,9 @@ export default {
         siteUserCurrent: undefined,
         siteUserSnapshot: undefined,
         siteUserCurrentId: 0,
-        siteUsersTarget: 'local'
+        siteUsersTarget: 'local',
+        siteUserSubscriptions: [],
+        siteUserSubscriptionsIsLoading: false,
     },
     getters: {
         getSiteUsersDigest(state) { return state.siteUsersDigest },
@@ -19,6 +21,8 @@ export default {
         getSiteUserCurrent(state) { return state.siteUserCurrent },
         getSiteUserSnapshot(state) { return state.siteUserSnapshot },
         getSiteUsersTarget(state) { return state.siteUsersTarget },
+        getSiteUserSubscriptions(state) { return state.siteUserSubscriptions },
+        getSiteUserSubscriptionsIsLoading(state) { return state.siteUserSubscriptionsIsLoading },
         getSiteUserDiff(state) {
             let result = [];
             if (state.siteUserCurrent && state.siteUserSnapshot) {
@@ -49,7 +53,9 @@ export default {
         saveSiteUser(state) {
             state.siteUserSnapshot = !state.siteUserCurrent ? undefined : Object.assign({}, state.siteUserCurrent)
         },
-        setSiteUsersTarget(state, target) { state.siteUsersTarget = target }
+        setSiteUsersTarget(state, target) { state.siteUsersTarget = target },
+        setSiteUserSubscriptions(state, result) { state.siteUserSubscriptions = result },
+        setSiteUserSubscriptionsIsLoading(state, isLoading) { state.siteUserSubscriptionsIsLoading = isLoading },
     },
     actions: {
         loadSiteUsersDigest(ctx, params) {
@@ -86,6 +92,13 @@ export default {
             if (diffs.maxPlaylists !== undefined) params.maxPlaylists = Number(diffs.maxPlaylists) || 0;
             if (diffs.maxPlaylistItems !== undefined) params.maxPlaylistItems = Number(diffs.maxPlaylistItems) || 0;
             if (diffs.personalDiscountPercent !== undefined) params.personalDiscountPercent = Number(diffs.personalDiscountPercent) || 0;
+            // sponsrPremiumUntil/sitePremiumUntil: '' — сознательно передаётся на бэкенд как явный
+            // сигнал "очистить" (backend отличает null-параметр "не трогать" от пустой строки "очистить").
+            if (diffs.sponsrPremiumUntil !== undefined) params.sponsrPremiumUntil = diffs.sponsrPremiumUntil || '';
+            if (diffs.sitePremiumUntil !== undefined) params.sitePremiumUntil = diffs.sitePremiumUntil || '';
+            if (diffs.welcomeMessageSent !== undefined) params.welcomeMessageSent = diffs.welcomeMessageSent;
+            if (diffs.createdAt !== undefined) params.createdAt = diffs.createdAt;
+            if (diffs.lastLoginAt !== undefined) params.lastLoginAt = diffs.lastLoginAt;
             let request = { method: 'POST', url: "/api/siteusers/update", params: params };
             return promisedXMLHttpRequest(request).then(() => {
                 ctx.commit('saveSiteUser');
@@ -103,6 +116,17 @@ export default {
         deleteSiteUserCurrent(ctx) {
             let request = { method: 'POST', url: "/api/siteusers/delete", params: { id: ctx.state.siteUserCurrentId, target: ctx.state.siteUsersTarget } };
             return promisedXMLHttpRequest(request);
-        }
+        },
+        loadSiteUserSubscriptions(ctx, id) {
+            const request = { method: 'POST', url: "/api/siteusers/subscriptions", params: { id, target: ctx.state.siteUsersTarget } };
+            ctx.commit('setSiteUserSubscriptionsIsLoading', true);
+            return promisedXMLHttpRequest(request).then(data => {
+                ctx.commit('setSiteUserSubscriptions', JSON.parse(data) || []);
+                ctx.commit('setSiteUserSubscriptionsIsLoading', false);
+            }).catch(error => {
+                ctx.commit('setSiteUserSubscriptionsIsLoading', false);
+                console.log(error);
+            });
+        },
     }
 }

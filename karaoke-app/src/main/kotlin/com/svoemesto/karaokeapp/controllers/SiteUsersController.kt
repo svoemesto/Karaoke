@@ -2,7 +2,10 @@ package com.svoemesto.karaokeapp.controllers
 
 import com.svoemesto.karaokeapp.Connection
 import com.svoemesto.karaokeapp.KaraokeConnection
+import com.svoemesto.karaokeapp.model.PriceTariff
+import com.svoemesto.karaokeapp.model.Settings
 import com.svoemesto.karaokeapp.model.SiteUser
+import com.svoemesto.karaokeapp.model.Subscription
 import com.svoemesto.karaokeapp.services.KSS_APP
 import com.svoemesto.karaokeapp.services.SAC_APP
 import org.springframework.stereotype.Controller
@@ -10,6 +13,7 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.ResponseBody
+import java.sql.Timestamp
 
 // Админка пользователей ПУБЛИЧНОГО САЙТА (tbl_site_users). Ключевое отличие от всех остальных ручных
 // CRUD-контроллеров в проекте:
@@ -98,6 +102,18 @@ class SiteUsersController {
         @RequestParam(required = false) maxPlaylistItems: Int?,
         // Постоянная скидка (%) — вручную, суммируется поверх любой акции (PriceService).
         @RequestParam(required = false) personalDiscountPercent: Double?,
+        // Даты окончания срочного премиума — в норме проставляются Sponsr-синхронизацией/оплатой
+        // подписки, но админ может подправить/выдать/отозвать вручную. Пустая строка = очистить (null),
+        // не спутать с отсутствием параметра (null Kotlin-параметр = поле не трогать).
+        @RequestParam(required = false) sponsrPremiumUntil: String?,
+        @RequestParam(required = false) sitePremiumUntil: String?,
+        // Флаг однократной отправки приветственного сообщения — сброс в false заставит
+        // sendWelcomePremiumMessageIfNeeded() отправить его заново при следующем получении премиума.
+        @RequestParam(required = false) welcomeMessageSent: Boolean?,
+        // NOT NULL-колонки — в отличие от премиум-дат, пустая строка здесь игнорируется (не может
+        // означать null), просто ничего не меняет.
+        @RequestParam(required = false) createdAt: String?,
+        @RequestParam(required = false) lastLoginAt: String?,
     ): Long = withDb(target) { db ->
         SiteUser.getSiteUserById(id, db, KSS_APP, SAC_APP)?.let { user ->
             displayName?.let { user.displayName = it }
@@ -109,6 +125,11 @@ class SiteUsersController {
             maxPlaylists?.let { user.maxPlaylists = it }
             maxPlaylistItems?.let { user.maxPlaylistItems = it }
             personalDiscountPercent?.let { user.personalDiscountPercent = it.coerceIn(0.0, 100.0) }
+            sponsrPremiumUntil?.let { user.sponsrPremiumUntil = if (it == "") null else Timestamp.valueOf(it) }
+            sitePremiumUntil?.let { user.sitePremiumUntil = if (it == "") null else Timestamp.valueOf(it) }
+            welcomeMessageSent?.let { user.welcomeMessageSent = it }
+            createdAt?.let { if (it != "") user.createdAt = Timestamp.valueOf(it) }
+            lastLoginAt?.let { if (it != "") user.lastLoginAt = Timestamp.valueOf(it) }
             user.save()
             user.id
         } ?: 0L
@@ -145,4 +166,37 @@ class SiteUsersController {
     @ResponseBody
     fun delete(@RequestParam id: Long, @RequestParam(required = false) target: String?): Boolean =
         withDb(target) { db -> SiteUser.deleteSiteUser(id, db) }
+
+    // История подписок/покупок пользователя для карточки в админке — те же записи, что видит сам
+    // пользователь в личном кабинете (PublicSubscriptionController.list, karaoke-web), но здесь читаем
+    // напрямую из karaoke-app (без HTTP-вызова, которого для karaoke-app на проде и быть не может —
+    // см. инвариант "karaoke-app не на проде"), плюс название тарифа для scope=SITE (в личном кабинете
+    // не нужно — там подписка всегда на уже известный тариф этого же похода).
+    @PostMapping("/subscriptions")
+    @ResponseBody
+    fun subscriptions(@RequestParam id: Long, @RequestParam(required = false) target: String?): List<Map<String, Any?>> =
+        withDb(target) { db ->
+            Subscription.loadByUser(id, db, KSS_APP, SAC_APP).map { sub ->
+                val songName = sub.idSong?.let { Settings.loadFromDbById(it, db, storageService = KSS_APP, storageApiClient = SAC_APP)?.songName }
+                val tariffName = sub.tariffId?.let { PriceTariff.getById(it, db, KSS_APP, SAC_APP)?.name }
+                mapOf(
+                    "id" to sub.id,
+                    "scope" to sub.scope,
+                    "idSong" to sub.idSong,
+                    "songName" to songName,
+                    "tariffId" to sub.tariffId,
+                    "tariffName" to tariffName,
+                    "periodDays" to sub.periodDays,
+                    "basePrice" to sub.basePrice,
+                    "discount" to sub.discount,
+                    "finalPrice" to sub.finalPrice,
+                    "promoApplied" to sub.promoApplied,
+                    "status" to sub.status,
+                    "autoRenew" to sub.autoRenew,
+                    "createdAt" to sub.createdAt.toString(),
+                    "paidAt" to sub.paidAt?.toString(),
+                    "orderId" to sub.orderId,
+                )
+            }
+        }
 }

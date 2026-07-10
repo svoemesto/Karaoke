@@ -18,6 +18,13 @@
           :target="siteUsersTarget"
           @close="isPlaylistsVisible=false"
       />
+      <UserSubscriptionsModal
+          v-if="isSubscriptionsVisible"
+          :site-user-id="siteUserCurrent.id"
+          :user-label="siteUserCurrent.displayName || siteUserCurrent.email"
+          :target="siteUsersTarget"
+          @close="isSubscriptionsVisible=false"
+      />
       <div class="sue-header">
         <div>ID = {{ siteUserCurrent.id }}</div>
         <div>{{ siteUserCurrent.email }}</div>
@@ -45,13 +52,24 @@
             <span class="sue-hint">(если включено — премиум действует всегда, независимо от чекбокса выше)</span>
           </label>
         </div>
-        <div class="label-and-input" v-if="siteUserCurrent.sponsrPremiumUntil">
-          <div class="label">Премиум по Sponsr:</div>
-          <div class="sue-static">до {{ siteUserCurrent.sponsrPremiumUntil }} <span class="sue-hint">(Sponsr-синхронизация)</span></div>
+        <div class="label-and-input">
+          <div class="label">Премиум по Sponsr до:</div>
+          <input class="input-field sue-datetime" type="datetime-local" v-model="sponsrPremiumUntilLocal">
+          <button v-if="sponsrPremiumUntilLocal" class="sue-clear-btn" title="Очистить" @click="sponsrPremiumUntilLocal=''">×</button>
+          <span class="sue-hint">(в норме — Sponsr-синхронизация; можно выдать/отозвать вручную)</span>
         </div>
-        <div class="label-and-input" v-if="siteUserCurrent.sitePremiumUntil">
-          <div class="label">Подписка на сайт:</div>
-          <div class="sue-static">до {{ siteUserCurrent.sitePremiumUntil }} <span class="sue-hint">(оплаченная подписка на сайте)</span></div>
+        <div class="label-and-input">
+          <div class="label">Подписка на сайт до:</div>
+          <input class="input-field sue-datetime" type="datetime-local" v-model="sitePremiumUntilLocal">
+          <button v-if="sitePremiumUntilLocal" class="sue-clear-btn" title="Очистить" @click="sitePremiumUntilLocal=''">×</button>
+          <span class="sue-hint">(в норме — оплаченная подписка на сайте; можно выдать/отозвать вручную)</span>
+        </div>
+        <div class="label-and-input">
+          <div class="label">Приветствие отправлено:</div>
+          <label class="sue-checkbox-label">
+            <input type="checkbox" v-model="siteUserCurrent.welcomeMessageSent">
+            <span class="sue-hint">(разовая отправка при первом премиуме; сброс — отправить повторно при следующем)</span>
+          </label>
         </div>
         <div class="label-and-input">
           <div class="label">Постоянная скидка:</div>
@@ -88,11 +106,11 @@
         </div>
         <div class="label-and-input">
           <div class="label">Создан:</div>
-          <div class="sue-static">{{ siteUserCurrent.createdAt }}</div>
+          <input class="input-field sue-datetime" type="datetime-local" v-model="createdAtLocal">
         </div>
         <div class="label-and-input">
           <div class="label">Последний вход:</div>
-          <div class="sue-static">{{ siteUserCurrent.lastLoginAt }}</div>
+          <input class="input-field sue-datetime" type="datetime-local" v-model="lastLoginAtLocal">
         </div>
       </div>
       <div class="sue-footer">
@@ -104,6 +122,7 @@
         <button class="sue-btn" @click="openChat">Чат</button>
         <button class="sue-btn" @click="openEvents">События</button>
         <button class="sue-btn" @click="openPlaylists">Плейлисты</button>
+        <button class="sue-btn" @click="openSubscriptions">Подписки/покупки</button>
       </div>
     </div>
     <div v-else>Не выбран пользователь</div>
@@ -114,16 +133,18 @@
 import CustomConfirm from "../../Common/CustomConfirm.vue";
 import UserEventsModal from "../../Stats/UserEventsModal.vue";
 import UserPlaylistsModal from "../UserPlaylistsModal.vue";
+import UserSubscriptionsModal from "../UserSubscriptionsModal.vue";
 
 export default {
   name: "SiteUserEdit",
-  components: { CustomConfirm, UserEventsModal, UserPlaylistsModal },
+  components: { CustomConfirm, UserEventsModal, UserPlaylistsModal, UserSubscriptionsModal },
   data() {
     return {
       isCustomConfirmVisible: false,
       customConfirmParams: undefined,
       isEventsVisible: false,
       isPlaylistsVisible: false,
+      isSubscriptionsVisible: false,
     }
   },
   mounted() {
@@ -139,9 +160,40 @@ export default {
     userEvents() { return this.$store.getters.getStatsUserEvents },
     userEventsTotalCount() { return this.$store.getters.getStatsUserEventsTotalCount },
     userEventsIsLoading() { return this.$store.getters.getStatsUserEventsIsLoading },
+    // sponsrPremiumUntil/sitePremiumUntil — nullable-колонки, очистка поля (пустой <input>) должна
+    // дойти до бэкенда как null. createdAt/lastLoginAt — NOT NULL, поэтому очистка там просто
+    // отменяется (оставляем прежнее значение) вместо отправки мусорного значения на сервер.
+    sponsrPremiumUntilLocal: {
+      get() { return this.toLocalInput(this.siteUserCurrent.sponsrPremiumUntil) },
+      set(value) { this.siteUserCurrent.sponsrPremiumUntil = this.fromLocalInputNullable(value) }
+    },
+    sitePremiumUntilLocal: {
+      get() { return this.toLocalInput(this.siteUserCurrent.sitePremiumUntil) },
+      set(value) { this.siteUserCurrent.sitePremiumUntil = this.fromLocalInputNullable(value) }
+    },
+    createdAtLocal: {
+      get() { return this.toLocalInput(this.siteUserCurrent.createdAt) },
+      set(value) { this.siteUserCurrent.createdAt = this.fromLocalInputRequired(value, this.siteUserCurrent.createdAt) }
+    },
+    lastLoginAtLocal: {
+      get() { return this.toLocalInput(this.siteUserCurrent.lastLoginAt) },
+      set(value) { this.siteUserCurrent.lastLoginAt = this.fromLocalInputRequired(value, this.siteUserCurrent.lastLoginAt) }
+    },
   },
   methods: {
     closeCustomConfirm() { this.isCustomConfirmVisible = false },
+    // "yyyy-MM-dd HH:mm:ss[.f...]" (JDBC Timestamp.toString()) <-> "yyyy-MM-ddTHH:mm" (<input
+    // type="datetime-local">) — секунды/доли всегда обнуляются при редактировании через это поле.
+    toLocalInput(ts) {
+      if (!ts) return '';
+      return ts.replace(' ', 'T').slice(0, 16);
+    },
+    fromLocalInputNullable(value) {
+      return value ? `${value.replace('T', ' ')}:00` : null;
+    },
+    fromLocalInputRequired(value, previous) {
+      return value ? `${value.replace('T', ' ')}:00` : previous;
+    },
     // Открывает раздел «Чат» (webvue3) уже на переписке с этим пользователем — target чата
     // подстраивается под текущий target раздела «Пользователи сайта» (local/remote), иначе id
     // пользователя из одной БД мог бы открыть чужую/несуществующую переписку в другой.
@@ -157,6 +209,7 @@ export default {
       this.isEventsVisible = true;
     },
     openPlaylists() { this.isPlaylistsVisible = true },
+    openSubscriptions() { this.isSubscriptionsVisible = true },
     notChanged() { return this.siteUserDiff.length === 0 },
     async save() {
       let diffs = {};
@@ -243,6 +296,19 @@ export default {
 .label { font-size: small; text-align: right; width: 130px; padding-right: 6px; }
 .input-field { padding: 2px 5px; width: 300px; font-size: small; border-radius: 5px; border: thin solid black; }
 .sue-num { width: 90px; margin-right: 8px; }
+.sue-datetime { width: 210px; margin-right: 8px; }
+.sue-clear-btn {
+  border: thin solid black;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  font-size: x-small;
+  line-height: 1;
+  cursor: pointer;
+  margin-right: 8px;
+  background-color: antiquewhite;
+}
+.sue-clear-btn:hover { background-color: lightpink; }
 .sue-static { font-size: small; }
 .sue-hint { color: gray; font-size: x-small; }
 .sue-checkbox-label { display: flex; align-items: center; gap: 6px; font-size: small; cursor: pointer; }

@@ -25,7 +25,12 @@
             </li>
             <li class="nav-item"><router-link class="nav-link" to="/siteusers">Пользователи сайта</router-link></li>
             <li class="nav-item"><router-link class="nav-link" to="/siteplaylists">Плейлисты</router-link></li>
-            <li class="nav-item"><router-link class="nav-link" to="/songeditor">Задания редактора</router-link></li>
+            <li class="nav-item">
+              <router-link class="nav-link songeditor-nav-link" to="/songeditor">
+                Задания редактора
+                <span v-if="submittedAssignmentsCount > 0" class="songeditor-nav-badge">{{ submittedAssignmentsCount }}</span>
+              </router-link>
+            </li>
             <li class="nav-item"><router-link class="nav-link" to="/publicsettings">Настройки сайта</router-link></li>
             <li class="nav-item"><router-link class="nav-link" to="/tariffs">Тарифы</router-link></li>
             <li class="nav-item"><router-link class="nav-link" to="/promotions">Акции</router-link></li>
@@ -78,6 +83,9 @@ const SSE_RECONNECT_DELAY_MS = 4000;
 // karaoke-web, а не karaoke-app, поэтому save() не шлёт SSE-уведомление и обновлять бейдж приходится
 // периодическим опросом (не привязан к SSE-соединению выше).
 const CHAT_UNREAD_POLL_INTERVAL_MS = 20000;
+// Бейдж заданий редактора «на проверке» — тот же приём, что и у чата (отдельный опрос, не завязан на
+// SSE-канал MONITOR_ALERTS выше).
+const SONGEDITOR_SUBMITTED_POLL_INTERVAL_MS = 20000;
 
 export default {
   data() {
@@ -85,10 +93,12 @@ export default {
       msgServer: null,
       sseReconnectTimer: null,
       chatUnreadPollTimer: null,
+      submittedAssignmentsPollTimer: null,
     }
   },
   computed: {
     chatUnreadTotal() { return this.$store.getters.getChatUnreadTotal },
+    submittedAssignmentsCount() { return this.$store.getters.getSubmittedAssignmentsCount },
   },
   methods: {
     connectSse(create) {
@@ -414,6 +424,9 @@ export default {
 
     this.$store.dispatch('loadChatUnreadCount');
     this.chatUnreadPollTimer = setInterval(() => this.$store.dispatch('loadChatUnreadCount'), CHAT_UNREAD_POLL_INTERVAL_MS);
+
+    this.$store.dispatch('loadSubmittedAssignmentsCount');
+    this.submittedAssignmentsPollTimer = setInterval(() => this.$store.dispatch('loadSubmittedAssignmentsCount'), SONGEDITOR_SUBMITTED_POLL_INTERVAL_MS);
   },
   beforeUnmount() {
     if (this.sseReconnectTimer) {
@@ -424,6 +437,10 @@ export default {
     if (this.chatUnreadPollTimer) {
       clearInterval(this.chatUnreadPollTimer);
       this.chatUnreadPollTimer = null;
+    }
+    if (this.submittedAssignmentsPollTimer) {
+      clearInterval(this.submittedAssignmentsPollTimer);
+      this.submittedAssignmentsPollTimer = null;
     }
   }
 }
@@ -488,6 +505,23 @@ export default {
   justify-content: space-between;
 }
 .chat-nav-badge {
+  background-color: #d02c3a;
+  color: #fff;
+  border-radius: 10px;
+  min-width: 18px;
+  height: 18px;
+  line-height: 18px;
+  text-align: center;
+  font-size: 11px;
+  padding: 0 5px;
+}
+
+.songeditor-nav-link {
+  display: flex !important;
+  align-items: center;
+  justify-content: space-between;
+}
+.songeditor-nav-badge {
   background-color: #d02c3a;
   color: #fff;
   border-radius: 10px;

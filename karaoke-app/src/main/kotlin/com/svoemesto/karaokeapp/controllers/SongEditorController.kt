@@ -341,6 +341,14 @@ class SongEditorController(
         mapOf("ok" to ok)
     }
 
+    // Количество заданий "на проверке" — бейдж пункта меню «Задания редактора» в webvue3 (по образцу
+    // /api/chat/unreadcount).
+    @PostMapping("/submittedcount")
+    @ResponseBody
+    fun submittedCount(@RequestParam(required = false) target: String?): Int = withDb(target) { db ->
+        SongAssignment.countSubmitted(db, storageService, storageApiClient)
+    }
+
     // Батч-статус назначений для таблицы/карточки песни (кнопка «Назначить»/«Назначено») — без N+1:
     // одним запросом узнаём для целой страницы/одной песни, есть ли задание и в каком оно статусе.
     // songIds — CSV. Имя исполнителя — точечные getSiteUserById по уникальным assigneeId (их на

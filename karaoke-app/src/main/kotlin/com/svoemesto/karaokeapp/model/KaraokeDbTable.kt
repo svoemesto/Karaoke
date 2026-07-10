@@ -361,7 +361,8 @@ interface KaraokeDbTable {
             val ps = connection.prepareStatement(sql)
             try {
                 ps.executeUpdate(sql, Statement.RETURN_GENERATED_KEYS)
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                println("[${Timestamp.from(Instant.now())}] createDbInstance: сбой вставки в ${entity.getTableName()}: ${e.message}")
                 // Проверяем последнее значение сиквенса и айдишника таблицы. Важно: каждый executeQuery —
                 // на СВОЁМ Statement, иначе второй executeQuery на том же Statement закрывает ResultSet
                 // первого (по контракту JDBC) и lastId всегда читался бы как 0 — самолечение дрейфа

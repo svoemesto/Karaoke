@@ -136,7 +136,10 @@ class PublicPlaylistController(
             .createDbInstance(entity = pl, database = db) as? SitePlaylist
             ?: return ResponseEntity.internalServerError().body(mapOf("error" to "create_failed"))
 
-        if (songId != null) addSongInternal(user, created, songId)
+        if (songId != null) {
+            val addErr = addSongInternal(user, created, songId)
+            if (addErr != null) return ResponseEntity.internalServerError().body(addErr)
+        }
         return ResponseEntity.ok(created.toDTO().copy(itemsCount = SitePlaylistItem.countItems(created.id, db)))
     }
 
@@ -185,7 +188,7 @@ class PublicPlaylistController(
     // ---- Песни в плейлисте: добавить / удалить / порядок / mute ------------------------------
 
     // Общая логика добавления (переиспользуется createPlaylist с первой песней). Возвращает
-    // null при успехе или тело-ошибку (limit_reached).
+    // null при успехе или тело-ошибку (limit_reached / add_failed).
     private fun addSongInternal(user: SiteUser, playlist: SitePlaylist, songId: Long): Map<String, Any?>? {
         if (SitePlaylistItem.findItem(playlist.id, songId, db, storageService, storageApiClient) != null) return null
         val count = SitePlaylistItem.countItems(playlist.id, db)
@@ -197,7 +200,12 @@ class PublicPlaylistController(
         item.muted = false
         val maxPos = SitePlaylistItem.loadItems(playlist.id, db, storageService, storageApiClient).maxOfOrNull { it.position } ?: -1
         item.position = maxPos + 1
-        com.svoemesto.karaokeapp.model.KaraokeDbTable.createDbInstance(entity = item, database = db)
+        // createDbInstance может провалиться на первой вставке сразу после создания родительского
+        // плейлиста в этом же запросе (самоисцеляющийся дрейф identity-sequence) — одна немедленная
+        // повторная попытка эквивалентна «второму клику» пользователя, но без его участия.
+        var created = com.svoemesto.karaokeapp.model.KaraokeDbTable.createDbInstance(entity = item, database = db)
+        if (created == null) created = com.svoemesto.karaokeapp.model.KaraokeDbTable.createDbInstance(entity = item, database = db)
+        if (created == null) return mapOf("error" to "add_failed")
         return null
     }
 
@@ -273,7 +281,8 @@ class PublicPlaylistController(
                 "count" to SitePlaylistItem.countItems(fav.id, db),
             ))
         }
-        addSongInternal(user, fav, songId)
+        val addErr = addSongInternal(user, fav, songId)
+        if (addErr != null) return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(addErr)
         return ResponseEntity.ok(mapOf("favorited" to true, "count" to SitePlaylistItem.countItems(fav.id, db)))
     }
 

@@ -82,5 +82,6 @@ class PublicPaymentController(
         val currentUntil = user.sitePremiumUntil?.time?.takeIf { it > now } ?: now
         user.sitePremiumUntil = Timestamp(currentUntil + sub.periodDays * 24L * 3600_000L)
         user.save()
+        user.sendWelcomePremiumMessageIfNeeded()
     }
 }

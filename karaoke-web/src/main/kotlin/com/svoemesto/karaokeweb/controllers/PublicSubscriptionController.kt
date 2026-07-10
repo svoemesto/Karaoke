@@ -208,6 +208,7 @@ class PublicSubscriptionController(
         val currentUntil = user.sitePremiumUntil?.time?.takeIf { it > now } ?: now
         user.sitePremiumUntil = java.sql.Timestamp(currentUntil + sub.periodDays * 24L * 3600_000L)
         user.save()
+        user.sendWelcomePremiumMessageIfNeeded()
     }
 
     // ---- Список (личный кабинет) -----------------------------------------------------------------

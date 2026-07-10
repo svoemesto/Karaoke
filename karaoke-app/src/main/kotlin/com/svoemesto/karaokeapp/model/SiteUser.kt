@@ -53,6 +53,12 @@ class SiteUser(
     @KaraokeDbTableField(name = "site_premium_until")
     var sitePremiumUntil: Timestamp? = null
 
+    // Флаг однократной отправки приветственного сообщения в чат с автором при первом получении
+    // премиума (см. sendWelcomePremiumMessageIfNeeded ниже) — без него повторные вебхуки/скользящее
+    // окно Sponsr-синка слали бы сообщение заново при каждом продлении.
+    @KaraokeDbTableField(name = "welcome_message_sent")
+    var welcomeMessageSent: Boolean = false
+
     // Постоянная персональная скидка (%), выставляется вручную админом (SiteUsersController).
     // Суммируется поверх ЛЮБОЙ акции (см. PriceService) и применяется к любому заказу — не
     // конкурирует с tbl_promo_rules, а уменьшает итоговую цену ДОПОЛНИТЕЛЬНО. 0 = скидки нет.
@@ -70,6 +76,27 @@ class SiteUser(
                     || (sponsrPremiumUntil?.time?.let { it > now } == true)
                     || (sitePremiumUntil?.time?.let { it > now } == true)
         }
+
+    // Вызывается сразу после того, как код перевёл пользователя в isEffectivePremium=true (оплата
+    // подписки на сайт, акционная бесплатная подписка, Sponsr-синхронизация) — единая точка правды,
+    // чтобы не дублировать проверку "первый ли это премиум" в каждом из вызывающих мест. No-op, если
+    // сообщение уже отправлялось раньше или пользователь всё ещё не премиум (например SCOPE_SONG,
+    // который не даёт isEffectivePremium). Использует database/storageService/storageApiClient,
+    // с которыми уже загружен сам объект — вызывающему коду не нужно передавать их повторно.
+    fun sendWelcomePremiumMessageIfNeeded() {
+        if (welcomeMessageSent) return
+        if (!isEffectivePremium) return
+        SiteChatMessage.createNew(
+            siteUserId = id,
+            isFromAuthor = true,
+            body = WELCOME_PREMIUM_MESSAGE,
+            database = database,
+            storageService = storageService,
+            storageApiClient = storageApiClient,
+        )
+        welcomeMessageSent = true
+        save()
+    }
 
     // Персональные лимиты (0 = использовать дефолт в PublicPlaylistController). Int безопасен для
     // reflection-loader на SQL NULL (getInt→0), но колонки и так NOT NULL DEFAULT 0.
@@ -130,6 +157,14 @@ class SiteUser(
     companion object {
 
         const val TABLE_NAME = "tbl_site_users"
+
+        const val WELCOME_PREMIUM_MESSAGE = "Приветствую!\n" +
+                "Спасибо за оформление премиум-подписки — это действительно очень важно для меня.\n" +
+                "Надеюсь, что пользование этим сервисом доставит радость и удовольствие!\n" +
+                "Если будут какие-то вопросы или предложения — я всегда открыт к диалогу.\n" +
+                "С уважением,\n" +
+                "автор проекта «Караоке на \"Своём Месте\"»\n" +
+                "Новиков Сергей"
 
         private fun getWhereList(whereArgs: Map<String, String>): List<String> {
             val where: MutableList<String> = mutableListOf()

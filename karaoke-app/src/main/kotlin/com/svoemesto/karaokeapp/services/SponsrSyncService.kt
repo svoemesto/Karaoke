@@ -121,6 +121,7 @@ object SponsrSyncService {
             if (emailMatch || uidMatch) {
                 user.sponsrPremiumUntil = until
                 user.save()
+                user.sendWelcomePremiumMessageIfNeeded()
                 matched++
             }
         }

@@ -9,6 +9,7 @@ import com.svoemesto.karaokeapp.services.SAC_APP
 import com.svoemesto.karaokeapp.services.StorageApiClient
 import org.springframework.security.crypto.password.PasswordEncoder
 import java.io.Serializable
+import java.sql.SQLException
 import java.sql.Timestamp
 
 // Пользователь публичного сайта (karaoke-public).
@@ -234,6 +235,42 @@ class SiteUser(
 
         fun deleteSiteUser(id: Long, database: KaraokeConnection): Boolean {
             return KaraokeDbTable.delete(tableName = TABLE_NAME, id = id, database = database)
+        }
+
+        // Поиск по email ИЛИ имени одной подстрокой (OR, не выразить через getWhereList — там поля
+        // ANDятся) — для «Начать чат» в webvue3 (ChatController.searchUsers). Raw-SELECT id-шников
+        // (паттерн — Author.resolveByTerm()), затем batch-догрузка полных сущностей через loadByIds.
+        fun searchByTerm(
+            term: String,
+            limit: Int,
+            database: KaraokeConnection,
+            storageService: KaraokeStorageService,
+            storageApiClient: StorageApiClient,
+        ): List<SiteUser> {
+            val t = term.trim().lowercase()
+            if (t.isEmpty()) return emptyList()
+            val ids: MutableList<Long> = mutableListOf()
+            val connection = database.getConnection() ?: return emptyList()
+            val sql = "SELECT id FROM $TABLE_NAME WHERE LOWER(email) LIKE ? OR LOWER(display_name) LIKE ? ORDER BY id LIMIT ?"
+            try {
+                connection.prepareStatement(sql).use { ps ->
+                    ps.setString(1, "%$t%")
+                    ps.setString(2, "%$t%")
+                    ps.setInt(3, limit)
+                    ps.executeQuery().use { rs -> while (rs.next()) ids.add(rs.getLong("id")) }
+                }
+            } catch (e: SQLException) {
+                println("SiteUser.searchByTerm SQLException: ${e.message}")
+            }
+            if (ids.isEmpty()) return emptyList()
+            return KaraokeDbTable.loadByIds(
+                clazz = SiteUser::class,
+                tableName = TABLE_NAME,
+                ids = ids,
+                database = database,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            ).map { it as SiteUser }
         }
     }
 }

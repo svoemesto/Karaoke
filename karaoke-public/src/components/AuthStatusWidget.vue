@@ -1,5 +1,6 @@
 <template>
   <div class="km-auth-widget">
+    <RouterLink to="/news" class="km-auth-link">Новости</RouterLink>
     <template v-if="isLoggedIn">
       <RouterLink to="/account" class="km-auth-link">
         <span v-if="isPremium" class="km-premium-badge" title="Премиум-подписчик">🪙</span>{{ displayName }}

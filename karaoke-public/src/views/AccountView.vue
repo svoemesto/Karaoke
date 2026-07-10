@@ -37,6 +37,11 @@
           <span class="km-nav-card-arrow">→</span>
         </RouterLink>
 
+        <RouterLink to="/account/chat" class="km-nav-card">
+          <span class="km-nav-card-title">💬 Чат с автором проекта</span>
+          <span class="km-nav-card-arrow">→</span>
+        </RouterLink>
+
         <RouterLink to="/account/subscriptions" class="km-nav-card">
           <span class="km-nav-card-title">💳 Мои подписки</span>
           <span class="km-nav-card-arrow">→</span>

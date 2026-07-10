@@ -16,6 +16,13 @@
             <li class="nav-item"><router-link class="nav-link" to="/processes">Процессы</router-link></li>
             <li class="nav-item"><router-link class="nav-link" to="/properties">Настройки</router-link></li>
             <li class="nav-item"><router-link class="nav-link" to="/dictionaries">Словари</router-link></li>
+            <li class="nav-item"><router-link class="nav-link" to="/news">Новости</router-link></li>
+            <li class="nav-item">
+              <router-link class="nav-link chat-nav-link" to="/chat">
+                Чат
+                <span v-if="chatUnreadTotal > 0" class="chat-nav-badge">{{ chatUnreadTotal }}</span>
+              </router-link>
+            </li>
             <li class="nav-item"><router-link class="nav-link" to="/siteusers">Пользователи сайта</router-link></li>
             <li class="nav-item"><router-link class="nav-link" to="/siteplaylists">Плейлисты</router-link></li>
             <li class="nav-item"><router-link class="nav-link" to="/songeditor">Задания редактора</router-link></li>
@@ -37,6 +44,7 @@
               <ProcessWorker :hideButton="false" :includedThreadId="[0]"></ProcessWorker>
               <ResourceLimitToggle></ResourceLimitToggle>
               <MonitorLight></MonitorLight>
+              <ChatNotifyButton></ChatNotifyButton>
             </div>
           </div>
           <router-view/>
@@ -52,6 +60,7 @@ import ProcessWorker from "./components/Common/ProcessWorker.vue";
 import BackendConsole from "./components/Common/BackendConsole.vue";
 import ResourceLimitToggle from "./components/Common/ResourceLimitToggle.vue";
 import MonitorLight from "./components/Common/Monitor/MonitorLight.vue";
+import ChatNotifyButton from "./components/Chat/ChatNotifyButton.vue";
 import {BApp} from 'bootstrap-vue-next';
 const route = useRoute()
 </script>
@@ -65,13 +74,21 @@ import {h} from "vue";
 import {getTabId} from "./lib/utils.js";
 
 const SSE_RECONNECT_DELAY_MS = 4000;
+// «Чат с автором проекта» живёт на PROD-БД (см. Chat/store.js) — сообщения от пользователей создаёт
+// karaoke-web, а не karaoke-app, поэтому save() не шлёт SSE-уведомление и обновлять бейдж приходится
+// периодическим опросом (не привязан к SSE-соединению выше).
+const CHAT_UNREAD_POLL_INTERVAL_MS = 20000;
 
 export default {
   data() {
     return {
       msgServer: null,
       sseReconnectTimer: null,
+      chatUnreadPollTimer: null,
     }
+  },
+  computed: {
+    chatUnreadTotal() { return this.$store.getters.getChatUnreadTotal },
   },
   methods: {
     connectSse(create) {
@@ -395,6 +412,8 @@ export default {
     this.$store.dispatch('setLastPriorSymlinks', { value: await this.$store.getters.getWebvueProp('lastPriorSymlinks', '-1') });
     this.$store.dispatch('setLastPriorSmartCopy', { value: await this.$store.getters.getWebvueProp('lastPriorSmartCopy', '-1') });
 
+    this.$store.dispatch('loadChatUnreadCount');
+    this.chatUnreadPollTimer = setInterval(() => this.$store.dispatch('loadChatUnreadCount'), CHAT_UNREAD_POLL_INTERVAL_MS);
   },
   beforeUnmount() {
     if (this.sseReconnectTimer) {
@@ -402,6 +421,10 @@ export default {
       this.sseReconnectTimer = null;
     }
     this.msgServer?.close();
+    if (this.chatUnreadPollTimer) {
+      clearInterval(this.chatUnreadPollTimer);
+      this.chatUnreadPollTimer = null;
+    }
   }
 }
 </script>
@@ -457,6 +480,23 @@ export default {
   background-color: #e9ecef; /* Цвет фона при наведении */
   text-decoration: none; /* Убираем подчеркивание при наведении */
   color: #2c3e50; /* Цвет текста при наведении */
+}
+
+.chat-nav-link {
+  display: flex !important;
+  align-items: center;
+  justify-content: space-between;
+}
+.chat-nav-badge {
+  background-color: #d02c3a;
+  color: #fff;
+  border-radius: 10px;
+  min-width: 18px;
+  height: 18px;
+  line-height: 18px;
+  text-align: center;
+  font-size: 11px;
+  padding: 0 5px;
 }
 
 .app-sidebar .nav-link.router-link-active,

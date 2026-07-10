@@ -89,11 +89,37 @@
           </div>
         </div>
 
-        <!-- Онлайн-плеер: между блоком информации о песне и "Ссылки на просмотр" -->
-        <div v-if="playerCanWatch" class="km-player-card" :class="{ 'km-player-page-mode': playerDisplayMode === 'page' }">
-          <div class="km-player-label">🎤 Онлайн-плеер караоке</div>
+        <!-- Онлайн-плеер: между блоком информации о песне и "Ссылки на просмотр". В демо-режиме
+             (playerIsDemo) это тот же iframe — сам плеер получит demo-токен и обрежется до
+             фрагмента "до конца первого куплета" (см. PublicPlayerController.access/KaraokePlayer.js) -->
+        <div v-if="playerCanWatch || playerIsDemo" class="km-player-card" :class="{ 'km-player-page-mode': playerDisplayMode === 'page' }">
+          <div class="km-player-label">🎤 Онлайн-плеер караоке<span v-if="playerIsDemo" class="km-player-demo-badge">ДЕМО</span></div>
           <div class="km-video-wrap km-player-wrap">
             <iframe ref="playerIframe" :src="`/player/${currentSong.id}`" allow="autoplay; fullscreen" frameborder="0" allowfullscreen />
+          </div>
+        </div>
+
+        <!-- Демо-режим: контент есть, но полного доступа нет — вместо карточки ожидания (та
+             рассчитана на "ещё не готово") сразу предлагаем подписку рядом с самим демо-плеером. -->
+        <div v-if="!currentSong.onAir && playerIsDemo" class="km-waiting-card">
+          <div class="km-waiting-title">Это демо-фрагмент</div>
+          <div class="km-waiting-body">В демо-режиме доступен только небольшой фрагмент песни. Оформите подписку, чтобы слушать песню целиком.</div>
+
+          <div v-if="!playerIsPremiumUser" class="km-waiting-offer">
+            <div class="km-waiting-offer-icon">🪙</div>
+            <div class="km-waiting-offer-title">Премиум-подписка</div>
+            <div class="km-waiting-offer-desc">Подписка на всю коллекцию или на одну песню</div>
+            <div class="km-waiting-offer-actions">
+              <RouterLink to="/premium" class="km-waiting-cta">Оформить премиум-подписку →</RouterLink>
+              <button v-if="isLoggedIn && canOfferSongSubscription" class="km-waiting-cta km-song-sub-cta" @click="songSubscriptionModalVisible = true">
+                Оформить подписку на эту песню →
+              </button>
+            </div>
+          </div>
+
+          <div v-if="!isLoggedIn" class="km-waiting-login">
+            Также вы можете <RouterLink to="/register">зарегистрироваться</RouterLink> или
+            <RouterLink to="/login">войти</RouterLink> на сайте — это понадобится для оформления подписки.
           </div>
         </div>
 
@@ -192,9 +218,10 @@
           </div>
         </div>
 
-        <!-- Не в эфире (или эксклюзив/не готово) и плеер недоступен — сообщение об ожидании/подписке.
-             Тоже на старом месте видео-блока. -->
-        <div v-if="!currentSong.onAir && !playerCanWatch && playerAccessLoaded" class="km-waiting-card">
+        <!-- Не в эфире (или эксклюзив/не готово) и плеер недоступен даже в демо-режиме — сообщение
+             об ожидании/подписке. Тоже на старом месте видео-блока. Когда демо доступен
+             (playerIsDemo) — своя отдельная карточка сразу под демо-плеером, см. выше. -->
+        <div v-if="!currentSong.onAir && !playerCanWatch && !playerIsDemo && playerAccessLoaded" class="km-waiting-card">
           <div class="km-waiting-title">{{ waitingTitle }}</div>
           <div class="km-waiting-body">{{ waitingBody }}</div>
 
@@ -283,6 +310,7 @@ export default {
     playerCanWatch() { return this.playerAccess.canWatch.value },
     playerAccessLoaded() { return this.playerAccess.loaded.value },
     playerIsPremiumUser() { return this.playerAccess.isPremiumUser.value },
+    playerIsDemo() { return this.playerAccess.isDemo.value },
     daysUntilAir() {
       const ts = this.currentSong?.airTimestamp
       if (!ts) return null
@@ -611,6 +639,18 @@ export default {
   color: var(--km-accent2);
   margin-bottom: 0.5rem;
   letter-spacing: 0.02em;
+}
+.km-player-demo-badge {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.1rem 0.4rem;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #fff;
+  background: #f80;
+  border-radius: 4px;
+  vertical-align: middle;
 }
 .km-player-wrap { border-radius: 8px; }
 

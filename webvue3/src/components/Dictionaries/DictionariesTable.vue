@@ -10,7 +10,7 @@
         <option v-for="name in dictNames" :key="name" :value="name" v-text="name"></option>
       </select>
       <input class="dct-field" placeholder="Значение" v-model="newItem.dictValue">
-      <button class="btn-round" :disabled="!canCreate" @click="create">Добавить</button>
+      <button class="dct-btn-round" :disabled="!canCreate" @click="create">Добавить</button>
     </div>
 
     <div class="dictionaries-bv-table-header">
@@ -63,15 +63,15 @@
 
         <template #cell(actions)="data">
           <div class="fld-dict-actions">
-            <button class="btn-round-small" @click="remove(data.item)" title="Удалить">×</button>
+            <button class="dct-btn-round-small" @click="remove(data.item)" title="Удалить">×</button>
           </div>
         </template>
 
       </b-table>
     </div>
     <div class="dictionaries-bv-table-footer">
-      <button class="btn-round-double" @click="isDictionariesFilterVisible=true" title="Фильтр">
-        <img alt="filter" class="icon-40" src="../../assets/svg/icon_filter.svg">
+      <button class="dct-btn-round-double" @click="isDictionariesFilterVisible=true" title="Фильтр">
+        <img alt="filter" class="dct-icon-40" src="../../assets/svg/icon_filter.svg">
       </button>
     </div>
 
@@ -370,22 +370,22 @@ export default {
   -moz-appearance: none;
 }
 
-.btn-round {
+.dct-btn-round {
   border: solid 1px black;
   border-radius: 6px;
   padding: 4px 12px;
   background-color: antiquewhite;
   cursor: pointer;
 }
-.btn-round:hover {
+.dct-btn-round:hover {
   background-color: lightpink;
 }
-.btn-round[disabled] {
+.dct-btn-round[disabled] {
   background-color: lightgray;
   cursor: default;
 }
 
-.btn-round-small {
+.dct-btn-round-small {
   border: solid 1px black;
   border-radius: 6px;
   width: 24px;
@@ -394,11 +394,11 @@ export default {
   cursor: pointer;
   line-height: 1;
 }
-.btn-round-small:hover {
+.dct-btn-round-small:hover {
   background-color: #e08a8a;
 }
 
-.btn-round-double {
+.dct-btn-round-double {
   border: solid 1px black;
   border-radius: 6px;
   width: 50px;
@@ -406,16 +406,16 @@ export default {
   margin-left: 2px;
   background-color: antiquewhite;
 }
-.btn-round-double:hover {
+.dct-btn-round-double:hover {
   background-color: lightpink;
 }
-.btn-round-double:focus {
+.dct-btn-round-double:focus {
   background-color: darksalmon;
 }
-.btn-round-double[disabled] {
+.dct-btn-round-double[disabled] {
   background-color: lightgray;
 }
-.icon-40 {
+.dct-icon-40 {
   width: 40px;
   height: 40px;
 }

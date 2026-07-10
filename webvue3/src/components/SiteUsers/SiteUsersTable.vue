@@ -1,6 +1,7 @@
 <template>
   <div class="sut-table">
     <SiteUserEditModal v-if="isUserEditVisible" @close="closeUserEdit" />
+    <SiteUsersFilterModal v-if="isFilterVisible" @close="closeFilter" />
 
     <div class="sut-toolbar">
       <label class="sut-toolbar-item">
@@ -10,12 +11,7 @@
           <option value="remote">Сервер</option>
         </select>
       </label>
-      <input class="sut-toolbar-item" v-model="filterEmail" placeholder="Фильтр по email" @keyup.enter="reload">
-      <select class="sut-toolbar-item" v-model="filterIsBanned" @change="reload">
-        <option value="">Все статусы</option>
-        <option value="+">Только забаненные</option>
-        <option value="-">Только активные</option>
-      </select>
+      <button class="sut-toolbar-item sut-btn" @click="isFilterVisible=true">Фильтр{{ activeFilterCount > 0 ? ` (${activeFilterCount})` : '' }}</button>
       <button class="sut-toolbar-item sut-btn" @click="reload">Обновить</button>
     </div>
 
@@ -120,19 +116,19 @@
 <script>
 import { BPagination, BSpinner, BTable } from 'bootstrap-vue-next'
 import SiteUserEditModal from "./edit/SiteUserEditModal.vue";
+import SiteUsersFilterModal from "./filter/SiteUsersFilterModal.vue";
 
 export default {
   name: "SiteUsersTable",
-  components: { SiteUserEditModal, BPagination, BSpinner, BTable },
+  components: { SiteUserEditModal, SiteUsersFilterModal, BPagination, BSpinner, BTable },
   data() {
     return {
       perPage: 19,
       currentPage: 1,
       sortBy: [],
       isUserEditVisible: false,
+      isFilterVisible: false,
       isBusy: false,
-      filterEmail: '',
-      filterIsBanned: '',
     }
   },
   watch: {
@@ -148,10 +144,23 @@ export default {
       get() { return this.$store.getters.getSiteUsersTarget },
       set(value) { this.$store.dispatch('setSiteUsersTarget', value) }
     },
+    activeFilterCount() {
+      return [
+        this.$store.getters.getSiteUsersFilterId,
+        this.$store.getters.getSiteUsersFilterEmail,
+        this.$store.getters.getSiteUsersFilterDisplayName,
+        this.$store.getters.getSiteUsersFilterSponsrUid,
+        this.$store.getters.getSiteUsersFilterIsPremium,
+        this.$store.getters.getSiteUsersFilterIsPermanentPremium,
+        this.$store.getters.getSiteUsersFilterIsEffectivePremium,
+        this.$store.getters.getSiteUsersFilterIsEditor,
+        this.$store.getters.getSiteUsersFilterIsBanned,
+      ].filter(v => v !== '' && v !== undefined && v !== null).length;
+    },
     siteUserDigestFields() {
       return [
         { key: 'id', label: 'ID', sortable: true, style: { minWidth: '50px', maxWidth: '50px', textAlign: 'center', fontSize: 'small' } },
-        { key: 'effectivePremium', label: '🪙', sortable: true, style: { minWidth: '36px', maxWidth: '36px', textAlign: 'center', fontSize: 'small' } },
+        { key: 'effectivePremium', label: 'Активный премиум', sortable: true, style: { minWidth: '90px', maxWidth: '90px', textAlign: 'center', fontSize: 'small' } },
         { key: 'email', label: 'Email', sortable: true, style: { minWidth: '260px', maxWidth: '260px', textAlign: 'left', fontSize: 'small' } },
         { key: 'displayName', label: 'Имя', sortable: true, style: { minWidth: '200px', maxWidth: '200px', textAlign: 'left', fontSize: 'small' } },
         { key: 'sponsrUid', label: 'Sponsr UID', sortable: true, style: { minWidth: '110px', maxWidth: '110px', textAlign: 'center', fontSize: 'small' } },
@@ -171,19 +180,30 @@ export default {
       ]
     }
   },
-  mounted() {
+  async mounted() {
+    await this.$store.dispatch('hydrateSiteUsersFilter');
     this.reload();
   },
   methods: {
     reload() {
-      this.$store.dispatch('loadSiteUsersDigest', {
-        filterEmail: this.filterEmail,
-        filterIsBanned: this.filterIsBanned,
-      });
+      const params = {};
+      if (this.$store.getters.getSiteUsersFilterId) params.filterId = this.$store.getters.getSiteUsersFilterId;
+      if (this.$store.getters.getSiteUsersFilterEmail) params.filterEmail = this.$store.getters.getSiteUsersFilterEmail;
+      if (this.$store.getters.getSiteUsersFilterDisplayName) params.filterDisplayName = this.$store.getters.getSiteUsersFilterDisplayName;
+      if (this.$store.getters.getSiteUsersFilterSponsrUid) params.filterSponsrUid = this.$store.getters.getSiteUsersFilterSponsrUid;
+      if (this.$store.getters.getSiteUsersFilterIsPremium) params.filterIsPremium = this.$store.getters.getSiteUsersFilterIsPremium;
+      if (this.$store.getters.getSiteUsersFilterIsPermanentPremium) params.filterIsPermanentPremium = this.$store.getters.getSiteUsersFilterIsPermanentPremium;
+      if (this.$store.getters.getSiteUsersFilterIsEffectivePremium) params.filterIsEffectivePremium = this.$store.getters.getSiteUsersFilterIsEffectivePremium;
+      if (this.$store.getters.getSiteUsersFilterIsEditor) params.filterIsEditor = this.$store.getters.getSiteUsersFilterIsEditor;
+      if (this.$store.getters.getSiteUsersFilterIsBanned) params.filterIsBanned = this.$store.getters.getSiteUsersFilterIsBanned;
+      this.$store.dispatch('loadSiteUsersDigest', params);
     },
     onTargetChange() {
       this.currentPage = 1;
       this.reload();
+    },
+    closeFilter() {
+      this.isFilterVisible = false;
     },
     editUser(id, user) {
       this.$store.commit('setSiteUserCurrentId', id);

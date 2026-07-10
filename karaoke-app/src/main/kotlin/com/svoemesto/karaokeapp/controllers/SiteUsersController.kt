@@ -40,14 +40,26 @@ class SiteUsersController {
     @ResponseBody
     fun digest(
         @RequestParam(required = false) target: String?,
+        // Валидируется до попадания в args["id"] — SiteUser.getWhereList() интерполирует его в SQL
+        // без экранирования (числовое сравнение), toLongOrNull() не даёт произвольной строке попасть в запрос.
+        @RequestParam(required = false) filterId: String?,
         @RequestParam(required = false) filterEmail: String?,
         @RequestParam(required = false) filterDisplayName: String?,
+        @RequestParam(required = false) filterSponsrUid: String?,
+        @RequestParam(required = false) filterIsPremium: String?,
+        @RequestParam(required = false) filterIsPermanentPremium: String?,
+        @RequestParam(required = false) filterIsEffectivePremium: String?,
         @RequestParam(required = false) filterIsBanned: String?,
         @RequestParam(required = false) filterIsEditor: String?,
     ): Map<String, Any> = withDb(target) { db ->
         val args: MutableMap<String, String> = mutableMapOf()
+        filterId?.toLongOrNull()?.let { args["id"] = it.toString() }
         filterEmail?.let { if (it != "") args["email"] = it }
         filterDisplayName?.let { if (it != "") args["displayName"] = it }
+        filterSponsrUid?.let { if (it != "") args["sponsrUid"] = it }
+        filterIsPremium?.let { if (it != "") args["isPremium"] = it }
+        filterIsPermanentPremium?.let { if (it != "") args["isPermanentPremium"] = it }
+        filterIsEffectivePremium?.let { if (it != "") args["isEffectivePremium"] = it }
         filterIsBanned?.let { if (it != "") args["isBanned"] = it }
         filterIsEditor?.let { if (it != "") args["isEditor"] = it }
 

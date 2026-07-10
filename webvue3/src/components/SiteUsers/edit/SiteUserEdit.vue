@@ -2,6 +2,22 @@
   <div class="sue-root">
     <div v-if="siteUserCurrent">
       <custom-confirm v-if="isCustomConfirmVisible" :params="customConfirmParams" @close="closeCustomConfirm" />
+      <UserEventsModal
+          v-if="isEventsVisible"
+          :user="{ siteUserId: siteUserCurrent.id, displayName: siteUserCurrent.displayName, email: siteUserCurrent.email }"
+          :events="userEvents"
+          :total-count="userEventsTotalCount"
+          :is-loading="userEventsIsLoading"
+          :cap="2000"
+          @close="isEventsVisible=false"
+      />
+      <UserPlaylistsModal
+          v-if="isPlaylistsVisible"
+          :site-user-id="siteUserCurrent.id"
+          :user-label="siteUserCurrent.displayName || siteUserCurrent.email"
+          :target="siteUsersTarget"
+          @close="isPlaylistsVisible=false"
+      />
       <div class="sue-header">
         <div>ID = {{ siteUserCurrent.id }}</div>
         <div>{{ siteUserCurrent.email }}</div>
@@ -84,6 +100,10 @@
         <button v-if="!siteUserCurrent.banned" class="sue-btn sue-btn-danger" @click="ban">Забанить</button>
         <button v-else class="sue-btn" @click="unban">Разбанить</button>
         <button class="sue-btn sue-btn-danger" @click="deleteUser">Удалить</button>
+        <span class="sue-footer-spacer"></span>
+        <button class="sue-btn" @click="openChat">Чат</button>
+        <button class="sue-btn" @click="openEvents">События</button>
+        <button class="sue-btn" @click="openPlaylists">Плейлисты</button>
       </div>
     </div>
     <div v-else>Не выбран пользователь</div>
@@ -92,14 +112,18 @@
 
 <script>
 import CustomConfirm from "../../Common/CustomConfirm.vue";
+import UserEventsModal from "../../Stats/UserEventsModal.vue";
+import UserPlaylistsModal from "../UserPlaylistsModal.vue";
 
 export default {
   name: "SiteUserEdit",
-  components: { CustomConfirm },
+  components: { CustomConfirm, UserEventsModal, UserPlaylistsModal },
   data() {
     return {
       isCustomConfirmVisible: false,
       customConfirmParams: undefined,
+      isEventsVisible: false,
+      isPlaylistsVisible: false,
     }
   },
   mounted() {
@@ -111,9 +135,28 @@ export default {
     siteUserCurrent() { return this.$store.getters.getSiteUserCurrent },
     siteUserSnapshot() { return this.$store.getters.getSiteUserSnapshot },
     siteUserDiff() { return this.$store.getters.getSiteUserDiff },
+    siteUsersTarget() { return this.$store.getters.getSiteUsersTarget },
+    userEvents() { return this.$store.getters.getStatsUserEvents },
+    userEventsTotalCount() { return this.$store.getters.getStatsUserEventsTotalCount },
+    userEventsIsLoading() { return this.$store.getters.getStatsUserEventsIsLoading },
   },
   methods: {
     closeCustomConfirm() { this.isCustomConfirmVisible = false },
+    // Открывает раздел «Чат» (webvue3) уже на переписке с этим пользователем — target чата
+    // подстраивается под текущий target раздела «Пользователи сайта» (local/remote), иначе id
+    // пользователя из одной БД мог бы открыть чужую/несуществующую переписку в другой.
+    async openChat() {
+      await this.$store.dispatch('setChatTarget', this.siteUsersTarget);
+      await this.$store.dispatch('openChatThread', this.siteUserCurrent.id);
+      this.$emit('close');
+      this.$router.push({ name: 'chat' });
+    },
+    async openEvents() {
+      await this.$store.dispatch('setStatsTarget', this.siteUsersTarget);
+      this.$store.dispatch('loadStatsUserEvents', { siteUserId: this.siteUserCurrent.id, page: 1, pageSize: 2000 });
+      this.isEventsVisible = true;
+    },
+    openPlaylists() { this.isPlaylistsVisible = true },
     notChanged() { return this.siteUserDiff.length === 0 },
     async save() {
       let diffs = {};
@@ -203,7 +246,8 @@ export default {
 .sue-static { font-size: small; }
 .sue-hint { color: gray; font-size: x-small; }
 .sue-checkbox-label { display: flex; align-items: center; gap: 6px; font-size: small; cursor: pointer; }
-.sue-footer { display: flex; gap: 6px; border: thin dashed darkgray; border-radius: 10px; padding: 8px; }
+.sue-footer { display: flex; align-items: center; gap: 6px; border: thin dashed darkgray; border-radius: 10px; padding: 8px; }
+.sue-footer-spacer { flex: 1; }
 .sue-btn {
   border: solid 1px black;
   border-radius: 6px;

@@ -11,9 +11,8 @@ data class SiteUserDto(
     val isPremium: Boolean = false,
     val isPermanentPremium: Boolean = false,
     val isEffectivePremium: Boolean = false,
-    // Только для отображения в админке (когда до какой даты активен премиум и из какого источника).
-    // Значения проставляются Sponsr-синхронизацией / оплатой подписки на сайт, не редактируются вручную
-    // через update() — на изменение этих полей в контроллере нет параметров.
+    // В норме проставляются Sponsr-синхронизацией / оплатой подписки на сайт, но админ может
+    // подправить/очистить вручную через update() (например выдать/отозвать временный премиум).
     val sponsrPremiumUntil: String? = null,
     val sitePremiumUntil: String? = null,
     // Постоянная скидка (%), выставляется вручную админом — суммируется поверх любой акции при
@@ -28,6 +27,9 @@ data class SiteUserDto(
     val maxPlaylistItems: Int = 0,
     val createdAt: String = "",
     val lastLoginAt: String = "",
+    // Флаг однократной отправки приветственного сообщения при первом премиуме (см. SiteUser.kt) —
+    // редактируется вручную, чтобы админ мог принудительно вызвать повторную отправку (сбросить в false).
+    val welcomeMessageSent: Boolean = false,
 ) : Serializable, Comparable<SiteUserDto>, KaraokeDbTableDto {
 
     override fun compareTo(other: SiteUserDto): Int = email.compareTo(other.email)

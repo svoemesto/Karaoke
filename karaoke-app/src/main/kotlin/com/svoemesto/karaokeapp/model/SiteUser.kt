@@ -152,6 +152,7 @@ class SiteUser(
         maxPlaylistItems = maxPlaylistItems,
         createdAt = createdAt.toString(),
         lastLoginAt = lastLoginAt.toString(),
+        welcomeMessageSent = welcomeMessageSent,
     )
 
     companion object {

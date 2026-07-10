@@ -18,6 +18,7 @@ import pictures from '../components/Pictures/store'
 import processFilter from '../components/Processes/filter/store'
 import propertiesFilter from '../components/Properties/filter/store'
 import authorsFilter from '../components/Authors/filter/store'
+import siteUsersFilter from '../components/SiteUsers/filter/store'
 import picturesFilter from '../components/Pictures/filter/store'
 import publish from '../components/Publish/store'
 import publishFilter from '../components/Publish/filter/store'
@@ -65,6 +66,7 @@ export default createStore({
     processFilter,
     propertiesFilter,
     authorsFilter,
+    siteUsersFilter,
     picturesFilter,
     publishFilter,
     dictionariesFilter,

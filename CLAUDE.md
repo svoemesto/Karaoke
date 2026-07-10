@@ -537,8 +537,16 @@ true` на нужных полях в `fields` + `v-model:sort-by` (data `sortBy
   под JSON-ключом `effectivePremium` — Jackson `isX`→`x` — и отражает премиум по ЛЮБОМУ источнику: флаг,
   вечный грант, непросроченный Sponsr/сайт-премиум), плюс остальные поля `SiteUserDto`, которых раньше не
   было в таблице (даты истечения премиума, `is_editor`, причина бана, персональные лимиты) — бэкенд их уже
-  отдавал, менять не пришлось. Детали → memory `project_site_user_auth`, `project_captcha_mtu_proxy`,
-  `project_site_users_table_premium_column`.
+  отдавал, менять не пришлось. Полноценный фильтр (`SiteUsers/filter/SiteUsersFilterModal.vue` +
+  `filter/store.js`, по образцу `Authors/filter`) — id/email/имя/Sponsr UID/премиум/постоянный
+  премиум/**активный премиум**/редактор/статус; `isEffectivePremium` не хранится колонкой, поэтому
+  `SiteUser.getWhereList()` вручную зеркалит SQL-эквивалент геттера (`is_premium OR
+  is_permanent_premium OR sponsr_premium_until>now() OR site_premium_until>now()`) — паттерн для
+  фильтрации по любому другому computed-полю. Карточка редактирования (`SiteUserEdit.vue`) — три
+  кнопки-перехода: «Чат» (переход на `/chat` + `openChatThread`), «События» (переиспользует
+  `Stats/UserEventsModal.vue`), «Плейлисты» (новый read-only `SiteUsers/UserPlaylistsModal.vue` поверх
+  уже существующих `/api/siteplaylists/*`). Детали → memory `project_site_user_auth`,
+  `project_captcha_mtu_proxy`, `project_site_users_table_premium_column`, `project_site_user_card`.
 - **Онлайн-редактор разметки (`/account/editor`) с модерацией.** Упрощённый публичный аналог `SubsEdit.vue`:
   пользователь расставляет слоговые маркеры для ВСЕХ голосов песни (задание = вся песня целиком), админ
   модерирует (workflow `assigned→in_progress→submitted→approved/rejected`). **ДВЕ таблицы** (sync-движок

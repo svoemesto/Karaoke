@@ -171,6 +171,33 @@ class SiteUser(
             if (whereArgs.containsKey("id")) where += "id=${whereArgs["id"]}"
             if (whereArgs.containsKey("email")) where += "LOWER(email) LIKE '%${whereArgs["email"]?.lowercase()?.replace("'", "''")}%'"
             if (whereArgs.containsKey("displayName")) where += "LOWER(display_name) LIKE '%${whereArgs["displayName"]?.lowercase()?.replace("'", "''")}%'"
+            if (whereArgs.containsKey("sponsrUid")) where += "LOWER(sponsr_uid) LIKE '%${whereArgs["sponsrUid"]?.lowercase()?.replace("'", "''")}%'"
+            if (whereArgs.containsKey("isPremium")) {
+                if (whereArgs["isPremium"] == "+" || whereArgs["isPremium"] == "true") {
+                    where += "is_premium = true"
+                } else if (whereArgs["isPremium"] == "-" || whereArgs["isPremium"] == "false") {
+                    where += "is_premium = false"
+                }
+            }
+            if (whereArgs.containsKey("isPermanentPremium")) {
+                if (whereArgs["isPermanentPremium"] == "+" || whereArgs["isPermanentPremium"] == "true") {
+                    where += "is_permanent_premium = true"
+                } else if (whereArgs["isPermanentPremium"] == "-" || whereArgs["isPermanentPremium"] == "false") {
+                    where += "is_permanent_premium = false"
+                }
+            }
+            if (whereArgs.containsKey("isEffectivePremium")) {
+                // Зеркалит логику геттера isEffectivePremium (см. выше) в SQL — эта величина не
+                // хранится отдельной колонкой, а считается на лету из 4 полей + текущего времени.
+                val effectivePremiumExpr = "(is_premium = true OR is_permanent_premium = true " +
+                        "OR (sponsr_premium_until IS NOT NULL AND sponsr_premium_until > now()) " +
+                        "OR (site_premium_until IS NOT NULL AND site_premium_until > now()))"
+                if (whereArgs["isEffectivePremium"] == "+" || whereArgs["isEffectivePremium"] == "true") {
+                    where += effectivePremiumExpr
+                } else if (whereArgs["isEffectivePremium"] == "-" || whereArgs["isEffectivePremium"] == "false") {
+                    where += "NOT $effectivePremiumExpr"
+                }
+            }
             if (whereArgs.containsKey("isBanned")) {
                 if (whereArgs["isBanned"] == "+" || whereArgs["isBanned"] == "true") {
                     where += "is_banned = true"

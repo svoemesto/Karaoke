@@ -11,6 +11,10 @@ const val CURRENT_RESULT_VERSION = 12L
 const val COUNT_HISTORY_LINES = 30
 const val PATH_TO_TEMP_DEMUCS_FOLDER = "/sm-karaoke/system/demucs-docker/tmp"
 const val PATH_TO_TEMP_KEYBPMFINDER_FOLDER = "/sm-karaoke/system/keybpmfinder-docker/tmp"
+// Этап 1 (MVP) рендера видео mp4 из онлайн-плеера ("Рендер видео MP4 из онлайн-
+// плеера") — PNG-секвенция и промежуточный mp4 для визуальной сверки с эталонным MLT-рендером.
+// Не встроено в очередь KaraokeProcess/done_files на этом этапе — см. PlayerMp4RenderService.
+const val PATH_TO_TEMP_RENDERMP4_FOLDER = "/sm-karaoke/system/rendermp4-preview/tmp"
 const val IAM_TOKEN_FILE_PATH = "/sm-karaoke/system/yandex/iam_token.txt"
 const val FOLDER_ID_FILE_PATH = "/sm-karaoke/system/yandex/folderId.txt"
 //const val COLOR_ALL_DONE = "#7FFFD4"        // Полностью готово

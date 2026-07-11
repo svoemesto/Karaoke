@@ -18,8 +18,8 @@ import org.springframework.web.bind.annotation.ResponseBody
 @RequestMapping("/api/dictionaries")
 class DictionariesController {
 
-    // Per-request соединение обязательно закрывать (см. инвариант resolveDb connection leak в
-    // CLAUDE.md) — иначе пул Postgres постепенно исчерпывается.
+    // Per-request соединение обязательно закрывать (см. инвариант resolveDb connection leak)
+    // — иначе пул Postgres постепенно исчерпывается.
     private fun <T> withDb(block: (KaraokeConnection) -> T): T {
         val db = Connection.local()
         return try {

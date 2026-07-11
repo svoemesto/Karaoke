@@ -86,6 +86,13 @@ export default class KaraokePlayer {
     this._ready = false
     this._loadProgress = null   // null = неопределённо (спиннер), 0..1 = доля скачанного (проценты)
 
+    // Offline-режим (headless-рендер mp4 — только admin-копия плеера в webvue3 его реально
+    // использует; здесь эти хуки зеркалируются инертными по инварианту "правки логики плеера — в
+    // обе копии", см. CLAUDE.md "Рендер видео MP4 из онлайн-плеера"). _forcedTime, когда не null,
+    // подменяет единственный источник времени контента (_getDisplayTime()) и панораму фона.
+    this._offline = false
+    this._forcedTime = null
+
     this._logoImg = null
     this._startFadeStartedAt = null // Date.now() когда песня стала готова: переход logo→splash (fade-out 0.5с + fade-in 0.5с)
     this._endFadeStartedAt = null   // Date.now() когда началась idle-анимация после _onEnded(): logo→чёрный→splash
@@ -124,7 +131,7 @@ export default class KaraokePlayer {
     // Phase 1: show animated background immediately, before any network requests
     this._buildUI()
     this._bgCanvas = this._generateStarfield()
-    this._startRenderLoop()
+    if (!this._offline) this._startRenderLoop()
     this._loadImage('/KARAOKE_LOGO.png').then(img => { this._logoImg = img }).catch(() => {})
 
     try {
@@ -163,9 +170,9 @@ export default class KaraokePlayer {
       this._preroll = this._splashDur + this._silentOffset
       this._isPrerolling = true
       this._dtPaused = 0
-      this._buildWaveforms()
+      if (!this._offline) this._buildWaveforms()
       this._ready = true
-      this._startFadeStartedAt = Date.now()   // запустить переход logo→splash
+      if (!this._offline) this._startFadeStartedAt = Date.now()   // запустить переход logo→splash
       this._updateExportMenuAvailability()
     } catch (e) {
       console.error('KaraokePlayer init error:', e)
@@ -199,6 +206,7 @@ export default class KaraokePlayer {
   // Display time: 0 = splash start, _preroll = audio starts, _preroll+duration = end.
   // During preroll uses wall clock; during audio uses AudioContext.
   _getDisplayTime() {
+    if (this._forcedTime !== null) return this._forcedTime
     if (this._isPrerolling) {
       const elapsed = this.isPlaying ? (Date.now() - this._prerollRef) / 1000 : 0
       return this._dtPaused + elapsed
@@ -570,7 +578,7 @@ export default class KaraokePlayer {
           <canvas id="kp-canvas" style="width:100%;height:100%;display:block"></canvas>
           <div id="kp-loading" style="position:absolute;inset:0;display:none;align-items:center;justify-content:center;color:#aaa;font-size:20px;background:transparent"></div>
         </div>
-        <div style="background:#111;padding:4px 10px;display:flex;align-items:stretch;gap:8px">
+        <div id="kp-controls-volume" style="background:#111;padding:4px 10px;display:flex;align-items:stretch;gap:8px">
           <button id="kp-anchor" title="Заякорить громкость всех треков" style="background:none;border:1px solid #444;border-radius:4px;color:#ccc;cursor:pointer;padding:0 8px;line-height:1;align-self:stretch;display:flex;align-items:center;justify-content:center"></button>
           <div style="flex:1;min-width:0">
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
@@ -591,7 +599,7 @@ export default class KaraokePlayer {
             <button id="kp-fs" title="Полноэкранный режим" style="flex:1;background:none;border:1px solid #444;border-radius:4px;color:#ccc;cursor:pointer;padding:0 8px;display:flex;align-items:center;justify-content:center;min-width:36px;font-size:14px;line-height:1">⛶</button>
           </div>
         </div>
-        <div style="background:#111;border-top:1px solid #333;padding:6px 12px;display:flex;align-items:center;gap:10px">
+        <div id="kp-controls-bottom" style="background:#111;border-top:1px solid #333;padding:6px 12px;display:flex;align-items:center;gap:10px">
           <button id="kp-play" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer;padding:0;line-height:1;min-width:28px">▶</button>
           <span id="kp-time" style="color:#888;font-size:12px;min-width:88px">0:00 / 0:00</span>
           <div id="kp-progress-wrap" style="flex:1;height:5px;background:#333;border-radius:3px;cursor:pointer;position:relative">
@@ -618,6 +626,16 @@ export default class KaraokePlayer {
           </div>
         </div>
       </div>`
+
+    // Offline (headless mp4-экспорт, admin-копия) — зеркалировано по инварианту "две копии плеера".
+    // Прячем UI-хром ДО _resizeCanvas(): #kp-canvas-wrap стоит flex:1, без соседних строк управления
+    // растягивается на всю высоту контейнера и canvas получает ровно запрошенное разрешение.
+    if (this._offline) {
+      const volumeControls = this.container.querySelector('#kp-controls-volume')
+      if (volumeControls) volumeControls.style.display = 'none'
+      const bottomControls = this.container.querySelector('#kp-controls-bottom')
+      if (bottomControls) bottomControls.style.display = 'none'
+    }
 
     this.canvas = this.container.querySelector('#kp-canvas')
     this.ctx = this.canvas.getContext('2d')
@@ -1586,7 +1604,9 @@ export default class KaraokePlayer {
     const MAX_Y = 4096 - REF_H   // 3016
     const PERIOD_X = 541          // seconds for one back-and-forth cycle (prime → no repeating pattern)
     const PERIOD_Y = 379
-    const t = performance.now() / 1000
+    // Offline: та же forced-time подмена, что в _getDisplayTime() — иначе панорама фона плыла бы по
+    // реальным часам headless-браузера и кадр не был бы воспроизводим по номеру/времени кадра.
+    const t = this._forcedTime !== null ? this._forcedTime : performance.now() / 1000
     const tx = (t / PERIOD_X) % 2
     const ty = (t / PERIOD_Y) % 2
     const vpX = (tx < 1 ? tx : 2 - tx) * MAX_X   // smooth triangle wave, no jump
@@ -1613,11 +1633,11 @@ export default class KaraokePlayer {
     if (!this._ready) {
       this._renderLogo(ctx, W, H, 1)
       this._renderLoadingIndicator(ctx, W, H)
-      this._updateControls(dt)
+      if (!this._offline) this._updateControls(dt)
       return
     }
 
-    if (this._mode === 'api' && this.isPlaying) this._trackProgress(audioTime)
+    if (!this._offline && this._mode === 'api' && this.isPlaying) this._trackProgress(audioTime)
 
     // Стартовый переход логотип→сплэш (сразу после готовности) имеет приоритет над конечным
     // idle-переходом (после _onEnded); в любой момент активен максимум один из них.
@@ -1678,7 +1698,18 @@ export default class KaraokePlayer {
     this._renderSpeedBadge(ctx, W, H)
     this._renderScreenIconAnim(ctx, W, H)
     this._renderDemoWatermark(ctx, W, H)
-    this._updateControls(dt)
+    if (!this._offline) this._updateControls(dt)
+  }
+
+  // ─── Offline rendering (headless MP4 export) ───────────────────────────────
+  // Mirrored from the webvue3 admin copy for the "две копии плеера" invariant — this copy's
+  // _offline/_forcedTime are otherwise always inert (the headless mp4 exporter only drives the
+  // admin/webvue3 copy, see CLAUDE.md "Рендер видео MP4 из онлайн-плеера"). Renders exactly one
+  // frame at the given display time `dt` (same units as _getDisplayTime()), bypassing the RAF loop
+  // and every wall-clock-driven animation.
+  renderFrameAt(dt) {
+    this._forcedTime = dt
+    this._renderFrame()
   }
 
   // Демо-режим: полупрозрачная диагональная плашка "ДЕМО" поверх всего кадра (весь показ, не

@@ -85,6 +85,14 @@ export default class KaraokePlayer {
     this._ready = false
     this._loadProgress = null   // null = неопределённо (спиннер), 0..1 = доля скачанного (проценты)
 
+    // Offline-режим (headless-рендер mp4, см. renderFrameAt() ниже): вызывающий код (Kotlin-
+    // оркестратор через Playwright page.evaluate) выставляет _offline=true ДО init() — это отключает
+    // RAF-цикл, построение waveform-виджетов и wall-clock idle-переходы logo→splash/splash→logo,
+    // которые иначе делают кадр недетерминированным. _forcedTime, когда не null, полностью подменяет
+    // единственный источник времени контента (_getDisplayTime()) и панораму фона (_renderBackground()).
+    this._offline = false
+    this._forcedTime = null
+
     this._logoImg = null
     this._startFadeStartedAt = null // Date.now() когда песня стала готова: переход logo→splash (fade-out 0.5с + fade-in 0.5с)
     this._endFadeStartedAt = null   // Date.now() когда началась idle-анимация после _onEnded(): logo→чёрный→splash
@@ -123,7 +131,9 @@ export default class KaraokePlayer {
     // Phase 1: show animated background immediately, before any network requests
     this._buildUI()
     this._bgCanvas = this._generateStarfield()
-    this._startRenderLoop()
+    // Offline: кадры дёргаются снаружи через renderFrameAt(), свой RAF-цикл не нужен и вносил бы
+    // недетерминированную "живую" перерисовку поверх forced-time кадров.
+    if (!this._offline) this._startRenderLoop()
     this._loadImage('/KARAOKE_LOGO.png').then(img => { this._logoImg = img }).catch(() => {})
 
     try {
@@ -164,9 +174,13 @@ export default class KaraokePlayer {
       this._preroll = this._splashDur + this._silentOffset
       this._isPrerolling = true
       this._dtPaused = 0
-      this._buildWaveforms()
+      // Offline: waveform-виджеты нужны только интерактивным DOM-контролам, а wall-clock fade
+      // logo→splash (_startFadeStartedAt/Date.now()) недопустим — сделал бы кадр недетерминированным.
+      // renderFrameAt() сам подаёт время через _forcedTime, splash/karaoke кроссфейд по dt уже
+      // детерминирован (см. _renderFrame).
+      if (!this._offline) this._buildWaveforms()
       this._ready = true
-      this._startFadeStartedAt = Date.now()   // запустить переход logo→splash
+      if (!this._offline) this._startFadeStartedAt = Date.now()   // запустить переход logo→splash
       this._updateExportMenuAvailability()
     } catch (e) {
       console.error('KaraokePlayer init error:', e)
@@ -200,6 +214,7 @@ export default class KaraokePlayer {
   // Display time: 0 = splash start, _preroll = audio starts, _preroll+duration = end.
   // During preroll uses wall clock; during audio uses AudioContext.
   _getDisplayTime() {
+    if (this._forcedTime !== null) return this._forcedTime
     if (this._isPrerolling) {
       const elapsed = this.isPlaying ? (Date.now() - this._prerollRef) / 1000 : 0
       return this._dtPaused + elapsed
@@ -571,7 +586,7 @@ export default class KaraokePlayer {
           <canvas id="kp-canvas" style="width:100%;height:100%;display:block"></canvas>
           <div id="kp-loading" style="position:absolute;inset:0;display:none;align-items:center;justify-content:center;color:#aaa;font-size:20px;background:transparent"></div>
         </div>
-        <div style="background:#111;padding:4px 10px;display:flex;align-items:stretch;gap:8px">
+        <div id="kp-controls-volume" style="background:#111;padding:4px 10px;display:flex;align-items:stretch;gap:8px">
           <button id="kp-anchor" title="Заякорить громкость всех треков" style="background:none;border:1px solid #444;border-radius:4px;color:#ccc;cursor:pointer;padding:0 8px;line-height:1;align-self:stretch;display:flex;align-items:center;justify-content:center"></button>
           <div style="flex:1;min-width:0">
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
@@ -592,7 +607,7 @@ export default class KaraokePlayer {
             <button id="kp-fs" title="Полноэкранный режим" style="flex:1;background:none;border:1px solid #444;border-radius:4px;color:#ccc;cursor:pointer;padding:0 8px;display:flex;align-items:center;justify-content:center;min-width:36px;font-size:14px;line-height:1">⛶</button>
           </div>
         </div>
-        <div style="background:#111;border-top:1px solid #333;padding:6px 12px;display:flex;align-items:center;gap:10px">
+        <div id="kp-controls-bottom" style="background:#111;border-top:1px solid #333;padding:6px 12px;display:flex;align-items:center;gap:10px">
           <button id="kp-play" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer;padding:0;line-height:1;min-width:28px">▶</button>
           <span id="kp-time" style="color:#888;font-size:12px;min-width:88px">0:00 / 0:00</span>
           <div id="kp-progress-wrap" style="flex:1;height:5px;background:#333;border-radius:3px;cursor:pointer;position:relative">
@@ -625,6 +640,19 @@ export default class KaraokePlayer {
           </div>
         </div>
       </div>`
+
+    // Offline (headless mp4-экспорт): mp4 не должен содержать никакого UI-хрома плеера (ползунки
+    // громкости, транспорт play/progress/меню) — только сама караоке-композиция, как в MLT-рендере.
+    // Прячем ОБЕ строки управления ДО _resizeCanvas() ниже: #kp-canvas-wrap стоит flex:1 в колонке
+    // высотой 100vh, поэтому без этих строк-соседей он сам растягивается на всю высоту и canvas
+    // получает ровно запрошенное разрешение, а не урезанное на высоту хрома (было 953px вместо 1080
+    // при видимом хроме — источник "сплющенной" картинки в первом прогоне headless-рендера).
+    if (this._offline) {
+      const volumeControls = this.container.querySelector('#kp-controls-volume')
+      if (volumeControls) volumeControls.style.display = 'none'
+      const bottomControls = this.container.querySelector('#kp-controls-bottom')
+      if (bottomControls) bottomControls.style.display = 'none'
+    }
 
     this.canvas = this.container.querySelector('#kp-canvas')
     this.ctx = this.canvas.getContext('2d')
@@ -1561,7 +1589,9 @@ export default class KaraokePlayer {
     const MAX_Y = 4096 - REF_H   // 3016
     const PERIOD_X = 541          // seconds for one back-and-forth cycle (prime → no repeating pattern)
     const PERIOD_Y = 379
-    const t = performance.now() / 1000
+    // Offline: та же forced-time подмена, что в _getDisplayTime() — иначе панорама фона плыла бы по
+    // реальным часам headless-браузера и кадр не был бы воспроизводим по номеру/времени кадра.
+    const t = this._forcedTime !== null ? this._forcedTime : performance.now() / 1000
     const tx = (t / PERIOD_X) % 2
     const ty = (t / PERIOD_Y) % 2
     const vpX = (tx < 1 ? tx : 2 - tx) * MAX_X   // smooth triangle wave, no jump
@@ -1588,7 +1618,7 @@ export default class KaraokePlayer {
     if (!this._ready) {
       this._renderLogo(ctx, W, H, 1)
       this._renderLoadingIndicator(ctx, W, H)
-      this._updateControls(dt)
+      if (!this._offline) this._updateControls(dt)
       return
     }
 
@@ -1633,7 +1663,19 @@ export default class KaraokePlayer {
     this._renderLogo(ctx, W, H, logoAlpha)
     this._renderSpeedBadge(ctx, W, H)
     this._renderScreenIconAnim(ctx, W, H)
-    this._updateControls(dt)
+    if (!this._offline) this._updateControls(dt)
+  }
+
+  // ─── Offline rendering (headless MP4 export) ───────────────────────────────
+  // Renders exactly one frame at the given display time `dt` (same units as _getDisplayTime():
+  // 0 = splash start, _preroll = first audio sample, _preroll+duration = end), bypassing the RAF
+  // loop and every wall-clock-driven animation. Caller (the Kotlin/Playwright headless orchestrator
+  // — see CLAUDE.md "Рендер видео MP4 из онлайн-плеера") must set `this._offline = true` BEFORE
+  // init(), wait for `this._ready`, and drive this once per output frame (dt = frame / fps). Repeated
+  // calls with monotonically increasing dt are safe — nothing here accumulates state across frames.
+  renderFrameAt(dt) {
+    this._forcedTime = dt
+    this._renderFrame()
   }
 
   // Бейдж со скоростью в углу экрана, пока она отличается от 1x — постоянный, а не «мелькающий»

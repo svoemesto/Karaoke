@@ -772,7 +772,7 @@ val listKaraokeProperties = listOf(
     // Автоматизация публикации в Telegram-канал (см. TelegramApiClient/TelegramUpdatesConsumer).
     // Фаза 1 — автоотлов ссылки на вышедший (отложенный, созданный вручную) пост через long-polling
     // getUpdates. Работа из России: Telegram периодически недоступен без VPN — telegramProxyUrl задаёт
-    // HTTP-прокси (VLESS/xray) для авто-fallback "напрямую → прокси" (см. CLAUDE.md/архив).
+    // HTTP-прокси (VLESS/xray) для авто-fallback "напрямую → прокси"
     KaraokeProperty(key = "telegramBotToken", defaultValue = "", description = "Telegram: токен бота-администратора канала"),
     KaraokeProperty(key = "telegramChannelUsername", defaultValue = "svoemestokaraoke", description = "Telegram: username канала (без @)"),
     KaraokeProperty(key = "telegramChannelChatId", defaultValue = "", description = "Telegram: числовой chat_id канала (-100...)"),

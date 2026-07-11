@@ -22,7 +22,7 @@ class NewsController {
         if (target == "remote") Connection.remote() else Connection.local()
 
     // resolveDb() открывает новое физическое соединение на каждый вызов — без явного close() пул
-    // Postgres постепенно исчерпывается (см. ChatController/DictionariesController/CLAUDE.md).
+    // Postgres постепенно исчерпывается (см. ChatController/DictionariesController).
     private fun <T> withDb(target: String?, block: (KaraokeConnection) -> T): T {
         val db = resolveDb(target)
         return try {

@@ -25,7 +25,7 @@ services:
       # тот же приём, что STORAGE_PROXY_URL для MinIO.
       - CAPTCHA_PROXY_URL=http://minio-proxy/smartcaptcha
       # Тот же приём для ЮKassa API (80to8897 location /yookassa/). shop-id/secret-key — реальные
-      # значения из do.env на сервере (НЕ коммитить сюда, см. CLAUDE.md про секреты в do.sh/do.env).
+      # значения из do.env на сервере (НЕ коммитить сюда, см. DEVELOPMENT.md про секреты в do.sh/do.env).
       - YOOKASSA_API_URL=http://minio-proxy/yookassa
       - YOOKASSA_SHOP_ID=${YOOKASSA_SHOP_ID}
       - YOOKASSA_SECRET_KEY=${YOOKASSA_SECRET_KEY}

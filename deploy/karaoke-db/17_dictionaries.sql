@@ -4,7 +4,7 @@
 -- dictionaries, направление по умолчанию LOCAL_TO_SERVER, как pictures/authors).
 --
 -- ВАЖНО: применять вручную на КАЖДОЙ БД отдельно (LOCAL + PROD 79.174.95.69:8832) —
--- миграция сама на сервер не попадает (см. CLAUDE.md).
+-- миграция сама на сервер не попадает.
 
 CREATE TABLE public.tbl_dictionaries (
     id integer NOT NULL,

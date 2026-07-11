@@ -5,6 +5,9 @@ import com.svoemesto.karaokeapp.llm.LyricsFinderService
 import com.svoemesto.karaokeapp.model.*
 import com.svoemesto.karaokeapp.services.APP_WORK_IN_CONTAINER
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
+import com.svoemesto.karaokeapp.services.PlayerMp4MuxService
+import com.svoemesto.karaokeapp.services.PlayerMp4RenderService
+import com.svoemesto.karaokeapp.services.RenderMp4Params
 import com.svoemesto.karaokeapp.services.SNS
 import com.svoemesto.karaokeapp.services.SseNotificationService
 import com.svoemesto.karaokeapp.services.StorageApiClient
@@ -3738,6 +3741,53 @@ class ApiController(
         }
     }
 
+    // Этап 1 (MVP) рендера видео mp4 напрямую из онлайн-плеера, в перспективе — замена MLT (см.
+    // "Рендер видео MP4 из онлайн-плеера" и PlayerMp4RenderService/PlayerMp4MuxService).
+    // Строго админская функция. Намеренно БЕЗ очереди KaraokeProcess на этом этапе — запускается
+    // напрямую в фоновом потоке, результат складывается в известную (детерминированную по id) папку
+    // для визуальной сверки с эталонным MLT-рендером той же песни; прогресс — только в консоль
+    // karaoke-app. Встройка в очередь/SSE-прогресс — следующий этап.
+    @PostMapping("/song/renderMp4Preview")
+    @ResponseBody
+    fun createRenderMp4PreviewProcess(
+        @RequestParam id: Long,
+        @RequestParam(required = false) width: Int?,
+        @RequestParam(required = false) height: Int?,
+        @RequestParam(required = false) fps: Int?,
+    ): Map<String, Any> {
+        val settings = Settings.loadFromDbById(
+            id = id,
+            database = WORKING_DATABASE,
+            storageService = storageService,
+            storageApiClient = storageApiClient
+        ) ?: return mapOf("ok" to false, "message" to "Песня не найдена: id=$id")
+
+        val params = RenderMp4Params(
+            songId = id,
+            width = width ?: 1920,
+            height = height ?: 1080,
+            fps = fps ?: 60,
+        )
+        val outputPath = "$PATH_TO_TEMP_RENDERMP4_FOLDER/$id/output.mp4"
+
+        thread(name = "render-mp4-preview-$id", isDaemon = true) {
+            try {
+                val framesResult = PlayerMp4RenderService.renderFrames(params)
+                PlayerMp4MuxService.mixAndMux(
+                    framesDir = framesResult.framesDir,
+                    fps = params.fps,
+                    preroll = framesResult.preroll,
+                    audioTracks = PlayerMp4MuxService.defaultTracks(settings),
+                    outputPath = outputPath,
+                )
+                println("[${Timestamp.from(Instant.now())}] renderMp4Preview: готово -> $outputPath")
+            } catch (e: Exception) {
+                println("[${Timestamp.from(Instant.now())}] renderMp4Preview: ОШИБКА для id=$id: ${e.message}")
+            }
+        }
+
+        return mapOf("ok" to true, "message" to "Рендер запущен в фоне, результат появится в $outputPath")
+    }
 
     // Получение healthReportList
     @PostMapping("/song/healthReportList")

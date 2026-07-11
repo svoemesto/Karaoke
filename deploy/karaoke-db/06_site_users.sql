@@ -84,7 +84,7 @@ CREATE UNIQUE INDEX idx_tbl_site_user_tokens_token ON public.tbl_site_user_token
 CREATE INDEX idx_tbl_site_user_tokens_site_user_id ON public.tbl_site_user_tokens (site_user_id);
 
 -- Миграция для уже развёрнутых БД (local + remote), где таблица создана до появления этой колонки.
--- Применять вручную на каждой БД отдельно — миграция сама на сервер не попадает (см. CLAUDE.md).
+-- Применять вручную на каждой БД отдельно — миграция сама на сервер не попадает.
 -- ALTER TABLE public.tbl_site_users ADD COLUMN is_permanent_premium boolean DEFAULT false NOT NULL;
 -- CREATE OR REPLACE FUNCTION public.update_tbl_site_users_recordhash() RETURNS trigger
 --     LANGUAGE plpgsql

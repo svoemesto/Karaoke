@@ -239,7 +239,7 @@ export default {
   background-color: dodgerblue;
 }
 
-/* Инвариант CLAUDE.md: нативный select рисует свою ОС-рамку/паддинг/высоту поверх заданных
+/* Инвариант DEVELOPMENT.md: нативный select рисует свою ОС-рамку/паддинг/высоту поверх заданных
    стилей — appearance:none обязателен. Ширину/border-radius задаёт fld.fldValueStyle (тот же
    объект стиля, что и у текстового поля этого ряда) — отдельный border здесь только чтобы select
    не остался совсем без рамки после сброса appearance. */

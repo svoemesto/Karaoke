@@ -1670,7 +1670,7 @@ export default class KaraokePlayer {
   // Renders exactly one frame at the given display time `dt` (same units as _getDisplayTime():
   // 0 = splash start, _preroll = first audio sample, _preroll+duration = end), bypassing the RAF
   // loop and every wall-clock-driven animation. Caller (the Kotlin/Playwright headless orchestrator
-  // — see CLAUDE.md "Рендер видео MP4 из онлайн-плеера") must set `this._offline = true` BEFORE
+  // — see DEVELOPMENT.md "Рендер видео MP4 из онлайн-плеера") must set `this._offline = true` BEFORE
   // init(), wait for `this._ready`, and drive this once per output frame (dt = frame / fps). Repeated
   // calls with monotonically increasing dt are safe — nothing here accumulates state across frames.
   renderFrameAt(dt) {

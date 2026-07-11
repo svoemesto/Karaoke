@@ -10,7 +10,7 @@ import java.io.InputStream
 /**
  * Заглушка бина [KaraokeStorageService] для karaoke-web.
  *
- * karaoke-web НИКОГДА не обращается к MinIO напрямую через MinioClient (см. корневой CLAUDE.md,
+ * karaoke-web НИКОГДА не обращается к MinIO напрямую через MinioClient (см. корневой DEVELOPMENT.md,
  * разделы «MinIO на отдельном сервере», «minio nginx proxy»): на проде MinIO вынесен на отдельный
  * хост (89.125.103.63), контейнера `karaoke-storage` в docker-сети нет, а подписанный S3 из
  * контейнера всё равно невозможен (MTU black-hole рвёт прямое соединение, а nginx path-proxy ломает

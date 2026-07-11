@@ -46,7 +46,7 @@ class KaraokeWebService(
         // эндпоинта, поэтому emitters всегда пуст и send() безопасно не делает ничего.
         SNS = SseNotificationService(objectMapper)
         // Уборка пустых бакетов (deleteAllEmptyBuckets) намеренно НЕ вызывается: karaoke-web не обращается
-        // к MinIO напрямую (см. CLAUDE.md, MTU black-hole; бин KaraokeStorageService здесь — заглушка,
+        // к MinIO напрямую (см. DEVELOPMENT.md, MTU black-hole; бин KaraokeStorageService здесь — заглушка,
         // KaraokeStorageServiceImplWeb.kt). Прежний вызов ходил к недоступному karaoke-storage:9000 и ронял
         // старт в crash-loop. Это забота admin/karaoke-app.
         println("WEB_WORK_ON_SERVER = $WEB_WORK_ON_SERVER")

@@ -109,7 +109,7 @@ class GenericKaraokeDbTableSyncTarget<T : KaraokeDbTable>(
 }
 
 /**
- * Settings реализует KaraokeDbTable только ради типизации (см. CLAUDE.md) — её поля НЕ аннотированы
+ * Settings реализует KaraokeDbTable только ради типизации (см. DEVELOPMENT.md) — её поля НЕ аннотированы
  * @KaraokeDbTableField (виртуальные diff-поля status/color/processColorXxx, тяжёлые side-effect
  * геттеры ms/rootFolder и вся tbl_settings_sync-инфраструктура несовместимы с generic reflection).
  * Поэтому здесь — bespoke SyncTarget поверх уже существующих статических методов Settings, а не

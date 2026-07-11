@@ -12,7 +12,7 @@ import java.util.Date
 /**
  * Предупреждает, если горизонт уже запланированных (отложенных, ещё не вышедших) постов в
  * Telegram-канале меньше monitorTelegramHorizonDays суток. Отложенный пост - песня, у которой хотя
- * бы одно из полей id_telegram_* равно "-" (см. CLAUDE.md / TelegramUpdatesConsumer): пост создан
+ * бы одно из полей id_telegram_* равно "-" (см. DEVELOPMENT.md / TelegramUpdatesConsumer): пост создан
  * вручную как отложенный, но ещё не вышел в эфир. Горизонт = максимальная dateTimePublish среди
  * таких песен минус текущее время.
  *

@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component
 import java.util.concurrent.ConcurrentHashMap
 
 /**
- * Фоновый планировщик мониторинга ключевых моментов проекта (см. CLAUDE.md, раздел «Подсистема
+ * Фоновый планировщик мониторинга ключевых моментов проекта (см. DEVELOPMENT.md, раздел «Подсистема
  * мониторинга»). Раз в минуту прогоняет MonitorRegistry.checks, хранит актуальный снапшот алертов
  * в памяти и рассылает его по SSE (тип MONITOR_ALERTS, broadcast всем вкладкам webvue3 - см.
  * SseNotificationService.addressedTypes). Работает только пока запущен karaoke-app (тот же

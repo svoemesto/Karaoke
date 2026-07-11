@@ -4,7 +4,7 @@ import com.svoemesto.karaokeapp.KaraokeConnection
 import java.io.Serializable
 
 // Булевы поля БЕЗ префикса `is` — Jackson сериализует геттер isX() в JSON-ключ "x" (без "is"),
-// а фронтенд читает ключ буквально (см. CLAUDE.md про Jackson bean convention). itemsCount —
+// а фронтенд читает ключ буквально (см. DEVELOPMENT.md про Jackson bean convention). itemsCount —
 // не БД-поле, заполняется контроллером для списка плейлистов.
 data class SitePlaylistDto(
     val id: Long = 0,

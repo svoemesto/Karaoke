@@ -355,7 +355,7 @@ export default {
   font-size: small;
 }
 
-/* Инвариант CLAUDE.md: select и соседний input в одном ряду добавления — один и тот же явный
+/* Инвариант DEVELOPMENT.md: select и соседний input в одном ряду добавления — один и тот же явный
    width общим классом (.dct-field) сразу на оба элемента, appearance:none на select обязателен
    (иначе ОС-рамка/паддинг раздувает высоту ряда и рвёт совпадение по бордеру с input). */
 .dct-field {

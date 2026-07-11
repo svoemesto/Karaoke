@@ -45,7 +45,7 @@ class SongAssignment(
     var assignedBy: Long = 0
 
     // Nullable-в-БД timestamp: поле обязано быть Timestamp? (иначе NPE в reflection-loader на SQL NULL —
-    // см. SitePlaylist.lastUpdate / CLAUDE.md про reflection loader nullable columns).
+    // см. SitePlaylist.lastUpdate / DEVELOPMENT.md про reflection loader nullable columns).
     @KaraokeDbTableField(name = "assigned_at")
     var assignedAt: Timestamp? = null
 

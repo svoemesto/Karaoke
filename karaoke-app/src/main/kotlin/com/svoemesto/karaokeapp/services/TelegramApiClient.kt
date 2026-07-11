@@ -48,7 +48,7 @@ data class TelegramUpdatesResponse(
 /**
  * Тонкий клиент Telegram Bot API поверх JDK HttpClient (паттерн - как в AIAssistant.kt).
  *
- * Доступ к Telegram из России периодически недоступен без VPN (см. CLAUDE.md/архив). Реализован
+ * Доступ к Telegram из России периодически недоступен без VPN (см. DEVELOPMENT.md/архив). Реализован
  * авто-fallback: каждый запрос сначала пробует идти напрямую; при сетевой ошибке переключается на
  * HTTP-прокси (VLESS/xray, KaraokeProperties.telegramProxyUrl) и остаётся на нём, периодически (раз в
  * telegramProxyModeTtlMs) пробуя вернуться на прямой путь. Если telegramProxyUrl не задан - прокси

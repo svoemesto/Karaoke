@@ -13,7 +13,7 @@ import java.text.SimpleDateFormat
 /**
  * Автопродление подписки на сайт (scope=SITE, autoRenew=true). Живёт в karaoke-web (не на
  * admin-машине) — PaymentService/YooKassa WebClient/yookassa-proxy уже здесь, а именно karaoke-web
- * развёрнут на проде (karaoke-app там не разворачивается вовсе, см. CLAUDE.md).
+ * развёрнут на проде (karaoke-app там не разворачивается вовсе, см. DEVELOPMENT.md).
  *
  * "Активная цепочка" пользователя = его САМАЯ ПОЗДНЯЯ оплаченная SITE-подписка (по paidAt). Именно
  * её autoRenew/yookassaPaymentMethodId используются для решения о продлении — POST .../cancel

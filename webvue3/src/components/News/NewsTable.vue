@@ -229,7 +229,7 @@ export default {
 
 .news-table-body { width: fit-content; max-width: 100%; }
 
-/* Инвариант CLAUDE.md: select/input/textarea в одном ряду — общий явный width, appearance:none
+/* Инвариант DEVELOPMENT.md: select/input/textarea в одном ряду — общий явный width, appearance:none
    на select обязателен (иначе ОС-рамка/паддинг раздувает высоту и рвёт совпадение по бордеру). */
 .news-field {
   box-sizing: border-box;

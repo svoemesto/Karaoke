@@ -98,7 +98,7 @@ data class NamedCountDto(
 )
 
 // Строка топа пользователей. Булевы поля без is-префикса — иначе Jackson сериализует их как
-// "premium"/"banned" (bean convention), см. правило в CLAUDE.md.
+// "premium"/"banned" (bean convention), см. правило в DEVELOPMENT.md.
 data class TopUserDto(
     val siteUserId: Long,
     val anonId: String = "",        // идентификатор анонимной строки (для drill-down); у залогиненных ""
@@ -545,7 +545,7 @@ object StatsByEvents {
 
     // География посетителей: страна по client_ip (GeoIpService). Уникальных IP — тысячи (не 250k
     // строк), поэтому группируем в SQL по IP, а сведение IP→страна и повторную агрегацию делаем в
-    // Kotlin (без колонки country в tbl_events, без миграции — см. CLAUDE.md «статистика»).
+    // Kotlin (без колонки country в tbl_events, без миграции — см. DEVELOPMENT.md «статистика»).
     fun getCountryBreakdown(database: KaraokeConnection = WORKING_DATABASE, limit: Int = 30): List<NamedCountDto> {
         val connection = database.getConnection() ?: return emptyList()
         val ipCounts = LinkedHashMap<String, Int>()

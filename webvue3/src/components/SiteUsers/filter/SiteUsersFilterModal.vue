@@ -294,7 +294,7 @@ export default {
   border-width: thin;
 }
 
-/* Ширина/паддинг заданы явно на общем классе (см. инвариант в CLAUDE.md — select/input width
+/* Ширина/паддинг заданы явно на общем классе (см. инвариант в DEVELOPMENT.md — select/input width
    matching): поле сужено на 18px под сдвиг круглой кнопки очистки, как в AuthorsFilterModal. */
 .sufm-input-field {
   box-sizing: border-box;

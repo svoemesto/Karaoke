@@ -2095,7 +2095,7 @@ export default {
             let nextSongId = ctx.state.nextSongId;
             let deletedId = ctx.state.currentSongId;
             await promisedXMLHttpRequest({ method: 'POST', url: "/api/song/delete", params: { id: deletedId } });
-            // Даты публикаций других песен при удалении НЕ пересчитываем (см. CLAUDE.md).
+            // Даты публикаций других песен при удалении НЕ пересчитываем (см. DEVELOPMENT.md).
             let targetId = previousSongId || nextSongId;
             if (targetId) {
                 await ctx.dispatch('setCurrentSongId', targetId);

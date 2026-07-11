@@ -38,7 +38,7 @@ interface TextFileDictionary {
     fun dictName(): String
 
     // karaoke-web не имеет полноценной инициализации ConstantsKt/Connection (см. «karaoke-web Settings
-    // trap» в CLAUDE.md) — обращение к WORKING_DATABASE там может бросить NoClassDefFoundError (Error,
+    // trap» в DEVELOPMENT.md) — обращение к WORKING_DATABASE там может бросить NoClassDefFoundError (Error,
     // не Exception), роняя весь запрос (Zakroma, страница песни и т.п.). Деградируем до пустого словаря,
     // а не валим вызывающий эндпоинт.
     val dict: List<String> get() = try {

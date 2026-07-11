@@ -88,7 +88,7 @@ export default class KaraokePlayer {
 
     // Offline-режим (headless-рендер mp4 — только admin-копия плеера в webvue3 его реально
     // использует; здесь эти хуки зеркалируются инертными по инварианту "правки логики плеера — в
-    // обе копии", см. CLAUDE.md "Рендер видео MP4 из онлайн-плеера"). _forcedTime, когда не null,
+    // обе копии", см. DEVELOPMENT.md "Рендер видео MP4 из онлайн-плеера"). _forcedTime, когда не null,
     // подменяет единственный источник времени контента (_getDisplayTime()) и панораму фона.
     this._offline = false
     this._forcedTime = null
@@ -1704,7 +1704,7 @@ export default class KaraokePlayer {
   // ─── Offline rendering (headless MP4 export) ───────────────────────────────
   // Mirrored from the webvue3 admin copy for the "две копии плеера" invariant — this copy's
   // _offline/_forcedTime are otherwise always inert (the headless mp4 exporter only drives the
-  // admin/webvue3 copy, see CLAUDE.md "Рендер видео MP4 из онлайн-плеера"). Renders exactly one
+  // admin/webvue3 copy, see DEVELOPMENT.md "Рендер видео MP4 из онлайн-плеера"). Renders exactly one
   // frame at the given display time `dt` (same units as _getDisplayTime()), bypassing the RAF loop
   // and every wall-clock-driven animation.
   renderFrameAt(dt) {

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# build-lock.sh — взаимное исключение gradle-сборок jar между параллельными сессиями Claude Code
+# build-lock.sh — взаимное исключение gradle-сборок jar между параллельными сессиями
 # и ручными сборками на хосте, плюс пропуск сборки при неизменном отпечатке исходников.
 #
 # Подключается через `source` из deploy/do.sh. Публичный интерфейс:
@@ -80,7 +80,7 @@ bl_begin() {
   mkdir -p "$BL_DIR"
   eval "exec {BL_FD}>\"$BL_LOCK\""
 
-  # (1) flock — координация всех сборок через обёртку (сессии Claude + ручной do.sh)
+  # (1) flock — координация всех сборок через обёртку (сессии + ручной do.sh)
   local waited=0
   while ! flock -n "$BL_FD"; do
     if [ $((waited % 15)) -eq 0 ]; then

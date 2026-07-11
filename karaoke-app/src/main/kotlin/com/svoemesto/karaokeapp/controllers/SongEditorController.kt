@@ -33,7 +33,7 @@ import java.sql.Timestamp
 // Пары эндпоинтов по назначению БД (songassignments синкается SERVER_TO_LOCAL — remote первичен для
 // реального рабочего цикла, который часто идёт целиком на PROD):
 //  - digest/byId — просмотр, уважают target=local|remote (админ смотрит любую БД), withDb закрывает
-//    per-request соединение (иначе "too many clients", см. resolveDb connection leak в CLAUDE.md).
+//    per-request соединение (иначе "too many clients", см. resolveDb connection leak).
 //  - assign/reject/delete — target-aware (withDb(target), по умолчанию local): пишут ИМЕННО в ту БД,
 //    где реально идёт работа пользователя — иначе статус/комментарий уйдут в БД, которую karaoke-web не
 //    читает, и правка останется невидимой (был баг: reject() был жёстко local, из-за чего отклонённое

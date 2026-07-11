@@ -4,7 +4,7 @@ ADD COLUMN IF NOT EXISTS recordhash VARCHAR(32);
 CREATE INDEX IF NOT EXISTS idx_tbl_events_recordhash ON tbl_events(recordhash);
 
 -- Реальный IP клиента, анонимный localStorage-идентификатор, привязка к tbl_site_users
--- (0 = аноним, см. WebEvent.kt / EventTypes.kt) и User-Agent — см. CLAUDE.md "статистика".
+-- (0 = аноним, см. WebEvent.kt / EventTypes.kt) и User-Agent — "статистика".
 ALTER TABLE tbl_events ADD COLUMN IF NOT EXISTS client_ip character varying(64);
 ALTER TABLE tbl_events ADD COLUMN IF NOT EXISTS anon_id character varying(64);
 ALTER TABLE tbl_events ADD COLUMN IF NOT EXISTS site_user_id bigint NOT NULL DEFAULT 0;

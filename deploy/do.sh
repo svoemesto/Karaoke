@@ -115,7 +115,7 @@ function do_build_app() {
   [ "$rc" = 10 ] && return 0
   echo "Building APP module"
   cd ${BASE_DIR} && ${GRADLE} clean karaoke-app:bootJar
-  cp $DEPLOY_DIR/karaoke-app/files/* /home/nsa/Karaoke/karaoke-app/build/libs
+  cp $DEPLOY_DIR/karaoke-app/files/* ~/Karaoke/karaoke-app/build/libs
   ${DOCKER} image build $BASE_DIR/karaoke-app/build/libs/ \
    --build-arg VERSION=${BUILD_VERSION} \
    --build-arg APP_VERSION=${APP_VERSION} \
@@ -132,7 +132,7 @@ function do_build_app_nocache() {
   [ "$rc" = 10 ] && return 0
   echo "Building APP module"
   cd ${BASE_DIR} && ${GRADLE} clean karaoke-app:bootJar
-  cp $DEPLOY_DIR/karaoke-app/files/* /home/nsa/Karaoke/karaoke-app/build/libs
+  cp $DEPLOY_DIR/karaoke-app/files/* ~/Karaoke/karaoke-app/build/libs
   ${DOCKER} image build --no-cache $BASE_DIR/karaoke-app/build/libs/ \
    --build-arg VERSION=${BUILD_VERSION} \
    --build-arg APP_VERSION=${APP_VERSION} \

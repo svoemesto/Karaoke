@@ -539,7 +539,7 @@ fun searchSongInYandex(author: String, songName: String, countInPage: Int = 10, 
 }
 
 fun createNewIamToken() {
-    createScriptForHost(args = listOf("/home/nsa/yandex-cloud/bin/yc iam create-token > /sm-karaoke/system/yandex/iam_token.txt"), waitToDone = true)
+    createScriptForHost(args = listOf("~/yandex-cloud/bin/yc iam create-token > /sm-karaoke/system/yandex/iam_token.txt"), waitToDone = true)
     Karaoke.requestIamToken = Files.readString(Paths.get(Karaoke.iamTokenFilePath)).trim()
 }
 

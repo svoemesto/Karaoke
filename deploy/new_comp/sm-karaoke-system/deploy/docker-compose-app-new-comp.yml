@@ -38,7 +38,7 @@ services:
       - /sm-karaoke/system:/sm-karaoke/system
       - /sm-karaoke/store:/sm-karaoke/store
       - /var/run/docker.sock:/var/run/docker.sock
-      - /home/nsa/Karaoke/karaoke-web/src/main/resources/static/tmp:/home/nsa/Karaoke/karaoke-web/src/main/resources/static/tmp
+      - ~/Karaoke/karaoke-web/src/main/resources/static/tmp:~/Karaoke/karaoke-web/src/main/resources/static/tmp
       - /tmp/.X11-unix:/tmp/.X11-unix
       - ~/.Xauthority:/.Xauthority:rw
       - /etc/localtime:/etc/localtime:ro

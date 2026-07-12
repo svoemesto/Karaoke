@@ -1,9 +1,9 @@
 #!/bin/bash
 #echo Создание файла бэкаба базы данных из контейнера karaoke-db...
 #docker exec -it karaoke-db bash -c 'pg_dump -U postgres --file="/docker-entrypoint-initdb.d/karaoke_dump.sql" --dbname=karaoke --create'
-#sudo chmod -R 777 /home/nsa/Karaoke/deploy/karaoke-db
+#sudo chmod -R 777 ~/Karaoke/deploy/karaoke-db
 #echo Перемещение файла бэкаба базы данных в папку /sm-karaoke/system/dumps
-#mv /home/nsa/Karaoke/deploy/karaoke-db/karaoke_dump.sql /sm-karaoke/system/dumps
+#mv ~/Karaoke/deploy/karaoke-db/karaoke_dump.sql /sm-karaoke/system/dumps
 #!/bin/bash
 
 # --- Настройки ---
@@ -40,7 +40,7 @@ fi
 
 # Перемещаем файл из /tmp (на хосте) во временную папку, чтобы не мешал
 TEMP_DUMP_PATH="/tmp/${DUMP_FILE_NAME}"
-FINAL_DUMP_PATH="/home/nsa/Karaoke/deploy/karaoke-db/${DUMP_FILE_NAME}"
+FINAL_DUMP_PATH="~/Karaoke/deploy/karaoke-db/${DUMP_FILE_NAME}"
 mv "$TEMP_DUMP_PATH" "$FINAL_DUMP_PATH"
 
 # 4. Устанавливаем права на файл бэкапа (если нужно)

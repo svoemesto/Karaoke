@@ -1138,7 +1138,7 @@ class KaraokeProcess(
                     }
                     KaraokeProcessTypes.SHEETSAGE -> {
                         val srcWav = "/sm-karaoke/system/sheetsage/source.wav"
-                        val resultFolder = "/home/nsa/Karaoke/output/output"
+                        val resultFolder = "~/Karaoke/output/output"
                         val resultPdf = "$resultFolder/output.pdf"
                         val resultMidi = "$resultFolder/output.midi"
                         val resultLy = "$resultFolder/output.ly"
@@ -1149,7 +1149,7 @@ class KaraokeProcess(
                             listOf("mkdir", "-p", resultFolder),
                             listOf("rm", "-f", srcWav, resultPdf, resultMidi, resultLy, resultBeattimes),
                             cpulimitPrefix(cpuPercentSheetsage) + listOf("ffmpeg", "-i", settings.fileAbsolutePath.rightFileName(), "-compression_level", "8", srcWav, "-y"),
-                            cpulimitPrefix(cpuPercentSheetsage) + listOf("/home/nsa/sheetsage/sheetsage.sh", "-j", "-o", "output/output", srcWav),
+                            cpulimitPrefix(cpuPercentSheetsage) + listOf("~/sheetsage/sheetsage.sh", "-j", "-o", "output/output", srcWav),
                             listOf("mkdir", "-p", settings.pathToFolderSheetsage),
                             listOf("mv", resultPdf.rightFileName(), settings.pathToFileSheetsagePDF.rightFileName()),
                             listOf("mv", resultMidi.rightFileName(), settings.pathToFileSheetsageMIDI.rightFileName()),
@@ -1170,7 +1170,7 @@ class KaraokeProcess(
                     }
                     KaraokeProcessTypes.SHEETSAGE2 -> {
                         val srcWav = "/sm-karaoke/system/sheetsage/source.wav"
-                        val resultFolder = "/home/nsa/Karaoke/output/output"
+                        val resultFolder = "~/Karaoke/output/output"
                         val resultPdf = "$resultFolder/output.pdf"
                         val resultMidi = "$resultFolder/output.midi"
                         val resultLy = "$resultFolder/output.ly"
@@ -1181,7 +1181,7 @@ class KaraokeProcess(
                             listOf("mkdir", "-p", resultFolder),
                             listOf("rm", "-f", srcWav, resultPdf, resultMidi, resultLy, resultBeattimes),
                             cpulimitPrefix(cpuPercentSheetsage2) + listOf("ffmpeg", "-i", settings.fileAbsolutePath.rightFileName(), "-compression_level", "8", srcWav, "-y"),
-                            cpulimitPrefix(cpuPercentSheetsage2) + listOf("/home/nsa/sheetsage/sheetsage.sh", "-j", "-o", "output/output", "--measures_per_chunk", "4", srcWav),
+                            cpulimitPrefix(cpuPercentSheetsage2) + listOf("~/sheetsage/sheetsage.sh", "-j", "-o", "output/output", "--measures_per_chunk", "4", srcWav),
                             listOf("mkdir", "-p", settings.pathToFolderSheetsage),
                             listOf("mv", resultPdf.rightFileName(), settings.pathToFileSheetsagePDF.rightFileName()),
                             listOf("mv", resultMidi.rightFileName(), settings.pathToFileSheetsageMIDI.rightFileName()),

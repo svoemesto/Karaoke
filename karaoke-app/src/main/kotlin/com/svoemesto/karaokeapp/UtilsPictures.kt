@@ -142,7 +142,7 @@ fun getVKPictureBase64(settings: Settings): String {
 
 fun createVKLinkPictureWeb(settings: Settings, reCreateIfExist: Boolean = true): String {
 
-    val fName = "/home/nsa/Karaoke/karaoke-web/src/main/resources/static/tmp/${settings.id}.png"
+    val fName = "~/Karaoke/karaoke-web/src/main/resources/static/tmp/${settings.id}.png"
 
     if (settings.onAir && File(fName).exists()) {
         println("${settings.fileName} - в эфире, удаляем файл картинки")

@@ -36,7 +36,6 @@ echo "APP_VERSION = $APP_VERSION"
 echo "BUILD_VERSION = $BUILD_VERSION"
 echo "DOCKER = $DOCKER"
 echo "COMPOSE = $COMPOSE"
-echo "DOCKER_REGISTRY = $DOCKER_REGISTRY"
 
 source "${DEPLOY_DIR}/announce.sh"
 

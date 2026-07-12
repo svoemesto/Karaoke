@@ -23,8 +23,6 @@ echo "APP_VERSION = $APP_VERSION"
 echo "BUILD_VERSION = $BUILD_VERSION"
 echo "DOCKER = $DOCKER"
 echo "COMPOSE = $COMPOSE"
-echo "DOCKER_REGISTRY = $DOCKER_REGISTRY"
-echo "STORAGE_PORT_HOST = $STORAGE_PORT_HOST"
 
 function do_start_db() {
   do_stop_db

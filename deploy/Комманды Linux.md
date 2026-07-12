@@ -17,11 +17,11 @@ scp -P [порт] [путь к файлу на локальной машине] 
 
 Пример команды:
 
-`scp -P 2222 "/home/nsa/Documents/Караоке/censored.txt" nsa@localhost:~/Karaoke`
+`scp -P 2222 "~/Documents/Караоке/censored.txt" nsa@localhost:~/Karaoke`
 
 Если нужно скопировать папку - указываем параметр -r
 
-`scp -r -P 2222 "/home/nsa/Documents/Караоке/Digest" nsa@localhost:~/Karaoke`
+`scp -r -P 2222 "~/Documents/Караоке/Digest" nsa@localhost:~/Karaoke`
 
 Очистка корневой файловой системы:
 
@@ -45,5 +45,5 @@ docker exec -it karaoke-webvue bash
 
 `docker system prune -a`
 
-После чистки докера восстановить работу sheetsage по файлу /home/nsa/sheetsage/Чё как делать.txt
+После чистки докера восстановить работу sheetsage по файлу ~/sheetsage/Чё как делать.txt
 

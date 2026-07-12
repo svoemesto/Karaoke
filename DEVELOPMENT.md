@@ -142,9 +142,9 @@ cd /sm-karaoke/system/deploy && ./do.sh start_app2 # с выводом в кон
 
 ```
 # karaoke-web (gradle build → Docker Hub push → pull на сервере):
-cd /home/nsa/Karaoke/deploy && bash deploy_web.sh
+cd ~/Karaoke/deploy && bash deploy_web.sh
 # karaoke-public:
-cd /home/nsa/Karaoke/deploy && bash deploy_public.sh
+cd ~/Karaoke/deploy && bash deploy_public.sh
 ```
 После `deploy_web.sh` проверить: (1) в логах push **нет** `EOF`/`400 Bad request`; (2) на сервере `Status:
 Downloaded newer image` (не `Image is up to date`); (3) содержимое `application.yml` в контейнере:
@@ -156,7 +156,7 @@ ssh root@<PROD_SERVER_IP> "docker exec karaoke-web bash -c 'cd /tmp && jar xf /a
 
 **Синхронизация серверных конфигов** (при изменении do.sh / docker-compose / nginx):
 ```
-cd /home/nsa/Karaoke/deploy
+cd ~/Karaoke/deploy
 rsync -av --exclude='do.env' web-server-deploy/deploy/ root@<PROD_SERVER_IP>:Karaoke/deploy/
 scp karaoke-public/nginx_karaoke-public.conf root@<PROD_SERVER_IP>:Karaoke/deploy/nginx_karaoke-public.conf
 # ВАЖНО: nginx читает /etc/nginx/sites-enabled/80to8897 — ОТДЕЛЬНЫЙ файл (не симлинк), копировать вручную:

@@ -1,18 +1,18 @@
 <?xml version='1.0' encoding='utf-8'?>
 <mlt LC_NUMERIC="C" producer="main_bin" version="7.21.0"
-     root="/home/nsa/Documents/Караоке/Х.. забей/1989 - Лирика задроченных бюстиков/done_projects">
+     root="~/Documents/Караоке/Х.. забей/1989 - Лирика задроченных бюстиков/done_projects">
     <profile frame_rate_num="60" sample_aspect_num="1" display_aspect_den="9" colorspace="709" progressive="1"
              description="HD 1080p 60 fps" display_aspect_num="16" frame_rate_den="1" width="1920" height="1080"
              sample_aspect_den="1"/>
     <consumer f="mp4" properties="x265-medium" channels="2" x265-param="crf=%quality" crf="15"
-              target="/home/nsa/Documents/Караоке/Х.. забей/1989 - Лирика задроченных бюстиков/done_files/1989 (02) [Х.. забей] - Говно [karaoke].mp4"
+              target="~/Documents/Караоке/Х.. забей/1989 - Лирика задроченных бюстиков/done_files/1989 (02) [Х.. забей] - Говно [karaoke].mp4"
               mlt_service="avformat" real_time="-16" threads="0" vcodec="libx265" ab="160k" preset="ultrafast"
               acodec="aac" in="0" out="7344"/>
 
     <producer id="producer_audiovocal0" in="00:00:00.000" out="00:01:54.383">
         <property name="length">6864</property>
         <property name="eof">pause</property>
-        <property name="resource">/home/nsa/Documents/Караоке/Х.. забей/1989 - Лирика задроченных
+        <property name="resource">~/Documents/Караоке/Х.. забей/1989 - Лирика задроченных
             бюстиков/hdemucs_mmi/1989 (02) [Х.. забей] - Говно-vocals.flac
         </property>
         <property name="meta.media.nb_streams">1</property>
@@ -35,7 +35,7 @@
     <producer id="producer_audiomusic0" in="00:00:00.000" out="00:01:54.383">
         <property name="length">6864</property>
         <property name="eof">pause</property>
-        <property name="resource">/home/nsa/Documents/Караоке/Х.. забей/1989 - Лирика задроченных
+        <property name="resource">~/Documents/Караоке/Х.. забей/1989 - Лирика задроченных
             бюстиков/hdemucs_mmi/1989 (02) [Х.. забей] - Говно-accompaniment.flac
         </property>
         <property name="meta.media.nb_streams">1</property>
@@ -58,7 +58,7 @@
     <producer id="producer_background0" in="00:00:00.000" out="00:02:02.383">
         <property name="length">7344</property>
         <property name="eof">pause</property>
-        <property name="resource">/home/nsa/Documents/SpaceBox4096/SpaceBox4096-Mono-Space-Series/Mono Space Series/High
+        <property name="resource">~/Documents/SpaceBox4096/SpaceBox4096-Mono-Space-Series/Mono Space Series/High
             Definition (HD)/SpaceBoxHD_PNG_Cudoro/Up_rotate270.png
         </property>
         <property name="ttl">25</property>
@@ -794,7 +794,7 @@
     <producer id="producer_audiomusic0_file" in="00:00:00.000" out="00:01:54.383">
         <property name="length">6864</property>
         <property name="eof">pause</property>
-        <property name="resource">/home/nsa/Documents/Караоке/Х.. забей/1989 - Лирика задроченных
+        <property name="resource">~/Documents/Караоке/Х.. забей/1989 - Лирика задроченных
             бюстиков/hdemucs_mmi/1989 (02) [Х.. забей] - Говно-accompaniment.flac
         </property>
         <property name="audio_index">0</property>
@@ -859,7 +859,7 @@
     <producer id="producer_audiovocal0_file" in="00:00:00.000" out="00:01:54.383">
         <property name="length">6864</property>
         <property name="eof">pause</property>
-        <property name="resource">/home/nsa/Documents/Караоке/Х.. забей/1989 - Лирика задроченных
+        <property name="resource">~/Documents/Караоке/Х.. забей/1989 - Лирика задроченных
             бюстиков/hdemucs_mmi/1989 (02) [Х.. забей] - Говно-vocals.flac
         </property>
         <property name="audio_index">0</property>

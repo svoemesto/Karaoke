@@ -16,15 +16,15 @@ sudo mkdir -p /sm-karaoke/done1
 sudo mkdir -p /sm-karaoke/done2
 sudo mkdir -p /sm-karaoke/store
 
-Допустим на компьютере есть папке /home/nsa/Documents/Karaoke
+Допустим на компьютере есть папке ~/Documents/Karaoke
 в ней есть папке _system
 
 И далее прописать монтирование этих папок в /etc/fstab например так:
 
-/home/nsa/Documents/Karaoke/_system /sm-karaoke/system none defaults,bind 0 0
-/home/nsa/Documents/Karaoke /sm-karaoke/work none defaults,bind 0 0
-/home/nsa/Documents/Karaoke /sm-karaoke/done1 none defaults,bind 0 0
-/home/nsa/Documents/Karaoke /sm-karaoke/done2 none defaults,bind 0 0
+~/Documents/Karaoke/_system /sm-karaoke/system none defaults,bind 0 0
+~/Documents/Karaoke /sm-karaoke/work none defaults,bind 0 0
+~/Documents/Karaoke /sm-karaoke/done1 none defaults,bind 0 0
+~/Documents/Karaoke /sm-karaoke/done2 none defaults,bind 0 0
 /disks/HDD_8Tb_Clouds/Yandex.Disk/Karaoke /sm-karaoke/store none defaults,bind 0 0
 
 Применить изменения в /etc/fstab можно командой: sudo mount -a

@@ -4,8 +4,8 @@
 # Абсолютные пути ниже намеренные: этот файл должен работать одинаково независимо
 # от того, из какой директории его подключают.
 
-SILERO_PY="/home/nsa/.venvs/karaoke-tts/bin/python"
-SILERO_SCRIPT="/home/nsa/Karaoke/deploy/tts/silero_say.py"
+SILERO_PY="~/.venvs/karaoke-tts/bin/python"
+SILERO_SCRIPT="~/Karaoke/deploy/tts/silero_say.py"
 
 function announce() {
   local notify_text="$1"

@@ -35,6 +35,18 @@ object PlayerMp4MuxService {
         AudioTrack(settings.vocalsNameFlac, 0.0),
     )
 
+    /** Микс аудио-стемов для конкретной версии рендера. */
+    fun tracksForVersion(settings: Settings, version: RenderVersion): List<AudioTrack> = when (version) {
+        RenderVersion.LYRICS -> listOf(
+            AudioTrack(settings.accompanimentNameFlac, 1.0),
+            AudioTrack(settings.vocalsNameFlac, 1.0),
+        )
+        RenderVersion.KARAOKE, RenderVersion.DEMO -> listOf(
+            AudioTrack(settings.accompanimentNameFlac, 1.0),
+            AudioTrack(settings.vocalsNameFlac, 0.0),
+        )
+    }
+
     fun mixAndMux(
         framesDir: File,
         fps: Int,
@@ -46,6 +58,8 @@ object PlayerMp4MuxService {
         audioBitrateKbps: Int = 160,
         audioChannels: Int = 2,
         totalDurationSeconds: Double = 0.0,
+        demoFragmentStart: Double? = null,
+        demoFragmentEnd: Double? = null,
         onProgress: ((Int) -> Unit)? = null,
     ) {
         require(audioTracks.isNotEmpty()) { "audioTracks не может быть пустым" }
@@ -61,8 +75,12 @@ object PlayerMp4MuxService {
             // Входной индекс 0 занят JPEG-секвенцией (см. -framerate/-i ниже) — аудио-входы идут с 1.
             val srcIdx = i + 1
             val label = "a$i"
+            // Для DEMO: atrim + setpts, чтобы обрезать аудио до фрагмента.
+            val trimFilter = if (demoFragmentStart != null && demoFragmentEnd != null) {
+                "atrim=start=${demoFragmentStart}:end=${demoFragmentEnd},asetpts=PTS-STARTPTS,"
+            } else ""
             // all=1 — задержка применяется ко всем каналам источника независимо от их числа (моно/стерео).
-            filterParts.add("[$srcIdx:a]adelay=delays=$delayMs:all=1,volume=${t.gain}[$label]")
+            filterParts.add("[$srcIdx:a]${trimFilter}adelay=delays=$delayMs:all=1,volume=${t.gain}[$label]")
             mixLabels.add("[$label]")
         }
         filterParts.add("${mixLabels.joinToString("")}amix=inputs=${audioTracks.size}:duration=longest:dropout_transition=0[aout]")
@@ -83,7 +101,8 @@ object PlayerMp4MuxService {
                 "-preset", "ultrafast",
                 "-pix_fmt", "yuv420p",
                 "-c:a", "aac", "-b:a", "${audioBitrateKbps}k", "-ac", audioChannels.toString(),
-                "-shortest",
+                // DEMO: не使用 -shortest, чтобы 10-секундный end screen не обрезался
+                *(if (demoFragmentStart == null) arrayOf("-shortest") else emptyArray()),
                 "-progress", "pipe:1",
                 outputPath,
             )

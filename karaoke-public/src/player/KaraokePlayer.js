@@ -2051,6 +2051,7 @@ export default class KaraokePlayer {
   // ─── Karaoke frame ────────────────────────────────────────────────────────
 
   _renderKaraoke(ctx, W, H, scale, fontSize, lineHeight, xStart, ct, voiceXStart = null) {
+    const outerAlpha = ctx.globalAlpha   // preserve fade-out alpha from _renderFrame
     // Text center = H/2 + 7px: Kotlin positions active line at H/2 + |horizonOffsetPx| (horizonOffsetPx=-7)
     const centerY = H / 2 + Math.round(7 * scale)
 
@@ -2096,11 +2097,11 @@ export default class KaraokePlayer {
     // Kotlin: flashColor=rgb(255,0,0), opacity 0→1 instant then linear fade to 0
     const flashOpacity = this._getFlashOpacity(ct)
     if (flashOpacity > 0) {
-      ctx.globalAlpha = flashOpacity
+      ctx.globalAlpha = outerAlpha * flashOpacity
       ctx.fillStyle = 'rgb(255,0,0)'
       ctx.fillRect(0, topH, W, horizonLineH)
       ctx.fillRect(0, botH, W, horizonLineH)
-      ctx.globalAlpha = 1.0
+      ctx.globalAlpha = outerAlpha
     }
 
     const nVoices = this.voiceLines?.length || 0
@@ -2260,6 +2261,7 @@ export default class KaraokePlayer {
   }
 
   _renderLine(ctx, line, centerY, fontSize, xStart, W, ct, isActive, isSung) {
+    const outerAlpha = ctx.globalAlpha   // preserve fade-out alpha from _renderFrame
     const scale = W / 1920
     const g = KaraokePlayer._groupStyle(line.groupId ?? line.voiceIdx)
     ctx.font = `${g.italic ? 'italic ' : ''}900 ${fontSize}px Roboto, sans-serif`
@@ -2345,10 +2347,10 @@ export default class KaraokePlayer {
       const { fillY, fillH } = _fillGeometry(line.endTime)
       const fillAlpha = Math.max(0, 1 - (ct - line.endTime) / 1.0)
       if (fillAlpha > 0) {
-        ctx.globalAlpha = fillAlpha
+        ctx.globalAlpha = outerAlpha * fillAlpha
         ctx.fillStyle = FILL_COLOR
         ctx.fillRect(xStart, fillY, totalW, fillH)
-        ctx.globalAlpha = 1.0
+        ctx.globalAlpha = outerAlpha
       }
       this._setShadow(ctx, scale)
       ctx.fillStyle = textColor
@@ -2363,6 +2365,7 @@ export default class KaraokePlayer {
     }
 
     ctx.textBaseline = 'alphabetic'
+    ctx.globalAlpha = outerAlpha
   }
 
   _setShadow(ctx, scale) {

@@ -8,6 +8,18 @@
         "baseURL": "http://localhost:11434/v1"
       },
       "models": {
+        "qwen2.5-coder:14b": {
+          "name": "Qwen 2.5 Coder 14B"
+        },
+        "qwen3-coder:latest": {
+          "name": "Qwen3 Coder (30B)"
+        },
+        "qwen3:8b": {
+          "name": "Qwen3 8B"
+        },
+        "llama3.1:8b": {
+          "name": "Llama 3.1 8B"
+        },
         "qwen2.5-coder:7b": {
           "name": "Qwen 2.5 Coder 7B"
         }

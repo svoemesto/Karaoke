@@ -1700,10 +1700,18 @@ class ApiController(
     // Видео проигрыватель: Render MP4 (из онлайн-плеера)
     @PostMapping("/song/playrendermp4")
     @ResponseBody
-    fun doPlayRenderMp4(@RequestParam id: Long): Boolean {
+    fun doPlayRenderMp4(
+        @RequestParam id: Long,
+        @RequestParam(required = false) version: String?,
+    ): Boolean {
         val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
         settings?.let {
-            settings.playRenderMp4()
+            val renderVersion = try {
+                com.svoemesto.karaokeapp.services.RenderVersion.valueOf(version ?: "KARAOKE")
+            } catch (_: Exception) {
+                com.svoemesto.karaokeapp.services.RenderVersion.KARAOKE
+            }
+            settings.playRenderMp4ForVersion(renderVersion)
         }
         return true
     }
@@ -3761,6 +3769,7 @@ class ApiController(
         @RequestParam(required = false) width: Int?,
         @RequestParam(required = false) height: Int?,
         @RequestParam(required = false) fps: Int?,
+        @RequestParam(required = false) version: String?,
     ): Map<String, Any> {
         val settings = Settings.loadFromDbById(
             id = id,
@@ -3769,20 +3778,31 @@ class ApiController(
             storageApiClient = storageApiClient
         ) ?: return mapOf("ok" to false, "message" to "Песня не найдена: id=$id")
 
+        val renderVersion = try {
+            com.svoemesto.karaokeapp.services.RenderVersion.valueOf(version ?: "KARAOKE")
+        } catch (_: Exception) {
+            com.svoemesto.karaokeapp.services.RenderVersion.KARAOKE
+        }
+
         val processId = KaraokeProcess.createProcess(
             settings = settings,
-            action = KaraokeProcessTypes.RENDER_MP4,
+            action = when (renderVersion) {
+                com.svoemesto.karaokeapp.services.RenderVersion.LYRICS -> KaraokeProcessTypes.RENDER_MP4_LYRICS
+                com.svoemesto.karaokeapp.services.RenderVersion.KARAOKE -> KaraokeProcessTypes.RENDER_MP4_KARAOKE
+                com.svoemesto.karaokeapp.services.RenderVersion.DEMO -> KaraokeProcessTypes.RENDER_MP4_DEMO
+            },
             doWait = true,
             prior = 1,
             threadId = 0,
             context = mapOf(
                 "width" to (width ?: 1920),
                 "height" to (height ?: 1080),
-                "fps" to (fps ?: 60)
+                "fps" to (fps ?: 60),
+                "version" to renderVersion.name,
             )
         )
         return if (processId > 0) {
-            mapOf("ok" to true, "processId" to processId, "message" to "Рендер MP4 поставлен в очередь (processId=$processId)")
+            mapOf("ok" to true, "processId" to processId, "message" to "Рендер MP4 (${renderVersion.name}) поставлен в очередь (processId=$processId)")
         } else {
             mapOf("ok" to false, "message" to "Не удалось поставить в очередь (возможно, уже выполняется)")
         }
@@ -3791,9 +3811,19 @@ class ApiController(
     // Статус рендера MP4
     @PostMapping("/song/renderMp4Status")
     @ResponseBody
-    fun getRenderMp4Status(@RequestParam id: Long): Map<String, Any> {
+    fun getRenderMp4Status(
+        @RequestParam id: Long,
+        @RequestParam(required = false) version: String?,
+    ): Map<String, Any> {
+        val processType = try {
+            when (com.svoemesto.karaokeapp.services.RenderVersion.valueOf(version ?: "KARAOKE")) {
+                com.svoemesto.karaokeapp.services.RenderVersion.LYRICS -> KaraokeProcessTypes.RENDER_MP4_LYRICS
+                com.svoemesto.karaokeapp.services.RenderVersion.KARAOKE -> KaraokeProcessTypes.RENDER_MP4_KARAOKE
+                com.svoemesto.karaokeapp.services.RenderVersion.DEMO -> KaraokeProcessTypes.RENDER_MP4_DEMO
+            }
+        } catch (_: Exception) { KaraokeProcessTypes.RENDER_MP4_KARAOKE }
         val processes = KaraokeProcess.loadList(
-            mapOf("settings_id" to id.toString(), "process_type" to KaraokeProcessTypes.RENDER_MP4.name),
+            mapOf("settings_id" to id.toString(), "process_type" to processType.name),
             WORKING_DATABASE
         )
         val latest = processes.maxByOrNull { it.id }

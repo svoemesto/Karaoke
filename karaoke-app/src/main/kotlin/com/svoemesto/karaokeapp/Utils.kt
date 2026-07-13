@@ -2820,7 +2820,9 @@ fun cpuLimitPercentForType(type: KaraokeProcessTypes): Long {
         KaraokeProcessTypes.SHEETSAGE2 -> Karaoke.cpuLimitPercentSheetsage2
         KaraokeProcessTypes.FF_720_KAR -> Karaoke.cpuLimitPercentFf720Kar
         KaraokeProcessTypes.FF_720_LYR -> Karaoke.cpuLimitPercentFf720Lyr
-        KaraokeProcessTypes.RENDER_MP4 -> Karaoke.cpuLimitPercentRenderMp4
+        KaraokeProcessTypes.RENDER_MP4_LYRICS,
+        KaraokeProcessTypes.RENDER_MP4_KARAOKE,
+        KaraokeProcessTypes.RENDER_MP4_DEMO -> Karaoke.cpuLimitPercentRenderMp4
         // 0 = тип НЕ лимитируется по CPU. Раньше здесь было 100L, из-за чего layer 2
         // (refreshArgvCpuLimit) заворачивал в cpulimit любой ffmpeg-шаг нелимитируемого типа
         // (в частности FF_MP3_ACCOMPANIMENT/VOCAL/BASS/DRUMS) — layer 1 (createProcess) их
@@ -3090,45 +3092,61 @@ fun executeRenderMp4(params: Map<String, String>, onProgress: ((Int) -> Unit)? =
     val width = params["width"]?.toIntOrNull() ?: 1920
     val height = params["height"]?.toIntOrNull() ?: 1080
     val fps = params["fps"]?.toIntOrNull() ?: 60
+    val version = try {
+        com.svoemesto.karaokeapp.services.RenderVersion.valueOf(params["version"] ?: "KARAOKE")
+    } catch (_: Exception) {
+        com.svoemesto.karaokeapp.services.RenderVersion.KARAOKE
+    }
     val settings = Settings.loadFromDbById(id = settingsId, database = WORKING_DATABASE, sync = false, storageService = KSS_APP, storageApiClient = SAC_APP) ?: return false
 
-    println("[${java.sql.Timestamp.from(java.time.Instant.now())}] executeRenderMp4: старт для id=$settingsId (${width}x${height}@${fps})")
+    // Для DEMO — границы фрагмента из Settings (первый куплет)
+    val demoStart = if (version == com.svoemesto.karaokeapp.services.RenderVersion.DEMO) settings.demoFragmentStartSeconds else null
+    val demoEnd = if (version == com.svoemesto.karaokeapp.services.RenderVersion.DEMO) settings.demoFragmentEndSeconds else null
+
+    println("[${java.sql.Timestamp.from(java.time.Instant.now())}] executeRenderMp4: старт для id=$settingsId (${width}x${height}@${fps}) version=${version.name}" +
+            if (demoStart != null && demoEnd != null) " demo=$demoStart..$demoEnd" else "")
 
     val renderParams = com.svoemesto.karaokeapp.services.RenderMp4Params(
         songId = settingsId,
         width = width,
         height = height,
-        fps = fps
+        fps = fps,
+        version = version,
+        demoFragmentStart = demoStart,
+        demoFragmentEnd = demoEnd,
     )
     val framesResult = com.svoemesto.karaokeapp.services.PlayerMp4RenderService.renderFrames(renderParams) { framePercent ->
         onProgress?.invoke((framePercent * 80) / 100)
     }
 
-    val tempOutputPath = "${com.svoemesto.karaokeapp.PATH_TO_TEMP_RENDERMP4_FOLDER}/$settingsId/output.mp4"
-    val totalDurationSec = framesResult.preroll + framesResult.duration + 1.0 // +TAIL_SECONDS
+    val tempOutputPath = "${com.svoemesto.karaokeapp.PATH_TO_TEMP_RENDERMP4_FOLDER}/${settingsId}_${version.name}/output.mp4"
+    val tailSeconds = if (version == com.svoemesto.karaokeapp.services.RenderVersion.DEMO) 10.0 else 1.0
+    val totalDurationSec = framesResult.preroll + framesResult.duration + tailSeconds
     com.svoemesto.karaokeapp.services.PlayerMp4MuxService.mixAndMux(
         framesDir = framesResult.framesDir,
         fps = fps,
         preroll = framesResult.preroll,
-        audioTracks = com.svoemesto.karaokeapp.services.PlayerMp4MuxService.defaultTracks(settings),
+        audioTracks = com.svoemesto.karaokeapp.services.PlayerMp4MuxService.tracksForVersion(settings, version),
         outputPath = tempOutputPath,
         totalDurationSeconds = totalDurationSec,
+        demoFragmentStart = demoStart,
+        demoFragmentEnd = demoEnd,
         onProgress = { muxPercent -> onProgress?.invoke(80 + (muxPercent * 20) / 100) },
     )
 
-    // Копируем результат в done_files с именем [render].mp4
+    // Копируем результат в done_files с именем [version].mp4
     val doneFilesDir = File("${settings.rootFolder}/done_files")
     if (!doneFilesDir.exists()) {
         doneFilesDir.mkdirs()
     }
-    val destFile = File(settings.pathToFileRenderMp4)
+    val destFile = File(settings.pathToFileRenderMp4ForVersion(version))
     File(tempOutputPath).copyTo(destFile, overwrite = true)
     runCommand(listOf("chmod", "666", destFile.absolutePath))
     println("[${java.sql.Timestamp.from(java.time.Instant.now())}] executeRenderMp4: скопировано в ${destFile.absolutePath}")
 
-    // Удаляем временную папку (PNG-секвенция + промежуточный mp4)
-    val tempDir = File("${com.svoemesto.karaokeapp.PATH_TO_TEMP_RENDERMP4_FOLDER}/$settingsId")
-    tempDir.deleteRecursively()
+    // Удаляем временную папку (секвенция кадров + промежуточный mp4)
+    val tempDir = File("${com.svoemesto.karaokeapp.PATH_TO_TEMP_RENDERMP4_FOLDER}/${settingsId}_${version.name}")
+//    tempDir.deleteRecursively()
     println("[${java.sql.Timestamp.from(java.time.Instant.now())}] executeRenderMp4: удалена временная папка ${tempDir.absolutePath}")
 
     onProgress?.invoke(100)

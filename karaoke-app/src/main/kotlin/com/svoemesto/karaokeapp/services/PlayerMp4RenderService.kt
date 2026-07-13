@@ -11,11 +11,20 @@ import java.time.Instant
 import java.util.Base64
 import kotlin.math.ceil
 
+enum class RenderVersion(val label: String, val comment: String, val fileSuffix: String) {
+    LYRICS("Lyrics", "Song", "[lyrics]"),
+    KARAOKE("Karaoke", "Accompaniment", "[karaoke]"),
+    DEMO("Karaoke (Demo)", "Ознакомительный фрагмент", "[demo]")
+}
+
 data class RenderMp4Params(
     val songId: Long,
     val width: Int = 1920,
     val height: Int = 1080,
     val fps: Int = 60,
+    val version: RenderVersion = RenderVersion.KARAOKE,
+    val demoFragmentStart: Double? = null,
+    val demoFragmentEnd: Double? = null,
 )
 
 data class RenderMp4FramesResult(
@@ -60,21 +69,25 @@ object PlayerMp4RenderService {
     // кадр не обрывался на затухающем последнем слое караоке-текста.
     private const val TAIL_SECONDS = 1.0
 
+    // Для DEMO — 10с экран завершения (логотип + сообщение + стрелка).
+    private const val DEMO_END_SCREEN_SECONDS = 10.0
+
     /**
      * Покадрово рендерит песню [params.songId] в PNG-секвенцию. Папка результата — детерминированная
      * (по songId, не по timestamp'у) и перезаписывается при повторном вызове — удобно для повторных
      * прогонов MVP-сверки без накопления мусора на диске.
      */
     fun renderFrames(params: RenderMp4Params, onProgress: ((Int) -> Unit)? = null): RenderMp4FramesResult {
-        val framesDir = File(PATH_TO_TEMP_RENDERMP4_FOLDER, params.songId.toString())
+        val framesDir = File(PATH_TO_TEMP_RENDERMP4_FOLDER, "${params.songId}_${params.version.name}")
         framesDir.deleteRecursively()
         framesDir.mkdirs()
 
-        log("Открываем headless-плеер для песни ${params.songId} (${params.width}x${params.height}@${params.fps})")
+        log("Открываем headless-плеер для песни ${params.songId} (${params.width}x${params.height}@${params.fps}) version=${params.version.name}")
 
         var preroll = 0.0
         var duration = 0.0
         var frameCount = 0
+        val tailSeconds = if (params.version == RenderVersion.DEMO) DEMO_END_SCREEN_SECONDS else TAIL_SECONDS
 
         Playwright.create().use { playwright ->
             val browser = playwright.chromium().launch(BrowserType.LaunchOptions().setHeadless(true))
@@ -85,7 +98,14 @@ object PlayerMp4RenderService {
                         .setDeviceScaleFactor(1.0)
                 )
                 val page = context.newPage()
-                page.navigate("$WEBVUE3_BASE_URL/player/${params.songId}?render=1")
+                val url = buildString {
+                    append("$WEBVUE3_BASE_URL/player/${params.songId}?render=1&version=${params.version.name}")
+                    if (params.version == RenderVersion.DEMO && params.demoFragmentStart != null && params.demoFragmentEnd != null) {
+                        append("&demoStart=${params.demoFragmentStart}")
+                        append("&demoEnd=${params.demoFragmentEnd}")
+                    }
+                }
+                page.navigate(url)
 
                 page.waitForFunction(
                     "() => window.__kp && window.__kp._ready === true",
@@ -97,7 +117,7 @@ object PlayerMp4RenderService {
                 val lens = page.evaluate("() => [window.__kp._preroll, window.__kp.duration]") as List<Any>
                 preroll = (lens[0] as Number).toDouble()
                 duration = (lens[1] as Number).toDouble()
-                frameCount = ceil((preroll + duration + TAIL_SECONDS) * params.fps).toInt()
+                frameCount = ceil((preroll + duration + tailSeconds) * params.fps).toInt()
                 log("Готово: preroll=${preroll}s duration=${duration}s -> $frameCount кадров")
 
                 // Прямая установка backing store canvas в целевое разрешение — надёжнее, чем полагаться

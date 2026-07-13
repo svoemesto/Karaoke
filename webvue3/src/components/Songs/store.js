@@ -890,6 +890,13 @@ export default {
                 params: { id: id }
             });
         },
+        playRenderMp4Version: (state) => (version) => async (id = state.currentSongId) => {
+            return await promisedXMLHttpRequest({
+                method: 'POST',
+                url: "/api/song/playrendermp4",
+                params: { id: id, version: version }
+            });
+        },
         // TODO перенести в actions
         playLyrics: (state) => async (id = state.currentSongId) => {
             return await promisedXMLHttpRequest({
@@ -1929,6 +1936,11 @@ export default {
         },
         createRenderMp4Promise(ctx) {
             let params = { id: ctx.state.currentSongId };
+            let request = { method: 'POST', url: "/api/song/renderMp4Preview", params: params };
+            return promisedXMLHttpRequest(request);
+        },
+        createRenderMp4VersionPromise(ctx, version) {
+            let params = { id: ctx.state.currentSongId, version: version };
             let request = { method: 'POST', url: "/api/song/renderMp4Preview", params: params };
             return promisedXMLHttpRequest(request);
         },

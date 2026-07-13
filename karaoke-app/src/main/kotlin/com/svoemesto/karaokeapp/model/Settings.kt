@@ -411,6 +411,10 @@ class Settings(
     val nameFileChords: String  get() = "$fileName [chords].mp4".rightFileName()
     val nameFileMelody: String  get() = "$fileName [tabs].mp4".rightFileName()
     val nameFileRenderMp4: String  get() = "$fileName [render].mp4".rightFileName()
+    fun nameFileRenderMp4ForVersion(version: com.svoemesto.karaokeapp.services.RenderVersion): String =
+        "$fileName ${version.fileSuffix}.mp4".rightFileName()
+    fun pathToFileRenderMp4ForVersion(version: com.svoemesto.karaokeapp.services.RenderVersion): String =
+        "${rootFolder}/done_files/${nameFileRenderMp4ForVersion(version)}".rightFileName()
     val nameFileKeyBpmFinder: String  get() = "$fileName [key].json".rightFileName()
 
     val pathToFolderSheetsage: String  get() = "${rootFolder}/sheetsage".rightFileName()
@@ -2164,6 +2168,21 @@ class Settings(
             }
         } else {
             println("Не найден $pathToFileRenderMp4")
+        }
+    }
+
+    fun playRenderMp4ForVersion(version: com.svoemesto.karaokeapp.services.RenderVersion) {
+        val path = pathToFileRenderMp4ForVersion(version)
+        if (File(path).exists()) {
+            if (APP_WORK_IN_CONTAINER) {
+                val args = listOf("smplayer", path.wrapInApostraf())
+                createScriptForHost(args = args)
+            } else {
+                val args = listOf("smplayer", path)
+                runCommand(args = args, ignoreErrors = true)
+            }
+        } else {
+            println("Не найден $path")
         }
     }
 

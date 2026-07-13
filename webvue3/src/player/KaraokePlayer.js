@@ -97,6 +97,11 @@ export default class KaraokePlayer {
     this._startFadeStartedAt = null // Date.now() когда песня стала готова: переход logo→splash (fade-out 0.5с + fade-in 0.5с)
     this._endFadeStartedAt = null   // Date.now() когда началась idle-анимация после _onEnded(): logo→чёрный→splash
 
+    // Render version params (from URL query: ?version=LYRICS|KARAOKE|DEMO&demoStart=X&demoEnd=Y)
+    this._renderVersion = null   // 'LYRICS' | 'KARAOKE' | 'DEMO' | null (online mode)
+    this._demoStart = null       // demo fragment start (seconds, original song time)
+    this._demoEnd = null         // demo fragment end (seconds, original song time)
+
     this.canvas = null
     this.ctx = null
     this.animId = null
@@ -136,6 +141,17 @@ export default class KaraokePlayer {
     if (!this._offline) this._startRenderLoop()
     this._loadImage('/KARAOKE_LOGO.png').then(img => { this._logoImg = img }).catch(() => {})
 
+    // Read render version params from URL (set by PlayerView.vue for headless MP4 render)
+    if (typeof URLSearchParams !== 'undefined') {
+      const qs = new URLSearchParams(window.location.search)
+      const v = qs.get('version')
+      if (v) this._renderVersion = v
+      const ds = qs.get('demoStart')
+      const de = qs.get('demoEnd')
+      if (ds !== null) this._demoStart = parseFloat(ds) || null
+      if (de !== null) this._demoEnd = parseFloat(de) || null
+    }
+
     try {
       if (this._mode === 'api') {
         const qs = this.assignmentId
@@ -167,6 +183,10 @@ export default class KaraokePlayer {
       await this._loadAudio()
       // Parse after audio load so this.duration is known
       this.lines = this._parseMarkers(this.data.markers || [])
+      // DEMO: filter markers to fragment and shift to start from 0
+      if (this._renderVersion === 'DEMO' && this._demoStart != null && this._demoEnd != null) {
+        this._applyDemoFragment(this._demoStart, this._demoEnd)
+      }
       this._buildFlashTimes()
       // Compute silent offset (mirrors Kotlin getStartSilentOffsetMs):
       // if first syllable < 5s, prepend silence so counters have time to appear
@@ -201,10 +221,17 @@ export default class KaraokePlayer {
   // prepend that many seconds of silence so counters can appear before the first syllable.
   _computeSilentOffset() {
     let timeFirst = Infinity
-    for (const voice of (this.data?.markers || [])) {
-      for (const m of voice) {
-        if ((m.markertype === 'syllables' || m.markertype === 'note') && m.time < timeFirst)
-          timeFirst = m.time
+    // DEMO: use filtered/shifted lines (after _applyDemoFragment) instead of raw markers
+    if (this._renderVersion === 'DEMO' && this.lines && this.lines.length > 0) {
+      for (const l of this.lines) {
+        if (!l.isEmpty && !l.isComment && l.startTime < timeFirst) timeFirst = l.startTime
+      }
+    } else {
+      for (const voice of (this.data?.markers || [])) {
+        for (const m of voice) {
+          if ((m.markertype === 'syllables' || m.markertype === 'note') && m.time < timeFirst)
+            timeFirst = m.time
+        }
       }
     }
     if (!isFinite(timeFirst) || timeFirst > this._splashDur) return 0
@@ -472,6 +499,77 @@ export default class KaraokePlayer {
 
     result.sort((a, b) => a.startTime - b.startTime)
     return result
+  }
+
+  // DEMO: filter parsed lines to the demo fragment range and shift all times so the fragment
+  // starts at 0 — mirrors what the server does for the public player (trims markers + audio
+  // to [demoStart, demoEnd] and shifts timestamps). Must be called right after _parseMarkers.
+  _applyDemoFragment(demoStart, demoEnd) {
+    const dur = demoEnd - demoStart
+    const shift = (t) => Math.max(0, Math.min(dur, t - demoStart))
+    const inRange = (l) => l.endTime > demoStart && l.startTime < demoEnd
+    const processLine = (l) => ({
+      ...l,
+      startTime: shift(l.startTime),
+      endTime: shift(l.endTime),
+      scrollStartTime: l.scrollStartTime != null ? shift(l.scrollStartTime) : undefined,
+      syllables: l.syllables.map(s => ({
+        ...s,
+        startTime: shift(s.startTime),
+        endTime: shift(s.endTime)
+      }))
+    })
+
+    this.lines = this.lines.filter(inRange).map(processLine)
+
+    // Add leading empty lines so text scrolls in from below (like _silentOffset in public player)
+    let leadLines = []
+    const firstTextIdx = this.lines.findIndex(l => !l.isEmpty && !l.isComment)
+    if (firstTextIdx >= 0) {
+      const firstTime = this.lines[firstTextIdx].startTime
+      if (firstTime > 0) {
+        const N = 4
+        const spacing = firstTime / N
+        for (let i = 0; i < N; i++) {
+          leadLines.push(this._makeEmptyLine(firstTime - (N - i) * spacing))
+        }
+        this.lines = [...leadLines, ...this.lines]
+      }
+    }
+
+    // Set scrollStartTime on this.lines (mirrors voiceLines logic below) — needed by
+    // _getScrollPosition() which operates on this.lines, not voiceLines.
+    for (let i = 0; i < this.lines.length - 1; i++) {
+      const curr = this.lines[i]
+      const next = this.lines[i + 1]
+      if (next.startTime - curr.endTime < 1.0) {
+        curr.scrollStartTime = Math.max(curr.startTime, next.startTime - 1.0)
+      }
+    }
+
+    if (this.voiceLines) {
+      this.voiceLines = this.voiceLines.map((voiceArr, vIdx) => {
+        const filtered = voiceArr.filter(inRange).map(processLine)
+        // Add same leading empty lines to voice 0
+        if (vIdx === 0 && leadLines.length > 0) {
+          const vLead = leadLines.map(l => ({ ...l, voiceIdx: 0 }))
+          for (let i = 0; i < vLead.length - 1; i++) {
+            vLead[i].scrollStartTime = vLead[i + 1].startTime
+          }
+          filtered.unshift(...vLead)
+        }
+        for (let i = 0; i < filtered.length - 1; i++) {
+          const curr = filtered[i]
+          const next = filtered[i + 1]
+          if (next.startTime - curr.endTime < 1.0) {
+            curr.scrollStartTime = Math.max(curr.startTime, next.startTime - 1.0)
+          }
+        }
+        return filtered
+      })
+    }
+
+    this.duration = dur
   }
 
   _makeEmptyLine(timeSec) {
@@ -1655,12 +1753,30 @@ export default class KaraokePlayer {
       // Karaoke: fade in 1s after splash, fade out last 1s of audio — background unaffected.
       const karaokeAlpha = dt < this._splashDur + FADE ? (dt - this._splashDur) / FADE : 1.0
       const finalAlpha = karaokeAlpha * (1 - fadeOutAlpha)
-      if (finalAlpha < 1) ctx.globalAlpha = finalAlpha
-      this._renderKaraoke(ctx, W, H, scale, fontSize, lineHeight, xStart, audioTime, voiceXStart)
-      if (finalAlpha < 1) ctx.globalAlpha = 1.0
+      if (finalAlpha > 0) {
+        if (finalAlpha < 1) ctx.globalAlpha = finalAlpha
+        this._renderKaraoke(ctx, W, H, scale, fontSize, lineHeight, xStart, audioTime, voiceXStart)
+        if (finalAlpha < 1) ctx.globalAlpha = 1.0
+      }
     }
 
-    this._renderLogo(ctx, W, H, logoAlpha)
+    // Logo: show during karaoke, hide during DEMO karaoke phase and end screen
+    const _isDemo = this._renderVersion === 'DEMO'
+    const _isDemoEndScreen = _isDemo && dt >= this._preroll + this.duration
+    const _isDemoKaraoke = _isDemo && dt >= this._splashDur && dt < this._preroll + this.duration
+    if (!_isDemoEndScreen && !_isDemoKaraoke) {
+      this._renderLogo(ctx, W, H, logoAlpha)
+    }
+    this._renderDemoWatermark(ctx, W, H)
+    // DEMO end screen: shown after song ends, during the extra tail seconds
+    if (this._renderVersion === 'DEMO') {
+      const tailStart = this._preroll + this.duration
+      const tailEnd = tailStart + 10.0  // 10 seconds end screen
+      if (dt >= tailStart && dt < tailEnd) {
+        const fadeIn = Math.min(1, (dt - tailStart) / 1.0)  // fade in over 1s
+        this._renderDemoEndScreen(ctx, W, H, fadeIn)
+      }
+    }
     this._renderSpeedBadge(ctx, W, H)
     this._renderScreenIconAnim(ctx, W, H)
     if (!this._offline) this._updateControls(dt)
@@ -1790,6 +1906,65 @@ export default class KaraokePlayer {
     ctx.globalAlpha = alpha
     this._drawImageFit(ctx, this._logoImg, (W - boxW) / 2, (H - boxH) / 2, boxW, boxH)
     ctx.globalAlpha = 1.0
+  }
+
+  // DEMO watermark: tiled diagonal "ДЕМО" text at 14% opacity — mirrors karaoke-public
+  _renderDemoWatermark(ctx, W, H) {
+    if (this._renderVersion !== 'DEMO') return
+    ctx.save()
+    ctx.globalAlpha = 0.14
+    ctx.fillStyle = '#fff'
+    const fontSize = Math.max(26, Math.round(H * 0.05))
+    ctx.font = `900 ${fontSize}px Roboto, sans-serif`
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.translate(W / 2, H / 2)
+    ctx.rotate(-Math.PI / 10)
+    const stepX = fontSize * 6
+    const stepY = fontSize * 3.2
+    for (let y = -H; y < H; y += stepY) {
+      for (let x = -W; x < W; x += stepX) {
+        ctx.fillText('ДЕМО', x, y)
+      }
+    }
+    ctx.restore()
+  }
+
+  // DEMO end screen: logo (shifted up) + "Полная версия..." message + animated arrow ↓
+  _renderDemoEndScreen(ctx, W, H, alpha) {
+    if (this._renderVersion !== 'DEMO' || alpha <= 0) return
+    const scale = H / 1080
+    ctx.save()
+    ctx.globalAlpha = alpha
+
+    // Logo shifted up (center at 35% height instead of 50%)
+    if (this._logoImg) {
+      const boxW = W * 0.3
+      const boxH = H * 0.3
+      this._drawImageFit(ctx, this._logoImg, (W - boxW) / 2, H * 0.2 - boxH / 2, boxW, boxH)
+    }
+
+    // Message text below logo
+    const msgY = H * 0.52
+    const msgSz = Math.max(16, Math.round(22 * scale))
+    ctx.font = `500 ${msgSz}px Roboto, sans-serif`
+    ctx.fillStyle = '#ccc'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'top'
+    const msg = 'Полная версия — на странице песни на официальном сайте проекта.'
+    const msg2 = 'Ссылка — в описании'
+    ctx.fillText(msg, W / 2, msgY)
+    ctx.fillText(msg2, W / 2, msgY + msgSz * 1.4)
+
+    // Animated arrow ↓ (bouncing)
+    const arrowY = msgY + msgSz * 3.5
+    const bounce = Math.sin(Date.now() / 300) * 8 * scale
+    const arrowSz = Math.max(20, Math.round(36 * scale))
+    ctx.font = `700 ${arrowSz}px sans-serif`
+    ctx.fillStyle = '#f80'
+    ctx.fillText('▼', W / 2, arrowY + bounce)
+
+    ctx.restore()
   }
 
   // Индикатор загрузки под логотипом, рисуется только в фазе !_ready. Как только известен хоть
@@ -1931,56 +2106,78 @@ export default class KaraokePlayer {
     ctx.drawImage(img, x + (boxW - dw) / 2, y + (boxH - dh) / 2, dw, dh)
   }
 
-  // Mirrors Kotlin MkoSplashStart.template() (simplified — no version/comment labels):
-  //   border = frameH*0.05 = 54, padding = 50 (frame-space 1920×1080)
-  //   Album  400×400 at frame (233, 54)
-  //   Author 1000×400 at frame (687, 54)
-  //   Song name (yellow, auto-size, multi-line) in area between images and chord desc
-  //   Chord desc "Key: «…», bpm: N" (salmon, size 40) at bottom
-  //   Fade: static at full alpha, 1→0 over last 1s (fades into karaoke)
-  //   Unified scale = H/1080 for both axes → aspect ratio preserved; content centred horizontally.
+  // Mirrors Kotlin MkoSplashStart.template() — version caption ("Lyrics"/"Karaoke"/etc.)
+  // and comment ("Song"/"Accompaniment"/etc.) match the MLT splash screen layout.
+  //   border = H*0.05, images top-aligned inside border
+  //   Album box  ≈ 21%W × 37%H  at (12%W, border)
+  //   Author box ≈ 52%W × 37%H  at (36%W, border)
+  //   Song name (yellow, auto-fit) between images and caption
+  //   Version caption (cyan, 17%H) at ~79%H
+  //   Comment (cyan, 5.5%H) at ~93%H
+  //   Fade: 1→0 over last 1s (fades into karaoke)
+  //   All positions are percentages of W/H → works for any resolution/aspect ratio.
   _renderSplash(ctx, W, H, _scale, ct, splashDur, alphaOverride = 1) {
     const FADE = 1.0
     const fadeOut = ct > splashDur - FADE ? Math.max(0, (splashDur - ct) / FADE) : 1.0
     ctx.globalAlpha = fadeOut * alphaOverride
 
-    // "Contain" scaling: fit 1920×1080 frame into canvas preserving aspect ratio, centred.
+    // Unified scale for shadows and stroke widths (based on min dimension)
     const sc = Math.min(W / 1920, H / 1080)
-    const ox = (W - 1920 * sc) / 2   // horizontal offset
-    const oy = (H - 1080 * sc) / 2   // vertical offset
 
-    const BORDER = 54   // 1080 * 0.05
-    const PAD = 50
+    // Layout as fractions of canvas
+    const BORDER = H * 0.05
 
-    // Album image 400×400 at frame (233, 54)
+    // Images: proportionally sized and positioned
+    const albumBoxW = W * 0.21, albumBoxH = H * 0.37
+    const authorBoxW = W * 0.52, authorBoxH = H * 0.37
+    const albumX = W * 0.12, authorX = W * 0.36
+    const imgY = BORDER
+
     if (this._albumImg) {
-      this._drawImageFit(ctx, this._albumImg,
-        ox + 233 * sc, oy + BORDER * sc, 400 * sc, 400 * sc)
+      this._drawImageFit(ctx, this._albumImg, albumX, imgY, albumBoxW, albumBoxH)
     }
-    // Author image 1000×400 at frame (687, 54)
     if (this._artistImg) {
-      this._drawImageFit(ctx, this._artistImg,
-        ox + 687 * sc, oy + BORDER * sc, 1000 * sc, 400 * sc)
+      this._drawImageFit(ctx, this._artistImg, authorX, imgY, authorBoxW, authorBoxH)
     }
 
     this._setShadow(ctx, sc)
 
-    // Chord description at frame y ≈ 1005 (1080 - border/2 - fontSize*1.2)
-    const chordSz = Math.round(40 * sc)
-    const chordFrameY = 1080 - BORDER * 0.5 - 40 * 1.2  // ≈ 1005
-    const chordY = oy + chordFrameY * sc
-    const keyStr = this.data.key ? `Key: «${this.data.key}», bpm: ${this.data.bpm}` : `bpm: ${this.data.bpm}`
-    ctx.font = `400 ${chordSz}px FiraSansExtraCondensed, sans-serif`
-    ctx.fillStyle = 'rgb(255,127,127)'
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'top'
-    ctx.fillText(keyStr, ox + 960 * sc, chordY)
+    // Caption + comment (only when _renderVersion is set)
+    if (this._renderVersion) {
+      const versionMap = {
+        'LYRICS':   { label: 'Lyrics',   comment: 'Song' },
+        'KARAOKE':  { label: 'Karaoke',  comment: 'Accompaniment' },
+        'DEMO':     { label: 'Karaoke (Demo)', comment: 'Ознакомительный фрагмент' },
+      }
+      const ver = versionMap[this._renderVersion]
+      if (ver) {
+        const captionSz = Math.round(H * 0.17)
+        ctx.font = `400 ${captionSz}px Roboto, sans-serif`
+        ctx.fillStyle = 'rgb(85,255,255)'
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'top'
+        ctx.fillText(ver.label, W / 2, H * 0.70)
 
-    // Song name: yellow, auto-size, area between images and chord desc
-    const textAreaX = ox + PAD * sc
-    const textAreaY = oy + (BORDER + 400 + PAD * 0.5) * sc
-    const textAreaW = (1920 - 2 * PAD) * sc
-    const textAreaH = chordY - textAreaY - PAD * sc * 0.5
+        const commentSz = Math.round(H * 0.055)
+        ctx.font = `400 ${commentSz}px Roboto, sans-serif`
+        ctx.fillText(ver.comment, W / 2, H * 0.88)
+
+        // Chord description (key + bpm) — salmon, centered between comment and bottom
+        const chordSz = Math.round(H * 0.037)
+        const chordY = H * 0.88 + commentSz + (H - (H * 0.88 + commentSz)) / 2 - chordSz / 2
+        const keyStr = this.data.key ? `Key: «${this.data.key}», bpm: ${this.data.bpm}` : `bpm: ${this.data.bpm}`
+        ctx.font = `400 ${chordSz}px FiraSansExtraCondensed, sans-serif`
+        ctx.fillStyle = 'rgb(255,127,127)'
+        ctx.textBaseline = 'top'
+        ctx.fillText(keyStr, W / 2, chordY)
+      }
+    }
+
+    // Song name: yellow, auto-fit between images bottom and caption
+    const textAreaX = W * 0.027
+    const textAreaY = imgY + albumBoxH + H * 0.023
+    const textAreaW = W * 0.946
+    const textAreaH = H * 0.70 - textAreaY - H * 0.023
     ctx.fillStyle = 'rgb(255,255,127)'
     this._drawAutoFitText(ctx, this.data.songName || '', textAreaX, textAreaY, textAreaW, Math.max(10, textAreaH), '900', 'Roboto, sans-serif')
 
@@ -1993,6 +2190,7 @@ export default class KaraokePlayer {
   // ─── Karaoke frame ────────────────────────────────────────────────────────
 
   _renderKaraoke(ctx, W, H, scale, fontSize, lineHeight, xStart, ct, voiceXStart = null) {
+    const outerAlpha = ctx.globalAlpha   // preserve fade-out alpha from _renderFrame
     // Text center = H/2 + 7px: Kotlin positions active line at H/2 + |horizonOffsetPx| (horizonOffsetPx=-7)
     const centerY = H / 2 + Math.round(7 * scale)
 
@@ -2038,11 +2236,11 @@ export default class KaraokePlayer {
     // Kotlin: flashColor=rgb(255,0,0), opacity 0→1 instant then linear fade to 0
     const flashOpacity = this._getFlashOpacity(ct)
     if (flashOpacity > 0) {
-      ctx.globalAlpha = flashOpacity
+      ctx.globalAlpha = outerAlpha * flashOpacity
       ctx.fillStyle = 'rgb(255,0,0)'
       ctx.fillRect(0, topH, W, horizonLineH)
       ctx.fillRect(0, botH, W, horizonLineH)
-      ctx.globalAlpha = 1.0
+      ctx.globalAlpha = outerAlpha
     }
 
     const nVoices = this.voiceLines?.length || 0
@@ -2202,6 +2400,7 @@ export default class KaraokePlayer {
   }
 
   _renderLine(ctx, line, centerY, fontSize, xStart, W, ct, isActive, isSung) {
+    const outerAlpha = ctx.globalAlpha   // preserve fade-out alpha from _renderFrame
     const scale = W / 1920
     const g = KaraokePlayer._groupStyle(line.groupId ?? line.voiceIdx)
     ctx.font = `${g.italic ? 'italic ' : ''}900 ${fontSize}px Roboto, sans-serif`
@@ -2287,10 +2486,10 @@ export default class KaraokePlayer {
       const { fillY, fillH } = _fillGeometry(line.endTime)
       const fillAlpha = Math.max(0, 1 - (ct - line.endTime) / 1.0)
       if (fillAlpha > 0) {
-        ctx.globalAlpha = fillAlpha
+        ctx.globalAlpha = outerAlpha * fillAlpha
         ctx.fillStyle = FILL_COLOR
         ctx.fillRect(xStart, fillY, totalW, fillH)
-        ctx.globalAlpha = 1.0
+        ctx.globalAlpha = outerAlpha
       }
       this._setShadow(ctx, scale)
       ctx.fillStyle = textColor
@@ -2305,6 +2504,7 @@ export default class KaraokePlayer {
     }
 
     ctx.textBaseline = 'alphabetic'
+    ctx.globalAlpha = outerAlpha
   }
 
   _setShadow(ctx, scale) {

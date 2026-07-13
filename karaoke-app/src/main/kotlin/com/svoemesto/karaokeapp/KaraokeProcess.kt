@@ -1487,6 +1487,21 @@ class KaraokeProcess(
                         envs = actionEnvs
                     }
 
+                    KaraokeProcessTypes.RENDER_MP4 -> {
+                        description = "RENDER MP4"
+                        val songId = settings.id
+                        val width = context["width"] as? Int ?: 1920
+                        val height = context["height"] as? Int ?: 1080
+                        val fps = context["fps"] as? Int ?: 60
+                        args = listOf(
+                            listOf(
+                                "runFunctionWithArgs", "renderMp4",
+                                "settingsId=${settings.id}",
+                                "width=$width", "height=$height", "fps=$fps"
+                            )
+                        )
+                    }
+
                     else -> {}
                 }
             }

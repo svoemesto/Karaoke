@@ -375,6 +375,7 @@ class Settings(
     val pathToFileKaraoke: String  get() = "${rootFolder}/done_files/$nameFileKaraoke".rightFileName()
     val pathToFileChords: String  get() = "${rootFolder}/done_files/$nameFileChords".rightFileName()
     val pathToFileMelody: String  get() = "${rootFolder}/done_files/$nameFileMelody".rightFileName()
+    val pathToFileRenderMp4: String  get() = "${rootFolder}/done_files/$nameFileRenderMp4".rightFileName()
     val pathToFileKeyBpmFinder: String  get() = "${rootFolder}/$nameFileKeyBpmFinder".rightFileName()
 
     val pathToFile720Lyrics: String  get() = "$pathToFolder720Lyrics/${nameFileLyrics.replace(" [lyrics].mp4", " [lyrics] 720p.mp4")}".rightFileName()
@@ -409,6 +410,7 @@ class Settings(
     val nameFileKaraoke: String  get() = "$fileName [karaoke].mp4".rightFileName()
     val nameFileChords: String  get() = "$fileName [chords].mp4".rightFileName()
     val nameFileMelody: String  get() = "$fileName [tabs].mp4".rightFileName()
+    val nameFileRenderMp4: String  get() = "$fileName [render].mp4".rightFileName()
     val nameFileKeyBpmFinder: String  get() = "$fileName [key].json".rightFileName()
 
     val pathToFolderSheetsage: String  get() = "${rootFolder}/sheetsage".rightFileName()
@@ -2148,6 +2150,20 @@ class Settings(
             }
         } else {
             println("Не найден $pathToFileKaraoke")
+        }
+    }
+
+    fun playRenderMp4() {
+        if (File(pathToFileRenderMp4).exists()) {
+            if (APP_WORK_IN_CONTAINER) {
+                val args = listOf("smplayer", pathToFileRenderMp4.wrapInApostraf())
+                createScriptForHost(args = args)
+            } else {
+                val args = listOf("smplayer", pathToFileRenderMp4)
+                runCommand(args = args, ignoreErrors = true)
+            }
+        } else {
+            println("Не найден $pathToFileRenderMp4")
         }
     }
 

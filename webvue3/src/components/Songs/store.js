@@ -883,6 +883,14 @@ export default {
             });
         },
         // TODO перенести в actions
+        playRenderMp4: (state) => async (id = state.currentSongId) => {
+            return await promisedXMLHttpRequest({
+                method: 'POST',
+                url: "/api/song/playrendermp4",
+                params: { id: id }
+            });
+        },
+        // TODO перенести в actions
         playLyrics: (state) => async (id = state.currentSongId) => {
             return await promisedXMLHttpRequest({
                 method: 'POST',
@@ -1917,6 +1925,11 @@ export default {
         createKeyBpmFinderProcessPromise(ctx) {
             let params = { id: ctx.state.currentSongId };
             let request = { method: 'POST', url: "/api/song/keyBpmFinder", params: params };
+            return promisedXMLHttpRequest(request);
+        },
+        createRenderMp4Promise(ctx) {
+            let params = { id: ctx.state.currentSongId };
+            let request = { method: 'POST', url: "/api/song/renderMp4Preview", params: params };
             return promisedXMLHttpRequest(request);
         },
         createMP3KaraokePromise(ctx, payload) {

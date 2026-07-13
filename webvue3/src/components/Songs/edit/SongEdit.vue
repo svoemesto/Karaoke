@@ -558,6 +558,7 @@
               </BDropdownGroup>
               <BDropdownGroup header="Разное">
                 <BDropdownItem @click="createKeyBpmFinderProcess" title="Найти BPM и TEMP из файла">Найти BPM и TEMP из файла</BDropdownItem>
+                <BDropdownItem @click="createRenderMp4" title="Рендер MP4 из онлайн-плеера">Рендер MP4</BDropdownItem>
               </BDropdownGroup>
             </BDropdown>
 <!--            <button class="group-button" @click="createPictureBoostyTeaser" title="Создать картинку Boosty Teaser">Создать картинку Boosty Teaser</button>-->
@@ -577,6 +578,7 @@
             <button class="group-button" @click="playLyrics" title="PLAY LYRICS" :style="{ backgroundColor: song.processColorMeltLyrics }">PLAY LYRICS</button>
             <button class="group-button" @click="playChords" title="PLAY CHORDS" :style="{ backgroundColor: song.processColorMeltChords }">PLAY CHORDS</button>
             <button class="group-button" @click="playTabs" title="PLAY TABS" :style="{ backgroundColor: song.processColorMeltMelody }">PLAY TABS</button>
+            <button class="group-button" @click="playRenderMp4" title="PLAY RENDER MP4">PLAY RENDER MP4</button>
             <div class="group-button">
               <b-form-rating
                   id="rate-inline-form"
@@ -1627,6 +1629,18 @@ export default {
       this.$store.dispatch('createKeyBpmFinderProcessPromise')
     },
 
+    createRenderMp4() {
+      this.customConfirmParams = {
+        header: 'Подтвердите рендер MP4',
+        body: `Запустить рендер MP4 из онлайн-плеера для песни <strong>«${this.song.songName}»</strong>?`,
+        callback: this.doCreateRenderMp4
+      }
+      this.isCustomConfirmVisible = true;
+    },
+    doCreateRenderMp4() {
+      this.$store.dispatch('createRenderMp4Promise')
+    },
+
     playLyrics() {
       this.$store.getters.playLyrics();
     },
@@ -1638,6 +1652,9 @@ export default {
     },
     playTabs() {
       this.$store.getters.playTabs();
+    },
+    playRenderMp4() {
+      this.$store.getters.playRenderMp4();
     },
 
     goToPreviousSong() {

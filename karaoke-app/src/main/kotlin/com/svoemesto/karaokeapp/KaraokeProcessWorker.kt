@@ -49,6 +49,7 @@ class KaraokeProcessThread(val karaokeProcess: KaraokeProcess? = null, var perce
                         KaraokeProcessTypes.KEY_BPM_FROM_FILE -> executeGetKeyBpmFromFile(params)
                         KaraokeProcessTypes.UPLOAD_TO_LOCAL_STORE -> executeUploadToLocalStore(params) { pct -> percentage = pct.toString() }
                         KaraokeProcessTypes.UPLOAD_TO_REMOTE_STORE -> executeUploadToRemoteStore(params) { pct -> percentage = pct.toString() }
+                        KaraokeProcessTypes.RENDER_MP4 -> executeRenderMp4(params) { pct -> percentage = pct.toString() }
                         else -> false
                     }
                     if (forceStopped) {
@@ -248,6 +249,11 @@ class KaraokeProcessWorker {
         var isWork: Boolean = false
         var stopAfterThreadIsDone: Boolean = false
         var withoutControl = false
+
+        // Периодическая проверка активных потоков вне очереди (для SSE-прогресса).
+        // Каждые ~500мс (50 итераций × 10мс) — достаточно для плавного прогресс-бара.
+        var runningThreadsCheckCounter: Int = 0
+        const val RUNNING_THREADS_CHECK_INTERVAL = 50
 
         val threadsMap: MutableMap<Int, KaraokeProcessThread?> = mutableMapOf()
 
@@ -635,6 +641,25 @@ class KaraokeProcessWorker {
                                 }
                             }
 
+                        }
+                    }
+
+                    // Если очередь пуста — отправляем актуальный счётчик, чтобы бейдж сбросился в 0
+                    if (karaokeProcessesToStartIds.isEmpty()) {
+                        sendCountWaitingMessage(KaraokeProcess.getCountWaiting(database))
+                    }
+
+                    // Периодическая отправка SSE для активных потоков, которые уже не WAITING
+                    // (выпали из getProcessesToStart). Без этого прогресс long-running заданий
+                    // (RENDER_MP4 и т.п.) не обновляется в прогрессометре шапки webvue3.
+                    runningThreadsCheckCounter++
+                    if (runningThreadsCheckCounter >= RUNNING_THREADS_CHECK_INTERVAL) {
+                        runningThreadsCheckCounter = 0
+                        val startThreadIds = karaokeProcessesToStartIds.toSet()
+                        threadsMap.filter { it.value != null && it.value!!.isAlive }.forEach { (threadId, thread) ->
+                            if (threadId !in startThreadIds && !withoutControl) {
+                                thread?.karaokeProcess?.save()
+                            }
                         }
                     }
                 }

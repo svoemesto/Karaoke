@@ -768,6 +768,7 @@ val listKaraokeProperties = listOf(
     KaraokeProperty(key = "cpuLimitPercentSheetsage2", defaultValue = 100L, description = "Лимит CPU (%) для SHEETSAGE2"),
     KaraokeProperty(key = "cpuLimitPercentFf720Kar", defaultValue = 100L, description = "Лимит CPU (%) для FF_720_KAR"),
     KaraokeProperty(key = "cpuLimitPercentFf720Lyr", defaultValue = 100L, description = "Лимит CPU (%) для FF_720_LYR"),
+    KaraokeProperty(key = "cpuLimitPercentRenderMp4", defaultValue = 100L, description = "Лимит CPU (%) для RENDER_MP4 (ffmpeg mux)"),
 
     // Автоматизация публикации в Telegram-канал (см. TelegramApiClient/TelegramUpdatesConsumer).
     // Фаза 1 — автоотлов ссылки на вышедший (отложенный, созданный вручную) пост через long-polling

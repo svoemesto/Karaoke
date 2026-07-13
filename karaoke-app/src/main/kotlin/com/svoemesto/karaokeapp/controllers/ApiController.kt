@@ -1697,6 +1697,17 @@ class ApiController(
         return true
     }
 
+    // Видео проигрыватель: Render MP4 (из онлайн-плеера)
+    @PostMapping("/song/playrendermp4")
+    @ResponseBody
+    fun doPlayRenderMp4(@RequestParam id: Long): Boolean {
+        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+        settings?.let {
+            settings.playRenderMp4()
+        }
+        return true
+    }
+
 
     // Видео проигрыватель: Chords
     @PostMapping("/song/playchords")
@@ -3741,12 +3752,8 @@ class ApiController(
         }
     }
 
-    // Этап 1 (MVP) рендера видео mp4 напрямую из онлайн-плеера, в перспективе — замена MLT (см.
-    // "Рендер видео MP4 из онлайн-плеера" и PlayerMp4RenderService/PlayerMp4MuxService).
-    // Строго админская функция. Намеренно БЕЗ очереди KaraokeProcess на этом этапе — запускается
-    // напрямую в фоновом потоке, результат складывается в известную (детерминированную по id) папку
-    // для визуальной сверки с эталонным MLT-рендером той же песни; прогресс — только в консоль
-    // karaoke-app. Встройка в очередь/SSE-прогресс — следующий этап.
+    // Рендер видео mp4 из онлайн-плеера — интеграция в очередь KaraokeProcess.
+    // Строго админская функция. Прогресс — через SSE ( tbl_processes ).
     @PostMapping("/song/renderMp4Preview")
     @ResponseBody
     fun createRenderMp4PreviewProcess(
@@ -3762,31 +3769,57 @@ class ApiController(
             storageApiClient = storageApiClient
         ) ?: return mapOf("ok" to false, "message" to "Песня не найдена: id=$id")
 
-        val params = RenderMp4Params(
-            songId = id,
-            width = width ?: 1920,
-            height = height ?: 1080,
-            fps = fps ?: 60,
+        val processId = KaraokeProcess.createProcess(
+            settings = settings,
+            action = KaraokeProcessTypes.RENDER_MP4,
+            doWait = true,
+            prior = 1,
+            threadId = 0,
+            context = mapOf(
+                "width" to (width ?: 1920),
+                "height" to (height ?: 1080),
+                "fps" to (fps ?: 60)
+            )
         )
-        val outputPath = "$PATH_TO_TEMP_RENDERMP4_FOLDER/$id/output.mp4"
-
-        thread(name = "render-mp4-preview-$id", isDaemon = true) {
-            try {
-                val framesResult = PlayerMp4RenderService.renderFrames(params)
-                PlayerMp4MuxService.mixAndMux(
-                    framesDir = framesResult.framesDir,
-                    fps = params.fps,
-                    preroll = framesResult.preroll,
-                    audioTracks = PlayerMp4MuxService.defaultTracks(settings),
-                    outputPath = outputPath,
-                )
-                println("[${Timestamp.from(Instant.now())}] renderMp4Preview: готово -> $outputPath")
-            } catch (e: Exception) {
-                println("[${Timestamp.from(Instant.now())}] renderMp4Preview: ОШИБКА для id=$id: ${e.message}")
-            }
+        return if (processId > 0) {
+            mapOf("ok" to true, "processId" to processId, "message" to "Рендер MP4 поставлен в очередь (processId=$processId)")
+        } else {
+            mapOf("ok" to false, "message" to "Не удалось поставить в очередь (возможно, уже выполняется)")
         }
+    }
 
-        return mapOf("ok" to true, "message" to "Рендер запущен в фоне, результат появится в $outputPath")
+    // Статус рендера MP4
+    @PostMapping("/song/renderMp4Status")
+    @ResponseBody
+    fun getRenderMp4Status(@RequestParam id: Long): Map<String, Any> {
+        val processes = KaraokeProcess.loadList(
+            mapOf("settings_id" to id.toString(), "process_type" to KaraokeProcessTypes.RENDER_MP4.name),
+            WORKING_DATABASE
+        )
+        val latest = processes.maxByOrNull { it.id }
+        return if (latest != null) {
+            mapOf(
+                "ok" to true,
+                "processId" to latest.id,
+                "status" to latest.status,
+                "percentage" to latest.percentage,
+                "description" to latest.description,
+                "start" to (latest.startStr ?: ""),
+                "end" to (latest.endStr ?: "")
+            )
+        } else {
+            mapOf("ok" to true, "status" to "NONE")
+        }
+    }
+
+    // Скачивание отрендеренного MP4
+    @GetMapping("/song/renderMp4Download")
+    fun downloadRenderedMp4(@RequestParam id: Long): ResponseEntity<Resource> {
+        val file = File("$PATH_TO_TEMP_RENDERMP4_FOLDER/$id/output.mp4")
+        if (!file.exists()) return ResponseEntity.notFound().build()
+        return ResponseEntity.ok()
+            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"song_$id.mp4\"")
+            .body(FileSystemResource(file))
     }
 
     // Получение healthReportList

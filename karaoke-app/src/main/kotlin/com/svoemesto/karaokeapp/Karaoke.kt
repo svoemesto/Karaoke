@@ -808,5 +808,10 @@ class Karaoke : Serializable {
             get() = KaraokeProperties.getLong("cpuLimitPercentFf720Lyr")
             set(value) { KaraokeProperties.set("cpuLimitPercentFf720Lyr", value) }
 
+        // Лимит CPU (%) для RENDER_MP4 (ffmpeg mux)
+        var cpuLimitPercentRenderMp4: Long
+            get() = KaraokeProperties.getLong("cpuLimitPercentRenderMp4")
+            set(value) { KaraokeProperties.set("cpuLimitPercentRenderMp4", value) }
+
     }
 }

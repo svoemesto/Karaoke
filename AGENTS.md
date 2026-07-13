@@ -6,6 +6,29 @@
 
 Karaoke (svoemesto) — self-pipeline для автоматического создания караоке-видео. Kotlin/Spring Boot бэкенд + Vue 3 фронтенд.
 
+## Рендер MP4 из онлайн-плеера
+
+Очередь `RENDER_MP4` (threadId=0, HEAVY_RENDER lane) — рендер караоке-видео через Playwright + ffmpeg без MLT.
+
+**Поток:**
+1. `PlayerMp4RenderService.renderFrames()` — headless Chromium рисует кадры, `canvas.toDataURL('image/jpeg', 0.95)` → JPEG-секвенция
+2. `PlayerMp4MuxService.mixAndMux()` — ffmpeg собирает JPEG + FLAC-стемы в MP4, прогресс через `-progress pipe:1` (парсинг `out_time_ms`)
+3. Результат копируется в `done_files/$fileName [render].mp4`, temp-папка удаляется
+
+**Ключевые файлы:**
+- `PlayerMp4RenderService.kt` — рендер кадров (Playwright, headless Chromium)
+- `PlayerMp4MuxService.kt` — ffmpeg mux с прогрессом
+- `Utils.kt:executeRenderMp4()` — диспетчеризация: рендер → mux → done_files → cleanup
+- `ApiController.kt` — `/song/renderMp4Preview` (очередь), `/playrendermp4` (smplayer)
+- `Settings.kt:nameFileRenderMp4` — шаблон имени `"$fileName [render].mp4"`
+
+**Оптимизации:**
+- JPEG (quality 95) вместо PNG — x3 скорость рендера (18 fps вместо 6 fps)
+- ffmpeg `-progress pipe:1` + `out_time_ms` — реальный прогресс mux-фазы (80-100%)
+- `sendCountWaitingMessage` при пустой очереди — бейдж сбрасывается в 0
+
+**Ловушка ffmpeg:** `ProcessBuilder.redirectErrorStream(false)` блокирует процесс — буфер stderr переполняется. Всегда использовать `redirectErrorStream(true)`.
+
 ## Модули
 
 - `karaoke-app` — ядро: Spring Boot (Kotlin), все доменные модели, MLT-генератор, очередь задач, LLM-поиск текстов

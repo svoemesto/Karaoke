@@ -10,6 +10,7 @@ export default {
         lastPriorKaraoke: '',
         lastPriorChords: '',
         lastPriorMelody: '',
+        lastPriorDemo: '',
         lastThreadId: '0',
         lastPriorCodeLyrics: '',
         lastPriorCodeKaraoke: '',
@@ -366,6 +367,9 @@ export default {
         },
         getLastPriorMelody(state) {
             return state.lastPriorMelody;
+        },
+        getLastPriorDemo(state) {
+            return state.lastPriorDemo;
         },
         getLastThreadId(state) {
             return state.lastThreadId;
@@ -1037,6 +1041,17 @@ export default {
             }
             state.lastPriorMelody = value;
         },
+        setLastPriorDemo(state, value) {
+            if (state.lastPriorDemo !== undefined && state.lastPriorDemo !== null && value !== undefined && value !== null) {
+                const key = 'lastPriorDemo';
+                promisedXMLHttpRequest({
+                    method: 'POST',
+                    url: "/api/setwebvueprop",
+                    params: {key: key, value: value}
+                });
+            }
+            state.lastPriorDemo = value;
+        },
         setLastThreadId(state, value) {
             if (state.lastThreadId !== undefined && state.lastThreadId !== null && value !== undefined && value !== null) {
                 const key = 'lastThreadId';
@@ -1613,6 +1628,9 @@ export default {
         setLastPriorMelody(ctx, payload) {
             ctx.commit('setLastPriorMelody', payload.value);
         },
+        setLastPriorDemo(ctx, payload) {
+            ctx.commit('setLastPriorDemo', payload.value);
+        },
         setLastThreadId(ctx, payload) {
             ctx.commit('setLastThreadId', payload.value);
         },
@@ -1974,6 +1992,7 @@ export default {
                 priorKaraoke: payload.priorKaraoke,
                 priorChords: payload.priorChords,
                 priorMelody: payload.priorMelody,
+                priorDemo: payload.priorDemo,
                 threadId: payload.threadId
             };
             let request = { method: 'POST', url: "/api/song/createkaraoke", params: params };
@@ -2194,6 +2213,7 @@ export default {
                 priorKaraoke: payload.priorKaraoke,
                 priorChords: payload.priorChords,
                 priorMelody: payload.priorMelody,
+                priorDemo: payload.priorDemo,
                 threadId: payload.threadId
             };
             let request = { method: 'POST', url: "/api/songs/createkaraokeall", params: params };

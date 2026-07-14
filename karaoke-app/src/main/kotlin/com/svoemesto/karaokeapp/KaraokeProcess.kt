@@ -404,6 +404,13 @@ class KaraokeProcess(
                         }
                     }
 
+                    KaraokeProcessTypes.RENDER_MP4_DEMO.name -> {
+                        if (settings.statusProcessDemo != status) {
+                            settings.statusProcessDemo = status
+                            settings.saveToDb()
+                        }
+                    }
+
                     else -> {}
                 }
             }
@@ -1489,6 +1496,8 @@ class KaraokeProcess(
 
                     KaraokeProcessTypes.RENDER_MP4_LYRICS,
                     KaraokeProcessTypes.RENDER_MP4_KARAOKE,
+                    KaraokeProcessTypes.RENDER_MP4_CHORDS,
+                    KaraokeProcessTypes.RENDER_MP4_TABS,
                     KaraokeProcessTypes.RENDER_MP4_DEMO -> {
                         val version = context["version"] as? String ?: "KARAOKE"
                         description = "RENDER MP4 ($version)"

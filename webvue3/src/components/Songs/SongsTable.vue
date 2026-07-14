@@ -240,6 +240,14 @@
               :style="{ backgroundColor: data.item.processColorVk, color: currentSongId === data.item.id ? 'blue' : 'black' }"
           ></div>
         </template>
+        <template #cell(flagPlayerDemo)="data">
+          <div
+              class="fld-flag-player-demo"
+              v-text="data.value ? data.value : '-'"
+              @dblclick.left="playDemo(data.item.id)"
+              :style="{ backgroundColor: data.item.processColorPlayerDemo, color: currentSongId === data.item.id ? 'blue' : 'black' }"
+          ></div>
+        </template>
         <template #cell(flagDzenLyrics)="data">
           <div
               class="fld-flag-dzen-lyrics"
@@ -798,6 +806,17 @@ export default {
           }
         },
         {
+          key: 'flagPlayerDemo',
+          sortable: true,
+          label: 'DE',
+          style: {
+            minWidth: '20px',
+            maxWidth: '20px',
+            textAlign: 'center',
+            fontSize: 'small'
+          }
+        },
+        {
           key: 'flagDzenLyrics',
           sortable: true,
           label: 'ZL',
@@ -1210,6 +1229,13 @@ export default {
             fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
           },
           {
+            fldName: 'priorDemo',
+            fldLabel: 'Приоритет Demo:',
+            fldValue: this.$store.getters.getLastPriorDemo,
+            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px'},
+            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
+          },
+          {
             fldName: 'threadId',
             fldLabel: 'threadId:',
             fldValue: this.$store.getters.getLastThreadId,
@@ -1225,12 +1251,14 @@ export default {
       this.$store.dispatch('setLastPriorKaraoke', {value: result.priorKaraoke});
       this.$store.dispatch('setLastPriorChords', {value: result.priorChords});
       this.$store.dispatch('setLastPriorMelody', {value: result.priorMelody});
+      this.$store.dispatch('setLastPriorDemo', {value: result.priorDemo});
       this.$store.dispatch('setLastThreadId', {value: result.threadId});
       this.$store.dispatch('createKaraokeForAllPromise', {
         priorLyrics: result.priorLyrics,
         priorKaraoke: result.priorKaraoke,
         priorChords: result.priorChords,
         priorMelody: result.priorMelody,
+        priorDemo: result.priorDemo,
         threadId: result.threadId
       }).then(data => {
         let response = JSON.parse(data);
@@ -1571,6 +1599,9 @@ export default {
     playKaraoke(id) {
       this.$store.getters.playKaraoke(id);
     },
+    playDemo(id) {
+      this.$store.getters.playRenderMp4Version('DEMO')(id);
+    },
     playChords(id) {
       this.$store.getters.playChords(id);
     },
@@ -1845,6 +1876,14 @@ export default {
   overflow: hidden;
 }
 .fld-flag-vk {
+  min-width: 20px;
+  max-width: 20px;
+  text-align: center;
+  font-size: small;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.fld-flag-player-demo {
   min-width: 20px;
   max-width: 20px;
   text-align: center;

@@ -12,19 +12,25 @@ Karaoke (svoemesto) — self-pipeline для автоматического со
 
 ## Рендер MP4 из онлайн-плеера
 
-Очередь `RENDER_MP4` (threadId=0, HEAVY_RENDER lane) — рендер караоке-видео через Playwright + ffmpeg без MLT.
+Очередь `RENDER_MP4_LYRICS` / `RENDER_MP4_KARAOKE` / `RENDER_MP4_DEMO` (threadId=0, HEAVY_RENDER lane) — рендер караоке-видео через Playwright + ffmpeg без MLT.
 
 **Поток:**
 1. `PlayerMp4RenderService.renderFrames()` — headless Chromium рисует кадры, `canvas.toDataURL('image/jpeg', 0.95)` → JPEG-секвенция
 2. `PlayerMp4MuxService.mixAndMux()` — ffmpeg собирает JPEG + FLAC-стемы в MP4, прогресс через `-progress pipe:1` (парсинг `out_time_ms`)
 3. Результат копируется в `done_files/$fileName [render].mp4`, temp-папка удаляется
 
+**Три версии рендера (`RenderVersion` enum):**
+- **LYRICS** — acc(1.0)+voc(1.0), 1920×1080@60fps
+- **KARAOKE** — acc(1.0)+voc(0.0), 1920×1080@60fps
+- **DEMO** — acc(1.0)+voc(0.0), **1280×720@30fps** (дефолт), фрагмент с fade-in/out, watermark "ДЕМО", end screen 10 сек
+
 **Ключевые файлы:**
-- `PlayerMp4RenderService.kt` — рендер кадров (Playwright, headless Chromium)
+- `PlayerMp4RenderService.kt` — рендер кадров (Playwright, headless Chromium), `RenderVersion`, `RenderMp4Params`
 - `PlayerMp4MuxService.kt` — ffmpeg mux с прогрессом
 - `Utils.kt:executeRenderMp4()` — диспетчеризация: рендер → mux → done_files → cleanup
-- `ApiController.kt` — `/song/renderMp4Preview` (очередь), `/playrendermp4` (smplayer)
-- `Settings.kt:nameFileRenderMp4` — шаблон имени `"$fileName [render].mp4"`
+- `ApiController.kt` — `/song/renderMp4Preview` (очередь), дефолты DEMO (1280/720/30)
+- `KaraokeProcess.kt` — создание задачи, дефолты DEMO (1280/720/30)
+- `Settings.kt` — `demoFragmentStartSeconds`, `demoFragmentEndSeconds`, `demoFragmentFadeInSeconds`
 
 **Оптимизации:**
 - JPEG (quality 95) вместо PNG — x3 скорость рендера (18 fps вместо 6 fps)
@@ -32,6 +38,8 @@ Karaoke (svoemesto) — self-pipeline для автоматического со
 - `sendCountWaitingMessage` при пустой очереди — бейдж сбрасывается в 0
 
 **Ловушка ffmpeg:** `ProcessBuilder.redirectErrorStream(false)` блокирует процесс — буфер stderr переполняется. Всегда использовать `redirectErrorStream(true)`.
+
+**Ловушка дефолтов DEMO:** дефолты 1280/720/30 задаются И в `ApiController.kt` (context map), И в `KaraokeProcess.kt` (fallback). Контроллер подставляет дефолты раньше, чем они попадают в context — если задать только в KaraokeProcess, не сработает.
 
 ## Модули
 

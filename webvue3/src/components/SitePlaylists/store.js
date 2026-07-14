@@ -8,18 +8,23 @@ export default {
         sitePlaylistsDigestIsLoading: false,
         sitePlaylistsTarget: 'local',
         sitePlaylistDetail: undefined,
+        // Текущая страница пагинации в SitePlaylistsTable. Сохраняем в сторе, чтобы при уходе с компонента
+        // и возврате — открывалась страница, на которой остановился пользователь.
+        sitePlaylistsTableCurrentPage: 1,
     },
     getters: {
         getSitePlaylistsDigest(state) { return state.sitePlaylistsDigest },
         getSitePlaylistsDigestIsLoading(state) { return state.sitePlaylistsDigestIsLoading },
         getSitePlaylistsTarget(state) { return state.sitePlaylistsTarget },
         getSitePlaylistDetail(state) { return state.sitePlaylistDetail },
+        getSitePlaylistsTableCurrentPage(state) { return state.sitePlaylistsTableCurrentPage; },
     },
     mutations: {
         setSitePlaylistsDigest(state, result) { state.sitePlaylistsDigest = result },
         setSitePlaylistsDigestIsLoading(state, isLoading) { state.sitePlaylistsDigestIsLoading = isLoading },
         setSitePlaylistsTarget(state, target) { state.sitePlaylistsTarget = target },
         setSitePlaylistDetail(state, detail) { state.sitePlaylistDetail = detail },
+        setSitePlaylistsTableCurrentPage(state, page) { state.sitePlaylistsTableCurrentPage = page; },
     },
     actions: {
         loadSitePlaylistsDigest(ctx, params) {

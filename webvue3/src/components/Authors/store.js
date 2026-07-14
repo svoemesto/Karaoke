@@ -4,10 +4,14 @@ export default {
     state: {
         authorsDigest: [],
         authorsDigestIsLoading: false,
+        // Текущая страница пагинации в AuthorsTable. Сохраняем в сторе, чтобы при уходе с компонента
+        // и возврате — открывалась страница, на которой остановился пользователь.
+        authorsTableCurrentPage: 1,
     },
     getters: {
         getAuthorsDigest(state) { return state.authorsDigest },
-        getAuthorsDigestIsLoading(state) { return state.authorsDigestIsLoading }
+        getAuthorsDigestIsLoading(state) { return state.authorsDigestIsLoading },
+        getAuthorsTableCurrentPage(state) { return state.authorsTableCurrentPage; }
     },
     mutations: {
         updateAuthorsDigests(state, result) {
@@ -22,7 +26,8 @@ export default {
         setAuthorsDigests(state, result) {
             state.authorsDigest = result.authorsDigests;
         },
-        setAuthorsDigestIsLoading(state, isLoading) { state.authorsDigestIsLoading = isLoading }
+        setAuthorsDigestIsLoading(state, isLoading) { state.authorsDigestIsLoading = isLoading },
+        setAuthorsTableCurrentPage(state, page) { state.authorsTableCurrentPage = page; }
     },
     actions: {
         loadOneRecord(ctx, id) {

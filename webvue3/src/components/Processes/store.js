@@ -8,6 +8,9 @@ export default {
         processWillStopAfterThreadIsDone: false,
         workingProcessByThreadId: {},
         countWaiting: '...',
+        // Текущая страница пагинации в ProcessesTable. Сохраняем в сторе, чтобы при уходе с компонента
+        // и возврате — открывалась страница, на которой остановился пользователь.
+        processesTableCurrentPage: 1,
     },
     getters: {
         getWorkingProcessForThreads: (state) => (includedThreadId, excludedThreadId) => {
@@ -36,6 +39,7 @@ export default {
         getCountWaiting(state) {
             return state.countWaiting;
         },
+        getProcessesTableCurrentPage(state) { return state.processesTableCurrentPage; },
     },
     mutations: {
         updateProcessesDigests(state, result) {
@@ -117,6 +121,7 @@ export default {
                 state.workingProcessByThreadId = {};
             }
         },
+        setProcessesTableCurrentPage(state, page) { state.processesTableCurrentPage = page; },
     },
     actions: {
         updateProcessesDigestByIds(ctx, payload) {

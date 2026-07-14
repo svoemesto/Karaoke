@@ -14,6 +14,9 @@ export default {
         siteUsersTarget: 'local',
         siteUserSubscriptions: [],
         siteUserSubscriptionsIsLoading: false,
+        // Текущая страница пагинации в SiteUsersTable. Сохраняем в сторе, чтобы при уходе с компонента
+        // и возврате — открывалась страница, на которой остановился пользователь.
+        siteUsersTableCurrentPage: 1,
     },
     getters: {
         getSiteUsersDigest(state) { return state.siteUsersDigest },
@@ -23,6 +26,7 @@ export default {
         getSiteUsersTarget(state) { return state.siteUsersTarget },
         getSiteUserSubscriptions(state) { return state.siteUserSubscriptions },
         getSiteUserSubscriptionsIsLoading(state) { return state.siteUserSubscriptionsIsLoading },
+        getSiteUsersTableCurrentPage(state) { return state.siteUsersTableCurrentPage; },
         getSiteUserDiff(state) {
             let result = [];
             if (state.siteUserCurrent && state.siteUserSnapshot) {
@@ -56,6 +60,7 @@ export default {
         setSiteUsersTarget(state, target) { state.siteUsersTarget = target },
         setSiteUserSubscriptions(state, result) { state.siteUserSubscriptions = result },
         setSiteUserSubscriptionsIsLoading(state, isLoading) { state.siteUserSubscriptionsIsLoading = isLoading },
+        setSiteUsersTableCurrentPage(state, page) { state.siteUsersTableCurrentPage = page; },
     },
     actions: {
         loadSiteUsersDigest(ctx, params) {

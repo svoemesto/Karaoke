@@ -2241,6 +2241,19 @@ class Settings(
     // строки/куплеты, что и в KaraokePlayer.js::_parseMarkers). Возвращает null, если куплет не
     // начался (нет SYLLABLES в группе 0) или граница конца не найдена — вызывающая сторона обязана
     // подставить дефолт, см. demoFragmentStartSeconds/demoFragmentEndSeconds ниже.
+    //
+    // ВАЖНО (фикс границ DEMO): до того как verseStart установлен (т.е. пока ни один SYLLABLES
+    // ещё не пришёл), НЕ обновлять currentGroupId на SETTING|GROUP|N. Иначе первая же
+    // GROUP-метка с N≠0 в начале файла блокирует установку verseStart (условие
+    // `currentGroupId == 0` не выполнится) → цикл доходит до конца без возврата → fallback
+    // DEMO_FRAGMENT_DEFAULT_SECONDS (60с) → на DEMO-видео показывается "почти вся песня".
+    // currentGroupId начинает "реально" отслеживаться только после первого слога — и
+    // последующая смена группы становится валидной границей куплета.
+    //
+    // Дополнительно: если явной границы (смена GROUP / NEWLINE / пустой ENDOFLINE) в маркерах
+    // voice 0 нет (типичный случай для песен с простой разметкой), в качестве конца куплета
+    // используется первый UNMUTE-маркер — обычно им помечается момент, когда вокал "вступает"
+    // в припеве; это наилучшее приближение к границе "конец куплета → начало припева".
     private fun computeDemoVerseBounds(): Pair<Double, Double>? {
         if (sourceMarkersList.isEmpty()) return null
         val markers = sourceMarkersList[0].sortedBy { it.time }
@@ -2250,6 +2263,7 @@ class Settings(
         var openSyllablesCount = 0
         var closedLinesInVerse = 0
         var verseStart: Double? = null
+        var firstUnmuteTime: Double? = null
 
         for (m in markers) {
             when (m.markertype) {
@@ -2258,7 +2272,8 @@ class Settings(
                     if (parts.getOrNull(0) == "GROUP") {
                         val newGroupId = parts.getOrNull(1)?.toIntOrNull() ?: 0
                         if (verseStart != null && newGroupId != currentGroupId) return Pair(verseStart, m.time)
-                        currentGroupId = newGroupId
+                        // Границы группы реальны только после verseStart (см. KDoc выше).
+                        if (verseStart != null) currentGroupId = newGroupId
                     }
                 }
                 Markertype.SYLLABLES.value -> {
@@ -2284,7 +2299,17 @@ class Settings(
                         if (closedLinesInVerse > 0) return Pair(verseStart, m.time)
                     }
                 }
+                Markertype.UNMUTE.value -> {
+                    // Запоминаем первый UNMUTE (потенциальная граница конца куплета),
+                    // даже до verseStart — на случай если явных разделителей вообще нет.
+                    if (firstUnmuteTime == null) firstUnmuteTime = m.time
+                }
             }
+        }
+        // Если verseStart установился, но до конца маркеров не встречено ни одной границы —
+        // используем первый UNMUTE как наилучшее приближение к концу первого куплета.
+        if (verseStart != null && firstUnmuteTime != null && firstUnmuteTime!! > verseStart) {
+            return Pair(verseStart, firstUnmuteTime!!)
         }
         return null
     }

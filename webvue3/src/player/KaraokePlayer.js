@@ -149,8 +149,17 @@ export default class KaraokePlayer {
       if (v) this._renderVersion = v
       const ds = qs.get('demoStart')
       const de = qs.get('demoEnd')
-      if (ds !== null) this._demoStart = parseFloat(ds) || null
-      if (de !== null) this._demoEnd = parseFloat(de) || null
+      // ОСТОРОЖНО: `parseFloat(ds) || null` ломает demoStart=0.0 — falsy `0` превращается в null,
+      // и _applyDemoFragment() ниже не вызывается → маркеры не фильтруются → виден весь текст песни
+      // (а именно это и происходит, когда первый слог оригинала на t≈0). Корректно:
+      // пустая строка / мусор → null; иначе сохраняем числовое значение, включая 0.
+      const parseDemoSecs = (s) => {
+        if (s === null) return null
+        const v = parseFloat(s)
+        return isNaN(v) ? null : v
+      }
+      this._demoStart = parseDemoSecs(ds)
+      this._demoEnd = parseDemoSecs(de)
     }
 
     // DEMO online mirrors public non-premium experience: force vocals to 100% so the user
@@ -251,7 +260,15 @@ export default class KaraokePlayer {
       }
     }
     if (!isFinite(timeFirst) || timeFirst > this._splashDur) return 0
-    return this._splashDur - timeFirst
+    const silent = this._splashDur - timeFirst
+    // DEMO: фрагмент уже отрезан сервером по [demoStart, demoEnd] (с учётом LEAD_IN). Если
+    // первый слог приходит в момент 0 в shifted-timeline (т.е. вертеStart = demoStart = 0,
+    // слова начинаются прямо с начала песни) — 5-секундный сплэш сам по себе достаточно
+    // длинный, чтобы успели отрисоваться счётчики, и добавлять ещё 5с preroll-тишины
+    // не нужно — иначе DEMO-видео начинается с 10с пустоты до первого слова, что и есть
+    // та «лишняя тишина перед песней», которую описывают в баге.
+    if (this._renderVersion === 'DEMO' && timeFirst === 0) return 0
+    return silent
   }
 
   // Display time: 0 = splash start, _preroll = audio starts, _preroll+duration = end.
@@ -1223,9 +1240,10 @@ export default class KaraokePlayer {
 
     // DEMO: extract peaks only from the [demoStart, demoEnd] slice of the original buffer so the
     // waveform matches what the user actually hears (audio plays from demoStart, see _startAudio).
-    // For non-DEMO the slot is the whole buffer.
-    const sliceStart = (this._renderVersion === 'DEMO' && this._demoStart) ? this._demoStart : 0
-    const sliceEnd = (this._renderVersion === 'DEMO' && this._demoEnd) ? this._demoEnd : this.accBuffer.duration
+    // For non-DEMO the slot is the whole buffer. `_demoStart != null` (не truthy-проверка) — при
+    // demoStart=0 иначе слот схлопнулся бы в [0, demoEnd] (это локальный фолбэк, не блокирующий).
+    const sliceStart = (this._renderVersion === 'DEMO' && this._demoStart != null) ? this._demoStart : 0
+    const sliceEnd = (this._renderVersion === 'DEMO' && this._demoEnd != null) ? this._demoEnd : this.accBuffer.duration
     const sliceLength = sliceEnd - sliceStart
 
     // Peaks per second for good visual resolution
@@ -1342,8 +1360,9 @@ export default class KaraokePlayer {
     this.startedAt = this.audioCtx.currentTime
     // DEMO: buffer isn't server-trimmed, so we play from the demo fragment's start in the original
     // song. The visual "audioTime=0" then corresponds to buffer position demoStart, which matches
-    // both the timeline and what a karaoke-public user hears.
-    const bufOffset = (this._renderVersion === 'DEMO' && this._demoStart) ? offset + this._demoStart : offset
+    // both the timeline and what a karaoke-public user hears. Используем `!= null`, а не truthy —
+    // при demoStart=0 (слова начинаются прямо с начала песни) иначе смещение потерялось бы.
+    const bufOffset = (this._renderVersion === 'DEMO' && this._demoStart != null) ? offset + this._demoStart : offset
     this._rateAnchorPos = offset
     accSrc.start(0, bufOffset)
     vocSrc.start(0, bufOffset)

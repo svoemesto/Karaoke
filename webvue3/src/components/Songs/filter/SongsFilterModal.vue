@@ -239,6 +239,16 @@
 
                 <div class="sfm-filter-row">
                   <div class="sfm-row-label">
+                    <div v-text="'Status.Proc.Demo:'"></div>
+                  </div>
+                  <div class="sfm-row-input">
+                    <input class="sfm-input-field" v-model="songsFilterStatusProcessDemo">
+                  </div>
+                  <button :disabled="!songsFilterStatusProcessDemo" class="sfm-button-clear-field" @click.left="songsFilterStatusProcessDemo=''" v-text="'X'"></button>
+                </div>
+
+                <div class="sfm-filter-row">
+                  <div class="sfm-row-label">
                     <div v-text="'Exclusive:'"></div>
                   </div>
                   <div class="sfm-row-input">
@@ -351,6 +361,7 @@ export default {
     this.$store.dispatch('setSongsFilterIsSync', { value: await this.$store.getters.getWebvueProp('songsFilterIsSync', '') });
     this.$store.dispatch('setSongsFilterStatusProcessLyrics', { value: await this.$store.getters.getWebvueProp('songsFilterStatusProcessLyrics', '') });
     this.$store.dispatch('setSongsFilterStatusProcessKaraoke', { value: await this.$store.getters.getWebvueProp('songsFilterStatusProcessKaraoke', '') });
+    this.$store.dispatch('setSongsFilterStatusProcessDemo', { value: await this.$store.getters.getWebvueProp('songsFilterStatusProcessDemo', '') });
     this.$store.dispatch('setSongsFilterRootId', { value: await this.$store.getters.getWebvueProp('songsFilterRootId', '') });
     this.$store.dispatch('setSongsFilterFlagExclusive', { value: await this.$store.getters.getWebvueProp('songsFilterFlagExclusive', '') });
     this.$store.dispatch('setSongsFilterFlagFree', { value: await this.$store.getters.getWebvueProp('songsFilterFlagFree', '') });
@@ -451,6 +462,10 @@ export default {
       get() { return this.$store.getters.getSongsFilterStatusProcessKaraoke; },
       set(value) { this.$store.dispatch('setSongsFilterStatusProcessKaraoke', { value: value }); }
     },
+    songsFilterStatusProcessDemo: {
+      get() { return this.$store.getters.getSongsFilterStatusProcessDemo; },
+      set(value) { this.$store.dispatch('setSongsFilterStatusProcessDemo', { value: value }); }
+    },
     songsFilterRootId: {
       get() { return this.$store.getters.getSongsFilterRootId; },
       set(value) { this.$store.dispatch('setSongsFilterRootId', { value: value }); }
@@ -523,6 +538,7 @@ export default {
       this.$store.dispatch('setSongsFilterIsSync', { value: this.songsFilterIsSync });
       this.$store.dispatch('setSongsFilterStatusProcessLyrics', { value: this.songsFilterStatusProcessLyrics });
       this.$store.dispatch('setSongsFilterStatusProcessKaraoke', { value: this.songsFilterStatusProcessKaraoke });
+      this.$store.dispatch('setSongsFilterStatusProcessDemo', { value: this.songsFilterStatusProcessDemo });
       this.$store.dispatch('setSongsFilterRootId', { value: this.songsFilterRootId });
       this.$store.dispatch('setSongsFilterFlagExclusive', { value: this.songsFilterFlagExclusive });
       this.$store.dispatch('setSongsFilterFlagFree', { value: this.songsFilterFlagFree });
@@ -551,6 +567,7 @@ export default {
       if (this.songsFilterIsSync !== '') params.filterIsSync = this.songsFilterIsSync;
       if (this.songsFilterStatusProcessLyrics !== '') params.filterStatusProcessLyrics = this.songsFilterStatusProcessLyrics;
       if (this.songsFilterStatusProcessKaraoke !== '') params.filterStatusProcessKaraoke = this.songsFilterStatusProcessKaraoke;
+      if (this.songsFilterStatusProcessDemo !== '') params.filterStatusProcessDemo = this.songsFilterStatusProcessDemo;
       if (this.songsFilterRootId !== '') params.filterRootId = this.songsFilterRootId;
       if (this.songsFilterFlagExclusive !== '') params.flagExclusive = this.songsFilterFlagExclusive;
       if (this.songsFilterFlagFree !== '') params.flagFree = this.songsFilterFlagFree;
@@ -592,6 +609,7 @@ export default {
       this.songsFilterIsSync = args['filter_is_sync'] ? args['filter_is_sync'] : ''
       this.songsFilterStatusProcessLyrics = args['filter_status_process_lyrics'] ? args['filter_status_process_lyrics'] : ''
       this.songsFilterStatusProcessKaraoke = args['filter_status_process_karaoke'] ? args['filter_status_process_karaoke'] : ''
+      this.songsFilterStatusProcessDemo = args['filter_status_process_demo'] ? args['filter_status_process_demo'] : ''
       this.songsFilterRootId = args['filter_root_id'] ? args['filter_root_id'] : ''
       this.songsFilterFlagExclusive = args['flag_exclusive'] ? args['flag_exclusive'] : ''
       // Задание редактора не входит в historyArgs (отдельная от Settings.loadListFromDb проверка) —

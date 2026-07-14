@@ -41,7 +41,10 @@ object PlayerMp4MuxService {
             AudioTrack(settings.accompanimentNameFlac, 1.0),
             AudioTrack(settings.vocalsNameFlac, 1.0),
         )
-        RenderVersion.KARAOKE, RenderVersion.DEMO -> listOf(
+        RenderVersion.KARAOKE,
+        RenderVersion.CHORDS,
+        RenderVersion.TABS,
+        RenderVersion.DEMO -> listOf(
             AudioTrack(settings.accompanimentNameFlac, 1.0),
             AudioTrack(settings.vocalsNameFlac, 0.0),
         )

@@ -124,7 +124,9 @@ export default {
   data() {
     return {
       perPage: 19,
-      currentPage: 1,
+      // Восстанавливаем последнюю страницу из store, чтобы при уходе с компонента и возврате таблица
+      // открывалась на той же странице.
+      currentPage: this.$store.getters.getSiteUsersTableCurrentPage || 1,
       sortBy: [],
       isUserEditVisible: false,
       isFilterVisible: false,
@@ -134,6 +136,12 @@ export default {
   watch: {
     siteUsersDigestIsLoading: {
       handler() { this.isBusy = this.siteUsersDigestIsLoading }
+    },
+    currentPage: {
+      handler(newPage) {
+        // Сохраняем страницу в store, чтобы она восстановилась после переключения на другой компонент.
+        this.$store.commit('setSiteUsersTableCurrentPage', newPage);
+      }
     }
   },
   computed: {

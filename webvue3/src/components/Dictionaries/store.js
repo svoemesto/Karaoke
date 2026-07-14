@@ -8,11 +8,15 @@ export default {
         dictionariesDigest: [],
         dictionariesDigestIsLoading: false,
         dictNames: [],
+        // Текущая страница пагинации в DictionariesTable. Сохраняем в сторе, чтобы при уходе с компонента
+        // и возврате — открывалась страница, на которой остановился пользователь.
+        dictionariesTableCurrentPage: 1,
     },
     getters: {
         getDictionariesDigest(state) { return state.dictionariesDigest },
         getDictionariesDigestIsLoading(state) { return state.dictionariesDigestIsLoading },
         getDictNames(state) { return state.dictNames },
+        getDictionariesTableCurrentPage(state) { return state.dictionariesTableCurrentPage; },
     },
     mutations: {
         setDictionariesDigests(state, result) {
@@ -35,6 +39,7 @@ export default {
         },
         setDictionariesDigestIsLoading(state, isLoading) { state.dictionariesDigestIsLoading = isLoading },
         setDictNames(state, names) { state.dictNames = names },
+        setDictionariesTableCurrentPage(state, page) { state.dictionariesTableCurrentPage = page; },
     },
     actions: {
         loadDictionariesDigests(ctx, params) {

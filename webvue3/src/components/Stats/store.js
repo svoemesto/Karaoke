@@ -51,6 +51,10 @@ export default {
         monetizationSummaryIsLoading: false,
         monetizationTopSongs: [],
         monetizationTopSongsIsLoading: false,
+        // Текущие страницы пагинации в StatsView. Сохраняем в сторе, чтобы при уходе с компонента
+        // и возврате — открывалась страница, на которой остановился пользователь.
+        statsBySongPage: 1,
+        webEventsPage: 1,
     },
     getters: {
         getStatsTarget(state) { return state.statsTarget },
@@ -86,6 +90,8 @@ export default {
         getMonetizationSummaryIsLoading(state) { return state.monetizationSummaryIsLoading },
         getMonetizationTopSongs(state) { return state.monetizationTopSongs },
         getMonetizationTopSongsIsLoading(state) { return state.monetizationTopSongsIsLoading },
+        getStatsBySongPage(state) { return state.statsBySongPage; },
+        getWebEventsPage(state) { return state.webEventsPage; },
     },
     mutations: {
         setStatsTarget(state, target) { state.statsTarget = target },
@@ -121,6 +127,8 @@ export default {
         setMonetizationSummaryIsLoading(state, v) { state.monetizationSummaryIsLoading = v },
         setMonetizationTopSongs(state, v) { state.monetizationTopSongs = v },
         setMonetizationTopSongsIsLoading(state, v) { state.monetizationTopSongsIsLoading = v },
+        setStatsBySongPage(state, v) { state.statsBySongPage = v; },
+        setWebEventsPage(state, v) { state.webEventsPage = v; },
     },
     actions: {
         setStatsTarget(ctx, target) { ctx.commit('setStatsTarget', target) },

@@ -469,7 +469,9 @@ export default {
   data() {
     return {
       perPage: 50,
-      currentPage: 1,
+      // Восстанавливаем последнюю страницу из store, чтобы при уходе с компонента и возврате
+      // (например «Песни» → «Публикации» → «Песни») таблица открывалась на той же странице.
+      currentPage: this.$store.getters.getSongsTableCurrentPage || 1,
       sortBy: [],
       isSongEditVisible: false,
       isSongsFilterVisible: false,
@@ -492,8 +494,13 @@ export default {
       }
     },
     countRows: {
-      handler () {
-        this.currentPage = 1;
+      handler (newCount) {
+        // Сбрасываем на 1 только если текущая страница вышла за пределы после загрузки/фильтрации.
+        // Иначе (при первом монтировании компонента) сохраняем страницу, на которой был пользователь.
+        const totalPages = Math.max(1, Math.ceil(newCount / this.perPage));
+        if (this.currentPage > totalPages) {
+          this.currentPage = 1;
+        }
         this.updateHealthReportForCurrentPage();
         this.reloadAssignmentStatus();
       }
@@ -505,7 +512,9 @@ export default {
       }
     },
     currentPage: {
-      handler () {
+      handler (newPage) {
+        // Сохраняем страницу в store, чтобы она восстановилась после переключения на другой компонент.
+        this.$store.commit('setSongsTableCurrentPage', newPage);
         this.hrQueue = [];
         this.updateHealthReportForCurrentPage();
         this.reloadAssignmentStatus();

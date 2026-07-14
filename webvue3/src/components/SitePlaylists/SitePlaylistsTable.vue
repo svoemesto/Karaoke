@@ -58,10 +58,23 @@ export default {
   name: "SitePlaylistsTable",
   components: { SitePlaylistDetailModal, BPagination, BSpinner, BTable },
   data() {
-    return { perPage: 19, currentPage: 1, sortBy: [], isBusy: false, isDetailVisible: false, filterOwnerId: null }
+    return {
+      perPage: 19,
+      // Восстанавливаем последнюю страницу из store, чтобы при уходе с компонента и возврате таблица
+      // открывалась на той же странице.
+      currentPage: this.$store.getters.getSitePlaylistsTableCurrentPage || 1,
+      sortBy: [],
+      isBusy: false,
+      isDetailVisible: false,
+      filterOwnerId: null
+    }
   },
   watch: {
-    digestIsLoading() { this.isBusy = this.digestIsLoading }
+    digestIsLoading() { this.isBusy = this.digestIsLoading },
+    currentPage(newPage) {
+      // Сохраняем страницу в store, чтобы она восстановилась после переключения на другой компонент.
+      this.$store.commit('setSitePlaylistsTableCurrentPage', newPage);
+    }
   },
   computed: {
     digestIsLoading() { return this.$store.getters.getSitePlaylistsDigestIsLoading },

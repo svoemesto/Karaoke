@@ -6,13 +6,17 @@ export default {
         picturesDigestIsLoading: false,
         pictureCurrent: undefined,
         pictureSnapshot: undefined,
-        pictureCurrentId: 0
+        pictureCurrentId: 0,
+        // Текущая страница пагинации в PicturesTable. Сохраняем в сторе, чтобы при уходе с компонента
+        // и возврате — открывалась страница, на которой остановился пользователь.
+        picturesTableCurrentPage: 1,
     },
     getters: {
         getPicturesDigest(state) { return state.picturesDigest },
         getPicturesDigestIsLoading(state) { return state.picturesDigestIsLoading },
         getPictureCurrent(state) { return state.pictureCurrent },
         getPictureSnapshot(state) { return state.pictureSnapshot },
+        getPicturesTableCurrentPage(state) { return state.picturesTableCurrentPage; },
         getPictureDiff(state) {
             let result = [];
             if (state.pictureCurrent && state.pictureSnapshot) {
@@ -65,6 +69,7 @@ export default {
         setPictureSnapshot(state, picture) { state.pictureSnapshot = Object.assign({}, picture)},
         setPictureCurrentField(state, payload) { state.pictureCurrent[payload.name] = payload.value },
         savePicture(state) { state.pictureSnapshot = !state.pictureCurrent ? undefined : Object.assign({}, state.pictureCurrent) },
+        setPicturesTableCurrentPage(state, page) { state.picturesTableCurrentPage = page; },
         async deletePictureCurrent(state) {
             let request = { method: 'POST', url: "/api/picture/delete", params: { id: state.pictureCurrentId } };
             await promisedXMLHttpRequest(request);

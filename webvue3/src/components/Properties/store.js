@@ -4,10 +4,14 @@ export default {
     state: {
         propertiesDigest: [],
         propertiesDigestIsLoading: false,
+        // Текущая страница пагинации в PropertiesTable. Сохраняем в сторе, чтобы при уходе с компонента
+        // и возврате — открывалась страница, на которой остановился пользователь.
+        propertiesTableCurrentPage: 1,
     },
     getters: {
         getPropertiesDigest(state) { return state.propertiesDigest },
-        getPropertiesDigestIsLoading(state) { return state.propertiesDigestIsLoading }
+        getPropertiesDigestIsLoading(state) { return state.propertiesDigestIsLoading },
+        getPropertiesTableCurrentPage(state) { return state.propertiesTableCurrentPage; }
     },
     mutations: {
         updatePropertiesDigests(state, result) {
@@ -24,7 +28,8 @@ export default {
                 // state.propertiesDigest[index] = prop;
             }
         },
-        setPropertiesDigestIsLoading(state, isLoading) { state.propertiesDigestIsLoading = isLoading }
+        setPropertiesDigestIsLoading(state, isLoading) { state.propertiesDigestIsLoading = isLoading },
+        setPropertiesTableCurrentPage(state, page) { state.propertiesTableCurrentPage = page; }
     },
     actions: {
         updateOneProperty(ctx, prop) {

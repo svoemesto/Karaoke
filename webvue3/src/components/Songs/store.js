@@ -29,6 +29,9 @@ export default {
         currentSong: undefined,
         currentSongHealthReports: [],
         songPageSize: 50,
+        // Текущая страница пагинации в SongsTable. Сохраняем в сторе, чтобы при уходе с компонента
+        // (например на «Публикации») и возврате — открывалась страница, на которой остановился пользователь.
+        songsTableCurrentPage: 1,
         snapshotSong: undefined,
         lastUpdateSong: Date.now(),
         fieldSongParams: [
@@ -943,6 +946,7 @@ export default {
             return state.songsDigest ? state.songsDigest.flatMap(song => song.id) : []
         },
         getSongsDigestIsLoading(state) { return state.songsDigestIsLoading },
+        getSongsTableCurrentPage(state) { return state.songsTableCurrentPage; },
         songAuthorsPromise() {
             let request = { method: 'POST', url: "/api/songs/authors"};
             return promisedXMLHttpRequest(request);
@@ -1433,6 +1437,7 @@ export default {
             state.totalDuration = result.totalDuration;
         },
         setSongsDigestIsLoading(state, isLoading) { state.songsDigestIsLoading = isLoading },
+        setSongsTableCurrentPage(state, page) { state.songsTableCurrentPage = page; },
         updateSongsDigestByIds(state, songsAndIndexesForUpdate) {
             // console.log('songsAndIndexesForUpdate', songsAndIndexesForUpdate)
 

@@ -184,7 +184,9 @@ export default {
   data() {
     return {
       perPage: 19,
-      currentPage: 1,
+      // Восстанавливаем последнюю страницу из store, чтобы при уходе с компонента и возврате таблица
+      // открывалась на той же странице.
+      currentPage: this.$store.getters.getAuthorsTableCurrentPage || 1,
       sortBy: [],
       isAuthorEditVisible: false,
       isPictureEditVisible: false,
@@ -202,6 +204,12 @@ export default {
     authorsDigestIsLoading: {
       handler () {
         this.isBusy = this.authorsDigestIsLoading;
+      }
+    },
+    currentPage: {
+      handler (newPage) {
+        // Сохраняем страницу в store, чтобы она восстановилась после переключения на другой компонент.
+        this.$store.commit('setAuthorsTableCurrentPage', newPage);
       }
     }
   },

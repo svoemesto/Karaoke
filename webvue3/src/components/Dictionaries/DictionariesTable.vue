@@ -96,7 +96,9 @@ export default {
   data() {
     return {
       perPage: 19,
-      currentPage: 1,
+      // Восстанавливаем последнюю страницу из store, чтобы при уходе с компонента и возврате таблица
+      // открывалась на той же странице.
+      currentPage: this.$store.getters.getDictionariesTableCurrentPage || 1,
       sortBy: [],
       isDictionariesFilterVisible: false,
       isCustomConfirmVisible: false,
@@ -109,6 +111,12 @@ export default {
     dictionariesDigestIsLoading: {
       handler () {
         this.isBusy = this.dictionariesDigestIsLoading;
+      }
+    },
+    currentPage: {
+      handler (newPage) {
+        // Сохраняем страницу в store, чтобы она восстановилась после переключения на другой компонент.
+        this.$store.commit('setDictionariesTableCurrentPage', newPage);
       }
     }
   },

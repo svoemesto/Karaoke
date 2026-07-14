@@ -38,6 +38,10 @@ export default {
         statsBySong: [],
         statsBySongIsLoading: false,
         statsBySongTotalCount: 0,
+        // Топ песен, которые реально слушают в онлайн-плеере (≥75% или до конца)
+        topListened: [],
+        topListenedIsLoading: false,
+        topListenedTotalCount: 0,
         // Drill-down событий песни
         songEvents: [],
         songEventsTotalCount: 0,
@@ -55,6 +59,7 @@ export default {
         // и возврате — открывалась страница, на которой остановился пользователь.
         statsBySongPage: 1,
         webEventsPage: 1,
+        topListenedPage: 1,
     },
     getters: {
         getStatsTarget(state) { return state.statsTarget },
@@ -92,6 +97,10 @@ export default {
         getMonetizationTopSongsIsLoading(state) { return state.monetizationTopSongsIsLoading },
         getStatsBySongPage(state) { return state.statsBySongPage; },
         getWebEventsPage(state) { return state.webEventsPage; },
+        getTopListened(state) { return state.topListened; },
+        getTopListenedTotalCount(state) { return state.topListenedTotalCount; },
+        getTopListenedIsLoading(state) { return state.topListenedIsLoading; },
+        getTopListenedPage(state) { return state.topListenedPage; },
     },
     mutations: {
         setStatsTarget(state, target) { state.statsTarget = target },
@@ -129,6 +138,10 @@ export default {
         setMonetizationTopSongsIsLoading(state, v) { state.monetizationTopSongsIsLoading = v },
         setStatsBySongPage(state, v) { state.statsBySongPage = v; },
         setWebEventsPage(state, v) { state.webEventsPage = v; },
+        setTopListened(state, data) { state.topListened = data; },
+        setTopListenedIsLoading(state, v) { state.topListenedIsLoading = v; },
+        setTopListenedTotalCount(state, v) { state.topListenedTotalCount = v; },
+        setTopListenedPage(state, v) { state.topListenedPage = v; },
     },
     actions: {
         setStatsTarget(ctx, target) { ctx.commit('setStatsTarget', target) },
@@ -236,6 +249,16 @@ export default {
                 ctx.commit('setMonetizationTopSongs', r.items);
                 ctx.commit('setMonetizationTopSongsIsLoading', false);
             }).catch(e => { console.log(e); ctx.commit('setMonetizationTopSongsIsLoading', false); });
+        },
+        // Топ песен, которые реально слушают в онлайн-плеере (≥75% или до конца).
+        // Метрика «дослушали» = (progress='75' OR ended), сортировка по числу таких событий DESC.
+        loadTopListened(ctx, { page = 1, pageSize = 50 } = {}) {
+            ctx.commit('setTopListenedIsLoading', true);
+            getJson(`/api/stats/top-listened?target=${ctx.state.statsTarget}&page=${page}&pageSize=${pageSize}`).then(r => {
+                ctx.commit('setTopListened', r.items);
+                ctx.commit('setTopListenedTotalCount', r.totalCount);
+                ctx.commit('setTopListenedIsLoading', false);
+            }).catch(e => { console.log(e); ctx.commit('setTopListenedIsLoading', false); });
         },
     }
 }

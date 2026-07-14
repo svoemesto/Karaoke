@@ -50,6 +50,21 @@ class StatsController {
         mapOf("items" to items, "totalCount" to totalCount)
     }
 
+    // Топ песен, которые реально слушают в онлайн-плеере до 75% (или до конца). Админ-вкладка
+    // «Слушают» в webvue3/StatsView. Метрика «дослушано» = (progress='75' OR ended) — обе вехи
+    // означают «прослушано ≥75%» (ended = 100%). Порядок по числу таких событий DESC.
+    @GetMapping("/api/stats/top-listened")
+    fun topListened(
+        @RequestParam(required = false) target: String?,
+        @RequestParam(required = false, defaultValue = "1") page: Int,
+        @RequestParam(required = false, defaultValue = "50") pageSize: Int,
+    ): Map<String, Any> = withDb(target) { db ->
+        val offset = (page - 1).coerceAtLeast(0) * pageSize
+        val items = StatsByEvents.getTopListenedSongs(database = db, limit = pageSize, offset = offset)
+        val totalCount = StatsByEvents.getTopListenedSongsCount(database = db)
+        mapOf("items" to items, "totalCount" to totalCount)
+    }
+
     // Лог событий с опциональными фильтрами: тип события, период (дней), конкретный пользователь
     // (drill-down по строке из топа пользователей).
     @GetMapping("/api/webevents")

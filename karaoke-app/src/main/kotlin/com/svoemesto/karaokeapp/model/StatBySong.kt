@@ -38,6 +38,30 @@ data class StatBySongDto(
     val cntSponsr: Int,
 )
 
+// Топ песен, у которых онлайн-плеер был реально дослушан до 75% (или до конца).
+// Используется для админского дашборда webvue3, вкладка «Слушают».
+// Метрика "дослушали до 75% и дальше": событие progress@75 ИЛИ ended (трек автоматически >= 75%).
+// pListened = кол-во таких событий по песне; pPlayed — для контекста (сколько раз вообще нажали play);
+// доля дослушивания считается на фронте как pListened / max(pPlayed, 1).
+data class TopListenedSongDto(
+    val songId: Int,
+    val description: String,
+    // Имена полей выбраны однозначно-lowercase, чтобы Jackson сериализовал их ровно так же
+    // (он срезает get-префикс по BeanInfo и не умеет корректно разделять "p" и "L" в pListened —
+    // получалось бы "plistened"). Фронт webvue3 (TopListenedSongsTable.vue) ждёт именно эти ключи.
+    val listened: Int,     // дослушали до 75% и дальше (progress='75' или ended)
+    val played: Int,       // сколько раз нажали play (контекст: доля дослушивания)
+    val ended: Int,        // из них доиграли до конца
+    val cntSm: Int,        // просмотры страницы песни (контекст популярности страницы)
+    val cntMax: Int,       // клики по MAX
+    val cntSponsr: Int,    // клики по Sponsr
+    // Уникальные посетители, дослушавшие песню до 75%+. Залогиненные (site_user_id>0) отдельно
+    // от анонимных (anon_id считается отдельно, чтобы один человек, сначала зашедший анонимно и
+    // потом залогинившийся, не считался дважды). Сумму фронт считает сам как uniqUsers+uniqAnon.
+    val uniqUsers: Int,    // дослушали до 75% и дальше, залогиненные (site_user_id>0)
+    val uniqAnon: Int,     // дослушали до 75% и дальше, анонимные (site_user_id=0, по anon_id)
+)
+
 // Строка лога событий: и человекочитаемые поля (eventType/eventDescription), и ВСЕ сырые колонки
 // tbl_events — чтобы админ-таблица могла показать полный набор полей БД.
 data class WebEventDto(
@@ -409,6 +433,111 @@ object StatsByEvents {
             } catch (e: SQLException) {
                 e.printStackTrace()
             }
+        }
+        return result
+    }
+
+    // Топ песен, которые РЕАЛЬНО слушают: дослушали онлайн-плеер до 75% или до конца.
+    // Использует выражение (link_type='progress' AND link_name='75') OR (link_type='ended') — оба
+    // варианта означают «прослушано ≥75%» (ended автоматически даёт 100%). Сортировка по числу
+    // таких событий DESC — главная метрика «слушают». Доп. поля (cntSm / Sponsr / MAX) даны для
+    // контекста, чтобы админ видел коммерческую отдачу песни рядом с фактическим прослушиванием.
+    fun getTopListenedSongsCount(database: KaraokeConnection = WORKING_DATABASE): Int {
+        val connection = database.getConnection() ?: return 0
+        var statement: Statement? = null
+        var rs: ResultSet? = null
+        try {
+            statement = connection.createStatement()
+            rs = statement.executeQuery(
+                """
+                select count(distinct song_id) as cnt from tbl_events
+                where song_id is not null and song_id > 0
+                  and event_type = 'player'
+                  and ((link_type = 'progress' and link_name = '75') or link_type = 'ended')
+                """.trimIndent()
+            )
+            return if (rs.next()) rs.getInt("cnt") else 0
+        } catch (e: SQLException) {
+            e.printStackTrace()
+            return 0
+        } finally {
+            try { rs?.close(); statement?.close() } catch (e: SQLException) { e.printStackTrace() }
+        }
+    }
+
+    fun getTopListenedSongs(database: KaraokeConnection = WORKING_DATABASE, limit: Int = 50, offset: Int = 0): List<TopListenedSongDto> {
+        val result: MutableList<TopListenedSongDto> = mutableListOf()
+        // Базовый набор строк — это события «прослушали ≥75%» (progress='75' или ended).
+        // count/filter по нему дают listened и ended. Для контекстных полей (play/song/max/sponsr)
+        // используем scalar-подзапросы в SELECT — иначе фильтр listened-events их обнулит:
+        // callRest('song') и clickToLink(max/sponsr) физически не пересекаются с player-progress.
+        val sql = """
+            select
+                s.song_id,
+                sett.song_author,
+                sett.song_album,
+                sett.song_name,
+                count(*) as p_listened,
+                count(*) filter (where e.link_type = 'ended') as p_ended,
+                -- Уникальные залогиненные дослушали до 75%+ (на site_user_id — потом повторный
+                -- логин одного человека не задвоит счёт).
+                count(distinct e.site_user_id) filter (where e.site_user_id > 0) as uniq_users,
+                -- Уникальные анонимы дослушали до 75%+ (anon_id, site_user_id=0). Защита от
+                -- задвоения через count+distinct в одном выражении.
+                count(distinct case when e.site_user_id = 0 then anon_id end) as uniq_anon,
+                (select count(*) from tbl_events where song_id = s.song_id
+                    and event_type = 'player' and link_type = 'play') as p_played,
+                (select count(*) from tbl_events where song_id = s.song_id
+                    and event_type = 'callRest' and rest_name = 'song') as cnt_sm,
+                (select count(*) from tbl_events where song_id = s.song_id
+                    and event_type = 'clickToLink' and link_type = 'linkToSong' and link_name = 'max') as cnt_max,
+                (select count(*) from tbl_events where song_id = s.song_id
+                    and event_type = 'clickToLink' and link_type = 'linkToSong' and link_name = 'sponsr') as cnt_sponsr
+            from tbl_events e
+            left join tbl_settings sett on sett.id = e.song_id
+            -- Один срез событий «дослушали ≥75%» по конкретному song_id. Внутренний подзапрос
+            -- фильтрует до агрегации, чтобы count(*) считался только по нужным строкам. Затем
+            -- GROUP BY по song_id даёт одну строку на песню.
+            inner join (
+                select id, song_id from tbl_events
+                where song_id is not null and song_id > 0
+                  and event_type = 'player'
+                  and ((link_type = 'progress' and link_name = '75') or link_type = 'ended')
+            ) s on s.id = e.id
+            group by s.song_id, sett.song_author, sett.song_album, sett.song_name
+            order by p_listened desc, s.song_id asc
+            limit $limit offset $offset
+        """.trimIndent()
+        val connection = database.getConnection()
+        if (connection == null) {
+            println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
+            return emptyList()
+        }
+        var statement: Statement? = null
+        var rs: ResultSet? = null
+        try {
+            statement = connection.createStatement()
+            rs = statement.executeQuery(sql)
+            while (rs.next()) {
+                result.add(
+                    TopListenedSongDto(
+                        songId = rs.getInt("song_id"),
+                        description = "[${rs.getString("song_author")}] - [${rs.getString("song_album")}] - «${rs.getString("song_name")}»",
+                        listened = rs.getInt("p_listened"),
+                        played = rs.getInt("p_played"),
+                        ended = rs.getInt("p_ended"),
+                        cntSm = rs.getInt("cnt_sm"),
+                        cntMax = rs.getInt("cnt_max"),
+                        cntSponsr = rs.getInt("cnt_sponsr"),
+                        uniqUsers = rs.getInt("uniq_users"),
+                        uniqAnon = rs.getInt("uniq_anon"),
+                    )
+                )
+            }
+        } catch (e: SQLException) {
+            e.printStackTrace()
+        } finally {
+            try { rs?.close(); statement?.close() } catch (e: SQLException) { e.printStackTrace() }
         }
         return result
     }

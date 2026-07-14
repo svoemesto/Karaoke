@@ -200,7 +200,14 @@ export default class KaraokePlayer {
       }
     }
     if (!isFinite(timeFirst) || timeFirst > this._splashDur) return 0
-    return this._splashDur - timeFirst
+    const silent = this._splashDur - timeFirst
+    // Зеркало webvue3/KaraokePlayer.js: для DEMO маркеры уже обрезаны сервером по [demoStart,
+    // demoEnd] (PublicPlayerController.playerData()) и сдвинуты на -demoRange.startSeconds.
+    // Если первый слог приходит в 0 в shifted-timeline (verseStart = demoStart = 0, слова
+    // начинаются прямо с начала песни) — 5-секундного сплэша достаточно для счётчиков и
+    // добавлять ещё 5с preroll-тишины не нужно (раньше в начале DEMO висело 10с пустоты).
+    if (this.data?.isDemo && timeFirst === 0) return 0
+    return silent
   }
 
   // Display time: 0 = splash start, _preroll = audio starts, _preroll+duration = end.

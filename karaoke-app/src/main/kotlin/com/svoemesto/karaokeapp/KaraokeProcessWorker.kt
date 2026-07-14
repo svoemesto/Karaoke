@@ -51,6 +51,8 @@ class KaraokeProcessThread(val karaokeProcess: KaraokeProcess? = null, var perce
                         KaraokeProcessTypes.UPLOAD_TO_REMOTE_STORE -> executeUploadToRemoteStore(params) { pct -> percentage = pct.toString() }
                         KaraokeProcessTypes.RENDER_MP4_LYRICS,
                         KaraokeProcessTypes.RENDER_MP4_KARAOKE,
+                        KaraokeProcessTypes.RENDER_MP4_CHORDS,
+                        KaraokeProcessTypes.RENDER_MP4_TABS,
                         KaraokeProcessTypes.RENDER_MP4_DEMO -> executeRenderMp4(params) { pct -> percentage = pct.toString() }
                         else -> false
                     }

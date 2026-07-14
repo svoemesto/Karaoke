@@ -14,6 +14,8 @@ import kotlin.math.ceil
 enum class RenderVersion(val label: String, val comment: String, val fileSuffix: String) {
     LYRICS("Lyrics", "Song", "[lyrics]"),
     KARAOKE("Karaoke", "Accompaniment", "[karaoke]"),
+    CHORDS("Chords", "Chords", "[chords]"),
+    TABS("Tabs", "Tabs", "[tabs]"),
     DEMO("Karaoke (Demo)", "Ознакомительный фрагмент", "[demo]")
 }
 

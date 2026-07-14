@@ -242,9 +242,11 @@ export default {
   components: { BSpinner, BPagination, KpiCards, MonetizationPanel, TimeSeriesChart, TypeChannelBreakdown, DetailBreakdown, GeoReferrers, TopUsersTable, UserEventsModal, SongEventsModal },
   data() {
     return {
-      statsBySongPage: 1,
+      // Восстанавливаем последние страницы из store, чтобы при уходе с компонента и возврате таблицы
+      // открывались на той же странице.
+      statsBySongPage: this.$store.getters.getStatsBySongPage || 1,
       statsBySongPageSize: 50,
-      webEventsPage: 1,
+      webEventsPage: this.$store.getters.getWebEventsPage || 1,
       webEventsPageSize: 50,
       webEventsType: '',
       topUsersPage: 1,
@@ -386,6 +388,11 @@ export default {
   },
   mounted() {
     this.reloadAll()
+  },
+  watch: {
+    // Сохраняем номера страниц в store, чтобы они восстановились после возврата на вкладку «Статистика».
+    statsBySongPage(newVal) { this.$store.commit('setStatsBySongPage', newVal) },
+    webEventsPage(newVal) { this.$store.commit('setWebEventsPage', newVal) },
   }
 }
 </script>

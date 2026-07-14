@@ -177,7 +177,9 @@ export default {
   data() {
     return {
       perPage: 50,
-      currentPage: 1,
+      // Восстанавливаем последнюю страницу из store, чтобы при уходе с компонента и возврате таблица
+      // открывалась на той же странице.
+      currentPage: this.$store.getters.getProcessesTableCurrentPage || 1,
       sortBy: [],
       isProcessEditVisible: false,
       isProcessesFilterVisible: false,
@@ -191,6 +193,12 @@ export default {
     processesDigestIsLoading: {
       handler () {
         this.isBusy = this.processesDigestIsLoading;
+      }
+    },
+    currentPage: {
+      handler (newPage) {
+        // Сохраняем страницу в store, чтобы она восстановилась после переключения на другой компонент.
+        this.$store.commit('setProcessesTableCurrentPage', newPage);
       }
     }
   },

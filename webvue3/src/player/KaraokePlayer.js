@@ -153,6 +153,13 @@ export default class KaraokePlayer {
       if (de !== null) this._demoEnd = parseFloat(de) || null
     }
 
+    // DEMO online mirrors public non-premium experience: force vocals to 100% so the user
+    // hears both acc and vocals (ignores any persisted vocVol=0 from prior karaoke sessions).
+    // Offline render keeps the MP4 KARAOKE mix (voc=0) enforced by the renderer, so we skip here.
+    if (!this._offline && this._renderVersion === 'DEMO') {
+      this._vocVol = 100
+    }
+
     try {
       if (this._mode === 'api') {
         const qs = this.assignmentId
@@ -1214,14 +1221,21 @@ export default class KaraokePlayer {
     const totalDuration = this._preroll + this.duration
     if (totalDuration <= 0 || !this.accBuffer || !this.vocBuffer) return
 
+    // DEMO: extract peaks only from the [demoStart, demoEnd] slice of the original buffer so the
+    // waveform matches what the user actually hears (audio plays from demoStart, see _startAudio).
+    // For non-DEMO the slot is the whole buffer.
+    const sliceStart = (this._renderVersion === 'DEMO' && this._demoStart) ? this._demoStart : 0
+    const sliceEnd = (this._renderVersion === 'DEMO' && this._demoEnd) ? this._demoEnd : this.accBuffer.duration
+    const sliceLength = sliceEnd - sliceStart
+
     // Peaks per second for good visual resolution
-    const audioPeakCount = Math.max(500, Math.round(this.duration * 10))
+    const audioPeakCount = Math.max(500, Math.round(sliceLength * 10))
     // Scale silence peaks proportionally so total peaks cover totalDuration
-    const silencePeakCount = Math.round(audioPeakCount * this._preroll / this.duration)
+    const silencePeakCount = Math.round(audioPeakCount * this._preroll / sliceLength)
 
     const silence = new Array(silencePeakCount).fill(0)
-    const accPeaks = silence.concat(this._extractPeaks(this.accBuffer, audioPeakCount))
-    const vocPeaks = silence.concat(this._extractPeaks(this.vocBuffer, audioPeakCount))
+    const accPeaks = silence.concat(this._extractPeaksSlice(this.accBuffer, sliceStart, sliceLength, audioPeakCount))
+    const vocPeaks = silence.concat(this._extractPeaksSlice(this.vocBuffer, sliceStart, sliceLength, audioPeakCount))
 
     import('wavesurfer.js').then(({ default: WaveSurfer }) => {
       const ac = this.container.querySelector('#kp-ws-acc')
@@ -1241,6 +1255,30 @@ export default class KaraokePlayer {
       this.wsAcc.on('interaction', (newTime) => { if (!this._wsSeeking) this._seekToDisplayTime(newTime) })
       this.wsVoc.on('interaction', (newTime) => { if (!this._wsSeeking) this._seekToDisplayTime(newTime) })
     }).catch(e => console.warn('WaveSurfer load failed:', e))
+  }
+
+  // Like _extractPeaks but reads from samples[start*sr .. start*sr + length*sr], producing numPeaks
+  // max-abs peak values across that slice. For DEMO, slices the original buffer to the fragment.
+  _extractPeaksSlice(buffer, startSec, lengthSec, numPeaks) {
+    const ch = buffer.getChannelData(0)
+    const sr = buffer.sampleRate
+    const startSample = Math.max(0, Math.min(ch.length, Math.floor(startSec * sr)))
+    const endSample = Math.max(startSample, Math.min(ch.length, Math.floor((startSec + lengthSec) * sr)))
+    const samples = endSample - startSample
+    if (samples <= 0 || numPeaks <= 0) return []
+    const blockSize = Math.max(1, Math.floor(samples / numPeaks))
+    const peaks = []
+    for (let i = 0; i < numPeaks; i++) {
+      const sStart = startSample + i * blockSize
+      const sEnd = i === numPeaks - 1 ? endSample : Math.min(startSample + (i + 1) * blockSize, endSample)
+      let max = 0
+      for (let j = sStart; j < sEnd; j++) {
+        const v = Math.abs(ch[j])
+        if (v > max) max = v
+      }
+      peaks.push(max)
+    }
+    return peaks
   }
 
   _getCurrentTime() {
@@ -1278,7 +1316,9 @@ export default class KaraokePlayer {
       this._prerollTimeout = setTimeout(() => {
         if (this.isPlaying && this._isPrerolling) {
           this._isPrerolling = false
-          this._startAudio(0).catch(e => console.error('Audio start failed:', e))
+          // DEMO: jump straight to the fragment start (see _startAudio() for buffer start logic).
+          const startOff = (this._renderVersion === 'DEMO' && this._demoStart) ? 0 : 0
+          this._startAudio(startOff).catch(e => console.error('Audio start failed:', e))
         }
       }, remainingMs)
     } else {
@@ -1300,9 +1340,13 @@ export default class KaraokePlayer {
     accSrc.playbackRate.value = this._playbackRate
     vocSrc.playbackRate.value = this._playbackRate
     this.startedAt = this.audioCtx.currentTime
+    // DEMO: buffer isn't server-trimmed, so we play from the demo fragment's start in the original
+    // song. The visual "audioTime=0" then corresponds to buffer position demoStart, which matches
+    // both the timeline and what a karaoke-public user hears.
+    const bufOffset = (this._renderVersion === 'DEMO' && this._demoStart) ? offset + this._demoStart : offset
     this._rateAnchorPos = offset
-    accSrc.start(0, offset)
-    vocSrc.start(0, offset)
+    accSrc.start(0, bufOffset)
+    vocSrc.start(0, bufOffset)
     this.isPlaying = true
     this._isPrerolling = false
     this._endedHandled = false
@@ -1807,16 +1851,18 @@ export default class KaraokePlayer {
       }
     }
 
-    // Logo: rendered during karaoke, but skipped during DEMO end screen (offline) —
-    // DemoEndScreen replaces it with its own logo+text+arrows layout.
-    const _isDemoEndPhase = this._offline && this._renderVersion === 'DEMO' && dt >= this._preroll + this.duration
-    if (!_isDemoEndPhase) {
+    // Logo: never rendered during DEMO offline — DemoEndScreen contains its own logo+text+arrows.
+    // For other modes: render during karaoke (post-song fade-in via _getLogoAlpha, then idle-fade
+    // out via _getEndSequenceAlphas).
+    const _skipKaraokeLogo = this._offline && this._renderVersion === 'DEMO'
+    if (!_skipKaraokeLogo && logoAlpha > 0) {
       this._renderLogo(ctx, W, H, logoAlpha)
     }
     this._renderSpeedBadge(ctx, W, H)
     this._renderScreenIconAnim(ctx, W, H)
     this._renderDemoWatermark(ctx, W, H)
     // DEMO end screen: offline (MP4 render) shows logo+text+arrows; online uses idle transition.
+    const _isDemoEndPhase = this._offline && this._renderVersion === 'DEMO' && dt >= this._preroll + this.duration
     if (_isDemoEndPhase) {
       const tailStart = this._preroll + this.duration
       const tailDur = 10.0

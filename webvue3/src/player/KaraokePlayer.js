@@ -101,6 +101,7 @@ export default class KaraokePlayer {
     this._renderVersion = null   // 'LYRICS' | 'KARAOKE' | 'DEMO' | null (online mode)
     this._demoStart = null       // demo fragment start (seconds, original song time)
     this._demoEnd = null         // demo fragment end (seconds, original song time)
+    this._demoFadeInSeconds = 0  // demo audio fade-in duration (seconds, computed from markers)
 
     this.canvas = null
     this.ctx = null
@@ -186,6 +187,14 @@ export default class KaraokePlayer {
       // DEMO: filter markers to fragment and shift to start from 0
       if (this._renderVersion === 'DEMO' && this._demoStart != null && this._demoEnd != null) {
         this._applyDemoFragment(this._demoStart, this._demoEnd)
+        // Compute fade-in duration from the first syllable position (mirrors Settings.demoFragmentFadeInSeconds).
+        // After _applyDemoFragment, first text line starts at (verseStart - demoStart) seconds —
+        // this is exactly the fade-in duration the server would send in demoFadeInSeconds.
+        let firstTextTime = Infinity
+        for (const l of this.lines) {
+          if (!l.isEmpty && !l.isComment && l.startTime < firstTextTime) firstTextTime = l.startTime
+        }
+        this._demoFadeInSeconds = isFinite(firstTextTime) ? firstTextTime : 0
       }
       this._buildFlashTimes()
       // Compute silent offset (mirrors Kotlin getStartSilentOffsetMs):
@@ -522,21 +531,6 @@ export default class KaraokePlayer {
 
     this.lines = this.lines.filter(inRange).map(processLine)
 
-    // Add leading empty lines so text scrolls in from below (like _silentOffset in public player)
-    let leadLines = []
-    const firstTextIdx = this.lines.findIndex(l => !l.isEmpty && !l.isComment)
-    if (firstTextIdx >= 0) {
-      const firstTime = this.lines[firstTextIdx].startTime
-      if (firstTime > 0) {
-        const N = 4
-        const spacing = firstTime / N
-        for (let i = 0; i < N; i++) {
-          leadLines.push(this._makeEmptyLine(firstTime - (N - i) * spacing))
-        }
-        this.lines = [...leadLines, ...this.lines]
-      }
-    }
-
     // Set scrollStartTime on this.lines (mirrors voiceLines logic below) — needed by
     // _getScrollPosition() which operates on this.lines, not voiceLines.
     for (let i = 0; i < this.lines.length - 1; i++) {
@@ -550,14 +544,6 @@ export default class KaraokePlayer {
     if (this.voiceLines) {
       this.voiceLines = this.voiceLines.map((voiceArr, vIdx) => {
         const filtered = voiceArr.filter(inRange).map(processLine)
-        // Add same leading empty lines to voice 0
-        if (vIdx === 0 && leadLines.length > 0) {
-          const vLead = leadLines.map(l => ({ ...l, voiceIdx: 0 }))
-          for (let i = 0; i < vLead.length - 1; i++) {
-            vLead[i].scrollStartTime = vLead[i + 1].startTime
-          }
-          filtered.unshift(...vLead)
-        }
         for (let i = 0; i < filtered.length - 1; i++) {
           const curr = filtered[i]
           const next = filtered[i + 1]
@@ -569,7 +555,55 @@ export default class KaraokePlayer {
       })
     }
 
+    // Add leading empty lines before the first text line (mirrors _buildScrollLines).
+    // After _applyDemoFragment, fragment starts at time=0 — leading empties ensure scroll
+    // arrives at the first text line smoothly, same as public player.
+    this._addLeadingEmptyLines(this.lines, false)
+    if (this.voiceLines) {
+      this.voiceLines = this.voiceLines.map(vl => {
+        this._addLeadingEmptyLines(vl, true)
+        return vl
+      })
+    }
+
     this.duration = dur
+  }
+
+  // Add leading empty lines before the first text line in the given line array.
+  // Mirrors the leading-empty logic from _buildScrollLines but operates on already-shifted lines.
+  _addLeadingEmptyLines(lines, isVoice) {
+    const textLines = lines.filter(l => !l.isEmpty && !l.isComment)
+    if (!textLines.length) return
+
+    const firstStart = textLines[0].startTime
+    const maxDur = Math.max(...lines.map(l => l.endTime - l.startTime))
+    if (maxDur <= 0) return
+
+    const LEAD_EMPTY = 3 // total leading empty lines (1 at t=0 + 2 distributed)
+    const leadEmpty = [this._makeEmptyLine(0)]
+    const extraCount = LEAD_EMPTY - 1
+    if (firstStart > 0) {
+      const step = firstStart / (extraCount + 1)
+      for (let i = 0; i < extraCount; i++) {
+        leadEmpty.push(this._makeEmptyLine((i + 1) * step))
+      }
+    }
+    if (firstStart > maxDur * 0.5) {
+      textLines[0].hasCounter = true
+    }
+
+    // Insert leading empties + re-sort
+    lines.unshift(...leadEmpty)
+    lines.sort((a, b) => a.startTime - b.startTime)
+
+    // Rebuild scrollStartTime for the merged list
+    for (let i = 0; i < lines.length - 1; i++) {
+      const curr = lines[i]
+      const next = lines[i + 1]
+      if (next.startTime - curr.endTime < 1.0) {
+        curr.scrollStartTime = Math.max(curr.startTime, next.startTime - 1.0)
+      }
+    }
   }
 
   _makeEmptyLine(timeSec) {
@@ -1744,6 +1778,19 @@ export default class KaraokePlayer {
       ? Math.min(1, (audioTime - (this.duration - FADE_OUT)) / FADE_OUT)
       : 0
 
+    // DEMO: audio fade-in/out (mirrors karaoke-public).
+    // The fragment starts NOT at time 0 of the original song (verseStart - LEAD_IN), so the audio
+    // fades in smoothly over demoFadeInSeconds (≤5s; 0 if fallback "from song start" kicked in —
+    // nothing to fade). Fade-out uses the same fadeOutAlpha as the visual.
+    if (this._renderVersion === 'DEMO' && this.accGain && this.vocGain) {
+      const fadeInMul = (this._demoFadeInSeconds > 0 && audioTime < this._demoFadeInSeconds)
+        ? Math.max(0, Math.min(1, audioTime / this._demoFadeInSeconds))
+        : 1
+      const demoFadeMul = fadeInMul * (1 - fadeOutAlpha)
+      this.accGain.gain.value = (this._accVol / 100) * demoFadeMul
+      this.vocGain.gain.value = (this._vocVol / 100) * demoFadeMul
+    }
+
     const FADE = 1.0
     if (dt < this._splashDur) {
       // Splash handles its own fade-out internally; background shows through. alphaOverride drives
@@ -1760,25 +1807,23 @@ export default class KaraokePlayer {
       }
     }
 
-    // Logo: show during karaoke, hide during DEMO karaoke phase and end screen
-    const _isDemo = this._renderVersion === 'DEMO'
-    const _isDemoEndScreen = _isDemo && dt >= this._preroll + this.duration
-    const _isDemoKaraoke = _isDemo && dt >= this._splashDur && dt < this._preroll + this.duration
-    if (!_isDemoEndScreen && !_isDemoKaraoke) {
+    // Logo: rendered during karaoke, but skipped during DEMO end screen (offline) —
+    // DemoEndScreen replaces it with its own logo+text+arrows layout.
+    const _isDemoEndPhase = this._offline && this._renderVersion === 'DEMO' && dt >= this._preroll + this.duration
+    if (!_isDemoEndPhase) {
       this._renderLogo(ctx, W, H, logoAlpha)
-    }
-    this._renderDemoWatermark(ctx, W, H)
-    // DEMO end screen: shown after song ends, during the extra tail seconds
-    if (this._renderVersion === 'DEMO') {
-      const tailStart = this._preroll + this.duration
-      const tailEnd = tailStart + 10.0  // 10 seconds end screen
-      if (dt >= tailStart && dt < tailEnd) {
-        const fadeIn = Math.min(1, (dt - tailStart) / 1.0)  // fade in over 1s
-        this._renderDemoEndScreen(ctx, W, H, fadeIn)
-      }
     }
     this._renderSpeedBadge(ctx, W, H)
     this._renderScreenIconAnim(ctx, W, H)
+    this._renderDemoWatermark(ctx, W, H)
+    // DEMO end screen: offline (MP4 render) shows logo+text+arrows; online uses idle transition.
+    if (_isDemoEndPhase) {
+      const tailStart = this._preroll + this.duration
+      const tailDur = 10.0
+      const fadeIn = Math.min(1, (dt - tailStart) / 1.0)
+      const fadeOut = dt >= tailStart + tailDur - 1.0 ? Math.max(0, (tailStart + tailDur - dt) / 1.0) : 1
+      this._renderDemoEndScreen(ctx, W, H, fadeIn * fadeOut)
+    }
     if (!this._offline) this._updateControls(dt)
   }
 

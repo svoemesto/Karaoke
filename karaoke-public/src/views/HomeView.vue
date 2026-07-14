@@ -23,7 +23,7 @@
       </div>
 
       <!-- Статистика -->
-      <div v-if="!isLoading" class="km-stats">
+      <div v-if="!isLoading" class="km-stats km-stats-4">
         <div class="km-stat-card">
           <div class="km-stat-number">{{ formatNum(onSponsr) }}</div>
           <div class="km-stat-label">Песен в коллекции</div>
@@ -34,7 +34,11 @@
         </div>
         <div class="km-stat-card">
           <div class="km-stat-number">{{ formatNum(exclusive) }}</div>
-          <div class="km-stat-label">Эксклюзивно по подписке</div>
+          <div class="km-stat-label">По подписке</div>
+        </div>
+        <div class="km-stat-card">
+          <div class="km-stat-number">{{ formatNum(inWork) }}</div>
+          <div class="km-stat-label">В работе</div>
         </div>
       </div>
       <div v-else class="km-stats-loading">Загрузка статистики...</div>
@@ -112,7 +116,7 @@ export default {
     return { socialLinks }
   },
   computed: {
-    ...mapGetters('stats', ['onSponsr', 'onAir', 'exclusive', 'isLoading'])
+    ...mapGetters('stats', ['onSponsr', 'onAir', 'exclusive', 'inWork', 'total', 'isLoading'])
   },
   mounted() {
     this.loadStats()
@@ -228,6 +232,9 @@ export default {
   gap: 1rem;
   margin-bottom: 1.5rem;
 }
+.km-stats-4 {
+  grid-template-columns: repeat(4, 1fr);
+}
 .km-stat-card {
   background: var(--km-card);
   border: 1px solid var(--km-border);
@@ -329,12 +336,14 @@ export default {
 }
 
 /* Мобильная адаптация */
+@media (max-width: 700px) {
+  .km-stats-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
 @media (max-width: 500px) {
   .km-stats {
     grid-template-columns: repeat(2, 1fr);
-  }
-  .km-stat-exclusive {
-    grid-column: 1 / -1;
   }
   .km-nav-cards {
     grid-template-columns: 1fr;

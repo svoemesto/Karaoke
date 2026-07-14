@@ -47,6 +47,8 @@ class MainController(
         model.addAttribute("onSponsr", StatBySong.getCountSongsInCollection(database = WORKING_DATABASE))
         model.addAttribute("onAir", StatBySong.getCountSongsOnAir(database = WORKING_DATABASE))
         model.addAttribute("exclusive", StatBySong.getCountSongsExclusive(database = WORKING_DATABASE))
+        model.addAttribute("inWork", StatBySong.getCountSongsInWork(database = WORKING_DATABASE))
+        model.addAttribute("total", StatBySong.getCountSongsTotal(database = WORKING_DATABASE))
         doRegisterEvent(mapOf("eventType" to EventType.CALL_REST.dbValue, "restName" to RestName.MAIN.dbValue, "parameters" to emptyMap<String, Any>()), request)
         return "main"
     }

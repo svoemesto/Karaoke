@@ -1930,39 +1930,79 @@ export default class KaraokePlayer {
     ctx.restore()
   }
 
-  // DEMO end screen: logo (shifted up) + "Полная версия..." message + animated arrow ↓
+  // DEMO end screen: logo (H/2) + two text lines + animated ▼ arrows flanking "Ссылка"
   _renderDemoEndScreen(ctx, W, H, alpha) {
     if (this._renderVersion !== 'DEMO' || alpha <= 0) return
-    const scale = H / 1080
     ctx.save()
     ctx.globalAlpha = alpha
 
-    // Logo shifted up (center at 35% height instead of 50%)
+    // ─── Vertical layout (fractions of H) ───
+    //  topFree(1/10) + logo(1/2) + textArea(remaining) = H
+    //  textArea has padTop(>=1/10) + textBlock + padBottom(>=1/10)
+    const topFree  = H * 0.1
+    const logoH    = H * 0.5
+    const logoTop  = topFree
+    const textAreaTop = logoTop + logoH           // = H * 0.6
+    const textAreaH  = H - textAreaTop             // = H * 0.4
+    const padV     = Math.max(H * 0.1, textAreaH * 0.25)
+    const padH     = W * 0.1                       // horizontal padding
+
+    // ─── Logo (centered horizontally, top-aligned in its zone) ───
     if (this._logoImg) {
-      const boxW = W * 0.3
-      const boxH = H * 0.3
-      this._drawImageFit(ctx, this._logoImg, (W - boxW) / 2, H * 0.2 - boxH / 2, boxW, boxH)
+      const boxW = Math.min(W * 0.5, logoH * 2)
+      this._drawImageFit(ctx, this._logoImg, (W - boxW) / 2, logoTop, boxW, logoH)
     }
 
-    // Message text below logo
-    const msgY = H * 0.52
-    const msgSz = Math.max(16, Math.round(22 * scale))
-    ctx.font = `500 ${msgSz}px Roboto, sans-serif`
+    // ─── Compute max font size (binary search) ───
+    const line1 = 'Полная версия — на странице песни на официальном сайте проекта.'
+    const line2 = 'Ссылка — в описании'
+    const maxTextH = textAreaH - 2 * padV
+    const fontFamily = 'FiraSansExtraCondensed, sans-serif'
+
+    let lo = 8, hi = Math.floor(maxTextH / 2.75), bestSz = 8
+    while (lo <= hi) {
+      const mid = (lo + hi) >> 1
+      ctx.font = `400 ${mid}px ${fontFamily}`
+      const w1 = ctx.measureText(line1).width
+      const w2 = ctx.measureText(line2).width
+      if (w1 <= W * 0.8 && w2 <= W * 0.8 && mid * 2.75 <= maxTextH) {
+        bestSz = mid; lo = mid + 1
+      } else {
+        hi = mid - 1
+      }
+    }
+
+    const fontSz = bestSz
+    const gap = fontSz * 0.75
+    const textBlockH = fontSz * 2 + gap
+
+    // Center text block vertically in text area
+    const textBlockTop = textAreaTop + (textAreaH - textBlockH) / 2
+    const line1Y = textBlockTop
+    const line2Y = textBlockTop + fontSz + gap
+
+    // ─── Draw text ───
+    ctx.font = `400 ${fontSz}px ${fontFamily}`
     ctx.fillStyle = '#ccc'
     ctx.textAlign = 'center'
     ctx.textBaseline = 'top'
-    const msg = 'Полная версия — на странице песни на официальном сайте проекта.'
-    const msg2 = 'Ссылка — в описании'
-    ctx.fillText(msg, W / 2, msgY)
-    ctx.fillText(msg2, W / 2, msgY + msgSz * 1.4)
+    ctx.fillText(line1, W / 2, line1Y)
+    ctx.fillText(line2, W / 2, line2Y)
 
-    // Animated arrow ↓ (bouncing)
-    const arrowY = msgY + msgSz * 3.5
-    const bounce = Math.sin(Date.now() / 300) * 8 * scale
-    const arrowSz = Math.max(20, Math.round(36 * scale))
-    ctx.font = `700 ${arrowSz}px sans-serif`
+    // ─── Animated ▼ arrows flanking line2 ───
+    const line2W = ctx.measureText(line2).width
+    const textLeftX  = W / 2 - line2W / 2
+    const textRightX = W / 2 + line2W / 2
+    const arrowCenterX = padH                             // distance from text edge
+    const line2CenterY = line2Y + fontSz / 2
+    const bounce = Math.sin(Date.now() / 300) * 8 * (H / 1080)
+
+    ctx.font = `700 ${fontSz}px sans-serif`
     ctx.fillStyle = '#f80'
-    ctx.fillText('▼', W / 2, arrowY + bounce)
+    ctx.textBaseline = 'middle'
+
+    ctx.fillText('▼', textLeftX  - arrowCenterX, line2CenterY + bounce)
+    ctx.fillText('▼', textRightX + arrowCenterX, line2CenterY + bounce)
 
     ctx.restore()
   }
@@ -2106,80 +2146,148 @@ export default class KaraokePlayer {
     ctx.drawImage(img, x + (boxW - dw) / 2, y + (boxH - dh) / 2, dw, dh)
   }
 
-  // Mirrors Kotlin MkoSplashStart.template() — version caption ("Lyrics"/"Karaoke"/etc.)
-  // and comment ("Song"/"Accompaniment"/etc.) match the MLT splash screen layout.
-  //   border = H*0.05, images top-aligned inside border
-  //   Album box  ≈ 21%W × 37%H  at (12%W, border)
-  //   Author box ≈ 52%W × 37%H  at (36%W, border)
-  //   Song name (yellow, auto-fit) between images and caption
-  //   Version caption (cyan, 17%H) at ~79%H
-  //   Comment (cyan, 5.5%H) at ~93%H
-  //   Fade: 1→0 over last 1s (fades into karaoke)
-  //   All positions are percentages of W/H → works for any resolution/aspect ratio.
+  // Splash screen — two modes:
+  //  • online (!_renderVersion): exact replica of karaoke-public splash (1920×1080 reference frame)
+  //  • MP4 render (_renderVersion set): picArea + 3-block textArea (song/version/chord)
   _renderSplash(ctx, W, H, _scale, ct, splashDur, alphaOverride = 1) {
     const FADE = 1.0
     const fadeOut = ct > splashDur - FADE ? Math.max(0, (splashDur - ct) / FADE) : 1.0
     ctx.globalAlpha = fadeOut * alphaOverride
 
-    // Unified scale for shadows and stroke widths (based on min dimension)
     const sc = Math.min(W / 1920, H / 1080)
-
-    // Layout as fractions of canvas
-    const BORDER = H * 0.05
-
-    // Images: proportionally sized and positioned
-    const albumBoxW = W * 0.21, albumBoxH = H * 0.37
-    const authorBoxW = W * 0.52, authorBoxH = H * 0.37
-    const albumX = W * 0.12, authorX = W * 0.36
-    const imgY = BORDER
-
-    if (this._albumImg) {
-      this._drawImageFit(ctx, this._albumImg, albumX, imgY, albumBoxW, albumBoxH)
-    }
-    if (this._artistImg) {
-      this._drawImageFit(ctx, this._artistImg, authorX, imgY, authorBoxW, authorBoxH)
-    }
-
     this._setShadow(ctx, sc)
 
-    // Caption + comment (only when _renderVersion is set)
-    if (this._renderVersion) {
+    if (!this._renderVersion) {
+      // ─── Online mode: exact karaoke-public splash ───
+      const ox = (W - 1920 * sc) / 2
+      const oy = (H - 1080 * sc) / 2
+      const BORDER = 54
+      const PAD = 50
+
+      if (this._albumImg) {
+        this._drawImageFit(ctx, this._albumImg, ox + 233 * sc, oy + BORDER * sc, 400 * sc, 400 * sc)
+      }
+      if (this._artistImg) {
+        this._drawImageFit(ctx, this._artistImg, ox + 687 * sc, oy + BORDER * sc, 1000 * sc, 400 * sc)
+      }
+
+      const chordSz = Math.round(40 * sc)
+      const chordFrameY = 1080 - BORDER * 0.5 - 40 * 1.2
+      const chordY = oy + chordFrameY * sc
+      const keyStr = this.data.key ? `Key: «${this.data.key}», bpm: ${this.data.bpm}` : `bpm: ${this.data.bpm}`
+      ctx.font = `400 ${chordSz}px FiraSansExtraCondensed, sans-serif`
+      ctx.fillStyle = 'rgb(255,127,127)'
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'top'
+      ctx.fillText(keyStr, ox + 960 * sc, chordY)
+
+      const textAreaX = ox + PAD * sc
+      const textAreaY = oy + (BORDER + 400 + PAD * 0.5) * sc
+      const textAreaW = (1920 - 2 * PAD) * sc
+      const textAreaH = chordY - textAreaY - PAD * sc * 0.5
+      ctx.fillStyle = 'rgb(255,255,127)'
+      this._drawAutoFitText(ctx, this.data.songName || '', textAreaX, textAreaY, textAreaW, Math.max(10, textAreaH), '900', 'Roboto, sans-serif')
+
+    } else {
+      // ─── MP4 render mode: picArea + 3-block textArea ───
+      const coeffW = W / 1920
+      const coeffH = H / 1080
+      const coeff = Math.min(coeffW, coeffH)
+      const padding = (H / 20) * coeff
+
+      const albumW = 400 * coeff, albumH = 400 * coeff
+      const authorW = 1000 * coeff, authorH = 400 * coeff
+
+      const picAreaTop = padding
+      const picAreaH = Math.max(albumH, authorH)
+      const textAreaTop = picAreaTop + picAreaH + padding
+      const textAreaH = H - textAreaTop - padding
+      const textAreaW = W - 2 * padding
+
+      const pictureOffset = (W - albumW - authorW - padding) / 2
+
+      if (this._albumImg) {
+        this._drawImageFit(ctx, this._albumImg, pictureOffset, picAreaTop, albumW, albumH)
+      }
+      if (this._artistImg) {
+        this._drawImageFit(ctx, this._artistImg, pictureOffset + albumW + padding, picAreaTop, authorW, authorH)
+      }
+
+      const block1H = textAreaH / 2
+      const block2H = textAreaH / 8
+      const gap = padding / 3
+      const block3H = textAreaH - block1H - block2H - 2 * gap
+
+      const block1Top = textAreaTop
+      const block2Top = textAreaTop + textAreaH - block2H
+      const block3Top = block1Top + block1H + gap
+
+      // Block 1: Song name (yellow)
+      ctx.fillStyle = 'rgb(255,255,127)'
+      this._drawAutoFitText(ctx, this.data.songName || '', padding, block1Top, textAreaW, block1H, '900', 'Roboto, sans-serif')
+
+      // Block 3: Version label + comment (cyan)
       const versionMap = {
-        'LYRICS':   { label: 'Lyrics',   comment: 'Song' },
-        'KARAOKE':  { label: 'Karaoke',  comment: 'Accompaniment' },
+        'LYRICS':   { label: 'Lyrics',        comment: 'Song' },
+        'KARAOKE':  { label: 'Karaoke',       comment: 'Accompaniment' },
         'DEMO':     { label: 'Karaoke (Demo)', comment: 'Ознакомительный фрагмент' },
       }
       const ver = versionMap[this._renderVersion]
-      if (ver) {
-        const captionSz = Math.round(H * 0.17)
-        ctx.font = `400 ${captionSz}px Roboto, sans-serif`
+      if (ver && block3H > 0) {
+        const fontFamily = 'Roboto, sans-serif'
+        let lo = 8, hi = Math.floor(block3H / 1.375), bestSz = 8
+        while (lo <= hi) {
+          const mid = (lo + hi) >> 1
+          const commentSz = mid / 2
+          const totalH = mid + commentSz * 0.2 + commentSz
+          ctx.font = `400 ${mid}px ${fontFamily}`
+          const w1 = ctx.measureText(ver.label).width
+          ctx.font = `400 ${commentSz}px ${fontFamily}`
+          const w2 = ctx.measureText(ver.comment).width
+          if (totalH <= block3H && w1 <= textAreaW && w2 <= textAreaW) {
+            bestSz = mid; lo = mid + 1
+          } else {
+            hi = mid - 1
+          }
+        }
+        const verSz = bestSz
+        const commentSz = verSz / 2
+        const totalTextH = verSz + commentSz * 0.2 + commentSz
+        const verY = block3Top + (block3H - totalTextH) / 2
+        const commentY = verY + verSz + commentSz * 0.2
+
         ctx.fillStyle = 'rgb(85,255,255)'
         ctx.textAlign = 'center'
         ctx.textBaseline = 'top'
-        ctx.fillText(ver.label, W / 2, H * 0.70)
+        ctx.font = `400 ${verSz}px ${fontFamily}`
+        ctx.fillText(ver.label, W / 2, verY)
+        ctx.font = `400 ${commentSz}px ${fontFamily}`
+        ctx.fillText(ver.comment, W / 2, commentY)
+      }
 
-        const commentSz = Math.round(H * 0.055)
-        ctx.font = `400 ${commentSz}px Roboto, sans-serif`
-        ctx.fillText(ver.comment, W / 2, H * 0.88)
-
-        // Chord description (key + bpm) — salmon, centered between comment and bottom
-        const chordSz = Math.round(H * 0.037)
-        const chordY = H * 0.88 + commentSz + (H - (H * 0.88 + commentSz)) / 2 - chordSz / 2
-        const keyStr = this.data.key ? `Key: «${this.data.key}», bpm: ${this.data.bpm}` : `bpm: ${this.data.bpm}`
-        ctx.font = `400 ${chordSz}px FiraSansExtraCondensed, sans-serif`
+      // Block 2: Chord description — tonality/tempo (salmon, bottom)
+      const chordFontFamily = 'FiraSansExtraCondensed, sans-serif'
+      const keyStr2 = this.data.key ? `Key: «${this.data.key}», bpm: ${this.data.bpm}` : `bpm: ${this.data.bpm}`
+      {
+        let lo = 8, hi = Math.floor(block2H), bestSz = 8
+        while (lo <= hi) {
+          const mid = (lo + hi) >> 1
+          ctx.font = `400 ${mid}px ${chordFontFamily}`
+          const tw = ctx.measureText(keyStr2).width
+          if (mid <= block2H && tw <= textAreaW) {
+            bestSz = mid; lo = mid + 1
+          } else {
+            hi = mid - 1
+          }
+        }
+        const chordSz = bestSz
+        ctx.font = `400 ${chordSz}px ${chordFontFamily}`
         ctx.fillStyle = 'rgb(255,127,127)'
+        ctx.textAlign = 'center'
         ctx.textBaseline = 'top'
-        ctx.fillText(keyStr, W / 2, chordY)
+        ctx.fillText(keyStr2, W / 2, block2Top + (block2H - chordSz) / 2)
       }
     }
-
-    // Song name: yellow, auto-fit between images bottom and caption
-    const textAreaX = W * 0.027
-    const textAreaY = imgY + albumBoxH + H * 0.023
-    const textAreaW = W * 0.946
-    const textAreaH = H * 0.70 - textAreaY - H * 0.023
-    ctx.fillStyle = 'rgb(255,255,127)'
-    this._drawAutoFitText(ctx, this.data.songName || '', textAreaX, textAreaY, textAreaW, Math.max(10, textAreaH), '900', 'Roboto, sans-serif')
 
     this._clearShadow(ctx)
     ctx.globalAlpha = 1.0

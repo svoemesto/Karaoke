@@ -3102,6 +3102,7 @@ fun executeRenderMp4(params: Map<String, String>, onProgress: ((Int) -> Unit)? =
     // Для DEMO — границы фрагмента из Settings (первый куплет)
     val demoStart = if (version == com.svoemesto.karaokeapp.services.RenderVersion.DEMO) settings.demoFragmentStartSeconds else null
     val demoEnd = if (version == com.svoemesto.karaokeapp.services.RenderVersion.DEMO) settings.demoFragmentEndSeconds else null
+    val demoFadeIn = if (version == com.svoemesto.karaokeapp.services.RenderVersion.DEMO) settings.demoFragmentFadeInSeconds else null
 
     println("[${java.sql.Timestamp.from(java.time.Instant.now())}] executeRenderMp4: старт для id=$settingsId (${width}x${height}@${fps}) version=${version.name}" +
             if (demoStart != null && demoEnd != null) " demo=$demoStart..$demoEnd" else "")
@@ -3131,6 +3132,7 @@ fun executeRenderMp4(params: Map<String, String>, onProgress: ((Int) -> Unit)? =
         totalDurationSeconds = totalDurationSec,
         demoFragmentStart = demoStart,
         demoFragmentEnd = demoEnd,
+        demoFadeInSeconds = demoFadeIn,
         onProgress = { muxPercent -> onProgress?.invoke(80 + (muxPercent * 20) / 100) },
     )
 

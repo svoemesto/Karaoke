@@ -184,6 +184,31 @@
             </span>
           </div>
         </template>
+        <template #cell(playerDemo)="data">
+          <div
+              class="fld-player"
+              :style="{ backgroundColor: data.item.color }"
+          >
+            <a
+                v-if="data.item.idStatus >= 3"
+                href="#"
+                class="player-icon-link"
+                title="Открыть DEMO-плеер"
+                @click.left.prevent="openPlayerDemo(data.item.id)"
+            >
+              <svg width="18" height="18" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" fill="none">
+                <circle cx="10" cy="10" r="10" fill="#C5A53C"/>
+                <path d="M8 6.5v7l6-3.5-6-3.5Z" fill="#fff"/>
+              </svg>
+            </a>
+            <span v-else class="player-icon-disabled" title="DEMO-плеер недоступен (статус < 3)">
+              <svg width="18" height="18" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" fill="none">
+                <circle cx="10" cy="10" r="10" fill="#E6E6E6"/>
+                <path d="M8 6.5v7l6-3.5-6-3.5Z" fill="#919191"/>
+              </svg>
+            </span>
+          </div>
+        </template>
         <template #cell(assign)="data">
           <div class="fld-assign" :style="{ backgroundColor: data.item.color }" @click.stop>
             <template v-if="data.item.idStatus < 3">
@@ -722,6 +747,16 @@ export default {
           }
         },
         {
+          key: 'playerDemo',
+          label: '▶',
+          style: {
+            minWidth: '22px',
+            maxWidth: '22px',
+            textAlign: 'center',
+            fontSize: 'small'
+          }
+        },
+        {
           key: 'assign',
           label: 'Редактор',
           style: {
@@ -1008,6 +1043,22 @@ export default {
   methods: {
     openPlayer(id) {
       window.open('/player/' + id, '_blank')
+    },
+    async openPlayerDemo(id) {
+      try {
+        const resp = await fetch('/api/song/' + id + '/demobounds')
+        if (!resp.ok) return
+        const bounds = await resp.json()
+        if (bounds.start == null || bounds.end == null) return
+        const params = new URLSearchParams({
+          version: 'DEMO',
+          demoStart: String(bounds.start),
+          demoEnd: String(bounds.end),
+        })
+        window.open('/player/' + id + '?' + params.toString(), '_blank')
+      } catch (e) {
+        console.error('openPlayerDemo failed:', e)
+      }
     },
     // --- Кнопка «Назначить»/«Назначено» (онлайн-редактор) -----------------------------------
     reloadAssignmentStatus() {

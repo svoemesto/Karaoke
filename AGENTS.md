@@ -41,6 +41,40 @@ Karaoke (svoemesto) — self-pipeline для автоматического со
 
 **Ловушка дефолтов DEMO:** дефолты 1280/720/30 задаются И в `ApiController.kt` (context map), И в `KaraokeProcess.kt` (fallback). Контроллер подставляет дефолты раньше, чем они попадают в context — если задать только в KaraokeProcess, не сработает.
 
+## Счётчики главной страницы (StatBySong)
+
+Карточки статистики в `HomeView.vue` (karaoke-public) и `main.html` (legacy Thymeleaf) показывают 4 числа + одно внутреннее:
+
+| Лейбл | Формула (SQL в `Stat.kt`, без учёта SKIP) |
+|---|---|
+| **Песен в коллекции** | `count(*) WHERE id_status>=3 AND btrim(source_markers)!=''` |
+| **В открытом доступе** | подмножество «коллекции» с истёкшим `publish_date`/`publish_time` |
+| **По подписке** | «коллекция» − «в открытом доступе» (вычитание на бэкенде) |
+| **В работе** | «всего в БД» − «в коллекции» |
+| **Всего в БД** (внутр., не показывается) | `count(*)` без SKIP |
+
+**SKIP-фильтр** (одинаков во всех формулах):
+`(tags IS NULL OR NOT ('SKIP' = ANY(string_to_array(upper(coalesce(tags,'')), ' '))))` —
+исключает реальное слово-маркер `SKIP` (через массив-тег), не подстроку.
+
+**Формула «Песен в коллекции» — SQL-аппроксимация готовности премиум-плеера.** Точная проверка
+живёт в `PublicPlayerController.stemsReady()` и делает 2 HEAD-запроса в MinIO на песню;
+счётчик главной на 18k+ записей не может позволить такую нагрузку — используется **последний
+из трёх шагов** готовности (наличие `source_markers` после `id_status>=3`).
+
+**Кеш в `AtomicInteger`** (`cachedTotal/Collection/OnAir/Exclusive/InWork`); live-сайт получает
+мгновенный JSON без обращения к БД. Обновление — `StatsCacheScheduler`
+(`@PostConstruct warmUp()` для cold-start + `@Scheduled cron "0 0 * * * *"` каждый час).
+Spring `@Cacheable` намеренно НЕ подключён (нет `@EnableCaching`) — проще держать инвариант
+«endpoint отвечает без обращения к БД» явно через `AtomicInteger + Scheduled`, чем добавлять
+стартер ради одного счётчика.
+
+**Потребители:**
+- `PublicApiController.kt` (`@GetMapping("/stats")`) → JSON для Vuex-модуля `stats`
+  (`karaoke-public/src/store/modules/stats.js`).
+- `MainController.kt:main()` → атрибуты `onSponsr/onAir/exclusive/inWork/total` для Thymeleaf
+  `main.html` (legacy-шаблон, дублирует карточки для старого сайта).
+
 ## Модули
 
 - `karaoke-app` — ядро: Spring Boot (Kotlin), все доменные модели, MLT-генератор, очередь задач, LLM-поиск текстов

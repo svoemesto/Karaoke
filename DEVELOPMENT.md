@@ -616,9 +616,31 @@ true` на нужных полях в `fields` + `v-model:sort-by` (data `sortBy
  для всех позиций заказа), акция `CART_BULK_PERCENT` (скидка от N штук в заказе, отличается от `NTH_FREE`
  тем, что считает только текущий заказ, а не все покупки пользователя). Детали.
 - **Постоянная скидка** — процент на `SiteUser`, выставляется вручную админом, суммируется ПОВЕРХ
- результата любой акции (не конкурирует с `tbl_promo_rules`) и применяется к любому заказу.
- `PriceService.applyPersonalDiscount()` — единая точка для обеих веток `computePrice`/`computeCartPrice`.
- Детали.
+результата любой акции (не конкурирует с `tbl_promo_rules`) и применяется к любому заказу.
+`PriceService.applyPersonalDiscount()` — единая точка для обеих веток `computePrice`/`computeCartPrice`.
+Детали.
+
+**Счётчики главной страницы (`StatBySong`, karaoke-web).** Один Kotlin-объект в karaoke-web отдаёт
+пять чисел для `/api/public/stats` (consumes Vuex-store `stats` в karaoke-public) и модели для
+legacy Thymeleaf `main.html` — 4 карточки + внутреннее «Всего в БД» для расчёта «В работе».
+Во всех формулах SKIP-песни исключены через массив-тег:
+`NOT ('SKIP' = ANY(string_to_array(upper(coalesce(tags,'')), ' ')))` —
+отбрасывает реальное слово-маркер SKIP, не подстроку (не словит `'noSKIP'` или вхождение
+внутри другого тега). SQL-аппроксимация готовности премиум-плеера
+(`id_status>=3 AND btrim(source_markers)!=''`) берёт **последний/самый стабильный** шаг
+из трёх в `PublicPlayerController.stemsReady()` (idStatus + 2 HEAD в MinIO + markers) —
+без обращения к MinIO, иначе счётчик главной на 18k+ записей отвечал бы десятки секунд.
+Реальная проверка стемов для иконки плеера в закромах — отдельный механизм:
+`usePlayerReadiness.js` (karaoke-public, батч `POST /api/public/player/readiness` через
+`PublicPlayerController.readiness()` — тяжёлые HEAD-запросы смягчаются чанками по 20
+с параллелизмом 3). Кеш счётчиков — `AtomicInteger` (`cachedTotal/Collection/OnAir/
+Exclusive/InWork`); `services/StatsCacheScheduler.kt` (`@PostConstruct warmUp()` +
+`@Scheduled cron "0 0 * * *"`) обновляет раз в час; первый запрос endpoint после
+рестарта инициирует синхронный `refreshCache` через `ensureCacheInitialized`,
+чтобы `/api/public/stats` не вернул нули до первого cron-тика. Spring `@Cacheable`
+намеренно НЕ подключён (нет `@EnableCaching`) — проще явно держать инвариант
+«endpoint отвечает без обращения к БД» через `AtomicInteger + Scheduled`, чем заводить
+starter-кеш ради одного счётчика.
 
 ## `tbl_public_settings` и ручные SQL-миграции
 

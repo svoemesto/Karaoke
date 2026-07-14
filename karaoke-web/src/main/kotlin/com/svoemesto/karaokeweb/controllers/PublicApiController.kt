@@ -79,6 +79,8 @@ class PublicApiController(
             "onSponsr" to StatBySong.getCountSongsInCollection(database = WORKING_DATABASE),
             "onAir" to StatBySong.getCountSongsOnAir(database = WORKING_DATABASE),
             "exclusive" to StatBySong.getCountSongsExclusive(database = WORKING_DATABASE),
+            "inWork" to StatBySong.getCountSongsInWork(database = WORKING_DATABASE),
+            "total" to StatBySong.getCountSongsTotal(database = WORKING_DATABASE),
         )
     }
 

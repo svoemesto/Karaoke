@@ -1493,9 +1493,10 @@ class KaraokeProcess(
                         val version = context["version"] as? String ?: "KARAOKE"
                         description = "RENDER MP4 ($version)"
                         val songId = settings.id
-                        val width = context["width"] as? Int ?: 1920
-                        val height = context["height"] as? Int ?: 1080
-                        val fps = context["fps"] as? Int ?: 60
+                        val isDemo = version == "DEMO"
+                        val width = context["width"] as? Int ?: if (isDemo) 1280 else 1920
+                        val height = context["height"] as? Int ?: if (isDemo) 720 else 1080
+                        val fps = context["fps"] as? Int ?: if (isDemo) 30 else 60
                         args = listOf(
                             listOf(
                                 "runFunctionWithArgs", "renderMp4",

@@ -1420,6 +1420,7 @@ class ApiController(
         @RequestParam(required = false) filterRate: String?,
         @RequestParam(required = false) filterStatusProcessLyrics: String?,
         @RequestParam(required = false) filterStatusProcessKaraoke: String?,
+        @RequestParam(required = false) filterStatusProcessDemo: String?,
         @RequestParam(required = false) filterIsSync: String?,
         @RequestParam(required = false) filterRootId: String?,
         // filterAssignmentStatus/target — фильтр по назначенному заданию онлайн-редактора ("unassigned"
@@ -1479,6 +1480,7 @@ class ApiController(
         filterRate?.let { if (filterRate != "") args["filter_rate"] = filterRate }
         filterStatusProcessLyrics?.let { if (filterStatusProcessLyrics != "") args["filter_status_process_lyrics"] = filterStatusProcessLyrics }
         filterStatusProcessKaraoke?.let { if (filterStatusProcessKaraoke != "") args["filter_status_process_karaoke"] = filterStatusProcessKaraoke }
+        filterStatusProcessDemo?.let { if (filterStatusProcessDemo != "") args["filter_status_process_demo"] = filterStatusProcessDemo }
         filterIsSync?.let { if (filterIsSync != "") args["is_sync"] = filterIsSync }
         filterRootId?.let { if (filterRootId != "") args["filter_root_id"] = filterRootId }
 
@@ -1567,6 +1569,7 @@ class ApiController(
         @RequestParam(required = false) filterRate: String?,
         @RequestParam(required = false) filterStatusProcessLyrics: String?,
         @RequestParam(required = false) filterStatusProcessKaraoke: String?,
+        @RequestParam(required = false) filterStatusProcessDemo: String?,
         @RequestParam(required = false) filterRootId: String?,
         @RequestParam(required = false) pageSize: Int = 30
     ): Map<String, Any> {
@@ -1619,6 +1622,7 @@ class ApiController(
         filterRate?.let { if (filterRate != "") args["filter_rate"] = filterRate }
         filterStatusProcessLyrics?.let { if (filterStatusProcessLyrics != "") args["filter_status_process_lyrics"] = filterStatusProcessLyrics }
         filterStatusProcessKaraoke?.let { if (filterStatusProcessKaraoke != "") args["filter_status_process_karaoke"] = filterStatusProcessKaraoke }
+        filterStatusProcessDemo?.let { if (filterStatusProcessDemo != "") args["filter_status_process_demo"] = filterStatusProcessDemo }
         filterRootId?.let { if (filterRootId != "") args["filter_root_id"] = filterRootId }
 
         SongsHistory().add(args)
@@ -2133,6 +2137,7 @@ class ApiController(
                              @RequestParam(required = false) priorKaraoke: String? = "1",
                              @RequestParam(required = false) priorChords: String? = "",
                              @RequestParam(required = false) priorMelody: String? = "",
+                             @RequestParam(required = false) priorDemo: String? = "",
                              @RequestParam(required = false) threadId: String? = "0",
     ): Boolean {
         val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
@@ -2148,25 +2153,27 @@ class ApiController(
             val createKaraoke = priorKaraoke != "" && priorKaraoke != null
             val createChords = priorChords != "" && priorChords != null
             val createMelody = priorMelody != "" && priorMelody != null
+            val createDemo = priorDemo != "" && priorDemo != null
 
-            settings.createKaraoke(
-                createLyrics = createLyrics,
-                createKaraoke = createKaraoke,
-                createChords = createChords,
-                createMelody = createMelody,
-            )
             if (createLyrics) {
-                KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS, true, priorLyrics.toInt(), threadId = threadId?.toInt() ?: 0)
+                KaraokeProcess.createProcess(settings, KaraokeProcessTypes.RENDER_MP4_LYRICS, true, priorLyrics.toInt(), threadId = threadId?.toInt() ?: 0,
+                    context = mapOf("version" to com.svoemesto.karaokeapp.services.RenderVersion.LYRICS.name))
             }
             if (createKaraoke) {
-                KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, priorKaraoke.toInt(), threadId = threadId?.toInt() ?: 0)
+                KaraokeProcess.createProcess(settings, KaraokeProcessTypes.RENDER_MP4_KARAOKE, true, priorKaraoke.toInt(), threadId = threadId?.toInt() ?: 0,
+                    context = mapOf("version" to com.svoemesto.karaokeapp.services.RenderVersion.KARAOKE.name))
             }
             if (createChords) {
-
-                KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDS, true, priorChords.toInt(), threadId = threadId?.toInt() ?: 0)
+                KaraokeProcess.createProcess(settings, KaraokeProcessTypes.RENDER_MP4_CHORDS, true, priorChords.toInt(), threadId = threadId?.toInt() ?: 0,
+                    context = mapOf("version" to com.svoemesto.karaokeapp.services.RenderVersion.CHORDS.name))
             }
             if (createMelody) {
-                KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_TABS, true, priorMelody.toInt(), threadId = threadId?.toInt() ?: 0)
+                KaraokeProcess.createProcess(settings, KaraokeProcessTypes.RENDER_MP4_TABS, true, priorMelody.toInt(), threadId = threadId?.toInt() ?: 0,
+                    context = mapOf("version" to com.svoemesto.karaokeapp.services.RenderVersion.TABS.name))
+            }
+            if (createDemo) {
+                KaraokeProcess.createProcess(settings, KaraokeProcessTypes.RENDER_MP4_DEMO, true, priorDemo.toInt(), threadId = threadId?.toInt() ?: 0,
+                    context = mapOf("version" to com.svoemesto.karaokeapp.services.RenderVersion.DEMO.name))
             }
 
             type = "info"
@@ -2185,6 +2192,7 @@ class ApiController(
                                  @RequestParam(required = false) priorKaraoke: String? = "10",
                                  @RequestParam(required = false) priorChords: String? = "",
                                  @RequestParam(required = false) priorMelody: String? = "",
+                                 @RequestParam(required = false) priorDemo: String? = "",
                                  @RequestParam(required = false) threadId: String? = "0",
     ) {
         var result = false
@@ -2197,25 +2205,27 @@ class ApiController(
                     val createKaraoke = priorKaraoke != "" && priorKaraoke != null
                     val createChords = priorChords != "" && priorChords != null
                     val createMelody = priorMelody != "" && priorMelody != null
-
-                    settings.createKaraoke(
-                        createLyrics = createLyrics,
-                        createKaraoke = createKaraoke,
-                        createChords = createChords,
-                        createMelody = createMelody,
-                    )
+                    val createDemo = priorDemo != "" && priorDemo != null
 
                     if (createLyrics) {
-                        KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS, true, priorLyrics.toInt(), threadId = threadId?.toInt() ?: 0)
+                        KaraokeProcess.createProcess(settings, KaraokeProcessTypes.RENDER_MP4_LYRICS, true, priorLyrics.toInt(), threadId = threadId?.toInt() ?: 0,
+                            context = mapOf("version" to com.svoemesto.karaokeapp.services.RenderVersion.LYRICS.name))
                     }
                     if (createKaraoke) {
-                        KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, priorKaraoke.toInt(), threadId = threadId?.toInt() ?: 0)
+                        KaraokeProcess.createProcess(settings, KaraokeProcessTypes.RENDER_MP4_KARAOKE, true, priorKaraoke.toInt(), threadId = threadId?.toInt() ?: 0,
+                            context = mapOf("version" to com.svoemesto.karaokeapp.services.RenderVersion.KARAOKE.name))
                     }
                     if (createChords) {
-                        KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDS, true, priorChords.toInt(), threadId = threadId?.toInt() ?: 0)
+                        KaraokeProcess.createProcess(settings, KaraokeProcessTypes.RENDER_MP4_CHORDS, true, priorChords.toInt(), threadId = threadId?.toInt() ?: 0,
+                            context = mapOf("version" to com.svoemesto.karaokeapp.services.RenderVersion.CHORDS.name))
                     }
                     if (createMelody) {
-                        KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_TABS, true, priorMelody.toInt(), threadId = threadId?.toInt() ?: 0)
+                        KaraokeProcess.createProcess(settings, KaraokeProcessTypes.RENDER_MP4_TABS, true, priorMelody.toInt(), threadId = threadId?.toInt() ?: 0,
+                            context = mapOf("version" to com.svoemesto.karaokeapp.services.RenderVersion.TABS.name))
+                    }
+                    if (createDemo) {
+                        KaraokeProcess.createProcess(settings, KaraokeProcessTypes.RENDER_MP4_DEMO, true, priorDemo.toInt(), threadId = threadId?.toInt() ?: 0,
+                            context = mapOf("version" to com.svoemesto.karaokeapp.services.RenderVersion.DEMO.name))
                     }
                 }
                 result = true
@@ -3789,6 +3799,8 @@ class ApiController(
             action = when (renderVersion) {
                 com.svoemesto.karaokeapp.services.RenderVersion.LYRICS -> KaraokeProcessTypes.RENDER_MP4_LYRICS
                 com.svoemesto.karaokeapp.services.RenderVersion.KARAOKE -> KaraokeProcessTypes.RENDER_MP4_KARAOKE
+                com.svoemesto.karaokeapp.services.RenderVersion.CHORDS -> KaraokeProcessTypes.RENDER_MP4_CHORDS
+                com.svoemesto.karaokeapp.services.RenderVersion.TABS -> KaraokeProcessTypes.RENDER_MP4_TABS
                 com.svoemesto.karaokeapp.services.RenderVersion.DEMO -> KaraokeProcessTypes.RENDER_MP4_DEMO
             },
             doWait = true,
@@ -3819,6 +3831,8 @@ class ApiController(
             when (com.svoemesto.karaokeapp.services.RenderVersion.valueOf(version ?: "KARAOKE")) {
                 com.svoemesto.karaokeapp.services.RenderVersion.LYRICS -> KaraokeProcessTypes.RENDER_MP4_LYRICS
                 com.svoemesto.karaokeapp.services.RenderVersion.KARAOKE -> KaraokeProcessTypes.RENDER_MP4_KARAOKE
+                com.svoemesto.karaokeapp.services.RenderVersion.CHORDS -> KaraokeProcessTypes.RENDER_MP4_CHORDS
+                com.svoemesto.karaokeapp.services.RenderVersion.TABS -> KaraokeProcessTypes.RENDER_MP4_TABS
                 com.svoemesto.karaokeapp.services.RenderVersion.DEMO -> KaraokeProcessTypes.RENDER_MP4_DEMO
             }
         } catch (_: Exception) { KaraokeProcessTypes.RENDER_MP4_KARAOKE }

@@ -24,6 +24,7 @@ export default {
         songsFilterIsSync: '',
         songsFilterStatusProcessLyrics: '',
         songsFilterStatusProcessKaraoke: '',
+        songsFilterStatusProcessDemo: '',
         songsFilterRootId: '',
         songsFilterFlagExclusive: '',
         songsFilterFlagFree: '',
@@ -58,6 +59,7 @@ export default {
         getSongsFilterIsSync(state) { return state.songsFilterIsSync},
         getSongsFilterStatusProcessLyrics(state) { return state.songsFilterStatusProcessLyrics},
         getSongsFilterStatusProcessKaraoke(state) { return state.songsFilterStatusProcessKaraoke},
+        getSongsFilterStatusProcessDemo(state) { return state.songsFilterStatusProcessDemo},
         getSongsFilterRootId(state) { return state.songsFilterRootId},
         getSongsFilterFlagExclusive(state) { return state.songsFilterFlagExclusive},
         getSongsFilterFlagFree(state) { return state.songsFilterFlagFree},
@@ -157,6 +159,10 @@ export default {
             setWebvueProp(state.songsFilterStatusProcessKaraoke, 'songsFilterStatusProcessKaraoke', value);
             state.songsFilterStatusProcessKaraoke = value;
         },
+        setSongsFilterStatusProcessDemo(state, value) {
+            setWebvueProp(state.songsFilterStatusProcessDemo, 'songsFilterStatusProcessDemo', value);
+            state.songsFilterStatusProcessDemo = value;
+        },
         setSongsFilterRootId(state, value) {
             setWebvueProp(state.songsFilterRootId, 'songsFilterRootId', value);
             state.songsFilterRootId = value;
@@ -208,6 +214,7 @@ export default {
         setSongsFilterIsSync(ctx, payload) { ctx.commit('setSongsFilterIsSync', payload.value) },
         setSongsFilterStatusProcessLyrics(ctx, payload) { ctx.commit('setSongsFilterStatusProcessLyrics', payload.value) },
         setSongsFilterStatusProcessKaraoke(ctx, payload) { ctx.commit('setSongsFilterStatusProcessKaraoke', payload.value) },
+        setSongsFilterStatusProcessDemo(ctx, payload) { ctx.commit('setSongsFilterStatusProcessDemo', payload.value) },
         setSongsFilterRootId(ctx, payload) { ctx.commit('setSongsFilterRootId', payload.value) },
         setSongsFilterFlagExclusive(ctx, payload) { ctx.commit('setSongsFilterFlagExclusive', payload.value) },
         setSongsFilterFlagFree(ctx, payload) { ctx.commit('setSongsFilterFlagFree', payload.value) },

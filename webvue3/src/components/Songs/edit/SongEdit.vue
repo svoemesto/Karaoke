@@ -1779,6 +1779,13 @@ export default {
             fldValueStyle: { width: '80px', textAlign: 'center', borderRadius: '10px'}
           },
           {
+            fldName: 'priorDemo',
+            fldLabel: 'Приоритет Demo:',
+            fldValue: this.$store.getters.getLastPriorDemo,
+            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px'},
+            fldValueStyle: { width: '80px', textAlign: 'center', borderRadius: '10px'}
+          },
+          {
             fldName: 'threadId',
             fldLabel: 'threadId:',
             fldValue: this.$store.getters.getLastThreadId,
@@ -1794,12 +1801,14 @@ export default {
       this.$store.dispatch('setLastPriorKaraoke', {value: result.priorKaraoke});
       this.$store.dispatch('setLastPriorChords', {value: result.priorChords});
       this.$store.dispatch('setLastPriorMelody', {value: result.priorMelody});
+      this.$store.dispatch('setLastPriorDemo', {value: result.priorDemo});
       this.$store.dispatch('setLastThreadId', {value: result.threadId});
       this.$store.dispatch('createKaraokePromise', {
         priorLyrics: result.priorLyrics,
         priorKaraoke: result.priorKaraoke,
         priorChords: result.priorChords,
         priorMelody: result.priorMelody,
+        priorDemo: result.priorDemo,
         threadId: result.threadId
       });
     },

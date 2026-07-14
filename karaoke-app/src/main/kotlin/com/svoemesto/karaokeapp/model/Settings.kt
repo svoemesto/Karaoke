@@ -297,6 +297,7 @@ class Settings(
     var statusProcessKaraoke: String = ""
     var statusProcessChords: String = ""
     var statusProcessMelody: String = ""
+    var statusProcessDemo: String = ""
 
     @get:JsonIgnore
     val sourceTextList: List<String>
@@ -1439,6 +1440,10 @@ class Settings(
     val processColorMeltKaraoke: String get() = getColorToProcessTypeName(statusProcessKaraoke)
     val processColorMeltChords: String get() = getColorToProcessTypeName(statusProcessChords)
     val processColorMeltMelody: String get() = getColorToProcessTypeName(statusProcessMelody)
+    val processColorPlayerDemo: String get() = getColorToProcessTypeName(statusProcessDemo)
+
+    @get:JsonIgnore
+    val flagPlayerDemo: String get() = if (File(pathToFileRenderMp4ForVersion(com.svoemesto.karaokeapp.services.RenderVersion.DEMO)).exists()) "✓" else "-"
 
     val processColorVk: String get() = if (idVk.isNotBlank()) "#00FF00" else "#A9A9A9"
     val processColorBoosty: String get() =
@@ -4131,6 +4136,7 @@ class Settings(
         fieldsValues.add(Pair("status_process_karaoke", settings.statusProcessKaraoke))
         fieldsValues.add(Pair("status_process_chords", settings.statusProcessChords))
         fieldsValues.add(Pair("status_process_melody", settings.statusProcessMelody))
+        fieldsValues.add(Pair("status_process_demo", settings.statusProcessDemo))
         fieldsValues.add(Pair("tags", settings.tags))
         fieldsValues.add(Pair("rate", settings.rate))
         fieldsValues.add(Pair("id_tariff", settings.idTariff))
@@ -4456,6 +4462,7 @@ class Settings(
                 if (settA.statusProcessKaraoke != settB.statusProcessKaraoke) result.add(RecordDiff("status_process_karaoke", settA.statusProcessKaraoke, settB.statusProcessKaraoke))
                 if (settA.statusProcessChords != settB.statusProcessChords) result.add(RecordDiff("status_process_chords", settA.statusProcessChords, settB.statusProcessChords))
                 if (settA.statusProcessMelody != settB.statusProcessMelody) result.add(RecordDiff("status_process_melody", settA.statusProcessMelody, settB.statusProcessMelody))
+                if (settA.statusProcessDemo != settB.statusProcessDemo) result.add(RecordDiff("status_process_demo", settA.statusProcessDemo, settB.statusProcessDemo))
                 if (settA.tags != settB.tags) result.add(RecordDiff("tags", settA.tags, settB.tags))
                 if (settA.rate != settB.rate) result.add(RecordDiff("rate", settA.rate, settB.rate))
                 if (settA.formattedTextSong != settB.formattedTextSong) result.add(RecordDiff("formatted_text_song", settA.formattedTextSong, settB.formattedTextSong))
@@ -4473,6 +4480,7 @@ class Settings(
                 if (settA.processColorMeltKaraoke != settB.processColorMeltKaraoke) result.add(RecordDiff("processColorMeltKaraoke", settA.processColorMeltKaraoke, settB.processColorMeltKaraoke, false))
                 if (settA.processColorMeltChords != settB.processColorMeltChords) result.add(RecordDiff("processColorMeltChords", settA.processColorMeltChords, settB.processColorMeltChords, false))
                 if (settA.processColorMeltMelody != settB.processColorMeltMelody) result.add(RecordDiff("processColorMeltMelody", settA.processColorMeltMelody, settB.processColorMeltMelody, false))
+                if (settA.processColorPlayerDemo != settB.processColorPlayerDemo) result.add(RecordDiff("processColorPlayerDemo", settA.processColorPlayerDemo, settB.processColorPlayerDemo, false))
                 if (settA.processColorDzenLyrics != settB.processColorDzenLyrics) result.add(RecordDiff("processColorDzenLyrics", settA.processColorDzenLyrics, settB.processColorDzenLyrics, false))
                 if (settA.processColorDzenKaraoke != settB.processColorDzenKaraoke) result.add(RecordDiff("processColorDzenKaraoke", settA.processColorDzenKaraoke, settB.processColorDzenKaraoke, false))
                 if (settA.processColorDzenChords != settB.processColorDzenChords) result.add(RecordDiff("processColorDzenChords", settA.processColorDzenChords, settB.processColorDzenChords, false))
@@ -4881,6 +4889,7 @@ class Settings(
 
             if (args.containsKey("filter_status_process_lyrics")) where += "LOWER(status_process_lyrics) LIKE '%${args["filter_status_process_lyrics"]?.rightFileName()?.lowercase()}%'"
             if (args.containsKey("filter_status_process_karaoke")) where += "LOWER(status_process_karaoke) LIKE '%${args["filter_status_process_karaoke"]?.rightFileName()?.lowercase()}%'"
+            if (args.containsKey("filter_status_process_demo")) where += "LOWER(status_process_demo) LIKE '%${args["filter_status_process_demo"]?.rightFileName()?.lowercase()}%'"
 
             val listFields = listOf(
                 Pair("id", "id"),
@@ -5059,6 +5068,7 @@ class Settings(
                     settings.statusProcessKaraoke = rs.getString("status_process_karaoke") ?: ""
                     settings.statusProcessChords = rs.getString("status_process_chords") ?: ""
                     settings.statusProcessMelody = rs.getString("status_process_melody") ?: ""
+                    settings.statusProcessDemo = rs.getString("status_process_demo") ?: ""
                     settings.tags = rs.getString("tags") ?: ""
 
 //                    val currentCalendar = Calendar.getInstance()
@@ -5392,6 +5402,7 @@ class Settings(
             flagDzenKaraoke = flagDzenKaraoke,
             flagDzenChords = flagDzenChords,
             flagDzenMelody = flagDzenMelody,
+            flagPlayerDemo = flagPlayerDemo,
             flagVkLyrics = flagVkLyrics,
             flagVkKaraoke = flagVkKaraoke,
             flagVkChords = flagVkChords,
@@ -5417,6 +5428,7 @@ class Settings(
             processColorMeltKaraoke = processColorMeltKaraoke,
             processColorMeltChords = processColorMeltChords,
             processColorMeltMelody = processColorMeltMelody,
+            processColorPlayerDemo = processColorPlayerDemo,
             processColorDzenLyrics = processColorDzenLyrics,
             processColorDzenKaraoke = processColorDzenKaraoke,
             processColorDzenChords = processColorDzenChords,

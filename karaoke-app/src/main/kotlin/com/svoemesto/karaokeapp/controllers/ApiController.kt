@@ -3795,9 +3795,9 @@ class ApiController(
             prior = 1,
             threadId = 0,
             context = mapOf(
-                "width" to (width ?: 1920),
-                "height" to (height ?: 1080),
-                "fps" to (fps ?: 60),
+                "width" to (width ?: if (renderVersion == com.svoemesto.karaokeapp.services.RenderVersion.DEMO) 1280 else 1920),
+                "height" to (height ?: if (renderVersion == com.svoemesto.karaokeapp.services.RenderVersion.DEMO) 720 else 1080),
+                "fps" to (fps ?: if (renderVersion == com.svoemesto.karaokeapp.services.RenderVersion.DEMO) 30 else 60),
                 "version" to renderVersion.name,
             )
         )

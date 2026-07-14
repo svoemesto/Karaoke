@@ -60,6 +60,7 @@ object PlayerMp4MuxService {
         totalDurationSeconds: Double = 0.0,
         demoFragmentStart: Double? = null,
         demoFragmentEnd: Double? = null,
+        demoFadeInSeconds: Double? = null,
         onProgress: ((Int) -> Unit)? = null,
     ) {
         require(audioTracks.isNotEmpty()) { "audioTracks не может быть пустым" }
@@ -79,8 +80,17 @@ object PlayerMp4MuxService {
             val trimFilter = if (demoFragmentStart != null && demoFragmentEnd != null) {
                 "atrim=start=${demoFragmentStart}:end=${demoFragmentEnd},asetpts=PTS-STARTPTS,"
             } else ""
+            // Для DEMO: fade-in/out аудио (зеркалит клиентский fade-in из KaraokePlayer.js).
+            // afade применяется ПОСЛЕ atrim/asetpts (тайминг относительно обрезанного фрагмента)
+            // и ПЕРЕД adelay (fade в домене аудио-времени, не выходного).
+            val fadeFilter = if (demoFragmentStart != null && demoFragmentEnd != null && (demoFadeInSeconds ?: 0.0) > 0.0) {
+                val trimmedDur = demoFragmentEnd - demoFragmentStart
+                val fadeInDur = demoFadeInSeconds!!
+                val fadeOutStart = trimmedDur - 1.0  // fade-out в последнюю 1 секунду
+                "afade=t=in:st=0:d=${fadeInDur},afade=t=out:st=${fadeOutStart}:d=1,"
+            } else ""
             // all=1 — задержка применяется ко всем каналам источника независимо от их числа (моно/стерео).
-            filterParts.add("[$srcIdx:a]${trimFilter}adelay=delays=$delayMs:all=1,volume=${t.gain}[$label]")
+            filterParts.add("[$srcIdx:a]${trimFilter}${fadeFilter}adelay=delays=$delayMs:all=1,volume=${t.gain}[$label]")
             mixLabels.add("[$label]")
         }
         filterParts.add("${mixLabels.joinToString("")}amix=inputs=${audioTracks.size}:duration=longest:dropout_transition=0[aout]")

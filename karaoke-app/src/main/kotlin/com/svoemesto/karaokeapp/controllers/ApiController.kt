@@ -4093,6 +4093,19 @@ class ApiController(
         return ResponseEntity.ok(data)
     }
 
+    // Demo fragment bounds for a song (admin: opens player in DEMO mode like public non-premium user).
+    @GetMapping("/song/{id}/demobounds")
+    @ResponseBody
+    fun getDemoBounds(@PathVariable id: Long): ResponseEntity<Map<String, Double?>> {
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+            ?: return ResponseEntity.notFound().build()
+        return ResponseEntity.ok(mapOf(
+            "start" to settings.demoFragmentStartSeconds,
+            "end" to settings.demoFragmentEndSeconds,
+            "fadeIn" to settings.demoFragmentFadeInSeconds,
+        ))
+    }
+
     // Generates a .smkaraoke container (ZIP): manifest.json + audio MP3s + images from MinIO.
     // Media files are STORED (no recompression); manifest is DEFLATED.
     // Optional fields (tracks/images) are present only if the source files actually exist.

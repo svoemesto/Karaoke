@@ -3148,7 +3148,7 @@ fun executeRenderMp4(params: Map<String, String>, onProgress: ((Int) -> Unit)? =
 
     // Удаляем временную папку (секвенция кадров + промежуточный mp4)
     val tempDir = File("${com.svoemesto.karaokeapp.PATH_TO_TEMP_RENDERMP4_FOLDER}/${settingsId}_${version.name}")
-//    tempDir.deleteRecursively()
+    tempDir.deleteRecursively()
     println("[${java.sql.Timestamp.from(java.time.Instant.now())}] executeRenderMp4: удалена временная папка ${tempDir.absolutePath}")
 
     onProgress?.invoke(100)

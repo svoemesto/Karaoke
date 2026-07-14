@@ -2111,13 +2111,13 @@ data class HealthReport(
                                         inProgressOwnArgs = mapOf(
                                             "settings_id" to settings.id.toString(),
                                             "process_status" to KaraokeProcessStatuses.WAITING.name,
-                                            "process_type" to KaraokeProcessTypes.MELT_LYRICS.name
+                                            "process_type" to KaraokeProcessTypes.RENDER_MP4_LYRICS.name
                                         )
                                         actionToCreate = {
                                             settings.createKaraoke(songVersion = songVersion)
                                             KaraokeProcess.createProcess(
                                                 settings = settings,
-                                                action = KaraokeProcessTypes.MELT_LYRICS,
+                                                action = KaraokeProcessTypes.RENDER_MP4_LYRICS,
                                                 doWait = true,
                                                 prior = 0,
                                                 threadId = 0)
@@ -2138,13 +2138,13 @@ data class HealthReport(
                                         inProgressOwnArgs = mapOf(
                                             "settings_id" to settings.id.toString(),
                                             "process_status" to KaraokeProcessStatuses.WAITING.name,
-                                            "process_type" to KaraokeProcessTypes.MELT_KARAOKE.name
+                                            "process_type" to KaraokeProcessTypes.RENDER_MP4_KARAOKE.name
                                         )
                                         actionToCreate = {
                                             settings.createKaraoke(songVersion = songVersion)
                                             KaraokeProcess.createProcess(
                                                 settings = settings,
-                                                action = KaraokeProcessTypes.MELT_KARAOKE,
+                                                action = KaraokeProcessTypes.RENDER_MP4_KARAOKE,
                                                 doWait = true,
                                                 prior = 0,
                                                 threadId = 0)
@@ -2166,13 +2166,13 @@ data class HealthReport(
                                         inProgressOwnArgs = mapOf(
                                             "settings_id" to settings.id.toString(),
                                             "process_status" to KaraokeProcessStatuses.WAITING.name,
-                                            "process_type" to KaraokeProcessTypes.MELT_CHORDS.name
+                                            "process_type" to KaraokeProcessTypes.RENDER_MP4_CHORDS.name
                                         )
                                         actionToCreate = {
                                             settings.createKaraoke(songVersion = songVersion)
                                             KaraokeProcess.createProcess(
                                                 settings = settings,
-                                                action = KaraokeProcessTypes.MELT_CHORDS,
+                                                action = KaraokeProcessTypes.RENDER_MP4_CHORDS,
                                                 doWait = true,
                                                 prior = 0,
                                                 threadId = 0)
@@ -2194,13 +2194,13 @@ data class HealthReport(
                                         inProgressOwnArgs = mapOf(
                                             "settings_id" to settings.id.toString(),
                                             "process_status" to KaraokeProcessStatuses.WAITING.name,
-                                            "process_type" to KaraokeProcessTypes.MELT_TABS.name
+                                            "process_type" to KaraokeProcessTypes.RENDER_MP4_TABS.name
                                         )
                                         actionToCreate = {
                                             settings.createKaraoke(songVersion = songVersion)
                                             KaraokeProcess.createProcess(
                                                 settings = settings,
-                                                action = KaraokeProcessTypes.MELT_TABS,
+                                                action = KaraokeProcessTypes.RENDER_MP4_TABS,
                                                 doWait = true,
                                                 prior = 0,
                                                 threadId = 0)

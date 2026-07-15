@@ -53,7 +53,7 @@
         </div>
 
         <label class="se-field">
-          <span>Комментарий (при отклонении/отзыве)</span>
+          <span>Комментарий (при отклонении)</span>
           <textarea v-model="comment" rows="2" placeholder="Что нужно исправить…"></textarea>
         </label>
 
@@ -74,7 +74,7 @@
 <script>
 const STATUS_LABELS = {
   assigned: 'Назначено', in_progress: 'В работе', submitted: 'На проверке',
-  approved: 'Одобрено', rejected: 'Отклонено', revoked: 'Отозвано',
+  approved: 'Одобрено', rejected: 'Отклонено',
 };
 
 export default {
@@ -136,10 +136,10 @@ export default {
       finally { this.busy = false; }
     },
     async doRevoke() {
-      if (!confirm('Отозвать назначение у редактора? Задание будет помечено как отозванное — пользователь больше не сможет его редактировать, и эту же песню можно будет назначить другому.')) return;
+      if (!confirm('Отозвать назначение у редактора? Задание и его черновик будут удалены — пользователь больше не сможет его редактировать, и эту же песню сразу можно будет назначить другому редактору через селектор «Назначить…».')) return;
       this.busy = true; this.message = '';
       try {
-        const res = await this.$store.dispatch('revokeAssignment', { id: this.a.id, comment: this.comment });
+        const res = await this.$store.dispatch('revokeAssignment', this.a.id);
         if (res && res.ok) { this.$emit('reviewed'); }
         else { this.isError = true; this.message = 'Не удалось отозвать'; }
       } catch (e) { this.isError = true; this.message = 'Ошибка запроса'; }
@@ -193,5 +193,4 @@ export default {
 .se-badge-submitted { background: #fef3c7; color: #92700a; }
 .se-badge-approved { background: #d1f5d8; color: #24803a; }
 .se-badge-rejected { background: #ffe0cc; color: #b8500f; }
-.se-badge-revoked { background: #e5d8f0; color: #5b2a87; }
 </style>

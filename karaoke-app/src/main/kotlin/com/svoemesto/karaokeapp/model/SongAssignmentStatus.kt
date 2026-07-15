@@ -11,15 +11,13 @@ enum class SongAssignmentStatus(val dbValue: String) {
     IN_PROGRESS("in_progress"),   // пользователь редактирует
     SUBMITTED("submitted"),       // отправлено на проверку
     APPROVED("approved"),         // одобрено, разметка применена
-    REJECTED("rejected"),         // отклонено с комментарием, вернулось на доработку
-    REVOKED("revoked");           // отозвано админом (задание забрано у редактора, можно назначить другому)
+    REJECTED("rejected");         // отклонено с комментарием, вернулось на доработку
 
     companion object {
 
         const val ADMIN_OPEN = "open"
         const val ADMIN_APPROVED = "approved"
         const val ADMIN_REJECTED = "rejected"
-        const val ADMIN_REVOKED = "revoked"
 
         const val USER_IN_PROGRESS = "in_progress"
         const val USER_SUBMITTED = "submitted"
@@ -37,11 +35,6 @@ enum class SongAssignmentStatus(val dbValue: String) {
             submittedAt: Timestamp? = null,
         ): SongAssignmentStatus {
             if (adminStatus == ADMIN_APPROVED) return APPROVED
-            // Отзыв админом — финальное состояние, важнее всего остального (включая «на проверке»):
-            // админ явно забрал задание у пользователя, и работать с ним больше нельзя — даже если
-            // пользователь успел отправить его до отзыва. Лишний reviewedAt/submittedAt тут
-            // игнорируются намеренно: REVOKED — это административное решение, а не вердикт по черновику.
-            if (adminStatus == ADMIN_REVOKED) return REVOKED
             if (draftUserStatus == null) return ASSIGNED
             if (draftUserStatus == USER_SUBMITTED) {
                 val reviewedThisSubmission = adminStatus == ADMIN_REJECTED &&

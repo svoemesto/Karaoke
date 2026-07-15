@@ -62,15 +62,10 @@ class PublicSongEditorController(
     private fun statusOf(assignment: SongAssignment, draft: SongAssignmentDraft?): SongAssignmentStatus =
         SongAssignmentStatus.resolve(assignment.adminStatus, draft?.userStatus, assignment.reviewedAt, draft?.submittedAt)
 
-    // Редактируем во всех состояниях, кроме «на проверке», «одобрено» и «отозвано админом».
-    // REVOKED блокирует редактирование явно: админ забрал задание у редактора, дальше работать с ним
-    // нельзя — задание остаётся в БД только для истории, после отзыва редактор увидит баннер и не
-    // сможет ни сохранить, ни отправить, ни отозвать с проверки.
+    // Редактируем во всех состояниях, кроме «на проверке» и «одобрено».
     private fun canEdit(assignment: SongAssignment, draft: SongAssignmentDraft?): Boolean {
         val st = statusOf(assignment, draft)
-        return st != SongAssignmentStatus.SUBMITTED &&
-               st != SongAssignmentStatus.APPROVED &&
-               st != SongAssignmentStatus.REVOKED
+        return st != SongAssignmentStatus.SUBMITTED && st != SongAssignmentStatus.APPROVED
     }
 
     private fun notFound(): ResponseEntity<Map<String, Any?>> =
@@ -99,8 +94,8 @@ class PublicSongEditorController(
                 "album" to (s?.album ?: ""),
                 "year" to (s?.year ?: 0),
                 "status" to status.dbValue,
-                // Комментарий показываем только когда есть смысл (отклонено/отозвано) — иначе пустой.
-                "reviewComment" to (if (status == SongAssignmentStatus.REJECTED || status == SongAssignmentStatus.REVOKED) a.reviewComment else ""),
+                // Комментарий показываем только когда есть смысл (отклонено) — иначе пустой.
+                "reviewComment" to (if (status == SongAssignmentStatus.REJECTED) a.reviewComment else ""),
             )
         }
     }
@@ -148,7 +143,7 @@ class PublicSongEditorController(
             "bpm" to settings.bpm,
             "status" to status.dbValue,
             "canEdit" to canEdit(a, draft),
-            "reviewComment" to (if (status == SongAssignmentStatus.REJECTED || status == SongAssignmentStatus.REVOKED) a.reviewComment else ""),
+            "reviewComment" to (if (status == SongAssignmentStatus.REJECTED) a.reviewComment else ""),
             "sourceTexts" to sourceTexts,
             "markersPerVoice" to markersPerVoice,
             "audioVocalsUrl" to "/api/public/player/${a.songId}/filevoice.mp3$tokenSuffix",

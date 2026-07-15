@@ -654,7 +654,7 @@ import { h } from 'vue';
 
 const ASSIGN_STATUS_LABELS = {
   assigned: 'Назначено', in_progress: 'В работе', submitted: 'На проверке',
-  approved: 'Одобрено', rejected: 'Отклонено', revoked: 'Отозвано',
+  approved: 'Одобрено', rejected: 'Отклонено',
 };
 
 export default {
@@ -2865,7 +2865,6 @@ export default {
 .assign-badge-submitted { background: #fef3c7; color: #92700a; }
 .assign-badge-approved { background: #d1f5d8; color: #24803a; }
 .assign-badge-rejected { background: #ffe0cc; color: #b8500f; }
-.assign-badge-revoked { background: #e5d8f0; color: #5b2a87; }
 
 .btn-round-wide {
   border: solid 1px black;

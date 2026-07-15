@@ -122,8 +122,17 @@ class SongEditorController(
             ?: return@withDb mapOf("ok" to false, "error" to "song_not_found")
         SiteUser.getSiteUserById(assigneeId, db, storageService, storageApiClient)
             ?: return@withDb mapOf("ok" to false, "error" to "user_not_found")
-        SongAssignment.findExisting(songId, assigneeId, db, storageService, storageApiClient)?.let {
-            return@withDb mapOf("ok" to false, "error" to "already_assigned", "id" to it.id)
+        SongAssignment.findExisting(songId, assigneeId, db, storageService, storageApiClient)?.let { existing ->
+            // Если прежнее назначение было ОТОЗВАНО админом (REVOKED) — это уже не активное задание,
+            // запись висит только для истории. Удаляем её, чтобы освободить место под новое
+            // назначение (UNIQUE INDEX (song_id, assignee_id) не пустил бы иначе). Для всех остальных
+            // статусов (open/in_progress/submitted/approved/rejected) — отказываем: действующее задание
+            // надо явно снять через revoke/delete.
+            if (existing.adminStatus == SongAssignmentStatus.ADMIN_REVOKED) {
+                SongAssignment.delete(existing.id, db)
+            } else {
+                return@withDb mapOf("ok" to false, "error" to "already_assigned", "id" to existing.id)
+            }
         }
         val hasMarkers = settings.sourceMarkersList.any { it.isNotEmpty() }
         if (hasMarkers && clearMarkers == null) {
@@ -339,6 +348,29 @@ class SongEditorController(
     fun delete(@RequestParam id: Long, @RequestParam(required = false) target: String?): Map<String, Any?> = withDb(target) { db ->
         val ok = SongAssignment.delete(id, db)
         mapOf("ok" to ok)
+    }
+
+    // Отозвать назначение у редактора (забрать задание) — мягкая версия delete(): запись остаётся в
+    // БД с admin_status='revoked' для истории (кто отозвал, когда, зачем), редактирование на стороне
+    // пользователя блокируется (PublicSongEditorController.canEdit). После ручка песни свободна —
+    // можно назначить тому же или другому редактору через UI «Назначить» в таблице/карточке песни.
+    //
+    // target — та же оговорка, что у reject()/delete(): пишем в реальную БД задания (иначе отзыв не
+    // дойдёт до пользователя, и редактор останется в подвешенном состоянии — сможет продолжить работать).
+    @PostMapping("/revoke")
+    @ResponseBody
+    fun revoke(
+        @RequestParam id: Long,
+        @RequestParam(required = false, defaultValue = "") comment: String,
+        @RequestParam(required = false) target: String?,
+    ): Map<String, Any?> = withDb(target) { db ->
+        val a = SongAssignment.getById(id, db, storageService, storageApiClient)
+            ?: return@withDb mapOf("ok" to false, "error" to "assignment_not_found")
+        a.adminStatus = SongAssignmentStatus.ADMIN_REVOKED
+        a.reviewComment = comment
+        a.reviewedAt = Timestamp(System.currentTimeMillis())
+        a.save()
+        mapOf("ok" to true)
     }
 
     // Количество заданий "на проверке" — бейдж пункта меню «Задания редактора» в webvue3 (по образцу

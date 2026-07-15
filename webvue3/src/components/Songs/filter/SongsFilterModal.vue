@@ -112,6 +112,7 @@
                       <option value="submitted">На проверке</option>
                       <option value="approved">Одобрено</option>
                       <option value="rejected">Отклонено</option>
+                      <option value="revoked">Отозвано</option>
                     </select>
                   </div>
                   <button :disabled="!songsFilterAssignmentStatus" class="sfm-button-clear-field" @click.left="songsFilterAssignmentStatus=''" v-text="'X'"></button>

@@ -457,7 +457,7 @@ import ReviewModal from "../SongEditor/ReviewModal.vue";
 
 const ASSIGN_STATUS_LABELS = {
   assigned: 'Назначено', in_progress: 'В работе', submitted: 'На проверке',
-  approved: 'Одобрено', rejected: 'Отклонено',
+  approved: 'Одобрено', rejected: 'Отклонено', revoked: 'Отозвано',
 };
 
 export default {
@@ -1867,6 +1867,7 @@ export default {
 .fld-assign .assign-badge-submitted { background: #fef3c7; color: #92700a; }
 .fld-assign .assign-badge-approved { background: #d1f5d8; color: #24803a; }
 .fld-assign .assign-badge-rejected { background: #ffe0cc; color: #b8500f; }
+.fld-assign .assign-badge-revoked { background: #e5d8f0; color: #5b2a87; }
 .fld-flag-sponsr {
   min-width: 20px;
   max-width: 20px;

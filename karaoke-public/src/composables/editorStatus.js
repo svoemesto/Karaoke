@@ -6,4 +6,5 @@ export const STATUS_LABELS = {
   submitted: 'На проверке',
   approved: 'Одобрено',
   rejected: 'Отклонено',
+  revoked: 'Отозвано',
 }

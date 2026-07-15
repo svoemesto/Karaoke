@@ -144,6 +144,14 @@ export default {
             return promisedXMLHttpRequest({ method: 'POST', url: "/api/songeditor/delete", params: { id, target: ctx.state.assignmentsTarget } })
                 .then(data => JSON.parse(data));
         },
+        // Отозвать назначение у редактора — мягкая версия delete(): запись в tbl_song_assignments
+        // остаётся с admin_status='revoked', но canEdit на karaoke-web блокирует редактирование,
+        // и эту же пару (song_id, assignee_id) можно тут же переназначить (см.
+        // SongEditorController.assign — REVOKED-запись для этой пары удаляется автоматически).
+        revokeAssignment(ctx, { id, comment }) {
+            return promisedXMLHttpRequest({ method: 'POST', url: "/api/songeditor/revoke", params: { id, comment: comment || '', target: ctx.state.assignmentsTarget } })
+                .then(data => JSON.parse(data));
+        },
         // Бейдж пункта меню «Задания редактора» (App.vue, по образцу loadChatUnreadCount) — target
         // берётся из defaultTarget ('remote' по умолчанию), т.к. реальный рабочий цикл чаще всего
         // идёт целиком на PROD.

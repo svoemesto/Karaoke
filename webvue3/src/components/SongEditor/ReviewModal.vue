@@ -53,7 +53,7 @@
         </div>
 
         <label class="se-field">
-          <span>Комментарий (при отклонении)</span>
+          <span>Комментарий (при отклонении/отзыве)</span>
           <textarea v-model="comment" rows="2" placeholder="Что нужно исправить…"></textarea>
         </label>
 
@@ -61,6 +61,7 @@
 
         <div class="se-modal-btns">
           <button class="se-btn" @click="$emit('close')">Закрыть</button>
+          <button class="se-btn se-btn-warning" :disabled="busy" @click="doRevoke">Отозвать</button>
           <button class="se-btn se-btn-danger" :disabled="busy" @click="doReject">Отклонить</button>
           <button class="se-btn se-btn-primary" :disabled="busy" @click="doApprove">Одобрить и применить</button>
         </div>
@@ -73,7 +74,7 @@
 <script>
 const STATUS_LABELS = {
   assigned: 'Назначено', in_progress: 'В работе', submitted: 'На проверке',
-  approved: 'Одобрено', rejected: 'Отклонено',
+  approved: 'Одобрено', rejected: 'Отклонено', revoked: 'Отозвано',
 };
 
 export default {
@@ -133,6 +134,16 @@ export default {
         else { this.isError = true; this.message = 'Не удалось отклонить'; }
       } catch (e) { this.isError = true; this.message = 'Ошибка запроса'; }
       finally { this.busy = false; }
+    },
+    async doRevoke() {
+      if (!confirm('Отозвать назначение у редактора? Задание будет помечено как отозванное — пользователь больше не сможет его редактировать, и эту же песню можно будет назначить другому.')) return;
+      this.busy = true; this.message = '';
+      try {
+        const res = await this.$store.dispatch('revokeAssignment', { id: this.a.id, comment: this.comment });
+        if (res && res.ok) { this.$emit('reviewed'); }
+        else { this.isError = true; this.message = 'Не удалось отозвать'; }
+      } catch (e) { this.isError = true; this.message = 'Ошибка запроса'; }
+      finally { this.busy = false; }
     }
   }
 }
@@ -172,6 +183,8 @@ export default {
 .se-btn-primary:hover { opacity: 0.9; background: #24803a; }
 .se-btn-danger { background: #c0392b; color: #fff; border: none; }
 .se-btn-danger:hover { opacity: 0.9; background: #c0392b; }
+.se-btn-warning { background: #8e6d0f; color: #fff; border: none; }
+.se-btn-warning:hover { opacity: 0.9; background: #8e6d0f; }
 .se-btn:disabled { opacity: 0.5; cursor: default; }
 .se-loading { padding: 2rem; text-align: center; color: #888; }
 .se-badge { font-size: 0.7rem; font-weight: 700; border-radius: 20px; padding: 0.15rem 0.6rem; }
@@ -180,4 +193,5 @@ export default {
 .se-badge-submitted { background: #fef3c7; color: #92700a; }
 .se-badge-approved { background: #d1f5d8; color: #24803a; }
 .se-badge-rejected { background: #ffe0cc; color: #b8500f; }
+.se-badge-revoked { background: #e5d8f0; color: #5b2a87; }
 </style>

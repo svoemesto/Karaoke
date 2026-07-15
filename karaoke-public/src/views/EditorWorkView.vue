@@ -31,6 +31,11 @@
       <div v-else-if="status === 'approved'" class="ke-ok-banner">
         Разметка одобрена и применена. Спасибо! Песня доступна в онлайн-плеере.
       </div>
+      <div v-else-if="status === 'revoked'" class="ke-revoked-banner">
+        <strong>Задание отозвано администратором.</strong>
+        Редактирование больше недоступно — задание можно будет назначено другому редактору.
+        <template v-if="reviewComment"><br /><span class="ke-revoked-comment">Комментарий администратора: {{ reviewComment }}</span></template>
+      </div>
 
       <!-- Превью в настоящем плеере -->
       <div class="ke-player-toggle">
@@ -807,14 +812,17 @@ export default {
 .ke-badge-assigned { background: #e2e6ea; color: #5a6570; }
 .ke-badge-in_progress { background: #dbeafe; color: #1e5fbf; }
 .ke-badge-submitted { background: #fef3c7; color: #92700a; }
-.ke-badge-approved { background: #d1f5d8; color: #24803a; }
+.ke-badge-approved { background: #d1f5d8; color: #1f7a37; }
 .ke-badge-rejected { background: #ffe0cc; color: #b8500f; }
+.ke-badge-revoked { background: #e5d8f0; color: #5b2a87; }
 
 .ke-work { max-width: 900px; margin: 0 auto; padding: 1rem; display: flex; flex-direction: column; gap: 1rem; }
 
 .ke-reject-banner { background: #fff2e8; border: 1px solid #ffcfa8; color: #a9500f; border-radius: 12px; padding: 0.75rem 1rem; font-size: 0.9rem; }
 .ke-info-banner { background: #fef8e3; border: 1px solid #f2dd9a; color: #8a6d0a; border-radius: 12px; padding: 0.75rem 1rem; font-size: 0.9rem; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; }
 .ke-ok-banner { background: #e9faee; border: 1px solid #b6e6c2; color: #1f7a37; border-radius: 12px; padding: 0.75rem 1rem; font-size: 0.9rem; }
+.ke-revoked-banner { background: #f3eafa; border: 1px solid #d6c4e6; color: #5b2a87; border-radius: 12px; padding: 0.75rem 1rem; font-size: 0.9rem; line-height: 1.4; }
+.ke-revoked-comment { color: #5b2a87; opacity: 0.85; }
 
 /* Голоса */
 .ke-voice-tabs { display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: center; }

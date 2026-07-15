@@ -144,6 +144,14 @@ export default {
             return promisedXMLHttpRequest({ method: 'POST', url: "/api/songeditor/delete", params: { id, target: ctx.state.assignmentsTarget } })
                 .then(data => JSON.parse(data));
         },
+        // Отозвать назначение у редактора — забрать задание и сразу дать возможность назначить его
+        // другому (или тому же) редактору через «Назначить…» в таблице песен. Семантически тот же
+        // эффект, что у delete(), но бэкенд дополнительно чистит черновик (tbl_song_assignment_drafts),
+        // чтобы не оставлять orphan-запись на несуществующее назначение.
+        revokeAssignment(ctx, id) {
+            return promisedXMLHttpRequest({ method: 'POST', url: "/api/songeditor/revoke", params: { id, target: ctx.state.assignmentsTarget } })
+                .then(data => JSON.parse(data));
+        },
         // Бейдж пункта меню «Задания редактора» (App.vue, по образцу loadChatUnreadCount) — target
         // берётся из defaultTarget ('remote' по умолчанию), т.к. реальный рабочий цикл чаще всего
         // идёт целиком на PROD.

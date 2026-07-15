@@ -807,7 +807,7 @@ export default {
 .ke-badge-assigned { background: #e2e6ea; color: #5a6570; }
 .ke-badge-in_progress { background: #dbeafe; color: #1e5fbf; }
 .ke-badge-submitted { background: #fef3c7; color: #92700a; }
-.ke-badge-approved { background: #d1f5d8; color: #24803a; }
+.ke-badge-approved { background: #d1f5d8; color: #1f7a37; }
 .ke-badge-rejected { background: #ffe0cc; color: #b8500f; }
 
 .ke-work { max-width: 900px; margin: 0 auto; padding: 1rem; display: flex; flex-direction: column; gap: 1rem; }

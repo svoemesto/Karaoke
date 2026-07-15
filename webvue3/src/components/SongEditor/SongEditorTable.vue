@@ -57,6 +57,7 @@
         </template>
         <template #cell(actions)="data">
           <button class="set-mini-btn" @click.stop="openReview(data.item.id)">Просмотр</button>
+          <button class="set-mini-btn set-mini-revoke" @click.stop="onRevoke(data.item)">Отозвать</button>
           <button class="set-mini-btn set-mini-del" @click.stop="onDelete(data.item.id)">Удалить</button>
         </template>
       </b-table>
@@ -154,6 +155,11 @@ export default {
       if (!confirm('Снять назначение (удалить задание)?')) return;
       await this.$store.dispatch('deleteAssignment', id);
       this.reload();
+    },
+    async onRevoke(item) {
+      if (!confirm(`Отозвать назначение у «${item.assigneeName || item.assigneeEmail}» на песню «${item.songName}»? Задание и его черновик будут удалены — редактор больше не сможет его править, и эту же песню сразу можно будет назначить другому через селектор «Назначить…» в таблице песен.`)) return;
+      await this.$store.dispatch('revokeAssignment', item.id);
+      this.reload();
     }
   }
 }
@@ -193,4 +199,5 @@ export default {
 .set-mini-btn { font-size: 0.72rem; border: 1px solid #bbb; border-radius: 6px; background: #f5f5f5; padding: 2px 8px; cursor: pointer; margin: 0 2px; }
 .set-mini-btn:hover { background: #e6e6e6; }
 .set-mini-del:hover { background: #ffd9d0; }
+.set-mini-revoke:hover { background: #e5d8f0; }
 </style>

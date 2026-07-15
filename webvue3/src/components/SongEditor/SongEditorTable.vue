@@ -18,7 +18,6 @@
         <option value="submitted">На проверке</option>
         <option value="approved">Одобрено</option>
         <option value="rejected">Отклонено</option>
-        <option value="revoked">Отозвано</option>
       </select>
       <select class="set-toolbar-item" v-model="filterAssigneeId" @change="reload">
         <option value="">Все исполнители</option>
@@ -75,11 +74,11 @@ import ReviewModal from './ReviewModal.vue'
 
 const STATUS_LABELS = {
   assigned: 'Назначено', in_progress: 'В работе', submitted: 'На проверке',
-  approved: 'Одобрено', rejected: 'Отклонено', revoked: 'Отозвано',
+  approved: 'Одобрено', rejected: 'Отклонено',
 };
 
 const STATUS_ORDER = {
-  submitted: 0, in_progress: 1, assigned: 2, approved: 3, rejected: 4, revoked: 5,
+  submitted: 0, in_progress: 1, assigned: 2, approved: 3, rejected: 4,
 };
 
 export default {
@@ -158,8 +157,8 @@ export default {
       this.reload();
     },
     async onRevoke(item) {
-      if (!confirm(`Отозвать назначение у «${item.assigneeName || item.assigneeEmail}» на песню «${item.songName}»? Задание будет помечено как отозванное — редактор больше не сможет его править, и эту же песню можно будет сразу назначить другому.`)) return;
-      const res = await this.$store.dispatch('revokeAssignment', { id: item.id, comment: '' });
+      if (!confirm(`Отозвать назначение у «${item.assigneeName || item.assigneeEmail}» на песню «${item.songName}»? Задание и его черновик будут удалены — редактор больше не сможет его править, и эту же песню сразу можно будет назначить другому через селектор «Назначить…» в таблице песен.`)) return;
+      await this.$store.dispatch('revokeAssignment', item.id);
       this.reload();
     }
   }
@@ -197,7 +196,6 @@ export default {
 .set-badge-submitted { background: #fef3c7; color: #92700a; }
 .set-badge-approved { background: #d1f5d8; color: #24803a; }
 .set-badge-rejected { background: #ffe0cc; color: #b8500f; }
-.set-badge-revoked { background: #e5d8f0; color: #5b2a87; }
 .set-mini-btn { font-size: 0.72rem; border: 1px solid #bbb; border-radius: 6px; background: #f5f5f5; padding: 2px 8px; cursor: pointer; margin: 0 2px; }
 .set-mini-btn:hover { background: #e6e6e6; }
 .set-mini-del:hover { background: #ffd9d0; }

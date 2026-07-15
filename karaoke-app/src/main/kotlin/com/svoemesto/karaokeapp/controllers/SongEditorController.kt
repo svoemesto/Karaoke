@@ -122,17 +122,8 @@ class SongEditorController(
             ?: return@withDb mapOf("ok" to false, "error" to "song_not_found")
         SiteUser.getSiteUserById(assigneeId, db, storageService, storageApiClient)
             ?: return@withDb mapOf("ok" to false, "error" to "user_not_found")
-        SongAssignment.findExisting(songId, assigneeId, db, storageService, storageApiClient)?.let { existing ->
-            // Если прежнее назначение было ОТОЗВАНО админом (REVOKED) — это уже не активное задание,
-            // запись висит только для истории. Удаляем её, чтобы освободить место под новое
-            // назначение (UNIQUE INDEX (song_id, assignee_id) не пустил бы иначе). Для всех остальных
-            // статусов (open/in_progress/submitted/approved/rejected) — отказываем: действующее задание
-            // надо явно снять через revoke/delete.
-            if (existing.adminStatus == SongAssignmentStatus.ADMIN_REVOKED) {
-                SongAssignment.delete(existing.id, db)
-            } else {
-                return@withDb mapOf("ok" to false, "error" to "already_assigned", "id" to existing.id)
-            }
+        SongAssignment.findExisting(songId, assigneeId, db, storageService, storageApiClient)?.let {
+            return@withDb mapOf("ok" to false, "error" to "already_assigned", "id" to it.id)
         }
         val hasMarkers = settings.sourceMarkersList.any { it.isNotEmpty() }
         if (hasMarkers && clearMarkers == null) {
@@ -350,27 +341,24 @@ class SongEditorController(
         mapOf("ok" to ok)
     }
 
-    // Отозвать назначение у редактора (забрать задание) — мягкая версия delete(): запись остаётся в
-    // БД с admin_status='revoked' для истории (кто отозвал, когда, зачем), редактирование на стороне
-    // пользователя блокируется (PublicSongEditorController.canEdit). После ручка песни свободна —
-    // можно назначить тому же или другому редактору через UI «Назначить» в таблице/карточке песни.
+    // Отозвать назначение у редактора (забрать задание, чтобы передать другому). Семантически тот же
+    // эффект, что у delete(), но с обязательной очисткой черновика — иначе в tbl_song_assignment_drafts
+    // остаётся «висящая» строка на уже не существующее назначение, которая сбивает с толку при
+    // аудите/отладке. После revoke() песня снова «не назначена» — другой редактор открывает её через
+    // обычный селектор «Назначить…» в таблице песен, без необходимости сначала нажимать Delete.
     //
-    // target — та же оговорка, что у reject()/delete(): пишем в реальную БД задания (иначе отзыв не
-    // дойдёт до пользователя, и редактор останется в подвешенном состоянии — сможет продолжить работать).
+    // target — та же оговорка, что у reject()/delete(): пишем в реальную БД задания, иначе на ней
+    // задание останется висеть нетронутым (на стороне пользователя будет виден старый draft).
     @PostMapping("/revoke")
     @ResponseBody
-    fun revoke(
-        @RequestParam id: Long,
-        @RequestParam(required = false, defaultValue = "") comment: String,
-        @RequestParam(required = false) target: String?,
-    ): Map<String, Any?> = withDb(target) { db ->
-        val a = SongAssignment.getById(id, db, storageService, storageApiClient)
+    fun revoke(@RequestParam id: Long, @RequestParam(required = false) target: String?): Map<String, Any?> = withDb(target) { db ->
+        val exists = SongAssignment.getById(id, db, storageService, storageApiClient)
             ?: return@withDb mapOf("ok" to false, "error" to "assignment_not_found")
-        a.adminStatus = SongAssignmentStatus.ADMIN_REVOKED
-        a.reviewComment = comment
-        a.reviewedAt = Timestamp(System.currentTimeMillis())
-        a.save()
-        mapOf("ok" to true)
+        // Чистим черновик ДО удаления задания — на случай, если БД ловит FK наоборот
+        // (на нашей схеме FK нет, но порядок не повредит, и черновик точно не «осиротеет»).
+        SongAssignmentDraft.deleteByAssignment(id, db)
+        val ok = SongAssignment.delete(id, db)
+        mapOf("ok" to ok)
     }
 
     // Количество заданий "на проверке" — бейдж пункта меню «Задания редактора» в webvue3 (по образцу

@@ -32,9 +32,6 @@
             <div v-if="t.status === 'rejected' && t.reviewComment" class="ke-card-comment">
               💬 {{ t.reviewComment }}
             </div>
-            <div v-else-if="t.status === 'revoked' && t.reviewComment" class="ke-card-comment">
-              💬 {{ t.reviewComment }}
-            </div>
           </div>
           <div class="ke-card-side">
             <span class="ke-badge" :class="`ke-badge-${t.status}`">{{ statusLabel(t.status) }}</span>
@@ -121,5 +118,4 @@ export default {
 .ke-badge-submitted { background: #fef3c7; color: #92700a; }
 .ke-badge-approved { background: #d1f5d8; color: #24803a; }
 .ke-badge-rejected { background: #ffe0cc; color: #b8500f; }
-.ke-badge-revoked { background: #e5d8f0; color: #5b2a87; }
 </style>

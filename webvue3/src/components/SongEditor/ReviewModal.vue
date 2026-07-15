@@ -61,6 +61,7 @@
 
         <div class="se-modal-btns">
           <button class="se-btn" @click="$emit('close')">Закрыть</button>
+          <button class="se-btn se-btn-warning" :disabled="busy" @click="doRevoke">Отозвать</button>
           <button class="se-btn se-btn-danger" :disabled="busy" @click="doReject">Отклонить</button>
           <button class="se-btn se-btn-primary" :disabled="busy" @click="doApprove">Одобрить и применить</button>
         </div>
@@ -133,6 +134,16 @@ export default {
         else { this.isError = true; this.message = 'Не удалось отклонить'; }
       } catch (e) { this.isError = true; this.message = 'Ошибка запроса'; }
       finally { this.busy = false; }
+    },
+    async doRevoke() {
+      if (!confirm('Отозвать назначение у редактора? Задание и его черновик будут удалены — пользователь больше не сможет его редактировать, и эту же песню сразу можно будет назначить другому редактору через селектор «Назначить…».')) return;
+      this.busy = true; this.message = '';
+      try {
+        const res = await this.$store.dispatch('revokeAssignment', this.a.id);
+        if (res && res.ok) { this.$emit('reviewed'); }
+        else { this.isError = true; this.message = 'Не удалось отозвать'; }
+      } catch (e) { this.isError = true; this.message = 'Ошибка запроса'; }
+      finally { this.busy = false; }
     }
   }
 }
@@ -172,6 +183,8 @@ export default {
 .se-btn-primary:hover { opacity: 0.9; background: #24803a; }
 .se-btn-danger { background: #c0392b; color: #fff; border: none; }
 .se-btn-danger:hover { opacity: 0.9; background: #c0392b; }
+.se-btn-warning { background: #8e6d0f; color: #fff; border: none; }
+.se-btn-warning:hover { opacity: 0.9; background: #8e6d0f; }
 .se-btn:disabled { opacity: 0.5; cursor: default; }
 .se-loading { padding: 2rem; text-align: center; color: #888; }
 .se-badge { font-size: 0.7rem; font-weight: 700; border-radius: 20px; padding: 0.15rem 0.6rem; }

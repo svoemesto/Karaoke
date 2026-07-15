@@ -139,5 +139,22 @@ class SongAssignmentDraft(
 
         fun delete(id: Long, database: KaraokeConnection): Boolean =
             KaraokeDbTable.delete(tableName = TABLE_NAME, id = id, database = database)
+
+        // Удалить черновик, привязанный к заданию — нужно при revoke()/delete() назначения, чтобы в
+        // tbl_song_assignment_drafts не оставалось orphan-записи на УЖЕ не существующее назначение.
+        // UNIQUE INDEX на assignment_id гарантирует, что строка тут одна (или ни одной).
+        fun deleteByAssignment(assignmentId: Long, database: KaraokeConnection): Boolean {
+            val connection = database.getConnection() ?: return false
+            return try {
+                val ps = connection.prepareStatement("DELETE FROM $TABLE_NAME WHERE assignment_id = ?")
+                ps.setLong(1, assignmentId)
+                ps.executeUpdate()
+                ps.close()
+                true
+            } catch (e: Exception) {
+                println("[SongAssignmentDraft.deleteByAssignment] ${e.message}")
+                false
+            }
+        }
     }
 }

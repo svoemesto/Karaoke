@@ -341,6 +341,26 @@ class SongEditorController(
         mapOf("ok" to ok)
     }
 
+    // Отозвать назначение у редактора (забрать задание, чтобы передать другому). Семантически тот же
+    // эффект, что у delete(), но с обязательной очисткой черновика — иначе в tbl_song_assignment_drafts
+    // остаётся «висящая» строка на уже не существующее назначение, которая сбивает с толку при
+    // аудите/отладке. После revoke() песня снова «не назначена» — другой редактор открывает её через
+    // обычный селектор «Назначить…» в таблице песен, без необходимости сначала нажимать Delete.
+    //
+    // target — та же оговорка, что у reject()/delete(): пишем в реальную БД задания, иначе на ней
+    // задание останется висеть нетронутым (на стороне пользователя будет виден старый draft).
+    @PostMapping("/revoke")
+    @ResponseBody
+    fun revoke(@RequestParam id: Long, @RequestParam(required = false) target: String?): Map<String, Any?> = withDb(target) { db ->
+        val exists = SongAssignment.getById(id, db, storageService, storageApiClient)
+            ?: return@withDb mapOf("ok" to false, "error" to "assignment_not_found")
+        // Чистим черновик ДО удаления задания — на случай, если БД ловит FK наоборот
+        // (на нашей схеме FK нет, но порядок не повредит, и черновик точно не «осиротеет»).
+        SongAssignmentDraft.deleteByAssignment(id, db)
+        val ok = SongAssignment.delete(id, db)
+        mapOf("ok" to ok)
+    }
+
     // Количество заданий "на проверке" — бейдж пункта меню «Задания редактора» в webvue3 (по образцу
     // /api/chat/unreadcount).
     @PostMapping("/submittedcount")

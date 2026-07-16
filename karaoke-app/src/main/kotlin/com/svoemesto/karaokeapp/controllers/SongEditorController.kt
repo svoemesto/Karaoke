@@ -2,6 +2,7 @@ package com.svoemesto.karaokeapp.controllers
 
 import com.svoemesto.karaokeapp.Connection
 import com.svoemesto.karaokeapp.Karaoke
+import com.svoemesto.karaokeapp.WORKING_DATABASE
 import com.svoemesto.karaokeapp.KaraokeConnection
 import com.svoemesto.karaokeapp.KaraokeFileType
 import com.svoemesto.karaokeapp.updateRemoteSettingFromLocalDatabase
@@ -15,7 +16,10 @@ import com.svoemesto.karaokeapp.model.SongAssignmentStatus
 import com.svoemesto.karaokeapp.model.SourceMarker
 import com.svoemesto.karaokeapp.runCommand
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
+import com.svoemesto.karaokeapp.rightFileName
 import com.svoemesto.karaokeapp.services.StorageApiClient
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
 import org.springframework.stereotype.Controller
 import org.springframework.web.bind.annotation.PostMapping
@@ -390,5 +394,168 @@ class SongEditorController(
             )
         }
         mapOf("statuses" to statuses)
+    }
+
+    // ---- Админский онлайн-редактор (webvue3) -----------------------------------------------
+    //
+    // Зеркало PublicSongEditorController для админской стороны: тот же UX редактора, что и в
+    // karaoke-public, но canEdit=true всегда (админ — не конечный редактор сайта, проверки ему не
+    // мешают) и без кнопок submit/recall. Поддерживает два режима, по параметру mode:
+    //   - "song"        — id это songId; читаем/пишем Settings (tbl_settings) для ВСЕХ голосов.
+    //   - "assignment"  — id это assignmentId; читаем/пишем черновик задания (tbl_song_assignment_drafts).
+    // target (local|remote) — куда писать и откуда читать (по умолчанию local). Для режима "song"
+    // target определяет, ГДЕ будут жить правки; в "assignment" — где лежит само задание (status
+    // и draft). Идентично по духу остальным target-aware эндпоинтам контроллера.
+
+    // Открыть задание/песню в редакторе. Возвращает sourceTexts[]/markersPerVoice[] ВСЕХ голосов,
+    // URLs стемов (используются для waveform и превью-плеера) и метаданные для шапки редактора.
+    // canEdit=true жёстко (из режима редактор никогда не блокируется; submit/recall в этой версии нет).
+    @PostMapping("/edit/byId")
+    @ResponseBody
+    fun editById(
+        @RequestParam id: Long,
+        @RequestParam(required = false, defaultValue = "song") mode: String,
+        @RequestParam(required = false) target: String?,
+    ): Any? {
+        if (mode != "song" && mode != "assignment") {
+            return mapOf("ok" to false, "error" to "bad_mode")
+        }
+        return withDb(target) { db ->
+            // Резолвим songId в зависимости от режима.
+            val songId: Long = if (mode == "song") id
+            else SongAssignment.getById(id, db, storageService, storageApiClient)?.songId
+                ?: return@withDb mapOf("found" to false, "id" to id)
+
+            // Settings читаем ВСЕГДА из WORKING_DATABASE: только там есть локальный диск с FLAC и .srt
+            // (см. комментарий getSongPlayerData в ApiController). target не влияет на выбор Settings.
+            val settings = Settings.loadFromDbById(
+                songId,
+                WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            ) ?: return@withDb mapOf("found" to false, "id" to id, "songId" to songId)
+
+            val sourceTexts: List<String>
+            val markersPerVoice: List<List<SourceMarker>>
+            var assignmentId: Long? = null
+            var statusForResponse: String = "song"
+            var reviewCommentForResponse: String = ""
+
+            if (mode == "song") {
+                sourceTexts = settings.sourceTextList.toMutableList()
+                markersPerVoice = settings.sourceMarkersList.toMutableList()
+            } else {
+                val a = SongAssignment.getById(id, db, storageService, storageApiClient)
+                    ?: return@withDb mapOf("found" to false, "id" to id, "songId" to songId)
+                if (a.songId != settings.id) return@withDb mapOf("found" to false, "id" to id, "songId" to songId)
+                assignmentId = a.id
+                val draft = SongAssignmentDraft.getByAssignment(a.id, db, storageService, storageApiClient)
+                if (draft != null) {
+                    sourceTexts = draft.editedTextsPerVoice(json).toMutableList()
+                    markersPerVoice = draft.editedMarkersPerVoice(json).toMutableList()
+                } else {
+                    sourceTexts = settings.sourceTextList.toMutableList()
+                    markersPerVoice = settings.sourceMarkersList.toMutableList()
+                }
+                statusForResponse = SongAssignmentStatus.resolve(
+                    a.adminStatus, draft?.userStatus, a.reviewedAt, draft?.submittedAt
+                ).dbValue
+                reviewCommentForResponse = if (statusForResponse == SongAssignmentStatus.REJECTED.dbValue) a.reviewComment else ""
+            }
+
+            mapOf(
+                "found" to true,
+                "mode" to mode,
+                "id" to id,
+                "songId" to settings.id,
+                "songName" to settings.songName,
+                "author" to settings.author,
+                "album" to settings.album,
+                "year" to settings.year.takeIf { it > 0 },
+                "track" to settings.track.takeIf { it > 0 },
+                "key" to settings.key.takeIf { it.isNotBlank() },
+                "bpm" to settings.bpm,
+                "voiceCount" to markersPerVoice.size,
+                "sourceTexts" to sourceTexts,
+                "markersPerVoice" to markersPerVoice,
+                "audioVocalsUrl" to "/api/song/${settings.id}/filevoice.mp3",
+                "audioAccompanimentUrl" to "/api/song/${settings.id}/fileminus.mp3",
+                "audioBassUrl" to if (File(settings.bassNameFlac).exists()) "/api/song/${settings.id}/filebass.mp3" else null,
+                "audioDrumsUrl" to if (File(settings.drumsNameFlac).exists()) "/api/song/${settings.id}/filedrums.mp3" else null,
+                "albumImageUrl" to settings.pictureAlbum?.storageFileName?.let { "/api/picture/file?file=${java.net.URLEncoder.encode(it, java.nio.charset.StandardCharsets.UTF_8)}" },
+                "artistImageUrl" to settings.pictureAuthor?.storageFileName?.let { "/api/picture/file?file=${java.net.URLEncoder.encode(it, java.nio.charset.StandardCharsets.UTF_8)}" },
+                "exportBaseName" to "${settings.fileName} [id-${settings.id}]".rightFileName(),
+                "canEdit" to true,
+                "assignmentId" to assignmentId,
+                "reviewComment" to reviewCommentForResponse,
+                "status" to statusForResponse,
+            )
+        }
+    }
+
+    // Сохранить правки (ВСЕ голоса разом). sourceTexts/markersPerVoice — JSON-массивы.
+    // В режиме "song" пишет напрямую в Settings в ту же БД, что и assignmentsTarget (setSourceMarkers/
+    // setSourceText тригерят saveToDb внутри). В режиме "assignment" — создаёт/обновляет черновик
+    // задания (аналогично PublicSongEditorController.save, но без проверки canEdit — для админа
+    // редактирование открыто в любом статусе).
+    @PostMapping("/edit/save")
+    @ResponseBody
+    fun editSave(
+        @RequestParam id: Long,
+        @RequestParam(required = false, defaultValue = "song") mode: String,
+        @RequestParam(required = false) target: String?,
+        @RequestParam sourceTexts: String,
+        @RequestParam markersPerVoice: String,
+    ): Map<String, Any?> {
+        if (mode != "song" && mode != "assignment") {
+            return mapOf("ok" to false, "error" to "bad_mode")
+        }
+        // Парсим payload один раз (терпимый Json — ignoreUnknownKeys уже настроен в `json`).
+        val parsedTexts: List<String>
+        val parsedMarkers: List<List<SourceMarker>>
+        try {
+            parsedTexts = json.decodeFromString(ListSerializer(String.serializer()), sourceTexts)
+            parsedMarkers = json.decodeFromString(ListSerializer(ListSerializer(SourceMarker.serializer())), markersPerVoice)
+        } catch (_: Exception) {
+            return mapOf("ok" to false, "error" to "bad_payload")
+        }
+
+        if (mode == "song") {
+            // Пишем в Settings в ту же БД, что и assignmentsTarget — единообразно с логикой
+            // остальных target-aware методов. Settings.setSourceMarkers/setSourceText делают saveToDb()
+            // внутри (пересчитывают resultText/formattedTextSong/formattedTextTabs/formattedTextChords).
+            return withDb(target) { db ->
+                val settings = Settings.loadFromDbById(id, db, storageService = storageService, storageApiClient = storageApiClient)
+                    ?: return@withDb mapOf("ok" to false, "error" to "song_not_found")
+                val voiceCount = maxOf(settings.countVoices, parsedMarkers.size)
+                for (v in 0 until voiceCount) {
+                    val markers = parsedMarkers.getOrNull(v) ?: emptyList()
+                    settings.setSourceMarkers(v, markers)
+                    val text = parsedTexts.getOrNull(v) ?: ""
+                    settings.setSourceText(v, text)
+                }
+                if (parsedMarkers.size < settings.countVoices) {
+                    settings.truncateVoicesTo(parsedMarkers.size)
+                }
+                mapOf("ok" to true, "voiceCount" to settings.countVoices, "idStatus" to settings.idStatus)
+            }
+        } else {
+            return withDb(target) { db ->
+                val a = SongAssignment.getById(id, db, storageService, storageApiClient)
+                    ?: return@withDb mapOf("ok" to false, "error" to "assignment_not_found")
+                var draft = SongAssignmentDraft.getByAssignment(a.id, db, storageService, storageApiClient)
+                if (draft == null) {
+                    draft = SongAssignmentDraft(database = db, storageService = storageService, storageApiClient = storageApiClient)
+                    draft.assignmentId = a.id
+                    draft.assigneeId = a.assigneeId
+                    draft.userStatus = SongAssignmentStatus.USER_IN_PROGRESS
+                    KaraokeDbTable.createDbInstance(entity = draft, database = db)
+                }
+                draft.editedSourceText = SongAssignmentDraft.encodeTextsPerVoice(parsedTexts)
+                draft.editedMarkers = SongAssignmentDraft.encodeMarkersPerVoice(parsedMarkers)
+                draft.save()
+                mapOf("ok" to true, "status" to SongAssignmentStatus.resolve(a.adminStatus, draft.userStatus, a.reviewedAt, draft.submittedAt).dbValue)
+            }
+        }
     }
 }

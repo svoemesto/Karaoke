@@ -38,8 +38,8 @@
           {{ playerLoading ? 'Сохраняем…' : (showPlayer ? 'Скрыть плеер' : '▶ Прослушать в плеере') }}
         </button>
       </div>
-      <div v-if="showPlayer" class="ke-player-wrap">
-        <iframe :src="playerSrc" class="ke-player-frame" allow="autoplay"></iframe>
+      <div v-if="showPlayer" class="ke-player-wrap" ref="playerWrap">
+        <iframe :src="playerSrc" :height="playerHeight" class="ke-player-frame" allow="autoplay"></iframe>
       </div>
 
       <!-- Голоса: задание покрывает всю песню — переключение/добавление/удаление голоса. -->
@@ -181,7 +181,7 @@ import { STATUS_LABELS } from '../composables/editorStatus'
 import {
   splitSyllables, sortMarkers, relabelSyllables, currentSyllableIndex, currentMarkerIndex,
   addMarker, deleteMarkerAtTime, ensureEndMarker, formatText, buildTail, markersToSave, markersFromServer,
-  adjacentMarkerTime,
+  adjacentMarkerTime, loadEditorSettings, saveEditorSettings,
 } from '../composables/useKaraokeEditor'
 
 // Хоткеи 1:1 с полновесным редактором (SubsEdit.vue, webvue3). Digit6 (аккорд) и Digit0
@@ -237,9 +237,10 @@ export default {
       heldKeys: {},
       scrubTimers: {},
       editSpeed: 0.75, // скорость медленной перемотки (A/D) — фиксированная, как дефолт в admin
-      showKeyboard: false, // клавиатура-подсказка занимает много места — по умолчанию свёрнута
-      textFontSize: 16, // размер шрифта текстового поля (регулируется слайдером над полем)
-      previewFontSize: 18, // размер шрифта панели разметки (совпадает с исходным admin-размером)
+      // Настройки, персистентные между сессиями (см. loadEditorSettings/saveEditorSettings в
+      // useKaraokeEditor.js) — как уровни громкости / якорь связки / скорость в плеере, но для
+      // редактора. Подхватываются через spread при создании инстанса, сохраняются watcher'ами.
+      ...loadEditorSettings(),
       // Сохранение
       saveState: 'idle', // idle | saving | saved | error
       saveTimer: null,
@@ -251,6 +252,9 @@ export default {
       showPlayer: false,
       playerLoading: false,
       playerToken: '',
+      // Высота iframe-плеера, чтобы экран плеера (canvas) был ровно 16:9 — ставится JS-ом
+      // (fitPlayerTo16x9), нельзя полагаться на CSS (браузеры игнорируют % height у iframe).
+      playerHeight: 0,
     }
   },
   computed: {
@@ -346,6 +350,23 @@ export default {
       ]
     },
   },
+  watch: {
+    // Каждое изменение ползунка / настройки — сразу сохраняем в localStorage, чтобы при
+    // следующем открытии редактора значения подхватились (см. loadEditorSettings в data()).
+    textFontSize(v) { saveEditorSettings({ textFontSize: v }) },
+    previewFontSize(v) { saveEditorSettings({ previewFontSize: v }) },
+    volume(v) { saveEditorSettings({ volume: v }) },
+    playbackRate(v) { saveEditorSettings({ playbackRate: v }) },
+    zoom(v) { saveEditorSettings({ zoom: v }) },
+    activeSound(v) { saveEditorSettings({ activeSound: v }) },
+    showKeyboard(v) { saveEditorSettings({ showKeyboard: v }) },
+    // Iframe-плеер рисуется по v-if — после его ререндера ставим ResizeObserver и пересчитываем
+    // высоту до 16:9. На закрытии — disconnect, чтобы не держал ref на удалённый wrap.
+    showPlayer(v) {
+      if (v) { this.$nextTick(() => this.observeWrapAndFit()) }
+      else if (this._resizeObserver) { this._resizeObserver.disconnect(); this._resizeObserver = null }
+    },
+  },
   async mounted() {
     await this.fetchMe()
     if (!this.token) {
@@ -359,10 +380,14 @@ export default {
     await this.load()
     window.addEventListener('keydown', this.onKeyDown)
     window.addEventListener('keyup', this.onKeyUp)
+    window.addEventListener('resize', this.fitPlayerTo16x9)
+    if (this.showPlayer) this.$nextTick(() => this.observeWrapAndFit())
   },
   beforeUnmount() {
     window.removeEventListener('keydown', this.onKeyDown)
     window.removeEventListener('keyup', this.onKeyUp)
+    window.removeEventListener('resize', this.fitPlayerTo16x9)
+    if (this._resizeObserver) { this._resizeObserver.disconnect(); this._resizeObserver = null }
     for (const code of Object.keys(this.scrubTimers)) clearInterval(this.scrubTimers[code])
     if (this.saveTimer) clearTimeout(this.saveTimer)
     try { this.ws && this.ws.destroy() } catch (e) { /* noop */ }
@@ -664,10 +689,51 @@ export default {
       try {
         await this.saveNow()
         sessionStorage.setItem(`kp_token_${this.task.songId}`, this.playerToken)
+        // После рендера wrap'а (v-if) СРАЗУ ставим высоту iframe через $nextTick, иначе на
+        // первом кадре аспект «не 16:9» (iframe получает default height ≈ 150 px).
         this.showPlayer = true
+        await this.$nextTick()
+        this.fitPlayerTo16x9()
       } finally {
         this.playerLoading = false
       }
+    },
+    // Пропорции 16:9 для экранной части караоке-плеера (canvas+текст) внутри iframe.
+    // Внутри PlayerView.vue → KaraokePlayer viewport делится на:
+    //   • #kp-canvas-wrap (flex:1) — то, для чего 16:9;
+    //   • #kp-controls-volume (~50 px: волновые формы «Музыка»/«Голос» + слайдеры громкости);
+    //   • #kp-controls-bottom (~60 px: прогресс-бар, play/пауза, меню скорости/экспорта).
+    // Если iframe H = W × 9/16, canvas внутри получит (iframeH − 110) и сплющится. Поэтому
+    // iframe H = targetCanvasH + CONTROLS_APPROX_H = 110. Оценка точна в пределах ~10% на
+    // типичной ширине 712-1100 px.
+    fitPlayerTo16x9() {
+      if (!this.showPlayer) return
+      const wrap = this.$refs.playerWrap
+      if (!wrap) return
+      const w = wrap.clientWidth
+      if (w <= 0) return
+      const CONTROLS_APPROX_H = 110
+      const canvasTargetH = Math.round(w * 9 / 16)
+      const iframeH = canvasTargetH + CONTROLS_APPROX_H
+      wrap.style.height = iframeH + 'px'
+      wrap.style.flexShrink = '0'
+      this.playerHeight = iframeH
+      const iframe = wrap.querySelector('iframe')
+      if (iframe) iframe.style.height = iframeH + 'px'
+    },
+    // Подключаем ResizeObserver на wrap — пересчёт 16:9 при любом изменении ширины родителя
+    // (ресайз окна, открытие/закрытие сайдбаров, печать). window.resize добавлен как фолбэк
+    // для старых браузеров без ResizeObserver.
+    observeWrapAndFit() {
+      const wrap = this.$refs.playerWrap
+      if (!wrap) return
+      try {
+        if (!this._resizeObserver) {
+          this._resizeObserver = new ResizeObserver(() => this.fitPlayerTo16x9())
+          this._resizeObserver.observe(wrap)
+        }
+      } catch (e) { /* no-op */ }
+      this.fitPlayerTo16x9()
     },
     async submit() {
       if (!this.canEdit) return
@@ -810,7 +876,7 @@ export default {
 .ke-badge-approved { background: #d1f5d8; color: #1f7a37; }
 .ke-badge-rejected { background: #ffe0cc; color: #b8500f; }
 
-.ke-work { max-width: 900px; margin: 0 auto; padding: 1rem; display: flex; flex-direction: column; gap: 1rem; }
+.ke-work { max-width: 900px; margin: 0 auto; padding: 1rem; display: flex; flex-direction: column; gap: 1rem; box-sizing: border-box; }
 
 .ke-reject-banner { background: #fff2e8; border: 1px solid #ffcfa8; color: #a9500f; border-radius: 12px; padding: 0.75rem 1rem; font-size: 0.9rem; }
 .ke-info-banner { background: #fef8e3; border: 1px solid #f2dd9a; color: #8a6d0a; border-radius: 12px; padding: 0.75rem 1rem; font-size: 0.9rem; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; }
@@ -829,10 +895,14 @@ export default {
 .ke-voice-tab-remove { border-color: #c0392b; color: #c0392b; background: transparent; }
 .ke-voice-tab-remove:hover { background: rgba(192,57,43,0.1); }
 
-/* Превью в плеере */
+/* Превью в плеере. Высота .ke-player-wrap вычисляется и ставится JS-ом (fitPlayerTo16x9) —
+   нельзя полагаться на CSS aspect-ratio + iframe % height (браузеры это игнорируют). Внутри
+   iframe-плеера (PlayerView.vue → KaraokePlayer) viewport делится на canvas (flex:1, 16:9)
+   и controls (≈110 px: волновые формы + прогресс + меню), поэтому iframe H = canvasH(16:9) +
+   CONTROLS_APPROX_H. Без этого плеер «сплющивается» (canvas становится шире, чем 16:9). */
 .ke-player-toggle { display: flex; justify-content: center; }
-.ke-player-wrap { width: 100%; height: 440px; border-radius: 16px; overflow: hidden; background: #000; }
-.ke-player-frame { width: 100%; height: 100%; border: none; display: block; }
+.ke-player-wrap { width: 100%; border-radius: 16px; overflow: hidden; background: #000; }
+.ke-player-frame { width: 100%; border: none; display: block; }
 
 /* Бегущая строка */
 .ke-tail-card {

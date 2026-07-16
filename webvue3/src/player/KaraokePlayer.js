@@ -3,31 +3,48 @@
 class PlayerUnavailableError extends Error {}
 
 export default class KaraokePlayer {
-  // Usage modes:
-  //   new KaraokePlayer(container, songId, apiBase)                      — online, loads via /api
-  //   new KaraokePlayer(container, { songId, assignmentId }, apiBase)    — online, but with the
-  //     given voice's markers overridden by that assignment's UNAPPROVED draft (song-editor review
-  //     preview — see /api/song/{id}/playerdata's assignmentId param on the backend)
-  //   new KaraokePlayer(container, { smkaraoke: File|Blob }) — from local .smkaraoke file
-  //   new KaraokePlayer(container, { smkaraokeUrl: string }) — download .smkaraoke from URL
-  constructor(container, songIdOrOptions, apiBase) {
-    this.container = container
-    if (songIdOrOptions !== null && typeof songIdOrOptions === 'object' && ('smkaraoke' in songIdOrOptions || 'smkaraokeUrl' in songIdOrOptions)) {
-      this._mode = songIdOrOptions.smkaraoke ? 'blob' : 'url-smkaraoke'
-      this._smkaraokeSource = songIdOrOptions.smkaraoke ?? songIdOrOptions.smkaraokeUrl
-    } else if (songIdOrOptions !== null && typeof songIdOrOptions === 'object') {
-      this._mode = 'api'
-      this.songId = songIdOrOptions.songId
-      this.assignmentId = songIdOrOptions.assignmentId ?? null
-      this.target = songIdOrOptions.target ?? null
-      this.apiBase = apiBase
-    } else {
-      this._mode = 'api'
-      this.songId = songIdOrOptions
-      this.assignmentId = null
-      this.target = null
-      this.apiBase = apiBase
-    }
+// Usage modes:
+//   new KaraokePlayer(container, songId, apiBase)                      — online, loads via /api
+//   new KaraokePlayer(container, { songId, assignmentId }, apiBase)    — online, but with the
+//     given voice's markers overridden by that assignment's UNAPPROVED draft (song-editor review
+//     preview — see /api/song/{id}/playerdata's assignmentId param on the backend)
+//   new KaraokePlayer(container, { smkaraoke: File|Blob }) — from local .smkaraoke file
+//   new KaraokePlayer(container, { smkaraokeUrl: string }) — download .smkaraoke from URL
+//   new KaraokePlayer(container, { inlineData: <playerdata-json> })    — данные прямо в памяти
+//     (используется редактором караоке-разметки в webvue3, чтобы превью сразу показывало текущий
+//     черновик без промежуточного HTTP-запроса). audioVocalsUrl/audioAccompanimentUrl в inlineData
+//     могут быть относительными путями (например, /api/song/123/filevoice.mp3) — используются как есть.
+constructor(container, songIdOrOptions, apiBase) {
+  this.container = container
+  if (songIdOrOptions !== null && typeof songIdOrOptions === 'object' && ('smkaraoke' in songIdOrOptions || 'smkaraokeUrl' in songIdOrOptions)) {
+    this._mode = songIdOrOptions.smkaraoke ? 'blob' : 'url-smkaraoke'
+    this._smkaraokeSource = songIdOrOptions.smkaraoke ?? songIdOrOptions.smkaraokeUrl
+  } else if (songIdOrOptions !== null && typeof songIdOrOptions === 'object' && 'inlineData' in songIdOrOptions) {
+    // Новый режим: данные приходят inline (формат как у /api/song/{id}/playerdata). Никаких fetch,
+    // никаких blob — список голосов и маркеров готов к отрисовке сразу. Вызывающий код (karaoke-
+    // редактор) пересоздаёт плеер / подменяет данные при каждом изменении черновика.
+    this._mode = 'inlineData'
+    this._inlineData = songIdOrOptions.inlineData
+    // Необязательная высота корневого div плеера (по умолчанию '100vh'). В режиме обычной full-page
+    // страницы (PlayerView.vue) контейнер занимает весь viewport, поэтому 100vh корректно. В режиме
+    // модального окна редактора (SongKaraokeEditorView) контейнер ограничен высотой модалки (~440px),
+    // и если не передать высоту явно — canvas рисуется на 100vh экрана, а видна только верхняя
+    // четверть (звёзды из заставки), текст стихи оказывается за нижней границей видимой области.
+    this._containerHeight = (typeof songIdOrOptions.containerHeight === 'string' && songIdOrOptions.containerHeight) ? songIdOrOptions.containerHeight : null
+    this.apiBase = apiBase || null
+  } else if (songIdOrOptions !== null && typeof songIdOrOptions === 'object') {
+    this._mode = 'api'
+    this.songId = songIdOrOptions.songId
+    this.assignmentId = songIdOrOptions.assignmentId ?? null
+    this.target = songIdOrOptions.target ?? null
+    this.apiBase = apiBase
+  } else {
+    this._mode = 'api'
+    this.songId = songIdOrOptions
+    this.assignmentId = null
+    this.target = null
+    this.apiBase = apiBase
+  }
     this._smkaraokeObjectUrls = []
 
     this.audioCtx = null
@@ -177,6 +194,11 @@ export default class KaraokePlayer {
         const resp = await fetch(`${this.apiBase}/song/${this.songId}/playerdata${qs}`)
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
         this.data = await resp.json()
+      } else if (this._mode === 'inlineData') {
+        // Inline-данные приходят сразу, без сетевых запросов. Копию делаем, чтобы внешний код
+        // (владелец черновика) мог спокойно мутировать свой объект, не ломая плеер.
+        this.data = JSON.parse(JSON.stringify(this._inlineData))
+        this._inlineData = null  // больше не нужен — освобождаем ссылку
       } else {
         this.data = await this._loadSmkaraoke(this._smkaraokeSource)
       }
@@ -737,7 +759,7 @@ export default class KaraokePlayer {
     this._injectMenuStyles()
     this.container.style.cssText = 'position:relative;background:#000;user-select:none;font-family:sans-serif'
     this.container.innerHTML = `
-      <div style="display:flex;flex-direction:column;height:100vh;background:#000">
+      <div style="display:flex;flex-direction:column;height:${this._containerHeight || '100vh'};background:#000">
         <div id="kp-canvas-wrap" style="flex:1;position:relative;overflow:hidden;min-height:0">
           <canvas id="kp-canvas" style="width:100%;height:100%;display:block"></canvas>
           <div id="kp-loading" style="position:absolute;inset:0;display:none;align-items:center;justify-content:center;color:#aaa;font-size:20px;background:transparent"></div>

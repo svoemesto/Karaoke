@@ -1,7 +1,19 @@
 <template>
   <div class="set-table">
     <AssignModal v-if="isAssignVisible" @close="isAssignVisible = false" @assigned="onAssigned" />
-    <ReviewModal v-if="isReviewVisible" @close="isReviewVisible = false" @reviewed="onReviewed" />
+    <ReviewModal
+      v-if="isReviewVisible"
+      @close="isReviewVisible = false"
+      @reviewed="onReviewed"
+      @open-editor="onOpenEditor"
+    />
+    <SongKaraokeEditorModal
+      v-if="isKaraokeEditorOpen"
+      mode="assignment"
+      :id="karaokeEditorAssignmentId"
+      :target="karaokeEditorTarget"
+      @close="isKaraokeEditorOpen = false"
+    />
 
     <div class="set-toolbar">
       <label class="set-toolbar-item">
@@ -71,6 +83,7 @@
 import { BSpinner, BTable } from 'bootstrap-vue-next'
 import AssignModal from './AssignModal.vue'
 import ReviewModal from './ReviewModal.vue'
+import SongKaraokeEditorModal from './SongKaraokeEditorModal.vue'
 
 const STATUS_LABELS = {
   assigned: 'Назначено', in_progress: 'В работе', submitted: 'На проверке',
@@ -83,11 +96,15 @@ const STATUS_ORDER = {
 
 export default {
   name: "SongEditorTable",
-  components: { AssignModal, ReviewModal, BSpinner, BTable },
+  components: { AssignModal, ReviewModal, SongKaraokeEditorModal, BSpinner, BTable },
   data() {
     return {
       isBusy: false, sortBy: [], filterStatus: '', filterAssigneeId: '', filterAuthor: '',
       isAssignVisible: false, isReviewVisible: false, dictAuthors: [],
+      // Состояние модалки онлайн-редактора, открываемой из ReviewModal (mode='assignment').
+      isKaraokeEditorOpen: false,
+      karaokeEditorAssignmentId: 0,
+      karaokeEditorTarget: 'local',
     }
   },
   computed: {
@@ -149,6 +166,16 @@ export default {
       this.isReviewVisible = true;
     },
     onRowClicked(item) { this.openReview(item.id); },
+    onOpenEditor(payload) {
+      // ReviewModal просит открыть редактор — поднимаем модалку редактора ПОВЕРХ карточки
+      // проверки (не закрывая её). z-index editor'а (1080) > z-index ReviewModal (1000), так что
+      // editor просто перекрывает Review; после закрытия editor'а ReviewModal всё ещё видна и
+      // пользователь возвращается к проверке задания. isReviewVisible выставляется в false только
+      // явным @close от ReviewModal (кликом по её фону или кнопкой «Закрыть»).
+      this.karaokeEditorAssignmentId = payload.assignmentId;
+      this.karaokeEditorTarget = payload.target || 'local';
+      this.isKaraokeEditorOpen = true;
+    },
     onAssigned() { this.isAssignVisible = false; this.reload(); },
     onReviewed() { this.isReviewVisible = false; this.reload(); },
     async onDelete(id) {

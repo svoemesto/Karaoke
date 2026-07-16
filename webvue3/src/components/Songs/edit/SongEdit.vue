@@ -6,6 +6,13 @@
       <health-report-table v-if="isHealthReportTableVisible" :id="song.id" @close="closeHealthReportTable"/>
       <family-songs-modal v-if="isFamilySongsVisible" :id="song.id" @select="selectFamilySong" @close="closeFamilySongs"/>
       <ReviewModal v-if="isAssignReviewVisible" @close="isAssignReviewVisible = false" @reviewed="onAssignmentReviewed" />
+      <song-karaoke-editor-modal
+        v-if="isKaraokeEditorVisible"
+        mode="song"
+        :id="song.id"
+        :target="karaokeEditorTarget"
+        @close="closeKaraokeEditor"
+      />
       <datalist id="list_hours">
         <option v-for="hour in hours" :key="hour" :value="hour"/>
       </datalist>
@@ -623,6 +630,7 @@
         <button class="btn-round-double" @click="searchTextForSong" :disabled="disabledSearchTextForSong" title="Найти текст песни"><img alt="search texts for song" class="icon-40" src="../../../assets/svg/icon_search_text.svg"></button>
         <button v-if="song.idStatus === 0" class="btn-round-double" @click="findOriginalForSong" title="Найти оригинал песни в базе"><img alt="find original song" class="icon-40" src="../../../assets/svg/icon_find_original.svg"></button>
         <button class="btn-round-double" @click="showSubsEdit" title="Редактировать субтитры"><img alt="edit subs" class="icon-edit-double" src="../../../assets/svg/icon_edit.svg"></button>
+        <button class="btn-round-double" @click="showKaraokeEditor" title="Онлайн-редактор караоке-разметки"><img alt="karaoke editor" class="icon-40" src="../../../assets/svg/icon_microphone.svg"></button>
         <button class="btn-round-double" @click="createKaraoke" title="Создать караоке"><img alt="create karaoke" class="icon-40" src="../../../assets/svg/icon_song.svg"></button>
         <button class="btn-round-double" @click="createDemucs2" title="Создать DEMUCS2"><img alt="create demucs2" class="icon-40" src="../../../assets/svg/icon_demucs2.svg"></button>
         <button class="btn-round-double" @click="createDemucs5" title="Создать DEMUCS5"><img alt="create demucs5" class="icon-40" src="../../../assets/svg/icon_demucs5.svg"></button>
@@ -646,6 +654,7 @@ import CustomConfirm from "../../Common/CustomConfirm.vue";
 import HealthReportTable from "../../Common/HealthReport/HealthReportTable.vue";
 import FamilySongsModal from "./FamilySongsModal.vue";
 import ReviewModal from "../../SongEditor/ReviewModal.vue";
+import SongKaraokeEditorModal from "../../SongEditor/SongKaraokeEditorModal.vue";
 import { BFormRating, BDropdown, BDropdownItem, BDropdownDivider, BDropdownGroup } from 'bootstrap-vue-next'
 import { useToast } from "bootstrap-vue-next";
 import { h } from 'vue';
@@ -680,6 +689,7 @@ export default {
     HealthReportTable,
     FamilySongsModal,
     ReviewModal,
+    SongKaraokeEditorModal,
     SubsEdit,
     BFormRating,
     BDropdown,
@@ -694,6 +704,8 @@ export default {
       isHealthReportTableVisible: false,
       isFamilySongsVisible: false,
       isAssignReviewVisible: false,
+      isKaraokeEditorVisible: false,
+      karaokeEditorTarget: 'local',
       voices: [],
       customConfirmParams: undefined,
       imageAuthorBase64: '',
@@ -2038,6 +2050,20 @@ export default {
       this.$store.dispatch('getNotesFormattedPromise').then(notesFormatted => this.notesFormatted = notesFormatted);
       this.$store.dispatch('getChordsFormattedPromise').then(chordsFormatted => this.chordsFormatted = chordsFormatted);
       this.isSubsEditVisible = false;
+    },
+    showKaraokeEditor() {
+      // При открытии редактора из карточки песни — режим 'song', пишем в Settings той же БД,
+      // что сейчас активна для заданий (assignmentsTarget), единообразно с логикой остальных
+      // target-aware эндпоинтов SongEditorController.
+      try { this.karaokeEditorTarget = this.$store.getters.getAssignmentsTarget || 'local' } catch (e) { this.karaokeEditorTarget = 'local' }
+      this.isKaraokeEditorVisible = true;
+    },
+    closeKaraokeEditor() {
+      this.isKaraokeEditorVisible = false;
+      // После закрытия редактора обновим локальные formatted-поля (правки могли изменить маркеры).
+      this.$store.dispatch('getTextFormattedPromise').then(textFormatted => this.textFormatted = textFormatted);
+      this.$store.dispatch('getNotesFormattedPromise').then(notesFormatted => this.notesFormatted = notesFormatted);
+      this.$store.dispatch('getChordsFormattedPromise').then(chordsFormatted => this.chordsFormatted = chordsFormatted);
     },
     closeCustomConfirm() {
       this.isCustomConfirmVisible = false;

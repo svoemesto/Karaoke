@@ -47,6 +47,11 @@
           <span class="km-nav-card-arrow">→</span>
         </RouterLink>
 
+        <RouterLink to="/account/stemjobs" class="km-nav-card">
+          <span class="km-nav-card-title">🎚️ Создать минусовку</span>
+          <span class="km-nav-card-arrow">→</span>
+        </RouterLink>
+
         <RouterLink to="/account/cart" class="km-nav-card">
           <span class="km-nav-card-title">🛒 Корзина{{ cartCount > 0 ? ` (${cartCount})` : '' }}</span>
           <span class="km-nav-card-arrow">→</span>

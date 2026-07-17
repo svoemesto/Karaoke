@@ -2815,6 +2815,10 @@ fun cpuLimitPercentForType(type: KaraokeProcessTypes): Long {
         KaraokeProcessTypes.MELT_TABS -> Karaoke.cpuLimitPercentMeltTabs
         KaraokeProcessTypes.DEMUCS2 -> Karaoke.cpuLimitPercentDemucs2
         KaraokeProcessTypes.DEMUCS5 -> Karaoke.cpuLimitPercentDemucs5
+        // Тот же демукс, что и DEMUCS2/DEMUCS5 (свой thread-лейн, но тот же docker-образ/GPU) —
+        // переиспользуем существующие лимиты, не заводим отдельные свойства.
+        KaraokeProcessTypes.STEM_JOB_DEMUCS2 -> Karaoke.cpuLimitPercentDemucs2
+        KaraokeProcessTypes.STEM_JOB_DEMUCS5 -> Karaoke.cpuLimitPercentDemucs5
         KaraokeProcessTypes.KEY_BPM_FROM_FILE -> Karaoke.cpuLimitPercentKeyBpmFinder
         KaraokeProcessTypes.SHEETSAGE -> Karaoke.cpuLimitPercentSheetsage
         KaraokeProcessTypes.SHEETSAGE2 -> Karaoke.cpuLimitPercentSheetsage2

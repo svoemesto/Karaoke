@@ -33,6 +33,10 @@ services:
       # PublicPlayerController). @Value("${storage.proxy-url}") требует это значение; application.yml
       # в jar не упаковывается, поэтому property приходит только отсюда (иначе karaoke-web не стартует).
       - STORAGE_PROXY_URL=http://minio-proxy
+      # Премиум-фича «Создать минусовку» (StemJob) — общий секрет заголовка X-Internal-Secret с
+      # karaoke-app (см. docs/stemjobs-admin-guide.md). Реальное значение — из do.env на сервере
+      # (НЕ коммитить сюда, тот же приём, что YOOKASSA_SHOP_ID/SECRET_KEY выше).
+      - STEMJOBS_INTERNAL_SECRET=${STEMJOBS_INTERNAL_SECRET}
     volumes:
       - ${WEB_FOLDER_HOST}:${WEB_FOLDER_IN_CONTAINER}
     extra_hosts:

@@ -30,6 +30,12 @@ enum class KaraokeProcessTypes {
     RENDER_MP4_KARAOKE,
     RENDER_MP4_CHORDS,
     RENDER_MP4_TABS,
-    RENDER_MP4_DEMO
+    RENDER_MP4_DEMO,
 //    RECODE_48000,
+
+    // Премиум-фича «Создать минусовку из аудиофайла» (StemJob, tbl_stem_jobs) — тот же демукс, что и
+    // DEMUCS2/DEMUCS5, но для произвольного файла, загруженного пользователем публичного сайта, а не
+    // для Settings/песни (settingsId=0). См. StemJobProcessing.kt.
+    STEM_JOB_DEMUCS2,
+    STEM_JOB_DEMUCS5
 }

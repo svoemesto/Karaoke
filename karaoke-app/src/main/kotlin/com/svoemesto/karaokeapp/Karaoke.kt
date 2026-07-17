@@ -256,6 +256,21 @@ class Karaoke : Serializable {
             get() = KaraokeProperties.getLong("sponsrSyncWindowDays")
             set(value) { KaraokeProperties.set("sponsrSyncWindowDays", value) }
 
+        // Премиум-фича «Создать минусовку из аудиофайла» (StemJob, см. StemJobProcessing.kt,
+        // StemJobPollScheduler.kt). Базовый URL karaoke-web (прод), по которому karaoke-app забирает
+        // сырой загруженный файл (GET .../api/internal/stemjobs/{id}/raw) и подтверждает удаление
+        // временного файла (POST .../ack) — пусто, пока админ не заполнит после деплоя.
+        var stemJobsWebInternalUrl: String
+            get() = KaraokeProperties.getString("stemJobsWebInternalUrl")
+            set(value) { KaraokeProperties.set("stemJobsWebInternalUrl", value) }
+
+        // Общий секрет для заголовка X-Internal-Secret между karaoke-app и karaoke-web
+        // (InternalStemJobController) — простая защита internal-эндпоинтов, не предназначенных для
+        // публичного доступа. Значение одинаковое на обеих сторонах, задаётся админом при деплое.
+        var stemJobsInternalSecret: String
+            get() = KaraokeProperties.getString("stemJobsInternalSecret")
+            set(value) { KaraokeProperties.set("stemJobsInternalSecret", value) }
+
         //Мониторинг sync-записей в удаленной БД
         var allowUpdateRemote: Boolean
             get() = KaraokeProperties.getBoolean("allowUpdateRemote")

@@ -40,13 +40,6 @@ services:
       - /dev/dri:/dev/dri
     networks:
       - karaokenet
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: ["gpu", "utility", "compute", "video"]
     entrypoint:
       - java
       - -Dfile.encoding=UTF-8

@@ -84,5 +84,15 @@ enum class SettingField : Serializable {
     ID_MAX_MELODY,
     VERSION_MAX_MELODY,
     // Тариф подписки (монетизация, tbl_price_tariffs.id). 0 = песня не продаётся отдельно/дефолт.
-    ID_TARIFF
+    ID_TARIFF,
+    // Публикация DEMO-версии (RenderVersion.DEMO) на площадках — по образцу LYRICS/KARAOKE/CHORDS/MELODY,
+    // но намеренно не привязана к SongVersion (см. Settings.getDescriptionDemoHeader и т.п.).
+    ID_DZEN_DEMO,
+    VERSION_DZEN_DEMO,
+    ID_VK_DEMO,
+    VERSION_VK_DEMO,
+    ID_TELEGRAM_DEMO,
+    VERSION_TELEGRAM_DEMO,
+    ID_MAX_DEMO,
+    VERSION_MAX_DEMO
 }

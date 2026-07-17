@@ -1,0 +1,17 @@
+# Override-файл: резервирование nvidia GPU для karaoke-app (кодирование видео через
+# ffmpeg/melt с аппаратным ускорением). Подключается поверх docker-compose-app.yml, только
+# когда ENABLE_APP_GPU=1 в deploy/.env — см. do.sh (do_start_app/do_build_app и т.п.,
+# переменная APP_GPU_COMPOSE_FILE).
+#
+# Локальные dev-машины без nvidia GPU passthrough должны выставить ENABLE_APP_GPU=0: без этого
+# override'а karaoke-app стартует нормально, просто без аппаратного ускорения кодирования.
+version: "3.9"
+services:
+  karaoke-app:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: ["gpu", "utility", "compute", "video"]

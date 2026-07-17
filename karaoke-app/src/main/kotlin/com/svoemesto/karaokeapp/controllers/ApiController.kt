@@ -871,6 +871,30 @@ class ApiController(
         return text
     }
 
+    // Получение текста заголовка для Dzen Demo
+    @PostMapping("/song/textdzendemoheader")
+    @ResponseBody
+    fun getSongTextDzenDemoHeader(@RequestParam id: Long): String {
+        val settings = Settings.loadFromDbById(id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+        val text = settings?.let {
+            val text = it.getDescriptionDemoHeader(140)
+            text
+        } ?: ""
+        return text
+    }
+
+    // Получение текста тела для Dzen Demo
+    @PostMapping("/song/textdzendemowoheader")
+    @ResponseBody
+    fun getSongTextDzenDemoWOHeader(@RequestParam id: Long): String {
+        val settings = Settings.loadFromDbById(id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+        val text = settings?.let {
+            val text = it.getDescriptionWOHeaderWithTimecodesDemo(5000)
+            text
+        } ?: ""
+        return text
+    }
+
     // Получение текста заголовка для Platforma Karaoke
     @PostMapping("/song/textplkaraokeheader")
     @ResponseBody
@@ -1061,6 +1085,30 @@ class ApiController(
         return text
     }
 
+    // Получение текста заголовка для Vk Demo
+    @PostMapping("/song/textvkdemoheader")
+    @ResponseBody
+    fun getSongTextVkDemoHeader(@RequestParam id: Long): String {
+        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+        val text = settings?.let {
+            val text = it.getDescriptionVkDemoHeader()
+            text
+        } ?: ""
+        return text
+    }
+
+    // Получение текста тела для Vk Demo
+    @PostMapping("/song/textvkdemo")
+    @ResponseBody
+    fun getSongTextVkDemo(@RequestParam id: Long): String {
+        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+        val text = settings?.let {
+            val text = it.getDescriptionVkDemo()
+            text
+        } ?: ""
+        return text
+    }
+
 
     // Получение текста заголовка для Telegram Karaoke
     @PostMapping("/song/texttelegramkaraokeheader")
@@ -1104,6 +1152,18 @@ class ApiController(
         val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
         val text = settings?.let {
             val text = it.getDescriptionTelegramHeader(SongVersion.TABS)
+            text
+        } ?: ""
+        return text
+    }
+
+    // Получение текста заголовка для Telegram Demo
+    @PostMapping("/song/texttelegramdemoheader")
+    @ResponseBody
+    fun getSongTextTelegramDemoHeader(@RequestParam id: Long): String {
+        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+        val text = settings?.let {
+            val text = it.getDescriptionTelegramDemoHeader()
             text
         } ?: ""
         return text
@@ -1155,7 +1215,19 @@ class ApiController(
         } ?: ""
         return text
     }
-    
+
+    // Получение текста заголовка для Max Demo
+    @PostMapping("/song/textmaxdemoheader")
+    @ResponseBody
+    fun getSongTextMaxDemoHeader(@RequestParam id: Long): String {
+        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+        val text = settings?.let {
+            val text = it.getDescriptionMaxDemoHeader()
+            text
+        } ?: ""
+        return text
+    }
+
     // Получение indexTabsVariant
     @PostMapping("/song/indextabsvariant")
     @ResponseBody
@@ -1838,6 +1910,10 @@ class ApiController(
         @RequestParam(required = false) idMaxKaraoke: String?,
         @RequestParam(required = false) idMaxChords: String?,
         @RequestParam(required = false) idMaxMelody: String?,
+        @RequestParam(required = false) idDzenDemo: String?,
+        @RequestParam(required = false) idVkDemo: String?,
+        @RequestParam(required = false) idTelegramDemo: String?,
+        @RequestParam(required = false) idMaxDemo: String?,
         @RequestParam(required = false) versionDzenLyrics: String?,
         @RequestParam(required = false) versionDzenKaraoke: String?,
         @RequestParam(required = false) versionDzenChords: String?,
@@ -1858,6 +1934,10 @@ class ApiController(
         @RequestParam(required = false) versionMaxKaraoke: String?,
         @RequestParam(required = false) versionMaxChords: String?,
         @RequestParam(required = false) versionMaxMelody: String?,
+        @RequestParam(required = false) versionDzenDemo: String?,
+        @RequestParam(required = false) versionVkDemo: String?,
+        @RequestParam(required = false) versionTelegramDemo: String?,
+        @RequestParam(required = false) versionMaxDemo: String?,
         @RequestParam(required = false) resultVersion: String?,
         @RequestParam(required = false) diffBeats: String?,
         @RequestParam(required = false) rate: String?,
@@ -1911,6 +1991,10 @@ class ApiController(
             idMaxKaraoke?.let { sett.fields[SettingField.ID_MAX_KARAOKE] = it }
             idMaxChords?.let { sett.fields[SettingField.ID_MAX_CHORDS] = it }
             idMaxMelody?.let { sett.fields[SettingField.ID_MAX_MELODY] = it }
+            idDzenDemo?.let { sett.fields[SettingField.ID_DZEN_DEMO] = it }
+            idVkDemo?.let { sett.fields[SettingField.ID_VK_DEMO] = it }
+            idTelegramDemo?.let { sett.fields[SettingField.ID_TELEGRAM_DEMO] = it }
+            idMaxDemo?.let { sett.fields[SettingField.ID_MAX_DEMO] = it }
             versionDzenLyrics?.let { sett.fields[SettingField.VERSION_DZEN_LYRICS] = it }
             versionDzenKaraoke?.let { sett.fields[SettingField.VERSION_DZEN_KARAOKE] = it }
             versionDzenChords?.let { sett.fields[SettingField.VERSION_DZEN_CHORDS] = it }
@@ -1931,6 +2015,10 @@ class ApiController(
             versionMaxKaraoke?.let { sett.fields[SettingField.VERSION_MAX_KARAOKE] = it }
             versionMaxChords?.let { sett.fields[SettingField.VERSION_MAX_CHORDS] = it }
             versionMaxMelody?.let { sett.fields[SettingField.VERSION_MAX_MELODY] = it }
+            versionDzenDemo?.let { sett.fields[SettingField.VERSION_DZEN_DEMO] = it }
+            versionVkDemo?.let { sett.fields[SettingField.VERSION_VK_DEMO] = it }
+            versionTelegramDemo?.let { sett.fields[SettingField.VERSION_TELEGRAM_DEMO] = it }
+            versionMaxDemo?.let { sett.fields[SettingField.VERSION_MAX_DEMO] = it }
             resultVersion?.let { sett.fields[SettingField.RESULT_VERSION] = it }
             diffBeats?.let { sett.fields[SettingField.DIFFBEATS] = it }
             idStatus?.let { sett.fields[SettingField.ID_STATUS] =  it }

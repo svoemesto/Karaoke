@@ -424,6 +424,7 @@ class KaraokeProcess(
         const val THREAD_LANE_LIGHT_BACKGROUND = -1 // SmartCopy, uploadToLocalStore — быстрые фоновые задачи
         const val THREAD_LANE_REMOTE_STORE_UPLOAD = -2 // uploadToRemoteStore — сетевая загрузка может быть медленной, свой отдельный лейн
         const val THREAD_LANE_HEALTH_REPORT = 1 // задачи автоисправления HealthReport (кроме MELT_* — те на THREAD_LANE_HEAVY_RENDER)
+        const val THREAD_LANE_STEM_JOBS = 2 // премиум-фича «Создать минусовку» (StemJob) — свой лейн, чтобы не блокировать и не блокироваться обычным пайплайном выпуска песен
 
         fun getDiff(procA: KaraokeProcess?): List<RecordDiff> {
             val result: MutableList<RecordDiff> = mutableListOf()

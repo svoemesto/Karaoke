@@ -24,6 +24,7 @@
               </router-link>
             </li>
             <li class="nav-item"><router-link class="nav-link" to="/siteusers">Пользователи сайта</router-link></li>
+            <li class="nav-item"><router-link class="nav-link" to="/stemjobs">Минусовки</router-link></li>
             <li class="nav-item"><router-link class="nav-link" to="/siteplaylists">Плейлисты</router-link></li>
             <li class="nav-item">
               <router-link class="nav-link songeditor-nav-link" to="/songeditor">

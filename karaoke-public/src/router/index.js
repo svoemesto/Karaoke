@@ -17,6 +17,7 @@ import EditorWorkView from '../views/EditorWorkView.vue'
 import SubscriptionReturnView from '../views/SubscriptionReturnView.vue'
 import PremiumView from '../views/PremiumView.vue'
 import SubscriptionsView from '../views/SubscriptionsView.vue'
+import StemJobsView from '../views/StemJobsView.vue'
 import CartView from '../views/CartView.vue'
 import OfertaView from '../views/OfertaView.vue'
 import NewsView from '../views/NewsView.vue'
@@ -51,6 +52,7 @@ const routes = [
   { path: '/account/playlists', name: 'playlists', component: PlaylistsView },
   { path: '/account/chat', name: 'chat', component: ChatView, beforeEnter: requireAuth },
   { path: '/account/subscriptions', name: 'subscriptions', component: SubscriptionsView, beforeEnter: requireAuth },
+  { path: '/account/stemjobs', name: 'stemjobs', component: StemJobsView, beforeEnter: requireAuth },
   { path: '/account/cart', name: 'cart', component: CartView, beforeEnter: requireAuth },
   { path: '/account/playlists/:id', name: 'playlist-edit', component: PlaylistEditView },
   // Динамический read-only плейлист автора (все песни автора). Аноним — LoginRequired внутри.

@@ -7,6 +7,7 @@ import ProcessesView from '../views/ProcessesView.vue';
 import PropertiesView from '../views/PropertiesView.vue';
 import AuthorsView from '../views/AuthorsView.vue';
 import SiteUsersView from '../views/SiteUsersView.vue';
+import StemJobsView from '../views/StemJobsView.vue';
 import SitePlaylistsView from '../views/SitePlaylistsView.vue';
 import SongEditorView from '../views/SongEditorView.vue';
 import PublicSettingsView from '../views/PublicSettingsView.vue';
@@ -65,6 +66,11 @@ const routes = [
     path: '/siteplaylists',
     name: 'siteplaylists',
     component: SitePlaylistsView
+  },
+  {
+    path: '/stemjobs',
+    name: 'stemjobs',
+    component: StemJobsView
   },
   {
     path: '/songeditor',

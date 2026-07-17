@@ -26,6 +26,10 @@ services:
       # на локальный MinIO-контейнер (karaoke-storage), сохраняя тот же путь "/minio/karaoke/...",
       # который код (fetchFromMinIO/existsInMinIO) строит одинаково в обоих окружениях.
       - STORAGE_PROXY_URL=http://karaoke-minio-proxy
+      # Премиум-фича «Создать минусовку» (StemJob) — application.yml на проде ненадёжен (см. соседний
+      # прод-compose), значение должно приходить отсюда напрямую (относится и к локальному запуску
+      # через этот compose, для единообразия).
+      - STEMJOBS_INTERNAL_SECRET=${STEMJOBS_INTERNAL_SECRET}
 #    volumes:
 #      - ${WEB_FOLDER_HOST}:${WEB_FOLDER_IN_CONTAINER}
     networks:

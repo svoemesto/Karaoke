@@ -32,6 +32,7 @@ import dictionaries from '../components/Dictionaries/store'
 import dictionariesFilter from '../components/Dictionaries/filter/store'
 import chat from '../components/Chat/store'
 import news from '../components/News/store'
+import stemJobs from '../components/StemJobs/store'
 import { useToast } from 'bootstrap-vue-next'
 
 export default createStore({
@@ -58,6 +59,7 @@ export default createStore({
     dictionaries,
     chat,
     news,
+    stemJobs,
     songFilter,
     smartCopy,
     healthReport,

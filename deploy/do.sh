@@ -24,6 +24,13 @@ fi
 
 source ${DEPLOY_DIR}/do.env
 
+# GPU-override для karaoke-app подключается только при ENABLE_APP_GPU=1 (см. do.env и
+# docker-compose-app.gpu.yml) — на dev-машинах без nvidia passthrough держите его в 0.
+APP_GPU_COMPOSE_FILE=""
+if [[ "${ENABLE_APP_GPU:-1}" == "1" ]]; then
+  APP_GPU_COMPOSE_FILE="-f $DEPLOY_DIR/docker-compose-app.gpu.yml"
+fi
+
 # Очередь/взаимное исключение gradle-сборок (см. build-lock.sh)
 source ${DEPLOY_DIR}/build-lock.sh
 # Флаг форса: FORCE=1 в окружении или --force среди аргументов do.sh
@@ -265,7 +272,7 @@ function do_stop_public() {
 function do_start_app() {
   do_stop_webvue
   echo "Старт APP"
-  ${COMPOSE} -f $DEPLOY_DIR/docker-compose-app.yml up -d
+  ${COMPOSE} -f $DEPLOY_DIR/docker-compose-app.yml ${APP_GPU_COMPOSE_FILE} up -d
   announce "Старт APP" "Бэк+энд зап+ущен"
 }
 

@@ -87,7 +87,15 @@ BEGIN
         COALESCE(NEW.version_max_karaoke::TEXT, '') ||
         COALESCE(NEW.version_max_chords::TEXT, '') ||
         COALESCE(NEW.version_max_melody::TEXT, '') ||
-        COALESCE(NEW.id_tariff::TEXT, '')
+        COALESCE(NEW.id_tariff::TEXT, '') ||
+        COALESCE(NEW.id_dzen_demo, '') ||
+        COALESCE(NEW.version_dzen_demo::TEXT, '') ||
+        COALESCE(NEW.id_vk_demo, '') ||
+        COALESCE(NEW.version_vk_demo::TEXT, '') ||
+        COALESCE(NEW.id_telegram_demo, '') ||
+        COALESCE(NEW.version_telegram_demo::TEXT, '') ||
+        COALESCE(NEW.id_max_demo, '') ||
+        COALESCE(NEW.version_max_demo::TEXT, '')
     );
     RETURN NEW;
 END;
@@ -189,5 +197,13 @@ SET recordhash = md5(
         COALESCE(version_max_karaoke::TEXT, '') ||
         COALESCE(version_max_chords::TEXT, '') ||
         COALESCE(version_max_melody::TEXT, '') ||
-        COALESCE(id_tariff::TEXT, '')
+        COALESCE(id_tariff::TEXT, '') ||
+        COALESCE(id_dzen_demo, '') ||
+        COALESCE(version_dzen_demo::TEXT, '') ||
+        COALESCE(id_vk_demo, '') ||
+        COALESCE(version_vk_demo::TEXT, '') ||
+        COALESCE(id_telegram_demo, '') ||
+        COALESCE(version_telegram_demo::TEXT, '') ||
+        COALESCE(id_max_demo, '') ||
+        COALESCE(version_max_demo::TEXT, '')
 ) WHERE id > 0;

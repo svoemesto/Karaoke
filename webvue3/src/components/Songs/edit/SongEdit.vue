@@ -248,6 +248,19 @@
                 <button class="btn-round" @click="copyToClipboard(song.idDzenLyrics,'idDzenLyrics')" :disabled="!song.idDzenLyrics"><img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg"></button>
                 <button class="btn-round" @click="pasteFromClipboard('idDzenLyrics')"><img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg"></button>
               </div>
+              <div class="label-and-input">
+                <img class="icon-24" alt="demo" src="../../../assets/svg/icon_demo.svg">
+                <button class="btn-round" @click="openLinkDzenDemoPlay" :disabled="!song.idDzenDemo"><img alt="play" class="icon-play" src="../../../assets/svg/icon_play.svg"></button>
+                <button class="btn-round" @click="openLinkDzenDemoEdit" :disabled="!song.idDzenDemo"><img alt="edit" class="icon-edit" src="../../../assets/svg/icon_edit.svg"></button>
+                <button class="btn-round" @click="getDzenDemoHeader"><img alt="head" class="icon-texthead" src="../../../assets/svg/icon_head.svg"></button>
+                <button class="btn-round" @click="getDzenDemoBody"><img alt="body" class="icon-textbody" src="../../../assets/svg/icon_body.svg"></button>
+                <button class="btn-round" @click="getLinkDzenDemoPlay" :disabled="!song.idDzenDemo"><img alt="link" class="icon-textlink" src="../../../assets/svg/icon_link.svg"></button>
+                <input class="input-link-field" v-model="song.idDzenDemo">
+                <input class="input-field-version" v-model="song.versionDzenDemo">
+                <button class="btn-round" @click="undoField('idDzenDemo')" :disabled="notChanged('idDzenDemo')"><img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg"></button>
+                <button class="btn-round" @click="copyToClipboard(song.idDzenDemo,'idDzenDemo')" :disabled="!song.idDzenDemo"><img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg"></button>
+                <button class="btn-round" @click="pasteFromClipboard('idDzenDemo')"><img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg"></button>
+              </div>
               <div class="label-and-input" v-if="showChordsDzen">
                 <img class="icon-24" alt="chords" src="../../../assets/svg/icon_chords.svg">
                 <button class="btn-round" @click="openLinkDzenChordsPlay" :disabled="!song.idDzenChords"><img alt="play" class="icon-play" src="../../../assets/svg/icon_play.svg"></button>
@@ -305,6 +318,18 @@
                 <button class="btn-round" @click="undoField('idVkLyrics')" :disabled="notChanged('idVkLyrics')"><img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg"></button>
                 <button class="btn-round" @click="copyToClipboard(song.idVkLyrics,'idVkLyrics')" :disabled="!song.idVkLyrics"><img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg"></button>
                 <button class="btn-round" @click="pasteFromClipboard('idVkLyrics')"><img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg"></button>
+              </div>
+              <div class="label-and-input">
+                <img class="icon-24" alt="demo" src="../../../assets/svg/icon_demo.svg">
+                <button class="btn-round-wide" @click="openLinkVkDemo" :disabled="!song.idVkDemo"><img alt="play" class="icon-play-wide" src="../../../assets/svg/icon_play.svg"></button>
+                <button class="btn-round" @click="getVkDemoHeader"><img alt="head" class="icon-texthead" src="../../../assets/svg/icon_head.svg"></button>
+                <button class="btn-round" @click="getVkDemoBody"><img alt="body" class="icon-textbody" src="../../../assets/svg/icon_body.svg"></button>
+                <button class="btn-round"  @click="getLinkVkDemo" :disabled="!song.idVkDemo"><img alt="link" class="icon-textlink" src="../../../assets/svg/icon_link.svg"></button>
+                <input class="input-link-field" v-model="song.idVkDemo">
+                <input class="input-field-version" v-model="song.versionVkDemo">
+                <button class="btn-round" @click="undoField('idVkDemo')" :disabled="notChanged('idVkDemo')"><img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg"></button>
+                <button class="btn-round" @click="copyToClipboard(song.idVkDemo,'idVkDemo')" :disabled="!song.idVkDemo"><img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg"></button>
+                <button class="btn-round" @click="pasteFromClipboard('idVkDemo')"><img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg"></button>
               </div>
               <div class="label-and-input" v-if="showChordsVk">
                 <img class="icon-24" alt="song" src="../../../assets/svg/icon_chords.svg">
@@ -420,6 +445,17 @@
                 <button class="btn-round" @click="copyToClipboard(song.idTelegramLyrics, 'idTelegramLyrics')" :disabled="!song.idTelegramLyrics"><img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg"></button>
                 <button class="btn-round" @click="pasteFromClipboard('idTelegramLyrics')"><img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg"></button>
               </div>
+              <div class="label-and-input">
+                <img class="icon-24" alt="demo" src="../../../assets/svg/icon_demo.svg">
+                <button class="btn-round-wide" @click="openLinkTelegramDemo" :disabled="!song.idTelegramDemo"><img alt="play" class="icon-play-wide" src="../../../assets/svg/icon_play.svg"></button>
+                <button class="btn-round-wide" @click="getTelegramDemoHeader"><img alt="head" class="icon-texthead-wide" src="../../../assets/svg/icon_head.svg"></button>
+                <button class="btn-round" @click="getLinkTelegramDemo" :disabled="!song.idTelegramDemo"><img alt="link" class="icon-textlink" src="../../../assets/svg/icon_link.svg"></button>
+                <input class="input-link-field" v-model="song.idTelegramDemo">
+                <input class="input-field-version" v-model="song.versionTelegramDemo">
+                <button class="btn-round" @click="undoField('idTelegramDemo')" :disabled="notChanged('idTelegramDemo')"><img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg"></button>
+                <button class="btn-round" @click="copyToClipboard(song.idTelegramDemo, 'idTelegramDemo')" :disabled="!song.idTelegramDemo"><img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg"></button>
+                <button class="btn-round" @click="pasteFromClipboard('idTelegramDemo')"><img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg"></button>
+              </div>
               <div class="label-and-input" v-if="showChordsTelegram">
                 <img class="icon-24" alt="song" src="../../../assets/svg/icon_chords.svg">
                 <button class="btn-round-wide" @click="openLinkTelegramChords" :disabled="!song.idTelegramChords"><img alt="play" class="icon-play-wide" src="../../../assets/svg/icon_play.svg"></button>
@@ -471,6 +507,17 @@
                 <button class="btn-round" @click="undoField('idMaxLyrics')" :disabled="notChanged('idMaxLyrics')"><img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg"></button>
                 <button class="btn-round" @click="copyToClipboard(song.idMaxLyrics, 'idMaxLyrics')" :disabled="!song.idMaxLyrics"><img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg"></button>
                 <button class="btn-round" @click="pasteFromClipboard('idMaxLyrics')"><img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg"></button>
+              </div>
+              <div class="label-and-input">
+                <img class="icon-24" alt="demo" src="../../../assets/svg/icon_demo.svg">
+                <button class="btn-round-wide" @click="openLinkMaxDemo" :disabled="!song.idMaxDemo"><img alt="play" class="icon-play-wide" src="../../../assets/svg/icon_play.svg"></button>
+                <button class="btn-round-wide" @click="getMaxDemoHeader"><img alt="head" class="icon-texthead-wide" src="../../../assets/svg/icon_head.svg"></button>
+                <button class="btn-round" @click="getLinkMaxDemo" :disabled="!song.idMaxDemo"><img alt="link" class="icon-textlink" src="../../../assets/svg/icon_link.svg"></button>
+                <input class="input-link-field" v-model="song.idMaxDemo">
+                <input class="input-field-version" v-model="song.versionMaxDemo">
+                <button class="btn-round" @click="undoField('idMaxDemo')" :disabled="notChanged('idMaxDemo')"><img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg"></button>
+                <button class="btn-round" @click="copyToClipboard(song.idMaxDemo, 'idMaxDemo')" :disabled="!song.idMaxDemo"><img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg"></button>
+                <button class="btn-round" @click="pasteFromClipboard('idMaxDemo')"><img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg"></button>
               </div>
               <div class="label-and-input" v-if="showChordsMax">
                 <img class="icon-24" alt="song" src="../../../assets/svg/icon_chords.svg">
@@ -831,6 +878,11 @@ export default {
     linkMaxLyrics() { return this.prefixLinkMax + this.song.idMaxLyrics; },
     linkMaxChords() { return this.prefixLinkMax + this.song.idMaxChords; },
     linkMaxTabs() { return this.prefixLinkMax + this.song.idMaxMelody; },
+    linkDzenDemoPlay() { return this.prefixLinkDzenPlay + this.song.idDzenDemo; },
+    linkDzenDemoEdit() { return this.prefixLinkDzenEdit + this.song.idDzenDemo; },
+    linkVkDemo() { return this.prefixLinkVk + this.song.idVkDemo; },
+    linkTelegramDemo() { return this.prefixLinkTelegram + this.song.idTelegramDemo; },
+    linkMaxDemo() { return this.prefixLinkMax + this.song.idMaxDemo; },
     linkPlKaraokePlay() { return this.prefixLinkPlPlay + this.song.idPlKaraoke; },
     linkPlKaraokeEdit() { return this.prefixLinkPlEdit + this.song.idPlKaraoke + this.suffixLinkPlEdit; },
     linkPlLyricsPlay() { return this.prefixLinkPlPlay + this.song.idPlLyrics; },
@@ -1010,6 +1062,23 @@ export default {
         }
       }
     },
+    'song.idDzenDemo.value': {
+      deep: true,
+      handler () {
+        if (this.song) {
+          const value = this.song.idDzenDemo;
+          if (value && value.startsWith(this.prefixLinkDzenPlay)) {
+            const newValue = value.replace(this.prefixLinkDzenPlay, '');
+            this.$store.dispatch('setCurrentSongField', {name: 'idDzenDemo', value: newValue})
+          }
+          if (value !== '' && this.song.versionDzenDemo === 0) {
+            this.$store.dispatch('setCurrentSongField', {name: 'versionDzenDemo', value: this.song.resultVersion});
+          } else if (value === '' && this.song.versionDzenDemo !== 0){
+            this.$store.dispatch('setCurrentSongField', {name: 'versionDzenDemo', value: 0});
+          }
+        }
+      }
+    },
     'song.idPlKaraoke.value': {
       deep: true,
       handler () {
@@ -1162,6 +1231,27 @@ export default {
         }
       }
     },
+    'song.idVkDemo.value': {
+      deep: true,
+      handler () {
+        if (this.song) {
+          const value = this.song.idVkDemo;
+          if (value && value.startsWith(this.prefixLinkVk)) {
+            const newValue = value.replace(this.prefixLinkVk, '');
+            this.$store.dispatch('setCurrentSongField', {name: 'idVkDemo', value: newValue});
+          }
+          if (value && value.startsWith(this.prefixLinkVk2)) {
+            const newValue = value.replace(this.prefixLinkVk2, '');
+            this.$store.dispatch('setCurrentSongField', {name: 'idVkDemo', value: newValue});
+          }
+          if (value !== '' && this.song.versionVkDemo === 0) {
+            this.$store.dispatch('setCurrentSongField', {name: 'versionVkDemo', value: this.song.resultVersion});
+          } else if (value === '' && this.song.versionVkDemo !== 0){
+            this.$store.dispatch('setCurrentSongField', {name: 'versionVkDemo', value: 0});
+          }
+        }
+      }
+    },
     'song.idTelegramKaraoke.value': {
       deep: true,
       handler () {
@@ -1230,6 +1320,23 @@ export default {
         }
       }
     },
+    'song.idTelegramDemo.value': {
+      deep: true,
+      handler () {
+        if (this.song) {
+          const value = this.song.idTelegramDemo;
+          if (value && value.startsWith(this.prefixLinkTelegram)) {
+            const newValue = value.replace(this.prefixLinkTelegram, '');
+            this.$store.dispatch('setCurrentSongField', {name: 'idTelegramDemo', value: newValue})
+          }
+          if (value !== '' && this.song.versionTelegramDemo === 0) {
+            this.$store.dispatch('setCurrentSongField', {name: 'versionTelegramDemo', value: this.song.resultVersion});
+          } else if (value === '' && this.song.versionTelegramDemo !== 0){
+            this.$store.dispatch('setCurrentSongField', {name: 'versionTelegramDemo', value: 0});
+          }
+        }
+      }
+    },
     'song.idMaxKaraoke.value': {
       deep: true,
       handler () {
@@ -1294,6 +1401,23 @@ export default {
             this.$store.dispatch('setCurrentSongField', {name: 'versionMaxMelody', value: this.song.resultVersion});
           } else if (value === '' && this.song.versionMaxMelody !== 0){
             this.$store.dispatch('setCurrentSongField', {name: 'versionMaxMelody', value: 0});
+          }
+        }
+      }
+    },
+    'song.idMaxDemo.value': {
+      deep: true,
+      handler () {
+        if (this.song) {
+          const value = this.song.idMaxDemo;
+          if (value && value.startsWith(this.prefixLinkMax)) {
+            const newValue = value.replace(this.prefixLinkMax, '');
+            this.$store.dispatch('setCurrentSongField', {name: 'idMaxDemo', value: newValue})
+          }
+          if (value !== '' && this.song.versionMaxDemo === 0) {
+            this.$store.dispatch('setCurrentSongField', {name: 'versionMaxDemo', value: this.song.resultVersion});
+          } else if (value === '' && this.song.versionMaxDemo !== 0){
+            this.$store.dispatch('setCurrentSongField', {name: 'versionMaxDemo', value: 0});
           }
         }
       }
@@ -2216,6 +2340,17 @@ export default {
     openLinkDzenTabsEdit() {
       window.open(this.linkDzenTabsEdit, '_blank');
     },
+    async getLinkDzenDemoPlay() {
+      let value = this.linkDzenDemoPlay;
+      await navigator.clipboard.writeText(value)
+      this.showCopyToClipboardToast('linkDzenDemoPlay', value);
+    },
+    openLinkDzenDemoPlay() {
+      window.open(this.linkDzenDemoPlay, '_blank');
+    },
+    openLinkDzenDemoEdit() {
+      window.open(this.linkDzenDemoEdit, '_blank');
+    },
 
     async getDzenKaraokeHeader() {
       let value = await this.$store.getters.getDzenKaraokeHeader;
@@ -2256,6 +2391,16 @@ export default {
       let value = await this.$store.getters.getDzenTabsBody;
       await navigator.clipboard.writeText(value)
       this.showCopyToClipboardToast('getDzenTabsBody', value);
+    },
+    async getDzenDemoHeader() {
+      let value = await this.$store.getters.getDzenDemoHeader;
+      await navigator.clipboard.writeText(value)
+      this.showCopyToClipboardToast('getDzenDemoHeader', value);
+    },
+    async getDzenDemoBody() {
+      let value = await this.$store.getters.getDzenDemoBody;
+      await navigator.clipboard.writeText(value)
+      this.showCopyToClipboardToast('getDzenDemoBody', value);
     },
 
 
@@ -2377,6 +2522,14 @@ export default {
     openLinkVkTabs() {
       window.open(this.linkVkTabs, '_blank');
     },
+    async getLinkVkDemo() {
+      let value = this.linkVkDemo;
+      await navigator.clipboard.writeText(value)
+      this.showCopyToClipboardToast('linkVkDemo', value);
+    },
+    openLinkVkDemo() {
+      window.open(this.linkVkDemo, '_blank');
+    },
 
     async getVkKaraokeHeader() {
       let value = await this.$store.getters.getVkKaraokeHeader;
@@ -2419,6 +2572,16 @@ export default {
       await navigator.clipboard.writeText(value)
       this.showCopyToClipboardToast('getVkTabsBody', value);
     },
+    async getVkDemoHeader() {
+      let value = await this.$store.getters.getVkDemoHeader;
+      await navigator.clipboard.writeText(value)
+      this.showCopyToClipboardToast('getVkDemoHeader', value);
+    },
+    async getVkDemoBody() {
+      let value = await this.$store.getters.getVkDemoBody;
+      await navigator.clipboard.writeText(value)
+      this.showCopyToClipboardToast('getVkDemoBody', value);
+    },
 
     async getLinkTelegramKaraoke() {
       let value = this.linkTelegramKaraoke;
@@ -2452,6 +2615,14 @@ export default {
     openLinkTelegramTabs() {
       window.open(this.linkTelegramTabs, '_blank');
     },
+    async getLinkTelegramDemo() {
+      let value = this.linkTelegramDemo;
+      await navigator.clipboard.writeText(value)
+      this.showCopyToClipboardToast('linkTelegramDemo', value);
+    },
+    openLinkTelegramDemo() {
+      window.open(this.linkTelegramDemo, '_blank');
+    },
 
     async getTelegramKaraokeHeader() {
       let value = await this.$store.getters.getTelegramKaraokeHeader;
@@ -2473,6 +2644,11 @@ export default {
       let value = await this.$store.getters.getTelegramTabsHeader;
       await navigator.clipboard.writeText(value)
       this.showCopyToClipboardToast('getTelegramTabsHeader', value);
+    },
+    async getTelegramDemoHeader() {
+      let value = await this.$store.getters.getTelegramDemoHeader;
+      await navigator.clipboard.writeText(value)
+      this.showCopyToClipboardToast('getTelegramDemoHeader', value);
     },
 
 
@@ -2508,6 +2684,14 @@ export default {
     openLinkMaxTabs() {
       window.open(this.linkMaxTabs, '_blank');
     },
+    async getLinkMaxDemo() {
+      let value = this.linkMaxDemo;
+      await navigator.clipboard.writeText(value)
+      this.showCopyToClipboardToast('linkMaxDemo', value);
+    },
+    openLinkMaxDemo() {
+      window.open(this.linkMaxDemo, '_blank');
+    },
 
     async getMaxKaraokeHeader() {
       let value = await this.$store.getters.getMaxKaraokeHeader;
@@ -2529,6 +2713,11 @@ export default {
       let value = await this.$store.getters.getMaxTabsHeader;
       await navigator.clipboard.writeText(value)
       this.showCopyToClipboardToast('getMaxTabsHeader', value);
+    },
+    async getMaxDemoHeader() {
+      let value = await this.$store.getters.getMaxDemoHeader;
+      await navigator.clipboard.writeText(value)
+      this.showCopyToClipboardToast('getMaxDemoHeader', value);
     },
 
     notChanged(name) {

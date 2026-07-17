@@ -726,6 +726,17 @@ class Settings(
         get() = (fields[SettingField.ID_TARIFF]?.nullIfEmpty() ?: "0").toInt()
         set(value) {fields[SettingField.ID_TARIFF] = value.toString()}
 
+    // Тип песни: песня (вокал+музыка), инструментал (только музыка), стихи (только вокал).
+    // Хранится в tbl_settings.song_type в lowercase (song/instrumental/poetry) — сравниваем через
+    // SongType.dbValue. Дефолт SONG — для старых песен и новых единообразно (миграция БД задаёт
+    // DEFAULT 'song' на колонке).
+    var songType: SongType
+        get() {
+            val raw = fields[SettingField.SONG_TYPE]?.nullIfEmpty() ?: SongType.SONG.dbValue
+            return SongType.entries.firstOrNull { it.dbValue == raw.lowercase() } ?: SongType.SONG
+        }
+        set(value) {fields[SettingField.SONG_TYPE] = value.dbValue}
+
     val linkSM: String get() = URL_PREFIX_SM.replace("{REPLACE}", id.toString())
     val linkBoosty: String get() = idBoosty.let {URL_PREFIX_BOOSTY.replace("{REPLACE}", idBoosty)}
     val linkBoostyFiles: String? get() = idBoostyFiles.let {URL_PREFIX_BOOSTY.replace("{REPLACE}", idBoostyFiles)}
@@ -4251,6 +4262,7 @@ class Settings(
         fieldsValues.add(Pair("tags", settings.tags))
         fieldsValues.add(Pair("rate", settings.rate))
         fieldsValues.add(Pair("id_tariff", settings.idTariff))
+        fieldsValues.add(Pair("song_type", settings.songType.dbValue))
         fieldsValues.add(Pair("formatted_text_song", settings.formattedTextSong))
         fieldsValues.add(Pair("formatted_text_tabs", settings.formattedTextTabs))
         fieldsValues.add(Pair("formatted_text_chords", settings.formattedTextChords))
@@ -4583,6 +4595,7 @@ class Settings(
                 if (settA.exclusive != settB.exclusive) result.add(RecordDiff("exclusive", settA.exclusive, settB.exclusive))
                 if (settA.free != settB.free) result.add(RecordDiff("free", settA.free, settB.free))
                 if (settA.idTariff != settB.idTariff) result.add(RecordDiff("id_tariff", settA.idTariff, settB.idTariff))
+                if (settA.songType != settB.songType) result.add(RecordDiff("song_type", settA.songType.dbValue, settB.songType.dbValue))
 
 
                 if (settA.status != settB.status) result.add(RecordDiff("status", settA.status, settB.status, false))
@@ -5170,6 +5183,7 @@ class Settings(
                     }
                     rs.getInt("rate").let { value -> settings.fields[SettingField.RATE] = value.toString() }
                     rs.getInt("id_tariff").let { value -> settings.fields[SettingField.ID_TARIFF] = value.toString() }
+                    rs.getString("song_type")?.let { value -> settings.fields[SettingField.SONG_TYPE] = value }
 
                     rs.getLong("root_id").let { value -> settings.rootId = value }
                     rs.getBoolean("exclusive").let { value -> settings.exclusive = value }
@@ -5635,6 +5649,7 @@ class Settings(
             exclusive = exclusive,
             free = free,
             idTariff = idTariff,
+            songType = songType.dbValue,
             haveSourceText = haveSourceText
         )
     }

@@ -115,6 +115,7 @@ data class SettingsDTOdigest(
         val rootId: Long,
         val exclusive: Boolean,
         val free: Boolean,
+        val songType: String,
         val haveSourceText: Boolean
 ): Serializable, Comparable<SettingsDTOdigest> {
 

@@ -109,6 +109,14 @@
             <button class="btn-round" @click="pasteFromClipboard('tags')"><img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg"></button>
           </div>
           <div class="label-and-input">
+            <div class="label">Тип песни:</div>
+            <select class="input-field" v-model="song.songType">
+              <option v-for="opt in songTypeOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+            </select>
+            <button class="btn-round" @click="undoField('songType')" :disabled="notChanged('songType')"><img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg"></button>
+            <button class="btn-round" @click="copyToClipboard(song.songType, 'songType')" :disabled="!song.songType"><img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg"></button>
+          </div>
+          <div class="label-and-input">
             <div class="label">Дата:</div>
             <input class="input-field" v-model="song.date" list="list_free_time_slots">
             <button class="btn-round" @click="undoField('date')" :disabled="notChanged('date')"><img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg"></button>
@@ -713,6 +721,15 @@ const ASSIGN_STATUS_LABELS = {
   approved: 'Одобрено', rejected: 'Отклонено',
 };
 
+// Тип песни: dbValue — то, что хранится в БД (tbl_settings.song_type) и в SettingsDTO.songType,
+// и попадает в ApiController.songs2Update как параметр songType. Значение по умолчанию — 'song'
+// (см. SongType.SONG в karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SongType.kt).
+const SONG_TYPE_OPTIONS = [
+  { value: 'song',         label: 'Песня (вокал + музыка)' },
+  { value: 'instrumental', label: 'Инструментал (только музыка)' },
+  { value: 'poetry',       label: 'Стихи (только вокал)' },
+];
+
 export default {
   name: "SongEdit",
   props: {
@@ -799,6 +816,9 @@ export default {
     },
     editorSiteUsers() {
       return this.$store.getters.getEditorSiteUsers || [];
+    },
+    songTypeOptions() {
+      return SONG_TYPE_OPTIONS;
     },
     disabledSearchTextForSong() {
       return this.song.haveSourceText;
@@ -929,6 +949,14 @@ export default {
         this.$store.dispatch('getNotesFormattedPromise').then(notesFormatted => this.notesFormatted = notesFormatted);
         this.$store.dispatch('getChordsFormattedPromise').then(chordsFormatted => this.chordsFormatted = chordsFormatted);
         this.reloadAssignmentStatus();
+      }
+    },
+    // На случай когда сервер ещё не отдаёт songType (старая БД/билд) — подставляем дефолт 'song'.
+    'song.songType': {
+      handler (newVal) {
+        if (!newVal || !SONG_TYPE_OPTIONS.some(o => o.value === newVal)) {
+          this.$store.dispatch('setCurrentSongField', {name: 'songType', value: 'song'});
+        }
       }
     },
     'song.idBoosty.value': {

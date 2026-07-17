@@ -55,8 +55,10 @@ class StemJobPollScheduler {
         tempFolder.mkdirs()
         val uploadFile = File(tempFolder, "upload.${job.originalExt}")
 
-        if (!downloadRawFile(job.id, uploadFile)) {
-            failJob(job, "Не удалось скачать исходный файл с karaoke-web")
+        val downloadError = downloadRawFile(job.id, uploadFile)
+        if (downloadError != null) {
+            println("[StemJobPollScheduler] downloadRawFile jobId=${job.id}: $downloadError")
+            failJob(job, "Не удалось скачать исходный файл с karaoke-web ($downloadError)")
             tempFolder.deleteRecursively()
             return
         }
@@ -97,7 +99,10 @@ class StemJobPollScheduler {
         job.save()
     }
 
-    private fun downloadRawFile(jobId: Long, dest: File): Boolean {
+    // Возвращает null при успехе, иначе краткое человекочитаемое описание причины (пишется и в
+    // консоль karaoke-app, и в StemJob.errorMessage — админ должен видеть причину без доступа к
+    // логам karaoke-app, только по панели «Минусовки»/личному кабинету пользователя).
+    private fun downloadRawFile(jobId: Long, dest: File): String? {
         val baseUrl = Karaoke.stemJobsWebInternalUrl.trim().trimEnd('/')
         return try {
             val connection = URL("$baseUrl/api/internal/stemjobs/$jobId/raw").openConnection() as HttpURLConnection
@@ -105,16 +110,20 @@ class StemJobPollScheduler {
             connection.setRequestProperty("X-Internal-Secret", Karaoke.stemJobsInternalSecret)
             connection.connectTimeout = 15_000
             connection.readTimeout = 60_000
-            if (connection.responseCode != 200) {
+            val code = connection.responseCode
+            if (code != 200) {
+                val bodySnippet = runCatching {
+                    (connection.errorStream ?: connection.inputStream)?.bufferedReader()?.readText()?.take(200)
+                }.getOrNull()
                 connection.disconnect()
-                return false
+                return "HTTP $code" + (if (!bodySnippet.isNullOrBlank()) ": $bodySnippet" else "") +
+                    (if (code == 403) " — проверьте, что stemJobsInternalSecret (Properties) совпадает с STEMJOBS_INTERNAL_SECRET на karaoke-web" else "")
             }
             connection.inputStream.use { input -> dest.outputStream().use { output -> input.copyTo(output) } }
             connection.disconnect()
-            dest.exists() && dest.length() > 0
+            if (dest.exists() && dest.length() > 0) null else "файл скачан пустым"
         } catch (e: Exception) {
-            println("[StemJobPollScheduler] downloadRawFile jobId=$jobId: ${e.message}")
-            false
+            "${e.javaClass.simpleName}: ${e.message}"
         }
     }
 

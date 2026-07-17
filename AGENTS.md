@@ -10,6 +10,20 @@
 
 Karaoke (svoemesto) — self-pipeline для автоматического создания караоке-видео. Kotlin/Spring Boot бэкенд + Vue 3 фронтенд.
 
+## Тип песни (song_type)
+
+Песня бывает трёх типов: обычная (вокал + музыка), инструментал (только музыка без вокала), стихи (только вокал без музыки).
+
+**Применение признака:**
+- Поле в `tbl_settings.song_type VARCHAR(20) NOT NULL DEFAULT 'song'`.
+- Миграция: `deploy/karaoke-db/24_song_type.sql` (добавляет колонку + пересоздаёт recordhash-триггер в `tbl_settings` и `tbl_settings_sync` — иначе LOCAL и PROD будут давать разные md5 для одной песни и sync сломается).
+- Backend: enum `SongType` (`song`/`instrumental`/`poetry`, см. `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SongType.kt`).
+- Frontend: select в `webvue3/src/components/Songs/edit/SongEdit.vue` (после «Тэги»), значение по умолчанию `song`.
+- API: параметр `songType` в `POST /api/song/update`. Невалидное значение — тихо подменяется на `SONG`.
+- Поле передаётся в `SettingsDTO.songType` / `SettingsDTOdigest.songType` (lowercase-строка).
+- Применяется в `Settings.loadListFromDb` (читается как nullable string, дефолт `SONG` если пусто) и в `Settings.songType` getter/setter.
+- Поддерживается в `Settings.getDiff` и `Settings.getSqlToInsert` — изменение songType сохраняется через обычный flow автосохранения.
+
 ## Рендер MP4 из онлайн-плеера
 
 Очередь `RENDER_MP4_LYRICS` / `RENDER_MP4_KARAOKE` / `RENDER_MP4_DEMO` (threadId=0, HEAVY_RENDER lane) — рендер караоке-видео через Playwright + ffmpeg без MLT.

@@ -10,6 +10,11 @@ import com.svoemesto.karaokeapp.textfiledictionary.YoWordsDictionary
 const val CURRENT_RESULT_VERSION = 12L
 const val COUNT_HISTORY_LINES = 30
 const val PATH_TO_TEMP_DEMUCS_FOLDER = "/sm-karaoke/system/demucs-docker/tmp"
+// Отдельная от PATH_TO_TEMP_DEMUCS_FOLDER папка (премиум-фича «Создать минусовку», StemJob) — свой
+// thread-лейн (KaraokeProcess.THREAD_LANE_STEM_JOBS) может работать параллельно с обычным
+// пайплайном DEMUCS2/DEMUCS5, общая temp-папка привела бы к коллизии файлов. Скоуп по jobId —
+// см. StemJobProcessing.kt.
+const val PATH_TO_TEMP_STEMJOB_FOLDER = "/sm-karaoke/system/stemjob-docker/tmp"
 const val PATH_TO_TEMP_KEYBPMFINDER_FOLDER = "/sm-karaoke/system/keybpmfinder-docker/tmp"
 // Этап 1 (MVP) рендера видео mp4 из онлайн-плеера ("Рендер видео MP4 из онлайн-
 // плеера") — PNG-секвенция и промежуточный mp4 для визуальной сверки с эталонным MLT-рендером.

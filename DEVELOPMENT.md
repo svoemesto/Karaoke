@@ -243,6 +243,17 @@ copy/symlink) моделируется строкой `KaraokeProcess` с enum `
 Ограничение CPU — 3 слоя (docker `--cpus` / `MLT_CPU_LIMIT` env для `docker compose` / `docker update` на живой
 контейнер). **Детали (forceStop, cpu-limit, stop-loop, per-thread UI-прогресс)**.
 
+**Премиум-фича «Создать минусовку из аудиофайла» (`StemJob`, `tbl_stem_jobs`).** Пользователь
+karaoke-public загружает произвольный аудиофайл и получает исходник + стемы (demucs2/demucs5) —
+переиспользует движок выше (свой thread-лейн `THREAD_LANE_STEM_JOBS`, свой `KaraokeProcessTypes`
+`STEM_JOB_DEMUCS2/5`, финализация через `runFunctionWithArgs`/`executeFinalizeStemJob`), но задание
+живёт целиком на PROD-БД (не в `SyncRegistry`, по образцу `tbl_site_chat_messages`) и не привязано к
+`Settings`/песне (`settingsId=0`). karaoke-web не пишет в MinIO — сырой файл временно лежит на её
+диске, karaoke-app забирает его по внутреннему HTTP (`StemJobPollScheduler`, общий секрет
+`X-Internal-Secret`). Админ-панель webvue3 «Минусовки» — просмотр/остановка/немедленное удаление
+заданий всех пользователей (`StemJobsAdminController`, `StemJobCleanup`). **Настройка и эксплуатация
+(секреты, миграции, troubleshooting) — `docs/stemjobs-admin-guide.md`.**
+
 **Прогресс загрузки файлов (`CountingInputStream`).** MinIO Java SDK (8.6.0) не имеет `ProgressListener`, но
 `PutObjectArgs.stream()` принимает `InputStream` — прогресс через `CountingInputStream`
 (`karaoke-app/../CountingInputStream.kt`, `FilterInputStream`-счётчик), которым оборачивается файл. Для удалённой

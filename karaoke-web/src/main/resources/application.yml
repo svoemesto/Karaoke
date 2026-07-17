@@ -47,6 +47,14 @@ yookassa:
   shop-id: ${YOOKASSA_SHOP_ID:}
   secret-key: ${YOOKASSA_SECRET_KEY:}
 
+stemjobs:
+  # Премиум-фича «Создать минусовку из аудиофайла» — temp-директория загрузок, пока karaoke-app их
+  # не заберёт (см. PublicStemJobController/InternalStemJobController). internal-secret — общий
+  # секрет заголовка X-Internal-Secret с karaoke-app (Karaoke.stemJobsInternalSecret) — пусто по
+  # умолчанию (эндпоинты internal/** по умолчанию закрыты, не открыты, см. authorized()).
+  temp-dir: ${STEMJOBS_TEMP_DIR:/tmp/stemjobs}
+  internal-secret: ${STEMJOBS_INTERNAL_SECRET:}
+
 storage:
   key: ${STORAGE_KEY}
   secret: ${STORAGE_SECRET}

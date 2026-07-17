@@ -49,6 +49,8 @@ class KaraokeProcessThread(val karaokeProcess: KaraokeProcess? = null, var perce
                         KaraokeProcessTypes.KEY_BPM_FROM_FILE -> executeGetKeyBpmFromFile(params)
                         KaraokeProcessTypes.UPLOAD_TO_LOCAL_STORE -> executeUploadToLocalStore(params) { pct -> percentage = pct.toString() }
                         KaraokeProcessTypes.UPLOAD_TO_REMOTE_STORE -> executeUploadToRemoteStore(params) { pct -> percentage = pct.toString() }
+                        KaraokeProcessTypes.STEM_JOB_DEMUCS2,
+                        KaraokeProcessTypes.STEM_JOB_DEMUCS5 -> executeFinalizeStemJob(params)
                         KaraokeProcessTypes.RENDER_MP4_LYRICS,
                         KaraokeProcessTypes.RENDER_MP4_KARAOKE,
                         KaraokeProcessTypes.RENDER_MP4_CHORDS,

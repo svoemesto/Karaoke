@@ -144,6 +144,14 @@ data class SettingsDTO(
     val versionMaxKaraoke: Int,
     val versionMaxChords: Int,
     val versionMaxMelody: Int,
+    val idDzenDemo: String,
+    val versionDzenDemo: Int,
+    val idVkDemo: String,
+    val versionVkDemo: Int,
+    val idTelegramDemo: String,
+    val versionTelegramDemo: Int,
+    val idMaxDemo: String,
+    val versionMaxDemo: Int,
     val resultVersion: Long,
     val rate: Int,
     val healthReportText: String,
@@ -227,6 +235,14 @@ data class SettingsDTO(
         entity.fields[SettingField.VERSION_MAX_CHORDS] = versionMaxChords.toString()
         entity.fields[SettingField.ID_MAX_MELODY] = idMaxMelody
         entity.fields[SettingField.VERSION_MAX_MELODY] = versionMaxMelody.toString()
+        entity.fields[SettingField.ID_DZEN_DEMO] = idDzenDemo
+        entity.fields[SettingField.VERSION_DZEN_DEMO] = versionDzenDemo.toString()
+        entity.fields[SettingField.ID_VK_DEMO] = idVkDemo
+        entity.fields[SettingField.VERSION_VK_DEMO] = versionVkDemo.toString()
+        entity.fields[SettingField.ID_TELEGRAM_DEMO] = idTelegramDemo
+        entity.fields[SettingField.VERSION_TELEGRAM_DEMO] = versionTelegramDemo.toString()
+        entity.fields[SettingField.ID_MAX_DEMO] = idMaxDemo
+        entity.fields[SettingField.VERSION_MAX_DEMO] = versionMaxDemo.toString()
         entity.fields[SettingField.RESULT_VERSION] = resultVersion.toString()
         entity.fields[SettingField.RATE] = rate.toString()
         entity.formattedTextSong = formattedTextSong

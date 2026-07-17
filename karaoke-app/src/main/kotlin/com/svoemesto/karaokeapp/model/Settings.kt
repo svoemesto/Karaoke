@@ -702,7 +702,17 @@ class Settings(
     val versionMaxKaraoke: Int get() = (fields[SettingField.VERSION_MAX_KARAOKE]?.nullIfEmpty() ?: "0").toInt()
     val versionMaxChords: Int get() = (fields[SettingField.VERSION_MAX_CHORDS]?.nullIfEmpty() ?: "0").toInt()
     val versionMaxMelody: Int get() = (fields[SettingField.VERSION_MAX_MELODY]?.nullIfEmpty() ?: "0").toInt()
-    
+
+    // Публикация DEMO-версии (RenderVersion.DEMO) — независимо от SongVersion, см. karaoke-app CLAUDE.md/архитектурные заметки.
+    val idDzenDemo: String get() = fields[SettingField.ID_DZEN_DEMO]?.nullIfEmpty() ?: ""
+    val versionDzenDemo: Int get() = (fields[SettingField.VERSION_DZEN_DEMO]?.nullIfEmpty() ?: "0").toInt()
+    val idVkDemo: String get() = fields[SettingField.ID_VK_DEMO]?.nullIfEmpty() ?: ""
+    val versionVkDemo: Int get() = (fields[SettingField.VERSION_VK_DEMO]?.nullIfEmpty() ?: "0").toInt()
+    val idTelegramDemo: String get() = fields[SettingField.ID_TELEGRAM_DEMO]?.nullIfEmpty() ?: ""
+    val versionTelegramDemo: Int get() = (fields[SettingField.VERSION_TELEGRAM_DEMO]?.nullIfEmpty() ?: "0").toInt()
+    val idMaxDemo: String get() = fields[SettingField.ID_MAX_DEMO]?.nullIfEmpty() ?: ""
+    val versionMaxDemo: Int get() = (fields[SettingField.VERSION_MAX_DEMO]?.nullIfEmpty() ?: "0").toInt()
+
     val idSponsr: String get() = fields[SettingField.ID_SPONSR]?.nullIfEmpty() ?: ""
     val versionSponsr: Int get() = (fields[SettingField.VERSION_SPONSR]?.nullIfEmpty() ?: "0").toInt()
     val indexTabsVariant: Int get() = (fields[SettingField.INDEX_TABS_VARIANT]?.nullIfEmpty() ?: "0").toInt()
@@ -781,7 +791,16 @@ class Settings(
 
     val linkMaxMelodyPlay: String? get() = idMaxMelody.let {URL_PREFIX_MAX_PLAY.replace("{REPLACE}", idMaxMelody)}
     @Suppress("unused") val linkMaxMelodyEdit: String? get() = idMaxMelody.let {URL_PREFIX_MAX_EDIT.replace("{REPLACE}", idMaxMelody)}
-    
+
+    val linkDzenDemoPlay: String? get() = idDzenDemo.let {URL_PREFIX_DZEN_PLAY.replace("{REPLACE}", idDzenDemo)}
+    @Suppress("unused") val linkDzenDemoEdit: String? get() = idDzenDemo.let {URL_PREFIX_DZEN_EDIT.replace("{REPLACE}", idDzenDemo)}
+    val linkVkDemoPlay: String? get() = idVkDemo.let {URL_PREFIX_VK_PLAY.replace("{REPLACE}", idVkDemo)}
+    @Suppress("unused") val linkVkDemoEdit: String? get() = idVkDemo.let {URL_PREFIX_VK_EDIT.replace("{REPLACE}", idVkDemo)}
+    val linkTelegramDemoPlay: String? get() = idTelegramDemo.let {URL_PREFIX_TELEGRAM_PLAY.replace("{REPLACE}", idTelegramDemo)}
+    @Suppress("unused") val linkTelegramDemoEdit: String? get() = idTelegramDemo.let {URL_PREFIX_TELEGRAM_EDIT.replace("{REPLACE}", idTelegramDemo)}
+    val linkMaxDemoPlay: String? get() = idMaxDemo.let {URL_PREFIX_MAX_PLAY.replace("{REPLACE}", idMaxDemo)}
+    @Suppress("unused") val linkMaxDemoEdit: String? get() = idMaxDemo.let {URL_PREFIX_MAX_EDIT.replace("{REPLACE}", idMaxDemo)}
+
     val flagBoosty: String get() =
         if (idBoosty == "null" || idBoosty == "") {
             "-"
@@ -3362,6 +3381,65 @@ class Settings(
 
     }
 
+    // --- Публикация DEMO-версии (RenderVersion.DEMO) ---
+    // Намеренно не заведены через SongVersion (см. Context в плане реализации) — дублируют по форме
+    // getDescriptionHeader/getDescriptionVkHeader/getDescriptionTelegramHeader/getDescriptionMaxHeader/
+    // getDescriptionWOHeaderWithTimecodes, но с литеральными подписями версии "Demo"/"Karaoke (Demo)"
+    // (те же значения, что у RenderVersion.DEMO.label/comment в PlayerMp4RenderService.kt).
+
+    fun getDescriptionDemoHeader(maxSymbols: Int = 0): String {
+
+        return "${songName.censored()} ★♫★ $author ★♫★ Demo ★♫★ Karaoke (Demo)".cutByWords(maxLength = maxSymbols)
+
+    }
+
+    fun getDescriptionVkDemoHeader(maxSymbols: Int = 0): String {
+
+        return "${songName.censored()} ★♫★ $author ★♫★ Demo ★♫★ Karaoke (Demo)".cutByWords(maxLength = maxSymbols)
+
+    }
+
+    fun getDescriptionTelegramDemoHeader(maxSymbols: Int = 0): String {
+
+        return "${songName.censored()} ★♫★ $author ★♫★ Demo ★♫★ Karaoke (Demo)\n$linkSM\n⇑ Страница песни на официальном сайте проекта".cutByWords(maxLength = maxSymbols)
+
+    }
+
+    fun getDescriptionMaxDemoHeader(maxSymbols: Int = 0): String {
+
+        return "${songName.censored()} ★♫★ $author ★♫★ Demo ★♫★ Karaoke (Demo)\n$linkSM\n⇑ Страница песни на официальном сайте проекта".cutByWords(maxLength = maxSymbols)
+
+    }
+
+    private fun getTextForDescriptionHeaderDemo(): String {
+        return "$linkSM ⇐ Страница песни на официальном сайте проекта\n\n" +
+                "Версия: Demo (Karaoke (Demo))\n" +
+                "Композиция: ${songName}\n" +
+                "Исполнитель: ${author}\n" +
+                "Альбом: ${album}\n" +
+                "Год: ${year}\n" +
+                "Темп: $bpm bpm\n" +
+                "Тональность: $key" +
+                "\n\n"
+    }
+
+    fun getDescriptionWOHeaderWithTimecodesDemo(maxSymbols: Int = 0, maxTimeCodes: Int? = null): String {
+
+        val txtStart = getTextForDescriptionHeaderDemo()
+        val txtEnd = getTextForDescriptionFooter()
+        val txtDescription = getTextForDescriptionWithTimecodes(maxSymbols - txtStart.length - txtEnd.length, maxTimeCodes)
+
+        return txtStart + txtDescription + txtEnd
+
+    }
+
+    fun getDescriptionVkDemo(): String {
+
+        return getDescriptionVkDemoHeader() + "\n" +
+                getDescriptionWOHeaderWithTimecodesDemo()
+
+    }
+
     fun getVKGroupDescription(@Suppress("unused") maxSymbols: Int = 0): String {
 
         return  "${songName.censored()} ★♫★ $author" + "\n\n" +
@@ -4153,6 +4231,14 @@ class Settings(
         fieldsValues.add(Pair("version_max_karaoke", settings.versionMaxKaraoke))
         fieldsValues.add(Pair("version_max_chords", settings.versionMaxChords))
         fieldsValues.add(Pair("version_max_melody", settings.versionMaxMelody))
+        fieldsValues.add(Pair("id_dzen_demo", settings.idDzenDemo))
+        fieldsValues.add(Pair("version_dzen_demo", settings.versionDzenDemo))
+        fieldsValues.add(Pair("id_vk_demo", settings.idVkDemo))
+        fieldsValues.add(Pair("version_vk_demo", settings.versionVkDemo))
+        fieldsValues.add(Pair("id_telegram_demo", settings.idTelegramDemo))
+        fieldsValues.add(Pair("version_telegram_demo", settings.versionTelegramDemo))
+        fieldsValues.add(Pair("id_max_demo", settings.idMaxDemo))
+        fieldsValues.add(Pair("version_max_demo", settings.versionMaxDemo))
         fieldsValues.add(Pair("id_status", settings.idStatus))
         fieldsValues.add(Pair("source_text", settings.sourceText))
         fieldsValues.add(Pair("result_text", settings.resultText))
@@ -5530,6 +5616,14 @@ class Settings(
             versionMaxKaraoke = versionMaxKaraoke,
             versionMaxChords = versionMaxChords,
             versionMaxMelody = versionMaxMelody,
+            idDzenDemo = idDzenDemo,
+            versionDzenDemo = versionDzenDemo,
+            idVkDemo = idVkDemo,
+            versionVkDemo = versionVkDemo,
+            idTelegramDemo = idTelegramDemo,
+            versionTelegramDemo = versionTelegramDemo,
+            idMaxDemo = idMaxDemo,
+            versionMaxDemo = versionMaxDemo,
             rate = rate,
             healthReportText = "-",
             healthReportColor = "#E0E0E0",

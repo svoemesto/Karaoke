@@ -40,7 +40,7 @@ fi
 
 # Перемещаем файл из /tmp (на хосте) во временную папку, чтобы не мешал
 TEMP_DUMP_PATH="/tmp/${DUMP_FILE_NAME}"
-FINAL_DUMP_PATH="~/Karaoke/deploy/karaoke-db/${DUMP_FILE_NAME}"
+FINAL_DUMP_PATH="$HOME/Karaoke/deploy/karaoke-db/${DUMP_FILE_NAME}"
 mv "$TEMP_DUMP_PATH" "$FINAL_DUMP_PATH"
 
 # 4. Устанавливаем права на файл бэкапа (если нужно)

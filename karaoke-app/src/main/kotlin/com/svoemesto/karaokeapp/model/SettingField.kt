@@ -94,5 +94,7 @@ enum class SettingField : Serializable {
     ID_TELEGRAM_DEMO,
     VERSION_TELEGRAM_DEMO,
     ID_MAX_DEMO,
-    VERSION_MAX_DEMO
+    VERSION_MAX_DEMO,
+    // Тип песни: песня/инструментал/стихи (см. SongType). Хранится в tbl_settings.song_type.
+    SONG_TYPE
 }

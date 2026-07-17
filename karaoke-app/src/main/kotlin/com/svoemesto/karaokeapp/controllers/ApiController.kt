@@ -1945,6 +1945,7 @@ class ApiController(
         @RequestParam(required = false) exclusive: String?,
         @RequestParam(required = false) free: String?,
         @RequestParam(required = false) idTariff: String?,
+        @RequestParam(required = false) songType: String?,
     ): Boolean {
         val settingsId: Long = id.toLong()
         val settings = Settings.loadFromDbById(settingsId, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
@@ -2027,6 +2028,7 @@ class ApiController(
             exclusive?.let { sett.fields[SettingField.EXCLUSIVE] =  it }
             free?.let { sett.fields[SettingField.FREE] =  it }
             idTariff?.let { sett.fields[SettingField.ID_TARIFF] =  it }
+            songType?.let { sett.songType = SongType.entries.firstOrNull { st -> st.dbValue == it.lowercase() } ?: SongType.SONG }
             sett.saveToDb()
             sett.saveToFile()
         }

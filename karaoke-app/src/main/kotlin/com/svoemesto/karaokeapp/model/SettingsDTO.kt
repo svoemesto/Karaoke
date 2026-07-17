@@ -164,6 +164,10 @@ data class SettingsDTO(
     val exclusive: Boolean,
     val free: Boolean,
     val idTariff: Int,
+    // Тип песни в lowercase (song/instrumental/poetry) — SongType.dbValue. Для обратной совместимости
+    // со старыми записями БД без поля (и для уже сохранённых "" дефолт) SongType-геттер на стороне
+    // Settings, при отсутствии значения, возвращает SongType.SONG.
+    val songType: String,
     val haveSourceText: Boolean
 ): Serializable, Comparable<SettingsDTO>, KaraokeDbTableDto {
 
@@ -252,6 +256,7 @@ data class SettingsDTO(
         entity.exclusive = exclusive
         entity.free = free
         entity.idTariff = idTariff
+        entity.fields[SettingField.SONG_TYPE] = songType
         entity.tags = tags
         return entity
     }
@@ -386,6 +391,7 @@ data class SettingsDTO(
             rootId = rootId,
             exclusive = exclusive,
             free = free,
+            songType = songType,
             haveSourceText = haveSourceText
         )
     }

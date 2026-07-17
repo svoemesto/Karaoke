@@ -663,6 +663,20 @@ export default {
                 params: { id: state.currentSongId }
             });
         },
+        async getDzenDemoHeader(state) {
+            return await promisedXMLHttpRequest({
+                method: 'POST',
+                url: "/api/song/textdzendemoheader",
+                params: { id: state.currentSongId }
+            });
+        },
+        async getDzenDemoBody(state) {
+            return await promisedXMLHttpRequest({
+                method: 'POST',
+                url: "/api/song/textdzendemowoheader",
+                params: { id: state.currentSongId }
+            });
+        },
         async getPlKaraokeHeader(state) {
             return await promisedXMLHttpRequest({
                 method: 'POST',
@@ -775,6 +789,20 @@ export default {
                 params: { id: state.currentSongId }
             });
         },
+        async getVkDemoHeader(state) {
+            return await promisedXMLHttpRequest({
+                method: 'POST',
+                url: "/api/song/textvkdemoheader",
+                params: { id: state.currentSongId }
+            });
+        },
+        async getVkDemoBody(state) {
+            return await promisedXMLHttpRequest({
+                method: 'POST',
+                url: "/api/song/textvkdemo",
+                params: { id: state.currentSongId }
+            });
+        },
         async getTelegramKaraokeHeader(state) {
             return await promisedXMLHttpRequest({
                 method: 'POST',
@@ -803,6 +831,13 @@ export default {
                 params: { id: state.currentSongId }
             });
         },
+        async getTelegramDemoHeader(state) {
+            return await promisedXMLHttpRequest({
+                method: 'POST',
+                url: "/api/song/texttelegramdemoheader",
+                params: { id: state.currentSongId }
+            });
+        },
         async getMaxKaraokeHeader(state) {
             return await promisedXMLHttpRequest({
                 method: 'POST',
@@ -828,6 +863,13 @@ export default {
             return await promisedXMLHttpRequest({
                 method: 'POST',
                 url: "/api/song/textmaxtabsheader",
+                params: { id: state.currentSongId }
+            });
+        },
+        async getMaxDemoHeader(state) {
+            return await promisedXMLHttpRequest({
+                method: 'POST',
+                url: "/api/song/textmaxdemoheader",
                 params: { id: state.currentSongId }
             });
         },

@@ -2929,15 +2929,15 @@ constructor(container, songIdOrOptions, apiBase) {
       ctx.font = `900 ${snSz}px Roboto, sans-serif`
     }
     ctx.fillStyle = 'rgb(255,255,127)'
-    ctx.fillText(songName, xOff, 0)
+    ctx.fillText(songName, xOff, logoY)
 
     // Metadata rows: label (cyan, right-aligned) + value (yellow)
     const rows = [
-      { label: 'Исполнитель:', value: this.data.author || '' },
-      { label: 'Альбом:', value: (this.data.album || '') + (this.data.year ? ` (${this.data.year})` : '') },
+      { label: 'Исполнитель: ', value: this.data.author || '' },
+      { label: 'Альбом: ', value: (this.data.album || '') + (this.data.year ? ` (${this.data.year})` : '') },
     ]
-    if (this.data.key) rows.push({ label: 'Тональность:', value: this.data.key })
-    if (this.data.bpm) rows.push({ label: 'Темп:', value: `${this.data.bpm} bpm` })
+    if (this.data.key) rows.push({ label: 'Тональность: ', value: this.data.key })
+    if (this.data.bpm) rows.push({ label: 'Темп: ', value: `${this.data.bpm} bpm` })
 
     ctx.font = `900 ${rowSize}px Roboto, sans-serif`
     const maxLabelW = Math.max(...rows.map(r => ctx.measureText(r.label).width))
@@ -2945,7 +2945,7 @@ constructor(container, songIdOrOptions, apiBase) {
 
     const snLineH = snSz * 1.25
     const rowH = rowSize * 1.35
-    let y = Math.round(snLineH)
+    let y = logoY + Math.round(snLineH)
 
     for (const row of rows) {
       const labelW = ctx.measureText(row.label).width

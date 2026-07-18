@@ -2557,7 +2557,7 @@ export default class KaraokePlayer {
       ctx.font = `900 ${snSz}px Roboto, sans-serif`
     }
     ctx.fillStyle = 'rgb(255,255,127)'
-    ctx.fillText(songName, xOff, 0)
+    ctx.fillText(songName, xOff, logoY)
 
     // Metadata rows: label (cyan, right-aligned) + value (yellow)
     const rows = [
@@ -2573,7 +2573,7 @@ export default class KaraokePlayer {
 
     const snLineH = snSz * 1.25
     const rowH = rowSize * 1.35
-    let y = Math.round(snLineH)
+    let y = logoY + Math.round(snLineH)
 
     for (const row of rows) {
       const labelW = ctx.measureText(row.label).width

@@ -2933,11 +2933,11 @@ constructor(container, songIdOrOptions, apiBase) {
 
     // Metadata rows: label (cyan, right-aligned) + value (yellow)
     const rows = [
-      { label: 'Исполнитель:', value: this.data.author || '' },
-      { label: 'Альбом:', value: (this.data.album || '') + (this.data.year ? ` (${this.data.year})` : '') },
+      { label: 'Исполнитель: ', value: this.data.author || '' },
+      { label: 'Альбом: ', value: (this.data.album || '') + (this.data.year ? ` (${this.data.year})` : '') },
     ]
-    if (this.data.key) rows.push({ label: 'Тональность:', value: this.data.key })
-    if (this.data.bpm) rows.push({ label: 'Темп:', value: `${this.data.bpm} bpm` })
+    if (this.data.key) rows.push({ label: 'Тональность: ', value: this.data.key })
+    if (this.data.bpm) rows.push({ label: 'Темп: ', value: `${this.data.bpm} bpm` })
 
     ctx.font = `900 ${rowSize}px Roboto, sans-serif`
     const maxLabelW = Math.max(...rows.map(r => ctx.measureText(r.label).width))

@@ -50,7 +50,7 @@
         <button class="button-action button-action-inline" @click="autorizeYMstart2" :disabled="authYmInProgress">Auth YM 2</button>
         <button class="button-action button-action-inline" @click="autorizeYMstop" :disabled="!authYmInProgress">Auth YM: Stop</button>
       </div>
-      <button class="button-action" @click="customFunction">Выполнить Custom Function</button>
+      <button class="button-action" @click="customFunction" title="Custom Function: первичная индексация аудио-родителей по всей базе">Индексация аудио-родителей (Custom Function)</button>
       </div>
     </div>
   </div>
@@ -456,8 +456,10 @@ export default {
     customFunction() {
       this.customConfirmParams = {
         header: 'Подтвердите действие',
-        body: `Запустить Custom Function?`,
-        timeout: 10,
+        body: `Запустить первичную индексацию аудио-родителей по ВСЕЙ базе песен?<br>`
+            + `Для каждой песни будет найден наиболее похожий по аудио вариант (порог 85%) и сохранён как аудио-родитель — задел для будущей автоматизации добавления новых песен.<br>`
+            + `<strong>Операция тяжёлая и идёт в фоне — итог придёт уведомлением. Обычно её нужно запускать один раз.</strong>`,
+        timeout: 15,
         callback: this.doCustomFunction
       }
       this.isCustomConfirmVisible = true;
@@ -467,8 +469,8 @@ export default {
         this.customConfirmParams = {
           isAlert: true,
           alertType: 'info',
-          header: 'Запуск Custom Function',
-          body: `Custom Function успешно запущена.`,
+          header: 'Индексация аудио-родителей',
+          body: `Операция запущена в фоне.<br>Итог придёт уведомлением по завершении.`,
           timeout: 10
         }
         this.isCustomConfirmVisible = true;

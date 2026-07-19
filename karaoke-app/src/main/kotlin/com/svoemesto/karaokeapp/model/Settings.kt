@@ -611,6 +611,28 @@ class Settings(
         }
         set(value) {fields[SettingField.ROOT_ID] = value.toString()}
 
+    var audioParentId: Long
+        get() = (fields[SettingField.AUDIO_PARENT_ID] ?: "0").toLongOrNull() ?: 0L
+        set(value) { fields[SettingField.AUDIO_PARENT_ID] = value.toString() }
+
+    var audioSimilarityPercent: Int
+        get() = (fields[SettingField.AUDIO_SIMILARITY_PERCENT] ?: "0").toIntOrNull() ?: 0
+        set(value) { fields[SettingField.AUDIO_SIMILARITY_PERCENT] = value.toString() }
+
+    var audioDeltaMs: Long
+        get() = (fields[SettingField.AUDIO_DELTA_MS] ?: "0").toLongOrNull() ?: 0L
+        set(value) { fields[SettingField.AUDIO_DELTA_MS] = value.toString() }
+
+    @get:JsonIgnore
+    var audioCompareHistory: String
+        get() = fields[SettingField.AUDIO_COMPARE_HISTORY]?.ifBlank { "[]" } ?: "[]"
+        set(value) { fields[SettingField.AUDIO_COMPARE_HISTORY] = value }
+
+    @get:JsonIgnore
+    val audioCompareHistoryList: List<AudioCompareHistoryEntry> get() = try {
+        Json.decodeFromString(ListSerializer(AudioCompareHistoryEntry.serializer()), audioCompareHistory)
+    } catch (_: Exception) { emptyList() }
+
     var exclusive: Boolean
         get() {
             val txt = fields[SettingField.EXCLUSIVE] ?: false.toString()
@@ -4602,6 +4624,10 @@ class Settings(
                 if (settA.formattedTextTabs != settB.formattedTextTabs) result.add(RecordDiff("formatted_text_tabs", settA.formattedTextTabs, settB.formattedTextTabs))
                 if (settA.formattedTextChords != settB.formattedTextChords) result.add(RecordDiff("formatted_text_chords", settA.formattedTextChords, settB.formattedTextChords))
                 if (settA.rootId != settB.rootId) result.add(RecordDiff("root_id", settA.rootId, settB.rootId))
+                if (settA.audioParentId != settB.audioParentId) result.add(RecordDiff("audio_parent_id", settA.audioParentId, settB.audioParentId))
+                if (settA.audioSimilarityPercent != settB.audioSimilarityPercent) result.add(RecordDiff("audio_similarity_percent", settA.audioSimilarityPercent, settB.audioSimilarityPercent))
+                if (settA.audioDeltaMs != settB.audioDeltaMs) result.add(RecordDiff("audio_delta_ms", settA.audioDeltaMs, settB.audioDeltaMs))
+                if (settA.audioCompareHistory != settB.audioCompareHistory) result.add(RecordDiff("audio_compare_history", settA.audioCompareHistory, settB.audioCompareHistory))
                 if (settA.exclusive != settB.exclusive) result.add(RecordDiff("exclusive", settA.exclusive, settB.exclusive))
                 if (settA.free != settB.free) result.add(RecordDiff("free", settA.free, settB.free))
                 if (settA.idTariff != settB.idTariff) result.add(RecordDiff("id_tariff", settA.idTariff, settB.idTariff))
@@ -5197,6 +5223,10 @@ class Settings(
                     rs.getString("song_type")?.let { value -> settings.fields[SettingField.SONG_TYPE] = value }
 
                     rs.getLong("root_id").let { value -> settings.rootId = value }
+                    rs.getLong("audio_parent_id").let { value -> settings.audioParentId = value }
+                    rs.getInt("audio_similarity_percent").let { value -> settings.audioSimilarityPercent = value }
+                    rs.getLong("audio_delta_ms").let { value -> settings.audioDeltaMs = value }
+                    rs.getString("audio_compare_history")?.let { value -> settings.audioCompareHistory = value }
                     rs.getBoolean("exclusive").let { value -> settings.exclusive = value }
                     rs.getBoolean("free").let { value -> settings.free = value }
 
@@ -5657,6 +5687,9 @@ class Settings(
             formattedTextTabs = formattedTextTabs,
             formattedTextChords = formattedTextChords,
             rootId = rootId,
+            audioParentId = audioParentId,
+            audioSimilarityPercent = audioSimilarityPercent,
+            audioDeltaMs = audioDeltaMs,
             exclusive = exclusive,
             free = free,
             idTariff = idTariff,

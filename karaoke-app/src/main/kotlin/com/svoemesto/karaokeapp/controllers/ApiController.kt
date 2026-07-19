@@ -63,6 +63,7 @@ import javax.imageio.ImageIO
 
 data class FamilySongDto(val id: Long, val songName: String, val author: String, val album: String, val year: Long, val diffSeconds: Long, val original: Boolean, val current: Boolean, val idStatus: Long)
 data class SelectFamilySongResultDto(val rootId: Long, val idStatus: Long)
+data class FindAudioParentResultDto(val audioParentId: Long, val audioSimilarityPercent: Int, val audioDeltaMs: Long, val matched: Boolean, val reason: String)
 
 data class SyncEntityInfoDto(
     val key: String,
@@ -534,6 +535,25 @@ class ApiController(
         val another = Settings.loadFromDbById(idAnother, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
             ?: return WaveformCompareResultDto(idAnother, 0, 0, "", false, "Кандидат не найден")
         return WaveformCompare.compareWaveforms(settings, another)
+    }
+
+    // Поиск и сохранение "аудио-родителя" - независимо от кураторского root_id: акустически
+    // сравнивает песню со всеми кандидатами (семья + текстовый поиск по названию, как в модалке
+    // "Похожие версии песни" / "Сверить все") и запоминает id наиболее похожей, % схожести и
+    // сдвиг в мс (порог 85%, см. AUDIO_PARENT_THRESHOLD). НЕ трогает root_id/текст/маркеры/статус -
+    // задел на будущую автоматизацию добавления новых песен.
+    @PostMapping("/song/findaudioparent")
+    @ResponseBody
+    fun findAudioParent(@RequestParam id: Long): FindAudioParentResultDto? {
+        val settings = Settings.loadFromDbById(id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient) ?: return null
+        val result = findAudioParentByWaveform(settings, WORKING_DATABASE, storageService, storageApiClient)
+        return FindAudioParentResultDto(
+            audioParentId = settings.audioParentId,
+            audioSimilarityPercent = settings.audioSimilarityPercent,
+            audioDeltaMs = settings.audioDeltaMs,
+            matched = result.matched,
+            reason = result.reason
+        )
     }
 
     // Получение исходного текста для голоса
@@ -1944,6 +1964,9 @@ class ApiController(
         @RequestParam(required = false) diffBeats: String?,
         @RequestParam(required = false) rate: String?,
         @RequestParam(required = false) rootId: String?,
+        @RequestParam(required = false) audioParentId: String?,
+        @RequestParam(required = false) audioSimilarityPercent: String?,
+        @RequestParam(required = false) audioDeltaMs: String?,
         @RequestParam(required = false) exclusive: String?,
         @RequestParam(required = false) free: String?,
         @RequestParam(required = false) idTariff: String?,
@@ -2027,6 +2050,9 @@ class ApiController(
             idStatus?.let { sett.fields[SettingField.ID_STATUS] =  it }
             rate?.let { sett.fields[SettingField.RATE] =  it }
             rootId?.let { sett.fields[SettingField.ROOT_ID] =  it }
+            audioParentId?.let { sett.fields[SettingField.AUDIO_PARENT_ID] =  it }
+            audioSimilarityPercent?.let { sett.fields[SettingField.AUDIO_SIMILARITY_PERCENT] =  it }
+            audioDeltaMs?.let { sett.fields[SettingField.AUDIO_DELTA_MS] =  it }
             exclusive?.let { sett.fields[SettingField.EXCLUSIVE] =  it }
             free?.let { sett.fields[SettingField.FREE] =  it }
             idTariff?.let { sett.fields[SettingField.ID_TARIFF] =  it }

@@ -2243,6 +2243,11 @@ export default {
             let request = { method: 'POST', url: "/api/song/comparewaveform", params: params };
             return promisedXMLHttpRequest(request);
         },
+        findAudioParentPromise(ctx) {
+            let params = { id: ctx.state.currentSongId };
+            let request = { method: 'POST', url: "/api/song/findaudioparent", params: params };
+            return promisedXMLHttpRequest(request);
+        },
         addSyncForAll(ctx) {
             let params = { songsIds: ctx.getters.getSongsDigestIds.join(';') };
             let request = { method: 'POST', url: "/api/songs/addsyncforall", params: params };

@@ -158,6 +158,27 @@
             <button class="btn-round" @click="copyToClipboard(song.rootId, 'rootId')" :disabled="!song.rootId"><img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg"></button>
             <button class="btn-round" @click="pasteFromClipboard('rootId')"><img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg"></button>
           </div>
+          <div class="label-and-input">
+            <div class="label">Аудио-родитель (id):</div>
+            <input class="input-field" v-model="song.audioParentId">
+            <button class="btn-round" @click="undoField('audioParentId')" :disabled="notChanged('audioParentId')"><img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg"></button>
+            <button class="btn-round" @click="copyToClipboard(song.audioParentId, 'audioParentId')" :disabled="!song.audioParentId"><img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg"></button>
+            <button class="btn-round" @click="pasteFromClipboard('audioParentId')"><img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg"></button>
+          </div>
+          <div class="label-and-input">
+            <div class="label">Аудио-схожесть, %:</div>
+            <input class="input-field" v-model="song.audioSimilarityPercent">
+            <button class="btn-round" @click="undoField('audioSimilarityPercent')" :disabled="notChanged('audioSimilarityPercent')"><img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg"></button>
+            <button class="btn-round" @click="copyToClipboard(song.audioSimilarityPercent, 'audioSimilarityPercent')" :disabled="!song.audioSimilarityPercent"><img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg"></button>
+            <button class="btn-round" @click="pasteFromClipboard('audioSimilarityPercent')"><img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg"></button>
+          </div>
+          <div class="label-and-input">
+            <div class="label">Аудио-сдвиг, мс:</div>
+            <input class="input-field" v-model="song.audioDeltaMs">
+            <button class="btn-round" @click="undoField('audioDeltaMs')" :disabled="notChanged('audioDeltaMs')"><img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg"></button>
+            <button class="btn-round" @click="copyToClipboard(song.audioDeltaMs, 'audioDeltaMs')" :disabled="!song.audioDeltaMs"><img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg"></button>
+            <button class="btn-round" @click="pasteFromClipboard('audioDeltaMs')"><img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg"></button>
+          </div>
 
           <div class="links-table">
             <div class="links-table-column-1">
@@ -596,6 +617,7 @@
             <button class="group-button" :class="toSyncButtonClass(toSync)" @click="toSyncRemote" title="Добавить в SYNC-таблицу на сервере" :disabled="!allowAddSync">Добавить в SYNC-таблицу на сервере</button>
             <button class="group-button" @click="copyFieldsFromAnother" title="Скопировать поля из другой песни">Скопировать поля из другой песни</button>
             <button class="group-button" @click="showFamilySongs" title="Показать песни из той же группы (id/root_id)">Похожие версии песни</button>
+            <button class="group-button" @click="findAudioParent" :disabled="isFindingAudioParent" title="Акустически сравнить со всеми кандидатами (семья + поиск по названию) и сохранить наиболее похожую как аудио-родителя">{{ isFindingAudioParent ? 'Поиск…' : 'Найти похожую по аудио' }}</button>
             <button class="group-button" :disabled="songHealthReports.length === 0"  @click="showHealthReportTable" title="Health Report">Health Report ({{songHealthReports.length}})</button>
             <BDropdown
                 text="Создать ..."
@@ -767,6 +789,7 @@ export default {
       isCustomConfirmVisible: false,
       isHealthReportTableVisible: false,
       isFamilySongsVisible: false,
+      isFindingAudioParent: false,
       isAssignReviewVisible: false,
       isKaraokeEditorVisible: false,
       karaokeEditorTarget: 'local',
@@ -1542,6 +1565,21 @@ export default {
       if (result) {
         this.song.rootId = result.rootId;
         this.song.idStatus = result.idStatus;
+      }
+    },
+    async findAudioParent() {
+      if (this.isFindingAudioParent) return;
+      this.isFindingAudioParent = true;
+      try {
+        const data = await this.$store.dispatch('findAudioParentPromise');
+        const result = JSON.parse(data);
+        if (result) {
+          this.song.audioParentId = result.audioParentId;
+          this.song.audioSimilarityPercent = result.audioSimilarityPercent;
+          this.song.audioDeltaMs = result.audioDeltaMs;
+        }
+      } finally {
+        this.isFindingAudioParent = false;
       }
     },
     async propAutoSave() {

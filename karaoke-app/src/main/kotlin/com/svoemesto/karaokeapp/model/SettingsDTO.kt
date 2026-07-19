@@ -161,6 +161,9 @@ data class SettingsDTO(
     val formattedTextTabs: String,
     val formattedTextChords: String,
     val rootId: Long,
+    val audioParentId: Long,
+    val audioSimilarityPercent: Int,
+    val audioDeltaMs: Long,
     val exclusive: Boolean,
     val free: Boolean,
     val idTariff: Int,
@@ -253,6 +256,9 @@ data class SettingsDTO(
         entity.formattedTextTabs = formattedTextTabs
         entity.formattedTextChords = formattedTextChords
         entity.rootId = rootId
+        entity.audioParentId = audioParentId
+        entity.audioSimilarityPercent = audioSimilarityPercent
+        entity.audioDeltaMs = audioDeltaMs
         entity.exclusive = exclusive
         entity.free = free
         entity.idTariff = idTariff

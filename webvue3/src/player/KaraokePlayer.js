@@ -221,7 +221,9 @@ constructor(container, songIdOrOptions, apiBase) {
       this._artistImg = this.data.artistImageUrl ? await this._loadImage(this.data.artistImageUrl).catch(() => null) : null
       await this._loadAudio()
       // Parse after audio load so this.duration is known
-      this.lines = this._parseMarkers(this.data.markers || [])
+      // INSTRUMENTAL/POETRY: маркеры не обрабатываются вовсе (плеер показывает только надпись) —
+      // см. _isCaptionOnly()/_renderTypeCaption().
+      this.lines = this._parseMarkers(this._isCaptionOnly() ? [] : (this.data.markers || []))
       // DEMO: filter markers to fragment and shift to start from 0
       if (this._renderVersion === 'DEMO' && this._demoStart != null && this._demoEnd != null) {
         this._applyDemoFragment(this._demoStart, this._demoEnd)
@@ -262,11 +264,18 @@ constructor(container, songIdOrOptions, apiBase) {
     }
   }
 
+  // INSTRUMENTAL/POETRY: плеер не обрабатывает маркеры и не рисует караоке-разметку — только
+  // статичная надпись поверх фона (см. _renderTypeCaption). SONG — поведение не меняется.
+  _isCaptionOnly() {
+    return this.data?.songType === 'instrumental' || this.data?.songType === 'poetry'
+  }
+
   // ─── Preroll ──────────────────────────────────────────────────────────────
 
   // Mirrors Kotlin getStartSilentOffsetMs(): if first syllable appears before 5s,
   // prepend that many seconds of silence so counters can appear before the first syllable.
   _computeSilentOffset() {
+    if (this._isCaptionOnly()) return 0
     let timeFirst = Infinity
     // DEMO: use filtered/shifted lines (after _applyDemoFragment) instead of raw markers
     if (this._renderVersion === 'DEMO' && this.lines && this.lines.length > 0) {
@@ -2430,6 +2439,17 @@ constructor(container, songIdOrOptions, apiBase) {
   // ─── Karaoke frame ────────────────────────────────────────────────────────
 
   _renderKaraoke(ctx, W, H, scale, fontSize, lineHeight, xStart, ct, voiceXStart = null) {
+    // INSTRUMENTAL/POETRY: вместо слогов/линий горизонта/счётчиков — только статичная надпись.
+    // Фейд-ин/фейд-аут не нужен отдельно — этот вызов уже под ctx.globalAlpha из _renderFrame
+    // (karaokeAlpha/fadeOutAlpha, по 1с на старте/конце), надпись наследует его как обычная лирика.
+    if (this._isCaptionOnly()) {
+      this._renderTypeCaption(ctx, W, H, scale)
+      this._renderFader(ctx, W, H, fontSize)
+      const hSlide = this._getHeaderSlide(ct)
+      this._renderHeader(ctx, W, H, scale, hSlide)
+      return
+    }
+
     const outerAlpha = ctx.globalAlpha   // preserve fade-out alpha from _renderFrame
     // Text center = H/2 + 7px: Kotlin positions active line at H/2 + |horizonOffsetPx| (horizonOffsetPx=-7)
     const centerY = H / 2 + Math.round(7 * scale)
@@ -2560,6 +2580,34 @@ constructor(container, songIdOrOptions, apiBase) {
 
     const hSlide = this._getHeaderSlide(ct)
     this._renderHeader(ctx, W, H, scale, hSlide)
+  }
+
+  // INSTRUMENTAL/POETRY caption ("Инструментальная композиция" / "Поэзия (без музыки)"), по
+  // центру экрана поверх анимированного фона. Свободное поле по бокам = 1/10 ширины экрана с
+  // каждой стороны — размер шрифта подбирается бинарным поиском под оставшиеся 80% ширины
+  // (в реальных 16:9-пропорциях именно ширина — связывающее ограничение; hi=H — просто щедрый
+  // потолок для поиска, не отдельный лимит).
+  _renderTypeCaption(ctx, W, H, scale) {
+    const text = this.data.songType === 'poetry'
+      ? 'Поэзия (без музыки)'
+      : 'Инструментальная композиция'
+    const margin = W / 10
+    const maxW = W - margin * 2
+    let lo = 8, hi = Math.floor(H), bestSz = 8
+    while (lo <= hi) {
+      const mid = (lo + hi) >> 1
+      ctx.font = `900 ${mid}px Roboto, sans-serif`
+      if (ctx.measureText(text).width <= maxW) { bestSz = mid; lo = mid + 1 } else { hi = mid - 1 }
+    }
+    ctx.font = `900 ${bestSz}px Roboto, sans-serif`
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    this._setShadow(ctx, scale)
+    ctx.fillStyle = 'rgb(255,255,255)'
+    ctx.fillText(text, W / 2, H / 2 + Math.round(7 * scale))
+    this._clearShadow(ctx)
+    ctx.textAlign = 'left'
+    ctx.textBaseline = 'alphabetic'
   }
 
   // Mirrors Kotlin MkoFaderText: gradient overlays at top (black→transparent) and

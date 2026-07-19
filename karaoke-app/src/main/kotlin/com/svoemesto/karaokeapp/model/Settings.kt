@@ -2349,9 +2349,19 @@ class Settings(
     // (конец куплета). Если куплет не определён надёжно (не найден либо подозрительно короткий,
     // см. DEMO_FRAGMENT_MIN_SECONDS) — фолбэк: первые DEMO_FRAGMENT_DEFAULT_SECONDS с начала песни,
     // без отступа (отступать не от чего) и без фейд-ина. Конец никогда не длиннее самой песни.
+    //
+    // INSTRUMENTAL/POETRY: маркеры-based "первый куплет" не применим (плеер их вообще не
+    // обрабатывает для этих типов, см. KaraokePlayer.js) — фрагмент считается чисто по
+    // длительности: первые 30с, если песня длиннее 60с, иначе первая половина песни. Без отступа
+    // и без фейд-ина (фрагмент всегда с начала песни).
     @get:JsonIgnore
     private val demoFragmentBounds: Triple<Double, Double, Double> get() {
         val songLengthSeconds = songLengthMs / 1000.0
+        if (songType != SongType.SONG) {
+            val fragmentEnd = (if (songLengthSeconds > 60.0) 30.0 else songLengthSeconds * 0.5)
+                .coerceAtLeast(1.0).coerceAtMost(songLengthSeconds.coerceAtLeast(1.0))
+            return Triple(0.0, fragmentEnd, 0.0)
+        }
         val bounds = computeDemoVerseBounds()
         if (bounds == null || (bounds.second - bounds.first) < DEMO_FRAGMENT_MIN_SECONDS) {
             val fallbackEnd = (if (songLengthSeconds > 0) DEMO_FRAGMENT_DEFAULT_SECONDS.coerceAtMost(songLengthSeconds) else DEMO_FRAGMENT_DEFAULT_SECONDS)

@@ -21,7 +21,7 @@
           v-model="currentPage"
           :total-rows="countRows"
           :per-page="perPage"
-          :limit="40"
+          :limit="30"
           size="sm"
           pills
       ></b-pagination>

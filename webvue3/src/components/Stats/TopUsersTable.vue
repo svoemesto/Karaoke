@@ -38,7 +38,7 @@
         </tbody>
       </table>
       <div class="d-flex align-items-center gap-2">
-        <b-pagination :model-value="page" @update:model-value="$emit('page', $event)" :total-rows="totalCount" :per-page="pageSize" :limit="40" size="sm" pills />
+        <b-pagination :model-value="page" @update:model-value="$emit('page', $event)" :total-rows="totalCount" :per-page="pageSize" :limit="30" size="sm" pills />
         <span class="text-muted small">Всего: {{ totalCount }}</span>
       </div>
     </template>

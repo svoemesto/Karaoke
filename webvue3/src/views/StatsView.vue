@@ -145,7 +145,7 @@
               </table>
             </div>
             <div class="d-flex align-items-center gap-2">
-              <b-pagination v-model="statsBySongPageModel" :total-rows="statsBySongTotalCount" :per-page="statsBySongPageSize" :limit="40" size="sm" pills />
+              <b-pagination v-model="statsBySongPageModel" :total-rows="statsBySongTotalCount" :per-page="statsBySongPageSize" :limit="30" size="sm" pills />
               <span class="text-muted small">Всего: {{ statsBySongTotalCount }}</span>
             </div>
           </template>
@@ -224,7 +224,7 @@
               </table>
             </div>
             <div class="d-flex align-items-center gap-2">
-              <b-pagination v-model="webEventsPageModel" :total-rows="webEventsTotalCount" :per-page="webEventsPageSize" :limit="40" size="sm" pills />
+              <b-pagination v-model="webEventsPageModel" :total-rows="webEventsTotalCount" :per-page="webEventsPageSize" :limit="30" size="sm" pills />
               <span class="text-muted small">Всего: {{ webEventsTotalCount }}</span>
             </div>
           </template>

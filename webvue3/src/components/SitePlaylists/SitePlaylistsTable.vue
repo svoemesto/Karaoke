@@ -15,7 +15,7 @@
     </div>
 
     <div class="spt-table-header">
-      <b-pagination v-model="currentPage" :total-rows="countRows" :per-page="perPage" :limit="40" size="sm" pills />
+      <b-pagination v-model="currentPage" :total-rows="countRows" :per-page="perPage" :limit="30" size="sm" pills />
     </div>
 
     <div class="spt-table-body">
@@ -59,7 +59,7 @@ export default {
   components: { SitePlaylistDetailModal, BPagination, BSpinner, BTable },
   data() {
     return {
-      perPage: 45,
+      perPage: 30,
       // Восстанавливаем последнюю страницу из store, чтобы при уходе с компонента и возврате таблица
       // открывалась на той же странице.
       currentPage: this.$store.getters.getSitePlaylistsTableCurrentPage || 1,

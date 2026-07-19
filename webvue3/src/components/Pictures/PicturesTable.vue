@@ -8,7 +8,7 @@
           v-model="currentPage"
           :total-rows="countRows"
           :per-page="perPage"
-          :limit="20"
+          :limit="40"
           size="sm"
           pills
       ></b-pagination>
@@ -112,7 +112,7 @@ export default {
   },
   data() {
     return {
-      perPage: 19,
+      perPage: 45,
       // Восстанавливаем последнюю страницу из store, чтобы при уходе с компонента и возврате таблица
       // открывалась на той же странице.
       currentPage: this.$store.getters.getPicturesTableCurrentPage || 1,

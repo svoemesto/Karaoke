@@ -20,7 +20,7 @@
           v-model="currentPage"
           :total-rows="countRows"
           :per-page="perPage"
-          :limit="20"
+          :limit="50"
           size="sm"
           pills
       ></b-pagination>

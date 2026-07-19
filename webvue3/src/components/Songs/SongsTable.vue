@@ -1793,6 +1793,14 @@ export default {
   white-space: nowrap;
   overflow: hidden;
 }
+.fld-song-type {
+  min-width: 20px;
+  max-width: 20px;
+  text-align: center;
+  font-size: small;
+  white-space: nowrap;
+  overflow: hidden;
+}
 .fld-count-voices {
   min-width: 20px;
   max-width: 20px;

@@ -1495,6 +1495,7 @@ class ApiController(
         @RequestParam(required = false) filterStatusProcessDemo: String?,
         @RequestParam(required = false) filterIsSync: String?,
         @RequestParam(required = false) filterRootId: String?,
+        @RequestParam(required = false) filterSongType: String?,
         // filterAssignmentStatus/target — фильтр по назначенному заданию онлайн-редактора ("unassigned"
         // или dbValue из SongAssignmentStatus). Settings по-прежнему всегда грузятся из WORKING_DATABASE
         // (как раньше) — target относится ТОЛЬКО к тому, где искать назначения (local/remote).
@@ -1555,6 +1556,7 @@ class ApiController(
         filterStatusProcessDemo?.let { if (filterStatusProcessDemo != "") args["filter_status_process_demo"] = filterStatusProcessDemo }
         filterIsSync?.let { if (filterIsSync != "") args["is_sync"] = filterIsSync }
         filterRootId?.let { if (filterRootId != "") args["filter_root_id"] = filterRootId }
+        filterSongType?.let { if (filterSongType != "") args["song_type"] = filterSongType }
 
         SongsHistory().add(args)
 

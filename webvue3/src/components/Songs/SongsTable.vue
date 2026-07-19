@@ -130,6 +130,13 @@
               :style="{ backgroundColor: data.item.color, color: currentSongId === data.item.id ? 'blue' : 'black' }"
           ></div>
         </template>
+        <template #cell(songType)="data">
+          <div
+              class="fld-song-type"
+              v-text="songTypeLetter(data.value)"
+              :style="{ backgroundColor: data.item.color, color: currentSongId === data.item.id ? 'blue' : 'black' }"
+          ></div>
+        </template>
         <template #cell(countVoices)="data">
           <div
               class="fld-count-voices"
@@ -710,6 +717,17 @@ export default {
           }
         },
         {
+          key: 'songType',
+          sortable: true,
+          label: 'ST',
+          style: {
+            minWidth: '20px',
+            maxWidth: '20px',
+            textAlign: 'center',
+            fontSize: 'small'
+          }
+        },
+        {
           key: 'countVoices',
           sortable: true,
           label: 'c',
@@ -1069,6 +1087,10 @@ export default {
     }
   },
   methods: {
+    songTypeLetter(value) {
+      const map = { song: 'S', instrumental: 'I', poetry: 'P' };
+      return map[value] || '';
+    },
     openPlayer(id) {
       window.open('/player/' + id, '_blank')
     },
@@ -1766,6 +1788,14 @@ export default {
 .fld-song-status {
   min-width: 150px;
   max-width: 150px;
+  text-align: center;
+  font-size: small;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.fld-song-type {
+  min-width: 20px;
+  max-width: 20px;
   text-align: center;
   font-size: small;
   white-space: nowrap;

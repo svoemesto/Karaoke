@@ -304,6 +304,7 @@ class PublicPlayerController(
             "track" to settings.track.takeIf { it > 0 },
             "key" to settings.key.takeIf { it.isNotBlank() },
             "bpm" to settings.bpm,
+            "songType" to settings.songType.dbValue,
             "markers" to markersList,
             "audioAccompanimentUrl" to if (hasAccompaniment) "/api/public/player/$id/fileminus.mp3$tokenSuffix" else null,
             "audioVocalsUrl" to if (hasVocals) "/api/public/player/$id/filevoice.mp3$tokenSuffix" else null,

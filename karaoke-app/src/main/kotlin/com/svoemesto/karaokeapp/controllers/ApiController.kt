@@ -4187,6 +4187,7 @@ class ApiController(
             "track" to settings.track.takeIf { it > 0 },
             "key" to settings.key.takeIf { it.isNotBlank() },
             "bpm" to settings.bpm,
+            "songType" to settings.songType.dbValue,
             "markers" to markersList,
             "audioAccompanimentUrl" to "/api/song/$id/fileminus.mp3",
             "audioVocalsUrl" to "/api/song/$id/filevoice.mp3",

@@ -20,6 +20,7 @@ import com.svoemesto.karaokeapp.sync.isOperationAllowed
 import com.svoemesto.karaokeapp.services.KSS_APP
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.SAC_APP
+import com.svoemesto.karaokeapp.services.SNS
 import com.svoemesto.karaokeapp.services.StorageApiClient
 import com.svoemesto.karaokeapp.textfiledictionary.YoWordsDictionary
 import kotlinx.coroutines.Dispatchers
@@ -55,6 +56,7 @@ import java.text.SimpleDateFormat
 import java.time.Instant
 import java.time.format.DateTimeFormatter
 import java.util.*
+import kotlin.concurrent.thread
 import kotlin.io.inputStream
 import kotlin.io.outputStream
 import kotlin.io.path.Path
@@ -65,61 +67,58 @@ import kotlin.math.roundToInt
 import kotlin.random.Random
 import kotlin.use
 
+// Первичная "индексация" базы: для КАЖДОЙ песни в БД (без фильтра по статусу/семье, в отличие от
+// autoAssignOriginalAll) запускает поиск аудио-родителя (findAudioParentByWaveform) и сохраняет
+// результат. Разовая тяжёлая операция для админа (кнопка "Выполнить Custom Function" на главной
+// странице админки) - т.к. акустическая сверка (ffmpeg-декод + кросс-корреляция) на тысячах песен
+// может идти долго, вся работа уходит в фоновый поток; функция возвращает управление сразу же,
+// итоговая сводка приходит отдельным SSE-тостом по завершении (тот же паттерн, что и у
+// autoAssignOriginalAll).
 fun customFunction(
     storageService: KaraokeStorageService,
     lyricsFinderService: LyricsFinderService,
     storageApiClient: StorageApiClient
 ): String {
-
-//    Settings.loadListFromDb(args = emptyMap(), database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient, withoutMarkersAndText = true).forEach { settings ->
-//        println(settings.fileName)
-//        val pathToFileVocal = settings.vocalsNameMp3
-//        val vocalExistsInLocalFileSystem = if (pathToFileVocal != "") File(pathToFileVocal).exists() else false
-//        val pathToFileAccompaniment = settings.accompanimentNameMp3
-//        val accompanimentExistsInLocalFileSystem = if (pathToFileAccompaniment != "") File(pathToFileAccompaniment).exists() else false
-//        if (!vocalExistsInLocalFileSystem) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.FF_MP3_VOCAL, true, 1, -1)
-//        if (!accompanimentExistsInLocalFileSystem) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.FF_MP3_ACCOMPANIMENT, true, 1, -1)
-//    }
-
-    Settings.loadListFromDb(args = emptyMap(), database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient, withoutMarkersAndText = true).forEach { settings ->
-        println(settings.fileName)
-
-        val pathToFileVocal = settings.vocalsNameMp3
-        val vocalExistsInLocalFileSystem = if (pathToFileVocal != "") File(pathToFileVocal).exists() else false
-        val vocalKaraokeFileType = KaraokeFileType.MP3_VOCAL
-        val vocalStorageFileName = "${settings.storageFileName}${vocalKaraokeFileType.suffix}.${vocalKaraokeFileType.extention}"
-        if (vocalExistsInLocalFileSystem) {
-            val vocalExistsInLocalStorage = storageService.fileExists(bucketName = settings.storageBucketName, fileName = vocalStorageFileName)
-            if (!vocalExistsInLocalStorage) {
-                val context = mapOf("pathToFile" to pathToFileVocal, "karaokeFileType" to vocalKaraokeFileType.name)
-                KaraokeProcess.createProcess(settings, KaraokeProcessTypes.UPLOAD_TO_LOCAL_STORE, true, 1, KaraokeProcess.THREAD_LANE_HEAVY_RENDER, context = context)
+    thread {
+        val ids = mutableListOf<Long>()
+        try {
+            val connection = WORKING_DATABASE.getConnection()
+            if (connection != null) {
+                val ps = connection.prepareStatement("SELECT id FROM tbl_settings ORDER BY id")
+                val rs = ps.executeQuery()
+                while (rs.next()) ids.add(rs.getLong("id"))
+                rs.close(); ps.close()
             }
-            val vocalExistsInRemoteStorage = storageApiClient.fileExists(bucketName = settings.storageBucketName, fileName = vocalStorageFileName)
-            if (!vocalExistsInRemoteStorage) {
-                val context = mapOf("pathToFile" to pathToFileVocal, "karaokeFileType" to vocalKaraokeFileType.name)
-                KaraokeProcess.createProcess(settings, KaraokeProcessTypes.UPLOAD_TO_REMOTE_STORE, true, 1, KaraokeProcess.THREAD_LANE_REMOTE_STORE_UPLOAD, context = context)
-            }
+        } catch (e: Exception) {
+            println("Индексация аудио-родителей: ошибка выборки песен — ${e.message}")
         }
 
-        val pathToFileAccompaniment = settings.accompanimentNameMp3
-        val accompanimentExistsInLocalFileSystem = if (pathToFileAccompaniment != "") File(pathToFileAccompaniment).exists() else false
-        val accompanimentKaraokeFileType = KaraokeFileType.MP3_ACCOMPANIMENT
-        val accompanimentStorageFileName = "${settings.storageFileName}${accompanimentKaraokeFileType.suffix}.${accompanimentKaraokeFileType.extention}"
-        if (accompanimentExistsInLocalFileSystem) {
-            val accompanimentExistsInLocalStorage = storageService.fileExists(bucketName = settings.storageBucketName, fileName = accompanimentStorageFileName)
-            if (!accompanimentExistsInLocalStorage) {
-                val context = mapOf("pathToFile" to pathToFileAccompaniment, "karaokeFileType" to accompanimentKaraokeFileType.name)
-                KaraokeProcess.createProcess(settings, KaraokeProcessTypes.UPLOAD_TO_LOCAL_STORE, true, 1, KaraokeProcess.THREAD_LANE_HEAVY_RENDER, context = context)
-            }
-            val accompanimentExistsInRemoteStorage = storageApiClient.fileExists(bucketName = settings.storageBucketName, fileName = accompanimentStorageFileName)
-            if (!accompanimentExistsInRemoteStorage) {
-                val context = mapOf("pathToFile" to pathToFileAccompaniment, "karaokeFileType" to accompanimentKaraokeFileType.name)
-                KaraokeProcess.createProcess(settings, KaraokeProcessTypes.UPLOAD_TO_REMOTE_STORE, true, 1, KaraokeProcess.THREAD_LANE_REMOTE_STORE_UPLOAD, context = context)
+        println("Индексация аудио-родителей: найдено песен: ${ids.size}")
+        var matched = 0
+        ids.forEachIndexed { index, id ->
+            try {
+                val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+                if (settings == null) {
+                    println("  [${index + 1}/${ids.size}] id=$id — пропущено (не найдено)")
+                    return@forEachIndexed
+                }
+                val result = findAudioParentByWaveform(settings, WORKING_DATABASE, storageService, storageApiClient)
+                if (result.matched) matched++
+                println("  [${index + 1}/${ids.size}] ${songLogLabel(settings)} — ${result.reason}")
+            } catch (e: Exception) {
+                println("  [${index + 1}/${ids.size}] id=$id — ошибка: ${e.message}")
             }
         }
+        val summary = "Обработано ${ids.size}, аудио-родитель назначен $matched, без пары ${ids.size - matched}"
+        println("Индексация аудио-родителей: завершено. $summary")
 
+        SNS.send(SseNotification.message(Message(
+            type = "info",
+            head = "Индексация аудио-родителей",
+            body = summary
+        )))
     }
-    return "done"
+    return "Индексация аудио-родителей запущена в фоне"
 }
 
 fun fillFormattedFields(storageService: KaraokeStorageService, storageApiClient: StorageApiClient) {
@@ -3611,6 +3610,105 @@ fun autoAssignOriginalByWaveform(
     return AutoOriginalResult(
         settings.id, true, bestSettings.id, cmp.similarityPercent, cmp.deltaMs,
         "Привязано к [${songLogLabel(bestSettings)}] (${cmp.similarityPercent}%, сдвиг ${cmp.deltaMs} мс)"
+    )
+}
+
+/** Порог схожести (%), начиная с которого кандидат может быть записан как "аудио-родитель". См. findAudioParentByWaveform. */
+const val AUDIO_PARENT_THRESHOLD = 85
+
+/** Результат поиска "аудио-родителя" песни (см. findAudioParentByWaveform). */
+data class AudioParentResult(
+    val songId: Long,
+    val matched: Boolean,
+    val bestId: Long?,
+    val bestPercent: Int?,
+    val deltaMs: Long?,
+    val reason: String
+)
+
+/**
+ * Ищет и запоминает "аудио-родителя" песни - песню, максимально похожую по звучанию (WaveformCompare),
+ * НЕЗАВИСИМО от кураторского root_id/"семьи". В отличие от autoAssignOriginalByWaveform, здесь ничего
+ * не применяется к тексту/маркерам/статусу - только записываются 3 поля (audio_parent_id,
+ * audio_similarity_percent, audio_delta_ms) плюс служебная история сравнений (audio_compare_history),
+ * которая не даёт повторно гонять WaveformCompare для уже сравненных пар при последующих запусках.
+ *
+ * Кандидаты - объединение findFamilySongIds (курируемая семья, если уже есть) и
+ * searchSongsByNormalizedName по названию текущей песни (across all authors) - тот же набор
+ * источников, что уже видит пользователь в модалке "Похожие версии песни".
+ *
+ * Порог отбора - AUDIO_PARENT_THRESHOLD (85%). Дерево audio_parent_id, как и root_id, должно
+ * оставаться плоским (глубина 1) и без петель: если у лучшего кандидата уже есть свой
+ * audio_parent_id, текущая песня получает ЕГО (а не id самого кандидата) - флэттенинг в один хоп.
+ * Если у кандидата ещё нет аудио-родителя ("первичный анализ"), корнем считается песня с меньшим id;
+ * если корнем оказывается сама текущая песня (в т.ч. когда кандидат уже указывает на неё) -
+ * audio_parent_id не трогаем, песня остаётся корнем.
+ */
+fun findAudioParentByWaveform(
+    settings: Settings,
+    database: KaraokeConnection,
+    storageService: KaraokeStorageService,
+    storageApiClient: StorageApiClient
+): AudioParentResult {
+    val candidateIds = (findFamilySongIds(settings, database) + searchSongsByNormalizedName(settings, settings.songName, database))
+        .toSet() - settings.id
+    if (candidateIds.isEmpty()) {
+        return AudioParentResult(settings.id, false, null, null, null, "Нет кандидатов (ни в семье, ни по названию)")
+    }
+
+    val historyById = settings.audioCompareHistoryList.associateBy { it.id }.toMutableMap()
+    val newIds = candidateIds.filter { it !in historyById }
+    var loadedCandidates: Map<Long, Settings> = emptyMap()
+
+    if (newIds.isNotEmpty()) {
+        loadedCandidates = Settings.loadListFromDbByIds(newIds, database, storageService, storageApiClient)
+        val now = Instant.now().toString()
+        newIds.forEach { id ->
+            val candidate = loadedCandidates[id] ?: return@forEach
+            val cmp = WaveformCompare.compareWaveforms(settings, candidate)
+            historyById[id] = AudioCompareHistoryEntry(id, cmp.similarityPercent, cmp.deltaMs, cmp.ok, now)
+        }
+        settings.audioCompareHistory = Json.encodeToString(ListSerializer(AudioCompareHistoryEntry.serializer()), historyById.values.toList())
+    }
+
+    val best = candidateIds.mapNotNull { historyById[it] }
+        .filter { it.ok }
+        .maxByOrNull { it.similarityPercent }
+
+    if (best == null || best.similarityPercent < AUDIO_PARENT_THRESHOLD) {
+        settings.saveToDb()
+        return AudioParentResult(
+            settings.id, false, best?.id, best?.similarityPercent, best?.deltaMs,
+            if (best == null) "Не удалось сверить ни одного кандидата (нет аудио)"
+            else "Лучшее совпадение ${best.similarityPercent}% (id=${best.id}) ниже порога $AUDIO_PARENT_THRESHOLD%"
+        )
+    }
+
+    val bestSettings = loadedCandidates[best.id]
+        ?: Settings.loadFromDbById(best.id, database = database, storageService = storageService, storageApiClient = storageApiClient)
+        ?: run {
+            settings.saveToDb()
+            return AudioParentResult(settings.id, false, best.id, best.similarityPercent, best.deltaMs, "Кандидат id=${best.id} не найден при резолве корня")
+        }
+
+    val resolvedRoot = if (bestSettings.audioParentId != 0L) bestSettings.audioParentId
+        else if (bestSettings.id < settings.id) bestSettings.id
+        else settings.id
+
+    if (resolvedRoot == settings.id) {
+        settings.saveToDb()
+        return AudioParentResult(settings.id, false, best.id, best.similarityPercent, best.deltaMs, "Текущая песня определена как корень пары с [${songLogLabel(bestSettings)}] (меньший id)")
+    }
+
+    settings.audioParentId = resolvedRoot
+    settings.audioSimilarityPercent = best.similarityPercent
+    settings.audioDeltaMs = best.deltaMs
+    settings.saveToDb()
+
+    return AudioParentResult(
+        settings.id, true, resolvedRoot, best.similarityPercent, best.deltaMs,
+        "Похож на [${songLogLabel(bestSettings)}] (${best.similarityPercent}%, сдвиг ${best.deltaMs} мс)" +
+            if (resolvedRoot != bestSettings.id) ", корень id=$resolvedRoot" else ""
     )
 }
 

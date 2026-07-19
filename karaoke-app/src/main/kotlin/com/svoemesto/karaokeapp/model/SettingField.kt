@@ -96,5 +96,13 @@ enum class SettingField : Serializable {
     ID_MAX_DEMO,
     VERSION_MAX_DEMO,
     // Тип песни: песня/инструментал/стихи (см. SongType). Хранится в tbl_settings.song_type.
-    SONG_TYPE
+    SONG_TYPE,
+    // "Аудио-родитель" — песня, максимально похожая по звучанию (WaveformCompare), независимо
+    // от кураторского ROOT_ID. См. Utils.findAudioParentByWaveform.
+    AUDIO_PARENT_ID,
+    AUDIO_SIMILARITY_PERCENT,
+    AUDIO_DELTA_MS,
+    // JSON-история уже выполненных сравнений (id кандидата, %, дельта, ok, время) — чтобы не
+    // сравнивать повторно одни и те же пары при последующих запусках поиска.
+    AUDIO_COMPARE_HISTORY
 }

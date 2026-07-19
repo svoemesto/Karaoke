@@ -2376,12 +2376,17 @@ class Settings(
     // обрабатывает для этих типов, см. KaraokePlayer.js) — фрагмент считается чисто по
     // длительности: первые 30с, если песня длиннее 60с, иначе первая половина песни. Без отступа
     // и без фейд-ина (фрагмент всегда с начала песни).
+    // Длительность здесь нельзя брать из songLengthMs — оно вычисляется из маркера SETTING END,
+    // а у INSTRUMENTAL/POETRY зачастую вообще нет маркеров (нет текста), из-за чего songLengthMs
+    // получался 0 и демо-фрагмент схлопывался в 1 секунду. `ms` — реальная длительность аудиофайла
+    // (ffprobe, кешируется в БД), не зависящая от разметки.
     @get:JsonIgnore
     private val demoFragmentBounds: Triple<Double, Double, Double> get() {
         val songLengthSeconds = songLengthMs / 1000.0
         if (songType != SongType.SONG) {
-            val fragmentEnd = (if (songLengthSeconds > 60.0) 30.0 else songLengthSeconds * 0.5)
-                .coerceAtLeast(1.0).coerceAtMost(songLengthSeconds.coerceAtLeast(1.0))
+            val realLengthSeconds = (if (songLengthMs > 0) songLengthMs else ms) / 1000.0
+            val fragmentEnd = (if (realLengthSeconds > 60.0) 30.0 else realLengthSeconds * 0.5)
+                .coerceAtLeast(1.0).coerceAtMost(realLengthSeconds.coerceAtLeast(1.0))
             return Triple(0.0, fragmentEnd, 0.0)
         }
         val bounds = computeDemoVerseBounds()

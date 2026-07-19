@@ -119,6 +119,21 @@
 
                 <div class="sfm-filter-row">
                   <div class="sfm-row-label">
+                    <div v-text="'Тип песни:'"></div>
+                  </div>
+                  <div class="sfm-row-input">
+                    <select class="sfm-input-field" v-model="songsFilterSongType">
+                      <option value="">Все</option>
+                      <option value="song">Песня (S)</option>
+                      <option value="instrumental">Инструментал (I)</option>
+                      <option value="poetry">Стихи (P)</option>
+                    </select>
+                  </div>
+                  <button :disabled="!songsFilterSongType" class="sfm-button-clear-field" @click.left="songsFilterSongType=''" v-text="'X'"></button>
+                </div>
+
+                <div class="sfm-filter-row">
+                  <div class="sfm-row-label">
                     <div v-text="'Кол-во голосов:'"></div>
                   </div>
                   <div class="sfm-row-input">
@@ -366,6 +381,7 @@ export default {
     this.$store.dispatch('setSongsFilterFlagExclusive', { value: await this.$store.getters.getWebvueProp('songsFilterFlagExclusive', '') });
     this.$store.dispatch('setSongsFilterFlagFree', { value: await this.$store.getters.getWebvueProp('songsFilterFlagFree', '') });
     this.$store.dispatch('setSongsFilterAssignmentStatus', { value: await this.$store.getters.getWebvueProp('songsFilterAssignmentStatus', '') });
+    this.$store.dispatch('setSongsFilterSongType', { value: await this.$store.getters.getWebvueProp('songsFilterSongType', '') });
   },
   async mounted() {
     this.$store.getters.songAuthorsPromise.then(data => {
@@ -482,6 +498,10 @@ export default {
       get() { return this.$store.getters.getSongsFilterAssignmentStatus; },
       set(value) { this.$store.dispatch('setSongsFilterAssignmentStatus', { value: value }); }
     },
+    songsFilterSongType: {
+      get() { return this.$store.getters.getSongsFilterSongType; },
+      set(value) { this.$store.dispatch('setSongsFilterSongType', { value: value }); }
+    },
     songsHistory() {
       return this.$store.getters.getSongsHistory;
     },
@@ -543,6 +563,7 @@ export default {
       this.$store.dispatch('setSongsFilterFlagExclusive', { value: this.songsFilterFlagExclusive });
       this.$store.dispatch('setSongsFilterFlagFree', { value: this.songsFilterFlagFree });
       this.$store.dispatch('setSongsFilterAssignmentStatus', { value: this.songsFilterAssignmentStatus });
+      this.$store.dispatch('setSongsFilterSongType', { value: this.songsFilterSongType });
 
       let params = {};
       if (this.songsFilterId) params.filterId = this.songsFilterId;
@@ -571,6 +592,7 @@ export default {
       if (this.songsFilterRootId !== '') params.filterRootId = this.songsFilterRootId;
       if (this.songsFilterFlagExclusive !== '') params.flagExclusive = this.songsFilterFlagExclusive;
       if (this.songsFilterFlagFree !== '') params.flagFree = this.songsFilterFlagFree;
+      if (this.songsFilterSongType !== '') params.filterSongType = this.songsFilterSongType;
       // Задание редактора — БД для проверки назначений (KaraokeProperty editorAssignmentDefaultTarget),
       // не связано с остальными filter*-параметрами (те идут в Settings.loadListFromDb, эти — в
       // отдельную проверку SongAssignment, см. ApiController.apisSongsDigests).
@@ -612,6 +634,7 @@ export default {
       this.songsFilterStatusProcessDemo = args['filter_status_process_demo'] ? args['filter_status_process_demo'] : ''
       this.songsFilterRootId = args['filter_root_id'] ? args['filter_root_id'] : ''
       this.songsFilterFlagExclusive = args['flag_exclusive'] ? args['flag_exclusive'] : ''
+      this.songsFilterSongType = args['song_type'] ? args['song_type'] : ''
       // Задание редактора не входит в historyArgs (отдельная от Settings.loadListFromDb проверка) —
       // при восстановлении из истории сбрасываем, а не оставляем текущее значение.
       this.songsFilterAssignmentStatus = ''

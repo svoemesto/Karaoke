@@ -29,6 +29,7 @@ export default {
         songsFilterFlagExclusive: '',
         songsFilterFlagFree: '',
         songsFilterAssignmentStatus: '',
+        songsFilterSongType: '',
         songsHistory: [],
         songsHistoryIsLoading: false
     },
@@ -63,7 +64,8 @@ export default {
         getSongsFilterRootId(state) { return state.songsFilterRootId},
         getSongsFilterFlagExclusive(state) { return state.songsFilterFlagExclusive},
         getSongsFilterFlagFree(state) { return state.songsFilterFlagFree},
-        getSongsFilterAssignmentStatus(state) { return state.songsFilterAssignmentStatus}
+        getSongsFilterAssignmentStatus(state) { return state.songsFilterAssignmentStatus},
+        getSongsFilterSongType(state) { return state.songsFilterSongType}
     },
     mutations: {
         updateSongsHistory(state, result) {
@@ -178,6 +180,10 @@ export default {
         setSongsFilterAssignmentStatus(state, value) {
             setWebvueProp(state.songsFilterAssignmentStatus, 'songsFilterAssignmentStatus', value);
             state.songsFilterAssignmentStatus = value;
+        },
+        setSongsFilterSongType(state, value) {
+            setWebvueProp(state.songsFilterSongType, 'songsFilterSongType', value);
+            state.songsFilterSongType = value;
         }
     },
     actions: {
@@ -219,5 +225,6 @@ export default {
         setSongsFilterFlagExclusive(ctx, payload) { ctx.commit('setSongsFilterFlagExclusive', payload.value) },
         setSongsFilterFlagFree(ctx, payload) { ctx.commit('setSongsFilterFlagFree', payload.value) },
         setSongsFilterAssignmentStatus(ctx, payload) { ctx.commit('setSongsFilterAssignmentStatus', payload.value) },
+        setSongsFilterSongType(ctx, payload) { ctx.commit('setSongsFilterSongType', payload.value) },
     }
 }

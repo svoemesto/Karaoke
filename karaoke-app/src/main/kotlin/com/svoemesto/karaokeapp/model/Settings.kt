@@ -4982,6 +4982,7 @@ class Settings(
             if (args.containsKey("song_tone")) where += "song_tone=${args["song_tone"]}"
             if (args.containsKey("song_year")) where += "song_year=${args["song_year"]}"
             if (args.containsKey("song_track")) where += "song_track=${args["song_track"]}"
+            if (args.containsKey("song_type")) where += "song_type='${args["song_type"]}'"
 
             if (args.containsKey("flag_boosty")) where += "CASE WHEN id_boosty IS NOT NULL AND id_boosty <> 'null' AND id_boosty <> '' THEN '+' ELSE '-' END='${args["flag_boosty"]}'"
             if (args.containsKey("flag_sponsr")) where += "CASE WHEN id_sponsr IS NOT NULL AND id_sponsr <> 'null' AND id_sponsr <> '' THEN '+' ELSE '-' END='${args["flag_sponsr"]}'"

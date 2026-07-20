@@ -1,10 +1,9 @@
-'use strict';
+'use strict'
 
-var inherits = require('inherits')
-  , AjaxBasedTransport = require('./lib/ajax-based')
-  , XhrReceiver = require('./receiver/xhr')
-  , XDRObject = require('./sender/xdr')
-  ;
+var inherits = require('inherits'),
+  AjaxBasedTransport = require('./lib/ajax-based'),
+  XhrReceiver = require('./receiver/xhr'),
+  XDRObject = require('./sender/xdr')
 
 // According to:
 //   http://stackoverflow.com/questions/1641507/detect-browser-support-for-cross-domain-xmlhttprequests
@@ -12,21 +11,21 @@ var inherits = require('inherits')
 
 function XdrStreamingTransport(transUrl) {
   if (!XDRObject.enabled) {
-    throw new Error('Transport created when disabled');
+    throw new Error('Transport created when disabled')
   }
-  AjaxBasedTransport.call(this, transUrl, '/xhr_streaming', XhrReceiver, XDRObject);
+  AjaxBasedTransport.call(this, transUrl, '/xhr_streaming', XhrReceiver, XDRObject)
 }
 
-inherits(XdrStreamingTransport, AjaxBasedTransport);
+inherits(XdrStreamingTransport, AjaxBasedTransport)
 
-XdrStreamingTransport.enabled = function(info) {
+XdrStreamingTransport.enabled = function (info) {
   if (info.cookie_needed || info.nullOrigin) {
-    return false;
+    return false
   }
-  return XDRObject.enabled && info.sameScheme;
-};
+  return XDRObject.enabled && info.sameScheme
+}
 
-XdrStreamingTransport.transportName = 'xdr-streaming';
-XdrStreamingTransport.roundTrips = 2; // preflight, ajax
+XdrStreamingTransport.transportName = 'xdr-streaming'
+XdrStreamingTransport.roundTrips = 2 // preflight, ajax
 
-module.exports = XdrStreamingTransport;
+module.exports = XdrStreamingTransport

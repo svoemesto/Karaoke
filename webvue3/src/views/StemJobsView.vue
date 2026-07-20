@@ -1,16 +1,16 @@
 <template>
   <div class="stemjobstable">
-    <StemJobsTable/>
+    <StemJobsTable />
   </div>
 </template>
 
 <script>
 import StemJobsTable from '../components/StemJobs/StemJobsTable.vue'
 export default {
-  name: "StemJobsView",
+  name: 'StemJobsView',
   components: {
-    StemJobsTable
-  }
+    StemJobsTable,
+  },
 }
 </script>
 

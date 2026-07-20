@@ -33,7 +33,10 @@ export function usePlayerAccess() {
     demoFadeInSeconds.value = null
     if (!songId) return
     try {
-      const { status, body } = await authGet(`/api/public/player/${songId}/access?anonId=${encodeURIComponent(getAnonId())}`, token.value)
+      const { status, body } = await authGet(
+        `/api/public/player/${songId}/access?anonId=${encodeURIComponent(getAnonId())}`,
+        token.value,
+      )
       if (status === 200 && body) {
         ready.value = !!body.ready
         isPremiumUser.value = !!body.isPremiumUser
@@ -52,5 +55,14 @@ export function usePlayerAccess() {
     loaded.value = true
   }
 
-  return { ready, isPremiumUser, canWatch, canExport, isDemo, demoFadeInSeconds, loaded, checkAccess }
+  return {
+    ready,
+    isPremiumUser,
+    canWatch,
+    canExport,
+    isDemo,
+    demoFadeInSeconds,
+    loaded,
+    checkAccess,
+  }
 }

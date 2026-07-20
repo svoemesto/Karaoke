@@ -24,7 +24,11 @@ export async function apiGet(path, params) {
   // referrer уйдёт только на первом запросе после реального внешнего захода (consumeEntryReferrer
   // отдаёт значение один раз); buildUrl отфильтрует пустую строку на всех последующих.
   const withAnon = { ...(params || {}), anonId: getAnonId(), referrer: consumeEntryReferrer() }
-  const response = await promisedXMLHttpRequest({ method: 'GET', url: buildUrl(path, withAnon), headers: authHeader() })
+  const response = await promisedXMLHttpRequest({
+    method: 'GET',
+    url: buildUrl(path, withAnon),
+    headers: authHeader(),
+  })
   return JSON.parse(response)
 }
 

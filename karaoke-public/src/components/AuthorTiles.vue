@@ -30,9 +30,9 @@ export default {
   name: 'AuthorTiles',
   props: {
     tiles: { type: Array, default: () => [] },
-    selected: { type: String, default: '' }
+    selected: { type: String, default: '' },
   },
-  emits: ['select']
+  emits: ['select'],
 }
 </script>
 
@@ -53,9 +53,14 @@ export default {
   overflow: hidden;
   cursor: pointer;
   text-align: center;
-  transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.12s ease,
+    border-color 0.12s ease;
 }
-.at-tile:hover { transform: translateY(-2px); }
+.at-tile:hover {
+  transform: translateY(-2px);
+}
 
 /* Область картинки — всегда чёрный фон, превью автора (125×50) вписывается по contain */
 .at-pic {
@@ -107,9 +112,16 @@ export default {
   background: var(--km-card);
   border: 1px solid var(--km-border);
 }
-.at-modern .at-name { color: var(--km-text); }
-.at-modern .at-count { color: var(--km-text2); background: var(--km-bg2); }
-.at-modern .at-tile:hover { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35); }
+.at-modern .at-name {
+  color: var(--km-text);
+}
+.at-modern .at-count {
+  color: var(--km-text2);
+  background: var(--km-bg2);
+}
+.at-modern .at-tile:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
 .at-modern .at-selected {
   border-color: var(--km-accent);
   box-shadow: 0 0 0 2px var(--km-accent);

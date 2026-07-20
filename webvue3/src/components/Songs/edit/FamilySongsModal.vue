@@ -6,18 +6,20 @@
           <div class="fsm-header-title">Песни из той же группы (id / root_id)</div>
           <div class="fsm-search">
             <input
-                v-model="searchQuery"
-                type="text"
-                class="fsm-search-input"
-                placeholder="Поиск по названию песни..."
-                @keyup.enter="doSearch"
+              v-model="searchQuery"
+              type="text"
+              class="fsm-search-input"
+              placeholder="Поиск по названию песни..."
+              @keyup.enter="doSearch"
             />
             <button type="button" class="fsm-search-button" @click="doSearch">Найти</button>
           </div>
         </div>
         <div class="fsm-body">
           <div v-if="loading" class="fsm-message">Загрузка...</div>
-          <div v-else-if="songs.length === 0" class="fsm-message">{{ searched ? 'Ничего не найдено по запросу' : 'Похожих песен не найдено' }}</div>
+          <div v-else-if="songs.length === 0" class="fsm-message">
+            {{ searched ? 'Ничего не найдено по запросу' : 'Похожих песен не найдено' }}
+          </div>
           <table v-else class="fsm-table">
             <thead>
               <tr>
@@ -29,7 +31,12 @@
                 <th>Разница, сек</th>
                 <th class="fsm-compare-th">
                   Сверка
-                  <button type="button" class="fsm-compare-all" :disabled="comparingAll" @click="compareAll">
+                  <button
+                    type="button"
+                    class="fsm-compare-all"
+                    :disabled="comparingAll"
+                    @click="compareAll"
+                  >
                     {{ comparingAll ? '…' : 'Сверить все' }}
                   </button>
                 </th>
@@ -37,25 +44,46 @@
             </thead>
             <tbody>
               <tr
-v-for="s in songs" :key="s.id"
-                  class="fsm-row"
-                  :class="{'fsm-row-original': s.original, 'fsm-row-disabled': s.current, 'fsm-row-low-status': s.idStatus < 3}"
-                  :title="s.current ? 'Текущая песня' : 'Скопировать текст из этой песни'"
-                  @click="select(s)">
+                v-for="s in songs"
+                :key="s.id"
+                class="fsm-row"
+                :class="{
+                  'fsm-row-original': s.original,
+                  'fsm-row-disabled': s.current,
+                  'fsm-row-low-status': s.idStatus < 3,
+                }"
+                :title="s.current ? 'Текущая песня' : 'Скопировать текст из этой песни'"
+                @click="select(s)"
+              >
                 <td>{{ s.id }}</td>
                 <td>{{ s.author }}</td>
                 <td>{{ s.year || '' }}</td>
                 <td class="fsm-col-left">{{ s.album }}</td>
-                <td class="fsm-col-left">{{ s.songName }} <span v-if="s.original" class="fsm-original-badge" title="Оригинал">ОРИГИНАЛ</span></td>
-                <td class="fsm-diff" :class="{'fsm-diff-zero': s.diffSeconds === 0}">{{ formatDiff(s.diffSeconds) }}</td>
+                <td class="fsm-col-left">
+                  {{ s.songName }}
+                  <span v-if="s.original" class="fsm-original-badge" title="Оригинал"
+                    >ОРИГИНАЛ</span
+                  >
+                </td>
+                <td class="fsm-diff" :class="{ 'fsm-diff-zero': s.diffSeconds === 0 }">
+                  {{ formatDiff(s.diffSeconds) }}
+                </td>
                 <td class="fsm-compare" @click.stop>
                   <template v-if="s.current">—</template>
                   <template v-else>
                     <span v-if="cmp(s).status === 'loading'" class="fsm-cmp-loading">…</span>
                     <button
-v-else type="button" class="fsm-cmp-button" :class="cmpClass(s)"
-                            :title="cmpTitle(s)" @click.stop="compareOne(s)">
-                      <template v-if="cmp(s).status === 'done'">{{ cmp(s).similarityPercent }}% (Δ {{ fmtDelta(cmp(s).deltaMs) }})</template>
+                      v-else
+                      type="button"
+                      class="fsm-cmp-button"
+                      :class="cmpClass(s)"
+                      :title="cmpTitle(s)"
+                      @click.stop="compareOne(s)"
+                    >
+                      <template v-if="cmp(s).status === 'done'"
+                        >{{ cmp(s).similarityPercent }}% (Δ
+                        {{ fmtDelta(cmp(s).deltaMs) }})</template
+                      >
                       <template v-else-if="cmp(s).status === 'error'">ошибка</template>
                       <template v-else>Сверить</template>
                     </button>
@@ -75,12 +103,12 @@ v-else type="button" class="fsm-cmp-button" :class="cmpClass(s)"
 
 <script>
 export default {
-  name: "FamilySongsModal",
+  name: 'FamilySongsModal',
   props: {
     id: {
       type: [String, Number],
-      required: true
-    }
+      required: true,
+    },
   },
   data() {
     return {
@@ -88,104 +116,110 @@ export default {
       loading: true,
       searchQuery: '',
       searched: false,
-      compareResults: {},   // id -> {status:'idle'|'loading'|'done'|'error', similarityPercent, deltaMs, stemUsed, error}
-      comparingAll: false
-    };
+      compareResults: {}, // id -> {status:'idle'|'loading'|'done'|'error', similarityPercent, deltaMs, stemUsed, error}
+      comparingAll: false,
+    }
   },
   async mounted() {
     try {
-      const data = await this.$store.dispatch('getFamilySongsPromise');
-      this.songs = JSON.parse(data);
+      const data = await this.$store.dispatch('getFamilySongsPromise')
+      this.songs = JSON.parse(data)
     } finally {
-      this.loading = false;
+      this.loading = false
     }
   },
   methods: {
     formatDiff(diffSeconds) {
-      return (diffSeconds > 0 ? '+' : '') + diffSeconds;
+      return (diffSeconds > 0 ? '+' : '') + diffSeconds
     },
     cmp(s) {
-      return this.compareResults[s.id] || { status: 'idle' };
+      return this.compareResults[s.id] || { status: 'idle' }
     },
     fmtDelta(ms) {
-      return (ms > 0 ? '+' : '') + ms + ' мс';
+      return (ms > 0 ? '+' : '') + ms + ' мс'
     },
     cmpClass(s) {
-      const r = this.cmp(s);
-      if (r.status !== 'done') return '';
-      return r.similarityPercent >= 90 ? 'fsm-cmp-high' : (r.similarityPercent >= 60 ? 'fsm-cmp-mid' : 'fsm-cmp-low');
+      const r = this.cmp(s)
+      if (r.status !== 'done') return ''
+      return r.similarityPercent >= 90
+        ? 'fsm-cmp-high'
+        : r.similarityPercent >= 60
+          ? 'fsm-cmp-mid'
+          : 'fsm-cmp-low'
     },
     cmpTitle(s) {
-      const r = this.cmp(s);
-      if (r.status === 'done') return 'Стем: ' + (r.stemUsed === 'vocals' ? 'вокал' : 'микс') + '. Нажмите, чтобы пересверить';
-      if (r.status === 'error') return r.error || 'Ошибка сверки';
-      return 'Сравнить вейвформы вокала с текущей песней';
+      const r = this.cmp(s)
+      if (r.status === 'done')
+        return (
+          'Стем: ' + (r.stemUsed === 'vocals' ? 'вокал' : 'микс') + '. Нажмите, чтобы пересверить'
+        )
+      if (r.status === 'error') return r.error || 'Ошибка сверки'
+      return 'Сравнить вейвформы вокала с текущей песней'
     },
     async compareOne(s) {
-      if (s.current) return;
-      this.compareResults[s.id] = { status: 'loading' };
+      if (s.current) return
+      this.compareResults[s.id] = { status: 'loading' }
       try {
-        const data = await this.$store.dispatch('compareWaveformPromise', { idAnother: s.id });
-        const r = JSON.parse(data);
+        const data = await this.$store.dispatch('compareWaveformPromise', { idAnother: s.id })
+        const r = JSON.parse(data)
         if (r && r.ok) {
           this.compareResults[s.id] = {
             status: 'done',
             similarityPercent: r.similarityPercent,
             deltaMs: r.deltaMs,
-            stemUsed: r.stemUsed
-          };
+            stemUsed: r.stemUsed,
+          }
         } else {
-          this.compareResults[s.id] = { status: 'error', error: (r && r.error) || 'Ошибка сверки' };
+          this.compareResults[s.id] = { status: 'error', error: (r && r.error) || 'Ошибка сверки' }
         }
       } catch (e) {
-        this.compareResults[s.id] = { status: 'error', error: 'Ошибка запроса' };
+        this.compareResults[s.id] = { status: 'error', error: 'Ошибка запроса' }
       }
     },
     async compareAll() {
-      if (this.comparingAll) return;
-      this.comparingAll = true;
+      if (this.comparingAll) return
+      this.comparingAll = true
       try {
-        const targets = this.songs.filter(s => !s.current);
-        const CONC = 3;
-        let idx = 0;
+        const targets = this.songs.filter((s) => !s.current)
+        const CONC = 3
+        let idx = 0
         const worker = async () => {
           while (idx < targets.length) {
-            const s = targets[idx++];
-            await this.compareOne(s);
+            const s = targets[idx++]
+            await this.compareOne(s)
           }
-        };
-        await Promise.all(Array.from({ length: Math.min(CONC, targets.length) }, worker));
+        }
+        await Promise.all(Array.from({ length: Math.min(CONC, targets.length) }, worker))
       } finally {
-        this.comparingAll = false;
+        this.comparingAll = false
       }
     },
     select(song) {
-      if (song.current) return;
-      const r = this.compareResults[song.id];
-      const deltaMs = (r && r.status === 'done') ? r.deltaMs : null;
-      this.$emit('select', { id: song.id, deltaMs: deltaMs });
+      if (song.current) return
+      const r = this.compareResults[song.id]
+      const deltaMs = r && r.status === 'done' ? r.deltaMs : null
+      this.$emit('select', { id: song.id, deltaMs: deltaMs })
     },
     close() {
-      this.$emit('close');
+      this.$emit('close')
     },
     async doSearch() {
-      const query = this.searchQuery.trim();
-      if (!query) return;
-      this.loading = true;
-      this.searched = true;
+      const query = this.searchQuery.trim()
+      if (!query) return
+      this.loading = true
+      this.searched = true
       try {
-        const data = await this.$store.dispatch('searchOriginalSongsPromise', {search: query});
-        this.songs = JSON.parse(data);
+        const data = await this.$store.dispatch('searchOriginalSongsPromise', { search: query })
+        this.songs = JSON.parse(data)
       } finally {
-        this.loading = false;
+        this.loading = false
       }
-    }
-  }
+    },
+  },
 }
 </script>
 
 <style scoped>
-
 .fsm-modal-fade-enter,
 .fsm-modal-fade-leave-active {
   opacity: 0;
@@ -193,7 +227,7 @@ export default {
 
 .fsm-modal-fade-enter-active,
 .fsm-modal-fade-leave-active {
-  transition: opacity .5s ease
+  transition: opacity 0.5s ease;
 }
 
 .fsm-modal-backdrop {
@@ -210,7 +244,7 @@ export default {
 }
 
 .fsm-area {
-  background: #FFFFFF;
+  background: #ffffff;
   box-shadow: 2px 2px 20px 1px;
   overflow-x: auto;
   display: flex;
@@ -261,7 +295,7 @@ export default {
   font-size: 14px;
   cursor: pointer;
   font-weight: bold;
-  color: #4AAE9B;
+  color: #4aae9b;
   background: transparent;
   padding: 4px 14px;
   white-space: nowrap;
@@ -370,7 +404,7 @@ export default {
 }
 
 .fsm-diff-zero {
-  color: #4AAE9B;
+  color: #4aae9b;
   font-weight: bold;
 }
 
@@ -380,19 +414,19 @@ export default {
 
 .fsm-compare-all {
   margin-left: 8px;
-  border: 1px solid #4AAE9B;
+  border: 1px solid #4aae9b;
   border-radius: 6px;
   font-size: 11px;
   font-weight: bold;
   cursor: pointer;
-  color: #4AAE9B;
+  color: #4aae9b;
   background: white;
   padding: 2px 8px;
   white-space: nowrap;
 }
 
 .fsm-compare-all:hover:not(:disabled) {
-  background: #4AAE9B;
+  background: #4aae9b;
   color: white;
 }
 
@@ -458,7 +492,7 @@ export default {
   font-size: 18px;
   cursor: pointer;
   font-weight: bold;
-  color: #4AAE9B;
+  color: #4aae9b;
   background: transparent;
   width: 150px;
   height: auto;
@@ -467,5 +501,4 @@ export default {
 .fsm-button-close:hover {
   background: darkgreen;
 }
-
 </style>

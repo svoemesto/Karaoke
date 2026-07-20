@@ -1,8 +1,12 @@
 <template>
   <button
-      class="btn-round-double"
-      :title="enabled ? 'Ограничение CPU включено — нажмите, чтобы снять ограничение' : 'Ограничение CPU выключено (безлимит) — нажмите, чтобы включить ограничение'"
-      @click.left="toggle"
+    class="btn-round-double"
+    :title="
+      enabled
+        ? 'Ограничение CPU включено — нажмите, чтобы снять ограничение'
+        : 'Ограничение CPU выключено (безлимит) — нажмите, чтобы включить ограничение'
+    "
+    @click.left="toggle"
   >
     <span v-if="enabled" class="icon-40 icon-emoji">🐢</span>
     <span v-else class="icon-40 icon-emoji">🐇</span>
@@ -10,31 +14,36 @@
 </template>
 
 <script>
-const PROPERTY_KEY = 'resourceLimitsEnabled';
+const PROPERTY_KEY = 'resourceLimitsEnabled'
 
 export default {
-  name: "ResourceLimitToggle",
+  name: 'ResourceLimitToggle',
   data() {
     return {
-      enabled: false
+      enabled: false,
     }
   },
   mounted() {
-    this.load();
+    this.load()
   },
   methods: {
     load() {
-      this.$store.dispatch('getPropertyValuePromise', PROPERTY_KEY).then(property => {
-        this.enabled = property.value === 'true';
-      });
+      this.$store.dispatch('getPropertyValuePromise', PROPERTY_KEY).then((property) => {
+        this.enabled = property.value === 'true'
+      })
     },
     toggle() {
-      const newValue = !this.enabled;
-      this.$store.dispatch('setPropertyValuePromise', { propertyKey: PROPERTY_KEY, propertyValue: String(newValue) }).then(() => {
-        this.enabled = newValue;
-      });
-    }
-  }
+      const newValue = !this.enabled
+      this.$store
+        .dispatch('setPropertyValuePromise', {
+          propertyKey: PROPERTY_KEY,
+          propertyValue: String(newValue),
+        })
+        .then(() => {
+          this.enabled = newValue
+        })
+    },
+  },
 }
 </script>
 

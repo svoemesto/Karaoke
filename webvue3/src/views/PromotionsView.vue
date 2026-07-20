@@ -1,13 +1,13 @@
 <template>
   <div class="promotionsview">
-    <PromotionsTable/>
+    <PromotionsTable />
   </div>
 </template>
 
 <script>
-import PromotionsTable from "../components/Promotions/PromotionsTable.vue";
+import PromotionsTable from '../components/Promotions/PromotionsTable.vue'
 export default {
-  name: "PromotionsView",
+  name: 'PromotionsView',
   components: { PromotionsTable },
 }
 </script>

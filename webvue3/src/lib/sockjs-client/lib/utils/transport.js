@@ -1,50 +1,49 @@
-'use strict';
+'use strict'
 
-var debug = function() {};
+var debug = function () {}
 if (process.env.NODE_ENV !== 'production') {
-  debug = require('debug')('sockjs-client:utils:transport');
+  debug = require('debug')('sockjs-client:utils:transport')
 }
 
-module.exports = function(availableTransports) {
+module.exports = function (availableTransports) {
   return {
-    filterToEnabled: function(transportsWhitelist, info) {
+    filterToEnabled: function (transportsWhitelist, info) {
       var transports = {
-        main: []
-      , facade: []
-      };
+        main: [],
+        facade: [],
+      }
       if (!transportsWhitelist) {
-        transportsWhitelist = [];
+        transportsWhitelist = []
       } else if (typeof transportsWhitelist === 'string') {
-        transportsWhitelist = [transportsWhitelist];
+        transportsWhitelist = [transportsWhitelist]
       }
 
-      availableTransports.forEach(function(trans) {
+      availableTransports.forEach(function (trans) {
         if (!trans) {
-          return;
+          return
         }
 
         if (trans.transportName === 'websocket' && info.websocket === false) {
-          debug('disabled from server', 'websocket');
-          return;
+          debug('disabled from server', 'websocket')
+          return
         }
 
-        if (transportsWhitelist.length &&
-            transportsWhitelist.indexOf(trans.transportName) === -1) {
-          debug('not in whitelist', trans.transportName);
-          return;
+        if (transportsWhitelist.length && transportsWhitelist.indexOf(trans.transportName) === -1) {
+          debug('not in whitelist', trans.transportName)
+          return
         }
 
         if (trans.enabled(info)) {
-          debug('enabled', trans.transportName);
-          transports.main.push(trans);
+          debug('enabled', trans.transportName)
+          transports.main.push(trans)
           if (trans.facadeTransport) {
-            transports.facade.push(trans.facadeTransport);
+            transports.facade.push(trans.facadeTransport)
           }
         } else {
-          debug('disabled', trans.transportName);
+          debug('disabled', trans.transportName)
         }
-      });
-      return transports;
-    }
-  };
-};
+      })
+      return transports
+    },
+  }
+}

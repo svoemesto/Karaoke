@@ -15,22 +15,28 @@
 </template>
 
 <script>
-import SiteUserEdit from "./SiteUserEdit.vue";
+import SiteUserEdit from './SiteUserEdit.vue'
 
 export default {
-  name: "SiteUserEditModal",
+  name: 'SiteUserEditModal',
   components: { SiteUserEdit },
   methods: {
-    close() { this.$emit('close') }
-  }
+    close() {
+      this.$emit('close')
+    },
+  },
 }
 </script>
 
 <style scoped>
 .suem-modal-fade-enter,
-.suem-modal-fade-leave-active { opacity: 0; }
+.suem-modal-fade-leave-active {
+  opacity: 0;
+}
 .suem-modal-fade-enter-active,
-.suem-modal-fade-leave-active { transition: opacity .5s ease }
+.suem-modal-fade-leave-active {
+  transition: opacity 0.5s ease;
+}
 
 .suem-area-modal-header {
   background-color: darkslategray;
@@ -55,7 +61,10 @@ export default {
 }
 .suem-modal-backdrop {
   position: fixed;
-  top: 0; bottom: 0; left: 0; right: 0;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
   background-color: rgba(0, 0, 0, 0.3);
   display: flex;
   justify-content: center;
@@ -63,7 +72,7 @@ export default {
   z-index: 1055;
 }
 .suem-area {
-  background: #FFFFFF;
+  background: #ffffff;
   box-shadow: 2px 2px 20px 1px;
   overflow-x: auto;
   display: flex;

@@ -1,5 +1,10 @@
 <template>
-  <button v-if="visible" class="cub-btn" title="Новое сообщение от автора проекта — открыть чат" @click="goToChat">
+  <button
+    v-if="visible"
+    class="cub-btn"
+    title="Новое сообщение от автора проекта — открыть чат"
+    @click="goToChat"
+  >
     💬
     <span class="cub-badge">{{ unread }}</span>
   </button>
@@ -27,19 +32,29 @@ export default {
   computed: {
     // Чат целиком — премиум-функция; без активного премиума бейдж не нужен (бэкенд и так всегда
     // отдаёт count=0 для не-премиум, но не тратим лишний poll-запрос впустую).
-    isPremium() { return !!(this.user && this.user.effectivePremium) },
+    isPremium() {
+      return !!(this.user && this.user.effectivePremium)
+    },
     // Скрыт на самой странице чата (там и так видно новое сообщение) и на плеере (полноэкранный,
     // плавающая кнопка поверх видео была бы отвлекающей).
-    isHiddenRoute() { return this.$route.name === 'chat' || this.$route.name === 'player' },
-    visible() { return this.isPremium && this.unread > 0 && !this.isHiddenRoute }
+    isHiddenRoute() {
+      return this.$route.name === 'chat' || this.$route.name === 'player'
+    },
+    visible() {
+      return this.isPremium && this.unread > 0 && !this.isHiddenRoute
+    },
   },
   watch: {
     isLoggedIn: {
       immediate: true,
-      handler(loggedIn) { (loggedIn && this.isPremium) ? this.startPolling() : this.stopPolling() }
-    }
+      handler(loggedIn) {
+        loggedIn && this.isPremium ? this.startPolling() : this.stopPolling()
+      },
+    },
   },
-  beforeUnmount() { this.stopPolling() },
+  beforeUnmount() {
+    this.stopPolling()
+  },
   methods: {
     startPolling() {
       this.poll()
@@ -47,15 +62,20 @@ export default {
       this.pollTimer = setInterval(this.poll, POLL_INTERVAL_MS)
     },
     stopPolling() {
-      if (this.pollTimer) { clearInterval(this.pollTimer); this.pollTimer = null }
+      if (this.pollTimer) {
+        clearInterval(this.pollTimer)
+        this.pollTimer = null
+      }
       this.unread = 0
     },
     async poll() {
       const { status, body } = await fetchUnreadCount()
       if (status === 200 && body) this.unread = body.count || 0
     },
-    goToChat() { this.$router.push('/account/chat') }
-  }
+    goToChat() {
+      this.$router.push('/account/chat')
+    },
+  },
 }
 </script>
 
@@ -79,7 +99,9 @@ export default {
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
   animation: cub-pulse 1.4s ease-in-out infinite;
 }
-.cub-btn:hover { filter: brightness(1.1); }
+.cub-btn:hover {
+  filter: brightness(1.1);
+}
 .cub-badge {
   position: absolute;
   top: -4px;
@@ -96,7 +118,16 @@ export default {
   border: 1px solid var(--km-bg, #0f0f1a);
 }
 @keyframes cub-pulse {
-  0%, 100% { box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3), 0 0 0 0 rgba(0, 119, 255, 0.55); }
-  50% { box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3), 0 0 0 8px rgba(0, 119, 255, 0); }
+  0%,
+  100% {
+    box-shadow:
+      0 4px 14px rgba(0, 0, 0, 0.3),
+      0 0 0 0 rgba(0, 119, 255, 0.55);
+  }
+  50% {
+    box-shadow:
+      0 4px 14px rgba(0, 0, 0, 0.3),
+      0 0 0 8px rgba(0, 119, 255, 0);
+  }
 }
 </style>

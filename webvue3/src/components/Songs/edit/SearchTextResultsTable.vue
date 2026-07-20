@@ -1,53 +1,50 @@
 <template>
   <div class="results-table-body">
-    <div
-v-for="searchResult in searchResultsList"
-      :key="searchResult.id"
-      class="results-table-row">
+    <div v-for="searchResult in searchResultsList" :key="searchResult.id" class="results-table-row">
       <div
         class="fld-url"
-        :style="{ backgroundColor: currentId === searchResult.id ? 'blue' : searchResult.text === '' ? 'gray' : 'white' }"
+        :style="{
+          backgroundColor:
+            currentId === searchResult.id ? 'blue' : searchResult.text === '' ? 'gray' : 'white',
+        }"
         @click.left="returnRearchResult(searchResult)"
         v-text="searchResult.url"
-        />
-
+      />
     </div>
   </div>
 </template>
 
 <script>
-
 export default {
-  name: "SearchTextResultsTable",
+  name: 'SearchTextResultsTable',
   components: {},
   props: {
     searchResultsList: {
       type: Array,
-      required: true
-    }
+      required: true,
+    },
   },
   data() {
     return {
-      currentId: undefined
+      currentId: undefined,
     }
   },
   computed: {},
   watch: {},
   methods: {
     onRowClicked(item, index) {
-      console.log(`Row '${index}' clicked: `, item.url);
+      console.log(`Row '${index}' clicked: `, item.url)
     },
     returnRearchResult(searchResult) {
-      console.log(`returnRearchResult: `, searchResult);
-      this.currentId = searchResult.id;
-      this.$emit('selectedResult', searchResult);
+      console.log(`returnRearchResult: `, searchResult)
+      this.currentId = searchResult.id
+      this.$emit('selectedResult', searchResult)
     },
-  }
+  },
 }
 </script>
 
 <style scoped>
-
 .results-table-body {
   display: flex;
   flex-direction: column;
@@ -70,11 +67,9 @@ export default {
   cursor: pointer;
 }
 
-
 .results-table-row {
   display: flex;
   flex-direction: row;
   align-items: center;
 }
-
 </style>

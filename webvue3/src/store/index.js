@@ -37,7 +37,7 @@ import { useToast } from 'bootstrap-vue-next'
 
 export default createStore({
   components: {
-    useToast
+    useToast,
   },
   modules: {
     song,
@@ -75,15 +75,13 @@ export default createStore({
   },
 
   state: {
-    stompClientSongs: null
+    stompClientSongs: null,
   },
   mutations: {
     // мутации
   },
-  actions: {
-
-  },
+  actions: {},
   getters: {
     // геттеры
-  }
+  },
 })

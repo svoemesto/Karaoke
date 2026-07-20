@@ -1,36 +1,40 @@
 <template>
   <div class="process_worker">
     <div class="wrapper">
-      <div class="process-text" v-text="processName"/>
+      <div class="process-text" v-text="processName" />
       <div class="wrapper-bar">
         <div
-class="process-progress-bar"
-             role="progressbar"
-             :style="styleProgressBar"
-             v-text="processPercentage"
+          class="process-progress-bar"
+          role="progressbar"
+          :style="styleProgressBar"
+          v-text="processPercentage"
         />
       </div>
     </div>
     <div v-show="!hideButton" class="button-with-text-count-waiting" @dblclick="forceStopClick">
       <button
-          class="btn-round-double"
-          :disabled="disabled"
-          @click.left="clickStartStopWorkerButton"
+        class="btn-round-double"
+        :disabled="disabled"
+        @click.left="clickStartStopWorkerButton"
       >
-        <img v-if="!isWork" alt="start" class="icon-40" src="../../assets/svg/icon_play.svg"/>
-        <img v-else alt="stop" class="icon-40" src="../../assets/svg/icon_stop.svg"/>
+        <img v-if="!isWork" alt="start" class="icon-40" src="../../assets/svg/icon_play.svg" />
+        <img v-else alt="stop" class="icon-40" src="../../assets/svg/icon_stop.svg" />
       </button>
-      <div class="text-count-waiting" v-text="countWaiting"/>
+      <div class="text-count-waiting" v-text="countWaiting" />
     </div>
-    <custom-confirm v-if="isConfirmVisible" :params="confirmParams" @close="isConfirmVisible = false" />
+    <custom-confirm
+      v-if="isConfirmVisible"
+      :params="confirmParams"
+      @close="isConfirmVisible = false"
+    />
   </div>
 </template>
 
 <script>
-import CustomConfirm from "./CustomConfirm.vue";
+import CustomConfirm from './CustomConfirm.vue'
 
 export default {
-  name: "ProcessWorker",
+  name: 'ProcessWorker',
   components: {
     CustomConfirm,
   },
@@ -39,20 +43,20 @@ export default {
     hideButton: {
       type: Boolean,
       required: false,
-      default: false
+      default: false,
     },
     // Показывать потоки с id, перечисленными в includedThreadId. Если пусто - показывать все (в зависимости от excludedThreadId)
     includedThreadId: {
       type: Array,
       required: false,
-      default: []
+      default: [],
     },
     // Не показывать потоки с id из списка
     excludedThreadId: {
       type: Array,
       required: false,
-      default: []
-    }
+      default: [],
+    },
   },
   data() {
     return {
@@ -62,7 +66,10 @@ export default {
   },
   computed: {
     process() {
-      return this.$store.getters.getWorkingProcessForThreads(this.includedThreadId, this.excludedThreadId);
+      return this.$store.getters.getWorkingProcessForThreads(
+        this.includedThreadId,
+        this.excludedThreadId,
+      )
     },
     isWork() {
       return this.$store.getters.getProcessIsWorking
@@ -74,19 +81,24 @@ export default {
       return this.$store.getters.getCountWaiting
     },
     disabled() {
-      return this.isWork && this.stopAfterThreadIsDone;
+      return this.isWork && this.stopAfterThreadIsDone
     },
     processName() {
-      const maxSymbols = 75;
-      let name = this.process ? `${this.process.name} /${this.process.type}/ [${this.process.timeLeftStr}]` : '';
-      return this.truncateString(name, maxSymbols);
+      const maxSymbols = 75
+      let name = this.process
+        ? `${this.process.name} /${this.process.type}/ [${this.process.timeLeftStr}]`
+        : ''
+      return this.truncateString(name, maxSymbols)
     },
-    processPercentage() { return this.process ? `${this.process.percentage}%` : ''},
+    processPercentage() {
+      return this.process ? `${this.process.percentage}%` : ''
+    },
     styleProgressBar() {
       return {
         fontSize: 'small',
         width: this.processPercentage,
-        backgroundImage: 'linear-gradient(45deg, hsla(0, 0%, 100%, .15) 25%, transparent 0, transparent 50%, hsla(0, 0%, 100%, .15) 0, hsla(0, 0%, 100%, .15) 75%, transparent 0, transparent)',
+        backgroundImage:
+          'linear-gradient(45deg, hsla(0, 0%, 100%, .15) 25%, transparent 0, transparent 50%, hsla(0, 0%, 100%, .15) 0, hsla(0, 0%, 100%, .15) 75%, transparent 0, transparent)',
         backgroundSize: '1rem 1rem',
         display: 'flex',
         flexDirection: 'column',
@@ -99,11 +111,11 @@ export default {
         transition: 'width .6s ease',
         animation: '1s linear infinite progress-bar-stripes',
       }
-    }
+    },
   },
   mounted() {
-    this.checkUpdateProcessesWorker();
-    this.checkCountWaiting();
+    this.checkUpdateProcessesWorker()
+    this.checkCountWaiting()
   },
   methods: {
     clickStartStopWorkerButton() {
@@ -112,66 +124,63 @@ export default {
     // Двойной клик по задизейбленной кнопке (во время мягкого ожидания остановки) — принудительная
     // остановка очереди после подтверждения: убить docker-контейнеры и вернуть задания в WAITING.
     forceStopClick() {
-      if (!this.disabled) return; // доступно только во время мягкого ожидания остановки
+      if (!this.disabled) return // доступно только во время мягкого ожидания остановки
       this.confirmParams = {
         header: 'Принудительная остановка',
         body: 'Немедленно остановить очередь? Текущее задание вернётся в очередь (WAITING), а его docker-контейнер будет убит.',
         alertType: 'error',
         timeout: 10,
-        callback: this.doForceStop
-      };
-      this.isConfirmVisible = true;
+        callback: this.doForceStop,
+      }
+      this.isConfirmVisible = true
     },
     doForceStop() {
       this.$store.dispatch('forceStopProcessWorker')
     },
     checkUpdateProcessesWorker() {
-      this.$store.dispatch('getProcessesWorkerStatusPromise').then(data => {
-        let status = JSON.parse(data);
-        let isWork = status.isWork;
-        let stopAfterThreadIsDone = status.stopAfterThreadIsDone;
-        this.$store.dispatch("setProcessIsWorking", isWork);
-        this.$store.dispatch("setProcessWillStopAfterThreadIsDone", stopAfterThreadIsDone);
+      this.$store.dispatch('getProcessesWorkerStatusPromise').then((data) => {
+        let status = JSON.parse(data)
+        let isWork = status.isWork
+        let stopAfterThreadIsDone = status.stopAfterThreadIsDone
+        this.$store.dispatch('setProcessIsWorking', isWork)
+        this.$store.dispatch('setProcessWillStopAfterThreadIsDone', stopAfterThreadIsDone)
       })
     },
     checkCountWaiting() {
-      this.$store.dispatch('getProcessesCountWaitingPromise').then(data => {
-        this.$store.dispatch("setCountWaiting", { countWaiting: data });
+      this.$store.dispatch('getProcessesCountWaitingPromise').then((data) => {
+        this.$store.dispatch('setCountWaiting', { countWaiting: data })
       })
     },
     truncateString(name, maxSymbols) {
       if (name.length <= maxSymbols) {
-        return name;
+        return name
       }
 
       if (maxSymbols <= 3) {
-        return '...';
+        return '...'
       }
 
-      const charsToShow = maxSymbols - 3; // 3 символа для троеточия
-      const frontChars = Math.ceil(charsToShow / 2);
-      const backChars = Math.floor(charsToShow / 2);
+      const charsToShow = maxSymbols - 3 // 3 символа для троеточия
+      const frontChars = Math.ceil(charsToShow / 2)
+      const backChars = Math.floor(charsToShow / 2)
 
-      const front = name.substring(0, frontChars);
-      const back = name.substring(name.length - backChars);
+      const front = name.substring(0, frontChars)
+      const back = name.substring(name.length - backChars)
 
-      return front + '...' + back;
-    }
-  }
+      return front + '...' + back
+    },
+  },
 }
 </script>
 
 <style scoped>
-
 .process_worker {
   display: flex;
   margin: 0 10px;
 }
 .worker-start-stop-button {
-
 }
 .icon-start {
-
 }
 
 .btn-round-double {
@@ -227,8 +236,8 @@ export default {
   height: 1rem;
   overflow: hidden;
   line-height: 0;
-  font-size: .75rem;
+  font-size: 0.75rem;
   background-color: #e9ecef;
-  border-radius: .25rem;
+  border-radius: 0.25rem;
 }
 </style>

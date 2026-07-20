@@ -1,137 +1,137 @@
 // src/router/index.js
-import { createRouter, createWebHistory } from 'vue-router';
-import HomeView from '../views/HomeView.vue';
-import SongsView from '../views/SongsView.vue';
-import PublishView from '../views/PublishView.vue';
-import ProcessesView from '../views/ProcessesView.vue';
-import PropertiesView from '../views/PropertiesView.vue';
-import AuthorsView from '../views/AuthorsView.vue';
-import SiteUsersView from '../views/SiteUsersView.vue';
-import StemJobsView from '../views/StemJobsView.vue';
-import SitePlaylistsView from '../views/SitePlaylistsView.vue';
-import SongEditorView from '../views/SongEditorView.vue';
-import PublicSettingsView from '../views/PublicSettingsView.vue';
-import PicturesView from '../views/PicturesView.vue';
-import StatsView from '../views/StatsView.vue';
-import SyncView from '../views/SyncView.vue';
-import TariffsView from '../views/TariffsView.vue';
-import PromotionsView from '../views/PromotionsView.vue';
-import SponsrSyncView from '../views/SponsrSyncView.vue';
-import DictionariesView from '../views/DictionariesView.vue';
-import ChatView from '../views/ChatView.vue';
-import NewsView from '../views/NewsView.vue';
+import { createRouter, createWebHistory } from 'vue-router'
+import HomeView from '../views/HomeView.vue'
+import SongsView from '../views/SongsView.vue'
+import PublishView from '../views/PublishView.vue'
+import ProcessesView from '../views/ProcessesView.vue'
+import PropertiesView from '../views/PropertiesView.vue'
+import AuthorsView from '../views/AuthorsView.vue'
+import SiteUsersView from '../views/SiteUsersView.vue'
+import StemJobsView from '../views/StemJobsView.vue'
+import SitePlaylistsView from '../views/SitePlaylistsView.vue'
+import SongEditorView from '../views/SongEditorView.vue'
+import PublicSettingsView from '../views/PublicSettingsView.vue'
+import PicturesView from '../views/PicturesView.vue'
+import StatsView from '../views/StatsView.vue'
+import SyncView from '../views/SyncView.vue'
+import TariffsView from '../views/TariffsView.vue'
+import PromotionsView from '../views/PromotionsView.vue'
+import SponsrSyncView from '../views/SponsrSyncView.vue'
+import DictionariesView from '../views/DictionariesView.vue'
+import ChatView from '../views/ChatView.vue'
+import NewsView from '../views/NewsView.vue'
 
 const routes = [
   {
     path: '/',
     name: 'home',
-    component: HomeView
+    component: HomeView,
   },
   {
     path: '/songs',
     name: 'songs',
-    component: SongsView
+    component: SongsView,
   },
   {
     path: '/publish',
     name: 'publish',
-    component: PublishView
+    component: PublishView,
   },
   {
     path: '/processes',
     name: 'processes',
-    component: ProcessesView
+    component: ProcessesView,
   },
   {
     path: '/properties',
     name: 'properties',
-    component: PropertiesView
+    component: PropertiesView,
   },
   {
     path: '/authors',
     name: 'authors',
-    component: AuthorsView
+    component: AuthorsView,
   },
   {
     path: '/pictures',
     name: 'pictures',
-    component: PicturesView
+    component: PicturesView,
   },
   {
     path: '/siteusers',
     name: 'siteusers',
-    component: SiteUsersView
+    component: SiteUsersView,
   },
   {
     path: '/siteplaylists',
     name: 'siteplaylists',
-    component: SitePlaylistsView
+    component: SitePlaylistsView,
   },
   {
     path: '/stemjobs',
     name: 'stemjobs',
-    component: StemJobsView
+    component: StemJobsView,
   },
   {
     path: '/songeditor',
     name: 'songeditor',
-    component: SongEditorView
+    component: SongEditorView,
   },
   {
     path: '/publicsettings',
     name: 'publicsettings',
-    component: PublicSettingsView
+    component: PublicSettingsView,
   },
   {
     path: '/stats',
     name: 'stats',
-    component: StatsView
+    component: StatsView,
   },
   {
     path: '/sync',
     name: 'sync',
-    component: SyncView
+    component: SyncView,
   },
   {
     path: '/tariffs',
     name: 'tariffs',
-    component: TariffsView
+    component: TariffsView,
   },
   {
     path: '/promotions',
     name: 'promotions',
-    component: PromotionsView
+    component: PromotionsView,
   },
   {
     path: '/sponsrsync',
     name: 'sponsrsync',
-    component: SponsrSyncView
+    component: SponsrSyncView,
   },
   {
     path: '/dictionaries',
     name: 'dictionaries',
-    component: DictionariesView
+    component: DictionariesView,
   },
   {
     path: '/chat',
     name: 'chat',
-    component: ChatView
+    component: ChatView,
   },
   {
     path: '/news',
     name: 'news',
-    component: NewsView
+    component: NewsView,
   },
   {
     path: '/player/:id',
     name: 'player',
-    component: () => import('../views/PlayerView.vue')
-  }
-];
+    component: () => import('../views/PlayerView.vue'),
+  },
+]
 
 const router = createRouter({
   history: createWebHistory(),
-  routes
-});
+  routes,
+})
 
-export default router;
+export default router

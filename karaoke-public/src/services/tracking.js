@@ -14,15 +14,34 @@ function authHeader() {
 }
 
 export function trackLinkToSocialNetwork(linkName) {
-  apiPost('/api/public/events', { eventType: 'clickToLink', linkType: 'linkToSocialNetwork', linkName, anonId: getAnonId() }, authHeader()).catch(() => {})
+  apiPost(
+    '/api/public/events',
+    { eventType: 'clickToLink', linkType: 'linkToSocialNetwork', linkName, anonId: getAnonId() },
+    authHeader(),
+  ).catch(() => {})
 }
 
 export function trackLinkToSong(linkName, songId, songVersion) {
-  apiPost('/api/public/events', { eventType: 'clickToLink', linkType: 'linkToSong', linkName, songId, songVersion, anonId: getAnonId() }, authHeader()).catch(() => {})
+  apiPost(
+    '/api/public/events',
+    {
+      eventType: 'clickToLink',
+      linkType: 'linkToSong',
+      linkName,
+      songId,
+      songVersion,
+      anonId: getAnonId(),
+    },
+    authHeader(),
+  ).catch(() => {})
 }
 
 export function trackPlay(songId, songVersion) {
-  apiPost('/api/public/events', { eventType: 'play', songId, songVersion, anonId: getAnonId() }, authHeader()).catch(() => {})
+  apiPost(
+    '/api/public/events',
+    { eventType: 'play', songId, songVersion, anonId: getAnonId() },
+    authHeader(),
+  ).catch(() => {})
 }
 
 // Tracks a click on a song metadata field (key/album/author/year/...). Looks like an ordinary
@@ -36,7 +55,7 @@ export async function trackMetaClick(field, songId, event) {
       linkName: field,
       songId,
       shiftKey: !!(event && event.shiftKey),
-      clientId: getAnonId()
+      clientId: getAnonId(),
     })
   } catch {
     return null
@@ -52,17 +71,34 @@ function trackPlayerAction(linkType, songId, linkName) {
   apiPost('/api/public/events', payload, authHeader()).catch(() => {})
 }
 
-export function trackPlayerPlay(songId) { trackPlayerAction('play', songId) }
-export function trackPlayerPause(songId) { trackPlayerAction('pause', songId) }
-export function trackPlayerSeek(songId, positionSec) { trackPlayerAction('seek', songId, String(positionSec)) }
-export function trackPlayerExport(songId, stemKey) { trackPlayerAction('export', songId, stemKey) }
-export function trackPlayerProgress(songId, percent) { trackPlayerAction('progress', songId, String(percent)) }
-export function trackPlayerEnded(songId) { trackPlayerAction('ended', songId) }
+export function trackPlayerPlay(songId) {
+  trackPlayerAction('play', songId)
+}
+export function trackPlayerPause(songId) {
+  trackPlayerAction('pause', songId)
+}
+export function trackPlayerSeek(songId, positionSec) {
+  trackPlayerAction('seek', songId, String(positionSec))
+}
+export function trackPlayerExport(songId, stemKey) {
+  trackPlayerAction('export', songId, stemKey)
+}
+export function trackPlayerProgress(songId, percent) {
+  trackPlayerAction('progress', songId, String(percent))
+}
+export function trackPlayerEnded(songId) {
+  trackPlayerAction('ended', songId)
+}
 
 // UI-действие: навигация по маршрутам, смена темы, глубина скролла. eventType='ui',
 // linkType=подтип (navigate|theme|scroll), linkName=деталь (маршрут/тема/процент).
 export function trackUi(subtype, detail, songId) {
-  const payload = { eventType: 'ui', linkType: subtype, linkName: String(detail), anonId: getAnonId() }
+  const payload = {
+    eventType: 'ui',
+    linkType: subtype,
+    linkName: String(detail),
+    anonId: getAnonId(),
+  }
   if (songId !== undefined && songId !== null) payload.songId = songId
   apiPost('/api/public/events', payload, authHeader()).catch(() => {})
 }
@@ -83,6 +119,13 @@ export function trackPageEngagement(page, seconds, songId) {
   const auth = authHeader()
   if (auth) headers.Authorization = auth.Authorization
   try {
-    fetch('/api/public/events', { method: 'POST', body: params.toString(), headers, keepalive: true }).catch(() => {})
-  } catch { /* игнорируем — телеметрия не должна ломать выгрузку страницы */ }
+    fetch('/api/public/events', {
+      method: 'POST',
+      body: params.toString(),
+      headers,
+      keepalive: true,
+    }).catch(() => {})
+  } catch {
+    /* игнорируем — телеметрия не должна ломать выгрузку страницы */
+  }
 }

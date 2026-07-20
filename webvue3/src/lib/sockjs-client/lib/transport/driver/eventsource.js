@@ -1,1 +1,1 @@
-module.exports = require('eventsource');
+module.exports = require('eventsource')

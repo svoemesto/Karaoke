@@ -11,13 +11,18 @@
     </header>
 
     <div class="km-body">
-      <LoginRequired v-if="!isLoggedIn" text="Чат с автором проекта доступен только зарегистрированным пользователям. Войдите или зарегистрируйтесь — это бесплатно." />
+      <LoginRequired
+        v-if="!isLoggedIn"
+        text="Чат с автором проекта доступен только зарегистрированным пользователям. Войдите или зарегистрируйтесь — это бесплатно."
+      />
 
       <!-- Чат целиком — премиум-функция (не только отправка, но и сама история переписки). -->
       <div v-else-if="!isPremium" class="km-chat-locked-card">
         <div class="km-locked-icon">💬</div>
         <h2 class="km-locked-title">Чат с автором проекта</h2>
-        <p class="km-locked-text">Личная переписка с автором проекта доступна только премиум-подписчикам.</p>
+        <p class="km-locked-text">
+          Личная переписка с автором проекта доступна только премиум-подписчикам.
+        </p>
         <RouterLink to="/premium" class="km-submit-btn">Оформить подписку →</RouterLink>
       </div>
 
@@ -52,7 +57,12 @@
               @input="autoGrowComposer"
               @keydown.enter.exact.prevent="onSend"
             ></textarea>
-            <button class="km-chat-send-btn" :disabled="sending || !draft.trim()" @click="onSend" title="Отправить">
+            <button
+              class="km-chat-send-btn"
+              :disabled="sending || !draft.trim()"
+              @click="onSend"
+              title="Отправить"
+            >
               <span v-if="!sending">➤</span>
               <span v-else class="km-chat-send-spinner"></span>
             </button>
@@ -82,7 +92,9 @@ export default {
     return { messages: [], loading: true, draft: '', sending: false, error: '', pollTimer: null }
   },
   computed: {
-    isPremium() { return !!(this.user && this.user.effectivePremium) }
+    isPremium() {
+      return !!(this.user && this.user.effectivePremium)
+    },
   },
   async mounted() {
     if (!this.isLoggedIn || !this.isPremium) return
@@ -97,8 +109,15 @@ export default {
       if (!tsString) return ''
       try {
         const d = new Date(tsString.replace(' ', 'T'))
-        return d.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
-      } catch (e) { return tsString }
+        return d.toLocaleString('ru-RU', {
+          day: '2-digit',
+          month: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+        })
+      } catch (e) {
+        return tsString
+      }
     },
     async reload(showLoading) {
       if (showLoading) this.loading = true
@@ -131,7 +150,10 @@ export default {
         if (status === 200 && resp) {
           this.messages.push(resp)
           this.draft = ''
-          this.$nextTick(() => { this.scrollToBottom(); this.autoGrowComposer() })
+          this.$nextTick(() => {
+            this.scrollToBottom()
+            this.autoGrowComposer()
+          })
         } else if (resp && resp.error === 'premium_required') {
           this.error = 'Отправка сообщений доступна только с активной премиум-подпиской'
         } else {
@@ -142,24 +164,71 @@ export default {
       } finally {
         this.sending = false
       }
-    }
-  }
+    },
+  },
 }
 </script>
 
 <style scoped>
 /* Полноэкранная раскладка мессенджера: шапка сверху фиксирована, лента сообщений скроллится
    независимо, поле ввода всегда прибито к низу видимой области (не уезжает при скролле страницы). */
-.km-page { min-height: 100vh; height: 100vh; display: flex; flex-direction: column; background: var(--km-bg); color: var(--km-text); }
-.km-header { flex-shrink: 0; background: var(--km-header); border-bottom: 1px solid var(--km-border); padding: 0.5rem 1rem; }
-.km-header-inner { max-width: 700px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; }
-.km-header-left { display: flex; align-items: center; gap: 0.75rem; }
-.km-back { color: var(--km-accent); text-decoration: none; font-size: 0.85rem; white-space: nowrap; }
-.km-back:hover { text-decoration: underline; }
-.km-logo { height: 36px; width: auto; }
+.km-page {
+  min-height: 100vh;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--km-bg);
+  color: var(--km-text);
+}
+.km-header {
+  flex-shrink: 0;
+  background: var(--km-header);
+  border-bottom: 1px solid var(--km-border);
+  padding: 0.5rem 1rem;
+}
+.km-header-inner {
+  max-width: 700px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.km-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.km-back {
+  color: var(--km-accent);
+  text-decoration: none;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+.km-back:hover {
+  text-decoration: underline;
+}
+.km-logo {
+  height: 36px;
+  width: auto;
+}
 
-.km-body { flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-.km-chat-shell { flex: 1; min-height: 0; width: 100%; max-width: 700px; margin: 0 auto; display: flex; flex-direction: column; }
+.km-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.km-chat-shell {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  max-width: 700px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+}
 
 .km-chat-locked-card {
   max-width: 440px;
@@ -170,9 +239,21 @@ export default {
   border: 1px solid var(--km-border);
   border-radius: 16px;
 }
-.km-locked-icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
-.km-locked-title { font-size: 1.2rem; font-weight: 700; margin: 0 0 0.6rem; }
-.km-locked-text { color: var(--km-text2); font-size: 0.92rem; line-height: 1.5; margin: 0 0 1.5rem; }
+.km-locked-icon {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+}
+.km-locked-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin: 0 0 0.6rem;
+}
+.km-locked-text {
+  color: var(--km-text2);
+  font-size: 0.92rem;
+  line-height: 1.5;
+  margin: 0 0 1.5rem;
+}
 .km-submit-btn {
   display: inline-block;
   background: var(--km-accent);
@@ -185,12 +266,31 @@ export default {
   text-decoration: none;
   cursor: pointer;
 }
-.km-submit-btn:hover { opacity: 0.9; }
+.km-submit-btn:hover {
+  opacity: 0.9;
+}
 
-.km-chat-title-row { flex-shrink: 0; padding: 1rem 1rem 0.5rem; }
-.km-title { font-size: 1.2rem; margin: 0; }
-.km-loading { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--km-text2); }
-.km-empty { color: var(--km-text2); font-size: 0.9rem; padding: 1rem 0; text-align: center; }
+.km-chat-title-row {
+  flex-shrink: 0;
+  padding: 1rem 1rem 0.5rem;
+}
+.km-title {
+  font-size: 1.2rem;
+  margin: 0;
+}
+.km-loading {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--km-text2);
+}
+.km-empty {
+  color: var(--km-text2);
+  font-size: 0.9rem;
+  padding: 1rem 0;
+  text-align: center;
+}
 
 /* Фон окна переписки — логотип в 1/8 исходного размера (1203×666 → ~150×83), непрозрачность 0.15.
    Бесшовный «кирпичный»/шахматный паттерн БЕЗ промежутков: тайл шириной ровно в один логотип
@@ -236,8 +336,16 @@ export default {
   color: var(--km-text);
   border-bottom-left-radius: 3px;
 }
-.km-chat-bubble-body { white-space: pre-wrap; word-break: break-word; }
-.km-chat-bubble-time { font-size: 0.65rem; opacity: 0.7; margin-top: 0.2rem; text-align: right; }
+.km-chat-bubble-body {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.km-chat-bubble-time {
+  font-size: 0.65rem;
+  opacity: 0.7;
+  margin-top: 0.2rem;
+  text-align: right;
+}
 
 /* Композер — всегда видимая нижняя панель (как в Telegram/WhatsApp), не скроллится вместе с лентой. */
 .km-chat-composer {
@@ -264,7 +372,10 @@ export default {
   font-family: inherit;
   line-height: 1.3;
 }
-.km-chat-textarea:focus { outline: none; border-color: var(--km-accent); }
+.km-chat-textarea:focus {
+  outline: none;
+  border-color: var(--km-accent);
+}
 .km-chat-send-btn {
   flex-shrink: 0;
   width: 42px;
@@ -279,17 +390,33 @@ export default {
   justify-content: center;
   cursor: pointer;
 }
-.km-chat-send-btn:hover { opacity: 0.88; }
-.km-chat-send-btn:disabled { opacity: 0.5; cursor: default; }
+.km-chat-send-btn:hover {
+  opacity: 0.88;
+}
+.km-chat-send-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
 .km-chat-send-spinner {
   width: 16px;
   height: 16px;
-  border: 2px solid rgba(255,255,255,0.5);
+  border: 2px solid rgba(255, 255, 255, 0.5);
   border-top-color: #fff;
   border-radius: 50%;
   animation: km-chat-spin 0.7s linear infinite;
 }
-@keyframes km-chat-spin { to { transform: rotate(360deg); } }
+@keyframes km-chat-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 
-.km-chat-error { flex-shrink: 0; color: #e05555; font-size: 0.8rem; text-align: center; padding: 0 1rem 0.5rem; margin: 0; }
+.km-chat-error {
+  flex-shrink: 0;
+  color: #e05555;
+  font-size: 0.8rem;
+  text-align: center;
+  padding: 0 1rem 0.5rem;
+  margin: 0;
+}
 </style>

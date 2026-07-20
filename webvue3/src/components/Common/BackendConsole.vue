@@ -1,22 +1,21 @@
 <template>
   <div class="backend_console">
-      <textarea v-model="logText" class="console_log"/>
+    <textarea v-model="logText" class="console_log" />
   </div>
 </template>
 
 <script>
 export default {
-  name: "BackendConsole",
+  name: 'BackendConsole',
   computed: {
     logText() {
       return this.$store.getters.getLogText
-    }
-  }
+    },
+  },
 }
 </script>
 
 <style scoped>
-
 .backend_console {
   display: flex;
   margin: 0 10px;

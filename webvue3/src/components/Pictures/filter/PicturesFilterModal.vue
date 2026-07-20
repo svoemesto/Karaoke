@@ -2,34 +2,39 @@
   <transition name="modal-fade">
     <div class="picfm-modal-backdrop">
       <div class="picfm-area">
-
-        <div class="picfm-area-modal-header">
-          Фильтр для настроек
-        </div>
+        <div class="picfm-area-modal-header">Фильтр для настроек</div>
 
         <div class="picfm-area-modal-body">
           <div class="picfm-root-wrapper">
-
             <div class="picfm-filter-row">
               <div class="picfm-row-label">
-                <div v-text="'ID:'"/>
+                <div v-text="'ID:'" />
               </div>
               <div class="picfm-row-input">
-                <input v-model="picturesFilterId" class="picfm-input-field"/>
+                <input v-model="picturesFilterId" class="picfm-input-field" />
               </div>
-              <button :disabled="!picturesFilterId" class="picfm-button-clear-field" @click.left="picturesFilterId=''" v-text="'X'"/>
+              <button
+                :disabled="!picturesFilterId"
+                class="picfm-button-clear-field"
+                @click.left="picturesFilterId = ''"
+                v-text="'X'"
+              />
             </div>
 
             <div class="picfm-filter-row">
               <div class="picfm-row-label">
-                <div v-text="'Имя:'"/>
+                <div v-text="'Имя:'" />
               </div>
               <div class="picfm-row-input">
-                <input v-model="picturesFilterName" class="picfm-input-field"/>
+                <input v-model="picturesFilterName" class="picfm-input-field" />
               </div>
-              <button :disabled="!picturesFilterName" class="picfm-button-clear-field" @click.left="picturesFilterName=''" v-text="'X'"/>
+              <button
+                :disabled="!picturesFilterName"
+                class="picfm-button-clear-field"
+                @click.left="picturesFilterName = ''"
+                v-text="'X'"
+              />
             </div>
-
           </div>
         </div>
 
@@ -37,51 +42,60 @@
           <button type="button" class="picfm-btn-close" @click="ok">Применить фильтр</button>
           <button type="button" class="picfm-btn-close" @click="cancel">Отмена</button>
         </div>
-
       </div>
     </div>
   </transition>
 </template>
 
 <script>
-
 export default {
-  name: "PicturesFilterModal",
+  name: 'PicturesFilterModal',
   computed: {
     picturesFilterId: {
-      get() { return this.$store.getters.getPicturesFilterId; },
-      set(value) { this.$store.dispatch('setPicturesFilterId', { value: value }); }
+      get() {
+        return this.$store.getters.getPicturesFilterId
+      },
+      set(value) {
+        this.$store.dispatch('setPicturesFilterId', { value: value })
+      },
     },
     picturesFilterName: {
-      get() { return this.$store.getters.getPicturesFilterName; },
-      set(value) { this.$store.dispatch('setPicturesFilterName', { value: value }); }
-    }
+      get() {
+        return this.$store.getters.getPicturesFilterName
+      },
+      set(value) {
+        this.$store.dispatch('setPicturesFilterName', { value: value })
+      },
+    },
   },
   async beforeMount() {
-    this.$store.dispatch('setPicturesFilterId', { value: await this.$store.getters.getWebvueProp('picturesFilterId', '') });
-    this.$store.dispatch('setPicturesFilterName', { value: await this.$store.getters.getWebvueProp('picturesFilterName', '') });
+    this.$store.dispatch('setPicturesFilterId', {
+      value: await this.$store.getters.getWebvueProp('picturesFilterId', ''),
+    })
+    this.$store.dispatch('setPicturesFilterName', {
+      value: await this.$store.getters.getWebvueProp('picturesFilterName', ''),
+    })
   },
   methods: {
     ok() {
-      this.$store.dispatch('setPicturesFilterId', { value: this.picturesFilterId });
-      this.$store.dispatch('setPicturesFilterName', { value: this.picturesFilterName });
+      this.$store.dispatch('setPicturesFilterId', { value: this.picturesFilterId })
+      this.$store.dispatch('setPicturesFilterName', { value: this.picturesFilterName })
 
-      let params = {};
-      if (this.picturesFilterId) params.filterId = this.picturesFilterId;
-      if (this.picturesFilterName) params.filterName = this.picturesFilterName;
-      this.$store.dispatch('loadPicturesDigests', params )
+      let params = {}
+      if (this.picturesFilterId) params.filterId = this.picturesFilterId
+      if (this.picturesFilterName) params.filterName = this.picturesFilterName
+      this.$store.dispatch('loadPicturesDigests', params)
 
-      this.$emit('close');
+      this.$emit('close')
     },
     cancel() {
-      this.$emit('close');
-    }
-  }
+      this.$emit('close')
+    },
+  },
 }
 </script>
 
 <style scoped>
-
 .picfm-modal-fade-enter,
 .picfm-modal-fade-leave-active {
   opacity: 0;
@@ -89,7 +103,7 @@ export default {
 
 .picfm-modal-fade-enter-active,
 .picfm-modal-fade-leave-active {
-  transition: opacity .5s ease
+  transition: opacity 0.5s ease;
 }
 
 .picfm-area-modal-header {
@@ -132,7 +146,7 @@ export default {
 }
 
 .picfm-area {
-  background: #FFFFFF;
+  background: #ffffff;
   box-shadow: 2px 2px 20px 1px;
   overflow-x: auto;
   display: flex;
@@ -218,5 +232,4 @@ select.picfm-input-field {
   -moz-appearance: none;
   cursor: pointer;
 }
-
 </style>

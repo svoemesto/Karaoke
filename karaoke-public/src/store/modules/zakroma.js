@@ -8,13 +8,13 @@ export default {
     authors: [],
     authorTiles: [],
     zakroma: [],
-    isLoading: false
+    isLoading: false,
   },
   getters: {
-    authors: state => state.authors,
-    authorTiles: state => state.authorTiles,
-    zakroma: state => state.zakroma,
-    isLoading: state => state.isLoading
+    authors: (state) => state.authors,
+    authorTiles: (state) => state.authorTiles,
+    zakroma: (state) => state.zakroma,
+    isLoading: (state) => state.isLoading,
   },
   mutations: {
     setAuthors(state, authors) {
@@ -28,7 +28,7 @@ export default {
     },
     setLoading(state, value) {
       state.isLoading = value
-    }
+    },
   },
   actions: {
     async loadAuthors({ commit }) {
@@ -51,6 +51,6 @@ export default {
       } finally {
         if (requestId === latestRequestId) commit('setLoading', false)
       }
-    }
-  }
+    },
+  },
 }

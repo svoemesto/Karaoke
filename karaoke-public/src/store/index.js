@@ -7,6 +7,6 @@ export default createStore({
   modules: {
     stats,
     songs,
-    zakroma
-  }
+    zakroma,
+  },
 })

@@ -2,64 +2,84 @@
   <transition name="modal-fade">
     <div class="pfm-modal-backdrop">
       <div class="pfm-area">
-
-        <div class="pfm-area-modal-header">
-          Фильтр для настроек
-        </div>
+        <div class="pfm-area-modal-header">Фильтр для настроек</div>
 
         <div class="pfm-area-modal-body">
           <div class="pfm-root-wrapper">
-
             <div class="pfm-filter-row">
               <div class="pfm-row-label">
-                <div v-text="'KEY:'"/>
+                <div v-text="'KEY:'" />
               </div>
               <div class="pfm-row-input">
-                <input v-model="propertiesFilterKey" class="pfm-input-field"/>
+                <input v-model="propertiesFilterKey" class="pfm-input-field" />
               </div>
-              <button :disabled="!propertiesFilterKey" class="pfm-button-clear-field" @click.left="propertiesFilterKey=''" v-text="'X'"/>
+              <button
+                :disabled="!propertiesFilterKey"
+                class="pfm-button-clear-field"
+                @click.left="propertiesFilterKey = ''"
+                v-text="'X'"
+              />
             </div>
 
             <div class="pfm-filter-row">
               <div class="pfm-row-label">
-                <div v-text="'Значение:'"/>
+                <div v-text="'Значение:'" />
               </div>
               <div class="pfm-row-input">
-                <input v-model="propertiesFilterValue" class="pfm-input-field"/>
+                <input v-model="propertiesFilterValue" class="pfm-input-field" />
               </div>
-              <button :disabled="!propertiesFilterValue" class="pfm-button-clear-field" @click.left="propertiesFilterValue=''" v-text="'X'"/>
+              <button
+                :disabled="!propertiesFilterValue"
+                class="pfm-button-clear-field"
+                @click.left="propertiesFilterValue = ''"
+                v-text="'X'"
+              />
             </div>
 
             <div class="pfm-filter-row">
               <div class="pfm-row-label">
-                <div v-text="'По-умолчанию:'"/>
+                <div v-text="'По-умолчанию:'" />
               </div>
               <div class="pfm-row-input">
-                <input v-model="propertiesFilterDefaultValue" class="pfm-input-field"/>
+                <input v-model="propertiesFilterDefaultValue" class="pfm-input-field" />
               </div>
-              <button :disabled="!propertiesFilterDefaultValue" class="pfm-button-clear-field" @click.left="propertiesFilterDefaultValue=''" v-text="'X'"/>
+              <button
+                :disabled="!propertiesFilterDefaultValue"
+                class="pfm-button-clear-field"
+                @click.left="propertiesFilterDefaultValue = ''"
+                v-text="'X'"
+              />
             </div>
 
             <div class="pfm-filter-row">
               <div class="pfm-row-label">
-                <div v-text="'Описание:'"/>
+                <div v-text="'Описание:'" />
               </div>
               <div class="pfm-row-input">
-                <input v-model="propertiesFilterDescription" class="pfm-input-field"/>
+                <input v-model="propertiesFilterDescription" class="pfm-input-field" />
               </div>
-              <button :disabled="!propertiesFilterDescription" class="pfm-button-clear-field" @click.left="propertiesFilterDescription=''" v-text="'X'"/>
+              <button
+                :disabled="!propertiesFilterDescription"
+                class="pfm-button-clear-field"
+                @click.left="propertiesFilterDescription = ''"
+                v-text="'X'"
+              />
             </div>
 
             <div class="pfm-filter-row">
               <div class="pfm-row-label">
-                <div v-text="'Тип:'"/>
+                <div v-text="'Тип:'" />
               </div>
               <div class="pfm-row-input">
-                <input v-model="propertiesFilterType" class="pfm-input-field"/>
+                <input v-model="propertiesFilterType" class="pfm-input-field" />
               </div>
-              <button :disabled="!propertiesFilterType" class="pfm-button-clear-field" @click.left="propertiesFilterType=''" v-text="'X'"/>
+              <button
+                :disabled="!propertiesFilterType"
+                class="pfm-button-clear-field"
+                @click.left="propertiesFilterType = ''"
+                v-text="'X'"
+              />
             </div>
-
           </div>
         </div>
 
@@ -67,72 +87,105 @@
           <button type="button" class="pfm-btn-close" @click="ok">Применить фильтр</button>
           <button type="button" class="pfm-btn-close" @click="cancel">Отмена</button>
         </div>
-
       </div>
     </div>
   </transition>
 </template>
 
 <script>
-
 export default {
-  name: "PropertiesFilterModal",
+  name: 'PropertiesFilterModal',
   computed: {
     propertiesFilterKey: {
-      get() { return this.$store.getters.getPropertiesFilterKey; },
-      set(value) { this.$store.dispatch('setPropertiesFilterKey', { value: value }); }
+      get() {
+        return this.$store.getters.getPropertiesFilterKey
+      },
+      set(value) {
+        this.$store.dispatch('setPropertiesFilterKey', { value: value })
+      },
     },
     propertiesFilterValue: {
-      get() { return this.$store.getters.getPropertiesFilterValue; },
-      set(value) { this.$store.dispatch('setPropertiesFilterValue', { value: value }); }
+      get() {
+        return this.$store.getters.getPropertiesFilterValue
+      },
+      set(value) {
+        this.$store.dispatch('setPropertiesFilterValue', { value: value })
+      },
     },
     propertiesFilterDefaultValue: {
-      get() { return this.$store.getters.getPropertiesFilterDefaultValue; },
-      set(value) { this.$store.dispatch('setPropertiesFilterDefaultValue', { value: value }); }
+      get() {
+        return this.$store.getters.getPropertiesFilterDefaultValue
+      },
+      set(value) {
+        this.$store.dispatch('setPropertiesFilterDefaultValue', { value: value })
+      },
     },
     propertiesFilterDescription: {
-      get() { return this.$store.getters.getPropertiesFilterDescription; },
-      set(value) { this.$store.dispatch('setPropertiesFilterDescription', { value: value }); }
+      get() {
+        return this.$store.getters.getPropertiesFilterDescription
+      },
+      set(value) {
+        this.$store.dispatch('setPropertiesFilterDescription', { value: value })
+      },
     },
     propertiesFilterType: {
-      get() { return this.$store.getters.getPropertiesFilterType; },
-      set(value) { this.$store.dispatch('setPropertiesFilterType', { value: value }); }
+      get() {
+        return this.$store.getters.getPropertiesFilterType
+      },
+      set(value) {
+        this.$store.dispatch('setPropertiesFilterType', { value: value })
+      },
     },
   },
   async beforeMount() {
-    this.$store.dispatch('setPropertiesFilterKey', { value: await this.$store.getters.getWebvueProp('propertiesFilterKey', '') });
-    this.$store.dispatch('setPropertiesFilterValue', { value: await this.$store.getters.getWebvueProp('propertiesFilterValue', '') });
-    this.$store.dispatch('setPropertiesFilterDefaultValue', { value: await this.$store.getters.getWebvueProp('propertiesFilterDefaultValue', '') });
-    this.$store.dispatch('setPropertiesFilterDescription', { value: await this.$store.getters.getWebvueProp('propertiesFilterDescription', '') });
-    this.$store.dispatch('setPropertiesFilterType', { value: await this.$store.getters.getWebvueProp('propertiesFilterType', '') });
+    this.$store.dispatch('setPropertiesFilterKey', {
+      value: await this.$store.getters.getWebvueProp('propertiesFilterKey', ''),
+    })
+    this.$store.dispatch('setPropertiesFilterValue', {
+      value: await this.$store.getters.getWebvueProp('propertiesFilterValue', ''),
+    })
+    this.$store.dispatch('setPropertiesFilterDefaultValue', {
+      value: await this.$store.getters.getWebvueProp('propertiesFilterDefaultValue', ''),
+    })
+    this.$store.dispatch('setPropertiesFilterDescription', {
+      value: await this.$store.getters.getWebvueProp('propertiesFilterDescription', ''),
+    })
+    this.$store.dispatch('setPropertiesFilterType', {
+      value: await this.$store.getters.getWebvueProp('propertiesFilterType', ''),
+    })
   },
   methods: {
     ok() {
-      this.$store.dispatch('setPropertiesFilterKey', { value: this.propertiesFilterKey });
-      this.$store.dispatch('setPropertiesFilterValue', { value: this.propertiesFilterValue });
-      this.$store.dispatch('setPropertiesFilterDefaultValue', { value: this.propertiesFilterDefaultValue });
-      this.$store.dispatch('setPropertiesFilterDescription', { value: this.propertiesFilterDescription });
-      this.$store.dispatch('setPropertiesFilterType', { value: this.propertiesFilterType });
+      this.$store.dispatch('setPropertiesFilterKey', { value: this.propertiesFilterKey })
+      this.$store.dispatch('setPropertiesFilterValue', { value: this.propertiesFilterValue })
+      this.$store.dispatch('setPropertiesFilterDefaultValue', {
+        value: this.propertiesFilterDefaultValue,
+      })
+      this.$store.dispatch('setPropertiesFilterDescription', {
+        value: this.propertiesFilterDescription,
+      })
+      this.$store.dispatch('setPropertiesFilterType', { value: this.propertiesFilterType })
 
-      let params = {};
-      if (this.propertiesFilterKey) params.filterKey = this.propertiesFilterKey;
-      if (this.propertiesFilterValue) params.filterValue = this.propertiesFilterValue;
-      if (this.propertiesFilterDefaultValue) params.filterDefaultValue = this.propertiesFilterDefaultValue;
-      if (this.propertiesFilterDescription) params.filterDescription = this.propertiesFilterDescription;
-      if (this.propertiesFilterType) params.filterType = this.propertiesFilterType;
-      this.$store.dispatch('loadPropertiesDigests', params )
+      let params = {}
+      if (this.propertiesFilterKey) params.filterKey = this.propertiesFilterKey
+      if (this.propertiesFilterValue) params.filterValue = this.propertiesFilterValue
+      if (this.propertiesFilterDefaultValue)
+        params.filterDefaultValue = this.propertiesFilterDefaultValue
+      if (this.propertiesFilterDescription)
+        params.filterDescription = this.propertiesFilterDescription
+      if (this.propertiesFilterType) params.filterType = this.propertiesFilterType
+      this.$store.dispatch('loadPropertiesDigests', params)
 
-      this.$emit('close');
+      this.$emit('close')
     },
     cancel() {
-      this.$emit('close');
-    }
-  }
+      this.$emit('close')
+    },
+  },
 }
 </script>
 
 <style scoped>
-
 .pfm-modal-fade-enter,
 .pfm-modal-fade-leave-active {
   opacity: 0;
@@ -140,7 +193,7 @@ export default {
 
 .pfm-modal-fade-enter-active,
 .pfm-modal-fade-leave-active {
-  transition: opacity .5s ease
+  transition: opacity 0.5s ease;
 }
 
 .pfm-area-modal-header {
@@ -183,7 +236,7 @@ export default {
 }
 
 .pfm-area {
-  background: #FFFFFF;
+  background: #ffffff;
   box-shadow: 2px 2px 20px 1px;
   overflow-x: auto;
   display: flex;
@@ -269,5 +322,4 @@ select.pfm-input-field {
   -moz-appearance: none;
   cursor: pointer;
 }
-
 </style>

@@ -41,12 +41,19 @@ async function load(ids) {
   const unique = [...new Set(ids.map(String))]
   // Не сбрасываем всю карту (toggle мог обновить строки других страниц) — только помечаем новые
   // как loading и обновляем их из ответа.
-  unique.forEach(id => { loading[id] = true })
+  unique.forEach((id) => {
+    loading[id] = true
+  })
   if (!unique.length) return
 
   // Аноним — членства нет, ничего не грузим.
   if (!token.value) {
-    unique.forEach(id => { ensureEntry(id); membership[id].favorited = false; membership[id].playlistIds = []; loading[id] = false })
+    unique.forEach((id) => {
+      ensureEntry(id)
+      membership[id].favorited = false
+      membership[id].playlistIds = []
+      loading[id] = false
+    })
     return
   }
 
@@ -61,7 +68,7 @@ async function load(ids) {
         const { status, body } = await fetchMembership(chunk)
         if (requestId !== latest) return
         const items = (status === 200 && body && body.items) || {}
-        chunk.forEach(id => {
+        chunk.forEach((id) => {
           const it = items[id]
           const entry = ensureEntry(id)
           entry.favorited = !!(it && it.favorited)
@@ -70,7 +77,9 @@ async function load(ids) {
         })
       } catch (e) {
         if (requestId !== latest) return
-        chunk.forEach(id => { loading[id] = false })
+        chunk.forEach((id) => {
+          loading[id] = false
+        })
       }
     }
   }
@@ -79,12 +88,19 @@ async function load(ids) {
 }
 
 // Локальное обновление после toggle/add/remove (без перезагрузки).
-function setFavorited(id, val) { ensureEntry(id).favorited = val }
-function setPlaylistIds(id, ids) { ensureEntry(id).playlistIds = ids }
+function setFavorited(id, val) {
+  ensureEntry(id).favorited = val
+}
+function setPlaylistIds(id, ids) {
+  ensureEntry(id).playlistIds = ids
+}
 
 async function loadPlaylists(force = false) {
   const { token } = useAuth()
-  if (!token.value) { playlists.value = []; return [] }
+  if (!token.value) {
+    playlists.value = []
+    return []
+  }
   if (playlistsLoaded && !force) return playlists.value
   const { status, body } = await fetchPlaylists()
   if (status === 200 && Array.isArray(body)) {

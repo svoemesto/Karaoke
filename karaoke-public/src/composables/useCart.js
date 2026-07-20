@@ -10,13 +10,18 @@ let loaded = false
 
 async function load(force = false) {
   const { token } = useAuth()
-  if (!token.value) { items.value = []; songIds.clear(); loaded = true; return }
+  if (!token.value) {
+    items.value = []
+    songIds.clear()
+    loaded = true
+    return
+  }
   if (loaded && !force) return
   const { status, body } = await fetchCart()
   if (status === 200 && Array.isArray(body)) {
     items.value = body
     songIds.clear()
-    body.forEach(i => songIds.add(i.songId))
+    body.forEach((i) => songIds.add(i.songId))
   }
   loaded = true
 }

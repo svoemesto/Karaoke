@@ -10,14 +10,14 @@ export default {
     searchResults: [],
     searchIsLoading: false,
     currentSong: null,
-    currentSongIsLoading: false
+    currentSongIsLoading: false,
   },
   getters: {
-    authors: state => state.authors,
-    searchResults: state => state.searchResults,
-    searchIsLoading: state => state.searchIsLoading,
-    currentSong: state => state.currentSong,
-    currentSongIsLoading: state => state.currentSongIsLoading
+    authors: (state) => state.authors,
+    searchResults: (state) => state.searchResults,
+    searchIsLoading: (state) => state.searchIsLoading,
+    currentSong: (state) => state.currentSong,
+    currentSongIsLoading: (state) => state.currentSongIsLoading,
   },
   mutations: {
     setAuthors(state, authors) {
@@ -34,7 +34,7 @@ export default {
     },
     setCurrentSongIsLoading(state, value) {
       state.currentSongIsLoading = value
-    }
+    },
   },
   actions: {
     async loadAuthors({ commit }) {
@@ -61,6 +61,6 @@ export default {
       } finally {
         if (requestId === latestSongId) commit('setCurrentSongIsLoading', false)
       }
-    }
-  }
+    },
+  },
 }

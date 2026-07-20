@@ -27,7 +27,7 @@ export default {
   components: { SvgIcon },
   props: {
     songId: { type: [Number, String], required: true },
-    label: { type: String, default: '' }
+    label: { type: String, default: '' },
   },
   setup(props) {
     const router = useRouter()
@@ -62,16 +62,33 @@ export default {
     }
 
     return { state, onClick }
-  }
+  },
 }
 </script>
 
 <style scoped>
-.fav-icon { display: inline-flex; align-items: center; justify-content: center; cursor: pointer; line-height: 0; }
-.fav-icon:hover { transform: scale(1.12); }
-.fav-icon.has-label { line-height: normal; justify-content: flex-start; gap: 6px; }
-.fav-icon.has-label:hover { transform: none; }
-.fav-label { font-size: 0.9rem; color: inherit; }
+.fav-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  line-height: 0;
+}
+.fav-icon:hover {
+  transform: scale(1.12);
+}
+.fav-icon.has-label {
+  line-height: normal;
+  justify-content: flex-start;
+  gap: 6px;
+}
+.fav-icon.has-label:hover {
+  transform: none;
+}
+.fav-label {
+  font-size: 0.9rem;
+  color: inherit;
+}
 .fav-spinner {
   display: inline-block;
   width: 13px;
@@ -82,5 +99,9 @@ export default {
   vertical-align: middle;
   animation: fav-spin 0.8s linear infinite;
 }
-@keyframes fav-spin { to { transform: rotate(360deg); } }
+@keyframes fav-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 </style>

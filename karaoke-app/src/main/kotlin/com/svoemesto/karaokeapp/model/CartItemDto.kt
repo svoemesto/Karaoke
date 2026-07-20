@@ -8,8 +8,9 @@ data class CartItemDto(
     val siteUserId: Long = 0,
     val idSong: Long = 0,
     val addedAt: String = "",
-) : Serializable, Comparable<CartItemDto>, KaraokeDbTableDto {
-
+) : Serializable,
+    Comparable<CartItemDto>,
+    KaraokeDbTableDto {
     override fun compareTo(other: CartItemDto): Int = addedAt.compareTo(other.addedAt)
 
     override fun validationErrors(): List<String> = emptyList()

@@ -4,7 +4,7 @@
       <div class="mon-area">
         <div class="mon-area-header">
           <span>Мониторинг</span>
-          <button class="mon-btn-close-x" @click="close" v-text="'×'"></button>
+          <button class="mon-btn-close-x" @click="close" v-text="'×'"/>
         </div>
         <div class="mon-area-body">
           <div v-if="alerts.length === 0" class="mon-empty">Активных сообщений нет.</div>
@@ -15,28 +15,28 @@
               :style="{ borderLeftColor: alert.color }"
           >
             <div class="mon-row-main">
-              <div class="mon-row-title" v-text="alert.title"></div>
-              <div class="mon-row-body" v-text="alert.body"></div>
-              <div v-if="alert.detail" class="mon-row-detail" v-text="alert.detail"></div>
+              <div class="mon-row-title" v-text="alert.title"/>
+              <div class="mon-row-body" v-text="alert.body"/>
+              <div v-if="alert.detail" class="mon-row-detail" v-text="alert.detail"/>
             </div>
             <div class="mon-row-actions">
-              <button class="mon-btn mon-btn-read" @click="markRead(alert)" v-text="'Прочитано'"></button>
+              <button class="mon-btn mon-btn-read" @click="markRead(alert)" v-text="'Прочитано'"/>
               <button
                   v-if="alert.canResolve"
                   class="mon-btn mon-btn-resolve"
                   :disabled="resolvingKeys.includes(alert.key)"
                   @click="resolve(alert)"
                   v-text="resolvingKeys.includes(alert.key) ? 'Решаем...' : 'Решить проблему'"
-              ></button>
+              />
               <div v-else class="mon-recommend-wrap">
-                <button class="mon-btn mon-btn-recommend" @click="toggleTip(alert.key)" v-text="'Рекомендации'"></button>
-                <div v-if="openTipKey === alert.key" class="mon-recommend-popover" v-text="alert.recommendations || 'Рекомендаций нет.'"></div>
+                <button class="mon-btn mon-btn-recommend" @click="toggleTip(alert.key)" v-text="'Рекомендации'"/>
+                <div v-if="openTipKey === alert.key" class="mon-recommend-popover" v-text="alert.recommendations || 'Рекомендаций нет.'"/>
               </div>
             </div>
           </div>
         </div>
         <div class="mon-area-footer">
-          <button class="mon-btn-footer-close" @click="close" v-text="'Закрыть'"></button>
+          <button class="mon-btn-footer-close" @click="close" v-text="'Закрыть'"/>
         </div>
       </div>
     </div>

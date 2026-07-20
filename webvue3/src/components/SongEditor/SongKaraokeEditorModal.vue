@@ -11,7 +11,7 @@
         <div class="skm-header">
           <span class="skm-header-title">{{ headerTitle }}</span>
           <span class="skm-header-meta">{{ headerMeta }}</span>
-          <button class="skm-close-x" @click="$emit('close')" title="Закрыть">✕</button>
+          <button class="skm-close-x" title="Закрыть" @click="$emit('close')">✕</button>
         </div>
         <div class="skm-body">
           <div v-if="loading" class="skm-status">Загрузка песни…</div>
@@ -22,6 +22,7 @@
             :song-id="loadedSongId"
             :assignment-id="assignmentId"
             :song-name="loadedSongName"
+            ref="editor"
             :author="loadedAuthor"
             :album="loadedAlbum"
             :year="loadedYear"
@@ -42,7 +43,6 @@
             :review-comment="loadedReviewComment"
             :status="loadedStatus"
             @change="onEditorChange"
-            ref="editor"
           />
         </div>
         <div class="skm-footer">

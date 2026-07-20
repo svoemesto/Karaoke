@@ -28,17 +28,27 @@ class PaymentService(
 ) {
     private val objectMapper = ObjectMapper()
 
-    fun hasCredentials(): Boolean = System.getenv("YOOKASSA_SHOP_ID")?.isNotBlank() == true ||
-        System.getProperty("yookassa.shop-id")?.isNotBlank() == true
+    fun hasCredentials(): Boolean =
+        System.getenv("YOOKASSA_SHOP_ID")?.isNotBlank() == true ||
+            System.getProperty("yookassa.shop-id")?.isNotBlank() == true
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    data class Amount(val value: String, val currency: String = "RUB")
+    data class Amount(
+        val value: String,
+        val currency: String = "RUB",
+    )
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    data class Confirmation(val type: String = "redirect", val confirmation_url: String? = null, val return_url: String? = null)
+    data class Confirmation(
+        val type: String = "redirect",
+        val confirmation_url: String? = null,
+        val return_url: String? = null,
+    )
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    data class ReceiptCustomer(val email: String)
+    data class ReceiptCustomer(
+        val email: String,
+    )
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     data class ReceiptItem(
@@ -54,10 +64,16 @@ class PaymentService(
     )
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    data class Receipt(val customer: ReceiptCustomer, val items: List<ReceiptItem>)
+    data class Receipt(
+        val customer: ReceiptCustomer,
+        val items: List<ReceiptItem>,
+    )
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    data class PaymentMethodRef(val id: String? = null, val saved: Boolean? = null)
+    data class PaymentMethodRef(
+        val id: String? = null,
+        val saved: Boolean? = null,
+    )
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     data class PaymentResponse(
@@ -74,24 +90,33 @@ class PaymentService(
      * payment_method.id для будущих chargeRecurring(). Idempotence-Key = "sub-<id>" — повторный вызов
      * с тем же id (например, повторный клик "Оплатить" до редиректа) не создаёт дублирующий платёж.
      */
-    fun createPayment(sub: Subscription, description: String, email: String, returnUrl: String, saveMethod: Boolean): PaymentResponse? {
+    fun createPayment(
+        sub: Subscription,
+        description: String,
+        email: String,
+        returnUrl: String,
+        saveMethod: Boolean,
+    ): PaymentResponse? {
         if (!hasCredentials()) {
             println("PaymentService: YOOKASSA_SHOP_ID/SECRET_KEY не заданы — платёж не создан (sub=${sub.id})")
             return null
         }
-        val body = mutableMapOf<String, Any>(
-            "amount" to Amount(value = "%.2f".format(sub.finalPrice)),
-            "capture" to true,
-            "confirmation" to Confirmation(type = "redirect", return_url = returnUrl),
-            "description" to description,
-            "receipt" to Receipt(
-                customer = ReceiptCustomer(email = email),
-                items = listOf(ReceiptItem(description = description, amount = Amount(value = "%.2f".format(sub.finalPrice)))),
-            ),
-        )
+        val body =
+            mutableMapOf<String, Any>(
+                "amount" to Amount(value = "%.2f".format(sub.finalPrice)),
+                "capture" to true,
+                "confirmation" to Confirmation(type = "redirect", return_url = returnUrl),
+                "description" to description,
+                "receipt" to
+                    Receipt(
+                        customer = ReceiptCustomer(email = email),
+                        items = listOf(ReceiptItem(description = description, amount = Amount(value = "%.2f".format(sub.finalPrice)))),
+                    ),
+            )
         if (saveMethod) body["save_payment_method"] = true
         return try {
-            webClient.post()
+            webClient
+                .post()
                 .uri("/payments")
                 .header("Idempotence-Key", "sub-${sub.id}-${sub.createdAt.time}")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -111,24 +136,36 @@ class PaymentService(
      * сумма позиций чека обязана точно совпасть с `totalAmount` (54-ФЗ). Idempotence-Key завязан на
      * orderId — повторный клик "Оплатить всё" до редиректа не создаёт дублирующий платёж.
      */
-    fun createCartPayment(orderId: String, totalAmount: Double, items: List<Pair<String, Double>>, email: String, returnUrl: String): PaymentResponse? {
+    fun createCartPayment(
+        orderId: String,
+        totalAmount: Double,
+        items: List<Pair<String, Double>>,
+        email: String,
+        returnUrl: String,
+    ): PaymentResponse? {
         if (!hasCredentials()) {
             println("PaymentService: YOOKASSA_SHOP_ID/SECRET_KEY не заданы — платёж для заказа $orderId не создан")
             return null
         }
         val description = "Подписка на ${items.size} " + pluralSongsRu(items.size) + " (заказ корзины)"
-        val body = mapOf(
-            "amount" to Amount(value = "%.2f".format(totalAmount)),
-            "capture" to true,
-            "confirmation" to Confirmation(type = "redirect", return_url = returnUrl),
-            "description" to description,
-            "receipt" to Receipt(
-                customer = ReceiptCustomer(email = email),
-                items = items.map { (desc, price) -> ReceiptItem(description = desc.take(128), amount = Amount(value = "%.2f".format(price))) },
-            ),
-        )
+        val body =
+            mapOf(
+                "amount" to Amount(value = "%.2f".format(totalAmount)),
+                "capture" to true,
+                "confirmation" to Confirmation(type = "redirect", return_url = returnUrl),
+                "description" to description,
+                "receipt" to
+                    Receipt(
+                        customer = ReceiptCustomer(email = email),
+                        items =
+                            items.map { (desc, price) ->
+                                ReceiptItem(description = desc.take(128), amount = Amount(value = "%.2f".format(price)))
+                            },
+                    ),
+            )
         return try {
-            webClient.post()
+            webClient
+                .post()
                 .uri("/payments")
                 .header("Idempotence-Key", "order-$orderId")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -158,20 +195,28 @@ class PaymentService(
      * Idempotence-Key завязан на конкретный цикл продления (передаётся снаружи), чтобы ретрай
      * шедулера в тот же день не задвоил списание.
      */
-    fun chargeRecurring(sub: Subscription, description: String, email: String, idempotenceKey: String): PaymentResponse? {
+    fun chargeRecurring(
+        sub: Subscription,
+        description: String,
+        email: String,
+        idempotenceKey: String,
+    ): PaymentResponse? {
         if (!hasCredentials() || sub.yookassaPaymentMethodId.isBlank()) return null
-        val body = mapOf(
-            "amount" to Amount(value = "%.2f".format(sub.finalPrice)),
-            "capture" to true,
-            "payment_method_id" to sub.yookassaPaymentMethodId,
-            "description" to description,
-            "receipt" to Receipt(
-                customer = ReceiptCustomer(email = email),
-                items = listOf(ReceiptItem(description = description, amount = Amount(value = "%.2f".format(sub.finalPrice)))),
-            ),
-        )
+        val body =
+            mapOf(
+                "amount" to Amount(value = "%.2f".format(sub.finalPrice)),
+                "capture" to true,
+                "payment_method_id" to sub.yookassaPaymentMethodId,
+                "description" to description,
+                "receipt" to
+                    Receipt(
+                        customer = ReceiptCustomer(email = email),
+                        items = listOf(ReceiptItem(description = description, amount = Amount(value = "%.2f".format(sub.finalPrice)))),
+                    ),
+            )
         return try {
-            webClient.post()
+            webClient
+                .post()
                 .uri("/payments")
                 .header("Idempotence-Key", idempotenceKey)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -192,7 +237,8 @@ class PaymentService(
     fun verifyAndFetch(paymentId: String): PaymentResponse? {
         if (!hasCredentials()) return null
         return try {
-            webClient.get()
+            webClient
+                .get()
                 .uri("/payments/$paymentId")
                 .retrieve()
                 .bodyToMono<PaymentResponse>()

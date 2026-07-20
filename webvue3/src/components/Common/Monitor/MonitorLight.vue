@@ -4,9 +4,9 @@
       :title="tooltipText"
       @click.left="toggleModal"
   >
-    <span class="monitor-light-dot" :class="{ 'monitor-light-blink': isCritical }" :style="{ backgroundColor: dotColor }"></span>
+    <span class="monitor-light-dot" :class="{ 'monitor-light-blink': isCritical }" :style="{ backgroundColor: dotColor }"/>
   </button>
-  <MonitorModal v-if="isModalVisible" @close="isModalVisible = false"></MonitorModal>
+  <MonitorModal v-if="isModalVisible" @close="isModalVisible = false"/>
 </template>
 
 <script>
@@ -47,13 +47,13 @@ export default {
       return 'Мониторинг: критическая проблема!';
     }
   },
+  mounted() {
+    this.$store.dispatch('loadMonitorAlerts');
+  },
   methods: {
     toggleModal() {
       this.isModalVisible = !this.isModalVisible;
     }
-  },
-  mounted() {
-    this.$store.dispatch('loadMonitorAlerts');
   }
 }
 </script>

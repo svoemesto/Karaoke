@@ -26,7 +26,7 @@
 
     <div class="prm-add">
       <div class="prm-add-title">Новая акция:</div>
-      <input class="prm-input" placeholder="Название" v-model="newItem.name">
+      <input v-model="newItem.name" class="prm-input" placeholder="Название"/>
       <select v-model="newItem.type">
         <option value="FLAT_PERCENT">FLAT_PERCENT</option>
         <option value="NEW_USER_PERCENT">NEW_USER_PERCENT</option>
@@ -39,7 +39,7 @@
         <option value="SONG">Только песня</option>
         <option value="SITE">Только сайт</option>
       </select>
-      <input class="prm-input prm-json" placeholder='{"percent":10}' v-model="newItem.paramsJson">
+      <input v-model="newItem.paramsJson" class="prm-input prm-json" placeholder='{"percent":10}'/>
       <button class="prm-btn" :disabled="!canCreate" @click="create">Добавить</button>
     </div>
 
@@ -54,12 +54,12 @@
           <th class="prm-th">Параметры (JSON)</th>
           <th class="prm-th">Приоритет</th>
           <th class="prm-th">Активна</th>
-          <th class="prm-th"></th>
+          <th class="prm-th"/>
         </tr>
       </thead>
       <tbody>
         <tr v-for="item in editable" :key="item.id">
-          <td><input class="prm-input" v-model="item.name"></td>
+          <td><input v-model="item.name" class="prm-input"/></td>
           <td>
             <select v-model="item.type">
               <option value="FLAT_PERCENT">FLAT_PERCENT</option>
@@ -76,9 +76,9 @@
               <option value="SITE">Только сайт</option>
             </select>
           </td>
-          <td><input class="prm-input prm-json" v-model="item.paramsJson"></td>
-          <td><input class="prm-input prm-num" type="number" v-model.number="item.priority"></td>
-          <td><input type="checkbox" v-model="item.isActive"></td>
+          <td><input v-model="item.paramsJson" class="prm-input prm-json"/></td>
+          <td><input v-model.number="item.priority" class="prm-input prm-num" type="number"/></td>
+          <td><input v-model="item.isActive" type="checkbox"/></td>
           <td class="prm-actions">
             <button class="prm-btn" :disabled="!isChanged(item)" @click="save(item)">Сохранить</button>
             <button class="prm-btn prm-btn-danger" @click="remove(item)">Удалить</button>

@@ -15,9 +15,8 @@ data class SettingVoiceLineElementSyllable(
     var syllableEndMs: Long, // Конец слога (с мс) - в этот момент слог заканчивается выделяться (если в элементе предусмотрено выделение)
     var previous: SettingVoiceLineElementSyllable?, // Для аккорда это должно быть полный текст до него, чтобы вычислить положение на экране
 ) : Serializable {
-
-    fun copy(): SettingVoiceLineElementSyllable {
-        return SettingVoiceLineElementSyllable(
+    fun copy(): SettingVoiceLineElementSyllable =
+        SettingVoiceLineElementSyllable(
             rootId = rootId,
             text = text,
             note = note,
@@ -28,7 +27,6 @@ data class SettingVoiceLineElementSyllable(
             syllableEndMs = syllableEndMs,
             previous = if (previous == null) null else previous!!.copy(),
         )
-    }
 
     private var _fontSize: Int? = null
     var fontSize: Int
@@ -50,6 +48,7 @@ data class SettingVoiceLineElementSyllable(
 
     // lineStartMs для линии с индексом indexLineStart
     private var _deltaStartMs: Long? = null
+
     // deltaStartMs - это время начала видимости родительской линии
     var deltaStartMs: Long
         get() {
@@ -123,37 +122,49 @@ data class SettingVoiceLineElementSyllable(
     val chordPictureTrackId: Int get() {
         return if (countChordPictureTracks > 0) chordId % countChordPictureTracks else -1
     }
-    fun chordIsOnScreen(timeMs: Long = 0L): Boolean {
-        return timeMs in startChordVisibleTime..endChordVisibleTime
-    }
-    fun textSyllablesWithPrevious(): String {
-        return if (previous == null) {
+
+    fun chordIsOnScreen(timeMs: Long = 0L): Boolean = timeMs in startChordVisibleTime..endChordVisibleTime
+
+    fun textSyllablesWithPrevious(): String =
+        if (previous == null) {
             text
         } else {
             previous!!.textSyllablesWithPrevious() + text
         }
-    }
+
     fun syllableDurationMs(): Long = syllableEndMs - syllableStartMs
-    fun syllableStartMsWithDelta(): Long {
-        return syllableStartMs - deltaStartMs
-    }
-    fun syllableEndMsWithDelta(): Long {
-        return syllableEndMs - deltaStartMs
-    }
+
+    fun syllableStartMsWithDelta(): Long = syllableStartMs - deltaStartMs
+
+    fun syllableEndMsWithDelta(): Long = syllableEndMs - deltaStartMs
+
     fun h(): Int = mltText().h()
+
     fun w(): Int = mltText().w()
+
     fun x(): Int = mltText().x
+
     fun deltaStartY(): Int = h() / 7
+
     fun deltaStartH(): Int = 2 * deltaStartY()
+
     fun deltaEndY(): Int = (if (isShortSyllable()) 1 else 0) * (h() / 7)
+
     fun deltaEndH(): Int = 2 * deltaEndY()
+
     fun isShortSyllable(): Boolean = syllableDurationMs() <= Karaoke.shortSubtitleMs
+
     var syllableId: Int = -1
 
     var isFirst: Boolean = false
     var isLast: Boolean = false
+
     fun mltText(): MltText {
-        val mltText = Karaoke.voices[0].groups[groupId].mltText.copy(text.replace("&","&amp;amp;"), fontSize)
+        val mltText =
+            Karaoke.voices[0]
+                .groups[groupId]
+                .mltText
+                .copy(text.replace("&", "&amp;amp;"), fontSize)
         mltText.x = previous?.let {
             val prevMltText = it.mltText()
             prevMltText.x + prevMltText.w()
@@ -162,11 +173,12 @@ data class SettingVoiceLineElementSyllable(
     }
 
     fun startTransformProperty(): TransformProperty {
-        val tpTime = if (isFirst) {
-            convertFramesToTimecode(convertMillisecondsToFrames(syllableStartMsWithDelta()) + 2)
-        } else {
-            convertMillisecondsToTimecode(syllableStartMsWithDelta())
-        }
+        val tpTime =
+            if (isFirst) {
+                convertFramesToTimecode(convertMillisecondsToFrames(syllableStartMsWithDelta()) + 2)
+            } else {
+                convertMillisecondsToTimecode(syllableStartMsWithDelta())
+            }
         val tpX = 0
         val tpY = deltaStartY()
         val tpW = x()
@@ -178,7 +190,7 @@ data class SettingVoiceLineElementSyllable(
             y = tpY,
             w = tpW,
             h = tpH,
-            opacity = tpOpacity
+            opacity = tpOpacity,
         )
     }
 
@@ -195,8 +207,7 @@ data class SettingVoiceLineElementSyllable(
             y = tpY,
             w = tpW,
             h = tpH,
-            opacity = tpOpacity
+            opacity = tpOpacity,
         )
     }
-
 }

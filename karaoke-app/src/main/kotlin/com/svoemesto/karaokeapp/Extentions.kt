@@ -10,22 +10,22 @@ import java.time.LocalDateTime
 import java.time.ZoneId
 import java.util.*
 
-fun String.wrapInApostraf(): String {
-    return "'$this'"
-}
+fun String.wrapInApostraf(): String = "'$this'"
+
 fun String.wrapInQuotes(): String {
     return this
 //    return "\"\"" + this + "\"\""
 }
-fun String.rightFileNameSymbols(): String {
-    return this
-        .replace("'","''")
-        .replace("?","")
-        .replace(":","-")
-        .replace("!","")
-        .replace("$","s")
-        .replace("*","x")
-}
+
+fun String.rightFileNameSymbols(): String =
+    this
+        .replace("'", "''")
+        .replace("?", "")
+        .replace(":", "-")
+        .replace("!", "")
+        .replace("$", "s")
+        .replace("*", "x")
+
 fun String.rightFileName(): String {
     return this.rightFileNameSymbols()
     // Если имя у файла очень длинное - его надо обрезать до размера 200 байт
@@ -54,6 +54,7 @@ fun String.rightFileName(): String {
 //    result = "${if (filePath == null) "" else "$filePath/" }$fileName"
 //    return result
 }
+
 fun String.getWords(): List<String> {
     val result: MutableList<String> = mutableListOf()
     val regex = "([a-zA-Zа-яА-ЯёЁ\\-]+)".toRegex()
@@ -66,39 +67,27 @@ fun String.getWords(): List<String> {
     return result.toSet().toList()
 }
 
-fun String.nullIfEmpty(): String? {
-    return if (this.trim() == "" || this == "null") null else this
-}
-fun String.xmldata(): String {
-    return "<?xml version=\"1.0\"?>${this}".replace("<","&lt;")
-}
-fun Font.weight(): Int {
-    return if (isBold) 75 else 50
-}
-fun Font.mlt(): String {
-    return "${name};${style};${size}"
-}
-fun Font.setting(): String {
-    return "name=${name};style=${style};size=${size}"
-}
-fun Color.hexRGB(): String {
-    return "0x${Integer.toHexString(rgb).substring(2)}${Integer.toHexString(rgb).substring(0,2)}"
-}
+fun String.nullIfEmpty(): String? = if (this.trim() == "" || this == "null") null else this
 
-fun Color.mlt(): String {
-    return "${red},${green},${blue},${alpha}"
-}
+fun String.xmldata(): String = "<?xml version=\"1.0\"?>$this".replace("<", "&lt;")
 
-fun Color.setting(): String {
-    return "r=${red};g=${green};b=${blue};a=${alpha}"
-}
-fun List<Color>.setting(): String {
-    return joinToString("|") { it.setting() }
-}
+fun Font.weight(): Int = if (isBold) 75 else 50
+
+fun Font.mlt(): String = "$name;$style;$size"
+
+fun Font.setting(): String = "name=$name;style=$style;size=$size"
+
+fun Color.hexRGB(): String = "0x${Integer.toHexString(rgb).substring(2)}${Integer.toHexString(rgb).substring(0,2)}"
+
+fun Color.mlt(): String = "$red,$green,$blue,$alpha"
+
+fun Color.setting(): String = "r=$red;g=$green;b=$blue;a=$alpha"
+
+fun List<Color>.setting(): String = joinToString("|") { it.setting() }
 
 fun String.hashtag(): String {
     var result = "#"
-    forEach { if (it.lowercase() in "qwertyuiopasdfghjklzxcvbnmйцукенгшщзхъёфывапролджэячсмитьбюѣ1234567890") result += it  }
+    forEach { if (it.lowercase() in "qwertyuiopasdfghjklzxcvbnmйцукенгшщзхъёфывапролджэячсмитьбюѣ1234567890") result += it }
     return result
 }
 
@@ -117,21 +106,20 @@ fun String.containThisSymbols(symbolString: String): Boolean {
     }
     return false
 }
-fun String.haveVowel(): Boolean {
-    return this.containThisSymbols(LETTERS_VOWEL)
-}
 
-fun String.containOnlyThisSymbols(symbolString: String): Boolean {
-    return symbolString.trim() != "" && this.deleteThisSymbols(symbolString).trim() == ""
-}
+fun String.haveVowel(): Boolean = this.containThisSymbols(LETTERS_VOWEL)
+
+fun String.containOnlyThisSymbols(symbolString: String): Boolean =
+    symbolString.trim() != "" && this.deleteThisSymbols(symbolString).trim() == ""
 
 fun String.deleteThisSymbols(symbolString: String): String {
     var txt = this
     symbolString.forEach { symbolInSymbolString ->
-        txt = txt.replace(symbolInSymbolString.toString(),"")
+        txt = txt.replace(symbolInSymbolString.toString(), "")
     }
     return txt
 }
+
 fun String.uppercaseFirstLetter(): String {
     val txt = this
     var result = ""
@@ -141,13 +129,17 @@ fun String.uppercaseFirstLetter(): String {
             result += symbolInSymbolString.uppercase()
             flag = true
         } else {
-            result += symbolInSymbolString //.lowercase()
+            result += symbolInSymbolString // .lowercase()
         }
     }
     return result
 }
 
-fun String.cutByWords(delimiter: String = " ", maxLength: Int = 0, excludingWords: List<String> = listOf("for")): String {
+fun String.cutByWords(
+    delimiter: String = " ",
+    maxLength: Int = 0,
+    excludingWords: List<String> = listOf("for"),
+): String {
     val listWords = this.split(delimiter)
     var result = ""
     var lastWord = ""
@@ -165,13 +157,18 @@ fun String.cutByWords(delimiter: String = " ", maxLength: Int = 0, excludingWord
     return result.trim()
 }
 
-fun getCensoredPair(censored: String, charOpen: String = "[", charClose: String = "]", replacement: String = "█"): Pair<String, String> {
-    val s1 = censored.replace(charOpen,"").replace(charClose,"")
+fun getCensoredPair(
+    censored: String,
+    charOpen: String = "[",
+    charClose: String = "]",
+    replacement: String = "█",
+): Pair<String, String> {
+    val s1 = censored.replace(charOpen, "").replace(charClose, "")
     val s2 = censored.replace("(\\[.])".toRegex(), replacement)
     return Pair(s1, s2)
 }
-fun String.censored(): String {
 
+fun String.censored(): String {
     val censoredMap = CensoredWordsDictionary().dict.associate { getCensoredPair(it) }
 
     var result = this
@@ -185,7 +182,7 @@ fun String.censored(): String {
 }
 
 fun String.addNewLinesByUpperCase(minNewLine: Int = 2): String {
-    if (this.split("\n").size >=  minNewLine) return this
+    if (this.split("\n").size >= minNewLine) return this
     var result = ""
     for (symbol in this) {
         result += if (symbol.isUpperCase()) "\n" else ""
@@ -201,7 +198,7 @@ fun String.replaceQuotes(): String {
     val matchResults = regex.findAll(result)
     matchResults.forEach { matchResult ->
         matchResult.groupValues.forEach { replaceFrom ->
-            val replaceTo = "«" + replaceFrom.substring(1,replaceFrom.length-1) + "»"
+            val replaceTo = "«" + replaceFrom.substring(1, replaceFrom.length - 1) + "»"
             result = result.replace(replaceFrom, replaceTo)
         }
     }
@@ -220,23 +217,16 @@ fun String.base64ifFileExists(): String {
     } else {
         this
     }
-
 }
 
 @Suppress("unused")
-fun String.stripToNumeric(): String {
-    return this.replace("\\D+".toRegex(), "")
-}
+fun String.stripToNumeric(): String = this.replace("\\D+".toRegex(), "")
 
 @Suppress("unused")
 fun Settings.karaokePlatformPublications(): List<KaraokePlatformPublication> = KaraokePlatformPublication.getList(settings = this)
 
 fun List<HealthReport>.errorsOnly(): List<HealthReport> = this.filter { it.healthReportStatus != HealthReportStatus.OK }
 
-fun LocalDateTime.toTimestamp(): Timestamp {
-    return Timestamp.from(this.atZone(ZoneId.systemDefault()).toInstant())
-}
+fun LocalDateTime.toTimestamp(): Timestamp = Timestamp.from(this.atZone(ZoneId.systemDefault()).toInstant())
 
-fun LocalDateTime.toEpochMillis(): Long {
-    return this.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
-}
+fun LocalDateTime.toEpochMillis(): Long = this.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()

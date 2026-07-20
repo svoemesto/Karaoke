@@ -87,6 +87,24 @@
 </template>
 
 <script>
+/**
+ * Главная страница karaoke-public.
+ *
+ * Отображает:
+ * - Хедер с логотипом, навигацией, `AuthStatusWidget` (кнопка входа/профиля).
+ * - Каталог песен (лента с пагинацией) — через `ClassicHomeView` или `ModernHomeView`
+ *   в зависимости от выбранного дизайна (`localStorage.km-design = 'classic' | 'modern'`).
+ * - Футер с контактами.
+ *
+ * **Dual design** (см. AGENTS.md#karaoke-public-dual-design):
+ * - `classic/` — традиционный дизайн, похожий на legacy Thymeleaf.
+ * - `modern/` — современный, с градиентами и анимациями.
+ * - CSS-переменные `--km-*` для настройки обоих дизайнов.
+ *
+ * @route /
+ * @see ClassicHomeView
+ * @see ModernHomeView
+ */
 import { mapGetters, mapActions } from 'vuex'
 import SvgIcon from '../components/SvgIcon.vue'
 import AuthStatusWidget from '../components/AuthStatusWidget.vue'

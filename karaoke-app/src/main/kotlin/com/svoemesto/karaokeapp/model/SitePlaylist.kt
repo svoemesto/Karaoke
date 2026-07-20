@@ -19,8 +19,9 @@ class SitePlaylist(
     override val database: KaraokeConnection = WORKING_DATABASE,
     override val storageService: KaraokeStorageService = KSS_APP,
     override val storageApiClient: StorageApiClient = SAC_APP,
-) : Serializable, Comparable<SitePlaylist>, KaraokeDbTable {
-
+) : Serializable,
+    Comparable<SitePlaylist>,
+    KaraokeDbTable {
     override fun getTableName() = TABLE_NAME
 
     @KaraokeDbTableField(name = "id", isId = true)
@@ -53,22 +54,21 @@ class SitePlaylist(
     var lastUpdate: Timestamp? = null
 
     // Избранное — сверху, затем по sort_order, затем по id.
-    override fun compareTo(other: SitePlaylist): Int =
-        compareValuesBy(this, other, { !it.isFavorites }, { it.sortOrder }, { it.id })
+    override fun compareTo(other: SitePlaylist): Int = compareValuesBy(this, other, { !it.isFavorites }, { it.sortOrder }, { it.id })
 
-    override fun toDTO(): SitePlaylistDto = SitePlaylistDto(
-        id = id,
-        ownerId = ownerId,
-        name = name,
-        favorites = isFavorites,
-        sortOrder = sortOrder,
-        continuous = continuous,
-        repeatMode = repeatMode,
-        shuffle = shuffle,
-    )
+    override fun toDTO(): SitePlaylistDto =
+        SitePlaylistDto(
+            id = id,
+            ownerId = ownerId,
+            name = name,
+            favorites = isFavorites,
+            sortOrder = sortOrder,
+            continuous = continuous,
+            repeatMode = repeatMode,
+            shuffle = shuffle,
+        )
 
     companion object {
-
         const val TABLE_NAME = "tbl_site_playlists"
 
         fun loadByUser(
@@ -76,40 +76,42 @@ class SitePlaylist(
             database: KaraokeConnection,
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
-        ): List<SitePlaylist> {
-            return KaraokeDbTable.loadList(
-                clazz = SitePlaylist::class,
-                tableName = TABLE_NAME,
-                whereList = listOf("owner_id=$ownerId"),
-                database = database,
-                storageService = storageService,
-                storageApiClient = storageApiClient,
-            ).map { it as SitePlaylist }.sorted()
-        }
+        ): List<SitePlaylist> =
+            KaraokeDbTable
+                .loadList(
+                    clazz = SitePlaylist::class,
+                    tableName = TABLE_NAME,
+                    whereList = listOf("owner_id=$ownerId"),
+                    database = database,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                ).map { it as SitePlaylist }
+                .sorted()
 
         // Все плейлисты (для админского просмотра webvue3).
         fun loadAll(
             database: KaraokeConnection,
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
-        ): List<SitePlaylist> {
-            return KaraokeDbTable.loadList(
-                clazz = SitePlaylist::class,
-                tableName = TABLE_NAME,
-                whereList = emptyList(),
-                database = database,
-                storageService = storageService,
-                storageApiClient = storageApiClient,
-            ).map { it as SitePlaylist }.sorted()
-        }
+        ): List<SitePlaylist> =
+            KaraokeDbTable
+                .loadList(
+                    clazz = SitePlaylist::class,
+                    tableName = TABLE_NAME,
+                    whereList = emptyList(),
+                    database = database,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                ).map { it as SitePlaylist }
+                .sorted()
 
         fun getById(
             id: Long,
             database: KaraokeConnection,
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
-        ): SitePlaylist? {
-            return KaraokeDbTable.loadById(
+        ): SitePlaylist? =
+            KaraokeDbTable.loadById(
                 clazz = SitePlaylist::class,
                 tableName = TABLE_NAME,
                 id = id,
@@ -117,7 +119,6 @@ class SitePlaylist(
                 storageService = storageService,
                 storageApiClient = storageApiClient,
             ) as? SitePlaylist?
-        }
 
         // Возвращает (создавая при необходимости) «Избранное» пользователя. Частичный UNIQUE-индекс
         // в БД дополнительно защищает от гонки двух параллельных первых добавлений.
@@ -128,7 +129,8 @@ class SitePlaylist(
             storageApiClient: StorageApiClient,
         ): SitePlaylist? {
             loadByUser(ownerId, database, storageService, storageApiClient)
-                .firstOrNull { it.isFavorites }?.let { return it }
+                .firstOrNull { it.isFavorites }
+                ?.let { return it }
             val fav = SitePlaylist(database = database, storageService = storageService, storageApiClient = storageApiClient)
             fav.ownerId = ownerId
             fav.name = "Избранное"
@@ -148,7 +150,9 @@ class SitePlaylist(
             return "Плейлист ${count + 1}"
         }
 
-        fun delete(id: Long, database: KaraokeConnection): Boolean =
-            KaraokeDbTable.delete(tableName = TABLE_NAME, id = id, database = database)
+        fun delete(
+            id: Long,
+            database: KaraokeConnection,
+        ): Boolean = KaraokeDbTable.delete(tableName = TABLE_NAME, id = id, database = database)
     }
 }

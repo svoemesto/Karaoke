@@ -10,15 +10,16 @@ fun mainAudioAnalize(args: Array<String>) {
     val file = File("/sm-karaoke/system/Infornal Fuckъ - Конунг Олаф Моржовый Хер/Конунг Олаф Моржовый Хер.wav")
 //    val audioInputStream = AudioSystem.getAudioInputStream(file)
     val dispatcher = AudioDispatcherFactory.fromFile(file, 2048, 0)
-    val silenceDetector = PitchProcessor(PitchProcessor.PitchEstimationAlgorithm.YIN, 22050f, 2048) { pitchDetectionResult, _ ->
-        val pitchInHz = pitchDetectionResult.pitch
-        if (pitchInHz != -1f) {
-            val note = getNoteFromPitch(pitchInHz)
-            println("Detected pitch: $pitchInHz Hz ($note)")
-        } else {
-            println("No pitch detected")
+    val silenceDetector =
+        PitchProcessor(PitchProcessor.PitchEstimationAlgorithm.YIN, 22050f, 2048) { pitchDetectionResult, _ ->
+            val pitchInHz = pitchDetectionResult.pitch
+            if (pitchInHz != -1f) {
+                val note = getNoteFromPitch(pitchInHz)
+                println("Detected pitch: $pitchInHz Hz ($note)")
+            } else {
+                println("No pitch detected")
+            }
         }
-    }
     dispatcher.addAudioProcessor(silenceDetector)
     dispatcher.run()
 }
@@ -29,8 +30,8 @@ fun getNoteFromPitch(pitchInHz: Float): String {
     return "${getNoteName(note)}$octave"
 }
 
-fun getNoteName(note: Int): String {
-    return when (note) {
+fun getNoteName(note: Int): String =
+    when (note) {
         0 -> "C"
         1 -> "C#"
         2 -> "D"
@@ -45,4 +46,3 @@ fun getNoteName(note: Int): String {
         11 -> "B"
         else -> "Unknown"
     }
-}

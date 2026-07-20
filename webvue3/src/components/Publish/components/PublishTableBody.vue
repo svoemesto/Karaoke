@@ -3,18 +3,18 @@
     <div class="table-publish-body-center-column">
       <PublishTableHead :publish-row="publishDigest[0]" />
       <div
-          class="tr-center-block"
           v-for="publishRow in publishDigest"
           :key="publishRow.csrId"
+          class="tr-center-block"
       >
-        <div class="tr-left-block" v-text="publishRow.csrName"></div>
+        <div class="tr-left-block" v-text="publishRow.csrName"/>
         <PublishTableBodyTd
             v-for="csrCell in publishRow.csrCells"
             :key="csrCell.cscId"
             :publish="csrCell.settingsDTO"
             :publish-digest="publishDigest"
         />
-        <div class="tr-right-block" v-text="publishRow.csrName"></div>
+        <div class="tr-right-block" v-text="publishRow.csrName"/>
       </div>
       <PublishTableHead :publish-row="publishDigest[0]" />
     </div>

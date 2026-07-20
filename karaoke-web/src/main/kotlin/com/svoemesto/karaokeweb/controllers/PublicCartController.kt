@@ -38,8 +38,7 @@ class PublicCartController(
 ) {
     private val db get() = WORKING_DATABASE
 
-    private fun currentUser(request: HttpServletRequest): SiteUser =
-        request.getAttribute(SiteAuthInterceptor.SITE_USER_ATTR) as SiteUser
+    private fun currentUser(request: HttpServletRequest): SiteUser = request.getAttribute(SiteAuthInterceptor.SITE_USER_ATTR) as SiteUser
 
     private fun songInfo(idSong: Long): Settings? =
         Settings.loadFromDbById(idSong, db, storageService = storageService, storageApiClient = storageApiClient)
@@ -83,7 +82,10 @@ class PublicCartController(
     // ---- Добавить/убрать (тумблер, как избранное) --------------------------------------------------
 
     @PostMapping("/toggle")
-    fun toggle(@RequestParam songId: Long, request: HttpServletRequest): ResponseEntity<Any> {
+    fun toggle(
+        @RequestParam songId: Long,
+        request: HttpServletRequest,
+    ): ResponseEntity<Any> {
         val user = currentUser(request)
         val existing = CartItem.getByUserAndSong(user.id, songId, db, storageService, storageApiClient)
         if (existing != null) {
@@ -92,8 +94,9 @@ class PublicCartController(
         }
         val settings = songInfo(songId) ?: return ResponseEntity.notFound().build()
         if (settings.idTariff < 0) return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(mapOf("error" to "song_not_for_subscription"))
-        if (Subscription.isSubscribedToSong(user.id, songId, db, storageService, storageApiClient))
+        if (Subscription.isSubscribedToSong(user.id, songId, db, storageService, storageApiClient)) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(mapOf("error" to "already_subscribed"))
+        }
         CartItem.createNew(user.id, songId, db, storageService, storageApiClient)
         return ResponseEntity.ok(mapOf("inCart" to true))
     }
@@ -108,33 +111,40 @@ class PublicCartController(
         if (items.isEmpty()) {
             return ResponseEntity.ok(mapOf("items" to emptyList<Any>(), "total" to 0.0, "paymentsEnabled" to paymentsEnabled))
         }
-        val tariff = PriceTariff.getDefault(Subscription.SCOPE_SONG, db, storageService, storageApiClient)
-            ?: return ResponseEntity.status(HttpStatus.NOT_FOUND).body(mapOf("error" to "no_tariff"))
+        val tariff =
+            PriceTariff.getDefault(Subscription.SCOPE_SONG, db, storageService, storageApiClient)
+                ?: return ResponseEntity.status(HttpStatus.NOT_FOUND).body(mapOf("error" to "no_tariff"))
         val prices = priceService.computeCartPrice(tariff, items.size, user, db, storageService, storageApiClient)
-        val rows = items.zip(prices).map { (item, p) ->
-            val settings = songInfo(item.idSong)
+        val rows =
+            items.zip(prices).map { (item, p) ->
+                val settings = songInfo(item.idSong)
+                mapOf(
+                    "songId" to item.idSong,
+                    "songName" to settings?.songName,
+                    "author" to settings?.author,
+                    "base" to p.base,
+                    "discount" to p.discount,
+                    "final" to p.final,
+                    "promoApplied" to p.promoApplied,
+                    "personalDiscountPercent" to p.personalDiscountPercent,
+                )
+            }
+        return ResponseEntity.ok(
             mapOf(
-                "songId" to item.idSong,
-                "songName" to settings?.songName,
-                "author" to settings?.author,
-                "base" to p.base,
-                "discount" to p.discount,
-                "final" to p.final,
-                "promoApplied" to p.promoApplied,
-                "personalDiscountPercent" to p.personalDiscountPercent,
-            )
-        }
-        return ResponseEntity.ok(mapOf(
-            "items" to rows,
-            "total" to rows.sumOf { it["final"] as Double },
-            "paymentsEnabled" to paymentsEnabled,
-        ))
+                "items" to rows,
+                "total" to rows.sumOf { it["final"] as Double },
+                "paymentsEnabled" to paymentsEnabled,
+            ),
+        )
     }
 
     // ---- Оформление заказа целиком ------------------------------------------------------------------
 
     @PostMapping("/checkout")
-    fun checkout(@RequestParam disclaimerAccepted: Boolean, request: HttpServletRequest): ResponseEntity<Any> {
+    fun checkout(
+        @RequestParam disclaimerAccepted: Boolean,
+        request: HttpServletRequest,
+    ): ResponseEntity<Any> {
         if (!disclaimerAccepted) return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(mapOf("error" to "disclaimer_required"))
         val user = currentUser(request)
         // loadCartCleaned уже убрала из корзины то, что успели купить напрямую, минуя корзину, —
@@ -145,27 +155,31 @@ class PublicCartController(
         val eligible = cartItems.filter { item -> songInfo(item.idSong)?.idTariff?.let { it >= 0 } == true }
         if (eligible.isEmpty()) return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(mapOf("error" to "cart_empty"))
 
-        val tariff = PriceTariff.getDefault(Subscription.SCOPE_SONG, db, storageService, storageApiClient)
-            ?: return ResponseEntity.status(HttpStatus.NOT_FOUND).body(mapOf("error" to "no_tariff"))
+        val tariff =
+            PriceTariff.getDefault(Subscription.SCOPE_SONG, db, storageService, storageApiClient)
+                ?: return ResponseEntity.status(HttpStatus.NOT_FOUND).body(mapOf("error" to "no_tariff"))
         val prices = priceService.computeCartPrice(tariff, eligible.size, user, db, storageService, storageApiClient)
 
         val orderId = UUID.randomUUID().toString()
-        val subs = eligible.zip(prices).mapNotNull { (item, p) ->
-            Subscription.createNew(
-                siteUserId = user.id,
-                scope = Subscription.SCOPE_SONG,
-                idSong = item.idSong,
-                tariffId = tariff.id,
-                periodDays = tariff.periodDays,
-                basePrice = p.base,
-                discount = p.discount,
-                finalPrice = p.final,
-                promoApplied = p.promoApplied ?: "",
-                autoRenew = false,
-                database = db, storageService = storageService, storageApiClient = storageApiClient,
-                orderId = orderId,
-            )
-        }
+        val subs =
+            eligible.zip(prices).mapNotNull { (item, p) ->
+                Subscription.createNew(
+                    siteUserId = user.id,
+                    scope = Subscription.SCOPE_SONG,
+                    idSong = item.idSong,
+                    tariffId = tariff.id,
+                    periodDays = tariff.periodDays,
+                    basePrice = p.base,
+                    discount = p.discount,
+                    finalPrice = p.final,
+                    promoApplied = p.promoApplied ?: "",
+                    autoRenew = false,
+                    database = db,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                    orderId = orderId,
+                )
+            }
         if (subs.size != eligible.size) return ResponseEntity.internalServerError().body(mapOf("error" to "create_failed"))
 
         // Заказ теперь живёт как записи Subscription — очищаем оформленные позиции из корзины сразу.
@@ -193,6 +207,12 @@ class PublicCartController(
             sub.status = Subscription.STATUS_PENDING
             sub.save()
         }
-        return ResponseEntity.ok(mapOf("orderId" to orderId, "status" to "PENDING", "confirmationUrl" to payment.confirmation?.confirmation_url))
+        return ResponseEntity.ok(
+            mapOf(
+                "orderId" to orderId,
+                "status" to "PENDING",
+                "confirmationUrl" to payment.confirmation?.confirmation_url,
+            ),
+        )
     }
 }

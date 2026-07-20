@@ -12,22 +12,22 @@
 
             <div class="picfm-filter-row">
               <div class="picfm-row-label">
-                <div v-text="'ID:'"></div>
+                <div v-text="'ID:'"/>
               </div>
               <div class="picfm-row-input">
-                <input class="picfm-input-field" v-model="picturesFilterId">
+                <input v-model="picturesFilterId" class="picfm-input-field"/>
               </div>
-              <button :disabled="!picturesFilterId" class="picfm-button-clear-field" @click.left="picturesFilterId=''" v-text="'X'"></button>
+              <button :disabled="!picturesFilterId" class="picfm-button-clear-field" @click.left="picturesFilterId=''" v-text="'X'"/>
             </div>
 
             <div class="picfm-filter-row">
               <div class="picfm-row-label">
-                <div v-text="'Имя:'"></div>
+                <div v-text="'Имя:'"/>
               </div>
               <div class="picfm-row-input">
-                <input class="picfm-input-field" v-model="picturesFilterName">
+                <input v-model="picturesFilterName" class="picfm-input-field"/>
               </div>
-              <button :disabled="!picturesFilterName" class="picfm-button-clear-field" @click.left="picturesFilterName=''" v-text="'X'"></button>
+              <button :disabled="!picturesFilterName" class="picfm-button-clear-field" @click.left="picturesFilterName=''" v-text="'X'"/>
             </div>
 
           </div>
@@ -47,10 +47,6 @@
 
 export default {
   name: "PicturesFilterModal",
-  async beforeMount() {
-    this.$store.dispatch('setPicturesFilterId', { value: await this.$store.getters.getWebvueProp('picturesFilterId', '') });
-    this.$store.dispatch('setPicturesFilterName', { value: await this.$store.getters.getWebvueProp('picturesFilterName', '') });
-  },
   computed: {
     picturesFilterId: {
       get() { return this.$store.getters.getPicturesFilterId; },
@@ -60,6 +56,10 @@ export default {
       get() { return this.$store.getters.getPicturesFilterName; },
       set(value) { this.$store.dispatch('setPicturesFilterName', { value: value }); }
     }
+  },
+  async beforeMount() {
+    this.$store.dispatch('setPicturesFilterId', { value: await this.$store.getters.getWebvueProp('picturesFilterId', '') });
+    this.$store.dispatch('setPicturesFilterName', { value: await this.$store.getters.getWebvueProp('picturesFilterName', '') });
   },
   methods: {
     ok() {

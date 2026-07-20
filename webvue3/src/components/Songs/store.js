@@ -1,5 +1,33 @@
 import { promisedXMLHttpRequest } from '../../lib/utils'
 // import {useIntervalFn} from "@vueuse/core";
+
+/**
+ * Vuex-модуль для таблицы песен в `webvue3`.
+ *
+ * **State** (см. код ниже):
+ * - `toSync` — флаг, что локальный state требует синхронизации с сервером.
+ * - `songs` — массив `SettingsDTO` (текущая страница).
+ * - `countRows` — общее количество песен (для пагинации).
+ * - `songsTableCurrentPage` — текущая страница (1-based, persistent в `localStorage` через Vuex).
+ * - `selectedRows` — массив ID выбранных строк (для bulk-операций).
+ *
+ * **Vuex-паттерны** (см. DEVELOPMENT.md#vuex-паттерны-songsstorejs):
+ * - **Mutations** — только sync-присвоение `state`. Никаких async-операций.
+ * - **Actions** — async (XHR, dispatch), `commit` после получения ответа.
+ * - **HR-запросы** — через очередь (`HR_MAX_CONCURRENT=3`) во избежание
+ *   перегрузки сервера при быстром скроллинге/пагинации.
+ * - **SSE** — подписка на `recordChange`/`recordDelete` через
+ *   `subscribeToSse()` (см. `actions.subscribeToSse`); не локальный
+ *   рендеринг после мутации.
+ *
+ * **Persistence** (см. AGENTS.md):
+ * - `songsTableCurrentPage` хранится в Vuex + `localStorage` — переживает F5.
+ * - Фильтры — в отдельном `Songs/filter/store.js` + `setWebvueProp`/`getWebvueProp`.
+ *
+ * @see SongsTable.vue UI-компонент
+ * @see docs/features/sse-notifications.md
+ * @see docs/features/dual-db-sync.md
+ */
 export default {
     state: {
         toSync: false,

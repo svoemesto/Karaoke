@@ -1,0 +1,94 @@
+# Pre-commit хуки для Karaoke.
+#
+# Установка:
+#   pip install pre-commit
+#   pre-commit install
+#
+# Запуск вручную (на всех файлах):
+#   pre-commit run --all-files
+#
+# Обход при срочном коммите:
+#   git commit --no-verify
+#
+# Документация: https://pre-commit.com/
+
+repos:
+  - repo: local
+    hooks:
+      # === Kotlin: ktlint ===
+      - id: ktlint
+        name: ktlint (Kotlin formatter)
+        entry: ./gradlew ktlintCheck
+        language: system
+        pass_filenames: false
+        types_or: [kotlin, java]
+        # Только когда меняется Kotlin-код
+        stages: [pre-commit]
+
+      # === Kotlin: detekt ===
+      - id: detekt
+        name: detekt (Kotlin code smells)
+        entry: ./gradlew detekt
+        language: system
+        pass_filenames: false
+        types_or: [kotlin, java]
+        stages: [pre-commit]
+
+      # === Vue/TS: eslint (webvue3) ===
+      - id: eslint-webvue3
+        name: eslint (webvue3 admin SPA)
+        entry: bash -c 'cd webvue3 && npm run lint:check'
+        language: system
+        pass_filenames: false
+        files: '^webvue3/.*\.(vue|js|ts)$'
+        stages: [pre-commit]
+
+      # === Vue/TS: eslint (karaoke-public) ===
+      - id: eslint-karaoke-public
+        name: eslint (karaoke-public public SPA)
+        entry: bash -c 'cd karaoke-public && npm run lint:check'
+        language: system
+        pass_filenames: false
+        files: '^karaoke-public/.*\.(vue|js|ts)$'
+        stages: [pre-commit]
+
+      # === Vue/TS: prettier (webvue3) ===
+      - id: prettier-webvue3
+        name: prettier (webvue3)
+        entry: bash -c 'cd webvue3 && npx prettier --check "src/**/*.{vue,js,ts,json}"'
+        language: system
+        pass_filenames: false
+        files: '^webvue3/.*\.(vue|js|ts|json)$'
+        stages: [pre-commit]
+
+      # === Vue/TS: prettier (karaoke-public) ===
+      - id: prettier-karaoke-public
+        name: prettier (karaoke-public)
+        entry: bash -c 'cd karaoke-public && npx prettier --check "src/**/*.{vue,js,ts,json}"'
+        language: system
+        pass_filenames: false
+        files: '^karaoke-public/.*\.(vue|js|ts|json)$'
+        stages: [pre-commit]
+
+      # === Markdown: проверка ссылок в документации ===
+      - id: verify-doc-links
+        name: lychee (verify documentation links)
+        entry: ./tools/verify-doc-links.sh
+        language: system
+        pass_filenames: false
+        files: '\.(md|markdown)$'
+        stages: [pre-commit]
+
+      # === Markdown: проверка per-feature документов (6 секций, slug, status) ===
+      - id: check-feature-doc
+        name: check per-feature document structure
+        entry: bash -c './tools/check-feature-doc.sh docs/features/*.md'
+        language: system
+        pass_filenames: false
+        files: '^docs/features/.*\.md$'
+        stages: [pre-commit]
+
+# Общие настройки
+fail_fast: false   # Прогоняем все хуки даже если один упал — даём полный отчёт
+default_install_hook_types: [pre-commit]
+default_stages: [pre-commit]

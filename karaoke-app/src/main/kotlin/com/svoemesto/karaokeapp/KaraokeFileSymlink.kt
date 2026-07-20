@@ -8,13 +8,15 @@ import java.nio.file.Paths
 import kotlin.io.path.Path
 
 data class KaraokeFileSymlink(
-    val folder: String,     // имя папки внутри root_folder-а
-    val name: String = "",   // имя файла ссылки. Если пустое - имя совпадает с файлом, на который указывает ссылка.
+    val folder: String, // имя папки внутри root_folder-а
+    val name: String = "", // имя файла ссылки. Если пустое - имя совпадает с файлом, на который указывает ссылка.
     val platforms: List<KaraokePlatform> = emptyList(), // Платформы, для которых актуально. Пустой список - для всех.
     val songVersions: List<SongVersion> = emptyList(), // Версии, для которых актуально. Пустой список - для всех.
 ) {
-
-    fun pathToSymlinkFile(rootFolder: String, pathToTargetFile: String): String {
+    fun pathToSymlinkFile(
+        rootFolder: String,
+        pathToTargetFile: String,
+    ): String {
         val pathToSymlinkFolder = "$rootFolder/$folder"
         val symlinkFileName = if (name == "") File(pathToTargetFile).name else name
         val pathToSymlinkFile = "$pathToSymlinkFolder/$symlinkFileName"
@@ -22,7 +24,11 @@ data class KaraokeFileSymlink(
     }
 
     // Проверка наличия файла симлинка на диске
-    fun exists(rootFolder: String, pathToTargetFile: String, description: String = ""): Boolean {
+    fun exists(
+        rootFolder: String,
+        pathToTargetFile: String,
+        description: String = "",
+    ): Boolean {
         val pathToSymlinkFolder = "$rootFolder/$folder"
         val symlinkFileName = if (name == "") File(pathToTargetFile).name else name
         val pathToSymlinkFile = "$pathToSymlinkFolder/$symlinkFileName"
@@ -30,8 +36,10 @@ data class KaraokeFileSymlink(
     }
 
     // Проверка на корректность. Файл должен ссылаться на правильный существующий файл
-    fun broken(rootFolder: String, pathToTargetFile: String): Boolean {
-
+    fun broken(
+        rootFolder: String,
+        pathToTargetFile: String,
+    ): Boolean {
         var broken: Boolean
         if (!exists(rootFolder = rootFolder, pathToTargetFile = pathToTargetFile)) return false
 
@@ -69,7 +77,10 @@ data class KaraokeFileSymlink(
         return broken
     }
 
-    fun actionToCreate(rootFolder: String, pathToTargetFile: String): () -> Unit {
+    fun actionToCreate(
+        rootFolder: String,
+        pathToTargetFile: String,
+    ): () -> Unit {
         val pathToSymlinkFolder = "$rootFolder/$folder"
         val symlinkFileName = if (name == "") File(pathToTargetFile).name else name
         val pathToSymlinkFile = "$pathToSymlinkFolder/$symlinkFileName"
@@ -86,24 +97,28 @@ data class KaraokeFileSymlink(
             }
 
             runCommand(
-                args = listOf(
-                    "ln", "-s",
-                    calculateRelativePathForSymlink(
-                        targetAbsolutePath = pathToTargetFile,
-                        symlinkAbsolutePath = pathToSymlinkFile
-                    ).wrapInQuotes(),
-                    pathToSymlinkFile
-                )
+                args =
+                    listOf(
+                        "ln",
+                        "-s",
+                        calculateRelativePathForSymlink(
+                            targetAbsolutePath = pathToTargetFile,
+                            symlinkAbsolutePath = pathToSymlinkFile,
+                        ).wrapInQuotes(),
+                        pathToSymlinkFile,
+                    ),
             )
             runCommand(args = listOf("chmod", "666", pathToSymlinkFile))
         }
     }
 
-    fun actionToDelete(rootFolder: String, pathToTargetFile: String): () -> Unit {
+    fun actionToDelete(
+        rootFolder: String,
+        pathToTargetFile: String,
+    ): () -> Unit {
         val pathToSymlinkFolder = "$rootFolder/$folder"
         val symlinkFileName = if (name == "") File(pathToTargetFile).name else name
         val pathToSymlinkFile = "$pathToSymlinkFolder/$symlinkFileName"
         return actionToDeleteFileAndFolderIfFolderEmpty(pathToFile = pathToSymlinkFile)
     }
-
 }

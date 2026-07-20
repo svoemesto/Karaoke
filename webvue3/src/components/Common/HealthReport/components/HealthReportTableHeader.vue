@@ -1,6 +1,6 @@
 <template>
   <div class="hrl-table-footer">
-    <button type="button" class="hrl-table-header-button-repair-all" @click="repairAll" :disabled="healthReportListCanRepair.length === 0">Repair All ({{healthReportListCanRepair.length}})</button>
+    <button type="button" class="hrl-table-header-button-repair-all" :disabled="healthReportListCanRepair.length === 0" @click="repairAll">Repair All ({{healthReportListCanRepair.length}})</button>
   </div>
 </template>
 

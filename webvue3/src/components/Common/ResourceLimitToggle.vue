@@ -19,6 +19,9 @@ export default {
       enabled: false
     }
   },
+  mounted() {
+    this.load();
+  },
   methods: {
     load() {
       this.$store.dispatch('getPropertyValuePromise', PROPERTY_KEY).then(property => {
@@ -31,9 +34,6 @@ export default {
         this.enabled = newValue;
       });
     }
-  },
-  mounted() {
-    this.load();
   }
 }
 </script>

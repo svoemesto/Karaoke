@@ -16,9 +16,7 @@ import org.springframework.web.bind.annotation.*
 class PublicAccountController(
     private val passwordEncoder: PasswordEncoder,
 ) {
-
-    private fun currentUser(request: HttpServletRequest): SiteUser =
-        request.getAttribute(SiteAuthInterceptor.SITE_USER_ATTR) as SiteUser
+    private fun currentUser(request: HttpServletRequest): SiteUser = request.getAttribute(SiteAuthInterceptor.SITE_USER_ATTR) as SiteUser
 
     @GetMapping("/profile")
     fun profile(request: HttpServletRequest): SiteUserDto = currentUser(request).toDTO()

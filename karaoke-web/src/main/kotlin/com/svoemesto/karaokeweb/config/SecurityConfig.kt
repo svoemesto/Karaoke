@@ -11,7 +11,6 @@ import org.springframework.security.web.SecurityFilterChain
 @Configuration
 @EnableWebSecurity
 class SecurityConfig {
-
     // karaoke-web не сканирует пакет com.svoemesto.karaokeapp.config (нет @ComponentScan туда), поэтому
     // одноимённый бин из karaoke-app (SecurityConfig.kt) сюда не долетает — нужен собственный.
     @Bean
@@ -22,10 +21,12 @@ class SecurityConfig {
         http
             .authorizeHttpRequests { requests ->
                 requests
-                    .requestMatchers("/api/**").permitAll() // Разрешить доступ к /api/**
+                    .requestMatchers("/api/**")
+                    .permitAll() // Разрешить доступ к /api/**
                     // Добавьте другие публичные пути, если нужно, например:
                     // .requestMatchers("/", "/index.html", "/static/**", "/webjars/**").permitAll()
-                    .anyRequest().permitAll() // Позволяет всем остальным запросам быть доступными без аутентификации
+                    .anyRequest()
+                    .permitAll() // Позволяет всем остальным запросам быть доступными без аутентификации
                 // Если вы хотите, чтобы остальные пути (не /api/**) всё же требовали логина,
                 // замените .anyRequest().permitAll() на:
                 // .anyRequest().authenticated()

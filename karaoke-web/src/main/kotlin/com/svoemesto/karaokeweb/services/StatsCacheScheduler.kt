@@ -21,7 +21,6 @@ import org.springframework.stereotype.Service
  */
 @Service
 class StatsCacheScheduler {
-
     /**
      * Холодный старт: один синхронный пересчёт сразу после инициализации бина, чтобы первый
      * запрос /api/public/stats после рестарта не вернул нули. Если БД недоступна — refreshCache

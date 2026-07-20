@@ -18,8 +18,9 @@ class SiteUser(
     override val database: KaraokeConnection = WORKING_DATABASE,
     override val storageService: KaraokeStorageService = KSS_APP,
     override val storageApiClient: StorageApiClient = SAC_APP,
-) : Serializable, Comparable<SiteUser>, KaraokeDbTable {
-
+) : Serializable,
+    Comparable<SiteUser>,
+    KaraokeDbTable {
     override fun getTableName() = TABLE_NAME
 
     @KaraokeDbTableField(name = "id", isId = true)
@@ -72,9 +73,10 @@ class SiteUser(
     val isEffectivePremium: Boolean
         get() {
             val now = System.currentTimeMillis()
-            return isPremium || isPermanentPremium
-                    || (sponsrPremiumUntil?.time?.let { it > now } == true)
-                    || (sitePremiumUntil?.time?.let { it > now } == true)
+            return isPremium ||
+                isPermanentPremium ||
+                (sponsrPremiumUntil?.time?.let { it > now } == true) ||
+                (sitePremiumUntil?.time?.let { it > now } == true)
         }
 
     // Вызывается сразу после того, как код перевёл пользователя в isEffectivePremium=true (оплата
@@ -126,40 +128,46 @@ class SiteUser(
 
     override fun compareTo(other: SiteUser): Int = email.compareTo(other.email)
 
-    fun checkPassword(rawPassword: String, passwordEncoder: PasswordEncoder): Boolean =
-        passwordEncoder.matches(rawPassword, passwordHash)
+    fun checkPassword(
+        rawPassword: String,
+        passwordEncoder: PasswordEncoder,
+    ): Boolean = passwordEncoder.matches(rawPassword, passwordHash)
 
-    fun setPassword(rawPassword: String, passwordEncoder: PasswordEncoder) {
+    fun setPassword(
+        rawPassword: String,
+        passwordEncoder: PasswordEncoder,
+    ) {
         passwordHash = passwordEncoder.encode(rawPassword)
     }
 
-    override fun toDTO(): SiteUserDto = SiteUserDto(
-        id = id,
-        email = email,
-        displayName = displayName,
-        sponsrUid = sponsrUid,
-        isPremium = isPremium,
-        isPermanentPremium = isPermanentPremium,
-        isEffectivePremium = isEffectivePremium,
-        sponsrPremiumUntil = sponsrPremiumUntil?.toString(),
-        sitePremiumUntil = sitePremiumUntil?.toString(),
-        personalDiscountPercent = personalDiscountPercent,
-        isEditor = isEditor,
-        isBanned = isBanned,
-        banReason = banReason,
-        maxFavorites = maxFavorites,
-        maxPlaylists = maxPlaylists,
-        maxPlaylistItems = maxPlaylistItems,
-        createdAt = createdAt.toString(),
-        lastLoginAt = lastLoginAt.toString(),
-        welcomeMessageSent = welcomeMessageSent,
-    )
+    override fun toDTO(): SiteUserDto =
+        SiteUserDto(
+            id = id,
+            email = email,
+            displayName = displayName,
+            sponsrUid = sponsrUid,
+            isPremium = isPremium,
+            isPermanentPremium = isPermanentPremium,
+            isEffectivePremium = isEffectivePremium,
+            sponsrPremiumUntil = sponsrPremiumUntil?.toString(),
+            sitePremiumUntil = sitePremiumUntil?.toString(),
+            personalDiscountPercent = personalDiscountPercent,
+            isEditor = isEditor,
+            isBanned = isBanned,
+            banReason = banReason,
+            maxFavorites = maxFavorites,
+            maxPlaylists = maxPlaylists,
+            maxPlaylistItems = maxPlaylistItems,
+            createdAt = createdAt.toString(),
+            lastLoginAt = lastLoginAt.toString(),
+            welcomeMessageSent = welcomeMessageSent,
+        )
 
     companion object {
-
         const val TABLE_NAME = "tbl_site_users"
 
-        const val WELCOME_PREMIUM_MESSAGE = "Приветствую!\n" +
+        const val WELCOME_PREMIUM_MESSAGE =
+            "Приветствую!\n" +
                 "Спасибо за оформление премиум-подписки — это действительно очень важно для меня.\n" +
                 "Надеюсь, что пользование этим сервисом доставит радость и удовольствие!\n" +
                 "Если будут какие-то вопросы или предложения — я всегда открыт к диалогу.\n" +
@@ -171,8 +179,14 @@ class SiteUser(
             val where: MutableList<String> = mutableListOf()
             if (whereArgs.containsKey("id")) where += "id=${whereArgs["id"]}"
             if (whereArgs.containsKey("email")) where += "LOWER(email) LIKE '%${whereArgs["email"]?.lowercase()?.replace("'", "''")}%'"
-            if (whereArgs.containsKey("displayName")) where += "LOWER(display_name) LIKE '%${whereArgs["displayName"]?.lowercase()?.replace("'", "''")}%'"
-            if (whereArgs.containsKey("sponsrUid")) where += "LOWER(sponsr_uid) LIKE '%${whereArgs["sponsrUid"]?.lowercase()?.replace("'", "''")}%'"
+            if (whereArgs.containsKey("displayName")) {
+                where +=
+                    "LOWER(display_name) LIKE '%${whereArgs["displayName"]?.lowercase()?.replace("'", "''")}%'"
+            }
+            if (whereArgs.containsKey("sponsrUid")) {
+                where +=
+                    "LOWER(sponsr_uid) LIKE '%${whereArgs["sponsrUid"]?.lowercase()?.replace("'", "''")}%'"
+            }
             if (whereArgs.containsKey("isPremium")) {
                 if (whereArgs["isPremium"] == "+" || whereArgs["isPremium"] == "true") {
                     where += "is_premium = true"
@@ -190,7 +204,8 @@ class SiteUser(
             if (whereArgs.containsKey("isEffectivePremium")) {
                 // Зеркалит логику геттера isEffectivePremium (см. выше) в SQL — эта величина не
                 // хранится отдельной колонкой, а считается на лету из 4 полей + текущего времени.
-                val effectivePremiumExpr = "(is_premium = true OR is_permanent_premium = true " +
+                val effectivePremiumExpr =
+                    "(is_premium = true OR is_permanent_premium = true " +
                         "OR (sponsr_premium_until IS NOT NULL AND sponsr_premium_until > now()) " +
                         "OR (site_premium_until IS NOT NULL AND site_premium_until > now()))"
                 if (whereArgs["isEffectivePremium"] == "+" || whereArgs["isEffectivePremium"] == "true") {
@@ -223,18 +238,18 @@ class SiteUser(
             database: KaraokeConnection,
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
-        ): List<SiteUser> {
-            return KaraokeDbTable.loadList(
-                clazz = SiteUser::class,
-                tableName = TABLE_NAME,
-                whereList = getWhereList(whereArgs),
-                limit = limit,
-                offset = offset,
-                database = database,
-                storageService = storageService,
-                storageApiClient = storageApiClient,
-            ).map { it as SiteUser }
-        }
+        ): List<SiteUser> =
+            KaraokeDbTable
+                .loadList(
+                    clazz = SiteUser::class,
+                    tableName = TABLE_NAME,
+                    whereList = getWhereList(whereArgs),
+                    limit = limit,
+                    offset = offset,
+                    database = database,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                ).map { it as SiteUser }
 
         // Пользователи, у которых подписка на сайт истекает до указанного момента (включая уже
         // истёкшую — грейс-период для повторных попыток автосписания после сбоя). Используется
@@ -245,36 +260,47 @@ class SiteUser(
             database: KaraokeConnection,
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
-        ): List<SiteUser> = KaraokeDbTable.loadList(
-            clazz = SiteUser::class,
-            tableName = TABLE_NAME,
-            whereList = listOf("site_premium_until IS NOT NULL", "site_premium_until < '$before'::timestamp"),
-            database = database,
-            storageService = storageService,
-            storageApiClient = storageApiClient,
-        ).map { it as SiteUser }
+        ): List<SiteUser> =
+            KaraokeDbTable
+                .loadList(
+                    clazz = SiteUser::class,
+                    tableName = TABLE_NAME,
+                    whereList = listOf("site_premium_until IS NOT NULL", "site_premium_until < '$before'::timestamp"),
+                    database = database,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                ).map { it as SiteUser }
 
-        fun getSiteUserById(id: Long, database: KaraokeConnection, storageService: KaraokeStorageService, storageApiClient: StorageApiClient): SiteUser? {
-            return KaraokeDbTable.loadById(
+        fun getSiteUserById(
+            id: Long,
+            database: KaraokeConnection,
+            storageService: KaraokeStorageService,
+            storageApiClient: StorageApiClient,
+        ): SiteUser? =
+            KaraokeDbTable.loadById(
                 clazz = SiteUser::class,
                 tableName = TABLE_NAME,
                 id = id,
                 database = database,
                 storageService = storageService,
-                storageApiClient = storageApiClient
+                storageApiClient = storageApiClient,
             ) as? SiteUser?
-        }
 
-        fun getSiteUserByEmail(email: String, database: KaraokeConnection, storageService: KaraokeStorageService, storageApiClient: StorageApiClient): SiteUser? {
-            return KaraokeDbTable.loadList(
-                clazz = SiteUser::class,
-                tableName = TABLE_NAME,
-                whereList = listOf("LOWER(email) = LOWER('${email.replace("'", "''")}')"),
-                database = database,
-                storageService = storageService,
-                storageApiClient = storageApiClient
-            ).firstOrNull() as? SiteUser?
-        }
+        fun getSiteUserByEmail(
+            email: String,
+            database: KaraokeConnection,
+            storageService: KaraokeStorageService,
+            storageApiClient: StorageApiClient,
+        ): SiteUser? =
+            KaraokeDbTable
+                .loadList(
+                    clazz = SiteUser::class,
+                    tableName = TABLE_NAME,
+                    whereList = listOf("LOWER(email) = LOWER('${email.replace("'", "''")}')"),
+                    database = database,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                ).firstOrNull() as? SiteUser?
 
         fun createNewSiteUser(
             email: String,
@@ -296,9 +322,10 @@ class SiteUser(
             return KaraokeDbTable.createDbInstance(entity = newUser, database = database) as? SiteUser?
         }
 
-        fun deleteSiteUser(id: Long, database: KaraokeConnection): Boolean {
-            return KaraokeDbTable.delete(tableName = TABLE_NAME, id = id, database = database)
-        }
+        fun deleteSiteUser(
+            id: Long,
+            database: KaraokeConnection,
+        ): Boolean = KaraokeDbTable.delete(tableName = TABLE_NAME, id = id, database = database)
 
         // Поиск по email ИЛИ имени одной подстрокой (OR, не выразить через getWhereList — там поля
         // ANDятся) — для «Начать чат» в webvue3 (ChatController.searchUsers). Raw-SELECT id-шников
@@ -326,14 +353,15 @@ class SiteUser(
                 println("SiteUser.searchByTerm SQLException: ${e.message}")
             }
             if (ids.isEmpty()) return emptyList()
-            return KaraokeDbTable.loadByIds(
-                clazz = SiteUser::class,
-                tableName = TABLE_NAME,
-                ids = ids,
-                database = database,
-                storageService = storageService,
-                storageApiClient = storageApiClient,
-            ).map { it as SiteUser }
+            return KaraokeDbTable
+                .loadByIds(
+                    clazz = SiteUser::class,
+                    tableName = TABLE_NAME,
+                    ids = ids,
+                    database = database,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                ).map { it as SiteUser }
         }
     }
 }

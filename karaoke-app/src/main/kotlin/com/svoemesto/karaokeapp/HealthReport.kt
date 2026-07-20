@@ -22,10 +22,10 @@ data class HealthReport(
     val canResolve: Boolean = false,
     val problemText: String = "",
     val solutionText: String = "",
-    val solutionActions: List<() -> Unit> = emptyList()
+    val solutionActions: List<() -> Unit> = emptyList(),
 ) {
-    fun toDTO(): HealthReportDTO {
-        return HealthReportDTO(
+    fun toDTO(): HealthReportDTO =
+        HealthReportDTO(
             settingsId = settings.id,
             settingsFileName = settings.fileName,
             description = description,
@@ -34,14 +34,12 @@ data class HealthReport(
             color = healthReportStatus.color,
             canResolve = canResolve,
             problemText = problemText,
-            solutionText = solutionText
+            solutionText = solutionText,
         )
-    }
 
     fun executeSolutionActions() = solutionActions.forEach { action -> action() }
 
     companion object {
-
         private fun actions(
             karaokeFileType: KaraokeFileType,
             karaokePlatform: KaraokePlatform?,
@@ -62,82 +60,83 @@ data class HealthReport(
             inProgressParentArgs: Map<String, String>,
             database: KaraokeConnection,
             storageService: KaraokeStorageService,
-            storageApiClient: StorageApiClient
+            storageApiClient: StorageApiClient,
         ): List<HealthReport> {
-
             // location добавляется в description, иначе local/remote-варианты одного и того же
             // karaokeFileType неотличимы друг от друга в getHealthReport() (одинаковые type/status/description)
             val locationDescription = "$description/${location.name}"
 
             return when (location) {
-                LOCAL_FILESYSTEM -> actionsLocalFileSystem(
-                    karaokeFileType = karaokeFileType,
-                    karaokePlatform = karaokePlatform,
-                    settings = settings,
-                    rootFolder = rootFolder,
-                    pathToFile = pathToFile,
-                    description = locationDescription,
-                    existsInLocalFileSystem = existsInLocalFileSystem,
-                    canBe = canBe,
-                    willBeInLocation = karaokeFileType.willBeInFileSystem,
-                    canResolve = canResolve,
-                    canCreate = canCreate,
-                    karaokeProcessTypesToCreate = karaokeProcessTypesToCreate,
-                    actionToCreate = actionToCreate,
-                    storageBucketName = storageBucketName,
-                    storageFileName = storageFileName,
-                    inProgressOwnArgs = inProgressOwnArgs,
-                    inProgressParentArgs = inProgressParentArgs,
-                    database = database,
-                    storageService = storageService,
-                    storageApiClient = storageApiClient
-                )
-                LOCAL_STORAGE -> actionsLocalStorage(
-                    karaokeFileType = karaokeFileType,
-                    karaokePlatform = karaokePlatform,
-                    settings = settings,
-                    rootFolder = rootFolder,
-                    pathToFile = pathToFile,
-                    description = locationDescription,
-                    existsInLocalFileSystem = existsInLocalFileSystem,
-                    canBe = canBe,
-                    willBeInLocation = karaokeFileType.willBeInLocalStorage,
-                    canResolve = canResolve,
-                    canCreate = canCreate,
-                    karaokeProcessTypesToCreate = karaokeProcessTypesToCreate,
-                    actionToCreate = actionToCreate,
-                    storageBucketName = storageBucketName,
-                    storageFileName = storageFileName,
-                    inProgressOwnArgs = inProgressOwnArgs,
-                    inProgressParentArgs = inProgressParentArgs,
-                    database = database,
-                    storageService = storageService,
-                    storageApiClient = storageApiClient
-                )
-                REMOTE_STORAGE -> actionsRemoteStorage(
-                    karaokeFileType = karaokeFileType,
-                    karaokePlatform = karaokePlatform,
-                    settings = settings,
-                    rootFolder = rootFolder,
-                    pathToFile = pathToFile,
-                    description = locationDescription,
-                    existsInLocalFileSystem = existsInLocalFileSystem,
-                    canBe = canBe,
-                    willBeInLocation = karaokeFileType.willBeInRemoteStorage,
-                    canResolve = canResolve,
-                    canCreate = canCreate,
-                    karaokeProcessTypesToCreate = karaokeProcessTypesToCreate,
-                    actionToCreate = actionToCreate,
-                    storageBucketName = storageBucketName,
-                    storageFileName = storageFileName,
-                    inProgressOwnArgs = inProgressOwnArgs,
-                    inProgressParentArgs = inProgressParentArgs,
-                    database = database,
-                    storageService = storageService,
-                    storageApiClient = storageApiClient
-                )
+                LOCAL_FILESYSTEM ->
+                    actionsLocalFileSystem(
+                        karaokeFileType = karaokeFileType,
+                        karaokePlatform = karaokePlatform,
+                        settings = settings,
+                        rootFolder = rootFolder,
+                        pathToFile = pathToFile,
+                        description = locationDescription,
+                        existsInLocalFileSystem = existsInLocalFileSystem,
+                        canBe = canBe,
+                        willBeInLocation = karaokeFileType.willBeInFileSystem,
+                        canResolve = canResolve,
+                        canCreate = canCreate,
+                        karaokeProcessTypesToCreate = karaokeProcessTypesToCreate,
+                        actionToCreate = actionToCreate,
+                        storageBucketName = storageBucketName,
+                        storageFileName = storageFileName,
+                        inProgressOwnArgs = inProgressOwnArgs,
+                        inProgressParentArgs = inProgressParentArgs,
+                        database = database,
+                        storageService = storageService,
+                        storageApiClient = storageApiClient,
+                    )
+                LOCAL_STORAGE ->
+                    actionsLocalStorage(
+                        karaokeFileType = karaokeFileType,
+                        karaokePlatform = karaokePlatform,
+                        settings = settings,
+                        rootFolder = rootFolder,
+                        pathToFile = pathToFile,
+                        description = locationDescription,
+                        existsInLocalFileSystem = existsInLocalFileSystem,
+                        canBe = canBe,
+                        willBeInLocation = karaokeFileType.willBeInLocalStorage,
+                        canResolve = canResolve,
+                        canCreate = canCreate,
+                        karaokeProcessTypesToCreate = karaokeProcessTypesToCreate,
+                        actionToCreate = actionToCreate,
+                        storageBucketName = storageBucketName,
+                        storageFileName = storageFileName,
+                        inProgressOwnArgs = inProgressOwnArgs,
+                        inProgressParentArgs = inProgressParentArgs,
+                        database = database,
+                        storageService = storageService,
+                        storageApiClient = storageApiClient,
+                    )
+                REMOTE_STORAGE ->
+                    actionsRemoteStorage(
+                        karaokeFileType = karaokeFileType,
+                        karaokePlatform = karaokePlatform,
+                        settings = settings,
+                        rootFolder = rootFolder,
+                        pathToFile = pathToFile,
+                        description = locationDescription,
+                        existsInLocalFileSystem = existsInLocalFileSystem,
+                        canBe = canBe,
+                        willBeInLocation = karaokeFileType.willBeInRemoteStorage,
+                        canResolve = canResolve,
+                        canCreate = canCreate,
+                        karaokeProcessTypesToCreate = karaokeProcessTypesToCreate,
+                        actionToCreate = actionToCreate,
+                        storageBucketName = storageBucketName,
+                        storageFileName = storageFileName,
+                        inProgressOwnArgs = inProgressOwnArgs,
+                        inProgressParentArgs = inProgressParentArgs,
+                        database = database,
+                        storageService = storageService,
+                        storageApiClient = storageApiClient,
+                    )
             }
-
         }
 
         private fun actionsLocalFileSystem(
@@ -160,7 +159,7 @@ data class HealthReport(
             inProgressParentArgs: Map<String, String>,
             database: KaraokeConnection,
             storageService: KaraokeStorageService,
-            storageApiClient: StorageApiClient
+            storageApiClient: StorageApiClient,
         ): List<HealthReport> {
             val result: MutableList<HealthReport> = mutableListOf()
             if (!willBeInLocation) return emptyList()
@@ -225,7 +224,7 @@ data class HealthReport(
             if (canBe) { // Файл должен быть
                 if (existsInLocalFileSystem) { // Файл реально существует
                     if (karaokeFileType.symlinks.any { it.platforms.contains(karaokePlatform) }) { // Если у файла должны быть симлинки
-                        karaokeFileType.symlinks.filter {it.platforms.contains(karaokePlatform)}.forEach { symlink ->
+                        karaokeFileType.symlinks.filter { it.platforms.contains(karaokePlatform) }.forEach { symlink ->
                             val pathToSymlinkFile = symlink.pathToSymlinkFile(rootFolder = rootFolder, pathToTargetFile = pathToFile)
 
                             var needToDelete = false
@@ -247,13 +246,13 @@ data class HealthReport(
 
                             if (needToDelete) {
                                 actions.add { println("actionsLocalFileSystem [Удаление симлинка] >>>") }
-                                actions.add ( actionToDeleteFileAndFolderIfFolderEmpty(pathToFile = pathToSymlinkFile) )
+                                actions.add(actionToDeleteFileAndFolderIfFolderEmpty(pathToFile = pathToSymlinkFile))
                                 actions.add { println("actionsLocalFileSystem [Удаление симлинка] <<<") }
                             }
 
                             if (needToCreate) {
                                 actions.add { println("actionsLocalFileSystem [Создание симлинка] >>>") }
-                                actions.add ( symlink.actionToCreate(rootFolder = rootFolder, pathToTargetFile = pathToFile) )
+                                actions.add(symlink.actionToCreate(rootFolder = rootFolder, pathToTargetFile = pathToFile))
                                 actions.add { println("actionsLocalFileSystem [Создание симлинка] <<<") }
                             }
 
@@ -262,10 +261,8 @@ data class HealthReport(
                                 problemText = "Файл на диске есть, но есть проблемы с его симлинками"
                                 solutionText = "$txtTemp '$pathToSymlinkFile' exists = $exists broken = $broken"
                             }
-
                         }
                     }
-
                 } else { // Если файла реально нет (!existsInLocalFileSystem)
 
                     /*
@@ -300,34 +297,37 @@ data class HealthReport(
                                 ERROR
                             Файла нет в удаленном хранилище
                                 FATAL_ERROR
-                    */
+                     */
 
                     var tryRestoreFromStorage = false
                     if (canResolve) { // Если возможно решить проблему (canResolve)
 
-                        val inProgressOwn = inProgressOwnArgs.isNotEmpty() && KaraokeProcess.loadList(args = inProgressOwnArgs, database = database).isNotEmpty()
+                        val inProgressOwn =
+                            inProgressOwnArgs.isNotEmpty() &&
+                                KaraokeProcess.loadList(args = inProgressOwnArgs, database = database).isNotEmpty()
                         if (inProgressOwn) { // Есть задача в процессах (inProgressOwn)
 
                             healthReportStatus = IN_PROGRESS
                             canBeResolved = false
                             problemText = "Файл отсутствует на диске"
                             solutionText = "Уже есть задание на создание файла"
-
                         } else { // Нет задачи в процессах (!inProgressOwn)
 
                             var threadId = KaraokeProcess.THREAD_LANE_HEALTH_REPORT
                             var priority = 0
                             var needCreateProcessOrAction = true
                             if (!canCreate) { // Невозможно создать файл (!canCreate)
-                                val inProgressParentProcess = if (inProgressParentArgs.isNotEmpty()) {
-                                    KaraokeProcess.loadList(args = inProgressParentArgs, database = database)
-                                } else emptyList()
+                                val inProgressParentProcess =
+                                    if (inProgressParentArgs.isNotEmpty()) {
+                                        KaraokeProcess.loadList(args = inProgressParentArgs, database = database)
+                                    } else {
+                                        emptyList()
+                                    }
                                 val inProgressParent = inProgressParentProcess.isNotEmpty()
                                 if (inProgressParent) { // Есть задача на создание родителя в процессах (inProgressParent)
 
                                     threadId = inProgressParentProcess.first().threadId
                                     priority = inProgressParentProcess.first().priority
-
                                 } else { // Нет задачи на создание родителя в процессах (!inProgressParent)
 
                                     tryRestoreFromStorage = true
@@ -336,7 +336,6 @@ data class HealthReport(
                                     healthReportStatus = FATAL_ERROR
                                     problemText = "Файл отсутствует на диске"
                                     solutionText = "Невозможно автоматически решить эту проблему"
-
                                 }
                             }
                             if (needCreateProcessOrAction) { // Если нужно создать процесс или выполнить действие
@@ -350,26 +349,23 @@ data class HealthReport(
                                             action = karaokeProcessTypesToCreate,
                                             doWait = true,
                                             prior = priority,
-                                            threadId = threadId
+                                            threadId = threadId,
                                         )
                                     }
                                     actions.add { println("actionsLocalFileSystem [$solutionText] <<<") }
-
                                 } else { // Если нет типа процесса - создаем действие
 
                                     solutionText = "Создание файла (action)"
                                     actions.add { println("actionsLocalFileSystem [$solutionText] >>>") }
-                                    actions.add ( actionToCreate )
+                                    actions.add(actionToCreate)
                                     actions.add { println("actionsLocalFileSystem [$solutionText] <<<") }
                                 }
 
                                 healthReportStatus = ERROR
                                 canBeResolved = true
                                 problemText = "Файл отсутствует на диске"
-
                             }
                         }
-
                     } else { // Если не возможно решить проблему (!canResolve)
 
                         tryRestoreFromStorage = true
@@ -378,7 +374,6 @@ data class HealthReport(
                         canBeResolved = false
                         problemText = "Файл отсутствует на диске"
                         solutionText = "Невозможно автоматически решить эту проблему"
-
                     }
 
                     if (tryRestoreFromStorage) {
@@ -392,13 +387,12 @@ data class HealthReport(
                                 storageService.downloadFile(
                                     bucketName = storageBucketName,
                                     fileName = storageFileName,
-                                    pathToFileOnDisk = pathToFile
+                                    pathToFileOnDisk = pathToFile,
                                 )
                             }
                             actions.add { println("actionsLocalFileSystem [$solutionText] <<<") }
-
                         } else { // Файла нет в локальном хранилище
-                            if (storageApiClient.fileExists(bucketName = storageBucketName, fileName = storageFileName)) {  // Файл есть в удалённом хранилище
+                            if (storageApiClient.fileExists(bucketName = storageBucketName, fileName = storageFileName)) { // Файл есть в удалённом хранилище
                                 healthReportStatus = ERROR
                                 canBeResolved = true
                                 problemText = "Файл отсутствует на диске"
@@ -408,7 +402,7 @@ data class HealthReport(
                                     storageApiClient.downloadFile(
                                         bucketName = storageBucketName,
                                         fileName = storageFileName,
-                                        pathToFileOnDisk = pathToFile
+                                        pathToFileOnDisk = pathToFile,
                                     )
                                 }
                                 actions.add { println("actionsLocalFileSystem [$solutionText] <<<") }
@@ -432,10 +426,9 @@ data class HealthReport(
 
                             if (needToDelete) {
                                 actions.add { println("actionsLocalFileSystem [Удаление симлинка] >>>") }
-                                actions.add ( actionToDeleteFileAndFolderIfFolderEmpty(pathToFile = pathToSymlinkFile) )
+                                actions.add(actionToDeleteFileAndFolderIfFolderEmpty(pathToFile = pathToSymlinkFile))
                                 actions.add { println("actionsLocalFileSystem [Удаление симлинка] <<<") }
                             }
-
                         }
                     }
 
@@ -443,13 +436,12 @@ data class HealthReport(
                     val actionToDeleteFile = actionToDeleteFileAndFolderIfFolderEmpty(pathToFile = pathToFile)
                     solutionText = "Удаление файла '$pathToFile'"
                     actions.add { println("actionsLocalFileSystem [$solutionText] >>>") }
-                    actions.add ( actionToDeleteFile )
+                    actions.add(actionToDeleteFile)
                     actions.add { println("actionsLocalFileSystem [$solutionText] <<<") }
 
                     healthReportStatus = ERROR
                     canBeResolved = true
                     problemText = "Наличие файла на диске, когда его быть не должно"
-
                 } else { // Файл реально не существует
                     // Проверить и удалить симлинки, если они есть
 //                    if (karaokeFileType.symlinks.isNotEmpty()) { // Если у файла должны быть симлинки
@@ -469,19 +461,19 @@ data class HealthReport(
 //                        }
 //                    }
                 }
-
             }
 
-            val healthReport = HealthReport(
-                healthReportType = FILE_VIOLATION,
-                settings = settings,
-                description = description,
-                healthReportStatus = healthReportStatus,
-                canResolve = canBeResolved,
-                problemText = problemText,
-                solutionText = solutionText,
-                solutionActions = actions
-            )
+            val healthReport =
+                HealthReport(
+                    healthReportType = FILE_VIOLATION,
+                    settings = settings,
+                    description = description,
+                    healthReportStatus = healthReportStatus,
+                    canResolve = canBeResolved,
+                    problemText = problemText,
+                    solutionText = solutionText,
+                    solutionActions = actions,
+                )
             result.add(healthReport)
 
             return result
@@ -507,7 +499,7 @@ data class HealthReport(
             inProgressParentArgs: Map<String, String>,
             database: KaraokeConnection,
             storageService: KaraokeStorageService,
-            storageApiClient: StorageApiClient
+            storageApiClient: StorageApiClient,
         ): List<HealthReport> {
             val result: MutableList<HealthReport> = mutableListOf()
             if (!willBeInLocation) return emptyList()
@@ -555,82 +547,98 @@ data class HealthReport(
             canBeResolved = canResolve
 
             val existsInLocalStore = storageService.fileExists(bucketName = storageBucketName, fileName = storageFileName)
-            val uploadInProgress = KaraokeProcess.loadList(
-                args = mapOf(
-                    "settings_id" to settings.id.toString(),
-                    "process_type" to KaraokeProcessTypes.UPLOAD_TO_LOCAL_STORE.name,
-                    "thread_id" to KaraokeProcess.THREAD_LANE_HEALTH_REPORT.toString(),
-                    "process_args" to "karaokeFileType=${karaokeFileType.name}"
-                ),
-                database = database
-            ).any { it.status != KaraokeProcessStatuses.DONE.name && it.status != KaraokeProcessStatuses.ERROR.name }
+            val uploadInProgress =
+                KaraokeProcess
+                    .loadList(
+                        args =
+                            mapOf(
+                                "settings_id" to settings.id.toString(),
+                                "process_type" to KaraokeProcessTypes.UPLOAD_TO_LOCAL_STORE.name,
+                                "thread_id" to KaraokeProcess.THREAD_LANE_HEALTH_REPORT.toString(),
+                                "process_args" to "karaokeFileType=${karaokeFileType.name}",
+                            ),
+                        database = database,
+                    ).any { it.status != KaraokeProcessStatuses.DONE.name && it.status != KaraokeProcessStatuses.ERROR.name }
 
             if (canBe) { // Файл должен быть
                 if (existsInLocalStore) { // Файл реально есть в хранилище (existsInLocalStore)
                     if (existsInLocalFileSystem) { // Файл реально есть на диске (existsInLocalFileSystem)
-                       val fileIsActual =  storageService.fileIsActual(bucketName = storageBucketName, fileName = storageFileName, pathToFileOnDisk = pathToFile)
-                       if (!fileIsActual) { // Файл не актуальный
-                           // Удалить старый и загрузить новый файл
+                        val fileIsActual =
+                            storageService.fileIsActual(
+                                bucketName = storageBucketName,
+                                fileName = storageFileName,
+                                pathToFileOnDisk = pathToFile,
+                            )
+                        if (!fileIsActual) { // Файл не актуальный
+                            // Удалить старый и загрузить новый файл
 
-                           healthReportStatus = ERROR
-                           canBeResolved = true
-                           problemText = "Файл в локальном хранилище неактуальный"
+                            healthReportStatus = ERROR
+                            canBeResolved = true
+                            problemText = "Файл в локальном хранилище неактуальный"
 
-                           if (uploadInProgress) {
-                               healthReportStatus = IN_PROGRESS
-                               canBeResolved = false
-                               solutionText = "Уже есть задание на загрузку файла"
-                           } else {
-                               solutionText = "Удалить неактуальный файл из локального хранилища и загрузить актуальный"
+                            if (uploadInProgress) {
+                                healthReportStatus = IN_PROGRESS
+                                canBeResolved = false
+                                solutionText = "Уже есть задание на загрузку файла"
+                            } else {
+                                solutionText = "Удалить неактуальный файл из локального хранилища и загрузить актуальный"
 
-                               actions.add { println("actionsLocalStorage [Удаление неактуального файла из локального хранилища] >>>") }
-                               actions.add {
-                                   storageService.deleteFile(
-                                       bucketName = storageBucketName,
-                                       fileName = storageFileName
-                                   )
-                               }
+                                actions.add { println("actionsLocalStorage [Удаление неактуального файла из локального хранилища] >>>") }
+                                actions.add {
+                                    storageService.deleteFile(
+                                        bucketName = storageBucketName,
+                                        fileName = storageFileName,
+                                    )
+                                }
 
-                               actions.add { println("actionsLocalStorage [Удаление неактуального файла из локального хранилища] <<<") }
+                                actions.add { println("actionsLocalStorage [Удаление неактуального файла из локального хранилища] <<<") }
 
-                               actions.add { println("actionsLocalStorage [Загрузка файла с диска в локальное хранилище] >>>") }
-                               actions.add {
-                                   KaraokeProcess.createProcess(
-                                       settings = settings,
-                                       action = KaraokeProcessTypes.UPLOAD_TO_LOCAL_STORE,
-                                       doWait = true,
-                                       prior = -2,
-                                       threadId = KaraokeProcess.THREAD_LANE_HEALTH_REPORT,
-                                       context = mapOf("pathToFile" to pathToFile, "karaokeFileType" to karaokeFileType.name, "storageFileName" to storageFileName, "bucketName" to storageBucketName)
-                                   )
-                               }
-                               actions.add { println("actionsLocalStorage [Загрузка файла с диска в локальное хранилище] <<<") }
-                           }
-
-                       }
-
+                                actions.add { println("actionsLocalStorage [Загрузка файла с диска в локальное хранилище] >>>") }
+                                actions.add {
+                                    KaraokeProcess.createProcess(
+                                        settings = settings,
+                                        action = KaraokeProcessTypes.UPLOAD_TO_LOCAL_STORE,
+                                        doWait = true,
+                                        prior = -2,
+                                        threadId = KaraokeProcess.THREAD_LANE_HEALTH_REPORT,
+                                        context =
+                                            mapOf(
+                                                "pathToFile" to pathToFile,
+                                                "karaokeFileType" to karaokeFileType.name,
+                                                "storageFileName" to storageFileName,
+                                                "bucketName" to storageBucketName,
+                                            ),
+                                    )
+                                }
+                                actions.add { println("actionsLocalStorage [Загрузка файла с диска в локальное хранилище] <<<") }
+                            }
+                        }
                     } else { // Файла реально нет на диске (existsInLocalFileSystem)
 
                         val existsInRemoteStore = storageApiClient.fileExists(bucketName = storageBucketName, fileName = storageFileName)
                         if (existsInRemoteStore) {
-                            
                             val storageFileInfo = storageService.getFileInfo(bucketName = storageBucketName, fileName = storageFileName)
-                            val fileIsActual =  storageApiClient.fileIsActual(bucketName = storageBucketName, fileName = storageFileName, storageFileInfo = storageFileInfo)
-                            
+                            val fileIsActual =
+                                storageApiClient.fileIsActual(
+                                    bucketName = storageBucketName,
+                                    fileName = storageFileName,
+                                    storageFileInfo = storageFileInfo,
+                                )
+
                             if (!fileIsActual) {
                                 healthReportStatus = WARNING
                                 canBeResolved = false
-                                problemText = "Файл в локальном хранилище есть, но невозможно проверить его актуальность, т.к. отсутствует файл на диске, а с файлом в удалённом хранилище он не совпадает"
+                                problemText =
+                                    "Файл в локальном хранилище есть, но невозможно проверить его актуальность, т.к. отсутствует файл на диске, а с файлом в удалённом хранилище он не совпадает"
                                 solutionText = "Решить проблему в рамках другого задания"
                             }
-                            
                         } else {
                             healthReportStatus = WARNING
                             canBeResolved = false
-                            problemText = "Файл в локальном хранилище есть, но невозможно проверить его актуальность, т.к. отсутствует файл на диске и в удалённом хранилище"
+                            problemText =
+                                "Файл в локальном хранилище есть, но невозможно проверить его актуальность, т.к. отсутствует файл на диске и в удалённом хранилище"
                             solutionText = "Решить проблему в рамках другого задания"
                         }
-                        
                     }
                 } else { // Файла реально нет в хранилище (!existsInLocalStore)
                     if (existsInLocalFileSystem) { // Файл реально есть на диске (existsInLocalFileSystem)
@@ -655,12 +663,17 @@ data class HealthReport(
                                     doWait = true,
                                     prior = -2,
                                     threadId = KaraokeProcess.THREAD_LANE_HEALTH_REPORT,
-                                    context = mapOf("pathToFile" to pathToFile, "karaokeFileType" to karaokeFileType.name, "storageFileName" to storageFileName, "bucketName" to storageBucketName)
+                                    context =
+                                        mapOf(
+                                            "pathToFile" to pathToFile,
+                                            "karaokeFileType" to karaokeFileType.name,
+                                            "storageFileName" to storageFileName,
+                                            "bucketName" to storageBucketName,
+                                        ),
                                 )
                             }
                             actions.add { println("actionsLocalStorage [$solutionText] <<<") }
                         }
-
                     } else { // Файла реально нет на диске (existsInLocalFileSystem)
 
                         val existsInRemoteStore = storageApiClient.fileExists(bucketName = storageBucketName, fileName = storageFileName)
@@ -684,7 +697,7 @@ data class HealthReport(
                                     storageApiClient.downloadFile(
                                         bucketName = storageBucketName,
                                         fileName = storageFileName,
-                                        pathToFileOnDisk = tempFile.toString()
+                                        pathToFileOnDisk = tempFile.toString(),
                                     )
                                 }
                                 actions.add { println("actionsLocalStorage [Загрузка файла из удалённого хранилища] <<<") }
@@ -697,30 +710,27 @@ data class HealthReport(
                                         doWait = true,
                                         prior = -2,
                                         threadId = KaraokeProcess.THREAD_LANE_HEALTH_REPORT,
-                                        context = mapOf(
-                                            "pathToFile" to tempFile.toString(),
-                                            "karaokeFileType" to karaokeFileType.name,
-                                            "storageFileName" to storageFileName,
-                                            "bucketName" to storageBucketName,
-                                            "deleteAfterUpload" to "true"
-                                        )
+                                        context =
+                                            mapOf(
+                                                "pathToFile" to tempFile.toString(),
+                                                "karaokeFileType" to karaokeFileType.name,
+                                                "storageFileName" to storageFileName,
+                                                "bucketName" to storageBucketName,
+                                                "deleteAfterUpload" to "true",
+                                            ),
                                     )
                                 }
                                 actions.add { println("actionsLocalStorage [Загрузка файла с диска в локальное хранилище] <<<") }
                             }
-
                         } else { // Файла нет в удалённом хранилище
 
                             canBeResolved = false
                             healthReportStatus = FATAL_ERROR
                             problemText = "Файл отсутствует в локальном хранилище, в удалённом хранилище и на диске"
                             solutionText = "Невозможно автоматически решить эту проблему. '$storageFileName'"
-
                         }
-
                     }
                 }
-
             } else { // Файла быть не должно
 
                 if (existsInLocalStore) { // Файл реально есть в хранилище (existsInLocalStore)
@@ -734,24 +744,24 @@ data class HealthReport(
                     actions.add {
                         storageService.deleteFile(
                             bucketName = storageBucketName,
-                            fileName = storageFileName
+                            fileName = storageFileName,
                         )
                     }
                     actions.add { println("actionsLocalStorage [$solutionText] <<<") }
                 }
-
             }
 
-            val healthReport = HealthReport(
-                healthReportType = FILE_VIOLATION,
-                settings = settings,
-                description = description,
-                healthReportStatus = healthReportStatus,
-                canResolve = canBeResolved,
-                problemText = problemText,
-                solutionText = solutionText,
-                solutionActions = actions
-            )
+            val healthReport =
+                HealthReport(
+                    healthReportType = FILE_VIOLATION,
+                    settings = settings,
+                    description = description,
+                    healthReportStatus = healthReportStatus,
+                    canResolve = canBeResolved,
+                    problemText = problemText,
+                    solutionText = solutionText,
+                    solutionActions = actions,
+                )
             result.add(healthReport)
 
             return result
@@ -777,7 +787,7 @@ data class HealthReport(
             inProgressParentArgs: Map<String, String>,
             database: KaraokeConnection,
             storageService: KaraokeStorageService,
-            storageApiClient: StorageApiClient
+            storageApiClient: StorageApiClient,
         ): List<HealthReport> {
             val result: MutableList<HealthReport> = mutableListOf()
             if (!willBeInLocation) return emptyList()
@@ -825,20 +835,28 @@ data class HealthReport(
             canBeResolved = canResolve
 
             val existsInRemoteStore = storageApiClient.fileExists(bucketName = storageBucketName, fileName = storageFileName)
-            val uploadInProgress = KaraokeProcess.loadList(
-                args = mapOf(
-                    "settings_id" to settings.id.toString(),
-                    "process_type" to KaraokeProcessTypes.UPLOAD_TO_REMOTE_STORE.name,
-                    "thread_id" to KaraokeProcess.THREAD_LANE_HEALTH_REPORT.toString(),
-                    "process_args" to "karaokeFileType=${karaokeFileType.name}"
-                ),
-                database = database
-            ).any { it.status != KaraokeProcessStatuses.DONE.name && it.status != KaraokeProcessStatuses.ERROR.name }
+            val uploadInProgress =
+                KaraokeProcess
+                    .loadList(
+                        args =
+                            mapOf(
+                                "settings_id" to settings.id.toString(),
+                                "process_type" to KaraokeProcessTypes.UPLOAD_TO_REMOTE_STORE.name,
+                                "thread_id" to KaraokeProcess.THREAD_LANE_HEALTH_REPORT.toString(),
+                                "process_args" to "karaokeFileType=${karaokeFileType.name}",
+                            ),
+                        database = database,
+                    ).any { it.status != KaraokeProcessStatuses.DONE.name && it.status != KaraokeProcessStatuses.ERROR.name }
 
             if (canBe) { // Файл должен быть
                 if (existsInRemoteStore) { // Файл реально есть в хранилище (existsInRemoteStore)
                     if (existsInLocalFileSystem) { // Файл реально есть на диске (existsInLocalFileSystem)
-                        val fileIsActual =  storageApiClient.fileIsActual(bucketName = storageBucketName, fileName = storageFileName, pathToFileOnDisk = pathToFile)
+                        val fileIsActual =
+                            storageApiClient.fileIsActual(
+                                bucketName = storageBucketName,
+                                fileName = storageFileName,
+                                pathToFileOnDisk = pathToFile,
+                            )
                         if (!fileIsActual) { // Файл не актуальный
                             // Удалить старый и загрузить новый файл
 
@@ -856,10 +874,11 @@ data class HealthReport(
                                 actions.add { println("actionsRemoteStorage [Удаление неактуального файла из удалённого хранилища] >>>") }
                                 actions.add {
                                     try {
-                                        storageApiClient.deleteFile(
-                                            bucketName = storageBucketName,
-                                            fileName = storageFileName
-                                        ).block()
+                                        storageApiClient
+                                            .deleteFile(
+                                                bucketName = storageBucketName,
+                                                fileName = storageFileName,
+                                            ).block()
                                     } catch (e: Exception) {
                                         println("Ошибка при удалении неактуального файла из удалённого хранилища: ${e.message}")
                                     }
@@ -874,36 +893,44 @@ data class HealthReport(
                                         doWait = true,
                                         prior = -2,
                                         threadId = KaraokeProcess.THREAD_LANE_HEALTH_REPORT,
-                                        context = mapOf("pathToFile" to pathToFile, "karaokeFileType" to karaokeFileType.name, "storageFileName" to storageFileName, "bucketName" to storageBucketName)
+                                        context =
+                                            mapOf(
+                                                "pathToFile" to pathToFile,
+                                                "karaokeFileType" to karaokeFileType.name,
+                                                "storageFileName" to storageFileName,
+                                                "bucketName" to storageBucketName,
+                                            ),
                                     )
                                 }
                                 actions.add { println("actionsRemoteStorage [Загрузка файла с диска в удалённое хранилище] <<<") }
                             }
-
                         }
-
                     } else { // Файла реально нет на диске (existsInLocalFileSystem)
-                        
+
                         val existsInLocalStore = storageService.fileExists(bucketName = storageBucketName, fileName = storageFileName)
                         if (existsInLocalStore) {
-
                             val storageFileInfo = storageService.getFileInfo(bucketName = storageBucketName, fileName = storageFileName)
-                            val fileIsActual =  storageApiClient.fileIsActual(bucketName = storageBucketName, fileName = storageFileName, storageFileInfo = storageFileInfo)
+                            val fileIsActual =
+                                storageApiClient.fileIsActual(
+                                    bucketName = storageBucketName,
+                                    fileName = storageFileName,
+                                    storageFileInfo = storageFileInfo,
+                                )
 
                             if (!fileIsActual) {
                                 healthReportStatus = WARNING
                                 canBeResolved = false
-                                problemText = "Файл в удалённом хранилище есть, но невозможно проверить его актуальность, т.к. отсутствует файл на диске, а с файлом в локальном хранилище он не совпадает"
+                                problemText =
+                                    "Файл в удалённом хранилище есть, но невозможно проверить его актуальность, т.к. отсутствует файл на диске, а с файлом в локальном хранилище он не совпадает"
                                 solutionText = "Решить проблему в рамках другого задания"
                             }
-
                         } else {
                             healthReportStatus = WARNING
                             canBeResolved = false
-                            problemText = "Файл в удалённом хранилище есть, но невозможно проверить его актуальность, т.к. отсутствует файл на диске и в локальном хранилище"
+                            problemText =
+                                "Файл в удалённом хранилище есть, но невозможно проверить его актуальность, т.к. отсутствует файл на диске и в локальном хранилище"
                             solutionText = "Решить проблему в рамках другого задания"
                         }
-                        
                     }
                 } else { // Файла реально нет в хранилище (!existsInLocalStore)
                     if (existsInLocalFileSystem) { // Файл реально есть на диске (existsInLocalFileSystem)
@@ -928,12 +955,17 @@ data class HealthReport(
                                     doWait = true,
                                     prior = -2,
                                     threadId = KaraokeProcess.THREAD_LANE_HEALTH_REPORT,
-                                    context = mapOf("pathToFile" to pathToFile, "karaokeFileType" to karaokeFileType.name, "storageFileName" to storageFileName, "bucketName" to storageBucketName)
+                                    context =
+                                        mapOf(
+                                            "pathToFile" to pathToFile,
+                                            "karaokeFileType" to karaokeFileType.name,
+                                            "storageFileName" to storageFileName,
+                                            "bucketName" to storageBucketName,
+                                        ),
                                 )
                             }
                             actions.add { println("actionsRemoteStorage [$solutionText] <<<") }
                         }
-
                     } else { // Файла реально нет на диске (existsInLocalFileSystem)
 
                         val existsInLocalStore = storageService.fileExists(bucketName = storageBucketName, fileName = storageFileName)
@@ -958,7 +990,7 @@ data class HealthReport(
                                     storageService.downloadFile(
                                         bucketName = storageBucketName,
                                         fileName = storageFileName,
-                                        pathToFileOnDisk = tempFile.toString()
+                                        pathToFileOnDisk = tempFile.toString(),
                                     )
                                 }
                                 actions.add { println("actionsRemoteStorage [Загрузка файла из локального хранилища] <<<") }
@@ -971,30 +1003,27 @@ data class HealthReport(
                                         doWait = true,
                                         prior = -2,
                                         threadId = KaraokeProcess.THREAD_LANE_HEALTH_REPORT,
-                                        context = mapOf(
-                                            "pathToFile" to tempFile.toString(),
-                                            "karaokeFileType" to karaokeFileType.name,
-                                            "storageFileName" to storageFileName,
-                                            "bucketName" to storageBucketName,
-                                            "deleteAfterUpload" to "true"
-                                        )
+                                        context =
+                                            mapOf(
+                                                "pathToFile" to tempFile.toString(),
+                                                "karaokeFileType" to karaokeFileType.name,
+                                                "storageFileName" to storageFileName,
+                                                "bucketName" to storageBucketName,
+                                                "deleteAfterUpload" to "true",
+                                            ),
                                     )
                                 }
                                 actions.add { println("actionsRemoteStorage [Загрузка файла с диска в удалённое хранилище] <<<") }
                             }
-
                         } else { // Файла нет в удалённом хранилище
 
                             canBeResolved = false
                             healthReportStatus = FATAL_ERROR
                             problemText = "Файл отсутствует в удалённом хранилище, в локальном хранилище и на диске"
                             solutionText = "Невозможно автоматически решить эту проблему"
-
                         }
-
                     }
                 }
-
             } else { // Файла быть не должно
 
                 if (existsInRemoteStore) { // Файл реально есть в хранилище (existsInLocalStore)
@@ -1007,41 +1036,46 @@ data class HealthReport(
                     actions.add { println("actionsRemoteStorage [$solutionText] >>>") }
                     actions.add {
                         try {
-                            storageApiClient.deleteFile(
-                                bucketName = storageBucketName,
-                                fileName = storageFileName
-                            ).block()
+                            storageApiClient
+                                .deleteFile(
+                                    bucketName = storageBucketName,
+                                    fileName = storageFileName,
+                                ).block()
                         } catch (e: Exception) {
                             println("Ошибка при удалении файла из удалённого хранилища: ${e.message}")
                         }
                     }
                     actions.add { println("actionsRemoteStorage [$solutionText] <<<") }
                 }
-
             }
 
-            val healthReport = HealthReport(
-                healthReportType = FILE_VIOLATION,
-                settings = settings,
-                description = description,
-                healthReportStatus = healthReportStatus,
-                canResolve = canBeResolved,
-                problemText = problemText,
-                solutionText = solutionText,
-                solutionActions = actions
-            )
+            val healthReport =
+                HealthReport(
+                    healthReportType = FILE_VIOLATION,
+                    settings = settings,
+                    description = description,
+                    healthReportStatus = healthReportStatus,
+                    canResolve = canBeResolved,
+                    problemText = problemText,
+                    solutionText = solutionText,
+                    solutionActions = actions,
+                )
             result.add(healthReport)
 
             return result
         }
 
-        fun getHealthReport(settings: Settings, dto: HealthReportDTO): HealthReport? {
+        fun getHealthReport(
+            settings: Settings,
+            dto: HealthReportDTO,
+        ): HealthReport? {
             val healthReportList = getHealthReportList(settings = settings)
-            val result = healthReportList.firstOrNull { healthReport ->
-                healthReport.healthReportStatus.name == dto.healthReportStatusName &&
-                healthReport.healthReportType.name == dto.healthReportTypeName &&
-                healthReport.description == dto.description
-            }
+            val result =
+                healthReportList.firstOrNull { healthReport ->
+                    healthReport.healthReportStatus.name == dto.healthReportStatusName &&
+                        healthReport.healthReportType.name == dto.healthReportTypeName &&
+                        healthReport.description == dto.description
+                }
             println("getHealthReport = $result")
             return result
         }
@@ -1059,11 +1093,12 @@ data class HealthReport(
                 val problemText = "У песни отсутствует тональность"
                 val canResolve = File(settings.fileAbsolutePath).exists()
                 if (canResolve) {
-                    val processArgs = mapOf(
-                        "settings_id" to settings.id.toString(),
-                        "process_status" to KaraokeProcessStatuses.WAITING.name,
-                        "process_type" to KaraokeProcessTypes.KEY_BPM_FROM_FILE.name
-                    )
+                    val processArgs =
+                        mapOf(
+                            "settings_id" to settings.id.toString(),
+                            "process_status" to KaraokeProcessStatuses.WAITING.name,
+                            "process_type" to KaraokeProcessTypes.KEY_BPM_FROM_FILE.name,
+                        )
                     val inProgress = KaraokeProcess.loadList(args = processArgs, database = database).isNotEmpty()
                     if (inProgress) {
                         result.add(
@@ -1074,12 +1109,13 @@ data class HealthReport(
                                 canResolve = true,
                                 problemText = problemText,
                                 solutionText = "Уже есть задание для решения этой проблемы",
-                                solutionActions = listOf(
-                                    { println("HealthReportSolutionActions >>>") },
-                                    { println("HealthReportSolutionActions: Ничего делать не надо. (Зачем тогда вызывали?)") },
-                                    { println("HealthReportSolutionActions <<<") }
-                                )
-                            )
+                                solutionActions =
+                                    listOf(
+                                        { println("HealthReportSolutionActions >>>") },
+                                        { println("HealthReportSolutionActions: Ничего делать не надо. (Зачем тогда вызывали?)") },
+                                        { println("HealthReportSolutionActions <<<") },
+                                    ),
+                            ),
                         )
                     } else {
                         result.add(
@@ -1090,20 +1126,23 @@ data class HealthReport(
                                 canResolve = true,
                                 problemText = problemText,
                                 solutionText = "Создать задание для автоматического определения тональности",
-                                solutionActions = listOf(
-                                    { println("HealthReportSolutionActions >>>") },
-                                    {
-                                        println("HealthReportSolutionActions: Создание задания для автоматического определения тональности для песни '${settings.fileName}'")
-                                        KaraokeProcess.createProcess(
-                                            settings = settings,
-                                            action = KaraokeProcessTypes.KEY_BPM_FROM_FILE,
-                                            doWait = true,
-                                            threadId = KaraokeProcess.THREAD_LANE_HEALTH_REPORT
-                                        )
-                                    },
-                                    { println("HealthReportSolutionActions <<<") }
-                                )
-                            )
+                                solutionActions =
+                                    listOf(
+                                        { println("HealthReportSolutionActions >>>") },
+                                        {
+                                            println(
+                                                "HealthReportSolutionActions: Создание задания для автоматического определения тональности для песни '${settings.fileName}'",
+                                            )
+                                            KaraokeProcess.createProcess(
+                                                settings = settings,
+                                                action = KaraokeProcessTypes.KEY_BPM_FROM_FILE,
+                                                doWait = true,
+                                                threadId = KaraokeProcess.THREAD_LANE_HEALTH_REPORT,
+                                            )
+                                        },
+                                        { println("HealthReportSolutionActions <<<") },
+                                    ),
+                            ),
                         )
                     }
                 } else {
@@ -1115,15 +1154,15 @@ data class HealthReport(
                             canResolve = false,
                             problemText = problemText,
                             solutionText = "Для решение проблемы нужно, чтобы у песни был файл типа '${KaraokeFileType.AUDIO_SONG}'",
-                            solutionActions = listOf(
-                                { println("HealthReportSolutionActions >>>") },
-                                { println("HealthReportSolutionActions: Ничего сделать нельзя! (Зачем тогда вызывали?)") },
-                                { println("HealthReportSolutionActions <<<") }
-                            )
-                        )
+                            solutionActions =
+                                listOf(
+                                    { println("HealthReportSolutionActions >>>") },
+                                    { println("HealthReportSolutionActions: Ничего сделать нельзя! (Зачем тогда вызывали?)") },
+                                    { println("HealthReportSolutionActions <<<") },
+                                ),
+                        ),
                     )
                 }
-
             }
 
             // FILE_VIOLATION
@@ -1167,7 +1206,6 @@ data class HealthReport(
                 canCreate = canResolve
 
                 when (karaokeFileType) {
-
                     // Исходный аудио файл
                     KaraokeFileType.AUDIO_SONG -> {
                         pathToFile = settings.fileAbsolutePath
@@ -1182,28 +1220,29 @@ data class HealthReport(
                         description = karaokeFileType.name
 
                         karaokeFileType.locations.forEach { location ->
-                            val actions = actions(
-                                karaokeFileType = karaokeFileType,
-                                karaokePlatform = null,
-                                settings = settings,
-                                rootFolder = rootFolder,
-                                pathToFile = pathToFile,
-                                description = description,
-                                existsInLocalFileSystem = existsInLocalFileSystem,
-                                canBe = canBe,
-                                canResolve = canResolve,
-                                canCreate = canCreate,
-                                karaokeProcessTypesToCreate = karaokeProcessTypesToCreate,
-                                actionToCreate = actionToCreate,
-                                location = location,
-                                storageBucketName = storageBucketName,
-                                storageFileName = storageFileName,
-                                inProgressOwnArgs = inProgressOwnArgs,
-                                inProgressParentArgs = inProgressParentArgs,
-                                database = database,
-                                storageService = storageService,
-                                storageApiClient = storageApiClient
-                            )
+                            val actions =
+                                actions(
+                                    karaokeFileType = karaokeFileType,
+                                    karaokePlatform = null,
+                                    settings = settings,
+                                    rootFolder = rootFolder,
+                                    pathToFile = pathToFile,
+                                    description = description,
+                                    existsInLocalFileSystem = existsInLocalFileSystem,
+                                    canBe = canBe,
+                                    canResolve = canResolve,
+                                    canCreate = canCreate,
+                                    karaokeProcessTypesToCreate = karaokeProcessTypesToCreate,
+                                    actionToCreate = actionToCreate,
+                                    location = location,
+                                    storageBucketName = storageBucketName,
+                                    storageFileName = storageFileName,
+                                    inProgressOwnArgs = inProgressOwnArgs,
+                                    inProgressParentArgs = inProgressParentArgs,
+                                    database = database,
+                                    storageService = storageService,
+                                    storageApiClient = storageApiClient,
+                                )
                             result.addAll(actions)
                         }
                     }
@@ -1213,16 +1252,16 @@ data class HealthReport(
 //                         pathToFile = settings.pathToFileMP3Lyrics
 //                         existsInLocalFileSystem = if (pathToFile != "") File(pathToFile).exists() else false
 //                         canBe = true // Файл должнен быть
-// 
+//
 //                         storageFileName = "${settings.storageFileName}${karaokeFileType.suffix}.${karaokeFileType.extention}"
 //                         description = karaokeFileType.name
-// 
+//
 //                         // файл возможно создать автоматически, если есть файл типа AUDIO_SONG
 //                         val patentFileType = KaraokeFileType.AUDIO_SONG
 //                         val pathToParentFile = settings.fileAbsolutePath
 //                         val parentFileExistsInLocalFileSystem = if (pathToParentFile != "") File(pathToParentFile).exists() else false
 //                         canCreate = parentFileExistsInLocalFileSystem
-// 
+//
 //                         if (canCreate) {
 //                             inProgressOwnArgs = mapOf(
 //                                 "settings_id" to settings.id.toString(),
@@ -1235,7 +1274,7 @@ data class HealthReport(
 // //                        inProgressParentArgs = emptyMap() // нет аргументов для процесса, т.к. файл нельзя создать автоматически
 // //                        karaokeProcessTypesToCreate = null // нет типа процесса для создания, т.к. файл нельзя создать автоматически
 // //                        actionToCreate = { println("Заглушка функции 'actionToCreate'") }
-// 
+//
 //                         karaokeFileType.locations.forEach { location ->
 //                             val actions = actions(
 //                                 karaokeFileType = karaokeFileType,
@@ -1278,37 +1317,39 @@ data class HealthReport(
                         canCreate = parentFileExistsInLocalFileSystem
 
                         if (canCreate) {
-                            inProgressOwnArgs = mapOf(
-                                "settings_id" to settings.id.toString(),
-                                "process_status" to KaraokeProcessStatuses.WAITING.name,
-                                "process_type" to KaraokeProcessTypes.DEMUCS2.name
-                            )
+                            inProgressOwnArgs =
+                                mapOf(
+                                    "settings_id" to settings.id.toString(),
+                                    "process_status" to KaraokeProcessStatuses.WAITING.name,
+                                    "process_type" to KaraokeProcessTypes.DEMUCS2.name,
+                                )
                             karaokeProcessTypesToCreate = KaraokeProcessTypes.DEMUCS2
                         }
 
                         karaokeFileType.locations.forEach { location ->
-                            val actions = actions(
-                                karaokeFileType = karaokeFileType,
-                                karaokePlatform = null,
-                                settings = settings,
-                                rootFolder = rootFolder,
-                                pathToFile = pathToFile,
-                                description = description,
-                                existsInLocalFileSystem = existsInLocalFileSystem,
-                                canBe = canBe,
-                                canResolve = canResolve,
-                                canCreate = canCreate,
-                                karaokeProcessTypesToCreate = karaokeProcessTypesToCreate,
-                                actionToCreate = actionToCreate,
-                                location = location,
-                                storageBucketName = storageBucketName,
-                                storageFileName = storageFileName,
-                                inProgressOwnArgs = inProgressOwnArgs,
-                                inProgressParentArgs = inProgressParentArgs,
-                                database = database,
-                                storageService = storageService,
-                                storageApiClient = storageApiClient
-                            )
+                            val actions =
+                                actions(
+                                    karaokeFileType = karaokeFileType,
+                                    karaokePlatform = null,
+                                    settings = settings,
+                                    rootFolder = rootFolder,
+                                    pathToFile = pathToFile,
+                                    description = description,
+                                    existsInLocalFileSystem = existsInLocalFileSystem,
+                                    canBe = canBe,
+                                    canResolve = canResolve,
+                                    canCreate = canCreate,
+                                    karaokeProcessTypesToCreate = karaokeProcessTypesToCreate,
+                                    actionToCreate = actionToCreate,
+                                    location = location,
+                                    storageBucketName = storageBucketName,
+                                    storageFileName = storageFileName,
+                                    inProgressOwnArgs = inProgressOwnArgs,
+                                    inProgressParentArgs = inProgressParentArgs,
+                                    database = database,
+                                    storageService = storageService,
+                                    storageApiClient = storageApiClient,
+                                )
                             result.addAll(actions)
                         }
                     }
@@ -1320,13 +1361,13 @@ data class HealthReport(
 //                         canBe = true
 //                         storageFileName = "${settings.storageFileName}${karaokeFileType.suffix}.${karaokeFileType.extention}"
 //                         description = karaokeFileType.name
-// 
+//
 //                         // файл возможно создать автоматически, если есть файл типа AUDIO_ACCOMPANIMENT
 //                         val patentFileType = KaraokeFileType.AUDIO_ACCOMPANIMENT
 //                         val pathToParentFile = settings.accompanimentNameFlac
 //                         val parentFileExistsInLocalFileSystem = if (pathToParentFile != "") File(pathToParentFile).exists() else false
 //                         canCreate = parentFileExistsInLocalFileSystem
-// 
+//
 //                         if (canCreate) {
 //                             inProgressOwnArgs = mapOf(
 //                                 "settings_id" to settings.id.toString(),
@@ -1335,7 +1376,7 @@ data class HealthReport(
 //                             )
 //                             karaokeProcessTypesToCreate = KaraokeProcessTypes.FF_MP3_KAR
 //                         }
-// 
+//
 //                         karaokeFileType.locations.forEach { location ->
 //                             val actions = actions(
 //                                 karaokeFileType = karaokeFileType,
@@ -1378,37 +1419,39 @@ data class HealthReport(
                         canCreate = parentFileExistsInLocalFileSystem
 
                         if (canCreate) {
-                            inProgressOwnArgs = mapOf(
-                                "settings_id" to settings.id.toString(),
-                                "process_status" to KaraokeProcessStatuses.WAITING.name,
-                                "process_type" to KaraokeProcessTypes.FF_MP3_ACCOMPANIMENT.name
-                            )
+                            inProgressOwnArgs =
+                                mapOf(
+                                    "settings_id" to settings.id.toString(),
+                                    "process_status" to KaraokeProcessStatuses.WAITING.name,
+                                    "process_type" to KaraokeProcessTypes.FF_MP3_ACCOMPANIMENT.name,
+                                )
                             karaokeProcessTypesToCreate = KaraokeProcessTypes.FF_MP3_ACCOMPANIMENT
                         }
 
                         karaokeFileType.locations.forEach { location ->
-                            val actions = actions(
-                                karaokeFileType = karaokeFileType,
-                                karaokePlatform = null,
-                                settings = settings,
-                                rootFolder = rootFolder,
-                                pathToFile = pathToFile,
-                                description = description,
-                                existsInLocalFileSystem = existsInLocalFileSystem,
-                                canBe = canBe,
-                                canResolve = canResolve,
-                                canCreate = canCreate,
-                                karaokeProcessTypesToCreate = karaokeProcessTypesToCreate,
-                                actionToCreate = actionToCreate,
-                                location = location,
-                                storageBucketName = storageBucketName,
-                                storageFileName = storageFileName,
-                                inProgressOwnArgs = inProgressOwnArgs,
-                                inProgressParentArgs = inProgressParentArgs,
-                                database = database,
-                                storageService = storageService,
-                                storageApiClient = storageApiClient
-                            )
+                            val actions =
+                                actions(
+                                    karaokeFileType = karaokeFileType,
+                                    karaokePlatform = null,
+                                    settings = settings,
+                                    rootFolder = rootFolder,
+                                    pathToFile = pathToFile,
+                                    description = description,
+                                    existsInLocalFileSystem = existsInLocalFileSystem,
+                                    canBe = canBe,
+                                    canResolve = canResolve,
+                                    canCreate = canCreate,
+                                    karaokeProcessTypesToCreate = karaokeProcessTypesToCreate,
+                                    actionToCreate = actionToCreate,
+                                    location = location,
+                                    storageBucketName = storageBucketName,
+                                    storageFileName = storageFileName,
+                                    inProgressOwnArgs = inProgressOwnArgs,
+                                    inProgressParentArgs = inProgressParentArgs,
+                                    database = database,
+                                    storageService = storageService,
+                                    storageApiClient = storageApiClient,
+                                )
                             result.addAll(actions)
                         }
                     }
@@ -1428,37 +1471,39 @@ data class HealthReport(
                         canCreate = parentFileExistsInLocalFileSystem
 
                         if (canCreate) {
-                            inProgressOwnArgs = mapOf(
-                                "settings_id" to settings.id.toString(),
-                                "process_status" to KaraokeProcessStatuses.WAITING.name,
-                                "process_type" to KaraokeProcessTypes.DEMUCS2.name
-                            )
+                            inProgressOwnArgs =
+                                mapOf(
+                                    "settings_id" to settings.id.toString(),
+                                    "process_status" to KaraokeProcessStatuses.WAITING.name,
+                                    "process_type" to KaraokeProcessTypes.DEMUCS2.name,
+                                )
                             karaokeProcessTypesToCreate = KaraokeProcessTypes.DEMUCS2
                         }
 
                         karaokeFileType.locations.forEach { location ->
-                            val actions = actions(
-                                karaokeFileType = karaokeFileType,
-                                karaokePlatform = null,
-                                settings = settings,
-                                rootFolder = rootFolder,
-                                pathToFile = pathToFile,
-                                description = description,
-                                existsInLocalFileSystem = existsInLocalFileSystem,
-                                canBe = canBe,
-                                canResolve = canResolve,
-                                canCreate = canCreate,
-                                karaokeProcessTypesToCreate = karaokeProcessTypesToCreate,
-                                actionToCreate = actionToCreate,
-                                location = location,
-                                storageBucketName = storageBucketName,
-                                storageFileName = storageFileName,
-                                inProgressOwnArgs = inProgressOwnArgs,
-                                inProgressParentArgs = inProgressParentArgs,
-                                database = database,
-                                storageService = storageService,
-                                storageApiClient = storageApiClient
-                            )
+                            val actions =
+                                actions(
+                                    karaokeFileType = karaokeFileType,
+                                    karaokePlatform = null,
+                                    settings = settings,
+                                    rootFolder = rootFolder,
+                                    pathToFile = pathToFile,
+                                    description = description,
+                                    existsInLocalFileSystem = existsInLocalFileSystem,
+                                    canBe = canBe,
+                                    canResolve = canResolve,
+                                    canCreate = canCreate,
+                                    karaokeProcessTypesToCreate = karaokeProcessTypesToCreate,
+                                    actionToCreate = actionToCreate,
+                                    location = location,
+                                    storageBucketName = storageBucketName,
+                                    storageFileName = storageFileName,
+                                    inProgressOwnArgs = inProgressOwnArgs,
+                                    inProgressParentArgs = inProgressParentArgs,
+                                    database = database,
+                                    storageService = storageService,
+                                    storageApiClient = storageApiClient,
+                                )
                             result.addAll(actions)
                         }
                     }
@@ -1478,37 +1523,39 @@ data class HealthReport(
                         canCreate = parentFileExistsInLocalFileSystem
 
                         if (canCreate) {
-                            inProgressOwnArgs = mapOf(
-                                "settings_id" to settings.id.toString(),
-                                "process_status" to KaraokeProcessStatuses.WAITING.name,
-                                "process_type" to KaraokeProcessTypes.FF_MP3_VOCAL.name
-                            )
+                            inProgressOwnArgs =
+                                mapOf(
+                                    "settings_id" to settings.id.toString(),
+                                    "process_status" to KaraokeProcessStatuses.WAITING.name,
+                                    "process_type" to KaraokeProcessTypes.FF_MP3_VOCAL.name,
+                                )
                             karaokeProcessTypesToCreate = KaraokeProcessTypes.FF_MP3_VOCAL
                         }
 
                         karaokeFileType.locations.forEach { location ->
-                            val actions = actions(
-                                karaokeFileType = karaokeFileType,
-                                karaokePlatform = null,
-                                settings = settings,
-                                rootFolder = rootFolder,
-                                pathToFile = pathToFile,
-                                description = description,
-                                existsInLocalFileSystem = existsInLocalFileSystem,
-                                canBe = canBe,
-                                canResolve = canResolve,
-                                canCreate = canCreate,
-                                karaokeProcessTypesToCreate = karaokeProcessTypesToCreate,
-                                actionToCreate = actionToCreate,
-                                location = location,
-                                storageBucketName = storageBucketName,
-                                storageFileName = storageFileName,
-                                inProgressOwnArgs = inProgressOwnArgs,
-                                inProgressParentArgs = inProgressParentArgs,
-                                database = database,
-                                storageService = storageService,
-                                storageApiClient = storageApiClient
-                            )
+                            val actions =
+                                actions(
+                                    karaokeFileType = karaokeFileType,
+                                    karaokePlatform = null,
+                                    settings = settings,
+                                    rootFolder = rootFolder,
+                                    pathToFile = pathToFile,
+                                    description = description,
+                                    existsInLocalFileSystem = existsInLocalFileSystem,
+                                    canBe = canBe,
+                                    canResolve = canResolve,
+                                    canCreate = canCreate,
+                                    karaokeProcessTypesToCreate = karaokeProcessTypesToCreate,
+                                    actionToCreate = actionToCreate,
+                                    location = location,
+                                    storageBucketName = storageBucketName,
+                                    storageFileName = storageFileName,
+                                    inProgressOwnArgs = inProgressOwnArgs,
+                                    inProgressParentArgs = inProgressParentArgs,
+                                    database = database,
+                                    storageService = storageService,
+                                    storageApiClient = storageApiClient,
+                                )
                             result.addAll(actions)
                         }
                     }
@@ -1528,37 +1575,39 @@ data class HealthReport(
                         canCreate = parentFileExistsInLocalFileSystem
 
                         if (canCreate) {
-                            inProgressOwnArgs = mapOf(
-                                "settings_id" to settings.id.toString(),
-                                "process_status" to KaraokeProcessStatuses.WAITING.name,
-                                "process_type" to KaraokeProcessTypes.DEMUCS5.name
-                            )
+                            inProgressOwnArgs =
+                                mapOf(
+                                    "settings_id" to settings.id.toString(),
+                                    "process_status" to KaraokeProcessStatuses.WAITING.name,
+                                    "process_type" to KaraokeProcessTypes.DEMUCS5.name,
+                                )
                             karaokeProcessTypesToCreate = KaraokeProcessTypes.DEMUCS5
                         }
 
                         karaokeFileType.locations.forEach { location ->
-                            val actions = actions(
-                                karaokeFileType = karaokeFileType,
-                                karaokePlatform = null,
-                                settings = settings,
-                                rootFolder = rootFolder,
-                                pathToFile = pathToFile,
-                                description = description,
-                                existsInLocalFileSystem = existsInLocalFileSystem,
-                                canBe = canBe,
-                                canResolve = canResolve,
-                                canCreate = canCreate,
-                                karaokeProcessTypesToCreate = karaokeProcessTypesToCreate,
-                                actionToCreate = actionToCreate,
-                                location = location,
-                                storageBucketName = storageBucketName,
-                                storageFileName = storageFileName,
-                                inProgressOwnArgs = inProgressOwnArgs,
-                                inProgressParentArgs = inProgressParentArgs,
-                                database = database,
-                                storageService = storageService,
-                                storageApiClient = storageApiClient
-                            )
+                            val actions =
+                                actions(
+                                    karaokeFileType = karaokeFileType,
+                                    karaokePlatform = null,
+                                    settings = settings,
+                                    rootFolder = rootFolder,
+                                    pathToFile = pathToFile,
+                                    description = description,
+                                    existsInLocalFileSystem = existsInLocalFileSystem,
+                                    canBe = canBe,
+                                    canResolve = canResolve,
+                                    canCreate = canCreate,
+                                    karaokeProcessTypesToCreate = karaokeProcessTypesToCreate,
+                                    actionToCreate = actionToCreate,
+                                    location = location,
+                                    storageBucketName = storageBucketName,
+                                    storageFileName = storageFileName,
+                                    inProgressOwnArgs = inProgressOwnArgs,
+                                    inProgressParentArgs = inProgressParentArgs,
+                                    database = database,
+                                    storageService = storageService,
+                                    storageApiClient = storageApiClient,
+                                )
                             result.addAll(actions)
                         }
                     }
@@ -1578,37 +1627,39 @@ data class HealthReport(
                         canCreate = parentFileExistsInLocalFileSystem
 
                         if (canCreate) {
-                            inProgressOwnArgs = mapOf(
-                                "settings_id" to settings.id.toString(),
-                                "process_status" to KaraokeProcessStatuses.WAITING.name,
-                                "process_type" to KaraokeProcessTypes.FF_MP3_BASS.name
-                            )
+                            inProgressOwnArgs =
+                                mapOf(
+                                    "settings_id" to settings.id.toString(),
+                                    "process_status" to KaraokeProcessStatuses.WAITING.name,
+                                    "process_type" to KaraokeProcessTypes.FF_MP3_BASS.name,
+                                )
                             karaokeProcessTypesToCreate = KaraokeProcessTypes.FF_MP3_BASS
                         }
 
                         karaokeFileType.locations.forEach { location ->
-                            val actions = actions(
-                                karaokeFileType = karaokeFileType,
-                                karaokePlatform = null,
-                                settings = settings,
-                                rootFolder = rootFolder,
-                                pathToFile = pathToFile,
-                                description = description,
-                                existsInLocalFileSystem = existsInLocalFileSystem,
-                                canBe = canBe,
-                                canResolve = canResolve,
-                                canCreate = canCreate,
-                                karaokeProcessTypesToCreate = karaokeProcessTypesToCreate,
-                                actionToCreate = actionToCreate,
-                                location = location,
-                                storageBucketName = storageBucketName,
-                                storageFileName = storageFileName,
-                                inProgressOwnArgs = inProgressOwnArgs,
-                                inProgressParentArgs = inProgressParentArgs,
-                                database = database,
-                                storageService = storageService,
-                                storageApiClient = storageApiClient
-                            )
+                            val actions =
+                                actions(
+                                    karaokeFileType = karaokeFileType,
+                                    karaokePlatform = null,
+                                    settings = settings,
+                                    rootFolder = rootFolder,
+                                    pathToFile = pathToFile,
+                                    description = description,
+                                    existsInLocalFileSystem = existsInLocalFileSystem,
+                                    canBe = canBe,
+                                    canResolve = canResolve,
+                                    canCreate = canCreate,
+                                    karaokeProcessTypesToCreate = karaokeProcessTypesToCreate,
+                                    actionToCreate = actionToCreate,
+                                    location = location,
+                                    storageBucketName = storageBucketName,
+                                    storageFileName = storageFileName,
+                                    inProgressOwnArgs = inProgressOwnArgs,
+                                    inProgressParentArgs = inProgressParentArgs,
+                                    database = database,
+                                    storageService = storageService,
+                                    storageApiClient = storageApiClient,
+                                )
                             result.addAll(actions)
                         }
                     }
@@ -1628,37 +1679,39 @@ data class HealthReport(
                         canCreate = parentFileExistsInLocalFileSystem
 
                         if (canCreate) {
-                            inProgressOwnArgs = mapOf(
-                                "settings_id" to settings.id.toString(),
-                                "process_status" to KaraokeProcessStatuses.WAITING.name,
-                                "process_type" to KaraokeProcessTypes.DEMUCS5.name
-                            )
+                            inProgressOwnArgs =
+                                mapOf(
+                                    "settings_id" to settings.id.toString(),
+                                    "process_status" to KaraokeProcessStatuses.WAITING.name,
+                                    "process_type" to KaraokeProcessTypes.DEMUCS5.name,
+                                )
                             karaokeProcessTypesToCreate = KaraokeProcessTypes.DEMUCS5
                         }
 
                         karaokeFileType.locations.forEach { location ->
-                            val actions = actions(
-                                karaokeFileType = karaokeFileType,
-                                karaokePlatform = null,
-                                settings = settings,
-                                rootFolder = rootFolder,
-                                pathToFile = pathToFile,
-                                description = description,
-                                existsInLocalFileSystem = existsInLocalFileSystem,
-                                canBe = canBe,
-                                canResolve = canResolve,
-                                canCreate = canCreate,
-                                karaokeProcessTypesToCreate = karaokeProcessTypesToCreate,
-                                actionToCreate = actionToCreate,
-                                location = location,
-                                storageBucketName = storageBucketName,
-                                storageFileName = storageFileName,
-                                inProgressOwnArgs = inProgressOwnArgs,
-                                inProgressParentArgs = inProgressParentArgs,
-                                database = database,
-                                storageService = storageService,
-                                storageApiClient = storageApiClient
-                            )
+                            val actions =
+                                actions(
+                                    karaokeFileType = karaokeFileType,
+                                    karaokePlatform = null,
+                                    settings = settings,
+                                    rootFolder = rootFolder,
+                                    pathToFile = pathToFile,
+                                    description = description,
+                                    existsInLocalFileSystem = existsInLocalFileSystem,
+                                    canBe = canBe,
+                                    canResolve = canResolve,
+                                    canCreate = canCreate,
+                                    karaokeProcessTypesToCreate = karaokeProcessTypesToCreate,
+                                    actionToCreate = actionToCreate,
+                                    location = location,
+                                    storageBucketName = storageBucketName,
+                                    storageFileName = storageFileName,
+                                    inProgressOwnArgs = inProgressOwnArgs,
+                                    inProgressParentArgs = inProgressParentArgs,
+                                    database = database,
+                                    storageService = storageService,
+                                    storageApiClient = storageApiClient,
+                                )
                             result.addAll(actions)
                         }
                     }
@@ -1678,37 +1731,39 @@ data class HealthReport(
                         canCreate = parentFileExistsInLocalFileSystem
 
                         if (canCreate) {
-                            inProgressOwnArgs = mapOf(
-                                "settings_id" to settings.id.toString(),
-                                "process_status" to KaraokeProcessStatuses.WAITING.name,
-                                "process_type" to KaraokeProcessTypes.FF_MP3_DRUMS.name
-                            )
+                            inProgressOwnArgs =
+                                mapOf(
+                                    "settings_id" to settings.id.toString(),
+                                    "process_status" to KaraokeProcessStatuses.WAITING.name,
+                                    "process_type" to KaraokeProcessTypes.FF_MP3_DRUMS.name,
+                                )
                             karaokeProcessTypesToCreate = KaraokeProcessTypes.FF_MP3_DRUMS
                         }
 
                         karaokeFileType.locations.forEach { location ->
-                            val actions = actions(
-                                karaokeFileType = karaokeFileType,
-                                karaokePlatform = null,
-                                settings = settings,
-                                rootFolder = rootFolder,
-                                pathToFile = pathToFile,
-                                description = description,
-                                existsInLocalFileSystem = existsInLocalFileSystem,
-                                canBe = canBe,
-                                canResolve = canResolve,
-                                canCreate = canCreate,
-                                karaokeProcessTypesToCreate = karaokeProcessTypesToCreate,
-                                actionToCreate = actionToCreate,
-                                location = location,
-                                storageBucketName = storageBucketName,
-                                storageFileName = storageFileName,
-                                inProgressOwnArgs = inProgressOwnArgs,
-                                inProgressParentArgs = inProgressParentArgs,
-                                database = database,
-                                storageService = storageService,
-                                storageApiClient = storageApiClient
-                            )
+                            val actions =
+                                actions(
+                                    karaokeFileType = karaokeFileType,
+                                    karaokePlatform = null,
+                                    settings = settings,
+                                    rootFolder = rootFolder,
+                                    pathToFile = pathToFile,
+                                    description = description,
+                                    existsInLocalFileSystem = existsInLocalFileSystem,
+                                    canBe = canBe,
+                                    canResolve = canResolve,
+                                    canCreate = canCreate,
+                                    karaokeProcessTypesToCreate = karaokeProcessTypesToCreate,
+                                    actionToCreate = actionToCreate,
+                                    location = location,
+                                    storageBucketName = storageBucketName,
+                                    storageFileName = storageFileName,
+                                    inProgressOwnArgs = inProgressOwnArgs,
+                                    inProgressParentArgs = inProgressParentArgs,
+                                    database = database,
+                                    storageService = storageService,
+                                    storageApiClient = storageApiClient,
+                                )
                             result.addAll(actions)
                         }
                     }
@@ -1728,37 +1783,39 @@ data class HealthReport(
                         canCreate = parentFileExistsInLocalFileSystem
 
                         if (canCreate) {
-                            inProgressOwnArgs = mapOf(
-                                "settings_id" to settings.id.toString(),
-                                "process_status" to KaraokeProcessStatuses.WAITING.name,
-                                "process_type" to KaraokeProcessTypes.DEMUCS5.name
-                            )
+                            inProgressOwnArgs =
+                                mapOf(
+                                    "settings_id" to settings.id.toString(),
+                                    "process_status" to KaraokeProcessStatuses.WAITING.name,
+                                    "process_type" to KaraokeProcessTypes.DEMUCS5.name,
+                                )
                             karaokeProcessTypesToCreate = KaraokeProcessTypes.DEMUCS5
                         }
 
                         karaokeFileType.locations.forEach { location ->
-                            val actions = actions(
-                                karaokeFileType = karaokeFileType,
-                                karaokePlatform = null,
-                                settings = settings,
-                                rootFolder = rootFolder,
-                                pathToFile = pathToFile,
-                                description = description,
-                                existsInLocalFileSystem = existsInLocalFileSystem,
-                                canBe = canBe,
-                                canResolve = canResolve,
-                                canCreate = canCreate,
-                                karaokeProcessTypesToCreate = karaokeProcessTypesToCreate,
-                                actionToCreate = actionToCreate,
-                                location = location,
-                                storageBucketName = storageBucketName,
-                                storageFileName = storageFileName,
-                                inProgressOwnArgs = inProgressOwnArgs,
-                                inProgressParentArgs = inProgressParentArgs,
-                                database = database,
-                                storageService = storageService,
-                                storageApiClient = storageApiClient
-                            )
+                            val actions =
+                                actions(
+                                    karaokeFileType = karaokeFileType,
+                                    karaokePlatform = null,
+                                    settings = settings,
+                                    rootFolder = rootFolder,
+                                    pathToFile = pathToFile,
+                                    description = description,
+                                    existsInLocalFileSystem = existsInLocalFileSystem,
+                                    canBe = canBe,
+                                    canResolve = canResolve,
+                                    canCreate = canCreate,
+                                    karaokeProcessTypesToCreate = karaokeProcessTypesToCreate,
+                                    actionToCreate = actionToCreate,
+                                    location = location,
+                                    storageBucketName = storageBucketName,
+                                    storageFileName = storageFileName,
+                                    inProgressOwnArgs = inProgressOwnArgs,
+                                    inProgressParentArgs = inProgressParentArgs,
+                                    database = database,
+                                    storageService = storageService,
+                                    storageApiClient = storageApiClient,
+                                )
                             result.addAll(actions)
                         }
                     }
@@ -1778,37 +1835,39 @@ data class HealthReport(
                         canCreate = parentFileExistsInLocalFileSystem
 
                         if (canCreate) {
-                            inProgressOwnArgs = mapOf(
-                                "settings_id" to settings.id.toString(),
-                                "process_status" to KaraokeProcessStatuses.WAITING.name,
-                                "process_type" to KaraokeProcessTypes.FF_MP3_OTHER.name
-                            )
+                            inProgressOwnArgs =
+                                mapOf(
+                                    "settings_id" to settings.id.toString(),
+                                    "process_status" to KaraokeProcessStatuses.WAITING.name,
+                                    "process_type" to KaraokeProcessTypes.FF_MP3_OTHER.name,
+                                )
                             karaokeProcessTypesToCreate = KaraokeProcessTypes.FF_MP3_OTHER
                         }
 
                         karaokeFileType.locations.forEach { location ->
-                            val actions = actions(
-                                karaokeFileType = karaokeFileType,
-                                karaokePlatform = null,
-                                settings = settings,
-                                rootFolder = rootFolder,
-                                pathToFile = pathToFile,
-                                description = description,
-                                existsInLocalFileSystem = existsInLocalFileSystem,
-                                canBe = canBe,
-                                canResolve = canResolve,
-                                canCreate = canCreate,
-                                karaokeProcessTypesToCreate = karaokeProcessTypesToCreate,
-                                actionToCreate = actionToCreate,
-                                location = location,
-                                storageBucketName = storageBucketName,
-                                storageFileName = storageFileName,
-                                inProgressOwnArgs = inProgressOwnArgs,
-                                inProgressParentArgs = inProgressParentArgs,
-                                database = database,
-                                storageService = storageService,
-                                storageApiClient = storageApiClient
-                            )
+                            val actions =
+                                actions(
+                                    karaokeFileType = karaokeFileType,
+                                    karaokePlatform = null,
+                                    settings = settings,
+                                    rootFolder = rootFolder,
+                                    pathToFile = pathToFile,
+                                    description = description,
+                                    existsInLocalFileSystem = existsInLocalFileSystem,
+                                    canBe = canBe,
+                                    canResolve = canResolve,
+                                    canCreate = canCreate,
+                                    karaokeProcessTypesToCreate = karaokeProcessTypesToCreate,
+                                    actionToCreate = actionToCreate,
+                                    location = location,
+                                    storageBucketName = storageBucketName,
+                                    storageFileName = storageFileName,
+                                    inProgressOwnArgs = inProgressOwnArgs,
+                                    inProgressParentArgs = inProgressParentArgs,
+                                    database = database,
+                                    storageService = storageService,
+                                    storageApiClient = storageApiClient,
+                                )
                             result.addAll(actions)
                         }
                     }
@@ -1818,33 +1877,35 @@ data class HealthReport(
                         pathToFile = settings.pathToFileLogoAlbum
                         existsInLocalFileSystem = if (pathToFile != "") File(pathToFile).exists() else false
                         canBe = true
-                        storageFileName = "${settings.author}/${settings.year} - ${settings.album}/${settings.author} - ${settings.year} - ${settings.album}${karaokeFileType.suffix}.${karaokeFileType.extention}"
+                        storageFileName =
+                            "${settings.author}/${settings.year} - ${settings.album}/${settings.author} - ${settings.year} - ${settings.album}${karaokeFileType.suffix}.${karaokeFileType.extention}"
                         description = karaokeFileType.name
                         canCreate = false // файл невозможно создать автоматически
 
                         karaokeFileType.locations.forEach { location ->
-                            val actions = actions(
-                                karaokeFileType = karaokeFileType,
-                                karaokePlatform = null,
-                                settings = settings,
-                                rootFolder = rootFolder,
-                                pathToFile = pathToFile,
-                                description = description,
-                                existsInLocalFileSystem = existsInLocalFileSystem,
-                                canBe = canBe,
-                                canResolve = canResolve,
-                                canCreate = canCreate,
-                                karaokeProcessTypesToCreate = karaokeProcessTypesToCreate,
-                                actionToCreate = actionToCreate,
-                                location = location,
-                                storageBucketName = storageBucketName,
-                                storageFileName = storageFileName,
-                                inProgressOwnArgs = inProgressOwnArgs,
-                                inProgressParentArgs = inProgressParentArgs,
-                                database = database,
-                                storageService = storageService,
-                                storageApiClient = storageApiClient
-                            )
+                            val actions =
+                                actions(
+                                    karaokeFileType = karaokeFileType,
+                                    karaokePlatform = null,
+                                    settings = settings,
+                                    rootFolder = rootFolder,
+                                    pathToFile = pathToFile,
+                                    description = description,
+                                    existsInLocalFileSystem = existsInLocalFileSystem,
+                                    canBe = canBe,
+                                    canResolve = canResolve,
+                                    canCreate = canCreate,
+                                    karaokeProcessTypesToCreate = karaokeProcessTypesToCreate,
+                                    actionToCreate = actionToCreate,
+                                    location = location,
+                                    storageBucketName = storageBucketName,
+                                    storageFileName = storageFileName,
+                                    inProgressOwnArgs = inProgressOwnArgs,
+                                    inProgressParentArgs = inProgressParentArgs,
+                                    database = database,
+                                    storageService = storageService,
+                                    storageApiClient = storageApiClient,
+                                )
                             result.addAll(actions)
                         }
                     }
@@ -1854,7 +1915,8 @@ data class HealthReport(
                         pathToFile = settings.pathToFileLogoAlbumPreview
                         existsInLocalFileSystem = if (pathToFile != "") File(pathToFile).exists() else false
                         canBe = true
-                        storageFileName = "${settings.author}/${settings.year} - ${settings.album}/${settings.author} - ${settings.year} - ${settings.album}${karaokeFileType.suffix}.${karaokeFileType.extention}"
+                        storageFileName =
+                            "${settings.author}/${settings.year} - ${settings.album}/${settings.author} - ${settings.year} - ${settings.album}${karaokeFileType.suffix}.${karaokeFileType.extention}"
                         description = karaokeFileType.name
 
                         // файл возможно создать автоматически, если есть файл типа PICTURE_ALBUM
@@ -1866,28 +1928,29 @@ data class HealthReport(
                         actionToCreate = { createAlbumPreview(settings = settings) }
 
                         karaokeFileType.locations.forEach { location ->
-                            val actions = actions(
-                                karaokeFileType = karaokeFileType,
-                                karaokePlatform = null,
-                                settings = settings,
-                                rootFolder = rootFolder,
-                                pathToFile = pathToFile,
-                                description = description,
-                                existsInLocalFileSystem = existsInLocalFileSystem,
-                                canBe = canBe,
-                                canResolve = canResolve,
-                                canCreate = canCreate,
-                                karaokeProcessTypesToCreate = karaokeProcessTypesToCreate,
-                                actionToCreate = actionToCreate,
-                                location = location,
-                                storageBucketName = storageBucketName,
-                                storageFileName = storageFileName,
-                                inProgressOwnArgs = inProgressOwnArgs,
-                                inProgressParentArgs = inProgressParentArgs,
-                                database = database,
-                                storageService = storageService,
-                                storageApiClient = storageApiClient
-                            )
+                            val actions =
+                                actions(
+                                    karaokeFileType = karaokeFileType,
+                                    karaokePlatform = null,
+                                    settings = settings,
+                                    rootFolder = rootFolder,
+                                    pathToFile = pathToFile,
+                                    description = description,
+                                    existsInLocalFileSystem = existsInLocalFileSystem,
+                                    canBe = canBe,
+                                    canResolve = canResolve,
+                                    canCreate = canCreate,
+                                    karaokeProcessTypesToCreate = karaokeProcessTypesToCreate,
+                                    actionToCreate = actionToCreate,
+                                    location = location,
+                                    storageBucketName = storageBucketName,
+                                    storageFileName = storageFileName,
+                                    inProgressOwnArgs = inProgressOwnArgs,
+                                    inProgressParentArgs = inProgressParentArgs,
+                                    database = database,
+                                    storageService = storageService,
+                                    storageApiClient = storageApiClient,
+                                )
                             result.addAll(actions)
                         }
                     }
@@ -1902,31 +1965,31 @@ data class HealthReport(
                         canCreate = false // файл невозможно создать автоматически
 
                         karaokeFileType.locations.forEach { location ->
-                            val actions = actions(
-                                karaokeFileType = karaokeFileType,
-                                karaokePlatform = null,
-                                settings = settings,
-                                rootFolder = rootFolder,
-                                pathToFile = pathToFile,
-                                description = description,
-                                existsInLocalFileSystem = existsInLocalFileSystem,
-                                canBe = canBe,
-                                canResolve = canResolve,
-                                canCreate = canCreate,
-                                karaokeProcessTypesToCreate = karaokeProcessTypesToCreate,
-                                actionToCreate = actionToCreate,
-                                location = location,
-                                storageBucketName = storageBucketName,
-                                storageFileName = storageFileName,
-                                inProgressOwnArgs = inProgressOwnArgs,
-                                inProgressParentArgs = inProgressParentArgs,
-                                database = database,
-                                storageService = storageService,
-                                storageApiClient = storageApiClient
-                            )
+                            val actions =
+                                actions(
+                                    karaokeFileType = karaokeFileType,
+                                    karaokePlatform = null,
+                                    settings = settings,
+                                    rootFolder = rootFolder,
+                                    pathToFile = pathToFile,
+                                    description = description,
+                                    existsInLocalFileSystem = existsInLocalFileSystem,
+                                    canBe = canBe,
+                                    canResolve = canResolve,
+                                    canCreate = canCreate,
+                                    karaokeProcessTypesToCreate = karaokeProcessTypesToCreate,
+                                    actionToCreate = actionToCreate,
+                                    location = location,
+                                    storageBucketName = storageBucketName,
+                                    storageFileName = storageFileName,
+                                    inProgressOwnArgs = inProgressOwnArgs,
+                                    inProgressParentArgs = inProgressParentArgs,
+                                    database = database,
+                                    storageService = storageService,
+                                    storageApiClient = storageApiClient,
+                                )
                             result.addAll(actions)
                         }
-
                     }
 
                     // Картинка автора (preview)
@@ -1946,73 +2009,10 @@ data class HealthReport(
                         actionToCreate = { createAuthorPreview(settings = settings) }
 
                         karaokeFileType.locations.forEach { location ->
-                            val actions = actions(
-                                karaokeFileType = karaokeFileType,
-                                karaokePlatform = null,
-                                settings = settings,
-                                rootFolder = rootFolder,
-                                pathToFile = pathToFile,
-                                description = description,
-                                existsInLocalFileSystem = existsInLocalFileSystem,
-                                canBe = canBe,
-                                canResolve = canResolve,
-                                canCreate = canCreate,
-                                karaokeProcessTypesToCreate = karaokeProcessTypesToCreate,
-                                actionToCreate = actionToCreate,
-                                location = location,
-                                storageBucketName = storageBucketName,
-                                storageFileName = storageFileName,
-                                inProgressOwnArgs = inProgressOwnArgs,
-                                inProgressParentArgs = inProgressParentArgs,
-                                database = database,
-                                storageService = storageService,
-                                storageApiClient = storageApiClient
-                            )
-                            result.addAll(actions)
-                        }
-                    }
-
-                    // Картинка публикации (может существовать только для karaokePlatform.forAllVersions)
-                    KaraokeFileType.PICTURE_PUBLICATION -> {
-                        KaraokePlatform.entries.forEach { karaokePlatform ->
-                            pathToFile = if (karaokePlatform.forAllVersions) {
-                                val subFolder = if (karaokeFileType.karaokeFileTypeKind == KaraokeFileTypeKind.PROJECT) {
-                                    "done_projects"
-                                } else {
-                                    "done_files"
-                                }
-                                "${settings.rootFolder}/$subFolder/${settings.fileName}${karaokePlatform.suffix}${karaokeFileType.suffix}.${karaokeFileType.extention}"
-                            } else ""
-                            existsInLocalFileSystem = if (pathToFile != "") File(pathToFile).exists() else false
-                            canBe = if (karaokeFileType.karaokeFileTypeKind == KaraokeFileTypeKind.PROJECT) {
-                                (settings.idStatus >= 3 && settings.idStatus < 6)
-                            } else {
-                                if (settings.exclusive) {
-                                    karaokePlatform == KaraokePlatform.SPONSR && settings.idStatus >= 3
-                                } else {
-                                    (settings.idStatus >= 3) && (!karaokePlatform.onAirPublications || !settings.onAir)
-                                }
-                            }
-                            if (!karaokePlatform.forAllVersions) canBe = false
-                            storageFileName = "${settings.storageFileName}${karaokePlatform.suffix}${karaokeFileType.suffix}.${karaokeFileType.extention}"
-                            description = "${karaokeFileType.name}/${karaokePlatform.name}"
-                            canCreate = true
-
-                            when(karaokePlatform) {
-                                KaraokePlatform.SPONSR -> { actionToCreate = { createSponsrTeaserPicture(settings = settings) } }
-
-                                KaraokePlatform.VKGROUP, // -> { actionToCreate = { createVKLinkPicture(settings = settings) } }
-                                KaraokePlatform.DZEN,
-                                KaraokePlatform.VKVIDEO,
-                                KaraokePlatform.PLATFORMA,
-                                KaraokePlatform.MAX,
-                                KaraokePlatform.TELEGRAM -> {}
-                            }
-
-                            karaokeFileType.locations.forEach { location ->
-                                val actions = actions(
+                            val actions =
+                                actions(
                                     karaokeFileType = karaokeFileType,
-                                    karaokePlatform = karaokePlatform,
+                                    karaokePlatform = null,
                                     settings = settings,
                                     rootFolder = rootFolder,
                                     pathToFile = pathToFile,
@@ -2030,22 +2030,97 @@ data class HealthReport(
                                     inProgressParentArgs = inProgressParentArgs,
                                     database = database,
                                     storageService = storageService,
-                                    storageApiClient = storageApiClient
+                                    storageApiClient = storageApiClient,
                                 )
-                                result.addAll(actions)
+                            result.addAll(actions)
+                        }
+                    }
+
+                    // Картинка публикации (может существовать только для karaokePlatform.forAllVersions)
+                    KaraokeFileType.PICTURE_PUBLICATION -> {
+                        KaraokePlatform.entries.forEach { karaokePlatform ->
+                            pathToFile =
+                                if (karaokePlatform.forAllVersions) {
+                                    val subFolder =
+                                        if (karaokeFileType.karaokeFileTypeKind == KaraokeFileTypeKind.PROJECT) {
+                                            "done_projects"
+                                        } else {
+                                            "done_files"
+                                        }
+                                    "${settings.rootFolder}/$subFolder/${settings.fileName}${karaokePlatform.suffix}${karaokeFileType.suffix}.${karaokeFileType.extention}"
+                                } else {
+                                    ""
+                                }
+                            existsInLocalFileSystem = if (pathToFile != "") File(pathToFile).exists() else false
+                            canBe =
+                                if (karaokeFileType.karaokeFileTypeKind == KaraokeFileTypeKind.PROJECT) {
+                                    (settings.idStatus >= 3 && settings.idStatus < 6)
+                                } else {
+                                    if (settings.exclusive) {
+                                        karaokePlatform == KaraokePlatform.SPONSR && settings.idStatus >= 3
+                                    } else {
+                                        (settings.idStatus >= 3) && (!karaokePlatform.onAirPublications || !settings.onAir)
+                                    }
+                                }
+                            if (!karaokePlatform.forAllVersions) canBe = false
+                            storageFileName =
+                                "${settings.storageFileName}${karaokePlatform.suffix}${karaokeFileType.suffix}.${karaokeFileType.extention}"
+                            description = "${karaokeFileType.name}/${karaokePlatform.name}"
+                            canCreate = true
+
+                            when (karaokePlatform) {
+                                KaraokePlatform.SPONSR -> {
+                                    actionToCreate = { createSponsrTeaserPicture(settings = settings) }
+                                }
+
+                                KaraokePlatform.VKGROUP, // -> { actionToCreate = { createVKLinkPicture(settings = settings) } }
+                                KaraokePlatform.DZEN,
+                                KaraokePlatform.VKVIDEO,
+                                KaraokePlatform.PLATFORMA,
+                                KaraokePlatform.MAX,
+                                KaraokePlatform.TELEGRAM,
+                                -> {}
                             }
 
+                            karaokeFileType.locations.forEach { location ->
+                                val actions =
+                                    actions(
+                                        karaokeFileType = karaokeFileType,
+                                        karaokePlatform = karaokePlatform,
+                                        settings = settings,
+                                        rootFolder = rootFolder,
+                                        pathToFile = pathToFile,
+                                        description = description,
+                                        existsInLocalFileSystem = existsInLocalFileSystem,
+                                        canBe = canBe,
+                                        canResolve = canResolve,
+                                        canCreate = canCreate,
+                                        karaokeProcessTypesToCreate = karaokeProcessTypesToCreate,
+                                        actionToCreate = actionToCreate,
+                                        location = location,
+                                        storageBucketName = storageBucketName,
+                                        storageFileName = storageFileName,
+                                        inProgressOwnArgs = inProgressOwnArgs,
+                                        inProgressParentArgs = inProgressParentArgs,
+                                        database = database,
+                                        storageService = storageService,
+                                        storageApiClient = storageApiClient,
+                                    )
+                                result.addAll(actions)
+                            }
                         }
                     }
 
                     // Картинка для видео конкретной версии песни
                     KaraokeFileType.PICTURE_SONGVERSION -> {
                         SongVersion.entries.forEach { songVersion ->
-                            pathToFile = "${settings.rootFolder}/done_files/${settings.fileName}${songVersion.suffix}${karaokeFileType.suffix}.${karaokeFileType.extention}"
+                            pathToFile =
+                                "${settings.rootFolder}/done_files/${settings.fileName}${songVersion.suffix}${karaokeFileType.suffix}.${karaokeFileType.extention}"
                             existsInLocalFileSystem = if (pathToFile != "") File(pathToFile).exists() else false
-                            storageFileName = "${settings.storageFileName}${songVersion.suffix}${karaokeFileType.suffix}.${karaokeFileType.extention}"
+                            storageFileName =
+                                "${settings.storageFileName}${songVersion.suffix}${karaokeFileType.suffix}.${karaokeFileType.extention}"
                             description = "${karaokeFileType.name}/${songVersion.name}"
-                            when(songVersion) {
+                            when (songVersion) {
                                 SongVersion.LYRICS -> {
                                     canBe = (settings.idStatus >= 3)
                                 }
@@ -2063,280 +2138,343 @@ data class HealthReport(
                             actionToCreate = { createSongPicture(settings = settings, songVersion = songVersion) }
 
                             karaokeFileType.locations.forEach { location ->
-                                val actions = actions(
-                                    karaokeFileType = karaokeFileType,
-                                    karaokePlatform = null,
-                                    settings = settings,
-                                    rootFolder = rootFolder,
-                                    pathToFile = pathToFile,
-                                    description = description,
-                                    existsInLocalFileSystem = existsInLocalFileSystem,
-                                    canBe = canBe,
-                                    canResolve = canResolve,
-                                    canCreate = canCreate,
-                                    karaokeProcessTypesToCreate = karaokeProcessTypesToCreate,
-                                    actionToCreate = actionToCreate,
-                                    location = location,
-                                    storageBucketName = storageBucketName,
-                                    storageFileName = storageFileName,
-                                    inProgressOwnArgs = inProgressOwnArgs,
-                                    inProgressParentArgs = inProgressParentArgs,
-                                    database = database,
-                                    storageService = storageService,
-                                    storageApiClient = storageApiClient
-                                )
+                                val actions =
+                                    actions(
+                                        karaokeFileType = karaokeFileType,
+                                        karaokePlatform = null,
+                                        settings = settings,
+                                        rootFolder = rootFolder,
+                                        pathToFile = pathToFile,
+                                        description = description,
+                                        existsInLocalFileSystem = existsInLocalFileSystem,
+                                        canBe = canBe,
+                                        canResolve = canResolve,
+                                        canCreate = canCreate,
+                                        karaokeProcessTypesToCreate = karaokeProcessTypesToCreate,
+                                        actionToCreate = actionToCreate,
+                                        location = location,
+                                        storageBucketName = storageBucketName,
+                                        storageFileName = storageFileName,
+                                        inProgressOwnArgs = inProgressOwnArgs,
+                                        inProgressParentArgs = inProgressParentArgs,
+                                        database = database,
+                                        storageService = storageService,
+                                        storageApiClient = storageApiClient,
+                                    )
                                 result.addAll(actions)
                             }
-
                         }
                     }
 
                     // Видео конкретной версии песни в разрешении 1080p/60fps
-                    KaraokeFileType.VIDEO_SONGVERSION_1080P ->  {
+                    KaraokeFileType.VIDEO_SONGVERSION_1080P -> {
+                        if (settings.idStatus >= 6) {
+                            SongVersion.entries.forEach { songVersion ->
+                                pathToFile =
+                                    "${settings.rootFolder}/done_files/${settings.fileName}${songVersion.suffix}${karaokeFileType.suffix}.${karaokeFileType.extention}"
+                                existsInLocalFileSystem = if (pathToFile != "") File(pathToFile).exists() else false
+                                storageFileName =
+                                    "${settings.storageFileName}${songVersion.suffix}${karaokeFileType.suffix}.${karaokeFileType.extention}"
+                                description = "${karaokeFileType.name}/${songVersion.name}"
+                                when (songVersion) {
+                                    SongVersion.LYRICS -> {
+                                        canBe = (settings.idStatus >= 6)
+                                        // файл возможно создать автоматически, если есть файлы типа AUDIO_SONG
+                                        val patentFileType = KaraokeFileType.AUDIO_SONG
+                                        val pathToParentFile = settings.fileAbsolutePath
+                                        val parentFileExistsInLocalFileSystem =
+                                            if (pathToParentFile !=
+                                                ""
+                                            ) {
+                                                File(pathToParentFile).exists()
+                                            } else {
+                                                false
+                                            }
+                                        canCreate = parentFileExistsInLocalFileSystem
+                                        if (canCreate) {
+                                            inProgressOwnArgs =
+                                                mapOf(
+                                                    "settings_id" to settings.id.toString(),
+                                                    "process_status" to KaraokeProcessStatuses.WAITING.name,
+                                                    "process_type" to KaraokeProcessTypes.RENDER_MP4_LYRICS.name,
+                                                )
+                                            actionToCreate = {
+                                                settings.createKaraoke(songVersion = songVersion)
+                                                KaraokeProcess.createProcess(
+                                                    settings = settings,
+                                                    action = KaraokeProcessTypes.RENDER_MP4_LYRICS,
+                                                    doWait = true,
+                                                    prior = 0,
+                                                    threadId = 0,
+                                                )
+                                            }
+                                        }
+                                    }
+                                    SongVersion.KARAOKE -> {
+                                        canBe = (settings.idStatus >= 6)
+                                        // файл возможно создать автоматически, если есть файлы AUDIO_ACCOMPANIMENT, AUDIO_VOCALS
+                                        val pathsToParentFiles =
+                                            listOf(
+                                                settings.vocalsNameFlac,
+                                                settings.accompanimentNameFlac,
+                                            )
+                                        val parentFileExistsInLocalFileSystem =
+                                            pathsToParentFiles.all { pathToParentFile ->
+                                                if (pathToParentFile !=
+                                                    ""
+                                                ) {
+                                                    File(pathToParentFile).exists()
+                                                } else {
+                                                    false
+                                                }
+                                            }
+                                        canCreate = parentFileExistsInLocalFileSystem
+                                        if (canCreate) {
+                                            inProgressOwnArgs =
+                                                mapOf(
+                                                    "settings_id" to settings.id.toString(),
+                                                    "process_status" to KaraokeProcessStatuses.WAITING.name,
+                                                    "process_type" to KaraokeProcessTypes.RENDER_MP4_KARAOKE.name,
+                                                )
+                                            actionToCreate = {
+                                                settings.createKaraoke(songVersion = songVersion)
+                                                KaraokeProcess.createProcess(
+                                                    settings = settings,
+                                                    action = KaraokeProcessTypes.RENDER_MP4_KARAOKE,
+                                                    doWait = true,
+                                                    prior = 0,
+                                                    threadId = 0,
+                                                )
+                                            }
+                                        }
+                                    }
+                                    SongVersion.CHORDS -> {
+                                        canBe = (settings.idStatus >= 6) && settings.hasChords
+                                        // файл возможно создать автоматически, если есть AUDIO_VOCALS, AUDIO_OTHER, AUDIO_BASS, AUDIO_DRUMS
+                                        val pathsToParentFiles =
+                                            listOf(
+                                                settings.vocalsNameFlac,
+                                                settings.otherNameFlac,
+                                                settings.bassNameFlac,
+                                                settings.drumsNameFlac,
+                                            )
+                                        val parentFileExistsInLocalFileSystem =
+                                            pathsToParentFiles.all { pathToParentFile ->
+                                                if (pathToParentFile !=
+                                                    ""
+                                                ) {
+                                                    File(pathToParentFile).exists()
+                                                } else {
+                                                    false
+                                                }
+                                            }
+                                        canCreate = parentFileExistsInLocalFileSystem
+                                        if (canCreate) {
+                                            inProgressOwnArgs =
+                                                mapOf(
+                                                    "settings_id" to settings.id.toString(),
+                                                    "process_status" to KaraokeProcessStatuses.WAITING.name,
+                                                    "process_type" to KaraokeProcessTypes.RENDER_MP4_CHORDS.name,
+                                                )
+                                            actionToCreate = {
+                                                settings.createKaraoke(songVersion = songVersion)
+                                                KaraokeProcess.createProcess(
+                                                    settings = settings,
+                                                    action = KaraokeProcessTypes.RENDER_MP4_CHORDS,
+                                                    doWait = true,
+                                                    prior = 0,
+                                                    threadId = 0,
+                                                )
+                                            }
+                                        }
+                                    }
+                                    SongVersion.TABS -> {
+                                        canBe = (settings.idStatus >= 6) && settings.hasMelody
+                                        // файл возможно создать автоматически, если есть AUDIO_VOCALS, AUDIO_OTHER, AUDIO_BASS, AUDIO_DRUMS
+                                        val pathsToParentFiles =
+                                            listOf(
+                                                settings.vocalsNameFlac,
+                                                settings.otherNameFlac,
+                                                settings.bassNameFlac,
+                                                settings.drumsNameFlac,
+                                            )
+                                        val parentFileExistsInLocalFileSystem =
+                                            pathsToParentFiles.all { pathToParentFile ->
+                                                if (pathToParentFile !=
+                                                    ""
+                                                ) {
+                                                    File(pathToParentFile).exists()
+                                                } else {
+                                                    false
+                                                }
+                                            }
+                                        canCreate = parentFileExistsInLocalFileSystem
+                                        if (canCreate) {
+                                            inProgressOwnArgs =
+                                                mapOf(
+                                                    "settings_id" to settings.id.toString(),
+                                                    "process_status" to KaraokeProcessStatuses.WAITING.name,
+                                                    "process_type" to KaraokeProcessTypes.RENDER_MP4_TABS.name,
+                                                )
+                                            actionToCreate = {
+                                                settings.createKaraoke(songVersion = songVersion)
+                                                KaraokeProcess.createProcess(
+                                                    settings = settings,
+                                                    action = KaraokeProcessTypes.RENDER_MP4_TABS,
+                                                    doWait = true,
+                                                    prior = 0,
+                                                    threadId = 0,
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
 
-                        if (settings.idStatus >= 6) SongVersion.entries.forEach { songVersion ->
-                            pathToFile = "${settings.rootFolder}/done_files/${settings.fileName}${songVersion.suffix}${karaokeFileType.suffix}.${karaokeFileType.extention}"
-                            existsInLocalFileSystem = if (pathToFile != "") File(pathToFile).exists() else false
-                            storageFileName = "${settings.storageFileName}${songVersion.suffix}${karaokeFileType.suffix}.${karaokeFileType.extention}"
-                            description = "${karaokeFileType.name}/${songVersion.name}"
-                            when(songVersion) {
-                                SongVersion.LYRICS -> {
-                                    canBe = (settings.idStatus >= 6)
-                                    // файл возможно создать автоматически, если есть файлы типа AUDIO_SONG
-                                    val patentFileType = KaraokeFileType.AUDIO_SONG
-                                    val pathToParentFile = settings.fileAbsolutePath
-                                    val parentFileExistsInLocalFileSystem = if (pathToParentFile != "") File(pathToParentFile).exists() else false
-                                    canCreate = parentFileExistsInLocalFileSystem
-                                    if (canCreate) {
-                                        inProgressOwnArgs = mapOf(
-                                            "settings_id" to settings.id.toString(),
-                                            "process_status" to KaraokeProcessStatuses.WAITING.name,
-                                            "process_type" to KaraokeProcessTypes.RENDER_MP4_LYRICS.name
+                                karaokeFileType.locations.forEach { location ->
+                                    val actions =
+                                        actions(
+                                            karaokeFileType = karaokeFileType,
+                                            karaokePlatform = null,
+                                            settings = settings,
+                                            rootFolder = rootFolder,
+                                            pathToFile = pathToFile,
+                                            description = description,
+                                            existsInLocalFileSystem = existsInLocalFileSystem,
+                                            canBe = canBe,
+                                            canResolve = canResolve,
+                                            canCreate = canCreate,
+                                            karaokeProcessTypesToCreate = karaokeProcessTypesToCreate,
+                                            actionToCreate = actionToCreate,
+                                            location = location,
+                                            storageBucketName = storageBucketName,
+                                            storageFileName = storageFileName,
+                                            inProgressOwnArgs = inProgressOwnArgs,
+                                            inProgressParentArgs = inProgressParentArgs,
+                                            database = database,
+                                            storageService = storageService,
+                                            storageApiClient = storageApiClient,
                                         )
-                                        actionToCreate = {
-                                            settings.createKaraoke(songVersion = songVersion)
-                                            KaraokeProcess.createProcess(
-                                                settings = settings,
-                                                action = KaraokeProcessTypes.RENDER_MP4_LYRICS,
-                                                doWait = true,
-                                                prior = 0,
-                                                threadId = 0)
-                                        }
-                                    }
-
-                                }
-                                SongVersion.KARAOKE -> {
-                                    canBe = (settings.idStatus >= 6)
-                                    // файл возможно создать автоматически, если есть файлы AUDIO_ACCOMPANIMENT, AUDIO_VOCALS
-                                    val pathsToParentFiles = listOf(
-                                        settings.vocalsNameFlac,
-                                        settings.accompanimentNameFlac
-                                    )
-                                    val parentFileExistsInLocalFileSystem = pathsToParentFiles.all { pathToParentFile -> if (pathToParentFile != "") File(pathToParentFile).exists() else false }
-                                    canCreate = parentFileExistsInLocalFileSystem
-                                    if (canCreate) {
-                                        inProgressOwnArgs = mapOf(
-                                            "settings_id" to settings.id.toString(),
-                                            "process_status" to KaraokeProcessStatuses.WAITING.name,
-                                            "process_type" to KaraokeProcessTypes.RENDER_MP4_KARAOKE.name
-                                        )
-                                        actionToCreate = {
-                                            settings.createKaraoke(songVersion = songVersion)
-                                            KaraokeProcess.createProcess(
-                                                settings = settings,
-                                                action = KaraokeProcessTypes.RENDER_MP4_KARAOKE,
-                                                doWait = true,
-                                                prior = 0,
-                                                threadId = 0)
-                                        }
-                                    }
-                                }
-                                SongVersion.CHORDS -> {
-                                    canBe = (settings.idStatus >= 6) && settings.hasChords
-                                    // файл возможно создать автоматически, если есть AUDIO_VOCALS, AUDIO_OTHER, AUDIO_BASS, AUDIO_DRUMS
-                                    val pathsToParentFiles = listOf(
-                                        settings.vocalsNameFlac,
-                                        settings.otherNameFlac,
-                                        settings.bassNameFlac,
-                                        settings.drumsNameFlac
-                                    )
-                                    val parentFileExistsInLocalFileSystem = pathsToParentFiles.all { pathToParentFile -> if (pathToParentFile != "") File(pathToParentFile).exists() else false }
-                                    canCreate = parentFileExistsInLocalFileSystem
-                                    if (canCreate) {
-                                        inProgressOwnArgs = mapOf(
-                                            "settings_id" to settings.id.toString(),
-                                            "process_status" to KaraokeProcessStatuses.WAITING.name,
-                                            "process_type" to KaraokeProcessTypes.RENDER_MP4_CHORDS.name
-                                        )
-                                        actionToCreate = {
-                                            settings.createKaraoke(songVersion = songVersion)
-                                            KaraokeProcess.createProcess(
-                                                settings = settings,
-                                                action = KaraokeProcessTypes.RENDER_MP4_CHORDS,
-                                                doWait = true,
-                                                prior = 0,
-                                                threadId = 0)
-                                        }
-                                    }
-                                }
-                                SongVersion.TABS -> {
-                                    canBe = (settings.idStatus >= 6) && settings.hasMelody
-                                    // файл возможно создать автоматически, если есть AUDIO_VOCALS, AUDIO_OTHER, AUDIO_BASS, AUDIO_DRUMS
-                                    val pathsToParentFiles = listOf(
-                                        settings.vocalsNameFlac,
-                                        settings.otherNameFlac,
-                                        settings.bassNameFlac,
-                                        settings.drumsNameFlac
-                                    )
-                                    val parentFileExistsInLocalFileSystem = pathsToParentFiles.all { pathToParentFile -> if (pathToParentFile != "") File(pathToParentFile).exists() else false }
-                                    canCreate = parentFileExistsInLocalFileSystem
-                                    if (canCreate) {
-                                        inProgressOwnArgs = mapOf(
-                                            "settings_id" to settings.id.toString(),
-                                            "process_status" to KaraokeProcessStatuses.WAITING.name,
-                                            "process_type" to KaraokeProcessTypes.RENDER_MP4_TABS.name
-                                        )
-                                        actionToCreate = {
-                                            settings.createKaraoke(songVersion = songVersion)
-                                            KaraokeProcess.createProcess(
-                                                settings = settings,
-                                                action = KaraokeProcessTypes.RENDER_MP4_TABS,
-                                                doWait = true,
-                                                prior = 0,
-                                                threadId = 0)
-                                        }
-                                    }
+                                    result.addAll(actions)
                                 }
                             }
-
-                            karaokeFileType.locations.forEach { location ->
-                                val actions = actions(
-                                    karaokeFileType = karaokeFileType,
-                                    karaokePlatform = null,
-                                    settings = settings,
-                                    rootFolder = rootFolder,
-                                    pathToFile = pathToFile,
-                                    description = description,
-                                    existsInLocalFileSystem = existsInLocalFileSystem,
-                                    canBe = canBe,
-                                    canResolve = canResolve,
-                                    canCreate = canCreate,
-                                    karaokeProcessTypesToCreate = karaokeProcessTypesToCreate,
-                                    actionToCreate = actionToCreate,
-                                    location = location,
-                                    storageBucketName = storageBucketName,
-                                    storageFileName = storageFileName,
-                                    inProgressOwnArgs = inProgressOwnArgs,
-                                    inProgressParentArgs = inProgressParentArgs,
-                                    database = database,
-                                    storageService = storageService,
-                                    storageApiClient = storageApiClient
-                                )
-                                result.addAll(actions)
-                            }
-
                         }
                     }
 
                     // Видео конкретной версии песни в разрешении 720p/30fps
-                    KaraokeFileType.VIDEO_SONGVERSION_720P ->  {
-                        if (settings.idStatus >= 6) SongVersion.entries.forEach { songVersion ->
-                            storageFileName = "${settings.storageFileName}${songVersion.suffix}${karaokeFileType.suffix}.${karaokeFileType.extention}"
-                            description = "${karaokeFileType.name}/${songVersion.name}"
+                    KaraokeFileType.VIDEO_SONGVERSION_720P -> {
+                        if (settings.idStatus >= 6) {
+                            SongVersion.entries.forEach { songVersion ->
+                                storageFileName =
+                                    "${settings.storageFileName}${songVersion.suffix}${karaokeFileType.suffix}.${karaokeFileType.extention}"
+                                description = "${karaokeFileType.name}/${songVersion.name}"
 
-                            // файл возможно создать автоматически, если есть файлы типа VIDEO_SONGVERSION_1080P
-                            val patentFileType = KaraokeFileType.VIDEO_SONGVERSION_1080P
-                            val pathToParentFile = "${settings.rootFolder}/done_files/${settings.fileName}${songVersion.suffix}${karaokeFileType.suffix}.${karaokeFileType.extention}"
-                            val parentFileExistsInLocalFileSystem = if (pathToParentFile != "") File(pathToParentFile).exists() else false
-                            canCreate = parentFileExistsInLocalFileSystem
+                                // файл возможно создать автоматически, если есть файлы типа VIDEO_SONGVERSION_1080P
+                                val patentFileType = KaraokeFileType.VIDEO_SONGVERSION_1080P
+                                val pathToParentFile = "${settings.rootFolder}/done_files/${settings.fileName}${songVersion.suffix}${karaokeFileType.suffix}.${karaokeFileType.extention}"
+                                val parentFileExistsInLocalFileSystem =
+                                    if (pathToParentFile !=
+                                        ""
+                                    ) {
+                                        File(pathToParentFile).exists()
+                                    } else {
+                                        false
+                                    }
+                                canCreate = parentFileExistsInLocalFileSystem
 
-                            when(songVersion) {
-                                SongVersion.LYRICS -> {
-                                    pathToFile = settings.pathToFile720Lyrics
-                                    existsInLocalFileSystem = if (pathToFile != "") File(pathToFile).exists() else false
-                                    canBe = (settings.idStatus >= 6)
-                                    if (canCreate) {
-                                        inProgressOwnArgs = mapOf(
-                                            "settings_id" to settings.id.toString(),
-                                            "process_status" to KaraokeProcessStatuses.WAITING.name,
-                                            "process_type" to KaraokeProcessTypes.FF_720_LYR.name
-                                        )
-                                        inProgressParentArgs = mapOf(
-                                            "settings_id" to settings.id.toString(),
-                                            "process_status" to KaraokeProcessStatuses.WAITING.name,
-                                            "process_type" to KaraokeProcessTypes.MELT_LYRICS.name
-                                        )
-                                        karaokeProcessTypesToCreate = KaraokeProcessTypes.FF_720_LYR
+                                when (songVersion) {
+                                    SongVersion.LYRICS -> {
+                                        pathToFile = settings.pathToFile720Lyrics
+                                        existsInLocalFileSystem = if (pathToFile != "") File(pathToFile).exists() else false
+                                        canBe = (settings.idStatus >= 6)
+                                        if (canCreate) {
+                                            inProgressOwnArgs =
+                                                mapOf(
+                                                    "settings_id" to settings.id.toString(),
+                                                    "process_status" to KaraokeProcessStatuses.WAITING.name,
+                                                    "process_type" to KaraokeProcessTypes.FF_720_LYR.name,
+                                                )
+                                            inProgressParentArgs =
+                                                mapOf(
+                                                    "settings_id" to settings.id.toString(),
+                                                    "process_status" to KaraokeProcessStatuses.WAITING.name,
+                                                    "process_type" to KaraokeProcessTypes.MELT_LYRICS.name,
+                                                )
+                                            karaokeProcessTypesToCreate = KaraokeProcessTypes.FF_720_LYR
+                                        }
+                                    }
+                                    SongVersion.KARAOKE -> {
+                                        pathToFile = settings.pathToFile720Karaoke
+                                        existsInLocalFileSystem = if (pathToFile != "") File(pathToFile).exists() else false
+                                        canBe = (settings.idStatus >= 6)
+                                        if (canCreate) {
+                                            inProgressOwnArgs =
+                                                mapOf(
+                                                    "settings_id" to settings.id.toString(),
+                                                    "process_status" to KaraokeProcessStatuses.WAITING.name,
+                                                    "process_type" to KaraokeProcessTypes.FF_720_KAR.name,
+                                                )
+                                            inProgressParentArgs =
+                                                mapOf(
+                                                    "settings_id" to settings.id.toString(),
+                                                    "process_status" to KaraokeProcessStatuses.WAITING.name,
+                                                    "process_type" to KaraokeProcessTypes.MELT_KARAOKE.name,
+                                                )
+                                            karaokeProcessTypesToCreate = KaraokeProcessTypes.FF_720_KAR
+                                        }
+                                    }
+                                    SongVersion.CHORDS -> {
+                                        pathToFile = ""
+                                        existsInLocalFileSystem = false
+                                        canBe = false
+                                    }
+                                    SongVersion.TABS -> {
+                                        pathToFile = ""
+                                        existsInLocalFileSystem = false
+                                        canBe = false
                                     }
                                 }
-                                SongVersion.KARAOKE -> {
-                                    pathToFile = settings.pathToFile720Karaoke
-                                    existsInLocalFileSystem = if (pathToFile != "") File(pathToFile).exists() else false
-                                    canBe = (settings.idStatus >= 6)
-                                    if (canCreate) {
-                                        inProgressOwnArgs = mapOf(
-                                            "settings_id" to settings.id.toString(),
-                                            "process_status" to KaraokeProcessStatuses.WAITING.name,
-                                            "process_type" to KaraokeProcessTypes.FF_720_KAR.name
+
+                                karaokeFileType.locations.forEach { location ->
+                                    val actions =
+                                        actions(
+                                            karaokeFileType = karaokeFileType,
+                                            karaokePlatform = null,
+                                            settings = settings,
+                                            rootFolder = rootFolder,
+                                            pathToFile = pathToFile,
+                                            description = description,
+                                            existsInLocalFileSystem = existsInLocalFileSystem,
+                                            canBe = canBe,
+                                            canResolve = canResolve,
+                                            canCreate = canCreate,
+                                            karaokeProcessTypesToCreate = karaokeProcessTypesToCreate,
+                                            actionToCreate = actionToCreate,
+                                            location = location,
+                                            storageBucketName = storageBucketName,
+                                            storageFileName = storageFileName,
+                                            inProgressOwnArgs = inProgressOwnArgs,
+                                            inProgressParentArgs = inProgressParentArgs,
+                                            database = database,
+                                            storageService = storageService,
+                                            storageApiClient = storageApiClient,
                                         )
-                                        inProgressParentArgs = mapOf(
-                                            "settings_id" to settings.id.toString(),
-                                            "process_status" to KaraokeProcessStatuses.WAITING.name,
-                                            "process_type" to KaraokeProcessTypes.MELT_KARAOKE.name
-                                        )
-                                        karaokeProcessTypesToCreate = KaraokeProcessTypes.FF_720_KAR
-                                    }
-                                }
-                                SongVersion.CHORDS -> {
-                                    pathToFile = ""
-                                    existsInLocalFileSystem = false
-                                    canBe = false
-                                }
-                                SongVersion.TABS -> {
-                                    pathToFile = ""
-                                    existsInLocalFileSystem = false
-                                    canBe = false
+                                    result.addAll(actions)
                                 }
                             }
-
-                            karaokeFileType.locations.forEach { location ->
-                                val actions = actions(
-                                    karaokeFileType = karaokeFileType,
-                                    karaokePlatform = null,
-                                    settings = settings,
-                                    rootFolder = rootFolder,
-                                    pathToFile = pathToFile,
-                                    description = description,
-                                    existsInLocalFileSystem = existsInLocalFileSystem,
-                                    canBe = canBe,
-                                    canResolve = canResolve,
-                                    canCreate = canCreate,
-                                    karaokeProcessTypesToCreate = karaokeProcessTypesToCreate,
-                                    actionToCreate = actionToCreate,
-                                    location = location,
-                                    storageBucketName = storageBucketName,
-                                    storageFileName = storageFileName,
-                                    inProgressOwnArgs = inProgressOwnArgs,
-                                    inProgressParentArgs = inProgressParentArgs,
-                                    database = database,
-                                    storageService = storageService,
-                                    storageApiClient = storageApiClient
-                                )
-                                result.addAll(actions)
-                            }
-
                         }
                     }
 
                     // Скрипт для рендера конкретной версии
-                    KaraokeFileType.PROJECT_SONGVERSION_RUN ->  {
+                    KaraokeFileType.PROJECT_SONGVERSION_RUN -> {
                         SongVersion.entries.forEach { songVersion ->
-                            pathToFile = "${settings.rootFolder}/done_projects/${settings.fileName}${songVersion.suffix}${karaokeFileType.suffix}.${karaokeFileType.extention}"
+                            pathToFile =
+                                "${settings.rootFolder}/done_projects/${settings.fileName}${songVersion.suffix}${karaokeFileType.suffix}.${karaokeFileType.extention}"
                             existsInLocalFileSystem = if (pathToFile != "") File(pathToFile).exists() else false
-                            storageFileName = "${settings.storageFileName}${songVersion.suffix}${karaokeFileType.suffix}.${karaokeFileType.extention}"
+                            storageFileName =
+                                "${settings.storageFileName}${songVersion.suffix}${karaokeFileType.suffix}.${karaokeFileType.extention}"
                             description = "${karaokeFileType.name}/${songVersion.name}"
                             canCreate = false
-                            when(songVersion) {
+                            when (songVersion) {
                                 SongVersion.LYRICS -> {
                                     canBe = (settings.idStatus >= 3 && settings.idStatus < 6)
                                 }
@@ -2352,147 +2490,185 @@ data class HealthReport(
                             }
 
                             karaokeFileType.locations.forEach { location ->
-                                val actions = actions(
-                                    karaokeFileType = karaokeFileType,
-                                    karaokePlatform = null,
-                                    settings = settings,
-                                    rootFolder = rootFolder,
-                                    pathToFile = pathToFile,
-                                    description = description,
-                                    existsInLocalFileSystem = existsInLocalFileSystem,
-                                    canBe = canBe,
-                                    canResolve = canResolve,
-                                    canCreate = canCreate,
-                                    karaokeProcessTypesToCreate = karaokeProcessTypesToCreate,
-                                    actionToCreate = actionToCreate,
-                                    location = location,
-                                    storageBucketName = storageBucketName,
-                                    storageFileName = storageFileName,
-                                    inProgressOwnArgs = inProgressOwnArgs,
-                                    inProgressParentArgs = inProgressParentArgs,
-                                    database = database,
-                                    storageService = storageService,
-                                    storageApiClient = storageApiClient
-                                )
+                                val actions =
+                                    actions(
+                                        karaokeFileType = karaokeFileType,
+                                        karaokePlatform = null,
+                                        settings = settings,
+                                        rootFolder = rootFolder,
+                                        pathToFile = pathToFile,
+                                        description = description,
+                                        existsInLocalFileSystem = existsInLocalFileSystem,
+                                        canBe = canBe,
+                                        canResolve = canResolve,
+                                        canCreate = canCreate,
+                                        karaokeProcessTypesToCreate = karaokeProcessTypesToCreate,
+                                        actionToCreate = actionToCreate,
+                                        location = location,
+                                        storageBucketName = storageBucketName,
+                                        storageFileName = storageFileName,
+                                        inProgressOwnArgs = inProgressOwnArgs,
+                                        inProgressParentArgs = inProgressParentArgs,
+                                        database = database,
+                                        storageService = storageService,
+                                        storageApiClient = storageApiClient,
+                                    )
                                 result.addAll(actions)
                             }
-
                         }
                     }
 
                     // MLT-файл для конкретной версии
-                    KaraokeFileType.PROJECT_SONGVERSION_MLT ->  {
+                    KaraokeFileType.PROJECT_SONGVERSION_MLT -> {
                         SongVersion.entries.forEach { songVersion ->
-                            pathToFile = "${settings.rootFolder}/done_projects/${settings.fileName}${songVersion.suffix}${karaokeFileType.suffix}.${karaokeFileType.extention}"
+                            pathToFile =
+                                "${settings.rootFolder}/done_projects/${settings.fileName}${songVersion.suffix}${karaokeFileType.suffix}.${karaokeFileType.extention}"
                             existsInLocalFileSystem = if (pathToFile != "") File(pathToFile).exists() else false
-                            storageFileName = "${settings.storageFileName}${songVersion.suffix}${karaokeFileType.suffix}.${karaokeFileType.extention}"
+                            storageFileName =
+                                "${settings.storageFileName}${songVersion.suffix}${karaokeFileType.suffix}.${karaokeFileType.extention}"
                             description = "${karaokeFileType.name}/${songVersion.name}"
                             canCreate = false
-                            when(songVersion) {
+                            when (songVersion) {
                                 SongVersion.LYRICS -> {
-                                    canBe = (settings.statusProcessLyrics in listOf(KaraokeProcessStatuses.WAITING.name, KaraokeProcessStatuses.WORKING.name))
+                                    canBe =
+                                        (
+                                            settings.statusProcessLyrics in
+                                                listOf(KaraokeProcessStatuses.WAITING.name, KaraokeProcessStatuses.WORKING.name)
+                                        )
                                 }
                                 SongVersion.KARAOKE -> {
-                                    canBe = (settings.statusProcessKaraoke in listOf(KaraokeProcessStatuses.WAITING.name, KaraokeProcessStatuses.WORKING.name))
+                                    canBe =
+                                        (
+                                            settings.statusProcessKaraoke in
+                                                listOf(KaraokeProcessStatuses.WAITING.name, KaraokeProcessStatuses.WORKING.name)
+                                        )
                                 }
                                 SongVersion.CHORDS -> {
-                                    canBe = (settings.statusProcessChords in listOf(KaraokeProcessStatuses.WAITING.name, KaraokeProcessStatuses.WORKING.name))
+                                    canBe =
+                                        (
+                                            settings.statusProcessChords in
+                                                listOf(KaraokeProcessStatuses.WAITING.name, KaraokeProcessStatuses.WORKING.name)
+                                        )
                                 }
                                 SongVersion.TABS -> {
-                                    canBe = (settings.statusProcessMelody in listOf(KaraokeProcessStatuses.WAITING.name, KaraokeProcessStatuses.WORKING.name))
+                                    canBe =
+                                        (
+                                            settings.statusProcessMelody in
+                                                listOf(KaraokeProcessStatuses.WAITING.name, KaraokeProcessStatuses.WORKING.name)
+                                        )
                                 }
                             }
 
                             karaokeFileType.locations.forEach { location ->
-                                val actions = actions(
-                                    karaokeFileType = karaokeFileType,
-                                    karaokePlatform = null,
-                                    settings = settings,
-                                    rootFolder = rootFolder,
-                                    pathToFile = pathToFile,
-                                    description = description,
-                                    existsInLocalFileSystem = existsInLocalFileSystem,
-                                    canBe = canBe,
-                                    canResolve = canResolve,
-                                    canCreate = canCreate,
-                                    karaokeProcessTypesToCreate = karaokeProcessTypesToCreate,
-                                    actionToCreate = actionToCreate,
-                                    location = location,
-                                    storageBucketName = storageBucketName,
-                                    storageFileName = storageFileName,
-                                    inProgressOwnArgs = inProgressOwnArgs,
-                                    inProgressParentArgs = inProgressParentArgs,
-                                    database = database,
-                                    storageService = storageService,
-                                    storageApiClient = storageApiClient
-                                )
+                                val actions =
+                                    actions(
+                                        karaokeFileType = karaokeFileType,
+                                        karaokePlatform = null,
+                                        settings = settings,
+                                        rootFolder = rootFolder,
+                                        pathToFile = pathToFile,
+                                        description = description,
+                                        existsInLocalFileSystem = existsInLocalFileSystem,
+                                        canBe = canBe,
+                                        canResolve = canResolve,
+                                        canCreate = canCreate,
+                                        karaokeProcessTypesToCreate = karaokeProcessTypesToCreate,
+                                        actionToCreate = actionToCreate,
+                                        location = location,
+                                        storageBucketName = storageBucketName,
+                                        storageFileName = storageFileName,
+                                        inProgressOwnArgs = inProgressOwnArgs,
+                                        inProgressParentArgs = inProgressParentArgs,
+                                        database = database,
+                                        storageService = storageService,
+                                        storageApiClient = storageApiClient,
+                                    )
                                 result.addAll(actions)
                             }
-
                         }
                     }
 
                     // KDENLIVE-файл для конкретной версии
-                    KaraokeFileType.PROJECT_SONGVERSION_KDENLIVE ->  {
+                    KaraokeFileType.PROJECT_SONGVERSION_KDENLIVE -> {
                         SongVersion.entries.forEach { songVersion ->
-                            pathToFile = "${settings.rootFolder}/done_projects/${settings.fileName}${songVersion.suffix}${karaokeFileType.suffix}.${karaokeFileType.extention}"
+                            pathToFile =
+                                "${settings.rootFolder}/done_projects/${settings.fileName}${songVersion.suffix}${karaokeFileType.suffix}.${karaokeFileType.extention}"
                             existsInLocalFileSystem = if (pathToFile != "") File(pathToFile).exists() else false
-                            storageFileName = "${settings.storageFileName}${songVersion.suffix}${karaokeFileType.suffix}.${karaokeFileType.extention}"
+                            storageFileName =
+                                "${settings.storageFileName}${songVersion.suffix}${karaokeFileType.suffix}.${karaokeFileType.extention}"
                             description = "${karaokeFileType.name}/${songVersion.name}"
                             canCreate = false
-                            when(songVersion) {
+                            when (songVersion) {
                                 SongVersion.LYRICS -> {
-                                    canBe = (settings.statusProcessLyrics in listOf(KaraokeProcessStatuses.WAITING.name, KaraokeProcessStatuses.WORKING.name))
+                                    canBe =
+                                        (
+                                            settings.statusProcessLyrics in
+                                                listOf(KaraokeProcessStatuses.WAITING.name, KaraokeProcessStatuses.WORKING.name)
+                                        )
                                 }
                                 SongVersion.KARAOKE -> {
-                                    canBe = (settings.statusProcessKaraoke in listOf(KaraokeProcessStatuses.WAITING.name, KaraokeProcessStatuses.WORKING.name))
+                                    canBe =
+                                        (
+                                            settings.statusProcessKaraoke in
+                                                listOf(KaraokeProcessStatuses.WAITING.name, KaraokeProcessStatuses.WORKING.name)
+                                        )
                                 }
                                 SongVersion.CHORDS -> {
-                                    canBe = (settings.statusProcessChords in listOf(KaraokeProcessStatuses.WAITING.name, KaraokeProcessStatuses.WORKING.name))
+                                    canBe =
+                                        (
+                                            settings.statusProcessChords in
+                                                listOf(KaraokeProcessStatuses.WAITING.name, KaraokeProcessStatuses.WORKING.name)
+                                        )
                                 }
                                 SongVersion.TABS -> {
-                                    canBe = (settings.statusProcessMelody in listOf(KaraokeProcessStatuses.WAITING.name, KaraokeProcessStatuses.WORKING.name))
+                                    canBe =
+                                        (
+                                            settings.statusProcessMelody in
+                                                listOf(KaraokeProcessStatuses.WAITING.name, KaraokeProcessStatuses.WORKING.name)
+                                        )
                                 }
                             }
 
                             karaokeFileType.locations.forEach { location ->
-                                val actions = actions(
-                                    karaokeFileType = karaokeFileType,
-                                    karaokePlatform = null,
-                                    settings = settings,
-                                    rootFolder = rootFolder,
-                                    pathToFile = pathToFile,
-                                    description = description,
-                                    existsInLocalFileSystem = existsInLocalFileSystem,
-                                    canBe = canBe,
-                                    canResolve = canResolve,
-                                    canCreate = canCreate,
-                                    karaokeProcessTypesToCreate = karaokeProcessTypesToCreate,
-                                    actionToCreate = actionToCreate,
-                                    location = location,
-                                    storageBucketName = storageBucketName,
-                                    storageFileName = storageFileName,
-                                    inProgressOwnArgs = inProgressOwnArgs,
-                                    inProgressParentArgs = inProgressParentArgs,
-                                    database = database,
-                                    storageService = storageService,
-                                    storageApiClient = storageApiClient
-                                )
+                                val actions =
+                                    actions(
+                                        karaokeFileType = karaokeFileType,
+                                        karaokePlatform = null,
+                                        settings = settings,
+                                        rootFolder = rootFolder,
+                                        pathToFile = pathToFile,
+                                        description = description,
+                                        existsInLocalFileSystem = existsInLocalFileSystem,
+                                        canBe = canBe,
+                                        canResolve = canResolve,
+                                        canCreate = canCreate,
+                                        karaokeProcessTypesToCreate = karaokeProcessTypesToCreate,
+                                        actionToCreate = actionToCreate,
+                                        location = location,
+                                        storageBucketName = storageBucketName,
+                                        storageFileName = storageFileName,
+                                        inProgressOwnArgs = inProgressOwnArgs,
+                                        inProgressParentArgs = inProgressParentArgs,
+                                        database = database,
+                                        storageService = storageService,
+                                        storageApiClient = storageApiClient,
+                                    )
                                 result.addAll(actions)
                             }
-
                         }
                     }
 
                     // TXT-файл для конкретной версии
-                    KaraokeFileType.PROJECT_SONGVERSION_TXT ->  {
+                    KaraokeFileType.PROJECT_SONGVERSION_TXT -> {
                         SongVersion.entries.forEach { songVersion ->
-                            pathToFile = "${settings.rootFolder}/done_projects/${settings.fileName}${songVersion.suffix}${karaokeFileType.suffix}.${karaokeFileType.extention}"
+                            pathToFile =
+                                "${settings.rootFolder}/done_projects/${settings.fileName}${songVersion.suffix}${karaokeFileType.suffix}.${karaokeFileType.extention}"
                             existsInLocalFileSystem = if (pathToFile != "") File(pathToFile).exists() else false
-                            storageFileName = "${settings.storageFileName}${songVersion.suffix}${karaokeFileType.suffix}.${karaokeFileType.extention}"
+                            storageFileName =
+                                "${settings.storageFileName}${songVersion.suffix}${karaokeFileType.suffix}.${karaokeFileType.extention}"
                             description = "${karaokeFileType.name}/${songVersion.name}"
                             canCreate = false
-                            when(songVersion) {
+                            when (songVersion) {
                                 SongVersion.LYRICS -> {
                                     canBe = (settings.idStatus >= 3 && settings.idStatus < 6)
                                 }
@@ -2508,38 +2684,35 @@ data class HealthReport(
                             }
 
                             karaokeFileType.locations.forEach { location ->
-                                val actions = actions(
-                                    karaokeFileType = karaokeFileType,
-                                    karaokePlatform = null,
-                                    settings = settings,
-                                    rootFolder = rootFolder,
-                                    pathToFile = pathToFile,
-                                    description = description,
-                                    existsInLocalFileSystem = existsInLocalFileSystem,
-                                    canBe = canBe,
-                                    canResolve = canResolve,
-                                    canCreate = canCreate,
-                                    karaokeProcessTypesToCreate = karaokeProcessTypesToCreate,
-                                    actionToCreate = actionToCreate,
-                                    location = location,
-                                    storageBucketName = storageBucketName,
-                                    storageFileName = storageFileName,
-                                    inProgressOwnArgs = inProgressOwnArgs,
-                                    inProgressParentArgs = inProgressParentArgs,
-                                    database = database,
-                                    storageService = storageService,
-                                    storageApiClient = storageApiClient
-                                )
+                                val actions =
+                                    actions(
+                                        karaokeFileType = karaokeFileType,
+                                        karaokePlatform = null,
+                                        settings = settings,
+                                        rootFolder = rootFolder,
+                                        pathToFile = pathToFile,
+                                        description = description,
+                                        existsInLocalFileSystem = existsInLocalFileSystem,
+                                        canBe = canBe,
+                                        canResolve = canResolve,
+                                        canCreate = canCreate,
+                                        karaokeProcessTypesToCreate = karaokeProcessTypesToCreate,
+                                        actionToCreate = actionToCreate,
+                                        location = location,
+                                        storageBucketName = storageBucketName,
+                                        storageFileName = storageFileName,
+                                        inProgressOwnArgs = inProgressOwnArgs,
+                                        inProgressParentArgs = inProgressParentArgs,
+                                        database = database,
+                                        storageService = storageService,
+                                        storageApiClient = storageApiClient,
+                                    )
                                 result.addAll(actions)
                             }
-
                         }
                     }
-
                 }
-
             }
-
 
             return result
         }
@@ -2547,18 +2720,18 @@ data class HealthReport(
         // Типы заданий, которые HealthReport ставит в очередь как автоисправление. Только для них
         // имеет смысл пересчитывать HealthReport после завершения задания в воркере — это исключает
         // многократный (по числу sub-шагов) пересчёт на тяжёлых MELT_*-рендерах.
-        val HR_REPAIR_PROCESS_TYPES: Set<KaraokeProcessTypes> = setOf(
-            KaraokeProcessTypes.UPLOAD_TO_LOCAL_STORE,
-            KaraokeProcessTypes.UPLOAD_TO_REMOTE_STORE,
-            KaraokeProcessTypes.KEY_BPM_FROM_FILE,
-            KaraokeProcessTypes.DEMUCS2,
-            KaraokeProcessTypes.DEMUCS5,
-            KaraokeProcessTypes.FF_MP3_ACCOMPANIMENT,
-            KaraokeProcessTypes.FF_MP3_VOCAL,
-            KaraokeProcessTypes.FF_MP3_BASS,
-            KaraokeProcessTypes.FF_MP3_DRUMS,
-            KaraokeProcessTypes.FF_MP3_OTHER
-        )
+        val HR_REPAIR_PROCESS_TYPES: Set<KaraokeProcessTypes> =
+            setOf(
+                KaraokeProcessTypes.UPLOAD_TO_LOCAL_STORE,
+                KaraokeProcessTypes.UPLOAD_TO_REMOTE_STORE,
+                KaraokeProcessTypes.KEY_BPM_FROM_FILE,
+                KaraokeProcessTypes.DEMUCS2,
+                KaraokeProcessTypes.DEMUCS5,
+                KaraokeProcessTypes.FF_MP3_ACCOMPANIMENT,
+                KaraokeProcessTypes.FF_MP3_VOCAL,
+                KaraokeProcessTypes.FF_MP3_BASS,
+                KaraokeProcessTypes.FF_MP3_DRUMS,
+            )
 
         // Песни, для которых пользователь нажал «Исправить всё» и по которым сейчас идёт каскадное
         // автоисправление. In-memory (на админ-машине, при рестарте app каскад обрывается — допустимо):
@@ -2573,14 +2746,15 @@ data class HealthReport(
             settingsId: Long,
             database: KaraokeConnection,
             storageService: KaraokeStorageService,
-            storageApiClient: StorageApiClient
+            storageApiClient: StorageApiClient,
         ): List<HealthReport> {
-            val settings = Settings.loadFromDbById(
-                id = settingsId,
-                database = database,
-                storageService = storageService,
-                storageApiClient = storageApiClient
-            ) ?: return emptyList()
+            val settings =
+                Settings.loadFromDbById(
+                    id = settingsId,
+                    database = database,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                ) ?: return emptyList()
             val reports = settings.healthReportList()
             val dtoErrors = reports.errorsOnly().map { it.toDTO() }
             SNS.send(SseNotification.healthReports(settingsId = settingsId, healthReportDtoList = dtoErrors))
@@ -2591,7 +2765,8 @@ data class HealthReport(
         // либо чинит проблему синхронно, либо ставит задачу в очередь KaraokeProcess (дедуп внутри
         // createProcess не даёт задвоить уже WORKING-задачу).
         private fun executeResolvable(reports: List<HealthReport>) {
-            reports.filter { it.canResolve && it.healthReportStatus == ERROR }
+            reports
+                .filter { it.canResolve && it.healthReportStatus == ERROR }
                 .forEach { it.executeSolutionActions() }
         }
 
@@ -2600,7 +2775,7 @@ data class HealthReport(
             settings: Settings,
             database: KaraokeConnection,
             storageService: KaraokeStorageService,
-            storageApiClient: StorageApiClient
+            storageApiClient: StorageApiClient,
         ) {
             autoRepairSongIds.add(settings.id)
             val reports = recomputeAndBroadcast(settings.id, database, storageService, storageApiClient)
@@ -2619,7 +2794,7 @@ data class HealthReport(
             success: Boolean,
             database: KaraokeConnection,
             storageService: KaraokeStorageService,
-            storageApiClient: StorageApiClient
+            storageApiClient: StorageApiClient,
         ) {
             val reports = recomputeAndBroadcast(settingsId, database, storageService, storageApiClient)
             if (settingsId !in autoRepairSongIds) return
@@ -2639,6 +2814,4 @@ data class HealthReport(
             }
         }
     }
-
 }
-

@@ -31,8 +31,9 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="row in items" :key="row.songId" class="listened-row"
-                @click="$emit('select-song', row)" title="Подробная статистика по песне">
+            <tr
+v-for="row in items" :key="row.songId" class="listened-row"
+                title="Подробная статистика по песне" @click="$emit('select-song', row)">
               <td>{{ row.songId }}</td>
               <td class="text-start">{{ row.description }}</td>
               <td class="fw-bold">{{ row.listened.toLocaleString('ru-RU') }}</td>
@@ -51,7 +52,7 @@
         </table>
       </div>
       <div class="d-flex align-items-center gap-2">
-        <b-pagination :model-value="page" @update:model-value="$emit('page', $event)" :total-rows="totalCount" :per-page="pageSize" :limit="15" size="sm" pills />
+        <b-pagination :model-value="page" :total-rows="totalCount" :per-page="pageSize" :limit="15" size="sm" pills @update:model-value="$emit('page', $event)" />
         <span class="text-muted small">Всего: {{ totalCount }}</span>
       </div>
     </template>

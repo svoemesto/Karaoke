@@ -1,6 +1,8 @@
 package com.svoemesto.karaokeapp.model
 
-enum class SseNotificationType(val value: String) {
+enum class SseNotificationType(
+    val value: String,
+) {
     RECORD_CHANGE("recordChange"),
     RECORD_ADD("recordAdd"),
     RECORD_DELETE("recordDelete"),
@@ -13,5 +15,5 @@ enum class SseNotificationType(val value: String) {
     CRUD("crud"),
     SYNC("sync"),
     HEALTH_REPORTS("healthReports"),
-    MONITOR_ALERTS("monitorAlerts")
+    MONITOR_ALERTS("monitorAlerts"),
 }

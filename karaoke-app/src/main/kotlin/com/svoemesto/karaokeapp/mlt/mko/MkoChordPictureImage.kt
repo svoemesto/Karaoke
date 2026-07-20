@@ -13,8 +13,8 @@ data class MkoChordPictureImage(
     val type: ProducerType = ProducerType.CHORDPICTUREIMAGE,
     val voiceId: Int = 0,
     val lineId: Int = 0,
-    val elementId: Int = 0
-): MltKaraokeObject {
+    val elementId: Int = 0,
+) : MltKaraokeObject {
     val mltGenerator = MltGenerator(mltProp, type, voiceId, lineId)
 
     private val frameWidthPx = mltProp.getFrameWidthPx()
@@ -24,34 +24,36 @@ data class MkoChordPictureImage(
 
 //    private val songVersion = mltProp.getSongVersion()
 //    private val settings = mltProp.getSettings()
-    private val songEndTimecode  = mltProp.getSongEndTimecode()
+    private val songEndTimecode = mltProp.getSongEndTimecode()
     private var chordDurationOnScreen = mltProp.getDurationOnScreen(listOf(ProducerType.CHORDPICTURELINE, voiceId, lineId))
     private var folderIdChordPictures = mltProp.getId(listOf(ProducerType.CHORDPICTUREIMAGE, voiceId))
-    private val chordEndTimecode = if (chordDurationOnScreen > 0) {
-        convertMillisecondsToTimecode(chordDurationOnScreen)
-    } else {
-        chordDurationOnScreen = convertTimecodeToMilliseconds(songEndTimecode)
-        songEndTimecode
-    }
+    private val chordEndTimecode =
+        if (chordDurationOnScreen > 0) {
+            convertMillisecondsToTimecode(chordDurationOnScreen)
+        } else {
+            chordDurationOnScreen = convertTimecodeToMilliseconds(songEndTimecode)
+            songEndTimecode
+        }
     private val chords = mltProp.getChords()
     private val chord = chords[lineId]
     private val capo = mltProp.getSongCapo()
 
     override fun producer(): MltNode {
-        val widthAreaPx= chordWidthPx
-        val heightAreaPx= chordHeightPx
+        val widthAreaPx = chordWidthPx
+        val heightAreaPx = chordHeightPx
 
         return mltGenerator
             .producer(
                 timecodeOut = chordEndTimecode,
-                props = MltNodeBuilder(mltGenerator.defaultProducerPropertiesForMltService("kdenlivetitle"))
-                    .propertyName("kdenlive:folderid", folderIdChordPictures)
-                    .propertyName("length", convertMillisecondsToFrames(chordDurationOnScreen))
-                    .propertyName("kdenlive:duration", chordEndTimecode)
-                    .propertyName("xmldata", template().toString().xmldata())
-                    .propertyName("meta.media.width", widthAreaPx)
-                    .propertyName("meta.media.height", heightAreaPx)
-                    .build()
+                props =
+                    MltNodeBuilder(mltGenerator.defaultProducerPropertiesForMltService("kdenlivetitle"))
+                        .propertyName("kdenlive:folderid", folderIdChordPictures)
+                        .propertyName("length", convertMillisecondsToFrames(chordDurationOnScreen))
+                        .propertyName("kdenlive:duration", chordEndTimecode)
+                        .propertyName("xmldata", template().toString().xmldata())
+                        .propertyName("meta.media.width", widthAreaPx)
+                        .propertyName("meta.media.height", heightAreaPx)
+                        .build(),
             )
     }
 
@@ -63,10 +65,11 @@ data class MkoChordPictureImage(
             body.add(
                 mltGenerator.entry(
                     timecodeOut = chordEndTimecode,
-                    nodes = MltNodeBuilder()
-                        .propertyName("kdenlive:id", "filePlaylist${mltGenerator.id}")
-                        .build()
-                )
+                    nodes =
+                        MltNodeBuilder()
+                            .propertyName("kdenlive:id", "filePlaylist${mltGenerator.id}")
+                            .build(),
+                ),
             )
         }
         return result
@@ -79,7 +82,6 @@ data class MkoChordPictureImage(
     override fun tractor(): MltNode = mltGenerator.tractor(timecodeOut = chordEndTimecode)
 
     override fun template(): MltNode {
-
         val body: MutableList<MltNode> = mutableListOf()
 
         val layouts = generateChordLayout(chord.chord, capo)
@@ -91,72 +93,84 @@ data class MkoChordPictureImage(
         body.add(
             MltNode(
                 name = "item",
-                fields = mutableMapOf(
-                    Pair("type","QGraphicsRectItem"),
-                    Pair("z-index","0"),
-                ),
-                body = mutableListOf(
-                    MltNode(
-                        name = "position",
-                        fields = mutableMapOf(
-                            Pair("x","0"),
-                            Pair("y","0")
-                        ),
-                        body = mutableListOf(MltNode(name = "transform", fields = mutableMapOf(Pair("zoom","100")), body = "1,0,0,0,1,0,0,0,1"))
+                fields =
+                    mutableMapOf(
+                        Pair("type", "QGraphicsRectItem"),
+                        Pair("z-index", "0"),
                     ),
-                    MltNode(
-                        name = "content",
-                        fields = mutableMapOf(
-                            Pair("brushcolor","0,0,0,255"),
-                            Pair("pencolor","0,0,0,255"),
-                            Pair("penwidth","0"),
-                            Pair("penwidth","0"),
-                            Pair("rect","0,0,$frameWidthPx, $chordHeightPx")
-                        )
-                    )
-                )
-            )
+                body =
+                    mutableListOf(
+                        MltNode(
+                            name = "position",
+                            fields =
+                                mutableMapOf(
+                                    Pair("x", "0"),
+                                    Pair("y", "0"),
+                                ),
+                            body =
+                                mutableListOf(
+                                    MltNode(name = "transform", fields = mutableMapOf(Pair("zoom", "100")), body = "1,0,0,0,1,0,0,0,1"),
+                                ),
+                        ),
+                        MltNode(
+                            name = "content",
+                            fields =
+                                mutableMapOf(
+                                    Pair("brushcolor", "0,0,0,255"),
+                                    Pair("pencolor", "0,0,0,255"),
+                                    Pair("penwidth", "0"),
+                                    Pair("penwidth", "0"),
+                                    Pair("rect", "0,0,$frameWidthPx, $chordHeightPx"),
+                                ),
+                        ),
+                    ),
+            ),
         )
 
         body.add(
             MltNode(
                 name = "item",
-                fields = mutableMapOf(
-                    Pair("type","QGraphicsPixmapItem"),
-                    Pair("z-index","0"),
-                ),
-                body = mutableListOf(
-                    MltNode(
-                        name = "position",
-                        fields = mutableMapOf(
-                            Pair("x","0"),
-                            Pair("y","0")
-                        )
+                fields =
+                    mutableMapOf(
+                        Pair("type", "QGraphicsPixmapItem"),
+                        Pair("z-index", "0"),
                     ),
-                    MltNode(
-                        name = "content",
-                        fields = mutableMapOf(
-                            Pair("base64",base64)
-                        )
-                    )
-                )
-            )
+                body =
+                    mutableListOf(
+                        MltNode(
+                            name = "position",
+                            fields =
+                                mutableMapOf(
+                                    Pair("x", "0"),
+                                    Pair("y", "0"),
+                                ),
+                        ),
+                        MltNode(
+                            name = "content",
+                            fields =
+                                mutableMapOf(
+                                    Pair("base64", base64),
+                                ),
+                        ),
+                    ),
+            ),
         )
 
-        body.add(MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect","0,0,$frameWidthPx,$chordHeightPx"))))
-        body.add(MltNode(name = "endviewport", fields = mutableMapOf(Pair("rect","0,0,$frameWidthPx,$chordHeightPx"))))
-        body.add(MltNode(name = "background", fields = mutableMapOf(Pair("color","0,0,0,0"))))
+        body.add(MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect", "0,0,$frameWidthPx,$chordHeightPx"))))
+        body.add(MltNode(name = "endviewport", fields = mutableMapOf(Pair("rect", "0,0,$frameWidthPx,$chordHeightPx"))))
+        body.add(MltNode(name = "background", fields = mutableMapOf(Pair("color", "0,0,0,0"))))
 
         return MltNode(
             name = "kdenlivetitle",
-            fields = PropertiesMltNodeBuilder()
-                .duration(convertMillisecondsToFrames(chordDurationOnScreen).toString())
-                .lcNumeric("C")
-                .width("$frameWidthPx")
-                .height("$chordHeightPx")
-                .`out`((convertMillisecondsToFrames(chordDurationOnScreen)-1).toString())
-                .build(),
-            body = body
+            fields =
+                PropertiesMltNodeBuilder()
+                    .duration(convertMillisecondsToFrames(chordDurationOnScreen).toString())
+                    .lcNumeric("C")
+                    .width("$frameWidthPx")
+                    .height("$chordHeightPx")
+                    .`out`((convertMillisecondsToFrames(chordDurationOnScreen) - 1).toString())
+                    .build(),
+            body = body,
         )
     }
 }

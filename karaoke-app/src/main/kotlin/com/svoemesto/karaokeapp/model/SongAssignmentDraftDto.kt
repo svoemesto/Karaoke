@@ -13,8 +13,8 @@ data class SongAssignmentDraftDto(
     val editedSourceText: String = "",
     val editedMarkers: String = "[]",
     val userStatus: String = SongAssignmentStatus.USER_IN_PROGRESS,
-) : Serializable, KaraokeDbTableDto {
-
+) : Serializable,
+    KaraokeDbTableDto {
     override fun fromDto(database: KaraokeConnection): SongAssignmentDraft {
         val entity = SongAssignmentDraft(database = database)
         entity.id = id

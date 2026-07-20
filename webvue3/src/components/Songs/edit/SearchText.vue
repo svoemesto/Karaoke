@@ -24,14 +24,14 @@
             <!-- Первый столбец тела -->
             <div class="st-body-column-1">
               <!-- Таблица результатов поиска -->
-              <search-text-results-table v-if="searchAsyncId" :searchResultsList="searchResultsList" @selectedResult="selectedResult"/>
+              <search-text-results-table v-if="searchAsyncId" :search-results-list="searchResultsList" @selected-result="selectedResult"/>
             </div>
             
             <!-- Второй столбец тела -->
             <div class="st-body-column-2">
               <!-- Текст результата поиска -->
-              <textarea class="result-text" v-text="resultText"></textarea>
-              <button class="group-button" @click="openResultLink" title="Открыть на сайте">Открыть на сайте</button>
+              <textarea class="result-text" v-text="resultText"/>
+              <button class="group-button" title="Открыть на сайте" @click="openResultLink">Открыть на сайте</button>
             </div>
 
           </div>
@@ -44,18 +44,18 @@
           <div class="st-footer">
 
             <!-- Вернуть текст и выйти -->
-            <button class="btn-round-double" @click="returnAndClose" title="Вернуть текст и выйти">
-              <img alt="return text" class="icon-40" src="../../../assets/svg/icon_markers_in_region_paste.svg">
+            <button class="btn-round-double" title="Вернуть текст и выйти" @click="returnAndClose">
+              <img alt="return text" class="icon-40" src="../../../assets/svg/icon_markers_in_region_paste.svg"/>
             </button>
 
             <!-- Скопировать текст и выйти-->
-            <button class="btn-round-double" @click="copyAndClose" title="Сопировать текст и выйти">
-              <img alt="copy text" class="icon-40" src="../../../assets/svg/icon_copy.svg">
+            <button class="btn-round-double" title="Сопировать текст и выйти" @click="copyAndClose">
+              <img alt="copy text" class="icon-40" src="../../../assets/svg/icon_copy.svg"/>
             </button>
 
             <!-- Выйти-->
-            <button class="btn-round-double" @click="close" title="Выйти">
-              <img alt="close" class="icon-40" src="../../../assets/svg/icon_close.svg">
+            <button class="btn-round-double" title="Выйти" @click="close">
+              <img alt="close" class="icon-40" src="../../../assets/svg/icon_close.svg"/>
             </button>
 
           </div>
@@ -82,6 +82,12 @@ export default {
     CustomConfirm,
     SearchTextResultsTable
   },
+  props: {
+    songId: {
+      type: String,
+      required: true
+    }
+  },
   data() {
     return {
       isCustomConfirmVisible: false,
@@ -91,12 +97,6 @@ export default {
       currentSearchAsync: undefined,
       currentResult: undefined,
       searchIsDone: false
-    }
-  },
-  props: {
-    songId: {
-      type: String,
-      required: true
     }
   },
 
@@ -112,6 +112,31 @@ export default {
     },
     searchAsyncQuery() {
       return this.currentSearchAsync ? this.currentSearchAsync.query : "";
+    }
+  },
+
+  async mounted() {
+    const listSearchAsync = await this.getAsyncList(this.songId);
+    if (listSearchAsync.length > 0) {
+      console.log('listSearchAsync.length', listSearchAsync.length);
+      const currentSearchAsync = listSearchAsync[0];
+      if (!currentSearchAsync.done) {
+        this.searchIsDone = false;
+      } else {
+        this.searchIsDone = true;
+        const searchAsyncId = currentSearchAsync.id;
+        const listSearchResults = await this.getResultsList(searchAsyncId);
+        this.searchResultsList = listSearchResults;
+        this.currentSearchAsync = currentSearchAsync;
+      }
+    } else {
+      this.customConfirmParams = {
+        header: 'Подтвердите поиск текста',
+        body: `Найти в Интернете тексты для этой песни?`,
+        timeout: 10,
+        callback: this.doSearchTextForSong
+      }
+      this.isCustomConfirmVisible = true;
     }
   },
 
@@ -152,31 +177,6 @@ export default {
     doSearchTextForSong() {
       this.$store.dispatch('searchTextForSong');
       this.close;
-    }
-  },
-
-  async mounted() {
-    const listSearchAsync = await this.getAsyncList(this.songId);
-    if (listSearchAsync.length > 0) {
-      console.log('listSearchAsync.length', listSearchAsync.length);
-      const currentSearchAsync = listSearchAsync[0];
-      if (!currentSearchAsync.done) {
-        this.searchIsDone = false;
-      } else {
-        this.searchIsDone = true;
-        const searchAsyncId = currentSearchAsync.id;
-        const listSearchResults = await this.getResultsList(searchAsyncId);
-        this.searchResultsList = listSearchResults;
-        this.currentSearchAsync = currentSearchAsync;
-      }
-    } else {
-      this.customConfirmParams = {
-        header: 'Подтвердите поиск текста',
-        body: `Найти в Интернете тексты для этой песни?`,
-        timeout: 10,
-        callback: this.doSearchTextForSong
-      }
-      this.isCustomConfirmVisible = true;
     }
   }
 }

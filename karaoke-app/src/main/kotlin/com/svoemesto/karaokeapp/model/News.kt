@@ -21,8 +21,8 @@ class News(
     override val database: KaraokeConnection = WORKING_DATABASE,
     override val storageService: KaraokeStorageService = KSS_APP,
     override val storageApiClient: StorageApiClient = SAC_APP,
-) : Serializable, KaraokeDbTable {
-
+) : Serializable,
+    KaraokeDbTable {
     override fun getTableName() = TABLE_NAME
 
     @KaraokeDbTableField(name = "id", isId = true)
@@ -53,50 +53,52 @@ class News(
     @KaraokeDbTableField(name = "created_at", useInDiff = false)
     var createdAt: Timestamp? = null
 
-    override fun toDTO(): NewsDto = NewsDto(
-        id = id,
-        title = title,
-        body = body,
-        category = category,
-        link = link ?: "",
-        publishAt = publishAt?.toString() ?: "",
-        createdAt = createdAt?.toString() ?: "",
-        published = isPublished(publishAt),
-    )
+    override fun toDTO(): NewsDto =
+        NewsDto(
+            id = id,
+            title = title,
+            body = body,
+            category = category,
+            link = link ?: "",
+            publishAt = publishAt?.toString() ?: "",
+            createdAt = createdAt?.toString() ?: "",
+            published = isPublished(publishAt),
+        )
 
     companion object {
-
         const val TABLE_NAME = "tbl_news"
 
-        private fun isPublished(publishAt: Timestamp?): Boolean =
-            publishAt != null && publishAt <= Timestamp(System.currentTimeMillis())
+        private fun isPublished(publishAt: Timestamp?): Boolean = publishAt != null && publishAt <= Timestamp(System.currentTimeMillis())
 
-        fun listHashes(database: KaraokeConnection, whereText: String = ""): List<RecordHash>? =
-            KaraokeDbTable.getListHashes(tableName = TABLE_NAME, database = database, whereText = whereText)
+        fun listHashes(
+            database: KaraokeConnection,
+            whereText: String = "",
+        ): List<RecordHash>? = KaraokeDbTable.getListHashes(tableName = TABLE_NAME, database = database, whereText = whereText)
 
         // Полный список (в т.ч. черновики/будущие) для админки — свежие сверху.
         fun loadAll(
             database: KaraokeConnection,
             storageService: KaraokeStorageService = KSS_APP,
             storageApiClient: StorageApiClient = SAC_APP,
-        ): List<News> {
-            return KaraokeDbTable.loadList(
-                clazz = News::class,
-                tableName = TABLE_NAME,
-                whereList = emptyList(),
-                database = database,
-                storageService = storageService,
-                storageApiClient = storageApiClient,
-            ).map { it as News }.sortedByDescending { it.id }
-        }
+        ): List<News> =
+            KaraokeDbTable
+                .loadList(
+                    clazz = News::class,
+                    tableName = TABLE_NAME,
+                    whereList = emptyList(),
+                    database = database,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                ).map { it as News }
+                .sortedByDescending { it.id }
 
         fun getById(
             id: Long,
             database: KaraokeConnection,
             storageService: KaraokeStorageService = KSS_APP,
             storageApiClient: StorageApiClient = SAC_APP,
-        ): News? {
-            return KaraokeDbTable.loadById(
+        ): News? =
+            KaraokeDbTable.loadById(
                 clazz = News::class,
                 tableName = TABLE_NAME,
                 id = id,
@@ -104,7 +106,6 @@ class News(
                 storageService = storageService,
                 storageApiClient = storageApiClient,
             ) as? News?
-        }
 
         // Только опубликованные (publish_at уже наступил), свежие сверху — публичная лента/бейдж.
         // Raw-SQL (не через generic loadList) — нужен фильтр по времени, которого нет в getWhereList
@@ -112,12 +113,13 @@ class News(
         fun loadPublished(database: KaraokeConnection): List<NewsDto> {
             val result: MutableList<NewsDto> = mutableListOf()
             val connection = database.getConnection() ?: return result
-            val sql = """
+            val sql =
+                """
                 SELECT id, title, body, category, link, publish_at, created_at
                 FROM $TABLE_NAME
                 WHERE publish_at IS NOT NULL AND publish_at <= now()
                 ORDER BY publish_at DESC
-            """.trimIndent()
+                """.trimIndent()
             try {
                 connection.prepareStatement(sql).use { ps ->
                     ps.executeQuery().use { rs ->
@@ -132,7 +134,7 @@ class News(
                                     publishAt = rs.getTimestamp("publish_at")?.toString() ?: "",
                                     createdAt = rs.getTimestamp("created_at")?.toString() ?: "",
                                     published = true,
-                                )
+                                ),
                             )
                         }
                     }
@@ -145,15 +147,19 @@ class News(
 
         // Только опубликованные с id больше lastSeenId — лёгкий запрос для бейджа/тоста
         // (обычно 0-3 строки за один опрос).
-        fun loadPublishedSince(database: KaraokeConnection, lastSeenId: Long): List<NewsDto> {
+        fun loadPublishedSince(
+            database: KaraokeConnection,
+            lastSeenId: Long,
+        ): List<NewsDto> {
             val result: MutableList<NewsDto> = mutableListOf()
             val connection = database.getConnection() ?: return result
-            val sql = """
+            val sql =
+                """
                 SELECT id, title, body, category, link, publish_at, created_at
                 FROM $TABLE_NAME
                 WHERE publish_at IS NOT NULL AND publish_at <= now() AND id > ?
                 ORDER BY publish_at DESC
-            """.trimIndent()
+                """.trimIndent()
             try {
                 connection.prepareStatement(sql).use { ps ->
                     ps.setLong(1, lastSeenId)
@@ -169,7 +175,7 @@ class News(
                                     publishAt = rs.getTimestamp("publish_at")?.toString() ?: "",
                                     createdAt = rs.getTimestamp("created_at")?.toString() ?: "",
                                     published = true,
-                                )
+                                ),
                             )
                         }
                     }
@@ -200,7 +206,9 @@ class News(
             return KaraokeDbTable.createDbInstance(entity = entity, database = database) as? News?
         }
 
-        fun delete(id: Long, database: KaraokeConnection): Boolean =
-            KaraokeDbTable.delete(tableName = TABLE_NAME, id = id, database = database)
+        fun delete(
+            id: Long,
+            database: KaraokeConnection,
+        ): Boolean = KaraokeDbTable.delete(tableName = TABLE_NAME, id = id, database = database)
     }
 }

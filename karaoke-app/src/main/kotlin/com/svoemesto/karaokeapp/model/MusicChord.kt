@@ -3,462 +3,564 @@ package com.svoemesto.karaokeapp.model
 import java.io.Serializable
 import kotlin.math.absoluteValue
 
-enum class MusicChord(val text: String, val names: List<String>, val intervals: List<MusicInterval>) : Serializable {
-    X (text = "мажорный аккорд (мажорное трезвучие)",
-        names = listOf("","M","maj"),
-        intervals = listOf(
-            MusicInterval.UNISON,
-            MusicInterval.MAJOR_THIRD,
-            MusicInterval.PERFECT_FIFTH
-        )
+enum class MusicChord(
+    val text: String,
+    val names: List<String>,
+    val intervals: List<MusicInterval>,
+) : Serializable {
+    X(
+        text = "мажорный аккорд (мажорное трезвучие)",
+        names = listOf("", "M", "maj"),
+        intervals =
+            listOf(
+                MusicInterval.UNISON,
+                MusicInterval.MAJOR_THIRD,
+                MusicInterval.PERFECT_FIFTH,
+            ),
     ),
-    Xm (text = "минорный аккорд (минорное трезвучие)",
-        names = listOf("m","-","min"),
-        intervals = listOf(
-            MusicInterval.UNISON,
-            MusicInterval.MINOR_THIRD,
-            MusicInterval.PERFECT_FIFTH
-        )
+    Xm(
+        text = "минорный аккорд (минорное трезвучие)",
+        names = listOf("m", "-", "min"),
+        intervals =
+            listOf(
+                MusicInterval.UNISON,
+                MusicInterval.MINOR_THIRD,
+                MusicInterval.PERFECT_FIFTH,
+            ),
     ),
-    Xaug (text = "увеличенный аккорд (увеличенное трезвучие)",
-        names = listOf("+","aug"),
-        intervals = listOf(
-            MusicInterval.UNISON,
-            MusicInterval.MAJOR_THIRD,
-            MusicInterval.MINOR_SIXTH
-        )
+    Xaug(
+        text = "увеличенный аккорд (увеличенное трезвучие)",
+        names = listOf("+", "aug"),
+        intervals =
+            listOf(
+                MusicInterval.UNISON,
+                MusicInterval.MAJOR_THIRD,
+                MusicInterval.MINOR_SIXTH,
+            ),
     ),
-    Xdim (text = "уменьшенный аккорд (уменьшенное трезвучие)",
+    Xdim(
+        text = "уменьшенный аккорд (уменьшенное трезвучие)",
         names = listOf("dim"),
-        intervals = listOf(
-            MusicInterval.UNISON,
-            MusicInterval.MINOR_THIRD,
-            MusicInterval.AUGMENTED_FOURTH,
-        )
+        intervals =
+            listOf(
+                MusicInterval.UNISON,
+                MusicInterval.MINOR_THIRD,
+                MusicInterval.AUGMENTED_FOURTH,
+            ),
     ),
-    X7 (text = "доминантсептаккорд",
-        names = listOf("7","dom7"),
-        intervals = listOf(
-            MusicInterval.UNISON,
-            MusicInterval.MAJOR_THIRD,
-            MusicInterval.PERFECT_FIFTH,
-            MusicInterval.MINOR_SEVENTH
-        )
+    X7(
+        text = "доминантсептаккорд",
+        names = listOf("7", "dom7"),
+        intervals =
+            listOf(
+                MusicInterval.UNISON,
+                MusicInterval.MAJOR_THIRD,
+                MusicInterval.PERFECT_FIFTH,
+                MusicInterval.MINOR_SEVENTH,
+            ),
     ),
-    X7a5 (text = "доминантсептаккорд с повышенной квинтой",
-        names = listOf("7+5","7#5","7/5#","7/5+","75#","75+","aug7"),
-        intervals = listOf(
-            MusicInterval.UNISON,
-            MusicInterval.MAJOR_THIRD,
-            MusicInterval.MINOR_SIXTH,
-            MusicInterval.MINOR_SEVENTH
-        )
+    X7a5(
+        text = "доминантсептаккорд с повышенной квинтой",
+        names = listOf("7+5", "7#5", "7/5#", "7/5+", "75#", "75+", "aug7"),
+        intervals =
+            listOf(
+                MusicInterval.UNISON,
+                MusicInterval.MAJOR_THIRD,
+                MusicInterval.MINOR_SIXTH,
+                MusicInterval.MINOR_SEVENTH,
+            ),
     ),
-    Xm7 (text = "малый минорный септаккорд",
-        names = listOf("m7","-7"),
-        intervals = listOf(
-            MusicInterval.UNISON,
-            MusicInterval.MINOR_THIRD,
-            MusicInterval.PERFECT_FIFTH,
-            MusicInterval.MINOR_SEVENTH
-        )
+    Xm7(
+        text = "малый минорный септаккорд",
+        names = listOf("m7", "-7"),
+        intervals =
+            listOf(
+                MusicInterval.UNISON,
+                MusicInterval.MINOR_THIRD,
+                MusicInterval.PERFECT_FIFTH,
+                MusicInterval.MINOR_SEVENTH,
+            ),
     ),
-    Xm7a (text = "большой минорный септаккорд",
-        names = listOf("m7+","-maj7","m#7","m+7","m/maj7","min/maj/","mmaj7"),
-        intervals = listOf(
-            MusicInterval.UNISON,
-            MusicInterval.MINOR_THIRD,
-            MusicInterval.PERFECT_FIFTH,
-            MusicInterval.MAJOR_SEVENTH
-        )
+    Xm7a(
+        text = "большой минорный септаккорд",
+        names = listOf("m7+", "-maj7", "m#7", "m+7", "m/maj7", "min/maj/", "mmaj7"),
+        intervals =
+            listOf(
+                MusicInterval.UNISON,
+                MusicInterval.MINOR_THIRD,
+                MusicInterval.PERFECT_FIFTH,
+                MusicInterval.MAJOR_SEVENTH,
+            ),
     ),
-    Xm7d5 (text = "полууменьшенный септаккорд",
-        names = listOf("m7-5","m7/5-","m75-","m75b","m7b5"),
-        intervals = listOf(
-            MusicInterval.UNISON,
-            MusicInterval.MINOR_THIRD,
-            MusicInterval.AUGMENTED_FOURTH,
-            MusicInterval.MINOR_SEVENTH
-        )
+    Xm7d5(
+        text = "полууменьшенный септаккорд",
+        names = listOf("m7-5", "m7/5-", "m75-", "m75b", "m7b5"),
+        intervals =
+            listOf(
+                MusicInterval.UNISON,
+                MusicInterval.MINOR_THIRD,
+                MusicInterval.AUGMENTED_FOURTH,
+                MusicInterval.MINOR_SEVENTH,
+            ),
     ),
-    Xdim7 (text = "уменьшенный септаккорд",
-        names = listOf("dim7","m6/5-","o7"),
-        intervals = listOf(
-            MusicInterval.UNISON,
-            MusicInterval.MINOR_THIRD,
-            MusicInterval.AUGMENTED_FOURTH,
-            MusicInterval.MAJOR_SIXTH
-        )
+    Xdim7(
+        text = "уменьшенный септаккорд",
+        names = listOf("dim7", "m6/5-", "o7"),
+        intervals =
+            listOf(
+                MusicInterval.UNISON,
+                MusicInterval.MINOR_THIRD,
+                MusicInterval.AUGMENTED_FOURTH,
+                MusicInterval.MAJOR_SIXTH,
+            ),
     ),
-    X6 (text = "мажорный аккорд (мажорное трезвучие) с большой секстой",
+    X6(
+        text = "мажорный аккорд (мажорное трезвучие) с большой секстой",
         names = listOf("6"),
-        intervals = listOf(
-            MusicInterval.UNISON,
-            MusicInterval.MAJOR_THIRD,
-            MusicInterval.PERFECT_FIFTH,
-            MusicInterval.MAJOR_SIXTH
-        )
+        intervals =
+            listOf(
+                MusicInterval.UNISON,
+                MusicInterval.MAJOR_THIRD,
+                MusicInterval.PERFECT_FIFTH,
+                MusicInterval.MAJOR_SIXTH,
+            ),
     ),
-    Xm6 (text = "минорный аккорд (минорное трезвучие) с большой секстой",
+    Xm6(
+        text = "минорный аккорд (минорное трезвучие) с большой секстой",
         names = listOf("m6"),
-        intervals = listOf(
-            MusicInterval.UNISON,
-            MusicInterval.MINOR_THIRD,
-            MusicInterval.PERFECT_FIFTH,
-            MusicInterval.MAJOR_SIXTH
-        )
+        intervals =
+            listOf(
+                MusicInterval.UNISON,
+                MusicInterval.MINOR_THIRD,
+                MusicInterval.PERFECT_FIFTH,
+                MusicInterval.MAJOR_SIXTH,
+            ),
     ),
-    X7d5 (text = "доминантсептаккорд с пониженной квинтой",
-        names = listOf("7-5","7/5-","7/5b","75-","75b"),
-        intervals = listOf(
-            MusicInterval.UNISON,
-            MusicInterval.MAJOR_THIRD,
-            MusicInterval.AUGMENTED_FOURTH,
-            MusicInterval.MINOR_SEVENTH
-        )
+    X7d5(
+        text = "доминантсептаккорд с пониженной квинтой",
+        names = listOf("7-5", "7/5-", "7/5b", "75-", "75b"),
+        intervals =
+            listOf(
+                MusicInterval.UNISON,
+                MusicInterval.MAJOR_THIRD,
+                MusicInterval.AUGMENTED_FOURTH,
+                MusicInterval.MINOR_SEVENTH,
+            ),
     ),
-    X69 (text = "мажорный аккорд (мажорное трезвучие) с секстой и ноной",
+    X69(
+        text = "мажорный аккорд (мажорное трезвучие) с секстой и ноной",
         names = listOf("6/9"),
-        intervals = listOf(
-            MusicInterval.UNISON,
-            MusicInterval.MAJOR_THIRD,
-            MusicInterval.PERFECT_FIFTH,
-            MusicInterval.MAJOR_SIXTH,
-            MusicInterval.MAJOR_NINTH
-        )
+        intervals =
+            listOf(
+                MusicInterval.UNISON,
+                MusicInterval.MAJOR_THIRD,
+                MusicInterval.PERFECT_FIFTH,
+                MusicInterval.MAJOR_SIXTH,
+                MusicInterval.MAJOR_NINTH,
+            ),
     ),
-    X9 (text = "большой нонаккорд",
+    X9(
+        text = "большой нонаккорд",
         names = listOf("9"),
-        intervals = listOf(
-            MusicInterval.UNISON,
-            MusicInterval.MAJOR_THIRD,
-            MusicInterval.PERFECT_FIFTH,
-            MusicInterval.MINOR_SEVENTH,
-            MusicInterval.MAJOR_NINTH
-        )
+        intervals =
+            listOf(
+                MusicInterval.UNISON,
+                MusicInterval.MAJOR_THIRD,
+                MusicInterval.PERFECT_FIFTH,
+                MusicInterval.MINOR_SEVENTH,
+                MusicInterval.MAJOR_NINTH,
+            ),
     ),
-    X7d9 (text = "малый нонаккорд",
-        names = listOf("7-9","-9","9-"),
-        intervals = listOf(
-            MusicInterval.UNISON,
-            MusicInterval.MAJOR_THIRD,
-            MusicInterval.PERFECT_FIFTH,
-            MusicInterval.MINOR_SEVENTH,
-            MusicInterval.MINOR_NINTH
-        )
+    X7d9(
+        text = "малый нонаккорд",
+        names = listOf("7-9", "-9", "9-"),
+        intervals =
+            listOf(
+                MusicInterval.UNISON,
+                MusicInterval.MAJOR_THIRD,
+                MusicInterval.PERFECT_FIFTH,
+                MusicInterval.MINOR_SEVENTH,
+                MusicInterval.MINOR_NINTH,
+            ),
     ),
-    Xmaj9 (text = "нонаккорд на основе большого мажорного септаккорда",
+    Xmaj9(
+        text = "нонаккорд на основе большого мажорного септаккорда",
         names = listOf("maj9"),
-        intervals = listOf(
-            MusicInterval.UNISON,
-            MusicInterval.MAJOR_THIRD,
-            MusicInterval.PERFECT_FIFTH,
-            MusicInterval.MAJOR_SEVENTH,
-            MusicInterval.MAJOR_NINTH
-        )
+        intervals =
+            listOf(
+                MusicInterval.UNISON,
+                MusicInterval.MAJOR_THIRD,
+                MusicInterval.PERFECT_FIFTH,
+                MusicInterval.MAJOR_SEVENTH,
+                MusicInterval.MAJOR_NINTH,
+            ),
     ),
-    X11 (text = "ундецимаккорд на основе доминантсептаккорда",
+    X11(
+        text = "ундецимаккорд на основе доминантсептаккорда",
         names = listOf("11"),
-        intervals = listOf(
-            MusicInterval.UNISON,
-            MusicInterval.MAJOR_THIRD,
-            MusicInterval.PERFECT_FIFTH,
-            MusicInterval.MINOR_SEVENTH,
-            MusicInterval.MAJOR_NINTH,
-            MusicInterval.PERFECT_ELEVENTH
-        )
+        intervals =
+            listOf(
+                MusicInterval.UNISON,
+                MusicInterval.MAJOR_THIRD,
+                MusicInterval.PERFECT_FIFTH,
+                MusicInterval.MINOR_SEVENTH,
+                MusicInterval.MAJOR_NINTH,
+                MusicInterval.PERFECT_ELEVENTH,
+            ),
     ),
-    Xm11 (text = "ундецимаккорд на основе малого минорного септаккорда",
+    Xm11(
+        text = "ундецимаккорд на основе малого минорного септаккорда",
         names = listOf("m11"),
-        intervals = listOf(
-            MusicInterval.UNISON,
-            MusicInterval.MINOR_THIRD,
-            MusicInterval.PERFECT_FIFTH,
-            MusicInterval.MINOR_SEVENTH,
-            MusicInterval.MAJOR_NINTH,
-            MusicInterval.PERFECT_ELEVENTH
-        )
+        intervals =
+            listOf(
+                MusicInterval.UNISON,
+                MusicInterval.MINOR_THIRD,
+                MusicInterval.PERFECT_FIFTH,
+                MusicInterval.MINOR_SEVENTH,
+                MusicInterval.MAJOR_NINTH,
+                MusicInterval.PERFECT_ELEVENTH,
+            ),
     ),
-    X13 (text = "терцдецимаккорд на основе доминантсептаккорда",
+    X13(
+        text = "терцдецимаккорд на основе доминантсептаккорда",
         names = listOf("13"),
-        intervals = listOf(
-            MusicInterval.UNISON,
-            MusicInterval.MAJOR_THIRD,
-            MusicInterval.PERFECT_FIFTH,
-            MusicInterval.MINOR_SEVENTH,
-            MusicInterval.MAJOR_NINTH,
-            MusicInterval.MINOR_FOURTEENTH
-        )
+        intervals =
+            listOf(
+                MusicInterval.UNISON,
+                MusicInterval.MAJOR_THIRD,
+                MusicInterval.PERFECT_FIFTH,
+                MusicInterval.MINOR_SEVENTH,
+                MusicInterval.MAJOR_NINTH,
+                MusicInterval.MINOR_FOURTEENTH,
+            ),
     ),
-    Xmaj13 (text = "терцдецимаккорд на основе большого мажорного септаккорда",
+    Xmaj13(
+        text = "терцдецимаккорд на основе большого мажорного септаккорда",
         names = listOf("maj13"),
-        intervals = listOf(
-            MusicInterval.UNISON,
-            MusicInterval.MAJOR_THIRD,
-            MusicInterval.PERFECT_FIFTH,
-            MusicInterval.MAJOR_SEVENTH,
-            MusicInterval.MAJOR_NINTH,
-            MusicInterval.MINOR_FOURTEENTH
-        )
+        intervals =
+            listOf(
+                MusicInterval.UNISON,
+                MusicInterval.MAJOR_THIRD,
+                MusicInterval.PERFECT_FIFTH,
+                MusicInterval.MAJOR_SEVENTH,
+                MusicInterval.MAJOR_NINTH,
+                MusicInterval.MINOR_FOURTEENTH,
+            ),
     ),
-    Xsus4 (text = "мажорное трезвучие с чистой квартой вместо терции",
-        names = listOf("sus4","+3","4","m4","sus"),
-        intervals = listOf(
-            MusicInterval.UNISON,
-            MusicInterval.PERFECT_FOURTH,
-            MusicInterval.PERFECT_FIFTH
-        )
+    Xsus4(
+        text = "мажорное трезвучие с чистой квартой вместо терции",
+        names = listOf("sus4", "+3", "4", "m4", "sus"),
+        intervals =
+            listOf(
+                MusicInterval.UNISON,
+                MusicInterval.PERFECT_FOURTH,
+                MusicInterval.PERFECT_FIFTH,
+            ),
     ),
-    Xm69 (text = "минорный аккорд (минорное трезвучие) с секстой и ноной",
+    Xm69(
+        text = "минорный аккорд (минорное трезвучие) с секстой и ноной",
         names = listOf("m6/9"),
-        intervals = listOf(
-            MusicInterval.UNISON,
-            MusicInterval.MINOR_THIRD,
-            MusicInterval.PERFECT_FIFTH,
-            MusicInterval.MAJOR_SIXTH,
-            MusicInterval.MAJOR_NINTH
-        )
+        intervals =
+            listOf(
+                MusicInterval.UNISON,
+                MusicInterval.MINOR_THIRD,
+                MusicInterval.PERFECT_FIFTH,
+                MusicInterval.MAJOR_SIXTH,
+                MusicInterval.MAJOR_NINTH,
+            ),
     ),
-    X5 (text = "квинт аккорд (power-аккорд)",
+    X5(
+        text = "квинт аккорд (power-аккорд)",
         names = listOf("5"),
-        intervals = listOf(
-            MusicInterval.UNISON,
-            MusicInterval.PERFECT_FIFTH
-        )
+        intervals =
+            listOf(
+                MusicInterval.UNISON,
+                MusicInterval.PERFECT_FIFTH,
+            ),
     ),
-    X7a9 (text = "нонаккорд на основе доминантсептаккорда с повышенной ноной",
+    X7a9(
+        text = "нонаккорд на основе доминантсептаккорда с повышенной ноной",
         names = listOf("7+9"),
-        intervals = listOf(
-            MusicInterval.UNISON,
-            MusicInterval.MAJOR_THIRD,
-            MusicInterval.PERFECT_FIFTH,
-            MusicInterval.MINOR_SEVENTH,
-            MusicInterval.MINOR_TENTH
-        )
+        intervals =
+            listOf(
+                MusicInterval.UNISON,
+                MusicInterval.MAJOR_THIRD,
+                MusicInterval.PERFECT_FIFTH,
+                MusicInterval.MINOR_SEVENTH,
+                MusicInterval.MINOR_TENTH,
+            ),
     ),
-    X7a11 (text = "доминантсептаккорд с повышенной ундецимой",
-        names = listOf("7+11","7-5","7/5-","7/5b","75-","75b"),
-        intervals = listOf(
-            MusicInterval.UNISON,
-            MusicInterval.MAJOR_THIRD,
-            MusicInterval.PERFECT_FIFTH,
-            MusicInterval.MINOR_SEVENTH,
-            MusicInterval.PERFECT_TWELFTH
-        )
+    X7a11(
+        text = "доминантсептаккорд с повышенной ундецимой",
+        names = listOf("7+11", "7-5", "7/5-", "7/5b", "75-", "75b"),
+        intervals =
+            listOf(
+                MusicInterval.UNISON,
+                MusicInterval.MAJOR_THIRD,
+                MusicInterval.PERFECT_FIFTH,
+                MusicInterval.MINOR_SEVENTH,
+                MusicInterval.PERFECT_TWELFTH,
+            ),
     ),
-    X7d5a9 (text = "большой нонаккорд с пониженной квинтой и увеличенной ноной",
+    X7d5a9(
+        text = "большой нонаккорд с пониженной квинтой и увеличенной ноной",
         names = listOf("7-5(+9)"),
-        intervals = listOf(
-            MusicInterval.UNISON,
-            MusicInterval.MAJOR_THIRD,
-            MusicInterval.AUGMENTED_FOURTH,
-            MusicInterval.MINOR_SEVENTH,
-            MusicInterval.MINOR_TENTH
-        )
+        intervals =
+            listOf(
+                MusicInterval.UNISON,
+                MusicInterval.MAJOR_THIRD,
+                MusicInterval.AUGMENTED_FOURTH,
+                MusicInterval.MINOR_SEVENTH,
+                MusicInterval.MINOR_TENTH,
+            ),
     ),
-    X7sus4 (text = "доминантсептаккорд с квартой вместо терции",
-        names = listOf("7sus4","11","7/4","m7/4"),
-        intervals = listOf(
-            MusicInterval.UNISON,
-            MusicInterval.PERFECT_FOURTH,
-            MusicInterval.PERFECT_FIFTH,
-            MusicInterval.MINOR_SEVENTH
-        )
+    X7sus4(
+        text = "доминантсептаккорд с квартой вместо терции",
+        names = listOf("7sus4", "11", "7/4", "m7/4"),
+        intervals =
+            listOf(
+                MusicInterval.UNISON,
+                MusicInterval.PERFECT_FOURTH,
+                MusicInterval.PERFECT_FIFTH,
+                MusicInterval.MINOR_SEVENTH,
+            ),
     ),
-    X9d5 (text = "большой нонаккорд с пониженной квинтой",
+    X9d5(
+        text = "большой нонаккорд с пониженной квинтой",
         names = listOf("9-5"),
-        intervals = listOf(
-            MusicInterval.UNISON,
-            MusicInterval.MAJOR_THIRD,
-            MusicInterval.AUGMENTED_FOURTH,
-            MusicInterval.MINOR_SEVENTH,
-            MusicInterval.MAJOR_NINTH,
-        )
+        intervals =
+            listOf(
+                MusicInterval.UNISON,
+                MusicInterval.MAJOR_THIRD,
+                MusicInterval.AUGMENTED_FOURTH,
+                MusicInterval.MINOR_SEVENTH,
+                MusicInterval.MAJOR_NINTH,
+            ),
     ),
-    X9a11 (text = "большой нонаккорд с повышенной ундецимой",
+    X9a11(
+        text = "большой нонаккорд с повышенной ундецимой",
         names = listOf("9+11"),
-        intervals = listOf(
-            MusicInterval.UNISON,
-            MusicInterval.MAJOR_THIRD,
-            MusicInterval.PERFECT_FIFTH,
-            MusicInterval.MINOR_SEVENTH,
-            MusicInterval.MAJOR_NINTH,
-            MusicInterval.PERFECT_TWELFTH
-        )
+        intervals =
+            listOf(
+                MusicInterval.UNISON,
+                MusicInterval.MAJOR_THIRD,
+                MusicInterval.PERFECT_FIFTH,
+                MusicInterval.MINOR_SEVENTH,
+                MusicInterval.MAJOR_NINTH,
+                MusicInterval.PERFECT_TWELFTH,
+            ),
     ),
-    X9sus4 (text = "большой нонаккорд с квартой вместо терции",
+    X9sus4(
+        text = "большой нонаккорд с квартой вместо терции",
         names = listOf("9sus4"),
-        intervals = listOf(
-            MusicInterval.UNISON,
-            MusicInterval.PERFECT_FOURTH,
-            MusicInterval.PERFECT_FIFTH,
-            MusicInterval.MINOR_SEVENTH,
-            MusicInterval.MAJOR_NINTH
-        )
+        intervals =
+            listOf(
+                MusicInterval.UNISON,
+                MusicInterval.PERFECT_FOURTH,
+                MusicInterval.PERFECT_FIFTH,
+                MusicInterval.MINOR_SEVENTH,
+                MusicInterval.MAJOR_NINTH,
+            ),
     ),
-    X13d9 (text = "терцдецимаккорд на основе доминантсептаккорда с малой ноной",
+    X13d9(
+        text = "терцдецимаккорд на основе доминантсептаккорда с малой ноной",
         names = listOf("13-9"),
-        intervals = listOf(
-            MusicInterval.UNISON,
-            MusicInterval.MAJOR_THIRD,
-            MusicInterval.PERFECT_FIFTH,
-            MusicInterval.MINOR_SEVENTH,
-            MusicInterval.MINOR_NINTH,
-            MusicInterval.MINOR_FOURTEENTH
-        )
+        intervals =
+            listOf(
+                MusicInterval.UNISON,
+                MusicInterval.MAJOR_THIRD,
+                MusicInterval.PERFECT_FIFTH,
+                MusicInterval.MINOR_SEVENTH,
+                MusicInterval.MINOR_NINTH,
+                MusicInterval.MINOR_FOURTEENTH,
+            ),
     ),
-    X13sus4 (text = "терцдецимаккорд на основе доминантсептаккорда с квартой вместо терции",
+    X13sus4(
+        text = "терцдецимаккорд на основе доминантсептаккорда с квартой вместо терции",
         names = listOf("13sus4"),
-        intervals = listOf(
-            MusicInterval.UNISON,
-            MusicInterval.PERFECT_FOURTH,
-            MusicInterval.PERFECT_FIFTH,
-            MusicInterval.MAJOR_SIXTH,
-            MusicInterval.MAJOR_NINTH,
-            MusicInterval.MINOR_FOURTEENTH
-        )
+        intervals =
+            listOf(
+                MusicInterval.UNISON,
+                MusicInterval.PERFECT_FOURTH,
+                MusicInterval.PERFECT_FIFTH,
+                MusicInterval.MAJOR_SIXTH,
+                MusicInterval.MAJOR_NINTH,
+                MusicInterval.MINOR_FOURTEENTH,
+            ),
     ),
-    Xadd9 (text = "мажорный аккорд с большой ноной",
+    Xadd9(
+        text = "мажорный аккорд с большой ноной",
         names = listOf("add9"),
-        intervals = listOf(
-            MusicInterval.UNISON,
-            MusicInterval.MAJOR_THIRD,
-            MusicInterval.PERFECT_FIFTH,
-            MusicInterval.MAJOR_NINTH
-        )
+        intervals =
+            listOf(
+                MusicInterval.UNISON,
+                MusicInterval.MAJOR_THIRD,
+                MusicInterval.PERFECT_FIFTH,
+                MusicInterval.MAJOR_NINTH,
+            ),
     ),
-    Xmd6 (text = "минорный аккорд (минорное трезвучие) с малой секстой",
+    Xmd6(
+        text = "минорный аккорд (минорное трезвучие) с малой секстой",
         names = listOf("m-6"),
-        intervals = listOf(
-            MusicInterval.UNISON,
-            MusicInterval.MINOR_THIRD,
-            MusicInterval.PERFECT_FIFTH,
-            MusicInterval.MINOR_SIXTH
-        )
+        intervals =
+            listOf(
+                MusicInterval.UNISON,
+                MusicInterval.MINOR_THIRD,
+                MusicInterval.PERFECT_FIFTH,
+                MusicInterval.MINOR_SIXTH,
+            ),
     ),
-    Xm9 (text = "нонаккорд на основе малого минорного септаккорда",
+    Xm9(
+        text = "нонаккорд на основе малого минорного септаккорда",
         names = listOf("m9"),
-        intervals = listOf(
-            MusicInterval.UNISON,
-            MusicInterval.MINOR_THIRD,
-            MusicInterval.PERFECT_FIFTH,
-            MusicInterval.MINOR_SEVENTH,
-            MusicInterval.MAJOR_NINTH
-        )
+        intervals =
+            listOf(
+                MusicInterval.UNISON,
+                MusicInterval.MINOR_THIRD,
+                MusicInterval.PERFECT_FIFTH,
+                MusicInterval.MINOR_SEVENTH,
+                MusicInterval.MAJOR_NINTH,
+            ),
     ),
-    Xm9d5 (text = "нонаккорд на основе полууменьшенного септаккорда",
+    Xm9d5(
+        text = "нонаккорд на основе полууменьшенного септаккорда",
         names = listOf("m9-5"),
-        intervals = listOf(
-            MusicInterval.UNISON,
-            MusicInterval.MINOR_THIRD,
-            MusicInterval.AUGMENTED_FOURTH,
-            MusicInterval.MINOR_SEVENTH,
-            MusicInterval.MAJOR_NINTH
-        )
+        intervals =
+            listOf(
+                MusicInterval.UNISON,
+                MusicInterval.MINOR_THIRD,
+                MusicInterval.AUGMENTED_FOURTH,
+                MusicInterval.MINOR_SEVENTH,
+                MusicInterval.MAJOR_NINTH,
+            ),
     ),
-    Xm9a7 (text = "нонаккорд на основе большого минорного септаккорда",
+    Xm9a7(
+        text = "нонаккорд на основе большого минорного септаккорда",
         names = listOf("m9+7"),
-        intervals = listOf(
-            MusicInterval.UNISON,
-            MusicInterval.MINOR_THIRD,
-            MusicInterval.PERFECT_FIFTH,
-            MusicInterval.MAJOR_SEVENTH,
-            MusicInterval.MAJOR_NINTH
-        )
+        intervals =
+            listOf(
+                MusicInterval.UNISON,
+                MusicInterval.MINOR_THIRD,
+                MusicInterval.PERFECT_FIFTH,
+                MusicInterval.MAJOR_SEVENTH,
+                MusicInterval.MAJOR_NINTH,
+            ),
     ),
-    Xm13 (text = "терцдецимаккорд на основе большого минорного септаккорда",
+    Xm13(
+        text = "терцдецимаккорд на основе большого минорного септаккорда",
         names = listOf("m13"),
-        intervals = listOf(
-            MusicInterval.UNISON,
-            MusicInterval.MINOR_THIRD,
-            MusicInterval.PERFECT_FIFTH,
-            MusicInterval.MINOR_SEVENTH,
-            MusicInterval.MAJOR_NINTH,
-            MusicInterval.MINOR_FOURTEENTH
-        )
+        intervals =
+            listOf(
+                MusicInterval.UNISON,
+                MusicInterval.MINOR_THIRD,
+                MusicInterval.PERFECT_FIFTH,
+                MusicInterval.MINOR_SEVENTH,
+                MusicInterval.MAJOR_NINTH,
+                MusicInterval.MINOR_FOURTEENTH,
+            ),
     ),
-    Xmadd9 (text = "минорный аккорд с большой ноной",
+    Xmadd9(
+        text = "минорный аккорд с большой ноной",
         names = listOf("m(add9)"),
-        intervals = listOf(
-            MusicInterval.UNISON,
-            MusicInterval.MINOR_THIRD,
-            MusicInterval.PERFECT_FIFTH,
-            MusicInterval.MAJOR_NINTH,
-        )
+        intervals =
+            listOf(
+                MusicInterval.UNISON,
+                MusicInterval.MINOR_THIRD,
+                MusicInterval.PERFECT_FIFTH,
+                MusicInterval.MAJOR_NINTH,
+            ),
     ),
-    Xmaj7 (text = "большой мажорный септаккорд",
-        names = listOf("maj7","+7","7+","M7","maj7+"),
-        intervals = listOf(
-            MusicInterval.UNISON,
-            MusicInterval.MAJOR_THIRD,
-            MusicInterval.PERFECT_FIFTH,
-            MusicInterval.MAJOR_SEVENTH
-        )
+    Xmaj7(
+        text = "большой мажорный септаккорд",
+        names = listOf("maj7", "+7", "7+", "M7", "maj7+"),
+        intervals =
+            listOf(
+                MusicInterval.UNISON,
+                MusicInterval.MAJOR_THIRD,
+                MusicInterval.PERFECT_FIFTH,
+                MusicInterval.MAJOR_SEVENTH,
+            ),
     ),
-    Xmaj7d5 (text = "большой мажорный септаккорд с пониженной квинтой",
+    Xmaj7d5(
+        text = "большой мажорный септаккорд с пониженной квинтой",
         names = listOf("maj7-5"),
-        intervals = listOf(
-            MusicInterval.UNISON,
-            MusicInterval.MAJOR_THIRD,
-            MusicInterval.AUGMENTED_FOURTH,
-            MusicInterval.MAJOR_SEVENTH
-        )
+        intervals =
+            listOf(
+                MusicInterval.UNISON,
+                MusicInterval.MAJOR_THIRD,
+                MusicInterval.AUGMENTED_FOURTH,
+                MusicInterval.MAJOR_SEVENTH,
+            ),
     ),
-    Xmaj7a11 (text = "большой мажорный септаккорд с повышенной ундецимой",
+    Xmaj7a11(
+        text = "большой мажорный септаккорд с повышенной ундецимой",
         names = listOf("maj7+11"),
-        intervals = listOf(
-            MusicInterval.UNISON,
-            MusicInterval.MAJOR_THIRD,
-            MusicInterval.PERFECT_FIFTH,
-            MusicInterval.MAJOR_SEVENTH,
-            MusicInterval.PERFECT_TWELFTH
-        )
+        intervals =
+            listOf(
+                MusicInterval.UNISON,
+                MusicInterval.MAJOR_THIRD,
+                MusicInterval.PERFECT_FIFTH,
+                MusicInterval.MAJOR_SEVENTH,
+                MusicInterval.PERFECT_TWELFTH,
+            ),
     ),
-    Xsus2 (text = "минорное трезвучие с большой секундой вместо терции",
+    Xsus2(
+        text = "минорное трезвучие с большой секундой вместо терции",
         names = listOf("sus2"),
-        intervals = listOf(
-            MusicInterval.UNISON,
-            MusicInterval.MAJOR_SECOND,
-            MusicInterval.PERFECT_FIFTH
-        )
+        intervals =
+            listOf(
+                MusicInterval.UNISON,
+                MusicInterval.MAJOR_SECOND,
+                MusicInterval.PERFECT_FIFTH,
+            ),
     ),
-    Xa7a9 (text = "нонаккорд с повышенной квинтой и повышенной ноной",
+    Xa7a9(
+        text = "нонаккорд с повышенной квинтой и повышенной ноной",
         names = listOf("+7+9"),
-        intervals = listOf(
-            MusicInterval.UNISON,
-            MusicInterval.MAJOR_THIRD,
-            MusicInterval.MINOR_SIXTH,
-            MusicInterval.MINOR_SEVENTH,
-            MusicInterval.MINOR_TENTH
-        )
+        intervals =
+            listOf(
+                MusicInterval.UNISON,
+                MusicInterval.MAJOR_THIRD,
+                MusicInterval.MINOR_SIXTH,
+                MusicInterval.MINOR_SEVENTH,
+                MusicInterval.MINOR_TENTH,
+            ),
     ),
-    Xa7d9 (text = "малый нонаккорд с повышенной квинтой",
+    Xa7d9(
+        text = "малый нонаккорд с повышенной квинтой",
         names = listOf("+7-9"),
-        intervals = listOf(
-            MusicInterval.UNISON,
-            MusicInterval.MAJOR_THIRD,
-            MusicInterval.MINOR_SIXTH,
-            MusicInterval.MINOR_SEVENTH,
-            MusicInterval.MINOR_NINTH
-        )
+        intervals =
+            listOf(
+                MusicInterval.UNISON,
+                MusicInterval.MAJOR_THIRD,
+                MusicInterval.MINOR_SIXTH,
+                MusicInterval.MINOR_SEVENTH,
+                MusicInterval.MINOR_NINTH,
+            ),
     ),
-    Xa9 (text = "большой нонаккорд с повышенной квинтой",
+    Xa9(
+        text = "большой нонаккорд с повышенной квинтой",
         names = listOf("+9"),
-        intervals = listOf(
-            MusicInterval.UNISON,
-            MusicInterval.MAJOR_THIRD,
-            MusicInterval.MINOR_SIXTH,
-            MusicInterval.MINOR_SEVENTH,
-            MusicInterval.MAJOR_NINTH
-        )
-    );
+        intervals =
+            listOf(
+                MusicInterval.UNISON,
+                MusicInterval.MAJOR_THIRD,
+                MusicInterval.MINOR_SIXTH,
+                MusicInterval.MINOR_SEVENTH,
+                MusicInterval.MAJOR_NINTH,
+            ),
+    ),
+    ;
 
-    fun getNotes(rootNote: MusicNote): List<Pair<MusicNote, Int>> =
-        this.intervals.map { it.getMusicNote(rootNote) }
+    fun getNotes(rootNote: MusicNote): List<Pair<MusicNote, Int>> = this.intervals.map { it.getMusicNote(rootNote) }
 
     // Струна - лад - номер ноты в списке нот аккорда
-    fun getFingerboard(rootNote: MusicNote, initFret: Int = 0, capo: Int = 0, withSmallBarre: Boolean = true): List<Fingerboard> {
-
+    fun getFingerboard(
+        rootNote: MusicNote,
+        initFret: Int = 0,
+        capo: Int = 0,
+        withSmallBarre: Boolean = true,
+    ): List<Fingerboard> {
 //        var newIndexNote = MusicNote.values().indexOf(startRootNote) - capo
 //        if (newIndexNote < 0) newIndexNote = MusicNote.values().size + newIndexNote
 //        val rootNote = MusicNote.values()[newIndexNote]
@@ -471,7 +573,8 @@ enum class MusicChord(val text: String, val names: List<String>, val intervals: 
         val maxDiffBetweenFrets = 3 + if (initFret == 0) 1 else 0 // Максимальное расстояние между ладами (4 для 0-го лада, 3 для остальных)
         val guitarStrings = GuitarString.entries.toTypedArray() // Гитарные струны
 
-        guitarStrings.forEach { guitarString -> // Цикл по струнам
+        guitarStrings.forEach { guitarString ->
+            // Цикл по струнам
             var foundNoteInString = false // Найдена ли нота на струне
             var fretForNote = 0 // Лад для ноты
             var indexNoteInChord = 0 // Индекс ноты в аккорде
@@ -485,28 +588,27 @@ enum class MusicChord(val text: String, val names: List<String>, val intervals: 
                     if (initFret != 0) {
                         preResult.add(
                             Fingerboard(
-                            guitarString = guitarString,
-                            rootFret = initFret,
-                            fret = fretForNote,
-                            finger = 0,
-                            indexNote = indexNoteInChord
-                        )
+                                guitarString = guitarString,
+                                rootFret = initFret,
+                                fret = fretForNote,
+                                finger = 0,
+                                indexNote = indexNoteInChord,
+                            ),
                         )
                     } else {
                         break
                     }
-
                 }
             }
             if (initFret == 0 && foundNoteInString) { // Если после прохода цикла нота найдена - добавляем запись в массив предварительного результата
                 preResult.add(
                     Fingerboard(
-                    guitarString = guitarString,
-                    rootFret = initFret,
-                    fret = fretForNote,
-                    finger = 0,
-                    indexNote = indexNoteInChord
-                )
+                        guitarString = guitarString,
+                        rootFret = initFret,
+                        fret = fretForNote,
+                        finger = 0,
+                        indexNote = indexNoteInChord,
+                    ),
                 )
             }
         }
@@ -537,8 +639,13 @@ enum class MusicChord(val text: String, val names: List<String>, val intervals: 
                         val sortedFingerboards = fingerboards.sortedByDescending { it.guitarString.number }
                         if (withSmallBarre && sortedFingerboards.size > 1) {
                             var barre = true
-                            for (indexFingerboard in 0 until sortedFingerboards.size-1) {
-                                if ((sortedFingerboards[indexFingerboard+1].guitarString.number - sortedFingerboards[indexFingerboard].guitarString.number).absoluteValue != 1) {
+                            for (indexFingerboard in 0 until sortedFingerboards.size - 1) {
+                                if ((
+                                        sortedFingerboards[indexFingerboard + 1].guitarString.number -
+                                            sortedFingerboards[indexFingerboard].guitarString.number
+                                    ).absoluteValue !=
+                                    1
+                                ) {
                                     barre = false
                                     break
                                 }
@@ -552,13 +659,12 @@ enum class MusicChord(val text: String, val names: List<String>, val intervals: 
                                 currFinger += 1
                             } else {
                                 sortedFingerboards.forEach { fingerboard ->
-                                    if (initFret == 0 && fingerboard.guitarString.number == 6 && fingerboard.fret <3) {
+                                    if (initFret == 0 && fingerboard.guitarString.number == 6 && fingerboard.fret < 3) {
                                         fingerboard.muted = true
                                     } else {
                                         fingerboard.finger = currFinger
                                         currFinger += 1
                                     }
-
                                 }
                             }
                         } else {
@@ -570,7 +676,6 @@ enum class MusicChord(val text: String, val names: List<String>, val intervals: 
                         result.addAll(sortedFingerboards)
                     }
                 }
-
             }
         }
 
@@ -594,7 +699,7 @@ enum class MusicChord(val text: String, val names: List<String>, val intervals: 
             currFinger -= 1
         }
 
-        notes.forEachIndexed{ indexNote, _ ->
+        notes.forEachIndexed { indexNote, _ ->
             if (indexNote !in result.map { it.indexNote }.toList()) return emptyList()
         }
 
@@ -607,8 +712,8 @@ enum class MusicChord(val text: String, val names: List<String>, val intervals: 
                         fret = initFret,
                         finger = 0,
                         indexNote = -1,
-                        muted = true
-                    )
+                        muted = true,
+                    ),
                 )
             }
         }
@@ -638,27 +743,34 @@ enum class MusicChord(val text: String, val names: List<String>, val intervals: 
 
         result = finalResult.sortedBy { it.guitarString.number }.toMutableList()
         for (i in 1..4) {
-            if (result[i].muted && !result[i-1].muted && !result[i+1].muted) return emptyList()
+            if (result[i].muted && !result[i - 1].muted && !result[i + 1].muted) return emptyList()
         }
 
         // Если мы на нулевом ладу, две струны на первом и 2 на 3 - отказать
         if (initFret == 0) {
             if (
-                (result.any { it.fret == 1 } &&
+                (
+                    result.any { it.fret == 1 } &&
                         result.none { it.fret == 2 } &&
-                result.filter { it.fret == 3 }.size > 1) ||
-                (result.filter { it.fret == 1 }.size > 1 &&
+                        result.filter { it.fret == 3 }.size > 1
+                ) ||
+                (
+                    result.filter { it.fret == 1 }.size > 1 &&
                         result.none { it.fret == 2 } &&
-                        result.any { it.fret == 3 }) ||
-                (result.filter { it.fret == 1 }.size > 1 &&
-                result.filter { it.fret == 2 }.size == 1 &&
-                        result.none { it.fret == 3 })
-            ) return emptyList()
+                        result.any { it.fret == 3 }
+                ) ||
+                (
+                    result.filter { it.fret == 1 }.size > 1 &&
+                        result.filter { it.fret == 2 }.size == 1 &&
+                        result.none { it.fret == 3 }
+                )
+            ) {
+                return emptyList()
+            }
         }
 
-
         return if (currFinger == 4 && withSmallBarre && wasSmallBarre) {
-            getFingerboard(rootNote, initFret, capo,false)
+            getFingerboard(rootNote, initFret, capo, false)
         } else {
             if (currFinger > 5) {
                 emptyList()
@@ -666,22 +778,24 @@ enum class MusicChord(val text: String, val names: List<String>, val intervals: 
                 result
             }
         }
-
     }
 
     companion object {
-
         fun getChordNote(chordName: String): Pair<MusicChord?, MusicNote?> {
-            val noteName: String = if (chordName.isNotEmpty()) chordName[0].toString() + if (chordName.length > 1 && chordName[1] in "♭♯#b") chordName[1] else "" else ""
+            val noteName: String =
+                if (chordName.isNotEmpty()) {
+                    chordName[0].toString() +
+                        if (chordName.length > 1 && chordName[1] in "♭♯#b") chordName[1] else ""
+                } else {
+                    ""
+                }
             val chordNameInNames = chordName.substring(noteName.length)
             return Pair(
                 entries.firstOrNull { it.names.contains(chordNameInNames) },
-                MusicNote.getNote(noteName)
+                MusicNote.getNote(noteName),
             )
         }
-
     }
-
 }
 
 data class Fingerboard(
@@ -691,28 +805,30 @@ data class Fingerboard(
     var finger: Int,
     val indexNote: Int,
     var barre: Boolean = false,
-    var muted: Boolean = false
+    var muted: Boolean = false,
 ) : Serializable {
     override fun toString(): String {
         var result = "струна ${guitarString.number} лад $rootFret "
         for (i in 0 until 4) {
             var str: String
             if (i == 0) {
-                str = if (muted) {
-                    "|-x-"
-                } else {
-                    "|-${if (rootFret == 0) ":" else "1"}-"
-                }
+                str =
+                    if (muted) {
+                        "|-x-"
+                    } else {
+                        "|-${if (rootFret == 0) ":" else "1"}-"
+                    }
             } else {
-                str = if (i == fret - rootFret) {
-                    if (!muted) {
-                        "|-${finger}-"
+                str =
+                    if (i == fret - rootFret) {
+                        if (!muted) {
+                            "|-$finger-"
+                        } else {
+                            "|---"
+                        }
                     } else {
                         "|---"
                     }
-                } else {
-                    "|---"
-                }
             }
             result += str
         }

@@ -19,7 +19,7 @@ import java.time.Duration
 data class TelegramChat(
     val id: Long,
     val username: String? = null,
-    val title: String? = null
+    val title: String? = null,
 )
 
 @Serializable
@@ -28,13 +28,13 @@ data class TelegramMessage(
     val date: Long,
     val chat: TelegramChat,
     val text: String? = null,
-    val caption: String? = null
+    val caption: String? = null,
 )
 
 @Serializable
 data class TelegramUpdate(
     @SerialName("update_id") val updateId: Long,
-    @SerialName("channel_post") val channelPost: TelegramMessage? = null
+    @SerialName("channel_post") val channelPost: TelegramMessage? = null,
 )
 
 @Serializable
@@ -42,7 +42,7 @@ data class TelegramUpdatesResponse(
     val ok: Boolean = false,
     val result: List<TelegramUpdate> = emptyList(),
     @SerialName("error_code") val errorCode: Int? = null,
-    val description: String? = null
+    val description: String? = null,
 )
 
 /**
@@ -55,16 +55,18 @@ data class TelegramUpdatesResponse(
  * недоступен, ошибка пробрасывается наверх без изменений.
  */
 class TelegramApiClient {
-
     private val json = Json { ignoreUnknownKeys = true }
 
-    private val directClient: HttpClient = HttpClient.newBuilder()
-        .connectTimeout(Duration.ofSeconds(10))
-        .build()
+    private val directClient: HttpClient =
+        HttpClient
+            .newBuilder()
+            .connectTimeout(Duration.ofSeconds(10))
+            .build()
 
     // Кэш текущего режима: true = сейчас ходим через прокси. modeSetAtMs - когда режим был определён/
     // подтверждён последний раз (используется для решения "пора ли снова попробовать напрямую").
     @Volatile private var useProxy = false
+
     @Volatile private var modeSetAtMs = 0L
 
     private fun proxyClient(): HttpClient? {
@@ -72,7 +74,8 @@ class TelegramApiClient {
         if (proxyUrl.isBlank()) return null
         val uri = URI(proxyUrl)
         if (uri.host == null || uri.port <= 0) return null
-        return HttpClient.newBuilder()
+        return HttpClient
+            .newBuilder()
             .connectTimeout(Duration.ofSeconds(10))
             .proxy(ProxySelector.of(InetSocketAddress(uri.host, uri.port)))
             .build()
@@ -108,18 +111,24 @@ class TelegramApiClient {
             }
         }
 
-        val proxy = proxyClient()
-            ?: throw IllegalStateException("Telegram недоступен напрямую, а telegramProxyUrl не задан")
+        val proxy =
+            proxyClient()
+                ?: throw IllegalStateException("Telegram недоступен напрямую, а telegramProxyUrl не задан")
         return proxy.send(request, HttpResponse.BodyHandlers.ofString())
     }
 
-    fun getUpdates(offset: Long, timeoutSec: Int = 25): TelegramUpdatesResponse {
+    fun getUpdates(
+        offset: Long,
+        timeoutSec: Int = 25,
+    ): TelegramUpdatesResponse {
         val uri = URI("${baseUrl()}/getUpdates?offset=$offset&timeout=$timeoutSec&allowed_updates=%5B%22channel_post%22%5D")
-        val request = HttpRequest.newBuilder()
-            .uri(uri)
-            .timeout(Duration.ofSeconds(timeoutSec + 10L))
-            .GET()
-            .build()
+        val request =
+            HttpRequest
+                .newBuilder()
+                .uri(uri)
+                .timeout(Duration.ofSeconds(timeoutSec + 10L))
+                .GET()
+                .build()
         val response = send(request)
         return json.decodeFromString(TelegramUpdatesResponse.serializer(), response.body())
     }
@@ -129,11 +138,13 @@ class TelegramApiClient {
     fun deleteWebhook() {
         try {
             val uri = URI("${baseUrl()}/deleteWebhook")
-            val request = HttpRequest.newBuilder()
-                .uri(uri)
-                .timeout(Duration.ofSeconds(15))
-                .POST(HttpRequest.BodyPublishers.noBody())
-                .build()
+            val request =
+                HttpRequest
+                    .newBuilder()
+                    .uri(uri)
+                    .timeout(Duration.ofSeconds(15))
+                    .POST(HttpRequest.BodyPublishers.noBody())
+                    .build()
             send(request)
         } catch (_: Exception) {
         }

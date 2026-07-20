@@ -14,22 +14,22 @@
 
     <div class="sjt-table-body">
       <b-table
+          v-model:sort-by="sortBy"
           :items="stemJobs"
           :busy="isBusy"
           :fields="fields"
-          v-model:sort-by="sortBy"
           small
           bordered
           hover
       >
         <template #table-busy>
           <div class="text-center text-danger my-2">
-            <b-spinner class="align-middle"></b-spinner>
+            <b-spinner class="align-middle"/>
             <strong>Loading...</strong>
           </div>
         </template>
         <template #table-colgroup="scope">
-          <col v-for="field in scope.fields" :key="field.key" :style="field.style">
+          <col v-for="field in scope.fields" :key="field.key" :style="field.style"/>
         </template>
 
         <template #cell(user)="data">
@@ -88,11 +88,6 @@ export default {
       isBusy: false,
     }
   },
-  watch: {
-    stemJobsIsLoading: {
-      handler() { this.isBusy = this.stemJobsIsLoading }
-    }
-  },
   computed: {
     stemJobsIsLoading() { return this.$store.getters.getStemJobsIsLoading },
     stemJobs() { return this.$store.getters.getStemJobs },
@@ -113,6 +108,11 @@ export default {
         { key: 'expiresAt', label: 'Истекает', sortable: true, style: { minWidth: '130px', maxWidth: '130px', textAlign: 'center', fontSize: 'small' } },
         { key: 'actions', label: 'Действия', sortable: false, style: { minWidth: '160px', maxWidth: '160px', textAlign: 'center', fontSize: 'small' } },
       ]
+    }
+  },
+  watch: {
+    stemJobsIsLoading: {
+      handler() { this.isBusy = this.stemJobsIsLoading }
     }
   },
   mounted() {

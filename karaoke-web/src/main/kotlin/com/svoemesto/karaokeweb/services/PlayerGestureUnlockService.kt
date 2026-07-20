@@ -15,8 +15,10 @@ import java.util.concurrent.ConcurrentHashMap
  */
 @Service
 class PlayerGestureUnlockService {
+    private data class ClickBucket(
+        val timestamps: MutableList<Long> = mutableListOf(),
+    )
 
-    private data class ClickBucket(val timestamps: MutableList<Long> = mutableListOf())
     // assignmentId (опционально) — токен выдан онлайн-редактором для конкретного задания: наряду с
     // доступом к стемам он же авторизует playerdata подставить НЕОДОБРЕННЫЙ черновик этого задания
     // вместо опубликованных маркеров (см. PublicPlayerController.playerData + assignmentIdForToken).
@@ -34,7 +36,10 @@ class PlayerGestureUnlockService {
     )
 
     // Диапазон демо-фрагмента (в системе координат исходного файла) для конкретного токена.
-    data class DemoRange(val startSeconds: Double, val endSeconds: Double)
+    data class DemoRange(
+        val startSeconds: Double,
+        val endSeconds: Double,
+    )
 
     private val clickBuckets = ConcurrentHashMap<String, ClickBucket>()
     private val tokens = ConcurrentHashMap<String, TokenInfo>()
@@ -44,7 +49,12 @@ class PlayerGestureUnlockService {
      * Регистрирует один клик по полю метаданных песни. Возвращает токен доступа к плееру,
      * если этим кликом только что был завершён секретный паттерн, иначе null.
      */
-    fun registerClick(clientId: String, songId: Long, field: String, shiftKey: Boolean): String? {
+    fun registerClick(
+        clientId: String,
+        songId: Long,
+        field: String,
+        shiftKey: Boolean,
+    ): String? {
         val bucketKey = "$clientId:$songId:$field"
 
         if (!shiftKey || field != TARGET_FIELD) {
@@ -65,7 +75,10 @@ class PlayerGestureUnlockService {
         return null
     }
 
-    fun validateToken(token: String, songId: Long): Boolean {
+    fun validateToken(
+        token: String,
+        songId: Long,
+    ): Boolean {
         pruneExpiredTokens()
         val info = tokens[token] ?: return false
         return info.songId == songId && info.expiresAt > System.currentTimeMillis()
@@ -80,18 +93,27 @@ class PlayerGestureUnlockService {
 
     // Тот же токен, что и обычный прямой доступ, но помеченный конкретным заданием редактора —
     // владение заданием уже проверено вызывающей стороной (PublicSongEditorController) до выдачи.
-    fun issueDirectAccessTokenForAssignment(songId: Long, assignmentId: Long): String = issueToken(songId, assignmentId)
+    fun issueDirectAccessTokenForAssignment(
+        songId: Long,
+        assignmentId: Long,
+    ): String = issueToken(songId, assignmentId)
 
     // Демо-режим (PublicPlayerController.access, ветка !canWatch): токен, ограниченный диапазоном —
     // stemResponse обрежет байты стема через Mp3Trimmer.trimToRange, playerdata обрежет и перебазирует
     // маркеры — оба по этому же диапазону, взятому из Settings.demoFragmentStartSeconds/
     // demoFragmentEndSeconds на момент выдачи.
-    fun issueDemoAccessToken(songId: Long, startSeconds: Double, endSeconds: Double): String =
-        issueToken(songId, demoStartSeconds = startSeconds, demoEndSeconds = endSeconds)
+    fun issueDemoAccessToken(
+        songId: Long,
+        startSeconds: Double,
+        endSeconds: Double,
+    ): String = issueToken(songId, demoStartSeconds = startSeconds, demoEndSeconds = endSeconds)
 
     // Для playerdata: если токен был выдан онлайн-редактором для задания, возвращает его id
     // (иначе null — обычный токен плеера, без переопределения маркеров). null и при невалидном токене.
-    fun assignmentIdForToken(token: String?, songId: Long): Long? {
+    fun assignmentIdForToken(
+        token: String?,
+        songId: Long,
+    ): Long? {
         pruneExpiredTokens()
         val info = token?.let { tokens[it] } ?: return null
         if (info.songId != songId || info.expiresAt <= System.currentTimeMillis()) return null
@@ -100,7 +122,10 @@ class PlayerGestureUnlockService {
 
     // Диапазон демо-фрагмента для данного токена, если он был выдан как демо-токен; иначе null
     // (обычный токен — полный доступ). null и при невалидном/просроченном/чужом токене.
-    fun demoRangeForToken(token: String?, songId: Long): DemoRange? {
+    fun demoRangeForToken(
+        token: String?,
+        songId: Long,
+    ): DemoRange? {
         pruneExpiredTokens()
         val info = token?.let { tokens[it] } ?: return null
         if (info.songId != songId || info.expiresAt <= System.currentTimeMillis()) return null
@@ -127,7 +152,12 @@ class PlayerGestureUnlockService {
         tokens.entries.removeIf { it.value.expiresAt < now }
         // Click buckets are self-cleaning per-call (removeIf above); an occasional sweep here
         // keeps memory bounded even for clients that start but never finish a gesture.
-        clickBuckets.entries.removeIf { (_, bucket) -> synchronized(bucket) { bucket.timestamps.removeIf { now - it > CLICK_WINDOW_MS }; bucket.timestamps.isEmpty() } }
+        clickBuckets.entries.removeIf { (_, bucket) ->
+            synchronized(bucket) {
+                bucket.timestamps.removeIf { now - it > CLICK_WINDOW_MS }
+                bucket.timestamps.isEmpty()
+            }
+        }
     }
 
     private companion object {

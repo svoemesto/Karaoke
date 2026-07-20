@@ -16,7 +16,6 @@ import org.springframework.web.filter.OncePerRequestFilter
 // между запросами - без очистки значение "протечёт" в следующий, никак не связанный запрос.
 @Component
 class TabIdFilter : OncePerRequestFilter() {
-
     companion object {
         const val HEADER_NAME = "X-Tab-Id"
     }
@@ -24,7 +23,7 @@ class TabIdFilter : OncePerRequestFilter() {
     override fun doFilterInternal(
         request: HttpServletRequest,
         response: HttpServletResponse,
-        filterChain: FilterChain
+        filterChain: FilterChain,
     ) {
         try {
             TabIdContext.set(request.getHeader(HEADER_NAME))

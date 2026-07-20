@@ -7,13 +7,19 @@ import com.svoemesto.karaokeapp.model.MltNode
 import com.svoemesto.karaokeapp.model.MltNodeBuilder
 import com.svoemesto.karaokeapp.model.ProducerType
 
-data class MkoLineTrack(val mltProp: MltProp, val type: ProducerType, val voiceId: Int = 0, val trackId: Int = 0, val elementId: Int = 0): MltKaraokeObject {
-
+data class MkoLineTrack(
+    val mltProp: MltProp,
+    val type: ProducerType,
+    val voiceId: Int = 0,
+    val trackId: Int = 0,
+    val elementId: Int = 0,
+) : MltKaraokeObject {
     val mltGenerator = MltGenerator(mltProp, type, voiceId, trackId)
 
     private val settings = mltProp.getSettings()
     private val songStartTimecode = mltProp.getSongStartTimecode()
     private val songEndTimecode = mltProp.getSongEndTimecode()
+
 //    mltProp.getDurationOnScreen(listOf(ProducerType.LINE, voiceId, line.lineId))
 //    mltProp.getUUID(listOf(ProducerType.LINE, voiceId, line.lineId))
     override fun filePlaylist(): MltNode {
@@ -37,11 +43,12 @@ data class MkoLineTrack(val mltProp: MltProp, val type: ProducerType, val voiceI
                     val scrollLineEndMs = line.endVisibleTime
 
                     val scrollLineDurationMs = mltProp.getDurationOnScreen(listOf(ProducerType.LINE, voiceId, line.lineId))
-                    val lineEndTimecode = if (scrollLineDurationMs > 0) {
-                        convertMillisecondsToTimecode(scrollLineDurationMs)
-                    } else {
-                        songEndTimecode
-                    }
+                    val lineEndTimecode =
+                        if (scrollLineDurationMs > 0) {
+                            convertMillisecondsToTimecode(scrollLineDurationMs)
+                        } else {
+                            songEndTimecode
+                        }
 
                     val blankDurationMs = scrollLineStartMs - lineEndMsPrev
 
@@ -49,38 +56,42 @@ data class MkoLineTrack(val mltProp: MltProp, val type: ProducerType, val voiceI
                         body.addAll(
                             MltNodeBuilder()
                                 .blank(convertMillisecondsToTimecode(blankDurationMs))
-                                .build()
+                                .build(),
                         )
                     }
 
-                    val nodes = if (line.transformProperties.isNotEmpty()) {
-                        MltNodeBuilder()
-                            .propertyName("kdenlive:id", "filePlaylist${listOf(ProducerType.LINE.name, voiceId, line.lineId, 0).hashCode()}")
-                            .filterQtblend("filter_qtblend_${listOf(ProducerType.LINE.name, voiceId, line.lineId, 0).hashCode()}", line.transformProperties.joinToString(";"))
-                            .build()
-                    } else {
-                        MltNodeBuilder()
-                            .propertyName("kdenlive:id", "filePlaylist${listOf(ProducerType.LINE.name, voiceId, line.lineId, 0).hashCode()}")
-                            .build()
-                    }
+                    val nodes =
+                        if (line.transformProperties.isNotEmpty()) {
+                            MltNodeBuilder()
+                                .propertyName(
+                                    "kdenlive:id",
+                                    "filePlaylist${listOf(ProducerType.LINE.name, voiceId, line.lineId, 0).hashCode()}",
+                                ).filterQtblend(
+                                    "filter_qtblend_${listOf(ProducerType.LINE.name, voiceId, line.lineId, 0).hashCode()}",
+                                    line.transformProperties.joinToString(";"),
+                                ).build()
+                        } else {
+                            MltNodeBuilder()
+                                .propertyName(
+                                    "kdenlive:id",
+                                    "filePlaylist${listOf(ProducerType.LINE.name, voiceId, line.lineId, 0).hashCode()}",
+                                ).build()
+                        }
 
                     body.add(
                         mltGenerator.entry(
                             id = "{${mltProp.getUUID(listOf(ProducerType.LINE, voiceId, line.lineId))}}",
                             timecodeIn = songStartTimecode,
                             timecodeOut = lineEndTimecode,
-                            nodes = nodes
-                        )
+                            nodes = nodes,
+                        ),
                     )
 
 //                    lineStartMsPrev = scrollLineStartMs
                     lineEndMsPrev = scrollLineEndMs
 //                    lineDurationMsPrev = scrollLineDurationMs
-
                 }
-
             }
-
         }
         return result
     }
@@ -90,5 +101,4 @@ data class MkoLineTrack(val mltProp: MltProp, val type: ProducerType, val voiceI
     override fun trackPlaylist(): MltNode = mltGenerator.trackPlaylist()
 
     override fun tractor(): MltNode = mltGenerator.tractor()
-
 }

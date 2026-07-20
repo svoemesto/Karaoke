@@ -31,12 +31,15 @@ class PublicPaymentController(
     private val db get() = WORKING_DATABASE
 
     @PostMapping("/webhook")
-    fun webhook(@RequestBody body: Map<String, Any?>): ResponseEntity<Any> {
+    fun webhook(
+        @RequestBody body: Map<String, Any?>,
+    ): ResponseEntity<Any> {
         // Структура события ЮKassa: {"event":"payment.succeeded","object":{"id":"...","status":"..."}}
         @Suppress("UNCHECKED_CAST")
         val paymentObject = body["object"] as? Map<String, Any?>
-        val paymentId = paymentObject?.get("id") as? String
-            ?: return ResponseEntity.badRequest().body(mapOf("error" to "no_payment_id"))
+        val paymentId =
+            paymentObject?.get("id") as? String
+                ?: return ResponseEntity.badRequest().body(mapOf("error" to "no_payment_id"))
 
         // Заказ «Корзины» — несколько подписок делят один yookassa_payment_id (один платёж на
         // несколько песен); одиночная покупка — список из одного элемента, поведение не меняется.
@@ -47,8 +50,9 @@ class PublicPaymentController(
         if (subs.all { it.status == Subscription.STATUS_PAID }) return ResponseEntity.ok(mapOf("ok" to true))
 
         // Не доверяем телу вебхука — перезапрашиваем статус напрямую у ЮKassa (один раз на весь заказ).
-        val verified = paymentService.verifyAndFetch(paymentId)
-            ?: return ResponseEntity.status(502).body(mapOf("error" to "verify_failed"))
+        val verified =
+            paymentService.verifyAndFetch(paymentId)
+                ?: return ResponseEntity.status(502).body(mapOf("error" to "verify_failed"))
 
         when (verified.status) {
             "succeeded" -> {

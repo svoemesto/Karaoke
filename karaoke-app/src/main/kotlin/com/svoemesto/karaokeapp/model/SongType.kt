@@ -13,5 +13,5 @@ enum class SongType(
 ) : Serializable {
     SONG(dbValue = "song", description = "Песня (вокал + музыка)"),
     INSTRUMENTAL(dbValue = "instrumental", description = "Инструментал (только музыка)"),
-    POETRY(dbValue = "poetry", description = "Стихи (только вокал)");
+    POETRY(dbValue = "poetry", description = "Стихи (только вокал)"),
 }

@@ -4,9 +4,9 @@
       <custom-confirm v-if="isCustomConfirmVisible" :params="customConfirmParams" @close="closeCustomConfirm" />
       <FileExplorerModal
           v-if="isFileExplorerVisible"
-          @close="closeFileExplorer"
           :start="pictureCurrent.pathToFolder"
           extensions='png'
+          @close="closeFileExplorer"
           @getpath="getPathToPictureFile"
       />
       <div class="header">
@@ -16,24 +16,24 @@
         <div class="column-1">
           <div class="label-and-input">
             <div class="label">Имя:</div>
-            <input class="input-field" v-model="pictureCurrent.name">
-            <button class="btn-round" @click="undoField('name')" :disabled="notChanged('name')"><img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg"></button>
-            <button class="btn-round" @click="copyToClipboard(pictureCurrent.name, 'name')" :disabled="!pictureCurrent.name"><img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg"></button>
-            <button class="btn-round" @click="pasteFromClipboard('name')"><img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg"></button>
+            <input v-model="pictureCurrent.name" class="input-field"/>
+            <button class="btn-round" :disabled="notChanged('name')" @click="undoField('name')"><img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg"/></button>
+            <button class="btn-round" :disabled="!pictureCurrent.name" @click="copyToClipboard(pictureCurrent.name, 'name')"><img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg"/></button>
+            <button class="btn-round" @click="pasteFromClipboard('name')"><img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg"/></button>
           </div>
           <div class="picture-full">
-            <img class="image-full" alt="image" :src="pictureFullBase64 ? 'data:image/jpg;base64,' + pictureFullBase64 : pictureCurrent.fullUrl">
+            <img class="image-full" alt="image" :src="pictureFullBase64 ? 'data:image/jpg;base64,' + pictureFullBase64 : pictureCurrent.fullUrl"/>
           </div>
           <div class="column2-buttons-group ">
-            <button class="group-button" @click="loadNewPicture" title="Загрузить новую картинку с диска">Загрузить новую картинку с диска</button>
-            <button class="group-button" @click="savePictureToDB" title="Сохранить картинку в базу данных">Сохранить картинку в базу данных</button>
-            <button class="group-button" @click="savePictureToDisk" title="Сохранить картинку на диске">Сохранить картинку на диске</button>
+            <button class="group-button" title="Загрузить новую картинку с диска" @click="loadNewPicture">Загрузить новую картинку с диска</button>
+            <button class="group-button" title="Сохранить картинку в базу данных" @click="savePictureToDB">Сохранить картинку в базу данных</button>
+            <button class="group-button" title="Сохранить картинку на диске" @click="savePictureToDisk">Сохранить картинку на диске</button>
           </div>
         </div>
       </div>
       <div class="footer">
-        <button class="btn-round-save-double" @click="save" :disabled="notChanged()" title="Сохранить"><img alt="savePicture" class="icon-save-double" src="../../../assets/svg/icon_save.svg"></button>
-        <button class="btn-round-double" @click="deletePicture" title="Удалить картинку"><img alt="delete" class="icon-40" src="../../../assets/svg/icon_delete.svg"></button>
+        <button class="btn-round-save-double" :disabled="notChanged()" title="Сохранить" @click="save"><img alt="savePicture" class="icon-save-double" src="../../../assets/svg/icon_save.svg"/></button>
+        <button class="btn-round-double" title="Удалить картинку" @click="deletePicture"><img alt="delete" class="icon-40" src="../../../assets/svg/icon_delete.svg"/></button>
       </div>
     </div>
     <div v-else>
@@ -66,28 +66,6 @@ export default {
       createToast: () => {}
     };
   },
-  async mounted() {
-    const { create } = useToast();
-    this.createToast = create;
-    this.$store.getters.getPictureValuePromise.then( data => {
-      let image = JSON.parse(data);
-      this.$store.dispatch('setPictureCurrent', image);
-      this.$store.dispatch('setPictureSnapshot', image);
-      this.pictureFullBase64 = '';
-    });
-    this.pictureAutoSave = await this.propAutoSave();
-    this.pictureAutoSaveDelayMs = Number(await this.propAutoSaveDelayMs());
-  },
-  watch: {
-    pictureDiff: {
-      async handler () {
-        if (this.pictureDiff.length !== 0 && this.pictureAutoSave) {
-          clearTimeout(this.pictureSaveTimer);
-          this.pictureSaveTimer = setTimeout(this.save, this.pictureAutoSaveDelayMs);
-        }
-      }
-    }
-  },
   computed: {
     styleRoot() {
       return {
@@ -104,6 +82,28 @@ export default {
     pictureCurrent() { return this.$store.getters.getPictureCurrent },
     pictureSnapshot() { return this.$store.getters.getPictureSnapshot },
     pictureDiff() { return this.$store.getters.getPictureDiff },
+  },
+  watch: {
+    pictureDiff: {
+      async handler () {
+        if (this.pictureDiff.length !== 0 && this.pictureAutoSave) {
+          clearTimeout(this.pictureSaveTimer);
+          this.pictureSaveTimer = setTimeout(this.save, this.pictureAutoSaveDelayMs);
+        }
+      }
+    }
+  },
+  async mounted() {
+    const { create } = useToast();
+    this.createToast = create;
+    this.$store.getters.getPictureValuePromise.then( data => {
+      let image = JSON.parse(data);
+      this.$store.dispatch('setPictureCurrent', image);
+      this.$store.dispatch('setPictureSnapshot', image);
+      this.pictureFullBase64 = '';
+    });
+    this.pictureAutoSave = await this.propAutoSave();
+    this.pictureAutoSaveDelayMs = Number(await this.propAutoSaveDelayMs());
   },
   methods: {
     async getPathToPictureFile(path) {

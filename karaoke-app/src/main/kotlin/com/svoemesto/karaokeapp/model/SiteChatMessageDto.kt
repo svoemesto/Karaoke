@@ -12,8 +12,8 @@ data class SiteChatMessageDto(
     val body: String = "",
     val read: Boolean = false,
     val createdAt: String = "",
-) : Serializable, KaraokeDbTableDto {
-
+) : Serializable,
+    KaraokeDbTableDto {
     override fun fromDto(database: KaraokeConnection): SiteChatMessage {
         val entity = SiteChatMessage(database = database)
         entity.id = id

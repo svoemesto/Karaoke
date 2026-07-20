@@ -11,17 +11,18 @@ import org.junit.jupiter.api.Test
 import java.nio.file.*
 import kotlin.use
 
-class PlaywrightTests() {
-
+class PlaywrightTests {
     @Disabled
     @Test
     fun saveYandexMusicAuthByChrome() {
         Playwright.create().use { playwright ->
-            val browser = playwright.chromium().launch(
-                BrowserType.LaunchOptions()
+            val browser =
+                playwright.chromium().launch(
+                    BrowserType
+                        .LaunchOptions()
 //                    .setExecutablePath(Path.of("/usr/bin/yandex-browser")) // Укажите путь к Яндекс.Браузеру
-                    .setHeadless(false) // Оставляем видимым, чтобы вручную авторизоваться
-            )
+                        .setHeadless(false), // Оставляем видимым, чтобы вручную авторизоваться
+                )
 
             // Создаем новый контекст браузера
             val context = browser.newContext()
@@ -47,11 +48,13 @@ class PlaywrightTests() {
     @Test
     fun saveYandexMusicAuth() {
         Playwright.create().use { playwright ->
-            val browser = playwright.chromium().launch(
-                BrowserType.LaunchOptions()
-                    .setExecutablePath(Path.of("/usr/bin/yandex-browser")) // Укажите путь к Яндекс.Браузеру
-                    .setHeadless(false) // Оставляем видимым, чтобы вручную авторизоваться
-            )
+            val browser =
+                playwright.chromium().launch(
+                    BrowserType
+                        .LaunchOptions()
+                        .setExecutablePath(Path.of("/usr/bin/yandex-browser")) // Укажите путь к Яндекс.Браузеру
+                        .setHeadless(false), // Оставляем видимым, чтобы вручную авторизоваться
+                )
 
             // Создаем новый контекст браузера
             val context = browser.newContext()
@@ -77,17 +80,21 @@ class PlaywrightTests() {
     @Test
     fun openYandexMusicWithAuth() {
         Playwright.create().use { playwright ->
-            val browser = playwright.chromium().launch(
-                BrowserType.LaunchOptions()
-                    .setExecutablePath(Path.of("/usr/bin/yandex-browser")) // Укажите путь к Яндекс.Браузеру
-                    .setHeadless(false) // или true, если не нужно видеть
-            )
+            val browser =
+                playwright.chromium().launch(
+                    BrowserType
+                        .LaunchOptions()
+                        .setExecutablePath(Path.of("/usr/bin/yandex-browser")) // Укажите путь к Яндекс.Браузеру
+                        .setHeadless(false), // или true, если не нужно видеть
+                )
 
             // Создаем контекст, используя сохраненное состояние авторизации
-            val context = browser.newContext(
-                Browser.NewContextOptions()
-                    .setStorageStatePath(Path.of(YANDEX_AUTH_STATE_PATH)) // <-- Используем сохраненное состояние
-            )
+            val context =
+                browser.newContext(
+                    Browser
+                        .NewContextOptions()
+                        .setStorageStatePath(Path.of(YANDEX_AUTH_STATE_PATH)), // <-- Используем сохраненное состояние
+                )
 
             val page = context.newPage()
             page.navigate("https://music.yandex.ru/") // Откроется авторизованным
@@ -105,17 +112,21 @@ class PlaywrightTests() {
     @Test
     fun getYandexMusicWithAuthPageHtml() {
         Playwright.create().use { playwright ->
-            val browser = playwright.chromium().launch(
-                BrowserType.LaunchOptions()
-                    .setExecutablePath(Path.of("/usr/bin/yandex-browser")) // Укажите путь к Яндекс.Браузеру
-                    .setHeadless(true) // или true, если не нужно видеть
-            )
+            val browser =
+                playwright.chromium().launch(
+                    BrowserType
+                        .LaunchOptions()
+                        .setExecutablePath(Path.of("/usr/bin/yandex-browser")) // Укажите путь к Яндекс.Браузеру
+                        .setHeadless(true), // или true, если не нужно видеть
+                )
 
             // Создаем контекст, используя сохраненное состояние авторизации
-            val context = browser.newContext(
-                Browser.NewContextOptions()
-                    .setStorageStatePath(Path.of(YANDEX_AUTH_STATE_PATH)) // <-- Используем сохраненное состояние
-            )
+            val context =
+                browser.newContext(
+                    Browser
+                        .NewContextOptions()
+                        .setStorageStatePath(Path.of(YANDEX_AUTH_STATE_PATH)), // <-- Используем сохраненное состояние
+                )
 
             val page = context.newPage()
             page.navigate("https://music.yandex.ru/artist/10385567/albums") // Откроется авторизованным
@@ -133,17 +144,21 @@ class PlaywrightTests() {
     @Test
     fun getYandexMusicWithAuthPageHtml2() {
         Playwright.create().use { playwright ->
-            val browser = playwright.chromium().launch(
-                BrowserType.LaunchOptions()
+            val browser =
+                playwright.chromium().launch(
+                    BrowserType
+                        .LaunchOptions()
 //                    .setExecutablePath(Path.of("/usr/bin/yandex-browser")) // Укажите путь к Яндекс.Браузеру
-                    .setHeadless(false) // или true, если не нужно видеть
-            )
+                        .setHeadless(false), // или true, если не нужно видеть
+                )
 
             // Создаем контекст, используя сохраненное состояние авторизации
-            val context = browser.newContext(
-                Browser.NewContextOptions()
-                    .setStorageStatePath(Path.of(YANDEX_AUTH_STATE_PATH)) // <-- Используем сохраненное состояние
-            )
+            val context =
+                browser.newContext(
+                    Browser
+                        .NewContextOptions()
+                        .setStorageStatePath(Path.of(YANDEX_AUTH_STATE_PATH)), // <-- Используем сохраненное состояние
+                )
 
             val page = context.newPage()
             page.navigate("https://music.yandex.ru/artist/10385567/albums") // Откроется авторизованным
@@ -156,5 +171,4 @@ class PlaywrightTests() {
             browser.close()
         }
     }
-
 }

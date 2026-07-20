@@ -13,7 +13,6 @@ import com.svoemesto.karaokeapp.monitor.MonitorSeverity
  * см. ApiController./api/processes/workerstartstop).
  */
 object RenderQueueStalledCheck : MonitorCheck {
-
     override fun run(ctx: MonitorContext): List<MonitorAlert> {
         if (KaraokeProcessWorker.isWork) return emptyList()
         val waiting = KaraokeProcess.getCountWaiting(ctx.localDb)
@@ -31,10 +30,10 @@ object RenderQueueStalledCheck : MonitorCheck {
                     KaraokeProcessWorker.start(
                         database = ctx.localDb,
                         storageService = ctx.storageService,
-                        storageApiClient = ctx.storageApiClient
+                        storageApiClient = ctx.storageApiClient,
                     )
-                }
-            )
+                },
+            ),
         )
     }
 }

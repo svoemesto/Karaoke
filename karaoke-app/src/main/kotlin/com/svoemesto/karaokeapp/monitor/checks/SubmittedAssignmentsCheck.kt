@@ -15,17 +15,20 @@ import com.svoemesto.karaokeapp.monitor.MonitorSeverity
  * MonitorAlert.contentHash()), иначе алерт «мигал» бы read/unread на каждом тике.
  */
 object SubmittedAssignmentsCheck : MonitorCheck {
-
     override fun run(ctx: MonitorContext): List<MonitorAlert> {
         val db = Connection.remote()
-        val submitted = try {
-            SongAssignment.countSubmitted(db, ctx.storageService, ctx.storageApiClient)
-        } catch (e: Exception) {
-            println("SubmittedAssignmentsCheck: ${e.message}")
-            0
-        } finally {
-            try { db.getConnection()?.close() } catch (_: Exception) {}
-        }
+        val submitted =
+            try {
+                SongAssignment.countSubmitted(db, ctx.storageService, ctx.storageApiClient)
+            } catch (e: Exception) {
+                println("SubmittedAssignmentsCheck: ${e.message}")
+                0
+            } finally {
+                try {
+                    db.getConnection()?.close()
+                } catch (_: Exception) {
+                }
+            }
 
         if (submitted <= 0) return emptyList()
 
@@ -38,7 +41,7 @@ object SubmittedAssignmentsCheck : MonitorCheck {
                 category = "Редактор",
                 detail = "$submitted шт.",
                 recommendations = "Откройте раздел «Задание редактора» в webvue3 и проверьте разметку.",
-            )
+            ),
         )
     }
 }

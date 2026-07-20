@@ -9,9 +9,13 @@ import jakarta.servlet.http.HttpServletRequest
 // заголовков (например, локальный dev без nginx перед приложением).
 object ClientIpResolver {
     fun resolve(request: HttpServletRequest): String {
-        request.getHeader("X-Forwarded-For")?.takeIf { it.isNotBlank() }
+        request
+            .getHeader("X-Forwarded-For")
+            ?.takeIf { it.isNotBlank() }
             ?.let { return it.split(",").first().trim() }
-        request.getHeader("X-Real-IP")?.takeIf { it.isNotBlank() }
+        request
+            .getHeader("X-Real-IP")
+            ?.takeIf { it.isNotBlank() }
             ?.let { return it.trim() }
         return request.remoteHost
     }

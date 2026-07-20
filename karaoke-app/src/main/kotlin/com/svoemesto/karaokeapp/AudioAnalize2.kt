@@ -11,7 +11,10 @@ class MyOnsetHandler : OnsetHandler {
     private var lastOnsetTime = 0.0
     private var bpm = 0.0
 
-    override fun handleOnset(time: Double, salience: Double) {
+    override fun handleOnset(
+        time: Double,
+        salience: Double,
+    ) {
         if (lastOnsetTime > 0) {
             val interval = time - lastOnsetTime
             // Рассчитываем BPM на основе временного интервала между ударами
@@ -21,10 +24,9 @@ class MyOnsetHandler : OnsetHandler {
         println("Re-re")
     }
 
-    fun getBPM(): Double {
-        return bpm
-    }
+    fun getBPM(): Double = bpm
 }
+
 @Suppress("unused")
 fun mainAudioAnalize2() {
     val audioFile = File("/sm-karaoke/system/Infornal Fuckъ - Конунг Олаф Моржовый Хер/Конунг Олаф Моржовый Хер.wav")

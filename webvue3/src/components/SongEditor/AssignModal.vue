@@ -31,23 +31,23 @@
         </datalist>
         <div class="se-search-row">
           <input
-              type="text"
               v-model="authorQuery"
+              type="text"
               list="se-authors-list"
               placeholder="Автор..."
               class="se-search-author"
               @keyup.enter="doSearch"
           />
           <input
-              type="text"
               v-model="albumQuery"
+              type="text"
               placeholder="Альбом..."
               class="se-search-album"
               @keyup.enter="doSearch"
           />
           <input
-              type="text"
               v-model="searchQuery"
+              type="text"
               placeholder="Название песни..."
               class="se-search-name"
               @keyup.enter="doSearch"
@@ -55,7 +55,7 @@
           <button type="button" class="se-btn" @click="doSearch">Найти</button>
         </div>
         <label class="se-checkbox">
-          <input type="checkbox" v-model="onlyStatus1" @change="doSearch" />
+          <input v-model="onlyStatus1" type="checkbox" @change="doSearch" />
           <span>Только кандидаты на разметку (статус «Создание текста»)</span>
         </label>
         <div v-if="searching" class="se-search-message">Загрузка...</div>

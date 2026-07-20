@@ -83,8 +83,10 @@ enum class SettingField : Serializable {
     VERSION_MAX_CHORDS,
     ID_MAX_MELODY,
     VERSION_MAX_MELODY,
+
     // Тариф подписки (монетизация, tbl_price_tariffs.id). 0 = песня не продаётся отдельно/дефолт.
     ID_TARIFF,
+
     // Публикация DEMO-версии (RenderVersion.DEMO) на площадках — по образцу LYRICS/KARAOKE/CHORDS/MELODY,
     // но намеренно не привязана к SongVersion (см. Settings.getDescriptionDemoHeader и т.п.).
     ID_DZEN_DEMO,
@@ -95,14 +97,17 @@ enum class SettingField : Serializable {
     VERSION_TELEGRAM_DEMO,
     ID_MAX_DEMO,
     VERSION_MAX_DEMO,
+
     // Тип песни: песня/инструментал/стихи (см. SongType). Хранится в tbl_settings.song_type.
     SONG_TYPE,
+
     // "Аудио-родитель" — песня, максимально похожая по звучанию (WaveformCompare), независимо
     // от кураторского ROOT_ID. См. Utils.findAudioParentByWaveform.
     AUDIO_PARENT_ID,
     AUDIO_SIMILARITY_PERCENT,
     AUDIO_DELTA_MS,
+
     // JSON-история уже выполненных сравнений (id кандидата, %, дельта, ok, время) — чтобы не
     // сравнивать повторно одни и те же пары при последующих запусках поиска.
-    AUDIO_COMPARE_HISTORY
+    AUDIO_COMPARE_HISTORY,
 }

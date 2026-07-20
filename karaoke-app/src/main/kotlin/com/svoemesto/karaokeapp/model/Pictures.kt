@@ -21,10 +21,10 @@ class Pictures(
     override val database: KaraokeConnection = WORKING_DATABASE,
     override val storageService: KaraokeStorageService = KSS_APP,
     override val storageApiClient: StorageApiClient = SAC_APP,
-) : Serializable, Comparable<Pictures>, KaraokeDbTable, KaraokeStorage {
-
-
-
+) : Serializable,
+    Comparable<Pictures>,
+    KaraokeDbTable,
+    KaraokeStorage {
     @KaraokeDbTableField(name = "id", isId = true)
     override var id: Long = 0
 
@@ -34,7 +34,7 @@ class Pictures(
     @KaraokeDbTableField(name = "picture_full", useInList = false)
     var full: String = ""
         set(value) {
-            field = ""  // base64 не хранится в БД — только в хранилище
+            field = "" // base64 не хранится в БД — только в хранилище
             if (value.isEmpty()) return
             try {
                 val pictureBites = Base64.getDecoder().decode(value)
@@ -43,7 +43,14 @@ class Pictures(
                 ImageIO.write(bi, "png", iosFull)
                 val fullBytes = iosFull.toByteArray()
                 storageUploadFile(ByteArrayInputStream(fullBytes), fullBytes.size.toLong())
-                val previewBi = if (bi.width > 400) resizeBufferedImage(bi, newW = 125, newH = 50) else resizeBufferedImage(bi, newW = 50, newH = 50)
+                val previewBi =
+                    if (bi.width >
+                        400
+                    ) {
+                        resizeBufferedImage(bi, newW = 125, newH = 50)
+                    } else {
+                        resizeBufferedImage(bi, newW = 50, newH = 50)
+                    }
                 val iosPreview = ByteArrayOutputStream()
                 ImageIO.write(previewBi, "png", iosPreview)
                 val previewBytes = iosPreview.toByteArray()
@@ -76,16 +83,18 @@ class Pictures(
 
     override val storageBucketName: String get() = "karaoke"
 
-    override val storageFileName: String get() = when {
-        isAuthorPicture -> "$author/$name.author.png"
-        isAlbumPicture -> "$author/$year - $album/$name.album.png"
-        else -> "$name.png"
-    }
-    override val storageFileNamePreview: String get() = when {
-        isAuthorPicture -> "$author/$name.preview.author.png"
-        isAlbumPicture -> "$author/$year - $album/$name.preview.album.png"
-        else -> "$name.preview.png"
-    }
+    override val storageFileName: String get() =
+        when {
+            isAuthorPicture -> "$author/$name.author.png"
+            isAlbumPicture -> "$author/$year - $album/$name.album.png"
+            else -> "$name.png"
+        }
+    override val storageFileNamePreview: String get() =
+        when {
+            isAuthorPicture -> "$author/$name.preview.author.png"
+            isAlbumPicture -> "$author/$year - $album/$name.preview.album.png"
+            else -> "$name.preview.png"
+        }
     override var storageBucketIsPublic: Boolean
         get() = storageService.isBucketPublic(storageBucketName)
         set(value) {
@@ -100,40 +109,66 @@ class Pictures(
         return if (isAlbumPicture) {
             // Ищем первую песню автора, года и альбома
             val args = mapOf("author" to author, "song_year" to year, "album" to album, "limit" to "1")
-            Settings.loadListFromDb(args = args, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient, withoutMarkersAndText = true).firstOrNull()?.rootFolder ?: ""
+            Settings
+                .loadListFromDb(
+                    args = args,
+                    database = WORKING_DATABASE,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                    withoutMarkersAndText = true,
+                ).firstOrNull()
+                ?.rootFolder
+                ?: ""
         } else if (isAuthorPicture) {
             val args = mapOf("author" to author, "limit" to "1")
-            Settings.loadListFromDb(args = args, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient, withoutMarkersAndText = true).firstOrNull()?.let { sett ->
-                File(sett.rootFolder).parent
-            }?: ""
-        } else ""
+            Settings
+                .loadListFromDb(
+                    args = args,
+                    database = WORKING_DATABASE,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                    withoutMarkersAndText = true,
+                ).firstOrNull()
+                ?.let { sett ->
+                    File(sett.rootFolder).parent
+                } ?: ""
+        } else {
+            ""
+        }
     }
 
-    val fileName: String get() = if (isAuthorPicture) "LogoAuthor.png" else if (isAlbumPicture) "LogoAlbum.png" else ""
+    val fileName: String get() =
+        if (isAuthorPicture) {
+            "LogoAuthor.png"
+        } else if (isAlbumPicture) {
+            "LogoAlbum.png"
+        } else {
+            ""
+        }
 
-    override fun compareTo(other: Pictures): Int {
-        return id.compareTo(other.id)
-    }
+    override fun compareTo(other: Pictures): Int = id.compareTo(other.id)
 
     override fun getTableName(): String = TABLE_NAME
 
-    override fun toDTO(): PicturesDTO {
-        return PicturesDTO(
-                id = id,
-                name = name,
-                preview = "",
-                full = "",
-                previewUrl = "/api/picture/file?file=${java.net.URLEncoder.encode(storageFileNamePreview, java.nio.charset.StandardCharsets.UTF_8)}",
-                fullUrl = "/api/picture/file?file=${java.net.URLEncoder.encode(storageFileName, java.nio.charset.StandardCharsets.UTF_8)}",
-                author = author,
-                year = year,
-                album = album,
-                isAuthorPicture = isAuthorPicture,
-                isAlbumPicture = isAlbumPicture,
-                pathToFolder = pathToFolder,
-                fileName = fileName
+    override fun toDTO(): PicturesDTO =
+        PicturesDTO(
+            id = id,
+            name = name,
+            preview = "",
+            full = "",
+            previewUrl = "/api/picture/file?file=${java.net.URLEncoder.encode(
+                storageFileNamePreview,
+                java.nio.charset.StandardCharsets.UTF_8,
+            )}",
+            fullUrl = "/api/picture/file?file=${java.net.URLEncoder.encode(storageFileName, java.nio.charset.StandardCharsets.UTF_8)}",
+            author = author,
+            year = year,
+            album = album,
+            isAuthorPicture = isAuthorPicture,
+            isAlbumPicture = isAlbumPicture,
+            pathToFolder = pathToFolder,
+            fileName = fileName,
         )
-    }
 
     fun saveToDisk() {
         try {
@@ -149,12 +184,13 @@ class Pictures(
         }
     }
 
-
     companion object {
-
         const val TABLE_NAME = "tbl_pictures"
 
-        fun listHashes(database: KaraokeConnection, whereText: String = ""): List<RecordHash>? = getListHashes(tableName = TABLE_NAME, database = database, whereText = whereText)
+        fun listHashes(
+            database: KaraokeConnection,
+            whereText: String = "",
+        ): List<RecordHash>? = getListHashes(tableName = TABLE_NAME, database = database, whereText = whereText)
 
         private fun getWhereList(whereArgs: Map<String, String>): List<String> {
             val where: MutableList<String> = mutableListOf()
@@ -164,90 +200,122 @@ class Pictures(
             return where
         }
 
-        fun loadList(whereArgs: Map<String, String>,
-                     limit: Int = 0,
-                     offset: Int = 0,
-                     database: KaraokeConnection,
-                     storageService: KaraokeStorageService,
-                     storageApiClient: StorageApiClient,
-                     ignoreUseInList: Boolean
-    ): List<Pictures> {
-            return KaraokeDbTable.loadList(
-                clazz = Pictures::class,
-                tableName = TABLE_NAME,
-                whereList = getWhereList(whereArgs),
-                limit = limit,
-                offset = offset,
-                database = database,
-                storageService = storageService,
-                ignoreUseInList = ignoreUseInList,
-                storageApiClient = storageApiClient
-            ).map { it as Pictures }
-        }
+        fun loadList(
+            whereArgs: Map<String, String>,
+            limit: Int = 0,
+            offset: Int = 0,
+            database: KaraokeConnection,
+            storageService: KaraokeStorageService,
+            storageApiClient: StorageApiClient,
+            ignoreUseInList: Boolean,
+        ): List<Pictures> =
+            KaraokeDbTable
+                .loadList(
+                    clazz = Pictures::class,
+                    tableName = TABLE_NAME,
+                    whereList = getWhereList(whereArgs),
+                    limit = limit,
+                    offset = offset,
+                    database = database,
+                    storageService = storageService,
+                    ignoreUseInList = ignoreUseInList,
+                    storageApiClient = storageApiClient,
+                ).map { it as Pictures }
 
-        fun delete(id: Long, database: KaraokeConnection): Boolean {
-            return KaraokeDbTable.delete(
+        fun delete(
+            id: Long,
+            database: KaraokeConnection,
+        ): Boolean =
+            KaraokeDbTable.delete(
                 tableName = TABLE_NAME,
                 id = id,
-                database = database
+                database = database,
             )
-        }
 
-        fun createNewPicture(newPicture: Pictures, database: KaraokeConnection, storageService: KaraokeStorageService, storageApiClient: StorageApiClient): Pictures? {
-            val storedPicture = getPictureByName(name = newPicture.name, database = database, storageService = storageService, storageApiClient = storageApiClient)
+        fun createNewPicture(
+            newPicture: Pictures,
+            database: KaraokeConnection,
+            storageService: KaraokeStorageService,
+            storageApiClient: StorageApiClient,
+        ): Pictures? {
+            val storedPicture =
+                getPictureByName(
+                    name = newPicture.name,
+                    database = database,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                )
             if (storedPicture != null) return storedPicture
             // Уникальный индекс uq_tbl_pictures_picture_name гарантирует отсутствие дублей на уровне БД.
             // Проверка getPictureByName выше закрывает обычный случай; try/catch — защита от ГОНКИ
             // (две параллельные песни одного альбома вызывают pictureAlbum/pictureAuthor одновременно,
             // обе не находят запись и обе пытаются INSERT). Проигравший INSERT ловит нарушение
             // уникальности и возвращает уже вставленную соседним потоком запись вместо падения 500.
-            val newPictureInDb = try {
-                KaraokeDbTable.createDbInstance(
-                    entity = newPicture,
-                    database = database
-                ) as? Pictures?
-            } catch (e: Exception) {
-                return getPictureByName(name = newPicture.name, database = database, storageService = storageService, storageApiClient = storageApiClient)
-            }
+            val newPictureInDb =
+                try {
+                    KaraokeDbTable.createDbInstance(
+                        entity = newPicture,
+                        database = database,
+                    ) as? Pictures?
+                } catch (e: Exception) {
+                    return getPictureByName(
+                        name = newPicture.name,
+                        database = database,
+                        storageService = storageService,
+                        storageApiClient = storageApiClient,
+                    )
+                }
             newPictureInDb?.let {
                 return it
             }
             return null
         }
 
-        fun getPictureById(id: Long, database: KaraokeConnection, storageService: KaraokeStorageService, storageApiClient: StorageApiClient): Pictures? {
-            return KaraokeDbTable.loadById(
+        fun getPictureById(
+            id: Long,
+            database: KaraokeConnection,
+            storageService: KaraokeStorageService,
+            storageApiClient: StorageApiClient,
+        ): Pictures? =
+            KaraokeDbTable.loadById(
                 clazz = Pictures::class,
                 tableName = TABLE_NAME,
                 id = id,
                 database = database,
                 storageService = storageService,
-                storageApiClient = storageApiClient
+                storageApiClient = storageApiClient,
             ) as? Pictures?
-        }
 
-        fun getPicturesByIds(ids: List<Long>, database: KaraokeConnection, storageService: KaraokeStorageService, storageApiClient: StorageApiClient): Map<Long, Pictures> {
-            return KaraokeDbTable.loadByIds(
-                clazz = Pictures::class,
-                tableName = TABLE_NAME,
-                ids = ids,
-                database = database,
-                storageService = storageService,
-                storageApiClient = storageApiClient
-            ).filterIsInstance<Pictures>().associateBy { it.id }
-        }
+        fun getPicturesByIds(
+            ids: List<Long>,
+            database: KaraokeConnection,
+            storageService: KaraokeStorageService,
+            storageApiClient: StorageApiClient,
+        ): Map<Long, Pictures> =
+            KaraokeDbTable
+                .loadByIds(
+                    clazz = Pictures::class,
+                    tableName = TABLE_NAME,
+                    ids = ids,
+                    database = database,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                ).filterIsInstance<Pictures>()
+                .associateBy { it.id }
 
-        fun getPictureByName(name: String, database: KaraokeConnection, storageService: KaraokeStorageService, storageApiClient: StorageApiClient, ignoreUseInList: Boolean = true): Pictures? {
-
-            return loadList(
+        fun getPictureByName(
+            name: String,
+            database: KaraokeConnection,
+            storageService: KaraokeStorageService,
+            storageApiClient: StorageApiClient,
+            ignoreUseInList: Boolean = true,
+        ): Pictures? =
+            loadList(
                 whereArgs = mapOf(Pair("name", name)),
                 database = database,
                 storageService = storageService,
                 storageApiClient = storageApiClient,
-                ignoreUseInList = ignoreUseInList
+                ignoreUseInList = ignoreUseInList,
             ).firstOrNull()
-
-        }
-
     }
 }

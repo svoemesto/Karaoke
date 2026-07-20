@@ -13,13 +13,14 @@ import com.svoemesto.karaokeapp.monitor.checks.UnreadChatMessagesCheck
  * пакете monitor.checks + одна строка здесь.
  */
 object MonitorRegistry {
-    val checks: List<MonitorCheck> = listOf(
-        TelegramHorizonCheck,
-        ProdContainerCheck,
-        RenderQueueStalledCheck,
-        TelegramPollingDisabledCheck,
-        UnreadChatMessagesCheck,
-        SubmittedAssignmentsCheck,
-        StemJobsStuckCheck,
-    )
+    val checks: List<MonitorCheck> =
+        listOf(
+            TelegramHorizonCheck,
+            ProdContainerCheck,
+            RenderQueueStalledCheck,
+            TelegramPollingDisabledCheck,
+            UnreadChatMessagesCheck,
+            SubmittedAssignmentsCheck,
+            StemJobsStuckCheck,
+        )
 }

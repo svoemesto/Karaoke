@@ -16,24 +16,29 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 @RequestMapping("/api/monitor")
 class MonitoringController(
-    private val monitoringService: MonitoringService
+    private val monitoringService: MonitoringService,
 ) {
-
     @GetMapping("/alerts")
     fun alerts(): List<MonitorAlertDto> = monitoringService.currentDtos()
 
     @PostMapping("/resolve")
-    fun resolve(@RequestParam key: String) {
+    fun resolve(
+        @RequestParam key: String,
+    ) {
         monitoringService.resolve(key)
     }
 
     @PostMapping("/markRead")
-    fun markRead(@RequestParam key: String) {
+    fun markRead(
+        @RequestParam key: String,
+    ) {
         monitoringService.markRead(key)
     }
 
     @PostMapping("/markUnread")
-    fun markUnread(@RequestParam key: String) {
+    fun markUnread(
+        @RequestParam key: String,
+    ) {
         monitoringService.markUnread(key)
     }
 

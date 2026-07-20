@@ -28,12 +28,6 @@ export default {
     isLoading: { type: Boolean, default: false },
   },
   emits: ['select-type'],
-  methods: {
-    onDonutClick(idx) {
-      const item = this.byType[idx]
-      if (item) this.$emit('select-type', item.name) // сырой event_type
-    }
-  },
   computed: {
     typeSeries() { return this.byType.map(i => i.count) },
     typeOptions() {
@@ -61,6 +55,12 @@ export default {
         grid: { borderColor: '#eee' },
         tooltip: { y: { formatter: v => v.toLocaleString('ru-RU') } },
       }
+    }
+  },
+  methods: {
+    onDonutClick(idx) {
+      const item = this.byType[idx]
+      if (item) this.$emit('select-type', item.name) // сырой event_type
     }
   }
 }

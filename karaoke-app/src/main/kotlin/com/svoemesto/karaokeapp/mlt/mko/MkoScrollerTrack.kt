@@ -7,10 +7,14 @@ import com.svoemesto.karaokeapp.model.MltNode
 import com.svoemesto.karaokeapp.model.MltNodeBuilder
 import com.svoemesto.karaokeapp.model.ProducerType
 
-data class MkoScrollerTrack(val mltProp: MltProp, val type: ProducerType, val voiceId: Int = 0, val childId: Int = 0, val elementId: Int = 0): MltKaraokeObject {
-
+data class MkoScrollerTrack(
+    val mltProp: MltProp,
+    val type: ProducerType,
+    val voiceId: Int = 0,
+    val childId: Int = 0,
+    val elementId: Int = 0,
+) : MltKaraokeObject {
     val mltGenerator = MltGenerator(mltProp, type, voiceId, childId)
-
 
     // тут продюссеры скролов
     override fun filePlaylist(): MltNode {
@@ -39,28 +43,28 @@ data class MkoScrollerTrack(val mltProp: MltProp, val type: ProducerType, val vo
                 body.addAll(
                     MltNodeBuilder()
                         .blank(convertMillisecondsToTimecode(blankDurationMs))
-                        .build()
+                        .build(),
                 )
 
-                val nodes = MltNodeBuilder()
-                    .propertyName("kdenlive:id", "filePlaylist${mltGenerator.id}")
-                    .filterQtblend(mltGenerator.nameFilterQtblend, mltProp.getRect(listOf(ProducerType.SCROLLER, voiceId, indexLine)))
-                    .build()
+                val nodes =
+                    MltNodeBuilder()
+                        .propertyName("kdenlive:id", "filePlaylist${mltGenerator.id}")
+                        .filterQtblend(mltGenerator.nameFilterQtblend, mltProp.getRect(listOf(ProducerType.SCROLLER, voiceId, indexLine)))
+                        .build()
 
                 body.add(
                     mltGenerator.entry(
                         id = MltGenerator.nameProducer(ProducerType.SCROLLER, voiceId, indexLine),
                         timecodeIn = mltProp.getSongStartTimecode(),
                         timecodeOut = convertMillisecondsToTimecode(scrollLineDurationMs),
-                        nodes = nodes
-                    )
+                        nodes = nodes,
+                    ),
                 )
 
 //                scrollLineStartMsPrev = scrollLineStartMs
                 scrollLineEndMsPrev = scrollLineEndMs
 //                scrollLineDurationMsPrev = scrollLineDurationMs
             }
-
         }
         return result
     }
@@ -70,5 +74,4 @@ data class MkoScrollerTrack(val mltProp: MltProp, val type: ProducerType, val vo
     override fun trackPlaylist(): MltNode = mltGenerator.trackPlaylist()
 
     override fun tractor(): MltNode = mltGenerator.tractor()
-
 }

@@ -1,0 +1,122 @@
+# detekt config для Karaoke.
+#
+# Расширяет стандартную конфигурацию detekt (buildUponDefaultConfig = true).
+# allRules = false — берём только явно включённые правила, чтобы baseline
+# не раздувался на нерелевантные для проекта проверки.
+#
+# Документация detekt: https://detekt.dev/docs/rules/
+# Правила: https://detekt.dev/docs/rules/comments
+
+build:
+  maxIssues: 0   # 0 — падаем на любом новом нарушении сверх baseline
+  excludeCorrectable: false
+  weights:
+    complexity: 2
+    LongParameterList: 1
+    style: 1
+    comments: 1
+
+config:
+  validation: true
+  warningsAsErrors: false
+
+processors:
+  active: true
+
+console-reports:
+  active: true
+
+output-reports:
+  active: true
+
+comments:
+  active: true
+  CommentOverPrivateFunction:
+    active: false
+  CommentOverPrivateProperty:
+    active: false
+
+complexity:
+  active: true
+  ComplexCondition:
+    active: true
+    threshold: 4
+  CyclomaticComplexMethod:
+    active: true
+    threshold: 15
+  LongMethod:
+    active: true
+    threshold: 60
+  LongParameterList:
+    active: true
+    functionThreshold: 6
+    constructorThreshold: 7
+  TooManyFunctions:
+    active: false  # В Spring-приложениях с DI обычно много функций — отключаем
+
+empty-blocks:
+  active: true
+
+exceptions:
+  active: true
+  SwallowedException:
+    active: true
+  TooGenericExceptionCaught:
+    active: true
+    exceptionNames:
+      - "Error"
+      - "Exception"
+      - "RuntimeException"
+      - "Throwable"
+      - "NullPointerException"
+  # Karaoke-специфика: try { } catch (Throwable) для отлова NoClassDefFoundError
+  # (см. DEVELOPMENT.md «karaoke-web Settings trap»).
+  SwallowedExceptionIgnored:
+    active: false
+
+naming:
+  active: true
+  ClassNaming:
+    active: true
+    classPattern: '[A-Z][a-zA-Z0-9]*'
+  FunctionNaming:
+    active: true
+    functionPattern: '[a-z][a-zA-Z0-9]*'
+  PackageNaming:
+    active: true
+    packagePattern: '[a-z]+(\.[a-z][A-Za-z0-9]*)*'
+  # Spring Data JPA / Spring Boot используют snake_case в @Column(name=...)
+  MatchingDeclarationName:
+    active: false
+
+performance:
+  active: true
+  SpreadInsteadOfVararg:
+    active: true
+
+potential-bugs:
+  active: true
+  ImplicitDefaultLocale:
+    active: true
+  UnreachableCode:
+    active: true
+
+style:
+  active: true
+  MagicNumber:
+    active: false  # В MLT/видео-параметрах много magic numbers — отключаем
+  MaxLineLength:
+    active: true
+    maxLineLength: 140
+    excludePackageStatements: true
+    excludeImportStatements: true
+  ReturnCount:
+    active: true
+    max: 4
+  ForbiddenComment:
+    active: true
+    values:
+      - reason: 'Используется для TODO/FIXME-маркеров'
+        value: 'TODO:'
+      - reason: 'Используется для маркеров отключения правил с обоснованием'
+        value: 'FIXME:'

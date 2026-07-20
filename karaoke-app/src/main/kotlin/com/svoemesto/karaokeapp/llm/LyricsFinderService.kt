@@ -7,14 +7,17 @@ import org.springframework.stereotype.Service
 @Service
 class LyricsFinderService(
     private val searchTool: SearchTool,
-    private val scraperAgent: ScraperAgent
+    private val scraperAgent: ScraperAgent,
 ) {
     private val logger = LoggerFactory.getLogger(LyricsFinderService::class.java)
 
     /**
      * Основная функция-оркестратор
      */
-    fun findLyrics(artist: String, songTitle: String): Map<String, Any> {
+    fun findLyrics(
+        artist: String,
+        songTitle: String,
+    ): Map<String, Any> {
         logger.info("🔍 [Оркестратор] Начинаю поиск текста для: $artist - $songTitle")
 
         // 1. Ищем URL
@@ -46,7 +49,10 @@ class LyricsFinderService(
     /**
      * Функция поиска URL по исполнителю и названию песни
      */
-    fun searchUrls(author: String, songName: String): List<String> {
+    fun searchUrls(
+        author: String,
+        songName: String,
+    ): List<String> {
         val query = "$author текст песни $songName"
         logger.info("🔍 [Поиск URL] Формирую запрос: '$query'")
 
@@ -64,12 +70,13 @@ class LyricsFinderService(
         logger.info("📄 [Извлечение текста] Обрабатываю URL: $url")
 
         // 1. Загружаем и очищаем страницу
-        val pageText = try {
-            loadAndCleanPage(url)
-        } catch (e: Exception) {
-            logger.warn("⚠️ [Извлечение текста] Ошибка загрузки $url: ${e.message}")
-            return null
-        }
+        val pageText =
+            try {
+                loadAndCleanPage(url)
+            } catch (e: Exception) {
+                logger.warn("⚠️ [Извлечение текста] Ошибка загрузки $url: ${e.message}")
+                return null
+            }
 
         // 2. Проверяем, что текст не пустой
         if (pageText.isBlank() || pageText.length < 50) {
@@ -80,12 +87,13 @@ class LyricsFinderService(
         logger.info("📄 [Извлечение текста] Загружено ${pageText.length} символов. Передаю в ScraperAgent...")
 
         // 3. LLM анализирует текст
-        val lyrics = try {
-            scraperAgent.extractLyrics(pageText)
-        } catch (e: Exception) {
-            logger.error("❌ [Извлечение текста] Ошибка ScraperAgent для $url: ${e.message}")
-            return null
-        }
+        val lyrics =
+            try {
+                scraperAgent.extractLyrics(pageText)
+            } catch (e: Exception) {
+                logger.error("❌ [Извлечение текста] Ошибка ScraperAgent для $url: ${e.message}")
+                return null
+            }
 
         logger.info("📥 [Извлечение текста] ScraperAgent вернул ${lyrics.length} символов")
 
@@ -102,11 +110,13 @@ class LyricsFinderService(
      * Загрузка и очистка HTML страницы
      */
     private fun loadAndCleanPage(url: String): String {
-        val doc = Jsoup.connect(url)
-            .userAgent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-            .header("Accept-Language", "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7")
-            .timeout(10000)
-            .get()
+        val doc =
+            Jsoup
+                .connect(url)
+                .userAgent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+                .header("Accept-Language", "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7")
+                .timeout(10000)
+                .get()
 
         doc.select("script, style, nav, footer, header, .ads, .comments, .sidebar, iframe, noscript").remove()
 

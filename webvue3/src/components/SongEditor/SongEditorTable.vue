@@ -9,8 +9,8 @@
     />
     <SongKaraokeEditorModal
       v-if="isKaraokeEditorOpen"
-      mode="assignment"
       :id="karaokeEditorAssignmentId"
+      mode="assignment"
       :target="karaokeEditorTarget"
       @close="isKaraokeEditorOpen = false"
     />
@@ -23,7 +23,7 @@
           <option value="remote">Сервер</option>
         </select>
       </label>
-      <select class="set-toolbar-item" v-model="filterStatus" @change="reload">
+      <select v-model="filterStatus" class="set-toolbar-item" @change="reload">
         <option value="">Все статусы</option>
         <option value="assigned">Назначено</option>
         <option value="in_progress">В работе</option>
@@ -31,13 +31,13 @@
         <option value="approved">Одобрено</option>
         <option value="rejected">Отклонено</option>
       </select>
-      <select class="set-toolbar-item" v-model="filterAssigneeId" @change="reload">
+      <select v-model="filterAssigneeId" class="set-toolbar-item" @change="reload">
         <option value="">Все исполнители</option>
         <option v-for="u in editorSiteUsers" :key="u.id" :value="u.id">{{ u.displayName || u.email }}</option>
       </select>
-      <input class="set-toolbar-item" type="text" v-model="filterAuthor" @change="reload" placeholder="Автор" list="set-authors-list">
+      <input v-model="filterAuthor" class="set-toolbar-item" type="text" placeholder="Автор" list="set-authors-list" @change="reload"/>
       <datalist id="set-authors-list">
-        <option v-for="a in dictAuthors" :key="a" :value="a"></option>
+        <option v-for="a in dictAuthors" :key="a" :value="a"/>
       </datalist>
       <button class="set-toolbar-item set-btn" @click="reload">Обновить</button>
       <button class="set-toolbar-item set-btn set-btn-add" @click="isAssignVisible = true">+ Назначить песню</button>
@@ -51,18 +51,18 @@
 
     <div class="set-table-body">
       <b-table
+          v-model:sort-by="sortBy"
           :items="sortedDigest"
           :busy="isBusy"
           :fields="fields"
-          v-model:sort-by="sortBy"
           small bordered hover
           @row-clicked="onRowClicked"
       >
         <template #table-busy>
-          <div class="text-center text-danger my-2"><b-spinner class="align-middle"></b-spinner><strong> Загрузка...</strong></div>
+          <div class="text-center text-danger my-2"><b-spinner class="align-middle"/><strong> Загрузка...</strong></div>
         </template>
         <template #table-colgroup="scope">
-          <col v-for="field in scope.fields" :key="field.key" :style="field.style">
+          <col v-for="field in scope.fields" :key="field.key" :style="field.style"/>
         </template>
         <template #cell(status)="data">
           <span class="set-badge" :class="`set-badge-${data.value}`">{{ statusLabel(data.value) }}</span>

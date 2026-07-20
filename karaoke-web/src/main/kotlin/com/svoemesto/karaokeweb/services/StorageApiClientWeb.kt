@@ -21,11 +21,13 @@ import java.nio.file.Files
 import java.nio.file.Paths
 
 @Service
-class StorageApiClientWeb(private val webClient: WebClient): StorageApiClient { // Предполагается, что WebClient настроен с baseUrl
+class StorageApiClientWeb(
+    private val webClient: WebClient,
+) : StorageApiClient { // Предполагается, что WebClient настроен с baseUrl
 
     // --- Вспомогательная функция для декодирования имени файла ---
-    private fun decodeFileNameIfEncoded(fileName: String): String {
-        return if (fileName.contains("%")) { // Простая проверка: содержит ли имя символ '%'
+    private fun decodeFileNameIfEncoded(fileName: String): String =
+        if (fileName.contains("%")) { // Простая проверка: содержит ли имя символ '%'
             try {
                 URLDecoder.decode(fileName, StandardCharsets.UTF_8.toString())
             } catch (_: IllegalArgumentException) {
@@ -36,60 +38,70 @@ class StorageApiClientWeb(private val webClient: WebClient): StorageApiClient { 
             // Если нет '%', имя, вероятно, не закодировано
             fileName
         }
-    }
 
-    override fun uploadFile(bucketName: String, fileName: String, pathToFileOnDisk: String, onProgress: ((Int) -> Unit)?): String? {
+    override fun uploadFile(
+        bucketName: String,
+        fileName: String,
+        pathToFileOnDisk: String,
+        onProgress: ((Int) -> Unit)?,
+    ): String? {
         val file = File(pathToFileOnDisk)
         if (file.exists()) {
-
             val path = Paths.get(pathToFileOnDisk)
             val fileContent = Files.readAllBytes(path)
 
-            val monoUploadResult = uploadFile(
-                bucketName = bucketName,
-                fileName = fileName, // fileName передаётся в uploadFile как есть, но он должен быть оригинальным именем
-                fileContent = fileContent,
-                onProgress = onProgress
-            )
+            val monoUploadResult =
+                uploadFile(
+                    bucketName = bucketName,
+                    fileName = fileName, // fileName передаётся в uploadFile как есть, но он должен быть оригинальным именем
+                    fileContent = fileContent,
+                    onProgress = onProgress,
+                )
 
-            val uploadResult = try {
-                monoUploadResult.block()
-            } catch (e: Exception) {
-                println("Ошибка при загрузке файла в удаленное хранилище: ${e.message}")
-                null
-            }
+            val uploadResult =
+                try {
+                    monoUploadResult.block()
+                } catch (e: Exception) {
+                    println("Ошибка при загрузке файла в удаленное хранилище: ${e.message}")
+                    null
+                }
 
             return uploadResult
         }
 
         return null
-
     }
 
     // --- POST /api/storage/upload ---
-    override fun uploadFile(bucketName: String, fileName: String, fileContent: ByteArray, onProgress: ((Int) -> Unit)?): Mono<String> {
+    override fun uploadFile(
+        bucketName: String,
+        fileName: String,
+        fileContent: ByteArray,
+        onProgress: ((Int) -> Unit)?,
+    ): Mono<String> {
         // Создаём MultiValueMap для хранения частей multipart-запроса
         val multipartData: MultiValueMap<String, Any> = LinkedMultiValueMap()
 
         // --- Ключевое изменение: Создаём ByteArrayResource с переопределением getFilename ---
         // getInputStream() оборачивается в CountingInputStream, чтобы отследить реальный прогресс
         // передачи по сети — WebClient читает Resource поблочно при сериализации multipart-тела.
-        val fileResource = object : ByteArrayResource(fileContent) {
-            override fun getFilename(): String? {
-                // Возвращаем имя файла. Spring WebFlux должен использовать это имя
-                // для Content-Disposition заголовка части multipart.
-                return fileName
-            }
+        val fileResource =
+            object : ByteArrayResource(fileContent) {
+                override fun getFilename(): String? {
+                    // Возвращаем имя файла. Spring WebFlux должен использовать это имя
+                    // для Content-Disposition заголовка части multipart.
+                    return fileName
+                }
 
-            override fun getInputStream(): java.io.InputStream {
-                val base = super.getInputStream()
-                return if (onProgress != null && fileContent.isNotEmpty()) {
-                    CountingInputStream(base) { bytesRead -> onProgress(((bytesRead * 100) / fileContent.size).toInt()) }
-                } else {
-                    base
+                override fun getInputStream(): java.io.InputStream {
+                    val base = super.getInputStream()
+                    return if (onProgress != null && fileContent.isNotEmpty()) {
+                        CountingInputStream(base) { bytesRead -> onProgress(((bytesRead * 100) / fileContent.size).toInt()) }
+                    } else {
+                        base
+                    }
                 }
             }
-        }
 
         // Добавляем ресурс файла как часть 'file'
         multipartData.add("file", fileResource)
@@ -114,7 +126,10 @@ class StorageApiClientWeb(private val webClient: WebClient): StorageApiClient { 
     }
 
     // --- GET /api/storage/url ---
-    override fun getFileUrl(bucketName: String, fileName: String): Mono<String> {
+    override fun getFileUrl(
+        bucketName: String,
+        fileName: String,
+    ): Mono<String> {
         val encodedBucketName = URLEncoder.encode(bucketName, StandardCharsets.UTF_8)
         val encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8)
 
@@ -127,7 +142,11 @@ class StorageApiClientWeb(private val webClient: WebClient): StorageApiClient { 
     }
 
     // --- GET /api/storage/presigned-url ---
-    override fun getPresignedUrl(bucketName: String, fileName: String, expiry: Int): Mono<String> {
+    override fun getPresignedUrl(
+        bucketName: String,
+        fileName: String,
+        expiry: Int,
+    ): Mono<String> {
         val encodedBucketName = URLEncoder.encode(bucketName, StandardCharsets.UTF_8)
         val encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8)
 
@@ -140,7 +159,10 @@ class StorageApiClientWeb(private val webClient: WebClient): StorageApiClient { 
     }
 
     // --- GET /api/storage/download ---
-    override fun downloadFile(bucketName: String, fileName: String): Mono<ByteArray> {
+    override fun downloadFile(
+        bucketName: String,
+        fileName: String,
+    ): Mono<ByteArray> {
         val encodedBucketName = URLEncoder.encode(bucketName, StandardCharsets.UTF_8)
         val encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8)
 
@@ -152,20 +174,26 @@ class StorageApiClientWeb(private val webClient: WebClient): StorageApiClient { 
             .bodyToMono<ByteArray>()
     }
 
-    override fun downloadFile(bucketName: String, fileName: String, pathToFileOnDisk: String): File {
+    override fun downloadFile(
+        bucketName: String,
+        fileName: String,
+        pathToFileOnDisk: String,
+    ): File {
         val decodedFileName = decodeFileNameIfEncoded(fileName) // Декодируем перед использованием
 
-        val monoFileInputStream = downloadFile(
-            bucketName = bucketName,
-            fileName = fileName
-        )
+        val monoFileInputStream =
+            downloadFile(
+                bucketName = bucketName,
+                fileName = fileName,
+            )
 
-        val fileInputStream = try {
-            monoFileInputStream.block()
-        } catch (e: Exception) {
-            println("Ошибка при получении файла из удаленного хранилища: ${e.message}")
-            null
-        }
+        val fileInputStream =
+            try {
+                monoFileInputStream.block()
+            } catch (e: Exception) {
+                println("Ошибка при получении файла из удаленного хранилища: ${e.message}")
+                null
+            }
 
         if (fileInputStream != null) {
             val file = File(pathToFileOnDisk)
@@ -174,12 +202,13 @@ class StorageApiClientWeb(private val webClient: WebClient): StorageApiClient { 
         } else {
             throw RuntimeException("Ошибка при получении файла из удаленного хранилища")
         }
-
-
     }
 
     // --- DELETE /api/storage/delete ---
-    override fun deleteFile(bucketName: String, fileName: String): Mono<String> {
+    override fun deleteFile(
+        bucketName: String,
+        fileName: String,
+    ): Mono<String> {
         val encodedBucketName = URLEncoder.encode(bucketName, StandardCharsets.UTF_8)
         val encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8)
 
@@ -205,7 +234,10 @@ class StorageApiClientWeb(private val webClient: WebClient): StorageApiClient { 
     }
 
     // --- GET /api/storage/exists ---
-    override fun checkIfExists(bucketName: String, fileName: String): Mono<Map<String, Boolean>> {
+    override fun checkIfExists(
+        bucketName: String,
+        fileName: String,
+    ): Mono<Map<String, Boolean>> {
         val encodedBucketName = URLEncoder.encode(bucketName, StandardCharsets.UTF_8)
         val encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8)
 
@@ -217,33 +249,42 @@ class StorageApiClientWeb(private val webClient: WebClient): StorageApiClient { 
             .bodyToMono<Map<String, Boolean>>()
     }
 
-    override fun fileExists(bucketName: String, fileName: String): Boolean {
-        val monoCheckIfExists = checkIfExists(
-            bucketName = bucketName,
-            fileName = fileName
-        )
-        val checkIfExists = try {
-            monoCheckIfExists.block()
-        } catch (e: Exception) {
-            println("Ошибка при проверке наличия файла в удаленном хранилище: ${e.message}")
-            null
-        }
+    override fun fileExists(
+        bucketName: String,
+        fileName: String,
+    ): Boolean {
+        val monoCheckIfExists =
+            checkIfExists(
+                bucketName = bucketName,
+                fileName = fileName,
+            )
+        val checkIfExists =
+            try {
+                monoCheckIfExists.block()
+            } catch (e: Exception) {
+                println("Ошибка при проверке наличия файла в удаленном хранилище: ${e.message}")
+                null
+            }
 //        println("Результат проверки наличия файла в удаленном хранилище: $checkIfExists")
         return checkIfExists?.get("exists") ?: false
     }
 
-    override fun fileIsActual(bucketName: String, fileName: String, pathToFileOnDisk: String): Boolean {
+    override fun fileIsActual(
+        bucketName: String,
+        fileName: String,
+        pathToFileOnDisk: String,
+    ): Boolean {
         var result = true
         val file = File(pathToFileOnDisk)
         if (file.exists()) {
-
             val monoFileInfo = getFileInfo(bucketName = bucketName, fileName = fileName)
-            val fileInfo = try {
-                monoFileInfo.block()
-            } catch (e: Exception) {
-                println("Ошибка при проверке информации о файле в удаленном хранилище: ${e.message}")
-                null
-            }
+            val fileInfo =
+                try {
+                    monoFileInfo.block()
+                } catch (e: Exception) {
+                    println("Ошибка при проверке информации о файле в удаленном хранилище: ${e.message}")
+                    null
+                }
 
             if (fileInfo != null) {
                 result = (file.length() == fileInfo.size)
@@ -252,25 +293,27 @@ class StorageApiClientWeb(private val webClient: WebClient): StorageApiClient { 
         return result
     }
 
-    override fun fileIsActual(bucketName: String, fileName: String, storageFileInfo: StorageFileInfo): Boolean {
-
+    override fun fileIsActual(
+        bucketName: String,
+        fileName: String,
+        storageFileInfo: StorageFileInfo,
+    ): Boolean {
         var result = true
 
         val monoFileInfo = getFileInfo(bucketName = bucketName, fileName = fileName)
-        val fileInfo = try {
-            monoFileInfo.block()
-        } catch (e: Exception) {
-            println("Ошибка при проверке информации о файле в удаленном хранилище: ${e.message}")
-            null
-        }
+        val fileInfo =
+            try {
+                monoFileInfo.block()
+            } catch (e: Exception) {
+                println("Ошибка при проверке информации о файле в удаленном хранилище: ${e.message}")
+                null
+            }
 
         if (fileInfo != null) {
             result = (storageFileInfo.size == fileInfo.size)
         }
 
         return result
-
-
     }
 
     // --- PUT /api/storage/bucket/public ---
@@ -310,7 +353,10 @@ class StorageApiClientWeb(private val webClient: WebClient): StorageApiClient { 
     }
 
     // --- POST /api/storage/fileStat ---
-    override fun getFileStat(bucketName: String, fileName: String): Mono<StatObjectResponse> { // Предполагаем, что StatObjectResponse определён
+    override fun getFileStat(
+        bucketName: String,
+        fileName: String,
+    ): Mono<StatObjectResponse> { // Предполагаем, что StatObjectResponse определён
         val encodedBucketName = URLEncoder.encode(bucketName, StandardCharsets.UTF_8)
         val encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8)
 
@@ -323,7 +369,10 @@ class StorageApiClientWeb(private val webClient: WebClient): StorageApiClient { 
     }
 
     // --- POST /api/storage/fileInfo ---
-    override fun getFileInfo(bucketName: String, fileName: String): Mono<StorageFileInfo> { // Предполагаем, что StorageFileInfo определён
+    override fun getFileInfo(
+        bucketName: String,
+        fileName: String,
+    ): Mono<StorageFileInfo> { // Предполагаем, что StorageFileInfo определён
         val encodedBucketName = URLEncoder.encode(bucketName, StandardCharsets.UTF_8)
         val encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8)
 

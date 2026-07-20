@@ -17,23 +17,87 @@ import java.nio.charset.StandardCharsets
 import java.util.concurrent.TimeUnit
 
 interface StorageApiClient {
-    fun uploadFile(bucketName: String, fileName: String, pathToFileOnDisk: String, onProgress: ((Int) -> Unit)? = null): String?
-    fun uploadFile(bucketName: String, fileName: String, fileContent: ByteArray, onProgress: ((Int) -> Unit)? = null): Mono<String>
-    fun getFileUrl(bucketName: String, fileName: String): Mono<String>
-    fun getPresignedUrl(bucketName: String, fileName: String, expiry: Int = 604800): Mono<String>
-    fun downloadFile(bucketName: String, fileName: String): Mono<ByteArray>
-    fun downloadFile(bucketName: String, fileName: String, pathToFileOnDisk: String): File
-    fun deleteFile(bucketName: String, fileName: String): Mono<String>
+    fun uploadFile(
+        bucketName: String,
+        fileName: String,
+        pathToFileOnDisk: String,
+        onProgress: ((Int) -> Unit)? = null,
+    ): String?
+
+    fun uploadFile(
+        bucketName: String,
+        fileName: String,
+        fileContent: ByteArray,
+        onProgress: ((Int) -> Unit)? = null,
+    ): Mono<String>
+
+    fun getFileUrl(
+        bucketName: String,
+        fileName: String,
+    ): Mono<String>
+
+    fun getPresignedUrl(
+        bucketName: String,
+        fileName: String,
+        expiry: Int = 604800,
+    ): Mono<String>
+
+    fun downloadFile(
+        bucketName: String,
+        fileName: String,
+    ): Mono<ByteArray>
+
+    fun downloadFile(
+        bucketName: String,
+        fileName: String,
+        pathToFileOnDisk: String,
+    ): File
+
+    fun deleteFile(
+        bucketName: String,
+        fileName: String,
+    ): Mono<String>
+
     fun listFiles(bucketName: String): Mono<List<String>>
-    fun checkIfExists(bucketName: String, fileName: String): Mono<Map<String, Boolean>>
-    fun fileExists(bucketName: String, fileName: String): Boolean
-    fun fileIsActual(bucketName: String, fileName: String, pathToFileOnDisk: String): Boolean
-    fun fileIsActual(bucketName: String, fileName: String, storageFileInfo: StorageFileInfo): Boolean
+
+    fun checkIfExists(
+        bucketName: String,
+        fileName: String,
+    ): Mono<Map<String, Boolean>>
+
+    fun fileExists(
+        bucketName: String,
+        fileName: String,
+    ): Boolean
+
+    fun fileIsActual(
+        bucketName: String,
+        fileName: String,
+        pathToFileOnDisk: String,
+    ): Boolean
+
+    fun fileIsActual(
+        bucketName: String,
+        fileName: String,
+        storageFileInfo: StorageFileInfo,
+    ): Boolean
+
     fun setBucketPublic(bucketName: String): Mono<String>
+
     fun setBucketPrivate(bucketName: String): Mono<String>
+
     fun isBucketPublic(bucketName: String): Mono<Map<String, Boolean>>
-    fun getFileStat(bucketName: String, fileName: String): Mono<StatObjectResponse>
-    fun getFileInfo(bucketName: String, fileName: String): Mono<StorageFileInfo>
+
+    fun getFileStat(
+        bucketName: String,
+        fileName: String,
+    ): Mono<StatObjectResponse>
+
+    fun getFileInfo(
+        bucketName: String,
+        fileName: String,
+    ): Mono<StorageFileInfo>
+
     fun listFilesInfo(bucketName: String): Mono<List<StorageFileInfo>>
 }
 
@@ -60,19 +124,26 @@ class StorageApiClientImpl(
     @Value($$"${storage.key}") val storageKey: String,
     @Value($$"${storage.secret}") val storageSecret: String,
 ) : StorageApiClient {
+    private val storageClient: MinioClient =
+        run {
+            val httpClient =
+                OkHttpClient
+                    .Builder()
+                    .connectionPool(ConnectionPool(0, 1, TimeUnit.NANOSECONDS))
+                    .connectTimeout(15, TimeUnit.SECONDS)
+                    .readTimeout(60, TimeUnit.SECONDS)
+                    .writeTimeout(300, TimeUnit.SECONDS)
+                    .build()
+            MinioClient
+                .builder()
+                .endpoint(remoteEndpoint)
+                .credentials(storageKey, storageSecret)
+                .httpClient(httpClient)
+                .build()
+        }
 
-    private val storageClient: MinioClient = run {
-        val httpClient = OkHttpClient.Builder()
-            .connectionPool(ConnectionPool(0, 1, TimeUnit.NANOSECONDS))
-            .connectTimeout(15, TimeUnit.SECONDS)
-            .readTimeout(60, TimeUnit.SECONDS)
-            .writeTimeout(300, TimeUnit.SECONDS)
-            .build()
-        MinioClient.builder().endpoint(remoteEndpoint).credentials(storageKey, storageSecret).httpClient(httpClient).build()
-    }
-
-    private fun decodeFileNameIfEncoded(fileName: String): String {
-        return if (fileName.contains("%")) {
+    private fun decodeFileNameIfEncoded(fileName: String): String =
+        if (fileName.contains("%")) {
             try {
                 URLDecoder.decode(fileName, StandardCharsets.UTF_8.toString())
             } catch (_: IllegalArgumentException) {
@@ -81,7 +152,6 @@ class StorageApiClientImpl(
         } else {
             fileName
         }
-    }
 
     private fun createBucketIfNotExists(bucketName: String) {
         val exists = storageClient.bucketExists(BucketExistsArgs.builder().bucket(bucketName).build())
@@ -90,7 +160,12 @@ class StorageApiClientImpl(
         }
     }
 
-    override fun uploadFile(bucketName: String, fileName: String, pathToFileOnDisk: String, onProgress: ((Int) -> Unit)?): String? {
+    override fun uploadFile(
+        bucketName: String,
+        fileName: String,
+        pathToFileOnDisk: String,
+        onProgress: ((Int) -> Unit)?,
+    ): String? {
         val file = File(pathToFileOnDisk)
         if (!file.exists()) return null
         val fileContent = file.readBytes()
@@ -102,61 +177,88 @@ class StorageApiClientImpl(
         }
     }
 
-    override fun uploadFile(bucketName: String, fileName: String, fileContent: ByteArray, onProgress: ((Int) -> Unit)?): Mono<String> =
+    override fun uploadFile(
+        bucketName: String,
+        fileName: String,
+        fileContent: ByteArray,
+        onProgress: ((Int) -> Unit)?,
+    ): Mono<String> =
         Mono.fromCallable {
             val decodedFileName = decodeFileNameIfEncoded(fileName)
             createBucketIfNotExists(bucketName)
             val base = ByteArrayInputStream(fileContent)
-            val stream = if (onProgress != null && fileContent.isNotEmpty()) {
-                CountingInputStream(base) { bytesRead -> onProgress(((bytesRead * 100) / fileContent.size).toInt()) }
-            } else base
+            val stream =
+                if (onProgress != null && fileContent.isNotEmpty()) {
+                    CountingInputStream(base) { bytesRead -> onProgress(((bytesRead * 100) / fileContent.size).toInt()) }
+                } else {
+                    base
+                }
             storageClient.putObject(
-                PutObjectArgs.builder()
+                PutObjectArgs
+                    .builder()
                     .bucket(bucketName)
                     .`object`(decodedFileName)
                     .stream(stream, fileContent.size.toLong(), -1)
-                    .build()
+                    .build(),
             )
             decodedFileName
         }
 
-    override fun getFileUrl(bucketName: String, fileName: String): Mono<String> =
+    override fun getFileUrl(
+        bucketName: String,
+        fileName: String,
+    ): Mono<String> =
         Mono.fromCallable {
             val decodedFileName = decodeFileNameIfEncoded(fileName)
             "$remoteEndpoint/$bucketName/$decodedFileName"
         }
 
-    override fun getPresignedUrl(bucketName: String, fileName: String, expiry: Int): Mono<String> =
+    override fun getPresignedUrl(
+        bucketName: String,
+        fileName: String,
+        expiry: Int,
+    ): Mono<String> =
         Mono.fromCallable {
             val decodedFileName = decodeFileNameIfEncoded(fileName)
             storageClient.getPresignedObjectUrl(
-                GetPresignedObjectUrlArgs.builder()
+                GetPresignedObjectUrlArgs
+                    .builder()
                     .method(Method.GET)
                     .bucket(bucketName)
                     .`object`(decodedFileName)
                     .expiry(expiry)
-                    .build()
+                    .build(),
             )
         }
 
-    override fun downloadFile(bucketName: String, fileName: String): Mono<ByteArray> =
+    override fun downloadFile(
+        bucketName: String,
+        fileName: String,
+    ): Mono<ByteArray> =
         Mono.fromCallable {
             val decodedFileName = decodeFileNameIfEncoded(fileName)
-            storageClient.getObject(
-                GetObjectArgs.builder()
-                    .bucket(bucketName)
-                    .`object`(decodedFileName)
-                    .build()
-            ).use { it.readBytes() }
+            storageClient
+                .getObject(
+                    GetObjectArgs
+                        .builder()
+                        .bucket(bucketName)
+                        .`object`(decodedFileName)
+                        .build(),
+                ).use { it.readBytes() }
         }
 
-    override fun downloadFile(bucketName: String, fileName: String, pathToFileOnDisk: String): File {
-        val bytes = try {
-            downloadFile(bucketName = bucketName, fileName = fileName).block()
-        } catch (e: Exception) {
-            println("Ошибка при получении файла из удаленного хранилища: ${e.message}")
-            null
-        }
+    override fun downloadFile(
+        bucketName: String,
+        fileName: String,
+        pathToFileOnDisk: String,
+    ): File {
+        val bytes =
+            try {
+                downloadFile(bucketName = bucketName, fileName = fileName).block()
+            } catch (e: Exception) {
+                println("Ошибка при получении файла из удаленного хранилища: ${e.message}")
+                null
+            }
         if (bytes != null) {
             val file = File(pathToFileOnDisk)
             file.writeBytes(bytes)
@@ -166,16 +268,20 @@ class StorageApiClientImpl(
         }
     }
 
-    override fun deleteFile(bucketName: String, fileName: String): Mono<String> =
+    override fun deleteFile(
+        bucketName: String,
+        fileName: String,
+    ): Mono<String> =
         Mono.fromCallable {
             val decodedFileName = decodeFileNameIfEncoded(fileName)
             val exists = storageClient.bucketExists(BucketExistsArgs.builder().bucket(bucketName).build())
             if (exists) {
                 storageClient.removeObject(
-                    RemoveObjectArgs.builder()
+                    RemoveObjectArgs
+                        .builder()
                         .bucket(bucketName)
                         .`object`(decodedFileName)
-                        .build()
+                        .build(),
                 )
             }
             "OK"
@@ -184,37 +290,58 @@ class StorageApiClientImpl(
     override fun listFiles(bucketName: String): Mono<List<String>> =
         Mono.fromCallable {
             val exists = storageClient.bucketExists(BucketExistsArgs.builder().bucket(bucketName).build())
-            if (!exists) emptyList<String>()
-            else storageClient.listObjects(
-                ListObjectsArgs.builder().bucket(bucketName).recursive(true).build()
-            ).mapNotNull { it.get() }.map { it.objectName() }
+            if (!exists) {
+                emptyList<String>()
+            } else {
+                storageClient
+                    .listObjects(
+                        ListObjectsArgs
+                            .builder()
+                            .bucket(bucketName)
+                            .recursive(true)
+                            .build(),
+                    ).mapNotNull { it.get() }
+                    .map { it.objectName() }
+            }
         }
 
-    override fun checkIfExists(bucketName: String, fileName: String): Mono<Map<String, Boolean>> =
+    override fun checkIfExists(
+        bucketName: String,
+        fileName: String,
+    ): Mono<Map<String, Boolean>> =
         Mono.fromCallable {
             mapOf("exists" to (statObjectOrNull(bucketName, fileName) != null))
         }
 
-    override fun fileExists(bucketName: String, fileName: String): Boolean {
-        val result = try {
-            checkIfExists(bucketName = bucketName, fileName = fileName).block()
-        } catch (e: Exception) {
-            println("Ошибка при проверке наличия файла в удаленном хранилище: ${e.message}")
-            null
-        }
+    override fun fileExists(
+        bucketName: String,
+        fileName: String,
+    ): Boolean {
+        val result =
+            try {
+                checkIfExists(bucketName = bucketName, fileName = fileName).block()
+            } catch (e: Exception) {
+                println("Ошибка при проверке наличия файла в удаленном хранилище: ${e.message}")
+                null
+            }
         return result?.get("exists") ?: false
     }
 
-    override fun fileIsActual(bucketName: String, fileName: String, pathToFileOnDisk: String): Boolean {
+    override fun fileIsActual(
+        bucketName: String,
+        fileName: String,
+        pathToFileOnDisk: String,
+    ): Boolean {
         var result = true
         val file = File(pathToFileOnDisk)
         if (file.exists()) {
-            val fileInfo = try {
-                getFileInfo(bucketName = bucketName, fileName = fileName).block()
-            } catch (e: Exception) {
-                println("Ошибка при проверке информации о файле в удаленном хранилище: ${e.message}")
-                null
-            }
+            val fileInfo =
+                try {
+                    getFileInfo(bucketName = bucketName, fileName = fileName).block()
+                } catch (e: Exception) {
+                    println("Ошибка при проверке информации о файле в удаленном хранилище: ${e.message}")
+                    null
+                }
             if (fileInfo != null) {
                 result = (file.length() == fileInfo.size)
             }
@@ -222,14 +349,19 @@ class StorageApiClientImpl(
         return result
     }
 
-    override fun fileIsActual(bucketName: String, fileName: String, storageFileInfo: StorageFileInfo): Boolean {
+    override fun fileIsActual(
+        bucketName: String,
+        fileName: String,
+        storageFileInfo: StorageFileInfo,
+    ): Boolean {
         var result = true
-        val fileInfo = try {
-            getFileInfo(bucketName = bucketName, fileName = fileName).block()
-        } catch (e: Exception) {
-            println("Ошибка при проверке информации о файле в удаленном хранилище: ${e.message}")
-            null
-        }
+        val fileInfo =
+            try {
+                getFileInfo(bucketName = bucketName, fileName = fileName).block()
+            } catch (e: Exception) {
+                println("Ошибка при проверке информации о файле в удаленном хранилище: ${e.message}")
+                null
+            }
         if (fileInfo != null) {
             result = (storageFileInfo.size == fileInfo.size)
         }
@@ -239,7 +371,8 @@ class StorageApiClientImpl(
     override fun setBucketPublic(bucketName: String): Mono<String> =
         Mono.fromCallable {
             createBucketIfNotExists(bucketName)
-            val policy = """
+            val policy =
+                """
                 {
                   "Version": "2012-10-17",
                   "Statement": [
@@ -251,9 +384,13 @@ class StorageApiClientImpl(
                     }
                   ]
                 }
-            """.trimIndent()
+                """.trimIndent()
             storageClient.setBucketPolicy(
-                SetBucketPolicyArgs.builder().bucket(bucketName).config(policy).build()
+                SetBucketPolicyArgs
+                    .builder()
+                    .bucket(bucketName)
+                    .config(policy)
+                    .build(),
             )
             "OK"
         }
@@ -262,33 +399,49 @@ class StorageApiClientImpl(
         Mono.fromCallable {
             createBucketIfNotExists(bucketName)
             storageClient.setBucketPolicy(
-                SetBucketPolicyArgs.builder().bucket(bucketName).config("").build()
+                SetBucketPolicyArgs
+                    .builder()
+                    .bucket(bucketName)
+                    .config("")
+                    .build(),
             )
             "OK"
         }
 
     override fun isBucketPublic(bucketName: String): Mono<Map<String, Boolean>> =
         Mono.fromCallable {
-            val isPublic = try {
-                val policy = storageClient.getBucketPolicy(
-                    GetBucketPolicyArgs.builder().bucket(bucketName).build()
-                )
-                policy.isNotEmpty() && policy.contains("\"Effect\":\"Allow\"") && policy.contains("\"Principal\":{\"AWS\":[\"*\"]}")
-            } catch (e: ErrorResponseException) {
-                if (e.errorResponse().code() == "NoSuchBucketPolicy") false else throw e
-            }
+            val isPublic =
+                try {
+                    val policy =
+                        storageClient.getBucketPolicy(
+                            GetBucketPolicyArgs.builder().bucket(bucketName).build(),
+                        )
+                    policy.isNotEmpty() && policy.contains("\"Effect\":\"Allow\"") && policy.contains("\"Principal\":{\"AWS\":[\"*\"]}")
+                } catch (e: ErrorResponseException) {
+                    if (e.errorResponse().code() == "NoSuchBucketPolicy") false else throw e
+                }
             mapOf("isPublic" to isPublic)
         }
 
-    override fun getFileStat(bucketName: String, fileName: String): Mono<StatObjectResponse> =
+    override fun getFileStat(
+        bucketName: String,
+        fileName: String,
+    ): Mono<StatObjectResponse> =
         Mono.fromCallable {
             val decodedFileName = decodeFileNameIfEncoded(fileName)
             storageClient.statObject(
-                StatObjectArgs.builder().bucket(bucketName).`object`(decodedFileName).build()
+                StatObjectArgs
+                    .builder()
+                    .bucket(bucketName)
+                    .`object`(decodedFileName)
+                    .build(),
             )
         }
 
-    override fun getFileInfo(bucketName: String, fileName: String): Mono<StorageFileInfo> =
+    override fun getFileInfo(
+        bucketName: String,
+        fileName: String,
+    ): Mono<StorageFileInfo> =
         Mono.fromCallable {
             val decodedFileName = decodeFileNameIfEncoded(fileName)
             val stat = statObjectOrNull(bucketName, decodedFileName)
@@ -296,7 +449,7 @@ class StorageApiClientImpl(
                 bucketName = bucketName,
                 fileName = decodedFileName,
                 etag = stat?.etag() ?: "",
-                size = stat?.size() ?: -1
+                size = stat?.size() ?: -1,
             )
         }
 
@@ -307,11 +460,18 @@ class StorageApiClientImpl(
             }
         }
 
-    private fun statObjectOrNull(bucketName: String, fileName: String): StatObjectResponse? {
+    private fun statObjectOrNull(
+        bucketName: String,
+        fileName: String,
+    ): StatObjectResponse? {
         val decodedFileName = decodeFileNameIfEncoded(fileName)
         return try {
             storageClient.statObject(
-                StatObjectArgs.builder().bucket(bucketName).`object`(decodedFileName).build()
+                StatObjectArgs
+                    .builder()
+                    .bucket(bucketName)
+                    .`object`(decodedFileName)
+                    .build(),
             )
         } catch (_: MinioException) {
             null

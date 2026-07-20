@@ -10,17 +10,21 @@ import java.io.*
 import java.util.*
 
 @Serializable
-data class HistoryMap(val args: Map<String, String>)
+data class HistoryMap(
+    val args: Map<String, String>,
+)
 
 interface TextFileHistory {
-
     fun pathToFile(): String
+
     var history: MutableList<Map<String, String>>
 
     fun save() {
-        File(pathToFile()).writeText(history.joinToString("\n") {
-            Base64.getEncoder().encodeToString(Json.encodeToString(HistoryMap.serializer(), HistoryMap(it)).toByteArray())
-        })
+        File(pathToFile()).writeText(
+            history.joinToString("\n") {
+                Base64.getEncoder().encodeToString(Json.encodeToString(HistoryMap.serializer(), HistoryMap(it)).toByteArray())
+            },
+        )
         runCommand(listOf("chmod", "666", pathToFile()))
     }
 
@@ -35,18 +39,18 @@ interface TextFileHistory {
 
     @OptIn(ExperimentalSerializationApi::class)
     fun loadList(): MutableList<Map<String, String>> {
-        val list = try {
-            File(pathToFile())
-                .readText()
-                .split("\n")
-                .filter { it != "" }
-                .map {
-                    Json.decodeFromStream( HistoryMap.serializer(), ByteArrayInputStream(Base64.getDecoder().decode(it)) ).args
-                }
-        } catch (_: Exception) {
-            return mutableListOf()
-        }
+        val list =
+            try {
+                File(pathToFile())
+                    .readText()
+                    .split("\n")
+                    .filter { it != "" }
+                    .map {
+                        Json.decodeFromStream(HistoryMap.serializer(), ByteArrayInputStream(Base64.getDecoder().decode(it))).args
+                    }
+            } catch (_: Exception) {
+                return mutableListOf()
+            }
         return list.toMutableList()
     }
-
 }

@@ -5,28 +5,104 @@ import com.svoemesto.karaokeapp.model.MltNodeBuilder
 import com.svoemesto.karaokeapp.model.ProducerType
 import com.svoemesto.karaokeapp.model.PropertiesMltNodeBuilder
 
-
 data class MltGenerator(
     var mltProp: MltProp,
     var type: ProducerType,
     var voiceId: Int = 0,
     var childId: Int = 0,
-    var elementId: Int = 0
+    var elementId: Int = 0,
 ) {
-
     companion object {
-        fun name(type: ProducerType, voiceId: Int = 0, childId: Int = 0, elementId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId, elementId).name
-        @Suppress("unused") fun namePlaylistFile(type: ProducerType, voiceId: Int = 0, childId: Int = 0, elementId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId, elementId).namePlaylistFile
-        @Suppress("unused") fun namePlaylistTrack(type: ProducerType, voiceId: Int = 0, childId: Int = 0, elementId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId, elementId).namePlaylistTrack
-        fun nameTractor(type: ProducerType, voiceId: Int = 0, childId: Int = 0, elementId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId, elementId).nameTractor
-        fun nameProducer(type: ProducerType, voiceId: Int = 0, childId: Int = 0, elementId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId, elementId).nameProducer
-        @Suppress("unused") fun nameFileProducer(type: ProducerType, voiceId: Int = 0, childId: Int = 0, elementId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId, elementId).nameFileProducer
-        @Suppress("unused") fun nameFilterVolume(type: ProducerType, voiceId: Int = 0, childId: Int = 0, elementId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId, elementId).nameFilterVolume
-        @Suppress("unused") fun nameFilterPanner(type: ProducerType, voiceId: Int = 0, childId: Int = 0, elementId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId, elementId).nameFilterPanner
-        @Suppress("unused") fun nameFilterAudiolevel(type: ProducerType, voiceId: Int = 0, childId: Int = 0, elementId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId, elementId).nameFilterAudiolevel
-        fun nameFilterQtblend(type: ProducerType, voiceId: Int = 0, childId: Int = 0, elementId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId, elementId).nameFilterQtblend
-        @Suppress("unused") fun nameFilterGamma(type: ProducerType, voiceId: Int = 0, childId: Int = 0, elementId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId, elementId).nameFilterGamma
-        fun nameProducerBlackTrack(type: ProducerType, voiceId: Int = 0, childId: Int = 0, elementId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId, elementId).nameProducerBlackTrack
+        fun name(
+            type: ProducerType,
+            voiceId: Int = 0,
+            childId: Int = 0,
+            elementId: Int = 0,
+        ) = MltGenerator(MltProp(), type, voiceId, childId, elementId).name
+
+        @Suppress("unused")
+        fun namePlaylistFile(
+            type: ProducerType,
+            voiceId: Int = 0,
+            childId: Int = 0,
+            elementId: Int = 0,
+        ) = MltGenerator(MltProp(), type, voiceId, childId, elementId).namePlaylistFile
+
+        @Suppress("unused")
+        fun namePlaylistTrack(
+            type: ProducerType,
+            voiceId: Int = 0,
+            childId: Int = 0,
+            elementId: Int = 0,
+        ) = MltGenerator(MltProp(), type, voiceId, childId, elementId).namePlaylistTrack
+
+        fun nameTractor(
+            type: ProducerType,
+            voiceId: Int = 0,
+            childId: Int = 0,
+            elementId: Int = 0,
+        ) = MltGenerator(MltProp(), type, voiceId, childId, elementId).nameTractor
+
+        fun nameProducer(
+            type: ProducerType,
+            voiceId: Int = 0,
+            childId: Int = 0,
+            elementId: Int = 0,
+        ) = MltGenerator(MltProp(), type, voiceId, childId, elementId).nameProducer
+
+        @Suppress("unused")
+        fun nameFileProducer(
+            type: ProducerType,
+            voiceId: Int = 0,
+            childId: Int = 0,
+            elementId: Int = 0,
+        ) = MltGenerator(MltProp(), type, voiceId, childId, elementId).nameFileProducer
+
+        @Suppress("unused")
+        fun nameFilterVolume(
+            type: ProducerType,
+            voiceId: Int = 0,
+            childId: Int = 0,
+            elementId: Int = 0,
+        ) = MltGenerator(MltProp(), type, voiceId, childId, elementId).nameFilterVolume
+
+        @Suppress("unused")
+        fun nameFilterPanner(
+            type: ProducerType,
+            voiceId: Int = 0,
+            childId: Int = 0,
+            elementId: Int = 0,
+        ) = MltGenerator(MltProp(), type, voiceId, childId, elementId).nameFilterPanner
+
+        @Suppress("unused")
+        fun nameFilterAudiolevel(
+            type: ProducerType,
+            voiceId: Int = 0,
+            childId: Int = 0,
+            elementId: Int = 0,
+        ) = MltGenerator(MltProp(), type, voiceId, childId, elementId).nameFilterAudiolevel
+
+        fun nameFilterQtblend(
+            type: ProducerType,
+            voiceId: Int = 0,
+            childId: Int = 0,
+            elementId: Int = 0,
+        ) = MltGenerator(MltProp(), type, voiceId, childId, elementId).nameFilterQtblend
+
+        @Suppress("unused")
+        fun nameFilterGamma(
+            type: ProducerType,
+            voiceId: Int = 0,
+            childId: Int = 0,
+            elementId: Int = 0,
+        ) = MltGenerator(MltProp(), type, voiceId, childId, elementId).nameFilterGamma
+
+        fun nameProducerBlackTrack(
+            type: ProducerType,
+            voiceId: Int = 0,
+            childId: Int = 0,
+            elementId: Int = 0,
+        ) = MltGenerator(MltProp(), type, voiceId, childId, elementId).nameProducerBlackTrack
 //        fun id(type: ProducerType, voiceId: Int = 0, childId: Int = 0, elementId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId, elementId).id
     }
 
@@ -34,26 +110,27 @@ data class MltGenerator(
     val id: Int get() = listOf(type.name, voiceId, childId, elementId).hashCode()
     val name: String get() {
         val text = type.text.uppercase()
-        val numVoice = if (type.onlyOne) {
-            ""
-        } else {
-            "_V$voiceId"
-        }
-        val numChild = if (childId==0 && (type.ids.isEmpty() && !type.isCalculatedCount)) {
-            ""
-        } else {
-            "_C${childId}"
-        }
-        val numElement = if (elementId==0 && (type.ids.isEmpty() && !type.isCalculatedCount)) {
-            ""
-        } else {
-            "_E${elementId}"
-        }
+        val numVoice =
+            if (type.onlyOne) {
+                ""
+            } else {
+                "_V$voiceId"
+            }
+        val numChild =
+            if (childId == 0 && (type.ids.isEmpty() && !type.isCalculatedCount)) {
+                ""
+            } else {
+                "_C$childId"
+            }
+        val numElement =
+            if (elementId == 0 && (type.ids.isEmpty() && !type.isCalculatedCount)) {
+                ""
+            } else {
+                "_E$elementId"
+            }
         return "$text$numVoice$numChild$numElement"
 //        "${type.text.uppercase()}${if (voiceId==0 && type.coeffVoice==0) "" else "_V${voiceId}"}${if (childId==0 && (type.ids.isEmpty() && !type.isCalculatedCount)) "" else "_C${childId}"}"
     }
-
-
 
     val namePlaylistFile: String get() = "playlist_file_${name.lowercase()}"
     val namePlaylistTrack: String get() = "playlist_track_${name.lowercase()}"
@@ -67,8 +144,8 @@ data class MltGenerator(
     val nameFilterQtblend: String get() = "filter_qtblend_${name.lowercase()}"
     val nameFilterGamma: String get() = "filter_gamma_${name.lowercase()}"
 
-    fun defaultProducerPropertiesForMltService(mltServiceName: String) : MutableList<MltNode> {
-        return when (mltServiceName) {
+    fun defaultProducerPropertiesForMltService(mltServiceName: String): MutableList<MltNode> =
+        when (mltServiceName) {
             "kdenlivetitle" -> {
                 MltNodeBuilder()
                     .propertyName("eof", "pause")
@@ -86,17 +163,17 @@ data class MltGenerator(
             }
             else -> mutableListOf()
         }
-    }
 
     val propsTractor: MutableList<MltNode> get() {
-        val result = MltNodeBuilder()
-            .propertyName("kdenlive:trackheight", 67)
-            .propertyName("kdenlive:timeline_active", 1)
-            .propertyName("kdenlive:collapsed", 28)
-            .propertyName("kdenlive:track_name", name)
-            .propertyName("kdenlive:thumbs_format")
-            .propertyName("kdenlive:audio_rec")
-            .build()
+        val result =
+            MltNodeBuilder()
+                .propertyName("kdenlive:trackheight", 67)
+                .propertyName("kdenlive:timeline_active", 1)
+                .propertyName("kdenlive:collapsed", 28)
+                .propertyName("kdenlive:track_name", name)
+                .propertyName("kdenlive:thumbs_format")
+                .propertyName("kdenlive:audio_rec")
+                .build()
         if (type.isAudio) result.addAll(MltNodeBuilder().propertyName("kdenlive:audio_track", 1).build())
         return result
     }
@@ -115,93 +192,105 @@ data class MltGenerator(
                 .build()
         }
 
-
     fun entry(
         timecodeIn: String = mltProp.getSongStartTimecode(),
         timecodeOut: String = mltProp.getSongEndTimecode(),
         nodes: MutableList<MltNode> = mutableListOf(),
-        id: String? = null
-    ): MltNode {
-        return MltNode(
+        id: String? = null,
+    ): MltNode =
+        MltNode(
             type = type,
             name = "entry",
-            fields = PropertiesMltNodeBuilder()
-                .producer(id ?: nameProducer)
-                .`in`(timecodeIn)
-                .`out`(timecodeOut)
-                .build(),
+            fields =
+                PropertiesMltNodeBuilder()
+                    .producer(id ?: nameProducer)
+                    .`in`(timecodeIn)
+                    .`out`(timecodeOut)
+                    .build(),
             body = nodes,
-            comment = "" // "entry $nameProducer"
+            comment = "", // "entry $nameProducer"
         )
-    }
 
     fun producer(
         timecodeIn: String = mltProp.getSongStartTimecode(),
         timecodeOut: String = mltProp.getSongEndTimecode(),
         props: MutableList<MltNode> = mutableListOf(),
-        id: String? = null
-    ): MltNode {
-        return MltNode(
+        id: String? = null,
+    ): MltNode =
+        MltNode(
             type = type,
             name = "producer",
-            fields = PropertiesMltNodeBuilder()
-                .id(id ?: nameProducer)
-                .`in`(timecodeIn)
-                .`out`(timecodeOut)
-                .build(),
+            fields =
+                PropertiesMltNodeBuilder()
+                    .id(id ?: nameProducer)
+                    .`in`(timecodeIn)
+                    .`out`(timecodeOut)
+                    .build(),
             body = props,
-            comment = "" // "producer $nameProducer"
+            comment = "", // "producer $nameProducer"
         )
-    }
-    fun trackPlaylist(): MltNode = MltNode(
-        type = type,
-        name = "playlist",
-        fields = PropertiesMltNodeBuilder().id(namePlaylistTrack).build(),
-        body = if (type.isAudio) {
-            MltNodeBuilder().propertyName("kdenlive:audio_track", 1).build()
-        } else null,
-        comment = "" // "playlist $namePlaylistTrack"
-    )
 
-    fun filePlaylist(): MltNode = MltNode(
-        type = type,
-        name = "playlist",
-        fields = PropertiesMltNodeBuilder().id(namePlaylistFile).build(),
-        body = if (type.isAudio) {
-            MltNodeBuilder().propertyName("kdenlive:audio_track", 1).build()
-        } else mutableListOf(),
-        comment = "" // "playlist $namePlaylistFile"
-    )
+    fun trackPlaylist(): MltNode =
+        MltNode(
+            type = type,
+            name = "playlist",
+            fields = PropertiesMltNodeBuilder().id(namePlaylistTrack).build(),
+            body =
+                if (type.isAudio) {
+                    MltNodeBuilder().propertyName("kdenlive:audio_track", 1).build()
+                } else {
+                    null
+                },
+            comment = "", // "playlist $namePlaylistTrack"
+        )
+
+    fun filePlaylist(): MltNode =
+        MltNode(
+            type = type,
+            name = "playlist",
+            fields = PropertiesMltNodeBuilder().id(namePlaylistFile).build(),
+            body =
+                if (type.isAudio) {
+                    MltNodeBuilder().propertyName("kdenlive:audio_track", 1).build()
+                } else {
+                    mutableListOf()
+                },
+            comment = "", // "playlist $namePlaylistFile"
+        )
 
     fun tractor(
         timecodeIn: String = mltProp.getTotalStartTimecode(),
         timecodeOut: String = mltProp.getBackgroundEndTimecode(),
         id: String = nameTractor,
         body: MutableList<MltNode> = tractorBody(),
-    ): MltNode = MltNode(
-        type = type,
-        name = "tractor",
-        fields = PropertiesMltNodeBuilder()
-            .id(id)
-            .`in`(timecodeIn)
-            .`out`(timecodeOut)
-            .build(),
-        body = body,
-        comment = "" // "tractor $namePlaylistFile"
-    )
+    ): MltNode =
+        MltNode(
+            type = type,
+            name = "tractor",
+            fields =
+                PropertiesMltNodeBuilder()
+                    .id(id)
+                    .`in`(timecodeIn)
+                    .`out`(timecodeOut)
+                    .build(),
+            body = body,
+            comment = "", // "tractor $namePlaylistFile"
+        )
+
     private fun tractorBody(): MutableList<MltNode> {
-        val result: MutableList<MltNode> = MltNodeBuilder(propsTractor)
-            .track(
-                PropertiesMltNodeBuilder()
-                    .hideByType(type)
-                    .producer(namePlaylistFile)
-                    .build())
-            .track(
-                PropertiesMltNodeBuilder()
-                    .hideByType(type)
-                    .producer(namePlaylistTrack)
-                    .build())
-            .build()
+        val result: MutableList<MltNode> =
+            MltNodeBuilder(propsTractor)
+                .track(
+                    PropertiesMltNodeBuilder()
+                        .hideByType(type)
+                        .producer(namePlaylistFile)
+                        .build(),
+                ).track(
+                    PropertiesMltNodeBuilder()
+                        .hideByType(type)
+                        .producer(namePlaylistTrack)
+                        .build(),
+                ).build()
 
         if (type.isAudio) {
             result.addAll(
@@ -209,12 +298,10 @@ data class MltGenerator(
                     .filterVolume(nameFilterVolume)
                     .filterPanner(nameFilterPanner)
                     .filterAudiolevel(nameFilterAudiolevel)
-                    .build()
+                    .build(),
             )
         }
 
         return result
-
     }
-
 }

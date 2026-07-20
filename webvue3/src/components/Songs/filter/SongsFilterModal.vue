@@ -17,12 +17,12 @@
                     <option v-for="val in dictAuthors" :key="val" :value="val"/>
                   </datalist>
                   <div class="sfm-row-label">
-                    <div v-text="'Исполнитель:'"></div>
+                    <div v-text="'Исполнитель:'"/>
                   </div>
                   <div class="sfm-row-input">
-                    <input class="sfm-input-field" v-model="songsFilterSongAuthor" list="dictAuthorsId">
+                    <input v-model="songsFilterSongAuthor" class="sfm-input-field" list="dictAuthorsId"/>
                   </div>
-                  <button :disabled="!songsFilterSongAuthor" class="sfm-button-clear-field" @click.left="songsFilterSongAuthor=''" v-text="'X'"></button>
+                  <button :disabled="!songsFilterSongAuthor" class="sfm-button-clear-field" @click.left="songsFilterSongAuthor=''" v-text="'X'"/>
                 </div>
 
                 <div class="sfm-filter-row">
@@ -30,81 +30,81 @@
                     <option v-for="val in dictDates" :key="val" :value="val"/>
                   </datalist>
                   <div class="sfm-row-label">
-                    <div v-text="'Дата:'"></div>
+                    <div v-text="'Дата:'"/>
                   </div>
                   <div class="sfm-row-input">
-                    <input class="sfm-input-field" v-model="songsFilterPublishDate" list="dictDatesId">
+                    <input v-model="songsFilterPublishDate" class="sfm-input-field" list="dictDatesId"/>
                   </div>
-                  <button :disabled="!songsFilterPublishDate" class="sfm-button-clear-field" @click.left="songsFilterPublishDate=''" v-text="'X'"></button>
+                  <button :disabled="!songsFilterPublishDate" class="sfm-button-clear-field" @click.left="songsFilterPublishDate=''" v-text="'X'"/>
                 </div>
 
                 <div class="sfm-filter-row">
                   <div class="sfm-row-label">
-                    <div v-text="'Время:'"></div>
+                    <div v-text="'Время:'"/>
                   </div>
                   <div class="sfm-row-input">
-                    <input class="sfm-input-field" v-model="songsFilterPublishTime">
+                    <input v-model="songsFilterPublishTime" class="sfm-input-field"/>
                   </div>
-                  <button :disabled="!songsFilterPublishTime" class="sfm-button-clear-field" @click.left="songsFilterPublishTime=''" v-text="'X'"></button>
+                  <button :disabled="!songsFilterPublishTime" class="sfm-button-clear-field" @click.left="songsFilterPublishTime=''" v-text="'X'"/>
                 </div>
 
                 <div class="sfm-filter-row">
                   <div class="sfm-row-label">
-                    <div v-text="'ID:'"></div>
+                    <div v-text="'ID:'"/>
                   </div>
                   <div class="sfm-row-input">
-                    <input class="sfm-input-field" v-model="songsFilterId">
+                    <input v-model="songsFilterId" class="sfm-input-field"/>
                   </div>
-                  <button :disabled="!songsFilterId" class="sfm-button-clear-field" @click.left="songsFilterId=''" v-text="'X'"></button>
+                  <button :disabled="!songsFilterId" class="sfm-button-clear-field" @click.left="songsFilterId=''" v-text="'X'"/>
                 </div>
 
                 <div class="sfm-filter-row">
                   <div class="sfm-row-label">
-                    <div v-text="'root ID:'"></div>
+                    <div v-text="'root ID:'"/>
                   </div>
                   <div class="sfm-row-input">
-                    <input class="sfm-input-field" v-model="songsFilterRootId">
+                    <input v-model="songsFilterRootId" class="sfm-input-field"/>
                   </div>
-                  <button :disabled="!songsFilterRootId" class="sfm-button-clear-field" @click.left="songsFilterRootId=''" v-text="'X'"></button>
+                  <button :disabled="!songsFilterRootId" class="sfm-button-clear-field" @click.left="songsFilterRootId=''" v-text="'X'"/>
                 </div>
 
                 <div class="sfm-filter-row">
                   <div class="sfm-row-label">
-                    <div v-text="'Композиция:'"></div>
+                    <div v-text="'Композиция:'"/>
                   </div>
                   <div class="sfm-row-input">
-                    <input class="sfm-input-field" v-model="songsFilterSongName">
+                    <input v-model="songsFilterSongName" class="sfm-input-field"/>
                   </div>
-                  <button :disabled="!songsFilterSongName" class="sfm-button-clear-field" @click.left="songsFilterSongName=''" v-text="'X'"></button>
+                  <button :disabled="!songsFilterSongName" class="sfm-button-clear-field" @click.left="songsFilterSongName=''" v-text="'X'"/>
                 </div>
 
                 <div class="sfm-filter-row">
                   <div class="sfm-row-label">
-                    <div v-text="'Альбом:'"></div>
+                    <div v-text="'Альбом:'"/>
                   </div>
                   <div class="sfm-row-input">
-                    <input class="sfm-input-field" v-model="songsFilterSongAlbum">
+                    <input v-model="songsFilterSongAlbum" class="sfm-input-field"/>
                   </div>
-                  <button :disabled="!songsFilterSongAlbum" class="sfm-button-clear-field" @click.left="songsFilterSongAlbum=''" v-text="'X'"></button>
+                  <button :disabled="!songsFilterSongAlbum" class="sfm-button-clear-field" @click.left="songsFilterSongAlbum=''" v-text="'X'"/>
                 </div>
 
 
                 <div class="sfm-filter-row">
                   <div class="sfm-row-label">
-                    <div v-text="'ID статуса:'"></div>
+                    <div v-text="'ID статуса:'"/>
                   </div>
                   <div class="sfm-row-input">
-                    <input class="sfm-input-field" v-model="songsFilterIdStatus">
+                    <input v-model="songsFilterIdStatus" class="sfm-input-field"/>
                   </div>
-                  <button :disabled="!songsFilterIdStatus" class="sfm-button-clear-field" @click.left="songsFilterIdStatus=''" v-text="'X'"></button>
+                  <button :disabled="!songsFilterIdStatus" class="sfm-button-clear-field" @click.left="songsFilterIdStatus=''" v-text="'X'"/>
                 </div>
 
                 <div class="sfm-filter-row">
                   <div class="sfm-row-label">
-                    <div v-text="'Задание редактора:'"></div>
+                    <div v-text="'Задание редактора:'"/>
                   </div>
                   <div class="sfm-row-input">
-                    <select class="sfm-input-field" v-model="songsFilterAssignmentStatus">
+                    <select v-model="songsFilterAssignmentStatus" class="sfm-input-field">
                       <option value="">Все</option>
                       <option value="unassigned">Не назначено</option>
                       <option value="assigned">Назначено</option>
@@ -114,192 +114,192 @@
                       <option value="rejected">Отклонено</option>
                     </select>
                   </div>
-                  <button :disabled="!songsFilterAssignmentStatus" class="sfm-button-clear-field" @click.left="songsFilterAssignmentStatus=''" v-text="'X'"></button>
+                  <button :disabled="!songsFilterAssignmentStatus" class="sfm-button-clear-field" @click.left="songsFilterAssignmentStatus=''" v-text="'X'"/>
                 </div>
 
                 <div class="sfm-filter-row">
                   <div class="sfm-row-label">
-                    <div v-text="'Тип песни:'"></div>
+                    <div v-text="'Тип песни:'"/>
                   </div>
                   <div class="sfm-row-input">
-                    <select class="sfm-input-field" v-model="songsFilterSongType">
+                    <select v-model="songsFilterSongType" class="sfm-input-field">
                       <option value="">Все</option>
                       <option value="song">Песня (S)</option>
                       <option value="instrumental">Инструментал (I)</option>
                       <option value="poetry">Стихи (P)</option>
                     </select>
                   </div>
-                  <button :disabled="!songsFilterSongType" class="sfm-button-clear-field" @click.left="songsFilterSongType=''" v-text="'X'"></button>
+                  <button :disabled="!songsFilterSongType" class="sfm-button-clear-field" @click.left="songsFilterSongType=''" v-text="'X'"/>
                 </div>
 
                 <div class="sfm-filter-row">
                   <div class="sfm-row-label">
-                    <div v-text="'Кол-во голосов:'"></div>
+                    <div v-text="'Кол-во голосов:'"/>
                   </div>
                   <div class="sfm-row-input">
-                    <input class="sfm-input-field" v-model="songsFilterCountVoices">
+                    <input v-model="songsFilterCountVoices" class="sfm-input-field"/>
                   </div>
-                  <button :disabled="!songsFilterCountVoices" class="sfm-button-clear-field" @click.left="songsFilterCountVoices=''" v-text="'X'"></button>
+                  <button :disabled="!songsFilterCountVoices" class="sfm-button-clear-field" @click.left="songsFilterCountVoices=''" v-text="'X'"/>
                 </div>
 
                 <div class="sfm-filter-row">
                   <div class="sfm-row-label">
-                    <div v-text="'Tags:'"></div>
+                    <div v-text="'Tags:'"/>
                   </div>
                   <div class="sfm-row-input">
-                    <input class="sfm-input-field" v-model="songsFilterTags">
+                    <input v-model="songsFilterTags" class="sfm-input-field"/>
                   </div>
-                  <button :disabled="!songsFilterTags" class="sfm-button-clear-field" @click.left="songsFilterTags=''" v-text="'X'"></button>
+                  <button :disabled="!songsFilterTags" class="sfm-button-clear-field" @click.left="songsFilterTags=''" v-text="'X'"/>
                 </div>
 
                 <div class="sfm-filter-row">
                   <div class="sfm-row-label">
-                    <div v-text="'Version:'"></div>
+                    <div v-text="'Version:'"/>
                   </div>
                   <div class="sfm-row-input">
-                    <input class="sfm-input-field" v-model="songsFilterResultVersion">
+                    <input v-model="songsFilterResultVersion" class="sfm-input-field"/>
                   </div>
-                  <button :disabled="!songsFilterResultVersion" class="sfm-button-clear-field" @click.left="songsFilterResultVersion=''" v-text="'X'"></button>
+                  <button :disabled="!songsFilterResultVersion" class="sfm-button-clear-field" @click.left="songsFilterResultVersion=''" v-text="'X'"/>
                 </div>
 
                 <div class="sfm-filter-row">
                   <div class="sfm-row-label">
-                    <div v-text="'Ver.Boosty:'"></div>
+                    <div v-text="'Ver.Boosty:'"/>
                   </div>
                   <div class="sfm-row-input">
-                    <input class="sfm-input-field" v-model="songsFilterVersionBoosty">
+                    <input v-model="songsFilterVersionBoosty" class="sfm-input-field"/>
                   </div>
-                  <button :disabled="!songsFilterVersionBoosty" class="sfm-button-clear-field" @click.left="songsFilterVersionBoosty=''" v-text="'X'"></button>
+                  <button :disabled="!songsFilterVersionBoosty" class="sfm-button-clear-field" @click.left="songsFilterVersionBoosty=''" v-text="'X'"/>
                 </div>
 
                 <div class="sfm-filter-row">
                   <div class="sfm-row-label">
-                    <div v-text="'Ver.BoostyFiles:'"></div>
+                    <div v-text="'Ver.BoostyFiles:'"/>
                   </div>
                   <div class="sfm-row-input">
-                    <input class="sfm-input-field" v-model="songsFilterVersionBoostyFiles">
+                    <input v-model="songsFilterVersionBoostyFiles" class="sfm-input-field"/>
                   </div>
-                  <button :disabled="!songsFilterVersionBoostyFiles" class="sfm-button-clear-field" @click.left="songsFilterVersionBoostyFiles=''" v-text="'X'"></button>
+                  <button :disabled="!songsFilterVersionBoostyFiles" class="sfm-button-clear-field" @click.left="songsFilterVersionBoostyFiles=''" v-text="'X'"/>
                 </div>
 
                 <div class="sfm-filter-row">
                   <div class="sfm-row-label">
-                    <div v-text="'Ver.Sponsr:'"></div>
+                    <div v-text="'Ver.Sponsr:'"/>
                   </div>
                   <div class="sfm-row-input">
-                    <input class="sfm-input-field" v-model="songsFilterVersionSponsr">
+                    <input v-model="songsFilterVersionSponsr" class="sfm-input-field"/>
                   </div>
-                  <button :disabled="!songsFilterVersionSponsr" class="sfm-button-clear-field" @click.left="songsFilterVersionSponsr=''" v-text="'X'"></button>
+                  <button :disabled="!songsFilterVersionSponsr" class="sfm-button-clear-field" @click.left="songsFilterVersionSponsr=''" v-text="'X'"/>
                 </div>
 
                 <div class="sfm-filter-row">
                   <div class="sfm-row-label">
-                    <div v-text="'Ver.Dzen.Kar:'"></div>
+                    <div v-text="'Ver.Dzen.Kar:'"/>
                   </div>
                   <div class="sfm-row-input">
-                    <input class="sfm-input-field" v-model="songsFilterVersionDzenKaraoke">
+                    <input v-model="songsFilterVersionDzenKaraoke" class="sfm-input-field"/>
                   </div>
-                  <button :disabled="!songsFilterVersionDzenKaraoke" class="sfm-button-clear-field" @click.left="songsFilterVersionDzenKaraoke=''" v-text="'X'"></button>
+                  <button :disabled="!songsFilterVersionDzenKaraoke" class="sfm-button-clear-field" @click.left="songsFilterVersionDzenKaraoke=''" v-text="'X'"/>
                 </div>
 
                 <div class="sfm-filter-row">
                   <div class="sfm-row-label">
-                    <div v-text="'Ver.Vk.Kar:'"></div>
+                    <div v-text="'Ver.Vk.Kar:'"/>
                   </div>
                   <div class="sfm-row-input">
-                    <input class="sfm-input-field" v-model="songsFilterVersionVkKaraoke">
+                    <input v-model="songsFilterVersionVkKaraoke" class="sfm-input-field"/>
                   </div>
-                  <button :disabled="!songsFilterVersionVkKaraoke" class="sfm-button-clear-field" @click.left="songsFilterVersionVkKaraoke=''" v-text="'X'"></button>
+                  <button :disabled="!songsFilterVersionVkKaraoke" class="sfm-button-clear-field" @click.left="songsFilterVersionVkKaraoke=''" v-text="'X'"/>
                 </div>
 
                 <div class="sfm-filter-row">
                   <div class="sfm-row-label">
-                    <div v-text="'Ver.Tg.Kar:'"></div>
+                    <div v-text="'Ver.Tg.Kar:'"/>
                   </div>
                   <div class="sfm-row-input">
-                    <input class="sfm-input-field" v-model="songsFilterVersionTelegramKaraoke">
+                    <input v-model="songsFilterVersionTelegramKaraoke" class="sfm-input-field"/>
                   </div>
-                  <button :disabled="!songsFilterVersionTelegramKaraoke" class="sfm-button-clear-field" @click.left="songsFilterVersionTelegramKaraoke=''" v-text="'X'"></button>
+                  <button :disabled="!songsFilterVersionTelegramKaraoke" class="sfm-button-clear-field" @click.left="songsFilterVersionTelegramKaraoke=''" v-text="'X'"/>
                 </div>
 
                 <div class="sfm-filter-row">
                   <div class="sfm-row-label">
-                    <div v-text="'Ver.Max.Kar:'"></div>
+                    <div v-text="'Ver.Max.Kar:'"/>
                   </div>
                   <div class="sfm-row-input">
-                    <input class="sfm-input-field" v-model="songsFilterVersionMaxKaraoke">
+                    <input v-model="songsFilterVersionMaxKaraoke" class="sfm-input-field"/>
                   </div>
-                  <button :disabled="!songsFilterVersionMaxKaraoke" class="sfm-button-clear-field" @click.left="songsFilterVersionMaxKaraoke=''" v-text="'X'"></button>
+                  <button :disabled="!songsFilterVersionMaxKaraoke" class="sfm-button-clear-field" @click.left="songsFilterVersionMaxKaraoke=''" v-text="'X'"/>
                 </div>
 
                 <div class="sfm-filter-row">
                   <div class="sfm-row-label">
-                    <div v-text="'Status.Proc.Lyr:'"></div>
+                    <div v-text="'Status.Proc.Lyr:'"/>
                   </div>
                   <div class="sfm-row-input">
-                    <input class="sfm-input-field" v-model="songsFilterStatusProcessLyrics">
+                    <input v-model="songsFilterStatusProcessLyrics" class="sfm-input-field"/>
                   </div>
-                  <button :disabled="!songsFilterStatusProcessLyrics" class="sfm-button-clear-field" @click.left="songsFilterStatusProcessLyrics=''" v-text="'X'"></button>
+                  <button :disabled="!songsFilterStatusProcessLyrics" class="sfm-button-clear-field" @click.left="songsFilterStatusProcessLyrics=''" v-text="'X'"/>
                 </div>
 
                 <div class="sfm-filter-row">
                   <div class="sfm-row-label">
-                    <div v-text="'Status.Proc.Kar:'"></div>
+                    <div v-text="'Status.Proc.Kar:'"/>
                   </div>
                   <div class="sfm-row-input">
-                    <input class="sfm-input-field" v-model="songsFilterStatusProcessKaraoke">
+                    <input v-model="songsFilterStatusProcessKaraoke" class="sfm-input-field"/>
                   </div>
-                  <button :disabled="!songsFilterStatusProcessKaraoke" class="sfm-button-clear-field" @click.left="songsFilterStatusProcessKaraoke=''" v-text="'X'"></button>
+                  <button :disabled="!songsFilterStatusProcessKaraoke" class="sfm-button-clear-field" @click.left="songsFilterStatusProcessKaraoke=''" v-text="'X'"/>
                 </div>
 
                 <div class="sfm-filter-row">
                   <div class="sfm-row-label">
-                    <div v-text="'Status.Proc.Demo:'"></div>
+                    <div v-text="'Status.Proc.Demo:'"/>
                   </div>
                   <div class="sfm-row-input">
-                    <input class="sfm-input-field" v-model="songsFilterStatusProcessDemo">
+                    <input v-model="songsFilterStatusProcessDemo" class="sfm-input-field"/>
                   </div>
-                  <button :disabled="!songsFilterStatusProcessDemo" class="sfm-button-clear-field" @click.left="songsFilterStatusProcessDemo=''" v-text="'X'"></button>
+                  <button :disabled="!songsFilterStatusProcessDemo" class="sfm-button-clear-field" @click.left="songsFilterStatusProcessDemo=''" v-text="'X'"/>
                 </div>
 
                 <div class="sfm-filter-row">
                   <div class="sfm-row-label">
-                    <div v-text="'Exclusive:'"></div>
+                    <div v-text="'Exclusive:'"/>
                   </div>
                   <div class="sfm-row-input">
-                    <input class="sfm-input-field" v-model="songsFilterFlagExclusive">
+                    <input v-model="songsFilterFlagExclusive" class="sfm-input-field"/>
                   </div>
-                  <button :disabled="!songsFilterFlagExclusive" class="sfm-button-clear-field" @click.left="songsFilterFlagExclusive=''" v-text="'X'"></button>
+                  <button :disabled="!songsFilterFlagExclusive" class="sfm-button-clear-field" @click.left="songsFilterFlagExclusive=''" v-text="'X'"/>
                 </div>
 
                 <div class="sfm-filter-row">
                   <div class="sfm-row-label">
-                    <div v-text="'Free:'"></div>
+                    <div v-text="'Free:'"/>
                   </div>
                   <div class="sfm-row-input">
-                    <input class="sfm-input-field" v-model="songsFilterFlagFree">
+                    <input v-model="songsFilterFlagFree" class="sfm-input-field"/>
                   </div>
-                  <button :disabled="!songsFilterFlagFree" class="sfm-button-clear-field" @click.left="songsFilterFlagFree=''" v-text="'X'"></button>
+                  <button :disabled="!songsFilterFlagFree" class="sfm-button-clear-field" @click.left="songsFilterFlagFree=''" v-text="'X'"/>
                 </div>
 
                 <div class="sfm-filter-row">
                   <div class="sfm-row-label">
-                    <div v-text="'Rate:'"></div>
+                    <div v-text="'Rate:'"/>
                   </div>
                   <div class="sfm-row-input">
-                    <input class="sfm-input-field" v-model="songsFilterRate">
+                    <input v-model="songsFilterRate" class="sfm-input-field"/>
                   </div>
-                  <button :disabled="!songsFilterRate" class="sfm-button-clear-field" @click.left="songsFilterRate=''" v-text="'X'"></button>
+                  <button :disabled="!songsFilterRate" class="sfm-button-clear-field" @click.left="songsFilterRate=''" v-text="'X'"/>
                 </div>
 
                 <div class="sfm-filter-row">
                   <div class="sfm-row-label">
-                    <div v-text="'Is Sync:'"></div>
+                    <div v-text="'Is Sync:'"/>
                   </div>
                   <div class="sfm-row-input">
-                    <input class="sfm-input-field" v-model="songsFilterIsSync">
+                    <input v-model="songsFilterIsSync" class="sfm-input-field"/>
                   </div>
-                  <button :disabled="!songsFilterIsSync" class="sfm-button-clear-field" @click.left="songsFilterIsSync=''" v-text="'X'"></button>
+                  <button :disabled="!songsFilterIsSync" class="sfm-button-clear-field" @click.left="songsFilterIsSync=''" v-text="'X'"/>
                 </div>
 
               </div>
@@ -318,7 +318,7 @@
                     <div
                         class="sfm-fld-history-name"
                         v-text="data.value"
-                    ></div>
+                    />
                   </template>
                 </b-table>
               </div>
@@ -352,42 +352,6 @@ export default {
     return {
       dictAuthors: []
     }
-  },
-  async beforeMount() {
-    this.$store.dispatch('setSongsFilterId', { value: await this.$store.getters.getWebvueProp('songsFilterId', '') });
-    this.$store.dispatch('setSongsFilterSongName', { value: await this.$store.getters.getWebvueProp('songsFilterSongName', '') });
-    this.$store.dispatch('setSongsFilterSongAuthor', { value: await this.$store.getters.getWebvueProp('songsFilterSongAuthor', '') });
-    this.$store.dispatch('setSongsFilterSongAlbum', { value: await this.$store.getters.getWebvueProp('songsFilterSongAlbum', '') });
-    this.$store.dispatch('setSongsFilterPublishDate', { value: await this.$store.getters.getWebvueProp('songsFilterPublishDate', '') });
-    this.$store.dispatch('setSongsFilterPublishTime', { value: await this.$store.getters.getWebvueProp('songsFilterPublishTime', '') });
-    this.$store.dispatch('setSongsFilterIdStatus', { value: await this.$store.getters.getWebvueProp('songsFilterIdStatus', '') });
-    this.$store.dispatch('setSongsFilterCountVoices', { value: await this.$store.getters.getWebvueProp('songsFilterCountVoices', '') });
-    this.$store.dispatch('setSongsFilterTags', { value: await this.$store.getters.getWebvueProp('songsFilterTags', '') });
-    this.$store.dispatch('setSongsFilterResultVersion', { value: await this.$store.getters.getWebvueProp('songsFilterResultVersion', '') });
-    this.$store.dispatch('setSongsFilterVersionBoosty', { value: await this.$store.getters.getWebvueProp('songsFilterVersionBoosty', '') });
-    this.$store.dispatch('setSongsFilterVersionBoostyFiles', { value: await this.$store.getters.getWebvueProp('songsFilterVersionBoostyFiles', '') });
-    this.$store.dispatch('setSongsFilterVersionSponsr', { value: await this.$store.getters.getWebvueProp('songsFilterVersionSponsr', '') });
-    this.$store.dispatch('setSongsFilterVersionDzenKaraoke', { value: await this.$store.getters.getWebvueProp('songsFilterVersionDzenKaraoke', '') });
-    this.$store.dispatch('setSongsFilterVersionVkKaraoke', { value: await this.$store.getters.getWebvueProp('songsFilterVersionVkKaraoke', '') });
-    this.$store.dispatch('setSongsFilterVersionTelegramKaraoke', { value: await this.$store.getters.getWebvueProp('songsFilterVersionTelegramKaraoke', '') });
-    this.$store.dispatch('setSongsFilterVersionPlKaraoke', { value: await this.$store.getters.getWebvueProp('songsFilterVersionPlKaraoke', '') });
-    this.$store.dispatch('setSongsFilterVersionMaxKaraoke', { value: await this.$store.getters.getWebvueProp('songsFilterVersionMaxKaraoke', '') });    
-    this.$store.dispatch('setSongsFilterRate', { value: await this.$store.getters.getWebvueProp('songsFilterRate', '') });
-    this.$store.dispatch('setSongsFilterIsSync', { value: await this.$store.getters.getWebvueProp('songsFilterIsSync', '') });
-    this.$store.dispatch('setSongsFilterStatusProcessLyrics', { value: await this.$store.getters.getWebvueProp('songsFilterStatusProcessLyrics', '') });
-    this.$store.dispatch('setSongsFilterStatusProcessKaraoke', { value: await this.$store.getters.getWebvueProp('songsFilterStatusProcessKaraoke', '') });
-    this.$store.dispatch('setSongsFilterStatusProcessDemo', { value: await this.$store.getters.getWebvueProp('songsFilterStatusProcessDemo', '') });
-    this.$store.dispatch('setSongsFilterRootId', { value: await this.$store.getters.getWebvueProp('songsFilterRootId', '') });
-    this.$store.dispatch('setSongsFilterFlagExclusive', { value: await this.$store.getters.getWebvueProp('songsFilterFlagExclusive', '') });
-    this.$store.dispatch('setSongsFilterFlagFree', { value: await this.$store.getters.getWebvueProp('songsFilterFlagFree', '') });
-    this.$store.dispatch('setSongsFilterAssignmentStatus', { value: await this.$store.getters.getWebvueProp('songsFilterAssignmentStatus', '') });
-    this.$store.dispatch('setSongsFilterSongType', { value: await this.$store.getters.getWebvueProp('songsFilterSongType', '') });
-  },
-  async mounted() {
-    this.$store.getters.songAuthorsPromise.then(data => {
-      this.dictAuthors = JSON.parse(data).authors;
-      this.$store.dispatch('loadSongsHistory' );
-    });
   },
   computed: {
     songsFilterId: {
@@ -533,6 +497,42 @@ export default {
         // }
       ]
     }
+  },
+  async beforeMount() {
+    this.$store.dispatch('setSongsFilterId', { value: await this.$store.getters.getWebvueProp('songsFilterId', '') });
+    this.$store.dispatch('setSongsFilterSongName', { value: await this.$store.getters.getWebvueProp('songsFilterSongName', '') });
+    this.$store.dispatch('setSongsFilterSongAuthor', { value: await this.$store.getters.getWebvueProp('songsFilterSongAuthor', '') });
+    this.$store.dispatch('setSongsFilterSongAlbum', { value: await this.$store.getters.getWebvueProp('songsFilterSongAlbum', '') });
+    this.$store.dispatch('setSongsFilterPublishDate', { value: await this.$store.getters.getWebvueProp('songsFilterPublishDate', '') });
+    this.$store.dispatch('setSongsFilterPublishTime', { value: await this.$store.getters.getWebvueProp('songsFilterPublishTime', '') });
+    this.$store.dispatch('setSongsFilterIdStatus', { value: await this.$store.getters.getWebvueProp('songsFilterIdStatus', '') });
+    this.$store.dispatch('setSongsFilterCountVoices', { value: await this.$store.getters.getWebvueProp('songsFilterCountVoices', '') });
+    this.$store.dispatch('setSongsFilterTags', { value: await this.$store.getters.getWebvueProp('songsFilterTags', '') });
+    this.$store.dispatch('setSongsFilterResultVersion', { value: await this.$store.getters.getWebvueProp('songsFilterResultVersion', '') });
+    this.$store.dispatch('setSongsFilterVersionBoosty', { value: await this.$store.getters.getWebvueProp('songsFilterVersionBoosty', '') });
+    this.$store.dispatch('setSongsFilterVersionBoostyFiles', { value: await this.$store.getters.getWebvueProp('songsFilterVersionBoostyFiles', '') });
+    this.$store.dispatch('setSongsFilterVersionSponsr', { value: await this.$store.getters.getWebvueProp('songsFilterVersionSponsr', '') });
+    this.$store.dispatch('setSongsFilterVersionDzenKaraoke', { value: await this.$store.getters.getWebvueProp('songsFilterVersionDzenKaraoke', '') });
+    this.$store.dispatch('setSongsFilterVersionVkKaraoke', { value: await this.$store.getters.getWebvueProp('songsFilterVersionVkKaraoke', '') });
+    this.$store.dispatch('setSongsFilterVersionTelegramKaraoke', { value: await this.$store.getters.getWebvueProp('songsFilterVersionTelegramKaraoke', '') });
+    this.$store.dispatch('setSongsFilterVersionPlKaraoke', { value: await this.$store.getters.getWebvueProp('songsFilterVersionPlKaraoke', '') });
+    this.$store.dispatch('setSongsFilterVersionMaxKaraoke', { value: await this.$store.getters.getWebvueProp('songsFilterVersionMaxKaraoke', '') });    
+    this.$store.dispatch('setSongsFilterRate', { value: await this.$store.getters.getWebvueProp('songsFilterRate', '') });
+    this.$store.dispatch('setSongsFilterIsSync', { value: await this.$store.getters.getWebvueProp('songsFilterIsSync', '') });
+    this.$store.dispatch('setSongsFilterStatusProcessLyrics', { value: await this.$store.getters.getWebvueProp('songsFilterStatusProcessLyrics', '') });
+    this.$store.dispatch('setSongsFilterStatusProcessKaraoke', { value: await this.$store.getters.getWebvueProp('songsFilterStatusProcessKaraoke', '') });
+    this.$store.dispatch('setSongsFilterStatusProcessDemo', { value: await this.$store.getters.getWebvueProp('songsFilterStatusProcessDemo', '') });
+    this.$store.dispatch('setSongsFilterRootId', { value: await this.$store.getters.getWebvueProp('songsFilterRootId', '') });
+    this.$store.dispatch('setSongsFilterFlagExclusive', { value: await this.$store.getters.getWebvueProp('songsFilterFlagExclusive', '') });
+    this.$store.dispatch('setSongsFilterFlagFree', { value: await this.$store.getters.getWebvueProp('songsFilterFlagFree', '') });
+    this.$store.dispatch('setSongsFilterAssignmentStatus', { value: await this.$store.getters.getWebvueProp('songsFilterAssignmentStatus', '') });
+    this.$store.dispatch('setSongsFilterSongType', { value: await this.$store.getters.getWebvueProp('songsFilterSongType', '') });
+  },
+  async mounted() {
+    this.$store.getters.songAuthorsPromise.then(data => {
+      this.dictAuthors = JSON.parse(data).authors;
+      this.$store.dispatch('loadSongsHistory' );
+    });
   },
   methods: {
     ok() {

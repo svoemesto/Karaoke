@@ -9,17 +9,21 @@ import java.sql.Statement
 import java.sql.Timestamp
 import java.time.Instant
 
-class Uuids(var id: Int, var uuid: String, val database: KaraokeConnection = WORKING_DATABASE) : Serializable {
+class Uuids(
+    var id: Int,
+    var uuid: String,
+    val database: KaraokeConnection = WORKING_DATABASE,
+) : Serializable {
 //    var id: Int = 0
 //    var uuid: String = ""
     fun save() {
-
         val connection = database.getConnection()
         if (connection == null) {
             println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
             return
         }
-        val sql = "UPDATE tbl_uuids SET " +
+        val sql =
+            "UPDATE tbl_uuids SET " +
                 "uuid = ?, " +
                 "WHERE id = ?"
         val ps = connection.prepareStatement(sql)
@@ -29,7 +33,6 @@ class Uuids(var id: Int, var uuid: String, val database: KaraokeConnection = WOR
         ps.setInt(index, id)
         ps.executeUpdate()
         ps.close()
-
     }
 
     fun getSqlToInsert(): String {
@@ -41,15 +44,16 @@ class Uuids(var id: Int, var uuid: String, val database: KaraokeConnection = WOR
 
         return "INSERT INTO tbl_uuids (${fieldsValues.joinToString(", ") { it.first }}) OVERRIDING SYSTEM VALUE VALUES(${
             fieldsValues.joinToString(
-                ", "
+                ", ",
             ) { if (it.second is Long) "${it.second}" else "'${it.second}'" }
         })"
-
     }
 
     companion object {
-
-        fun getDiff(uuidA: Uuids?, uuidB: Uuids?): List<RecordDiff> {
+        fun getDiff(
+            uuidA: Uuids?,
+            uuidB: Uuids?,
+        ): List<RecordDiff> {
             val result: MutableList<RecordDiff> = mutableListOf()
             if (uuidA != null && uuidB != null) {
                 if (uuidA.uuid != uuidB.uuid) result.add(RecordDiff("uuid", uuidA.uuid, uuidB.uuid))
@@ -57,7 +61,10 @@ class Uuids(var id: Int, var uuid: String, val database: KaraokeConnection = WOR
             return result
         }
 
-        fun createDbInstance(uuid: Uuids, database: KaraokeConnection) : Uuids? {
+        fun createDbInstance(
+            uuid: Uuids,
+            database: KaraokeConnection,
+        ): Uuids? {
             val sql = uuid.getSqlToInsert()
 
             val connection = database.getConnection()
@@ -66,7 +73,7 @@ class Uuids(var id: Int, var uuid: String, val database: KaraokeConnection = WOR
                 return null
             }
             val ps = connection.prepareStatement(sql)
-            ps.executeUpdate(sql, Statement.RETURN_GENERATED_KEYS ) //, Statement.RETURN_GENERATED_KEYS)
+            ps.executeUpdate(sql, Statement.RETURN_GENERATED_KEYS) // , Statement.RETURN_GENERATED_KEYS)
 //            val rs = ps.generatedKeys
 //
 //            val result = if (rs.next()) {
@@ -77,11 +84,12 @@ class Uuids(var id: Int, var uuid: String, val database: KaraokeConnection = WOR
             ps.close()
 
             return uuid
-
         }
 
-        fun loadList(args: Map<String, String> = emptyMap(), database: KaraokeConnection): List<Uuids> {
-
+        fun loadList(
+            args: Map<String, String> = emptyMap(),
+            database: KaraokeConnection,
+        ): List<Uuids> {
             val connection = database.getConnection()
             if (connection == null) {
                 println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
@@ -95,7 +103,7 @@ class Uuids(var id: Int, var uuid: String, val database: KaraokeConnection = WOR
             try {
                 statement = connection.createStatement()
                 sql = "SELECT tbl_uuids.*" +
-                        " FROM tbl_uuids"
+                    " FROM tbl_uuids"
                 if (args.containsKey("id")) where += "id=${args["id"]}"
                 if (args.containsKey("uuid")) where += "uuid = '${args["uuid"]}'"
                 if (where.isNotEmpty()) sql += " WHERE ${where.joinToString(" AND ")}"
@@ -108,7 +116,6 @@ class Uuids(var id: Int, var uuid: String, val database: KaraokeConnection = WOR
                 }
 
                 return result
-
             } catch (e: SQLException) {
                 e.printStackTrace()
             } finally {
@@ -122,8 +129,10 @@ class Uuids(var id: Int, var uuid: String, val database: KaraokeConnection = WOR
             return emptyList()
         }
 
-        fun delete(id: Int, database: KaraokeConnection) {
-
+        fun delete(
+            id: Int,
+            database: KaraokeConnection,
+        ) {
             val connection = database.getConnection()
             if (connection == null) {
                 println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
@@ -134,15 +143,11 @@ class Uuids(var id: Int, var uuid: String, val database: KaraokeConnection = WOR
             ps.setInt(1, id)
             ps.executeUpdate()
             ps.close()
-
         }
 
-        fun load(id: Int, database: KaraokeConnection): Uuids? {
-
-            return loadList(mapOf(Pair("id", id.toString())), database).firstOrNull()
-
-        }
-
+        fun load(
+            id: Int,
+            database: KaraokeConnection,
+        ): Uuids? = loadList(mapOf(Pair("id", id.toString())), database).firstOrNull()
     }
-
 }

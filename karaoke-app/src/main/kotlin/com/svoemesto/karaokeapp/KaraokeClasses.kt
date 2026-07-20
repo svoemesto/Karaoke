@@ -5,9 +5,9 @@ import java.awt.Color
 import java.awt.Font
 import java.io.Serializable
 
-data class KaraokeVoice (
+data class KaraokeVoice(
     val groups: MutableList<KaraokeVoiceGroup>,
-    val fill: KaraokeVoiceFill
+    val fill: KaraokeVoiceFill,
 ) : Serializable {
     @Suppress("unused")
     fun replaceFontSize(fontSizePt: Int) {
@@ -18,12 +18,12 @@ data class KaraokeVoice (
 }
 
 data class KaraokeVoiceGroup(
-    var mltText: MltText
+    var mltText: MltText,
 ) : Serializable
 
 data class KaraokeVoiceFill(
     val evenColor: Color,
     val evenOpacity: Double,
     val oddColor: Color,
-    val oddOpacity: Double
+    val oddOpacity: Double,
 ) : Serializable

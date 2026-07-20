@@ -25,26 +25,28 @@ data class WaveformCompareResultDto(
     val idAnother: Long,
     val similarityPercent: Int,
     val deltaMs: Long,
-    val stemUsed: String,   // "vocals" | "mix"
+    val stemUsed: String, // "vocals" | "mix"
     val ok: Boolean,
-    val error: String?
+    val error: String?,
 )
 
 object WaveformCompare {
-
-    private const val SAMPLE_RATE = 8000          // Гц, моно — декодируем сюда через ffmpeg
-    private const val FRAME_RATE_HZ = 100         // Гц огибающей ⇒ 10 мс на кадр
-    private const val SAMPLES_PER_FRAME = SAMPLE_RATE / FRAME_RATE_HZ   // 80
-    private const val FRAME_MS = 1000.0 / FRAME_RATE_HZ                 // 10 мс
-    private const val MIN_OVERLAP_FRAMES = FRAME_RATE_HZ * 5           // минимум 5 с перекрытия
-    private const val MAX_LAG_BASE_SEC = 45                            // базовое окно поиска сдвига
-    private const val MAX_LAG_MARGIN_SEC = 20                          // запас поверх разницы длительностей
+    private const val SAMPLE_RATE = 8000 // Гц, моно — декодируем сюда через ffmpeg
+    private const val FRAME_RATE_HZ = 100 // Гц огибающей ⇒ 10 мс на кадр
+    private const val SAMPLES_PER_FRAME = SAMPLE_RATE / FRAME_RATE_HZ // 80
+    private const val FRAME_MS = 1000.0 / FRAME_RATE_HZ // 10 мс
+    private const val MIN_OVERLAP_FRAMES = FRAME_RATE_HZ * 5 // минимум 5 с перекрытия
+    private const val MAX_LAG_BASE_SEC = 45 // базовое окно поиска сдвига
+    private const val MAX_LAG_MARGIN_SEC = 20 // запас поверх разницы длительностей
 
     // Кэш огибающих: при "Сверить все" текущая песня декодируется один раз, повторная "Сверить" — бесплатна.
     // Ключ учитывает mtime файла, чтобы после пересчёта стема кэш инвалидировался сам.
     private val envelopeCache = ConcurrentHashMap<String, FloatArray>()
 
-    fun compareWaveforms(current: Settings, candidate: Settings): WaveformCompareResultDto {
+    fun compareWaveforms(
+        current: Settings,
+        candidate: Settings,
+    ): WaveformCompareResultDto {
         val id = candidate.id
         val useVocals = File(current.vocalsNameFlac).exists() && File(candidate.vocalsNameFlac).exists()
         val curPath = if (useVocals) current.vocalsNameFlac else current.fileAbsolutePath
@@ -56,14 +58,16 @@ object WaveformCompare {
 
         val envCur = extractEnvelope(curPath) ?: return fail(id, "Не удалось декодировать текущую песню", stemUsed)
         val envCand = extractEnvelope(candPath) ?: return fail(id, "Не удалось декодировать кандидата", stemUsed)
-        if (envCur.size < MIN_OVERLAP_FRAMES || envCand.size < MIN_OVERLAP_FRAMES)
+        if (envCur.size < MIN_OVERLAP_FRAMES || envCand.size < MIN_OVERLAP_FRAMES) {
             return fail(id, "Слишком короткое аудио для сверки", stemUsed)
+        }
 
         val diffFrames = abs(envCur.size - envCand.size)
-        val maxLag = minOf(
-            minOf(envCur.size, envCand.size) - 1,
-            maxOf(FRAME_RATE_HZ * MAX_LAG_BASE_SEC, diffFrames + FRAME_RATE_HZ * MAX_LAG_MARGIN_SEC)
-        )
+        val maxLag =
+            minOf(
+                minOf(envCur.size, envCand.size) - 1,
+                maxOf(FRAME_RATE_HZ * MAX_LAG_BASE_SEC, diffFrames + FRAME_RATE_HZ * MAX_LAG_MARGIN_SEC),
+            )
         val (peak, lagFrames) = crossCorrelate(envCur, envCand, maxLag)
 
         val percent = (maxOf(0.0, peak) * 100).roundToInt().coerceIn(0, 100)
@@ -71,12 +75,18 @@ object WaveformCompare {
         return WaveformCompareResultDto(id, percent, deltaMs, stemUsed, true, null)
     }
 
-    private fun fail(id: Long, error: String, stemUsed: String) =
-        WaveformCompareResultDto(id, 0, 0, stemUsed, false, error)
+    private fun fail(
+        id: Long,
+        error: String,
+        stemUsed: String,
+    ) = WaveformCompareResultDto(id, 0, 0, stemUsed, false, error)
 
     // --- Огибающая -------------------------------------------------------------------------------
 
-    private fun extractEnvelope(audioPath: String, frameRateHz: Int = FRAME_RATE_HZ): FloatArray? {
+    private fun extractEnvelope(
+        audioPath: String,
+        frameRateHz: Int = FRAME_RATE_HZ,
+    ): FloatArray? {
         val file = File(audioPath)
         if (!file.exists()) return null
         val cacheKey = "$audioPath|${file.lastModified()}|$frameRateHz"
@@ -89,12 +99,24 @@ object WaveformCompare {
     private fun computeEnvelope(audioPath: String): FloatArray? {
         val tmp = File.createTempFile("wfcmp_", ".raw")
         try {
-            val cmd = listOf(
-                "ffmpeg", "-v", "error", "-y", "-i", audioPath,
-                "-ac", "1", "-ar", SAMPLE_RATE.toString(), "-f", "s16le", tmp.absolutePath
-            )
+            val cmd =
+                listOf(
+                    "ffmpeg",
+                    "-v",
+                    "error",
+                    "-y",
+                    "-i",
+                    audioPath,
+                    "-ac",
+                    "1",
+                    "-ar",
+                    SAMPLE_RATE.toString(),
+                    "-f",
+                    "s16le",
+                    tmp.absolutePath,
+                )
             val process = ProcessBuilder(cmd).redirectErrorStream(true).start()
-            process.inputStream.readBytes()   // осушаем вывод, чтобы процесс не завис на полном буфере
+            process.inputStream.readBytes() // осушаем вывод, чтобы процесс не завис на полном буфере
             val exit = process.waitFor()
             if (exit != 0 || !tmp.exists() || tmp.length() == 0L) return null
 
@@ -108,8 +130,8 @@ object WaveformCompare {
                 var sumSq = 0.0
                 for (s in 0 until SAMPLES_PER_FRAME) {
                     val lo = bytes[bi].toInt() and 0xFF
-                    val hi = bytes[bi + 1].toInt()           // старший байт — знаковый (little-endian s16)
-                    val sample = (hi shl 8) or lo            // корректное знаковое 16-битное значение
+                    val hi = bytes[bi + 1].toInt() // старший байт — знаковый (little-endian s16)
+                    val sample = (hi shl 8) or lo // корректное знаковое 16-битное значение
                     bi += 2
                     val v = sample.toDouble()
                     sumSq += v * v
@@ -132,7 +154,11 @@ object WaveformCompare {
      * параболической интерполяцией). Пик при лаге L означает: событие текущей в позиции i совпадает
      * с событием кандидата в i-L ⇒ кандидат надо сдвинуть на +L кадров, чтобы лечь на текущую.
      */
-    private fun crossCorrelate(a: FloatArray, b: FloatArray, maxLag: Int): Pair<Double, Double> {
+    private fun crossCorrelate(
+        a: FloatArray,
+        b: FloatArray,
+        maxLag: Int,
+    ): Pair<Double, Double> {
         val lagLo = -maxLag
         val lagHi = maxLag
         val vals = DoubleArray(lagHi - lagLo + 1) { Double.NEGATIVE_INFINITY }

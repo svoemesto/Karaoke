@@ -27,30 +27,92 @@ import java.io.InputStream
  */
 @Service
 class KaraokeStorageServiceImpl : KaraokeStorageService {
+    private fun nope(): Nothing =
+        throw UnsupportedOperationException(
+            "karaoke-web не обращается к MinIO напрямую — только через minio-proxy " +
+                "(см. fetchFromMinIO/existsInMinIO в PublicApiController/PublicPlayerController)",
+        )
 
-    private fun nope(): Nothing = throw UnsupportedOperationException(
-        "karaoke-web не обращается к MinIO напрямую — только через minio-proxy " +
-            "(см. fetchFromMinIO/existsInMinIO в PublicApiController/PublicPlayerController)"
-    )
+    override fun uploadFile(
+        bucketName: String,
+        fileName: String,
+        file: InputStream,
+        size: Long?,
+    ) = nope()
 
-    override fun uploadFile(bucketName: String, fileName: String, file: InputStream, size: Long?) = nope()
-    override fun uploadFile(bucketName: String, fileName: String, pathToFileOnDisk: String) = nope()
-    override fun getFileUrl(bucketName: String, fileName: String): String = nope()
-    override fun downloadFile(bucketName: String, fileName: String): InputStream = nope()
-    override fun downloadFile(bucketName: String, fileName: String, pathToFileOnDisk: String): File = nope()
-    override fun deleteFile(bucketName: String, fileName: String) = nope()
-    override fun getPresignedUrl(bucketName: String, fileName: String, expiry: Int): String = nope()
+    override fun uploadFile(
+        bucketName: String,
+        fileName: String,
+        pathToFileOnDisk: String,
+    ) = nope()
+
+    override fun getFileUrl(
+        bucketName: String,
+        fileName: String,
+    ): String = nope()
+
+    override fun downloadFile(
+        bucketName: String,
+        fileName: String,
+    ): InputStream = nope()
+
+    override fun downloadFile(
+        bucketName: String,
+        fileName: String,
+        pathToFileOnDisk: String,
+    ): File = nope()
+
+    override fun deleteFile(
+        bucketName: String,
+        fileName: String,
+    ) = nope()
+
+    override fun getPresignedUrl(
+        bucketName: String,
+        fileName: String,
+        expiry: Int,
+    ): String = nope()
+
     override fun bucketExists(bucketName: String): Boolean = nope()
-    override fun fileExists(bucketName: String, fileName: String): Boolean = nope()
+
+    override fun fileExists(
+        bucketName: String,
+        fileName: String,
+    ): Boolean = nope()
+
     override fun listFiles(bucketName: String): List<String> = nope()
+
     override fun setBucketPublic(bucketName: String) = nope()
+
     override fun setBucketPrivate(bucketName: String) = nope()
+
     override fun isBucketPublic(bucketName: String): Boolean = nope()
+
     override fun createBucketIfNotExists(bucketName: String) = nope()
+
     override fun deleteAllEmptyBuckets() = nope()
-    override fun getFileStat(bucketName: String, fileName: String): StatObjectResponse? = nope()
-    override fun getFileInfo(bucketName: String, fileName: String): StorageFileInfo = nope()
-    override fun fileIsActual(bucketName: String, fileName: String, pathToFileOnDisk: String): Boolean = nope()
-    override fun fileIsActual(bucketName: String, fileName: String, storageFileInfo: StorageFileInfo): Boolean = nope()
+
+    override fun getFileStat(
+        bucketName: String,
+        fileName: String,
+    ): StatObjectResponse? = nope()
+
+    override fun getFileInfo(
+        bucketName: String,
+        fileName: String,
+    ): StorageFileInfo = nope()
+
+    override fun fileIsActual(
+        bucketName: String,
+        fileName: String,
+        pathToFileOnDisk: String,
+    ): Boolean = nope()
+
+    override fun fileIsActual(
+        bucketName: String,
+        fileName: String,
+        storageFileInfo: StorageFileInfo,
+    ): Boolean = nope()
+
     override fun listFilesInfo(bucketName: String): List<StorageFileInfo> = nope()
 }

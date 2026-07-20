@@ -24,14 +24,13 @@ import java.util.Date
 import java.util.concurrent.TimeUnit
 import kotlin.io.path.Path
 
-
 class KaraokeProcess(
     override val database: KaraokeConnection = WORKING_DATABASE,
     override val storageService: KaraokeStorageService = KSS_APP,
     override val storageApiClient: StorageApiClient = SAC_APP,
-
-    ) : Serializable, Comparable<KaraokeProcess>, KaraokeDbTable {
-
+) : Serializable,
+    Comparable<KaraokeProcess>,
+    KaraokeDbTable {
     override fun getTableName() = "tbl_processes"
 
     @KaraokeDbTableField(name = "id", isId = true)
@@ -84,8 +83,8 @@ class KaraokeProcess(
     @KaraokeDbTableField(name = "thread_id")
     var threadId: Int = 0
 
-    override fun toDTO(): KaraokeProcessDTO {
-        return KaraokeProcessDTO(
+    override fun toDTO(): KaraokeProcessDTO =
+        KaraokeProcessDTO(
             id = id,
             name = name,
             status = status,
@@ -110,9 +109,9 @@ class KaraokeProcess(
             timeLeftMs = timeLeftMs,
             timeLeftStr = timeLeftStr,
             withoutControl = withoutControl,
-            threadId = threadId
+            threadId = threadId,
         )
-    }
+
     fun copy(): KaraokeProcess {
         val result = KaraokeProcess(database)
         result.id = id
@@ -176,7 +175,9 @@ class KaraokeProcess(
                     percentString.toDouble()
                 }
             }
-            else -> {0.0}
+            else -> {
+                0.0
+            }
         }
     }
 
@@ -202,7 +203,9 @@ class KaraokeProcess(
                 val diffMs = currTime.time - start!!.time
                 diffMs
             }
-            else -> {-1L}
+            else -> {
+                -1L
+            }
         }
     }
 
@@ -227,7 +230,9 @@ class KaraokeProcess(
                 val tail = fullMs - passed
                 tail
             }
-            else -> {-1L}
+            else -> {
+                -1L
+            }
         }
     }
 
@@ -248,17 +253,16 @@ class KaraokeProcess(
         result = order.compareTo(other.order)
         if (result != 0) return result
         return id.compareTo(other.id)
-
     }
 
     override fun save() {
-
         val connection = database.getConnection()
         if (connection == null) {
             println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
             return
         }
-        val sql = "UPDATE tbl_processes SET " +
+        val sql =
+            "UPDATE tbl_processes SET " +
                 "process_name = ?, " +
                 "process_status = ?, " +
                 "process_order = ?, " +
@@ -305,9 +309,9 @@ class KaraokeProcess(
         index++
         ps.setString(index, type)
         index++
-        if (start != null) ps.setTimestamp(index, start!!) else  ps.setNull(index, 0)
+        if (start != null) ps.setTimestamp(index, start!!) else ps.setNull(index, 0)
         index++
-        if (end != null) ps.setTimestamp(index, end!!) else  ps.setNull(index, 0)
+        if (end != null) ps.setTimestamp(index, end!!) else ps.setNull(index, 0)
         index++
         ps.setInt(index, prioritet)
         index++
@@ -338,15 +342,16 @@ class KaraokeProcess(
         if (!withoutControl) {
             updateStatusProcessSettings(database = database, storageService = storageService, storageApiClient = storageApiClient)
             if (command != "tail" || args[0][0] !in KaraokeProcessWorker.argsIgnoredToLog) {
-                val messageRecordChange = SseNotification.recordChange(
+                val messageRecordChange =
+                    SseNotification.recordChange(
                         RecordChangeMessage(
-                                tableName = "tbl_processes",
-                                recordId = id,
-                                diffs = emptyList(),
-                                databaseName = database.name,
-                                record = this.toDTO()
-                        )
-                )
+                            tableName = "tbl_processes",
+                            recordId = id,
+                            diffs = emptyList(),
+                            databaseName = database.name,
+                            record = this.toDTO(),
+                        ),
+                    )
                 SNS.send(messageRecordChange)
             }
         }
@@ -358,12 +363,21 @@ class KaraokeProcess(
 
 //        val controller = ApplicationContextProvider.getCurrentApplicationContext().getBean(MainController::class.java)
 //        controller.processesUpdate(id.toLong())
-
     }
 
-    fun updateStatusProcessSettings(database: KaraokeConnection, storageService: KaraokeStorageService, storageApiClient: StorageApiClient) {
+    fun updateStatusProcessSettings(
+        database: KaraokeConnection,
+        storageService: KaraokeStorageService,
+        storageApiClient: StorageApiClient,
+    ) {
         if (settingsId != 0) {
-            val settings = Settings.loadFromDbById(id = settingsId.toLong(), database = database, storageService = storageService, storageApiClient = storageApiClient)
+            val settings =
+                Settings.loadFromDbById(
+                    id = settingsId.toLong(),
+                    database = database,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                )
             settings?.let {
                 when (type) {
                     KaraokeProcessTypes.MELT_LYRICS.name -> {
@@ -371,7 +385,8 @@ class KaraokeProcess(
                             settings.statusProcessLyrics = status
                             if (settings.statusProcessLyrics == KaraokeProcessStatuses.DONE.name &&
                                 settings.statusProcessKaraoke == KaraokeProcessStatuses.DONE.name &&
-                                settings.idStatus == 4L) {
+                                settings.idStatus == 4L
+                            ) {
                                 settings.fields[SettingField.ID_STATUS] = "6"
                             }
                             settings.saveToDb()
@@ -383,7 +398,8 @@ class KaraokeProcess(
                             settings.statusProcessKaraoke = status
                             if (settings.statusProcessLyrics == KaraokeProcessStatuses.DONE.name &&
                                 settings.statusProcessKaraoke == KaraokeProcessStatuses.DONE.name &&
-                                settings.idStatus == 4L) {
+                                settings.idStatus == 4L
+                            ) {
                                 settings.fields[SettingField.ID_STATUS] = "6"
                             }
                             settings.saveToDb()
@@ -418,7 +434,6 @@ class KaraokeProcess(
     }
 
     companion object {
-
         // Именованные "лейны" threadId для задач, не привязанных к конкретной песне/сессии редактирования
         const val THREAD_LANE_HEAVY_RENDER = 0 // MELT_*, DEMUCS*, SHEETSAGE и т.п. — тяжёлые задачи, нельзя гнать параллельно
         const val THREAD_LANE_LIGHT_BACKGROUND = -1 // SmartCopy, uploadToLocalStore — быстрые фоновые задачи
@@ -452,7 +467,6 @@ class KaraokeProcess(
         }
 
         fun getCountWaiting(database: KaraokeConnection): Long {
-
             val connection = database.getConnection()
             if (connection == null) {
                 println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
@@ -481,7 +495,10 @@ class KaraokeProcess(
             return result
         }
 
-        fun getLastUpdated(lastTime: Long? = null, database: KaraokeConnection): List<Int> {
+        fun getLastUpdated(
+            lastTime: Long? = null,
+            database: KaraokeConnection,
+        ): List<Int> {
             if (lastTime == null) return emptyList()
 
             val connection = database.getConnection()
@@ -516,21 +533,19 @@ class KaraokeProcess(
             return emptyList()
         }
 
-        fun convertJsonToArgs(json: String): List<List<String>> {
-            return try {
+        fun convertJsonToArgs(json: String): List<List<String>> =
+            try {
                 Json.decodeFromString(ListSerializer(ListSerializer(String.serializer())), json)
             } catch (_: Exception) {
                 emptyList()
             }
-        }
 
-        fun convertJsonToEnvs(json: String): Map<String, String> {
-            return try {
+        fun convertJsonToEnvs(json: String): Map<String, String> =
+            try {
                 Json.decodeFromString(MapSerializer(String.serializer(), String.serializer()), json)
             } catch (_: Exception) {
                 emptyMap()
             }
-        }
 
         fun createDbInstance(processes: List<KaraokeProcess>): List<KaraokeProcess?> {
             val result: MutableList<KaraokeProcess?> = mutableListOf()
@@ -567,7 +582,8 @@ class KaraokeProcess(
                     println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
                     return
                 }
-                val sql = "UPDATE tbl_processes SET " +
+                val sql =
+                    "UPDATE tbl_processes SET " +
                         "process_status = ? " +
                         "WHERE process_status = ?"
                 val ps = connection.prepareStatement(sql)
@@ -578,60 +594,59 @@ class KaraokeProcess(
             } catch (e: Exception) {
                 println(e.message)
             }
-
         }
 
-        fun createDbInstance(process: KaraokeProcess) : KaraokeProcess? {
+        fun createDbInstance(process: KaraokeProcess): KaraokeProcess? {
             val sql =
                 "INSERT INTO tbl_processes (" +
-                        "process_name, " +
-                        "process_status, " +
-                        "process_order, " +
-                        "process_priority, " +
-                        "process_command, " +
-                        "process_args, " +
-                        "process_envs, " +
-                        "process_description, " +
-                        "settings_id, " +
-                        "process_type, " +
-                        "process_start, " +
-                        "process_end, " +
-                        "process_prioritet, " +
-                        "process_start_str, " +
-                        "process_end_str, " +
-                        "process_percentage, " +
-                        "process_percentage_str, " +
-                        "process_time_passed_ms, " +
-                        "process_time_passed_str, " +
-                        "process_time_left_ms, " +
-                        "process_time_left_str, " +
-                        "without_control, " +
-                        "thread_id " +
-                        ") VALUES(" +
-                        "'${process.name.replace("'","''")}', " +
-                        "'${process.status}', " +
-                        "${process.order}, " +
-                        "${process.priority}, " +
-                        "'${process.command.replace("'","''")}', " +
-                        "'${process.argsJson.replace("'","''")}', " +
-                        "'${process.envsJson.replace("'","''")}', " +
-                        "'${process.description.replace("'","''")}', " +
-                        "${process.settingsId}, " +
-                        "'${process.type}', " +
-                        "${process.start}, " +
-                        "${process.end}, " +
-                        "${process.prioritet}, " +
-                        "'${process.startStr}', " +
-                        "'${process.endStr}', " +
-                        "${process.percentage}, " +
-                        "'${process.percentageStr}', " +
-                        "${process.timePassedMs}, " +
-                        "'${process.timePassedStr}', " +
-                        "${process.timeLeftMs}, " +
-                        "'${process.timeLeftStr}', " +
-                        "${process.withoutControl}, " +
-                        "${process.threadId} " +
-                ")"
+                    "process_name, " +
+                    "process_status, " +
+                    "process_order, " +
+                    "process_priority, " +
+                    "process_command, " +
+                    "process_args, " +
+                    "process_envs, " +
+                    "process_description, " +
+                    "settings_id, " +
+                    "process_type, " +
+                    "process_start, " +
+                    "process_end, " +
+                    "process_prioritet, " +
+                    "process_start_str, " +
+                    "process_end_str, " +
+                    "process_percentage, " +
+                    "process_percentage_str, " +
+                    "process_time_passed_ms, " +
+                    "process_time_passed_str, " +
+                    "process_time_left_ms, " +
+                    "process_time_left_str, " +
+                    "without_control, " +
+                    "thread_id " +
+                    ") VALUES(" +
+                    "'${process.name.replace("'","''")}', " +
+                    "'${process.status}', " +
+                    "${process.order}, " +
+                    "${process.priority}, " +
+                    "'${process.command.replace("'","''")}', " +
+                    "'${process.argsJson.replace("'","''")}', " +
+                    "'${process.envsJson.replace("'","''")}', " +
+                    "'${process.description.replace("'","''")}', " +
+                    "${process.settingsId}, " +
+                    "'${process.type}', " +
+                    "${process.start}, " +
+                    "${process.end}, " +
+                    "${process.prioritet}, " +
+                    "'${process.startStr}', " +
+                    "'${process.endStr}', " +
+                    "${process.percentage}, " +
+                    "'${process.percentageStr}', " +
+                    "${process.timePassedMs}, " +
+                    "'${process.timePassedStr}', " +
+                    "${process.timeLeftMs}, " +
+                    "'${process.timeLeftStr}', " +
+                    "${process.withoutControl}, " +
+                    "${process.threadId} " +
+                    ")"
 
             val connection = process.database.getConnection()
             if (connection == null) {
@@ -642,35 +657,41 @@ class KaraokeProcess(
             ps.executeUpdate(sql, Statement.RETURN_GENERATED_KEYS)
             val rs = ps.generatedKeys
 
-            val result = if (rs.next()) {
-                process.id = rs.getLong(1)
-                process
-            } else null
+            val result =
+                if (rs.next()) {
+                    process.id = rs.getLong(1)
+                    process
+                } else {
+                    null
+                }
 
             ps.close()
 
             result?.let {
                 if (!it.withoutControl) {
-                    val messageRecordAdd = SseNotification.recordAdd(
-                        RecordAddMessage(
-                            tableName = "tbl_processes",
-                            recordId = result.id,
-                            databaseName = process.database.name,
-                            record = result.toDTO()
+                    val messageRecordAdd =
+                        SseNotification.recordAdd(
+                            RecordAddMessage(
+                                tableName = "tbl_processes",
+                                recordId = result.id,
+                                databaseName = process.database.name,
+                                record = result.toDTO(),
+                            ),
                         )
-                    )
                     SNS.send(messageRecordAdd)
                 }
             }
 
-            if (process.status == "WAITING" && process.command != "tail") KaraokeProcessWorker.sendCountWaitingMessage(getCountWaiting(database = process.database))
+            if (process.status == "WAITING" &&
+                process.command != "tail"
+            ) {
+                KaraokeProcessWorker.sendCountWaitingMessage(getCountWaiting(database = process.database))
+            }
 
             return result
-
         }
 
         fun getProcessesToStart(database: KaraokeConnection): Map<Int, KaraokeProcess> {
-
             val result: MutableMap<Int, KaraokeProcess> = mutableMapOf()
 
             val connection = database.getConnection()
@@ -683,7 +704,8 @@ class KaraokeProcess(
             var rs: ResultSet? = null
 //            val sql = "SELECT * FROM tbl_processes WHERE process_status = 'WAITING' ORDER BY process_priority, process_order, id LIMIT 1;"
 
-            val sql = """
+            val sql =
+                """
                 SELECT *
                 FROM (
                     SELECT *,
@@ -695,7 +717,7 @@ class KaraokeProcess(
                     WHERE process_status = 'WAITING'
                 ) ranked
                 WHERE rn = 1;
-            """.trimIndent()
+                """.trimIndent()
 
             try {
                 statement = connection.createStatement()
@@ -721,9 +743,7 @@ class KaraokeProcess(
                     process.threadId = rs.getInt("thread_id")
 
                     result.put(process.threadId, process)
-
                 }
-
             } catch (e: SQLException) {
                 e.printStackTrace()
             } finally {
@@ -735,11 +755,12 @@ class KaraokeProcess(
                 }
             }
             return result
-
         }
 
-        fun loadList(args: Map<String, String> = emptyMap(), database: KaraokeConnection): List<KaraokeProcess> {
-
+        fun loadList(
+            args: Map<String, String> = emptyMap(),
+            database: KaraokeConnection,
+        ): List<KaraokeProcess> {
             val connection = database.getConnection()
             if (connection == null) {
                 println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
@@ -753,7 +774,7 @@ class KaraokeProcess(
             try {
                 statement = connection.createStatement()
                 sql = "SELECT tbl_processes.*" +
-                        " FROM tbl_processes"
+                    " FROM tbl_processes"
                 if (args.containsKey("id")) where += "id=${args["id"]}"
                 if (args.containsKey("ids")) where += "tbl_processes.id in (${args["ids"]})"
                 if (args.containsKey("process_name")) where += "process_name LIKE '%${args["process_name"]}%'"
@@ -770,7 +791,6 @@ class KaraokeProcess(
                 if (args.containsKey("thread_id")) where += "thread_id=${args["thread_id"]}"
 
                 if (where.isNotEmpty()) sql += " WHERE ${where.joinToString(" AND ")}"
-
 
 //                println(sql)
 
@@ -796,7 +816,6 @@ class KaraokeProcess(
                     process.withoutControl = rs.getBoolean("without_control")
                     process.threadId = rs.getInt("thread_id")
                     result.add(process)
-
                 }
                 result.sort()
 
@@ -810,7 +829,6 @@ class KaraokeProcess(
                 }
 
                 return result
-
             } catch (e: SQLException) {
                 e.printStackTrace()
             } finally {
@@ -824,8 +842,10 @@ class KaraokeProcess(
             return emptyList()
         }
 
-        fun delete(id: Long, database: KaraokeConnection) {
-
+        fun delete(
+            id: Long,
+            database: KaraokeConnection,
+        ) {
             val connection = database.getConnection()
             if (connection == null) {
                 println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
@@ -837,24 +857,23 @@ class KaraokeProcess(
             ps.executeUpdate()
             ps.close()
 
-            val messageRecordDelete = SseNotification.recordDelete(
-                RecordDeleteMessage(
-                    recordId = id,
-                    tableName = "tbl_processes",
-                    databaseName = database.name
+            val messageRecordDelete =
+                SseNotification.recordDelete(
+                    RecordDeleteMessage(
+                        recordId = id,
+                        tableName = "tbl_processes",
+                        databaseName = database.name,
+                    ),
                 )
-            )
             SNS.send(messageRecordDelete)
 
 //            KaraokeProcessWorker.sendCountWaitingMessage(getCountWaiting(database = database))
-
         }
 
-        fun load(id: Long, database: KaraokeConnection): KaraokeProcess? {
-
-            return loadList(mapOf(Pair("id", id.toString())), database).firstOrNull()
-
-        }
+        fun load(
+            id: Long,
+            database: KaraokeConnection,
+        ): KaraokeProcess? = loadList(mapOf(Pair("id", id.toString())), database).firstOrNull()
 
         @Suppress("UNCHECKED_CAST")
         fun createProcess(
@@ -863,16 +882,16 @@ class KaraokeProcess(
             doWait: Boolean = false,
             prior: Int = 1,
             threadId: Int,
-            context: Map<String, Any> = emptyMap()
+            context: Map<String, Any> = emptyMap(),
         ): Long {
-
             // Находим есть ли уже такой процесс. Если нет - создаём. Если есть и не в статусе "в работе" - пересоздаём
 
-            val existedProcessesLookupArgs = mutableMapOf(
-                "settings_id" to settings.id.toString(),
-                "process_type" to action.name,
-                "thread_id" to threadId.toString()
-            )
+            val existedProcessesLookupArgs =
+                mutableMapOf(
+                    "settings_id" to settings.id.toString(),
+                    "process_type" to action.name,
+                    "thread_id" to threadId.toString(),
+                )
             if (action == KaraokeProcessTypes.UPLOAD_TO_LOCAL_STORE || action == KaraokeProcessTypes.UPLOAD_TO_REMOTE_STORE) {
                 // Один и тот же process_type/thread_id используется для загрузки РАЗНЫХ файлов одной песни -
                 // без уточнения по karaokeFileType задачи для разных файлов затирали бы друг друга
@@ -892,7 +911,6 @@ class KaraokeProcess(
             }
             if (wasWorking) return 0
 
-
             val karaokeProcess = KaraokeProcess(settings.database)
             with(karaokeProcess) {
                 this.name = "[${settings.author}] - [${settings.album}] - «${settings.songName}»"
@@ -910,10 +928,34 @@ class KaraokeProcess(
                         val songKaraokePngAbsolute = settings.getOutputFilename(SongOutputFile.PICTURE, SongVersion.KARAOKE).rightFileName()
                         val songLyricsMp4Absolute = settings.getOutputFilename(SongOutputFile.VIDEO, SongVersion.LYRICS).rightFileName()
                         val songLyricsPngAbsolute = settings.getOutputFilename(SongOutputFile.PICTURE, SongVersion.LYRICS).rightFileName()
-                        val songKaraokeMp4Relative = settings.getOutputFilename(SongOutputFile.VIDEO, SongVersion.KARAOKE, relative = true).rightFileName()
-                        val songKaraokePngRelative = settings.getOutputFilename(SongOutputFile.PICTURE, SongVersion.KARAOKE, relative = true).rightFileName()
-                        val songLyricsMp4Relative = settings.getOutputFilename(SongOutputFile.VIDEO, SongVersion.LYRICS, relative = true).rightFileName()
-                        val songLyricsPngRelative = settings.getOutputFilename(SongOutputFile.PICTURE, SongVersion.LYRICS, relative = true).rightFileName()
+                        val songKaraokeMp4Relative =
+                            settings
+                                .getOutputFilename(
+                                    SongOutputFile.VIDEO,
+                                    SongVersion.KARAOKE,
+                                    relative = true,
+                                ).rightFileName()
+                        val songKaraokePngRelative =
+                            settings
+                                .getOutputFilename(
+                                    SongOutputFile.PICTURE,
+                                    SongVersion.KARAOKE,
+                                    relative = true,
+                                ).rightFileName()
+                        val songLyricsMp4Relative =
+                            settings
+                                .getOutputFilename(
+                                    SongOutputFile.VIDEO,
+                                    SongVersion.LYRICS,
+                                    relative = true,
+                                ).rightFileName()
+                        val songLyricsPngRelative =
+                            settings
+                                .getOutputFilename(
+                                    SongOutputFile.PICTURE,
+                                    SongVersion.LYRICS,
+                                    relative = true,
+                                ).rightFileName()
                         if (!File(settings.pathToSymlinkFolderMP4).exists()) {
                             Files.createDirectories(Path(settings.pathToSymlinkFolderMP4))
                             runCommand(listOf("chmod", "777", settings.pathToSymlinkFolderMP4))
@@ -927,94 +969,142 @@ class KaraokeProcess(
                             runCommand(listOf("chmod", "777", settings.pathToSymlinkFolderSponsr))
                         }
                         val newNoStemNameFlacSymlinkQ = settings.accompanimentNameFlacSymlink.rightFileName().wrapInQuotes()
-                        val songKaraokeMp4Symlink = "${settings.pathToSymlinkFolderMP4}/${File(songKaraokeMp4Absolute).name}".rightFileName().wrapInQuotes()
-                        val songKaraokePngSymlink = "${settings.pathToSymlinkFolderPNG}/${File(songKaraokePngAbsolute).name}".rightFileName().wrapInQuotes()
-                        val songLyricsMp4Symlink = "${settings.pathToSymlinkFolderMP4}/${File(songLyricsMp4Absolute).name}".rightFileName().wrapInQuotes()
-                        val songLyricsPngSymlink = "${settings.pathToSymlinkFolderPNG}/${File(songLyricsPngAbsolute).name}".rightFileName().wrapInQuotes()
+                        val songKaraokeMp4Symlink =
+                            "${settings.pathToSymlinkFolderMP4}/${File(
+                                songKaraokeMp4Absolute,
+                            ).name}".rightFileName().wrapInQuotes()
+                        val songKaraokePngSymlink =
+                            "${settings.pathToSymlinkFolderPNG}/${File(
+                                songKaraokePngAbsolute,
+                            ).name}".rightFileName().wrapInQuotes()
+                        val songLyricsMp4Symlink =
+                            "${settings.pathToSymlinkFolderMP4}/${File(
+                                songLyricsMp4Absolute,
+                            ).name}".rightFileName().wrapInQuotes()
+                        val songLyricsPngSymlink =
+                            "${settings.pathToSymlinkFolderPNG}/${File(
+                                songLyricsPngAbsolute,
+                            ).name}".rightFileName().wrapInQuotes()
 
                         val songSponsrPngAbsolute = settings.getOutputFilename(SongOutputFile.PICTURESPONSRTEASER)
-                        val songSponsrPngRelative = settings.getOutputFilename(SongOutputFile.PICTURESPONSRTEASER,relative = true)
-                        val songSponsrPngSymlink = "${settings.pathToSymlinkFolderSponsr}/${File(songSponsrPngAbsolute).name}".rightFileName().wrapInQuotes()
-
+                        val songSponsrPngRelative = settings.getOutputFilename(SongOutputFile.PICTURESPONSRTEASER, relative = true)
+                        val songSponsrPngSymlink =
+                            "${settings.pathToSymlinkFolderSponsr}/${File(
+                                songSponsrPngAbsolute,
+                            ).name}".rightFileName().wrapInQuotes()
 
                         description = "Кодирование LYRICS"
                         prioritet = 19
                         val cpuPercentMeltLyrics = cpuLimitPercentForType(KaraokeProcessTypes.MELT_LYRICS)
                         envs = mapOf("MLT_CPU_LIMIT" to dockerCpusEnvValue(cpuPercentMeltLyrics))
-                        args = listOf(
+                        args =
                             listOf(
-                                "docker", "compose", "-f", "/sm-karaoke/system/mlt-docker/docker-compose.yaml", "run", "--rm", "mlt", "-progress",
-                                "${settings.rootFolder}/done_projects/${settings.fileName} [lyrics].mlt".rightFileName()
-                            ),
-                            listOf("chmod", "666", settings.pathToFileLyrics),
-                            listOf("mkdir", "-p", settings.pathToStoreFolderLyrics),
-                            listOf("chmod", "777", settings.pathToStoreFolderLyrics),
-                            listOf("cp", settings.pathToFileLyrics, settings.pathToStoreFolderLyrics),
-                            listOf("chmod", "666", settings.pathToStoreFileLyrics),
-                            listOf("mkdir", "-p", settings.pathToFolder720Lyrics),
-                            listOf("chmod", "777", settings.pathToFolder720Lyrics),
-                            listOf("rm", settings.pathToFile720Lyrics),
-                            cpulimitPrefix(cpuPercentMeltLyrics) + listOf(
-                                "ffmpeg",
-                                "-i",
-                                settings.pathToFileLyrics,
-                                "-c:v",
-                                "hevc_nvenc",
-                                "-preset",
-                                "fast",
-                                "-b:v",
-                                "1000k",
-                                "-vf",
-                                "scale=1280:720,fps=30",
-                                "-c:a",
-                                "aac",
-                                settings.pathToFile720Lyrics,
-                                "-y"
-                            ),
-                            listOf("chmod", "666", settings.pathToFile720Lyrics),
-                            listOf("rm", "-f",
+                                listOf(
+                                    "docker",
+                                    "compose",
+                                    "-f",
+                                    "/sm-karaoke/system/mlt-docker/docker-compose.yaml",
+                                    "run",
+                                    "--rm",
+                                    "mlt",
+                                    "-progress",
+                                    "${settings.rootFolder}/done_projects/${settings.fileName} [lyrics].mlt".rightFileName(),
+                                ),
+                                listOf("chmod", "666", settings.pathToFileLyrics),
+                                listOf("mkdir", "-p", settings.pathToStoreFolderLyrics),
+                                listOf("chmod", "777", settings.pathToStoreFolderLyrics),
+                                listOf("cp", settings.pathToFileLyrics, settings.pathToStoreFolderLyrics),
+                                listOf("chmod", "666", settings.pathToStoreFileLyrics),
+                                listOf("mkdir", "-p", settings.pathToFolder720Lyrics),
+                                listOf("chmod", "777", settings.pathToFolder720Lyrics),
+                                listOf("rm", settings.pathToFile720Lyrics),
+                                cpulimitPrefix(cpuPercentMeltLyrics) +
+                                    listOf(
+                                        "ffmpeg",
+                                        "-i",
+                                        settings.pathToFileLyrics,
+                                        "-c:v",
+                                        "hevc_nvenc",
+                                        "-preset",
+                                        "fast",
+                                        "-b:v",
+                                        "1000k",
+                                        "-vf",
+                                        "scale=1280:720,fps=30",
+                                        "-c:a",
+                                        "aac",
+                                        settings.pathToFile720Lyrics,
+                                        "-y",
+                                    ),
+                                listOf("chmod", "666", settings.pathToFile720Lyrics),
+                                listOf(
+                                    "rm",
+                                    "-f",
                                     newNoStemNameFlacSymlinkQ,
                                     songKaraokeMp4Symlink,
                                     songLyricsMp4Symlink,
                                     songKaraokePngSymlink,
                                     songLyricsPngSymlink,
                                     songSponsrPngSymlink,
-                            ),
-
-                            // Ссылка на flack accompaniment в папку pathToSymlinkFolderBoostyFiles
-                            listOf("ln", "-s", settings.relativePathToNoStemNameFlac.rightFileName().wrapInQuotes(), newNoStemNameFlacSymlinkQ),
-                            listOf("chmod", "666", newNoStemNameFlacSymlinkQ),
-
-                            // Ссылка на mp4 karaoke в папку pathToSymlinkFolderMP4
-                            listOf("ln", "-s", songKaraokeMp4Relative.wrapInQuotes(), songKaraokeMp4Symlink),
-                            listOf("chmod", "666", songKaraokeMp4Symlink),
-
-                            // Ссылка на mp4 lyrics в папку pathToSymlinkFolderMP4
-                            listOf("ln", "-s", songLyricsMp4Relative.wrapInQuotes(), songLyricsMp4Symlink),
-                            listOf("chmod", "666", songLyricsMp4Symlink),
-
-                            // Ссылка на png karaoke в папку pathToSymlinkFolderPNG
-                            listOf("ln", "-s", songKaraokePngRelative.wrapInQuotes(), songKaraokePngSymlink),
-                            listOf("chmod", "666", songKaraokePngSymlink),
-
-                            // Ссылка на png lyrics в папку pathToSymlinkFolderPNG
-                            listOf("ln", "-s", songLyricsPngRelative.wrapInQuotes(), songLyricsPngSymlink),
-                            listOf("chmod", "666", songLyricsPngSymlink),
-
-                            // Ссылка на png sponsr в папку pathToSymlinkFolderBoostyPNG
-                            listOf("ln", "-s", songSponsrPngRelative.wrapInQuotes(), songSponsrPngSymlink),
-                            listOf("chmod", "666", songSponsrPngSymlink),
-                        )
+                                ),
+                                // Ссылка на flack accompaniment в папку pathToSymlinkFolderBoostyFiles
+                                listOf(
+                                    "ln",
+                                    "-s",
+                                    settings.relativePathToNoStemNameFlac.rightFileName().wrapInQuotes(),
+                                    newNoStemNameFlacSymlinkQ,
+                                ),
+                                listOf("chmod", "666", newNoStemNameFlacSymlinkQ),
+                                // Ссылка на mp4 karaoke в папку pathToSymlinkFolderMP4
+                                listOf("ln", "-s", songKaraokeMp4Relative.wrapInQuotes(), songKaraokeMp4Symlink),
+                                listOf("chmod", "666", songKaraokeMp4Symlink),
+                                // Ссылка на mp4 lyrics в папку pathToSymlinkFolderMP4
+                                listOf("ln", "-s", songLyricsMp4Relative.wrapInQuotes(), songLyricsMp4Symlink),
+                                listOf("chmod", "666", songLyricsMp4Symlink),
+                                // Ссылка на png karaoke в папку pathToSymlinkFolderPNG
+                                listOf("ln", "-s", songKaraokePngRelative.wrapInQuotes(), songKaraokePngSymlink),
+                                listOf("chmod", "666", songKaraokePngSymlink),
+                                // Ссылка на png lyrics в папку pathToSymlinkFolderPNG
+                                listOf("ln", "-s", songLyricsPngRelative.wrapInQuotes(), songLyricsPngSymlink),
+                                listOf("chmod", "666", songLyricsPngSymlink),
+                                // Ссылка на png sponsr в папку pathToSymlinkFolderBoostyPNG
+                                listOf("ln", "-s", songSponsrPngRelative.wrapInQuotes(), songSponsrPngSymlink),
+                                listOf("chmod", "666", songSponsrPngSymlink),
+                            )
                     }
                     KaraokeProcessTypes.MELT_KARAOKE -> {
                         val songKaraokeMp4Absolute = settings.getOutputFilename(SongOutputFile.VIDEO, SongVersion.KARAOKE).rightFileName()
                         val songKaraokePngAbsolute = settings.getOutputFilename(SongOutputFile.PICTURE, SongVersion.KARAOKE).rightFileName()
                         val songLyricsMp4Absolute = settings.getOutputFilename(SongOutputFile.VIDEO, SongVersion.LYRICS).rightFileName()
                         val songLyricsPngAbsolute = settings.getOutputFilename(SongOutputFile.PICTURE, SongVersion.LYRICS).rightFileName()
-                        val songKaraokeMp4Relative = settings.getOutputFilename(SongOutputFile.VIDEO, SongVersion.KARAOKE, relative = true).rightFileName()
-                        val songKaraokePngRelative = settings.getOutputFilename(SongOutputFile.PICTURE, SongVersion.KARAOKE, relative = true).rightFileName()
-                        val songLyricsMp4Relative = settings.getOutputFilename(SongOutputFile.VIDEO, SongVersion.LYRICS, relative = true).rightFileName()
-                        val songLyricsPngRelative = settings.getOutputFilename(SongOutputFile.PICTURE, SongVersion.LYRICS, relative = true).rightFileName()
+                        val songKaraokeMp4Relative =
+                            settings
+                                .getOutputFilename(
+                                    SongOutputFile.VIDEO,
+                                    SongVersion.KARAOKE,
+                                    relative = true,
+                                ).rightFileName()
+                        val songKaraokePngRelative =
+                            settings
+                                .getOutputFilename(
+                                    SongOutputFile.PICTURE,
+                                    SongVersion.KARAOKE,
+                                    relative = true,
+                                ).rightFileName()
+                        val songLyricsMp4Relative =
+                            settings
+                                .getOutputFilename(
+                                    SongOutputFile.VIDEO,
+                                    SongVersion.LYRICS,
+                                    relative = true,
+                                ).rightFileName()
+                        val songLyricsPngRelative =
+                            settings
+                                .getOutputFilename(
+                                    SongOutputFile.PICTURE,
+                                    SongVersion.LYRICS,
+                                    relative = true,
+                                ).rightFileName()
                         if (!File(settings.pathToSymlinkFolderMP4).exists()) {
                             Files.createDirectories(Path(settings.pathToSymlinkFolderMP4))
                             runCommand(listOf("chmod", "777", settings.pathToSymlinkFolderMP4))
@@ -1028,108 +1118,148 @@ class KaraokeProcess(
                             runCommand(listOf("chmod", "777", settings.pathToSymlinkFolderSponsr))
                         }
                         val newNoStemNameFlacSymlinkQ = settings.accompanimentNameFlacSymlink.rightFileName().wrapInQuotes()
-                        val songKaraokeMp4Symlink = "${settings.pathToSymlinkFolderMP4}/${File(songKaraokeMp4Absolute).name}".rightFileName().wrapInQuotes()
-                        val songKaraokePngSymlink = "${settings.pathToSymlinkFolderPNG}/${File(songKaraokePngAbsolute).name}".rightFileName().wrapInQuotes()
-                        val songLyricsMp4Symlink = "${settings.pathToSymlinkFolderMP4}/${File(songLyricsMp4Absolute).name}".rightFileName().wrapInQuotes()
-                        val songLyricsPngSymlink = "${settings.pathToSymlinkFolderPNG}/${File(songLyricsPngAbsolute).name}".rightFileName().wrapInQuotes()
+                        val songKaraokeMp4Symlink =
+                            "${settings.pathToSymlinkFolderMP4}/${File(
+                                songKaraokeMp4Absolute,
+                            ).name}".rightFileName().wrapInQuotes()
+                        val songKaraokePngSymlink =
+                            "${settings.pathToSymlinkFolderPNG}/${File(
+                                songKaraokePngAbsolute,
+                            ).name}".rightFileName().wrapInQuotes()
+                        val songLyricsMp4Symlink =
+                            "${settings.pathToSymlinkFolderMP4}/${File(
+                                songLyricsMp4Absolute,
+                            ).name}".rightFileName().wrapInQuotes()
+                        val songLyricsPngSymlink =
+                            "${settings.pathToSymlinkFolderPNG}/${File(
+                                songLyricsPngAbsolute,
+                            ).name}".rightFileName().wrapInQuotes()
 
                         val songSponsrPngAbsolute = settings.getOutputFilename(SongOutputFile.PICTURESPONSRTEASER)
-                        val songSponsrPngRelative = settings.getOutputFilename(SongOutputFile.PICTURESPONSRTEASER,relative = true)
-                        val songSponsrPngSymlink = "${settings.pathToSymlinkFolderSponsr}/${File(songSponsrPngAbsolute).name}".rightFileName().wrapInQuotes()
-
+                        val songSponsrPngRelative = settings.getOutputFilename(SongOutputFile.PICTURESPONSRTEASER, relative = true)
+                        val songSponsrPngSymlink =
+                            "${settings.pathToSymlinkFolderSponsr}/${File(
+                                songSponsrPngAbsolute,
+                            ).name}".rightFileName().wrapInQuotes()
 
                         description = "Кодирование KARAOKE"
                         prioritet = 19
                         val cpuPercentMeltKaraoke = cpuLimitPercentForType(KaraokeProcessTypes.MELT_KARAOKE)
                         envs = mapOf("MLT_CPU_LIMIT" to dockerCpusEnvValue(cpuPercentMeltKaraoke))
-                        args = listOf(
+                        args =
                             listOf(
-                                "docker", "compose", "-f", "/sm-karaoke/system/mlt-docker/docker-compose.yaml", "run", "--rm", "mlt", "-progress",
-                                "${settings.rootFolder}/done_projects/${settings.fileName} [karaoke].mlt".rightFileName()
-                            ),
-                            listOf("chmod", "666", settings.pathToFileKaraoke),
-                            listOf("mkdir", "-p", settings.pathToStoreFolderKaraoke),
-                            listOf("chmod", "777", settings.pathToStoreFolderKaraoke),
-                            listOf("cp", settings.pathToFileKaraoke, settings.pathToStoreFileKaraoke),
-                            listOf("chmod", "666", settings.pathToStoreFileKaraoke),
-                            listOf("mkdir", "-p", settings.pathToFolder720Karaoke),
-                            listOf("chmod", "777", settings.pathToFolder720Karaoke),
-                            listOf("rm", settings.pathToFile720Karaoke),
-                            cpulimitPrefix(cpuPercentMeltKaraoke) + listOf(
-                                "ffmpeg",
-                                "-i",
-                                settings.pathToFileKaraoke,
-                                "-c:v",
-                                "hevc_nvenc",
-                                "-preset",
-                                "fast",
-                                "-b:v",
-                                "1000k",
-                                "-vf",
-                                "scale=1280:720,fps=30",
-                                "-c:a",
-                                "aac",
-                                settings.pathToFile720Karaoke,
-                                "-y"
-                            ),
-                            listOf("chmod", "666", settings.pathToFile720Karaoke),
-                            listOf("rm", "-f",
+                                listOf(
+                                    "docker",
+                                    "compose",
+                                    "-f",
+                                    "/sm-karaoke/system/mlt-docker/docker-compose.yaml",
+                                    "run",
+                                    "--rm",
+                                    "mlt",
+                                    "-progress",
+                                    "${settings.rootFolder}/done_projects/${settings.fileName} [karaoke].mlt".rightFileName(),
+                                ),
+                                listOf("chmod", "666", settings.pathToFileKaraoke),
+                                listOf("mkdir", "-p", settings.pathToStoreFolderKaraoke),
+                                listOf("chmod", "777", settings.pathToStoreFolderKaraoke),
+                                listOf("cp", settings.pathToFileKaraoke, settings.pathToStoreFileKaraoke),
+                                listOf("chmod", "666", settings.pathToStoreFileKaraoke),
+                                listOf("mkdir", "-p", settings.pathToFolder720Karaoke),
+                                listOf("chmod", "777", settings.pathToFolder720Karaoke),
+                                listOf("rm", settings.pathToFile720Karaoke),
+                                cpulimitPrefix(cpuPercentMeltKaraoke) +
+                                    listOf(
+                                        "ffmpeg",
+                                        "-i",
+                                        settings.pathToFileKaraoke,
+                                        "-c:v",
+                                        "hevc_nvenc",
+                                        "-preset",
+                                        "fast",
+                                        "-b:v",
+                                        "1000k",
+                                        "-vf",
+                                        "scale=1280:720,fps=30",
+                                        "-c:a",
+                                        "aac",
+                                        settings.pathToFile720Karaoke,
+                                        "-y",
+                                    ),
+                                listOf("chmod", "666", settings.pathToFile720Karaoke),
+                                listOf(
+                                    "rm",
+                                    "-f",
                                     newNoStemNameFlacSymlinkQ,
                                     songKaraokeMp4Symlink,
                                     songLyricsMp4Symlink,
                                     songKaraokePngSymlink,
                                     songLyricsPngSymlink,
                                     songSponsrPngSymlink,
-                            ),
-
-                            // Ссылка на flack accompaniment в папку pathToSymlinkFolderBoostyFiles
-                            listOf("ln", "-s", settings.relativePathToNoStemNameFlac.rightFileName().wrapInQuotes(), newNoStemNameFlacSymlinkQ),
-                            listOf("chmod", "666", newNoStemNameFlacSymlinkQ),
-
-                            // Ссылка на mp4 karaoke в папку pathToSymlinkFolderMP4
-                            listOf("ln", "-s", songKaraokeMp4Relative.wrapInQuotes(), songKaraokeMp4Symlink),
-                            listOf("chmod", "666", songKaraokeMp4Symlink),
-
-                            // Ссылка на mp4 lyrics в папку pathToSymlinkFolderMP4
-                            listOf("ln", "-s", songLyricsMp4Relative.wrapInQuotes(), songLyricsMp4Symlink),
-                            listOf("chmod", "666", songLyricsMp4Symlink),
-
-                            // Ссылка на png karaoke в папку pathToSymlinkFolderPNG
-                            listOf("ln", "-s", songKaraokePngRelative.wrapInQuotes(), songKaraokePngSymlink),
-                            listOf("chmod", "666", songKaraokePngSymlink),
-
-                            // Ссылка на png lyrics в папку pathToSymlinkFolderPNG
-                            listOf("ln", "-s", songLyricsPngRelative.wrapInQuotes(), songLyricsPngSymlink),
-                            listOf("chmod", "666", songLyricsPngSymlink),
-
-                            // Ссылка на png sponsr в папку pathToSymlinkFolderBoostyPNG
-                            listOf("ln", "-s", songSponsrPngRelative.wrapInQuotes(), songSponsrPngSymlink),
-                            listOf("chmod", "666", songSponsrPngSymlink),
-                        )
+                                ),
+                                // Ссылка на flack accompaniment в папку pathToSymlinkFolderBoostyFiles
+                                listOf(
+                                    "ln",
+                                    "-s",
+                                    settings.relativePathToNoStemNameFlac.rightFileName().wrapInQuotes(),
+                                    newNoStemNameFlacSymlinkQ,
+                                ),
+                                listOf("chmod", "666", newNoStemNameFlacSymlinkQ),
+                                // Ссылка на mp4 karaoke в папку pathToSymlinkFolderMP4
+                                listOf("ln", "-s", songKaraokeMp4Relative.wrapInQuotes(), songKaraokeMp4Symlink),
+                                listOf("chmod", "666", songKaraokeMp4Symlink),
+                                // Ссылка на mp4 lyrics в папку pathToSymlinkFolderMP4
+                                listOf("ln", "-s", songLyricsMp4Relative.wrapInQuotes(), songLyricsMp4Symlink),
+                                listOf("chmod", "666", songLyricsMp4Symlink),
+                                // Ссылка на png karaoke в папку pathToSymlinkFolderPNG
+                                listOf("ln", "-s", songKaraokePngRelative.wrapInQuotes(), songKaraokePngSymlink),
+                                listOf("chmod", "666", songKaraokePngSymlink),
+                                // Ссылка на png lyrics в папку pathToSymlinkFolderPNG
+                                listOf("ln", "-s", songLyricsPngRelative.wrapInQuotes(), songLyricsPngSymlink),
+                                listOf("chmod", "666", songLyricsPngSymlink),
+                                // Ссылка на png sponsr в папку pathToSymlinkFolderBoostyPNG
+                                listOf("ln", "-s", songSponsrPngRelative.wrapInQuotes(), songSponsrPngSymlink),
+                                listOf("chmod", "666", songSponsrPngSymlink),
+                            )
                     }
                     KaraokeProcessTypes.MELT_CHORDS -> {
                         description = "Кодирование CHORDS"
                         prioritet = 19
                         envs = mapOf("MLT_CPU_LIMIT" to dockerCpusEnvValue(cpuLimitPercentForType(KaraokeProcessTypes.MELT_CHORDS)))
-                        args = listOf(
+                        args =
                             listOf(
-                                "docker", "compose", "-f", "/sm-karaoke/system/mlt-docker/docker-compose.yaml", "run", "--rm", "mlt", "-progress",
-                                "${settings.rootFolder}/done_projects/${settings.fileName} [chords].mlt".rightFileName()
-                            ),
-                            listOf("chmod", "666", settings.pathToFileChords),
-                        )
+                                listOf(
+                                    "docker",
+                                    "compose",
+                                    "-f",
+                                    "/sm-karaoke/system/mlt-docker/docker-compose.yaml",
+                                    "run",
+                                    "--rm",
+                                    "mlt",
+                                    "-progress",
+                                    "${settings.rootFolder}/done_projects/${settings.fileName} [chords].mlt".rightFileName(),
+                                ),
+                                listOf("chmod", "666", settings.pathToFileChords),
+                            )
                     }
                     KaraokeProcessTypes.MELT_TABS -> {
                         description = "Кодирование TABS"
                         prioritet = 19
                         envs = mapOf("MLT_CPU_LIMIT" to dockerCpusEnvValue(cpuLimitPercentForType(KaraokeProcessTypes.MELT_TABS)))
-                        args = listOf(
+                        args =
                             listOf(
-                                "docker", "compose", "-f", "/sm-karaoke/system/mlt-docker/docker-compose.yaml", "run", "--rm", "mlt", "-progress",
-                                "${settings.rootFolder}/done_projects/${settings.fileName} [tabs].mlt".rightFileName()
-                            ),
-                            listOf("chmod", "666", settings.pathToFileMelody),
-                        )
+                                listOf(
+                                    "docker",
+                                    "compose",
+                                    "-f",
+                                    "/sm-karaoke/system/mlt-docker/docker-compose.yaml",
+                                    "run",
+                                    "--rm",
+                                    "mlt",
+                                    "-progress",
+                                    "${settings.rootFolder}/done_projects/${settings.fileName} [tabs].mlt".rightFileName(),
+                                ),
+                                listOf("chmod", "666", settings.pathToFileMelody),
+                            )
                     }
 
                     KaraokeProcessTypes.DEMUCS2 -> {
@@ -1153,28 +1283,40 @@ class KaraokeProcess(
                         val resultBeattimes = "$resultFolder/beattimes"
                         description = "SHEETSAGE"
                         val cpuPercentSheetsage = cpuLimitPercentForType(KaraokeProcessTypes.SHEETSAGE)
-                        args = listOf(
-                            listOf("mkdir", "-p", resultFolder),
-                            listOf("rm", "-f", srcWav, resultPdf, resultMidi, resultLy, resultBeattimes),
-                            cpulimitPrefix(cpuPercentSheetsage) + listOf("ffmpeg", "-i", settings.fileAbsolutePath.rightFileName(), "-compression_level", "8", srcWav, "-y"),
-                            cpulimitPrefix(cpuPercentSheetsage) + listOf("~/sheetsage/sheetsage.sh", "-j", "-o", "output/output", srcWav),
-                            listOf("mkdir", "-p", settings.pathToFolderSheetsage),
-                            listOf("mv", resultPdf.rightFileName(), settings.pathToFileSheetsagePDF.rightFileName()),
-                            listOf("mv", resultMidi.rightFileName(), settings.pathToFileSheetsageMIDI.rightFileName()),
-                            listOf("mv", resultLy.rightFileName(), settings.pathToFileSheetsageLY.rightFileName()),
-                            listOf("mv", resultBeattimes.rightFileName(), settings.pathToFileSheetsageBeattimes.rightFileName())
-                        )
-                        argsDescription = listOf(
-                            "SHEETSAGE - Создание папки output",
-                            "SHEETSAGE - Удаление старых файлов",
-                            "SHEETSAGE - Декодирование FLAC в WAV",
-                            "SHEETSAGE - Распознавание аккордов",
-                            "SHEETSAGE - Создание папки sheetsage",
-                            "SHEETSAGE - Копирование файла PDF",
-                            "SHEETSAGE - Копирование файла MIDI",
-                            "SHEETSAGE - Копирование файла LY",
-                            "SHEETSAGE - Копирование файла Beattimes"
-                        )
+                        args =
+                            listOf(
+                                listOf("mkdir", "-p", resultFolder),
+                                listOf("rm", "-f", srcWav, resultPdf, resultMidi, resultLy, resultBeattimes),
+                                cpulimitPrefix(cpuPercentSheetsage) +
+                                    listOf(
+                                        "ffmpeg",
+                                        "-i",
+                                        settings.fileAbsolutePath.rightFileName(),
+                                        "-compression_level",
+                                        "8",
+                                        srcWav,
+                                        "-y",
+                                    ),
+                                cpulimitPrefix(cpuPercentSheetsage) +
+                                    listOf("~/sheetsage/sheetsage.sh", "-j", "-o", "output/output", srcWav),
+                                listOf("mkdir", "-p", settings.pathToFolderSheetsage),
+                                listOf("mv", resultPdf.rightFileName(), settings.pathToFileSheetsagePDF.rightFileName()),
+                                listOf("mv", resultMidi.rightFileName(), settings.pathToFileSheetsageMIDI.rightFileName()),
+                                listOf("mv", resultLy.rightFileName(), settings.pathToFileSheetsageLY.rightFileName()),
+                                listOf("mv", resultBeattimes.rightFileName(), settings.pathToFileSheetsageBeattimes.rightFileName()),
+                            )
+                        argsDescription =
+                            listOf(
+                                "SHEETSAGE - Создание папки output",
+                                "SHEETSAGE - Удаление старых файлов",
+                                "SHEETSAGE - Декодирование FLAC в WAV",
+                                "SHEETSAGE - Распознавание аккордов",
+                                "SHEETSAGE - Создание папки sheetsage",
+                                "SHEETSAGE - Копирование файла PDF",
+                                "SHEETSAGE - Копирование файла MIDI",
+                                "SHEETSAGE - Копирование файла LY",
+                                "SHEETSAGE - Копирование файла Beattimes",
+                            )
                     }
                     KaraokeProcessTypes.SHEETSAGE2 -> {
                         val srcWav = "/sm-karaoke/system/sheetsage/source.wav"
@@ -1185,28 +1327,40 @@ class KaraokeProcess(
                         val resultBeattimes = "$resultFolder/beattimes"
                         description = "SHEETSAGE2"
                         val cpuPercentSheetsage2 = cpuLimitPercentForType(KaraokeProcessTypes.SHEETSAGE2)
-                        args = listOf(
-                            listOf("mkdir", "-p", resultFolder),
-                            listOf("rm", "-f", srcWav, resultPdf, resultMidi, resultLy, resultBeattimes),
-                            cpulimitPrefix(cpuPercentSheetsage2) + listOf("ffmpeg", "-i", settings.fileAbsolutePath.rightFileName(), "-compression_level", "8", srcWav, "-y"),
-                            cpulimitPrefix(cpuPercentSheetsage2) + listOf("~/sheetsage/sheetsage.sh", "-j", "-o", "output/output", "--measures_per_chunk", "4", srcWav),
-                            listOf("mkdir", "-p", settings.pathToFolderSheetsage),
-                            listOf("mv", resultPdf.rightFileName(), settings.pathToFileSheetsagePDF.rightFileName()),
-                            listOf("mv", resultMidi.rightFileName(), settings.pathToFileSheetsageMIDI.rightFileName()),
-                            listOf("mv", resultLy.rightFileName(), settings.pathToFileSheetsageLY.rightFileName()),
-                            listOf("mv", resultBeattimes.rightFileName(), settings.pathToFileSheetsageBeattimes.rightFileName())
-                        )
-                        argsDescription = listOf(
-                            "SHEETSAGE2 - Создание папки output",
-                            "SHEETSAGE2 - Удаление старых файлов",
-                            "SHEETSAGE2 - Декодирование FLAC в WAV",
-                            "SHEETSAGE2 - Распознавание аккордов",
-                            "SHEETSAGE2 - Создание папки sheetsage",
-                            "SHEETSAGE2 - Копирование файла PDF",
-                            "SHEETSAGE2 - Копирование файла MIDI",
-                            "SHEETSAGE2 - Копирование файла LY",
-                            "SHEETSAGE2 - Копирование файла Beattimes"
-                        )
+                        args =
+                            listOf(
+                                listOf("mkdir", "-p", resultFolder),
+                                listOf("rm", "-f", srcWav, resultPdf, resultMidi, resultLy, resultBeattimes),
+                                cpulimitPrefix(cpuPercentSheetsage2) +
+                                    listOf(
+                                        "ffmpeg",
+                                        "-i",
+                                        settings.fileAbsolutePath.rightFileName(),
+                                        "-compression_level",
+                                        "8",
+                                        srcWav,
+                                        "-y",
+                                    ),
+                                cpulimitPrefix(cpuPercentSheetsage2) +
+                                    listOf("~/sheetsage/sheetsage.sh", "-j", "-o", "output/output", "--measures_per_chunk", "4", srcWav),
+                                listOf("mkdir", "-p", settings.pathToFolderSheetsage),
+                                listOf("mv", resultPdf.rightFileName(), settings.pathToFileSheetsagePDF.rightFileName()),
+                                listOf("mv", resultMidi.rightFileName(), settings.pathToFileSheetsageMIDI.rightFileName()),
+                                listOf("mv", resultLy.rightFileName(), settings.pathToFileSheetsageLY.rightFileName()),
+                                listOf("mv", resultBeattimes.rightFileName(), settings.pathToFileSheetsageBeattimes.rightFileName()),
+                            )
+                        argsDescription =
+                            listOf(
+                                "SHEETSAGE2 - Создание папки output",
+                                "SHEETSAGE2 - Удаление старых файлов",
+                                "SHEETSAGE2 - Декодирование FLAC в WAV",
+                                "SHEETSAGE2 - Распознавание аккордов",
+                                "SHEETSAGE2 - Создание папки sheetsage",
+                                "SHEETSAGE2 - Копирование файла PDF",
+                                "SHEETSAGE2 - Копирование файла MIDI",
+                                "SHEETSAGE2 - Копирование файла LY",
+                                "SHEETSAGE2 - Копирование файла Beattimes",
+                            )
                     }
                     KaraokeProcessTypes.FF_720_KAR -> {
                         val destinationFolder = settings.pathToFolder720Karaoke
@@ -1218,29 +1372,30 @@ class KaraokeProcess(
                             runCommand(listOf("chmod", "777", destinationFolder))
                         }
                         description = "720P KARAOKE"
-                        args = listOf(
-                            cpulimitPrefix(cpuLimitPercentForType(KaraokeProcessTypes.FF_720_KAR)) + listOf(
-                                "ffmpeg",
-                                "-i",
-                                sourceFile,
-                                "-c:v",
-                                "hevc_nvenc",
-                                "-preset",
-                                "fast",
-                                "-b:v",
-                                "1000k",
-                                "-vf",
-                                "scale=1280:720,fps=30",
-                                "-c:a",
-                                "aac",
-                                destinationFile,
-                                "-y"
-                            ),
-                            listOf("chmod", "666", destinationFile),
-                        )
+                        args =
+                            listOf(
+                                cpulimitPrefix(cpuLimitPercentForType(KaraokeProcessTypes.FF_720_KAR)) +
+                                    listOf(
+                                        "ffmpeg",
+                                        "-i",
+                                        sourceFile,
+                                        "-c:v",
+                                        "hevc_nvenc",
+                                        "-preset",
+                                        "fast",
+                                        "-b:v",
+                                        "1000k",
+                                        "-vf",
+                                        "scale=1280:720,fps=30",
+                                        "-c:a",
+                                        "aac",
+                                        destinationFile,
+                                        "-y",
+                                    ),
+                                listOf("chmod", "666", destinationFile),
+                            )
                     }
                     KaraokeProcessTypes.FF_720_LYR -> {
-
                         val destinationFolder = settings.pathToFolder720Lyrics
                         val sourceFile = settings.pathToFileLyrics
                         val destinationFile = settings.pathToFile720Lyrics
@@ -1251,26 +1406,28 @@ class KaraokeProcess(
                         }
 
                         description = "720P LYRICS"
-                        args = listOf(
-                            cpulimitPrefix(cpuLimitPercentForType(KaraokeProcessTypes.FF_720_LYR)) + listOf(
-                                "ffmpeg",
-                                "-i",
-                                sourceFile,
-                                "-c:v",
-                                "hevc_nvenc",
-                                "-preset",
-                                "fast",
-                                "-b:v",
-                                "1000k",
-                                "-vf",
-                                "scale=1280:720,fps=30",
-                                "-c:a",
-                                "aac",
-                                destinationFile,
-                                "-y"
-                            ),
-                            listOf("chmod", "666", destinationFile),
-                        )
+                        args =
+                            listOf(
+                                cpulimitPrefix(cpuLimitPercentForType(KaraokeProcessTypes.FF_720_LYR)) +
+                                    listOf(
+                                        "ffmpeg",
+                                        "-i",
+                                        sourceFile,
+                                        "-c:v",
+                                        "hevc_nvenc",
+                                        "-preset",
+                                        "fast",
+                                        "-b:v",
+                                        "1000k",
+                                        "-vf",
+                                        "scale=1280:720,fps=30",
+                                        "-c:a",
+                                        "aac",
+                                        destinationFile,
+                                        "-y",
+                                    ),
+                                listOf("chmod", "666", destinationFile),
+                            )
                     }
                     KaraokeProcessTypes.SYMLINK -> {
                         withoutControl = true
@@ -1278,10 +1435,34 @@ class KaraokeProcess(
                         val songKaraokePngAbsolute = settings.getOutputFilename(SongOutputFile.PICTURE, SongVersion.KARAOKE).rightFileName()
                         val songLyricsMp4Absolute = settings.getOutputFilename(SongOutputFile.VIDEO, SongVersion.LYRICS).rightFileName()
                         val songLyricsPngAbsolute = settings.getOutputFilename(SongOutputFile.PICTURE, SongVersion.LYRICS).rightFileName()
-                        val songKaraokeMp4Relative = settings.getOutputFilename(SongOutputFile.VIDEO, SongVersion.KARAOKE, relative = true).rightFileName()
-                        val songKaraokePngRelative = settings.getOutputFilename(SongOutputFile.PICTURE, SongVersion.KARAOKE, relative = true).rightFileName()
-                        val songLyricsMp4Relative = settings.getOutputFilename(SongOutputFile.VIDEO, SongVersion.LYRICS, relative = true).rightFileName()
-                        val songLyricsPngRelative = settings.getOutputFilename(SongOutputFile.PICTURE, SongVersion.LYRICS, relative = true).rightFileName()
+                        val songKaraokeMp4Relative =
+                            settings
+                                .getOutputFilename(
+                                    SongOutputFile.VIDEO,
+                                    SongVersion.KARAOKE,
+                                    relative = true,
+                                ).rightFileName()
+                        val songKaraokePngRelative =
+                            settings
+                                .getOutputFilename(
+                                    SongOutputFile.PICTURE,
+                                    SongVersion.KARAOKE,
+                                    relative = true,
+                                ).rightFileName()
+                        val songLyricsMp4Relative =
+                            settings
+                                .getOutputFilename(
+                                    SongOutputFile.VIDEO,
+                                    SongVersion.LYRICS,
+                                    relative = true,
+                                ).rightFileName()
+                        val songLyricsPngRelative =
+                            settings
+                                .getOutputFilename(
+                                    SongOutputFile.PICTURE,
+                                    SongVersion.LYRICS,
+                                    relative = true,
+                                ).rightFileName()
                         if (!File(settings.pathToSymlinkFolderMP4).exists()) {
                             Files.createDirectories(Path(settings.pathToSymlinkFolderMP4))
                             runCommand(listOf("chmod", "777", settings.pathToSymlinkFolderMP4))
@@ -1296,51 +1477,67 @@ class KaraokeProcess(
                         }
 
                         val newNoStemNameFlacSymlinkQ = settings.accompanimentNameFlacSymlink.rightFileName().wrapInQuotes()
-                        val songKaraokeMp4Symlink = "${settings.pathToSymlinkFolderMP4}/${File(songKaraokeMp4Absolute).name}".rightFileName().wrapInQuotes()
-                        val songKaraokePngSymlink = "${settings.pathToSymlinkFolderPNG}/${File(songKaraokePngAbsolute).name}".rightFileName().wrapInQuotes()
-                        val songLyricsMp4Symlink = "${settings.pathToSymlinkFolderMP4}/${File(songLyricsMp4Absolute).name}".rightFileName().wrapInQuotes()
-                        val songLyricsPngSymlink = "${settings.pathToSymlinkFolderPNG}/${File(songLyricsPngAbsolute).name}".rightFileName().wrapInQuotes()
+                        val songKaraokeMp4Symlink =
+                            "${settings.pathToSymlinkFolderMP4}/${File(
+                                songKaraokeMp4Absolute,
+                            ).name}".rightFileName().wrapInQuotes()
+                        val songKaraokePngSymlink =
+                            "${settings.pathToSymlinkFolderPNG}/${File(
+                                songKaraokePngAbsolute,
+                            ).name}".rightFileName().wrapInQuotes()
+                        val songLyricsMp4Symlink =
+                            "${settings.pathToSymlinkFolderMP4}/${File(
+                                songLyricsMp4Absolute,
+                            ).name}".rightFileName().wrapInQuotes()
+                        val songLyricsPngSymlink =
+                            "${settings.pathToSymlinkFolderPNG}/${File(
+                                songLyricsPngAbsolute,
+                            ).name}".rightFileName().wrapInQuotes()
 
                         val songSponsrPngAbsolute = settings.getOutputFilename(SongOutputFile.PICTURESPONSRTEASER)
-                        val songSponsrPngRelative = settings.getOutputFilename(SongOutputFile.PICTURESPONSRTEASER,relative = true)
-                        val songSponsrPngSymlink = "${settings.pathToSymlinkFolderSponsr}/${File(songSponsrPngAbsolute).name}".rightFileName().wrapInQuotes()
+                        val songSponsrPngRelative = settings.getOutputFilename(SongOutputFile.PICTURESPONSRTEASER, relative = true)
+                        val songSponsrPngSymlink =
+                            "${settings.pathToSymlinkFolderSponsr}/${File(
+                                songSponsrPngAbsolute,
+                            ).name}".rightFileName().wrapInQuotes()
 
                         description = "SYMLINK"
-                        args = listOf(
-                            listOf("rm", "-f",
-                                newNoStemNameFlacSymlinkQ,
-                                songKaraokeMp4Symlink,
-                                songLyricsMp4Symlink,
-                                songKaraokePngSymlink,
-                                songLyricsPngSymlink,
-                                songSponsrPngSymlink,
-                            ),
-
-                            // Ссылка на flack accompaniment в папку pathToSymlinkFolderBoostyFiles
-                            listOf("ln", "-s", settings.relativePathToNoStemNameFlac.rightFileName().wrapInQuotes(), newNoStemNameFlacSymlinkQ),
-                            listOf("chmod", "666", newNoStemNameFlacSymlinkQ),
-
-                            // Ссылка на mp4 karaoke в папку pathToSymlinkFolderMP4
-                            listOf("ln", "-s", songKaraokeMp4Relative.wrapInQuotes(), songKaraokeMp4Symlink),
-                            listOf("chmod", "666", songKaraokeMp4Symlink),
-
-                            // Ссылка на mp4 lyrics в папку pathToSymlinkFolderMP4
-                            listOf("ln", "-s", songLyricsMp4Relative.wrapInQuotes(), songLyricsMp4Symlink),
-                            listOf("chmod", "666", songLyricsMp4Symlink),
-
-                            // Ссылка на png karaoke в папку pathToSymlinkFolderPNG
-                            listOf("ln", "-s", songKaraokePngRelative.wrapInQuotes(), songKaraokePngSymlink),
-                            listOf("chmod", "666", songKaraokePngSymlink),
-
-                            // Ссылка на png lyrics в папку pathToSymlinkFolderPNG
-                            listOf("ln", "-s", songLyricsPngRelative.wrapInQuotes(), songLyricsPngSymlink),
-                            listOf("chmod", "666", songLyricsPngSymlink),
-
-                            // Ссылка на png sponsr в папку pathToSymlinkFolderBoostyPNG
-                            listOf("ln", "-s", songSponsrPngRelative.wrapInQuotes(), songSponsrPngSymlink),
-                            listOf("chmod", "666", songSponsrPngSymlink),
-
-                        )
+                        args =
+                            listOf(
+                                listOf(
+                                    "rm",
+                                    "-f",
+                                    newNoStemNameFlacSymlinkQ,
+                                    songKaraokeMp4Symlink,
+                                    songLyricsMp4Symlink,
+                                    songKaraokePngSymlink,
+                                    songLyricsPngSymlink,
+                                    songSponsrPngSymlink,
+                                ),
+                                // Ссылка на flack accompaniment в папку pathToSymlinkFolderBoostyFiles
+                                listOf(
+                                    "ln",
+                                    "-s",
+                                    settings.relativePathToNoStemNameFlac.rightFileName().wrapInQuotes(),
+                                    newNoStemNameFlacSymlinkQ,
+                                ),
+                                listOf("chmod", "666", newNoStemNameFlacSymlinkQ),
+                                // Ссылка на mp4 karaoke в папку pathToSymlinkFolderMP4
+                                listOf("ln", "-s", songKaraokeMp4Relative.wrapInQuotes(), songKaraokeMp4Symlink),
+                                listOf("chmod", "666", songKaraokeMp4Symlink),
+                                // Ссылка на mp4 lyrics в папку pathToSymlinkFolderMP4
+                                listOf("ln", "-s", songLyricsMp4Relative.wrapInQuotes(), songLyricsMp4Symlink),
+                                listOf("chmod", "666", songLyricsMp4Symlink),
+                                // Ссылка на png karaoke в папку pathToSymlinkFolderPNG
+                                listOf("ln", "-s", songKaraokePngRelative.wrapInQuotes(), songKaraokePngSymlink),
+                                listOf("chmod", "666", songKaraokePngSymlink),
+                                // Ссылка на png lyrics в папку pathToSymlinkFolderPNG
+                                listOf("ln", "-s", songLyricsPngRelative.wrapInQuotes(), songLyricsPngSymlink),
+                                listOf("chmod", "666", songLyricsPngSymlink),
+                                // Ссылка на png sponsr в папку pathToSymlinkFolderBoostyPNG
+                                listOf("ln", "-s", songSponsrPngRelative.wrapInQuotes(), songSponsrPngSymlink),
+                                listOf("chmod", "666", songSponsrPngSymlink),
+                            )
                     }
 //                    KaraokeProcessTypes.FF_MP3_KAR -> {
 //                        description = "MP3 KARAOKE"
@@ -1388,98 +1585,146 @@ class KaraokeProcess(
 //                    }
                     KaraokeProcessTypes.FF_MP3_ACCOMPANIMENT -> {
                         description = "MP3 ACCOMPANIMENT"
-                        args = listOf(
-                            listOf("rm", settings.accompanimentNameMp3),
-                            listOf("ffmpeg", "-i",
-                                settings.accompanimentNameFlac.rightFileName(),
-                                "-ab", "320k", "-map_metadata", "0", "-id3v2_version", "3",
-                                settings.accompanimentNameMp3,
-                                "-y"
-                            ),
-                            listOf("chmod", "666", settings.accompanimentNameMp3),
-                        )
+                        args =
+                            listOf(
+                                listOf("rm", settings.accompanimentNameMp3),
+                                listOf(
+                                    "ffmpeg",
+                                    "-i",
+                                    settings.accompanimentNameFlac.rightFileName(),
+                                    "-ab",
+                                    "320k",
+                                    "-map_metadata",
+                                    "0",
+                                    "-id3v2_version",
+                                    "3",
+                                    settings.accompanimentNameMp3,
+                                    "-y",
+                                ),
+                                listOf("chmod", "666", settings.accompanimentNameMp3),
+                            )
                     }
                     KaraokeProcessTypes.FF_MP3_VOCAL -> {
                         description = "MP3 VOCAL"
-                        args = listOf(
-                            listOf("rm", settings.vocalsNameMp3),
-                            listOf("ffmpeg", "-i",
-                                settings.vocalsNameFlac.rightFileName(),
-                                "-ab", "320k", "-map_metadata", "0", "-id3v2_version", "3",
-                                settings.vocalsNameMp3,
-                                "-y"
-                            ),
-                            listOf("chmod", "666", settings.vocalsNameMp3),
-                        )
+                        args =
+                            listOf(
+                                listOf("rm", settings.vocalsNameMp3),
+                                listOf(
+                                    "ffmpeg",
+                                    "-i",
+                                    settings.vocalsNameFlac.rightFileName(),
+                                    "-ab",
+                                    "320k",
+                                    "-map_metadata",
+                                    "0",
+                                    "-id3v2_version",
+                                    "3",
+                                    settings.vocalsNameMp3,
+                                    "-y",
+                                ),
+                                listOf("chmod", "666", settings.vocalsNameMp3),
+                            )
                     }
                     KaraokeProcessTypes.FF_MP3_DRUMS -> {
                         description = "MP3 DRUMS"
-                        args = listOf(
-                            listOf("rm", settings.drumsNameMp3),
-                            listOf("ffmpeg", "-i",
-                                settings.drumsNameFlac.rightFileName(),
-                                "-ab", "320k", "-map_metadata", "0", "-id3v2_version", "3",
-                                settings.drumsNameMp3,
-                                "-y"
-                            ),
-                            listOf("chmod", "666", settings.drumsNameMp3),
-                        )
+                        args =
+                            listOf(
+                                listOf("rm", settings.drumsNameMp3),
+                                listOf(
+                                    "ffmpeg",
+                                    "-i",
+                                    settings.drumsNameFlac.rightFileName(),
+                                    "-ab",
+                                    "320k",
+                                    "-map_metadata",
+                                    "0",
+                                    "-id3v2_version",
+                                    "3",
+                                    settings.drumsNameMp3,
+                                    "-y",
+                                ),
+                                listOf("chmod", "666", settings.drumsNameMp3),
+                            )
                     }
                     KaraokeProcessTypes.FF_MP3_BASS -> {
                         description = "MP3 BASS"
-                        args = listOf(
-                            listOf("rm", settings.bassNameMp3),
-                            listOf("ffmpeg", "-i",
-                                settings.bassNameFlac.rightFileName(),
-                                "-ab", "320k", "-map_metadata", "0", "-id3v2_version", "3",
-                                settings.bassNameMp3,
-                                "-y"
-                            ),
-                            listOf("chmod", "666", settings.bassNameMp3),
-                        )
+                        args =
+                            listOf(
+                                listOf("rm", settings.bassNameMp3),
+                                listOf(
+                                    "ffmpeg",
+                                    "-i",
+                                    settings.bassNameFlac.rightFileName(),
+                                    "-ab",
+                                    "320k",
+                                    "-map_metadata",
+                                    "0",
+                                    "-id3v2_version",
+                                    "3",
+                                    settings.bassNameMp3,
+                                    "-y",
+                                ),
+                                listOf("chmod", "666", settings.bassNameMp3),
+                            )
                     }
                     KaraokeProcessTypes.FF_MP3_OTHER -> {
                         description = "MP3 OTHER"
-                        args = listOf(
-                            listOf("rm", settings.otherNameMp3),
-                            listOf("ffmpeg", "-i",
-                                settings.otherNameFlac.rightFileName(),
-                                "-ab", "320k", "-map_metadata", "0", "-id3v2_version", "3",
-                                settings.otherNameMp3,
-                                "-y"
-                            ),
-                            listOf("chmod", "666", settings.otherNameMp3),
-                        )
+                        args =
+                            listOf(
+                                listOf("rm", settings.otherNameMp3),
+                                listOf(
+                                    "ffmpeg",
+                                    "-i",
+                                    settings.otherNameFlac.rightFileName(),
+                                    "-ab",
+                                    "320k",
+                                    "-map_metadata",
+                                    "0",
+                                    "-id3v2_version",
+                                    "3",
+                                    settings.otherNameMp3,
+                                    "-y",
+                                ),
+                                listOf("chmod", "666", settings.otherNameMp3),
+                            )
                     }
                     KaraokeProcessTypes.UPLOAD_TO_LOCAL_STORE -> {
                         description = "UPLOAD TO LOCAL STORE"
                         val pathToFile = context["pathToFile"] as String
                         val karaokeFileType = context["karaokeFileType"] as String
                         val deleteAfterUpload = context["deleteAfterUpload"] as? String
-                        args = listOf(
-                            listOfNotNull(
-                                "runFunctionWithArgs", "uploadToLocalStore", "settingsId=${settings.id}",
-                                "pathToFile=$pathToFile", "karaokeFileType=$karaokeFileType",
-                                (context["storageFileName"] as? String)?.let { "storageFileName=$it" },
-                                (context["bucketName"] as? String)?.let { "bucketName=$it" },
-                                deleteAfterUpload?.let { "deleteAfterUpload=$it" }
+                        args =
+                            listOf(
+                                listOfNotNull(
+                                    "runFunctionWithArgs",
+                                    "uploadToLocalStore",
+                                    "settingsId=${settings.id}",
+                                    "pathToFile=$pathToFile",
+                                    "karaokeFileType=$karaokeFileType",
+                                    (context["storageFileName"] as? String)?.let { "storageFileName=$it" },
+                                    (context["bucketName"] as? String)?.let { "bucketName=$it" },
+                                    deleteAfterUpload?.let { "deleteAfterUpload=$it" },
+                                ),
                             )
-                        )
                     }
                     KaraokeProcessTypes.UPLOAD_TO_REMOTE_STORE -> {
                         description = "UPLOAD TO REMOTE STORE"
                         val pathToFile = context["pathToFile"] as String
                         val karaokeFileType = context["karaokeFileType"] as String
                         val deleteAfterUpload = context["deleteAfterUpload"] as? String
-                        args = listOf(
-                            listOfNotNull(
-                                "runFunctionWithArgs", "uploadToRemoteStore", "settingsId=${settings.id}",
-                                "pathToFile=$pathToFile", "karaokeFileType=$karaokeFileType",
-                                (context["storageFileName"] as? String)?.let { "storageFileName=$it" },
-                                (context["bucketName"] as? String)?.let { "bucketName=$it" },
-                                deleteAfterUpload?.let { "deleteAfterUpload=$it" }
+                        args =
+                            listOf(
+                                listOfNotNull(
+                                    "runFunctionWithArgs",
+                                    "uploadToRemoteStore",
+                                    "settingsId=${settings.id}",
+                                    "pathToFile=$pathToFile",
+                                    "karaokeFileType=$karaokeFileType",
+                                    (context["storageFileName"] as? String)?.let { "storageFileName=$it" },
+                                    (context["bucketName"] as? String)?.let { "bucketName=$it" },
+                                    deleteAfterUpload?.let { "deleteAfterUpload=$it" },
+                                ),
                             )
-                        )
                     }
                     KaraokeProcessTypes.SMARTCOPY -> {
                         description = "Smart Copy"
@@ -1499,7 +1744,8 @@ class KaraokeProcess(
                     KaraokeProcessTypes.RENDER_MP4_KARAOKE,
                     KaraokeProcessTypes.RENDER_MP4_CHORDS,
                     KaraokeProcessTypes.RENDER_MP4_TABS,
-                    KaraokeProcessTypes.RENDER_MP4_DEMO -> {
+                    KaraokeProcessTypes.RENDER_MP4_DEMO,
+                    -> {
                         val version = context["version"] as? String ?: "KARAOKE"
                         description = "RENDER MP4 ($version)"
                         val songId = settings.id
@@ -1507,26 +1753,33 @@ class KaraokeProcess(
                         val width = context["width"] as? Int ?: if (isDemo) 1280 else 1920
                         val height = context["height"] as? Int ?: if (isDemo) 720 else 1080
                         val fps = context["fps"] as? Int ?: if (isDemo) 30 else 60
-                        args = listOf(
+                        args =
                             listOf(
-                                "runFunctionWithArgs", "renderMp4",
-                                "settingsId=${settings.id}",
-                                "width=$width", "height=$height", "fps=$fps",
-                                "version=$version"
+                                listOf(
+                                    "runFunctionWithArgs",
+                                    "renderMp4",
+                                    "settingsId=${settings.id}",
+                                    "width=$width",
+                                    "height=$height",
+                                    "fps=$fps",
+                                    "version=$version",
+                                ),
                             )
-                        )
                     }
 
                     else -> {}
                 }
             }
 
-            karaokeProcess.updateStatusProcessSettings(database = settings.database, storageService = settings.storageService, storageApiClient = settings.storageApiClient)
+            karaokeProcess.updateStatusProcessSettings(
+                database = settings.database,
+                storageService = settings.storageService,
+                storageApiClient = settings.storageApiClient,
+            )
 
             val separatedProcesses = separate(karaokeProcess)
 
             return createDbInstance(separatedProcesses)[0]?.id ?: 0
-
         }
 
         fun separate(parentProcess: KaraokeProcess): List<KaraokeProcess> {
@@ -1534,11 +1787,12 @@ class KaraokeProcess(
             val result: MutableList<KaraokeProcess> = mutableListOf()
 
             parentProcess.args.forEachIndexed { index, childArgs ->
-                val desc = if (parentProcess.args.size == parentProcess.argsDescription.size) {
-                    parentProcess.argsDescription[index]
-                } else {
-                    parentProcess.description
-                }
+                val desc =
+                    if (parentProcess.args.size == parentProcess.argsDescription.size) {
+                        parentProcess.argsDescription[index]
+                    } else {
+                        parentProcess.description
+                    }
                 val command = if (index == 0) "" else "tail"
                 val childProcess = KaraokeProcess(parentProcess.database)
                 childProcess.name = parentProcess.name
@@ -1559,6 +1813,5 @@ class KaraokeProcess(
 
             return result
         }
-
     }
 }

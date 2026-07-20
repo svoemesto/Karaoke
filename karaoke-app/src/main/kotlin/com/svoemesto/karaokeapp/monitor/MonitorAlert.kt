@@ -21,28 +21,28 @@ data class MonitorAlert(
     val category: String,
     val detail: String? = null,
     val recommendations: String? = null,
-    val resolveAction: (() -> Unit)? = null
+    val resolveAction: (() -> Unit)? = null,
 ) {
     val canResolve: Boolean get() = resolveAction != null
 
-    fun contentHash(): String =
-        Integer.toHexString((severity.name + "|" + title + "|" + body).hashCode())
+    fun contentHash(): String = Integer.toHexString((severity.name + "|" + title + "|" + body).hashCode())
 
     fun executeResolve() {
         resolveAction?.invoke()
     }
 
-    fun toDto(read: Boolean): MonitorAlertDto = MonitorAlertDto(
-        key = key,
-        severityName = severity.name,
-        color = severity.color,
-        title = title,
-        body = body,
-        category = category,
-        detail = detail,
-        recommendations = recommendations,
-        canResolve = canResolve,
-        contentHash = contentHash(),
-        read = read
-    )
+    fun toDto(read: Boolean): MonitorAlertDto =
+        MonitorAlertDto(
+            key = key,
+            severityName = severity.name,
+            color = severity.color,
+            title = title,
+            body = body,
+            category = category,
+            detail = detail,
+            recommendations = recommendations,
+            canResolve = canResolve,
+            contentHash = contentHash(),
+            read = read,
+        )
 }

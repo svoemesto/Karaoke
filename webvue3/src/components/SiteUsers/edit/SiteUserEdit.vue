@@ -32,70 +32,70 @@
       <div class="sue-body">
         <div class="label-and-input">
           <div class="label">Имя:</div>
-          <input class="input-field" v-model="siteUserCurrent.displayName">
+          <input v-model="siteUserCurrent.displayName" class="input-field"/>
         </div>
         <div class="label-and-input">
           <div class="label">Sponsr UID:</div>
-          <input class="input-field" v-model="siteUserCurrent.sponsrUid">
+          <input v-model="siteUserCurrent.sponsrUid" class="input-field"/>
         </div>
         <div class="label-and-input">
           <div class="label">Премиум:</div>
           <label class="sue-checkbox-label">
-            <input type="checkbox" v-model="siteUserCurrent.premium">
+            <input v-model="siteUserCurrent.premium" type="checkbox"/>
             <span class="sue-hint">(вручную, до реализации автоматической Sponsr-сверки)</span>
           </label>
         </div>
         <div class="label-and-input">
           <div class="label">Постоянный премиум:</div>
           <label class="sue-checkbox-label">
-            <input type="checkbox" v-model="siteUserCurrent.permanentPremium">
+            <input v-model="siteUserCurrent.permanentPremium" type="checkbox"/>
             <span class="sue-hint">(если включено — премиум действует всегда, независимо от чекбокса выше)</span>
           </label>
         </div>
         <div class="label-and-input">
           <div class="label">Премиум по Sponsr до:</div>
-          <input class="input-field sue-datetime" type="datetime-local" v-model="sponsrPremiumUntilLocal">
+          <input v-model="sponsrPremiumUntilLocal" class="input-field sue-datetime" type="datetime-local"/>
           <button v-if="sponsrPremiumUntilLocal" class="sue-clear-btn" title="Очистить" @click="sponsrPremiumUntilLocal=''">×</button>
           <span class="sue-hint">(в норме — Sponsr-синхронизация; можно выдать/отозвать вручную)</span>
         </div>
         <div class="label-and-input">
           <div class="label">Подписка на сайт до:</div>
-          <input class="input-field sue-datetime" type="datetime-local" v-model="sitePremiumUntilLocal">
+          <input v-model="sitePremiumUntilLocal" class="input-field sue-datetime" type="datetime-local"/>
           <button v-if="sitePremiumUntilLocal" class="sue-clear-btn" title="Очистить" @click="sitePremiumUntilLocal=''">×</button>
           <span class="sue-hint">(в норме — оплаченная подписка на сайте; можно выдать/отозвать вручную)</span>
         </div>
         <div class="label-and-input">
           <div class="label">Приветствие отправлено:</div>
           <label class="sue-checkbox-label">
-            <input type="checkbox" v-model="siteUserCurrent.welcomeMessageSent">
+            <input v-model="siteUserCurrent.welcomeMessageSent" type="checkbox"/>
             <span class="sue-hint">(разовая отправка при первом премиуме; сброс — отправить повторно при следующем)</span>
           </label>
         </div>
         <div class="label-and-input">
           <div class="label">Постоянная скидка:</div>
-          <input class="input-field sue-num" type="number" min="0" max="100" step="0.01" v-model.number="siteUserCurrent.personalDiscountPercent">
+          <input v-model.number="siteUserCurrent.personalDiscountPercent" class="input-field sue-num" type="number" min="0" max="100" step="0.01"/>
           <span class="sue-hint">%, суммируется поверх любой акции; 0 = нет скидки</span>
         </div>
         <div class="label-and-input">
           <div class="label">Редактор караоке:</div>
           <label class="sue-checkbox-label">
-            <input type="checkbox" v-model="siteUserCurrent.editor">
+            <input v-model="siteUserCurrent.editor" type="checkbox"/>
             <span class="sue-hint">(доступ к онлайн-редактору разметки на публичном сайте)</span>
           </label>
         </div>
         <div class="label-and-input">
           <div class="label">Лимит избранного:</div>
-          <input class="input-field sue-num" type="number" min="0" v-model.number="siteUserCurrent.maxFavorites">
+          <input v-model.number="siteUserCurrent.maxFavorites" class="input-field sue-num" type="number" min="0"/>
           <span class="sue-hint">0 = дефолт (100)</span>
         </div>
         <div class="label-and-input">
           <div class="label">Лимит плейлистов:</div>
-          <input class="input-field sue-num" type="number" min="0" v-model.number="siteUserCurrent.maxPlaylists">
+          <input v-model.number="siteUserCurrent.maxPlaylists" class="input-field sue-num" type="number" min="0"/>
           <span class="sue-hint">0 = дефолт (50)</span>
         </div>
         <div class="label-and-input">
           <div class="label">Лимит песен в плейлисте:</div>
-          <input class="input-field sue-num" type="number" min="0" v-model.number="siteUserCurrent.maxPlaylistItems">
+          <input v-model.number="siteUserCurrent.maxPlaylistItems" class="input-field sue-num" type="number" min="0"/>
           <span class="sue-hint">0 = дефолт (500)</span>
         </div>
         <div class="label-and-input">
@@ -106,19 +106,19 @@
         </div>
         <div class="label-and-input">
           <div class="label">Создан:</div>
-          <input class="input-field sue-datetime" type="datetime-local" v-model="createdAtLocal">
+          <input v-model="createdAtLocal" class="input-field sue-datetime" type="datetime-local"/>
         </div>
         <div class="label-and-input">
           <div class="label">Последний вход:</div>
-          <input class="input-field sue-datetime" type="datetime-local" v-model="lastLoginAtLocal">
+          <input v-model="lastLoginAtLocal" class="input-field sue-datetime" type="datetime-local"/>
         </div>
       </div>
       <div class="sue-footer">
-        <button class="sue-btn" @click="save" :disabled="notChanged()">Сохранить</button>
+        <button class="sue-btn" :disabled="notChanged()" @click="save">Сохранить</button>
         <button v-if="!siteUserCurrent.banned" class="sue-btn sue-btn-danger" @click="ban">Забанить</button>
         <button v-else class="sue-btn" @click="unban">Разбанить</button>
         <button class="sue-btn sue-btn-danger" @click="deleteUser">Удалить</button>
-        <span class="sue-footer-spacer"></span>
+        <span class="sue-footer-spacer"/>
         <button class="sue-btn" @click="openChat">Чат</button>
         <button class="sue-btn" @click="openEvents">События</button>
         <button class="sue-btn" @click="openPlaylists">Плейлисты</button>
@@ -147,11 +147,6 @@ export default {
       isSubscriptionsVisible: false,
     }
   },
-  mounted() {
-    let item = this.$store.getters.getSiteUserCurrent;
-    this.$store.dispatch('setSiteUserCurrent', item);
-    this.$store.dispatch('setSiteUserSnapshot', item);
-  },
   computed: {
     siteUserCurrent() { return this.$store.getters.getSiteUserCurrent },
     siteUserSnapshot() { return this.$store.getters.getSiteUserSnapshot },
@@ -179,6 +174,11 @@ export default {
       get() { return this.toLocalInput(this.siteUserCurrent.lastLoginAt) },
       set(value) { this.siteUserCurrent.lastLoginAt = this.fromLocalInputRequired(value, this.siteUserCurrent.lastLoginAt) }
     },
+  },
+  mounted() {
+    let item = this.$store.getters.getSiteUserCurrent;
+    this.$store.dispatch('setSiteUserCurrent', item);
+    this.$store.dispatch('setSiteUserSnapshot', item);
   },
   methods: {
     closeCustomConfirm() { this.isCustomConfirmVisible = false },

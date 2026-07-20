@@ -19,38 +19,53 @@ import org.springframework.web.bind.annotation.ResponseBody
 @Controller
 @RequestMapping("/api/stemjobs")
 class StemJobsAdminController {
+    private fun resolveDb(target: String?): KaraokeConnection = if (target == "remote") Connection.remote() else Connection.local()
 
-    private fun resolveDb(target: String?): KaraokeConnection =
-        if (target == "remote") Connection.remote() else Connection.local()
-
-    private fun <T> withDb(target: String?, block: (KaraokeConnection) -> T): T {
+    private fun <T> withDb(
+        target: String?,
+        block: (KaraokeConnection) -> T,
+    ): T {
         val db = resolveDb(target)
         return try {
             block(db)
         } finally {
-            try { db.getConnection()?.close() } catch (_: Exception) {}
+            try {
+                db.getConnection()?.close()
+            } catch (_: Exception) {
+            }
         }
     }
 
     @PostMapping("/list")
     @ResponseBody
-    fun list(@RequestParam(required = false) target: String?): Map<String, Any> = withDb(target) { db ->
-        mapOf("stemJobs" to StemJob.loadAllWithUserInfo(db))
-    }
+    fun list(
+        @RequestParam(required = false) target: String?,
+    ): Map<String, Any> =
+        withDb(target) { db ->
+            mapOf("stemJobs" to StemJob.loadAllWithUserInfo(db))
+        }
 
     // Останавливает выполняющийся demucs-пайплайн (если WAITING/WORKING) и помечает задание ERROR.
     // Файлы (если частично загружены) не трогает — отдельная кнопка «Удалить».
     @PostMapping("/{id}/stop")
     @ResponseBody
-    fun stop(@PathVariable id: Long, @RequestParam(required = false) target: String?): Map<String, Any> = withDb(target) { db ->
-        mapOf("ok" to StemJobCleanup.adminStop(id, db))
-    }
+    fun stop(
+        @PathVariable id: Long,
+        @RequestParam(required = false) target: String?,
+    ): Map<String, Any> =
+        withDb(target) { db ->
+            mapOf("ok" to StemJobCleanup.adminStop(id, db))
+        }
 
     // Останавливает (если ещё выполняется) и немедленно удаляет — файлы из MinIO + строку в БД, не
     // дожидаясь периодической уборки (StemJobPollScheduler.cleanup, раз в 5 минут).
     @PostMapping("/{id}/delete")
     @ResponseBody
-    fun delete(@PathVariable id: Long, @RequestParam(required = false) target: String?): Map<String, Any> = withDb(target) { db ->
-        mapOf("ok" to StemJobCleanup.adminDeleteNow(id, db))
-    }
+    fun delete(
+        @PathVariable id: Long,
+        @RequestParam(required = false) target: String?,
+    ): Map<String, Any> =
+        withDb(target) { db ->
+            mapOf("ok" to StemJobCleanup.adminDeleteNow(id, db))
+        }
 }

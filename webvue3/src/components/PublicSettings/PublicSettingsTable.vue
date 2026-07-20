@@ -19,13 +19,13 @@
           <th class="pst-th">Ключ</th>
           <th class="pst-th">Значение</th>
           <th class="pst-th">Описание</th>
-          <th class="pst-th"></th>
+          <th class="pst-th"/>
         </tr>
       </thead>
       <tbody>
         <tr v-for="item in editable" :key="item.key">
           <td class="pst-key">{{ item.key }}</td>
-          <td><input class="pst-input" v-model="item.value"></td>
+          <td><input v-model="item.value" class="pst-input"/></td>
           <td class="pst-desc">{{ item.description }}</td>
           <td>
             <button class="pst-btn" :disabled="item.value === original[item.key]" @click="save(item)">

@@ -28,7 +28,7 @@
     <div class="sps-section">
       <div class="sps-section-title">Ручной импорт списка подписчиков</div>
       <div class="sps-hint">По одному email или sponsr_uid на строке (или через запятую).</div>
-      <textarea class="sps-textarea" v-model="identifiersText" rows="6" placeholder="user1@example.com&#10;user2@example.com"></textarea>
+      <textarea v-model="identifiersText" class="sps-textarea" rows="6" placeholder="user1@example.com&#10;user2@example.com"/>
       <button class="sps-btn" :disabled="isLoading || !identifiersText.trim()" @click="doImport">Импортировать</button>
     </div>
 

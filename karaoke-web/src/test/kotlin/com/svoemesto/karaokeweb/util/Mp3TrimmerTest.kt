@@ -13,32 +13,57 @@ import java.io.File
 // окружении (по тому же паттерну, что и существующие "ручные" тесты karaoke-app,
 // SearchLastAlbumVkTest/PlaywrightTests, которым нужны внешние живые зависимости).
 class Mp3TrimmerTest {
-
-    private fun toolAvailable(name: String): Boolean = try {
-        ProcessBuilder(name, "-version").redirectErrorStream(true).start().waitFor() == 0
-    } catch (e: Exception) { false }
+    private fun toolAvailable(name: String): Boolean =
+        try {
+            ProcessBuilder(name, "-version").redirectErrorStream(true).start().waitFor() == 0
+        } catch (e: Exception) {
+            false
+        }
 
     private fun probeDurationSeconds(file: File): Double {
-        val proc = ProcessBuilder(
-            "ffprobe", "-v", "error", "-show_entries", "format=duration",
-            "-of", "default=noprint_wrappers=1:nokey=1", file.absolutePath
-        ).redirectErrorStream(true).start()
-        val output = proc.inputStream.bufferedReader().readText().trim()
+        val proc =
+            ProcessBuilder(
+                "ffprobe",
+                "-v",
+                "error",
+                "-show_entries",
+                "format=duration",
+                "-of",
+                "default=noprint_wrappers=1:nokey=1",
+                file.absolutePath,
+            ).redirectErrorStream(true).start()
+        val output =
+            proc.inputStream
+                .bufferedReader()
+                .readText()
+                .trim()
         proc.waitFor()
         return output.toDoubleOrNull() ?: error("ffprobe returned no duration: $output")
     }
 
     @Test
-    fun `trims a real VBR mp3 to the requested end at a frame boundary`(@TempDir tmp: java.nio.file.Path) {
+    fun `trims a real VBR mp3 to the requested end at a frame boundary`(
+        @TempDir tmp: java.nio.file.Path,
+    ) {
         assumeTrue(toolAvailable("ffmpeg"), "ffmpeg not available — skipping")
         assumeTrue(toolAvailable("ffprobe"), "ffprobe not available — skipping")
 
         val source = tmp.resolve("source.mp3").toFile()
         // Тот же кодек/пресет, что и у реальных стемов (VBR, не CBR) — см. ApiController.pushMp3ToStorage.
-        val gen = ProcessBuilder(
-            "ffmpeg", "-y", "-f", "lavfi", "-i", "sine=frequency=440:duration=20",
-            "-codec:a", "libmp3lame", "-qscale:a", "2", source.absolutePath
-        ).redirectErrorStream(true).start()
+        val gen =
+            ProcessBuilder(
+                "ffmpeg",
+                "-y",
+                "-f",
+                "lavfi",
+                "-i",
+                "sine=frequency=440:duration=20",
+                "-codec:a",
+                "libmp3lame",
+                "-qscale:a",
+                "2",
+                source.absolutePath,
+            ).redirectErrorStream(true).start()
         gen.waitFor()
         assertTrue(source.exists() && source.length() > 0, "ffmpeg failed to generate fixture")
 
@@ -56,15 +81,27 @@ class Mp3TrimmerTest {
     }
 
     @Test
-    fun `trims a real VBR mp3 to a mid-track range at a frame boundary`(@TempDir tmp: java.nio.file.Path) {
+    fun `trims a real VBR mp3 to a mid-track range at a frame boundary`(
+        @TempDir tmp: java.nio.file.Path,
+    ) {
         assumeTrue(toolAvailable("ffmpeg"), "ffmpeg not available — skipping")
         assumeTrue(toolAvailable("ffprobe"), "ffprobe not available — skipping")
 
         val source = tmp.resolve("source.mp3").toFile()
-        val gen = ProcessBuilder(
-            "ffmpeg", "-y", "-f", "lavfi", "-i", "sine=frequency=440:duration=20",
-            "-codec:a", "libmp3lame", "-qscale:a", "2", source.absolutePath
-        ).redirectErrorStream(true).start()
+        val gen =
+            ProcessBuilder(
+                "ffmpeg",
+                "-y",
+                "-f",
+                "lavfi",
+                "-i",
+                "sine=frequency=440:duration=20",
+                "-codec:a",
+                "libmp3lame",
+                "-qscale:a",
+                "2",
+                source.absolutePath,
+            ).redirectErrorStream(true).start()
         gen.waitFor()
         assertTrue(source.exists() && source.length() > 0, "ffmpeg failed to generate fixture")
 

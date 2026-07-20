@@ -27,6 +27,11 @@ export default {
       required: true
     }
   },
+  computed: {
+    healthReportList() {
+      return this.$store.getters.getHealthReportList;
+    }
+  },
   watch: {
     healthReportList: {
       handler () {
@@ -38,11 +43,6 @@ export default {
   },
   mounted() {
     this.$store.dispatch('loadHealthReportList', this.id);
-  },
-  computed: {
-    healthReportList() {
-      return this.$store.getters.getHealthReportList;
-    }
   },
   methods: {
     close() {

@@ -8,17 +8,15 @@ data class TransformProperty(
     val y: Int = 0,
     val w: Int = 0,
     val h: Int = 0,
-    val opacity: Double = 0.0
+    val opacity: Double = 0.0,
 ) : Serializable {
-    override fun toString(): String {
-        return "$time=$x $y $w $h $opacity"
-    }
+    override fun toString(): String = "$time=$x $y $w $h $opacity"
 }
 
 fun List<TransformProperty>.asRects(): List<TransformProperty> {
     if (this.size <= 1) return emptyList()
     val tmp: MutableList<TransformProperty> = mutableListOf()
-    for (index in 1 until this.size ) {
+    for (index in 1 until this.size) {
         val prevTp = this[index - 1]
         val currTp = this[index]
         if (currTp.w != prevTp.w) {
@@ -28,7 +26,7 @@ fun List<TransformProperty>.asRects(): List<TransformProperty> {
 
     if (tmp.size <= 1) return emptyList()
     val result: MutableList<TransformProperty> = mutableListOf()
-    for (index in 1 until tmp.size ) {
+    for (index in 1 until tmp.size) {
         val prevTp = tmp[index - 1]
         val currTp = tmp[index]
         if (index == 1) {
@@ -39,8 +37,8 @@ fun List<TransformProperty>.asRects(): List<TransformProperty> {
                     y = currTp.y,
                     w = prevTp.w,
                     h = currTp.h,
-                    opacity = currTp.opacity
-                )
+                    opacity = currTp.opacity,
+                ),
             )
         }
         result.add(
@@ -50,8 +48,8 @@ fun List<TransformProperty>.asRects(): List<TransformProperty> {
                 y = currTp.y,
                 w = currTp.w - prevTp.w,
                 h = currTp.h,
-                opacity = currTp.opacity
-            )
+                opacity = currTp.opacity,
+            ),
         )
     }
     return result

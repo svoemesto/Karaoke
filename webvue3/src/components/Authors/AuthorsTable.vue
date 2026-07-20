@@ -12,16 +12,16 @@
           :limit="30"
           size="sm"
           pills
-      ></b-pagination>
+      />
     </div>
     <div class="authors-bv-table-body">
       <b-table
+          v-model:sort-by="sortBy"
           :items="authorsDigests"
           :busy="isBusy"
           :fields="authorDigestFields"
           :per-page="perPage"
           :current-page="currentPage"
-          v-model:sort-by="sortBy"
           small
           bordered
           hover
@@ -29,7 +29,7 @@
       >
         <template #table-busy>
           <div class="text-center text-danger my-2">
-            <b-spinner class="align-middle"></b-spinner>
+            <b-spinner class="align-middle"/>
             <strong>Loading...</strong>
           </div>
         </template>
@@ -38,7 +38,7 @@
               v-for="field in scope.fields"
               :key="field.key"
               :style="field.style"
-          >
+          />
         </template>
 
         <template #cell(picturePreview)="data">
@@ -52,7 +52,7 @@
                 :src="data.item.picturePreviewUrl"
                 alt="Preview"
                 class="preview-image"
-            >
+            />
             <div v-else class="no-image-placeholder">Нет изображения</div>
           </div>
         </template>
@@ -60,100 +60,100 @@
         <template #cell(id)="data">
           <div
               class="fld-author-id"
-              v-text="data.value"
               :style="{ color: currentAuthorId === data.item.id ? 'blue' : 'black' }"
               @click.left="changeValue(data.item)"
-          ></div>
+              v-text="data.value"
+          />
         </template>
 
         <template #cell(author)="data">
           <div
               class="fld-author"
-              v-text="data.value"
               :style="{ color: currentAuthorId === data.item.id ? 'blue' : 'black' }"
               @click.left="changeValue(data.item)"
-          ></div>
+              v-text="data.value"
+          />
         </template>
 
         <template #cell(ymId)="data">
           <div
               class="fld-ymId"
-              v-text="data.value"
               :style="{ color: currentAuthorId === data.item.id ? 'blue' : 'black' }"
               @click.left="openYandexMusicAuthor(data.item)"
-          ></div>
+              v-text="data.value"
+          />
         </template>
 
         <template #cell(lastAlbumYm)="data">
           <div
               class="fld-lastAlbumYm"
-              v-text="data.value"
               :style="{ color: currentAuthorId === data.item.id ? 'blue' : 'black' }"
-          ></div>
+              v-text="data.value"
+          />
         </template>
 
         <template #cell(vkId)="data">
           <div
               class="fld-vkId"
-              v-text="data.value"
               :style="{ color: currentAuthorId === data.item.id ? 'blue' : 'black' }"
               @click.left="openVKMusicAuthor(data.item)"
-          ></div>
+              v-text="data.value"
+          />
         </template>
 
         <template #cell(lastAlbumVk)="data">
           <div
               class="fld-lastAlbumVk"
-              v-text="data.value"
               :style="{ color: currentAuthorId === data.item.id ? 'blue' : 'black' }"
-          ></div>
+              v-text="data.value"
+          />
         </template>
 
         <template #cell(lastAlbumProcessed)="data">
           <div
               class="fld-lastAlbumProcessed"
-              v-text="data.value"
               :style="{ color: currentAuthorId === data.item.id ? 'blue' : 'black' }"
-          ></div>
+              v-text="data.value"
+          />
         </template>
 
         <template #cell(watched)="data">
           <div
               class="fld-watched"
-              v-text="data.value"
               :style="{ color: currentAuthorId === data.item.id ? 'blue' : 'black' }"
-          ></div>
+              v-text="data.value"
+          />
         </template>
 
         <template #cell(skip)="data">
           <div
               class="fld-skip"
-              v-text="data.value"
               :style="{ color: currentAuthorId === data.item.id ? 'blue' : 'black' }"
-          ></div>
+              v-text="data.value"
+          />
         </template>
 
         <template #cell(haveNewAlbum)="data">
           <div
               class="fld-haveNewAlbum"
-              v-text="data.value"
               :style="{ color: currentAuthorId === data.item.id ? 'blue' : 'black' }"
-          ></div>
+              v-text="data.value"
+          />
         </template>
 
         <template #cell(aliases)="data">
           <div
               class="fld-aliases"
-              v-text="aliasesSummary(data.value)"
               @click.left="editAliases(data.item)"
-          ></div>
+              v-text="aliasesSummary(data.value)"
+          />
         </template>
 
       </b-table>
     </div>
     <div class="authors-bv-table-footer">
-      <button class="btn-round-double" @click="isAuthorsFilterVisible=true" title="Фильтр">
-        <img alt="filter" class="icon-40" src="../../assets/svg/icon_filter.svg">
+      <button class="btn-round-double" title="Фильтр" @click="isAuthorsFilterVisible=true">
+        <img alt="filter" class="icon-40" src="../../assets/svg/icon_filter.svg"/>
       </button>
     </div>
 
@@ -199,22 +199,6 @@ export default {
       currentAuthorId: '',
       currentAuthor: undefined
     }
-  },
-  watch: {
-    authorsDigestIsLoading: {
-      handler () {
-        this.isBusy = this.authorsDigestIsLoading;
-      }
-    },
-    currentPage: {
-      handler (newPage) {
-        // Сохраняем страницу в store, чтобы она восстановилась после переключения на другой компонент.
-        this.$store.commit('setAuthorsTableCurrentPage', newPage);
-      }
-    }
-  },
-  mounted() {
-    // this.$store.dispatch('loadAuthorsDigests', { filterAuthor: 'Павел Кашин'} )
   },
   computed: {
     authorsDigestIsLoading() {
@@ -361,6 +345,22 @@ export default {
         }
       ]
     }
+  },
+  watch: {
+    authorsDigestIsLoading: {
+      handler () {
+        this.isBusy = this.authorsDigestIsLoading;
+      }
+    },
+    currentPage: {
+      handler (newPage) {
+        // Сохраняем страницу в store, чтобы она восстановилась после переключения на другой компонент.
+        this.$store.commit('setAuthorsTableCurrentPage', newPage);
+      }
+    }
+  },
+  mounted() {
+    // this.$store.dispatch('loadAuthorsDigests', { filterAuthor: 'Павел Кашин'} )
   },
   methods: {
 

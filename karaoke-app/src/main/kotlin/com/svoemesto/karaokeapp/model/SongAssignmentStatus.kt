@@ -6,15 +6,17 @@ import java.sql.Timestamp
 // tbl_song_assignments — пишет админ; user_status в tbl_song_assignment_drafts — пишет пользователь),
 // а UI показывает единый статус. resolve() детерминированно выводит его из пары + временных меток —
 // без общей на запись колонки, что критично для sync (см. 10_song_assignments.sql).
-enum class SongAssignmentStatus(val dbValue: String) {
-    ASSIGNED("assigned"),         // назначено, пользователь ещё не начал
-    IN_PROGRESS("in_progress"),   // пользователь редактирует
-    SUBMITTED("submitted"),       // отправлено на проверку
-    APPROVED("approved"),         // одобрено, разметка применена
-    REJECTED("rejected");         // отклонено с комментарием, вернулось на доработку
+enum class SongAssignmentStatus(
+    val dbValue: String,
+) {
+    ASSIGNED("assigned"), // назначено, пользователь ещё не начал
+    IN_PROGRESS("in_progress"), // пользователь редактирует
+    SUBMITTED("submitted"), // отправлено на проверку
+    APPROVED("approved"), // одобрено, разметка применена
+    REJECTED("rejected"), // отклонено с комментарием, вернулось на доработку
+    ;
 
     companion object {
-
         const val ADMIN_OPEN = "open"
         const val ADMIN_APPROVED = "approved"
         const val ADMIN_REJECTED = "rejected"
@@ -37,8 +39,11 @@ enum class SongAssignmentStatus(val dbValue: String) {
             if (adminStatus == ADMIN_APPROVED) return APPROVED
             if (draftUserStatus == null) return ASSIGNED
             if (draftUserStatus == USER_SUBMITTED) {
-                val reviewedThisSubmission = adminStatus == ADMIN_REJECTED &&
-                    reviewedAt != null && submittedAt != null && !reviewedAt.before(submittedAt)
+                val reviewedThisSubmission =
+                    adminStatus == ADMIN_REJECTED &&
+                        reviewedAt != null &&
+                        submittedAt != null &&
+                        !reviewedAt.before(submittedAt)
                 return if (reviewedThisSubmission) REJECTED else SUBMITTED
             }
             // in_progress: после reject показываем REJECTED (на доработке, с комментарием), иначе IN_PROGRESS

@@ -11,27 +11,28 @@ data class MkoMelodyTabs(
     val type: ProducerType = ProducerType.MELODYTABS,
     val voiceId: Int = 0,
     val lineId: Int = 0,
-    val elementId: Int = 0
-): MltKaraokeObject {
+    val elementId: Int = 0,
+) : MltKaraokeObject {
     val mltGenerator = MltGenerator(mltProp, type, voiceId, lineId, elementId)
 
     private val songVersion = mltProp.getSongVersion()
     private val frameWidthPx = mltProp.getFrameWidthPx()
     private val frameHeightPx = mltProp.getFrameHeightPx()
     private val settings = mltProp.getSettings()
-    private val songEndTimecode  = mltProp.getSongEndTimecode()
+    private val songEndTimecode = mltProp.getSongEndTimecode()
     private var lineDurationOnScreen = mltProp.getDurationOnScreen(listOf(ProducerType.LINE, voiceId, lineId))
     private var folderIdLines = mltProp.getId(listOf(ProducerType.LINES, voiceId))
-    private val lineEndTimecode = if (lineDurationOnScreen > 0) {
-        convertMillisecondsToTimecode(lineDurationOnScreen)
-    } else {
-        lineDurationOnScreen = convertTimecodeToMilliseconds(songEndTimecode)
-        songEndTimecode
-    }
+    private val lineEndTimecode =
+        if (lineDurationOnScreen > 0) {
+            convertMillisecondsToTimecode(lineDurationOnScreen)
+        } else {
+            lineDurationOnScreen = convertTimecodeToMilliseconds(songEndTimecode)
+            songEndTimecode
+        }
 
     override fun producer(): MltNode {
-        var widthAreaPx= frameWidthPx
-        var heightAreaPx= frameHeightPx
+        var widthAreaPx = frameWidthPx
+        var heightAreaPx = frameHeightPx
 
         val sett = settings
         if (sett != null) {
@@ -46,14 +47,15 @@ data class MkoMelodyTabs(
         return mltGenerator
             .producer(
                 timecodeOut = lineEndTimecode,
-                props = MltNodeBuilder(mltGenerator.defaultProducerPropertiesForMltService("kdenlivetitle"))
-                    .propertyName("kdenlive:folderid", folderIdLines)
-                    .propertyName("length", convertMillisecondsToFrames(lineDurationOnScreen))
-                    .propertyName("kdenlive:duration", lineEndTimecode)
-                    .propertyName("xmldata", template().toString().xmldata())
-                    .propertyName("meta.media.width", widthAreaPx)
-                    .propertyName("meta.media.height", heightAreaPx)
-                    .build()
+                props =
+                    MltNodeBuilder(mltGenerator.defaultProducerPropertiesForMltService("kdenlivetitle"))
+                        .propertyName("kdenlive:folderid", folderIdLines)
+                        .propertyName("length", convertMillisecondsToFrames(lineDurationOnScreen))
+                        .propertyName("kdenlive:duration", lineEndTimecode)
+                        .propertyName("xmldata", template().toString().xmldata())
+                        .propertyName("meta.media.width", widthAreaPx)
+                        .propertyName("meta.media.height", heightAreaPx)
+                        .build(),
             )
     }
 
@@ -65,10 +67,11 @@ data class MkoMelodyTabs(
             body.add(
                 mltGenerator.entry(
                     timecodeOut = lineEndTimecode,
-                    nodes = MltNodeBuilder()
-                        .propertyName("kdenlive:id", "filePlaylist${mltGenerator.id}")
-                        .build()
-                )
+                    nodes =
+                        MltNodeBuilder()
+                            .propertyName("kdenlive:id", "filePlaylist${mltGenerator.id}")
+                            .build(),
+                ),
             )
         }
         return result
@@ -81,14 +84,16 @@ data class MkoMelodyTabs(
     override fun tractor(): MltNode = mltGenerator.tractor(timecodeOut = lineEndTimecode)
 
     override fun template(): MltNode {
-
         val sett = settings ?: return MltNode()
-        val element = try {
-            sett.voicesForMlt[voiceId].getLines()[lineId].getElements(songVersion)
-                .first { it.type == SettingVoiceLineElementTypes.TEXT }
-        } catch (_: Exception) {
-            return MltNode()
-        }
+        val element =
+            try {
+                sett.voicesForMlt[voiceId]
+                    .getLines()[lineId]
+                    .getElements(songVersion)
+                    .first { it.type == SettingVoiceLineElementTypes.TEXT }
+            } catch (_: Exception) {
+                return MltNode()
+            }
 
         val sylFontSize = element.fontSize
         val tabsHeightCoefficient = Karaoke.melodyTabsHeightCoefficient
@@ -106,9 +111,8 @@ data class MkoMelodyTabs(
         val openStringFont = Karaoke.melodyOpenStringFont
         val openStringMltTextHeight = openStringFont.copy("C", openStringFontSize).h()
 
-
-        val widthAreaPx= element.w()
-        val heightAreaPx= tabsMltTextHeight + 5 * heightBetweenTabsLines
+        val widthAreaPx = element.w()
+        val heightAreaPx = tabsMltTextHeight + 5 * heightBetweenTabsLines
 
 //        val x = 0
 //        val y = 0
@@ -124,50 +128,72 @@ data class MkoMelodyTabs(
             body.add(
                 MltNode(
                     name = "item",
-                    fields = mutableMapOf(
-                        Pair("type","QGraphicsRectItem"),
-                        Pair("z-index","0"),
-                    ),
-                    body = mutableListOf(
-                        // Начальная позиция прямоугольника, которая будет считаться для него началом координат
-                        MltNode(name = "position", fields = mutableMapOf(Pair("x","0"), Pair("y","0")), body = mutableListOf(MltNode(name = "transform", fields = mutableMapOf(Pair("zoom","100")), body = "1,0,0,0,1,0,0,0,1"))),
-                        MltNode(
-                            name = "content",
-                            fields = mutableMapOf(
-                                Pair("brushcolor", tabsLineColor),
-                                Pair("pencolor", "0,0,0,255"),
-                                Pair("penwidth","0"),
-                                Pair("rect","${lineX},${lineY},${lineW},${lineH}")
-                            )
-                        )
-                    )
-                )
+                    fields =
+                        mutableMapOf(
+                            Pair("type", "QGraphicsRectItem"),
+                            Pair("z-index", "0"),
+                        ),
+                    body =
+                        mutableListOf(
+                            // Начальная позиция прямоугольника, которая будет считаться для него началом координат
+                            MltNode(
+                                name = "position",
+                                fields = mutableMapOf(Pair("x", "0"), Pair("y", "0")),
+                                body =
+                                    mutableListOf(
+                                        MltNode(name = "transform", fields = mutableMapOf(Pair("zoom", "100")), body = "1,0,0,0,1,0,0,0,1"),
+                                    ),
+                            ),
+                            MltNode(
+                                name = "content",
+                                fields =
+                                    mutableMapOf(
+                                        Pair("brushcolor", tabsLineColor),
+                                        Pair("pencolor", "0,0,0,255"),
+                                        Pair("penwidth", "0"),
+                                        Pair("rect", "$lineX,$lineY,$lineW,$lineH"),
+                                    ),
+                            ),
+                        ),
+                ),
             )
         }
         // Рисуем вертикальные линии
-        val verticalLinesProps = listOf(
-            "0,${offsetYTabsLines},3,${heightAreaPx - tabsMltTextHeight}",
-            "7,${offsetYTabsLines},3,${heightAreaPx - tabsMltTextHeight}",
-            "${widthAreaPx - 3},${offsetYTabsLines},3,${heightAreaPx - tabsMltTextHeight}",
-            "${widthAreaPx - 8},${offsetYTabsLines},3,${heightAreaPx - tabsMltTextHeight}"
-        )
+        val verticalLinesProps =
+            listOf(
+                "0,$offsetYTabsLines,3,${heightAreaPx - tabsMltTextHeight}",
+                "7,$offsetYTabsLines,3,${heightAreaPx - tabsMltTextHeight}",
+                "${widthAreaPx - 3},$offsetYTabsLines,3,${heightAreaPx - tabsMltTextHeight}",
+                "${widthAreaPx - 8},$offsetYTabsLines,3,${heightAreaPx - tabsMltTextHeight}",
+            )
         verticalLinesProps.forEach { verticalLinesProp ->
             body.add(
-                MltNode(name = "item", fields = mutableMapOf(Pair("type", "QGraphicsRectItem"), Pair("z-index", "0")),
-                    body = mutableListOf(
-                        // Начальная позиция прямоугольника, которая будет считаться для него началом координат
-                        MltNode(name = "position", fields = mutableMapOf(Pair("x","0"), Pair("y","0")), body = mutableListOf(MltNode(name = "transform", fields = mutableMapOf(Pair("zoom","100")), body = "1,0,0,0,1,0,0,0,1"))),
-                        MltNode(
-                            name = "content",
-                            fields = mutableMapOf(
-                                Pair("brushcolor", tabsLineColor),
-                                Pair("pencolor", "0,0,0,255"),
-                                Pair("penwidth","0"),
-                                Pair("rect", verticalLinesProp)
-                            )
-                        )
-                    )
-                )
+                MltNode(
+                    name = "item",
+                    fields = mutableMapOf(Pair("type", "QGraphicsRectItem"), Pair("z-index", "0")),
+                    body =
+                        mutableListOf(
+                            // Начальная позиция прямоугольника, которая будет считаться для него началом координат
+                            MltNode(
+                                name = "position",
+                                fields = mutableMapOf(Pair("x", "0"), Pair("y", "0")),
+                                body =
+                                    mutableListOf(
+                                        MltNode(name = "transform", fields = mutableMapOf(Pair("zoom", "100")), body = "1,0,0,0,1,0,0,0,1"),
+                                    ),
+                            ),
+                            MltNode(
+                                name = "content",
+                                fields =
+                                    mutableMapOf(
+                                        Pair("brushcolor", tabsLineColor),
+                                        Pair("pencolor", "0,0,0,255"),
+                                        Pair("penwidth", "0"),
+                                        Pair("rect", verticalLinesProp),
+                                    ),
+                            ),
+                        ),
+                ),
             )
         }
 
@@ -178,20 +204,27 @@ data class MkoMelodyTabs(
             val lineY = offsetYTabsLines + heightBetweenTabsLines * indexString
             val nodeY = lineY - openStringMltTextHeight / 2
             body.add(
-                MltNode(name = "item", fields = mutableMapOf(Pair("type", "QGraphicsTextItem"), Pair("z-index", "0")),
-                    body = mutableListOf(
-                        // Начальная позиция прямоугольника, которая будет считаться для него началом координат
-                        MltNode(
-                            name = "position",
-                            fields = mutableMapOf(
-                                Pair("x","12"),
-                                Pair("y","$nodeY")
+                MltNode(
+                    name = "item",
+                    fields = mutableMapOf(Pair("type", "QGraphicsTextItem"), Pair("z-index", "0")),
+                    body =
+                        mutableListOf(
+                            // Начальная позиция прямоугольника, которая будет считаться для него началом координат
+                            MltNode(
+                                name = "position",
+                                fields =
+                                    mutableMapOf(
+                                        Pair("x", "12"),
+                                        Pair("y", "$nodeY"),
+                                    ),
+                                body =
+                                    mutableListOf(
+                                        MltNode(name = "transform", fields = mutableMapOf(Pair("zoom", "100")), body = "1,0,0,0,1,0,0,0,1"),
+                                    ),
                             ),
-                            body = mutableListOf(MltNode(name = "transform", fields = mutableMapOf(Pair("zoom","100")), body = "1,0,0,0,1,0,0,0,1"))
+                            openStringMltText.mltNode(openStringMltText.text),
                         ),
-                        openStringMltText.mltNode(openStringMltText.text)
-                    )
-                )
+                ),
             )
         }
 
@@ -201,7 +234,6 @@ data class MkoMelodyTabs(
                 val (stringText, ladText) = stringLadText.split("|")
                 val stringIndex = stringText.toInt()
 //                val ladIndex = ladText.toInt()
-
 
                 val initialXposition = noteElement.x()
                 val areaW = noteElement.w()
@@ -220,48 +252,57 @@ data class MkoMelodyTabs(
                 body.add(
                     MltNode(
                         name = "item",
-                        fields = mutableMapOf(
-                            Pair("type","QGraphicsTextItem"),
-                            Pair("z-index","0"),
-                        ),
-                        body = mutableListOf(
-                            // Начальная позиция прямоугольника, которая будет считаться для него началом координат
-                            MltNode(
-                                name = "position",
-                                fields = mutableMapOf(
-                                    Pair("x","$tabsX"),
-                                    Pair("y","$tabsY")
-                                ),
-                                body = mutableListOf(MltNode(name = "transform", fields = mutableMapOf(Pair("zoom","100")), body = "1,0,0,0,1,0,0,0,1"))
+                        fields =
+                            mutableMapOf(
+                                Pair("type", "QGraphicsTextItem"),
+                                Pair("z-index", "0"),
                             ),
-                            tabsMltText.mltNode(tabsMltText.text)
-                        )
-                    )
+                        body =
+                            mutableListOf(
+                                // Начальная позиция прямоугольника, которая будет считаться для него началом координат
+                                MltNode(
+                                    name = "position",
+                                    fields =
+                                        mutableMapOf(
+                                            Pair("x", "$tabsX"),
+                                            Pair("y", "$tabsY"),
+                                        ),
+                                    body =
+                                        mutableListOf(
+                                            MltNode(
+                                                name = "transform",
+                                                fields = mutableMapOf(Pair("zoom", "100")),
+                                                body = "1,0,0,0,1,0,0,0,1",
+                                            ),
+                                        ),
+                                ),
+                                tabsMltText.mltNode(tabsMltText.text),
+                            ),
+                    ),
                 )
-
             }
-
         }
 
         // Добавляем конечные узлы - вьюпорт, бэкграунд и т.п.
         body.addAll(
             MltNodeBuilder()
-                .startviewport("0,0,${frameWidthPx},${frameHeightPx}")
-                .endviewport("0,0,${frameWidthPx},${frameHeightPx}")
+                .startviewport("0,0,$frameWidthPx,$frameHeightPx")
+                .endviewport("0,0,$frameWidthPx,$frameHeightPx")
                 .background("0,0,0,0")
-                .build()
+                .build(),
         )
 
         return MltNode(
             name = "kdenlivetitle",
-            fields = PropertiesMltNodeBuilder()
-                .duration(convertMillisecondsToFrames(lineDurationOnScreen).toString())
-                .lcNumeric("C")
-                .width("$frameWidthPx")
-                .height("$frameHeightPx")
-                .`out`((convertMillisecondsToFrames(lineDurationOnScreen)-1).toString())
-                .build(),
-            body = body
+            fields =
+                PropertiesMltNodeBuilder()
+                    .duration(convertMillisecondsToFrames(lineDurationOnScreen).toString())
+                    .lcNumeric("C")
+                    .width("$frameWidthPx")
+                    .height("$frameHeightPx")
+                    .`out`((convertMillisecondsToFrames(lineDurationOnScreen) - 1).toString())
+                    .build(),
+            body = body,
         )
     }
 }

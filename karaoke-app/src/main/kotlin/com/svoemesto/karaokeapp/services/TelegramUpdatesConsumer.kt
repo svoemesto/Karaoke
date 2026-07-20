@@ -32,17 +32,17 @@ class TelegramUpdatesConsumerStarter {
  * в явном daemon-Thread, а не блокирует вызывающий (HTTP/event-listener) поток.
  */
 object TelegramUpdatesConsumer {
-
     @Volatile var isWork: Boolean = false
     private val client = TelegramApiClient()
 
     fun start() {
         if (isWork) return
         isWork = true
-        Thread(::doStart).apply {
-            isDaemon = true
-            name = "telegram-updates-consumer"
-        }.start()
+        Thread(::doStart)
+            .apply {
+                isDaemon = true
+                name = "telegram-updates-consumer"
+            }.start()
     }
 
     fun stop() {
@@ -70,7 +70,10 @@ object TelegramUpdatesConsumer {
         println("[${Instant.now()}] TelegramUpdatesConsumer: остановлен")
     }
 
-    private fun processUpdate(updateId: Long, channelPost: TelegramMessage?) {
+    private fun processUpdate(
+        updateId: Long,
+        channelPost: TelegramMessage?,
+    ) {
         try {
             if (channelPost != null && isOurChannel(channelPost)) {
                 handleChannelPost(channelPost)
@@ -100,13 +103,17 @@ object TelegramUpdatesConsumer {
         val songVersion = Settings.parseTelegramPostSongVersion(text)
 
         if (songId == null || songVersion == null) {
-            notifyManualAttention("Не удалось распознать вышедший пост Telegram (message_id=${post.messageId}) - проставьте ссылку в песне вручную.")
+            notifyManualAttention(
+                "Не удалось распознать вышедший пост Telegram (message_id=${post.messageId}) - проставьте ссылку в песне вручную.",
+            )
             return
         }
 
         val sett = Settings.loadFromDbById(id = songId, database = WORKING_DATABASE, storageService = KSS_APP, storageApiClient = SAC_APP)
         if (sett == null) {
-            notifyManualAttention("Вышедший пост Telegram (message_id=${post.messageId}) ссылается на песню id=$songId, которая не найдена в LOCAL БД.")
+            notifyManualAttention(
+                "Вышедший пост Telegram (message_id=${post.messageId}) ссылается на песню id=$songId, которая не найдена в LOCAL БД.",
+            )
             return
         }
 
@@ -119,7 +126,9 @@ object TelegramUpdatesConsumer {
 
         sett.fields[sett.telegramIdSettingField(songVersion)] = post.messageId.toString()
         sett.saveToDb()
-        println("[${Instant.now()}] TelegramUpdatesConsumer: записана ссылка Telegram (${songVersion.text}) для песни id=$songId, message_id=${post.messageId}")
+        println(
+            "[${Instant.now()}] TelegramUpdatesConsumer: записана ссылка Telegram (${songVersion.text}) для песни id=$songId, message_id=${post.messageId}",
+        )
     }
 
     private fun notifyManualAttention(body: String) {
@@ -129,9 +138,9 @@ object TelegramUpdatesConsumer {
                     Message(
                         type = "warning",
                         head = "Telegram: требуется ручная проверка",
-                        body = body
-                    )
-                )
+                        body = body,
+                    ),
+                ),
             )
         } catch (e: Exception) {
             println(e.message)

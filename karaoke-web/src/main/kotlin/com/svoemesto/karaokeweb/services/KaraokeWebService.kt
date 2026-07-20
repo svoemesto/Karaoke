@@ -9,7 +9,8 @@ import org.springframework.stereotype.Service
 import kotlin.properties.Delegates
 
 lateinit var WEBSOCKET: SimpMessagingTemplate
-//lateinit var KSS_WEB: KaraokeStorageService
+
+// lateinit var KSS_WEB: KaraokeStorageService
 var WEB_WORK_IN_CONTAINER by Delegates.notNull<Boolean>()
 var WEB_WORK_ON_SERVER by Delegates.notNull<Boolean>()
 lateinit var DB_LOCAL_POSTGRES_USER: String
@@ -28,7 +29,6 @@ class KaraokeWebService(
     @Value($$"${db-remote-postgres-user}") val dbRemotePostgresUser: String,
     @Value($$"${db-remote-postgres-password}") val dbRemotePostgresPassword: String,
 ) {
-
     init {
         WEB_WORK_IN_CONTAINER = (wic != 0L)
         WEB_WORK_ON_SERVER = (wos != 0L)
@@ -51,5 +51,4 @@ class KaraokeWebService(
         // старт в crash-loop. Это забота admin/karaoke-app.
         println("WEB_WORK_ON_SERVER = $WEB_WORK_ON_SERVER")
     }
-
 }

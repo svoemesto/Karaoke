@@ -3,10 +3,10 @@
     <custom-confirm v-if="isCustomConfirmVisible" :params="customConfirmParams" @close="closeCustomConfirm" />
     <FileExplorerModal
         v-if="isFileExplorerVisible"
-        @close="closeFileExplorer"
         :path="pathToFolder"
         start="/sm-karaoke/work"
         directory
+        @close="closeFileExplorer"
         @getpath="getPath"
     />
     <div class="home-wrapper">
@@ -18,9 +18,9 @@
         <option v-for="dict in dicts" :key="dict" :value="dict"/>
       </datalist>
       <div class="field-and-buttons-wrapper">
-        <input class="input-folder" type="text" placeholder="Путь к папке" v-model="pathToFolder" @dblclick="isFileExplorerVisible=true">
-        <button class="button-action" @click="addFilesFromFolder" :disabled="!pathToFolder" >Добавить файлы из папки</button>
-        <button class="button-action" @click="createDzenPicturesForFolder" :disabled="!pathToFolder">Создать картинки плейлистов Dzen для папки</button>
+        <input v-model="pathToFolder" class="input-folder" type="text" placeholder="Путь к папке" @dblclick="isFileExplorerVisible=true"/>
+        <button class="button-action" :disabled="!pathToFolder" @click="addFilesFromFolder" >Добавить файлы из папки</button>
+        <button class="button-action" :disabled="!pathToFolder" @click="createDzenPicturesForFolder">Создать картинки плейлистов Dzen для папки</button>
       </div>
       <!-- <button class="button-action" @click="copyToStore">Обновить хранилище</button>
       <button class="button-action" @click="actualizeVKLinkPictureWeb">Актуализация VKLinkPictureWeb</button> -->
@@ -29,28 +29,28 @@
       <button class="button-action" @click="updateBpmAndKey">Обновить пустые BPM и KEY из фалов CSV</button>
       <button class="button-action" @click="updateBpmAndKeyLV">Обновить пустые BPM и KEY из фалов LV</button> -->
       <div class="field-and-buttons-wrapper">
-        <input list="list_authors" class="input-author" type="text" placeholder="Автор" v-model="author">
+        <input v-model="author" list="list_authors" class="input-author" type="text" placeholder="Автор"/>
         <!-- <button class="button-action" @click="markDublicates" :disabled="!author">Найти и обработать дубликаты песен автора</button> -->
-        <button class="button-action" @click="autoAssignOriginalAll" :disabled="!author">Автопривязать оригинал по аудио (статус 1 → 2)</button>
+        <button class="button-action" :disabled="!author" @click="autoAssignOriginalAll">Автопривязать оригинал по аудио (статус 1 → 2)</button>
       </div>
       <!-- <button class="button-action" @click="delDublicates">Удалить дубликаты</button>
       <button class="button-action" @click="clearPreDublicates">Очистить информацию о пре-дубликатах</button> -->
       <div class="field-and-buttons-wrapper">
         <div class="fields-line-wrapper">
-          <input list="list_dicts" class="input-dict-type" type="text" placeholder="Словарь" v-model="dictType">
-          <input class="input-dict-value" type="text" placeholder="Слово" v-model="dictValue">
+          <input v-model="dictType" list="list_dicts" class="input-dict-type" type="text" placeholder="Словарь"/>
+          <input v-model="dictValue" class="input-dict-value" type="text" placeholder="Слово"/>
         </div>
         <div class="fields-line-wrapper">
-          <button class="button-action button-action-inline" @click="dictActionAdd" :disabled="!dictType || !dictValue">Добавить слово в словарь</button>
-          <button class="button-action button-action-inline" @click="dictActionRemove" :disabled="!dictType || !dictValue">Удалить слово из словаря</button>
+          <button class="button-action button-action-inline" :disabled="!dictType || !dictValue" @click="dictActionAdd">Добавить слово в словарь</button>
+          <button class="button-action button-action-inline" :disabled="!dictType || !dictValue" @click="dictActionRemove">Удалить слово из словаря</button>
         </div>
       </div>
       <div class="fields-line-wrapper">
-        <button class="button-action button-action-inline" @click="autorizeYMstart" :disabled="authYmInProgress">Auth YM 1</button>
-        <button class="button-action button-action-inline" @click="autorizeYMstart2" :disabled="authYmInProgress">Auth YM 2</button>
-        <button class="button-action button-action-inline" @click="autorizeYMstop" :disabled="!authYmInProgress">Auth YM: Stop</button>
+        <button class="button-action button-action-inline" :disabled="authYmInProgress" @click="autorizeYMstart">Auth YM 1</button>
+        <button class="button-action button-action-inline" :disabled="authYmInProgress" @click="autorizeYMstart2">Auth YM 2</button>
+        <button class="button-action button-action-inline" :disabled="!authYmInProgress" @click="autorizeYMstop">Auth YM: Stop</button>
       </div>
-      <button class="button-action" @click="customFunction" title="Custom Function: поиск родителей и аудио-родителей для песен без родителя (root_id=0, статус &lt; 3)">Поиск родителей и аудио-родителей (Custom Function)</button>
+      <button class="button-action" title="Custom Function: первичная индексация аудио-родителей по всей базе" @click="customFunction">Индексация аудио-родителей (Custom Function)</button>
       </div>
     </div>
   </div>
@@ -456,9 +456,9 @@ export default {
     customFunction() {
       this.customConfirmParams = {
         header: 'Подтвердите действие',
-        body: `Запустить поиск родителей и аудио-родителей для песен с root_id=0 и статусом &lt; 3?<br>`
-            + `Для каждой такой песни сначала будет выполнен поиск родителя по точному совпадению названия (текст/маркеры переписываются только если у песни ещё нет своего текста), затем — поиск аудио-родителя по акустическому сходству (порог 85%, поле не пересекается с родителем).<br>`
-            + `<strong>Операция тяжёлая и идёт в фоне — итог придёт уведомлением. Можно запускать повторно, чтобы подхватить новые песни.</strong>`,
+        body: `Запустить первичную индексацию аудио-родителей по ВСЕЙ базе песен?<br>`
+            + `Для каждой песни будет найден наиболее похожий по аудио вариант (порог 85%) и сохранён как аудио-родитель — задел для будущей автоматизации добавления новых песен.<br>`
+            + `<strong>Операция тяжёлая и идёт в фоне — итог придёт уведомлением. Обычно её нужно запускать один раз.</strong>`,
         timeout: 15,
         callback: this.doCustomFunction
       }
@@ -469,7 +469,7 @@ export default {
         this.customConfirmParams = {
           isAlert: true,
           alertType: 'info',
-          header: 'Поиск родителей и аудио-родителей',
+          header: 'Индексация аудио-родителей',
           body: `Операция запущена в фоне.<br>Итог придёт уведомлением по завершении.`,
           timeout: 10
         }

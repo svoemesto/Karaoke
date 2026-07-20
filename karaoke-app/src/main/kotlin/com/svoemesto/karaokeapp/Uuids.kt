@@ -12,9 +12,8 @@ fun getStoredUuid(key: List<Any>): String {
     val id = listOf(typeName, voiceId, childId, elementId).hashCode()
     val uuid = Uuids.load(id, WORKING_DATABASE)?.uuid ?: ""
     return if (uuid == "") {
-        Uuids.createDbInstance(Uuids(id,UUID.randomUUID().toString()), WORKING_DATABASE)?.uuid ?: UUID.randomUUID().toString()
+        Uuids.createDbInstance(Uuids(id, UUID.randomUUID().toString()), WORKING_DATABASE)?.uuid ?: UUID.randomUUID().toString()
     } else {
         uuid
     }
 }
-

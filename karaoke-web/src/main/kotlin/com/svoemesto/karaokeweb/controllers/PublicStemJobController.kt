@@ -44,13 +44,14 @@ class PublicStemJobController(
 ) {
     private val db get() = WORKING_DATABASE
 
-    private fun currentUser(request: HttpServletRequest): SiteUser =
-        request.getAttribute(SiteAuthInterceptor.SITE_USER_ATTR) as SiteUser
+    private fun currentUser(request: HttpServletRequest): SiteUser = request.getAttribute(SiteAuthInterceptor.SITE_USER_ATTR) as SiteUser
 
     // Своё задание (иначе null → 404, факт чужого задания наружу не утекает) — по образцу
     // PublicSongEditorController.loadOwnedAssignment.
-    private fun loadOwnedJob(id: Long, ownerId: Long): StemJob? =
-        StemJob.getById(id, db, storageService, storageApiClient)?.takeIf { it.siteUserId == ownerId }
+    private fun loadOwnedJob(
+        id: Long,
+        ownerId: Long,
+    ): StemJob? = StemJob.getById(id, db, storageService, storageApiClient)?.takeIf { it.siteUserId == ownerId }
 
     @GetMapping("/list")
     fun list(request: HttpServletRequest): List<com.svoemesto.karaokeapp.model.StemJobDto> {
@@ -83,19 +84,25 @@ class PublicStemJobController(
         }
         val activeCount = StemJob.countActiveByUser(user.id, db)
         if (activeCount >= StemJob.MAX_ACTIVE_JOBS_PER_USER) {
-            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(mapOf("error" to "queue_limit_reached", "limit" to StemJob.MAX_ACTIVE_JOBS_PER_USER))
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(
+                mapOf(
+                    "error" to "queue_limit_reached",
+                    "limit" to StemJob.MAX_ACTIVE_JOBS_PER_USER,
+                ),
+            )
         }
 
-        val job = StemJob.createNew(
-            siteUserId = user.id,
-            mode = mode,
-            originalFileName = file.originalFilename ?: "upload.$ext",
-            originalExt = ext,
-            fileSizeBytes = file.size,
-            database = db,
-            storageService = storageService,
-            storageApiClient = storageApiClient,
-        ) ?: return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(mapOf("error" to "create_failed"))
+        val job =
+            StemJob.createNew(
+                siteUserId = user.id,
+                mode = mode,
+                originalFileName = file.originalFilename ?: "upload.$ext",
+                originalExt = ext,
+                fileSizeBytes = file.size,
+                database = db,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            ) ?: return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(mapOf("error" to "create_failed"))
 
         val dir = File(tempDir)
         if (!dir.exists()) dir.mkdirs()
@@ -111,7 +118,10 @@ class PublicStemJobController(
     }
 
     @PostMapping("/{id}/delete")
-    fun delete(@PathVariable id: Long, request: HttpServletRequest): ResponseEntity<Any> {
+    fun delete(
+        @PathVariable id: Long,
+        request: HttpServletRequest,
+    ): ResponseEntity<Any> {
         val user = currentUser(request)
         val job = loadOwnedJob(id, user.id) ?: return ResponseEntity.notFound().build()
         // Фактическое удаление файлов из MinIO (если уже загружены) делает уборка на karaoke-app —
@@ -154,7 +164,11 @@ class PublicStemJobController(
                 connection.disconnect()
                 return
             }
-            val baseName = job.originalFileName.substringBeforeLast('.').ifBlank { "stem" }.replace("\"", "")
+            val baseName =
+                job.originalFileName
+                    .substringBeforeLast('.')
+                    .ifBlank { "stem" }
+                    .replace("\"", "")
             response.contentType = if (ext == "mp3") "audio/mpeg" else "application/octet-stream"
             response.setHeader("Content-Disposition", "attachment; filename=\"$baseName - $stem.$ext\"")
             connection.inputStream.use { input -> response.outputStream.use { output -> input.copyTo(output) } }

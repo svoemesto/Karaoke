@@ -17,25 +17,87 @@ import java.nio.charset.StandardCharsets
 import java.util.concurrent.TimeUnit
 
 interface KaraokeStorageService {
-    fun uploadFile(bucketName: String, fileName: String, file: InputStream, size: Long?)
-    fun uploadFile(bucketName: String, fileName: String, pathToFileOnDisk: String)
-    fun getFileUrl(bucketName: String, fileName: String): String
-    fun downloadFile(bucketName: String, fileName: String): InputStream
-    fun downloadFile(bucketName: String, fileName: String, pathToFileOnDisk: String): File
-    fun deleteFile(bucketName: String, fileName: String)
-    fun getPresignedUrl(bucketName: String, fileName: String, expiry: Int = 604800): String
+    fun uploadFile(
+        bucketName: String,
+        fileName: String,
+        file: InputStream,
+        size: Long?,
+    )
+
+    fun uploadFile(
+        bucketName: String,
+        fileName: String,
+        pathToFileOnDisk: String,
+    )
+
+    fun getFileUrl(
+        bucketName: String,
+        fileName: String,
+    ): String
+
+    fun downloadFile(
+        bucketName: String,
+        fileName: String,
+    ): InputStream
+
+    fun downloadFile(
+        bucketName: String,
+        fileName: String,
+        pathToFileOnDisk: String,
+    ): File
+
+    fun deleteFile(
+        bucketName: String,
+        fileName: String,
+    )
+
+    fun getPresignedUrl(
+        bucketName: String,
+        fileName: String,
+        expiry: Int = 604800,
+    ): String
+
     fun bucketExists(bucketName: String): Boolean
-    fun fileExists(bucketName: String, fileName: String): Boolean
+
+    fun fileExists(
+        bucketName: String,
+        fileName: String,
+    ): Boolean
+
     fun listFiles(bucketName: String): List<String>
+
     fun setBucketPublic(bucketName: String)
+
     fun setBucketPrivate(bucketName: String)
+
     fun isBucketPublic(bucketName: String): Boolean
+
     fun createBucketIfNotExists(bucketName: String)
+
     fun deleteAllEmptyBuckets()
-    fun getFileStat(bucketName: String, fileName: String): StatObjectResponse?
-    fun getFileInfo(bucketName: String, fileName: String): StorageFileInfo
-    fun fileIsActual(bucketName: String, fileName: String, pathToFileOnDisk: String): Boolean
-    fun fileIsActual(bucketName: String, fileName: String, storageFileInfo: StorageFileInfo): Boolean
+
+    fun getFileStat(
+        bucketName: String,
+        fileName: String,
+    ): StatObjectResponse?
+
+    fun getFileInfo(
+        bucketName: String,
+        fileName: String,
+    ): StorageFileInfo
+
+    fun fileIsActual(
+        bucketName: String,
+        fileName: String,
+        pathToFileOnDisk: String,
+    ): Boolean
+
+    fun fileIsActual(
+        bucketName: String,
+        fileName: String,
+        storageFileInfo: StorageFileInfo,
+    ): Boolean
+
     fun listFilesInfo(bucketName: String): List<StorageFileInfo>
 }
 
@@ -43,7 +105,7 @@ data class StorageFileInfo(
     val bucketName: String,
     val fileName: String,
     val etag: String,
-    val size: Long
+    val size: Long,
 ) : Serializable
 
 @Service
@@ -55,23 +117,41 @@ class KaraokeStorageServiceImpl(
     @Value($$"${storage.port-host}") val storagePortHost: String,
     @Value($$"${work-in-container}") val wic: Long,
 ) : KaraokeStorageService {
-    private val endpoint: String = if (wic != 0L) "http://${storageContainerName}:${storagePortInsideContainer}" else "http://localhost:${storagePortHost}"
+    private val endpoint: String =
+        if (wic !=
+            0L
+        ) {
+            "http://$storageContainerName:$storagePortInsideContainer"
+        } else {
+            "http://localhost:$storagePortHost"
+        }
 
-    private fun buildClient(ep: String, key: String, secret: String): MinioClient {
-        val httpClient = OkHttpClient.Builder()
-            .connectionPool(ConnectionPool(0, 1, TimeUnit.NANOSECONDS))
-            .connectTimeout(10, TimeUnit.SECONDS)
-            .readTimeout(30, TimeUnit.SECONDS)
-            .writeTimeout(30, TimeUnit.SECONDS)
+    private fun buildClient(
+        ep: String,
+        key: String,
+        secret: String,
+    ): MinioClient {
+        val httpClient =
+            OkHttpClient
+                .Builder()
+                .connectionPool(ConnectionPool(0, 1, TimeUnit.NANOSECONDS))
+                .connectTimeout(10, TimeUnit.SECONDS)
+                .readTimeout(30, TimeUnit.SECONDS)
+                .writeTimeout(30, TimeUnit.SECONDS)
+                .build()
+        return MinioClient
+            .builder()
+            .endpoint(ep)
+            .credentials(key, secret)
+            .httpClient(httpClient)
             .build()
-        return MinioClient.builder().endpoint(ep).credentials(key, secret).httpClient(httpClient).build()
     }
 
     private val storageClient: MinioClient = buildClient(endpoint, storageKey, storageSecret)
 
     // --- Вспомогательная функция для декодирования имени файла ---
-    private fun decodeFileNameIfEncoded(fileName: String): String {
-        return if (fileName.contains("%")) { // Простая проверка: содержит ли имя символ '%'
+    private fun decodeFileNameIfEncoded(fileName: String): String =
+        if (fileName.contains("%")) { // Простая проверка: содержит ли имя символ '%'
             try {
                 URLDecoder.decode(fileName, StandardCharsets.UTF_8.toString())
             } catch (_: IllegalArgumentException) {
@@ -82,34 +162,39 @@ class KaraokeStorageServiceImpl(
             // Если нет '%', имя, вероятно, не закодировано
             fileName
         }
-    }
     // --- /Вспомогательная функция ---
 
-    override fun listFilesInfo(bucketName: String): List<StorageFileInfo> {
-        return listFiles(bucketName = bucketName).map { fileName ->
+    override fun listFilesInfo(bucketName: String): List<StorageFileInfo> =
+        listFiles(bucketName = bucketName).map { fileName ->
             getFileInfo(bucketName = bucketName, fileName = fileName)
         }
-    }
 
-    override fun getFileInfo(bucketName: String, fileName: String): StorageFileInfo {
+    override fun getFileInfo(
+        bucketName: String,
+        fileName: String,
+    ): StorageFileInfo {
         val decodedFileName = decodeFileNameIfEncoded(fileName) // Декодируем перед использованием
         val fileStat = getFileStat(bucketName = bucketName, fileName = decodedFileName)
         return StorageFileInfo(
             bucketName = bucketName,
             fileName = decodedFileName, // Сохраняем декодированное имя в объекте
             etag = fileStat?.etag() ?: "",
-            size = fileStat?.size() ?: -1
+            size = fileStat?.size() ?: -1,
         )
     }
 
-    override fun getFileStat(bucketName: String, fileName: String): StatObjectResponse? {
+    override fun getFileStat(
+        bucketName: String,
+        fileName: String,
+    ): StatObjectResponse? {
         val decodedFileName = decodeFileNameIfEncoded(fileName)
         return try {
             storageClient.statObject(
-                StatObjectArgs.builder()
+                StatObjectArgs
+                    .builder()
                     .bucket(bucketName)
                     .`object`(decodedFileName) // Используем декодированное имя
-                    .build()
+                    .build(),
             )
         } catch (_: MinioException) {
             null
@@ -127,32 +212,36 @@ class KaraokeStorageServiceImpl(
 
                 // Проверяем, пустой ли бакет
                 // Для этого попробуем получить список объектов в бакете
-                val objects = storageClient.listObjects(
-                    ListObjectsArgs.builder()
-                        .bucket(bucketName)
-                        .recursive(true) // <-- Уже исправлено
-                        .maxKeys(1) // Запрашиваем только 1 объект, чтобы проверить наличие
-                        .build()
-                )
+                val objects =
+                    storageClient.listObjects(
+                        ListObjectsArgs
+                            .builder()
+                            .bucket(bucketName)
+                            .recursive(true) // <-- Уже исправлено
+                            .maxKeys(1) // Запрашиваем только 1 объект, чтобы проверить наличие
+                            .build(),
+                    )
 
                 // Если итератор пуст (next() бросит исключение или вернет null быстро), бакет пуст
-                val isEmpty = try {
-                    val iterator = objects.iterator()
-                    !iterator.hasNext() // Если hasNext() возвращает false, значит, объектов нет
-                } catch (e: Exception) {
-                    // Если возникла ошибка при итерации (редко, но возможно), считаем бакет не пустым или логируем
-                    println("Error checking contents of bucket '$bucketName': ${e.message}")
-                    false // Не удаляем, если не уверены
-                }
+                val isEmpty =
+                    try {
+                        val iterator = objects.iterator()
+                        !iterator.hasNext() // Если hasNext() возвращает false, значит, объектов нет
+                    } catch (e: Exception) {
+                        // Если возникла ошибка при итерации (редко, но возможно), считаем бакет не пустым или логируем
+                        println("Error checking contents of bucket '$bucketName': ${e.message}")
+                        false // Не удаляем, если не уверены
+                    }
 
                 if (isEmpty) {
                     println("Bucket '$bucketName' is empty. Attempting to delete...")
                     try {
                         // Удаляем пустой бакет
                         storageClient.removeBucket(
-                            RemoveBucketArgs.builder()
+                            RemoveBucketArgs
+                                .builder()
                                 .bucket(bucketName)
-                                .build()
+                                .build(),
                         )
                         println("Bucket '$bucketName' deleted successfully.")
                     } catch (e: MinioException) {
@@ -171,9 +260,10 @@ class KaraokeStorageServiceImpl(
         if (!bucketExists(bucketName)) {
             try {
                 storageClient.makeBucket(
-                    MakeBucketArgs.builder()
+                    MakeBucketArgs
+                        .builder()
                         .bucket(bucketName)
-                        .build()
+                        .build(),
                 )
                 println("Bucket '$bucketName' created successfully.")
             } catch (e: MinioException) {
@@ -182,7 +272,11 @@ class KaraokeStorageServiceImpl(
         }
     }
 
-    override fun uploadFile(bucketName: String, fileName: String, pathToFileOnDisk: String) {
+    override fun uploadFile(
+        bucketName: String,
+        fileName: String,
+        pathToFileOnDisk: String,
+    ) {
         val file = File(pathToFileOnDisk)
         if (file.exists()) {
             val size = file.length()
@@ -191,56 +285,75 @@ class KaraokeStorageServiceImpl(
                 bucketName = bucketName,
                 fileName = fileName, // fileName передаётся в uploadFile как есть, но он должен быть оригинальным именем
                 file = fileInputStream,
-                size = size
+                size = size,
             )
         }
     }
 
-    override fun uploadFile(bucketName: String, fileName: String, file: InputStream, size: Long?) {
+    override fun uploadFile(
+        bucketName: String,
+        fileName: String,
+        file: InputStream,
+        size: Long?,
+    ) {
         val decodedFileName = decodeFileNameIfEncoded(fileName)
         createBucketIfNotExists(bucketName)
         val sizeToUse = size ?: file.available().toLong()
         try {
             storageClient.putObject(
-                PutObjectArgs.builder()
+                PutObjectArgs
+                    .builder()
                     .bucket(bucketName)
                     .`object`(decodedFileName)
                     .stream(file, sizeToUse, -1)
-                    .build()
+                    .build(),
             )
         } catch (e: MinioException) {
             throw RuntimeException("Failed to upload file: ${e.message}", e)
         }
     }
 
-    override fun getFileUrl(bucketName: String, fileName: String): String {
+    override fun getFileUrl(
+        bucketName: String,
+        fileName: String,
+    ): String {
         val decodedFileName = decodeFileNameIfEncoded(fileName)
         return "$endpoint/$bucketName/$decodedFileName"
     }
 
-    override fun getPresignedUrl(bucketName: String, fileName: String, expiry: Int): String {
+    override fun getPresignedUrl(
+        bucketName: String,
+        fileName: String,
+        expiry: Int,
+    ): String {
         val decodedFileName = decodeFileNameIfEncoded(fileName)
         return try {
             storageClient.getPresignedObjectUrl(
-                GetPresignedObjectUrlArgs.builder()
+                GetPresignedObjectUrlArgs
+                    .builder()
                     .method(Method.GET)
                     .bucket(bucketName)
                     .`object`(decodedFileName)
                     .expiry(expiry)
-                    .build()
+                    .build(),
             )
         } catch (e: MinioException) {
             throw RuntimeException("Failed to generate presigned URL: ${e.message}", e)
         }
     }
 
-    override fun downloadFile(bucketName: String, fileName: String, pathToFileOnDisk: String): File {
+    override fun downloadFile(
+        bucketName: String,
+        fileName: String,
+        pathToFileOnDisk: String,
+    ): File {
         val decodedFileName = decodeFileNameIfEncoded(fileName) // Декодируем перед использованием
 
-        val fileInputStream = downloadFile(
-            bucketName = bucketName,
-            fileName = decodedFileName // Передаём декодированное имя
-        )
+        val fileInputStream =
+            downloadFile(
+                bucketName = bucketName,
+                fileName = decodedFileName, // Передаём декодированное имя
+            )
         val file = File(pathToFileOnDisk)
         FileOutputStream(file).use { outputStream ->
             fileInputStream.use { it.copyTo(outputStream) }
@@ -249,29 +362,37 @@ class KaraokeStorageServiceImpl(
         return file
     }
 
-    override fun downloadFile(bucketName: String, fileName: String): InputStream {
+    override fun downloadFile(
+        bucketName: String,
+        fileName: String,
+    ): InputStream {
         val decodedFileName = decodeFileNameIfEncoded(fileName)
         return try {
             storageClient.getObject(
-                GetObjectArgs.builder()
+                GetObjectArgs
+                    .builder()
                     .bucket(bucketName)
                     .`object`(decodedFileName)
-                    .build()
+                    .build(),
             )
         } catch (e: MinioException) {
             throw RuntimeException("Failed to download file: ${e.message}", e)
         }
     }
 
-    override fun deleteFile(bucketName: String, fileName: String) {
+    override fun deleteFile(
+        bucketName: String,
+        fileName: String,
+    ) {
         val decodedFileName = decodeFileNameIfEncoded(fileName)
         if (bucketExists(bucketName)) {
             try {
                 storageClient.removeObject(
-                    RemoveObjectArgs.builder()
+                    RemoveObjectArgs
+                        .builder()
                         .bucket(bucketName)
                         .`object`(decodedFileName)
-                        .build()
+                        .build(),
                 )
             } catch (e: MinioException) {
                 throw RuntimeException("Failed to delete file: ${e.message}", e)
@@ -279,23 +400,26 @@ class KaraokeStorageServiceImpl(
         }
     }
 
-    override fun bucketExists(bucketName: String): Boolean {
-        return try {
+    override fun bucketExists(bucketName: String): Boolean =
+        try {
             storageClient.bucketExists(BucketExistsArgs.builder().bucket(bucketName).build())
         } catch (e: MinioException) {
             throw RuntimeException("Error checking bucket existence: ${e.message}", e)
         }
-    }
 
-    override fun fileExists(bucketName: String, fileName: String): Boolean {
+    override fun fileExists(
+        bucketName: String,
+        fileName: String,
+    ): Boolean {
         if (bucketExists(bucketName)) {
             val decodedFileName = decodeFileNameIfEncoded(fileName)
             return try {
                 storageClient.statObject(
-                    StatObjectArgs.builder()
+                    StatObjectArgs
+                        .builder()
                         .bucket(bucketName)
                         .`object`(decodedFileName)
-                        .build()
+                        .build(),
                 )
                 true
             } catch (_: ErrorResponseException) {
@@ -308,7 +432,11 @@ class KaraokeStorageServiceImpl(
         }
     }
 
-    override fun fileIsActual(bucketName: String, fileName: String, pathToFileOnDisk: String): Boolean {
+    override fun fileIsActual(
+        bucketName: String,
+        fileName: String,
+        pathToFileOnDisk: String,
+    ): Boolean {
         var result = true
         val file = File(pathToFileOnDisk)
         if (file.exists()) {
@@ -318,22 +446,26 @@ class KaraokeStorageServiceImpl(
         return result
     }
 
-    override fun fileIsActual(bucketName: String, fileName: String, storageFileInfo: StorageFileInfo): Boolean {
-
+    override fun fileIsActual(
+        bucketName: String,
+        fileName: String,
+        storageFileInfo: StorageFileInfo,
+    ): Boolean {
         val fileInfo = getFileInfo(bucketName = bucketName, fileName = fileName)
-        return  storageFileInfo.size == fileInfo.size
-
+        return storageFileInfo.size == fileInfo.size
     }
 
     override fun listFiles(bucketName: String): List<String> {
         if (bucketExists(bucketName)) {
             return try {
-                val result = storageClient.listObjects(
-                    ListObjectsArgs.builder()
-                        .bucket(bucketName)
-                        .recursive(true) // <-- Уже исправлено
-                        .build()
-                )
+                val result =
+                    storageClient.listObjects(
+                        ListObjectsArgs
+                            .builder()
+                            .bucket(bucketName)
+                            .recursive(true) // <-- Уже исправлено
+                            .build(),
+                    )
                 result.mapNotNull { it.get() }.map { obj -> obj.objectName() }
             } catch (e: MinioException) {
                 throw RuntimeException("Failed to list files in bucket: ${e.message}", e)
@@ -347,25 +479,27 @@ class KaraokeStorageServiceImpl(
         createBucketIfNotExists(bucketName)
         if (bucketExists(bucketName)) {
             try {
-                val policy = """
-                {
-                  "Version": "2012-10-17",
-                  "Statement": [
+                val policy =
+                    """
                     {
-                      "Effect": "Allow",
-                      "Principal": {"AWS": ["*"]},
-                      "Action": ["s3:GetObject"],
-                      "Resource": ["arn:aws:s3:::$bucketName/*"]
+                      "Version": "2012-10-17",
+                      "Statement": [
+                        {
+                          "Effect": "Allow",
+                          "Principal": {"AWS": ["*"]},
+                          "Action": ["s3:GetObject"],
+                          "Resource": ["arn:aws:s3:::$bucketName/*"]
+                        }
+                      ]
                     }
-                  ]
-                }
-            """.trimIndent()
+                    """.trimIndent()
 
                 storageClient.setBucketPolicy(
-                    SetBucketPolicyArgs.builder()
+                    SetBucketPolicyArgs
+                        .builder()
                         .bucket(bucketName)
                         .config(policy)
-                        .build()
+                        .build(),
                 )
             } catch (e: MinioException) {
                 throw RuntimeException("Failed to set bucket as public: ${e.message}", e)
@@ -379,10 +513,11 @@ class KaraokeStorageServiceImpl(
             try {
                 // Политика по умолчанию — приватная (без политики)
                 storageClient.setBucketPolicy(
-                    SetBucketPolicyArgs.builder()
+                    SetBucketPolicyArgs
+                        .builder()
                         .bucket(bucketName)
                         .config("") // пустая политика = приватный доступ
-                        .build()
+                        .build(),
                 )
             } catch (e: MinioException) {
                 throw RuntimeException("Failed to set bucket as private: ${e.message}", e)
@@ -393,11 +528,13 @@ class KaraokeStorageServiceImpl(
     override fun isBucketPublic(bucketName: String): Boolean {
         createBucketIfNotExists(bucketName)
         return try {
-            val policy = storageClient.getBucketPolicy(
-                GetBucketPolicyArgs.builder()
-                    .bucket(bucketName)
-                    .build()
-            )
+            val policy =
+                storageClient.getBucketPolicy(
+                    GetBucketPolicyArgs
+                        .builder()
+                        .bucket(bucketName)
+                        .build(),
+                )
             // Если политика не пуста и содержит разрешение на "s3:GetObject" для "*", то бакет публичный
             policy.isNotEmpty() && policy.contains("\"Effect\":\"Allow\"") && policy.contains("\"Principal\":{\"AWS\":[\"*\"]}")
         } catch (e: ErrorResponseException) {

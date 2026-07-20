@@ -24,8 +24,9 @@ class Subscription(
     override val database: KaraokeConnection = WORKING_DATABASE,
     override val storageService: KaraokeStorageService = KSS_APP,
     override val storageApiClient: StorageApiClient = SAC_APP,
-) : Serializable, Comparable<Subscription>, KaraokeDbTable {
-
+) : Serializable,
+    Comparable<Subscription>,
+    KaraokeDbTable {
     override fun getTableName() = TABLE_NAME
 
     @KaraokeDbTableField(name = "id", isId = true)
@@ -90,26 +91,26 @@ class Subscription(
 
     override fun compareTo(other: Subscription): Int = compareValuesBy(this, other, { -it.createdAt.time }, { it.id })
 
-    override fun toDTO(): SubscriptionDto = SubscriptionDto(
-        id = id,
-        siteUserId = siteUserId,
-        scope = scope,
-        idSong = idSong,
-        tariffId = tariffId,
-        periodDays = periodDays,
-        basePrice = basePrice,
-        discount = discount,
-        finalPrice = finalPrice,
-        promoApplied = promoApplied,
-        status = status,
-        autoRenew = autoRenew,
-        createdAt = createdAt.toString(),
-        paidAt = paidAt?.toString(),
-        orderId = orderId,
-    )
+    override fun toDTO(): SubscriptionDto =
+        SubscriptionDto(
+            id = id,
+            siteUserId = siteUserId,
+            scope = scope,
+            idSong = idSong,
+            tariffId = tariffId,
+            periodDays = periodDays,
+            basePrice = basePrice,
+            discount = discount,
+            finalPrice = finalPrice,
+            promoApplied = promoApplied,
+            status = status,
+            autoRenew = autoRenew,
+            createdAt = createdAt.toString(),
+            paidAt = paidAt?.toString(),
+            orderId = orderId,
+        )
 
     companion object {
-
         const val TABLE_NAME = "tbl_subscriptions"
 
         const val SCOPE_SONG = "SONG"
@@ -127,28 +128,32 @@ class Subscription(
             database: KaraokeConnection,
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
-        ): List<Subscription> = KaraokeDbTable.loadList(
-            clazz = Subscription::class,
-            tableName = TABLE_NAME,
-            whereList = listOf("site_user_id=$siteUserId"),
-            database = database,
-            storageService = storageService,
-            storageApiClient = storageApiClient,
-        ).map { it as Subscription }.sorted()
+        ): List<Subscription> =
+            KaraokeDbTable
+                .loadList(
+                    clazz = Subscription::class,
+                    tableName = TABLE_NAME,
+                    whereList = listOf("site_user_id=$siteUserId"),
+                    database = database,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                ).map { it as Subscription }
+                .sorted()
 
         fun getById(
             id: Long,
             database: KaraokeConnection,
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
-        ): Subscription? = KaraokeDbTable.loadById(
-            clazz = Subscription::class,
-            tableName = TABLE_NAME,
-            id = id,
-            database = database,
-            storageService = storageService,
-            storageApiClient = storageApiClient,
-        ) as? Subscription?
+        ): Subscription? =
+            KaraokeDbTable.loadById(
+                clazz = Subscription::class,
+                tableName = TABLE_NAME,
+                id = id,
+                database = database,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            ) as? Subscription?
 
         // Для заказа «Корзины» несколько записей делят один yookassa_payment_id — возвращаем ВСЕ
         // (для одиночной покупки список будет из одного элемента, вызывающий код это не ломает).
@@ -157,14 +162,16 @@ class Subscription(
             database: KaraokeConnection,
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
-        ): List<Subscription> = KaraokeDbTable.loadList(
-            clazz = Subscription::class,
-            tableName = TABLE_NAME,
-            whereList = listOf("yookassa_payment_id='${paymentId.replace("'", "''")}'"),
-            database = database,
-            storageService = storageService,
-            storageApiClient = storageApiClient,
-        ).map { it as Subscription }
+        ): List<Subscription> =
+            KaraokeDbTable
+                .loadList(
+                    clazz = Subscription::class,
+                    tableName = TABLE_NAME,
+                    whereList = listOf("yookassa_payment_id='${paymentId.replace("'", "''")}'"),
+                    database = database,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                ).map { it as Subscription }
 
         // Активна ли подписка пользователя на конкретную песню (scope=SONG, PAID). Бессрочная —
         // без проверки срока, само наличие PAID-записи = владение.
@@ -174,20 +181,23 @@ class Subscription(
             database: KaraokeConnection,
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
-        ): Boolean = KaraokeDbTable.loadList(
-            clazz = Subscription::class,
-            tableName = TABLE_NAME,
-            whereList = listOf(
-                "site_user_id=$siteUserId",
-                "scope='$SCOPE_SONG'",
-                "id_song=$idSong",
-                "status='$STATUS_PAID'",
-            ),
-            limit = 1,
-            database = database,
-            storageService = storageService,
-            storageApiClient = storageApiClient,
-        ).isNotEmpty()
+        ): Boolean =
+            KaraokeDbTable
+                .loadList(
+                    clazz = Subscription::class,
+                    tableName = TABLE_NAME,
+                    whereList =
+                        listOf(
+                            "site_user_id=$siteUserId",
+                            "scope='$SCOPE_SONG'",
+                            "id_song=$idSong",
+                            "status='$STATUS_PAID'",
+                        ),
+                    limit = 1,
+                    database = database,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                ).isNotEmpty()
 
         // Батч-версия isSubscribedToSong — для readiness() (иконки в таблицах Закрома/Поиск), чтобы
         // не делать по запросу на каждую песню (см. PublicPlaylistController.membership — тот же
@@ -200,19 +210,22 @@ class Subscription(
             storageApiClient: StorageApiClient,
         ): Set<Long> {
             if (songIds.isEmpty() || siteUserId <= 0) return emptySet()
-            return KaraokeDbTable.loadList(
-                clazz = Subscription::class,
-                tableName = TABLE_NAME,
-                whereList = listOf(
-                    "site_user_id=$siteUserId",
-                    "scope='$SCOPE_SONG'",
-                    "id_song IN (${songIds.joinToString(",")})",
-                    "status='$STATUS_PAID'",
-                ),
-                database = database,
-                storageService = storageService,
-                storageApiClient = storageApiClient,
-            ).mapNotNull { (it as Subscription).idSong }.toSet()
+            return KaraokeDbTable
+                .loadList(
+                    clazz = Subscription::class,
+                    tableName = TABLE_NAME,
+                    whereList =
+                        listOf(
+                            "site_user_id=$siteUserId",
+                            "scope='$SCOPE_SONG'",
+                            "id_song IN (${songIds.joinToString(",")})",
+                            "status='$STATUS_PAID'",
+                        ),
+                    database = database,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                ).mapNotNull { (it as Subscription).idSong }
+                .toSet()
         }
 
         // Незавершённый (PENDING) заказ пользователя на конкретный тариф сайта — используется, чтобы
@@ -225,20 +238,23 @@ class Subscription(
             database: KaraokeConnection,
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
-        ): Subscription? = KaraokeDbTable.loadList(
-            clazz = Subscription::class,
-            tableName = TABLE_NAME,
-            whereList = listOf(
-                "site_user_id=$siteUserId",
-                "scope='$SCOPE_SITE'",
-                "tariff_id=$tariffId",
-                "status='$STATUS_PENDING'",
-            ),
-            limit = 1,
-            database = database,
-            storageService = storageService,
-            storageApiClient = storageApiClient,
-        ).firstOrNull() as? Subscription
+        ): Subscription? =
+            KaraokeDbTable
+                .loadList(
+                    clazz = Subscription::class,
+                    tableName = TABLE_NAME,
+                    whereList =
+                        listOf(
+                            "site_user_id=$siteUserId",
+                            "scope='$SCOPE_SITE'",
+                            "tariff_id=$tariffId",
+                            "status='$STATUS_PENDING'",
+                        ),
+                    limit = 1,
+                    database = database,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                ).firstOrNull() as? Subscription
 
         // Счётчик оплаченных подписок юзера в рамках scope — нужен для акции NTH_FREE.
         fun countPaid(
@@ -247,14 +263,16 @@ class Subscription(
             database: KaraokeConnection,
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
-        ): Int = KaraokeDbTable.loadList(
-            clazz = Subscription::class,
-            tableName = TABLE_NAME,
-            whereList = listOf("site_user_id=$siteUserId", "scope='${scope.replace("'", "''")}'", "status='$STATUS_PAID'"),
-            database = database,
-            storageService = storageService,
-            storageApiClient = storageApiClient,
-        ).size
+        ): Int =
+            KaraokeDbTable
+                .loadList(
+                    clazz = Subscription::class,
+                    tableName = TABLE_NAME,
+                    whereList = listOf("site_user_id=$siteUserId", "scope='${scope.replace("'", "''")}'", "status='$STATUS_PAID'"),
+                    database = database,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                ).size
 
         fun createNew(
             siteUserId: Long,

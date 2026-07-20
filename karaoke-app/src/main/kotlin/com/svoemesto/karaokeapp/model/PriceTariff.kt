@@ -20,8 +20,9 @@ class PriceTariff(
     override val database: KaraokeConnection = WORKING_DATABASE,
     override val storageService: KaraokeStorageService = KSS_APP,
     override val storageApiClient: StorageApiClient = SAC_APP,
-) : Serializable, Comparable<PriceTariff>, KaraokeDbTable {
-
+) : Serializable,
+    Comparable<PriceTariff>,
+    KaraokeDbTable {
     override fun getTableName() = TABLE_NAME
 
     @KaraokeDbTableField(name = "id", isId = true)
@@ -55,22 +56,21 @@ class PriceTariff(
     @KaraokeDbTableField(name = "last_update", useInDiff = false)
     var lastUpdate: Timestamp? = null
 
-    override fun compareTo(other: PriceTariff): Int =
-        compareValuesBy(this, other, { it.scope }, { it.sortOrder }, { it.id })
+    override fun compareTo(other: PriceTariff): Int = compareValuesBy(this, other, { it.scope }, { it.sortOrder }, { it.id })
 
-    override fun toDTO(): PriceTariffDto = PriceTariffDto(
-        id = id,
-        scope = scope,
-        name = name,
-        priceRub = priceRub,
-        periodDays = periodDays,
-        isActive = isActive,
-        isDefault = isDefault,
-        sortOrder = sortOrder,
-    )
+    override fun toDTO(): PriceTariffDto =
+        PriceTariffDto(
+            id = id,
+            scope = scope,
+            name = name,
+            priceRub = priceRub,
+            periodDays = periodDays,
+            isActive = isActive,
+            isDefault = isDefault,
+            sortOrder = sortOrder,
+        )
 
     companion object {
-
         const val TABLE_NAME = "tbl_price_tariffs"
         const val SCOPE_SONG = "SONG"
         const val SCOPE_SITE = "SITE"
@@ -79,14 +79,17 @@ class PriceTariff(
             database: KaraokeConnection,
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
-        ): List<PriceTariff> = KaraokeDbTable.loadList(
-            clazz = PriceTariff::class,
-            tableName = TABLE_NAME,
-            whereList = emptyList(),
-            database = database,
-            storageService = storageService,
-            storageApiClient = storageApiClient,
-        ).map { it as PriceTariff }.sorted()
+        ): List<PriceTariff> =
+            KaraokeDbTable
+                .loadList(
+                    clazz = PriceTariff::class,
+                    tableName = TABLE_NAME,
+                    whereList = emptyList(),
+                    database = database,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                ).map { it as PriceTariff }
+                .sorted()
 
         // Активные тарифы нужного охвата, для показа пользователю на /premium и странице песни.
         fun loadActiveByScope(
@@ -94,28 +97,32 @@ class PriceTariff(
             database: KaraokeConnection,
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
-        ): List<PriceTariff> = KaraokeDbTable.loadList(
-            clazz = PriceTariff::class,
-            tableName = TABLE_NAME,
-            whereList = listOf("scope='${scope.replace("'", "''")}'", "is_active=true"),
-            database = database,
-            storageService = storageService,
-            storageApiClient = storageApiClient,
-        ).map { it as PriceTariff }.sorted()
+        ): List<PriceTariff> =
+            KaraokeDbTable
+                .loadList(
+                    clazz = PriceTariff::class,
+                    tableName = TABLE_NAME,
+                    whereList = listOf("scope='${scope.replace("'", "''")}'", "is_active=true"),
+                    database = database,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                ).map { it as PriceTariff }
+                .sorted()
 
         fun getById(
             id: Long,
             database: KaraokeConnection,
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
-        ): PriceTariff? = KaraokeDbTable.loadById(
-            clazz = PriceTariff::class,
-            tableName = TABLE_NAME,
-            id = id,
-            database = database,
-            storageService = storageService,
-            storageApiClient = storageApiClient,
-        ) as? PriceTariff?
+        ): PriceTariff? =
+            KaraokeDbTable.loadById(
+                clazz = PriceTariff::class,
+                tableName = TABLE_NAME,
+                id = id,
+                database = database,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            ) as? PriceTariff?
 
         fun getDefault(
             scope: String,
@@ -144,7 +151,9 @@ class PriceTariff(
             return KaraokeDbTable.createDbInstance(entity = entity, database = database) as? PriceTariff?
         }
 
-        fun delete(id: Long, database: KaraokeConnection): Boolean =
-            KaraokeDbTable.delete(tableName = TABLE_NAME, id = id, database = database)
+        fun delete(
+            id: Long,
+            database: KaraokeConnection,
+        ): Boolean = KaraokeDbTable.delete(tableName = TABLE_NAME, id = id, database = database)
     }
 }

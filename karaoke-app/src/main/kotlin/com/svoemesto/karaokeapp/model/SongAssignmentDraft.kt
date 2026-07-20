@@ -30,8 +30,9 @@ class SongAssignmentDraft(
     override val database: KaraokeConnection = WORKING_DATABASE,
     override val storageService: KaraokeStorageService = KSS_APP,
     override val storageApiClient: StorageApiClient = SAC_APP,
-) : Serializable, Comparable<SongAssignmentDraft>, KaraokeDbTable {
-
+) : Serializable,
+    Comparable<SongAssignmentDraft>,
+    KaraokeDbTable {
     override fun getTableName() = TABLE_NAME
 
     @KaraokeDbTableField(name = "id", isId = true)
@@ -59,22 +60,22 @@ class SongAssignmentDraft(
     @KaraokeDbTableField(name = "last_update", useInDiff = false)
     var lastUpdate: Timestamp? = null
 
-    override fun compareTo(other: SongAssignmentDraft): Int =
-        compareValuesBy(this, other, { it.id })
+    override fun compareTo(other: SongAssignmentDraft): Int = compareValuesBy(this, other, { it.id })
 
-    override fun toDTO(): SongAssignmentDraftDto = SongAssignmentDraftDto(
-        id = id,
-        assignmentId = assignmentId,
-        assigneeId = assigneeId,
-        editedSourceText = editedSourceText,
-        editedMarkers = editedMarkers,
-        userStatus = userStatus,
-    )
+    override fun toDTO(): SongAssignmentDraftDto =
+        SongAssignmentDraftDto(
+            id = id,
+            assignmentId = assignmentId,
+            assigneeId = assigneeId,
+            editedSourceText = editedSourceText,
+            editedMarkers = editedMarkers,
+            userStatus = userStatus,
+        )
 
     // Черновик по голосам — с откатом на старый одноголосый формат (голая строка / плоский список
     // маркеров), сохранённый до перехода на multi-voice.
-    fun editedMarkersPerVoice(json: Json): List<List<SourceMarker>> {
-        return try {
+    fun editedMarkersPerVoice(json: Json): List<List<SourceMarker>> =
+        try {
             json.decodeFromString(ListSerializer(ListSerializer(SourceMarker.serializer())), editedMarkers)
         } catch (_: Exception) {
             try {
@@ -83,22 +84,18 @@ class SongAssignmentDraft(
                 emptyList()
             }
         }
-    }
 
-    fun editedTextsPerVoice(json: Json): List<String> {
-        return try {
+    fun editedTextsPerVoice(json: Json): List<String> =
+        try {
             json.decodeFromString(ListSerializer(String.serializer()), editedSourceText)
         } catch (_: Exception) {
             listOf(editedSourceText)
         }
-    }
 
     companion object {
-        fun encodeMarkersPerVoice(markersPerVoice: List<List<SourceMarker>>): String =
-            Json.encodeToString(markersPerVoice)
+        fun encodeMarkersPerVoice(markersPerVoice: List<List<SourceMarker>>): String = Json.encodeToString(markersPerVoice)
 
-        fun encodeTextsPerVoice(textsPerVoice: List<String>): String =
-            Json.encodeToString(textsPerVoice)
+        fun encodeTextsPerVoice(textsPerVoice: List<String>): String = Json.encodeToString(textsPerVoice)
 
         const val TABLE_NAME = "tbl_song_assignment_drafts"
 
@@ -107,16 +104,16 @@ class SongAssignmentDraft(
             database: KaraokeConnection,
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
-        ): SongAssignmentDraft? {
-            return KaraokeDbTable.loadList(
-                clazz = SongAssignmentDraft::class,
-                tableName = TABLE_NAME,
-                whereList = listOf("assignment_id=$assignmentId"),
-                database = database,
-                storageService = storageService,
-                storageApiClient = storageApiClient,
-            ).firstOrNull() as? SongAssignmentDraft?
-        }
+        ): SongAssignmentDraft? =
+            KaraokeDbTable
+                .loadList(
+                    clazz = SongAssignmentDraft::class,
+                    tableName = TABLE_NAME,
+                    whereList = listOf("assignment_id=$assignmentId"),
+                    database = database,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                ).firstOrNull() as? SongAssignmentDraft?
 
         // Черновики для набора назначений (батч, чтобы посчитать композитный статус без N+1).
         // Возврат: assignmentId -> draft.
@@ -127,23 +124,30 @@ class SongAssignmentDraft(
             storageApiClient: StorageApiClient,
         ): Map<Long, SongAssignmentDraft> {
             if (assignmentIds.isEmpty()) return emptyMap()
-            return KaraokeDbTable.loadList(
-                clazz = SongAssignmentDraft::class,
-                tableName = TABLE_NAME,
-                whereList = listOf("assignment_id IN (${assignmentIds.joinToString(",")})"),
-                database = database,
-                storageService = storageService,
-                storageApiClient = storageApiClient,
-            ).map { it as SongAssignmentDraft }.associateBy { it.assignmentId }
+            return KaraokeDbTable
+                .loadList(
+                    clazz = SongAssignmentDraft::class,
+                    tableName = TABLE_NAME,
+                    whereList = listOf("assignment_id IN (${assignmentIds.joinToString(",")})"),
+                    database = database,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                ).map { it as SongAssignmentDraft }
+                .associateBy { it.assignmentId }
         }
 
-        fun delete(id: Long, database: KaraokeConnection): Boolean =
-            KaraokeDbTable.delete(tableName = TABLE_NAME, id = id, database = database)
+        fun delete(
+            id: Long,
+            database: KaraokeConnection,
+        ): Boolean = KaraokeDbTable.delete(tableName = TABLE_NAME, id = id, database = database)
 
         // Удалить черновик, привязанный к заданию — нужно при revoke()/delete() назначения, чтобы в
         // tbl_song_assignment_drafts не оставалось orphan-записи на УЖЕ не существующее назначение.
         // UNIQUE INDEX на assignment_id гарантирует, что строка тут одна (или ни одной).
-        fun deleteByAssignment(assignmentId: Long, database: KaraokeConnection): Boolean {
+        fun deleteByAssignment(
+            assignmentId: Long,
+            database: KaraokeConnection,
+        ): Boolean {
             val connection = database.getConnection() ?: return false
             return try {
                 val ps = connection.prepareStatement("DELETE FROM $TABLE_NAME WHERE assignment_id = ?")

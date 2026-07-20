@@ -5,7 +5,7 @@
         <div class="se-subsedit-body">
 
           <custom-confirm v-if="isCustomConfirmVisible" :params="customConfirmParams" @close="closeCustomConfirm" />
-          <search-text v-if="isSearchTextVisible" :songId="song.id" @close="closeSearchText" @return="returnSearchText"/>
+          <search-text v-if="isSearchTextVisible" :song-id="song.id" @close="closeSearchText" @return="returnSearchText"/>
 
           <div class="se-grid-item-header">
             <div class="se-subsedit-header-song-name">«{{song.songName}}»</div>
@@ -61,27 +61,27 @@
             <div class="se-item-left-waveform">
               <div class="se-item-left-label-and-input">
                 <div class="se-item-left-label">Type:</div>
-                <input class="se-item-left-input-field" v-model="currentMarker.markertype" @focus="setEditMode(false)" @blur="setEditMode(true)">
+                <input v-model="currentMarker.markertype" class="se-item-left-input-field" @focus="setEditMode(false)" @blur="setEditMode(true)"/>
               </div>
               <div class="se-item-left-label-and-input">
                 <div class="se-item-left-label">Time:</div>
-                <input class="se-item-left-input-field" v-model="currentMarker.time" @focus="setEditMode(false)" @blur="setEditMode(true)">
+                <input v-model="currentMarker.time" class="se-item-left-input-field" @focus="setEditMode(false)" @blur="setEditMode(true)"/>
               </div>
               <div class="se-item-left-label-and-input">
                 <div class="se-item-left-label">Label:</div>
-                <input class="se-item-left-input-field" v-model="currentMarker.label" @focus="setEditMode(false)" @blur="setEditMode(true)">
+                <input v-model="currentMarker.label" class="se-item-left-input-field" @focus="setEditMode(false)" @blur="setEditMode(true)"/>
               </div>
               <div class="se-item-left-label-and-input">
                 <div class="se-item-left-label">Note:</div>
-                <input class="se-item-left-input-field" v-model="currentMarker.note" @focus="setEditMode(false)" @blur="setEditMode(true)">
+                <input v-model="currentMarker.note" class="se-item-left-input-field" @focus="setEditMode(false)" @blur="setEditMode(true)"/>
               </div>
               <div class="se-item-left-label-and-input">
                 <div class="se-item-left-label">Chord:</div>
-                <input class="se-item-left-input-field" v-model="currentMarker.chord" @focus="setEditMode(false)" @blur="setEditMode(true)">
+                <input v-model="currentMarker.chord" class="se-item-left-input-field" @focus="setEditMode(false)" @blur="setEditMode(true)"/>
               </div>
               <div class="se-item-left-label-and-input">
                 <div class="se-item-left-label">String|Lad:</div>
-                <input class="se-item-left-input-field" v-model="currentMarker.stringLad" @focus="setEditMode(false)" @blur="setEditMode(true)">
+                <input v-model="currentMarker.stringLad" class="se-item-left-input-field" @focus="setEditMode(false)" @blur="setEditMode(true)"/>
               </div>
               <div class="se-item-left-label-and-input">
                 <button class="se-group-button" :class="se-lockladButtonClass()" type="button" @click="onOffLocklad()">locklad</button>
@@ -89,32 +89,32 @@
 <!--                <input class="se-item-left-input-field" v-model="currentMarker.locklad" @focus="setEditMode(false)" @blur="setEditMode(true)">-->
               </div>
             </div>
-            <div class="se-item-waveform" id="waveform"></div>
-            <div class="se-item-right-waveform"></div>
+            <div id="waveform" class="se-item-waveform"/>
+            <div class="se-item-right-waveform"/>
           </div>
           <div class="se-grid-item-slider">
-            <input class="se-item-slider-zoom" id="slider-zoom" data-action="zoom" type="range" min="12" max="1000" value="12">
-            <input class="se-item-slider-volume" id="slider-volume" data-action="volume" type="range" step="0.05" min="0" max="1" value="1">
+            <input id="slider-zoom" class="se-item-slider-zoom" data-action="zoom" type="range" min="12" max="1000" value="12"/>
+            <input id="slider-volume" class="se-item-slider-volume" data-action="volume" type="range" step="0.05" min="0" max="1" value="1"/>
           </div>
           <div class="se-grid-item-controls">
             <div class="se-group-controls-region-buttons">
               <button v-if="isRegionMode" class="se-group-button" type="button" @click="setRegionMode(!isRegionMode)">
-                <img alt="Выключить регион" class="se-icon-40" title="Выключить регион" src="../../../assets/svg/icon_region_mode_on.svg">
+                <img alt="Выключить регион" class="se-icon-40" title="Выключить регион" src="../../../assets/svg/icon_region_mode_on.svg"/>
               </button>
               <button v-else class="se-group-button" type="button" @click="setRegionMode(!isRegionMode)">
-                <img alt="Включить регион" class="se-icon-40" title="Включить регион" src="../../../assets/svg/icon_region_mode_off.svg">
+                <img alt="Включить регион" class="se-icon-40" title="Включить регион" src="../../../assets/svg/icon_region_mode_off.svg"/>
               </button>
-              <button v-if="isMoveMode" class="se-group-button" type="button" @click="setMoveMode(!isMoveMode)" :disabled="!isRegionMode">
-                <img alt="Выключить режим сдвига маркеров" class="se-icon-40" title="Выключить режим сдвига маркеров" src="../../../assets/svg/icon_markers_in_region_move_on.svg">
+              <button v-if="isMoveMode" class="se-group-button" type="button" :disabled="!isRegionMode" @click="setMoveMode(!isMoveMode)">
+                <img alt="Выключить режим сдвига маркеров" class="se-icon-40" title="Выключить режим сдвига маркеров" src="../../../assets/svg/icon_markers_in_region_move_on.svg"/>
               </button>
-              <button v-else class="se-group-button" type="button" @click="setMoveMode(!isMoveMode)" :disabled="!isRegionMode">
-                <img alt="Включить режим сдвига маркеров" class="se-icon-40" title="Включить режим сдвига маркеров" src="../../../assets/svg/icon_markers_in_region_move_off.svg">
+              <button v-else class="se-group-button" type="button" :disabled="!isRegionMode" @click="setMoveMode(!isMoveMode)">
+                <img alt="Включить режим сдвига маркеров" class="se-icon-40" title="Включить режим сдвига маркеров" src="../../../assets/svg/icon_markers_in_region_move_off.svg"/>
               </button>
-              <button class="se-group-button" type="button" @click="pasteMarkersInRegionToNewPlace" :disabled="!isRegionMode">
-                <img alt="Вставить маркеры из региона в новое место" class="se-icon-40" title="Вставить маркеры из региона в новое место" src="../../../assets/svg/icon_markers_in_region_paste.svg">
+              <button class="se-group-button" type="button" :disabled="!isRegionMode" @click="pasteMarkersInRegionToNewPlace">
+                <img alt="Вставить маркеры из региона в новое место" class="se-icon-40" title="Вставить маркеры из региона в новое место" src="../../../assets/svg/icon_markers_in_region_paste.svg"/>
               </button>
-              <button class="se-group-button" type="button" @click="deleteMarkersInRegion" :disabled="!isRegionMode">
-                <img alt="далить маркеры из региона" class="se-icon-40" title="Удалить маркеры из региона" src="../../../assets/svg/icon_markers_in_region_delete.svg">
+              <button class="se-group-button" type="button" :disabled="!isRegionMode" @click="deleteMarkersInRegion">
+                <img alt="далить маркеры из региона" class="se-icon-40" title="Удалить маркеры из региона" src="../../../assets/svg/icon_markers_in_region_delete.svg"/>
               </button>
             </div>
             <div class="se-group-edit-play-speed-buttons">
@@ -125,7 +125,7 @@
                 <button class="se-group-button" :class="editSpeedButtonClass(0.5)" type="button" value="0.5" @click="setEditSpeed(0.5)">0.5</button>
                 <button class="se-group-button" :class="editSpeedButtonClass(0.75)" type="button" value="0.75" @click="setEditSpeed(0.75)">0.75</button>
                 <button class="se-group-button" :class="editSpeedButtonClass(1.0)" type="button" value="1.0" @click="setEditSpeed(1.0)">1.0</button>
-                <div class="se-edit-mode" :class="editModeButtonClass()"></div>
+                <div class="se-edit-mode" :class="editModeButtonClass()"/>
                 <button class="se-group-button" :class="editModeTypeButtonClass('syllables')" type="button" value="syllables" @click="setEditModeType('syllables')">syll</button>
                 <button class="se-group-button" :class="editModeTypeButtonClass('note')" type="button" value="note" @click="setEditModeType('note')">note</button>
                 <button class="se-group-button" :class="editModeTypeButtonClass('chord')" type="button" value="chord" @click="setEditModeType('chord')">syll</button>
@@ -148,102 +148,102 @@
             <div class="se-group-controls-markers-buttons">
               <div class="se-group-control-buttons">
                 <button class="se-group-button" :class="pressedButtonClass(pressedBL)" @mousedown.left="pressedBL = true" @mouseup.left="pressedBL = false">
-                  <img alt="previous marker" class="se-icon-previous-marker" title="[" src="../../../assets/svg/icon_previous_marker.svg">
+                  <img alt="previous marker" class="se-icon-previous-marker" title="[" src="../../../assets/svg/icon_previous_marker.svg"/>
                 </button>
                 <button class="se-group-button" :class="pressedButtonClass(pressedZ)" @mousedown.left="pressedZ = true" @mouseup.left="pressedZ = false">
-                  <img alt="fast-fast backward" class="se-icon-fast-fast-backward" title="Z" src="../../../assets/svg/icon_fast_fast_backward.svg">
+                  <img alt="fast-fast backward" class="se-icon-fast-fast-backward" title="Z" src="../../../assets/svg/icon_fast_fast_backward.svg"/>
                 </button>
                 <button class="se-group-button" :class="pressedButtonClass(pressedA)" @mousedown.left="pressedA = true" @mouseup.left="pressedA = false">
-                  <img alt="fast backward" class="se-icon-fast-backward" title="A" src="../../../assets/svg/icon_fast_backward.svg">
+                  <img alt="fast backward" class="se-icon-fast-backward" title="A" src="../../../assets/svg/icon_fast_backward.svg"/>
                 </button>
                 <button class="se-group-button" :class="pressedButtonClass(pressedQ)" @mousedown.left="pressedQ = true" @mouseup.left="pressedQ = false">
-                  <img alt="step backward" class="se-icon-step-backward" title="Q" src="../../../assets/svg/icon_step_backward.svg">
+                  <img alt="step backward" class="se-icon-step-backward" title="Q" src="../../../assets/svg/icon_step_backward.svg"/>
                 </button>
-                <button class="se-group-button" :class="playPauseButtonClass(isPlaying)" @click="playPause" title="X" >
-                  <img alt="play-pause" class="se-icon-play-pause" src="../../../assets/svg/icon_play_pause.svg">
+                <button class="se-group-button" :class="playPauseButtonClass(isPlaying)" title="X" @click="playPause" >
+                  <img alt="play-pause" class="se-icon-play-pause" src="../../../assets/svg/icon_play_pause.svg"/>
                 </button>
                 <button class="se-group-button" :class="pressedButtonClass(pressedE)" @mousedown.left="pressedE = true" @mouseup.left="pressedE = false">
-                  <img alt="step forward" class="se-icon-step-forward" title="E" src="../../../assets/svg/icon_step_forward.svg">
+                  <img alt="step forward" class="se-icon-step-forward" title="E" src="../../../assets/svg/icon_step_forward.svg"/>
                 </button>
                 <button class="se-group-button" :class="pressedButtonClass(pressedD)" @mousedown.left="pressedD = true" @mouseup.left="pressedD = false">
-                  <img alt="fast forward" class="se-icon-fast-forward" title="D" src="../../../assets/svg/icon_fast_forward.svg">
+                  <img alt="fast forward" class="se-icon-fast-forward" title="D" src="../../../assets/svg/icon_fast_forward.svg"/>
                 </button>
                 <button class="se-group-button" :class="pressedButtonClass(pressedC)" @mousedown.left="pressedC = true" @mouseup.left="pressedC = false">
-                  <img alt="fast-fast forward" class="se-icon-fast-fast-forward" title="C" src="../../../assets/svg/icon_fast_fast_forward.svg">
+                  <img alt="fast-fast forward" class="se-icon-fast-fast-forward" title="C" src="../../../assets/svg/icon_fast_fast_forward.svg"/>
                 </button>
                 <button class="se-group-button" :class="pressedButtonClass(pressedBR)" @mousedown.left="pressedBR = true" @mouseup.left="pressedBR = false">
-                  <img alt="next marker" class="se-icon-next-marker" title="]" src="../../../assets/svg/icon_next_marker.svg">
+                  <img alt="next marker" class="se-icon-next-marker" title="]" src="../../../assets/svg/icon_next_marker.svg"/>
                 </button>
               </div>
               <div class="se-group-markers-buttons">
                 <button class="se-group-button" :class="pressedButtonClass(pressedW)" @mousedown.left="pressedW = true" @mouseup.left="pressedW = false">
-                  <img alt="add marker" class="se-icon-add-marker" title="W" src="../../../assets/svg/icon_add_marker_orange.svg">
+                  <img alt="add marker" class="se-icon-add-marker" title="W" src="../../../assets/svg/icon_add_marker_orange.svg"/>
                 </button>
                 <button class="se-group-button" :class="pressedButtonClass(pressedS)" @mousedown.left="pressedS = true" @mouseup.left="pressedS = false">
-                  <img alt="delete marker" class="se-icon-delete-marker" title="S" src="../../../assets/svg/icon_delete_marker.svg">
+                  <img alt="delete marker" class="se-icon-delete-marker" title="S" src="../../../assets/svg/icon_delete_marker.svg"/>
                 </button>
                 <button class="se-group-button" :class="pressedButtonClass(pressed1)" @mousedown.left="pressed1 = true" @mouseup.left="pressed1 = false">
-                  <img alt="end of line marker" class="se-icon-end-of-line-marker" title="1" src="../../../assets/svg/icon_add_marker_red.svg">
+                  <img alt="end of line marker" class="se-icon-end-of-line-marker" title="1" src="../../../assets/svg/icon_add_marker_red.svg"/>
                 </button>
                 <button class="se-group-button" :class="pressedButtonClass(pressed2)" @mousedown.left="pressed2 = true" @mouseup.left="pressed2 = false">
-                  <img alt="end of line marker" class="se-icon-end-of-line-marker" title="2" src="../../../assets/svg/icon_add_marker_red.svg">
+                  <img alt="end of line marker" class="se-icon-end-of-line-marker" title="2" src="../../../assets/svg/icon_add_marker_red.svg"/>
                 </button>
                 <button class="se-group-button" :class="pressedButtonClass(pressed3)" @mousedown.left="pressed3 = true" @mouseup.left="pressed3 = false">
-                  <img alt="end of line and add marker" class="se-icon-end-of-line-and-add-marker" title="3" src="../../../assets/svg/icon_add_marker_red_orange.svg">
+                  <img alt="end of line and add marker" class="se-icon-end-of-line-and-add-marker" title="3" src="../../../assets/svg/icon_add_marker_red_orange.svg"/>
                 </button>
                 <button class="se-group-button" :class="pressedButtonClass(pressed4)" @mousedown.left="pressed4 = true" @mouseup.left="pressed4 = false">
-                  <img alt="new line marker" class="se-icon-new-line-marker" title="4" src="../../../assets/svg/icon_add_marker_magenta.svg">
+                  <img alt="new line marker" class="se-icon-new-line-marker" title="4" src="../../../assets/svg/icon_add_marker_magenta.svg"/>
                 </button>
                 <button class="se-group-button" :class="pressedButtonClass(pressed0)" @mousedown.left="pressed0 = true" @mouseup.left="pressed0 = false">
-                  <img alt="mute marker" class="se-icon-mute-marker" title="0" src="../../../assets/svg/icon_add_marker_yellow.svg">
+                  <img alt="mute marker" class="se-icon-mute-marker" title="0" src="../../../assets/svg/icon_add_marker_yellow.svg"/>
                 </button>
                 <button class="se-group-button" :class="pressedButtonClass(pressedT)" @mousedown.left="pressedT = true" @mouseup.left="pressedT = false">
-                  <img alt="group 0 marker" class="se-icon-group0-marker" title="T" src="../../../assets/svg/icon_add_marker_blue_white.svg">
+                  <img alt="group 0 marker" class="se-icon-group0-marker" title="T" src="../../../assets/svg/icon_add_marker_blue_white.svg"/>
                 </button>
                 <button class="se-group-button" :class="pressedButtonClass(pressedY)" @mousedown.left="pressedY = true" @mouseup.left="pressedY = false">
-                  <img alt="group 1 marker" class="se-icon-group1-marker" title="Y" src="../../../assets/svg/icon_add_marker_yellow_white.svg">
+                  <img alt="group 1 marker" class="se-icon-group1-marker" title="Y" src="../../../assets/svg/icon_add_marker_yellow_white.svg"/>
                 </button>
                 <button class="se-group-button" :class="pressedButtonClass(pressedU)" @mousedown.left="pressedU = true" @mouseup.left="pressedU = false">
-                  <img alt="group 2 marker" class="se-icon-group2-marker" title="U" src="../../../assets/svg/icon_add_marker_aqua_white.svg">
+                  <img alt="group 2 marker" class="se-icon-group2-marker" title="U" src="../../../assets/svg/icon_add_marker_aqua_white.svg"/>
                 </button>
                 <button class="se-group-button" :class="pressedButtonClass(pressedI)" @mousedown.left="pressedI = true" @mouseup.left="pressedI = false">
-                  <img alt="group 3 marker" class="se-icon-group3-marker" title="I" src="../../../assets/svg/icon_add_marker_green_white.svg">
+                  <img alt="group 3 marker" class="se-icon-group3-marker" title="I" src="../../../assets/svg/icon_add_marker_green_white.svg"/>
                 </button>
                 <button class="se-group-button" :class="pressedButtonClass(pressedP)" @mousedown.left="pressedP = true" @mouseup.left="pressedP = false">
-                  <img alt="group 4 marker" class="se-icon-group4-marker" title="P" src="../../../assets/svg/icon_add_marker_gray_white.svg">
+                  <img alt="group 4 marker" class="se-icon-group4-marker" title="P" src="../../../assets/svg/icon_add_marker_gray_white.svg"/>
                 </button>
                 <button class="se-group-button" :class="pressedButtonClass(pressedO)" @mousedown.left="pressedO = true" @mouseup.left="pressedO = false">
-                  <img alt="comment marker" class="se-icon-comment-marker" title="O" src="../../../assets/svg/icon_add_marker_magenta_white.svg">
+                  <img alt="comment marker" class="se-icon-comment-marker" title="O" src="../../../assets/svg/icon_add_marker_magenta_white.svg"/>
                 </button>
               </div>
             </div>
             <div class="se-group-actions-buttons">
               <button class="se-group-button" type="button" @click="doMarkersDec">
-                <img alt="diffbeatsdec" class="se-icon-40" title="Сдвинуть маркеры влево" src="../../../assets/svg/icon_move_markers_left.svg">
+                <img alt="diffbeatsdec" class="se-icon-40" title="Сдвинуть маркеры влево" src="../../../assets/svg/icon_move_markers_left.svg"/>
               </button>
               <button class="se-group-button" type="button" @click="doMarkersFirst">
-                <img alt="diffbeatsdec" class="se-icon-40" title="Сдвинуть сюда первый маркер" src="../../../assets/svg/icon_move_markers_left_right.svg">
+                <img alt="diffbeatsdec" class="se-icon-40" title="Сдвинуть сюда первый маркер" src="../../../assets/svg/icon_move_markers_left_right.svg"/>
               </button>
               <button class="se-group-button" type="button" @click="doMarkersInc">
-                <img alt="diffbeatsinc" class="se-icon-40" title="Сдвинуть маркеры вправо" src="../../../assets/svg/icon_move_markers_right.svg">
+                <img alt="diffbeatsinc" class="se-icon-40" title="Сдвинуть маркеры вправо" src="../../../assets/svg/icon_move_markers_right.svg"/>
               </button>
               <button class="se-group-button" type="button" @click="doSearchText">
-               <img alt="search text" class="se-icon-40" title="Найти в Интернете текст песни" src="../../../assets/svg/icon_search_text.svg">
+               <img alt="search text" class="se-icon-40" title="Найти в Интернете текст песни" src="../../../assets/svg/icon_search_text.svg"/>
              </button>
               <button class="se-group-button" type="button" @click="addAccent">
-                <img alt="erase markers" class="se-icon-40" title="Добавить ударение" src="../../../assets/svg/icon_accent.svg">
+                <img alt="erase markers" class="se-icon-40" title="Добавить ударение" src="../../../assets/svg/icon_accent.svg"/>
               </button>
               <button class="se-group-button" type="button" @click="eraseMarkers">
-                <img alt="erase markers" class="se-icon-40" title="Очистить маркеры" src="../../../assets/svg/icon_erase.svg">
+                <img alt="erase markers" class="se-icon-40" title="Очистить маркеры" src="../../../assets/svg/icon_erase.svg"/>
               </button>
               <button class="se-group-button" type="button" @click="addWordToDict">
-                <img alt="add to dict" class="se-icon-40" title="Добавить слово в словарь" src="../../../assets/svg/icon_dict_add_e.svg">
+                <img alt="add to dict" class="se-icon-40" title="Добавить слово в словарь" src="../../../assets/svg/icon_dict_add_e.svg"/>
               </button>
               <button class="se-group-button" type="button" @click="removeWordFromDict">
-                <img alt="remove from dict" class="se-icon-40" title="Удалить слово из словаря" src="../../../assets/svg/icon_dict_remove_e.svg">
+                <img alt="remove from dict" class="se-icon-40" title="Удалить слово из словаря" src="../../../assets/svg/icon_dict_remove_e.svg"/>
               </button>
               <button class="se-group-button" type="button" @click="doReplaceText">
-                <img alt="replace text" class="se-icon-40" title="Произвести замену текста согласно правилам" src="../../../assets/svg/icon_replace_text.svg">
+                <img alt="replace text" class="se-icon-40" title="Произвести замену текста согласно правилам" src="../../../assets/svg/icon_replace_text.svg"/>
               </button>
 <!--              <button class="se-group-button" type="button" @click="doBpmAdd">-->
 <!--                <img alt="add bpm" class="se-icon-40" title="Добавить BPM из файла sheetsage" src="../../../assets/svg/icon_bpm.svg">-->
@@ -261,27 +261,25 @@
 <!--                <img alt="diffbeatsdec" class="se-icon-40" title="Сдвинуть аккорды влево" src="../../../assets/svg/icon_diffbeatsdec.svg">-->
 <!--              </button>-->
               <button class="se-group-button" type="button" @click="save">
-                <img alt="saveSong" class="se-icon-40" title="Save" src="../../../assets/svg/icon_save.svg">
+                <img alt="saveSong" class="se-icon-40" title="Save" src="../../../assets/svg/icon_save.svg"/>
               </button>
             </div>
 
           </div>
-          <textarea id="editor" class="se-grid-item-sourcetext" v-model="sourceText" @focus="setEditMode(false)" @blur="setEditMode(true)">
-
-          </textarea>
+          <textarea id="editor" v-model="sourceText" class="se-grid-item-sourcetext" @focus="setEditMode(false)" @blur="setEditMode(true)"/>
           <div class="se-grid-item-tail">
-            <div class="se-tail" v-html="tail"></div>
+            <div class="se-tail" v-html="tail"/>
           </div>
           <div class="se-grid-item-wrapper-text">
             <b-tabs>
               <b-tab title="Текст" active>
-                <div class="se-grid-item-text" v-html="textFormatted"></div>
+                <div class="se-grid-item-text" v-html="textFormatted"/>
               </b-tab>
               <b-tab title="Ноты">
-                <div class="se-grid-item-notes" v-html="notesFormatted"></div>
+                <div class="se-grid-item-notes" v-html="notesFormatted"/>
               </b-tab>
               <b-tab title="Аккорды">
-                <div class="se-grid-item-chords" v-html="chordsFormatted"></div>
+                <div class="se-grid-item-chords" v-html="chordsFormatted"/>
               </b-tab>
             </b-tabs>
           </div>
@@ -314,6 +312,17 @@ export default {
   components: {
     CustomConfirm,
     SearchText
+  },
+  props: {
+    voices: {
+      type: Array,
+      required: true,
+      default: () => []
+    },
+    song: {
+      type: Object,
+      required: true
+    }
   },
   data() {
     return {
@@ -419,421 +428,6 @@ export default {
       isShowMarkerTypeEOLN: true,
       isShowMarkerTypeEON: true,
       isShowMarkerTypeNLN: true,
-    }
-  },
-  props: {
-    voices: {
-      type: Array,
-      required: true,
-      default: () => []
-    },
-    song: {
-      type: Object,
-      required: true
-    }
-  },
-  watch: {
-    currentVoice: {
-      async handler() {
-        if (this.currentVoice === this.dataVoices.length) {
-          this.dataVoices.push({
-            text: '',
-            markers: [],
-            syllables: []
-          })
-        }
-        this.sourceText = await this.$store.getters.getSourceText(this.currentVoice);
-        this.loadedMarkers = await this.$store.getters.getSourceMarkers(this.currentVoice);
-        this.sourceMarkers = [];
-        // clearRegions() — БЕЗУСЛОВНО, независимо от того, есть ли маркеры у НОВОГО голоса: иначе при
-        // переключении на голос без разметки регионы предыдущего голоса оставались висеть на вейвформе
-        // (условие ниже раньше оборачивало и очистку тоже, а не только заполнение).
-        this.wsRegions.clearRegions();
-        if (this.loadedMarkers.length > 0) {
-          for (let index = 0; index < this.loadedMarkers.length; index++) {
-            let marker = Object.assign({} , this.loadedMarkers[index]);
-            if (
-                ( marker.markertype === 'setting' && marker.label && (
-                    marker.label === 'COMMENT| '
-                ))
-                ||
-                ( marker.markertype === 'syllables' && marker.label && (marker.label.trim() === '') )
-            ) {
-              console.log('ignored')
-            } else {
-              marker.region = this.createRegionMarker(marker);
-              this.sourceMarkers.push(marker)
-            }
-          }
-          this.createBeatMarkers();
-        }
-      }
-    },
-    sound: {
-      handler () {
-        this.loadSong();
-      }
-    },
-    beat: {
-      handler () {
-        this.createBeatMarkers();
-      }
-    },
-    playSpeed: {
-      handler () {
-        this.ws.setPlaybackRate(this.playSpeed);
-      }
-    },
-    sourceSyllables: {
-      handler () {
-        this.updateMarkersBySyllables();
-      }
-    },
-    sourceMarkers: {
-      handler () {
-        this.currentSyllablesIndex = this.getCurrentSyllablesIndex;
-        this.currentMarkersIndex = this.getCurrentMarkersIndex;
-        this.textFormatted = this.getFormattedText;
-        this.notesFormatted = this.getFormattedNotes;
-        this.chordsFormatted = this.getFormattedChords;
-      }
-    },
-    sourceText: {
-      handler () {
-        this.sourceSyllables = this.getSyllables;
-        this.updateMarkersBySyllables();
-        this.tail = this.getTail;
-        this.textFormatted = this.getFormattedText;
-        this.notesFormatted = this.getFormattedNotes;
-        this.chordsFormatted = this.getFormattedChords;
-      }
-    },
-    currentTime: {
-      handler () {
-        this.currentSyllablesIndex = this.getCurrentSyllablesIndex;
-        this.currentMarkersIndex = this.getCurrentMarkersIndex;
-      }
-    },
-    currentSyllablesIndex: {
-      handler () {
-        this.tail = this.getTail;
-        this.textFormatted = this.getFormattedText;
-        this.notesFormatted = this.getFormattedNotes;
-        this.chordsFormatted = this.getFormattedChords;
-      }
-    },
-    currentMarkersIndex: {
-      handler () {
-        if (this.sourceMarkers === undefined || this.currentMarkersIndex === undefined) {
-          this.currentMarker = this.dummyMarker;
-        } else {
-          if (this.sourceMarkers[this.currentMarkersIndex] === undefined) {
-            this.currentMarker = this.dummyMarker;
-          } else {
-            this.currentMarker = this.sourceMarkers[this.currentMarkersIndex];
-          }
-        }
-      }
-    },
-    currentMarker: {
-      handler () {
-        this.currentMarker.region.setContent(this.getRegionContentFromMarker(this.currentMarker));
-        this.tail = this.getTail;
-        this.textFormatted = this.getFormattedText;
-        this.notesFormatted = this.getFormattedNotes;
-        this.chordsFormatted = this.getFormattedChords;
-        this.sourceMarkers.splice(0,1,this.sourceMarkers[0]);
-      }
-    },
-    indexTabsVariant: {
-      handler () {
-        this.notesFormatted = this.getFormattedNotes;
-      }
-    },
-    pressedX: {
-      handler () {
-        if (this.pressedX) {
-          if (!this.ws.isPlaying()) {
-            this.ws.play();
-          } else {
-            this.ws.pause();
-          }
-        }
-      }
-    },
-    pressedA: {
-      handler () {
-        if (!this.isEditMode) return;
-        if (this.pressedA) {
-          this.ws.setPlaybackRate(this.editSpeed);
-          this.intervalSkipBackward = setInterval(() => {this.ws.skip(-this.editSpeed * 0.01);}, 10);
-        } else {
-          clearInterval(this.intervalSkipBackward);
-          this.ws.setPlaybackRate(this.playSpeed);
-          this.ws.pause();
-        }
-      }
-    },
-    pressedD: {
-      handler () {
-        if (!this.isEditMode) return;
-        if (this.pressedD) {
-          this.ws.setPlaybackRate(this.editSpeed);
-          this.intervalSkipForward = setInterval(() => {
-              if (!this.ws.isPlaying()) {
-                this.ws.play();
-              }
-            }, 16);
-        } else {
-          clearInterval(this.intervalSkipForward);
-          this.ws.setPlaybackRate(this.playSpeed);
-          this.ws.pause();
-        }
-      }
-    },
-    pressedQ: {
-      handler () {
-        if (!this.isEditMode) return;
-        if (this.pressedQ) {
-          this.ws.skip(-0.01);
-        }
-      }
-    },
-    pressedE: {
-      handler () {
-        if (!this.isEditMode) return;
-        if (this.pressedE) {
-          this.ws.skip(0.01);
-        }
-      }
-    },
-    pressedZ: {
-      handler () {
-        if (!this.isEditMode) return;
-        if (this.pressedZ) {
-          this.intervalPressZ = setInterval(() => { this.ws.skip(-0.1); }, 50);
-        } else {
-          clearInterval(this.intervalPressZ);
-        }
-      }
-    },
-    pressedC: {
-      handler () {
-        if (!this.isEditMode) return;
-        if (this.pressedC) {
-          this.intervalPressC = setInterval(() => { this.ws.skip(0.1); }, 50);
-        } else {
-          clearInterval(this.intervalPressC);
-        }
-      }
-    },
-    pressedS: { handler () { if (!this.isEditMode) return; if (this.pressedS) { this.deleteMarker(); } } },
-    pressedW: {
-      handler () {
-        if (!this.isEditMode) return;
-        if (this.pressedW) {
-          switch (this.editModeType) {
-            case 'syllables':
-              this.addMarker('syllables');
-              break;
-            case 'note':
-              this.addMarker('note', '_♪_');
-              break;
-            case 'chord':
-              this.addMarker('chord');
-              break;
-          }
-        }
-      }
-    },
-    pressed1: {
-      handler () {
-        if (!this.isEditMode) return;
-        if (this.pressed1) {
-          switch (this.editModeType) {
-            case 'syllables':
-              this.addMarker('endofsyllable');
-              break;
-            case 'note':
-              this.addMarker('eon');
-              break;
-            case 'chord':
-              this.addMarker('eoch');
-              break;
-          }
-        }
-      }
-    },
-    pressed2: {
-      handler () {
-        if (!this.isEditMode) return;
-        if (this.pressed2) {
-          switch (this.editModeType) {
-            case 'syllables':
-              this.addMarker('endofline');
-              break;
-            case 'note':
-              this.addMarker('eoln');
-              break;
-            case 'chord':
-              this.addMarker('eolch');
-              break;
-          }
-        }
-      }
-    },
-    pressed3: { handler () { if (!this.isEditMode) return; if (this.pressed3) {
-      // this.addMarker('syllables', '', true, true);
-        switch (this.editModeType) {
-          case 'syllables':
-            this.addMarker('endofline', '', false, false);
-            this.addMarker('syllables', '', true, false);
-            break;
-          case 'note':
-            this.addMarker('eoln', '', false, false);
-            this.addMarker('note',  '_♪_', true, false);
-            break;
-          case 'chord':
-            this.addMarker('eolch', '', false, false);
-            this.addMarker('chord', '', true, false);
-            break;
-        }
-    } } },
-    pressed4: {
-      handler () {
-        if (!this.isEditMode) return;
-        if (this.pressed4) {
-          switch (this.editModeType) {
-            case 'syllables':
-              this.addMarker('newline');
-              break;
-            case 'note':
-              this.addMarker('nln');
-              break;
-            case 'chord':
-              this.addMarker('nlch');
-              break;
-          }
-        }
-      }
-    },
-    pressed5: { handler () { if (!this.isEditMode) return; if (this.pressed5) {
-        switch (this.editModeType) {
-          case 'syllables':
-            this.addMarker('endofline', '', false, false);
-            this.addMarker('newline', '', true, false);
-            this.addMarker('syllables', '', true, false);
-            break;
-          case 'note':
-            this.addMarker('eoln', '', false, false);
-            this.addMarker('nln', '', true, false);
-            this.addMarker('note', '_♪_', true, false);
-            break;
-          case 'chord':
-            this.addMarker('eolch', '', false, false);
-            this.addMarker('nlch', '', true, false);
-            this.addMarker('chord', '', true, false);
-            break;
-        }
-      } } },
-
-    pressed6: { handler () { if (!this.isEditMode) return; if (this.pressed6) { this.addMarker('chord', '', true, false); } } },
-    pressed0: { handler () { if (!this.isEditMode) return; if (this.pressed0) { this.addMarker('unmute'); } } },
-    pressedT: { handler () { if (!this.isEditMode) return; if (this.pressedT) { this.addMarker('setting', 'GROUP|0'); } } },
-    pressedY: { handler () { if (!this.isEditMode) return; if (this.pressedY) { this.addMarker('setting', 'GROUP|1'); } } },
-    pressedU: { handler () { if (!this.isEditMode) return; if (this.pressedU) { this.addMarker('setting', 'GROUP|2'); } } },
-    pressedI: { handler () { if (!this.isEditMode) return; if (this.pressedI) { this.addMarker('setting', 'GROUP|3'); } } },
-    pressedP: { handler () { if (!this.isEditMode) return; if (this.pressedP) { this.addMarker('setting', 'GROUP|4'); } } },
-    pressedO: { handler () { if (!this.isEditMode) return; if (this.pressedO) { this.addSettingMarker(); } } },
-    pressedBL: {
-      handler () {
-        if (!this.isEditMode) return;
-        if (this.pressedBL) {
-          this.goToPreviousMarker();
-          this.intervalPressBL = setInterval(() => { this.goToPreviousMarker(); }, 100);
-        }  else {
-          clearInterval(this.intervalPressBL);
-        }
-      }
-    },
-    pressedBR: {
-      handler () {
-        if (!this.isEditMode) return;
-        if (this.pressedBR) {
-          this.goToNextMarker();
-          this.intervalPressBR = setInterval(() => { this.goToNextMarker(); }, 100);
-        }  else {
-          clearInterval(this.intervalPressBR);
-        }
-      }
-    },
-    pressedComma: {
-      handler () {
-        if (!this.isEditMode) return;
-        if (this.pressedComma) {
-          switch (this.editModeType) {
-            case 'syllables':
-              this.goToPreviousMarker('syllables');
-              this.intervalPressComma = setInterval(() => { this.goToPreviousMarker('syllables'); }, 100);
-              break;
-            case 'note':
-              this.goToPreviousMarker('note');
-              this.intervalPressComma = setInterval(() => { this.goToPreviousMarker('note'); }, 100);
-              break;
-            case 'chord':
-              this.goToPreviousMarker('chord');
-              this.intervalPressComma = setInterval(() => { this.goToPreviousMarker('chord'); }, 100);
-              break;
-          }
-        }  else {
-          clearInterval(this.intervalPressComma);
-        }
-      }
-    },
-    pressedPeriod: {
-      handler () {
-        if (!this.isEditMode) return;
-        if (this.pressedPeriod) {
-          switch (this.editModeType) {
-            case 'syllables':
-              this.goToNextMarker('syllables');
-              this.intervalPressPeriod = setInterval(() => { this.goToNextMarker('syllables'); }, 100);
-              break;
-            case 'note':
-              this.goToNextMarker('note');
-              this.intervalPressPeriod = setInterval(() => { this.goToNextMarker('note'); }, 100);
-              break;
-            case 'chord':
-              this.goToNextMarker('chord');
-              this.intervalPressPeriod = setInterval(() => { this.goToNextMarker('chord'); }, 100);
-              break;
-          }
-        }  else {
-          clearInterval(this.intervalPressPeriod);
-        }
-      }
-    },
-    isEditMode: {
-      handler () {
-        if (this.isEditMode) {
-          document.addEventListener('keydown', this.listenerKeyDown, false);
-          document.addEventListener('keyup', this.listenerKeyUp, false);
-        } else {
-          document.removeEventListener('keydown', this.listenerKeyDown, false);
-          document.removeEventListener('keyup', this.listenerKeyUp, false);
-          clearInterval(this.intervalSkipBackward);
-          clearInterval(this.intervalSkipForward);
-          this.ws.setPlaybackRate(this.playSpeed);
-          if (this.ws.isPlaying()) {
-            this.ws.pause();
-          }
-        }
-      }
-    },
-    markerTypesToShow: {
-      handler () {
-        this.redrawMarkers();
-      }
     }
   },
   computed: {
@@ -1392,7 +986,411 @@ export default {
       return result;
     }
   },
-  beforeDestroy() {
+  watch: {
+    currentVoice: {
+      async handler() {
+        if (this.currentVoice === this.dataVoices.length) {
+          this.dataVoices.push({
+            text: '',
+            markers: [],
+            syllables: []
+          })
+        }
+        this.sourceText = await this.$store.getters.getSourceText(this.currentVoice);
+        this.loadedMarkers = await this.$store.getters.getSourceMarkers(this.currentVoice);
+        this.sourceMarkers = [];
+        // clearRegions() — БЕЗУСЛОВНО, независимо от того, есть ли маркеры у НОВОГО голоса: иначе при
+        // переключении на голос без разметки регионы предыдущего голоса оставались висеть на вейвформе
+        // (условие ниже раньше оборачивало и очистку тоже, а не только заполнение).
+        this.wsRegions.clearRegions();
+        if (this.loadedMarkers.length > 0) {
+          for (let index = 0; index < this.loadedMarkers.length; index++) {
+            let marker = Object.assign({} , this.loadedMarkers[index]);
+            if (
+                ( marker.markertype === 'setting' && marker.label && (
+                    marker.label === 'COMMENT| '
+                ))
+                ||
+                ( marker.markertype === 'syllables' && marker.label && (marker.label.trim() === '') )
+            ) {
+              console.log('ignored')
+            } else {
+              marker.region = this.createRegionMarker(marker);
+              this.sourceMarkers.push(marker)
+            }
+          }
+          this.createBeatMarkers();
+        }
+      }
+    },
+    sound: {
+      handler () {
+        this.loadSong();
+      }
+    },
+    beat: {
+      handler () {
+        this.createBeatMarkers();
+      }
+    },
+    playSpeed: {
+      handler () {
+        this.ws.setPlaybackRate(this.playSpeed);
+      }
+    },
+    sourceSyllables: {
+      handler () {
+        this.updateMarkersBySyllables();
+      }
+    },
+    sourceMarkers: {
+      handler () {
+        this.currentSyllablesIndex = this.getCurrentSyllablesIndex;
+        this.currentMarkersIndex = this.getCurrentMarkersIndex;
+        this.textFormatted = this.getFormattedText;
+        this.notesFormatted = this.getFormattedNotes;
+        this.chordsFormatted = this.getFormattedChords;
+      }
+    },
+    sourceText: {
+      handler () {
+        this.sourceSyllables = this.getSyllables;
+        this.updateMarkersBySyllables();
+        this.tail = this.getTail;
+        this.textFormatted = this.getFormattedText;
+        this.notesFormatted = this.getFormattedNotes;
+        this.chordsFormatted = this.getFormattedChords;
+      }
+    },
+    currentTime: {
+      handler () {
+        this.currentSyllablesIndex = this.getCurrentSyllablesIndex;
+        this.currentMarkersIndex = this.getCurrentMarkersIndex;
+      }
+    },
+    currentSyllablesIndex: {
+      handler () {
+        this.tail = this.getTail;
+        this.textFormatted = this.getFormattedText;
+        this.notesFormatted = this.getFormattedNotes;
+        this.chordsFormatted = this.getFormattedChords;
+      }
+    },
+    currentMarkersIndex: {
+      handler () {
+        if (this.sourceMarkers === undefined || this.currentMarkersIndex === undefined) {
+          this.currentMarker = this.dummyMarker;
+        } else {
+          if (this.sourceMarkers[this.currentMarkersIndex] === undefined) {
+            this.currentMarker = this.dummyMarker;
+          } else {
+            this.currentMarker = this.sourceMarkers[this.currentMarkersIndex];
+          }
+        }
+      }
+    },
+    currentMarker: {
+      handler () {
+        this.currentMarker.region.setContent(this.getRegionContentFromMarker(this.currentMarker));
+        this.tail = this.getTail;
+        this.textFormatted = this.getFormattedText;
+        this.notesFormatted = this.getFormattedNotes;
+        this.chordsFormatted = this.getFormattedChords;
+        this.sourceMarkers.splice(0,1,this.sourceMarkers[0]);
+      }
+    },
+    indexTabsVariant: {
+      handler () {
+        this.notesFormatted = this.getFormattedNotes;
+      }
+    },
+    pressedX: {
+      handler () {
+        if (this.pressedX) {
+          if (!this.ws.isPlaying()) {
+            this.ws.play();
+          } else {
+            this.ws.pause();
+          }
+        }
+      }
+    },
+    pressedA: {
+      handler () {
+        if (!this.isEditMode) return;
+        if (this.pressedA) {
+          this.ws.setPlaybackRate(this.editSpeed);
+          this.intervalSkipBackward = setInterval(() => {this.ws.skip(-this.editSpeed * 0.01);}, 10);
+        } else {
+          clearInterval(this.intervalSkipBackward);
+          this.ws.setPlaybackRate(this.playSpeed);
+          this.ws.pause();
+        }
+      }
+    },
+    pressedD: {
+      handler () {
+        if (!this.isEditMode) return;
+        if (this.pressedD) {
+          this.ws.setPlaybackRate(this.editSpeed);
+          this.intervalSkipForward = setInterval(() => {
+              if (!this.ws.isPlaying()) {
+                this.ws.play();
+              }
+            }, 16);
+        } else {
+          clearInterval(this.intervalSkipForward);
+          this.ws.setPlaybackRate(this.playSpeed);
+          this.ws.pause();
+        }
+      }
+    },
+    pressedQ: {
+      handler () {
+        if (!this.isEditMode) return;
+        if (this.pressedQ) {
+          this.ws.skip(-0.01);
+        }
+      }
+    },
+    pressedE: {
+      handler () {
+        if (!this.isEditMode) return;
+        if (this.pressedE) {
+          this.ws.skip(0.01);
+        }
+      }
+    },
+    pressedZ: {
+      handler () {
+        if (!this.isEditMode) return;
+        if (this.pressedZ) {
+          this.intervalPressZ = setInterval(() => { this.ws.skip(-0.1); }, 50);
+        } else {
+          clearInterval(this.intervalPressZ);
+        }
+      }
+    },
+    pressedC: {
+      handler () {
+        if (!this.isEditMode) return;
+        if (this.pressedC) {
+          this.intervalPressC = setInterval(() => { this.ws.skip(0.1); }, 50);
+        } else {
+          clearInterval(this.intervalPressC);
+        }
+      }
+    },
+    pressedS: { handler () { if (!this.isEditMode) return; if (this.pressedS) { this.deleteMarker(); } } },
+    pressedW: {
+      handler () {
+        if (!this.isEditMode) return;
+        if (this.pressedW) {
+          switch (this.editModeType) {
+            case 'syllables':
+              this.addMarker('syllables');
+              break;
+            case 'note':
+              this.addMarker('note', '_♪_');
+              break;
+            case 'chord':
+              this.addMarker('chord');
+              break;
+          }
+        }
+      }
+    },
+    pressed1: {
+      handler () {
+        if (!this.isEditMode) return;
+        if (this.pressed1) {
+          switch (this.editModeType) {
+            case 'syllables':
+              this.addMarker('endofsyllable');
+              break;
+            case 'note':
+              this.addMarker('eon');
+              break;
+            case 'chord':
+              this.addMarker('eoch');
+              break;
+          }
+        }
+      }
+    },
+    pressed2: {
+      handler () {
+        if (!this.isEditMode) return;
+        if (this.pressed2) {
+          switch (this.editModeType) {
+            case 'syllables':
+              this.addMarker('endofline');
+              break;
+            case 'note':
+              this.addMarker('eoln');
+              break;
+            case 'chord':
+              this.addMarker('eolch');
+              break;
+          }
+        }
+      }
+    },
+    pressed3: { handler () { if (!this.isEditMode) return; if (this.pressed3) {
+      // this.addMarker('syllables', '', true, true);
+        switch (this.editModeType) {
+          case 'syllables':
+            this.addMarker('endofline', '', false, false);
+            this.addMarker('syllables', '', true, false);
+            break;
+          case 'note':
+            this.addMarker('eoln', '', false, false);
+            this.addMarker('note',  '_♪_', true, false);
+            break;
+          case 'chord':
+            this.addMarker('eolch', '', false, false);
+            this.addMarker('chord', '', true, false);
+            break;
+        }
+    } } },
+    pressed4: {
+      handler () {
+        if (!this.isEditMode) return;
+        if (this.pressed4) {
+          switch (this.editModeType) {
+            case 'syllables':
+              this.addMarker('newline');
+              break;
+            case 'note':
+              this.addMarker('nln');
+              break;
+            case 'chord':
+              this.addMarker('nlch');
+              break;
+          }
+        }
+      }
+    },
+    pressed5: { handler () { if (!this.isEditMode) return; if (this.pressed5) {
+        switch (this.editModeType) {
+          case 'syllables':
+            this.addMarker('endofline', '', false, false);
+            this.addMarker('newline', '', true, false);
+            this.addMarker('syllables', '', true, false);
+            break;
+          case 'note':
+            this.addMarker('eoln', '', false, false);
+            this.addMarker('nln', '', true, false);
+            this.addMarker('note', '_♪_', true, false);
+            break;
+          case 'chord':
+            this.addMarker('eolch', '', false, false);
+            this.addMarker('nlch', '', true, false);
+            this.addMarker('chord', '', true, false);
+            break;
+        }
+      } } },
+
+    pressed6: { handler () { if (!this.isEditMode) return; if (this.pressed6) { this.addMarker('chord', '', true, false); } } },
+    pressed0: { handler () { if (!this.isEditMode) return; if (this.pressed0) { this.addMarker('unmute'); } } },
+    pressedT: { handler () { if (!this.isEditMode) return; if (this.pressedT) { this.addMarker('setting', 'GROUP|0'); } } },
+    pressedY: { handler () { if (!this.isEditMode) return; if (this.pressedY) { this.addMarker('setting', 'GROUP|1'); } } },
+    pressedU: { handler () { if (!this.isEditMode) return; if (this.pressedU) { this.addMarker('setting', 'GROUP|2'); } } },
+    pressedI: { handler () { if (!this.isEditMode) return; if (this.pressedI) { this.addMarker('setting', 'GROUP|3'); } } },
+    pressedP: { handler () { if (!this.isEditMode) return; if (this.pressedP) { this.addMarker('setting', 'GROUP|4'); } } },
+    pressedO: { handler () { if (!this.isEditMode) return; if (this.pressedO) { this.addSettingMarker(); } } },
+    pressedBL: {
+      handler () {
+        if (!this.isEditMode) return;
+        if (this.pressedBL) {
+          this.goToPreviousMarker();
+          this.intervalPressBL = setInterval(() => { this.goToPreviousMarker(); }, 100);
+        }  else {
+          clearInterval(this.intervalPressBL);
+        }
+      }
+    },
+    pressedBR: {
+      handler () {
+        if (!this.isEditMode) return;
+        if (this.pressedBR) {
+          this.goToNextMarker();
+          this.intervalPressBR = setInterval(() => { this.goToNextMarker(); }, 100);
+        }  else {
+          clearInterval(this.intervalPressBR);
+        }
+      }
+    },
+    pressedComma: {
+      handler () {
+        if (!this.isEditMode) return;
+        if (this.pressedComma) {
+          switch (this.editModeType) {
+            case 'syllables':
+              this.goToPreviousMarker('syllables');
+              this.intervalPressComma = setInterval(() => { this.goToPreviousMarker('syllables'); }, 100);
+              break;
+            case 'note':
+              this.goToPreviousMarker('note');
+              this.intervalPressComma = setInterval(() => { this.goToPreviousMarker('note'); }, 100);
+              break;
+            case 'chord':
+              this.goToPreviousMarker('chord');
+              this.intervalPressComma = setInterval(() => { this.goToPreviousMarker('chord'); }, 100);
+              break;
+          }
+        }  else {
+          clearInterval(this.intervalPressComma);
+        }
+      }
+    },
+    pressedPeriod: {
+      handler () {
+        if (!this.isEditMode) return;
+        if (this.pressedPeriod) {
+          switch (this.editModeType) {
+            case 'syllables':
+              this.goToNextMarker('syllables');
+              this.intervalPressPeriod = setInterval(() => { this.goToNextMarker('syllables'); }, 100);
+              break;
+            case 'note':
+              this.goToNextMarker('note');
+              this.intervalPressPeriod = setInterval(() => { this.goToNextMarker('note'); }, 100);
+              break;
+            case 'chord':
+              this.goToNextMarker('chord');
+              this.intervalPressPeriod = setInterval(() => { this.goToNextMarker('chord'); }, 100);
+              break;
+          }
+        }  else {
+          clearInterval(this.intervalPressPeriod);
+        }
+      }
+    },
+    isEditMode: {
+      handler () {
+        if (this.isEditMode) {
+          document.addEventListener('keydown', this.listenerKeyDown, false);
+          document.addEventListener('keyup', this.listenerKeyUp, false);
+        } else {
+          document.removeEventListener('keydown', this.listenerKeyDown, false);
+          document.removeEventListener('keyup', this.listenerKeyUp, false);
+          clearInterval(this.intervalSkipBackward);
+          clearInterval(this.intervalSkipForward);
+          this.ws.setPlaybackRate(this.playSpeed);
+          if (this.ws.isPlaying()) {
+            this.ws.pause();
+          }
+        }
+      }
+    },
+    markerTypesToShow: {
+      handler () {
+        this.redrawMarkers();
+      }
+    }
+  },
+  beforeUnmount() {
     this.wsRegions = null;
     this.ws = null;
     this.dataVoices = null;

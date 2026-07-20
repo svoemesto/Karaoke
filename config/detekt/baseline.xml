@@ -1,0 +1,21 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+    <Manually>
+        <!--
+            Baseline-файл для detekt: список известных code-smell нарушений,
+            которые автоматически подавляются при запуске ./gradlew detekt.
+
+            Скоуп: 5 активных модулей (karaoke-app, karaoke-web, webvue3,
+            karaoke-public, deploy/). Legacy karaoke-db/karaoke-vue — вне скоупа.
+
+            Чтобы сгенерировать baseline впервые:
+                ./gradlew detektBaseline
+
+            Чтобы обновить baseline после рефакторинга:
+                ./gradlew detektBaseline
+
+            Целевой темп сокращения: ≥10%/мес (SC-002 spec.md).
+        -->
+    </Manually>
+    <Current></Current>
+</SmellBaseline>

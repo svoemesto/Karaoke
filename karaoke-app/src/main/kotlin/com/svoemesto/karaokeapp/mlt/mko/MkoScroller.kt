@@ -11,23 +11,30 @@ import com.svoemesto.karaokeapp.model.ProducerType
 import com.svoemesto.karaokeapp.model.PropertiesMltNodeBuilder
 import java.awt.Font
 
-data class MkoScroller(val mltProp: MltProp, val type: ProducerType, val voiceId: Int = 0, val childId: Int = 0, val elementId: Int = 0): MltKaraokeObject {
-
+data class MkoScroller(
+    val mltProp: MltProp,
+    val type: ProducerType,
+    val voiceId: Int = 0,
+    val childId: Int = 0,
+    val elementId: Int = 0,
+) : MltKaraokeObject {
     val mltGenerator = MltGenerator(mltProp, type, voiceId, childId)
 
-    override fun producer(): MltNode = mltGenerator
-        .producer(
-            props = MltNodeBuilder(mltGenerator.defaultProducerPropertiesForMltService("kdenlivetitle"))
-                .propertyName("kdenlive:folderid", mltProp.getId(listOf(ProducerType.SCROLLERS, voiceId)))
-                .propertyName("length", mltProp.getSongLengthFr())
-                .propertyName("kdenlive:duration", mltProp.getSongEndTimecode())
+    override fun producer(): MltNode =
+        mltGenerator
+            .producer(
+                props =
+                    MltNodeBuilder(mltGenerator.defaultProducerPropertiesForMltService("kdenlivetitle"))
+                        .propertyName("kdenlive:folderid", mltProp.getId(listOf(ProducerType.SCROLLERS, voiceId)))
+                        .propertyName("length", mltProp.getSongLengthFr())
+                        .propertyName("kdenlive:duration", mltProp.getSongEndTimecode())
 //                .propertyName("xmldata", mltProp.getXmlData(listOf(type, voiceId, childId)).toString().xmldata())
 //                .propertyName("xmldata", mltProp.getXmlData(listOf(ProducerType.SCROLLER, voiceId, childId)).toString().xmldata())
-                .propertyName("xmldata", template().toString().xmldata())
-                .propertyName("meta.media.width", mltProp.getFrameWidthPx())
-                .propertyName("meta.media.height", mltProp.getFrameHeightPx())
-                .build()
-        )
+                        .propertyName("xmldata", template().toString().xmldata())
+                        .propertyName("meta.media.width", mltProp.getFrameWidthPx())
+                        .propertyName("meta.media.height", mltProp.getFrameHeightPx())
+                        .build(),
+            )
 
     override fun filePlaylist(): MltNode {
         val result = mltGenerator.filePlaylist()
@@ -36,15 +43,17 @@ data class MkoScroller(val mltProp: MltProp, val type: ProducerType, val voiceId
             val body = it as MutableList<MltNode>
             body.add(
                 mltGenerator.entry(
-                    nodes = MltNodeBuilder()
-                        .propertyName("kdenlive:id", "filePlaylist${mltGenerator.id}")
+                    nodes =
+                        MltNodeBuilder()
+                            .propertyName("kdenlive:id", "filePlaylist${mltGenerator.id}")
 //                        .filterQtblend(mltGenerator.nameFilterQtblend, mltProp.getRect(listOf(type, voiceId, childId)))
-                        .build()
-                )
+                            .build(),
+                ),
             )
         }
         return result
     }
+
     override fun mainFilePlaylistTransformProperties(): String = ""
 
     override fun trackPlaylist(): MltNode = mltGenerator.trackPlaylist()
@@ -54,7 +63,7 @@ data class MkoScroller(val mltProp: MltProp, val type: ProducerType, val voiceId
     override fun template(): MltNode {
         val voiceSetting = mltProp.getVoiceSetting(voiceId)
         val mltText: MltText = voiceSetting!!.groups[0].mltText
-        mltText.shapeColor =  Karaoke.countersColors[0]
+        mltText.shapeColor = Karaoke.countersColors[0]
         val body: MutableList<MltNode> = mutableListOf()
 
         val offsetX = Karaoke.songtextStartPositionXpx
@@ -77,7 +86,12 @@ data class MkoScroller(val mltProp: MltProp, val type: ProducerType, val voiceId
         val scrollLineEndMs = scrollLine.subtitles.last().startMs + scrollLine.subtitles.last().durationMs + timeToScrollScreenMs
         val scrollLineDurationMs = scrollLineEndMs - scrollLineStartMs
 
-        val initStartMs = mltProp.getScrollLines(voiceId)[childId].subtitles.first().startMs
+        val initStartMs =
+            mltProp
+                .getScrollLines(voiceId)[childId]
+                .subtitles
+                .first()
+                .startMs
         scrollLine.subtitles.forEachIndexed { indexSubtitle, subtitle ->
             val subStartMs = subtitle.startMs - initStartMs
             val subDurationMs = subtitle.durationMs
@@ -87,75 +101,81 @@ data class MkoScroller(val mltProp: MltProp, val type: ProducerType, val voiceId
 
             widthAreaPx += widthScrollerPx
 
-            val subRectItem = MltNodeBuilder()
-                .item(
-                    fields = PropertiesMltNodeBuilder()
-                        .type("QGraphicsRectItem")
-                        .zIndex("1")
-                        .build(),
-                    body = MltNodeBuilder()
-                        .position(
-                            fields = PropertiesMltNodeBuilder()
-                                .x(xScrollerPx.toString())
-                                .y(yScrollerPx.toString())
+            val subRectItem =
+                MltNodeBuilder()
+                    .item(
+                        fields =
+                            PropertiesMltNodeBuilder()
+                                .type("QGraphicsRectItem")
+                                .zIndex("1")
                                 .build(),
-                            body = MltNodeBuilder()
-                                .transform(
-                                    fields = PropertiesMltNodeBuilder()
-                                        .zoom("100")
-                                        .build(),
-                                    body = "1,0,0,0,1,0,0,0,1"
-                                )
-                                .build()
-                        )
-                        .content(
-                            fields = PropertiesMltNodeBuilder()
-                                .brushcolor(if (indexSubtitle % 2 == 0) "8,0,255,255" else "234,255,0,255")
-                                .pencolor("0,0,0,255")
-                                .penwidth("0")
-                                .rect("0,0,${widthScrollerPx},${heightScrollerPx}")
-                                .build()
-                        )
-                        .build()
-                )
-                .item(
-                    fields = PropertiesMltNodeBuilder()
-                        .type("QGraphicsTextItem")
-                        .zIndex("2")
-                        .build(),
-                    body = MltNodeBuilder()
-                        .position(
-                            fields = PropertiesMltNodeBuilder()
-                                .x(xScrollerPx.toString())
-                                .y(yScrollerPx.toString())
+                        body =
+                            MltNodeBuilder()
+                                .position(
+                                    fields =
+                                        PropertiesMltNodeBuilder()
+                                            .x(xScrollerPx.toString())
+                                            .y(yScrollerPx.toString())
+                                            .build(),
+                                    body =
+                                        MltNodeBuilder()
+                                            .transform(
+                                                fields =
+                                                    PropertiesMltNodeBuilder()
+                                                        .zoom("100")
+                                                        .build(),
+                                                body = "1,0,0,0,1,0,0,0,1",
+                                            ).build(),
+                                ).content(
+                                    fields =
+                                        PropertiesMltNodeBuilder()
+                                            .brushcolor(if (indexSubtitle % 2 == 0) "8,0,255,255" else "234,255,0,255")
+                                            .pencolor("0,0,0,255")
+                                            .penwidth("0")
+                                            .rect("0,0,$widthScrollerPx,$heightScrollerPx")
+                                            .build(),
+                                ).build(),
+                    ).item(
+                        fields =
+                            PropertiesMltNodeBuilder()
+                                .type("QGraphicsTextItem")
+                                .zIndex("2")
                                 .build(),
-                            body = MltNodeBuilder()
-                                .transform(
-                                    fields = PropertiesMltNodeBuilder()
-                                        .zoom("100")
-                                        .build(),
-                                    body = "1,0,0,0,1,0,0,0,1"
-                                )
-                                .build()
-                        )
-                        .node(
-                            subtitle.mltText.copy(subtitle.mltText.text.replace("&","&amp;amp;"), Font(MAIN_FONT_NAME, initFont.style, fontSize)).mltNode(subtitle.mltText.text.replace("&","&amp;amp;"))
-                        )
-                        .build()
-                )
-
-                .build()
+                        body =
+                            MltNodeBuilder()
+                                .position(
+                                    fields =
+                                        PropertiesMltNodeBuilder()
+                                            .x(xScrollerPx.toString())
+                                            .y(yScrollerPx.toString())
+                                            .build(),
+                                    body =
+                                        MltNodeBuilder()
+                                            .transform(
+                                                fields =
+                                                    PropertiesMltNodeBuilder()
+                                                        .zoom("100")
+                                                        .build(),
+                                                body = "1,0,0,0,1,0,0,0,1",
+                                            ).build(),
+                                ).node(
+                                    subtitle.mltText
+                                        .copy(
+                                            subtitle.mltText.text.replace("&", "&amp;amp;"),
+                                            Font(MAIN_FONT_NAME, initFont.style, fontSize),
+                                        ).mltNode(subtitle.mltText.text.replace("&", "&amp;amp;")),
+                                ).build(),
+                    ).build()
 
             body.addAll(subRectItem)
-
         }
 
         body.addAll(
             MltNodeBuilder()
-                .startviewport("0,0,${widthAreaPx},${heightScrollerPx}")
-                .endviewport("0,0,${widthAreaPx},${heightScrollerPx}")
+                .startviewport("0,0,$widthAreaPx,$heightScrollerPx")
+                .endviewport("0,0,$widthAreaPx,$heightScrollerPx")
                 .background("0,0,0,0")
-                .build()
+                .build(),
         )
 
         val rectStartTimecode = mltProp.getSongStartTimecode()
@@ -167,7 +187,7 @@ data class MkoScroller(val mltProp: MltProp, val type: ProducerType, val voiceId
         val rectStartHpx = heightScrollerPx
         val rectStartOpacity = 1.0
 
-        val rectEndXpx = - (mltProp.getFrameWidthPx() + widthAreaPx + offsetX)
+        val rectEndXpx = -(mltProp.getFrameWidthPx() + widthAreaPx + offsetX)
         val rectEndYpx = 0
         val rectEndWpx = widthAreaPx
         val rectEndHpx = heightScrollerPx
@@ -176,21 +196,21 @@ data class MkoScroller(val mltProp: MltProp, val type: ProducerType, val voiceId
         val propRect =
             listOf(
                 "$rectStartTimecode=$rectStartXpx $rectStartYpx $rectStartWpx $rectStartHpx $rectStartOpacity",
-                "$rectEndTimecode=$rectEndXpx $rectEndYpx $rectEndWpx $rectEndHpx $rectEndOpacity"
+                "$rectEndTimecode=$rectEndXpx $rectEndYpx $rectEndWpx $rectEndHpx $rectEndOpacity",
             ).joinToString(";")
         mltProp.setRect(propRect, listOf(type, voiceId, childId))
 
         return MltNode(
             name = "kdenlivetitle",
-            fields = PropertiesMltNodeBuilder()
-                .duration("0")
-                .lcNumeric("C")
-                .width("$widthAreaPx")
-                .height("$heightScrollerPx")
-                .`out`("0")
-                .build(),
-            body = body
+            fields =
+                PropertiesMltNodeBuilder()
+                    .duration("0")
+                    .lcNumeric("C")
+                    .width("$widthAreaPx")
+                    .height("$heightScrollerPx")
+                    .`out`("0")
+                    .build(),
+            body = body,
         )
-
     }
 }

@@ -9,7 +9,6 @@ import java.awt.Font
 
 class Converter {
     companion object {
-
         fun getColorsFromString(settingString: String): MutableList<Color> {
             val listColors: MutableList<Color> = mutableListOf()
             val colorsParts = settingString.split("|")
@@ -18,8 +17,8 @@ class Converter {
             }
             return listColors
         }
-        fun getVoicesFromString(settingString: String): MutableList<KaraokeVoice> {
 
+        fun getVoicesFromString(settingString: String): MutableList<KaraokeVoice> {
             val karaokeVoices: MutableList<KaraokeVoice> = mutableListOf()
             val partsVoices = settingString.split(delimiterVoices)
             partsVoices.forEach { partVoice ->
@@ -37,7 +36,7 @@ class Converter {
                     val partName = parts[0]
                     val partValue = parts[1]
                     try {
-                        when(partName) {
+                        when (partName) {
                             "evenColor" -> evenColor = getColorFromString(partValue)
                             "evenOpacity" -> evenOpacity = partValue.toDouble()
                             "oddColor" -> oddColor = getColorFromString(partValue)
@@ -47,12 +46,13 @@ class Converter {
                         println("ВНИМАНИЕ: Исключение ${e.message} при десериализации заливки: $settingString")
                     }
                 }
-                val fill = KaraokeVoiceFill(
-                    evenColor = evenColor ?: getColorFromString(""),
-                    evenOpacity = evenOpacity ?: 0.6,
-                    oddColor = oddColor ?: getColorFromString(""),
-                    oddOpacity = oddOpacity ?: 0.6
-                )
+                val fill =
+                    KaraokeVoiceFill(
+                        evenColor = evenColor ?: getColorFromString(""),
+                        evenOpacity = evenOpacity ?: 0.6,
+                        oddColor = oddColor ?: getColorFromString(""),
+                        oddOpacity = oddOpacity ?: 0.6,
+                    )
 
                 val karaokeGroups: MutableList<KaraokeVoiceGroup> = mutableListOf()
                 val partsGroups = partVoiceFieldGroups.split(delimiterGroups)
@@ -65,7 +65,7 @@ class Converter {
                         val partName = parts[0]
                         val partValue = parts[1]
                         try {
-                            when(partName) {
+                            when (partName) {
                                 "songtextTextMltFont" -> songtextTextMltText = getMltFontFromString(partValue)
                             }
                         } catch (e: Exception) {
@@ -74,8 +74,8 @@ class Converter {
                     }
                     karaokeGroups.add(
                         KaraokeVoiceGroup(
-                            mltText = songtextTextMltText ?: getMltFontFromString("")
-                        )
+                            mltText = songtextTextMltText ?: getMltFontFromString(""),
+                        ),
                     )
                 }
                 karaokeVoices.add(KaraokeVoice(groups = karaokeGroups, fill = fill))
@@ -83,15 +83,18 @@ class Converter {
             return karaokeVoices
         }
 
-        fun getStringFromVoices(voices: MutableList<KaraokeVoice>): String {
-            return voices.joinToString(delimiterVoices) { voice ->
-                val groupsText = voice.groups.joinToString(delimiterGroups) { group ->
-                    val fieldsText = "songtextTextMltFont" +
-                            delimiterNames +
-                            group.mltText.setting()
-                    fieldsText
-                }
-                val fillText = "evenColor" +
+        fun getStringFromVoices(voices: MutableList<KaraokeVoice>): String =
+            voices.joinToString(delimiterVoices) { voice ->
+                val groupsText =
+                    voice.groups.joinToString(delimiterGroups) { group ->
+                        val fieldsText =
+                            "songtextTextMltFont" +
+                                delimiterNames +
+                                group.mltText.setting()
+                        fieldsText
+                    }
+                val fillText =
+                    "evenColor" +
                         delimiterNames +
                         voice.fill.evenColor.setting() +
                         delimiterFields +
@@ -106,9 +109,8 @@ class Converter {
                         "oddOpacity" +
                         delimiterNames +
                         voice.fill.oddOpacity
-                "${groupsText}${delimiterVoiceFields}${fillText}"
+                "${groupsText}${delimiterVoiceFields}$fillText"
             }
-        }
 
         fun getMltFontFromString(settingString: String): MltText {
             val parts = settingString.split("|")
@@ -129,13 +131,13 @@ class Converter {
 
 //            val fontSize = 100
             if (parts.size == 13) {
-                parts.forEach {part ->
+                parts.forEach { part ->
                     val nameAndValue = part.split("=")
-                    if (nameAndValue.size ==2) {
+                    if (nameAndValue.size == 2) {
                         val partName = nameAndValue[0]
                         val partValue = nameAndValue[1]
                         try {
-                            when(partName) {
+                            when (partName) {
                                 "fname" -> fname = partValue
                                 "fstyle" -> fstyle = partValue.toInt()
                                 "fsize" -> fsize = partValue.toInt()
@@ -156,13 +158,18 @@ class Converter {
                     } else {
                         println("ВНИМАНИЕ: Неверное количество аргументов при десериализации шрифта: $settingString")
                     }
-
                 }
             } else {
                 println("ВНИМАНИЕ: Неверное количество параметров при десериализации шрифта: $settingString")
             }
 
-            return MltText(font = Font(fname,fstyle,fsize), shapeColor = Color(fcr,fcg,fcb,fca), shapeOutlineColor = Color(ocr,ocg,ocb,oca), fontUnderline = underline, shapeOutline = outline)
+            return MltText(
+                font = Font(fname, fstyle, fsize),
+                shapeColor = Color(fcr, fcg, fcb, fca),
+                shapeOutlineColor = Color(ocr, ocg, ocb, oca),
+                fontUnderline = underline,
+                shapeOutline = outline,
+            )
         }
 
         fun getMltShapeFromString(settingString: String): MltShape {
@@ -180,13 +187,13 @@ class Converter {
             var outline = 0
 
             if (parts.size == 10) {
-                parts.forEach {part ->
+                parts.forEach { part ->
                     val nameAndValue = part.split("=")
-                    if (nameAndValue.size ==2) {
+                    if (nameAndValue.size == 2) {
                         val partName = nameAndValue[0]
                         val partValue = nameAndValue[1]
                         try {
-                            when(partName) {
+                            when (partName) {
                                 "type" -> type = MltObjectType.valueOf(partValue)
                                 "fcr" -> fcr = partValue.toInt()
                                 "fcg" -> fcg = partValue.toInt()
@@ -204,13 +211,17 @@ class Converter {
                     } else {
                         println("ВНИМАНИЕ: Неверное количество аргументов при десериализации шейпа: $settingString")
                     }
-
                 }
             } else {
                 println("ВНИМАНИЕ: Неверное количество параметров при десериализации шейпа: $settingString")
             }
 
-            return MltShape(type = type, shapeColor = Color(fcr,fcg,fcb,fca), shapeOutlineColor = Color(ocr,ocg,ocb,oca), shapeOutline = outline)
+            return MltShape(
+                type = type,
+                shapeColor = Color(fcr, fcg, fcb, fca),
+                shapeOutlineColor = Color(ocr, ocg, ocb, oca),
+                shapeOutline = outline,
+            )
         }
 
         @Suppress("unused")
@@ -220,13 +231,13 @@ class Converter {
             var fontStyle = 0
             var fontSize = 100
             if (parts.size == 3) {
-                parts.forEach {part ->
+                parts.forEach { part ->
                     val nameAndValue = part.split("=")
-                    if (nameAndValue.size ==2) {
+                    if (nameAndValue.size == 2) {
                         val partName = nameAndValue[0]
                         val partValue = nameAndValue[1]
                         try {
-                            when(partName) {
+                            when (partName) {
                                 "name" -> fontName = partValue
                                 "style" -> fontStyle = partValue.toInt()
                                 "size" -> fontSize = partValue.toInt()
@@ -237,7 +248,6 @@ class Converter {
                     } else {
                         println("ВНИМАНИЕ: Неверное количество аргументов при десериализации шрифта: $settingString")
                     }
-
                 }
             } else {
                 println("ВНИМАНИЕ: Неверное количество параметров при десериализации шрифта: $settingString")
@@ -253,13 +263,13 @@ class Converter {
             var colorB = 255
             var colorA = 255
             if (parts.size == 4) {
-                parts.forEach {part ->
+                parts.forEach { part ->
                     val nameAndValue = part.split("=")
-                    if (nameAndValue.size ==2) {
+                    if (nameAndValue.size == 2) {
                         val partName = nameAndValue[0]
                         val partValue = nameAndValue[1]
                         try {
-                            when(partName) {
+                            when (partName) {
                                 "r" -> colorR = partValue.toInt()
                                 "g" -> colorG = partValue.toInt()
                                 "b" -> colorB = partValue.toInt()
@@ -271,13 +281,11 @@ class Converter {
                     } else {
                         println("ВНИМАНИЕ: Неверное количество аргументов при десериализации цвета: $settingString")
                     }
-
                 }
             } else {
                 println("ВНИМАНИЕ: Неверное количество параметров при десериализации цвета: $settingString")
             }
             return Color(colorR, colorG, colorB, colorA)
         }
-
     }
 }

@@ -11,8 +11,11 @@ import org.springframework.web.servlet.HandlerInterceptor
 class SiteAuthInterceptor(
     private val siteUserTokenService: SiteUserTokenService,
 ) : HandlerInterceptor {
-
-    override fun preHandle(request: HttpServletRequest, response: HttpServletResponse, handler: Any): Boolean {
+    override fun preHandle(
+        request: HttpServletRequest,
+        response: HttpServletResponse,
+        handler: Any,
+    ): Boolean {
         val token = request.getHeader("Authorization")?.removePrefix("Bearer ")?.trim()
         val user = token?.takeIf { it.isNotBlank() }?.let { siteUserTokenService.resolveToken(it, WORKING_DATABASE) }
         if (user == null) {

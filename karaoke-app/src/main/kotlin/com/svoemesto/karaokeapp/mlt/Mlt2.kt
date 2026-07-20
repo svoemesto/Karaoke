@@ -1,15 +1,15 @@
-//package com.svoemesto.karaokeapp.mlt
+// package com.svoemesto.karaokeapp.mlt
 //
-//import com.svoemesto.karaokeapp.model.MltNode
-//import com.svoemesto.karaokeapp.model.ProducerType
-//import com.svoemesto.karaokeapp.model.SongVersion
-//import com.svoemesto.karaokeapp.producerTypeClass2
-//import getMltBlackTrackProducer
-//import getMltConsumer
-//import getMltMainBinPlaylist
-//import getMltProfile
+// import com.svoemesto.karaokeapp.model.MltNode
+// import com.svoemesto.karaokeapp.model.ProducerType
+// import com.svoemesto.karaokeapp.model.SongVersion
+// import com.svoemesto.karaokeapp.producerTypeClass2
+// import getMltBlackTrackProducer
+// import getMltConsumer
+// import getMltMainBinPlaylist
+// import getMltProfile
 //
-//fun getMlt2(param: Map<String, Any?>): MltNode {
+// fun getMlt2(param: Map<String, Any?>): MltNode {
 //
 //    val songVersion = param["SONG_VERSION"] as SongVersion
 //    val countVoices = (param["COUNT_VOICES"] as Int)
@@ -250,9 +250,9 @@
 //    )
 //
 //    return mlt
-//}
+// }
 //
-//fun getMlt2Transitions(countAudioTracks: Int, countVideoTracks: Int): List<MltNode> {
+// fun getMlt2Transitions(countAudioTracks: Int, countVideoTracks: Int): List<MltNode> {
 //    val trans = mutableListOf<MltNode>()
 //    var index = 0
 //    for (audioTrack in 0 until countAudioTracks) {
@@ -294,4 +294,4 @@
 //    }
 //
 //    return trans
-//}
+// }

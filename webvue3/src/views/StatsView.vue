@@ -4,14 +4,14 @@
     <div class="stats-toolbar">
       <label class="tb-item">
         БД:
-        <select class="form-select form-select-sm" v-model="target" @change="onTargetChange">
+        <select v-model="target" class="form-select form-select-sm" @change="onTargetChange">
           <option value="local">Локальная</option>
           <option value="remote">Сервер</option>
         </select>
       </label>
       <label class="tb-item">
         Период:
-        <select class="form-select form-select-sm" v-model.number="days" @change="onDaysChange">
+        <select v-model.number="days" class="form-select form-select-sm" @change="onDaysChange">
           <option :value="7">7 дней</option>
           <option :value="30">30 дней</option>
           <option :value="90">90 дней</option>
@@ -101,7 +101,7 @@
         <div class="chart-card mb-3">
           <div class="chart-head">
             <h6 class="chart-title">Топ песен по событиям</h6>
-            <select class="form-select form-select-sm w-auto" v-model.number="statsBySongPageSize" @change="onStatsBySongPageSizeChange">
+            <select v-model.number="statsBySongPageSize" class="form-select form-select-sm w-auto" @change="onStatsBySongPageSizeChange">
               <option :value="20">20</option>
               <option :value="50">50</option>
               <option :value="100">100</option>
@@ -129,7 +129,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="row in statsBySong" :key="row.songId" class="clickable-row" @click="openSong(row)" title="Подробная статистика по песне">
+                  <tr v-for="row in statsBySong" :key="row.songId" class="clickable-row" title="Подробная статистика по песне" @click="openSong(row)">
                     <td>{{ row.songId }}</td>
                     <td class="text-start">{{ row.description }}</td>
                     <td class="fw-bold">{{ row.cntTotal }}</td>
@@ -156,7 +156,7 @@
           <div class="chart-head">
             <h6 class="chart-title">Последние события</h6>
             <div class="d-flex gap-2 align-items-center">
-              <select class="form-select form-select-sm w-auto" v-model="webEventsType" @change="onWebEventsFilterChange">
+              <select v-model="webEventsType" class="form-select form-select-sm w-auto" @change="onWebEventsFilterChange">
                 <option value="">Все типы</option>
                 <option value="callRest">Просмотры</option>
                 <option value="clickToLink">Клики</option>
@@ -165,7 +165,7 @@
                 <option value="engagement">Время</option>
                 <option value="ui">UI</option>
               </select>
-              <select class="form-select form-select-sm w-auto" v-model.number="webEventsPageSize" @change="onWebEventsPageSizeChange">
+              <select v-model.number="webEventsPageSize" class="form-select form-select-sm w-auto" @change="onWebEventsPageSizeChange">
                 <option :value="20">20</option>
                 <option :value="50">50</option>
                 <option :value="100">100</option>
@@ -350,6 +350,15 @@ export default {
       set(v) { this.topListenedPage = v; this.reloadTopListened() }
     },
   },
+  watch: {
+    // Сохраняем номера страниц в store, чтобы они восстановились после возврата на вкладку «Статистика».
+    statsBySongPage(newVal) { this.$store.commit('setStatsBySongPage', newVal) },
+    webEventsPage(newVal) { this.$store.commit('setWebEventsPage', newVal) },
+    topListenedPage(newVal) { this.$store.commit('setTopListenedPage', newVal) },
+  },
+  mounted() {
+    this.reloadAll()
+  },
   methods: {
     reloadStatsBySong() {
       this.$store.dispatch('loadStatsBySong', { page: this.statsBySongPage, pageSize: this.statsBySongPageSize })
@@ -432,15 +441,6 @@ export default {
       if (evt.anonId) return evt.anonId.slice(0, 8)
       return '-'
     }
-  },
-  mounted() {
-    this.reloadAll()
-  },
-  watch: {
-    // Сохраняем номера страниц в store, чтобы они восстановились после возврата на вкладку «Статистика».
-    statsBySongPage(newVal) { this.$store.commit('setStatsBySongPage', newVal) },
-    webEventsPage(newVal) { this.$store.commit('setWebEventsPage', newVal) },
-    topListenedPage(newVal) { this.$store.commit('setTopListenedPage', newVal) },
   }
 }
 </script>

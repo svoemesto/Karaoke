@@ -23,7 +23,7 @@
       </button>
     </div>
     <div v-if="showPlayer" class="ske-player-wrap">
-      <div ref="playerContainer" class="ske-player-container"></div>
+      <div ref="playerContainer" class="ske-player-container"/>
     </div>
 
     <!-- Голоса: задание покрывает всю песню — переключение/добавление/удаление голосов -->
@@ -41,7 +41,7 @@
 
     <!-- Вейвформа -->
     <div class="ske-wave-card">
-      <div ref="waveform" class="ske-waveform"></div>
+      <div ref="waveform" class="ske-waveform"/>
       <div class="ske-time">{{ fmtTime(currentTime) }} / {{ fmtTime(duration) }}</div>
     </div>
 
@@ -66,11 +66,11 @@
       <div class="ske-sliders">
         <label class="ske-slider">
           <span>Скорость {{ playbackRate.toFixed(2) }}×</span>
-          <input type="range" min="0.3" max="1" step="0.05" v-model.number="playbackRate" @input="applyRate" />
+          <input v-model.number="playbackRate" type="range" min="0.3" max="1" step="0.05" @input="applyRate" />
         </label>
         <label class="ske-slider">
           <span>Масштаб</span>
-          <input type="range" min="20" max="400" step="10" v-model.number="zoom" @input="applyZoom" />
+          <input v-model.number="zoom" type="range" min="20" max="400" step="10" @input="applyZoom" />
         </label>
         <div class="ske-slider ske-sound-toggle">
           <span>Стем</span>
@@ -81,7 +81,7 @@
         </div>
         <label class="ske-slider">
           <span>Громкость {{ Math.round(volume * 100) }}%</span>
-          <input type="range" min="0" max="1" step="0.05" v-model.number="volume" @input="applyVolume" />
+          <input v-model.number="volume" type="range" min="0" max="1" step="0.05" @input="applyVolume" />
         </label>
       </div>
     </div>
@@ -118,26 +118,26 @@
           <div class="ske-col-title">Текст песни</div>
           <label class="ske-font-slider">
             <span>Шрифт {{ textFontSize }}px</span>
-            <input type="range" min="6" max="36" step="1" v-model.number="textFontSize" />
+            <input v-model.number="textFontSize" type="range" min="6" max="36" step="1" />
           </label>
         </div>
         <textarea
+          v-model="sourceText"
           class="ske-textarea"
           :style="{ fontSize: textFontSize + 'px' }"
-          v-model="sourceText"
           :placeholder="canEdit ? 'Вставьте сюда текст песни — он автоматически разобьётся на слоги.' : ''"
           @input="onTextInput"
-        ></textarea>
+        />
       </div>
       <div class="ske-text-col">
         <div class="ske-col-header">
           <div class="ske-col-title">Разметка</div>
           <label class="ske-font-slider">
             <span>Шрифт {{ previewFontSize }}px</span>
-            <input type="range" min="6" max="36" step="1" v-model.number="previewFontSize" />
+            <input v-model.number="previewFontSize" type="range" min="6" max="36" step="1" />
           </label>
         </div>
-        <div class="ske-preview" :style="{ fontSize: previewFontSize + 'px' }" v-html="formattedTextHtml"></div>
+        <div class="ske-preview" :style="{ fontSize: previewFontSize + 'px' }" v-html="formattedTextHtml"/>
       </div>
     </div>
   </div>

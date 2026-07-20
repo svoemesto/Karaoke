@@ -19,7 +19,7 @@ enum class KaraokePlatform(
     @Suppress("unused") val svg: String,
     val settingsFieldPublicationId: Map<String, SettingField>,
     val settingsFieldVersionNumber: Map<String, SettingField>,
-    val onAirPublications: Boolean
+    val onAirPublications: Boolean,
 ) {
     SPONSR(
         id = 1,
@@ -34,7 +34,7 @@ enum class KaraokePlatform(
         linkToCreate = "https://sponsr.ru/smkaraoke/manage/post/new/",
         settingsFieldPublicationId = mapOf("ALL" to SettingField.ID_SPONSR),
         settingsFieldVersionNumber = mapOf("ALL" to SettingField.VERSION_SPONSR),
-        onAirPublications = false
+        onAirPublications = false,
     ),
     VKGROUP(
         id = 2,
@@ -47,7 +47,7 @@ enum class KaraokePlatform(
         prefixPlay = "https://vk.com/wall-",
         settingsFieldPublicationId = mapOf("ALL" to SettingField.ID_VK),
         settingsFieldVersionNumber = emptyMap(),
-        onAirPublications = true
+        onAirPublications = true,
     ),
     DZEN(
         id = 3,
@@ -59,19 +59,21 @@ enum class KaraokePlatform(
         svg = SVG["icon_dzen"] ?: "",
         prefixPlay = "https://dzen.ru/video/watch/",
         prefixEdit = "https://dzen.ru/profile/editor/svoemesto/publications?videoEditorPublicationId=",
-        settingsFieldPublicationId = mapOf(
-            SongVersion.KARAOKE.name to SettingField.ID_DZEN_KARAOKE,
-            SongVersion.LYRICS.name to SettingField.ID_DZEN_LYRICS,
-            SongVersion.CHORDS.name to SettingField.ID_DZEN_CHORDS,
-            SongVersion.TABS.name to SettingField.ID_DZEN_MELODY,
-        ),
-        settingsFieldVersionNumber = mapOf(
-            SongVersion.KARAOKE.name to SettingField.VERSION_DZEN_KARAOKE,
-            SongVersion.LYRICS.name to SettingField.VERSION_DZEN_LYRICS,
-            SongVersion.CHORDS.name to SettingField.VERSION_DZEN_CHORDS,
-            SongVersion.TABS.name to SettingField.VERSION_DZEN_MELODY,
-        ),
-        onAirPublications = true
+        settingsFieldPublicationId =
+            mapOf(
+                SongVersion.KARAOKE.name to SettingField.ID_DZEN_KARAOKE,
+                SongVersion.LYRICS.name to SettingField.ID_DZEN_LYRICS,
+                SongVersion.CHORDS.name to SettingField.ID_DZEN_CHORDS,
+                SongVersion.TABS.name to SettingField.ID_DZEN_MELODY,
+            ),
+        settingsFieldVersionNumber =
+            mapOf(
+                SongVersion.KARAOKE.name to SettingField.VERSION_DZEN_KARAOKE,
+                SongVersion.LYRICS.name to SettingField.VERSION_DZEN_LYRICS,
+                SongVersion.CHORDS.name to SettingField.VERSION_DZEN_CHORDS,
+                SongVersion.TABS.name to SettingField.VERSION_DZEN_MELODY,
+            ),
+        onAirPublications = true,
     ),
     VKVIDEO(
         id = 4,
@@ -82,19 +84,21 @@ enum class KaraokePlatform(
         haveVersionNumber = true,
         svg = SVG["icon_vk"] ?: "",
         prefixPlay = "https://vkvideo.ru/video",
-        settingsFieldPublicationId = mapOf(
-            SongVersion.KARAOKE.name to SettingField.ID_VK_KARAOKE,
-            SongVersion.LYRICS.name to SettingField.ID_VK_LYRICS,
-            SongVersion.CHORDS.name to SettingField.ID_VK_CHORDS,
-            SongVersion.TABS.name to SettingField.ID_VK_MELODY,
-        ),
-        settingsFieldVersionNumber = mapOf(
-            SongVersion.KARAOKE.name to SettingField.VERSION_VK_KARAOKE,
-            SongVersion.LYRICS.name to SettingField.VERSION_VK_LYRICS,
-            SongVersion.CHORDS.name to SettingField.VERSION_VK_CHORDS,
-            SongVersion.TABS.name to SettingField.VERSION_VK_MELODY,
-        ),
-        onAirPublications = true
+        settingsFieldPublicationId =
+            mapOf(
+                SongVersion.KARAOKE.name to SettingField.ID_VK_KARAOKE,
+                SongVersion.LYRICS.name to SettingField.ID_VK_LYRICS,
+                SongVersion.CHORDS.name to SettingField.ID_VK_CHORDS,
+                SongVersion.TABS.name to SettingField.ID_VK_MELODY,
+            ),
+        settingsFieldVersionNumber =
+            mapOf(
+                SongVersion.KARAOKE.name to SettingField.VERSION_VK_KARAOKE,
+                SongVersion.LYRICS.name to SettingField.VERSION_VK_LYRICS,
+                SongVersion.CHORDS.name to SettingField.VERSION_VK_CHORDS,
+                SongVersion.TABS.name to SettingField.VERSION_VK_MELODY,
+            ),
+        onAirPublications = true,
     ),
     PLATFORMA(
         id = 5,
@@ -107,19 +111,21 @@ enum class KaraokePlatform(
         prefixPlay = "https://plvideo.ru/watch?v=",
         prefixEdit = "https://studio.plvideo.ru/channel/bbj0HWC8H7ii/video/",
         suffixEdit = "/edit",
-        settingsFieldPublicationId = mapOf(
-            SongVersion.KARAOKE.name to SettingField.ID_PL_KARAOKE,
-            SongVersion.LYRICS.name to SettingField.ID_PL_LYRICS,
-            SongVersion.CHORDS.name to SettingField.ID_PL_CHORDS,
-            SongVersion.TABS.name to SettingField.ID_PL_MELODY,
-        ),
-        settingsFieldVersionNumber = mapOf(
-            SongVersion.KARAOKE.name to SettingField.VERSION_PL_KARAOKE,
-            SongVersion.LYRICS.name to SettingField.VERSION_PL_LYRICS,
-            SongVersion.CHORDS.name to SettingField.VERSION_PL_CHORDS,
-            SongVersion.TABS.name to SettingField.VERSION_PL_MELODY,
-        ),
-        onAirPublications = true
+        settingsFieldPublicationId =
+            mapOf(
+                SongVersion.KARAOKE.name to SettingField.ID_PL_KARAOKE,
+                SongVersion.LYRICS.name to SettingField.ID_PL_LYRICS,
+                SongVersion.CHORDS.name to SettingField.ID_PL_CHORDS,
+                SongVersion.TABS.name to SettingField.ID_PL_MELODY,
+            ),
+        settingsFieldVersionNumber =
+            mapOf(
+                SongVersion.KARAOKE.name to SettingField.VERSION_PL_KARAOKE,
+                SongVersion.LYRICS.name to SettingField.VERSION_PL_LYRICS,
+                SongVersion.CHORDS.name to SettingField.VERSION_PL_CHORDS,
+                SongVersion.TABS.name to SettingField.VERSION_PL_MELODY,
+            ),
+        onAirPublications = true,
     ),
     TELEGRAM(
         id = 6,
@@ -130,19 +136,21 @@ enum class KaraokePlatform(
         haveVersionNumber = true,
         svg = SVG["icon_telegram"] ?: "",
         prefixPlay = "https://t.me/svoemestokaraoke/",
-        settingsFieldPublicationId = mapOf(
-            SongVersion.KARAOKE.name to SettingField.ID_TELEGRAM_KARAOKE,
-            SongVersion.LYRICS.name to SettingField.ID_TELEGRAM_LYRICS,
-            SongVersion.CHORDS.name to SettingField.ID_TELEGRAM_CHORDS,
-            SongVersion.TABS.name to SettingField.ID_TELEGRAM_MELODY,
-        ),
-        settingsFieldVersionNumber = mapOf(
-            SongVersion.KARAOKE.name to SettingField.VERSION_TELEGRAM_KARAOKE,
-            SongVersion.LYRICS.name to SettingField.VERSION_TELEGRAM_LYRICS,
-            SongVersion.CHORDS.name to SettingField.VERSION_TELEGRAM_CHORDS,
-            SongVersion.TABS.name to SettingField.VERSION_TELEGRAM_MELODY,
-        ),
-        onAirPublications = true
+        settingsFieldPublicationId =
+            mapOf(
+                SongVersion.KARAOKE.name to SettingField.ID_TELEGRAM_KARAOKE,
+                SongVersion.LYRICS.name to SettingField.ID_TELEGRAM_LYRICS,
+                SongVersion.CHORDS.name to SettingField.ID_TELEGRAM_CHORDS,
+                SongVersion.TABS.name to SettingField.ID_TELEGRAM_MELODY,
+            ),
+        settingsFieldVersionNumber =
+            mapOf(
+                SongVersion.KARAOKE.name to SettingField.VERSION_TELEGRAM_KARAOKE,
+                SongVersion.LYRICS.name to SettingField.VERSION_TELEGRAM_LYRICS,
+                SongVersion.CHORDS.name to SettingField.VERSION_TELEGRAM_CHORDS,
+                SongVersion.TABS.name to SettingField.VERSION_TELEGRAM_MELODY,
+            ),
+        onAirPublications = true,
     ),
     MAX(
         id = 7,
@@ -153,32 +161,43 @@ enum class KaraokePlatform(
         haveVersionNumber = true,
         svg = SVG["icon_max"] ?: "",
         prefixPlay = "https://max.ru/c/-70935843913828/",
-        settingsFieldPublicationId = mapOf(
-            SongVersion.KARAOKE.name to SettingField.ID_MAX_KARAOKE,
-            SongVersion.LYRICS.name to SettingField.ID_MAX_LYRICS,
-            SongVersion.CHORDS.name to SettingField.ID_MAX_CHORDS,
-            SongVersion.TABS.name to SettingField.ID_MAX_MELODY,
-        ),
-        settingsFieldVersionNumber = mapOf(
-            SongVersion.KARAOKE.name to SettingField.VERSION_MAX_KARAOKE,
-            SongVersion.LYRICS.name to SettingField.VERSION_MAX_LYRICS,
-            SongVersion.CHORDS.name to SettingField.VERSION_MAX_CHORDS,
-            SongVersion.TABS.name to SettingField.VERSION_MAX_MELODY,
-        ),
-        onAirPublications = true
-    );
+        settingsFieldPublicationId =
+            mapOf(
+                SongVersion.KARAOKE.name to SettingField.ID_MAX_KARAOKE,
+                SongVersion.LYRICS.name to SettingField.ID_MAX_LYRICS,
+                SongVersion.CHORDS.name to SettingField.ID_MAX_CHORDS,
+                SongVersion.TABS.name to SettingField.ID_MAX_MELODY,
+            ),
+        settingsFieldVersionNumber =
+            mapOf(
+                SongVersion.KARAOKE.name to SettingField.VERSION_MAX_KARAOKE,
+                SongVersion.LYRICS.name to SettingField.VERSION_MAX_LYRICS,
+                SongVersion.CHORDS.name to SettingField.VERSION_MAX_CHORDS,
+                SongVersion.TABS.name to SettingField.VERSION_MAX_MELODY,
+            ),
+        onAirPublications = true,
+    ),
+    ;
 
-    fun actionToCreatePicture(settings: Settings, pathToFile: String) {
+    fun actionToCreatePicture(
+        settings: Settings,
+        pathToFile: String,
+    ) {
         when (this) {
-            SPONSR -> { createSponsrTeaserPicture(settings = settings, fileName = pathToFile) }
+            SPONSR -> {
+                createSponsrTeaserPicture(settings = settings, fileName = pathToFile)
+            }
 
-            VKGROUP -> { createVKLinkPicture(settings = settings, fileName = pathToFile) }
+            VKGROUP -> {
+                createVKLinkPicture(settings = settings, fileName = pathToFile)
+            }
 
             DZEN,
             VKVIDEO,
             PLATFORMA,
             TELEGRAM,
-            MAX -> {}
+            MAX,
+            -> {}
         }
     }
 }

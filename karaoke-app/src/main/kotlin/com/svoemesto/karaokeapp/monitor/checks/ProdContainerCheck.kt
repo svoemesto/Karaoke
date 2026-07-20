@@ -22,8 +22,8 @@ import java.time.Instant
  * (см. план фичи), т.к. karaoke-app и так не 24/7 аптайм-монитор.
  */
 object ProdContainerCheck : MonitorCheck {
-
     private const val PING_URL = "https://sm-karaoke.ru/"
+
     @Volatile private var firstFailureAt: Instant? = null
 
     override fun run(ctx: MonitorContext): List<MonitorAlert> {
@@ -40,10 +40,11 @@ object ProdContainerCheck : MonitorCheck {
         val criticalMinutes = KaraokeProperties.getLong("monitorProdDownCriticalMinutes").takeIf { it > 0 } ?: 5L
         val severity = if (downForMinutes >= criticalMinutes) MonitorSeverity.CRITICAL else MonitorSeverity.WARNING
 
-        val whatIsDown = listOfNotNull(
-            if (!siteUp) "сайт ($PING_URL)" else null,
-            if (!dbUp) "БД прод-сервера" else null
-        ).joinToString(" и ")
+        val whatIsDown =
+            listOfNotNull(
+                if (!siteUp) "сайт ($PING_URL)" else null,
+                if (!dbUp) "БД прод-сервера" else null,
+            ).joinToString(" и ")
 
         return listOf(
             MonitorAlert(
@@ -53,8 +54,8 @@ object ProdContainerCheck : MonitorCheck {
                 body = "Недоступен(ы): $whatIsDown.",
                 category = "Инфраструктура",
                 detail = "недоступен уже $downForMinutes мин.",
-                recommendations = "Проверьте сервер 79.174.95.69 по SSH: nginx (`nginx -t`, `systemctl status nginx`), `docker ps` (karaoke-web/karaoke-public/karaoke-db), логи контейнеров (`docker logs <container>`)."
-            )
+                recommendations = "Проверьте сервер 79.174.95.69 по SSH: nginx (`nginx -t`, `systemctl status nginx`), `docker ps` (karaoke-web/karaoke-public/karaoke-db), логи контейнеров (`docker logs <container>`).",
+            ),
         )
     }
 
@@ -86,7 +87,10 @@ object ProdContainerCheck : MonitorCheck {
         } catch (e: Exception) {
             false
         } finally {
-            try { db.getConnection()?.close() } catch (_: Exception) {}
+            try {
+                db.getConnection()?.close()
+            } catch (_: Exception) {
+            }
         }
     }
 }

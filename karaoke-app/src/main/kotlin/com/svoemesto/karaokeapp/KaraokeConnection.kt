@@ -6,7 +6,7 @@ abstract class KaraokeConnection(
     open val url: String,
     open val username: String,
     open val password: String,
-    open val name: String
+    open val name: String,
 ) {
     @Volatile private var connection: java.sql.Connection? = null
 

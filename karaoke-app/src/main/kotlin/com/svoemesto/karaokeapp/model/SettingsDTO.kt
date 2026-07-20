@@ -171,9 +171,10 @@ data class SettingsDTO(
     // со старыми записями БД без поля (и для уже сохранённых "" дефолт) SongType-геттер на стороне
     // Settings, при отсутствии значения, возвращает SongType.SONG.
     val songType: String,
-    val haveSourceText: Boolean
-): Serializable, Comparable<SettingsDTO>, KaraokeDbTableDto {
-
+    val haveSourceText: Boolean,
+) : Serializable,
+    Comparable<SettingsDTO>,
+    KaraokeDbTableDto {
     // fromDto() нигде не вызывается (grep "\.fromDto(" по всему karaoke-app пуст на момент написания) —
     // реализован для формального соответствия KaraokeDbTableDto по образцу AuthorDTO/PicturesDTO.
     // sourceText/resultText/sourceMarkers/statusProcess*/diffBeats сюда не входят: их нет в SettingsDTO
@@ -273,20 +274,20 @@ data class SettingsDTO(
 //        ).joinToString(" - ")
         return if (dateTimePublish == null) {
             listOf(
-                author, year.toString(), album, "%3d".format(track)
+                author,
+                year.toString(),
+                album,
+                "%3d".format(track),
             ).joinToString(" - ")
-        } else
-        {
+        } else {
             "%15d".format(dateTimePublish.time)
         }
     }
 
-    override fun compareTo(other: SettingsDTO): Int {
-        return sortString.compareTo(other.sortString)
-    }
+    override fun compareTo(other: SettingsDTO): Int = sortString.compareTo(other.sortString)
 
-    fun toDtoDigest(): SettingsDTOdigest {
-        return SettingsDTOdigest(
+    fun toDtoDigest(): SettingsDTOdigest =
+        SettingsDTOdigest(
             id = id,
             idPrevious = idPrevious,
             idNext = idNext,
@@ -398,7 +399,6 @@ data class SettingsDTO(
             exclusive = exclusive,
             free = free,
             songType = songType,
-            haveSourceText = haveSourceText
+            haveSourceText = haveSourceText,
         )
-    }
 }

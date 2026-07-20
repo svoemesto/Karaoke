@@ -26,7 +26,6 @@ class PublicAuthController(
     private val captchaConfigService: CaptchaConfigService,
     private val yandexCaptchaValidationService: YandexCaptchaValidationService,
 ) {
-
     @GetMapping("/config")
     fun config(): Map<String, String> = mapOf("captchaClientKey" to captchaConfigService.getClientKey())
 
@@ -55,39 +54,47 @@ class PublicAuthController(
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(mapOf("error" to "password_mismatch"))
         }
 
-        val user = SiteUser.createNewSiteUser(
-            email = email,
-            rawPassword = password,
-            displayName = displayName,
-            database = WORKING_DATABASE,
-            passwordEncoder = passwordEncoder,
-            storageService = storageService,
-            storageApiClient = storageApiClient,
-        ) ?: return ResponseEntity.status(HttpStatus.CONFLICT).body(mapOf("error" to "email_taken"))
+        val user =
+            SiteUser.createNewSiteUser(
+                email = email,
+                rawPassword = password,
+                displayName = displayName,
+                database = WORKING_DATABASE,
+                passwordEncoder = passwordEncoder,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            ) ?: return ResponseEntity.status(HttpStatus.CONFLICT).body(mapOf("error" to "email_taken"))
 
-        val token = siteUserTokenService.issueToken(user.id, WORKING_DATABASE)
-            ?: return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(mapOf("error" to "token"))
+        val token =
+            siteUserTokenService.issueToken(user.id, WORKING_DATABASE)
+                ?: return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(mapOf("error" to "token"))
 
-        return ResponseEntity.status(HttpStatus.CREATED)
+        return ResponseEntity
+            .status(HttpStatus.CREATED)
             .body(mapOf("token" to token, "user" to user.toDTO()))
     }
 
     @PostMapping("/login")
-    fun login(@RequestParam email: String, @RequestParam password: String): ResponseEntity<Map<String, Any>> {
+    fun login(
+        @RequestParam email: String,
+        @RequestParam password: String,
+    ): ResponseEntity<Map<String, Any>> {
         val user = SiteUser.getSiteUserByEmail(email, WORKING_DATABASE, storageService, storageApiClient)
         if (user == null || !user.checkPassword(password, passwordEncoder)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(mapOf("error" to "invalid_credentials"))
         }
         if (user.isBanned) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+            return ResponseEntity
+                .status(HttpStatus.FORBIDDEN)
                 .body(mapOf("error" to "banned", "reason" to user.banReason))
         }
 
         user.lastLoginAt = Timestamp(System.currentTimeMillis())
         user.save()
 
-        val token = siteUserTokenService.issueToken(user.id, WORKING_DATABASE)
-            ?: return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(mapOf("error" to "token"))
+        val token =
+            siteUserTokenService.issueToken(user.id, WORKING_DATABASE)
+                ?: return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(mapOf("error" to "token"))
 
         return ResponseEntity.ok(mapOf("token" to token, "user" to user.toDTO()))
     }

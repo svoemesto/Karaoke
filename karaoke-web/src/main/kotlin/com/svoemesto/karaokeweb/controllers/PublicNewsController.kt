@@ -18,7 +18,6 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 @RequestMapping("/api/public/news")
 class PublicNewsController {
-
     // Только опубликованные (publish_at уже наступил), свежие сверху — публичная лента /news.
     @GetMapping("")
     fun list(): List<NewsDto> = News.loadPublished(WORKING_DATABASE)
@@ -26,7 +25,9 @@ class PublicNewsController {
     // Лёгкий запрос для бейджа/тоста — только новости с id больше уже увиденной пользователем
     // (last_seen хранится в localStorage браузера, см. NewsBell.vue — работает и для анонимов).
     @GetMapping("/since")
-    fun since(@RequestParam(defaultValue = "0") id: Long): Map<String, Any> {
+    fun since(
+        @RequestParam(defaultValue = "0") id: Long,
+    ): Map<String, Any> {
         val items = News.loadPublishedSince(WORKING_DATABASE, id)
         return mapOf("count" to items.size, "items" to items)
     }

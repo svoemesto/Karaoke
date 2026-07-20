@@ -18,4 +18,4 @@ tasks.getByName<Test>("test") {
     useJUnitPlatform()
 }
 
-tasks.register("prepareKotlinBuildScriptModel"){}
+tasks.register("prepareKotlinBuildScriptModel") {}

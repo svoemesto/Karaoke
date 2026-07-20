@@ -32,7 +32,6 @@ import java.sql.Timestamp
  */
 @Component
 class StemJobPollScheduler {
-
     @Scheduled(fixedDelay = 45_000L, initialDelay = 30_000L)
     fun pollWaiting() {
         if (Karaoke.stemJobsWebInternalUrl.isBlank()) return
@@ -45,7 +44,10 @@ class StemJobPollScheduler {
                 }
             }
         } finally {
-            try { database.getConnection()?.close() } catch (_: Exception) {}
+            try {
+                database.getConnection()?.close()
+            } catch (_: Exception) {
+            }
         }
     }
 
@@ -81,7 +83,8 @@ class StemJobPollScheduler {
         karaokeProcess.status = KaraokeProcessStatuses.WAITING.name
         karaokeProcess.priority = 1
         karaokeProcess.command = ""
-        karaokeProcess.type = if (job.mode == StemJobMode.DEMUCS5) KaraokeProcessTypes.STEM_JOB_DEMUCS5.name else KaraokeProcessTypes.STEM_JOB_DEMUCS2.name
+        karaokeProcess.type =
+            if (job.mode == StemJobMode.DEMUCS5) KaraokeProcessTypes.STEM_JOB_DEMUCS5.name else KaraokeProcessTypes.STEM_JOB_DEMUCS2.name
         karaokeProcess.settingsId = 0
         karaokeProcess.threadId = KaraokeProcess.THREAD_LANE_STEM_JOBS
         karaokeProcess.description = "Демукс премиум-задания #${job.id}"
@@ -92,7 +95,10 @@ class StemJobPollScheduler {
         KaraokeProcess.createDbInstance(separated)
     }
 
-    private fun failJob(job: StemJob, message: String) {
+    private fun failJob(
+        job: StemJob,
+        message: String,
+    ) {
         job.status = StemJobStatus.ERROR
         job.errorMessage = message
         job.finishedAt = Timestamp(System.currentTimeMillis())
@@ -102,7 +108,10 @@ class StemJobPollScheduler {
     // Возвращает null при успехе, иначе краткое человекочитаемое описание причины (пишется и в
     // консоль karaoke-app, и в StemJob.errorMessage — админ должен видеть причину без доступа к
     // логам karaoke-app, только по панели «Минусовки»/личному кабинету пользователя).
-    private fun downloadRawFile(jobId: Long, dest: File): String? {
+    private fun downloadRawFile(
+        jobId: Long,
+        dest: File,
+    ): String? {
         val baseUrl = Karaoke.stemJobsWebInternalUrl.trim().trimEnd('/')
         return try {
             val connection = URL("$baseUrl/api/internal/stemjobs/$jobId/raw").openConnection() as HttpURLConnection
@@ -112,12 +121,21 @@ class StemJobPollScheduler {
             connection.readTimeout = 60_000
             val code = connection.responseCode
             if (code != 200) {
-                val bodySnippet = runCatching {
-                    (connection.errorStream ?: connection.inputStream)?.bufferedReader()?.readText()?.take(200)
-                }.getOrNull()
+                val bodySnippet =
+                    runCatching {
+                        (connection.errorStream ?: connection.inputStream)?.bufferedReader()?.readText()?.take(200)
+                    }.getOrNull()
                 connection.disconnect()
                 return "HTTP $code" + (if (!bodySnippet.isNullOrBlank()) ": $bodySnippet" else "") +
-                    (if (code == 403) " — проверьте, что stemJobsInternalSecret (Properties) совпадает с STEMJOBS_INTERNAL_SECRET на karaoke-web" else "")
+                    (
+                        if (code ==
+                            403
+                        ) {
+                            " — проверьте, что stemJobsInternalSecret (Properties) совпадает с STEMJOBS_INTERNAL_SECRET на karaoke-web"
+                        } else {
+                            ""
+                        }
+                    )
             }
             connection.inputStream.use { input -> dest.outputStream().use { output -> input.copyTo(output) } }
             connection.disconnect()
@@ -128,12 +146,19 @@ class StemJobPollScheduler {
     }
 
     private fun probeDurationSeconds(file: File): Double? {
-        val output = runCommand(listOf(
-            "ffprobe", "-v", "error",
-            "-show_entries", "format=duration",
-            "-of", "default=noprint_wrappers=1:nokey=1",
-            file.absolutePath
-        ))
+        val output =
+            runCommand(
+                listOf(
+                    "ffprobe",
+                    "-v",
+                    "error",
+                    "-show_entries",
+                    "format=duration",
+                    "-of",
+                    "default=noprint_wrappers=1:nokey=1",
+                    file.absolutePath,
+                ),
+            )
         return output.trim().toDoubleOrNull()
     }
 
@@ -169,7 +194,10 @@ class StemJobPollScheduler {
                 }
             }
         } finally {
-            try { database.getConnection()?.close() } catch (_: Exception) {}
+            try {
+                database.getConnection()?.close()
+            } catch (_: Exception) {
+            }
         }
     }
 }

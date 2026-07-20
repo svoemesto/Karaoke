@@ -7,7 +7,6 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import kotlin.properties.Delegates
 
-
 lateinit var SNS: SseNotificationService
 lateinit var WVP: PropertiesFileDictionary
 lateinit var KSS_APP: KaraokeStorageService
@@ -19,8 +18,8 @@ lateinit var DB_LOCAL_POSTGRES_PASSWORD: String
 lateinit var DB_SERVER_POSTGRES_USER: String
 lateinit var DB_SERVER_POSTGRES_PASSWORD: String
 
+// @Component
 @Service
-//@Component
 class KaraokeAppService(
     sseNotificationService: SseNotificationService,
     karaokeStorageService: KaraokeStorageService,
@@ -32,7 +31,6 @@ class KaraokeAppService(
     @Value($$"${db-remote-postgres-user}") val dbRemotePostgresUser: String,
     @Value($$"${db-remote-postgres-password}") val dbRemotePostgresPassword: String,
 ) {
-
     init {
         APP_WORK_IN_CONTAINER = (wic != 0L)
         APP_WORK_ON_SERVER = (wos != 0L)
@@ -48,5 +46,4 @@ class KaraokeAppService(
         System.setErr(DualStream(System.err))
         KSS_APP.deleteAllEmptyBuckets()
     }
-
 }

@@ -18,14 +18,19 @@ class SiteUserTokenService(
 ) {
     private val random = SecureRandom()
 
-    fun issueToken(siteUserId: Long, database: KaraokeConnection, ttlDays: Long = 30): String? {
+    fun issueToken(
+        siteUserId: Long,
+        database: KaraokeConnection,
+        ttlDays: Long = 30,
+    ): String? {
         val connection = database.getConnection() ?: return null
         val token = ByteArray(32).also { random.nextBytes(it) }.joinToString("") { "%02x".format(it) }
         val expiresAt = Timestamp(System.currentTimeMillis() + ttlDays * 24 * 60 * 60 * 1000)
 
-        val ps = connection.prepareStatement(
-            "INSERT INTO tbl_site_user_tokens (site_user_id, token, expires_at) VALUES (?, ?, ?)"
-        )
+        val ps =
+            connection.prepareStatement(
+                "INSERT INTO tbl_site_user_tokens (site_user_id, token, expires_at) VALUES (?, ?, ?)",
+            )
         ps.setLong(1, siteUserId)
         ps.setString(2, token)
         ps.setTimestamp(3, expiresAt)
@@ -34,12 +39,16 @@ class SiteUserTokenService(
         return token
     }
 
-    fun resolveToken(token: String, database: KaraokeConnection): SiteUser? {
+    fun resolveToken(
+        token: String,
+        database: KaraokeConnection,
+    ): SiteUser? {
         val connection = database.getConnection() ?: return null
 
-        val ps = connection.prepareStatement(
-            "SELECT site_user_id FROM tbl_site_user_tokens WHERE token = ? AND revoked = false AND expires_at > now()"
-        )
+        val ps =
+            connection.prepareStatement(
+                "SELECT site_user_id FROM tbl_site_user_tokens WHERE token = ? AND revoked = false AND expires_at > now()",
+            )
         ps.setString(1, token)
         val rs = ps.executeQuery()
         val siteUserId = if (rs.next()) rs.getLong("site_user_id") else null
@@ -53,7 +62,10 @@ class SiteUserTokenService(
         return if (user == null || user.isBanned) null else user
     }
 
-    fun revokeToken(token: String, database: KaraokeConnection) {
+    fun revokeToken(
+        token: String,
+        database: KaraokeConnection,
+    ) {
         val connection = database.getConnection() ?: return
         val ps = connection.prepareStatement("UPDATE tbl_site_user_tokens SET revoked = true WHERE token = ?")
         ps.setString(1, token)
@@ -61,7 +73,10 @@ class SiteUserTokenService(
         ps.close()
     }
 
-    private fun touchLastUsed(token: String, database: KaraokeConnection) {
+    private fun touchLastUsed(
+        token: String,
+        database: KaraokeConnection,
+    ) {
         val connection = database.getConnection() ?: return
         val ps = connection.prepareStatement("UPDATE tbl_site_user_tokens SET last_used_at = now() WHERE token = ?")
         ps.setString(1, token)

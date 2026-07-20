@@ -11,5 +11,5 @@ data class HealthReportDTO(
     val color: String = "",
     val canResolve: Boolean = false,
     val problemText: String = "",
-    val solutionText: String = ""
+    val solutionText: String = "",
 ) : Serializable

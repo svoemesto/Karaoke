@@ -10,7 +10,7 @@
           <option value="remote">Сервер</option>
         </select>
       </label>
-      <input class="spt-toolbar-item" v-model.number="filterOwnerId" placeholder="Фильтр по owner id" @keyup.enter="reload">
+      <input v-model.number="filterOwnerId" class="spt-toolbar-item" placeholder="Фильтр по owner id" @keyup.enter="reload"/>
       <button class="spt-toolbar-item spt-btn" @click="reload">Обновить</button>
     </div>
 
@@ -20,12 +20,12 @@
 
     <div class="spt-table-body">
       <b-table
+          v-model:sort-by="sortBy"
           :items="digest"
           :busy="isBusy"
           :fields="fields"
           :per-page="perPage"
           :current-page="currentPage"
-          v-model:sort-by="sortBy"
           small bordered hover
           @row-clicked="onRowClicked"
       >
@@ -33,7 +33,7 @@
           <div class="text-center text-danger my-2"><b-spinner class="align-middle" /><strong>Loading...</strong></div>
         </template>
         <template #table-colgroup="scope">
-          <col v-for="field in scope.fields" :key="field.key" :style="field.style">
+          <col v-for="field in scope.fields" :key="field.key" :style="field.style"/>
         </template>
         <template #cell(name)="data">
           <div class="fld-name" @click.left="openDetail(data.item.id)">
@@ -54,6 +54,29 @@
 import { BPagination, BSpinner, BTable } from 'bootstrap-vue-next'
 import SitePlaylistDetailModal from "./SitePlaylistDetailModal.vue";
 
+/**
+ * Таблица плейлистов сайта (karaoke-public) в admin SPA.
+ *
+ * Отображает `SitePlaylist` (таблица `tbl_site_playlists`) с пагинацией,
+ * inline-редактированием и preview песен плейлиста через `SitePlaylistDetailModal`.
+ *
+ * **Структура таблицы** (см. CONTRIBUTING.md#vue-table-layout-fixed):
+ * - `table-layout: fixed` + явная `width` на колонках.
+ * - Без `display: flex` на `<td>` — только `text-align: center; vertical-align: middle`.
+ *
+ * **Pagination persistence** (см. AGENTS.md#персистентность-страницы-пагинации-в-webvue3):
+ * - `currentPage` хранится в Vuex (`SitePlaylists/tableCurrentPage`) — переживает F5.
+ *
+ * **Данные**:
+ * - `SitePlaylistDTO` синхронизируется LOCAL ↔ SERVER через `SitePlaylistsSyncTarget`.
+ *
+ * @prop {SitePlaylistDTO[]} playlists - список плейлистов
+ * @prop {number} page - текущая страница (1-based)
+ * @emits row-click - клик по строке
+ * @emits row-edit - открыть SitePlaylistDetailModal
+ * @see docs/features/dual-db-sync.md
+ * @see CONTRIBUTING.md#vue-table-layout-fixed
+ */
 export default {
   name: "SitePlaylistsTable",
   components: { SitePlaylistDetailModal, BPagination, BSpinner, BTable },
@@ -67,13 +90,6 @@ export default {
       isBusy: false,
       isDetailVisible: false,
       filterOwnerId: null
-    }
-  },
-  watch: {
-    digestIsLoading() { this.isBusy = this.digestIsLoading },
-    currentPage(newPage) {
-      // Сохраняем страницу в store, чтобы она восстановилась после переключения на другой компонент.
-      this.$store.commit('setSitePlaylistsTableCurrentPage', newPage);
     }
   },
   computed: {
@@ -94,6 +110,13 @@ export default {
         { key: 'ownerName', sortable: true, label: 'Имя владельца', style: { minWidth: '160px', maxWidth: '160px', textAlign: 'left', fontSize: 'small' } },
         { key: 'ownerId', sortable: true, label: 'owner id', style: { minWidth: '70px', maxWidth: '70px', textAlign: 'center', fontSize: 'small' } },
       ]
+    }
+  },
+  watch: {
+    digestIsLoading() { this.isBusy = this.digestIsLoading },
+    currentPage(newPage) {
+      // Сохраняем страницу в store, чтобы она восстановилась после переключения на другой компонент.
+      this.$store.commit('setSitePlaylistsTableCurrentPage', newPage);
     }
   },
   mounted() { this.reload() },

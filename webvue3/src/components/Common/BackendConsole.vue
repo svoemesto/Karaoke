@@ -1,6 +1,6 @@
 <template>
   <div class="backend_console">
-      <textarea class="console_log" v-model="logText"></textarea>
+      <textarea v-model="logText" class="console_log"/>
   </div>
 </template>
 

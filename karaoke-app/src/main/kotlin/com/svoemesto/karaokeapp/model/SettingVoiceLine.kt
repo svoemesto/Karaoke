@@ -16,49 +16,53 @@ data class SettingVoiceLine(
 //    val elementsForMlt: List<SettingVoiceLineElement> get() = elements
 
     private val _elements: MutableList<SettingVoiceLineElement> = mutableListOf()
+
     fun getElements(songVersion: SongVersion): List<SettingVoiceLineElement> {
-        val listOfElementTypes = when (songVersion) {
-            SongVersion.KARAOKE -> {
-                listOf(
-                    SettingVoiceLineElementTypes.TEXT,
-                    SettingVoiceLineElementTypes.COMMENT,
-                    SettingVoiceLineElementTypes.EMPTY,
-                    SettingVoiceLineElementTypes.NEWLINE
-                )
+        val listOfElementTypes =
+            when (songVersion) {
+                SongVersion.KARAOKE -> {
+                    listOf(
+                        SettingVoiceLineElementTypes.TEXT,
+                        SettingVoiceLineElementTypes.COMMENT,
+                        SettingVoiceLineElementTypes.EMPTY,
+                        SettingVoiceLineElementTypes.NEWLINE,
+                    )
+                }
+                SongVersion.LYRICS -> {
+                    listOf(
+                        SettingVoiceLineElementTypes.TEXT,
+                        SettingVoiceLineElementTypes.COMMENT,
+                        SettingVoiceLineElementTypes.EMPTY,
+                        SettingVoiceLineElementTypes.NEWLINE,
+                    )
+                }
+                SongVersion.CHORDS -> {
+                    listOf(
+                        SettingVoiceLineElementTypes.TEXT,
+                        SettingVoiceLineElementTypes.COMMENT,
+                        SettingVoiceLineElementTypes.EMPTY,
+                        SettingVoiceLineElementTypes.NEWLINE,
+                        SettingVoiceLineElementTypes.ACCORD,
+                    )
+                }
+                SongVersion.TABS -> {
+                    listOf(
+                        SettingVoiceLineElementTypes.TEXT,
+                        SettingVoiceLineElementTypes.COMMENT,
+                        SettingVoiceLineElementTypes.EMPTY,
+                        SettingVoiceLineElementTypes.NEWLINE,
+                        SettingVoiceLineElementTypes.NOTE,
+                    )
+                }
             }
-            SongVersion.LYRICS -> {
-                listOf(
-                    SettingVoiceLineElementTypes.TEXT,
-                    SettingVoiceLineElementTypes.COMMENT,
-                    SettingVoiceLineElementTypes.EMPTY,
-                    SettingVoiceLineElementTypes.NEWLINE
-                )
-            }
-            SongVersion.CHORDS -> {
-                listOf(
-                    SettingVoiceLineElementTypes.TEXT,
-                    SettingVoiceLineElementTypes.COMMENT,
-                    SettingVoiceLineElementTypes.EMPTY,
-                    SettingVoiceLineElementTypes.NEWLINE,
-                    SettingVoiceLineElementTypes.ACCORD
-                )
-            }
-            SongVersion.TABS -> {
-                listOf(
-                    SettingVoiceLineElementTypes.TEXT,
-                    SettingVoiceLineElementTypes.COMMENT,
-                    SettingVoiceLineElementTypes.EMPTY,
-                    SettingVoiceLineElementTypes.NEWLINE,
-                    SettingVoiceLineElementTypes.NOTE
-                )
-            }
-        }
         return _elements.filter { it.type in listOfElementTypes }
     }
+
     fun addElement(element: SettingVoiceLineElement) {
         _elements.add(element)
         actuateChilds()
     }
+
     fun addElements(elements: List<SettingVoiceLineElement>) {
         elements.forEach { element -> _elements.add(element) }
         actuateChilds()
@@ -71,79 +75,101 @@ data class SettingVoiceLine(
         }
     }
 
-
 //    val isNewLine: Boolean get() = _elements.any { element->  element.type == SettingVoiceLineElementTypes.NEWLINE}
-    val isEmptyLine: Boolean get() = _elements.any { element->  element.type == SettingVoiceLineElementTypes.EMPTY}
-    val isEmptyLineOrComment: Boolean get() = _elements.any { element->  element.type == SettingVoiceLineElementTypes.EMPTY || element.type == SettingVoiceLineElementTypes.COMMENT}
-    companion object {
-        fun newLine(rootId: Long, timeMs: Long, groupId: Int = 0) : SettingVoiceLine {
-            val settingVoiceLine = SettingVoiceLine(
-                rootId = rootId,
-                lineStartMs = timeMs,
-                lineEndMs = timeMs
-            )
-            val settingVoiceLineElement = SettingVoiceLineElement(
-                rootId = rootId,
-                type = SettingVoiceLineElementTypes.NEWLINE
-            )
-            settingVoiceLineElement.groupId = groupId
-
-            val settingVoiceLineElementSyllable = SettingVoiceLineElementSyllable(
-                rootId = rootId,
-                text = "",
-                note = "",
-                chord = "",
-                stringLad = "",
-                lockLad = "",
-                syllableStartMs = timeMs,
-                syllableEndMs = timeMs,
-                previous = null
-            )
-            settingVoiceLineElement.addSyllable(settingVoiceLineElementSyllable)
-            settingVoiceLine.addElement(settingVoiceLineElement)
-
-            return settingVoiceLine
-
+    val isEmptyLine: Boolean get() = _elements.any { element -> element.type == SettingVoiceLineElementTypes.EMPTY }
+    val isEmptyLineOrComment: Boolean get() =
+        _elements.any { element ->
+            element.type == SettingVoiceLineElementTypes.EMPTY ||
+                element.type == SettingVoiceLineElementTypes.COMMENT
         }
-        fun emptyLine(rootId: Long, timeMs: Long, groupId: Int = 0) : SettingVoiceLine {
 
-            val settingVoiceLine = SettingVoiceLine(
-                rootId = rootId,
-                lineStartMs = timeMs,
-                lineEndMs = timeMs
-            )
-            val settingVoiceLineElement = SettingVoiceLineElement(
-                rootId = rootId,
-                type = SettingVoiceLineElementTypes.EMPTY
-            )
+    companion object {
+        fun newLine(
+            rootId: Long,
+            timeMs: Long,
+            groupId: Int = 0,
+        ): SettingVoiceLine {
+            val settingVoiceLine =
+                SettingVoiceLine(
+                    rootId = rootId,
+                    lineStartMs = timeMs,
+                    lineEndMs = timeMs,
+                )
+            val settingVoiceLineElement =
+                SettingVoiceLineElement(
+                    rootId = rootId,
+                    type = SettingVoiceLineElementTypes.NEWLINE,
+                )
             settingVoiceLineElement.groupId = groupId
 
-            val settingVoiceLineElementSyllable = SettingVoiceLineElementSyllable(
-                rootId = rootId,
-                text = "",
-                note = "",
-                chord = "",
-                stringLad = "",
-                lockLad = "",
-                syllableStartMs = timeMs,
-                syllableEndMs = timeMs,
-                previous = null
-            )
+            val settingVoiceLineElementSyllable =
+                SettingVoiceLineElementSyllable(
+                    rootId = rootId,
+                    text = "",
+                    note = "",
+                    chord = "",
+                    stringLad = "",
+                    lockLad = "",
+                    syllableStartMs = timeMs,
+                    syllableEndMs = timeMs,
+                    previous = null,
+                )
             settingVoiceLineElement.addSyllable(settingVoiceLineElementSyllable)
             settingVoiceLine.addElement(settingVoiceLineElement)
 
             return settingVoiceLine
+        }
 
+        fun emptyLine(
+            rootId: Long,
+            timeMs: Long,
+            groupId: Int = 0,
+        ): SettingVoiceLine {
+            val settingVoiceLine =
+                SettingVoiceLine(
+                    rootId = rootId,
+                    lineStartMs = timeMs,
+                    lineEndMs = timeMs,
+                )
+            val settingVoiceLineElement =
+                SettingVoiceLineElement(
+                    rootId = rootId,
+                    type = SettingVoiceLineElementTypes.EMPTY,
+                )
+            settingVoiceLineElement.groupId = groupId
+
+            val settingVoiceLineElementSyllable =
+                SettingVoiceLineElementSyllable(
+                    rootId = rootId,
+                    text = "",
+                    note = "",
+                    chord = "",
+                    stringLad = "",
+                    lockLad = "",
+                    syllableStartMs = timeMs,
+                    syllableEndMs = timeMs,
+                    previous = null,
+                )
+            settingVoiceLineElement.addSyllable(settingVoiceLineElementSyllable)
+            settingVoiceLine.addElement(settingVoiceLineElement)
+
+            return settingVoiceLine
         }
     }
-    @Suppress("unused") fun isScroll(): Boolean = lineEndMs <= lineStartMs // Если время начала совпадает со временем конца - скролим без остановки
+
+    @Suppress("unused")
+    fun isScroll(): Boolean = lineEndMs <= lineStartMs // Если время начала совпадает со временем конца - скролим без остановки
 
     fun lineDurationMs(): Long = lineEndMs - lineStartMs
+
     fun lineDurationWithNeighboursMs(): Long = lineEndWithNeighboursMs() - lineStartWithNeighboursMs()
+
     fun lineStartWithNeighboursMs(): Long = ((if (previousLineEndMs != null) previousLineEndMs!! else lineStartMs))
+
     fun lineEndWithNeighboursMs(): Long = (if (nextLineStartMs != null) nextLineStartMs!! else lineEndMs)
 
     fun w(songVersion: SongVersion): Int = getElements(songVersion).maxOfOrNull { it.w() } ?: 0
+
     fun h(songVersion: SongVersion): Int = getElements(songVersion).sumOf { it.h(songVersion) }
 
 //    fun y(): Int = parentVoice?.linesForMlt()?.filter { it.lineId  < lineId }?.sumOf { h() } ?: 0
@@ -165,46 +191,72 @@ data class SettingVoiceLine(
             _textLineHeight = value
         }
 
+    fun textElement(songVersion: SongVersion): SettingVoiceLineElement? =
+        getElements(songVersion).firstOrNull {
+            it.type ==
+                SettingVoiceLineElementTypes.TEXT
+        }
 
-    fun textElement(songVersion: SongVersion): SettingVoiceLineElement? = getElements(songVersion).firstOrNull{it.type == SettingVoiceLineElementTypes.TEXT}
-    fun commentElement(songVersion: SongVersion): SettingVoiceLineElement? = getElements(songVersion).firstOrNull{it.type == SettingVoiceLineElementTypes.COMMENT}
+    fun commentElement(songVersion: SongVersion): SettingVoiceLineElement? =
+        getElements(songVersion).firstOrNull {
+            it.type ==
+                SettingVoiceLineElementTypes.COMMENT
+        }
 
     fun haveTextElement(songVersion: SongVersion): Boolean = textElement(songVersion) != null
+
     fun haveCommentElement(songVersion: SongVersion): Boolean = commentElement(songVersion) != null
+
     fun haveTextElementOrComment(songVersion: SongVersion): Boolean = haveTextElement(songVersion) || haveCommentElement(songVersion)
 
     var lineId: Int = -1
 
-    fun getText(songVersion: SongVersion, withTimeCode: Boolean = false): String {
+    fun getText(
+        songVersion: SongVersion,
+        withTimeCode: Boolean = false,
+    ): String {
         if (getElements(songVersion).any { it.type == SettingVoiceLineElementTypes.NEWLINE }) return "\n"
-        textElement(songVersion)?.let {element ->
+        textElement(songVersion)?.let { element ->
             val text = element.getSyllables().joinToString("") { it.text }.trim() + "\n"
-            val timecode = if (withTimeCode) {
-                convertMillisecondsToDzenTimecode(lineStartMs + 8000) + " "
-            } else ""
+            val timecode =
+                if (withTimeCode) {
+                    convertMillisecondsToDzenTimecode(lineStartMs + 8000) + " "
+                } else {
+                    ""
+                }
             return "$timecode$text"
         }
         return ""
     }
 
     @Suppress("unused")
-    fun getTextWoEOF(songVersion: SongVersion, withTimeCode: Boolean = false): String {
+    fun getTextWoEOF(
+        songVersion: SongVersion,
+        withTimeCode: Boolean = false,
+    ): String {
         if (getElements(songVersion).any { it.type == SettingVoiceLineElementTypes.NEWLINE }) return ""
-        textElement(songVersion)?.let {element ->
+        textElement(songVersion)?.let { element ->
             val text = element.getSyllables().joinToString("") { it.text }.trim()
-            val timecode = if (withTimeCode) {
-                convertMillisecondsToDzenTimecode(lineStartMs + 8000) + " "
-            } else ""
+            val timecode =
+                if (withTimeCode) {
+                    convertMillisecondsToDzenTimecode(lineStartMs + 8000) + " "
+                } else {
+                    ""
+                }
             return "$timecode$text"
         }
         return ""
     }
 
-    fun isCrossing(otherLine: SettingVoiceLine): Boolean {
-        return (this.lineDurationWithNeighboursMs() + otherLine.lineDurationWithNeighboursMs()) > (this.lineEndWithNeighboursMs()
-            .coerceAtLeast(otherLine.lineEndWithNeighboursMs()) - this.lineStartWithNeighboursMs()
-            .coerceAtMost(otherLine.lineStartWithNeighboursMs()))
-    }
+    fun isCrossing(otherLine: SettingVoiceLine): Boolean =
+        (this.lineDurationWithNeighboursMs() + otherLine.lineDurationWithNeighboursMs()) > (
+            this
+                .lineEndWithNeighboursMs()
+                .coerceAtLeast(otherLine.lineEndWithNeighboursMs()) -
+                this
+                    .lineStartWithNeighboursMs()
+                    .coerceAtMost(otherLine.lineStartWithNeighboursMs())
+        )
 
     private var _indexLineStart: Int? = null
     var indexLineStart: Int
@@ -286,5 +338,4 @@ data class SettingVoiceLine(
         set(value) {
             _transformProperties = value
         }
-
 }

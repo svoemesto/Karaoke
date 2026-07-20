@@ -17,48 +17,111 @@ import kotlin.reflect.full.findAnnotation
 import kotlin.reflect.full.primaryConstructor
 import kotlin.reflect.jvm.isAccessible
 
-/***
- * Таблица обязательно должна иметь поля id, recordhash
+/**
+ * Базовый интерфейс для всех персистентных сущностей Karaoke
+ * (Settings, Author, Picture, KaraokeProcess, и др.).
+ *
+ * Реализует:
+ * 1. **Reflection-based persistence** — поля класса напрямую мапятся
+ *    на колонки БД через reflection ([getDiff], [loadById]). Нет
+ *    явного SQL-mapper'а.
+ * 2. **Diff-based save** — [save] загружает текущее состояние из БД,
+ *    вычисляет field-level [RecordDiff], генерирует `UPDATE` только
+ *    для изменённых колонок.
+ * 3. **SSE-уведомления** — после `save()` рассылается
+ *    `SseNotification.recordChange` всем подписанным UI-вкладкам.
+ * 4. **Sync-готовность** — наличие колонки `recordhash` (md5 от
+ *    канонизированной строки) позволяет участвовать в
+ *    двух-БД sync LOCAL↔SERVER.
+ *
+ * **Требования к таблице БД**:
+ * - Должна иметь `id BIGINT PRIMARY KEY` (auto-generated).
+ * - Должна иметь `recordhash VARCHAR(32) NOT NULL`.
+ * - Триггер `tg_<table>_recordhash` поддерживает `recordhash` на
+ *   INSERT/UPDATE/DELETE.
+ *
+ * **Ловушки (см. DEVELOPMENT.md):**
+ * - `loadList` бросает NPE на `SQL NULL`, если Kotlin-поле объявлено
+ *   non-null. **Nullable-колонки → nullable-поля в Kotlin**.
+ * - `save()` молча проглатывает UNIQUE-конфликты и другие SQLException
+ *   в `try/catch` вокруг `executeUpdate()`. Для сущностей с UNIQUE-индексом
+ *   проверяйте конфликт ДО [save] в контроллере.
+ * - На больших таблицах (18k+ записей) `save()` с diff может быть
+ *   медленным из-за reflection — для batch-операций используйте
+ *   прямой SQL.
+ *
+ * @property database подключение к БД (local/remote/virtual) — DI через конструктор.
+ * @property storageService MinIO-клиент — DI через конструктор.
+ * @property storageApiClient HTTP-клиент для remote-операций — DI через конструктор.
+ * @property id первичный ключ (`0L` означает «новая запись, ещё не в БД»).
+ * @see docs/features/dual-db-sync.md
+ * @see docs/architecture-notes-archive.md «reflection-loader и nullable-колонки»
  */
 interface KaraokeDbTable {
-
     val database: KaraokeConnection
     val storageService: KaraokeStorageService
     val storageApiClient: StorageApiClient
     var id: Long
 
+    /**
+     * Имя таблицы в БД (например, `"tbl_settings"`, `"tbl_authors"`).
+     * Используется reflection-загрузчиком и sync-механизмом.
+     */
     fun getTableName(): String
+
+    /**
+     * Сохранить текущее состояние сущности в БД.
+     *
+     * Алгоритм:
+     * 1. Если `id == 0L` — новая запись: [createDbInstance] вставляет
+     *    строку через `INSERT ... RETURNING id`, обновляет in-memory `id`.
+     * 2. Если `id != 0L` — загружается актуальное состояние через
+     *    [loadById], вычисляется [getDiff] (сравнение текущего и
+     *    актуального состояний), генерируется `UPDATE` только для
+     *    изменённых полей.
+     * 3. После `UPDATE` рассылается SSE [SseNotification.recordChange]
+     *    с [RecordDiff] — UI (`webvue3`) обновляет представление.
+     *
+     * **Ловушка**: исключения из `executeUpdate()` логируются и НЕ
+     * пробрасываются. UNIQUE-конфликты проглатываются. Для сущностей
+     * с UNIQUE-индексом проверяйте конфликт ДО [save] в контроллере.
+     *
+     * @see getDiff
+     * @see createDbInstance
+     * @see docs/features/dual-db-sync.md
+     */
     fun save() {
         if (id == 0L) {
             createDbInstance(this, database = database)
             return
         }
 
-        val savedEntity = loadById(
-            clazz = this::class,
-            args = listOf(),
-            tableName = this.getTableName(),
-            id = id,
-            database = database,
-            storageService = storageService,
-            storageApiClient = storageApiClient
-        )
+        val savedEntity =
+            loadById(
+                clazz = this::class,
+                args = listOf(),
+                tableName = this.getTableName(),
+                id = id,
+                database = database,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
         val diff = getDiff(this, savedEntity)
         if (diff.isEmpty()) return
-        val messageRecordChange = SseNotification.recordChange(
-            RecordChangeMessage(
-                tableName = this.getTableName(),
-                recordId = id,
-                diffs = diff,
-                databaseName = database.name,
-                record = this.toDTO()
+        val messageRecordChange =
+            SseNotification.recordChange(
+                RecordChangeMessage(
+                    tableName = this.getTableName(),
+                    recordId = id,
+                    diffs = diff,
+                    databaseName = database.name,
+                    record = this.toDTO(),
+                ),
             )
-        )
 
         val setStr = diff.filter { it.recordDiffRealField }.joinToString(", ") { "${it.recordDiffName} = ?" }
 
         if (setStr != "") {
-
             val sql = "UPDATE ${this.getTableName()} SET $setStr WHERE id = ?"
 
             val connection = database.getConnection()
@@ -69,7 +132,7 @@ interface KaraokeDbTable {
             val ps = connection.prepareStatement(sql)
 
             var index = 1
-            diff.filter{ it.recordDiffRealField }.forEach {
+            diff.filter { it.recordDiffRealField }.forEach {
                 try {
                     when (it.recordDiffValueNew) {
                         is String -> ps.setString(index, it.recordDiffValueNew)
@@ -101,36 +164,37 @@ interface KaraokeDbTable {
             } catch (e: Exception) {
                 println(e.message)
             }
-            val saved = loadById(
-                clazz = this::class,
-                args = listOf(),
-                tableName = this.getTableName(),
-                id = id,
-                database = database,
-                storageService = storageService,
-                storageApiClient = storageApiClient
-            )
+            val saved =
+                loadById(
+                    clazz = this::class,
+                    args = listOf(),
+                    tableName = this.getTableName(),
+                    id = id,
+                    database = database,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                )
             val diffNew = getDiff(saved, this)
             if (diffNew.isNotEmpty()) {
-                val messageRecordChangeNew = SseNotification.recordChange(
-                    RecordChangeMessage(
-                        tableName = this.getTableName(),
-                        recordId = id,
-                        diffs = diffNew,
-                        databaseName = database.name,
-                        record = saved?.toDTO()
+                val messageRecordChangeNew =
+                    SseNotification.recordChange(
+                        RecordChangeMessage(
+                            tableName = this.getTableName(),
+                            recordId = id,
+                            diffs = diffNew,
+                            databaseName = database.name,
+                            record = saved?.toDTO(),
+                        ),
                     )
-                )
                 try {
                     SNS.send(messageRecordChangeNew)
                 } catch (e: Exception) {
                     println(e.message)
                 }
             }
-
         }
-
     }
+
     fun toDTO(): KaraokeDbTableDto
 
     fun getSqlToInsert(): String {
@@ -142,19 +206,22 @@ interface KaraokeDbTable {
                 val property = member
                 val karaokeDbTableFieldAnnotation = property.findAnnotation<KaraokeDbTableField>()
                 if (karaokeDbTableFieldAnnotation != null && !karaokeDbTableFieldAnnotation.isId) {
-                    property.getter.call(this)?.let {fieldsValues.add(Pair(karaokeDbTableFieldAnnotation.name, it)) }
+                    property.getter.call(this)?.let { fieldsValues.add(Pair(karaokeDbTableFieldAnnotation.name, it)) }
                 }
             }
         }
         return "INSERT INTO ${getTableName()} (${fieldsValues.joinToString(", ") { it.first }}) OVERRIDING SYSTEM VALUE VALUES(${
             fieldsValues.joinToString(
-                ", "
+                ", ",
             ) { if (it.second is Long) "${it.second}" else "'${it.second.toString().replace("'", "''")}'" }
         })"
     }
 
     companion object {
-        private fun columns(tableName: String, database: KaraokeConnection): List<String> {
+        private fun columns(
+            tableName: String,
+            database: KaraokeConnection,
+        ): List<String> {
             val sql = "SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = '$tableName'"
             val connection = database.getConnection()
             if (connection == null) {
@@ -196,9 +263,8 @@ interface KaraokeDbTable {
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
             sync: Boolean = false,
-            ignoreUseInList: Boolean = false
+            ignoreUseInList: Boolean = false,
         ): List<KaraokeDbTable> {
-
             val connection = database.getConnection()
             if (connection == null) {
                 println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
@@ -213,7 +279,7 @@ interface KaraokeDbTable {
 
                 val notInSelectList: MutableList<String> = mutableListOf()
                 if (!ignoreUseInList) {
-                    (clazz.primaryConstructor?.call(database as Connection, storageService, storageApiClient) as? KaraokeDbTable)?.let {tmpEntry ->
+                    (clazz.primaryConstructor?.call(database as Connection, storageService, storageApiClient) as? KaraokeDbTable)?.let { tmpEntry ->
                         for (property in tmpEntry::class.members) {
                             (property.findAnnotation<KaraokeDbTableField>())?.let { karaokeDbTableFieldAnnotation ->
                                 if (property is KMutableProperty<*>) {
@@ -225,15 +291,16 @@ interface KaraokeDbTable {
                     }
                 }
 
-                val sqlSelect = if (notInSelectList.isNotEmpty()) {
-                    "SELECT ${
-                        columns(tableName, database)
-                            .filter { it !in notInSelectList }
-                            .joinToString(", ") { "$tableName${if (sync) "_sync" else ""}.$it" }
-                    }"
-                } else {
-                    "SELECT $tableName${if (sync) "_sync" else ""}.*"
-                }
+                val sqlSelect =
+                    if (notInSelectList.isNotEmpty()) {
+                        "SELECT ${
+                            columns(tableName, database)
+                                .filter { it !in notInSelectList }
+                                .joinToString(", ") { "$tableName${if (sync) "_sync" else ""}.$it" }
+                        }"
+                    } else {
+                        "SELECT $tableName${if (sync) "_sync" else ""}.*"
+                    }
                 val sqlFrom = "FROM $tableName${if (sync) "_sync" else ""}"
                 sql = "$sqlSelect $sqlFrom"
 
@@ -244,11 +311,10 @@ interface KaraokeDbTable {
                 rs = statement.executeQuery(sql)
                 val result: MutableList<KaraokeDbTable> = mutableListOf()
                 while (rs.next()) {
-
                     val constructor = clazz.primaryConstructor
                     if (constructor != null) {
                         val entity = constructor.call(database as Connection, storageService, storageApiClient) as? KaraokeDbTable
-                        if (entity != null ) {
+                        if (entity != null) {
                             val kClass: KClass<out KaraokeDbTable> = entity::class
 
                             for (member in kClass.members) {
@@ -270,16 +336,35 @@ interface KaraokeDbTable {
                                                 // числовую колонку (см. баг с Subscription.idSong=null у SITE-
                                                 // подписок — вся строка тихо переставала обновляться). Для полей,
                                                 // не допускающих null в Kotlin, поведение не меняется.
-                                                val newValue = when (property.returnType.classifier) {
-                                                    String::class -> rs.getString(fieldName)
-                                                    Int::class -> rs.getInt(fieldName).let { if (rs.wasNull() && property.returnType.isMarkedNullable) null else it }
-                                                    Long::class -> rs.getLong(fieldName).let { if (rs.wasNull() && property.returnType.isMarkedNullable) null else it }
-                                                    Double::class -> rs.getDouble(fieldName)
-                                                    Boolean::class -> rs.getBoolean(fieldName)
-                                                    Timestamp::class -> rs.getTimestamp(fieldName)
-                                                    Float::class -> rs.getFloat(fieldName)
-                                                    else -> rs.getString(fieldName)
-                                                }
+                                                val newValue =
+                                                    when (property.returnType.classifier) {
+                                                        String::class -> rs.getString(fieldName)
+                                                        Int::class ->
+                                                            rs.getInt(fieldName).let {
+                                                                if (rs.wasNull() &&
+                                                                    property.returnType.isMarkedNullable
+                                                                ) {
+                                                                    null
+                                                                } else {
+                                                                    it
+                                                                }
+                                                            }
+                                                        Long::class ->
+                                                            rs.getLong(fieldName).let {
+                                                                if (rs.wasNull() &&
+                                                                    property.returnType.isMarkedNullable
+                                                                ) {
+                                                                    null
+                                                                } else {
+                                                                    it
+                                                                }
+                                                            }
+                                                        Double::class -> rs.getDouble(fieldName)
+                                                        Boolean::class -> rs.getBoolean(fieldName)
+                                                        Timestamp::class -> rs.getTimestamp(fieldName)
+                                                        Float::class -> rs.getFloat(fieldName)
+                                                        else -> rs.getString(fieldName)
+                                                    }
                                                 property.setter.call(entity, newValue)
                                             } catch (_: PSQLException) {
                                             }
@@ -289,14 +374,10 @@ interface KaraokeDbTable {
                             }
                             result.add(entity)
                         }
-
-
                     }
-
                 }
 
                 return result
-
             } catch (e: SQLException) {
                 e.printStackTrace()
             } finally {
@@ -309,16 +390,18 @@ interface KaraokeDbTable {
             }
             return emptyList()
         }
-        fun loadById(clazz: KClass<*>,
-                     args: List<Any?> = emptyList(),
-                     tableName: String,
-                     id: Long,
-                     database: KaraokeConnection,
-                     storageService: KaraokeStorageService,
-                     storageApiClient: StorageApiClient,
-                     sync: Boolean = false
-        ): KaraokeDbTable? {
-            return loadList(
+
+        fun loadById(
+            clazz: KClass<*>,
+            args: List<Any?> = emptyList(),
+            tableName: String,
+            id: Long,
+            database: KaraokeConnection,
+            storageService: KaraokeStorageService,
+            storageApiClient: StorageApiClient,
+            sync: Boolean = false,
+        ): KaraokeDbTable? =
+            loadList(
                 clazz = clazz,
                 tableName = tableName,
                 whereList = listOf("$tableName${if (sync) "_sync" else ""}.id=$id"),
@@ -326,17 +409,17 @@ interface KaraokeDbTable {
                 storageService = storageService,
                 storageApiClient = storageApiClient,
                 sync = sync,
-                ignoreUseInList = true
+                ignoreUseInList = true,
             ).firstOrNull()
-        }
 
-        fun loadByIds(clazz: KClass<*>,
-                      tableName: String,
-                      ids: List<Long>,
-                      database: KaraokeConnection,
-                      storageService: KaraokeStorageService,
-                      storageApiClient: StorageApiClient,
-                      sync: Boolean = false
+        fun loadByIds(
+            clazz: KClass<*>,
+            tableName: String,
+            ids: List<Long>,
+            database: KaraokeConnection,
+            storageService: KaraokeStorageService,
+            storageApiClient: StorageApiClient,
+            sync: Boolean = false,
         ): List<KaraokeDbTable> {
             if (ids.isEmpty()) return emptyList()
             return loadList(
@@ -347,10 +430,14 @@ interface KaraokeDbTable {
                 storageService = storageService,
                 storageApiClient = storageApiClient,
                 sync = sync,
-                ignoreUseInList = true
+                ignoreUseInList = true,
             )
         }
-        fun createDbInstance(entity: KaraokeDbTable, database: KaraokeConnection) : KaraokeDbTable? {
+
+        fun createDbInstance(
+            entity: KaraokeDbTable,
+            database: KaraokeConnection,
+        ): KaraokeDbTable? {
             val sql = entity.getSqlToInsert()
 
             val connection = database.getConnection()
@@ -367,46 +454,57 @@ interface KaraokeDbTable {
                 // на СВОЁМ Statement, иначе второй executeQuery на том же Statement закрывает ResultSet
                 // первого (по контракту JDBC) и lastId всегда читался бы как 0 — самолечение дрейфа
                 // сиквенса (после SERVER_TO_LOCAL sync с OVERRIDING SYSTEM VALUE) никогда не срабатывало.
-                val lastId = connection.createStatement().use { st ->
-                    st.executeQuery("select max(id) as last_value from ${entity.getTableName()};").use { rs ->
-                        if (rs.next()) rs.getLong("last_value") else 0
+                val lastId =
+                    connection.createStatement().use { st ->
+                        st.executeQuery("select max(id) as last_value from ${entity.getTableName()};").use { rs ->
+                            if (rs.next()) rs.getLong("last_value") else 0
+                        }
                     }
-                }
-                val lastSeq = connection.createStatement().use { st ->
-                    st.executeQuery("select last_value from ${entity.getTableName()}_id_seq;").use { rs ->
-                        if (rs.next()) rs.getLong("last_value") else 0
+                val lastSeq =
+                    connection.createStatement().use { st ->
+                        st.executeQuery("select last_value from ${entity.getTableName()}_id_seq;").use { rs ->
+                            if (rs.next()) rs.getLong("last_value") else 0
+                        }
                     }
-                }
                 if (lastSeq < lastId) {
                     connection.createStatement().use {
-                        it.execute("alter sequence ${entity.getTableName()}_id_seq restart with ${lastId+1};")
+                        it.execute("alter sequence ${entity.getTableName()}_id_seq restart with ${lastId + 1};")
                     }
                     ps.executeUpdate(sql, Statement.RETURN_GENERATED_KEYS)
                 }
             }
             val rs = ps.generatedKeys
 
-            val result = if (rs.next() && entity.id <= 0) {
-                entity.id = rs.getLong(1)
-                entity
-            } else null
+            val result =
+                if (rs.next() && entity.id <= 0) {
+                    entity.id = rs.getLong(1)
+                    entity
+                } else {
+                    null
+                }
 
             ps.close()
             result?.let {
-                val messageRecordAdd = SseNotification.recordAdd(
-                    RecordAddMessage(
-                        tableName = entity.getTableName(),
-                        recordId = result.id,
-                        databaseName = database.name,
-                        record = result.toDTO()
+                val messageRecordAdd =
+                    SseNotification.recordAdd(
+                        RecordAddMessage(
+                            tableName = entity.getTableName(),
+                            recordId = result.id,
+                            databaseName = database.name,
+                            record = result.toDTO(),
+                        ),
                     )
-                )
                 SNS.send(messageRecordAdd)
             }
 
             return result
         }
-        fun getListHashes(tableName: String, database: KaraokeConnection, whereText: String = ""): List<RecordHash>? {
+
+        fun getListHashes(
+            tableName: String,
+            database: KaraokeConnection,
+            whereText: String = "",
+        ): List<RecordHash>? {
             var result: MutableList<RecordHash>? = mutableListOf()
             val sql = "SELECT id, recordhash FROM $tableName $whereText"
 
@@ -429,7 +527,6 @@ interface KaraokeDbTable {
                     result!!.add(RecordHash(id = rs.getLong("id"), recordhash = rs.getString("recordhash")))
                 }
                 println("[${Timestamp.from(Instant.now())}] Получено хешей для таблицы $tableName: $cnt")
-
             } catch (e: SQLException) {
                 e.printStackTrace()
                 result = null
@@ -445,7 +542,10 @@ interface KaraokeDbTable {
         }
 
         @Suppress("unused")
-        fun getTotalCount(tableName: String, database: KaraokeConnection): Int {
+        fun getTotalCount(
+            tableName: String,
+            database: KaraokeConnection,
+        ): Int {
             val sql = "SELECT COUNT(*) AS total_count FROM $tableName;"
             val connection = database.getConnection()
             if (connection == null) {
@@ -474,7 +574,10 @@ interface KaraokeDbTable {
             return -1
         }
 
-        fun getDiff(entityA: KaraokeDbTable?, entityB: KaraokeDbTable?): List<RecordDiff> {
+        fun getDiff(
+            entityA: KaraokeDbTable?,
+            entityB: KaraokeDbTable?,
+        ): List<RecordDiff> {
             val result: MutableList<RecordDiff> = mutableListOf()
             if (entityA != null && entityB != null) {
                 val kClassEntityA: KClass<out KaraokeDbTable> = entityA::class
@@ -497,8 +600,12 @@ interface KaraokeDbTable {
             return result
         }
 
-        fun delete(tableName: String, id: Long, database: KaraokeConnection, sync: Boolean = false): Boolean {
-
+        fun delete(
+            tableName: String,
+            id: Long,
+            database: KaraokeConnection,
+            sync: Boolean = false,
+        ): Boolean {
             val connection = database.getConnection()
             if (connection == null) {
                 println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
@@ -515,7 +622,6 @@ interface KaraokeDbTable {
                 println(e.message)
             }
             return false
-
         }
     }
 }

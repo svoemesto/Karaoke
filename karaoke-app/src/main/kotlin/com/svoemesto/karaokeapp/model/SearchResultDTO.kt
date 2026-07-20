@@ -2,7 +2,6 @@ package com.svoemesto.karaokeapp.model
 
 import com.svoemesto.karaokeapp.KaraokeConnection
 import java.io.Serializable
-import java.sql.Timestamp
 
 class SearchResultDTO(
     val id: Long,
@@ -12,10 +11,10 @@ class SearchResultDTO(
     val html: String,
     val text: String,
     val wrongResult: Boolean,
-): Serializable, Comparable<SearchResultDTO>, KaraokeDbTableDto {
-    override fun compareTo(other: SearchResultDTO): Int {
-        return id.compareTo(other.id)
-    }
+) : Serializable,
+    Comparable<SearchResultDTO>,
+    KaraokeDbTableDto {
+    override fun compareTo(other: SearchResultDTO): Int = id.compareTo(other.id)
 
     override fun fromDto(database: KaraokeConnection): SearchResult {
         val entity = SearchResult(database = database)

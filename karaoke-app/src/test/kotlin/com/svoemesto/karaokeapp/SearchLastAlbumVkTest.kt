@@ -1,11 +1,11 @@
 package com.svoemesto.karaokeapp
 
-import com.svoemesto.karaokeapp.services.APP_WORK_ON_SERVER
 import com.svoemesto.karaokeapp.services.APP_WORK_IN_CONTAINER
-import com.svoemesto.karaokeapp.services.DB_LOCAL_POSTGRES_USER
+import com.svoemesto.karaokeapp.services.APP_WORK_ON_SERVER
 import com.svoemesto.karaokeapp.services.DB_LOCAL_POSTGRES_PASSWORD
-import com.svoemesto.karaokeapp.services.DB_SERVER_POSTGRES_USER
+import com.svoemesto.karaokeapp.services.DB_LOCAL_POSTGRES_USER
 import com.svoemesto.karaokeapp.services.DB_SERVER_POSTGRES_PASSWORD
+import com.svoemesto.karaokeapp.services.DB_SERVER_POSTGRES_USER
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 
@@ -23,5 +23,4 @@ class SearchLastAlbumVkTest {
         val result = searchLastAlbumVk(vkId)
         println(result)
     }
-
 }

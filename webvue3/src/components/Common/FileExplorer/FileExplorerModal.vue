@@ -24,16 +24,16 @@
                 >
                   <template #table-busy>
                     <div class="fem-text-center text-danger my-2">
-                      <b-spinner class="fem-align-middle"></b-spinner>
+                      <b-spinner class="fem-align-middle"/>
                       <strong>Loading...</strong>
                     </div>
                   </template>
                   <template #cell(name)="data">
                     <div
                         class="fem-fld-fileexplorer-name"
-                        v-text="data.value"
                         :style="{ backgroundColor: data.item.directory ? 'lightyellow' : 'white', color: fileExplorerCurrentPath === data.item.path ? 'blue' : 'black' }"
-                    ></div>
+                        v-text="data.value"
+                    />
                   </template>
                 </b-table>
               </div>
@@ -104,17 +104,6 @@ export default {
       isBusy: false,
     }
   },
-  mounted() {
-    console.log('this.path', this.path);
-    if (this.path !== undefined && this.path !== '' && this.path !== null) {
-      this.fileExplorerCurrentPath = this.path;
-    } else {
-      this.fileExplorerCurrentPath = this.start;
-    }
-    if (this.fileExplorerCurrentPath === undefined ) this.fileExplorerCurrentPath = this.start;
-    console.log('this.fileExplorerCurrentPath', this.fileExplorerCurrentPath);
-    this.getFiles(this.fileExplorerCurrentPath);
-  },
   computed: {
     fileExplorerFilesIsLoading() {
       return this.$store.getters.fileExplorerFilesIsLoading;
@@ -133,6 +122,17 @@ export default {
         }
       ]
     }
+  },
+  mounted() {
+    console.log('this.path', this.path);
+    if (this.path !== undefined && this.path !== '' && this.path !== null) {
+      this.fileExplorerCurrentPath = this.path;
+    } else {
+      this.fileExplorerCurrentPath = this.start;
+    }
+    if (this.fileExplorerCurrentPath === undefined ) this.fileExplorerCurrentPath = this.start;
+    console.log('this.fileExplorerCurrentPath', this.fileExplorerCurrentPath);
+    this.getFiles(this.fileExplorerCurrentPath);
   },
   methods: {
     onRowClicked(item, index) {

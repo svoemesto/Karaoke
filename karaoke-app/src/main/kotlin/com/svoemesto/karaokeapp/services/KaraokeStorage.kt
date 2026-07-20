@@ -22,7 +22,7 @@ interface KaraokeStorage {
         storageService.uploadFile(
             bucketName = storageBucketName,
             fileName = storageFileName,
-            pathToFileOnDisk = pathToFileOnDisk
+            pathToFileOnDisk = pathToFileOnDisk,
         )
     }
 
@@ -30,114 +30,109 @@ interface KaraokeStorage {
         storageService.uploadFile(
             bucketName = storageBucketName,
             fileName = storageFileNamePreview,
-            pathToFileOnDisk = pathToFileOnDisk
+            pathToFileOnDisk = pathToFileOnDisk,
         )
     }
 
-    fun storageUploadFile(file: InputStream, size: Long?) {
+    fun storageUploadFile(
+        file: InputStream,
+        size: Long?,
+    ) {
         storageService.uploadFile(
             bucketName = storageBucketName,
             fileName = storageFileName,
             file = file,
-            size = size
+            size = size,
         )
     }
 
-    fun storageUploadFilePreview(file: InputStream, size: Long?) {
+    fun storageUploadFilePreview(
+        file: InputStream,
+        size: Long?,
+    ) {
         storageService.uploadFile(
             bucketName = storageBucketName,
             fileName = storageFileNamePreview,
             file = file,
-            size = size
+            size = size,
         )
     }
 
-    fun storageGetFileUrl(): String {
-        return storageService.getFileUrl(
-            bucketName = storageBucketName,
-            fileName = storageFileName
-        )
-    }
-
-    fun storageGetFilePreviewUrl(): String {
-        return storageService.getFileUrl(
-            bucketName = storageBucketName,
-            fileName = storageFileNamePreview
-        )
-    }
-
-    fun storageDownloadFile(pathToFileOnDisk: String): File {
-        return storageService.downloadFile(
+    fun storageGetFileUrl(): String =
+        storageService.getFileUrl(
             bucketName = storageBucketName,
             fileName = storageFileName,
-            pathToFileOnDisk = pathToFileOnDisk
         )
-    }
 
-    fun storageDownloadFilePreview(pathToFileOnDisk: String): File {
-        return storageService.downloadFile(
+    fun storageGetFilePreviewUrl(): String =
+        storageService.getFileUrl(
             bucketName = storageBucketName,
             fileName = storageFileNamePreview,
-            pathToFileOnDisk = pathToFileOnDisk
         )
-    }
 
-    fun storageDownloadFile(): InputStream {
-        return storageService.downloadFile(
+    fun storageDownloadFile(pathToFileOnDisk: String): File =
+        storageService.downloadFile(
             bucketName = storageBucketName,
-            fileName = storageFileName
+            fileName = storageFileName,
+            pathToFileOnDisk = pathToFileOnDisk,
         )
-    }
 
-    fun storageDownloadFilePreview(): InputStream {
-        return storageService.downloadFile(
+    fun storageDownloadFilePreview(pathToFileOnDisk: String): File =
+        storageService.downloadFile(
             bucketName = storageBucketName,
-            fileName = storageFileNamePreview
+            fileName = storageFileNamePreview,
+            pathToFileOnDisk = pathToFileOnDisk,
         )
-    }
+
+    fun storageDownloadFile(): InputStream =
+        storageService.downloadFile(
+            bucketName = storageBucketName,
+            fileName = storageFileName,
+        )
+
+    fun storageDownloadFilePreview(): InputStream =
+        storageService.downloadFile(
+            bucketName = storageBucketName,
+            fileName = storageFileNamePreview,
+        )
 
     fun storageDeleteFile() {
         storageService.deleteFile(
             bucketName = storageBucketName,
-            fileName = storageFileName
+            fileName = storageFileName,
         )
     }
 
     fun storageDeleteFilePreview() {
         storageService.deleteFile(
             bucketName = storageBucketName,
-            fileName = storageFileNamePreview
+            fileName = storageFileNamePreview,
         )
     }
 
-    fun storageGetPresignedUrl(expiry: Int = 604800): String {
-        return storageService.getPresignedUrl(
+    fun storageGetPresignedUrl(expiry: Int = 604800): String =
+        storageService.getPresignedUrl(
             bucketName = storageBucketName,
             fileName = storageFileName,
-            expiry = expiry
+            expiry = expiry,
         )
-    }
 
-    fun storageGetPresignedUrlPreview(expiry: Int = 604800): String {
-        return storageService.getPresignedUrl(
+    fun storageGetPresignedUrlPreview(expiry: Int = 604800): String =
+        storageService.getPresignedUrl(
             bucketName = storageBucketName,
             fileName = storageFileNamePreview,
-            expiry = expiry
+            expiry = expiry,
         )
-    }
 
-    fun storageFileExists(): Boolean {
-        return storageService.fileExists(
+    fun storageFileExists(): Boolean =
+        storageService.fileExists(
             bucketName = storageBucketName,
-            fileName = storageFileName
+            fileName = storageFileName,
         )
-    }
 
-    fun storageFilePreviewExists(): Boolean {
-        return storageService.fileExists(
+    fun storageFilePreviewExists(): Boolean =
+        storageService.fileExists(
             bucketName = storageBucketName,
-            fileName = storageFileNamePreview
+            fileName = storageFileNamePreview,
         )
-    }
-
 }

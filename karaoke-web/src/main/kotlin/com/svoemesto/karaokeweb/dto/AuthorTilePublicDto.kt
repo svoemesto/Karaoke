@@ -16,7 +16,10 @@ data class AuthorTilePublicDto(
     val songCount: Long,
 ) {
     companion object {
-        fun fromAuthorName(author: String, songCount: Long): AuthorTilePublicDto {
+        fun fromAuthorName(
+            author: String,
+            songCount: Long,
+        ): AuthorTilePublicDto {
             val previewFileName = "$author/$author.preview.author.png"
             return AuthorTilePublicDto(
                 author = author,

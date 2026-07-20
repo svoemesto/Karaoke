@@ -1,25 +1,26 @@
 <template>
   <div class="process_worker">
     <div class="wrapper">
-      <div class="process-text" v-text="processName"></div>
+      <div class="process-text" v-text="processName"/>
       <div class="wrapper-bar">
-        <div class="process-progress-bar"
+        <div
+class="process-progress-bar"
              role="progressbar"
-             v-text="processPercentage"
              :style="styleProgressBar"
-        ></div>
+             v-text="processPercentage"
+        />
       </div>
     </div>
     <div v-show="!hideButton" class="button-with-text-count-waiting" @dblclick="forceStopClick">
       <button
           class="btn-round-double"
-          @click.left="clickStartStopWorkerButton"
           :disabled="disabled"
+          @click.left="clickStartStopWorkerButton"
       >
-        <img v-if="!isWork" alt="start" class="icon-40" src="../../assets/svg/icon_play.svg">
-        <img v-else alt="stop" class="icon-40" src="../../assets/svg/icon_stop.svg">
+        <img v-if="!isWork" alt="start" class="icon-40" src="../../assets/svg/icon_play.svg"/>
+        <img v-else alt="stop" class="icon-40" src="../../assets/svg/icon_stop.svg"/>
       </button>
-      <div class="text-count-waiting" v-text="countWaiting"></div>
+      <div class="text-count-waiting" v-text="countWaiting"/>
     </div>
     <custom-confirm v-if="isConfirmVisible" :params="confirmParams" @close="isConfirmVisible = false" />
   </div>
@@ -32,12 +33,6 @@ export default {
   name: "ProcessWorker",
   components: {
     CustomConfirm,
-  },
-  data() {
-    return {
-      isConfirmVisible: false,
-      confirmParams: undefined,
-    }
   },
   props: {
     // Если hideButton = true то не показывать кнопку старт/стоп
@@ -57,6 +52,12 @@ export default {
       type: Array,
       required: false,
       default: []
+    }
+  },
+  data() {
+    return {
+      isConfirmVisible: false,
+      confirmParams: undefined,
     }
   },
   computed: {
@@ -99,6 +100,10 @@ export default {
         animation: '1s linear infinite progress-bar-stripes',
       }
     }
+  },
+  mounted() {
+    this.checkUpdateProcessesWorker();
+    this.checkCountWaiting();
   },
   methods: {
     clickStartStopWorkerButton() {
@@ -152,10 +157,6 @@ export default {
 
       return front + '...' + back;
     }
-  },
-  mounted() {
-    this.checkUpdateProcessesWorker();
-    this.checkCountWaiting();
   }
 }
 </script>

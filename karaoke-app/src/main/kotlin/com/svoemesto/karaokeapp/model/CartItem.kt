@@ -18,8 +18,9 @@ class CartItem(
     override val database: KaraokeConnection = WORKING_DATABASE,
     override val storageService: KaraokeStorageService = KSS_APP,
     override val storageApiClient: StorageApiClient = SAC_APP,
-) : Serializable, Comparable<CartItem>, KaraokeDbTable {
-
+) : Serializable,
+    Comparable<CartItem>,
+    KaraokeDbTable {
     override fun getTableName() = TABLE_NAME
 
     @KaraokeDbTableField(name = "id", isId = true)
@@ -36,15 +37,15 @@ class CartItem(
 
     override fun compareTo(other: CartItem): Int = compareValuesBy(this, other, { it.addedAt.time }, { it.id })
 
-    override fun toDTO(): CartItemDto = CartItemDto(
-        id = id,
-        siteUserId = siteUserId,
-        idSong = idSong,
-        addedAt = addedAt.toString(),
-    )
+    override fun toDTO(): CartItemDto =
+        CartItemDto(
+            id = id,
+            siteUserId = siteUserId,
+            idSong = idSong,
+            addedAt = addedAt.toString(),
+        )
 
     companion object {
-
         const val TABLE_NAME = "tbl_cart_items"
 
         fun loadByUser(
@@ -52,14 +53,17 @@ class CartItem(
             database: KaraokeConnection,
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
-        ): List<CartItem> = KaraokeDbTable.loadList(
-            clazz = CartItem::class,
-            tableName = TABLE_NAME,
-            whereList = listOf("site_user_id=$siteUserId"),
-            database = database,
-            storageService = storageService,
-            storageApiClient = storageApiClient,
-        ).map { it as CartItem }.sorted()
+        ): List<CartItem> =
+            KaraokeDbTable
+                .loadList(
+                    clazz = CartItem::class,
+                    tableName = TABLE_NAME,
+                    whereList = listOf("site_user_id=$siteUserId"),
+                    database = database,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                ).map { it as CartItem }
+                .sorted()
 
         fun getByUserAndSong(
             siteUserId: Long,
@@ -67,15 +71,17 @@ class CartItem(
             database: KaraokeConnection,
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
-        ): CartItem? = KaraokeDbTable.loadList(
-            clazz = CartItem::class,
-            tableName = TABLE_NAME,
-            whereList = listOf("site_user_id=$siteUserId", "id_song=$idSong"),
-            limit = 1,
-            database = database,
-            storageService = storageService,
-            storageApiClient = storageApiClient,
-        ).firstOrNull() as? CartItem?
+        ): CartItem? =
+            KaraokeDbTable
+                .loadList(
+                    clazz = CartItem::class,
+                    tableName = TABLE_NAME,
+                    whereList = listOf("site_user_id=$siteUserId", "id_song=$idSong"),
+                    limit = 1,
+                    database = database,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                ).firstOrNull() as? CartItem?
 
         fun createNew(
             siteUserId: Long,
@@ -91,8 +97,10 @@ class CartItem(
             return KaraokeDbTable.createDbInstance(entity = entity, database = database) as? CartItem?
         }
 
-        fun delete(id: Long, database: KaraokeConnection): Boolean =
-            KaraokeDbTable.delete(tableName = TABLE_NAME, id = id, database = database)
+        fun delete(
+            id: Long,
+            database: KaraokeConnection,
+        ): Boolean = KaraokeDbTable.delete(tableName = TABLE_NAME, id = id, database = database)
 
         // Очистка позиций, оформленных в заказ (после checkout) — по конкретным id_song пользователя.
         fun deleteByUserAndSongs(

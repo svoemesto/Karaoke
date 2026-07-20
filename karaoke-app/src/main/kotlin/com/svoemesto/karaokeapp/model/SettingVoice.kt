@@ -10,26 +10,38 @@ data class SettingVoice(
 ) : Serializable {
 //    val linesForMlt: List<SettingVoiceLine> get() = lines.filter { line->  !line.isNewLine }
     private val _lines: MutableList<SettingVoiceLine> = mutableListOf()
-    fun getLines(): List<SettingVoiceLine> = _lines
-    fun getLastTextLine(songVersion: SongVersion): SettingVoiceLine? =
-        _lines.lastOrNull { it.haveTextElement(songVersion) }
 
-    fun getLinesForCounters(songVersion: SongVersion): List<SettingVoiceLine> {
-        return getLines().filterIndexed { index, line -> index > 0 && getLines()[index-1].isEmptyLineOrComment && line.haveTextElement(songVersion) }
-    }
-    @Suppress("unused") fun addLine(songVersion: SongVersion, line: SettingVoiceLine) {
+    fun getLines(): List<SettingVoiceLine> = _lines
+
+    fun getLastTextLine(songVersion: SongVersion): SettingVoiceLine? = _lines.lastOrNull { it.haveTextElement(songVersion) }
+
+    fun getLinesForCounters(songVersion: SongVersion): List<SettingVoiceLine> =
+        getLines().filterIndexed { index, line ->
+            index > 0 &&
+                getLines()[index - 1].isEmptyLineOrComment &&
+                line.haveTextElement(songVersion)
+        }
+
+    @Suppress("unused")
+    fun addLine(
+        songVersion: SongVersion,
+        line: SettingVoiceLine,
+    ) {
         _lines.add(line)
         actuateChilds(songVersion)
     }
-    fun addLines(songVersion: SongVersion, lines: List<SettingVoiceLine>) {
+
+    fun addLines(
+        songVersion: SongVersion,
+        lines: List<SettingVoiceLine>,
+    ) {
         lines.forEach { line -> _lines.add(line) }
         actuateChilds(songVersion)
     }
 
     fun actuateChilds(songVersion: SongVersion) {
-
         var lineY = 0
-        val textLineHeight = getLines().firstOrNull{it.haveTextElementOrComment(songVersion)}?.h(songVersion) ?: 0
+        val textLineHeight = getLines().firstOrNull { it.haveTextElementOrComment(songVersion) }?.h(songVersion) ?: 0
         getLines().forEachIndexed { indexLine, line ->
             val indexLineStart = getIndexLineStart(songVersion, indexLine)
             val indexLineEnd = getIndexLineEnd(songVersion, indexLine)
@@ -52,10 +64,11 @@ data class SettingVoice(
         if (songVersion in listOf(SongVersion.CHORDS)) {
             var chordX = 0
             val chordHeight = Karaoke.frameHeightPx / 4
-            val chords = getLines()
-                .flatMap { line -> line.getElements(songVersion) }
-                .flatMap { element -> element.getSyllables() }
-                .filter { syllable -> syllable.chord.isNotEmpty() }
+            val chords =
+                getLines()
+                    .flatMap { line -> line.getElements(songVersion) }
+                    .flatMap { element -> element.getSyllables() }
+                    .filter { syllable -> syllable.chord.isNotEmpty() }
 
             chords.forEachIndexed { indexChord, chord ->
                 val indexChordStart = getIndexChordStart(indexChord)
@@ -66,7 +79,14 @@ data class SettingVoice(
                     deltaMs = startChordVisibleTime
                     startChordVisibleTime = 0
                 }
-                val endChordVisibleTime = if (indexChordEnd >= 0) chords[indexChordEnd].syllableStartMs else rootSongLengthMs + rootStartSilentOffsetMs
+                val endChordVisibleTime =
+                    if (indexChordEnd >=
+                        0
+                    ) {
+                        chords[indexChordEnd].syllableStartMs
+                    } else {
+                        rootSongLengthMs + rootStartSilentOffsetMs
+                    }
                 chord.chordId = indexChord
                 chord.chordX = chordX
                 chord.indexChordStart = indexChordStart
@@ -81,22 +101,25 @@ data class SettingVoice(
         }
     }
 
-
-    private fun getIndexChordStart(chordId: Int) : Int {
+    private fun getIndexChordStart(chordId: Int): Int {
         if (chordId == 0) return 0
         val frameWidthPx = Karaoke.frameWidthPx
         val chordWidth = Karaoke.frameHeightPx / 4
         val zeroWidth = frameWidthPx - (frameWidthPx / 2 - chordWidth / 2)
         var result = chordId - 1
         var tmpW = 0
-        for (i in chordId-1 downTo 0) {
+        for (i in chordId - 1 downTo 0) {
             tmpW += chordWidth
             result = i
             if (tmpW > zeroWidth) break
         }
         return result
     }
-    private fun getIndexChordEnd(chordId: Int, chords: List<SettingVoiceLineElementSyllable>) : Int {
+
+    private fun getIndexChordEnd(
+        chordId: Int,
+        chords: List<SettingVoiceLineElementSyllable>,
+    ): Int {
         val frameWidthPx = Karaoke.frameWidthPx
         val chordWidth = Karaoke.frameHeightPx / 4
         val zeroWidth = frameWidthPx / 2 - chordWidth / 2
@@ -115,17 +138,21 @@ data class SettingVoice(
                 break
             }
         }
-        return if(wasOutOfScreen) index else -1
+        return if (wasOutOfScreen) index else -1
     }
-    private fun getIndexLineStart(songVersion: SongVersion, lineId: Int) : Int {
+
+    private fun getIndexLineStart(
+        songVersion: SongVersion,
+        lineId: Int,
+    ): Int {
         if (lineId == 0) return 0
         val frameHeightPx = Karaoke.frameHeightPx
-        val textLineHeight = getLines().firstOrNull{it.haveTextElement(songVersion)}?.h(songVersion) ?: 0
+        val textLineHeight = getLines().firstOrNull { it.haveTextElement(songVersion) }?.h(songVersion) ?: 0
         val zeroHeight = frameHeightPx - (frameHeightPx / 2 - textLineHeight / 2)
 
         var result = lineId - 1
         var tmpH = 0
-        for (i in lineId-1 downTo 0) {
+        for (i in lineId - 1 downTo 0) {
             val tmpLine = getLines()[i]
             tmpH += tmpLine.h(songVersion)
             result = i
@@ -145,10 +172,13 @@ data class SettingVoice(
 //        return index
     }
 
-    private fun getIndexLineEnd(songVersion: SongVersion, lineId: Int) : Int {
+    private fun getIndexLineEnd(
+        songVersion: SongVersion,
+        lineId: Int,
+    ): Int {
         val thisLine = getLines()[lineId]
         val frameHeightPx = Karaoke.frameHeightPx
-        val textLineHeight = getLines().firstOrNull{it.haveTextElement(songVersion)}?.h(songVersion) ?: 0
+        val textLineHeight = getLines().firstOrNull { it.haveTextElement(songVersion) }?.h(songVersion) ?: 0
         val zeroHeight = frameHeightPx / 2 - textLineHeight / 2
 
         var index = lineId
@@ -166,14 +196,18 @@ data class SettingVoice(
                 break
             }
         }
-        return if(wasOutOfScreen) index else -1
+        return if (wasOutOfScreen) index else -1
     }
 
-    private fun getChordTransformProperties(chordId: Int, chords: List<SettingVoiceLineElementSyllable>, deltaMs: Long = 0L) : List<TransformProperty> {
+    private fun getChordTransformProperties(
+        chordId: Int,
+        chords: List<SettingVoiceLineElementSyllable>,
+        deltaMs: Long = 0L,
+    ): List<TransformProperty> {
         val frameWidthPx = Karaoke.frameWidthPx
         val chordHeight = Karaoke.frameHeightPx / 4
         val chordWidth = chordHeight
-        val offsetX = 0 //frameWidthPx / 2 - chordWidth / 2
+        val offsetX = 0 // frameWidthPx / 2 - chordWidth / 2
         val offsetY = 0
 
         val y = offsetY
@@ -181,7 +215,7 @@ data class SettingVoice(
 
         val result: MutableList<TransformProperty> = mutableListOf()
         val startIndex = thisChord.indexChordStart
-        val endIndex = if (thisChord.indexChordEnd < thisChord.indexChordStart ) chords.last().chordId else thisChord.indexChordEnd
+        val endIndex = if (thisChord.indexChordEnd < thisChord.indexChordStart) chords.last().chordId else thisChord.indexChordEnd
         if (endIndex < startIndex) return emptyList()
 
         val zeroWidth = frameWidthPx - (frameWidthPx / 2 + chordWidth / 2)
@@ -192,21 +226,22 @@ data class SettingVoice(
         }
         // lstChords - это аккорды, в жизненном цикле которых присутствует текущий аккорд - от первой до последней
 
-        for(lineIndex in lstChords.indices) {
+        for (lineIndex in lstChords.indices) {
             val chord = lstChords[lineIndex]
-            val nextChord = if (lineIndex + 1 < lstChords.size) lstChords[lineIndex+1] else null
-            val deltaX: Int = if (chord.chordId < chordId) {
-                // Если аккорд цикла стоит перед текущим аккордом
-                // Вычисляем сумму широт аккордов от аккорда цикла (включительно) до текущего аккорда (не включая)
-                lstChords.filter { it.chordId >= chord.chordId && it.chordId < chordId }.sumOf { chordWidth }
-            } else if (chord.chordId > chordId) {
-                // Если аккорд цикла стоит после текущего аккорда
-                // Вычисляем сумму широт аккордов от текущего аккорда (включительно) до аккорда цикла (не включая)
-                - lstChords.filter { it.chordId < chord.chordId && it.chordId >= chordId }.sumOf { chordWidth }
-            } else {
-                // Если аккорд цикла - это текущий аккорд
-                0
-            }
+            val nextChord = if (lineIndex + 1 < lstChords.size) lstChords[lineIndex + 1] else null
+            val deltaX: Int =
+                if (chord.chordId < chordId) {
+                    // Если аккорд цикла стоит перед текущим аккордом
+                    // Вычисляем сумму широт аккордов от аккорда цикла (включительно) до текущего аккорда (не включая)
+                    lstChords.filter { it.chordId >= chord.chordId && it.chordId < chordId }.sumOf { chordWidth }
+                } else if (chord.chordId > chordId) {
+                    // Если аккорд цикла стоит после текущего аккорда
+                    // Вычисляем сумму широт аккордов от текущего аккорда (включительно) до аккорда цикла (не включая)
+                    -lstChords.filter { it.chordId < chord.chordId && it.chordId >= chordId }.sumOf { chordWidth }
+                } else {
+                    // Если аккорд цикла - это текущий аккорд
+                    0
+                }
             val tpX = deltaX + zeroWidth + offsetX
             if ((tpX + frameWidthPx) < 0) {
                 break
@@ -214,36 +249,40 @@ data class SettingVoice(
 
             val chordEndMs = if (nextChord == null) chord.syllableEndMs else nextChord.syllableStartMs - 500
 
-            val tpStart = TransformProperty(
-                time = convertMillisecondsToTimecode(chord.syllableStartMs - lstChords.first().syllableStartMs + deltaMs),
-                x =  tpX,
-                y = y,
-                w =  Karaoke.frameWidthPx,
-                h =  Karaoke.frameHeightPx,
-                opacity = 1.0
-            )
-            val tpEnd = TransformProperty(
-                time = convertMillisecondsToTimecode(chordEndMs - lstChords.first().syllableStartMs + deltaMs),
-                x =  tpX,
-                y = y,
-                w =  Karaoke.frameWidthPx,
-                h =  Karaoke.frameHeightPx,
-                opacity = 1.0
-            )
+            val tpStart =
+                TransformProperty(
+                    time = convertMillisecondsToTimecode(chord.syllableStartMs - lstChords.first().syllableStartMs + deltaMs),
+                    x = tpX,
+                    y = y,
+                    w = Karaoke.frameWidthPx,
+                    h = Karaoke.frameHeightPx,
+                    opacity = 1.0,
+                )
+            val tpEnd =
+                TransformProperty(
+                    time = convertMillisecondsToTimecode(chordEndMs - lstChords.first().syllableStartMs + deltaMs),
+                    x = tpX,
+                    y = y,
+                    w = Karaoke.frameWidthPx,
+                    h = Karaoke.frameHeightPx,
+                    opacity = 1.0,
+                )
             if (result.isNotEmpty() && result.last().time == tpStart.time) {
                 result.removeLast()
             }
             result.add(tpStart)
-            if (tpStart.toString() != tpEnd.toString() && lineIndex != lstChords.size-1) {
+            if (tpStart.toString() != tpEnd.toString() && lineIndex != lstChords.size - 1) {
                 result.add(tpEnd)
             }
-
         }
 
         return result
     }
-    private fun getLineTransformProperties(songVersion: SongVersion, lineId: Int) : List<TransformProperty> {
 
+    private fun getLineTransformProperties(
+        songVersion: SongVersion,
+        lineId: Int,
+    ): List<TransformProperty> {
         val deltaX = longerElementPreviousVoice?.w() ?: 0
         val offsetX = Karaoke.songtextStartPositionXpx
         val offsetY = 5
@@ -255,7 +294,7 @@ data class SettingVoice(
         val result: MutableList<TransformProperty> = mutableListOf()
 
         val startIndex = thisLine.indexLineStart
-        val endIndex = if (thisLine.indexLineEnd < thisLine.indexLineStart ) getLines().last().lineId else thisLine.indexLineEnd
+        val endIndex = if (thisLine.indexLineEnd < thisLine.indexLineStart) getLines().last().lineId else thisLine.indexLineEnd
         if (endIndex < startIndex) return emptyList()
 
 //        val frameWidthPx = Karaoke.frameWidthPx
@@ -270,65 +309,70 @@ data class SettingVoice(
 
         // lines - это линии, в жизненном цикле которые присутствует текущая линия - от первой до последней
 
-        for(lineIndex in lines.indices) {
+        for (lineIndex in lines.indices) {
             val line = lines[lineIndex]
-            val deltaY: Int = if (line.lineId < lineId) {
-                // Если линия цикла стоит перед текущей линией
-                // Вычисляем сумму высот линий от линии цикла (включительно) до текущей линии (не включая)
-        //                deltaY = lines.filter { it.lineId >= line.lineId && it.lineId < lineId }.sumOf { thisLine.h(songVersion) }
-                lines.filter { it.lineId >= line.lineId && it.lineId < lineId }.sumOf { it.h(songVersion) }
-            } else if (line.lineId > lineId) {
-                // Если линия цикла стоит после текущей линией
-                // Вычисляем сумму высот линий от текущей линии (включительно) до линии цикла (не включая)
-                - lines.filter { it.lineId < line.lineId && it.lineId >= lineId }.sumOf { it.h(songVersion) }
-            } else {
-                // Если линия цикла - это текущая линия
-                0
-            }
+            val deltaY: Int =
+                if (line.lineId < lineId) {
+                    // Если линия цикла стоит перед текущей линией
+                    // Вычисляем сумму высот линий от линии цикла (включительно) до текущей линии (не включая)
+                    //                deltaY = lines.filter { it.lineId >= line.lineId && it.lineId < lineId }.sumOf { thisLine.h(songVersion) }
+                    lines.filter { it.lineId >= line.lineId && it.lineId < lineId }.sumOf { it.h(songVersion) }
+                } else if (line.lineId > lineId) {
+                    // Если линия цикла стоит после текущей линией
+                    // Вычисляем сумму высот линий от текущей линии (включительно) до линии цикла (не включая)
+                    -lines.filter { it.lineId < line.lineId && it.lineId >= lineId }.sumOf { it.h(songVersion) }
+                } else {
+                    // Если линия цикла - это текущая линия
+                    0
+                }
 //            val deltaY = line.deltaY(this)
             val tpY = deltaY + zeroHeight + offsetY
 //            if (tpY + line.h(songVersion)*2 < 0) {
             if ((tpY + frameHeightPx) < 0) {
                 break
             }
-            val tpStart = TransformProperty(
-                time = convertMillisecondsToTimecode(line.lineStartMs - lines.first().lineStartMs),
-                x =  x,
-                y = tpY,
-                w =  Karaoke.frameWidthPx,
-                h =  Karaoke.frameHeightPx,
-                opacity = 1.0
-            )
-            val tpEnd = TransformProperty(
-                time = convertMillisecondsToTimecode(line.lineEndMs - lines.first().lineStartMs),
-                x =  x,
-                y = tpY,
-                w =  Karaoke.frameWidthPx,
-                h =  Karaoke.frameHeightPx,
-                opacity = 1.0
-            )
+            val tpStart =
+                TransformProperty(
+                    time = convertMillisecondsToTimecode(line.lineStartMs - lines.first().lineStartMs),
+                    x = x,
+                    y = tpY,
+                    w = Karaoke.frameWidthPx,
+                    h = Karaoke.frameHeightPx,
+                    opacity = 1.0,
+                )
+            val tpEnd =
+                TransformProperty(
+                    time = convertMillisecondsToTimecode(line.lineEndMs - lines.first().lineStartMs),
+                    x = x,
+                    y = tpY,
+                    w = Karaoke.frameWidthPx,
+                    h = Karaoke.frameHeightPx,
+                    opacity = 1.0,
+                )
             if (result.isNotEmpty() && result.last().time == tpStart.time) {
                 result.removeLast()
             }
             result.add(tpStart)
-            if (tpStart.toString() != tpEnd.toString() && lineIndex != lines.size-1) {
+            if (tpStart.toString() != tpEnd.toString() && lineIndex != lines.size - 1) {
                 result.add(tpEnd)
             }
-
         }
 
 //        return result.joinToString(";")
         return result
-
     }
 
     fun linesForMlt(): List<SettingVoiceLine> = getLines()
+
     var longerElementPreviousVoice: SettingVoiceLineElement? = null
+
     fun textLines(songVersion: SongVersion): List<SettingVoiceLine> = getLines().filter { it.haveTextElement(songVersion) }
 
-    fun longerTextElement(songVersion: SongVersion): SettingVoiceLineElement? {
-        return textLines(songVersion).maxBy { it.w(songVersion) }.textElement(songVersion)
-    }
+    fun longerTextElement(songVersion: SongVersion): SettingVoiceLineElement? =
+        textLines(songVersion)
+            .maxBy {
+                it.w(songVersion)
+            }.textElement(songVersion)
 
     var voiceId: Int = -1
 
@@ -340,8 +384,8 @@ data class SettingVoice(
 
     var countLineTracks: Int
         get() {
-                return privateCountLineTracks ?: 0
-            }
+            return privateCountLineTracks ?: 0
+        }
         set(value) {
             privateCountLineTracks = value
             getLines().forEach { it.countLineTracks = value }
@@ -354,15 +398,14 @@ data class SettingVoice(
         }
         set(value) {
             privateCountChordPictureTracks = value
-            val chords = getLines()
-                .flatMap { line -> line.getElements(SongVersion.CHORDS) }
-                .flatMap { element -> element.getSyllables() }
-                .filter { syllable -> syllable.chord.isNotEmpty() }
+            val chords =
+                getLines()
+                    .flatMap { line -> line.getElements(SongVersion.CHORDS) }
+                    .flatMap { element -> element.getSyllables() }
+                    .filter { syllable -> syllable.chord.isNotEmpty() }
             chords.forEach { it.countChordPictureTracks = value }
         }
 //    fun countLineTracks(): Int = linesForMlt.maxOf { line -> linesForMlt.filter { it.isOnScreen(line.lineStartMs) }.size }
-
-
 
     private var privateCRootSongLengthMs: Long? = null
     var rootSongLengthMs: Long
@@ -392,38 +435,42 @@ data class SettingVoice(
         val x = deltaX + offsetX * (voiceId + 1)
         val y = offsetY
 
-        val trStart = TransformProperty(
-            time = convertMillisecondsToTimecode(0),
-            x = x,
-            y = y,
-            w = frameWidthPx,
-            h = frameHeightPx,
-            opacity = 0.0
-        )
-        val trFadeIn = TransformProperty(
-            time = convertMillisecondsToTimecode(1000),
-            x = x,
-            y = y,
-            w = frameWidthPx,
-            h = frameHeightPx,
-            opacity = 1.0
-        )
-        val trFadeOut = TransformProperty(
-            time = convertMillisecondsToTimecode(getLines().last().lineEndMs - 1000),
-            x = x,
-            y = y,
-            w = frameWidthPx,
-            h = frameHeightPx,
-            opacity = 1.0
-        )
-        val trEnd = TransformProperty(
-            time = convertMillisecondsToTimecode(getLines().last().lineEndMs),
-            x = x,
-            y = y,
-            w = frameWidthPx,
-            h = frameHeightPx,
-            opacity = 0.0
-        )
+        val trStart =
+            TransformProperty(
+                time = convertMillisecondsToTimecode(0),
+                x = x,
+                y = y,
+                w = frameWidthPx,
+                h = frameHeightPx,
+                opacity = 0.0,
+            )
+        val trFadeIn =
+            TransformProperty(
+                time = convertMillisecondsToTimecode(1000),
+                x = x,
+                y = y,
+                w = frameWidthPx,
+                h = frameHeightPx,
+                opacity = 1.0,
+            )
+        val trFadeOut =
+            TransformProperty(
+                time = convertMillisecondsToTimecode(getLines().last().lineEndMs - 1000),
+                x = x,
+                y = y,
+                w = frameWidthPx,
+                h = frameHeightPx,
+                opacity = 1.0,
+            )
+        val trEnd =
+            TransformProperty(
+                time = convertMillisecondsToTimecode(getLines().last().lineEndMs),
+                x = x,
+                y = y,
+                w = frameWidthPx,
+                h = frameHeightPx,
+                opacity = 0.0,
+            )
         result.add(trStart)
         result.add(trFadeIn)
         result.add(trFadeOut)
@@ -433,13 +480,19 @@ data class SettingVoice(
     }
 
     @Suppress("unused")
-    fun getText(songVersion: SongVersion, maxTimeCodes: Int? = null): String {
+    fun getText(
+        songVersion: SongVersion,
+        maxTimeCodes: Int? = null,
+    ): String {
         var timeCodeCount = maxTimeCodes ?: 0
         return textLines(songVersion).joinToString("") { textLine ->
-            val needTimeCode = if (timeCodeCount > 0) {
-                timeCodeCount--
-                true
-            } else false
+            val needTimeCode =
+                if (timeCodeCount > 0) {
+                    timeCodeCount--
+                    true
+                } else {
+                    false
+                }
             textLine.getText(songVersion, needTimeCode)
         }
     }

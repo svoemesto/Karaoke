@@ -6,5 +6,5 @@ data class AudioCompareHistoryEntry(
     val similarityPercent: Int,
     val deltaMs: Long,
     val ok: Boolean,
-    val comparedAt: String
+    val comparedAt: String,
 )

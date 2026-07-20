@@ -9,22 +9,22 @@
           <div class="km-toggle-group km-theme-toggle" title="Тема">
             <button
               :class="['km-toggle-btn', theme === 'light' ? 'active' : '']"
-              @click="setTheme('light')"
               title="Светлая"
+              @click="setTheme('light')"
             >
               ☀
             </button>
             <button
               :class="['km-toggle-btn', theme === 'system' ? 'active' : '']"
-              @click="setTheme('system')"
               title="Авто"
+              @click="setTheme('system')"
             >
               ⬡
             </button>
             <button
               :class="['km-toggle-btn', theme === 'dark' ? 'active' : '']"
-              @click="setTheme('dark')"
               title="Тёмная"
+              @click="setTheme('dark')"
             >
               🌙
             </button>

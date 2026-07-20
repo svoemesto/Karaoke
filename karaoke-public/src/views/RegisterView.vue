@@ -36,7 +36,7 @@
           />
         </div>
 
-        <div v-if="captchaClientKey" id="km-captcha-container" class="km-captcha"></div>
+        <div v-if="captchaClientKey" id="km-captcha-container" class="km-captcha" />
 
         <p v-if="errorMessage" class="km-error">{{ errorMessage }}</p>
 

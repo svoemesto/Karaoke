@@ -50,7 +50,7 @@
         <button class="button-action button-action-inline" @click="autorizeYMstart2" :disabled="authYmInProgress">Auth YM 2</button>
         <button class="button-action button-action-inline" @click="autorizeYMstop" :disabled="!authYmInProgress">Auth YM: Stop</button>
       </div>
-      <button class="button-action" @click="customFunction" title="Custom Function: первичная индексация аудио-родителей по всей базе">Индексация аудио-родителей (Custom Function)</button>
+      <button class="button-action" @click="customFunction" title="Custom Function: поиск родителей и аудио-родителей для песен без родителя (root_id=0, статус &lt; 3)">Поиск родителей и аудио-родителей (Custom Function)</button>
       </div>
     </div>
   </div>
@@ -456,9 +456,9 @@ export default {
     customFunction() {
       this.customConfirmParams = {
         header: 'Подтвердите действие',
-        body: `Запустить первичную индексацию аудио-родителей по ВСЕЙ базе песен?<br>`
-            + `Для каждой песни будет найден наиболее похожий по аудио вариант (порог 85%) и сохранён как аудио-родитель — задел для будущей автоматизации добавления новых песен.<br>`
-            + `<strong>Операция тяжёлая и идёт в фоне — итог придёт уведомлением. Обычно её нужно запускать один раз.</strong>`,
+        body: `Запустить поиск родителей и аудио-родителей для песен с root_id=0 и статусом &lt; 3?<br>`
+            + `Для каждой такой песни сначала будет выполнен поиск родителя по точному совпадению названия (текст/маркеры переписываются только если у песни ещё нет своего текста), затем — поиск аудио-родителя по акустическому сходству (порог 85%, поле не пересекается с родителем).<br>`
+            + `<strong>Операция тяжёлая и идёт в фоне — итог придёт уведомлением. Можно запускать повторно, чтобы подхватить новые песни.</strong>`,
         timeout: 15,
         callback: this.doCustomFunction
       }
@@ -469,7 +469,7 @@ export default {
         this.customConfirmParams = {
           isAlert: true,
           alertType: 'info',
-          header: 'Индексация аудио-родителей',
+          header: 'Поиск родителей и аудио-родителей',
           body: `Операция запущена в фоне.<br>Итог придёт уведомлением по завершении.`,
           timeout: 10
         }

@@ -3323,17 +3323,48 @@ class ApiController(
         @RequestParam(required = true) folder: String) {
         val createdList = Settings.createFromPath(folder, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
         createdList.forEach { newSettings ->
-            val original = findDuplicateOriginal(newSettings, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
-            if (original != null) {
-                applyDuplicateOriginal(newSettings, original)
-            } else {
-                thread(start = true) {
-                    try {
-                        getSearXNGSearch(settings = newSettings, lyricsFinderService = lyricsFinderService)
-                    } catch (e: Exception) {
-                        println("[${Timestamp.from(Instant.now())}] doCreateFromFolder - ошибка фонового поиска текста для песни id=${newSettings.id}: ${e.message}")
+            try {
+                var textResolved = false
+
+                val original = findDuplicateOriginal(newSettings, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+                if (original != null) {
+                    applyDuplicateOriginal(newSettings, original)
+                    textResolved = true
+                }
+
+                // Поиск аудио-родителя (по звучанию) - независимо от результата обычного поиска по названию.
+                // Если найден и уже "готов" (idStatus >= 3) - его маркеры точнее/полнее, применяем их со
+                // сдвигом и переводим песню в статус 3 (перекрывая более слабый статус 1 обычного родителя).
+                val audioParentResult = findAudioParentByWaveform(newSettings, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+                if (audioParentResult.matched && audioParentResult.bestId != null && audioParentResult.deltaMs != null) {
+                    val audioParent = Settings.loadFromDbById(id = audioParentResult.bestId, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+                    if (audioParent != null && audioParent.idStatus >= 3) {
+                        applyAudioParentMarkers(newSettings, audioParent, audioParentResult.deltaMs)
+                        textResolved = true
                     }
                 }
+
+                // Фоновый интернет-поиск текста - только если текст так и не был получен ни одним из
+                // предыдущих способов (заодно исключает гонку нескольких фоновых потоков над одним newSettings).
+                if (!textResolved) {
+                    thread(start = true) {
+                        try {
+                            getSearXNGSearch(settings = newSettings, lyricsFinderService = lyricsFinderService)
+                        } catch (e: Exception) {
+                            println("[${Timestamp.from(Instant.now())}] doCreateFromFolder - ошибка фонового поиска текста для песни id=${newSettings.id}: ${e.message}")
+                        }
+                    }
+                }
+
+                // Repair-All-эквивалент для только что созданной песни: записи tbl_pictures для автора/альбома
+                // (если их ещё нет, + загрузка full/preview в хранилище) и самопродолжающийся каскад
+                // HealthReport (стемы mp3, превью автора/альбома, загрузка всех файлов в локальное/удалённое
+                // хранилище) - тот же вызов, что делает кнопка Repair All на карточке песни.
+                newSettings.pictureAuthor
+                newSettings.pictureAlbum
+                HealthReport.startRepairAll(newSettings, WORKING_DATABASE, storageService, storageApiClient)
+            } catch (e: Exception) {
+                println("[${Timestamp.from(Instant.now())}] doCreateFromFolder - ошибка постобработки песни id=${newSettings.id}: ${e.message}")
             }
         }
         val result = createdList.size

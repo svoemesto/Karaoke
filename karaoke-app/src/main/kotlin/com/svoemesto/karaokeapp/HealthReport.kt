@@ -2556,7 +2556,8 @@ data class HealthReport(
             KaraokeProcessTypes.FF_MP3_ACCOMPANIMENT,
             KaraokeProcessTypes.FF_MP3_VOCAL,
             KaraokeProcessTypes.FF_MP3_BASS,
-            KaraokeProcessTypes.FF_MP3_DRUMS
+            KaraokeProcessTypes.FF_MP3_DRUMS,
+            KaraokeProcessTypes.FF_MP3_OTHER
         )
 
         // Песни, для которых пользователь нажал «Исправить всё» и по которым сейчас идёт каскадное

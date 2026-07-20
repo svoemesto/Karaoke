@@ -67,13 +67,22 @@ import kotlin.math.roundToInt
 import kotlin.random.Random
 import kotlin.use
 
-// Первичная "индексация" базы: для КАЖДОЙ песни в БД (без фильтра по статусу/семье, в отличие от
-// autoAssignOriginalAll) запускает поиск аудио-родителя (findAudioParentByWaveform) и сохраняет
-// результат. Разовая тяжёлая операция для админа (кнопка "Выполнить Custom Function" на главной
-// странице админки) - т.к. акустическая сверка (ffmpeg-декод + кросс-корреляция) на тысячах песен
-// может идти долго, вся работа уходит в фоновый поток; функция возвращает управление сразу же,
-// итоговая сводка приходит отдельным SSE-тостом по завершении (тот же паттерн, что и у
-// autoAssignOriginalAll).
+// Повторный поиск родителей и аудио-родителей: для КАЖДОЙ песни с root_id = 0 И id_status < 3
+// (ещё не привязана ни к куратору-родителю, ни к автоматическому, и ещё в начале пайплайна)
+// прогоняет ДВА независимых механизма подряд, в два прохода по всей выборке:
+//   1) "родитель" (findParentCandidateId + applyDuplicateOriginal) - точное совпадение
+//      нормализованного названия среди ВСЕХ песен; root_id/текст/статус переписываются, только
+//      если у текущей песни ещё нет своего текста (не затираем вручную вычитанное);
+//   2) "аудио-родитель" (findAudioParentByWaveform) - акустическая сверка, независимое поле
+//      audio_parent_id, текст/статус не трогает.
+// Проход 1 выполняется целиком по всем песням ДО начала прохода 2: к этому моменту у части песен
+// уже проставлен root_id, и findFamilySongIds (использует findAudioParentByWaveform) видит более
+// полную "семью" - точность подбора аудио-родителя от этого выше, чем при чередовании обоих
+// механизмов по одной песне за раз.
+// Разовая/повторяемая тяжёлая операция для админа (кнопка "Custom Function" на главной странице
+// админки) - т.к. акустическая сверка (ffmpeg-декод + кросс-корреляция) на тысячах песен может
+// идти долго, вся работа уходит в фоновый поток; функция возвращает управление сразу же, итоговая
+// сводка приходит отдельным SSE-тостом по завершении (тот же паттерн, что и у autoAssignOriginalAll).
 fun customFunction(
     storageService: KaraokeStorageService,
     lyricsFinderService: LyricsFinderService,
@@ -84,41 +93,86 @@ fun customFunction(
         try {
             val connection = WORKING_DATABASE.getConnection()
             if (connection != null) {
-                val ps = connection.prepareStatement("SELECT id FROM tbl_settings ORDER BY id")
+                val ps = connection.prepareStatement("SELECT id FROM tbl_settings WHERE root_id = 0 AND id_status < 3 ORDER BY id")
                 val rs = ps.executeQuery()
                 while (rs.next()) ids.add(rs.getLong("id"))
                 rs.close(); ps.close()
             }
         } catch (e: Exception) {
-            println("Индексация аудио-родителей: ошибка выборки песен — ${e.message}")
+            println("Поиск родителей и аудио-родителей: ошибка выборки песен — ${e.message}")
         }
 
-        println("Индексация аудио-родителей: найдено песен: ${ids.size}")
-        var matched = 0
+        println("Поиск родителей и аудио-родителей: найдено песен: ${ids.size}")
+
+        // --- Фаза 1: родители (по всей выборке, ДО фазы 2) -----------------------------------
+        var parentMatched = 0
+        var parentSkippedHasText = 0
         ids.forEachIndexed { index, id ->
             try {
                 val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
                 if (settings == null) {
-                    println("  [${index + 1}/${ids.size}] id=$id — пропущено (не найдено)")
+                    println("  [родитель ${index + 1}/${ids.size}] id=$id — пропущено (не найдено)")
+                    return@forEachIndexed
+                }
+                val candidateId = findParentCandidateId(settings, WORKING_DATABASE)
+                when {
+                    candidateId == null -> {
+                        println("  [родитель ${index + 1}/${ids.size}] ${songLogLabel(settings)} — родитель не найден")
+                    }
+                    settings.sourceText.isNotBlank() -> {
+                        parentSkippedHasText++
+                        println("  [родитель ${index + 1}/${ids.size}] ${songLogLabel(settings)} — родитель найден (id=$candidateId), но текст уже есть — пропущено")
+                    }
+                    else -> {
+                        val original = Settings.loadFromDbById(id = candidateId, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+                        if (original == null) {
+                            println("  [родитель ${index + 1}/${ids.size}] ${songLogLabel(settings)} — кандидат id=$candidateId не найден при загрузке")
+                        } else {
+                            if (original.sourceText.isNotBlank()) {
+                                applyDuplicateOriginal(settings, original)
+                            } else {
+                                settings.rootId = original.id
+                                settings.saveToDb()
+                            }
+                            parentMatched++
+                            println("  [родитель ${index + 1}/${ids.size}] ${songLogLabel(settings)} — привязан родитель [${songLogLabel(original)}]")
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                println("  [родитель ${index + 1}/${ids.size}] id=$id — ошибка: ${e.message}")
+            }
+        }
+        println("Поиск родителей: завершено. Обработано ${ids.size}, назначено $parentMatched, найдено но пропущено (текст уже есть) $parentSkippedHasText")
+
+        // --- Фаза 2: аудио-родители (по той же выборке, после фазы 1) ------------------------
+        var audioMatched = 0
+        ids.forEachIndexed { index, id ->
+            try {
+                val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+                if (settings == null) {
+                    println("  [аудио-родитель ${index + 1}/${ids.size}] id=$id — пропущено (не найдено)")
                     return@forEachIndexed
                 }
                 val result = findAudioParentByWaveform(settings, WORKING_DATABASE, storageService, storageApiClient)
-                if (result.matched) matched++
-                println("  [${index + 1}/${ids.size}] ${songLogLabel(settings)} — ${result.reason}")
+                if (result.matched) audioMatched++
+                println("  [аудио-родитель ${index + 1}/${ids.size}] ${songLogLabel(settings)} — ${result.reason}")
             } catch (e: Exception) {
-                println("  [${index + 1}/${ids.size}] id=$id — ошибка: ${e.message}")
+                println("  [аудио-родитель ${index + 1}/${ids.size}] id=$id — ошибка: ${e.message}")
             }
         }
-        val summary = "Обработано ${ids.size}, аудио-родитель назначен $matched, без пары ${ids.size - matched}"
-        println("Индексация аудио-родителей: завершено. $summary")
+        println("Поиск аудио-родителей: завершено. Обработано ${ids.size}, назначено $audioMatched")
+
+        val summary = "Обработано ${ids.size}, родитель назначен $parentMatched (найдено, но пропущено из-за текста: $parentSkippedHasText), аудио-родитель назначен $audioMatched"
+        println("Поиск родителей и аудио-родителей: завершено. $summary")
 
         SNS.send(SseNotification.message(Message(
             type = "info",
-            head = "Индексация аудио-родителей",
+            head = "Поиск родителей и аудио-родителей",
             body = summary
         )))
     }
-    return "Индексация аудио-родителей запущена в фоне"
+    return "Поиск родителей и аудио-родителей запущен в фоне"
 }
 
 fun fillFormattedFields(storageService: KaraokeStorageService, storageApiClient: StorageApiClient) {
@@ -3401,6 +3455,46 @@ fun findDuplicateOriginal(newSettings: Settings, database: KaraokeConnection, st
 
     val id = findId(sameAuthorOnly = true) ?: findId(sameAuthorOnly = false) ?: return null
     return Settings.loadFromDbById(id = id, database = database, storageService = storageService, storageApiClient = storageApiClient)
+}
+
+private data class ParentCandidate(val id: Long, val author: String, val hasText: Boolean)
+
+/**
+ * Подбор кандидата в "родители" для пакетного повторного поиска (см. customFunction), в отличие
+ * от findDuplicateOriginal ищет среди ВСЕХ песен с точным совпадением нормализованного названия
+ * (normalizeSongNameForSearch), не только среди тех, у кого уже есть текст. При нескольких
+ * совпадениях выбор идёт по цепочке приоритетов: сначала кандидаты с непустым source_text (если
+ * такие есть), затем внутри этого пула - того же автора (регистронезависимо), затем - с
+ * наименьшим id.
+ */
+fun findParentCandidateId(settings: Settings, database: KaraokeConnection): Long? {
+    val cleanedName = normalizeSongNameForSearch(settings.songName)
+    if (cleanedName.isBlank()) return null
+    val connection = database.getConnection() ?: return null
+    val ps = connection.prepareStatement(
+        "SELECT id, song_name, song_author, source_text FROM tbl_settings WHERE id <> ?"
+    )
+    ps.setLong(1, settings.id)
+    val rs = ps.executeQuery()
+    val candidates = mutableListOf<ParentCandidate>()
+    while (rs.next()) {
+        if (normalizeSongNameForSearch(rs.getString("song_name")) == cleanedName) {
+            candidates.add(ParentCandidate(
+                id = rs.getLong("id"),
+                author = rs.getString("song_author") ?: "",
+                hasText = !rs.getString("source_text").isNullOrBlank()
+            ))
+        }
+    }
+    rs.close()
+    ps.close()
+    if (candidates.isEmpty()) return null
+
+    val withText = candidates.filter { it.hasText }
+    val pool = withText.ifEmpty { candidates }
+    val sameAuthor = pool.filter { it.author.equals(settings.author, ignoreCase = true) }
+    val finalPool = sameAuthor.ifEmpty { pool }
+    return finalPool.minByOrNull { it.id }?.id
 }
 
 fun searchSongsByNormalizedName(currentSettings: Settings, searchQuery: String, database: KaraokeConnection): List<Long> {

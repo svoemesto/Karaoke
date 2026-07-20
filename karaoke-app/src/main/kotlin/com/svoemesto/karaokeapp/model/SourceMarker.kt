@@ -12,5 +12,5 @@ data class SourceMarker(
     var color: String,
     var position: String,
 //    @JsonDeserialize(using = MarkertypeDeserializer::class)
-    var markertype: String
+    var markertype: String,
 )

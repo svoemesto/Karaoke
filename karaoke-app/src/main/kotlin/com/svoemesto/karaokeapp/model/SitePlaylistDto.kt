@@ -16,8 +16,8 @@ data class SitePlaylistDto(
     val repeatMode: String = "none",
     val shuffle: Boolean = false,
     val itemsCount: Int = 0,
-) : Serializable, KaraokeDbTableDto {
-
+) : Serializable,
+    KaraokeDbTableDto {
     override fun fromDto(database: KaraokeConnection): SitePlaylist {
         val entity = SitePlaylist(database = database)
         entity.id = id

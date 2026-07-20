@@ -3,17 +3,17 @@
     <div class="news-table-add">
       <div class="news-table-add-title">{{ editingId ? 'Изменить новость:' : 'Добавить новость:' }}</div>
       <div class="news-table-add-row">
-        <input class="news-field news-field-title" placeholder="Заголовок" v-model="form.title">
-        <select class="news-field news-field-category" v-model="form.category">
-          <option v-for="opt in categoryOptions" :key="opt.value" :value="opt.value" v-text="opt.icon + ' ' + opt.label"></option>
+        <input v-model="form.title" class="news-field news-field-title" placeholder="Заголовок"/>
+        <select v-model="form.category" class="news-field news-field-category">
+          <option v-for="opt in categoryOptions" :key="opt.value" :value="opt.value" v-text="opt.icon + ' ' + opt.label"/>
         </select>
-        <input class="news-field news-field-publishat" type="datetime-local" v-model="form.publishAt" title="Дата и время публикации">
+        <input v-model="form.publishAt" class="news-field news-field-publishat" type="datetime-local" title="Дата и время публикации"/>
       </div>
       <div class="news-table-add-row">
-        <textarea class="news-field news-field-body" placeholder="Текст новости" v-model="form.body" rows="2"></textarea>
+        <textarea v-model="form.body" class="news-field news-field-body" placeholder="Текст новости" rows="2"/>
       </div>
       <div class="news-table-add-row">
-        <input class="news-field news-field-link" placeholder="Ссылка (необязательно) — например /song?id=123" v-model="form.link">
+        <input v-model="form.link" class="news-field news-field-link" placeholder="Ссылка (необязательно) — например /song?id=123"/>
         <button class="news-btn-round" :disabled="!canSubmit" @click="submit">{{ editingId ? 'Сохранить' : 'Добавить' }}</button>
         <button v-if="editingId" class="news-btn-round news-btn-cancel" @click="cancelEdit">Отмена</button>
       </div>
@@ -21,7 +21,7 @@
 
     <div class="news-table-target">
       Целевая БД:
-      <select class="news-field news-field-target" v-model="newsTargetModel">
+      <select v-model="newsTargetModel" class="news-field news-field-target">
         <option value="local">Локальная</option>
         <option value="remote">Сервер</option>
       </select>
@@ -38,25 +38,25 @@
       >
         <template #table-busy>
           <div class="text-center text-danger my-2">
-            <b-spinner class="align-middle"></b-spinner>
+            <b-spinner class="align-middle"/>
             <strong>Loading...</strong>
           </div>
         </template>
 
         <template #cell(id)="data">
-          <div class="fld-news-id" v-text="data.value"></div>
+          <div class="fld-news-id" v-text="data.value"/>
         </template>
 
         <template #cell(title)="data">
-          <div class="fld-news-title" v-text="data.value" @click.left="startEdit(data.item)" title="Изменить"></div>
+          <div class="fld-news-title" title="Изменить" @click.left="startEdit(data.item)" v-text="data.value"/>
         </template>
 
         <template #cell(category)="data">
-          <div class="fld-news-category" v-text="categoryLabel(data.value)"></div>
+          <div class="fld-news-category" v-text="categoryLabel(data.value)"/>
         </template>
 
         <template #cell(publishAt)="data">
-          <div class="fld-news-publishat" v-text="formatDate(data.value)"></div>
+          <div class="fld-news-publishat" v-text="formatDate(data.value)"/>
         </template>
 
         <template #cell(published)="data">
@@ -67,7 +67,7 @@
 
         <template #cell(actions)="data">
           <div class="fld-news-actions">
-            <button class="news-btn-round-small" @click="remove(data.item)" title="Удалить">×</button>
+            <button class="news-btn-round-small" title="Удалить" @click="remove(data.item)">×</button>
           </div>
         </template>
       </b-table>
@@ -97,9 +97,6 @@ export default {
       categoryOptions: CATEGORY_OPTIONS,
     }
   },
-  mounted() {
-    this.$store.dispatch('loadNews');
-  },
   computed: {
     newsList() { return this.$store.getters.getNewsList },
     newsListIsLoading() { return this.$store.getters.getNewsListIsLoading },
@@ -121,6 +118,9 @@ export default {
         { key: 'actions', label: '', style: { minWidth: '50px', maxWidth: '50px', textAlign: 'center', fontSize: 'small' } },
       ]
     }
+  },
+  mounted() {
+    this.$store.dispatch('loadNews');
   },
   methods: {
     categoryLabel(value) {

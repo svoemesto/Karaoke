@@ -23,7 +23,6 @@ import java.util.concurrent.ConcurrentHashMap
  * сервис повторно по тем же IP.
  */
 object GeoIpService {
-
     private val memCache = ConcurrentHashMap<String, String>()
     private val COUNTRY_RE = Regex(""""country"\s*:\s*"([A-Za-z]{2})"""")
 
@@ -46,7 +45,10 @@ object GeoIpService {
         val ip = normalize(rawIp)
         if (ip.isEmpty()) return ""
         memCache[ip]?.let { return it }
-        loadFromDb(listOf(ip))[ip]?.let { memCache[ip] = it; return it }
+        loadFromDb(listOf(ip))[ip]?.let {
+            memCache[ip] = it
+            return it
+        }
         val resolved = if (isPrivate(ip)) "" else fetchFromService(ip)
         memCache[ip] = resolved
         saveToDb(ip, resolved)
@@ -63,7 +65,10 @@ object GeoIpService {
      * (кэш наполняется за несколько обновлений страницы). Приватные IP в лимит не считаются
      * (сеть не дёргается).
      */
-    fun resolveMany(rawIps: Collection<String>, maxFetch: Int = Int.MAX_VALUE): Map<String, String> {
+    fun resolveMany(
+        rawIps: Collection<String>,
+        maxFetch: Int = Int.MAX_VALUE,
+    ): Map<String, String> {
         val ips = rawIps.map { normalize(it) }.filter { it.isNotEmpty() }.distinct()
         val out = HashMap<String, String>(ips.size)
         val missing = mutableListOf<String>()
@@ -73,36 +78,51 @@ object GeoIpService {
         }
         if (missing.isNotEmpty()) {
             val fromDb = loadFromDb(missing)
-            for ((ip, c) in fromDb) { out[ip] = c; memCache[ip] = c }
+            for ((ip, c) in fromDb) {
+                out[ip] = c
+                memCache[ip] = c
+            }
             missing.removeAll(fromDb.keys)
         }
         var fetched = 0
         for (ip in missing) {
             val priv = isPrivate(ip)
-            if (!priv && fetched >= maxFetch) { out[ip] = ""; continue } // лимит исчерпан — не кэшируем, попробуем позже
+            if (!priv && fetched >= maxFetch) {
+                out[ip] = ""
+                continue
+            } // лимит исчерпан — не кэшируем, попробуем позже
             val resolved = if (priv) "" else fetchFromService(ip)
             out[ip] = resolved
             memCache[ip] = resolved
             saveToDb(ip, resolved)
-            if (!priv) { fetched++; try { Thread.sleep(80) } catch (_: InterruptedException) {} }
+            if (!priv) {
+                fetched++
+                try {
+                    Thread.sleep(80)
+                } catch (_: InterruptedException) {
+                }
+            }
         }
         return out
     }
 
-    private fun fetchFromService(ip: String): String {
-        return try {
+    private fun fetchFromService(ip: String): String =
+        try {
             val url = URL("https://api.country.is/" + URLEncoder.encode(ip, "UTF-8"))
             val conn = url.openConnection() as HttpURLConnection
             conn.setRequestProperty("User-Agent", "Mozilla/5.0")
             conn.connectTimeout = 5000
             conn.readTimeout = 5000
             val body = conn.inputStream.bufferedReader().readText()
-            COUNTRY_RE.find(body)?.groupValues?.getOrNull(1)?.uppercase() ?: ""
+            COUNTRY_RE
+                .find(body)
+                ?.groupValues
+                ?.getOrNull(1)
+                ?.uppercase() ?: ""
         } catch (e: Exception) {
             println("GeoIpService: не удалось определить страну для $ip: ${e.message}")
             ""
         }
-    }
 
     private fun loadFromDb(ips: List<String>): Map<String, String> {
         if (ips.isEmpty()) return emptyMap()
@@ -118,12 +138,18 @@ object GeoIpService {
         } catch (e: SQLException) {
             e.printStackTrace()
         } finally {
-            try { st?.close() } catch (_: SQLException) {}
+            try {
+                st?.close()
+            } catch (_: SQLException) {
+            }
         }
         return res
     }
 
-    private fun saveToDb(ip: String, country: String) {
+    private fun saveToDb(
+        ip: String,
+        country: String,
+    ) {
         val conn = Connection.local().getConnection() ?: return
         var st: Statement? = null
         try {
@@ -132,12 +158,15 @@ object GeoIpService {
             val cS = country.replace("'", "''")
             st.executeUpdate(
                 "insert into tbl_ip_country (ip, country) values ('$ipS', '$cS') " +
-                    "on conflict (ip) do update set country = excluded.country, resolved_at = now()"
+                    "on conflict (ip) do update set country = excluded.country, resolved_at = now()",
             )
         } catch (e: SQLException) {
             e.printStackTrace()
         } finally {
-            try { st?.close() } catch (_: SQLException) {}
+            try {
+                st?.close()
+            } catch (_: SQLException) {
+            }
         }
     }
 }

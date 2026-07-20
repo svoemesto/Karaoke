@@ -12,72 +12,72 @@
 
             <div class="prfm-filter-row">
               <div class="prfm-row-label">
-                <div v-text="'ID:'"></div>
+                <div v-text="'ID:'"/>
               </div>
               <div class="prfm-row-input">
-                <input class="prfm-input-field" v-model="processesFilterId">
+                <input v-model="processesFilterId" class="prfm-input-field"/>
               </div>
-              <button :disabled="!processesFilterId" class="prfm-button-clear-field" @click.left="processesFilterId=''" v-text="'X'"></button>
+              <button :disabled="!processesFilterId" class="prfm-button-clear-field" @click.left="processesFilterId=''" v-text="'X'"/>
             </div>
 
             <div class="prfm-filter-row">
               <div class="prfm-row-label">
-                <div v-text="'thID:'"></div>
+                <div v-text="'thID:'"/>
               </div>
               <div class="prfm-row-input">
-                <input class="prfm-input-field" v-model="processesFilterThreadId">
+                <input v-model="processesFilterThreadId" class="prfm-input-field"/>
               </div>
-              <button :disabled="!processesFilterThreadId" class="prfm-button-clear-field" @click.left="processesFilterThreadId=''" v-text="'X'"></button>
+              <button :disabled="!processesFilterThreadId" class="prfm-button-clear-field" @click.left="processesFilterThreadId=''" v-text="'X'"/>
             </div>
 
             <div class="prfm-filter-row">
               <div class="prfm-row-label">
-                <div v-text="'Имя:'"></div>
+                <div v-text="'Имя:'"/>
               </div>
               <div class="prfm-row-input">
-                <input class="prfm-input-field" v-model="processesFilterName">
+                <input v-model="processesFilterName" class="prfm-input-field"/>
               </div>
-              <button :disabled="!processesFilterName" class="prfm-button-clear-field" @click.left="processesFilterName=''" v-text="'X'"></button>
+              <button :disabled="!processesFilterName" class="prfm-button-clear-field" @click.left="processesFilterName=''" v-text="'X'"/>
             </div>
 
             <div class="prfm-filter-row">
               <div class="prfm-row-label">
-                <div v-text="'Статус:'"></div>
+                <div v-text="'Статус:'"/>
               </div>
               <div class="prfm-row-input">
-                <input class="prfm-input-field" v-model="processesFilterStatus">
+                <input v-model="processesFilterStatus" class="prfm-input-field"/>
               </div>
-              <button :disabled="!processesFilterStatus" class="prfm-button-clear-field" @click.left="processesFilterStatus=''" v-text="'X'"></button>
+              <button :disabled="!processesFilterStatus" class="prfm-button-clear-field" @click.left="processesFilterStatus=''" v-text="'X'"/>
             </div>
 
             <div class="prfm-filter-row">
               <div class="prfm-row-label">
-                <div v-text="'Приоритет:'"></div>
+                <div v-text="'Приоритет:'"/>
               </div>
               <div class="prfm-row-input">
-                <input class="prfm-input-field" v-model="processesFilterPriority">
+                <input v-model="processesFilterPriority" class="prfm-input-field"/>
               </div>
-              <button :disabled="!processesFilterPriority" class="prfm-button-clear-field" @click.left="processesFilterPriority=''" v-text="'X'"></button>
+              <button :disabled="!processesFilterPriority" class="prfm-button-clear-field" @click.left="processesFilterPriority=''" v-text="'X'"/>
             </div>
 
             <div class="prfm-filter-row">
               <div class="prfm-row-label">
-                <div v-text="'Описание:'"></div>
+                <div v-text="'Описание:'"/>
               </div>
               <div class="prfm-row-input">
-                <input class="prfm-input-field" v-model="processesFilterDescription">
+                <input v-model="processesFilterDescription" class="prfm-input-field"/>
               </div>
-              <button :disabled="!processesFilterDescription" class="prfm-button-clear-field" @click.left="processesFilterDescription=''" v-text="'X'"></button>
+              <button :disabled="!processesFilterDescription" class="prfm-button-clear-field" @click.left="processesFilterDescription=''" v-text="'X'"/>
             </div>
 
             <div class="prfm-filter-row">
               <div class="prfm-row-label">
-                <div v-text="'Тип:'"></div>
+                <div v-text="'Тип:'"/>
               </div>
               <div class="prfm-row-input">
-                <input class="prfm-input-field" v-model="processesFilterType">
+                <input v-model="processesFilterType" class="prfm-input-field"/>
               </div>
-              <button :disabled="!processesFilterType" class="prfm-button-clear-field" @click.left="processesFilterType=''" v-text="'X'"></button>
+              <button :disabled="!processesFilterType" class="prfm-button-clear-field" @click.left="processesFilterType=''" v-text="'X'"/>
             </div>
 
           </div>
@@ -97,15 +97,6 @@
 
 export default {
   name: "ProcessesFilterModal",
-  async beforeMount() {
-    this.$store.dispatch('setProcessesFilterId', { value: await this.$store.getters.getWebvueProp('processesFilterId', '') });
-    this.$store.dispatch('setProcessesFilterThreadId', { value: await this.$store.getters.getWebvueProp('processesFilterThreadId', '') });
-    this.$store.dispatch('setProcessesFilterName', { value: await this.$store.getters.getWebvueProp('processesFilterName', '') });
-    this.$store.dispatch('setProcessesFilterStatus', { value: await this.$store.getters.getWebvueProp('processesFilterStatus', '') });
-    this.$store.dispatch('setProcessesFilterPriority', { value: await this.$store.getters.getWebvueProp('processesFilterPriority', '') });
-    this.$store.dispatch('setProcessesFilterDescription', { value: await this.$store.getters.getWebvueProp('processesFilterDescription', '') });
-    this.$store.dispatch('setProcessesFilterType', { value: await this.$store.getters.getWebvueProp('processesFilterType', '') });
-  },
   computed: {
     processesFilterId: {
       get() { return this.$store.getters.getProcessesFilterId; },
@@ -135,6 +126,15 @@ export default {
       get() { return this.$store.getters.getProcessesFilterType; },
       set(value) { this.$store.dispatch('setProcessesFilterType', { value: value }); }
     },
+  },
+  async beforeMount() {
+    this.$store.dispatch('setProcessesFilterId', { value: await this.$store.getters.getWebvueProp('processesFilterId', '') });
+    this.$store.dispatch('setProcessesFilterThreadId', { value: await this.$store.getters.getWebvueProp('processesFilterThreadId', '') });
+    this.$store.dispatch('setProcessesFilterName', { value: await this.$store.getters.getWebvueProp('processesFilterName', '') });
+    this.$store.dispatch('setProcessesFilterStatus', { value: await this.$store.getters.getWebvueProp('processesFilterStatus', '') });
+    this.$store.dispatch('setProcessesFilterPriority', { value: await this.$store.getters.getWebvueProp('processesFilterPriority', '') });
+    this.$store.dispatch('setProcessesFilterDescription', { value: await this.$store.getters.getWebvueProp('processesFilterDescription', '') });
+    this.$store.dispatch('setProcessesFilterType', { value: await this.$store.getters.getWebvueProp('processesFilterType', '') });
   },
   methods: {
     ok() {

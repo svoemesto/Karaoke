@@ -33,7 +33,7 @@ fun createDzenPicture(pathToAuthor: String) {
     graphics2D.composite = alphaChannel
     graphics2D.background = Color.BLACK
     graphics2D.color = Color.BLACK
-    graphics2D.fillRect(0,0,frameW, frameH)
+    graphics2D.fillRect(0, 0, frameW, frameH)
     graphics2D.color = colorCaption
     graphics2D.font = fontSongname
 
@@ -62,10 +62,6 @@ fun createDzenPicture(pathToAuthor: String) {
     ImageIO.write(resultImage, "png", file)
     runCommand(listOf("chmod", "666", pathToFile))
 
-
-
-
-
     textToOverlay = "Lyrics"
     resultImage = BufferedImage(frameW, frameH, imageType)
     graphics2D = resultImage.graphics as Graphics2D
@@ -76,7 +72,7 @@ fun createDzenPicture(pathToAuthor: String) {
     graphics2D.composite = alphaChannel
     graphics2D.background = Color.BLACK
     graphics2D.color = Color.BLACK
-    graphics2D.fillRect(0,0,frameW, frameH)
+    graphics2D.fillRect(0, 0, frameW, frameH)
     graphics2D.color = colorCaption
     graphics2D.font = fontSongname
 
@@ -104,11 +100,9 @@ fun createDzenPicture(pathToAuthor: String) {
 
     ImageIO.write(resultImage, "png", file)
     runCommand(listOf("chmod", "666", pathToFile2))
-
 }
 
 fun getVKPictureBase64(settings: Settings): String {
-
     val frameW = 800
     val frameH = 194
     val opaque = 1f
@@ -125,7 +119,7 @@ fun getVKPictureBase64(settings: Settings): String {
     graphics2D.composite = alphaChannel
     graphics2D.background = Color.BLACK
     graphics2D.color = Color.BLACK
-    graphics2D.fillRect(0,0,frameW, frameH)
+    graphics2D.fillRect(0, 0, frameW, frameH)
 
     graphics2D.drawImage(resizeBufferedImage(biLogoAlbum, 154, 154), 20, 20, null)
     graphics2D.drawImage(resizeBufferedImage(biLogoAuthor, 385, 154), 294, 20, null)
@@ -137,11 +131,12 @@ fun getVKPictureBase64(settings: Settings): String {
     ImageIO.write(resultImage, "png", ios)
 
     return Base64.getEncoder().encodeToString(ios.toByteArray())
-
 }
 
-fun createVKLinkPictureWeb(settings: Settings, reCreateIfExist: Boolean = true): String {
-
+fun createVKLinkPictureWeb(
+    settings: Settings,
+    reCreateIfExist: Boolean = true,
+): String {
     val fName = "~/Karaoke/karaoke-web/src/main/resources/static/tmp/${settings.id}.png"
 
     if (settings.onAir && File(fName).exists()) {
@@ -163,17 +158,16 @@ fun createVKLinkPictureWeb(settings: Settings, reCreateIfExist: Boolean = true):
     val pathToLogoAlbum = settings.pathToFileLogoAlbum
     val pathToLogoAuthor = settings.pathToFileLogoAuthor
 
-
     val frameW = 537
     val frameH = 240
     val padding = 20
 
-    val albumW = ((frameW - 3*padding) / 3.5).toInt()
+    val albumW = ((frameW - 3 * padding) / 3.5).toInt()
     val albumH = albumW
     val authorW = (albumW * 2.5).toInt()
     val authorH = albumH
-    val picAreaH = 2*padding + albumH
-    val textAreaW = frameW - 2*padding
+    val picAreaH = 2 * padding + albumH
+    val textAreaW = frameW - 2 * padding
     val textAreaH = frameH - picAreaH
 
 //    val biLogoAlbum = ImageIO.read(ByteArrayInputStream(Base64.getDecoder().decode(settings.pictureAlbum?.full ?:"")))
@@ -185,28 +179,32 @@ fun createVKLinkPictureWeb(settings: Settings, reCreateIfExist: Boolean = true):
 //    val albumPic = Picture(params = ImageParams(w = albumW, h = albumH, biImage = biLogoAlbum))
 //    val authorPic = Picture(params = ImageParams(w = authorW, h = authorH, biImage = biLogoAuthor))
 
-    val areaText = Picture(
-        params = TextParams(
-            w = textAreaW,
-            h = textAreaH,
-            color = Color(255, 255, 127, 255),
-            text = settings.songName.censored(),
-            fontName = MAIN_FONT_NAME,
-            fontStyle = 0,
-            fontSize = 4,
-            isCalculatedSize = true,
-            isLineBreak = true
+    val areaText =
+        Picture(
+            params =
+                TextParams(
+                    w = textAreaW,
+                    h = textAreaH,
+                    color = Color(255, 255, 127, 255),
+                    text = settings.songName.censored(),
+                    fontName = MAIN_FONT_NAME,
+                    fontStyle = 0,
+                    fontSize = 4,
+                    isCalculatedSize = true,
+                    isLineBreak = true,
+                ),
         )
-    )
 
-    val area = Picture(
-        params = AreaParams(w = frameW, h = frameH, color = Color.BLACK),
-        childs = mutableListOf(
-            PictureChild(x = padding, y = padding, child = albumPic),
-            PictureChild(x = albumW + 2 * padding, y = padding, child = authorPic),
-            PictureChild(x = padding, y = picAreaH, child = areaText)
+    val area =
+        Picture(
+            params = AreaParams(w = frameW, h = frameH, color = Color.BLACK),
+            childs =
+                mutableListOf(
+                    PictureChild(x = padding, y = padding, child = albumPic),
+                    PictureChild(x = albumW + 2 * padding, y = padding, child = authorPic),
+                    PictureChild(x = padding, y = picAreaH, child = areaText),
+                ),
         )
-    )
 
     val file = File(fName)
 
@@ -220,28 +218,30 @@ fun createVKLinkPictureWeb(settings: Settings, reCreateIfExist: Boolean = true):
     return "create"
 }
 
-fun createVKLinkPicture(settings: Settings, fileName: String = "") {
-
-    val fName = if (fileName == "") {
-        settings.getOutputFilename(SongOutputFile.PICTUREVK, SongVersion.LYRICS).replace(" [lyrics] VK"," [VKlink]")
-    } else {
-        fileName
-    }
+fun createVKLinkPicture(
+    settings: Settings,
+    fileName: String = "",
+) {
+    val fName =
+        if (fileName == "") {
+            settings.getOutputFilename(SongOutputFile.PICTUREVK, SongVersion.LYRICS).replace(" [lyrics] VK", " [VKlink]")
+        } else {
+            fileName
+        }
 
     val pathToLogoAlbum = settings.pathToFileLogoAlbum
     val pathToLogoAuthor = settings.pathToFileLogoAuthor
-
 
     val frameW = 537
     val frameH = 240
     val padding = 20
 
-    val albumW = ((frameW - 3*padding) / 3.5).toInt()
+    val albumW = ((frameW - 3 * padding) / 3.5).toInt()
     val albumH = albumW
     val authorW = (albumW * 2.5).toInt()
     val authorH = albumH
-    val picAreaH = 2*padding + albumH
-    val textAreaW = frameW - 2*padding
+    val picAreaH = 2 * padding + albumH
+    val textAreaW = frameW - 2 * padding
     val textAreaH = frameH - picAreaH
 
 //    val biLogoAlbum = ImageIO.read(ByteArrayInputStream(Base64.getDecoder().decode(settings.pictureAlbum?.full ?:"")))
@@ -253,28 +253,32 @@ fun createVKLinkPicture(settings: Settings, fileName: String = "") {
 //    val albumPic = Picture(params = ImageParams(w = albumW, h = albumH, biImage = biLogoAlbum))
 //    val authorPic = Picture(params = ImageParams(w = authorW, h = authorH, biImage = biLogoAuthor))
 
-    val areaText = Picture(
-        params = TextParams(
-            w = textAreaW,
-            h = textAreaH,
-            color = Color(255, 255, 127, 255),
-            text = settings.songName.censored(),
-            fontName = MAIN_FONT_NAME,
-            fontStyle = 0,
-            fontSize = 4,
-            isCalculatedSize = true,
-            isLineBreak = true
+    val areaText =
+        Picture(
+            params =
+                TextParams(
+                    w = textAreaW,
+                    h = textAreaH,
+                    color = Color(255, 255, 127, 255),
+                    text = settings.songName.censored(),
+                    fontName = MAIN_FONT_NAME,
+                    fontStyle = 0,
+                    fontSize = 4,
+                    isCalculatedSize = true,
+                    isLineBreak = true,
+                ),
         )
-    )
 
-    val area = Picture(
-        params = AreaParams(w = frameW, h = frameH, color = Color.BLACK),
-        childs = mutableListOf(
-            PictureChild(x = padding, y = padding, child = albumPic),
-            PictureChild(x = albumW + 2 * padding, y = padding, child = authorPic),
-            PictureChild(x = padding, y = picAreaH, child = areaText)
+    val area =
+        Picture(
+            params = AreaParams(w = frameW, h = frameH, color = Color.BLACK),
+            childs =
+                mutableListOf(
+                    PictureChild(x = padding, y = padding, child = albumPic),
+                    PictureChild(x = albumW + 2 * padding, y = padding, child = authorPic),
+                    PictureChild(x = padding, y = picAreaH, child = areaText),
+                ),
         )
-    )
 
     val file = File(fName)
 
@@ -284,16 +288,18 @@ fun createVKLinkPicture(settings: Settings, fileName: String = "") {
     } catch (e: Exception) {
         println(e.message)
     }
-
 }
 
-fun createVKPicture(settings: Settings, fileName: String = "") {
-
-    val fName = if (fileName == "") {
-        settings.getOutputFilename(SongOutputFile.PICTUREVK, SongVersion.LYRICS).replace(" [lyrics] VK"," [VK]")
-    } else {
-        fileName
-    }
+fun createVKPicture(
+    settings: Settings,
+    fileName: String = "",
+) {
+    val fName =
+        if (fileName == "") {
+            settings.getOutputFilename(SongOutputFile.PICTUREVK, SongVersion.LYRICS).replace(" [lyrics] VK", " [VK]")
+        } else {
+            fileName
+        }
 
     val pathToLogoAlbum = settings.pathToFileLogoAlbum
     val pathToLogoAuthor = settings.pathToFileLogoAuthor
@@ -302,40 +308,44 @@ fun createVKPicture(settings: Settings, fileName: String = "") {
     val frameH = 300
     val padding = 20
 
-    val albumW = ((frameW - 3*padding) / 3.5).toInt()
+    val albumW = ((frameW - 3 * padding) / 3.5).toInt()
     val albumH = albumW
     val authorW = (albumW * 2.5).toInt()
     val authorH = albumH
-    val picAreaH = 2*padding + albumH
+    val picAreaH = 2 * padding + albumH
 
-    val textAreaW = frameW - 2*padding
+    val textAreaW = frameW - 2 * padding
     val textAreaH = frameH - picAreaH
 
     val albumPic = Picture(params = ImageParams(w = albumW, h = albumH, pathToFile = pathToLogoAlbum))
     val authorPic = Picture(params = ImageParams(w = authorW, h = authorH, pathToFile = pathToLogoAuthor))
 
-    val areaText = Picture(
-        params = TextParams(
-            w = textAreaW,
-            h = textAreaH,
-            color = Color(255, 255, 127, 255),
-            text = settings.songName.censored(),
-            fontName = MAIN_FONT_NAME,
-            fontStyle = 0,
-            fontSize = 4,
-            isCalculatedSize = true,
-            isLineBreak = true
+    val areaText =
+        Picture(
+            params =
+                TextParams(
+                    w = textAreaW,
+                    h = textAreaH,
+                    color = Color(255, 255, 127, 255),
+                    text = settings.songName.censored(),
+                    fontName = MAIN_FONT_NAME,
+                    fontStyle = 0,
+                    fontSize = 4,
+                    isCalculatedSize = true,
+                    isLineBreak = true,
+                ),
         )
-    )
 
-    val area = Picture(
-        params = AreaParams(w = frameW, h = frameH, color = Color.BLACK),
-        childs = mutableListOf(
-            PictureChild(x = padding, y = padding, child = albumPic),
-            PictureChild(x = albumW + 2 * padding, y = padding, child = authorPic),
-            PictureChild(x = padding, y = picAreaH, child = areaText)
+    val area =
+        Picture(
+            params = AreaParams(w = frameW, h = frameH, color = Color.BLACK),
+            childs =
+                mutableListOf(
+                    PictureChild(x = padding, y = padding, child = albumPic),
+                    PictureChild(x = albumW + 2 * padding, y = padding, child = authorPic),
+                    PictureChild(x = padding, y = picAreaH, child = areaText),
+                ),
         )
-    )
 
     val file = File(fName)
 
@@ -345,16 +355,18 @@ fun createVKPicture(settings: Settings, fileName: String = "") {
     } catch (e: Exception) {
         println(e.message)
     }
-
 }
 
-fun createBoostyFilesPicture(settings: Settings, fileName: String = "") {
-
-    val fName = if (fileName == "") {
-        settings.getOutputFilename(SongOutputFile.PICTUREBOOSTYFILES)
-    } else {
-        fileName
-    }
+fun createBoostyFilesPicture(
+    settings: Settings,
+    fileName: String = "",
+) {
+    val fName =
+        if (fileName == "") {
+            settings.getOutputFilename(SongOutputFile.PICTUREBOOSTYFILES)
+        } else {
+            fileName
+        }
 
     val caption = "Файлы"
     val pathToLogoAlbum = settings.pathToFileLogoAlbum
@@ -365,56 +377,61 @@ fun createBoostyFilesPicture(settings: Settings, fileName: String = "") {
 
     val padding = 20
 
-    val albumW = ((frameW - 3*padding) / 3.5).toInt()
+    val albumW = ((frameW - 3 * padding) / 3.5).toInt()
     val albumH = albumW
     val authorW = (albumW * 2.5).toInt()
     val authorH = albumH
-    val picAreaH = 2*padding + albumH
+    val picAreaH = 2 * padding + albumH
 
-    val textAreaW = frameW - 2*padding
+    val textAreaW = frameW - 2 * padding
     val textAreaH = 350
 
     val albumPic = Picture(params = ImageParams(w = albumW, h = albumH, pathToFile = pathToLogoAlbum))
     val authorPic = Picture(params = ImageParams(w = authorW, h = authorH, pathToFile = pathToLogoAuthor))
 
-    val areaText = Picture(
-        params = TextParams(
-            w = textAreaW,
-            h = textAreaH,
-            color = Color(255, 255, 127, 255),
-            text = settings.songName.censored(),
-            fontName = MAIN_FONT_NAME,
-            fontStyle = 0,
-            fontSize = 50,
-            isCalculatedSize = true,
-            isLineBreak = true
+    val areaText =
+        Picture(
+            params =
+                TextParams(
+                    w = textAreaW,
+                    h = textAreaH,
+                    color = Color(255, 255, 127, 255),
+                    text = settings.songName.censored(),
+                    fontName = MAIN_FONT_NAME,
+                    fontStyle = 0,
+                    fontSize = 50,
+                    isCalculatedSize = true,
+                    isLineBreak = true,
+                ),
         )
-    )
 
-    val areaTextCaption = Picture(
-        params = TextParams(
-            w = textAreaW,
-            h = 250,
-            color = Color(85, 255, 255, 255),
-            text = caption,
-            fontName = MAIN_FONT_NAME,
-            fontStyle = 0,
-            fontSize = 100,
-            isCalculatedSize = false,
-            isLineBreak = false
+    val areaTextCaption =
+        Picture(
+            params =
+                TextParams(
+                    w = textAreaW,
+                    h = 250,
+                    color = Color(85, 255, 255, 255),
+                    text = caption,
+                    fontName = MAIN_FONT_NAME,
+                    fontStyle = 0,
+                    fontSize = 100,
+                    isCalculatedSize = false,
+                    isLineBreak = false,
+                ),
         )
-    )
 
-    val area = Picture(
-        params = AreaParams(w = frameW, h = frameH, color = Color.BLACK),
-        childs = mutableListOf(
-            PictureChild(x = padding, y = padding, child = albumPic),
-            PictureChild(x = albumW + 2 * padding, y = padding, child = authorPic),
-            PictureChild(x = padding, y = picAreaH, child = areaText),
-            PictureChild(x = padding, y = 475, child = areaTextCaption)
-
+    val area =
+        Picture(
+            params = AreaParams(w = frameW, h = frameH, color = Color.BLACK),
+            childs =
+                mutableListOf(
+                    PictureChild(x = padding, y = padding, child = albumPic),
+                    PictureChild(x = albumW + 2 * padding, y = padding, child = authorPic),
+                    PictureChild(x = padding, y = picAreaH, child = areaText),
+                    PictureChild(x = padding, y = 475, child = areaTextCaption),
+                ),
         )
-    )
 
     val file = File(fName)
 
@@ -424,16 +441,18 @@ fun createBoostyFilesPicture(settings: Settings, fileName: String = "") {
     } catch (e: Exception) {
         println(e.message)
     }
-
 }
 
-fun createBoostyTeaserPicture(settings: Settings, fileName: String = "") {
-
-    val fName = if (fileName == "") {
-        settings.getOutputFilename(SongOutputFile.PICTUREBOOSTYTEASER)
-    } else {
-        fileName
-    }
+fun createBoostyTeaserPicture(
+    settings: Settings,
+    fileName: String = "",
+) {
+    val fName =
+        if (fileName == "") {
+            settings.getOutputFilename(SongOutputFile.PICTUREBOOSTYTEASER)
+        } else {
+            fileName
+        }
 
     val pathToLogoAlbum = settings.pathToFileLogoAlbum
     val pathToLogoAuthor = settings.pathToFileLogoAuthor
@@ -442,40 +461,43 @@ fun createBoostyTeaserPicture(settings: Settings, fileName: String = "") {
     val frameH = 625
     val padding = 20
 
-    val albumW = ((frameW - 3*padding) / 3.5).toInt()
+    val albumW = ((frameW - 3 * padding) / 3.5).toInt()
     val albumH = albumW
     val authorW = (albumW * 2.5).toInt()
     val authorH = albumH
-    val picAreaH = 2*padding + albumH
+    val picAreaH = 2 * padding + albumH
 
-    val textAreaW = frameW - 2*padding
+    val textAreaW = frameW - 2 * padding
     val textAreaH = frameH - picAreaH
 
     val albumPic = Picture(params = ImageParams(w = albumW, h = albumH, pathToFile = pathToLogoAlbum))
     val authorPic = Picture(params = ImageParams(w = authorW, h = authorH, pathToFile = pathToLogoAuthor))
-    val areaText = Picture(
-        params = TextParams(
-            w = textAreaW,
-            h = textAreaH,
-            color = Color(255, 255, 127, 255),
-            text = settings.songName.censored(),
-            fontName = MAIN_FONT_NAME,
-            fontStyle = 0,
-            fontSize = 4,
-            isCalculatedSize = true,
-            isLineBreak = true
+    val areaText =
+        Picture(
+            params =
+                TextParams(
+                    w = textAreaW,
+                    h = textAreaH,
+                    color = Color(255, 255, 127, 255),
+                    text = settings.songName.censored(),
+                    fontName = MAIN_FONT_NAME,
+                    fontStyle = 0,
+                    fontSize = 4,
+                    isCalculatedSize = true,
+                    isLineBreak = true,
+                ),
         )
-    )
 
-
-    val area = Picture(
-        params = AreaParams(w = frameW, h = frameH, color = Color.BLACK),
-        childs = mutableListOf(
-            PictureChild(x = padding, y = padding, child = albumPic),
-            PictureChild(x = albumW + 2 * padding, y = padding, child = authorPic),
-            PictureChild(x = padding, y = picAreaH, child = areaText)
+    val area =
+        Picture(
+            params = AreaParams(w = frameW, h = frameH, color = Color.BLACK),
+            childs =
+                mutableListOf(
+                    PictureChild(x = padding, y = padding, child = albumPic),
+                    PictureChild(x = albumW + 2 * padding, y = padding, child = authorPic),
+                    PictureChild(x = padding, y = picAreaH, child = areaText),
+                ),
         )
-    )
 
     val file = File(fName)
 
@@ -485,10 +507,13 @@ fun createBoostyTeaserPicture(settings: Settings, fileName: String = "") {
     } catch (e: Exception) {
         println(e.message)
     }
-
 }
 
-fun resizeBufferedImage(img: BufferedImage, newW: Int, newH: Int): BufferedImage {
+fun resizeBufferedImage(
+    img: BufferedImage,
+    newW: Int,
+    newH: Int,
+): BufferedImage {
     val tmp = img.getScaledInstance(newW, newH, Image.SCALE_SMOOTH)
     val dimg = BufferedImage(newW, newH, BufferedImage.TYPE_INT_ARGB)
     val g2d = dimg.createGraphics()
@@ -531,8 +556,10 @@ fun createAlbumPreview(settings: Settings) {
     }
 }
 
-fun createSongPicture(settings: Settings, songVersion: SongVersion) {
-
+fun createSongPicture(
+    settings: Settings,
+    songVersion: SongVersion,
+) {
     val fileName = settings.getOutputFilename(SongOutputFile.PICTURE, songVersion)
     val pathToFolder = File(fileName).parent
     Files.createDirectories(Path(pathToFolder))
@@ -550,65 +577,73 @@ fun createSongPicture(settings: Settings, songVersion: SongVersion) {
     val albumH = 400
     val authorW = 1000
     val authorH = 400
-    val picAreaH = 2*padding + albumH
+    val picAreaH = 2 * padding + albumH
 
     val pictureOffset = (frameW - albumW - authorW - padding) / 2
 
-    val textAreaW = frameW - 2*padding
+    val textAreaW = frameW - 2 * padding
     val textAreaH = 400
 
     val albumPic = Picture(params = ImageParams(w = albumW, h = albumH, pathToFile = pathToLogoAlbum))
     val authorPic = Picture(params = ImageParams(w = authorW, h = authorH, pathToFile = pathToLogoAuthor))
 
-    val areaText = Picture(
-        params = TextParams(
-            w = textAreaW,
-            h = textAreaH,
-            color = Color(255, 255, 127, 255),
-            text = settings.songName.censored(),
-            fontName = MAIN_FONT_NAME,
-            fontStyle = 0,
-            fontSize = 50,
-            isCalculatedSize = true,
-            isLineBreak = true
+    val areaText =
+        Picture(
+            params =
+                TextParams(
+                    w = textAreaW,
+                    h = textAreaH,
+                    color = Color(255, 255, 127, 255),
+                    text = settings.songName.censored(),
+                    fontName = MAIN_FONT_NAME,
+                    fontStyle = 0,
+                    fontSize = 50,
+                    isCalculatedSize = true,
+                    isLineBreak = true,
+                ),
         )
-    )
-    val areaTextCaption = Picture(
-        params = TextParams(
-            w = textAreaW,
-            h = 250,
-            color = Color(85, 255, 255, 255),
-            text = caption,
-            fontName = MAIN_FONT_NAME,
-            fontStyle = 0,
-            fontSize = 185,
-            isCalculatedSize = false,
-            isLineBreak = false
+    val areaTextCaption =
+        Picture(
+            params =
+                TextParams(
+                    w = textAreaW,
+                    h = 250,
+                    color = Color(85, 255, 255, 255),
+                    text = caption,
+                    fontName = MAIN_FONT_NAME,
+                    fontStyle = 0,
+                    fontSize = 185,
+                    isCalculatedSize = false,
+                    isLineBreak = false,
+                ),
         )
-    )
-    val areaTextComment = Picture(
-        params = TextParams(
-            w = textAreaW,
-            h = 100,
-            color = Color(85, 255, 255, 255),
-            text = comment,
-            fontName = MAIN_FONT_NAME,
-            fontStyle = 0,
-            fontSize = 60,
-            isCalculatedSize = false,
-            isLineBreak = false
+    val areaTextComment =
+        Picture(
+            params =
+                TextParams(
+                    w = textAreaW,
+                    h = 100,
+                    color = Color(85, 255, 255, 255),
+                    text = comment,
+                    fontName = MAIN_FONT_NAME,
+                    fontStyle = 0,
+                    fontSize = 60,
+                    isCalculatedSize = false,
+                    isLineBreak = false,
+                ),
         )
-    )
-    val area = Picture(
-        params = AreaParams(w = frameW, h = frameH, color = Color.BLACK),
-        childs = mutableListOf(
-            PictureChild(x = pictureOffset, y = padding, child = albumPic),
-            PictureChild(x = pictureOffset + albumW + padding, y = padding, child = authorPic),
-            PictureChild(x = padding, y = picAreaH - padding, child = areaText),
-            PictureChild(x = padding, y = 850, child = areaTextCaption),
-            PictureChild(x = padding, y = 1080 - 70, child = areaTextComment)
+    val area =
+        Picture(
+            params = AreaParams(w = frameW, h = frameH, color = Color.BLACK),
+            childs =
+                mutableListOf(
+                    PictureChild(x = pictureOffset, y = padding, child = albumPic),
+                    PictureChild(x = pictureOffset + albumW + padding, y = padding, child = authorPic),
+                    PictureChild(x = padding, y = picAreaH - padding, child = areaText),
+                    PictureChild(x = padding, y = 850, child = areaTextCaption),
+                    PictureChild(x = padding, y = 1080 - 70, child = areaTextComment),
+                ),
         )
-    )
 
     val file = File(fileName)
 
@@ -620,8 +655,10 @@ fun createSongPicture(settings: Settings, songVersion: SongVersion) {
     }
 }
 
-fun getSongChordsPicture(settings: Settings, mltNode: MltNode): BufferedImage {
-
+fun getSongChordsPicture(
+    settings: Settings,
+    mltNode: MltNode,
+): BufferedImage {
     @Suppress("UNCHECKED_CAST")
     val songTextSymbolsGroup = mltNode.body as MutableList<MltNode>
     val startViewport = songTextSymbolsGroup.first { it.name == "startviewport" }
@@ -632,7 +669,7 @@ fun getSongChordsPicture(settings: Settings, mltNode: MltNode): BufferedImage {
     var countPages = 0
     do {
         countPages++
-    } while ((frameW.toDouble() * countPages) / (frameH.toDouble() / countPages) < 1.2 )
+    } while ((frameW.toDouble() * countPages) / (frameH.toDouble() / countPages) < 1.2)
 
     // Находим минимальную высоту страницы
     val minPageH = frameH / (countPages)
@@ -651,7 +688,7 @@ fun getSongChordsPicture(settings: Settings, mltNode: MltNode): BufferedImage {
     graphics2D.composite = alphaChannel
     graphics2D.background = colorBack
     graphics2D.color = colorBack
-    graphics2D.fillRect(0,0,frameW, frameH)
+    graphics2D.fillRect(0, 0, frameW, frameH)
     graphics2D.color = colorBack
     graphics2D.font = fontText
 
@@ -660,18 +697,22 @@ fun getSongChordsPicture(settings: Settings, mltNode: MltNode): BufferedImage {
     data class PicturePage(
         val number: Int,
         var h: Int,
-        var lines: MutableList<MltNode>
+        var lines: MutableList<MltNode>,
     )
     val pages: MutableList<PicturePage> = mutableListOf()
     var currentH = 0
     var listLines: MutableList<MltNode> = mutableListOf()
-    songTextSymbolsGroup.filter {it.name == "item"} .forEach { songTextSymbols ->
+    songTextSymbolsGroup.filter { it.name == "item" }.forEach { songTextSymbols ->
         val nodePosition = (songTextSymbols.body as MutableList<*>)[0] as MltNode
         val nodeText = (songTextSymbols.body as MutableList<*>)[1] as MltNode
 //        val x = nodePosition.fields["x"]!!.toInt()
         val y = nodePosition.fields["y"]!!.toInt()
         val textToOverlay = nodeText.body as String
-        val isChord = (nodeText.fields["font"]!!.split(" ")[0] == Karaoke.chordsFont.font.fontName.split(" ")[0])
+        val isChord = (
+            nodeText.fields["font"]!!.split(" ")[0] ==
+                Karaoke.chordsFont.font.fontName
+                    .split(" ")[0]
+        )
         val fontTextTmp = Font(nodeText.fields["font"], 0, nodeText.fields["font-pixel-size"]!!.toInt())
         graphics2D.font = fontTextTmp
         val fontMetrics = graphics2D.fontMetrics
@@ -705,7 +746,7 @@ fun getSongChordsPicture(settings: Settings, mltNode: MltNode): BufferedImage {
         graphics2Dpage.composite = alphaChannelPage
         graphics2Dpage.background = colorBack
         graphics2Dpage.color = colorBack
-        graphics2Dpage.fillRect(0,0,frameW, picturePage.h+20)
+        graphics2Dpage.fillRect(0, 0, frameW, picturePage.h + 20)
         graphics2Dpage.color = colorBack
         graphics2Dpage.font = fontText
 
@@ -715,13 +756,18 @@ fun getSongChordsPicture(settings: Settings, mltNode: MltNode): BufferedImage {
             val x = nodePosition.fields["x"]!!.toInt()
             val y = nodePosition.fields["y"]!!.toInt() - totalH
             val textToOverlay = (nodeText.body as String).replace("&amp;amp;", "&")
-            val isChord = (nodeText.fields["font"]!!.split(" ")[0] == Karaoke.chordsFont.font.fontName.split(" ")[0])
-            graphics2Dpage.color = if (isChord) colorChord else colorText
-            fontText = Font(
-                nodeText.fields["font"],
-                0,
-                (nodeText.fields["font-pixel-size"]!!.toInt() / if (isChord) Karaoke.chordsHeightCoefficient else 1.0).toInt()
+            val isChord = (
+                nodeText.fields["font"]!!.split(" ")[0] ==
+                    Karaoke.chordsFont.font.fontName
+                        .split(" ")[0]
             )
+            graphics2Dpage.color = if (isChord) colorChord else colorText
+            fontText =
+                Font(
+                    nodeText.fields["font"],
+                    0,
+                    (nodeText.fields["font-pixel-size"]!!.toInt() / if (isChord) Karaoke.chordsHeightCoefficient else 1.0).toInt(),
+                )
             graphics2Dpage.font = fontText
             val fontMetrics = graphics2Dpage.fontMetrics
             val rectH = fontMetrics.getStringBounds(textToOverlay, graphics2Dpage).height.toInt()
@@ -742,21 +788,21 @@ fun getSongChordsPicture(settings: Settings, mltNode: MltNode): BufferedImage {
     graphics2Dresult.composite = alphaChannel
     graphics2Dresult.background = colorBack
     graphics2Dresult.color = colorBack
-    graphics2Dresult.fillRect(0,0,fullW, pages.maxOf { it.h } + 20)
-    bis.forEachIndexed{ index, bi ->
+    graphics2Dresult.fillRect(0, 0, fullW, pages.maxOf { it.h } + 20)
+    bis.forEachIndexed { index, bi ->
         graphics2Dresult.drawImage(bi, frameW * index, 0, null)
     }
     graphics2Dresult.dispose()
 
     val nameW = fullW
-    val nameH = Integer.max(fullH - (pages.maxOf { it.h } + 20),200)
+    val nameH = Integer.max(fullH - (pages.maxOf { it.h } + 20), 200)
 
     val resultImageName = BufferedImage(nameW, nameH, imageType)
     val graphics2name = resultImageName.graphics as Graphics2D
     graphics2name.composite = alphaChannel
     graphics2name.background = colorBack
     graphics2name.color = colorBack
-    graphics2name.fillRect(0,0,nameW, nameH)
+    graphics2name.fillRect(0, 0, nameW, nameH)
     graphics2name.color = colorText
     val textToOverlay = "${settings.author} - ${settings.year} - «${settings.songName}» (${settings.key}, ${settings.bpm} bpm)"
     var rectW: Int
@@ -782,7 +828,7 @@ fun getSongChordsPicture(settings: Settings, mltNode: MltNode): BufferedImage {
     graphics2DresultAndName.composite = alphaChannel
     graphics2DresultAndName.background = colorBack
     graphics2DresultAndName.color = colorBack
-    graphics2DresultAndName.fillRect(0,0,fullW, fullH)
+    graphics2DresultAndName.fillRect(0, 0, fullW, fullH)
     graphics2DresultAndName.drawImage(resultImageName, 0, 0, null)
     graphics2DresultAndName.drawImage(resultImages, 0, nameH, null)
 
@@ -792,7 +838,12 @@ fun getSongChordsPicture(settings: Settings, mltNode: MltNode): BufferedImage {
 }
 
 @Suppress("unused")
-fun createSongChordsPicture(settings: Settings, fileName: String, songVersion: SongVersion, mltNode: MltNode) {
+fun createSongChordsPicture(
+    settings: Settings,
+    fileName: String,
+    songVersion: SongVersion,
+    mltNode: MltNode,
+) {
     if (songVersion == SongVersion.CHORDS) {
         val resultImage = getSongChordsPicture(settings, mltNode)
         val file = File(fileName)
@@ -801,8 +852,7 @@ fun createSongChordsPicture(settings: Settings, fileName: String, songVersion: S
     }
 }
 
-fun getChordLayoutPicture(mltObjects:List<MltObject>): BufferedImage {
-
+fun getChordLayoutPicture(mltObjects: List<MltObject>): BufferedImage {
     val imageType = BufferedImage.TYPE_INT_ARGB
 
     if (mltObjects.isEmpty()) {
@@ -814,7 +864,7 @@ fun getChordLayoutPicture(mltObjects:List<MltObject>): BufferedImage {
         val alphaChannel = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, opaque)
         graphics2D.composite = alphaChannel
         graphics2D.color = Color.BLACK
-        graphics2D.fillRect(0,0, (Karaoke.frameHeightPx /4), (Karaoke.frameHeightPx /4))
+        graphics2D.fillRect(0, 0, (Karaoke.frameHeightPx / 4), (Karaoke.frameHeightPx / 4))
         graphics2D.dispose()
         return resultImage
     }
@@ -834,20 +884,26 @@ fun getChordLayoutPicture(mltObjects:List<MltObject>): BufferedImage {
 
                 val textToOverlay = (obj.shape as MltText).text
                 graphics2D.font = (obj.shape as MltText).font
-                graphics2D.drawString(textToOverlay, obj.x, obj.y + obj.h - obj.h/4)
-
+                graphics2D.drawString(textToOverlay, obj.x, obj.y + obj.h - obj.h / 4)
             }
             else -> {
-
                 var opaque = obj.shape.shapeColor.alpha / 255f
                 var alphaChannel = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, opaque)
                 graphics2D.composite = alphaChannel
                 graphics2D.color = obj.shape.shapeColor
 
                 when (obj.shape.type) {
-                    MltObjectType.RECTANGLE -> graphics2D.fillRect(obj.x,obj.y,obj.w, obj.h)
-                    MltObjectType.CIRCLE -> graphics2D.fillOval(obj.x,obj.y,obj.w, obj.h)
-                    MltObjectType.ROUNDEDRECTANGLE -> graphics2D.fillRoundRect(obj.x,obj.y,obj.w, obj.h, Integer.min(obj.w, obj.h), Integer.min(obj.w, obj.h))
+                    MltObjectType.RECTANGLE -> graphics2D.fillRect(obj.x, obj.y, obj.w, obj.h)
+                    MltObjectType.CIRCLE -> graphics2D.fillOval(obj.x, obj.y, obj.w, obj.h)
+                    MltObjectType.ROUNDEDRECTANGLE ->
+                        graphics2D.fillRoundRect(
+                            obj.x,
+                            obj.y,
+                            obj.w,
+                            obj.h,
+                            Integer.min(obj.w, obj.h),
+                            Integer.min(obj.w, obj.h),
+                        )
                     else -> {}
                 }
 
@@ -858,12 +914,19 @@ fun getChordLayoutPicture(mltObjects:List<MltObject>): BufferedImage {
 
                 graphics2D.color = obj.shape.shapeOutlineColor
                 when (obj.shape.type) {
-                    MltObjectType.RECTANGLE -> graphics2D.drawRect(obj.x,obj.y,obj.w, obj.h)
-                    MltObjectType.CIRCLE -> graphics2D.drawOval(obj.x,obj.y,obj.w, obj.h)
-                    MltObjectType.ROUNDEDRECTANGLE -> graphics2D.drawRoundRect(obj.x,obj.y,obj.w, obj.h, Integer.min(obj.w, obj.h), Integer.min(obj.w, obj.h))
+                    MltObjectType.RECTANGLE -> graphics2D.drawRect(obj.x, obj.y, obj.w, obj.h)
+                    MltObjectType.CIRCLE -> graphics2D.drawOval(obj.x, obj.y, obj.w, obj.h)
+                    MltObjectType.ROUNDEDRECTANGLE ->
+                        graphics2D.drawRoundRect(
+                            obj.x,
+                            obj.y,
+                            obj.w,
+                            obj.h,
+                            Integer.min(obj.w, obj.h),
+                            Integer.min(obj.w, obj.h),
+                        )
                     else -> {}
                 }
-
             }
         }
     }
@@ -871,13 +934,16 @@ fun getChordLayoutPicture(mltObjects:List<MltObject>): BufferedImage {
     return resultImage
 }
 
-fun createSponsrTeaserPicture(settings: Settings, fileName: String = "") {
-
-    val fName = if (fileName == "") {
-        settings.getOutputFilename(SongOutputFile.PICTURESPONSRTEASER)
-    } else {
-        fileName
-    }
+fun createSponsrTeaserPicture(
+    settings: Settings,
+    fileName: String = "",
+) {
+    val fName =
+        if (fileName == "") {
+            settings.getOutputFilename(SongOutputFile.PICTURESPONSRTEASER)
+        } else {
+            fileName
+        }
 
     val caption = settings.getTextForSponsrPictureDescription()
     val pathToLogoAlbum = settings.pathToFileLogoAlbum
@@ -890,51 +956,57 @@ fun createSponsrTeaserPicture(settings: Settings, fileName: String = "") {
     val albumH = 400
     val authorW = 1000
     val authorH = 400
-    val picAreaH = 2*padding + albumH
+    val picAreaH = 2 * padding + albumH
 
     val pictureOffset = (frameW - albumW - authorW - padding) / 2
 
-    val textAreaW = frameW - 2*padding
+    val textAreaW = frameW - 2 * padding
     val textAreaH = 400
 
     val albumPic = Picture(params = ImageParams(w = albumW, h = albumH, pathToFile = pathToLogoAlbum))
     val authorPic = Picture(params = ImageParams(w = authorW, h = authorH, pathToFile = pathToLogoAuthor))
 
-    val areaText = Picture(
-        params = TextParams(
-            w = textAreaW,
-            h = textAreaH,
-            color = Color(255, 255, 127, 255),
-            text = settings.songName.censored(),
-            fontName = MAIN_FONT_NAME,
-            fontStyle = 0,
-            fontSize = 50,
-            isCalculatedSize = true,
-            isLineBreak = true
+    val areaText =
+        Picture(
+            params =
+                TextParams(
+                    w = textAreaW,
+                    h = textAreaH,
+                    color = Color(255, 255, 127, 255),
+                    text = settings.songName.censored(),
+                    fontName = MAIN_FONT_NAME,
+                    fontStyle = 0,
+                    fontSize = 50,
+                    isCalculatedSize = true,
+                    isLineBreak = true,
+                ),
         )
-    )
-    val areaTextCaption = Picture(
-        params = TextParams(
-            w = textAreaW,
-            h = 250,
-            color = Color(85, 255, 255, 255),
-            text = caption,
-            fontName = MAIN_FONT_NAME,
-            fontStyle = 0,
-            fontSize = 100,
-            isCalculatedSize = false,
-            isLineBreak = false
+    val areaTextCaption =
+        Picture(
+            params =
+                TextParams(
+                    w = textAreaW,
+                    h = 250,
+                    color = Color(85, 255, 255, 255),
+                    text = caption,
+                    fontName = MAIN_FONT_NAME,
+                    fontStyle = 0,
+                    fontSize = 100,
+                    isCalculatedSize = false,
+                    isLineBreak = false,
+                ),
         )
-    )
-    val area = Picture(
-        params = AreaParams(w = frameW, h = frameH, color = Color.BLACK),
-        childs = mutableListOf(
-            PictureChild(x = pictureOffset, y = padding, child = albumPic),
-            PictureChild(x = pictureOffset + albumW + padding, y = padding, child = authorPic),
-            PictureChild(x = padding, y = picAreaH - padding, child = areaText),
-            PictureChild(x = padding, y = 850, child = areaTextCaption)
+    val area =
+        Picture(
+            params = AreaParams(w = frameW, h = frameH, color = Color.BLACK),
+            childs =
+                mutableListOf(
+                    PictureChild(x = pictureOffset, y = padding, child = albumPic),
+                    PictureChild(x = pictureOffset + albumW + padding, y = padding, child = authorPic),
+                    PictureChild(x = padding, y = picAreaH - padding, child = areaText),
+                    PictureChild(x = padding, y = 850, child = areaTextCaption),
+                ),
         )
-    )
 
     val file = File(fName)
 

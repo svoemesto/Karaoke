@@ -3,6 +3,25 @@
 </template>
 
 <script setup>
+/**
+ * Полноэкранный плеер караоке-видео в karaoke-public.
+ *
+ * Инициализирует `KaraokePlayer` (см. `../player/KaraokePlayer.js`),
+ * который загружает FLAC-стемы (vocals/accompaniment) и MP4-видео,
+ * синхронизирует с текстом песни и аккордами, поддерживает режимы
+ * KARAOKE (только acc) / LYRICS (acc+voc) / DEMO (с watermark).
+ *
+ * Использует route-параметры:
+ * - `id` — ID песни (`Settings.id`).
+ * - `version` — версия (1080p/720p/instrumental).
+ *
+ * Аутентификация — через `useAuth()` (premium-доступ для стемов).
+ *
+ * @route /song/player/:id?version=...
+ * @see docs/features/mp4-render.md
+ * @see docs/features/premium-stems.md
+ * @see KaraokePlayer основной движок плеера
+ */
 import { onMounted, onBeforeUnmount, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import KaraokePlayer from '../player/KaraokePlayer.js'

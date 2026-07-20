@@ -24,8 +24,8 @@
             ▶ Открыть в редакторе
           </button>
         </div>
-        <div v-if="showPlayer" class="se-player-wrap" ref="playerWrap">
-          <iframe :src="playerSrc" :height="playerHeight" class="se-player-frame" allow="autoplay"></iframe>
+        <div v-if="showPlayer" ref="playerWrap" class="se-player-wrap">
+          <iframe :src="playerSrc" :height="playerHeight" class="se-player-frame" allow="autoplay"/>
         </div>
 
         <div v-if="voiceCount > 1" class="se-voice-tabs">
@@ -61,7 +61,7 @@
 
         <label class="se-field">
           <span>Комментарий (при отклонении)</span>
-          <textarea v-model="comment" rows="2" placeholder="Что нужно исправить…"></textarea>
+          <textarea v-model="comment" rows="2" placeholder="Что нужно исправить…"/>
         </label>
 
         <p v-if="message" class="se-msg" :class="{ 'se-msg-err': isError }">{{ message }}</p>
@@ -125,6 +125,19 @@ export default {
       return s;
     }
   },
+  watch: {
+    // При открытии плеера: ловим момент после рендера wrap'а (его v-if), ставим ResizeObserver
+    // и инициируем первый расчёт. Без этого на первом кадре iframe получит height="0" или
+    // высоту по умолчанию (~150px в Chrome), и нужно дополнительно дожидаться следующего тика.
+    showPlayer(v) {
+      if (v) {
+        this.$nextTick(() => this.observeWrapAndFit())
+      } else if (this._resizeObserver) {
+        this._resizeObserver.disconnect()
+        this._resizeObserver = null
+      }
+    },
+  },
   async mounted() {
     // Если плеер уже открыт на момент mounted (например, v-if стал true до lifecycle),
     // сразу ставим ResizeObserver и пересчитываем высоту.
@@ -139,19 +152,6 @@ export default {
       this._resizeObserver.disconnect()
       this._resizeObserver = null
     }
-  },
-  watch: {
-    // При открытии плеера: ловим момент после рендера wrap'а (его v-if), ставим ResizeObserver
-    // и инициируем первый расчёт. Без этого на первом кадре iframe получит height="0" или
-    // высоту по умолчанию (~150px в Chrome), и нужно дополнительно дожидаться следующего тика.
-    showPlayer(v) {
-      if (v) {
-        this.$nextTick(() => this.observeWrapAndFit())
-      } else if (this._resizeObserver) {
-        this._resizeObserver.disconnect()
-        this._resizeObserver = null
-      }
-    },
   },
   methods: {
     // Устанавливает ResizeObserver на wrap и запускает первый расчёт 16:9.

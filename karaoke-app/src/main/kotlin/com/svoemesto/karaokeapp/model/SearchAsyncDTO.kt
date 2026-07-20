@@ -15,11 +15,11 @@ class SearchAsyncDTO(
     val operationId: String,
     val done: Boolean,
     val rawData: String,
-    val lastRequestedAt: Timestamp
-): Serializable, Comparable<SearchAsyncDTO>, KaraokeDbTableDto {
-    override fun compareTo(other: SearchAsyncDTO): Int {
-        return id.compareTo(other.id)
-    }
+    val lastRequestedAt: Timestamp,
+) : Serializable,
+    Comparable<SearchAsyncDTO>,
+    KaraokeDbTableDto {
+    override fun compareTo(other: SearchAsyncDTO): Int = id.compareTo(other.id)
 
     override fun fromDto(database: KaraokeConnection): SearchAsync {
         val entity = SearchAsync(database = database)

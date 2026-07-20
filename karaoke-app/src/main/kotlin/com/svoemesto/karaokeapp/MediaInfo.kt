@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import java.io.InputStreamReader
 
 const val TEST_AUDIO_FILE_PATH = "/sm-karaoke/system/(01) [Агата Кристи] Инспектор ПО.flac"
+
 @Suppress("unused")
 fun mainMediaInfo() {
 //    println(MediaInfo.executeMediaInfo(TEST_AUDIO_FILE_PATH, "--Output=JSON"))
@@ -13,9 +14,7 @@ fun mainMediaInfo() {
 }
 
 class MediaInfo {
-
     companion object {
-
         fun getInfo(media: String): Map<String, Any> {
             val exePath: String = PATH_TO_MEDIAINFO
             val param = mutableListOf<String>()
@@ -38,12 +37,16 @@ class MediaInfo {
         }
 
         @Suppress("unused")
-        fun getInfoByParameter(media: String, parameter: String): String {
-            return executeMediaInfo(media, parameter)
-        }
+        fun getInfoByParameter(
+            media: String,
+            parameter: String,
+        ): String = executeMediaInfo(media, parameter)
 
-        fun getInfoBySectionAndParameter(media: String, section: String, parameter: String): String? {
-
+        fun getInfoBySectionAndParameter(
+            media: String,
+            section: String,
+            parameter: String,
+        ): String? {
             try {
                 val mediaInfo = getInfo(media)
                 val media = mediaInfo["media"] as HashMap<*, *>
@@ -67,7 +70,11 @@ class MediaInfo {
             param.add(media)
             return executeMediaInfo(param)
         }
-        fun executeMediaInfo(media: String, parameter: String): String {
+
+        fun executeMediaInfo(
+            media: String,
+            parameter: String,
+        ): String {
             val param = mutableListOf<String>()
             param.add(media)
             param.add(parameter)
@@ -86,7 +93,7 @@ class MediaInfo {
             }
             println(param)
 //            val builder = ProcessBuilder(param)
-            val builder = ProcessBuilder("mediainfo","--Inform=\"%%Duration%%\"", TEST_AUDIO_FILE_PATH, "--Output=JSON" )
+            val builder = ProcessBuilder("mediainfo", "--Inform=\"%%Duration%%\"", TEST_AUDIO_FILE_PATH, "--Output=JSON")
             builder.redirectErrorStream(true)
 //            builder.redirectOutput(ProcessBuilder.Redirect.PIPE)
             val process = builder.start()

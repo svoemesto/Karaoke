@@ -11,7 +11,11 @@ import org.springframework.stereotype.Service
 // локальная), поэтому читаем настройки прямым JDBC-запросом.
 @Service
 class CaptchaConfigService {
-    private data class CachedKeys(val clientKey: String, val serverKey: String, val fetchedAt: Long)
+    private data class CachedKeys(
+        val clientKey: String,
+        val serverKey: String,
+        val fetchedAt: Long,
+    )
 
     private val cacheTtlMs = 5 * 60 * 1000L
 
@@ -38,15 +42,17 @@ class CaptchaConfigService {
         val current = cache
         val now = System.currentTimeMillis()
         if (current != null && now - current.fetchedAt < cacheTtlMs) return current
-        val fresh = CachedKeys(
-            clientKey = fetchValue("yandexSmartCaptchaClientKey"),
-            serverKey = fetchValue("yandexSmartCaptchaServerKey"),
-            fetchedAt = now,
-        )
+        val fresh =
+            CachedKeys(
+                clientKey = fetchValue("yandexSmartCaptchaClientKey"),
+                serverKey = fetchValue("yandexSmartCaptchaServerKey"),
+                fetchedAt = now,
+            )
         cache = fresh
         return fresh
     }
 
     fun getClientKey(): String = refreshIfNeeded().clientKey
+
     fun getServerKey(): String = refreshIfNeeded().serverKey
 }

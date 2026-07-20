@@ -11,9 +11,7 @@ class ApplicationContextProvider : ApplicationContextAware {
         private lateinit var context: ApplicationContext
 
         @Suppress("unused")
-        fun getCurrentApplicationContext(): ApplicationContext {
-            return context
-        }
+        fun getCurrentApplicationContext(): ApplicationContext = context
     }
 
     @Throws(BeansException::class)

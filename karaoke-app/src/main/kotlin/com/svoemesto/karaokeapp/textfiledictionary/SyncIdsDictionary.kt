@@ -1,7 +1,5 @@
 package com.svoemesto.karaokeapp.textfiledictionary
 
-class SyncIdsDictionary(): TextFileDictionary {
-
+class SyncIdsDictionary : TextFileDictionary {
     override fun dictName() = "Sync Ids"
-
 }

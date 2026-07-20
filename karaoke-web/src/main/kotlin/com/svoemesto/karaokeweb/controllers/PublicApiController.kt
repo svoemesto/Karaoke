@@ -7,13 +7,13 @@ import com.svoemesto.karaokeapp.model.RestName
 import com.svoemesto.karaokeapp.model.Settings
 import com.svoemesto.karaokeapp.model.Zakroma
 import com.svoemesto.karaokeapp.resizeBufferedImage
-import com.svoemesto.karaokeweb.WORKING_DATABASE
+import com.svoemesto.karaokeapp.services.KaraokeStorageService
+import com.svoemesto.karaokeapp.services.StorageApiClient
 import com.svoemesto.karaokeweb.StatBySong
+import com.svoemesto.karaokeweb.WORKING_DATABASE
 import com.svoemesto.karaokeweb.dto.AuthorTilePublicDto
 import com.svoemesto.karaokeweb.dto.SettingsPublicDto
 import com.svoemesto.karaokeweb.dto.ZakromaPublicDto
-import com.svoemesto.karaokeapp.services.KaraokeStorageService
-import com.svoemesto.karaokeapp.services.StorageApiClient
 import com.svoemesto.karaokeweb.services.PlayerGestureUnlockService
 import com.svoemesto.karaokeweb.services.SiteUserResolver
 import jakarta.servlet.http.HttpServletRequest
@@ -47,18 +47,22 @@ class PublicApiController(
     private val siteUserResolver: SiteUserResolver,
     @org.springframework.beans.factory.annotation.Value("\${storage.proxy-url}") private val minioProxyUrl: String,
 ) {
-
     // Fetches a PNG from MinIO via the nginx /minio/ proxy on the host.
     // The proxy runs on the host (MTU=1450), avoiding the Docker MTU=1500 mismatch
     // that causes silent packet drops when Java contacts the remote MinIO directly.
     private fun fetchFromMinIO(fileName: String): ByteArray? {
         if (fileName.isEmpty()) return null
-        val encodedPath = fileName.split("/").joinToString("/") { segment ->
-            java.net.URLEncoder.encode(segment, Charsets.UTF_8).replace("+", "%20")
-        }
+        val encodedPath =
+            fileName.split("/").joinToString("/") { segment ->
+                java.net.URLEncoder
+                    .encode(segment, Charsets.UTF_8)
+                    .replace("+", "%20")
+            }
         return try {
-            val conn = java.net.URL("$minioProxyUrl/minio/karaoke/$encodedPath")
-                .openConnection() as java.net.HttpURLConnection
+            val conn =
+                java.net
+                    .URL("$minioProxyUrl/minio/karaoke/$encodedPath")
+                    .openConnection() as java.net.HttpURLConnection
             conn.connectTimeout = 10_000
             conn.readTimeout = 15_000
             if (conn.responseCode == 200) conn.inputStream.use { it.readBytes() } else null
@@ -72,9 +76,19 @@ class PublicApiController(
     fun stats(
         @RequestParam(required = false) anonId: String?,
         @RequestParam(required = false) referrer: String?,
-        request: HttpServletRequest
+        request: HttpServletRequest,
     ): Map<String, Int> {
-        mainController.doRegisterEvent(mapOf("eventType" to EventType.CALL_REST.dbValue, "restName" to RestName.MAIN.dbValue, "parameters" to emptyMap<String, Any>(), "anonId" to (anonId ?: ""), "referrer" to (referrer ?: "")), request, siteUserResolver.resolve(request)?.id ?: 0)
+        mainController.doRegisterEvent(
+            mapOf(
+                "eventType" to EventType.CALL_REST.dbValue,
+                "restName" to RestName.MAIN.dbValue,
+                "parameters" to emptyMap<String, Any>(),
+                "anonId" to (anonId ?: ""),
+                "referrer" to (referrer ?: ""),
+            ),
+            request,
+            siteUserResolver.resolve(request)?.id ?: 0,
+        )
         return mapOf(
             "onSponsr" to StatBySong.getCountSongsInCollection(database = WORKING_DATABASE),
             "onAir" to StatBySong.getCountSongsOnAir(database = WORKING_DATABASE),
@@ -90,7 +104,8 @@ class PublicApiController(
     @GetMapping("/authors-tiles")
     fun authorsTiles(): List<AuthorTilePublicDto> {
         val counts = Settings.loadAuthorSongCounts(WORKING_DATABASE)
-        return Settings.loadListAuthors(withSkiped = false, database = WORKING_DATABASE)
+        return Settings
+            .loadListAuthors(withSkiped = false, database = WORKING_DATABASE)
             .map { AuthorTilePublicDto.fromAuthorName(it, counts[it] ?: 0L) }
     }
 
@@ -99,17 +114,28 @@ class PublicApiController(
         @RequestParam(required = false) author: String?,
         @RequestParam(required = false) anonId: String?,
         @RequestParam(required = false) referrer: String?,
-        request: HttpServletRequest
+        request: HttpServletRequest,
     ): List<ZakromaPublicDto> {
         val data: MutableMap<String, Any> = mutableMapOf()
         author?.let { data["author"] = it }
-        mainController.doRegisterEvent(mapOf("eventType" to EventType.CALL_REST.dbValue, "restName" to RestName.ZAKROMA.dbValue, "parameters" to data, "anonId" to (anonId ?: ""), "referrer" to (referrer ?: "")), request, siteUserResolver.resolve(request)?.id ?: 0)
-        val zakroma = Zakroma.getZakroma(
-            author = author ?: "",
-            database = WORKING_DATABASE,
-            storageService = storageService,
-            storageApiClient = storageApiClient
+        mainController.doRegisterEvent(
+            mapOf(
+                "eventType" to EventType.CALL_REST.dbValue,
+                "restName" to RestName.ZAKROMA.dbValue,
+                "parameters" to data,
+                "anonId" to (anonId ?: ""),
+                "referrer" to (referrer ?: ""),
+            ),
+            request,
+            siteUserResolver.resolve(request)?.id ?: 0,
         )
+        val zakroma =
+            Zakroma.getZakroma(
+                author = author ?: "",
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
         return ZakromaPublicDto.fromZakroma(zakroma)
     }
 
@@ -121,7 +147,7 @@ class PublicApiController(
         @RequestParam(required = false) album: String?,
         @RequestParam(required = false) anonId: String?,
         @RequestParam(required = false) referrer: String?,
-        request: HttpServletRequest
+        request: HttpServletRequest,
     ): List<SettingsPublicDto> {
         val attr: MutableMap<String, String> = mutableMapOf()
         if (!songName.isNullOrEmpty()) attr["song_name"] = songName
@@ -134,9 +160,10 @@ class PublicApiController(
             val matches = Author.resolveByTerm(author, WORKING_DATABASE)
             if (matches.isNotEmpty()) {
                 attr["author_in"] = matches.joinToString(Settings.AUTHOR_IN_DELIMITER) { it.author }
-                aliasByAuthor = matches
-                    .filter { it.matchedAliases.isNotEmpty() }
-                    .associate { it.author.lowercase() to it.matchedAliases.joinToString(", ") }
+                aliasByAuthor =
+                    matches
+                        .filter { it.matchedAliases.isNotEmpty() }
+                        .associate { it.author.lowercase() to it.matchedAliases.joinToString(", ") }
             } else {
                 attr["author"] = author
             }
@@ -144,18 +171,35 @@ class PublicApiController(
         if (!text.isNullOrEmpty()) attr["text"] = text
         if (!album.isNullOrEmpty()) attr["song_album"] = album
 
-        val settings: List<Settings> = if ("${songName ?: ""}${author ?: ""}${album ?: ""}${text ?: ""}".length < 3) {
-            emptyList()
-        } else {
-            Settings.loadListFromDb(attr, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient, withoutMarkersAndText = true)
-        }
+        val settings: List<Settings> =
+            if ("${songName ?: ""}${author ?: ""}${album ?: ""}${text ?: ""}".length < 3) {
+                emptyList()
+            } else {
+                Settings.loadListFromDb(
+                    attr,
+                    database = WORKING_DATABASE,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                    withoutMarkersAndText = true,
+                )
+            }
 
         val data: MutableMap<String, Any> = mutableMapOf()
         if (!songName.isNullOrEmpty()) data["song_name"] = songName
         if (!author.isNullOrEmpty()) data["author"] = author
         if (!text.isNullOrEmpty()) data["text"] = text
         if (!album.isNullOrEmpty()) data["album"] = album
-        mainController.doRegisterEvent(mapOf("eventType" to EventType.CALL_REST.dbValue, "restName" to RestName.FILTER.dbValue, "parameters" to data, "anonId" to (anonId ?: ""), "referrer" to (referrer ?: "")), request, siteUserResolver.resolve(request)?.id ?: 0)
+        mainController.doRegisterEvent(
+            mapOf(
+                "eventType" to EventType.CALL_REST.dbValue,
+                "restName" to RestName.FILTER.dbValue,
+                "parameters" to data,
+                "anonId" to (anonId ?: ""),
+                "referrer" to (referrer ?: ""),
+            ),
+            request,
+            siteUserResolver.resolve(request)?.id ?: 0,
+        )
 
         return settings.map {
             val dto = SettingsPublicDto.fromSettings(it, includeDetails = false)
@@ -168,15 +212,34 @@ class PublicApiController(
         @PathVariable id: Long,
         @RequestParam(required = false) anonId: String?,
         @RequestParam(required = false) referrer: String?,
-        request: HttpServletRequest
+        request: HttpServletRequest,
     ): SettingsPublicDto? {
-        val sett = Settings.loadFromDbById(id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
-        mainController.doRegisterEvent(mapOf("eventType" to EventType.CALL_REST.dbValue, "restName" to RestName.SONG.dbValue, "parameters" to mapOf("id" to id), "anonId" to (anonId ?: ""), "referrer" to (referrer ?: "")), request, siteUserResolver.resolve(request)?.id ?: 0)
+        val sett =
+            Settings.loadFromDbById(
+                id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
+        mainController.doRegisterEvent(
+            mapOf(
+                "eventType" to EventType.CALL_REST.dbValue,
+                "restName" to RestName.SONG.dbValue,
+                "parameters" to mapOf("id" to id),
+                "anonId" to (anonId ?: ""),
+                "referrer" to (referrer ?: ""),
+            ),
+            request,
+            siteUserResolver.resolve(request)?.id ?: 0,
+        )
         return sett?.let { SettingsPublicDto.fromSettings(it) }
     }
 
     @PostMapping("/events")
-    fun events(@RequestParam(required = true) data: Map<String, Any>, request: HttpServletRequest): Map<String, Any?> {
+    fun events(
+        @RequestParam(required = true) data: Map<String, Any>,
+        request: HttpServletRequest,
+    ): Map<String, Any?> {
         val ok = mainController.doRegisterEvent(data, request, siteUserResolver.resolve(request)?.id ?: 0)
 
         // Piggy-backs the hidden player-unlock gesture on this same ordinary-looking click-tracking
@@ -197,7 +260,9 @@ class PublicApiController(
     }
 
     @GetMapping("/song-picture/{id}")
-    fun songPicture(@PathVariable id: Long): ResponseEntity<ByteArray> {
+    fun songPicture(
+        @PathVariable id: Long,
+    ): ResponseEntity<ByteArray> {
         val bucket = "karaoke"
 //        val cacheKey = "song_banner_$id.png"
 
@@ -206,24 +271,41 @@ class PublicApiController(
 //            return ResponseEntity.ok().contentType(MediaType.IMAGE_PNG).body(bytes)
 //        }
 
-        val settings = Settings.loadFromDbById(id, database = WORKING_DATABASE,
-            storageService = storageService, storageApiClient = storageApiClient)
-            ?: return ResponseEntity.notFound().build()
+        val settings =
+            Settings.loadFromDbById(
+                id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
+                ?: return ResponseEntity.notFound().build()
 
         val albumPicName = "${settings.author} - ${settings.year} - ${settings.album}"
-        val albumPic = Pictures.getPictureByName(albumPicName, WORKING_DATABASE,
-            storageService, storageApiClient, ignoreUseInList = false)
-        val authorPic = Pictures.getPictureByName(settings.author, WORKING_DATABASE,
-            storageService, storageApiClient, ignoreUseInList = false)
+        val albumPic =
+            Pictures.getPictureByName(
+                albumPicName,
+                WORKING_DATABASE,
+                storageService,
+                storageApiClient,
+                ignoreUseInList = false,
+            )
+        val authorPic =
+            Pictures.getPictureByName(
+                settings.author,
+                WORKING_DATABASE,
+                storageService,
+                storageApiClient,
+                ignoreUseInList = false,
+            )
 
-        val frameW = 800; val frameH = 194
+        val frameW = 800
+        val frameH = 194
         val resultImage = BufferedImage(frameW, frameH, BufferedImage.TYPE_INT_ARGB)
         val g = resultImage.graphics as Graphics2D
         g.color = Color.BLACK
         g.fillRect(0, 0, frameW, frameH)
 
-        fun loadFromMinIO(fileName: String): BufferedImage? =
-            fetchFromMinIO(fileName)?.let { ImageIO.read(ByteArrayInputStream(it)) }
+        fun loadFromMinIO(fileName: String): BufferedImage? = fetchFromMinIO(fileName)?.let { ImageIO.read(ByteArrayInputStream(it)) }
 
         loadFromMinIO(albumPic?.storageFileName ?: "")?.let {
             g.drawImage(resizeBufferedImage(it, 154, 154), 20, 20, null)
@@ -241,20 +323,39 @@ class PublicApiController(
     }
 
     @GetMapping("/song-vk-image/{id}")
-    fun songVkImage(@PathVariable id: Long): ResponseEntity<ByteArray> {
-        val settings = Settings.loadFromDbById(id, database = WORKING_DATABASE,
-            storageService = storageService, storageApiClient = storageApiClient)
-            ?: return ResponseEntity.notFound().build()
+    fun songVkImage(
+        @PathVariable id: Long,
+    ): ResponseEntity<ByteArray> {
+        val settings =
+            Settings.loadFromDbById(
+                id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
+                ?: return ResponseEntity.notFound().build()
 
         val cacheFile = File("/tmp/vk_$id.png")
         val bucket = "karaoke"
         val albumPicName = "${settings.author} - ${settings.year} - ${settings.album}"
-        val albumPic = Pictures.getPictureByName(albumPicName, WORKING_DATABASE,
-            storageService, storageApiClient, ignoreUseInList = false)
-        val authorPic = Pictures.getPictureByName(settings.author, WORKING_DATABASE,
-            storageService, storageApiClient, ignoreUseInList = false)
+        val albumPic =
+            Pictures.getPictureByName(
+                albumPicName,
+                WORKING_DATABASE,
+                storageService,
+                storageApiClient,
+                ignoreUseInList = false,
+            )
+        val authorPic =
+            Pictures.getPictureByName(
+                settings.author,
+                WORKING_DATABASE,
+                storageService,
+                storageApiClient,
+                ignoreUseInList = false,
+            )
 
-        val albumFilePath = "${settings.author}/${settings.year} - ${settings.album}/${albumPicName}.album.png"
+        val albumFilePath = "${settings.author}/${settings.year} - ${settings.album}/$albumPicName.album.png"
         val authorFilePath = "${settings.author}/${settings.author}.author.png"
 
         if (cacheFile.exists()) {
@@ -265,12 +366,15 @@ class PublicApiController(
         val authorBytes = fetchFromMinIO(authorFilePath)
 
         if (albumBytes == null || authorBytes == null) {
-            return ResponseEntity.status(HttpStatus.FOUND)
+            return ResponseEntity
+                .status(HttpStatus.FOUND)
                 .header(HttpHeaders.LOCATION, "/KARAOKE_LOGO.png")
                 .build()
         }
 
-        val frameW = 537; val frameH = 240; val padding = 20
+        val frameW = 537
+        val frameH = 240
+        val padding = 20
         val picAreaH = 176
         val albumW = ((frameW - 3 * padding) / 3.5).toInt()
         val albumH = albumW
@@ -284,14 +388,21 @@ class PublicApiController(
         g.fillRect(0, 0, frameW, frameH)
 
         g.drawImage(resizeBufferedImage(ImageIO.read(ByteArrayInputStream(albumBytes)), albumW, albumH), padding, padding, null)
-        g.drawImage(resizeBufferedImage(ImageIO.read(ByteArrayInputStream(authorBytes)), authorW, authorH), albumW + 2 * padding, padding, null)
+        g.drawImage(
+            resizeBufferedImage(ImageIO.read(ByteArrayInputStream(authorBytes)), authorW, authorH),
+            albumW + 2 * padding,
+            padding,
+            null,
+        )
 
         val textAreaW = frameW - 2 * padding
         val textAreaH = frameH - picAreaH
         val songText = settings.songName
-        val baseFont = PublicApiController::class.java.getResourceAsStream("/Roboto-Black.ttf")
-            ?.let { Font.createFont(Font.TRUETYPE_FONT, it) }
-            ?: Font("SansSerif", Font.PLAIN, 10)
+        val baseFont =
+            PublicApiController::class.java
+                .getResourceAsStream("/Roboto-Black.ttf")
+                ?.let { Font.createFont(Font.TRUETYPE_FONT, it) }
+                ?: Font("SansSerif", Font.PLAIN, 10)
         var fontSize = textAreaH
         var font = baseFont.deriveFont(fontSize.toFloat())
         g.font = font
@@ -317,14 +428,20 @@ class PublicApiController(
     }
 
     @GetMapping("/picture")
-    fun picture(@RequestParam file: String): ResponseEntity<Void> {
+    fun picture(
+        @RequestParam file: String,
+    ): ResponseEntity<Void> {
         // Redirect to nginx MinIO proxy — nginx runs on the host (MTU=1450) so large TCP packets
         // are not silently dropped the way they are when Java in Docker (MTU=1500) talks to
         // the remote MinIO server across an ens3 interface with MTU=1450.
-        val encodedPath = file.split("/").joinToString("/") { segment ->
-            java.net.URLEncoder.encode(segment, Charsets.UTF_8).replace("+", "%20")
-        }
-        return ResponseEntity.status(HttpStatus.FOUND)
+        val encodedPath =
+            file.split("/").joinToString("/") { segment ->
+                java.net.URLEncoder
+                    .encode(segment, Charsets.UTF_8)
+                    .replace("+", "%20")
+            }
+        return ResponseEntity
+            .status(HttpStatus.FOUND)
             .location(URI.create("/minio/karaoke/$encodedPath"))
             .build()
     }

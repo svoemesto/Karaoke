@@ -11,16 +11,16 @@
           :limit="30"
           size="sm"
           pills
-      ></b-pagination>
+      />
     </div>
     <div class="pictures-bv-table-body">
       <b-table
+          v-model:sort-by="sortBy"
           :items="picturesDigests"
           :busy="isBusy"
           :fields="pictureDigestFields"
           :per-page="perPage"
           :current-page="currentPage"
-          v-model:sort-by="sortBy"
           small
           bordered
           hover
@@ -28,7 +28,7 @@
       >
         <template #table-busy>
           <div class="text-center text-danger my-2">
-            <b-spinner class="align-middle"></b-spinner>
+            <b-spinner class="align-middle"/>
             <strong>Loading...</strong>
           </div>
         </template>
@@ -37,7 +37,7 @@
               v-for="field in scope.fields"
               :key="field.key"
               :style="field.style"
-          >
+          />
         </template>
 
         <template #cell(preview)="data">
@@ -51,7 +51,7 @@
                 :src="data.item.previewUrl"
                 alt="Preview"
                 class="preview-image"
-            >
+            />
             <div v-else class="no-image-placeholder">Нет изображения</div>
           </div>
         </template>
@@ -59,26 +59,26 @@
         <template #cell(id)="data">
           <div
               class="fld-picture-id"
-              v-text="data.value"
               :style="{ color: currentPictureId === data.item.id ? 'blue' : 'black' }"
               @click.left="editPicture(data.item.id)"
-          ></div>
+              v-text="data.value"
+          />
         </template>
 
         <template #cell(name)="data">
           <div
               class="fld-picture-name"
-              v-text="data.value"
               :style="{ color: currentPictureId === data.item.id ? 'blue' : 'black' }"
               @click.left="editPicture(data.item.id)"
-          ></div>
+              v-text="data.value"
+          />
         </template>
 
       </b-table>
     </div>
     <div class="pictures-bv-table-footer">
-      <button class="btn-round-double" @click="isPicturesFilterVisible=true" title="Фильтр">
-        <img alt="filter" class="icon-40" src="../../assets/svg/icon_filter.svg">
+      <button class="btn-round-double" title="Фильтр" @click="isPicturesFilterVisible=true">
+        <img alt="filter" class="icon-40" src="../../assets/svg/icon_filter.svg"/>
       </button>
     </div>
 
@@ -126,22 +126,6 @@ export default {
       currentPicture: undefined
     }
   },
-  watch: {
-    picturesDigestIsLoading: {
-      handler () {
-        this.isBusy = this.picturesDigestIsLoading;
-      }
-    },
-    currentPage: {
-      handler (newPage) {
-        // Сохраняем страницу в store, чтобы она восстановилась после переключения на другой компонент.
-        this.$store.commit('setPicturesTableCurrentPage', newPage);
-      }
-    }
-  },
-  mounted() {
-    // this.$store.dispatch('loadPicturesDigests', { filterPicture: 'Павел Кашин'} )
-  },
   computed: {
     picturesDigestIsLoading() {
       return this.$store.getters.getPicturesDigestIsLoading;
@@ -188,6 +172,22 @@ export default {
         }
       ]
     }
+  },
+  watch: {
+    picturesDigestIsLoading: {
+      handler () {
+        this.isBusy = this.picturesDigestIsLoading;
+      }
+    },
+    currentPage: {
+      handler (newPage) {
+        // Сохраняем страницу в store, чтобы она восстановилась после переключения на другой компонент.
+        this.$store.commit('setPicturesTableCurrentPage', newPage);
+      }
+    }
+  },
+  mounted() {
+    // this.$store.dispatch('loadPicturesDigests', { filterPicture: 'Павел Кашин'} )
   },
   methods: {
 

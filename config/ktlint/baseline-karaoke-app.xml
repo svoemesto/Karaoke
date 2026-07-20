@@ -1,0 +1,376 @@
+<?xml version="1.0" encoding="utf-8"?>
+<baseline version="1.0">
+    <file name="src/main/kotlin/com/svoemesto/karaokeapp/AIAssistant.kt">
+        <error line="4" column="1" source="standard:no-wildcard-imports" />
+    </file>
+    <file name="src/main/kotlin/com/svoemesto/karaokeapp/Constants.kt">
+        <error line="3" column="1" source="standard:no-wildcard-imports" />
+        <error line="44" column="11" source="standard:property-naming" />
+        <error line="45" column="11" source="standard:property-naming" />
+        <error line="46" column="11" source="standard:property-naming" />
+        <error line="47" column="11" source="standard:property-naming" />
+        <error line="48" column="11" source="standard:property-naming" />
+        <error line="63" column="11" source="standard:property-naming" />
+    </file>
+    <file name="src/main/kotlin/com/svoemesto/karaokeapp/Crypto.kt">
+        <error line="4" column="1" source="standard:no-wildcard-imports" />
+    </file>
+    <file name="src/main/kotlin/com/svoemesto/karaokeapp/Extentions.kt">
+        <error line="11" column="1" source="standard:no-wildcard-imports" />
+    </file>
+    <file name="src/main/kotlin/com/svoemesto/karaokeapp/Functions.kt">
+        <error line="4" column="1" source="standard:no-wildcard-imports" />
+        <error line="461" column="141" source="standard:max-line-length" />
+    </file>
+    <file name="src/main/kotlin/com/svoemesto/karaokeapp/HealthReport.kt">
+        <error line="3" column="1" source="standard:no-wildcard-imports" />
+        <error line="6" column="1" source="standard:no-wildcard-imports" />
+        <error line="343" column="140" source="standard:max-line-length" />
+        <error line="380" column="141" source="standard:max-line-length" />
+        <error line="395" column="141" source="standard:max-line-length" />
+        <error line="2373" column="141" source="standard:max-line-length" />
+    </file>
+    <file name="src/main/kotlin/com/svoemesto/karaokeapp/Karaoke.kt">
+        <error line="21" column="1" source="standard:no-wildcard-imports" />
+    </file>
+    <file name="src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcess.kt">
+        <error line="3" column="1" source="standard:no-wildcard-imports" />
+        <error line="442" column="141" source="standard:max-line-length" />
+    </file>
+    <file name="src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcessWorker.kt">
+        <error line="5" column="1" source="standard:no-wildcard-imports" />
+    </file>
+    <file name="src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProperties.kt">
+        <error line="14" column="1" source="standard:no-wildcard-imports" />
+        <error line="265" column="141" source="standard:max-line-length" />
+        <error line="280" column="141" source="standard:max-line-length" />
+        <error line="914" column="141" source="standard:max-line-length" />
+        <error line="1307" column="141" source="standard:max-line-length" />
+        <error line="1539" column="141" source="standard:max-line-length" />
+    </file>
+    <file name="src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt">
+        <error line="14" column="1" source="standard:no-wildcard-imports" />
+        <error line="40" column="1" source="standard:no-wildcard-imports" />
+        <error line="58" column="1" source="standard:no-wildcard-imports" />
+        <error line="3871" column="34" source="standard:function-literal" />
+        <error line="3871" column="35" source="standard:wrapping" />
+        <error line="3871" column="77" source="standard:argument-list-wrapping" />
+        <error line="3871" column="83" source="standard:argument-list-wrapping" />
+        <error line="3871" column="98" source="standard:argument-list-wrapping" />
+        <error line="3871" column="101" source="standard:argument-list-wrapping" />
+        <error line="3871" column="103" source="standard:argument-list-wrapping" />
+        <error line="3871" column="126" source="standard:function-literal" />
+        <error line="3871" column="135" source="standard:parameter-list-wrapping" />
+        <error line="3871" column="135" source="standard:function-literal" />
+        <error line="3871" column="141" source="standard:max-line-length" />
+        <error line="3871" column="150" source="standard:function-literal" />
+    </file>
+    <file name="src/main/kotlin/com/svoemesto/karaokeapp/UtilsPictures.kt">
+        <error line="6" column="1" source="standard:no-wildcard-imports" />
+        <error line="7" column="1" source="standard:no-wildcard-imports" />
+        <error line="13" column="1" source="standard:no-wildcard-imports" />
+    </file>
+    <file name="src/main/kotlin/com/svoemesto/karaokeapp/Uuids.kt">
+        <error line="5" column="1" source="standard:no-wildcard-imports" />
+    </file>
+    <file name="src/main/kotlin/com/svoemesto/karaokeapp/WaveformCompare.kt">
+        <error line="23" column="1" source="standard:no-consecutive-comments" />
+    </file>
+    <file name="src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt">
+        <error line="4" column="1" source="standard:no-wildcard-imports" />
+        <error line="6" column="1" source="standard:no-wildcard-imports" />
+        <error line="32" column="1" source="standard:no-wildcard-imports" />
+        <error line="54" column="1" source="standard:no-wildcard-imports" />
+        <error line="334" column="33" source="standard:argument-list-wrapping" />
+        <error line="334" column="37" source="standard:argument-list-wrapping" />
+        <error line="334" column="55" source="standard:argument-list-wrapping" />
+        <error line="334" column="88" source="standard:argument-list-wrapping" />
+        <error line="334" column="123" source="standard:argument-list-wrapping" />
+        <error line="334" column="132" source="standard:parameter-list-wrapping" />
+        <error line="334" column="132" source="standard:function-literal" />
+        <error line="334" column="141" source="standard:function-literal" />
+        <error line="334" column="141" source="standard:max-line-length" />
+        <error line="351" column="33" source="standard:argument-list-wrapping" />
+        <error line="351" column="37" source="standard:argument-list-wrapping" />
+        <error line="351" column="55" source="standard:argument-list-wrapping" />
+        <error line="351" column="88" source="standard:argument-list-wrapping" />
+        <error line="351" column="123" source="standard:argument-list-wrapping" />
+        <error line="351" column="132" source="standard:parameter-list-wrapping" />
+        <error line="351" column="132" source="standard:function-literal" />
+        <error line="351" column="141" source="standard:function-literal" />
+        <error line="351" column="141" source="standard:max-line-length" />
+        <error line="368" column="33" source="standard:argument-list-wrapping" />
+        <error line="368" column="37" source="standard:argument-list-wrapping" />
+        <error line="368" column="55" source="standard:argument-list-wrapping" />
+        <error line="368" column="88" source="standard:argument-list-wrapping" />
+        <error line="368" column="123" source="standard:argument-list-wrapping" />
+        <error line="368" column="132" source="standard:parameter-list-wrapping" />
+        <error line="368" column="132" source="standard:function-literal" />
+        <error line="368" column="141" source="standard:function-literal" />
+        <error line="368" column="141" source="standard:max-line-length" />
+        <error line="385" column="33" source="standard:argument-list-wrapping" />
+        <error line="385" column="37" source="standard:argument-list-wrapping" />
+        <error line="385" column="55" source="standard:argument-list-wrapping" />
+        <error line="385" column="88" source="standard:argument-list-wrapping" />
+        <error line="385" column="123" source="standard:argument-list-wrapping" />
+        <error line="385" column="132" source="standard:parameter-list-wrapping" />
+        <error line="385" column="132" source="standard:function-literal" />
+        <error line="385" column="141" source="standard:function-literal" />
+        <error line="385" column="141" source="standard:max-line-length" />
+        <error line="402" column="33" source="standard:argument-list-wrapping" />
+        <error line="402" column="37" source="standard:argument-list-wrapping" />
+        <error line="402" column="55" source="standard:argument-list-wrapping" />
+        <error line="402" column="88" source="standard:argument-list-wrapping" />
+        <error line="402" column="123" source="standard:argument-list-wrapping" />
+        <error line="402" column="132" source="standard:parameter-list-wrapping" />
+        <error line="402" column="132" source="standard:function-literal" />
+        <error line="402" column="141" source="standard:function-literal" />
+        <error line="402" column="141" source="standard:max-line-length" />
+        <error line="5846" column="33" source="standard:argument-list-wrapping" />
+        <error line="5846" column="37" source="standard:argument-list-wrapping" />
+        <error line="5846" column="55" source="standard:argument-list-wrapping" />
+        <error line="5846" column="88" source="standard:argument-list-wrapping" />
+        <error line="5846" column="123" source="standard:argument-list-wrapping" />
+        <error line="5846" column="132" source="standard:parameter-list-wrapping" />
+        <error line="5846" column="132" source="standard:function-literal" />
+        <error line="5846" column="141" source="standard:function-literal" />
+        <error line="5846" column="141" source="standard:max-line-length" />
+        <error line="5863" column="33" source="standard:argument-list-wrapping" />
+        <error line="5863" column="37" source="standard:argument-list-wrapping" />
+        <error line="5863" column="55" source="standard:argument-list-wrapping" />
+        <error line="5863" column="88" source="standard:argument-list-wrapping" />
+        <error line="5863" column="123" source="standard:argument-list-wrapping" />
+        <error line="5863" column="132" source="standard:parameter-list-wrapping" />
+        <error line="5863" column="132" source="standard:function-literal" />
+        <error line="5863" column="141" source="standard:function-literal" />
+        <error line="5863" column="141" source="standard:max-line-length" />
+        <error line="5880" column="33" source="standard:argument-list-wrapping" />
+        <error line="5880" column="37" source="standard:argument-list-wrapping" />
+        <error line="5880" column="55" source="standard:argument-list-wrapping" />
+        <error line="5880" column="88" source="standard:argument-list-wrapping" />
+        <error line="5880" column="123" source="standard:argument-list-wrapping" />
+        <error line="5880" column="132" source="standard:parameter-list-wrapping" />
+        <error line="5880" column="132" source="standard:function-literal" />
+        <error line="5880" column="141" source="standard:function-literal" />
+        <error line="5880" column="141" source="standard:max-line-length" />
+        <error line="5897" column="33" source="standard:argument-list-wrapping" />
+        <error line="5897" column="37" source="standard:argument-list-wrapping" />
+        <error line="5897" column="55" source="standard:argument-list-wrapping" />
+        <error line="5897" column="88" source="standard:argument-list-wrapping" />
+        <error line="5897" column="123" source="standard:argument-list-wrapping" />
+        <error line="5897" column="132" source="standard:parameter-list-wrapping" />
+        <error line="5897" column="132" source="standard:function-literal" />
+        <error line="5897" column="141" source="standard:function-literal" />
+        <error line="5897" column="141" source="standard:max-line-length" />
+    </file>
+    <file name="src/main/kotlin/com/svoemesto/karaokeapp/controllers/MainController.kt">
+        <error line="3" column="1" source="standard:no-wildcard-imports" />
+        <error line="5" column="1" source="standard:no-wildcard-imports" />
+        <error line="19" column="1" source="standard:no-wildcard-imports" />
+    </file>
+    <file name="src/main/kotlin/com/svoemesto/karaokeapp/controllers/StorageController.kt">
+        <error line="14" column="1" source="standard:no-wildcard-imports" />
+    </file>
+    <file name="src/main/kotlin/com/svoemesto/karaokeapp/llm/Agents.kt">
+        <error line="1" column="1" source="standard:filename" />
+    </file>
+    <file name="src/main/kotlin/com/svoemesto/karaokeapp/mlt/Mlt2.kt">
+        <error line="1" column="1" source="standard:no-empty-file" />
+    </file>
+    <file name="src/main/kotlin/com/svoemesto/karaokeapp/mlt/MltProp.kt">
+        <error line="4" column="1" source="standard:no-wildcard-imports" />
+        <error line="167" column="9" source="standard:function-signature" />
+        <error line="168" column="9" source="standard:function-signature" />
+        <error line="169" column="5" source="standard:function-signature" />
+    </file>
+    <file name="src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoBackground.kt">
+        <error line="3" column="1" source="standard:no-wildcard-imports" />
+    </file>
+    <file name="src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoBoosty.kt">
+        <error line="5" column="1" source="standard:no-wildcard-imports" />
+    </file>
+    <file name="src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoChordBoard.kt">
+        <error line="7" column="1" source="standard:no-wildcard-imports" />
+    </file>
+    <file name="src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoChordPictureElement.kt">
+        <error line="8" column="1" source="standard:no-wildcard-imports" />
+    </file>
+    <file name="src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoChordPictureImage.kt">
+        <error line="3" column="1" source="standard:no-wildcard-imports" />
+        <error line="6" column="1" source="standard:no-wildcard-imports" />
+        <error line="8" column="1" source="standard:no-wildcard-imports" />
+    </file>
+    <file name="src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoChordPictureLineTrack.kt">
+        <error line="3" column="1" source="standard:no-wildcard-imports" />
+    </file>
+    <file name="src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoChords.kt">
+        <error line="3" column="1" source="standard:no-wildcard-imports" />
+        <error line="7" column="1" source="standard:no-wildcard-imports" />
+    </file>
+    <file name="src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoFill.kt">
+        <error line="3" column="1" source="standard:no-wildcard-imports" />
+        <error line="6" column="1" source="standard:no-wildcard-imports" />
+    </file>
+    <file name="src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoFingerboard.kt">
+        <error line="3" column="1" source="standard:no-wildcard-imports" />
+        <error line="6" column="1" source="standard:no-wildcard-imports" />
+        <error line="8" column="1" source="standard:no-wildcard-imports" />
+    </file>
+    <file name="src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoFlash.kt">
+        <error line="3" column="1" source="standard:no-wildcard-imports" />
+    </file>
+    <file name="src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoHeader.kt">
+        <error line="8" column="1" source="standard:no-wildcard-imports" />
+    </file>
+    <file name="src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoHorizon.kt">
+        <error line="3" column="1" source="standard:no-wildcard-imports" />
+        <error line="6" column="1" source="standard:no-wildcard-imports" />
+    </file>
+    <file name="src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoMainBin.kt">
+        <error line="6" column="1" source="standard:no-wildcard-imports" />
+    </file>
+    <file name="src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoMelodyNote.kt">
+        <error line="3" column="1" source="standard:no-wildcard-imports" />
+        <error line="7" column="1" source="standard:no-wildcard-imports" />
+    </file>
+    <file name="src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoMelodyTabs.kt">
+        <error line="3" column="1" source="standard:no-wildcard-imports" />
+        <error line="7" column="1" source="standard:no-wildcard-imports" />
+    </file>
+    <file name="src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoScroller.kt">
+        <error line="3" column="1" source="standard:no-wildcard-imports" />
+    </file>
+    <file name="src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoSepar.kt">
+        <error line="3" column="1" source="standard:no-wildcard-imports" />
+        <error line="6" column="1" source="standard:no-wildcard-imports" />
+    </file>
+    <file name="src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoSongText.kt">
+        <error line="9" column="1" source="standard:no-wildcard-imports" />
+        <error line="92" column="140" source="standard:max-line-length" />
+    </file>
+    <file name="src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoSplashStart.kt">
+        <error line="3" column="1" source="standard:no-wildcard-imports" />
+        <error line="7" column="1" source="standard:no-wildcard-imports" />
+    </file>
+    <file name="src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoString.kt">
+        <error line="3" column="1" source="standard:no-wildcard-imports" />
+        <error line="7" column="1" source="standard:no-wildcard-imports" />
+    </file>
+    <file name="src/main/kotlin/com/svoemesto/karaokeapp/model/KaraokeDbTable.kt">
+        <error line="148" column="141" source="standard:max-line-length" />
+        <error line="282" column="53" source="standard:argument-list-wrapping" />
+        <error line="282" column="77" source="standard:argument-list-wrapping" />
+        <error line="282" column="93" source="standard:argument-list-wrapping" />
+        <error line="282" column="109" source="standard:argument-list-wrapping" />
+        <error line="282" column="138" source="standard:parameter-list-wrapping" />
+        <error line="282" column="138" source="standard:function-literal" />
+        <error line="282" column="141" source="standard:max-line-length" />
+        <error line="282" column="147" source="standard:function-literal" />
+    </file>
+    <file name="src/main/kotlin/com/svoemesto/karaokeapp/model/KaraokeDbTableField.kt">
+        <error line="12" column="141" source="standard:max-line-length" />
+    </file>
+    <file name="src/main/kotlin/com/svoemesto/karaokeapp/model/MusicChord.kt">
+        <error line="581" column="141" source="standard:max-line-length" />
+        <error line="603" column="141" source="standard:max-line-length" />
+    </file>
+    <file name="src/main/kotlin/com/svoemesto/karaokeapp/model/Picture.kt">
+        <error line="4" column="1" source="standard:no-wildcard-imports" />
+    </file>
+    <file name="src/main/kotlin/com/svoemesto/karaokeapp/model/Pictures.kt">
+        <error line="17" column="1" source="standard:no-wildcard-imports" />
+    </file>
+    <file name="src/main/kotlin/com/svoemesto/karaokeapp/model/Publication.kt">
+        <error line="10" column="1" source="standard:no-wildcard-imports" />
+    </file>
+    <file name="src/main/kotlin/com/svoemesto/karaokeapp/model/SettingVoiceLine.kt">
+        <error line="3" column="1" source="standard:no-wildcard-imports" />
+        <error line="18" column="17" source="standard:backing-property-naming" />
+    </file>
+    <file name="src/main/kotlin/com/svoemesto/karaokeapp/model/SettingVoiceLineElementSyllable.kt">
+        <error line="3" column="1" source="standard:no-wildcard-imports" />
+    </file>
+    <file name="src/main/kotlin/com/svoemesto/karaokeapp/model/Settings.kt">
+        <error line="5" column="1" source="standard:no-wildcard-imports" />
+        <error line="7" column="1" source="standard:no-wildcard-imports" />
+        <error line="25" column="1" source="standard:no-wildcard-imports" />
+        <error line="258" column="141" source="standard:max-line-length" />
+        <error line="1706" column="141" source="standard:max-line-length" />
+        <error line="1946" column="141" source="standard:max-line-length" />
+        <error line="2124" column="141" source="standard:max-line-length" />
+        <error line="2131" column="141" source="standard:max-line-length" />
+        <error line="2431" column="141" source="standard:max-line-length" />
+        <error line="3466" column="140" source="standard:max-line-length" />
+        <error line="3467" column="141" source="standard:max-line-length" />
+        <error line="3468" column="141" source="standard:max-line-length" />
+        <error line="3643" column="140" source="standard:max-line-length" />
+        <error line="3644" column="141" source="standard:max-line-length" />
+        <error line="3645" column="141" source="standard:max-line-length" />
+        <error line="3646" column="141" source="standard:max-line-length" />
+        <error line="3647" column="141" source="standard:max-line-length" />
+        <error line="4171" column="141" source="standard:max-line-length" />
+        <error line="4385" column="140" source="standard:max-line-length" />
+        <error line="4838" column="141" source="standard:max-line-length" />
+        <error line="5020" column="141" source="standard:max-line-length" />
+        <error line="5065" column="9" source="standard:function-signature" />
+        <error line="5066" column="9" source="standard:function-signature" />
+        <error line="5067" column="5" source="standard:function-signature" />
+        <error line="5127" column="141" source="standard:max-line-length" />
+    </file>
+    <file name="src/main/kotlin/com/svoemesto/karaokeapp/model/SettingsDTO.kt">
+        <error line="6" column="1" source="standard:no-wildcard-imports" />
+    </file>
+    <file name="src/main/kotlin/com/svoemesto/karaokeapp/model/SettingsDTOdigest.kt">
+        <error line="5" column="1" source="standard:no-wildcard-imports" />
+    </file>
+    <file name="src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt">
+        <error line="3" column="1" source="standard:no-wildcard-imports" />
+        <error line="395" column="141" source="standard:max-line-length" />
+    </file>
+    <file name="src/main/kotlin/com/svoemesto/karaokeapp/model/StemJob.kt">
+        <error line="245" column="141" source="standard:max-line-length" />
+    </file>
+    <file name="src/main/kotlin/com/svoemesto/karaokeapp/monitor/checks/ProdContainerCheck.kt">
+        <error line="57" column="141" source="standard:max-line-length" />
+    </file>
+    <file name="src/main/kotlin/com/svoemesto/karaokeapp/monitor/checks/StemJobsStuckCheck.kt">
+        <error line="45" column="141" source="standard:max-line-length" />
+    </file>
+    <file name="src/main/kotlin/com/svoemesto/karaokeapp/monitor/checks/TelegramHorizonCheck.kt">
+        <error line="68" column="141" source="standard:max-line-length" />
+    </file>
+    <file name="src/main/kotlin/com/svoemesto/karaokeapp/monitor/checks/TelegramPollingDisabledCheck.kt">
+        <error line="24" column="141" source="standard:max-line-length" />
+    </file>
+    <file name="src/main/kotlin/com/svoemesto/karaokeapp/services/KaraokeAppService.kt">
+        <error line="10" column="14" source="standard:property-naming" />
+        <error line="11" column="14" source="standard:property-naming" />
+        <error line="12" column="14" source="standard:property-naming" />
+        <error line="13" column="14" source="standard:property-naming" />
+        <error line="14" column="5" source="standard:property-naming" />
+        <error line="15" column="5" source="standard:property-naming" />
+        <error line="16" column="14" source="standard:property-naming" />
+        <error line="17" column="14" source="standard:property-naming" />
+        <error line="18" column="14" source="standard:property-naming" />
+        <error line="19" column="14" source="standard:property-naming" />
+    </file>
+    <file name="src/main/kotlin/com/svoemesto/karaokeapp/services/KaraokeStorageService.kt">
+        <error line="3" column="1" source="standard:no-wildcard-imports" />
+    </file>
+    <file name="src/main/kotlin/com/svoemesto/karaokeapp/services/SseNotificationService.kt">
+        <error line="12" column="1" source="standard:no-wildcard-imports" />
+    </file>
+    <file name="src/main/kotlin/com/svoemesto/karaokeapp/services/StorageApiClient.kt">
+        <error line="4" column="1" source="standard:no-wildcard-imports" />
+    </file>
+    <file name="src/main/kotlin/com/svoemesto/karaokeapp/textfilehistory/TextFileHistory.kt">
+        <error line="9" column="1" source="standard:no-wildcard-imports" />
+        <error line="10" column="1" source="standard:no-wildcard-imports" />
+    </file>
+    <file name="src/test/kotlin/com/svoemesto/PlaywrightTests.kt">
+        <error line="11" column="1" source="standard:no-wildcard-imports" />
+    </file>
+    <file name="src/test/kotlin/com/svoemesto/karaokeapp/SearchLastAlbumVkTest.kt">
+        <error line="9" column="1" source="standard:no-wildcard-imports" />
+    </file>
+</baseline>

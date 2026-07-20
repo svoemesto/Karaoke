@@ -30,7 +30,10 @@ import java.sql.Timestamp
  * финальный шаг (executeFinalizeStemJob) обязан сам проверять, что все ожидаемые выходные файлы
  * реально существуют, а не считать обработку успешной по факту своего запуска.
  */
-fun argsStemJobDemucs(job: StemJob, device: String = "cuda"): Pair<List<List<String>>, Map<String, String>> {
+fun argsStemJobDemucs(
+    job: StemJob,
+    device: String = "cuda",
+): Pair<List<List<String>>, Map<String, String>> {
     val tempFolder = "$PATH_TO_TEMP_STEMJOB_FOLDER/${job.id}"
     val uploadPath = "$tempFolder/upload.${job.originalExt}".rightFileName()
     val flacPath = "$tempFolder/file.flac".rightFileName()
@@ -39,26 +42,40 @@ fun argsStemJobDemucs(job: StemJob, device: String = "cuda"): Pair<List<List<Str
     val cpuFlags = dockerCpusFlag(cpuLimitPercentForType(processType))
     val demucsScript = if (job.mode == StemJobMode.DEMUCS5) "./demucs5" else "./demucs2"
 
-    val steps = mutableListOf(
-        listOf("mkdir", "-p", tempFolder),
-        listOf("chmod", "777", tempFolder),
-        listOf("ffmpeg", "-i", uploadPath, flacPath, "-y"),
-        listOf("docker", "run", "--rm", "-i", "--name=stemjob-${job.id}") + gpuFlags + cpuFlags + listOf(
-            "-v", "$tempFolder:/data/input",
-            "-v", "$tempFolder:/data/output",
-            "svoemestodev/demucs:latest",
-            "''$demucsScript -file $flacPath -recode flac -device $device''"
-        ),
-    )
+    val steps =
+        mutableListOf(
+            listOf("mkdir", "-p", tempFolder),
+            listOf("chmod", "777", tempFolder),
+            listOf("ffmpeg", "-i", uploadPath, flacPath, "-y"),
+            listOf("docker", "run", "--rm", "-i", "--name=stemjob-${job.id}") + gpuFlags + cpuFlags +
+                listOf(
+                    "-v",
+                    "$tempFolder:/data/input",
+                    "-v",
+                    "$tempFolder:/data/output",
+                    "svoemestodev/demucs:latest",
+                    "''$demucsScript -file $flacPath -recode flac -device $device''",
+                ),
+        )
     // Перекодирование каждого flac-стема в mp3 (320k) — по образцу существующих FF_MP3_* шагов
     // (model/Settings.kt) — экономит место в MinIO относительно flac (см. решение по режиму
     // хранения стемов в плане фичи).
     StemJobMode.stemNames(job.mode).forEach { stem ->
-        steps.add(listOf(
-            "ffmpeg", "-i", "$tempFolder/file-$stem.flac".rightFileName(),
-            "-ab", "320k", "-map_metadata", "0", "-id3v2_version", "3",
-            "$tempFolder/$stem.mp3".rightFileName(), "-y"
-        ))
+        steps.add(
+            listOf(
+                "ffmpeg",
+                "-i",
+                "$tempFolder/file-$stem.flac".rightFileName(),
+                "-ab",
+                "320k",
+                "-map_metadata",
+                "0",
+                "-id3v2_version",
+                "3",
+                "$tempFolder/$stem.mp3".rightFileName(),
+                "-y",
+            ),
+        )
     }
     steps.add(listOf("runFunctionWithArgs", "finalizeStemJob", "jobId=${job.id}"))
 
@@ -80,8 +97,9 @@ fun executeFinalizeStemJob(params: Map<String, String>): Boolean {
     // отладки временно указать Connection.local() (тот же инвариант, что и SponsrSyncScheduler).
     val database = Connection.remote()
     try {
-        val job = StemJob.getById(jobId, database = database, storageService = KSS_APP, storageApiClient = SAC_APP)
-            ?: return false
+        val job =
+            StemJob.getById(jobId, database = database, storageService = KSS_APP, storageApiClient = SAC_APP)
+                ?: return false
 
         val tempFolder = File("$PATH_TO_TEMP_STEMJOB_FOLDER/${job.id}")
         val stemNames = StemJobMode.stemNames(job.mode)
@@ -119,7 +137,10 @@ fun executeFinalizeStemJob(params: Map<String, String>): Boolean {
         ackStemJobRawFileConsumed(job.id)
         return true
     } finally {
-        try { database.getConnection()?.close() } catch (_: Exception) {}
+        try {
+            database.getConnection()?.close()
+        } catch (_: Exception) {
+        }
     }
 }
 

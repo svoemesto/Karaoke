@@ -5,7 +5,7 @@
         Детализация событий
         <span v-if="selectedType" class="filter-badge">
           {{ selectedTypeLabel }}
-          <button class="reset-btn" @click="$emit('clear-type')" title="Показать все">×</button>
+          <button class="reset-btn" title="Показать все" @click="$emit('clear-type')">×</button>
         </span>
       </h6>
     </div>

@@ -1,18 +1,23 @@
 <template>
   <div class="songs-bv-table">
-    <SongEditModal v-if="isSongEditVisible" 
-      @close="closeSongEdit" 
+    <SongEditModal
+v-if="isSongEditVisible" 
       :parent-route="parentRoute" 
-      :songs-digests="songsDigests"/>
-    <SongsFilter v-if="isSongsFilterVisible" 
+      :songs-digests="songsDigests" 
+      @close="closeSongEdit"/>
+    <SongsFilter
+v-if="isSongsFilterVisible" 
       @close="closeSongsFilter"/>
-    <SmartCopyModal v-if="isSmartCopyVisible" 
-      @close="closeSmartCopy" 
-      :ids="songsIds"/>
-    <custom-confirm v-if="isCustomConfirmVisible" 
+    <SmartCopyModal
+v-if="isSmartCopyVisible" 
+      :ids="songsIds" 
+      @close="closeSmartCopy"/>
+    <custom-confirm
+v-if="isCustomConfirmVisible" 
       :params="customConfirmParams" 
       @close="closeCustomConfirm" />
-    <health-report-table v-if="isHealthReportTableVisible"
+    <health-report-table
+v-if="isHealthReportTableVisible"
       :id="currentSongId"
       @close="closeHealthReportTable"/>
     <ReviewModal v-if="isAssignReviewVisible" @close="isAssignReviewVisible = false" @reviewed="onAssignmentReviewed" />
@@ -24,16 +29,16 @@
           :limit="30"
           size="sm"
           pills
-      ></b-pagination>
+      />
     </div>
     <div class="songs-bv-table-body">
       <b-table
+          v-model:sort-by="sortBy"
           :items="songsDigests"
           :busy="isBusy"
           :fields="songDigestFields"
           :per-page="perPage"
           :current-page="currentPage"
-          v-model:sort-by="sortBy"
           small
           bordered
           hover
@@ -41,7 +46,7 @@
       >
         <template #table-busy>
           <div class="text-center text-danger my-2">
-            <b-spinner class="align-middle"></b-spinner>
+            <b-spinner class="align-middle"/>
             <strong>Loading...</strong>
           </div>
         </template>
@@ -50,121 +55,121 @@
               v-for="field in scope.fields"
               :key="field.key"
               :style="field.style"
-          >
+          />
         </template>
         <template #cell(id)="data">
           <div
               class="fld-song-id"
-              v-text="data.value"
               :style="{ backgroundColor: data.item.color, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-          ></div>
+              v-text="data.value"
+          />
         </template>
         <template #cell(rootId)="data">
           <div
               class="fld-root-id"
-              v-text="data.value"
               :style="{ backgroundColor: data.item.color, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-          ></div>
+              v-text="data.value"
+          />
         </template>
         <template #cell(songName)="data">
           <div
               class="fld-song-name"
-              v-text="data.value"
               :style="{ backgroundColor: data.item.color, color: currentSongId === data.item.id ? 'blue' : 'black' }"
               @click.left="editSong(data.item.id)"
-          ></div>
+              v-text="data.value"
+          />
         </template>
         <template #cell(author)="data">
           <div
               class="fld-author"
-              v-text="data.value"
               :style="{ backgroundColor: data.item.color, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-          ></div>
+              v-text="data.value"
+          />
         </template>
         <template #cell(year)="data">
           <div
               class="fld-year"
-              v-text="data.value"
               :style="{ backgroundColor: data.item.color, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-          ></div>
+              v-text="data.value"
+          />
         </template>
         <template #cell(album)="data">
           <div
               class="fld-album"
-              v-text="data.value"
               :style="{ backgroundColor: data.item.color, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-          ></div>
+              v-text="data.value"
+          />
         </template>
         <template #cell(track)="data">
           <div
               class="fld-track"
-              v-text="data.value"
               :style="{ backgroundColor: data.item.color, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-          ></div>
+              v-text="data.value"
+          />
         </template>
         <template #cell(date)="data">
           <div
               class="fld-date"
-              v-text="data.value ? data.value : '-'"
               :style="{ backgroundColor: data.item.color, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-          ></div>
+              v-text="data.value ? data.value : '-'"
+          />
         </template>
         <template #cell(time)="data">
           <div
               class="fld-time"
-              v-text="data.value ? data.value : '-'"
               :style="{ backgroundColor: data.item.color, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-          ></div>
+              v-text="data.value ? data.value : '-'"
+          />
         </template>
         <template #cell(tags)="data">
           <div
               class="fld-tags"
-              v-text="data.value ? data.value : '-'"
               :style="{ backgroundColor: data.item.color, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-          ></div>
+              v-text="data.value ? data.value : '-'"
+          />
         </template>
         <template #cell(status)="data">
           <div
               class="fld-song-status"
-              v-text="data.value"
               :style="{ backgroundColor: data.item.color, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-          ></div>
+              v-text="data.value"
+          />
         </template>
         <template #cell(songType)="data">
           <div
               class="fld-song-type"
-              v-text="songTypeLetter(data.value)"
               :style="{ backgroundColor: data.item.color, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-          ></div>
+              v-text="songTypeLetter(data.value)"
+          />
         </template>
         <template #cell(countVoices)="data">
           <div
               class="fld-count-voices"
-              v-text="data.value"
               :style="{ backgroundColor: data.item.color, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-          ></div>
+              v-text="data.value"
+          />
         </template>
         <template #cell(timecode)="data">
           <div
               class="fld-timecode"
-              v-text="data.value"
               :style="{ backgroundColor: data.item.color, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-          ></div>
+              v-text="data.value"
+          />
         </template>
         <template #cell(healthReportText)="data">
           <div
               class="fld-health-report-text"
-              v-text="data.value"
               :style="{ backgroundColor: data.item.healthReportColor, color: currentSongId === data.item.id ? 'blue' : 'black' }"
               @click.left="showHealthReportTable(data.item.id)"
-          ></div>
+              v-text="data.value"
+          />
         </template>
         <template #cell(resultVersion)="data">
           <div
               class="fld-result-version"
-              v-text="data.value"
               :style="{ backgroundColor: data.item.color, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-          ></div>
+              v-text="data.value"
+          />
         </template>
         <template #cell(player)="data">
           <div
@@ -236,154 +241,154 @@
         <template #cell(flagSponsr)="data">
           <div
               class="fld-flag-sponsr"
-              v-text="data.value ? data.value : '-'"
               :style="{ backgroundColor: data.item.processColorSponsr, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-          ></div>
+              v-text="data.value ? data.value : '-'"
+          />
         </template>
         <template #cell(flagVk)="data">
           <div
               class="fld-flag-vk"
-              v-text="data.value ? data.value : '-'"
               :style="{ backgroundColor: data.item.processColorVk, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-          ></div>
+              v-text="data.value ? data.value : '-'"
+          />
         </template>
         <template #cell(flagPlayerDemo)="data">
           <div
               class="fld-flag-player-demo"
-              v-text="data.value ? data.value : '-'"
-              @dblclick.left="playDemo(data.item.id)"
               :style="{ backgroundColor: data.item.processColorPlayerDemo, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-          ></div>
+              @dblclick.left="playDemo(data.item.id)"
+              v-text="data.value ? data.value : '-'"
+          />
         </template>
         <template #cell(flagDzenLyrics)="data">
           <div
               class="fld-flag-dzen-lyrics"
-              v-text="data.value ? data.value : '-'"
-              @dblclick.left="playLyrics(data.item.id)"
               :style="{ backgroundColor: data.item.processColorMeltLyrics, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-          ></div>
+              @dblclick.left="playLyrics(data.item.id)"
+              v-text="data.value ? data.value : '-'"
+          />
         </template>
         <template #cell(flagDzenKaraoke)="data">
           <div
               class="fld-flag-dzen-karaoke"
-              v-text="data.value ? data.value : '-'"
-              @dblclick.left="playKaraoke(data.item.id)"
               :style="{ backgroundColor: data.item.processColorMeltKaraoke, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-          ></div>
+              @dblclick.left="playKaraoke(data.item.id)"
+              v-text="data.value ? data.value : '-'"
+          />
         </template>
         <template #cell(flagDzenChords)="data">
           <div
               class="fld-flag-dzen-chords"
-              v-text="data.value ? data.value : '-'"
-              @dblclick.left="playChords(data.item.id)"
               :style="{ backgroundColor: data.item.processColorMeltChords, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-          ></div>
+              @dblclick.left="playChords(data.item.id)"
+              v-text="data.value ? data.value : '-'"
+          />
         </template>
         <template #cell(flagDzenMelody)="data">
           <div
               class="fld-flag-dzen-melody"
-              v-text="data.value ? data.value : '-'"
-              @dblclick.left="playTabs(data.item.id)"
               :style="{ backgroundColor: data.item.processColorMeltMelody, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-          ></div>
+              @dblclick.left="playTabs(data.item.id)"
+              v-text="data.value ? data.value : '-'"
+          />
         </template>
         <template #cell(flagVkLyrics)="data">
           <div
               class="fld-flag-vk-lyrics"
-              v-text="data.value ? data.value : '-'"
               :style="{ backgroundColor: data.item.processColorVkLyrics, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-          ></div>
+              v-text="data.value ? data.value : '-'"
+          />
         </template>
         <template #cell(flagVkKaraoke)="data">
           <div
               class="fld-flag-vk-karaoke"
-              v-text="data.value ? data.value : '-'"
               :style="{ backgroundColor: data.item.processColorVkKaraoke, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-          ></div>
+              v-text="data.value ? data.value : '-'"
+          />
         </template>
         <template #cell(flagVkChords)="data">
           <div
               class="fld-flag-vk-chords"
-              v-text="data.value ? data.value : '-'"
               :style="{ backgroundColor: data.item.processColorVkChords, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-          ></div>
+              v-text="data.value ? data.value : '-'"
+          />
         </template>
         <template #cell(flagVkMelody)="data">
           <div
               class="fld-flag-vk-melody"
-              v-text="data.value ? data.value : '-'"
               :style="{ backgroundColor: data.item.processColorVkMelody, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-          ></div>
+              v-text="data.value ? data.value : '-'"
+          />
         </template>
         <template #cell(flagTelegramLyrics)="data">
           <div
               class="fld-flag-tg-lyrics"
-              v-text="data.value ? data.value : '-'"
               :style="{ backgroundColor: data.item.processColorTelegramLyrics, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-          ></div>
+              v-text="data.value ? data.value : '-'"
+          />
         </template>
         <template #cell(flagTelegramKaraoke)="data">
           <div
               class="fld-flag-tg-karaoke"
-              v-text="data.value ? data.value : '-'"
               :style="{ backgroundColor: data.item.processColorTelegramKaraoke, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-          ></div>
+              v-text="data.value ? data.value : '-'"
+          />
         </template>
         <template #cell(flagTelegramChords)="data">
           <div
               class="fld-flag-tg-chords"
-              v-text="data.value ? data.value : '-'"
               :style="{ backgroundColor: data.item.processColorTelegramChords, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-          ></div>
+              v-text="data.value ? data.value : '-'"
+          />
         </template>
         <template #cell(flagTelegramMelody)="data">
           <div
               class="fld-flag-tg-melody"
-              v-text="data.value ? data.value : '-'"
               :style="{ backgroundColor: data.item.processColorTelegramMelody, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-          ></div>
+              v-text="data.value ? data.value : '-'"
+          />
         </template>
         <template #cell(flagExclusive)="data">
           <div
               class="fld-flag-exclusive"
-              v-text="data.value ? data.value : '-'"
               :style="{ backgroundColor: data.item.color, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-          ></div>
+              v-text="data.value ? data.value : '-'"
+          />
         </template>
         <template #cell(flagFree)="data">
           <div
               class="fld-flag-free"
-              v-text="data.value ? data.value : '-'"
               :style="{ backgroundColor: data.item.color, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-          ></div>
+              v-text="data.value ? data.value : '-'"
+          />
         </template>
        <template #cell(flagMaxLyrics)="data">
          <div
              class="fld-flag-max-lyrics"
-             v-text="data.value"
              :style="{ backgroundColor: data.item.processColorMaxLyrics, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-         ></div>
+             v-text="data.value"
+         />
        </template>
        <template #cell(flagMaxKaraoke)="data">
          <div
              class="fld-flag-max-karaoke"
-             v-text="data.value"
              :style="{ backgroundColor: data.item.processColorMaxKaraoke, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-         ></div>
+             v-text="data.value"
+         />
        </template>
        <template #cell(flagMaxChords)="data">
          <div
              class="fld-flag-max-chords"
-             v-text="data.value"
              :style="{ backgroundColor: data.item.processColorMaxChords, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-         ></div>
+             v-text="data.value"
+         />
        </template>
        <template #cell(flagMaxMelody)="data">
          <div
              class="fld-flag-max-melody"
-             v-text="data.value"
              :style="{ backgroundColor: data.item.processColorMaxMelody, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-         ></div>
+             v-text="data.value"
+         />
        </template>       
 <!--        <template #cell(flagPlLyrics)="data">-->
 <!--          <div-->
@@ -420,33 +425,33 @@
           >
             <b-form-rating
                 id="rate-inline"
+                v-model="data.value"
                 size="sm"
                 no-border
                 inline
                 disabled
-                v-model="data.value"
                 :style="{ backgroundColor: '#fff0', height: '18px', minHeight: '18px', padding: '0' }"
-            ></b-form-rating>
+            />
           </div>
         </template>
       </b-table>
     </div>
     <div class="songs-bv-table-footer">
-      <button class="btn-round-long-double" @click="isSmartCopyVisible=true" :disabled="countRows===0" title="Smart Copy">{{smartCopyButtonCaption}}</button>
-      <button class="btn-round-double" @click="isSongsFilterVisible=true" title="Фильтр">
-        <img alt="filter" class="icon-40" src="../../assets/svg/icon_filter.svg">
+      <button class="btn-round-long-double" :disabled="countRows===0" title="Smart Copy" @click="isSmartCopyVisible=true">{{smartCopyButtonCaption}}</button>
+      <button class="btn-round-double" title="Фильтр" @click="isSongsFilterVisible=true">
+        <img alt="filter" class="icon-40" src="../../assets/svg/icon_filter.svg"/>
       </button>
-      <button class="btn-round-double" @click="searchTextForAll" :disabled="countRows===0" title="Найти тексты для всех песен"><img alt="search texts for all" class="icon-40" src="../../assets/svg/icon_search_text.svg"></button>
-      <button class="btn-round-double" @click="createKaraokeForAll" :disabled="countRows===0" title="Создать караоке для всех песен"><img alt="create karaoke for all" class="icon-40" src="../../assets/svg/icon_song.svg"></button>
-      <button class="btn-round-double" @click="createDemucs2ForAll" :disabled="countRows===0" title="Создать DEMUCS2 для всех песен"><img alt="create demucs2 for all" class="icon-40" src="../../assets/svg/icon_demucs2.svg"></button>
-      <button class="btn-round-double" @click="createDemucs5ForAll" :disabled="countRows===0" title="Создать DEMUCS5 для всех песен"><img alt="create demucs5 for all" class="icon-40" src="../../assets/svg/icon_demucs5.svg"></button>
+      <button class="btn-round-double" :disabled="countRows===0" title="Найти тексты для всех песен" @click="searchTextForAll"><img alt="search texts for all" class="icon-40" src="../../assets/svg/icon_search_text.svg"/></button>
+      <button class="btn-round-double" :disabled="countRows===0" title="Создать караоке для всех песен" @click="createKaraokeForAll"><img alt="create karaoke for all" class="icon-40" src="../../assets/svg/icon_song.svg"/></button>
+      <button class="btn-round-double" :disabled="countRows===0" title="Создать DEMUCS2 для всех песен" @click="createDemucs2ForAll"><img alt="create demucs2 for all" class="icon-40" src="../../assets/svg/icon_demucs2.svg"/></button>
+      <button class="btn-round-double" :disabled="countRows===0" title="Создать DEMUCS5 для всех песен" @click="createDemucs5ForAll"><img alt="create demucs5 for all" class="icon-40" src="../../assets/svg/icon_demucs5.svg"/></button>
       <!-- <button class="btn-round-double" @click="createMP3KaraokeForAll" :disabled="countRows===0" title="Создать MP3 KARAOKE для всех песен"><img alt="create mp3 karaoke for all" class="icon-40" src="../../assets/svg/icon_mp3karaoke.svg"></button> -->
       <!-- <button class="btn-round-double" @click="createMP3LyricsForAll" :disabled="countRows===0" title="Создать MP3 LYRICS для всех песен"><img alt="create mp3 lyrics for all" class="icon-40" src="../../assets/svg/icon_mp3lyrics.svg"></button> -->
-      <button class="btn-round-double" @click="createSymlinksForAll" :disabled="countRows===0" title="Создать SYMLINKS для всех песен"><img alt="create symlink for all" class="icon-40" src="../../assets/svg/icon_symlink.svg"></button>
-      <button class="btn-round-double" @click="createSheetsageForAll" :disabled="countRows===0" title="Создать SHEETSAGE для всех песен"><img alt="create sheetsage for all" class="icon-40" src="../../assets/svg/icon_chords.svg"></button>
-      <button class="btn-round-double" @click="updateStoreForAll" :disabled="countRows===0" title="Обновить хранилище для всех песен"><img alt="update store for all" class="icon-40" src="../../assets/svg/icon_update_store.svg"></button>
-      <button class="btn-round-double" @click="addSyncForAll" :disabled="countRows===0 || !allowAddSync" title="Добавить записи в SYNC-таблицу"><img alt="add records to SYNC table" class="icon-40" src="../../assets/svg/icon_sync.svg"></button>
-      <button class="btn-round-double" @click="repairAll" :disabled="countRows===0" title="Repair All"><img alt="Repair all" class="icon-40" src="../../assets/svg/icon_repair.svg"></button>
+      <button class="btn-round-double" :disabled="countRows===0" title="Создать SYMLINKS для всех песен" @click="createSymlinksForAll"><img alt="create symlink for all" class="icon-40" src="../../assets/svg/icon_symlink.svg"/></button>
+      <button class="btn-round-double" :disabled="countRows===0" title="Создать SHEETSAGE для всех песен" @click="createSheetsageForAll"><img alt="create sheetsage for all" class="icon-40" src="../../assets/svg/icon_chords.svg"/></button>
+      <button class="btn-round-double" :disabled="countRows===0" title="Обновить хранилище для всех песен" @click="updateStoreForAll"><img alt="update store for all" class="icon-40" src="../../assets/svg/icon_update_store.svg"/></button>
+      <button class="btn-round-double" :disabled="countRows===0 || !allowAddSync" title="Добавить записи в SYNC-таблицу" @click="addSyncForAll"><img alt="add records to SYNC table" class="icon-40" src="../../assets/svg/icon_sync.svg"/></button>
+      <button class="btn-round-double" :disabled="countRows===0" title="Repair All" @click="repairAll"><img alt="Repair all" class="icon-40" src="../../assets/svg/icon_repair.svg"/></button>
     </div>
 
   </div>
@@ -467,6 +472,40 @@ const ASSIGN_STATUS_LABELS = {
   approved: 'Одобрено', rejected: 'Отклонено',
 };
 
+/**
+ * Главная таблица песен в admin SPA `webvue3`.
+ *
+ * Отображает список песен (`SettingsDTO`) с пагинацией, фильтрами
+ * (через `SongsFilterModal`), inline-редактированием, bulk-операциями
+ * и health-report. Подписана на SSE `recordChange` через Vuex —
+ * обновляет строки без polling.
+ *
+ * **Структура таблицы** (см. CONTRIBUTING.md#vue-table-layout-fixed):
+ * - `table-layout: fixed` + явная `width` на каждой колонке.
+ * - Колонки платформ: 16×22px = 352px (Boosty, VK, Telegram, и т.д.).
+ * - Без `display: flex` на `<td>` — только `text-align: center; vertical-align: middle`.
+ *
+ * **Vuex-паттерны** (см. DEVELOPMENT.md#vuex-паттерны-songsstorejs):
+ * - Мутации — только sync-присвоение `state`. Async (XHR, dispatch) — в `actions`.
+ * - Удаление/правки песни — через SSE (`recordDelete`/`recordChange`),
+ *   не локальным рендерингом.
+ * - Фильтры — через `Songs/filter/store.js` + `setWebvueProp`/`getWebvueProp`
+ *   (server-side key/value, переживает F5 и переходы между вьюшками).
+ *
+ * **Pagination persistence** (см. AGENTS.md#персистентность-страницы-пагинации-в-webvue3):
+ * - `currentPage` хранится в Vuex (`Songs/tableCurrentPage`) — переживает
+ *   переход «Песни → Публикации → Песни» и возвращает на ту же страницу.
+ *
+ * @prop {SettingsDTO[]} songs - список песен
+ * @prop {number} page - текущая страница (1-based)
+ * @emits row-click - клик по строке (payload: SettingsDTO)
+ * @emits row-edit - открыть SongEditModal
+ * @emits row-delete - удалить песню
+ * @see docs/features/sse-notifications.md
+ * @see docs/features/dual-db-sync.md (Settings — основная syncable-сущность)
+ * @see CONTRIBUTING.md#vue-table-layout-fixed
+ * @see Songs/store.js Vuex-модуль с actions/mutations
+ */
 export default {
   name: "SongsTable",
   components: {
@@ -501,48 +540,6 @@ export default {
       hrRunning: 0,
       HR_MAX_CONCURRENT: 3
     }
-  },
-  watch: {
-    songsDigestIsLoading: {
-      handler () {
-        this.isBusy = this.songsDigestIsLoading;
-      }
-    },
-    countRows: {
-      handler (newCount) {
-        // Сбрасываем на 1 только если текущая страница вышла за пределы после загрузки/фильтрации.
-        // Иначе (при первом монтировании компонента) сохраняем страницу, на которой был пользователь.
-        const totalPages = Math.max(1, Math.ceil(newCount / this.perPage));
-        if (this.currentPage > totalPages) {
-          this.currentPage = 1;
-        }
-        this.updateHealthReportForCurrentPage();
-        this.reloadAssignmentStatus();
-      }
-    },
-    currentSongId: {
-      handler () {
-        const songPageNumber = this.songIdAndPageId.get(this.currentSongId);
-        if (songPageNumber !== undefined && this.currentPage !== songPageNumber) this.currentPage = songPageNumber;
-      }
-    },
-    currentPage: {
-      handler (newPage) {
-        // Сохраняем страницу в store, чтобы она восстановилась после переключения на другой компонент.
-        this.$store.commit('setSongsTableCurrentPage', newPage);
-        this.hrQueue = [];
-        this.updateHealthReportForCurrentPage();
-        this.reloadAssignmentStatus();
-      }
-    }
-  },
-  async mounted() {
-    // this.$store.dispatch('loadSongsDigests', { filterAuthor: 'Павел Кашин'} )
-    this.allowAddSync = await this.propAllowAddSync();
-    // Источник (local/server) для кнопки «Назначить» — KaraokeProperty editorAssignmentDefaultTarget.
-    await this.$store.dispatch('loadEditorDefaultTarget');
-    this.$store.dispatch('loadEditorSiteUsers', this.$store.getters.getEditorDefaultTarget);
-    this.reloadAssignmentStatus();
   },
   computed: {
     parentRoute() {
@@ -1085,6 +1082,48 @@ export default {
         }
       ]
     }
+  },
+  watch: {
+    songsDigestIsLoading: {
+      handler () {
+        this.isBusy = this.songsDigestIsLoading;
+      }
+    },
+    countRows: {
+      handler (newCount) {
+        // Сбрасываем на 1 только если текущая страница вышла за пределы после загрузки/фильтрации.
+        // Иначе (при первом монтировании компонента) сохраняем страницу, на которой был пользователь.
+        const totalPages = Math.max(1, Math.ceil(newCount / this.perPage));
+        if (this.currentPage > totalPages) {
+          this.currentPage = 1;
+        }
+        this.updateHealthReportForCurrentPage();
+        this.reloadAssignmentStatus();
+      }
+    },
+    currentSongId: {
+      handler () {
+        const songPageNumber = this.songIdAndPageId.get(this.currentSongId);
+        if (songPageNumber !== undefined && this.currentPage !== songPageNumber) this.currentPage = songPageNumber;
+      }
+    },
+    currentPage: {
+      handler (newPage) {
+        // Сохраняем страницу в store, чтобы она восстановилась после переключения на другой компонент.
+        this.$store.commit('setSongsTableCurrentPage', newPage);
+        this.hrQueue = [];
+        this.updateHealthReportForCurrentPage();
+        this.reloadAssignmentStatus();
+      }
+    }
+  },
+  async mounted() {
+    // this.$store.dispatch('loadSongsDigests', { filterAuthor: 'Павел Кашин'} )
+    this.allowAddSync = await this.propAllowAddSync();
+    // Источник (local/server) для кнопки «Назначить» — KaraokeProperty editorAssignmentDefaultTarget.
+    await this.$store.dispatch('loadEditorDefaultTarget');
+    this.$store.dispatch('loadEditorSiteUsers', this.$store.getters.getEditorDefaultTarget);
+    this.reloadAssignmentStatus();
   },
   methods: {
     songTypeLetter(value) {

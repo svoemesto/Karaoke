@@ -1,0 +1,9 @@
+node_modules/
+dist/
+build/
+coverage/
+*.min.js
+*.bundle.js
+src/lib/
+tests/
+__tests__/

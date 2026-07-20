@@ -3,18 +3,22 @@ package com.svoemesto.karaokeapp.model
 data class Message(
     val type: String = "info",
     val head: String = "",
-    val body: String = ""
+    val body: String = "",
 ) {
     companion object {
         @Suppress("unused")
-        fun getRecordChangeMessage(type: String = "info", head: String = "", body: String = ""): RecordChangeMessage {
+        fun getRecordChangeMessage(
+            type: String = "info",
+            head: String = "",
+            body: String = "",
+        ): RecordChangeMessage {
             val message = Message(type = type, head = head, body = body)
             return RecordChangeMessage(
                 recordId = 0,
                 tableName = "message",
                 diffs = emptyList(),
                 databaseName = "",
-                record = message
+                record = message,
             )
         }
     }
@@ -22,24 +26,24 @@ data class Message(
 
 data class ProcessWorkerStateMessage(
     val isWork: Boolean,
-    val stopAfterThreadIsDone: Boolean
+    val stopAfterThreadIsDone: Boolean,
 )
 
 data class ProcessCountWaitingMessage(
-        val countWaiting: Long
+    val countWaiting: Long,
 )
 
 data class RecordDeleteMessage(
     val recordId: Long,
     val tableName: String,
-    val databaseName: String
+    val databaseName: String,
 )
 
 data class RecordAddMessage(
     val recordId: Long,
     val tableName: String,
     val databaseName: String,
-    val record: Any?
+    val record: Any?,
 )
 
 data class RecordChangeMessage(
@@ -47,12 +51,11 @@ data class RecordChangeMessage(
     val tableName: String,
     val diffs: List<RecordDiff>,
     val databaseName: String,
-    val record: Any?
+    val record: Any?,
 ) {
-
     fun getSetString(): String {
         val result: MutableList<String> = mutableListOf()
-        diffs.filter{it.recordDiffRealField}.forEach { recordDiff ->
+        diffs.filter { it.recordDiffRealField }.forEach { recordDiff ->
             val txt = StringBuilder()
             txt.append("${recordDiff.recordDiffName} = ")
             if (recordDiff.recordDiffValueNew is Long) {

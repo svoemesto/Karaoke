@@ -31,14 +31,17 @@ class InternalStemJobController(
     @Value("\${stemjobs.temp-dir:/tmp/stemjobs}") private val tempDir: String,
     @Value("\${stemjobs.internal-secret:}") private val internalSecret: String,
 ) {
-
     private fun authorized(request: HttpServletRequest): Boolean {
         if (internalSecret.isBlank()) return false // не сконфигурировано — по умолчанию закрыто, не открыто
         return request.getHeader("X-Internal-Secret") == internalSecret
     }
 
     @GetMapping("/{id}/raw")
-    fun raw(@PathVariable id: Long, request: HttpServletRequest, response: HttpServletResponse) {
+    fun raw(
+        @PathVariable id: Long,
+        request: HttpServletRequest,
+        response: HttpServletResponse,
+    ) {
         if (!authorized(request)) {
             response.status = HttpServletResponse.SC_FORBIDDEN
             return
@@ -59,7 +62,11 @@ class InternalStemJobController(
     }
 
     @PostMapping("/{id}/ack")
-    fun ack(@PathVariable id: Long, request: HttpServletRequest, response: HttpServletResponse) {
+    fun ack(
+        @PathVariable id: Long,
+        request: HttpServletRequest,
+        response: HttpServletResponse,
+    ) {
         if (!authorized(request)) {
             response.status = HttpServletResponse.SC_FORBIDDEN
             return

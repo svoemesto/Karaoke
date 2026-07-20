@@ -2,10 +2,7 @@ package com.svoemesto.karaokeapp.mlt
 
 @Suppress("unused")
 data class MltPropBuilder(
-    val props: MutableMap<String, Any> = mutableMapOf()
+    val props: MutableMap<String, Any> = mutableMapOf(),
 ) {
-
-    fun build(): MutableMap<String, Any> {
-        return props
-    }
+    fun build(): MutableMap<String, Any> = props
 }

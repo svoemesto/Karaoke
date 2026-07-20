@@ -12,10 +12,10 @@ data class PriceTariffDto(
     val isActive: Boolean = true,
     val isDefault: Boolean = false,
     val sortOrder: Int = 0,
-) : Serializable, Comparable<PriceTariffDto>, KaraokeDbTableDto {
-
-    override fun compareTo(other: PriceTariffDto): Int =
-        compareValuesBy(this, other, { it.scope }, { it.sortOrder }, { it.id })
+) : Serializable,
+    Comparable<PriceTariffDto>,
+    KaraokeDbTableDto {
+    override fun compareTo(other: PriceTariffDto): Int = compareValuesBy(this, other, { it.scope }, { it.sortOrder }, { it.id })
 
     override fun validationErrors(): List<String> {
         val errors = mutableListOf<String>()

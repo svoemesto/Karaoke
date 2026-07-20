@@ -7,9 +7,9 @@
         <tr>
           <th rowspan="2">Таблица</th>
           <th :colspan="ops.length" class="sync-group sync-group-push">→ Server (push)</th>
-          <th rowspan="2"></th>
+          <th rowspan="2"/>
           <th :colspan="ops.length" class="sync-group sync-group-pull">← Local (pull)</th>
-          <th rowspan="2"></th>
+          <th rowspan="2"/>
         </tr>
         <tr>
           <th v-for="op in ops" :key="'ph-' + op.op" class="sync-op-col" :title="op.title">{{ op.label }}</th>
@@ -20,7 +20,8 @@
         <tr v-for="entity in entities" :key="entity.key">
           <td class="sync-name-col">{{ entity.displayName }}</td>
           <td v-for="op in ops" :key="'p-' + op.op" class="sync-op-col">
-            <input type="checkbox"
+            <input
+type="checkbox"
                    :checked="entity[fieldName('PUSH', op.op)]"
                    @change="onFlagChange(entity, 'PUSH', op.op, $event)" />
           </td>
@@ -28,7 +29,8 @@
             <button class="btn btn-sm btn-primary sync-run-button" :disabled="!entity.allowPush" @click="confirmRun(entity, 'PUSH')">→ Server</button>
           </td>
           <td v-for="op in ops" :key="'l-' + op.op" class="sync-op-col">
-            <input type="checkbox"
+            <input
+type="checkbox"
                    :checked="entity[fieldName('PULL', op.op)]"
                    @change="onFlagChange(entity, 'PULL', op.op, $event)" />
           </td>
@@ -44,6 +46,38 @@
 <script>
 import CustomConfirm from '../Common/CustomConfirm.vue';
 
+/**
+ * Таблица управления двух-БД sync LOCAL ↔ SERVER.
+ *
+ * Отображает все 14 `SyncTarget`-сущностей с 8 флагами
+ * `sync_<key>_<push|pull>_<insert|update|delete|move>_allowed` для
+ * каждой. UI разбит на две группы колонок: PUSH (4 чекбокса:
+ * insert/update/delete/move) и PULL (аналогично).
+ *
+ * **Действия**:
+ * - «Синхронизировать» — запуск `POST /api/sync/run` с `key` и `direction`.
+ * - «1 клик» — `POST /api/sync/oneclick` для всех сущностей в направлении
+ *   `oneClickDirection` каждого `SyncTarget`.
+ * - «Изменить флаг» — `POST /api/sync/setflag`.
+ *
+ * **REST-эндпоинты** (см. `SyncController.kt`):
+ * - `GET /api/sync/entities` — список сущностей с их флагами.
+ * - `POST /api/sync/run` — запуск одной сущности.
+ * - `POST /api/sync/oneclick` — запуск всех.
+ * - `POST /api/sync/setflag` — toggle одного флага.
+ *
+ * **Безопасность**:
+ * - `pull_move` для append-only сущностей (`chatmessages`) держится
+ *   выключенным — MOVE удаляет строку из источника (PROD), что для чата
+ *   стирало бы переписку с сервера.
+ *
+ * @prop {SyncEntityDTO[]} entities - список сущностей (получен из GET /api/sync/entities)
+ * @emits run-sync - запустить sync одной сущности
+ * @emits one-click - запустить «1 клик» для всех
+ * @emits set-flag - изменить флаг для сущности
+ * @see docs/features/dual-db-sync.md
+ * @see SyncController REST-эндпоинты
+ */
 export default {
   name: 'SyncTable',
   components: { CustomConfirm },

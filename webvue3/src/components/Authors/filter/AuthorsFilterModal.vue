@@ -12,102 +12,102 @@
 
             <div class="afm-filter-row">
               <div class="afm-row-label">
-                <div v-text="'ID:'"></div>
+                <div v-text="'ID:'"/>
               </div>
               <div class="afm-row-input">
-                <input class="afm-input-field" v-model="authorsFilterId">
+                <input v-model="authorsFilterId" class="afm-input-field"/>
               </div>
-              <button :disabled="!authorsFilterId" class="afm-button-clear-field" @click.left="authorsFilterId=''" v-text="'X'"></button>
+              <button :disabled="!authorsFilterId" class="afm-button-clear-field" @click.left="authorsFilterId=''" v-text="'X'"/>
             </div>
 
             <div class="afm-filter-row">
               <div class="afm-row-label">
-                <div v-text="'Автор:'"></div>
+                <div v-text="'Автор:'"/>
               </div>
               <div class="afm-row-input">
-                <input class="afm-input-field" v-model="authorsFilterAuthor">
+                <input v-model="authorsFilterAuthor" class="afm-input-field"/>
               </div>
-              <button :disabled="!authorsFilterAuthor" class="afm-button-clear-field" @click.left="authorsFilterAuthor=''" v-text="'X'"></button>
+              <button :disabled="!authorsFilterAuthor" class="afm-button-clear-field" @click.left="authorsFilterAuthor=''" v-text="'X'"/>
             </div>
 
             <div class="afm-filter-row">
               <div class="afm-row-label">
-                <div v-text="'Yandex.ID:'"></div>
+                <div v-text="'Yandex.ID:'"/>
               </div>
               <div class="afm-row-input">
-                <input class="afm-input-field" v-model="authorsFilterYmId">
+                <input v-model="authorsFilterYmId" class="afm-input-field"/>
               </div>
-              <button :disabled="!authorsFilterYmId" class="afm-button-clear-field" @click.left="authorsFilterYmId=''" v-text="'X'"></button>
+              <button :disabled="!authorsFilterYmId" class="afm-button-clear-field" @click.left="authorsFilterYmId=''" v-text="'X'"/>
             </div>
 
             <div class="afm-filter-row">
               <div class="afm-row-label">
-                <div v-text="'Последний альбом (Yandex):'"></div>
+                <div v-text="'Последний альбом (Yandex):'"/>
               </div>
               <div class="afm-row-input">
-                <input class="afm-input-field" v-model="authorsFilterLastAlbumYm">
+                <input v-model="authorsFilterLastAlbumYm" class="afm-input-field"/>
               </div>
-              <button :disabled="!authorsFilterLastAlbumYm" class="afm-button-clear-field" @click.left="authorsFilterLastAlbumYm=''" v-text="'X'"></button>
+              <button :disabled="!authorsFilterLastAlbumYm" class="afm-button-clear-field" @click.left="authorsFilterLastAlbumYm=''" v-text="'X'"/>
             </div>
 
             <div class="afm-filter-row">
               <div class="afm-row-label">
-                <div v-text="'VK.ID:'"></div>
+                <div v-text="'VK.ID:'"/>
               </div>
               <div class="afm-row-input">
-                <input class="afm-input-field" v-model="authorsFilterVkId">
+                <input v-model="authorsFilterVkId" class="afm-input-field"/>
               </div>
-              <button :disabled="!authorsFilterVkId" class="afm-button-clear-field" @click.left="authorsFilterVkId=''" v-text="'X'"></button>
+              <button :disabled="!authorsFilterVkId" class="afm-button-clear-field" @click.left="authorsFilterVkId=''" v-text="'X'"/>
             </div>
 
             <div class="afm-filter-row">
               <div class="afm-row-label">
-                <div v-text="'Последний альбом (VK):'"></div>
+                <div v-text="'Последний альбом (VK):'"/>
               </div>
               <div class="afm-row-input">
-                <input class="afm-input-field" v-model="authorsFilterLastAlbumVk">
+                <input v-model="authorsFilterLastAlbumVk" class="afm-input-field"/>
               </div>
-              <button :disabled="!authorsFilterLastAlbumVk" class="afm-button-clear-field" @click.left="authorsFilterLastAlbumVk=''" v-text="'X'"></button>
+              <button :disabled="!authorsFilterLastAlbumVk" class="afm-button-clear-field" @click.left="authorsFilterLastAlbumVk=''" v-text="'X'"/>
             </div>
 
             <div class="afm-filter-row">
               <div class="afm-row-label">
-                <div v-text="'Последний альбом (DB):'"></div>
+                <div v-text="'Последний альбом (DB):'"/>
               </div>
               <div class="afm-row-input">
-                <input class="afm-input-field" v-model="authorsFilterLastAlbumProcessed">
+                <input v-model="authorsFilterLastAlbumProcessed" class="afm-input-field"/>
               </div>
-              <button :disabled="!authorsFilterLastAlbumProcessed" class="afm-button-clear-field" @click.left="authorsFilterLastAlbumProcessed=''" v-text="'X'"></button>
+              <button :disabled="!authorsFilterLastAlbumProcessed" class="afm-button-clear-field" @click.left="authorsFilterLastAlbumProcessed=''" v-text="'X'"/>
             </div>
             
             <div class="afm-filter-row">
               <div class="afm-row-label">
-                <div v-text="'Следить?:'"></div>
+                <div v-text="'Следить?:'"/>
               </div>
               <div class="afm-row-input">
-                <input class="afm-input-field" v-model="authorsFilterWatched">
+                <input v-model="authorsFilterWatched" class="afm-input-field"/>
               </div>
-              <button :disabled="!authorsFilterWatched" class="afm-button-clear-field" @click.left="authorsFilterWatched=''" v-text="'X'"></button>
+              <button :disabled="!authorsFilterWatched" class="afm-button-clear-field" @click.left="authorsFilterWatched=''" v-text="'X'"/>
             </div>
 
             <div class="afm-filter-row">
               <div class="afm-row-label">
-                <div v-text="'Пропустить?:'"></div>
+                <div v-text="'Пропустить?:'"/>
               </div>
               <div class="afm-row-input">
-                <input class="afm-input-field" v-model="authorsFilterSkip">
+                <input v-model="authorsFilterSkip" class="afm-input-field"/>
               </div>
-              <button :disabled="!authorsFilterSkip" class="afm-button-clear-field" @click.left="authorsFilterSkip=''" v-text="'X'"></button>
+              <button :disabled="!authorsFilterSkip" class="afm-button-clear-field" @click.left="authorsFilterSkip=''" v-text="'X'"/>
             </div>
 
             <div class="afm-filter-row">
               <div class="afm-row-label">
-                <div v-text="'Новый альбом?:'"></div>
+                <div v-text="'Новый альбом?:'"/>
               </div>
               <div class="afm-row-input">
-                <input class="afm-input-field" v-model="authorsFilterHaveNewAlbum">
+                <input v-model="authorsFilterHaveNewAlbum" class="afm-input-field"/>
               </div>
-              <button :disabled="!authorsFilterHaveNewAlbum" class="afm-button-clear-field" @click.left="authorsFilterHaveNewAlbum=''" v-text="'X'"></button>
+              <button :disabled="!authorsFilterHaveNewAlbum" class="afm-button-clear-field" @click.left="authorsFilterHaveNewAlbum=''" v-text="'X'"/>
             </div>
 
           </div>
@@ -127,18 +127,6 @@
 
 export default {
   name: "AuthorsFilterModal",
-  async beforeMount() {
-    this.$store.dispatch('setAuthorsFilterId', { value: await this.$store.getters.getWebvueProp('authorsFilterId', '') });
-    this.$store.dispatch('setAuthorsFilterAuthor', { value: await this.$store.getters.getWebvueProp('authorsFilterAuthor', '') });
-    this.$store.dispatch('setAuthorsFilterYmId', { value: await this.$store.getters.getWebvueProp('authorsFilterYmId', '') });
-    this.$store.dispatch('setAuthorsFilterVkId', { value: await this.$store.getters.getWebvueProp('authorsFilterVkId', '') });
-    this.$store.dispatch('setAuthorsFilterLastAlbumYm', { value: await this.$store.getters.getWebvueProp('authorsFilterLastAlbumYm', '') });
-    this.$store.dispatch('setAuthorsFilterLastAlbumVk', { value: await this.$store.getters.getWebvueProp('authorsFilterLastAlbumVk', '') });
-    this.$store.dispatch('setAuthorsFilterLastAlbumProcessed', { value: await this.$store.getters.getWebvueProp('authorsFilterLastAlbumProcessed', '') });
-    this.$store.dispatch('setAuthorsFilterWatched', { value: await this.$store.getters.getWebvueProp('authorsFilterWatched', '') });
-    this.$store.dispatch('setAuthorsFilterSkip', { value: await this.$store.getters.getWebvueProp('authorsFilterSkip', '') });
-    this.$store.dispatch('setAuthorsFilterHaveNewAlbum', { value: await this.$store.getters.getWebvueProp('authorsFilterHaveNewAlbum', '') });
-  },
   computed: {
     authorsFilterId: {
       get() { return this.$store.getters.getAuthorsFilterId; },
@@ -180,6 +168,18 @@ export default {
       get() { return this.$store.getters.getAuthorsFilterHaveNewAlbum; },
       set(value) { this.$store.dispatch('setAuthorsFilterHaveNewAlbum', { value: value }); }
     },
+  },
+  async beforeMount() {
+    this.$store.dispatch('setAuthorsFilterId', { value: await this.$store.getters.getWebvueProp('authorsFilterId', '') });
+    this.$store.dispatch('setAuthorsFilterAuthor', { value: await this.$store.getters.getWebvueProp('authorsFilterAuthor', '') });
+    this.$store.dispatch('setAuthorsFilterYmId', { value: await this.$store.getters.getWebvueProp('authorsFilterYmId', '') });
+    this.$store.dispatch('setAuthorsFilterVkId', { value: await this.$store.getters.getWebvueProp('authorsFilterVkId', '') });
+    this.$store.dispatch('setAuthorsFilterLastAlbumYm', { value: await this.$store.getters.getWebvueProp('authorsFilterLastAlbumYm', '') });
+    this.$store.dispatch('setAuthorsFilterLastAlbumVk', { value: await this.$store.getters.getWebvueProp('authorsFilterLastAlbumVk', '') });
+    this.$store.dispatch('setAuthorsFilterLastAlbumProcessed', { value: await this.$store.getters.getWebvueProp('authorsFilterLastAlbumProcessed', '') });
+    this.$store.dispatch('setAuthorsFilterWatched', { value: await this.$store.getters.getWebvueProp('authorsFilterWatched', '') });
+    this.$store.dispatch('setAuthorsFilterSkip', { value: await this.$store.getters.getWebvueProp('authorsFilterSkip', '') });
+    this.$store.dispatch('setAuthorsFilterHaveNewAlbum', { value: await this.$store.getters.getWebvueProp('authorsFilterHaveNewAlbum', '') });
   },
   methods: {
     ok() {

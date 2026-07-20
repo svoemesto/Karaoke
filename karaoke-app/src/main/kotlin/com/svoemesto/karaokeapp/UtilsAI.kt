@@ -3,11 +3,6 @@ package com.svoemesto.karaokeapp
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.core.type.TypeReference
-import java.net.URL
-import java.util.Base64
-import java.nio.file.Files
-import java.nio.file.Paths
-import javax.net.ssl.HttpsURLConnection
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.svoemesto.karaokeapp.llm.LyricsFinderService
 import com.svoemesto.karaokeapp.model.SearchAsync
@@ -20,7 +15,12 @@ import kotlinx.serialization.Serializable
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import java.io.File
+import java.net.URL
+import java.nio.file.Files
+import java.nio.file.Paths
 import java.time.LocalDateTime
+import java.util.Base64
+import javax.net.ssl.HttpsURLConnection
 import kotlin.String
 import kotlin.text.replace
 
@@ -32,7 +32,8 @@ fun parseXmlUrls(xmlText: String): List<String> {
     val urls = mutableListOf<String>()
     val urlRegex = Regex("<url>(.*?)</url>")
 
-    urlRegex.findAll(xmlText)
+    urlRegex
+        .findAll(xmlText)
         .forEach { match ->
             urls.add(match.groupValues[1])
         }
@@ -44,7 +45,8 @@ fun parseHtmlUrls(xmlText: String): List<String> {
     val urls = mutableListOf<String>()
     val urlRegex = Regex("<url>(.*?)</url>")
 
-    urlRegex.findAll(xmlText)
+    urlRegex
+        .findAll(xmlText)
         .forEach { match ->
             urls.add(match.groupValues[1])
         }
@@ -59,7 +61,7 @@ data class FindSongResult(
     val songName: String,
     val link: String,
     val domain: String,
-    val findedText: String
+    val findedText: String,
 )
 
 fun getIamToken(): String {
@@ -78,14 +80,18 @@ fun getIamToken(): String {
     return Karaoke.requestIamToken
 }
 
-fun getSearXNGSearch(settings: Settings, lyricsFinderService: LyricsFinderService): SearchAsync {
+fun getSearXNGSearch(
+    settings: Settings,
+    lyricsFinderService: LyricsFinderService,
+): SearchAsync {
     println("Начинаем получение запроса поиска для песни ${settings.fileName}.")
-    val searchAsyncList = SearchAsync.getSearchAsyncListBySongId(
-        songId = settings.id,
-        database = settings.database,
-        storageApiClient = settings.storageApiClient,
-        storageService = settings.storageService
-    )
+    val searchAsyncList =
+        SearchAsync.getSearchAsyncListBySongId(
+            songId = settings.id,
+            database = settings.database,
+            storageApiClient = settings.storageApiClient,
+            storageService = settings.storageService,
+        )
     if (searchAsyncList.isNotEmpty()) {
         println("Ранее созданный запрос найден в базе данных, возвращаем его.")
         return searchAsyncList.first()
@@ -130,10 +136,11 @@ fun getSearXNGSearch(settings: Settings, lyricsFinderService: LyricsFinderServic
         searchResult.songId = savedResult.songId
         searchResult.url = url
         searchResult.text = lyrics
-        val savedSearchResult = SearchResult.createNewSearchResult(
-            newSearchResult = searchResult,
-            database = settings.database
-        )
+        val savedSearchResult =
+            SearchResult.createNewSearchResult(
+                newSearchResult = searchResult,
+                database = settings.database,
+            )
         savedSearchResult?.let { searchedRightResults.add(it) }
     }
 
@@ -148,15 +155,21 @@ fun getSearXNGSearch(settings: Settings, lyricsFinderService: LyricsFinderServic
     return savedResult
 }
 
-fun getYandexSearch(settings: Settings, countInPage: Int = 100, responseFormat: SearchResponseFormat = SearchResponseFormat.FORMAT_XML, async: Boolean = false): SearchAsync {
+fun getYandexSearch(
+    settings: Settings,
+    countInPage: Int = 100,
+    responseFormat: SearchResponseFormat = SearchResponseFormat.FORMAT_XML,
+    async: Boolean = false,
+): SearchAsync {
     // Ищем, есть ли уже в наличии для заданной песни SearchAsync. Если есть - возвращаем первый/единственный
     println("Начинаем получение ${if (async) "АСИНХРОННОГО" else "СИНХРОННОГО"} запроса поиска для песни ${settings.fileName}.")
-    val searchAsyncList = SearchAsync.getSearchAsyncListBySongId(
-        songId = settings.id,
-        database = settings.database,
-        storageApiClient = settings.storageApiClient,
-        storageService = settings.storageService
-    )
+    val searchAsyncList =
+        SearchAsync.getSearchAsyncListBySongId(
+            songId = settings.id,
+            database = settings.database,
+            storageApiClient = settings.storageApiClient,
+            storageService = settings.storageService,
+        )
     if (searchAsyncList.isNotEmpty()) {
         println("Ранее созданный запрос найден в базе данных, возвращаем его.")
         return searchAsyncList.first()
@@ -173,11 +186,12 @@ fun getYandexSearch(settings: Settings, countInPage: Int = 100, responseFormat: 
 
     println("Запрос будет выполнен для поисковой сроки: '$queryText'")
 
-    val requestUrl = if (async) {
-        Karaoke.requestAsyncUrl
-    } else {
-        Karaoke.requestSyncUrl
-    }
+    val requestUrl =
+        if (async) {
+            Karaoke.requestAsyncUrl
+        } else {
+            Karaoke.requestSyncUrl
+        }
     val url = URL(requestUrl)
 
     val connection = url.openConnection() as HttpsURLConnection
@@ -193,7 +207,8 @@ fun getYandexSearch(settings: Settings, countInPage: Int = 100, responseFormat: 
             readTimeout = 30000
         }
 
-        val body = """
+        val body =
+            """
             {
                 "query": {
                   "searchType": "SEARCH_TYPE_RU",
@@ -217,7 +232,7 @@ fun getYandexSearch(settings: Settings, countInPage: Int = 100, responseFormat: 
                 "folderId": "$folderId",
                 "responseFormat": "$responseFormat"
             }
-        """.trimIndent()
+            """.trimIndent()
 
         connection.outputStream.use { it.write(body.toByteArray(Charsets.UTF_8)) }
 
@@ -228,7 +243,6 @@ fun getYandexSearch(settings: Settings, countInPage: Int = 100, responseFormat: 
             val mapper = ObjectMapper()
 
             if (async) {
-
                 val apiResponse: ApiResponseAsync = mapper.readValue(response, object : TypeReference<ApiResponseAsync>() {})
                 return apiResponse.id?.let { operationId ->
                     if (operationId.isNotEmpty()) {
@@ -244,7 +258,9 @@ fun getYandexSearch(settings: Settings, countInPage: Int = 100, responseFormat: 
                         result.done = apiResponse.done ?: false
                         val savedResult = SearchAsync.createNewSearchAsync(newSearchAsync = result, database = settings.database)
                         if (savedResult != null) {
-                            println("Асинхронный запрос успешно создан. id = '${savedResult.id}', operationId = '${savedResult.operationId}'")
+                            println(
+                                "Асинхронный запрос успешно создан. id = '${savedResult.id}', operationId = '${savedResult.operationId}'",
+                            )
                         } else {
                             println("Не удалось создать SearchAsync в базе данных. $result")
                         }
@@ -254,12 +270,10 @@ fun getYandexSearch(settings: Settings, countInPage: Int = 100, responseFormat: 
                         throw RuntimeException("Пустой id operations в ответе")
                     }
                 } ?: throw RuntimeException("Поле id не найдено в ответе")
-
             } else {
                 val apiResponse: ApiResponseSync = mapper.readValue(response, object : TypeReference<ApiResponseSync>() {})
                 return apiResponse.rawData?.let { rawData ->
                     if (rawData.isNotEmpty()) {
-
                         val result = SearchAsync()
                         result.songId = settings.id
                         result.url = requestUrl
@@ -272,24 +286,22 @@ fun getYandexSearch(settings: Settings, countInPage: Int = 100, responseFormat: 
                         result.rawData = String(Base64.getDecoder().decode(rawData))
                         val savedResult = SearchAsync.createNewSearchAsync(newSearchAsync = result, database = settings.database)
                         if (savedResult != null) {
-                            println("Синхронный запрос успешно создан. id = '${savedResult.id}', символов в rawData = '${savedResult.rawData.length}'")
+                            println(
+                                "Синхронный запрос успешно создан. id = '${savedResult.id}', символов в rawData = '${savedResult.rawData.length}'",
+                            )
                         } else {
                             println("Не удалось создать SearchAsync (синхронный) в базе данных. $result")
                         }
                         savedResult ?: throw RuntimeException("Не удалось создать SearchAsync (синхронный) в базе данных. $result")
-
                     } else {
                         println("Пустой id operations в ответе")
                         throw RuntimeException("Пустой rawData в ответе")
                     }
                 } ?: throw RuntimeException("Поле rawData не найдено в ответе")
             }
-
         } else {
             throw RuntimeException("Failed to search: $responseCode")
         }
-
-
     } catch (e: Exception) {
         println("Exception details: ${e.message}")
         e.printStackTrace()
@@ -297,22 +309,25 @@ fun getYandexSearch(settings: Settings, countInPage: Int = 100, responseFormat: 
     } finally {
         connection.disconnect()
     }
-
 }
 
-fun findSongText(settings: Settings, countInPage: Int = 100, countInResult: Int = 0): List<FindSongResult> {
-
+fun findSongText(
+    settings: Settings,
+    countInPage: Int = 100,
+    countInResult: Int = 0,
+): List<FindSongResult> {
     val author = settings.author
     val songName = settings.songName
     val songNameForFind = songName.replace(Regex("""\([^)]*\)"""), "").trim()
     val fileSearchedLinksAbsolutePath = settings.fileSearchedLinksAbsolutePath
-    val xmlText = if (File(fileSearchedLinksAbsolutePath).exists()) {
-        File(fileSearchedLinksAbsolutePath).readText()
-    } else {
-        val result = searchSongInYandex(author = author, songName = songNameForFind, countInPage = countInPage)
-        File(fileSearchedLinksAbsolutePath).writeText(result, Charsets.UTF_8)
-        result
-    }
+    val xmlText =
+        if (File(fileSearchedLinksAbsolutePath).exists()) {
+            File(fileSearchedLinksAbsolutePath).readText()
+        } else {
+            val result = searchSongInYandex(author = author, songName = songNameForFind, countInPage = countInPage)
+            File(fileSearchedLinksAbsolutePath).writeText(result, Charsets.UTF_8)
+            result
+        }
     println("Яндексе вернул документ размером ${xmlText.length} символов.")
 
     val links = parseXmlUrls(xmlText)
@@ -326,45 +341,47 @@ fun findSongText(settings: Settings, countInPage: Int = 100, countInResult: Int 
         val html = getHtml(link)
         val domain = extractDomain(link)
 //        println(domain)
-        val classNamePrefixes = when (domain) {
-            "genius.com" -> listOf("Lyrics__Container")
-            "tekst-pesni.online" -> listOf("entry-content", "clearfix")
-            "www.shazam.com" -> listOf("AppleMusicLyrics_lyricsBlock")
-            "vk.com" -> listOf("vkitFeedShowMoreText")
-            "darktexts.ru" -> listOf("full-text")
-            "www.beesona.pro" -> listOf("copys")
-            "alllyr.ru" -> listOf("inline")
-            "lyricsworld.ru" -> listOf("songLyrics")
-            "www.5lad.net" -> listOf("textofsong")
-            "blatata.com" -> listOf("value")
-            "lyrhub.com" -> listOf("lyric")
-            "ru.ilyrics.net" -> listOf("space-y-4", "text-gray-700", "leading-relaxed")
-            "singme.ru" -> listOf("song-text")
-            "rush-sound.ru" -> listOf("chords")
-            "guitarchords.ru", "muzbank.net" -> listOf("song")
-            "rus-songs.com" -> listOf("post-content", "entry-content")
-            "www.ukulele-akkordy.ru" -> listOf("textofsong")
-            "teksty-pesenok.pro" -> listOf("tab-pane", "fade", "active", "in", "text_song")
-            "texta-pesni.ru" -> listOf("mid_cont_left")
-            "tekstmuz.ru" -> listOf("articles")
-            "www.anekdotov-mnogo.ru" -> listOf("tmpLineUnderContent")
+        val classNamePrefixes =
+            when (domain) {
+                "genius.com" -> listOf("Lyrics__Container")
+                "tekst-pesni.online" -> listOf("entry-content", "clearfix")
+                "www.shazam.com" -> listOf("AppleMusicLyrics_lyricsBlock")
+                "vk.com" -> listOf("vkitFeedShowMoreText")
+                "darktexts.ru" -> listOf("full-text")
+                "www.beesona.pro" -> listOf("copys")
+                "alllyr.ru" -> listOf("inline")
+                "lyricsworld.ru" -> listOf("songLyrics")
+                "www.5lad.net" -> listOf("textofsong")
+                "blatata.com" -> listOf("value")
+                "lyrhub.com" -> listOf("lyric")
+                "ru.ilyrics.net" -> listOf("space-y-4", "text-gray-700", "leading-relaxed")
+                "singme.ru" -> listOf("song-text")
+                "rush-sound.ru" -> listOf("chords")
+                "guitarchords.ru", "muzbank.net" -> listOf("song")
+                "rus-songs.com" -> listOf("post-content", "entry-content")
+                "www.ukulele-akkordy.ru" -> listOf("textofsong")
+                "teksty-pesenok.pro" -> listOf("tab-pane", "fade", "active", "in", "text_song")
+                "texta-pesni.ru" -> listOf("mid_cont_left")
+                "tekstmuz.ru" -> listOf("articles")
+                "www.anekdotov-mnogo.ru" -> listOf("tmpLineUnderContent")
 
-            "txtsong.ru",
-            "my.mail.ru",
-            "akkordus.ru",
-            "l-hit.com",
-            "textypesen.com",
-            "m.song.guru",
-            "ukula.ru",
-            "text-pesni-perevod.ru",
-            "www.songslyrics.ru",
-            "guitary.ru",
-            "music.yandex.ru",
-            "www.oduvanchik.net" -> emptyList()
-            else -> emptyList()
-        }
+                "txtsong.ru",
+                "my.mail.ru",
+                "akkordus.ru",
+                "l-hit.com",
+                "textypesen.com",
+                "m.song.guru",
+                "ukula.ru",
+                "text-pesni-perevod.ru",
+                "www.songslyrics.ru",
+                "guitary.ru",
+                "music.yandex.ru",
+                "www.oduvanchik.net",
+                -> emptyList()
+                else -> emptyList()
+            }
         if (classNamePrefixes.isNotEmpty()) {
-            val result = (findElementByText(html, classNamePrefixes, emptyList())?:"").trim()
+            val result = (findElementByText(html, classNamePrefixes, emptyList()) ?: "").trim()
             if (result.isNotBlank()) {
                 id++
                 resultList.add(
@@ -374,11 +391,13 @@ fun findSongText(settings: Settings, countInPage: Int = 100, countInResult: Int 
                         songName = songName,
                         link = link,
                         domain = domain,
-                        findedText = result
-                    )
+                        findedText = result,
+                    ),
                 )
                 if (countInResult in 1..id) {
-                    println("Из ${links.size} ссылок пропущено $skipedLinks, возвращено ${resultList.size}, запрошено к возврату было $countInResult")
+                    println(
+                        "Из ${links.size} ссылок пропущено $skipedLinks, возвращено ${resultList.size}, запрошено к возврату было $countInResult",
+                    )
                     return resultList
                 }
             } else {
@@ -396,41 +415,37 @@ fun findSongText(settings: Settings, countInPage: Int = 100, countInResult: Int 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class ApiResponseSync(
     @JsonProperty("rawData")
-    val rawData: String? = null
+    val rawData: String? = null,
 )
 
 @Serializable
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class ApiResponseAsync(
-
     @SerialName("id")
     val id: String? = null,
-
     @SerialName("created_at")
     val createdAt: String? = null,
-
     @SerialName("created_by")
     val createdBy: String? = null,
-
     @SerialName("done")
     val done: Boolean? = null,
-
     @SerialName("response")
     val response: ApiResponseSync? = null,
-
     @SerialName("error")
     val error: String? = null,
-
     @SerialName("metadata")
     val metadata: String? = null,
-
     @SerialName("description")
-    val description: String? = null
-
+    val description: String? = null,
 )
 
-fun searchSongInYandex(author: String, songName: String, countInPage: Int = 10, page: Int = 0, async: Boolean = false): String {
-
+fun searchSongInYandex(
+    author: String,
+    songName: String,
+    countInPage: Int = 10,
+    page: Int = 0,
+    async: Boolean = false,
+): String {
     // Получаем дату последнего получения токена
     val requestIamTokenLastTimeMs = Karaoke.requestIamTokenLastTimeMs
 
@@ -451,11 +466,12 @@ fun searchSongInYandex(author: String, songName: String, countInPage: Int = 10, 
 
     val queryText = "$author текст песни $songName"
 
-    val url = if (async) {
-        URL(Karaoke.requestAsyncUrl)
-    } else {
-        URL(Karaoke.requestSyncUrl)
-    }
+    val url =
+        if (async) {
+            URL(Karaoke.requestAsyncUrl)
+        } else {
+            URL(Karaoke.requestSyncUrl)
+        }
 
     val connection = url.openConnection() as HttpsURLConnection
 
@@ -470,7 +486,8 @@ fun searchSongInYandex(author: String, songName: String, countInPage: Int = 10, 
             readTimeout = 30000
         }
 
-        val body = """
+        val body =
+            """
             {
                 "query": {
                   "searchType": "SEARCH_TYPE_RU",
@@ -494,7 +511,7 @@ fun searchSongInYandex(author: String, songName: String, countInPage: Int = 10, 
                 "folderId": "$folderId",
                 "responseFormat": "FORMAT_XML"
             }
-        """.trimIndent()
+            """.trimIndent()
 
         connection.outputStream.use { it.write(body.toByteArray(Charsets.UTF_8)) }
 
@@ -505,14 +522,12 @@ fun searchSongInYandex(author: String, songName: String, countInPage: Int = 10, 
             val mapper = ObjectMapper()
 
             if (async) {
-
                 val apiResponse: ApiResponseAsync = mapper.readValue(response, object : TypeReference<ApiResponseAsync>() {})
                 return apiResponse.id?.let {
                     it.ifEmpty {
                         throw RuntimeException("Пустой id operations в ответе")
                     }
                 } ?: throw RuntimeException("Поле id не найдено в ответе")
-
             } else {
                 val apiResponse: ApiResponseSync = mapper.readValue(response, object : TypeReference<ApiResponseSync>() {})
                 return apiResponse.rawData?.let {
@@ -523,12 +538,9 @@ fun searchSongInYandex(author: String, songName: String, countInPage: Int = 10, 
                     }
                 } ?: throw RuntimeException("Поле rawData не найдено в ответе")
             }
-
         } else {
             throw RuntimeException("Failed to search: $responseCode")
         }
-
-
     } catch (e: Exception) {
         println("Exception details: ${e.message}")
         e.printStackTrace()
@@ -539,57 +551,65 @@ fun searchSongInYandex(author: String, songName: String, countInPage: Int = 10, 
 }
 
 fun createNewIamToken() {
-    createScriptForHost(args = listOf("~/yandex-cloud/bin/yc iam create-token > /sm-karaoke/system/yandex/iam_token.txt"), waitToDone = true)
+    createScriptForHost(
+        args = listOf("~/yandex-cloud/bin/yc iam create-token > /sm-karaoke/system/yandex/iam_token.txt"),
+        waitToDone = true,
+    )
     Karaoke.requestIamToken = Files.readString(Paths.get(Karaoke.iamTokenFilePath)).trim()
 }
 
 fun getHtml(link: String): String {
-    val document = try {
-        Jsoup.connect(link)
-            .timeout(5000) // 5 секунд таймаут
-            .get()
-    } catch (e: Exception) {
-        return ""
-    }
+    val document =
+        try {
+            Jsoup
+                .connect(link)
+                .timeout(5000) // 5 секунд таймаут
+                .get()
+        } catch (e: Exception) {
+            return ""
+        }
     return document.html()
 }
 
-fun findElementByText(html: String, classNamePrefixes: List<String>, idNamePrefixes: List<String>): String? {
+fun findElementByText(
+    html: String,
+    classNamePrefixes: List<String>,
+    idNamePrefixes: List<String>,
+): String? {
     val document: Document = Jsoup.parse(html)
     // Сначала ищем элементы с точным совпадением класса
-    val exactMatches = classNamePrefixes.flatMap { prefix ->
-        document.select(".$prefix")
-    }
+    val exactMatches =
+        classNamePrefixes.flatMap { prefix ->
+            document.select(".$prefix")
+        }
     // Затем ищем элементы, содержащие класс
-    val containsMatches = classNamePrefixes.flatMap { prefix ->
-        document.select("[class*=\"$prefix\"]")
-    }
+    val containsMatches =
+        classNamePrefixes.flatMap { prefix ->
+            document.select("[class*=\"$prefix\"]")
+        }
     // Ищем элементы с точным совпадением id
-    val exactIdMatches = idNamePrefixes.flatMap { prefix ->
-        document.select("#$prefix")
-    }
+    val exactIdMatches =
+        idNamePrefixes.flatMap { prefix ->
+            document.select("#$prefix")
+        }
 
     // Ищем элементы, содержащие id
-    val containsIdMatches = idNamePrefixes.flatMap { prefix ->
-        document.select("[id*=\"$prefix\"]")
-    }
+    val containsIdMatches =
+        idNamePrefixes.flatMap { prefix ->
+            document.select("[id*=\"$prefix\"]")
+        }
 
     val allElements = exactMatches + containsMatches + exactIdMatches + containsIdMatches
     return allElements.joinToString("\n") { it.wholeText().cleanAndNormalizeNewlines() }
 }
 
-fun extractDomain(url: String): String {
-    return URL(url).host
-}
+fun extractDomain(url: String): String = URL(url).host
 
-fun String.normalizeNewlines(): String {
-    return this.replace(Regex("\n+"), "\n")
-}
+fun String.normalizeNewlines(): String = this.replace(Regex("\n+"), "\n")
 
-fun String.cleanAndNormalizeNewlines(): String {
-    return this
+fun String.cleanAndNormalizeNewlines(): String =
+    this
         .lineSequence()
         .map { it.trim() }
         .filter { it.isNotEmpty() }
         .joinToString("\n")
-}

@@ -6,6 +6,18 @@ multimedia framework) project files describing the on-screen karaoke composition
 fingerboard, watermark, counters, splash screen, etc.), renders the videos via external CLI tools, and publishes
 them. A Vue 3 admin SPA drives the whole pipeline against a Kotlin/Spring Boot backend.
 
+## Code standards
+
+Правила оформления кода проекта — в [**`CONTRIBUTING.md`**](./CONTRIBUTING.md) (MUST/SHOULD для Kotlin, Vue, SQL,
+Shell, Docker). Там же — описание baseline-подхода, скриптов `tools/*`, pre-commit-хука.
+
+Описание каждой из 9 ключевых подсистем — в [**`docs/features/`**](./docs/features/README.md)
+(MLT-генератор, async-очередь, dual-db-sync, MP4-рендер, SSE, стемы, LLM-поиск, Telegram, мониторинг).
+
+KDoc/JSDoc на публичных API — инструкция в [**`docs/api/README.md`**](./docs/api/README.md).
+
+Непреложные принципы — в [**`.specify/memory/constitution.md`**](./.specify/memory/constitution.md).
+
 ## Modules / layout
 
 - `karaoke-app` — the core engine. Spring Boot (Kotlin) app containing almost all domain logic: DB models, the

@@ -2,22 +2,22 @@ package com.svoemesto.karaokeapp.controllers
 
 import com.svoemesto.karaokeapp.Connection
 import com.svoemesto.karaokeapp.Karaoke
-import com.svoemesto.karaokeapp.WORKING_DATABASE
 import com.svoemesto.karaokeapp.KaraokeConnection
 import com.svoemesto.karaokeapp.KaraokeFileType
-import com.svoemesto.karaokeapp.updateRemoteSettingFromLocalDatabase
+import com.svoemesto.karaokeapp.WORKING_DATABASE
 import com.svoemesto.karaokeapp.model.KaraokeDbTable
-import com.svoemesto.karaokeapp.model.Settings
 import com.svoemesto.karaokeapp.model.SettingField
+import com.svoemesto.karaokeapp.model.Settings
 import com.svoemesto.karaokeapp.model.SiteUser
 import com.svoemesto.karaokeapp.model.SongAssignment
 import com.svoemesto.karaokeapp.model.SongAssignmentDraft
 import com.svoemesto.karaokeapp.model.SongAssignmentStatus
 import com.svoemesto.karaokeapp.model.SourceMarker
+import com.svoemesto.karaokeapp.rightFileName
 import com.svoemesto.karaokeapp.runCommand
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
-import com.svoemesto.karaokeapp.rightFileName
 import com.svoemesto.karaokeapp.services.StorageApiClient
+import com.svoemesto.karaokeapp.updateRemoteSettingFromLocalDatabase
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
@@ -50,20 +50,24 @@ class SongEditorController(
     private val storageService: KaraokeStorageService,
     private val storageApiClient: StorageApiClient,
 ) {
-
     // Терпимый к неизвестным ключам декодер — маркеры черновика несут поля admin-формата (locklad и т.п.),
     // которых нет в SourceMarker; строгий Json.Default бросил бы на них.
     private val json = Json { ignoreUnknownKeys = true }
 
-    private fun resolveDb(target: String?): KaraokeConnection =
-        if (target == "remote") Connection.remote() else Connection.local()
+    private fun resolveDb(target: String?): KaraokeConnection = if (target == "remote") Connection.remote() else Connection.local()
 
-    private fun <T> withDb(target: String?, block: (KaraokeConnection) -> T): T {
+    private fun <T> withDb(
+        target: String?,
+        block: (KaraokeConnection) -> T,
+    ): T {
         val db = resolveDb(target)
         return try {
             block(db)
         } finally {
-            try { db.getConnection()?.close() } catch (_: Exception) {}
+            try {
+                db.getConnection()?.close()
+            } catch (_: Exception) {
+            }
         }
     }
 
@@ -76,16 +80,21 @@ class SongEditorController(
         if (!flacFile.exists()) return null
         val mp3File = File(flacPath.removeSuffix(".flac") + ".mp3")
         if (!mp3File.exists()) {
-            val process = ProcessBuilder("ffmpeg", "-i", flacPath, "-codec:a", "libmp3lame", "-qscale:a", "2", "-y", mp3File.absolutePath)
-                .redirectErrorStream(true)
-                .start()
+            val process =
+                ProcessBuilder("ffmpeg", "-i", flacPath, "-codec:a", "libmp3lame", "-qscale:a", "2", "-y", mp3File.absolutePath)
+                    .redirectErrorStream(true)
+                    .start()
             process.waitFor()
             if (!mp3File.exists()) return null
         }
         return mp3File
     }
 
-    private fun pushMp3ToStorage(mp3File: File, settings: Settings, fileType: KaraokeFileType) {
+    private fun pushMp3ToStorage(
+        mp3File: File,
+        settings: Settings,
+        fileType: KaraokeFileType,
+    ) {
         val bucket = "karaoke"
         val storageKey = "${settings.storageFileName}${fileType.suffix}.${fileType.extention}"
         if (!storageService.fileExists(bucket, storageKey)) {
@@ -121,40 +130,46 @@ class SongEditorController(
         @RequestParam(required = false, defaultValue = "0") assignedBy: Long,
         @RequestParam(required = false) target: String?,
         @RequestParam(required = false) clearMarkers: Boolean?,
-    ): Map<String, Any?> = withDb(target) { db ->
-        val settings = Settings.loadFromDbById(songId, db, storageService = storageService, storageApiClient = storageApiClient)
-            ?: return@withDb mapOf("ok" to false, "error" to "song_not_found")
-        SiteUser.getSiteUserById(assigneeId, db, storageService, storageApiClient)
-            ?: return@withDb mapOf("ok" to false, "error" to "user_not_found")
-        SongAssignment.findExisting(songId, assigneeId, db, storageService, storageApiClient)?.let {
-            return@withDb mapOf("ok" to false, "error" to "already_assigned", "id" to it.id)
+    ): Map<String, Any?> =
+        withDb(target) { db ->
+            val settings =
+                Settings.loadFromDbById(songId, db, storageService = storageService, storageApiClient = storageApiClient)
+                    ?: return@withDb mapOf("ok" to false, "error" to "song_not_found")
+            SiteUser.getSiteUserById(assigneeId, db, storageService, storageApiClient)
+                ?: return@withDb mapOf("ok" to false, "error" to "user_not_found")
+            SongAssignment.findExisting(songId, assigneeId, db, storageService, storageApiClient)?.let {
+                return@withDb mapOf("ok" to false, "error" to "already_assigned", "id" to it.id)
+            }
+            val hasMarkers = settings.sourceMarkersList.any { it.isNotEmpty() }
+            if (hasMarkers && clearMarkers == null) {
+                return@withDb mapOf("ok" to false, "error" to "markers_exist")
+            }
+            // Best-effort автозаливка стемов (не роняем назначение, если конвертация не удалась). karaoke-app
+            // работает только на машине админа — локальный диск с FLAC доступен независимо от того, в какую
+            // БД (local/remote) пишем сам SongAssignment.
+            try {
+                ensureStemsInStorage(settings)
+            } catch (_: Exception) {
+            }
+            val a = SongAssignment(database = db, storageService = storageService, storageApiClient = storageApiClient)
+            a.assigneeId = assigneeId
+            a.songId = songId
+            a.assignedBy = assignedBy
+            a.adminStatus = SongAssignmentStatus.ADMIN_OPEN
+            val created =
+                KaraokeDbTable.createDbInstance(entity = a, database = db) as? SongAssignment
+                    ?: return@withDb mapOf("ok" to false, "error" to "create_failed")
+            if (hasMarkers && clearMarkers == true) {
+                val draft = SongAssignmentDraft(database = db, storageService = storageService, storageApiClient = storageApiClient)
+                draft.assignmentId = created.id
+                draft.assigneeId = assigneeId
+                draft.editedSourceText = SongAssignmentDraft.encodeTextsPerVoice(settings.sourceTextList)
+                draft.editedMarkers = SongAssignmentDraft.encodeMarkersPerVoice(List(settings.countVoices) { emptyList<SourceMarker>() })
+                draft.userStatus = SongAssignmentStatus.USER_IN_PROGRESS
+                KaraokeDbTable.createDbInstance(entity = draft, database = db)
+            }
+            mapOf("ok" to true, "id" to created.id)
         }
-        val hasMarkers = settings.sourceMarkersList.any { it.isNotEmpty() }
-        if (hasMarkers && clearMarkers == null) {
-            return@withDb mapOf("ok" to false, "error" to "markers_exist")
-        }
-        // Best-effort автозаливка стемов (не роняем назначение, если конвертация не удалась). karaoke-app
-        // работает только на машине админа — локальный диск с FLAC доступен независимо от того, в какую
-        // БД (local/remote) пишем сам SongAssignment.
-        try { ensureStemsInStorage(settings) } catch (_: Exception) {}
-        val a = SongAssignment(database = db, storageService = storageService, storageApiClient = storageApiClient)
-        a.assigneeId = assigneeId
-        a.songId = songId
-        a.assignedBy = assignedBy
-        a.adminStatus = SongAssignmentStatus.ADMIN_OPEN
-        val created = KaraokeDbTable.createDbInstance(entity = a, database = db) as? SongAssignment
-            ?: return@withDb mapOf("ok" to false, "error" to "create_failed")
-        if (hasMarkers && clearMarkers == true) {
-            val draft = SongAssignmentDraft(database = db, storageService = storageService, storageApiClient = storageApiClient)
-            draft.assignmentId = created.id
-            draft.assigneeId = assigneeId
-            draft.editedSourceText = SongAssignmentDraft.encodeTextsPerVoice(settings.sourceTextList)
-            draft.editedMarkers = SongAssignmentDraft.encodeMarkersPerVoice(List(settings.countVoices) { emptyList<SourceMarker>() })
-            draft.userStatus = SongAssignmentStatus.USER_IN_PROGRESS
-            KaraokeDbTable.createDbInstance(entity = draft, database = db)
-        }
-        mapOf("ok" to true, "id" to created.id)
-    }
 
     // Список заданий (webvue3): композитный статус + метаданные песни/пользователя. Черновики тянем
     // батчем (без N+1), из них — user_status для композитного статуса и submitted_at.
@@ -165,21 +180,69 @@ class SongEditorController(
         @RequestParam(required = false) filterAssigneeId: Long?,
         @RequestParam(required = false) filterStatus: String?,
         @RequestParam(required = false) filterAuthor: String?,
-    ): Map<String, Any> = withDb(target) { db ->
-        var assignments = SongAssignment.loadAll(db, storageService, storageApiClient)
-        filterAssigneeId?.let { a -> assignments = assignments.filter { it.assigneeId == a } }
+    ): Map<String, Any> =
+        withDb(target) { db ->
+            var assignments = SongAssignment.loadAll(db, storageService, storageApiClient)
+            filterAssigneeId?.let { a -> assignments = assignments.filter { it.assigneeId == a } }
 
-        val drafts = SongAssignmentDraft.loadByAssignments(assignments.map { it.id }, db, storageService, storageApiClient)
-        val users = assignments.map { it.assigneeId }.distinct()
-            .associateWith { SiteUser.getSiteUserById(it, db, storageService, storageApiClient) }
-        val songs = if (assignments.isEmpty()) emptyMap()
-        else Settings.loadListFromDbByIds(assignments.map { it.songId }.distinct(), db, storageService, storageApiClient)
+            val drafts = SongAssignmentDraft.loadByAssignments(assignments.map { it.id }, db, storageService, storageApiClient)
+            val users =
+                assignments
+                    .map { it.assigneeId }
+                    .distinct()
+                    .associateWith { SiteUser.getSiteUserById(it, db, storageService, storageApiClient) }
+            val songs =
+                if (assignments.isEmpty()) {
+                    emptyMap()
+                } else {
+                    Settings.loadListFromDbByIds(assignments.map { it.songId }.distinct(), db, storageService, storageApiClient)
+                }
 
-        var list = assignments.map { a ->
-            val draft = drafts[a.id]
+            var list =
+                assignments.map { a ->
+                    val draft = drafts[a.id]
+                    val status = SongAssignmentStatus.resolve(a.adminStatus, draft?.userStatus, a.reviewedAt, draft?.submittedAt)
+                    val user = users[a.assigneeId]
+                    val s = songs[a.songId]
+                    mapOf(
+                        "id" to a.id,
+                        "assigneeId" to a.assigneeId,
+                        "assigneeEmail" to (user?.email ?: ""),
+                        "assigneeName" to (user?.displayName ?: ""),
+                        "songId" to a.songId,
+                        "songName" to (s?.songName ?: ""),
+                        "author" to (s?.author ?: ""),
+                        "album" to (s?.album ?: ""),
+                        "year" to (s?.year ?: 0),
+                        "status" to status.dbValue,
+                        "adminStatus" to a.adminStatus,
+                        "reviewComment" to a.reviewComment,
+                        "assignedAt" to a.assignedAt,
+                        "reviewedAt" to a.reviewedAt,
+                        "submittedAt" to draft?.submittedAt,
+                    )
+                }
+            filterStatus?.takeIf { it.isNotBlank() }?.let { st -> list = list.filter { it["status"] == st } }
+            filterAuthor?.takeIf { it.isNotBlank() }?.let { author ->
+                list = list.filter { (it["author"] as? String)?.contains(author, ignoreCase = true) == true }
+            }
+            mapOf("songAssignmentsDigest" to list)
+        }
+
+    // Одно задание + черновик (просмотр submitted в webvue3): текст/маркеры пользователя для ревью,
+    // ПО ВСЕМ ГОЛОСАМ (draftSourceTexts/draftMarkersPerVoice — массивы, индекс = номер голоса).
+    @PostMapping("/byId")
+    @ResponseBody
+    fun byId(
+        @RequestParam id: Long,
+        @RequestParam(required = false) target: String?,
+    ): Any? =
+        withDb(target) { db ->
+            val a = SongAssignment.getById(id, db, storageService, storageApiClient) ?: return@withDb null
+            val draft = SongAssignmentDraft.getByAssignment(id, db, storageService, storageApiClient)
+            val user = SiteUser.getSiteUserById(a.assigneeId, db, storageService, storageApiClient)
+            val s = Settings.loadFromDbById(a.songId, db, storageService = storageService, storageApiClient = storageApiClient)
             val status = SongAssignmentStatus.resolve(a.adminStatus, draft?.userStatus, a.reviewedAt, draft?.submittedAt)
-            val user = users[a.assigneeId]
-            val s = songs[a.songId]
             mapOf(
                 "id" to a.id,
                 "assigneeId" to a.assigneeId,
@@ -196,45 +259,10 @@ class SongEditorController(
                 "assignedAt" to a.assignedAt,
                 "reviewedAt" to a.reviewedAt,
                 "submittedAt" to draft?.submittedAt,
+                "draftSourceTexts" to (draft?.editedTextsPerVoice(json) ?: emptyList()),
+                "draftMarkersPerVoice" to (draft?.editedMarkersPerVoice(json) ?: emptyList()),
             )
         }
-        filterStatus?.takeIf { it.isNotBlank() }?.let { st -> list = list.filter { it["status"] == st } }
-        filterAuthor?.takeIf { it.isNotBlank() }?.let { author ->
-            list = list.filter { (it["author"] as? String)?.contains(author, ignoreCase = true) == true }
-        }
-        mapOf("songAssignmentsDigest" to list)
-    }
-
-    // Одно задание + черновик (просмотр submitted в webvue3): текст/маркеры пользователя для ревью,
-    // ПО ВСЕМ ГОЛОСАМ (draftSourceTexts/draftMarkersPerVoice — массивы, индекс = номер голоса).
-    @PostMapping("/byId")
-    @ResponseBody
-    fun byId(@RequestParam id: Long, @RequestParam(required = false) target: String?): Any? = withDb(target) { db ->
-        val a = SongAssignment.getById(id, db, storageService, storageApiClient) ?: return@withDb null
-        val draft = SongAssignmentDraft.getByAssignment(id, db, storageService, storageApiClient)
-        val user = SiteUser.getSiteUserById(a.assigneeId, db, storageService, storageApiClient)
-        val s = Settings.loadFromDbById(a.songId, db, storageService = storageService, storageApiClient = storageApiClient)
-        val status = SongAssignmentStatus.resolve(a.adminStatus, draft?.userStatus, a.reviewedAt, draft?.submittedAt)
-        mapOf(
-            "id" to a.id,
-            "assigneeId" to a.assigneeId,
-            "assigneeEmail" to (user?.email ?: ""),
-            "assigneeName" to (user?.displayName ?: ""),
-            "songId" to a.songId,
-            "songName" to (s?.songName ?: ""),
-            "author" to (s?.author ?: ""),
-            "album" to (s?.album ?: ""),
-            "year" to (s?.year ?: 0),
-            "status" to status.dbValue,
-            "adminStatus" to a.adminStatus,
-            "reviewComment" to a.reviewComment,
-            "assignedAt" to a.assignedAt,
-            "reviewedAt" to a.reviewedAt,
-            "submittedAt" to draft?.submittedAt,
-            "draftSourceTexts" to (draft?.editedTextsPerVoice(json) ?: emptyList()),
-            "draftMarkersPerVoice" to (draft?.editedMarkersPerVoice(json) ?: emptyList()),
-        )
-    }
 
     // Одобрить: применить черновик в tbl_settings для КАЖДОГО голоса черновика (setSourceMarkers
     // пересчитывает resultText/formattedText*/srt + saveToDb) и поднять id_status до 3 (порог
@@ -254,18 +282,24 @@ class SongEditorController(
     // rootFolder только на локальном диске админ-машины.
     @PostMapping("/approve")
     @ResponseBody
-    fun approve(@RequestParam id: Long, @RequestParam(required = false) target: String?): Map<String, Any?> {
+    fun approve(
+        @RequestParam id: Long,
+        @RequestParam(required = false) target: String?,
+    ): Map<String, Any?> {
         val isRemoteRead = target == "remote"
         val readDb = if (isRemoteRead) Connection.remote() else null
         try {
             return withDb("local") { localDb ->
                 val assignmentDb = readDb ?: localDb
-                val aRead = SongAssignment.getById(id, assignmentDb, storageService, storageApiClient)
-                    ?: return@withDb mapOf("ok" to false, "error" to "assignment_not_found")
-                val draft = SongAssignmentDraft.getByAssignment(id, assignmentDb, storageService, storageApiClient)
-                    ?: return@withDb mapOf("ok" to false, "error" to "draft_not_found")
-                val settings = Settings.loadFromDbById(aRead.songId, localDb, storageService = storageService, storageApiClient = storageApiClient)
-                    ?: return@withDb mapOf("ok" to false, "error" to "song_not_found")
+                val aRead =
+                    SongAssignment.getById(id, assignmentDb, storageService, storageApiClient)
+                        ?: return@withDb mapOf("ok" to false, "error" to "assignment_not_found")
+                val draft =
+                    SongAssignmentDraft.getByAssignment(id, assignmentDb, storageService, storageApiClient)
+                        ?: return@withDb mapOf("ok" to false, "error" to "draft_not_found")
+                val settings =
+                    Settings.loadFromDbById(aRead.songId, localDb, storageService = storageService, storageApiClient = storageApiClient)
+                        ?: return@withDb mapOf("ok" to false, "error" to "song_not_found")
 
                 val markersPerVoice = draft.editedMarkersPerVoice(json)
                 val textsPerVoice = draft.editedTextsPerVoice(json)
@@ -303,7 +337,10 @@ class SongEditorController(
                 // кнопки (allowUpdateRemote, :disabled="!allowUpdateRemote") — best-effort, ошибка
                 // пуша не должна откатывать уже совершённый апрув.
                 if (Karaoke.allowUpdateRemote) {
-                    try { updateRemoteSettingFromLocalDatabase(settings.id) } catch (_: Exception) {}
+                    try {
+                        updateRemoteSettingFromLocalDatabase(settings.id)
+                    } catch (_: Exception) {
+                    }
                 }
 
                 // Апрув пишется В ТУ ЖЕ БД, откуда прочитали задание (assignmentDb) — не всегда local.
@@ -314,7 +351,12 @@ class SongEditorController(
                 mapOf("ok" to true, "idStatus" to settings.idStatus)
             }
         } finally {
-            if (readDb != null) try { readDb.getConnection()?.close() } catch (_: Exception) {}
+            if (readDb != null) {
+                try {
+                    readDb.getConnection()?.close()
+                } catch (_: Exception) {
+                }
+            }
         }
     }
 
@@ -325,10 +367,15 @@ class SongEditorController(
     // продолжить редактировать). Не "безопасно из любого вида", как для чистого чтения по id — это запись.
     @PostMapping("/reject")
     @ResponseBody
-    fun reject(@RequestParam id: Long, @RequestParam(required = false, defaultValue = "") comment: String, @RequestParam(required = false) target: String?): Map<String, Any?> =
+    fun reject(
+        @RequestParam id: Long,
+        @RequestParam(required = false, defaultValue = "") comment: String,
+        @RequestParam(required = false) target: String?,
+    ): Map<String, Any?> =
         withDb(target) { db ->
-            val a = SongAssignment.getById(id, db, storageService, storageApiClient)
-                ?: return@withDb mapOf("ok" to false, "error" to "assignment_not_found")
+            val a =
+                SongAssignment.getById(id, db, storageService, storageApiClient)
+                    ?: return@withDb mapOf("ok" to false, "error" to "assignment_not_found")
             a.adminStatus = SongAssignmentStatus.ADMIN_REJECTED
             a.reviewComment = comment
             a.reviewedAt = Timestamp(System.currentTimeMillis())
@@ -340,10 +387,14 @@ class SongEditorController(
     // идти в реальную БД задания, иначе на ней задание останется висеть нетронутым.
     @PostMapping("/delete")
     @ResponseBody
-    fun delete(@RequestParam id: Long, @RequestParam(required = false) target: String?): Map<String, Any?> = withDb(target) { db ->
-        val ok = SongAssignment.delete(id, db)
-        mapOf("ok" to ok)
-    }
+    fun delete(
+        @RequestParam id: Long,
+        @RequestParam(required = false) target: String?,
+    ): Map<String, Any?> =
+        withDb(target) { db ->
+            val ok = SongAssignment.delete(id, db)
+            mapOf("ok" to ok)
+        }
 
     // Отозвать назначение у редактора (забрать задание, чтобы передать другому). Семантически тот же
     // эффект, что у delete(), но с обязательной очисткой черновика — иначе в tbl_song_assignment_drafts
@@ -355,23 +406,31 @@ class SongEditorController(
     // задание останется висеть нетронутым (на стороне пользователя будет виден старый draft).
     @PostMapping("/revoke")
     @ResponseBody
-    fun revoke(@RequestParam id: Long, @RequestParam(required = false) target: String?): Map<String, Any?> = withDb(target) { db ->
-        val exists = SongAssignment.getById(id, db, storageService, storageApiClient)
-            ?: return@withDb mapOf("ok" to false, "error" to "assignment_not_found")
-        // Чистим черновик ДО удаления задания — на случай, если БД ловит FK наоборот
-        // (на нашей схеме FK нет, но порядок не повредит, и черновик точно не «осиротеет»).
-        SongAssignmentDraft.deleteByAssignment(id, db)
-        val ok = SongAssignment.delete(id, db)
-        mapOf("ok" to ok)
-    }
+    fun revoke(
+        @RequestParam id: Long,
+        @RequestParam(required = false) target: String?,
+    ): Map<String, Any?> =
+        withDb(target) { db ->
+            val exists =
+                SongAssignment.getById(id, db, storageService, storageApiClient)
+                    ?: return@withDb mapOf("ok" to false, "error" to "assignment_not_found")
+            // Чистим черновик ДО удаления задания — на случай, если БД ловит FK наоборот
+            // (на нашей схеме FK нет, но порядок не повредит, и черновик точно не «осиротеет»).
+            SongAssignmentDraft.deleteByAssignment(id, db)
+            val ok = SongAssignment.delete(id, db)
+            mapOf("ok" to ok)
+        }
 
     // Количество заданий "на проверке" — бейдж пункта меню «Задания редактора» в webvue3 (по образцу
     // /api/chat/unreadcount).
     @PostMapping("/submittedcount")
     @ResponseBody
-    fun submittedCount(@RequestParam(required = false) target: String?): Int = withDb(target) { db ->
-        SongAssignment.countSubmitted(db, storageService, storageApiClient)
-    }
+    fun submittedCount(
+        @RequestParam(required = false) target: String?,
+    ): Int =
+        withDb(target) { db ->
+            SongAssignment.countSubmitted(db, storageService, storageApiClient)
+        }
 
     // Батч-статус назначений для таблицы/карточки песни (кнопка «Назначить»/«Назначено») — без N+1:
     // одним запросом узнаём для целой страницы/одной песни, есть ли задание и в каком оно статусе.
@@ -379,22 +438,30 @@ class SongEditorController(
     // страницу мало — не N+1 в существенном смысле).
     @PostMapping("/statusbysongids")
     @ResponseBody
-    fun statusBySongIds(@RequestParam songIds: String, @RequestParam(required = false) target: String?): Map<String, Any?> = withDb(target) { db ->
-        val ids = songIds.split(",").mapNotNull { it.trim().toLongOrNull() }
-        val composed = SongAssignment.composeStatusesForSongIds(ids, db, storageService, storageApiClient)
-        val users = composed.values.map { it.first.assigneeId }.distinct()
-            .associateWith { SiteUser.getSiteUserById(it, db, storageService, storageApiClient) }
-        val statuses = composed.mapValues { (_, pair) ->
-            val (a, status) = pair
-            val user = users[a.assigneeId]
-            mapOf(
-                "assignmentId" to a.id,
-                "status" to status.dbValue,
-                "assigneeName" to (user?.displayName?.takeIf { it.isNotBlank() } ?: user?.email ?: ""),
-            )
+    fun statusBySongIds(
+        @RequestParam songIds: String,
+        @RequestParam(required = false) target: String?,
+    ): Map<String, Any?> =
+        withDb(target) { db ->
+            val ids = songIds.split(",").mapNotNull { it.trim().toLongOrNull() }
+            val composed = SongAssignment.composeStatusesForSongIds(ids, db, storageService, storageApiClient)
+            val users =
+                composed.values
+                    .map { it.first.assigneeId }
+                    .distinct()
+                    .associateWith { SiteUser.getSiteUserById(it, db, storageService, storageApiClient) }
+            val statuses =
+                composed.mapValues { (_, pair) ->
+                    val (a, status) = pair
+                    val user = users[a.assigneeId]
+                    mapOf(
+                        "assignmentId" to a.id,
+                        "status" to status.dbValue,
+                        "assigneeName" to (user?.displayName?.takeIf { it.isNotBlank() } ?: user?.email ?: ""),
+                    )
+                }
+            mapOf("statuses" to statuses)
         }
-        mapOf("statuses" to statuses)
-    }
 
     // ---- Админский онлайн-редактор (webvue3) -----------------------------------------------
     //
@@ -422,18 +489,23 @@ class SongEditorController(
         }
         return withDb(target) { db ->
             // Резолвим songId в зависимости от режима.
-            val songId: Long = if (mode == "song") id
-            else SongAssignment.getById(id, db, storageService, storageApiClient)?.songId
-                ?: return@withDb mapOf("found" to false, "id" to id)
+            val songId: Long =
+                if (mode == "song") {
+                    id
+                } else {
+                    SongAssignment.getById(id, db, storageService, storageApiClient)?.songId
+                        ?: return@withDb mapOf("found" to false, "id" to id)
+                }
 
             // Settings читаем ВСЕГДА из WORKING_DATABASE: только там есть локальный диск с FLAC и .srt
             // (см. комментарий getSongPlayerData в ApiController). target не влияет на выбор Settings.
-            val settings = Settings.loadFromDbById(
-                songId,
-                WORKING_DATABASE,
-                storageService = storageService,
-                storageApiClient = storageApiClient,
-            ) ?: return@withDb mapOf("found" to false, "id" to id, "songId" to songId)
+            val settings =
+                Settings.loadFromDbById(
+                    songId,
+                    WORKING_DATABASE,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                ) ?: return@withDb mapOf("found" to false, "id" to id, "songId" to songId)
 
             val sourceTexts: List<String>
             val markersPerVoice: List<List<SourceMarker>>
@@ -445,8 +517,9 @@ class SongEditorController(
                 sourceTexts = settings.sourceTextList.toMutableList()
                 markersPerVoice = settings.sourceMarkersList.toMutableList()
             } else {
-                val a = SongAssignment.getById(id, db, storageService, storageApiClient)
-                    ?: return@withDb mapOf("found" to false, "id" to id, "songId" to songId)
+                val a =
+                    SongAssignment.getById(id, db, storageService, storageApiClient)
+                        ?: return@withDb mapOf("found" to false, "id" to id, "songId" to songId)
                 if (a.songId != settings.id) return@withDb mapOf("found" to false, "id" to id, "songId" to songId)
                 assignmentId = a.id
                 val draft = SongAssignmentDraft.getByAssignment(a.id, db, storageService, storageApiClient)
@@ -457,9 +530,14 @@ class SongEditorController(
                     sourceTexts = settings.sourceTextList.toMutableList()
                     markersPerVoice = settings.sourceMarkersList.toMutableList()
                 }
-                statusForResponse = SongAssignmentStatus.resolve(
-                    a.adminStatus, draft?.userStatus, a.reviewedAt, draft?.submittedAt
-                ).dbValue
+                statusForResponse =
+                    SongAssignmentStatus
+                        .resolve(
+                            a.adminStatus,
+                            draft?.userStatus,
+                            a.reviewedAt,
+                            draft?.submittedAt,
+                        ).dbValue
                 reviewCommentForResponse = if (statusForResponse == SongAssignmentStatus.REJECTED.dbValue) a.reviewComment else ""
             }
 
@@ -482,8 +560,14 @@ class SongEditorController(
                 "audioAccompanimentUrl" to "/api/song/${settings.id}/fileminus.mp3",
                 "audioBassUrl" to if (File(settings.bassNameFlac).exists()) "/api/song/${settings.id}/filebass.mp3" else null,
                 "audioDrumsUrl" to if (File(settings.drumsNameFlac).exists()) "/api/song/${settings.id}/filedrums.mp3" else null,
-                "albumImageUrl" to settings.pictureAlbum?.storageFileName?.let { "/api/picture/file?file=${java.net.URLEncoder.encode(it, java.nio.charset.StandardCharsets.UTF_8)}" },
-                "artistImageUrl" to settings.pictureAuthor?.storageFileName?.let { "/api/picture/file?file=${java.net.URLEncoder.encode(it, java.nio.charset.StandardCharsets.UTF_8)}" },
+                "albumImageUrl" to
+                    settings.pictureAlbum?.storageFileName?.let {
+                        "/api/picture/file?file=${java.net.URLEncoder.encode(it, java.nio.charset.StandardCharsets.UTF_8)}"
+                    },
+                "artistImageUrl" to
+                    settings.pictureAuthor?.storageFileName?.let {
+                        "/api/picture/file?file=${java.net.URLEncoder.encode(it, java.nio.charset.StandardCharsets.UTF_8)}"
+                    },
                 "exportBaseName" to "${settings.fileName} [id-${settings.id}]".rightFileName(),
                 "canEdit" to true,
                 "assignmentId" to assignmentId,
@@ -525,8 +609,9 @@ class SongEditorController(
             // остальных target-aware методов. Settings.setSourceMarkers/setSourceText делают saveToDb()
             // внутри (пересчитывают resultText/formattedTextSong/formattedTextTabs/formattedTextChords).
             return withDb(target) { db ->
-                val settings = Settings.loadFromDbById(id, db, storageService = storageService, storageApiClient = storageApiClient)
-                    ?: return@withDb mapOf("ok" to false, "error" to "song_not_found")
+                val settings =
+                    Settings.loadFromDbById(id, db, storageService = storageService, storageApiClient = storageApiClient)
+                        ?: return@withDb mapOf("ok" to false, "error" to "song_not_found")
                 val voiceCount = maxOf(settings.countVoices, parsedMarkers.size)
                 for (v in 0 until voiceCount) {
                     val markers = parsedMarkers.getOrNull(v) ?: emptyList()
@@ -541,8 +626,9 @@ class SongEditorController(
             }
         } else {
             return withDb(target) { db ->
-                val a = SongAssignment.getById(id, db, storageService, storageApiClient)
-                    ?: return@withDb mapOf("ok" to false, "error" to "assignment_not_found")
+                val a =
+                    SongAssignment.getById(id, db, storageService, storageApiClient)
+                        ?: return@withDb mapOf("ok" to false, "error" to "assignment_not_found")
                 var draft = SongAssignmentDraft.getByAssignment(a.id, db, storageService, storageApiClient)
                 if (draft == null) {
                     draft = SongAssignmentDraft(database = db, storageService = storageService, storageApiClient = storageApiClient)
@@ -554,7 +640,10 @@ class SongEditorController(
                 draft.editedSourceText = SongAssignmentDraft.encodeTextsPerVoice(parsedTexts)
                 draft.editedMarkers = SongAssignmentDraft.encodeMarkersPerVoice(parsedMarkers)
                 draft.save()
-                mapOf("ok" to true, "status" to SongAssignmentStatus.resolve(a.adminStatus, draft.userStatus, a.reviewedAt, draft.submittedAt).dbValue)
+                mapOf(
+                    "ok" to true,
+                    "status" to SongAssignmentStatus.resolve(a.adminStatus, draft.userStatus, a.reviewedAt, draft.submittedAt).dbValue,
+                )
             }
         }
     }

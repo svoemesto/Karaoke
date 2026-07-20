@@ -11,6 +11,7 @@ class Crypto {
         private const val KEY = "aesEncryptionKey"
         private const val INIT_VECTOR = "nbwZ08J5101kUxCQ"
         const val WORDS_TO_CHECK = "Строка для проверки крипты"
+
         fun decrypt(encrypted: String?): String? {
             try {
                 val iv = IvParameterSpec(INIT_VECTOR.toByteArray(StandardCharsets.UTF_8))

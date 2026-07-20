@@ -17,9 +17,9 @@
         <option value="SONG">Подписка на песню (бессрочная)</option>
         <option value="SITE">Подписка на сайт (период)</option>
       </select>
-      <input class="trf-input" placeholder="Название" v-model="newItem.name">
-      <input class="trf-input trf-num" type="number" min="0" step="0.01" placeholder="Цена, ₽" v-model.number="newItem.priceRub">
-      <input v-if="newItem.scope === 'SITE'" class="trf-input trf-num" type="number" min="1" placeholder="Период, дней" v-model.number="newItem.periodDays">
+      <input v-model="newItem.name" class="trf-input" placeholder="Название"/>
+      <input v-model.number="newItem.priceRub" class="trf-input trf-num" type="number" min="0" step="0.01" placeholder="Цена, ₽"/>
+      <input v-if="newItem.scope === 'SITE'" v-model.number="newItem.periodDays" class="trf-input trf-num" type="number" min="1" placeholder="Период, дней"/>
       <button class="trf-btn" :disabled="!canCreate" @click="create">Добавить</button>
     </div>
 
@@ -35,18 +35,18 @@
           <th class="trf-th">Активен</th>
           <th class="trf-th">По умолчанию</th>
           <th class="trf-th">Порядок</th>
-          <th class="trf-th"></th>
+          <th class="trf-th"/>
         </tr>
       </thead>
       <tbody>
         <tr v-for="item in editable" :key="item.id">
           <td>{{ item.scope === 'SONG' ? 'Песня' : 'Сайт' }}</td>
-          <td><input class="trf-input" v-model="item.name"></td>
-          <td><input class="trf-input trf-num" type="number" min="0" step="0.01" v-model.number="item.priceRub"></td>
-          <td><input class="trf-input trf-num" type="number" min="0" v-model.number="item.periodDays" :disabled="item.scope === 'SONG'"></td>
-          <td><input type="checkbox" v-model="item.isActive"></td>
-          <td><input type="checkbox" v-model="item.isDefault"></td>
-          <td><input class="trf-input trf-num" type="number" v-model.number="item.sortOrder"></td>
+          <td><input v-model="item.name" class="trf-input"/></td>
+          <td><input v-model.number="item.priceRub" class="trf-input trf-num" type="number" min="0" step="0.01"/></td>
+          <td><input v-model.number="item.periodDays" class="trf-input trf-num" type="number" min="0" :disabled="item.scope === 'SONG'"/></td>
+          <td><input v-model="item.isActive" type="checkbox"/></td>
+          <td><input v-model="item.isDefault" type="checkbox"/></td>
+          <td><input v-model.number="item.sortOrder" class="trf-input trf-num" type="number"/></td>
           <td class="trf-actions">
             <button class="trf-btn" :disabled="!isChanged(item)" @click="save(item)">Сохранить</button>
             <button class="trf-btn trf-btn-danger" @click="remove(item)">Удалить</button>

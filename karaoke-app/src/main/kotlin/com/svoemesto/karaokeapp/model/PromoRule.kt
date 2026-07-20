@@ -18,8 +18,9 @@ class PromoRule(
     override val database: KaraokeConnection = WORKING_DATABASE,
     override val storageService: KaraokeStorageService = KSS_APP,
     override val storageApiClient: StorageApiClient = SAC_APP,
-) : Serializable, Comparable<PromoRule>, KaraokeDbTable {
-
+) : Serializable,
+    Comparable<PromoRule>,
+    KaraokeDbTable {
     override fun getTableName() = TABLE_NAME
 
     @KaraokeDbTableField(name = "id", isId = true)
@@ -55,20 +56,20 @@ class PromoRule(
     @KaraokeDbTableField(name = "last_update", useInDiff = false)
     var lastUpdate: Timestamp? = null
 
-    override fun compareTo(other: PromoRule): Int =
-        compareValuesBy(this, other, { -it.priority }, { it.id })
+    override fun compareTo(other: PromoRule): Int = compareValuesBy(this, other, { -it.priority }, { it.id })
 
-    override fun toDTO(): PromoRuleDto = PromoRuleDto(
-        id = id,
-        name = name,
-        type = type,
-        paramsJson = paramsJson,
-        appliesTo = appliesTo,
-        isActive = isActive,
-        validFrom = validFrom?.toString(),
-        validTo = validTo?.toString(),
-        priority = priority,
-    )
+    override fun toDTO(): PromoRuleDto =
+        PromoRuleDto(
+            id = id,
+            name = name,
+            type = type,
+            paramsJson = paramsJson,
+            appliesTo = appliesTo,
+            isActive = isActive,
+            validFrom = validFrom?.toString(),
+            validTo = validTo?.toString(),
+            priority = priority,
+        )
 
     // Активна ли акция прямо сейчас (независимо от применимости к конкретному scope/юзеру — это
     // решает PriceService на основе type/paramsJson).
@@ -83,7 +84,6 @@ class PromoRule(
     fun appliesToScope(scope: String): Boolean = appliesTo == APPLIES_BOTH || appliesTo == scope
 
     companion object {
-
         const val TABLE_NAME = "tbl_promo_rules"
 
         const val APPLIES_SONG = "SONG"
@@ -92,12 +92,16 @@ class PromoRule(
 
         // Скидка % пользователям младше N часов с момента регистрации.
         const val TYPE_NEW_USER_PERCENT = "NEW_USER_PERCENT"
+
         // Каждая N-я ОПЛАЧЕННАЯ подписка пользователя — бесплатно.
         const val TYPE_NTH_FREE = "NTH_FREE"
+
         // Скидка % в окне часов/дней недели ("счастливый час").
         const val TYPE_HAPPY_HOUR = "HAPPY_HOUR"
+
         // Простая фиксированная скидка % без условий.
         const val TYPE_FLAT_PERCENT = "FLAT_PERCENT"
+
         // Скидка % на ВЕСЬ заказ «Корзины», если позиций в нём >= minQty (params: {"minQty":10,"percent":30}).
         // В отличие от NTH_FREE (считает по всем покупкам пользователя за всё время), это количество
         // СТРОГО в рамках одного заказа корзины.
@@ -107,14 +111,17 @@ class PromoRule(
             database: KaraokeConnection,
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
-        ): List<PromoRule> = KaraokeDbTable.loadList(
-            clazz = PromoRule::class,
-            tableName = TABLE_NAME,
-            whereList = emptyList(),
-            database = database,
-            storageService = storageService,
-            storageApiClient = storageApiClient,
-        ).map { it as PromoRule }.sorted()
+        ): List<PromoRule> =
+            KaraokeDbTable
+                .loadList(
+                    clazz = PromoRule::class,
+                    tableName = TABLE_NAME,
+                    whereList = emptyList(),
+                    database = database,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                ).map { it as PromoRule }
+                .sorted()
 
         fun loadActive(
             database: KaraokeConnection,
@@ -127,14 +134,15 @@ class PromoRule(
             database: KaraokeConnection,
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
-        ): PromoRule? = KaraokeDbTable.loadById(
-            clazz = PromoRule::class,
-            tableName = TABLE_NAME,
-            id = id,
-            database = database,
-            storageService = storageService,
-            storageApiClient = storageApiClient,
-        ) as? PromoRule?
+        ): PromoRule? =
+            KaraokeDbTable.loadById(
+                clazz = PromoRule::class,
+                tableName = TABLE_NAME,
+                id = id,
+                database = database,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            ) as? PromoRule?
 
         fun createNew(
             name: String,
@@ -154,7 +162,9 @@ class PromoRule(
             return KaraokeDbTable.createDbInstance(entity = entity, database = database) as? PromoRule?
         }
 
-        fun delete(id: Long, database: KaraokeConnection): Boolean =
-            KaraokeDbTable.delete(tableName = TABLE_NAME, id = id, database = database)
+        fun delete(
+            id: Long,
+            database: KaraokeConnection,
+        ): Boolean = KaraokeDbTable.delete(tableName = TABLE_NAME, id = id, database = database)
     }
 }

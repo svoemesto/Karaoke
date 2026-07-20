@@ -6,12 +6,12 @@
           <div class="fsm-header-title">Песни из той же группы (id / root_id)</div>
           <div class="fsm-search">
             <input
+                v-model="searchQuery"
                 type="text"
                 class="fsm-search-input"
-                v-model="searchQuery"
                 placeholder="Поиск по названию песни..."
                 @keyup.enter="doSearch"
-            >
+            />
             <button type="button" class="fsm-search-button" @click="doSearch">Найти</button>
           </div>
         </div>
@@ -36,11 +36,12 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="s in songs" :key="s.id"
+              <tr
+v-for="s in songs" :key="s.id"
                   class="fsm-row"
                   :class="{'fsm-row-original': s.original, 'fsm-row-disabled': s.current, 'fsm-row-low-status': s.idStatus < 3}"
-                  @click="select(s)"
-                  :title="s.current ? 'Текущая песня' : 'Скопировать текст из этой песни'">
+                  :title="s.current ? 'Текущая песня' : 'Скопировать текст из этой песни'"
+                  @click="select(s)">
                 <td>{{ s.id }}</td>
                 <td>{{ s.author }}</td>
                 <td>{{ s.year || '' }}</td>
@@ -51,7 +52,8 @@
                   <template v-if="s.current">—</template>
                   <template v-else>
                     <span v-if="cmp(s).status === 'loading'" class="fsm-cmp-loading">…</span>
-                    <button v-else type="button" class="fsm-cmp-button" :class="cmpClass(s)"
+                    <button
+v-else type="button" class="fsm-cmp-button" :class="cmpClass(s)"
                             :title="cmpTitle(s)" @click.stop="compareOne(s)">
                       <template v-if="cmp(s).status === 'done'">{{ cmp(s).similarityPercent }}% (Δ {{ fmtDelta(cmp(s).deltaMs) }})</template>
                       <template v-else-if="cmp(s).status === 'error'">ошибка</template>

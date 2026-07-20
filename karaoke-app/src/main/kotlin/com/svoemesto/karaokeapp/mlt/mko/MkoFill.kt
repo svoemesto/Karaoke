@@ -10,27 +10,28 @@ data class MkoFill(
     val type: ProducerType = ProducerType.FILL,
     val voiceId: Int = 0,
     val lineId: Int = 0,
-    val elementId: Int = 0
-): MltKaraokeObject {
+    val elementId: Int = 0,
+) : MltKaraokeObject {
     val mltGenerator = MltGenerator(mltProp, type, voiceId, lineId, elementId)
 
     private val songVersion = mltProp.getSongVersion()
     private val frameWidthPx = mltProp.getFrameWidthPx()
     private val frameHeightPx = mltProp.getFrameHeightPx()
     private val settings = mltProp.getSettings()
-    private val songEndTimecode  = mltProp.getSongEndTimecode()
+    private val songEndTimecode = mltProp.getSongEndTimecode()
     private var folderIdLines = mltProp.getId(listOf(ProducerType.FILL, voiceId))
     private var lineDurationOnScreen = mltProp.getDurationOnScreen(listOf(ProducerType.LINE, voiceId, lineId))
-    private val lineEndTimecode = if (lineDurationOnScreen > 0) {
-        convertMillisecondsToTimecode(lineDurationOnScreen)
-    } else {
-        lineDurationOnScreen = convertTimecodeToMilliseconds(songEndTimecode)
-        songEndTimecode
-    }
-    override fun producer(): MltNode {
+    private val lineEndTimecode =
+        if (lineDurationOnScreen > 0) {
+            convertMillisecondsToTimecode(lineDurationOnScreen)
+        } else {
+            lineDurationOnScreen = convertTimecodeToMilliseconds(songEndTimecode)
+            songEndTimecode
+        }
 
-        var widthAreaPx= frameWidthPx
-        var heightAreaPx= frameHeightPx
+    override fun producer(): MltNode {
+        var widthAreaPx = frameWidthPx
+        var heightAreaPx = frameHeightPx
 
         val sett = settings
         if (sett != null) {
@@ -45,23 +46,26 @@ data class MkoFill(
         return mltGenerator
             .producer(
                 timecodeOut = lineEndTimecode,
-                props = MltNodeBuilder()
-                    .propertyName("length", convertMillisecondsToFrames(lineDurationOnScreen))
-                    .propertyName("eof", "pause")
-                    .propertyName("resource", Karaoke.voices[0].fill.evenColor.hexRGB())
-                    .propertyName("aspect_ratio", 1)
-                    .propertyName("mlt_service", "color")
-                    .propertyName("kdenlive:duration", lineEndTimecode)
-                    .propertyName("mlt_image_format", "rgb")
-                    .propertyName("kdenlive:clipname", mltGenerator.name)
-                    .propertyName("kdenlive:folderid", folderIdLines)
-                    .propertyName("kdenlive:clip_type", if (type.isAudio) 1 else 2)
-                    .propertyName("kdenlive:id", mltGenerator.id)
-
-                    .propertyName("meta.media.width", widthAreaPx)
-                    .propertyName("meta.media.height", heightAreaPx)
-
-                    .build()
+                props =
+                    MltNodeBuilder()
+                        .propertyName("length", convertMillisecondsToFrames(lineDurationOnScreen))
+                        .propertyName("eof", "pause")
+                        .propertyName(
+                            "resource",
+                            Karaoke.voices[0]
+                                .fill.evenColor
+                                .hexRGB(),
+                        ).propertyName("aspect_ratio", 1)
+                        .propertyName("mlt_service", "color")
+                        .propertyName("kdenlive:duration", lineEndTimecode)
+                        .propertyName("mlt_image_format", "rgb")
+                        .propertyName("kdenlive:clipname", mltGenerator.name)
+                        .propertyName("kdenlive:folderid", folderIdLines)
+                        .propertyName("kdenlive:clip_type", if (type.isAudio) 1 else 2)
+                        .propertyName("kdenlive:id", mltGenerator.id)
+                        .propertyName("meta.media.width", widthAreaPx)
+                        .propertyName("meta.media.height", heightAreaPx)
+                        .build(),
             )
     }
 
@@ -74,72 +78,85 @@ data class MkoFill(
             body.add(
                 mltGenerator.entry(
                     timecodeOut = lineEndTimecode,
-                    nodes = MltNodeBuilder()
-                        .propertyName("kdenlive:id", "filePlaylist${mltGenerator.id}")
-                        .filterQtblend(mltGenerator.nameFilterQtblend, mainFilePlaylistTransformProperties(), distort = 1)
-                        .build()
-                )
+                    nodes =
+                        MltNodeBuilder()
+                            .propertyName("kdenlive:id", "filePlaylist${mltGenerator.id}")
+                            .filterQtblend(mltGenerator.nameFilterQtblend, mainFilePlaylistTransformProperties(), distort = 1)
+                            .build(),
+                ),
             )
-
-
         }
         return result
     }
 
     override fun mainFilePlaylistTransformProperties(): String {
-        val elementTransformProperties = settings?.voicesForMlt?.get(voiceId)?.getLines()?.get(lineId)?.getElements(songVersion)?.get(elementId)?.transformProperties() ?: emptyList()
+        val elementTransformProperties =
+            settings
+                ?.voicesForMlt
+                ?.get(voiceId)
+                ?.getLines()
+                ?.get(lineId)
+                ?.getElements(songVersion)
+                ?.get(elementId)
+                ?.transformProperties()
+                ?: emptyList()
         val default = "00:00:00.000=0 0 1 1 0.0"
         val sett = settings ?: return default
-        val element = try {
-            sett.voicesForMlt[voiceId].getLines()[lineId].getElements(songVersion)
-                .first { it.type == SettingVoiceLineElementTypes.TEXT }
-        } catch (_: Exception) {
-            return default
-        }
+        val element =
+            try {
+                sett.voicesForMlt[voiceId]
+                    .getLines()[lineId]
+                    .getElements(songVersion)
+                    .first { it.type == SettingVoiceLineElementTypes.TEXT }
+            } catch (_: Exception) {
+                return default
+            }
 
         val haveNotes = songVersion.producers.contains(ProducerType.MELODYNOTE) && element.getSyllables().any { it.note != "" }
         val haveChords = songVersion.producers.contains(ProducerType.CHORDS) && element.getSyllables().any { it.chord != "" }
 
-        val deltaY = if (haveNotes) {
-            val sylFontSize = element.fontSize
-            val melodyNoteFontSize = (sylFontSize * Karaoke.melodyNoteHeightCoefficient).toInt()
-            val melodyNoteMltTextHeight = Karaoke.melodyNoteFont.copy("C", melodyNoteFontSize).h()
-            val noteHeight = (melodyNoteMltTextHeight * Karaoke.melodyNoteHeightOffsetCoefficient).toInt()
+        val deltaY =
+            if (haveNotes) {
+                val sylFontSize = element.fontSize
+                val melodyNoteFontSize = (sylFontSize * Karaoke.melodyNoteHeightCoefficient).toInt()
+                val melodyNoteMltTextHeight = Karaoke.melodyNoteFont.copy("C", melodyNoteFontSize).h()
+                val noteHeight = (melodyNoteMltTextHeight * Karaoke.melodyNoteHeightOffsetCoefficient).toInt()
 
-            val tabsHeightCoefficient = Karaoke.melodyTabsHeightCoefficient
-            val tabsFontSize = (sylFontSize * tabsHeightCoefficient).toInt()
-            val tabsFont = Karaoke.melodyTabsFont
-            val tabsMltTextHeight = tabsFont.copy("C", tabsFontSize).h()
-            val tabsHeightOffsetCoefficient = Karaoke.melodyTabsHeightOffsetCoefficient
-            val heightBetweenTabsLines = (tabsMltTextHeight * tabsHeightOffsetCoefficient).toInt()
+                val tabsHeightCoefficient = Karaoke.melodyTabsHeightCoefficient
+                val tabsFontSize = (sylFontSize * tabsHeightCoefficient).toInt()
+                val tabsFont = Karaoke.melodyTabsFont
+                val tabsMltTextHeight = tabsFont.copy("C", tabsFontSize).h()
+                val tabsHeightOffsetCoefficient = Karaoke.melodyTabsHeightOffsetCoefficient
+                val heightBetweenTabsLines = (tabsMltTextHeight * tabsHeightOffsetCoefficient).toInt()
 
-            val tabsHeight = tabsMltTextHeight + 5 * heightBetweenTabsLines
-            noteHeight + tabsHeight
-        } else if (haveChords) {
-            val sylFontSize = element.fontSize
-            val chordsFontSize = (sylFontSize * Karaoke.chordsHeightCoefficient).toInt()
-            val chordsMltTextHeight = Karaoke.chordsFont.copy("C", chordsFontSize).h()
-            val chordHeight = (chordsMltTextHeight * Karaoke.chordsHeightOffsetCoefficient).toInt()
-            chordHeight
-        } else {
-            0
-        }
+                val tabsHeight = tabsMltTextHeight + 5 * heightBetweenTabsLines
+                noteHeight + tabsHeight
+            } else if (haveChords) {
+                val sylFontSize = element.fontSize
+                val chordsFontSize = (sylFontSize * Karaoke.chordsHeightCoefficient).toInt()
+                val chordsMltTextHeight = Karaoke.chordsFont.copy("C", chordsFontSize).h()
+                val chordHeight = (chordsMltTextHeight * Karaoke.chordsHeightOffsetCoefficient).toInt()
+                chordHeight
+            } else {
+                0
+            }
 
-        val result = elementTransformProperties.map {
-            TransformProperty(
-                time = it.time,
-                x = it.x,
-                y = it.y + deltaY,
-                w = it.w,
-                h = it.h,
-                opacity = it.opacity
-            )
-        }
+        val result =
+            elementTransformProperties.map {
+                TransformProperty(
+                    time = it.time,
+                    x = it.x,
+                    y = it.y + deltaY,
+                    w = it.w,
+                    h = it.h,
+                    opacity = it.opacity,
+                )
+            }
 
         return if (result.isNotEmpty()) result.joinToString(";") else default
     }
 
     override fun trackPlaylist(): MltNode = mltGenerator.trackPlaylist()
-    override fun tractor(): MltNode = mltGenerator.tractor(timecodeOut = lineEndTimecode)
 
+    override fun tractor(): MltNode = mltGenerator.tractor(timecodeOut = lineEndTimecode)
 }

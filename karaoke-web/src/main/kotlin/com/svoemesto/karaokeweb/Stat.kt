@@ -26,7 +26,6 @@ import java.util.concurrent.atomic.AtomicInteger
 // обращении, чтобы endpoint /api/public/stats не вернул нули после рестарта приложения, если
 // scheduler ещё не успел отработать (Spring не гарантирует порядок инициализации Service/Controller).
 object StatBySong {
-
     private val cachedTotal = AtomicInteger(-1)
     private val cachedCollection = AtomicInteger(-1)
     private val cachedOnAir = AtomicInteger(-1)
@@ -64,17 +63,20 @@ object StatBySong {
     // чтобы два параллельных первых запроса из REST и Thymeleaf не сделали двойной пересчёт.
     @Synchronized
     fun refreshCache(database: KaraokeConnection = WORKING_DATABASE) {
-        val total = runCountQuery(
-            database,
-            """select count(DISTINCT id) as cnt from tbl_settings where $SKIP_FILTER;"""
-        )
-        val collection = runCountQuery(
-            database,
-            """select count(DISTINCT id) as cnt from tbl_settings where $CONTENT_READY_FILTER AND $SKIP_FILTER;"""
-        )
-        val onAir = runCountQuery(
-            database,
-            """select count(DISTINCT id) as cnt
+        val total =
+            runCountQuery(
+                database,
+                """select count(DISTINCT id) as cnt from tbl_settings where $SKIP_FILTER;""",
+            )
+        val collection =
+            runCountQuery(
+                database,
+                """select count(DISTINCT id) as cnt from tbl_settings where $CONTENT_READY_FILTER AND $SKIP_FILTER;""",
+            )
+        val onAir =
+            runCountQuery(
+                database,
+                """select count(DISTINCT id) as cnt
                  from tbl_settings
                  where $CONTENT_READY_FILTER
                    AND $SKIP_FILTER
@@ -82,8 +84,8 @@ object StatBySong {
                    and publish_date is not null
                    and publish_time != ''
                    and publish_time is not null
-                   and to_timestamp(CONCAT(publish_date, ' ', publish_time), 'DD.MM.YY HH24:MI') <= current_timestamp;"""
-        )
+                   and to_timestamp(CONCAT(publish_date, ' ', publish_time), 'DD.MM.YY HH24:MI') <= current_timestamp;""",
+            )
         // subscription = collection − onAir — на бэкенде одним SQL (точнее «два запроса + вычитание
         // в Kotlin»: один обход БД дороже, чем оставить так, и кол-во запросов остаётся прежним).
         val exclusive = (collection - onAir).coerceAtLeast(0)
@@ -97,7 +99,7 @@ object StatBySong {
         println(
             "[${Timestamp.from(Instant.now())}] StatBySong.refreshCache: " +
                 "total=$total, collection=$collection, onAir=$onAir, " +
-                "subscription=$exclusive, inWork=$inWork"
+                "subscription=$exclusive, inWork=$inWork",
         )
     }
 
@@ -109,7 +111,10 @@ object StatBySong {
         }
     }
 
-    private fun runCountQuery(database: KaraokeConnection, sql: String): Int {
+    private fun runCountQuery(
+        database: KaraokeConnection,
+        sql: String,
+    ): Int {
         val connection = database.getConnection()
         if (connection == null) {
             println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")

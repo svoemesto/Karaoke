@@ -14,9 +14,8 @@ data class MkoChordPictureLine(
     val type: ProducerType = ProducerType.CHORDPICTURELINE,
     val voiceId: Int = 0,
     val lineId: Int = 0,
-    val elementId: Int = 0
-): MltKaraokeObject {
-
+    val elementId: Int = 0,
+) : MltKaraokeObject {
     val mltGenerator = MltGenerator(mltProp, type, voiceId, lineId)
 
     private val frameWidthPx = mltProp.getFrameWidthPx()
@@ -24,42 +23,42 @@ data class MkoChordPictureLine(
 //    private val chordWidthPx = frameHeightPx / 4
 //    private val chordHeightPx = chordWidthPx
 
-    private val songStartTimecode  = mltProp.getSongStartTimecode()
-    private val songEndTimecode  = mltProp.getSongEndTimecode()
+    private val songStartTimecode = mltProp.getSongStartTimecode()
+    private val songEndTimecode = mltProp.getSongEndTimecode()
     private var chordDurationOnScreen = mltProp.getDurationOnScreen(listOf(ProducerType.CHORDPICTURELINE, voiceId, lineId))
     private var mkoLineUUID = mltProp.getUUID(listOf(type, voiceId, lineId))
     private var mainBinUUID = mltProp.getUUID(listOf(ProducerType.MAINBIN))
     private var folderIdChordPictures = mltProp.getId(listOf(ProducerType.CHORDPICTURELINE, voiceId))
-    private val lineEndTimecode = if (chordDurationOnScreen > 0) {
-        convertMillisecondsToTimecode(chordDurationOnScreen)
-    } else {
-        chordDurationOnScreen = convertTimecodeToMilliseconds(songEndTimecode)
-        songEndTimecode
-    }
-    override fun producerBlackTrack(): MltNode {
+    private val lineEndTimecode =
+        if (chordDurationOnScreen > 0) {
+            convertMillisecondsToTimecode(chordDurationOnScreen)
+        } else {
+            chordDurationOnScreen = convertTimecodeToMilliseconds(songEndTimecode)
+            songEndTimecode
+        }
 
-        val widthAreaPx= frameWidthPx //chordWidthPx
-        val heightAreaPx= frameHeightPx //chordHeightPx
+    override fun producerBlackTrack(): MltNode {
+        val widthAreaPx = frameWidthPx // chordWidthPx
+        val heightAreaPx = frameHeightPx // chordHeightPx
 
         return mltGenerator
             .producer(
                 timecodeOut = lineEndTimecode,
                 id = MltGenerator.nameProducerBlackTrack(type, voiceId, lineId),
-                props = MltNodeBuilder()
-                    .propertyName("length", convertMillisecondsToFrames(chordDurationOnScreen))
-                    .propertyName("eof", "pause")
-                    .propertyName("resource", 0)
-                    .propertyName("aspect_ratio", 1)
-                    .propertyName("mlt_service", "color")
-                    .propertyName("kdenlive:duration", lineEndTimecode)
-                    .propertyName("mlt_image_format", "rgba")
-                    .propertyName("kdenlive:playlistid", "black_track")
-                    .propertyName("set.test_audio", 0)
-
-                    .propertyName("meta.media.width", widthAreaPx)
-                    .propertyName("meta.media.height", heightAreaPx)
-
-                    .build()
+                props =
+                    MltNodeBuilder()
+                        .propertyName("length", convertMillisecondsToFrames(chordDurationOnScreen))
+                        .propertyName("eof", "pause")
+                        .propertyName("resource", 0)
+                        .propertyName("aspect_ratio", 1)
+                        .propertyName("mlt_service", "color")
+                        .propertyName("kdenlive:duration", lineEndTimecode)
+                        .propertyName("mlt_image_format", "rgba")
+                        .propertyName("kdenlive:playlistid", "black_track")
+                        .propertyName("set.test_audio", 0)
+                        .propertyName("meta.media.width", widthAreaPx)
+                        .propertyName("meta.media.height", heightAreaPx)
+                        .build(),
             )
     }
 
@@ -70,47 +69,59 @@ data class MkoChordPictureLine(
             val body = it as MutableList<MltNode>
             body.add(
                 mltGenerator.entry(
-                    id = "{${mkoLineUUID}}",
+                    id = "{$mkoLineUUID}",
                     timecodeOut = lineEndTimecode,
-                    nodes = MltNodeBuilder()
-                        .propertyName("kdenlive:id", "filePlaylist${mltGenerator.id}")
-                        .build()
-                )
+                    nodes =
+                        MltNodeBuilder()
+                            .propertyName("kdenlive:id", "filePlaylist${mltGenerator.id}")
+                            .build(),
+                ),
             )
         }
         return result
     }
 
     override fun mainFilePlaylistTransformProperties(): String = ""
+
     override fun trackPlaylist(): MltNode = mltGenerator.trackPlaylist()
 
-    override fun tractor(): MltNode = mltGenerator
-        .tractor(
-            timecodeIn = songStartTimecode,
-            timecodeOut = lineEndTimecode
-        )
-    override fun tractorSequence(): MltNode {
-        val subTrackNodes = listOf(
-            MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.CHORDPICTUREELEMENT,voiceId, lineId)))
-        )
-
-        return mltGenerator.tractor(
-                id = "{${mkoLineUUID}}",
+    override fun tractor(): MltNode =
+        mltGenerator
+            .tractor(
                 timecodeIn = songStartTimecode,
                 timecodeOut = lineEndTimecode,
-                body = MltNodeBuilder()
+            )
+
+    override fun tractorSequence(): MltNode {
+        val subTrackNodes =
+            listOf(
+                MltNode(
+                    name = "track",
+                    fields =
+                        mutableMapOf(
+                            "producer" to MltGenerator.nameTractor(ProducerType.CHORDPICTUREELEMENT, voiceId, lineId),
+                        ),
+                ),
+            )
+
+        return mltGenerator.tractor(
+            id = "{$mkoLineUUID}",
+            timecodeIn = songStartTimecode,
+            timecodeOut = lineEndTimecode,
+            body =
+                MltNodeBuilder()
                     .propertyName("kdenlive:sequenceproperties.hasAudio", 0)
                     .propertyName("kdenlive:sequenceproperties.hasVideo", 1)
                     .propertyName("kdenlive:clip_type", 2)
                     .propertyName("kdenlive:duration", lineEndTimecode)
                     .propertyName("kdenlive:clipname", mltGenerator.name)
                     .propertyName("kdenlive:description")
-                    .propertyName("kdenlive:uuid", "{${mkoLineUUID}}")
+                    .propertyName("kdenlive:uuid", "{$mkoLineUUID}")
                     .propertyName("kdenlive:producer_type", 17)
                     .propertyName("kdenlive:folderid", folderIdChordPictures)
                     .propertyName("kdenlive:id", mltGenerator.id)
                     .propertyName("kdenlive:sequenceproperties.activeTrack", 0)
-                    .propertyName("kdenlive:sequenceproperties.documentuuid", "{${mainBinUUID}}")
+                    .propertyName("kdenlive:sequenceproperties.documentuuid", "{$mainBinUUID}")
                     .propertyName("kdenlive:sequenceproperties.tracks", subTrackNodes.size)
                     .propertyName("kdenlive:sequenceproperties.tracksCount", subTrackNodes.size)
                     .propertyName("kdenlive:sequenceproperties.verticalzoom", 1)
@@ -119,10 +130,17 @@ data class MkoChordPictureLine(
                     .propertyName("kdenlive:sequenceproperties.zoom", 8)
                     .propertyName("kdenlive:sequenceproperties.groups", "[]")
                     .propertyName("kdenlive:sequenceproperties.guides", "[]")
-                    .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameProducerBlackTrack(ProducerType.CHORDPICTURELINE, voiceId, lineId))))
-                    .nodes(subTrackNodes)
+                    .node(
+                        MltNode(
+                            name = "track",
+                            fields =
+                                mutableMapOf(
+                                    "producer" to MltGenerator.nameProducerBlackTrack(ProducerType.CHORDPICTURELINE, voiceId, lineId),
+                                ),
+                        ),
+                    ).nodes(subTrackNodes)
                     .transitionsAndFilters(mltGenerator.name, 0, subTrackNodes.size)
-                    .build()
-            )
+                    .build(),
+        )
     }
 }

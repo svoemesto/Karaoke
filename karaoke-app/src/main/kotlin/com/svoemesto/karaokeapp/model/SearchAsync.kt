@@ -18,11 +18,10 @@ class SearchAsync(
     override val database: KaraokeConnection = WORKING_DATABASE,
     override val storageService: KaraokeStorageService = KSS_APP,
     override val storageApiClient: StorageApiClient = SAC_APP,
-) : Serializable, Comparable<SearchAsync>, KaraokeDbTable {
-
-    override fun compareTo(other: SearchAsync): Int {
-        return id.compareTo(other.id)
-    }
+) : Serializable,
+    Comparable<SearchAsync>,
+    KaraokeDbTable {
+    override fun compareTo(other: SearchAsync): Int = id.compareTo(other.id)
 
     override fun getTableName() = "tbl_search_async"
 
@@ -59,8 +58,8 @@ class SearchAsync(
     @KaraokeDbTableField(name = "last_requested_at")
     var lastRequestedAt: Timestamp = LocalDateTime.now().toTimestamp()
 
-    override fun toDTO(): SearchAsyncDTO {
-        return SearchAsyncDTO(
+    override fun toDTO(): SearchAsyncDTO =
+        SearchAsyncDTO(
             id = id,
             songId = songId,
             url = url,
@@ -73,14 +72,15 @@ class SearchAsync(
             rawData = rawData,
             lastRequestedAt = lastRequestedAt,
         )
-    }
 
     companion object {
-
         const val TABLE_NAME = "tbl_search_async"
 
         @Suppress("unused")
-        fun listHashes(database: KaraokeConnection, whereText: String = ""): List<RecordHash>? = getListHashes(tableName = TABLE_NAME, database = database, whereText = whereText)
+        fun listHashes(
+            database: KaraokeConnection,
+            whereText: String = "",
+        ): List<RecordHash>? = getListHashes(tableName = TABLE_NAME, database = database, whereText = whereText)
 
         private fun getWhereList(whereArgs: Map<String, String>): List<String> {
             val where: MutableList<String> = mutableListOf()
@@ -106,99 +106,126 @@ class SearchAsync(
             return where
         }
 
-        fun loadList(whereArgs: Map<String, String>,
-                     limit: Int = 0,
-                     offset: Int = 0,
-                     database: KaraokeConnection,
-                     storageService: KaraokeStorageService,
-                     storageApiClient: StorageApiClient,
-                     ignoreUseInList: Boolean
-        ): List<SearchAsync> {
-            return KaraokeDbTable.loadList(
-                clazz = SearchAsync::class,
-                tableName = TABLE_NAME,
-                whereList = getWhereList(whereArgs),
-                limit = limit,
-                offset = offset,
-                database = database,
-                storageService = storageService,
-                storageApiClient = storageApiClient,
-                ignoreUseInList = ignoreUseInList
-            ).map { it as SearchAsync }
-        }
+        fun loadList(
+            whereArgs: Map<String, String>,
+            limit: Int = 0,
+            offset: Int = 0,
+            database: KaraokeConnection,
+            storageService: KaraokeStorageService,
+            storageApiClient: StorageApiClient,
+            ignoreUseInList: Boolean,
+        ): List<SearchAsync> =
+            KaraokeDbTable
+                .loadList(
+                    clazz = SearchAsync::class,
+                    tableName = TABLE_NAME,
+                    whereList = getWhereList(whereArgs),
+                    limit = limit,
+                    offset = offset,
+                    database = database,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                    ignoreUseInList = ignoreUseInList,
+                ).map { it as SearchAsync }
 
-        fun delete(id: Long, database: KaraokeConnection): Boolean {
-            return KaraokeDbTable.delete(
+        fun delete(
+            id: Long,
+            database: KaraokeConnection,
+        ): Boolean =
+            KaraokeDbTable.delete(
                 tableName = TABLE_NAME,
                 id = id,
-                database = database
+                database = database,
             )
-        }
 
-        fun createNewSearchAsync(newSearchAsync: SearchAsync, database: KaraokeConnection): SearchAsync? {
-            val newSearchAsyncInDb = KaraokeDbTable.createDbInstance(
-                entity = newSearchAsync,
-                database = database
-            ) as? SearchAsync?
+        fun createNewSearchAsync(
+            newSearchAsync: SearchAsync,
+            database: KaraokeConnection,
+        ): SearchAsync? {
+            val newSearchAsyncInDb =
+                KaraokeDbTable.createDbInstance(
+                    entity = newSearchAsync,
+                    database = database,
+                ) as? SearchAsync?
             newSearchAsyncInDb?.let {
                 return it
             }
             return null
         }
 
-        fun getSearchAsyncById(id: Long, database: KaraokeConnection, storageService: KaraokeStorageService, storageApiClient: StorageApiClient): SearchAsync? {
-            return KaraokeDbTable.loadById(
+        fun getSearchAsyncById(
+            id: Long,
+            database: KaraokeConnection,
+            storageService: KaraokeStorageService,
+            storageApiClient: StorageApiClient,
+        ): SearchAsync? =
+            KaraokeDbTable.loadById(
                 clazz = SearchAsync::class,
                 tableName = TABLE_NAME,
                 id = id,
                 database = database,
                 storageService = storageService,
-                storageApiClient = storageApiClient
+                storageApiClient = storageApiClient,
             ) as? SearchAsync?
-        }
 
-        fun getSearchAsyncListBySongId(songId: Long, database: KaraokeConnection, storageService: KaraokeStorageService, storageApiClient: StorageApiClient): List<SearchAsync> {
-            return loadList(
+        fun getSearchAsyncListBySongId(
+            songId: Long,
+            database: KaraokeConnection,
+            storageService: KaraokeStorageService,
+            storageApiClient: StorageApiClient,
+        ): List<SearchAsync> =
+            loadList(
                 whereArgs = mapOf(Pair("song_id", songId.toString())),
                 database = database,
                 storageService = storageService,
                 storageApiClient = storageApiClient,
-                ignoreUseInList = true
+                ignoreUseInList = true,
             )
-        }
 
-        fun getSearchAsyncListNotDone(database: KaraokeConnection, storageService: KaraokeStorageService, storageApiClient: StorageApiClient): List<SearchAsync> {
-            return loadList(
+        fun getSearchAsyncListNotDone(
+            database: KaraokeConnection,
+            storageService: KaraokeStorageService,
+            storageApiClient: StorageApiClient,
+        ): List<SearchAsync> =
+            loadList(
                 whereArgs = mapOf(Pair("done", "false")),
                 database = database,
                 storageService = storageService,
                 storageApiClient = storageApiClient,
-                ignoreUseInList = true
+                ignoreUseInList = true,
             )
-        }
 
-        fun getSearchAsyncListNotDoneAndTimeout(timeoutMs: Long = 30_000L, database: KaraokeConnection, storageService: KaraokeStorageService, storageApiClient: StorageApiClient): List<SearchAsync> {
-            return loadList(
+        fun getSearchAsyncListNotDoneAndTimeout(
+            timeoutMs: Long = 30_000L,
+            database: KaraokeConnection,
+            storageService: KaraokeStorageService,
+            storageApiClient: StorageApiClient,
+        ): List<SearchAsync> =
+            loadList(
                 whereArgs = mapOf("done" to "false", "timeout" to timeoutMs.toString()),
                 database = database,
                 storageService = storageService,
                 storageApiClient = storageApiClient,
-                ignoreUseInList = true
+                ignoreUseInList = true,
             )
-        }
 
-        fun getSearchAsyncFirstNotDoneAndTimeout(timeoutMs: Long = 30_000L, database: KaraokeConnection, storageService: KaraokeStorageService, storageApiClient: StorageApiClient): SearchAsync? {
-            val resultList= loadList(
-                whereArgs = mapOf("done" to "false", "timeout" to timeoutMs.toString()),
-                limit = 1,
-                database = database,
-                storageService = storageService,
-                storageApiClient = storageApiClient,
-                ignoreUseInList = true
-            )
+        fun getSearchAsyncFirstNotDoneAndTimeout(
+            timeoutMs: Long = 30_000L,
+            database: KaraokeConnection,
+            storageService: KaraokeStorageService,
+            storageApiClient: StorageApiClient,
+        ): SearchAsync? {
+            val resultList =
+                loadList(
+                    whereArgs = mapOf("done" to "false", "timeout" to timeoutMs.toString()),
+                    limit = 1,
+                    database = database,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                    ignoreUseInList = true,
+                )
             if (resultList.isNotEmpty()) return resultList.first()
             return null
         }
     }
-    
 }

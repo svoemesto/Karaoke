@@ -8,84 +8,95 @@ import javax.imageio.ImageIO
 
 class Picture(
     val params: PictureParams,
-    val childs: MutableList<PictureChild> = mutableListOf()
+    val childs: MutableList<PictureChild> = mutableListOf(),
 ) {
     companion object {
         @Suppress("unused")
         fun createPicture() {
-
             val frameW = 575
             val frameH = 625
 
             val padding = 20
 
-            val albumW = ((frameW - 3*padding) / 3.5).toInt()
+            val albumW = ((frameW - 3 * padding) / 3.5).toInt()
             val albumH = albumW
             val authorW = (albumW * 2.5).toInt()
             val authorH = albumH
-            val picAreaH = 2*padding + albumH
+            val picAreaH = 2 * padding + albumH
 
-            val textAreaW = frameW - 2*padding
+            val textAreaW = frameW - 2 * padding
             val textAreaH = 350
 
-            val albumPic = Picture(
-                params = ImageParams(w = albumW, h = albumH, pathToFile = "/sm-karaoke/system/1987 - Доители изнурённых жаб/LogoAlbum.png" )
-            )
-            val authorPic = Picture(
-                params = ImageParams(w = authorW, h = authorH, pathToFile = "/sm-karaoke/system/LogoAuthor.png" )
-            )
+            val albumPic =
+                Picture(
+                    params =
+                        ImageParams(
+                            w = albumW,
+                            h = albumH,
+                            pathToFile = "/sm-karaoke/system/1987 - Доители изнурённых жаб/LogoAlbum.png",
+                        ),
+                )
+            val authorPic =
+                Picture(
+                    params = ImageParams(w = authorW, h = authorH, pathToFile = "/sm-karaoke/system/LogoAuthor.png"),
+                )
 
-            val a = Picture(params = AreaParams(w = textAreaW, h = textAreaH, color = Color(127,127,127,255)))
+            val a = Picture(params = AreaParams(w = textAreaW, h = textAreaH, color = Color(127, 127, 127, 255)))
 
-            val areaText = Picture(
-                params = TextParams(
-                    w = textAreaW,
-                    h = textAreaH,
-                    color = Color(255,255,127,255),
+            val areaText =
+                Picture(
+                    params =
+                        TextParams(
+                            w = textAreaW,
+                            h = textAreaH,
+                            color = Color(255, 255, 127, 255),
 //                    text = "Мама",
 //                    text = "Мама, мы все сошли с ума",
 //                    text = "Мама мы все сошли с ума очень давно, надолго и всерьёз.",
-                    text = "Мама мы все сошли с ума очень давно, надолго и всерьёз. И это печально.",
-                    fontName = "Roboto",
-                    fontStyle = 0,
-                    fontSize = 4,
-                    isCalculatedSize = true,
-                    isLineBreak = true,
-                    shadowColor = Color(127,127,127,255),
-                    shadowOffset = 0
+                            text = "Мама мы все сошли с ума очень давно, надолго и всерьёз. И это печально.",
+                            fontName = "Roboto",
+                            fontStyle = 0,
+                            fontSize = 4,
+                            isCalculatedSize = true,
+                            isLineBreak = true,
+                            shadowColor = Color(127, 127, 127, 255),
+                            shadowOffset = 0,
+                        ),
                 )
-            )
 
-            val areaTextCaption = Picture(
-                params = TextParams(
-                    w = textAreaW,
-                    h = 250,
-                    color = Color(85,255,255,255),
-                    text = "Файлы",
-                    fontName =  "Roboto",
-                    fontStyle = 0,
-                    fontSize = 100,
-                    isCalculatedSize = false,
-                    isLineBreak = false
+            val areaTextCaption =
+                Picture(
+                    params =
+                        TextParams(
+                            w = textAreaW,
+                            h = 250,
+                            color = Color(85, 255, 255, 255),
+                            text = "Файлы",
+                            fontName = "Roboto",
+                            fontStyle = 0,
+                            fontSize = 100,
+                            isCalculatedSize = false,
+                            isLineBreak = false,
+                        ),
                 )
-            )
 
-            val area = Picture(
-                params = AreaParams(w = frameW, h = frameH, color = Color.BLACK),
-                childs = mutableListOf(
-                    PictureChild(x = padding, y = padding, child = albumPic),
-                    PictureChild(x = albumW + 2*padding, y = padding, child = authorPic),
-                    PictureChild(x = padding, y = picAreaH - padding, child = a),
-                    PictureChild(x = padding, y = picAreaH - padding, child = areaText),
-                    PictureChild(x = padding, y = 475, child = areaTextCaption)
+            val area =
+                Picture(
+                    params = AreaParams(w = frameW, h = frameH, color = Color.BLACK),
+                    childs =
+                        mutableListOf(
+                            PictureChild(x = padding, y = padding, child = albumPic),
+                            PictureChild(x = albumW + 2 * padding, y = padding, child = authorPic),
+                            PictureChild(x = padding, y = picAreaH - padding, child = a),
+                            PictureChild(x = padding, y = picAreaH - padding, child = areaText),
+                            PictureChild(x = padding, y = 475, child = areaTextCaption),
+                        ),
                 )
-            )
 
             val fileName = "testPicture.png"
             val file = File(fileName)
             ImageIO.write(area.bi(), "png", file)
             runCommand(listOf("chmod", "666", fileName))
-
         }
     }
 
@@ -96,14 +107,13 @@ class Picture(
         val text: String,
         val centerX: Int,
         val centerY: Int,
-        val topY: Int
+        val topY: Int,
     )
-    fun multiLines(): List<MultiLine> {
 
+    fun multiLines(): List<MultiLine> {
         val result: MutableList<MultiLine> = mutableListOf()
 
         if (params is TextParams) {
-
             val imageType = BufferedImage.TYPE_INT_ARGB
             val resultImage = BufferedImage(params.w, params.h, imageType)
             val graphics2D = resultImage.graphics as Graphics2D
@@ -117,51 +127,52 @@ class Picture(
             graphics2D.font = font
 
             if (params.isCalculatedSize) {
-
-                val fontSizeAndWHYsingleLine = calcFontSizeAndWHY(
-                    text = params.text,
-                    w = params.w,
-                    h = params.h,
-                    font = Font(params.fontName, params.fontStyle, params.fontSize)
-                )
+                val fontSizeAndWHYsingleLine =
+                    calcFontSizeAndWHY(
+                        text = params.text,
+                        w = params.w,
+                        h = params.h,
+                        font = Font(params.fontName, params.fontStyle, params.fontSize),
+                    )
                 val fontSizeSingleLine = fontSizeAndWHYsingleLine.fontSize
 
                 val words = params.text.split(" ")
 
                 if (params.isLineBreak && words.size > 1) {
-
                     val vol = getVariantsOfLines(params.text)
 
-                    val a = vol.map { lines ->
-                        val fssl = lines.map { line ->
-                            calcFontSizeAndWHY(
-                                text = line,
-                                w = params.w,
-                                h = params.h / lines.size,
-                                font = Font(params.fontName, params.fontStyle, params.fontSize)
-                            )
+                    val a =
+                        vol.map { lines ->
+                            val fssl =
+                                lines.map { line ->
+                                    calcFontSizeAndWHY(
+                                        text = line,
+                                        w = params.w,
+                                        h = params.h / lines.size,
+                                        font = Font(params.fontName, params.fontStyle, params.fontSize),
+                                    )
+                                }
+                            val mfs = fssl.minOf { it.fontSize }
+                            val minFontSizeSingleLine = fssl.filter { it.fontSize == mfs }.maxBy { it.w }
+                            Pair(lines, minFontSizeSingleLine)
                         }
-                        val mfs = fssl.minOf { it.fontSize }
-                        val minFontSizeSingleLine = fssl.filter { it.fontSize == mfs }.maxBy { it.w }
-                        Pair(lines, minFontSizeSingleLine)
-                    }
                     val maxFontSizeLines = a.maxOf { it.second.fontSize }
                     val filteredA = a.filter { it.second.fontSize == maxFontSizeLines }
                     val (lines, fswhy) = filteredA.minBy { it.second.w }
 
                     if (fswhy.fontSize > fontSizeSingleLine) {
-
                         lines.forEachIndexed { index, line ->
 
-                            val lineSizeAndWHY = calcFontSizeAndWHY(
-                                text = line,
-                                w = params.w,
-                                h = params.h,
-                                font = Font(params.fontName, params.fontStyle, fswhy.fontSize),
-                                isFix = true
-                            )
+                            val lineSizeAndWHY =
+                                calcFontSizeAndWHY(
+                                    text = line,
+                                    w = params.w,
+                                    h = params.h,
+                                    font = Font(params.fontName, params.fontStyle, fswhy.fontSize),
+                                    isFix = true,
+                                )
 
-                            val deltaH = fswhy.h * index - fswhy.h/4 + params.h / lines.size
+                            val deltaH = fswhy.h * index - fswhy.h / 4 + params.h / lines.size
 
                             val centerX = (params.w - lineSizeAndWHY.w) / 2
                             val centerY = deltaH
@@ -170,7 +181,7 @@ class Picture(
 
                             graphics2D.font = Font(params.fontName, params.fontStyle, lineSizeAndWHY.fontSize)
                             graphics2D.color = params.shadowColor
-                            graphics2D.drawString(line, centerX+params.shadowOffset, centerY+params.shadowOffset)
+                            graphics2D.drawString(line, centerX + params.shadowOffset, centerY + params.shadowOffset)
                             graphics2D.color = params.color
                             graphics2D.drawString(line, centerX, centerY)
                             result.add(
@@ -181,21 +192,18 @@ class Picture(
                                     text = line,
                                     centerX = centerX,
                                     centerY = centerY,
-                                    topY = topY
-                                )
+                                    topY = topY,
+                                ),
                             )
-
                         }
-
                     } else {
-
                         val centerX = (params.w - fontSizeAndWHYsingleLine.w) / 2
-                        val centerY = (params.h + fontSizeAndWHYsingleLine.h) / 2  + fontSizeAndWHYsingleLine.y/4
+                        val centerY = (params.h + fontSizeAndWHYsingleLine.h) / 2 + fontSizeAndWHYsingleLine.y / 4
                         val topY = (params.h - fontSizeAndWHYsingleLine.h) / 2
 
                         graphics2D.font = Font(params.fontName, params.fontStyle, fontSizeAndWHYsingleLine.fontSize)
                         graphics2D.color = params.shadowColor
-                        graphics2D.drawString(params.text, centerX+params.shadowOffset, centerY+params.shadowOffset)
+                        graphics2D.drawString(params.text, centerX + params.shadowOffset, centerY + params.shadowOffset)
                         graphics2D.color = params.color
                         graphics2D.drawString(params.text, centerX, centerY)
                         result.add(
@@ -206,20 +214,17 @@ class Picture(
                                 text = params.text,
                                 centerX = centerX,
                                 centerY = centerY,
-                                topY = topY
-                            )
+                                topY = topY,
+                            ),
                         )
-
                     }
-
                 } else {
-
                     val centerX = (params.w - fontSizeAndWHYsingleLine.w) / 2
-                    val centerY = (params.h + fontSizeAndWHYsingleLine.h) / 2  + fontSizeAndWHYsingleLine.y/4
+                    val centerY = (params.h + fontSizeAndWHYsingleLine.h) / 2 + fontSizeAndWHYsingleLine.y / 4
                     val topY = (params.h - fontSizeAndWHYsingleLine.h) / 2
                     graphics2D.font = Font(params.fontName, params.fontStyle, fontSizeAndWHYsingleLine.fontSize)
                     graphics2D.color = params.shadowColor
-                    graphics2D.drawString(params.text, centerX+params.shadowOffset, centerY+params.shadowOffset)
+                    graphics2D.drawString(params.text, centerX + params.shadowOffset, centerY + params.shadowOffset)
                     graphics2D.color = params.color
                     graphics2D.drawString(params.text, centerX, centerY)
                     result.add(
@@ -230,28 +235,27 @@ class Picture(
                             text = params.text,
                             centerX = centerX,
                             centerY = centerY,
-                            topY = topY
-                        )
+                            topY = topY,
+                        ),
                     )
                 }
-
             } else {
-
-                val fontSizeAndWHY = calcFontSizeAndWHY(
-                    text = params.text,
-                    w = params.w,
-                    h = params.h,
-                    font = Font(params.fontName, params.fontStyle, params.fontSize),
-                    isFix = true
-                )
+                val fontSizeAndWHY =
+                    calcFontSizeAndWHY(
+                        text = params.text,
+                        w = params.w,
+                        h = params.h,
+                        font = Font(params.fontName, params.fontStyle, params.fontSize),
+                        isFix = true,
+                    )
 
                 val centerX = (params.w - fontSizeAndWHY.w) / 2
-                val centerY = (params.h + fontSizeAndWHY.h/2) / 2 + fontSizeAndWHY.y/4
-                val topY = (params.h - fontSizeAndWHY.h/2) / 2
+                val centerY = (params.h + fontSizeAndWHY.h / 2) / 2 + fontSizeAndWHY.y / 4
+                val topY = (params.h - fontSizeAndWHY.h / 2) / 2
 
                 graphics2D.font = Font(params.fontName, params.fontStyle, fontSizeAndWHY.fontSize)
                 graphics2D.color = params.shadowColor
-                graphics2D.drawString(params.text, centerX+params.shadowOffset, centerY+params.shadowOffset)
+                graphics2D.drawString(params.text, centerX + params.shadowOffset, centerY + params.shadowOffset)
                 graphics2D.color = params.color
                 graphics2D.drawString(params.text, centerX, centerY)
                 result.add(
@@ -262,19 +266,16 @@ class Picture(
                         text = params.text,
                         centerX = centerX,
                         centerY = centerY,
-                        topY = topY
-                    )
+                        topY = topY,
+                    ),
                 )
-
             }
-
         }
 
         return result
     }
 
     fun bi(): BufferedImage {
-
         when (params) {
             is AreaParams -> {
                 val imageType = BufferedImage.TYPE_INT_ARGB
@@ -285,7 +286,7 @@ class Picture(
                 graphics2D.composite = alphaChannel
                 graphics2D.background = params.color
                 graphics2D.color = params.color
-                graphics2D.fillRect(0,0,params.w, params.h)
+                graphics2D.fillRect(0, 0, params.w, params.h)
                 childs.forEach { pictureChild ->
                     graphics2D.drawImage(pictureChild.child.bi(), pictureChild.x, pictureChild.y, null)
                 }
@@ -306,11 +307,9 @@ class Picture(
                 graphics2D.drawImage(biImage, 0, 0, null)
                 graphics2D.dispose()
                 return resultImage
-
             }
 
             is TextParams -> {
-
                 val imageType = BufferedImage.TYPE_INT_ARGB
                 val resultImage = BufferedImage(params.w, params.h, imageType)
                 val graphics2D = resultImage.graphics as Graphics2D
@@ -324,117 +323,112 @@ class Picture(
                 graphics2D.font = font
 
                 if (params.isCalculatedSize) {
-
-                    val fontSizeAndWHYsingleLine = calcFontSizeAndWHY(
-                        text = params.text,
-                        w = params.w,
-                        h = params.h,
-                        font = Font(params.fontName, params.fontStyle, params.fontSize)
-                    )
+                    val fontSizeAndWHYsingleLine =
+                        calcFontSizeAndWHY(
+                            text = params.text,
+                            w = params.w,
+                            h = params.h,
+                            font = Font(params.fontName, params.fontStyle, params.fontSize),
+                        )
                     val fontSizeSingleLine = fontSizeAndWHYsingleLine.fontSize
 
                     val words = params.text.split(" ")
 
                     if (params.isLineBreak && words.size > 1) {
-
                         val vol = getVariantsOfLines(params.text)
 
-                        val a = vol.map { lines ->
-                            val fssl = lines.map { line ->
-                                calcFontSizeAndWHY(
-                                    text = line,
-                                    w = params.w,
-                                    h = params.h / lines.size,
-                                    font = Font(params.fontName, params.fontStyle, params.fontSize)
-                                )
+                        val a =
+                            vol.map { lines ->
+                                val fssl =
+                                    lines.map { line ->
+                                        calcFontSizeAndWHY(
+                                            text = line,
+                                            w = params.w,
+                                            h = params.h / lines.size,
+                                            font = Font(params.fontName, params.fontStyle, params.fontSize),
+                                        )
+                                    }
+                                val mfs = fssl.minOf { it.fontSize }
+                                val minFontSizeSingleLine = fssl.filter { it.fontSize == mfs }.maxBy { it.w }
+                                Pair(lines, minFontSizeSingleLine)
                             }
-                            val mfs = fssl.minOf { it.fontSize }
-                            val minFontSizeSingleLine = fssl.filter { it.fontSize == mfs }.maxBy { it.w }
-                            Pair(lines, minFontSizeSingleLine)
-                        }
                         val maxFontSizeLines = a.maxOf { it.second.fontSize }
                         val filteredA = a.filter { it.second.fontSize == maxFontSizeLines }
                         val (lines, fswhy) = filteredA.minBy { it.second.w }
 
                         if (fswhy.fontSize > fontSizeSingleLine) {
-
                             lines.forEachIndexed { index, line ->
 
-                                val lineSizeAndWHY = calcFontSizeAndWHY(
-                                    text = line,
-                                    w = params.w,
-                                    h = params.h,
-                                    font = Font(params.fontName, params.fontStyle, fswhy.fontSize),
-                                    isFix = true
-                                )
+                                val lineSizeAndWHY =
+                                    calcFontSizeAndWHY(
+                                        text = line,
+                                        w = params.w,
+                                        h = params.h,
+                                        font = Font(params.fontName, params.fontStyle, fswhy.fontSize),
+                                        isFix = true,
+                                    )
 
-                                val deltaH = fswhy.h * index - fswhy.h/4 + params.h / lines.size
+                                val deltaH = fswhy.h * index - fswhy.h / 4 + params.h / lines.size
 
                                 val centerX = (params.w - lineSizeAndWHY.w) / 2
                                 val centerY = deltaH
 
                                 graphics2D.font = Font(params.fontName, params.fontStyle, lineSizeAndWHY.fontSize)
                                 graphics2D.color = params.shadowColor
-                                graphics2D.drawString(line, centerX+params.shadowOffset, centerY+params.shadowOffset)
+                                graphics2D.drawString(line, centerX + params.shadowOffset, centerY + params.shadowOffset)
                                 graphics2D.color = params.color
                                 graphics2D.drawString(line, centerX, centerY)
-
                             }
-
                         } else {
-
                             val centerX = (params.w - fontSizeAndWHYsingleLine.w) / 2
-                            val centerY = (params.h + fontSizeAndWHYsingleLine.h) / 2  + fontSizeAndWHYsingleLine.y/4
+                            val centerY = (params.h + fontSizeAndWHYsingleLine.h) / 2 + fontSizeAndWHYsingleLine.y / 4
                             graphics2D.font = Font(params.fontName, params.fontStyle, fontSizeAndWHYsingleLine.fontSize)
                             graphics2D.color = params.shadowColor
-                            graphics2D.drawString(params.text, centerX+params.shadowOffset, centerY+params.shadowOffset)
+                            graphics2D.drawString(params.text, centerX + params.shadowOffset, centerY + params.shadowOffset)
                             graphics2D.color = params.color
                             graphics2D.drawString(params.text, centerX, centerY)
-
                         }
-
                     } else {
-
                         val centerX = (params.w - fontSizeAndWHYsingleLine.w) / 2
-                        val centerY = (params.h + fontSizeAndWHYsingleLine.h) / 2  + fontSizeAndWHYsingleLine.y/4
+                        val centerY = (params.h + fontSizeAndWHYsingleLine.h) / 2 + fontSizeAndWHYsingleLine.y / 4
                         graphics2D.font = Font(params.fontName, params.fontStyle, fontSizeAndWHYsingleLine.fontSize)
                         graphics2D.color = params.shadowColor
-                        graphics2D.drawString(params.text, centerX+params.shadowOffset, centerY+params.shadowOffset)
+                        graphics2D.drawString(params.text, centerX + params.shadowOffset, centerY + params.shadowOffset)
                         graphics2D.color = params.color
                         graphics2D.drawString(params.text, centerX, centerY)
                     }
-
                 } else {
-
-                    val fontSizeAndWHY = calcFontSizeAndWHY(
-                        text = params.text,
-                        w = params.w,
-                        h = params.h,
-                        font = Font(params.fontName, params.fontStyle, params.fontSize),
-                        isFix = true
-                    )
+                    val fontSizeAndWHY =
+                        calcFontSizeAndWHY(
+                            text = params.text,
+                            w = params.w,
+                            h = params.h,
+                            font = Font(params.fontName, params.fontStyle, params.fontSize),
+                            isFix = true,
+                        )
 
                     val centerX = (params.w - fontSizeAndWHY.w) / 2
-                    val centerY = (params.h + fontSizeAndWHY.h/2) / 2 + fontSizeAndWHY.y/4
+                    val centerY = (params.h + fontSizeAndWHY.h / 2) / 2 + fontSizeAndWHY.y / 4
                     graphics2D.font = Font(params.fontName, params.fontStyle, fontSizeAndWHY.fontSize)
                     graphics2D.color = params.shadowColor
-                    graphics2D.drawString(params.text, centerX+params.shadowOffset, centerY+params.shadowOffset)
+                    graphics2D.drawString(params.text, centerX + params.shadowOffset, centerY + params.shadowOffset)
                     graphics2D.color = params.color
                     graphics2D.drawString(params.text, centerX, centerY)
-
                 }
 
                 graphics2D.dispose()
                 return resultImage
-
             }
 
             else -> return BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB)
         }
-
     }
 
-    private fun resizeBufferedImage(img: BufferedImage, newW: Int, newH: Int): BufferedImage {
+    private fun resizeBufferedImage(
+        img: BufferedImage,
+        newW: Int,
+        newH: Int,
+    ): BufferedImage {
         val tmp = img.getScaledInstance(newW, newH, Image.SCALE_SMOOTH)
         val dimg = BufferedImage(newW, newH, BufferedImage.TYPE_INT_ARGB)
         val g2d = dimg.createGraphics()
@@ -459,13 +453,19 @@ class Picture(
         return result
     }
 
-    fun calcFontSizeAndWHY(text: String, w: Int, h: Int, font: Font, isFix: Boolean = false): FontSizeAndWHY {
+    fun calcFontSizeAndWHY(
+        text: String,
+        w: Int,
+        h: Int,
+        font: Font,
+        isFix: Boolean = false,
+    ): FontSizeAndWHY {
         val imageType = BufferedImage.TYPE_INT_ARGB
         val resultImage = BufferedImage(w, h, imageType)
         val graphics2D = resultImage.graphics as Graphics2D
         graphics2D.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
         val initFontSize = if (isFix) font.size else 4
-        var fnt = Font(font.fontName, font.style, initFontSize-1)
+        var fnt = Font(font.fontName, font.style, initFontSize - 1)
         var rectW = 0
         var rectWprev: Int
         var rectH = 0
@@ -477,7 +477,7 @@ class Picture(
             rectWprev = rectW
             rectHprev = rectH
             rectYprev = rectY
-            fnt = Font(fnt.fontName, fnt.style, fnt.size+1)
+            fnt = Font(fnt.fontName, fnt.style, fnt.size + 1)
             graphics2D.font = fnt
             val fontMetrics = graphics2D.fontMetrics
             val rect = fontMetrics.getStringBounds(text, graphics2D)
@@ -486,7 +486,7 @@ class Picture(
             rectY = rect.y.toInt()
             if (isFix) return FontSizeAndWHY(fontSize = fnt.size, w = rectW, h = rectH, y = rectY, text = text)
         } while (!(rectH > h || rectW > w))
-        return FontSizeAndWHY(fontSize = fnt.size-1, w = rectWprev, h = rectHprev, y = rectYprev, text = text)
+        return FontSizeAndWHY(fontSize = fnt.size - 1, w = rectWprev, h = rectHprev, y = rectYprev, text = text)
     }
 
     data class FontSizeAndWHY(
@@ -494,30 +494,29 @@ class Picture(
         val w: Int,
         val h: Int,
         val y: Int,
-        val text: String
+        val text: String,
     )
-
 }
 
 data class PictureChild(
     val x: Int,
     val y: Int,
-    val child: Picture
+    val child: Picture,
 )
 
 data class AreaParams(
     val w: Int,
     val h: Int,
     val color: Color,
-    val opaque: Float = 1f
-): PictureParams
+    val opaque: Float = 1f,
+) : PictureParams
 
 data class ImageParams(
     val w: Int,
     val h: Int,
     val pathToFile: String = "",
-    val biImage: BufferedImage? = null
-): PictureParams
+    val biImage: BufferedImage? = null,
+) : PictureParams
 
 data class TextParams(
     val w: Int,
@@ -530,7 +529,7 @@ data class TextParams(
     val isCalculatedSize: Boolean = true,
     val isLineBreak: Boolean = true,
     val shadowColor: Color = Color.BLACK,
-    val shadowOffset: Int = 2
-): PictureParams
+    val shadowOffset: Int = 2,
+) : PictureParams
 
 interface PictureParams

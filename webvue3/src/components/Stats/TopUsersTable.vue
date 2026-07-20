@@ -22,7 +22,8 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="(u, idx) in users" :key="rowKey(u, idx)" class="user-row"
+          <tr
+v-for="(u, idx) in users" :key="rowKey(u, idx)" class="user-row"
               :class="{ 'anon-row': !u.siteUserId }" @click="$emit('select-user', u)">
             <td>{{ u.siteUserId || '—' }}</td>
             <td class="text-start">
@@ -38,7 +39,7 @@
         </tbody>
       </table>
       <div class="d-flex align-items-center gap-2">
-        <b-pagination :model-value="page" @update:model-value="$emit('page', $event)" :total-rows="totalCount" :per-page="pageSize" :limit="30" size="sm" pills />
+        <b-pagination :model-value="page" :total-rows="totalCount" :per-page="pageSize" :limit="30" size="sm" pills @update:model-value="$emit('page', $event)" />
         <span class="text-muted small">Всего: {{ totalCount }}</span>
       </div>
     </template>

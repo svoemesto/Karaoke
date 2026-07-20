@@ -1,7 +1,5 @@
 package com.svoemesto.karaokeapp.textfiledictionary
 
-class CensoredWordsDictionary(): TextFileDictionary {
-
+class CensoredWordsDictionary : TextFileDictionary {
     override fun dictName() = "Censored"
-
 }

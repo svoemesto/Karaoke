@@ -6,5 +6,5 @@ enum class SettingVoiceLineElementTypes {
     NOTE, // Нота
     COMMENT, // Комментарий
     EMPTY, // Пустая строка (для генерации видео)
-    NEWLINE // Пустая строка (для генерации текста)
+    NEWLINE, // Пустая строка (для генерации текста)
 }

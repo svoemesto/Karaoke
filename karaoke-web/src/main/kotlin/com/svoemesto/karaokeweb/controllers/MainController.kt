@@ -1,6 +1,5 @@
 package com.svoemesto.karaokeweb.controllers
 
-
 import com.svoemesto.karaokeapp.Crypto
 import com.svoemesto.karaokeapp.model.EventType
 import com.svoemesto.karaokeapp.model.LinkType
@@ -14,7 +13,7 @@ import com.svoemesto.karaokeapp.services.StorageApiClient
 import com.svoemesto.karaokeweb.services.WEB_WORK_IN_CONTAINER
 import com.svoemesto.karaokeweb.util.ClientIpResolver
 import com.svoemesto.karaokeweb.WORKING_DATABASE
-//import com.svoemesto.karaokeweb.services.KSS_WEB
+// import com.svoemesto.karaokeweb.services.KSS_WEB
 import jakarta.servlet.http.HttpServletRequest
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Controller
@@ -29,9 +28,8 @@ class MainController(
     @Suppress("unused") private val webSocket: SimpMessagingTemplate,
     @Value($$"${work-in-container}") val wic: Long,
     private val storageService: KaraokeStorageService,
-    private val storageApiClient: StorageApiClient
-    ) {
-
+    private val storageApiClient: StorageApiClient,
+) {
     init {
         WEB_WORK_IN_CONTAINER = (wic != 0L)
         println("WEB_WORK_IN_CONTAINER = $WEB_WORK_IN_CONTAINER")
@@ -42,14 +40,21 @@ class MainController(
     @GetMapping("/")
     fun main(
         model: Model,
-        request: HttpServletRequest
+        request: HttpServletRequest,
     ): String {
         model.addAttribute("onSponsr", StatBySong.getCountSongsInCollection(database = WORKING_DATABASE))
         model.addAttribute("onAir", StatBySong.getCountSongsOnAir(database = WORKING_DATABASE))
         model.addAttribute("exclusive", StatBySong.getCountSongsExclusive(database = WORKING_DATABASE))
         model.addAttribute("inWork", StatBySong.getCountSongsInWork(database = WORKING_DATABASE))
         model.addAttribute("total", StatBySong.getCountSongsTotal(database = WORKING_DATABASE))
-        doRegisterEvent(mapOf("eventType" to EventType.CALL_REST.dbValue, "restName" to RestName.MAIN.dbValue, "parameters" to emptyMap<String, Any>()), request)
+        doRegisterEvent(
+            mapOf(
+                "eventType" to EventType.CALL_REST.dbValue,
+                "restName" to RestName.MAIN.dbValue,
+                "parameters" to emptyMap<String, Any>(),
+            ),
+            request,
+        )
         return "main"
     }
 
@@ -57,7 +62,7 @@ class MainController(
     fun zakroma(
         @RequestParam(required = false) author: String?,
         model: Model,
-        request: HttpServletRequest
+        request: HttpServletRequest,
     ): String {
         val data: MutableMap<String, Any> = mutableMapOf()
         author?.let {
@@ -65,13 +70,19 @@ class MainController(
         }
         model.addAttribute("author_init", author ?: "")
         model.addAttribute("authors", Settings.loadListAuthors(withSkiped = false, database = WORKING_DATABASE))
-        model.addAttribute("zakroma", Zakroma.getZakroma(
-            author = author ?: "",
-            database = WORKING_DATABASE,
-            storageService = storageService,
-            storageApiClient = storageApiClient
-        ))
-        doRegisterEvent(mapOf("eventType" to EventType.CALL_REST.dbValue, "restName" to RestName.ZAKROMA.dbValue, "parameters" to data), request)
+        model.addAttribute(
+            "zakroma",
+            Zakroma.getZakroma(
+                author = author ?: "",
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            ),
+        )
+        doRegisterEvent(
+            mapOf("eventType" to EventType.CALL_REST.dbValue, "restName" to RestName.ZAKROMA.dbValue, "parameters" to data),
+            request,
+        )
         return "zakroma"
     }
 
@@ -82,7 +93,7 @@ class MainController(
     fun doRegisterEvent(
         @RequestParam(required = true) data: Map<String, Any>,
         request: HttpServletRequest,
-        siteUserId: Long = 0
+        siteUserId: Long = 0,
     ): Boolean {
         println("Вызов registerevent $data")
         if (!data.containsKey("eventType")) return false
@@ -128,11 +139,13 @@ class MainController(
                         if (!data.containsKey("linkName")) return false
                         val linkName = data["linkName"] as String
                         println("Переход в соцсеть: $linkName")
-                        return insertEvent(mutableListOf(
-                            Pair("event_type", EventType.CLICK_TO_LINK.dbValue),
-                            Pair("link_type", LinkType.LINK_TO_SOCIAL_NETWORK.dbValue),
-                            Pair("link_name", linkName),
-                        ))
+                        return insertEvent(
+                            mutableListOf(
+                                Pair("event_type", EventType.CLICK_TO_LINK.dbValue),
+                                Pair("link_type", LinkType.LINK_TO_SOCIAL_NETWORK.dbValue),
+                                Pair("link_name", linkName),
+                            ),
+                        )
                     }
                     LinkType.LINK_TO_SONG.dbValue -> {
                         if (!data.containsKey("linkName")) return false
@@ -142,13 +155,15 @@ class MainController(
                         if (!data.containsKey("songVersion")) return false
                         val songVersion = data["songVersion"] as String
                         println("Переход на просмотр: сайт $linkName, id=$songId, Версия: $songVersion")
-                        return insertEvent(mutableListOf(
-                            Pair("event_type", EventType.CLICK_TO_LINK.dbValue),
-                            Pair("link_type", LinkType.LINK_TO_SONG.dbValue),
-                            Pair("link_name", linkName),
-                            Pair("song_id", songId),
-                            Pair("song_version", songVersion),
-                        ))
+                        return insertEvent(
+                            mutableListOf(
+                                Pair("event_type", EventType.CLICK_TO_LINK.dbValue),
+                                Pair("link_type", LinkType.LINK_TO_SONG.dbValue),
+                                Pair("link_name", linkName),
+                                Pair("song_id", songId),
+                                Pair("song_version", songVersion),
+                            ),
+                        )
                     }
                     else -> {}
                 }
@@ -159,21 +174,24 @@ class MainController(
                 if (!data.containsKey("songVersion")) return false
                 val songVersion = data["songVersion"] as String
                 println("Просмотр на странице: id=$songId, Версия: $songVersion")
-                return insertEvent(mutableListOf(
-                    Pair("event_type", EventType.PLAY.dbValue),
-                    Pair("song_id", songId),
-                    Pair("song_version", songVersion),
-                ))
+                return insertEvent(
+                    mutableListOf(
+                        Pair("event_type", EventType.PLAY.dbValue),
+                        Pair("song_id", songId),
+                        Pair("song_version", songVersion),
+                    ),
+                )
             }
             EventType.CALL_REST.dbValue -> {
                 val restName = data["restName"] as String
                 val parameters = data["parameters"] as Map<*, *>
                 println("Вызван рест $restName с параметрами $parameters")
-                val fieldsValues: MutableList<Pair<String, Any>> = mutableListOf(
-                    Pair("event_type", EventType.CALL_REST.dbValue),
-                    Pair("rest_name", restName),
-                    Pair("rest_parameters", parameters.toString()),
-                )
+                val fieldsValues: MutableList<Pair<String, Any>> =
+                    mutableListOf(
+                        Pair("event_type", EventType.CALL_REST.dbValue),
+                        Pair("rest_name", restName),
+                        Pair("rest_parameters", parameters.toString()),
+                    )
                 // referer теперь несёт настоящий внешний источник перехода (document.referrer
                 // заход-лендинга, кросс-домен — см. karaoke-public/services/entryReferrer.js). Пишем
                 // его, только если пришёл непустым (внутренние SPA-переходы его не несут). Больше НЕ
@@ -186,11 +204,12 @@ class MainController(
                 if (!data.containsKey("linkType") || !data.containsKey("songId")) return false
                 val linkType = data["linkType"] as String // PlayerAction.dbValue: open|play|pause|seek|export
                 val songId = (data["songId"] as String).toLong()
-                val fieldsValues: MutableList<Pair<String, Any>> = mutableListOf(
-                    Pair("event_type", EventType.PLAYER.dbValue),
-                    Pair("link_type", linkType),
-                    Pair("song_id", songId),
-                )
+                val fieldsValues: MutableList<Pair<String, Any>> =
+                    mutableListOf(
+                        Pair("event_type", EventType.PLAYER.dbValue),
+                        Pair("link_type", linkType),
+                        Pair("song_id", songId),
+                    )
                 // link_name — деталь действия: ключ стема при export, позиция в секундах при seek,
                 // процент-веха при progress
                 (data["linkName"] as? String)?.let { fieldsValues.add(Pair("link_name", it)) }
@@ -198,9 +217,10 @@ class MainController(
             }
             EventType.ENGAGEMENT.dbValue -> {
                 // Время на странице: rest_name = идентификатор страницы, link_name = секунды видимости
-                val fieldsValues: MutableList<Pair<String, Any>> = mutableListOf(
-                    Pair("event_type", EventType.ENGAGEMENT.dbValue),
-                )
+                val fieldsValues: MutableList<Pair<String, Any>> =
+                    mutableListOf(
+                        Pair("event_type", EventType.ENGAGEMENT.dbValue),
+                    )
                 (data["page"] as? String)?.let { fieldsValues.add(Pair("rest_name", it)) }
                 (data["linkName"] as? String)?.let { fieldsValues.add(Pair("link_name", it)) }
                 (data["songId"] as? String)?.toLongOrNull()?.let { fieldsValues.add(Pair("song_id", it)) }
@@ -208,9 +228,10 @@ class MainController(
             }
             EventType.UI.dbValue -> {
                 // UI-действие: link_type = navigate|theme|scroll, link_name = деталь (маршрут/тема/процент)
-                val fieldsValues: MutableList<Pair<String, Any>> = mutableListOf(
-                    Pair("event_type", EventType.UI.dbValue),
-                )
+                val fieldsValues: MutableList<Pair<String, Any>> =
+                    mutableListOf(
+                        Pair("event_type", EventType.UI.dbValue),
+                    )
                 (data["linkType"] as? String)?.let { fieldsValues.add(Pair("link_type", it)) }
                 (data["linkName"] as? String)?.let { fieldsValues.add(Pair("link_name", it)) }
                 (data["songId"] as? String)?.toLongOrNull()?.let { fieldsValues.add(Pair("song_id", it)) }
@@ -225,7 +246,7 @@ class MainController(
     @PostMapping("/changerecords")
     @ResponseBody
     fun doChangeRecords(
-        @RequestBody(required = true) data: Map<String, Any>
+        @RequestBody(required = true) data: Map<String, Any>,
     ): String {
         var result = "OK"
         try {
@@ -268,8 +289,8 @@ class MainController(
                 ps.close()
             }
 
-            result = "[${Timestamp.from(Instant.now())}] Created: ${dataCreate.size}, Updated: ${dataUpdate.size}, Deleted: ${dataDelete.size}"
-
+            result =
+                "[${Timestamp.from(Instant.now())}] Created: ${dataCreate.size}, Updated: ${dataUpdate.size}, Deleted: ${dataDelete.size}"
         } catch (e: Exception) {
             return e.message!!
         }
@@ -283,7 +304,7 @@ class MainController(
         @RequestParam(required = false) text: String?,
         @RequestParam(required = false) album: String?,
         model: Model,
-        request: HttpServletRequest
+        request: HttpServletRequest,
     ): String {
         val attr: MutableMap<String, String> = mutableMapOf()
         if (songName != null && songName != "") attr["song_name"] = songName
@@ -291,7 +312,20 @@ class MainController(
         if (text != null && text != "") attr["text"] = text
         if (album != null && album != "") attr["song_album"] = album
 
-        val settings: List<Settings> = if ("${songName ?: ""}${author ?: ""}${album ?: ""}${text ?: ""}".length < 3) emptyList() else Settings.loadListFromDb(attr, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient, withoutMarkersAndText = true)
+        val settings: List<Settings> =
+            if ("${songName ?: ""}${author ?: ""}${album ?: ""}${text ?: ""}".length <
+                3
+            ) {
+                emptyList()
+            } else {
+                Settings.loadListFromDb(
+                    attr,
+                    database = WORKING_DATABASE,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                    withoutMarkersAndText = true,
+                )
+            }
 
         model.addAttribute("authors", Settings.loadListAuthors(withSkiped = false, database = WORKING_DATABASE))
         model.addAttribute("settings", settings)
@@ -301,7 +335,10 @@ class MainController(
         if (author != null && author != "") data["author"] = author
         if (text != null && text != "") data["text"] = text
         if (album != null && album != "") data["album"] = album
-        doRegisterEvent(mapOf("eventType" to EventType.CALL_REST.dbValue, "restName" to RestName.FILTER.dbValue, "parameters" to data), request)
+        doRegisterEvent(
+            mapOf("eventType" to EventType.CALL_REST.dbValue, "restName" to RestName.FILTER.dbValue, "parameters" to data),
+            request,
+        )
 
         return "filter"
     }
@@ -310,9 +347,15 @@ class MainController(
     fun song(
         @RequestParam(required = true) id: Long,
         model: Model,
-        request: HttpServletRequest
+        request: HttpServletRequest,
     ): String {
-        val sett = Settings.loadFromDbById(id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+        val sett =
+            Settings.loadFromDbById(
+                id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
 //        sett?.let {
 //            if (!sett.haveVkGroupLink) {
 //                val pathToPictureVkGroupLink = "/home/Karaoke/webpictures/${sett.id}.png"
@@ -323,36 +366,62 @@ class MainController(
 //            }
 //        }
         model.addAttribute("sett", sett)
-        doRegisterEvent(mapOf("eventType" to EventType.CALL_REST.dbValue, "restName" to RestName.SONG.dbValue, "parameters" to mapOf("id" to id)), request)
-        if (sett?.tags?.split(" ")?.map { it.uppercase() }?.contains("SKIP") == true) {
+        doRegisterEvent(
+            mapOf(
+                "eventType" to EventType.CALL_REST.dbValue,
+                "restName" to RestName.SONG.dbValue,
+                "parameters" to mapOf("id" to id),
+            ),
+            request,
+        )
+        if (sett
+                ?.tags
+                ?.split(" ")
+                ?.map { it.uppercase() }
+                ?.contains("SKIP") == true
+        ) {
             return "song-removed"
         }
         return "song"
     }
 
     @GetMapping("/statbysong")
-    fun doStatBySong(
-        model: Model
-    ): String {
+    fun doStatBySong(model: Model): String {
         // limit великий: старая версия этой Thymeleaf-страницы (в отличие от постранично
         // грузящей webvue3-таблицы) всегда показывала все песни разом, без limit/offset вовсе.
-        model.addAttribute("stats", com.svoemesto.karaokeapp.model.StatsByEvents.getStatBySong(database = WORKING_DATABASE, limit = 100_000))
+        model.addAttribute(
+            "stats",
+            com.svoemesto.karaokeapp.model.StatsByEvents
+                .getStatBySong(database = WORKING_DATABASE, limit = 100_000),
+        )
         return "statbysong"
     }
 
     @GetMapping("/webevents")
-    fun doWebEvents(
-        model: Model
-    ): String {
-        model.addAttribute("webevents", com.svoemesto.karaokeapp.model.StatsByEvents.getWebEvents(database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient))
+    fun doWebEvents(model: Model): String {
+        model.addAttribute(
+            "webevents",
+            com.svoemesto.karaokeapp.model.StatsByEvents.getWebEvents(
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            ),
+        )
         return "webevents"
     }
 
     @GetMapping("/testpage/{id}")
-    fun doTestPage(@PathVariable id: Long,
-        model: Model
+    fun doTestPage(
+        @PathVariable id: Long,
+        model: Model,
     ): String {
-        val sett = Settings.loadFromDbById(id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+        val sett =
+            Settings.loadFromDbById(
+                id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
         model.addAttribute("sett", sett)
         return "testpage"
     }

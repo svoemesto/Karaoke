@@ -12,25 +12,25 @@
 
             <div class="dfm-filter-row">
               <div class="dfm-row-label">
-                <div v-text="'Словарь:'"></div>
+                <div v-text="'Словарь:'"/>
               </div>
               <div class="dfm-row-input">
-                <select class="dfm-input-field" v-model="dictionariesFilterDictName">
+                <select v-model="dictionariesFilterDictName" class="dfm-input-field">
                   <option value="">(все)</option>
-                  <option v-for="name in dictNames" :key="name" :value="name" v-text="name"></option>
+                  <option v-for="name in dictNames" :key="name" :value="name" v-text="name"/>
                 </select>
               </div>
-              <button :disabled="!dictionariesFilterDictName" class="dfm-button-clear-field" @click.left="dictionariesFilterDictName=''" v-text="'X'"></button>
+              <button :disabled="!dictionariesFilterDictName" class="dfm-button-clear-field" @click.left="dictionariesFilterDictName=''" v-text="'X'"/>
             </div>
 
             <div class="dfm-filter-row">
               <div class="dfm-row-label">
-                <div v-text="'Значение:'"></div>
+                <div v-text="'Значение:'"/>
               </div>
               <div class="dfm-row-input">
-                <input class="dfm-input-field" v-model="dictionariesFilterDictValue">
+                <input v-model="dictionariesFilterDictValue" class="dfm-input-field"/>
               </div>
-              <button :disabled="!dictionariesFilterDictValue" class="dfm-button-clear-field" @click.left="dictionariesFilterDictValue=''" v-text="'X'"></button>
+              <button :disabled="!dictionariesFilterDictValue" class="dfm-button-clear-field" @click.left="dictionariesFilterDictValue=''" v-text="'X'"/>
             </div>
 
           </div>
@@ -50,11 +50,6 @@
 
 export default {
   name: "DictionariesFilterModal",
-  async beforeMount() {
-    await this.$store.dispatch('loadDictNames');
-    this.$store.dispatch('setDictionariesFilterDictName', { value: await this.$store.getters.getWebvueProp('dictionariesFilterDictName', '') });
-    this.$store.dispatch('setDictionariesFilterDictValue', { value: await this.$store.getters.getWebvueProp('dictionariesFilterDictValue', '') });
-  },
   computed: {
     dictNames() {
       return this.$store.getters.getDictNames;
@@ -67,6 +62,11 @@ export default {
       get() { return this.$store.getters.getDictionariesFilterDictValue; },
       set(value) { this.$store.dispatch('setDictionariesFilterDictValue', { value: value }); }
     },
+  },
+  async beforeMount() {
+    await this.$store.dispatch('loadDictNames');
+    this.$store.dispatch('setDictionariesFilterDictName', { value: await this.$store.getters.getWebvueProp('dictionariesFilterDictName', '') });
+    this.$store.dispatch('setDictionariesFilterDictValue', { value: await this.$store.getters.getWebvueProp('dictionariesFilterDictValue', '') });
   },
   methods: {
     ok() {

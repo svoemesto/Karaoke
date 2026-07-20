@@ -1,15 +1,15 @@
 <template>
   <div class="results-table-body">
-    <div class="results-table-row"
-      v-for="searchResult in searchResultsList"
-      :key="searchResult.id">
+    <div
+v-for="searchResult in searchResultsList"
+      :key="searchResult.id"
+      class="results-table-row">
       <div
         class="fld-url"
-        v-text="searchResult.url"
-        @click.left="returnRearchResult(searchResult)"
         :style="{ backgroundColor: currentId === searchResult.id ? 'blue' : searchResult.text === '' ? 'gray' : 'white' }"
-        >
-      </div>
+        @click.left="returnRearchResult(searchResult)"
+        v-text="searchResult.url"
+        />
 
     </div>
   </div>
@@ -20,19 +20,19 @@
 export default {
   name: "SearchTextResultsTable",
   components: {},
-  data() {
-    return {
-      currentId: undefined
-    }
-  },
-  watch: {},
   props: {
     searchResultsList: {
       type: Array,
       required: true
     }
   },
+  data() {
+    return {
+      currentId: undefined
+    }
+  },
   computed: {},
+  watch: {},
   methods: {
     onRowClicked(item, index) {
       console.log(`Row '${index}' clicked: `, item.url);

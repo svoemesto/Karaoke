@@ -11,7 +11,7 @@ import com.svoemesto.karaokeapp.services.StorageApiClient
 data class MonitorContext(
     val localDb: KaraokeConnection,
     val storageService: KaraokeStorageService,
-    val storageApiClient: StorageApiClient
+    val storageApiClient: StorageApiClient,
 )
 
 /**

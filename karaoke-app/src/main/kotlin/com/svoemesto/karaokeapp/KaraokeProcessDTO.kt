@@ -30,21 +30,19 @@ data class KaraokeProcessDTO(
     val timeLeftMs: Long,
     val timeLeftStr: String,
     val withoutControl: Boolean,
-    val threadId: Int
-) : Serializable, Comparable<KaraokeProcessDTO>, KaraokeDbTableDto {
-
+    val threadId: Int,
+) : Serializable,
+    Comparable<KaraokeProcessDTO>,
+    KaraokeDbTableDto {
     override fun compareTo(other: KaraokeProcessDTO): Int {
         var result = priority.compareTo(other.priority)
         if (result != 0) return result
         result = order.compareTo(other.order)
         if (result != 0) return result
         return id.compareTo(other.id)
-
     }
 
-    override fun isValid(): Boolean {
-        return true
-    }
+    override fun isValid(): Boolean = true
 
     override fun validationErrors(): List<String> {
         TODO("Not yet implemented")

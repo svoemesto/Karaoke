@@ -16,24 +16,31 @@ import java.sql.Timestamp
 @Controller
 @RequestMapping("/api/promorules")
 class PromoController {
+    private fun resolveDb(target: String?): KaraokeConnection = if (target == "remote") Connection.remote() else Connection.local()
 
-    private fun resolveDb(target: String?): KaraokeConnection =
-        if (target == "remote") Connection.remote() else Connection.local()
-
-    private fun <T> withDb(target: String?, block: (KaraokeConnection) -> T): T {
+    private fun <T> withDb(
+        target: String?,
+        block: (KaraokeConnection) -> T,
+    ): T {
         val db = resolveDb(target)
         return try {
             block(db)
         } finally {
-            try { db.getConnection()?.close() } catch (_: Exception) {}
+            try {
+                db.getConnection()?.close()
+            } catch (_: Exception) {
+            }
         }
     }
 
     @PostMapping("/list")
     @ResponseBody
-    fun list(@RequestParam(required = false) target: String?): Map<String, Any> = withDb(target) { db ->
-        mapOf("promoRules" to PromoRule.loadAll(db, KSS_APP, SAC_APP).map { it.toDTO() })
-    }
+    fun list(
+        @RequestParam(required = false) target: String?,
+    ): Map<String, Any> =
+        withDb(target) { db ->
+            mapOf("promoRules" to PromoRule.loadAll(db, KSS_APP, SAC_APP).map { it.toDTO() })
+        }
 
     @PostMapping("/create")
     @ResponseBody
@@ -43,9 +50,10 @@ class PromoController {
         @RequestParam type: String,
         @RequestParam(required = false) paramsJson: String?,
         @RequestParam(required = false) appliesTo: String?,
-    ): Long = withDb(target) { db ->
-        PromoRule.createNew(name, type, paramsJson ?: "{}", appliesTo ?: PromoRule.APPLIES_BOTH, db, KSS_APP, SAC_APP)?.id ?: 0L
-    }
+    ): Long =
+        withDb(target) { db ->
+            PromoRule.createNew(name, type, paramsJson ?: "{}", appliesTo ?: PromoRule.APPLIES_BOTH, db, KSS_APP, SAC_APP)?.id ?: 0L
+        }
 
     @PostMapping("/update")
     @ResponseBody
@@ -64,23 +72,26 @@ class PromoController {
         // см. KaraokeDbTable.kt:74-83). Снять границу можно только прямым SQL (не через этот эндпоинт).
         @RequestParam(required = false) validFrom: String?,
         @RequestParam(required = false) validTo: String?,
-    ): Long = withDb(target) { db ->
-        PromoRule.getById(id, db, KSS_APP, SAC_APP)?.let { rule ->
-            name?.let { rule.name = it }
-            type?.let { rule.type = it }
-            paramsJson?.let { rule.paramsJson = it }
-            appliesTo?.let { rule.appliesTo = it }
-            isActive?.let { rule.isActive = it }
-            priority?.let { rule.priority = it }
-            validFrom?.takeIf { it.isNotBlank() }?.let { rule.validFrom = Timestamp.valueOf(it.replace("T", " ")) }
-            validTo?.takeIf { it.isNotBlank() }?.let { rule.validTo = Timestamp.valueOf(it.replace("T", " ")) }
-            rule.save()
-            rule.id
-        } ?: 0L
-    }
+    ): Long =
+        withDb(target) { db ->
+            PromoRule.getById(id, db, KSS_APP, SAC_APP)?.let { rule ->
+                name?.let { rule.name = it }
+                type?.let { rule.type = it }
+                paramsJson?.let { rule.paramsJson = it }
+                appliesTo?.let { rule.appliesTo = it }
+                isActive?.let { rule.isActive = it }
+                priority?.let { rule.priority = it }
+                validFrom?.takeIf { it.isNotBlank() }?.let { rule.validFrom = Timestamp.valueOf(it.replace("T", " ")) }
+                validTo?.takeIf { it.isNotBlank() }?.let { rule.validTo = Timestamp.valueOf(it.replace("T", " ")) }
+                rule.save()
+                rule.id
+            } ?: 0L
+        }
 
     @PostMapping("/delete")
     @ResponseBody
-    fun delete(@RequestParam id: Long, @RequestParam(required = false) target: String?): Boolean =
-        withDb(target) { db -> PromoRule.delete(id, db) }
+    fun delete(
+        @RequestParam id: Long,
+        @RequestParam(required = false) target: String?,
+    ): Boolean = withDb(target) { db -> PromoRule.delete(id, db) }
 }

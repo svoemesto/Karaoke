@@ -16,13 +16,15 @@ import java.time.Duration
 class SearchTool(
     @Value("\${searxng.base-url:http://searxng:8080}")
     private val searxngBaseUrl: String,
-    private val objectMapper: ObjectMapper
+    private val objectMapper: ObjectMapper,
 ) {
     private val logger = LoggerFactory.getLogger(SearchTool::class.java)
 
-    private val httpClient = HttpClient.newBuilder()
-        .connectTimeout(Duration.ofSeconds(10))
-        .build()
+    private val httpClient =
+        HttpClient
+            .newBuilder()
+            .connectTimeout(Duration.ofSeconds(10))
+            .build()
 
     @Tool("Search the web for URLs related to a query. Returns a list of URLs.")
     fun searchUrls(query: String): List<String> {
@@ -32,12 +34,14 @@ class SearchTool(
 
             logger.info("🔍 [SearchTool] Запрос к SearXNG: $url")
 
-            val request = HttpRequest.newBuilder()
-                .uri(java.net.URI.create(url))
-                .timeout(Duration.ofSeconds(30))
-                .header("Accept", "application/json")
-                .GET()
-                .build()
+            val request =
+                HttpRequest
+                    .newBuilder()
+                    .uri(java.net.URI.create(url))
+                    .timeout(Duration.ofSeconds(30))
+                    .header("Accept", "application/json")
+                    .GET()
+                    .build()
 
             val response = httpClient.send(request, HttpResponse.BodyHandlers.ofString())
 
@@ -47,7 +51,7 @@ class SearchTool(
             }
 
             val searchResponse = objectMapper.readValue(response.body(), SearchResponse::class.java)
-            val urls = searchResponse.results.map { it.url } //.take(5)
+            val urls = searchResponse.results.map { it.url } // .take(5)
 
             logger.info("✅ [SearchTool] Найдено URL: ${urls.size}")
             urls.forEach { logger.info("  → $it") }
@@ -62,12 +66,12 @@ class SearchTool(
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class SearchResponse(
-    val results: List<SearchResult> = emptyList()
+    val results: List<SearchResult> = emptyList(),
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class SearchResult(
     val url: String = "",
     val title: String = "",
-    val content: String = ""
+    val content: String = "",
 )

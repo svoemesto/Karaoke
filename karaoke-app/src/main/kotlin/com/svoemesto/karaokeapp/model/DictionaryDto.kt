@@ -6,9 +6,10 @@ import java.io.Serializable
 data class DictionaryDto(
     val id: Long,
     val dictName: String,
-    val dictValue: String
-) : Serializable, Comparable<DictionaryDto>, KaraokeDbTableDto {
-
+    val dictValue: String,
+) : Serializable,
+    Comparable<DictionaryDto>,
+    KaraokeDbTableDto {
     override fun compareTo(other: DictionaryDto): Int {
         val byName = dictName.compareTo(other.dictName)
         return if (byName != 0) byName else dictValue.compareTo(other.dictValue)

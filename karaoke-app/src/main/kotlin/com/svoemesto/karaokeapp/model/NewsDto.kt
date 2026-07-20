@@ -14,8 +14,8 @@ data class NewsDto(
     val publishAt: String = "",
     val createdAt: String = "",
     val published: Boolean = false,
-) : Serializable, KaraokeDbTableDto {
-
+) : Serializable,
+    KaraokeDbTableDto {
     override fun fromDto(database: KaraokeConnection): News {
         val entity = News(database = database)
         entity.id = id

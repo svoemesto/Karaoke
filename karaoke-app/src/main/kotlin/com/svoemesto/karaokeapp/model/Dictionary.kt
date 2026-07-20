@@ -22,8 +22,9 @@ class Dictionary(
     override val database: KaraokeConnection = WORKING_DATABASE,
     override val storageService: KaraokeStorageService = KSS_APP,
     override val storageApiClient: StorageApiClient = SAC_APP,
-) : Serializable, Comparable<Dictionary>, KaraokeDbTable {
-
+) : Serializable,
+    Comparable<Dictionary>,
+    KaraokeDbTable {
     override fun getTableName() = TABLE_NAME
 
     @KaraokeDbTableField(name = "id", isId = true)
@@ -40,20 +41,20 @@ class Dictionary(
         return if (byName != 0) byName else dictValue.compareTo(other.dictValue)
     }
 
-    override fun toDTO(): DictionaryDto {
-        return DictionaryDto(
+    override fun toDTO(): DictionaryDto =
+        DictionaryDto(
             id = id,
             dictName = dictName,
-            dictValue = dictValue
+            dictValue = dictValue,
         )
-    }
 
     companion object {
-
         const val TABLE_NAME = "tbl_dictionaries"
 
-        fun listHashes(database: KaraokeConnection, whereText: String = ""): List<RecordHash>? =
-            getListHashes(tableName = TABLE_NAME, database = database, whereText = whereText)
+        fun listHashes(
+            database: KaraokeConnection,
+            whereText: String = "",
+        ): List<RecordHash>? = getListHashes(tableName = TABLE_NAME, database = database, whereText = whereText)
 
         private fun getWhereList(whereArgs: Map<String, String>): List<String> {
             val where: MutableList<String> = mutableListOf()
@@ -70,81 +71,101 @@ class Dictionary(
             database: KaraokeConnection,
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
-            ignoreUseInList: Boolean = true
-        ): List<Dictionary> {
-            return KaraokeDbTable.loadList(
-                clazz = Dictionary::class,
-                tableName = TABLE_NAME,
-                whereList = getWhereList(whereArgs),
-                limit = limit,
-                offset = offset,
-                database = database,
-                storageService = storageService,
-                storageApiClient = storageApiClient,
-                ignoreUseInList = ignoreUseInList
-            ).map { it as Dictionary }
-        }
+            ignoreUseInList: Boolean = true,
+        ): List<Dictionary> =
+            KaraokeDbTable
+                .loadList(
+                    clazz = Dictionary::class,
+                    tableName = TABLE_NAME,
+                    whereList = getWhereList(whereArgs),
+                    limit = limit,
+                    offset = offset,
+                    database = database,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                    ignoreUseInList = ignoreUseInList,
+                ).map { it as Dictionary }
 
-        fun delete(id: Long, database: KaraokeConnection): Boolean {
-            return KaraokeDbTable.delete(
+        fun delete(
+            id: Long,
+            database: KaraokeConnection,
+        ): Boolean =
+            KaraokeDbTable.delete(
                 tableName = TABLE_NAME,
                 id = id,
-                database = database
+                database = database,
             )
-        }
 
-        fun createNewDictionaryItem(newItem: Dictionary, database: KaraokeConnection): Dictionary? {
+        fun createNewDictionaryItem(
+            newItem: Dictionary,
+            database: KaraokeConnection,
+        ): Dictionary? {
             val existing = getItem(dictName = newItem.dictName, dictValue = newItem.dictValue, database = database)
             if (existing != null) return existing
             // Уникальный индекс uq_tbl_dictionaries_name_value гарантирует отсутствие дублей на
             // уровне БД; try/catch — защита от гонки (как Pictures.createNewPicture).
-            val newItemInDb = try {
-                KaraokeDbTable.createDbInstance(entity = newItem, database = database) as? Dictionary?
-            } catch (e: Exception) {
-                return getItem(dictName = newItem.dictName, dictValue = newItem.dictValue, database = database)
-            }
+            val newItemInDb =
+                try {
+                    KaraokeDbTable.createDbInstance(entity = newItem, database = database) as? Dictionary?
+                } catch (e: Exception) {
+                    return getItem(dictName = newItem.dictName, dictValue = newItem.dictValue, database = database)
+                }
             newItemInDb?.let { return it }
             return null
         }
 
-        fun getItem(dictName: String, dictValue: String, database: KaraokeConnection): Dictionary? {
-            return loadList(
+        fun getItem(
+            dictName: String,
+            dictValue: String,
+            database: KaraokeConnection,
+        ): Dictionary? =
+            loadList(
                 whereArgs = mapOf("dict_name" to dictName, "dict_value" to dictValue),
                 database = database,
                 storageService = KSS_APP,
                 storageApiClient = SAC_APP,
-                ignoreUseInList = true
+                ignoreUseInList = true,
             ).firstOrNull()
-        }
 
         // ==========================================================================================
         // API уровня словаря — используется фасадом TextFileDictionary (совместимость со старым кодом)
         // ==========================================================================================
 
-        fun loadValues(dictName: String, database: KaraokeConnection = WORKING_DATABASE): List<String> {
-            return loadList(
+        fun loadValues(
+            dictName: String,
+            database: KaraokeConnection = WORKING_DATABASE,
+        ): List<String> =
+            loadList(
                 whereArgs = mapOf("dict_name" to dictName),
                 database = database,
                 storageService = KSS_APP,
                 storageApiClient = SAC_APP,
-                ignoreUseInList = true
+                ignoreUseInList = true,
             ).map { it.dictValue }.sorted()
-        }
 
-        fun addValues(dictName: String, values: List<String>, database: KaraokeConnection = WORKING_DATABASE) {
+        fun addValues(
+            dictName: String,
+            values: List<String>,
+            database: KaraokeConnection = WORKING_DATABASE,
+        ) {
             for (value in values) {
                 if (value == "") continue
                 createNewDictionaryItem(
-                    newItem = Dictionary(database = database).apply {
-                        this.dictName = dictName
-                        this.dictValue = value
-                    },
-                    database = database
+                    newItem =
+                        Dictionary(database = database).apply {
+                            this.dictName = dictName
+                            this.dictValue = value
+                        },
+                    database = database,
                 )
             }
         }
 
-        fun removeValues(dictName: String, values: List<String>, database: KaraokeConnection = WORKING_DATABASE) {
+        fun removeValues(
+            dictName: String,
+            values: List<String>,
+            database: KaraokeConnection = WORKING_DATABASE,
+        ) {
             for (value in values) {
                 getItem(dictName = dictName, dictValue = value, database = database)?.let {
                     delete(id = it.id, database = database)
@@ -152,30 +173,40 @@ class Dictionary(
             }
         }
 
-        fun clear(dictName: String, database: KaraokeConnection = WORKING_DATABASE) {
+        fun clear(
+            dictName: String,
+            database: KaraokeConnection = WORKING_DATABASE,
+        ) {
             loadList(
                 whereArgs = mapOf("dict_name" to dictName),
                 database = database,
                 storageService = KSS_APP,
                 storageApiClient = SAC_APP,
-                ignoreUseInList = true
+                ignoreUseInList = true,
             ).forEach { delete(id = it.id, database = database) }
         }
 
-        fun have(dictName: String, value: String, database: KaraokeConnection = WORKING_DATABASE): Boolean {
-            return getItem(dictName = dictName, dictValue = value, database = database) != null
-        }
+        fun have(
+            dictName: String,
+            value: String,
+            database: KaraokeConnection = WORKING_DATABASE,
+        ): Boolean = getItem(dictName = dictName, dictValue = value, database = database) != null
 
         /**
          * Разовый импорт значений словаря из старого текстового файла (текстовый файл в /sm-karaoke/system) в БД.
          * Идемпотентно — дубли отсекаются уникальным индексом. Возвращает число реально добавленных строк.
          */
-        fun importFromFile(dictName: String, filePath: String, database: KaraokeConnection = WORKING_DATABASE): Int {
-            val values = try {
-                File(filePath).readText().split("\n").filter { it != "" }
-            } catch (e: Exception) {
-                return 0
-            }
+        fun importFromFile(
+            dictName: String,
+            filePath: String,
+            database: KaraokeConnection = WORKING_DATABASE,
+        ): Int {
+            val values =
+                try {
+                    File(filePath).readText().split("\n").filter { it != "" }
+                } catch (e: Exception) {
+                    return 0
+                }
             val before = loadValues(dictName, database).toSet()
             addValues(dictName, values, database)
             val after = loadValues(dictName, database).toSet()

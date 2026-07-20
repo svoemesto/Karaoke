@@ -11,8 +11,9 @@ data class KaraokePlatformPublication(
     val linkToPlay: String,
     val linkToEdit: String,
     val linkToCreate: String,
-    val versionNumber: Int
-) : Serializable, Comparable<KaraokePlatformPublication>{
+    val versionNumber: Int,
+) : Serializable,
+    Comparable<KaraokePlatformPublication> {
     override fun compareTo(other: KaraokePlatformPublication): Int {
         TODO("Not yet implemented")
     }
@@ -24,17 +25,26 @@ data class KaraokePlatformPublication(
             platforms.forEach { platform ->
                 if (platform.forAllVersions) {
                     val songVersionName = "ALL"
-                    val settingFieldId = platform.settingsFieldPublicationId[songVersionName]
-                        ?: throw RuntimeException("В мапе settingsFieldPublicationId экземпляра класса KaraokePlatform указано значение '$songVersionName', для которого отсутствует экземпляр в классе SettingField")
+                    val settingFieldId =
+                        platform.settingsFieldPublicationId[songVersionName]
+                            ?: throw RuntimeException(
+                                "В мапе settingsFieldPublicationId экземпляра класса KaraokePlatform указано значение '$songVersionName', для которого отсутствует экземпляр в классе SettingField",
+                            )
                     val publicationId = settings.fields[settingFieldId] ?: ""
                     val linkToPlay = "${platform.prefixPlay}$publicationId${platform.suffixPlay}"
                     val linkToEdit = "${platform.prefixEdit}$publicationId${platform.suffixEdit}"
                     val linkToCreate = platform.linkToCreate
-                    val versionNumber = if (!platform.haveVersionNumber) -1 else {
-                        val settingFieldVersionNumber = platform.settingsFieldVersionNumber[songVersionName]
-                            ?: throw RuntimeException("В мапе settingsFieldVersionNumber экземпляра класса KaraokePlatform указано значение '$songVersionName', для которого отсутствует экземпляр в классе SettingField")
-                        (settings.fields[settingFieldVersionNumber]?.nullIfEmpty() ?: "0").toInt()
-                    }
+                    val versionNumber =
+                        if (!platform.haveVersionNumber) {
+                            -1
+                        } else {
+                            val settingFieldVersionNumber =
+                                platform.settingsFieldVersionNumber[songVersionName]
+                                    ?: throw RuntimeException(
+                                        "В мапе settingsFieldVersionNumber экземпляра класса KaraokePlatform указано значение '$songVersionName', для которого отсутствует экземпляр в классе SettingField",
+                                    )
+                            (settings.fields[settingFieldVersionNumber]?.nullIfEmpty() ?: "0").toInt()
+                        }
                     result.add(
                         KaraokePlatformPublication(
                             platform = platform,
@@ -43,23 +53,32 @@ data class KaraokePlatformPublication(
                             linkToPlay = linkToPlay,
                             linkToEdit = linkToEdit,
                             linkToCreate = linkToCreate,
-                            versionNumber = versionNumber
-                        )
+                            versionNumber = versionNumber,
+                        ),
                     )
                 } else {
                     SongVersion.entries.forEach { songVersion ->
                         val songVersionName = songVersion.name
-                        val settingFieldId = platform.settingsFieldPublicationId[songVersionName]
-                            ?: throw RuntimeException("В мапе settingsFieldPublicationId экземпляра класса KaraokePlatform указано значение '$songVersionName', для которого отсутствует экземпляр в классе SettingField")
+                        val settingFieldId =
+                            platform.settingsFieldPublicationId[songVersionName]
+                                ?: throw RuntimeException(
+                                    "В мапе settingsFieldPublicationId экземпляра класса KaraokePlatform указано значение '$songVersionName', для которого отсутствует экземпляр в классе SettingField",
+                                )
                         val publicationId = settings.fields[settingFieldId] ?: ""
                         val linkToPlay = "${platform.prefixPlay}$publicationId${platform.suffixPlay}"
                         val linkToEdit = "${platform.prefixEdit}$publicationId${platform.suffixEdit}"
                         val linkToCreate = platform.linkToCreate
-                        val versionNumber = if (!platform.haveVersionNumber) -1 else {
-                            val settingFieldVersionNumber = platform.settingsFieldVersionNumber[songVersionName]
-                                ?: throw RuntimeException("В мапе settingsFieldVersionNumber экземпляра класса KaraokePlatform указано значение '$songVersionName', для которого отсутствует экземпляр в классе SettingField")
-                            (settings.fields[settingFieldVersionNumber]?.nullIfEmpty() ?: "0").toInt()
-                        }
+                        val versionNumber =
+                            if (!platform.haveVersionNumber) {
+                                -1
+                            } else {
+                                val settingFieldVersionNumber =
+                                    platform.settingsFieldVersionNumber[songVersionName]
+                                        ?: throw RuntimeException(
+                                            "В мапе settingsFieldVersionNumber экземпляра класса KaraokePlatform указано значение '$songVersionName', для которого отсутствует экземпляр в классе SettingField",
+                                        )
+                                (settings.fields[settingFieldVersionNumber]?.nullIfEmpty() ?: "0").toInt()
+                            }
 
                         result.add(
                             KaraokePlatformPublication(
@@ -69,12 +88,10 @@ data class KaraokePlatformPublication(
                                 linkToPlay = linkToPlay,
                                 linkToEdit = linkToEdit,
                                 linkToCreate = linkToCreate,
-                                versionNumber = versionNumber
-                            )
+                                versionNumber = versionNumber,
+                            ),
                         )
-
                     }
-
                 }
             }
             return result

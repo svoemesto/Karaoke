@@ -19,8 +19,9 @@ data class SubscriptionDto(
     val createdAt: String = "",
     val paidAt: String? = null,
     val orderId: String? = null,
-) : Serializable, Comparable<SubscriptionDto>, KaraokeDbTableDto {
-
+) : Serializable,
+    Comparable<SubscriptionDto>,
+    KaraokeDbTableDto {
     override fun compareTo(other: SubscriptionDto): Int = createdAt.compareTo(other.createdAt)
 
     override fun validationErrors(): List<String> = emptyList()

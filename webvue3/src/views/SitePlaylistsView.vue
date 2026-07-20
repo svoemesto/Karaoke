@@ -1,14 +1,14 @@
 <template>
   <div class="siteplayliststable">
-    <SitePlaylistsTable/>
+    <SitePlaylistsTable />
   </div>
 </template>
 
 <script>
 import SitePlaylistsTable from '../components/SitePlaylists/SitePlaylistsTable.vue'
 export default {
-  name: "SitePlaylistsView",
-  components: { SitePlaylistsTable }
+  name: 'SitePlaylistsView',
+  components: { SitePlaylistsTable },
 }
 </script>
 

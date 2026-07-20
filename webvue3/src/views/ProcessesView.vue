@@ -1,21 +1,20 @@
 <template>
   <div class="processestable">
-    <ProcessesTable/>
+    <ProcessesTable />
   </div>
 </template>
 
 <script>
 import ProcessesTable from '../components/Processes/ProcessesTable.vue'
 export default {
-  name: "ProcessesView",
+  name: 'ProcessesView',
   components: {
-    ProcessesTable
-  }
+    ProcessesTable,
+  },
 }
 </script>
 
 <style scoped>
-
 .processestable {
   display: flex;
   flex-direction: column;
@@ -23,5 +22,4 @@ export default {
   justify-content: center;
   align-items: center;
 }
-
 </style>

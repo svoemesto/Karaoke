@@ -1,16 +1,16 @@
 <template>
   <div class="chatview">
-    <ChatPanel/>
+    <ChatPanel />
   </div>
 </template>
 
 <script>
 import ChatPanel from '../components/Chat/ChatPanel.vue'
 export default {
-  name: "ChatView",
+  name: 'ChatView',
   components: {
-    ChatPanel
-  }
+    ChatPanel,
+  },
 }
 </script>
 

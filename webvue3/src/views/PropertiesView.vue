@@ -1,21 +1,20 @@
 <template>
   <div class="propertiestable">
-    <PropertiesTable/>
+    <PropertiesTable />
   </div>
 </template>
 
 <script>
 import PropertiesTable from '../components/Properties/PropertiesTable.vue'
 export default {
-  name: "PropertiesView",
+  name: 'PropertiesView',
   components: {
-    PropertiesTable
-  }
+    PropertiesTable,
+  },
 }
 </script>
 
 <style scoped>
-
 .propertiestable {
   display: flex;
   flex-direction: column;
@@ -23,5 +22,4 @@ export default {
   justify-content: center;
   align-items: center;
 }
-
 </style>

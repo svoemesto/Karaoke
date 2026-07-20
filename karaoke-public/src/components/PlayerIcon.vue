@@ -42,7 +42,7 @@ export default {
     // 'loading' | 'active' | 'disabled' — может ли ТЕКУЩИЙ посетитель открыть плеер прямо сейчас.
     watchState: { type: String, default: 'loading' },
     // 'loading' | 'ready' | 'notready' — готовность контента независимо от прав зрителя.
-    contentReadyState: { type: String, default: 'loading' }
+    contentReadyState: { type: String, default: 'loading' },
   },
   computed: {
     showSpinner() {
@@ -53,13 +53,13 @@ export default {
     // прямого перехода к paywall, демо не требует входа на сайт.
     showDemoCta() {
       return this.contentReadyState === 'ready'
-    }
+    },
   },
   methods: {
     onOpen() {
       openPlayer(this.songId)
-    }
-  }
+    },
+  },
 }
 </script>
 
@@ -75,6 +75,8 @@ export default {
   animation: player-icon-spin 0.8s linear infinite;
 }
 @keyframes player-icon-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>

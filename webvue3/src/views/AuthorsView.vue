@@ -1,21 +1,20 @@
 <template>
   <div class="authorstable">
-    <AuthorsTable/>
+    <AuthorsTable />
   </div>
 </template>
 
 <script>
 import AuthorsTable from '../components/Authors/AuthorsTable.vue'
 export default {
-  name: "AuthorsView",
+  name: 'AuthorsView',
   components: {
-    AuthorsTable
-  }
+    AuthorsTable,
+  },
 }
 </script>
 
 <style scoped>
-
 .authorstable {
   display: flex;
   flex-direction: column;
@@ -23,5 +22,4 @@ export default {
   justify-content: center;
   align-items: center;
 }
-
 </style>

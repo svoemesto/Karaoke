@@ -2,114 +2,159 @@
   <transition name="modal-fade">
     <div class="afm-modal-backdrop">
       <div class="afm-area">
-
-        <div class="afm-area-modal-header">
-          Фильтр для настроек
-        </div>
+        <div class="afm-area-modal-header">Фильтр для настроек</div>
 
         <div class="afm-area-modal-body">
           <div class="afm-root-wrapper">
-
             <div class="afm-filter-row">
               <div class="afm-row-label">
-                <div v-text="'ID:'"/>
+                <div v-text="'ID:'" />
               </div>
               <div class="afm-row-input">
-                <input v-model="authorsFilterId" class="afm-input-field"/>
+                <input v-model="authorsFilterId" class="afm-input-field" />
               </div>
-              <button :disabled="!authorsFilterId" class="afm-button-clear-field" @click.left="authorsFilterId=''" v-text="'X'"/>
+              <button
+                :disabled="!authorsFilterId"
+                class="afm-button-clear-field"
+                @click.left="authorsFilterId = ''"
+                v-text="'X'"
+              />
             </div>
 
             <div class="afm-filter-row">
               <div class="afm-row-label">
-                <div v-text="'Автор:'"/>
+                <div v-text="'Автор:'" />
               </div>
               <div class="afm-row-input">
-                <input v-model="authorsFilterAuthor" class="afm-input-field"/>
+                <input v-model="authorsFilterAuthor" class="afm-input-field" />
               </div>
-              <button :disabled="!authorsFilterAuthor" class="afm-button-clear-field" @click.left="authorsFilterAuthor=''" v-text="'X'"/>
+              <button
+                :disabled="!authorsFilterAuthor"
+                class="afm-button-clear-field"
+                @click.left="authorsFilterAuthor = ''"
+                v-text="'X'"
+              />
             </div>
 
             <div class="afm-filter-row">
               <div class="afm-row-label">
-                <div v-text="'Yandex.ID:'"/>
+                <div v-text="'Yandex.ID:'" />
               </div>
               <div class="afm-row-input">
-                <input v-model="authorsFilterYmId" class="afm-input-field"/>
+                <input v-model="authorsFilterYmId" class="afm-input-field" />
               </div>
-              <button :disabled="!authorsFilterYmId" class="afm-button-clear-field" @click.left="authorsFilterYmId=''" v-text="'X'"/>
+              <button
+                :disabled="!authorsFilterYmId"
+                class="afm-button-clear-field"
+                @click.left="authorsFilterYmId = ''"
+                v-text="'X'"
+              />
             </div>
 
             <div class="afm-filter-row">
               <div class="afm-row-label">
-                <div v-text="'Последний альбом (Yandex):'"/>
+                <div v-text="'Последний альбом (Yandex):'" />
               </div>
               <div class="afm-row-input">
-                <input v-model="authorsFilterLastAlbumYm" class="afm-input-field"/>
+                <input v-model="authorsFilterLastAlbumYm" class="afm-input-field" />
               </div>
-              <button :disabled="!authorsFilterLastAlbumYm" class="afm-button-clear-field" @click.left="authorsFilterLastAlbumYm=''" v-text="'X'"/>
+              <button
+                :disabled="!authorsFilterLastAlbumYm"
+                class="afm-button-clear-field"
+                @click.left="authorsFilterLastAlbumYm = ''"
+                v-text="'X'"
+              />
             </div>
 
             <div class="afm-filter-row">
               <div class="afm-row-label">
-                <div v-text="'VK.ID:'"/>
+                <div v-text="'VK.ID:'" />
               </div>
               <div class="afm-row-input">
-                <input v-model="authorsFilterVkId" class="afm-input-field"/>
+                <input v-model="authorsFilterVkId" class="afm-input-field" />
               </div>
-              <button :disabled="!authorsFilterVkId" class="afm-button-clear-field" @click.left="authorsFilterVkId=''" v-text="'X'"/>
+              <button
+                :disabled="!authorsFilterVkId"
+                class="afm-button-clear-field"
+                @click.left="authorsFilterVkId = ''"
+                v-text="'X'"
+              />
             </div>
 
             <div class="afm-filter-row">
               <div class="afm-row-label">
-                <div v-text="'Последний альбом (VK):'"/>
+                <div v-text="'Последний альбом (VK):'" />
               </div>
               <div class="afm-row-input">
-                <input v-model="authorsFilterLastAlbumVk" class="afm-input-field"/>
+                <input v-model="authorsFilterLastAlbumVk" class="afm-input-field" />
               </div>
-              <button :disabled="!authorsFilterLastAlbumVk" class="afm-button-clear-field" @click.left="authorsFilterLastAlbumVk=''" v-text="'X'"/>
+              <button
+                :disabled="!authorsFilterLastAlbumVk"
+                class="afm-button-clear-field"
+                @click.left="authorsFilterLastAlbumVk = ''"
+                v-text="'X'"
+              />
             </div>
 
             <div class="afm-filter-row">
               <div class="afm-row-label">
-                <div v-text="'Последний альбом (DB):'"/>
+                <div v-text="'Последний альбом (DB):'" />
               </div>
               <div class="afm-row-input">
-                <input v-model="authorsFilterLastAlbumProcessed" class="afm-input-field"/>
+                <input v-model="authorsFilterLastAlbumProcessed" class="afm-input-field" />
               </div>
-              <button :disabled="!authorsFilterLastAlbumProcessed" class="afm-button-clear-field" @click.left="authorsFilterLastAlbumProcessed=''" v-text="'X'"/>
-            </div>
-            
-            <div class="afm-filter-row">
-              <div class="afm-row-label">
-                <div v-text="'Следить?:'"/>
-              </div>
-              <div class="afm-row-input">
-                <input v-model="authorsFilterWatched" class="afm-input-field"/>
-              </div>
-              <button :disabled="!authorsFilterWatched" class="afm-button-clear-field" @click.left="authorsFilterWatched=''" v-text="'X'"/>
+              <button
+                :disabled="!authorsFilterLastAlbumProcessed"
+                class="afm-button-clear-field"
+                @click.left="authorsFilterLastAlbumProcessed = ''"
+                v-text="'X'"
+              />
             </div>
 
             <div class="afm-filter-row">
               <div class="afm-row-label">
-                <div v-text="'Пропустить?:'"/>
+                <div v-text="'Следить?:'" />
               </div>
               <div class="afm-row-input">
-                <input v-model="authorsFilterSkip" class="afm-input-field"/>
+                <input v-model="authorsFilterWatched" class="afm-input-field" />
               </div>
-              <button :disabled="!authorsFilterSkip" class="afm-button-clear-field" @click.left="authorsFilterSkip=''" v-text="'X'"/>
+              <button
+                :disabled="!authorsFilterWatched"
+                class="afm-button-clear-field"
+                @click.left="authorsFilterWatched = ''"
+                v-text="'X'"
+              />
             </div>
 
             <div class="afm-filter-row">
               <div class="afm-row-label">
-                <div v-text="'Новый альбом?:'"/>
+                <div v-text="'Пропустить?:'" />
               </div>
               <div class="afm-row-input">
-                <input v-model="authorsFilterHaveNewAlbum" class="afm-input-field"/>
+                <input v-model="authorsFilterSkip" class="afm-input-field" />
               </div>
-              <button :disabled="!authorsFilterHaveNewAlbum" class="afm-button-clear-field" @click.left="authorsFilterHaveNewAlbum=''" v-text="'X'"/>
+              <button
+                :disabled="!authorsFilterSkip"
+                class="afm-button-clear-field"
+                @click.left="authorsFilterSkip = ''"
+                v-text="'X'"
+              />
             </div>
 
+            <div class="afm-filter-row">
+              <div class="afm-row-label">
+                <div v-text="'Новый альбом?:'" />
+              </div>
+              <div class="afm-row-input">
+                <input v-model="authorsFilterHaveNewAlbum" class="afm-input-field" />
+              </div>
+              <button
+                :disabled="!authorsFilterHaveNewAlbum"
+                class="afm-button-clear-field"
+                @click.left="authorsFilterHaveNewAlbum = ''"
+                v-text="'X'"
+              />
+            </div>
           </div>
         </div>
 
@@ -117,107 +162,169 @@
           <button type="button" class="afm-btn-close" @click="ok">Применить фильтр</button>
           <button type="button" class="afm-btn-close" @click="cancel">Отмена</button>
         </div>
-
       </div>
     </div>
   </transition>
 </template>
 
 <script>
-
 export default {
-  name: "AuthorsFilterModal",
+  name: 'AuthorsFilterModal',
   computed: {
     authorsFilterId: {
-      get() { return this.$store.getters.getAuthorsFilterId; },
-      set(value) { this.$store.dispatch('setAuthorsFilterId', { value: value }); }
+      get() {
+        return this.$store.getters.getAuthorsFilterId
+      },
+      set(value) {
+        this.$store.dispatch('setAuthorsFilterId', { value: value })
+      },
     },
     authorsFilterAuthor: {
-      get() { return this.$store.getters.getAuthorsFilterAuthor; },
-      set(value) { this.$store.dispatch('setAuthorsFilterAuthor', { value: value }); }
+      get() {
+        return this.$store.getters.getAuthorsFilterAuthor
+      },
+      set(value) {
+        this.$store.dispatch('setAuthorsFilterAuthor', { value: value })
+      },
     },
     authorsFilterYmId: {
-      get() { return this.$store.getters.getAuthorsFilterYmId; },
-      set(value) { this.$store.dispatch('setAuthorsFilterYmId', { value: value }); }
+      get() {
+        return this.$store.getters.getAuthorsFilterYmId
+      },
+      set(value) {
+        this.$store.dispatch('setAuthorsFilterYmId', { value: value })
+      },
     },
     authorsFilterVkId: {
-      get() { return this.$store.getters.getAuthorsFilterVkId; },
-      set(value) { this.$store.dispatch('setAuthorsFilterVkId', { value: value }); }
+      get() {
+        return this.$store.getters.getAuthorsFilterVkId
+      },
+      set(value) {
+        this.$store.dispatch('setAuthorsFilterVkId', { value: value })
+      },
     },
     authorsFilterLastAlbumYm: {
-      get() { return this.$store.getters.getAuthorsFilterLastAlbumYm; },
-      set(value) { this.$store.dispatch('setAuthorsFilterLastAlbumYm', { value: value }); }
+      get() {
+        return this.$store.getters.getAuthorsFilterLastAlbumYm
+      },
+      set(value) {
+        this.$store.dispatch('setAuthorsFilterLastAlbumYm', { value: value })
+      },
     },
     authorsFilterLastAlbumVk: {
-      get() { return this.$store.getters.getAuthorsFilterLastAlbumVk; },
-      set(value) { this.$store.dispatch('setAuthorsFilterLastAlbumVk', { value: value }); }
+      get() {
+        return this.$store.getters.getAuthorsFilterLastAlbumVk
+      },
+      set(value) {
+        this.$store.dispatch('setAuthorsFilterLastAlbumVk', { value: value })
+      },
     },
     authorsFilterLastAlbumProcessed: {
-      get() { return this.$store.getters.getAuthorsFilterLastAlbumProcessed; },
-      set(value) { this.$store.dispatch('setAuthorsFilterLastAlbumProcessed', { value: value }); }
+      get() {
+        return this.$store.getters.getAuthorsFilterLastAlbumProcessed
+      },
+      set(value) {
+        this.$store.dispatch('setAuthorsFilterLastAlbumProcessed', { value: value })
+      },
     },
     authorsFilterWatched: {
-      get() { return this.$store.getters.getAuthorsFilterWatched; },
-      set(value) { this.$store.dispatch('setAuthorsFilterWatched', { value: value }); }
+      get() {
+        return this.$store.getters.getAuthorsFilterWatched
+      },
+      set(value) {
+        this.$store.dispatch('setAuthorsFilterWatched', { value: value })
+      },
     },
     authorsFilterSkip: {
-      get() { return this.$store.getters.getAuthorsFilterSkip; },
-      set(value) { this.$store.dispatch('setAuthorsFilterSkip', { value: value }); }
+      get() {
+        return this.$store.getters.getAuthorsFilterSkip
+      },
+      set(value) {
+        this.$store.dispatch('setAuthorsFilterSkip', { value: value })
+      },
     },
     authorsFilterHaveNewAlbum: {
-      get() { return this.$store.getters.getAuthorsFilterHaveNewAlbum; },
-      set(value) { this.$store.dispatch('setAuthorsFilterHaveNewAlbum', { value: value }); }
+      get() {
+        return this.$store.getters.getAuthorsFilterHaveNewAlbum
+      },
+      set(value) {
+        this.$store.dispatch('setAuthorsFilterHaveNewAlbum', { value: value })
+      },
     },
   },
   async beforeMount() {
-    this.$store.dispatch('setAuthorsFilterId', { value: await this.$store.getters.getWebvueProp('authorsFilterId', '') });
-    this.$store.dispatch('setAuthorsFilterAuthor', { value: await this.$store.getters.getWebvueProp('authorsFilterAuthor', '') });
-    this.$store.dispatch('setAuthorsFilterYmId', { value: await this.$store.getters.getWebvueProp('authorsFilterYmId', '') });
-    this.$store.dispatch('setAuthorsFilterVkId', { value: await this.$store.getters.getWebvueProp('authorsFilterVkId', '') });
-    this.$store.dispatch('setAuthorsFilterLastAlbumYm', { value: await this.$store.getters.getWebvueProp('authorsFilterLastAlbumYm', '') });
-    this.$store.dispatch('setAuthorsFilterLastAlbumVk', { value: await this.$store.getters.getWebvueProp('authorsFilterLastAlbumVk', '') });
-    this.$store.dispatch('setAuthorsFilterLastAlbumProcessed', { value: await this.$store.getters.getWebvueProp('authorsFilterLastAlbumProcessed', '') });
-    this.$store.dispatch('setAuthorsFilterWatched', { value: await this.$store.getters.getWebvueProp('authorsFilterWatched', '') });
-    this.$store.dispatch('setAuthorsFilterSkip', { value: await this.$store.getters.getWebvueProp('authorsFilterSkip', '') });
-    this.$store.dispatch('setAuthorsFilterHaveNewAlbum', { value: await this.$store.getters.getWebvueProp('authorsFilterHaveNewAlbum', '') });
+    this.$store.dispatch('setAuthorsFilterId', {
+      value: await this.$store.getters.getWebvueProp('authorsFilterId', ''),
+    })
+    this.$store.dispatch('setAuthorsFilterAuthor', {
+      value: await this.$store.getters.getWebvueProp('authorsFilterAuthor', ''),
+    })
+    this.$store.dispatch('setAuthorsFilterYmId', {
+      value: await this.$store.getters.getWebvueProp('authorsFilterYmId', ''),
+    })
+    this.$store.dispatch('setAuthorsFilterVkId', {
+      value: await this.$store.getters.getWebvueProp('authorsFilterVkId', ''),
+    })
+    this.$store.dispatch('setAuthorsFilterLastAlbumYm', {
+      value: await this.$store.getters.getWebvueProp('authorsFilterLastAlbumYm', ''),
+    })
+    this.$store.dispatch('setAuthorsFilterLastAlbumVk', {
+      value: await this.$store.getters.getWebvueProp('authorsFilterLastAlbumVk', ''),
+    })
+    this.$store.dispatch('setAuthorsFilterLastAlbumProcessed', {
+      value: await this.$store.getters.getWebvueProp('authorsFilterLastAlbumProcessed', ''),
+    })
+    this.$store.dispatch('setAuthorsFilterWatched', {
+      value: await this.$store.getters.getWebvueProp('authorsFilterWatched', ''),
+    })
+    this.$store.dispatch('setAuthorsFilterSkip', {
+      value: await this.$store.getters.getWebvueProp('authorsFilterSkip', ''),
+    })
+    this.$store.dispatch('setAuthorsFilterHaveNewAlbum', {
+      value: await this.$store.getters.getWebvueProp('authorsFilterHaveNewAlbum', ''),
+    })
   },
   methods: {
     ok() {
-      this.$store.dispatch('setAuthorsFilterId', { value: this.authorsFilterId });
-      this.$store.dispatch('setAuthorsFilterAuthor', { value: this.authorsFilterAuthor });
-      this.$store.dispatch('setAuthorsFilterYmId', { value: this.authorsFilterYmId });
-      this.$store.dispatch('setAuthorsFilterVkId', { value: this.authorsFilterVkId });
-      this.$store.dispatch('setAuthorsFilterLastAlbumYm', { value: this.authorsFilterLastAlbumYm });
-      this.$store.dispatch('setAuthorsFilterLastAlbumVk', { value: this.authorsFilterLastAlbumVk });
-      this.$store.dispatch('setAuthorsFilterLastAlbumProcessed', { value: this.authorsFilterLastAlbumProcessed });
-      this.$store.dispatch('setAuthorsFilterWatched', { value: this.authorsFilterWatched });
-      this.$store.dispatch('setAuthorsFilterSkip', { value: this.authorsFilterSkip });
-      this.$store.dispatch('setAuthorsFilterHaveNewAlbum', { value: this.authorsFilterHaveNewAlbum });
+      this.$store.dispatch('setAuthorsFilterId', { value: this.authorsFilterId })
+      this.$store.dispatch('setAuthorsFilterAuthor', { value: this.authorsFilterAuthor })
+      this.$store.dispatch('setAuthorsFilterYmId', { value: this.authorsFilterYmId })
+      this.$store.dispatch('setAuthorsFilterVkId', { value: this.authorsFilterVkId })
+      this.$store.dispatch('setAuthorsFilterLastAlbumYm', { value: this.authorsFilterLastAlbumYm })
+      this.$store.dispatch('setAuthorsFilterLastAlbumVk', { value: this.authorsFilterLastAlbumVk })
+      this.$store.dispatch('setAuthorsFilterLastAlbumProcessed', {
+        value: this.authorsFilterLastAlbumProcessed,
+      })
+      this.$store.dispatch('setAuthorsFilterWatched', { value: this.authorsFilterWatched })
+      this.$store.dispatch('setAuthorsFilterSkip', { value: this.authorsFilterSkip })
+      this.$store.dispatch('setAuthorsFilterHaveNewAlbum', {
+        value: this.authorsFilterHaveNewAlbum,
+      })
 
-      let params = {};
-      if (this.authorsFilterId) params.filterId = this.authorsFilterId;
-      if (this.authorsFilterAuthor) params.filterAuthor = this.authorsFilterAuthor;
-      if (this.authorsFilterYmId) params.filterYmId = this.authorsFilterYmId;
-      if (this.authorsFilterVkId) params.filterVkId = this.authorsFilterVkId;
-      if (this.authorsFilterLastAlbumYm) params.filterLastAlbumYm = this.authorsFilterLastAlbumYm;
-      if (this.authorsFilterLastAlbumVk) params.filterLastAlbumVk = this.authorsFilterLastAlbumVk;
-      if (this.authorsFilterLastAlbumProcessed) params.filterLastAlbumProcessed = this.authorsFilterLastAlbumProcessed;
-      if (this.authorsFilterWatched) params.filterWatched = this.authorsFilterWatched;
-      if (this.authorsFilterSkip) params.filterSkip = this.authorsFilterSkip;
-      if (this.authorsFilterHaveNewAlbum) params.filterHaveNewAlbum = this.authorsFilterHaveNewAlbum;
-      this.$store.dispatch('loadAuthorsDigests', params )
+      let params = {}
+      if (this.authorsFilterId) params.filterId = this.authorsFilterId
+      if (this.authorsFilterAuthor) params.filterAuthor = this.authorsFilterAuthor
+      if (this.authorsFilterYmId) params.filterYmId = this.authorsFilterYmId
+      if (this.authorsFilterVkId) params.filterVkId = this.authorsFilterVkId
+      if (this.authorsFilterLastAlbumYm) params.filterLastAlbumYm = this.authorsFilterLastAlbumYm
+      if (this.authorsFilterLastAlbumVk) params.filterLastAlbumVk = this.authorsFilterLastAlbumVk
+      if (this.authorsFilterLastAlbumProcessed)
+        params.filterLastAlbumProcessed = this.authorsFilterLastAlbumProcessed
+      if (this.authorsFilterWatched) params.filterWatched = this.authorsFilterWatched
+      if (this.authorsFilterSkip) params.filterSkip = this.authorsFilterSkip
+      if (this.authorsFilterHaveNewAlbum) params.filterHaveNewAlbum = this.authorsFilterHaveNewAlbum
+      this.$store.dispatch('loadAuthorsDigests', params)
 
-      this.$emit('close');
+      this.$emit('close')
     },
     cancel() {
-      this.$emit('close');
-    }
-  }
+      this.$emit('close')
+    },
+  },
 }
 </script>
 
 <style scoped>
-
 .afm-modal-fade-enter,
 .afm-modal-fade-leave-active {
   opacity: 0;
@@ -225,7 +332,7 @@ export default {
 
 .afm-modal-fade-enter-active,
 .afm-modal-fade-leave-active {
-  transition: opacity .5s ease
+  transition: opacity 0.5s ease;
 }
 
 .afm-area-modal-header {
@@ -268,7 +375,7 @@ export default {
 }
 
 .afm-area {
-  background: #FFFFFF;
+  background: #ffffff;
   box-shadow: 2px 2px 20px 1px;
   overflow-x: auto;
   display: flex;
@@ -354,5 +461,4 @@ select.afm-input-field {
   -moz-appearance: none;
   cursor: pointer;
 }
-
 </style>

@@ -25,7 +25,8 @@ import NewsView from '../views/NewsView.vue'
 // Быстрая синхронная проверка токена для защищённых маршрутов личного кабинета — сами страницы
 // перепроверяют через fetchMe(); здесь лишь чтобы не мигнуть защищённым контентом анониму.
 const requireAuth = (to) => {
-  if (!localStorage.getItem('km_auth_token')) return { path: '/login', query: { redirect: to.fullPath } }
+  if (!localStorage.getItem('km_auth_token'))
+    return { path: '/login', query: { redirect: to.fullPath } }
 }
 
 const routes = [
@@ -45,22 +46,47 @@ const routes = [
     component: AccountView,
     // AccountView сама перепроверяет токен через fetchMe() и редиректит при необходимости —
     // здесь достаточно быстрой синхронной проверки, чтобы не мигать защищённым контентом.
-    beforeEnter: requireAuth
+    beforeEnter: requireAuth,
   },
   // Без requireAuth: аноним не редиректится, а видит внутри страницы сообщение «только для
   // зарегистрированных» с кнопками Войти/Регистрация (LoginRequired).
   { path: '/account/playlists', name: 'playlists', component: PlaylistsView },
   { path: '/account/chat', name: 'chat', component: ChatView, beforeEnter: requireAuth },
-  { path: '/account/subscriptions', name: 'subscriptions', component: SubscriptionsView, beforeEnter: requireAuth },
-  { path: '/account/stemjobs', name: 'stemjobs', component: StemJobsView, beforeEnter: requireAuth },
+  {
+    path: '/account/subscriptions',
+    name: 'subscriptions',
+    component: SubscriptionsView,
+    beforeEnter: requireAuth,
+  },
+  {
+    path: '/account/stemjobs',
+    name: 'stemjobs',
+    component: StemJobsView,
+    beforeEnter: requireAuth,
+  },
   { path: '/account/cart', name: 'cart', component: CartView, beforeEnter: requireAuth },
   { path: '/account/playlists/:id', name: 'playlist-edit', component: PlaylistEditView },
   // Динамический read-only плейлист автора (все песни автора). Аноним — LoginRequired внутри.
   { path: '/author-playlist', name: 'author-playlist', component: AuthorPlaylistView },
-  { path: '/account/editor', name: 'editor-tasks', component: EditorTasksView, beforeEnter: requireAuth },
-  { path: '/account/editor/:id', name: 'editor-work', component: EditorWorkView, beforeEnter: requireAuth },
+  {
+    path: '/account/editor',
+    name: 'editor-tasks',
+    component: EditorTasksView,
+    beforeEnter: requireAuth,
+  },
+  {
+    path: '/account/editor/:id',
+    name: 'editor-work',
+    component: EditorWorkView,
+    beforeEnter: requireAuth,
+  },
   // Возврат redirect-подтверждения ЮKassa после оплаты подписки (см. PublicSubscriptionController).
-  { path: '/subscription/return', name: 'subscription-return', component: SubscriptionReturnView, beforeEnter: requireAuth },
+  {
+    path: '/subscription/return',
+    name: 'subscription-return',
+    component: SubscriptionReturnView,
+    beforeEnter: requireAuth,
+  },
   {
     path: '/player/:id',
     name: 'player',
@@ -69,8 +95,8 @@ const routes = [
     // it doesn't exist — no hint that a hidden unlock mechanism exists.
     beforeEnter: (to) => {
       if (!sessionStorage.getItem(`kp_token_${to.params.id}`)) return '/'
-    }
-  }
+    },
+  },
 ]
 
 const router = createRouter({
@@ -81,13 +107,13 @@ const router = createRouter({
   scrollBehavior(to, from, savedPosition) {
     if (savedPosition) return savedPosition
     return { top: 0 }
-  }
+  },
 })
 
 // Трекинг навигации по SPA-маршрутам (кроме скрытого плеера — его существование не палим в лог).
 router.afterEach((to) => {
   if (to.name === 'player') return
-  const songId = to.name === 'song' ? (to.query.id || undefined) : undefined
+  const songId = to.name === 'song' ? to.query.id || undefined : undefined
   trackUi('navigate', to.name || to.path, songId)
 })
 

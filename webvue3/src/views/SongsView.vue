@@ -1,6 +1,6 @@
 <template>
   <div class="songstable">
-    <SongsTable/>
+    <SongsTable />
   </div>
 </template>
 
@@ -11,13 +11,12 @@ import SongsTable from '../components/Songs/SongsTable.vue'
 export default {
   name: 'SongView',
   components: {
-    SongsTable
-  }
+    SongsTable,
+  },
 }
 </script>
 
 <style scoped>
-
 .songstable {
   display: flex;
   flex-direction: column;

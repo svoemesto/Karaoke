@@ -6,28 +6,25 @@
 </template>
 
 <script>
-
-import PublishTableBody from "../../components/Publish/components/PublishTableBody.vue";
-import PublishTableFooter from "../../components/Publish/components/PublishTableFooter.vue";
+import PublishTableBody from '../../components/Publish/components/PublishTableBody.vue'
+import PublishTableFooter from '../../components/Publish/components/PublishTableFooter.vue'
 
 export default {
-  name: "PublishTable",
-  components: {PublishTableFooter, PublishTableBody},
+  name: 'PublishTable',
+  components: { PublishTableFooter, PublishTableBody },
   computed: {
     publishDigest() {
       return this.$store.getters.getPublishDigest
     },
-  }
+  },
 }
 </script>
 
 <style scoped>
-
 .publish-root {
   display: flex;
   flex-direction: column;
   width: 100%;
   height: calc(100vh - 120px);
 }
-
 </style>

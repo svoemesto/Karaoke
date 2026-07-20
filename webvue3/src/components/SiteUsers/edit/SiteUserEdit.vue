@@ -1,29 +1,37 @@
 <template>
   <div class="sue-root">
     <div v-if="siteUserCurrent">
-      <custom-confirm v-if="isCustomConfirmVisible" :params="customConfirmParams" @close="closeCustomConfirm" />
+      <custom-confirm
+        v-if="isCustomConfirmVisible"
+        :params="customConfirmParams"
+        @close="closeCustomConfirm"
+      />
       <UserEventsModal
-          v-if="isEventsVisible"
-          :user="{ siteUserId: siteUserCurrent.id, displayName: siteUserCurrent.displayName, email: siteUserCurrent.email }"
-          :events="userEvents"
-          :total-count="userEventsTotalCount"
-          :is-loading="userEventsIsLoading"
-          :cap="2000"
-          @close="isEventsVisible=false"
+        v-if="isEventsVisible"
+        :user="{
+          siteUserId: siteUserCurrent.id,
+          displayName: siteUserCurrent.displayName,
+          email: siteUserCurrent.email,
+        }"
+        :events="userEvents"
+        :total-count="userEventsTotalCount"
+        :is-loading="userEventsIsLoading"
+        :cap="2000"
+        @close="isEventsVisible = false"
       />
       <UserPlaylistsModal
-          v-if="isPlaylistsVisible"
-          :site-user-id="siteUserCurrent.id"
-          :user-label="siteUserCurrent.displayName || siteUserCurrent.email"
-          :target="siteUsersTarget"
-          @close="isPlaylistsVisible=false"
+        v-if="isPlaylistsVisible"
+        :site-user-id="siteUserCurrent.id"
+        :user-label="siteUserCurrent.displayName || siteUserCurrent.email"
+        :target="siteUsersTarget"
+        @close="isPlaylistsVisible = false"
       />
       <UserSubscriptionsModal
-          v-if="isSubscriptionsVisible"
-          :site-user-id="siteUserCurrent.id"
-          :user-label="siteUserCurrent.displayName || siteUserCurrent.email"
-          :target="siteUsersTarget"
-          @close="isSubscriptionsVisible=false"
+        v-if="isSubscriptionsVisible"
+        :site-user-id="siteUserCurrent.id"
+        :user-label="siteUserCurrent.displayName || siteUserCurrent.email"
+        :target="siteUsersTarget"
+        @close="isSubscriptionsVisible = false"
       />
       <div class="sue-header">
         <div>ID = {{ siteUserCurrent.id }}</div>
@@ -32,93 +40,155 @@
       <div class="sue-body">
         <div class="label-and-input">
           <div class="label">Имя:</div>
-          <input v-model="siteUserCurrent.displayName" class="input-field"/>
+          <input v-model="siteUserCurrent.displayName" class="input-field" />
         </div>
         <div class="label-and-input">
           <div class="label">Sponsr UID:</div>
-          <input v-model="siteUserCurrent.sponsrUid" class="input-field"/>
+          <input v-model="siteUserCurrent.sponsrUid" class="input-field" />
         </div>
         <div class="label-and-input">
           <div class="label">Премиум:</div>
           <label class="sue-checkbox-label">
-            <input v-model="siteUserCurrent.premium" type="checkbox"/>
+            <input v-model="siteUserCurrent.premium" type="checkbox" />
             <span class="sue-hint">(вручную, до реализации автоматической Sponsr-сверки)</span>
           </label>
         </div>
         <div class="label-and-input">
           <div class="label">Постоянный премиум:</div>
           <label class="sue-checkbox-label">
-            <input v-model="siteUserCurrent.permanentPremium" type="checkbox"/>
-            <span class="sue-hint">(если включено — премиум действует всегда, независимо от чекбокса выше)</span>
+            <input v-model="siteUserCurrent.permanentPremium" type="checkbox" />
+            <span class="sue-hint"
+              >(если включено — премиум действует всегда, независимо от чекбокса выше)</span
+            >
           </label>
         </div>
         <div class="label-and-input">
           <div class="label">Премиум по Sponsr до:</div>
-          <input v-model="sponsrPremiumUntilLocal" class="input-field sue-datetime" type="datetime-local"/>
-          <button v-if="sponsrPremiumUntilLocal" class="sue-clear-btn" title="Очистить" @click="sponsrPremiumUntilLocal=''">×</button>
-          <span class="sue-hint">(в норме — Sponsr-синхронизация; можно выдать/отозвать вручную)</span>
+          <input
+            v-model="sponsrPremiumUntilLocal"
+            class="input-field sue-datetime"
+            type="datetime-local"
+          />
+          <button
+            v-if="sponsrPremiumUntilLocal"
+            class="sue-clear-btn"
+            title="Очистить"
+            @click="sponsrPremiumUntilLocal = ''"
+          >
+            ×
+          </button>
+          <span class="sue-hint"
+            >(в норме — Sponsr-синхронизация; можно выдать/отозвать вручную)</span
+          >
         </div>
         <div class="label-and-input">
           <div class="label">Подписка на сайт до:</div>
-          <input v-model="sitePremiumUntilLocal" class="input-field sue-datetime" type="datetime-local"/>
-          <button v-if="sitePremiumUntilLocal" class="sue-clear-btn" title="Очистить" @click="sitePremiumUntilLocal=''">×</button>
-          <span class="sue-hint">(в норме — оплаченная подписка на сайте; можно выдать/отозвать вручную)</span>
+          <input
+            v-model="sitePremiumUntilLocal"
+            class="input-field sue-datetime"
+            type="datetime-local"
+          />
+          <button
+            v-if="sitePremiumUntilLocal"
+            class="sue-clear-btn"
+            title="Очистить"
+            @click="sitePremiumUntilLocal = ''"
+          >
+            ×
+          </button>
+          <span class="sue-hint"
+            >(в норме — оплаченная подписка на сайте; можно выдать/отозвать вручную)</span
+          >
         </div>
         <div class="label-and-input">
           <div class="label">Приветствие отправлено:</div>
           <label class="sue-checkbox-label">
-            <input v-model="siteUserCurrent.welcomeMessageSent" type="checkbox"/>
-            <span class="sue-hint">(разовая отправка при первом премиуме; сброс — отправить повторно при следующем)</span>
+            <input v-model="siteUserCurrent.welcomeMessageSent" type="checkbox" />
+            <span class="sue-hint"
+              >(разовая отправка при первом премиуме; сброс — отправить повторно при
+              следующем)</span
+            >
           </label>
         </div>
         <div class="label-and-input">
           <div class="label">Постоянная скидка:</div>
-          <input v-model.number="siteUserCurrent.personalDiscountPercent" class="input-field sue-num" type="number" min="0" max="100" step="0.01"/>
+          <input
+            v-model.number="siteUserCurrent.personalDiscountPercent"
+            class="input-field sue-num"
+            type="number"
+            min="0"
+            max="100"
+            step="0.01"
+          />
           <span class="sue-hint">%, суммируется поверх любой акции; 0 = нет скидки</span>
         </div>
         <div class="label-and-input">
           <div class="label">Редактор караоке:</div>
           <label class="sue-checkbox-label">
-            <input v-model="siteUserCurrent.editor" type="checkbox"/>
+            <input v-model="siteUserCurrent.editor" type="checkbox" />
             <span class="sue-hint">(доступ к онлайн-редактору разметки на публичном сайте)</span>
           </label>
         </div>
         <div class="label-and-input">
           <div class="label">Лимит избранного:</div>
-          <input v-model.number="siteUserCurrent.maxFavorites" class="input-field sue-num" type="number" min="0"/>
+          <input
+            v-model.number="siteUserCurrent.maxFavorites"
+            class="input-field sue-num"
+            type="number"
+            min="0"
+          />
           <span class="sue-hint">0 = дефолт (100)</span>
         </div>
         <div class="label-and-input">
           <div class="label">Лимит плейлистов:</div>
-          <input v-model.number="siteUserCurrent.maxPlaylists" class="input-field sue-num" type="number" min="0"/>
+          <input
+            v-model.number="siteUserCurrent.maxPlaylists"
+            class="input-field sue-num"
+            type="number"
+            min="0"
+          />
           <span class="sue-hint">0 = дефолт (50)</span>
         </div>
         <div class="label-and-input">
           <div class="label">Лимит песен в плейлисте:</div>
-          <input v-model.number="siteUserCurrent.maxPlaylistItems" class="input-field sue-num" type="number" min="0"/>
+          <input
+            v-model.number="siteUserCurrent.maxPlaylistItems"
+            class="input-field sue-num"
+            type="number"
+            min="0"
+          />
           <span class="sue-hint">0 = дефолт (500)</span>
         </div>
         <div class="label-and-input">
           <div class="label">Статус:</div>
-          <div class="sue-static" :style="{ color: siteUserCurrent.banned ? 'darkred' : 'darkgreen' }">
+          <div
+            class="sue-static"
+            :style="{ color: siteUserCurrent.banned ? 'darkred' : 'darkgreen' }"
+          >
             {{ siteUserCurrent.banned ? `Забанен: ${siteUserCurrent.banReason}` : 'Активен' }}
           </div>
         </div>
         <div class="label-and-input">
           <div class="label">Создан:</div>
-          <input v-model="createdAtLocal" class="input-field sue-datetime" type="datetime-local"/>
+          <input v-model="createdAtLocal" class="input-field sue-datetime" type="datetime-local" />
         </div>
         <div class="label-and-input">
           <div class="label">Последний вход:</div>
-          <input v-model="lastLoginAtLocal" class="input-field sue-datetime" type="datetime-local"/>
+          <input
+            v-model="lastLoginAtLocal"
+            class="input-field sue-datetime"
+            type="datetime-local"
+          />
         </div>
       </div>
       <div class="sue-footer">
         <button class="sue-btn" :disabled="notChanged()" @click="save">Сохранить</button>
-        <button v-if="!siteUserCurrent.banned" class="sue-btn sue-btn-danger" @click="ban">Забанить</button>
+        <button v-if="!siteUserCurrent.banned" class="sue-btn sue-btn-danger" @click="ban">
+          Забанить
+        </button>
         <button v-else class="sue-btn" @click="unban">Разбанить</button>
         <button class="sue-btn sue-btn-danger" @click="deleteUser">Удалить</button>
-        <span class="sue-footer-spacer"/>
+        <span class="sue-footer-spacer" />
         <button class="sue-btn" @click="openChat">Чат</button>
         <button class="sue-btn" @click="openEvents">События</button>
         <button class="sue-btn" @click="openPlaylists">Плейлисты</button>
@@ -130,13 +200,13 @@
 </template>
 
 <script>
-import CustomConfirm from "../../Common/CustomConfirm.vue";
-import UserEventsModal from "../../Stats/UserEventsModal.vue";
-import UserPlaylistsModal from "../UserPlaylistsModal.vue";
-import UserSubscriptionsModal from "../UserSubscriptionsModal.vue";
+import CustomConfirm from '../../Common/CustomConfirm.vue'
+import UserEventsModal from '../../Stats/UserEventsModal.vue'
+import UserPlaylistsModal from '../UserPlaylistsModal.vue'
+import UserSubscriptionsModal from '../UserSubscriptionsModal.vue'
 
 export default {
-  name: "SiteUserEdit",
+  name: 'SiteUserEdit',
   components: { CustomConfirm, UserEventsModal, UserPlaylistsModal, UserSubscriptionsModal },
   data() {
     return {
@@ -148,84 +218,132 @@ export default {
     }
   },
   computed: {
-    siteUserCurrent() { return this.$store.getters.getSiteUserCurrent },
-    siteUserSnapshot() { return this.$store.getters.getSiteUserSnapshot },
-    siteUserDiff() { return this.$store.getters.getSiteUserDiff },
-    siteUsersTarget() { return this.$store.getters.getSiteUsersTarget },
-    userEvents() { return this.$store.getters.getStatsUserEvents },
-    userEventsTotalCount() { return this.$store.getters.getStatsUserEventsTotalCount },
-    userEventsIsLoading() { return this.$store.getters.getStatsUserEventsIsLoading },
+    siteUserCurrent() {
+      return this.$store.getters.getSiteUserCurrent
+    },
+    siteUserSnapshot() {
+      return this.$store.getters.getSiteUserSnapshot
+    },
+    siteUserDiff() {
+      return this.$store.getters.getSiteUserDiff
+    },
+    siteUsersTarget() {
+      return this.$store.getters.getSiteUsersTarget
+    },
+    userEvents() {
+      return this.$store.getters.getStatsUserEvents
+    },
+    userEventsTotalCount() {
+      return this.$store.getters.getStatsUserEventsTotalCount
+    },
+    userEventsIsLoading() {
+      return this.$store.getters.getStatsUserEventsIsLoading
+    },
     // sponsrPremiumUntil/sitePremiumUntil — nullable-колонки, очистка поля (пустой <input>) должна
     // дойти до бэкенда как null. createdAt/lastLoginAt — NOT NULL, поэтому очистка там просто
     // отменяется (оставляем прежнее значение) вместо отправки мусорного значения на сервер.
     sponsrPremiumUntilLocal: {
-      get() { return this.toLocalInput(this.siteUserCurrent.sponsrPremiumUntil) },
-      set(value) { this.siteUserCurrent.sponsrPremiumUntil = this.fromLocalInputNullable(value) }
+      get() {
+        return this.toLocalInput(this.siteUserCurrent.sponsrPremiumUntil)
+      },
+      set(value) {
+        this.siteUserCurrent.sponsrPremiumUntil = this.fromLocalInputNullable(value)
+      },
     },
     sitePremiumUntilLocal: {
-      get() { return this.toLocalInput(this.siteUserCurrent.sitePremiumUntil) },
-      set(value) { this.siteUserCurrent.sitePremiumUntil = this.fromLocalInputNullable(value) }
+      get() {
+        return this.toLocalInput(this.siteUserCurrent.sitePremiumUntil)
+      },
+      set(value) {
+        this.siteUserCurrent.sitePremiumUntil = this.fromLocalInputNullable(value)
+      },
     },
     createdAtLocal: {
-      get() { return this.toLocalInput(this.siteUserCurrent.createdAt) },
-      set(value) { this.siteUserCurrent.createdAt = this.fromLocalInputRequired(value, this.siteUserCurrent.createdAt) }
+      get() {
+        return this.toLocalInput(this.siteUserCurrent.createdAt)
+      },
+      set(value) {
+        this.siteUserCurrent.createdAt = this.fromLocalInputRequired(
+          value,
+          this.siteUserCurrent.createdAt,
+        )
+      },
     },
     lastLoginAtLocal: {
-      get() { return this.toLocalInput(this.siteUserCurrent.lastLoginAt) },
-      set(value) { this.siteUserCurrent.lastLoginAt = this.fromLocalInputRequired(value, this.siteUserCurrent.lastLoginAt) }
+      get() {
+        return this.toLocalInput(this.siteUserCurrent.lastLoginAt)
+      },
+      set(value) {
+        this.siteUserCurrent.lastLoginAt = this.fromLocalInputRequired(
+          value,
+          this.siteUserCurrent.lastLoginAt,
+        )
+      },
     },
   },
   mounted() {
-    let item = this.$store.getters.getSiteUserCurrent;
-    this.$store.dispatch('setSiteUserCurrent', item);
-    this.$store.dispatch('setSiteUserSnapshot', item);
+    let item = this.$store.getters.getSiteUserCurrent
+    this.$store.dispatch('setSiteUserCurrent', item)
+    this.$store.dispatch('setSiteUserSnapshot', item)
   },
   methods: {
-    closeCustomConfirm() { this.isCustomConfirmVisible = false },
+    closeCustomConfirm() {
+      this.isCustomConfirmVisible = false
+    },
     // "yyyy-MM-dd HH:mm:ss[.f...]" (JDBC Timestamp.toString()) <-> "yyyy-MM-ddTHH:mm" (<input
     // type="datetime-local">) — секунды/доли всегда обнуляются при редактировании через это поле.
     toLocalInput(ts) {
-      if (!ts) return '';
-      return ts.replace(' ', 'T').slice(0, 16);
+      if (!ts) return ''
+      return ts.replace(' ', 'T').slice(0, 16)
     },
     fromLocalInputNullable(value) {
-      return value ? `${value.replace('T', ' ')}:00` : null;
+      return value ? `${value.replace('T', ' ')}:00` : null
     },
     fromLocalInputRequired(value, previous) {
-      return value ? `${value.replace('T', ' ')}:00` : previous;
+      return value ? `${value.replace('T', ' ')}:00` : previous
     },
     // Открывает раздел «Чат» (webvue3) уже на переписке с этим пользователем — target чата
     // подстраивается под текущий target раздела «Пользователи сайта» (local/remote), иначе id
     // пользователя из одной БД мог бы открыть чужую/несуществующую переписку в другой.
     async openChat() {
-      await this.$store.dispatch('setChatTarget', this.siteUsersTarget);
-      await this.$store.dispatch('openChatThread', this.siteUserCurrent.id);
-      this.$emit('close');
-      this.$router.push({ name: 'chat' });
+      await this.$store.dispatch('setChatTarget', this.siteUsersTarget)
+      await this.$store.dispatch('openChatThread', this.siteUserCurrent.id)
+      this.$emit('close')
+      this.$router.push({ name: 'chat' })
     },
     async openEvents() {
-      await this.$store.dispatch('setStatsTarget', this.siteUsersTarget);
-      this.$store.dispatch('loadStatsUserEvents', { siteUserId: this.siteUserCurrent.id, page: 1, pageSize: 2000 });
-      this.isEventsVisible = true;
+      await this.$store.dispatch('setStatsTarget', this.siteUsersTarget)
+      this.$store.dispatch('loadStatsUserEvents', {
+        siteUserId: this.siteUserCurrent.id,
+        page: 1,
+        pageSize: 2000,
+      })
+      this.isEventsVisible = true
     },
-    openPlaylists() { this.isPlaylistsVisible = true },
-    openSubscriptions() { this.isSubscriptionsVisible = true },
-    notChanged() { return this.siteUserDiff.length === 0 },
+    openPlaylists() {
+      this.isPlaylistsVisible = true
+    },
+    openSubscriptions() {
+      this.isSubscriptionsVisible = true
+    },
+    notChanged() {
+      return this.siteUserDiff.length === 0
+    },
     async save() {
-      let diffs = {};
-      for (let diff of this.siteUserDiff) diffs[diff.name] = diff.new;
-      await this.$store.dispatch('saveSiteUser', diffs);
+      let diffs = {}
+      for (let diff of this.siteUserDiff) diffs[diff.name] = diff.new
+      await this.$store.dispatch('saveSiteUser', diffs)
     },
     async refreshCurrentFromDigest() {
-      const id = this.siteUserCurrent.id;
-      const fresh = this.$store.getters.getSiteUsersDigest.find(u => u.id === id);
+      const id = this.siteUserCurrent.id
+      const fresh = this.$store.getters.getSiteUsersDigest.find((u) => u.id === id)
       if (fresh) {
-        this.$store.dispatch('setSiteUserCurrent', fresh);
-        this.$store.dispatch('setSiteUserSnapshot', fresh);
+        this.$store.dispatch('setSiteUserCurrent', fresh)
+        this.$store.dispatch('setSiteUserSnapshot', fresh)
       }
     },
     ban() {
-      let item = { reason: '' };
+      let item = { reason: '' }
       this.customConfirmParams = {
         header: 'Подтвердите бан пользователя',
         body: `Забанить пользователя <strong>«${this.siteUserCurrent.email}»</strong>?`,
@@ -236,29 +354,29 @@ export default {
             fldLabel: 'Причина:',
             fldValue: item.reason,
             fldLabelStyle: { width: '150px', textAlign: 'right', paddingRight: '5px' },
-            fldValueStyle: { width: '300px', textAlign: 'left', borderRadius: '5px' }
-          }
-        ]
-      };
-      this.isCustomConfirmVisible = true;
+            fldValueStyle: { width: '300px', textAlign: 'left', borderRadius: '5px' },
+          },
+        ],
+      }
+      this.isCustomConfirmVisible = true
     },
     async doBan(item) {
-      await this.$store.dispatch('banSiteUserCurrent', item.reason);
-      await this.refreshCurrentFromDigest();
-      this.isCustomConfirmVisible = false;
+      await this.$store.dispatch('banSiteUserCurrent', item.reason)
+      await this.refreshCurrentFromDigest()
+      this.isCustomConfirmVisible = false
     },
     unban() {
       this.customConfirmParams = {
         header: 'Подтвердите разбан пользователя',
         body: `Снять бан с пользователя <strong>«${this.siteUserCurrent.email}»</strong>?`,
         callback: this.doUnban,
-      };
-      this.isCustomConfirmVisible = true;
+      }
+      this.isCustomConfirmVisible = true
     },
     async doUnban() {
-      await this.$store.dispatch('unbanSiteUserCurrent');
-      await this.refreshCurrentFromDigest();
-      this.isCustomConfirmVisible = false;
+      await this.$store.dispatch('unbanSiteUserCurrent')
+      await this.refreshCurrentFromDigest()
+      this.isCustomConfirmVisible = false
     },
     deleteUser() {
       this.customConfirmParams = {
@@ -266,14 +384,14 @@ export default {
         body: `Удалить пользователя <strong>«${this.siteUserCurrent.email}»</strong>? Это действие необратимо.`,
         timeout: 10,
         callback: this.doDeleteUser,
-      };
-      this.isCustomConfirmVisible = true;
+      }
+      this.isCustomConfirmVisible = true
     },
     async doDeleteUser() {
-      await this.$store.dispatch('deleteSiteUserCurrent');
-      this.$emit('close');
-    }
-  }
+      await this.$store.dispatch('deleteSiteUserCurrent')
+      this.$emit('close')
+    },
+  },
 }
 </script>
 
@@ -291,12 +409,37 @@ export default {
   padding: 5px 10px;
   font-size: small;
 }
-.sue-body { margin: 10px 0; display: flex; flex-direction: column; }
-.label-and-input { display: flex; align-items: center; margin-bottom: 4px; }
-.label { font-size: small; text-align: right; width: 130px; padding-right: 6px; }
-.input-field { padding: 2px 5px; width: 300px; font-size: small; border-radius: 5px; border: thin solid black; }
-.sue-num { width: 90px; margin-right: 8px; }
-.sue-datetime { width: 210px; margin-right: 8px; }
+.sue-body {
+  margin: 10px 0;
+  display: flex;
+  flex-direction: column;
+}
+.label-and-input {
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px;
+}
+.label {
+  font-size: small;
+  text-align: right;
+  width: 130px;
+  padding-right: 6px;
+}
+.input-field {
+  padding: 2px 5px;
+  width: 300px;
+  font-size: small;
+  border-radius: 5px;
+  border: thin solid black;
+}
+.sue-num {
+  width: 90px;
+  margin-right: 8px;
+}
+.sue-datetime {
+  width: 210px;
+  margin-right: 8px;
+}
 .sue-clear-btn {
   border: thin solid black;
   border-radius: 50%;
@@ -308,12 +451,34 @@ export default {
   margin-right: 8px;
   background-color: antiquewhite;
 }
-.sue-clear-btn:hover { background-color: lightpink; }
-.sue-static { font-size: small; }
-.sue-hint { color: gray; font-size: x-small; }
-.sue-checkbox-label { display: flex; align-items: center; gap: 6px; font-size: small; cursor: pointer; }
-.sue-footer { display: flex; align-items: center; gap: 6px; border: thin dashed darkgray; border-radius: 10px; padding: 8px; }
-.sue-footer-spacer { flex: 1; }
+.sue-clear-btn:hover {
+  background-color: lightpink;
+}
+.sue-static {
+  font-size: small;
+}
+.sue-hint {
+  color: gray;
+  font-size: x-small;
+}
+.sue-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: small;
+  cursor: pointer;
+}
+.sue-footer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: thin dashed darkgray;
+  border-radius: 10px;
+  padding: 8px;
+}
+.sue-footer-spacer {
+  flex: 1;
+}
 .sue-btn {
   border: solid 1px black;
   border-radius: 6px;
@@ -321,8 +486,17 @@ export default {
   background-color: antiquewhite;
   cursor: pointer;
 }
-.sue-btn:hover { background-color: lightpink; }
-.sue-btn[disabled] { background-color: lightgray; cursor: default; }
-.sue-btn-danger { background-color: #f4b6b6; }
-.sue-btn-danger:hover { background-color: #e08a8a; }
+.sue-btn:hover {
+  background-color: lightpink;
+}
+.sue-btn[disabled] {
+  background-color: lightgray;
+  cursor: default;
+}
+.sue-btn-danger {
+  background-color: #f4b6b6;
+}
+.sue-btn-danger:hover {
+  background-color: #e08a8a;
+}
 </style>

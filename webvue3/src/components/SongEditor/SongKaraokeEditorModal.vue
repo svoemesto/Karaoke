@@ -48,8 +48,14 @@
         <div class="skm-footer">
           <span class="skm-save-state" :class="`skm-save-${saveState}`">{{ saveStateLabel }}</span>
           <div class="skm-footer-btns">
-            <button class="skm-btn skm-btn-ghost" :disabled="saving" @click="$emit('close')">Отмена</button>
-            <button class="skm-btn skm-btn-primary" :disabled="saving || !hasAnyMarkers" @click="saveNow">
+            <button class="skm-btn skm-btn-ghost" :disabled="saving" @click="$emit('close')">
+              Отмена
+            </button>
+            <button
+              class="skm-btn skm-btn-primary"
+              :disabled="saving || !hasAnyMarkers"
+              @click="saveNow"
+            >
               {{ saving ? 'Сохранение…' : 'Сохранить' }}
             </button>
           </div>
@@ -78,7 +84,7 @@ export default {
   name: 'SongKaraokeEditorModal',
   components: { SongKaraokeEditorView },
   props: {
-    mode: { type: String, required: true, validator: v => v === 'song' || v === 'assignment' },
+    mode: { type: String, required: true, validator: (v) => v === 'song' || v === 'assignment' },
     id: { type: Number, required: true },
     target: { type: String, default: 'local' },
   },
@@ -126,10 +132,14 @@ export default {
       return parts.join(' · ')
     },
     hasAnyMarkers() {
-      return (this.loadedMarkersPerVoice || []).some(v => (v || []).length > 0)
+      return (this.loadedMarkersPerVoice || []).some((v) => (v || []).length > 0)
     },
     saveStateLabel() {
-      return { idle: '', saving: 'Сохранение…', saved: 'Сохранено ✓', error: 'Ошибка сохранения' }[this.saveState] || ''
+      return (
+        { idle: '', saving: 'Сохранение…', saved: 'Сохранено ✓', error: 'Ошибка сохранения' }[
+          this.saveState
+        ] || ''
+      )
     },
   },
   async mounted() {
@@ -143,8 +153,16 @@ export default {
       this.loading = true
       this.loadError = ''
       try {
-        const data = new URLSearchParams({ id: this.id, mode: this.mode, target: this.target }).toString()
-        const respText = await promisedXMLHttpRequest({ method: 'POST', url: '/api/songeditor/edit/byId', params: { id: this.id, mode: this.mode, target: this.target } })
+        const data = new URLSearchParams({
+          id: this.id,
+          mode: this.mode,
+          target: this.target,
+        }).toString()
+        const respText = await promisedXMLHttpRequest({
+          method: 'POST',
+          url: '/api/songeditor/edit/byId',
+          params: { id: this.id, mode: this.mode, target: this.target },
+        })
         const body = respText ? JSON.parse(respText) : null
         if (!body || !body.found) {
           this.loadError = 'Не удалось загрузить данные для редактирования.'
@@ -186,15 +204,18 @@ export default {
     },
     async saveNow() {
       if (this.saving) return
-      if (this.saveTimer) { clearTimeout(this.saveTimer); this.saveTimer = null }
+      if (this.saveTimer) {
+        clearTimeout(this.saveTimer)
+        this.saveTimer = null
+      }
       const editor = this.$refs.editor
       if (!editor) return
       this.saving = true
       this.saveState = 'saving'
       try {
-        const sourceTexts = editor.voices.map(v => v.sourceText)
+        const sourceTexts = editor.voices.map((v) => v.sourceText)
         // markersToSave приводит ts в формат сервера (без uid, c нотой/аккордом = '').
-        const markersPerVoice = editor.voices.map(v => {
+        const markersPerVoice = editor.voices.map((v) => {
           const out = []
           for (const m of v.markers) {
             out.push({
@@ -232,16 +253,19 @@ export default {
 
 <style scoped>
 .skm-overlay {
-  position: fixed; inset: 0;
-  background: rgba(0,0,0,0.55);
-  display: flex; align-items: stretch; justify-content: center;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
   z-index: 1080;
   padding: 1.5rem;
 }
 .skm-modal {
   background: #fff;
   border-radius: 12px;
-  box-shadow: 0 8px 40px rgba(0,0,0,0.35);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.35);
   display: flex;
   flex-direction: column;
   width: 100%;
@@ -250,23 +274,38 @@ export default {
   overflow: hidden;
 }
 .skm-header {
-  display: flex; align-items: center; gap: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
   border-bottom: 1px solid #e5e5e5;
   padding: 0.6rem 1rem;
   background: #fafafa;
 }
-.skm-header-title { font-weight: 700; font-size: 1.05rem; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.skm-header-meta { color: #666; font-size: 0.85rem; }
+.skm-header-title {
+  font-weight: 700;
+  font-size: 1.05rem;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.skm-header-meta {
+  color: #666;
+  font-size: 0.85rem;
+}
 .skm-close-x {
   margin-left: auto;
   border: 1px solid #ccc;
   background: #fff;
   border-radius: 8px;
-  width: 32px; height: 32px;
+  width: 32px;
+  height: 32px;
   font-size: 1rem;
   cursor: pointer;
 }
-.skm-close-x:hover { background: #f0f0f0; }
+.skm-close-x:hover {
+  background: #f0f0f0;
+}
 
 .skm-body {
   flex: 1 1 auto;
@@ -280,21 +319,37 @@ export default {
   color: #666;
   font-size: 1rem;
 }
-.skm-status-error { color: #c0392b; }
+.skm-status-error {
+  color: #c0392b;
+}
 
 .skm-footer {
-  display: flex; align-items: center; justify-content: space-between;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   border-top: 1px solid #e5e5e5;
   background: #fafafa;
   padding: 0.6rem 1rem;
   gap: 0.5rem;
   flex-shrink: 0;
 }
-.skm-save-state { font-size: 0.85rem; color: #666; }
-.skm-save-saving { color: #1e5fbf; }
-.skm-save-saved { color: #24803a; }
-.skm-save-error { color: #c0392b; }
-.skm-footer-btns { display: flex; gap: 0.5rem; }
+.skm-save-state {
+  font-size: 0.85rem;
+  color: #666;
+}
+.skm-save-saving {
+  color: #1e5fbf;
+}
+.skm-save-saved {
+  color: #24803a;
+}
+.skm-save-error {
+  color: #c0392b;
+}
+.skm-footer-btns {
+  display: flex;
+  gap: 0.5rem;
+}
 
 .skm-btn {
   border: 1px solid #bbb;
@@ -305,19 +360,49 @@ export default {
   font-size: 0.92rem;
   transition: background 0.15s;
 }
-.skm-btn:hover { background: lightpink; }
-.skm-btn-ghost { background: transparent; border: 1px solid #ccc; color: #333; }
-.skm-btn-ghost:hover { background: #f0f0f0; }
-.skm-btn-primary { background: #24803a; color: #fff; border: none; }
-.skm-btn-primary:hover { opacity: 0.9; background: #24803a; }
-.skm-btn:disabled { opacity: 0.5; cursor: default; }
+.skm-btn:hover {
+  background: lightpink;
+}
+.skm-btn-ghost {
+  background: transparent;
+  border: 1px solid #ccc;
+  color: #333;
+}
+.skm-btn-ghost:hover {
+  background: #f0f0f0;
+}
+.skm-btn-primary {
+  background: #24803a;
+  color: #fff;
+  border: none;
+}
+.skm-btn-primary:hover {
+  opacity: 0.9;
+  background: #24803a;
+}
+.skm-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
 
-.modal-fade-enter-active, .modal-fade-leave-active { transition: opacity 0.2s ease; }
-.modal-fade-enter, .modal-fade-leave-to { opacity: 0; }
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+.modal-fade-enter,
+.modal-fade-leave-to {
+  opacity: 0;
+}
 
 @media (max-width: 720px) {
-  .skm-overlay { padding: 0.25rem; }
-  .ske-transport { gap: 0.5rem; }
-  .ske-texts { grid-template-columns: 1fr; }
+  .skm-overlay {
+    padding: 0.25rem;
+  }
+  .ske-transport {
+    gap: 0.5rem;
+  }
+  .ske-texts {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

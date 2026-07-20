@@ -1,13 +1,13 @@
 <template>
   <div class="sponsrsyncview">
-    <SponsrSyncPanel/>
+    <SponsrSyncPanel />
   </div>
 </template>
 
 <script>
-import SponsrSyncPanel from "../components/SponsrSync/SponsrSyncPanel.vue";
+import SponsrSyncPanel from '../components/SponsrSync/SponsrSyncPanel.vue'
 export default {
-  name: "SponsrSyncView",
+  name: 'SponsrSyncView',
   components: { SponsrSyncPanel },
 }
 </script>

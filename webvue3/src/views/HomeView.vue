@@ -1,71 +1,140 @@
 <template>
   <div class="home">
-    <custom-confirm v-if="isCustomConfirmVisible" :params="customConfirmParams" @close="closeCustomConfirm" />
+    <custom-confirm
+      v-if="isCustomConfirmVisible"
+      :params="customConfirmParams"
+      @close="closeCustomConfirm"
+    />
     <FileExplorerModal
-        v-if="isFileExplorerVisible"
-        :path="pathToFolder"
-        start="/sm-karaoke/work"
-        directory
-        @close="closeFileExplorer"
-        @getpath="getPath"
+      v-if="isFileExplorerVisible"
+      :path="pathToFolder"
+      start="/sm-karaoke/work"
+      directory
+      @close="closeFileExplorer"
+      @getpath="getPath"
     />
     <div class="home-wrapper">
       <div class="home-controls">
-      <datalist id="list_authors">
-        <option v-for="author in songAuthors" :key="author" :value="author"/>
-      </datalist>
-      <datalist id="list_dicts">
-        <option v-for="dict in dicts" :key="dict" :value="dict"/>
-      </datalist>
-      <div class="field-and-buttons-wrapper">
-        <input v-model="pathToFolder" class="input-folder" type="text" placeholder="Путь к папке" @dblclick="isFileExplorerVisible=true"/>
-        <button class="button-action" :disabled="!pathToFolder" @click="addFilesFromFolder" >Добавить файлы из папки</button>
-        <button class="button-action" :disabled="!pathToFolder" @click="createDzenPicturesForFolder">Создать картинки плейлистов Dzen для папки</button>
-      </div>
-      <!-- <button class="button-action" @click="copyToStore">Обновить хранилище</button>
+        <datalist id="list_authors">
+          <option v-for="author in songAuthors" :key="author" :value="author" />
+        </datalist>
+        <datalist id="list_dicts">
+          <option v-for="dict in dicts" :key="dict" :value="dict" />
+        </datalist>
+        <div class="field-and-buttons-wrapper">
+          <input
+            v-model="pathToFolder"
+            class="input-folder"
+            type="text"
+            placeholder="Путь к папке"
+            @dblclick="isFileExplorerVisible = true"
+          />
+          <button class="button-action" :disabled="!pathToFolder" @click="addFilesFromFolder">
+            Добавить файлы из папки
+          </button>
+          <button
+            class="button-action"
+            :disabled="!pathToFolder"
+            @click="createDzenPicturesForFolder"
+          >
+            Создать картинки плейлистов Dzen для папки
+          </button>
+        </div>
+        <!-- <button class="button-action" @click="copyToStore">Обновить хранилище</button>
       <button class="button-action" @click="actualizeVKLinkPictureWeb">Актуализация VKLinkPictureWeb</button> -->
-      <button class="button-action" @click="smartCopyPeriodByDay">Подготовить файлы для публикации</button>
-      <!-- <button class="button-action" @click="checkLastAlbumYm">Поиск новых альбомов</button>
+        <button class="button-action" @click="smartCopyPeriodByDay">
+          Подготовить файлы для публикации
+        </button>
+        <!-- <button class="button-action" @click="checkLastAlbumYm">Поиск новых альбомов</button>
       <button class="button-action" @click="updateBpmAndKey">Обновить пустые BPM и KEY из фалов CSV</button>
       <button class="button-action" @click="updateBpmAndKeyLV">Обновить пустые BPM и KEY из фалов LV</button> -->
-      <div class="field-and-buttons-wrapper">
-        <input v-model="author" list="list_authors" class="input-author" type="text" placeholder="Автор"/>
-        <!-- <button class="button-action" @click="markDublicates" :disabled="!author">Найти и обработать дубликаты песен автора</button> -->
-        <button class="button-action" :disabled="!author" @click="autoAssignOriginalAll">Автопривязать оригинал по аудио (статус 1 → 2)</button>
-      </div>
-      <!-- <button class="button-action" @click="delDublicates">Удалить дубликаты</button>
+        <div class="field-and-buttons-wrapper">
+          <input
+            v-model="author"
+            list="list_authors"
+            class="input-author"
+            type="text"
+            placeholder="Автор"
+          />
+          <!-- <button class="button-action" @click="markDublicates" :disabled="!author">Найти и обработать дубликаты песен автора</button> -->
+          <button class="button-action" :disabled="!author" @click="autoAssignOriginalAll">
+            Автопривязать оригинал по аудио (статус 1 → 2)
+          </button>
+        </div>
+        <!-- <button class="button-action" @click="delDublicates">Удалить дубликаты</button>
       <button class="button-action" @click="clearPreDublicates">Очистить информацию о пре-дубликатах</button> -->
-      <div class="field-and-buttons-wrapper">
-        <div class="fields-line-wrapper">
-          <input v-model="dictType" list="list_dicts" class="input-dict-type" type="text" placeholder="Словарь"/>
-          <input v-model="dictValue" class="input-dict-value" type="text" placeholder="Слово"/>
+        <div class="field-and-buttons-wrapper">
+          <div class="fields-line-wrapper">
+            <input
+              v-model="dictType"
+              list="list_dicts"
+              class="input-dict-type"
+              type="text"
+              placeholder="Словарь"
+            />
+            <input v-model="dictValue" class="input-dict-value" type="text" placeholder="Слово" />
+          </div>
+          <div class="fields-line-wrapper">
+            <button
+              class="button-action button-action-inline"
+              :disabled="!dictType || !dictValue"
+              @click="dictActionAdd"
+            >
+              Добавить слово в словарь
+            </button>
+            <button
+              class="button-action button-action-inline"
+              :disabled="!dictType || !dictValue"
+              @click="dictActionRemove"
+            >
+              Удалить слово из словаря
+            </button>
+          </div>
         </div>
         <div class="fields-line-wrapper">
-          <button class="button-action button-action-inline" :disabled="!dictType || !dictValue" @click="dictActionAdd">Добавить слово в словарь</button>
-          <button class="button-action button-action-inline" :disabled="!dictType || !dictValue" @click="dictActionRemove">Удалить слово из словаря</button>
+          <button
+            class="button-action button-action-inline"
+            :disabled="authYmInProgress"
+            @click="autorizeYMstart"
+          >
+            Auth YM 1
+          </button>
+          <button
+            class="button-action button-action-inline"
+            :disabled="authYmInProgress"
+            @click="autorizeYMstart2"
+          >
+            Auth YM 2
+          </button>
+          <button
+            class="button-action button-action-inline"
+            :disabled="!authYmInProgress"
+            @click="autorizeYMstop"
+          >
+            Auth YM: Stop
+          </button>
         </div>
-      </div>
-      <div class="fields-line-wrapper">
-        <button class="button-action button-action-inline" :disabled="authYmInProgress" @click="autorizeYMstart">Auth YM 1</button>
-        <button class="button-action button-action-inline" :disabled="authYmInProgress" @click="autorizeYMstart2">Auth YM 2</button>
-        <button class="button-action button-action-inline" :disabled="!authYmInProgress" @click="autorizeYMstop">Auth YM: Stop</button>
-      </div>
-      <button class="button-action" title="Custom Function: первичная индексация аудио-родителей по всей базе" @click="customFunction">Индексация аудио-родителей (Custom Function)</button>
+        <button
+          class="button-action"
+          title="Custom Function: первичная индексация аудио-родителей по всей базе"
+          @click="customFunction"
+        >
+          Индексация аудио-родителей (Custom Function)
+        </button>
       </div>
     </div>
   </div>
 </template>
 
 <script>
-
-import CustomConfirm from '../components/Common/CustomConfirm.vue';
-import FileExplorerModal from "../components/Common/FileExplorer/FileExplorerModal.vue";
+import CustomConfirm from '../components/Common/CustomConfirm.vue'
+import FileExplorerModal from '../components/Common/FileExplorer/FileExplorerModal.vue'
 // import { useFileDialog } from '@vueuse/core'
 export default {
   name: 'HomeView',
   components: {
     CustomConfirm,
-    FileExplorerModal
+    FileExplorerModal,
   },
   data() {
     return {
@@ -77,25 +146,25 @@ export default {
       dictType: '',
       dictValue: '',
       songAuthors: [],
-      dicts:[],
-      authYmInProgress: false
+      dicts: [],
+      authYmInProgress: false,
     }
   },
   async mounted() {
-    let songAuthors = await this.$store.getters.songAuthors;
-    let dicts = await this.$store.getters.dicst;
-    this.songAuthors = songAuthors;
-    this.dicts = dicts;
+    let songAuthors = await this.$store.getters.songAuthors
+    let dicts = await this.$store.getters.dicst
+    this.songAuthors = songAuthors
+    this.dicts = dicts
   },
   methods: {
     getPath(path) {
-      this.pathToFolder = path;
+      this.pathToFolder = path
     },
     closeFileExplorer() {
-      this.isFileExplorerVisible = false;
+      this.isFileExplorerVisible = false
     },
     closeCustomConfirm() {
-      this.isCustomConfirmVisible = false;
+      this.isCustomConfirmVisible = false
     },
     addFilesFromFolder() {
       this.customConfirmParams = {
@@ -105,42 +174,49 @@ export default {
                И имеют формат: <strong>YYYY (NN) [Автор] - Песня.flac</strong>
         `,
         timeout: 10,
-        callback: this.doAddFilesFromFolder
+        callback: this.doAddFilesFromFolder,
       }
-      this.isCustomConfirmVisible = true;
+      this.isCustomConfirmVisible = true
     },
     doAddFilesFromFolder() {
-      this.$store.dispatch('createFromFolderPromise', {folder: this.pathToFolder}).then(data => {
-        this.customConfirmParams = {
-          isAlert: true,
-          alertType: data !== '0' ? 'info' : 'warning',
-          header: 'Добавление файлов из папки',
-          body: data !== '0' ? `Добавлено записей: <strong>${data}</strong>` : 'Ни одного файла не добавлено.',
-          timeout: 10
-        }
-        this.isCustomConfirmVisible = true;
-      })
+      this.$store
+        .dispatch('createFromFolderPromise', { folder: this.pathToFolder })
+        .then((data) => {
+          this.customConfirmParams = {
+            isAlert: true,
+            alertType: data !== '0' ? 'info' : 'warning',
+            header: 'Добавление файлов из папки',
+            body:
+              data !== '0'
+                ? `Добавлено записей: <strong>${data}</strong>`
+                : 'Ни одного файла не добавлено.',
+            timeout: 10,
+          }
+          this.isCustomConfirmVisible = true
+        })
     },
     createDzenPicturesForFolder() {
       this.customConfirmParams = {
         header: 'Создание картинок',
         body: `Создать картинки Dzen для папки?`,
         timeout: 10,
-        callback: this.doCreateDzenPicturesForFolder
+        callback: this.doCreateDzenPicturesForFolder,
       }
-      this.isCustomConfirmVisible = true;
+      this.isCustomConfirmVisible = true
     },
     doCreateDzenPicturesForFolder() {
-      this.$store.dispatch('createDzenPicturesForFolderPromise', {folder: this.pathToFolder}).then(() => {
-        this.customConfirmParams = {
-          isAlert: true,
-          alertType: 'info',
-          header: 'Создание картинок',
-          body: 'Готово.',
-          timeout: 10
-        }
-        this.isCustomConfirmVisible = true;
-      })
+      this.$store
+        .dispatch('createDzenPicturesForFolderPromise', { folder: this.pathToFolder })
+        .then(() => {
+          this.customConfirmParams = {
+            isAlert: true,
+            alertType: 'info',
+            header: 'Создание картинок',
+            body: 'Готово.',
+            timeout: 10,
+          }
+          this.isCustomConfirmVisible = true
+        })
     },
     copyToStore() {
       this.customConfirmParams = {
@@ -152,67 +228,75 @@ export default {
             fldName: 'priorLyrics',
             fldLabel: 'Приоритет Lyrics:',
             fldValue: 10,
-            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px'},
-            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
+            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px' },
+            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px' },
           },
           {
             fldName: 'priorKaraoke',
             fldLabel: 'Приоритет Karaoke:',
             fldValue: 10,
-            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px'},
-            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
+            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px' },
+            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px' },
           },
           {
             fldName: 'priorChords',
             fldLabel: 'Приоритет Chords:',
             fldValue: 10,
-            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px'},
-            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
-          }
-        ]
+            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px' },
+            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px' },
+          },
+        ],
       }
-      this.isCustomConfirmVisible = true;
+      this.isCustomConfirmVisible = true
     },
     doCopyToStore(result) {
-      this.$store.dispatch('collectStorePromise', {priorLyrics: result.priorLyrics, priorKaraoke: result.priorKaraoke, priorChords: result.priorChords}).then(data => {
-        let result = JSON.parse(data);
-        this.customConfirmParams = {
-          isAlert: true,
-          alertType: 'info',
-          header: 'Обновление хранилища',
-          body: `Готово.<hr>
+      this.$store
+        .dispatch('collectStorePromise', {
+          priorLyrics: result.priorLyrics,
+          priorKaraoke: result.priorKaraoke,
+          priorChords: result.priorChords,
+        })
+        .then((data) => {
+          let result = JSON.parse(data)
+          this.customConfirmParams = {
+            isAlert: true,
+            alertType: 'info',
+            header: 'Обновление хранилища',
+            body: `Готово.<hr>
                 Скопировано файлов: <strong>${result[0]}</strong><br>
                 Создано задач на кодирование 720p: <strong>${result[1]}</strong>`,
-          timeout: 10
-        }
-        this.isCustomConfirmVisible = true;
-      })
+            timeout: 10,
+          }
+          this.isCustomConfirmVisible = true
+        })
     },
     actualizeVKLinkPictureWeb() {
       this.customConfirmParams = {
         header: 'Подтвердите действие',
         body: `Актуализировать VKLinkPictureWeb?`,
         timeout: 10,
-        callback: () => { this.$store.dispatch('actualizeVKLinkPictureWebPromise') }
+        callback: () => {
+          this.$store.dispatch('actualizeVKLinkPictureWebPromise')
+        },
       }
-      this.isCustomConfirmVisible = true;
+      this.isCustomConfirmVisible = true
     },
     smartCopyPeriodByDay() {
-      const now = new Date();
+      const now = new Date()
 
       // Первый день следующего месяца: год, месяц+1, день 1
-      const firstDay = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+      const firstDay = new Date(now.getFullYear(), now.getMonth() + 1, 1)
 
       // Последний день следующего месяца: год, месяц+2, день 0
-      const lastDay = new Date(now.getFullYear(), now.getMonth() + 2, 0);
+      const lastDay = new Date(now.getFullYear(), now.getMonth() + 2, 0)
 
       // Функция форматирования в dd.MM.yy
       const formatDate = (date) => {
-          const dd = String(date.getDate()).padStart(2, '0');
-          const mm = String(date.getMonth() + 1).padStart(2, '0');
-          const yy = String(date.getFullYear()).slice(-2);
-          return `${dd}.${mm}.${yy}`;
-      };
+        const dd = String(date.getDate()).padStart(2, '0')
+        const mm = String(date.getMonth() + 1).padStart(2, '0')
+        const yy = String(date.getFullYear()).slice(-2)
+        return `${dd}.${mm}.${yy}`
+      }
 
       this.customConfirmParams = {
         header: 'Подготовка файлов к публикации',
@@ -223,47 +307,53 @@ export default {
             fldName: 'periodStart',
             fldLabel: 'Дата начала:',
             fldValue: formatDate(firstDay),
-            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px'},
-            fldValueStyle: { width: '400px', textAlign: 'center', borderRadius: '10px'}
+            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px' },
+            fldValueStyle: { width: '400px', textAlign: 'center', borderRadius: '10px' },
           },
           {
             fldName: 'periodEnd',
             fldLabel: 'Дата конца:',
             fldValue: formatDate(lastDay),
-            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px'},
-            fldValueStyle: { width: '400px', textAlign: 'center', borderRadius: '10px'}
+            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px' },
+            fldValueStyle: { width: '400px', textAlign: 'center', borderRadius: '10px' },
           },
           {
             fldName: 'smartCopyPathPrefix',
             fldLabel: 'Папка:',
             fldValue: '/sm-karaoke/work/ПУБЛИКАЦИИ',
-            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px'},
-            fldValueStyle: { width: '400px', textAlign: 'center', borderRadius: '10px'}
-          }
-        ]
+            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px' },
+            fldValueStyle: { width: '400px', textAlign: 'center', borderRadius: '10px' },
+          },
+        ],
       }
-      this.isCustomConfirmVisible = true;
+      this.isCustomConfirmVisible = true
     },
     doSmartCopyPeriodByDay(result) {
-      this.$store.dispatch('smartCopyPeriodByDayPromise', {periodStart: result.periodStart, periodEnd: result.periodEnd, smartCopyPathPrefix: result.smartCopyPathPrefix}).then(data => {
-        this.customConfirmParams = {
-          isAlert: true,
-          alertType: 'info',
-          header: 'Подготовка файлов к публикации',
-          body: `Готово`,
-          timeout: 10
-        }
-        this.isCustomConfirmVisible = true;
-      })
+      this.$store
+        .dispatch('smartCopyPeriodByDayPromise', {
+          periodStart: result.periodStart,
+          periodEnd: result.periodEnd,
+          smartCopyPathPrefix: result.smartCopyPathPrefix,
+        })
+        .then((data) => {
+          this.customConfirmParams = {
+            isAlert: true,
+            alertType: 'info',
+            header: 'Подготовка файлов к публикации',
+            body: `Готово`,
+            timeout: 10,
+          }
+          this.isCustomConfirmVisible = true
+        })
     },
     checkLastAlbumYm() {
       this.customConfirmParams = {
         header: 'Подтвердите действие',
         body: `Найти новые альбомы авторов?`,
         timeout: 10,
-        callback: this.doCheckLastAlbumYm
+        callback: this.doCheckLastAlbumYm,
       }
-      this.isCustomConfirmVisible = true;
+      this.isCustomConfirmVisible = true
     },
     doCheckLastAlbumYm() {
       this.$store.dispatch('checkLastAlbumYmPromise')
@@ -273,21 +363,21 @@ export default {
         header: 'Подтвердите действие',
         body: `Обновить пустые BPM и KEY из фалов CSV?`,
         timeout: 10,
-        callback: this.doUpdateBpmAndKey
+        callback: this.doUpdateBpmAndKey,
       }
-      this.isCustomConfirmVisible = true;
+      this.isCustomConfirmVisible = true
     },
     doUpdateBpmAndKey() {
-      this.$store.dispatch('updateBpmAndKeyPromise').then(data => {
+      this.$store.dispatch('updateBpmAndKeyPromise').then((data) => {
         this.customConfirmParams = {
           isAlert: true,
           alertType: 'info',
           header: 'Обновление BPM и KEY',
           body: `Готово.<hr>
                 Обновлено файлов: <strong>${data}</strong>`,
-          timeout: 10
+          timeout: 10,
         }
-        this.isCustomConfirmVisible = true;
+        this.isCustomConfirmVisible = true
       })
     },
     updateBpmAndKeyLV() {
@@ -295,9 +385,9 @@ export default {
         header: 'Подтвердите действие',
         body: `Обновить пустые BPM и KEY из фалов LV?`,
         timeout: 10,
-        callback: this.doUpdateBpmAndKeyLV
+        callback: this.doUpdateBpmAndKeyLV,
       }
-      this.isCustomConfirmVisible = true;
+      this.isCustomConfirmVisible = true
     },
     doUpdateBpmAndKeyLV() {
       this.$store.dispatch('updateBpmAndKeyLVPromise')
@@ -307,43 +397,47 @@ export default {
         header: 'Подтвердите действие',
         body: `Найти и обработать дубликаты песен автора «<strong>${this.author}</strong>»?`,
         timeout: 10,
-        callback: this.doMarkDublicates
+        callback: this.doMarkDublicates,
       }
-      this.isCustomConfirmVisible = true;
+      this.isCustomConfirmVisible = true
     },
     doMarkDublicates() {
-      this.$store.dispatch('markDublicatesPromise', {author: this.author}).then(data => {
+      this.$store.dispatch('markDublicatesPromise', { author: this.author }).then((data) => {
         this.customConfirmParams = {
           isAlert: true,
           alertType: data !== '0' ? 'info' : 'warning',
           header: 'Поиск дубликатов',
-          body: data !== '0' ? `Найдено дубликатов: <strong>${data}</strong>` : 'Ни одного дубликата не найдено.',
-          timeout: 10
+          body:
+            data !== '0'
+              ? `Найдено дубликатов: <strong>${data}</strong>`
+              : 'Ни одного дубликата не найдено.',
+          timeout: 10,
         }
-        this.isCustomConfirmVisible = true;
+        this.isCustomConfirmVisible = true
       })
     },
     autoAssignOriginalAll() {
       this.customConfirmParams = {
         header: 'Подтвердите действие',
-        body: `Автоматически привязать оригинал по аудио-сверке для песен автора «<strong>${this.author}</strong>» со статусом 1 и ненулевым root_id?<br>`
-            + `Для каждой будет найден наиболее похожий по аудио вариант из «семьи» (порог 85%), скопированы текст/маркеры со сдвигом, песня сохранена и переведена в статус 2.<br>`
-            + `<strong>Операция тяжёлая и идёт в фоне — итог придёт уведомлением.</strong>`,
+        body:
+          `Автоматически привязать оригинал по аудио-сверке для песен автора «<strong>${this.author}</strong>» со статусом 1 и ненулевым root_id?<br>` +
+          `Для каждой будет найден наиболее похожий по аудио вариант из «семьи» (порог 85%), скопированы текст/маркеры со сдвигом, песня сохранена и переведена в статус 2.<br>` +
+          `<strong>Операция тяжёлая и идёт в фоне — итог придёт уведомлением.</strong>`,
         timeout: 15,
-        callback: this.doAutoAssignOriginalAll
+        callback: this.doAutoAssignOriginalAll,
       }
-      this.isCustomConfirmVisible = true;
+      this.isCustomConfirmVisible = true
     },
     doAutoAssignOriginalAll() {
-      this.$store.dispatch('autoAssignOriginalAllPromise', {author: this.author}).then(() => {
+      this.$store.dispatch('autoAssignOriginalAllPromise', { author: this.author }).then(() => {
         this.customConfirmParams = {
           isAlert: true,
           alertType: 'info',
           header: 'Автопривязка оригинала',
           body: `Операция запущена в фоне.<br>Итог придёт уведомлением по завершении.`,
-          timeout: 10
+          timeout: 10,
         }
-        this.isCustomConfirmVisible = true;
+        this.isCustomConfirmVisible = true
       })
     },
     delDublicates() {
@@ -351,20 +445,23 @@ export default {
         header: 'Подтвердите действие',
         body: `Удалить дубликаты?`,
         timeout: 10,
-        callback: this.doDelDublicates
+        callback: this.doDelDublicates,
       }
-      this.isCustomConfirmVisible = true;
+      this.isCustomConfirmVisible = true
     },
     doDelDublicates() {
-      this.$store.dispatch('deleteDublicatesPromise').then(data => {
+      this.$store.dispatch('deleteDublicatesPromise').then((data) => {
         this.customConfirmParams = {
           isAlert: true,
           alertType: data !== '0' ? 'info' : 'warning',
           header: 'Удаление дубликатов',
-          body: data !== '0' ? `Удалено дубликатов: <strong>${data}</strong>` : 'Ни одного дубликата не удалено.',
-          timeout: 10
+          body:
+            data !== '0'
+              ? `Удалено дубликатов: <strong>${data}</strong>`
+              : 'Ни одного дубликата не удалено.',
+          timeout: 10,
         }
-        this.isCustomConfirmVisible = true;
+        this.isCustomConfirmVisible = true
       })
     },
     clearPreDublicates() {
@@ -372,20 +469,23 @@ export default {
         header: 'Подтвердите действие',
         body: `Очистить пре-дубликаты?`,
         timeout: 10,
-        callback: this.doClearPreDublicates
+        callback: this.doClearPreDublicates,
       }
-      this.isCustomConfirmVisible = true;
+      this.isCustomConfirmVisible = true
     },
     doClearPreDublicates() {
-      this.$store.dispatch('clearPreDublicatesPromise').then(data => {
+      this.$store.dispatch('clearPreDublicatesPromise').then((data) => {
         this.customConfirmParams = {
           isAlert: true,
           alertType: data !== '0' ? 'info' : 'warning',
           header: 'Очистка пре-дубликатов',
-          body: data !== '0' ? `Очищено пре-дубликатов: <strong>${data}</strong>` : 'Ни одного пре-дубликата не очищено.',
-          timeout: 10
+          body:
+            data !== '0'
+              ? `Очищено пре-дубликатов: <strong>${data}</strong>`
+              : 'Ни одного пре-дубликата не очищено.',
+          timeout: 10,
         }
-        this.isCustomConfirmVisible = true;
+        this.isCustomConfirmVisible = true
       })
     },
     dictActionAdd() {
@@ -393,15 +493,15 @@ export default {
         header: 'Подтвердите действие',
         body: `Добавить слово «<strong>${this.dictValue.toLowerCase()}</strong>» в словарь «<strong>${this.dictType}</strong>»?`,
         timeout: 10,
-        callback: this.doDictActionAdd
+        callback: this.doDictActionAdd,
       }
-      this.isCustomConfirmVisible = true;
+      this.isCustomConfirmVisible = true
     },
     doDictActionAdd() {
       let params = {
         dictName: this.dictType,
         dictValue: this.dictValue.toLowerCase(),
-        dictAction: 'add'
+        dictAction: 'add',
       }
       this.$store.getters.doTfd(params).then(() => {
         this.customConfirmParams = {
@@ -409,9 +509,9 @@ export default {
           alertType: 'info',
           header: 'Добавление слова в словарь',
           body: `Слово «<strong>${this.dictValue.toLowerCase()}</strong>» успешно добавлено в словарь «<strong>${this.dictType}</strong>»?`,
-          timeout: 10
+          timeout: 10,
         }
-        this.isCustomConfirmVisible = true;
+        this.isCustomConfirmVisible = true
       })
     },
     dictActionRemove() {
@@ -419,15 +519,15 @@ export default {
         header: 'Подтвердите действие',
         body: `Удалить слово «<strong>${this.dictValue.toLowerCase()}</strong>» из словаря «<strong>${this.dictType}</strong>»?`,
         timeout: 10,
-        callback: this.doDictActionRemove
+        callback: this.doDictActionRemove,
       }
-      this.isCustomConfirmVisible = true;
+      this.isCustomConfirmVisible = true
     },
     doDictActionRemove() {
       let params = {
         dictName: this.dictType,
         dictValue: this.dictValue.toLowerCase(),
-        dictAction: 'remove'
+        dictAction: 'remove',
       }
       this.$store.getters.doTfd(params).then(() => {
         this.customConfirmParams = {
@@ -435,34 +535,35 @@ export default {
           alertType: 'info',
           header: 'Удаление слова из словаря',
           body: `Слово «<strong>${this.dictValue.toLowerCase()}</strong>» успешно удалено из словаря «<strong>${this.dictType}</strong>»?`,
-          timeout: 10
+          timeout: 10,
         }
-        this.isCustomConfirmVisible = true;
+        this.isCustomConfirmVisible = true
       })
     },
     autorizeYMstart() {
-      this.authYmInProgress = true;
-      this.$store.dispatch('autorizeYMstartPromise');
+      this.authYmInProgress = true
+      this.$store.dispatch('autorizeYMstartPromise')
     },
     autorizeYMstart2() {
-      this.authYmInProgress = true;
-      this.$store.dispatch('autorizeYMstart2Promise');
+      this.authYmInProgress = true
+      this.$store.dispatch('autorizeYMstart2Promise')
     },
     autorizeYMstop() {
       this.$store.dispatch('autorizeYMstopPromise').then(() => {
-        this.authYmInProgress = false;
-      });
+        this.authYmInProgress = false
+      })
     },
     customFunction() {
       this.customConfirmParams = {
         header: 'Подтвердите действие',
-        body: `Запустить первичную индексацию аудио-родителей по ВСЕЙ базе песен?<br>`
-            + `Для каждой песни будет найден наиболее похожий по аудио вариант (порог 85%) и сохранён как аудио-родитель — задел для будущей автоматизации добавления новых песен.<br>`
-            + `<strong>Операция тяжёлая и идёт в фоне — итог придёт уведомлением. Обычно её нужно запускать один раз.</strong>`,
+        body:
+          `Запустить первичную индексацию аудио-родителей по ВСЕЙ базе песен?<br>` +
+          `Для каждой песни будет найден наиболее похожий по аудио вариант (порог 85%) и сохранён как аудио-родитель — задел для будущей автоматизации добавления новых песен.<br>` +
+          `<strong>Операция тяжёлая и идёт в фоне — итог придёт уведомлением. Обычно её нужно запускать один раз.</strong>`,
         timeout: 15,
-        callback: this.doCustomFunction
+        callback: this.doCustomFunction,
       }
-      this.isCustomConfirmVisible = true;
+      this.isCustomConfirmVisible = true
     },
     doCustomFunction() {
       this.$store.dispatch('customFunctionPromise').then(() => {
@@ -471,17 +572,16 @@ export default {
           alertType: 'info',
           header: 'Индексация аудио-родителей',
           body: `Операция запущена в фоне.<br>Итог придёт уведомлением по завершении.`,
-          timeout: 10
+          timeout: 10,
         }
-        this.isCustomConfirmVisible = true;
+        this.isCustomConfirmVisible = true
       })
     },
-  }
+  },
 }
 </script>
 
 <style scoped>
-
 .home {
   display: flex;
   flex-direction: column;
@@ -530,7 +630,7 @@ export default {
   border: none;
   border-radius: 20px;
   background-color: royalblue;
-  color: #FFFFFF;
+  color: #ffffff;
   font-weight: bolder;
 }
 
@@ -579,5 +679,4 @@ export default {
   height: auto;
   flex: 1;
 }
-
 </style>

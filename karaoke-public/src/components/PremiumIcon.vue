@@ -44,9 +44,9 @@ export default {
     state: { type: String, default: 'loading' },
     // Разрешена ли отдельная подписка на эту песню (id_tariff !== -1 у автора) И контент готов
     // И зритель ещё не смотрит бесплатно — та же формула, что и у CartIcon рядом.
-    clickable: { type: Boolean, default: false }
+    clickable: { type: Boolean, default: false },
   },
-  emits: ['subscribe']
+  emits: ['subscribe'],
 }
 </script>
 
@@ -73,6 +73,8 @@ export default {
   animation: premium-icon-spin 0.8s linear infinite;
 }
 @keyframes premium-icon-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>

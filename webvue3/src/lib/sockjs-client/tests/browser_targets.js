@@ -4,21 +4,21 @@ module.exports = {
     browser: 'chrome',
     browser_version: '69.0',
     os: 'Windows',
-    os_version: '10'
+    os_version: '10',
   },
   bs_edge_windows: {
     base: 'BrowserStack',
     browser: 'edge',
     browser_version: '17.0',
     os: 'Windows',
-    os_version: '10'
+    os_version: '10',
   },
   bs_ie_11_windows: {
     base: 'BrowserStack',
     browser: 'ie',
     browser_version: '11.0',
     os: 'Windows',
-    os_version: '10'
+    os_version: '10',
   },
   // bs_ie_10_windows: {
   //   base: 'BrowserStack',
@@ -46,14 +46,14 @@ module.exports = {
     browser: 'firefox',
     browser_version: '62.0',
     os: 'OS X',
-    os_version: 'High Sierra'
+    os_version: 'High Sierra',
   },
   bs_safari_11_mac: {
     base: 'BrowserStack',
     browser: 'safari',
     browser_version: '11.1',
     os: 'OS X',
-    os_version: 'High Sierra'
+    os_version: 'High Sierra',
   },
   // bs_safari_10_mac: {
   //   base: 'BrowserStack',
@@ -97,7 +97,7 @@ module.exports = {
     os: 'ios',
     os_version: '11.4',
     device: 'iPhone 6S',
-    real_mobile: true
+    real_mobile: true,
   },
   // bs_ios_10: {
   //   base: 'BrowserStack',
@@ -115,7 +115,7 @@ module.exports = {
     os: 'android',
     os_version: '9.0',
     device: 'Google Pixel 2',
-    real_mobile: true
+    real_mobile: true,
   },
   // bs_android_8: {
   //   base: 'BrowserStack',
@@ -144,4 +144,4 @@ module.exports = {
   //   device: 'Samsung Galaxy S7',
   //   real_mobile: true
   // }
-};
+}

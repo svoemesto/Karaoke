@@ -1,56 +1,56 @@
 <template>
   <div class="pictures-bv-table">
-    <PictureEditModal v-if="isPictureEditVisible" @close="closePictureEdit"/>
-    <PicturesFilter v-if="isPicturesFilterVisible" @close="closePicturesFilter"/>
-    <custom-confirm v-if="isCustomConfirmVisible" :params="customConfirmParams" @close="closeCustomConfirm" />
+    <PictureEditModal v-if="isPictureEditVisible" @close="closePictureEdit" />
+    <PicturesFilter v-if="isPicturesFilterVisible" @close="closePicturesFilter" />
+    <custom-confirm
+      v-if="isCustomConfirmVisible"
+      :params="customConfirmParams"
+      @close="closeCustomConfirm"
+    />
     <div class="pictures-bv-table-header">
       <b-pagination
-          v-model="currentPage"
-          :total-rows="countRows"
-          :per-page="perPage"
-          :limit="30"
-          size="sm"
-          pills
+        v-model="currentPage"
+        :total-rows="countRows"
+        :per-page="perPage"
+        :limit="30"
+        size="sm"
+        pills
       />
     </div>
     <div class="pictures-bv-table-body">
       <b-table
-          v-model:sort-by="sortBy"
-          :items="picturesDigests"
-          :busy="isBusy"
-          :fields="pictureDigestFields"
-          :per-page="perPage"
-          :current-page="currentPage"
-          small
-          bordered
-          hover
-          @row-clicked="onRowClicked"
+        v-model:sort-by="sortBy"
+        :items="picturesDigests"
+        :busy="isBusy"
+        :fields="pictureDigestFields"
+        :per-page="perPage"
+        :current-page="currentPage"
+        small
+        bordered
+        hover
+        @row-clicked="onRowClicked"
       >
         <template #table-busy>
           <div class="text-center text-danger my-2">
-            <b-spinner class="align-middle"/>
+            <b-spinner class="align-middle" />
             <strong>Loading...</strong>
           </div>
         </template>
         <template #table-colgroup="scope">
-          <col
-              v-for="field in scope.fields"
-              :key="field.key"
-              :style="field.style"
-          />
+          <col v-for="field in scope.fields" :key="field.key" :style="field.style" />
         </template>
 
         <template #cell(preview)="data">
           <div
-              class="fld-picture-preview"
-              :style="{ color: currentPictureId === data.item.id ? 'blue' : 'black' }"
-              @click.left="editPicture(data.item.id)"
+            class="fld-picture-preview"
+            :style="{ color: currentPictureId === data.item.id ? 'blue' : 'black' }"
+            @click.left="editPicture(data.item.id)"
           >
             <img
-                v-if="data.item.previewUrl"
-                :src="data.item.previewUrl"
-                alt="Preview"
-                class="preview-image"
+              v-if="data.item.previewUrl"
+              :src="data.item.previewUrl"
+              alt="Preview"
+              class="preview-image"
             />
             <div v-else class="no-image-placeholder">Нет изображения</div>
           </div>
@@ -58,57 +58,53 @@
 
         <template #cell(id)="data">
           <div
-              class="fld-picture-id"
-              :style="{ color: currentPictureId === data.item.id ? 'blue' : 'black' }"
-              @click.left="editPicture(data.item.id)"
-              v-text="data.value"
+            class="fld-picture-id"
+            :style="{ color: currentPictureId === data.item.id ? 'blue' : 'black' }"
+            @click.left="editPicture(data.item.id)"
+            v-text="data.value"
           />
         </template>
 
         <template #cell(name)="data">
           <div
-              class="fld-picture-name"
-              :style="{ color: currentPictureId === data.item.id ? 'blue' : 'black' }"
-              @click.left="editPicture(data.item.id)"
-              v-text="data.value"
+            class="fld-picture-name"
+            :style="{ color: currentPictureId === data.item.id ? 'blue' : 'black' }"
+            @click.left="editPicture(data.item.id)"
+            v-text="data.value"
           />
         </template>
-
       </b-table>
     </div>
     <div class="pictures-bv-table-footer">
-      <button class="btn-round-double" title="Фильтр" @click="isPicturesFilterVisible=true">
-        <img alt="filter" class="icon-40" src="../../assets/svg/icon_filter.svg"/>
+      <button class="btn-round-double" title="Фильтр" @click="isPicturesFilterVisible = true">
+        <img alt="filter" class="icon-40" src="../../assets/svg/icon_filter.svg" />
       </button>
     </div>
-
-
   </div>
 </template>
 
 <script>
-
 // import Vue from "vue";
 // import { TablePlugin } from 'bootstrap-vue'
 // import { PaginationPlugin } from 'bootstrap-vue'
 // import { SpinnerPlugin } from 'bootstrap-vue'
 import { BPagination, BSpinner, BTable } from 'bootstrap-vue-next'
-import PictureEditModal from "../../components/Pictures/edit/PictureEditModal.vue";
-import PicturesFilter from "../../components/Pictures/filter/PicturesFilterModal.vue";
-import CustomConfirm from "../Common/CustomConfirm.vue";
+import PictureEditModal from '../../components/Pictures/edit/PictureEditModal.vue'
+import PicturesFilter from '../../components/Pictures/filter/PicturesFilterModal.vue'
+import CustomConfirm from '../Common/CustomConfirm.vue'
 // Vue.use(TablePlugin)
 // Vue.use(PaginationPlugin)
 // Vue.use(SpinnerPlugin)
 
 export default {
-  name: "PicturesTable",
+  name: 'PicturesTable',
   components: {
     PictureEditModal,
     PicturesFilter,
     CustomConfirm,
     BPagination,
     BSpinner,
-    BTable
+    BTable,
   },
   data() {
     return {
@@ -123,18 +119,18 @@ export default {
       customConfirmParams: undefined,
       isBusy: false,
       currentPictureId: '',
-      currentPicture: undefined
+      currentPicture: undefined,
     }
   },
   computed: {
     picturesDigestIsLoading() {
-      return this.$store.getters.getPicturesDigestIsLoading;
+      return this.$store.getters.getPicturesDigestIsLoading
     },
     picturesDigests() {
-      return this.$store.getters.getPicturesDigest;
+      return this.$store.getters.getPicturesDigest
     },
     countRows() {
-      return this.picturesDigests ? this.picturesDigests.length : 0;
+      return this.picturesDigests ? this.picturesDigests.length : 0
     },
     pictureDigestFields() {
       return [
@@ -145,8 +141,8 @@ export default {
             minWidth: '125px',
             maxWidth: '125px',
             textAlign: 'left',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'id',
@@ -156,8 +152,8 @@ export default {
             minWidth: '50px',
             maxWidth: '50px',
             textAlign: 'center',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'name',
@@ -167,60 +163,58 @@ export default {
             minWidth: '500px',
             maxWidth: '500px',
             textAlign: 'left',
-            fontSize: 'small'
-          }
-        }
+            fontSize: 'small',
+          },
+        },
       ]
-    }
+    },
   },
   watch: {
     picturesDigestIsLoading: {
-      handler () {
-        this.isBusy = this.picturesDigestIsLoading;
-      }
+      handler() {
+        this.isBusy = this.picturesDigestIsLoading
+      },
     },
     currentPage: {
-      handler (newPage) {
+      handler(newPage) {
         // Сохраняем страницу в store, чтобы она восстановилась после переключения на другой компонент.
-        this.$store.commit('setPicturesTableCurrentPage', newPage);
-      }
-    }
+        this.$store.commit('setPicturesTableCurrentPage', newPage)
+      },
+    },
   },
   mounted() {
     // this.$store.dispatch('loadPicturesDigests', { filterPicture: 'Павел Кашин'} )
   },
   methods: {
-
     closeCustomConfirm() {
-      this.isCustomConfirmVisible = false;
+      this.isCustomConfirmVisible = false
     },
 
     editPicture(id) {
-      this.$store.commit('setPictureCurrentId', id);
-      this.isPictureEditVisible = true;
+      this.$store.commit('setPictureCurrentId', id)
+      this.isPictureEditVisible = true
     },
     closePictureEdit() {
-      this.isPictureEditVisible = false;
+      this.isPictureEditVisible = false
     },
     closePicturesFilter() {
-      this.isPicturesFilterVisible = false;
+      this.isPicturesFilterVisible = false
     },
     onRowClicked(item, index) {
-      this.currentPicture = item;
-      this.currentPictureId = item.id;
-      console.log(`Row '${index}' clicked: `, item.id);
+      this.currentPicture = item
+      this.currentPictureId = item.id
+      console.log(`Row '${index}' clicked: `, item.id)
     },
     getCellStyle(data) {
       return {
-        backgroundColor: data.item.color
+        backgroundColor: data.item.color,
       }
-    }
-  }
+    },
+  },
 }
 </script>
 
 <style>
-
 .pictures-bv-table {
   padding: 0;
   margin: 0;
@@ -288,7 +282,6 @@ export default {
   cursor: pointer;
 }
 
-
 /* Новые стили для ячейки с изображением */
 .fld-picture-preview {
   min-width: 50px;
@@ -341,5 +334,4 @@ export default {
   width: 40px;
   height: 40px;
 }
-
 </style>

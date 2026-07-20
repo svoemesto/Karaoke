@@ -1,156 +1,188 @@
 <template>
   <div class="processes-bv-table">
-<!--    <ProcessEditModal v-if="isProcessEditVisible" @close="closeProcessEdit"/>-->
-    <ProcessesFilter v-if="isProcessesFilterVisible" @close="closeProcessesFilter"/>
-    <custom-confirm v-if="isCustomConfirmVisible" :params="customConfirmParams" @close="closeCustomConfirm" />
+    <!--    <ProcessEditModal v-if="isProcessEditVisible" @close="closeProcessEdit"/>-->
+    <ProcessesFilter v-if="isProcessesFilterVisible" @close="closeProcessesFilter" />
+    <custom-confirm
+      v-if="isCustomConfirmVisible"
+      :params="customConfirmParams"
+      @close="closeCustomConfirm"
+    />
     <div class="processes-bv-table-header">
       <b-pagination
-          v-model="currentPage"
-          :total-rows="countRows"
-          :per-page="perPage"
-          :limit="30"
-          size="sm"
-          pills
+        v-model="currentPage"
+        :total-rows="countRows"
+        :per-page="perPage"
+        :limit="30"
+        size="sm"
+        pills
       />
     </div>
     <div class="processes-bv-table-body">
       <b-table
-          v-model:sort-by="sortBy"
-          :items="processesDigests"
-          :busy="isBusy"
-          :fields="processDigestFields"
-          :per-page="perPage"
-          :current-page="currentPage"
-          small
-          bordered
-          hover
-          @row-clicked="onRowClicked"
+        v-model:sort-by="sortBy"
+        :items="processesDigests"
+        :busy="isBusy"
+        :fields="processDigestFields"
+        :per-page="perPage"
+        :current-page="currentPage"
+        small
+        bordered
+        hover
+        @row-clicked="onRowClicked"
       >
         <template #table-busy>
           <div class="text-center text-danger my-2">
-            <b-spinner class="align-middle"/>
+            <b-spinner class="align-middle" />
             <strong>Loading...</strong>
           </div>
         </template>
         <template #table-colgroup="scope">
-          <col
-              v-for="field in scope.fields"
-              :key="field.key"
-              :style="field.style"
-          />
+          <col v-for="field in scope.fields" :key="field.key" :style="field.style" />
         </template>
 
         <template #cell(id)="data">
           <div
-              class="fld-id"
-              :style="{ backgroundColor: data.item.color, color: currentProcessId === data.item.id ? 'blue' : 'black' }"
-              v-text="data.value"
+            class="fld-id"
+            :style="{
+              backgroundColor: data.item.color,
+              color: currentProcessId === data.item.id ? 'blue' : 'black',
+            }"
+            v-text="data.value"
           />
         </template>
 
         <template #cell(threadId)="data">
           <div
-              class="fld-thread-id"
-              :style="{ backgroundColor: data.item.color, color: currentProcessId === data.item.id ? 'blue' : 'black' }"
-              v-text="data.value"
+            class="fld-thread-id"
+            :style="{
+              backgroundColor: data.item.color,
+              color: currentProcessId === data.item.id ? 'blue' : 'black',
+            }"
+            v-text="data.value"
           />
         </template>
 
         <template #cell(name)="data">
           <div
-              class="fld-process-name"
-              :style="{ backgroundColor: data.item.color, color: currentProcessId === data.item.id ? 'blue' : 'black' }"
-              @click.left="editProcess(data.item.id)"
-              v-text="data.value"
+            class="fld-process-name"
+            :style="{
+              backgroundColor: data.item.color,
+              color: currentProcessId === data.item.id ? 'blue' : 'black',
+            }"
+            @click.left="editProcess(data.item.id)"
+            v-text="data.value"
           />
         </template>
 
         <template #cell(status)="data">
           <div
-              class="fld-status"
-              :style="{ backgroundColor: data.item.color, color: currentProcessId === data.item.id ? 'blue' : 'black' }"
-              v-text="data.value"
+            class="fld-status"
+            :style="{
+              backgroundColor: data.item.color,
+              color: currentProcessId === data.item.id ? 'blue' : 'black',
+            }"
+            v-text="data.value"
           />
         </template>
 
         <template #cell(priority)="data">
           <div
-              class="fld-priority"
-              :style="{ backgroundColor: data.item.color, color: currentProcessId === data.item.id ? 'blue' : 'black' }"
-              v-text="data.value"
+            class="fld-priority"
+            :style="{
+              backgroundColor: data.item.color,
+              color: currentProcessId === data.item.id ? 'blue' : 'black',
+            }"
+            v-text="data.value"
           />
         </template>
 
         <template #cell(description)="data">
           <div
-              class="fld-description"
-              :style="{ backgroundColor: data.item.color, color: currentProcessId === data.item.id ? 'blue' : 'black' }"
-              v-text="data.value"
+            class="fld-description"
+            :style="{
+              backgroundColor: data.item.color,
+              color: currentProcessId === data.item.id ? 'blue' : 'black',
+            }"
+            v-text="data.value"
           />
         </template>
 
         <template #cell(type)="data">
           <div
-              class="fld-type"
-              :style="{ backgroundColor: data.item.color, color: currentProcessId === data.item.id ? 'blue' : 'black' }"
-              v-text="data.value"
+            class="fld-type"
+            :style="{
+              backgroundColor: data.item.color,
+              color: currentProcessId === data.item.id ? 'blue' : 'black',
+            }"
+            v-text="data.value"
           />
         </template>
 
         <template #cell(startStr)="data">
           <div
-              class="fld-start"
-              :style="{ backgroundColor: data.item.color, color: currentProcessId === data.item.id ? 'blue' : 'black' }"
-              v-text="data.value"
+            class="fld-start"
+            :style="{
+              backgroundColor: data.item.color,
+              color: currentProcessId === data.item.id ? 'blue' : 'black',
+            }"
+            v-text="data.value"
           />
         </template>
 
         <template #cell(endStr)="data">
           <div
-              class="fld-end"
-              :style="{ backgroundColor: data.item.color, color: currentProcessId === data.item.id ? 'blue' : 'black' }"
-              v-text="data.value"
+            class="fld-end"
+            :style="{
+              backgroundColor: data.item.color,
+              color: currentProcessId === data.item.id ? 'blue' : 'black',
+            }"
+            v-text="data.value"
           />
         </template>
 
         <template #cell(percentageStr)="data">
           <div
-              class="fld-percentage"
-              :style="{ backgroundColor: data.item.color, color: currentProcessId === data.item.id ? 'blue' : 'black' }"
-              v-text="data.value"
+            class="fld-percentage"
+            :style="{
+              backgroundColor: data.item.color,
+              color: currentProcessId === data.item.id ? 'blue' : 'black',
+            }"
+            v-text="data.value"
           />
         </template>
 
         <template #cell(timePassedStr)="data">
           <div
-              class="fld-passed"
-              :style="{ backgroundColor: data.item.color, color: currentProcessId === data.item.id ? 'blue' : 'black' }"
-              v-text="data.value"
+            class="fld-passed"
+            :style="{
+              backgroundColor: data.item.color,
+              color: currentProcessId === data.item.id ? 'blue' : 'black',
+            }"
+            v-text="data.value"
           />
         </template>
 
         <template #cell(timeLeftStr)="data">
           <div
-              class="fld-left"
-              :style="{ backgroundColor: data.item.color, color: currentProcessId === data.item.id ? 'blue' : 'black' }"
-              v-text="data.value"
+            class="fld-left"
+            :style="{
+              backgroundColor: data.item.color,
+              color: currentProcessId === data.item.id ? 'blue' : 'black',
+            }"
+            v-text="data.value"
           />
         </template>
-
       </b-table>
     </div>
     <div class="processes-bv-table-footer">
-      <button class="btn-round-double" title="Фильтр" @click="isProcessesFilterVisible=true">
-        <img alt="filter" class="icon-40" src="../../assets/svg/icon_filter.svg"/>
+      <button class="btn-round-double" title="Фильтр" @click="isProcessesFilterVisible = true">
+        <img alt="filter" class="icon-40" src="../../assets/svg/icon_filter.svg" />
       </button>
     </div>
-
-
   </div>
 </template>
 
 <script>
-
 // import Vue from "vue";
 // import { TablePlugin } from 'bootstrap-vue'
 // import { PaginationPlugin } from 'bootstrap-vue'
@@ -158,21 +190,21 @@
 
 // import ProcessEditModal from "@/components/Processes/edit/ProcessEditModal.vue";
 import { BPagination, BSpinner, BTable } from 'bootstrap-vue-next'
-import ProcessesFilter from "../../components/Processes/filter/ProcessesFilterModal.vue";
-import CustomConfirm from "../Common/CustomConfirm.vue";
+import ProcessesFilter from '../../components/Processes/filter/ProcessesFilterModal.vue'
+import CustomConfirm from '../Common/CustomConfirm.vue'
 // Vue.use(TablePlugin)
 // Vue.use(PaginationPlugin)
 // Vue.use(SpinnerPlugin)
 
 export default {
-  name: "ProcessesTable",
+  name: 'ProcessesTable',
   components: {
     // ProcessEditModal,
     ProcessesFilter,
     CustomConfirm,
     BPagination,
     BSpinner,
-    BTable
+    BTable,
   },
   data() {
     return {
@@ -186,18 +218,18 @@ export default {
       isCustomConfirmVisible: false,
       customConfirmParams: undefined,
       isBusy: false,
-      currentProcessId: 0
+      currentProcessId: 0,
     }
   },
   computed: {
     processesDigestIsLoading() {
-      return this.$store.getters.getProcessesDigestIsLoading;
+      return this.$store.getters.getProcessesDigestIsLoading
     },
     processesDigests() {
-      return this.$store.getters.getProcessesDigest;
+      return this.$store.getters.getProcessesDigest
     },
     countRows() {
-      return this.processesDigests ? this.processesDigests.length : 0;
+      return this.processesDigests ? this.processesDigests.length : 0
     },
     processDigestFields() {
       return [
@@ -209,8 +241,8 @@ export default {
             minWidth: '50px',
             maxWidth: '50px',
             textAlign: 'center',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'threadId',
@@ -220,8 +252,8 @@ export default {
             minWidth: '50px',
             maxWidth: '50px',
             textAlign: 'center',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'name',
@@ -231,8 +263,8 @@ export default {
             minWidth: '400px',
             maxWidth: '400px',
             textAlign: 'left',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'status',
@@ -242,8 +274,8 @@ export default {
             minWidth: '90px',
             maxWidth: '90px',
             textAlign: 'left',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'priority',
@@ -253,8 +285,8 @@ export default {
             minWidth: '50px',
             maxWidth: '50px',
             textAlign: 'left',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'description',
@@ -264,8 +296,8 @@ export default {
             minWidth: '200px',
             maxWidth: '200px',
             textAlign: 'left',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'type',
@@ -275,8 +307,8 @@ export default {
             minWidth: '120px',
             maxWidth: '120px',
             textAlign: 'left',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'startStr',
@@ -286,8 +318,8 @@ export default {
             minWidth: '120px',
             maxWidth: '120px',
             textAlign: 'left',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'endStr',
@@ -297,8 +329,8 @@ export default {
             minWidth: '120px',
             maxWidth: '120px',
             textAlign: 'left',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'percentageStr',
@@ -308,8 +340,8 @@ export default {
             minWidth: '70px',
             maxWidth: '70px',
             textAlign: 'left',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'timePassedStr',
@@ -319,8 +351,8 @@ export default {
             minWidth: '50px',
             maxWidth: '50px',
             textAlign: 'left',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'timeLeftStr',
@@ -330,59 +362,57 @@ export default {
             minWidth: '50px',
             maxWidth: '50px',
             textAlign: 'left',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
       ]
-    }
+    },
   },
   watch: {
     processesDigestIsLoading: {
-      handler () {
-        this.isBusy = this.processesDigestIsLoading;
-      }
+      handler() {
+        this.isBusy = this.processesDigestIsLoading
+      },
     },
     currentPage: {
-      handler (newPage) {
+      handler(newPage) {
         // Сохраняем страницу в store, чтобы она восстановилась после переключения на другой компонент.
-        this.$store.commit('setProcessesTableCurrentPage', newPage);
-      }
-    }
+        this.$store.commit('setProcessesTableCurrentPage', newPage)
+      },
+    },
   },
   mounted() {
     // this.$store.dispatch('loadProcessesDigests', { filterAuthor: 'Павел Кашин'} )
   },
   methods: {
-
     closeCustomConfirm() {
-      this.isCustomConfirmVisible = false;
+      this.isCustomConfirmVisible = false
     },
 
     editProcess(id) {
-      this.$store.commit('setCurrentProcessId', id);
-      this.isProcessEditVisible = true;
+      this.$store.commit('setCurrentProcessId', id)
+      this.isProcessEditVisible = true
     },
     closeProcessEdit() {
-      this.isProcessEditVisible = false;
+      this.isProcessEditVisible = false
     },
     closeProcessesFilter() {
-      this.isProcessesFilterVisible = false;
+      this.isProcessesFilterVisible = false
     },
     onRowClicked(item, index) {
-      this.currentProcessId = item.id;
-      console.log(`Row '${index}' clicked: `, item.processName);
+      this.currentProcessId = item.id
+      console.log(`Row '${index}' clicked: `, item.processName)
     },
     getCellStyle(data) {
       return {
-        backgroundColor: data.item.color
+        backgroundColor: data.item.color,
       }
-    }
-  }
+    },
+  },
 }
 </script>
 
 <style>
-
 .processes-bv-table {
   padding: 0;
   margin: 0;
@@ -556,5 +586,4 @@ export default {
   width: 40px;
   height: 40px;
 }
-
 </style>

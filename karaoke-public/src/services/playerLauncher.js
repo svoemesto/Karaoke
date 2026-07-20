@@ -19,12 +19,14 @@ export async function fetchPlayerToken(songId) {
   try {
     const { status, body } = await authGet(
       `/api/public/player/${songId}/access?source=list&anonId=${encodeURIComponent(getAnonId())}`,
-      token
+      token,
     )
     if (status === 200 && body && body.canWatch && body.token) {
       return { canWatch: true, token: body.token }
     }
-  } catch (e) { /* сетевая ошибка — тихо */ }
+  } catch (e) {
+    /* сетевая ошибка — тихо */
+  }
   return { canWatch: false, token: null }
 }
 
@@ -37,7 +39,7 @@ export async function openPlayer(songId) {
   try {
     const { status, body } = await authGet(
       `/api/public/player/${songId}/access?source=list&anonId=${encodeURIComponent(getAnonId())}`,
-      token
+      token,
     )
     if (status === 200 && body && body.token) {
       sessionStorage.setItem(`kp_token_${songId}`, body.token)

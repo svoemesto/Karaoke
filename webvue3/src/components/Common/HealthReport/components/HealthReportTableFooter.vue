@@ -5,22 +5,17 @@
 </template>
 
 <script>
-
-
 export default {
-  name: "HealthReportTableFooter",
+  name: 'HealthReportTableFooter',
   methods: {
     close() {
-      this.$emit('close');
-    }
+      this.$emit('close')
+    },
   },
-
 }
-
 </script>
 
 <style scoped>
-
 .hrl-table-footer {
   width: fit-content;
 }
@@ -32,5 +27,4 @@ export default {
   padding: 0 3px;
   font-size: small;
 }
-
 </style>

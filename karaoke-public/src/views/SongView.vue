@@ -10,9 +10,27 @@
         <div class="km-header-right">
           <AuthStatusWidget />
           <div class="km-theme-toggle">
-            <button :class="['km-tb', theme === 'light' ? 'active' : '']" @click="setTheme('light')" title="Светлая">☀</button>
-            <button :class="['km-tb', theme === 'system' ? 'active' : '']" @click="setTheme('system')" title="Авто">⬡</button>
-            <button :class="['km-tb', theme === 'dark' ? 'active' : '']" @click="setTheme('dark')" title="Тёмная">🌙</button>
+            <button
+              :class="['km-tb', theme === 'light' ? 'active' : '']"
+              @click="setTheme('light')"
+              title="Светлая"
+            >
+              ☀
+            </button>
+            <button
+              :class="['km-tb', theme === 'system' ? 'active' : '']"
+              @click="setTheme('system')"
+              title="Авто"
+            >
+              ⬡
+            </button>
+            <button
+              :class="['km-tb', theme === 'dark' ? 'active' : '']"
+              @click="setTheme('dark')"
+              title="Тёмная"
+            >
+              🌙
+            </button>
           </div>
         </div>
       </div>
@@ -27,10 +45,10 @@
         <div class="km-removed-icon">🔒</div>
         <div class="km-removed-title">Информация о произведении удалена</div>
         <div class="km-removed-subtitle">по требованию правообладателя</div>
-        <hr class="km-removed-divider">
+        <hr class="km-removed-divider" />
         <div class="km-removed-hint">
-          Страница недоступна в соответствии с обращением<br>
-          об авторских правах. Если вы считаете, что это<br>
+          Страница недоступна в соответствии с обращением<br />
+          об авторских правах. Если вы считаете, что это<br />
           произошло по ошибке — свяжитесь с нами.
         </div>
         <RouterLink to="/" class="km-btn-home">← На главную</RouterLink>
@@ -45,7 +63,7 @@
           v-if="currentSong.songPictureUrl"
           :src="currentSong.songPictureUrl"
           class="km-hero-banner"
-          @error="$event.target.style.display='none'"
+          @error="$event.target.style.display = 'none'"
           alt=""
         />
         <div class="km-hero-overlay">
@@ -60,15 +78,21 @@
           <div class="km-meta-grid">
             <div class="km-meta-item">
               <span class="km-meta-label">Исполнитель</span>
-              <span class="km-meta-value" @click="onMetaClick('author', $event)">{{ currentSong.author }}</span>
+              <span class="km-meta-value" @click="onMetaClick('author', $event)">{{
+                currentSong.author
+              }}</span>
             </div>
             <div class="km-meta-item">
               <span class="km-meta-label">Год</span>
-              <span class="km-meta-value" @click="onMetaClick('year', $event)">{{ currentSong.year }}</span>
+              <span class="km-meta-value" @click="onMetaClick('year', $event)">{{
+                currentSong.year
+              }}</span>
             </div>
             <div class="km-meta-item">
               <span class="km-meta-label">Альбом</span>
-              <span class="km-meta-value" @click="onMetaClick('album', $event)">{{ currentSong.album }}</span>
+              <span class="km-meta-value" @click="onMetaClick('album', $event)">{{
+                currentSong.album
+              }}</span>
             </div>
             <div class="km-meta-item">
               <span class="km-meta-label">Трек</span>
@@ -76,7 +100,9 @@
             </div>
             <div v-if="currentSong.key" class="km-meta-item">
               <span class="km-meta-label">Тональность</span>
-              <span class="km-meta-value" @click="onMetaClick('key', $event)">{{ currentSong.key }}</span>
+              <span class="km-meta-value" @click="onMetaClick('key', $event)">{{
+                currentSong.key
+              }}</span>
             </div>
             <div v-if="currentSong.bpm" class="km-meta-item">
               <span class="km-meta-label">Темп (уд/м)</span>
@@ -92,10 +118,24 @@
         <!-- Онлайн-плеер: между блоком информации о песне и "Ссылки на просмотр". В демо-режиме
              (playerIsDemo) это тот же iframe — сам плеер получит demo-токен и обрежется до
              фрагмента "до конца первого куплета" (см. PublicPlayerController.access/KaraokePlayer.js) -->
-        <div v-if="playerCanWatch || playerIsDemo" class="km-player-card" :class="{ 'km-player-page-mode': playerDisplayMode === 'page' }">
-          <div class="km-player-label">🎤 Онлайн-плеер караоке<span v-if="playerIsDemo" class="km-player-demo-badge">ДЕМО</span></div>
+        <div
+          v-if="playerCanWatch || playerIsDemo"
+          class="km-player-card"
+          :class="{ 'km-player-page-mode': playerDisplayMode === 'page' }"
+        >
+          <div class="km-player-label">
+            🎤 Онлайн-плеер караоке<span v-if="playerIsDemo" class="km-player-demo-badge"
+              >ДЕМО</span
+            >
+          </div>
           <div class="km-video-wrap km-player-wrap">
-            <iframe ref="playerIframe" :src="`/player/${currentSong.id}`" allow="autoplay; fullscreen" frameborder="0" allowfullscreen />
+            <iframe
+              ref="playerIframe"
+              :src="`/player/${currentSong.id}`"
+              allow="autoplay; fullscreen"
+              frameborder="0"
+              allowfullscreen
+            />
           </div>
         </div>
 
@@ -103,15 +143,24 @@
              рассчитана на "ещё не готово") сразу предлагаем подписку рядом с самим демо-плеером. -->
         <div v-if="!currentSong.onAir && playerIsDemo" class="km-waiting-card">
           <div class="km-waiting-title">Это демо-фрагмент</div>
-          <div class="km-waiting-body">В демо-режиме доступен только небольшой фрагмент песни. Оформите подписку, чтобы слушать песню целиком.</div>
+          <div class="km-waiting-body">
+            В демо-режиме доступен только небольшой фрагмент песни. Оформите подписку, чтобы слушать
+            песню целиком.
+          </div>
 
           <div v-if="!playerIsPremiumUser" class="km-waiting-offer">
             <div class="km-waiting-offer-icon">🪙</div>
             <div class="km-waiting-offer-title">Премиум-подписка</div>
             <div class="km-waiting-offer-desc">Подписка на всю коллекцию или на одну песню</div>
             <div class="km-waiting-offer-actions">
-              <RouterLink to="/premium" class="km-waiting-cta">Оформить премиум-подписку →</RouterLink>
-              <button v-if="isLoggedIn && canOfferSongSubscription" class="km-waiting-cta km-song-sub-cta" @click="songSubscriptionModalVisible = true">
+              <RouterLink to="/premium" class="km-waiting-cta"
+                >Оформить премиум-подписку →</RouterLink
+              >
+              <button
+                v-if="isLoggedIn && canOfferSongSubscription"
+                class="km-waiting-cta km-song-sub-cta"
+                @click="songSubscriptionModalVisible = true"
+              >
                 Оформить подписку на эту песню →
               </button>
             </div>
@@ -119,7 +168,8 @@
 
           <div v-if="!isLoggedIn" class="km-waiting-login">
             Также вы можете <RouterLink to="/register">зарегистрироваться</RouterLink> или
-            <RouterLink to="/login">войти</RouterLink> на сайте — это понадобится для оформления подписки.
+            <RouterLink to="/login">войти</RouterLink> на сайте — это понадобится для оформления
+            подписки.
           </div>
         </div>
 
@@ -132,43 +182,128 @@
             <div class="km-link-group">
               <span class="km-link-label">Все</span>
               <div class="km-link-icons">
-                <PlatformLink link-name="sponsr" :link-value="currentSong.linkSponsrPlay" :song-id="currentSong.id" song-version="all" />
+                <PlatformLink
+                  link-name="sponsr"
+                  :link-value="currentSong.linkSponsrPlay"
+                  :song-id="currentSong.id"
+                  song-version="all"
+                />
               </div>
             </div>
             <div class="km-link-group">
               <span class="km-link-label">Karaoke</span>
               <div class="km-link-icons">
-                <PlatformLink link-name="dzen" :link-value="currentSong.linkDzenKaraoke" :song-id="currentSong.id" song-version="karaoke" />
-                <PlatformLink link-name="max"  :link-value="currentSong.linkMaxKaraoke"  :song-id="currentSong.id" song-version="karaoke" />
-                <PlatformLink link-name="vk"   :link-value="currentSong.linkVkKaraoke"   :song-id="currentSong.id" song-version="karaoke" />
-                <PlatformLink link-name="tg"   :link-value="currentSong.linkTgKaraoke"   :song-id="currentSong.id" song-version="karaoke" />
+                <PlatformLink
+                  link-name="dzen"
+                  :link-value="currentSong.linkDzenKaraoke"
+                  :song-id="currentSong.id"
+                  song-version="karaoke"
+                />
+                <PlatformLink
+                  link-name="max"
+                  :link-value="currentSong.linkMaxKaraoke"
+                  :song-id="currentSong.id"
+                  song-version="karaoke"
+                />
+                <PlatformLink
+                  link-name="vk"
+                  :link-value="currentSong.linkVkKaraoke"
+                  :song-id="currentSong.id"
+                  song-version="karaoke"
+                />
+                <PlatformLink
+                  link-name="tg"
+                  :link-value="currentSong.linkTgKaraoke"
+                  :song-id="currentSong.id"
+                  song-version="karaoke"
+                />
               </div>
             </div>
             <div class="km-link-group">
               <span class="km-link-label">Lyrics</span>
               <div class="km-link-icons">
-                <PlatformLink link-name="dzen" :link-value="currentSong.linkDzenLyrics"  :song-id="currentSong.id" song-version="lyrics" />
-                <PlatformLink link-name="max"  :link-value="currentSong.linkMaxLyrics"   :song-id="currentSong.id" song-version="lyrics" />
-                <PlatformLink link-name="vk"   :link-value="currentSong.linkVkLyrics"    :song-id="currentSong.id" song-version="lyrics" />
-                <PlatformLink link-name="tg"   :link-value="currentSong.linkTgLyrics"    :song-id="currentSong.id" song-version="lyrics" />
+                <PlatformLink
+                  link-name="dzen"
+                  :link-value="currentSong.linkDzenLyrics"
+                  :song-id="currentSong.id"
+                  song-version="lyrics"
+                />
+                <PlatformLink
+                  link-name="max"
+                  :link-value="currentSong.linkMaxLyrics"
+                  :song-id="currentSong.id"
+                  song-version="lyrics"
+                />
+                <PlatformLink
+                  link-name="vk"
+                  :link-value="currentSong.linkVkLyrics"
+                  :song-id="currentSong.id"
+                  song-version="lyrics"
+                />
+                <PlatformLink
+                  link-name="tg"
+                  :link-value="currentSong.linkTgLyrics"
+                  :song-id="currentSong.id"
+                  song-version="lyrics"
+                />
               </div>
             </div>
             <div class="km-link-group">
               <span class="km-link-label">TABS</span>
               <div class="km-link-icons">
-                <PlatformLink link-name="dzen" :link-value="currentSong.linkDzenTabs"    :song-id="currentSong.id" song-version="tabs" />
-                <PlatformLink link-name="max"  :link-value="currentSong.linkMaxTabs"     :song-id="currentSong.id" song-version="tabs" />
-                <PlatformLink link-name="vk"   :link-value="currentSong.linkVkTabs"      :song-id="currentSong.id" song-version="tabs" />
-                <PlatformLink link-name="tg"   :link-value="currentSong.linkTgTabs"      :song-id="currentSong.id" song-version="tabs" />
+                <PlatformLink
+                  link-name="dzen"
+                  :link-value="currentSong.linkDzenTabs"
+                  :song-id="currentSong.id"
+                  song-version="tabs"
+                />
+                <PlatformLink
+                  link-name="max"
+                  :link-value="currentSong.linkMaxTabs"
+                  :song-id="currentSong.id"
+                  song-version="tabs"
+                />
+                <PlatformLink
+                  link-name="vk"
+                  :link-value="currentSong.linkVkTabs"
+                  :song-id="currentSong.id"
+                  song-version="tabs"
+                />
+                <PlatformLink
+                  link-name="tg"
+                  :link-value="currentSong.linkTgTabs"
+                  :song-id="currentSong.id"
+                  song-version="tabs"
+                />
               </div>
             </div>
             <div class="km-link-group">
               <span class="km-link-label">Chords</span>
               <div class="km-link-icons">
-                <PlatformLink link-name="dzen" :link-value="currentSong.linkDzenChords"  :song-id="currentSong.id" song-version="chords" />
-                <PlatformLink link-name="max"  :link-value="currentSong.linkMaxChords"   :song-id="currentSong.id" song-version="chords" />
-                <PlatformLink link-name="vk"   :link-value="currentSong.linkVkChords"    :song-id="currentSong.id" song-version="chords" />
-                <PlatformLink link-name="tg"   :link-value="currentSong.linkTgChords"    :song-id="currentSong.id" song-version="chords" />
+                <PlatformLink
+                  link-name="dzen"
+                  :link-value="currentSong.linkDzenChords"
+                  :song-id="currentSong.id"
+                  song-version="chords"
+                />
+                <PlatformLink
+                  link-name="max"
+                  :link-value="currentSong.linkMaxChords"
+                  :song-id="currentSong.id"
+                  song-version="chords"
+                />
+                <PlatformLink
+                  link-name="vk"
+                  :link-value="currentSong.linkVkChords"
+                  :song-id="currentSong.id"
+                  song-version="chords"
+                />
+                <PlatformLink
+                  link-name="tg"
+                  :link-value="currentSong.linkTgChords"
+                  :song-id="currentSong.id"
+                  song-version="chords"
+                />
               </div>
             </div>
           </div>
@@ -181,8 +316,9 @@
             <div class="km-video-wrap">
               <iframe
                 :src="`https://vkvideo.ru/video_ext.php?hd=3&oid=${currentSong.idVkKaraokeOID}&id=${currentSong.idVkKaraokeID}`"
-                allow="autoplay; encrypted-media; fullscreen; picture-in-picture;"
-                frameborder="0" allowfullscreen
+                allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+                frameborder="0"
+                allowfullscreen
               />
             </div>
           </div>
@@ -191,8 +327,9 @@
             <div class="km-video-wrap">
               <iframe
                 :src="`https://vkvideo.ru/video_ext.php?hd=3&oid=${currentSong.idVkLyricsOID}&id=${currentSong.idVkLyricsID}`"
-                allow="autoplay; encrypted-media; fullscreen; picture-in-picture;"
-                frameborder="0" allowfullscreen
+                allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+                frameborder="0"
+                allowfullscreen
               />
             </div>
           </div>
@@ -201,8 +338,9 @@
             <div class="km-video-wrap">
               <iframe
                 :src="`https://vkvideo.ru/video_ext.php?hd=3&oid=${currentSong.idVkMelodyOID}&id=${currentSong.idVkMelodyID}`"
-                allow="autoplay; encrypted-media; fullscreen; picture-in-picture;"
-                frameborder="0" allowfullscreen
+                allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+                frameborder="0"
+                allowfullscreen
               />
             </div>
           </div>
@@ -211,8 +349,9 @@
             <div class="km-video-wrap">
               <iframe
                 :src="`https://vkvideo.ru/video_ext.php?hd=3&oid=${currentSong.idVkChordsOID}&id=${currentSong.idVkChordsID}`"
-                allow="autoplay; encrypted-media; fullscreen; picture-in-picture;"
-                frameborder="0" allowfullscreen
+                allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+                frameborder="0"
+                allowfullscreen
               />
             </div>
           </div>
@@ -221,7 +360,10 @@
         <!-- Не в эфире (или эксклюзив/не готово) и плеер недоступен даже в демо-режиме — сообщение
              об ожидании/подписке. Тоже на старом месте видео-блока. Когда демо доступен
              (playerIsDemo) — своя отдельная карточка сразу под демо-плеером, см. выше. -->
-        <div v-if="!currentSong.onAir && !playerCanWatch && !playerIsDemo && playerAccessLoaded" class="km-waiting-card">
+        <div
+          v-if="!currentSong.onAir && !playerCanWatch && !playerIsDemo && playerAccessLoaded"
+          class="km-waiting-card"
+        >
           <div class="km-waiting-title">{{ waitingTitle }}</div>
           <div class="km-waiting-body">{{ waitingBody }}</div>
 
@@ -230,8 +372,14 @@
             <div class="km-waiting-offer-title">Премиум-подписка</div>
             <div class="km-waiting-offer-desc">Подписка на всю коллекцию или на одну песню</div>
             <div class="km-waiting-offer-actions">
-              <RouterLink to="/premium" class="km-waiting-cta">Оформить премиум-подписку →</RouterLink>
-              <button v-if="isLoggedIn && canOfferSongSubscription" class="km-waiting-cta km-song-sub-cta" @click="songSubscriptionModalVisible = true">
+              <RouterLink to="/premium" class="km-waiting-cta"
+                >Оформить премиум-подписку →</RouterLink
+              >
+              <button
+                v-if="isLoggedIn && canOfferSongSubscription"
+                class="km-waiting-cta km-song-sub-cta"
+                @click="songSubscriptionModalVisible = true"
+              >
                 Оформить подписку на эту песню →
               </button>
             </div>
@@ -239,10 +387,12 @@
 
           <div v-if="!isLoggedIn" class="km-waiting-login">
             Также вы можете <RouterLink to="/register">зарегистрироваться</RouterLink> или
-            <RouterLink to="/login">войти</RouterLink> на сайте — это понадобится для оформления подписки.
+            <RouterLink to="/login">войти</RouterLink> на сайте — это понадобится для оформления
+            подписки.
           </div>
           <div v-else-if="playerIsPremiumUser" class="km-waiting-login">
-            Вы премиум-пользователь — как только материалы для плеера будут готовы, он появится здесь автоматически.
+            Вы премиум-пользователь — как только материалы для плеера будут готовы, он появится
+            здесь автоматически.
           </div>
         </div>
 
@@ -298,7 +448,10 @@ export default {
     const route = useRoute()
     useEngagementTracking('song', () => route.query.id)
     const { theme, applyTheme } = useDesign()
-    function setTheme(val) { theme.value = val; applyTheme(val) }
+    function setTheme(val) {
+      theme.value = val
+      applyTheme(val)
+    }
     const { isLoggedIn } = useAuth()
     const playerAccess = usePlayerAccess()
     const cart = useCart()
@@ -307,10 +460,18 @@ export default {
   },
   computed: {
     ...mapGetters('songs', ['currentSong', 'currentSongIsLoading']),
-    playerCanWatch() { return this.playerAccess.canWatch.value },
-    playerAccessLoaded() { return this.playerAccess.loaded.value },
-    playerIsPremiumUser() { return this.playerAccess.isPremiumUser.value },
-    playerIsDemo() { return this.playerAccess.isDemo.value },
+    playerCanWatch() {
+      return this.playerAccess.canWatch.value
+    },
+    playerAccessLoaded() {
+      return this.playerAccess.loaded.value
+    },
+    playerIsPremiumUser() {
+      return this.playerAccess.isPremiumUser.value
+    },
+    playerIsDemo() {
+      return this.playerAccess.isDemo.value
+    },
     daysUntilAir() {
       const ts = this.currentSong?.airTimestamp
       if (!ts) return null
@@ -336,8 +497,13 @@ export default {
     // песню как продающуюся (idTariff>0 на бэкенде -> songSubscriptionAvailable) и плеер сейчас
     // всё равно недоступен обычными путями (иначе кнопка была бы бессмысленна).
     canOfferSongSubscription() {
-      return !!(this.currentSong && this.currentSong.songSubscriptionAvailable && !this.playerCanWatch && this.playerAccessLoaded)
-    }
+      return !!(
+        this.currentSong &&
+        this.currentSong.songSubscriptionAvailable &&
+        !this.playerCanWatch &&
+        this.playerAccessLoaded
+      )
+    },
   },
   data() {
     return { playerDisplayMode: 'embed', songSubscriptionModalVisible: false }
@@ -345,7 +511,9 @@ export default {
   watch: {
     '$route.query.id': {
       immediate: true,
-      handler(id) { if (id) this.loadSong(id) }
+      handler(id) {
+        if (id) this.loadSong(id)
+      },
     },
     currentSong: {
       handler(song) {
@@ -354,8 +522,8 @@ export default {
         if (song?.id) this.playerAccess.checkAccess(song.id)
         if (song?.id) this.playlistMembership.load([song.id])
         this.playerDisplayMode = 'embed'
-      }
-    }
+      },
+    },
   },
   mounted() {
     window.addEventListener('message', this.onPlayerMessage)
@@ -371,12 +539,19 @@ export default {
     // box between the small embedded card and a full-viewport overlay. Sourced-checked against our
     // own iframe's contentWindow so unrelated postMessage traffic (browser extensions etc.) is ignored.
     onPlayerMessage(event) {
-      if (!event.data || event.data.source !== 'karaoke-player' || event.data.type !== 'display-mode') return
+      if (
+        !event.data ||
+        event.data.source !== 'karaoke-player' ||
+        event.data.type !== 'display-mode'
+      )
+        return
       const iframe = this.$refs.playerIframe
       if (iframe && event.source !== iframe.contentWindow) return
       this.playerDisplayMode = event.data.mode
     },
-    onPlay(version) { trackPlay(this.currentSong.id, version) },
+    onPlay(version) {
+      trackPlay(this.currentSong.id, version)
+    },
     async onMetaClick(field, event) {
       const resp = await trackMetaClick(field, this.currentSong.id, event)
       if (resp && resp.meta) {
@@ -394,8 +569,8 @@ export default {
       const id = this.currentSong?.id
       if (id) this.playerAccess.checkAccess(id)
       if (id && this.cart.isInCart(id)) this.cart.toggle(id)
-    }
-  }
+    },
+  },
 }
 </script>
 
@@ -422,15 +597,24 @@ export default {
   align-items: center;
   justify-content: space-between;
 }
-.km-header-left { display: flex; align-items: center; gap: 0.75rem; }
+.km-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
 .km-back {
   color: var(--km-accent);
   text-decoration: none;
   font-size: 0.85rem;
   white-space: nowrap;
 }
-.km-back:hover { text-decoration: underline; }
-.km-logo { height: 36px; width: auto; }
+.km-back:hover {
+  text-decoration: underline;
+}
+.km-logo {
+  height: 36px;
+  width: auto;
+}
 .km-header-right {
   display: flex;
   align-items: center;
@@ -449,13 +633,22 @@ export default {
   padding: 0.2rem 0.55rem;
   font-size: 0.95rem;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
 }
-.km-tb:hover { background: var(--km-hover); color: var(--km-text); }
-.km-tb.active { background: var(--km-accent); color: #fff; }
+.km-tb:hover {
+  background: var(--km-hover);
+  color: var(--km-text);
+}
+.km-tb.active {
+  background: var(--km-accent);
+  color: #fff;
+}
 
 /* Loading / not found */
-.km-loading, .km-not-found {
+.km-loading,
+.km-not-found {
   text-align: center;
   color: var(--km-text2);
   padding: 4rem 1rem;
@@ -477,13 +670,36 @@ export default {
   max-width: 540px;
   width: 100%;
   text-align: center;
-  box-shadow: 0 8px 40px rgba(0,0,0,0.4);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4);
 }
-.km-removed-icon { font-size: 4rem; margin-bottom: 1.25rem; display: block; line-height: 1; }
-.km-removed-title { color: var(--km-text); font-size: 1.4rem; font-weight: 600; margin-bottom: 0.5rem; }
-.km-removed-subtitle { color: var(--km-text2); font-size: 1rem; margin-bottom: 1.5rem; }
-.km-removed-divider { border: none; border-top: 1px solid var(--km-border); margin: 1.25rem 0; }
-.km-removed-hint { color: var(--km-text2); font-size: 0.82rem; margin-bottom: 2rem; line-height: 1.6; }
+.km-removed-icon {
+  font-size: 4rem;
+  margin-bottom: 1.25rem;
+  display: block;
+  line-height: 1;
+}
+.km-removed-title {
+  color: var(--km-text);
+  font-size: 1.4rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+.km-removed-subtitle {
+  color: var(--km-text2);
+  font-size: 1rem;
+  margin-bottom: 1.5rem;
+}
+.km-removed-divider {
+  border: none;
+  border-top: 1px solid var(--km-border);
+  margin: 1.25rem 0;
+}
+.km-removed-hint {
+  color: var(--km-text2);
+  font-size: 0.82rem;
+  margin-bottom: 2rem;
+  line-height: 1.6;
+}
 .km-btn-home {
   background: var(--km-bg2);
   border: 1px solid var(--km-border);
@@ -495,10 +711,15 @@ export default {
   display: inline-block;
   transition: background 0.2s;
 }
-.km-btn-home:hover { background: var(--km-hover); color: var(--km-text); text-decoration: none; }
+.km-btn-home:hover {
+  background: var(--km-hover);
+  color: var(--km-text);
+  text-decoration: none;
+}
 
 /* Song content */
-.km-song {}
+.km-song {
+}
 
 /* Hero */
 .km-hero {
@@ -520,7 +741,7 @@ export default {
   left: 0;
   right: 0;
   padding: 1.5rem 1.5rem 1.2rem;
-  background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 100%);
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, transparent 100%);
 }
 .km-song-title {
   font-size: clamp(1.4rem, 4vw, 2.4rem);
@@ -531,7 +752,7 @@ export default {
 }
 .km-song-author {
   font-size: 1rem;
-  color: rgba(255,255,255,0.8);
+  color: rgba(255, 255, 255, 0.8);
   margin: 0;
 }
 
@@ -555,9 +776,23 @@ export default {
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   gap: 0.75rem;
 }
-.km-meta-item { display: flex; flex-direction: column; gap: 0.15rem; }
-.km-meta-label { font-size: 0.7rem; color: var(--km-text2); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
-.km-meta-value { font-size: 0.95rem; font-weight: 600; color: var(--km-text); }
+.km-meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.km-meta-label {
+  font-size: 0.7rem;
+  color: var(--km-text2);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+.km-meta-value {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--km-text);
+}
 
 /* Избранное / плейлисты — в той же сетке карточки метаданных, без отдельного блока */
 .km-meta-actions {
@@ -581,14 +816,22 @@ export default {
   font-size: 0.82rem;
   font-weight: 600;
   text-decoration: none;
-  transition: border-color 0.15s, background 0.15s;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
 }
 .km-meta-actions :deep(.fav-icon:hover),
 .km-meta-actions :deep(.pl-icon:hover) {
   border-color: var(--km-accent);
 }
-.km-meta-actions :deep(.fav-icon.fav-on) { color: #e11d2a; border-color: #e11d2a; }
-.km-meta-actions :deep(.pl-icon.pl-on) { color: #0077ff; border-color: #0077ff; }
+.km-meta-actions :deep(.fav-icon.fav-on) {
+  color: #e11d2a;
+  border-color: #e11d2a;
+}
+.km-meta-actions :deep(.pl-icon.pl-on) {
+  color: #0077ff;
+  border-color: #0077ff;
+}
 
 /* Ссылки */
 .km-links-card {
@@ -622,7 +865,10 @@ export default {
   min-width: 40px;
   font-weight: 600;
 }
-.km-link-icons { display: flex; gap: 2px; }
+.km-link-icons {
+  display: flex;
+  gap: 2px;
+}
 
 /* Онлайн-плеер, встроенный вместо видео ВК */
 .km-player-card {
@@ -652,7 +898,9 @@ export default {
   border-radius: 4px;
   vertical-align: middle;
 }
-.km-player-wrap { border-radius: 8px; }
+.km-player-wrap {
+  border-radius: 8px;
+}
 
 /* "Широкий" режим — плеер (внутри iframe) сам попросил родительскую страницу растянуть его на весь
    вьюпорт вместо маленькой карточки. position:fixed игнорирует max-width родительских .km-content
@@ -668,7 +916,9 @@ export default {
   box-shadow: none;
   background: #000;
 }
-.km-player-card.km-player-page-mode .km-player-label { display: none; }
+.km-player-card.km-player-page-mode .km-player-label {
+  display: none;
+}
 .km-player-card.km-player-page-mode .km-video-wrap {
   position: absolute;
   inset: 0;
@@ -706,9 +956,22 @@ export default {
   padding: 1.25rem 1rem;
   margin-bottom: 0.75rem;
 }
-.km-waiting-offer-icon { font-size: 2rem; margin-bottom: 0.35rem; line-height: 1; }
-.km-waiting-offer-title { font-size: 1.05rem; font-weight: 700; color: var(--km-text); margin-bottom: 0.2rem; }
-.km-waiting-offer-desc { font-size: 0.85rem; color: var(--km-text2); margin-bottom: 0.9rem; }
+.km-waiting-offer-icon {
+  font-size: 2rem;
+  margin-bottom: 0.35rem;
+  line-height: 1;
+}
+.km-waiting-offer-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--km-text);
+  margin-bottom: 0.2rem;
+}
+.km-waiting-offer-desc {
+  font-size: 0.85rem;
+  color: var(--km-text2);
+  margin-bottom: 0.9rem;
+}
 .km-waiting-offer-actions {
   display: flex;
   flex-wrap: wrap;
@@ -728,23 +991,37 @@ export default {
   font-family: inherit;
   font-size: 0.9rem;
 }
-.km-waiting-cta:hover { opacity: 0.9; color: #fff; text-decoration: none; }
+.km-waiting-cta:hover {
+  opacity: 0.9;
+  color: #fff;
+  text-decoration: none;
+}
 .km-song-sub-cta {
   background: transparent;
   color: var(--km-accent);
   border: 1px solid var(--km-accent);
 }
-.km-song-sub-cta:hover { background: var(--km-hover); color: var(--km-accent); opacity: 1; }
+.km-song-sub-cta:hover {
+  background: var(--km-hover);
+  color: var(--km-accent);
+  opacity: 1;
+}
 .km-waiting-login {
   font-size: 0.82rem;
   color: var(--km-text2);
   margin-top: 0.5rem;
 }
-.km-waiting-login a { color: var(--km-accent2); }
+.km-waiting-login a {
+  color: var(--km-accent2);
+}
 
 /* Видео */
-.km-videos { margin-bottom: 1rem; }
-.km-video-block { margin-bottom: 1.25rem; }
+.km-videos {
+  margin-bottom: 1rem;
+}
+.km-video-block {
+  margin-bottom: 1.25rem;
+}
 .km-video-label {
   font-size: 0.78rem;
   color: var(--km-text2);
@@ -763,7 +1040,8 @@ export default {
 }
 .km-video-wrap iframe {
   position: absolute;
-  top: 0; left: 0;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
 }
@@ -797,9 +1075,17 @@ export default {
 
 /* Мобильные правки */
 @media (max-width: 600px) {
-  .km-hero { max-height: 220px; }
-  .km-hero-banner { max-height: 220px; }
-  .km-removed-card { padding: 2rem 1.5rem; }
-  .km-links-grid { gap: 0.5rem; }
+  .km-hero {
+    max-height: 220px;
+  }
+  .km-hero-banner {
+    max-height: 220px;
+  }
+  .km-removed-card {
+    padding: 2rem 1.5rem;
+  }
+  .km-links-grid {
+    gap: 0.5rem;
+  }
 }
 </style>

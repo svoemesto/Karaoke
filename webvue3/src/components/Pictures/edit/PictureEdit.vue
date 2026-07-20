@@ -1,60 +1,106 @@
 <template>
   <div :style="styleRoot">
     <div v-if="pictureCurrent">
-      <custom-confirm v-if="isCustomConfirmVisible" :params="customConfirmParams" @close="closeCustomConfirm" />
+      <custom-confirm
+        v-if="isCustomConfirmVisible"
+        :params="customConfirmParams"
+        @close="closeCustomConfirm"
+      />
       <FileExplorerModal
-          v-if="isFileExplorerVisible"
-          :start="pictureCurrent.pathToFolder"
-          extensions='png'
-          @close="closeFileExplorer"
-          @getpath="getPathToPictureFile"
+        v-if="isFileExplorerVisible"
+        :start="pictureCurrent.pathToFolder"
+        extensions="png"
+        @close="closeFileExplorer"
+        @getpath="getPathToPictureFile"
       />
       <div class="header">
-        <div class="header-picture-id">ID = {{pictureCurrent.id}}</div>
+        <div class="header-picture-id">ID = {{ pictureCurrent.id }}</div>
       </div>
       <div class="body">
         <div class="column-1">
           <div class="label-and-input">
             <div class="label">Имя:</div>
-            <input v-model="pictureCurrent.name" class="input-field"/>
-            <button class="btn-round" :disabled="notChanged('name')" @click="undoField('name')"><img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg"/></button>
-            <button class="btn-round" :disabled="!pictureCurrent.name" @click="copyToClipboard(pictureCurrent.name, 'name')"><img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg"/></button>
-            <button class="btn-round" @click="pasteFromClipboard('name')"><img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg"/></button>
+            <input v-model="pictureCurrent.name" class="input-field" />
+            <button class="btn-round" :disabled="notChanged('name')" @click="undoField('name')">
+              <img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg" />
+            </button>
+            <button
+              class="btn-round"
+              :disabled="!pictureCurrent.name"
+              @click="copyToClipboard(pictureCurrent.name, 'name')"
+            >
+              <img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg" />
+            </button>
+            <button class="btn-round" @click="pasteFromClipboard('name')">
+              <img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg" />
+            </button>
           </div>
           <div class="picture-full">
-            <img class="image-full" alt="image" :src="pictureFullBase64 ? 'data:image/jpg;base64,' + pictureFullBase64 : pictureCurrent.fullUrl"/>
+            <img
+              class="image-full"
+              alt="image"
+              :src="
+                pictureFullBase64
+                  ? 'data:image/jpg;base64,' + pictureFullBase64
+                  : pictureCurrent.fullUrl
+              "
+            />
           </div>
-          <div class="column2-buttons-group ">
-            <button class="group-button" title="Загрузить новую картинку с диска" @click="loadNewPicture">Загрузить новую картинку с диска</button>
-            <button class="group-button" title="Сохранить картинку в базу данных" @click="savePictureToDB">Сохранить картинку в базу данных</button>
-            <button class="group-button" title="Сохранить картинку на диске" @click="savePictureToDisk">Сохранить картинку на диске</button>
+          <div class="column2-buttons-group">
+            <button
+              class="group-button"
+              title="Загрузить новую картинку с диска"
+              @click="loadNewPicture"
+            >
+              Загрузить новую картинку с диска
+            </button>
+            <button
+              class="group-button"
+              title="Сохранить картинку в базу данных"
+              @click="savePictureToDB"
+            >
+              Сохранить картинку в базу данных
+            </button>
+            <button
+              class="group-button"
+              title="Сохранить картинку на диске"
+              @click="savePictureToDisk"
+            >
+              Сохранить картинку на диске
+            </button>
           </div>
         </div>
       </div>
       <div class="footer">
-        <button class="btn-round-save-double" :disabled="notChanged()" title="Сохранить" @click="save"><img alt="savePicture" class="icon-save-double" src="../../../assets/svg/icon_save.svg"/></button>
-        <button class="btn-round-double" title="Удалить картинку" @click="deletePicture"><img alt="delete" class="icon-40" src="../../../assets/svg/icon_delete.svg"/></button>
+        <button
+          class="btn-round-save-double"
+          :disabled="notChanged()"
+          title="Сохранить"
+          @click="save"
+        >
+          <img alt="savePicture" class="icon-save-double" src="../../../assets/svg/icon_save.svg" />
+        </button>
+        <button class="btn-round-double" title="Удалить картинку" @click="deletePicture">
+          <img alt="delete" class="icon-40" src="../../../assets/svg/icon_delete.svg" />
+        </button>
       </div>
     </div>
-    <div v-else>
-      Не выбрана картинка
-    </div>
+    <div v-else>Не выбрана картинка</div>
   </div>
 </template>
 
 <script>
-
-import CustomConfirm from "../../Common/CustomConfirm.vue";
-import FileExplorerModal from "../../../components/Common/FileExplorer/FileExplorerModal.vue";
-import { useToast } from "bootstrap-vue-next";
-import { h } from 'vue';
+import CustomConfirm from '../../Common/CustomConfirm.vue'
+import FileExplorerModal from '../../../components/Common/FileExplorer/FileExplorerModal.vue'
+import { useToast } from 'bootstrap-vue-next'
+import { h } from 'vue'
 export default {
-  name: "PictureEdit",
+  name: 'PictureEdit',
   components: {
     CustomConfirm,
-    FileExplorerModal
+    FileExplorerModal,
   },
-  data () {
+  data() {
     return {
       isCustomConfirmVisible: false,
       isFileExplorerVisible: false,
@@ -63,8 +109,8 @@ export default {
       pictureAutoSaveDelayMs: 1000,
       pictureSaveTimer: undefined,
       pictureFullBase64: '',
-      createToast: () => {}
-    };
+      createToast: () => {},
+    }
   },
   computed: {
     styleRoot() {
@@ -75,58 +121,73 @@ export default {
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
-        fontFamily: 'Avenir, Helvetica, Arial, sans-serif'
+        fontFamily: 'Avenir, Helvetica, Arial, sans-serif',
         // backgroundColor: 'lightyellow'
       }
     },
-    pictureCurrent() { return this.$store.getters.getPictureCurrent },
-    pictureSnapshot() { return this.$store.getters.getPictureSnapshot },
-    pictureDiff() { return this.$store.getters.getPictureDiff },
+    pictureCurrent() {
+      return this.$store.getters.getPictureCurrent
+    },
+    pictureSnapshot() {
+      return this.$store.getters.getPictureSnapshot
+    },
+    pictureDiff() {
+      return this.$store.getters.getPictureDiff
+    },
   },
   watch: {
     pictureDiff: {
-      async handler () {
+      async handler() {
         if (this.pictureDiff.length !== 0 && this.pictureAutoSave) {
-          clearTimeout(this.pictureSaveTimer);
-          this.pictureSaveTimer = setTimeout(this.save, this.pictureAutoSaveDelayMs);
+          clearTimeout(this.pictureSaveTimer)
+          this.pictureSaveTimer = setTimeout(this.save, this.pictureAutoSaveDelayMs)
         }
-      }
-    }
+      },
+    },
   },
   async mounted() {
-    const { create } = useToast();
-    this.createToast = create;
-    this.$store.getters.getPictureValuePromise.then( data => {
-      let image = JSON.parse(data);
-      this.$store.dispatch('setPictureCurrent', image);
-      this.$store.dispatch('setPictureSnapshot', image);
-      this.pictureFullBase64 = '';
-    });
-    this.pictureAutoSave = await this.propAutoSave();
-    this.pictureAutoSaveDelayMs = Number(await this.propAutoSaveDelayMs());
+    const { create } = useToast()
+    this.createToast = create
+    this.$store.getters.getPictureValuePromise.then((data) => {
+      let image = JSON.parse(data)
+      this.$store.dispatch('setPictureCurrent', image)
+      this.$store.dispatch('setPictureSnapshot', image)
+      this.pictureFullBase64 = ''
+    })
+    this.pictureAutoSave = await this.propAutoSave()
+    this.pictureAutoSaveDelayMs = Number(await this.propAutoSaveDelayMs())
   },
   methods: {
     async getPathToPictureFile(path) {
-      this.pictureFullBase64 = await this.$store.getters.loadPictureFromDiskBase64(path);
+      this.pictureFullBase64 = await this.$store.getters.loadPictureFromDiskBase64(path)
     },
     async propAutoSave() {
-      const propValue = await this.$store.getters.getPropValue('autoSave');
+      const propValue = await this.$store.getters.getPropValue('autoSave')
       return propValue === 'true'
     },
-    async propAutoSaveDelayMs() { return await this.$store.getters.getPropValue('autoSaveDelayMs') },
-    closeCustomConfirm() { this.isCustomConfirmVisible = false },
-    closeFileExplorer() { this.isFileExplorerVisible = false },
+    async propAutoSaveDelayMs() {
+      return await this.$store.getters.getPropValue('autoSaveDelayMs')
+    },
+    closeCustomConfirm() {
+      this.isCustomConfirmVisible = false
+    },
+    closeFileExplorer() {
+      this.isFileExplorerVisible = false
+    },
     undoField(name) {
-      return this.$store.dispatch('setPictureCurrentField', {name: name, value: this.pictureSnapshot[name]})
+      return this.$store.dispatch('setPictureCurrentField', {
+        name: name,
+        value: this.pictureSnapshot[name],
+      })
     },
     async copyToClipboard(value, fieldName) {
-      await navigator.clipboard.writeText(value);
-      this.showCopyToClipboardToast(fieldName, value);
+      await navigator.clipboard.writeText(value)
+      this.showCopyToClipboardToast(fieldName, value)
     },
     async pasteFromClipboard(name) {
-      await navigator.clipboard.readText().then(data => {
-        return this.$store.dispatch('setPictureCurrentField', {name: name, value: data})
-      });
+      await navigator.clipboard.readText().then((data) => {
+        return this.$store.dispatch('setPictureCurrentField', { name: name, value: data })
+      })
     },
     showCopyToClipboardToast(fieldName, fieldValue) {
       // Use a shorter name for this.$createElement
@@ -135,34 +196,64 @@ export default {
       // Функция для преобразования текста с \n в массив VNodes с <br>
       const createTextWithLineBreaks = (text) => {
         if (typeof text !== 'string') {
-          return [String(text)];
+          return [String(text)]
         }
 
-        const lines = text.split('\n');
-        const vnodes = [];
+        const lines = text.split('\n')
+        const vnodes = []
 
         lines.forEach((line, index) => {
           // Добавляем текст строки
-          vnodes.push(line);
+          vnodes.push(line)
           // Если это не последняя строка, добавляем <br>
           if (index < lines.length - 1) {
-            vnodes.push(h('br'));
+            vnodes.push(h('br'))
           }
-        });
+        })
 
-        return vnodes;
-      };
+        return vnodes
+      }
 
       // Создаем сообщение с возможными переносами строк
       const vNodesMsg = h('div', [
         h('div', { style: { display: 'flex', flexDirection: 'row', flexWrap: 'wrap' } }, [
-          h('div', { style: { fontFamily: 'sans-serif', fontSize: 'small', textAlign: 'left', paddingRight: '5px' } }, [`Значение поля `]),
-          h('div', { style: { fontFamily: 'monospace', fontSize: 'small', textAlign: 'left' , fontWeight: 'bold', paddingRight: '5px', color: 'darkred'} }, [fieldName]),
-          h('div', { style: { fontFamily: 'sans-serif', fontSize: 'small', textAlign: 'left' } }, [` скопировано в буфер обмена:`]),
+          h(
+            'div',
+            {
+              style: {
+                fontFamily: 'sans-serif',
+                fontSize: 'small',
+                textAlign: 'left',
+                paddingRight: '5px',
+              },
+            },
+            [`Значение поля `],
+          ),
+          h(
+            'div',
+            {
+              style: {
+                fontFamily: 'monospace',
+                fontSize: 'small',
+                textAlign: 'left',
+                fontWeight: 'bold',
+                paddingRight: '5px',
+                color: 'darkred',
+              },
+            },
+            [fieldName],
+          ),
+          h('div', { style: { fontFamily: 'sans-serif', fontSize: 'small', textAlign: 'left' } }, [
+            ` скопировано в буфер обмена:`,
+          ]),
         ]),
         h('br'),
-        h('div', { style: { fontFamily: 'monospace', fontSize: 'x-small', textAlign: 'left' } }, createTextWithLineBreaks(fieldValue))
-      ]);
+        h(
+          'div',
+          { style: { fontFamily: 'monospace', fontSize: 'x-small', textAlign: 'left' } },
+          createTextWithLineBreaks(fieldValue),
+        ),
+      ])
 
       this.createToast({
         slots: { default: () => [vNodesMsg] },
@@ -177,16 +268,16 @@ export default {
     },
     notChanged(name) {
       if (name) {
-        return this.pictureCurrent[name] === this.pictureSnapshot[name];
+        return this.pictureCurrent[name] === this.pictureSnapshot[name]
       } else {
-        return this.pictureDiff.length === 0;
+        return this.pictureDiff.length === 0
       }
     },
     save() {
-      clearTimeout(this.pictureSaveTimer);
-      let diffs = {};
+      clearTimeout(this.pictureSaveTimer)
+      let diffs = {}
       for (let diff of this.pictureDiff) {
-        diffs[diff.name] = diff.new;
+        diffs[diff.name] = diff.new
       }
       return this.$store.dispatch('savePicture', diffs)
     },
@@ -195,29 +286,28 @@ export default {
         header: 'Подтвердите удаление картинки',
         body: `Удалить картинку <strong>«${this.pictureCurrent.name}»</strong>?`,
         timeout: 10,
-        callback: this.doDeletePicture
+        callback: this.doDeletePicture,
       }
-      this.isCustomConfirmVisible = true;
+      this.isCustomConfirmVisible = true
     },
     doDeletePicture() {
-      this.$store.commit('deletePictureCurrent');
-      this.$emit('close');
+      this.$store.commit('deletePictureCurrent')
+      this.$emit('close')
     },
     loadNewPicture() {
-      this.isFileExplorerVisible = true;
+      this.isFileExplorerVisible = true
     },
     savePictureToDB() {
-      this.pictureCurrent.full = this.pictureFullBase64;
+      this.pictureCurrent.full = this.pictureFullBase64
     },
     savePictureToDisk() {
-      this.$store.commit('savePictureCurrentToDisk');
-    }
-  }
+      this.$store.commit('savePictureCurrentToDisk')
+    },
+  },
 }
 </script>
 
 <style scoped>
-
 .header {
   border: thin dashed darkgray;
   border-radius: 10px;

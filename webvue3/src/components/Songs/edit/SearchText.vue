@@ -2,17 +2,17 @@
   <transition name="modal-fade">
     <div class="st-modal-backdrop">
       <div class="st-area">
+        <custom-confirm
+          v-if="isCustomConfirmVisible"
+          :params="customConfirmParams"
+          @close="closeCustomConfirm"
+        />
 
-        <custom-confirm v-if="isCustomConfirmVisible" :params="customConfirmParams" @close="closeCustomConfirm" />
-        
         <!-- Заголовок модального окна -->
-        <div class="st-modal-header">
-          Поиск текста песни в интернете (Yandex Search API)
-        </div>
+        <div class="st-modal-header">Поиск текста песни в интернете (Yandex Search API)</div>
 
         <!-- Тело модального окна -->
         <div class="st-modal-body">
-
           <!-- Заголовок -->
           <div class="st-header">
             {{ searchAsyncQuery }}
@@ -20,73 +20,75 @@
 
           <!-- Тело -->
           <div v-if="searchIsDone" class="st-body">
-
             <!-- Первый столбец тела -->
             <div class="st-body-column-1">
               <!-- Таблица результатов поиска -->
-              <search-text-results-table v-if="searchAsyncId" :search-results-list="searchResultsList" @selected-result="selectedResult"/>
+              <search-text-results-table
+                v-if="searchAsyncId"
+                :search-results-list="searchResultsList"
+                @selected-result="selectedResult"
+              />
             </div>
-            
+
             <!-- Второй столбец тела -->
             <div class="st-body-column-2">
               <!-- Текст результата поиска -->
-              <textarea class="result-text" v-text="resultText"/>
-              <button class="group-button" title="Открыть на сайте" @click="openResultLink">Открыть на сайте</button>
+              <textarea class="result-text" v-text="resultText" />
+              <button class="group-button" title="Открыть на сайте" @click="openResultLink">
+                Открыть на сайте
+              </button>
             </div>
-
           </div>
 
-          <div v-else>
-            Асинхронный поиск еще не готов, попробуйте позже.
-          </div>
+          <div v-else>Асинхронный поиск еще не готов, попробуйте позже.</div>
 
           <!-- Подвал -->
           <div class="st-footer">
-
             <!-- Вернуть текст и выйти -->
             <button class="btn-round-double" title="Вернуть текст и выйти" @click="returnAndClose">
-              <img alt="return text" class="icon-40" src="../../../assets/svg/icon_markers_in_region_paste.svg"/>
+              <img
+                alt="return text"
+                class="icon-40"
+                src="../../../assets/svg/icon_markers_in_region_paste.svg"
+              />
             </button>
 
             <!-- Скопировать текст и выйти-->
             <button class="btn-round-double" title="Сопировать текст и выйти" @click="copyAndClose">
-              <img alt="copy text" class="icon-40" src="../../../assets/svg/icon_copy.svg"/>
+              <img alt="copy text" class="icon-40" src="../../../assets/svg/icon_copy.svg" />
             </button>
 
             <!-- Выйти-->
             <button class="btn-round-double" title="Выйти" @click="close">
-              <img alt="close" class="icon-40" src="../../../assets/svg/icon_close.svg"/>
+              <img alt="close" class="icon-40" src="../../../assets/svg/icon_close.svg" />
             </button>
-
           </div>
         </div>
 
         <!-- Подвал модального окна -->
         <!-- <div class="st-modal-footer"> -->
-          <!-- <button type="button" class="st-btn-close" @click="close">Выход</button> -->
+        <!-- <button type="button" class="st-btn-close" @click="close">Выход</button> -->
         <!-- </div>  -->
-
       </div>
     </div>
   </transition>
 </template>
 
 <script>
-
-import CustomConfirm from "../../Common/CustomConfirm.vue";
-import SearchTextResultsTable from "./SearchTextResultsTable.vue";
+import CustomConfirm from '../../Common/CustomConfirm.vue'
+import SearchTextResultsTable from './SearchTextResultsTable.vue'
 
 export default {
-  name: "SearchText",
+  name: 'SearchText',
   components: {
     CustomConfirm,
-    SearchTextResultsTable
+    SearchTextResultsTable,
   },
   props: {
     songId: {
       type: String,
-      required: true
-    }
+      required: true,
+    },
   },
   data() {
     return {
@@ -96,95 +98,92 @@ export default {
       searchResultsList: [],
       currentSearchAsync: undefined,
       currentResult: undefined,
-      searchIsDone: false
+      searchIsDone: false,
     }
   },
 
   computed: {
     resultText() {
-      return this.currentResult ? this.currentResult.text : "";
+      return this.currentResult ? this.currentResult.text : ''
     },
     resultLink() {
-      return this.currentResult ? this.currentResult.url : "";
+      return this.currentResult ? this.currentResult.url : ''
     },
     searchAsyncId() {
-      return this.currentSearchAsync ? this.currentSearchAsync.id : "";
+      return this.currentSearchAsync ? this.currentSearchAsync.id : ''
     },
     searchAsyncQuery() {
-      return this.currentSearchAsync ? this.currentSearchAsync.query : "";
-    }
+      return this.currentSearchAsync ? this.currentSearchAsync.query : ''
+    },
   },
 
   async mounted() {
-    const listSearchAsync = await this.getAsyncList(this.songId);
+    const listSearchAsync = await this.getAsyncList(this.songId)
     if (listSearchAsync.length > 0) {
-      console.log('listSearchAsync.length', listSearchAsync.length);
-      const currentSearchAsync = listSearchAsync[0];
+      console.log('listSearchAsync.length', listSearchAsync.length)
+      const currentSearchAsync = listSearchAsync[0]
       if (!currentSearchAsync.done) {
-        this.searchIsDone = false;
+        this.searchIsDone = false
       } else {
-        this.searchIsDone = true;
-        const searchAsyncId = currentSearchAsync.id;
-        const listSearchResults = await this.getResultsList(searchAsyncId);
-        this.searchResultsList = listSearchResults;
-        this.currentSearchAsync = currentSearchAsync;
+        this.searchIsDone = true
+        const searchAsyncId = currentSearchAsync.id
+        const listSearchResults = await this.getResultsList(searchAsyncId)
+        this.searchResultsList = listSearchResults
+        this.currentSearchAsync = currentSearchAsync
       }
     } else {
       this.customConfirmParams = {
         header: 'Подтвердите поиск текста',
         body: `Найти в Интернете тексты для этой песни?`,
         timeout: 10,
-        callback: this.doSearchTextForSong
+        callback: this.doSearchTextForSong,
       }
-      this.isCustomConfirmVisible = true;
+      this.isCustomConfirmVisible = true
     }
   },
 
   methods: {
     openResultLink() {
-      window.open(this.resultLink, '_blank');
+      window.open(this.resultLink, '_blank')
     },
     closeCustomConfirm() {
-      this.isCustomConfirmVisible = false;
+      this.isCustomConfirmVisible = false
     },
     close() {
-      this.$emit('close');
+      this.$emit('close')
     },
     copyAndClose() {
-      this.copyToClipboard(this.resultText);
-      this.$emit('close');
+      this.copyToClipboard(this.resultText)
+      this.$emit('close')
     },
     returnAndClose() {
-      this.$emit('return', this.resultText);
+      this.$emit('return', this.resultText)
     },
     async copyToClipboard(value) {
-      await navigator.clipboard.writeText(value);
+      await navigator.clipboard.writeText(value)
     },
-    async getAsyncList(songId) { 
-      const result = await this.$store.getters.getSearchAsyncList(songId);
-      console.log('getAsyncList', result);
-      return result; 
+    async getAsyncList(songId) {
+      const result = await this.$store.getters.getSearchAsyncList(songId)
+      console.log('getAsyncList', result)
+      return result
     },
-    async getResultsList(searchAsyncId) { 
-      const result = await this.$store.getters.getSearchResultsList(searchAsyncId);
-      console.log('searchResultsList', result);
-      return result; 
+    async getResultsList(searchAsyncId) {
+      const result = await this.$store.getters.getSearchResultsList(searchAsyncId)
+      console.log('searchResultsList', result)
+      return result
     },
     selectedResult(selectedResult) {
-      this.currentResult = selectedResult;
-
+      this.currentResult = selectedResult
     },
     doSearchTextForSong() {
-      this.$store.dispatch('searchTextForSong');
-      this.close;
-    }
-  }
+      this.$store.dispatch('searchTextForSong')
+      this.close
+    },
+  },
 }
-
 </script>
 
 <style scoped>
-
 .st-modal-backdrop {
   position: fixed;
   top: 0;
@@ -199,7 +198,7 @@ export default {
 }
 
 .st-area {
-  background: #FFFFFF;
+  background: #ffffff;
   box-shadow: 2px 2px 20px 1px;
   overflow-x: auto;
   display: flex;
@@ -364,5 +363,4 @@ export default {
   background-color: white;
   width: 500px;
 }
-
 </style>

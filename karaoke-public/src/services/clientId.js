@@ -6,7 +6,9 @@ export function getAnonId() {
   const KEY = 'kp_cid'
   let id = localStorage.getItem(KEY)
   if (!id) {
-    id = crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`
+    id = crypto.randomUUID
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(16).slice(2)}`
     localStorage.setItem(KEY, id)
   }
   return id

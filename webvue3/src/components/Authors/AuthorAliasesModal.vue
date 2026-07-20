@@ -2,27 +2,29 @@
   <transition name="modal-fade">
     <div class="aam-modal-backdrop">
       <div class="aam-area">
-
-        <div class="aam-area-modal-header">
-          Алиасы автора: {{ author.author }}
-        </div>
+        <div class="aam-area-modal-header">Алиасы автора: {{ author.author }}</div>
         <div class="aam-area-modal-body">
           <p class="aam-hint">
-            Алиасы — имена солистов/участников группы, по которым публичный поиск тоже находит
-            этого автора (напр. «Виктор Цой» для «КИНО»).
+            Алиасы — имена солистов/участников группы, по которым публичный поиск тоже находит этого
+            автора (напр. «Виктор Цой» для «КИНО»).
           </p>
           <div v-if="!aliasesList.length" class="aam-empty">Алиасов пока нет.</div>
           <div v-for="(alias, idx) in aliasesList" :key="idx" class="aam-alias-row">
-            <input v-model="aliasesList[idx]" class="aam-alias-input" placeholder="Имя солиста/участника"/>
+            <input
+              v-model="aliasesList[idx]"
+              class="aam-alias-input"
+              placeholder="Имя солиста/участника"
+            />
             <button class="aam-btn-remove" title="Удалить" @click="removeAlias(idx)">×</button>
           </div>
           <button class="aam-btn-add" @click="addAlias">+ Добавить алиас</button>
         </div>
         <div class="aam-area-modal-footer">
-          <button type="button" class="aam-btn-save" :disabled="saving" @click="save">Сохранить</button>
+          <button type="button" class="aam-btn-save" :disabled="saving" @click="save">
+            Сохранить
+          </button>
           <button type="button" class="aam-btn-close" @click="close">Отмена</button>
         </div>
-
       </div>
     </div>
   </transition>
@@ -30,39 +32,39 @@
 
 <script>
 export default {
-  name: "AuthorAliasesModal",
+  name: 'AuthorAliasesModal',
   props: {
     authorId: {
       type: [Number, String],
-      required: true
-    }
+      required: true,
+    },
   },
   data() {
     return {
       aliasesList: [],
-      saving: false
+      saving: false,
     }
   },
   computed: {
     author() {
-      return (this.$store.getters.getAuthorsDigest || []).find(a => a.id === this.authorId) || {};
-    }
+      return (this.$store.getters.getAuthorsDigest || []).find((a) => a.id === this.authorId) || {}
+    },
   },
   created() {
     this.aliasesList = (this.author.aliases || '')
-        .split(';')
-        .map(a => a.trim())
-        .filter(a => a.length > 0);
+      .split(';')
+      .map((a) => a.trim())
+      .filter((a) => a.length > 0)
   },
   methods: {
     addAlias() {
-      this.aliasesList.push('');
+      this.aliasesList.push('')
     },
     removeAlias(idx) {
-      this.aliasesList.splice(idx, 1);
+      this.aliasesList.splice(idx, 1)
     },
     save() {
-      const cleaned = this.aliasesList.map(a => a.trim()).filter(a => a.length > 0);
+      const cleaned = this.aliasesList.map((a) => a.trim()).filter((a) => a.length > 0)
       const payload = {
         id: this.author.id,
         author: this.author.author,
@@ -73,29 +75,29 @@ export default {
         lastAlbumProcessed: this.author.lastAlbumProcessed,
         watched: this.author.watched,
         skip: this.author.skip,
-        aliases: cleaned.join(';')
-      };
-      this.saving = true;
-      this.$store.dispatch('setAuthorValuePromise', payload)
-          .then(() => {
-            this.$store.dispatch('loadOneRecord', this.authorId);
-            this.saving = false;
-            this.close();
-          })
-          .catch(error => {
-            console.error("Ошибка при сохранении алиасов:", error);
-            this.saving = false;
-          });
+        aliases: cleaned.join(';'),
+      }
+      this.saving = true
+      this.$store
+        .dispatch('setAuthorValuePromise', payload)
+        .then(() => {
+          this.$store.dispatch('loadOneRecord', this.authorId)
+          this.saving = false
+          this.close()
+        })
+        .catch((error) => {
+          console.error('Ошибка при сохранении алиасов:', error)
+          this.saving = false
+        })
     },
     close() {
-      this.$emit('close');
-    }
-  }
+      this.$emit('close')
+    },
+  },
 }
 </script>
 
 <style scoped>
-
 .aam-modal-fade-enter,
 .aam-modal-fade-leave-active {
   opacity: 0;
@@ -103,7 +105,7 @@ export default {
 
 .aam-modal-fade-enter-active,
 .aam-modal-fade-leave-active {
-  transition: opacity .5s ease
+  transition: opacity 0.5s ease;
 }
 
 .aam-area-modal-header {
@@ -148,7 +150,7 @@ export default {
 }
 
 .aam-area {
-  background: #FFFFFF;
+  background: #ffffff;
   box-shadow: 2px 2px 20px 1px;
   overflow-x: auto;
   display: flex;
@@ -196,7 +198,9 @@ export default {
   background-color: antiquewhite;
   cursor: pointer;
 }
-.aam-btn-remove:hover { background-color: lightpink; }
+.aam-btn-remove:hover {
+  background-color: lightpink;
+}
 
 .aam-btn-add {
   border: solid 1px black;
@@ -206,7 +210,9 @@ export default {
   background-color: antiquewhite;
   cursor: pointer;
 }
-.aam-btn-add:hover { background-color: lightpink; }
+.aam-btn-add:hover {
+  background-color: lightpink;
+}
 
 .aam-btn-save {
   border: 1px solid white;
@@ -214,13 +220,18 @@ export default {
   font-size: 18px;
   cursor: pointer;
   font-weight: bold;
-  color: #4AAE9B;
+  color: #4aae9b;
   background: transparent;
   width: 150px;
   height: auto;
 }
-.aam-btn-save:hover { background: darkgreen; }
-.aam-btn-save[disabled] { opacity: 0.5; cursor: default; }
+.aam-btn-save:hover {
+  background: darkgreen;
+}
+.aam-btn-save[disabled] {
+  opacity: 0.5;
+  cursor: default;
+}
 
 .aam-btn-close {
   border: 1px solid white;
@@ -233,5 +244,4 @@ export default {
   width: 100px;
   height: auto;
 }
-
 </style>

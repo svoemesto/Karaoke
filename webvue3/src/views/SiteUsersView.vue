@@ -1,16 +1,16 @@
 <template>
   <div class="siteuserstable">
-    <SiteUsersTable/>
+    <SiteUsersTable />
   </div>
 </template>
 
 <script>
 import SiteUsersTable from '../components/SiteUsers/SiteUsersTable.vue'
 export default {
-  name: "SiteUsersView",
+  name: 'SiteUsersView',
   components: {
-    SiteUsersTable
-  }
+    SiteUsersTable,
+  },
 }
 </script>
 

@@ -29,7 +29,9 @@ export function usePremiumModal() {
     state.benefits = benefits || []
     state.open = true
   }
-  function close() { state.open = false }
+  function close() {
+    state.open = false
+  }
 
   return { state, openLimit, openPremiumRequired, close }
 }

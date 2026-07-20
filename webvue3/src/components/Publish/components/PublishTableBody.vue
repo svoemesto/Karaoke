@@ -2,45 +2,39 @@
   <div class="table-publish-body">
     <div class="table-publish-body-center-column">
       <PublishTableHead :publish-row="publishDigest[0]" />
-      <div
-          v-for="publishRow in publishDigest"
-          :key="publishRow.csrId"
-          class="tr-center-block"
-      >
-        <div class="tr-left-block" v-text="publishRow.csrName"/>
+      <div v-for="publishRow in publishDigest" :key="publishRow.csrId" class="tr-center-block">
+        <div class="tr-left-block" v-text="publishRow.csrName" />
         <PublishTableBodyTd
-            v-for="csrCell in publishRow.csrCells"
-            :key="csrCell.cscId"
-            :publish="csrCell.settingsDTO"
-            :publish-digest="publishDigest"
+          v-for="csrCell in publishRow.csrCells"
+          :key="csrCell.cscId"
+          :publish="csrCell.settingsDTO"
+          :publish-digest="publishDigest"
         />
-        <div class="tr-right-block" v-text="publishRow.csrName"/>
+        <div class="tr-right-block" v-text="publishRow.csrName" />
       </div>
       <PublishTableHead :publish-row="publishDigest[0]" />
     </div>
-
   </div>
 </template>
 
 <script>
-import PublishTableHead from "../../../components/Publish/components/PublishTableHead.vue";
-import PublishTableBodyTd from "../../../components/Publish/components/PublishTableBodyTd.vue";
+import PublishTableHead from '../../../components/Publish/components/PublishTableHead.vue'
+import PublishTableBodyTd from '../../../components/Publish/components/PublishTableBodyTd.vue'
 
 export default {
-  name: "PublishTableBody",
-  components: {PublishTableBodyTd, PublishTableHead},
+  name: 'PublishTableBody',
+  components: { PublishTableBodyTd, PublishTableHead },
   props: {
     publishDigest: {
       type: Array,
       required: false,
-      default: () => [[]]
-    }
-  }
+      default: () => [[]],
+    },
+  },
 }
 </script>
 
 <style scoped>
-
 .table-publish-body {
   width: 100%;
   height: 100%;
@@ -60,7 +54,8 @@ export default {
   width: 100%;
 }
 
-.tr-left-block, .tr-right-block {
+.tr-left-block,
+.tr-right-block {
   font-size: x-small;
   min-width: 60px;
   max-width: 60px;

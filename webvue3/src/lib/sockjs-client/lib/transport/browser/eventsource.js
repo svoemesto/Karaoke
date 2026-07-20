@@ -1,1 +1,1 @@
-module.exports = global.EventSource;
+module.exports = global.EventSource

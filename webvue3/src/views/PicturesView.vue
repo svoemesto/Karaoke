@@ -1,21 +1,20 @@
 <template>
   <div class="picturestable">
-    <PicturesTable/>
+    <PicturesTable />
   </div>
 </template>
 
 <script>
 import PicturesTable from '../components/Pictures/PicturesTable.vue'
 export default {
-  name: "PicturesView",
+  name: 'PicturesView',
   components: {
-    PicturesTable
-  }
+    PicturesTable,
+  },
 }
 </script>
 
 <style scoped>
-
 .picturestable {
   display: flex;
   flex-direction: column;
@@ -23,5 +22,4 @@ export default {
   justify-content: center;
   align-items: center;
 }
-
 </style>

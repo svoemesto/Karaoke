@@ -16,16 +16,20 @@
 // периодически в App.vue (loadChatUnreadCount, см. CHAT_UNREAD_POLL_INTERVAL_MS) — здесь только
 // презентация, отдельный опрос не нужен. Клик — переход в раздел «Чат» из любой страницы админки.
 export default {
-  name: "ChatNotifyButton",
+  name: 'ChatNotifyButton',
   computed: {
-    unread() { return this.$store.getters.getChatUnreadTotal },
-    hasUnread() { return this.unread > 0 },
+    unread() {
+      return this.$store.getters.getChatUnreadTotal
+    },
+    hasUnread() {
+      return this.unread > 0
+    },
   },
   methods: {
     goToChat() {
-      if (this.$route.path !== '/chat') this.$router.push('/chat');
-    }
-  }
+      if (this.$route.path !== '/chat') this.$router.push('/chat')
+    },
+  },
 }
 </script>
 
@@ -46,8 +50,12 @@ export default {
   cursor: pointer;
   position: relative;
 }
-.btn-round-double:hover { background-color: lightpink; }
-.btn-round-double:focus { background-color: darksalmon; }
+.btn-round-double:hover {
+  background-color: lightpink;
+}
+.btn-round-double:focus {
+  background-color: darksalmon;
+}
 
 .chat-notify-badge {
   position: absolute;
@@ -65,6 +73,17 @@ export default {
   border: 1px solid #fff;
 }
 
-@keyframes chat-notify-blink { 0%, 100% { box-shadow: 0 0 0 0 rgba(44, 107, 213, 0.7); } 50% { box-shadow: 0 0 0 6px rgba(44, 107, 213, 0); } }
-.chat-notify-blink { animation: chat-notify-blink 1.2s ease-in-out infinite; border-color: #2c6bd5; }
+@keyframes chat-notify-blink {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(44, 107, 213, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(44, 107, 213, 0);
+  }
+}
+.chat-notify-blink {
+  animation: chat-notify-blink 1.2s ease-in-out infinite;
+  border-color: #2c6bd5;
+}
 </style>

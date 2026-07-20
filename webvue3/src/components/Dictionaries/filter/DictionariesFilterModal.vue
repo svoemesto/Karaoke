@@ -2,37 +2,42 @@
   <transition name="modal-fade">
     <div class="dfm-modal-backdrop">
       <div class="dfm-area">
-
-        <div class="dfm-area-modal-header">
-          Фильтр для словарей
-        </div>
+        <div class="dfm-area-modal-header">Фильтр для словарей</div>
 
         <div class="dfm-area-modal-body">
           <div class="dfm-root-wrapper">
-
             <div class="dfm-filter-row">
               <div class="dfm-row-label">
-                <div v-text="'Словарь:'"/>
+                <div v-text="'Словарь:'" />
               </div>
               <div class="dfm-row-input">
                 <select v-model="dictionariesFilterDictName" class="dfm-input-field">
                   <option value="">(все)</option>
-                  <option v-for="name in dictNames" :key="name" :value="name" v-text="name"/>
+                  <option v-for="name in dictNames" :key="name" :value="name" v-text="name" />
                 </select>
               </div>
-              <button :disabled="!dictionariesFilterDictName" class="dfm-button-clear-field" @click.left="dictionariesFilterDictName=''" v-text="'X'"/>
+              <button
+                :disabled="!dictionariesFilterDictName"
+                class="dfm-button-clear-field"
+                @click.left="dictionariesFilterDictName = ''"
+                v-text="'X'"
+              />
             </div>
 
             <div class="dfm-filter-row">
               <div class="dfm-row-label">
-                <div v-text="'Значение:'"/>
+                <div v-text="'Значение:'" />
               </div>
               <div class="dfm-row-input">
-                <input v-model="dictionariesFilterDictValue" class="dfm-input-field"/>
+                <input v-model="dictionariesFilterDictValue" class="dfm-input-field" />
               </div>
-              <button :disabled="!dictionariesFilterDictValue" class="dfm-button-clear-field" @click.left="dictionariesFilterDictValue=''" v-text="'X'"/>
+              <button
+                :disabled="!dictionariesFilterDictValue"
+                class="dfm-button-clear-field"
+                @click.left="dictionariesFilterDictValue = ''"
+                v-text="'X'"
+              />
             </div>
-
           </div>
         </div>
 
@@ -40,55 +45,68 @@
           <button type="button" class="dfm-btn-close" @click="ok">Применить фильтр</button>
           <button type="button" class="dfm-btn-close" @click="cancel">Отмена</button>
         </div>
-
       </div>
     </div>
   </transition>
 </template>
 
 <script>
-
 export default {
-  name: "DictionariesFilterModal",
+  name: 'DictionariesFilterModal',
   computed: {
     dictNames() {
-      return this.$store.getters.getDictNames;
+      return this.$store.getters.getDictNames
     },
     dictionariesFilterDictName: {
-      get() { return this.$store.getters.getDictionariesFilterDictName; },
-      set(value) { this.$store.dispatch('setDictionariesFilterDictName', { value: value }); }
+      get() {
+        return this.$store.getters.getDictionariesFilterDictName
+      },
+      set(value) {
+        this.$store.dispatch('setDictionariesFilterDictName', { value: value })
+      },
     },
     dictionariesFilterDictValue: {
-      get() { return this.$store.getters.getDictionariesFilterDictValue; },
-      set(value) { this.$store.dispatch('setDictionariesFilterDictValue', { value: value }); }
+      get() {
+        return this.$store.getters.getDictionariesFilterDictValue
+      },
+      set(value) {
+        this.$store.dispatch('setDictionariesFilterDictValue', { value: value })
+      },
     },
   },
   async beforeMount() {
-    await this.$store.dispatch('loadDictNames');
-    this.$store.dispatch('setDictionariesFilterDictName', { value: await this.$store.getters.getWebvueProp('dictionariesFilterDictName', '') });
-    this.$store.dispatch('setDictionariesFilterDictValue', { value: await this.$store.getters.getWebvueProp('dictionariesFilterDictValue', '') });
+    await this.$store.dispatch('loadDictNames')
+    this.$store.dispatch('setDictionariesFilterDictName', {
+      value: await this.$store.getters.getWebvueProp('dictionariesFilterDictName', ''),
+    })
+    this.$store.dispatch('setDictionariesFilterDictValue', {
+      value: await this.$store.getters.getWebvueProp('dictionariesFilterDictValue', ''),
+    })
   },
   methods: {
     ok() {
-      this.$store.dispatch('setDictionariesFilterDictName', { value: this.dictionariesFilterDictName });
-      this.$store.dispatch('setDictionariesFilterDictValue', { value: this.dictionariesFilterDictValue });
+      this.$store.dispatch('setDictionariesFilterDictName', {
+        value: this.dictionariesFilterDictName,
+      })
+      this.$store.dispatch('setDictionariesFilterDictValue', {
+        value: this.dictionariesFilterDictValue,
+      })
 
-      let params = {};
-      if (this.dictionariesFilterDictName) params.dictName = this.dictionariesFilterDictName;
-      if (this.dictionariesFilterDictValue) params.dictValue = this.dictionariesFilterDictValue;
-      this.$store.dispatch('loadDictionariesDigests', params);
+      let params = {}
+      if (this.dictionariesFilterDictName) params.dictName = this.dictionariesFilterDictName
+      if (this.dictionariesFilterDictValue) params.dictValue = this.dictionariesFilterDictValue
+      this.$store.dispatch('loadDictionariesDigests', params)
 
-      this.$emit('close');
+      this.$emit('close')
     },
     cancel() {
-      this.$emit('close');
-    }
-  }
+      this.$emit('close')
+    },
+  },
 }
 </script>
 
 <style scoped>
-
 .dfm-modal-fade-enter,
 .dfm-modal-fade-leave-active {
   opacity: 0;
@@ -96,7 +114,7 @@ export default {
 
 .dfm-modal-fade-enter-active,
 .dfm-modal-fade-leave-active {
-  transition: opacity .5s ease
+  transition: opacity 0.5s ease;
 }
 
 .dfm-area-modal-header {
@@ -139,7 +157,7 @@ export default {
 }
 
 .dfm-area {
-  background: #FFFFFF;
+  background: #ffffff;
   box-shadow: 2px 2px 20px 1px;
   overflow-x: auto;
   display: flex;
@@ -226,5 +244,4 @@ select.dfm-input-field {
   -moz-appearance: none;
   cursor: pointer;
 }
-
 </style>

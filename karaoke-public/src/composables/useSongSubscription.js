@@ -17,7 +17,10 @@ export function useSongSubscription() {
     error.value = ''
     priceInfo.value = null
     try {
-      const { status, body } = await authGet(`/api/public/account/subscription/price?scope=SONG&songId=${songId}`, token.value)
+      const { status, body } = await authGet(
+        `/api/public/account/subscription/price?scope=SONG&songId=${songId}`,
+        token.value,
+      )
       if (status === 200 && body) {
         priceInfo.value = body
       } else {
@@ -42,7 +45,8 @@ export function useSongSubscription() {
         token.value,
       )
       submitting.value = false
-      if (status === 200 && body) return { ok: true, confirmationUrl: body.confirmationUrl, status: body.status }
+      if (status === 200 && body)
+        return { ok: true, confirmationUrl: body.confirmationUrl, status: body.status }
       error.value = (body && body.error) || 'subscribe_failed'
       return { ok: false, error: error.value }
     } catch (e) {

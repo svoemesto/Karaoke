@@ -2,28 +2,70 @@
   <transition name="modal-fade">
     <div class="сс-modal-backdrop">
       <div class="сс-area">
-        <div :style="styleHeader" v-html="params.header"/>
-        <div :style="styleBody" v-html="params.body"/>
+        <div :style="styleHeader" v-html="params.header" />
+        <div :style="styleBody" v-html="params.body" />
         <div v-if="params.fields" class="сс-params">
           <div v-for="fld in params.fields" :key="fld" class="сс-param-line-fields">
-            <div :style="fld.fldLabelStyle" v-text="fld.fldLabel"/>
+            <div :style="fld.fldLabelStyle" v-text="fld.fldLabel" />
             <div v-if="fld.fldIsBoolean" class="сс-param-line-buttons">
-              <button class="сс-group-button-boolean" :class="fld.fldValue === 'true' || fld.fldValue === true ? 'сс-group-button-boolean-active' : ''"  type="button" value="true"  :disabled="fld.disabled" @click="fld.fldValue='true'">TRUE</button>
-              <button class="сс-group-button-boolean" :class="fld.fldValue === 'false' || fld.fldValue === false ? 'сс-group-button-boolean-active' : ''" type="button" value="false" :disabled="fld.disabled" @click="fld.fldValue='false'">FALSE</button>
+              <button
+                class="сс-group-button-boolean"
+                :class="
+                  fld.fldValue === 'true' || fld.fldValue === true
+                    ? 'сс-group-button-boolean-active'
+                    : ''
+                "
+                type="button"
+                value="true"
+                :disabled="fld.disabled"
+                @click="fld.fldValue = 'true'"
+              >
+                TRUE
+              </button>
+              <button
+                class="сс-group-button-boolean"
+                :class="
+                  fld.fldValue === 'false' || fld.fldValue === false
+                    ? 'сс-group-button-boolean-active'
+                    : ''
+                "
+                type="button"
+                value="false"
+                :disabled="fld.disabled"
+                @click="fld.fldValue = 'false'"
+              >
+                FALSE
+              </button>
             </div>
             <div v-else-if="fld.fldIsSelect" class="сс-param-line-buttons">
-              <select v-model="fld.fldValue" class="сс-select-field" :style="fld.fldValueStyle" :disabled="fld.disabled">
-                <option v-for="opt in fld.fldOptions" :key="opt" :value="opt" v-text="opt"/>
+              <select
+                v-model="fld.fldValue"
+                class="сс-select-field"
+                :style="fld.fldValueStyle"
+                :disabled="fld.disabled"
+              >
+                <option v-for="opt in fld.fldOptions" :key="opt" :value="opt" v-text="opt" />
               </select>
             </div>
             <div v-else class="сс-param-line-buttons">
-              <input v-model="fld.fldValue" :style="fld.fldValueStyle" :disabled="fld.disabled"/>
+              <input v-model="fld.fldValue" :style="fld.fldValueStyle" :disabled="fld.disabled" />
             </div>
           </div>
         </div>
         <div :style="styleFooter">
-          <button v-if="!params.isAlert" type="button" class="сс-button-ok" @click="ok" v-text="'Да'"/>
-          <button type="button" class="сс-button-cancel" @click="close" v-text="buttonCloseCaption"/>
+          <button
+            v-if="!params.isAlert"
+            type="button"
+            class="сс-button-ok"
+            @click="ok"
+            v-text="'Да'"
+          />
+          <button
+            type="button"
+            class="сс-button-cancel"
+            @click="close"
+            v-text="buttonCloseCaption"
+          />
         </div>
       </div>
     </div>
@@ -32,30 +74,38 @@
 
 <script>
 export default {
-  name: "CustomConfirm",
+  name: 'CustomConfirm',
   props: {
     params: {
       type: Object,
       required: true,
-      default: () => {}
-    }
+      default: () => {},
+    },
   },
-  data () {
+  data() {
     return {
-      timeToClose: undefined
-    };
+      timeToClose: undefined,
+    }
   },
   computed: {
     buttonCloseCaption() {
-      return (this.params.isAlert ? 'OK' : 'Нет') + (this.timeToClose ? ` ( ${this.timeToClose} сек. )` : '')
+      return (
+        (this.params.isAlert ? 'OK' : 'Нет') +
+        (this.timeToClose ? ` ( ${this.timeToClose} сек. )` : '')
+      )
     },
     styleHeader() {
       return {
-        backgroundColor: this.params.alertType === 'warning' ? 'darkorange' : this.params.alertType === 'error' ? 'darkred' : 'darkslategray',
+        backgroundColor:
+          this.params.alertType === 'warning'
+            ? 'darkorange'
+            : this.params.alertType === 'error'
+              ? 'darkred'
+              : 'darkslategray',
         padding: '10px',
         color: 'white',
         fontSize: 'larger',
-        fontWeight: '300'
+        fontWeight: '300',
       }
     },
     styleBody() {
@@ -64,18 +114,23 @@ export default {
         padding: '10px',
         color: 'black',
         fontSize: 'larger',
-        fontWeight: '300'
+        fontWeight: '300',
       }
     },
     styleFooter() {
       return {
-        backgroundColor: this.params.alertType === 'warning' ? 'darkorange' : this.params.alertType === 'error' ? 'darkred' : 'darkslategray',
+        backgroundColor:
+          this.params.alertType === 'warning'
+            ? 'darkorange'
+            : this.params.alertType === 'error'
+              ? 'darkred'
+              : 'darkslategray',
         padding: '10px',
         color: 'white',
         fontSize: 'larger',
         fontWeight: '300',
         display: 'flex',
-        justifyContent: 'flex-end'
+        justifyContent: 'flex-end',
       }
     },
     styleButtonOk() {
@@ -89,11 +144,10 @@ export default {
         background: 'transparent',
         width: '150px',
         height: 'auto',
-        marginRight: '10px'
+        marginRight: '10px',
       }
     },
-    styleButtonCancel()
-    {
+    styleButtonCancel() {
       return {
         border: '1px solid white',
         borderRadius: '10px',
@@ -103,24 +157,24 @@ export default {
         color: this.params.isAlert ? '#4AAE9B' : 'indianred',
         background: 'transparent',
         width: '150px',
-        height: 'auto'
+        height: 'auto',
       }
-    }
+    },
   },
   watch: {
     timeToClose: {
-      handler () {
+      handler() {
         if (this.timeToClose < 0) {
-          clearInterval(this.decreaseTimeToClose);
-          this.close();
+          clearInterval(this.decreaseTimeToClose)
+          this.close()
         }
-      }
-    }
+      },
+    },
   },
   mounted() {
     if (this.params.timeout) {
-      this.timeToClose = this.params.timeout;
-      setInterval(this.decreaseTimeToClose,1000);
+      this.timeToClose = this.params.timeout
+      setInterval(this.decreaseTimeToClose, 1000)
     }
   },
   methods: {
@@ -128,26 +182,25 @@ export default {
       this.timeToClose--
     },
     ok() {
-      let ret = {};
+      let ret = {}
       if (this.params.fields) {
         for (let i = 0; i < this.params.fields.length; i++) {
-          let paramName = this.params.fields[i].fldName;
-          let paramValue = this.params.fields[i].fldValue;
-          ret[paramName] = paramValue;
+          let paramName = this.params.fields[i].fldName
+          let paramValue = this.params.fields[i].fldValue
+          ret[paramName] = paramValue
         }
       }
-      this.params.callback(ret);
-      this.$emit('close');
+      this.params.callback(ret)
+      this.$emit('close')
     },
     close() {
-      this.$emit('close');
-    }
-  }
+      this.$emit('close')
+    },
+  },
 }
 </script>
 
 <style scoped>
-
 .сс-modal-fade-enter,
 .сс-modal-fade-leave-active {
   opacity: 0;
@@ -155,7 +208,7 @@ export default {
 
 .сс-modal-fade-enter-active,
 .сс-modal-fade-leave-active {
-  transition: opacity .5s ease
+  transition: opacity 0.5s ease;
 }
 
 .сс-modal-backdrop {
@@ -172,7 +225,7 @@ export default {
 }
 
 .сс-area {
-  background: #FFFFFF;
+  background: #ffffff;
   box-shadow: 2px 2px 20px 1px;
   overflow-x: auto;
   display: flex;
@@ -206,7 +259,7 @@ export default {
   font-size: 18px;
   cursor: pointer;
   font-weight: bold;
-  color: #4AAE9B;
+  color: #4aae9b;
   background: darkslategray;
   width: 150px;
   height: auto;
@@ -221,7 +274,7 @@ export default {
   font-size: 18px;
   cursor: pointer;
   font-weight: bold;
-  color: #4AAE9B;
+  color: #4aae9b;
   background: darkslategray;
   width: 150px;
   height: auto;

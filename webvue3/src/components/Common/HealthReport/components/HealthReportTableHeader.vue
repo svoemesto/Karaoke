@@ -1,40 +1,42 @@
 <template>
   <div class="hrl-table-footer">
-    <button type="button" class="hrl-table-header-button-repair-all" :disabled="healthReportListCanRepair.length === 0" @click="repairAll">Repair All ({{healthReportListCanRepair.length}})</button>
+    <button
+      type="button"
+      class="hrl-table-header-button-repair-all"
+      :disabled="healthReportListCanRepair.length === 0"
+      @click="repairAll"
+    >
+      Repair All ({{ healthReportListCanRepair.length }})
+    </button>
   </div>
 </template>
 
 <script>
-
-
 export default {
-  name: "HealthReportTableHeader",
+  name: 'HealthReportTableHeader',
   props: {
     healthReportList: {
       type: Array,
       required: true,
-      defaults: []
-    }
+      defaults: [],
+    },
   },
   computed: {
     healthReportListCanRepair() {
-      return this.healthReportList.filter(healthReport => healthReport.canResolve);
-    }
+      return this.healthReportList.filter((healthReport) => healthReport.canResolve)
+    },
   },
   methods: {
     repairAll() {
-      if (this.healthReportList.length === 0) return;
-      const settingsId = this.healthReportList[0].settingsId;
-      this.$store.dispatch('repairAllPromise', settingsId);
-    }
+      if (this.healthReportList.length === 0) return
+      const settingsId = this.healthReportList[0].settingsId
+      this.$store.dispatch('repairAllPromise', settingsId)
+    },
   },
-
 }
-
 </script>
 
 <style scoped>
-
 .hrl-table-footer {
   width: fit-content;
 }
@@ -46,5 +48,4 @@ export default {
   padding: 0 3px;
   font-size: small;
 }
-
 </style>

@@ -40,7 +40,9 @@
           allowfullscreen
         />
         <div v-else class="km-player-placeholder">
-          <button class="km-big-play" :disabled="!hasPlayable" @click="startPlaylist">▶ Запустить плейлист</button>
+          <button class="km-big-play" :disabled="!hasPlayable" @click="startPlaylist">
+            ▶ Запустить плейлист
+          </button>
           <p v-if="!hasPlayable" class="km-player-hint">
             Нет доступных для воспроизведения песен (не готовы или недоступны без премиума).
           </p>
@@ -50,41 +52,94 @@
       <!-- Панель управления плейлистом -->
       <div class="km-controls">
         <button class="km-ctrl-btn" title="Предыдущая" :disabled="!started" @click="prev">⏮</button>
-        <button class="km-ctrl-btn km-ctrl-main" :title="isPlaying ? 'Пауза' : 'Играть'" @click="togglePlay">
+        <button
+          class="km-ctrl-btn km-ctrl-main"
+          :title="isPlaying ? 'Пауза' : 'Играть'"
+          @click="togglePlay"
+        >
           {{ isPlaying ? '⏸' : '▶' }}
         </button>
         <button class="km-ctrl-btn" title="Следующая" :disabled="!started" @click="next">⏭</button>
 
         <div class="km-ctrl-sep" />
 
-        <button class="km-ctrl-toggle" :class="{ active: settings.continuous }" title="Непрерывное воспроизведение" @click="toggleContinuous">⇥ Непрерывно</button>
-        <button class="km-ctrl-toggle" :class="{ active: settings.repeatMode !== 'none' }" :title="repeatTitle" @click="cycleRepeat">{{ repeatLabel }}</button>
-        <button class="km-ctrl-toggle" :class="{ active: settings.shuffle }" title="Случайный порядок" @click="toggleShuffle">🔀 Случайно</button>
+        <button
+          class="km-ctrl-toggle"
+          :class="{ active: settings.continuous }"
+          title="Непрерывное воспроизведение"
+          @click="toggleContinuous"
+        >
+          ⇥ Непрерывно
+        </button>
+        <button
+          class="km-ctrl-toggle"
+          :class="{ active: settings.repeatMode !== 'none' }"
+          :title="repeatTitle"
+          @click="cycleRepeat"
+        >
+          {{ repeatLabel }}
+        </button>
+        <button
+          class="km-ctrl-toggle"
+          :class="{ active: settings.shuffle }"
+          title="Случайный порядок"
+          @click="toggleShuffle"
+        >
+          🔀 Случайно
+        </button>
       </div>
 
       <!-- Список песен (drag-drop) -->
-      <draggable v-model="items" item-key="id" handle=".km-drag-handle" class="km-song-list" ghost-class="km-song-ghost" @end="onReorder">
+      <draggable
+        v-model="items"
+        item-key="id"
+        handle=".km-drag-handle"
+        class="km-song-list"
+        ghost-class="km-song-ghost"
+        @end="onReorder"
+      >
         <template #item="{ element: item }">
-          <div class="km-song-row" :class="{ 'km-song-current': item.songId === currentSongId, 'km-song-muted': item.muted }">
+          <div
+            class="km-song-row"
+            :class="{
+              'km-song-current': item.songId === currentSongId,
+              'km-song-muted': item.muted,
+            }"
+          >
             <span class="km-drag-handle" title="Перетащите для смены порядка">⠿</span>
             <span class="km-song-num">{{ badgeFor(item) }}</span>
             <div class="km-song-info">
-              <div class="km-song-title">{{ item.songName || ('Песня #' + item.songId) }}</div>
-              <div class="km-song-sub">{{ item.author }}<span v-if="item.album"> — {{ item.album }}</span></div>
+              <div class="km-song-title">{{ item.songName || 'Песня #' + item.songId }}</div>
+              <div class="km-song-sub">
+                {{ item.author }}<span v-if="item.album"> — {{ item.album }}</span>
+              </div>
             </div>
             <button
               class="km-song-btn"
               :class="{ 'km-muted-on': item.muted }"
-              :title="item.muted ? 'Включить (сейчас пропускается)' : 'Приглушить (пропускать при проигрывании)'"
+              :title="
+                item.muted
+                  ? 'Включить (сейчас пропускается)'
+                  : 'Приглушить (пропускать при проигрывании)'
+              "
               @click="toggleMute(item)"
-            >{{ item.muted ? '🔇' : '🔊' }}</button>
-            <button class="km-song-btn km-song-remove" title="Убрать из плейлиста" @click="removeItem(item)">✕</button>
+            >
+              {{ item.muted ? '🔇' : '🔊' }}
+            </button>
+            <button
+              class="km-song-btn km-song-remove"
+              title="Убрать из плейлиста"
+              @click="removeItem(item)"
+            >
+              ✕
+            </button>
           </div>
         </template>
       </draggable>
 
       <p v-if="!items.length" class="km-empty">
-        В плейлисте пока нет песен. Добавляйте их синей иконкой-закладкой в таблицах «Закрома»/«Поиск».
+        В плейлисте пока нет песен. Добавляйте их синей иконкой-закладкой в таблицах
+        «Закрома»/«Поиск».
       </p>
     </div>
   </div>
@@ -96,8 +151,12 @@ import { useRoute } from 'vue-router'
 import draggable from 'vuedraggable'
 import { fetchPlayerToken } from '../services/playerLauncher'
 import {
-  fetchPlaylist, renamePlaylist, updatePlaylistSettings,
-  reorderPlaylist, setSongMute, removeSongFromPlaylist,
+  fetchPlaylist,
+  renamePlaylist,
+  updatePlaylistSettings,
+  reorderPlaylist,
+  setSongMute,
+  removeSongFromPlaylist,
 } from '../services/playlistApi'
 import { usePlayerReadiness } from '../composables/usePlayerReadiness'
 import { useAuth } from '../composables/useAuth'
@@ -127,18 +186,26 @@ export default {
     const playerWide = ref(false)
 
     const hasPlayable = computed(() =>
-      items.value.some(it => !it.muted && readiness.stateFor(it.songId) === 'active')
+      items.value.some((it) => !it.muted && readiness.stateFor(it.songId) === 'active'),
     )
     const repeatLabel = computed(() =>
-      settings.repeatMode === 'one' ? '🔂 Одна' : settings.repeatMode === 'all' ? '🔁 Все' : '🔁 Повтор'
+      settings.repeatMode === 'one'
+        ? '🔂 Одна'
+        : settings.repeatMode === 'all'
+          ? '🔁 Все'
+          : '🔁 Повтор',
     )
     const repeatTitle = computed(() =>
-      settings.repeatMode === 'one' ? 'Повтор одной песни'
-        : settings.repeatMode === 'all' ? 'Повтор всего плейлиста' : 'Повтор выключен'
+      settings.repeatMode === 'one'
+        ? 'Повтор одной песни'
+        : settings.repeatMode === 'all'
+          ? 'Повтор всего плейлиста'
+          : 'Повтор выключен',
     )
 
     function pluralSongs(n) {
-      const a = Math.abs(n) % 100, b = a % 10
+      const a = Math.abs(n) % 100,
+        b = a % 10
       if (a > 10 && a < 20) return 'песен'
       if (b > 1 && b < 5) return 'песни'
       if (b === 1) return 'песня'
@@ -155,7 +222,11 @@ export default {
     async function load() {
       loading.value = true
       const { status, body } = await fetchPlaylist(id)
-      if (status !== 200 || !body || !body.playlist) { notFound.value = true; loading.value = false; return }
+      if (status !== 200 || !body || !body.playlist) {
+        notFound.value = true
+        loading.value = false
+        return
+      }
       Object.assign(playlist, body.playlist)
       nameEdit.value = body.playlist.name
       settings.continuous = body.playlist.continuous
@@ -163,14 +234,14 @@ export default {
       settings.shuffle = body.playlist.shuffle
       items.value = body.items || []
       loading.value = false
-      readiness.load(items.value.map(it => it.songId))
+      readiness.load(items.value.map((it) => it.songId))
     }
 
     // Упорядоченный список воспроизводимых song_id (не muted и доступных), с учётом shuffle.
     function playableIds() {
       const arr = items.value
-        .filter(it => !it.muted && readiness.stateFor(it.songId) === 'active')
-        .map(it => it.songId)
+        .filter((it) => !it.muted && readiness.stateFor(it.songId) === 'active')
+        .map((it) => it.songId)
       if (settings.shuffle) {
         for (let k = arr.length - 1; k > 0; k--) {
           const j = Math.floor(Math.random() * (k + 1))
@@ -202,7 +273,12 @@ export default {
         return
       }
       // Плеер (KaraokePlayer) просит родителя растянуть iframe — как на странице песни.
-      if (e.source === win && e.data && e.data.source === 'karaoke-player' && e.data.type === 'display-mode') {
+      if (
+        e.source === win &&
+        e.data &&
+        e.data.source === 'karaoke-player' &&
+        e.data.type === 'display-mode'
+      ) {
         playerWide.value = e.data.mode === 'page'
       }
     }
@@ -214,20 +290,34 @@ export default {
       const { canWatch, token } = await fetchPlayerToken(first)
       if (!canWatch || !token) return
       sessionStorage.setItem(`kp_token_${first}`, token)
-      sessionStorage.setItem('kp_pl_queue', JSON.stringify({
-        ids, continuous: settings.continuous, repeatMode: settings.repeatMode,
-      }))
+      sessionStorage.setItem(
+        'kp_pl_queue',
+        JSON.stringify({
+          ids,
+          continuous: settings.continuous,
+          repeatMode: settings.repeatMode,
+        }),
+      )
       firstSongId.value = first
       currentSongId.value = first
       started.value = true
     }
 
-    function pushQueue() { if (started.value) send('setqueue', { ids: playableIds() }) }
+    function pushQueue() {
+      if (started.value) send('setqueue', { ids: playableIds() })
+    }
 
-    function prev() { if (started.value) send('prev') }
-    function next() { if (started.value) send('next') }
+    function prev() {
+      if (started.value) send('prev')
+    }
+    function next() {
+      if (started.value) send('next')
+    }
     function togglePlay() {
-      if (!started.value) { startPlaylist(); return }
+      if (!started.value) {
+        startPlaylist()
+        return
+      }
       send('toggle')
     }
 
@@ -236,32 +326,67 @@ export default {
     function persistSettings() {
       clearTimeout(saveTimer)
       saveTimer = setTimeout(() => {
-        updatePlaylistSettings(id, { continuous: settings.continuous, repeatMode: settings.repeatMode, shuffle: settings.shuffle })
+        updatePlaylistSettings(id, {
+          continuous: settings.continuous,
+          repeatMode: settings.repeatMode,
+          shuffle: settings.shuffle,
+        })
       }, 300)
     }
-    function toggleContinuous() { settings.continuous = !settings.continuous; persistSettings(); send('setmodes', { continuous: settings.continuous, repeatMode: settings.repeatMode }) }
-    function cycleRepeat() {
-      settings.repeatMode = settings.repeatMode === 'none' ? 'all' : settings.repeatMode === 'all' ? 'one' : 'none'
-      persistSettings(); send('setmodes', { continuous: settings.continuous, repeatMode: settings.repeatMode })
+    function toggleContinuous() {
+      settings.continuous = !settings.continuous
+      persistSettings()
+      send('setmodes', { continuous: settings.continuous, repeatMode: settings.repeatMode })
     }
-    function toggleShuffle() { settings.shuffle = !settings.shuffle; persistSettings(); pushQueue() }
+    function cycleRepeat() {
+      settings.repeatMode =
+        settings.repeatMode === 'none' ? 'all' : settings.repeatMode === 'all' ? 'one' : 'none'
+      persistSettings()
+      send('setmodes', { continuous: settings.continuous, repeatMode: settings.repeatMode })
+    }
+    function toggleShuffle() {
+      settings.shuffle = !settings.shuffle
+      persistSettings()
+      pushQueue()
+    }
 
     // --- Список: имя / порядок / mute / удаление ---
     function onRename() {
       const nm = nameEdit.value.trim()
-      if (!nm || nm === playlist.name) { nameEdit.value = playlist.name; return }
-      renamePlaylist(id, nm).then(({ status }) => { if (status === 200) playlist.name = nm })
+      if (!nm || nm === playlist.name) {
+        nameEdit.value = playlist.name
+        return
+      }
+      renamePlaylist(id, nm).then(({ status }) => {
+        if (status === 200) playlist.name = nm
+      })
     }
-    function onReorder() { reorderPlaylist(id, items.value.map(it => it.songId)); pushQueue() }
-    function toggleMute(item) { item.muted = !item.muted; setSongMute(id, item.songId, item.muted); pushQueue() }
+    function onReorder() {
+      reorderPlaylist(
+        id,
+        items.value.map((it) => it.songId),
+      )
+      pushQueue()
+    }
+    function toggleMute(item) {
+      item.muted = !item.muted
+      setSongMute(id, item.songId, item.muted)
+      pushQueue()
+    }
     function removeItem(item) {
       removeSongFromPlaylist(id, item.songId).then(({ status }) => {
-        if (status === 200) { items.value = items.value.filter(it => it.songId !== item.songId); pushQueue() }
+        if (status === 200) {
+          items.value = items.value.filter((it) => it.songId !== item.songId)
+          pushQueue()
+        }
       })
     }
 
     onMounted(async () => {
-      if (!isLoggedIn.value) { loading.value = false; return }
+      if (!isLoggedIn.value) {
+        loading.value = false
+        return
+      }
       window.addEventListener('message', onMessage)
       await load()
     })
@@ -273,38 +398,136 @@ export default {
 
     return {
       isLoggedIn,
-      loading, notFound, playlist, items, nameEdit, settings,
-      playerIframe, started, firstSongId, isPlaying, currentSongId, playerWide, hasPlayable,
-      repeatLabel, repeatTitle,
-      pluralSongs, badgeFor,
-      startPlaylist, togglePlay, next, prev,
-      toggleContinuous, cycleRepeat, toggleShuffle,
-      onRename, onReorder, toggleMute, removeItem,
+      loading,
+      notFound,
+      playlist,
+      items,
+      nameEdit,
+      settings,
+      playerIframe,
+      started,
+      firstSongId,
+      isPlaying,
+      currentSongId,
+      playerWide,
+      hasPlayable,
+      repeatLabel,
+      repeatTitle,
+      pluralSongs,
+      badgeFor,
+      startPlaylist,
+      togglePlay,
+      next,
+      prev,
+      toggleContinuous,
+      cycleRepeat,
+      toggleShuffle,
+      onRename,
+      onReorder,
+      toggleMute,
+      removeItem,
     }
-  }
+  },
 }
 </script>
 
 <style scoped>
-.km-page { min-height: 100vh; background: var(--km-bg); color: var(--km-text); }
-.km-header { background: var(--km-header); border-bottom: 1px solid var(--km-border); padding: 0.5rem 1rem; }
-.km-header-inner { max-width: 900px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; }
-.km-header-left { display: flex; align-items: center; gap: 0.75rem; }
-.km-back { color: var(--km-accent); text-decoration: none; font-size: 0.85rem; white-space: nowrap; }
-.km-back:hover { text-decoration: underline; }
-.km-logo { height: 36px; width: auto; }
-.km-loading { padding: 2rem; text-align: center; color: var(--km-text2); }
+.km-page {
+  min-height: 100vh;
+  background: var(--km-bg);
+  color: var(--km-text);
+}
+.km-header {
+  background: var(--km-header);
+  border-bottom: 1px solid var(--km-border);
+  padding: 0.5rem 1rem;
+}
+.km-header-inner {
+  max-width: 900px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.km-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.km-back {
+  color: var(--km-accent);
+  text-decoration: none;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+.km-back:hover {
+  text-decoration: underline;
+}
+.km-logo {
+  height: 36px;
+  width: auto;
+}
+.km-loading {
+  padding: 2rem;
+  text-align: center;
+  color: var(--km-text2);
+}
 
-.km-content { max-width: 900px; margin: 0 auto; padding: 1.5rem 1rem; }
-.km-name-row { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; }
-.km-name-input { flex: 1; font-size: 1.3rem; font-weight: 700; background: var(--km-input); color: var(--km-text); border: 1px solid transparent; border-radius: 8px; padding: 0.3rem 0.6rem; }
-.km-name-input:hover { border-color: var(--km-border); }
-.km-name-input:focus { outline: none; border-color: var(--km-accent); }
-.km-name-fixed { flex: 1; font-size: 1.3rem; font-weight: 700; margin: 0; }
-.km-name-count { font-size: 0.8rem; color: var(--km-text2); white-space: nowrap; }
+.km-content {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem;
+}
+.km-name-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+.km-name-input {
+  flex: 1;
+  font-size: 1.3rem;
+  font-weight: 700;
+  background: var(--km-input);
+  color: var(--km-text);
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 0.3rem 0.6rem;
+}
+.km-name-input:hover {
+  border-color: var(--km-border);
+}
+.km-name-input:focus {
+  outline: none;
+  border-color: var(--km-accent);
+}
+.km-name-fixed {
+  flex: 1;
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin: 0;
+}
+.km-name-count {
+  font-size: 0.8rem;
+  color: var(--km-text2);
+  white-space: nowrap;
+}
 
-.km-player-box { position: relative; width: 100%; aspect-ratio: 16 / 9; background: #000; border-radius: 12px; overflow: hidden; margin-bottom: 0.75rem; }
-.km-player-iframe { width: 100%; height: 100%; border: 0; display: block; }
+.km-player-box {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #000;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 0.75rem;
+}
+.km-player-iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
 /* «Широкий» режим — плеер (внутри iframe) сам попросил родителя растянуть его на весь вьюпорт.
    position:fixed игнорирует max-width родительского .km-content (тот не создаёт containing block) —
    как на странице песни (SongModern .km-player-page-mode). */
@@ -318,35 +541,169 @@ export default {
   width: 100vw;
   height: 100vh;
 }
-.km-player-placeholder { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.75rem; background: linear-gradient(135deg, #12121f, #1c1030); }
-.km-big-play { background: var(--km-accent, #0077ff); color: #fff; border: none; border-radius: 30px; padding: 0.7rem 1.6rem; font-size: 1rem; font-weight: 700; cursor: pointer; }
-.km-big-play:hover { filter: brightness(1.1); }
-.km-big-play:disabled { opacity: 0.5; cursor: default; }
-.km-player-hint { color: #b9b9c9; font-size: 0.82rem; max-width: 80%; text-align: center; }
+.km-player-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  background: linear-gradient(135deg, #12121f, #1c1030);
+}
+.km-big-play {
+  background: var(--km-accent, #0077ff);
+  color: #fff;
+  border: none;
+  border-radius: 30px;
+  padding: 0.7rem 1.6rem;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.km-big-play:hover {
+  filter: brightness(1.1);
+}
+.km-big-play:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.km-player-hint {
+  color: #b9b9c9;
+  font-size: 0.82rem;
+  max-width: 80%;
+  text-align: center;
+}
 
-.km-controls { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; background: var(--km-card); border: 1px solid var(--km-border); border-radius: 12px; padding: 0.5rem 0.75rem; margin-bottom: 1.25rem; }
-.km-ctrl-btn { background: transparent; border: none; color: var(--km-text); font-size: 1.1rem; cursor: pointer; padding: 0.25rem 0.5rem; border-radius: 6px; }
-.km-ctrl-btn:hover:not(:disabled) { background: var(--km-hover); }
-.km-ctrl-btn:disabled { opacity: 0.4; cursor: default; }
-.km-ctrl-main { font-size: 1.35rem; }
-.km-ctrl-sep { width: 1px; height: 22px; background: var(--km-border); margin: 0 0.4rem; }
-.km-ctrl-toggle { background: transparent; border: 1px solid var(--km-border); color: var(--km-text2); border-radius: 16px; padding: 0.3rem 0.7rem; font-size: 0.8rem; cursor: pointer; }
-.km-ctrl-toggle:hover { background: var(--km-hover); }
-.km-ctrl-toggle.active { background: var(--km-accent); color: #fff; border-color: var(--km-accent); }
+.km-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  background: var(--km-card);
+  border: 1px solid var(--km-border);
+  border-radius: 12px;
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 1.25rem;
+}
+.km-ctrl-btn {
+  background: transparent;
+  border: none;
+  color: var(--km-text);
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+}
+.km-ctrl-btn:hover:not(:disabled) {
+  background: var(--km-hover);
+}
+.km-ctrl-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.km-ctrl-main {
+  font-size: 1.35rem;
+}
+.km-ctrl-sep {
+  width: 1px;
+  height: 22px;
+  background: var(--km-border);
+  margin: 0 0.4rem;
+}
+.km-ctrl-toggle {
+  background: transparent;
+  border: 1px solid var(--km-border);
+  color: var(--km-text2);
+  border-radius: 16px;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+.km-ctrl-toggle:hover {
+  background: var(--km-hover);
+}
+.km-ctrl-toggle.active {
+  background: var(--km-accent);
+  color: #fff;
+  border-color: var(--km-accent);
+}
 
-.km-song-list { display: flex; flex-direction: column; gap: 0.35rem; }
-.km-song-row { display: flex; align-items: center; gap: 0.6rem; background: var(--km-card); border: 1px solid var(--km-border); border-radius: 10px; padding: 0.5rem 0.7rem; }
-.km-song-current { border-color: var(--km-accent); box-shadow: 0 0 0 1px var(--km-accent); }
-.km-song-muted { opacity: 0.55; }
-.km-song-ghost { opacity: 0.4; }
-.km-drag-handle { cursor: grab; color: var(--km-text2); font-size: 1.1rem; user-select: none; }
-.km-song-num { width: 1.4rem; text-align: center; color: var(--km-text2); font-size: 0.9rem; }
-.km-song-info { flex: 1; min-width: 0; }
-.km-song-title { font-size: 0.92rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.km-song-sub { font-size: 0.76rem; color: var(--km-text2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.km-song-btn { background: transparent; border: none; cursor: pointer; font-size: 1rem; padding: 0.25rem 0.4rem; border-radius: 6px; color: var(--km-text2); }
-.km-song-btn:hover { background: var(--km-hover); }
-.km-muted-on { opacity: 1; }
-.km-song-remove:hover { color: #d02c3a; }
-.km-empty { color: var(--km-text2); font-size: 0.9rem; padding: 1rem 0; }
+.km-song-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.km-song-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: var(--km-card);
+  border: 1px solid var(--km-border);
+  border-radius: 10px;
+  padding: 0.5rem 0.7rem;
+}
+.km-song-current {
+  border-color: var(--km-accent);
+  box-shadow: 0 0 0 1px var(--km-accent);
+}
+.km-song-muted {
+  opacity: 0.55;
+}
+.km-song-ghost {
+  opacity: 0.4;
+}
+.km-drag-handle {
+  cursor: grab;
+  color: var(--km-text2);
+  font-size: 1.1rem;
+  user-select: none;
+}
+.km-song-num {
+  width: 1.4rem;
+  text-align: center;
+  color: var(--km-text2);
+  font-size: 0.9rem;
+}
+.km-song-info {
+  flex: 1;
+  min-width: 0;
+}
+.km-song-title {
+  font-size: 0.92rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.km-song-sub {
+  font-size: 0.76rem;
+  color: var(--km-text2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.km-song-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 0.25rem 0.4rem;
+  border-radius: 6px;
+  color: var(--km-text2);
+}
+.km-song-btn:hover {
+  background: var(--km-hover);
+}
+.km-muted-on {
+  opacity: 1;
+}
+.km-song-remove:hover {
+  color: #d02c3a;
+}
+.km-empty {
+  color: var(--km-text2);
+  font-size: 0.9rem;
+  padding: 1rem 0;
+}
 </style>

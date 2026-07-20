@@ -13,12 +13,17 @@ export function useEngagementTracking(pageName, getSongId) {
 
   function songId() {
     const v = typeof getSongId === 'function' ? getSongId() : getSongId
-    return (v === undefined || v === null || v === '') ? undefined : v
+    return v === undefined || v === null || v === '' ? undefined : v
   }
 
-  function startTimer() { if (lastStart === null) lastStart = Date.now() }
+  function startTimer() {
+    if (lastStart === null) lastStart = Date.now()
+  }
   function stopTimer() {
-    if (lastStart !== null) { accumulatedMs += Date.now() - lastStart; lastStart = null }
+    if (lastStart !== null) {
+      accumulatedMs += Date.now() - lastStart
+      lastStart = null
+    }
   }
 
   // Отправляет накопленное время и обнуляет счётчик (чтобы не задвоить при повторном flush на

@@ -1,97 +1,100 @@
 <template>
   <div class="dictionaries-bv-table">
-    <DictionariesFilter v-if="isDictionariesFilterVisible" @close="closeDictionariesFilter"/>
-    <custom-confirm v-if="isCustomConfirmVisible" :params="customConfirmParams" @close="closeCustomConfirm" />
+    <DictionariesFilter v-if="isDictionariesFilterVisible" @close="closeDictionariesFilter" />
+    <custom-confirm
+      v-if="isCustomConfirmVisible"
+      :params="customConfirmParams"
+      @close="closeCustomConfirm"
+    />
 
     <div class="dictionaries-bv-table-add">
       <div class="dictionaries-bv-table-add-title">Добавить:</div>
       <select v-model="newItem.dictName" class="dct-field">
         <option value="" disabled>(словарь)</option>
-        <option v-for="name in dictNames" :key="name" :value="name" v-text="name"/>
+        <option v-for="name in dictNames" :key="name" :value="name" v-text="name" />
       </select>
-      <input v-model="newItem.dictValue" class="dct-field" placeholder="Значение"/>
+      <input v-model="newItem.dictValue" class="dct-field" placeholder="Значение" />
       <button class="dct-btn-round" :disabled="!canCreate" @click="create">Добавить</button>
     </div>
 
     <div class="dictionaries-bv-table-header">
       <b-pagination
-          v-model="currentPage"
-          :total-rows="countRows"
-          :per-page="perPage"
-          :limit="30"
-          size="sm"
-          pills
+        v-model="currentPage"
+        :total-rows="countRows"
+        :per-page="perPage"
+        :limit="30"
+        size="sm"
+        pills
       />
     </div>
     <div class="dictionaries-bv-table-body">
       <b-table
-          v-model:sort-by="sortBy"
-          :items="dictionariesDigest"
-          :busy="isBusy"
-          :fields="dictionaryDigestFields"
-          :per-page="perPage"
-          :current-page="currentPage"
-          small
-          bordered
-          hover
+        v-model:sort-by="sortBy"
+        :items="dictionariesDigest"
+        :busy="isBusy"
+        :fields="dictionaryDigestFields"
+        :per-page="perPage"
+        :current-page="currentPage"
+        small
+        bordered
+        hover
       >
         <template #table-busy>
           <div class="text-center text-danger my-2">
-            <b-spinner class="align-middle"/>
+            <b-spinner class="align-middle" />
             <strong>Loading...</strong>
           </div>
         </template>
         <template #table-colgroup="scope">
-          <col
-              v-for="field in scope.fields"
-              :key="field.key"
-              :style="field.style"
-          />
+          <col v-for="field in scope.fields" :key="field.key" :style="field.style" />
         </template>
 
         <template #cell(id)="data">
-          <div class="fld-dict-id" v-text="data.value"/>
+          <div class="fld-dict-id" v-text="data.value" />
         </template>
 
         <template #cell(dictName)="data">
-          <div class="fld-dict-name" @click.left="changeValue(data.item)" v-text="data.value"/>
+          <div class="fld-dict-name" @click.left="changeValue(data.item)" v-text="data.value" />
         </template>
 
         <template #cell(dictValue)="data">
-          <div class="fld-dict-value" @click.left="changeValue(data.item)" v-text="data.value"/>
+          <div class="fld-dict-value" @click.left="changeValue(data.item)" v-text="data.value" />
         </template>
 
         <template #cell(actions)="data">
           <div class="fld-dict-actions">
-            <button class="dct-btn-round-small" title="Удалить" @click="remove(data.item)">×</button>
+            <button class="dct-btn-round-small" title="Удалить" @click="remove(data.item)">
+              ×
+            </button>
           </div>
         </template>
-
       </b-table>
     </div>
     <div class="dictionaries-bv-table-footer">
-      <button class="dct-btn-round-double" title="Фильтр" @click="isDictionariesFilterVisible=true">
-        <img alt="filter" class="dct-icon-40" src="../../assets/svg/icon_filter.svg"/>
+      <button
+        class="dct-btn-round-double"
+        title="Фильтр"
+        @click="isDictionariesFilterVisible = true"
+      >
+        <img alt="filter" class="dct-icon-40" src="../../assets/svg/icon_filter.svg" />
       </button>
     </div>
-
   </div>
 </template>
 
 <script>
-
 import { BPagination, BSpinner, BTable } from 'bootstrap-vue-next'
-import DictionariesFilter from "./filter/DictionariesFilterModal.vue";
-import CustomConfirm from "../Common/CustomConfirm.vue";
+import DictionariesFilter from './filter/DictionariesFilterModal.vue'
+import CustomConfirm from '../Common/CustomConfirm.vue'
 
 export default {
-  name: "DictionariesTable",
+  name: 'DictionariesTable',
   components: {
     DictionariesFilter,
     CustomConfirm,
     BPagination,
     BSpinner,
-    BTable
+    BTable,
   },
   data() {
     return {
@@ -104,24 +107,24 @@ export default {
       isCustomConfirmVisible: false,
       customConfirmParams: undefined,
       isBusy: false,
-      newItem: { dictName: '', dictValue: '' }
+      newItem: { dictName: '', dictValue: '' },
     }
   },
   computed: {
     dictionariesDigestIsLoading() {
-      return this.$store.getters.getDictionariesDigestIsLoading;
+      return this.$store.getters.getDictionariesDigestIsLoading
     },
     dictionariesDigest() {
-      return this.$store.getters.getDictionariesDigest;
+      return this.$store.getters.getDictionariesDigest
     },
     dictNames() {
-      return this.$store.getters.getDictNames;
+      return this.$store.getters.getDictNames
     },
     countRows() {
-      return this.dictionariesDigest ? this.dictionariesDigest.length : 0;
+      return this.dictionariesDigest ? this.dictionariesDigest.length : 0
     },
     canCreate() {
-      return !!this.newItem.dictName && this.newItem.dictValue.trim() !== '';
+      return !!this.newItem.dictName && this.newItem.dictValue.trim() !== ''
     },
     dictionaryDigestFields() {
       return [
@@ -129,78 +132,83 @@ export default {
           key: 'id',
           sortable: true,
           label: 'ID',
-          style: { minWidth: '60px', maxWidth: '60px', textAlign: 'center', fontSize: 'small' }
+          style: { minWidth: '60px', maxWidth: '60px', textAlign: 'center', fontSize: 'small' },
         },
         {
           key: 'dictName',
           sortable: true,
           label: 'Словарь',
-          style: { minWidth: '250px', maxWidth: '250px', textAlign: 'left', fontSize: 'small' }
+          style: { minWidth: '250px', maxWidth: '250px', textAlign: 'left', fontSize: 'small' },
         },
         {
           key: 'dictValue',
           sortable: true,
           label: 'Значение',
-          style: { minWidth: '400px', maxWidth: '400px', textAlign: 'left', fontSize: 'small' }
+          style: { minWidth: '400px', maxWidth: '400px', textAlign: 'left', fontSize: 'small' },
         },
         {
           key: 'actions',
           label: '',
-          style: { minWidth: '50px', maxWidth: '50px', textAlign: 'center', fontSize: 'small' }
-        }
+          style: { minWidth: '50px', maxWidth: '50px', textAlign: 'center', fontSize: 'small' },
+        },
       ]
-    }
+    },
   },
   watch: {
     dictionariesDigestIsLoading: {
-      handler () {
-        this.isBusy = this.dictionariesDigestIsLoading;
-      }
+      handler() {
+        this.isBusy = this.dictionariesDigestIsLoading
+      },
     },
     currentPage: {
-      handler (newPage) {
+      handler(newPage) {
         // Сохраняем страницу в store, чтобы она восстановилась после переключения на другой компонент.
-        this.$store.commit('setDictionariesTableCurrentPage', newPage);
-      }
-    }
+        this.$store.commit('setDictionariesTableCurrentPage', newPage)
+      },
+    },
   },
   mounted() {
-    this.$store.dispatch('loadDictNames');
-    this.$store.dispatch('loadDictionariesDigests', {});
+    this.$store.dispatch('loadDictNames')
+    this.$store.dispatch('loadDictionariesDigests', {})
   },
   methods: {
-
     create() {
-      if (!this.canCreate) return;
+      if (!this.canCreate) return
       // Пара (dictName, dictValue) уникальна на уровне БД (uq_tbl_dictionaries_name_value);
       // бэкенд возвращает created:false, если такая пара уже существовала (createNewDictionaryItem
       // идемпотентен) — предупреждаем пользователя явно, а не просто молчим.
-      this.$store.dispatch('createDictionaryItemPromise', { dictName: this.newItem.dictName, dictValue: this.newItem.dictValue })
-          .then(result => {
-            this.$store.dispatch('loadDictionariesDigests', {});
-            if (!result.created) {
-              alert(`Значение «${this.newItem.dictValue}» уже есть в словаре «${this.newItem.dictName}»`);
-            }
-            this.newItem.dictValue = '';
-          })
-          .catch(error => {
-            console.error("Ошибка при добавлении значения словаря:", error);
-          });
+      this.$store
+        .dispatch('createDictionaryItemPromise', {
+          dictName: this.newItem.dictName,
+          dictValue: this.newItem.dictValue,
+        })
+        .then((result) => {
+          this.$store.dispatch('loadDictionariesDigests', {})
+          if (!result.created) {
+            alert(
+              `Значение «${this.newItem.dictValue}» уже есть в словаре «${this.newItem.dictName}»`,
+            )
+          }
+          this.newItem.dictValue = ''
+        })
+        .catch((error) => {
+          console.error('Ошибка при добавлении значения словаря:', error)
+        })
     },
 
     remove(item) {
-      if (!confirm(`Удалить значение «${item.dictValue}» из словаря «${item.dictName}»?`)) return;
-      this.$store.dispatch('deleteDictionaryItemPromise', item.id)
-          .then(() => {
-            this.$store.commit('removeDictionariesDigest', item.id);
-          })
-          .catch(error => {
-            console.error("Ошибка при удалении значения словаря:", error);
-          });
+      if (!confirm(`Удалить значение «${item.dictValue}» из словаря «${item.dictName}»?`)) return
+      this.$store
+        .dispatch('deleteDictionaryItemPromise', item.id)
+        .then(() => {
+          this.$store.commit('removeDictionariesDigest', item.id)
+        })
+        .catch((error) => {
+          console.error('Ошибка при удалении значения словаря:', error)
+        })
     },
 
     changeValue(item) {
-
       this.customConfirmParams = {
         header: 'Изменение значения словаря',
         body: `Запись ID = <strong>${item.id}</strong>`,
@@ -211,8 +219,8 @@ export default {
             fldLabel: 'ID:',
             fldValue: item.id,
             disabled: true,
-            fldLabelStyle: { width: '300px', textAlign: 'right', paddingRight: '5px'},
-            fldValueStyle: { width: '300px', textAlign: 'left', borderRadius: '5px'}
+            fldLabelStyle: { width: '300px', textAlign: 'right', paddingRight: '5px' },
+            fldValueStyle: { width: '300px', textAlign: 'left', borderRadius: '5px' },
           },
           {
             fldName: 'dictName',
@@ -220,49 +228,49 @@ export default {
             fldValue: item.dictName,
             fldIsSelect: true,
             fldOptions: this.dictNames,
-            fldLabelStyle: { width: '300px', textAlign: 'right', paddingRight: '5px'},
-            fldValueStyle: { width: '300px', textAlign: 'left', borderRadius: '5px'}
+            fldLabelStyle: { width: '300px', textAlign: 'right', paddingRight: '5px' },
+            fldValueStyle: { width: '300px', textAlign: 'left', borderRadius: '5px' },
           },
           {
             fldName: 'dictValue',
             fldLabel: 'Значение:',
             fldValue: item.dictValue,
-            fldLabelStyle: { width: '300px', textAlign: 'right', paddingRight: '5px'},
-            fldValueStyle: { width: '300px', textAlign: 'left', borderRadius: '5px'}
-          }
-        ]
+            fldLabelStyle: { width: '300px', textAlign: 'right', paddingRight: '5px' },
+            fldValueStyle: { width: '300px', textAlign: 'left', borderRadius: '5px' },
+          },
+        ],
       }
-      this.isCustomConfirmVisible = true;
+      this.isCustomConfirmVisible = true
     },
 
     doChangeValue(payload) {
-      this.$store.dispatch('saveDictionaryItemPromise', payload)
-          .then(result => {
-            if (result !== 0) {
-              this.$store.dispatch('loadOneRecord', result);
-            } else {
-              // save() на бэкенде поймал конфликт uq_tbl_dictionaries_name_value (такая пара
-              // dictName+dictValue уже есть у другой записи) и вернул 0 вместо id.
-              alert('Не удалось сохранить: такая пара «словарь + значение» уже существует.');
-            }
-          })
-          .catch(error => {
-            console.error("Ошибка при сохранении значения словаря:", error);
-          });
+      this.$store
+        .dispatch('saveDictionaryItemPromise', payload)
+        .then((result) => {
+          if (result !== 0) {
+            this.$store.dispatch('loadOneRecord', result)
+          } else {
+            // save() на бэкенде поймал конфликт uq_tbl_dictionaries_name_value (такая пара
+            // dictName+dictValue уже есть у другой записи) и вернул 0 вместо id.
+            alert('Не удалось сохранить: такая пара «словарь + значение» уже существует.')
+          }
+        })
+        .catch((error) => {
+          console.error('Ошибка при сохранении значения словаря:', error)
+        })
     },
 
     closeCustomConfirm() {
-      this.isCustomConfirmVisible = false;
+      this.isCustomConfirmVisible = false
     },
     closeDictionariesFilter() {
-      this.isDictionariesFilterVisible = false;
+      this.isDictionariesFilterVisible = false
     },
-  }
+  },
 }
 </script>
 
 <style>
-
 .dictionaries-bv-table {
   padding: 0;
   margin: 0;
@@ -427,5 +435,4 @@ export default {
   width: 40px;
   height: 40px;
 }
-
 </style>

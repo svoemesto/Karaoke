@@ -10,9 +10,27 @@
         <div class="km-header-right">
           <AuthStatusWidget />
           <div class="km-theme-toggle">
-            <button :class="['km-tb', theme === 'light' ? 'active' : '']" @click="setTheme('light')" title="Светлая">☀</button>
-            <button :class="['km-tb', theme === 'system' ? 'active' : '']" @click="setTheme('system')" title="Авто">⬡</button>
-            <button :class="['km-tb', theme === 'dark' ? 'active' : '']" @click="setTheme('dark')" title="Тёмная">🌙</button>
+            <button
+              :class="['km-tb', theme === 'light' ? 'active' : '']"
+              @click="setTheme('light')"
+              title="Светлая"
+            >
+              ☀
+            </button>
+            <button
+              :class="['km-tb', theme === 'system' ? 'active' : '']"
+              @click="setTheme('system')"
+              title="Авто"
+            >
+              ⬡
+            </button>
+            <button
+              :class="['km-tb', theme === 'dark' ? 'active' : '']"
+              @click="setTheme('dark')"
+              title="Тёмная"
+            >
+              🌙
+            </button>
           </div>
         </div>
       </div>
@@ -37,11 +55,21 @@
           </div>
           <div class="km-field">
             <label class="km-label">Название</label>
-            <input v-model="form.songName" class="km-input" placeholder="Название песни..." @keyup.enter="onSearch" />
+            <input
+              v-model="form.songName"
+              class="km-input"
+              placeholder="Название песни..."
+              @keyup.enter="onSearch"
+            />
           </div>
           <div class="km-field">
             <label class="km-label">Слова</label>
-            <input v-model="form.text" class="km-input" placeholder="Слова из текста..." @keyup.enter="onSearch" />
+            <input
+              v-model="form.text"
+              class="km-input"
+              placeholder="Слова из текста..."
+              @keyup.enter="onSearch"
+            />
           </div>
         </div>
         <button class="km-search-btn" @click="onSearch">Искать</button>
@@ -78,16 +106,26 @@
           </thead>
           <tbody>
             <tr v-for="sett in searchResults" :key="sett.id" class="km-tr">
-              <td class="km-td">{{ sett.author }}<span v-if="sett.authorAlias" class="km-alias"> ({{ sett.authorAlias }})</span></td>
+              <td class="km-td">
+                {{ sett.author
+                }}<span v-if="sett.authorAlias" class="km-alias"> ({{ sett.authorAlias }})</span>
+              </td>
               <td class="km-td km-td-center">{{ sett.year }}</td>
               <td class="km-td">{{ sett.album }}</td>
               <td class="km-td km-td-center km-track">{{ sett.track }}</td>
               <td class="km-td km-td-name">
-                <RouterLink :to="{ path: '/song', query: { id: sett.id } }" class="km-song-link">{{ sett.songName }}</RouterLink>
+                <RouterLink :to="{ path: '/song', query: { id: sett.id } }" class="km-song-link">{{
+                  sett.songName
+                }}</RouterLink>
               </td>
               <td class="km-td km-td-date">
                 <span v-if="showDate(sett)" class="km-date-text">{{ sett.datePublish }}</span>
-                <PremiumIcon v-if="showCoin(sett)" :state="readiness.contentReadyFor(sett.id)" :clickable="showCartIcon(sett)" @subscribe="onSubscribeClick(sett)" />
+                <PremiumIcon
+                  v-if="showCoin(sett)"
+                  :state="readiness.contentReadyFor(sett.id)"
+                  :clickable="showCartIcon(sett)"
+                  @subscribe="onSubscribeClick(sett)"
+                />
               </td>
               <td class="km-td km-td-center">
                 <CartIcon v-if="showCartIcon(sett)" :song-id="sett.id" />
@@ -100,7 +138,12 @@
                 />
               </td>
               <td class="km-td km-td-center">
-                <PlatformLink link-name="sponsr" :link-value="sett.linkSponsrPlay" :song-id="sett.id" song-version="all" />
+                <PlatformLink
+                  link-name="sponsr"
+                  :link-value="sett.linkSponsrPlay"
+                  :song-id="sett.id"
+                  song-version="all"
+                />
               </td>
               <td class="km-td km-td-center">
                 <FavoriteIcon :song-id="sett.id" />
@@ -117,26 +160,43 @@
       <div v-if="!searchIsLoading && searchResults.length" class="km-cards">
         <div v-for="sett in searchResults" :key="sett.id" class="km-card">
           <div class="km-card-meta">
-            <span class="km-card-author">{{ sett.author }}<span v-if="sett.authorAlias" class="km-alias"> ({{ sett.authorAlias }})</span></span>
+            <span class="km-card-author"
+              >{{ sett.author
+              }}<span v-if="sett.authorAlias" class="km-alias">
+                ({{ sett.authorAlias }})</span
+              ></span
+            >
             <span class="km-card-year">{{ sett.year }}</span>
             <span class="km-card-album">{{ sett.album }}</span>
           </div>
           <div class="km-card-top">
             <span class="km-card-track">{{ sett.track }}</span>
-            <RouterLink :to="{ path: '/song', query: { id: sett.id } }" class="km-card-title">{{ sett.songName }}</RouterLink>
+            <RouterLink :to="{ path: '/song', query: { id: sett.id } }" class="km-card-title">{{
+              sett.songName
+            }}</RouterLink>
             <CartIcon v-if="showCartIcon(sett)" :song-id="sett.id" />
             <PlayerIcon
               :song-id="sett.id"
               :watch-state="readiness.stateFor(sett.id)"
               :content-ready-state="readiness.contentReadyFor(sett.id)"
             />
-            <PlatformLink link-name="sponsr" :link-value="sett.linkSponsrPlay" :song-id="sett.id" song-version="all" />
+            <PlatformLink
+              link-name="sponsr"
+              :link-value="sett.linkSponsrPlay"
+              :song-id="sett.id"
+              song-version="all"
+            />
             <FavoriteIcon :song-id="sett.id" />
             <PlaylistIcon :song-id="sett.id" />
           </div>
           <div v-if="showDate(sett) || showCoin(sett)" class="km-card-date">
             <span v-if="showDate(sett)" class="km-date-text">{{ sett.datePublish }}</span>
-            <PremiumIcon v-if="showCoin(sett)" :state="readiness.contentReadyFor(sett.id)" :clickable="showCartIcon(sett)" @subscribe="onSubscribeClick(sett)" />
+            <PremiumIcon
+              v-if="showCoin(sett)"
+              :state="readiness.contentReadyFor(sett.id)"
+              :clickable="showCartIcon(sett)"
+              @subscribe="onSubscribeClick(sett)"
+            />
           </div>
         </div>
       </div>
@@ -173,15 +233,34 @@ import { useAuth } from '../composables/useAuth'
 
 export default {
   name: 'SearchView',
-  components: { PlatformLink, PlayerIcon, PremiumIcon, SongSubscriptionModal, FavoriteIcon, PlaylistIcon, CartIcon, AuthStatusWidget },
+  components: {
+    PlatformLink,
+    PlayerIcon,
+    PremiumIcon,
+    SongSubscriptionModal,
+    FavoriteIcon,
+    PlaylistIcon,
+    CartIcon,
+    AuthStatusWidget,
+  },
   setup() {
     useEngagementTracking('search')
     const { theme, applyTheme } = useDesign()
     const { user } = useAuth()
     const cart = useCart()
     cart.load()
-    function setTheme(val) { theme.value = val; applyTheme(val) }
-    return { theme, setTheme, readiness: usePlayerReadiness(), membership: usePlaylistMembership(), cart, user }
+    function setTheme(val) {
+      theme.value = val
+      applyTheme(val)
+    }
+    return {
+      theme,
+      setTheme,
+      readiness: usePlayerReadiness(),
+      membership: usePlaylistMembership(),
+      cart,
+      user,
+    }
   },
   data() {
     return {
@@ -189,7 +268,7 @@ export default {
       searched: false,
       // Модалка подписки на конкретную песню — открывается кликом по золотой иконке плеера.
       subscribingSongId: null,
-      subscribingSongName: ''
+      subscribingSongName: '',
     }
   },
   computed: {
@@ -203,19 +282,19 @@ export default {
     searchResults: {
       immediate: true,
       handler(list) {
-        const ids = (list || []).map(s => s.id)
+        const ids = (list || []).map((s) => s.id)
         this.readiness.load(ids)
         this.membership.load(ids)
-      }
-    }
+      },
+    },
   },
   mounted() {
     this.loadAuthors()
     const q = this.$route.query
     if (q.author || q.songName || q.text) {
-      this.form.author   = q.author   || ''
+      this.form.author = q.author || ''
       this.form.songName = q.songName || ''
-      this.form.text     = q.text     || ''
+      this.form.text = q.text || ''
       this.onSearch()
     }
   },
@@ -228,7 +307,11 @@ export default {
     },
     // Иконка «в корзину» — в тех же условиях, что и золотая иконка плеера.
     showCartIcon(sett) {
-      return sett.songSubscriptionAvailable && this.readiness.contentReadyFor(sett.id) === 'ready' && this.readiness.stateFor(sett.id) !== 'active'
+      return (
+        sett.songSubscriptionAvailable &&
+        this.readiness.contentReadyFor(sett.id) === 'ready' &&
+        this.readiness.stateFor(sett.id) !== 'active'
+      )
     },
     // Клик по золотой иконке плеера (PlayerIcon сам решает, когда её показывать) — открываем модалку
     // оформления подписки на конкретную песню.
@@ -241,7 +324,7 @@ export default {
     onSongSubscriptionActivated() {
       const boughtId = this.subscribingSongId
       this.subscribingSongId = null
-      const ids = (this.searchResults || []).map(s => s.id)
+      const ids = (this.searchResults || []).map((s) => s.id)
       this.readiness.load(ids)
       if (boughtId && this.cart.isInCart(boughtId)) this.cart.toggle(boughtId)
     },
@@ -254,8 +337,8 @@ export default {
     onSearch() {
       this.searched = true
       this.search({ songName: this.form.songName, author: this.form.author, text: this.form.text })
-    }
-  }
+    },
+  },
 }
 </script>
 
@@ -293,8 +376,13 @@ export default {
   font-size: 0.85rem;
   white-space: nowrap;
 }
-.km-back:hover { text-decoration: underline; }
-.km-logo { height: 36px; width: auto; }
+.km-back:hover {
+  text-decoration: underline;
+}
+.km-logo {
+  height: 36px;
+  width: auto;
+}
 .km-header-right {
   display: flex;
   align-items: center;
@@ -313,10 +401,18 @@ export default {
   padding: 0.2rem 0.55rem;
   font-size: 0.95rem;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
 }
-.km-tb:hover { background: var(--km-hover); color: var(--km-text); }
-.km-tb.active { background: var(--km-accent); color: #fff; }
+.km-tb:hover {
+  background: var(--km-hover);
+  color: var(--km-text);
+}
+.km-tb.active {
+  background: var(--km-accent);
+  color: #fff;
+}
 
 /* Контент */
 .km-content {
@@ -394,7 +490,9 @@ export default {
   transition: opacity 0.15s;
   align-self: flex-end;
 }
-.km-search-btn:hover { opacity: 0.88; }
+.km-search-btn:hover {
+  opacity: 0.88;
+}
 
 /* Таблица */
 .km-table-wrap {
@@ -418,27 +516,61 @@ export default {
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
-.km-th-center { text-align: center; }
+.km-th-center {
+  text-align: center;
+}
 .km-td {
   padding: 0.25rem 0.3rem;
   border-bottom: 1px solid var(--km-border);
   font-size: 0.8rem;
   vertical-align: middle;
 }
-.km-tr:last-child .km-td { border-bottom: none; }
-.km-tr:hover .km-td { background: var(--km-hover); }
-.km-td-center { text-align: center; }
-.km-td-name { text-align: left; }
-.km-alias { font-style: italic; font-size: 0.82em; color: var(--km-text2); }
-.km-td-date { text-align: right; color: var(--km-text2); font-size: 0.78rem; white-space: nowrap; }
-.km-date-text { margin-right: 5px; vertical-align: middle; }
-.km-track { color: var(--km-text2); }
-.km-group-end { border-right: 2px solid var(--km-border); }
-.km-song-link { color: var(--km-accent); text-decoration: none; font-size: 0.82rem; }
-.km-song-link:hover { text-decoration: underline; }
+.km-tr:last-child .km-td {
+  border-bottom: none;
+}
+.km-tr:hover .km-td {
+  background: var(--km-hover);
+}
+.km-td-center {
+  text-align: center;
+}
+.km-td-name {
+  text-align: left;
+}
+.km-alias {
+  font-style: italic;
+  font-size: 0.82em;
+  color: var(--km-text2);
+}
+.km-td-date {
+  text-align: right;
+  color: var(--km-text2);
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+.km-date-text {
+  margin-right: 5px;
+  vertical-align: middle;
+}
+.km-track {
+  color: var(--km-text2);
+}
+.km-group-end {
+  border-right: 2px solid var(--km-border);
+}
+.km-song-link {
+  color: var(--km-accent);
+  text-decoration: none;
+  font-size: 0.82rem;
+}
+.km-song-link:hover {
+  text-decoration: underline;
+}
 
 /* Мобильные карточки */
-.km-cards { display: none; }
+.km-cards {
+  display: none;
+}
 
 .km-card {
   background: var(--km-card);
@@ -453,16 +585,31 @@ export default {
   margin-bottom: 0.3rem;
   flex-wrap: wrap;
 }
-.km-card-author { font-size: 0.78rem; font-weight: 700; color: var(--km-text); }
-.km-card-year   { font-size: 0.72rem; color: var(--km-text2); }
-.km-card-album  { font-size: 0.72rem; color: var(--km-text2); }
+.km-card-author {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--km-text);
+}
+.km-card-year {
+  font-size: 0.72rem;
+  color: var(--km-text2);
+}
+.km-card-album {
+  font-size: 0.72rem;
+  color: var(--km-text2);
+}
 .km-card-top {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   margin-bottom: 0.4rem;
 }
-.km-card-track { font-size: 0.75rem; color: var(--km-text2); min-width: 20px; text-align: center; }
+.km-card-track {
+  font-size: 0.75rem;
+  color: var(--km-text2);
+  min-width: 20px;
+  text-align: center;
+}
 .km-card-title {
   flex: 1;
   font-size: 0.9rem;
@@ -470,11 +617,22 @@ export default {
   color: var(--km-accent);
   text-decoration: none;
 }
-.km-card-title:hover { text-decoration: underline; }
-.km-card-date { font-size: 0.78rem; color: var(--km-text2); text-align: center; padding-top: 0.25rem; }
+.km-card-title:hover {
+  text-decoration: underline;
+}
+.km-card-date {
+  font-size: 0.78rem;
+  color: var(--km-text2);
+  text-align: center;
+  padding-top: 0.25rem;
+}
 
 @media (max-width: 768px) {
-  .km-table-wrap { display: none; }
-  .km-cards { display: block; }
+  .km-table-wrap {
+    display: none;
+  }
+  .km-cards {
+    display: block;
+  }
 }
 </style>

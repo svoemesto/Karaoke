@@ -1,41 +1,125 @@
 <template>
   <div class="table-publish-footer">
     <button class="round-30-button" title="Обновить" @click="clickReload">
-      <img alt="reload" class="icon-20" src="../../../assets/svg/icon_filter.svg"/>
+      <img alt="reload" class="icon-20" src="../../../assets/svg/icon_filter.svg" />
     </button>
     <button class="round-30-button" @click="clickPrevious">
-      <img alt="previous" class="icon-20" title="[" src="../../../assets/svg/icon_fast_backward.svg"/>
+      <img
+        alt="previous"
+        class="icon-20"
+        title="["
+        src="../../../assets/svg/icon_fast_backward.svg"
+      />
     </button>
     <div class="wrapper-date">
-      <input v-model="publishDays" class="input-date"/>
+      <input v-model="publishDays" class="input-date" />
     </div>
     <button class="round-30-button" @click="clickNext">
-      <img alt="previous" class="icon-20" title="]" src="../../../assets/svg/icon_fast_forward.svg"/>
+      <img
+        alt="previous"
+        class="icon-20"
+        title="]"
+        src="../../../assets/svg/icon_fast_forward.svg"
+      />
     </button>
     <div class="wrapper-date">
-      <input v-model="publishDateFrom" class="input-date"/>
+      <input v-model="publishDateFrom" class="input-date" />
     </div>
     <div class="wrapper-date">
-      <input v-model="publishDateTo" class="input-date"/>
+      <input v-model="publishDateTo" class="input-date" />
     </div>
-    <button class="color-button" style="background-color: #7FFFD4" title="Полностью готово" @click="clickColorButton('STATE_ALL_DONE')" />
-    <button class="color-button" style="background-color: #BDB76B;" title="Просрочено" @click="clickColorButton('STATE_OVERDUE')" />
-    <button class="color-button" style="background-color: #FFFF00;" title="Сегодня" @click="clickColorButton('STATE_TODAY')" />
-    <button class="color-button" style="background-color: #DCDCDC;" title="Готово к публикации" @click="clickColorButton('STATE_ALL_UPLOADED')" />
-    <button class="color-button" style="background-color: #87CEFA;" title="Нет TG" @click="clickColorButton('STATE_WO_TG')" />
-    <button class="color-button" style="background-color: #FFDAB9;" title="Нет VK" @click="clickColorButton('STATE_WO_VK')" />
-    <button class="color-button" style="background-color: #FF8000;" title="Нет DZEN" @click="clickColorButton('STATE_WO_DZEN')" />
-    <button class="color-button" style="background-color: #FFC880;" title="Нет VKG" @click="clickColorButton('STATE_WO_VKG')" />
-    <button class="color-button" style="background-color: #FFFFFF;" title="Статус: NONE" @click="clickColorButton('STATUS_0')" />
-    <button class="color-button" style="background-color: #DDA0DD;" title="Статус: Текст найден" @click="clickColorButton('STATUS_1')" />
-    <button class="color-button" style="background-color: #EE82EE;" title="Статус: Текст проверен" @click="clickColorButton('STATUS_2')" />
-    <button class="color-button" style="background-color: #98FB98;" title="Статус: Проект создан" @click="clickColorButton('STATUS_3')" />
-    <button class="color-button" style="background-color: #00FF7F;" title="Статус: Проект проверен" @click="clickColorButton('STATUS_4')" />
-    <button class="color-button" style="background-color: #00FF00;" title="Статус: Готово" @click="clickColorButton('STATUS_6')" />
+    <button
+      class="color-button"
+      style="background-color: #7fffd4"
+      title="Полностью готово"
+      @click="clickColorButton('STATE_ALL_DONE')"
+    />
+    <button
+      class="color-button"
+      style="background-color: #bdb76b"
+      title="Просрочено"
+      @click="clickColorButton('STATE_OVERDUE')"
+    />
+    <button
+      class="color-button"
+      style="background-color: #ffff00"
+      title="Сегодня"
+      @click="clickColorButton('STATE_TODAY')"
+    />
+    <button
+      class="color-button"
+      style="background-color: #dcdcdc"
+      title="Готово к публикации"
+      @click="clickColorButton('STATE_ALL_UPLOADED')"
+    />
+    <button
+      class="color-button"
+      style="background-color: #87cefa"
+      title="Нет TG"
+      @click="clickColorButton('STATE_WO_TG')"
+    />
+    <button
+      class="color-button"
+      style="background-color: #ffdab9"
+      title="Нет VK"
+      @click="clickColorButton('STATE_WO_VK')"
+    />
+    <button
+      class="color-button"
+      style="background-color: #ff8000"
+      title="Нет DZEN"
+      @click="clickColorButton('STATE_WO_DZEN')"
+    />
+    <button
+      class="color-button"
+      style="background-color: #ffc880"
+      title="Нет VKG"
+      @click="clickColorButton('STATE_WO_VKG')"
+    />
+    <button
+      class="color-button"
+      style="background-color: #ffffff"
+      title="Статус: NONE"
+      @click="clickColorButton('STATUS_0')"
+    />
+    <button
+      class="color-button"
+      style="background-color: #dda0dd"
+      title="Статус: Текст найден"
+      @click="clickColorButton('STATUS_1')"
+    />
+    <button
+      class="color-button"
+      style="background-color: #ee82ee"
+      title="Статус: Текст проверен"
+      @click="clickColorButton('STATUS_2')"
+    />
+    <button
+      class="color-button"
+      style="background-color: #98fb98"
+      title="Статус: Проект создан"
+      @click="clickColorButton('STATUS_3')"
+    />
+    <button
+      class="color-button"
+      style="background-color: #00ff7f"
+      title="Статус: Проект проверен"
+      @click="clickColorButton('STATUS_4')"
+    />
+    <button
+      class="color-button"
+      style="background-color: #00ff00"
+      title="Статус: Готово"
+      @click="clickColorButton('STATUS_6')"
+    />
     <button class="action-button" @click="clickActionButton('all')">С начала</button>
     <button class="action-button" @click="clickActionButton('fromtoday')">С сегодня</button>
-    <button class="action-button" @click="clickActionButton('fromnotpublish')">С незавершенной</button>
-    <button class="action-button" @click="clickActionButton('fromnotcheck')">С непроверенной</button>
+    <button class="action-button" @click="clickActionButton('fromnotpublish')">
+      С незавершенной
+    </button>
+    <button class="action-button" @click="clickActionButton('fromnotcheck')">
+      С непроверенной
+    </button>
     <button class="action-button" @click="clickActionButton('fromnotdone')">С неготовой</button>
     <button class="action-button" @click="clickActionButton('unpublish')">UNPUBLISH</button>
     <button class="action-button" @click="clickActionButton('skiped')">SKIPED</button>
@@ -43,47 +127,68 @@
 </template>
 
 <script>
-import {stringDDMMYYaddDays} from "../../../lib/utils";
+import { stringDDMMYYaddDays } from '../../../lib/utils'
 
 export default {
-  name: "PublishTableFooter",
+  name: 'PublishTableFooter',
   computed: {
     publishDateFrom: {
-      get() { return this.$store.getters.getPublishFilterDateFrom; },
-      set(value) { this.$store.dispatch('setPublishFilterDateFrom', { value }); }
+      get() {
+        return this.$store.getters.getPublishFilterDateFrom
+      },
+      set(value) {
+        this.$store.dispatch('setPublishFilterDateFrom', { value })
+      },
     },
     publishDateTo: {
-      get() { return this.$store.getters.getPublishFilterDateTo; },
-      set(value) { this.$store.dispatch('setPublishFilterDateTo', { value }); }
+      get() {
+        return this.$store.getters.getPublishFilterDateTo
+      },
+      set(value) {
+        this.$store.dispatch('setPublishFilterDateTo', { value })
+      },
     },
     publishDays: {
-      get() { return this.$store.getters.getPublishFilterDays; },
-      set(value) { this.$store.dispatch('setPublishFilterDays', { value }); }
-    }
+      get() {
+        return this.$store.getters.getPublishFilterDays
+      },
+      set(value) {
+        this.$store.dispatch('setPublishFilterDays', { value })
+      },
+    },
   },
   async beforeMount() {
-    this.$store.dispatch('setPublishFilterDateFrom', { value: await this.$store.getters.getWebvueProp('publishFilterDateFrom', '') });
-    this.$store.dispatch('setPublishFilterDateTo', { value: await this.$store.getters.getWebvueProp('publishFilterDateTo', '') });
-    this.$store.dispatch('setPublishFilterDays', { value: await this.$store.getters.getWebvueProp('publishFilterDays', 90) });
+    this.$store.dispatch('setPublishFilterDateFrom', {
+      value: await this.$store.getters.getWebvueProp('publishFilterDateFrom', ''),
+    })
+    this.$store.dispatch('setPublishFilterDateTo', {
+      value: await this.$store.getters.getWebvueProp('publishFilterDateTo', ''),
+    })
+    this.$store.dispatch('setPublishFilterDays', {
+      value: await this.$store.getters.getWebvueProp('publishFilterDays', 90),
+    })
   },
   methods: {
     async clickColorButton(param) {
-      this.publishDateFrom = await this.$store.dispatch('getPublicationsDateFrom', { param: param})
-      this.setDateTo();
-      this.$store.dispatch('loadPublishDigest', { filterDateFrom: this.publishDateFrom, filterDateTo: this.publishDateTo})
+      this.publishDateFrom = await this.$store.dispatch('getPublicationsDateFrom', { param: param })
+      this.setDateTo()
+      this.$store.dispatch('loadPublishDigest', {
+        filterDateFrom: this.publishDateFrom,
+        filterDateTo: this.publishDateTo,
+      })
     },
     clickActionButton(param) {
-      this.$store.dispatch('loadPublishDigest', { filterCond: param})
+      this.$store.dispatch('loadPublishDigest', { filterCond: param })
     },
     setDateTo() {
-      this.publishDateTo = stringDDMMYYaddDays(this.publishDateFrom, this.publishDays);
+      this.publishDateTo = stringDDMMYYaddDays(this.publishDateFrom, this.publishDays)
       // let parts =this.publishDateFrom.split('.');
       // let date = new Date('20' + parts[2], parts[1] - 1, parts[0]);
       // date.setDate(date.getDate() + this.publishDays);
       // this.publishDateTo = `${this.addZero(date.getDate())}.${this.addZero(date.getMonth() + 1)}.${date.getFullYear().toString().substring(2)}`
     },
     clickPrevious() {
-      this.publishDateFrom = stringDDMMYYaddDays(this.publishDateFrom, -this.publishDays);
+      this.publishDateFrom = stringDDMMYYaddDays(this.publishDateFrom, -this.publishDays)
       this.setDateTo()
       this.clickReload()
       // let parts = this.publishDateFrom.split('.');
@@ -94,7 +199,7 @@ export default {
       // this.clickReload()
     },
     clickNext() {
-      this.publishDateFrom = stringDDMMYYaddDays(this.publishDateFrom, this.publishDays);
+      this.publishDateFrom = stringDDMMYYaddDays(this.publishDateFrom, this.publishDays)
       this.setDateTo()
       this.clickReload()
       // let parts =this.publishDateFrom.split('.');
@@ -105,25 +210,26 @@ export default {
       // this.clickReload()
     },
     clickReload() {
-      this.$store.dispatch('loadPublishDigest', { filterDateFrom: this.publishDateFrom, filterDateTo: this.publishDateTo})
+      this.$store.dispatch('loadPublishDigest', {
+        filterDateFrom: this.publishDateFrom,
+        filterDateTo: this.publishDateTo,
+      })
     },
     addZero(num) {
       if (num >= 0 && num <= 9) {
-        return '0' + num;
+        return '0' + num
       } else {
-        return num;
+        return num
       }
-    }
-  }
+    },
+  },
 }
 </script>
 
 <style scoped>
-
 .wrapper-date {
-
 }
-.input-date{
+.input-date {
   width: 80px;
 }
 

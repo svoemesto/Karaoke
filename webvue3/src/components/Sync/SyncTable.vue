@@ -1,19 +1,29 @@
 <template>
   <div class="sync-table-wrapper">
-    <custom-confirm v-if="isCustomConfirmVisible" :params="customConfirmParams" @close="closeCustomConfirm" />
-    <button class="btn btn-success sync-oneclick-button" @click="confirmOneClick">🔄 Синхронизация в 1 клик</button>
+    <custom-confirm
+      v-if="isCustomConfirmVisible"
+      :params="customConfirmParams"
+      @close="closeCustomConfirm"
+    />
+    <button class="btn btn-success sync-oneclick-button" @click="confirmOneClick">
+      🔄 Синхронизация в 1 клик
+    </button>
     <table class="sync-table">
       <thead>
         <tr>
           <th rowspan="2">Таблица</th>
           <th :colspan="ops.length" class="sync-group sync-group-push">→ Server (push)</th>
-          <th rowspan="2"/>
+          <th rowspan="2" />
           <th :colspan="ops.length" class="sync-group sync-group-pull">← Local (pull)</th>
-          <th rowspan="2"/>
+          <th rowspan="2" />
         </tr>
         <tr>
-          <th v-for="op in ops" :key="'ph-' + op.op" class="sync-op-col" :title="op.title">{{ op.label }}</th>
-          <th v-for="op in ops" :key="'lh-' + op.op" class="sync-op-col" :title="op.title">{{ op.label }}</th>
+          <th v-for="op in ops" :key="'ph-' + op.op" class="sync-op-col" :title="op.title">
+            {{ op.label }}
+          </th>
+          <th v-for="op in ops" :key="'lh-' + op.op" class="sync-op-col" :title="op.title">
+            {{ op.label }}
+          </th>
         </tr>
       </thead>
       <tbody>
@@ -21,21 +31,35 @@
           <td class="sync-name-col">{{ entity.displayName }}</td>
           <td v-for="op in ops" :key="'p-' + op.op" class="sync-op-col">
             <input
-type="checkbox"
-                   :checked="entity[fieldName('PUSH', op.op)]"
-                   @change="onFlagChange(entity, 'PUSH', op.op, $event)" />
+              type="checkbox"
+              :checked="entity[fieldName('PUSH', op.op)]"
+              @change="onFlagChange(entity, 'PUSH', op.op, $event)"
+            />
           </td>
           <td>
-            <button class="btn btn-sm btn-primary sync-run-button" :disabled="!entity.allowPush" @click="confirmRun(entity, 'PUSH')">→ Server</button>
+            <button
+              class="btn btn-sm btn-primary sync-run-button"
+              :disabled="!entity.allowPush"
+              @click="confirmRun(entity, 'PUSH')"
+            >
+              → Server
+            </button>
           </td>
           <td v-for="op in ops" :key="'l-' + op.op" class="sync-op-col">
             <input
-type="checkbox"
-                   :checked="entity[fieldName('PULL', op.op)]"
-                   @change="onFlagChange(entity, 'PULL', op.op, $event)" />
+              type="checkbox"
+              :checked="entity[fieldName('PULL', op.op)]"
+              @change="onFlagChange(entity, 'PULL', op.op, $event)"
+            />
           </td>
           <td>
-            <button class="btn btn-sm btn-primary sync-run-button" :disabled="!entity.allowPull" @click="confirmRun(entity, 'PULL')">← Local</button>
+            <button
+              class="btn btn-sm btn-primary sync-run-button"
+              :disabled="!entity.allowPull"
+              @click="confirmRun(entity, 'PULL')"
+            >
+              ← Local
+            </button>
           </td>
         </tr>
       </tbody>
@@ -44,7 +68,7 @@ type="checkbox"
 </template>
 
 <script>
-import CustomConfirm from '../Common/CustomConfirm.vue';
+import CustomConfirm from '../Common/CustomConfirm.vue'
 
 /**
  * Таблица управления двух-БД sync LOCAL ↔ SERVER.
@@ -94,91 +118,118 @@ export default {
     }
   },
   computed: {
-    entities() { return this.$store.getters.getSyncEntities },
+    entities() {
+      return this.$store.getters.getSyncEntities
+    },
   },
   mounted() {
-    this.$store.dispatch('loadSyncEntitiesPromise');
+    this.$store.dispatch('loadSyncEntitiesPromise')
   },
   methods: {
-    directionLabel(direction) { return direction === 'PUSH' ? 'Local → Server' : 'Server → Local'; },
+    directionLabel(direction) {
+      return direction === 'PUSH' ? 'Local → Server' : 'Server → Local'
+    },
     // Имя поля флага в объекте сущности: PUSH+INSERT → pushInsert, PULL+MOVE → pullMove.
     fieldName(direction, op) {
-      const prefix = direction === 'PUSH' ? 'push' : 'pull';
-      return prefix + op.charAt(0) + op.slice(1).toLowerCase();
+      const prefix = direction === 'PUSH' ? 'push' : 'pull'
+      return prefix + op.charAt(0) + op.slice(1).toLowerCase()
     },
     onFlagChange(entity, direction, operation, event) {
-      const value = event.target.checked;
-      this.$store.dispatch('setSyncFlagPromise', { key: entity.key, direction, operation, value })
+      const value = event.target.checked
+      this.$store
+        .dispatch('setSyncFlagPromise', { key: entity.key, direction, operation, value })
         .catch(() => {
           // откат визуального состояния при ошибке
-          event.target.checked = !value;
+          event.target.checked = !value
           this.customConfirmParams = {
-            isAlert: true, alertType: 'error', header: 'Синхронизация',
-            body: 'Не удалось сохранить флаг — см. лог сервера.', timeout: 15
+            isAlert: true,
+            alertType: 'error',
+            header: 'Синхронизация',
+            body: 'Не удалось сохранить флаг — см. лог сервера.',
+            timeout: 15,
           }
-          this.isCustomConfirmVisible = true;
-        });
+          this.isCustomConfirmVisible = true
+        })
     },
     confirmRun(entity, direction) {
       this.customConfirmParams = {
         header: 'Синхронизация',
         body: `Синхронизировать «${entity.displayName}» (${this.directionLabel(direction)})?`,
         timeout: 10,
-        callback: () => this.doRun(entity, direction)
+        callback: () => this.doRun(entity, direction),
       }
-      this.isCustomConfirmVisible = true;
+      this.isCustomConfirmVisible = true
     },
     doRun(entity, direction) {
-      this.$store.dispatch('runEntitySyncPromise', {key: entity.key, direction}).then(result => {
-        this.showResultAlert(`«${entity.displayName}» (${this.directionLabel(direction)})`, [result]);
-      }).catch(() => {
-        this.customConfirmParams = {
-          isAlert: true, alertType: 'error', header: 'Синхронизация',
-          body: 'Не удалось выполнить синхронизацию — см. лог сервера.', timeout: 15
-        }
-        this.isCustomConfirmVisible = true;
-      });
+      this.$store
+        .dispatch('runEntitySyncPromise', { key: entity.key, direction })
+        .then((result) => {
+          this.showResultAlert(`«${entity.displayName}» (${this.directionLabel(direction)})`, [
+            result,
+          ])
+        })
+        .catch(() => {
+          this.customConfirmParams = {
+            isAlert: true,
+            alertType: 'error',
+            header: 'Синхронизация',
+            body: 'Не удалось выполнить синхронизацию — см. лог сервера.',
+            timeout: 15,
+          }
+          this.isCustomConfirmVisible = true
+        })
     },
     confirmOneClick() {
       this.customConfirmParams = {
         header: 'Синхронизация в 1 клик',
         body: 'Синхронизировать все разрешённые таблицы, каждую в её сторону (Settings/Pictures/Authors — на Server, пользователи сайта/статистика — на Local)?',
         timeout: 10,
-        callback: this.doOneClick
+        callback: this.doOneClick,
       }
-      this.isCustomConfirmVisible = true;
+      this.isCustomConfirmVisible = true
     },
     doOneClick() {
-      this.$store.dispatch('runSyncOneClickPromise').then(results => {
-        this.showResultAlert('Синхронизация в 1 клик', results);
-      }).catch(() => {
-        this.customConfirmParams = {
-          isAlert: true, alertType: 'error', header: 'Синхронизация в 1 клик',
-          body: 'Не удалось выполнить синхронизацию — см. лог сервера.', timeout: 15
-        }
-        this.isCustomConfirmVisible = true;
-      });
+      this.$store
+        .dispatch('runSyncOneClickPromise')
+        .then((results) => {
+          this.showResultAlert('Синхронизация в 1 клик', results)
+        })
+        .catch(() => {
+          this.customConfirmParams = {
+            isAlert: true,
+            alertType: 'error',
+            header: 'Синхронизация в 1 клик',
+            body: 'Не удалось выполнить синхронизацию — см. лог сервера.',
+            timeout: 15,
+          }
+          this.isCustomConfirmVisible = true
+        })
     },
     showResultAlert(title, results) {
-      const lines = results.map(r => {
-        if (r.skipped) return `${r.displayName || ''}: пропущено (запрещено настройками)`.trim();
-        const created = r.created ? r.created.length : 0;
-        const updated = r.updated ? r.updated.length : 0;
-        const deleted = r.deleted ? r.deleted.length : 0;
-        const moved = r.moved ? r.moved.length : 0;
-        const label = r.displayName ? `${r.displayName}: ` : '';
-        let line = `${label}добавлено ${created}, изменено ${updated}, удалено ${deleted}`;
-        if (moved) line += `, перемещено (удалено из источника) ${moved}`;
-        return line;
-      });
+      const lines = results.map((r) => {
+        if (r.skipped) return `${r.displayName || ''}: пропущено (запрещено настройками)`.trim()
+        const created = r.created ? r.created.length : 0
+        const updated = r.updated ? r.updated.length : 0
+        const deleted = r.deleted ? r.deleted.length : 0
+        const moved = r.moved ? r.moved.length : 0
+        const label = r.displayName ? `${r.displayName}: ` : ''
+        let line = `${label}добавлено ${created}, изменено ${updated}, удалено ${deleted}`
+        if (moved) line += `, перемещено (удалено из источника) ${moved}`
+        return line
+      })
       this.customConfirmParams = {
-        isAlert: true, alertType: 'info', header: title,
-        body: lines.join('<br>'), timeout: 20
+        isAlert: true,
+        alertType: 'info',
+        header: title,
+        body: lines.join('<br>'),
+        timeout: 20,
       }
-      this.isCustomConfirmVisible = true;
+      this.isCustomConfirmVisible = true
     },
-    closeCustomConfirm() { this.isCustomConfirmVisible = false; },
-  }
+    closeCustomConfirm() {
+      this.isCustomConfirmVisible = false
+    },
+  },
 }
 </script>
 
@@ -202,7 +253,8 @@ export default {
   border-collapse: collapse;
   width: 100%;
 }
-.sync-table th, .sync-table td {
+.sync-table th,
+.sync-table td {
   border: 1px solid #ccc;
   padding: 4px 8px;
   text-align: center;

@@ -4,39 +4,47 @@
       <div class="mon-area">
         <div class="mon-area-header">
           <span>Мониторинг</span>
-          <button class="mon-btn-close-x" @click="close" v-text="'×'"/>
+          <button class="mon-btn-close-x" @click="close" v-text="'×'" />
         </div>
         <div class="mon-area-body">
           <div v-if="alerts.length === 0" class="mon-empty">Активных сообщений нет.</div>
           <div
-              v-for="alert in alerts"
-              :key="alert.key"
-              class="mon-row"
-              :style="{ borderLeftColor: alert.color }"
+            v-for="alert in alerts"
+            :key="alert.key"
+            class="mon-row"
+            :style="{ borderLeftColor: alert.color }"
           >
             <div class="mon-row-main">
-              <div class="mon-row-title" v-text="alert.title"/>
-              <div class="mon-row-body" v-text="alert.body"/>
-              <div v-if="alert.detail" class="mon-row-detail" v-text="alert.detail"/>
+              <div class="mon-row-title" v-text="alert.title" />
+              <div class="mon-row-body" v-text="alert.body" />
+              <div v-if="alert.detail" class="mon-row-detail" v-text="alert.detail" />
             </div>
             <div class="mon-row-actions">
-              <button class="mon-btn mon-btn-read" @click="markRead(alert)" v-text="'Прочитано'"/>
+              <button class="mon-btn mon-btn-read" @click="markRead(alert)" v-text="'Прочитано'" />
               <button
-                  v-if="alert.canResolve"
-                  class="mon-btn mon-btn-resolve"
-                  :disabled="resolvingKeys.includes(alert.key)"
-                  @click="resolve(alert)"
-                  v-text="resolvingKeys.includes(alert.key) ? 'Решаем...' : 'Решить проблему'"
+                v-if="alert.canResolve"
+                class="mon-btn mon-btn-resolve"
+                :disabled="resolvingKeys.includes(alert.key)"
+                @click="resolve(alert)"
+                v-text="resolvingKeys.includes(alert.key) ? 'Решаем...' : 'Решить проблему'"
               />
               <div v-else class="mon-recommend-wrap">
-                <button class="mon-btn mon-btn-recommend" @click="toggleTip(alert.key)" v-text="'Рекомендации'"/>
-                <div v-if="openTipKey === alert.key" class="mon-recommend-popover" v-text="alert.recommendations || 'Рекомендаций нет.'"/>
+                <button
+                  class="mon-btn mon-btn-recommend"
+                  @click="toggleTip(alert.key)"
+                  v-text="'Рекомендации'"
+                />
+                <div
+                  v-if="openTipKey === alert.key"
+                  class="mon-recommend-popover"
+                  v-text="alert.recommendations || 'Рекомендаций нет.'"
+                />
               </div>
             </div>
           </div>
         </div>
         <div class="mon-area-footer">
-          <button class="mon-btn-footer-close" @click="close" v-text="'Закрыть'"/>
+          <button class="mon-btn-footer-close" @click="close" v-text="'Закрыть'" />
         </div>
       </div>
     </div>
@@ -45,36 +53,36 @@
 
 <script>
 export default {
-  name: "MonitorModal",
+  name: 'MonitorModal',
   data() {
     return {
       openTipKey: null,
-      resolvingKeys: []
+      resolvingKeys: [],
     }
   },
   computed: {
     alerts() {
-      return this.$store.getters.monitorVisibleAlerts;
-    }
+      return this.$store.getters.monitorVisibleAlerts
+    },
   },
   methods: {
     close() {
-      this.openTipKey = null;
-      this.$emit('close');
+      this.openTipKey = null
+      this.$emit('close')
     },
     markRead(alert) {
-      this.$store.dispatch('markMonitorRead', alert.key);
+      this.$store.dispatch('markMonitorRead', alert.key)
     },
     resolve(alert) {
-      this.resolvingKeys.push(alert.key);
+      this.resolvingKeys.push(alert.key)
       this.$store.dispatch('resolveMonitorAlert', alert.key).finally(() => {
-        this.resolvingKeys = this.resolvingKeys.filter(k => k !== alert.key);
-      });
+        this.resolvingKeys = this.resolvingKeys.filter((k) => k !== alert.key)
+      })
     },
     toggleTip(key) {
-      this.openTipKey = this.openTipKey === key ? null : key;
-    }
-  }
+      this.openTipKey = this.openTipKey === key ? null : key
+    },
+  },
 }
 </script>
 
@@ -93,7 +101,7 @@ export default {
 }
 
 .mon-area {
-  background: #FFFFFF;
+  background: #ffffff;
   box-shadow: 2px 2px 20px 1px;
   display: flex;
   flex-direction: column;
@@ -240,7 +248,7 @@ export default {
   font-size: 16px;
   cursor: pointer;
   font-weight: bold;
-  color: #4AAE9B;
+  color: #4aae9b;
   background: transparent;
   width: 120px;
   height: auto;

@@ -1,64 +1,73 @@
 <template>
-
-    <div class="hrl-row">
-      <div class="hrl-fld-caption" :style="{backgroundColor: healthReport.color}" v-text="caption"/>
-      <div class="hrl-subrow">
-        <div class="hrl-column">
-          <div class="hrl-label-and-field">
-            <div class="hrl-label">Проблема:</div>
-            <div class="hrl-fld-problemText" v-text="healthReport.problemText"/>
-          </div>
-          <div class="hrl-label-and-field">
-            <div class="hrl-label">Решение:</div>
-            <div class="hrl-fld-solutionText" v-text="healthReport.solutionText"/>
-          </div>
+  <div class="hrl-row">
+    <div
+      class="hrl-fld-caption"
+      :style="{ backgroundColor: healthReport.color }"
+      v-text="caption"
+    />
+    <div class="hrl-subrow">
+      <div class="hrl-column">
+        <div class="hrl-label-and-field">
+          <div class="hrl-label">Проблема:</div>
+          <div class="hrl-fld-problemText" v-text="healthReport.problemText" />
         </div>
-        <div class="hrl-column">
-          <button :disabled="!healthReport.canResolve" class="hrl-row-button-repair" @click.left="repair(healthReport)" v-text="'repair'"/>
+        <div class="hrl-label-and-field">
+          <div class="hrl-label">Решение:</div>
+          <div class="hrl-fld-solutionText" v-text="healthReport.solutionText" />
         </div>
       </div>
+      <div class="hrl-column">
+        <button
+          :disabled="!healthReport.canResolve"
+          class="hrl-row-button-repair"
+          @click.left="repair(healthReport)"
+          v-text="'repair'"
+        />
+      </div>
     </div>
-
+  </div>
 </template>
 
 <script>
-
 export default {
-  name: "HealthReportTableRow",
+  name: 'HealthReportTableRow',
   props: {
     healthReport: {
       type: Object,
-      required: true
-    }
+      required: true,
+    },
   },
   data() {
     return {}
   },
   computed: {
     caption() {
-      return this.healthReport.healthReportTypeName + ' / ' + this.healthReport.healthReportStatusName + ' / ' + this.healthReport.description;
+      return (
+        this.healthReport.healthReportTypeName +
+        ' / ' +
+        this.healthReport.healthReportStatusName +
+        ' / ' +
+        this.healthReport.description
+      )
     },
     healthReportListFields() {
       return [
         {
           key: 'description',
-          label: 'Описание'
-        }
+          label: 'Описание',
+        },
       ]
-    }
+    },
   },
   methods: {
     repair(item) {
-      this.$store.dispatch('repairOneRecord', item);
-    }
+      this.$store.dispatch('repairOneRecord', item)
+    },
   },
-
 }
-
 </script>
 
 <style scoped>
-
 .hrl-fld-caption {
   max-width: 650px;
   min-width: 650px;
@@ -121,5 +130,4 @@ export default {
   text-decoration: none;
   white-space: break-spaces;
 }
-
 </style>

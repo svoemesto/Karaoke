@@ -1,115 +1,124 @@
 <template>
   <div class="properties-bv-table">
-<!--    <PropertyEditModal v-if="isPropertyEditVisible" @close="closePropertyEdit"/>-->
-    <PropertiesFilter v-if="isPropertiesFilterVisible" @close="closePropertiesFilter"/>
-    <custom-confirm v-if="isCustomConfirmVisible" :params="customConfirmParams" @close="closeCustomConfirm" />
+    <!--    <PropertyEditModal v-if="isPropertyEditVisible" @close="closePropertyEdit"/>-->
+    <PropertiesFilter v-if="isPropertiesFilterVisible" @close="closePropertiesFilter" />
+    <custom-confirm
+      v-if="isCustomConfirmVisible"
+      :params="customConfirmParams"
+      @close="closeCustomConfirm"
+    />
     <div class="properties-bv-table-header">
       <b-pagination
-          v-model="currentPage"
-          :total-rows="countRows"
-          :per-page="perPage"
-          :limit="30"
-          size="sm"
-          pills
+        v-model="currentPage"
+        :total-rows="countRows"
+        :per-page="perPage"
+        :limit="30"
+        size="sm"
+        pills
       />
     </div>
     <div class="properties-bv-table-body">
       <b-table
-          v-model:sort-by="sortBy"
-          :items="propertiesDigests"
-          :busy="isBusy"
-          :fields="propertyDigestFields"
-          :per-page="perPage"
-          :current-page="currentPage"
-          small
-          bordered
-          hover
-          @row-clicked="onRowClicked"
+        v-model:sort-by="sortBy"
+        :items="propertiesDigests"
+        :busy="isBusy"
+        :fields="propertyDigestFields"
+        :per-page="perPage"
+        :current-page="currentPage"
+        small
+        bordered
+        hover
+        @row-clicked="onRowClicked"
       >
         <template #table-busy>
           <div class="text-center text-danger my-2">
-            <b-spinner class="align-middle"/>
+            <b-spinner class="align-middle" />
             <strong>Loading...</strong>
           </div>
         </template>
         <template #table-colgroup="scope">
-          <col
-              v-for="field in scope.fields"
-              :key="field.key"
-              :style="field.style"
-          />
+          <col v-for="field in scope.fields" :key="field.key" :style="field.style" />
         </template>
 
         <template #cell(key)="data">
           <div
-              class="fld-key"
-              :style="{ backgroundColor: data.item.color, color: currentPropertyKey === data.item.key ? 'blue' : 'black' }"
-              @click.left="changeValue(data.item)"
-              v-text="data.value"
+            class="fld-key"
+            :style="{
+              backgroundColor: data.item.color,
+              color: currentPropertyKey === data.item.key ? 'blue' : 'black',
+            }"
+            @click.left="changeValue(data.item)"
+            v-text="data.value"
           />
         </template>
 
         <template #cell(value)="data">
           <div
-              class="fld-value"
-              :style="{ backgroundColor: data.item.color, color: currentPropertyKey === data.item.key ? 'blue' : 'black' }"
-              v-text="data.value"
+            class="fld-value"
+            :style="{
+              backgroundColor: data.item.color,
+              color: currentPropertyKey === data.item.key ? 'blue' : 'black',
+            }"
+            v-text="data.value"
           />
         </template>
 
         <template #cell(defaultValue)="data">
           <div
-              class="fld-defaultValue"
-              :style="{ backgroundColor: data.item.color, color: currentPropertyKey === data.item.key ? 'blue' : 'black' }"
-              v-text="data.value"
+            class="fld-defaultValue"
+            :style="{
+              backgroundColor: data.item.color,
+              color: currentPropertyKey === data.item.key ? 'blue' : 'black',
+            }"
+            v-text="data.value"
           />
         </template>
 
         <template #cell(description)="data">
           <div
-              class="fld-description"
-              :style="{ backgroundColor: data.item.color, color: currentPropertyKey === data.item.key ? 'blue' : 'black' }"
-              v-text="data.value"
+            class="fld-description"
+            :style="{
+              backgroundColor: data.item.color,
+              color: currentPropertyKey === data.item.key ? 'blue' : 'black',
+            }"
+            v-text="data.value"
           />
         </template>
 
         <template #cell(type)="data">
           <div
-              class="fld-type"
-              :style="{ backgroundColor: data.item.color, color: currentPropertyKey === data.item.key ? 'blue' : 'black' }"
-              v-text="data.value"
+            class="fld-type"
+            :style="{
+              backgroundColor: data.item.color,
+              color: currentPropertyKey === data.item.key ? 'blue' : 'black',
+            }"
+            v-text="data.value"
           />
         </template>
-        
-
       </b-table>
     </div>
     <div class="properties-bv-table-footer">
-      <button class="btn-round-double" title="Фильтр" @click="isPropertiesFilterVisible=true">
-        <img alt="filter" class="icon-40" src="../../assets/svg/icon_filter.svg"/>
+      <button class="btn-round-double" title="Фильтр" @click="isPropertiesFilterVisible = true">
+        <img alt="filter" class="icon-40" src="../../assets/svg/icon_filter.svg" />
       </button>
     </div>
-
-
   </div>
 </template>
 
 <script>
-
-
 import { BPagination, BSpinner, BTable } from 'bootstrap-vue-next'
-import PropertiesFilter from "../../components/Properties/filter/PropertiesFilterModal.vue";
-import CustomConfirm from "../Common/CustomConfirm.vue";
+import PropertiesFilter from '../../components/Properties/filter/PropertiesFilterModal.vue'
+import CustomConfirm from '../Common/CustomConfirm.vue'
 
 export default {
-  name: "PropertiesTable",
+  name: 'PropertiesTable',
   components: {
     // PropertyEditModal,
     PropertiesFilter,
     CustomConfirm,
     BPagination,
     BSpinner,
-    BTable
+    BTable,
   },
   data() {
     return {
@@ -124,18 +133,18 @@ export default {
       customConfirmParams: undefined,
       isBusy: false,
       currentPropertyKey: '',
-      currentProperty: undefined
+      currentProperty: undefined,
     }
   },
   computed: {
     propertiesDigestIsLoading() {
-      return this.$store.getters.getPropertiesDigestIsLoading;
+      return this.$store.getters.getPropertiesDigestIsLoading
     },
     propertiesDigests() {
-      return this.$store.getters.getPropertiesDigest;
+      return this.$store.getters.getPropertiesDigest
     },
     countRows() {
-      return this.propertiesDigests ? this.propertiesDigests.length : 0;
+      return this.propertiesDigests ? this.propertiesDigests.length : 0
     },
     propertyDigestFields() {
       return [
@@ -147,8 +156,8 @@ export default {
             minWidth: '400px',
             maxWidth: '400px',
             textAlign: 'center',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'value',
@@ -158,8 +167,8 @@ export default {
             minWidth: '300px',
             maxWidth: '300px',
             textAlign: 'left',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'defaultValue',
@@ -169,8 +178,8 @@ export default {
             minWidth: '300px',
             maxWidth: '300px',
             textAlign: 'left',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'description',
@@ -180,8 +189,8 @@ export default {
             minWidth: '500px',
             maxWidth: '500px',
             textAlign: 'left',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'type',
@@ -191,32 +200,30 @@ export default {
             minWidth: '120px',
             maxWidth: '120px',
             textAlign: 'left',
-            fontSize: 'small'
-          }
-        }
+            fontSize: 'small',
+          },
+        },
       ]
-    }
+    },
   },
   watch: {
     propertiesDigestIsLoading: {
-      handler () {
-        this.isBusy = this.propertiesDigestIsLoading;
-      }
+      handler() {
+        this.isBusy = this.propertiesDigestIsLoading
+      },
     },
     currentPage: {
-      handler (newPage) {
+      handler(newPage) {
         // Сохраняем страницу в store, чтобы она восстановилась после переключения на другой компонент.
-        this.$store.commit('setPropertiesTableCurrentPage', newPage);
-      }
-    }
+        this.$store.commit('setPropertiesTableCurrentPage', newPage)
+      },
+    },
   },
   mounted() {
     // this.$store.dispatch('loadPropertiesDigests', { filterAuthor: 'Павел Кашин'} )
   },
   methods: {
-
     changeValue(item) {
-
       this.customConfirmParams = {
         header: 'Изменение значения настройки',
         body: `Значение настройки <strong>${item.key}.</strong>`,
@@ -227,56 +234,61 @@ export default {
             fldLabel: 'Значение:',
             fldValue: item.value,
             fldIsBoolean: item.type === 'Boolean',
-            fldLabelStyle: { width: '100px', textAlign: 'right', paddingRight: '5px'},
-            fldValueStyle: { width: '300px', textAlign: 'center', borderRadius: '10px'}
-          }
-        ]
+            fldLabelStyle: { width: '100px', textAlign: 'right', paddingRight: '5px' },
+            fldValueStyle: { width: '300px', textAlign: 'center', borderRadius: '10px' },
+          },
+        ],
       }
-      this.isCustomConfirmVisible = true;
+      this.isCustomConfirmVisible = true
     },
 
     doChangeValue(result) {
-      this.$store.dispatch('setPropertyValuePromise', {propertyKey: this.currentProperty.key, propertyValue: result.propertyValue}).then(data => { // data - это объект, возвращаемый промисом
-        if (data) {
-          let result = JSON.parse(data);
-          this.$store.dispatch('updateOneProperty', result.property);
-        }
+      this.$store
+        .dispatch('setPropertyValuePromise', {
+          propertyKey: this.currentProperty.key,
+          propertyValue: result.propertyValue,
         })
-          .catch(error => {
-            console.error("Ошибка при выполнении setPropertyValuePromise:", error);
-        });
+        .then((data) => {
+          // data - это объект, возвращаемый промисом
+          if (data) {
+            let result = JSON.parse(data)
+            this.$store.dispatch('updateOneProperty', result.property)
+          }
+        })
+        .catch((error) => {
+          console.error('Ошибка при выполнении setPropertyValuePromise:', error)
+        })
     },
 
     closeCustomConfirm() {
-      this.isCustomConfirmVisible = false;
+      this.isCustomConfirmVisible = false
     },
 
     editProperty(key) {
-      this.$store.commit('setCurrentPropertyKey', key);
-      this.isPropertyEditVisible = true;
+      this.$store.commit('setCurrentPropertyKey', key)
+      this.isPropertyEditVisible = true
     },
     closePropertyEdit() {
-      this.isPropertyEditVisible = false;
+      this.isPropertyEditVisible = false
     },
     closePropertiesFilter() {
-      this.isPropertiesFilterVisible = false;
+      this.isPropertiesFilterVisible = false
     },
     onRowClicked(item, index) {
-      this.currentProperty = item;
-      this.currentPropertyKey = item.key;
-      console.log(`Row '${index}' clicked: `, item.key);
+      this.currentProperty = item
+      this.currentPropertyKey = item.key
+      console.log(`Row '${index}' clicked: `, item.key)
     },
     getCellStyle(data) {
       return {
-        backgroundColor: data.item.color
+        backgroundColor: data.item.color,
       }
-    }
-  }
+    },
+  },
 }
 </script>
 
 <style>
-
 .properties-bv-table {
   padding: 0;
   margin: 0;
@@ -388,5 +400,4 @@ export default {
   width: 40px;
   height: 40px;
 }
-
 </style>

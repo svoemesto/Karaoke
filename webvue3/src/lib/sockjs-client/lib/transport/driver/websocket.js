@@ -1,1 +1,1 @@
-module.exports = require('faye-websocket').Client;
+module.exports = require('faye-websocket').Client

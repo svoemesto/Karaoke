@@ -1,29 +1,28 @@
 <template>
   <div class="table-publish-head">
     <div
-        v-for="csrCell in publishRow.csrCells"
-        :key="csrCell.cscId"
-        class="td-text"
-        v-text="csrCell.cscName"
+      v-for="csrCell in publishRow.csrCells"
+      :key="csrCell.cscId"
+      class="td-text"
+      v-text="csrCell.cscName"
     />
   </div>
 </template>
 
 <script>
 export default {
-  name: "PublishTableHead",
+  name: 'PublishTableHead',
   props: {
     publishRow: {
       type: Array,
       required: false,
-      default: () => []
-    }
-  }
+      default: () => [],
+    },
+  },
 }
 </script>
 
 <style scoped>
-
 .table-publish-head {
   display: flex;
   flex-direction: row;
@@ -36,5 +35,4 @@ export default {
   border: thin solid black;
   font-size: small;
 }
-
 </style>

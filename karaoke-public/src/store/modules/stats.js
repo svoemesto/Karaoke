@@ -15,15 +15,15 @@ export default {
     total: 0,
     // В работе = total − onSponsr (сколько ещё не дошли до стадии «можно проиграть в плеере»).
     inWork: 0,
-    isLoading: false
+    isLoading: false,
   },
   getters: {
-    onSponsr: state => state.onSponsr,
-    onAir: state => state.onAir,
-    exclusive: state => state.exclusive,
-    total: state => state.total,
-    inWork: state => state.inWork,
-    isLoading: state => state.isLoading
+    onSponsr: (state) => state.onSponsr,
+    onAir: (state) => state.onAir,
+    exclusive: (state) => state.exclusive,
+    total: (state) => state.total,
+    inWork: (state) => state.inWork,
+    isLoading: (state) => state.isLoading,
   },
   mutations: {
     setStats(state, stats) {
@@ -35,7 +35,7 @@ export default {
     },
     setLoading(state, value) {
       state.isLoading = value
-    }
+    },
   },
   actions: {
     async loadStats({ commit }) {
@@ -46,6 +46,6 @@ export default {
       } finally {
         commit('setLoading', false)
       }
-    }
-  }
+    },
+  },
 }

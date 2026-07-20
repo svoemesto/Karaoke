@@ -18,9 +18,14 @@ export function useSiteSubscription() {
   async function loadTariffs(scope = 'SITE') {
     loadingTariffs.value = true
     try {
-      const { status, body } = await authGet(`/api/public/account/subscription/tariffs?scope=${scope}`, token.value)
+      const { status, body } = await authGet(
+        `/api/public/account/subscription/tariffs?scope=${scope}`,
+        token.value,
+      )
       if (status === 200 && Array.isArray(body)) tariffs.value = body
-    } catch (e) { /* оставляем пустой список — вызывающий код покажет "тарифов нет" */ }
+    } catch (e) {
+      /* оставляем пустой список — вызывающий код покажет "тарифов нет" */
+    }
     loadingTariffs.value = false
   }
 
@@ -29,7 +34,10 @@ export function useSiteSubscription() {
     error.value = ''
     priceInfo.value = null
     try {
-      const { status, body } = await authGet(`/api/public/account/subscription/price?scope=SITE&tariffId=${tariffId}`, token.value)
+      const { status, body } = await authGet(
+        `/api/public/account/subscription/price?scope=SITE&tariffId=${tariffId}`,
+        token.value,
+      )
       if (status === 200 && body) priceInfo.value = body
       else error.value = (body && body.error) || 'price_unavailable'
     } catch (e) {
@@ -48,7 +56,8 @@ export function useSiteSubscription() {
         token.value,
       )
       submitting.value = false
-      if (status === 200 && body) return { ok: true, confirmationUrl: body.confirmationUrl, status: body.status }
+      if (status === 200 && body)
+        return { ok: true, confirmationUrl: body.confirmationUrl, status: body.status }
       error.value = (body && body.error) || 'subscribe_failed'
       return { ok: false, error: error.value }
     } catch (e) {
@@ -58,5 +67,15 @@ export function useSiteSubscription() {
     }
   }
 
-  return { loadingTariffs, tariffs, loadingPrice, priceInfo, submitting, error, loadTariffs, loadPrice, subscribe }
+  return {
+    loadingTariffs,
+    tariffs,
+    loadingPrice,
+    priceInfo,
+    submitting,
+    error,
+    loadTariffs,
+    loadPrice,
+    subscribe,
+  }
 }

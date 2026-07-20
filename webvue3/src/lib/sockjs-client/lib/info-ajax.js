@@ -1,48 +1,47 @@
-'use strict';
+'use strict'
 
-var EventEmitter = require('events').EventEmitter
-  , inherits = require('inherits')
-  , objectUtils = require('./utils/object')
-  ;
+var EventEmitter = require('events').EventEmitter,
+  inherits = require('inherits'),
+  objectUtils = require('./utils/object')
 
-var debug = function() {};
+var debug = function () {}
 if (process.env.NODE_ENV !== 'production') {
-  debug = require('debug')('sockjs-client:info-ajax');
+  debug = require('debug')('sockjs-client:info-ajax')
 }
 
 function InfoAjax(url, AjaxObject) {
-  EventEmitter.call(this);
+  EventEmitter.call(this)
 
-  var self = this;
-  var t0 = +new Date();
-  this.xo = new AjaxObject('GET', url);
+  var self = this
+  var t0 = +new Date()
+  this.xo = new AjaxObject('GET', url)
 
-  this.xo.once('finish', function(status, text) {
-    var info, rtt;
+  this.xo.once('finish', function (status, text) {
+    var info, rtt
     if (status === 200) {
-      rtt = (+new Date()) - t0;
+      rtt = +new Date() - t0
       if (text) {
         try {
-          info = JSON.parse(text);
+          info = JSON.parse(text)
         } catch (e) {
-          debug('bad json', text);
+          debug('bad json', text)
         }
       }
 
       if (!objectUtils.isObject(info)) {
-        info = {};
+        info = {}
       }
     }
-    self.emit('finish', info, rtt, status);
-    self.removeAllListeners();
-  });
+    self.emit('finish', info, rtt, status)
+    self.removeAllListeners()
+  })
 }
 
-inherits(InfoAjax, EventEmitter);
+inherits(InfoAjax, EventEmitter)
 
-InfoAjax.prototype.close = function() {
-  this.removeAllListeners();
-  this.xo.close();
-};
+InfoAjax.prototype.close = function () {
+  this.removeAllListeners()
+  this.xo.close()
+}
 
-module.exports = InfoAjax;
+module.exports = InfoAjax

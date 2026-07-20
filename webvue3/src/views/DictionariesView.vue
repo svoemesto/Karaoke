@@ -1,21 +1,20 @@
 <template>
   <div class="dictionariesview">
-    <DictionariesTable/>
+    <DictionariesTable />
   </div>
 </template>
 
 <script>
 import DictionariesTable from '../components/Dictionaries/DictionariesTable.vue'
 export default {
-  name: "DictionariesView",
+  name: 'DictionariesView',
   components: {
-    DictionariesTable
-  }
+    DictionariesTable,
+  },
 }
 </script>
 
 <style scoped>
-
 .dictionariesview {
   display: flex;
   flex-direction: column;
@@ -23,5 +22,4 @@ export default {
   justify-content: center;
   align-items: center;
 }
-
 </style>

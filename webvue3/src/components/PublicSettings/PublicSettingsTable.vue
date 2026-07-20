@@ -19,16 +19,20 @@
           <th class="pst-th">Ключ</th>
           <th class="pst-th">Значение</th>
           <th class="pst-th">Описание</th>
-          <th class="pst-th"/>
+          <th class="pst-th" />
         </tr>
       </thead>
       <tbody>
         <tr v-for="item in editable" :key="item.key">
           <td class="pst-key">{{ item.key }}</td>
-          <td><input v-model="item.value" class="pst-input"/></td>
+          <td><input v-model="item.value" class="pst-input" /></td>
           <td class="pst-desc">{{ item.description }}</td>
           <td>
-            <button class="pst-btn" :disabled="item.value === original[item.key]" @click="save(item)">
+            <button
+              class="pst-btn"
+              :disabled="item.value === original[item.key]"
+              @click="save(item)"
+            >
               Сохранить
             </button>
           </td>
@@ -40,7 +44,7 @@
 
 <script>
 export default {
-  name: "PublicSettingsTable",
+  name: 'PublicSettingsTable',
   data() {
     return {
       editable: [],
@@ -48,35 +52,45 @@ export default {
     }
   },
   computed: {
-    isLoading() { return this.$store.getters.getPublicSettingsDigestIsLoading },
-    digest() { return this.$store.getters.getPublicSettingsDigest },
+    isLoading() {
+      return this.$store.getters.getPublicSettingsDigestIsLoading
+    },
+    digest() {
+      return this.$store.getters.getPublicSettingsDigest
+    },
     target: {
-      get() { return this.$store.getters.getPublicSettingsTarget },
-      set(v) { this.$store.dispatch('setPublicSettingsTarget', v) }
-    }
+      get() {
+        return this.$store.getters.getPublicSettingsTarget
+      },
+      set(v) {
+        this.$store.dispatch('setPublicSettingsTarget', v)
+      },
+    },
   },
   watch: {
     digest: {
       immediate: true,
       handler(list) {
-        this.editable = list.map(i => Object.assign({}, i));
-        this.original = {};
-        list.forEach(i => { this.original[i.key] = i.value });
-      }
-    }
+        this.editable = list.map((i) => Object.assign({}, i))
+        this.original = {}
+        list.forEach((i) => {
+          this.original[i.key] = i.value
+        })
+      },
+    },
   },
   mounted() {
-    this.reload();
+    this.reload()
   },
   methods: {
     reload() {
-      this.$store.dispatch('loadPublicSettingsDigest');
+      this.$store.dispatch('loadPublicSettingsDigest')
     },
     async save(item) {
-      await this.$store.dispatch('savePublicSettingValue', { key: item.key, value: item.value });
-      this.original[item.key] = item.value;
-    }
-  }
+      await this.$store.dispatch('savePublicSettingValue', { key: item.key, value: item.value })
+      this.original[item.key] = item.value
+    },
+  },
 }
 </script>
 
@@ -101,9 +115,19 @@ export default {
   background-color: antiquewhite;
   cursor: pointer;
 }
-.pst-btn:hover { background-color: lightpink; }
-.pst-btn[disabled] { background-color: lightgray; cursor: default; }
-.pst-loading, .pst-empty { font-size: small; color: gray; padding: 10px 0; }
+.pst-btn:hover {
+  background-color: lightpink;
+}
+.pst-btn[disabled] {
+  background-color: lightgray;
+  cursor: default;
+}
+.pst-loading,
+.pst-empty {
+  font-size: small;
+  color: gray;
+  padding: 10px 0;
+}
 .pst-table {
   width: 100%;
   border-collapse: collapse;
@@ -132,5 +156,8 @@ export default {
   border-radius: 4px;
   font-size: small;
 }
-td { border-bottom: 1px solid lightgray; padding: 6px 8px; }
+td {
+  border-bottom: 1px solid lightgray;
+  padding: 6px 8px;
+}
 </style>

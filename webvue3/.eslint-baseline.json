@@ -2,7 +2,7 @@
   {
     "ruleId": "no-unused-vars",
     "file": null,
-    "line": 77,
+    "line": 110,
     "column": 8,
     "message": "'store' is defined but never used. Allowed unused vars must match /^_/u.",
     "severity": 1
@@ -10,7 +10,7 @@
   {
     "ruleId": "no-unused-vars",
     "file": null,
-    "line": 294,
+    "line": 436,
     "column": 30,
     "message": "'index' is defined but never used. Allowed unused args must match /^_/u.",
     "severity": 1
@@ -18,7 +18,7 @@
   {
     "ruleId": "no-unused-vars",
     "file": null,
-    "line": 386,
+    "line": 555,
     "column": 30,
     "message": "'index' is defined but never used. Allowed unused args must match /^_/u.",
     "severity": 1
@@ -34,7 +34,7 @@
   {
     "ruleId": "vue/require-explicit-emits",
     "file": null,
-    "line": 91,
+    "line": 94,
     "column": 18,
     "message": "The \"close\" event has been triggered but not declared on `emits` option.",
     "severity": 1
@@ -50,7 +50,7 @@
   {
     "ruleId": "vue/require-explicit-emits",
     "file": null,
-    "line": 210,
+    "line": 318,
     "column": 18,
     "message": "The \"close\" event has been triggered but not declared on `emits` option.",
     "severity": 1
@@ -58,7 +58,7 @@
   {
     "ruleId": "vue/require-explicit-emits",
     "file": null,
-    "line": 213,
+    "line": 321,
     "column": 18,
     "message": "The \"close\" event has been triggered but not declared on `emits` option.",
     "severity": 1
@@ -90,7 +90,7 @@
   {
     "ruleId": "vue/require-explicit-emits",
     "file": null,
-    "line": 140,
+    "line": 194,
     "column": 18,
     "message": "The \"close\" event has been triggered but not declared on `emits` option.",
     "severity": 1
@@ -98,7 +98,7 @@
   {
     "ruleId": "vue/require-explicit-emits",
     "file": null,
-    "line": 143,
+    "line": 197,
     "column": 18,
     "message": "The \"close\" event has been triggered but not declared on `emits` option.",
     "severity": 1
@@ -114,7 +114,7 @@
   {
     "ruleId": "vue/require-explicit-emits",
     "file": null,
-    "line": 190,
+    "line": 196,
     "column": 18,
     "message": "The \"getpath\" event has been triggered but not declared on `emits` option.",
     "severity": 1
@@ -122,7 +122,7 @@
   {
     "ruleId": "vue/require-explicit-emits",
     "file": null,
-    "line": 191,
+    "line": 197,
     "column": 18,
     "message": "The \"close\" event has been triggered but not declared on `emits` option.",
     "severity": 1
@@ -130,7 +130,7 @@
   {
     "ruleId": "vue/require-explicit-emits",
     "file": null,
-    "line": 194,
+    "line": 200,
     "column": 18,
     "message": "The \"close\" event has been triggered but not declared on `emits` option.",
     "severity": 1
@@ -146,7 +146,7 @@
   {
     "ruleId": "vue/require-explicit-emits",
     "file": null,
-    "line": 49,
+    "line": 46,
     "column": 18,
     "message": "The \"close\" event has been triggered but not declared on `emits` option.",
     "severity": 1
@@ -155,14 +155,14 @@
     "ruleId": "vue/no-unused-components",
     "file": null,
     "line": 17,
-    "column": 38,
+    "column": 39,
     "message": "The \"BTable\" component has been registered but not used.",
     "severity": 2
   },
   {
     "ruleId": "vue/require-explicit-emits",
     "file": null,
-    "line": 14,
+    "line": 12,
     "column": 18,
     "message": "The \"close\" event has been triggered but not declared on `emits` option.",
     "severity": 1
@@ -170,16 +170,16 @@
   {
     "ruleId": "no-unused-vars",
     "file": null,
-    "line": 41,
-    "column": 50,
+    "line": 46,
+    "column": 16,
     "message": "'data' is defined but never used. Allowed unused args must match /^_/u.",
     "severity": 1
   },
   {
     "ruleId": "no-unused-vars",
     "file": null,
-    "line": 53,
-    "column": 50,
+    "line": 60,
+    "column": 16,
     "message": "'data' is defined but never used. Allowed unused args must match /^_/u.",
     "severity": 1
   },
@@ -194,7 +194,7 @@
   {
     "ruleId": "vue/require-explicit-emits",
     "file": null,
-    "line": 63,
+    "line": 71,
     "column": 18,
     "message": "The \"close\" event has been triggered but not declared on `emits` option.",
     "severity": 1
@@ -202,7 +202,7 @@
   {
     "ruleId": "vue/require-valid-default-prop",
     "file": null,
-    "line": 48,
+    "line": 52,
     "column": 16,
     "message": "Type of the default value for 'includedThreadId' prop must be a function.",
     "severity": 2
@@ -210,7 +210,7 @@
   {
     "ruleId": "vue/require-valid-default-prop",
     "file": null,
-    "line": 54,
+    "line": 58,
     "column": 16,
     "message": "Type of the default value for 'excludedThreadId' prop must be a function.",
     "severity": 2
@@ -226,7 +226,7 @@
   {
     "ruleId": "vue/require-explicit-emits",
     "file": null,
-    "line": 216,
+    "line": 314,
     "column": 18,
     "message": "The \"close\" event has been triggered but not declared on `emits` option.",
     "severity": 1
@@ -234,39 +234,7 @@
   {
     "ruleId": "vue/require-explicit-emits",
     "file": null,
-    "line": 219,
-    "column": 18,
-    "message": "The \"close\" event has been triggered but not declared on `emits` option.",
-    "severity": 1
-  },
-  {
-    "ruleId": "vue/require-toggle-inside-transition",
-    "file": null,
-    "line": 3,
-    "column": 5,
-    "message": "The element inside `<transition>` is expected to have a `v-if` or `v-show` directive.",
-    "severity": 2
-  },
-  {
-    "ruleId": "vue/require-explicit-emits",
-    "file": null,
-    "line": 81,
-    "column": 18,
-    "message": "The \"close\" event has been triggered but not declared on `emits` option.",
-    "severity": 1
-  },
-  {
-    "ruleId": "vue/require-explicit-emits",
-    "file": null,
-    "line": 84,
-    "column": 18,
-    "message": "The \"close\" event has been triggered but not declared on `emits` option.",
-    "severity": 1
-  },
-  {
-    "ruleId": "vue/require-explicit-emits",
-    "file": null,
-    "line": 204,
+    "line": 317,
     "column": 18,
     "message": "The \"close\" event has been triggered but not declared on `emits` option.",
     "severity": 1
@@ -282,7 +250,23 @@
   {
     "ruleId": "vue/require-explicit-emits",
     "file": null,
-    "line": 29,
+    "line": 100,
+    "column": 18,
+    "message": "The \"close\" event has been triggered but not declared on `emits` option.",
+    "severity": 1
+  },
+  {
+    "ruleId": "vue/require-explicit-emits",
+    "file": null,
+    "line": 103,
+    "column": 18,
+    "message": "The \"close\" event has been triggered but not declared on `emits` option.",
+    "severity": 1
+  },
+  {
+    "ruleId": "vue/require-explicit-emits",
+    "file": null,
+    "line": 295,
     "column": 18,
     "message": "The \"close\" event has been triggered but not declared on `emits` option.",
     "severity": 1
@@ -298,15 +282,7 @@
   {
     "ruleId": "vue/require-explicit-emits",
     "file": null,
-    "line": 74,
-    "column": 18,
-    "message": "The \"close\" event has been triggered but not declared on `emits` option.",
-    "severity": 1
-  },
-  {
-    "ruleId": "vue/require-explicit-emits",
-    "file": null,
-    "line": 77,
+    "line": 25,
     "column": 18,
     "message": "The \"close\" event has been triggered but not declared on `emits` option.",
     "severity": 1
@@ -322,7 +298,7 @@
   {
     "ruleId": "vue/require-explicit-emits",
     "file": null,
-    "line": 160,
+    "line": 89,
     "column": 18,
     "message": "The \"close\" event has been triggered but not declared on `emits` option.",
     "severity": 1
@@ -330,7 +306,31 @@
   {
     "ruleId": "vue/require-explicit-emits",
     "file": null,
-    "line": 163,
+    "line": 92,
+    "column": 18,
+    "message": "The \"close\" event has been triggered but not declared on `emits` option.",
+    "severity": 1
+  },
+  {
+    "ruleId": "vue/require-toggle-inside-transition",
+    "file": null,
+    "line": 3,
+    "column": 5,
+    "message": "The element inside `<transition>` is expected to have a `v-if` or `v-show` directive.",
+    "severity": 2
+  },
+  {
+    "ruleId": "vue/require-explicit-emits",
+    "file": null,
+    "line": 233,
+    "column": 18,
+    "message": "The \"close\" event has been triggered but not declared on `emits` option.",
+    "severity": 1
+  },
+  {
+    "ruleId": "vue/require-explicit-emits",
+    "file": null,
+    "line": 236,
     "column": 18,
     "message": "The \"close\" event has been triggered but not declared on `emits` option.",
     "severity": 1
@@ -338,16 +338,16 @@
   {
     "ruleId": "no-unused-vars",
     "file": null,
-    "line": 80,
-    "column": 31,
+    "line": 85,
+    "column": 27,
     "message": "'state' is defined but never used. Allowed unused args must match /^_/u.",
     "severity": 1
   },
   {
     "ruleId": "no-unused-vars",
     "file": null,
-    "line": 80,
-    "column": 38,
+    "line": 85,
+    "column": 34,
     "message": "'userEventData' is defined but never used. Allowed unused args must match /^_/u.",
     "severity": 1
   },
@@ -362,7 +362,7 @@
   {
     "ruleId": "vue/require-explicit-emits",
     "file": null,
-    "line": 125,
+    "line": 179,
     "column": 18,
     "message": "The \"close\" event has been triggered but not declared on `emits` option.",
     "severity": 1
@@ -370,7 +370,7 @@
   {
     "ruleId": "vue/require-explicit-emits",
     "file": null,
-    "line": 128,
+    "line": 182,
     "column": 18,
     "message": "The \"close\" event has been triggered but not declared on `emits` option.",
     "severity": 1
@@ -386,7 +386,7 @@
   {
     "ruleId": "vue/require-explicit-emits",
     "file": null,
-    "line": 9,
+    "line": 14,
     "column": 49,
     "message": "The \"close\" event has been triggered but not declared on `emits` option.",
     "severity": 1
@@ -394,7 +394,7 @@
   {
     "ruleId": "vue/require-explicit-emits",
     "file": null,
-    "line": 203,
+    "line": 311,
     "column": 18,
     "message": "The \"close\" event has been triggered but not declared on `emits` option.",
     "severity": 1
@@ -402,7 +402,7 @@
   {
     "ruleId": "vue/require-explicit-emits",
     "file": null,
-    "line": 274,
+    "line": 392,
     "column": 18,
     "message": "The \"close\" event has been triggered but not declared on `emits` option.",
     "severity": 1
@@ -418,8 +418,8 @@
   {
     "ruleId": "vue/require-explicit-emits",
     "file": null,
-    "line": 24,
-    "column": 26,
+    "line": 25,
+    "column": 18,
     "message": "The \"close\" event has been triggered but not declared on `emits` option.",
     "severity": 1
   },
@@ -434,7 +434,7 @@
   {
     "ruleId": "vue/require-explicit-emits",
     "file": null,
-    "line": 180,
+    "line": 257,
     "column": 18,
     "message": "The \"close\" event has been triggered but not declared on `emits` option.",
     "severity": 1
@@ -442,7 +442,7 @@
   {
     "ruleId": "vue/require-explicit-emits",
     "file": null,
-    "line": 183,
+    "line": 260,
     "column": 18,
     "message": "The \"close\" event has been triggered but not declared on `emits` option.",
     "severity": 1
@@ -482,7 +482,7 @@
   {
     "ruleId": "no-unused-vars",
     "file": null,
-    "line": 146,
+    "line": 156,
     "column": 15,
     "message": "'data' is assigned a value but never used. Allowed unused vars must match /^_/u.",
     "severity": 1
@@ -490,23 +490,23 @@
   {
     "ruleId": "vue/no-v-html",
     "file": null,
-    "line": 140,
-    "column": 80,
+    "line": 214,
+    "column": 11,
     "message": "'v-html' directive can lead to XSS attack.",
     "severity": 1
   },
   {
     "ruleId": "no-unused-vars",
     "file": null,
-    "line": 149,
-    "column": 34,
+    "line": 230,
+    "column": 3,
     "message": "'ensureEndMarker' is defined but never used. Allowed unused vars must match /^_/u.",
     "severity": 1
   },
   {
     "ruleId": "vue/require-explicit-emits",
     "file": null,
-    "line": 406,
+    "line": 595,
     "column": 20,
     "message": "The \"change\" event has been triggered but not declared on `emits` option.",
     "severity": 1
@@ -514,7 +514,7 @@
   {
     "ruleId": "vue/require-explicit-emits",
     "file": null,
-    "line": 503,
+    "line": 723,
     "column": 18,
     "message": "The \"change\" event has been triggered but not declared on `emits` option.",
     "severity": 1
@@ -522,7 +522,7 @@
   {
     "ruleId": "vue/require-explicit-emits",
     "file": null,
-    "line": 512,
+    "line": 737,
     "column": 18,
     "message": "The \"change\" event has been triggered but not declared on `emits` option.",
     "severity": 1
@@ -530,7 +530,7 @@
   {
     "ruleId": "vue/require-explicit-emits",
     "file": null,
-    "line": 519,
+    "line": 745,
     "column": 18,
     "message": "The \"change\" event has been triggered but not declared on `emits` option.",
     "severity": 1
@@ -538,7 +538,7 @@
   {
     "ruleId": "vue/require-explicit-emits",
     "file": null,
-    "line": 525,
+    "line": 751,
     "column": 18,
     "message": "The \"change\" event has been triggered but not declared on `emits` option.",
     "severity": 1
@@ -546,7 +546,7 @@
   {
     "ruleId": "vue/require-explicit-emits",
     "file": null,
-    "line": 537,
+    "line": 763,
     "column": 18,
     "message": "The \"change\" event has been triggered but not declared on `emits` option.",
     "severity": 1
@@ -554,7 +554,7 @@
   {
     "ruleId": "vue/require-explicit-emits",
     "file": null,
-    "line": 549,
+    "line": 778,
     "column": 18,
     "message": "The \"change\" event has been triggered but not declared on `emits` option.",
     "severity": 1
@@ -570,7 +570,7 @@
   {
     "ruleId": "vue/require-explicit-emits",
     "file": null,
-    "line": 166,
+    "line": 201,
     "column": 18,
     "message": "The \"select\" event has been triggered but not declared on `emits` option.",
     "severity": 1
@@ -578,7 +578,7 @@
   {
     "ruleId": "vue/require-explicit-emits",
     "file": null,
-    "line": 169,
+    "line": 204,
     "column": 18,
     "message": "The \"close\" event has been triggered but not declared on `emits` option.",
     "severity": 1
@@ -594,7 +594,7 @@
   {
     "ruleId": "vue/no-dupe-keys",
     "file": null,
-    "line": 110,
+    "line": 112,
     "column": 5,
     "message": "Duplicate key 'searchAsyncId'. May cause name collision in script or template tag.",
     "severity": 2
@@ -602,7 +602,7 @@
   {
     "ruleId": "vue/require-explicit-emits",
     "file": null,
-    "line": 151,
+    "line": 153,
     "column": 18,
     "message": "The \"close\" event has been triggered but not declared on `emits` option.",
     "severity": 1
@@ -610,7 +610,7 @@
   {
     "ruleId": "vue/require-explicit-emits",
     "file": null,
-    "line": 155,
+    "line": 157,
     "column": 18,
     "message": "The \"close\" event has been triggered but not declared on `emits` option.",
     "severity": 1
@@ -618,7 +618,7 @@
   {
     "ruleId": "vue/require-explicit-emits",
     "file": null,
-    "line": 158,
+    "line": 160,
     "column": 18,
     "message": "The \"return\" event has been triggered but not declared on `emits` option.",
     "severity": 1
@@ -626,7 +626,7 @@
   {
     "ruleId": "vue/require-explicit-emits",
     "file": null,
-    "line": 43,
+    "line": 41,
     "column": 18,
     "message": "The \"selectedResult\" event has been triggered but not declared on `emits` option.",
     "severity": 1
@@ -634,7 +634,7 @@
   {
     "ruleId": "vue/no-v-html",
     "file": null,
-    "line": 689,
+    "line": 1800,
     "column": 41,
     "message": "'v-html' directive can lead to XSS attack.",
     "severity": 1
@@ -642,7 +642,7 @@
   {
     "ruleId": "vue/no-v-html",
     "file": null,
-    "line": 694,
+    "line": 1805,
     "column": 42,
     "message": "'v-html' directive can lead to XSS attack.",
     "severity": 1
@@ -650,7 +650,7 @@
   {
     "ruleId": "vue/no-v-html",
     "file": null,
-    "line": 699,
+    "line": 1810,
     "column": 43,
     "message": "'v-html' directive can lead to XSS attack.",
     "severity": 1
@@ -658,7 +658,7 @@
   {
     "ruleId": "vue/require-default-prop",
     "file": null,
-    "line": 775,
+    "line": 1948,
     "column": 5,
     "message": "Prop 'songsDigests' requires default value to be set.",
     "severity": 1
@@ -666,15 +666,15 @@
   {
     "ruleId": "no-unused-vars",
     "file": null,
-    "line": 940,
-    "column": 18,
+    "line": 2246,
+    "column": 15,
     "message": "'newVal' is defined but never used. Allowed unused args must match /^_/u.",
     "severity": 1
   },
   {
     "ruleId": "vue/require-explicit-emits",
     "file": null,
-    "line": 2232,
+    "line": 3739,
     "column": 18,
     "message": "The \"close\" event has been triggered but not declared on `emits` option.",
     "severity": 1
@@ -690,7 +690,7 @@
   {
     "ruleId": "vue/require-default-prop",
     "file": null,
-    "line": 36,
+    "line": 33,
     "column": 5,
     "message": "Prop 'songsDigests' requires default value to be set.",
     "severity": 1
@@ -698,7 +698,7 @@
   {
     "ruleId": "vue/require-explicit-emits",
     "file": null,
-    "line": 49,
+    "line": 46,
     "column": 18,
     "message": "The \"close\" event has been triggered but not declared on `emits` option.",
     "severity": 1
@@ -714,7 +714,7 @@
   {
     "ruleId": "vue/no-v-html",
     "file": null,
-    "line": 271,
+    "line": 1041,
     "column": 34,
     "message": "'v-html' directive can lead to XSS attack.",
     "severity": 1
@@ -722,7 +722,7 @@
   {
     "ruleId": "vue/no-v-html",
     "file": null,
-    "line": 276,
+    "line": 1046,
     "column": 48,
     "message": "'v-html' directive can lead to XSS attack.",
     "severity": 1
@@ -730,7 +730,7 @@
   {
     "ruleId": "vue/no-v-html",
     "file": null,
-    "line": 279,
+    "line": 1049,
     "column": 49,
     "message": "'v-html' directive can lead to XSS attack.",
     "severity": 1
@@ -738,7 +738,7 @@
   {
     "ruleId": "vue/no-v-html",
     "file": null,
-    "line": 282,
+    "line": 1052,
     "column": 50,
     "message": "'v-html' directive can lead to XSS attack.",
     "severity": 1
@@ -746,7 +746,7 @@
   {
     "ruleId": "no-unused-vars",
     "file": null,
-    "line": 1494,
+    "line": 2431,
     "column": 13,
     "message": "'deltaEnd' is assigned a value but never used. Allowed unused vars must match /^_/u.",
     "severity": 1
@@ -754,7 +754,7 @@
   {
     "ruleId": "vue/require-explicit-emits",
     "file": null,
-    "line": 3037,
+    "line": 4351,
     "column": 18,
     "message": "The \"close\" event has been triggered but not declared on `emits` option.",
     "severity": 1
@@ -770,7 +770,7 @@
   {
     "ruleId": "vue/require-explicit-emits",
     "file": null,
-    "line": 605,
+    "line": 938,
     "column": 18,
     "message": "The \"close\" event has been triggered but not declared on `emits` option.",
     "severity": 1
@@ -778,7 +778,7 @@
   {
     "ruleId": "vue/require-explicit-emits",
     "file": null,
-    "line": 608,
+    "line": 941,
     "column": 18,
     "message": "The \"close\" event has been triggered but not declared on `emits` option.",
     "severity": 1
@@ -786,15 +786,15 @@
   {
     "ruleId": "no-unused-vars",
     "file": null,
-    "line": 2367,
-    "column": 32,
+    "line": 2631,
+    "column": 28,
     "message": "'ctx' is defined but never used. Allowed unused args must match /^_/u.",
     "severity": 1
   },
   {
     "ruleId": "no-unused-vars",
     "file": null,
-    "line": 346,
+    "line": 402,
     "column": 3,
     "message": "'sourceTexts' is defined but never used. Allowed unused args must match /^_/u.",
     "severity": 1
@@ -802,7 +802,7 @@
   {
     "ruleId": "no-unused-vars",
     "file": null,
-    "line": 600,
+    "line": 634,
     "column": 56,
     "message": "'vIdx' is defined but never used. Allowed unused args must match /^_/u.",
     "severity": 1
@@ -810,7 +810,7 @@
   {
     "ruleId": "no-unused-vars",
     "file": null,
-    "line": 629,
+    "line": 663,
     "column": 32,
     "message": "'isVoice' is defined but never used. Allowed unused args must match /^_/u.",
     "severity": 1
@@ -818,7 +818,7 @@
   {
     "ruleId": "no-unused-vars",
     "file": null,
-    "line": 1809,
+    "line": 2060,
     "column": 32,
     "message": "'dt' is defined but never used. Allowed unused args must match /^_/u.",
     "severity": 1
@@ -826,16 +826,16 @@
   {
     "ruleId": "vue/no-template-shadow",
     "file": null,
-    "line": 15,
-    "column": 24,
+    "line": 19,
+    "column": 26,
     "message": "Variable 'author' is already declared in the upper scope.",
     "severity": 1
   },
   {
     "ruleId": "no-unused-vars",
     "file": null,
-    "line": 248,
-    "column": 177,
+    "line": 338,
+    "column": 16,
     "message": "'data' is defined but never used. Allowed unused args must match /^_/u.",
     "severity": 1
   }

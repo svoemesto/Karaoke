@@ -11,7 +11,11 @@ function request(method, path, params, token) {
     xhr.onload = () => {
       let body = null
       if (xhr.response) {
-        try { body = JSON.parse(xhr.response) } catch (e) { body = null }
+        try {
+          body = JSON.parse(xhr.response)
+        } catch (e) {
+          body = null
+        }
       }
       resolve({ status: xhr.status, body })
     }
@@ -48,7 +52,11 @@ export function authUpload(path, file, fields, token, onProgress) {
     xhr.onload = () => {
       let body = null
       if (xhr.response) {
-        try { body = JSON.parse(xhr.response) } catch (e) { body = null }
+        try {
+          body = JSON.parse(xhr.response)
+        } catch (e) {
+          body = null
+        }
       }
       resolve({ status: xhr.status, body })
     }

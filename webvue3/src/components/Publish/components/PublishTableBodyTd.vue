@@ -1,16 +1,30 @@
 <template>
   <div class="td-wrapper">
-    <SongEditModal v-if="isSongEditVisible" :parent-route="parentRoute" :publish-digest="publishDigest" @close="closeSongEdit"/>
+    <SongEditModal
+      v-if="isSongEditVisible"
+      :parent-route="parentRoute"
+      :publish-digest="publishDigest"
+      @close="closeSongEdit"
+    />
     <div v-if="publish" class="publish">
       <div
-class="publish-name"
-           :style="styleSongName"
-           :title="publishTitle"
-           @click.left="editSong"
-           v-text="publishText"/>
+        class="publish-name"
+        :style="styleSongName"
+        :title="publishTitle"
+        @click.left="editSong"
+        v-text="publishText"
+      />
       <div class="publish-column">
-        <div class="publish-column-cell-top" :style="processColorMeltLyrics" @dblclick="dblClickLyrics" />
-        <div class="publish-column-cell-bottom" :style="processColorMeltKaraoke" @dblclick="dblClickKaraoke" />
+        <div
+          class="publish-column-cell-top"
+          :style="processColorMeltLyrics"
+          @dblclick="dblClickLyrics"
+        />
+        <div
+          class="publish-column-cell-bottom"
+          :style="processColorMeltKaraoke"
+          @dblclick="dblClickKaraoke"
+        />
       </div>
       <div class="publish-column">
         <div class="publish-column-cell-top" :style="processColorSponsr" />
@@ -33,33 +47,33 @@ class="publish-name"
         <div class="publish-column-cell-bottom" :style="processColorTelegramKaraoke" />
       </div>
     </div>
-    <div v-else class="empty"/>
+    <div v-else class="empty" />
   </div>
 </template>
 
 <script>
-import SongEditModal from "../../../components/Songs/edit/SongEditModal.vue";
+import SongEditModal from '../../../components/Songs/edit/SongEditModal.vue'
 export default {
-  name: "PublishTableBodyTd",
+  name: 'PublishTableBodyTd',
   components: {
-    SongEditModal
+    SongEditModal,
   },
   props: {
     publish: {
       type: Object,
       required: false,
-      default: () => null
+      default: () => null,
     },
     publishDigest: {
       type: Array,
       required: false,
-      default: () => [[]]
-    }
+      default: () => [[]],
+    },
   },
-  data () {
+  data() {
     return {
       isSongEditVisible: false,
-    };
+    }
   },
   computed: {
     parentRoute() {
@@ -71,52 +85,90 @@ export default {
     publishText() {
       return `${this.publish.firstSongInAlbum ? '★ ' : ''}${this.publish.songName}`
     },
-    styleSongName() { return { backgroundColor: this.publish.color } },
-    processColorBoosty() { return { backgroundColor: this.publish.processColorBoosty } },
-    processColorSponsr() { return { backgroundColor: this.publish.processColorSponsr } },
-    processColorVk() { return { backgroundColor: this.publish.processColorVk } },
-    processColorVkLyrics() { return { backgroundColor: this.publish.processColorVkLyrics } },
-    processColorVkKaraoke() { return { backgroundColor: this.publish.processColorVkKaraoke } },
-    processColorVkChords() { return { backgroundColor: this.publish.processColorVkChords } },
-    processColorDzenLyrics() { return { backgroundColor: this.publish.processColorDzenLyrics } },
-    processColorDzenKaraoke() { return { backgroundColor: this.publish.processColorDzenKaraoke } },
-    processColorDzenChords() { return { backgroundColor: this.publish.processColorDzenChords } },
-    processColorMeltLyrics() { return { backgroundColor: this.publish.processColorMeltLyrics } },
-    processColorMeltKaraoke() { return { backgroundColor: this.publish.processColorMeltKaraoke } },
-    processColorMeltChords() { return { backgroundColor: this.publish.processColorMeltChords } },
-    processColorMeltMelody() { return { backgroundColor: this.publish.processColorMeltMelody } },
-    processColorTelegramLyrics() { return { backgroundColor: this.publish.processColorTelegramLyrics } },
-    processColorTelegramKaraoke() { return { backgroundColor: this.publish.processColorTelegramKaraoke } },
-    processColorTelegramChords() { return { backgroundColor: this.publish.processColorTelegramChords } },
-    processColorPlLyrics() { return { backgroundColor: this.publish.processColorPlLyrics } },
-    processColorPlKaraoke() { return { backgroundColor: this.publish.processColorPlKaraoke } },
-    processColorPlChords() { return { backgroundColor: this.publish.processColorPlChords } },
+    styleSongName() {
+      return { backgroundColor: this.publish.color }
+    },
+    processColorBoosty() {
+      return { backgroundColor: this.publish.processColorBoosty }
+    },
+    processColorSponsr() {
+      return { backgroundColor: this.publish.processColorSponsr }
+    },
+    processColorVk() {
+      return { backgroundColor: this.publish.processColorVk }
+    },
+    processColorVkLyrics() {
+      return { backgroundColor: this.publish.processColorVkLyrics }
+    },
+    processColorVkKaraoke() {
+      return { backgroundColor: this.publish.processColorVkKaraoke }
+    },
+    processColorVkChords() {
+      return { backgroundColor: this.publish.processColorVkChords }
+    },
+    processColorDzenLyrics() {
+      return { backgroundColor: this.publish.processColorDzenLyrics }
+    },
+    processColorDzenKaraoke() {
+      return { backgroundColor: this.publish.processColorDzenKaraoke }
+    },
+    processColorDzenChords() {
+      return { backgroundColor: this.publish.processColorDzenChords }
+    },
+    processColorMeltLyrics() {
+      return { backgroundColor: this.publish.processColorMeltLyrics }
+    },
+    processColorMeltKaraoke() {
+      return { backgroundColor: this.publish.processColorMeltKaraoke }
+    },
+    processColorMeltChords() {
+      return { backgroundColor: this.publish.processColorMeltChords }
+    },
+    processColorMeltMelody() {
+      return { backgroundColor: this.publish.processColorMeltMelody }
+    },
+    processColorTelegramLyrics() {
+      return { backgroundColor: this.publish.processColorTelegramLyrics }
+    },
+    processColorTelegramKaraoke() {
+      return { backgroundColor: this.publish.processColorTelegramKaraoke }
+    },
+    processColorTelegramChords() {
+      return { backgroundColor: this.publish.processColorTelegramChords }
+    },
+    processColorPlLyrics() {
+      return { backgroundColor: this.publish.processColorPlLyrics }
+    },
+    processColorPlKaraoke() {
+      return { backgroundColor: this.publish.processColorPlKaraoke }
+    },
+    processColorPlChords() {
+      return { backgroundColor: this.publish.processColorPlChords }
+    },
   },
   methods: {
     editSong() {
-      this.$store.dispatch('setCurrentSongId', this.publish.id);
-      this.isSongEditVisible = true;
+      this.$store.dispatch('setCurrentSongId', this.publish.id)
+      this.isSongEditVisible = true
     },
     closeSongEdit() {
-      this.isSongEditVisible = false;
+      this.isSongEditVisible = false
     },
     dblClickKaraoke() {
-      return this.$store.getters.playKaraoke(this.publish.id);
+      return this.$store.getters.playKaraoke(this.publish.id)
     },
     dblClickLyrics() {
-      return this.$store.getters.playLyrics(this.publish.id);
+      return this.$store.getters.playLyrics(this.publish.id)
     },
     dblClickChords() {
-      return this.$store.getters.playChords(this.publish.id);
-    }
-  }
+      return this.$store.getters.playChords(this.publish.id)
+    },
+  },
 }
 </script>
 
 <style scoped>
-
 .td-wrapper {
-
 }
 
 .publish {
@@ -178,7 +230,6 @@ export default {
   height: 20px;
   background-color: grey;
   border: thin black;
-  border-style: dashed dashed none none
+  border-style: dashed dashed none none;
 }
-
 </style>

@@ -33,6 +33,16 @@ module.exports = {
     // между версиями eslint-plugin-vue).
     'vue/singleline-html-element-content-newline': 'off',
     'vue/html-indent': 'off',
+    // vue/require-explicit-emits — ОТКЛЮЧЁН (было 50 в baseline).
+    // Правило требует декларировать все emits в опции `emits`, но в проекте
+    // 50+ компонентов с emit('xxx') без явной декларации. Это стилистическая
+    // рекомендация (для IDE автодополнения), не баг. Заменено
+    // документацией в CONTRIBUTING.md (раздел "Vue: emit declaration").
+    // Включение обратно: убрать строку ниже + добавить `emits: [...]` в каждый
+    // компонент, использующий emit.
+    'vue/require-explicit-emits': 'off',
+    // vue/no-template-shadow — ОТКЛЮЧЁН (1 в baseline). Стилистическое.
+    'vue/no-template-shadow': 'off',
     'no-unused-vars': ['warn', {
       argsIgnorePattern: '^_',
       varsIgnorePattern: '^_',

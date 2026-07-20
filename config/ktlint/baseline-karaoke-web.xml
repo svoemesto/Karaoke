@@ -9,46 +9,6 @@
     <file name="src/main/kotlin/com/svoemesto/karaokeweb/WORKING_DATABASE.kt">
         <error line="1" column="1" source="standard:filename" />
     </file>
-    <file name="src/main/kotlin/com/svoemesto/karaokeweb/controllers/InternalStemJobController.kt">
-        <error line="10" column="1" source="standard:no-wildcard-imports" />
-    </file>
-    <file name="src/main/kotlin/com/svoemesto/karaokeweb/controllers/MainController.kt">
-        <error line="3" column="1" source="standard:import-ordering" />
-        <error line="22" column="1" source="standard:no-wildcard-imports" />
-    </file>
-    <file name="src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicAccountController.kt">
-        <error line="10" column="1" source="standard:no-wildcard-imports" />
-    </file>
-    <file name="src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicApiController.kt">
-        <error line="24" column="1" source="standard:no-wildcard-imports" />
-    </file>
-    <file name="src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicAuthController.kt">
-        <error line="16" column="1" source="standard:no-wildcard-imports" />
-    </file>
-    <file name="src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicCartController.kt">
-        <error line="18" column="1" source="standard:no-wildcard-imports" />
-    </file>
-    <file name="src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicChatController.kt">
-        <error line="12" column="1" source="standard:no-wildcard-imports" />
-    </file>
-    <file name="src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicPaymentController.kt">
-        <error line="47" column="141" source="standard:max-line-length" />
-    </file>
-    <file name="src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicPlayerController.kt">
-        <error line="25" column="1" source="standard:no-wildcard-imports" />
-    </file>
-    <file name="src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicPlaylistController.kt">
-        <error line="15" column="1" source="standard:no-wildcard-imports" />
-    </file>
-    <file name="src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicSongEditorController.kt">
-        <error line="21" column="1" source="standard:no-wildcard-imports" />
-    </file>
-    <file name="src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicStemJobController.kt">
-        <error line="16" column="1" source="standard:no-wildcard-imports" />
-    </file>
-    <file name="src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicSubscriptionController.kt">
-        <error line="17" column="1" source="standard:no-wildcard-imports" />
-    </file>
     <file name="src/main/kotlin/com/svoemesto/karaokeweb/services/KaraokeStorageServiceImplWeb.kt">
         <error line="1" column="1" source="standard:filename" />
     </file>

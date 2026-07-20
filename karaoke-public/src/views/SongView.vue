@@ -12,22 +12,22 @@
           <div class="km-theme-toggle">
             <button
               :class="['km-tb', theme === 'light' ? 'active' : '']"
-              @click="setTheme('light')"
               title="Светлая"
+              @click="setTheme('light')"
             >
               ☀
             </button>
             <button
               :class="['km-tb', theme === 'system' ? 'active' : '']"
-              @click="setTheme('system')"
               title="Авто"
+              @click="setTheme('system')"
             >
               ⬡
             </button>
             <button
               :class="['km-tb', theme === 'dark' ? 'active' : '']"
-              @click="setTheme('dark')"
               title="Тёмная"
+              @click="setTheme('dark')"
             >
               🌙
             </button>
@@ -63,8 +63,8 @@
           v-if="currentSong.songPictureUrl"
           :src="currentSong.songPictureUrl"
           class="km-hero-banner"
-          @error="$event.target.style.display = 'none'"
           alt=""
+          @error="$event.target.style.display = 'none'"
         />
         <div class="km-hero-overlay">
           <h1 class="km-song-title">«{{ currentSong.songName }}»</h1>

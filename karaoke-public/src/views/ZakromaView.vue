@@ -12,22 +12,22 @@
           <div class="km-theme-toggle">
             <button
               :class="['km-tb', theme === 'light' ? 'active' : '']"
-              @click="setTheme('light')"
               title="Светлая"
+              @click="setTheme('light')"
             >
               ☀
             </button>
             <button
               :class="['km-tb', theme === 'system' ? 'active' : '']"
-              @click="setTheme('system')"
               title="Авто"
+              @click="setTheme('system')"
             >
               ⬡
             </button>
             <button
               :class="['km-tb', theme === 'dark' ? 'active' : '']"
-              @click="setTheme('dark')"
               title="Тёмная"
+              @click="setTheme('dark')"
             >
               🌙
             </button>
@@ -51,8 +51,8 @@
           v-if="songFilter"
           type="button"
           class="km-filter-clear"
-          @click="songFilter = ''"
           title="Очистить"
+          @click="songFilter = ''"
         >
           ×
         </button>
@@ -92,8 +92,8 @@
             v-if="zak.authorPictureUrl"
             :src="zak.authorPictureUrl"
             class="km-author-pic"
-            @error="$event.target.style.display = 'none'"
             alt=""
+            @error="$event.target.style.display = 'none'"
           />
           <span class="km-author-name">{{ zak.author }}</span>
           <RouterLink
@@ -111,8 +111,8 @@
               v-if="alb.albumPictureUrl"
               :src="alb.albumPictureUrl"
               class="km-album-pic"
-              @error="$event.target.style.display = 'none'"
               alt=""
+              @error="$event.target.style.display = 'none'"
             />
             <span class="km-album-name">{{ alb.year }} — {{ alb.albumName }}</span>
           </div>

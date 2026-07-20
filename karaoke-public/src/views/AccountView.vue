@@ -34,11 +34,11 @@
       </div>
 
       <template v-if="activeTab === 'overview'">
-        <div class="km-form-card" v-if="premiumSourceText">
+        <div v-if="premiumSourceText" class="km-form-card">
           <h2 class="km-subtitle">Премиум-доступ</h2>
           <p class="km-premium-source">{{ premiumSourceText }}</p>
         </div>
-        <div class="km-form-card" v-else>
+        <div v-else class="km-form-card">
           <h2 class="km-subtitle">Премиум-доступ</h2>
           <p class="km-hint-text">У вас пока нет активной подписки.</p>
           <RouterLink to="/premium" class="km-submit-btn km-link-btn"
@@ -165,6 +165,19 @@ export default {
     cart.load()
     return { token, user, setSession, clearSession, fetchMe, cart }
   },
+  data() {
+    return {
+      activeTab: 'overview',
+      profileForm: { displayName: '', sponsrUid: '' },
+      profileLoading: false,
+      profileMessage: '',
+      profileError: false,
+      passwordForm: { oldPassword: '', newPassword: '' },
+      passwordLoading: false,
+      passwordMessage: '',
+      passwordError: false,
+    }
+  },
   computed: {
     isPremium() {
       return !!(this.user && this.user.effectivePremium)
@@ -193,19 +206,6 @@ export default {
       if (parts.length === 0) return ''
       return 'Премиум активен: ' + parts.join('; ') + '.'
     },
-  },
-  data() {
-    return {
-      activeTab: 'overview',
-      profileForm: { displayName: '', sponsrUid: '' },
-      profileLoading: false,
-      profileMessage: '',
-      profileError: false,
-      passwordForm: { oldPassword: '', newPassword: '' },
-      passwordLoading: false,
-      passwordMessage: '',
-      passwordError: false,
-    }
   },
   async mounted() {
     await this.fetchMe()

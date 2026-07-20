@@ -34,7 +34,7 @@
         <div v-if="loading" class="km-loading">Загрузка...</div>
 
         <template v-else>
-          <div class="km-chat-messages" ref="listEl">
+          <div ref="listEl" class="km-chat-messages">
             <p v-if="!messages.length" class="km-empty">Сообщений пока нет. Напишите первым!</p>
             <div
               v-for="m in messages"
@@ -56,15 +56,15 @@
               rows="1"
               @input="autoGrowComposer"
               @keydown.enter.exact.prevent="onSend"
-            ></textarea>
+            />
             <button
               class="km-chat-send-btn"
               :disabled="sending || !draft.trim()"
-              @click="onSend"
               title="Отправить"
+              @click="onSend"
             >
               <span v-if="!sending">➤</span>
-              <span v-else class="km-chat-send-spinner"></span>
+              <span v-else class="km-chat-send-spinner" />
             </button>
           </div>
           <p v-if="error" class="km-chat-error">{{ error }}</p>

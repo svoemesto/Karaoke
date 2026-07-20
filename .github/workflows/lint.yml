@@ -1,0 +1,159 @@
+# GitHub Actions: lint enforcement
+#
+# Прогоняет ktlint, ESLint (baseline-aware) и Prettier (strict) на каждый
+# push в master и pull request. Per-feature документы проверяются на
+# структуру и (в offline-режиме) на корректность Markdown-ссылок.
+#
+# См. также:
+#   - CONTRIBUTING.md (раздел «Поток разработки»)
+#   - docs/features/ci-lint-enforcement.md (per-feature документ, FR-009)
+#   - .pre-commit-config.yaml (локальные хуки, идентичный набор правил)
+#
+# Кэширование:
+#   - Gradle: setup-java@v4 cache=gradle (~/.gradle/caches)
+#   - npm:    setup-node@v4 cache=npm (per-SPA package-lock.json)
+#
+# Триггеры:
+#   - push в master (post-merge sanity-check)
+#   - pull_request в master (gate перед merge)
+#
+# Concurrency: отменяет более старые запуски для той же ветки,
+# чтобы не тратить минуты CI впустую при force-push.
+
+name: Lint
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+concurrency:
+  group: lint-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # === Backend: ktlint (Kotlin/Java) ===
+  # Baseline-aware: новые нарушения валят, старые (из baseline) — нет.
+  # См. build.gradle.kts: ktlint-gradle 12.x автоматически читает
+  # config/ktlint/baseline-<module>.xml для каждого subproject.
+  backend-lint:
+    name: ktlint (Kotlin/Java)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Run ktlintCheck (baseline-aware)
+        run: ./gradlew ktlintCheck --no-daemon --stacktrace
+
+      - name: Upload ktlint reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ktlint-reports
+          path: |
+            **/build/reports/ktlint/
+            **/build/reports/ktlintMainSourceSetCheck/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  # === Frontend: ESLint (baseline-aware) + Prettier (strict) ===
+  # Matrix по двум SPA. Каждый SPA прогоняется независимо, чтобы
+  # падение в одном не маскировало успех в другом.
+  frontend-lint:
+    name: ESLint + Prettier (${{ matrix.spa }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        spa: [webvue3, karaoke-public]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 22 (LTS)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: ${{ matrix.spa }}/package-lock.json
+
+      - name: npm ci (clean install)
+        working-directory: ${{ matrix.spa }}
+        run: npm ci --no-audit --no-fund
+
+      - name: ESLint (baseline-aware)
+        # tools/check-eslint-baseline.sh сравнивает текущие нарушения
+        # с .eslint-baseline.json: если есть новые — exit 1.
+        # Запускается из корня репо (не из SPA), т.к. baseline-скрипт
+        # ожидает относительный путь к SPA-каталогу как аргумент.
+        working-directory: .
+        run: bash tools/check-eslint-baseline.sh ${{ matrix.spa }}
+
+      - name: Prettier --check (strict, без baseline)
+        # Prettier — non-functional формат. Любое несоответствие
+        # исправляется одной командой:
+        #   cd ${{ matrix.spa }} && npm run format
+        working-directory: ${{ matrix.spa }}
+        run: npx prettier --check "src/**/*.{vue,js,ts,json}"
+
+  # === Docs: структура per-feature + Markdown-ссылки ===
+  # Не блокер-уровень, но даёт быстрый сигнал о сломанной документации.
+  # lychee запускается в --offline: проверяет только локальные файлы,
+  # не делает HEAD-запросы к внешним URL (что в CI часто падает на
+  # блокировке IP-диапазонов GitHub).
+  docs-lint:
+    name: Docs (structure + offline links)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: lychee (offline links check)
+        uses: lycheeverse/lychee-action@v1.9.0
+        with:
+          args: >-
+            --offline
+            --no-progress
+            --exclude-loopback
+            --exclude-mail
+            --accept 200,203,206,301,302,303,304,307,308,403,429
+            docs/features/
+            CONTRIBUTING.md
+
+      - name: Check per-feature doc structure
+        # 6 обязательных секций + slug == имя файла + Status ∈ {active, deprecated, experimental}.
+        # Подробности: contracts/per-feature-doc.md, tools/check-feature-doc.sh.
+        run: bash tools/check-feature-doc.sh docs/features/*.md
+
+  # === Baseline stats (informational) ===
+  # Не валит CI. Публикует текущие счётчики baseline как summary —
+  # можно посмотреть в GitHub UI на странице запуска.
+  baseline-stats:
+    name: Baseline stats (informational)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install jq
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq jq
+
+      - name: Print baseline stats
+        run: bash tools/baseline-stats.sh

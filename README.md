@@ -3,6 +3,8 @@
 > **Self-hosted pipeline для автоматического создания караоке-видео.**
 > Kotlin/Spring Boot бэкенд + Vue 3 фронтенд.
 
+[![Lint](https://github.com/svoemesto/Karaoke/actions/workflows/lint.yml/badge.svg)](https://github.com/svoemesto/Karaoke/actions/workflows/lint.yml)
+
 ## Что это
 
 Karaoke — это автопайплайн, который находит/загружает аудио, тексты,
@@ -35,8 +37,13 @@ Boot бэкенд.
 - **Vue/TS**: eslint\(eslint + prettier\). См. [Vue 3 / TypeScript](./CONTRIBUTING.md#vue-3--typescript).
 - **Pre-commit**: `pip install pre-commit && pre-commit install`.
   Обход: `git commit --no-verify`.
-- **Baseline**: текущие нарушения зафиксированы в `config/ktlint/baseline.xml`,
-  `config/detekt/baseline.xml`, `webvue3/.eslint-baseline.json`,
+- **CI**: [`.github/workflows/lint.yml`](./.github/workflows/lint.yml) —
+  ktlint (Kotlin/Java), ESLint (webvue3/karaoke-public), Prettier,
+  lychee, проверка per-feature документов. Запускается на push
+  в `master` и pull_request в `master`. Per-feature документ:
+  [`docs/features/ci-lint-enforcement.md`](./docs/features/ci-lint-enforcement.md).
+- **Baseline**: текущие нарушения зафиксированы в
+  `config/ktlint/baseline-*.xml`, `webvue3/.eslint-baseline.json`,
   `karaoke-public/.eslint-baseline.json`. Темп сокращения: ≥10%/мес.
 
 Скрипты в `tools/`:

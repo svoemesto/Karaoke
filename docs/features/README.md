@@ -7,7 +7,7 @@
 > **Правило**: PR, меняющий код одной из этих фич, **обязан** обновлять
 > соответствующий документ (FR-009 spec.md).
 
-## Все 9 ключевых подсистем
+## 9 ключевых подсистем
 
 | # | Slug | Название | Файл |
 |---|------|----------|------|
@@ -20,6 +20,15 @@
 | 7 | `llm-lyrics-search` | LLM-assisted поиск текстов и аккордов | [llm-lyrics-search.md](./llm-lyrics-search.md) |
 | 8 | `telegram-auto-publish` | Автопубликация в Telegram-канал | [telegram-auto-publish.md](./telegram-auto-publish.md) |
 | 9 | `monitoring` | Мониторинг ключевых моментов | [monitoring.md](./monitoring.md) |
+
+## Cross-cutting (инфраструктура)
+
+Фичи, которые **не являются продуктовыми подсистемами**, но обслуживают
+процесс разработки и должны документироваться по тем же правилам (FR-009):
+
+| Slug | Название | Файл |
+|------|----------|------|
+| `ci-lint-enforcement` | GitHub Actions: ktlint + ESLint + Prettier + docs | [ci-lint-enforcement.md](./ci-lint-enforcement.md) |
 
 ## Как пользоваться
 

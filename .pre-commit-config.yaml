@@ -26,13 +26,15 @@ repos:
         stages: [pre-commit]
 
       # === Kotlin: detekt ===
-      - id: detekt
-        name: detekt (Kotlin code smells)
-        entry: ./gradlew detekt
-        language: system
-        pass_filenames: false
-        types_or: [kotlin, java]
-        stages: [pre-commit]
+      # Закомментирован до выхода версии с поддержкой Kotlin 2.2
+      # (см. AGENTS.md, build.gradle.kts:15-17).
+      #  - id: detekt
+      #    name: detekt (Kotlin code smells)
+      #    entry: ./gradlew detekt
+      #    language: system
+      #    pass_filenames: false
+      #    types_or: [kotlin, java]
+      #    stages: [pre-commit]
 
       # === Vue/TS: eslint (webvue3) ===
       - id: eslint-webvue3

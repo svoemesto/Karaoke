@@ -34,7 +34,10 @@ export function usePlayerReadiness() {
     for (const k of Object.keys(states)) delete states[k]
     for (const k of Object.keys(contentStates)) delete contentStates[k]
     const unique = [...new Set(ids.map(String))]
-    unique.forEach(id => { states[id] = 'loading'; contentStates[id] = 'loading' })
+    unique.forEach((id) => {
+      states[id] = 'loading'
+      contentStates[id] = 'loading'
+    })
     if (!unique.length) return
 
     const chunks = []
@@ -52,17 +55,20 @@ export function usePlayerReadiness() {
           const { status, body } = await authPost(
             '/api/public/player/readiness',
             { ids: chunk.join(',') },
-            token
+            token,
           )
           if (requestId !== latest) return // устаревший запрос — не трогаем текущую карту
           const items = (status === 200 && body && body.items) || {}
-          chunk.forEach(id => {
+          chunk.forEach((id) => {
             states[id] = items[id] && items[id].watchable ? 'active' : 'disabled'
             contentStates[id] = items[id] && items[id].contentReady ? 'ready' : 'notready'
           })
         } catch (e) {
           if (requestId !== latest) return
-          chunk.forEach(id => { states[id] = 'disabled'; contentStates[id] = 'notready' })
+          chunk.forEach((id) => {
+            states[id] = 'disabled'
+            contentStates[id] = 'notready'
+          })
         }
       }
     }

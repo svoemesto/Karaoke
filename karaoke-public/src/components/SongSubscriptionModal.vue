@@ -12,18 +12,22 @@
           <div class="ssm-price">
             <span v-if="priceInfo.discount > 0" class="ssm-price-old">{{ priceInfo.base }} ₽</span>
             <span class="ssm-price-final">{{ priceInfo.final }} ₽</span>
-            <span v-if="priceInfo.promoApplied" class="ssm-promo">{{ priceInfo.promoApplied }}</span>
-            <span v-if="priceInfo.personalDiscountPercent > 0" class="ssm-promo ssm-promo-personal">Ваша скидка {{ priceInfo.personalDiscountPercent }}%</span>
+            <span v-if="priceInfo.promoApplied" class="ssm-promo">{{
+              priceInfo.promoApplied
+            }}</span>
+            <span v-if="priceInfo.personalDiscountPercent > 0" class="ssm-promo ssm-promo-personal"
+              >Ваша скидка {{ priceInfo.personalDiscountPercent }}%</span
+            >
           </div>
           <div class="ssm-fineprint">Бессрочный доступ к этой песне в онлайн-плеере сайта.</div>
 
           <label class="ssm-disclaimer-label">
-            <input type="checkbox" v-model="disclaimerAccepted">
+            <input type="checkbox" v-model="disclaimerAccepted" />
             <span>
-              Я понимаю, что оплачиваю работу автора проекта (разметку, синхронизацию, плеер) — права на
-              музыкальное произведение и фонограмму принадлежат правообладателям и ко мне не переходят.
-              Доступ — только для личного некоммерческого использования на этом сайте, без передачи
-              файлов и без возможности скачивания. Полные условия — в
+              Я понимаю, что оплачиваю работу автора проекта (разметку, синхронизацию, плеер) —
+              права на музыкальное произведение и фонограмму принадлежат правообладателям и ко мне
+              не переходят. Доступ — только для личного некоммерческого использования на этом сайте,
+              без передачи файлов и без возможности скачивания. Полные условия — в
               <RouterLink to="/oferta" target="_blank">публичной оферте</RouterLink>.
             </span>
           </label>
@@ -35,16 +39,25 @@
 
           <div class="ssm-upsell">
             Хотите слушать всю коллекцию, а не только эту песню?
-            <RouterLink to="/premium" @click="$emit('close')">Оформите премиум-подписку →</RouterLink>
+            <RouterLink to="/premium" @click="$emit('close')"
+              >Оформите премиум-подписку →</RouterLink
+            >
           </div>
 
           <div v-if="inCart" class="ssm-cart-row">
             <button class="ssm-btn ssm-btn-secondary" :disabled="cartBusy" @click="onToggleCart">
               {{ cartBusy ? 'Убираем...' : 'Удалить из корзины и оплатить отдельно' }}
             </button>
-            <RouterLink to="/account/cart" class="ssm-btn ssm-btn-secondary" @click="$emit('close')">Перейти в корзину</RouterLink>
+            <RouterLink to="/account/cart" class="ssm-btn ssm-btn-secondary" @click="$emit('close')"
+              >Перейти в корзину</RouterLink
+            >
           </div>
-          <button v-else class="ssm-btn ssm-btn-secondary ssm-btn-cart-solo" :disabled="cartBusy" @click="onToggleCart">
+          <button
+            v-else
+            class="ssm-btn ssm-btn-secondary ssm-btn-cart-solo"
+            :disabled="cartBusy"
+            @click="onToggleCart"
+          >
             {{ cartBusy ? 'Добавляем...' : 'Добавить в корзину' }}
           </button>
 
@@ -52,10 +65,21 @@
             <button class="ssm-btn ssm-btn-secondary" @click="$emit('close')">Отмена</button>
             <button
               class="ssm-btn ssm-btn-primary"
-              :disabled="inCart || !disclaimerAccepted || submitting || (priceInfo.final > 0 && priceInfo.paymentsEnabled === false)"
+              :disabled="
+                inCart ||
+                !disclaimerAccepted ||
+                submitting ||
+                (priceInfo.final > 0 && priceInfo.paymentsEnabled === false)
+              "
               @click="onSubmit"
             >
-              {{ submitting ? 'Оформляем...' : (priceInfo.final > 0 ? 'Оплатить' : 'Активировать бесплатно') }}
+              {{
+                submitting
+                  ? 'Оформляем...'
+                  : priceInfo.final > 0
+                    ? 'Оплатить'
+                    : 'Активировать бесплатно'
+              }}
             </button>
           </div>
         </template>
@@ -77,7 +101,8 @@ export default {
   },
   emits: ['close', 'activated'],
   setup() {
-    const { loadingPrice, priceInfo, submitting, error, loadPrice, subscribe } = useSongSubscription()
+    const { loadingPrice, priceInfo, submitting, error, loadPrice, subscribe } =
+      useSongSubscription()
     const cart = useCart()
     return { loadingPrice, priceInfo, submitting, error, loadPrice, subscribe, cart }
   },
@@ -90,9 +115,10 @@ export default {
     },
     submitErrorText() {
       if (this.error === 'already_subscribed') return 'Подписка на эту песню уже оформлена.'
-      if (this.error === 'payment_unavailable') return 'Оплата временно недоступна, попробуйте позже.'
+      if (this.error === 'payment_unavailable')
+        return 'Оплата временно недоступна, попробуйте позже.'
       return 'Не удалось оформить подписку. Попробуйте ещё раз.'
-    }
+    },
   },
   watch: {
     visible(v) {
@@ -101,7 +127,7 @@ export default {
         this.submitError = false
         this.loadPrice(this.songId)
       }
-    }
+    },
   },
   methods: {
     // Один и тот же тумблер на обе кнопки-состояния: "Добавить в корзину" (её нет в корзине) и
@@ -109,12 +135,19 @@ export default {
     async onToggleCart() {
       if (this.cartBusy) return
       this.cartBusy = true
-      try { await this.cart.toggle(this.songId) } finally { this.cartBusy = false }
+      try {
+        await this.cart.toggle(this.songId)
+      } finally {
+        this.cartBusy = false
+      }
     },
     async onSubmit() {
       this.submitError = false
       const result = await this.subscribe(this.songId, true)
-      if (!result.ok) { this.submitError = true; return }
+      if (!result.ok) {
+        this.submitError = true
+        return
+      }
       if (result.confirmationUrl) {
         window.location.href = result.confirmationUrl
         return
@@ -122,8 +155,8 @@ export default {
       // Акция довела цену до нуля — доступ уже активен, ничего ждать не нужно.
       this.$emit('activated')
       this.$emit('close')
-    }
-  }
+    },
+  },
 }
 </script>
 
@@ -160,18 +193,70 @@ export default {
   color: var(--km-text2, #888);
   cursor: pointer;
 }
-.ssm-title { font-size: 1.15rem; font-weight: 700; margin: 0 0 0.25rem; }
-.ssm-subtitle { font-size: 0.9rem; color: var(--km-text2, #555); margin: 0 0 0.9rem; }
-.ssm-loading, .ssm-error { font-size: 0.88rem; color: var(--km-text2, #555); margin-bottom: 0.75rem; }
-.ssm-error { color: #c0392b; }
-.ssm-price { display: flex; align-items: baseline; gap: 0.5rem; margin-bottom: 0.4rem; }
-.ssm-price-old { text-decoration: line-through; color: var(--km-text2, #888); font-size: 0.95rem; }
-.ssm-price-final { font-size: 1.5rem; font-weight: 800; }
-.ssm-promo { font-size: 0.78rem; background: linear-gradient(135deg, #f6c94b, #d99413); color: #5a3c00; padding: 0.15rem 0.5rem; border-radius: 12px; }
-.ssm-promo-personal { background: linear-gradient(135deg, #a78bfa, #7C3AED); color: #fff; }
-.ssm-fineprint { font-size: 0.8rem; color: var(--km-text2, #888); margin-bottom: 1rem; }
-.ssm-disclaimer-label { display: flex; gap: 0.5rem; align-items: flex-start; font-size: 0.78rem; line-height: 1.35; color: var(--km-text2, #666); margin-bottom: 1rem; cursor: pointer; }
-.ssm-disclaimer-label input { margin-top: 0.2rem; flex-shrink: 0; }
+.ssm-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin: 0 0 0.25rem;
+}
+.ssm-subtitle {
+  font-size: 0.9rem;
+  color: var(--km-text2, #555);
+  margin: 0 0 0.9rem;
+}
+.ssm-loading,
+.ssm-error {
+  font-size: 0.88rem;
+  color: var(--km-text2, #555);
+  margin-bottom: 0.75rem;
+}
+.ssm-error {
+  color: #c0392b;
+}
+.ssm-price {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+}
+.ssm-price-old {
+  text-decoration: line-through;
+  color: var(--km-text2, #888);
+  font-size: 0.95rem;
+}
+.ssm-price-final {
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+.ssm-promo {
+  font-size: 0.78rem;
+  background: linear-gradient(135deg, #f6c94b, #d99413);
+  color: #5a3c00;
+  padding: 0.15rem 0.5rem;
+  border-radius: 12px;
+}
+.ssm-promo-personal {
+  background: linear-gradient(135deg, #a78bfa, #7c3aed);
+  color: #fff;
+}
+.ssm-fineprint {
+  font-size: 0.8rem;
+  color: var(--km-text2, #888);
+  margin-bottom: 1rem;
+}
+.ssm-disclaimer-label {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  color: var(--km-text2, #666);
+  margin-bottom: 1rem;
+  cursor: pointer;
+}
+.ssm-disclaimer-label input {
+  margin-top: 0.2rem;
+  flex-shrink: 0;
+}
 .ssm-upsell {
   font-size: 0.8rem;
   color: var(--km-text2, #666);
@@ -181,16 +266,61 @@ export default {
   margin-bottom: 1rem;
   text-align: center;
 }
-.ssm-upsell a { color: var(--km-accent, #0077ff); font-weight: 600; text-decoration: none; }
-.ssm-upsell a:hover { text-decoration: underline; }
-.ssm-btn-cart-solo { display: block; width: 100%; text-align: center; margin-bottom: 0.75rem; }
-.ssm-cart-row { display: flex; gap: 0.5rem; margin-bottom: 0.75rem; }
-.ssm-cart-row .ssm-btn { flex: 1; text-align: center; text-decoration: none; }
-.ssm-actions { display: flex; gap: 0.6rem; justify-content: flex-end; }
-.ssm-btn { padding: 0.5rem 1.1rem; border-radius: 8px; font-size: 0.88rem; font-weight: 600; cursor: pointer; border: 1px solid transparent; }
-.ssm-btn-primary { background: var(--km-accent, #0077ff); color: #fff; }
-.ssm-btn-primary:hover { filter: brightness(1.08); }
-.ssm-btn-primary[disabled] { opacity: 0.5; cursor: default; filter: none; }
-.ssm-btn-secondary { background: transparent; color: var(--km-text2, #555); border-color: var(--km-border, #ccc); }
-.ssm-btn-secondary:hover { background: var(--km-hover, rgba(0,0,0,0.05)); }
+.ssm-upsell a {
+  color: var(--km-accent, #0077ff);
+  font-weight: 600;
+  text-decoration: none;
+}
+.ssm-upsell a:hover {
+  text-decoration: underline;
+}
+.ssm-btn-cart-solo {
+  display: block;
+  width: 100%;
+  text-align: center;
+  margin-bottom: 0.75rem;
+}
+.ssm-cart-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+.ssm-cart-row .ssm-btn {
+  flex: 1;
+  text-align: center;
+  text-decoration: none;
+}
+.ssm-actions {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: flex-end;
+}
+.ssm-btn {
+  padding: 0.5rem 1.1rem;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+.ssm-btn-primary {
+  background: var(--km-accent, #0077ff);
+  color: #fff;
+}
+.ssm-btn-primary:hover {
+  filter: brightness(1.08);
+}
+.ssm-btn-primary[disabled] {
+  opacity: 0.5;
+  cursor: default;
+  filter: none;
+}
+.ssm-btn-secondary {
+  background: transparent;
+  color: var(--km-text2, #555);
+  border-color: var(--km-border, #ccc);
+}
+.ssm-btn-secondary:hover {
+  background: var(--km-hover, rgba(0, 0, 0, 0.05));
+}
 </style>

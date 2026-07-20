@@ -30,8 +30,8 @@ export default {
     // the .modernScreen wrapper, same as webvue3's App.vue excludes /player/* from its sidebar layout.
     isPlayerPage() {
       return this.$route.name === 'player'
-    }
-  }
+    },
+  },
 }
 </script>
 

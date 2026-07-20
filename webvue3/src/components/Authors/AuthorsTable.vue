@@ -1,57 +1,61 @@
 <template>
   <div class="authors-bv-table">
-    <PictureEditModal v-if="isPictureEditVisible" @close="closePictureEdit"/>
-    <AuthorsFilter v-if="isAuthorsFilterVisible" @close="closeAuthorsFilter"/>
-    <custom-confirm v-if="isCustomConfirmVisible" :params="customConfirmParams" @close="closeCustomConfirm" />
-    <AuthorAliasesModal v-if="isAuthorAliasesVisible" :author-id="aliasesAuthorId" @close="closeAuthorAliases"/>
+    <PictureEditModal v-if="isPictureEditVisible" @close="closePictureEdit" />
+    <AuthorsFilter v-if="isAuthorsFilterVisible" @close="closeAuthorsFilter" />
+    <custom-confirm
+      v-if="isCustomConfirmVisible"
+      :params="customConfirmParams"
+      @close="closeCustomConfirm"
+    />
+    <AuthorAliasesModal
+      v-if="isAuthorAliasesVisible"
+      :author-id="aliasesAuthorId"
+      @close="closeAuthorAliases"
+    />
     <div class="authors-bv-table-header">
       <b-pagination
-          v-model="currentPage"
-          :total-rows="countRows"
-          :per-page="perPage"
-          :limit="30"
-          size="sm"
-          pills
+        v-model="currentPage"
+        :total-rows="countRows"
+        :per-page="perPage"
+        :limit="30"
+        size="sm"
+        pills
       />
     </div>
     <div class="authors-bv-table-body">
       <b-table
-          v-model:sort-by="sortBy"
-          :items="authorsDigests"
-          :busy="isBusy"
-          :fields="authorDigestFields"
-          :per-page="perPage"
-          :current-page="currentPage"
-          small
-          bordered
-          hover
-          @row-clicked="onRowClicked"
+        v-model:sort-by="sortBy"
+        :items="authorsDigests"
+        :busy="isBusy"
+        :fields="authorDigestFields"
+        :per-page="perPage"
+        :current-page="currentPage"
+        small
+        bordered
+        hover
+        @row-clicked="onRowClicked"
       >
         <template #table-busy>
           <div class="text-center text-danger my-2">
-            <b-spinner class="align-middle"/>
+            <b-spinner class="align-middle" />
             <strong>Loading...</strong>
           </div>
         </template>
         <template #table-colgroup="scope">
-          <col
-              v-for="field in scope.fields"
-              :key="field.key"
-              :style="field.style"
-          />
+          <col v-for="field in scope.fields" :key="field.key" :style="field.style" />
         </template>
 
         <template #cell(picturePreview)="data">
           <div
-              class="fld-picture-preview"
-              :style="{ color: currentAuthorId === data.item.id ? 'blue' : 'black' }"
-              @click.left="editPicture(data.item.pictureId)"
+            class="fld-picture-preview"
+            :style="{ color: currentAuthorId === data.item.id ? 'blue' : 'black' }"
+            @click.left="editPicture(data.item.pictureId)"
           >
             <img
-                v-if="data.item.picturePreviewUrl"
-                :src="data.item.picturePreviewUrl"
-                alt="Preview"
-                class="preview-image"
+              v-if="data.item.picturePreviewUrl"
+              :src="data.item.picturePreviewUrl"
+              alt="Preview"
+              class="preview-image"
             />
             <div v-else class="no-image-placeholder">Нет изображения</div>
           </div>
@@ -59,119 +63,114 @@
 
         <template #cell(id)="data">
           <div
-              class="fld-author-id"
-              :style="{ color: currentAuthorId === data.item.id ? 'blue' : 'black' }"
-              @click.left="changeValue(data.item)"
-              v-text="data.value"
+            class="fld-author-id"
+            :style="{ color: currentAuthorId === data.item.id ? 'blue' : 'black' }"
+            @click.left="changeValue(data.item)"
+            v-text="data.value"
           />
         </template>
 
         <template #cell(author)="data">
           <div
-              class="fld-author"
-              :style="{ color: currentAuthorId === data.item.id ? 'blue' : 'black' }"
-              @click.left="changeValue(data.item)"
-              v-text="data.value"
+            class="fld-author"
+            :style="{ color: currentAuthorId === data.item.id ? 'blue' : 'black' }"
+            @click.left="changeValue(data.item)"
+            v-text="data.value"
           />
         </template>
 
         <template #cell(ymId)="data">
           <div
-              class="fld-ymId"
-              :style="{ color: currentAuthorId === data.item.id ? 'blue' : 'black' }"
-              @click.left="openYandexMusicAuthor(data.item)"
-              v-text="data.value"
+            class="fld-ymId"
+            :style="{ color: currentAuthorId === data.item.id ? 'blue' : 'black' }"
+            @click.left="openYandexMusicAuthor(data.item)"
+            v-text="data.value"
           />
         </template>
 
         <template #cell(lastAlbumYm)="data">
           <div
-              class="fld-lastAlbumYm"
-              :style="{ color: currentAuthorId === data.item.id ? 'blue' : 'black' }"
-              v-text="data.value"
+            class="fld-lastAlbumYm"
+            :style="{ color: currentAuthorId === data.item.id ? 'blue' : 'black' }"
+            v-text="data.value"
           />
         </template>
 
         <template #cell(vkId)="data">
           <div
-              class="fld-vkId"
-              :style="{ color: currentAuthorId === data.item.id ? 'blue' : 'black' }"
-              @click.left="openVKMusicAuthor(data.item)"
-              v-text="data.value"
+            class="fld-vkId"
+            :style="{ color: currentAuthorId === data.item.id ? 'blue' : 'black' }"
+            @click.left="openVKMusicAuthor(data.item)"
+            v-text="data.value"
           />
         </template>
 
         <template #cell(lastAlbumVk)="data">
           <div
-              class="fld-lastAlbumVk"
-              :style="{ color: currentAuthorId === data.item.id ? 'blue' : 'black' }"
-              v-text="data.value"
+            class="fld-lastAlbumVk"
+            :style="{ color: currentAuthorId === data.item.id ? 'blue' : 'black' }"
+            v-text="data.value"
           />
         </template>
 
         <template #cell(lastAlbumProcessed)="data">
           <div
-              class="fld-lastAlbumProcessed"
-              :style="{ color: currentAuthorId === data.item.id ? 'blue' : 'black' }"
-              v-text="data.value"
+            class="fld-lastAlbumProcessed"
+            :style="{ color: currentAuthorId === data.item.id ? 'blue' : 'black' }"
+            v-text="data.value"
           />
         </template>
 
         <template #cell(watched)="data">
           <div
-              class="fld-watched"
-              :style="{ color: currentAuthorId === data.item.id ? 'blue' : 'black' }"
-              v-text="data.value"
+            class="fld-watched"
+            :style="{ color: currentAuthorId === data.item.id ? 'blue' : 'black' }"
+            v-text="data.value"
           />
         </template>
 
         <template #cell(skip)="data">
           <div
-              class="fld-skip"
-              :style="{ color: currentAuthorId === data.item.id ? 'blue' : 'black' }"
-              v-text="data.value"
+            class="fld-skip"
+            :style="{ color: currentAuthorId === data.item.id ? 'blue' : 'black' }"
+            v-text="data.value"
           />
         </template>
 
         <template #cell(haveNewAlbum)="data">
           <div
-              class="fld-haveNewAlbum"
-              :style="{ color: currentAuthorId === data.item.id ? 'blue' : 'black' }"
-              v-text="data.value"
+            class="fld-haveNewAlbum"
+            :style="{ color: currentAuthorId === data.item.id ? 'blue' : 'black' }"
+            v-text="data.value"
           />
         </template>
 
         <template #cell(aliases)="data">
           <div
-              class="fld-aliases"
-              @click.left="editAliases(data.item)"
-              v-text="aliasesSummary(data.value)"
+            class="fld-aliases"
+            @click.left="editAliases(data.item)"
+            v-text="aliasesSummary(data.value)"
           />
         </template>
-
       </b-table>
     </div>
     <div class="authors-bv-table-footer">
-      <button class="btn-round-double" title="Фильтр" @click="isAuthorsFilterVisible=true">
-        <img alt="filter" class="icon-40" src="../../assets/svg/icon_filter.svg"/>
+      <button class="btn-round-double" title="Фильтр" @click="isAuthorsFilterVisible = true">
+        <img alt="filter" class="icon-40" src="../../assets/svg/icon_filter.svg" />
       </button>
     </div>
-
-
   </div>
 </template>
 
 <script>
-
-
 import { BPagination, BSpinner, BTable } from 'bootstrap-vue-next'
-import AuthorsFilter from "../../components/Authors/filter/AuthorsFilterModal.vue";
-import CustomConfirm from "../Common/CustomConfirm.vue";
-import PictureEditModal from "../../components/Pictures/edit/PictureEditModal.vue";
-import AuthorAliasesModal from "./AuthorAliasesModal.vue";
+import AuthorsFilter from '../../components/Authors/filter/AuthorsFilterModal.vue'
+import CustomConfirm from '../Common/CustomConfirm.vue'
+import PictureEditModal from '../../components/Pictures/edit/PictureEditModal.vue'
+import AuthorAliasesModal from './AuthorAliasesModal.vue'
 
 export default {
-  name: "AuthorsTable",
+  name: 'AuthorsTable',
   components: {
     AuthorsFilter,
     PictureEditModal,
@@ -179,7 +178,7 @@ export default {
     CustomConfirm,
     BPagination,
     BSpinner,
-    BTable
+    BTable,
   },
   data() {
     return {
@@ -197,18 +196,18 @@ export default {
       customConfirmParams: undefined,
       isBusy: false,
       currentAuthorId: '',
-      currentAuthor: undefined
+      currentAuthor: undefined,
     }
   },
   computed: {
     authorsDigestIsLoading() {
-      return this.$store.getters.getAuthorsDigestIsLoading;
+      return this.$store.getters.getAuthorsDigestIsLoading
     },
     authorsDigests() {
-      return this.$store.getters.getAuthorsDigest;
+      return this.$store.getters.getAuthorsDigest
     },
     countRows() {
-      return this.authorsDigests ? this.authorsDigests.length : 0;
+      return this.authorsDigests ? this.authorsDigests.length : 0
     },
     authorDigestFields() {
       return [
@@ -219,8 +218,8 @@ export default {
             minWidth: '125px',
             maxWidth: '125px',
             textAlign: 'left',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'id',
@@ -230,8 +229,8 @@ export default {
             minWidth: '50px',
             maxWidth: '50px',
             textAlign: 'center',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'author',
@@ -241,8 +240,8 @@ export default {
             minWidth: '300px',
             maxWidth: '300px',
             textAlign: 'left',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'ymId',
@@ -252,8 +251,8 @@ export default {
             minWidth: '100px',
             maxWidth: '100px',
             textAlign: 'left',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'lastAlbumYm',
@@ -263,8 +262,8 @@ export default {
             minWidth: '300px',
             maxWidth: '300px',
             textAlign: 'left',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'vkId',
@@ -274,8 +273,8 @@ export default {
             minWidth: '100px',
             maxWidth: '100px',
             textAlign: 'left',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'lastAlbumVk',
@@ -285,8 +284,8 @@ export default {
             minWidth: '300px',
             maxWidth: '300px',
             textAlign: 'left',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'lastAlbumProcessed',
@@ -296,8 +295,8 @@ export default {
             minWidth: '300px',
             maxWidth: '300px',
             textAlign: 'left',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'watched',
@@ -307,8 +306,8 @@ export default {
             minWidth: '50px',
             maxWidth: '50px',
             textAlign: 'left',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'skip',
@@ -318,8 +317,8 @@ export default {
             minWidth: '50px',
             maxWidth: '50px',
             textAlign: 'left',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'haveNewAlbum',
@@ -329,8 +328,8 @@ export default {
             minWidth: '50px',
             maxWidth: '50px',
             textAlign: 'left',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'aliases',
@@ -340,51 +339,49 @@ export default {
             minWidth: '250px',
             maxWidth: '250px',
             textAlign: 'left',
-            fontSize: 'small'
-          }
-        }
+            fontSize: 'small',
+          },
+        },
       ]
-    }
+    },
   },
   watch: {
     authorsDigestIsLoading: {
-      handler () {
-        this.isBusy = this.authorsDigestIsLoading;
-      }
+      handler() {
+        this.isBusy = this.authorsDigestIsLoading
+      },
     },
     currentPage: {
-      handler (newPage) {
+      handler(newPage) {
         // Сохраняем страницу в store, чтобы она восстановилась после переключения на другой компонент.
-        this.$store.commit('setAuthorsTableCurrentPage', newPage);
-      }
-    }
+        this.$store.commit('setAuthorsTableCurrentPage', newPage)
+      },
+    },
   },
   mounted() {
     // this.$store.dispatch('loadAuthorsDigests', { filterAuthor: 'Павел Кашин'} )
   },
   methods: {
-
     editPicture(id) {
-      this.$store.commit('setPictureCurrentId', id);
-      this.isPictureEditVisible = true;
+      this.$store.commit('setPictureCurrentId', id)
+      this.isPictureEditVisible = true
     },
 
     openYandexMusicAuthor(item) {
       if (item.ymId) {
-        const yandexMusicAuthorLink = 'https://music.yandex.ru/artist/' + item.ymId + '/albums';
-        window.open(yandexMusicAuthorLink, '_blank');
+        const yandexMusicAuthorLink = 'https://music.yandex.ru/artist/' + item.ymId + '/albums'
+        window.open(yandexMusicAuthorLink, '_blank')
       }
     },
 
     openVKMusicAuthor(item) {
       if (item.ymId) {
-        const vkMusicAuthorLink = 'https://vk.ru/artist/' + item.vkId + '/releases';
-        window.open(vkMusicAuthorLink, '_blank');
+        const vkMusicAuthorLink = 'https://vk.ru/artist/' + item.vkId + '/releases'
+        window.open(vkMusicAuthorLink, '_blank')
       }
     },
 
     changeValue(item) {
-
       this.customConfirmParams = {
         header: 'Изменение Автора',
         body: `Автор ID = <strong>${item.id}</strong>`,
@@ -395,66 +392,66 @@ export default {
             fldLabel: 'ID:',
             fldValue: item.id,
             disabled: true,
-            fldLabelStyle: { width: '300px', textAlign: 'right', paddingRight: '5px'},
-            fldValueStyle: { width: '300px', textAlign: 'left', borderRadius: '5px'}
+            fldLabelStyle: { width: '300px', textAlign: 'right', paddingRight: '5px' },
+            fldValueStyle: { width: '300px', textAlign: 'left', borderRadius: '5px' },
           },
           {
             fldName: 'author',
             fldLabel: 'Автор:',
             fldValue: item.author,
-            fldLabelStyle: { width: '300px', textAlign: 'right', paddingRight: '5px'},
-            fldValueStyle: { width: '300px', textAlign: 'left', borderRadius: '5px'}
+            fldLabelStyle: { width: '300px', textAlign: 'right', paddingRight: '5px' },
+            fldValueStyle: { width: '300px', textAlign: 'left', borderRadius: '5px' },
           },
           {
             fldName: 'ymId',
             fldLabel: 'Yandex ID:',
             fldValue: item.ymId,
-            fldLabelStyle: { width: '300px', textAlign: 'right', paddingRight: '5px'},
-            fldValueStyle: { width: '300px', textAlign: 'left', borderRadius: '5px'}
+            fldLabelStyle: { width: '300px', textAlign: 'right', paddingRight: '5px' },
+            fldValueStyle: { width: '300px', textAlign: 'left', borderRadius: '5px' },
           },
           {
             fldName: 'lastAlbumYm',
             fldLabel: 'Последний альбом (Yandex):',
             fldValue: item.lastAlbumYm,
-            fldLabelStyle: { width: '300px', textAlign: 'right', paddingRight: '5px'},
-            fldValueStyle: { width: '300px', textAlign: 'left', borderRadius: '5px'}
+            fldLabelStyle: { width: '300px', textAlign: 'right', paddingRight: '5px' },
+            fldValueStyle: { width: '300px', textAlign: 'left', borderRadius: '5px' },
           },
           {
             fldName: 'vkId',
             fldLabel: 'VK ID:',
             fldValue: item.vkId,
-            fldLabelStyle: { width: '300px', textAlign: 'right', paddingRight: '5px'},
-            fldValueStyle: { width: '300px', textAlign: 'left', borderRadius: '5px'}
+            fldLabelStyle: { width: '300px', textAlign: 'right', paddingRight: '5px' },
+            fldValueStyle: { width: '300px', textAlign: 'left', borderRadius: '5px' },
           },
           {
             fldName: 'lastAlbumVk',
             fldLabel: 'Последний альбом (VK):',
             fldValue: item.lastAlbumVk,
-            fldLabelStyle: { width: '300px', textAlign: 'right', paddingRight: '5px'},
-            fldValueStyle: { width: '300px', textAlign: 'left', borderRadius: '5px'}
-          },          
+            fldLabelStyle: { width: '300px', textAlign: 'right', paddingRight: '5px' },
+            fldValueStyle: { width: '300px', textAlign: 'left', borderRadius: '5px' },
+          },
           {
             fldName: 'lastAlbumProcessed',
             fldLabel: 'Последний альбом (DB):',
             fldValue: item.lastAlbumProcessed,
-            fldLabelStyle: { width: '300px', textAlign: 'right', paddingRight: '5px'},
-            fldValueStyle: { width: '300px', textAlign: 'left', borderRadius: '5px'}
+            fldLabelStyle: { width: '300px', textAlign: 'right', paddingRight: '5px' },
+            fldValueStyle: { width: '300px', textAlign: 'left', borderRadius: '5px' },
           },
           {
             fldName: 'watched',
             fldLabel: 'Следить?:',
             fldValue: item.watched,
             fldIsBoolean: true,
-            fldLabelStyle: { width: '300px', textAlign: 'right', paddingRight: '5px'},
-            fldValueStyle: { width: '300px', textAlign: 'center', borderRadius: '5px'}
+            fldLabelStyle: { width: '300px', textAlign: 'right', paddingRight: '5px' },
+            fldValueStyle: { width: '300px', textAlign: 'center', borderRadius: '5px' },
           },
           {
             fldName: 'skip',
             fldLabel: 'Пропустить?:',
             fldValue: item.skip,
             fldIsBoolean: true,
-            fldLabelStyle: { width: '300px', textAlign: 'right', paddingRight: '5px'},
-            fldValueStyle: { width: '300px', textAlign: 'center', borderRadius: '5px'}
+            fldLabelStyle: { width: '300px', textAlign: 'right', paddingRight: '5px' },
+            fldValueStyle: { width: '300px', textAlign: 'center', borderRadius: '5px' },
           },
           {
             fldName: 'haveNewAlbum',
@@ -462,73 +459,81 @@ export default {
             fldValue: item.watched,
             fldIsBoolean: true,
             disabled: true,
-            fldLabelStyle: { width: '300px', textAlign: 'right', paddingRight: '5px'},
-            fldValueStyle: { width: '300px', textAlign: 'center', borderRadius: '5px'}
-          }
-        ]
+            fldLabelStyle: { width: '300px', textAlign: 'right', paddingRight: '5px' },
+            fldValueStyle: { width: '300px', textAlign: 'center', borderRadius: '5px' },
+          },
+        ],
       }
-      this.isCustomConfirmVisible = true;
+      this.isCustomConfirmVisible = true
     },
 
     doChangeValue(author) {
-      this.$store.dispatch('setAuthorValuePromise', author)
-          .then(result => { // result - это целое число, возвращаемое промисом
-            if (result !== 0) { // Проверяем, отлично ли оно от нуля
-              this.$store.dispatch('loadOneRecord', result);
-            }
-          })
-          .catch(error => {
-            console.error("Ошибка при выполнении setAuthorValuePromise:", error);
-          });
+      this.$store
+        .dispatch('setAuthorValuePromise', author)
+        .then((result) => {
+          // result - это целое число, возвращаемое промисом
+          if (result !== 0) {
+            // Проверяем, отлично ли оно от нуля
+            this.$store.dispatch('loadOneRecord', result)
+          }
+        })
+        .catch((error) => {
+          console.error('Ошибка при выполнении setAuthorValuePromise:', error)
+        })
     },
 
     closeCustomConfirm() {
-      this.isCustomConfirmVisible = false;
+      this.isCustomConfirmVisible = false
     },
 
     aliasesSummary(aliases) {
-      if (!aliases) return '—';
-      return aliases.split(';').map(a => a.trim()).filter(a => a.length > 0).join(', ') || '—';
+      if (!aliases) return '—'
+      return (
+        aliases
+          .split(';')
+          .map((a) => a.trim())
+          .filter((a) => a.length > 0)
+          .join(', ') || '—'
+      )
     },
 
     editAliases(item) {
-      this.aliasesAuthorId = item.id;
-      this.isAuthorAliasesVisible = true;
+      this.aliasesAuthorId = item.id
+      this.isAuthorAliasesVisible = true
     },
 
     closeAuthorAliases() {
-      this.isAuthorAliasesVisible = false;
+      this.isAuthorAliasesVisible = false
     },
 
     editAuthor(key) {
-      this.$store.commit('setCurrentAuthorKey', key);
-      this.isAuthorEditVisible = true;
+      this.$store.commit('setCurrentAuthorKey', key)
+      this.isAuthorEditVisible = true
     },
     closeAuthorEdit() {
-      this.isAuthorEditVisible = false;
+      this.isAuthorEditVisible = false
     },
     closeAuthorsFilter() {
-      this.isAuthorsFilterVisible = false;
+      this.isAuthorsFilterVisible = false
     },
     closePictureEdit() {
-      this.isPictureEditVisible = false;
+      this.isPictureEditVisible = false
     },
     onRowClicked(item, index) {
-      this.currentAuthor = item;
-      this.currentAuthorId = item.id;
-      console.log(`Row '${index}' clicked: `, item.id);
+      this.currentAuthor = item
+      this.currentAuthorId = item.id
+      console.log(`Row '${index}' clicked: `, item.id)
     },
     getCellStyle(data) {
       return {
-        backgroundColor: data.item.color
+        backgroundColor: data.item.color,
       }
-    }
-  }
+    },
+  },
 }
 </script>
 
 <style>
-
 .authors-bv-table {
   padding: 0;
   margin: 0;
@@ -726,5 +731,4 @@ export default {
   width: 40px;
   height: 40px;
 }
-
 </style>

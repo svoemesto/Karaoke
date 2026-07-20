@@ -1,14 +1,14 @@
 <template>
   <div class="synctable">
-    <SyncTable/>
+    <SyncTable />
   </div>
 </template>
 
 <script>
 import SyncTable from '../components/Sync/SyncTable.vue'
 export default {
-  name: "SyncView",
-  components: { SyncTable }
+  name: 'SyncView',
+  components: { SyncTable },
 }
 </script>
 

@@ -1,16 +1,16 @@
 <template>
   <div class="publicsettingsview">
-    <PublicSettingsTable/>
+    <PublicSettingsTable />
   </div>
 </template>
 
 <script>
 import PublicSettingsTable from '../components/PublicSettings/PublicSettingsTable.vue'
 export default {
-  name: "PublicSettingsView",
+  name: 'PublicSettingsView',
   components: {
-    PublicSettingsTable
-  }
+    PublicSettingsTable,
+  },
 }
 </script>
 

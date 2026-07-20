@@ -1,15 +1,14 @@
-'use strict';
+'use strict'
 
-var inherits = require('inherits')
-  , XhrDriver = require('../driver/xhr')
-  ;
+var inherits = require('inherits'),
+  XhrDriver = require('../driver/xhr')
 
 function XHRCorsObject(method, url, payload, opts) {
-  XhrDriver.call(this, method, url, payload, opts);
+  XhrDriver.call(this, method, url, payload, opts)
 }
 
-inherits(XHRCorsObject, XhrDriver);
+inherits(XHRCorsObject, XhrDriver)
 
-XHRCorsObject.enabled = XhrDriver.enabled && XhrDriver.supportsCORS;
+XHRCorsObject.enabled = XhrDriver.enabled && XhrDriver.supportsCORS
 
-module.exports = XHRCorsObject;
+module.exports = XHRCorsObject

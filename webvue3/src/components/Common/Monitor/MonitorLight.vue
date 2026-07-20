@@ -1,16 +1,16 @@
 <template>
-  <button
-      class="btn-round-double"
-      :title="tooltipText"
-      @click.left="toggleModal"
-  >
-    <span class="monitor-light-dot" :class="{ 'monitor-light-blink': isCritical }" :style="{ backgroundColor: dotColor }"/>
+  <button class="btn-round-double" :title="tooltipText" @click.left="toggleModal">
+    <span
+      class="monitor-light-dot"
+      :class="{ 'monitor-light-blink': isCritical }"
+      :style="{ backgroundColor: dotColor }"
+    />
   </button>
-  <MonitorModal v-if="isModalVisible" @close="isModalVisible = false"/>
+  <MonitorModal v-if="isModalVisible" @close="isModalVisible = false" />
 </template>
 
 <script>
-import MonitorModal from "./MonitorModal.vue";
+import MonitorModal from './MonitorModal.vue'
 
 // Держим в синхроне с backend MonitorSeverity.color (karaoke-app/.../monitor/MonitorSeverity.kt).
 const SEVERITY_COLORS = {
@@ -18,43 +18,43 @@ const SEVERITY_COLORS = {
   0: '#4CAF50',
   1: '#FFC107',
   2: '#F44336',
-  3: '#D50000'
-};
+  3: '#D50000',
+}
 
 export default {
-  name: "MonitorLight",
-  components: {MonitorModal},
+  name: 'MonitorLight',
+  components: { MonitorModal },
   data() {
     return {
-      isModalVisible: false
+      isModalVisible: false,
     }
   },
   computed: {
     topSeverity() {
-      return this.$store.getters.monitorTopSeverity;
+      return this.$store.getters.monitorTopSeverity
     },
     dotColor() {
-      return SEVERITY_COLORS[this.topSeverity] ?? SEVERITY_COLORS['-1'];
+      return SEVERITY_COLORS[this.topSeverity] ?? SEVERITY_COLORS['-1']
     },
     isCritical() {
-      return this.topSeverity === 3;
+      return this.topSeverity === 3
     },
     tooltipText() {
-      if (this.topSeverity < 0) return 'Мониторинг: сообщений нет';
-      if (this.topSeverity === 0) return 'Мониторинг: информационные сообщения';
-      if (this.topSeverity === 1) return 'Мониторинг: есть предупреждения';
-      if (this.topSeverity === 2) return 'Мониторинг: есть ошибки';
-      return 'Мониторинг: критическая проблема!';
-    }
+      if (this.topSeverity < 0) return 'Мониторинг: сообщений нет'
+      if (this.topSeverity === 0) return 'Мониторинг: информационные сообщения'
+      if (this.topSeverity === 1) return 'Мониторинг: есть предупреждения'
+      if (this.topSeverity === 2) return 'Мониторинг: есть ошибки'
+      return 'Мониторинг: критическая проблема!'
+    },
   },
   mounted() {
-    this.$store.dispatch('loadMonitorAlerts');
+    this.$store.dispatch('loadMonitorAlerts')
   },
   methods: {
     toggleModal() {
-      this.isModalVisible = !this.isModalVisible;
-    }
-  }
+      this.isModalVisible = !this.isModalVisible
+    },
+  },
 }
 </script>
 
@@ -88,8 +88,13 @@ export default {
 }
 
 @keyframes monitor-light-blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.25; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.25;
+  }
 }
 .monitor-light-blink {
   animation: monitor-light-blink 1s step-start infinite;

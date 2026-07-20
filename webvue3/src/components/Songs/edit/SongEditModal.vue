@@ -2,58 +2,54 @@
   <transition name="modal-fade">
     <div class="sem-modal-backdrop">
       <div class="sem-area">
-
-        <div class="sem-area-modal-header">
-          Редактирование песни
-        </div>
+        <div class="sem-area-modal-header">Редактирование песни</div>
         <div class="sem-area-modal-body">
           <SongEdit
-:parent-route="parentRoute"
-            :songs-digests="songsDigests" 
+            :parent-route="parentRoute"
+            :songs-digests="songsDigests"
             :publish-digest="publishDigest"
-            @close="close"/>
+            @close="close"
+          />
         </div>
         <div class="sem-area-modal-footer">
           <button type="button" class="sem-btn-close" @click="close">Выход</button>
         </div>
-
       </div>
     </div>
   </transition>
 </template>
 
 <script>
-import SongEdit from "../../../components/Songs/edit/SongEdit.vue";
+import SongEdit from '../../../components/Songs/edit/SongEdit.vue'
 
 export default {
-  name: "SongEditModal",
-  components: {SongEdit},
+  name: 'SongEditModal',
+  components: { SongEdit },
   props: {
     parentRoute: {
       type: String,
-      required: true
+      required: true,
     },
     songsDigests: {
       type: Array,
       required: false,
-      dafaults: []
+      dafaults: [],
     },
     publishDigest: {
       type: Array,
       required: false,
-      default: () => [[]]
-    }
+      default: () => [[]],
+    },
   },
   methods: {
     close() {
-      this.$emit('close');
-    }
-  }
+      this.$emit('close')
+    },
+  },
 }
 </script>
 
 <style scoped>
-
 .sem-modal-fade-enter,
 .sem-modal-fade-leave-active {
   opacity: 0;
@@ -61,7 +57,7 @@ export default {
 
 .sem-modal-fade-enter-active,
 .sem-modal-fade-leave-active {
-  transition: opacity .5s ease
+  transition: opacity 0.5s ease;
 }
 
 .sem-area-modal-header {
@@ -104,7 +100,7 @@ export default {
 }
 
 .sem-area {
-  background: #FFFFFF;
+  background: #ffffff;
   box-shadow: 2px 2px 20px 1px;
   overflow-x: auto;
   display: flex;
@@ -127,5 +123,4 @@ export default {
   width: 100px;
   height: auto;
 }
-
 </style>

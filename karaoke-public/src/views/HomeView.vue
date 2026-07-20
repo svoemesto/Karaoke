@@ -7,9 +7,27 @@
         <div class="km-controls">
           <AuthStatusWidget />
           <div class="km-toggle-group km-theme-toggle" title="Тема">
-            <button :class="['km-toggle-btn', theme === 'light' ? 'active' : '']" @click="setTheme('light')" title="Светлая">☀</button>
-            <button :class="['km-toggle-btn', theme === 'system' ? 'active' : '']" @click="setTheme('system')" title="Авто">⬡</button>
-            <button :class="['km-toggle-btn', theme === 'dark' ? 'active' : '']" @click="setTheme('dark')" title="Тёмная">🌙</button>
+            <button
+              :class="['km-toggle-btn', theme === 'light' ? 'active' : '']"
+              @click="setTheme('light')"
+              title="Светлая"
+            >
+              ☀
+            </button>
+            <button
+              :class="['km-toggle-btn', theme === 'system' ? 'active' : '']"
+              @click="setTheme('system')"
+              title="Авто"
+            >
+              ⬡
+            </button>
+            <button
+              :class="['km-toggle-btn', theme === 'dark' ? 'active' : '']"
+              @click="setTheme('dark')"
+              title="Тёмная"
+            >
+              🌙
+            </button>
           </div>
         </div>
       </div>
@@ -45,8 +63,8 @@
 
       <!-- Описание -->
       <p class="km-desc">
-        Каждый день в открытый доступ (в «эфир») выходит до 10 песен на 5 площадках:
-        Sponsr, Dzen, VK, Max и Telegram. Вся коллекция доступна по подписке на сайте.
+        Каждый день в открытый доступ (в «эфир») выходит до 10 песен на 5 площадках: Sponsr, Dzen,
+        VK, Max и Telegram. Вся коллекция доступна по подписке на сайте.
       </p>
 
       <!-- Навигация -->
@@ -77,7 +95,12 @@
       <div class="km-social-section">
         <p class="km-social-label">Соцсети</p>
         <div class="km-social-row">
-          <div v-for="link in socialLinks" :key="link.name" class="km-social-item" @click="openLink(link)">
+          <div
+            v-for="link in socialLinks"
+            :key="link.name"
+            class="km-social-item"
+            @click="openLink(link)"
+          >
             <SvgIcon :name="link.icon" :active="true" :size="48" />
           </div>
         </div>
@@ -113,12 +136,16 @@ import { useEngagementTracking } from '../composables/useEngagementTracking'
 import { trackLinkToSocialNetwork } from '../services/tracking'
 
 const socialLinks = [
-  { name: 'vkgroup',  icon: 'vkgroup', url: 'https://vk.com/svoemestokaraoke' },
-  { name: 'sponsr',   icon: 'sponsr',  url: 'https://sponsr.ru/smkaraoke' },
-  { name: 'dzen',     icon: 'dzen',    url: 'https://dzen.ru/svoemesto' },
-  { name: 'vkvideo',  icon: 'vk',      url: 'https://vkvideo.ru/video/@nsasvoemesto' },
-  { name: 'tg',       icon: 'tg',      url: 'https://t.me/svoemestokaraoke' },
-  { name: 'max',      icon: 'max',     url: 'https://max.ru/join/hYGH-mbcExUtzP5o4zq38uwb0xL9iwL80uSeEBO7Bu0' },
+  { name: 'vkgroup', icon: 'vkgroup', url: 'https://vk.com/svoemestokaraoke' },
+  { name: 'sponsr', icon: 'sponsr', url: 'https://sponsr.ru/smkaraoke' },
+  { name: 'dzen', icon: 'dzen', url: 'https://dzen.ru/svoemesto' },
+  { name: 'vkvideo', icon: 'vk', url: 'https://vkvideo.ru/video/@nsasvoemesto' },
+  { name: 'tg', icon: 'tg', url: 'https://t.me/svoemestokaraoke' },
+  {
+    name: 'max',
+    icon: 'max',
+    url: 'https://max.ru/join/hYGH-mbcExUtzP5o4zq38uwb0xL9iwL80uSeEBO7Bu0',
+  },
 ]
 
 export default {
@@ -127,14 +154,17 @@ export default {
   setup() {
     useEngagementTracking('home')
     const { theme, applyTheme } = useDesign()
-    function setTheme(val)  { theme.value = val; applyTheme(val) }
+    function setTheme(val) {
+      theme.value = val
+      applyTheme(val)
+    }
     return { theme, setTheme }
   },
   data() {
     return { socialLinks }
   },
   computed: {
-    ...mapGetters('stats', ['onSponsr', 'onAir', 'exclusive', 'inWork', 'total', 'isLoading'])
+    ...mapGetters('stats', ['onSponsr', 'onAir', 'exclusive', 'inWork', 'total', 'isLoading']),
   },
   mounted() {
     this.loadStats()
@@ -148,8 +178,8 @@ export default {
     },
     formatNum(n) {
       return n != null ? Number(n).toLocaleString('ru-RU') : ''
-    }
-  }
+    },
+  },
 }
 </script>
 
@@ -203,7 +233,9 @@ export default {
   padding: 0.25rem 0.75rem;
   font-size: 0.8rem;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
 }
 .km-toggle-btn:hover {
   background: var(--km-hover);
@@ -303,7 +335,10 @@ export default {
   text-align: center;
   text-decoration: none;
   color: var(--km-text);
-  transition: background 0.2s, border-color 0.2s, transform 0.15s;
+  transition:
+    background 0.2s,
+    border-color 0.2s,
+    transform 0.15s;
 }
 .km-nav-card:hover {
   background: var(--km-hover);
@@ -346,7 +381,9 @@ export default {
 .km-social-item {
   cursor: pointer;
   opacity: 0.85;
-  transition: opacity 0.15s, transform 0.15s;
+  transition:
+    opacity 0.15s,
+    transform 0.15s;
 }
 .km-social-item:hover {
   opacity: 1;

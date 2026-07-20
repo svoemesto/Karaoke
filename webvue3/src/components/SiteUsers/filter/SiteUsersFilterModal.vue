@@ -2,48 +2,64 @@
   <transition name="modal-fade">
     <div class="sufm-modal-backdrop">
       <div class="sufm-area">
-
-        <div class="sufm-area-modal-header">
-          Фильтр пользователей сайта
-        </div>
+        <div class="sufm-area-modal-header">Фильтр пользователей сайта</div>
 
         <div class="sufm-area-modal-body">
           <div class="sufm-root-wrapper">
-
             <div class="sufm-filter-row">
-              <div class="sufm-row-label"><div v-text="'ID:'"/></div>
+              <div class="sufm-row-label"><div v-text="'ID:'" /></div>
               <div class="sufm-row-input">
-                <input v-model="siteUsersFilterId" class="sufm-input-field"/>
+                <input v-model="siteUsersFilterId" class="sufm-input-field" />
               </div>
-              <button :disabled="!siteUsersFilterId" class="sufm-button-clear-field" @click.left="siteUsersFilterId=''" v-text="'X'"/>
+              <button
+                :disabled="!siteUsersFilterId"
+                class="sufm-button-clear-field"
+                @click.left="siteUsersFilterId = ''"
+                v-text="'X'"
+              />
             </div>
 
             <div class="sufm-filter-row">
-              <div class="sufm-row-label"><div v-text="'Email:'"/></div>
+              <div class="sufm-row-label"><div v-text="'Email:'" /></div>
               <div class="sufm-row-input">
-                <input v-model="siteUsersFilterEmail" class="sufm-input-field"/>
+                <input v-model="siteUsersFilterEmail" class="sufm-input-field" />
               </div>
-              <button :disabled="!siteUsersFilterEmail" class="sufm-button-clear-field" @click.left="siteUsersFilterEmail=''" v-text="'X'"/>
+              <button
+                :disabled="!siteUsersFilterEmail"
+                class="sufm-button-clear-field"
+                @click.left="siteUsersFilterEmail = ''"
+                v-text="'X'"
+              />
             </div>
 
             <div class="sufm-filter-row">
-              <div class="sufm-row-label"><div v-text="'Имя:'"/></div>
+              <div class="sufm-row-label"><div v-text="'Имя:'" /></div>
               <div class="sufm-row-input">
-                <input v-model="siteUsersFilterDisplayName" class="sufm-input-field"/>
+                <input v-model="siteUsersFilterDisplayName" class="sufm-input-field" />
               </div>
-              <button :disabled="!siteUsersFilterDisplayName" class="sufm-button-clear-field" @click.left="siteUsersFilterDisplayName=''" v-text="'X'"/>
+              <button
+                :disabled="!siteUsersFilterDisplayName"
+                class="sufm-button-clear-field"
+                @click.left="siteUsersFilterDisplayName = ''"
+                v-text="'X'"
+              />
             </div>
 
             <div class="sufm-filter-row">
-              <div class="sufm-row-label"><div v-text="'Sponsr UID:'"/></div>
+              <div class="sufm-row-label"><div v-text="'Sponsr UID:'" /></div>
               <div class="sufm-row-input">
-                <input v-model="siteUsersFilterSponsrUid" class="sufm-input-field"/>
+                <input v-model="siteUsersFilterSponsrUid" class="sufm-input-field" />
               </div>
-              <button :disabled="!siteUsersFilterSponsrUid" class="sufm-button-clear-field" @click.left="siteUsersFilterSponsrUid=''" v-text="'X'"/>
+              <button
+                :disabled="!siteUsersFilterSponsrUid"
+                class="sufm-button-clear-field"
+                @click.left="siteUsersFilterSponsrUid = ''"
+                v-text="'X'"
+              />
             </div>
 
             <div class="sufm-filter-row">
-              <div class="sufm-row-label"><div v-text="'Премиум:'"/></div>
+              <div class="sufm-row-label"><div v-text="'Премиум:'" /></div>
               <div class="sufm-row-input">
                 <select v-model="siteUsersFilterIsPremium" class="sufm-input-field">
                   <option value="">Все</option>
@@ -51,11 +67,16 @@
                   <option value="-">Нет</option>
                 </select>
               </div>
-              <button :disabled="!siteUsersFilterIsPremium" class="sufm-button-clear-field" @click.left="siteUsersFilterIsPremium=''" v-text="'X'"/>
+              <button
+                :disabled="!siteUsersFilterIsPremium"
+                class="sufm-button-clear-field"
+                @click.left="siteUsersFilterIsPremium = ''"
+                v-text="'X'"
+              />
             </div>
 
             <div class="sufm-filter-row">
-              <div class="sufm-row-label"><div v-text="'Постоянный премиум:'"/></div>
+              <div class="sufm-row-label"><div v-text="'Постоянный премиум:'" /></div>
               <div class="sufm-row-input">
                 <select v-model="siteUsersFilterIsPermanentPremium" class="sufm-input-field">
                   <option value="">Все</option>
@@ -63,11 +84,16 @@
                   <option value="-">Нет</option>
                 </select>
               </div>
-              <button :disabled="!siteUsersFilterIsPermanentPremium" class="sufm-button-clear-field" @click.left="siteUsersFilterIsPermanentPremium=''" v-text="'X'"/>
+              <button
+                :disabled="!siteUsersFilterIsPermanentPremium"
+                class="sufm-button-clear-field"
+                @click.left="siteUsersFilterIsPermanentPremium = ''"
+                v-text="'X'"
+              />
             </div>
 
             <div class="sufm-filter-row">
-              <div class="sufm-row-label"><div v-text="'Активный премиум:'"/></div>
+              <div class="sufm-row-label"><div v-text="'Активный премиум:'" /></div>
               <div class="sufm-row-input">
                 <select v-model="siteUsersFilterIsEffectivePremium" class="sufm-input-field">
                   <option value="">Все</option>
@@ -75,11 +101,16 @@
                   <option value="-">Нет</option>
                 </select>
               </div>
-              <button :disabled="!siteUsersFilterIsEffectivePremium" class="sufm-button-clear-field" @click.left="siteUsersFilterIsEffectivePremium=''" v-text="'X'"/>
+              <button
+                :disabled="!siteUsersFilterIsEffectivePremium"
+                class="sufm-button-clear-field"
+                @click.left="siteUsersFilterIsEffectivePremium = ''"
+                v-text="'X'"
+              />
             </div>
 
             <div class="sufm-filter-row">
-              <div class="sufm-row-label"><div v-text="'Редактор:'"/></div>
+              <div class="sufm-row-label"><div v-text="'Редактор:'" /></div>
               <div class="sufm-row-input">
                 <select v-model="siteUsersFilterIsEditor" class="sufm-input-field">
                   <option value="">Все</option>
@@ -87,11 +118,16 @@
                   <option value="-">Нет</option>
                 </select>
               </div>
-              <button :disabled="!siteUsersFilterIsEditor" class="sufm-button-clear-field" @click.left="siteUsersFilterIsEditor=''" v-text="'X'"/>
+              <button
+                :disabled="!siteUsersFilterIsEditor"
+                class="sufm-button-clear-field"
+                @click.left="siteUsersFilterIsEditor = ''"
+                v-text="'X'"
+              />
             </div>
 
             <div class="sufm-filter-row">
-              <div class="sufm-row-label"><div v-text="'Статус:'"/></div>
+              <div class="sufm-row-label"><div v-text="'Статус:'" /></div>
               <div class="sufm-row-input">
                 <select v-model="siteUsersFilterIsBanned" class="sufm-input-field">
                   <option value="">Все</option>
@@ -99,9 +135,13 @@
                   <option value="-">Активен</option>
                 </select>
               </div>
-              <button :disabled="!siteUsersFilterIsBanned" class="sufm-button-clear-field" @click.left="siteUsersFilterIsBanned=''" v-text="'X'"/>
+              <button
+                :disabled="!siteUsersFilterIsBanned"
+                class="sufm-button-clear-field"
+                @click.left="siteUsersFilterIsBanned = ''"
+                v-text="'X'"
+              />
             </div>
-
           </div>
         </div>
 
@@ -109,90 +149,130 @@
           <button type="button" class="sufm-btn-close" @click="ok">Применить фильтр</button>
           <button type="button" class="sufm-btn-close" @click="cancel">Отмена</button>
         </div>
-
       </div>
     </div>
   </transition>
 </template>
 
 <script>
-
 export default {
-  name: "SiteUsersFilterModal",
+  name: 'SiteUsersFilterModal',
   computed: {
     siteUsersFilterId: {
-      get() { return this.$store.getters.getSiteUsersFilterId; },
-      set(value) { this.$store.dispatch('setSiteUsersFilterId', { value: value }); }
+      get() {
+        return this.$store.getters.getSiteUsersFilterId
+      },
+      set(value) {
+        this.$store.dispatch('setSiteUsersFilterId', { value: value })
+      },
     },
     siteUsersFilterEmail: {
-      get() { return this.$store.getters.getSiteUsersFilterEmail; },
-      set(value) { this.$store.dispatch('setSiteUsersFilterEmail', { value: value }); }
+      get() {
+        return this.$store.getters.getSiteUsersFilterEmail
+      },
+      set(value) {
+        this.$store.dispatch('setSiteUsersFilterEmail', { value: value })
+      },
     },
     siteUsersFilterDisplayName: {
-      get() { return this.$store.getters.getSiteUsersFilterDisplayName; },
-      set(value) { this.$store.dispatch('setSiteUsersFilterDisplayName', { value: value }); }
+      get() {
+        return this.$store.getters.getSiteUsersFilterDisplayName
+      },
+      set(value) {
+        this.$store.dispatch('setSiteUsersFilterDisplayName', { value: value })
+      },
     },
     siteUsersFilterSponsrUid: {
-      get() { return this.$store.getters.getSiteUsersFilterSponsrUid; },
-      set(value) { this.$store.dispatch('setSiteUsersFilterSponsrUid', { value: value }); }
+      get() {
+        return this.$store.getters.getSiteUsersFilterSponsrUid
+      },
+      set(value) {
+        this.$store.dispatch('setSiteUsersFilterSponsrUid', { value: value })
+      },
     },
     siteUsersFilterIsPremium: {
-      get() { return this.$store.getters.getSiteUsersFilterIsPremium; },
-      set(value) { this.$store.dispatch('setSiteUsersFilterIsPremium', { value: value }); }
+      get() {
+        return this.$store.getters.getSiteUsersFilterIsPremium
+      },
+      set(value) {
+        this.$store.dispatch('setSiteUsersFilterIsPremium', { value: value })
+      },
     },
     siteUsersFilterIsPermanentPremium: {
-      get() { return this.$store.getters.getSiteUsersFilterIsPermanentPremium; },
-      set(value) { this.$store.dispatch('setSiteUsersFilterIsPermanentPremium', { value: value }); }
+      get() {
+        return this.$store.getters.getSiteUsersFilterIsPermanentPremium
+      },
+      set(value) {
+        this.$store.dispatch('setSiteUsersFilterIsPermanentPremium', { value: value })
+      },
     },
     siteUsersFilterIsEffectivePremium: {
-      get() { return this.$store.getters.getSiteUsersFilterIsEffectivePremium; },
-      set(value) { this.$store.dispatch('setSiteUsersFilterIsEffectivePremium', { value: value }); }
+      get() {
+        return this.$store.getters.getSiteUsersFilterIsEffectivePremium
+      },
+      set(value) {
+        this.$store.dispatch('setSiteUsersFilterIsEffectivePremium', { value: value })
+      },
     },
     siteUsersFilterIsEditor: {
-      get() { return this.$store.getters.getSiteUsersFilterIsEditor; },
-      set(value) { this.$store.dispatch('setSiteUsersFilterIsEditor', { value: value }); }
+      get() {
+        return this.$store.getters.getSiteUsersFilterIsEditor
+      },
+      set(value) {
+        this.$store.dispatch('setSiteUsersFilterIsEditor', { value: value })
+      },
     },
     siteUsersFilterIsBanned: {
-      get() { return this.$store.getters.getSiteUsersFilterIsBanned; },
-      set(value) { this.$store.dispatch('setSiteUsersFilterIsBanned', { value: value }); }
+      get() {
+        return this.$store.getters.getSiteUsersFilterIsBanned
+      },
+      set(value) {
+        this.$store.dispatch('setSiteUsersFilterIsBanned', { value: value })
+      },
     },
   },
   async beforeMount() {
     // SiteUsersTable уже вызывает hydrateSiteUsersFilter на своём mounted() — здесь только
     // подстраховка (модалка может быть открыта уже после того, как таблица закешировала значения,
     // повторный вызов идемпотентен).
-    await this.$store.dispatch('hydrateSiteUsersFilter');
+    await this.$store.dispatch('hydrateSiteUsersFilter')
   },
   methods: {
     ok() {
-      let params = {};
-      if (this.siteUsersFilterId) params.filterId = this.siteUsersFilterId;
-      if (this.siteUsersFilterEmail) params.filterEmail = this.siteUsersFilterEmail;
-      if (this.siteUsersFilterDisplayName) params.filterDisplayName = this.siteUsersFilterDisplayName;
-      if (this.siteUsersFilterSponsrUid) params.filterSponsrUid = this.siteUsersFilterSponsrUid;
-      if (this.siteUsersFilterIsPremium) params.filterIsPremium = this.siteUsersFilterIsPremium;
-      if (this.siteUsersFilterIsPermanentPremium) params.filterIsPermanentPremium = this.siteUsersFilterIsPermanentPremium;
-      if (this.siteUsersFilterIsEffectivePremium) params.filterIsEffectivePremium = this.siteUsersFilterIsEffectivePremium;
-      if (this.siteUsersFilterIsEditor) params.filterIsEditor = this.siteUsersFilterIsEditor;
-      if (this.siteUsersFilterIsBanned) params.filterIsBanned = this.siteUsersFilterIsBanned;
-      this.$store.dispatch('loadSiteUsersDigest', params);
+      let params = {}
+      if (this.siteUsersFilterId) params.filterId = this.siteUsersFilterId
+      if (this.siteUsersFilterEmail) params.filterEmail = this.siteUsersFilterEmail
+      if (this.siteUsersFilterDisplayName)
+        params.filterDisplayName = this.siteUsersFilterDisplayName
+      if (this.siteUsersFilterSponsrUid) params.filterSponsrUid = this.siteUsersFilterSponsrUid
+      if (this.siteUsersFilterIsPremium) params.filterIsPremium = this.siteUsersFilterIsPremium
+      if (this.siteUsersFilterIsPermanentPremium)
+        params.filterIsPermanentPremium = this.siteUsersFilterIsPermanentPremium
+      if (this.siteUsersFilterIsEffectivePremium)
+        params.filterIsEffectivePremium = this.siteUsersFilterIsEffectivePremium
+      if (this.siteUsersFilterIsEditor) params.filterIsEditor = this.siteUsersFilterIsEditor
+      if (this.siteUsersFilterIsBanned) params.filterIsBanned = this.siteUsersFilterIsBanned
+      this.$store.dispatch('loadSiteUsersDigest', params)
 
-      this.$emit('close');
+      this.$emit('close')
     },
     cancel() {
-      this.$emit('close');
-    }
-  }
+      this.$emit('close')
+    },
+  },
 }
 </script>
 
 <style scoped>
-
 .sufm-modal-fade-enter,
-.sufm-modal-fade-leave-active { opacity: 0; }
+.sufm-modal-fade-leave-active {
+  opacity: 0;
+}
 
 .sufm-modal-fade-enter-active,
-.sufm-modal-fade-leave-active { transition: opacity .5s ease }
+.sufm-modal-fade-leave-active {
+  transition: opacity 0.5s ease;
+}
 
 .sufm-area-modal-header {
   background-color: darkslategray;
@@ -234,7 +314,7 @@ export default {
 }
 
 .sufm-area {
-  background: #FFFFFF;
+  background: #ffffff;
   box-shadow: 2px 2px 20px 1px;
   overflow-x: auto;
   display: flex;
@@ -319,5 +399,4 @@ select.sufm-input-field {
   -moz-appearance: none;
   cursor: pointer;
 }
-
 </style>

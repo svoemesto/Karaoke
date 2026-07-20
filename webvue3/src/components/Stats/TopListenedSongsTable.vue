@@ -2,15 +2,19 @@
   <div class="chart-card">
     <div class="chart-head">
       <h6 class="chart-title">Топ песен, которые реально слушают</h6>
-      <select class="form-select form-select-sm w-auto" :value="pageSize" @change="$emit('page-size', Number($event.target.value))">
+      <select
+        class="form-select form-select-sm w-auto"
+        :value="pageSize"
+        @change="$emit('page-size', Number($event.target.value))"
+      >
         <option :value="20">20</option>
         <option :value="50">50</option>
         <option :value="100">100</option>
       </select>
     </div>
     <p class="text-muted small mb-2 desc">
-      Учитываются события <b>progress=75</b> и <b>ended</b>: песня реально дослушана до 75%. Колонка «%»
-      — доля таких прослушиваний среди всех нажатий Play (чем выше — тем «доходимее» трек).
+      Учитываются события <b>progress=75</b> и <b>ended</b>: песня реально дослушана до 75%. Колонка
+      «%» — доля таких прослушиваний среди всех нажатий Play (чем выше — тем «доходимее» трек).
     </p>
     <div v-if="isLoading" class="text-center py-3"><BSpinner small /></div>
     <template v-else>
@@ -21,7 +25,11 @@
               <th>ID</th>
               <th>Описание</th>
               <th title="Прослушано до 75% или до конца">Дослушано</th>
-              <th title="Сколько уникальных посетителей дослушали до 75% или до конца (залогиненные + анонимные)">Уник.</th>
+              <th
+                title="Сколько уникальных посетителей дослушали до 75% или до конца (залогиненные + анонимные)"
+              >
+                Уник.
+              </th>
               <th title="Из них доиграли до конца (ended)">Из них 100%</th>
               <th title="Сколько раз нажали Play">Play</th>
               <th title="Доля дослушиваний от Play">%</th>
@@ -32,8 +40,12 @@
           </thead>
           <tbody>
             <tr
-v-for="row in items" :key="row.songId" class="listened-row"
-                title="Подробная статистика по песне" @click="$emit('select-song', row)">
+              v-for="row in items"
+              :key="row.songId"
+              class="listened-row"
+              title="Подробная статистика по песне"
+              @click="$emit('select-song', row)"
+            >
               <td>{{ row.songId }}</td>
               <td class="text-start">{{ row.description }}</td>
               <td class="fw-bold">{{ row.listened.toLocaleString('ru-RU') }}</td>
@@ -52,7 +64,15 @@ v-for="row in items" :key="row.songId" class="listened-row"
         </table>
       </div>
       <div class="d-flex align-items-center gap-2">
-        <b-pagination :model-value="page" :total-rows="totalCount" :per-page="pageSize" :limit="15" size="sm" pills @update:model-value="$emit('page', $event)" />
+        <b-pagination
+          :model-value="page"
+          :total-rows="totalCount"
+          :per-page="pageSize"
+          :limit="15"
+          size="sm"
+          pills
+          @update:model-value="$emit('page', $event)"
+        />
         <span class="text-muted small">Всего: {{ totalCount }}</span>
       </div>
     </template>
@@ -102,17 +122,49 @@ export default {
 
 <style scoped>
 .chart-card {
-  background: #fff; border: 1px solid #e6e6e6; border-radius: 8px;
-  padding: 12px 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); margin-bottom: 16px;
+  background: #fff;
+  border: 1px solid #e6e6e6;
+  border-radius: 8px;
+  padding: 12px 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  margin-bottom: 16px;
 }
-.chart-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-.chart-title { margin: 0; font-size: 0.95rem; font-weight: 600; }
-.desc { margin: 0 0 12px; }
-.listened-table { font-size: 0.8rem; }
-.listened-table th, .listened-table td { white-space: nowrap; vertical-align: middle; }
-.listened-row { cursor: pointer; }
-.listened-row:hover { background: #eef4ff; }
-.rate-good { color: #2e7d32; font-weight: 600; }
-.rate-mid  { color: #c9881a; }
-.rate-bad  { color: #c62828; }
+.chart-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.chart-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+.desc {
+  margin: 0 0 12px;
+}
+.listened-table {
+  font-size: 0.8rem;
+}
+.listened-table th,
+.listened-table td {
+  white-space: nowrap;
+  vertical-align: middle;
+}
+.listened-row {
+  cursor: pointer;
+}
+.listened-row:hover {
+  background: #eef4ff;
+}
+.rate-good {
+  color: #2e7d32;
+  font-weight: 600;
+}
+.rate-mid {
+  color: #c9881a;
+}
+.rate-bad {
+  color: #c62828;
+}
 </style>

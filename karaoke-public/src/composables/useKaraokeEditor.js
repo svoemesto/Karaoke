@@ -45,10 +45,11 @@ export function loadEditorSettings() {
       textFontSize: clamp(s.textFontSize, 6, 36) ?? EDITOR_DEFAULTS.textFontSize,
       previewFontSize: clamp(s.previewFontSize, 6, 36) ?? EDITOR_DEFAULTS.previewFontSize,
       volume: clamp(s.volume, 0, 1) ?? EDITOR_DEFAULTS.volume,
-      playbackRate: (clamp(s.playbackRate, 0.3, 1) ?? EDITOR_DEFAULTS.playbackRate),
+      playbackRate: clamp(s.playbackRate, 0.3, 1) ?? EDITOR_DEFAULTS.playbackRate,
       zoom: clamp(s.zoom, 20, 400) ?? EDITOR_DEFAULTS.zoom,
       activeSound: s.activeSound === 'music' ? 'music' : EDITOR_DEFAULTS.activeSound,
-      showKeyboard: typeof s.showKeyboard === 'boolean' ? s.showKeyboard : EDITOR_DEFAULTS.showKeyboard,
+      showKeyboard:
+        typeof s.showKeyboard === 'boolean' ? s.showKeyboard : EDITOR_DEFAULTS.showKeyboard,
     }
   } catch (e) {
     return { ...EDITOR_DEFAULTS }
@@ -59,7 +60,9 @@ export function saveEditorSettings(partial) {
   try {
     const current = loadEditorSettings()
     localStorage.setItem(EDITOR_SETTINGS_LS_KEY, JSON.stringify({ ...current, ...partial }))
-  } catch (e) { /* no-op */ }
+  } catch (e) {
+    /* no-op */
+  }
 }
 
 let uidCounter = 1
@@ -76,10 +79,15 @@ function uppercaseFirstLetter(s) {
 // к соседям.
 export function splitSyllables(sourceText) {
   const result = []
-  const words = sourceText.match(/\S+/ig) || []
+  const words = sourceText.match(/\S+/gi) || []
   for (let i = 0; i < words.length; i++) {
     const word = words[i]
-    const syllables = word.replace(/[ЙЦКНГШЩЗХЪФВПРЛДЖЧСМТЬБQWRTYPSDFGHJKLZXCVBNM-]*[ЁУЕЫАОЭЯИЮEUIOAїієѣ][ЙЦКНГШЩЗХЪФВПРЛДЖЧСМТЬБQWRTYPSDFGHJKLZXCVBNM-]*?(?=[ЦКНГШЩЗХФВПРЛДЖЧСМТБQWRTYPSDFGHJKLZXCVBNM-]?[ЁУЕЫАОЭЯИЮEUIOAїієѣ]|[Й|Y][АИУЕОEUIOAїієѣ])/ig, '$& ').split(' ')
+    const syllables = word
+      .replace(
+        /[ЙЦКНГШЩЗХЪФВПРЛДЖЧСМТЬБQWRTYPSDFGHJKLZXCVBNM-]*[ЁУЕЫАОЭЯИЮEUIOAїієѣ][ЙЦКНГШЩЗХЪФВПРЛДЖЧСМТЬБQWRTYPSDFGHJKLZXCVBNM-]*?(?=[ЦКНГШЩЗХФВПРЛДЖЧСМТБQWRTYPSDFGHJKLZXCVBNM-]?[ЁУЕЫАОЭЯИЮEUIOAїієѣ]|[Й|Y][АИУЕОEUIOAїієѣ])/gi,
+        '$& ',
+      )
+      .split(' ')
     if (syllables.length === 0) {
       result.push(word + '_')
     } else {
@@ -92,7 +100,10 @@ export function splitSyllables(sourceText) {
     const word = result[i]
     let haveVowel = false
     for (let j = 0; j < word.length; j++) {
-      if ('ЁУЕЫАОЭЯИЮёуеыаоэяиюEUIOAeuioaїієѣ'.includes(word[j])) { haveVowel = true; break }
+      if ('ЁУЕЫАОЭЯИЮёуеыаоэяиюEUIOAeuioaїієѣ'.includes(word[j])) {
+        haveVowel = true
+        break
+      }
     }
     if (!haveVowel) {
       if (i === result.length - 1 || (word === '-_' && i !== 0)) {
@@ -123,7 +134,7 @@ export function sortMarkers(markers) {
 
 // Индекс текущего слогового маркера по времени воспроизведения (getCurrentSyllablesIndex).
 export function currentSyllableIndex(markers, currentTime) {
-  const syl = markers.filter(m => m.markertype === 'syllables')
+  const syl = markers.filter((m) => m.markertype === 'syllables')
   const diff = 0.02
   if (syl.length > 0 && currentTime < syl[0].time - diff) return -1
   for (let i = 0; i < syl.length - 1; i++) {
@@ -175,19 +186,39 @@ export function relabelSyllables(markers, syllables) {
 // добавленный первый маркер за «уже существующий» и стёр бы его вместо вставки нового.
 // label — только для markerType='setting' (например 'GROUP|0'..'GROUP|3' — смена цвета группы
 // голоса в превью, 'COMMENT|текст' — комментарий курсивом). Для остальных типов не используется.
-export function addMarker(markers, syllables, markerType, currentTime, notDelete = false, label = '') {
+export function addMarker(
+  markers,
+  syllables,
+  markerType,
+  currentTime,
+  notDelete = false,
+  label = '',
+) {
   const cmi = currentMarkerIndex(markers, currentTime)
   const currentMarkerTime = cmi >= 0 ? markers[cmi].time : 0
   const diff = Math.abs(currentMarkerTime - currentTime)
 
   let color = MARKER_COLOR_SYLLABLES
   let position = 'bottom'
-  if (markerType === 'endofline') { color = MARKER_COLOR_ENDOFLINE }
-  else if (markerType === 'newline') { color = MARKER_COLOR_NEWLINE }
-  else if (markerType === 'endofsyllable') { color = MARKER_COLOR_ENDOFSYLLABLE }
-  else if (markerType === 'setting') { color = MARKER_COLOR_SETTING; position = 'top' }
+  if (markerType === 'endofline') {
+    color = MARKER_COLOR_ENDOFLINE
+  } else if (markerType === 'newline') {
+    color = MARKER_COLOR_NEWLINE
+  } else if (markerType === 'endofsyllable') {
+    color = MARKER_COLOR_ENDOFSYLLABLE
+  } else if (markerType === 'setting') {
+    color = MARKER_COLOR_SETTING
+    position = 'top'
+  }
 
-  const newMarker = { uid: nextUid(), time: currentTime, label: markerType === 'setting' ? label : '', color, position, markertype: markerType }
+  const newMarker = {
+    uid: nextUid(),
+    time: currentTime,
+    label: markerType === 'setting' ? label : '',
+    color,
+    position,
+    markertype: markerType,
+  }
   const shouldReplace = diff < 0.002 && !notDelete
   const indexToInsert = cmi + (shouldReplace ? 0 : 1)
   const countDeleted = shouldReplace ? 1 : 0
@@ -224,9 +255,16 @@ export function deleteMarkerAtTime(markers, syllables, currentTime) {
 // Гарантирует END-маркер на длительности трека (addEndMarker). Вызывается перед submit.
 export function ensureEndMarker(markers, duration) {
   if (markers.length === 0) return markers
-  const end = markers.find(m => m.markertype === 'setting' && m.label === 'END')
+  const end = markers.find((m) => m.markertype === 'setting' && m.label === 'END')
   if (!end) {
-    markers.push({ uid: nextUid(), time: duration, label: 'END', color: MARKER_COLOR_END, position: 'top', markertype: 'setting' })
+    markers.push({
+      uid: nextUid(),
+      time: duration,
+      label: 'END',
+      color: MARKER_COLOR_END,
+      position: 'top',
+      markertype: 'setting',
+    })
     sortMarkers(markers)
   } else if (Math.abs(end.time - duration) > 0.05) {
     end.time = duration
@@ -240,7 +278,12 @@ export function ensureEndMarker(markers, duration) {
 // это как есть, 1:1 с SubsEdit.vue.
 export function formatText(markers, curMarkerIndex) {
   const CUR = '<span class="ke-fx-cur">'
-  const GROUP_CLASS = { 'GROUP|0': 'ke-fx-group0', 'GROUP|1': 'ke-fx-group1', 'GROUP|2': 'ke-fx-group2', 'GROUP|3': 'ke-fx-group3' }
+  const GROUP_CLASS = {
+    'GROUP|0': 'ke-fx-group0',
+    'GROUP|1': 'ke-fx-group1',
+    'GROUP|2': 'ke-fx-group2',
+    'GROUP|3': 'ke-fx-group3',
+  }
   let spanClass = 'ke-fx-group0'
   let wasBr = true
   let result = ''
@@ -248,8 +291,9 @@ export function formatText(markers, curMarkerIndex) {
     const marker = markers[i]
     switch (marker.markertype) {
       case 'setting': {
-        if (GROUP_CLASS[marker.label]) { spanClass = GROUP_CLASS[marker.label] }
-        else if (marker.label && marker.label.startsWith('COMMENT|')) {
+        if (GROUP_CLASS[marker.label]) {
+          spanClass = GROUP_CLASS[marker.label]
+        } else if (marker.label && marker.label.startsWith('COMMENT|')) {
           const txt = uppercaseFirstLetter((marker.label.split('|')[1] || '').replaceAll('_', ' '))
           result += `<span class="ke-fx-comment">${txt}</span><br>`
           wasBr = true
@@ -262,9 +306,12 @@ export function formatText(markers, curMarkerIndex) {
         wasBr = true
         break
       case 'syllables': {
-        result += (i === curMarkerIndex) ? CUR : `<span class="${spanClass}">`
+        result += i === curMarkerIndex ? CUR : `<span class="${spanClass}">`
         let txt = marker.label ? marker.label.replaceAll('_', ' ') : ''
-        if (wasBr) { txt = uppercaseFirstLetter(txt); wasBr = false }
+        if (wasBr) {
+          txt = uppercaseFirstLetter(txt)
+          wasBr = false
+        }
         result += txt
         result += '</span>'
         break
@@ -279,8 +326,10 @@ export function formatText(markers, curMarkerIndex) {
 // «Бегущая строка»: текущий слог крупно + следующий + контекст (getTail, минимальный набор).
 export function buildTail(syllables, curSyllableIndex) {
   let textBegin = ''
-  let textCurr = (curSyllableIndex === syllables.length - 1 && curSyllableIndex >= 0)
-    ? syllables[syllables.length - 1].replaceAll('_', ' ') : ''
+  let textCurr =
+    curSyllableIndex === syllables.length - 1 && curSyllableIndex >= 0
+      ? syllables[syllables.length - 1].replaceAll('_', ' ')
+      : ''
   let textNext = ''
   let textEnd = ''
 
@@ -314,7 +363,7 @@ export function buildTail(syllables, curSyllableIndex) {
 // Очищает маркеры для сохранения (как getMarkersToSave — без uid и служебных полей). Формат
 // идентичен admin-редактору; note/chord/stringLad/locklad оставляем пустыми (минимальный редактор).
 export function markersToSave(markers) {
-  return markers.map(m => ({
+  return markers.map((m) => ({
     time: m.time,
     label: m.label || '',
     note: '',
@@ -329,7 +378,7 @@ export function markersToSave(markers) {
 
 // Загружает маркеры из ответа сервера, добавляя uid для связи с регионами WaveSurfer.
 export function markersFromServer(list) {
-  return (list || []).map(m => ({
+  return (list || []).map((m) => ({
     uid: nextUid(),
     time: m.time,
     label: m.label || '',

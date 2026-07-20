@@ -1,26 +1,34 @@
-import { setWebvueProp } from "../../../lib/utils";
+import { setWebvueProp } from '../../../lib/utils'
 
 export default {
-    state: {
-        dictionariesFilterDictName: '',
-        dictionariesFilterDictValue: '',
+  state: {
+    dictionariesFilterDictName: '',
+    dictionariesFilterDictValue: '',
+  },
+  getters: {
+    getDictionariesFilterDictName(state) {
+      return state.dictionariesFilterDictName
     },
-    getters: {
-        getDictionariesFilterDictName(state) { return state.dictionariesFilterDictName },
-        getDictionariesFilterDictValue(state) { return state.dictionariesFilterDictValue },
+    getDictionariesFilterDictValue(state) {
+      return state.dictionariesFilterDictValue
     },
-    mutations: {
-        setDictionariesFilterDictName(state, value) {
-            setWebvueProp(state.dictionariesFilterDictName, 'dictionariesFilterDictName', value);
-            state.dictionariesFilterDictName = value;
-        },
-        setDictionariesFilterDictValue(state, value) {
-            setWebvueProp(state.dictionariesFilterDictValue, 'dictionariesFilterDictValue', value);
-            state.dictionariesFilterDictValue = value;
-        },
+  },
+  mutations: {
+    setDictionariesFilterDictName(state, value) {
+      setWebvueProp(state.dictionariesFilterDictName, 'dictionariesFilterDictName', value)
+      state.dictionariesFilterDictName = value
     },
-    actions: {
-        setDictionariesFilterDictName(ctx, payload) { ctx.commit('setDictionariesFilterDictName', payload.value) },
-        setDictionariesFilterDictValue(ctx, payload) { ctx.commit('setDictionariesFilterDictValue', payload.value) },
+    setDictionariesFilterDictValue(state, value) {
+      setWebvueProp(state.dictionariesFilterDictValue, 'dictionariesFilterDictValue', value)
+      state.dictionariesFilterDictValue = value
     },
+  },
+  actions: {
+    setDictionariesFilterDictName(ctx, payload) {
+      ctx.commit('setDictionariesFilterDictName', payload.value)
+    },
+    setDictionariesFilterDictValue(ctx, payload) {
+      ctx.commit('setDictionariesFilterDictValue', payload.value)
+    },
+  },
 }

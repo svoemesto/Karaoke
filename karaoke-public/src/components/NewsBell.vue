@@ -3,7 +3,9 @@
     <transition name="nwb-toast-fade">
       <div v-if="toastItem" class="nwb-toast" @click="onToastClick">
         <button class="nwb-toast-close" @click.stop="dismissToast" title="Закрыть">×</button>
-        <div class="nwb-toast-badge">{{ categoryIcon(toastItem.category) }} {{ categoryLabel(toastItem.category) }}</div>
+        <div class="nwb-toast-badge">
+          {{ categoryIcon(toastItem.category) }} {{ categoryLabel(toastItem.category) }}
+        </div>
         <div class="nwb-toast-title">{{ toastItem.title }}</div>
       </div>
     </transition>
@@ -45,13 +47,19 @@ export default {
   computed: {
     // Скрыт на самой странице новостей (там и так всё видно, см. ChatUnreadBadge) и на
     // полноэкранном плеере — плавающая кнопка поверх видео была бы отвлекающей.
-    isHiddenRoute() { return this.$route.name === 'news' || this.$route.name === 'player' },
-    visible() { return (this.unread > 0 || !!this.toastItem) && !this.isHiddenRoute }
+    isHiddenRoute() {
+      return this.$route.name === 'news' || this.$route.name === 'player'
+    },
+    visible() {
+      return (this.unread > 0 || !!this.toastItem) && !this.isHiddenRoute
+    },
   },
   watch: {
     // При переходе на /news (в т.ч. кликом по самому колокольчику) счётчик неизбежно обнулится
     // на следующем опросе — NewsView.vue сама поднимает last-seen id при открытии ленты.
-    '$route.name'() { this.poll() }
+    '$route.name'() {
+      this.poll()
+    },
   },
   mounted() {
     this.poll()
@@ -62,20 +70,28 @@ export default {
     if (this.toastTimer) clearTimeout(this.toastTimer)
   },
   methods: {
-    categoryIcon(category) { return (CATEGORY_META[category] || CATEGORY_META.general).icon },
-    categoryLabel(category) { return (CATEGORY_META[category] || CATEGORY_META.general).label },
+    categoryIcon(category) {
+      return (CATEGORY_META[category] || CATEGORY_META.general).icon
+    },
+    categoryLabel(category) {
+      return (CATEGORY_META[category] || CATEGORY_META.general).label
+    },
     async poll() {
       // apiGet (services/api.js) резолвит уже распарсенным телом ответа, БЕЗ обёртки {status, body}
       // (в отличие от authGet/authPost, использующихся в chatApi.js для приватных эндпоинтов).
       let data
-      try { data = await fetchNewsSince(lastSeenId()) } catch (e) { return }
+      try {
+        data = await fetchNewsSince(lastSeenId())
+      } catch (e) {
+        return
+      }
       if (!data) return
       this.unread = data.count || 0
       const items = data.items || []
       if (!items.length) return
       // items отсортированы по publish_at DESC — items[0] самая свежая. Тост показываем один раз
       // на новый максимальный id, не на каждый опрос, пока пользователь не открыл ленту.
-      const maxId = Math.max(...items.map(i => i.id))
+      const maxId = Math.max(...items.map((i) => i.id))
       if (maxId !== this.lastToastId) {
         this.lastToastId = maxId
         this.showToast(items[0])
@@ -89,13 +105,19 @@ export default {
     },
     dismissToast() {
       this.toastItem = null
-      if (this.toastTimer) { clearTimeout(this.toastTimer); this.toastTimer = null }
+      if (this.toastTimer) {
+        clearTimeout(this.toastTimer)
+        this.toastTimer = null
+      }
     },
     onToastClick() {
       const item = this.toastItem
       this.dismissToast()
       if (item && item.link) {
-        if (/^https?:\/\//.test(item.link)) { window.location.href = item.link; return }
+        if (/^https?:\/\//.test(item.link)) {
+          window.location.href = item.link
+          return
+        }
         this.$router.push(item.link)
         return
       }
@@ -104,8 +126,8 @@ export default {
     goToNews() {
       this.dismissToast()
       this.$router.push('/news')
-    }
-  }
+    },
+  },
 }
 </script>
 
@@ -139,7 +161,9 @@ export default {
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
   position: relative;
 }
-.nwb-btn:hover { filter: brightness(1.1); }
+.nwb-btn:hover {
+  filter: brightness(1.1);
+}
 .nwb-badge {
   position: absolute;
   top: -4px;
@@ -179,8 +203,25 @@ export default {
   cursor: pointer;
   line-height: 1;
 }
-.nwb-toast-badge { font-size: 0.7rem; font-weight: 700; color: var(--km-accent, #0077ff); margin-bottom: 0.2rem; }
-.nwb-toast-title { font-size: 0.85rem; padding-right: 0.8rem; }
-.nwb-toast-fade-enter-active, .nwb-toast-fade-leave-active { transition: opacity 0.25s ease, transform 0.25s ease; }
-.nwb-toast-fade-enter-from, .nwb-toast-fade-leave-to { opacity: 0; transform: translateY(-6px); }
+.nwb-toast-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--km-accent, #0077ff);
+  margin-bottom: 0.2rem;
+}
+.nwb-toast-title {
+  font-size: 0.85rem;
+  padding-right: 0.8rem;
+}
+.nwb-toast-fade-enter-active,
+.nwb-toast-fade-leave-active {
+  transition:
+    opacity 0.25s ease,
+    transform 0.25s ease;
+}
+.nwb-toast-fade-enter-from,
+.nwb-toast-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
+}
 </style>

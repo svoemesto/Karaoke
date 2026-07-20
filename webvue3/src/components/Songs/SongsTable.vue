@@ -1,222 +1,286 @@
 <template>
   <div class="songs-bv-table">
     <SongEditModal
-v-if="isSongEditVisible" 
-      :parent-route="parentRoute" 
-      :songs-digests="songsDigests" 
-      @close="closeSongEdit"/>
-    <SongsFilter
-v-if="isSongsFilterVisible" 
-      @close="closeSongsFilter"/>
-    <SmartCopyModal
-v-if="isSmartCopyVisible" 
-      :ids="songsIds" 
-      @close="closeSmartCopy"/>
+      v-if="isSongEditVisible"
+      :parent-route="parentRoute"
+      :songs-digests="songsDigests"
+      @close="closeSongEdit"
+    />
+    <SongsFilter v-if="isSongsFilterVisible" @close="closeSongsFilter" />
+    <SmartCopyModal v-if="isSmartCopyVisible" :ids="songsIds" @close="closeSmartCopy" />
     <custom-confirm
-v-if="isCustomConfirmVisible" 
-      :params="customConfirmParams" 
-      @close="closeCustomConfirm" />
+      v-if="isCustomConfirmVisible"
+      :params="customConfirmParams"
+      @close="closeCustomConfirm"
+    />
     <health-report-table
-v-if="isHealthReportTableVisible"
+      v-if="isHealthReportTableVisible"
       :id="currentSongId"
-      @close="closeHealthReportTable"/>
-    <ReviewModal v-if="isAssignReviewVisible" @close="isAssignReviewVisible = false" @reviewed="onAssignmentReviewed" />
+      @close="closeHealthReportTable"
+    />
+    <ReviewModal
+      v-if="isAssignReviewVisible"
+      @close="isAssignReviewVisible = false"
+      @reviewed="onAssignmentReviewed"
+    />
     <div class="songs-bv-table-header">
       <b-pagination
-          v-model="currentPage"
-          :total-rows="countRows"
-          :per-page="perPage"
-          :limit="30"
-          size="sm"
-          pills
+        v-model="currentPage"
+        :total-rows="countRows"
+        :per-page="perPage"
+        :limit="30"
+        size="sm"
+        pills
       />
     </div>
     <div class="songs-bv-table-body">
       <b-table
-          v-model:sort-by="sortBy"
-          :items="songsDigests"
-          :busy="isBusy"
-          :fields="songDigestFields"
-          :per-page="perPage"
-          :current-page="currentPage"
-          small
-          bordered
-          hover
-          @row-clicked="onRowClicked"
+        v-model:sort-by="sortBy"
+        :items="songsDigests"
+        :busy="isBusy"
+        :fields="songDigestFields"
+        :per-page="perPage"
+        :current-page="currentPage"
+        small
+        bordered
+        hover
+        @row-clicked="onRowClicked"
       >
         <template #table-busy>
           <div class="text-center text-danger my-2">
-            <b-spinner class="align-middle"/>
+            <b-spinner class="align-middle" />
             <strong>Loading...</strong>
           </div>
         </template>
         <template #table-colgroup="scope">
-          <col
-              v-for="field in scope.fields"
-              :key="field.key"
-              :style="field.style"
-          />
+          <col v-for="field in scope.fields" :key="field.key" :style="field.style" />
         </template>
         <template #cell(id)="data">
           <div
-              class="fld-song-id"
-              :style="{ backgroundColor: data.item.color, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-              v-text="data.value"
+            class="fld-song-id"
+            :style="{
+              backgroundColor: data.item.color,
+              color: currentSongId === data.item.id ? 'blue' : 'black',
+            }"
+            v-text="data.value"
           />
         </template>
         <template #cell(rootId)="data">
           <div
-              class="fld-root-id"
-              :style="{ backgroundColor: data.item.color, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-              v-text="data.value"
+            class="fld-root-id"
+            :style="{
+              backgroundColor: data.item.color,
+              color: currentSongId === data.item.id ? 'blue' : 'black',
+            }"
+            v-text="data.value"
           />
         </template>
         <template #cell(songName)="data">
           <div
-              class="fld-song-name"
-              :style="{ backgroundColor: data.item.color, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-              @click.left="editSong(data.item.id)"
-              v-text="data.value"
+            class="fld-song-name"
+            :style="{
+              backgroundColor: data.item.color,
+              color: currentSongId === data.item.id ? 'blue' : 'black',
+            }"
+            @click.left="editSong(data.item.id)"
+            v-text="data.value"
           />
         </template>
         <template #cell(author)="data">
           <div
-              class="fld-author"
-              :style="{ backgroundColor: data.item.color, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-              v-text="data.value"
+            class="fld-author"
+            :style="{
+              backgroundColor: data.item.color,
+              color: currentSongId === data.item.id ? 'blue' : 'black',
+            }"
+            v-text="data.value"
           />
         </template>
         <template #cell(year)="data">
           <div
-              class="fld-year"
-              :style="{ backgroundColor: data.item.color, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-              v-text="data.value"
+            class="fld-year"
+            :style="{
+              backgroundColor: data.item.color,
+              color: currentSongId === data.item.id ? 'blue' : 'black',
+            }"
+            v-text="data.value"
           />
         </template>
         <template #cell(album)="data">
           <div
-              class="fld-album"
-              :style="{ backgroundColor: data.item.color, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-              v-text="data.value"
+            class="fld-album"
+            :style="{
+              backgroundColor: data.item.color,
+              color: currentSongId === data.item.id ? 'blue' : 'black',
+            }"
+            v-text="data.value"
           />
         </template>
         <template #cell(track)="data">
           <div
-              class="fld-track"
-              :style="{ backgroundColor: data.item.color, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-              v-text="data.value"
+            class="fld-track"
+            :style="{
+              backgroundColor: data.item.color,
+              color: currentSongId === data.item.id ? 'blue' : 'black',
+            }"
+            v-text="data.value"
           />
         </template>
         <template #cell(date)="data">
           <div
-              class="fld-date"
-              :style="{ backgroundColor: data.item.color, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-              v-text="data.value ? data.value : '-'"
+            class="fld-date"
+            :style="{
+              backgroundColor: data.item.color,
+              color: currentSongId === data.item.id ? 'blue' : 'black',
+            }"
+            v-text="data.value ? data.value : '-'"
           />
         </template>
         <template #cell(time)="data">
           <div
-              class="fld-time"
-              :style="{ backgroundColor: data.item.color, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-              v-text="data.value ? data.value : '-'"
+            class="fld-time"
+            :style="{
+              backgroundColor: data.item.color,
+              color: currentSongId === data.item.id ? 'blue' : 'black',
+            }"
+            v-text="data.value ? data.value : '-'"
           />
         </template>
         <template #cell(tags)="data">
           <div
-              class="fld-tags"
-              :style="{ backgroundColor: data.item.color, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-              v-text="data.value ? data.value : '-'"
+            class="fld-tags"
+            :style="{
+              backgroundColor: data.item.color,
+              color: currentSongId === data.item.id ? 'blue' : 'black',
+            }"
+            v-text="data.value ? data.value : '-'"
           />
         </template>
         <template #cell(status)="data">
           <div
-              class="fld-song-status"
-              :style="{ backgroundColor: data.item.color, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-              v-text="data.value"
+            class="fld-song-status"
+            :style="{
+              backgroundColor: data.item.color,
+              color: currentSongId === data.item.id ? 'blue' : 'black',
+            }"
+            v-text="data.value"
           />
         </template>
         <template #cell(songType)="data">
           <div
-              class="fld-song-type"
-              :style="{ backgroundColor: data.item.color, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-              v-text="songTypeLetter(data.value)"
+            class="fld-song-type"
+            :style="{
+              backgroundColor: data.item.color,
+              color: currentSongId === data.item.id ? 'blue' : 'black',
+            }"
+            v-text="songTypeLetter(data.value)"
           />
         </template>
         <template #cell(countVoices)="data">
           <div
-              class="fld-count-voices"
-              :style="{ backgroundColor: data.item.color, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-              v-text="data.value"
+            class="fld-count-voices"
+            :style="{
+              backgroundColor: data.item.color,
+              color: currentSongId === data.item.id ? 'blue' : 'black',
+            }"
+            v-text="data.value"
           />
         </template>
         <template #cell(timecode)="data">
           <div
-              class="fld-timecode"
-              :style="{ backgroundColor: data.item.color, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-              v-text="data.value"
+            class="fld-timecode"
+            :style="{
+              backgroundColor: data.item.color,
+              color: currentSongId === data.item.id ? 'blue' : 'black',
+            }"
+            v-text="data.value"
           />
         </template>
         <template #cell(healthReportText)="data">
           <div
-              class="fld-health-report-text"
-              :style="{ backgroundColor: data.item.healthReportColor, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-              @click.left="showHealthReportTable(data.item.id)"
-              v-text="data.value"
+            class="fld-health-report-text"
+            :style="{
+              backgroundColor: data.item.healthReportColor,
+              color: currentSongId === data.item.id ? 'blue' : 'black',
+            }"
+            @click.left="showHealthReportTable(data.item.id)"
+            v-text="data.value"
           />
         </template>
         <template #cell(resultVersion)="data">
           <div
-              class="fld-result-version"
-              :style="{ backgroundColor: data.item.color, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-              v-text="data.value"
+            class="fld-result-version"
+            :style="{
+              backgroundColor: data.item.color,
+              color: currentSongId === data.item.id ? 'blue' : 'black',
+            }"
+            v-text="data.value"
           />
         </template>
         <template #cell(player)="data">
-          <div
-              class="fld-player"
-              :style="{ backgroundColor: data.item.color }"
-          >
+          <div class="fld-player" :style="{ backgroundColor: data.item.color }">
             <a
-                v-if="data.item.idStatus >= 3"
-                href="#"
-                class="player-icon-link"
-                title="Открыть онлайн-плеер"
-                @click.left.prevent="openPlayer(data.item.id)"
+              v-if="data.item.idStatus >= 3"
+              href="#"
+              class="player-icon-link"
+              title="Открыть онлайн-плеер"
+              @click.left.prevent="openPlayer(data.item.id)"
             >
-              <svg width="18" height="18" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" fill="none">
-                <circle cx="10" cy="10" r="10" fill="#22A447"/>
-                <path d="M8 6.5v7l6-3.5-6-3.5Z" fill="#fff"/>
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 20 20"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+              >
+                <circle cx="10" cy="10" r="10" fill="#22A447" />
+                <path d="M8 6.5v7l6-3.5-6-3.5Z" fill="#fff" />
               </svg>
             </a>
             <span v-else class="player-icon-disabled" title="Плеер недоступен (статус < 3)">
-              <svg width="18" height="18" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" fill="none">
-                <circle cx="10" cy="10" r="10" fill="#E6E6E6"/>
-                <path d="M8 6.5v7l6-3.5-6-3.5Z" fill="#919191"/>
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 20 20"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+              >
+                <circle cx="10" cy="10" r="10" fill="#E6E6E6" />
+                <path d="M8 6.5v7l6-3.5-6-3.5Z" fill="#919191" />
               </svg>
             </span>
           </div>
         </template>
         <template #cell(playerDemo)="data">
-          <div
-              class="fld-player"
-              :style="{ backgroundColor: data.item.color }"
-          >
+          <div class="fld-player" :style="{ backgroundColor: data.item.color }">
             <a
-                v-if="data.item.idStatus >= 3"
-                href="#"
-                class="player-icon-link"
-                title="Открыть DEMO-плеер"
-                @click.left.prevent="openPlayerDemo(data.item.id)"
+              v-if="data.item.idStatus >= 3"
+              href="#"
+              class="player-icon-link"
+              title="Открыть DEMO-плеер"
+              @click.left.prevent="openPlayerDemo(data.item.id)"
             >
-              <svg width="18" height="18" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" fill="none">
-                <circle cx="10" cy="10" r="10" fill="#C5A53C"/>
-                <path d="M8 6.5v7l6-3.5-6-3.5Z" fill="#fff"/>
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 20 20"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+              >
+                <circle cx="10" cy="10" r="10" fill="#C5A53C" />
+                <path d="M8 6.5v7l6-3.5-6-3.5Z" fill="#fff" />
               </svg>
             </a>
             <span v-else class="player-icon-disabled" title="DEMO-плеер недоступен (статус < 3)">
-              <svg width="18" height="18" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" fill="none">
-                <circle cx="10" cy="10" r="10" fill="#E6E6E6"/>
-                <path d="M8 6.5v7l6-3.5-6-3.5Z" fill="#919191"/>
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 20 20"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+              >
+                <circle cx="10" cy="10" r="10" fill="#E6E6E6" />
+                <path d="M8 6.5v7l6-3.5-6-3.5Z" fill="#919191" />
               </svg>
             </span>
           </div>
@@ -225,252 +289,405 @@ v-if="isHealthReportTableVisible"
           <div class="fld-assign" :style="{ backgroundColor: data.item.color }" @click.stop>
             <template v-if="data.item.idStatus < 3">
               <button
-                  v-if="assignmentStatusFor(data.item.id)"
-                  class="assign-badge"
-                  :class="`assign-badge-${assignmentStatusFor(data.item.id).status}`"
-                  :title="assignmentStatusFor(data.item.id).assigneeName"
-                  @click="openAssignmentReview(data.item.id)"
-              >{{ assignStatusLabel(assignmentStatusFor(data.item.id).status) }}</button>
+                v-if="assignmentStatusFor(data.item.id)"
+                class="assign-badge"
+                :class="`assign-badge-${assignmentStatusFor(data.item.id).status}`"
+                :title="assignmentStatusFor(data.item.id).assigneeName"
+                @click="openAssignmentReview(data.item.id)"
+              >
+                {{ assignStatusLabel(assignmentStatusFor(data.item.id).status) }}
+              </button>
               <select v-else class="assign-select" @change="onAssignSelect(data.item.id, $event)">
                 <option value="" selected disabled>Назначить…</option>
-                <option v-for="u in editorSiteUsers" :key="u.id" :value="u.id">{{ u.displayName || u.email }}</option>
+                <option v-for="u in editorSiteUsers" :key="u.id" :value="u.id">
+                  {{ u.displayName || u.email }}
+                </option>
               </select>
             </template>
           </div>
         </template>
         <template #cell(flagSponsr)="data">
           <div
-              class="fld-flag-sponsr"
-              :style="{ backgroundColor: data.item.processColorSponsr, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-              v-text="data.value ? data.value : '-'"
+            class="fld-flag-sponsr"
+            :style="{
+              backgroundColor: data.item.processColorSponsr,
+              color: currentSongId === data.item.id ? 'blue' : 'black',
+            }"
+            v-text="data.value ? data.value : '-'"
           />
         </template>
         <template #cell(flagVk)="data">
           <div
-              class="fld-flag-vk"
-              :style="{ backgroundColor: data.item.processColorVk, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-              v-text="data.value ? data.value : '-'"
+            class="fld-flag-vk"
+            :style="{
+              backgroundColor: data.item.processColorVk,
+              color: currentSongId === data.item.id ? 'blue' : 'black',
+            }"
+            v-text="data.value ? data.value : '-'"
           />
         </template>
         <template #cell(flagPlayerDemo)="data">
           <div
-              class="fld-flag-player-demo"
-              :style="{ backgroundColor: data.item.processColorPlayerDemo, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-              @dblclick.left="playDemo(data.item.id)"
-              v-text="data.value ? data.value : '-'"
+            class="fld-flag-player-demo"
+            :style="{
+              backgroundColor: data.item.processColorPlayerDemo,
+              color: currentSongId === data.item.id ? 'blue' : 'black',
+            }"
+            @dblclick.left="playDemo(data.item.id)"
+            v-text="data.value ? data.value : '-'"
           />
         </template>
         <template #cell(flagDzenLyrics)="data">
           <div
-              class="fld-flag-dzen-lyrics"
-              :style="{ backgroundColor: data.item.processColorMeltLyrics, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-              @dblclick.left="playLyrics(data.item.id)"
-              v-text="data.value ? data.value : '-'"
+            class="fld-flag-dzen-lyrics"
+            :style="{
+              backgroundColor: data.item.processColorMeltLyrics,
+              color: currentSongId === data.item.id ? 'blue' : 'black',
+            }"
+            @dblclick.left="playLyrics(data.item.id)"
+            v-text="data.value ? data.value : '-'"
           />
         </template>
         <template #cell(flagDzenKaraoke)="data">
           <div
-              class="fld-flag-dzen-karaoke"
-              :style="{ backgroundColor: data.item.processColorMeltKaraoke, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-              @dblclick.left="playKaraoke(data.item.id)"
-              v-text="data.value ? data.value : '-'"
+            class="fld-flag-dzen-karaoke"
+            :style="{
+              backgroundColor: data.item.processColorMeltKaraoke,
+              color: currentSongId === data.item.id ? 'blue' : 'black',
+            }"
+            @dblclick.left="playKaraoke(data.item.id)"
+            v-text="data.value ? data.value : '-'"
           />
         </template>
         <template #cell(flagDzenChords)="data">
           <div
-              class="fld-flag-dzen-chords"
-              :style="{ backgroundColor: data.item.processColorMeltChords, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-              @dblclick.left="playChords(data.item.id)"
-              v-text="data.value ? data.value : '-'"
+            class="fld-flag-dzen-chords"
+            :style="{
+              backgroundColor: data.item.processColorMeltChords,
+              color: currentSongId === data.item.id ? 'blue' : 'black',
+            }"
+            @dblclick.left="playChords(data.item.id)"
+            v-text="data.value ? data.value : '-'"
           />
         </template>
         <template #cell(flagDzenMelody)="data">
           <div
-              class="fld-flag-dzen-melody"
-              :style="{ backgroundColor: data.item.processColorMeltMelody, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-              @dblclick.left="playTabs(data.item.id)"
-              v-text="data.value ? data.value : '-'"
+            class="fld-flag-dzen-melody"
+            :style="{
+              backgroundColor: data.item.processColorMeltMelody,
+              color: currentSongId === data.item.id ? 'blue' : 'black',
+            }"
+            @dblclick.left="playTabs(data.item.id)"
+            v-text="data.value ? data.value : '-'"
           />
         </template>
         <template #cell(flagVkLyrics)="data">
           <div
-              class="fld-flag-vk-lyrics"
-              :style="{ backgroundColor: data.item.processColorVkLyrics, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-              v-text="data.value ? data.value : '-'"
+            class="fld-flag-vk-lyrics"
+            :style="{
+              backgroundColor: data.item.processColorVkLyrics,
+              color: currentSongId === data.item.id ? 'blue' : 'black',
+            }"
+            v-text="data.value ? data.value : '-'"
           />
         </template>
         <template #cell(flagVkKaraoke)="data">
           <div
-              class="fld-flag-vk-karaoke"
-              :style="{ backgroundColor: data.item.processColorVkKaraoke, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-              v-text="data.value ? data.value : '-'"
+            class="fld-flag-vk-karaoke"
+            :style="{
+              backgroundColor: data.item.processColorVkKaraoke,
+              color: currentSongId === data.item.id ? 'blue' : 'black',
+            }"
+            v-text="data.value ? data.value : '-'"
           />
         </template>
         <template #cell(flagVkChords)="data">
           <div
-              class="fld-flag-vk-chords"
-              :style="{ backgroundColor: data.item.processColorVkChords, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-              v-text="data.value ? data.value : '-'"
+            class="fld-flag-vk-chords"
+            :style="{
+              backgroundColor: data.item.processColorVkChords,
+              color: currentSongId === data.item.id ? 'blue' : 'black',
+            }"
+            v-text="data.value ? data.value : '-'"
           />
         </template>
         <template #cell(flagVkMelody)="data">
           <div
-              class="fld-flag-vk-melody"
-              :style="{ backgroundColor: data.item.processColorVkMelody, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-              v-text="data.value ? data.value : '-'"
+            class="fld-flag-vk-melody"
+            :style="{
+              backgroundColor: data.item.processColorVkMelody,
+              color: currentSongId === data.item.id ? 'blue' : 'black',
+            }"
+            v-text="data.value ? data.value : '-'"
           />
         </template>
         <template #cell(flagTelegramLyrics)="data">
           <div
-              class="fld-flag-tg-lyrics"
-              :style="{ backgroundColor: data.item.processColorTelegramLyrics, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-              v-text="data.value ? data.value : '-'"
+            class="fld-flag-tg-lyrics"
+            :style="{
+              backgroundColor: data.item.processColorTelegramLyrics,
+              color: currentSongId === data.item.id ? 'blue' : 'black',
+            }"
+            v-text="data.value ? data.value : '-'"
           />
         </template>
         <template #cell(flagTelegramKaraoke)="data">
           <div
-              class="fld-flag-tg-karaoke"
-              :style="{ backgroundColor: data.item.processColorTelegramKaraoke, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-              v-text="data.value ? data.value : '-'"
+            class="fld-flag-tg-karaoke"
+            :style="{
+              backgroundColor: data.item.processColorTelegramKaraoke,
+              color: currentSongId === data.item.id ? 'blue' : 'black',
+            }"
+            v-text="data.value ? data.value : '-'"
           />
         </template>
         <template #cell(flagTelegramChords)="data">
           <div
-              class="fld-flag-tg-chords"
-              :style="{ backgroundColor: data.item.processColorTelegramChords, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-              v-text="data.value ? data.value : '-'"
+            class="fld-flag-tg-chords"
+            :style="{
+              backgroundColor: data.item.processColorTelegramChords,
+              color: currentSongId === data.item.id ? 'blue' : 'black',
+            }"
+            v-text="data.value ? data.value : '-'"
           />
         </template>
         <template #cell(flagTelegramMelody)="data">
           <div
-              class="fld-flag-tg-melody"
-              :style="{ backgroundColor: data.item.processColorTelegramMelody, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-              v-text="data.value ? data.value : '-'"
+            class="fld-flag-tg-melody"
+            :style="{
+              backgroundColor: data.item.processColorTelegramMelody,
+              color: currentSongId === data.item.id ? 'blue' : 'black',
+            }"
+            v-text="data.value ? data.value : '-'"
           />
         </template>
         <template #cell(flagExclusive)="data">
           <div
-              class="fld-flag-exclusive"
-              :style="{ backgroundColor: data.item.color, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-              v-text="data.value ? data.value : '-'"
+            class="fld-flag-exclusive"
+            :style="{
+              backgroundColor: data.item.color,
+              color: currentSongId === data.item.id ? 'blue' : 'black',
+            }"
+            v-text="data.value ? data.value : '-'"
           />
         </template>
         <template #cell(flagFree)="data">
           <div
-              class="fld-flag-free"
-              :style="{ backgroundColor: data.item.color, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-              v-text="data.value ? data.value : '-'"
+            class="fld-flag-free"
+            :style="{
+              backgroundColor: data.item.color,
+              color: currentSongId === data.item.id ? 'blue' : 'black',
+            }"
+            v-text="data.value ? data.value : '-'"
           />
         </template>
-       <template #cell(flagMaxLyrics)="data">
-         <div
-             class="fld-flag-max-lyrics"
-             :style="{ backgroundColor: data.item.processColorMaxLyrics, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-             v-text="data.value"
-         />
-       </template>
-       <template #cell(flagMaxKaraoke)="data">
-         <div
-             class="fld-flag-max-karaoke"
-             :style="{ backgroundColor: data.item.processColorMaxKaraoke, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-             v-text="data.value"
-         />
-       </template>
-       <template #cell(flagMaxChords)="data">
-         <div
-             class="fld-flag-max-chords"
-             :style="{ backgroundColor: data.item.processColorMaxChords, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-             v-text="data.value"
-         />
-       </template>
-       <template #cell(flagMaxMelody)="data">
-         <div
-             class="fld-flag-max-melody"
-             :style="{ backgroundColor: data.item.processColorMaxMelody, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-             v-text="data.value"
-         />
-       </template>       
-<!--        <template #cell(flagPlLyrics)="data">-->
-<!--          <div-->
-<!--              class="fld-flag-pl-lyrics"-->
-<!--              v-text="data.value"-->
-<!--              :style="{ backgroundColor: data.item.processColorPlLyrics, color: currentSongId === data.item.id ? 'blue' : 'black' }"-->
-<!--          ></div>-->
-<!--        </template>-->
-<!--        <template #cell(flagPlKaraoke)="data">-->
-<!--          <div-->
-<!--              class="fld-flag-pl-karaoke"-->
-<!--              v-text="data.value"-->
-<!--              :style="{ backgroundColor: data.item.processColorPlKaraoke, color: currentSongId === data.item.id ? 'blue' : 'black' }"-->
-<!--          ></div>-->
-<!--        </template>-->
-<!--        <template #cell(flagPlChords)="data">-->
-<!--          <div-->
-<!--              class="fld-flag-pl-chords"-->
-<!--              v-text="data.value"-->
-<!--              :style="{ backgroundColor: data.item.processColorPlChords, color: currentSongId === data.item.id ? 'blue' : 'black' }"-->
-<!--          ></div>-->
-<!--        </template>-->
-<!--        <template #cell(flagPlMelody)="data">-->
-<!--          <div-->
-<!--              class="fld-flag-pl-melody"-->
-<!--              v-text="data.value"-->
-<!--              :style="{ backgroundColor: data.item.processColorPlMelody, color: currentSongId === data.item.id ? 'blue' : 'black' }"-->
-<!--          ></div>-->
-<!--        </template>-->
+        <template #cell(flagMaxLyrics)="data">
+          <div
+            class="fld-flag-max-lyrics"
+            :style="{
+              backgroundColor: data.item.processColorMaxLyrics,
+              color: currentSongId === data.item.id ? 'blue' : 'black',
+            }"
+            v-text="data.value"
+          />
+        </template>
+        <template #cell(flagMaxKaraoke)="data">
+          <div
+            class="fld-flag-max-karaoke"
+            :style="{
+              backgroundColor: data.item.processColorMaxKaraoke,
+              color: currentSongId === data.item.id ? 'blue' : 'black',
+            }"
+            v-text="data.value"
+          />
+        </template>
+        <template #cell(flagMaxChords)="data">
+          <div
+            class="fld-flag-max-chords"
+            :style="{
+              backgroundColor: data.item.processColorMaxChords,
+              color: currentSongId === data.item.id ? 'blue' : 'black',
+            }"
+            v-text="data.value"
+          />
+        </template>
+        <template #cell(flagMaxMelody)="data">
+          <div
+            class="fld-flag-max-melody"
+            :style="{
+              backgroundColor: data.item.processColorMaxMelody,
+              color: currentSongId === data.item.id ? 'blue' : 'black',
+            }"
+            v-text="data.value"
+          />
+        </template>
+        <!--        <template #cell(flagPlLyrics)="data">-->
+        <!--          <div-->
+        <!--              class="fld-flag-pl-lyrics"-->
+        <!--              v-text="data.value"-->
+        <!--              :style="{ backgroundColor: data.item.processColorPlLyrics, color: currentSongId === data.item.id ? 'blue' : 'black' }"-->
+        <!--          ></div>-->
+        <!--        </template>-->
+        <!--        <template #cell(flagPlKaraoke)="data">-->
+        <!--          <div-->
+        <!--              class="fld-flag-pl-karaoke"-->
+        <!--              v-text="data.value"-->
+        <!--              :style="{ backgroundColor: data.item.processColorPlKaraoke, color: currentSongId === data.item.id ? 'blue' : 'black' }"-->
+        <!--          ></div>-->
+        <!--        </template>-->
+        <!--        <template #cell(flagPlChords)="data">-->
+        <!--          <div-->
+        <!--              class="fld-flag-pl-chords"-->
+        <!--              v-text="data.value"-->
+        <!--              :style="{ backgroundColor: data.item.processColorPlChords, color: currentSongId === data.item.id ? 'blue' : 'black' }"-->
+        <!--          ></div>-->
+        <!--        </template>-->
+        <!--        <template #cell(flagPlMelody)="data">-->
+        <!--          <div-->
+        <!--              class="fld-flag-pl-melody"-->
+        <!--              v-text="data.value"-->
+        <!--              :style="{ backgroundColor: data.item.processColorPlMelody, color: currentSongId === data.item.id ? 'blue' : 'black' }"-->
+        <!--          ></div>-->
+        <!--        </template>-->
         <template #cell(rate)="data">
           <div
-              class="fld-rate"
-              :style="{ backgroundColor: data.item.color, color: currentSongId === data.item.id ? 'blue' : 'black' }"
+            class="fld-rate"
+            :style="{
+              backgroundColor: data.item.color,
+              color: currentSongId === data.item.id ? 'blue' : 'black',
+            }"
           >
             <b-form-rating
-                id="rate-inline"
-                v-model="data.value"
-                size="sm"
-                no-border
-                inline
-                disabled
-                :style="{ backgroundColor: '#fff0', height: '18px', minHeight: '18px', padding: '0' }"
+              id="rate-inline"
+              v-model="data.value"
+              size="sm"
+              no-border
+              inline
+              disabled
+              :style="{ backgroundColor: '#fff0', height: '18px', minHeight: '18px', padding: '0' }"
             />
           </div>
         </template>
       </b-table>
     </div>
     <div class="songs-bv-table-footer">
-      <button class="btn-round-long-double" :disabled="countRows===0" title="Smart Copy" @click="isSmartCopyVisible=true">{{smartCopyButtonCaption}}</button>
-      <button class="btn-round-double" title="Фильтр" @click="isSongsFilterVisible=true">
-        <img alt="filter" class="icon-40" src="../../assets/svg/icon_filter.svg"/>
+      <button
+        class="btn-round-long-double"
+        :disabled="countRows === 0"
+        title="Smart Copy"
+        @click="isSmartCopyVisible = true"
+      >
+        {{ smartCopyButtonCaption }}
       </button>
-      <button class="btn-round-double" :disabled="countRows===0" title="Найти тексты для всех песен" @click="searchTextForAll"><img alt="search texts for all" class="icon-40" src="../../assets/svg/icon_search_text.svg"/></button>
-      <button class="btn-round-double" :disabled="countRows===0" title="Создать караоке для всех песен" @click="createKaraokeForAll"><img alt="create karaoke for all" class="icon-40" src="../../assets/svg/icon_song.svg"/></button>
-      <button class="btn-round-double" :disabled="countRows===0" title="Создать DEMUCS2 для всех песен" @click="createDemucs2ForAll"><img alt="create demucs2 for all" class="icon-40" src="../../assets/svg/icon_demucs2.svg"/></button>
-      <button class="btn-round-double" :disabled="countRows===0" title="Создать DEMUCS5 для всех песен" @click="createDemucs5ForAll"><img alt="create demucs5 for all" class="icon-40" src="../../assets/svg/icon_demucs5.svg"/></button>
+      <button class="btn-round-double" title="Фильтр" @click="isSongsFilterVisible = true">
+        <img alt="filter" class="icon-40" src="../../assets/svg/icon_filter.svg" />
+      </button>
+      <button
+        class="btn-round-double"
+        :disabled="countRows === 0"
+        title="Найти тексты для всех песен"
+        @click="searchTextForAll"
+      >
+        <img
+          alt="search texts for all"
+          class="icon-40"
+          src="../../assets/svg/icon_search_text.svg"
+        />
+      </button>
+      <button
+        class="btn-round-double"
+        :disabled="countRows === 0"
+        title="Создать караоке для всех песен"
+        @click="createKaraokeForAll"
+      >
+        <img alt="create karaoke for all" class="icon-40" src="../../assets/svg/icon_song.svg" />
+      </button>
+      <button
+        class="btn-round-double"
+        :disabled="countRows === 0"
+        title="Создать DEMUCS2 для всех песен"
+        @click="createDemucs2ForAll"
+      >
+        <img alt="create demucs2 for all" class="icon-40" src="../../assets/svg/icon_demucs2.svg" />
+      </button>
+      <button
+        class="btn-round-double"
+        :disabled="countRows === 0"
+        title="Создать DEMUCS5 для всех песен"
+        @click="createDemucs5ForAll"
+      >
+        <img alt="create demucs5 for all" class="icon-40" src="../../assets/svg/icon_demucs5.svg" />
+      </button>
       <!-- <button class="btn-round-double" @click="createMP3KaraokeForAll" :disabled="countRows===0" title="Создать MP3 KARAOKE для всех песен"><img alt="create mp3 karaoke for all" class="icon-40" src="../../assets/svg/icon_mp3karaoke.svg"></button> -->
       <!-- <button class="btn-round-double" @click="createMP3LyricsForAll" :disabled="countRows===0" title="Создать MP3 LYRICS для всех песен"><img alt="create mp3 lyrics for all" class="icon-40" src="../../assets/svg/icon_mp3lyrics.svg"></button> -->
-      <button class="btn-round-double" :disabled="countRows===0" title="Создать SYMLINKS для всех песен" @click="createSymlinksForAll"><img alt="create symlink for all" class="icon-40" src="../../assets/svg/icon_symlink.svg"/></button>
-      <button class="btn-round-double" :disabled="countRows===0" title="Создать SHEETSAGE для всех песен" @click="createSheetsageForAll"><img alt="create sheetsage for all" class="icon-40" src="../../assets/svg/icon_chords.svg"/></button>
-      <button class="btn-round-double" :disabled="countRows===0" title="Обновить хранилище для всех песен" @click="updateStoreForAll"><img alt="update store for all" class="icon-40" src="../../assets/svg/icon_update_store.svg"/></button>
-      <button class="btn-round-double" :disabled="countRows===0 || !allowAddSync" title="Добавить записи в SYNC-таблицу" @click="addSyncForAll"><img alt="add records to SYNC table" class="icon-40" src="../../assets/svg/icon_sync.svg"/></button>
-      <button class="btn-round-double" :disabled="countRows===0" title="Repair All" @click="repairAll"><img alt="Repair all" class="icon-40" src="../../assets/svg/icon_repair.svg"/></button>
+      <button
+        class="btn-round-double"
+        :disabled="countRows === 0"
+        title="Создать SYMLINKS для всех песен"
+        @click="createSymlinksForAll"
+      >
+        <img alt="create symlink for all" class="icon-40" src="../../assets/svg/icon_symlink.svg" />
+      </button>
+      <button
+        class="btn-round-double"
+        :disabled="countRows === 0"
+        title="Создать SHEETSAGE для всех песен"
+        @click="createSheetsageForAll"
+      >
+        <img
+          alt="create sheetsage for all"
+          class="icon-40"
+          src="../../assets/svg/icon_chords.svg"
+        />
+      </button>
+      <button
+        class="btn-round-double"
+        :disabled="countRows === 0"
+        title="Обновить хранилище для всех песен"
+        @click="updateStoreForAll"
+      >
+        <img
+          alt="update store for all"
+          class="icon-40"
+          src="../../assets/svg/icon_update_store.svg"
+        />
+      </button>
+      <button
+        class="btn-round-double"
+        :disabled="countRows === 0 || !allowAddSync"
+        title="Добавить записи в SYNC-таблицу"
+        @click="addSyncForAll"
+      >
+        <img alt="add records to SYNC table" class="icon-40" src="../../assets/svg/icon_sync.svg" />
+      </button>
+      <button
+        class="btn-round-double"
+        :disabled="countRows === 0"
+        title="Repair All"
+        @click="repairAll"
+      >
+        <img alt="Repair all" class="icon-40" src="../../assets/svg/icon_repair.svg" />
+      </button>
     </div>
-
   </div>
 </template>
 
 <script>
-
 import { BPagination, BSpinner, BTable, BFormRating } from 'bootstrap-vue-next'
-import SongEditModal from "../../components/Songs/edit/SongEditModal.vue";
-import SongsFilter from "../../components/Songs/filter/SongsFilterModal.vue";
-import SmartCopyModal from "../../components/Common/SmartCopy/SmartCopyModal.vue";
-import CustomConfirm from "../../components/Common/CustomConfirm.vue";
-import HealthReportTable from "../Common/HealthReport/HealthReportTable.vue";
-import ReviewModal from "../SongEditor/ReviewModal.vue";
+import SongEditModal from '../../components/Songs/edit/SongEditModal.vue'
+import SongsFilter from '../../components/Songs/filter/SongsFilterModal.vue'
+import SmartCopyModal from '../../components/Common/SmartCopy/SmartCopyModal.vue'
+import CustomConfirm from '../../components/Common/CustomConfirm.vue'
+import HealthReportTable from '../Common/HealthReport/HealthReportTable.vue'
+import ReviewModal from '../SongEditor/ReviewModal.vue'
 
 const ASSIGN_STATUS_LABELS = {
-  assigned: 'Назначено', in_progress: 'В работе', submitted: 'На проверке',
-  approved: 'Одобрено', rejected: 'Отклонено',
-};
+  assigned: 'Назначено',
+  in_progress: 'В работе',
+  submitted: 'На проверке',
+  approved: 'Одобрено',
+  rejected: 'Отклонено',
+}
 
 /**
  * Главная таблица песен в admin SPA `webvue3`.
@@ -507,7 +724,7 @@ const ASSIGN_STATUS_LABELS = {
  * @see Songs/store.js Vuex-модуль с actions/mutations
  */
 export default {
-  name: "SongsTable",
+  name: 'SongsTable',
   components: {
     HealthReportTable,
     SongEditModal,
@@ -518,7 +735,7 @@ export default {
     BPagination,
     BSpinner,
     BTable,
-    BFormRating
+    BFormRating,
   },
   data() {
     return {
@@ -538,57 +755,57 @@ export default {
       allowAddSync: false,
       hrQueue: [],
       hrRunning: 0,
-      HR_MAX_CONCURRENT: 3
+      HR_MAX_CONCURRENT: 3,
     }
   },
   computed: {
     parentRoute() {
-      return 'Songs';
+      return 'Songs'
     },
     smartCopyButtonCaption() {
-      let caption = '';
+      let caption = ''
       if (this.countRows > 0) {
-        caption = this.countRows + ' [' + this.totalDuration + ']';
+        caption = this.countRows + ' [' + this.totalDuration + ']'
       }
-      return caption;
+      return caption
     },
     songIdAndPageId() {
-      const result = new Map();
+      const result = new Map()
       for (let i = 0; i < this.songsIds.length; i++) {
-        const songId = this.songsIds[i];
-        const pageNumber = Math.floor(i / this.perPage) + 1;
-        result.set(songId, pageNumber);
+        const songId = this.songsIds[i]
+        const pageNumber = Math.floor(i / this.perPage) + 1
+        result.set(songId, pageNumber)
       }
-      return result;
+      return result
     },
     currentSongId() {
-      return this.$store.getters.getCurrentSongId;
+      return this.$store.getters.getCurrentSongId
     },
     songsIds() {
-      return this.$store.getters.getSongsDigestIds;
+      return this.$store.getters.getSongsDigestIds
     },
     // Только id видимой страницы (та же формула, что updateHealthReportForCurrentPage) — батч-статус
     // назначений грузим не на весь каталог, а по странице, как и HR-запросы.
     currentPageSongIds() {
-      return this.songsIds.filter(id => this.songIdAndPageId.get(id) === this.currentPage);
+      return this.songsIds.filter((id) => this.songIdAndPageId.get(id) === this.currentPage)
     },
     editorSiteUsers() {
-      return this.$store.getters.getEditorSiteUsers || [];
+      return this.$store.getters.getEditorSiteUsers || []
     },
     songsDigestIsLoading() {
-      return this.$store.getters.getSongsDigestIsLoading;
+      return this.$store.getters.getSongsDigestIsLoading
     },
     songsDigests() {
-      return this.$store.getters.getSongsDigest;
+      return this.$store.getters.getSongsDigest
     },
     songsHistory() {
-      return this.$store.getters.getSongsHistory;
+      return this.$store.getters.getSongsHistory
     },
     countRows() {
-      return this.songsDigests ? this.songsDigests.length : 0;
+      return this.songsDigests ? this.songsDigests.length : 0
     },
     totalDuration() {
-      return this.$store.getters.getTotalDuration;
+      return this.$store.getters.getTotalDuration
     },
     songDigestFields() {
       return [
@@ -600,8 +817,8 @@ export default {
             minWidth: '50px',
             maxWidth: '50px',
             textAlign: 'center',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'rootId',
@@ -611,8 +828,8 @@ export default {
             minWidth: '50px',
             maxWidth: '50px',
             textAlign: 'center',
-            fontSize: 'smaller'
-          }
+            fontSize: 'smaller',
+          },
         },
         {
           key: 'songName',
@@ -622,8 +839,8 @@ export default {
             minWidth: '250px',
             maxWidth: '250px',
             textAlign: 'left',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'author',
@@ -633,8 +850,8 @@ export default {
             minWidth: '150px',
             maxWidth: '150px',
             textAlign: 'left',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'year',
@@ -644,8 +861,8 @@ export default {
             minWidth: '50px',
             maxWidth: '50px',
             textAlign: 'center',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'album',
@@ -655,8 +872,8 @@ export default {
             minWidth: '175px',
             maxWidth: '175px',
             textAlign: 'left',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'track',
@@ -666,8 +883,8 @@ export default {
             minWidth: '35px',
             maxWidth: '35px',
             textAlign: 'center',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'date',
@@ -677,8 +894,8 @@ export default {
             minWidth: '60px',
             maxWidth: '60px',
             textAlign: 'center',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'time',
@@ -688,8 +905,8 @@ export default {
             minWidth: '50px',
             maxWidth: '50px',
             textAlign: 'center',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'tags',
@@ -699,8 +916,8 @@ export default {
             minWidth: '35px',
             maxWidth: '35px',
             textAlign: 'center',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'status',
@@ -710,8 +927,8 @@ export default {
             minWidth: '150px',
             maxWidth: '150px',
             textAlign: 'center',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'songType',
@@ -721,8 +938,8 @@ export default {
             minWidth: '20px',
             maxWidth: '20px',
             textAlign: 'center',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'countVoices',
@@ -732,8 +949,8 @@ export default {
             minWidth: '20px',
             maxWidth: '20px',
             textAlign: 'center',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'resultVersion',
@@ -743,8 +960,8 @@ export default {
             minWidth: '20px',
             maxWidth: '20px',
             textAlign: 'center',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'timecode',
@@ -754,8 +971,8 @@ export default {
             minWidth: '60px',
             maxWidth: '60px',
             textAlign: 'center',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'healthReportText',
@@ -765,8 +982,8 @@ export default {
             minWidth: '20px',
             maxWidth: '20px',
             textAlign: 'center',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'player',
@@ -775,8 +992,8 @@ export default {
             minWidth: '22px',
             maxWidth: '22px',
             textAlign: 'center',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'playerDemo',
@@ -785,8 +1002,8 @@ export default {
             minWidth: '22px',
             maxWidth: '22px',
             textAlign: 'center',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'assign',
@@ -795,8 +1012,8 @@ export default {
             minWidth: '90px',
             maxWidth: '90px',
             textAlign: 'center',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'flagSponsr',
@@ -806,8 +1023,8 @@ export default {
             minWidth: '20px',
             maxWidth: '20px',
             textAlign: 'center',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'flagVk',
@@ -817,8 +1034,8 @@ export default {
             minWidth: '20px',
             maxWidth: '20px',
             textAlign: 'center',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'flagPlayerDemo',
@@ -828,8 +1045,8 @@ export default {
             minWidth: '20px',
             maxWidth: '20px',
             textAlign: 'center',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'flagDzenLyrics',
@@ -839,8 +1056,8 @@ export default {
             minWidth: '20px',
             maxWidth: '20px',
             textAlign: 'center',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'flagDzenKaraoke',
@@ -850,8 +1067,8 @@ export default {
             minWidth: '20px',
             maxWidth: '20px',
             textAlign: 'center',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'flagDzenChords',
@@ -861,8 +1078,8 @@ export default {
             minWidth: '20px',
             maxWidth: '20px',
             textAlign: 'center',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'flagDzenMelody',
@@ -872,8 +1089,8 @@ export default {
             minWidth: '20px',
             maxWidth: '20px',
             textAlign: 'center',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'flagVkLyrics',
@@ -883,8 +1100,8 @@ export default {
             minWidth: '20px',
             maxWidth: '20px',
             textAlign: 'center',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'flagVkKaraoke',
@@ -894,8 +1111,8 @@ export default {
             minWidth: '20px',
             maxWidth: '20px',
             textAlign: 'center',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'flagVkChords',
@@ -905,8 +1122,8 @@ export default {
             minWidth: '20px',
             maxWidth: '20px',
             textAlign: 'center',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'flagVkMelody',
@@ -916,8 +1133,8 @@ export default {
             minWidth: '20px',
             maxWidth: '20px',
             textAlign: 'center',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'flagTelegramLyrics',
@@ -927,8 +1144,8 @@ export default {
             minWidth: '20px',
             maxWidth: '20px',
             textAlign: 'center',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'flagTelegramKaraoke',
@@ -938,8 +1155,8 @@ export default {
             minWidth: '20px',
             maxWidth: '20px',
             textAlign: 'center',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'flagTelegramChords',
@@ -949,8 +1166,8 @@ export default {
             minWidth: '20px',
             maxWidth: '20px',
             textAlign: 'center',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'flagTelegramMelody',
@@ -960,8 +1177,8 @@ export default {
             minWidth: '20px',
             maxWidth: '20px',
             textAlign: 'center',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'flagMaxLyrics',
@@ -971,8 +1188,8 @@ export default {
             minWidth: '20px',
             maxWidth: '20px',
             textAlign: 'center',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'flagMaxKaraoke',
@@ -982,8 +1199,8 @@ export default {
             minWidth: '20px',
             maxWidth: '20px',
             textAlign: 'center',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'flagMaxChords',
@@ -993,8 +1210,8 @@ export default {
             minWidth: '20px',
             maxWidth: '20px',
             textAlign: 'center',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'flagMaxMelody',
@@ -1004,8 +1221,8 @@ export default {
             minWidth: '20px',
             maxWidth: '20px',
             textAlign: 'center',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'flagExclusive',
@@ -1015,8 +1232,8 @@ export default {
             minWidth: '20px',
             maxWidth: '20px',
             textAlign: 'center',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         {
           key: 'flagFree',
@@ -1026,8 +1243,8 @@ export default {
             minWidth: '20px',
             maxWidth: '20px',
             textAlign: 'center',
-            fontSize: 'small'
-          }
+            fontSize: 'small',
+          },
         },
         // {
         //   key: 'flagPlLyrics',
@@ -1077,58 +1294,59 @@ export default {
             minWidth: '100px',
             maxWidth: '100px',
             textAlign: 'center',
-            fontSize: 'small'
-          }
-        }
+            fontSize: 'small',
+          },
+        },
       ]
-    }
+    },
   },
   watch: {
     songsDigestIsLoading: {
-      handler () {
-        this.isBusy = this.songsDigestIsLoading;
-      }
+      handler() {
+        this.isBusy = this.songsDigestIsLoading
+      },
     },
     countRows: {
-      handler (newCount) {
+      handler(newCount) {
         // Сбрасываем на 1 только если текущая страница вышла за пределы после загрузки/фильтрации.
         // Иначе (при первом монтировании компонента) сохраняем страницу, на которой был пользователь.
-        const totalPages = Math.max(1, Math.ceil(newCount / this.perPage));
+        const totalPages = Math.max(1, Math.ceil(newCount / this.perPage))
         if (this.currentPage > totalPages) {
-          this.currentPage = 1;
+          this.currentPage = 1
         }
-        this.updateHealthReportForCurrentPage();
-        this.reloadAssignmentStatus();
-      }
+        this.updateHealthReportForCurrentPage()
+        this.reloadAssignmentStatus()
+      },
     },
     currentSongId: {
-      handler () {
-        const songPageNumber = this.songIdAndPageId.get(this.currentSongId);
-        if (songPageNumber !== undefined && this.currentPage !== songPageNumber) this.currentPage = songPageNumber;
-      }
+      handler() {
+        const songPageNumber = this.songIdAndPageId.get(this.currentSongId)
+        if (songPageNumber !== undefined && this.currentPage !== songPageNumber)
+          this.currentPage = songPageNumber
+      },
     },
     currentPage: {
-      handler (newPage) {
+      handler(newPage) {
         // Сохраняем страницу в store, чтобы она восстановилась после переключения на другой компонент.
-        this.$store.commit('setSongsTableCurrentPage', newPage);
-        this.hrQueue = [];
-        this.updateHealthReportForCurrentPage();
-        this.reloadAssignmentStatus();
-      }
-    }
+        this.$store.commit('setSongsTableCurrentPage', newPage)
+        this.hrQueue = []
+        this.updateHealthReportForCurrentPage()
+        this.reloadAssignmentStatus()
+      },
+    },
   },
   async mounted() {
     // this.$store.dispatch('loadSongsDigests', { filterAuthor: 'Павел Кашин'} )
-    this.allowAddSync = await this.propAllowAddSync();
+    this.allowAddSync = await this.propAllowAddSync()
     // Источник (local/server) для кнопки «Назначить» — KaraokeProperty editorAssignmentDefaultTarget.
-    await this.$store.dispatch('loadEditorDefaultTarget');
-    this.$store.dispatch('loadEditorSiteUsers', this.$store.getters.getEditorDefaultTarget);
-    this.reloadAssignmentStatus();
+    await this.$store.dispatch('loadEditorDefaultTarget')
+    this.$store.dispatch('loadEditorSiteUsers', this.$store.getters.getEditorDefaultTarget)
+    this.reloadAssignmentStatus()
   },
   methods: {
     songTypeLetter(value) {
-      const map = { song: 'S', instrumental: 'I', poetry: 'P' };
-      return map[value] || '';
+      const map = { song: 'S', instrumental: 'I', poetry: 'P' }
+      return map[value] || ''
     },
     openPlayer(id) {
       window.open('/player/' + id, '_blank')
@@ -1151,76 +1369,90 @@ export default {
     },
     // --- Кнопка «Назначить»/«Назначено» (онлайн-редактор) -----------------------------------
     reloadAssignmentStatus() {
-      const target = this.$store.getters.getEditorDefaultTarget;
-      return this.$store.dispatch('loadAssignmentStatusBySongIds', { songIds: this.currentPageSongIds, target });
+      const target = this.$store.getters.getEditorDefaultTarget
+      return this.$store.dispatch('loadAssignmentStatusBySongIds', {
+        songIds: this.currentPageSongIds,
+        target,
+      })
     },
     assignmentStatusFor(songId) {
-      return this.$store.getters.getAssignmentStatusBySongId[songId];
+      return this.$store.getters.getAssignmentStatusBySongId[songId]
     },
-    assignStatusLabel(s) { return ASSIGN_STATUS_LABELS[s] || 'Назначено' },
+    assignStatusLabel(s) {
+      return ASSIGN_STATUS_LABELS[s] || 'Назначено'
+    },
     async onAssignSelect(songId, event) {
-      const assigneeId = event.target.value;
-      event.target.value = '';
-      if (!assigneeId) return;
-      const target = this.$store.getters.getEditorDefaultTarget;
-      let res = await this.$store.dispatch('assignSong', { songId, assigneeId, target });
+      const assigneeId = event.target.value
+      event.target.value = ''
+      if (!assigneeId) return
+      const target = this.$store.getters.getEditorDefaultTarget
+      let res = await this.$store.dispatch('assignSong', { songId, assigneeId, target })
       if (res && res.error === 'markers_exist') {
-        const clearMarkers = window.confirm('В песне уже есть маркеры. Удалить их при назначении задания?');
-        res = await this.$store.dispatch('assignSong', { songId, assigneeId, target, clearMarkers });
+        const clearMarkers = window.confirm(
+          'В песне уже есть маркеры. Удалить их при назначении задания?',
+        )
+        res = await this.$store.dispatch('assignSong', { songId, assigneeId, target, clearMarkers })
       }
       if (res && res.ok) {
-        this.reloadAssignmentStatus();
+        this.reloadAssignmentStatus()
       } else {
-        alert('Не удалось назначить: ' + ((res && res.error) || 'неизвестная ошибка'));
+        alert('Не удалось назначить: ' + ((res && res.error) || 'неизвестная ошибка'))
       }
     },
     async openAssignmentReview(songId) {
-      const info = this.assignmentStatusFor(songId);
-      if (!info) return;
-      await this.$store.dispatch('loadAssignmentById', { id: info.assignmentId, target: this.$store.getters.getEditorDefaultTarget });
-      this.isAssignReviewVisible = true;
+      const info = this.assignmentStatusFor(songId)
+      if (!info) return
+      await this.$store.dispatch('loadAssignmentById', {
+        id: info.assignmentId,
+        target: this.$store.getters.getEditorDefaultTarget,
+      })
+      this.isAssignReviewVisible = true
     },
     onAssignmentReviewed() {
-      this.isAssignReviewVisible = false;
-      this.reloadAssignmentStatus();
+      this.isAssignReviewVisible = false
+      this.reloadAssignmentStatus()
     },
     updateHealthReportForCurrentPage() {
       for (const settingsId of this.songsIds) {
-        const songPageNumber = this.songIdAndPageId.get(settingsId);
+        const songPageNumber = this.songIdAndPageId.get(settingsId)
         if (songPageNumber === this.currentPage) {
-          const filteredSongs = this.songsDigests.filter(song => song.id === settingsId);
+          const filteredSongs = this.songsDigests.filter((song) => song.id === settingsId)
           if (filteredSongs && filteredSongs.length > 0) {
-            const song = filteredSongs[0];
+            const song = filteredSongs[0]
             if (song.healthReportText === '-') {
-              this._enqueueHrRequest(settingsId);
+              this._enqueueHrRequest(settingsId)
             }
           }
         }
       }
     },
     _enqueueHrRequest(settingsId) {
-      this.hrQueue.push(settingsId);
-      this._processHrQueue();
+      this.hrQueue.push(settingsId)
+      this._processHrQueue()
     },
     _processHrQueue() {
       while (this.hrRunning < this.HR_MAX_CONCURRENT && this.hrQueue.length > 0) {
-        const id = this.hrQueue.shift();
-        this.hrRunning++;
-        this.$store.dispatch('setCurrentSongHealthReports', id)
-            .finally(() => { this.hrRunning--; this._processHrQueue(); });
+        const id = this.hrQueue.shift()
+        this.hrRunning++
+        this.$store.dispatch('setCurrentSongHealthReports', id).finally(() => {
+          this.hrRunning--
+          this._processHrQueue()
+        })
       }
     },
     repairAllForCurrentPage() {
       for (const settingsId of this.songsIds) {
-        const songPageNumber = this.songIdAndPageId.get(settingsId);
+        const songPageNumber = this.songIdAndPageId.get(settingsId)
         if (songPageNumber === this.currentPage) {
-          const filteredSongs = this.songsDigests.filter(song => song.id === settingsId);
+          const filteredSongs = this.songsDigests.filter((song) => song.id === settingsId)
           if (filteredSongs && filteredSongs.length > 0) {
-            const song = filteredSongs[0];
+            const song = filteredSongs[0]
             if (song.healthReportText !== '-' && song.healthReportText !== '0') {
-              const healthReportListCanRepair = song.healthReportList.filter(healthReport => healthReport.canResolve);
+              const healthReportListCanRepair = song.healthReportList.filter(
+                (healthReport) => healthReport.canResolve,
+              )
               if (healthReportListCanRepair.length > 0) {
-                this.$store.dispatch('repairAllPromise', song.id);
+                this.$store.dispatch('repairAllPromise', song.id)
               }
             }
           }
@@ -1228,7 +1460,7 @@ export default {
       }
     },
     async propAllowAddSync() {
-      const propValue = await this.$store.getters.getPropValue('allowAddSync');
+      const propValue = await this.$store.getters.getPropValue('allowAddSync')
       return propValue === 'true'
     },
     searchTextForAll() {
@@ -1236,9 +1468,9 @@ export default {
         header: 'Подтвердите поиск текста',
         body: `Выбрано песен: <strong>${this.countRows}.</strong><br>Найти в Интернете тексты для всех песен, для которых ещё нет текстов?`,
         timeout: 10,
-        callback: this.doSearchTextForAll
+        callback: this.doSearchTextForAll,
       }
-      this.isCustomConfirmVisible = true;
+      this.isCustomConfirmVisible = true
     },
     doSearchTextForAll() {
       this.$store.dispatch('searchTextForAll')
@@ -1248,9 +1480,9 @@ export default {
         header: 'Подтвердите добавление записей в SYNC-таблицу',
         body: `Выбрано песен: <strong>${this.countRows}.</strong><br>Добавить эти песни в SYNC-таблицу?`,
         timeout: 10,
-        callback: this.doAddSyncForAll
+        callback: this.doAddSyncForAll,
       }
-      this.isCustomConfirmVisible = true;
+      this.isCustomConfirmVisible = true
     },
     doAddSyncForAll() {
       this.$store.dispatch('addSyncForAll')
@@ -1265,73 +1497,75 @@ export default {
             fldName: 'priorLyrics',
             fldLabel: 'Приоритет Lyrics:',
             fldValue: this.$store.getters.getLastPriorLyrics,
-            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px'},
-            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
+            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px' },
+            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px' },
           },
           {
             fldName: 'priorKaraoke',
             fldLabel: 'Приоритет Karaoke:',
             fldValue: this.$store.getters.getLastPriorKaraoke,
-            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px'},
-            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
+            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px' },
+            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px' },
           },
           {
             fldName: 'priorChords',
             fldLabel: 'Приоритет Chords:',
             fldValue: this.$store.getters.getLastPriorChords,
-            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px'},
-            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
+            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px' },
+            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px' },
           },
           {
             fldName: 'priorMelody',
             fldLabel: 'Приоритет Melody:',
             fldValue: this.$store.getters.getLastPriorMelody,
-            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px'},
-            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
+            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px' },
+            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px' },
           },
           {
             fldName: 'priorDemo',
             fldLabel: 'Приоритет Demo:',
             fldValue: this.$store.getters.getLastPriorDemo,
-            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px'},
-            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
+            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px' },
+            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px' },
           },
           {
             fldName: 'threadId',
             fldLabel: 'threadId:',
             fldValue: this.$store.getters.getLastThreadId,
-            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px'},
-            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
-          }
-        ]
+            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px' },
+            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px' },
+          },
+        ],
       }
-      this.isCustomConfirmVisible = true;
+      this.isCustomConfirmVisible = true
     },
     doCreateKaraokeForAll(result) {
-      this.$store.dispatch('setLastPriorLyrics', {value: result.priorLyrics});
-      this.$store.dispatch('setLastPriorKaraoke', {value: result.priorKaraoke});
-      this.$store.dispatch('setLastPriorChords', {value: result.priorChords});
-      this.$store.dispatch('setLastPriorMelody', {value: result.priorMelody});
-      this.$store.dispatch('setLastPriorDemo', {value: result.priorDemo});
-      this.$store.dispatch('setLastThreadId', {value: result.threadId});
-      this.$store.dispatch('createKaraokeForAllPromise', {
-        priorLyrics: result.priorLyrics,
-        priorKaraoke: result.priorKaraoke,
-        priorChords: result.priorChords,
-        priorMelody: result.priorMelody,
-        priorDemo: result.priorDemo,
-        threadId: result.threadId
-      }).then(data => {
-        let response = JSON.parse(data);
-        this.customConfirmParams = {
-          isAlert: true,
-          alertType: response ? 'info' : 'error',
-          header: 'Создание караоке',
-          body: `Создание караоке для всех песен прошло успешно.`,
-          timeout: 10
-        }
-        this.isCustomConfirmVisible = true;
-      })
+      this.$store.dispatch('setLastPriorLyrics', { value: result.priorLyrics })
+      this.$store.dispatch('setLastPriorKaraoke', { value: result.priorKaraoke })
+      this.$store.dispatch('setLastPriorChords', { value: result.priorChords })
+      this.$store.dispatch('setLastPriorMelody', { value: result.priorMelody })
+      this.$store.dispatch('setLastPriorDemo', { value: result.priorDemo })
+      this.$store.dispatch('setLastThreadId', { value: result.threadId })
+      this.$store
+        .dispatch('createKaraokeForAllPromise', {
+          priorLyrics: result.priorLyrics,
+          priorKaraoke: result.priorKaraoke,
+          priorChords: result.priorChords,
+          priorMelody: result.priorMelody,
+          priorDemo: result.priorDemo,
+          threadId: result.threadId,
+        })
+        .then((data) => {
+          let response = JSON.parse(data)
+          this.customConfirmParams = {
+            isAlert: true,
+            alertType: response ? 'info' : 'error',
+            header: 'Создание караоке',
+            body: `Создание караоке для всех песен прошло успешно.`,
+            timeout: 10,
+          }
+          this.isCustomConfirmVisible = true
+        })
     },
     createDemucs2ForAll() {
       this.customConfirmParams = {
@@ -1343,34 +1577,36 @@ export default {
             fldName: 'prior',
             fldLabel: 'Приоритет:',
             fldValue: this.$store.getters.getLastPriorDemucs,
-            fldLabelStyle: { width: '100px', textAlign: 'right', paddingRight: '5px'},
-            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
+            fldLabelStyle: { width: '100px', textAlign: 'right', paddingRight: '5px' },
+            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px' },
           },
           {
             fldName: 'threadId',
             fldLabel: 'threadId:',
             fldValue: this.$store.getters.getLastThreadId,
-            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px'},
-            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
-          }
-        ]
+            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px' },
+            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px' },
+          },
+        ],
       }
-      this.isCustomConfirmVisible = true;
+      this.isCustomConfirmVisible = true
     },
     doCreateDemucs2ForAll(result) {
-      this.$store.dispatch('setLastPriorDemucs', {value: result.prior});
-      this.$store.dispatch('setLastThreadId', {value: result.threadId});
-      this.$store.dispatch('createDemucs2ForAllPromise', { prior: result.prior, threadId: result.threadId }).then(data => {
-        let response = JSON.parse(data);
-        this.customConfirmParams = {
-          isAlert: true,
-          alertType: response ? 'info' : 'error',
-          header: 'Создание DEMUCS2',
-          body: `Создание DEMUCS2 для всех песен прошло успешно.`,
-          timeout: 10
-        }
-        this.isCustomConfirmVisible = true;
-      })
+      this.$store.dispatch('setLastPriorDemucs', { value: result.prior })
+      this.$store.dispatch('setLastThreadId', { value: result.threadId })
+      this.$store
+        .dispatch('createDemucs2ForAllPromise', { prior: result.prior, threadId: result.threadId })
+        .then((data) => {
+          let response = JSON.parse(data)
+          this.customConfirmParams = {
+            isAlert: true,
+            alertType: response ? 'info' : 'error',
+            header: 'Создание DEMUCS2',
+            body: `Создание DEMUCS2 для всех песен прошло успешно.`,
+            timeout: 10,
+          }
+          this.isCustomConfirmVisible = true
+        })
     },
     createDemucs5ForAll() {
       this.customConfirmParams = {
@@ -1382,33 +1618,33 @@ export default {
             fldName: 'prior',
             fldLabel: 'Приоритет:',
             fldValue: this.$store.getters.getLastPriorDemucs,
-            fldLabelStyle: { width: '100px', textAlign: 'right', paddingRight: '5px'},
-            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
+            fldLabelStyle: { width: '100px', textAlign: 'right', paddingRight: '5px' },
+            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px' },
           },
           {
             fldName: 'threadId',
             fldLabel: 'threadId:',
             fldValue: this.$store.getters.getLastThreadId,
-            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px'},
-            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
-          }
-        ]
+            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px' },
+            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px' },
+          },
+        ],
       }
-      this.isCustomConfirmVisible = true;
+      this.isCustomConfirmVisible = true
     },
     doCreateDemucs5ForAll(result) {
-      this.$store.dispatch('setLastPriorDemucs', {value: result.prior});
-      this.$store.dispatch('setLastThreadId', {value: result.threadId});
-      this.$store.dispatch('createDemucs5ForAllPromise', { prior: result.prior }).then(data => {
-        let response = JSON.parse(data);
+      this.$store.dispatch('setLastPriorDemucs', { value: result.prior })
+      this.$store.dispatch('setLastThreadId', { value: result.threadId })
+      this.$store.dispatch('createDemucs5ForAllPromise', { prior: result.prior }).then((data) => {
+        let response = JSON.parse(data)
         this.customConfirmParams = {
           isAlert: true,
           alertType: response ? 'info' : 'error',
           header: 'Создание DEMUCS5',
           body: `Создание DEMUCS5 для всех песен прошло успешно.`,
-          timeout: 10
+          timeout: 10,
         }
-        this.isCustomConfirmVisible = true;
+        this.isCustomConfirmVisible = true
       })
     },
     createSheetsageForAll() {
@@ -1421,32 +1657,32 @@ export default {
             fldName: 'prior',
             fldLabel: 'Приоритет:',
             fldValue: this.$store.getters.getLastPriorDemucs,
-            fldLabelStyle: { width: '100px', textAlign: 'right', paddingRight: '5px'},
-            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
+            fldLabelStyle: { width: '100px', textAlign: 'right', paddingRight: '5px' },
+            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px' },
           },
           {
             fldName: 'threadId',
             fldLabel: 'threadId:',
             fldValue: this.$store.getters.getLastThreadId,
-            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px'},
-            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
-          }
-        ]
+            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px' },
+            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px' },
+          },
+        ],
       }
-      this.isCustomConfirmVisible = true;
+      this.isCustomConfirmVisible = true
     },
     doCreateSheetsageForAll(result) {
-      this.$store.dispatch('setLastPriorDemucs', {value: result.prior});
-      this.$store.dispatch('createSheetsageForAllPromise', { prior: result.prior }).then(data => {
-        let response = JSON.parse(data);
+      this.$store.dispatch('setLastPriorDemucs', { value: result.prior })
+      this.$store.dispatch('createSheetsageForAllPromise', { prior: result.prior }).then((data) => {
+        let response = JSON.parse(data)
         this.customConfirmParams = {
           isAlert: true,
           alertType: response ? 'info' : 'error',
           header: 'Создание SHEETSAGE',
           body: `Создание SHEETSAGE для всех песен прошло успешно.`,
-          timeout: 10
+          timeout: 10,
         }
-        this.isCustomConfirmVisible = true;
+        this.isCustomConfirmVisible = true
       })
     },
     createMP3KaraokeForAll() {
@@ -1459,34 +1695,36 @@ export default {
             fldName: 'prior',
             fldLabel: 'Приоритет:',
             fldValue: this.$store.getters.getLastPriorDemucs,
-            fldLabelStyle: { width: '100px', textAlign: 'right', paddingRight: '5px'},
-            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
+            fldLabelStyle: { width: '100px', textAlign: 'right', paddingRight: '5px' },
+            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px' },
           },
           {
             fldName: 'threadId',
             fldLabel: 'threadId:',
             fldValue: this.$store.getters.getLastThreadId,
-            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px'},
-            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
-          }
-        ]
+            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px' },
+            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px' },
+          },
+        ],
       }
-      this.isCustomConfirmVisible = true;
+      this.isCustomConfirmVisible = true
     },
     doCreateMP3KaraokeForAll(result) {
-      this.$store.dispatch('setLastPriorDemucs', {value: result.prior});
-      this.$store.dispatch('setLastThreadId', {value: result.threadId});
-      this.$store.dispatch('createMP3KaraokeForAllPromise', { prior: result.prior }).then(data => {
-        let response = JSON.parse(data);
-        this.customConfirmParams = {
-          isAlert: true,
-          alertType: response ? 'info' : 'error',
-          header: 'Создание MP3 KARAOKE',
-          body: `Создание MP3 KARAOKE для всех песен прошло успешно.`,
-          timeout: 10
-        }
-        this.isCustomConfirmVisible = true;
-      })
+      this.$store.dispatch('setLastPriorDemucs', { value: result.prior })
+      this.$store.dispatch('setLastThreadId', { value: result.threadId })
+      this.$store
+        .dispatch('createMP3KaraokeForAllPromise', { prior: result.prior })
+        .then((data) => {
+          let response = JSON.parse(data)
+          this.customConfirmParams = {
+            isAlert: true,
+            alertType: response ? 'info' : 'error',
+            header: 'Создание MP3 KARAOKE',
+            body: `Создание MP3 KARAOKE для всех песен прошло успешно.`,
+            timeout: 10,
+          }
+          this.isCustomConfirmVisible = true
+        })
     },
     createMP3LyricsForAll() {
       this.customConfirmParams = {
@@ -1498,46 +1736,46 @@ export default {
             fldName: 'prior',
             fldLabel: 'Приоритет:',
             fldValue: this.$store.getters.getLastPriorDemucs,
-            fldLabelStyle: { width: '100px', textAlign: 'right', paddingRight: '5px'},
-            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
+            fldLabelStyle: { width: '100px', textAlign: 'right', paddingRight: '5px' },
+            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px' },
           },
           {
             fldName: 'threadId',
             fldLabel: 'threadId:',
             fldValue: this.$store.getters.getLastThreadId,
-            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px'},
-            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
-          }
-        ]
+            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px' },
+            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px' },
+          },
+        ],
       }
-      this.isCustomConfirmVisible = true;
+      this.isCustomConfirmVisible = true
     },
     doCreateMP3LyricsForAll(result) {
-      this.$store.dispatch('setLastPriorDemucs', {value: result.prior});
-      this.$store.dispatch('setLastThreadId', {value: result.threadId});
-      this.$store.dispatch('createMP3LyricsForAllPromise', { prior: result.prior }).then(data => {
-        let response = JSON.parse(data);
+      this.$store.dispatch('setLastPriorDemucs', { value: result.prior })
+      this.$store.dispatch('setLastThreadId', { value: result.threadId })
+      this.$store.dispatch('createMP3LyricsForAllPromise', { prior: result.prior }).then((data) => {
+        let response = JSON.parse(data)
         this.customConfirmParams = {
           isAlert: true,
           alertType: response ? 'info' : 'error',
           header: 'Создание MP3 LYRICS',
           body: `Создание MP3 LYRICS для всех песен прошло успешно.`,
-          timeout: 10
+          timeout: 10,
         }
-        this.isCustomConfirmVisible = true;
+        this.isCustomConfirmVisible = true
       })
     },
     repairAll() {
       this.customConfirmParams = {
         header: 'Подтвердите Repair All',
         body: `Выполнить Repair All для всех песен на странице?`,
-        callback: this.doRepairAll
+        callback: this.doRepairAll,
       }
-      this.isCustomConfirmVisible = true;
+      this.isCustomConfirmVisible = true
     },
     doRepairAll() {
-      this.repairAllForCurrentPage();
-      this.isCustomConfirmVisible = false;
+      this.repairAllForCurrentPage()
+      this.isCustomConfirmVisible = false
     },
     createSymlinksForAll() {
       this.customConfirmParams = {
@@ -1549,33 +1787,33 @@ export default {
             fldName: 'prior',
             fldLabel: 'Приоритет:',
             fldValue: this.$store.getters.getLastPriorSymlinks,
-            fldLabelStyle: { width: '100px', textAlign: 'right', paddingRight: '5px'},
-            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
+            fldLabelStyle: { width: '100px', textAlign: 'right', paddingRight: '5px' },
+            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px' },
           },
           {
             fldName: 'threadId',
             fldLabel: 'threadId:',
             fldValue: this.$store.getters.getLastThreadId,
-            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px'},
-            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
-          }
-        ]
+            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px' },
+            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px' },
+          },
+        ],
       }
-      this.isCustomConfirmVisible = true;
+      this.isCustomConfirmVisible = true
     },
     doCreateSymlinksForAll(result) {
-      this.$store.dispatch('setLastPriorSymlinks', {value: result.prior});
-      this.$store.dispatch('setLastThreadId', {value: result.threadId});
-      this.$store.dispatch('createSymlinksForAllPromise', { prior: result.prior } ).then(data => {
-        let response = JSON.parse(data);
+      this.$store.dispatch('setLastPriorSymlinks', { value: result.prior })
+      this.$store.dispatch('setLastThreadId', { value: result.threadId })
+      this.$store.dispatch('createSymlinksForAllPromise', { prior: result.prior }).then((data) => {
+        let response = JSON.parse(data)
         this.customConfirmParams = {
           isAlert: true,
           alertType: response ? 'info' : 'error',
           header: 'Создание SYMLINKs',
           body: `Создание SYMLINKs для всех песен прошло успешно.`,
-          timeout: 10
+          timeout: 10,
         }
-        this.isCustomConfirmVisible = true;
+        this.isCustomConfirmVisible = true
       })
     },
 
@@ -1589,110 +1827,111 @@ export default {
             fldName: 'priorLyrics',
             fldLabel: 'Приоритет Lyrics:',
             fldValue: this.$store.getters.getLastPriorCodeLyrics,
-            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px'},
-            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
+            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px' },
+            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px' },
           },
           {
             fldName: 'priorKaraoke',
             fldLabel: 'Приоритет Karaoke:',
             fldValue: this.$store.getters.getLastPriorCodeKaraoke,
-            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px'},
-            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
+            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px' },
+            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px' },
           },
           {
             fldName: 'threadId',
             fldLabel: 'threadId:',
             fldValue: this.$store.getters.getLastThreadId,
-            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px'},
-            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
-          }
-        ]
+            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px' },
+            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px' },
+          },
+        ],
       }
-      this.isCustomConfirmVisible = true;
+      this.isCustomConfirmVisible = true
     },
     doUpdateStoreForAll(result) {
-      this.$store.dispatch('setLastPriorCodeLyrics', {value: result.priorLyrics});
-      this.$store.dispatch('setLastPriorCodeKaraoke', {value: result.priorKaraoke});
-      this.$store.dispatch('setLastThreadId', {value: result.threadId});
+      this.$store.dispatch('setLastPriorCodeLyrics', { value: result.priorLyrics })
+      this.$store.dispatch('setLastPriorCodeKaraoke', { value: result.priorKaraoke })
+      this.$store.dispatch('setLastThreadId', { value: result.threadId })
       let songsIds = this.$store.getters.getSongsDigestIds.join(';')
-      this.$store.dispatch('collectStorePromise', {
-        songsIds: songsIds,
-        priorLyrics: result.priorLyrics,
-        priorKaraoke: result.priorKaraoke,
-        threadId: result.threadId
-      }).then(data => {
-        let result = JSON.parse(data);
-        this.customConfirmParams = {
-          isAlert: true,
-          alertType: 'info',
-          header: 'Обновление хранилища',
-          body: `Готово.<hr>
+      this.$store
+        .dispatch('collectStorePromise', {
+          songsIds: songsIds,
+          priorLyrics: result.priorLyrics,
+          priorKaraoke: result.priorKaraoke,
+          threadId: result.threadId,
+        })
+        .then((data) => {
+          let result = JSON.parse(data)
+          this.customConfirmParams = {
+            isAlert: true,
+            alertType: 'info',
+            header: 'Обновление хранилища',
+            body: `Готово.<hr>
                 Скопировано файлов: <strong>${result[0]}</strong><br>
                 Создано задач на кодирование 720p: <strong>${result[1]}</strong>`,
-          timeout: 10
-        }
-        this.isCustomConfirmVisible = true;
-      })
+            timeout: 10,
+          }
+          this.isCustomConfirmVisible = true
+        })
     },
 
     closeCustomConfirm() {
-      this.isCustomConfirmVisible = false;
+      this.isCustomConfirmVisible = false
     },
     async showHealthReportTable(id) {
       // console.log('showHealthReportTable called', id);
-      await this.$store.dispatch('setCurrentSongId', id);
+      await this.$store.dispatch('setCurrentSongId', id)
       // console.log('showHealthReportTable this.currentSongId', id, this.currentSongId);
-      this.isHealthReportTableVisible = true;
+      this.isHealthReportTableVisible = true
     },
     closeHealthReportTable() {
-      this.$store.dispatch('setCurrentSongHealthReports', this.currentSongId);
-      this.isHealthReportTableVisible = false;
+      this.$store.dispatch('setCurrentSongHealthReports', this.currentSongId)
+      this.isHealthReportTableVisible = false
     },
     async editSong(id) {
-      this.hrQueue = [];
-      await this.$store.dispatch('setCurrentSongId', id);
-      this.isSongEditVisible = true;
-      this.updateHealthReportForCurrentPage();
+      this.hrQueue = []
+      await this.$store.dispatch('setCurrentSongId', id)
+      this.isSongEditVisible = true
+      this.updateHealthReportForCurrentPage()
     },
     playLyrics(id) {
-      this.$store.getters.playLyrics(id);
+      this.$store.getters.playLyrics(id)
     },
     playKaraoke(id) {
-      this.$store.getters.playKaraoke(id);
+      this.$store.getters.playKaraoke(id)
     },
     playDemo(id) {
-      this.$store.getters.playRenderMp4Version('DEMO')(id);
+      this.$store.getters.playRenderMp4Version('DEMO')(id)
     },
     playChords(id) {
-      this.$store.getters.playChords(id);
+      this.$store.getters.playChords(id)
     },
     playTabs(id) {
-      this.$store.getters.playTabs(id);
+      this.$store.getters.playTabs(id)
     },
     closeSongEdit() {
-      this.isSongEditVisible = false;
+      this.isSongEditVisible = false
     },
     closeSongsFilter() {
-      this.isSongsFilterVisible = false;
-      this.updateHealthReportForCurrentPage();
+      this.isSongsFilterVisible = false
+      this.updateHealthReportForCurrentPage()
     },
     closeSmartCopy() {
-      this.isSmartCopyVisible = false;
+      this.isSmartCopyVisible = false
     },
     onRowClicked(item, index) {
-      console.log(`Row '${index}' clicked: `, item.songName);
+      console.log(`Row '${index}' clicked: `, item.songName)
     },
     getCellStyle(data) {
       return {
-        backgroundColor: data.item.color
+        backgroundColor: data.item.color,
       }
-    }
-  }
+    },
+  },
 }
 </script>
 
 <style>
-
 .songs-bv-table {
   padding: 0;
   margin: 0;
@@ -1931,11 +2170,26 @@ export default {
   white-space: nowrap;
   font-weight: 700;
 }
-.fld-assign .assign-badge-assigned { background: #e2e6ea; color: #5a6570; }
-.fld-assign .assign-badge-in_progress { background: #dbeafe; color: #1e5fbf; }
-.fld-assign .assign-badge-submitted { background: #fef3c7; color: #92700a; }
-.fld-assign .assign-badge-approved { background: #d1f5d8; color: #24803a; }
-.fld-assign .assign-badge-rejected { background: #ffe0cc; color: #b8500f; }
+.fld-assign .assign-badge-assigned {
+  background: #e2e6ea;
+  color: #5a6570;
+}
+.fld-assign .assign-badge-in_progress {
+  background: #dbeafe;
+  color: #1e5fbf;
+}
+.fld-assign .assign-badge-submitted {
+  background: #fef3c7;
+  color: #92700a;
+}
+.fld-assign .assign-badge-approved {
+  background: #d1f5d8;
+  color: #24803a;
+}
+.fld-assign .assign-badge-rejected {
+  background: #ffe0cc;
+  color: #b8500f;
+}
 .fld-flag-sponsr {
   min-width: 20px;
   max-width: 20px;

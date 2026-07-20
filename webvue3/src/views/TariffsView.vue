@@ -1,13 +1,13 @@
 <template>
   <div class="tariffsview">
-    <TariffsTable/>
+    <TariffsTable />
   </div>
 </template>
 
 <script>
-import TariffsTable from "../components/Tariffs/TariffsTable.vue";
+import TariffsTable from '../components/Tariffs/TariffsTable.vue'
 export default {
-  name: "TariffsView",
+  name: 'TariffsView',
   components: { TariffsTable },
 }
 </script>

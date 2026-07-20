@@ -10,9 +10,27 @@
         <div class="km-header-right">
           <AuthStatusWidget />
           <div class="km-theme-toggle">
-            <button :class="['km-tb', theme === 'light' ? 'active' : '']" @click="setTheme('light')" title="Светлая">☀</button>
-            <button :class="['km-tb', theme === 'system' ? 'active' : '']" @click="setTheme('system')" title="Авто">⬡</button>
-            <button :class="['km-tb', theme === 'dark' ? 'active' : '']" @click="setTheme('dark')" title="Тёмная">🌙</button>
+            <button
+              :class="['km-tb', theme === 'light' ? 'active' : '']"
+              @click="setTheme('light')"
+              title="Светлая"
+            >
+              ☀
+            </button>
+            <button
+              :class="['km-tb', theme === 'system' ? 'active' : '']"
+              @click="setTheme('system')"
+              title="Авто"
+            >
+              ⬡
+            </button>
+            <button
+              :class="['km-tb', theme === 'dark' ? 'active' : '']"
+              @click="setTheme('dark')"
+              title="Тёмная"
+            >
+              🌙
+            </button>
           </div>
         </div>
       </div>
@@ -29,7 +47,15 @@
           placeholder="Быстрый фильтр по названию песни..."
           @keydown.esc="songFilter = ''"
         />
-        <button v-if="songFilter" type="button" class="km-filter-clear" @click="songFilter = ''" title="Очистить">×</button>
+        <button
+          v-if="songFilter"
+          type="button"
+          class="km-filter-clear"
+          @click="songFilter = ''"
+          title="Очистить"
+        >
+          ×
+        </button>
       </div>
     </div>
 
@@ -42,26 +68,40 @@
         @select="onAuthorSelect"
       />
 
-      <button v-if="authorChosen" type="button" class="km-back-btn" @click="backToAuthors">← К списку авторов</button>
+      <button v-if="authorChosen" type="button" class="km-back-btn" @click="backToAuthors">
+        ← К списку авторов
+      </button>
 
       <div v-if="authorChosen && isLoading" class="km-loading">Загрузка...</div>
 
-      <div v-if="authorChosen && !isLoading && songFilter && filteredZakroma.length === 0" class="km-loading">
+      <div
+        v-if="authorChosen && !isLoading && songFilter && filteredZakroma.length === 0"
+        class="km-loading"
+      >
         Ничего не найдено по запросу «{{ songFilter }}»
       </div>
 
-      <div v-for="zak in (authorChosen ? filteredZakroma : [])" :key="zak.author" class="km-author-block">
+      <div
+        v-for="zak in authorChosen ? filteredZakroma : []"
+        :key="zak.author"
+        class="km-author-block"
+      >
         <!-- Заголовок автора -->
         <div class="km-author-header">
           <img
             v-if="zak.authorPictureUrl"
             :src="zak.authorPictureUrl"
             class="km-author-pic"
-            @error="$event.target.style.display='none'"
+            @error="$event.target.style.display = 'none'"
             alt=""
           />
           <span class="km-author-name">{{ zak.author }}</span>
-          <RouterLink :to="{ path: '/author-playlist', query: { author: zak.author } }" class="km-author-pl-btn" :title="`Плейлист по песням автора «${zak.author}»`">🎧 Плейлист по песням автора «{{ zak.author }}»</RouterLink>
+          <RouterLink
+            :to="{ path: '/author-playlist', query: { author: zak.author } }"
+            class="km-author-pl-btn"
+            :title="`Плейлист по песням автора «${zak.author}»`"
+            >🎧 Плейлист по песням автора «{{ zak.author }}»</RouterLink
+          >
         </div>
 
         <!-- Альбомы -->
@@ -71,7 +111,7 @@
               v-if="alb.albumPictureUrl"
               :src="alb.albumPictureUrl"
               class="km-album-pic"
-              @error="$event.target.style.display='none'"
+              @error="$event.target.style.display = 'none'"
               alt=""
             />
             <span class="km-album-name">{{ alb.year }} — {{ alb.albumName }}</span>
@@ -101,11 +141,20 @@
                 <tr v-for="sett in alb.albumSettings" :key="sett.id" class="km-tr">
                   <td class="km-td km-td-center km-track">{{ sett.track }}</td>
                   <td class="km-td km-td-name">
-                    <RouterLink :to="{ path: '/song', query: { id: sett.id } }" class="km-song-link">{{ sett.songName }}</RouterLink>
+                    <RouterLink
+                      :to="{ path: '/song', query: { id: sett.id } }"
+                      class="km-song-link"
+                      >{{ sett.songName }}</RouterLink
+                    >
                   </td>
                   <td class="km-td km-td-date">
                     <span v-if="showDate(sett)" class="km-date-text">{{ sett.datePublish }}</span>
-                    <PremiumIcon v-if="showCoin(sett)" :state="readiness.contentReadyFor(sett.id)" :clickable="showCartIcon(sett)" @subscribe="onSubscribeClick(sett, zak.author)" />
+                    <PremiumIcon
+                      v-if="showCoin(sett)"
+                      :state="readiness.contentReadyFor(sett.id)"
+                      :clickable="showCartIcon(sett)"
+                      @subscribe="onSubscribeClick(sett, zak.author)"
+                    />
                   </td>
                   <td class="km-td km-td-center">
                     <CartIcon v-if="showCartIcon(sett)" :song-id="sett.id" />
@@ -118,7 +167,12 @@
                     />
                   </td>
                   <td class="km-td km-td-center">
-                    <PlatformLink link-name="sponsr" :link-value="sett.linkSponsrPlay" :song-id="sett.id" song-version="all" />
+                    <PlatformLink
+                      link-name="sponsr"
+                      :link-value="sett.linkSponsrPlay"
+                      :song-id="sett.id"
+                      song-version="all"
+                    />
                   </td>
                   <td class="km-td km-td-center">
                     <FavoriteIcon :song-id="sett.id" />
@@ -136,20 +190,32 @@
             <div v-for="sett in alb.albumSettings" :key="sett.id" class="km-card">
               <div class="km-card-top">
                 <span class="km-card-track">{{ sett.track }}</span>
-                <RouterLink :to="{ path: '/song', query: { id: sett.id } }" class="km-card-title">{{ sett.songName }}</RouterLink>
+                <RouterLink :to="{ path: '/song', query: { id: sett.id } }" class="km-card-title">{{
+                  sett.songName
+                }}</RouterLink>
                 <CartIcon v-if="showCartIcon(sett)" :song-id="sett.id" />
                 <PlayerIcon
                   :song-id="sett.id"
                   :watch-state="readiness.stateFor(sett.id)"
                   :content-ready-state="readiness.contentReadyFor(sett.id)"
                 />
-                <PlatformLink link-name="sponsr" :link-value="sett.linkSponsrPlay" :song-id="sett.id" song-version="all" />
+                <PlatformLink
+                  link-name="sponsr"
+                  :link-value="sett.linkSponsrPlay"
+                  :song-id="sett.id"
+                  song-version="all"
+                />
                 <FavoriteIcon :song-id="sett.id" />
                 <PlaylistIcon :song-id="sett.id" />
               </div>
               <div v-if="showDate(sett) || showCoin(sett)" class="km-card-date">
                 <span v-if="showDate(sett)" class="km-date-text">{{ sett.datePublish }}</span>
-                <PremiumIcon v-if="showCoin(sett)" :state="readiness.contentReadyFor(sett.id)" :clickable="showCartIcon(sett)" @subscribe="onSubscribeClick(sett, zak.author)" />
+                <PremiumIcon
+                  v-if="showCoin(sett)"
+                  :state="readiness.contentReadyFor(sett.id)"
+                  :clickable="showCartIcon(sett)"
+                  @subscribe="onSubscribeClick(sett, zak.author)"
+                />
               </div>
             </div>
           </div>
@@ -193,15 +259,35 @@ function normalize(s) {
 
 export default {
   name: 'ZakromaView',
-  components: { PlatformLink, PlayerIcon, PremiumIcon, SongSubscriptionModal, FavoriteIcon, PlaylistIcon, CartIcon, AuthStatusWidget, AuthorTiles },
+  components: {
+    PlatformLink,
+    PlayerIcon,
+    PremiumIcon,
+    SongSubscriptionModal,
+    FavoriteIcon,
+    PlaylistIcon,
+    CartIcon,
+    AuthStatusWidget,
+    AuthorTiles,
+  },
   setup() {
     useEngagementTracking('zakroma')
     const { theme, applyTheme } = useDesign()
     const { user } = useAuth()
     const cart = useCart()
     cart.load()
-    function setTheme(val) { theme.value = val; applyTheme(val) }
-    return { theme, setTheme, readiness: usePlayerReadiness(), membership: usePlaylistMembership(), cart, user }
+    function setTheme(val) {
+      theme.value = val
+      applyTheme(val)
+    }
+    return {
+      theme,
+      setTheme,
+      readiness: usePlayerReadiness(),
+      membership: usePlaylistMembership(),
+      cart,
+      user,
+    }
   },
   data() {
     return {
@@ -212,7 +298,7 @@ export default {
       subscribingSongId: null,
       subscribingSongName: '',
       // Быстрый клиентский фильтр по названию песни (без запроса к бэку).
-      songFilter: ''
+      songFilter: '',
     }
   },
   computed: {
@@ -227,16 +313,18 @@ export default {
       const q = normalize(this.songFilter)
       if (!q) return this.zakroma
       return (this.zakroma || [])
-        .map(zak => ({
+        .map((zak) => ({
           ...zak,
           albums: (zak.albums || [])
-            .map(alb => ({
+            .map((alb) => ({
               ...alb,
-              albumSettings: (alb.albumSettings || []).filter(s => normalize(s.songName).includes(q))
+              albumSettings: (alb.albumSettings || []).filter((s) =>
+                normalize(s.songName).includes(q),
+              ),
             }))
-            .filter(alb => alb.albumSettings.length > 0)
+            .filter((alb) => alb.albumSettings.length > 0),
         }))
-        .filter(zak => zak.albums.length > 0)
+        .filter((zak) => zak.albums.length > 0)
     },
   },
   watch: {
@@ -244,11 +332,13 @@ export default {
     zakroma: {
       immediate: true,
       handler(list) {
-        const ids = (list || []).flatMap(z => z.albums.flatMap(a => a.albumSettings.map(s => s.id)))
+        const ids = (list || []).flatMap((z) =>
+          z.albums.flatMap((a) => a.albumSettings.map((s) => s.id)),
+        )
         this.readiness.load(ids)
         this.membership.load(ids)
-      }
-    }
+      },
+    },
   },
   mounted() {
     this.loadAuthorTiles()
@@ -265,7 +355,11 @@ export default {
     // Иконка «в корзину» — в тех же условиях, что и золотая иконка плеера (контент готов, зрителю
     // сейчас недоступен, но подписка на песню разрешена автором).
     showCartIcon(sett) {
-      return sett.songSubscriptionAvailable && this.readiness.contentReadyFor(sett.id) === 'ready' && this.readiness.stateFor(sett.id) !== 'active'
+      return (
+        sett.songSubscriptionAvailable &&
+        this.readiness.contentReadyFor(sett.id) === 'ready' &&
+        this.readiness.stateFor(sett.id) !== 'active'
+      )
     },
     // Клик по золотой иконке плеера (PlayerIcon сам решает, когда её показывать) — открываем модалку
     // оформления подписки на конкретную песню.
@@ -278,7 +372,9 @@ export default {
     onSongSubscriptionActivated() {
       const boughtId = this.subscribingSongId
       this.subscribingSongId = null
-      const ids = (this.zakroma || []).flatMap(z => z.albums.flatMap(a => a.albumSettings.map(s => s.id)))
+      const ids = (this.zakroma || []).flatMap((z) =>
+        z.albums.flatMap((a) => a.albumSettings.map((s) => s.id)),
+      )
       this.readiness.load(ids)
       // Купили напрямую песню, которая уже лежала в корзине — убираем её оттуда, чтобы не предлагать
       // оплатить то, что уже куплено.
@@ -302,8 +398,8 @@ export default {
       this.authorChosen = false
       this.songFilter = ''
       this.$router.replace({ path: '/zakroma', query: {} })
-    }
-  }
+    },
+  },
 }
 </script>
 
@@ -341,7 +437,9 @@ export default {
   font-size: 0.85rem;
   white-space: nowrap;
 }
-.km-back:hover { text-decoration: underline; }
+.km-back:hover {
+  text-decoration: underline;
+}
 .km-logo {
   height: 36px;
   width: auto;
@@ -364,10 +462,18 @@ export default {
   padding: 0.2rem 0.55rem;
   font-size: 0.95rem;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
 }
-.km-tb:hover { background: var(--km-hover); color: var(--km-text); }
-.km-tb.active { background: var(--km-accent); color: #fff; }
+.km-tb:hover {
+  background: var(--km-hover);
+  color: var(--km-text);
+}
+.km-tb.active {
+  background: var(--km-accent);
+  color: #fff;
+}
 
 /* Быстрый фильтр по названию песни — sticky-панель сразу под хедером */
 .km-filter-bar {
@@ -401,7 +507,9 @@ export default {
   cursor: pointer;
   padding: 0.2rem 0.4rem;
 }
-.km-filter-clear:hover { color: var(--km-text); }
+.km-filter-clear:hover {
+  color: var(--km-text);
+}
 
 /* Поле ввода (общий стиль km-input, как в SearchView/LoginView/AccountView) */
 .km-input {
@@ -445,12 +553,19 @@ export default {
   border: 1px solid var(--km-border);
   border-radius: 8px;
   cursor: pointer;
-  transition: background 0.15s, box-shadow 0.15s;
+  transition:
+    background 0.15s,
+    box-shadow 0.15s;
 }
-.km-back-btn:hover { background: var(--km-hover); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3); }
+.km-back-btn:hover {
+  background: var(--km-hover);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
 
 /* Блок автора */
-.km-author-block { margin-bottom: 2rem; }
+.km-author-block {
+  margin-bottom: 2rem;
+}
 .km-author-header {
   display: flex;
   align-items: center;
@@ -481,10 +596,15 @@ export default {
   text-decoration: none;
   white-space: nowrap;
 }
-.km-author-pl-btn:hover { background: var(--km-hover); border-color: var(--km-accent); }
+.km-author-pl-btn:hover {
+  background: var(--km-hover);
+  border-color: var(--km-accent);
+}
 
 /* Блок альбома */
-.km-album-block { margin-bottom: 1.5rem; }
+.km-album-block {
+  margin-bottom: 1.5rem;
+}
 .km-album-header {
   display: flex;
   align-items: center;
@@ -527,30 +647,57 @@ export default {
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
-.km-th-center { text-align: center; }
+.km-th-center {
+  text-align: center;
+}
 .km-td {
   padding: 0.25rem 0.3rem;
   border-bottom: 1px solid var(--km-border);
   font-size: 0.8rem;
   vertical-align: middle;
 }
-.km-tr:last-child .km-td { border-bottom: none; }
-.km-tr:hover .km-td { background: var(--km-hover); }
-.km-td-center { text-align: center; }
-.km-td-name { text-align: left; }
-.km-td-date { text-align: right; color: var(--km-text2); font-size: 0.78rem; white-space: nowrap; }
-.km-date-text { margin-right: 5px; vertical-align: middle; }
-.km-track { text-align: center; color: var(--km-text2); }
-.km-group-end { border-right: 2px solid var(--km-border); }
+.km-tr:last-child .km-td {
+  border-bottom: none;
+}
+.km-tr:hover .km-td {
+  background: var(--km-hover);
+}
+.km-td-center {
+  text-align: center;
+}
+.km-td-name {
+  text-align: left;
+}
+.km-td-date {
+  text-align: right;
+  color: var(--km-text2);
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+.km-date-text {
+  margin-right: 5px;
+  vertical-align: middle;
+}
+.km-track {
+  text-align: center;
+  color: var(--km-text2);
+}
+.km-group-end {
+  border-right: 2px solid var(--km-border);
+}
 .km-song-link {
   color: var(--km-accent);
   text-decoration: none;
   font-size: 0.82rem;
 }
-.km-song-link:hover { text-decoration: underline; }
+.km-song-link:hover {
+  text-decoration: underline;
+}
 
 /* Мобильные карточки */
-.km-cards { display: none; }
+.km-cards {
+  display: none;
+}
 
 .km-card {
   background: var(--km-card);
@@ -578,7 +725,9 @@ export default {
   color: var(--km-accent);
   text-decoration: none;
 }
-.km-card-title:hover { text-decoration: underline; }
+.km-card-title:hover {
+  text-decoration: underline;
+}
 .km-card-date {
   font-size: 0.78rem;
   color: var(--km-text2);
@@ -588,7 +737,11 @@ export default {
 
 /* Адаптивность */
 @media (max-width: 768px) {
-  .km-table-wrap { display: none; }
-  .km-cards { display: block; }
+  .km-table-wrap {
+    display: none;
+  }
+  .km-cards {
+    display: block;
+  }
 }
 </style>

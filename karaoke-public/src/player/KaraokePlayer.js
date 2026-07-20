@@ -1,4 +1,11 @@
-import { trackPlayerPlay, trackPlayerPause, trackPlayerSeek, trackPlayerExport, trackPlayerProgress, trackPlayerEnded } from '../services/tracking'
+import {
+  trackPlayerPlay,
+  trackPlayerPause,
+  trackPlayerSeek,
+  trackPlayerExport,
+  trackPlayerProgress,
+  trackPlayerEnded,
+} from '../services/tracking'
 
 // Thrown when required audio isn't available yet (missing file in storage, no mp3 rendered, etc.) —
 // distinguished from other init errors so the UI can show a friendly message instead of raw details.
@@ -42,7 +49,7 @@ export default class KaraokePlayer {
     this.pausedAt = 0
     this.isPlaying = false
     this.duration = 0
-    this._volumeAnchored = false   // "якорь": при true все треки идут к одной громкости
+    this._volumeAnchored = false // "якорь": при true все треки идут к одной громкости
     // Уровни громкости дорожек (%). Персистентны на весь инстанс, чтобы при смене песни в плейлисте
     // (playSong) уровни ползунков «Музыка»/«Голос» и якорь сцепки наследовались следующим треком.
     this._accVol = 100
@@ -73,18 +80,18 @@ export default class KaraokePlayer {
     // Pre-roll: splash (5s) + silent offset before first syllable
     this._splashDur = 5.0
     this._silentOffset = 0
-    this._preroll = 5.0          // splashDur + silentOffset, recalculated after parse
-    this._isPrerolling = false   // true while wall-clock preroll is active
-    this._dtPaused = 0           // display time when paused during preroll
-    this._prerollRef = 0         // Date.now() when preroll clock was last started
-    this._prerollTimeout = null  // setTimeout handle for preroll→audio transition
+    this._preroll = 5.0 // splashDur + silentOffset, recalculated after parse
+    this._isPrerolling = false // true while wall-clock preroll is active
+    this._dtPaused = 0 // display time when paused during preroll
+    this._prerollRef = 0 // Date.now() when preroll clock was last started
+    this._prerollTimeout = null // setTimeout handle for preroll→audio transition
 
     this.data = null
     this.lines = []
     this.voiceLines = []
     this._bgCanvas = null
     this._ready = false
-    this._loadProgress = null   // null = неопределённо (спиннер), 0..1 = доля скачанного (проценты)
+    this._loadProgress = null // null = неопределённо (спиннер), 0..1 = доля скачанного (проценты)
 
     // Offline-режим (headless-рендер mp4 — только admin-копия плеера в webvue3 его реально
     // использует; здесь эти хуки зеркалируются инертными по инварианту "правки логики плеера — в
@@ -95,7 +102,7 @@ export default class KaraokePlayer {
 
     this._logoImg = null
     this._startFadeStartedAt = null // Date.now() когда песня стала готова: переход logo→splash (fade-out 0.5с + fade-in 0.5с)
-    this._endFadeStartedAt = null   // Date.now() когда началась idle-анимация после _onEnded(): logo→чёрный→splash
+    this._endFadeStartedAt = null // Date.now() когда началась idle-анимация после _onEnded(): logo→чёрный→splash
 
     this.canvas = null
     this.ctx = null
@@ -120,7 +127,7 @@ export default class KaraokePlayer {
     this._isEmbedded = window.self !== window.top
     this._displayMode = this._isEmbedded ? 'embed' : 'page'
     this._isFullscreen = false
-    this._preFullscreenDisplayMode = null   // restored on exiting fullscreen
+    this._preFullscreenDisplayMode = null // restored on exiting fullscreen
 
     this._resizeHandler = () => this._resizeCanvas()
     this._fsHandler = () => this._onFullscreenChange()
@@ -132,12 +139,19 @@ export default class KaraokePlayer {
     this._buildUI()
     this._bgCanvas = this._generateStarfield()
     if (!this._offline) this._startRenderLoop()
-    this._loadImage('/KARAOKE_LOGO.png').then(img => { this._logoImg = img }).catch(() => {})
+    this._loadImage('/KARAOKE_LOGO.png')
+      .then((img) => {
+        this._logoImg = img
+      })
+      .catch(() => {})
 
     try {
       if (this._mode === 'api') {
         const headers = this.authToken ? { Authorization: `Bearer ${this.authToken}` } : undefined
-        const resp = await fetch(`${this.apiBase}/${this.songId}/playerdata?token=${encodeURIComponent(this.token || '')}`, { headers })
+        const resp = await fetch(
+          `${this.apiBase}/${this.songId}/playerdata?token=${encodeURIComponent(this.token || '')}`,
+          { headers },
+        )
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
         this.data = await resp.json()
       } else {
@@ -148,23 +162,33 @@ export default class KaraokePlayer {
       }
       await Promise.all([
         new FontFace('Roboto', 'url(/fonts/Roboto.ttf)', { weight: '900', style: 'normal' })
-          .load().then(f => document.fonts.add(f)),
+          .load()
+          .then((f) => document.fonts.add(f)),
         new FontFace('Roboto', 'url(/fonts/Roboto-Italic.ttf)', { weight: '900', style: 'italic' })
-          .load().then(f => document.fonts.add(f)),
+          .load()
+          .then((f) => document.fonts.add(f)),
         // Matches the Kotlin MLT renderer's splashstartChordDescriptionFont exactly (KaraokeProperties.kt)
         // — the key/bpm line uses Fira Sans, not Roboto. Without this loaded explicitly, requesting
         // weight 400 for a family that only has a 900-weight FontFace registered falls back
         // unpredictably (e.g. to whatever "Roboto" the page's own CSS happens to have loaded, if any).
-        new FontFace('FiraSansExtraCondensed', 'url(/fonts/FiraSansExtraCondensed-Medium.ttf)', { weight: '400', style: 'normal' })
-          .load().then(f => document.fonts.add(f))
+        new FontFace('FiraSansExtraCondensed', 'url(/fonts/FiraSansExtraCondensed-Medium.ttf)', {
+          weight: '400',
+          style: 'normal',
+        })
+          .load()
+          .then((f) => document.fonts.add(f)),
       ])
-      this._albumImg = this.data.albumImageUrl ? await this._loadImage(this.data.albumImageUrl).catch(() => null) : null
-      this._artistImg = this.data.artistImageUrl ? await this._loadImage(this.data.artistImageUrl).catch(() => null) : null
+      this._albumImg = this.data.albumImageUrl
+        ? await this._loadImage(this.data.albumImageUrl).catch(() => null)
+        : null
+      this._artistImg = this.data.artistImageUrl
+        ? await this._loadImage(this.data.artistImageUrl).catch(() => null)
+        : null
       await this._loadAudio()
       // Parse after audio load so this.duration is known
       // INSTRUMENTAL/POETRY: маркеры не обрабатываются вовсе (плеер показывает только надпись) —
       // см. _isCaptionOnly()/_renderTypeCaption().
-      this.lines = this._parseMarkers(this._isCaptionOnly() ? [] : (this.data.markers || []))
+      this.lines = this._parseMarkers(this._isCaptionOnly() ? [] : this.data.markers || [])
       this._buildFlashTimes()
       // Compute silent offset (mirrors Kotlin getStartSilentOffsetMs):
       // if first syllable < 5s, prepend silence so counters have time to appear
@@ -174,15 +198,16 @@ export default class KaraokePlayer {
       this._dtPaused = 0
       if (!this._offline) this._buildWaveforms()
       this._ready = true
-      if (!this._offline) this._startFadeStartedAt = Date.now()   // запустить переход logo→splash
+      if (!this._offline) this._startFadeStartedAt = Date.now() // запустить переход logo→splash
       this._updateExportMenuAvailability()
     } catch (e) {
       console.error('KaraokePlayer init error:', e)
       const loading = this.container?.querySelector('#kp-loading')
       if (loading) {
-        loading.textContent = e instanceof PlayerUnavailableError
-          ? 'Извините, данная песня пока не может быть проиграна в плеере'
-          : `Ошибка: ${e.message}`
+        loading.textContent =
+          e instanceof PlayerUnavailableError
+            ? 'Извините, данная песня пока не может быть проиграна в плеере'
+            : `Ошибка: ${e.message}`
         loading.style.background = 'transparent'
         loading.style.display = 'flex'
       }
@@ -202,7 +227,7 @@ export default class KaraokePlayer {
   _computeSilentOffset() {
     if (this._isCaptionOnly()) return 0
     let timeFirst = Infinity
-    for (const voice of (this.data?.markers || [])) {
+    for (const voice of this.data?.markers || []) {
       for (const m of voice) {
         if ((m.markertype === 'syllables' || m.markertype === 'note') && m.time < timeFirst)
           timeFirst = m.time
@@ -227,7 +252,12 @@ export default class KaraokePlayer {
       const elapsed = this.isPlaying ? (Date.now() - this._prerollRef) / 1000 : 0
       return this._dtPaused + elapsed
     }
-    return this._preroll + (this.isPlaying ? this._rateAnchorPos + (this.audioCtx.currentTime - this.startedAt) * this._playbackRate : this.pausedAt)
+    return (
+      this._preroll +
+      (this.isPlaying
+        ? this._rateAnchorPos + (this.audioCtx.currentTime - this.startedAt) * this._playbackRate
+        : this.pausedAt)
+    )
   }
 
   // ─── Parsing ──────────────────────────────────────────────────────────────
@@ -239,21 +269,23 @@ export default class KaraokePlayer {
     let result = ''
     let done = false
     for (const ch of txt) {
-      if (!done && !SKIP.has(ch)) { result += ch.toUpperCase(); done = true }
-      else result += ch
+      if (!done && !SKIP.has(ch)) {
+        result += ch.toUpperCase()
+        done = true
+      } else result += ch
     }
     return result
   }
 
   _parseMarkers(markersList) {
     const allTextLines = []
-    const perVoiceTextLines = markersList.map(() => [])  // per-voice, for independent scroll
+    const perVoiceTextLines = markersList.map(() => []) // per-voice, for independent scroll
 
     markersList.forEach((voiceMarkers, voiceIdx) => {
       let currentSyllables = []
       let lineStart = null
-      let currentGroupId = 0       // updated by SETTING|GROUP|N markers
-      let nextLineNeedsCounter = true  // first line of each voice always gets counter
+      let currentGroupId = 0 // updated by SETTING|GROUP|N markers
+      let nextLineNeedsCounter = true // first line of each voice always gets counter
 
       for (let i = 0; i < voiceMarkers.length; i++) {
         const m = voiceMarkers[i]
@@ -265,7 +297,7 @@ export default class KaraokePlayer {
             // GROUP|N — change current group style for subsequent syllables
             const newGroupId = parseInt(parts[1]) || 0
             if (newGroupId !== currentGroupId && allTextLines.length > 0) {
-              nextLineNeedsCounter = true  // group change = verse/chorus boundary
+              nextLineNeedsCounter = true // group change = verse/chorus boundary
             }
             currentGroupId = newGroupId
           } else if (parts[0] === 'COMMENT') {
@@ -278,21 +310,25 @@ export default class KaraokePlayer {
               for (let j = i + 1; j < voiceMarkers.length; j++) {
                 const mt2 = voiceMarkers[j].markertype
                 if (mt2 === 'syllables' || mt2 === 'endofline' || mt2 === 'newline') {
-                  endTime = voiceMarkers[j].time; break
+                  endTime = voiceMarkers[j].time
+                  break
                 }
               }
               const commentLine = {
-                voiceIdx, groupId: currentGroupId,
-                startTime: m.time, endTime,
-                syllables: [], hasCounter: false, isEmpty: false,
+                voiceIdx,
+                groupId: currentGroupId,
+                startTime: m.time,
+                endTime,
+                syllables: [],
+                hasCounter: false,
+                isEmpty: false,
                 isComment: true,
-                commentText: this._uppercaseFirstLetter(commentContent)
+                commentText: this._uppercaseFirstLetter(commentContent),
               }
               allTextLines.push(commentLine)
               perVoiceTextLines[voiceIdx].push(commentLine)
             }
           }
-
         } else if (mt === 'syllables') {
           if (lineStart === null) lineStart = m.time
 
@@ -312,16 +348,14 @@ export default class KaraokePlayer {
           currentSyllables.push({
             text: sylText,
             startTime: m.time,
-            endTime: syllableEnd !== null ? syllableEnd : m.time
+            endTime: syllableEnd !== null ? syllableEnd : m.time,
           })
-
         } else if (mt === 'endofsyllable') {
           // Set end of previous syllable; do NOT close the line
           if (currentSyllables.length > 0) {
             currentSyllables[currentSyllables.length - 1].endTime = m.time
           }
           // "⸳" dot character omitted for visual simplicity
-
         } else if (mt === 'endofline') {
           if (currentSyllables.length > 0) {
             // Last syllable ends here
@@ -342,7 +376,7 @@ export default class KaraokePlayer {
               endTime: m.time,
               syllables: currentSyllables,
               hasCounter: nextLineNeedsCounter,
-              isEmpty: false
+              isEmpty: false,
             }
             allTextLines.push(textLine)
             perVoiceTextLines[voiceIdx].push(textLine)
@@ -354,7 +388,6 @@ export default class KaraokePlayer {
             // endofline with no syllables = blank line = verse separator
             nextLineNeedsCounter = true
           }
-
         } else if (mt === 'newline') {
           // newline = explicit verse separator; force-close any open line first
           if (currentSyllables.length > 0 && lineStart !== null) {
@@ -365,7 +398,7 @@ export default class KaraokePlayer {
               endTime: m.time,
               syllables: currentSyllables,
               hasCounter: nextLineNeedsCounter,
-              isEmpty: false
+              isEmpty: false,
             }
             allTextLines.push(textLine)
             perVoiceTextLines[voiceIdx].push(textLine)
@@ -395,7 +428,7 @@ export default class KaraokePlayer {
     }
 
     // Build per-voice scroll lines (each voice scrolls independently in its own column)
-    this.voiceLines = perVoiceTextLines.map(vtl => {
+    this.voiceLines = perVoiceTextLines.map((vtl) => {
       if (vtl.length === 0) return []
       vtl.sort((a, b) => a.startTime - b.startTime)
       // scrollStartTime per-voice: each voice considers only its own adjacent lines
@@ -406,10 +439,10 @@ export default class KaraokePlayer {
           curr.scrollStartTime = Math.max(curr.startTime, next.startTime - 1.0)
         }
       }
-      return this._buildScrollLines(vtl, true)  // quickEnd: scroll off fast after voice ends
+      return this._buildScrollLines(vtl, true) // quickEnd: scroll off fast after voice ends
     })
 
-    return this._buildScrollLines(allTextLines, true)  // quickEnd: guarantee full scroll-off before header returns
+    return this._buildScrollLines(allTextLines, true) // quickEnd: guarantee full scroll-off before header returns
   }
 
   // Insert empty placeholder lines so scroll speed stays consistent through silences.
@@ -418,7 +451,7 @@ export default class KaraokePlayer {
   _buildScrollLines(textLines, quickEnd = false) {
     if (!textLines.length) return []
 
-    const maxDur = Math.max(...textLines.map(l => l.endTime - l.startTime))
+    const maxDur = Math.max(...textLines.map((l) => l.endTime - l.startTime))
     if (maxDur <= 0) return textLines
 
     const result = []
@@ -483,7 +516,14 @@ export default class KaraokePlayer {
   }
 
   _makeEmptyLine(timeSec) {
-    return { voiceIdx: 0, startTime: timeSec, endTime: timeSec, syllables: [], hasCounter: false, isEmpty: true }
+    return {
+      voiceIdx: 0,
+      startTime: timeSec,
+      endTime: timeSec,
+      syllables: [],
+      hasCounter: false,
+      isEmpty: true,
+    }
   }
 
   // ─── Smooth scroll position ────────────────────────────────────────────────
@@ -497,14 +537,20 @@ export default class KaraokePlayer {
     // This gives the text a running start so it arrives at the horizon right when audio begins.
     if (ct < 0 && this._silentOffset > 0) {
       const LEAD = 4
-      return LEAD * ct / this._silentOffset  // -4 at silence start → 0 at audio start
+      return (LEAD * ct) / this._silentOffset // -4 at silence start → 0 at audio start
     }
 
     // Frozen inside a non-empty text line (until scrollStartTime if set, else until endTime)
     for (let i = 0; i < lines.length; i++) {
       const l = lines[i]
       const freezeUntil = l.scrollStartTime ?? l.endTime
-      if (!l.isEmpty && !l.isComment && freezeUntil > l.startTime && ct >= l.startTime && ct <= freezeUntil) {
+      if (
+        !l.isEmpty &&
+        !l.isComment &&
+        freezeUntil > l.startTime &&
+        ct >= l.startTime &&
+        ct <= freezeUntil
+      ) {
         return i
       }
     }
@@ -534,13 +580,19 @@ export default class KaraokePlayer {
 
     if (ct < 0 && this._silentOffset > 0) {
       const LEAD = 4
-      return LEAD * ct / this._silentOffset
+      return (LEAD * ct) / this._silentOffset
     }
 
     for (let i = 0; i < lines.length; i++) {
       const l = lines[i]
       const freezeUntil = l.scrollStartTime ?? l.endTime
-      if (!l.isEmpty && !l.isComment && freezeUntil > l.startTime && ct >= l.startTime && ct <= freezeUntil) {
+      if (
+        !l.isEmpty &&
+        !l.isComment &&
+        freezeUntil > l.startTime &&
+        ct >= l.startTime &&
+        ct <= freezeUntil
+      ) {
         return i
       }
     }
@@ -587,7 +639,8 @@ export default class KaraokePlayer {
 
   _buildUI() {
     this._injectMenuStyles()
-    this.container.style.cssText = 'position:relative;background:#000;user-select:none;font-family:sans-serif'
+    this.container.style.cssText =
+      'position:relative;background:#000;user-select:none;font-family:sans-serif'
     this.container.innerHTML = `
       <div style="display:flex;flex-direction:column;height:100vh;background:#000">
         <div id="kp-canvas-wrap" style="flex:1;position:relative;overflow:hidden;min-height:0">
@@ -635,7 +688,7 @@ export default class KaraokePlayer {
               <div class="kp-menu-item kp-menu-parent" id="kp-menu-speed">
                 <span>Скорость: <span id="kp-speed-label">1x</span></span><span class="kp-menu-arrow">▸</span>
                 <div class="kp-submenu" id="kp-submenu-speed">
-                  ${KaraokePlayer.SPEED_OPTIONS.map(o => `<div class="kp-menu-item" data-rate="${o.value}"><span>${o.label}</span></div>`).join('')}
+                  ${KaraokePlayer.SPEED_OPTIONS.map((o) => `<div class="kp-menu-item" data-rate="${o.value}"><span>${o.label}</span></div>`).join('')}
                 </div>
               </div>
             </div>
@@ -665,19 +718,21 @@ export default class KaraokePlayer {
 
     this.container.querySelector('#kp-play').addEventListener('click', () => this._togglePlay())
     this.container.querySelector('#kp-fs').addEventListener('click', () => this._toggleFullscreen())
-    this.container.querySelector('#kp-widemode').addEventListener('click', () => this._toggleDisplayMode())
+    this.container
+      .querySelector('#kp-widemode')
+      .addEventListener('click', () => this._toggleDisplayMode())
     this._updateDisplayModeButton()
     this._updateFullscreenButton()
     // #kp-file-input не рендерится в публичном плеере (меню убрано, см. комментарий в шаблоне) —
     // элемент отсутствует, слушатель просто не вешаем.
-    this.container.querySelector('#kp-file-input')?.addEventListener('change', e => {
+    this.container.querySelector('#kp-file-input')?.addEventListener('change', (e) => {
       const file = e.target.files[0]
       if (file) this._loadNewFile(file)
     })
     this._buildMenu()
 
     const pw = this.container.querySelector('#kp-progress-wrap')
-    pw.addEventListener('click', e => {
+    pw.addEventListener('click', (e) => {
       const r = pw.getBoundingClientRect()
       const totalDuration = this._preroll + this.duration
       if (totalDuration <= 0) return
@@ -687,13 +742,13 @@ export default class KaraokePlayer {
     const accSlider = this.container.querySelector('#kp-vol-acc')
     const vocSlider = this.container.querySelector('#kp-vol-voc')
 
-    accSlider.addEventListener('input', e => {
+    accSlider.addEventListener('input', (e) => {
       this._accVol = Number(e.target.value)
       if (this.accGain) this.accGain.gain.value = e.target.value / 100
       if (this._volumeAnchored) this._syncVolumeSliders(e.target.value, accSlider)
       this._savePersistedSettings()
     })
-    vocSlider.addEventListener('input', e => {
+    vocSlider.addEventListener('input', (e) => {
       this._vocVol = Number(e.target.value)
       if (this.vocGain) this.vocGain.gain.value = e.target.value / 100
       if (this._volumeAnchored) this._syncVolumeSliders(e.target.value, vocSlider)
@@ -716,7 +771,7 @@ export default class KaraokePlayer {
   _syncVolumeSliders(value, exceptEl) {
     const sliders = [
       { el: this.container.querySelector('#kp-vol-acc'), gain: () => this.accGain },
-      { el: this.container.querySelector('#kp-vol-voc'), gain: () => this.vocGain }
+      { el: this.container.querySelector('#kp-vol-voc'), gain: () => this.vocGain },
     ]
     for (const s of sliders) {
       if (s.el === exceptEl) continue
@@ -755,22 +810,29 @@ export default class KaraokePlayer {
         accVol: Number.isFinite(s.accVol) ? Math.min(100, Math.max(0, s.accVol)) : null,
         vocVol: Number.isFinite(s.vocVol) ? Math.min(100, Math.max(0, s.vocVol)) : null,
         anchored: typeof s.anchored === 'boolean' ? s.anchored : null,
-        playbackRate: Number.isFinite(s.playbackRate) && s.playbackRate > 0 ? s.playbackRate : null
+        playbackRate: Number.isFinite(s.playbackRate) && s.playbackRate > 0 ? s.playbackRate : null,
       }
-    } catch (e) { return null }
+    } catch (e) {
+      return null
+    }
   }
 
   // Вызывается при каждом изменении громкости/якоря/скорости — не только на плейлист-переходах,
   // но и глобально, чтобы следующее открытие плеера (любая другая песня) подхватило те же значения.
   _savePersistedSettings() {
     try {
-      localStorage.setItem(KaraokePlayer.LS_SETTINGS_KEY, JSON.stringify({
-        accVol: this._accVol,
-        vocVol: this._vocVol,
-        anchored: this._volumeAnchored,
-        playbackRate: this._playbackRate
-      }))
-    } catch (e) { /* localStorage недоступен (приватный режим/квота) — просто не персистится */ }
+      localStorage.setItem(
+        KaraokePlayer.LS_SETTINGS_KEY,
+        JSON.stringify({
+          accVol: this._accVol,
+          vocVol: this._vocVol,
+          anchored: this._volumeAnchored,
+          playbackRate: this._playbackRate,
+        }),
+      )
+    } catch (e) {
+      /* localStorage недоступен (приватный режим/квота) — просто не персистится */
+    }
   }
 
   static SPEED_OPTIONS = [
@@ -781,14 +843,14 @@ export default class KaraokePlayer {
     { value: 1.5, label: '1.5x' },
     { value: 1.75, label: '1.75x' },
     { value: 2, label: '2x' },
-    { value: 3, label: '3x' }
+    { value: 3, label: '3x' },
   ]
 
   static STEM_EXPORT_MAP = {
     vocals: { urlField: 'audioVocalsUrl', suffix: 'voice' },
     accompaniment: { urlField: 'audioAccompanimentUrl', suffix: 'accompaniment' },
     bass: { urlField: 'audioBassUrl', suffix: 'bass' },
-    drums: { urlField: 'audioDrumsUrl', suffix: 'drums' }
+    drums: { urlField: 'audioDrumsUrl', suffix: 'drums' },
   }
 
   // Публичное меню намеренно содержит ТОЛЬКО пункт «Скорость» (см. комментарий в шаблоне _buildUI)
@@ -801,7 +863,7 @@ export default class KaraokePlayer {
     const speedItem = this.container.querySelector('#kp-menu-speed')
     const speedSubmenu = this.container.querySelector('#kp-submenu-speed')
 
-    menuBtn.addEventListener('click', e => {
+    menuBtn.addEventListener('click', (e) => {
       e.stopPropagation()
       const isOpen = menu.style.display === 'block'
       this._closeMenu()
@@ -810,7 +872,7 @@ export default class KaraokePlayer {
 
     // The submenu already opens on hover via CSS (:hover); click toggles a class so it also
     // works without a pointing device that supports hover (touch, or a deliberate click).
-    speedItem.addEventListener('click', e => {
+    speedItem.addEventListener('click', (e) => {
       e.stopPropagation()
       speedItem.classList.toggle('kp-submenu-open')
     })
@@ -829,7 +891,7 @@ export default class KaraokePlayer {
   // Подсвечивает текущую выбранную скорость в подменю + обновляет лейбл в родительском пункте.
   _updateSpeedMenu() {
     const label = this.container?.querySelector('#kp-speed-label')
-    const opt = KaraokePlayer.SPEED_OPTIONS.find(o => o.value === this._playbackRate)
+    const opt = KaraokePlayer.SPEED_OPTIONS.find((o) => o.value === this._playbackRate)
     if (label) label.textContent = opt ? opt.label : `${this._playbackRate}x`
     for (const el of this.container?.querySelectorAll('#kp-submenu-speed [data-rate]') || []) {
       const active = Number(el.dataset.rate) === this._playbackRate
@@ -841,7 +903,8 @@ export default class KaraokePlayer {
   _closeMenu() {
     const menu = this.container.querySelector('#kp-menu')
     if (menu) menu.style.display = 'none'
-    for (const el of this.container.querySelectorAll('.kp-menu-parent')) el.classList.remove('kp-submenu-open')
+    for (const el of this.container.querySelectorAll('.kp-menu-parent'))
+      el.classList.remove('kp-submenu-open')
   }
 
   // "Экспорт аудио..." целиком доступен только для локально открытого файла ('blob'/'url-smkaraoke'
@@ -894,7 +957,7 @@ export default class KaraokePlayer {
     if (window.showSaveFilePicker) {
       const handle = await window.showSaveFilePicker({
         suggestedName,
-        types: [{ description: mimeType, accept: { [mimeType]: extensions } }]
+        types: [{ description: mimeType, accept: { [mimeType]: extensions } }],
       })
       const writable = await handle.createWritable()
       await writable.write(blob)
@@ -942,8 +1005,14 @@ export default class KaraokePlayer {
     }
 
     const [accBuf, vocBuf] = await Promise.all([
-      this._fetchAudio(this.data.audioAccompanimentUrl, (r, t) => { prog.acc = { received: r, total: t }; updateProgress() }),
-      this._fetchAudio(this.data.audioVocalsUrl, (r, t) => { prog.voc = { received: r, total: t }; updateProgress() })
+      this._fetchAudio(this.data.audioAccompanimentUrl, (r, t) => {
+        prog.acc = { received: r, total: t }
+        updateProgress()
+      }),
+      this._fetchAudio(this.data.audioVocalsUrl, (r, t) => {
+        prog.voc = { received: r, total: t }
+        updateProgress()
+      }),
     ])
     this.accBuffer = accBuf
     this.vocBuffer = vocBuf
@@ -972,7 +1041,10 @@ export default class KaraokePlayer {
     }
     const all = new Uint8Array(received)
     let pos = 0
-    for (const c of chunks) { all.set(c, pos); pos += c.length }
+    for (const c of chunks) {
+      all.set(c, pos)
+      pos += c.length
+    }
     return this.audioCtx.decodeAudioData(all.buffer)
   }
 
@@ -1005,16 +1077,11 @@ export default class KaraokePlayer {
 
     if (manifest.tracks?.accompaniment)
       manifest.audioAccompanimentUrl = await toUrl(manifest.tracks.accompaniment)
-    if (manifest.tracks?.vocals)
-      manifest.audioVocalsUrl = await toUrl(manifest.tracks.vocals)
-    if (manifest.tracks?.bass)
-      manifest.audioBassUrl = await toUrl(manifest.tracks.bass)
-    if (manifest.tracks?.drums)
-      manifest.audioDrumsUrl = await toUrl(manifest.tracks.drums)
-    if (manifest.images?.album)
-      manifest.albumImageUrl = await toUrl(manifest.images.album)
-    if (manifest.images?.artist)
-      manifest.artistImageUrl = await toUrl(manifest.images.artist)
+    if (manifest.tracks?.vocals) manifest.audioVocalsUrl = await toUrl(manifest.tracks.vocals)
+    if (manifest.tracks?.bass) manifest.audioBassUrl = await toUrl(manifest.tracks.bass)
+    if (manifest.tracks?.drums) manifest.audioDrumsUrl = await toUrl(manifest.tracks.drums)
+    if (manifest.images?.album) manifest.albumImageUrl = await toUrl(manifest.images.album)
+    if (manifest.images?.artist) manifest.artistImageUrl = await toUrl(manifest.images.artist)
 
     return manifest
   }
@@ -1044,35 +1111,49 @@ export default class KaraokePlayer {
     // Peaks per second for good visual resolution
     const audioPeakCount = Math.max(500, Math.round(this.duration * 10))
     // Scale silence peaks proportionally so total peaks cover totalDuration
-    const silencePeakCount = Math.round(audioPeakCount * this._preroll / this.duration)
+    const silencePeakCount = Math.round((audioPeakCount * this._preroll) / this.duration)
 
     const silence = new Array(silencePeakCount).fill(0)
     const accPeaks = silence.concat(this._extractPeaks(this.accBuffer, audioPeakCount))
     const vocPeaks = silence.concat(this._extractPeaks(this.vocBuffer, audioPeakCount))
 
-    import('wavesurfer.js').then(({ default: WaveSurfer }) => {
-      const ac = this.container.querySelector('#kp-ws-acc')
-      const vc = this.container.querySelector('#kp-ws-voc')
-      if (!ac || !vc) return
-      this.wsAcc = WaveSurfer.create({
-        container: ac, height: 40,
-        waveColor: '#4af', progressColor: '#08f',
-        peaks: [accPeaks], duration: totalDuration
+    import('wavesurfer.js')
+      .then(({ default: WaveSurfer }) => {
+        const ac = this.container.querySelector('#kp-ws-acc')
+        const vc = this.container.querySelector('#kp-ws-voc')
+        if (!ac || !vc) return
+        this.wsAcc = WaveSurfer.create({
+          container: ac,
+          height: 40,
+          waveColor: '#4af',
+          progressColor: '#08f',
+          peaks: [accPeaks],
+          duration: totalDuration,
+        })
+        this.wsVoc = WaveSurfer.create({
+          container: vc,
+          height: 40,
+          waveColor: '#fa4',
+          progressColor: '#f80',
+          peaks: [vocPeaks],
+          duration: totalDuration,
+        })
+        // interaction gives seconds within totalDuration → map directly to dt
+        this.wsAcc.on('interaction', (newTime) => {
+          if (!this._wsSeeking) this._seekToDisplayTime(newTime)
+        })
+        this.wsVoc.on('interaction', (newTime) => {
+          if (!this._wsSeeking) this._seekToDisplayTime(newTime)
+        })
       })
-      this.wsVoc = WaveSurfer.create({
-        container: vc, height: 40,
-        waveColor: '#fa4', progressColor: '#f80',
-        peaks: [vocPeaks], duration: totalDuration
-      })
-      // interaction gives seconds within totalDuration → map directly to dt
-      this.wsAcc.on('interaction', (newTime) => { if (!this._wsSeeking) this._seekToDisplayTime(newTime) })
-      this.wsVoc.on('interaction', (newTime) => { if (!this._wsSeeking) this._seekToDisplayTime(newTime) })
-    }).catch(e => console.warn('WaveSurfer load failed:', e))
+      .catch((e) => console.warn('WaveSurfer load failed:', e))
   }
 
   _getCurrentTime() {
     if (!this.audioCtx) return 0
-    return this.isPlaying ? this._rateAnchorPos + (this.audioCtx.currentTime - this.startedAt) * this._playbackRate : this.pausedAt
+    return this.isPlaying
+      ? this._rateAnchorPos + (this.audioCtx.currentTime - this.startedAt) * this._playbackRate
+      : this.pausedAt
   }
 
   // Трекинг play/pause вешается именно здесь, а не внутри _play()/_pause() — те два метода также
@@ -1102,7 +1183,7 @@ export default class KaraokePlayer {
     this._hideDemoEndOverlay() // клик "▶"/по экрану после конца демо-фрагмента = переслушать заново
     const dt = this._getDisplayTime()
     this._startFadeStartedAt = null // cancel logo→splash start transition
-    this._endFadeStartedAt = null   // cancel any in-progress post-track idle transition
+    this._endFadeStartedAt = null // cancel any in-progress post-track idle transition
 
     if (dt < this._preroll) {
       // Pre-roll phase: run on wall clock, schedule audio start
@@ -1118,7 +1199,7 @@ export default class KaraokePlayer {
       this._prerollTimeout = setTimeout(() => {
         if (this.isPlaying && this._isPrerolling) {
           this._isPrerolling = false
-          this._startAudio(0).catch(e => console.error('Audio start failed:', e))
+          this._startAudio(0).catch((e) => console.error('Audio start failed:', e))
         }
       }, remainingMs)
     } else {
@@ -1157,8 +1238,18 @@ export default class KaraokePlayer {
   }
 
   _stopSources() {
-    if (this.accSource) { this.accSource.onended = null; try { this.accSource.stop() } catch {} }
-    if (this.vocSource) { this.vocSource.onended = null; try { this.vocSource.stop() } catch {} }
+    if (this.accSource) {
+      this.accSource.onended = null
+      try {
+        this.accSource.stop()
+      } catch {}
+    }
+    if (this.vocSource) {
+      this.vocSource.onended = null
+      try {
+        this.vocSource.stop()
+      } catch {}
+    }
     this.accSource = null
     this.vocSource = null
   }
@@ -1182,15 +1273,21 @@ export default class KaraokePlayer {
     clearTimeout(this._prerollTimeout)
     this.pausedAt = 0
     this._dtPaused = 0
-    this._isPrerolling = true   // next play restarts from splash
+    this._isPrerolling = true // next play restarts from splash
     this.isPlaying = false
-    this._endFadeStartedAt = Date.now()   // start logo→splash idle transition
+    this._endFadeStartedAt = Date.now() // start logo→splash idle transition
     const btn = this.container.querySelector('#kp-play')
     if (btn) btn.textContent = '▶'
     if (this._mode === 'api') trackPlayerEnded(this.songId)
     this._progressFlags = { 25: false, 50: false, 75: false }
     if (this.data?.isDemo) this._showDemoEndOverlay()
-    if (this.onTrackEnded) { try { this.onTrackEnded() } catch (e) { console.error('onTrackEnded error:', e) } }
+    if (this.onTrackEnded) {
+      try {
+        this.onTrackEnded()
+      } catch (e) {
+        console.error('onTrackEnded error:', e)
+      }
+    }
   }
 
   // ─── Демо-режим: оверлей в конце фрагмента ─────────────────────────────────
@@ -1205,17 +1302,22 @@ export default class KaraokePlayer {
     if (!wrap) return
     const overlay = document.createElement('div')
     overlay.id = 'kp-demo-overlay'
-    overlay.style.cssText = 'position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:rgba(0,0,0,0.72);text-align:center;padding:24px;z-index:20'
+    overlay.style.cssText =
+      'position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:rgba(0,0,0,0.72);text-align:center;padding:24px;z-index:20'
     overlay.innerHTML = `
       <div style="color:#fff;font-size:20px;font-weight:700">Это демо-фрагмент</div>
       <div style="color:#ccc;font-size:14px;max-width:360px">Оформите подписку, чтобы прослушать песню целиком</div>
       <button id="kp-demo-cta" style="background:#f80;border:none;color:#fff;font-size:15px;font-weight:600;padding:10px 22px;border-radius:6px;cursor:pointer">Оформить подписку →</button>
     `
     wrap.appendChild(overlay)
-    overlay.querySelector('#kp-demo-cta').addEventListener('click', e => {
+    overlay.querySelector('#kp-demo-cta').addEventListener('click', (e) => {
       e.stopPropagation() // не дать клику долететь до canvasWrap (иначе он же запустит replay)
       const target = `/song?id=${this.songId}`
-      try { window.top.location.href = target } catch (_e) { window.location.href = target }
+      try {
+        window.top.location.href = target
+      } catch (_e) {
+        window.location.href = target
+      }
     })
   }
 
@@ -1224,9 +1326,15 @@ export default class KaraokePlayer {
   }
 
   // --- Публичное управление (для страницы плейлиста) ------------------------------------------
-  play() { this._play() }
-  pause() { this._pause() }
-  togglePlay() { this._togglePlay() }
+  play() {
+    this._play()
+  }
+  pause() {
+    this._pause()
+  }
+  togglePlay() {
+    this._togglePlay()
+  }
 
   // Меняет скорость воспроизведения. Если аудио уже играет (не в preroll) — перепривязывает
   // позицию (startedAt/_rateAnchorPos) к текущему моменту на СТАРОЙ скорости, затем меняет
@@ -1251,13 +1359,25 @@ export default class KaraokePlayer {
   // teardown/сброс состояния из _loadNewFile, но остаётся в 'api' и заново дёргает init().
   // autoplay=true — начать воспроизведение сразу после готовности (авто-переход в плейлисте).
   async playSong(songId, token, authToken, autoplay = true) {
-    if (this.animId) { cancelAnimationFrame(this.animId); this.animId = null }
+    if (this.animId) {
+      cancelAnimationFrame(this.animId)
+      this.animId = null
+    }
     this._hideDemoEndOverlay()
     this._endedHandled = true
     this._stopSources()
-    if (this.audioCtx) { await this.audioCtx.close(); this.audioCtx = null }
-    if (this.wsAcc) { this.wsAcc.destroy(); this.wsAcc = null }
-    if (this.wsVoc) { this.wsVoc.destroy(); this.wsVoc = null }
+    if (this.audioCtx) {
+      await this.audioCtx.close()
+      this.audioCtx = null
+    }
+    if (this.wsAcc) {
+      this.wsAcc.destroy()
+      this.wsAcc = null
+    }
+    if (this.wsVoc) {
+      this.wsVoc.destroy()
+      this.wsVoc = null
+    }
     window.removeEventListener('resize', this._resizeHandler)
     document.removeEventListener('fullscreenchange', this._fsHandler)
     document.removeEventListener('click', this._menuOutsideClickHandler)
@@ -1269,26 +1389,37 @@ export default class KaraokePlayer {
     this.token = token
     if (authToken !== undefined) this.authToken = authToken
 
-    this.accBuffer = null; this.vocBuffer = null
-    this.accSource = null; this.vocSource = null
-    this.accGain = null; this.vocGain = null
-    this.startedAt = 0; this.pausedAt = 0
-    this.isPlaying = false; this.duration = 0
-    this.data = null; this.lines = []; this.voiceLines = []
+    this.accBuffer = null
+    this.vocBuffer = null
+    this.accSource = null
+    this.vocSource = null
+    this.accGain = null
+    this.vocGain = null
+    this.startedAt = 0
+    this.pausedAt = 0
+    this.isPlaying = false
+    this.duration = 0
+    this.data = null
+    this.lines = []
+    this.voiceLines = []
     this._ready = false
     this._loadProgress = null
     this._endedHandled = false
-    this._cachedCanvasW = null; this._cachedVoiceXStart = null
+    this._cachedCanvasW = null
+    this._cachedVoiceXStart = null
     this._lastWsSync = 0
     this.flashTimes = []
-    this._isPrerolling = false; this._dtPaused = 0
-    this._silentOffset = 0; this._preroll = this._splashDur
+    this._isPrerolling = false
+    this._dtPaused = 0
+    this._silentOffset = 0
+    this._preroll = this._splashDur
     this._startFadeStartedAt = null
     this._endFadeStartedAt = null
     // _volumeAnchored / _accVol / _vocVol НЕ сбрасываем — уровни громкости и якорь наследуются
     // следующим треком плейлиста (по требованию).
     this._progressFlags = { 25: false, 50: false, 75: false }
-    clearTimeout(this._prerollTimeout); this._prerollTimeout = null
+    clearTimeout(this._prerollTimeout)
+    this._prerollTimeout = null
 
     await this.init()
     if (autoplay && this._ready) this._play()
@@ -1330,8 +1461,12 @@ export default class KaraokePlayer {
       // WaveSurfer covers [0, totalDuration]; audio starts at _preroll
       const pct = (time + this._preroll) / totalDuration
       this._wsSeeking = true
-      try { this.wsAcc?.seekTo(pct) } catch {}
-      try { this.wsVoc?.seekTo(pct) } catch {}
+      try {
+        this.wsAcc?.seekTo(pct)
+      } catch {}
+      try {
+        this.wsVoc?.seekTo(pct)
+      } catch {}
       this._wsSeeking = false
     }
   }
@@ -1339,7 +1474,7 @@ export default class KaraokePlayer {
   // Seek to display time dt ∈ [0, _preroll + duration] (0 = splash start)
   _seekToDisplayTime(dt) {
     this._startFadeStartedAt = null // manual seek should snap straight to the target frame
-    this._endFadeStartedAt = null   // manual seek should snap straight to the target frame
+    this._endFadeStartedAt = null // manual seek should snap straight to the target frame
     const totalDuration = this._preroll + this.duration
     dt = Math.max(0, Math.min(dt, totalDuration))
     if (this._mode === 'api') {
@@ -1362,8 +1497,12 @@ export default class KaraokePlayer {
       this._dtPaused = dt
       if (totalDuration > 0) {
         this._wsSeeking = true
-        try { this.wsAcc?.seekTo(dt / totalDuration) } catch {}
-        try { this.wsVoc?.seekTo(dt / totalDuration) } catch {}
+        try {
+          this.wsAcc?.seekTo(dt / totalDuration)
+        } catch {}
+        try {
+          this.wsVoc?.seekTo(dt / totalDuration)
+        } catch {}
         this._wsSeeking = false
       }
       if (was) this._play()
@@ -1405,7 +1544,11 @@ export default class KaraokePlayer {
     if (!this._isEmbedded) return
     this._displayMode = mode
     this._updateDisplayModeButton()
-    try { window.parent.postMessage({ source: 'karaoke-player', type: 'display-mode', mode }, '*') } catch (e) { /* ignore */ }
+    try {
+      window.parent.postMessage({ source: 'karaoke-player', type: 'display-mode', mode }, '*')
+    } catch (e) {
+      /* ignore */
+    }
   }
 
   _toggleDisplayMode() {
@@ -1436,7 +1579,10 @@ export default class KaraokePlayer {
   // ─── Render loop ──────────────────────────────────────────────────────────
 
   _startRenderLoop() {
-    const render = () => { this._renderFrame(); this.animId = requestAnimationFrame(render) }
+    const render = () => {
+      this._renderFrame()
+      this.animId = requestAnimationFrame(render)
+    }
     this.animId = requestAnimationFrame(render)
   }
 
@@ -1444,13 +1590,19 @@ export default class KaraokePlayer {
 
   _seededRandom(seed) {
     let s = ((seed ^ 0xdeadbeef) >>> 0) | 1
-    return () => { s ^= s << 13; s ^= s >>> 17; s ^= s << 5; return (s >>> 0) / 0x100000000 }
+    return () => {
+      s ^= s << 13
+      s ^= s >>> 17
+      s ^= s << 5
+      return (s >>> 0) / 0x100000000
+    }
   }
 
   _generateStarfield() {
     // 4096×4096 texture; viewport = 1920×1080 (native, no upscaling)
     // Pan range: X: 0→2176, Y: 0→3016 (triangle-wave oscillation via performance.now)
-    const TW = 4096, TH = 4096
+    const TW = 4096,
+      TH = 4096
     const canvas = new OffscreenCanvas(TW, TH)
     const ctx = canvas.getContext('2d')
     const seed = Math.abs(parseInt(this.songId) || 42)
@@ -1458,17 +1610,86 @@ export default class KaraokePlayer {
 
     const palettes = [
       // 0: cool purple/blue  (Color series)
-      { base: '#000508', clouds: [[80,20,160],[40,80,200],[100,50,180]], ambient: [10,5,30,0.3], darkCores: true, warmStars: false, streak: false },
+      {
+        base: '#000508',
+        clouds: [
+          [80, 20, 160],
+          [40, 80, 200],
+          [100, 50, 180],
+        ],
+        ambient: [10, 5, 30, 0.3],
+        darkCores: true,
+        warmStars: false,
+        streak: false,
+      },
       // 1: crimson/magenta   (Mono series)
-      { base: '#050002', clouds: [[200,10,60],[180,0,80],[220,60,120]], ambient: [20,0,10,0.25], darkCores: true, warmStars: true, streak: false },
+      {
+        base: '#050002',
+        clouds: [
+          [200, 10, 60],
+          [180, 0, 80],
+          [220, 60, 120],
+        ],
+        ambient: [20, 0, 10, 0.25],
+        darkCores: true,
+        warmStars: true,
+        streak: false,
+      },
       // 2: dark teal         (Dark series)
-      { base: '#000a06', clouds: [[10,100,70],[20,130,80],[0,70,55]], ambient: [5,20,12,0.2], darkCores: false, warmStars: false, streak: false },
+      {
+        base: '#000a06',
+        clouds: [
+          [10, 100, 70],
+          [20, 130, 80],
+          [0, 70, 55],
+        ],
+        ambient: [5, 20, 12, 0.2],
+        darkCores: false,
+        warmStars: false,
+        streak: false,
+      },
       // 3: fire orange/red   (Variable intense)
-      { base: '#030100', clouds: [[220,80,0],[200,40,0],[180,60,10],[255,180,20]], ambient: [15,5,0,0.3], darkCores: true, warmStars: true, streak: true },
+      {
+        base: '#030100',
+        clouds: [
+          [220, 80, 0],
+          [200, 40, 0],
+          [180, 60, 10],
+          [255, 180, 20],
+        ],
+        ambient: [15, 5, 0, 0.3],
+        darkCores: true,
+        warmStars: true,
+        streak: true,
+      },
       // 4: purple+magenta    (Variable multi)
-      { base: '#030008', clouds: [[60,20,160],[180,20,200],[30,100,220],[140,80,200]], ambient: [8,5,20,0.25], darkCores: true, warmStars: false, streak: false },
+      {
+        base: '#030008',
+        clouds: [
+          [60, 20, 160],
+          [180, 20, 200],
+          [30, 100, 220],
+          [140, 80, 200],
+        ],
+        ambient: [8, 5, 20, 0.25],
+        darkCores: true,
+        warmStars: false,
+        streak: false,
+      },
       // 5: warm amber        (Dark warm series)
-      { base: '#040200', clouds: [[160,70,10],[140,50,0],[180,100,20],[120,60,0]], ambient: [10,5,0,0.2], darkCores: false, warmStars: true, streak: false },
+      {
+        base: '#040200',
+        clouds: [
+          [160, 70, 10],
+          [140, 50, 0],
+          [180, 100, 20],
+          [120, 60, 0],
+        ],
+        ambient: [10, 5, 0, 0.2],
+        darkCores: false,
+        warmStars: true,
+        streak: false,
+      },
     ]
     const pal = palettes[seed % palettes.length]
 
@@ -1478,7 +1699,8 @@ export default class KaraokePlayer {
 
     // Ambient gradient from one corner
     const [ar, ag, ab, aa] = pal.ambient
-    const agx = TW * (0.55 + rng() * 0.35), agy = TH * (rng() * 0.45)
+    const agx = TW * (0.55 + rng() * 0.35),
+      agy = TH * (rng() * 0.45)
     const amGrad = ctx.createRadialGradient(agx, agy, 0, agx, agy, TW * 1.15)
     amGrad.addColorStop(0, `rgba(${ar},${ag},${ab},${aa})`)
     amGrad.addColorStop(1, 'rgba(0,0,0,0)')
@@ -1491,12 +1713,12 @@ export default class KaraokePlayer {
       const cx = TW * (0.15 + rng() * 0.7)
       const cy = TH * (0.1 + rng() * 0.8)
       const rW = TW * (0.18 + rng() * 0.42)
-      const rH = rW * (0.4 + rng() * 0.9)       // can be elongated
+      const rH = rW * (0.4 + rng() * 0.9) // can be elongated
       const rot = rng() * Math.PI
       const ci = Math.floor(rng() * pal.clouds.length)
       const [cr, cg, cb] = pal.clouds[ci]
       const ci2 = Math.floor(rng() * pal.clouds.length)
-      const [cr2, cg2, cb2] = pal.clouds[ci2]   // secondary for mixing
+      const [cr2, cg2, cb2] = pal.clouds[ci2] // secondary for mixing
 
       // Paint as many overlapping semi-transparent blobs
       const nBlobs = 65 + Math.floor(rng() * 85)
@@ -1512,14 +1734,19 @@ export default class KaraokePlayer {
         const br = rW * (0.04 + rng() * 0.22)
         const alpha = 0.025 + rng() * 0.065
         const mix = rng() < 0.28
-        const R = mix ? cr2 : cr, G = mix ? cg2 : cg, B = mix ? cb2 : cb
-        const R2 = Math.round(R * 0.5), G2 = Math.round(G * 0.5), B2 = Math.round(B * 0.5)
+        const R = mix ? cr2 : cr,
+          G = mix ? cg2 : cg,
+          B = mix ? cb2 : cb
+        const R2 = Math.round(R * 0.5),
+          G2 = Math.round(G * 0.5),
+          B2 = Math.round(B * 0.5)
         const grad = ctx.createRadialGradient(bx, by, 0, bx, by, br)
         grad.addColorStop(0, `rgba(${R},${G},${B},${alpha})`)
         grad.addColorStop(0.45, `rgba(${R2},${G2},${B2},${alpha * 0.5})`)
         grad.addColorStop(1, 'rgba(0,0,0,0)')
         ctx.fillStyle = grad
-        const x0 = Math.max(0, bx - br), y0 = Math.max(0, by - br)
+        const x0 = Math.max(0, bx - br),
+          y0 = Math.max(0, by - br)
         ctx.fillRect(x0, y0, Math.min(TW, bx + br) - x0, Math.min(TH, by + br) - y0)
       }
 
@@ -1527,7 +1754,10 @@ export default class KaraokePlayer {
       if (rng() > 0.35) {
         const hR = rW * 0.09
         const hGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, hR)
-        hGrad.addColorStop(0, `rgba(${Math.min(255,cr+100)},${Math.min(255,cg+100)},${Math.min(255,cb+100)},0.3)`)
+        hGrad.addColorStop(
+          0,
+          `rgba(${Math.min(255, cr + 100)},${Math.min(255, cg + 100)},${Math.min(255, cb + 100)},0.3)`,
+        )
         hGrad.addColorStop(1, 'rgba(0,0,0,0)')
         ctx.fillStyle = hGrad
         ctx.fillRect(cx - hR, cy - hR, hR * 2, hR * 2)
@@ -1570,17 +1800,21 @@ export default class KaraokePlayer {
     // Stars: ~3000 total across three tiers
     const numStars = 2800 + Math.floor(rng() * 800)
     for (let i = 0; i < numStars; i++) {
-      const x = rng() * TW, y = rng() * TH
+      const x = rng() * TW,
+        y = rng() * TH
       const rv = rng()
       let radius, brightness
 
-      if (rv < 0.74) {          // tiny dim
+      if (rv < 0.74) {
+        // tiny dim
         radius = 0.3 + rng() * 0.45
         brightness = 0.15 + rng() * 0.4
-      } else if (rv < 0.93) {   // medium
+      } else if (rv < 0.93) {
+        // medium
         radius = 0.5 + rng() * 0.9
         brightness = 0.45 + rng() * 0.45
-      } else {                  // bright with diffuse glow
+      } else {
+        // bright with diffuse glow
         radius = 1.0 + rng() * 1.8
         brightness = 0.8 + rng() * 0.2
         const glowR = radius * (3 + rng() * 4)
@@ -1596,11 +1830,17 @@ export default class KaraokePlayer {
       let sr, sg, sbl
       const cv = rng()
       if (pal.warmStars && cv < 0.35) {
-        sr = b; sg = Math.round(b * 0.88); sbl = Math.round(b * 0.65)  // warm yellow
+        sr = b
+        sg = Math.round(b * 0.88)
+        sbl = Math.round(b * 0.65) // warm yellow
       } else if (cv < 0.68) {
-        sr = b; sg = b; sbl = b                                          // white
+        sr = b
+        sg = b
+        sbl = b // white
       } else {
-        sr = Math.round(b * 0.82); sg = Math.round(b * 0.9); sbl = b   // cool blue-white
+        sr = Math.round(b * 0.82)
+        sg = Math.round(b * 0.9)
+        sbl = b // cool blue-white
       }
       ctx.fillStyle = `rgb(${sr},${sg},${sbl})`
       ctx.beginPath()
@@ -1615,17 +1855,18 @@ export default class KaraokePlayer {
     if (!this._bgCanvas) return
     // 4096×4096 texture, 1920×1080 viewport (1:1 pixels at HD, scaled to canvas).
     // Pan: triangle-wave oscillation via wall clock — always moving, regardless of audio state.
-    const REF_W = 1920, REF_H = 1080
-    const MAX_X = 4096 - REF_W   // 2176
-    const MAX_Y = 4096 - REF_H   // 3016
-    const PERIOD_X = 541          // seconds for one back-and-forth cycle (prime → no repeating pattern)
+    const REF_W = 1920,
+      REF_H = 1080
+    const MAX_X = 4096 - REF_W // 2176
+    const MAX_Y = 4096 - REF_H // 3016
+    const PERIOD_X = 541 // seconds for one back-and-forth cycle (prime → no repeating pattern)
     const PERIOD_Y = 379
     // Offline: та же forced-time подмена, что в _getDisplayTime() — иначе панорама фона плыла бы по
     // реальным часам headless-браузера и кадр не был бы воспроизводим по номеру/времени кадра.
     const t = this._forcedTime !== null ? this._forcedTime : performance.now() / 1000
     const tx = (t / PERIOD_X) % 2
     const ty = (t / PERIOD_Y) % 2
-    const vpX = (tx < 1 ? tx : 2 - tx) * MAX_X   // smooth triangle wave, no jump
+    const vpX = (tx < 1 ? tx : 2 - tx) * MAX_X // smooth triangle wave, no jump
     const vpY = (ty < 1 ? ty : 2 - ty) * MAX_Y
 
     // Always fully visible — fade effects are applied on top via separate overlays
@@ -1633,8 +1874,8 @@ export default class KaraokePlayer {
   }
 
   _renderFrame() {
-    const dt = this._getDisplayTime()        // display time: 0=splash start
-    const audioTime = dt - this._preroll     // audio-relative time, can be negative
+    const dt = this._getDisplayTime() // display time: 0=splash start
+    const audioTime = dt - this._preroll // audio-relative time, can be negative
 
     const W = this.canvas.width
     const H = this.canvas.height
@@ -1675,9 +1916,10 @@ export default class KaraokePlayer {
 
     // Song end fade-out: karaoke content fades out over last 1s; background stays visible.
     const FADE_OUT = 1.0
-    const fadeOutAlpha = (this.duration > 0 && audioTime > this.duration - FADE_OUT)
-      ? Math.min(1, (audioTime - (this.duration - FADE_OUT)) / FADE_OUT)
-      : 0
+    const fadeOutAlpha =
+      this.duration > 0 && audioTime > this.duration - FADE_OUT
+        ? Math.min(1, (audioTime - (this.duration - FADE_OUT)) / FADE_OUT)
+        : 0
 
     // Демо-режим: фрагмент теперь начинается НЕ с нуля песни (куплет минус отступ под фейд-ин, см.
     // Settings.demoFragmentStartSeconds), поэтому в начале — плавный фейд-ин аудио на протяжении
@@ -1688,9 +1930,10 @@ export default class KaraokePlayer {
     // границ на клиенте не требуется.
     if (this.data?.isDemo && this.accGain && this.vocGain) {
       const demoFadeInSeconds = this.data.demoFadeInSeconds || 0
-      const fadeInMul = (demoFadeInSeconds > 0 && audioTime < demoFadeInSeconds)
-        ? Math.max(0, Math.min(1, audioTime / demoFadeInSeconds))
-        : 1
+      const fadeInMul =
+        demoFadeInSeconds > 0 && audioTime < demoFadeInSeconds
+          ? Math.max(0, Math.min(1, audioTime / demoFadeInSeconds))
+          : 1
       const demoFadeMul = fadeInMul * (1 - fadeOutAlpha)
       this.accGain.gain.value = (this._accVol / 100) * demoFadeMul
       this.vocGain.gain.value = (this._vocVol / 100) * demoFadeMul
@@ -1757,12 +2000,13 @@ export default class KaraokePlayer {
   _renderSpeedBadge(ctx, W, H) {
     if (this._playbackRate === 1) return
     const scale = H / 1080
-    const opt = KaraokePlayer.SPEED_OPTIONS.find(o => o.value === this._playbackRate)
+    const opt = KaraokePlayer.SPEED_OPTIONS.find((o) => o.value === this._playbackRate)
     const label = opt ? opt.label : `${this._playbackRate}x`
 
     const fs = Math.max(14, Math.round(24 * scale))
     ctx.font = `700 ${fs}px sans-serif`
-    const padX = Math.round(14 * scale), padY = Math.round(7 * scale)
+    const padX = Math.round(14 * scale),
+      padY = Math.round(7 * scale)
     const boxW = ctx.measureText(label).width + padX * 2
     const boxH = fs + padY * 2
     const margin = Math.round(20 * scale)
@@ -1771,7 +2015,9 @@ export default class KaraokePlayer {
 
     ctx.save()
     ctx.fillStyle = 'rgba(0,0,0,0.55)'
-    ctx.beginPath(); ctx.roundRect(x, y, boxW, boxH, boxH / 2); ctx.fill()
+    ctx.beginPath()
+    ctx.roundRect(x, y, boxW, boxH, boxH / 2)
+    ctx.fill()
     ctx.fillStyle = '#f80'
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
@@ -1786,17 +2032,23 @@ export default class KaraokePlayer {
     if (!anim) return
     const ANIM_DUR = 0.6
     const t = (Date.now() - anim.startedAt) / 1000
-    if (t > ANIM_DUR) { this._screenIconAnim = null; return }
+    if (t > ANIM_DUR) {
+      this._screenIconAnim = null
+      return
+    }
 
     const alpha = 1 - t / ANIM_DUR
     const growth = 1 + (t / ANIM_DUR) * 0.35
-    const cx = W / 2, cy = H / 2
+    const cx = W / 2,
+      cy = H / 2
     const r = Math.min(W, H) * 0.09 * growth
 
     ctx.save()
     ctx.globalAlpha = alpha
     ctx.fillStyle = 'rgba(0,0,0,0.5)'
-    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill()
+    ctx.beginPath()
+    ctx.arc(cx, cy, r, 0, Math.PI * 2)
+    ctx.fill()
     ctx.fillStyle = '#fff'
     if (anim.playing) {
       const s = r * 0.5
@@ -1807,7 +2059,9 @@ export default class KaraokePlayer {
       ctx.closePath()
       ctx.fill()
     } else {
-      const barW = r * 0.28, barH = r * 0.9, gap = r * 0.22
+      const barW = r * 0.28,
+        barH = r * 0.9,
+        gap = r * 0.22
       ctx.fillRect(cx - gap - barW, cy - barH / 2, barW, barH)
       ctx.fillRect(cx + gap, cy - barH / 2, barW, barH)
     }
@@ -1875,9 +2129,9 @@ export default class KaraokePlayer {
   _renderLoadingIndicator(ctx, W, H) {
     const p = this._loadProgress
     const cx = W / 2
-    const y = Math.round(H * 0.72)   // ниже бокса логотипа (40%×40%, центрирован)
+    const y = Math.round(H * 0.72) // ниже бокса логотипа (40%×40%, центрирован)
     const scale = H / 1080
-    const ACCENT = 'rgb(255,136,0)'      // #f80 — акцент плеера
+    const ACCENT = 'rgb(255,136,0)' // #f80 — акцент плеера
     const TRACK = 'rgba(255,255,255,0.15)'
 
     if (p !== null) {
@@ -1887,17 +2141,23 @@ export default class KaraokePlayer {
       const barX = cx - barW / 2
       const r = barH / 2
       ctx.fillStyle = TRACK
-      ctx.beginPath(); ctx.roundRect(barX, y, barW, barH, r); ctx.fill()
+      ctx.beginPath()
+      ctx.roundRect(barX, y, barW, barH, r)
+      ctx.fill()
       if (p < 1) {
         // Скачивание: заполнение = доля скачанного
         ctx.fillStyle = ACCENT
-        ctx.beginPath(); ctx.roundRect(barX, y, Math.max(barH, barW * p), barH, r); ctx.fill()
+        ctx.beginPath()
+        ctx.roundRect(barX, y, Math.max(barH, barW * p), barH, r)
+        ctx.fill()
       } else {
         // Декодирование (прогресса нет): полоса заполнена целиком, мягкая пульсация яркости
-        const pulse = 0.4 + 0.6 * (0.5 + 0.5 * Math.sin(performance.now() / 1000 * Math.PI * 1.6))
+        const pulse = 0.4 + 0.6 * (0.5 + 0.5 * Math.sin((performance.now() / 1000) * Math.PI * 1.6))
         ctx.globalAlpha = pulse
         ctx.fillStyle = ACCENT
-        ctx.beginPath(); ctx.roundRect(barX, y, barW, barH, r); ctx.fill()
+        ctx.beginPath()
+        ctx.roundRect(barX, y, barW, barH, r)
+        ctx.fill()
         ctx.globalAlpha = 1
       }
 
@@ -1906,7 +2166,11 @@ export default class KaraokePlayer {
       ctx.fillStyle = 'rgba(255,255,255,0.85)'
       ctx.textAlign = 'center'
       ctx.textBaseline = 'top'
-      ctx.fillText(p < 1 ? `${Math.round(p * 100)}%` : 'Обработка...', cx, y + barH + Math.round(14 * scale))
+      ctx.fillText(
+        p < 1 ? `${Math.round(p * 100)}%` : 'Обработка...',
+        cx,
+        y + barH + Math.round(14 * scale),
+      )
       ctx.textAlign = 'left'
       ctx.textBaseline = 'alphabetic'
     } else {
@@ -1918,10 +2182,14 @@ export default class KaraokePlayer {
       ctx.save()
       ctx.lineWidth = lw
       ctx.strokeStyle = TRACK
-      ctx.beginPath(); ctx.arc(cx, y, radius, 0, Math.PI * 2); ctx.stroke()
+      ctx.beginPath()
+      ctx.arc(cx, y, radius, 0, Math.PI * 2)
+      ctx.stroke()
       ctx.strokeStyle = ACCENT
       ctx.lineCap = 'round'
-      ctx.beginPath(); ctx.arc(cx, y, radius, start, start + Math.PI * 0.5); ctx.stroke()
+      ctx.beginPath()
+      ctx.arc(cx, y, radius, start, start + Math.PI * 0.5)
+      ctx.stroke()
       ctx.restore()
 
       const fs = Math.max(12, Math.round(22 * scale))
@@ -1971,14 +2239,18 @@ export default class KaraokePlayer {
     let bestFontSize = 8
     let bestLines = [text]
     for (let nLines = 1; nLines <= 4; nLines++) {
-      let lo = 8, hi = Math.floor(areaH / nLines / 1.2)
+      let lo = 8,
+        hi = Math.floor(areaH / nLines / 1.2)
       while (lo <= hi) {
         const mid = (lo + hi) >> 1
         ctx.font = `${fontWeight} ${mid}px ${fontFamily}`
         const wrapped = this._wrapTextToLines(ctx, text, areaW)
         const maxLineW = wrapped.reduce((m, l) => Math.max(m, ctx.measureText(l).width), 0)
         if (wrapped.length <= nLines && mid * 1.2 * wrapped.length <= areaH && maxLineW <= areaW) {
-          if (mid > bestFontSize) { bestFontSize = mid; bestLines = wrapped }
+          if (mid > bestFontSize) {
+            bestFontSize = mid
+            bestLines = wrapped
+          }
           lo = mid + 1
         } else {
           hi = mid - 1
@@ -2020,30 +2292,30 @@ export default class KaraokePlayer {
 
     // "Contain" scaling: fit 1920×1080 frame into canvas preserving aspect ratio, centred.
     const sc = Math.min(W / 1920, H / 1080)
-    const ox = (W - 1920 * sc) / 2   // horizontal offset
-    const oy = (H - 1080 * sc) / 2   // vertical offset
+    const ox = (W - 1920 * sc) / 2 // horizontal offset
+    const oy = (H - 1080 * sc) / 2 // vertical offset
 
-    const BORDER = 54   // 1080 * 0.05
+    const BORDER = 54 // 1080 * 0.05
     const PAD = 50
 
     // Album image 400×400 at frame (233, 54)
     if (this._albumImg) {
-      this._drawImageFit(ctx, this._albumImg,
-        ox + 233 * sc, oy + BORDER * sc, 400 * sc, 400 * sc)
+      this._drawImageFit(ctx, this._albumImg, ox + 233 * sc, oy + BORDER * sc, 400 * sc, 400 * sc)
     }
     // Author image 1000×400 at frame (687, 54)
     if (this._artistImg) {
-      this._drawImageFit(ctx, this._artistImg,
-        ox + 687 * sc, oy + BORDER * sc, 1000 * sc, 400 * sc)
+      this._drawImageFit(ctx, this._artistImg, ox + 687 * sc, oy + BORDER * sc, 1000 * sc, 400 * sc)
     }
 
     this._setShadow(ctx, sc)
 
     // Chord description at frame y ≈ 1005 (1080 - border/2 - fontSize*1.2)
     const chordSz = Math.round(40 * sc)
-    const chordFrameY = 1080 - BORDER * 0.5 - 40 * 1.2  // ≈ 1005
+    const chordFrameY = 1080 - BORDER * 0.5 - 40 * 1.2 // ≈ 1005
     const chordY = oy + chordFrameY * sc
-    const keyStr = this.data.key ? `Key: «${this.data.key}», bpm: ${this.data.bpm}` : `bpm: ${this.data.bpm}`
+    const keyStr = this.data.key
+      ? `Key: «${this.data.key}», bpm: ${this.data.bpm}`
+      : `bpm: ${this.data.bpm}`
     ctx.font = `400 ${chordSz}px FiraSansExtraCondensed, sans-serif`
     ctx.fillStyle = 'rgb(255,127,127)'
     ctx.textAlign = 'center'
@@ -2056,7 +2328,16 @@ export default class KaraokePlayer {
     const textAreaW = (1920 - 2 * PAD) * sc
     const textAreaH = chordY - textAreaY - PAD * sc * 0.5
     ctx.fillStyle = 'rgb(255,255,127)'
-    this._drawAutoFitText(ctx, this.data.songName || '', textAreaX, textAreaY, textAreaW, Math.max(10, textAreaH), '900', 'Roboto, sans-serif')
+    this._drawAutoFitText(
+      ctx,
+      this.data.songName || '',
+      textAreaX,
+      textAreaY,
+      textAreaW,
+      Math.max(10, textAreaH),
+      '900',
+      'Roboto, sans-serif',
+    )
 
     this._clearShadow(ctx)
     ctx.globalAlpha = 1.0
@@ -2078,7 +2359,7 @@ export default class KaraokePlayer {
       return
     }
 
-    const outerAlpha = ctx.globalAlpha   // preserve fade-out alpha from _renderFrame
+    const outerAlpha = ctx.globalAlpha // preserve fade-out alpha from _renderFrame
     // Text center = H/2 + 7px: Kotlin positions active line at H/2 + |horizonOffsetPx| (horizonOffsetPx=-7)
     const centerY = H / 2 + Math.round(7 * scale)
 
@@ -2101,8 +2382,8 @@ export default class KaraokePlayer {
       ctx.fillStyle = 'rgb(255,255,255)'
       for (const line of this.lines) {
         if (line.isEmpty || line.isComment || line.voiceIdx !== 0) continue
-        const x = Math.round(line.startTime / this.duration * W)
-        const w = Math.round(line.endTime / this.duration * W) - x
+        const x = Math.round((line.startTime / this.duration) * W)
+        const w = Math.round((line.endTime / this.duration) * W) - x
         if (w > 0) ctx.fillRect(x, botH, w, horizonLineH)
       }
     }
@@ -2111,7 +2392,7 @@ export default class KaraokePlayer {
     // right (unplayed) portion of both horizon lines, slides right as song plays.
     // brushcolor = "0,0,0,170" → rgba(0,0,0, 170/255 ≈ 0.667)
     if (this.duration > 0) {
-      const progressX = Math.round(ct / this.duration * W)
+      const progressX = Math.round((ct / this.duration) * W)
       const overlayW = W - progressX
       if (overlayW > 0) {
         ctx.fillStyle = 'rgba(0,0,0,0.667)'
@@ -2216,16 +2497,22 @@ export default class KaraokePlayer {
   // (в реальных 16:9-пропорциях именно ширина — связывающее ограничение; hi=H — просто щедрый
   // потолок для поиска, не отдельный лимит).
   _renderTypeCaption(ctx, W, H, scale) {
-    const text = this.data.songType === 'poetry'
-      ? 'Поэзия (без музыки)'
-      : 'Инструментальная композиция'
+    const text =
+      this.data.songType === 'poetry' ? 'Поэзия (без музыки)' : 'Инструментальная композиция'
     const margin = W / 10
     const maxW = W - margin * 2
-    let lo = 8, hi = Math.floor(H), bestSz = 8
+    let lo = 8,
+      hi = Math.floor(H),
+      bestSz = 8
     while (lo <= hi) {
       const mid = (lo + hi) >> 1
       ctx.font = `900 ${mid}px Roboto, sans-serif`
-      if (ctx.measureText(text).width <= maxW) { bestSz = mid; lo = mid + 1 } else { hi = mid - 1 }
+      if (ctx.measureText(text).width <= maxW) {
+        bestSz = mid
+        lo = mid + 1
+      } else {
+        hi = mid - 1
+      }
     }
     ctx.font = `900 ${bestSz}px Roboto, sans-serif`
     ctx.textAlign = 'center'
@@ -2258,9 +2545,11 @@ export default class KaraokePlayer {
   }
 
   _getHorizonColor(ct) {
-    const active = this.lines.find(l => !l.isEmpty && !l.isComment && ct >= l.startTime && ct < l.endTime)
+    const active = this.lines.find(
+      (l) => !l.isEmpty && !l.isComment && ct >= l.startTime && ct < l.endTime,
+    )
     const COLORS = ['rgb(0,200,0)', 'rgb(200,0,0)', 'rgb(0,100,200)']
-    return COLORS[((active ? active.voiceIdx : 0)) % COLORS.length]
+    return COLORS[(active ? active.voiceIdx : 0) % COLORS.length]
   }
 
   // Flash times: all text line starts + counter lines get n*halfNote offsets (n=1..4)
@@ -2286,16 +2575,20 @@ export default class KaraokePlayer {
     const times = this.flashTimes
     if (!times || !times.length) return 0
     // Binary search: find latest event time ≤ ct
-    let lo = 0, hi = times.length - 1, idx = -1
+    let lo = 0,
+      hi = times.length - 1,
+      idx = -1
     while (lo <= hi) {
       const mid = (lo + hi) >> 1
-      if (times[mid] <= ct) { idx = mid; lo = mid + 1 }
-      else hi = mid - 1
+      if (times[mid] <= ct) {
+        idx = mid
+        lo = mid + 1
+      } else hi = mid - 1
     }
     if (idx < 0) return 0
     const T = times[idx]
-    const nextT = idx + 1 < times.length ? times[idx + 1] : (this.duration || T + 1)
-    const D = Math.min(1.0, nextT - T)  // fade duration: min(1s, gap to next event)
+    const nextT = idx + 1 < times.length ? times[idx + 1] : this.duration || T + 1
+    const D = Math.min(1.0, nextT - T) // fade duration: min(1s, gap to next event)
     const elapsed = ct - T
     if (elapsed < 0 || elapsed >= D) return 0
     return Math.max(0, 1 - elapsed / D)
@@ -2307,23 +2600,23 @@ export default class KaraokePlayer {
   //   0 = white  normal   1 = yellow italic   2 = cyan  normal   3 = green italic
   static _groupStyle(groupId) {
     const T = [
-      { color: '#ffffff',          italic: false },
-      { color: 'rgb(255,255,155)', italic: true  },
-      { color: '#00bfff',          italic: false },
-      { color: '#00ff00',          italic: true  },
+      { color: '#ffffff', italic: false },
+      { color: 'rgb(255,255,155)', italic: true },
+      { color: '#00bfff', italic: false },
+      { color: '#00ff00', italic: true },
     ]
     return T[groupId % T.length] ?? T[0]
   }
 
   _renderLine(ctx, line, centerY, fontSize, xStart, W, ct, isActive, isSung) {
-    const outerAlpha = ctx.globalAlpha   // preserve fade-out alpha from _renderFrame
+    const outerAlpha = ctx.globalAlpha // preserve fade-out alpha from _renderFrame
     const scale = W / 1920
     const g = KaraokePlayer._groupStyle(line.groupId ?? line.voiceIdx)
     ctx.font = `${g.italic ? 'italic ' : ''}900 ${fontSize}px Roboto, sans-serif`
     ctx.textBaseline = 'middle'
 
     let x = xStart
-    const syls = line.syllables.map(s => {
+    const syls = line.syllables.map((s) => {
       const w = ctx.measureText(s.text).width
       const r = { text: s.text, startTime: s.startTime, endTime: s.endTime, x, w }
       x += w
@@ -2335,7 +2628,7 @@ export default class KaraokePlayer {
     const rectY = Math.round(centerY - rectH / 2)
     const textColor = g.color
     const FILL_COLOR = 'rgb(255,128,0)'
-    const SHORT_MS = 0.75  // mirror Kotlin shortSubtitleMs = 750ms
+    const SHORT_MS = 0.75 // mirror Kotlin shortSubtitleMs = 750ms
 
     // Compute fill width and animated height (mirrors Kotlin startTransformProperty/endTransformProperty).
     // Short syllable (≤750ms): fill height stays at 5/7 throughout.
@@ -2354,7 +2647,7 @@ export default class KaraokePlayer {
         deltaY = rectH / 7
       } else {
         const cur = syls[currIdx]
-        const isShortCur = (cur.endTime - cur.startTime) <= SHORT_MS
+        const isShortCur = cur.endTime - cur.startTime <= SHORT_MS
         const endDelta = isShortCur ? rectH / 7 : 0
 
         let startDelta
@@ -2366,13 +2659,16 @@ export default class KaraokePlayer {
           if (hasGap) {
             startDelta = rectH / 7
           } else {
-            startDelta = (prev.endTime - prev.startTime) <= SHORT_MS ? rectH / 7 : 0
+            startDelta = prev.endTime - prev.startTime <= SHORT_MS ? rectH / 7 : 0
           }
         }
 
-        const progress = (cur.endTime > cur.startTime && atTime < cur.endTime)
-          ? (atTime - cur.startTime) / (cur.endTime - cur.startTime)
-          : (atTime >= cur.endTime ? 1.0 : 0.0)
+        const progress =
+          cur.endTime > cur.startTime && atTime < cur.endTime
+            ? (atTime - cur.startTime) / (cur.endTime - cur.startTime)
+            : atTime >= cur.endTime
+              ? 1.0
+              : 0.0
         deltaY = startDelta + (endDelta - startDelta) * progress
       }
 
@@ -2380,9 +2676,10 @@ export default class KaraokePlayer {
       let fillW = 0
       for (const s of syls) {
         if (atTime < s.startTime) break
-        fillW = (s.endTime > s.startTime && atTime < s.endTime)
-          ? (s.x - xStart) + s.w * (atTime - s.startTime) / (s.endTime - s.startTime)
-          : (s.x - xStart) + s.w
+        fillW =
+          s.endTime > s.startTime && atTime < s.endTime
+            ? s.x - xStart + (s.w * (atTime - s.startTime)) / (s.endTime - s.startTime)
+            : s.x - xStart + s.w
       }
 
       return { fillW, fillY: rectY + deltaY, fillH: rectH - 2 * deltaY }
@@ -2397,7 +2694,6 @@ export default class KaraokePlayer {
       ctx.fillStyle = textColor
       for (const s of syls) ctx.fillText(s.text, s.x, centerY)
       this._clearShadow(ctx)
-
     } else if (isSung) {
       const { fillY, fillH } = _fillGeometry(line.endTime)
       const fillAlpha = Math.max(0, 1 - (ct - line.endTime) / 1.0)
@@ -2411,7 +2707,6 @@ export default class KaraokePlayer {
       ctx.fillStyle = textColor
       for (const s of syls) ctx.fillText(s.text, s.x, centerY)
       this._clearShadow(ctx)
-
     } else {
       this._setShadow(ctx, scale)
       ctx.fillStyle = textColor
@@ -2443,7 +2738,7 @@ export default class KaraokePlayer {
   _computeVoiceLayout(ctx, W) {
     const margin = Math.round(W * 0.05)
     const nVoices = Math.max(1, this.voiceLines?.length || 1)
-    const defaultFontSize = Math.round(54 * W / 1920)
+    const defaultFontSize = Math.round((54 * W) / 1920)
 
     if (!this.lines || this.lines.length === 0) {
       return { fontSize: defaultFontSize, voiceXStart: [margin] }
@@ -2470,7 +2765,7 @@ export default class KaraokePlayer {
     if (totalRefW <= 0 || maxTotalW <= 0) {
       fontSize = defaultFontSize
     } else {
-      fontSize = Math.max(10, Math.min(Math.floor(REF_SIZE * maxTotalW / totalRefW), 200))
+      fontSize = Math.max(10, Math.min(Math.floor((REF_SIZE * maxTotalW) / totalRefW), 200))
     }
 
     const scale = fontSize / REF_SIZE
@@ -2497,7 +2792,13 @@ export default class KaraokePlayer {
     if (!bpm || bpm === 0) return
     const halfNote = (60 / bpm) * 2
     const rectH = fontSize * 1.1
-    const COLORS = ['rgb(0,255,0)', 'rgb(255,255,0)', 'rgb(255,255,0)', 'rgb(255,0,0)', 'rgb(255,0,0)']
+    const COLORS = [
+      'rgb(0,255,0)',
+      'rgb(255,255,0)',
+      'rgb(255,255,0)',
+      'rgb(255,0,0)',
+      'rgb(255,0,0)',
+    ]
     const counterX = Math.round(xStart / 2)
 
     for (const line of this.lines) {
@@ -2535,14 +2836,14 @@ export default class KaraokePlayer {
     const bpm = this.data?.bpm || 120
     const halfNote = (60 / bpm) * 2
 
-    const firstCounterLine = this.lines.find(l => !l.isEmpty && l.hasCounter)
-    if (!firstCounterLine) return 0  // no counter → always visible
+    const firstCounterLine = this.lines.find((l) => !l.isEmpty && l.hasCounter)
+    if (!firstCounterLine) return 0 // no counter → always visible
 
     // Kotlin: startTimeFirstCounterMs = timesForFlashList[0] = firstLine.startTime - 4*halfNote
     const hideStart = firstCounterLine.startTime - 4 * halfNote
     const hideEnd = firstCounterLine.startTime
 
-    const lastTextLine = [...this.lines].reverse().find(l => !l.isEmpty && !l.isComment)
+    const lastTextLine = [...this.lines].reverse().find((l) => !l.isEmpty && !l.isComment)
     const showStart = lastTextLine ? lastTextLine.endTime : Infinity
     const showEnd = showStart + 4 * halfNote
 
@@ -2557,7 +2858,7 @@ export default class KaraokePlayer {
     // slideProgress: 0=visible (y=0), 1=hidden (y=-headerH). Mirror Kotlin y: 0 → -592px.
     const headerH = Math.round(592 * scale)
     const slideY = -Math.round(headerH * slideProgress)
-    if (slideY <= -headerH) return  // fully hidden
+    if (slideY <= -headerH) return // fully hidden
 
     ctx.save()
     ctx.translate(0, slideY)
@@ -2576,16 +2877,22 @@ export default class KaraokePlayer {
     const logoScale = W * 0.00025
     const logoY = Math.round(36 * scale)
     if (this._artistImg) {
-      ctx.drawImage(this._artistImg,
-        Math.round(W * 0.6385), logoY,
+      ctx.drawImage(
+        this._artistImg,
+        Math.round(W * 0.6385),
+        logoY,
         Math.round(this._artistImg.naturalWidth * logoScale),
-        Math.round(this._artistImg.naturalHeight * logoScale))
+        Math.round(this._artistImg.naturalHeight * logoScale),
+      )
     }
     if (this._albumImg) {
-      ctx.drawImage(this._albumImg,
-        Math.round(W * 0.8927), logoY,
+      ctx.drawImage(
+        this._albumImg,
+        Math.round(W * 0.8927),
+        logoY,
         Math.round(this._albumImg.naturalWidth * logoScale),
-        Math.round(this._albumImg.naturalHeight * logoScale))
+        Math.round(this._albumImg.naturalHeight * logoScale),
+      )
     }
 
     this._setShadow(ctx, scale)
@@ -2594,7 +2901,7 @@ export default class KaraokePlayer {
     const xOff = Math.round(W * 0.05)
     const snSize = Math.round(80 * scale)
     const rowSize = Math.round(30 * scale)
-    const maxSongNameW = Math.round(1200 * W / 1920) - xOff
+    const maxSongNameW = Math.round((1200 * W) / 1920) - xOff
 
     // Song name: auto-fit font size to maxSongNameW
     let snSz = snSize
@@ -2610,13 +2917,16 @@ export default class KaraokePlayer {
     // Metadata rows: label (cyan, right-aligned) + value (yellow)
     const rows = [
       { label: 'Исполнитель: ', value: this.data.author || '' },
-      { label: 'Альбом: ', value: (this.data.album || '') + (this.data.year ? ` (${this.data.year})` : '') },
+      {
+        label: 'Альбом: ',
+        value: (this.data.album || '') + (this.data.year ? ` (${this.data.year})` : ''),
+      },
     ]
     if (this.data.key) rows.push({ label: 'Тональность: ', value: this.data.key })
     if (this.data.bpm) rows.push({ label: 'Темп: ', value: `${this.data.bpm} bpm` })
 
     ctx.font = `900 ${rowSize}px Roboto, sans-serif`
-    const maxLabelW = Math.max(...rows.map(r => ctx.measureText(r.label).width))
+    const maxLabelW = Math.max(...rows.map((r) => ctx.measureText(r.label).width))
     const valueX = xOff + maxLabelW
 
     const snLineH = snSz * 1.25
@@ -2655,8 +2965,12 @@ export default class KaraokePlayer {
       this._lastWsSync = now
       // WaveSurfer tracks the full timeline: seekTo(dt / totalDuration)
       const pctWs = dt / totalDuration
-      try { this.wsAcc?.seekTo(pctWs) } catch {}
-      try { this.wsVoc?.seekTo(pctWs) } catch {}
+      try {
+        this.wsAcc?.seekTo(pctWs)
+      } catch {}
+      try {
+        this.wsVoc?.seekTo(pctWs)
+      } catch {}
     }
   }
 
@@ -2668,12 +2982,24 @@ export default class KaraokePlayer {
   }
 
   async _loadNewFile(file) {
-    if (this.animId) { cancelAnimationFrame(this.animId); this.animId = null }
+    if (this.animId) {
+      cancelAnimationFrame(this.animId)
+      this.animId = null
+    }
     this._endedHandled = true
     this._stopSources()
-    if (this.audioCtx) { await this.audioCtx.close(); this.audioCtx = null }
-    if (this.wsAcc) { this.wsAcc.destroy(); this.wsAcc = null }
-    if (this.wsVoc) { this.wsVoc.destroy(); this.wsVoc = null }
+    if (this.audioCtx) {
+      await this.audioCtx.close()
+      this.audioCtx = null
+    }
+    if (this.wsAcc) {
+      this.wsAcc.destroy()
+      this.wsAcc = null
+    }
+    if (this.wsVoc) {
+      this.wsVoc.destroy()
+      this.wsVoc = null
+    }
     window.removeEventListener('resize', this._resizeHandler)
     document.removeEventListener('fullscreenchange', this._fsHandler)
     document.removeEventListener('click', this._menuOutsideClickHandler)
@@ -2682,24 +3008,35 @@ export default class KaraokePlayer {
 
     this._mode = 'blob'
     this._smkaraokeSource = file
-    this.accBuffer = null; this.vocBuffer = null
-    this.accSource = null; this.vocSource = null
-    this.accGain = null; this.vocGain = null
-    this.startedAt = 0; this.pausedAt = 0
-    this.isPlaying = false; this.duration = 0
-    this.data = null; this.lines = []; this.voiceLines = []
+    this.accBuffer = null
+    this.vocBuffer = null
+    this.accSource = null
+    this.vocSource = null
+    this.accGain = null
+    this.vocGain = null
+    this.startedAt = 0
+    this.pausedAt = 0
+    this.isPlaying = false
+    this.duration = 0
+    this.data = null
+    this.lines = []
+    this.voiceLines = []
     this._ready = false
     this._loadProgress = null
     this._endedHandled = false
-    this._cachedCanvasW = null; this._cachedVoiceXStart = null
+    this._cachedCanvasW = null
+    this._cachedVoiceXStart = null
     this._lastWsSync = 0
     this.flashTimes = []
-    this._isPrerolling = false; this._dtPaused = 0
-    this._silentOffset = 0; this._preroll = this._splashDur
+    this._isPrerolling = false
+    this._dtPaused = 0
+    this._silentOffset = 0
+    this._preroll = this._splashDur
     this._startFadeStartedAt = null
     this._endFadeStartedAt = null
     this._volumeAnchored = false
-    clearTimeout(this._prerollTimeout); this._prerollTimeout = null
+    clearTimeout(this._prerollTimeout)
+    this._prerollTimeout = null
 
     await this.init()
   }

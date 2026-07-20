@@ -1,82 +1,121 @@
-import { setWebvueProp } from "../../../lib/utils";
+import { setWebvueProp } from '../../../lib/utils'
 export default {
-    state: {
-        authorsFilterId: '',
-        authorsFilterAuthor: '',
-        authorsFilterYmId: '',
-        authorsFilterVkId: '',
-        authorsFilterLastAlbumYm: '',
-        authorsFilterLastAlbumVk: '',
-        authorsFilterLastAlbumProcessed: '',
-        authorsFilterWatched: '',
-        authorsFilterSkip: '',
-        authorsFilterHaveNewAlbum: ''
+  state: {
+    authorsFilterId: '',
+    authorsFilterAuthor: '',
+    authorsFilterYmId: '',
+    authorsFilterVkId: '',
+    authorsFilterLastAlbumYm: '',
+    authorsFilterLastAlbumVk: '',
+    authorsFilterLastAlbumProcessed: '',
+    authorsFilterWatched: '',
+    authorsFilterSkip: '',
+    authorsFilterHaveNewAlbum: '',
+  },
+  getters: {
+    getAuthorsFilterId(state) {
+      return state.authorsFilterId
     },
-    getters: {
-        getAuthorsFilterId(state) { return state.authorsFilterId},
-        getAuthorsFilterAuthor(state) { return state.authorsFilterAuthor},
-        getAuthorsFilterYmId(state) { return state.authorsFilterYmId},
-        getAuthorsFilterVkId(state) { return state.authorsFilterVkId},
-        getAuthorsFilterLastAlbumYm(state) { return state.authorsFilterLastAlbumYm},
-        getAuthorsFilterLastAlbumVk(state) { return state.authorsFilterLastAlbumVk},
-        getAuthorsFilterLastAlbumProcessed(state) { return state.authorsFilterLastAlbumProcessed},
-        getAuthorsFilterWatched(state) { return state.authorsFilterWatched},
-        getAuthorsFilterSkip(state) { return state.authorsFilterSkip},
-        getAuthorsFilterHaveNewAlbum(state) { return state.authorsFilterHaveNewAlbum}
-
+    getAuthorsFilterAuthor(state) {
+      return state.authorsFilterAuthor
     },
-    mutations: {
-        setAuthorsFilterId(state, value) {
-            setWebvueProp(state.authorsFilterId, 'authorsFilterId', value);
-            state.authorsFilterId = value
-        },
-        setAuthorsFilterAuthor(state, value) {
-            setWebvueProp(state.authorsFilterAuthor, 'authorsFilterAuthor', value);
-            state.authorsFilterAuthor = value;
-        },
-        setAuthorsFilterYmId(state, value) {
-            setWebvueProp(state.authorsFilterYmId, 'authorsFilterYmId', value);
-            state.authorsFilterYmId = value;
-        },
-        setAuthorsFilterVkId(state, value) {
-            setWebvueProp(state.authorsFilterVkId, 'authorsFilterVkId', value);
-            state.authorsFilterVkId = value;
-        },
-        setAuthorsFilterLastAlbumYm(state, value) {
-            setWebvueProp(state.authorsFilterLastAlbumYm, 'authorsFilterLastAlbumYm', value);
-            state.authorsFilterLastAlbumYm = value;
-        },
-        setAuthorsFilterLastAlbumVk(state, value) {
-            setWebvueProp(state.authorsFilterLastAlbumVk, 'authorsFilterLastAlbumVk', value);
-            state.authorsFilterLastAlbumVk = value;
-        },
-        setAuthorsFilterLastAlbumProcessed(state, value) {
-            setWebvueProp(state.authorsFilterLastAlbumProcessed, 'authorsFilterLastAlbumProcessed', value);
-            state.authorsFilterLastAlbumProcessed = value;
-        },
-        setAuthorsFilterWatched(state, value) {
-            setWebvueProp(state.authorsFilterWatched, 'authorsFilterWatched', value);
-            state.authorsFilterWatched = value;
-        },
-        setAuthorsFilterSkip(state, value) {
-            setWebvueProp(state.authorsFilterSkip, 'authorsFilterSkip', value);
-            state.authorsFilterSkip = value;
-        },
-        setAuthorsFilterHaveNewAlbum(state, value) {
-            setWebvueProp(state.authorsFilterHaveNewAlbum, 'authorsFilterHaveNewAlbum', value);
-            state.authorsFilterHaveNewAlbum = value;
-        }
+    getAuthorsFilterYmId(state) {
+      return state.authorsFilterYmId
     },
-    actions: {
-        setAuthorsFilterId(ctx, payload) { ctx.commit('setAuthorsFilterId', payload.value) },
-        setAuthorsFilterAuthor(ctx, payload) { ctx.commit('setAuthorsFilterAuthor', payload.value) },
-        setAuthorsFilterYmId(ctx, payload) { ctx.commit('setAuthorsFilterYmId', payload.value) },
-        setAuthorsFilterVkId(ctx, payload) { ctx.commit('setAuthorsFilterVkId', payload.value) },
-        setAuthorsFilterLastAlbumYm(ctx, payload) { ctx.commit('setAuthorsFilterLastAlbumYm', payload.value) },
-        setAuthorsFilterLastAlbumVk(ctx, payload) { ctx.commit('setAuthorsFilterLastAlbumVk', payload.value) },
-        setAuthorsFilterLastAlbumProcessed(ctx, payload) { ctx.commit('setAuthorsFilterLastAlbumProcessed', payload.value) },
-        setAuthorsFilterWatched(ctx, payload) { ctx.commit('setAuthorsFilterWatched', payload.value) },
-        setAuthorsFilterSkip(ctx, payload) { ctx.commit('setAuthorsFilterSkip', payload.value) },
-        setAuthorsFilterHaveNewAlbum(ctx, payload) { ctx.commit('setAuthorsFilterHaveNewAlbum', payload.value) }
+    getAuthorsFilterVkId(state) {
+      return state.authorsFilterVkId
     },
+    getAuthorsFilterLastAlbumYm(state) {
+      return state.authorsFilterLastAlbumYm
+    },
+    getAuthorsFilterLastAlbumVk(state) {
+      return state.authorsFilterLastAlbumVk
+    },
+    getAuthorsFilterLastAlbumProcessed(state) {
+      return state.authorsFilterLastAlbumProcessed
+    },
+    getAuthorsFilterWatched(state) {
+      return state.authorsFilterWatched
+    },
+    getAuthorsFilterSkip(state) {
+      return state.authorsFilterSkip
+    },
+    getAuthorsFilterHaveNewAlbum(state) {
+      return state.authorsFilterHaveNewAlbum
+    },
+  },
+  mutations: {
+    setAuthorsFilterId(state, value) {
+      setWebvueProp(state.authorsFilterId, 'authorsFilterId', value)
+      state.authorsFilterId = value
+    },
+    setAuthorsFilterAuthor(state, value) {
+      setWebvueProp(state.authorsFilterAuthor, 'authorsFilterAuthor', value)
+      state.authorsFilterAuthor = value
+    },
+    setAuthorsFilterYmId(state, value) {
+      setWebvueProp(state.authorsFilterYmId, 'authorsFilterYmId', value)
+      state.authorsFilterYmId = value
+    },
+    setAuthorsFilterVkId(state, value) {
+      setWebvueProp(state.authorsFilterVkId, 'authorsFilterVkId', value)
+      state.authorsFilterVkId = value
+    },
+    setAuthorsFilterLastAlbumYm(state, value) {
+      setWebvueProp(state.authorsFilterLastAlbumYm, 'authorsFilterLastAlbumYm', value)
+      state.authorsFilterLastAlbumYm = value
+    },
+    setAuthorsFilterLastAlbumVk(state, value) {
+      setWebvueProp(state.authorsFilterLastAlbumVk, 'authorsFilterLastAlbumVk', value)
+      state.authorsFilterLastAlbumVk = value
+    },
+    setAuthorsFilterLastAlbumProcessed(state, value) {
+      setWebvueProp(state.authorsFilterLastAlbumProcessed, 'authorsFilterLastAlbumProcessed', value)
+      state.authorsFilterLastAlbumProcessed = value
+    },
+    setAuthorsFilterWatched(state, value) {
+      setWebvueProp(state.authorsFilterWatched, 'authorsFilterWatched', value)
+      state.authorsFilterWatched = value
+    },
+    setAuthorsFilterSkip(state, value) {
+      setWebvueProp(state.authorsFilterSkip, 'authorsFilterSkip', value)
+      state.authorsFilterSkip = value
+    },
+    setAuthorsFilterHaveNewAlbum(state, value) {
+      setWebvueProp(state.authorsFilterHaveNewAlbum, 'authorsFilterHaveNewAlbum', value)
+      state.authorsFilterHaveNewAlbum = value
+    },
+  },
+  actions: {
+    setAuthorsFilterId(ctx, payload) {
+      ctx.commit('setAuthorsFilterId', payload.value)
+    },
+    setAuthorsFilterAuthor(ctx, payload) {
+      ctx.commit('setAuthorsFilterAuthor', payload.value)
+    },
+    setAuthorsFilterYmId(ctx, payload) {
+      ctx.commit('setAuthorsFilterYmId', payload.value)
+    },
+    setAuthorsFilterVkId(ctx, payload) {
+      ctx.commit('setAuthorsFilterVkId', payload.value)
+    },
+    setAuthorsFilterLastAlbumYm(ctx, payload) {
+      ctx.commit('setAuthorsFilterLastAlbumYm', payload.value)
+    },
+    setAuthorsFilterLastAlbumVk(ctx, payload) {
+      ctx.commit('setAuthorsFilterLastAlbumVk', payload.value)
+    },
+    setAuthorsFilterLastAlbumProcessed(ctx, payload) {
+      ctx.commit('setAuthorsFilterLastAlbumProcessed', payload.value)
+    },
+    setAuthorsFilterWatched(ctx, payload) {
+      ctx.commit('setAuthorsFilterWatched', payload.value)
+    },
+    setAuthorsFilterSkip(ctx, payload) {
+      ctx.commit('setAuthorsFilterSkip', payload.value)
+    },
+    setAuthorsFilterHaveNewAlbum(ctx, payload) {
+      ctx.commit('setAuthorsFilterHaveNewAlbum', payload.value)
+    },
+  },
 }

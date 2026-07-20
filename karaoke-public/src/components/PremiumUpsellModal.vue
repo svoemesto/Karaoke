@@ -10,7 +10,9 @@
           <li v-for="(b, i) in state.benefits" :key="i">{{ b }}</li>
         </ul>
         <div class="pu-actions">
-          <RouterLink to="/account" class="pu-btn pu-btn-primary" @click="close">Мой профиль</RouterLink>
+          <RouterLink to="/account" class="pu-btn pu-btn-primary" @click="close"
+            >Мой профиль</RouterLink
+          >
           <button class="pu-btn pu-btn-secondary" @click="close">Понятно</button>
         </div>
       </div>
@@ -26,7 +28,7 @@ export default {
   setup() {
     const { state, close } = usePremiumModal()
     return { state, close }
-  }
+  },
 }
 </script>
 
@@ -122,11 +124,15 @@ export default {
   background: var(--km-accent, #0077ff);
   color: #fff;
 }
-.pu-btn-primary:hover { filter: brightness(1.08); }
+.pu-btn-primary:hover {
+  filter: brightness(1.08);
+}
 .pu-btn-secondary {
   background: transparent;
   color: var(--km-text2, #555);
   border-color: var(--km-border, #ccc);
 }
-.pu-btn-secondary:hover { background: var(--km-hover, rgba(0,0,0,0.05)); }
+.pu-btn-secondary:hover {
+  background: var(--km-hover, rgba(0, 0, 0, 0.05));
+}
 </style>

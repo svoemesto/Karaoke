@@ -2,38 +2,33 @@
   <transition name="modal-fade">
     <div class="pem-modal-backdrop">
       <div class="pem-area">
-
-        <div class="pem-area-modal-header">
-          Редактирование картинки
-        </div>
+        <div class="pem-area-modal-header">Редактирование картинки</div>
         <div class="pem-area-modal-body">
-          <PictureEdit @close="close"/>
+          <PictureEdit @close="close" />
         </div>
         <div class="pem-area-modal-footer">
           <button type="button" class="pem-btn-close" @click="close">Выход</button>
         </div>
-
       </div>
     </div>
   </transition>
 </template>
 
 <script>
-import PictureEdit from "../../../components/Pictures/edit/PictureEdit.vue";
+import PictureEdit from '../../../components/Pictures/edit/PictureEdit.vue'
 
 export default {
-  name: "PictureEditModal",
-  components: {PictureEdit},
+  name: 'PictureEditModal',
+  components: { PictureEdit },
   methods: {
     close() {
-      this.$emit('close');
-    }
-  }
+      this.$emit('close')
+    },
+  },
 }
 </script>
 
 <style scoped>
-
 .pem-modal-fade-enter,
 .pem-modal-fade-leave-active {
   opacity: 0;
@@ -41,7 +36,7 @@ export default {
 
 .pem-modal-fade-enter-active,
 .pem-modal-fade-leave-active {
-  transition: opacity .5s ease
+  transition: opacity 0.5s ease;
 }
 
 .pem-area-modal-header {
@@ -84,7 +79,7 @@ export default {
 }
 
 .pem-area {
-  background: #FFFFFF;
+  background: #ffffff;
   box-shadow: 2px 2px 20px 1px;
   overflow-x: auto;
   display: flex;
@@ -107,5 +102,4 @@ export default {
   width: 100px;
   height: auto;
 }
-
 </style>

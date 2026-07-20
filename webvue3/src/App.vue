@@ -1,21 +1,34 @@
 <!-- webvue3/src/App.vue -->
 <template>
   <BApp>
-    <router-view v-if="route.path.startsWith('/player')"/>
+    <router-view v-if="route.path.startsWith('/player')" />
     <div v-else id="app">
       <!-- Основной контейнер с двумя колонками -->
       <div class="app-container">
         <!-- Левая колонка для навигации -->
         <div class="app-sidebar">
-          <ul class="nav nav-pills flex-column"> <!-- Добавлен flex-column -->
+          <ul class="nav nav-pills flex-column">
+            <!-- Добавлен flex-column -->
             <li class="nav-item"><router-link class="nav-link" to="/">Главная</router-link></li>
             <li class="nav-item"><router-link class="nav-link" to="/songs">Песни</router-link></li>
-            <li class="nav-item"><router-link class="nav-link" to="/publish">Публикации</router-link></li>
-            <li class="nav-item"><router-link class="nav-link" to="/authors">Авторы</router-link></li>
-            <li class="nav-item"><router-link class="nav-link" to="/pictures">Картинки</router-link></li>
-            <li class="nav-item"><router-link class="nav-link" to="/processes">Процессы</router-link></li>
-            <li class="nav-item"><router-link class="nav-link" to="/properties">Настройки</router-link></li>
-            <li class="nav-item"><router-link class="nav-link" to="/dictionaries">Словари</router-link></li>
+            <li class="nav-item">
+              <router-link class="nav-link" to="/publish">Публикации</router-link>
+            </li>
+            <li class="nav-item">
+              <router-link class="nav-link" to="/authors">Авторы</router-link>
+            </li>
+            <li class="nav-item">
+              <router-link class="nav-link" to="/pictures">Картинки</router-link>
+            </li>
+            <li class="nav-item">
+              <router-link class="nav-link" to="/processes">Процессы</router-link>
+            </li>
+            <li class="nav-item">
+              <router-link class="nav-link" to="/properties">Настройки</router-link>
+            </li>
+            <li class="nav-item">
+              <router-link class="nav-link" to="/dictionaries">Словари</router-link>
+            </li>
             <li class="nav-item"><router-link class="nav-link" to="/news">Новости</router-link></li>
             <li class="nav-item">
               <router-link class="nav-link chat-nav-link" to="/chat">
@@ -23,37 +36,58 @@
                 <span v-if="chatUnreadTotal > 0" class="chat-nav-badge">{{ chatUnreadTotal }}</span>
               </router-link>
             </li>
-            <li class="nav-item"><router-link class="nav-link" to="/siteusers">Пользователи сайта</router-link></li>
-            <li class="nav-item"><router-link class="nav-link" to="/stemjobs">Минусовки</router-link></li>
-            <li class="nav-item"><router-link class="nav-link" to="/siteplaylists">Плейлисты</router-link></li>
+            <li class="nav-item">
+              <router-link class="nav-link" to="/siteusers">Пользователи сайта</router-link>
+            </li>
+            <li class="nav-item">
+              <router-link class="nav-link" to="/stemjobs">Минусовки</router-link>
+            </li>
+            <li class="nav-item">
+              <router-link class="nav-link" to="/siteplaylists">Плейлисты</router-link>
+            </li>
             <li class="nav-item">
               <router-link class="nav-link songeditor-nav-link" to="/songeditor">
                 Задания редактора
-                <span v-if="submittedAssignmentsCount > 0" class="songeditor-nav-badge">{{ submittedAssignmentsCount }}</span>
+                <span v-if="submittedAssignmentsCount > 0" class="songeditor-nav-badge">{{
+                  submittedAssignmentsCount
+                }}</span>
               </router-link>
             </li>
-            <li class="nav-item"><router-link class="nav-link" to="/publicsettings">Настройки сайта</router-link></li>
-            <li class="nav-item"><router-link class="nav-link" to="/tariffs">Тарифы</router-link></li>
-            <li class="nav-item"><router-link class="nav-link" to="/promotions">Акции</router-link></li>
-            <li class="nav-item"><router-link class="nav-link" to="/sponsrsync">Sponsr-синхронизация</router-link></li>
-            <li class="nav-item"><router-link class="nav-link" to="/stats">Статистика</router-link></li>
-            <li class="nav-item"><router-link class="nav-link" to="/sync">Синхронизация БД</router-link></li>
+            <li class="nav-item">
+              <router-link class="nav-link" to="/publicsettings">Настройки сайта</router-link>
+            </li>
+            <li class="nav-item">
+              <router-link class="nav-link" to="/tariffs">Тарифы</router-link>
+            </li>
+            <li class="nav-item">
+              <router-link class="nav-link" to="/promotions">Акции</router-link>
+            </li>
+            <li class="nav-item">
+              <router-link class="nav-link" to="/sponsrsync">Sponsr-синхронизация</router-link>
+            </li>
+            <li class="nav-item">
+              <router-link class="nav-link" to="/stats">Статистика</router-link>
+            </li>
+            <li class="nav-item">
+              <router-link class="nav-link" to="/sync">Синхронизация БД</router-link>
+            </li>
           </ul>
         </div>
 
         <!-- Правая колонка для основного контента -->
         <div class="app-main-content">
-          <div class="app-header-right"> <!-- Добавлен контейнер для правого верхнего угла -->
-            <BackendConsole/>
-            <ProcessWorker :hide-button="true" :excluded-thread-id="[0]"/>
+          <div class="app-header-right">
+            <!-- Добавлен контейнер для правого верхнего угла -->
+            <BackendConsole />
+            <ProcessWorker :hide-button="true" :excluded-thread-id="[0]" />
             <div class="start-stop-and-limit-group">
-              <ProcessWorker :hide-button="false" :included-thread-id="[0]"/>
-              <ResourceLimitToggle/>
-              <MonitorLight/>
-              <ChatNotifyButton/>
+              <ProcessWorker :hide-button="false" :included-thread-id="[0]" />
+              <ResourceLimitToggle />
+              <MonitorLight />
+              <ChatNotifyButton />
             </div>
           </div>
-          <router-view/>
+          <router-view />
         </div>
       </div>
     </div>
@@ -62,31 +96,30 @@
 
 <script setup>
 import { useRoute } from 'vue-router'
-import ProcessWorker from "./components/Common/ProcessWorker.vue";
-import BackendConsole from "./components/Common/BackendConsole.vue";
-import ResourceLimitToggle from "./components/Common/ResourceLimitToggle.vue";
-import MonitorLight from "./components/Common/Monitor/MonitorLight.vue";
-import ChatNotifyButton from "./components/Chat/ChatNotifyButton.vue";
-import {BApp} from 'bootstrap-vue-next';
+import ProcessWorker from './components/Common/ProcessWorker.vue'
+import BackendConsole from './components/Common/BackendConsole.vue'
+import ResourceLimitToggle from './components/Common/ResourceLimitToggle.vue'
+import MonitorLight from './components/Common/Monitor/MonitorLight.vue'
+import ChatNotifyButton from './components/Chat/ChatNotifyButton.vue'
+import { BApp } from 'bootstrap-vue-next'
 const route = useRoute()
 </script>
 
 <script>
+import { EventSourcePolyfill } from 'event-source-polyfill'
+import store from './store/index.js'
+import { useToast } from 'bootstrap-vue-next'
+import { h } from 'vue'
+import { getTabId } from './lib/utils.js'
 
-import {EventSourcePolyfill} from "event-source-polyfill";
-import store from "./store/index.js";
-import {useToast} from "bootstrap-vue-next";
-import {h} from "vue";
-import {getTabId} from "./lib/utils.js";
-
-const SSE_RECONNECT_DELAY_MS = 4000;
+const SSE_RECONNECT_DELAY_MS = 4000
 // «Чат с автором проекта» живёт на PROD-БД (см. Chat/store.js) — сообщения от пользователей создаёт
 // karaoke-web, а не karaoke-app, поэтому save() не шлёт SSE-уведомление и обновлять бейдж приходится
 // периодическим опросом (не привязан к SSE-соединению выше).
-const CHAT_UNREAD_POLL_INTERVAL_MS = 20000;
+const CHAT_UNREAD_POLL_INTERVAL_MS = 20000
 // Бейдж заданий редактора «на проверке» — тот же приём, что и у чата (отдельный опрос, не завязан на
 // SSE-канал MONITOR_ALERTS выше).
-const SONGEDITOR_SUBMITTED_POLL_INTERVAL_MS = 20000;
+const SONGEDITOR_SUBMITTED_POLL_INTERVAL_MS = 20000
 
 export default {
   data() {
@@ -98,152 +131,253 @@ export default {
     }
   },
   computed: {
-    chatUnreadTotal() { return this.$store.getters.getChatUnreadTotal },
-    submittedAssignmentsCount() { return this.$store.getters.getSubmittedAssignmentsCount },
+    chatUnreadTotal() {
+      return this.$store.getters.getChatUnreadTotal
+    },
+    submittedAssignmentsCount() {
+      return this.$store.getters.getSubmittedAssignmentsCount
+    },
   },
   async mounted() {
     console.log('APP mounted')
-    const {create} = useToast();
-    this.connectSse(create);
+    const { create } = useToast()
+    this.connectSse(create)
 
-    this.$store.dispatch('setLastSettingType',{ value: await this.$store.getters.getWebvueProp('lastSettingType', 'COMMENT') });
-    this.$store.dispatch('setLastSettingValue', { value: await this.$store.getters.getWebvueProp('lastSettingValue', 'Комментарий') });
-    this.$store.dispatch('setLastPriorLyrics', { value: await this.$store.getters.getWebvueProp('lastPriorLyrics', '1') });
-    this.$store.dispatch('setLastPriorKaraoke', { value: await this.$store.getters.getWebvueProp('lastPriorKaraoke', '0') });
-    this.$store.dispatch('setLastPriorChords', { value: await this.$store.getters.getWebvueProp('lastPriorChords', '') });
-    this.$store.dispatch('setLastPriorMelody', { value: await this.$store.getters.getWebvueProp('lastPriorMelody', '') });
-    this.$store.dispatch('setLastThreadId', { value: await this.$store.getters.getWebvueProp('lastThreadId', '0') });
-    this.$store.dispatch('setLastPriorCodeLyrics', { value: await this.$store.getters.getWebvueProp('lastPriorCodeLyrics', '10') });
-    this.$store.dispatch('setLastPriorCodeKaraoke', { value: await this.$store.getters.getWebvueProp('lastPriorCodeKaraoke', '10') });
-    this.$store.dispatch('setLastPriorDemucs', { value: await this.$store.getters.getWebvueProp('lastPriorDemucs', '-1') });
-    this.$store.dispatch('setLastPriorSymlinks', { value: await this.$store.getters.getWebvueProp('lastPriorSymlinks', '-1') });
-    this.$store.dispatch('setLastPriorSmartCopy', { value: await this.$store.getters.getWebvueProp('lastPriorSmartCopy', '-1') });
+    this.$store.dispatch('setLastSettingType', {
+      value: await this.$store.getters.getWebvueProp('lastSettingType', 'COMMENT'),
+    })
+    this.$store.dispatch('setLastSettingValue', {
+      value: await this.$store.getters.getWebvueProp('lastSettingValue', 'Комментарий'),
+    })
+    this.$store.dispatch('setLastPriorLyrics', {
+      value: await this.$store.getters.getWebvueProp('lastPriorLyrics', '1'),
+    })
+    this.$store.dispatch('setLastPriorKaraoke', {
+      value: await this.$store.getters.getWebvueProp('lastPriorKaraoke', '0'),
+    })
+    this.$store.dispatch('setLastPriorChords', {
+      value: await this.$store.getters.getWebvueProp('lastPriorChords', ''),
+    })
+    this.$store.dispatch('setLastPriorMelody', {
+      value: await this.$store.getters.getWebvueProp('lastPriorMelody', ''),
+    })
+    this.$store.dispatch('setLastThreadId', {
+      value: await this.$store.getters.getWebvueProp('lastThreadId', '0'),
+    })
+    this.$store.dispatch('setLastPriorCodeLyrics', {
+      value: await this.$store.getters.getWebvueProp('lastPriorCodeLyrics', '10'),
+    })
+    this.$store.dispatch('setLastPriorCodeKaraoke', {
+      value: await this.$store.getters.getWebvueProp('lastPriorCodeKaraoke', '10'),
+    })
+    this.$store.dispatch('setLastPriorDemucs', {
+      value: await this.$store.getters.getWebvueProp('lastPriorDemucs', '-1'),
+    })
+    this.$store.dispatch('setLastPriorSymlinks', {
+      value: await this.$store.getters.getWebvueProp('lastPriorSymlinks', '-1'),
+    })
+    this.$store.dispatch('setLastPriorSmartCopy', {
+      value: await this.$store.getters.getWebvueProp('lastPriorSmartCopy', '-1'),
+    })
 
-    this.$store.dispatch('loadChatUnreadCount');
-    this.chatUnreadPollTimer = setInterval(() => this.$store.dispatch('loadChatUnreadCount'), CHAT_UNREAD_POLL_INTERVAL_MS);
+    this.$store.dispatch('loadChatUnreadCount')
+    this.chatUnreadPollTimer = setInterval(
+      () => this.$store.dispatch('loadChatUnreadCount'),
+      CHAT_UNREAD_POLL_INTERVAL_MS,
+    )
 
-    this.$store.dispatch('loadSubmittedAssignmentsCount');
-    this.submittedAssignmentsPollTimer = setInterval(() => this.$store.dispatch('loadSubmittedAssignmentsCount'), SONGEDITOR_SUBMITTED_POLL_INTERVAL_MS);
+    this.$store.dispatch('loadSubmittedAssignmentsCount')
+    this.submittedAssignmentsPollTimer = setInterval(
+      () => this.$store.dispatch('loadSubmittedAssignmentsCount'),
+      SONGEDITOR_SUBMITTED_POLL_INTERVAL_MS,
+    )
   },
   beforeUnmount() {
     if (this.sseReconnectTimer) {
-      clearTimeout(this.sseReconnectTimer);
-      this.sseReconnectTimer = null;
+      clearTimeout(this.sseReconnectTimer)
+      this.sseReconnectTimer = null
     }
-    this.msgServer?.close();
+    this.msgServer?.close()
     if (this.chatUnreadPollTimer) {
-      clearInterval(this.chatUnreadPollTimer);
-      this.chatUnreadPollTimer = null;
+      clearInterval(this.chatUnreadPollTimer)
+      this.chatUnreadPollTimer = null
     }
     if (this.submittedAssignmentsPollTimer) {
-      clearInterval(this.submittedAssignmentsPollTimer);
-      this.submittedAssignmentsPollTimer = null;
+      clearInterval(this.submittedAssignmentsPollTimer)
+      this.submittedAssignmentsPollTimer = null
     }
   },
   methods: {
     connectSse(create) {
       // У каждой вкладки свой tabId (см. getTabId()) - сервер держит по нему отдельный SSE-канал
       // (см. TabIdFilter/SseNotificationService в karaoke-app) вместо общего на всё приложение.
-      const msgServer = new EventSourcePolyfill(`/api/subscribe?tabId=${encodeURIComponent(getTabId())}`, {
-        heartbeatTimeout: 30000, // > серверного heartbeat (15с), < дефолта полифилла (45с)
-      });
-      msgServer.addEventListener('user', (event) => {
-        this.userEvent(JSON.parse(event.data).payload, create)
-      }, false);
+      const msgServer = new EventSourcePolyfill(
+        `/api/subscribe?tabId=${encodeURIComponent(getTabId())}`,
+        {
+          heartbeatTimeout: 30000, // > серверного heartbeat (15с), < дефолта полифилла (45с)
+        },
+      )
+      msgServer.addEventListener(
+        'user',
+        (event) => {
+          this.userEvent(JSON.parse(event.data).payload, create)
+        },
+        false,
+      )
       msgServer.onerror = () => {
         if (msgServer.readyState === msgServer.CLOSED) {
-          this.scheduleSseReconnect(create);
+          this.scheduleSseReconnect(create)
         }
-      };
-      this.msgServer = msgServer;
+      }
+      this.msgServer = msgServer
     },
     scheduleSseReconnect(create) {
-      if (this.sseReconnectTimer) return;
+      if (this.sseReconnectTimer) return
       this.sseReconnectTimer = setTimeout(() => {
-        this.sseReconnectTimer = null;
-        this.connectSse(create);
-      }, SSE_RECONNECT_DELAY_MS);
+        this.sseReconnectTimer = null
+        this.connectSse(create)
+      }, SSE_RECONNECT_DELAY_MS)
     },
     userEvent(userEvent, create) {
       switch (userEvent.type) {
         case 'RECORD_CHANGE': {
           switch (userEvent.data.tableName) {
-            case 'tbl_settings': { this.updateSongByUserEvent(userEvent.data); break; }
-            case 'tbl_processes': { this.updateProcessByUserEvent(userEvent.data); break; }
-            default: { console.log('Обновление неизвестной таблицы: ', userEvent.data.tableName) }
+            case 'tbl_settings': {
+              this.updateSongByUserEvent(userEvent.data)
+              break
+            }
+            case 'tbl_processes': {
+              this.updateProcessByUserEvent(userEvent.data)
+              break
+            }
+            default: {
+              console.log('Обновление неизвестной таблицы: ', userEvent.data.tableName)
+            }
           }
-          break;
+          break
         }
         case 'RECORD_ADD': {
           switch (userEvent.data.tableName) {
-            case 'tbl_settings': { this.addSongByUserEvent(userEvent.data); break; }
-            case 'tbl_processes': { this.addProcessByUserEvent(userEvent.data); break; }
-            default: { console.log('Добавление записи неизвестной таблицы: ', userEvent.data.tableName) }
+            case 'tbl_settings': {
+              this.addSongByUserEvent(userEvent.data)
+              break
+            }
+            case 'tbl_processes': {
+              this.addProcessByUserEvent(userEvent.data)
+              break
+            }
+            default: {
+              console.log('Добавление записи неизвестной таблицы: ', userEvent.data.tableName)
+            }
           }
-          break;
+          break
         }
         case 'RECORD_DELETE': {
           switch (userEvent.data.tableName) {
-            case 'tbl_settings': { this.deleteSongByUserEvent(userEvent.data); break; }
-            case 'tbl_processes': { this.deleteProcessByUserEvent(userEvent.data); break; }
-            default: { console.log('Удаление записи из неизвестной таблицы: ', userEvent.data.tableName) }
+            case 'tbl_settings': {
+              this.deleteSongByUserEvent(userEvent.data)
+              break
+            }
+            case 'tbl_processes': {
+              this.deleteProcessByUserEvent(userEvent.data)
+              break
+            }
+            default: {
+              console.log('Удаление записи из неизвестной таблицы: ', userEvent.data.tableName)
+            }
           }
-          break;
+          break
         }
-        case 'PROCESS_WORKER_STATE': { this.updateProcessWorkerStateByUserEvent(userEvent.data); break; }
-        case 'PROCESS_COUNT_WAITING': { this.setCountWaiting(userEvent.data); break; }
-        case 'MESSAGE': { this.showMessageByUserEvent(userEvent.data, create); break; }
-        case 'ERROR': { this.showErrorByUserEvent(userEvent.data, create); break; }
-        case 'DUMMY': { console.log("DUMMY MESSAGE"); break; }
-        case 'LOG': { this.logMessageByUserEvent(userEvent.data); break; }
-        case 'CRUD': { this.crudMessageByUserEvent(userEvent.data, create); break; }
-        case 'SYNC': { this.syncMessageByUserEvent(userEvent.data, create); break; }
-        case 'HEALTH_REPORTS': { this.healthReportMessageByUserEvent(userEvent.data); break; }
-        case 'MONITOR_ALERTS': { this.$store.dispatch('monitorAlertsByUserEvent', userEvent.data); break; }
-        default: { console.log("Неизвестный тип события: ", userEvent.type); }
+        case 'PROCESS_WORKER_STATE': {
+          this.updateProcessWorkerStateByUserEvent(userEvent.data)
+          break
+        }
+        case 'PROCESS_COUNT_WAITING': {
+          this.setCountWaiting(userEvent.data)
+          break
+        }
+        case 'MESSAGE': {
+          this.showMessageByUserEvent(userEvent.data, create)
+          break
+        }
+        case 'ERROR': {
+          this.showErrorByUserEvent(userEvent.data, create)
+          break
+        }
+        case 'DUMMY': {
+          console.log('DUMMY MESSAGE')
+          break
+        }
+        case 'LOG': {
+          this.logMessageByUserEvent(userEvent.data)
+          break
+        }
+        case 'CRUD': {
+          this.crudMessageByUserEvent(userEvent.data, create)
+          break
+        }
+        case 'SYNC': {
+          this.syncMessageByUserEvent(userEvent.data, create)
+          break
+        }
+        case 'HEALTH_REPORTS': {
+          this.healthReportMessageByUserEvent(userEvent.data)
+          break
+        }
+        case 'MONITOR_ALERTS': {
+          this.$store.dispatch('monitorAlertsByUserEvent', userEvent.data)
+          break
+        }
+        default: {
+          console.log('Неизвестный тип события: ', userEvent.type)
+        }
       }
     },
 
     healthReportMessageByUserEvent(userEventData) {
       // console.log('healthReportMessageByUserEvent', userEventData);
-      this.$store.dispatch('healthReportMessageByUserEvent', userEventData);
+      this.$store.dispatch('healthReportMessageByUserEvent', userEventData)
     },
     updateSongByUserEvent(userEventData) {
-      this.$store.dispatch('updateSongByUserEvent', userEventData);
-      this.$store.dispatch('updatePublishDigestByUserEvent', userEventData);
+      this.$store.dispatch('updateSongByUserEvent', userEventData)
+      this.$store.dispatch('updatePublishDigestByUserEvent', userEventData)
     },
     updateProcessByUserEvent(userEventData) {
-      this.$store.dispatch('updateProcessByUserEvent', userEventData);
+      this.$store.dispatch('updateProcessByUserEvent', userEventData)
     },
     updateProcessWorkerStateByUserEvent(userEventData) {
-      this.$store.dispatch('updateProcessWorkerStateByUserEvent', userEventData);
+      this.$store.dispatch('updateProcessWorkerStateByUserEvent', userEventData)
     },
     setCountWaiting(userEventData) {
-      this.$store.dispatch('setCountWaiting', userEventData);
+      this.$store.dispatch('setCountWaiting', userEventData)
     },
     deleteSongByUserEvent(userEventData) {
-      this.$store.dispatch('deleteSongByUserEvent', userEventData);
-      this.$store.dispatch('deletePublishDigestByUserEvent', userEventData);
+      this.$store.dispatch('deleteSongByUserEvent', userEventData)
+      this.$store.dispatch('deletePublishDigestByUserEvent', userEventData)
     },
     deleteProcessByUserEvent(userEventData) {
-      this.$store.dispatch('deleteProcessByUserEvent', userEventData);
+      this.$store.dispatch('deleteProcessByUserEvent', userEventData)
     },
     addSongByUserEvent(userEventData) {
-      this.$store.dispatch('addSongByUserEvent', userEventData);
-      this.$store.dispatch('addPublishDigestByUserEvent', userEventData);
+      this.$store.dispatch('addSongByUserEvent', userEventData)
+      this.$store.dispatch('addPublishDigestByUserEvent', userEventData)
     },
     addProcessByUserEvent(userEventData) {
       // console.log('methods addProcessByUserEvent from main.js');
-      this.$store.dispatch('addProcessByUserEvent', userEventData);
+      this.$store.dispatch('addProcessByUserEvent', userEventData)
     },
     logMessageByUserEvent(text) {
-      this.$store.dispatch('setLogMessage', text);
+      this.$store.dispatch('setLogMessage', text)
     },
     showMessageByUserEvent(userEvent, create) {
       if (document.hidden) return
       const vNodesMsg = h('div', [
-        h('div', { style: { fontFamily: 'sans-serif', fontSize: 'small', textAlign: 'left' } }, userEvent.body)
-      ]);
+        h(
+          'div',
+          { style: { fontFamily: 'sans-serif', fontSize: 'small', textAlign: 'left' } },
+          userEvent.body,
+        ),
+      ])
       create({
         slots: { default: () => [vNodesMsg] },
         body: userEvent.body,
@@ -262,8 +396,12 @@ export default {
     showErrorByUserEvent(userEvent, create) {
       if (document.hidden) return
       const vNodesMsg = h('div', [
-        h('div', { style: { fontFamily: 'sans-serif', fontSize: 'small', textAlign: 'left' } }, userEvent.body)
-      ]);
+        h(
+          'div',
+          { style: { fontFamily: 'sans-serif', fontSize: 'small', textAlign: 'left' } },
+          userEvent.body,
+        ),
+      ])
       create({
         slots: { default: () => [vNodesMsg] },
         body: userEvent.body,
@@ -272,90 +410,117 @@ export default {
         bodyClass: 'toast-body-servererror',
         headerClass: 'toast-header-servererror',
         appendToast: false,
-        position: 'top-end'
+        position: 'top-end',
       })
     },
     crudMessageByUserEvent(userEvent, create) {
       if (document.hidden) return
       const createTextWithLineBreaks = (lines) => {
         if (!Array.isArray(lines)) {
-          return h('div', {
-            style: {
-              fontFamily: 'monospace',
-              fontSize: 'x-small',
-              textAlign: 'left',
-              fontWeight: 'bold',
-              paddingRight: '5px',
-              color: 'darkred'
-            }
-          }, [String(lines)]); // Если это не массив, возвращаем как одну строку
+          return h(
+            'div',
+            {
+              style: {
+                fontFamily: 'monospace',
+                fontSize: 'x-small',
+                textAlign: 'left',
+                fontWeight: 'bold',
+                paddingRight: '5px',
+                color: 'darkred',
+              },
+            },
+            [String(lines)],
+          ) // Если это не массив, возвращаем как одну строку
         }
-        const vnodes = [];
+        const vnodes = []
         lines.forEach((line, index) => {
-          const lineToAdd = h('div', { style: { fontFamily: 'monospace', fontSize: 'x-small', textAlign: 'left', fontWeight: 'bold', paddingRight: '5px', color: 'darkred' } }, line);
-          vnodes.push(lineToAdd);
+          const lineToAdd = h(
+            'div',
+            {
+              style: {
+                fontFamily: 'monospace',
+                fontSize: 'x-small',
+                textAlign: 'left',
+                fontWeight: 'bold',
+                paddingRight: '5px',
+                color: 'darkred',
+              },
+            },
+            line,
+          )
+          vnodes.push(lineToAdd)
           // Добавляем <br> после каждого элемента, кроме последнего
           // if (index < lines.length - 1) {
           //   vnodes.push(h('br'));
           // }
-        });
-        return vnodes;
-      };
+        })
+        return vnodes
+      }
 
       // Проверяем, является ли userEvent.body массивом
-      let listOfLists = userEvent;
+      let listOfLists = userEvent
       if (typeof userEvent === 'string') {
         try {
-          listOfLists = JSON.parse(userEvent);
+          listOfLists = JSON.parse(userEvent)
         } catch (e) {
-          console.error("Error parsing userEvent as JSON:", e);
+          console.error('Error parsing userEvent as JSON:', e)
           // В случае ошибки, обрабатываем как одну строку
-          listOfLists = [userEvent];
+          listOfLists = [userEvent]
         }
       }
 
-      let vNodesMsg = [];
+      let vNodesMsg = []
       if (!Array.isArray(listOfLists) || listOfLists.length !== 3) {
-        console.warn("userEvent is not an array of 3 lists. Treating as plain text.");
+        console.warn('userEvent is not an array of 3 lists. Treating as plain text.')
         // Обработка как простого текста, если структура неожиданная
         vNodesMsg = h('div', [
-          h('div', { style: { fontFamily: 'sans-serif', fontSize: 'small', textAlign: 'left' } }, String(userEvent))
-        ]);
+          h(
+            'div',
+            { style: { fontFamily: 'sans-serif', fontSize: 'small', textAlign: 'left' } },
+            String(userEvent),
+          ),
+        ])
         // ... остальная логика для vNodesMsg ...
       } else {
         // Обработка как массива из 3 списков
         vNodesMsg = h('div', [
           h('div', { style: { fontFamily: 'sans-serif', fontSize: 'small', textAlign: 'left' } }, [
             // Обработка первого списка
-            ...(listOfLists[0] && listOfLists[0].length > 0 ? [
-              `Создано записей: ${listOfLists[0].length}`,
-              // h('br'),
-              ...createTextWithLineBreaks(listOfLists[0]),
-              // h('br') // Разделитель после первого списка
-            ] : []),
+            ...(listOfLists[0] && listOfLists[0].length > 0
+              ? [
+                  `Создано записей: ${listOfLists[0].length}`,
+                  // h('br'),
+                  ...createTextWithLineBreaks(listOfLists[0]),
+                  // h('br') // Разделитель после первого списка
+                ]
+              : []),
 
             // Обработка второго списка
-            ...(listOfLists[1] && listOfLists[1].length > 0 ? [
-              `Обновлено записей: ${listOfLists[1].length}`,
-              // h('br'),
-              ...createTextWithLineBreaks(listOfLists[1]),
-              // h('br') // Разделитель после второго списка
-            ] : []),
+            ...(listOfLists[1] && listOfLists[1].length > 0
+              ? [
+                  `Обновлено записей: ${listOfLists[1].length}`,
+                  // h('br'),
+                  ...createTextWithLineBreaks(listOfLists[1]),
+                  // h('br') // Разделитель после второго списка
+                ]
+              : []),
 
             // Обработка третьего списка
-            ...(listOfLists[2] && listOfLists[2].length > 0 ? [
-              `Удалено записей: ${listOfLists[2].length}`,
-              // h('br'),
-              ...createTextWithLineBreaks(listOfLists[2])
-              // Не добавляем <br> после последнего списка
-            ] : [])
-          ])
-        ]);
+            ...(listOfLists[2] && listOfLists[2].length > 0
+              ? [
+                  `Удалено записей: ${listOfLists[2].length}`,
+                  // h('br'),
+                  ...createTextWithLineBreaks(listOfLists[2]),
+                  // Не добавляем <br> после последнего списка
+                ]
+              : []),
+          ]),
+        ])
       }
 
       create({
         slots: { default: () => [vNodesMsg] },
-        title: "CRUD",
+        title: 'CRUD',
         autoHideDelay: 3000,
         bodyClass: 'toast-body-crudmessage',
         headerClass: 'toast-header-crudmessage',
@@ -371,67 +536,90 @@ export default {
       if (document.hidden) return
       const createTextWithLineBreaks = (lines) => {
         if (!Array.isArray(lines)) {
-          return h('div', {
-            style: {
-              fontFamily: 'monospace',
-              fontSize: 'x-small',
-              textAlign: 'left',
-              fontWeight: 'bold',
-              paddingRight: '5px',
-              color: 'darkred'
-            }
-          }, [String(lines)]); // Если это не массив, возвращаем как одну строку
+          return h(
+            'div',
+            {
+              style: {
+                fontFamily: 'monospace',
+                fontSize: 'x-small',
+                textAlign: 'left',
+                fontWeight: 'bold',
+                paddingRight: '5px',
+                color: 'darkred',
+              },
+            },
+            [String(lines)],
+          ) // Если это не массив, возвращаем как одну строку
         }
-        const vnodes = [];
+        const vnodes = []
         lines.forEach((line, index) => {
-          const lineToAdd = h('div', { style: { fontFamily: 'monospace', fontSize: 'x-small', textAlign: 'left', fontWeight: 'bold', paddingRight: '5px', color: 'darkred' } }, line);
-          vnodes.push(lineToAdd);
+          const lineToAdd = h(
+            'div',
+            {
+              style: {
+                fontFamily: 'monospace',
+                fontSize: 'x-small',
+                textAlign: 'left',
+                fontWeight: 'bold',
+                paddingRight: '5px',
+                color: 'darkred',
+              },
+            },
+            line,
+          )
+          vnodes.push(lineToAdd)
           // Добавляем <br> после каждого элемента, кроме последнего
           // if (index < lines.length - 1) {
           //   vnodes.push(h('br'));
           // }
-        });
-        return vnodes;
-      };
+        })
+        return vnodes
+      }
 
       // Проверяем, является ли userEvent.body массивом
-      let listOfLists = userEvent;
+      let listOfLists = userEvent
       if (typeof userEvent === 'string') {
         try {
-          listOfLists = JSON.parse(userEvent);
+          listOfLists = JSON.parse(userEvent)
         } catch (e) {
-          console.error("Error parsing userEvent as JSON:", e);
+          console.error('Error parsing userEvent as JSON:', e)
           // В случае ошибки, обрабатываем как одну строку
-          listOfLists = [userEvent];
+          listOfLists = [userEvent]
         }
       }
 
-      let vNodesMsg = [];
+      let vNodesMsg = []
       if (!Array.isArray(listOfLists) || listOfLists.length !== 1) {
-        console.warn("userEvent is not an array of 1 lists. Treating as plain text.");
+        console.warn('userEvent is not an array of 1 lists. Treating as plain text.')
         // Обработка как простого текста, если структура неожиданная
         vNodesMsg = h('div', [
-          h('div', { style: { fontFamily: 'sans-serif', fontSize: 'small', textAlign: 'left' } }, String(userEvent))
-        ]);
+          h(
+            'div',
+            { style: { fontFamily: 'sans-serif', fontSize: 'small', textAlign: 'left' } },
+            String(userEvent),
+          ),
+        ])
         // ... остальная логика для vNodesMsg ...
       } else {
         // Обработка как массива
         vNodesMsg = h('div', [
           h('div', { style: { fontFamily: 'sans-serif', fontSize: 'small', textAlign: 'left' } }, [
             // Обработка первого списка
-            ...(listOfLists[0] && listOfLists[0].length > 0 ? [
-              `Добавлено записей в SYNC-таблицу: ${listOfLists[0].length}`,
-              // h('br'),
-              ...createTextWithLineBreaks(listOfLists[0]),
-              // h('br') // Разделитель после первого списка
-            ] : []),
-          ])
-        ]);
+            ...(listOfLists[0] && listOfLists[0].length > 0
+              ? [
+                  `Добавлено записей в SYNC-таблицу: ${listOfLists[0].length}`,
+                  // h('br'),
+                  ...createTextWithLineBreaks(listOfLists[0]),
+                  // h('br') // Разделитель после первого списка
+                ]
+              : []),
+          ]),
+        ])
       }
 
       create({
         slots: { default: () => [vNodesMsg] },
-        title: "SYNC",
+        title: 'SYNC',
         autoHideDelay: 3000,
         bodyClass: 'toast-body-syncmessage',
         headerClass: 'toast-header-syncmessage',
@@ -443,7 +631,7 @@ export default {
         // modelValue: true
       })
     },
-  }
+  },
 }
 </script>
 
@@ -536,7 +724,7 @@ export default {
 
 .app-sidebar .nav-link.router-link-active,
 .app-sidebar .nav-link.router-link-exact-active {
-  background-color: #4AAE9B; /* Цвет фона активной ссылки */
+  background-color: #4aae9b; /* Цвет фона активной ссылки */
   color: white; /* Цвет текста активной ссылки */
   font-weight: bold; /* Жирный шрифт для активной ссылки */
 }
@@ -566,7 +754,6 @@ export default {
 .start-stop-and-limit-group :deep(.process_worker) {
   margin-right: 0;
 }
-
 
 .app-header {
   display: flex;
@@ -627,7 +814,8 @@ li a:hover {
 .table-sm th {
   font-size: small !important;
 }
-.table-sm td, .table-sm th {
+.table-sm td,
+.table-sm th {
   padding: 0 !important;
 }
 .table-sm tr:hover {
@@ -640,48 +828,47 @@ li a:hover {
 }
 .toast-header-copytoclipboard {
   color: #fff !important;
-  background-color: rgb(50 50 255 / 85%) !important
+  background-color: rgb(50 50 255 / 85%) !important;
 }
 .toast-body-copytoclipboard {
-  padding: .75rem !important;
+  padding: 0.75rem !important;
   color: #000 !important;
   background-color: rgb(200 200 255 / 85%) !important;
 }
 .toast-header-servermessage {
   color: #fff !important;
-  background-color: rgb(10 100 10 / 85%) !important
+  background-color: rgb(10 100 10 / 85%) !important;
 }
 .toast-body-servermessage {
-  padding: .75rem !important;
+  padding: 0.75rem !important;
   color: #000 !important;
   background-color: rgb(200 255 200 / 85%) !important;
 }
 .toast-header-servererror {
   color: #fff !important;
-  background-color: rgb(0 0 0 / 85%) !important
+  background-color: rgb(0 0 0 / 85%) !important;
 }
 .toast-body-servererror {
-  padding: .75rem !important;
+  padding: 0.75rem !important;
   color: #fff !important;
   background-color: rgb(255 50 50 / 85%) !important;
 }
 .toast-header-crudmessage {
   color: #fff !important;
-  background-color: rgb(100 10 10 / 85%) !important
+  background-color: rgb(100 10 10 / 85%) !important;
 }
 .toast-body-crudmessage {
-  padding: .75rem !important;
+  padding: 0.75rem !important;
   color: #000 !important;
   background-color: rgb(255 200 200 / 85%) !important;
 }
 .toast-header-syncmessage {
   color: #fff !important;
-  background-color: rgb(100 10 10 / 85%) !important
+  background-color: rgb(100 10 10 / 85%) !important;
 }
 .toast-body-syncmessage {
-  padding: .75rem !important;
+  padding: 0.75rem !important;
   color: #000 !important;
   background-color: rgb(255 200 200 / 85%) !important;
 }
-
 </style>

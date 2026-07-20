@@ -1,14 +1,14 @@
 <template>
   <div class="songeditortable">
-    <SongEditorTable/>
+    <SongEditorTable />
   </div>
 </template>
 
 <script>
 import SongEditorTable from '../components/SongEditor/SongEditorTable.vue'
 export default {
-  name: "SongEditorView",
-  components: { SongEditorTable }
+  name: 'SongEditorView',
+  components: { SongEditorTable },
 }
 </script>
 

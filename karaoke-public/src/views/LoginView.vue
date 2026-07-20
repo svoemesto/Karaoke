@@ -20,7 +20,13 @@
         </div>
         <div class="km-field">
           <label class="km-label">Пароль</label>
-          <input v-model="password" type="password" class="km-input" autocomplete="current-password" @keyup.enter="onSubmit" />
+          <input
+            v-model="password"
+            type="password"
+            class="km-input"
+            autocomplete="current-password"
+            @keyup.enter="onSubmit"
+          />
         </div>
 
         <p v-if="errorMessage" class="km-error">{{ errorMessage }}</p>
@@ -29,7 +35,9 @@
           {{ loading ? 'Входим...' : 'Войти' }}
         </button>
 
-        <p class="km-alt-link">Нет аккаунта? <RouterLink to="/register">Зарегистрироваться</RouterLink></p>
+        <p class="km-alt-link">
+          Нет аккаунта? <RouterLink to="/register">Зарегистрироваться</RouterLink>
+        </p>
       </div>
     </div>
   </div>
@@ -56,7 +64,7 @@ export default {
   computed: {
     redirectNotice() {
       return !!this.$route.query.redirect
-    }
+    },
   },
   methods: {
     async onSubmit() {
@@ -86,35 +94,82 @@ export default {
       } finally {
         this.loading = false
       }
-    }
-  }
+    },
+  },
 }
 </script>
 
 <style scoped>
-.km-page { min-height: 100vh; background: var(--km-bg); color: var(--km-text); }
+.km-page {
+  min-height: 100vh;
+  background: var(--km-bg);
+  color: var(--km-text);
+}
 .km-header {
   background: var(--km-header);
   border-bottom: 1px solid var(--km-border);
   padding: 0.5rem 1rem;
 }
-.km-header-inner { max-width: 1000px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; }
-.km-header-left { display: flex; align-items: center; gap: 0.75rem; }
-.km-back { color: var(--km-accent); text-decoration: none; font-size: 0.85rem; white-space: nowrap; }
-.km-back:hover { text-decoration: underline; }
-.km-logo { height: 36px; width: auto; }
+.km-header-inner {
+  max-width: 1000px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.km-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.km-back {
+  color: var(--km-accent);
+  text-decoration: none;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+.km-back:hover {
+  text-decoration: underline;
+}
+.km-logo {
+  height: 36px;
+  width: auto;
+}
 
-.km-content { max-width: 420px; margin: 0 auto; padding: 2.5rem 1rem; }
+.km-content {
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 2.5rem 1rem;
+}
 .km-form-card {
   background: var(--km-card);
   border: 1px solid var(--km-border);
   border-radius: 14px;
   padding: 1.5rem;
 }
-.km-title { margin: 0 0 1rem; font-size: 1.3rem; color: var(--km-text); }
-.km-notice { font-size: 0.85rem; color: var(--km-text2); margin-bottom: 1rem; }
-.km-field { display: flex; flex-direction: column; gap: 0.25rem; margin-bottom: 0.9rem; }
-.km-label { font-size: 0.75rem; color: var(--km-text2); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+.km-title {
+  margin: 0 0 1rem;
+  font-size: 1.3rem;
+  color: var(--km-text);
+}
+.km-notice {
+  font-size: 0.85rem;
+  color: var(--km-text2);
+  margin-bottom: 1rem;
+}
+.km-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 0.9rem;
+}
+.km-label {
+  font-size: 0.75rem;
+  color: var(--km-text2);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
 .km-input {
   background: var(--km-input);
   color: var(--km-text);
@@ -124,8 +179,15 @@ export default {
   font-size: 0.95rem;
   width: 100%;
 }
-.km-input:focus { outline: none; border-color: var(--km-accent); }
-.km-error { color: #e05555; font-size: 0.85rem; margin: 0.5rem 0; }
+.km-input:focus {
+  outline: none;
+  border-color: var(--km-accent);
+}
+.km-error {
+  color: #e05555;
+  font-size: 0.85rem;
+  margin: 0.5rem 0;
+}
 .km-submit-btn {
   width: 100%;
   background: var(--km-accent);
@@ -138,8 +200,20 @@ export default {
   cursor: pointer;
   margin-top: 0.5rem;
 }
-.km-submit-btn:hover { opacity: 0.88; }
-.km-submit-btn:disabled { opacity: 0.6; cursor: default; }
-.km-alt-link { text-align: center; font-size: 0.85rem; color: var(--km-text2); margin-top: 1rem; }
-.km-alt-link a { color: var(--km-accent); }
+.km-submit-btn:hover {
+  opacity: 0.88;
+}
+.km-submit-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.km-alt-link {
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--km-text2);
+  margin-top: 1rem;
+}
+.km-alt-link a {
+  color: var(--km-accent);
+}
 </style>

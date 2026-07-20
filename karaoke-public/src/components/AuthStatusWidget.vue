@@ -3,10 +3,13 @@
     <RouterLink to="/news" class="km-auth-link">Новости</RouterLink>
     <template v-if="isLoggedIn">
       <RouterLink to="/account" class="km-auth-link">
-        <span v-if="isPremium" class="km-premium-badge" title="Премиум-подписчик">🪙</span>{{ displayName }}
+        <span v-if="isPremium" class="km-premium-badge" title="Премиум-подписчик">🪙</span
+        >{{ displayName }}
       </RouterLink>
       <RouterLink to="/account/playlists" class="km-auth-link">Плейлисты</RouterLink>
-      <RouterLink to="/account/cart" class="km-auth-link">🛒<span v-if="cartCount > 0" class="km-cart-count">{{ cartCount }}</span></RouterLink>
+      <RouterLink to="/account/cart" class="km-auth-link"
+        >🛒<span v-if="cartCount > 0" class="km-cart-count">{{ cartCount }}</span></RouterLink
+      >
       <button class="km-auth-btn" @click="onLogout">Выйти</button>
     </template>
     <template v-else>
@@ -35,17 +38,21 @@ export default {
     },
     isPremium() {
       return !!(this.user && this.user.effectivePremium)
-    }
+    },
   },
   methods: {
     async onLogout() {
       const currentToken = this.token
       this.clearSession()
       if (currentToken) {
-        try { await authPost('/api/public/auth/logout', {}, currentToken) } catch (e) { /* сессия уже очищена локально */ }
+        try {
+          await authPost('/api/public/auth/logout', {}, currentToken)
+        } catch (e) {
+          /* сессия уже очищена локально */
+        }
       }
-    }
-  }
+    },
+  },
 }
 </script>
 
@@ -61,12 +68,20 @@ export default {
   text-decoration: none;
   white-space: nowrap;
 }
-.km-auth-link:hover { color: var(--km-text); text-decoration: underline; }
-.km-auth-accent { color: var(--km-accent); font-weight: 600; }
-.km-premium-badge { margin-right: 0.3em; }
+.km-auth-link:hover {
+  color: var(--km-text);
+  text-decoration: underline;
+}
+.km-auth-accent {
+  color: var(--km-accent);
+  font-weight: 600;
+}
+.km-premium-badge {
+  margin-right: 0.3em;
+}
 .km-cart-count {
   display: inline-block;
-  background: #7C3AED;
+  background: #7c3aed;
   color: #fff;
   font-size: 0.68rem;
   font-weight: 700;
@@ -84,5 +99,8 @@ export default {
   font-size: 0.8rem;
   cursor: pointer;
 }
-.km-auth-btn:hover { background: var(--km-hover); color: var(--km-text); }
+.km-auth-btn:hover {
+  background: var(--km-hover);
+  color: var(--km-text);
+}
 </style>

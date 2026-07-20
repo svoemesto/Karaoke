@@ -1,59 +1,55 @@
 <template>
   <transition name="modal-fade">
     <div class="hrt-modal-backdrop">
-
       <div class="health-report-table-root">
-        <HealthReportTableHeader :health-report-list="healthReportList"/>
-        <HealthReportTableBody :health-report-list="healthReportList"/>
-        <HealthReportTableFooter @close="close"/>
+        <HealthReportTableHeader :health-report-list="healthReportList" />
+        <HealthReportTableBody :health-report-list="healthReportList" />
+        <HealthReportTableFooter @close="close" />
       </div>
     </div>
   </transition>
-
 </template>
 
 <script>
-
-import HealthReportTableBody from "./components/HealthReportTableBody.vue";
-import HealthReportTableFooter from "./components/HealthReportTableFooter.vue";
-import HealthReportTableHeader from "./components/HealthReportTableHeader.vue";
+import HealthReportTableBody from './components/HealthReportTableBody.vue'
+import HealthReportTableFooter from './components/HealthReportTableFooter.vue'
+import HealthReportTableHeader from './components/HealthReportTableHeader.vue'
 
 export default {
-  name: "HealthReportTable",
-  components: {HealthReportTableHeader, HealthReportTableFooter, HealthReportTableBody},
+  name: 'HealthReportTable',
+  components: { HealthReportTableHeader, HealthReportTableFooter, HealthReportTableBody },
   props: {
     id: {
       type: String,
-      required: true
-    }
+      required: true,
+    },
   },
   computed: {
     healthReportList() {
-      return this.$store.getters.getHealthReportList;
-    }
+      return this.$store.getters.getHealthReportList
+    },
   },
   watch: {
     healthReportList: {
-      handler () {
+      handler() {
         if (this.healthReportList.length === 0) {
-          this.close();
+          this.close()
         }
-      }
-    }
+      },
+    },
   },
   mounted() {
-    this.$store.dispatch('loadHealthReportList', this.id);
+    this.$store.dispatch('loadHealthReportList', this.id)
   },
   methods: {
     close() {
-      this.$emit('close');
-    }
-  }
+      this.$emit('close')
+    },
+  },
 }
 </script>
 
 <style scoped>
-
 .hrt-modal-backdrop {
   position: fixed;
   top: 0;
@@ -74,5 +70,4 @@ export default {
   max-width: calc(100vw - 185px);
   max-height: calc(100vh - 120px);
 }
-
 </style>

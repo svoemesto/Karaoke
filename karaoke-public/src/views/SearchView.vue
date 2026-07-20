@@ -12,22 +12,22 @@
           <div class="km-theme-toggle">
             <button
               :class="['km-tb', theme === 'light' ? 'active' : '']"
-              @click="setTheme('light')"
               title="Светлая"
+              @click="setTheme('light')"
             >
               ☀
             </button>
             <button
               :class="['km-tb', theme === 'system' ? 'active' : '']"
-              @click="setTheme('system')"
               title="Авто"
+              @click="setTheme('system')"
             >
               ⬡
             </button>
             <button
               :class="['km-tb', theme === 'dark' ? 'active' : '']"
-              @click="setTheme('dark')"
               title="Тёмная"
+              @click="setTheme('dark')"
             >
               🌙
             </button>
@@ -43,8 +43,8 @@
           <div class="km-field">
             <label class="km-label">Исполнитель</label>
             <input
-              list="list_authors"
               v-model="form.author"
+              list="list_authors"
               class="km-input"
               placeholder="Введите имя..."
               @keyup.enter="onSearch"

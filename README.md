@@ -32,9 +32,11 @@ Boot бэкенд.
 Проект использует **AGENTS.md + автоматические линтеры** с baseline-подходом.
 Полные правила — в [CONTRIBUTING.md](./CONTRIBUTING.md). Краткая выжимка:
 
-- **Kotlin**: ktlint (форматирование) + detekt (code smells). См. раздел
+- **Kotlin**: ktlint (форматирование). detekt отключён (несовместим с Kotlin 2.2.20).
+  См. `.editorconfig` + раздел
   [Kotlin / Spring Boot](./CONTRIBUTING.md#kotlin--spring-boot).
-- **Vue/TS**: eslint\(eslint + prettier\). См. [Vue 3 / TypeScript](./CONTRIBUTING.md#vue-3--typescript).
+- **Vue/TS**: ESLint (vue3-recommended) + Prettier. TypeScript-проверка отдельно
+  (`vue-tsc --noEmit`). См. [Vue 3 / TypeScript](./CONTRIBUTING.md#vue-3--typescript).
 - **Pre-commit**: `pip install pre-commit && pre-commit install`.
   Обход: `git commit --no-verify`.
 - **CI**: [`.github/workflows/lint.yml`](./.github/workflows/lint.yml) —

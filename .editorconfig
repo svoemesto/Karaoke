@@ -1,0 +1,58 @@
+# EditorConfig (https://editorconfig.org)
+# Корневой .editorconfig для Karaoke.
+# Управляет ktlint, prettier, отступами и переводами строк.
+root = true
+
+# Дефолты для всех файлов
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+# Kotlin — ktlint 1.7.1.
+# См. https://pinterest.github.io/ktlint/1.7.1/rules/standard/
+[*.{kt,kts}]
+indent_size = 4
+ktlint_code_style = ktlint_official
+ktlint_standard = enabled
+
+# Лимит длины строки повышен (дефолт 140) — в karaoke-app много SQL/HQL
+# строк длиной 150-180 символов, которые не помещаются в 140.
+# См. CONTRIBUTING.md раздел "Стиль Kotlin".
+max_line_length = 200
+
+# Отключённые правила (см. CONTRIBUTING.md раздел "ktlint disabled rules"):
+# ktlint 1.7.1 НЕ поддерживает autofix для большинства правил, поэтому
+# отключаем то, что носит чисто стилистический характер и не ловит баги.
+# Включение обратно потребует (1) ручной правки всех вхождений ИЛИ
+# (2) перехода на ktlint с работающим autofix (пока не существует для Kotlin 2.2).
+ktlint_standard_no-wildcard-imports = disabled
+ktlint_standard_argument-list-wrapping = disabled
+ktlint_standard_function-literal = disabled
+ktlint_standard_parameter-list-wrapping = disabled
+ktlint_standard_function-signature = disabled
+ktlint_standard_no-consecutive-comments = disabled
+ktlint_standard_import-ordering = disabled
+# trailing-comma-* требует включённый wrapping (зависимость), но autofix
+# для wrapping в 1.7.1 отсутствует. Отключаем trailing-comma-* вместо этого.
+ktlint_standard_trailing-comma-on-call-site = disabled
+ktlint_standard_trailing-comma-on-declaration-site = disabled
+
+# Markdown — без обрезки trailing whitespace (важно для перевода строк)
+[*.md]
+trim_trailing_whitespace = false
+max_line_length = unset
+
+# Gradle
+[*.gradle]
+indent_size = 2
+
+# JavaScript / Vue / TypeScript — для editorов (ESLint+Prettier правят на CI)
+[*.{js,vue,ts}]
+indent_size = 2
+
+# YAML, JSON, TOML
+[*.{yml,yaml,json}]
+indent_size = 2

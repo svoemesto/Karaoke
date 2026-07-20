@@ -22,7 +22,7 @@
           <div class="ssm-fineprint">Бессрочный доступ к этой песне в онлайн-плеере сайта.</div>
 
           <label class="ssm-disclaimer-label">
-            <input type="checkbox" v-model="disclaimerAccepted" />
+            <input v-model="disclaimerAccepted" type="checkbox" />
             <span>
               Я понимаю, что оплачиваю работу автора проекта (разметку, синхронизацию, плеер) —
               права на музыкальное произведение и фонограмму принадлежат правообладателям и ко мне

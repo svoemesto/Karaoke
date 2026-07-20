@@ -2,7 +2,7 @@
   <div v-if="visible" class="nwb-wrap">
     <transition name="nwb-toast-fade">
       <div v-if="toastItem" class="nwb-toast" @click="onToastClick">
-        <button class="nwb-toast-close" @click.stop="dismissToast" title="Закрыть">×</button>
+        <button class="nwb-toast-close" title="Закрыть" @click.stop="dismissToast">×</button>
         <div class="nwb-toast-badge">
           {{ categoryIcon(toastItem.category) }} {{ categoryLabel(toastItem.category) }}
         </div>

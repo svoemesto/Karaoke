@@ -12,11 +12,14 @@
 
 ## TL;DR
 
-- **Kotlin**: используем ktlint (форматирование) + detekt (code smells).
-  `redirectErrorStream(true)` для всех `ProcessBuilder`. JSON-ключи
-  БЕЗ `is`-префикса. Nullable-колонки → nullable-поля.
-- **Vue/TS**: `<select class="form-select">` (не `form-control`). Никаких
-  wildcard-импортов. KDoc/JSDoc на публичных API.
+- **Kotlin**: используем ktlint (форматирование). `redirectErrorStream(true)`
+  для всех `ProcessBuilder`. JSON-ключи БЕЗ `is`-префикса.
+  Nullable-колонки → nullable-поля. (detekt отключён — несовместим с
+  Kotlin 2.2.20; см. `.editorconfig` + `AGENTS.md`.)
+- **Vue/TS**: `<select class="form-select">` (не `form-control`). KDoc/JSDoc
+  на публичных API. Wildcard-импорты **допустимы** (правило ktlint
+  `no-wildcard-imports` отключено в `.editorconfig` как не-autofixable —
+  см. ниже).
 - **Pre-commit**: `pip install pre-commit && pre-commit install`. Обход:
   `git commit --no-verify`.
 - **PR с новой фичей** = PR с per-feature документом в `docs/features/`.
@@ -29,7 +32,7 @@
 
 **Severity**: MUST
 **Section**: kotlin
-**Enforced by**: ktlint, detekt
+**Enforced by**: ktlint
 
 Имена классов — `UpperCamelCase`. Один файл — один публичный класс
 (исключение: маленькие `data class` и `sealed`-иерархии в одном файле).
@@ -57,7 +60,7 @@ class settings_dto                    // snake_case в имени
 
 **Severity**: MUST
 **Section**: kotlin
-**Enforced by**: ktlint, detekt
+**Enforced by**: ktlint
 
 Функции и `val`/`var` — `lowerCamelCase`. Константы (`const val` / `val` с
 uppercase) — `UPPER_SNAKE_CASE`.
@@ -79,11 +82,15 @@ val CurrentTime = ...              // PascalCase для val
 
 ### kotlin-imports-no-wildcard: Импорты — без wildcard
 
-**Severity**: MUST
+**Severity**: SHOULD
 **Section**: kotlin
-**Enforced by**: ktlint (`standard:no-wildcard-imports`)
+**Enforced by**: code-review (ktlint `standard:no-wildcard-imports` отключён)
 
-Каждый импорт — отдельной строкой, без `*`.
+Каждый импорт — отдельной строкой, без `*`. **Рекомендуется**, но НЕ
+enforced: правило ktlint `no-wildcard-imports` отключено в `.editorconfig`,
+потому что ktlint 1.7.1 не поддерживает autofix для этого правила
+(возвращает "cannot be auto-corrected"). См. `.editorconfig` + ниже раздел
+"Отключённые правила ktlint".
 
 **Правильно**:
 ```kotlin
@@ -91,7 +98,7 @@ import java.io.File
 import java.sql.Timestamp
 ```
 
-**Неправильно**:
+**Неправильно** (но допустимо в текущем коде):
 ```kotlin
 import java.io.*
 import java.sql.*
@@ -229,13 +236,16 @@ sync сломается.
 
 ---
 
-### kotlin-line-length: Длина строки ≤ 140
+### kotlin-line-length: Длина строки ≤ 200
 
 **Severity**: SHOULD
 **Section**: kotlin
-**Enforced by**: detekt (`MaxLineLength`)
+**Enforced by**: ktlint (`standard:max-line-length`, лимит 200 в `.editorconfig`)
 
 Длинные строки ухудшают читаемость на узких экранах и в code review.
+Лимит в `.editorconfig` — **200 символов** (повышен с дефолтного 140 для
+SQL/HQL строк в `karaoke-app`). Prettier в SPA использует 120 — там
+настройки жёстче.
 
 **Правильно**:
 ```kotlin
@@ -247,7 +257,7 @@ data class Process(
 ```
 
 **Исключения**: SQL-запросы (допускается до 200), URL, тестовые данные.
-Используйте `// detekt:ignore` с обоснованием, **не** глобальный
+Используйте `// ktlint:ignore` с обоснованием, **не** глобальный
 `max-line-length`.
 
 ---
@@ -809,7 +819,7 @@ Workflow запускается на push в `master` и pull_request в `master
 
 **Severity**: MUST | SHOULD | MAY
 **Section**: <kotlin|vue|sql|json|markdown|shell|gradle|docker>
-**Enforced by**: <ktlint|detekt|eslint|prettier|pre-commit|code-review-only>
+**Enforced by**: <ktlint|eslint|prettier|pre-commit|code-review-only>
 
 <Описание>
 
@@ -826,4 +836,43 @@ Workflow запускается на push в `master` и pull_request в `master
 **Рациональ**: <почему>
 
 **Связанные инварианты**: [`<file>#<anchor>`](<path>)
+
+---
+
+## Приложение A. Отключённые правила ktlint
+
+В ktlint **1.7.1** (текущая версия) autofix **не работает** для
+большинства правил (ktlint 0.x умел, 1.x — нет). Чтобы baseline был
+"лечимым" без ручной правки сотен строк, **часть стилистических правил
+отключена** в `.editorconfig`. Эти правила не ловят баги — только стиль.
+
+| Правило | Причина отключения | Альтернатива |
+|---------|---------------------|--------------|
+| `no-wildcard-imports` | Не autofixable; 77 в baseline. IntelliJ IDEA сворачивает в wildcard автоматически. | Соблюдать вручную при добавлении нового импорта. |
+| `argument-list-wrapping` | Не autofixable; 54 в baseline. | Соблюдать вручную. |
+| `function-literal` | Не autofixable; 24 в baseline. | Соблюдать вручную. |
+| `parameter-list-wrapping` | Не autofixable; 11 в baseline. | Соблюдать вручную. |
+| `function-signature` | Не autofixable; 6 в baseline. | Соблюдать вручную. |
+| `no-consecutive-comments` | Не autofixable; 1 в baseline. | Соблюдать вручную. |
+| `import-ordering` | Не autofixable; 1 в baseline. | Соблюдать вручную. |
+| `trailing-comma-on-call-site` | Зависит от `wrapping`. | Соблюдать вручную. |
+| `trailing-comma-on-declaration-site` | Зависит от `wrapping`. | Соблюдать вручную. |
+
+**Когда включать обратно**: после выхода ktlint с работающим autofix
+для Kotlin 2.2 (отслеживать [ktlint releases](https://github.com/pinterest/ktlint/releases))
+или после миграции на альтернативный инструмент (например, diktat).
+
+## Приложение Б. Отключённые правила ESLint
+
+| Правило | Файл | Причина отключения |
+|---------|------|---------------------|
+| `vue/require-explicit-emits` | `webvue3/.eslintrc.cjs`, `karaoke-public/.eslintrc.cjs` | 50 в baseline. Стилистическая рекомендация (явная декларация emits для IDE автодополнения), не баг. Рекомендуется добавлять `emits: [...]` в новых компонентах. |
+| `vue/no-template-shadow` | `webvue3/.eslintrc.cjs` | 1 в baseline. Стилистическое (имя переменной в `<template>` совпадает с внешней). |
+| `vue/multi-word-component-names` | оба | Имя компонента может быть одним словом (Vue-компоненты админки). |
+| `vue/singleline-html-element-content-newline` | оба | Конфликтует с Prettier. |
+| `vue/html-indent` | оба | Конфликтует с Prettier. |
+
+**Когда включать `vue/require-explicit-emits` обратно**: добавить
+`emits: [...]` в каждый компонент с emit() (50 файлов) → удалить строку
+`'vue/require-explicit-emits': 'off'` → регенерировать baseline.
 ```

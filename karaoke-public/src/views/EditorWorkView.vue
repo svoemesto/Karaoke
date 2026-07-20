@@ -38,13 +38,8 @@
           {{ playerLoading ? 'Сохраняем…' : showPlayer ? 'Скрыть плеер' : '▶ Прослушать в плеере' }}
         </button>
       </div>
-      <div v-if="showPlayer" class="ke-player-wrap" ref="playerWrap">
-        <iframe
-          :src="playerSrc"
-          :height="playerHeight"
-          class="ke-player-frame"
-          allow="autoplay"
-        ></iframe>
+      <div v-if="showPlayer" ref="playerWrap" class="ke-player-wrap">
+        <iframe :src="playerSrc" :height="playerHeight" class="ke-player-frame" allow="autoplay" />
       </div>
 
       <!-- Голоса: задание покрывает всю песню — переключение/добавление/удаление голоса. -->
@@ -79,7 +74,7 @@
 
       <!-- Волновая форма -->
       <div class="ke-wave-card">
-        <div ref="waveform" class="ke-waveform"></div>
+        <div ref="waveform" class="ke-waveform" />
         <div class="ke-time">{{ fmtTime(currentTime) }} / {{ fmtTime(duration) }}</div>
       </div>
 
@@ -109,22 +104,22 @@
           <label class="ke-slider">
             <span>Скорость {{ playbackRate.toFixed(2) }}×</span>
             <input
+              v-model.number="playbackRate"
               type="range"
               min="0.3"
               max="1"
               step="0.05"
-              v-model.number="playbackRate"
               @input="applyRate"
             />
           </label>
           <label class="ke-slider">
             <span>Масштаб</span>
             <input
+              v-model.number="zoom"
               type="range"
               min="20"
               max="400"
               step="10"
-              v-model.number="zoom"
               @input="applyZoom"
             />
           </label>
@@ -152,11 +147,11 @@
           <label class="ke-slider">
             <span>Громкость {{ Math.round(volume * 100) }}%</span>
             <input
+              v-model.number="volume"
               type="range"
               min="0"
               max="1"
               step="0.05"
-              v-model.number="volume"
               @input="applyVolume"
             />
           </label>
@@ -210,31 +205,31 @@
             <div class="ke-col-title">Текст песни</div>
             <label class="ke-font-slider">
               <span>Шрифт {{ textFontSize }}px</span>
-              <input type="range" min="6" max="36" step="1" v-model.number="textFontSize" />
+              <input v-model.number="textFontSize" type="range" min="6" max="36" step="1" />
             </label>
           </div>
           <textarea
+            v-model="sourceText"
             class="ke-textarea"
             :style="{ fontSize: textFontSize + 'px' }"
-            v-model="sourceText"
             :disabled="!canEdit"
             placeholder="Вставьте сюда текст песни — он автоматически разобьётся на слоги."
             @input="onTextInput"
-          ></textarea>
+          />
         </div>
         <div class="ke-text-col">
           <div class="ke-col-header">
             <div class="ke-col-title">Разметка</div>
             <label class="ke-font-slider">
               <span>Шрифт {{ previewFontSize }}px</span>
-              <input type="range" min="6" max="36" step="1" v-model.number="previewFontSize" />
+              <input v-model.number="previewFontSize" type="range" min="6" max="36" step="1" />
             </label>
           </div>
           <div
             class="ke-preview"
             :style="{ fontSize: previewFontSize + 'px' }"
             v-html="formattedTextHtml"
-          ></div>
+          />
         </div>
       </div>
     </div>

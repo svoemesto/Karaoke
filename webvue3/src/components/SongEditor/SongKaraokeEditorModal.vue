@@ -18,11 +18,11 @@
           <div v-else-if="loadError" class="skm-status skm-status-error">{{ loadError }}</div>
           <song-karaoke-editor-view
             v-else
+            ref="editor"
             :mode="mode"
             :song-id="loadedSongId"
             :assignment-id="assignmentId"
             :song-name="loadedSongName"
-            ref="editor"
             :author="loadedAuthor"
             :album="loadedAlbum"
             :year="loadedYear"

@@ -10,7 +10,7 @@
       background: #000;
       overflow: hidden;
     "
-  ></div>
+  />
 </template>
 
 <script setup>

@@ -48,7 +48,7 @@
           </div>
 
           <label class="km-disclaimer-label">
-            <input type="checkbox" v-model="disclaimerAccepted" />
+            <input v-model="disclaimerAccepted" type="checkbox" />
             <span>
               Я понимаю, что оплачиваю работу автора проекта (разметку, синхронизацию, плеер) —
               права на музыкальные произведения и фонограммы принадлежат правообладателям и ко мне

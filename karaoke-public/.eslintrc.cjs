@@ -23,6 +23,8 @@ module.exports = {
     // vue/max-attributes-per-line — оставляем настройки по умолчанию.
     'vue/singleline-html-element-content-newline': 'off',
     'vue/html-indent': 'off',
+    // vue/require-explicit-emits — ОТКЛЮЧЁН (см. webvue3/.eslintrc.cjs).
+    'vue/require-explicit-emits': 'off',
     'no-unused-vars': ['warn', {
       argsIgnorePattern: '^_',
       varsIgnorePattern: '^_',

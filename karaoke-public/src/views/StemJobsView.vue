@@ -44,7 +44,7 @@
           {{ createMessage }}
         </p>
         <div v-if="uploading" class="km-progress-track">
-          <div class="km-progress-fill" :style="{ width: uploadProgress + '%' }"></div>
+          <div class="km-progress-fill" :style="{ width: uploadProgress + '%' }" />
         </div>
         <button
           class="km-submit-btn"

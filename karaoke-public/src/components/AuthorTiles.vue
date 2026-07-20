@@ -13,8 +13,8 @@
           :src="t.authorPictureUrl"
           class="at-img"
           loading="lazy"
-          @error="$event.target.style.display = 'none'"
           alt=""
+          @error="$event.target.style.display = 'none'"
         />
       </div>
       <div class="at-namerow">

@@ -32,36 +32,12 @@
     "severity": 2
   },
   {
-    "ruleId": "vue/require-explicit-emits",
-    "file": null,
-    "line": 94,
-    "column": 18,
-    "message": "The \"close\" event has been triggered but not declared on `emits` option.",
-    "severity": 1
-  },
-  {
     "ruleId": "vue/require-toggle-inside-transition",
     "file": null,
     "line": 3,
     "column": 5,
     "message": "The element inside `<transition>` is expected to have a `v-if` or `v-show` directive.",
     "severity": 2
-  },
-  {
-    "ruleId": "vue/require-explicit-emits",
-    "file": null,
-    "line": 318,
-    "column": 18,
-    "message": "The \"close\" event has been triggered but not declared on `emits` option.",
-    "severity": 1
-  },
-  {
-    "ruleId": "vue/require-explicit-emits",
-    "file": null,
-    "line": 321,
-    "column": 18,
-    "message": "The \"close\" event has been triggered but not declared on `emits` option.",
-    "severity": 1
   },
   {
     "ruleId": "vue/require-toggle-inside-transition",
@@ -88,22 +64,6 @@
     "severity": 1
   },
   {
-    "ruleId": "vue/require-explicit-emits",
-    "file": null,
-    "line": 194,
-    "column": 18,
-    "message": "The \"close\" event has been triggered but not declared on `emits` option.",
-    "severity": 1
-  },
-  {
-    "ruleId": "vue/require-explicit-emits",
-    "file": null,
-    "line": 197,
-    "column": 18,
-    "message": "The \"close\" event has been triggered but not declared on `emits` option.",
-    "severity": 1
-  },
-  {
     "ruleId": "vue/require-toggle-inside-transition",
     "file": null,
     "line": 3,
@@ -112,44 +72,12 @@
     "severity": 2
   },
   {
-    "ruleId": "vue/require-explicit-emits",
-    "file": null,
-    "line": 196,
-    "column": 18,
-    "message": "The \"getpath\" event has been triggered but not declared on `emits` option.",
-    "severity": 1
-  },
-  {
-    "ruleId": "vue/require-explicit-emits",
-    "file": null,
-    "line": 197,
-    "column": 18,
-    "message": "The \"close\" event has been triggered but not declared on `emits` option.",
-    "severity": 1
-  },
-  {
-    "ruleId": "vue/require-explicit-emits",
-    "file": null,
-    "line": 200,
-    "column": 18,
-    "message": "The \"close\" event has been triggered but not declared on `emits` option.",
-    "severity": 1
-  },
-  {
     "ruleId": "vue/require-toggle-inside-transition",
     "file": null,
     "line": 3,
     "column": 5,
     "message": "The element inside `<transition>` is expected to have a `v-if` or `v-show` directive.",
     "severity": 2
-  },
-  {
-    "ruleId": "vue/require-explicit-emits",
-    "file": null,
-    "line": 46,
-    "column": 18,
-    "message": "The \"close\" event has been triggered but not declared on `emits` option.",
-    "severity": 1
   },
   {
     "ruleId": "vue/no-unused-components",
@@ -158,14 +86,6 @@
     "column": 39,
     "message": "The \"BTable\" component has been registered but not used.",
     "severity": 2
-  },
-  {
-    "ruleId": "vue/require-explicit-emits",
-    "file": null,
-    "line": 12,
-    "column": 18,
-    "message": "The \"close\" event has been triggered but not declared on `emits` option.",
-    "severity": 1
   },
   {
     "ruleId": "no-unused-vars",
@@ -192,14 +112,6 @@
     "severity": 2
   },
   {
-    "ruleId": "vue/require-explicit-emits",
-    "file": null,
-    "line": 71,
-    "column": 18,
-    "message": "The \"close\" event has been triggered but not declared on `emits` option.",
-    "severity": 1
-  },
-  {
     "ruleId": "vue/require-valid-default-prop",
     "file": null,
     "line": 52,
@@ -224,20 +136,12 @@
     "severity": 2
   },
   {
-    "ruleId": "vue/require-explicit-emits",
+    "ruleId": "vue/require-toggle-inside-transition",
     "file": null,
-    "line": 314,
-    "column": 18,
-    "message": "The \"close\" event has been triggered but not declared on `emits` option.",
-    "severity": 1
-  },
-  {
-    "ruleId": "vue/require-explicit-emits",
-    "file": null,
-    "line": 317,
-    "column": 18,
-    "message": "The \"close\" event has been triggered but not declared on `emits` option.",
-    "severity": 1
+    "line": 3,
+    "column": 5,
+    "message": "The element inside `<transition>` is expected to have a `v-if` or `v-show` directive.",
+    "severity": 2
   },
   {
     "ruleId": "vue/require-toggle-inside-transition",
@@ -248,30 +152,6 @@
     "severity": 2
   },
   {
-    "ruleId": "vue/require-explicit-emits",
-    "file": null,
-    "line": 100,
-    "column": 18,
-    "message": "The \"close\" event has been triggered but not declared on `emits` option.",
-    "severity": 1
-  },
-  {
-    "ruleId": "vue/require-explicit-emits",
-    "file": null,
-    "line": 103,
-    "column": 18,
-    "message": "The \"close\" event has been triggered but not declared on `emits` option.",
-    "severity": 1
-  },
-  {
-    "ruleId": "vue/require-explicit-emits",
-    "file": null,
-    "line": 295,
-    "column": 18,
-    "message": "The \"close\" event has been triggered but not declared on `emits` option.",
-    "severity": 1
-  },
-  {
     "ruleId": "vue/require-toggle-inside-transition",
     "file": null,
     "line": 3,
@@ -280,60 +160,12 @@
     "severity": 2
   },
   {
-    "ruleId": "vue/require-explicit-emits",
-    "file": null,
-    "line": 25,
-    "column": 18,
-    "message": "The \"close\" event has been triggered but not declared on `emits` option.",
-    "severity": 1
-  },
-  {
     "ruleId": "vue/require-toggle-inside-transition",
     "file": null,
     "line": 3,
     "column": 5,
     "message": "The element inside `<transition>` is expected to have a `v-if` or `v-show` directive.",
     "severity": 2
-  },
-  {
-    "ruleId": "vue/require-explicit-emits",
-    "file": null,
-    "line": 89,
-    "column": 18,
-    "message": "The \"close\" event has been triggered but not declared on `emits` option.",
-    "severity": 1
-  },
-  {
-    "ruleId": "vue/require-explicit-emits",
-    "file": null,
-    "line": 92,
-    "column": 18,
-    "message": "The \"close\" event has been triggered but not declared on `emits` option.",
-    "severity": 1
-  },
-  {
-    "ruleId": "vue/require-toggle-inside-transition",
-    "file": null,
-    "line": 3,
-    "column": 5,
-    "message": "The element inside `<transition>` is expected to have a `v-if` or `v-show` directive.",
-    "severity": 2
-  },
-  {
-    "ruleId": "vue/require-explicit-emits",
-    "file": null,
-    "line": 233,
-    "column": 18,
-    "message": "The \"close\" event has been triggered but not declared on `emits` option.",
-    "severity": 1
-  },
-  {
-    "ruleId": "vue/require-explicit-emits",
-    "file": null,
-    "line": 236,
-    "column": 18,
-    "message": "The \"close\" event has been triggered but not declared on `emits` option.",
-    "severity": 1
   },
   {
     "ruleId": "no-unused-vars",
@@ -360,54 +192,6 @@
     "severity": 2
   },
   {
-    "ruleId": "vue/require-explicit-emits",
-    "file": null,
-    "line": 179,
-    "column": 18,
-    "message": "The \"close\" event has been triggered but not declared on `emits` option.",
-    "severity": 1
-  },
-  {
-    "ruleId": "vue/require-explicit-emits",
-    "file": null,
-    "line": 182,
-    "column": 18,
-    "message": "The \"close\" event has been triggered but not declared on `emits` option.",
-    "severity": 1
-  },
-  {
-    "ruleId": "vue/require-explicit-emits",
-    "file": null,
-    "line": 2,
-    "column": 47,
-    "message": "The \"close\" event has been triggered but not declared on `emits` option.",
-    "severity": 1
-  },
-  {
-    "ruleId": "vue/require-explicit-emits",
-    "file": null,
-    "line": 14,
-    "column": 49,
-    "message": "The \"close\" event has been triggered but not declared on `emits` option.",
-    "severity": 1
-  },
-  {
-    "ruleId": "vue/require-explicit-emits",
-    "file": null,
-    "line": 311,
-    "column": 18,
-    "message": "The \"close\" event has been triggered but not declared on `emits` option.",
-    "severity": 1
-  },
-  {
-    "ruleId": "vue/require-explicit-emits",
-    "file": null,
-    "line": 392,
-    "column": 18,
-    "message": "The \"close\" event has been triggered but not declared on `emits` option.",
-    "severity": 1
-  },
-  {
     "ruleId": "vue/require-toggle-inside-transition",
     "file": null,
     "line": 3,
@@ -416,36 +200,12 @@
     "severity": 2
   },
   {
-    "ruleId": "vue/require-explicit-emits",
-    "file": null,
-    "line": 25,
-    "column": 18,
-    "message": "The \"close\" event has been triggered but not declared on `emits` option.",
-    "severity": 1
-  },
-  {
     "ruleId": "vue/require-toggle-inside-transition",
     "file": null,
     "line": 3,
     "column": 5,
     "message": "The element inside `<transition>` is expected to have a `v-if` or `v-show` directive.",
     "severity": 2
-  },
-  {
-    "ruleId": "vue/require-explicit-emits",
-    "file": null,
-    "line": 257,
-    "column": 18,
-    "message": "The \"close\" event has been triggered but not declared on `emits` option.",
-    "severity": 1
-  },
-  {
-    "ruleId": "vue/require-explicit-emits",
-    "file": null,
-    "line": 260,
-    "column": 18,
-    "message": "The \"close\" event has been triggered but not declared on `emits` option.",
-    "severity": 1
   },
   {
     "ruleId": "vue/require-toggle-inside-transition",
@@ -454,30 +214,6 @@
     "column": 5,
     "message": "The element inside `<transition>` is expected to have a `v-if` or `v-show` directive.",
     "severity": 2
-  },
-  {
-    "ruleId": "vue/require-explicit-emits",
-    "file": null,
-    "line": 14,
-    "column": 69,
-    "message": "The \"close\" event has been triggered but not declared on `emits` option.",
-    "severity": 1
-  },
-  {
-    "ruleId": "vue/attributes-order",
-    "file": null,
-    "line": 25,
-    "column": 13,
-    "message": "Attribute \"ref\" should go before \":song-name\".",
-    "severity": 1
-  },
-  {
-    "ruleId": "vue/require-explicit-emits",
-    "file": null,
-    "line": 51,
-    "column": 84,
-    "message": "The \"close\" event has been triggered but not declared on `emits` option.",
-    "severity": 1
   },
   {
     "ruleId": "no-unused-vars",
@@ -504,84 +240,12 @@
     "severity": 1
   },
   {
-    "ruleId": "vue/require-explicit-emits",
-    "file": null,
-    "line": 595,
-    "column": 20,
-    "message": "The \"change\" event has been triggered but not declared on `emits` option.",
-    "severity": 1
-  },
-  {
-    "ruleId": "vue/require-explicit-emits",
-    "file": null,
-    "line": 723,
-    "column": 18,
-    "message": "The \"change\" event has been triggered but not declared on `emits` option.",
-    "severity": 1
-  },
-  {
-    "ruleId": "vue/require-explicit-emits",
-    "file": null,
-    "line": 737,
-    "column": 18,
-    "message": "The \"change\" event has been triggered but not declared on `emits` option.",
-    "severity": 1
-  },
-  {
-    "ruleId": "vue/require-explicit-emits",
-    "file": null,
-    "line": 745,
-    "column": 18,
-    "message": "The \"change\" event has been triggered but not declared on `emits` option.",
-    "severity": 1
-  },
-  {
-    "ruleId": "vue/require-explicit-emits",
-    "file": null,
-    "line": 751,
-    "column": 18,
-    "message": "The \"change\" event has been triggered but not declared on `emits` option.",
-    "severity": 1
-  },
-  {
-    "ruleId": "vue/require-explicit-emits",
-    "file": null,
-    "line": 763,
-    "column": 18,
-    "message": "The \"change\" event has been triggered but not declared on `emits` option.",
-    "severity": 1
-  },
-  {
-    "ruleId": "vue/require-explicit-emits",
-    "file": null,
-    "line": 778,
-    "column": 18,
-    "message": "The \"change\" event has been triggered but not declared on `emits` option.",
-    "severity": 1
-  },
-  {
     "ruleId": "vue/require-toggle-inside-transition",
     "file": null,
     "line": 3,
     "column": 5,
     "message": "The element inside `<transition>` is expected to have a `v-if` or `v-show` directive.",
     "severity": 2
-  },
-  {
-    "ruleId": "vue/require-explicit-emits",
-    "file": null,
-    "line": 201,
-    "column": 18,
-    "message": "The \"select\" event has been triggered but not declared on `emits` option.",
-    "severity": 1
-  },
-  {
-    "ruleId": "vue/require-explicit-emits",
-    "file": null,
-    "line": 204,
-    "column": 18,
-    "message": "The \"close\" event has been triggered but not declared on `emits` option.",
-    "severity": 1
   },
   {
     "ruleId": "vue/require-toggle-inside-transition",
@@ -598,38 +262,6 @@
     "column": 5,
     "message": "Duplicate key 'searchAsyncId'. May cause name collision in script or template tag.",
     "severity": 2
-  },
-  {
-    "ruleId": "vue/require-explicit-emits",
-    "file": null,
-    "line": 153,
-    "column": 18,
-    "message": "The \"close\" event has been triggered but not declared on `emits` option.",
-    "severity": 1
-  },
-  {
-    "ruleId": "vue/require-explicit-emits",
-    "file": null,
-    "line": 157,
-    "column": 18,
-    "message": "The \"close\" event has been triggered but not declared on `emits` option.",
-    "severity": 1
-  },
-  {
-    "ruleId": "vue/require-explicit-emits",
-    "file": null,
-    "line": 160,
-    "column": 18,
-    "message": "The \"return\" event has been triggered but not declared on `emits` option.",
-    "severity": 1
-  },
-  {
-    "ruleId": "vue/require-explicit-emits",
-    "file": null,
-    "line": 41,
-    "column": 18,
-    "message": "The \"selectedResult\" event has been triggered but not declared on `emits` option.",
-    "severity": 1
   },
   {
     "ruleId": "vue/no-v-html",
@@ -672,14 +304,6 @@
     "severity": 1
   },
   {
-    "ruleId": "vue/require-explicit-emits",
-    "file": null,
-    "line": 3739,
-    "column": 18,
-    "message": "The \"close\" event has been triggered but not declared on `emits` option.",
-    "severity": 1
-  },
-  {
     "ruleId": "vue/require-toggle-inside-transition",
     "file": null,
     "line": 3,
@@ -693,14 +317,6 @@
     "line": 33,
     "column": 5,
     "message": "Prop 'songsDigests' requires default value to be set.",
-    "severity": 1
-  },
-  {
-    "ruleId": "vue/require-explicit-emits",
-    "file": null,
-    "line": 46,
-    "column": 18,
-    "message": "The \"close\" event has been triggered but not declared on `emits` option.",
     "severity": 1
   },
   {
@@ -752,36 +368,12 @@
     "severity": 1
   },
   {
-    "ruleId": "vue/require-explicit-emits",
-    "file": null,
-    "line": 4351,
-    "column": 18,
-    "message": "The \"close\" event has been triggered but not declared on `emits` option.",
-    "severity": 1
-  },
-  {
     "ruleId": "vue/require-toggle-inside-transition",
     "file": null,
     "line": 3,
     "column": 5,
     "message": "The element inside `<transition>` is expected to have a `v-if` or `v-show` directive.",
     "severity": 2
-  },
-  {
-    "ruleId": "vue/require-explicit-emits",
-    "file": null,
-    "line": 938,
-    "column": 18,
-    "message": "The \"close\" event has been triggered but not declared on `emits` option.",
-    "severity": 1
-  },
-  {
-    "ruleId": "vue/require-explicit-emits",
-    "file": null,
-    "line": 941,
-    "column": 18,
-    "message": "The \"close\" event has been triggered but not declared on `emits` option.",
-    "severity": 1
   },
   {
     "ruleId": "no-unused-vars",
@@ -821,14 +413,6 @@
     "line": 2060,
     "column": 32,
     "message": "'dt' is defined but never used. Allowed unused args must match /^_/u.",
-    "severity": 1
-  },
-  {
-    "ruleId": "vue/no-template-shadow",
-    "file": null,
-    "line": 19,
-    "column": 26,
-    "message": "Variable 'author' is already declared in the upper scope.",
     "severity": 1
   },
   {

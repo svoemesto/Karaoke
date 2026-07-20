@@ -60,14 +60,14 @@
                 }}</span>
               </div>
               <label class="km-checkbox-label">
-                <input type="checkbox" v-model="autoRenew" />
+                <input v-model="autoRenew" type="checkbox" />
                 <span
                   >Автопродление (спишем автоматически по истечении срока; можно отключить в любой
                   момент в личном кабинете)</span
                 >
               </label>
               <label class="km-checkbox-label">
-                <input type="checkbox" v-model="disclaimerAccepted" />
+                <input v-model="disclaimerAccepted" type="checkbox" />
                 <span>
                   Я понимаю, что оплачиваю работу автора проекта (разметку, синхронизацию, плеер) —
                   права на музыкальные произведения и фонограммы принадлежат правообладателям и ко

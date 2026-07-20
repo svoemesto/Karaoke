@@ -1,11 +1,11 @@
 <template>
   <div class="kpi-row">
-    <div class="kpi-card" v-for="c in cards" :key="c.label" :style="{ '--kpi-accent': c.color }">
+    <div v-for="c in cards" :key="c.label" class="kpi-card" :style="{ '--kpi-accent': c.color }">
       <div class="kpi-icon">{{ c.icon }}</div>
       <div class="kpi-body">
         <div class="kpi-value">{{ formatNum(c.value) }}</div>
         <div class="kpi-label">{{ c.label }}</div>
-        <div class="kpi-sub" v-if="c.sub">{{ c.sub }}</div>
+        <div v-if="c.sub" class="kpi-sub">{{ c.sub }}</div>
       </div>
     </div>
   </div>

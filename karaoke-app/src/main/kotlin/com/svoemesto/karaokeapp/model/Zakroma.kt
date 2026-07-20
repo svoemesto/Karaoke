@@ -6,109 +6,124 @@ import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.StorageApiClient
 import java.io.Serializable
 
-class Zakroma(val database: KaraokeConnection): Serializable, Comparable<Zakroma> {
-
+class Zakroma(
+    val database: KaraokeConnection,
+) : Serializable,
+    Comparable<Zakroma> {
     companion object {
-        fun getZakroma(author: String, database: KaraokeConnection, storageService: KaraokeStorageService, storageApiClient: StorageApiClient): List<Zakroma> {
-            val listSettings = Settings.loadListFromDb(
-                args = mapOf("author" to author),
-                database = database,
-                storageService = storageService,
-                storageApiClient = storageApiClient,
-                withoutMarkersAndText = true
-            )
+        fun getZakroma(
+            author: String,
+            database: KaraokeConnection,
+            storageService: KaraokeStorageService,
+            storageApiClient: StorageApiClient,
+        ): List<Zakroma> {
+            val listSettings =
+                Settings.loadListFromDb(
+                    args = mapOf("author" to author),
+                    database = database,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                    withoutMarkersAndText = true,
+                )
             val settingsByAuthor = listSettings.groupBy { it.author }
             return settingsByAuthor.map { (authorName, settingsByAuthor) ->
                 val zakroma = Zakroma(database)
                 zakroma.author = authorName
-                zakroma.picture = Pictures.getPictureByName(
-                    name = authorName,
-                    database = database,
-                    storageService = storageService,
-                    storageApiClient = storageApiClient
-                )?.full ?: ""
-                val picForAuthorPreview = Pictures.getPictureByName(
-                    name = authorName,
-                    database = database,
-                    storageService = storageService,
-                    storageApiClient = storageApiClient,
-                    ignoreUseInList = false
-                )
-                zakroma.picturePreviewFileName = picForAuthorPreview?.storageFileNamePreview ?: ""
-                val settingsByAlbum = settingsByAuthor.groupBy { it.album }
-                zakroma.albums = settingsByAlbum.map { (albumName, settingsByAlbum) ->
-                    val album = ZakromaAlbum()
-                    album.albumName = albumName
-                    album.year = settingsByAlbum.first().year
-                    album.picture = Pictures.getPictureByName(
-                        name = "$authorName - ${album.year} - $albumName",
-                        database = database,
-                        storageService = storageService,
-                        storageApiClient = storageApiClient
-                    )?.full ?: ""
-                    val pictureName = "$authorName - ${album.year} - $albumName"
-                    val picForPreview = Pictures.getPictureByName(
-                        name = pictureName,
+                zakroma.picture = Pictures
+                    .getPictureByName(
+                        name = authorName,
                         database = database,
                         storageService = storageService,
                         storageApiClient = storageApiClient,
-                        ignoreUseInList = false
+                    )?.full ?: ""
+                val picForAuthorPreview =
+                    Pictures.getPictureByName(
+                        name = authorName,
+                        database = database,
+                        storageService = storageService,
+                        storageApiClient = storageApiClient,
+                        ignoreUseInList = false,
                     )
-                    album.picturePreviewFileName = picForPreview?.storageFileNamePreview ?: ""
-                    album.albumSettings = settingsByAlbum.map { settings ->
-                        val zakromaAlbumSettings = ZakromaAlbumSettings()
-                        zakromaAlbumSettings.id = settings.id
-                        zakromaAlbumSettings.onAir = settings.onAir
-                        zakromaAlbumSettings.exclusive = settings.exclusive
-                        zakromaAlbumSettings.datePublish = settings.datePublish
-                        zakromaAlbumSettings.songSubscriptionAvailable = settings.idTariff >= 0
-                        zakromaAlbumSettings.track = settings.track
-                        zakromaAlbumSettings.songName = settings.songName.censored()
-                        zakromaAlbumSettings.linkBoosty = settings.linkBoostyTxt
-                        zakromaAlbumSettings.linkSponsrPlay = settings.linkSponsrPlay
-                        zakromaAlbumSettings.linkDzenKaraoke = settings.linkDzenKaraoke
-                        zakromaAlbumSettings.linkDzenLyrics = settings.linkDzenLyrics
-                        zakromaAlbumSettings.linkDzenTabs = settings.linkDzenTabs
-                        zakromaAlbumSettings.linkDzenChords = settings.linkDzenChords
-                        zakromaAlbumSettings.linkVkKaraoke = settings.linkVkKaraoke
-                        zakromaAlbumSettings.linkVkLyrics = settings.linkVkLyrics
-                        zakromaAlbumSettings.linkVkTabs = settings.linkVkTabs
-                        zakromaAlbumSettings.linkVkChords = settings.linkVkChords
-                        zakromaAlbumSettings.linkTgKaraoke = settings.linkTgKaraoke
-                        zakromaAlbumSettings.linkTgLyrics = settings.linkTgLyrics
-                        zakromaAlbumSettings.linkTgTabs = settings.linkTgTabs
-                        zakromaAlbumSettings.linkTgChords = settings.linkTgChords
-                        zakromaAlbumSettings.linkPlKaraoke = settings.linkPlKaraoke
-                        zakromaAlbumSettings.linkPlLyrics = settings.linkPlLyrics
-                        zakromaAlbumSettings.linkPlTabs = settings.linkPlTabs
-                        zakromaAlbumSettings.linkPlChords = settings.linkPlChords
-                        zakromaAlbumSettings.linkMaxKaraoke = settings.linkMaxKaraoke
-                        zakromaAlbumSettings.linkMaxLyrics = settings.linkMaxLyrics
-                        zakromaAlbumSettings.linkMaxTabs = settings.linkMaxTabs
-                        zakromaAlbumSettings.linkMaxChords = settings.linkMaxChords
-                        zakromaAlbumSettings
-                    }.sorted().toMutableList()
-                    album
-                }.sorted().toMutableList()
+                zakroma.picturePreviewFileName = picForAuthorPreview?.storageFileNamePreview ?: ""
+                val settingsByAlbum = settingsByAuthor.groupBy { it.album }
+                zakroma.albums =
+                    settingsByAlbum
+                        .map { (albumName, settingsByAlbum) ->
+                            val album = ZakromaAlbum()
+                            album.albumName = albumName
+                            album.year = settingsByAlbum.first().year
+                            album.picture = Pictures
+                                .getPictureByName(
+                                    name = "$authorName - ${album.year} - $albumName",
+                                    database = database,
+                                    storageService = storageService,
+                                    storageApiClient = storageApiClient,
+                                )?.full ?: ""
+                            val pictureName = "$authorName - ${album.year} - $albumName"
+                            val picForPreview =
+                                Pictures.getPictureByName(
+                                    name = pictureName,
+                                    database = database,
+                                    storageService = storageService,
+                                    storageApiClient = storageApiClient,
+                                    ignoreUseInList = false,
+                                )
+                            album.picturePreviewFileName = picForPreview?.storageFileNamePreview ?: ""
+                            album.albumSettings =
+                                settingsByAlbum
+                                    .map { settings ->
+                                        val zakromaAlbumSettings = ZakromaAlbumSettings()
+                                        zakromaAlbumSettings.id = settings.id
+                                        zakromaAlbumSettings.onAir = settings.onAir
+                                        zakromaAlbumSettings.exclusive = settings.exclusive
+                                        zakromaAlbumSettings.datePublish = settings.datePublish
+                                        zakromaAlbumSettings.songSubscriptionAvailable = settings.idTariff >= 0
+                                        zakromaAlbumSettings.track = settings.track
+                                        zakromaAlbumSettings.songName = settings.songName.censored()
+                                        zakromaAlbumSettings.linkBoosty = settings.linkBoostyTxt
+                                        zakromaAlbumSettings.linkSponsrPlay = settings.linkSponsrPlay
+                                        zakromaAlbumSettings.linkDzenKaraoke = settings.linkDzenKaraoke
+                                        zakromaAlbumSettings.linkDzenLyrics = settings.linkDzenLyrics
+                                        zakromaAlbumSettings.linkDzenTabs = settings.linkDzenTabs
+                                        zakromaAlbumSettings.linkDzenChords = settings.linkDzenChords
+                                        zakromaAlbumSettings.linkVkKaraoke = settings.linkVkKaraoke
+                                        zakromaAlbumSettings.linkVkLyrics = settings.linkVkLyrics
+                                        zakromaAlbumSettings.linkVkTabs = settings.linkVkTabs
+                                        zakromaAlbumSettings.linkVkChords = settings.linkVkChords
+                                        zakromaAlbumSettings.linkTgKaraoke = settings.linkTgKaraoke
+                                        zakromaAlbumSettings.linkTgLyrics = settings.linkTgLyrics
+                                        zakromaAlbumSettings.linkTgTabs = settings.linkTgTabs
+                                        zakromaAlbumSettings.linkTgChords = settings.linkTgChords
+                                        zakromaAlbumSettings.linkPlKaraoke = settings.linkPlKaraoke
+                                        zakromaAlbumSettings.linkPlLyrics = settings.linkPlLyrics
+                                        zakromaAlbumSettings.linkPlTabs = settings.linkPlTabs
+                                        zakromaAlbumSettings.linkPlChords = settings.linkPlChords
+                                        zakromaAlbumSettings.linkMaxKaraoke = settings.linkMaxKaraoke
+                                        zakromaAlbumSettings.linkMaxLyrics = settings.linkMaxLyrics
+                                        zakromaAlbumSettings.linkMaxTabs = settings.linkMaxTabs
+                                        zakromaAlbumSettings.linkMaxChords = settings.linkMaxChords
+                                        zakromaAlbumSettings
+                                    }.sorted()
+                                    .toMutableList()
+                            album
+                        }.sorted()
+                        .toMutableList()
                 zakroma
             }
         }
     }
-
-
 
     var author: String = ""
     var picture: String = ""
     var picturePreviewFileName: String = ""
     var albums: MutableList<ZakromaAlbum> = mutableListOf()
 
-    override fun compareTo(other: Zakroma): Int {
-        return author.compareTo(other.author)
-    }
-
+    override fun compareTo(other: Zakroma): Int = author.compareTo(other.author)
 }
 
-class ZakromaAlbumSettings: Serializable, Comparable<ZakromaAlbumSettings> {
+class ZakromaAlbumSettings :
+    Serializable,
+    Comparable<ZakromaAlbumSettings> {
     var id: Long = 0
     var track: Long = 0
     var songName: String = ""
@@ -138,6 +153,7 @@ class ZakromaAlbumSettings: Serializable, Comparable<ZakromaAlbumSettings> {
     var exclusive: Boolean = false
     var datePublish: String = ""
     var songSubscriptionAvailable: Boolean = false
+
     override fun compareTo(other: ZakromaAlbumSettings): Int {
         val compTrack = track.compareTo(other.track)
         if (compTrack == 0) {
@@ -145,15 +161,17 @@ class ZakromaAlbumSettings: Serializable, Comparable<ZakromaAlbumSettings> {
         }
         return compTrack
     }
-
 }
 
-class ZakromaAlbum: Serializable, Comparable<ZakromaAlbum> {
+class ZakromaAlbum :
+    Serializable,
+    Comparable<ZakromaAlbum> {
     var albumName: String = ""
     var year: Long = 0
     var picture: String = ""
     var picturePreviewFileName: String = ""
     var albumSettings: MutableList<ZakromaAlbumSettings> = mutableListOf()
+
     override fun compareTo(other: ZakromaAlbum): Int {
         val compYear = year.compareTo(other.year)
         if (compYear == 0) {
@@ -161,5 +179,4 @@ class ZakromaAlbum: Serializable, Comparable<ZakromaAlbum> {
         }
         return compYear
     }
-
 }

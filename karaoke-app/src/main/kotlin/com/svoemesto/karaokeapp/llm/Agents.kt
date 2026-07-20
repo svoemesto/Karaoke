@@ -6,8 +6,8 @@ import dev.langchain4j.service.spring.AiService
 
 @AiService
 interface ScraperAgent {
-
-    @SystemMessage("""
+    @SystemMessage(
+        """
         You are an expert lyrics extractor. You receive raw text from a web page.
         Your task: extract ONLY the song lyrics (poetry/verses) from this text.
         
@@ -17,6 +17,9 @@ interface ScraperAgent {
         3. The lyrics might be in Russian. Preserve the original language and line breaks.
         4. Return ONLY the lyrics text, nothing else. No explanations, no headers.
         5. If no lyrics are found in the text, return exactly: "NOT_FOUND"
-    """)
-    fun extractLyrics(@UserMessage pageContent: String): String
+    """,
+    )
+    fun extractLyrics(
+        @UserMessage pageContent: String,
+    ): String
 }

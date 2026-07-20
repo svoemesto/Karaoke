@@ -13,7 +13,6 @@ import com.svoemesto.karaokeapp.services.TelegramUpdatesConsumer
  * свойство и стартовать демон (TelegramUpdatesConsumer.start() идемпотентен при isWork=true).
  */
 object TelegramPollingDisabledCheck : MonitorCheck {
-
     override fun run(ctx: MonitorContext): List<MonitorAlert> {
         if (KaraokeProperties.getBoolean("telegramPollingEnabled")) return emptyList()
 
@@ -27,8 +26,8 @@ object TelegramPollingDisabledCheck : MonitorCheck {
                 resolveAction = {
                     KaraokeProperties.setFromString("telegramPollingEnabled", "true")
                     TelegramUpdatesConsumer.start()
-                }
-            )
+                },
+            ),
         )
     }
 }

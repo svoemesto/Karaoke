@@ -18,8 +18,9 @@ data class WebEventDTO(
     val anonId: String = "",
     val siteUserId: Long = 0,
     val userAgent: String = "",
-) : Serializable, Comparable<WebEventDTO>, KaraokeDbTableDto {
-
+) : Serializable,
+    Comparable<WebEventDTO>,
+    KaraokeDbTableDto {
     override fun compareTo(other: WebEventDTO): Int = lastUpdate.compareTo(other.lastUpdate)
 
     override fun fromDto(database: KaraokeConnection): WebEvent {

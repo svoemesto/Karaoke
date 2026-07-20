@@ -23,7 +23,7 @@ data class MltInitialStructure(
     var type: ProducerType,
     var voiceId: Int = -1,
     var childId: Int = -1,
-    var elementId: Int = -1
+    var elementId: Int = -1,
 )
 
 fun getMisList(mltProp: MltProp): List<MltInitialStructure> {
@@ -40,7 +40,6 @@ fun getMisList(mltProp: MltProp): List<MltInitialStructure> {
                 line.getElements(songVersion).forEachIndexed { indexElement, element ->
 
                     if (ProducerType.ELEMENT in songProducers) {
-
                         ProducerType.ELEMENT.childs().asReversed().forEach {
                             if (it in songProducers) {
                                 val key = listOf(it, indexVoice, indexLine, indexElement)
@@ -54,14 +53,16 @@ fun getMisList(mltProp: MltProp): List<MltInitialStructure> {
                         if (mltProp.getUUID(key) == "") mltProp.setUUID(getStoredUuid(key), key)
                         result.add(MltInitialStructure(mltProp, ProducerType.ELEMENT, indexVoice, indexLine, indexElement))
                         mltProp.setCountChilds(line.getElements(songVersion).size, listOf(ProducerType.ELEMENT, indexVoice, indexLine))
-
                     }
                 }
                 if (ProducerType.LINE in songProducers) {
                     val key = listOf(ProducerType.LINE, indexVoice, indexLine)
                     if (mltProp.getUUID(key) == "") mltProp.setUUID(getStoredUuid(key), key)
 
-                    mltProp.setDurationOnScreen(line.endVisibleTime - line.startVisibleTime, listOf(ProducerType.LINE, indexVoice, indexLine))
+                    mltProp.setDurationOnScreen(
+                        line.endVisibleTime - line.startVisibleTime,
+                        listOf(ProducerType.LINE, indexVoice, indexLine),
+                    )
                     result.add(MltInitialStructure(mltProp, ProducerType.LINE, indexVoice, indexLine))
                 }
             }
@@ -72,7 +73,6 @@ fun getMisList(mltProp: MltProp): List<MltInitialStructure> {
             val indexLine = indexChord
 
             if (ProducerType.CHORDPICTUREELEMENT in songProducers) {
-
                 ProducerType.CHORDPICTUREELEMENT.childs().asReversed().forEach {
                     if (it in songProducers) {
                         val key = listOf(it, indexVoice, indexLine)
@@ -89,11 +89,13 @@ fun getMisList(mltProp: MltProp): List<MltInitialStructure> {
             if (ProducerType.CHORDPICTURELINE in songProducers) {
                 val key = listOf(ProducerType.CHORDPICTURELINE, indexVoice, indexLine)
                 if (mltProp.getUUID(key) == "") mltProp.setUUID(getStoredUuid(key), key)
-                mltProp.setDurationOnScreen(chord.endChordVisibleTime - chord.startChordVisibleTime, listOf(ProducerType.CHORDPICTURELINE, indexVoice, indexLine))
+                mltProp.setDurationOnScreen(
+                    chord.endChordVisibleTime - chord.startChordVisibleTime,
+                    listOf(ProducerType.CHORDPICTURELINE, indexVoice, indexLine),
+                )
                 result.add(MltInitialStructure(mltProp, ProducerType.CHORDPICTURELINE, indexVoice, indexLine))
             }
         }
-
 
         if (ProducerType.CHORDPICTURELINETRACK in songProducers) {
             val cnt = voice.countChordPictureTracks
@@ -142,7 +144,7 @@ fun getMisList(mltProp: MltProp): List<MltInitialStructure> {
         }
 
         if (ProducerType.COUNTER in songProducers) {
-            ProducerType.COUNTER.ids.forEach { childId->
+            ProducerType.COUNTER.ids.forEach { childId ->
                 val key = listOf(ProducerType.COUNTER, indexVoice, childId)
                 if (mltProp.getUUID(key) == "") mltProp.setUUID(getStoredUuid(key), key)
                 result.add(MltInitialStructure(mltProp, ProducerType.COUNTER, indexVoice, childId))
@@ -157,7 +159,7 @@ fun getMisList(mltProp: MltProp): List<MltInitialStructure> {
         }
 
         if (ProducerType.FILLCOLORSONGTEXT in songProducers) {
-            ProducerType.FILLCOLORSONGTEXT.ids.forEach { childId->
+            ProducerType.FILLCOLORSONGTEXT.ids.forEach { childId ->
                 val key = listOf(ProducerType.FILLCOLORSONGTEXT, indexVoice, childId)
                 if (mltProp.getUUID(key) == "") mltProp.setUUID(getStoredUuid(key), key)
                 result.add(MltInitialStructure(mltProp, ProducerType.FILLCOLORSONGTEXT, indexVoice, childId))
@@ -213,11 +215,7 @@ fun getMisList(mltProp: MltProp): List<MltInitialStructure> {
 
             result.add(MltInitialStructure(mltProp, ProducerType.VOICE, indexVoice))
         }
-
     }
-
-
-
 
     if (ProducerType.VOICES in songProducers) {
         val key = listOf(ProducerType.VOICES)
@@ -332,7 +330,6 @@ fun getMisList(mltProp: MltProp): List<MltInitialStructure> {
 }
 
 fun getMlt(mltProp: MltProp): MltNode {
-
     mltProp.getSongVersion()
     mltProp.getCountVoices()
 
@@ -352,16 +349,48 @@ fun getMlt(mltProp: MltProp): MltNode {
         val elementId = Integer.max(mis.elementId, 0)
 
         val pct = producerTypeClass[type] ?: return@forEach
-        val pctInstance = pct
-            .getDeclaredConstructor(*arrayOf(MltProp::class.java, ProducerType::class.java, Int::class.java, Int::class.java, Int::class.java))
-            .newInstance(*arrayOf(mltProp, type, voiceId, childId, elementId))
-        val resultProducer = pctInstance.javaClass.declaredMethods.firstOrNull { it.name == "producer" }?.let {it.invoke(pctInstance) as MltNode? }
-        val resultProducerBlackTrack = pctInstance.javaClass.declaredMethods.firstOrNull { it.name == "producerBlackTrack" }?.let {it.invoke(pctInstance) as MltNode? }
-        val resultFileProducer = pctInstance.javaClass.declaredMethods.firstOrNull { it.name == "fileProducer" }?.let {it.invoke(pctInstance) as MltNode? }
-        val resultFilePlaylist = pctInstance.javaClass.declaredMethods.firstOrNull { it.name == "filePlaylist" }?.let {it.invoke(pctInstance) as MltNode? }
-        val resultTrackPlaylist = pctInstance.javaClass.declaredMethods.firstOrNull { it.name == "trackPlaylist" }?.let {it.invoke(pctInstance) as MltNode? }
-        val resultTractor = pctInstance.javaClass.declaredMethods.firstOrNull { it.name == "tractor" }?.let {it.invoke(pctInstance) as MltNode? }
-        val resultTractorSequence = pctInstance.javaClass.declaredMethods.firstOrNull { it.name == "tractorSequence" }?.let {it.invoke(pctInstance) as MltNode? }
+        val pctInstance =
+            pct
+                .getDeclaredConstructor(
+                    *arrayOf(MltProp::class.java, ProducerType::class.java, Int::class.java, Int::class.java, Int::class.java),
+                ).newInstance(*arrayOf(mltProp, type, voiceId, childId, elementId))
+        val resultProducer =
+            pctInstance.javaClass.declaredMethods.firstOrNull { it.name == "producer" }?.let {
+                it.invoke(
+                    pctInstance,
+                ) as MltNode?
+            }
+        val resultProducerBlackTrack =
+            pctInstance.javaClass.declaredMethods
+                .firstOrNull {
+                    it.name == "producerBlackTrack"
+                }?.let { it.invoke(pctInstance) as MltNode? }
+        val resultFileProducer =
+            pctInstance.javaClass.declaredMethods
+                .firstOrNull {
+                    it.name == "fileProducer"
+                }?.let { it.invoke(pctInstance) as MltNode? }
+        val resultFilePlaylist =
+            pctInstance.javaClass.declaredMethods
+                .firstOrNull {
+                    it.name == "filePlaylist"
+                }?.let { it.invoke(pctInstance) as MltNode? }
+        val resultTrackPlaylist =
+            pctInstance.javaClass.declaredMethods
+                .firstOrNull {
+                    it.name == "trackPlaylist"
+                }?.let { it.invoke(pctInstance) as MltNode? }
+        val resultTractor =
+            pctInstance.javaClass.declaredMethods.firstOrNull { it.name == "tractor" }?.let {
+                it.invoke(
+                    pctInstance,
+                ) as MltNode?
+            }
+        val resultTractorSequence =
+            pctInstance.javaClass.declaredMethods
+                .firstOrNull {
+                    it.name == "tractorSequence"
+                }?.let { it.invoke(pctInstance) as MltNode? }
 
         resultProducerBlackTrack?.let { bodyProducers.add(it) }
         resultProducer?.let { bodyProducers.add(it) }
@@ -371,22 +400,23 @@ fun getMlt(mltProp: MltProp): MltNode {
         resultFilePlaylist?.let { bodyOthers.add(it) }
         resultTrackPlaylist?.let { bodyOthers.add(it) }
         resultTractor?.let { bodyOthers.add(it) }
-
     }
 
     body.addAll(bodyProducers)
     body.addAll(bodyOthers)
 
-    val mlt = MltNode(
-        name = "mlt",
-        fields = mutableMapOf(
-            Pair("LC_NUMERIC","C"),
-            Pair("producer","main_bin"),
-            Pair("version","7.21.0"),
-            Pair("root",mltProp.getRootFolder("Song")),
-        ),
-        body = body
-    )
+    val mlt =
+        MltNode(
+            name = "mlt",
+            fields =
+                mutableMapOf(
+                    Pair("LC_NUMERIC", "C"),
+                    Pair("producer", "main_bin"),
+                    Pair("version", "7.21.0"),
+                    Pair("root", mltProp.getRootFolder("Song")),
+                ),
+            body = body,
+        )
 
     return mlt
 }

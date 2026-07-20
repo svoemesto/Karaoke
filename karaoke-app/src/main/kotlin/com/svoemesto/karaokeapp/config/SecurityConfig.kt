@@ -16,7 +16,6 @@ import org.springframework.security.web.SecurityFilterChain
 @Configuration
 @EnableWebSecurity
 class SecurityConfig {
-
     private val logger = LoggerFactory.getLogger(SecurityConfig::class.java)
 
     @Bean
@@ -35,13 +34,13 @@ class SecurityConfig {
             http
                 .authorizeHttpRequests { requests ->
                     requests
-                        .requestMatchers("/api/private/**").authenticated()
-                        .anyRequest().permitAll()
-                }
-                .sessionManagement { session ->
+                        .requestMatchers("/api/private/**")
+                        .authenticated()
+                        .anyRequest()
+                        .permitAll()
+                }.sessionManagement { session ->
                     session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                }
-                .csrf { csrfConfigurer ->
+                }.csrf { csrfConfigurer ->
                     csrfConfigurer.disable()
                 }
             logger.info("<<< WebSecurityFilterChain (Order 1) created successfully.")

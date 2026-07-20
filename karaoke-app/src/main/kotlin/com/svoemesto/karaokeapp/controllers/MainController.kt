@@ -23,31 +23,42 @@ import java.io.File
 class MainController(
     private val storageService: KaraokeStorageService,
     private val storageApiClient: StorageApiClient,
-    private val lyricsFinderService: LyricsFinderService
+    private val lyricsFinderService: LyricsFinderService,
 ) {
-
     @GetMapping("/")
     fun main(model: Model): String {
         model.addAttribute("workInContainer", APP_WORK_IN_CONTAINER)
         model.addAttribute("authors", Settings.loadListAuthors(withSkiped = false, database = WORKING_DATABASE))
-        model.addAttribute("dicts", TEXT_FILE_DICTS.keys.toMutableList().sorted().toList())
+        model.addAttribute(
+            "dicts",
+            TEXT_FILE_DICTS.keys
+                .toMutableList()
+                .sorted()
+                .toList(),
+        )
         return "main"
     }
 
     @GetMapping("/zakroma")
     fun zakroma(
         @RequestParam(required = false) author: String?,
-        model: Model
+        model: Model,
     ): String {
-
         val args: MutableMap<String, String> = mutableMapOf()
         author?.let { if (author != "") args["author"] = author }
         model.addAttribute("workInContainer", APP_WORK_IN_CONTAINER)
         model.addAttribute("authors", Settings.loadListAuthors(database = WORKING_DATABASE))
-        model.addAttribute("zakroma", Zakroma.getZakroma(author = author ?: "", database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient))
+        model.addAttribute(
+            "zakroma",
+            Zakroma.getZakroma(
+                author = author ?: "",
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            ),
+        )
         return "zakroma"
     }
-
 
     @GetMapping("/utils/createdigest")
     @ResponseBody
@@ -68,23 +79,26 @@ class MainController(
     @PostMapping("/utils/censored")
     @ResponseBody
     fun doCensored(
-        @RequestParam(required = true) source: String
-    ): String {
-        return source.censored()
-    }
+        @RequestParam(required = true) source: String,
+    ): String = source.censored()
 
     @PostMapping("/utils/createfromfolder")
     @ResponseBody
     fun doCreateFromFolder(
-        @RequestParam(required = true) folder: String
-    ): Int {
-        return Settings.createFromPath(folder, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient).size
-    }
+        @RequestParam(required = true) folder: String,
+    ): Int =
+        Settings
+            .createFromPath(
+                folder,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            ).size
 
     @PostMapping("/utils/createdzenpicturesforfolder")
     @ResponseBody
     fun doCreateDzenPicturesForFolder(
-        @RequestParam(required = true) folder: String
+        @RequestParam(required = true) folder: String,
     ): Boolean {
         createDzenPicture(folder)
         return true
@@ -92,9 +106,8 @@ class MainController(
 
     @GetMapping("/utils/updatebpmandkey")
     @ResponseBody
-    fun doUpdateBpmAndKey(): Int {
-        return updateBpmAndKey(database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
-    }
+    fun doUpdateBpmAndKey(): Int =
+        updateBpmAndKey(database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
 
 //    @PostMapping("/utils/updateremotedatabasefromlocaldatabase")
 //    @ResponseBody
@@ -121,39 +134,40 @@ class MainController(
     @PostMapping("/utils/markdublicates")
     @ResponseBody
     fun doMarkDublicates(
-        @RequestParam(required = true) author: String
-    ): Int {
-        return markDublicates(author, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
-    }
+        @RequestParam(required = true) author: String,
+    ): Int = markDublicates(author, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
 
     @GetMapping("/utils/deldublicates")
     @ResponseBody
-    fun doDelDublicates(): Int {
-        return delDublicates(database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
-    }
+    fun doDelDublicates(): Int =
+        delDublicates(database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
 
     @GetMapping("/utils/clearpredublicates")
     @ResponseBody
-    fun doClearPreDublicates(): Int {
-        return clearPreDublicates(database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
-    }
+    fun doClearPreDublicates(): Int =
+        clearPreDublicates(database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
 
     @GetMapping("/utils/customfunction")
     @ResponseBody
-    fun doCustomFunction(): String {
-        return customFunction(storageService = storageService, storageApiClient = storageApiClient, lyricsFinderService = lyricsFinderService)
-    }
+    fun doCustomFunction(): String =
+        customFunction(storageService = storageService, storageApiClient = storageApiClient, lyricsFinderService = lyricsFinderService)
 
     @PostMapping("/changesettingsstatus")
     @ResponseBody
     fun doCreateFromFolder(
         @RequestParam(required = true) settingsId: Long,
-        @RequestParam(required = true) statusId: Long
+        @RequestParam(required = true) statusId: Long,
     ) {
-        Settings.loadFromDbById(settingsId, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)?.let {
-            it.fields[SettingField.ID_STATUS] = statusId.toString()
-            it.saveToDb()
-        }
+        Settings
+            .loadFromDbById(
+                settingsId,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )?.let {
+                it.fields[SettingField.ID_STATUS] = statusId.toString()
+                it.saveToDb()
+            }
     }
 
     @PostMapping("/process/update")
@@ -164,13 +178,11 @@ class MainController(
         @RequestParam(required = false) process_order: String,
         @RequestParam(required = false) process_priority: String,
         @RequestParam(required = false) process_description: String,
-        @RequestParam(required = false) process_type: String
+        @RequestParam(required = false) process_type: String,
     ): String {
-
         val processId: Long = id.toLong()
         val process = KaraokeProcess.load(processId, WORKING_DATABASE)
         process?.let {
-
             process.name = process_name
             process.status = process_status
             process.order = process_order.toInt()
@@ -179,8 +191,11 @@ class MainController(
             process.type = process_type
 
             process.save()
-            process.updateStatusProcessSettings(database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
-
+            process.updateStatusProcessSettings(
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
         }
 
         return "redirect:/processes"
@@ -188,15 +203,15 @@ class MainController(
 
     @GetMapping("/songs/lastupdated")
     @ResponseBody
-    fun getLastUpdatedSettings(@RequestParam(required = false) lastTime: Long? = null): List<Int> {
-        return Settings.getLastUpdated(lastTime, WORKING_DATABASE)
-    }
+    fun getLastUpdatedSettings(
+        @RequestParam(required = false) lastTime: Long? = null,
+    ): List<Int> = Settings.getLastUpdated(lastTime, WORKING_DATABASE)
 
     @GetMapping("/process/lastupdated")
     @ResponseBody
-    fun getLastUpdatedProcesses(@RequestParam(required = false) lastTime: Long? = null): List<Int> {
-        return KaraokeProcess.getLastUpdated(lastTime, WORKING_DATABASE)
-    }
+    fun getLastUpdatedProcesses(
+        @RequestParam(required = false) lastTime: Long? = null,
+    ): List<Int> = KaraokeProcess.getLastUpdated(lastTime, WORKING_DATABASE)
 
     @GetMapping("/songs/createtags")
     @ResponseBody
@@ -228,20 +243,24 @@ class MainController(
 
     @GetMapping("/process/isworking")
     @ResponseBody
-    fun doProcessWorkerIsWorking(): Boolean {
-        return KaraokeProcessWorker.isWork
-    }
+    fun doProcessWorkerIsWorking(): Boolean = KaraokeProcessWorker.isWork
 
     @GetMapping("/process/isstopafterthreadssdone")
     @ResponseBody
-    fun doProcessWorkerIsStopAfterThreadIsDone(): Boolean {
-        return KaraokeProcessWorker.stopAfterThreadIsDone
-    }
+    fun doProcessWorkerIsStopAfterThreadIsDone(): Boolean = KaraokeProcessWorker.stopAfterThreadIsDone
 
     @GetMapping("/song/{id}/pictureauthor")
     @ResponseBody
-    fun getPictureAuthor(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+    fun getPictureAuthor(
+        @PathVariable id: Long,
+    ): String {
+        val settings =
+            Settings.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
         settings?.let {
             return it.pictureAuthor?.full ?: ""
         }
@@ -250,8 +269,16 @@ class MainController(
 
     @GetMapping("/song/{id}/picturealbum")
     @ResponseBody
-    fun getPictureAlbum(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+    fun getPictureAlbum(
+        @PathVariable id: Long,
+    ): String {
+        val settings =
+            Settings.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
         settings?.let {
             return it.pictureAlbum?.full ?: ""
         }
@@ -260,25 +287,49 @@ class MainController(
 
     @GetMapping("/song/{id}/symlink")
     @ResponseBody
-    fun doSymlink(@PathVariable id: Long,
-                  @RequestParam(required = false) threadId: String? = "0"): Int {
-        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+    fun doSymlink(
+        @PathVariable id: Long,
+        @RequestParam(required = false) threadId: String? = "0",
+    ): Int {
+        val settings =
+            Settings.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
         settings?.doSymlink(threadId = threadId?.toInt() ?: 0)
         return 0
     }
 
     @GetMapping("/song/{id}/delete")
     @ResponseBody
-    fun doDeleteSong(@PathVariable id: Long): Int {
-        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+    fun doDeleteSong(
+        @PathVariable id: Long,
+    ): Int {
+        val settings =
+            Settings.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
         settings?.deleteFromDb()
         return 0
     }
 
     @GetMapping("/song/{id}/setpublishdatetimetoauthor")
     @ResponseBody
-    fun doSetPublishDateTimeToAuthor(@PathVariable id: Long): Int {
-        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+    fun doSetPublishDateTimeToAuthor(
+        @PathVariable id: Long,
+    ): Int {
+        val settings =
+            Settings.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
         settings?.let {
             Settings.setPublishDateTimeToAuthor(settings)
         }
@@ -287,8 +338,16 @@ class MainController(
 
     @GetMapping("/song/{id}/playlyrics")
     @ResponseBody
-    fun doPlayLyrics(@PathVariable id: Long): Int {
-        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+    fun doPlayLyrics(
+        @PathVariable id: Long,
+    ): Int {
+        val settings =
+            Settings.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
         settings?.let {
             settings.playLyrics()
         }
@@ -297,8 +356,16 @@ class MainController(
 
     @GetMapping("/song/{id}/playkaraoke")
     @ResponseBody
-    fun doPlayKaraoke(@PathVariable id: Long): Int {
-        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+    fun doPlayKaraoke(
+        @PathVariable id: Long,
+    ): Int {
+        val settings =
+            Settings.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
         settings?.let {
             settings.playKaraoke()
         }
@@ -307,17 +374,21 @@ class MainController(
 
     @GetMapping("/song/{id}/playchords")
     @ResponseBody
-    fun doPlayChords(@PathVariable id: Long): Int {
-        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+    fun doPlayChords(
+        @PathVariable id: Long,
+    ): Int {
+        val settings =
+            Settings.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
         settings?.let {
             settings.playChords()
         }
         return 0
     }
-
-
-
-
 
     @PostMapping("/song/{id}/{voice}/savesourcetext")
     fun saveSourceText(
@@ -325,15 +396,22 @@ class MainController(
         @PathVariable voice: Int,
         @RequestParam(required = false) sourceText: String = "",
         @RequestParam(required = false) threadId: String? = "0",
-        model: Model): String {
+        model: Model,
+    ): String {
         var text: String
 //        if (sourceText.trim() != "") {
-            val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
-            text = settings?.let {
-                settings.setSourceText(voice, sourceText)
-                settings.updateMarkersFromSourceText(voice)
-                "OK"
-            } ?: "Error"
+        val settings =
+            Settings.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
+        text = settings?.let {
+            settings.setSourceText(voice, sourceText)
+            settings.updateMarkersFromSourceText(voice)
+            "OK"
+        } ?: "Error"
 //        }
         model.addAttribute("text", text)
         return "text"
@@ -341,8 +419,17 @@ class MainController(
 
     @GetMapping("/song/{id}/doprocesslyrics")
     @ResponseBody
-    fun doProcessLyrics(@PathVariable id: Long, @RequestParam(required = false) threadId: String? = "0",): Long {
-        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+    fun doProcessLyrics(
+        @PathVariable id: Long,
+        @RequestParam(required = false) threadId: String? = "0",
+    ): Long {
+        val settings =
+            Settings.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
         settings?.let {
             return KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS, true, 0, threadId = threadId?.toInt() ?: 0)
         }
@@ -351,8 +438,17 @@ class MainController(
 
     @GetMapping("/song/{id}/doprocesskaraoke")
     @ResponseBody
-    fun doProcessKaraoke(@PathVariable id: Long, @RequestParam(required = false) threadId: String? = "0"): Long {
-        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+    fun doProcessKaraoke(
+        @PathVariable id: Long,
+        @RequestParam(required = false) threadId: String? = "0",
+    ): Long {
+        val settings =
+            Settings.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
         settings?.let {
             return KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, 1, threadId = threadId?.toInt() ?: 0)
         }
@@ -361,8 +457,17 @@ class MainController(
 
     @GetMapping("/song/{id}/doprocesschords")
     @ResponseBody
-    fun doProcessChords(@PathVariable id: Long, @RequestParam(required = false) threadId: String? = "0"): Long {
-        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+    fun doProcessChords(
+        @PathVariable id: Long,
+        @RequestParam(required = false) threadId: String? = "0",
+    ): Long {
+        val settings =
+            Settings.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
         settings?.let {
             if (Song(settings, SongVersion.LYRICS).hasChords) {
                 return KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDS, true, 1, threadId = threadId?.toInt() ?: 0)
@@ -373,15 +478,33 @@ class MainController(
 
     @GetMapping("/song/{id}/doprocessall")
     @ResponseBody
-    fun doProcessAll(@PathVariable id: Long, @RequestParam(required = false) threadId: String? = "0"): List<Long> {
-        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+    fun doProcessAll(
+        @PathVariable id: Long,
+        @RequestParam(required = false) threadId: String? = "0",
+    ): List<Long> {
+        val settings =
+            Settings.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
         val result: MutableList<Long> = mutableListOf()
         settings?.let {
             val hasChords = Song(settings, SongVersion.LYRICS).hasChords
             result.add(KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS, true, 4, threadId = threadId?.toInt() ?: 0))
             result.add(KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, 4, threadId = threadId?.toInt() ?: 0))
             if (hasChords) {
-                result.add(KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDS, true, 4, threadId = threadId?.toInt() ?: 0))
+                result.add(
+                    KaraokeProcess.createProcess(
+                        settings,
+                        KaraokeProcessTypes.MELT_CHORDS,
+                        true,
+                        4,
+                        threadId =
+                            threadId?.toInt() ?: 0,
+                    ),
+                )
             }
         }
         return result
@@ -389,14 +512,32 @@ class MainController(
 
     @GetMapping("/song/{id}/doprocessallwolyrics")
     @ResponseBody
-    fun doProcessAllWOLyrics(@PathVariable id: Long, @RequestParam(required = false) threadId: String? = "0"): List<Long> {
-        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+    fun doProcessAllWOLyrics(
+        @PathVariable id: Long,
+        @RequestParam(required = false) threadId: String? = "0",
+    ): List<Long> {
+        val settings =
+            Settings.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
         val result: MutableList<Long> = mutableListOf()
         settings?.let {
             val hasChords = Song(settings, SongVersion.LYRICS).hasChords
             result.add(KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, 2, threadId = threadId?.toInt() ?: 0))
             if (hasChords) {
-                result.add(KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDS, true, 3, threadId = threadId?.toInt() ?: 0))
+                result.add(
+                    KaraokeProcess.createProcess(
+                        settings,
+                        KaraokeProcessTypes.MELT_CHORDS,
+                        true,
+                        3,
+                        threadId =
+                            threadId?.toInt() ?: 0,
+                    ),
+                )
             }
         }
         return result
@@ -404,48 +545,76 @@ class MainController(
 
     @GetMapping("/song/{id}/dodemucs2")
     @ResponseBody
-    fun doProcessDemucs2(@PathVariable id: Long, @RequestParam(required = false) threadId: String? = "0"): Long {
-        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+    fun doProcessDemucs2(
+        @PathVariable id: Long,
+        @RequestParam(required = false) threadId: String? = "0",
+    ): Long {
+        val settings =
+            Settings.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
         settings?.let {
 //            if (it.getAudioAspectRate() != "48000") KaraokeProcess.createProcess(settings, KaraokeProcessTypes.RECODE_48000, true, -1)
-            return  KaraokeProcess.createProcess(settings, KaraokeProcessTypes.DEMUCS2, true, -1, threadId = threadId?.toInt() ?: 0)
+            return KaraokeProcess.createProcess(settings, KaraokeProcessTypes.DEMUCS2, true, -1, threadId = threadId?.toInt() ?: 0)
         }
         return 0
     }
 
     @GetMapping("/process/{id}")
     @ResponseBody
-    fun getProcess(@PathVariable id: Long): KaraokeProcess? {
-        return KaraokeProcess.load(id, WORKING_DATABASE)
-    }
+    fun getProcess(
+        @PathVariable id: Long,
+    ): KaraokeProcess? = KaraokeProcess.load(id, WORKING_DATABASE)
 
     @GetMapping("/process/working")
     @ResponseBody
-    fun getWorkingProcess(): KaraokeProcess? {
-        return KaraokeProcess.loadList(mapOf(Pair("process_status",KaraokeProcessStatuses.WORKING.name)), WORKING_DATABASE).firstOrNull()
-    }
+    fun getWorkingProcess(): KaraokeProcess? =
+        KaraokeProcess.loadList(mapOf(Pair("process_status", KaraokeProcessStatuses.WORKING.name)), WORKING_DATABASE).firstOrNull()
 
     @GetMapping("/song/{id}")
     @ResponseBody
-    fun getSong(@PathVariable id: Long): Settings? {
-        return Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
-    }
+    fun getSong(
+        @PathVariable id: Long,
+    ): Settings? =
+        Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
 
     @GetMapping("/song/{id}/{voice}/sourcetext")
     @ResponseBody
-    fun getSourceText(@PathVariable id: Long, @PathVariable voice: Int): String {
-        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
-        val text = settings?.let {
-            settings.getSourceText(voice)
-        } ?: ""
+    fun getSourceText(
+        @PathVariable id: Long,
+        @PathVariable voice: Int,
+    ): String {
+        val settings =
+            Settings.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
+        val text =
+            settings?.let {
+                settings.getSourceText(voice)
+            } ?: ""
 //        model.addAttribute("text", text)
         return text
     }
 
     @GetMapping("/song/{id}/{voice}/sourcemarkers")
     @ResponseBody
-    fun getSourceMarkers(@PathVariable id: Long, @PathVariable voice: Int): List<SourceMarker> {
-        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+    fun getSourceMarkers(
+        @PathVariable id: Long,
+        @PathVariable voice: Int,
+    ): List<SourceMarker> {
+        val settings =
+            Settings.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
         return settings?.let {
             settings.getSourceMarkers(voice)
         } ?: emptyList()
@@ -453,8 +622,17 @@ class MainController(
 
     @GetMapping("/song/{id}/{voice}/sourcesyllables")
     @ResponseBody
-    fun getSourceSyllables(@PathVariable id: Long, @PathVariable voice: Int): List<String> {
-        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+    fun getSourceSyllables(
+        @PathVariable id: Long,
+        @PathVariable voice: Int,
+    ): List<String> {
+        val settings =
+            Settings.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
         return settings?.let {
             settings.getSourceSyllables(voice)
         } ?: emptyList()
@@ -465,14 +643,21 @@ class MainController(
         @PathVariable id: Long,
         @PathVariable voice: Int,
         @RequestParam(required = false) sourceMarkers: String = "",
-        model: Model): String {
+        model: Model,
+    ): String {
         var text = "Error"
         if (sourceMarkers.trim() != "") {
-            val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+            val settings =
+                Settings.loadFromDbById(
+                    id = id,
+                    database = WORKING_DATABASE,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                )
             text = settings?.let {
                 settings.setSourceMarkers(voice, Json.decodeFromString(ListSerializer(SourceMarker.serializer()), sourceMarkers))
                 val strText = settings.convertMarkersToSrt(voice)
-                val pathToFile = "${settings.rootFolder}/${settings.fileName}.voice${voice+1}.srt"
+                val pathToFile = "${settings.rootFolder}/${settings.fileName}.voice${voice + 1}.srt"
                 File(pathToFile).writeText(strText)
                 runCommand(listOf("chmod", "666", pathToFile))
                 "OK"
@@ -482,468 +667,772 @@ class MainController(
         return "text"
     }
 
-
     @GetMapping("/song/{id}/fileVocal")
     fun getSongFileVocal(
-        @PathVariable id: Long
+        @PathVariable id: Long,
     ): ResponseEntity<Resource> {
-       Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)?.let { settings ->
-           val filename = File(settings.vocalsNameFlac)
-           val resource = FileSystemResource(filename)
-           if (resource.exists()) {
-               return ResponseEntity.ok()
-                   .header(HttpHeaders.CONTENT_DISPOSITION, "attachment")
-                   .body(resource)
-           }
-        }
+        Settings
+            .loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )?.let { settings ->
+                val filename = File(settings.vocalsNameFlac)
+                val resource = FileSystemResource(filename)
+                if (resource.exists()) {
+                    return ResponseEntity
+                        .ok()
+                        .header(HttpHeaders.CONTENT_DISPOSITION, "attachment")
+                        .body(resource)
+                }
+            }
         return ResponseEntity.notFound().build()
     }
 
     @GetMapping("/song/{id}/fileMusic")
     fun getSongFileMusic(
-        @PathVariable id: Long
+        @PathVariable id: Long,
     ): ResponseEntity<Resource> {
-        Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)?.let { settings ->
-            val filename = File(settings.accompanimentNameFlac)
-            val resource = FileSystemResource(filename)
-            if (resource.exists()) {
-                return ResponseEntity.ok()
-                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment")
-                    .body(resource)
+        Settings
+            .loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )?.let { settings ->
+                val filename = File(settings.accompanimentNameFlac)
+                val resource = FileSystemResource(filename)
+                if (resource.exists()) {
+                    return ResponseEntity
+                        .ok()
+                        .header(HttpHeaders.CONTENT_DISPOSITION, "attachment")
+                        .body(resource)
+                }
             }
-        }
         return ResponseEntity.notFound().build()
     }
 
     @GetMapping("/song/{id}/fileSong")
     fun getSongFileSong(
-        @PathVariable id: Long
+        @PathVariable id: Long,
     ): ResponseEntity<Resource> {
-        Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)?.let { settings ->
-            val filename = File(settings.fileAbsolutePath)
-            val resource = FileSystemResource(filename)
-            if (resource.exists()) {
-                return ResponseEntity.ok()
-                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment")
-                    .body(resource)
+        Settings
+            .loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )?.let { settings ->
+                val filename = File(settings.fileAbsolutePath)
+                val resource = FileSystemResource(filename)
+                if (resource.exists()) {
+                    return ResponseEntity
+                        .ok()
+                        .header(HttpHeaders.CONTENT_DISPOSITION, "attachment")
+                        .body(resource)
+                }
             }
-        }
         return ResponseEntity.notFound().build()
     }
 
     @GetMapping("/song/{id}/{voice}/editsubs")
-    fun getSongEditSubs(@PathVariable id: Long, @PathVariable voice: Int, model: Model): String {
-         Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)?.let { settings ->
-            val markersValue = Json.encodeToString(settings.getSourceMarkers(voice))
-            val syllablesValue = Json.encodeToString(settings.getSourceSyllables(voice))
+    fun getSongEditSubs(
+        @PathVariable id: Long,
+        @PathVariable voice: Int,
+        model: Model,
+    ): String {
+        Settings
+            .loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )?.let { settings ->
+                val markersValue = Json.encodeToString(settings.getSourceMarkers(voice))
+                val syllablesValue = Json.encodeToString(settings.getSourceSyllables(voice))
 
-            model.addAttribute("workInContainer", APP_WORK_IN_CONTAINER)
-            model.addAttribute("settings", settings)
-            model.addAttribute("text", settings.getSourceText(voice))
-            model.addAttribute("markers", markersValue)
-            model.addAttribute("syllables", syllablesValue)
-            model.addAttribute("voice", voice)
-        }
+                model.addAttribute("workInContainer", APP_WORK_IN_CONTAINER)
+                model.addAttribute("settings", settings)
+                model.addAttribute("text", settings.getSourceText(voice))
+                model.addAttribute("markers", markersValue)
+                model.addAttribute("syllables", syllablesValue)
+                model.addAttribute("voice", voice)
+            }
 
         return "editsubs"
     }
 
     @GetMapping("/song/{id}/color")
     @ResponseBody
-    fun getSongColor(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
-        val text = settings?.let {
-            settings.color
-        } ?: "#FFFFFF"
+    fun getSongColor(
+        @PathVariable id: Long,
+    ): String {
+        val settings =
+            Settings.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
+        val text =
+            settings?.let {
+                settings.color
+            } ?: "#FFFFFF"
         return text
     }
 
     @GetMapping("/song/{id}/textdzenlyrics")
     @ResponseBody
-    fun getSongTextDzenLyrics(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
-        val text = settings?.let {
-            val text = it.getDescription(SongVersion.LYRICS)
-            text
-        } ?: ""
+    fun getSongTextDzenLyrics(
+        @PathVariable id: Long,
+    ): String {
+        val settings =
+            Settings.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
+        val text =
+            settings?.let {
+                val text = it.getDescription(SongVersion.LYRICS)
+                text
+            } ?: ""
         return text
     }
 
     @GetMapping("/song/{id}/textdzenkaraoke")
     @ResponseBody
-    fun getSongTextDzenKaraoke(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
-        val text = settings?.let {
-            val text = it.getDescription(SongVersion.KARAOKE)
-            text
-        } ?: ""
+    fun getSongTextDzenKaraoke(
+        @PathVariable id: Long,
+    ): String {
+        val settings =
+            Settings.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
+        val text =
+            settings?.let {
+                val text = it.getDescription(SongVersion.KARAOKE)
+                text
+            } ?: ""
         return text
     }
 
     @GetMapping("/song/{id}/textdzenchords")
     @ResponseBody
-    fun getSongTextDzenChords(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
-        val text = settings?.let {
-            val text = it.getDescription(SongVersion.CHORDS)
-            text
-        } ?: ""
+    fun getSongTextDzenChords(
+        @PathVariable id: Long,
+    ): String {
+        val settings =
+            Settings.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
+        val text =
+            settings?.let {
+                val text = it.getDescription(SongVersion.CHORDS)
+                text
+            } ?: ""
         return text
     }
-
 
     @GetMapping("/song/{id}/textdzenlyricsheader")
     @ResponseBody
-    fun getSongTextDzenLyricsHeader(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
-        val text = settings?.let {
-            val text = it.getDescriptionHeader(SongVersion.LYRICS, 140)
-            text
-        } ?: ""
+    fun getSongTextDzenLyricsHeader(
+        @PathVariable id: Long,
+    ): String {
+        val settings =
+            Settings.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
+        val text =
+            settings?.let {
+                val text = it.getDescriptionHeader(SongVersion.LYRICS, 140)
+                text
+            } ?: ""
         return text
     }
-
 
     @GetMapping("/song/{id}/textdzenkaraokeheader")
     @ResponseBody
-    fun getSongTextDzenKaraokeHeader(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
-        val text = settings?.let {
-            val text = it.getDescriptionHeader(SongVersion.KARAOKE, 140)
-            text
-        } ?: ""
+    fun getSongTextDzenKaraokeHeader(
+        @PathVariable id: Long,
+    ): String {
+        val settings =
+            Settings.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
+        val text =
+            settings?.let {
+                val text = it.getDescriptionHeader(SongVersion.KARAOKE, 140)
+                text
+            } ?: ""
         return text
     }
-
 
     @GetMapping("/song/{id}/textdzenchordsheader")
     @ResponseBody
-    fun getSongTextDzenChordsHeader(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
-        val text = settings?.let {
-            val text = it.getDescriptionHeader(SongVersion.CHORDS, 140)
-            text
-        } ?: ""
+    fun getSongTextDzenChordsHeader(
+        @PathVariable id: Long,
+    ): String {
+        val settings =
+            Settings.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
+        val text =
+            settings?.let {
+                val text = it.getDescriptionHeader(SongVersion.CHORDS, 140)
+                text
+            } ?: ""
         return text
     }
-
 
     @GetMapping("/song/{id}/textdzenlyricswoheader")
     @ResponseBody
-    fun getSongTextDzenLyricsWOHeader(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
-        val text = settings?.let {
-            val text = it.getDescriptionWOHeaderWithTimecodes(SongVersion.LYRICS, 5000)
-            text
-        } ?: ""
+    fun getSongTextDzenLyricsWOHeader(
+        @PathVariable id: Long,
+    ): String {
+        val settings =
+            Settings.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
+        val text =
+            settings?.let {
+                val text = it.getDescriptionWOHeaderWithTimecodes(SongVersion.LYRICS, 5000)
+                text
+            } ?: ""
         return text
     }
-
 
     @GetMapping("/song/{id}/textdzenkaraokewoheader")
     @ResponseBody
-    fun getSongTextDzenKaraokeWOHeader(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
-        val text = settings?.let {
-            val text = it.getDescriptionWOHeaderWithTimecodes(SongVersion.KARAOKE, 5000)
-            text
-        } ?: ""
+    fun getSongTextDzenKaraokeWOHeader(
+        @PathVariable id: Long,
+    ): String {
+        val settings =
+            Settings.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
+        val text =
+            settings?.let {
+                val text = it.getDescriptionWOHeaderWithTimecodes(SongVersion.KARAOKE, 5000)
+                text
+            } ?: ""
         return text
     }
-
 
     @GetMapping("/song/{id}/textdzenchordswoheader")
     @ResponseBody
-    fun getSongTextDzenChordsWOHeader(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
-        val text = settings?.let {
-            val text = it.getDescriptionWOHeaderWithTimecodes(SongVersion.CHORDS, 5000)
-            text
-        } ?: ""
+    fun getSongTextDzenChordsWOHeader(
+        @PathVariable id: Long,
+    ): String {
+        val settings =
+            Settings.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
+        val text =
+            settings?.let {
+                val text = it.getDescriptionWOHeaderWithTimecodes(SongVersion.CHORDS, 5000)
+                text
+            } ?: ""
         return text
     }
 
-
     @PostMapping("/replacesymbolsinsong")
     @ResponseBody
-    fun getReplaceSymbolsInSong(@RequestParam(required = true) txt: String): String {
+    fun getReplaceSymbolsInSong(
+        @RequestParam(required = true) txt: String,
+    ): String {
 //        println(txt)
         val result = replaceSymbolsInSong(txt)
         return result
     }
 
-
-
-
     @GetMapping("/song/{id}/textvklyrics")
     @ResponseBody
-    fun getSongTextVkLyrics(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
-        val text = settings?.let {
-            val text = it.getDescriptionVk(SongVersion.LYRICS)
-            text
-        } ?: ""
+    fun getSongTextVkLyrics(
+        @PathVariable id: Long,
+    ): String {
+        val settings =
+            Settings.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
+        val text =
+            settings?.let {
+                val text = it.getDescriptionVk(SongVersion.LYRICS)
+                text
+            } ?: ""
         return text
     }
 
     @GetMapping("/song/{id}/textvkkaraoke")
     @ResponseBody
-    fun getSongTextVkKaraoke(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
-        val text = settings?.let {
-            val text = it.getDescriptionVk(SongVersion.KARAOKE)
-            text
-        } ?: ""
+    fun getSongTextVkKaraoke(
+        @PathVariable id: Long,
+    ): String {
+        val settings =
+            Settings.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
+        val text =
+            settings?.let {
+                val text = it.getDescriptionVk(SongVersion.KARAOKE)
+                text
+            } ?: ""
         return text
     }
-
 
     @GetMapping("/song/{id}/textvkchords")
     @ResponseBody
-    fun getSongTextVkChords(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
-        val text = settings?.let {
-            val text = it.getDescriptionVk(SongVersion.CHORDS)
-            text
-        } ?: ""
+    fun getSongTextVkChords(
+        @PathVariable id: Long,
+    ): String {
+        val settings =
+            Settings.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
+        val text =
+            settings?.let {
+                val text = it.getDescriptionVk(SongVersion.CHORDS)
+                text
+            } ?: ""
         return text
     }
 
-
     @GetMapping("/song/{id}/textvklyricsheader")
     @ResponseBody
-    fun getSongTextVkLyricsHeader(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
-        val text = settings?.let {
-            val text = it.getDescriptionVkHeader(SongVersion.LYRICS)
-            text
-        } ?: ""
+    fun getSongTextVkLyricsHeader(
+        @PathVariable id: Long,
+    ): String {
+        val settings =
+            Settings.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
+        val text =
+            settings?.let {
+                val text = it.getDescriptionVkHeader(SongVersion.LYRICS)
+                text
+            } ?: ""
         return text
     }
 
     @GetMapping("/song/{id}/textvkkaraokeheader")
     @ResponseBody
-    fun getSongTextVkKaraokeHeader(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
-        val text = settings?.let {
-            val text = it.getDescriptionVkHeader(SongVersion.KARAOKE)
-            text
-        } ?: ""
+    fun getSongTextVkKaraokeHeader(
+        @PathVariable id: Long,
+    ): String {
+        val settings =
+            Settings.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
+        val text =
+            settings?.let {
+                val text = it.getDescriptionVkHeader(SongVersion.KARAOKE)
+                text
+            } ?: ""
         return text
     }
-
 
     @GetMapping("/song/{id}/textvkchordsheader")
     @ResponseBody
-    fun getSongTextVkChordsHeader(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
-        val text = settings?.let {
-            val text = it.getDescriptionVkHeader(SongVersion.CHORDS)
-            text
-        } ?: ""
+    fun getSongTextVkChordsHeader(
+        @PathVariable id: Long,
+    ): String {
+        val settings =
+            Settings.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
+        val text =
+            settings?.let {
+                val text = it.getDescriptionVkHeader(SongVersion.CHORDS)
+                text
+            } ?: ""
         return text
     }
-
 
     @GetMapping("/song/{id}/textvklyricswoheader")
     @ResponseBody
-    fun getSongTextVkLyricsWOHeader(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
-        val text = settings?.let {
-            val text = it.getDescriptionWOHeaderWithTimecodes(SongVersion.LYRICS, 4785)
-            text
-        } ?: ""
+    fun getSongTextVkLyricsWOHeader(
+        @PathVariable id: Long,
+    ): String {
+        val settings =
+            Settings.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
+        val text =
+            settings?.let {
+                val text = it.getDescriptionWOHeaderWithTimecodes(SongVersion.LYRICS, 4785)
+                text
+            } ?: ""
         return text
     }
-
 
     @GetMapping("/song/{id}/textvkkaraokewoheader")
     @ResponseBody
-    fun getSongTextVkKaraokeWOHeader(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
-        val text = settings?.let {
-            val text = it.getDescriptionWOHeaderWithTimecodes(SongVersion.KARAOKE, 4785)
-            text
-        } ?: ""
+    fun getSongTextVkKaraokeWOHeader(
+        @PathVariable id: Long,
+    ): String {
+        val settings =
+            Settings.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
+        val text =
+            settings?.let {
+                val text = it.getDescriptionWOHeaderWithTimecodes(SongVersion.KARAOKE, 4785)
+                text
+            } ?: ""
         return text
     }
-
 
     @GetMapping("/song/{id}/textvkchordswoheader")
     @ResponseBody
-    fun getSongTextVkChordsWOHeader(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
-        val text = settings?.let {
-            val text = it.getDescriptionWOHeaderWithTimecodes(SongVersion.CHORDS, 4893)
-            text
-        } ?: ""
+    fun getSongTextVkChordsWOHeader(
+        @PathVariable id: Long,
+    ): String {
+        val settings =
+            Settings.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
+        val text =
+            settings?.let {
+                val text = it.getDescriptionWOHeaderWithTimecodes(SongVersion.CHORDS, 4893)
+                text
+            } ?: ""
         return text
     }
 
-
-
-
     @GetMapping("/song/{id}/texttelegramlyrics")
     @ResponseBody
-    fun getSongTextTelegramLyrics(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
-        val text = settings?.let {
-            val text = it.getDescriptionVk(SongVersion.LYRICS)
-            text
-        } ?: ""
+    fun getSongTextTelegramLyrics(
+        @PathVariable id: Long,
+    ): String {
+        val settings =
+            Settings.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
+        val text =
+            settings?.let {
+                val text = it.getDescriptionVk(SongVersion.LYRICS)
+                text
+            } ?: ""
         return text
     }
 
     @GetMapping("/song/{id}/texttelegramkaraoke")
     @ResponseBody
-    fun getSongTextTelegramKaraoke(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
-        val text = settings?.let {
-            val text = it.getDescriptionVk(SongVersion.KARAOKE)
-            text
-        } ?: ""
+    fun getSongTextTelegramKaraoke(
+        @PathVariable id: Long,
+    ): String {
+        val settings =
+            Settings.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
+        val text =
+            settings?.let {
+                val text = it.getDescriptionVk(SongVersion.KARAOKE)
+                text
+            } ?: ""
         return text
     }
-
 
     @GetMapping("/song/{id}/texttelegramchords")
     @ResponseBody
-    fun getSongTextTelegramChords(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
-        val text = settings?.let {
-            val text = it.getDescriptionVk(SongVersion.CHORDS)
-            text
-        } ?: ""
+    fun getSongTextTelegramChords(
+        @PathVariable id: Long,
+    ): String {
+        val settings =
+            Settings.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
+        val text =
+            settings?.let {
+                val text = it.getDescriptionVk(SongVersion.CHORDS)
+                text
+            } ?: ""
         return text
     }
 
-
     @GetMapping("/song/{id}/texttelegramlyricsheader")
     @ResponseBody
-    fun getSongTextTelegramLyricsHeader(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
-        val text = settings?.let {
-            val text = it.getDescriptionVkHeader(SongVersion.LYRICS)
-            text
-        } ?: ""
+    fun getSongTextTelegramLyricsHeader(
+        @PathVariable id: Long,
+    ): String {
+        val settings =
+            Settings.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
+        val text =
+            settings?.let {
+                val text = it.getDescriptionVkHeader(SongVersion.LYRICS)
+                text
+            } ?: ""
         return text
     }
 
     @GetMapping("/song/{id}/texttelegramkaraokeheader")
     @ResponseBody
-    fun getSongTextTelegramKaraokeHeader(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
-        val text = settings?.let {
-            val text = it.getDescriptionVkHeader(SongVersion.KARAOKE)
-            text
-        } ?: ""
+    fun getSongTextTelegramKaraokeHeader(
+        @PathVariable id: Long,
+    ): String {
+        val settings =
+            Settings.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
+        val text =
+            settings?.let {
+                val text = it.getDescriptionVkHeader(SongVersion.KARAOKE)
+                text
+            } ?: ""
         return text
     }
-
 
     @GetMapping("/song/{id}/texttelegramchordsheader")
     @ResponseBody
-    fun getSongTextTelegramChordsHeader(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
-        val text = settings?.let {
-            val text = it.getDescriptionVkHeader(SongVersion.CHORDS)
-            text
-        } ?: ""
+    fun getSongTextTelegramChordsHeader(
+        @PathVariable id: Long,
+    ): String {
+        val settings =
+            Settings.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
+        val text =
+            settings?.let {
+                val text = it.getDescriptionVkHeader(SongVersion.CHORDS)
+                text
+            } ?: ""
         return text
     }
 
-
     @GetMapping("/song/{id}/texttelegramlyricswoheader")
     @ResponseBody
-    fun getSongTextTelegramLyricsWOHeader(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
-        val text = settings?.let {
-            val text = it.getDescriptionWOHeaderWithTimecodes(SongVersion.LYRICS)
-            text
-        } ?: ""
+    fun getSongTextTelegramLyricsWOHeader(
+        @PathVariable id: Long,
+    ): String {
+        val settings =
+            Settings.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
+        val text =
+            settings?.let {
+                val text = it.getDescriptionWOHeaderWithTimecodes(SongVersion.LYRICS)
+                text
+            } ?: ""
         return text
     }
 
     @GetMapping("/song/{id}/texttelegramkaraokewoheader")
     @ResponseBody
-    fun getSongTextTelegramKaraokeWOHeader(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
-        val text = settings?.let {
-            val text = it.getDescriptionWOHeaderWithTimecodes(SongVersion.KARAOKE)
-            text
-        } ?: ""
+    fun getSongTextTelegramKaraokeWOHeader(
+        @PathVariable id: Long,
+    ): String {
+        val settings =
+            Settings.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
+        val text =
+            settings?.let {
+                val text = it.getDescriptionWOHeaderWithTimecodes(SongVersion.KARAOKE)
+                text
+            } ?: ""
         return text
     }
 
     @GetMapping("/song/{id}/texttelegramchordswoheader")
     @ResponseBody
-    fun getSongTextTelegramChordsWOHeader(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
-        val text = settings?.let {
-            val text = it.getDescriptionWOHeaderWithTimecodes(SongVersion.CHORDS)
-            text
-        } ?: ""
+    fun getSongTextTelegramChordsWOHeader(
+        @PathVariable id: Long,
+    ): String {
+        val settings =
+            Settings.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
+        val text =
+            settings?.let {
+                val text = it.getDescriptionWOHeaderWithTimecodes(SongVersion.CHORDS)
+                text
+            } ?: ""
         return text
     }
 
-
-
     @GetMapping("/song/{id}/textboostyhead")
     @ResponseBody
-    fun getSongTextBoostyHead(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
-        val text = settings?.let {
-            val text = it.getTextBoostyHead()
-            text
-        } ?: ""
+    fun getSongTextBoostyHead(
+        @PathVariable id: Long,
+    ): String {
+        val settings =
+            Settings.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
+        val text =
+            settings?.let {
+                val text = it.getTextBoostyHead()
+                text
+            } ?: ""
         return text
     }
 
     @GetMapping("/song/{id}/textboostybody")
     @ResponseBody
-    fun getSongTextBoostyBody(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
-        val text = settings?.let {
-            val text = it.getTextBoostyBody()
-            text
-        } ?: ""
+    fun getSongTextBoostyBody(
+        @PathVariable id: Long,
+    ): String {
+        val settings =
+            Settings.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
+        val text =
+            settings?.let {
+                val text = it.getTextBoostyBody()
+                text
+            } ?: ""
         return text
     }
 
-
     @GetMapping("/song/{id}/textvkbody")
     @ResponseBody
-    fun getSongTextVkBody(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
-        val text = settings?.let {
-            val text = it.getVKGroupDescription()
-            text
-        } ?: ""
+    fun getSongTextVkBody(
+        @PathVariable id: Long,
+    ): String {
+        val settings =
+            Settings.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
+        val text =
+            settings?.let {
+                val text = it.getVKGroupDescription()
+                text
+            } ?: ""
         return text
     }
 
     @GetMapping("/song/{id}/searchsongtext")
     @ResponseBody
-    fun getSearchSongText(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
-        return  settings?.let {
+    fun getSearchSongText(
+        @PathVariable id: Long,
+    ): String {
+        val settings =
+            Settings.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
+        return settings?.let {
             searchSongText(settings)
         } ?: ""
     }
 
     @GetMapping("/song/{id}/createkaraoke")
-    fun getSongCreateKaraoke(@PathVariable id: Long, model: Model, @RequestParam(required = false) threadId: String? = "0"): String {
-        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
-        val text = settings?.let {
-            settings.createKaraoke()
-            if (settings.idStatus < 3) {
-                settings.fields[SettingField.ID_STATUS] = "3"
-                settings.saveToDb()
-            }
-            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS, true, 0, threadId = threadId?.toInt() ?: 0)
-            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, 1, threadId = threadId?.toInt() ?: 0)
-            "OK"
-        } ?: "Error"
+    fun getSongCreateKaraoke(
+        @PathVariable id: Long,
+        model: Model,
+        @RequestParam(required = false) threadId: String? = "0",
+    ): String {
+        val settings =
+            Settings.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
+        val text =
+            settings?.let {
+                settings.createKaraoke()
+                if (settings.idStatus < 3) {
+                    settings.fields[SettingField.ID_STATUS] = "3"
+                    settings.saveToDb()
+                }
+                KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS, true, 0, threadId = threadId?.toInt() ?: 0)
+                KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, 1, threadId = threadId?.toInt() ?: 0)
+                "OK"
+            } ?: "Error"
         model.addAttribute("text", text)
         return "text"
     }
@@ -953,12 +1442,20 @@ class MainController(
         @PathVariable id: Long,
         @RequestParam(required = false) overrideKdenliveFile: Boolean = true,
         @RequestParam(required = false) overrideKdenliveSubsFile: Boolean = false,
-        model: Model): String {
-        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
-        val text = settings?.let {
-            settings.createKdenliveFiles(overrideKdenliveFile, overrideKdenliveSubsFile)
-            "OK"
-        } ?: "Error"
+        model: Model,
+    ): String {
+        val settings =
+            Settings.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
+        val text =
+            settings?.let {
+                settings.createKdenliveFiles(overrideKdenliveFile, overrideKdenliveSubsFile)
+                "OK"
+            } ?: "Error"
         model.addAttribute("text", text)
         return "text"
     }
@@ -966,20 +1463,29 @@ class MainController(
     @PostMapping("/songs/createkaraokeall")
     fun getSongsCreateKaraokeAll(
         @RequestParam(required = false) txt: String?,
-        model: Model, @RequestParam(required = false) threadId: String? = "0"): String {
+        model: Model,
+        @RequestParam(required = false) threadId: String? = "0",
+    ): String {
         var result = "Error"
         txt?.let {
-            val ids = txt.split(";")
-                .filter { it != "" }
-                .map { it.toLong() }
+            val ids =
+                txt
+                    .split(";")
+                    .filter { it != "" }
+                    .map { it.toLong() }
             ids.forEach { id ->
-                val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+                val settings =
+                    Settings.loadFromDbById(
+                        id = id,
+                        database = WORKING_DATABASE,
+                        storageService = storageService,
+                        storageApiClient = storageApiClient,
+                    )
                 settings?.let {
                     settings.createKaraoke()
 
                     KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS, true, 10, threadId = threadId?.toInt() ?: 0)
                     KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, 10, threadId = threadId?.toInt() ?: 0)
-
                 }
                 result = "OK"
             }
@@ -988,18 +1494,27 @@ class MainController(
         return "text"
     }
 
-
     @PostMapping("/songs/createdemucs2all")
     fun getSongsCreateDemucs2All(
         @RequestParam(required = false) txt: String?,
-        model: Model, @RequestParam(required = false) threadId: String? = "0"): String {
+        model: Model,
+        @RequestParam(required = false) threadId: String? = "0",
+    ): String {
         var result = "Error"
         txt?.let {
-            val ids = txt.split(";")
-                .filter { it != "" }
-                .map { it.toLong() }
+            val ids =
+                txt
+                    .split(";")
+                    .filter { it != "" }
+                    .map { it.toLong() }
             ids.forEach { id ->
-                val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+                val settings =
+                    Settings.loadFromDbById(
+                        id = id,
+                        database = WORKING_DATABASE,
+                        storageService = storageService,
+                        storageApiClient = storageApiClient,
+                    )
                 settings?.let {
 //                    if (it.getAudioAspectRate() != "48000") KaraokeProcess.createProcess(settings, KaraokeProcessTypes.RECODE_48000, true, -1)
                     KaraokeProcess.createProcess(settings, KaraokeProcessTypes.DEMUCS2, true, -1, threadId = threadId?.toInt() ?: 0)
@@ -1011,18 +1526,27 @@ class MainController(
         return "text"
     }
 
-
     @PostMapping("/songs/create720pkaraokeall")
     fun getSongsCreate720pKaraokeAll(
         @RequestParam(required = false) txt: String?,
-        model: Model, @RequestParam(required = false) threadId: String? = "0"): String {
+        model: Model,
+        @RequestParam(required = false) threadId: String? = "0",
+    ): String {
         var result = "Error"
         txt?.let {
-            val ids = txt.split(";")
-                .filter { it != "" }
-                .map { it.toLong() }
+            val ids =
+                txt
+                    .split(";")
+                    .filter { it != "" }
+                    .map { it.toLong() }
             ids.forEach { id ->
-                val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+                val settings =
+                    Settings.loadFromDbById(
+                        id = id,
+                        database = WORKING_DATABASE,
+                        storageService = storageService,
+                        storageApiClient = storageApiClient,
+                    )
                 settings?.let {
                     KaraokeProcess.createProcess(settings, KaraokeProcessTypes.FF_720_KAR, true, 1, threadId = threadId?.toInt() ?: 0)
                 }
@@ -1036,14 +1560,24 @@ class MainController(
     @PostMapping("/songs/create720plyricsall")
     fun getSongsCreate720pLyricsAll(
         @RequestParam(required = false) txt: String?,
-        model: Model, @RequestParam(required = false) threadId: String? = "0"): String {
+        model: Model,
+        @RequestParam(required = false) threadId: String? = "0",
+    ): String {
         var result = "Error"
         txt?.let {
-            val ids = txt.split(";")
-                .filter { it != "" }
-                .map { it.toLong() }
+            val ids =
+                txt
+                    .split(";")
+                    .filter { it != "" }
+                    .map { it.toLong() }
             ids.forEach { id ->
-                val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+                val settings =
+                    Settings.loadFromDbById(
+                        id = id,
+                        database = WORKING_DATABASE,
+                        storageService = storageService,
+                        storageApiClient = storageApiClient,
+                    )
                 settings?.let {
                     KaraokeProcess.createProcess(settings, KaraokeProcessTypes.FF_720_LYR, true, 1, threadId = threadId?.toInt() ?: 0)
                 }
@@ -1057,14 +1591,23 @@ class MainController(
     @PostMapping("/songs/searchsongtextall")
     fun getSearchSongTextAll(
         @RequestParam(required = false) txt: String?,
-        model: Model): String {
+        model: Model,
+    ): String {
         var result = "Error"
         txt?.let {
-            val ids = txt.split(";")
-                .filter { it != "" }
-                .map { it.toLong() }
+            val ids =
+                txt
+                    .split(";")
+                    .filter { it != "" }
+                    .map { it.toLong() }
             ids.forEach { id ->
-                val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+                val settings =
+                    Settings.loadFromDbById(
+                        id = id,
+                        database = WORKING_DATABASE,
+                        storageService = storageService,
+                        storageApiClient = storageApiClient,
+                    )
                 settings?.let {
                     if (settings.sourceText.isBlank()) {
                         val text = searchSongText(settings)
@@ -1077,7 +1620,6 @@ class MainController(
                             settings.saveToDb()
                         }
                     }
-
                 }
                 result = "OK"
             }
@@ -1085,7 +1627,6 @@ class MainController(
         model.addAttribute("text", result)
         return "text"
     }
-
 
     @GetMapping("/processes")
     fun processes(
@@ -1098,10 +1639,8 @@ class MainController(
         @RequestParam(required = false) filter_settings_id: String?,
         @RequestParam(required = false) filter_type: String?,
         @RequestParam(required = false) filter_limit: String?,
-        model: Model
-
+        model: Model,
     ): String {
-
         val args: MutableMap<String, String> = mutableMapOf()
         filter_id?.let { if (filter_id != "") args["id"] = filter_id }
         filter_name?.let { if (filter_name != "") args["process_name"] = filter_name }
@@ -1142,8 +1681,8 @@ class MainController(
         @RequestParam(required = false) flag_telegram_karaoke: String?,
         @RequestParam(required = false) flag_telegram_chords: String?,
         @RequestParam(required = false) filter_result_version: String?,
-        model: Model): String {
-
+        model: Model,
+    ): String {
         val args: MutableMap<String, String> = mutableMapOf()
         filter_id?.let { if (filter_id != "") args["id"] = filter_id }
         filter_songName?.let { if (filter_songName != "") args["song_name"] = filter_songName }
@@ -1168,11 +1707,21 @@ class MainController(
         flag_telegram_chords?.let { if (flag_telegram_chords != "") args["flag_telegram_chords"] = flag_telegram_chords }
         filter_result_version?.let { if (filter_result_version != "") args["filter_result_version"] = filter_result_version }
         model.addAttribute("workInContainer", APP_WORK_IN_CONTAINER)
-        model.addAttribute("sett", Settings.loadListFromDb(args, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient, withoutMarkersAndText = true))
+        model.addAttribute(
+            "sett",
+            Settings.loadListFromDb(
+                args,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+                withoutMarkersAndText = true,
+            ),
+        )
         model.addAttribute("authors", Settings.loadListAuthors(withSkiped = false, database = WORKING_DATABASE))
         model.addAttribute("albums", Settings.loadListAlbums(WORKING_DATABASE))
         return "songs"
     }
+
     @PostMapping("/songs_update")
     fun songsUpdate(
         @RequestParam(required = false) settings_id: String,
@@ -1202,10 +1751,16 @@ class MainController(
         @RequestParam(required = false) settings_idTelegramKaraoke: String,
         @RequestParam(required = false) settings_idTelegramChords: String,
         @RequestParam(required = false) settings_resultVersion: String,
-        @RequestParam(required = false) select_status: String
+        @RequestParam(required = false) select_status: String,
     ): String {
         val settingsId: Long = settings_id.toLong()
-        val settings = Settings.loadFromDbById(settingsId, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+        val settings =
+            Settings.loadFromDbById(
+                settingsId,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
         settings?.let { sett ->
             sett.fileName = settings_fileName
             sett.rootFolder = settings_rootFolder
@@ -1240,54 +1795,56 @@ class MainController(
 //            if (settings_idBoosty != "") {
 //                sett.createVKDescription()
 //            }
-
         }
         return "redirect:/songs"
     }
-
-
 
     @GetMapping("/publications")
     fun publications(
         @RequestParam(required = false) filter_date_from: String?,
         @RequestParam(required = false) filter_date_to: String?,
         @RequestParam(required = false) filter_cond: String?,
-        model: Model
+        model: Model,
     ): String {
-
         val args: MutableMap<String, String> = mutableMapOf()
         filter_date_from?.let { if (filter_date_from != "") args["publish_date_from"] = filter_date_from }
         filter_date_to?.let { if (filter_date_to != "") args["filter_date_to"] = filter_date_to }
         filter_cond?.let { if (filter_cond != "") args["filter_cond"] = filter_cond }
 
         model.addAttribute("workInContainer", APP_WORK_IN_CONTAINER)
-        model.addAttribute("publications", Publication.getPublicationList(args, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient))
+        model.addAttribute(
+            "publications",
+            Publication.getPublicationList(
+                args,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            ),
+        )
         return "publications"
     }
 
     @GetMapping("/unpublications")
-    fun unpublications(
-        model: Model
-    ): String {
+    fun unpublications(model: Model): String {
         model.addAttribute("workInContainer", APP_WORK_IN_CONTAINER)
-        model.addAttribute("publications", Publication.getUnPublicationList(database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient))
+        model.addAttribute(
+            "publications",
+            Publication.getUnPublicationList(
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            ),
+        )
         return "unpublications"
     }
-
 
     @PostMapping("/utils/tfd")
     @ResponseBody
     fun doTextFileDictionary(
         @RequestParam(required = true) dictName: String,
         @RequestParam(required = true) dictValue: String,
-        @RequestParam(required = true) dictAction: String
-    ): Boolean {
-        return TextFileDictionary.doAction(dictName, dictAction, listOf(dictValue))
-    }
-
-
-
-
+        @RequestParam(required = true) dictAction: String,
+    ): Boolean = TextFileDictionary.doAction(dictName, dictAction, listOf(dictValue))
 
     @GetMapping("/songs2")
     fun songs2(
@@ -1313,8 +1870,8 @@ class MainController(
         @RequestParam(required = false) flag_telegram_karaoke: String?,
         @RequestParam(required = false) flag_telegram_chords: String?,
         @RequestParam(required = false) filter_result_version: String?,
-        model: Model): String {
-
+        model: Model,
+    ): String {
         val args: MutableMap<String, String> = mutableMapOf()
         filter_id?.let { if (filter_id != "") args["id"] = filter_id }
         filter_songName?.let { if (filter_songName != "") args["song_name"] = filter_songName }
@@ -1339,12 +1896,20 @@ class MainController(
         flag_telegram_chords?.let { if (flag_telegram_chords != "") args["flag_telegram_chords"] = flag_telegram_chords }
         filter_result_version?.let { if (filter_result_version != "") args["filter_result_version"] = filter_result_version }
         model.addAttribute("workInContainer", APP_WORK_IN_CONTAINER)
-        model.addAttribute("sett", Settings.loadListFromDb(args, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient, withoutMarkersAndText = true))
+        model.addAttribute(
+            "sett",
+            Settings.loadListFromDb(
+                args,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+                withoutMarkersAndText = true,
+            ),
+        )
         model.addAttribute("authors", Settings.loadListAuthors(withSkiped = false, database = WORKING_DATABASE))
         model.addAttribute("albums", Settings.loadListAlbums(WORKING_DATABASE))
         return "songs2"
     }
-
 
     @PostMapping("/songs2_update")
     fun songs2Update(
@@ -1375,10 +1940,16 @@ class MainController(
         @RequestParam(required = false) settings_idTelegramKaraoke: String,
         @RequestParam(required = false) settings_idTelegramChords: String,
         @RequestParam(required = false) settings_resultVersion: String,
-        @RequestParam(required = false) select_status: String
+        @RequestParam(required = false) select_status: String,
     ): String {
         val settingsId: Long = settings_id.toLong()
-        val settings = Settings.loadFromDbById(settingsId, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+        val settings =
+            Settings.loadFromDbById(
+                settingsId,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
         settings?.let { sett ->
             sett.fileName = settings_fileName
             sett.rootFolder = settings_rootFolder
@@ -1413,7 +1984,6 @@ class MainController(
 //            if (settings_idBoosty != "") {
 //                sett.createVKDescription()
 //            }
-
         }
         return "redirect:/songs2"
     }

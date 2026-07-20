@@ -13,8 +13,8 @@
           </p>
           <div v-if="!aliasesList.length" class="aam-empty">Алиасов пока нет.</div>
           <div v-for="(alias, idx) in aliasesList" :key="idx" class="aam-alias-row">
-            <input class="aam-alias-input" v-model="aliasesList[idx]" placeholder="Имя солиста/участника">
-            <button class="aam-btn-remove" @click="removeAlias(idx)" title="Удалить">×</button>
+            <input v-model="aliasesList[idx]" class="aam-alias-input" placeholder="Имя солиста/участника"/>
+            <button class="aam-btn-remove" title="Удалить" @click="removeAlias(idx)">×</button>
           </div>
           <button class="aam-btn-add" @click="addAlias">+ Добавить алиас</button>
         </div>

@@ -23,20 +23,24 @@ import java.sql.Timestamp
 @Controller
 @RequestMapping("/api/siteusers")
 class SiteUsersController {
-
-    private fun resolveDb(target: String?): KaraokeConnection =
-        if (target == "remote") Connection.remote() else Connection.local()
+    private fun resolveDb(target: String?): KaraokeConnection = if (target == "remote") Connection.remote() else Connection.local()
 
     // resolveDb() создаёт НОВЫЙ объект Connection.local()/remote() на каждый вызов, открывающий
     // собственное физическое JDBC-соединение и кэширующий его в себе; без явного close() оно висит
     // до обрыва и постепенно исчерпывает пул Postgres ("too many clients already"). withDb закрывает
     // соединение сразу после использования. То же самое сделано в StatsController/PublicSettingsController.
-    private fun <T> withDb(target: String?, block: (KaraokeConnection) -> T): T {
+    private fun <T> withDb(
+        target: String?,
+        block: (KaraokeConnection) -> T,
+    ): T {
         val db = resolveDb(target)
         return try {
             block(db)
         } finally {
-            try { db.getConnection()?.close() } catch (_: Exception) {}
+            try {
+                db.getConnection()?.close()
+            } catch (_: Exception) {
+            }
         }
     }
 
@@ -55,31 +59,36 @@ class SiteUsersController {
         @RequestParam(required = false) filterIsEffectivePremium: String?,
         @RequestParam(required = false) filterIsBanned: String?,
         @RequestParam(required = false) filterIsEditor: String?,
-    ): Map<String, Any> = withDb(target) { db ->
-        val args: MutableMap<String, String> = mutableMapOf()
-        filterId?.toLongOrNull()?.let { args["id"] = it.toString() }
-        filterEmail?.let { if (it != "") args["email"] = it }
-        filterDisplayName?.let { if (it != "") args["displayName"] = it }
-        filterSponsrUid?.let { if (it != "") args["sponsrUid"] = it }
-        filterIsPremium?.let { if (it != "") args["isPremium"] = it }
-        filterIsPermanentPremium?.let { if (it != "") args["isPermanentPremium"] = it }
-        filterIsEffectivePremium?.let { if (it != "") args["isEffectivePremium"] = it }
-        filterIsBanned?.let { if (it != "") args["isBanned"] = it }
-        filterIsEditor?.let { if (it != "") args["isEditor"] = it }
+    ): Map<String, Any> =
+        withDb(target) { db ->
+            val args: MutableMap<String, String> = mutableMapOf()
+            filterId?.toLongOrNull()?.let { args["id"] = it.toString() }
+            filterEmail?.let { if (it != "") args["email"] = it }
+            filterDisplayName?.let { if (it != "") args["displayName"] = it }
+            filterSponsrUid?.let { if (it != "") args["sponsrUid"] = it }
+            filterIsPremium?.let { if (it != "") args["isPremium"] = it }
+            filterIsPermanentPremium?.let { if (it != "") args["isPermanentPremium"] = it }
+            filterIsEffectivePremium?.let { if (it != "") args["isEffectivePremium"] = it }
+            filterIsBanned?.let { if (it != "") args["isBanned"] = it }
+            filterIsEditor?.let { if (it != "") args["isEditor"] = it }
 
-        val list = SiteUser.loadList(
-            whereArgs = args,
-            database = db,
-            storageService = KSS_APP,
-            storageApiClient = SAC_APP,
-        ).map { it.toDTO() }
-        mapOf("siteUsersDigest" to list)
-    }
+            val list =
+                SiteUser
+                    .loadList(
+                        whereArgs = args,
+                        database = db,
+                        storageService = KSS_APP,
+                        storageApiClient = SAC_APP,
+                    ).map { it.toDTO() }
+            mapOf("siteUsersDigest" to list)
+        }
 
     @PostMapping("/byId")
     @ResponseBody
-    fun byId(@RequestParam id: Long, @RequestParam(required = false) target: String?): Any? =
-        withDb(target) { db -> SiteUser.getSiteUserById(id, db, KSS_APP, SAC_APP)?.toDTO() }
+    fun byId(
+        @RequestParam id: Long,
+        @RequestParam(required = false) target: String?,
+    ): Any? = withDb(target) { db -> SiteUser.getSiteUserById(id, db, KSS_APP, SAC_APP)?.toDTO() }
 
     @PostMapping("/update")
     @ResponseBody
@@ -114,26 +123,27 @@ class SiteUsersController {
         // означать null), просто ничего не меняет.
         @RequestParam(required = false) createdAt: String?,
         @RequestParam(required = false) lastLoginAt: String?,
-    ): Long = withDb(target) { db ->
-        SiteUser.getSiteUserById(id, db, KSS_APP, SAC_APP)?.let { user ->
-            displayName?.let { user.displayName = it }
-            sponsrUid?.let { user.sponsrUid = it }
-            isPremium?.let { user.isPremium = it }
-            isPermanentPremium?.let { user.isPermanentPremium = it }
-            isEditor?.let { user.isEditor = it }
-            maxFavorites?.let { user.maxFavorites = it }
-            maxPlaylists?.let { user.maxPlaylists = it }
-            maxPlaylistItems?.let { user.maxPlaylistItems = it }
-            personalDiscountPercent?.let { user.personalDiscountPercent = it.coerceIn(0.0, 100.0) }
-            sponsrPremiumUntil?.let { user.sponsrPremiumUntil = if (it == "") null else Timestamp.valueOf(it) }
-            sitePremiumUntil?.let { user.sitePremiumUntil = if (it == "") null else Timestamp.valueOf(it) }
-            welcomeMessageSent?.let { user.welcomeMessageSent = it }
-            createdAt?.let { if (it != "") user.createdAt = Timestamp.valueOf(it) }
-            lastLoginAt?.let { if (it != "") user.lastLoginAt = Timestamp.valueOf(it) }
-            user.save()
-            user.id
-        } ?: 0L
-    }
+    ): Long =
+        withDb(target) { db ->
+            SiteUser.getSiteUserById(id, db, KSS_APP, SAC_APP)?.let { user ->
+                displayName?.let { user.displayName = it }
+                sponsrUid?.let { user.sponsrUid = it }
+                isPremium?.let { user.isPremium = it }
+                isPermanentPremium?.let { user.isPermanentPremium = it }
+                isEditor?.let { user.isEditor = it }
+                maxFavorites?.let { user.maxFavorites = it }
+                maxPlaylists?.let { user.maxPlaylists = it }
+                maxPlaylistItems?.let { user.maxPlaylistItems = it }
+                personalDiscountPercent?.let { user.personalDiscountPercent = it.coerceIn(0.0, 100.0) }
+                sponsrPremiumUntil?.let { user.sponsrPremiumUntil = if (it == "") null else Timestamp.valueOf(it) }
+                sitePremiumUntil?.let { user.sitePremiumUntil = if (it == "") null else Timestamp.valueOf(it) }
+                welcomeMessageSent?.let { user.welcomeMessageSent = it }
+                createdAt?.let { if (it != "") user.createdAt = Timestamp.valueOf(it) }
+                lastLoginAt?.let { if (it != "") user.lastLoginAt = Timestamp.valueOf(it) }
+                user.save()
+                user.id
+            } ?: 0L
+        }
 
     @PostMapping("/ban")
     @ResponseBody
@@ -141,18 +151,22 @@ class SiteUsersController {
         @RequestParam id: Long,
         @RequestParam(required = false) target: String?,
         @RequestParam reason: String,
-    ): Boolean = withDb(target) { db ->
-        SiteUser.getSiteUserById(id, db, KSS_APP, SAC_APP)?.let { user ->
-            user.isBanned = true
-            user.banReason = reason
-            user.save()
-            true
-        } ?: false
-    }
+    ): Boolean =
+        withDb(target) { db ->
+            SiteUser.getSiteUserById(id, db, KSS_APP, SAC_APP)?.let { user ->
+                user.isBanned = true
+                user.banReason = reason
+                user.save()
+                true
+            } ?: false
+        }
 
     @PostMapping("/unban")
     @ResponseBody
-    fun unban(@RequestParam id: Long, @RequestParam(required = false) target: String?): Boolean =
+    fun unban(
+        @RequestParam id: Long,
+        @RequestParam(required = false) target: String?,
+    ): Boolean =
         withDb(target) { db ->
             SiteUser.getSiteUserById(id, db, KSS_APP, SAC_APP)?.let { user ->
                 user.isBanned = false
@@ -164,8 +178,10 @@ class SiteUsersController {
 
     @PostMapping("/delete")
     @ResponseBody
-    fun delete(@RequestParam id: Long, @RequestParam(required = false) target: String?): Boolean =
-        withDb(target) { db -> SiteUser.deleteSiteUser(id, db) }
+    fun delete(
+        @RequestParam id: Long,
+        @RequestParam(required = false) target: String?,
+    ): Boolean = withDb(target) { db -> SiteUser.deleteSiteUser(id, db) }
 
     // История подписок/покупок пользователя для карточки в админке — те же записи, что видит сам
     // пользователь в личном кабинете (PublicSubscriptionController.list, karaoke-web), но здесь читаем
@@ -174,10 +190,22 @@ class SiteUsersController {
     // не нужно — там подписка всегда на уже известный тариф этого же похода).
     @PostMapping("/subscriptions")
     @ResponseBody
-    fun subscriptions(@RequestParam id: Long, @RequestParam(required = false) target: String?): List<Map<String, Any?>> =
+    fun subscriptions(
+        @RequestParam id: Long,
+        @RequestParam(required = false) target: String?,
+    ): List<Map<String, Any?>> =
         withDb(target) { db ->
             Subscription.loadByUser(id, db, KSS_APP, SAC_APP).map { sub ->
-                val songName = sub.idSong?.let { Settings.loadFromDbById(it, db, storageService = KSS_APP, storageApiClient = SAC_APP)?.songName }
+                val songName =
+                    sub.idSong?.let {
+                        Settings
+                            .loadFromDbById(
+                                it,
+                                db,
+                                storageService = KSS_APP,
+                                storageApiClient = SAC_APP,
+                            )?.songName
+                    }
                 val tariffName = sub.tariffId?.let { PriceTariff.getById(it, db, KSS_APP, SAC_APP)?.name }
                 mapOf(
                     "id" to sub.id,

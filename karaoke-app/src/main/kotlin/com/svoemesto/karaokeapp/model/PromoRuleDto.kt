@@ -13,13 +13,15 @@ data class PromoRuleDto(
     val validFrom: String? = null,
     val validTo: String? = null,
     val priority: Int = 0,
-) : Serializable, Comparable<PromoRuleDto>, KaraokeDbTableDto {
-
+) : Serializable,
+    Comparable<PromoRuleDto>,
+    KaraokeDbTableDto {
     override fun compareTo(other: PromoRuleDto): Int = compareValuesBy(this, other, { -it.priority }, { it.id })
 
     override fun validationErrors(): List<String> {
         val errors = mutableListOf<String>()
-        val knownTypes = setOf(PromoRule.TYPE_NEW_USER_PERCENT, PromoRule.TYPE_NTH_FREE, PromoRule.TYPE_HAPPY_HOUR, PromoRule.TYPE_FLAT_PERCENT)
+        val knownTypes =
+            setOf(PromoRule.TYPE_NEW_USER_PERCENT, PromoRule.TYPE_NTH_FREE, PromoRule.TYPE_HAPPY_HOUR, PromoRule.TYPE_FLAT_PERCENT)
         if (type !in knownTypes) errors.add("Неизвестный тип акции: $type")
         val knownScopes = setOf(PromoRule.APPLIES_SONG, PromoRule.APPLIES_SITE, PromoRule.APPLIES_BOTH)
         if (appliesTo !in knownScopes) errors.add("Некорректный appliesTo акции")

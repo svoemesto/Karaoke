@@ -17,8 +17,9 @@ class WebEvent(
     override val database: KaraokeConnection = WORKING_DATABASE,
     override val storageService: KaraokeStorageService = KSS_APP,
     override val storageApiClient: StorageApiClient = SAC_APP,
-) : Serializable, Comparable<WebEvent>, KaraokeDbTable {
-
+) : Serializable,
+    Comparable<WebEvent>,
+    KaraokeDbTable {
     override fun getTableName() = TABLE_NAME
 
     @KaraokeDbTableField(name = "id", isId = true)
@@ -79,25 +80,25 @@ class WebEvent(
     @KaraokeDbTableField(name = "user_agent")
     var userAgent: String? = null
 
-    override fun compareTo(other: WebEvent): Int =
-        (lastUpdate ?: Timestamp(0)).compareTo(other.lastUpdate ?: Timestamp(0))
+    override fun compareTo(other: WebEvent): Int = (lastUpdate ?: Timestamp(0)).compareTo(other.lastUpdate ?: Timestamp(0))
 
-    override fun toDTO(): WebEventDTO = WebEventDTO(
-        id = id,
-        eventType = eventType ?: "",
-        restName = restName ?: "",
-        restParameters = restParameters ?: "",
-        linkType = linkType ?: "",
-        linkName = linkName ?: "",
-        songId = songId,
-        songVersion = songVersion ?: "",
-        lastUpdate = lastUpdate?.toString() ?: "",
-        referer = referer ?: "",
-        clientIp = clientIp ?: "",
-        anonId = anonId ?: "",
-        siteUserId = siteUserId,
-        userAgent = userAgent ?: "",
-    )
+    override fun toDTO(): WebEventDTO =
+        WebEventDTO(
+            id = id,
+            eventType = eventType ?: "",
+            restName = restName ?: "",
+            restParameters = restParameters ?: "",
+            linkType = linkType ?: "",
+            linkName = linkName ?: "",
+            songId = songId,
+            songVersion = songVersion ?: "",
+            lastUpdate = lastUpdate?.toString() ?: "",
+            referer = referer ?: "",
+            clientIp = clientIp ?: "",
+            anonId = anonId ?: "",
+            siteUserId = siteUserId,
+            userAgent = userAgent ?: "",
+        )
 
     companion object {
         const val TABLE_NAME = "tbl_events"

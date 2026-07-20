@@ -22,7 +22,6 @@ import java.time.LocalDateTime
  */
 @Service
 class PriceService {
-
     data class PriceResult(
         val base: Double,
         val discount: Double,
@@ -47,9 +46,11 @@ class PriceService {
         ordinalOverride: Int? = null,
     ): PriceResult {
         val base = tariff.priceRub
-        val rules = PromoRule.loadActive(database, storageService, storageApiClient)
-            .filter { it.appliesToScope(tariff.scope) }
-            .sortedByDescending { it.priority }
+        val rules =
+            PromoRule
+                .loadActive(database, storageService, storageApiClient)
+                .filter { it.appliesToScope(tariff.scope) }
+                .sortedByDescending { it.priority }
 
         for (rule in rules) {
             val percent = discountPercentFor(rule, tariff, user, database, storageService, storageApiClient, ordinalOverride)
@@ -65,7 +66,13 @@ class PriceService {
     // Постоянная персональная скидка пользователя (SiteUser.personalDiscountPercent, выставляется
     // вручную админом) — суммируется поверх РЕЗУЛЬТАТА любой акции (или базовой цены, если акций не
     // было), а не конкурирует с ними как ещё одно правило. Применяется к любому заказу без исключений.
-    private fun applyPersonalDiscount(base: Double, discountSoFar: Double, finalSoFar: Double, promoName: String?, user: SiteUser): PriceResult {
+    private fun applyPersonalDiscount(
+        base: Double,
+        discountSoFar: Double,
+        finalSoFar: Double,
+        promoName: String?,
+        user: SiteUser,
+    ): PriceResult {
         val personalPercent = user.personalDiscountPercent.coerceIn(0.0, 100.0)
         if (personalPercent <= 0.0) return PriceResult(base, discountSoFar, finalSoFar, promoName, 0.0)
         val finalAfterPersonal = (finalSoFar * (1.0 - personalPercent / 100.0)).coerceAtLeast(0.0)
@@ -90,13 +97,16 @@ class PriceService {
     ): List<PriceResult> {
         if (cartSize <= 0) return emptyList()
         val base = tariff.priceRub
-        val rules = PromoRule.loadActive(database, storageService, storageApiClient)
-            .filter { it.appliesToScope(tariff.scope) }
-            .sortedByDescending { it.priority }
+        val rules =
+            PromoRule
+                .loadActive(database, storageService, storageApiClient)
+                .filter { it.appliesToScope(tariff.scope) }
+                .sortedByDescending { it.priority }
 
-        val bulkRule = rules.firstOrNull {
-            it.type == PromoRule.TYPE_CART_BULK_PERCENT && cartSize >= asInt(params(it)["minQty"], Int.MAX_VALUE)
-        }
+        val bulkRule =
+            rules.firstOrNull {
+                it.type == PromoRule.TYPE_CART_BULK_PERCENT && cartSize >= asInt(params(it)["minQty"], Int.MAX_VALUE)
+            }
         if (bulkRule != null) {
             val percent = asDouble(params(bulkRule)["percent"])
             val discount = (base * percent / 100.0).coerceIn(0.0, base)
@@ -111,23 +121,32 @@ class PriceService {
     }
 
     @Suppress("UNCHECKED_CAST")
-    private fun params(rule: PromoRule): Map<String, Any?> = try {
-        objectMapper.readValue(rule.paramsJson, Map::class.java) as Map<String, Any?>
-    } catch (e: Exception) {
-        emptyMap()
-    }
+    private fun params(rule: PromoRule): Map<String, Any?> =
+        try {
+            objectMapper.readValue(rule.paramsJson, Map::class.java) as Map<String, Any?>
+        } catch (e: Exception) {
+            emptyMap()
+        }
 
-    private fun asDouble(v: Any?, default: Double = 0.0): Double = when (v) {
-        is Number -> v.toDouble()
-        is String -> v.toDoubleOrNull() ?: default
-        else -> default
-    }
+    private fun asDouble(
+        v: Any?,
+        default: Double = 0.0,
+    ): Double =
+        when (v) {
+            is Number -> v.toDouble()
+            is String -> v.toDoubleOrNull() ?: default
+            else -> default
+        }
 
-    private fun asInt(v: Any?, default: Int = 0): Int = when (v) {
-        is Number -> v.toInt()
-        is String -> v.toIntOrNull() ?: default
-        else -> default
-    }
+    private fun asInt(
+        v: Any?,
+        default: Int = 0,
+    ): Int =
+        when (v) {
+            is Number -> v.toInt()
+            is String -> v.toIntOrNull() ?: default
+            else -> default
+        }
 
     @Suppress("UNCHECKED_CAST")
     private fun asIntList(v: Any?): List<Int> = (v as? List<Any?>)?.mapNotNull { asInt(it, -1).takeIf { n -> n >= 0 } } ?: emptyList()
@@ -155,10 +174,12 @@ class PriceService {
             // Каждая N-я ОПЛАЧЕННАЯ подписка (в рамках scope) — бесплатно (100% скидка).
             PromoRule.TYPE_NTH_FREE -> {
                 val n = asInt(p["n"], 0)
-                if (n <= 0) 0.0
-                else {
-                    val ordinalOfThisOne = ordinalOverride
-                        ?: (Subscription.countPaid(user.id, tariff.scope, database, storageService, storageApiClient) + 1)
+                if (n <= 0) {
+                    0.0
+                } else {
+                    val ordinalOfThisOne =
+                        ordinalOverride
+                            ?: (Subscription.countPaid(user.id, tariff.scope, database, storageService, storageApiClient) + 1)
                     if (ordinalOfThisOne % n == 0) 100.0 else 0.0
                 }
             }

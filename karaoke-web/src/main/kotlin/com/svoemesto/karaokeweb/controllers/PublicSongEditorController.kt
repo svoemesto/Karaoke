@@ -51,19 +51,26 @@ class PublicSongEditorController(
     // которых нет в SourceMarker; строгий Json.Default бросил бы на них (см. AIAssistant.kt).
     private val json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
 
-    private fun currentUser(request: HttpServletRequest): SiteUser =
-        request.getAttribute(SiteAuthInterceptor.SITE_USER_ATTR) as SiteUser
+    private fun currentUser(request: HttpServletRequest): SiteUser = request.getAttribute(SiteAuthInterceptor.SITE_USER_ATTR) as SiteUser
 
     // Своё задание (иначе null → 404, факт чужого задания наружу не утекает).
-    private fun loadOwnedAssignment(id: Long, ownerId: Long): SongAssignment? =
-        SongAssignment.getById(id, db, storageService, storageApiClient)?.takeIf { it.assigneeId == ownerId }
+    private fun loadOwnedAssignment(
+        id: Long,
+        ownerId: Long,
+    ): SongAssignment? = SongAssignment.getById(id, db, storageService, storageApiClient)?.takeIf { it.assigneeId == ownerId }
 
     // Композитный статус (единая точка, та же логика, что у админа).
-    private fun statusOf(assignment: SongAssignment, draft: SongAssignmentDraft?): SongAssignmentStatus =
+    private fun statusOf(
+        assignment: SongAssignment,
+        draft: SongAssignmentDraft?,
+    ): SongAssignmentStatus =
         SongAssignmentStatus.resolve(assignment.adminStatus, draft?.userStatus, assignment.reviewedAt, draft?.submittedAt)
 
     // Редактируем во всех состояниях, кроме «на проверке» и «одобрено».
-    private fun canEdit(assignment: SongAssignment, draft: SongAssignmentDraft?): Boolean {
+    private fun canEdit(
+        assignment: SongAssignment,
+        draft: SongAssignmentDraft?,
+    ): Boolean {
         val st = statusOf(assignment, draft)
         return st != SongAssignmentStatus.SUBMITTED && st != SongAssignmentStatus.APPROVED
     }
@@ -80,8 +87,12 @@ class PublicSongEditorController(
         if (!user.isEditor) return emptyList()
         val assignments = SongAssignment.loadByAssignee(user.id, db, storageService, storageApiClient)
         val drafts = SongAssignmentDraft.loadByAssignments(assignments.map { it.id }, db, storageService, storageApiClient)
-        val songs = if (assignments.isEmpty()) emptyMap()
-        else Settings.loadListFromDbByIds(assignments.map { it.songId }.distinct(), db, storageService, storageApiClient)
+        val songs =
+            if (assignments.isEmpty()) {
+                emptyMap()
+            } else {
+                Settings.loadListFromDbByIds(assignments.map { it.songId }.distinct(), db, storageService, storageApiClient)
+            }
         return assignments.map { a ->
             val draft = drafts[a.id]
             val status = statusOf(a, draft)
@@ -106,13 +117,17 @@ class PublicSongEditorController(
     // голоса. Реальную позицию плеера/подсветку слогов ведёт фронт (переключение голосов — целиком
     // клиентское состояние до сохранения).
     @GetMapping("/tasks/{id}")
-    fun task(@PathVariable id: Long, request: HttpServletRequest): ResponseEntity<Map<String, Any?>> {
+    fun task(
+        @PathVariable id: Long,
+        request: HttpServletRequest,
+    ): ResponseEntity<Map<String, Any?>> {
         val user = currentUser(request)
         if (!user.isEditor) return notFound()
         val a = loadOwnedAssignment(id, user.id) ?: return notFound()
         val draft = SongAssignmentDraft.getByAssignment(id, db, storageService, storageApiClient)
-        val settings = Settings.loadFromDbById(a.songId, WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
-            ?: return notFound()
+        val settings =
+            Settings.loadFromDbById(a.songId, WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+                ?: return notFound()
         val status = statusOf(a, draft)
 
         // Текст/маркеры ПО ГОЛОСАМ: из черновика, если есть; иначе seed из Settings (текущее
@@ -133,25 +148,27 @@ class PublicSongEditorController(
         val token = gestureUnlockService.issueDirectAccessTokenForAssignment(a.songId, a.id)
         val tokenSuffix = "?token=$token"
 
-        return ResponseEntity.ok(mapOf(
-            "id" to a.id,
-            "songId" to a.songId,
-            "songName" to settings.songName,
-            "author" to settings.author,
-            "album" to settings.album,
-            "year" to settings.year.takeIf { it > 0 },
-            "bpm" to settings.bpm,
-            "status" to status.dbValue,
-            "canEdit" to canEdit(a, draft),
-            "reviewComment" to (if (status == SongAssignmentStatus.REJECTED) a.reviewComment else ""),
-            "sourceTexts" to sourceTexts,
-            "markersPerVoice" to markersPerVoice,
-            "audioVocalsUrl" to "/api/public/player/${a.songId}/filevoice.mp3$tokenSuffix",
-            "audioAccompanimentUrl" to "/api/public/player/${a.songId}/fileminus.mp3$tokenSuffix",
-            // Тот же токен, что и выше, но отдельным полем — чтобы фронт мог собрать полноценный
-            // KaraokePlayer (playerdata) для превью, не выковыривая его из query-строки URL стемов.
-            "playerToken" to token,
-        ))
+        return ResponseEntity.ok(
+            mapOf(
+                "id" to a.id,
+                "songId" to a.songId,
+                "songName" to settings.songName,
+                "author" to settings.author,
+                "album" to settings.album,
+                "year" to settings.year.takeIf { it > 0 },
+                "bpm" to settings.bpm,
+                "status" to status.dbValue,
+                "canEdit" to canEdit(a, draft),
+                "reviewComment" to (if (status == SongAssignmentStatus.REJECTED) a.reviewComment else ""),
+                "sourceTexts" to sourceTexts,
+                "markersPerVoice" to markersPerVoice,
+                "audioVocalsUrl" to "/api/public/player/${a.songId}/filevoice.mp3$tokenSuffix",
+                "audioAccompanimentUrl" to "/api/public/player/${a.songId}/fileminus.mp3$tokenSuffix",
+                // Тот же токен, что и выше, но отдельным полем — чтобы фронт мог собрать полноценный
+                // KaraokePlayer (playerdata) для превью, не выковыривая его из query-строки URL стемов.
+                "playerToken" to token,
+            ),
+        )
     }
 
     // ---- Сохранить черновик (ВСЕ голоса разом) -----------------------------------------------
@@ -159,8 +176,8 @@ class PublicSongEditorController(
     @PostMapping("/tasks/{id}/save")
     fun save(
         @PathVariable id: Long,
-        @RequestParam sourceTexts: String,      // JSON-массив строк, индекс = номер голоса
-        @RequestParam markersPerVoice: String,  // JSON-массив массивов SourceMarker, индекс = номер голоса
+        @RequestParam sourceTexts: String, // JSON-массив строк, индекс = номер голоса
+        @RequestParam markersPerVoice: String, // JSON-массив массивов SourceMarker, индекс = номер голоса
         request: HttpServletRequest,
     ): ResponseEntity<Map<String, Any?>> {
         val user = currentUser(request)
@@ -198,12 +215,16 @@ class PublicSongEditorController(
     // ---- Отправить на проверку ---------------------------------------------------------------
 
     @PostMapping("/tasks/{id}/submit")
-    fun submit(@PathVariable id: Long, request: HttpServletRequest): ResponseEntity<Map<String, Any?>> {
+    fun submit(
+        @PathVariable id: Long,
+        request: HttpServletRequest,
+    ): ResponseEntity<Map<String, Any?>> {
         val user = currentUser(request)
         if (!user.isEditor) return notFound()
         val a = loadOwnedAssignment(id, user.id) ?: return notFound()
-        val draft = SongAssignmentDraft.getByAssignment(id, db, storageService, storageApiClient)
-            ?: return ResponseEntity.badRequest().body(mapOf("error" to "no_draft"))
+        val draft =
+            SongAssignmentDraft.getByAssignment(id, db, storageService, storageApiClient)
+                ?: return ResponseEntity.badRequest().body(mapOf("error" to "no_draft"))
         if (!canEdit(a, draft)) return ResponseEntity.status(HttpStatus.CONFLICT).body(mapOf("error" to "not_editable"))
         draft.userStatus = SongAssignmentStatus.USER_SUBMITTED
         draft.submittedAt = Timestamp(System.currentTimeMillis())
@@ -219,12 +240,16 @@ class PublicSongEditorController(
     // одобрить/отклонить между открытием страницы и кликом). canEdit() после этого сама даёт true
     // (IN_PROGRESS не входит в список запрещённых статусов), отдельного флага не нужно.
     @PostMapping("/tasks/{id}/recall")
-    fun recall(@PathVariable id: Long, request: HttpServletRequest): ResponseEntity<Map<String, Any?>> {
+    fun recall(
+        @PathVariable id: Long,
+        request: HttpServletRequest,
+    ): ResponseEntity<Map<String, Any?>> {
         val user = currentUser(request)
         if (!user.isEditor) return notFound()
         val a = loadOwnedAssignment(id, user.id) ?: return notFound()
-        val draft = SongAssignmentDraft.getByAssignment(id, db, storageService, storageApiClient)
-            ?: return ResponseEntity.badRequest().body(mapOf("error" to "no_draft"))
+        val draft =
+            SongAssignmentDraft.getByAssignment(id, db, storageService, storageApiClient)
+                ?: return ResponseEntity.badRequest().body(mapOf("error" to "no_draft"))
         if (statusOf(a, draft) != SongAssignmentStatus.SUBMITTED) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(mapOf("error" to "not_submitted"))
         }

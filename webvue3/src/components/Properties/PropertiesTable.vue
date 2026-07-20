@@ -11,16 +11,16 @@
           :limit="30"
           size="sm"
           pills
-      ></b-pagination>
+      />
     </div>
     <div class="properties-bv-table-body">
       <b-table
+          v-model:sort-by="sortBy"
           :items="propertiesDigests"
           :busy="isBusy"
           :fields="propertyDigestFields"
           :per-page="perPage"
           :current-page="currentPage"
-          v-model:sort-by="sortBy"
           small
           bordered
           hover
@@ -28,7 +28,7 @@
       >
         <template #table-busy>
           <div class="text-center text-danger my-2">
-            <b-spinner class="align-middle"></b-spinner>
+            <b-spinner class="align-middle"/>
             <strong>Loading...</strong>
           </div>
         </template>
@@ -37,56 +37,56 @@
               v-for="field in scope.fields"
               :key="field.key"
               :style="field.style"
-          >
+          />
         </template>
 
         <template #cell(key)="data">
           <div
               class="fld-key"
-              v-text="data.value"
               :style="{ backgroundColor: data.item.color, color: currentPropertyKey === data.item.key ? 'blue' : 'black' }"
               @click.left="changeValue(data.item)"
-          ></div>
+              v-text="data.value"
+          />
         </template>
 
         <template #cell(value)="data">
           <div
               class="fld-value"
-              v-text="data.value"
               :style="{ backgroundColor: data.item.color, color: currentPropertyKey === data.item.key ? 'blue' : 'black' }"
-          ></div>
+              v-text="data.value"
+          />
         </template>
 
         <template #cell(defaultValue)="data">
           <div
               class="fld-defaultValue"
-              v-text="data.value"
               :style="{ backgroundColor: data.item.color, color: currentPropertyKey === data.item.key ? 'blue' : 'black' }"
-          ></div>
+              v-text="data.value"
+          />
         </template>
 
         <template #cell(description)="data">
           <div
               class="fld-description"
-              v-text="data.value"
               :style="{ backgroundColor: data.item.color, color: currentPropertyKey === data.item.key ? 'blue' : 'black' }"
-          ></div>
+              v-text="data.value"
+          />
         </template>
 
         <template #cell(type)="data">
           <div
               class="fld-type"
-              v-text="data.value"
               :style="{ backgroundColor: data.item.color, color: currentPropertyKey === data.item.key ? 'blue' : 'black' }"
-          ></div>
+              v-text="data.value"
+          />
         </template>
         
 
       </b-table>
     </div>
     <div class="properties-bv-table-footer">
-      <button class="btn-round-double" @click="isPropertiesFilterVisible=true" title="Фильтр">
-        <img alt="filter" class="icon-40" src="../../assets/svg/icon_filter.svg">
+      <button class="btn-round-double" title="Фильтр" @click="isPropertiesFilterVisible=true">
+        <img alt="filter" class="icon-40" src="../../assets/svg/icon_filter.svg"/>
       </button>
     </div>
 
@@ -126,22 +126,6 @@ export default {
       currentPropertyKey: '',
       currentProperty: undefined
     }
-  },
-  watch: {
-    propertiesDigestIsLoading: {
-      handler () {
-        this.isBusy = this.propertiesDigestIsLoading;
-      }
-    },
-    currentPage: {
-      handler (newPage) {
-        // Сохраняем страницу в store, чтобы она восстановилась после переключения на другой компонент.
-        this.$store.commit('setPropertiesTableCurrentPage', newPage);
-      }
-    }
-  },
-  mounted() {
-    // this.$store.dispatch('loadPropertiesDigests', { filterAuthor: 'Павел Кашин'} )
   },
   computed: {
     propertiesDigestIsLoading() {
@@ -212,6 +196,22 @@ export default {
         }
       ]
     }
+  },
+  watch: {
+    propertiesDigestIsLoading: {
+      handler () {
+        this.isBusy = this.propertiesDigestIsLoading;
+      }
+    },
+    currentPage: {
+      handler (newPage) {
+        // Сохраняем страницу в store, чтобы она восстановилась после переключения на другой компонент.
+        this.$store.commit('setPropertiesTableCurrentPage', newPage);
+      }
+    }
+  },
+  mounted() {
+    // this.$store.dispatch('loadPropertiesDigests', { filterAuthor: 'Павел Кашин'} )
   },
   methods: {
 

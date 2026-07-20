@@ -1,39 +1,39 @@
 <template>
   <div class="td-wrapper">
-    <SongEditModal v-if="isSongEditVisible" @close="closeSongEdit" :parent-route="parentRoute" :publish-digest="publishDigest"/>
-    <div class="publish" v-if="publish">
-      <div class="publish-name"
+    <SongEditModal v-if="isSongEditVisible" :parent-route="parentRoute" :publish-digest="publishDigest" @close="closeSongEdit"/>
+    <div v-if="publish" class="publish">
+      <div
+class="publish-name"
            :style="styleSongName"
-           v-text="publishText"
            :title="publishTitle"
-           @click.left="editSong">
+           @click.left="editSong"
+           v-text="publishText"/>
+      <div class="publish-column">
+        <div class="publish-column-cell-top" :style="processColorMeltLyrics" @dblclick="dblClickLyrics" />
+        <div class="publish-column-cell-bottom" :style="processColorMeltKaraoke" @dblclick="dblClickKaraoke" />
       </div>
       <div class="publish-column">
-        <div class="publish-column-cell-top" :style="processColorMeltLyrics" @dblclick="dblClickLyrics" ></div>
-        <div class="publish-column-cell-bottom" :style="processColorMeltKaraoke" @dblclick="dblClickKaraoke" ></div>
+        <div class="publish-column-cell-top" :style="processColorSponsr" />
+        <div class="publish-column-cell-bottom" :style="processColorVk" />
       </div>
       <div class="publish-column">
-        <div class="publish-column-cell-top" :style="processColorSponsr" ></div>
-        <div class="publish-column-cell-bottom" :style="processColorVk" ></div>
+        <div class="publish-column-cell-top" :style="processColorDzenLyrics" />
+        <div class="publish-column-cell-bottom" :style="processColorDzenKaraoke" />
       </div>
       <div class="publish-column">
-        <div class="publish-column-cell-top" :style="processColorDzenLyrics" ></div>
-        <div class="publish-column-cell-bottom" :style="processColorDzenKaraoke" ></div>
+        <div class="publish-column-cell-top" :style="processColorVkLyrics" />
+        <div class="publish-column-cell-bottom" :style="processColorVkKaraoke" />
       </div>
       <div class="publish-column">
-        <div class="publish-column-cell-top" :style="processColorVkLyrics" ></div>
-        <div class="publish-column-cell-bottom" :style="processColorVkKaraoke" ></div>
+        <div class="publish-column-cell-top" :style="processColorPlLyrics" />
+        <div class="publish-column-cell-bottom" :style="processColorPlKaraoke" />
       </div>
       <div class="publish-column">
-        <div class="publish-column-cell-top" :style="processColorPlLyrics" ></div>
-        <div class="publish-column-cell-bottom" :style="processColorPlKaraoke" ></div>
-      </div>
-      <div class="publish-column">
-        <div class="publish-column-cell-top" :style="processColorTelegramLyrics" ></div>
-        <div class="publish-column-cell-bottom" :style="processColorTelegramKaraoke" ></div>
+        <div class="publish-column-cell-top" :style="processColorTelegramLyrics" />
+        <div class="publish-column-cell-bottom" :style="processColorTelegramKaraoke" />
       </div>
     </div>
-    <div class="empty" v-else></div>
+    <div v-else class="empty"/>
   </div>
 </template>
 

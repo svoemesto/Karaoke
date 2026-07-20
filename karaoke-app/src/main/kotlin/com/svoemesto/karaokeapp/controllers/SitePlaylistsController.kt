@@ -20,16 +20,20 @@ import org.springframework.web.bind.annotation.ResponseBody
 @Controller
 @RequestMapping("/api/siteplaylists")
 class SitePlaylistsController {
+    private fun resolveDb(target: String?): KaraokeConnection = if (target == "remote") Connection.remote() else Connection.local()
 
-    private fun resolveDb(target: String?): KaraokeConnection =
-        if (target == "remote") Connection.remote() else Connection.local()
-
-    private fun <T> withDb(target: String?, block: (KaraokeConnection) -> T): T {
+    private fun <T> withDb(
+        target: String?,
+        block: (KaraokeConnection) -> T,
+    ): T {
         val db = resolveDb(target)
         return try {
             block(db)
         } finally {
-            try { db.getConnection()?.close() } catch (_: Exception) {}
+            try {
+                db.getConnection()?.close()
+            } catch (_: Exception) {
+            }
         }
     }
 
@@ -38,39 +42,51 @@ class SitePlaylistsController {
     fun digest(
         @RequestParam(required = false) target: String?,
         @RequestParam(required = false) filterOwnerId: Long?,
-    ): Map<String, Any> = withDb(target) { db ->
-        var playlists = SitePlaylist.loadAll(db, KSS_APP, SAC_APP)
-        filterOwnerId?.let { owner -> playlists = playlists.filter { it.ownerId == owner } }
-        // Резолвим владельцев одним проходом (email/имя для отображения).
-        val owners = playlists.map { it.ownerId }.distinct()
-            .associateWith { SiteUser.getSiteUserById(it, db, KSS_APP, SAC_APP) }
-        val list = playlists.map { pl ->
-            val owner = owners[pl.ownerId]
-            mapOf(
-                "id" to pl.id,
-                "name" to pl.name,
-                "favorites" to pl.isFavorites,
-                "ownerId" to pl.ownerId,
-                "ownerEmail" to (owner?.email ?: ""),
-                "ownerName" to (owner?.displayName ?: ""),
-                "itemsCount" to SitePlaylistItem.countItems(pl.id, db),
-                "continuous" to pl.continuous,
-                "repeatMode" to pl.repeatMode,
-                "shuffle" to pl.shuffle,
-            )
+    ): Map<String, Any> =
+        withDb(target) { db ->
+            var playlists = SitePlaylist.loadAll(db, KSS_APP, SAC_APP)
+            filterOwnerId?.let { owner -> playlists = playlists.filter { it.ownerId == owner } }
+            // Резолвим владельцев одним проходом (email/имя для отображения).
+            val owners =
+                playlists
+                    .map { it.ownerId }
+                    .distinct()
+                    .associateWith { SiteUser.getSiteUserById(it, db, KSS_APP, SAC_APP) }
+            val list =
+                playlists.map { pl ->
+                    val owner = owners[pl.ownerId]
+                    mapOf(
+                        "id" to pl.id,
+                        "name" to pl.name,
+                        "favorites" to pl.isFavorites,
+                        "ownerId" to pl.ownerId,
+                        "ownerEmail" to (owner?.email ?: ""),
+                        "ownerName" to (owner?.displayName ?: ""),
+                        "itemsCount" to SitePlaylistItem.countItems(pl.id, db),
+                        "continuous" to pl.continuous,
+                        "repeatMode" to pl.repeatMode,
+                        "shuffle" to pl.shuffle,
+                    )
+                }
+            mapOf("sitePlaylistsDigest" to list)
         }
-        mapOf("sitePlaylistsDigest" to list)
-    }
 
     @PostMapping("/byId")
     @ResponseBody
-    fun byId(@RequestParam id: Long, @RequestParam(required = false) target: String?): Any? =
+    fun byId(
+        @RequestParam id: Long,
+        @RequestParam(required = false) target: String?,
+    ): Any? =
         withDb(target) { db ->
             val pl = SitePlaylist.getById(id, db, KSS_APP, SAC_APP) ?: return@withDb null
             val owner = SiteUser.getSiteUserById(pl.ownerId, db, KSS_APP, SAC_APP)
             val items = SitePlaylistItem.loadItems(pl.id, db, KSS_APP, SAC_APP)
-            val songs = if (items.isEmpty()) emptyMap()
-            else Settings.loadListFromDbByIds(items.map { it.songId }.distinct(), db, KSS_APP, SAC_APP)
+            val songs =
+                if (items.isEmpty()) {
+                    emptyMap()
+                } else {
+                    Settings.loadListFromDbByIds(items.map { it.songId }.distinct(), db, KSS_APP, SAC_APP)
+                }
             mapOf(
                 "id" to pl.id,
                 "name" to pl.name,
@@ -81,18 +97,19 @@ class SitePlaylistsController {
                 "continuous" to pl.continuous,
                 "repeatMode" to pl.repeatMode,
                 "shuffle" to pl.shuffle,
-                "items" to items.map { item ->
-                    val s = songs[item.songId]
-                    mapOf(
-                        "songId" to item.songId,
-                        "position" to item.position,
-                        "muted" to item.muted,
-                        "songName" to (s?.songName ?: ""),
-                        "author" to (s?.author ?: ""),
-                        "album" to (s?.album ?: ""),
-                        "year" to (s?.year ?: 0),
-                    )
-                },
+                "items" to
+                    items.map { item ->
+                        val s = songs[item.songId]
+                        mapOf(
+                            "songId" to item.songId,
+                            "position" to item.position,
+                            "muted" to item.muted,
+                            "songName" to (s?.songName ?: ""),
+                            "author" to (s?.author ?: ""),
+                            "album" to (s?.album ?: ""),
+                            "year" to (s?.year ?: 0),
+                        )
+                    },
             )
         }
 }

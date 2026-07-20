@@ -18,8 +18,9 @@ class Author(
     override val database: KaraokeConnection = WORKING_DATABASE,
     override val storageService: KaraokeStorageService = KSS_APP,
     override val storageApiClient: StorageApiClient = SAC_APP,
-) : Serializable, Comparable<Author>, KaraokeDbTable {
-
+) : Serializable,
+    Comparable<Author>,
+    KaraokeDbTable {
     override fun getTableName() = "tbl_authors"
 
     @KaraokeDbTableField(name = "id", isId = true)
@@ -52,47 +53,60 @@ class Author(
     @KaraokeDbTableField(name = "aliases")
     var aliases: String = ""
 
-    val haveNewAlbum: Boolean get() = watched && (ymId != "" || vkId != "") && (lastAlbumYm != lastAlbumProcessed || lastAlbumVk != lastAlbumProcessed)
-    override fun compareTo(other: Author): Int {
-        return author.compareTo(other.author)
-    }
+    val haveNewAlbum: Boolean get() =
+        watched &&
+            (ymId != "" || vkId != "") &&
+            (lastAlbumYm != lastAlbumProcessed || lastAlbumVk != lastAlbumProcessed)
+
+    override fun compareTo(other: Author): Int = author.compareTo(other.author)
 
     override fun toDTO(): AuthorDTO {
-        val picture = Pictures.loadList(
-            whereArgs = mapOf("name" to author),
-            limit = 1,
-            database = database,
-            storageService = storageService,
-            storageApiClient = storageApiClient,
-            ignoreUseInList = true
-        ).firstOrNull()
-        val (pictureId, picturePreviewUrl) = picture?.let {
-            Pair(it.id, "/api/picture/file?file=${java.net.URLEncoder.encode(it.storageFileNamePreview, java.nio.charset.StandardCharsets.UTF_8)}")
-        } ?: Pair(0L, "")
+        val picture =
+            Pictures
+                .loadList(
+                    whereArgs = mapOf("name" to author),
+                    limit = 1,
+                    database = database,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                    ignoreUseInList = true,
+                ).firstOrNull()
+        val (pictureId, picturePreviewUrl) =
+            picture?.let {
+                Pair(
+                    it.id,
+                    "/api/picture/file?file=${java.net.URLEncoder.encode(
+                        it.storageFileNamePreview,
+                        java.nio.charset.StandardCharsets.UTF_8,
+                    )}",
+                )
+            } ?: Pair(0L, "")
         return AuthorDTO(
-                id = id,
-                author = author,
-                ymId = ymId,
-                vkId = vkId,
-                lastAlbumYm = lastAlbumYm,
-                lastAlbumVk = lastAlbumVk,
-                lastAlbumProcessed = lastAlbumProcessed,
-                watched = watched,
-                skip = skip,
-                aliases = aliases,
-                haveNewAlbum = haveNewAlbum,
-                pictureId = pictureId,
-                picturePreview = "",
-                picturePreviewUrl = picturePreviewUrl
+            id = id,
+            author = author,
+            ymId = ymId,
+            vkId = vkId,
+            lastAlbumYm = lastAlbumYm,
+            lastAlbumVk = lastAlbumVk,
+            lastAlbumProcessed = lastAlbumProcessed,
+            watched = watched,
+            skip = skip,
+            aliases = aliases,
+            haveNewAlbum = haveNewAlbum,
+            pictureId = pictureId,
+            picturePreview = "",
+            picturePreviewUrl = picturePreviewUrl,
         )
     }
 
     companion object {
-
         const val TABLE_NAME = "tbl_authors"
 
         @Suppress("unused")
-        fun listHashes(database: KaraokeConnection, whereText: String = ""): List<RecordHash>? = getListHashes(tableName = TABLE_NAME, database = database, whereText = whereText)
+        fun listHashes(
+            database: KaraokeConnection,
+            whereText: String = "",
+        ): List<RecordHash>? = getListHashes(tableName = TABLE_NAME, database = database, whereText = whereText)
 
         private fun getWhereList(whereArgs: Map<String, String>): List<String> {
             val where: MutableList<String> = mutableListOf()
@@ -113,9 +127,11 @@ class Author(
             }
             if (whereArgs.containsKey("haveNewAlbum")) {
                 if (whereArgs["haveNewAlbum"] == "+" || whereArgs["haveNewAlbum"] == "true") {
-                    where += "(watched = true AND (ym_id <> '' OR vk_id <> '') AND (last_album_ym <> last_album_processed OR last_album_vk <> last_album_processed))"
+                    where +=
+                        "(watched = true AND (ym_id <> '' OR vk_id <> '') AND (last_album_ym <> last_album_processed OR last_album_vk <> last_album_processed))"
                 } else if (whereArgs["haveNewAlbum"] == "-" || whereArgs["haveNewAlbum"] == "false") {
-                    where += "(watched = false OR (ym_id = '' AND vk_id = '') OR (last_album_ym = last_album_processed OR last_album_vk = last_album_processed))"
+                    where +=
+                        "(watched = false OR (ym_id = '' AND vk_id = '') OR (last_album_ym = last_album_processed OR last_album_vk = last_album_processed))"
                 }
             }
             if (whereArgs.containsKey("skip")) {
@@ -129,77 +145,98 @@ class Author(
             return where
         }
 
-        fun loadList(whereArgs: Map<String, String>,
-                     limit: Int = 0,
-                     offset: Int = 0,
-                     database: KaraokeConnection,
-                     storageService: KaraokeStorageService,
-                     storageApiClient: StorageApiClient,
-                     ignoreUseInList: Boolean
-        ): List<Author> {
-            return KaraokeDbTable.loadList(
-                clazz = Author::class,
-                tableName = TABLE_NAME,
-                whereList = getWhereList(whereArgs),
-                limit = limit,
-                offset = offset,
-                database = database,
-                storageService = storageService,
-                storageApiClient = storageApiClient,
-                ignoreUseInList = ignoreUseInList
-            ).map { it as Author }
-        }
+        fun loadList(
+            whereArgs: Map<String, String>,
+            limit: Int = 0,
+            offset: Int = 0,
+            database: KaraokeConnection,
+            storageService: KaraokeStorageService,
+            storageApiClient: StorageApiClient,
+            ignoreUseInList: Boolean,
+        ): List<Author> =
+            KaraokeDbTable
+                .loadList(
+                    clazz = Author::class,
+                    tableName = TABLE_NAME,
+                    whereList = getWhereList(whereArgs),
+                    limit = limit,
+                    offset = offset,
+                    database = database,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                    ignoreUseInList = ignoreUseInList,
+                ).map { it as Author }
 
-        fun delete(id: Long, database: KaraokeConnection): Boolean {
-            return KaraokeDbTable.delete(
+        fun delete(
+            id: Long,
+            database: KaraokeConnection,
+        ): Boolean =
+            KaraokeDbTable.delete(
                 tableName = TABLE_NAME,
                 id = id,
-                database = database
+                database = database,
             )
-        }
 
-        fun createNewAuthor(newAuthor: Author, database: KaraokeConnection): Author? {
-            val newAuthorInDb = KaraokeDbTable.createDbInstance(
-                entity = newAuthor,
-                database = database
-            ) as? Author?
+        fun createNewAuthor(
+            newAuthor: Author,
+            database: KaraokeConnection,
+        ): Author? {
+            val newAuthorInDb =
+                KaraokeDbTable.createDbInstance(
+                    entity = newAuthor,
+                    database = database,
+                ) as? Author?
             newAuthorInDb?.let {
                 return it
             }
             return null
         }
 
-        fun getAuthorById(id: Long, database: KaraokeConnection, storageService: KaraokeStorageService, storageApiClient: StorageApiClient): Author? {
-            return KaraokeDbTable.loadById(
+        fun getAuthorById(
+            id: Long,
+            database: KaraokeConnection,
+            storageService: KaraokeStorageService,
+            storageApiClient: StorageApiClient,
+        ): Author? =
+            KaraokeDbTable.loadById(
                 clazz = Author::class,
                 tableName = TABLE_NAME,
                 id = id,
                 database = database,
                 storageService = storageService,
-                storageApiClient = storageApiClient
+                storageApiClient = storageApiClient,
             ) as? Author?
-        }
 
-        fun getAuthorsByIds(ids: List<Long>, database: KaraokeConnection, storageService: KaraokeStorageService, storageApiClient: StorageApiClient): Map<Long, Author> {
-            return KaraokeDbTable.loadByIds(
-                clazz = Author::class,
-                tableName = TABLE_NAME,
-                ids = ids,
-                database = database,
-                storageService = storageService,
-                storageApiClient = storageApiClient
-            ).filterIsInstance<Author>().associateBy { it.id }
-        }
+        fun getAuthorsByIds(
+            ids: List<Long>,
+            database: KaraokeConnection,
+            storageService: KaraokeStorageService,
+            storageApiClient: StorageApiClient,
+        ): Map<Long, Author> =
+            KaraokeDbTable
+                .loadByIds(
+                    clazz = Author::class,
+                    tableName = TABLE_NAME,
+                    ids = ids,
+                    database = database,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                ).filterIsInstance<Author>()
+                .associateBy { it.id }
 
-        fun getAuthorByName(author: String, database: KaraokeConnection, storageService: KaraokeStorageService, storageApiClient: StorageApiClient): Author? {
-            return loadList(
+        fun getAuthorByName(
+            author: String,
+            database: KaraokeConnection,
+            storageService: KaraokeStorageService,
+            storageApiClient: StorageApiClient,
+        ): Author? =
+            loadList(
                 whereArgs = mapOf(Pair("author", author)),
                 database = database,
                 storageService = storageService,
                 storageApiClient = storageApiClient,
-                ignoreUseInList = true
+                ignoreUseInList = true,
             ).firstOrNull()
-        }
 
         /**
          * Ищет авторов, у которых term совпадает с реальным именем ЛИБО с одним из алиасов
@@ -208,7 +245,10 @@ class Author(
          * matchedAliases в результате — только те алиасы, по которым term реально совпал
          * (пусто, если совпадение произошло по самому имени автора).
          */
-        fun resolveByTerm(term: String, database: KaraokeConnection): List<AuthorAliasMatch> {
+        fun resolveByTerm(
+            term: String,
+            database: KaraokeConnection,
+        ): List<AuthorAliasMatch> {
             val result: MutableList<AuthorAliasMatch> = mutableListOf()
             val termLower = term.trim().lowercase()
             if (termLower.isEmpty()) return result
@@ -223,9 +263,11 @@ class Author(
                         while (rs.next()) {
                             val authorName = rs.getString("author") ?: continue
                             val aliasesRaw = rs.getString("aliases") ?: ""
-                            val matched = aliasesRaw.split(";")
-                                .map { it.trim() }
-                                .filter { it.isNotEmpty() && it.lowercase().contains(termLower) }
+                            val matched =
+                                aliasesRaw
+                                    .split(";")
+                                    .map { it.trim() }
+                                    .filter { it.isNotEmpty() && it.lowercase().contains(termLower) }
                             result.add(AuthorAliasMatch(author = authorName, matchedAliases = matched))
                         }
                     }
@@ -238,4 +280,7 @@ class Author(
     }
 }
 
-data class AuthorAliasMatch(val author: String, val matchedAliases: List<String>)
+data class AuthorAliasMatch(
+    val author: String,
+    val matchedAliases: List<String>,
+)

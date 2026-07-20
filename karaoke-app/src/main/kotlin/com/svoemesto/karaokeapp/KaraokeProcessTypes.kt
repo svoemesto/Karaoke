@@ -16,6 +16,7 @@ enum class KaraokeProcessTypes {
     SMARTCOPY,
     COPY_TO_STORE_LYRICS,
     COPY_TO_STORE_KARAOKE,
+
 //    FF_MP3_KAR,
 //    FF_MP3_LYR,
     FF_MP3_ACCOMPANIMENT,
@@ -37,5 +38,5 @@ enum class KaraokeProcessTypes {
     // DEMUCS2/DEMUCS5, но для произвольного файла, загруженного пользователем публичного сайта, а не
     // для Settings/песни (settingsId=0). См. StemJobProcessing.kt.
     STEM_JOB_DEMUCS2,
-    STEM_JOB_DEMUCS5
+    STEM_JOB_DEMUCS5,
 }

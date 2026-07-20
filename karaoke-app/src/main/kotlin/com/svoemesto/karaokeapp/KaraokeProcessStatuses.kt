@@ -5,5 +5,5 @@ enum class KaraokeProcessStatuses {
     WAITING,
     WORKING,
     DONE,
-    ERROR
+    ERROR,
 }

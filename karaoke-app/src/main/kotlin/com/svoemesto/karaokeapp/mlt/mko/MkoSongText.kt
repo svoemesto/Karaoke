@@ -4,29 +4,36 @@ import com.svoemesto.karaokeapp.Karaoke
 import com.svoemesto.karaokeapp.getTransposingChord
 import com.svoemesto.karaokeapp.mlt.MltGenerator
 import com.svoemesto.karaokeapp.mlt.MltProp
-import com.svoemesto.karaokeapp.xmldata
 import com.svoemesto.karaokeapp.mlt.MltText
 import com.svoemesto.karaokeapp.mlt.mltNode
 import com.svoemesto.karaokeapp.model.*
+import com.svoemesto.karaokeapp.xmldata
 
-data class MkoSongText(val mltProp: MltProp, val type: ProducerType, val voiceId: Int = 0, val childId: Int = 0, val elementId: Int = 0): MltKaraokeObject {
+data class MkoSongText(
+    val mltProp: MltProp,
+    val type: ProducerType,
+    val voiceId: Int = 0,
+    val childId: Int = 0,
+    val elementId: Int = 0,
+) : MltKaraokeObject {
     val mltGenerator = MltGenerator(mltProp, type, voiceId)
 
-    override fun producer(): MltNode = mltGenerator
-        .producer(
-            props = MltNodeBuilder(mltGenerator.defaultProducerPropertiesForMltService("kdenlivetitle"))
-                .propertyName("kdenlive:folderid", mltProp.getId(listOf(ProducerType.VOICE, voiceId)))
-                .propertyName("length", mltProp.getSongLengthFr())
-                .propertyName("kdenlive:duration", mltProp.getSongEndTimecode())
+    override fun producer(): MltNode =
+        mltGenerator
+            .producer(
+                props =
+                    MltNodeBuilder(mltGenerator.defaultProducerPropertiesForMltService("kdenlivetitle"))
+                        .propertyName("kdenlive:folderid", mltProp.getId(listOf(ProducerType.VOICE, voiceId)))
+                        .propertyName("length", mltProp.getSongLengthFr())
+                        .propertyName("kdenlive:duration", mltProp.getSongEndTimecode())
 //                .propertyName("xmldata", mltProp.getXmlData(listOf(type, voiceId)).toString().xmldata())
-                .propertyName("xmldata", template().toString().xmldata())
-                .propertyName("meta.media.width", mltProp.getFrameWidthPx())
-                .propertyName("meta.media.height", mltProp.getWorkAreaHeightPx(listOf(ProducerType.SONGTEXT, voiceId)))
-                .build()
-        )
+                        .propertyName("xmldata", template().toString().xmldata())
+                        .propertyName("meta.media.width", mltProp.getFrameWidthPx())
+                        .propertyName("meta.media.height", mltProp.getWorkAreaHeightPx(listOf(ProducerType.SONGTEXT, voiceId)))
+                        .build(),
+            )
 
     override fun filePlaylist(): MltNode {
-
         val result = mltGenerator.filePlaylist()
         result.body?.let {
             @Suppress("UNCHECKED_CAST")
@@ -34,21 +41,26 @@ data class MkoSongText(val mltProp: MltProp, val type: ProducerType, val voiceId
 //            body.addAll(MltNodeBuilder().blank(mltProp.getInOffsetVideo()).build())
             body.add(
                 mltGenerator.entry(
-                    nodes = MltNodeBuilder()
-                        .propertyName("kdenlive:id", "filePlaylist${mltGenerator.id}")
-                        .filterQtblend(mltGenerator.nameFilterQtblend, mainFilePlaylistTransformProperties())
-                        .build()
-                )
+                    nodes =
+                        MltNodeBuilder()
+                            .propertyName("kdenlive:id", "filePlaylist${mltGenerator.id}")
+                            .filterQtblend(mltGenerator.nameFilterQtblend, mainFilePlaylistTransformProperties())
+                            .build(),
+                ),
             )
         }
         return result
     }
 
     override fun mainFilePlaylistTransformProperties(): String {
-        val voiceLines = mltProp.getVoicelines(listOf(ProducerType.SONGTEXT,voiceId))
-        val propRect = voiceLines
-            .filter { it.startTp != null && it.endTp != null && (it.type == SongVoiceLineType.TEXT || it == voiceLines.first() || it == voiceLines.last()) }
-            .joinToString(";") { listOf(it.startTp.toString(), it.endTp.toString()).joinToString(";") }
+        val voiceLines = mltProp.getVoicelines(listOf(ProducerType.SONGTEXT, voiceId))
+        val propRect =
+            voiceLines
+                .filter {
+                    it.startTp != null &&
+                        it.endTp != null &&
+                        (it.type == SongVoiceLineType.TEXT || it == voiceLines.first() || it == voiceLines.last())
+                }.joinToString(";") { listOf(it.startTp.toString(), it.endTp.toString()).joinToString(";") }
         return propRect
     }
 
@@ -56,9 +68,8 @@ data class MkoSongText(val mltProp: MltProp, val type: ProducerType, val voiceId
 
     override fun tractor(): MltNode = mltGenerator.tractor()
 
-
     override fun template(): MltNode {
-        val voiceLines = mltProp.getVoicelines(listOf(ProducerType.SONGTEXT,voiceId))
+        val voiceLines = mltProp.getVoicelines(listOf(ProducerType.SONGTEXT, voiceId))
         val templateSongTextSymbolsGroup = mutableListOf<MltNode>()
         val workAreaSongtextHeightPx = mltProp.getWorkAreaHeightPx(listOf(ProducerType.SONGTEXT, voiceId))
         val capo = mltProp.getSongCapo()
@@ -67,53 +78,65 @@ data class MkoSongText(val mltProp: MltProp, val type: ProducerType, val voiceId
             voiceLineSongtext.symbols.forEachIndexed { indexSymbol, lineSymbol ->
 
                 val mltText: MltText = lineSymbol.mltText
-                val text = if (voiceLineSongtext.type == SongVoiceLineType.CHORDS) {
-                    if (capo == 0 || mltProp.getIgnoreCapo()) {
-                        mltText.text.split("|")[0]
+                val text =
+                    if (voiceLineSongtext.type == SongVoiceLineType.CHORDS) {
+                        if (capo == 0 || mltProp.getIgnoreCapo()) {
+                            mltText.text.split("|")[0]
+                        } else {
+                            getTransposingChord(mltText.text, capo)
+                        }
                     } else {
-                        getTransposingChord(mltText.text, capo)
+                        mltText.text.replace("&", "&amp;amp;")
                     }
-                } else {
-                    mltText.text.replace("&","&amp;amp;")
-                }
 
                 val x = lineSymbol.xStartPx + Karaoke.songtextStartPositionXpx // (startX + voiceLineSongtext.getSymbolXpx(indexSymbol)).toLong()
-                val y = voiceLineSongtext.yPx //(startY + indexLine*symbolSongtextHeightPx + (symbolSongtextHeightPx - mltText.h)).toLong()
+                val y = voiceLineSongtext.yPx // (startY + indexLine*symbolSongtextHeightPx + (symbolSongtextHeightPx - mltText.h)).toLong()
 
                 templateSongTextSymbolsGroup.add(
                     MltNode(
                         name = "item",
-                        fields = mutableMapOf(Pair("type","QGraphicsTextItem"), Pair("z-index","1")),
-                        body = mutableListOf(
-                            MltNode(
-                                name = "position",
-                                fields = mutableMapOf(Pair("x","$x"), Pair("y","$y")),
-                                body = mutableListOf(MltNode(name = "transform", fields = mutableMapOf(), body = "1,0,0,0,1,0,0,0,1"))
+                        fields = mutableMapOf(Pair("type", "QGraphicsTextItem"), Pair("z-index", "1")),
+                        body =
+                            mutableListOf(
+                                MltNode(
+                                    name = "position",
+                                    fields = mutableMapOf(Pair("x", "$x"), Pair("y", "$y")),
+                                    body = mutableListOf(MltNode(name = "transform", fields = mutableMapOf(), body = "1,0,0,0,1,0,0,0,1")),
+                                ),
+                                mltText.mltNode(text),
                             ),
-                            mltText.mltNode(text)
-                        )
-                    )
+                    ),
                 )
             }
-
         }
-        templateSongTextSymbolsGroup.add(MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect","0,0,${mltProp.getFrameWidthPx()},$workAreaSongtextHeightPx"))))
-        templateSongTextSymbolsGroup.add(MltNode(name = "endviewport", fields = mutableMapOf(Pair("rect","0,0,${mltProp.getFrameWidthPx()},$workAreaSongtextHeightPx"))))
-        templateSongTextSymbolsGroup.add(MltNode(name = "background", fields = mutableMapOf(Pair("color","0,0,0,0"))))
-
-        val templateSongText = MltNode(
-            name = "kdenlivetitle",
-            fields = mutableMapOf(
-                Pair("duration","0"),
-                Pair("LC_NUMERIC","C"),
-                Pair("width","${mltProp.getFrameWidthPx()}"),
-                Pair("height","$workAreaSongtextHeightPx"),
-                Pair("out","0"),
+        templateSongTextSymbolsGroup.add(
+            MltNode(
+                name = "startviewport",
+                fields = mutableMapOf(Pair("rect", "0,0,${mltProp.getFrameWidthPx()},$workAreaSongtextHeightPx")),
             ),
-            body = templateSongTextSymbolsGroup
         )
+        templateSongTextSymbolsGroup.add(
+            MltNode(
+                name = "endviewport",
+                fields = mutableMapOf(Pair("rect", "0,0,${mltProp.getFrameWidthPx()},$workAreaSongtextHeightPx")),
+            ),
+        )
+        templateSongTextSymbolsGroup.add(MltNode(name = "background", fields = mutableMapOf(Pair("color", "0,0,0,0"))))
+
+        val templateSongText =
+            MltNode(
+                name = "kdenlivetitle",
+                fields =
+                    mutableMapOf(
+                        Pair("duration", "0"),
+                        Pair("LC_NUMERIC", "C"),
+                        Pair("width", "${mltProp.getFrameWidthPx()}"),
+                        Pair("height", "$workAreaSongtextHeightPx"),
+                        Pair("out", "0"),
+                    ),
+                body = templateSongTextSymbolsGroup,
+            )
 
         return templateSongText
     }
 }
-

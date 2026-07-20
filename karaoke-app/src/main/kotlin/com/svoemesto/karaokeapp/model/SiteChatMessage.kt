@@ -21,8 +21,8 @@ class SiteChatMessage(
     override val database: KaraokeConnection = WORKING_DATABASE,
     override val storageService: KaraokeStorageService = KSS_APP,
     override val storageApiClient: StorageApiClient = SAC_APP,
-) : Serializable, KaraokeDbTable {
-
+) : Serializable,
+    KaraokeDbTable {
     override fun getTableName() = TABLE_NAME
 
     @KaraokeDbTableField(name = "id", isId = true)
@@ -47,17 +47,17 @@ class SiteChatMessage(
     @KaraokeDbTableField(name = "created_at", useInDiff = false)
     var createdAt: Timestamp? = null
 
-    override fun toDTO(): SiteChatMessageDto = SiteChatMessageDto(
-        id = id,
-        siteUserId = siteUserId,
-        fromAuthor = isFromAuthor,
-        body = body,
-        read = isRead,
-        createdAt = createdAt?.toString() ?: "",
-    )
+    override fun toDTO(): SiteChatMessageDto =
+        SiteChatMessageDto(
+            id = id,
+            siteUserId = siteUserId,
+            fromAuthor = isFromAuthor,
+            body = body,
+            read = isRead,
+            createdAt = createdAt?.toString() ?: "",
+        )
 
     companion object {
-
         const val TABLE_NAME = "tbl_site_chat_messages"
 
         // Тред одного пользователя целиком, по возрастанию id (= по времени).
@@ -66,24 +66,25 @@ class SiteChatMessage(
             database: KaraokeConnection,
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
-        ): List<SiteChatMessage> {
-            return KaraokeDbTable.loadList(
-                clazz = SiteChatMessage::class,
-                tableName = TABLE_NAME,
-                whereList = listOf("site_user_id=$siteUserId"),
-                database = database,
-                storageService = storageService,
-                storageApiClient = storageApiClient,
-            ).map { it as SiteChatMessage }.sortedBy { it.id }
-        }
+        ): List<SiteChatMessage> =
+            KaraokeDbTable
+                .loadList(
+                    clazz = SiteChatMessage::class,
+                    tableName = TABLE_NAME,
+                    whereList = listOf("site_user_id=$siteUserId"),
+                    database = database,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                ).map { it as SiteChatMessage }
+                .sortedBy { it.id }
 
         fun getById(
             id: Long,
             database: KaraokeConnection,
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
-        ): SiteChatMessage? {
-            return KaraokeDbTable.loadById(
+        ): SiteChatMessage? =
+            KaraokeDbTable.loadById(
                 clazz = SiteChatMessage::class,
                 tableName = TABLE_NAME,
                 id = id,
@@ -91,7 +92,6 @@ class SiteChatMessage(
                 storageService = storageService,
                 storageApiClient = storageApiClient,
             ) as? SiteChatMessage?
-        }
 
         fun createNew(
             siteUserId: Long,
@@ -116,7 +116,8 @@ class SiteChatMessage(
         fun loadThreads(database: KaraokeConnection): List<ChatThreadDto> {
             val result: MutableList<ChatThreadDto> = mutableListOf()
             val connection = database.getConnection() ?: return result
-            val sql = """
+            val sql =
+                """
                 SELECT u.id AS site_user_id, u.email, u.display_name,
                        last_msg.body AS last_body, last_msg.created_at AS last_at,
                        COALESCE(unread.cnt, 0) AS unread_from_user
@@ -132,7 +133,7 @@ class SiteChatMessage(
                     WHERE site_user_id = m.site_user_id AND is_from_author = false AND is_read = false
                 ) unread ON true
                 ORDER BY last_msg.created_at DESC
-            """.trimIndent()
+                """.trimIndent()
             try {
                 connection.prepareStatement(sql).use { ps ->
                     ps.executeQuery().use { rs ->
@@ -145,7 +146,7 @@ class SiteChatMessage(
                                     lastBody = rs.getString("last_body") ?: "",
                                     lastAt = rs.getTimestamp("last_at")?.toString() ?: "",
                                     unreadFromUser = rs.getInt("unread_from_user"),
-                                )
+                                ),
                             )
                         }
                     }
@@ -173,14 +174,22 @@ class SiteChatMessage(
         }
 
         // Открытие треда автором — все сообщения ОТ пользователя помечаются прочитанными.
-        fun markThreadReadByAuthor(siteUserId: Long, database: KaraokeConnection): Unit =
-            markThreadRead(siteUserId, database, isFromAuthor = false)
+        fun markThreadReadByAuthor(
+            siteUserId: Long,
+            database: KaraokeConnection,
+        ): Unit = markThreadRead(siteUserId, database, isFromAuthor = false)
 
         // Открытие треда пользователем — все сообщения ОТ автора помечаются прочитанными.
-        fun markThreadReadByUser(siteUserId: Long, database: KaraokeConnection): Unit =
-            markThreadRead(siteUserId, database, isFromAuthor = true)
+        fun markThreadReadByUser(
+            siteUserId: Long,
+            database: KaraokeConnection,
+        ): Unit = markThreadRead(siteUserId, database, isFromAuthor = true)
 
-        private fun markThreadRead(siteUserId: Long, database: KaraokeConnection, isFromAuthor: Boolean) {
+        private fun markThreadRead(
+            siteUserId: Long,
+            database: KaraokeConnection,
+            isFromAuthor: Boolean,
+        ) {
             val connection = database.getConnection() ?: return
             val sql = "UPDATE $TABLE_NAME SET is_read = true WHERE site_user_id = ? AND is_from_author = ? AND is_read = false"
             try {

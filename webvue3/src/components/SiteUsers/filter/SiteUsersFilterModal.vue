@@ -11,95 +11,95 @@
           <div class="sufm-root-wrapper">
 
             <div class="sufm-filter-row">
-              <div class="sufm-row-label"><div v-text="'ID:'"></div></div>
+              <div class="sufm-row-label"><div v-text="'ID:'"/></div>
               <div class="sufm-row-input">
-                <input class="sufm-input-field" v-model="siteUsersFilterId">
+                <input v-model="siteUsersFilterId" class="sufm-input-field"/>
               </div>
-              <button :disabled="!siteUsersFilterId" class="sufm-button-clear-field" @click.left="siteUsersFilterId=''" v-text="'X'"></button>
+              <button :disabled="!siteUsersFilterId" class="sufm-button-clear-field" @click.left="siteUsersFilterId=''" v-text="'X'"/>
             </div>
 
             <div class="sufm-filter-row">
-              <div class="sufm-row-label"><div v-text="'Email:'"></div></div>
+              <div class="sufm-row-label"><div v-text="'Email:'"/></div>
               <div class="sufm-row-input">
-                <input class="sufm-input-field" v-model="siteUsersFilterEmail">
+                <input v-model="siteUsersFilterEmail" class="sufm-input-field"/>
               </div>
-              <button :disabled="!siteUsersFilterEmail" class="sufm-button-clear-field" @click.left="siteUsersFilterEmail=''" v-text="'X'"></button>
+              <button :disabled="!siteUsersFilterEmail" class="sufm-button-clear-field" @click.left="siteUsersFilterEmail=''" v-text="'X'"/>
             </div>
 
             <div class="sufm-filter-row">
-              <div class="sufm-row-label"><div v-text="'Имя:'"></div></div>
+              <div class="sufm-row-label"><div v-text="'Имя:'"/></div>
               <div class="sufm-row-input">
-                <input class="sufm-input-field" v-model="siteUsersFilterDisplayName">
+                <input v-model="siteUsersFilterDisplayName" class="sufm-input-field"/>
               </div>
-              <button :disabled="!siteUsersFilterDisplayName" class="sufm-button-clear-field" @click.left="siteUsersFilterDisplayName=''" v-text="'X'"></button>
+              <button :disabled="!siteUsersFilterDisplayName" class="sufm-button-clear-field" @click.left="siteUsersFilterDisplayName=''" v-text="'X'"/>
             </div>
 
             <div class="sufm-filter-row">
-              <div class="sufm-row-label"><div v-text="'Sponsr UID:'"></div></div>
+              <div class="sufm-row-label"><div v-text="'Sponsr UID:'"/></div>
               <div class="sufm-row-input">
-                <input class="sufm-input-field" v-model="siteUsersFilterSponsrUid">
+                <input v-model="siteUsersFilterSponsrUid" class="sufm-input-field"/>
               </div>
-              <button :disabled="!siteUsersFilterSponsrUid" class="sufm-button-clear-field" @click.left="siteUsersFilterSponsrUid=''" v-text="'X'"></button>
+              <button :disabled="!siteUsersFilterSponsrUid" class="sufm-button-clear-field" @click.left="siteUsersFilterSponsrUid=''" v-text="'X'"/>
             </div>
 
             <div class="sufm-filter-row">
-              <div class="sufm-row-label"><div v-text="'Премиум:'"></div></div>
+              <div class="sufm-row-label"><div v-text="'Премиум:'"/></div>
               <div class="sufm-row-input">
-                <select class="sufm-input-field" v-model="siteUsersFilterIsPremium">
+                <select v-model="siteUsersFilterIsPremium" class="sufm-input-field">
                   <option value="">Все</option>
                   <option value="+">Да</option>
                   <option value="-">Нет</option>
                 </select>
               </div>
-              <button :disabled="!siteUsersFilterIsPremium" class="sufm-button-clear-field" @click.left="siteUsersFilterIsPremium=''" v-text="'X'"></button>
+              <button :disabled="!siteUsersFilterIsPremium" class="sufm-button-clear-field" @click.left="siteUsersFilterIsPremium=''" v-text="'X'"/>
             </div>
 
             <div class="sufm-filter-row">
-              <div class="sufm-row-label"><div v-text="'Постоянный премиум:'"></div></div>
+              <div class="sufm-row-label"><div v-text="'Постоянный премиум:'"/></div>
               <div class="sufm-row-input">
-                <select class="sufm-input-field" v-model="siteUsersFilterIsPermanentPremium">
+                <select v-model="siteUsersFilterIsPermanentPremium" class="sufm-input-field">
                   <option value="">Все</option>
                   <option value="+">Да</option>
                   <option value="-">Нет</option>
                 </select>
               </div>
-              <button :disabled="!siteUsersFilterIsPermanentPremium" class="sufm-button-clear-field" @click.left="siteUsersFilterIsPermanentPremium=''" v-text="'X'"></button>
+              <button :disabled="!siteUsersFilterIsPermanentPremium" class="sufm-button-clear-field" @click.left="siteUsersFilterIsPermanentPremium=''" v-text="'X'"/>
             </div>
 
             <div class="sufm-filter-row">
-              <div class="sufm-row-label"><div v-text="'Активный премиум:'"></div></div>
+              <div class="sufm-row-label"><div v-text="'Активный премиум:'"/></div>
               <div class="sufm-row-input">
-                <select class="sufm-input-field" v-model="siteUsersFilterIsEffectivePremium">
+                <select v-model="siteUsersFilterIsEffectivePremium" class="sufm-input-field">
                   <option value="">Все</option>
                   <option value="+">Да</option>
                   <option value="-">Нет</option>
                 </select>
               </div>
-              <button :disabled="!siteUsersFilterIsEffectivePremium" class="sufm-button-clear-field" @click.left="siteUsersFilterIsEffectivePremium=''" v-text="'X'"></button>
+              <button :disabled="!siteUsersFilterIsEffectivePremium" class="sufm-button-clear-field" @click.left="siteUsersFilterIsEffectivePremium=''" v-text="'X'"/>
             </div>
 
             <div class="sufm-filter-row">
-              <div class="sufm-row-label"><div v-text="'Редактор:'"></div></div>
+              <div class="sufm-row-label"><div v-text="'Редактор:'"/></div>
               <div class="sufm-row-input">
-                <select class="sufm-input-field" v-model="siteUsersFilterIsEditor">
+                <select v-model="siteUsersFilterIsEditor" class="sufm-input-field">
                   <option value="">Все</option>
                   <option value="+">Да</option>
                   <option value="-">Нет</option>
                 </select>
               </div>
-              <button :disabled="!siteUsersFilterIsEditor" class="sufm-button-clear-field" @click.left="siteUsersFilterIsEditor=''" v-text="'X'"></button>
+              <button :disabled="!siteUsersFilterIsEditor" class="sufm-button-clear-field" @click.left="siteUsersFilterIsEditor=''" v-text="'X'"/>
             </div>
 
             <div class="sufm-filter-row">
-              <div class="sufm-row-label"><div v-text="'Статус:'"></div></div>
+              <div class="sufm-row-label"><div v-text="'Статус:'"/></div>
               <div class="sufm-row-input">
-                <select class="sufm-input-field" v-model="siteUsersFilterIsBanned">
+                <select v-model="siteUsersFilterIsBanned" class="sufm-input-field">
                   <option value="">Все</option>
                   <option value="+">Забанен</option>
                   <option value="-">Активен</option>
                 </select>
               </div>
-              <button :disabled="!siteUsersFilterIsBanned" class="sufm-button-clear-field" @click.left="siteUsersFilterIsBanned=''" v-text="'X'"></button>
+              <button :disabled="!siteUsersFilterIsBanned" class="sufm-button-clear-field" @click.left="siteUsersFilterIsBanned=''" v-text="'X'"/>
             </div>
 
           </div>
@@ -119,12 +119,6 @@
 
 export default {
   name: "SiteUsersFilterModal",
-  async beforeMount() {
-    // SiteUsersTable уже вызывает hydrateSiteUsersFilter на своём mounted() — здесь только
-    // подстраховка (модалка может быть открыта уже после того, как таблица закешировала значения,
-    // повторный вызов идемпотентен).
-    await this.$store.dispatch('hydrateSiteUsersFilter');
-  },
   computed: {
     siteUsersFilterId: {
       get() { return this.$store.getters.getSiteUsersFilterId; },
@@ -162,6 +156,12 @@ export default {
       get() { return this.$store.getters.getSiteUsersFilterIsBanned; },
       set(value) { this.$store.dispatch('setSiteUsersFilterIsBanned', { value: value }); }
     },
+  },
+  async beforeMount() {
+    // SiteUsersTable уже вызывает hydrateSiteUsersFilter на своём mounted() — здесь только
+    // подстраховка (модалка может быть открыта уже после того, как таблица закешировала значения,
+    // повторный вызов идемпотентен).
+    await this.$store.dispatch('hydrateSiteUsersFilter');
   },
   methods: {
     ok() {

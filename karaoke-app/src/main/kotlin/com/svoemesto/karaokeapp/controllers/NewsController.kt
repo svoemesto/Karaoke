@@ -17,18 +17,22 @@ import java.sql.Timestamp
 @Controller
 @RequestMapping("/api/news")
 class NewsController {
-
-    private fun resolveDb(target: String?): KaraokeConnection =
-        if (target == "remote") Connection.remote() else Connection.local()
+    private fun resolveDb(target: String?): KaraokeConnection = if (target == "remote") Connection.remote() else Connection.local()
 
     // resolveDb() открывает новое физическое соединение на каждый вызов — без явного close() пул
     // Postgres постепенно исчерпывается (см. ChatController/DictionariesController).
-    private fun <T> withDb(target: String?, block: (KaraokeConnection) -> T): T {
+    private fun <T> withDb(
+        target: String?,
+        block: (KaraokeConnection) -> T,
+    ): T {
         val db = resolveDb(target)
         return try {
             block(db)
         } finally {
-            try { db.getConnection()?.close() } catch (_: Exception) {}
+            try {
+                db.getConnection()?.close()
+            } catch (_: Exception) {
+            }
         }
     }
 
@@ -44,9 +48,12 @@ class NewsController {
 
     @PostMapping("/list")
     @ResponseBody
-    fun list(@RequestParam(required = false) target: String?): Map<String, Any> = withDb(target) { db ->
-        mapOf("news" to News.loadAll(db).map { it.toDTO() })
-    }
+    fun list(
+        @RequestParam(required = false) target: String?,
+    ): Map<String, Any> =
+        withDb(target) { db ->
+            mapOf("news" to News.loadAll(db).map { it.toDTO() })
+        }
 
     @PostMapping("/create")
     @ResponseBody
@@ -57,17 +64,19 @@ class NewsController {
         @RequestParam(required = false) link: String?,
         @RequestParam(required = false) publishAt: String?,
         @RequestParam(required = false) target: String?,
-    ): Long = withDb(target) { db ->
-        if (title.isBlank()) return@withDb 0L
-        News.createNew(
-            title = title,
-            body = body,
-            category = category?.takeIf { it.isNotBlank() } ?: "general",
-            link = link?.takeIf { it.isNotBlank() },
-            publishAt = parsePublishAt(publishAt),
-            database = db,
-        )?.id ?: 0L
-    }
+    ): Long =
+        withDb(target) { db ->
+            if (title.isBlank()) return@withDb 0L
+            News
+                .createNew(
+                    title = title,
+                    body = body,
+                    category = category?.takeIf { it.isNotBlank() } ?: "general",
+                    link = link?.takeIf { it.isNotBlank() },
+                    publishAt = parsePublishAt(publishAt),
+                    database = db,
+                )?.id ?: 0L
+        }
 
     @PostMapping("/update")
     @ResponseBody
@@ -80,20 +89,21 @@ class NewsController {
         @RequestParam(required = false) publishAt: String?,
         @RequestParam(required = false) clearPublishAt: Boolean?,
         @RequestParam(required = false) target: String?,
-    ): Long = withDb(target) { db ->
-        val item = News.getById(id, db) ?: return@withDb 0L
-        title?.let { item.title = it }
-        body?.let { item.body = it }
-        category?.let { item.category = it }
-        link?.let { item.link = it.takeIf { v -> v.isNotBlank() } }
-        if (clearPublishAt == true) {
-            item.publishAt = null
-        } else if (publishAt != null) {
-            item.publishAt = parsePublishAt(publishAt)
+    ): Long =
+        withDb(target) { db ->
+            val item = News.getById(id, db) ?: return@withDb 0L
+            title?.let { item.title = it }
+            body?.let { item.body = it }
+            category?.let { item.category = it }
+            link?.let { item.link = it.takeIf { v -> v.isNotBlank() } }
+            if (clearPublishAt == true) {
+                item.publishAt = null
+            } else if (publishAt != null) {
+                item.publishAt = parsePublishAt(publishAt)
+            }
+            item.save()
+            item.id
         }
-        item.save()
-        item.id
-    }
 
     @PostMapping("/delete")
     @ResponseBody

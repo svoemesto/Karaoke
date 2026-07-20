@@ -1,20 +1,20 @@
 <template>
 
     <div class="hrl-row">
-      <div class="hrl-fld-caption" v-text="caption" :style="{backgroundColor: healthReport.color}"></div>
+      <div class="hrl-fld-caption" :style="{backgroundColor: healthReport.color}" v-text="caption"/>
       <div class="hrl-subrow">
         <div class="hrl-column">
           <div class="hrl-label-and-field">
             <div class="hrl-label">Проблема:</div>
-            <div class="hrl-fld-problemText" v-text="healthReport.problemText"></div>
+            <div class="hrl-fld-problemText" v-text="healthReport.problemText"/>
           </div>
           <div class="hrl-label-and-field">
             <div class="hrl-label">Решение:</div>
-            <div class="hrl-fld-solutionText" v-text="healthReport.solutionText"></div>
+            <div class="hrl-fld-solutionText" v-text="healthReport.solutionText"/>
           </div>
         </div>
         <div class="hrl-column">
-          <button :disabled="!healthReport.canResolve" class="hrl-row-button-repair" @click.left="repair(healthReport)" v-text="'repair'"></button>
+          <button :disabled="!healthReport.canResolve" class="hrl-row-button-repair" @click.left="repair(healthReport)" v-text="'repair'"/>
         </div>
       </div>
     </div>

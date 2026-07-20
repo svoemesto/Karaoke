@@ -49,26 +49,31 @@ class SubscriptionRenewalScheduler(
     }
 
     private fun tryRenew(user: SiteUser) {
-        val latest = Subscription.loadByUser(user.id, db, storageService, storageApiClient)
-            .filter { it.scope == Subscription.SCOPE_SITE && it.status == Subscription.STATUS_PAID }
-            .maxByOrNull { it.paidAt?.time ?: it.createdAt.time }
-            ?: return
+        val latest =
+            Subscription
+                .loadByUser(user.id, db, storageService, storageApiClient)
+                .filter { it.scope == Subscription.SCOPE_SITE && it.status == Subscription.STATUS_PAID }
+                .maxByOrNull { it.paidAt?.time ?: it.createdAt.time }
+                ?: return
         if (!latest.autoRenew || latest.yookassaPaymentMethodId.isBlank()) return
 
         val idempotenceKey = "renew-${user.id}-${DAY_FORMAT.format(java.util.Date())}"
-        val renewal = Subscription.createNew(
-            siteUserId = user.id,
-            scope = Subscription.SCOPE_SITE,
-            idSong = null,
-            tariffId = latest.tariffId,
-            periodDays = latest.periodDays,
-            basePrice = latest.finalPrice,
-            discount = 0.0,
-            finalPrice = latest.finalPrice,
-            promoApplied = "",
-            autoRenew = true,
-            database = db, storageService = storageService, storageApiClient = storageApiClient,
-        ) ?: return
+        val renewal =
+            Subscription.createNew(
+                siteUserId = user.id,
+                scope = Subscription.SCOPE_SITE,
+                idSong = null,
+                tariffId = latest.tariffId,
+                periodDays = latest.periodDays,
+                basePrice = latest.finalPrice,
+                discount = 0.0,
+                finalPrice = latest.finalPrice,
+                promoApplied = "",
+                autoRenew = true,
+                database = db,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            ) ?: return
         renewal.yookassaPaymentMethodId = latest.yookassaPaymentMethodId
         renewal.status = Subscription.STATUS_PENDING
         renewal.save()
@@ -89,7 +94,9 @@ class SubscriptionRenewalScheduler(
         val currentUntil = user.sitePremiumUntil?.time?.takeIf { it > now } ?: now
         user.sitePremiumUntil = Timestamp(currentUntil + renewal.periodDays * 24L * 3600_000L)
         user.save()
-        println("SubscriptionRenewalScheduler: автопродление успешно для site_user_id=${user.id}, новый sitePremiumUntil=${user.sitePremiumUntil}")
+        println(
+            "SubscriptionRenewalScheduler: автопродление успешно для site_user_id=${user.id}, новый sitePremiumUntil=${user.sitePremiumUntil}",
+        )
     }
 
     companion object {

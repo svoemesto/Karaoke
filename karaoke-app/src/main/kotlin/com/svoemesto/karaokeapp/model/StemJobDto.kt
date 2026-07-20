@@ -21,8 +21,8 @@ data class StemJobDto(
     val expiresAt: Timestamp? = null,
     val deleteRequested: Boolean = false,
     val availableStems: List<String> = StemJobMode.stemNames(mode),
-) : Serializable, KaraokeDbTableDto {
-
+) : Serializable,
+    KaraokeDbTableDto {
     override fun fromDto(database: KaraokeConnection): StemJob {
         val entity = StemJob(database = database)
         entity.id = id

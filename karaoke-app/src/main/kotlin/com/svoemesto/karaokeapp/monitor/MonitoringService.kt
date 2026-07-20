@@ -21,7 +21,6 @@ import java.util.concurrent.ConcurrentHashMap
  */
 @Component
 class MonitoringService {
-
     private val objectMapper = ObjectMapper()
 
     // key -> актуальный алерт этой проверки (перезаписывается целиком на каждом tick()).
@@ -40,19 +39,23 @@ class MonitoringService {
 
     @Scheduled(fixedRate = 60_000L, initialDelay = 20_000L)
     fun tick() {
-        val alerts = MonitorRegistry.checks.flatMap { check ->
-            try {
-                check.run(ctx())
-            } catch (e: Exception) {
-                listOf(checkFailureAlert(check, e))
+        val alerts =
+            MonitorRegistry.checks.flatMap { check ->
+                try {
+                    check.run(ctx())
+                } catch (e: Exception) {
+                    listOf(checkFailureAlert(check, e))
+                }
             }
-        }
         snapshot = alerts.associateBy { it.key }
         pruneDismissed()
         broadcast()
     }
 
-    private fun checkFailureAlert(check: MonitorCheck, e: Exception): MonitorAlert {
+    private fun checkFailureAlert(
+        check: MonitorCheck,
+        e: Exception,
+    ): MonitorAlert {
         val checkName = check::class.simpleName ?: check.javaClass.simpleName
         println("[MonitoringService] проверка $checkName упала: ${e.message}")
         return MonitorAlert(
@@ -60,7 +63,7 @@ class MonitoringService {
             severity = MonitorSeverity.WARNING,
             title = "Проверка мониторинга завершилась ошибкой",
             body = "Проверка «$checkName» упала с исключением: ${e.message}",
-            category = "Мониторинг"
+            category = "Мониторинг",
         )
     }
 

@@ -11,17 +11,17 @@
           <custom-confirm v-if="isCustomConfirmVisible" :params="customConfirmParams" @close="closeCustomConfirm" />
           <FileExplorerModal
               v-if="isFileExplorerVisible"
-              @close="closeFileExplorer"
               :path="smartCopyPath"
               start="/clouds/Yandex.Disk/Karaoke"
               directory
+              @close="closeFileExplorer"
               @getpath="getPath"
           />
           <div class="scm-root-wrapper">
 
             <div class="scm-smartcopy-row">
               <div class="scm-row-label">
-                <div v-text="'Версия:'"></div>
+                <div v-text="'Версия:'"/>
               </div>
               <div class="scm-row-input">
                 <button class="scm-group-button" :class="smartCopySongVersionButtonClass('ALL')" type="button" value="ALL" @click="setSmartCopySongVersion('ALL')">Все версии</button>
@@ -34,7 +34,7 @@
 
             <div class="scm-smartcopy-row">
               <div class="scm-row-label">
-                <div v-text="'Качество:'"></div>
+                <div v-text="'Качество:'"/>
               </div>
               <div class="scm-row-input">
                 <button class="scm-group-button" :class="smartCopySongResolutionButtonClass('1080p')" type="button" value="1080p" @click="setSmartCopySongResolution('1080p')">1080p 60fps</button>
@@ -44,7 +44,7 @@
 
             <div class="scm-smartcopy-row">
               <div class="scm-row-label">
-                <div v-text="'Папки:'"></div>
+                <div v-text="'Папки:'"/>
               </div>
               <div class="scm-row-input">
                 <button class="scm-group-button" :class="smartCopyCreateSubfoldersAuthorsButtonClass(false)" type="button" value="false" @click="setSmartCopyCreateSubfoldersAuthors(false)">Не создавать</button>
@@ -54,22 +54,22 @@
 
             <div class="scm-smartcopy-row">
               <div class="scm-row-label">
-                <div v-text="'Шаблон:'"></div>
+                <div v-text="'Шаблон:'"/>
               </div>
               <div class="scm-row-input">
-                <input class="scm-input-field" v-model="smartCopyRenameTemplate">
+                <input v-model="smartCopyRenameTemplate" class="scm-input-field"/>
               </div>
-              <button :disabled="!smartCopyRenameTemplate" class="scm-button-clear-field" @click.left="smartCopyRenameTemplate=''" v-text="'X'"></button>
+              <button :disabled="!smartCopyRenameTemplate" class="scm-button-clear-field" @click.left="smartCopyRenameTemplate=''" v-text="'X'"/>
             </div>
 
             <div class="scm-smartcopy-row">
               <div class="scm-row-label">
-                <div v-text="'Путь:'"></div>
+                <div v-text="'Путь:'"/>
               </div>
               <div class="scm-row-input">
-                <input class="scm-input-field" v-model="smartCopyPath" @dblclick="isFileExplorerVisible=true">
+                <input v-model="smartCopyPath" class="scm-input-field" @dblclick="isFileExplorerVisible=true"/>
               </div>
-              <button :disabled="!smartCopyPath" class="scm-button-clear-field" @click.left="smartCopyPath=''" v-text="'X'"></button>
+              <button :disabled="!smartCopyPath" class="scm-button-clear-field" @click.left="smartCopyPath=''" v-text="'X'"/>
             </div>
 
           </div>

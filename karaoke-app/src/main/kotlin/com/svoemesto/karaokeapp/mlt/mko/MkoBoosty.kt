@@ -5,7 +5,13 @@ import com.svoemesto.karaokeapp.mlt.MltProp
 import com.svoemesto.karaokeapp.model.*
 import com.svoemesto.karaokeapp.xmldata
 
-data class MkoBoosty(val mltProp: MltProp, val type: ProducerType, val voiceId: Int = 0, val childId: Int = 0, val elementId: Int = 0): MltKaraokeObject {
+data class MkoBoosty(
+    val mltProp: MltProp,
+    val type: ProducerType,
+    val voiceId: Int = 0,
+    val childId: Int = 0,
+    val elementId: Int = 0,
+) : MltKaraokeObject {
     val mltGenerator = MltGenerator(mltProp, type)
 
     private val frameWidthPx = mltProp.getFrameWidthPx()
@@ -18,16 +24,18 @@ data class MkoBoosty(val mltProp: MltProp, val type: ProducerType, val voiceId: 
     private val boostyFadeOutTimecode = mltProp.getBoostyFadeOutTimecode()
     private val mkoBoostyBase64 = mltProp.getBase64(ProducerType.BOOSTY)
 
-    override fun producer(): MltNode = mltGenerator
-        .producer(
-            props = MltNodeBuilder(mltGenerator.defaultProducerPropertiesForMltService("kdenlivetitle"))
-                .propertyName("length", boostyLengthMs)
-                .propertyName("kdenlive:duration", boostyEndTimecode)
-                .propertyName("xmldata", template().toString().xmldata())
-                .propertyName("meta.media.width", frameWidthPx)
-                .propertyName("meta.media.height", frameHeightPx)
-                .build()
-        )
+    override fun producer(): MltNode =
+        mltGenerator
+            .producer(
+                props =
+                    MltNodeBuilder(mltGenerator.defaultProducerPropertiesForMltService("kdenlivetitle"))
+                        .propertyName("length", boostyLengthMs)
+                        .propertyName("kdenlive:duration", boostyEndTimecode)
+                        .propertyName("xmldata", template().toString().xmldata())
+                        .propertyName("meta.media.width", frameWidthPx)
+                        .propertyName("meta.media.height", frameHeightPx)
+                        .build(),
+            )
 
     override fun filePlaylist(): MltNode {
         val result = mltGenerator.filePlaylist()
@@ -39,11 +47,12 @@ data class MkoBoosty(val mltProp: MltProp, val type: ProducerType, val voiceId: 
                 mltGenerator.entry(
                     timecodeIn = boostyStartTimecode,
                     timecodeOut = boostyEndTimecode,
-                    nodes = MltNodeBuilder()
-                        .propertyName("kdenlive:id", "filePlaylist${mltGenerator.id}")
-                        .filterQtblend(mltGenerator.nameFilterQtblend, mainFilePlaylistTransformProperties())
-                        .build()
-                )
+                    nodes =
+                        MltNodeBuilder()
+                            .propertyName("kdenlive:id", "filePlaylist${mltGenerator.id}")
+                            .filterQtblend(mltGenerator.nameFilterQtblend, mainFilePlaylistTransformProperties())
+                            .build(),
+                ),
             )
         }
         return result
@@ -60,45 +69,50 @@ data class MkoBoosty(val mltProp: MltProp, val type: ProducerType, val voiceId: 
 
     override fun trackPlaylist(): MltNode = mltGenerator.trackPlaylist()
 
-    override fun tractor(): MltNode = mltGenerator
-        .tractor(
-            timecodeIn = boostyStartTimecode,
-            timecodeOut = boostyEndTimecode
-        )
-
-    override fun template(): MltNode = MltNode(
-        name = "kdenlivetitle",
-        fields = PropertiesMltNodeBuilder()
-            .duration("0")
-            .lcNumeric("C")
-            .width("$frameWidthPx")
-            .height("$frameHeightPx")
-            .`out`("0")
-            .build(),
-        body = MltNodeBuilder()
-            .item(
-                fields = PropertiesMltNodeBuilder()
-                    .type("QGraphicsPixmapItem")
-                    .zIndex("6")
-                    .build(),
-                body = MltNodeBuilder()
-                    .position(
-                        fields = PropertiesMltNodeBuilder()
-                            .x("0")
-                            .y("0")
-                            .build(),
-                        body = MltNodeBuilder()
-                            .transform(body = "1,0,0,0,1,0,0,0,1")
-                            .build()
-                    )
-                    .content(
-                        fields = PropertiesMltNodeBuilder()
-                            .base64(mkoBoostyBase64)
-                            .build()
-                    )
-                    .build()
+    override fun tractor(): MltNode =
+        mltGenerator
+            .tractor(
+                timecodeIn = boostyStartTimecode,
+                timecodeOut = boostyEndTimecode,
             )
-            .build()
-    )
 
+    override fun template(): MltNode =
+        MltNode(
+            name = "kdenlivetitle",
+            fields =
+                PropertiesMltNodeBuilder()
+                    .duration("0")
+                    .lcNumeric("C")
+                    .width("$frameWidthPx")
+                    .height("$frameHeightPx")
+                    .`out`("0")
+                    .build(),
+            body =
+                MltNodeBuilder()
+                    .item(
+                        fields =
+                            PropertiesMltNodeBuilder()
+                                .type("QGraphicsPixmapItem")
+                                .zIndex("6")
+                                .build(),
+                        body =
+                            MltNodeBuilder()
+                                .position(
+                                    fields =
+                                        PropertiesMltNodeBuilder()
+                                            .x("0")
+                                            .y("0")
+                                            .build(),
+                                    body =
+                                        MltNodeBuilder()
+                                            .transform(body = "1,0,0,0,1,0,0,0,1")
+                                            .build(),
+                                ).content(
+                                    fields =
+                                        PropertiesMltNodeBuilder()
+                                            .base64(mkoBoostyBase64)
+                                            .build(),
+                                ).build(),
+                    ).build(),
+        )
 }

@@ -1,7 +1,6 @@
 package com.svoemesto.karaokeweb.controllers
 
 import com.svoemesto.karaokeapp.model.SiteChatMessage
-import com.svoemesto.karaokeapp.model.SiteChatMessageDto
 import com.svoemesto.karaokeapp.model.SiteUser
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.StorageApiClient
@@ -28,9 +27,7 @@ class PublicChatController(
     private val storageService: KaraokeStorageService,
     private val storageApiClient: StorageApiClient,
 ) {
-
-    private fun currentUser(request: HttpServletRequest): SiteUser =
-        request.getAttribute(SiteAuthInterceptor.SITE_USER_ATTR) as SiteUser
+    private fun currentUser(request: HttpServletRequest): SiteUser = request.getAttribute(SiteAuthInterceptor.SITE_USER_ATTR) as SiteUser
 
     private fun premiumRequired(): ResponseEntity<Any> =
         ResponseEntity.status(HttpStatus.FORBIDDEN).body(mapOf("error" to "premium_required"))
@@ -58,14 +55,15 @@ class PublicChatController(
         if (body.isBlank()) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(mapOf("error" to "empty_body"))
         }
-        val created = SiteChatMessage.createNew(
-            siteUserId = user.id,
-            isFromAuthor = false,
-            body = body,
-            database = WORKING_DATABASE,
-            storageService = storageService,
-            storageApiClient = storageApiClient,
-        )
+        val created =
+            SiteChatMessage.createNew(
+                siteUserId = user.id,
+                isFromAuthor = false,
+                body = body,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
         return ResponseEntity.ok(created?.toDTO())
     }
 
@@ -76,7 +74,11 @@ class PublicChatController(
     fun unreadCount(request: HttpServletRequest): Map<String, Int> {
         val user = currentUser(request)
         if (!user.isEffectivePremium) return mapOf("count" to 0)
-        val count = SiteChatMessage.loadByUser(user.id, WORKING_DATABASE, storageService, storageApiClient).count { it.isFromAuthor && !it.isRead }
+        val count =
+            SiteChatMessage.loadByUser(user.id, WORKING_DATABASE, storageService, storageApiClient).count {
+                it.isFromAuthor &&
+                    !it.isRead
+            }
         return mapOf("count" to count)
     }
 }

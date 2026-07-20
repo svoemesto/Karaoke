@@ -10,6 +10,24 @@
 
 Karaoke (svoemesto) — self-pipeline для автоматического создания караоке-видео. Kotlin/Spring Boot бэкенд + Vue 3 фронтенд.
 
+## Стандарты оформления кода
+
+Перед любыми правками в `karaoke-app`/`karaoke-web`/`webvue3`/`karaoke-public`/
+`deploy/` — прочитать [**`CONTRIBUTING.md`**](./CONTRIBUTING.md). Там
+собраны MUST/SHOULD-правила для Kotlin, Vue/TS, SQL, Markdown, Shell, Docker,
+включая `redirectErrorStream(true)` для `ProcessBuilder`, JSON-ключи без
+`is`-префикса, nullable-колонки → nullable-поля, `table-layout: fixed` с
+явной `width`, и т.п.
+
+Per-feature описание каждой из 9 ключевых подсистем — в
+[**`docs/features/`**](./docs/features/) (см. [README](./docs/features/README.md)).
+При правке кода одной из них — обновлять соответствующий per-feature
+документ в том же PR (FR-009).
+
+Непреложные принципы проекта (NON-NEGOTIABLE) — в
+[**`.specify/memory/constitution.md`**](./.specify/memory/constitution.md).
+
+
 ## Тип песни (song_type)
 
 Песня бывает трёх типов: обычная (вокал + музыка), инструментал (только музыка без вокала), стихи (только вокал без музыки).

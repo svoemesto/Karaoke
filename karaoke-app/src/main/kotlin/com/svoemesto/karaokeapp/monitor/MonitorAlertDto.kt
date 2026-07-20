@@ -17,5 +17,5 @@ data class MonitorAlertDto(
     val recommendations: String? = null,
     val canResolve: Boolean = false,
     val contentHash: String = "",
-    val read: Boolean = false
+    val read: Boolean = false,
 ) : Serializable

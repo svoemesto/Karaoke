@@ -12,16 +12,16 @@ import com.svoemesto.karaokeapp.mlt.MltObjectAlignmentX
 import com.svoemesto.karaokeapp.mlt.MltObjectAlignmentY
 import com.svoemesto.karaokeapp.mlt.MltObjectType
 import com.svoemesto.karaokeapp.model.*
-import com.svoemesto.karaokeapp.sync.SyncDirection
-import com.svoemesto.karaokeapp.sync.SyncOperation
-import com.svoemesto.karaokeapp.sync.SyncRegistry
-import com.svoemesto.karaokeapp.sync.SyncTarget
-import com.svoemesto.karaokeapp.sync.isOperationAllowed
 import com.svoemesto.karaokeapp.services.KSS_APP
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.SAC_APP
 import com.svoemesto.karaokeapp.services.SNS
 import com.svoemesto.karaokeapp.services.StorageApiClient
+import com.svoemesto.karaokeapp.sync.SyncDirection
+import com.svoemesto.karaokeapp.sync.SyncOperation
+import com.svoemesto.karaokeapp.sync.SyncRegistry
+import com.svoemesto.karaokeapp.sync.SyncTarget
+import com.svoemesto.karaokeapp.sync.isOperationAllowed
 import com.svoemesto.karaokeapp.textfiledictionary.YoWordsDictionary
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
@@ -67,121 +67,82 @@ import kotlin.math.roundToInt
 import kotlin.random.Random
 import kotlin.use
 
-// Повторный поиск родителей и аудио-родителей: для КАЖДОЙ песни с root_id = 0 И id_status < 3
-// (ещё не привязана ни к куратору-родителю, ни к автоматическому, и ещё в начале пайплайна)
-// прогоняет ДВА независимых механизма подряд, в два прохода по всей выборке:
-//   1) "родитель" (findParentCandidateId + applyDuplicateOriginal) - точное совпадение
-//      нормализованного названия среди ВСЕХ песен; root_id/текст/статус переписываются, только
-//      если у текущей песни ещё нет своего текста (не затираем вручную вычитанное);
-//   2) "аудио-родитель" (findAudioParentByWaveform) - акустическая сверка, независимое поле
-//      audio_parent_id, текст/статус не трогает.
-// Проход 1 выполняется целиком по всем песням ДО начала прохода 2: к этому моменту у части песен
-// уже проставлен root_id, и findFamilySongIds (использует findAudioParentByWaveform) видит более
-// полную "семью" - точность подбора аудио-родителя от этого выше, чем при чередовании обоих
-// механизмов по одной песне за раз.
-// Разовая/повторяемая тяжёлая операция для админа (кнопка "Custom Function" на главной странице
-// админки) - т.к. акустическая сверка (ffmpeg-декод + кросс-корреляция) на тысячах песен может
-// идти долго, вся работа уходит в фоновый поток; функция возвращает управление сразу же, итоговая
-// сводка приходит отдельным SSE-тостом по завершении (тот же паттерн, что и у autoAssignOriginalAll).
+// Первичная "индексация" базы: для КАЖДОЙ песни в БД (без фильтра по статусу/семье, в отличие от
+// autoAssignOriginalAll) запускает поиск аудио-родителя (findAudioParentByWaveform) и сохраняет
+// результат. Разовая тяжёлая операция для админа (кнопка "Выполнить Custom Function" на главной
+// странице админки) - т.к. акустическая сверка (ffmpeg-декод + кросс-корреляция) на тысячах песен
+// может идти долго, вся работа уходит в фоновый поток; функция возвращает управление сразу же,
+// итоговая сводка приходит отдельным SSE-тостом по завершении (тот же паттерн, что и у
+// autoAssignOriginalAll).
 fun customFunction(
     storageService: KaraokeStorageService,
     lyricsFinderService: LyricsFinderService,
-    storageApiClient: StorageApiClient
+    storageApiClient: StorageApiClient,
 ): String {
     thread {
         val ids = mutableListOf<Long>()
         try {
             val connection = WORKING_DATABASE.getConnection()
             if (connection != null) {
-                val ps = connection.prepareStatement("SELECT id FROM tbl_settings WHERE root_id = 0 AND id_status < 3 ORDER BY id")
+                val ps = connection.prepareStatement("SELECT id FROM tbl_settings WHERE id > 14383 ORDER BY id")
                 val rs = ps.executeQuery()
                 while (rs.next()) ids.add(rs.getLong("id"))
-                rs.close(); ps.close()
+                rs.close()
+                ps.close()
             }
         } catch (e: Exception) {
-            println("Поиск родителей и аудио-родителей: ошибка выборки песен — ${e.message}")
+            println("Индексация аудио-родителей: ошибка выборки песен — ${e.message}")
         }
 
-        println("Поиск родителей и аудио-родителей: найдено песен: ${ids.size}")
-
-        // --- Фаза 1: родители (по всей выборке, ДО фазы 2) -----------------------------------
-        var parentMatched = 0
-        var parentSkippedHasText = 0
+        println("Индексация аудио-родителей: найдено песен: ${ids.size}")
+        var matched = 0
         ids.forEachIndexed { index, id ->
             try {
-                val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+                val settings =
+                    Settings.loadFromDbById(
+                        id = id,
+                        database = WORKING_DATABASE,
+                        storageService = storageService,
+                        storageApiClient = storageApiClient,
+                    )
                 if (settings == null) {
-                    println("  [родитель ${index + 1}/${ids.size}] id=$id — пропущено (не найдено)")
-                    return@forEachIndexed
-                }
-                val candidateId = findParentCandidateId(settings, WORKING_DATABASE)
-                when {
-                    candidateId == null -> {
-                        println("  [родитель ${index + 1}/${ids.size}] ${songLogLabel(settings)} — родитель не найден")
-                    }
-                    settings.sourceText.isNotBlank() -> {
-                        parentSkippedHasText++
-                        println("  [родитель ${index + 1}/${ids.size}] ${songLogLabel(settings)} — родитель найден (id=$candidateId), но текст уже есть — пропущено")
-                    }
-                    else -> {
-                        val original = Settings.loadFromDbById(id = candidateId, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
-                        if (original == null) {
-                            println("  [родитель ${index + 1}/${ids.size}] ${songLogLabel(settings)} — кандидат id=$candidateId не найден при загрузке")
-                        } else {
-                            if (original.sourceText.isNotBlank()) {
-                                applyDuplicateOriginal(settings, original)
-                            } else {
-                                settings.rootId = original.id
-                                settings.saveToDb()
-                            }
-                            parentMatched++
-                            println("  [родитель ${index + 1}/${ids.size}] ${songLogLabel(settings)} — привязан родитель [${songLogLabel(original)}]")
-                        }
-                    }
-                }
-            } catch (e: Exception) {
-                println("  [родитель ${index + 1}/${ids.size}] id=$id — ошибка: ${e.message}")
-            }
-        }
-        println("Поиск родителей: завершено. Обработано ${ids.size}, назначено $parentMatched, найдено но пропущено (текст уже есть) $parentSkippedHasText")
-
-        // --- Фаза 2: аудио-родители (по той же выборке, после фазы 1) ------------------------
-        var audioMatched = 0
-        ids.forEachIndexed { index, id ->
-            try {
-                val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
-                if (settings == null) {
-                    println("  [аудио-родитель ${index + 1}/${ids.size}] id=$id — пропущено (не найдено)")
+                    println("  [${index + 1}/${ids.size}] id=$id — пропущено (не найдено)")
                     return@forEachIndexed
                 }
                 val result = findAudioParentByWaveform(settings, WORKING_DATABASE, storageService, storageApiClient)
-                if (result.matched) audioMatched++
-                println("  [аудио-родитель ${index + 1}/${ids.size}] ${songLogLabel(settings)} — ${result.reason}")
+                if (result.matched) matched++
+                println("  [${index + 1}/${ids.size}] ${songLogLabel(settings)} — ${result.reason}")
             } catch (e: Exception) {
-                println("  [аудио-родитель ${index + 1}/${ids.size}] id=$id — ошибка: ${e.message}")
+                println("  [${index + 1}/${ids.size}] id=$id — ошибка: ${e.message}")
             }
         }
-        println("Поиск аудио-родителей: завершено. Обработано ${ids.size}, назначено $audioMatched")
+        val summary = "Обработано ${ids.size}, аудио-родитель назначен $matched, без пары ${ids.size - matched}"
+        println("Индексация аудио-родителей: завершено. $summary")
 
-        val summary = "Обработано ${ids.size}, родитель назначен $parentMatched (найдено, но пропущено из-за текста: $parentSkippedHasText), аудио-родитель назначен $audioMatched"
-        println("Поиск родителей и аудио-родителей: завершено. $summary")
-
-        SNS.send(SseNotification.message(Message(
-            type = "info",
-            head = "Поиск родителей и аудио-родителей",
-            body = summary
-        )))
+        SNS.send(
+            SseNotification.message(
+                Message(
+                    type = "info",
+                    head = "Индексация аудио-родителей",
+                    body = summary,
+                ),
+            ),
+        )
     }
-    return "Поиск родителей и аудио-родителей запущен в фоне"
+    return "Индексация аудио-родителей запущена в фоне"
 }
 
-fun fillFormattedFields(storageService: KaraokeStorageService, storageApiClient: StorageApiClient) {
-    val listSettings = Settings.loadListFromDb(
-        database = WORKING_DATABASE,
-        storageService = storageService,
-        storageApiClient = storageApiClient,
-        withoutMarkersAndText = false
-    )
+fun fillFormattedFields(
+    storageService: KaraokeStorageService,
+    storageApiClient: StorageApiClient,
+) {
+    val listSettings =
+        Settings.loadListFromDb(
+            database = WORKING_DATABASE,
+            storageService = storageService,
+            storageApiClient = storageApiClient,
+            withoutMarkersAndText = false,
+        )
 
     var lastPrintedPercent = -1
     listSettings.forEachIndexed { index, settings ->
@@ -195,20 +156,22 @@ fun fillFormattedFields(storageService: KaraokeStorageService, storageApiClient:
         settings.formattedTextTabs = settings.getFormattedNotes()
         settings.formattedTextChords = settings.getFormattedChords()
         settings.saveToDb()
-
     }
     println("fillFormattedFields 100% - DONE")
-
 }
 
-fun checkHealth(storageService: KaraokeStorageService, storageApiClient: StorageApiClient, executeActions: Boolean = false) {
-
-    val listSettings = Settings.loadListFromDb(
-        database = WORKING_DATABASE,
-        storageService = storageService,
-        storageApiClient = storageApiClient,
-        withoutMarkersAndText = false
-    )
+fun checkHealth(
+    storageService: KaraokeStorageService,
+    storageApiClient: StorageApiClient,
+    executeActions: Boolean = false,
+) {
+    val listSettings =
+        Settings.loadListFromDb(
+            database = WORKING_DATABASE,
+            storageService = storageService,
+            storageApiClient = storageApiClient,
+            withoutMarkersAndText = false,
+        )
     var lastPrintedPercent = -1
     listSettings.forEachIndexed { index, settings ->
         val percent = (((index / listSettings.size.toDouble()) * 100).toInt() / 10) * 10
@@ -241,7 +204,7 @@ fun checkHealth(storageService: KaraokeStorageService, storageApiClient: Storage
 @Suppress("unused")
 fun syncRemotePicturesInStorage(
     storageService: KaraokeStorageService,
-    storageApiClient: StorageApiClient
+    storageApiClient: StorageApiClient,
 ) {
     val bucketName = "karaoke"
 
@@ -254,19 +217,19 @@ fun syncRemotePicturesInStorage(
 
 //        println(fileInLocal)
 
-
-
         println("Ищем файл '${fileInLocal.fileName}' в удалённом хранилище...")
-        val monoCheckIfExists = storageApiClient.checkIfExists(
-            bucketName = fileInLocal.bucketName,
-            fileName = fileInLocal.fileName
-        )
-        val checkIfExists = try {
-            monoCheckIfExists.block()
-        } catch (e: Exception) {
-            println("Ошибка при проверке наличия файла в удаленном хранилище: ${e.message}")
-            null
-        }
+        val monoCheckIfExists =
+            storageApiClient.checkIfExists(
+                bucketName = fileInLocal.bucketName,
+                fileName = fileInLocal.fileName,
+            )
+        val checkIfExists =
+            try {
+                monoCheckIfExists.block()
+            } catch (e: Exception) {
+                println("Ошибка при проверке наличия файла в удаленном хранилище: ${e.message}")
+                null
+            }
         println("Результат проверки наличия файла в удаленном хранилище: $checkIfExists")
         val fileExists = checkIfExists?.get("exists") ?: false
 
@@ -275,94 +238,120 @@ fun syncRemotePicturesInStorage(
         if (fileExists) {
             println("Файл '${fileInLocal.fileName}' найден в удалённом хранилище.")
 
-            val monoGetFileInfo = storageApiClient.getFileInfo(
-                bucketName = fileInLocal.bucketName,
-                fileName = fileInLocal.fileName
-            )
-            val fileInfo = try {
-                monoGetFileInfo.block()
-            } catch (e: Exception) {
-                println("Ошибка при получении файла из удаленного хранилища: ${e.message}")
-                null
-            }
+            val monoGetFileInfo =
+                storageApiClient.getFileInfo(
+                    bucketName = fileInLocal.bucketName,
+                    fileName = fileInLocal.fileName,
+                )
+            val fileInfo =
+                try {
+                    monoGetFileInfo.block()
+                } catch (e: Exception) {
+                    println("Ошибка при получении файла из удаленного хранилища: ${e.message}")
+                    null
+                }
             println("Результат получения файла из удаленного хранилища: $fileInfo")
 
             if (fileInfo?.size == fileInLocal.size) {
                 println("Размер файла в удалённом хранилище совпадает с размером файла в локальном хранилище. Пропускаем.")
             } else {
-                println("Размер файла в удалённом хранилище '${fileInfo?.size}', в локальном хранилище '${fileInLocal.size}'. Удаляем и заново загружаем.")
+                println(
+                    "Размер файла в удалённом хранилище '${fileInfo?.size}', в локальном хранилище '${fileInLocal.size}'. Удаляем и заново загружаем.",
+                )
                 needToDelete = true
                 needToAdd = true
             }
-
         } else {
             println("Файл '${fileInLocal.fileName}' не найден в удалённом хранилище. Загружаем.")
             needToAdd = true
         }
 
         if (needToDelete) {
-            val monoDelete = storageApiClient.deleteFile(
-                bucketName = fileInLocal.bucketName,
-                fileName = fileInLocal.fileName
-            )
-            val delete = try {
-                monoDelete.block()
-            } catch (_: Exception) { null }
+            val monoDelete =
+                storageApiClient.deleteFile(
+                    bucketName = fileInLocal.bucketName,
+                    fileName = fileInLocal.fileName,
+                )
+            val delete =
+                try {
+                    monoDelete.block()
+                } catch (_: Exception) {
+                    null
+                }
             println("Результат удаления файла: $delete")
         }
 
         if (needToAdd) {
-            val fileInputStream = storageService.downloadFile(
-                bucketName = fileInLocal.bucketName,
-                fileName = fileInLocal.fileName
-            )
+            val fileInputStream =
+                storageService.downloadFile(
+                    bucketName = fileInLocal.bucketName,
+                    fileName = fileInLocal.fileName,
+                )
 
-            val monoUpload = storageApiClient.uploadFile(
-                bucketName = fileInLocal.bucketName,
-                fileName = fileInLocal.fileName,
-                fileContent = fileInputStream.readAllBytes()
-            )
+            val monoUpload =
+                storageApiClient.uploadFile(
+                    bucketName = fileInLocal.bucketName,
+                    fileName = fileInLocal.fileName,
+                    fileContent = fileInputStream.readAllBytes(),
+                )
 
-            val upload = try {
-                monoUpload.block()
-            } catch (e: Exception) {
-                println(e.message)
-                null }
+            val upload =
+                try {
+                    monoUpload.block()
+                } catch (e: Exception) {
+                    println(e.message)
+                    null
+                }
             println("Результат загрузки файла: $upload")
         }
         println()
-
     }
-
-
 }
 
 @Suppress("unused")
 fun uploadPicturesToStorage() {
-    Pictures.loadList(whereArgs = emptyMap(), database = WORKING_DATABASE, storageService = KSS_APP, storageApiClient = SAC_APP, ignoreUseInList = false).forEach { picture ->
-        if (picture.storageFileExists()) {
-            println("Картинка '${picture.name}' уже есть в хранилище, пропускаем.")
-        } else {
-            val pathToFileOnDisk = "${picture.pathToFolder}/${picture.fileName}"
-            if (File(pathToFileOnDisk).exists()) {
-                picture.storageUploadFile(pathToFileOnDisk)
-                println("Картинка '${picture.name}': загружаем в хранилище с диска")
+    Pictures
+        .loadList(
+            whereArgs = emptyMap(),
+            database = WORKING_DATABASE,
+            storageService = KSS_APP,
+            storageApiClient = SAC_APP,
+            ignoreUseInList = false,
+        ).forEach { picture ->
+            if (picture.storageFileExists()) {
+                println("Картинка '${picture.name}' уже есть в хранилище, пропускаем.")
             } else {
-                Pictures.getPictureById(id = picture.id, database = WORKING_DATABASE, storageService = KSS_APP, storageApiClient = SAC_APP)?.let { picWithFull ->
-                    val pictureBites = Base64.getDecoder().decode(picWithFull.full)
-                    val bais = ByteArrayInputStream(pictureBites)
-                    picWithFull.storageUploadFile(file = bais, size = bais.available().toLong())
-                    println("Картинка '${picWithFull.name}': загружаем в хранилище из БД")
+                val pathToFileOnDisk = "${picture.pathToFolder}/${picture.fileName}"
+                if (File(pathToFileOnDisk).exists()) {
+                    picture.storageUploadFile(pathToFileOnDisk)
+                    println("Картинка '${picture.name}': загружаем в хранилище с диска")
+                } else {
+                    Pictures
+                        .getPictureById(
+                            id = picture.id,
+                            database = WORKING_DATABASE,
+                            storageService = KSS_APP,
+                            storageApiClient = SAC_APP,
+                        )?.let { picWithFull ->
+                            val pictureBites = Base64.getDecoder().decode(picWithFull.full)
+                            val bais = ByteArrayInputStream(pictureBites)
+                            picWithFull.storageUploadFile(file = bais, size = bais.available().toLong())
+                            println("Картинка '${picWithFull.name}': загружаем в хранилище из БД")
+                        }
                 }
             }
-
         }
-    }
 }
 
 fun setSettingsToSyncRemoteTable(id: Long) {
-
-    val sqlToInsert = Settings.loadFromDbById(id = id, database = Connection.local(), storageService = KSS_APP, storageApiClient = SAC_APP)?.getSqlToInsert(sync = true)
+    val sqlToInsert =
+        Settings
+            .loadFromDbById(
+                id = id,
+                database = Connection.local(),
+                storageService = KSS_APP,
+                storageApiClient = SAC_APP,
+            )?.getSqlToInsert(sync = true)
     if (sqlToInsert != null) {
         Settings.deleteFromDb(id = id, database = Connection.remote(), sync = true)
         val connection = Connection.remote().getConnection()
@@ -374,11 +363,9 @@ fun setSettingsToSyncRemoteTable(id: Long) {
         ps.executeUpdate()
         ps.close()
     }
-
 }
 
 fun setSettingsToSyncRemoteTable(ids: List<Long>): List<String> {
-
     val listToCreate: MutableList<Map<String, Any>> = mutableListOf()
     val listToDelete: MutableList<Map<String, Any>> = mutableListOf()
     val listToCreateNames: MutableList<String> = mutableListOf()
@@ -389,9 +376,10 @@ fun setSettingsToSyncRemoteTable(ids: List<Long>): List<String> {
     ids.forEach { id ->
         val sqlToDelete = "DELETE FROM $tableName WHERE id = $id"
         val setStrEncrypted = Crypto.encrypt(sqlToDelete)
-        val values: Map<String, Any> = mapOf(
-            "sqlToDelete" to (setStrEncrypted ?: "")
-        )
+        val values: Map<String, Any> =
+            mapOf(
+                "sqlToDelete" to (setStrEncrypted ?: ""),
+            )
         listToDelete.add(values)
     }
 
@@ -402,9 +390,10 @@ fun setSettingsToSyncRemoteTable(ids: List<Long>): List<String> {
             println("Добавляем запись в $tableName: id=${itemFrom.id}, ${itemFrom.fileName}")
             val sqlToInsert = itemFrom.getSqlToInsert(sync = true)
             val setStrEncrypted = Crypto.encrypt(sqlToInsert)
-            val values: Map<String, Any> = mapOf(
-                "sqlToInsert" to (setStrEncrypted ?: "")
-            )
+            val values: Map<String, Any> =
+                mapOf(
+                    "sqlToInsert" to (setStrEncrypted ?: ""),
+                )
             listToCreate.add(values)
         }
     }
@@ -416,17 +405,20 @@ fun setSettingsToSyncRemoteTable(ids: List<Long>): List<String> {
 
         val chunked = listToDelete.chunked(chunkedSize)
         chunked.forEach { lstToDelete ->
-            val values: Map<String, Any> = mapOf(
+            val values: Map<String, Any> =
+                mapOf(
                     "dataCreate" to emptyList<Map<String, Any>>(),
                     "dataUpdate" to emptyList<Map<String, Any>>(),
                     "dataDelete" to lstToDelete,
-                    "word" to (Crypto.encrypt(Crypto.WORDS_TO_CHECK) ?: "")
-            )
+                    "word" to (Crypto.encrypt(Crypto.WORDS_TO_CHECK) ?: ""),
+                )
 
             val objectMapper = ObjectMapper()
             val requestBody: String = objectMapper.writeValueAsString(values)
             val client = HttpClient.newBuilder().build()
-            val request = HttpRequest.newBuilder()
+            val request =
+                HttpRequest
+                    .newBuilder()
                     .uri(URI.create("https://sm-karaoke.ru/changerecords"))
                     .POST(HttpRequest.BodyPublishers.ofString(requestBody))
                     .header("Content-Type", "application/json")
@@ -434,24 +426,26 @@ fun setSettingsToSyncRemoteTable(ids: List<Long>): List<String> {
             val response = client.send(request, HttpResponse.BodyHandlers.ofString())
             println(response.body())
         }
-
     }
 
     if (listToCreate.isNotEmpty()) {
         println("[${Timestamp.from(Instant.now())}] Запрос на сервер на добавление.")
         val chunked = listToCreate.chunked(chunkedSize)
         chunked.forEach { lstToCreate ->
-            val values: Map<String, Any> = mapOf(
+            val values: Map<String, Any> =
+                mapOf(
                     "dataCreate" to lstToCreate,
                     "dataUpdate" to emptyList<Map<String, Any>>(),
                     "dataDelete" to emptyList<Map<String, Any>>(),
-                    "word" to (Crypto.encrypt(Crypto.WORDS_TO_CHECK) ?: "")
-            )
+                    "word" to (Crypto.encrypt(Crypto.WORDS_TO_CHECK) ?: ""),
+                )
 
             val objectMapper = ObjectMapper()
             val requestBody: String = objectMapper.writeValueAsString(values)
             val client = HttpClient.newBuilder().build()
-            val request = HttpRequest.newBuilder()
+            val request =
+                HttpRequest
+                    .newBuilder()
                     .uri(URI.create("https://sm-karaoke.ru/changerecords"))
                     .POST(HttpRequest.BodyPublishers.ofString(requestBody))
                     .header("Content-Type", "application/json")
@@ -461,9 +455,7 @@ fun setSettingsToSyncRemoteTable(ids: List<Long>): List<String> {
         }
     }
 
-
     return listToCreateNames
-
 }
 
 /**
@@ -478,34 +470,81 @@ data class SyncResult(
     val moved: List<String>,
 )
 
-fun updateRemotePictureFromLocalDatabase(id: Long): SyncResult {
-    return updateDatabases(fromDatabase = Connection.local(), toDatabase = Connection.remote(), keys = setOf("pictures"), idFilter = mapOf("pictures" to id))
-}
-fun updateRemoteSettingFromLocalDatabase(id: Long): SyncResult {
-    return updateDatabases(fromDatabase = Connection.local(), toDatabase = Connection.remote(), keys = setOf("settings"), idFilter = mapOf("settings" to id))
-}
-fun updateRemoteDatabaseFromLocalDatabase(updateSettings: Boolean = true, updatePictures: Boolean = true, updateAuthors: Boolean = true): SyncResult {
-    return updateDatabases(fromDatabase = Connection.local(), toDatabase = Connection.remote(), keys = legacySyncKeys(updateSettings, updatePictures, updateAuthors))
-}
-fun updateLocalDatabaseFromRemoteDatabase(updateSettings: Boolean = true, updatePictures: Boolean = true, updateAuthors: Boolean = true): SyncResult {
-    return updateDatabases(fromDatabase = Connection.remote(), toDatabase = Connection.local(), keys = legacySyncKeys(updateSettings, updatePictures, updateAuthors))
-}
+fun updateRemotePictureFromLocalDatabase(id: Long): SyncResult =
+    updateDatabases(
+        fromDatabase = Connection.local(),
+        toDatabase = Connection.remote(),
+        keys = setOf("pictures"),
+        idFilter =
+            mapOf(
+                "pictures" to id,
+            ),
+    )
 
-private fun legacySyncKeys(updateSettings: Boolean, updatePictures: Boolean, updateAuthors: Boolean): Set<String> = buildSet {
-    if (updateSettings) add("settings")
-    if (updatePictures) add("pictures")
-    if (updateAuthors) add("authors")
-}
+fun updateRemoteSettingFromLocalDatabase(id: Long): SyncResult =
+    updateDatabases(
+        fromDatabase = Connection.local(),
+        toDatabase = Connection.remote(),
+        keys = setOf("settings"),
+        idFilter =
+            mapOf(
+                "settings" to id,
+            ),
+    )
+
+fun updateRemoteDatabaseFromLocalDatabase(
+    updateSettings: Boolean = true,
+    updatePictures: Boolean = true,
+    updateAuthors: Boolean = true,
+): SyncResult =
+    updateDatabases(
+        fromDatabase = Connection.local(),
+        toDatabase = Connection.remote(),
+        keys = legacySyncKeys(updateSettings, updatePictures, updateAuthors),
+    )
+
+fun updateLocalDatabaseFromRemoteDatabase(
+    updateSettings: Boolean = true,
+    updatePictures: Boolean = true,
+    updateAuthors: Boolean = true,
+): SyncResult =
+    updateDatabases(
+        fromDatabase = Connection.remote(),
+        toDatabase = Connection.local(),
+        keys = legacySyncKeys(updateSettings, updatePictures, updateAuthors),
+    )
+
+private fun legacySyncKeys(
+    updateSettings: Boolean,
+    updatePictures: Boolean,
+    updateAuthors: Boolean,
+): Set<String> =
+    buildSet {
+        if (updateSettings) add("settings")
+        if (updatePictures) add("pictures")
+        if (updateAuthors) add("authors")
+    }
 
 // Точка входа для нового generic UI синхронизации (webvue3, /api/sync/*) — один ключ SyncRegistry,
 // направление явно задаётся вызывающим кодом (ручная синхронизация конкретной таблицы или "1 клик").
-fun runEntitySync(key: String, direction: SyncDirection, id: Long? = null): SyncResult {
-    val (fromDatabase, toDatabase) = if (direction == SyncDirection.LOCAL_TO_SERVER) {
-        Connection.local() to Connection.remote()
-    } else {
-        Connection.remote() to Connection.local()
-    }
-    return updateDatabases(fromDatabase = fromDatabase, toDatabase = toDatabase, keys = setOf(key), idFilter = id?.let { mapOf(key to it) } ?: emptyMap())
+fun runEntitySync(
+    key: String,
+    direction: SyncDirection,
+    id: Long? = null,
+): SyncResult {
+    val (fromDatabase, toDatabase) =
+        if (direction == SyncDirection.LOCAL_TO_SERVER) {
+            Connection.local() to Connection.remote()
+        } else {
+            Connection.remote() to Connection.local()
+        }
+    return updateDatabases(
+        fromDatabase = fromDatabase,
+        toDatabase = toDatabase,
+        keys = setOf(key),
+        idFilter =
+            id?.let { mapOf(key to it) } ?: emptyMap(),
+    )
 }
 
 fun updateDatabases(
@@ -547,25 +586,25 @@ fun updateDatabases(
     for (target in SyncRegistry.all) {
         if (target.key !in keys) continue
         val whereText = idFilter[target.key]?.let { "WHERE id = $it" } ?: ""
-        val ok = collectSyncOps(
-            target = target,
-            fromDatabase = fromDatabase,
-            toDatabase = toDatabase,
-            whereText = whereText,
-            listToCreate = listToCreate,
-            listToUpdate = listToUpdate,
-            listToDelete = listToDelete,
-            listToDeleteFromSource = listToDeleteFromSource,
-            listToCreateNames = listToCreateNames,
-            listToUpdateNames = listToUpdateNames,
-            listToDeleteNames = listToDeleteNames,
-            listToMoveNames = listToMoveNames,
-        )
+        val ok =
+            collectSyncOps(
+                target = target,
+                fromDatabase = fromDatabase,
+                toDatabase = toDatabase,
+                whereText = whereText,
+                listToCreate = listToCreate,
+                listToUpdate = listToUpdate,
+                listToDelete = listToDelete,
+                listToDeleteFromSource = listToDeleteFromSource,
+                listToCreateNames = listToCreateNames,
+                listToUpdateNames = listToUpdateNames,
+                listToDeleteNames = listToDeleteNames,
+                listToMoveNames = listToMoveNames,
+            )
         if (!ok) return SyncResult(emptyList(), emptyList(), emptyList(), emptyList())
     }
 
     if (toDatabase.name == "SERVER") {
-
         // Полнострочные операции (INSERT/UPDATE) — по весу самой тяжёлой из синхронизируемых таблиц
         // (минимум per-table rowChunkSize), удаления — по общему большому DELETE_CHUNK_SIZE (payload
         // "DELETE ... WHERE id=X" крошечный). См. SyncTarget.rowChunkSize / SyncRegistry.DELETE_CHUNK_SIZE.
@@ -575,21 +614,24 @@ fun updateDatabases(
             println("[${Timestamp.from(Instant.now())}] Запрос на сервер на добавление.")
             val chunked = listToCreate.chunked(rowChunk)
             chunked.forEach { lstToCreate ->
-                val values: Map<String, Any> = mapOf(
-                    "dataCreate" to lstToCreate,
-                    "dataUpdate" to emptyList<Map<String, Any>>(),
-                    "dataDelete" to emptyList<Map<String, Any>>(),
-                    "word" to (Crypto.encrypt(Crypto.WORDS_TO_CHECK) ?: "")
-                )
+                val values: Map<String, Any> =
+                    mapOf(
+                        "dataCreate" to lstToCreate,
+                        "dataUpdate" to emptyList<Map<String, Any>>(),
+                        "dataDelete" to emptyList<Map<String, Any>>(),
+                        "word" to (Crypto.encrypt(Crypto.WORDS_TO_CHECK) ?: ""),
+                    )
 
                 val objectMapper = ObjectMapper()
                 val requestBody: String = objectMapper.writeValueAsString(values)
                 val client = HttpClient.newBuilder().build()
-                val request = HttpRequest.newBuilder()
-                    .uri(URI.create("https://sm-karaoke.ru/changerecords"))
-                    .POST(HttpRequest.BodyPublishers.ofString(requestBody))
-                    .header("Content-Type", "application/json")
-                    .build()
+                val request =
+                    HttpRequest
+                        .newBuilder()
+                        .uri(URI.create("https://sm-karaoke.ru/changerecords"))
+                        .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+                        .header("Content-Type", "application/json")
+                        .build()
                 val response = client.send(request, HttpResponse.BodyHandlers.ofString())
                 println(response.body())
             }
@@ -600,25 +642,27 @@ fun updateDatabases(
 
             val chunked = listToDelete.chunked(SyncRegistry.DELETE_CHUNK_SIZE)
             chunked.forEach { lstToDelete ->
-                val values: Map<String, Any> = mapOf(
-                    "dataCreate" to emptyList<Map<String, Any>>(),
-                    "dataUpdate" to emptyList<Map<String, Any>>(),
-                    "dataDelete" to lstToDelete,
-                    "word" to (Crypto.encrypt(Crypto.WORDS_TO_CHECK) ?: "")
-                )
+                val values: Map<String, Any> =
+                    mapOf(
+                        "dataCreate" to emptyList<Map<String, Any>>(),
+                        "dataUpdate" to emptyList<Map<String, Any>>(),
+                        "dataDelete" to lstToDelete,
+                        "word" to (Crypto.encrypt(Crypto.WORDS_TO_CHECK) ?: ""),
+                    )
 
                 val objectMapper = ObjectMapper()
                 val requestBody: String = objectMapper.writeValueAsString(values)
                 val client = HttpClient.newBuilder().build()
-                val request = HttpRequest.newBuilder()
-                    .uri(URI.create("https://sm-karaoke.ru/changerecords"))
-                    .POST(HttpRequest.BodyPublishers.ofString(requestBody))
-                    .header("Content-Type", "application/json")
-                    .build()
+                val request =
+                    HttpRequest
+                        .newBuilder()
+                        .uri(URI.create("https://sm-karaoke.ru/changerecords"))
+                        .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+                        .header("Content-Type", "application/json")
+                        .build()
                 val response = client.send(request, HttpResponse.BodyHandlers.ofString())
                 println(response.body())
             }
-
         }
 
         if (listToUpdate.isNotEmpty()) {
@@ -626,27 +670,28 @@ fun updateDatabases(
 
             val chunked = listToUpdate.chunked(rowChunk)
             chunked.forEach { lstToUpdate ->
-                val values: Map<String, Any> = mapOf(
-                    "dataCreate" to emptyList<Map<String, Any>>(),
-                    "dataUpdate" to lstToUpdate,
-                    "dataDelete" to emptyList<Map<String, Any>>(),
-                    "word" to (Crypto.encrypt(Crypto.WORDS_TO_CHECK) ?: "")
-                )
+                val values: Map<String, Any> =
+                    mapOf(
+                        "dataCreate" to emptyList<Map<String, Any>>(),
+                        "dataUpdate" to lstToUpdate,
+                        "dataDelete" to emptyList<Map<String, Any>>(),
+                        "word" to (Crypto.encrypt(Crypto.WORDS_TO_CHECK) ?: ""),
+                    )
 
                 val objectMapper = ObjectMapper()
                 val requestBody: String = objectMapper.writeValueAsString(values)
                 val client = HttpClient.newBuilder().build()
-                val request = HttpRequest.newBuilder()
-                    .uri(URI.create("https://sm-karaoke.ru/changerecords"))
-                    .POST(HttpRequest.BodyPublishers.ofString(requestBody))
-                    .header("Content-Type", "application/json")
-                    .build()
+                val request =
+                    HttpRequest
+                        .newBuilder()
+                        .uri(URI.create("https://sm-karaoke.ru/changerecords"))
+                        .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+                        .header("Content-Type", "application/json")
+                        .build()
                 val response = client.send(request, HttpResponse.BodyHandlers.ofString())
                 println(response.body())
             }
-
         }
-
     }
 
     // Режим «перемещение»: удаляем перенесённые строки из ИСТОЧНИКА. Делаем это ПОСЛЕ всех записей в
@@ -655,27 +700,31 @@ fun updateDatabases(
     if (listToDeleteFromSource.isNotEmpty()) {
         if (fromDatabase.name == "SERVER") {
             println("[${Timestamp.from(Instant.now())}] Запрос на сервер (источник) на удаление перемещённых записей.")
-            val payloads = listToDeleteFromSource.mapNotNull { item ->
-                val tableName = item["tableName"] as? String ?: return@mapNotNull null
-                val id = item["id"]
-                val sqlToDelete = "DELETE FROM $tableName WHERE id = $id"
-                Crypto.encrypt(sqlToDelete)?.let { mapOf("sqlToDelete" to it) }
-            }
+            val payloads =
+                listToDeleteFromSource.mapNotNull { item ->
+                    val tableName = item["tableName"] as? String ?: return@mapNotNull null
+                    val id = item["id"]
+                    val sqlToDelete = "DELETE FROM $tableName WHERE id = $id"
+                    Crypto.encrypt(sqlToDelete)?.let { mapOf("sqlToDelete" to it) }
+                }
             payloads.chunked(SyncRegistry.DELETE_CHUNK_SIZE).forEach { lstToDelete ->
-                val values: Map<String, Any> = mapOf(
-                    "dataCreate" to emptyList<Map<String, Any>>(),
-                    "dataUpdate" to emptyList<Map<String, Any>>(),
-                    "dataDelete" to lstToDelete,
-                    "word" to (Crypto.encrypt(Crypto.WORDS_TO_CHECK) ?: "")
-                )
+                val values: Map<String, Any> =
+                    mapOf(
+                        "dataCreate" to emptyList<Map<String, Any>>(),
+                        "dataUpdate" to emptyList<Map<String, Any>>(),
+                        "dataDelete" to lstToDelete,
+                        "word" to (Crypto.encrypt(Crypto.WORDS_TO_CHECK) ?: ""),
+                    )
                 val objectMapper = ObjectMapper()
                 val requestBody: String = objectMapper.writeValueAsString(values)
                 val client = HttpClient.newBuilder().build()
-                val request = HttpRequest.newBuilder()
-                    .uri(URI.create("https://sm-karaoke.ru/changerecords"))
-                    .POST(HttpRequest.BodyPublishers.ofString(requestBody))
-                    .header("Content-Type", "application/json")
-                    .build()
+                val request =
+                    HttpRequest
+                        .newBuilder()
+                        .uri(URI.create("https://sm-karaoke.ru/changerecords"))
+                        .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+                        .header("Content-Type", "application/json")
+                        .build()
                 val response = client.send(request, HttpResponse.BodyHandlers.ofString())
                 println(response.body())
             }
@@ -693,7 +742,6 @@ fun updateDatabases(
     }
 
     return SyncResult(listToCreateNames, listToUpdateNames, listToDeleteNames, listToMoveNames)
-
 }
 
 // Универсальный hash-diff sync одной сущности реестра (SyncRegistry) — заменяет то, что раньше было
@@ -733,7 +781,11 @@ private fun <T : Any> collectSyncOps(
         println("[${Timestamp.from(Instant.now())}] Невозможно установить связь с базой данный ${fromDatabase.name}")
         return false
     }
-    println("[${Timestamp.from(Instant.now())}] Таблица хэшей из базы данных ${fromDatabase.name} успешно получена, записей: ${listFromIdsHashes.size}")
+    println(
+        "[${Timestamp.from(
+            Instant.now(),
+        )}] Таблица хэшей из базы данных ${fromDatabase.name} успешно получена, записей: ${listFromIdsHashes.size}",
+    )
 
     println("[${Timestamp.from(Instant.now())}] Запрашиваем таблицу хэшей из базы данных ${toDatabase.name} (${target.displayName})...")
     val listToIdsHashes = target.listHashes(toDatabase, whereText)
@@ -741,7 +793,11 @@ private fun <T : Any> collectSyncOps(
         println("[${Timestamp.from(Instant.now())}] Невозможно установить связь с базой данный ${toDatabase.name}")
         return false
     }
-    println("[${Timestamp.from(Instant.now())}] Таблица хэшей из базы данных ${toDatabase.name} успешно получена, записей: ${listToIdsHashes.size}")
+    println(
+        "[${Timestamp.from(
+            Instant.now(),
+        )}] Таблица хэшей из базы данных ${toDatabase.name} успешно получена, записей: ${listToIdsHashes.size}",
+    )
 
     if (listFromIdsHashes.isEmpty()) return false
 
@@ -749,10 +805,12 @@ private fun <T : Any> collectSyncOps(
     val fromHashMap = listFromIdsHashes.associateBy { it.id }
 
     val idsToInsert = listFromIdsHashes.filter { it.id !in toHashMap }.map { it.id }
-    val idsToUpdate = listFromIdsHashes.filter { from ->
-        val to = toHashMap[from.id]
-        to != null && to.recordhash != from.recordhash
-    }.map { it.id }
+    val idsToUpdate =
+        listFromIdsHashes
+            .filter { from ->
+                val to = toHashMap[from.id]
+                to != null && to.recordhash != from.recordhash
+            }.map { it.id }
     val idsToDelete = listToIdsHashes.filter { it.id !in fromHashMap }.map { it.id }
 
     // Зеркальное удаление в ЦЕЛИ (строки, которых нет в источнике) — только если операция разрешена
@@ -810,48 +868,65 @@ private fun <T : Any> collectSyncOps(
                 val diff = target.getDiff(itemFrom, itemTo)
                 if (target.shouldPush(diff)) {
                     listToUpdateNames.add(target.label(itemFrom))
-                println("[${Timestamp.from(Instant.now())}] Изменяем запись в $tableName: id=$id, ${target.label(itemFrom)}, поля: ${diff.joinToString(", ") { it.recordDiffName }}")
-                val messageRecordChange = RecordChangeMessage(tableName = tableName, recordId = id, diffs = diff, databaseName = toDatabase.name, record = itemFrom)
-                if (toDatabase.name == "SERVER") {
-                    val setStr = messageRecordChange.getSetString()
-                    if (setStr != "") {
-                        val setStrEncrypted = Crypto.encrypt(setStr)
-                        listToUpdate.add(mapOf(
-                            "tableName" to messageRecordChange.tableName,
-                            "idRecord" to messageRecordChange.recordId,
-                            "setText" to (setStrEncrypted ?: "")
-                        ))
-                    }
-                } else {
-                    val setStr = diff.filter { it.recordDiffRealField }.joinToString(", ") { "${it.recordDiffName} = ?" }
-                    if (setStr != "") {
-                        val sql = "UPDATE $tableName SET $setStr WHERE id = ?"
-                        val connection = toDatabase.getConnection()
-                        if (connection == null) {
-                            println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${toDatabase.name}")
-                            return false
+                    println(
+                        "[${Timestamp.from(
+                            Instant.now(),
+                        )}] Изменяем запись в $tableName: id=$id, ${target.label(
+                            itemFrom,
+                        )}, поля: ${diff.joinToString(", ") { it.recordDiffName }}",
+                    )
+                    val messageRecordChange =
+                        RecordChangeMessage(
+                            tableName = tableName,
+                            recordId = id,
+                            diffs = diff,
+                            databaseName = toDatabase.name,
+                            record = itemFrom,
+                        )
+                    if (toDatabase.name == "SERVER") {
+                        val setStr = messageRecordChange.getSetString()
+                        if (setStr != "") {
+                            val setStrEncrypted = Crypto.encrypt(setStr)
+                            listToUpdate.add(
+                                mapOf(
+                                    "tableName" to messageRecordChange.tableName,
+                                    "idRecord" to messageRecordChange.recordId,
+                                    "setText" to (setStrEncrypted ?: ""),
+                                ),
+                            )
                         }
-                        val ps = connection.prepareStatement(sql)
-                        var index = 1
-                        diff.filter { it.recordDiffRealField }.forEach {
-                            when (val v = it.recordDiffValueNew) {
-                                null -> ps.setObject(index, null)
-                                is String -> ps.setString(index, v)
-                                is Long -> ps.setLong(index, v)
-                                is Int -> ps.setInt(index, v)
-                                is Double -> ps.setDouble(index, v)
-                                is Float -> ps.setFloat(index, v)
-                                is Timestamp -> ps.setTimestamp(index, v)
-                                is Boolean -> ps.setBoolean(index, v)
-                                else -> ps.setString(index, v.toString())
+                    } else {
+                        val setStr = diff.filter { it.recordDiffRealField }.joinToString(", ") { "${it.recordDiffName} = ?" }
+                        if (setStr != "") {
+                            val sql = "UPDATE $tableName SET $setStr WHERE id = ?"
+                            val connection = toDatabase.getConnection()
+                            if (connection == null) {
+                                println(
+                                    "[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${toDatabase.name}",
+                                )
+                                return false
                             }
-                            index++
+                            val ps = connection.prepareStatement(sql)
+                            var index = 1
+                            diff.filter { it.recordDiffRealField }.forEach {
+                                when (val v = it.recordDiffValueNew) {
+                                    null -> ps.setObject(index, null)
+                                    is String -> ps.setString(index, v)
+                                    is Long -> ps.setLong(index, v)
+                                    is Int -> ps.setInt(index, v)
+                                    is Double -> ps.setDouble(index, v)
+                                    is Float -> ps.setFloat(index, v)
+                                    is Timestamp -> ps.setTimestamp(index, v)
+                                    is Boolean -> ps.setBoolean(index, v)
+                                    else -> ps.setString(index, v.toString())
+                                }
+                                index++
+                            }
+                            ps.setLong(index, id)
+                            ps.executeUpdate()
+                            ps.close()
                         }
-                        ps.setLong(index, id)
-                        ps.executeUpdate()
-                        ps.close()
                     }
-                }
                     actuallyUpdated.add(id)
                 }
             }
@@ -862,15 +937,18 @@ private fun <T : Any> collectSyncOps(
     // Безопасный набор = реально вставленные + реально изменённые + уже идентичные (равный recordhash).
     // Строки, которые различаются, но не были перенесены (insert/update выключены) — НЕ удаляем.
     if (moveAllowed) {
-        val unchangedIds = listFromIdsHashes
-            .filter { toHashMap[it.id]?.recordhash == it.recordhash }
-            .map { it.id }
+        val unchangedIds =
+            listFromIdsHashes
+                .filter { toHashMap[it.id]?.recordhash == it.recordhash }
+                .map { it.id }
         val movedIds = (actuallyInserted + actuallyUpdated + unchangedIds).distinct()
         val movedItems = target.loadByIds(movedIds, fromDatabase)
         movedIds.forEach { id ->
             movedItems[id]?.let { listToMoveNames.add(target.label(it)) }
             listToDeleteFromSource.add(mapOf("tableName" to tableName, "id" to id))
-            println("[${Timestamp.from(Instant.now())}] Перемещение: помечаем на удаление из источника ${fromDatabase.name}.$tableName: id=$id")
+            println(
+                "[${Timestamp.from(Instant.now())}] Перемещение: помечаем на удаление из источника ${fromDatabase.name}.$tableName: id=$id",
+            )
         }
     }
 
@@ -881,17 +959,17 @@ private fun <T : Any> collectSyncOps(
 fun <T : Serializable> deepCopy(obj: T?): T? {
     if (obj == null) return null
     val baos = ByteArrayOutputStream()
-    val oos  = ObjectOutputStream(baos)
+    val oos = ObjectOutputStream(baos)
     oos.writeObject(obj)
     oos.close()
     val bais = ByteArrayInputStream(baos.toByteArray())
-    val ois  = ObjectInputStream(bais)
+    val ois = ObjectInputStream(bais)
     @Suppress("unchecked_cast")
     return ois.readObject() as T
 }
 
-//@Throws(IOException::class)
-//fun getMd5HashForFile(filename: String?): String? {
+// @Throws(IOException::class)
+// fun getMd5HashForFile(filename: String?): String? {
 //    return try {
 //        val md: MessageDigest? = MessageDigest.getInstance("MD5")
 //        val buffer = ByteArray(8192)
@@ -908,10 +986,10 @@ fun <T : Serializable> deepCopy(obj: T?): T? {
 //    } catch (e: NoSuchAlgorithmException) {
 //        throw RuntimeException(e)
 //    }
-//}
+// }
 
-fun getMd5Hash(source: String): String? {
-    return try {
+fun getMd5Hash(source: String): String? =
+    try {
         val md = MessageDigest.getInstance("MD5")
         md.update(source.toByteArray())
         val digest = md.digest()
@@ -919,7 +997,7 @@ fun getMd5Hash(source: String): String? {
     } catch (e: NoSuchAlgorithmException) {
         throw java.lang.RuntimeException(e)
     }
-}
+
 fun bytesToHex(bytes: ByteArray): String? {
     val builder = StringBuilder()
     for (b in bytes) {
@@ -928,13 +1006,23 @@ fun bytesToHex(bytes: ByteArray): String? {
     return builder.toString()
 }
 
-fun updateBpmAndKey(database: KaraokeConnection, storageService: KaraokeStorageService, storageApiClient: StorageApiClient): Int {
-    val listSettings = Settings.loadListFromDb(mapOf("song_tone" to "''", "song_bpm" to "0"), database = database, storageService = storageService, storageApiClient = storageApiClient)
+fun updateBpmAndKey(
+    database: KaraokeConnection,
+    storageService: KaraokeStorageService,
+    storageApiClient: StorageApiClient,
+): Int {
+    val listSettings =
+        Settings.loadListFromDb(
+            mapOf("song_tone" to "''", "song_bpm" to "0"),
+            database = database,
+            storageService = storageService,
+            storageApiClient = storageApiClient,
+        )
     var counter = 0
     listSettings.forEach { settings ->
         val (bpm, key) = getBpmAndKeyFromCsv(settings)
         if (bpm != 0L && key != "") {
-            println("${settings.fileName} : bpm = ${bpm}, tone = $key")
+            println("${settings.fileName} : bpm = $bpm, tone = $key")
             settings.fields[SettingField.BPM] = bpm.toString()
             settings.fields[SettingField.KEY] = key
             settings.saveToDb()
@@ -944,8 +1032,18 @@ fun updateBpmAndKey(database: KaraokeConnection, storageService: KaraokeStorageS
     return counter
 }
 
-fun updateBpmAndKeyLV(database: KaraokeConnection, storageService: KaraokeStorageService, storageApiClient: StorageApiClient): Pair<Int, Int> {
-    val listSettings = Settings.loadListFromDb(mapOf("song_tone" to "''", "song_bpm" to "0"), database = database, storageService = storageService, storageApiClient = storageApiClient)
+fun updateBpmAndKeyLV(
+    database: KaraokeConnection,
+    storageService: KaraokeStorageService,
+    storageApiClient: StorageApiClient,
+): Pair<Int, Int> {
+    val listSettings =
+        Settings.loadListFromDb(
+            mapOf("song_tone" to "''", "song_bpm" to "0"),
+            database = database,
+            storageService = storageService,
+            storageApiClient = storageApiClient,
+        )
     var counterSuccess = 0
     var counterFailed = 0
     listSettings.forEach { settings ->
@@ -954,7 +1052,7 @@ fun updateBpmAndKeyLV(database: KaraokeConnection, storageService: KaraokeStorag
             val bpm = sheetsageInfo["tempo"] as String
             val key = sheetsageInfo["key"] as String
             if (bpm != "" && key != "") {
-                println("${settings.fileName} : bpm = ${bpm}, tone = $key")
+                println("${settings.fileName} : bpm = $bpm, tone = $key")
                 settings.fields[SettingField.BPM] = bpm
                 settings.fields[SettingField.KEY] = key
                 settings.saveToDb()
@@ -997,18 +1095,22 @@ fun getBpmAndKeyFromCsv(settings: Settings): Pair<Long, String> {
         e.printStackTrace()
     }
 
-
     return Pair(0, "")
-
 }
 
-
-
-fun delDublicates(database: KaraokeConnection, storageService: KaraokeStorageService, storageApiClient: StorageApiClient): Int {
+fun delDublicates(
+    database: KaraokeConnection,
+    storageService: KaraokeStorageService,
+    storageApiClient: StorageApiClient,
+): Int {
     var counter = 0
-    val listSettings = Settings.loadListFromDb(
-        mapOf(Pair("tags", "DD")), database = database, storageService = storageService, storageApiClient = storageApiClient
-    )
+    val listSettings =
+        Settings.loadListFromDb(
+            mapOf(Pair("tags", "DD")),
+            database = database,
+            storageService = storageService,
+            storageApiClient = storageApiClient,
+        )
     listSettings.forEach { settings ->
         if (settings.tags == "DD") {
             settings.deleteFromDb()
@@ -1018,11 +1120,19 @@ fun delDublicates(database: KaraokeConnection, storageService: KaraokeStorageSer
     return counter
 }
 
-fun clearPreDublicates(database: KaraokeConnection, storageService: KaraokeStorageService, storageApiClient: StorageApiClient): Int {
+fun clearPreDublicates(
+    database: KaraokeConnection,
+    storageService: KaraokeStorageService,
+    storageApiClient: StorageApiClient,
+): Int {
     var counter = 0
-    val listSettings = Settings.loadListFromDb(
-        mapOf(Pair("tags", "D")), database = database, storageService = storageService, storageApiClient = storageApiClient
-    )
+    val listSettings =
+        Settings.loadListFromDb(
+            mapOf(Pair("tags", "D")),
+            database = database,
+            storageService = storageService,
+            storageApiClient = storageApiClient,
+        )
     listSettings.forEach { settings ->
         if (settings.tags == "D") {
             settings.tags = ""
@@ -1033,20 +1143,30 @@ fun clearPreDublicates(database: KaraokeConnection, storageService: KaraokeStora
     return counter
 }
 
-fun markDublicates(author: String, database: KaraokeConnection, storageService: KaraokeStorageService, storageApiClient: StorageApiClient): Int {
+fun markDublicates(
+    author: String,
+    database: KaraokeConnection,
+    storageService: KaraokeStorageService,
+    storageApiClient: StorageApiClient,
+): Int {
     var counter = 0
-    val listSettings = Settings.loadListFromDb(
-        mapOf(Pair("song_author", author)), database = database, storageService = storageService, storageApiClient = storageApiClient
-    )
+    val listSettings =
+        Settings.loadListFromDb(
+            mapOf(Pair("song_author", author)),
+            database = database,
+            storageService = storageService,
+            storageApiClient = storageApiClient,
+        )
     listSettings.forEach { settings ->
         if (settings.tags == "") {
-            val listDoubles = listSettings.filter {
-                it.songName == settings.songName && it.id > settings.id
-            }
+            val listDoubles =
+                listSettings.filter {
+                    it.songName == settings.songName && it.id > settings.id
+                }
             if (listDoubles.isNotEmpty()) {
                 settings.tags = "D"
                 settings.saveToDb()
-                listDoubles.forEach{
+                listDoubles.forEach {
                     it.tags = "DD"
                     it.saveToDb()
                     counter++
@@ -1058,8 +1178,12 @@ fun markDublicates(author: String, database: KaraokeConnection, storageService: 
 }
 
 @Suppress("unused")
-fun create720pForAllUncreated(database: KaraokeConnection, threadId: Int, storageService: KaraokeStorageService, storageApiClient: StorageApiClient) {
-
+fun create720pForAllUncreated(
+    database: KaraokeConnection,
+    threadId: Int,
+    storageService: KaraokeStorageService,
+    storageApiClient: StorageApiClient,
+) {
     val settingsList = Settings.loadListFromDb(database = database, storageService = storageService, storageApiClient = storageApiClient)
     settingsList.forEach { settings ->
         if (File(settings.pathToFileLyrics).exists() && !File(settings.pathToFile720Lyrics).exists()) {
@@ -1079,11 +1203,14 @@ fun create720pForAllUncreated(database: KaraokeConnection, threadId: Int, storag
             KaraokeProcess.createProcess(settings, KaraokeProcessTypes.FF_720_KAR, true, 1, threadId)
         }
     }
-
 }
 
-
-fun copyIfNeed(pathFrom: String, pathTo: String, folderTo: String, log: String = ""): Int {
+fun copyIfNeed(
+    pathFrom: String,
+    pathTo: String,
+    folderTo: String,
+    log: String = "",
+): Int {
     val fileFrom = File(pathFrom)
     val fileTo = File(pathTo)
     if (fileFrom.exists()) {
@@ -1100,73 +1227,95 @@ fun copyIfNeed(pathFrom: String, pathTo: String, folderTo: String, log: String =
     return 0
 }
 
-fun collectDoneFilesToStoreFolderAndCreate720pForAllUncreated(settingsList: List<Settings>, priorLyrics: Int = 10, priorKaraoke: Int = 10, threadId: Int): Pair<Int, Int> {
+fun collectDoneFilesToStoreFolderAndCreate720pForAllUncreated(
+    settingsList: List<Settings>,
+    priorLyrics: Int = 10,
+    priorKaraoke: Int = 10,
+    threadId: Int,
+): Pair<Int, Int> {
     println("Копирование в хранилище и создание заданий на кодирование в 720р")
 //    val settingsList = Settings.loadListFromDb(database = database)
     var countCopy = 0
     var countCode = 0
     settingsList.forEach { settings ->
 
-        countCopy += copyIfNeed(settings.pathToFileLyrics, settings.pathToStoreFileLyrics, settings.pathToStoreFolderLyrics, "Копируем в хранилище файл: ${settings.nameFileLyrics}")
-        countCopy += copyIfNeed(settings.pathToFileKaraoke, settings.pathToStoreFileKaraoke, settings.pathToStoreFolderKaraoke, "Копируем в хранилище файл: ${settings.nameFileKaraoke}")
-        countCopy += copyIfNeed(settings.pathToFileChords, settings.pathToStoreFileChords, settings.pathToStoreFolderChords, "Копируем в хранилище файл: ${settings.nameFileChords}")
+        countCopy +=
+            copyIfNeed(
+                settings.pathToFileLyrics,
+                settings.pathToStoreFileLyrics,
+                settings.pathToStoreFolderLyrics,
+                "Копируем в хранилище файл: ${settings.nameFileLyrics}",
+            )
+        countCopy +=
+            copyIfNeed(
+                settings.pathToFileKaraoke,
+                settings.pathToStoreFileKaraoke,
+                settings.pathToStoreFolderKaraoke,
+                "Копируем в хранилище файл: ${settings.nameFileKaraoke}",
+            )
+        countCopy +=
+            copyIfNeed(
+                settings.pathToFileChords,
+                settings.pathToStoreFileChords,
+                settings.pathToStoreFolderChords,
+                "Копируем в хранилище файл: ${settings.nameFileChords}",
+            )
 
         val sourceFileLyrics = File(settings.pathToFileLyrics)
         val destinationFileLyrics720 = File(settings.pathToFile720Lyrics)
-        val needCreateLyrics720 = if (!sourceFileLyrics.exists()) {
-            false
-        } else {
-            if (!destinationFileLyrics720.exists()) {
-                true
+        val needCreateLyrics720 =
+            if (!sourceFileLyrics.exists()) {
+                false
             } else {
-                if (sourceFileLyrics.lastModified() > destinationFileLyrics720.lastModified()) {
-                    destinationFileLyrics720.delete()
+                if (!destinationFileLyrics720.exists()) {
                     true
                 } else {
-                    false
+                    if (sourceFileLyrics.lastModified() > destinationFileLyrics720.lastModified()) {
+                        destinationFileLyrics720.delete()
+                        true
+                    } else {
+                        false
+                    }
                 }
             }
-        }
         if (needCreateLyrics720) {
             println("Создаём задание на кодирование в 720р для файла: ${settings.nameFileLyrics}")
             KaraokeProcess.createProcess(settings, KaraokeProcessTypes.FF_720_LYR, true, priorLyrics, threadId)
             countCode++
         }
 
-
         val sourceFileKaraoke = File(settings.pathToFileKaraoke)
         val destinationFileKaraoke720 = File(settings.pathToFile720Karaoke)
-        val needCreateKaraoke720 = if (!sourceFileKaraoke.exists()) {
-            false
-        } else {
-            if (!destinationFileKaraoke720.exists()) {
-                true
+        val needCreateKaraoke720 =
+            if (!sourceFileKaraoke.exists()) {
+                false
             } else {
-                if (sourceFileKaraoke.lastModified() > destinationFileKaraoke720.lastModified()) {
-                    destinationFileKaraoke720.delete()
+                if (!destinationFileKaraoke720.exists()) {
                     true
                 } else {
-                    false
+                    if (sourceFileKaraoke.lastModified() > destinationFileKaraoke720.lastModified()) {
+                        destinationFileKaraoke720.delete()
+                        true
+                    } else {
+                        false
+                    }
                 }
             }
-        }
         if (needCreateKaraoke720) {
             println("Создаём задание на кодирование в 720р для файла: ${settings.nameFileKaraoke}")
             KaraokeProcess.createProcess(settings, KaraokeProcessTypes.FF_720_KAR, true, priorKaraoke, threadId)
             countCode++
         }
-
     }
     return Pair(countCopy, countCode)
 }
 
-
-//class ResourceReader {
+// class ResourceReader {
 //    fun readTextResource(filename: String): String {
 //        val uri = this.javaClass.getResource("/$filename").toURI()
 //        return Files.readString(Paths.get(uri))
 //    }
-//}
+// }
 
 fun replaceSymbolsInSong(sourceText: String): String {
     var result = sourceText.addNewLinesByUpperCase()
@@ -1185,15 +1334,15 @@ fun replaceSymbolsInSong(sourceText: String): String {
 
     result = result.replaceQuotes()
 
-    result = result.replace("_"," ")
-    result = result.replace(",",", ")
-    result = result.replace(",  ",", ")
-    result = result.replace("--","-")
-    result = result.replace("—","-")
-    result = result.replace("–","-")
-    result = result.replace("−","-")
-    result = result.replace(" : ",": ")
-    result = result.replace(" :\n",":\n")
+    result = result.replace("_", " ")
+    result = result.replace(",", ", ")
+    result = result.replace(",  ", ", ")
+    result = result.replace("--", "-")
+    result = result.replace("—", "-")
+    result = result.replace("–", "-")
+    result = result.replace("−", "-")
+    result = result.replace(" : ", ": ")
+    result = result.replace(" :\n", ":\n")
 
     if (sourceTextContainsRussianLetters) {
         val lines = result.split("\n")
@@ -1207,52 +1356,73 @@ fun replaceSymbolsInSong(sourceText: String): String {
         }
         result = linesWithoutChords.joinToString("\n")
 
-        result = result.replace("p","р")
-        result = result.replace("y","у")
-        result = result.replace("e","е")
-        result = result.replace("o","о")
-        result = result.replace("a","а")
-        result = result.replace("x","х")
-        result = result.replace("c","с")
-        result = result.replace("A","А")
-        result = result.replace("T","Т")
-        result = result.replace("O","О")
-        result = result.replace("P","Р")
-        result = result.replace("H","Н")
-        result = result.replace("K","К")
-        result = result.replace("X","Х")
-        result = result.replace("C","С")
-        result = result.replace("B","В")
-        result = result.replace("M","М")
+        result = result.replace("p", "р")
+        result = result.replace("y", "у")
+        result = result.replace("e", "е")
+        result = result.replace("o", "о")
+        result = result.replace("a", "а")
+        result = result.replace("x", "х")
+        result = result.replace("c", "с")
+        result = result.replace("A", "А")
+        result = result.replace("T", "Т")
+        result = result.replace("O", "О")
+        result = result.replace("P", "Р")
+        result = result.replace("H", "Н")
+        result = result.replace("K", "К")
+        result = result.replace("X", "Х")
+        result = result.replace("C", "С")
+        result = result.replace("B", "В")
+        result = result.replace("M", "М")
     }
-
 
 //    result = result.replace(" -\n","_-\n")
 
     return result
 }
 
-fun createFilesByTags(listOfTags: List<String> = emptyList(), database: KaraokeConnection, storageService: KaraokeStorageService, storageApiClient: StorageApiClient) {
-    val listTags = (if (listOfTags.isEmpty()) Settings.getSetOfTags(database = database) else listOfTags.map { it.uppercase() }.toSet()).toList()
+fun createFilesByTags(
+    listOfTags: List<String> = emptyList(),
+    database: KaraokeConnection,
+    storageService: KaraokeStorageService,
+    storageApiClient: StorageApiClient,
+) {
+    val listTags =
+        (
+            if (listOfTags.isEmpty()) {
+                Settings.getSetOfTags(database = database)
+            } else {
+                listOfTags
+                    .map {
+                        it.uppercase()
+                    }.toSet()
+            }
+        ).toList()
     listTags.forEach { tag ->
 
-        val pathToTagFolder = "$PATH_TO_STORE_FOLDER/TAGS/${tag}"
+        val pathToTagFolder = "$PATH_TO_STORE_FOLDER/TAGS/$tag"
         if (!File(pathToTagFolder).exists()) {
             Files.createDirectories(Path(pathToTagFolder))
             runCommand(listOf("chmod", "777", pathToTagFolder))
         }
 
-        val pathToTagFolder720Karaoke = "$PATH_TO_STORE_FOLDER/720p_Karaoke/TAGS/${tag}"
+        val pathToTagFolder720Karaoke = "$PATH_TO_STORE_FOLDER/720p_Karaoke/TAGS/$tag"
         if (!File(pathToTagFolder720Karaoke).exists()) {
             Files.createDirectories(Path(pathToTagFolder720Karaoke))
             runCommand(listOf("chmod", "777", pathToTagFolder720Karaoke))
         }
 
-        val listOfSettings = Settings.loadListFromDb(mapOf(Pair("tags", tag)), database = database, storageService = storageService, storageApiClient = storageApiClient)
+        val listOfSettings =
+            Settings.loadListFromDb(
+                mapOf(Pair("tags", tag)),
+                database = database,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
         listOfSettings.forEach { settings ->
             val sourceFileKaraoke = settings.pathToFileKaraoke
             if (File(sourceFileKaraoke).exists()) {
-                val destinationFile = pathToTagFolder + "/" + sourceFileKaraoke.split("/").last().replace(" [karaoke].mp4", " [karaoke] {${tag}}.mp4")
+                val destinationFile =
+                    pathToTagFolder + "/" + sourceFileKaraoke.split("/").last().replace(" [karaoke].mp4", " [karaoke] {$tag}.mp4")
                 if (!File(destinationFile).exists()) {
                     Files.copy(Path(sourceFileKaraoke), Path(destinationFile))
                 }
@@ -1260,40 +1430,61 @@ fun createFilesByTags(listOfTags: List<String> = emptyList(), database: KaraokeC
 
             val sourceFile720Karaoke = settings.pathToFile720Karaoke
             if (File(sourceFile720Karaoke).exists()) {
-                val destinationFile = pathToTagFolder720Karaoke + "/" + sourceFile720Karaoke.split("/").last().replace(" [karaoke] 720p.mp4", " [karaoke] {${tag}} 720p.mp4")
+                val destinationFile =
+                    pathToTagFolder720Karaoke + "/" +
+                        sourceFile720Karaoke.split("/").last().replace(" [karaoke] 720p.mp4", " [karaoke] {$tag} 720p.mp4")
                 if (!File(destinationFile).exists()) {
                     Files.copy(Path(sourceFile720Karaoke), Path(destinationFile))
                 }
             }
         }
-
     }
 }
 
-fun createDigestForAllAuthors(vararg authors: String, database: KaraokeConnection, storageService: KaraokeStorageService, storageApiClient: StorageApiClient) {
-
+fun createDigestForAllAuthors(
+    vararg authors: String,
+    database: KaraokeConnection,
+    storageService: KaraokeStorageService,
+    storageApiClient: StorageApiClient,
+) {
     val listAuthors = getAuthorsForDigest(database = database)
     listAuthors.forEach { author ->
         if (authors.isEmpty() || author in authors) {
-            val txt = "ЗАКРОМА - «$author»\n\n${getAuthorDigest(author, false, database = database, storageService = storageService, storageApiClient = storageApiClient).first}"
-            val fileName = "/sm-karaoke/system/Digest/${author} (digest).txt"
+            val txt = "ЗАКРОМА - «$author»\n\n${getAuthorDigest(
+                author,
+                false,
+                database = database,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            ).first}"
+            val fileName = "/sm-karaoke/system/Digest/$author (digest).txt"
             File(fileName).writeText(txt, Charsets.UTF_8)
             runCommand(listOf("chmod", "666", fileName))
         }
     }
-
 }
 
-fun createDigestForAllAuthorsForOper(vararg authors: String, database: KaraokeConnection, storageService: KaraokeStorageService, storageApiClient: StorageApiClient) {
-
+fun createDigestForAllAuthorsForOper(
+    vararg authors: String,
+    database: KaraokeConnection,
+    storageService: KaraokeStorageService,
+    storageApiClient: StorageApiClient,
+) {
     val listAuthors = getAuthorsForDigest(database = database)
     var txt = ""
     var total = 0
     listAuthors.forEach { author ->
         if (authors.isEmpty() || author in authors) {
-            val (digest, count) = getAuthorDigest(author, false, database = database, storageService = storageService, storageApiClient = storageApiClient)
+            val (digest, count) =
+                getAuthorDigest(
+                    author,
+                    false,
+                    database = database,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                )
             if (digest.isNotEmpty()) {
-                txt += "«$author»\nПесен: $count шт.\n[spoiler]\n${digest}[/spoiler]\n\n"
+                txt += "«$author»\nПесен: $count шт.\n[spoiler]\n$digest[/spoiler]\n\n"
                 total += count
             }
         }
@@ -1305,7 +1496,6 @@ fun createDigestForAllAuthorsForOper(vararg authors: String, database: KaraokeCo
 }
 
 fun getAuthorsForDigest(database: KaraokeConnection): List<String> {
-
     val connection = database.getConnection()
     if (connection == null) {
         println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
@@ -1319,10 +1509,10 @@ fun getAuthorsForDigest(database: KaraokeConnection): List<String> {
         statement = connection.createStatement()
 
         sql = "select song_author, count(DISTINCT song_album) as albums, count(DISTINCT id) as songs " +
-                "from tbl_settings " +
+            "from tbl_settings " +
 //                "where id_boosty != '' AND id_boosty IS NOT NULL AND root_folder NOT LIKE '%/Разное/%' " +
-                "where id_boosty != '' AND id_boosty IS NOT NULL " +
-                "group by song_author"
+            "where id_boosty != '' AND id_boosty IS NOT NULL " +
+            "group by song_author"
 
         rs = statement.executeQuery(sql)
         val result: MutableList<String> = mutableListOf()
@@ -1343,23 +1533,34 @@ fun getAuthorsForDigest(database: KaraokeConnection): List<String> {
         }
     }
     return emptyList()
-
 }
 
-fun getAuthorDigest(author: String, withRazor: Boolean = true, database: KaraokeConnection, storageService: KaraokeStorageService, storageApiClient: StorageApiClient): Pair<String, Int> {
-
+fun getAuthorDigest(
+    author: String,
+    withRazor: Boolean = true,
+    database: KaraokeConnection,
+    storageService: KaraokeStorageService,
+    storageApiClient: StorageApiClient,
+): Pair<String, Int> {
     val maxSymbols = 16300
 
-    val listDigest = Settings.loadListFromDb(mapOf(Pair("song_author", author)), database = database, storageService = storageService, storageApiClient = storageApiClient)
-        .filter { it.digestIsFull }
-        .map { it.digest }
+    val listDigest =
+        Settings
+            .loadListFromDb(
+                mapOf(Pair("song_author", author)),
+                database = database,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            ).filter { it.digestIsFull }
+            .map { it.digest }
 
     var result = ""
     var counter = 0
 
     listDigest.forEach { digets ->
         if (withRazor && (counter + digets.length > maxSymbols)) {
-            result += "\n(ПРОДОЛЖЕНИЕ - В КОММЕНТАРИЯХ)\n\n----------------------------------------------------------------------------------------\n\n\n"
+            result +=
+                "\n(ПРОДОЛЖЕНИЕ - В КОММЕНТАРИЯХ)\n\n----------------------------------------------------------------------------------------\n\n\n"
             counter = 0
         }
         result += digets + "\n"
@@ -1371,7 +1572,6 @@ fun getAuthorDigest(author: String, withRazor: Boolean = true, database: Karaoke
 
 @Suppress("unused")
 fun searchSongText2(settings: Settings) {
-
     val searchQuery = "${settings.author} ${settings.songName}"
     val searchUrl = "https://www.google.com/search?q=${searchQuery.replace(" ", "+")}+текст+песни"
 
@@ -1385,17 +1585,14 @@ fun searchSongText2(settings: Settings) {
         val href = link.attr("href")
         println(href)
     }
-
 }
 
 fun searchSongText(settings: Settings): String {
-
     val searchQuery = "${settings.author} ${settings.songName}".replace("&", "")
     val searchUrl = "https://www.google.com/search?q=${searchQuery.replace(" ", "+")}+текст+песни"
 
     // Загрузка страницы результатов поиска
     var document = Jsoup.connect(searchUrl).get()
-
 
     // Поиск текста песни на странице результатов
     var lyricsElement = document.selectFirst("div[data-lyricid]")
@@ -1418,13 +1615,11 @@ fun searchSongText(settings: Settings): String {
         if (link.attr("href").startsWith("http")) {
             println(link.attr("href"))
         }
-
     }
     // Пройтись по найденным ссылкам и вывести их href (URL)
     for (link in links) {
         val href = link.attr("href")
         if (href.startsWith("https://learnsongs.ru/")) {
-
             println(href)
 
             document = Jsoup.connect(href).get()
@@ -1446,9 +1641,7 @@ fun searchSongText(settings: Settings): String {
                 text = text.replace("<br>", "")
                 return text
             }
-
         } else if (href.startsWith("https://textypesen.com/")) {
-
             println(href)
 
             document = Jsoup.connect(href).get()
@@ -1473,9 +1666,7 @@ fun searchSongText(settings: Settings): String {
                 println(text)
                 return text
             }
-
         } else if (href.startsWith("https://musictxt.ru/")) {
-
             println(href)
 
             document = Jsoup.connect(href).get()
@@ -1504,14 +1695,16 @@ fun searchSongText(settings: Settings): String {
                 text = text.replace("<br> ", "\n")
                 text = text.replace("<br>", "\n")
                 text = text.replace("<!-- Yandex.RTB R-A-587487-5 -->", "")
-                text = text.replace("""<div id="yandex_rtb_R-A-587487-5"></div><script>window.yaContextCb.push(()=>{Ya.Context.AdvManager.render({"blockId": "R-A-587487-5","renderTo": "yandex_rtb_R-A-587487-5"})})</script></pre>""", "")
+                text =
+                    text.replace(
+                        """<div id="yandex_rtb_R-A-587487-5"></div><script>window.yaContextCb.push(()=>{Ya.Context.AdvManager.render({"blockId": "R-A-587487-5","renderTo": "yandex_rtb_R-A-587487-5"})})</script></pre>""",
+                        "",
+                    )
                 text = text.replace("<pre>", "")
                 println(text)
                 return text
             }
-
         } else if (href.startsWith("https://textocat.ru/")) {
-
             println(href)
 
             document = Jsoup.connect(href).get()
@@ -1543,10 +1736,7 @@ fun searchSongText(settings: Settings): String {
                 println(text)
                 return text
             }
-
-
         } else if (href.startsWith("https://txtsong.ru/")) {
-
             println(href)
 
             document = Jsoup.connect(href).get()
@@ -1570,9 +1760,7 @@ fun searchSongText(settings: Settings): String {
                 println(text)
                 return text
             }
-
         } else if (href.startsWith("https://pesni.guru/")) {
-
             println(href)
 
             document = Jsoup.connect(href).get()
@@ -1592,9 +1780,7 @@ fun searchSongText(settings: Settings): String {
             if (text != null) {
                 return text
             }
-
         } else if (href.startsWith("https://teksti-pesenok.pro/")) {
-
             println(href)
 
             document = Jsoup.connect(href).get()
@@ -1615,7 +1801,6 @@ fun searchSongText(settings: Settings): String {
             var text = lyricsElement?.html()
 
             if (text != null) {
-
                 text = text.replace("<br> ", "\n")
                 text = text.replace("<br>", "\n")
                 text = text.replace("&nbsp;", " ")
@@ -1625,7 +1810,6 @@ fun searchSongText(settings: Settings): String {
                 return text
             }
         } else if (href.startsWith("https://text-lyrics.ru/")) {
-
             println(href)
 
             try {
@@ -1646,18 +1830,17 @@ fun searchSongText(settings: Settings): String {
             } catch (_: Exception) {
                 return ""
             }
-
-
-
         }
-
     }
 
     return ""
 }
 
 @Suppress("unused")
-fun getNewTone(tone: String, capo: Int): String {
+fun getNewTone(
+    tone: String,
+    capo: Int,
+): String {
     val noteAndTone = tone.split(" ")
     val nameChord = noteAndTone[0]
     val (_, note) = MusicChord.getChordNote(nameChord)
@@ -1666,15 +1849,24 @@ fun getNewTone(tone: String, capo: Int): String {
     val newNote = MusicNote.entries[newIndexNote]
     return "${newNote.names.first()} ${noteAndTone[1]}"
 }
-fun generateChordLayout(chordName: String, capo: Int): List<MltObject> {
+
+fun generateChordLayout(
+    chordName: String,
+    capo: Int,
+): List<MltObject> {
     val chordNameAndFret = chordName.split("|")
     val nameChord = chordNameAndFret[0]
     val fretChord = if (chordNameAndFret.size > 1) chordNameAndFret[1].toInt() else 0
     val (chord, note) = MusicChord.getChordNote(nameChord)
-    return if (chord!=null && note != null) generateChordLayout(chord, note, fretChord, capo) else emptyList()
+    return if (chord != null && note != null) generateChordLayout(chord, note, fretChord, capo) else emptyList()
 }
-fun generateChordLayout(chord: MusicChord, startRootNote: MusicNote, startInitFret: Int, capo: Int): List<MltObject> {
 
+fun generateChordLayout(
+    chord: MusicChord,
+    startRootNote: MusicNote,
+    startInitFret: Int,
+    capo: Int,
+): List<MltObject> {
     var newIndexNote = MusicNote.entries.indexOf(startRootNote) - capo
     if (newIndexNote < 0) newIndexNote = MusicNote.entries.size + newIndexNote
     val note = MusicNote.entries[newIndexNote]
@@ -1690,7 +1882,7 @@ fun generateChordLayout(chord: MusicChord, startRootNote: MusicNote, startInitFr
     }
 
     val initFret = fingerboards[0].rootFret
-    val result:MutableList<MltObject> = mutableListOf()
+    val result: MutableList<MltObject> = mutableListOf()
     val chordLayoutW = (Karaoke.frameHeightPx / 4)
     val chordLayoutH = chordLayoutW
 
@@ -1700,90 +1892,101 @@ fun generateChordLayout(chord: MusicChord, startRootNote: MusicNote, startInitFr
 
     val fretW = (chordLayoutW / 6.0).toInt()
     var fretNumberTextH = 0
-    val mltShapeFingerCircleDiameter = fretW/2
+    val mltShapeFingerCircleDiameter = fretW / 2
     val fretRectangleMltShape = Karaoke.chordLayoutFretsRectangleMltShape.copy()
 
     // Бэкграунд
     result.add(
         MltObject(
-        layoutW = chordLayoutW,
-        layoutH = chordLayoutH,
-        privateShape = Karaoke.chordLayoutBackgroundRectangleMltShape,
-        alignmentX = MltObjectAlignmentX.LEFT,
-        alignmentY = MltObjectAlignmentY.TOP,
-        privateX = 0,
-        privateY = 0,
-        privateW = chordLayoutW,
-        privateH = chordLayoutH
-    )
+            layoutW = chordLayoutW,
+            layoutH = chordLayoutH,
+            privateShape = Karaoke.chordLayoutBackgroundRectangleMltShape,
+            alignmentX = MltObjectAlignmentX.LEFT,
+            alignmentY = MltObjectAlignmentY.TOP,
+            privateX = 0,
+            privateY = 0,
+            privateW = chordLayoutW,
+            privateH = chordLayoutH,
+        ),
     )
 
     // Название аккорда
-    val mltTextChordName = MltObject(
-        layoutW = chordLayoutW,
-        layoutH = chordLayoutH,
-        privateShape = chordNameMltText,
-        alignmentX = MltObjectAlignmentX.CENTER,
-        alignmentY = MltObjectAlignmentY.TOP,
-        privateX = chordLayoutW/2,
-        privateY = 0,
-        privateH = (chordLayoutH * 0.2).toInt()
-    )
+    val mltTextChordName =
+        MltObject(
+            layoutW = chordLayoutW,
+            layoutH = chordLayoutH,
+            privateShape = chordNameMltText,
+            alignmentX = MltObjectAlignmentX.CENTER,
+            alignmentY = MltObjectAlignmentY.TOP,
+            privateX = chordLayoutW / 2,
+            privateY = 0,
+            privateH = (chordLayoutH * 0.2).toInt(),
+        )
     result.add(mltTextChordName)
 
     // Номера ладов
     val firstFret = if (initFret == 0) 1 else initFret
-    for (fret in firstFret+capo..(firstFret+capo+3)) {
+    for (fret in firstFret + capo..(firstFret + capo + 3)) {
         val fretNumberMltText = Karaoke.chordLayoutFretsNumbersMltText.copy(fret.toString())
 //        fretNumberMltText.text = fret.toString()
 
-        val mltTextFretNumber = MltObject(
-            layoutW = chordLayoutW,
-            layoutH = chordLayoutH,
-            privateShape = fretNumberMltText,
-            alignmentX = MltObjectAlignmentX.CENTER,
-            alignmentY = MltObjectAlignmentY.TOP,
-            privateX = fretW * (fret - firstFret + 1 - capo) + fretW/2,
-            privateY = mltTextChordName.h,
-            privateH = (chordLayoutH * 0.1).toInt()
-        )
+        val mltTextFretNumber =
+            MltObject(
+                layoutW = chordLayoutW,
+                layoutH = chordLayoutH,
+                privateShape = fretNumberMltText,
+                alignmentX = MltObjectAlignmentX.CENTER,
+                alignmentY = MltObjectAlignmentY.TOP,
+                privateX = fretW * (fret - firstFret + 1 - capo) + fretW / 2,
+                privateY = mltTextChordName.h,
+                privateH = (chordLayoutH * 0.1).toInt(),
+            )
         fretNumberTextH = mltTextFretNumber.h
         result.add(mltTextFretNumber)
     }
 
-    val mltShapeFretRectangleH = (chordLayoutH - (mltTextChordName.h + 2*fretNumberTextH)) / 5
+    val mltShapeFretRectangleH = (chordLayoutH - (mltTextChordName.h + 2 * fretNumberTextH)) / 5
 
     // Прямоугольники ладов
 
     for (string in 0..4) {
         // Порожек или каподастр
         if (initFret == 0) {
-            val nutRectangleMltShape = if (capo == 0) Karaoke.chordLayoutNutsRectangleMltShape.copy() else Karaoke.chordLayoutCapoRectangleMltShape.copy()
-            val mltShapeNutRectangle = MltObject(
-                layoutW = chordLayoutW,
-                layoutH = chordLayoutH,
-                privateShape = nutRectangleMltShape,
-                alignmentX = MltObjectAlignmentX.RIGHT,
-                alignmentY = MltObjectAlignmentY.TOP,
-                privateX = fretW,
-                privateY = mltTextChordName.h + fretNumberTextH + mltShapeFretRectangleH*(string) + mltShapeFingerCircleDiameter/2,
-                privateW = fretW/5,
-                privateH = mltShapeFretRectangleH
-            )
+            val nutRectangleMltShape =
+                if (capo ==
+                    0
+                ) {
+                    Karaoke.chordLayoutNutsRectangleMltShape.copy()
+                } else {
+                    Karaoke.chordLayoutCapoRectangleMltShape.copy()
+                }
+            val mltShapeNutRectangle =
+                MltObject(
+                    layoutW = chordLayoutW,
+                    layoutH = chordLayoutH,
+                    privateShape = nutRectangleMltShape,
+                    alignmentX = MltObjectAlignmentX.RIGHT,
+                    alignmentY = MltObjectAlignmentY.TOP,
+                    privateX = fretW,
+                    privateY = mltTextChordName.h + fretNumberTextH + mltShapeFretRectangleH * (string) + mltShapeFingerCircleDiameter / 2,
+                    privateW = fretW / 5,
+                    privateH = mltShapeFretRectangleH,
+                )
             result.add(mltShapeNutRectangle)
         }
         for (fret in 1..4) {
-            val mltShapeFretRectangle = MltObject(
-                layoutW = chordLayoutW,
-                layoutH = chordLayoutH,
-                privateShape = fretRectangleMltShape,
-                alignmentX = MltObjectAlignmentX.CENTER,
-                alignmentY = MltObjectAlignmentY.TOP,
-                privateX = fretW * fret + fretW/2,
-                privateY = mltTextChordName.h + fretNumberTextH + mltShapeFretRectangleH*(string) + mltShapeFingerCircleDiameter/2,
-                privateW = fretW,
-                privateH = mltShapeFretRectangleH
-            )
+            val mltShapeFretRectangle =
+                MltObject(
+                    layoutW = chordLayoutW,
+                    layoutH = chordLayoutH,
+                    privateShape = fretRectangleMltShape,
+                    alignmentX = MltObjectAlignmentX.CENTER,
+                    alignmentY = MltObjectAlignmentY.TOP,
+                    privateX = fretW * fret + fretW / 2,
+                    privateY = mltTextChordName.h + fretNumberTextH + mltShapeFretRectangleH * (string) + mltShapeFingerCircleDiameter / 2,
+                    privateW = fretW,
+                    privateH = mltShapeFretRectangleH,
+                )
             result.add(mltShapeFretRectangle)
         }
     }
@@ -1794,90 +1997,109 @@ fun generateChordLayout(chord: MusicChord, startRootNote: MusicNote, startInitFr
         // Приглушение струны
         if (fingerboard.muted) {
             val mutedRectangleMltShape = Karaoke.chordLayoutMutedRectangleMltShape.copy()
-            val mltShapeMutedRectangle = MltObject(
-                layoutW = chordLayoutW,
-                layoutH = chordLayoutH,
-                privateShape = mutedRectangleMltShape,
-                alignmentX = MltObjectAlignmentX.LEFT,
-                alignmentY = MltObjectAlignmentY.TOP,
-                privateX = fretW,
-                privateY = mltTextChordName.h + fretNumberTextH + mltShapeFretRectangleH*(fingerboard.guitarString.number-1) + mltShapeFingerCircleDiameter/2 - fretRectangleMltShape.shapeOutline/2,
-                privateW = fretW*4,
-                privateH = fretRectangleMltShape.shapeOutline
-            )
+            val mltShapeMutedRectangle =
+                MltObject(
+                    layoutW = chordLayoutW,
+                    layoutH = chordLayoutH,
+                    privateShape = mutedRectangleMltShape,
+                    alignmentX = MltObjectAlignmentX.LEFT,
+                    alignmentY = MltObjectAlignmentY.TOP,
+                    privateX = fretW,
+                    privateY =
+                        mltTextChordName.h + fretNumberTextH + mltShapeFretRectangleH * (fingerboard.guitarString.number - 1) +
+                            mltShapeFingerCircleDiameter / 2 -
+                            fretRectangleMltShape.shapeOutline / 2,
+                    privateW = fretW * 4,
+                    privateH = fretRectangleMltShape.shapeOutline,
+                )
             result.add(mltShapeMutedRectangle)
         }
 
         if (!((initFret == 0 && fingerboard.fret == 0) || fingerboard.muted)) {
             val fingerCircleMltShape = Karaoke.chordLayoutFingerCircleMltShape.copy()
-            val mltShapeFingerCircle = MltObject(
-                layoutW = chordLayoutW,
-                layoutH = chordLayoutH,
-                privateShape = fingerCircleMltShape,
-                alignmentX = MltObjectAlignmentX.LEFT,
-                alignmentY = MltObjectAlignmentY.TOP,
-                privateX = fretW * (fingerboard.fret - initFret + (if (initFret != 0) 1 else 0)) + fretW/2 - (mltShapeFingerCircleDiameter)/2,
-                privateY = mltTextChordName.h + fretNumberTextH + mltShapeFretRectangleH*(fingerboard.guitarString.number-1) + mltShapeFingerCircleDiameter/2 - mltShapeFingerCircleDiameter/2,
-                privateW = mltShapeFingerCircleDiameter,
-                privateH = mltShapeFingerCircleDiameter
-            )
+            val mltShapeFingerCircle =
+                MltObject(
+                    layoutW = chordLayoutW,
+                    layoutH = chordLayoutH,
+                    privateShape = fingerCircleMltShape,
+                    alignmentX = MltObjectAlignmentX.LEFT,
+                    alignmentY = MltObjectAlignmentY.TOP,
+                    privateX =
+                        fretW * (fingerboard.fret - initFret + (if (initFret != 0) 1 else 0)) + fretW / 2 -
+                            (mltShapeFingerCircleDiameter) / 2,
+                    privateY =
+                        mltTextChordName.h + fretNumberTextH + mltShapeFretRectangleH * (fingerboard.guitarString.number - 1) +
+                            mltShapeFingerCircleDiameter / 2 -
+                            mltShapeFingerCircleDiameter / 2,
+                    privateW = mltShapeFingerCircleDiameter,
+                    privateH = mltShapeFingerCircleDiameter,
+                )
             result.add(mltShapeFingerCircle)
         }
-
-
     }
 
     // Барре (если первый лад не нулевой)
     if (initFret != 0) {
         val fingerCircleMltShape = Karaoke.chordLayoutFingerCircleMltShape.copy()
         fingerCircleMltShape.type = MltObjectType.ROUNDEDRECTANGLE
-        val mltShapeFingerCircle = MltObject(
-            layoutW = chordLayoutW,
-            layoutH = chordLayoutH,
-            privateShape = fingerCircleMltShape,
-            alignmentX = MltObjectAlignmentX.LEFT,
-            alignmentY = MltObjectAlignmentY.TOP,
-            privateX = fretW + fretW/2 - (mltShapeFingerCircleDiameter)/2,
-            privateY = mltTextChordName.h + fretNumberTextH + mltShapeFingerCircleDiameter/2 - mltShapeFingerCircleDiameter/2,
-            privateW = mltShapeFingerCircleDiameter,
-            privateH = mltShapeFretRectangleH*5 +  mltShapeFingerCircleDiameter
-        )
+        val mltShapeFingerCircle =
+            MltObject(
+                layoutW = chordLayoutW,
+                layoutH = chordLayoutH,
+                privateShape = fingerCircleMltShape,
+                alignmentX = MltObjectAlignmentX.LEFT,
+                alignmentY = MltObjectAlignmentY.TOP,
+                privateX = fretW + fretW / 2 - (mltShapeFingerCircleDiameter) / 2,
+                privateY = mltTextChordName.h + fretNumberTextH + mltShapeFingerCircleDiameter / 2 - mltShapeFingerCircleDiameter / 2,
+                privateW = mltShapeFingerCircleDiameter,
+                privateH = mltShapeFretRectangleH * 5 + mltShapeFingerCircleDiameter,
+            )
         result.add(mltShapeFingerCircle)
     }
 
     return result
 }
 
-fun getFontSizeByHeight(heightPx: Int, font: Font): Int {
+fun getFontSizeByHeight(
+    heightPx: Int,
+    font: Font,
+): Int {
     var fontSize = 1
     while (getTextWidthHeightPx("0", Font(font.fontName, font.style, fontSize)).second < heightPx) {
         fontSize += 1
     }
-    return fontSize-1
+    return fontSize - 1
 }
 
-fun getFileNameByMasks(pathToFolder: String, startWith: String, suffixes: List<String>,extension: String): String {
-
+fun getFileNameByMasks(
+    pathToFolder: String,
+    startWith: String,
+    suffixes: List<String>,
+    extension: String,
+): String {
     try {
-        val files = Files.walk(Path(pathToFolder))
-            .filter(Files::isRegularFile)
-            .map { it.toString() }
-            .filter{ it.endsWith(extension) && it.startsWith("${pathToFolder}/$startWith")}
-            .map { Path(it).toFile().name }
-            .toList()
+        val files =
+            Files
+                .walk(Path(pathToFolder))
+                .filter(Files::isRegularFile)
+                .map { it.toString() }
+                .filter { it.endsWith(extension) && it.startsWith("$pathToFolder/$startWith") }
+                .map { Path(it).toFile().name }
+                .toList()
         suffixes.forEach { suffix ->
-            val filename = files.firstOrNull{it.startsWith("${startWith}${suffix}")}
+            val filename = files.firstOrNull { it.startsWith("${startWith}$suffix") }
             if (filename != null) return filename
         }
     } catch (_: Exception) {
         return ""
     }
     return ""
-
 }
 
-fun createSongTextFile(settings: Settings, songVersion: SongVersion) {
-
+fun createSongTextFile(
+    settings: Settings,
+    songVersion: SongVersion,
+) {
     val filePath = settings.getOutputFilename(SongOutputFile.TEXT, songVersion)
     val fileText = File(filePath)
     Files.createDirectories(Path(fileText.parent))
@@ -1885,11 +2107,12 @@ fun createSongTextFile(settings: Settings, songVersion: SongVersion) {
     val text = settings.getTextBody()
     fileText.writeText(text)
     runCommand(listOf("chmod", "666", filePath))
-
 }
 
-fun createSongDescriptionFile(settings: Settings, songVersion: SongVersion) {
-
+fun createSongDescriptionFile(
+    settings: Settings,
+    songVersion: SongVersion,
+) {
     val filePath = settings.getOutputFilename(SongOutputFile.DESCRIPTION, songVersion)
     val fileText = File(filePath)
     Files.createDirectories(Path(fileText.parent))
@@ -1897,24 +2120,23 @@ fun createSongDescriptionFile(settings: Settings, songVersion: SongVersion) {
     val text = settings.getDescriptionWithHeaderWOTimecodes(songVersion)
     fileText.writeText(text)
     runCommand(listOf("chmod", "666", filePath))
-
 }
 
 @Suppress("unused")
 fun test() {
-
-
     val fileNameXml = "src/main/resources/settings.xml"
     val props = Properties()
 //    val frameW = Integer.valueOf(props.getProperty("FRAME_WIDTH_PX", "1"));
 //    val kdeBackgroundFolderPath = props.getProperty("kdeBackgroundFolderPath", "&&&")
 
     props.setProperty("FRAME_FPS", Karaoke.frameFps.toString())
-    props.setProperty("VOICES_SETTINGS", """
+    props.setProperty(
+        "VOICES_SETTINGS",
+        """
         voice=0;group=0;fontNameText=Tahoma;colorText=255,255,255,255;fontNameBeat=Tahoma;colorBeat=155,255,255,255
         voice=0;group=1;fontNameText=Lobster;colorBeat=105,255,105,255;fontNameBeat=Lobster;colorText=255,255,155,255
-        """
-        .trimIndent())
+        """.trimIndent(),
+    )
     props.storeToXML(File(fileNameXml).outputStream(), "Какой-то комментарий")
     props.loadFromXML(File(fileNameXml).inputStream())
 
@@ -1925,7 +2147,7 @@ fun test() {
             val vars = vs.split(";")
             vars.forEach { variable ->
                 val nameAndValue = variable.split("=")
-                when(nameAndValue[0]) {
+                when (nameAndValue[0]) {
                     "voice" -> println("${nameAndValue[0]} = ${(nameAndValue[1].toLong())}")
                     "group" -> println("${nameAndValue[0]} = ${(nameAndValue[1].toLong())}")
                     "fontNameText" -> println("${nameAndValue[0]} = ${nameAndValue[1]}")
@@ -1948,20 +2170,22 @@ fun test() {
             }
         }
     }
-
-
-
 }
 
 @Suppress("unused")
-fun getTextWidthHeightPx(text: String, fontName: String, fontStyle: Int, fontSize: Int): Pair<Double, Double> {
-    return getTextWidthHeightPx(text, Font(fontName, fontStyle, fontSize))
-}
+fun getTextWidthHeightPx(
+    text: String,
+    fontName: String,
+    fontStyle: Int,
+    fontSize: Int,
+): Pair<Double, Double> = getTextWidthHeightPx(text, Font(fontName, fontStyle, fontSize))
 
-fun getTextWidthHeightPx(text: String, font: Font): Pair<Double, Double> {
-
+fun getTextWidthHeightPx(
+    text: String,
+    font: Font,
+): Pair<Double, Double> {
     val notesSymbols = "●∙◉♪"
-    val notesFont = Font("Arial Unicode MS",font.style, font.size)
+    val notesFont = Font("Arial Unicode MS", font.style, font.size)
     var notesString = ""
     var notNotesString = ""
     text.forEach { symbol ->
@@ -1972,12 +2196,12 @@ fun getTextWidthHeightPx(text: String, font: Font): Pair<Double, Double> {
         }
     }
 
-    val graphics2D1 = BufferedImage(1,1,BufferedImage.TYPE_INT_ARGB).graphics as Graphics2D
+    val graphics2D1 = BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB).graphics as Graphics2D
     graphics2D1.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
     graphics2D1.font = font
     val rect1 = graphics2D1.fontMetrics.getStringBounds(notNotesString, graphics2D1)
 
-    val graphics2D2 = BufferedImage(1,1,BufferedImage.TYPE_INT_ARGB).graphics as Graphics2D
+    val graphics2D2 = BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB).graphics as Graphics2D
     graphics2D2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
     graphics2D2.font = notesFont
     val rect2 = graphics2D2.fontMetrics.getStringBounds(notesString, graphics2D2)
@@ -1986,11 +2210,14 @@ fun getTextWidthHeightPx(text: String, font: Font): Pair<Double, Double> {
 }
 
 @Suppress("unused")
-fun convertMarkersToSubtitles(pathToSourceFile: String, pathToResultFile: String = "") {
-
-    val gson = GsonBuilder()
-        .setLenient()
-        .create()
+fun convertMarkersToSubtitles(
+    pathToSourceFile: String,
+    pathToResultFile: String = "",
+) {
+    val gson =
+        GsonBuilder()
+            .setLenient()
+            .create()
 
     val sourceFileBody = File(pathToSourceFile).readText(Charsets.UTF_8)
     val regexpLines = Regex("""<property name="kdenlive:markers"[^<]([\s\S]+?)</property>""")
@@ -1998,7 +2225,12 @@ fun convertMarkersToSubtitles(pathToSourceFile: String, pathToResultFile: String
     var countSubsFile = 0L
     val subsFiles: MutableList<MutableList<Marker>> = emptyList<MutableList<Marker>>().toMutableList()
     linesMatchResults.forEach { lineMatchResult ->
-        val textToAnalize = lineMatchResult.groups[1]?.value?.replace("\n", "")?.replace("[", "")?.replace("]", "")
+        val textToAnalize =
+            lineMatchResult.groups[1]
+                ?.value
+                ?.replace("\n", "")
+                ?.replace("[", "")
+                ?.replace("]", "")
         val regexpMarkers = Regex("""\{[^}]([\s\S]+?)}""")
         val markersMatchResults = regexpMarkers.findAll(textToAnalize!!)
         if (markersMatchResults.iterator().hasNext()) {
@@ -2012,74 +2244,95 @@ fun convertMarkersToSubtitles(pathToSourceFile: String, pathToResultFile: String
         }
     }
 
-
     var countCreatedFiles = 0L
     for (indexSubFiles in 0 until subsFiles.size) {
         val subFile = subsFiles[indexSubFiles]
         var prevMarkerIsEndLine = true
         val subtitles = mutableListOf<Subtitle>()
         for (indexMarker in 0 until subFile.size) {
-
             val currMarker = subFile[indexMarker]
 
-            if (currMarker.comment in ".\\/*" || indexMarker == subFile.size-1) {
+            if (currMarker.comment in ".\\/*" || indexMarker == subFile.size - 1) {
                 prevMarkerIsEndLine = true
                 continue
             }
 
-            val nextMarker = subFile[indexMarker+1]
+            val nextMarker = subFile[indexMarker + 1]
             val isLineStart = prevMarkerIsEndLine
-            val isLineEnd = (nextMarker.comment in ".\\/*" || indexMarker == subFile.size-1)
+            val isLineEnd = (nextMarker.comment in ".\\/*" || indexMarker == subFile.size - 1)
             prevMarkerIsEndLine = isLineEnd
 
             var subText = currMarker.comment.replace(" ", "_").replace("-", "")
-            if (isLineStart) subText = subText[0].uppercase()+subText.subSequence(1,subText.length)
-            if (isLineStart) subText = "//${subText}"
+            if (isLineStart) subText = subText[0].uppercase() + subText.subSequence(1, subText.length)
+            if (isLineStart) subText = "//$subText"
             if (isLineEnd) subText = "${subText}\\\\"
 
             val startTimecode = convertFramesToTimecode(currMarker.pos, 60.0)
             val endTimecode = convertFramesToTimecode(nextMarker.pos, 60.0)
 
-            val subtitle = Subtitle(
-                startTimecode = startTimecode,
-                endTimecode = endTimecode,
-                mltText = Karaoke.voices[0].groups[0].mltText.copy(subText),
-                isLineStart = isLineStart,
-                isLineEnd = isLineEnd
-            )
+            val subtitle =
+                Subtitle(
+                    startTimecode = startTimecode,
+                    endTimecode = endTimecode,
+                    mltText =
+                        Karaoke.voices[0]
+                            .groups[0]
+                            .mltText
+                            .copy(subText),
+                    isLineStart = isLineStart,
+                    isLineEnd = isLineEnd,
+                )
             subtitles.add(subtitle)
         }
 
         var textSubtitleFile = ""
         for (index in 0 until subtitles.size) {
             val subtitle = subtitles[index]
-            textSubtitleFile += "${index+1}\n${subtitle.startTimecode} --> ${subtitle.endTimecode}\n${subtitle.mltText.text}\n\n"
+            textSubtitleFile += "${index + 1}\n${subtitle.startTimecode} --> ${subtitle.endTimecode}\n${subtitle.mltText.text}\n\n"
         }
 
         if (textSubtitleFile != "") {
             countCreatedFiles++
-            val fileNameNewSubs = "${pathToSourceFile}${if (countCreatedFiles == 1L) "" else "_${countCreatedFiles-1}"}.srt"
+            val fileNameNewSubs = "${pathToSourceFile}${if (countCreatedFiles == 1L) "" else "_${countCreatedFiles - 1}"}.srt"
             File(fileNameNewSubs).writeText(textSubtitleFile)
             runCommand(listOf("chmod", "666", fileNameNewSubs))
         }
-
     }
-
 }
 
-fun getRandomFile(pathToFolder: String, extension: String = ""): String {
+fun getRandomFile(
+    pathToFolder: String,
+    extension: String = "",
+): String {
     val listFiles = getListFiles(pathToFolder, extension)
     return if (listFiles.isEmpty()) "" else listFiles[Random.nextInt(listFiles.size)]
 }
 
-fun getListFiles(pathToFolder: String, extension: String = "", startWith: String = ""): List<String> {
-    return try {
-        Files.walk(Path(pathToFolder)).filter(Files::isRegularFile).map { it.toString() }.filter{ it.endsWith(extension) && it.startsWith("${pathToFolder}/$startWith")}.toList().sorted()
+fun getListFiles(
+    pathToFolder: String,
+    extension: String = "",
+    startWith: String = "",
+): List<String> =
+    try {
+        Files
+            .walk(Path(pathToFolder))
+            .filter(Files::isRegularFile)
+            .map { it.toString() }
+            .filter {
+                it.endsWith(extension) &&
+                    it.startsWith("$pathToFolder/$startWith")
+            }.toList()
+            .sorted()
     } catch (_: Exception) {
         emptyList()
     }
-}
-fun getListFiles(pathToFolder: String, extensions: List<String> = listOf(), startsWith: List<String> = listOf(), excludes: List<String> = listOf()): List<String> {
+
+fun getListFiles(
+    pathToFolder: String,
+    extensions: List<String> = listOf(),
+    startsWith: List<String> = listOf(),
+    excludes: List<String> = listOf(),
+): List<String> {
     val result = mutableListOf<String>()
     val preRes = getListFiles(pathToFolder)
     val filteredEndRes = mutableListOf<String>()
@@ -2094,7 +2347,7 @@ fun getListFiles(pathToFolder: String, extensions: List<String> = listOf(), star
     }
     if (startsWith.isNotEmpty()) {
         startsWith.forEach { startWith ->
-            filteredStartRes.addAll(filteredEndRes.filter { it.startsWith("${pathToFolder}/$startWith") })
+            filteredStartRes.addAll(filteredEndRes.filter { it.startsWith("$pathToFolder/$startWith") })
         }
     } else {
         filteredStartRes.addAll(filteredEndRes)
@@ -2113,21 +2366,35 @@ fun getListFiles(pathToFolder: String, extensions: List<String> = listOf(), star
 }
 
 @Suppress("unused")
-fun extractSubtitlesFromAutorecognizedFile(pathToFileFrom: String, pathToFileTo: String): String {
+fun extractSubtitlesFromAutorecognizedFile(
+    pathToFileFrom: String,
+    pathToFileTo: String,
+): String {
     val text = File(pathToFileFrom).readText(Charsets.UTF_8)
     val regexpLines = Regex("""href="\d+?#[^/a](.+?)/a""")
     val linesMatchResults = regexpLines.findAll(text)
     var counter = 0L
     var subs = ""
-    linesMatchResults.forEach { lineMatchResult->
+    linesMatchResults.forEach { lineMatchResult ->
         val line = lineMatchResult.value
-        val startEnd = Regex("""href="\d+?[^"&gt](.+?)"&gt""").find(line)?.groups?.get(1)?.value?.split(":")
-        val start = convertMillisecondsToTimecode(((startEnd?.get(0)?:"0").toDouble()*1000).toLong())
-        val end = convertMillisecondsToTimecode(((startEnd?.get(1)?:"0").toDouble()*1000).toLong())
-        val word = Regex("""&gt[^&lt](.+?)&lt""").find(line)?.groups?.get(1)?.value
+        val startEnd =
+            Regex("""href="\d+?[^"&gt](.+?)"&gt""")
+                .find(line)
+                ?.groups
+                ?.get(1)
+                ?.value
+                ?.split(":")
+        val start = convertMillisecondsToTimecode(((startEnd?.get(0) ?: "0").toDouble() * 1000).toLong())
+        val end = convertMillisecondsToTimecode(((startEnd?.get(1) ?: "0").toDouble() * 1000).toLong())
+        val word =
+            Regex("""&gt[^&lt](.+?)&lt""")
+                .find(line)
+                ?.groups
+                ?.get(1)
+                ?.value
         if (word != "Речь отсутствует") {
             counter++
-            subs += "${counter}\n${start} --> ${end}\n${word}\n\n"
+            subs += "${counter}\n$start --> ${end}\n${word}\n\n"
         }
     }
     File(pathToFileTo).writeText(subs)
@@ -2135,18 +2402,27 @@ fun extractSubtitlesFromAutorecognizedFile(pathToFileFrom: String, pathToFileTo:
     return subs
 }
 
-fun convertMillisecondsToFrames(milliseconds: Long, fps:Double = Karaoke.frameFps): Long {
+fun convertMillisecondsToFrames(
+    milliseconds: Long,
+    fps: Double = Karaoke.frameFps,
+): Long {
     val frameLength = 1000.0 / fps
     return (milliseconds / frameLength).roundToInt().toLong()
 }
 
 @Suppress("unused")
-fun convertMillisecondsToFramesDouble(milliseconds: Long, fps:Double = Karaoke.frameFps): Double {
+fun convertMillisecondsToFramesDouble(
+    milliseconds: Long,
+    fps: Double = Karaoke.frameFps,
+): Double {
     val frameLength = 1000.0 / fps
     return milliseconds / frameLength
 }
 
-fun convertFramesToMilliseconds(frames: Long, fps:Double = Karaoke.frameFps): Long {
+fun convertFramesToMilliseconds(
+    frames: Long,
+    fps: Double = Karaoke.frameFps,
+): Long {
     val frameLength = 1000.0 / fps
     return (frames * frameLength).roundToInt().toLong()
 }
@@ -2158,32 +2434,33 @@ fun millisecondsToTimeFormatted(milliseconds: Long): String {
 }
 
 fun convertMillisecondsToTimecode(milliseconds: Long): String {
-    val hours = milliseconds / (1000*60*60)
-    val minutes = (milliseconds - hours*1000*60*60) / (1000*60)
-    val seconds = (milliseconds - hours*1000*60*60 - minutes*1000*60) / 1000
-    val ms = milliseconds - hours*1000*60*60 - minutes*1000*60 - seconds*1000
-    return "%02d:%02d:%02d.%03d".format(hours,minutes,seconds,ms)
+    val hours = milliseconds / (1000 * 60 * 60)
+    val minutes = (milliseconds - hours * 1000 * 60 * 60) / (1000 * 60)
+    val seconds = (milliseconds - hours * 1000 * 60 * 60 - minutes * 1000 * 60) / 1000
+    val ms = milliseconds - hours * 1000 * 60 * 60 - minutes * 1000 * 60 - seconds * 1000
+    return "%02d:%02d:%02d.%03d".format(hours, minutes, seconds, ms)
 }
 
 fun convertMillisecondsToDzenTimecode(milliseconds: Long): String {
-    val hours = milliseconds / (1000*60*60)
-    val minutes = (milliseconds - hours*1000*60*60) / (1000*60)
-    val seconds = (milliseconds - hours*1000*60*60 - minutes*1000*60) / 1000
+    val hours = milliseconds / (1000 * 60 * 60)
+    val minutes = (milliseconds - hours * 1000 * 60 * 60) / (1000 * 60)
+    val seconds = (milliseconds - hours * 1000 * 60 * 60 - minutes * 1000 * 60) / 1000
 //    val ms = milliseconds - hours*1000*60*60 - minutes*1000*60 - seconds*1000
-    return "%01d:%02d:%02d".format(hours,minutes,seconds)
+    return "%01d:%02d:%02d".format(hours, minutes, seconds)
 }
 
 fun convertMillisecondsToDtoTimecode(milliseconds: Long): String {
-    val hours = milliseconds / (1000*60*60)
-    val minutes = (milliseconds - hours*1000*60*60) / (1000*60)
-    val seconds = (milliseconds - hours*1000*60*60 - minutes*1000*60) / 1000
+    val hours = milliseconds / (1000 * 60 * 60)
+    val minutes = (milliseconds - hours * 1000 * 60 * 60) / (1000 * 60)
+    val seconds = (milliseconds - hours * 1000 * 60 * 60 - minutes * 1000 * 60) / 1000
 //    val ms = milliseconds - hours*1000*60*60 - minutes*1000*60 - seconds*1000
-    return (if (hours > 0) "$hours:" else "") + "%02d:%02d".format(minutes,seconds)
+    return (if (hours > 0) "$hours:" else "") + "%02d:%02d".format(minutes, seconds)
 }
 
-fun convertFramesToTimecode(frames: Long, fps:Double = Karaoke.frameFps): String {
-    return convertMillisecondsToTimecode(milliseconds = convertFramesToMilliseconds(frames,fps))
-}
+fun convertFramesToTimecode(
+    frames: Long,
+    fps: Double = Karaoke.frameFps,
+): String = convertMillisecondsToTimecode(milliseconds = convertFramesToMilliseconds(frames, fps))
 
 fun convertTimecodeToMilliseconds(timecode: String): Long {
     val hhmmssmm = timecode.split(":")
@@ -2195,14 +2472,18 @@ fun convertTimecodeToMilliseconds(timecode: String): Long {
     return milliseconds + seconds * 1000 + minutes * 1000 * 60 + hours * 1000 * 60 * 60
 }
 
-fun convertTimecodeToFrames(timecode: String, fps:Double = Karaoke.frameFps): Long {
-    return convertMillisecondsToFrames(convertTimecodeToMilliseconds(timecode = timecode), fps)
-}
+fun convertTimecodeToFrames(
+    timecode: String,
+    fps: Double = Karaoke.frameFps,
+): Long = convertMillisecondsToFrames(convertTimecodeToMilliseconds(timecode = timecode), fps)
 
-fun getBeatNumberByMilliseconds(timeInMilliseconds: Long, beatMs: Long, firstBeatTimecode: String): Long {
-
+fun getBeatNumberByMilliseconds(
+    timeInMilliseconds: Long,
+    beatMs: Long,
+    firstBeatTimecode: String,
+): Long {
     var delayMs = convertTimecodeToMilliseconds(firstBeatTimecode)
-    val diff = ((delayMs / (beatMs * 4))-1) * (beatMs * 4)
+    val diff = ((delayMs / (beatMs * 4)) - 1) * (beatMs * 4)
     delayMs -= diff
 
     val firstBeatMs = delayMs
@@ -2223,32 +2504,41 @@ fun getBeatNumberByMilliseconds(timeInMilliseconds: Long, beatMs: Long, firstBea
 }
 
 @Suppress("unused")
-fun getBeatNumberByTimecode(timeInTimecode: String, beatMs: Long, firstBeatTimecode: String): Long {
-    return getBeatNumberByMilliseconds(convertTimecodeToMilliseconds(timeInTimecode), beatMs, firstBeatTimecode)
-}
-fun getDurationInMilliseconds(start: String, end: String): Long {
-    return convertTimecodeToMilliseconds(end) - convertTimecodeToMilliseconds(start)
-}
+fun getBeatNumberByTimecode(
+    timeInTimecode: String,
+    beatMs: Long,
+    firstBeatTimecode: String,
+): Long = getBeatNumberByMilliseconds(convertTimecodeToMilliseconds(timeInTimecode), beatMs, firstBeatTimecode)
+
+fun getDurationInMilliseconds(
+    start: String,
+    end: String,
+): Long = convertTimecodeToMilliseconds(end) - convertTimecodeToMilliseconds(start)
 
 @Suppress("unused")
-fun getDiffInMilliseconds(firstTimecode: String, secondTimecode: String): Long {
-    return convertTimecodeToMilliseconds(firstTimecode) - convertTimecodeToMilliseconds(secondTimecode)
-}
+fun getDiffInMilliseconds(
+    firstTimecode: String,
+    secondTimecode: String,
+): Long = convertTimecodeToMilliseconds(firstTimecode) - convertTimecodeToMilliseconds(secondTimecode)
 
 @Suppress("unused")
 fun getSymbolWidth(fontSizePt: Int): Double {
     // Получение ширины символа (в пикселях) для размера шрифта (в пунктах)
-    return fontSizePt*0.6
+    return fontSizePt * 0.6
 }
 
 @Suppress("unused")
 fun getFontSizeBySymbolWidth(symbolWidthPx: Double): Int {
     // Получение размера шрифта (в пунктах) для ширины символа (в пикселах)
-    return (symbolWidthPx/0.6).toInt()
+    return (symbolWidthPx / 0.6).toInt()
 }
 
 @Suppress("unused")
-fun replaceVowelOrConsonantLetters(str: String, isVowel: Boolean = true, replSymbol: String = " "): String {
+fun replaceVowelOrConsonantLetters(
+    str: String,
+    isVowel: Boolean = true,
+    replSymbol: String = " ",
+): String {
     var result = ""
     str.forEach { symbol ->
         result += if ((symbol in LETTERS_VOWEL) == isVowel) replSymbol else symbol
@@ -2261,7 +2551,11 @@ fun getSyllables(text: String): List<String> {
     val regexWords = """\S+""".toRegex(setOf(RegexOption.IGNORE_CASE))
     val words = regexWords.find(text)?.groupValues ?: emptyList()
 
-    val regexSyllables = """[ЙЦКНГШЩЗХЪФВПРЛДЖЧСМТЬБQWRTYPSDFGHJKLZXCVBNM-]*[ЁУЕЫАОЭЯИЮEUIOAїієѣ][ЙЦКНГШЩЗХЪФВПРЛДЖЧСМТЬБQWRTYPSDFGHJKLZXCVBNM-]*?(?=[ЦКНГШЩЗХФВПРЛДЖЧСМТБQWRTYPSDFGHJKLZXCVBNM-]?[ЁУЕЫАОЭЯИЮEUIOAїієѣ]|[Й|Y][АИУЕОEUIOAїієѣ])""".toRegex(setOf(RegexOption.IGNORE_CASE))
+    val regexSyllables =
+        """[ЙЦКНГШЩЗХЪФВПРЛДЖЧСМТЬБQWRTYPSDFGHJKLZXCVBNM-]*[ЁУЕЫАОЭЯИЮEUIOAїієѣ][ЙЦКНГШЩЗХЪФВПРЛДЖЧСМТЬБQWRTYPSDFGHJKLZXCVBNM-]*?(?=[ЦКНГШЩЗХФВПРЛДЖЧСМТБQWRTYPSDFGHJKLZXCVBNM-]?[ЁУЕЫАОЭЯИЮEUIOAїієѣ]|[Й|Y][АИУЕОEUIOAїієѣ])"""
+            .toRegex(
+                setOf(RegexOption.IGNORE_CASE),
+            )
 
     words.forEach { word ->
         val syllables = regexSyllables.replace(word) { m -> "${m.value} " }.split(" ")
@@ -2269,7 +2563,7 @@ fun getSyllables(text: String): List<String> {
             result.add("${word}_")
         } else {
             syllables.forEachIndexed { j, syllable ->
-                result.add("${syllable}${if (j == syllables.size -1) "_" else ""}")
+                result.add("${syllable}${if (j == syllables.size - 1) "_" else ""}")
             }
         }
     }
@@ -2278,12 +2572,12 @@ fun getSyllables(text: String): List<String> {
     while (i < result.size) {
         val word = result[i]
         if (!word.haveVowel()) {
-            if (i == result.size-1 && (word == "-_" && i != 0)) {
-                result[i-1] = "${result[i-1]}${word}"
+            if (i == result.size - 1 && (word == "-_" && i != 0)) {
+                result[i - 1] = "${result[i - 1]}$word"
                 result.removeAt(i)
                 i--
-            } else if (i < result.size-2) {
-                result[i+1] = "${word}${result[i+1]}"
+            } else if (i < result.size - 2) {
+                result[i + 1] = "${word}${result[i + 1]}"
                 result.removeAt(i)
                 i--
             }
@@ -2291,13 +2585,16 @@ fun getSyllables(text: String): List<String> {
         i++
     }
     return result
-
 }
-
 
 @Suppress("unused")
 class Solution {
-    fun merge(nums1: IntArray, m: Int, nums2: IntArray, n: Int) {
+    fun merge(
+        nums1: IntArray,
+        m: Int,
+        nums2: IntArray,
+        n: Int,
+    ) {
         val result: MutableList<Int> = mutableListOf()
         result.addAll(nums1.filterIndexed { index, _ -> index < m })
         result.addAll(nums2.filterIndexed { index, _ -> index < n })
@@ -2307,11 +2604,21 @@ class Solution {
 }
 
 // Возвращает "самый длинный элемент", состоящий из слогов самой длинной комбинированной строки всех голосов
-fun getLongerElement(songVersion: SongVersion, listOfVoices: List<SettingVoice>): SettingVoiceLineElement? {
+fun getLongerElement(
+    songVersion: SongVersion,
+    listOfVoices: List<SettingVoice>,
+): SettingVoiceLineElement? {
     if (listOfVoices.isEmpty()) return null
 
     val longerElementLastVoice = listOfVoices.last().longerTextElement(songVersion) ?: return null
-    val listLongerElementPreviousVoices = listOfVoices.filterIndexed { index, _ -> index < listOfVoices.size }.mapNotNull { it.longerElementPreviousVoice }
+    val listLongerElementPreviousVoices =
+        listOfVoices
+            .filterIndexed {
+                index,
+                _,
+                ->
+                index < listOfVoices.size
+            }.mapNotNull { it.longerElementPreviousVoice }
     if (listLongerElementPreviousVoices.isEmpty()) {
         return longerElementLastVoice
     } else {
@@ -2326,10 +2633,11 @@ fun getLongerElement(songVersion: SongVersion, listOfVoices: List<SettingVoice>)
         val elGetSylls = longerElementLastVoice.getSyllables()
         elGetSylls.first().previous = prevSyl
         syls.addAll(elGetSylls)
-        val result = SettingVoiceLineElement(
-            rootId = listOfVoices[0].rootId,
-            type = longerElementLastVoice.type,
-        )
+        val result =
+            SettingVoiceLineElement(
+                rootId = listOfVoices[0].rootId,
+                type = longerElementLastVoice.type,
+            )
         result.addSyllables(syls)
 
         return result
@@ -2337,8 +2645,10 @@ fun getLongerElement(songVersion: SongVersion, listOfVoices: List<SettingVoice>)
 }
 
 // Вычисляет максимальный размер шрифта, чтобы все голоса поместились на экране по ширине
-fun getFontSize(songVersion: SongVersion, listOfVoices: List<SettingVoice>): Int {
-
+fun getFontSize(
+    songVersion: SongVersion,
+    listOfVoices: List<SettingVoice>,
+): Int {
     var fontSize = 10
     if (listOfVoices.isEmpty()) return fontSize
     val cntVoices = listOfVoices.size
@@ -2349,7 +2659,9 @@ fun getFontSize(songVersion: SongVersion, listOfVoices: List<SettingVoice>): Int
     var maxTextWidthPxByFontSize = longerElement.w() + Karaoke.songtextStartPositionXpx * (cntVoices - 1)
     val stepIncrease = if (maxTextWidthPxByFontSize > maxTextWidthPx) -1 else 1
     while (true) {
-        if ((maxTextWidthPxByFontSize > maxTextWidthPx && stepIncrease < 0) || (maxTextWidthPxByFontSize < maxTextWidthPx && stepIncrease > 0)) {
+        if ((maxTextWidthPxByFontSize > maxTextWidthPx && stepIncrease < 0) ||
+            (maxTextWidthPxByFontSize < maxTextWidthPx && stepIncrease > 0)
+        ) {
             fontSize += stepIncrease
             longerElement.fontSize = fontSize
             val longerElementW = longerElement.w()
@@ -2372,45 +2684,47 @@ fun getFontSize(songVersion: SongVersion, listOfVoices: List<SettingVoice>): Int
     return fontSize
 }
 
-
 @Suppress("unused")
-fun getAlbumCardTitle(authorYmId: String): String = runBlocking {
-    val searchUrl = "https://music.yandex.ru/artist/$authorYmId/albums"
-    var result = ""
+fun getAlbumCardTitle(authorYmId: String): String =
+    runBlocking {
+        val searchUrl = "https://music.yandex.ru/artist/$authorYmId/albums"
+        var result = ""
 
-    try {
-        // Создание HttpClient
-        val client = HttpClient.newBuilder().build()
+        try {
+            // Создание HttpClient
+            val client = HttpClient.newBuilder().build()
 
-        val request = HttpRequest.newBuilder()
-            .uri(URI.create(searchUrl))
-            .GET()
-            .build()
-        val response = withContext(Dispatchers.IO) {
-            client.send(request, HttpResponse.BodyHandlers.ofString())
+            val request =
+                HttpRequest
+                    .newBuilder()
+                    .uri(URI.create(searchUrl))
+                    .GET()
+                    .build()
+            val response =
+                withContext(Dispatchers.IO) {
+                    client.send(request, HttpResponse.BodyHandlers.ofString())
+                }
+
+            println(response.body())
+
+            // Получение HTML-контента страницы
+            val htmlContent = response.body() // EntityUtils.toString(response.entity)
+
+            // Парсинг HTML с помощью Jsoup
+            val doc: Document = Jsoup.parse(htmlContent)
+
+            // Находим первый элемент <a>, у которого один из классов начинается с "AlbumCard_titleLink"
+            val element = doc.selectFirst("a[class*=AlbumCard_titleLink]")
+
+            if (element !== null) {
+                result = element.text().trim()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
 
-        println(response.body())
-
-        // Получение HTML-контента страницы
-        val htmlContent = response.body() // EntityUtils.toString(response.entity)
-
-        // Парсинг HTML с помощью Jsoup
-        val doc: Document = Jsoup.parse(htmlContent)
-
-        // Находим первый элемент <a>, у которого один из классов начинается с "AlbumCard_titleLink"
-        val element = doc.selectFirst("a[class*=AlbumCard_titleLink]")
-
-        if (element !== null) {
-            result = element.text().trim()
-        }
-
-    } catch (e: Exception) {
-        e.printStackTrace()
+        result
     }
-
-    result
-}
 
 fun String.extractBalancedBracesFromString(startWord: String): String {
     val result = "" // Строка для возврата в случае ошибки
@@ -2451,7 +2765,10 @@ fun String.extractBalancedBracesFromString(startWord: String): String {
     return result
 }
 
-fun String.textBetween(startString: String, endString: String): String {
+fun String.textBetween(
+    startString: String,
+    endString: String,
+): String {
     val result = ""
     val firstIndexOfStartString = this.indexOf(startString)
     if (firstIndexOfStartString < 0) return result
@@ -2467,29 +2784,34 @@ fun searchLastAlbumVk(vkId: String): String {
     val searchUrl = "https://vk.ru/artist/$vkId/albums"
     Playwright.create().use { playwright ->
 
-        val browser = playwright.chromium().launch(
-            BrowserType.LaunchOptions()
-                .setHeadless(false)
-        )
+        val browser =
+            playwright.chromium().launch(
+                BrowserType
+                    .LaunchOptions()
+                    .setHeadless(false),
+            )
 
         // Создаем контекст с дополнительными заголовками и сохраненным состоянием
-        val context = browser.newContext(
-            Browser.NewContextOptions()
+        val context =
+            browser.newContext(
+                Browser
+                    .NewContextOptions()
 //                .setStorageStatePath(Path.of(YANDEX_AUTH_STATE_PATH))
-                .setExtraHTTPHeaders(
-                    mapOf(
-                        "Referer" to authorUrl,
-                        "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
-                        "Accept-Language" to "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7",
-                        "Accept-Encoding" to "gzip, deflate, br",
-                        "Connection" to "keep-alive",
-                        "Upgrade-Insecure-Requests" to "1",
-                        "Sec-Fetch-Dest" to "document",
-                        "Sec-Fetch-Mode" to "navigate",
-                        "Sec-Fetch-Site" to "same-origin"
-                    )
-                )
-        )
+                    .setExtraHTTPHeaders(
+                        mapOf(
+                            "Referer" to authorUrl,
+                            "User-Agent" to
+                                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
+                            "Accept-Language" to "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7",
+                            "Accept-Encoding" to "gzip, deflate, br",
+                            "Connection" to "keep-alive",
+                            "Upgrade-Insecure-Requests" to "1",
+                            "Sec-Fetch-Dest" to "document",
+                            "Sec-Fetch-Mode" to "navigate",
+                            "Sec-Fetch-Site" to "same-origin",
+                        ),
+                    ),
+            )
 
         val page = context.newPage()
         page.navigate(searchUrl)
@@ -2530,29 +2852,34 @@ fun searchLastAlbumYm2(authorYmId: String): String {
     val searchUrl = "$authorUrl/albums"
     Playwright.create().use { playwright ->
 
-        val browser = playwright.chromium().launch(
-            BrowserType.LaunchOptions()
-                .setHeadless(true)
-        )
+        val browser =
+            playwright.chromium().launch(
+                BrowserType
+                    .LaunchOptions()
+                    .setHeadless(true),
+            )
 
         // Создаем контекст с дополнительными заголовками и сохраненным состоянием
-        val context = browser.newContext(
-            Browser.NewContextOptions()
-                .setStorageStatePath(Path.of(YANDEX_AUTH_STATE_PATH))
-                .setExtraHTTPHeaders(
-                    mapOf(
-                        "Referer" to authorUrl,
-                        "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
-                        "Accept-Language" to "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7",
-                        "Accept-Encoding" to "gzip, deflate, br",
-                        "Connection" to "keep-alive",
-                        "Upgrade-Insecure-Requests" to "1",
-                        "Sec-Fetch-Dest" to "document",
-                        "Sec-Fetch-Mode" to "navigate",
-                        "Sec-Fetch-Site" to "same-origin"
-                    )
-                )
-        )
+        val context =
+            browser.newContext(
+                Browser
+                    .NewContextOptions()
+                    .setStorageStatePath(Path.of(YANDEX_AUTH_STATE_PATH))
+                    .setExtraHTTPHeaders(
+                        mapOf(
+                            "Referer" to authorUrl,
+                            "User-Agent" to
+                                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
+                            "Accept-Language" to "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7",
+                            "Accept-Encoding" to "gzip, deflate, br",
+                            "Connection" to "keep-alive",
+                            "Upgrade-Insecure-Requests" to "1",
+                            "Sec-Fetch-Dest" to "document",
+                            "Sec-Fetch-Mode" to "navigate",
+                            "Sec-Fetch-Site" to "same-origin",
+                        ),
+                    ),
+            )
 
         val page = context.newPage()
         page.navigate(searchUrl)
@@ -2581,11 +2908,20 @@ fun searchLastAlbumYm2(authorYmId: String): String {
 }
 
 sealed class AlbumSearchResult {
-    data class Success(val albumTitle: String) : AlbumSearchResult()
+    data class Success(
+        val albumTitle: String,
+    ) : AlbumSearchResult()
+
     object VpnBlocked : AlbumSearchResult()
+
     object AuthExpired : AlbumSearchResult()
+
     object BotDetected : AlbumSearchResult()
-    data class Unknown(val pageTitle: String, val pageUrl: String) : AlbumSearchResult()
+
+    data class Unknown(
+        val pageTitle: String,
+        val pageUrl: String,
+    ) : AlbumSearchResult()
 }
 
 fun searchLastAlbumYm3(authorYmId: String): AlbumSearchResult {
@@ -2593,13 +2929,15 @@ fun searchLastAlbumYm3(authorYmId: String): AlbumSearchResult {
     val searchUrl = "$authorUrl/albums"
 
     Playwright.create().use { playwright ->
-        val context = playwright.chromium().launchPersistentContext(
-            USER_DATA_DIR,
-            BrowserType.LaunchPersistentContextOptions()
-                .setHeadless(true)
-                .setLocale("ru-RU")
-                .setTimezoneId("Europe/Moscow")
-        )
+        val context =
+            playwright.chromium().launchPersistentContext(
+                USER_DATA_DIR,
+                BrowserType
+                    .LaunchPersistentContextOptions()
+                    .setHeadless(true)
+                    .setLocale("ru-RU")
+                    .setTimezoneId("Europe/Moscow"),
+            )
 
         val page = context.pages().firstOrNull() ?: context.newPage()
         try {
@@ -2611,13 +2949,15 @@ fun searchLastAlbumYm3(authorYmId: String): AlbumSearchResult {
 
     Playwright.create().use { playwright ->
 
-        val context = playwright.chromium().launchPersistentContext(
-            USER_DATA_DIR,
-            BrowserType.LaunchPersistentContextOptions()
-                .setHeadless(true)
-                .setLocale("ru-RU")
-                .setTimezoneId("Europe/Moscow")
-        )
+        val context =
+            playwright.chromium().launchPersistentContext(
+                USER_DATA_DIR,
+                BrowserType
+                    .LaunchPersistentContextOptions()
+                    .setHeadless(true)
+                    .setLocale("ru-RU")
+                    .setTimezoneId("Europe/Moscow"),
+            )
 
         val page = context.newPage()
         try {
@@ -2652,13 +2992,12 @@ fun searchLastAlbumYm3(authorYmId: String): AlbumSearchResult {
     }
 }
 
-
-//fun searchLastAlbumYm2(authorYmId: String): String {
+// fun searchLastAlbumYm2(authorYmId: String): String {
 //    val searchUrl = "https://music.yandex.ru/artist/$authorYmId/albums"
 //    // Выбор случайного User-Agent
 //    val randomUserAgent = USER_AGENTS.random()
 //
-////    val document = Jsoup.connect(searchUrl).get()
+// //    val document = Jsoup.connect(searchUrl).get()
 //    val document = Jsoup.connect(searchUrl)
 //        .header("User-Agent", randomUserAgent)
 //        .header("Referer", "https://music.yandex.ru/ ")
@@ -2679,32 +3018,39 @@ fun searchLastAlbumYm3(authorYmId: String): AlbumSearchResult {
 //        println("searchLastAlbumYm2 html: '$html'")
 //    }
 //    return result
-//}
+// }
 
 fun getAuthorForRequest(lastAuthor: String = ""): Author? {
     val listSongAuthors = Settings.loadListAuthors(database = WORKING_DATABASE)
     if (listSongAuthors.isEmpty()) return null
     val requestNewSongLastSuccessAuthor = if (lastAuthor != "") lastAuthor else Karaoke.requestNewSongLastSuccessAuthor
 
-    val authorForRequest = if (requestNewSongLastSuccessAuthor == "") {
-        listSongAuthors.first()
-    } else {
-        var result = ""
-        listSongAuthors.forEachIndexed { indexAuthor, author ->
-            if (author == requestNewSongLastSuccessAuthor) {
-                result = if (indexAuthor < listSongAuthors.size - 1) {
-                    listSongAuthors[indexAuthor + 1]
-                } else {
-                    listSongAuthors[0]
+    val authorForRequest =
+        if (requestNewSongLastSuccessAuthor == "") {
+            listSongAuthors.first()
+        } else {
+            var result = ""
+            listSongAuthors.forEachIndexed { indexAuthor, author ->
+                if (author == requestNewSongLastSuccessAuthor) {
+                    result =
+                        if (indexAuthor < listSongAuthors.size - 1) {
+                            listSongAuthors[indexAuthor + 1]
+                        } else {
+                            listSongAuthors[0]
+                        }
+                    return@forEachIndexed
                 }
-                return@forEachIndexed
             }
+            if (result == "") result = listSongAuthors.first()
+            result
         }
-        if (result == "") result = listSongAuthors.first()
-        result
-    }
-    var author = Author.getAuthorByName(author = authorForRequest, database = WORKING_DATABASE, storageService = KSS_APP, storageApiClient = SAC_APP)
-
+    var author =
+        Author.getAuthorByName(
+            author = authorForRequest,
+            database = WORKING_DATABASE,
+            storageService = KSS_APP,
+            storageApiClient = SAC_APP,
+        )
 
     if (author == null) {
         val newAuthor = Author()
@@ -2720,28 +3066,33 @@ fun getAuthorForRequest(lastAuthor: String = ""): Author? {
         println("Поиск для автора «$authorForRequest» не нужен, ищем другого автора...")
         return getAuthorForRequest(authorForRequest)
     }
-
 }
+
 fun isVpnActive(): Boolean {
     // Сравниваем текущую страну с настройкой vpnHomeCountry (по умолчанию "RU").
     // Для сервера в Германии установить vpnHomeCountry = "DE" через интерфейс настроек.
     // api.country.is работает из Docker-контейнеров без ограничений.
     val homeCountry = Karaoke.vpnHomeCountry.trim().uppercase()
-    val services = listOf(
-        "https://api.country.is/" to Regex(""""country"\s*:\s*"([A-Z]{2})""""),
-        "https://ipapi.co/country/" to Regex("""^([A-Z]{2})$""")
-    )
+    val services =
+        listOf(
+            "https://api.country.is/" to Regex(""""country"\s*:\s*"([A-Z]{2})""""),
+            "https://ipapi.co/country/" to Regex("""^([A-Z]{2})$"""),
+        )
     for ((url, regex) in services) {
-        val body = try {
-            val conn = java.net.URL(url).openConnection() as java.net.HttpURLConnection
-            conn.setRequestProperty("User-Agent", "Mozilla/5.0")
-            conn.connectTimeout = 5000
-            conn.readTimeout = 5000
-            conn.inputStream.bufferedReader().readText().trim()
-        } catch (e: Exception) {
-            println("isVpnActive: исключение при запросе $url: ${e.message}")
-            continue
-        }
+        val body =
+            try {
+                val conn = java.net.URL(url).openConnection() as java.net.HttpURLConnection
+                conn.setRequestProperty("User-Agent", "Mozilla/5.0")
+                conn.connectTimeout = 5000
+                conn.readTimeout = 5000
+                conn.inputStream
+                    .bufferedReader()
+                    .readText()
+                    .trim()
+            } catch (e: Exception) {
+                println("isVpnActive: исключение при запросе $url: ${e.message}")
+                continue
+            }
         val country = regex.find(body)?.groupValues?.getOrElse(1) { "" } ?: ""
         if (country.isNotEmpty()) {
             val isVpn = country != homeCountry
@@ -2770,7 +3121,9 @@ fun checkLastAlbumYm(): Triple<String, String, Int> {
             Triple(authorForRequest, "", -3)
         }
         is AlbumSearchResult.AuthExpired -> {
-            println("Поиск нового альбома автора «$authorForRequest» завершился неудачей из-за просроченной авторизации. Переавторизуйтесь.")
+            println(
+                "Поиск нового альбома автора «$authorForRequest» завершился неудачей из-за просроченной авторизации. Переавторизуйтесь.",
+            )
             Triple(authorForRequest, "", -3)
         }
         is AlbumSearchResult.BotDetected -> {
@@ -2778,15 +3131,24 @@ fun checkLastAlbumYm(): Triple<String, String, Int> {
             Triple(authorForRequest, "", -1)
         }
         is AlbumSearchResult.Unknown -> {
-            val country = try {
-                java.net.URL("https://ip-api.com/line/?fields=countryCode")
-                    .readText(Charsets.UTF_8).trim()
-            } catch (_: Exception) { "" }
+            val country =
+                try {
+                    java.net
+                        .URL("https://ip-api.com/line/?fields=countryCode")
+                        .readText(Charsets.UTF_8)
+                        .trim()
+                } catch (_: Exception) {
+                    ""
+                }
             if (country.isNotEmpty() && country != "RU") {
-                println("Поиск нового альбома автора «$authorForRequest» завершился неудачей из-за включенного ВПН (IP-регион: $country). Отключите ВПН.")
+                println(
+                    "Поиск нового альбома автора «$authorForRequest» завершился неудачей из-за включенного ВПН (IP-регион: $country). Отключите ВПН.",
+                )
                 Triple(authorForRequest, "", -1)
             } else {
-                println("Поиск нового альбома автора «$authorForRequest» выдал пустой результат. Возможно Yandex.Музыка изменила код страницы. [Заголовок: '${searchResult.pageTitle}', URL: '${searchResult.pageUrl}']")
+                println(
+                    "Поиск нового альбома автора «$authorForRequest» выдал пустой результат. Возможно Yandex.Музыка изменила код страницы. [Заголовок: '${searchResult.pageTitle}', URL: '${searchResult.pageUrl}']",
+                )
                 Triple(authorForRequest, "", 0)
             }
         }
@@ -2794,18 +3156,24 @@ fun checkLastAlbumYm(): Triple<String, String, Int> {
             author.lastAlbumYm = searchResult.albumTitle
             author.save()
             if (searchResult.albumTitle == author.lastAlbumProcessed) {
-                println("Поиск для автора «$authorForRequest» завершился успешно, но новых альбомов не найдено. (Альбом «${searchResult.albumTitle}» уже был ранее найден.)")
+                println(
+                    "Поиск для автора «$authorForRequest» завершился успешно, но новых альбомов не найдено. (Альбом «${searchResult.albumTitle}» уже был ранее найден.)",
+                )
                 Triple(authorForRequest, searchResult.albumTitle, 0)
             } else {
-                println("Поиск для автора «$authorForRequest» завершился успешно, найден новый альбом «${searchResult.albumTitle}». (Ранее последним альбомом был «${author.lastAlbumProcessed}».)")
+                println(
+                    "Поиск для автора «$authorForRequest» завершился успешно, найден новый альбом «${searchResult.albumTitle}». (Ранее последним альбомом был «${author.lastAlbumProcessed}».)",
+                )
                 Triple(authorForRequest, searchResult.albumTitle, 1)
             }
         }
     }
-
 }
 
-fun setProcessPriority(pid: Long, priority: Int): Boolean {
+fun setProcessPriority(
+    pid: Long,
+    priority: Int,
+): Boolean {
     try {
         // Используем команду renice для изменения приоритета процесса
         val reniceCommand = listOf("renice", "-n", priority.toString(), "-p", pid.toString())
@@ -2860,8 +3228,8 @@ fun cpulimitPrefix(percent: Long): List<String> {
     return listOf("cpulimit", "-l", value.toString(), "-m", "-f", "--")
 }
 
-fun cpuLimitPercentForType(type: KaraokeProcessTypes): Long {
-    return when (type) {
+fun cpuLimitPercentForType(type: KaraokeProcessTypes): Long =
+    when (type) {
         KaraokeProcessTypes.MELT_LYRICS -> Karaoke.cpuLimitPercentMeltLyrics
         KaraokeProcessTypes.MELT_KARAOKE -> Karaoke.cpuLimitPercentMeltKaraoke
         KaraokeProcessTypes.MELT_CHORDS -> Karaoke.cpuLimitPercentMeltChords
@@ -2879,7 +3247,8 @@ fun cpuLimitPercentForType(type: KaraokeProcessTypes): Long {
         KaraokeProcessTypes.FF_720_LYR -> Karaoke.cpuLimitPercentFf720Lyr
         KaraokeProcessTypes.RENDER_MP4_LYRICS,
         KaraokeProcessTypes.RENDER_MP4_KARAOKE,
-        KaraokeProcessTypes.RENDER_MP4_DEMO -> Karaoke.cpuLimitPercentRenderMp4
+        KaraokeProcessTypes.RENDER_MP4_DEMO,
+        -> Karaoke.cpuLimitPercentRenderMp4
         // 0 = тип НЕ лимитируется по CPU. Раньше здесь было 100L, из-за чего layer 2
         // (refreshArgvCpuLimit) заворачивал в cpulimit любой ffmpeg-шаг нелимитируемого типа
         // (в частности FF_MP3_ACCOMPANIMENT/VOCAL/BASS/DRUMS) — layer 1 (createProcess) их
@@ -2887,7 +3256,6 @@ fun cpuLimitPercentForType(type: KaraokeProcessTypes): Long {
         // dockerCpusEnvValue трактуют percent<=0 как "без обёртки/без лимита".
         else -> 0L
     }
-}
 
 // Пересобирает CPU-лимит в argv шага задания заново, ПРЯМО ПЕРЕД СТАРТОМ процесса (вызывается из
 // KaraokeProcessThread.run()) - а не полагается на значение, запечённое в process_args при постановке в
@@ -2903,23 +3271,27 @@ fun cpuLimitPercentForType(type: KaraokeProcessTypes): Long {
 //   первому токену исходной (развёрнутой) команды: "ffmpeg" или путь, оканчивающийся на "sheetsage.sh".
 // docker-compose шаг MLT (первый токен "docker","compose") и голые filesystem-команды (chmod/mkdir/cp/
 // rm/ln/mv) не подходят ни под один из паттернов - возвращаются как есть, не трогаются.
-fun refreshArgvCpuLimit(type: KaraokeProcessTypes, args: List<String>): List<String> {
-    val stripped: List<String> = when {
-        args.getOrNull(0) == "cpulimit" -> {
-            val ddIdx = args.indexOf("--")
-            if (ddIdx != -1) args.subList(ddIdx + 1, args.size).toList() else args
-        }
-        args.getOrNull(0) == "docker" && args.getOrNull(1) == "run" -> {
-            val mutable = args.toMutableList()
-            val idx = mutable.indexOf("--cpus")
-            if (idx != -1 && idx + 1 < mutable.size) {
-                mutable.removeAt(idx)
-                mutable.removeAt(idx)
+fun refreshArgvCpuLimit(
+    type: KaraokeProcessTypes,
+    args: List<String>,
+): List<String> {
+    val stripped: List<String> =
+        when {
+            args.getOrNull(0) == "cpulimit" -> {
+                val ddIdx = args.indexOf("--")
+                if (ddIdx != -1) args.subList(ddIdx + 1, args.size).toList() else args
             }
-            mutable
+            args.getOrNull(0) == "docker" && args.getOrNull(1) == "run" -> {
+                val mutable = args.toMutableList()
+                val idx = mutable.indexOf("--cpus")
+                if (idx != -1 && idx + 1 < mutable.size) {
+                    mutable.removeAt(idx)
+                    mutable.removeAt(idx)
+                }
+                mutable
+            }
+            else -> args
         }
-        else -> args
-    }
 
     val percent = cpuLimitPercentForType(type)
     return when {
@@ -2939,7 +3311,10 @@ fun refreshArgvCpuLimit(type: KaraokeProcessTypes, args: List<String>): List<Str
 // MLT_CPU_LIMIT - см. dockerCpusEnvValue). Обновляет значение, только если ключ уже присутствовал -
 // он есть исключительно у docker-compose шага (остальные split-шаги того же job получают пустые envs при
 // createProcess()), поэтому проверка ключа однозначно отличает нужный шаг от прочих без обращения к args.
-fun refreshEnvCpuLimit(type: KaraokeProcessTypes, envs: Map<String, String>): Map<String, String> {
+fun refreshEnvCpuLimit(
+    type: KaraokeProcessTypes,
+    envs: Map<String, String>,
+): Map<String, String> {
     if (!envs.containsKey("MLT_CPU_LIMIT")) return envs
     return envs + ("MLT_CPU_LIMIT" to dockerCpusEnvValue(cpuLimitPercentForType(type)))
 }
@@ -2957,35 +3332,50 @@ fun refreshEnvCpuLimit(type: KaraokeProcessTypes, envs: Map<String, String>): Ma
 // запущенного контейнера нужен отдельный флаг "--cpu-quota -1" (сбрасывает cgroup quota/period в
 // unlimited) - подтверждено docker stats: нагрузка сразу возвращается к полной.
 fun applyLiveCpuLimitToRunningProcesses() {
-    val dockerTypes = setOf(
-        KaraokeProcessTypes.MELT_LYRICS, KaraokeProcessTypes.MELT_KARAOKE,
-        KaraokeProcessTypes.MELT_CHORDS, KaraokeProcessTypes.MELT_TABS,
-        KaraokeProcessTypes.DEMUCS2, KaraokeProcessTypes.DEMUCS5,
-        KaraokeProcessTypes.KEY_BPM_FROM_FILE
-    )
-    val workingTypes = KaraokeProcess.loadList(mapOf("process_status" to KaraokeProcessStatuses.WORKING.name), WORKING_DATABASE)
-        .mapNotNull { p -> dockerTypes.find { it.name == p.type } }
-        .toSet()
+    val dockerTypes =
+        setOf(
+            KaraokeProcessTypes.MELT_LYRICS,
+            KaraokeProcessTypes.MELT_KARAOKE,
+            KaraokeProcessTypes.MELT_CHORDS,
+            KaraokeProcessTypes.MELT_TABS,
+            KaraokeProcessTypes.DEMUCS2,
+            KaraokeProcessTypes.DEMUCS5,
+            KaraokeProcessTypes.KEY_BPM_FROM_FILE,
+        )
+    val workingTypes =
+        KaraokeProcess
+            .loadList(mapOf("process_status" to KaraokeProcessStatuses.WORKING.name), WORKING_DATABASE)
+            .mapNotNull { p -> dockerTypes.find { it.name == p.type } }
+            .toSet()
 
     for (type in workingTypes) {
-        val containerRef = when (type) {
-            KaraokeProcessTypes.MELT_LYRICS, KaraokeProcessTypes.MELT_KARAOKE,
-            KaraokeProcessTypes.MELT_CHORDS, KaraokeProcessTypes.MELT_TABS ->
-                runCommand(listOf("docker", "ps", "--filter", "ancestor=svoemestodev/melt:latest", "--format", "{{.ID}}"), ignoreErrors = true)
-                    .lineSequence().firstOrNull { it.isNotBlank() }
-            KaraokeProcessTypes.DEMUCS2, KaraokeProcessTypes.DEMUCS5 -> "demucs"
-            KaraokeProcessTypes.KEY_BPM_FROM_FILE ->
-                runCommand(listOf("docker", "ps", "--filter", "ancestor=svoemestodev/keybpmfinder:latest", "--format", "{{.ID}}"), ignoreErrors = true)
-                    .lineSequence().firstOrNull { it.isNotBlank() }
-            else -> null
-        } ?: continue
+        val containerRef =
+            when (type) {
+                KaraokeProcessTypes.MELT_LYRICS, KaraokeProcessTypes.MELT_KARAOKE,
+                KaraokeProcessTypes.MELT_CHORDS, KaraokeProcessTypes.MELT_TABS,
+                ->
+                    runCommand(
+                        listOf("docker", "ps", "--filter", "ancestor=svoemestodev/melt:latest", "--format", "{{.ID}}"),
+                        ignoreErrors = true,
+                    ).lineSequence()
+                        .firstOrNull { it.isNotBlank() }
+                KaraokeProcessTypes.DEMUCS2, KaraokeProcessTypes.DEMUCS5 -> "demucs"
+                KaraokeProcessTypes.KEY_BPM_FROM_FILE ->
+                    runCommand(
+                        listOf("docker", "ps", "--filter", "ancestor=svoemestodev/keybpmfinder:latest", "--format", "{{.ID}}"),
+                        ignoreErrors = true,
+                    ).lineSequence()
+                        .firstOrNull { it.isNotBlank() }
+                else -> null
+            } ?: continue
 
         val cpusValue = dockerCpusEnvValue(cpuLimitPercentForType(type))
-        val updateArgs = if (cpusValue == "0") {
-            listOf("docker", "update", "--cpu-quota", "-1", containerRef)
-        } else {
-            listOf("docker", "update", "--cpus", cpusValue, containerRef)
-        }
+        val updateArgs =
+            if (cpusValue == "0") {
+                listOf("docker", "update", "--cpu-quota", "-1", containerRef)
+            } else {
+                listOf("docker", "update", "--cpus", cpusValue, containerRef)
+            }
         try {
             runCommand(updateArgs, ignoreErrors = true)
         } catch (e: Exception) {
@@ -3002,28 +3392,44 @@ fun applyLiveCpuLimitToRunningProcesses() {
 // Убийство контейнера закрывает stdout родительского CLI (docker/docker compose) → поток чтения
 // разблокируется; контейнеры "--rm" удаляются сами.
 fun killRunningDockerContainers() {
-    val dockerTypes = setOf(
-        KaraokeProcessTypes.MELT_LYRICS, KaraokeProcessTypes.MELT_KARAOKE,
-        KaraokeProcessTypes.MELT_CHORDS, KaraokeProcessTypes.MELT_TABS,
-        KaraokeProcessTypes.DEMUCS2, KaraokeProcessTypes.DEMUCS5,
-        KaraokeProcessTypes.KEY_BPM_FROM_FILE
-    )
-    val workingTypes = KaraokeProcess.loadList(mapOf("process_status" to KaraokeProcessStatuses.WORKING.name), WORKING_DATABASE)
-        .mapNotNull { p -> dockerTypes.find { it.name == p.type } }
-        .toSet()
+    val dockerTypes =
+        setOf(
+            KaraokeProcessTypes.MELT_LYRICS,
+            KaraokeProcessTypes.MELT_KARAOKE,
+            KaraokeProcessTypes.MELT_CHORDS,
+            KaraokeProcessTypes.MELT_TABS,
+            KaraokeProcessTypes.DEMUCS2,
+            KaraokeProcessTypes.DEMUCS5,
+            KaraokeProcessTypes.KEY_BPM_FROM_FILE,
+        )
+    val workingTypes =
+        KaraokeProcess
+            .loadList(mapOf("process_status" to KaraokeProcessStatuses.WORKING.name), WORKING_DATABASE)
+            .mapNotNull { p -> dockerTypes.find { it.name == p.type } }
+            .toSet()
 
     for (type in workingTypes) {
-        val containerRefs: List<String> = when (type) {
-            KaraokeProcessTypes.MELT_LYRICS, KaraokeProcessTypes.MELT_KARAOKE,
-            KaraokeProcessTypes.MELT_CHORDS, KaraokeProcessTypes.MELT_TABS ->
-                runCommand(listOf("docker", "ps", "--filter", "ancestor=svoemestodev/melt:latest", "--format", "{{.ID}}"), ignoreErrors = true)
-                    .lineSequence().filter { it.isNotBlank() }.toList()
-            KaraokeProcessTypes.DEMUCS2, KaraokeProcessTypes.DEMUCS5 -> listOf("demucs")
-            KaraokeProcessTypes.KEY_BPM_FROM_FILE ->
-                runCommand(listOf("docker", "ps", "--filter", "ancestor=svoemestodev/keybpmfinder:latest", "--format", "{{.ID}}"), ignoreErrors = true)
-                    .lineSequence().filter { it.isNotBlank() }.toList()
-            else -> emptyList()
-        }
+        val containerRefs: List<String> =
+            when (type) {
+                KaraokeProcessTypes.MELT_LYRICS, KaraokeProcessTypes.MELT_KARAOKE,
+                KaraokeProcessTypes.MELT_CHORDS, KaraokeProcessTypes.MELT_TABS,
+                ->
+                    runCommand(
+                        listOf("docker", "ps", "--filter", "ancestor=svoemestodev/melt:latest", "--format", "{{.ID}}"),
+                        ignoreErrors = true,
+                    ).lineSequence()
+                        .filter { it.isNotBlank() }
+                        .toList()
+                KaraokeProcessTypes.DEMUCS2, KaraokeProcessTypes.DEMUCS5 -> listOf("demucs")
+                KaraokeProcessTypes.KEY_BPM_FROM_FILE ->
+                    runCommand(
+                        listOf("docker", "ps", "--filter", "ancestor=svoemestodev/keybpmfinder:latest", "--format", "{{.ID}}"),
+                        ignoreErrors = true,
+                    ).lineSequence()
+                        .filter { it.isNotBlank() }
+                        .toList()
+                else -> emptyList()
+            }
         containerRefs.forEach { ref ->
             try {
                 println("[${Timestamp.from(Instant.now())}] ProcessWorker: docker kill $ref (тип $type)")
@@ -3035,7 +3441,10 @@ fun killRunningDockerContainers() {
     }
 }
 
-fun createScriptForHost(args: List<String>, waitToDone: Boolean = false) {
+fun createScriptForHost(
+    args: List<String>,
+    waitToDone: Boolean = false,
+) {
     val txt = args.joinToString(" ")
     val fileName = "/sm-karaoke/system/scriptsFromDocker/${UUID.randomUUID()}.sh"
     val file = File(fileName)
@@ -3064,16 +3473,23 @@ fun createScriptForHost(args: List<String>, waitToDone: Boolean = false) {
  * Каждая execute*-функция возвращает false, если запись Settings не найдена (вместо прежнего
  * молчаливого "успеха"), чтобы вызывающая сторона могла корректно проставить ERROR.
  */
-fun parseRunFunctionWithArgsParams(args: List<String>): Map<String, String> {
-    return args.drop(2).associate { entry ->
+fun parseRunFunctionWithArgsParams(args: List<String>): Map<String, String> =
+    args.drop(2).associate { entry ->
         val idx = entry.indexOf('=')
         if (idx == -1) entry to "" else entry.substring(0, idx) to entry.substring(idx + 1)
     }
-}
 
 fun executeGetKeyBpmFromFile(params: Map<String, String>): Boolean {
     val settingsId = params["settingsId"]?.toLongOrNull() ?: return false
-    val settings = Settings.loadFromDbById(id = settingsId, database = WORKING_DATABASE, sync = false, storageService = KSS_APP, storageApiClient = SAC_APP) ?: return false
+    val settings =
+        Settings.loadFromDbById(
+            id = settingsId,
+            database = WORKING_DATABASE,
+            sync = false,
+            storageService = KSS_APP,
+            storageApiClient = SAC_APP,
+        )
+            ?: return false
     val (key, bpm) = settings.getKeyBpmFromFile(reFind = false)
     settings.fields[SettingField.KEY] = key
     settings.fields[SettingField.BPM] = bpm.toString()
@@ -3081,14 +3497,25 @@ fun executeGetKeyBpmFromFile(params: Map<String, String>): Boolean {
     return true
 }
 
-fun executeUploadToLocalStore(params: Map<String, String>, onProgress: ((Int) -> Unit)? = null): Boolean {
+fun executeUploadToLocalStore(
+    params: Map<String, String>,
+    onProgress: ((Int) -> Unit)? = null,
+): Boolean {
     val settingsId = params["settingsId"]?.toLongOrNull() ?: return false
     val pathToFile = params["pathToFile"] ?: return false
     val karaokeFileType = params["karaokeFileType"] ?: return false
     val deleteAfterUpload = params["deleteAfterUpload"]?.toBoolean() ?: false
     val fileType = KaraokeFileType.valueOf(karaokeFileType)
     val storageService = KSS_APP
-    val settings = Settings.loadFromDbById(id = settingsId, database = WORKING_DATABASE, sync = false, storageService = storageService, storageApiClient = SAC_APP) ?: return false
+    val settings =
+        Settings.loadFromDbById(
+            id = settingsId,
+            database = WORKING_DATABASE,
+            sync = false,
+            storageService = storageService,
+            storageApiClient = SAC_APP,
+        )
+            ?: return false
 
     val existsInLocalFileSystem = if (pathToFile != "") File(pathToFile).exists() else false
     // storageFileName/bucketName приходят из HealthReport (точный ключ для типа файла - у картинок
@@ -3100,30 +3527,42 @@ fun executeUploadToLocalStore(params: Map<String, String>, onProgress: ((Int) ->
     if (existsInLocalFileSystem && !existsInLocalStorage) {
         val file = File(pathToFile)
         val totalSize = file.length()
-        val stream = if (onProgress != null && totalSize > 0) {
-            CountingInputStream(file.inputStream()) { bytesRead -> onProgress(((bytesRead * 100) / totalSize).toInt()) }
-        } else {
-            file.inputStream()
-        }
+        val stream =
+            if (onProgress != null && totalSize > 0) {
+                CountingInputStream(file.inputStream()) { bytesRead -> onProgress(((bytesRead * 100) / totalSize).toInt()) }
+            } else {
+                file.inputStream()
+            }
         storageService.uploadFile(
             bucketName = bucketName,
             fileName = storageFileName,
             file = stream,
-            size = totalSize
+            size = totalSize,
         )
         if (deleteAfterUpload) Files.deleteIfExists(file.toPath())
     }
     return true
 }
 
-fun executeUploadToRemoteStore(params: Map<String, String>, onProgress: ((Int) -> Unit)? = null): Boolean {
+fun executeUploadToRemoteStore(
+    params: Map<String, String>,
+    onProgress: ((Int) -> Unit)? = null,
+): Boolean {
     val settingsId = params["settingsId"]?.toLongOrNull() ?: return false
     val pathToFile = params["pathToFile"] ?: return false
     val karaokeFileType = params["karaokeFileType"] ?: return false
     val deleteAfterUpload = params["deleteAfterUpload"]?.toBoolean() ?: false
     val fileType = KaraokeFileType.valueOf(karaokeFileType)
     val storageApiClient = SAC_APP
-    val settings = Settings.loadFromDbById(id = settingsId, database = WORKING_DATABASE, sync = false, storageService = KSS_APP, storageApiClient = storageApiClient) ?: return false
+    val settings =
+        Settings.loadFromDbById(
+            id = settingsId,
+            database = WORKING_DATABASE,
+            sync = false,
+            storageService = KSS_APP,
+            storageApiClient = storageApiClient,
+        )
+            ?: return false
 
     val existsInLocalFileSystem = if (pathToFile != "") File(pathToFile).exists() else false
     // storageFileName/bucketName приходят из HealthReport (точный ключ для типа файла - у картинок
@@ -3137,45 +3576,64 @@ fun executeUploadToRemoteStore(params: Map<String, String>, onProgress: ((Int) -
             bucketName = bucketName,
             fileName = storageFileName,
             pathToFileOnDisk = pathToFile,
-            onProgress = onProgress
+            onProgress = onProgress,
         )
         if (deleteAfterUpload) Files.deleteIfExists(File(pathToFile).toPath())
     }
     return true
 }
 
-fun executeRenderMp4(params: Map<String, String>, onProgress: ((Int) -> Unit)? = null): Boolean {
+fun executeRenderMp4(
+    params: Map<String, String>,
+    onProgress: ((Int) -> Unit)? = null,
+): Boolean {
     val settingsId = params["settingsId"]?.toLongOrNull() ?: return false
     val width = params["width"]?.toIntOrNull() ?: 1920
     val height = params["height"]?.toIntOrNull() ?: 1080
     val fps = params["fps"]?.toIntOrNull() ?: 60
-    val version = try {
-        com.svoemesto.karaokeapp.services.RenderVersion.valueOf(params["version"] ?: "KARAOKE")
-    } catch (_: Exception) {
-        com.svoemesto.karaokeapp.services.RenderVersion.KARAOKE
-    }
-    val settings = Settings.loadFromDbById(id = settingsId, database = WORKING_DATABASE, sync = false, storageService = KSS_APP, storageApiClient = SAC_APP) ?: return false
+    val version =
+        try {
+            com.svoemesto.karaokeapp.services.RenderVersion
+                .valueOf(params["version"] ?: "KARAOKE")
+        } catch (_: Exception) {
+            com.svoemesto.karaokeapp.services.RenderVersion.KARAOKE
+        }
+    val settings =
+        Settings.loadFromDbById(
+            id = settingsId,
+            database = WORKING_DATABASE,
+            sync = false,
+            storageService = KSS_APP,
+            storageApiClient = SAC_APP,
+        )
+            ?: return false
 
     // Для DEMO — границы фрагмента из Settings (первый куплет)
     val demoStart = if (version == com.svoemesto.karaokeapp.services.RenderVersion.DEMO) settings.demoFragmentStartSeconds else null
     val demoEnd = if (version == com.svoemesto.karaokeapp.services.RenderVersion.DEMO) settings.demoFragmentEndSeconds else null
     val demoFadeIn = if (version == com.svoemesto.karaokeapp.services.RenderVersion.DEMO) settings.demoFragmentFadeInSeconds else null
 
-    println("[${java.sql.Timestamp.from(java.time.Instant.now())}] executeRenderMp4: старт для id=$settingsId (${width}x${height}@${fps}) version=${version.name}" +
-            if (demoStart != null && demoEnd != null) " demo=$demoStart..$demoEnd" else "")
-
-    val renderParams = com.svoemesto.karaokeapp.services.RenderMp4Params(
-        songId = settingsId,
-        width = width,
-        height = height,
-        fps = fps,
-        version = version,
-        demoFragmentStart = demoStart,
-        demoFragmentEnd = demoEnd,
+    println(
+        "[${java.sql.Timestamp.from(
+            java.time.Instant.now(),
+        )}] executeRenderMp4: старт для id=$settingsId (${width}x$height@$fps) version=${version.name}" +
+            if (demoStart != null && demoEnd != null) " demo=$demoStart..$demoEnd" else "",
     )
-    val framesResult = com.svoemesto.karaokeapp.services.PlayerMp4RenderService.renderFrames(renderParams) { framePercent ->
-        onProgress?.invoke((framePercent * 80) / 100)
-    }
+
+    val renderParams =
+        com.svoemesto.karaokeapp.services.RenderMp4Params(
+            songId = settingsId,
+            width = width,
+            height = height,
+            fps = fps,
+            version = version,
+            demoFragmentStart = demoStart,
+            demoFragmentEnd = demoEnd,
+        )
+    val framesResult =
+        com.svoemesto.karaokeapp.services.PlayerMp4RenderService.renderFrames(renderParams) { framePercent ->
+            onProgress?.invoke((framePercent * 80) / 100)
+        }
 
     val tempOutputPath = "${com.svoemesto.karaokeapp.PATH_TO_TEMP_RENDERMP4_FOLDER}/${settingsId}_${version.name}/output.mp4"
     val tailSeconds = if (version == com.svoemesto.karaokeapp.services.RenderVersion.DEMO) 10.0 else 1.0
@@ -3184,7 +3642,9 @@ fun executeRenderMp4(params: Map<String, String>, onProgress: ((Int) -> Unit)? =
         framesDir = framesResult.framesDir,
         fps = fps,
         preroll = framesResult.preroll,
-        audioTracks = com.svoemesto.karaokeapp.services.PlayerMp4MuxService.tracksForVersion(settings, version),
+        audioTracks =
+            com.svoemesto.karaokeapp.services.PlayerMp4MuxService
+                .tracksForVersion(settings, version),
         outputPath = tempOutputPath,
         totalDurationSeconds = totalDurationSec,
         demoFragmentStart = demoStart,
@@ -3226,8 +3686,12 @@ fun runFunctionWithArgs(args: List<String>): String {
     }
 }
 
-fun runCommand(args: List<String>, ignoreErrors: Boolean = false, skipRunFunctionWithArgs: Boolean = false, envs: Map<String, String> = emptyMap()): String {
-
+fun runCommand(
+    args: List<String>,
+    ignoreErrors: Boolean = false,
+    skipRunFunctionWithArgs: Boolean = false,
+    envs: Map<String, String> = emptyMap(),
+): String {
     if (args.isNotEmpty() && args[0] == "runFunctionWithArgs" && !skipRunFunctionWithArgs) {
         return runFunctionWithArgs(args)
     }
@@ -3265,7 +3729,10 @@ fun runCommand(args: List<String>, ignoreErrors: Boolean = false, skipRunFunctio
     }
 }
 
-fun getTransposingChord(originalChord: String, capo: Int = 0): String {
+fun getTransposingChord(
+    originalChord: String,
+    capo: Int = 0,
+): String {
     if (capo == 0) return originalChord
     val chordNameAndFret = originalChord.split("|")
     val nameChord = chordNameAndFret[0]
@@ -3280,20 +3747,24 @@ fun getTransposingChord(originalChord: String, capo: Int = 0): String {
 /**
  * Проверяет, безопасно ли имя файла (защита от path traversal).
  */
-fun isValidFileName(fileName: String): Boolean {
-    return !fileName.startsWith("../") && !fileName.startsWith("/") && !fileName.contains("/../")
-}
+fun isValidFileName(fileName: String): Boolean = !fileName.startsWith("../") && !fileName.startsWith("/") && !fileName.contains("/../")
 
 /**
  * Проверяет, разрешён ли тип файла (опционально).
  */
 @Suppress("unused")
-fun isAllowedFileType(fileName: String, allowedTypes: Set<String> = setOf("jpg", "png", "mp3", "wav", "txt", "pdf")): Boolean {
+fun isAllowedFileType(
+    fileName: String,
+    allowedTypes: Set<String> = setOf("jpg", "png", "mp3", "wav", "txt", "pdf"),
+): Boolean {
     val extension = fileName.substringAfterLast('.', "").lowercase()
     return allowedTypes.contains(extension)
 }
 
-fun calculateRelativePathForSymlink(targetAbsolutePath: String, symlinkAbsolutePath: String): String {
+fun calculateRelativePathForSymlink(
+    targetAbsolutePath: String,
+    symlinkAbsolutePath: String,
+): String {
     val targetPath: Path = Paths.get(targetAbsolutePath).normalize()
     val symlinkPath: Path = Paths.get(symlinkAbsolutePath).normalize()
 
@@ -3314,7 +3785,10 @@ fun calculateRelativePathForSymlink(targetAbsolutePath: String, symlinkAbsoluteP
     return relativePath.toString()
 }
 
-fun calculateAbsolutePathFromSymlink(relativePath: String, symlinkAbsolutePath: String): String {
+fun calculateAbsolutePathFromSymlink(
+    relativePath: String,
+    symlinkAbsolutePath: String,
+): String {
     val relativePathObj: Path = Paths.get(relativePath).normalize()
     val symlinkPath: Path = Paths.get(symlinkAbsolutePath).normalize()
 
@@ -3336,8 +3810,8 @@ fun calculateAbsolutePathFromSymlink(relativePath: String, symlinkAbsolutePath: 
     return resolvedTargetAbsolutePath.toString()
 }
 
-fun actionToDeleteFileAndFolderIfFolderEmpty(pathToFile: String): () -> Unit {
-    return {
+fun actionToDeleteFileAndFolderIfFolderEmpty(pathToFile: String): () -> Unit =
+    {
         println("actionToDeleteFileAndFolderIfFolderEmpty - Удаление файла '$pathToFile' >>>")
         val fileExists = File(pathToFile).exists()
         if (fileExists) {
@@ -3362,29 +3836,36 @@ fun actionToDeleteFileAndFolderIfFolderEmpty(pathToFile: String): () -> Unit {
         }
         println("actionToDeleteFileAndFolderIfFolderEmpty - Удаление файла '$pathToFile' <<<")
     }
-}
 
-
-fun getTempFilePath(prefix: String = "temp", suffix: String = ".tmp"): Path {
+fun getTempFilePath(
+    prefix: String = "temp",
+    suffix: String = ".tmp",
+): Path {
     // Создаёт файл в стандартной директории для временных файлов
     // с рандомным именем, начинающимся с 'prefix' и заканчивающимся на 'suffix'
     return Files.createTempFile(prefix, suffix)
 }
 
-fun findAndFillDublicates(author: String, database: KaraokeConnection, storageService: KaraokeStorageService, storageApiClient: StorageApiClient): Int {
+fun findAndFillDublicates(
+    author: String,
+    database: KaraokeConnection,
+    storageService: KaraokeStorageService,
+    storageApiClient: StorageApiClient,
+): Int {
     /*
     На вход подаётся список песен. Предполагается, что это песни одного автора. На всякий случай будет это учитывать при фильтрации
     Дла каждой песни со статусом 0 нужно получить её имя без скобок "Имя песни (1992)" - "Имя песни"
     Найти это имя среди песен со статусом 6 и скопировать root_id, поля текста, установить статус в 1
      */
     var result = 0
-    val listSettings = Settings.loadListFromDb(
-        args = mapOf("author" to author),
-        database = database,
-        storageService = storageService,
-        storageApiClient = storageApiClient,
-        withoutMarkersAndText = false
-    )
+    val listSettings =
+        Settings.loadListFromDb(
+            args = mapOf("author" to author),
+            database = database,
+            storageService = storageService,
+            storageApiClient = storageApiClient,
+            withoutMarkersAndText = false,
+        )
     listSettings.filter { it.idStatus == 0L }.forEach { newSettings ->
         val nameToFind = newSettings.songName.replace(Regex("""\([^)]*\)"""), "").trim()
         listSettings.firstOrNull { it.idStatus == 6L && it.songName.replace(Regex("""\([^)]*\)"""), "").trim() == nameToFind }?.let { findedSettings ->
@@ -3419,7 +3900,12 @@ fun normalizeSongNameForSearch(name: String): String {
         .trim()
 }
 
-fun findDuplicateOriginal(newSettings: Settings, database: KaraokeConnection, storageService: KaraokeStorageService, storageApiClient: StorageApiClient): Settings? {
+fun findDuplicateOriginal(
+    newSettings: Settings,
+    database: KaraokeConnection,
+    storageService: KaraokeStorageService,
+    storageApiClient: StorageApiClient,
+): Settings? {
     /*
     Для новой песни (обычно только что импортированной из папки) ищет "оригинал" - уже существующую в базе
     песню с тем же названием без учёта содержимого в скобках, знаков препинания и различия "е"/"ё"
@@ -3431,7 +3917,8 @@ fun findDuplicateOriginal(newSettings: Settings, database: KaraokeConnection, st
 
     fun findId(sameAuthorOnly: Boolean): Long? {
         val connection = database.getConnection() ?: return null
-        val sql = "SELECT id, song_name FROM tbl_settings" +
+        val sql =
+            "SELECT id, song_name FROM tbl_settings" +
                 " WHERE id <> ?" +
                 (if (sameAuthorOnly) " AND LOWER(song_author) = LOWER(?)" else "") +
                 " AND TRIM(source_text) <> ''" +
@@ -3457,47 +3944,11 @@ fun findDuplicateOriginal(newSettings: Settings, database: KaraokeConnection, st
     return Settings.loadFromDbById(id = id, database = database, storageService = storageService, storageApiClient = storageApiClient)
 }
 
-private data class ParentCandidate(val id: Long, val author: String, val hasText: Boolean)
-
-/**
- * Подбор кандидата в "родители" для пакетного повторного поиска (см. customFunction), в отличие
- * от findDuplicateOriginal ищет среди ВСЕХ песен с точным совпадением нормализованного названия
- * (normalizeSongNameForSearch), не только среди тех, у кого уже есть текст. При нескольких
- * совпадениях выбор идёт по цепочке приоритетов: сначала кандидаты с непустым source_text (если
- * такие есть), затем внутри этого пула - того же автора (регистронезависимо), затем - с
- * наименьшим id.
- */
-fun findParentCandidateId(settings: Settings, database: KaraokeConnection): Long? {
-    val cleanedName = normalizeSongNameForSearch(settings.songName)
-    if (cleanedName.isBlank()) return null
-    val connection = database.getConnection() ?: return null
-    val ps = connection.prepareStatement(
-        "SELECT id, song_name, song_author, source_text FROM tbl_settings WHERE id <> ?"
-    )
-    ps.setLong(1, settings.id)
-    val rs = ps.executeQuery()
-    val candidates = mutableListOf<ParentCandidate>()
-    while (rs.next()) {
-        if (normalizeSongNameForSearch(rs.getString("song_name")) == cleanedName) {
-            candidates.add(ParentCandidate(
-                id = rs.getLong("id"),
-                author = rs.getString("song_author") ?: "",
-                hasText = !rs.getString("source_text").isNullOrBlank()
-            ))
-        }
-    }
-    rs.close()
-    ps.close()
-    if (candidates.isEmpty()) return null
-
-    val withText = candidates.filter { it.hasText }
-    val pool = withText.ifEmpty { candidates }
-    val sameAuthor = pool.filter { it.author.equals(settings.author, ignoreCase = true) }
-    val finalPool = sameAuthor.ifEmpty { pool }
-    return finalPool.minByOrNull { it.id }?.id
-}
-
-fun searchSongsByNormalizedName(currentSettings: Settings, searchQuery: String, database: KaraokeConnection): List<Long> {
+fun searchSongsByNormalizedName(
+    currentSettings: Settings,
+    searchQuery: String,
+    database: KaraokeConnection,
+): List<Long> {
     /*
     Ручной поиск кандидатов в "оригинал" по (части) названия - подстрока нормализованного имени песни
     (см. normalizeSongNameForSearch) содержит нормализованный поисковый запрос. В отличие от
@@ -3505,7 +3956,7 @@ fun searchSongsByNormalizedName(currentSettings: Settings, searchQuery: String, 
     по неполному названию. Ищет среди всех авторов, только среди песен с непустым исходным текстом.
      */
     val normalizedQuery = normalizeSongNameForSearch(searchQuery)
-    if (normalizedQuery.isBlank()) return emptyList()
+    if (normalizedQuery.isBlank() || normalizedQuery.length < 4) return emptyList()
     val connection = database.getConnection() ?: return emptyList()
     val sql = "SELECT id, song_name FROM tbl_settings WHERE id <> ? AND TRIM(source_text) <> ''"
     val ps = connection.prepareStatement(sql)
@@ -3522,7 +3973,10 @@ fun searchSongsByNormalizedName(currentSettings: Settings, searchQuery: String, 
     return ids
 }
 
-fun applyDuplicateOriginal(newSettings: Settings, original: Settings) {
+fun applyDuplicateOriginal(
+    newSettings: Settings,
+    original: Settings,
+) {
     newSettings.rootId = original.id
     newSettings.sourceText = original.sourceText
     newSettings.resultText = original.resultText
@@ -3531,7 +3985,11 @@ fun applyDuplicateOriginal(newSettings: Settings, original: Settings) {
     newSettings.saveToDb()
 }
 
-fun applyFamilySongSelection(settings: Settings, another: Settings, deltaMs: Long? = null) {
+fun applyFamilySongSelection(
+    settings: Settings,
+    another: Settings,
+    deltaMs: Long? = null,
+) {
     /*
     Выбор песни из модалки "Похожие версии песни" (как из общего списка "семьи", так и из ручного
     поиска по названию). В отличие от applyDuplicateOriginal (автопоиск оригинала при импорте) -
@@ -3548,29 +4006,14 @@ fun applyFamilySongSelection(settings: Settings, another: Settings, deltaMs: Lon
      */
     settings.sourceText = another.sourceText
     settings.resultText = another.resultText
-    settings.sourceMarkers = if (deltaMs != null) {
-        shiftMarkersAndFixEnd(another.sourceMarkers, deltaMs, settings.ms)
-    } else {
-        another.sourceMarkers
-    }
+    settings.sourceMarkers =
+        if (deltaMs != null) {
+            shiftMarkersAndFixEnd(another.sourceMarkers, deltaMs, settings.ms)
+        } else {
+            another.sourceMarkers
+        }
     settings.rootId = if (another.rootId != 0L) another.rootId else another.id
     if (settings.idStatus == 0L) settings.fields[SettingField.ID_STATUS] = "1"
-    settings.saveToDb()
-}
-
-/**
- * Применяет текст/маркеры аудио-родителя (см. findAudioParentByWaveform) к только что импортированной
- * песне - вызывается, только если аудио-родитель найден и уже "готов" (idStatus >= 3, т.е. как минимум
- * прошёл создание проекта). Маркеры сдвигаются под таймлайн текущей песни тем же способом, что и в
- * applyFamilySongSelection (shiftMarkersAndFixEnd), но, в отличие от неё, root_id не трогается -
- * audio_parent_id уже отдельно связывает пару (см. findAudioParentByWaveform), а статус выставляется
- * в 3 (PROJECT_CREATE) безусловно, независимо от текущего статуса песни.
- */
-fun applyAudioParentMarkers(settings: Settings, audioParent: Settings, deltaMs: Long) {
-    settings.sourceText = audioParent.sourceText
-    settings.resultText = audioParent.resultText
-    settings.sourceMarkers = shiftMarkersAndFixEnd(audioParent.sourceMarkers, deltaMs, settings.ms)
-    settings.fields[SettingField.ID_STATUS] = "3"
     settings.saveToDb()
 }
 
@@ -3579,28 +4022,37 @@ fun applyAudioParentMarkers(settings: Settings, audioParent: Settings, deltaMs: 
  * длительность текущей песни (currentMs). Разбор JSON - тем же способом, что геттер
  * Settings.sourceMarkersList (список голосов; фолбэк на одиночный список маркеров).
  */
-fun shiftMarkersAndFixEnd(sourceMarkersJson: String, deltaMs: Long, currentMs: Long): String {
-    val voices: List<List<SourceMarker>> = try {
-        Json.decodeFromString(ListSerializer(ListSerializer(SourceMarker.serializer())), sourceMarkersJson)
-    } catch (_: Exception) {
+fun shiftMarkersAndFixEnd(
+    sourceMarkersJson: String,
+    deltaMs: Long,
+    currentMs: Long,
+): String {
+    val voices: List<List<SourceMarker>> =
         try {
-            listOf(Json.decodeFromString(ListSerializer(SourceMarker.serializer()), sourceMarkersJson))
+            Json.decodeFromString(ListSerializer(ListSerializer(SourceMarker.serializer())), sourceMarkersJson)
         } catch (_: Exception) {
-            return sourceMarkersJson  // не смогли распарсить - возвращаем как есть, без сдвига
+            try {
+                listOf(Json.decodeFromString(ListSerializer(SourceMarker.serializer()), sourceMarkersJson))
+            } catch (_: Exception) {
+                return sourceMarkersJson // не смогли распарсить - возвращаем как есть, без сдвига
+            }
         }
-    }
     val deltaSec = deltaMs / 1000.0
     val endSec = currentMs / 1000.0
-    val shifted = voices.map { voice ->
-        voice.map { m ->
-            val isEnd = m.markertype == Markertype.SETTING.value && m.label == "END"
-            m.copy(time = if (isEnd) endSec else maxOf(0.0, m.time + deltaSec))
+    val shifted =
+        voices.map { voice ->
+            voice.map { m ->
+                val isEnd = m.markertype == Markertype.SETTING.value && m.label == "END"
+                m.copy(time = if (isEnd) endSec else maxOf(0.0, m.time + deltaSec))
+            }
         }
-    }
     return Json.encodeToString(ListSerializer(ListSerializer(SourceMarker.serializer())), shifted)
 }
 
-fun findFamilySongIds(currentSettings: Settings, database: KaraokeConnection): List<Long> {
+fun findFamilySongIds(
+    currentSettings: Settings,
+    database: KaraokeConnection,
+): List<Long> {
     /*
     Ищет "семью" песни - все песни, у которых id или root_id совпадает с id или root_id текущей песни
     (сама текущая песня в результат не включается). Покрывает случаи: сама "корневая" песня (id == текущий root_id),
@@ -3634,12 +4086,11 @@ data class AutoOriginalResult(
     val bestId: Long?,
     val bestPercent: Int?,
     val deltaMs: Long?,
-    val reason: String
+    val reason: String,
 )
 
 /** Человекочитаемое описание песни для логов автопривязки: автор / год / альбом / название (+ id). */
-fun songLogLabel(s: Settings): String =
-    "${s.author} / ${s.year} / ${s.album} / «${s.songName}» (id=${s.id})"
+fun songLogLabel(s: Settings): String = "${s.author} / ${s.year} / ${s.album} / «${s.songName}» (id=${s.id})"
 
 /**
  * Автоматический аналог ручного сценария из модалки "Похожие версии песни" на карточке песни:
@@ -3657,7 +4108,7 @@ fun autoAssignOriginalByWaveform(
     database: KaraokeConnection,
     storageService: KaraokeStorageService,
     storageApiClient: StorageApiClient,
-    threshold: Int = 85
+    threshold: Int = 85,
 ): AutoOriginalResult {
     val familyIds = findFamilySongIds(settings, database)
     if (familyIds.isEmpty()) {
@@ -3672,10 +4123,11 @@ fun autoAssignOriginalByWaveform(
     }
 
     // Сверяем со всеми кандидатами, оставляем только удачные (есть аудио), берём максимальный процент.
-    val best = candidates
-        .map { candidate -> candidate to WaveformCompare.compareWaveforms(settings, candidate) }
-        .filter { it.second.ok }
-        .maxByOrNull { it.second.similarityPercent }
+    val best =
+        candidates
+            .map { candidate -> candidate to WaveformCompare.compareWaveforms(settings, candidate) }
+            .filter { it.second.ok }
+            .maxByOrNull { it.second.similarityPercent }
 
     if (best == null) {
         return AutoOriginalResult(settings.id, false, null, null, null, "Не удалось сверить ни одного кандидата (нет аудио)")
@@ -3684,8 +4136,12 @@ fun autoAssignOriginalByWaveform(
     val (bestSettings, cmp) = best
     if (cmp.similarityPercent < threshold) {
         return AutoOriginalResult(
-            settings.id, false, bestSettings.id, cmp.similarityPercent, cmp.deltaMs,
-            "Лучшее совпадение ${cmp.similarityPercent}% [${songLogLabel(bestSettings)}] ниже порога $threshold%"
+            settings.id,
+            false,
+            bestSettings.id,
+            cmp.similarityPercent,
+            cmp.deltaMs,
+            "Лучшее совпадение ${cmp.similarityPercent}% [${songLogLabel(bestSettings)}] ниже порога $threshold%",
         )
     }
 
@@ -3718,8 +4174,12 @@ fun autoAssignOriginalByWaveform(
     settings.saveToDb()
 
     return AutoOriginalResult(
-        settings.id, true, bestSettings.id, cmp.similarityPercent, cmp.deltaMs,
-        "Привязано к [${songLogLabel(bestSettings)}] (${cmp.similarityPercent}%, сдвиг ${cmp.deltaMs} мс)"
+        settings.id,
+        true,
+        bestSettings.id,
+        cmp.similarityPercent,
+        cmp.deltaMs,
+        "Привязано к [${songLogLabel(bestSettings)}] (${cmp.similarityPercent}%, сдвиг ${cmp.deltaMs} мс)",
     )
 }
 
@@ -3733,7 +4193,7 @@ data class AudioParentResult(
     val bestId: Long?,
     val bestPercent: Int?,
     val deltaMs: Long?,
-    val reason: String
+    val reason: String,
 )
 
 /**
@@ -3758,10 +4218,11 @@ fun findAudioParentByWaveform(
     settings: Settings,
     database: KaraokeConnection,
     storageService: KaraokeStorageService,
-    storageApiClient: StorageApiClient
+    storageApiClient: StorageApiClient,
 ): AudioParentResult {
-    val candidateIds = (findFamilySongIds(settings, database) + searchSongsByNormalizedName(settings, settings.songName, database))
-        .toSet() - settings.id
+    val candidateIds =
+        (findFamilySongIds(settings, database) + searchSongsByNormalizedName(settings, settings.songName, database))
+            .toSet() - settings.id
     if (candidateIds.isEmpty()) {
         return AudioParentResult(settings.id, false, null, null, null, "Нет кандидатов (ни в семье, ни по названию)")
     }
@@ -3778,36 +4239,66 @@ fun findAudioParentByWaveform(
             val cmp = WaveformCompare.compareWaveforms(settings, candidate)
             historyById[id] = AudioCompareHistoryEntry(id, cmp.similarityPercent, cmp.deltaMs, cmp.ok, now)
         }
-        settings.audioCompareHistory = Json.encodeToString(ListSerializer(AudioCompareHistoryEntry.serializer()), historyById.values.toList())
+        settings.audioCompareHistory =
+            Json.encodeToString(ListSerializer(AudioCompareHistoryEntry.serializer()), historyById.values.toList())
     }
 
-    val best = candidateIds.mapNotNull { historyById[it] }
-        .filter { it.ok }
-        .maxByOrNull { it.similarityPercent }
+    val best =
+        candidateIds
+            .mapNotNull { historyById[it] }
+            .filter { it.ok }
+            .maxByOrNull { it.similarityPercent }
 
     if (best == null || best.similarityPercent < AUDIO_PARENT_THRESHOLD) {
         settings.saveToDb()
         return AudioParentResult(
-            settings.id, false, best?.id, best?.similarityPercent, best?.deltaMs,
-            if (best == null) "Не удалось сверить ни одного кандидата (нет аудио)"
-            else "Лучшее совпадение ${best.similarityPercent}% (id=${best.id}) ниже порога $AUDIO_PARENT_THRESHOLD%"
+            settings.id,
+            false,
+            best?.id,
+            best?.similarityPercent,
+            best?.deltaMs,
+            if (best == null) {
+                "Не удалось сверить ни одного кандидата (нет аудио)"
+            } else {
+                "Лучшее совпадение ${best.similarityPercent}% (id=${best.id}) ниже порога $AUDIO_PARENT_THRESHOLD%"
+            },
         )
     }
 
-    val bestSettings = loadedCandidates[best.id]
-        ?: Settings.loadFromDbById(best.id, database = database, storageService = storageService, storageApiClient = storageApiClient)
-        ?: run {
-            settings.saveToDb()
-            return AudioParentResult(settings.id, false, best.id, best.similarityPercent, best.deltaMs, "Кандидат id=${best.id} не найден при резолве корня")
-        }
+    val bestSettings =
+        loadedCandidates[best.id]
+            ?: Settings.loadFromDbById(best.id, database = database, storageService = storageService, storageApiClient = storageApiClient)
+            ?: run {
+                settings.saveToDb()
+                return AudioParentResult(
+                    settings.id,
+                    false,
+                    best.id,
+                    best.similarityPercent,
+                    best.deltaMs,
+                    "Кандидат id=${best.id} не найден при резолве корня",
+                )
+            }
 
-    val resolvedRoot = if (bestSettings.audioParentId != 0L) bestSettings.audioParentId
-        else if (bestSettings.id < settings.id) bestSettings.id
-        else settings.id
+    val resolvedRoot =
+        if (bestSettings.audioParentId != 0L) {
+            bestSettings.audioParentId
+        } else if (bestSettings.id < settings.id) {
+            bestSettings.id
+        } else {
+            settings.id
+        }
 
     if (resolvedRoot == settings.id) {
         settings.saveToDb()
-        return AudioParentResult(settings.id, false, best.id, best.similarityPercent, best.deltaMs, "Текущая песня определена как корень пары с [${songLogLabel(bestSettings)}] (меньший id)")
+        return AudioParentResult(
+            settings.id,
+            false,
+            best.id,
+            best.similarityPercent,
+            best.deltaMs,
+            "Текущая песня определена как корень пары с [${songLogLabel(bestSettings)}] (меньший id)",
+        )
     }
 
     settings.audioParentId = resolvedRoot
@@ -3816,15 +4307,20 @@ fun findAudioParentByWaveform(
     settings.saveToDb()
 
     return AudioParentResult(
-        settings.id, true, resolvedRoot, best.similarityPercent, best.deltaMs,
+        settings.id,
+        true,
+        resolvedRoot,
+        best.similarityPercent,
+        best.deltaMs,
         "Похож на [${songLogLabel(bestSettings)}] (${best.similarityPercent}%, сдвиг ${best.deltaMs} мс)" +
-            if (resolvedRoot != bestSettings.id) ", корень id=$resolvedRoot" else ""
+            if (resolvedRoot != bestSettings.id) ", корень id=$resolvedRoot" else "",
     )
 }
 
 fun getFreeTimeSlots(): List<String> {
     val result = mutableListOf<String>()
-    val sql = """
+    val sql =
+        """
         SELECT PD
         FROM (
             SELECT TO_DATE(ts.publish_date, 'DD.MM.YY') + INTERVAL '1 day' + INTERVAL '11 hour' AS PD
@@ -3887,7 +4383,7 @@ fun getFreeTimeSlots(): List<String> {
             ORDER BY PD DESC
             LIMIT 1
         ) AS subquery17;
-    """.trimIndent()
+        """.trimIndent()
 
     val database = WORKING_DATABASE
     val connection = database.getConnection()

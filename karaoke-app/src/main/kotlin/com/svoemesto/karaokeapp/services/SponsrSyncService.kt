@@ -36,7 +36,6 @@ data class SponsrSyncResult(
  * следующий раз — лапснется само по истечении окна, без явного удаления/сброса).
  */
 object SponsrSyncService {
-
     private val EMAIL_REGEX = Regex("""[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}""")
 
     fun importFromList(
@@ -58,34 +57,50 @@ object SponsrSyncService {
     ): SponsrSyncResult {
         val url = Karaoke.sponsrSubscribersUrl.trim()
         if (url.isBlank()) {
-            return SponsrSyncResult(false, 0, 0, listOf(
-                "sponsrSubscribersUrl не настроен (Свойства/KaraokeProperties) — сначала проверьте " +
-                "реальный кабинет автора Sponsr и укажите URL страницы подписчиков."
-            ))
+            return SponsrSyncResult(
+                false,
+                0,
+                0,
+                listOf(
+                    "sponsrSubscribersUrl не настроен (Свойства/KaraokeProperties) — сначала проверьте " +
+                        "реальный кабинет автора Sponsr и укажите URL страницы подписчиков.",
+                ),
+            )
         }
         if (!File(SPONSR_AUTH_STATE_PATH).exists()) {
-            return SponsrSyncResult(false, 0, 0, listOf(
-                "Нет сохранённой сессии Sponsr ($SPONSR_AUTH_STATE_PATH) — выполните once " +
-                "createNewSponsrAuthContext() (UtilsPlaywright.kt) и войдите в аккаунт вручную."
-            ))
+            return SponsrSyncResult(
+                false,
+                0,
+                0,
+                listOf(
+                    "Нет сохранённой сессии Sponsr ($SPONSR_AUTH_STATE_PATH) — выполните once " +
+                        "createNewSponsrAuthContext() (UtilsPlaywright.kt) и войдите в аккаунт вручную.",
+                ),
+            )
         }
         val identifiers = mutableListOf<String>()
         val messages = mutableListOf<String>()
         try {
             Playwright.create().use { playwright ->
                 val browser = playwright.chromium().launch(BrowserType.LaunchOptions().setHeadless(true))
-                val context = browser.newContext(
-                    Browser.NewContextOptions()
-                        .setStorageStatePath(Path.of(SPONSR_AUTH_STATE_PATH))
-                        .setLocale("ru-RU")
-                )
+                val context =
+                    browser.newContext(
+                        Browser
+                            .NewContextOptions()
+                            .setStorageStatePath(Path.of(SPONSR_AUTH_STATE_PATH))
+                            .setLocale("ru-RU"),
+                    )
                 val page = context.newPage()
                 page.navigate(url)
                 val html = page.content()
                 EMAIL_REGEX.findAll(html).forEach { identifiers.add(it.value) }
                 // Обновляем сессию на диске (cookies могли обновиться) — тот же приём, что и
                 // searchLastAlbumYm2 для Яндекс.Музыки.
-                context.storageState(com.microsoft.playwright.BrowserContext.StorageStateOptions().setPath(Path.of(SPONSR_AUTH_STATE_PATH)))
+                context.storageState(
+                    com.microsoft.playwright.BrowserContext
+                        .StorageStateOptions()
+                        .setPath(Path.of(SPONSR_AUTH_STATE_PATH)),
+                )
                 browser.close()
             }
         } catch (e: Exception) {
@@ -93,7 +108,9 @@ object SponsrSyncService {
             return SponsrSyncResult(false, identifiers.size, 0, messages)
         }
         if (identifiers.isEmpty()) {
-            messages.add("На странице не найдено ни одного email-подобного идентификатора — вероятно, страница устроена не так, как ожидалось (нужна калибровка селекторов под реальную вёрстку).")
+            messages.add(
+                "На странице не найдено ни одного email-подобного идентификатора — вероятно, страница устроена не так, как ожидалось (нужна калибровка селекторов под реальную вёрстку).",
+            )
             return SponsrSyncResult(false, 0, 0, messages)
         }
         val result = applyToUsers(identifiers.distinct(), database, storageService, storageApiClient)
@@ -114,7 +131,13 @@ object SponsrSyncService {
 
         // N+1 по всем site-users неизбежен без сырого SQL "IN (...)" по двум разным колонкам сразу —
         // при разумном числе пользователей сайта (десятки-сотни) это не проблема; синк не горячий путь.
-        val allUsers = SiteUser.loadList(emptyMap(), database = database, storageService = storageService, storageApiClient = storageApiClient)
+        val allUsers =
+            SiteUser.loadList(
+                emptyMap(),
+                database = database,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
         for (user in allUsers) {
             val emailMatch = user.email.isNotBlank() && user.email.lowercase() in lowerIdentifiers
             val uidMatch = user.sponsrUid.isNotBlank() && user.sponsrUid.lowercase() in lowerIdentifiers

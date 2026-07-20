@@ -2,28 +2,28 @@
   <transition name="modal-fade">
     <div class="сс-modal-backdrop">
       <div class="сс-area">
-        <div v-html="params.header" :style="styleHeader"></div>
-        <div v-html="params.body" :style="styleBody"></div>
+        <div :style="styleHeader" v-html="params.header"/>
+        <div :style="styleBody" v-html="params.body"/>
         <div v-if="params.fields" class="сс-params">
           <div v-for="fld in params.fields" :key="fld" class="сс-param-line-fields">
-            <div v-text="fld.fldLabel" :style="fld.fldLabelStyle"></div>
+            <div :style="fld.fldLabelStyle" v-text="fld.fldLabel"/>
             <div v-if="fld.fldIsBoolean" class="сс-param-line-buttons">
-              <button class="сс-group-button-boolean" :class="fld.fldValue === 'true' || fld.fldValue === true ? 'сс-group-button-boolean-active' : ''"  type="button" value="true"  @click="fld.fldValue='true'" :disabled="fld.disabled">TRUE</button>
-              <button class="сс-group-button-boolean" :class="fld.fldValue === 'false' || fld.fldValue === false ? 'сс-group-button-boolean-active' : ''" type="button" value="false" @click="fld.fldValue='false'" :disabled="fld.disabled">FALSE</button>
+              <button class="сс-group-button-boolean" :class="fld.fldValue === 'true' || fld.fldValue === true ? 'сс-group-button-boolean-active' : ''"  type="button" value="true"  :disabled="fld.disabled" @click="fld.fldValue='true'">TRUE</button>
+              <button class="сс-group-button-boolean" :class="fld.fldValue === 'false' || fld.fldValue === false ? 'сс-group-button-boolean-active' : ''" type="button" value="false" :disabled="fld.disabled" @click="fld.fldValue='false'">FALSE</button>
             </div>
             <div v-else-if="fld.fldIsSelect" class="сс-param-line-buttons">
-              <select class="сс-select-field" v-model="fld.fldValue" :style="fld.fldValueStyle" :disabled="fld.disabled">
-                <option v-for="opt in fld.fldOptions" :key="opt" :value="opt" v-text="opt"></option>
+              <select v-model="fld.fldValue" class="сс-select-field" :style="fld.fldValueStyle" :disabled="fld.disabled">
+                <option v-for="opt in fld.fldOptions" :key="opt" :value="opt" v-text="opt"/>
               </select>
             </div>
             <div v-else class="сс-param-line-buttons">
-              <input v-model="fld.fldValue" :style="fld.fldValueStyle" :disabled="fld.disabled">
+              <input v-model="fld.fldValue" :style="fld.fldValueStyle" :disabled="fld.disabled"/>
             </div>
           </div>
         </div>
         <div :style="styleFooter">
-          <button v-if="!params.isAlert" type="button" class="сс-button-ok" @click="ok" v-text="'Да'"></button>
-          <button type="button" class="сс-button-cancel" @click="close" v-text="buttonCloseCaption"></button>
+          <button v-if="!params.isAlert" type="button" class="сс-button-ok" @click="ok" v-text="'Да'"/>
+          <button type="button" class="сс-button-cancel" @click="close" v-text="buttonCloseCaption"/>
         </div>
       </div>
     </div>
@@ -44,22 +44,6 @@ export default {
     return {
       timeToClose: undefined
     };
-  },
-  mounted() {
-    if (this.params.timeout) {
-      this.timeToClose = this.params.timeout;
-      setInterval(this.decreaseTimeToClose,1000);
-    }
-  },
-  watch: {
-    timeToClose: {
-      handler () {
-        if (this.timeToClose < 0) {
-          clearInterval(this.decreaseTimeToClose);
-          this.close();
-        }
-      }
-    }
   },
   computed: {
     buttonCloseCaption() {
@@ -121,6 +105,22 @@ export default {
         width: '150px',
         height: 'auto'
       }
+    }
+  },
+  watch: {
+    timeToClose: {
+      handler () {
+        if (this.timeToClose < 0) {
+          clearInterval(this.decreaseTimeToClose);
+          this.close();
+        }
+      }
+    }
+  },
+  mounted() {
+    if (this.params.timeout) {
+      this.timeToClose = this.params.timeout;
+      setInterval(this.decreaseTimeToClose,1000);
     }
   },
   methods: {

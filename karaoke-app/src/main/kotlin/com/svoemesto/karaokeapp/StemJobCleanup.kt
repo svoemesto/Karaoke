@@ -14,14 +14,16 @@ import java.sql.Timestamp
  * админ-панелью webvue3 (StemJobsAdminController — немедленная остановка/удаление по клику).
  */
 object StemJobCleanup {
-
     /**
      * Удаляет файлы задания (объекты MinIO, если уже загружены — status=DONE) и саму строку
      * tbl_stem_jobs. НЕ трогает текущий выполняющийся процесс — если задание ещё WORKING, сначала
      * вызвать stopRunningWork()/adminStop(), иначе поллер может продолжить писать в уже удалённую
      * строку (см. adminDeleteNow).
      */
-    fun cleanupJob(job: StemJob, database: KaraokeConnection) {
+    fun cleanupJob(
+        job: StemJob,
+        database: KaraokeConnection,
+    ) {
         if (job.status == StemJobStatus.DONE) {
             val bucket = "karaoke"
             runCatching { SAC_APP.deleteFile(bucket, "stemjobs/${job.id}/original.${job.originalExt}").block() }
@@ -62,14 +64,20 @@ object StemJobCleanup {
         // не имеют смысла: строка удаляется, а авторитетный статус задания правит executeFinalizeStemJob
         // проставлять уже некуда, т.к. вызывающая сторона (adminStop/adminDeleteNow) сама пишет
         // финальный статус в tbl_stem_jobs.
-        KaraokeProcess.loadList(mapOf("process_description" to description, "thread_id" to KaraokeProcess.THREAD_LANE_STEM_JOBS.toString()), Connection.local())
-            .forEach { runCatching { KaraokeProcess.delete(it.id, Connection.local()) } }
+        KaraokeProcess
+            .loadList(
+                mapOf("process_description" to description, "thread_id" to KaraokeProcess.THREAD_LANE_STEM_JOBS.toString()),
+                Connection.local(),
+            ).forEach { runCatching { KaraokeProcess.delete(it.id, Connection.local()) } }
 
         File("$PATH_TO_TEMP_STEMJOB_FOLDER/$jobId").deleteRecursively()
     }
 
     /** Останавливает задание (если ещё выполняется) и помечает его ERROR — файлы НЕ удаляются, пользователь/админ может решить удалить отдельно. */
-    fun adminStop(jobId: Long, database: KaraokeConnection): Boolean {
+    fun adminStop(
+        jobId: Long,
+        database: KaraokeConnection,
+    ): Boolean {
         val job = StemJob.getById(jobId, database, KSS_APP, SAC_APP) ?: return false
         if (job.status != StemJobStatus.WAITING && job.status != StemJobStatus.WORKING) return false
         stopRunningWork(jobId)
@@ -81,7 +89,10 @@ object StemJobCleanup {
     }
 
     /** Останавливает (если выполняется) и немедленно удаляет — не дожидаясь периодической уборки. */
-    fun adminDeleteNow(jobId: Long, database: KaraokeConnection): Boolean {
+    fun adminDeleteNow(
+        jobId: Long,
+        database: KaraokeConnection,
+    ): Boolean {
         val job = StemJob.getById(jobId, database, KSS_APP, SAC_APP) ?: return false
         if (job.status == StemJobStatus.WAITING || job.status == StemJobStatus.WORKING) {
             stopRunningWork(jobId)

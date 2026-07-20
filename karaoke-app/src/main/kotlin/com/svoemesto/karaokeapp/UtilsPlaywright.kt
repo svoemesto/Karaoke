@@ -19,11 +19,13 @@ fun main1() {
         // Укажите путь к исполняемому файлу Яндекс.Браузера
         val yandexBrowserPath = "/usr/bin/yandex-browser" // <-- Укажите актуальный путь
 
-        val browser = playwright.chromium().launch(
-            BrowserType.LaunchOptions()
-                .setExecutablePath(Path.of(yandexBrowserPath))
-                .setHeadless(false) // Чтобы браузер был виден
-        )
+        val browser =
+            playwright.chromium().launch(
+                BrowserType
+                    .LaunchOptions()
+                    .setExecutablePath(Path.of(yandexBrowserPath))
+                    .setHeadless(false), // Чтобы браузер был виден
+            )
         val page = browser.newPage()
         page.navigate("https://music.yandex.ru/")
         println(page.title())
@@ -50,7 +52,7 @@ private fun runAuthFlow(
     startMessage: String,
     startUrl: String = "https://music.yandex.ru/",
     createContext: (Playwright) -> Pair<BrowserContext, () -> Unit>,
-    onAuthorized: (BrowserContext) -> Unit
+    onAuthorized: (BrowserContext) -> Unit,
 ) {
     if (!authInProgress.compareAndSet(false, true)) {
         println("Авторизация уже выполняется, дождитесь её завершения (completeAuth()) перед повторным запуском")
@@ -87,24 +89,28 @@ fun createNewAuthContext() {
     runAuthFlow(
         startMessage = "Авторизуйтесь в браузере, затем вызовите completeAuth()",
         createContext = { playwright ->
-            val browser = playwright.chromium().launch(
-                BrowserType.LaunchOptions()
-                    .setHeadless(false)
+            val browser =
+                playwright.chromium().launch(
+                    BrowserType
+                        .LaunchOptions()
+                        .setHeadless(false),
 //                .setChannel("chrome") // Запуск системного Chrome
-            )
-            val context = browser.newContext(
-                Browser.NewContextOptions()
-                    .setLocale("ru-RU")
-                    .setTimezoneId("Europe/Moscow")
-            )
+                )
+            val context =
+                browser.newContext(
+                    Browser
+                        .NewContextOptions()
+                        .setLocale("ru-RU")
+                        .setTimezoneId("Europe/Moscow"),
+                )
             context to { browser.close() }
         },
         onAuthorized = { context ->
             context.storageState(
-                BrowserContext.StorageStateOptions().setPath(Path.of(YANDEX_AUTH_STATE_PATH))
+                BrowserContext.StorageStateOptions().setPath(Path.of(YANDEX_AUTH_STATE_PATH)),
             )
             println("Состояние сохранено в '$YANDEX_AUTH_STATE_PATH'")
-        }
+        },
     )
 }
 
@@ -117,22 +123,25 @@ fun createNewSponsrAuthContext() {
         startMessage = "Авторизуйтесь в браузере на sponsr.ru, затем вызовите completeAuth()",
         startUrl = "https://sponsr.ru/",
         createContext = { playwright ->
-            val browser = playwright.chromium().launch(
-                BrowserType.LaunchOptions().setHeadless(false)
-            )
-            val context = browser.newContext(
-                Browser.NewContextOptions()
-                    .setLocale("ru-RU")
-                    .setTimezoneId("Europe/Moscow")
-            )
+            val browser =
+                playwright.chromium().launch(
+                    BrowserType.LaunchOptions().setHeadless(false),
+                )
+            val context =
+                browser.newContext(
+                    Browser
+                        .NewContextOptions()
+                        .setLocale("ru-RU")
+                        .setTimezoneId("Europe/Moscow"),
+                )
             context to { browser.close() }
         },
         onAuthorized = { context ->
             context.storageState(
-                BrowserContext.StorageStateOptions().setPath(Path.of(SPONSR_AUTH_STATE_PATH))
+                BrowserContext.StorageStateOptions().setPath(Path.of(SPONSR_AUTH_STATE_PATH)),
             )
             println("Состояние сохранено в '$SPONSR_AUTH_STATE_PATH'")
-        }
+        },
     )
 }
 
@@ -144,30 +153,34 @@ fun createNewAuthContext2() {
         startMessage = "Авторизуйтесь в браузере (не забудьте 'Запомнить меня'), затем вызовите completeAuth()",
         createContext = { playwright ->
             // Запускаем браузер сразу с привязкой к папке профиля
-            val context = playwright.chromium().launchPersistentContext(
-                USER_DATA_DIR,
-                BrowserType.LaunchPersistentContextOptions()
-                    .setHeadless(false)
-                    .setLocale("ru-RU")
-                    .setTimezoneId("Europe/Moscow")
-                    .setArgs(listOf("--disable-blink-features=AutomationControlled")) // Скрываем признаки бота
-            )
+            val context =
+                playwright.chromium().launchPersistentContext(
+                    USER_DATA_DIR,
+                    BrowserType
+                        .LaunchPersistentContextOptions()
+                        .setHeadless(false)
+                        .setLocale("ru-RU")
+                        .setTimezoneId("Europe/Moscow")
+                        .setArgs(listOf("--disable-blink-features=AutomationControlled")), // Скрываем признаки бота
+                )
             context to { context.close() } // При закрытии профиль автоматически сохраняется на диск
         },
         onAuthorized = {
             println("Авторизация успешна! Профиль сохранен в папке: $USER_DATA_DIR")
-        }
+        },
     )
 }
 
 @Suppress("unused")
 fun main222() {
     Playwright.create().use { playwright ->
-        val browser = playwright.chromium().launch(
-            BrowserType.LaunchOptions()
+        val browser =
+            playwright.chromium().launch(
+                BrowserType
+                    .LaunchOptions()
 //                    .setExecutablePath(Path.of("/usr/bin/yandex-browser")) // Укажите путь к Яндекс.Браузеру
-                .setHeadless(false) // Оставляем видимым, чтобы вручную авторизоваться
-        )
+                    .setHeadless(false), // Оставляем видимым, чтобы вручную авторизоваться
+            )
 
         // Создаем новый контекст браузера
         val context = browser.newContext()
@@ -192,17 +205,21 @@ fun main222() {
 @Suppress("unused")
 fun main333() {
     Playwright.create().use { playwright ->
-        val browser = playwright.chromium().launch(
-            BrowserType.LaunchOptions()
+        val browser =
+            playwright.chromium().launch(
+                BrowserType
+                    .LaunchOptions()
 //                .setExecutablePath(java.nio.file.Path.of("/usr/bin/yandex-browser")) // Укажите путь к Яндекс.Браузеру
-                .setHeadless(false) // или true, если не нужно видеть
-        )
+                    .setHeadless(false), // или true, если не нужно видеть
+            )
 
         // Создаем контекст, используя сохраненное состояние авторизации
-        val context = browser.newContext(
-            Browser.NewContextOptions()
-                .setStorageStatePath(Path.of(YANDEX_AUTH_STATE_PATH)) // <-- Используем сохраненное состояние
-        )
+        val context =
+            browser.newContext(
+                Browser
+                    .NewContextOptions()
+                    .setStorageStatePath(Path.of(YANDEX_AUTH_STATE_PATH)), // <-- Используем сохраненное состояние
+            )
 
         val page = context.newPage()
         page.navigate("https://music.yandex.ru/artist/41055/albums") // Откроется авторизованным

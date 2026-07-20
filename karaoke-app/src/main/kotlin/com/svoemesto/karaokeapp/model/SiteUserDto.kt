@@ -30,8 +30,9 @@ data class SiteUserDto(
     // Флаг однократной отправки приветственного сообщения при первом премиуме (см. SiteUser.kt) —
     // редактируется вручную, чтобы админ мог принудительно вызвать повторную отправку (сбросить в false).
     val welcomeMessageSent: Boolean = false,
-) : Serializable, Comparable<SiteUserDto>, KaraokeDbTableDto {
-
+) : Serializable,
+    Comparable<SiteUserDto>,
+    KaraokeDbTableDto {
     override fun compareTo(other: SiteUserDto): Int = email.compareTo(other.email)
 
     override fun validationErrors(): List<String> {

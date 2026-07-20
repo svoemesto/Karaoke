@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  whisper-asr:
+    image: hwdsl2/whisper-server:cuda
+    container_name: whisper-asr
+    restart: always
+    ports:
+      - "8015:9000"  # Контейнер внутри слушает порт 9000, пробрасываем наружу на 8015
+    environment:
+      - WHISPER_MODEL=medium
+      - WHISPER_ENGINE=faster-whisper
+      - WHISPER_DEVICE=cuda
+      - WHISPER_COMPUTE_TYPE=float16
+      - WHISPER_API_KEY=nafanya_whisper_2026
+      - HF_TOKEN=hf_key _
+    volumes:
+      - /opt/whisper_models:/var/lib/whisper
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]

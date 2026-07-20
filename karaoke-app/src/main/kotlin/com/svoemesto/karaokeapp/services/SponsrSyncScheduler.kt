@@ -16,7 +16,6 @@ import org.springframework.stereotype.Component
  */
 @Component
 class SponsrSyncScheduler {
-
     @Scheduled(fixedRate = 12 * 3600_000L, initialDelay = 5 * 60_000L)
     fun run() {
         if (Karaoke.sponsrSubscribersUrl.isBlank()) return
@@ -27,7 +26,10 @@ class SponsrSyncScheduler {
             val result = SponsrSyncService.syncViaScraping(db, KSS_APP, SAC_APP)
             result.messages.forEach { println("[SponsrSyncScheduler] $it") }
         } finally {
-            try { db.getConnection()?.close() } catch (_: Exception) {}
+            try {
+                db.getConnection()?.close()
+            } catch (_: Exception) {
+            }
         }
     }
 }

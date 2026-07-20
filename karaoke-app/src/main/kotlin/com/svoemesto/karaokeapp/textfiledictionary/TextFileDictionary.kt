@@ -12,10 +12,12 @@ import com.svoemesto.karaokeapp.model.Dictionary
  * ApiController.doTextFileDictionary/getDict/addSyncForAll).
  */
 interface TextFileDictionary {
-
     companion object {
-
-        fun doAction(dictName: String, dictAction: String, dictValues: List<String>): Boolean {
+        fun doAction(
+            dictName: String,
+            dictAction: String,
+            dictValues: List<String>,
+        ): Boolean {
             val tfd = TEXT_FILE_DICTS[dictName] ?: return false
             val tfdInstance = tfd.getDeclaredConstructor().newInstance()
             val func = tfdInstance.javaClass.declaredMethods.firstOrNull { it.name == dictAction } ?: return false
@@ -31,7 +33,6 @@ interface TextFileDictionary {
             val result = func.invoke(tfdInstance)
             return if (result is List<*>) result as List<String> else emptyList()
         }
-
     }
 
     /** Имя словаря (колонка dict_name в tbl_dictionaries) — раньше был путь к текстовому файлу. */
@@ -41,11 +42,12 @@ interface TextFileDictionary {
     // trap» в DEVELOPMENT.md) — обращение к WORKING_DATABASE там может бросить NoClassDefFoundError (Error,
     // не Exception), роняя весь запрос (Zakroma, страница песни и т.п.). Деградируем до пустого словаря,
     // а не валим вызывающий эндпоинт.
-    val dict: List<String> get() = try {
-        Dictionary.loadValues(dictName(), WORKING_DATABASE)
-    } catch (e: Throwable) {
-        emptyList()
-    }
+    val dict: List<String> get() =
+        try {
+            Dictionary.loadValues(dictName(), WORKING_DATABASE)
+        } catch (e: Throwable) {
+            emptyList()
+        }
 
     fun clear() {
         Dictionary.clear(dictName(), WORKING_DATABASE)
@@ -73,7 +75,10 @@ interface TextFileDictionary {
     }
 
     @Suppress("unused")
-    fun editOne(oldElement: String, newElement: String) {
+    fun editOne(
+        oldElement: String,
+        newElement: String,
+    ) {
         if (oldElement == "" || newElement == "") return
         Dictionary.removeValues(dictName(), listOf(oldElement), WORKING_DATABASE)
         Dictionary.addValues(dictName(), listOf(newElement), WORKING_DATABASE)
@@ -83,5 +88,4 @@ interface TextFileDictionary {
     fun have(element: String) = Dictionary.have(dictName(), element, WORKING_DATABASE)
 
     fun loadList(): List<String> = Dictionary.loadValues(dictName(), WORKING_DATABASE)
-
 }

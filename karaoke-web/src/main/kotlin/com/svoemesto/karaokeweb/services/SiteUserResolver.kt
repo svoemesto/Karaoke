@@ -11,7 +11,9 @@ import org.springframework.stereotype.Component
 // /api/public/account/**, /api/public/auth/**). Не кэшируется — бан/снятие премиума должны
 // действовать немедленно, а не по TTL какого-то локального кэша.
 @Component
-class SiteUserResolver(private val siteUserTokenService: SiteUserTokenService) {
+class SiteUserResolver(
+    private val siteUserTokenService: SiteUserTokenService,
+) {
     fun resolve(request: HttpServletRequest): SiteUser? {
         val header = request.getHeader("Authorization") ?: return null
         val token = header.removePrefix("Bearer ").trim().takeIf { it.isNotBlank() } ?: return null

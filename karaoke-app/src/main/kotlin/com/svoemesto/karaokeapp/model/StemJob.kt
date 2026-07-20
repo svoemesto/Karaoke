@@ -27,10 +27,11 @@ object StemJobMode {
     // Имена стемов на выходе demucs для каждого режима (см. Settings.argsDemucs2/5) — используются и
     // для построения путей файлов в MinIO (stemjobs/{id}/<имя>.mp3), и для валидации query-параметра
     // ?stem= при скачивании.
-    fun stemNames(mode: String): List<String> = when (mode) {
-        DEMUCS5 -> listOf("accompaniment", "vocals", "drums", "bass", "other")
-        else -> listOf("accompaniment", "vocals")
-    }
+    fun stemNames(mode: String): List<String> =
+        when (mode) {
+            DEMUCS5 -> listOf("accompaniment", "vocals", "drums", "bass", "other")
+            else -> listOf("accompaniment", "vocals")
+        }
 }
 
 // Премиум-фича «Создать минусовку из аудиофайла» — задание пользователя публичного сайта на
@@ -45,8 +46,9 @@ class StemJob(
     override val database: KaraokeConnection = WORKING_DATABASE,
     override val storageService: KaraokeStorageService = KSS_APP,
     override val storageApiClient: StorageApiClient = SAC_APP,
-) : Serializable, Comparable<StemJob>, KaraokeDbTable {
-
+) : Serializable,
+    Comparable<StemJob>,
+    KaraokeDbTable {
     override fun getTableName() = TABLE_NAME
 
     @KaraokeDbTableField(name = "id", isId = true)
@@ -99,24 +101,24 @@ class StemJob(
 
     override fun compareTo(other: StemJob): Int = compareValuesBy(this, other, { it.id })
 
-    override fun toDTO(): StemJobDto = StemJobDto(
-        id = id,
-        siteUserId = siteUserId,
-        mode = mode,
-        status = status,
-        originalFileName = originalFileName,
-        originalExt = originalExt,
-        fileSizeBytes = fileSizeBytes,
-        errorMessage = errorMessage,
-        createdAt = createdAt,
-        startedAt = startedAt,
-        finishedAt = finishedAt,
-        expiresAt = expiresAt,
-        deleteRequested = deleteRequested,
-    )
+    override fun toDTO(): StemJobDto =
+        StemJobDto(
+            id = id,
+            siteUserId = siteUserId,
+            mode = mode,
+            status = status,
+            originalFileName = originalFileName,
+            originalExt = originalExt,
+            fileSizeBytes = fileSizeBytes,
+            errorMessage = errorMessage,
+            createdAt = createdAt,
+            startedAt = startedAt,
+            finishedAt = finishedAt,
+            expiresAt = expiresAt,
+            deleteRequested = deleteRequested,
+        )
 
     companion object {
-
         const val TABLE_NAME = "tbl_stem_jobs"
 
         // Лимит очереди пользователя (ЛК karaoke-public) — не более стольки одновременно активных
@@ -161,8 +163,8 @@ class StemJob(
             database: KaraokeConnection,
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
-        ): StemJob? {
-            return KaraokeDbTable.loadById(
+        ): StemJob? =
+            KaraokeDbTable.loadById(
                 clazz = StemJob::class,
                 tableName = TABLE_NAME,
                 id = id,
@@ -170,7 +172,6 @@ class StemJob(
                 storageService = storageService,
                 storageApiClient = storageApiClient,
             ) as? StemJob?
-        }
 
         // Задания пользователя для ЛК karaoke-public, свежие сверху.
         fun loadByUser(
@@ -178,28 +179,30 @@ class StemJob(
             database: KaraokeConnection,
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
-        ): List<StemJob> {
-            return KaraokeDbTable.loadList(
-                clazz = StemJob::class,
-                tableName = TABLE_NAME,
-                whereList = listOf("site_user_id=$siteUserId"),
-                database = database,
-                storageService = storageService,
-                storageApiClient = storageApiClient,
-            ).map { it as StemJob }.sortedByDescending { it.id }
-        }
+        ): List<StemJob> =
+            KaraokeDbTable
+                .loadList(
+                    clazz = StemJob::class,
+                    tableName = TABLE_NAME,
+                    whereList = listOf("site_user_id=$siteUserId"),
+                    database = database,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                ).map { it as StemJob }
+                .sortedByDescending { it.id }
 
         // Все задания (админ-панель webvue3 «Минусовки», см. StemJobsAdminController) — с email/именем
         // пользователя одним JOIN-запросом (не через generic loadList — нужен JOIN, не входит в
         // reflection-контракт KaraokeDbTable; тот же паттерн, что SiteChatMessage.loadThreads).
         fun loadAllWithUserInfo(database: KaraokeConnection): List<StemJobAdminDto> {
             val connection = database.getConnection() ?: return emptyList()
-            val sql = """
+            val sql =
+                """
                 SELECT j.*, u.email, u.display_name
                 FROM $TABLE_NAME j
                 JOIN ${SiteUser.TABLE_NAME} u ON u.id = j.site_user_id
                 ORDER BY j.id DESC
-            """.trimIndent()
+                """.trimIndent()
             val result = mutableListOf<StemJobAdminDto>()
             try {
                 connection.prepareStatement(sql).use { ps ->
@@ -222,7 +225,7 @@ class StemJob(
                                     finishedAt = rs.getTimestamp("finished_at")?.toString() ?: "",
                                     expiresAt = rs.getTimestamp("expires_at")?.toString() ?: "",
                                     deleteRequested = rs.getBoolean("delete_requested"),
-                                )
+                                ),
                             )
                         }
                     }
@@ -234,7 +237,10 @@ class StemJob(
         }
 
         // Число активных (WAITING/WORKING) заданий пользователя — гейт лимита очереди при создании.
-        fun countActiveByUser(siteUserId: Long, database: KaraokeConnection): Int {
+        fun countActiveByUser(
+            siteUserId: Long,
+            database: KaraokeConnection,
+        ): Int {
             val connection = database.getConnection() ?: return 0
             val sql = "SELECT COUNT(*) AS cnt FROM $TABLE_NAME WHERE site_user_id = ? AND status IN ('${StemJobStatus.WAITING}', '${StemJobStatus.WORKING}')"
             return try {
@@ -253,16 +259,17 @@ class StemJob(
             database: KaraokeConnection,
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
-        ): List<StemJob> {
-            return KaraokeDbTable.loadList(
-                clazz = StemJob::class,
-                tableName = TABLE_NAME,
-                whereList = listOf("status='${StemJobStatus.WAITING}'"),
-                database = database,
-                storageService = storageService,
-                storageApiClient = storageApiClient,
-            ).map { it as StemJob }.sortedBy { it.id }
-        }
+        ): List<StemJob> =
+            KaraokeDbTable
+                .loadList(
+                    clazz = StemJob::class,
+                    tableName = TABLE_NAME,
+                    whereList = listOf("status='${StemJobStatus.WAITING}'"),
+                    database = database,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                ).map { it as StemJob }
+                .sortedBy { it.id }
 
         // Задания к зачистке (уборка на karaoke-app, см. StemJobPollScheduler.cleanup): готовые и
         // просроченные, ЛИБО с явным запросом на удаление в любом статусе (включая ещё не забранные
@@ -273,11 +280,12 @@ class StemJob(
             storageApiClient: StorageApiClient,
         ): List<StemJob> {
             val connection = database.getConnection() ?: return emptyList()
-            val sql = """
+            val sql =
+                """
                 SELECT id FROM $TABLE_NAME
                 WHERE delete_requested = true
                    OR (status = '${StemJobStatus.DONE}' AND expires_at IS NOT NULL AND expires_at < now())
-            """.trimIndent()
+                """.trimIndent()
             val ids = mutableListOf<Long>()
             try {
                 connection.prepareStatement(sql).use { ps ->
@@ -290,18 +298,24 @@ class StemJob(
             return ids.mapNotNull { getById(it, database, storageService, storageApiClient) }
         }
 
-        fun delete(id: Long, database: KaraokeConnection): Boolean =
-            KaraokeDbTable.delete(tableName = TABLE_NAME, id = id, database = database)
+        fun delete(
+            id: Long,
+            database: KaraokeConnection,
+        ): Boolean = KaraokeDbTable.delete(tableName = TABLE_NAME, id = id, database = database)
 
         // Задания, застрявшие дольше staleMinutes — WAITING, которое поллер почему-то не забрал, или
         // WORKING, которое почему-то не дошло до финализации. Для монитора (StemJobsStuckCheck).
-        fun countStuck(database: KaraokeConnection, staleMinutes: Long): Int {
+        fun countStuck(
+            database: KaraokeConnection,
+            staleMinutes: Long,
+        ): Int {
             val connection = database.getConnection() ?: return 0
-            val sql = """
+            val sql =
+                """
                 SELECT COUNT(*) AS cnt FROM $TABLE_NAME
                 WHERE (status = '${StemJobStatus.WAITING}' AND created_at < now() - make_interval(mins => ?))
                    OR (status = '${StemJobStatus.WORKING}' AND started_at < now() - make_interval(mins => ?))
-            """.trimIndent()
+                """.trimIndent()
             return try {
                 connection.prepareStatement(sql).use { ps ->
                     ps.setInt(1, staleMinutes.toInt())

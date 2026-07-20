@@ -8,9 +8,9 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer
 class WebMvcConfig(
     private val siteAuthInterceptor: SiteAuthInterceptor,
 ) : WebMvcConfigurer {
-
     override fun addInterceptors(registry: InterceptorRegistry) {
-        registry.addInterceptor(siteAuthInterceptor)
+        registry
+            .addInterceptor(siteAuthInterceptor)
             .addPathPatterns("/api/public/account/**", "/api/public/auth/me", "/api/public/auth/logout")
             // Список тарифов — витринные данные (цена/срок, без персональных данных), должен быть
             // виден анонимам на /premium и странице песни ДО регистрации — иначе цена не мотивирует

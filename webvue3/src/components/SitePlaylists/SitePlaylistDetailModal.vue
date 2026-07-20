@@ -4,7 +4,7 @@
       <div class="spd-head">
         <div>
           <div class="spd-title">{{ detail ? detail.name : '' }}<span v-if="detail && detail.favorites" class="spd-fav"> ★ Избранное</span></div>
-          <div class="spd-owner" v-if="detail">{{ detail.ownerName }} &lt;{{ detail.ownerEmail }}&gt; (id={{ detail.ownerId }})</div>
+          <div v-if="detail" class="spd-owner">{{ detail.ownerName }} &lt;{{ detail.ownerEmail }}&gt; (id={{ detail.ownerId }})</div>
         </div>
         <button class="spd-close" @click="$emit('close')">×</button>
       </div>

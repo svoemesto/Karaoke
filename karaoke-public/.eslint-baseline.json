@@ -1,0 +1,490 @@
+[
+  {
+    "ruleId": "vue/attributes-order",
+    "file": null,
+    "line": 17,
+    "column": 11,
+    "message": "Attribute \"alt\" should go before \"@error\".",
+    "severity": 1
+  },
+  {
+    "ruleId": "vue/attributes-order",
+    "file": null,
+    "line": 5,
+    "column": 68,
+    "message": "Attribute \"title\" should go before \"@click.stop\".",
+    "severity": 1
+  },
+  {
+    "ruleId": "vue/html-self-closing",
+    "file": null,
+    "line": 21,
+    "column": 13,
+    "message": "Require self-closing on HTML void elements (<input>).",
+    "severity": 2
+  },
+  {
+    "ruleId": "vue/attributes-order",
+    "file": null,
+    "line": 21,
+    "column": 36,
+    "message": "Attribute \"v-model\" should go before \"type\".",
+    "severity": 1
+  },
+  {
+    "ruleId": "no-unused-vars",
+    "file": null,
+    "line": 1614,
+    "column": 32,
+    "message": "'dt' is defined but never used. Allowed unused args must match /^_/u.",
+    "severity": 1
+  },
+  {
+    "ruleId": "vue/attributes-order",
+    "file": null,
+    "line": 25,
+    "column": 35,
+    "message": "Attribute \"v-if\" should go before \"class\".",
+    "severity": 1
+  },
+  {
+    "ruleId": "vue/attributes-order",
+    "file": null,
+    "line": 29,
+    "column": 35,
+    "message": "Attribute \"v-else\" should go before \"class\".",
+    "severity": 1
+  },
+  {
+    "ruleId": "vue/order-in-components",
+    "file": null,
+    "line": 149,
+    "column": 3,
+    "message": "The \"data\" property should be above the \"computed\" property on line 123.",
+    "severity": 1
+  },
+  {
+    "ruleId": "vue/html-self-closing",
+    "file": null,
+    "line": 42,
+    "column": 13,
+    "message": "Require self-closing on HTML void elements (<input>).",
+    "severity": 2
+  },
+  {
+    "ruleId": "vue/attributes-order",
+    "file": null,
+    "line": 42,
+    "column": 36,
+    "message": "Attribute \"v-model\" should go before \"type\".",
+    "severity": 1
+  },
+  {
+    "ruleId": "vue/attributes-order",
+    "file": null,
+    "line": 32,
+    "column": 41,
+    "message": "Attribute \"ref\" should go before \"class\".",
+    "severity": 1
+  },
+  {
+    "ruleId": "vue/html-self-closing",
+    "file": null,
+    "line": 46,
+    "column": 13,
+    "message": "Require self-closing on HTML elements (<textarea>).",
+    "severity": 2
+  },
+  {
+    "ruleId": "vue/attributes-order",
+    "file": null,
+    "line": 55,
+    "column": 99,
+    "message": "Attribute \"title\" should go before \"@click\".",
+    "severity": 1
+  },
+  {
+    "ruleId": "vue/html-self-closing",
+    "file": null,
+    "line": 57,
+    "column": 15,
+    "message": "Require self-closing on HTML elements (<span>).",
+    "severity": 2
+  },
+  {
+    "ruleId": "vue/attributes-order",
+    "file": null,
+    "line": 41,
+    "column": 53,
+    "message": "Attribute \"ref\" should go before \"class\".",
+    "severity": 1
+  },
+  {
+    "ruleId": "vue/html-self-closing",
+    "file": null,
+    "line": 42,
+    "column": 9,
+    "message": "Require self-closing on HTML elements (<iframe>).",
+    "severity": 2
+  },
+  {
+    "ruleId": "vue/html-self-closing",
+    "file": null,
+    "line": 60,
+    "column": 9,
+    "message": "Require self-closing on HTML elements (<div>).",
+    "severity": 2
+  },
+  {
+    "ruleId": "vue/attributes-order",
+    "file": null,
+    "line": 85,
+    "column": 63,
+    "message": "Attribute \"v-model.number\" should go before \"step\".",
+    "severity": 1
+  },
+  {
+    "ruleId": "vue/attributes-order",
+    "file": null,
+    "line": 89,
+    "column": 62,
+    "message": "Attribute \"v-model.number\" should go before \"step\".",
+    "severity": 1
+  },
+  {
+    "ruleId": "vue/attributes-order",
+    "file": null,
+    "line": 100,
+    "column": 61,
+    "message": "Attribute \"v-model.number\" should go before \"step\".",
+    "severity": 1
+  },
+  {
+    "ruleId": "vue/attributes-order",
+    "file": null,
+    "line": 139,
+    "column": 61,
+    "message": "Attribute \"v-model.number\" should go before \"step\".",
+    "severity": 1
+  },
+  {
+    "ruleId": "vue/html-self-closing",
+    "file": null,
+    "line": 142,
+    "column": 11,
+    "message": "Require self-closing on HTML elements (<textarea>).",
+    "severity": 2
+  },
+  {
+    "ruleId": "vue/attributes-order",
+    "file": null,
+    "line": 145,
+    "column": 13,
+    "message": "Attribute \"v-model\" should go before \":style\".",
+    "severity": 1
+  },
+  {
+    "ruleId": "vue/attributes-order",
+    "file": null,
+    "line": 156,
+    "column": 61,
+    "message": "Attribute \"v-model.number\" should go before \"step\".",
+    "severity": 1
+  },
+  {
+    "ruleId": "vue/html-self-closing",
+    "file": null,
+    "line": 159,
+    "column": 11,
+    "message": "Require self-closing on HTML elements (<div>).",
+    "severity": 2
+  },
+  {
+    "ruleId": "vue/no-v-html",
+    "file": null,
+    "line": 159,
+    "column": 81,
+    "message": "'v-html' directive can lead to XSS attack.",
+    "severity": 1
+  },
+  {
+    "ruleId": "vue/attributes-order",
+    "file": null,
+    "line": 10,
+    "column": 110,
+    "message": "Attribute \"title\" should go before \"@click\".",
+    "severity": 1
+  },
+  {
+    "ruleId": "vue/attributes-order",
+    "file": null,
+    "line": 11,
+    "column": 112,
+    "message": "Attribute \"title\" should go before \"@click\".",
+    "severity": 1
+  },
+  {
+    "ruleId": "vue/attributes-order",
+    "file": null,
+    "line": 12,
+    "column": 108,
+    "message": "Attribute \"title\" should go before \"@click\".",
+    "severity": 1
+  },
+  {
+    "ruleId": "vue/html-self-closing",
+    "file": null,
+    "line": 103,
+    "column": 39,
+    "message": "Require self-closing on HTML void elements (<br>).",
+    "severity": 2
+  },
+  {
+    "ruleId": "vue/html-self-closing",
+    "file": null,
+    "line": 104,
+    "column": 68,
+    "message": "Require self-closing on HTML void elements (<br>).",
+    "severity": 2
+  },
+  {
+    "ruleId": "vue/html-self-closing",
+    "file": null,
+    "line": 105,
+    "column": 28,
+    "message": "Require self-closing on HTML void elements (<br>).",
+    "severity": 2
+  },
+  {
+    "ruleId": "vue/html-self-closing",
+    "file": null,
+    "line": 2,
+    "column": 3,
+    "message": "Require self-closing on HTML elements (<div>).",
+    "severity": 2
+  },
+  {
+    "ruleId": "no-unused-vars",
+    "file": null,
+    "line": 94,
+    "column": 63,
+    "message": "'nextTick' is defined but never used. Allowed unused vars must match /^_/u.",
+    "severity": 1
+  },
+  {
+    "ruleId": "vue/html-self-closing",
+    "file": null,
+    "line": 58,
+    "column": 17,
+    "message": "Require self-closing on HTML void elements (<input>).",
+    "severity": 2
+  },
+  {
+    "ruleId": "vue/attributes-order",
+    "file": null,
+    "line": 58,
+    "column": 40,
+    "message": "Attribute \"v-model\" should go before \"type\".",
+    "severity": 1
+  },
+  {
+    "ruleId": "vue/html-self-closing",
+    "file": null,
+    "line": 62,
+    "column": 17,
+    "message": "Require self-closing on HTML void elements (<input>).",
+    "severity": 2
+  },
+  {
+    "ruleId": "vue/attributes-order",
+    "file": null,
+    "line": 62,
+    "column": 40,
+    "message": "Attribute \"v-model\" should go before \"type\".",
+    "severity": 1
+  },
+  {
+    "ruleId": "vue/html-self-closing",
+    "file": null,
+    "line": 33,
+    "column": 9,
+    "message": "Require self-closing on HTML elements (<div>).",
+    "severity": 2
+  },
+  {
+    "ruleId": "vue/attributes-order",
+    "file": null,
+    "line": 13,
+    "column": 102,
+    "message": "Attribute \"title\" should go before \"@click\".",
+    "severity": 1
+  },
+  {
+    "ruleId": "vue/attributes-order",
+    "file": null,
+    "line": 14,
+    "column": 104,
+    "message": "Attribute \"title\" should go before \"@click\".",
+    "severity": 1
+  },
+  {
+    "ruleId": "vue/attributes-order",
+    "file": null,
+    "line": 15,
+    "column": 100,
+    "message": "Attribute \"title\" should go before \"@click\".",
+    "severity": 1
+  },
+  {
+    "ruleId": "vue/attributes-order",
+    "file": null,
+    "line": 29,
+    "column": 15,
+    "message": "Attribute \"v-model\" should go before \"list\".",
+    "severity": 1
+  },
+  {
+    "ruleId": "vue/attributes-order",
+    "file": null,
+    "line": 13,
+    "column": 102,
+    "message": "Attribute \"title\" should go before \"@click\".",
+    "severity": 1
+  },
+  {
+    "ruleId": "vue/attributes-order",
+    "file": null,
+    "line": 14,
+    "column": 104,
+    "message": "Attribute \"title\" should go before \"@click\".",
+    "severity": 1
+  },
+  {
+    "ruleId": "vue/attributes-order",
+    "file": null,
+    "line": 15,
+    "column": 100,
+    "message": "Attribute \"title\" should go before \"@click\".",
+    "severity": 1
+  },
+  {
+    "ruleId": "vue/html-self-closing",
+    "file": null,
+    "line": 30,
+    "column": 9,
+    "message": "Require self-closing on HTML void elements (<hr>).",
+    "severity": 2
+  },
+  {
+    "ruleId": "vue/html-self-closing",
+    "file": null,
+    "line": 32,
+    "column": 58,
+    "message": "Require self-closing on HTML void elements (<br>).",
+    "severity": 2
+  },
+  {
+    "ruleId": "vue/html-self-closing",
+    "file": null,
+    "line": 33,
+    "column": 57,
+    "message": "Require self-closing on HTML void elements (<br>).",
+    "severity": 2
+  },
+  {
+    "ruleId": "vue/attributes-order",
+    "file": null,
+    "line": 49,
+    "column": 11,
+    "message": "Attribute \"alt\" should go before \"@error\".",
+    "severity": 1
+  },
+  {
+    "ruleId": "vue/no-v-html",
+    "file": null,
+    "line": 260,
+    "column": 37,
+    "message": "'v-html' directive can lead to XSS attack.",
+    "severity": 1
+  },
+  {
+    "ruleId": "vue/no-v-html",
+    "file": null,
+    "line": 264,
+    "column": 37,
+    "message": "'v-html' directive can lead to XSS attack.",
+    "severity": 1
+  },
+  {
+    "ruleId": "vue/no-v-html",
+    "file": null,
+    "line": 268,
+    "column": 37,
+    "message": "'v-html' directive can lead to XSS attack.",
+    "severity": 1
+  },
+  {
+    "ruleId": "vue/order-in-components",
+    "file": null,
+    "line": 342,
+    "column": 3,
+    "message": "The \"data\" property should be above the \"computed\" property on line 308.",
+    "severity": 1
+  },
+  {
+    "ruleId": "vue/html-self-closing",
+    "file": null,
+    "line": 37,
+    "column": 57,
+    "message": "Require self-closing on HTML elements (<div>).",
+    "severity": 2
+  },
+  {
+    "ruleId": "vue/attributes-order",
+    "file": null,
+    "line": 13,
+    "column": 102,
+    "message": "Attribute \"title\" should go before \"@click\".",
+    "severity": 1
+  },
+  {
+    "ruleId": "vue/attributes-order",
+    "file": null,
+    "line": 14,
+    "column": 104,
+    "message": "Attribute \"title\" should go before \"@click\".",
+    "severity": 1
+  },
+  {
+    "ruleId": "vue/attributes-order",
+    "file": null,
+    "line": 15,
+    "column": 100,
+    "message": "Attribute \"title\" should go before \"@click\".",
+    "severity": 1
+  },
+  {
+    "ruleId": "vue/attributes-order",
+    "file": null,
+    "line": 32,
+    "column": 98,
+    "message": "Attribute \"title\" should go before \"@click\".",
+    "severity": 1
+  },
+  {
+    "ruleId": "vue/attributes-order",
+    "file": null,
+    "line": 61,
+    "column": 13,
+    "message": "Attribute \"alt\" should go before \"@error\".",
+    "severity": 1
+  },
+  {
+    "ruleId": "vue/attributes-order",
+    "file": null,
+    "line": 75,
+    "column": 15,
+    "message": "Attribute \"alt\" should go before \"@error\".",
+    "severity": 1
+  }
+]

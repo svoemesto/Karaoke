@@ -6,13 +6,16 @@ import java.io.File
 import java.io.Serializable
 import kotlin.math.absoluteValue
 
-data class Song(val settings: Settings, val songVersion: SongVersion, val woInit: Boolean = false) : Serializable {
-
+data class Song(
+    val settings: Settings,
+    val songVersion: SongVersion,
+    val woInit: Boolean = false,
+) : Serializable {
     @Suppress("unused")
     val propAudioVolumeOn: String get() {
         val prop = mutableListOf<String>()
         prop.add("00:00:00.000=0")
-        prop.add("${endTimecode}=0")
+        prop.add("$endTimecode=0")
         return prop.joinToString(";")
     }
 
@@ -20,7 +23,7 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
     val propAudioVolumeOff: String get() {
         val prop = mutableListOf<String>()
         prop.add("00:00:00.000=-100")
-        prop.add("${endTimecode}=-100")
+        prop.add("$endTimecode=-100")
         return prop.joinToString(";")
     }
 
@@ -29,18 +32,18 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
         val prop = mutableListOf<String>()
         prop.add("00:00:00.000=-100")
         settings.sourceUnmute.forEach { (unMuteStart, unMuteEnd) ->
-            prop.add("${convertFramesToTimecode(convertMillisecondsToFrames((unMuteStart*1000).toLong())- 2)}=-100")
-            prop.add("${convertFramesToTimecode(convertMillisecondsToFrames((unMuteStart*1000).toLong()))}=0")
-            prop.add("${convertFramesToTimecode(convertMillisecondsToFrames((unMuteEnd*1000).toLong()))}=0")
-            prop.add("${convertFramesToTimecode(convertMillisecondsToFrames((unMuteEnd*1000).toLong())+ 2)}=-100")
+            prop.add("${convertFramesToTimecode(convertMillisecondsToFrames((unMuteStart * 1000).toLong()) - 2)}=-100")
+            prop.add("${convertFramesToTimecode(convertMillisecondsToFrames((unMuteStart * 1000).toLong()))}=0")
+            prop.add("${convertFramesToTimecode(convertMillisecondsToFrames((unMuteEnd * 1000).toLong()))}=0")
+            prop.add("${convertFramesToTimecode(convertMillisecondsToFrames((unMuteEnd * 1000).toLong()) + 2)}=-100")
         }
-        prop.add("${endTimecode}=-100")
+        prop.add("$endTimecode=-100")
         return prop.joinToString(";")
     }
 
-
 //    private val REPLACE_STRING = "[R]"
     private val endString = "[E]"
+
 //    private val COMMENT_STRING = "[C]"
     private val repeat1StartString = "[RS]"
     private val repeat1EndString = "[RE]"
@@ -48,23 +51,25 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
     private val repeat2StartString = "[TS]"
     private val repeat2EndString = "[TE]"
     private val repeat2PastString = "[TR]"
+
     @Suppress("unused")
-    fun getOutputFilename2(songOutputFile: SongOutputFile): String {
-        return "${settings.rootFolder}/done_${
+    fun getOutputFilename2(songOutputFile: SongOutputFile): String =
+        "${settings.rootFolder}/done_${
             when (songOutputFile) {
-                in listOf(
+                in
+                listOf(
                     SongOutputFile.PROJECT,
                     SongOutputFile.SUBTITLE,
                     SongOutputFile.MLT,
                     SongOutputFile.RUN,
                     SongOutputFile.RUNALL,
-                    SongOutputFile.TEXT
-                ) -> "projects"
+                    SongOutputFile.TEXT,
+                ),
+                -> "projects"
                 SongOutputFile.PICTURECHORDS -> "chords"
                 else -> "files"
             }
         }/${if (songOutputFile == SongOutputFile.VK) "[{REPLACE_DATE}_{REPLACE_TIME}] " else ""}${settings.fileName}${songVersion.suffix}${if (songOutputFile == SongOutputFile.PICTURECHORDS) " chords" else ""}${if (songOutputFile == SongOutputFile.PICTUREBOOSTY) " boosty" else ""}${if (songOutputFile == SongOutputFile.PICTUREVK) " VK" else ""}${if (songOutputFile == SongOutputFile.VK) " [VK]" else ""}.${songOutputFile.extension}"
-    }
 
     var endTimecode: String = ""
     var capo: Int = 0
@@ -77,7 +82,7 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
         var text: String,
         var isStartOfLine: Boolean,
         var isEndOfLine: Boolean,
-        val isSetting: Boolean
+        val isSetting: Boolean,
     ) : Serializable
 
     init {
@@ -98,7 +103,6 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
                         bodyText = File(listFileTxt[0]).readText(Charsets.UTF_8)
                     }
                 }
-
             }
             listFile.sorted().forEach { mapFiles.add(it) }
             // Если текстовый файл один
@@ -106,27 +110,31 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
 
                 // Считываем тест из первого файла сабов и заменяем в нём тильды
                 if (mapFiles.isNotEmpty()) {
-                    var bodySubs = File(mapFiles[0]).readText(Charsets.UTF_8)
-                        .replace("~","")
-                        .replace("Введите текст","")
-                        .replace("[G0]","[SETTING]|GROUP|0")
-                        .replace("[G1]","[SETTING]|GROUP|1")
-                        .replace("[G2]","[SETTING]|GROUP|2")
-                        .replace("[G3]","[SETTING]|GROUP|3")
-                        .replace("[C]","[SETTING]|COMMENT| ")
+                    var bodySubs =
+                        File(mapFiles[0])
+                            .readText(Charsets.UTF_8)
+                            .replace("~", "")
+                            .replace("Введите текст", "")
+                            .replace("[G0]", "[SETTING]|GROUP|0")
+                            .replace("[G1]", "[SETTING]|GROUP|1")
+                            .replace("[G2]", "[SETTING]|GROUP|2")
+                            .replace("[G3]", "[SETTING]|GROUP|3")
+                            .replace("[C]", "[SETTING]|COMMENT| ")
                     // Если в тексте сабов присутствует строка замены
                     if (bodySubs.contains(endString)) {
                         // Бэкапим файл (если еще нет бэкапа)
                         val fileText = File("${mapFiles[0]}.backup")
                         if (fileText.exists()) {
-                            bodySubs = fileText.readText(Charsets.UTF_8)
-                                .replace("~","")
-                                .replace("Введите текст","")
-                                .replace("[G0]","[SETTING]|GROUP|0")
-                                .replace("[G1]","[SETTING]|GROUP|1")
-                                .replace("[G2]","[SETTING]|GROUP|2")
-                                .replace("[G3]","[SETTING]|GROUP|3")
-                                .replace("[C]","[SETTING]|COMMENT| ")
+                            bodySubs =
+                                fileText
+                                    .readText(Charsets.UTF_8)
+                                    .replace("~", "")
+                                    .replace("Введите текст", "")
+                                    .replace("[G0]", "[SETTING]|GROUP|0")
+                                    .replace("[G1]", "[SETTING]|GROUP|1")
+                                    .replace("[G2]", "[SETTING]|GROUP|2")
+                                    .replace("[G3]", "[SETTING]|GROUP|3")
+                                    .replace("[C]", "[SETTING]|COMMENT| ")
                         } else {
                             fileText.writeText(bodySubs)
                         }
@@ -137,14 +145,16 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
                         println(bodySubs)
                         println(slogs)
 
-                        val body = File(mapFiles[0]).readText(Charsets.UTF_8)
-                            .replace("~","")
-                            .replace("Введите текст","")
-                            .replace("[G0]","[SETTING]|GROUP|0")
-                            .replace("[G1]","[SETTING]|GROUP|1")
-                            .replace("[G2]","[SETTING]|GROUP|2")
-                            .replace("[G3]","[SETTING]|GROUP|3")
-                            .replace("[C]","[SETTING]|COMMENT| ")
+                        val body =
+                            File(mapFiles[0])
+                                .readText(Charsets.UTF_8)
+                                .replace("~", "")
+                                .replace("Введите текст", "")
+                                .replace("[G0]", "[SETTING]|GROUP|0")
+                                .replace("[G1]", "[SETTING]|GROUP|1")
+                                .replace("[G2]", "[SETTING]|GROUP|2")
+                                .replace("[G3]", "[SETTING]|GROUP|3")
+                                .replace("[C]", "[SETTING]|COMMENT| ")
 
                         // Считываем сабы в блоки
                         val blocks = body.split("\\n\\n+".toRegex())
@@ -162,13 +172,13 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
                         // Проходимся по блокам
                         blocks.forEach { block ->
                             val blocklines = block.split("\n")
-                            val id = if (blocklines.isNotEmpty() && blocklines[0]!= "" ) blocklines[0].toLong() else 0
+                            val id = if (blocklines.isNotEmpty() && blocklines[0] != "") blocklines[0].toLong() else 0
                             val startEnd = if (blocklines.size > 1) blocklines[1] else ""
                             if (startEnd != "" && id != 0L) {
                                 var text = if (blocklines.size > 2) blocklines[2] else ""
                                 val se = startEnd.split(" --> ")
-                                val startFrame = convertTimecodeToFrames(se[0].replace(",","."))
-                                val endFrame = convertTimecodeToFrames(se[1].replace(",","."))
+                                val startFrame = convertTimecodeToFrames(se[0].replace(",", "."))
+                                val endFrame = convertTimecodeToFrames(se[1].replace(",", "."))
 
                                 // Если текущий саб - отметка начала повтора
                                 if (text.contains(repeat1StartString) || text.contains(repeat2StartString)) {
@@ -205,8 +215,8 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
                                                         text = it.text,
                                                         isStartOfLine = it.isStartOfLine,
                                                         isEndOfLine = it.isEndOfLine,
-                                                        isSetting = it.isSetting
-                                                    )
+                                                        isSetting = it.isSetting,
+                                                    ),
                                                 )
                                             }
                                         } else if (text.contains(repeat2PastString)) {
@@ -220,8 +230,8 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
                                                         text = it.text,
                                                         isStartOfLine = it.isStartOfLine,
                                                         isEndOfLine = it.isEndOfLine,
-                                                        isSetting = it.isSetting
-                                                    )
+                                                        isSetting = it.isSetting,
+                                                    ),
                                                 )
                                             }
                                         } else {
@@ -235,17 +245,51 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
                                                 repeatOffset2 = startFrame
                                             }
                                             // Заносим саб в общий лист
-                                            listSubtitleFileElements.add(SubtitleFileElement(startFrame, endFrame, text, false, false, (text.uppercase().startsWith("[SETTING]|") || text == "//\\\\")))
+                                            listSubtitleFileElements.add(
+                                                SubtitleFileElement(
+                                                    startFrame,
+                                                    endFrame,
+                                                    text,
+                                                    false,
+                                                    false,
+                                                    (
+                                                        text.uppercase().startsWith("[SETTING]|") ||
+                                                            text == "//\\\\"
+                                                    ),
+                                                ),
+                                            )
                                             // Если саб в повторе - заносим его еще и в лист повторов
                                             if (isRepeated1) {
-                                                listSubtitleFileElementsRepeated1.add(SubtitleFileElement(startFrame, endFrame, text, false, false, (text.uppercase().startsWith("[SETTING]|") || text == "//\\\\")))
+                                                listSubtitleFileElementsRepeated1.add(
+                                                    SubtitleFileElement(
+                                                        startFrame,
+                                                        endFrame,
+                                                        text,
+                                                        false,
+                                                        false,
+                                                        (
+                                                            text.uppercase().startsWith("[SETTING]|") ||
+                                                                text == "//\\\\"
+                                                        ),
+                                                    ),
+                                                )
                                             }
                                             if (isRepeated2) {
-                                                listSubtitleFileElementsRepeated2.add(SubtitleFileElement(startFrame, endFrame, text, false, false, (text.uppercase().startsWith("[SETTING]|") || text == "//\\\\")))
+                                                listSubtitleFileElementsRepeated2.add(
+                                                    SubtitleFileElement(
+                                                        startFrame,
+                                                        endFrame,
+                                                        text,
+                                                        false,
+                                                        false,
+                                                        (
+                                                            text.uppercase().startsWith("[SETTING]|") ||
+                                                                text == "//\\\\"
+                                                        ),
+                                                    ),
+                                                )
                                             }
                                         }
-
-
                                     }
                                 }
                             }
@@ -256,47 +300,61 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
                         var indexSlog = 0
                         for (i in 0 until listSubtitleFileElements.size - 1) {
                             val currSubElement = listSubtitleFileElements[i]
-                            val nextSubElement = listSubtitleFileElements[i+1]
+                            val nextSubElement = listSubtitleFileElements[i + 1]
                             if (!currSubElement.isSetting && !currSubElement.text.contains(endString)) {
                                 currSubElement.endFrame = nextSubElement.startFrame
                                 currSubElement.isStartOfLine = isStartLine
                                 currSubElement.isEndOfLine = nextSubElement.text.contains(endString)
                                 isStartLine = currSubElement.isEndOfLine
                                 if (indexSlog < slogs.size) {
-                                    val txt = if (currSubElement.isEndOfLine) slogs[indexSlog].substring(0,slogs[indexSlog].length-1) else slogs[indexSlog]
-                                    currSubElement.text = "${if (currSubElement.isStartOfLine) "//" else ""}${if (currSubElement.isStartOfLine) txt.uppercaseFirstLetter() else txt}${if (currSubElement.isEndOfLine) "\\\\" else ""}"
+                                    val txt =
+                                        if (currSubElement.isEndOfLine) {
+                                            slogs[indexSlog].substring(
+                                                0,
+                                                slogs[indexSlog].length - 1,
+                                            )
+                                        } else {
+                                            slogs[indexSlog]
+                                        }
+                                    currSubElement.text =
+                                        "${if (currSubElement.isStartOfLine) "//" else ""}${if (currSubElement.isStartOfLine) {
+                                            txt
+                                                .uppercaseFirstLetter()
+                                        } else {
+                                            txt
+                                        }}${if (currSubElement.isEndOfLine) "\\\\" else ""}"
                                     indexSlog++
                                     if (indexSlog == slogs.size) {
                                         val lastSymbol = currSubElement.text.substring(currSubElement.text.length - 3)
-                                        currSubElement.text = currSubElement.text.substring(0,currSubElement.text.length - 3)
+                                        currSubElement.text = currSubElement.text.substring(0, currSubElement.text.length - 3)
                                         currSubElement.isEndOfLine = false
                                         listSubtitleFileElements.add(
                                             SubtitleFileElement(
                                                 startFrame = currSubElement.endFrame,
-                                                endFrame = currSubElement.endFrame+5,
+                                                endFrame = currSubElement.endFrame + 5,
                                                 text = lastSymbol,
                                                 isStartOfLine = false,
                                                 isEndOfLine = true,
-                                                isSetting = false
-                                            )
+                                                isSetting = false,
+                                            ),
                                         )
                                     }
                                 }
-
                             }
                         }
 
                         listSubtitleFileElements.sortBy { it.startFrame }
 
                         var newBody = ""
-                        listSubtitleFileElements.filter { !it.text.contains(endString) } .forEachIndexed { index, element ->
-                            newBody += "${index+1}\n${convertFramesToTimecode(element.startFrame).replace(".",",")} --> ${convertFramesToTimecode(element.endFrame).replace(".",",")}\n${element.text}\n\n"
+                        listSubtitleFileElements.filter { !it.text.contains(endString) }.forEachIndexed { index, element ->
+                            newBody +=
+                                "${index + 1}\n${convertFramesToTimecode(
+                                    element.startFrame,
+                                ).replace(".",",")} --> ${convertFramesToTimecode(element.endFrame).replace(".",",")}\n${element.text}\n\n"
                         }
                         File(mapFiles[0]).writeText(newBody)
-
                     }
                 }
-
             }
 
             val listVoices = mutableListOf<SongVoice>()
@@ -321,7 +379,7 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
 
                 blocks.forEach { block ->
                     val blocklines = block.split("\n")
-                    val id = if (blocklines.isNotEmpty() && blocklines[0]!= "" ) blocklines[0].toLong() else 0
+                    val id = if (blocklines.isNotEmpty() && blocklines[0] != "") blocklines[0].toLong() else 0
                     val startEnd = if (blocklines.size > 1) blocklines[1] else ""
                     var text = if (blocklines.size > 2) blocklines[2] else ""
 
@@ -333,30 +391,48 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
                                 "GROUP" -> group = if (settingList.size > 2) settingList[2].toInt() else 0
                                 "CAPO" -> capo = if (settingList.size > 2) settingList[2].toInt() else 0
                                 "CHORD" -> {
-                                    val chordTimecode = startEnd.split(" --> ")[0].replace(",",".")
+                                    val chordTimecode = startEnd.split(" --> ")[0].replace(",", ".")
                                     var chordText = "${if (settingList.size > 2) settingList[2] else ""}${if (settingList.size > 3) "|" + settingList[3] else ""}"
                                     if (chordText != "") {
                                         chords.add(Chord(chordTimecode, chordText))
                                     }
                                 }
                                 "COMMENT" -> {
-                                    val commentTimecode = startEnd.split(" --> ")[0].replace(",",".")
+                                    val commentTimecode = startEnd.split(" --> ")[0].replace(",", ".")
                                     var commentText = if (settingList.size > 2) settingList[2] else ""
                                     if (commentText == "") commentText = " "
-                                    val subtitle = Subtitle(
-                                        startTimecode = commentTimecode,
-                                        endTimecode = commentTimecode,
-                                        mltText = Karaoke.voices[0].groups[group].mltText.copy(commentText),
-                                        mltTextBefore = Karaoke.voices[0].groups[group].mltText.copy(""),
-                                        isLineStart = true,
-                                        isLineEnd = true,
-                                        indexFirstSymbolInLine = 0
-                                    )
-                                    val symbol = SongVoiceLineSymbol(
-                                        start = commentTimecode,
-                                        mltText = Karaoke.voices[0].groups[group].mltText.copy(commentText),
-                                        mltTextBefore = Karaoke.voices[0].groups[group].mltText.copy("")
-                                    )
+                                    val subtitle =
+                                        Subtitle(
+                                            startTimecode = commentTimecode,
+                                            endTimecode = commentTimecode,
+                                            mltText =
+                                                Karaoke.voices[0]
+                                                    .groups[group]
+                                                    .mltText
+                                                    .copy(commentText),
+                                            mltTextBefore =
+                                                Karaoke.voices[0]
+                                                    .groups[group]
+                                                    .mltText
+                                                    .copy(""),
+                                            isLineStart = true,
+                                            isLineEnd = true,
+                                            indexFirstSymbolInLine = 0,
+                                        )
+                                    val symbol =
+                                        SongVoiceLineSymbol(
+                                            start = commentTimecode,
+                                            mltText =
+                                                Karaoke.voices[0]
+                                                    .groups[group]
+                                                    .mltText
+                                                    .copy(commentText),
+                                            mltTextBefore =
+                                                Karaoke.voices[0]
+                                                    .groups[group]
+                                                    .mltText
+                                                    .copy(""),
+                                        )
                                     listLines.add(
                                         SongVoiceLine(
                                             type = SongVoiceLineType.COMMENTS,
@@ -367,8 +443,12 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
                                             start = subtitle.startTimecode,
                                             end = subtitle.endTimecode,
                                             durationMs = getDurationInMilliseconds(subtitle.startTimecode, subtitle.endTimecode),
-                                            mltText = Karaoke.voices[0].groups[group].mltText.copy(commentText)
-                                        )
+                                            mltText =
+                                                Karaoke.voices[0]
+                                                    .groups[group]
+                                                    .mltText
+                                                    .copy(commentText),
+                                        ),
                                     )
                                 }
                                 else -> {}
@@ -377,13 +457,14 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
                             val se = startEnd.split(" --> ")
                             val start = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(se[0]))
                             val end = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(se[1]))
-                            val isLineStart = text.startsWith("//")   // Вычисляем признак начала строки
-                            val isLineEnd = text.endsWith("\\\\")     // Вычисляем признак конца строки
+                            val isLineStart = text.startsWith("//") // Вычисляем признак начала строки
+                            val isLineEnd = text.endsWith("\\\\") // Вычисляем признак конца строки
                             // Удаляем служебные символы из строки и заменяем подчёркивание пробелом
-                            text = text
-                                .replace("//", "")
-                                .replace("\\\\", "")
-                                .replace("_", " ")
+                            text =
+                                text
+                                    .replace("//", "")
+                                    .replace("\\\\", "")
+                                    .replace("_", " ")
                             // Создаем объект classes.Subtitle и инициализируем его переменными
 
                             if (songVersion != SongVersion.CHORDS &&
@@ -392,17 +473,26 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
                                 text = text.deleteThisSymbols(NOTES_SYMBOLS)
                             }
 
-                            val subtitle = Subtitle(
-                                startTimecode = start,
-                                endTimecode = end,
+                            val subtitle =
+                                Subtitle(
+                                    startTimecode = start,
+                                    endTimecode = end,
 //                            mltText = Karaoke.voices[0].groups[group].mltText.copy(text),
-                                mltText = Karaoke.voices[0].groups[group].mltText.copy(text),
-//                            mltTextBefore = Karaoke.voices[0].groups[group].mltText.copy(lineText),
-                                mltTextBefore = Karaoke.voices[0].groups[group].mltText.copy(lineText),
-                                isLineStart = isLineStart,
-                                isLineEnd = isLineEnd,
-                                indexFirstSymbolInLine = lengthLine
-                            )
+                                    mltText =
+                                        Karaoke.voices[0]
+                                            .groups[group]
+                                            .mltText
+                                            .copy(text),
+                                    //                            mltTextBefore = Karaoke.voices[0].groups[group].mltText.copy(lineText),
+                                    mltTextBefore =
+                                        Karaoke.voices[0]
+                                            .groups[group]
+                                            .mltText
+                                            .copy(lineText),
+                                    isLineStart = isLineStart,
+                                    isLineEnd = isLineEnd,
+                                    indexFirstSymbolInLine = lengthLine,
+                                )
                             lengthLine += text.length
                             lineText += text
 
@@ -412,7 +502,13 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
                             if (isLineEnd) {
                                 maxLengthLine = Integer.max(maxLengthLine, lengthLine)
                                 lengthLine = 0
-                                widthLinePx = getTextWidthHeightPx(lineText, Karaoke.voices[0].groups[group].mltText.font).first
+                                widthLinePx =
+                                    getTextWidthHeightPx(
+                                        lineText,
+                                        Karaoke.voices[0]
+                                            .groups[group]
+                                            .mltText.font,
+                                    ).first
                                 if (maxWidthLinePx < widthLinePx) {
                                     maxWidthLinePx = java.lang.Double.max(maxWidthLinePx, widthLinePx)
                                     maxWidthLineText = lineText
@@ -427,9 +523,13 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
                                             group = group,
                                             start = songSubtitles.first().startTimecode,
                                             end = songSubtitles.last().endTimecode,
-                                            durationMs = getDurationInMilliseconds(songSubtitles.first().startTimecode, songSubtitles.last().endTimecode),
-                                            mltText = Karaoke.voices[0].groups[group].mltText
-                                        )
+                                            durationMs =
+                                                getDurationInMilliseconds(
+                                                    songSubtitles.first().startTimecode,
+                                                    songSubtitles.last().endTimecode,
+                                                ),
+                                            mltText = Karaoke.voices[0].groups[group].mltText,
+                                        ),
                                     )
                                 } else {
                                     if (songVersion != SongVersion.CHORDS &&
@@ -446,9 +546,17 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
                                             group = group,
                                             start = songSubtitles.first().startTimecode,
                                             end = songSubtitles.last().endTimecode,
-                                            durationMs = getDurationInMilliseconds(songSubtitles.first().startTimecode, songSubtitles.last().endTimecode),
-                                            mltText = Karaoke.voices[0].groups[group].mltText.copy(lineText)
-                                        )
+                                            durationMs =
+                                                getDurationInMilliseconds(
+                                                    songSubtitles.first().startTimecode,
+                                                    songSubtitles.last().endTimecode,
+                                                ),
+                                            mltText =
+                                                Karaoke.voices[0]
+                                                    .groups[group]
+                                                    .mltText
+                                                    .copy(lineText),
+                                        ),
                                     )
                                 }
                                 lineText = ""
@@ -456,7 +564,6 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
                             }
                         }
                     }
-
                 }
 
                 listLines.forEach { voiceLine ->
@@ -464,7 +571,11 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
                     val subtitlesChords = mutableListOf<Subtitle>()
                     chords.forEach { chord ->
                         // Находим субтитр текущей строки, на который попадает аккорд
-                        val subtitle = voiceLine.subtitles.firstOrNull { convertTimecodeToMilliseconds(chord.timecode) in convertTimecodeToMilliseconds(it.startTimecode) until convertTimecodeToMilliseconds(it.endTimecode) }
+                        val subtitle =
+                            voiceLine.subtitles.firstOrNull {
+                                convertTimecodeToMilliseconds(chord.timecode) in
+                                    convertTimecodeToMilliseconds(it.startTimecode) until convertTimecodeToMilliseconds(it.endTimecode)
+                            }
                         // Если такой субтитр найден
                         if (subtitle != null) {
                             val firstVowelIndex = subtitle.mltText.text.getFirstVowelIndex()
@@ -472,7 +583,7 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
                             var textBefore = ""
                             for (sub in voiceLine.subtitles) {
                                 if (sub == subtitle) {
-                                    textBefore += subtitle.mltText.text.substring(0,firstVowelIndex)
+                                    textBefore += subtitle.mltText.text.substring(0, firstVowelIndex)
                                     break
                                 } else {
                                     textBefore += sub.mltText.text
@@ -484,14 +595,15 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
                                     startTimecode = subtitle.startTimecode,
                                     endTimecode = subtitle.endTimecode,
                                     mltText = subtitle.mltText.copy(chord.text),
-                                    mltTextBefore = subtitle.mltText.copy(textBefore)
-                                )
+                                    mltTextBefore = subtitle.mltText.copy(textBefore),
+                                ),
                             )
                             symbolsChords.add(
                                 SongVoiceLineSymbol(
                                     start = subtitle.startTimecode,
                                     mltText = mltFontChord.copy(chord.text),
-                                    mltTextBefore = subtitle.mltText.copy(textBefore))
+                                    mltTextBefore = subtitle.mltText.copy(textBefore),
+                                ),
                             )
                         }
                     }
@@ -505,11 +617,15 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
                                 symbols = symbolsChords,
                                 text = "",
                                 group = 0,
-                                start = convertFramesToTimecode(convertTimecodeToFrames(voiceLine.start)-4),
-                                end = convertFramesToTimecode(convertTimecodeToFrames(voiceLine.start)-2),
+                                start = convertFramesToTimecode(convertTimecodeToFrames(voiceLine.start) - 4),
+                                end = convertFramesToTimecode(convertTimecodeToFrames(voiceLine.start) - 2),
                                 durationMs = getDurationInMilliseconds(voiceLine.start, voiceLine.end),
-                                mltText = Karaoke.voices[0].groups[group].mltText.copy("0")
-                            )
+                                mltText =
+                                    Karaoke.voices[0]
+                                        .groups[group]
+                                        .mltText
+                                        .copy("0"),
+                            ),
                         )
                     }
                 }
@@ -519,22 +635,26 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
                 listVoices.add(
                     SongVoice(
                         srtFileBody = body,
-                        lines = listLines.sortedBy { convertTimecodeToMilliseconds(it.start)}.toMutableList()
-                    )
+                        lines = listLines.sortedBy { convertTimecodeToMilliseconds(it.start) }.toMutableList(),
+                    ),
                 )
-
             }
 
             voices = listVoices
 //        endTimecode = voices.first().lines.last().subtitles.last().endTimecode
-            if (listVoices.isNotEmpty() && listVoices.first().lines.isNotEmpty()) endTimecode = voices.first().lines.last().end
+            if (listVoices.isNotEmpty() && listVoices.first().lines.isNotEmpty()) {
+                endTimecode =
+                    voices
+                        .first()
+                        .lines
+                        .last()
+                        .end
+            }
             setMaxLines()
         }
-
     }
 
     fun setMaxLines() {
-
         voices.forEachIndexed { indexVoice, currVoice ->
             val currVoiceTextLines = currVoice.lines.filter { it.type == SongVoiceLineType.TEXT }
             if (currVoiceTextLines.isEmpty()) return
@@ -546,8 +666,8 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
                 currVoiceMaxLine = currVoiceTextLines.maxBy { it.widthLinePx }
                 currVoiceMaxLine.isMaxSingleLine = true
             }
-            if (currVoice != voices.last() ) {
-                val nextVoice = voices[indexVoice+1]
+            if (currVoice != voices.last()) {
+                val nextVoice = voices[indexVoice + 1]
                 currVoiceTextLines.forEach { currVoiceTextLine ->
                     var currLineWidthPx = currVoiceTextLine.widthLinePx
                     val nextVoiceLines = mutableListOf<SongVoiceLine>()
@@ -558,7 +678,8 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
                         val nextVoiceLineStartMs = convertTimecodeToMilliseconds(nextVoiceLine.start)
                         val nextVoiceLineEndMs = convertTimecodeToMilliseconds(nextVoiceLine.end)
                         if ((currVoiceLineStartMs in nextVoiceLineStartMs..nextVoiceLineEndMs) ||
-                            (nextVoiceLineStartMs in currVoiceLineStartMs..currVoiceLineEndMs)) {
+                            (nextVoiceLineStartMs in currVoiceLineStartMs..currVoiceLineEndMs)
+                        ) {
                             nextVoiceLines.add(nextVoiceLine)
                         }
                     }
@@ -577,51 +698,68 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
             currVoiceMaxLine.isMaxLine = true
         }
     }
-
 }
-
 
 data class SongVoice(
     val srtFileBody: String = "",
-    var lines: MutableList<SongVoiceLine> = mutableListOf()
+    var lines: MutableList<SongVoiceLine> = mutableListOf(),
 ) : Serializable {
-    @Suppress("unused") val maxDurationMs: Long
-    get() {
-        return lines.maxOf { it.durationMs }
-    }
-    @Suppress("unused") val maxCountSymbolsInLine: Int
-    get() {
-        return lines.filter {it.type == SongVoiceLineType.TEXT }.firstOrNull { it.isMaxLine }?.text?.length ?: 0
-    }
-    @Suppress("unused") val maxWidthLinePx: Long
-    get() {
-        return lines.filter {it.type == SongVoiceLineType.TEXT }.firstOrNull { it.isMaxLine }?.widthLinePx ?: 0
-    }
-
-    @Suppress("unused") val maxWidthSingleLinePx: Long
-    get() {
-        return lines.filter {it.type == SongVoiceLineType.TEXT }.firstOrNull { it.isMaxSingleLine }?.widthLinePx ?: 0
-    }
-
-    @Suppress("unused") val maxWidthLineText: String
-    get() {
-        return lines.filter {it.type == SongVoiceLineType.TEXT }.firstOrNull { it.isMaxLine }?.text ?: ""
-    }
-
-    @Suppress("unused") val maxWidthSingleLineText: String
+    @Suppress("unused")
+    val maxDurationMs: Long
         get() {
-            return lines.filter {it.type == SongVoiceLineType.TEXT }.firstOrNull { it.isMaxSingleLine }?.text ?: ""
+            return lines.maxOf { it.durationMs }
         }
 
-    fun getScreenY(line: SongVoiceLine, time: String, horizonPositionPx: Int): Int {
+    @Suppress("unused")
+    val maxCountSymbolsInLine: Int
+        get() {
+            return lines
+                .filter { it.type == SongVoiceLineType.TEXT }
+                .firstOrNull { it.isMaxLine }
+                ?.text
+                ?.length ?: 0
+        }
+
+    @Suppress("unused")
+    val maxWidthLinePx: Long
+        get() {
+            return lines.filter { it.type == SongVoiceLineType.TEXT }.firstOrNull { it.isMaxLine }?.widthLinePx ?: 0
+        }
+
+    @Suppress("unused")
+    val maxWidthSingleLinePx: Long
+        get() {
+            return lines.filter { it.type == SongVoiceLineType.TEXT }.firstOrNull { it.isMaxSingleLine }?.widthLinePx ?: 0
+        }
+
+    @Suppress("unused")
+    val maxWidthLineText: String
+        get() {
+            return lines.filter { it.type == SongVoiceLineType.TEXT }.firstOrNull { it.isMaxLine }?.text ?: ""
+        }
+
+    @Suppress("unused")
+    val maxWidthSingleLineText: String
+        get() {
+            return lines.filter { it.type == SongVoiceLineType.TEXT }.firstOrNull { it.isMaxSingleLine }?.text ?: ""
+        }
+
+    fun getScreenY(
+        line: SongVoiceLine,
+        time: String,
+        horizonPositionPx: Int,
+    ): Int {
         var result = 0
         if (line in lines) {
 //            val indexLine = lines.indexOf(line)
             val timeMs = convertTimecodeToMilliseconds(time)
-            val lineContainTime = lines
-                .filter { it.startTp != null && it.endTp != null && it.type == SongVoiceLineType.TEXT }.firstOrNull {
-                    convertTimecodeToMilliseconds(it.startTp!!.time) <= timeMs && convertTimecodeToMilliseconds(it.endTp!!.time) >= timeMs
-                }
+            val lineContainTime =
+                lines
+                    .filter { it.startTp != null && it.endTp != null && it.type == SongVoiceLineType.TEXT }
+                    .firstOrNull {
+                        convertTimecodeToMilliseconds(it.startTp!!.time) <= timeMs &&
+                            convertTimecodeToMilliseconds(it.endTp!!.time) >= timeMs
+                    }
             if (lineContainTime != null) {
                 // Найдена строка, содержащая время
                 // Это значит что в это время эта строка находится в центре экрана horizonPositionPx - voiceLine.hPx
@@ -629,19 +767,21 @@ data class SongVoice(
                 result = horizonPositionPx - line.hPx - (line.yPx - lineContainTime.yPx).absoluteValue
             } else {
                 // Время находится между строками (или до первой, или после последней)
-                val lineBeforeTime = lines
-                    .filter { it.startTp != null && it.endTp != null  && it.type == SongVoiceLineType.TEXT }
-                    .lastOrNull { convertTimecodeToMilliseconds(it.endTp!!.time) < timeMs }
-                val lineAfterTime = lines
-                    .filter { it.startTp != null && it.endTp != null  && it.type == SongVoiceLineType.TEXT }
-                    .firstOrNull { convertTimecodeToMilliseconds(it.startTp!!.time) > timeMs }
+                val lineBeforeTime =
+                    lines
+                        .filter { it.startTp != null && it.endTp != null && it.type == SongVoiceLineType.TEXT }
+                        .lastOrNull { convertTimecodeToMilliseconds(it.endTp!!.time) < timeMs }
+                val lineAfterTime =
+                    lines
+                        .filter { it.startTp != null && it.endTp != null && it.type == SongVoiceLineType.TEXT }
+                        .firstOrNull { convertTimecodeToMilliseconds(it.startTp!!.time) > timeMs }
                 if (lineBeforeTime == null) {
                     // Если нет "линии до" - значит нужная линия - первая
-                    val lineInTime = lines.first { it.startTp != null && it.endTp != null  && it.type == SongVoiceLineType.TEXT }
+                    val lineInTime = lines.first { it.startTp != null && it.endTp != null && it.type == SongVoiceLineType.TEXT }
                     result = horizonPositionPx - line.hPx - (line.yPx - lineInTime.yPx).absoluteValue
                 } else if (lineAfterTime == null) {
                     // Если нет "линии после" - значит нужная линия - последняя
-                    val lineInTime = lines.last { it.startTp != null && it.endTp != null  && it.type == SongVoiceLineType.TEXT }
+                    val lineInTime = lines.last { it.startTp != null && it.endTp != null && it.type == SongVoiceLineType.TEXT }
                     result = horizonPositionPx - line.hPx - (line.yPx - lineInTime.yPx).absoluteValue
                 } else {
                     // Если найдены линии "до" и "после" - надо найти координату, на которую попадает нужное время
@@ -654,7 +794,6 @@ data class SongVoice(
                     result = horizonPositionPx - line.hPx - (line.yPx - yInTime).absoluteValue
                 }
             }
-
         }
         return result
     }
@@ -664,8 +803,9 @@ enum class SongVoiceLineType : Serializable {
     EMPTY,
     TEXT,
     CHORDS,
-    COMMENTS
+    COMMENTS,
 }
+
 data class SongVoiceLine(
     var type: SongVoiceLineType = SongVoiceLineType.TEXT,
     var subtitles: MutableList<Subtitle> = mutableListOf(),
@@ -682,9 +822,10 @@ data class SongVoiceLine(
     var isMaxLine: Boolean = false,
     var isMaxSingleLine: Boolean = false,
     var durationMs: Long = 0,
-    var mltText: MltText
+    var mltText: MltText,
 ) : Serializable {
-    @Suppress("unused") val startYT: String get() {
+    @Suppress("unused")
+    val startYT: String get() {
         return if (start == "") {
             ""
         } else {
@@ -693,14 +834,21 @@ data class SongVoiceLine(
     }
 
     @Suppress("unused")
-    fun getFillTps(voice: SongVoice, horizonPositionPx: Int, opacityFillValue: Double): String {
+    fun getFillTps(
+        voice: SongVoice,
+        horizonPositionPx: Int,
+        opacityFillValue: Double,
+    ): String {
         val result: MutableList<TransformProperty> = mutableListOf()
 
         val endTpCurrLineMs = convertTimecodeToMilliseconds(endTp!!.time) // Конец текущей линии. В это время начинается движение линии
         // Следующая линия - текстовая, с не пустым startTp, начало линии позже конца текущей линии
-        val nextLine = voice.lines.firstOrNull {
-            it.type == SongVoiceLineType.TEXT && it.startTp != null && convertTimecodeToMilliseconds(it.startTp!!.time) > endTpCurrLineMs
-        }
+        val nextLine =
+            voice.lines.firstOrNull {
+                it.type == SongVoiceLineType.TEXT &&
+                    it.startTp != null &&
+                    convertTimecodeToMilliseconds(it.startTp!!.time) > endTpCurrLineMs
+            }
         // Начало следующей линии
         val startTpNextLineMs = if (nextLine != null) convertTimecodeToMilliseconds(nextLine.startTp!!.time) else -1
         val endTpNextLineMs = if (nextLine != null) convertTimecodeToMilliseconds(nextLine.endTp!!.time) else -1
@@ -715,7 +863,6 @@ data class SongVoiceLine(
 //        }
 
         if (subtitles.isNotEmpty()) {
-
             // Если в линии есть субтитры, то начало анимации заливки будет за 2 фрейма от начала первого субтитра.
             result.add(
                 TransformProperty(
@@ -724,8 +871,8 @@ data class SongVoiceLine(
                     y = voice.getScreenY(this, subtitles.first().startTimecode, horizonPositionPx) + subtitles.first().deltaStartY,
                     w = 1,
                     h = subtitles.first().hPx - subtitles.first().deltaEndH,
-                    opacity = 0.0
-                )
+                    opacity = 0.0,
+                ),
             )
 
             // Так же прописываем время начала анимации первого субтитра. Далее будем прописывать для субтитров только время конца анимации
@@ -737,12 +884,11 @@ data class SongVoiceLine(
                     time = timeFromTimecode,
                     x = Karaoke.songtextStartPositionXpx + (startTp?.x ?: 0),
                     y = voice.getScreenY(this, subtitle.startTimecode, horizonPositionPx) + subtitle.deltaStartY,
-                    w = Integer.max(subtitle.xStartPx,1),
+                    w = Integer.max(subtitle.xStartPx, 1),
                     h = subtitle.hPx - subtitle.deltaStartH,
-                    opacity = opacityFillValue
-                )
+                    opacity = opacityFillValue,
+                ),
             )
-
         }
 
 //        val timeToMsNextNext = if(nextNextLine != null) convertTimecodeToMilliseconds(nextNextLine.endTp!!.time) else 0
@@ -771,12 +917,11 @@ data class SongVoiceLine(
                         time = timeToTimecode,
                         x = Karaoke.songtextStartPositionXpx + (startTp?.x ?: 0),
                         y = yEnd,
-                        w = Integer.max(subtitle.xEndPx,1),
+                        w = Integer.max(subtitle.xEndPx, 1),
                         h = subtitle.hPx - subtitle.deltaEndH,
-                        opacity = opacityFillValue
-                    )
+                        opacity = opacityFillValue,
+                    ),
                 )
-
             } else { // Анимация титра перекрывает конец времени линии
                 // От начала анимации титра до конца времени линии - анимация на уровне линии, пропорционально по времени
                 // От конца времени линии до конца анимации титра - на новый уровень, который надо рассчитать
@@ -788,19 +933,19 @@ data class SongVoiceLine(
                 // Добавляем заливку до момента начала анимации строки на том же уровне, что пока находится строка пропорционально по ширине
                 // В том случае, если конец предыдущего субтитра не совпадает с концом линии - в этом случае анимация уже была добавлена
                 if (subtitle != subtitles.first() &&
-                    convertTimecodeToMilliseconds(subtitles[indexSubtitle-1].endTimecode) != endTpCurrLineMs) {
+                    convertTimecodeToMilliseconds(subtitles[indexSubtitle - 1].endTimecode) != endTpCurrLineMs
+                ) {
                     result.add(
                         TransformProperty(
                             time = convertMillisecondsToTimecode(endTpCurrLineMs),
                             x = Karaoke.songtextStartPositionXpx + (startTp?.x ?: 0),
                             y = yStart,
-                            w = Integer.max(subtitle.xStartPx,1) + (subtitle.wPx * coeff).toInt(),
+                            w = Integer.max(subtitle.xStartPx, 1) + (subtitle.wPx * coeff).toInt(),
                             h = subtitle.hPx - subtitle.deltaStartH,
-                            opacity = opacityFillValue
-                        )
+                            opacity = opacityFillValue,
+                        ),
                     )
                 }
-
 
                 // Находим положение текущей линии на момент конца субтитра
                 yEnd = voice.getScreenY(this, subtitle.endTimecode, horizonPositionPx) + subtitle.deltaEndY
@@ -810,10 +955,10 @@ data class SongVoiceLine(
                         time = timeToTimecode,
                         x = Karaoke.songtextStartPositionXpx + (startTp?.x ?: 0),
                         y = yEnd,
-                        w = Integer.max(subtitle.xEndPx,1),
+                        w = Integer.max(subtitle.xEndPx, 1),
                         h = subtitle.hPx - subtitle.deltaEndH,
-                        opacity = opacityFillValue
-                    )
+                        opacity = opacityFillValue,
+                    ),
                 )
             }
         }
@@ -824,11 +969,12 @@ data class SongVoiceLine(
             // По-умолчания время фейда - 1 секунда после окончания последнего субтитра строки
             var endTimeFadeMs = convertTimecodeToMilliseconds(subtitles.last().endTimecode) + 1000
             // Если следующая строка закончится раньше, чем это время, то время фейда - за 2 фрейма от конца следующей строки
-            endTimeFadeMs = if (endTpNextLineMs > 0 && endTpNextLineMs < endTimeFadeMs) {
-                convertFramesToMilliseconds(convertMillisecondsToFrames(endTpNextLineMs) -2)
-            } else {
-                endTimeFadeMs
-            }
+            endTimeFadeMs =
+                if (endTpNextLineMs > 0 && endTpNextLineMs < endTimeFadeMs) {
+                    convertFramesToMilliseconds(convertMillisecondsToFrames(endTpNextLineMs) - 2)
+                } else {
+                    endTimeFadeMs
+                }
 
             // Если время окончания фейда закончится до начала следующей строки
             if (startTpNextLineMs >= endTimeFadeMs) {
@@ -839,27 +985,30 @@ data class SongVoiceLine(
                         time = convertMillisecondsToTimecode(endTimeFadeMs),
                         x = Karaoke.songtextStartPositionXpx + (startTp?.x ?: 0),
                         y = yEnd,
-                        w = Integer.max(subtitles.last().xEndPx,1),
+                        w = Integer.max(subtitles.last().xEndPx, 1),
                         h = subtitles.last().hPx - subtitles.last().deltaEndH,
-                        opacity = 0.0
-                    )
+                        opacity = 0.0,
+                    ),
                 )
             } else {
                 // Если время окончания фейда закончится после начала следующей строки
-                val coeff = (endTimeFadeMs.toDouble() - startTpNextLineMs.toDouble()) / (endTimeFadeMs.toDouble() - endTpCurrLineMs.toDouble())
+                val coeff =
+                    (endTimeFadeMs.toDouble() - startTpNextLineMs.toDouble()) / (endTimeFadeMs.toDouble() - endTpCurrLineMs.toDouble())
                 // До начала анимации следующей линии фейдим до коэффициента
                 if (nextLine != null) {
                     // Находим положение текущей линии на момент начала следующей линии
-                    yEnd = voice.getScreenY(this, convertMillisecondsToTimecode(startTpNextLineMs), horizonPositionPx) + subtitles.last().deltaEndY
+                    yEnd =
+                        voice.getScreenY(this, convertMillisecondsToTimecode(startTpNextLineMs), horizonPositionPx) +
+                        subtitles.last().deltaEndY
                     result.add(
                         TransformProperty(
                             time = convertMillisecondsToTimecode(startTpNextLineMs),
                             x = Karaoke.songtextStartPositionXpx + (startTp?.x ?: 0),
                             y = yEnd,
-                            w = Integer.max(subtitles.last().xEndPx,1),
+                            w = Integer.max(subtitles.last().xEndPx, 1),
                             h = subtitles.last().hPx - subtitles.last().deltaEndH,
-                            opacity = opacityFillValue * coeff
-                        )
+                            opacity = opacityFillValue * coeff,
+                        ),
                     )
                 }
 
@@ -870,23 +1019,24 @@ data class SongVoiceLine(
                         time = convertMillisecondsToTimecode(endTimeFadeMs),
                         x = Karaoke.songtextStartPositionXpx + (startTp?.x ?: 0),
                         y = yEnd,
-                        w = Integer.max(subtitles.last().xEndPx,1),
+                        w = Integer.max(subtitles.last().xEndPx, 1),
                         h = subtitles.last().hPx - subtitles.last().deltaEndH,
-                        opacity = 0.0
-                    )
+                        opacity = 0.0,
+                    ),
                 )
             }
-
         }
         // Надо проверить, куда попадает endTp и startTp следующей строки
 
         return result.joinToString(";")
     }
-    val hPx: Int get() = getTextWidthHeightPx("0",mltText.font).second.toInt()
+
+    val hPx: Int get() = getTextWidthHeightPx("0", mltText.font).second.toInt()
     val widthLinePx: Long
         get() = getWidthLinePx().toLong()
 
-    @Suppress("unused") fun getSymbolXpx(symbolPositionInSymbols: Int): Double {
+    @Suppress("unused")
+    fun getSymbolXpx(symbolPositionInSymbols: Int): Double {
         var result = 0.0
         for (indexSymbol in symbols.indices) {
             if (indexSymbol >= symbolPositionInSymbols) break
@@ -895,14 +1045,15 @@ data class SongVoiceLine(
         return result
     }
 
-    @Suppress("unused") fun getSubtitleXpx(subtitle: Subtitle): Double {
+    @Suppress("unused")
+    fun getSubtitleXpx(subtitle: Subtitle): Double {
         var textSubs = ""
         for (indexSubtitle in subtitles.indices) {
             val sub = subtitles[indexSubtitle]
             if (sub == subtitle) break
             textSubs += sub.wPx
         }
-        return getTextWidthHeightPx(textSubs,mltText.font).first
+        return getTextWidthHeightPx(textSubs, mltText.font).first
     }
 
     fun getWidthLinePx(): Double {
@@ -912,36 +1063,41 @@ data class SongVoiceLine(
             textSubs += sub.mltText.text
         }
 
-        val result = getTextWidthHeightPx(textSubs,mltText.font).first
+        val result = getTextWidthHeightPx(textSubs, mltText.font).first
 
         return result
-
     }
 
-    @Suppress("unused") fun getSubtitleWpx(subtitle: Subtitle): Double {
-        return getTextWidthHeightPx(subtitle.mltText.text,mltText.font).first
-    }
+    @Suppress("unused")
+    fun getSubtitleWpx(subtitle: Subtitle): Double = getTextWidthHeightPx(subtitle.mltText.text, mltText.font).first
 
-
-    @Suppress("unused") fun getCharXpx(charPositionText: Int): Double {
-
+    @Suppress("unused")
+    fun getCharXpx(charPositionText: Int): Double {
         val textBeforeChar = text.substring(0..charPositionText)
         return if (textBeforeChar != "") {
-            getTextWidthHeightPx(textBeforeChar,mltText.font).first
+            getTextWidthHeightPx(textBeforeChar, mltText.font).first
         } else {
             0.0
         }
     }
-
 }
 
 data class SongVoiceLineSymbol(
     var start: String,
-    var mltText: MltText = Karaoke.voices[0].groups[0].mltText.copy(""),
-    var mltTextBefore: MltText = Karaoke.voices[0].groups[0].mltText.copy("")
+    var mltText: MltText =
+        Karaoke.voices[0]
+            .groups[0]
+            .mltText
+            .copy(""),
+    var mltTextBefore: MltText =
+        Karaoke.voices[0]
+            .groups[0]
+            .mltText
+            .copy(""),
 ) : Serializable {
 //    val hPx: Int get() = getTextWidthHeightPx("0", mltText.font).second.toInt()
     val xStartPx: Int get() = getTextWidthHeightPx(mltTextBefore.text, mltTextBefore.font).first.toInt()
+
 //    val xEndPx: Int get() = getTextWidthHeightPx(mltTextBefore.text+mltText.text, mltTextBefore.font).first.toInt()
 //    val wPx: Int get() = xEndPx - xStartPx
     private val widthHeightPx: Pair<Double, Double> get() {
@@ -951,7 +1107,9 @@ data class SongVoiceLineSymbol(
     val widthPx: Double get() {
         return widthHeightPx.first
     }
-    @Suppress("unused") val heightPx: Double get() {
+
+    @Suppress("unused")
+    val heightPx: Double get() {
         return widthHeightPx.second
     }
 }
@@ -962,12 +1120,20 @@ data class Subtitle(
     var isLineStart: Boolean = false,
     var isLineEnd: Boolean = false,
     var indexFirstSymbolInLine: Int = 0,
-    var mltText: MltText = Karaoke.voices[0].groups[0].mltText.copy(""),
-    var mltTextBefore: MltText = Karaoke.voices[0].groups[0].mltText.copy("")
+    var mltText: MltText =
+        Karaoke.voices[0]
+            .groups[0]
+            .mltText
+            .copy(""),
+    var mltTextBefore: MltText =
+        Karaoke.voices[0]
+            .groups[0]
+            .mltText
+            .copy(""),
 ) : Serializable {
     val hPx: Int get() = getTextWidthHeightPx("0", mltText.font).second.toInt()
     val xStartPx: Int get() = getTextWidthHeightPx(mltTextBefore.text, mltTextBefore.font).first.toInt()
-    val xEndPx: Int get() = getTextWidthHeightPx(mltTextBefore.text+mltText.text, mltTextBefore.font).first.toInt()
+    val xEndPx: Int get() = getTextWidthHeightPx(mltTextBefore.text + mltText.text, mltTextBefore.font).first.toInt()
     val wPx: Int get() = xEndPx - xStartPx
     val startMs: Long get() = convertTimecodeToMilliseconds(startTimecode)
     val endMs: Long get() = convertTimecodeToMilliseconds(endTimecode)
@@ -977,13 +1143,12 @@ data class Subtitle(
     val deltaStartH: Int get() = 2 * deltaStartY
     val deltaEndY: Int get() = isShortSubtitleInt * (hPx / 7)
     val deltaEndH: Int get() = 2 * deltaEndY
-
 }
 
 data class Chord(
     val timecode: String = "",
-    val text: String = ""
-): Serializable
+    val text: String = "",
+) : Serializable
 
 @kotlinx.serialization.Serializable
 @Suppress("unused")
@@ -991,5 +1156,5 @@ data class WaveSurferMarker(
     var time: Double = 0.0,
     var label: String = "Marker",
     var color: String = "#ff990a",
-    var position: String = "bottom"
-): Serializable
+    var position: String = "bottom",
+) : Serializable

@@ -62,7 +62,7 @@
     <div class="chat-conversation">
       <div v-if="!currentUserId" class="chat-empty chat-conversation-placeholder">Выберите переписку слева или начните новый диалог (+)</div>
       <template v-else>
-        <div class="chat-messages" ref="messagesEl">
+        <div ref="messagesEl" class="chat-messages">
           <div v-if="messagesIsLoading && !messages.length" class="chat-empty">Загрузка...</div>
           <div v-else-if="!messages.length" class="chat-empty">Сообщений пока нет — напишите первым</div>
           <div
@@ -84,10 +84,10 @@
             rows="1"
             @input="autoGrowComposer"
             @keydown.enter.exact.prevent="onSend"
-          ></textarea>
-          <button class="chat-send-btn" :disabled="sending || !draft.trim()" @click="onSend" title="Отправить">
+          />
+          <button class="chat-send-btn" :disabled="sending || !draft.trim()" title="Отправить" @click="onSend">
             <span v-if="!sending">➤</span>
-            <span v-else class="chat-send-spinner"></span>
+            <span v-else class="chat-send-spinner"/>
           </button>
         </div>
       </template>

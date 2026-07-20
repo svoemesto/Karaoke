@@ -11,16 +11,16 @@
           :limit="30"
           size="sm"
           pills
-      ></b-pagination>
+      />
     </div>
     <div class="processes-bv-table-body">
       <b-table
+          v-model:sort-by="sortBy"
           :items="processesDigests"
           :busy="isBusy"
           :fields="processDigestFields"
           :per-page="perPage"
           :current-page="currentPage"
-          v-model:sort-by="sortBy"
           small
           bordered
           hover
@@ -28,7 +28,7 @@
       >
         <template #table-busy>
           <div class="text-center text-danger my-2">
-            <b-spinner class="align-middle"></b-spinner>
+            <b-spinner class="align-middle"/>
             <strong>Loading...</strong>
           </div>
         </template>
@@ -37,111 +37,111 @@
               v-for="field in scope.fields"
               :key="field.key"
               :style="field.style"
-          >
+          />
         </template>
 
         <template #cell(id)="data">
           <div
               class="fld-id"
-              v-text="data.value"
               :style="{ backgroundColor: data.item.color, color: currentProcessId === data.item.id ? 'blue' : 'black' }"
-          ></div>
+              v-text="data.value"
+          />
         </template>
 
         <template #cell(threadId)="data">
           <div
               class="fld-thread-id"
-              v-text="data.value"
               :style="{ backgroundColor: data.item.color, color: currentProcessId === data.item.id ? 'blue' : 'black' }"
-          ></div>
+              v-text="data.value"
+          />
         </template>
 
         <template #cell(name)="data">
           <div
               class="fld-process-name"
-              v-text="data.value"
               :style="{ backgroundColor: data.item.color, color: currentProcessId === data.item.id ? 'blue' : 'black' }"
               @click.left="editProcess(data.item.id)"
-          ></div>
+              v-text="data.value"
+          />
         </template>
 
         <template #cell(status)="data">
           <div
               class="fld-status"
-              v-text="data.value"
               :style="{ backgroundColor: data.item.color, color: currentProcessId === data.item.id ? 'blue' : 'black' }"
-          ></div>
+              v-text="data.value"
+          />
         </template>
 
         <template #cell(priority)="data">
           <div
               class="fld-priority"
-              v-text="data.value"
               :style="{ backgroundColor: data.item.color, color: currentProcessId === data.item.id ? 'blue' : 'black' }"
-          ></div>
+              v-text="data.value"
+          />
         </template>
 
         <template #cell(description)="data">
           <div
               class="fld-description"
-              v-text="data.value"
               :style="{ backgroundColor: data.item.color, color: currentProcessId === data.item.id ? 'blue' : 'black' }"
-          ></div>
+              v-text="data.value"
+          />
         </template>
 
         <template #cell(type)="data">
           <div
               class="fld-type"
-              v-text="data.value"
               :style="{ backgroundColor: data.item.color, color: currentProcessId === data.item.id ? 'blue' : 'black' }"
-          ></div>
+              v-text="data.value"
+          />
         </template>
 
         <template #cell(startStr)="data">
           <div
               class="fld-start"
-              v-text="data.value"
               :style="{ backgroundColor: data.item.color, color: currentProcessId === data.item.id ? 'blue' : 'black' }"
-          ></div>
+              v-text="data.value"
+          />
         </template>
 
         <template #cell(endStr)="data">
           <div
               class="fld-end"
-              v-text="data.value"
               :style="{ backgroundColor: data.item.color, color: currentProcessId === data.item.id ? 'blue' : 'black' }"
-          ></div>
+              v-text="data.value"
+          />
         </template>
 
         <template #cell(percentageStr)="data">
           <div
               class="fld-percentage"
-              v-text="data.value"
               :style="{ backgroundColor: data.item.color, color: currentProcessId === data.item.id ? 'blue' : 'black' }"
-          ></div>
+              v-text="data.value"
+          />
         </template>
 
         <template #cell(timePassedStr)="data">
           <div
               class="fld-passed"
-              v-text="data.value"
               :style="{ backgroundColor: data.item.color, color: currentProcessId === data.item.id ? 'blue' : 'black' }"
-          ></div>
+              v-text="data.value"
+          />
         </template>
 
         <template #cell(timeLeftStr)="data">
           <div
               class="fld-left"
-              v-text="data.value"
               :style="{ backgroundColor: data.item.color, color: currentProcessId === data.item.id ? 'blue' : 'black' }"
-          ></div>
+              v-text="data.value"
+          />
         </template>
 
       </b-table>
     </div>
     <div class="processes-bv-table-footer">
-      <button class="btn-round-double" @click="isProcessesFilterVisible=true" title="Фильтр">
-        <img alt="filter" class="icon-40" src="../../assets/svg/icon_filter.svg">
+      <button class="btn-round-double" title="Фильтр" @click="isProcessesFilterVisible=true">
+        <img alt="filter" class="icon-40" src="../../assets/svg/icon_filter.svg"/>
       </button>
     </div>
 
@@ -188,22 +188,6 @@ export default {
       isBusy: false,
       currentProcessId: 0
     }
-  },
-  watch: {
-    processesDigestIsLoading: {
-      handler () {
-        this.isBusy = this.processesDigestIsLoading;
-      }
-    },
-    currentPage: {
-      handler (newPage) {
-        // Сохраняем страницу в store, чтобы она восстановилась после переключения на другой компонент.
-        this.$store.commit('setProcessesTableCurrentPage', newPage);
-      }
-    }
-  },
-  mounted() {
-    // this.$store.dispatch('loadProcessesDigests', { filterAuthor: 'Павел Кашин'} )
   },
   computed: {
     processesDigestIsLoading() {
@@ -351,6 +335,22 @@ export default {
         },
       ]
     }
+  },
+  watch: {
+    processesDigestIsLoading: {
+      handler () {
+        this.isBusy = this.processesDigestIsLoading;
+      }
+    },
+    currentPage: {
+      handler (newPage) {
+        // Сохраняем страницу в store, чтобы она восстановилась после переключения на другой компонент.
+        this.$store.commit('setProcessesTableCurrentPage', newPage);
+      }
+    }
+  },
+  mounted() {
+    // this.$store.dispatch('loadProcessesDigests', { filterAuthor: 'Павел Кашин'} )
   },
   methods: {
 

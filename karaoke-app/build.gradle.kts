@@ -1,4 +1,4 @@
-//import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+// import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
@@ -51,7 +51,7 @@ dependencies {
     implementation("javax.websocket:javax.websocket-all:1.1")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
-    testImplementation ("org.seleniumhq.selenium:selenium-java:4.37.0")
+    testImplementation("org.seleniumhq.selenium:selenium-java:4.37.0")
 
     implementation("org.apache.commons:commons-lang3:3.14.0")
     implementation("org.apache.httpcomponents.client5:httpclient5:5.5.1")
@@ -75,21 +75,21 @@ tasks.withType<Test> {
     useJUnitPlatform()
 }
 
-//tasks.bootJar {
+// tasks.bootJar {
 //    // Настройки, если нужно, например, archiveClassifier.set("exec")
 //    // archiveClassifier.set("") // Это может конфликтовать с обычным jar
 //    enabled = true
 //    // archiveClassifier.set("") // Убедитесь, что имя JAR соответствует COPY в Dockerfile
-//}
+// }
 
 // Обычная задача jar может быть отключена, если bootJar создаёт исполняемый JAR
-//tasks.jar {
+// tasks.jar {
 //    enabled = false // <-- Обычно отключают, если используется bootJar
 //    // Или устанавливают classifier, чтобы не конфликтовать
 //    // archiveClassifier.set("plain") // Если нужен обычный JAR для других целей
-//}
+// }
 
-//tasks.shadowJar {
+// tasks.shadowJar {
 //    archiveClassifier.set("") // Убирает суффикс shadow у JAR
 //    mergeServiceFiles() // Полезно для некоторых библиотек
 //    val shadowTask = this as ShadowJar
@@ -99,11 +99,11 @@ tasks.withType<Test> {
 //            "Main-Class" to "com.svoemesto.karaokeapp.KaraokeAppApplicationKt"
 //        )
 //    }
-//}
+// }
 //
-//// (Опционально) Сделать shadowJar задачей по умолчанию для build
+// // (Опционально) Сделать shadowJar задачей по умолчанию для build
 // tasks.build {
 //     dependsOn(tasks.shadowJar)
 // }
 
-tasks.register("prepareKotlinBuildScriptModel"){}
+tasks.register("prepareKotlinBuildScriptModel") {}

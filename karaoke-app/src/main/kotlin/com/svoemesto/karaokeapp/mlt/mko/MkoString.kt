@@ -11,27 +11,28 @@ data class MkoString(
     val type: ProducerType = ProducerType.STRING,
     val voiceId: Int = 0,
     val lineId: Int = 0,
-    val elementId: Int = 0
-): MltKaraokeObject {
+    val elementId: Int = 0,
+) : MltKaraokeObject {
     val mltGenerator = MltGenerator(mltProp, type, voiceId, lineId, elementId)
 
     private val songVersion = mltProp.getSongVersion()
     private val frameWidthPx = mltProp.getFrameWidthPx()
     private val frameHeightPx = mltProp.getFrameHeightPx()
     private val settings = mltProp.getSettings()
-    private val songEndTimecode  = mltProp.getSongEndTimecode()
+    private val songEndTimecode = mltProp.getSongEndTimecode()
     private var lineDurationOnScreen = mltProp.getDurationOnScreen(listOf(ProducerType.LINE, voiceId, lineId))
     private var folderIdLines = mltProp.getId(listOf(ProducerType.STRING, voiceId))
-    private val lineEndTimecode = if (lineDurationOnScreen > 0) {
-        convertMillisecondsToTimecode(lineDurationOnScreen)
-    } else {
-        lineDurationOnScreen = convertTimecodeToMilliseconds(songEndTimecode)
-        songEndTimecode
-    }
+    private val lineEndTimecode =
+        if (lineDurationOnScreen > 0) {
+            convertMillisecondsToTimecode(lineDurationOnScreen)
+        } else {
+            lineDurationOnScreen = convertTimecodeToMilliseconds(songEndTimecode)
+            songEndTimecode
+        }
 
     override fun producer(): MltNode {
-        var widthAreaPx= frameWidthPx
-        var heightAreaPx= frameHeightPx
+        var widthAreaPx = frameWidthPx
+        var heightAreaPx = frameHeightPx
 
         val sett = settings
         if (sett != null) {
@@ -46,14 +47,15 @@ data class MkoString(
         return mltGenerator
             .producer(
                 timecodeOut = lineEndTimecode,
-                props = MltNodeBuilder(mltGenerator.defaultProducerPropertiesForMltService("kdenlivetitle"))
-                    .propertyName("kdenlive:folderid", folderIdLines)
-                    .propertyName("length", convertMillisecondsToFrames(lineDurationOnScreen))
-                    .propertyName("kdenlive:duration", lineEndTimecode)
-                    .propertyName("xmldata", template().toString().xmldata())
-                    .propertyName("meta.media.width", widthAreaPx)
-                    .propertyName("meta.media.height", heightAreaPx)
-                    .build()
+                props =
+                    MltNodeBuilder(mltGenerator.defaultProducerPropertiesForMltService("kdenlivetitle"))
+                        .propertyName("kdenlive:folderid", folderIdLines)
+                        .propertyName("length", convertMillisecondsToFrames(lineDurationOnScreen))
+                        .propertyName("kdenlive:duration", lineEndTimecode)
+                        .propertyName("xmldata", template().toString().xmldata())
+                        .propertyName("meta.media.width", widthAreaPx)
+                        .propertyName("meta.media.height", heightAreaPx)
+                        .build(),
             )
     }
 
@@ -65,10 +67,11 @@ data class MkoString(
             body.add(
                 mltGenerator.entry(
                     timecodeOut = lineEndTimecode,
-                    nodes = MltNodeBuilder()
-                        .propertyName("kdenlive:id", "filePlaylist${mltGenerator.id}")
-                        .build()
-                )
+                    nodes =
+                        MltNodeBuilder()
+                            .propertyName("kdenlive:id", "filePlaylist${mltGenerator.id}")
+                            .build(),
+                ),
             )
         }
         return result
@@ -81,100 +84,104 @@ data class MkoString(
     override fun tractor(): MltNode = mltGenerator.tractor(timecodeOut = lineEndTimecode)
 
     override fun template(): MltNode {
-
         val sett = settings ?: return MltNode()
-        val element = try {
-            sett.voicesForMlt[voiceId].getLines()[lineId].getElements(songVersion)
-                .first { it.type in listOf(SettingVoiceLineElementTypes.TEXT, SettingVoiceLineElementTypes.COMMENT) }
-        } catch (_: Exception) {
-            return MltNode()
-        }
+        val element =
+            try {
+                sett.voicesForMlt[voiceId]
+                    .getLines()[lineId]
+                    .getElements(songVersion)
+                    .first { it.type in listOf(SettingVoiceLineElementTypes.TEXT, SettingVoiceLineElementTypes.COMMENT) }
+            } catch (_: Exception) {
+                return MltNode()
+            }
 
         val haveNotes = songVersion.producers.contains(ProducerType.MELODYNOTE) && element.getSyllables().any { it.note != "" }
         val haveChords = songVersion.producers.contains(ProducerType.CHORDS) && element.getSyllables().any { it.chord != "" }
 
-        val deltaY = if (haveNotes) {
-            val sylFontSize = element.fontSize
-            val melodyNoteFontSize = (sylFontSize * Karaoke.melodyNoteHeightCoefficient).toInt()
-            val melodyNoteMltTextHeight = Karaoke.melodyNoteFont.copy("C", melodyNoteFontSize).h()
-            val noteHeight = (melodyNoteMltTextHeight * Karaoke.melodyNoteHeightOffsetCoefficient).toInt()
+        val deltaY =
+            if (haveNotes) {
+                val sylFontSize = element.fontSize
+                val melodyNoteFontSize = (sylFontSize * Karaoke.melodyNoteHeightCoefficient).toInt()
+                val melodyNoteMltTextHeight = Karaoke.melodyNoteFont.copy("C", melodyNoteFontSize).h()
+                val noteHeight = (melodyNoteMltTextHeight * Karaoke.melodyNoteHeightOffsetCoefficient).toInt()
 
-            val tabsHeightCoefficient = Karaoke.melodyTabsHeightCoefficient
-            val tabsFontSize = (sylFontSize * tabsHeightCoefficient).toInt()
-            val tabsFont = Karaoke.melodyTabsFont
-            val tabsMltTextHeight = tabsFont.copy("C", tabsFontSize).h()
-            val tabsHeightOffsetCoefficient = Karaoke.melodyTabsHeightOffsetCoefficient
-            val heightBetweenTabsLines = (tabsMltTextHeight * tabsHeightOffsetCoefficient).toInt()
+                val tabsHeightCoefficient = Karaoke.melodyTabsHeightCoefficient
+                val tabsFontSize = (sylFontSize * tabsHeightCoefficient).toInt()
+                val tabsFont = Karaoke.melodyTabsFont
+                val tabsMltTextHeight = tabsFont.copy("C", tabsFontSize).h()
+                val tabsHeightOffsetCoefficient = Karaoke.melodyTabsHeightOffsetCoefficient
+                val heightBetweenTabsLines = (tabsMltTextHeight * tabsHeightOffsetCoefficient).toInt()
 
-            val tabsHeight = tabsMltTextHeight + 5 * heightBetweenTabsLines
-            noteHeight + tabsHeight
-        } else if (haveChords) {
-            val sylFontSize = element.fontSize
-            val chordsFontSize = (sylFontSize * Karaoke.chordsHeightCoefficient).toInt()
-            val chordsMltTextHeight = Karaoke.chordsFont.copy("C", chordsFontSize).h()
-            val chordHeight = (chordsMltTextHeight * Karaoke.chordsHeightOffsetCoefficient).toInt()
-            chordHeight
-        } else {
-            0
-        }
+                val tabsHeight = tabsMltTextHeight + 5 * heightBetweenTabsLines
+                noteHeight + tabsHeight
+            } else if (haveChords) {
+                val sylFontSize = element.fontSize
+                val chordsFontSize = (sylFontSize * Karaoke.chordsHeightCoefficient).toInt()
+                val chordsMltTextHeight = Karaoke.chordsFont.copy("C", chordsFontSize).h()
+                val chordHeight = (chordsMltTextHeight * Karaoke.chordsHeightOffsetCoefficient).toInt()
+                chordHeight
+            } else {
+                0
+            }
 
-        val widthAreaPx= frameWidthPx
-        val heightAreaPx= frameHeightPx
+        val widthAreaPx = frameWidthPx
+        val heightAreaPx = frameHeightPx
 
         val x = 0
         val y = deltaY
 
         val body: MutableList<MltNode> = mutableListOf()
 
-        val textItem = MltNodeBuilder()
-            .item(
-                fields = PropertiesMltNodeBuilder()
-                    .type("QGraphicsTextItem")
-                    .zIndex("2")
-                    .build(),
-                body = MltNodeBuilder()
-                    .position(
-                        fields = PropertiesMltNodeBuilder()
-                            .x(x.toString())
-                            .y(y.toString())
+        val textItem =
+            MltNodeBuilder()
+                .item(
+                    fields =
+                        PropertiesMltNodeBuilder()
+                            .type("QGraphicsTextItem")
+                            .zIndex("2")
                             .build(),
-                        body = MltNodeBuilder()
-                            .transform(
-                                fields = PropertiesMltNodeBuilder()
-                                    .zoom("100")
-                                    .build(),
-                                body = "1,0,0,0,1,0,0,0,1"
-                            )
-                            .build()
-                    )
-                    .node(
-                        element.mltText().mltNode(element.mltText().text)
-                    )
-                    .build()
-            )
-
-            .build()
+                    body =
+                        MltNodeBuilder()
+                            .position(
+                                fields =
+                                    PropertiesMltNodeBuilder()
+                                        .x(x.toString())
+                                        .y(y.toString())
+                                        .build(),
+                                body =
+                                    MltNodeBuilder()
+                                        .transform(
+                                            fields =
+                                                PropertiesMltNodeBuilder()
+                                                    .zoom("100")
+                                                    .build(),
+                                            body = "1,0,0,0,1,0,0,0,1",
+                                        ).build(),
+                            ).node(
+                                element.mltText().mltNode(element.mltText().text),
+                            ).build(),
+                ).build()
 
         body.addAll(textItem)
         body.addAll(
             MltNodeBuilder()
-                .startviewport("0,0,${widthAreaPx},${heightAreaPx}")
-                .endviewport("0,0,${widthAreaPx},${heightAreaPx}")
+                .startviewport("0,0,$widthAreaPx,$heightAreaPx")
+                .endviewport("0,0,$widthAreaPx,$heightAreaPx")
                 .background("0,0,0,0")
-                .build()
+                .build(),
         )
-
 
         return MltNode(
             name = "kdenlivetitle",
-            fields = PropertiesMltNodeBuilder()
-                .duration(convertMillisecondsToFrames(lineDurationOnScreen).toString())
-                .lcNumeric("C")
-                .width("$widthAreaPx")
-                .height("$heightAreaPx")
-                .`out`((convertMillisecondsToFrames(lineDurationOnScreen)-1).toString())
-                .build(),
-            body = body
+            fields =
+                PropertiesMltNodeBuilder()
+                    .duration(convertMillisecondsToFrames(lineDurationOnScreen).toString())
+                    .lcNumeric("C")
+                    .width("$widthAreaPx")
+                    .height("$heightAreaPx")
+                    .`out`((convertMillisecondsToFrames(lineDurationOnScreen) - 1).toString())
+                    .build(),
+            body = body,
         )
     }
 }

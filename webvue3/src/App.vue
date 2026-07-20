@@ -45,12 +45,12 @@
         <div class="app-main-content">
           <div class="app-header-right"> <!-- Добавлен контейнер для правого верхнего угла -->
             <BackendConsole/>
-            <ProcessWorker :hideButton="true" :excludedThreadId="[0]"></ProcessWorker>
+            <ProcessWorker :hide-button="true" :excluded-thread-id="[0]"/>
             <div class="start-stop-and-limit-group">
-              <ProcessWorker :hideButton="false" :includedThreadId="[0]"></ProcessWorker>
-              <ResourceLimitToggle></ResourceLimitToggle>
-              <MonitorLight></MonitorLight>
-              <ChatNotifyButton></ChatNotifyButton>
+              <ProcessWorker :hide-button="false" :included-thread-id="[0]"/>
+              <ResourceLimitToggle/>
+              <MonitorLight/>
+              <ChatNotifyButton/>
             </div>
           </div>
           <router-view/>
@@ -100,6 +100,45 @@ export default {
   computed: {
     chatUnreadTotal() { return this.$store.getters.getChatUnreadTotal },
     submittedAssignmentsCount() { return this.$store.getters.getSubmittedAssignmentsCount },
+  },
+  async mounted() {
+    console.log('APP mounted')
+    const {create} = useToast();
+    this.connectSse(create);
+
+    this.$store.dispatch('setLastSettingType',{ value: await this.$store.getters.getWebvueProp('lastSettingType', 'COMMENT') });
+    this.$store.dispatch('setLastSettingValue', { value: await this.$store.getters.getWebvueProp('lastSettingValue', 'Комментарий') });
+    this.$store.dispatch('setLastPriorLyrics', { value: await this.$store.getters.getWebvueProp('lastPriorLyrics', '1') });
+    this.$store.dispatch('setLastPriorKaraoke', { value: await this.$store.getters.getWebvueProp('lastPriorKaraoke', '0') });
+    this.$store.dispatch('setLastPriorChords', { value: await this.$store.getters.getWebvueProp('lastPriorChords', '') });
+    this.$store.dispatch('setLastPriorMelody', { value: await this.$store.getters.getWebvueProp('lastPriorMelody', '') });
+    this.$store.dispatch('setLastThreadId', { value: await this.$store.getters.getWebvueProp('lastThreadId', '0') });
+    this.$store.dispatch('setLastPriorCodeLyrics', { value: await this.$store.getters.getWebvueProp('lastPriorCodeLyrics', '10') });
+    this.$store.dispatch('setLastPriorCodeKaraoke', { value: await this.$store.getters.getWebvueProp('lastPriorCodeKaraoke', '10') });
+    this.$store.dispatch('setLastPriorDemucs', { value: await this.$store.getters.getWebvueProp('lastPriorDemucs', '-1') });
+    this.$store.dispatch('setLastPriorSymlinks', { value: await this.$store.getters.getWebvueProp('lastPriorSymlinks', '-1') });
+    this.$store.dispatch('setLastPriorSmartCopy', { value: await this.$store.getters.getWebvueProp('lastPriorSmartCopy', '-1') });
+
+    this.$store.dispatch('loadChatUnreadCount');
+    this.chatUnreadPollTimer = setInterval(() => this.$store.dispatch('loadChatUnreadCount'), CHAT_UNREAD_POLL_INTERVAL_MS);
+
+    this.$store.dispatch('loadSubmittedAssignmentsCount');
+    this.submittedAssignmentsPollTimer = setInterval(() => this.$store.dispatch('loadSubmittedAssignmentsCount'), SONGEDITOR_SUBMITTED_POLL_INTERVAL_MS);
+  },
+  beforeUnmount() {
+    if (this.sseReconnectTimer) {
+      clearTimeout(this.sseReconnectTimer);
+      this.sseReconnectTimer = null;
+    }
+    this.msgServer?.close();
+    if (this.chatUnreadPollTimer) {
+      clearInterval(this.chatUnreadPollTimer);
+      this.chatUnreadPollTimer = null;
+    }
+    if (this.submittedAssignmentsPollTimer) {
+      clearInterval(this.submittedAssignmentsPollTimer);
+      this.submittedAssignmentsPollTimer = null;
+    }
   },
   methods: {
     connectSse(create) {
@@ -404,45 +443,6 @@ export default {
         // modelValue: true
       })
     },
-  },
-  async mounted() {
-    console.log('APP mounted')
-    const {create} = useToast();
-    this.connectSse(create);
-
-    this.$store.dispatch('setLastSettingType',{ value: await this.$store.getters.getWebvueProp('lastSettingType', 'COMMENT') });
-    this.$store.dispatch('setLastSettingValue', { value: await this.$store.getters.getWebvueProp('lastSettingValue', 'Комментарий') });
-    this.$store.dispatch('setLastPriorLyrics', { value: await this.$store.getters.getWebvueProp('lastPriorLyrics', '1') });
-    this.$store.dispatch('setLastPriorKaraoke', { value: await this.$store.getters.getWebvueProp('lastPriorKaraoke', '0') });
-    this.$store.dispatch('setLastPriorChords', { value: await this.$store.getters.getWebvueProp('lastPriorChords', '') });
-    this.$store.dispatch('setLastPriorMelody', { value: await this.$store.getters.getWebvueProp('lastPriorMelody', '') });
-    this.$store.dispatch('setLastThreadId', { value: await this.$store.getters.getWebvueProp('lastThreadId', '0') });
-    this.$store.dispatch('setLastPriorCodeLyrics', { value: await this.$store.getters.getWebvueProp('lastPriorCodeLyrics', '10') });
-    this.$store.dispatch('setLastPriorCodeKaraoke', { value: await this.$store.getters.getWebvueProp('lastPriorCodeKaraoke', '10') });
-    this.$store.dispatch('setLastPriorDemucs', { value: await this.$store.getters.getWebvueProp('lastPriorDemucs', '-1') });
-    this.$store.dispatch('setLastPriorSymlinks', { value: await this.$store.getters.getWebvueProp('lastPriorSymlinks', '-1') });
-    this.$store.dispatch('setLastPriorSmartCopy', { value: await this.$store.getters.getWebvueProp('lastPriorSmartCopy', '-1') });
-
-    this.$store.dispatch('loadChatUnreadCount');
-    this.chatUnreadPollTimer = setInterval(() => this.$store.dispatch('loadChatUnreadCount'), CHAT_UNREAD_POLL_INTERVAL_MS);
-
-    this.$store.dispatch('loadSubmittedAssignmentsCount');
-    this.submittedAssignmentsPollTimer = setInterval(() => this.$store.dispatch('loadSubmittedAssignmentsCount'), SONGEDITOR_SUBMITTED_POLL_INTERVAL_MS);
-  },
-  beforeUnmount() {
-    if (this.sseReconnectTimer) {
-      clearTimeout(this.sseReconnectTimer);
-      this.sseReconnectTimer = null;
-    }
-    this.msgServer?.close();
-    if (this.chatUnreadPollTimer) {
-      clearInterval(this.chatUnreadPollTimer);
-      this.chatUnreadPollTimer = null;
-    }
-    if (this.submittedAssignmentsPollTimer) {
-      clearInterval(this.submittedAssignmentsPollTimer);
-      this.submittedAssignmentsPollTimer = null;
-    }
   }
 }
 </script>

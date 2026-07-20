@@ -11,7 +11,7 @@
             <button class="btn" :class="viewMode === 'tree' ? 'btn-primary' : 'btn-outline-primary'" @click="viewMode = 'tree'">Дерево</button>
             <button class="btn" :class="viewMode === 'flat' ? 'btn-primary' : 'btn-outline-primary'" @click="viewMode = 'flat'">Таблица</button>
           </div>
-          <button class="btn-close" @click="$emit('close')"></button>
+          <button class="btn-close" @click="$emit('close')"/>
         </div>
       </div>
       <div class="uem-body">

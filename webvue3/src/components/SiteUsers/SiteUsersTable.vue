@@ -32,16 +32,16 @@
                 :limit="30"
                 size="sm"
                 pills
-            ></b-pagination>
+            />
         </div>
         <div class="sut-table-body">
             <b-table
+                v-model:sort-by="sortBy"
                 :items="siteUsersDigest"
                 :busy="isBusy"
                 :fields="siteUserDigestFields"
                 :per-page="perPage"
                 :current-page="currentPage"
-                v-model:sort-by="sortBy"
                 small
                 bordered
                 hover
@@ -49,7 +49,7 @@
             >
                 <template #table-busy>
                     <div class="text-center text-danger my-2">
-                        <b-spinner class="align-middle"></b-spinner>
+                        <b-spinner class="align-middle"/>
                         <strong>Loading...</strong>
                     </div>
                 </template>
@@ -77,9 +77,9 @@
                 <template #cell(email)="data">
                     <div
                         class="fld-email"
-                        v-text="data.value"
                         @click.left="editUser(data.item.id, data.item)"
-                    ></div>
+                        v-text="data.value"
+                    />
                 </template>
 
                 <template #cell(banned)="data">
@@ -186,19 +186,6 @@ export default {
             isFilterVisible: false,
             isBusy: false,
         };
-    },
-    watch: {
-        siteUsersDigestIsLoading: {
-            handler() {
-                this.isBusy = this.siteUsersDigestIsLoading;
-            },
-        },
-        currentPage: {
-            handler(newPage) {
-                // Сохраняем страницу в store, чтобы она восстановилась после переключения на другой компонент.
-                this.$store.commit("setSiteUsersTableCurrentPage", newPage);
-            },
-        },
     },
     computed: {
         siteUsersDigestIsLoading() {
@@ -432,6 +419,19 @@ export default {
                     },
                 },
             ];
+        },
+    },
+    watch: {
+        siteUsersDigestIsLoading: {
+            handler() {
+                this.isBusy = this.siteUsersDigestIsLoading;
+            },
+        },
+        currentPage: {
+            handler(newPage) {
+                // Сохраняем страницу в store, чтобы она восстановилась после переключения на другой компонент.
+                this.$store.commit("setSiteUsersTableCurrentPage", newPage);
+            },
         },
     },
     async mounted() {

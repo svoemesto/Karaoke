@@ -5,11 +5,11 @@
 
     <div class="dictionaries-bv-table-add">
       <div class="dictionaries-bv-table-add-title">Добавить:</div>
-      <select class="dct-field" v-model="newItem.dictName">
+      <select v-model="newItem.dictName" class="dct-field">
         <option value="" disabled>(словарь)</option>
-        <option v-for="name in dictNames" :key="name" :value="name" v-text="name"></option>
+        <option v-for="name in dictNames" :key="name" :value="name" v-text="name"/>
       </select>
-      <input class="dct-field" placeholder="Значение" v-model="newItem.dictValue">
+      <input v-model="newItem.dictValue" class="dct-field" placeholder="Значение"/>
       <button class="dct-btn-round" :disabled="!canCreate" @click="create">Добавить</button>
     </div>
 
@@ -21,23 +21,23 @@
           :limit="30"
           size="sm"
           pills
-      ></b-pagination>
+      />
     </div>
     <div class="dictionaries-bv-table-body">
       <b-table
+          v-model:sort-by="sortBy"
           :items="dictionariesDigest"
           :busy="isBusy"
           :fields="dictionaryDigestFields"
           :per-page="perPage"
           :current-page="currentPage"
-          v-model:sort-by="sortBy"
           small
           bordered
           hover
       >
         <template #table-busy>
           <div class="text-center text-danger my-2">
-            <b-spinner class="align-middle"></b-spinner>
+            <b-spinner class="align-middle"/>
             <strong>Loading...</strong>
           </div>
         </template>
@@ -46,32 +46,32 @@
               v-for="field in scope.fields"
               :key="field.key"
               :style="field.style"
-          >
+          />
         </template>
 
         <template #cell(id)="data">
-          <div class="fld-dict-id" v-text="data.value"></div>
+          <div class="fld-dict-id" v-text="data.value"/>
         </template>
 
         <template #cell(dictName)="data">
-          <div class="fld-dict-name" v-text="data.value" @click.left="changeValue(data.item)"></div>
+          <div class="fld-dict-name" @click.left="changeValue(data.item)" v-text="data.value"/>
         </template>
 
         <template #cell(dictValue)="data">
-          <div class="fld-dict-value" v-text="data.value" @click.left="changeValue(data.item)"></div>
+          <div class="fld-dict-value" @click.left="changeValue(data.item)" v-text="data.value"/>
         </template>
 
         <template #cell(actions)="data">
           <div class="fld-dict-actions">
-            <button class="dct-btn-round-small" @click="remove(data.item)" title="Удалить">×</button>
+            <button class="dct-btn-round-small" title="Удалить" @click="remove(data.item)">×</button>
           </div>
         </template>
 
       </b-table>
     </div>
     <div class="dictionaries-bv-table-footer">
-      <button class="dct-btn-round-double" @click="isDictionariesFilterVisible=true" title="Фильтр">
-        <img alt="filter" class="dct-icon-40" src="../../assets/svg/icon_filter.svg">
+      <button class="dct-btn-round-double" title="Фильтр" @click="isDictionariesFilterVisible=true">
+        <img alt="filter" class="dct-icon-40" src="../../assets/svg/icon_filter.svg"/>
       </button>
     </div>
 
@@ -106,23 +106,6 @@ export default {
       isBusy: false,
       newItem: { dictName: '', dictValue: '' }
     }
-  },
-  watch: {
-    dictionariesDigestIsLoading: {
-      handler () {
-        this.isBusy = this.dictionariesDigestIsLoading;
-      }
-    },
-    currentPage: {
-      handler (newPage) {
-        // Сохраняем страницу в store, чтобы она восстановилась после переключения на другой компонент.
-        this.$store.commit('setDictionariesTableCurrentPage', newPage);
-      }
-    }
-  },
-  mounted() {
-    this.$store.dispatch('loadDictNames');
-    this.$store.dispatch('loadDictionariesDigests', {});
   },
   computed: {
     dictionariesDigestIsLoading() {
@@ -167,6 +150,23 @@ export default {
         }
       ]
     }
+  },
+  watch: {
+    dictionariesDigestIsLoading: {
+      handler () {
+        this.isBusy = this.dictionariesDigestIsLoading;
+      }
+    },
+    currentPage: {
+      handler (newPage) {
+        // Сохраняем страницу в store, чтобы она восстановилась после переключения на другой компонент.
+        this.$store.commit('setDictionariesTableCurrentPage', newPage);
+      }
+    }
+  },
+  mounted() {
+    this.$store.dispatch('loadDictNames');
+    this.$store.dispatch('loadDictionariesDigests', {});
   },
   methods: {
 

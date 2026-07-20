@@ -19,8 +19,9 @@ class SitePlaylistItem(
     override val database: KaraokeConnection = WORKING_DATABASE,
     override val storageService: KaraokeStorageService = KSS_APP,
     override val storageApiClient: StorageApiClient = SAC_APP,
-) : Serializable, Comparable<SitePlaylistItem>, KaraokeDbTable {
-
+) : Serializable,
+    Comparable<SitePlaylistItem>,
+    KaraokeDbTable {
     override fun getTableName() = TABLE_NAME
 
     @KaraokeDbTableField(name = "id", isId = true)
@@ -42,19 +43,18 @@ class SitePlaylistItem(
     @KaraokeDbTableField(name = "last_update", useInDiff = false)
     var lastUpdate: Timestamp? = null
 
-    override fun compareTo(other: SitePlaylistItem): Int =
-        compareValuesBy(this, other, { it.position }, { it.id })
+    override fun compareTo(other: SitePlaylistItem): Int = compareValuesBy(this, other, { it.position }, { it.id })
 
-    override fun toDTO(): SitePlaylistItemDto = SitePlaylistItemDto(
-        id = id,
-        playlistId = playlistId,
-        songId = songId,
-        position = position,
-        muted = muted,
-    )
+    override fun toDTO(): SitePlaylistItemDto =
+        SitePlaylistItemDto(
+            id = id,
+            playlistId = playlistId,
+            songId = songId,
+            position = position,
+            muted = muted,
+        )
 
     companion object {
-
         const val TABLE_NAME = "tbl_site_playlist_items"
 
         // Элементы плейлиста в порядке position (loadList не поддерживает ORDER BY — сортируем в Kotlin).
@@ -63,16 +63,17 @@ class SitePlaylistItem(
             database: KaraokeConnection,
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
-        ): List<SitePlaylistItem> {
-            return KaraokeDbTable.loadList(
-                clazz = SitePlaylistItem::class,
-                tableName = TABLE_NAME,
-                whereList = listOf("playlist_id=$playlistId"),
-                database = database,
-                storageService = storageService,
-                storageApiClient = storageApiClient,
-            ).map { it as SitePlaylistItem }.sorted()
-        }
+        ): List<SitePlaylistItem> =
+            KaraokeDbTable
+                .loadList(
+                    clazz = SitePlaylistItem::class,
+                    tableName = TABLE_NAME,
+                    whereList = listOf("playlist_id=$playlistId"),
+                    database = database,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                ).map { it as SitePlaylistItem }
+                .sorted()
 
         fun findItem(
             playlistId: Long,
@@ -80,18 +81,21 @@ class SitePlaylistItem(
             database: KaraokeConnection,
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
-        ): SitePlaylistItem? {
-            return KaraokeDbTable.loadList(
-                clazz = SitePlaylistItem::class,
-                tableName = TABLE_NAME,
-                whereList = listOf("playlist_id=$playlistId", "song_id=$songId"),
-                database = database,
-                storageService = storageService,
-                storageApiClient = storageApiClient,
-            ).firstOrNull() as? SitePlaylistItem?
-        }
+        ): SitePlaylistItem? =
+            KaraokeDbTable
+                .loadList(
+                    clazz = SitePlaylistItem::class,
+                    tableName = TABLE_NAME,
+                    whereList = listOf("playlist_id=$playlistId", "song_id=$songId"),
+                    database = database,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                ).firstOrNull() as? SitePlaylistItem?
 
-        fun countItems(playlistId: Long, database: KaraokeConnection): Int {
+        fun countItems(
+            playlistId: Long,
+            database: KaraokeConnection,
+        ): Int {
             val connection = database.getConnection() ?: return 0
             val sql = "SELECT COUNT(*) AS cnt FROM $TABLE_NAME WHERE playlist_id = $playlistId"
             connection.createStatement().use { st ->
@@ -121,7 +125,9 @@ class SitePlaylistItem(
             return result
         }
 
-        fun delete(id: Long, database: KaraokeConnection): Boolean =
-            KaraokeDbTable.delete(tableName = TABLE_NAME, id = id, database = database)
+        fun delete(
+            id: Long,
+            database: KaraokeConnection,
+        ): Boolean = KaraokeDbTable.delete(tableName = TABLE_NAME, id = id, database = database)
     }
 }

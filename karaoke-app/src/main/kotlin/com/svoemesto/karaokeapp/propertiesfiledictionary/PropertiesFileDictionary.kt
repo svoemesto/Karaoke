@@ -4,29 +4,39 @@ import com.svoemesto.karaokeapp.runCommand
 import java.io.File
 
 interface PropertiesFileDictionary {
-
     fun separator() = "{WEBVUE_PROPERTIES_SEPARATOR}"
+
     fun pathToFile(): String
+
     var props: MutableMap<String, String>
 
-    fun get(key: String, default: String): String = props[key] ?: default
+    fun get(
+        key: String,
+        default: String,
+    ): String = props[key] ?: default
+
     fun get(key: String): String = get(key = key, default = "")
 
-    fun set(key: String, value: String) {
+    fun set(
+        key: String,
+        value: String,
+    ) {
         props[key] = value
         save()
     }
+
     fun loadMap(): MutableMap<String, String> {
         val result: MutableMap<String, String> = mutableMapOf()
-        val list = try {
-            File(pathToFile())
+        val list =
+            try {
+                File(pathToFile())
                     .readText()
                     .split("\n")
                     .filter { it != "" }
-        } catch (_: Exception) {
+            } catch (_: Exception) {
 //            println("Ошибка считывания файла, возвращаем пустую мапу")
-            return result
-        }
+                return result
+            }
 
         (list.indices).forEach { i ->
             val (key, value) = list[i].split(separator())
@@ -43,5 +53,4 @@ interface PropertiesFileDictionary {
         File(pathToFile()).writeText(list.joinToString("\n"))
         runCommand(listOf("chmod", "666", pathToFile()))
     }
-
 }

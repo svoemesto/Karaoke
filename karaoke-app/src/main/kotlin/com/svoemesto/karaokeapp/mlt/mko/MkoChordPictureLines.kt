@@ -7,7 +7,7 @@ import com.svoemesto.karaokeapp.model.MltNodeBuilder
 import com.svoemesto.karaokeapp.model.ProducerType
 
 /**
- * Класс Mko Chord Picture Lines.
+ * Набор строк аккордной картинки (вертикальные позиции грифа). Создаёт MLT-блоки с линиями-разделителями.
  *
  * @see docs/features/mlt-generator.md
  */

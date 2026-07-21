@@ -8,7 +8,7 @@ import com.svoemesto.karaokeapp.model.MltNodeBuilder
 import com.svoemesto.karaokeapp.model.ProducerType
 
 /**
- * Класс Mko Scroller Track.
+ * Трек-скроллер для прокрутки текста/аккордов. Создаёт MLT-блоки с translate-анимацией для плавной прокрутки длинного контента.
  *
  * @see docs/features/mlt-generator.md
  */

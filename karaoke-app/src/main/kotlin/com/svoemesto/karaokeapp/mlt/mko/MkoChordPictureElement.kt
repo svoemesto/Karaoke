@@ -8,7 +8,7 @@ import com.svoemesto.karaokeapp.mlt.MltProp
 import com.svoemesto.karaokeapp.model.*
 
 /**
- * Класс Mko Chord Picture Element.
+ * Элемент аккордной картинки (диаграмма грифа + название аккорда). Один аккорд в текущий момент времени.
  *
  * @see docs/features/mlt-generator.md
  */

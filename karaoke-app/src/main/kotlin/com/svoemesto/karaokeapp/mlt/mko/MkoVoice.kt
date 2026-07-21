@@ -7,7 +7,7 @@ import com.svoemesto.karaokeapp.model.MltNodeBuilder
 import com.svoemesto.karaokeapp.model.ProducerType
 
 /**
- * Класс Mko Voice.
+ * Один голос песни (vocal/accompaniment/mix). Содержит настройки рендера для конкретного голоса (цвет, шрифт, отступ).
  *
  * @see docs/features/mlt-generator.md
  */

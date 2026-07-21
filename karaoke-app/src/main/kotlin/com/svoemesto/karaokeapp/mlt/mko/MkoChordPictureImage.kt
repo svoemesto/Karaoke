@@ -9,7 +9,7 @@ import java.util.*
 import javax.imageio.ImageIO
 
 /**
- * Класс Mko Chord Picture Image.
+ * Изображение аккордной диаграммы (PNG/JPG из MinIO). Создаёт MLT-блоки с producer для рендера картинки аккорда.
  *
  * @see docs/features/mlt-generator.md
  */

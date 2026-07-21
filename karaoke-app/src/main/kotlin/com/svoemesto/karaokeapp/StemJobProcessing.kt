@@ -83,6 +83,56 @@ fun argsStemJobDemucs(
 }
 
 /**
+ * Повторная попытка demucs-шага БЕЗ GPU — вызывается из executeFinalizeStemJob, когда GPU-попытка
+ * (argsStemJobDemucs, device="cuda") не досоздала часть стемов. На админской машине GPU общий с
+ * локальной LLM-моделью (не наше собственное задание из очереди) — типичная причина: CUDA OOM.
+ * Т.к. конкурент внешний, взаимное исключение между лейнами очереди не решает проблему — вместо
+ * этого просто повторяем сам demucs без "--gpus all"/"-device cuda".
+ * Шаги mkdir/chmod/ffmpeg-транскод upload→flac не повторяются — file.flac уже создан первой
+ * попыткой (это и проверяет executeFinalizeStemJob перед тем, как поставить этот повтор в очередь).
+ */
+fun argsStemJobDemucsRetryCpu(job: StemJob): Pair<List<List<String>>, Map<String, String>> {
+    val tempFolder = "$PATH_TO_TEMP_STEMJOB_FOLDER/${job.id}"
+    val flacPath = "$tempFolder/file.flac".rightFileName()
+    val processType = if (job.mode == StemJobMode.DEMUCS5) KaraokeProcessTypes.STEM_JOB_DEMUCS5 else KaraokeProcessTypes.STEM_JOB_DEMUCS2
+    val cpuFlags = dockerCpusFlag(cpuLimitPercentForType(processType))
+    val demucsScript = if (job.mode == StemJobMode.DEMUCS5) "./demucs5" else "./demucs2"
+
+    val steps =
+        mutableListOf(
+            listOf("docker", "run", "--rm", "-i", "--name=stemjob-${job.id}") + cpuFlags +
+                listOf(
+                    "-v",
+                    "$tempFolder:/data/input",
+                    "-v",
+                    "$tempFolder:/data/output",
+                    "svoemestodev/demucs:latest",
+                    "''$demucsScript -file $flacPath -recode flac -device cpu''",
+                ),
+        )
+    StemJobMode.stemNames(job.mode).forEach { stem ->
+        steps.add(
+            listOf(
+                "ffmpeg",
+                "-i",
+                "$tempFolder/file-$stem.flac".rightFileName(),
+                "-ab",
+                "320k",
+                "-map_metadata",
+                "0",
+                "-id3v2_version",
+                "3",
+                "$tempFolder/$stem.mp3".rightFileName(),
+                "-y",
+            ),
+        )
+    }
+    steps.add(listOf("runFunctionWithArgs", "finalizeStemJob", "jobId=${job.id}", "retriedOnCpu=true"))
+
+    return Pair(steps, mapOf("DOCKER_API_VERSION" to "1.53"))
+}
+
+/**
  * Финальный функциональный шаг пайплайна (см. argsStemJobDemucs) — по образцу
  * executeGetKeyBpmFromFile (Utils.kt): загружает оригинал + готовые mp3-стемы в MinIO (тем же
  * механизмом, каким админка сегодня грузит в удалённое хранилище — SAC_APP), помечает задание
@@ -90,9 +140,14 @@ fun argsStemJobDemucs(
  * можно удалить, и чистит локальный temp. Возвращает false (⇒ ERROR у KaraokeProcess-шага), если
  * ожидаемые файлы не найдены — см. предупреждение в argsStemJobDemucs про негарантированную
  * последовательность шагов.
+ *
+ * Если стемов не хватает, но file.flac (вход demucs) на месте и это ещё не CPU-повтор (см.
+ * retriedOnCpu/argsStemJobDemucsRetryCpu) — считаем, что упал именно demucs (обычно из-за нехватки
+ * видеопамяти GPU) и тут же ставим в очередь повтор без GPU вместо немедленного ERROR.
  */
 fun executeFinalizeStemJob(params: Map<String, String>): Boolean {
     val jobId = params["jobId"]?.toLongOrNull() ?: return false
+    val retriedOnCpu = params["retriedOnCpu"]?.toBoolean() ?: false
     // Финализация всегда идёт против прод-БД (SERVER) — реальные пользователи там; для локальной
     // отладки временно указать Connection.local() (тот же инвариант, что и SponsrSyncScheduler).
     val database = Connection.remote()
@@ -104,9 +159,29 @@ fun executeFinalizeStemJob(params: Map<String, String>): Boolean {
         val tempFolder = File("$PATH_TO_TEMP_STEMJOB_FOLDER/${job.id}")
         val stemNames = StemJobMode.stemNames(job.mode)
         val uploadFile = File(tempFolder, "upload.${job.originalExt}")
+        val flacFile = File(tempFolder, "file.flac")
         val stemFiles = stemNames.associateWith { File(tempFolder, "$it.mp3") }
+        val missingStems = stemFiles.values.any { !it.exists() || it.length() == 0L }
 
-        if (!uploadFile.exists() || stemFiles.values.any { !it.exists() || it.length() == 0L }) {
+        if (!uploadFile.exists() || missingStems) {
+            if (!retriedOnCpu && missingStems && flacFile.exists() && flacFile.length() > 0L) {
+                val (retryArgs, retryEnvs) = argsStemJobDemucsRetryCpu(job)
+                val retryProcess = KaraokeProcess(Connection.local())
+                retryProcess.name = "StemJob #${job.id} (${job.mode})"
+                retryProcess.status = KaraokeProcessStatuses.WAITING.name
+                retryProcess.priority = 1
+                retryProcess.command = ""
+                retryProcess.type =
+                    if (job.mode == StemJobMode.DEMUCS5) KaraokeProcessTypes.STEM_JOB_DEMUCS5.name else KaraokeProcessTypes.STEM_JOB_DEMUCS2.name
+                retryProcess.settingsId = 0
+                retryProcess.threadId = KaraokeProcess.THREAD_LANE_STEM_JOBS
+                retryProcess.description = "Демукс премиум-задания #${job.id} (повтор без GPU)"
+                retryProcess.args = retryArgs
+                retryProcess.envs = retryEnvs
+                KaraokeProcess.createDbInstance(KaraokeProcess.separate(retryProcess))
+                return false
+            }
+
             job.status = StemJobStatus.ERROR
             job.errorMessage = "Обработка не создала все ожидаемые файлы — вероятно, ошибка на одном из шагов demucs/ffmpeg"
             job.finishedAt = Timestamp(System.currentTimeMillis())

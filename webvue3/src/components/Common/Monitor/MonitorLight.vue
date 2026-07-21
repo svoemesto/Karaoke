@@ -21,6 +21,12 @@ const SEVERITY_COLORS = {
   3: '#D50000',
 }
 
+/**
+ * Компонент «Monitor Light».
+ *
+ * @see AGENTS.md
+ */
+
 export default {
   name: 'MonitorLight',
   components: { MonitorModal },

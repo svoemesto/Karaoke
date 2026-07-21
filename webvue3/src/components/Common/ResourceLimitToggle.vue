@@ -16,6 +16,12 @@
 <script>
 const PROPERTY_KEY = 'resourceLimitsEnabled'
 
+/**
+ * Компонент «Resource Limit Toggle».
+ *
+ * @see AGENTS.md
+ */
+
 export default {
   name: 'ResourceLimitToggle',
   data() {

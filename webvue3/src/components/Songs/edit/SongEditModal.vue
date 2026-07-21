@@ -22,6 +22,12 @@
 <script>
 import SongEdit from '../../../components/Songs/edit/SongEdit.vue'
 
+/**
+ * Модальное окно для edit.
+ *
+ * @see docs/features/mlt-generator.md
+ */
+
 export default {
   name: 'SongEditModal',
   components: { SongEdit },

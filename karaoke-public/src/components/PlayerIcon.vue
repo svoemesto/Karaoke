@@ -34,6 +34,12 @@
 import SvgIcon from './SvgIcon.vue'
 import { openPlayer } from '../services/playerLauncher'
 
+/**
+ * Компонент «Player Icon».
+ *
+ * @see AGENTS.md
+ */
+
 export default {
   name: 'PlayerIcon',
   components: { SvgIcon },

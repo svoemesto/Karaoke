@@ -151,6 +151,12 @@ import { BPagination, BSpinner, BTable } from 'bootstrap-vue-next'
 import SiteUserEditModal from './edit/SiteUserEditModal.vue'
 import SiteUsersFilterModal from './filter/SiteUsersFilterModal.vue'
 
+/**
+ * Таблица со списком users с пагинацией, фильтрами и сортировкой.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
+
 export default {
   name: 'SiteUsersTable',
   components: {

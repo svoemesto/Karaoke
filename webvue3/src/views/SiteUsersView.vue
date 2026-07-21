@@ -6,6 +6,12 @@
 
 <script>
 import SiteUsersTable from '../components/SiteUsers/SiteUsersTable.vue'
+
+/**
+ * View-страница «Site Users» — основной layout и data-fetching.
+ *
+ * @see AGENTS.md
+ */
 export default {
   name: 'SiteUsersView',
   components: {

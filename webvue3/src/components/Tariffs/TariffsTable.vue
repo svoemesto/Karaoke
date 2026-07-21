@@ -90,6 +90,11 @@
 </template>
 
 <script>
+/**
+ * Таблица со списком tariffs с пагинацией, фильтрами и сортировкой.
+ *
+ * @see AGENTS.md
+ */
 export default {
   name: 'TariffsTable',
   data() {

@@ -1076,6 +1076,11 @@ import SearchText from './SearchText.vue'
 // Vue.use(TabsPlugin)
 // import ZoomPlugin from 'wavesurfer.js/dist/plugins/zoom.esm.js'
 // import { isStringContainThisSymbols } from '@/lib/utils'
+/**
+ * Форма редактирования subs.
+ *
+ * @see docs/features/mlt-generator.md
+ */
 export default {
   name: 'SubsEdit',
   components: {

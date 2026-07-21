@@ -6,6 +6,12 @@
 
 <script>
 import PicturesTable from '../components/Pictures/PicturesTable.vue'
+
+/**
+ * View-страница «Pictures» — основной layout и data-fetching.
+ *
+ * @see AGENTS.md
+ */
 export default {
   name: 'PicturesView',
   components: {

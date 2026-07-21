@@ -472,6 +472,12 @@
 <script>
 import { BTab, BTable, BTabs } from 'bootstrap-vue-next'
 
+/**
+ * Модальное окно для filter.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
+
 export default {
   name: 'SongsFilterModal',
   components: {

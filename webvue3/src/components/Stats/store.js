@@ -6,6 +6,12 @@ function getJson(url) {
   return promisedXMLHttpRequest({ method: 'GET', url, params: {} }).then((data) => JSON.parse(data))
 }
 
+/**
+ * Компонент «Store».
+ *
+ * @see AGENTS.md
+ */
+
 export default {
   state: {
     statsTarget: 'local',

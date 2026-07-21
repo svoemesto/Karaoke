@@ -1925,6 +1925,12 @@ const SONG_TYPE_OPTIONS = [
   { value: 'poetry', label: 'Стихи (только вокал)' },
 ]
 
+/**
+ * Форма редактирования song.
+ *
+ * @see docs/features/mlt-generator.md
+ */
+
 export default {
   name: 'SongEdit',
   components: {

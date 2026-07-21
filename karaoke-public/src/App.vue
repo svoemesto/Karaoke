@@ -19,6 +19,12 @@ import PremiumUpsellModal from './components/PremiumUpsellModal.vue'
 import ChatUnreadBadge from './components/ChatUnreadBadge.vue'
 import NewsBell from './components/NewsBell.vue'
 
+/**
+ * Корневой компонент приложения.
+ *
+ * @see AGENTS.md
+ */
+
 export default {
   name: 'App',
   components: { PremiumUpsellModal, ChatUnreadBadge, NewsBell },

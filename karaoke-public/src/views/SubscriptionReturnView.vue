@@ -89,6 +89,11 @@ import { useAuth } from '../composables/useAuth'
 // позже, чем пользователь вернётся на сайт — поэтому поллим список подписок несколько раз, пока
 // статус не станет терминальным (PAID/FAILED) или не кончатся попытки. Два режима: одиночная покупка
 // (?subId=) — как раньше; заказ «Корзины» (?orderId=) — несколько позиций одного платежа.
+/**
+ * View-страница «Subscription Return» — основной layout и data-fetching.
+ *
+ * @see AGENTS.md
+ */
 export default {
   name: 'SubscriptionReturnView',
   setup() {

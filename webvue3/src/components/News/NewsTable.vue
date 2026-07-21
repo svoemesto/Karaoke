@@ -122,6 +122,12 @@ const CATEGORY_OPTIONS = [
 
 const emptyForm = () => ({ title: '', body: '', category: 'general', link: '', publishAt: '' })
 
+/**
+ * Таблица со списком news с пагинацией, фильтрами и сортировкой.
+ *
+ * @see AGENTS.md
+ */
+
 export default {
   name: 'NewsTable',
   components: { BSpinner, BTable },

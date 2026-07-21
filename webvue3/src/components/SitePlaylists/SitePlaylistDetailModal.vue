@@ -53,6 +53,11 @@
 </template>
 
 <script>
+/**
+ * Модальное окно для detail.
+ *
+ * @see AGENTS.md
+ */
 export default {
   name: 'SitePlaylistDetailModal',
   computed: {

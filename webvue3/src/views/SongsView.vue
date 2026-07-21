@@ -8,6 +8,12 @@
 // @ is an alias to /src
 import SongsTable from '../components/Songs/SongsTable.vue'
 
+/**
+ * View-страница «Song» — основной layout и data-fetching.
+ *
+ * @see docs/features/mlt-generator.md
+ */
+
 export default {
   name: 'SongView',
   components: {

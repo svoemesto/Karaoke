@@ -4,6 +4,11 @@ import { promisedXMLHttpRequest } from '../../lib/utils'
 // работающим на боевом сервере (karaoke-web), в отличие от ~150 файловых KaraokeProperties, которые
 // живут только на локальной машине администратора (karaoke-app на сервере не разворачивается).
 // publicSettingsTarget ('local'|'remote') — тот же паттерн, что и siteUsersTarget.
+/**
+ * Компонент «Store».
+ *
+ * @see AGENTS.md
+ */
 export default {
   state: {
     publicSettingsDigest: [],

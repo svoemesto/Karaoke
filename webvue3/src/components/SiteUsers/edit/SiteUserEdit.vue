@@ -205,6 +205,12 @@ import UserEventsModal from '../../Stats/UserEventsModal.vue'
 import UserPlaylistsModal from '../UserPlaylistsModal.vue'
 import UserSubscriptionsModal from '../UserSubscriptionsModal.vue'
 
+/**
+ * Форма редактирования user.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
+
 export default {
   name: 'SiteUserEdit',
   components: { CustomConfirm, UserEventsModal, UserPlaylistsModal, UserSubscriptionsModal },

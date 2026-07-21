@@ -102,6 +102,11 @@
 </template>
 
 <script>
+/**
+ * Модальное окно для songs.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 export default {
   name: 'FamilySongsModal',
   props: {

@@ -2,6 +2,11 @@ import { promisedXMLHttpRequest } from '../../lib/utils'
 
 // Акции (монетизация, tbl_promo_rules). promoRulesTarget ('local'|'remote') — тот же паттерн, что
 // tariffsTarget/siteUsersTarget.
+/**
+ * Компонент «Store».
+ *
+ * @see AGENTS.md
+ */
 export default {
   state: {
     promoRulesList: [],

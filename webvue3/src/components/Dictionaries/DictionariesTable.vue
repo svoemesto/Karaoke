@@ -87,6 +87,12 @@ import { BPagination, BSpinner, BTable } from 'bootstrap-vue-next'
 import DictionariesFilter from './filter/DictionariesFilterModal.vue'
 import CustomConfirm from '../Common/CustomConfirm.vue'
 
+/**
+ * Таблица со списком dictionaries с пагинацией, фильтрами и сортировкой.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
+
 export default {
   name: 'DictionariesTable',
   components: {

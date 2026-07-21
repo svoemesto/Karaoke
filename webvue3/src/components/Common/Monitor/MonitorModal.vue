@@ -52,6 +52,11 @@
 </template>
 
 <script>
+/**
+ * Модальное окно для monitor.
+ *
+ * @see docs/features/monitoring.md
+ */
 export default {
   name: 'MonitorModal',
   data() {

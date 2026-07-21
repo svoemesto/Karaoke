@@ -6,6 +6,12 @@
 
 <script>
 import ProcessesTable from '../components/Processes/ProcessesTable.vue'
+
+/**
+ * View-страница «Processes» — основной layout и data-fetching.
+ *
+ * @see AGENTS.md
+ */
 export default {
   name: 'ProcessesView',
   components: {

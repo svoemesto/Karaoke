@@ -1,5 +1,11 @@
 import { promisedXMLHttpRequest, setWebvueProp } from '../../../lib/utils'
 
+/**
+ * Компонент «Store».
+ *
+ * @see AGENTS.md
+ */
+
 export default {
   state: {
     songsFilterId: '',

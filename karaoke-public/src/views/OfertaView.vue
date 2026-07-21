@@ -113,6 +113,11 @@
 </template>
 
 <script>
+/**
+ * View-страница «Oferta» — основной layout и data-fetching.
+ *
+ * @see AGENTS.md
+ */
 export default {
   name: 'OfertaView',
 }

@@ -3,6 +3,11 @@ import { promisedXMLHttpRequest } from '../../lib/utils'
 // Словари (tbl_dictionaries: пары dict_name/dict_value — "Слова с Ё", "Censored", "Sync Ids").
 // Только LOCAL (см. DictionariesController) — правки уходят на сервер штатной синхронизацией
 // (Sync, key=dictionaries), отдельного target=local|remote тут не требуется.
+/**
+ * Компонент «Store».
+ *
+ * @see AGENTS.md
+ */
 export default {
   state: {
     dictionariesDigest: [],

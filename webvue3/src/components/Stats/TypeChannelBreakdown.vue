@@ -33,6 +33,12 @@
 import { BSpinner } from 'bootstrap-vue-next'
 import { typeLabel, typeColor } from './eventLabels'
 
+/**
+ * Компонент «Type Channel Breakdown».
+ *
+ * @see AGENTS.md
+ */
+
 export default {
   name: 'TypeChannelBreakdown',
   components: { BSpinner },

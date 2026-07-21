@@ -34,6 +34,14 @@
 <script>
 import SitePlaylistDetailModal from '../SitePlaylists/SitePlaylistDetailModal.vue'
 
+/**
+ * Модальное окно для playlists.
+ *
+ * @emits close
+ *
+ * @see AGENTS.md
+ */
+
 export default {
   name: 'UserPlaylistsModal',
   components: { SitePlaylistDetailModal },

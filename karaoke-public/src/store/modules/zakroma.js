@@ -2,6 +2,12 @@ import { apiGet } from '../../services/api'
 
 let latestRequestId = 0
 
+/**
+ * Компонент «Zakroma».
+ *
+ * @see AGENTS.md
+ */
+
 export default {
   namespaced: true,
   state: {

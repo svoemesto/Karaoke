@@ -155,6 +155,11 @@
 </template>
 
 <script>
+/**
+ * Модальное окно для filter.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 export default {
   name: 'SiteUsersFilterModal',
   computed: {

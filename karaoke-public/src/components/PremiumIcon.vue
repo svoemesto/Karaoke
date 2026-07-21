@@ -36,6 +36,14 @@
 <script>
 import SvgIcon from './SvgIcon.vue'
 
+/**
+ * Компонент «Premium Icon».
+ *
+ * @emits subscribe
+ *
+ * @see AGENTS.md
+ */
+
 export default {
   name: 'PremiumIcon',
   components: { SvgIcon },

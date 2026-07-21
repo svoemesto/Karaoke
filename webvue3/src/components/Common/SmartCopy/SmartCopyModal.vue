@@ -173,6 +173,12 @@
 import CustomConfirm from '../../../components/Common/CustomConfirm.vue'
 import FileExplorerModal from '../../../components/Common/FileExplorer/FileExplorerModal.vue'
 
+/**
+ * Модальное окно для copy.
+ *
+ * @see AGENTS.md
+ */
+
 export default {
   name: 'SmartCopyModal',
   components: {

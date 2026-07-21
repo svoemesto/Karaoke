@@ -29,6 +29,11 @@
 </template>
 
 <script>
+/**
+ * Компонент «Health Report Table Row».
+ *
+ * @see AGENTS.md
+ */
 export default {
   name: 'HealthReportTableRow',
   props: {

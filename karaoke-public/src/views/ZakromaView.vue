@@ -257,6 +257,12 @@ function normalize(s) {
   return (s || '').toLowerCase().replace(/ё/g, 'е').trim()
 }
 
+/**
+ * View-страница «Zakroma» — основной layout и data-fetching.
+ *
+ * @see AGENTS.md
+ */
+
 export default {
   name: 'ZakromaView',
   components: {

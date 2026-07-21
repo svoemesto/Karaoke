@@ -168,6 +168,11 @@
 </template>
 
 <script>
+/**
+ * Модальное окно для filter.
+ *
+ * @see AGENTS.md
+ */
 export default {
   name: 'AuthorsFilterModal',
   computed: {

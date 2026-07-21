@@ -122,6 +122,12 @@ const STATUS_ORDER = {
   rejected: 4,
 }
 
+/**
+ * Таблица со списком editor с пагинацией, фильтрами и сортировкой.
+ *
+ * @see AGENTS.md
+ */
+
 export default {
   name: 'SongEditorTable',
   components: { AssignModal, ReviewModal, SongKaraokeEditorModal, BSpinner, BTable },

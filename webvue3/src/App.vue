@@ -120,6 +120,12 @@ const CHAT_UNREAD_POLL_INTERVAL_MS = 20000
 // SSE-канал MONITOR_ALERTS выше).
 const SONGEDITOR_SUBMITTED_POLL_INTERVAL_MS = 20000
 
+/**
+ * Корневой компонент приложения.
+ *
+ * @see AGENTS.md
+ */
+
 export default {
   data() {
     return {

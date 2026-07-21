@@ -78,6 +78,12 @@
 import CustomConfirm from '../../Common/CustomConfirm.vue'
 import SearchTextResultsTable from './SearchTextResultsTable.vue'
 
+/**
+ * Компонент «Search Text».
+ *
+ * @see docs/features/llm-lyrics-search.md
+ */
+
 export default {
   name: 'SearchText',
   components: {

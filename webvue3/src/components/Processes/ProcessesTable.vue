@@ -195,6 +195,11 @@ import CustomConfirm from '../Common/CustomConfirm.vue'
 // Vue.use(TablePlugin)
 // Vue.use(PaginationPlugin)
 // Vue.use(SpinnerPlugin)
+/**
+ * Таблица со списком processes с пагинацией, фильтрами и сортировкой.
+ *
+ * @see docs/features/async-process-queue.md
+ */
 
 export default {
   name: 'ProcessesTable',

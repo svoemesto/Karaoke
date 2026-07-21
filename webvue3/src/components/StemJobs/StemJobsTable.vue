@@ -87,6 +87,12 @@
 <script>
 import { BSpinner, BTable } from 'bootstrap-vue-next'
 
+/**
+ * Таблица со списком jobs с пагинацией, фильтрами и сортировкой.
+ *
+ * @see AGENTS.md
+ */
+
 export default {
   name: 'StemJobsTable',
   components: { BSpinner, BTable },

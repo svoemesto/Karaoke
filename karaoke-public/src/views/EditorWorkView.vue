@@ -322,6 +322,12 @@ const ALWAYS_ALLOWED_KEYS = new Set([
   'Period',
 ])
 
+/**
+ * View-страница «Editor Work» — основной layout и data-fetching.
+ *
+ * @see AGENTS.md
+ */
+
 export default {
   name: 'EditorWorkView',
   setup() {

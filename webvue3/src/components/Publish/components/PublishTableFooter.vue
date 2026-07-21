@@ -129,6 +129,12 @@
 <script>
 import { stringDDMMYYaddDays } from '../../../lib/utils'
 
+/**
+ * Компонент «Publish Table Footer».
+ *
+ * @see AGENTS.md
+ */
+
 export default {
   name: 'PublishTableFooter',
   computed: {

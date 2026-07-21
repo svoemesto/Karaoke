@@ -119,6 +119,15 @@ const STATUS_LABELS = {
   rejected: 'Отклонено',
 }
 
+/**
+ * Модальное окно для review.
+ *
+ * @emits close
+ * @emits reviewed
+ *
+ * @see AGENTS.md
+ */
+
 export default {
   name: 'ReviewModal',
   emits: ['close', 'reviewed', 'open-editor'],

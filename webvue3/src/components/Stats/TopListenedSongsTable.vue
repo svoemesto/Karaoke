@@ -82,6 +82,14 @@
 <script>
 import { BSpinner, BPagination } from 'bootstrap-vue-next'
 
+/**
+ * Таблица со списком songs с пагинацией, фильтрами и сортировкой.
+ *
+ * @emits page
+ *
+ * @see AGENTS.md
+ */
+
 export default {
   name: 'TopListenedSongsTable',
   components: { BSpinner, BPagination },

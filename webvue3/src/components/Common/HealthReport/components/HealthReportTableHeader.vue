@@ -12,6 +12,11 @@
 </template>
 
 <script>
+/**
+ * Компонент «Health Report Table Header».
+ *
+ * @see AGENTS.md
+ */
 export default {
   name: 'HealthReportTableHeader',
   props: {

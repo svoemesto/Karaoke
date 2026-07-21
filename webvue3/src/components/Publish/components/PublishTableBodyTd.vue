@@ -53,6 +53,12 @@
 
 <script>
 import SongEditModal from '../../../components/Songs/edit/SongEditModal.vue'
+
+/**
+ * Компонент «Publish Table Body Td».
+ *
+ * @see AGENTS.md
+ */
 export default {
   name: 'PublishTableBodyTd',
   components: {

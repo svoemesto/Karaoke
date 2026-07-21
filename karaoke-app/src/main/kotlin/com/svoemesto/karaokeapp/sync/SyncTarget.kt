@@ -24,7 +24,15 @@ import com.svoemesto.karaokeapp.services.SAC_APP
 import kotlin.reflect.KClass
 
 /**
- * Перечисление возможных значений для sync direction.
+ * Направление синхронизации одной записи/таблицы.
+ *
+ * - [LOCAL_TO_SERVER] — PUSH: с admin-машины на прод (создание новой песни,
+ *   правка метаданных, добавление ссылок).
+ * - [SERVER_TO_LOCAL] — PULL: с прода на admin (подтверждение публикации,
+ *   обновление `id_status`).
+ *
+ * Используется в [SyncTarget.oneClickDirection] и в
+ * `collectSyncOps` (см. `Utils.kt`).
  *
  * @see docs/features/dual-db-sync.md
  */

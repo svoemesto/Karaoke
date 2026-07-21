@@ -3,8 +3,26 @@ package com.svoemesto.karaokeapp.model
 import java.io.Serializable
 
 /**
- * Класс Mlt Node.
+ * Узел MLT-дерева (DSL для построения XML-файла MLT).
  *
+ * MLT-проект — это иерархия XML-элементов (`<mlt>`, `<tractor>`,
+ * `<producer>`, `<property>`, ...). [MltNode] — типизированное
+ * представление одного такого элемента:
+ * - [name] — имя тега (например, `"tractor"`, `"property"`).
+ * - [fields] — атрибуты тега (например, `id="tractor0"`).
+ * - [body] — содержимое: строка, число, [MltNode] или `List<MltNode>`
+ *   (вложенные элементы).
+ * - [type] — тип [ProducerType] (для `<producer>`-узлов).
+ * - [comment] — комментарий для отладки (попадает в выходной XML).
+ *
+ * Сборка в строку — `toString()` рекурсивно обходит [body] и
+ * формирует корректный XML с экранированием `&`/`<`/`>` в атрибутах.
+ *
+ * @property name имя XML-тега.
+ * @property fields атрибуты тега (порядок сохраняется — `LinkedHashMap`).
+ * @property body содержимое (String / Number / MltNode / List / null).
+ * @property type тип Producer'а (для Producer-узлов).
+ * @property comment комментарий (выходит как `<!-- ... -->`).
  * @see docs/features/mlt-generator.md
  */
 data class MltNode(
@@ -33,8 +51,15 @@ data class MltNode(
 }
 
 /**
- * Builder для mlt node .
+ * Builder для списка [MltNode] с типизированными хелперами для стандартных
+ * MLT-блоков (`startviewport`, `finishviewport`, `tractor`, `multitrack`,
+ * `playlist`, `producer`, ...).
  *
+ * Используется в `mko` пакет для сборки Producer'ов: каждый Producer
+ * возвращает [MltNodeBuilder], который затем объединяется в общий
+ * MLT-файл.
+ *
+ * @property nodes накопительный список узлов.
  * @see docs/features/mlt-generator.md
  */
 data class MltNodeBuilder(
@@ -424,8 +449,12 @@ data class MltNodeBuilder(
 }
 
 /**
- * Builder для properties mlt node .
+ * Builder для `properties`-словаря [MltNode] (id, name, length, in, out, ...).
  *
+ * Используется в `mko` пакет для добавления стандартных MLT-property
+ * в Producer-узел. Применяется как `properties { id("..."); name("...") }`.
+ *
+ * @property properties накопительная map атрибутов.
  * @see docs/features/mlt-generator.md
  */
 data class PropertiesMltNodeBuilder(

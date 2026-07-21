@@ -631,7 +631,7 @@ export default class KaraokePlayer {
     }
 
     if (this.voiceLines) {
-      this.voiceLines = this.voiceLines.map((voiceArr, vIdx) => {
+      this.voiceLines = this.voiceLines.map((voiceArr, _vIdx) => {
         const filtered = voiceArr.filter(inRange).map(processLine)
         for (let i = 0; i < filtered.length - 1; i++) {
           const curr = filtered[i]
@@ -660,7 +660,7 @@ export default class KaraokePlayer {
 
   // Add leading empty lines before the first text line in the given line array.
   // Mirrors the leading-empty logic from _buildScrollLines but operates on already-shifted lines.
-  _addLeadingEmptyLines(lines, isVoice) {
+  _addLeadingEmptyLines(lines, _isVoice) {
     const textLines = lines.filter((l) => !l.isEmpty && !l.isComment)
     if (!textLines.length) return
 
@@ -2057,7 +2057,7 @@ export default class KaraokePlayer {
     return canvas
   }
 
-  _renderBackground(ctx, W, H, dt) {
+  _renderBackground(ctx, W, H, _dt) {
     if (!this._bgCanvas) return
     // 4096×4096 texture, 1920×1080 viewport (1:1 pixels at HD, scaled to canvas).
     // Pan: triangle-wave oscillation via wall clock — always moving, regardless of audio state.

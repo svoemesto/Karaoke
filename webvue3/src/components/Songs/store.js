@@ -2628,7 +2628,7 @@ export default {
       console.log('getToSyncFromRest result', result)
       return result
     },
-    async getFreeTimeSlots(ctx) {
+    async getFreeTimeSlots(_ctx) {
       const freeTimeSlots = await promisedXMLHttpRequest({
         method: 'POST',
         url: '/api/getfreetimeslots',

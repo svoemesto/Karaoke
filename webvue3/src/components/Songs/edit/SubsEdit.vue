@@ -2428,7 +2428,7 @@ export default {
       const regionMarkerStart = region.start
       const regionMarkerEnd = region.end
       const deltaStart = regionMarkerStart - this.regionMarkerStart
-      const deltaEnd = regionMarkerEnd - this.regionMarkerEnd
+      const _deltaEnd = regionMarkerEnd - this.regionMarkerEnd
       // Изменения в маркере-регионе
       console.log('region-updated region', region)
       if (this.isRegionMode && this.isMoveMode && region.id === this.regionMarker.region.id) {

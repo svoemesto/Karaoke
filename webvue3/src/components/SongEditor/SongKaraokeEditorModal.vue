@@ -153,7 +153,7 @@ export default {
       this.loading = true
       this.loadError = ''
       try {
-        const data = new URLSearchParams({
+        const _data = new URLSearchParams({
           id: this.id,
           mode: this.mode,
           target: this.target,

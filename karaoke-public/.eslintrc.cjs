@@ -29,6 +29,11 @@ module.exports = {
       argsIgnorePattern: '^_',
       varsIgnorePattern: '^_',
     }],
+    // vue/no-v-html — ОТКЛЮЧЁН (4 в baseline). Правило рекомендует
+    // избегать v-html из-за XSS, но в проекте v-html используется только
+    // для уже подготовленного сервером текста (lyrics с <br>).
+    // См. CONTRIBUTING.md, раздел "Vue: v-html usage".
+    'vue/no-v-html': 'off',
   },
   env: {
     browser: true,

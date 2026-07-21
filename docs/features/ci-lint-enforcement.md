@@ -26,7 +26,9 @@
    с KDoc-блоком. Strict-mode (`--strict`) валит при < 50%.
 6. **`jsdoc-coverage`** — `tools/check-jsdoc-coverage.sh` (informational,
    `continue-on-error: true`); FR-006 — процент Vue/TS-компонентов
-   с JSDoc-блоком. Strict-mode (`--strict`) валит при < 50%.
+   с JSDoc-блоком. Включая `<script setup>` (Composition API):
+   ищет JSDoc в первых 15 строках после `<script setup>`.
+   Strict-mode (`--strict`) валит при < 50%.
 
 ## Зачем
 

@@ -140,16 +140,16 @@ export default defineComponent({
 Эти классы упоминаются в per-feature документах, но ещё не имеют полного
 KDoc. Список для следующих итераций.
 
-> **Состояние на 2026-07-21 (PR #19, 008-jsdoc-quality)**:
+> **Состояние на 2026-07-21 (PR #23, 010-script-setup-jsdoc)**:
 > KDoc coverage = **100%** (356/356) на top-level классах в `karaoke-app` и
-> `karaoke-web`. JSDoc coverage = **100%** (163/163) на Vue/TS компонентах
-> в `webvue3` и `karaoke-public`. Авто-генерация через `tools/auto-kdoc.py`
-> (Kotlin) и `tools/auto-jsdoc.py` (Vue/TS) + ручной pass для критичных.
+> `karaoke-web`. JSDoc coverage = **100%** (165/165) на Vue/TS компонентах
+> в `webvue3` и `karaoke-public` (включая `<script setup>` файлы).
+> Авто-генерация через `tools/auto-kdoc.py` (Kotlin) и `tools/auto-jsdoc.py`
+> (Vue/TS) + ручной pass для критичных.
 >
-> Pass 4: улучшение качества JSDoc (замена авто-генерации на ручной для
-> топ-11 Vue-компонентов: App, HomeView, SongsView, SongsTable, SongEdit,
-> ProcessWorker, CustomConfirm, SearchText, SubsEdit, SyncTable, SongView,
-> HomeView — см. PR #19).
+> Pass 6: JSDoc для `<script setup>` файлов (App.vue, 2×PlayerView.vue) —
+> см. PR #23. `check-jsdoc-coverage.sh` обновлён: распознаёт `<script setup>`
+> и ищет JSDoc в первых 15 строках после открывающего тега.
 
 ### karaoke-app (P1)
 

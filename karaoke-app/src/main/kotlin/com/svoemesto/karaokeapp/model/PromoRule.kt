@@ -1,6 +1,5 @@
 package com.svoemesto.karaokeapp.model
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.svoemesto.karaokeapp.KaraokeConnection
 import com.svoemesto.karaokeapp.WORKING_DATABASE
 import com.svoemesto.karaokeapp.services.KSS_APP
@@ -15,11 +14,19 @@ import java.sql.Timestamp
 // по приоритету (больше priority — раньше проверяется/побеждает при конфликте — решает PriceService).
 
 /**
- * Класс Promo Rule.
+ * Промо-правило для скидок на подписку.
  *
- * @see docs/features/dual-db-sync.md
+ * Содержит:
+ * - `id`, `code` — промокод (например, «LAUNCH2024»).
+ * - `discountPercent` — процент скидки (0..100).
+ * - `validFrom`, `validTo` — период действия.
+ * - `maxUsages`, `currentUsages` — лимит использований.
+ * - `isActive` — активно ли правило.
+ *
+ * Применяется в `CartItem` → пересчёт цены через `applyPromoRule()`.
+ *
+ * @see docs/features/telegram-auto-publish.md
  */
-@JsonIgnoreProperties(value = ["database", "sqlToInsert"])
 class PromoRule(
     override val database: KaraokeConnection = WORKING_DATABASE,
     override val storageService: KaraokeStorageService = KSS_APP,

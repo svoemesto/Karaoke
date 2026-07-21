@@ -8,7 +8,7 @@ import java.io.Serializable
 // не БД-поле, заполняется контроллером для списка плейлистов.
 
 /**
- * DTO для site playlist: сериализуемое представление для API/UI.
+ * DTO плейлиста для API/UI.
  *
  * @see docs/features/dual-db-sync.md
  */

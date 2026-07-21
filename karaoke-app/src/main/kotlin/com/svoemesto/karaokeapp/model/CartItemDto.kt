@@ -4,9 +4,12 @@ import com.svoemesto.karaokeapp.KaraokeConnection
 import java.io.Serializable
 
 /**
- * DTO для cart item: сериализуемое представление для API/UI.
+ * DTO позиции в корзине для API/UI (без ссылок на `Settings`/`PriceTariff`).
  *
- * @see docs/features/dual-db-sync.md
+ * Содержит только сериализуемые поля (id, idSiteUser, idSettings,
+ * idPriceTariff, idPromoRule, created).
+ *
+ * @see docs/features/telegram-auto-publish.md
  */
 data class CartItemDto(
     val id: Long = 0,

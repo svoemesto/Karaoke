@@ -1,6 +1,5 @@
 package com.svoemesto.karaokeapp.model
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.svoemesto.karaokeapp.KaraokeConnection
 import com.svoemesto.karaokeapp.WORKING_DATABASE
 import com.svoemesto.karaokeapp.services.KSS_APP
@@ -15,11 +14,21 @@ import java.sql.Timestamp
 // как tbl_subscriptions.
 
 /**
- * Класс Cart Item.
+ * Позиция в корзине пользователя (одна запись в `tbl_cart_items`).
  *
+ * Содержит:
+ * - `id`, `idSiteUser` — пользователь.
+ * - `idSettings` — песня, которую хотят купить.
+ * - `idPriceTariff` — выбранный тариф.
+ * - `idPromoRule` (опционально) — применённое промо.
+ * - `created` — дата добавления.
+ *
+ * При оформлении заказа → `Subscription` создаётся из `CartItem` +
+ * `PriceTariff`.
+ *
+ * @see docs/features/telegram-auto-publish.md
  * @see docs/features/dual-db-sync.md
  */
-@JsonIgnoreProperties(value = ["database", "sqlToInsert"])
 class CartItem(
     override val database: KaraokeConnection = WORKING_DATABASE,
     override val storageService: KaraokeStorageService = KSS_APP,

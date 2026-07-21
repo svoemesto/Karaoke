@@ -8,9 +8,9 @@ import java.sql.Timestamp
 // фронту (webvue3 Processes / будущая admin-панель), чтобы не дублировать список режимов.
 
 /**
- * DTO для stem job: сериализуемое представление для API/UI.
+ * DTO задания на стем-разделение для API/UI.
  *
- * @see docs/features/dual-db-sync.md
+ * @see docs/features/premium-stems.md
  */
 data class StemJobDto(
     val id: Long = 0,

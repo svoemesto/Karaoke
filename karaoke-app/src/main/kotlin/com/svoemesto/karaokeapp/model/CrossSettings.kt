@@ -57,7 +57,14 @@ data class CrossSettingsCell(
 // }
 
 /**
- * Класс Cross Settings.
+ * Кросс-настройки (между `Settings` и связанными сущностями).
+ *
+ * Содержит методы для поиска «перекрёстных» данных:
+ * - По `idSettings` найти `Author`, `Album` (через `SongAssignment`/`Picture`).
+ * - По `idAuthor` найти все его песни.
+ * - По `idSiteUser` найти все его `Subscription`/`CartItem`.
+ *
+ * Используется для UI-фильтров и отчётов.
  *
  * @see docs/features/dual-db-sync.md
  */

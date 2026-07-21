@@ -5108,6 +5108,40 @@ class ApiController(
         )
     }
 
+    // Разовый backfill персистентных флагов готовности плеера (deploy/karaoke-db/26_player_readiness_flags.sql)
+    // для уже существующих песен — новые колонки создаются с DEFAULT false. author не передаётся
+    // (или пустой) → обработка всех авторов (по образцу autoAssignOriginalAll ниже). Тяжёлая операция
+    // (полный HealthReport-скан на каждую песню) — уходит в фоновый поток, итог приходит тостом по SSE.
+    @PostMapping("/utils/recalcplayerreadiness")
+    @ResponseBody
+    fun doRecalcPlayerReadiness(
+        @RequestParam(required = false) author: String? = null,
+    ): Boolean {
+        val authorFilter = author?.trim()?.takeIf { it.isNotEmpty() }
+        thread {
+            val scope = if (authorFilter != null) "автор «$authorFilter»" else "все авторы"
+            println("Пересчёт готовности плеера ($scope): начало")
+            val result =
+                HealthReport.recalculatePlayerReadiness(
+                    authorFilter,
+                    database = WORKING_DATABASE,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                )
+            println("Пересчёт готовности плеера ($scope): завершено, проверено песен: $result")
+            SNS.send(
+                SseNotification.message(
+                    Message(
+                        type = "info",
+                        head = "Пересчёт готовности плеера ($scope)",
+                        body = "Проверено песен: $result",
+                    ),
+                ),
+            )
+        }
+        return true
+    }
+
     // Удалить дубликаты
     @PostMapping("/utils/deldublicates")
     @ResponseBody
@@ -5916,6 +5950,22 @@ class ApiController(
         val storageKey = "${settings.storageFileName}${fileType.suffix}.${fileType.extention}"
         if (!storageService.fileExists(bucket, storageKey)) {
             storageService.uploadFile(bucket, storageKey, mp3File.absolutePath)
+        }
+        // Персистентный флаг готовности плеера (см. deploy/karaoke-db/26_player_readiness_flags.sql) —
+        // проставляем только для файлов, входящих в гейт готовности (accompaniment/vocal); bass/drums
+        // не влияют на готовность и не отслеживаются этим флагом.
+        when (fileType) {
+            KaraokeFileType.MP3_ACCOMPANIMENT ->
+                if (!settings.stemAccompanimentReady) {
+                    settings.stemAccompanimentReady = true
+                    settings.saveToDb()
+                }
+            KaraokeFileType.MP3_VOCAL ->
+                if (!settings.stemVocalReady) {
+                    settings.stemVocalReady = true
+                    settings.saveToDb()
+                }
+            else -> {}
         }
     }
 

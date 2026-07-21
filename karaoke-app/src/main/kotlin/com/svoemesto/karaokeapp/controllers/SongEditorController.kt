@@ -106,6 +106,21 @@ class SongEditorController(
         if (!storageService.fileExists(bucket, storageKey)) {
             storageService.uploadFile(bucket, storageKey, mp3File.absolutePath)
         }
+        // Персистентный флаг готовности плеера (см. deploy/karaoke-db/26_player_readiness_flags.sql) —
+        // см. аналогичный хук в ApiController.pushMp3ToStorage.
+        when (fileType) {
+            KaraokeFileType.MP3_ACCOMPANIMENT ->
+                if (!settings.stemAccompanimentReady) {
+                    settings.stemAccompanimentReady = true
+                    settings.saveToDb()
+                }
+            KaraokeFileType.MP3_VOCAL ->
+                if (!settings.stemVocalReady) {
+                    settings.stemVocalReady = true
+                    settings.saveToDb()
+                }
+            else -> {}
+        }
     }
 
     private fun ensureStemsInStorage(settings: Settings) {

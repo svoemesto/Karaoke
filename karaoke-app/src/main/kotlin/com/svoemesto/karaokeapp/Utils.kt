@@ -3963,7 +3963,8 @@ fun findAndFillDublicates(
     /*
     На вход подаётся список песен. Предполагается, что это песни одного автора. На всякий случай будет это учитывать при фильтрации
     Дла каждой песни со статусом 0 нужно получить её имя без скобок "Имя песни (1992)" - "Имя песни"
-    Найти это имя среди песен со статусом 6 и скопировать root_id, поля текста, установить статус в 1
+    Найти это имя среди готовых песен (idStatus >= 3 — готова к онлайн-плееру, старый рендер mp4
+    больше не обязателен) и скопировать root_id, поля текста, установить статус в 1
      */
     var result = 0
     val listSettings =
@@ -3976,7 +3977,7 @@ fun findAndFillDublicates(
         )
     listSettings.filter { it.idStatus == 0L }.forEach { newSettings ->
         val nameToFind = newSettings.songName.replace(Regex("""\([^)]*\)"""), "").trim()
-        listSettings.firstOrNull { it.idStatus == 6L && it.songName.replace(Regex("""\([^)]*\)"""), "").trim() == nameToFind }?.let { findedSettings ->
+        listSettings.firstOrNull { it.idStatus >= 3L && it.songName.replace(Regex("""\([^)]*\)"""), "").trim() == nameToFind }?.let { findedSettings ->
             newSettings.rootId = findedSettings.id
             newSettings.sourceText = findedSettings.sourceText
             newSettings.resultText = findedSettings.resultText

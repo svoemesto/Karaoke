@@ -1502,24 +1502,27 @@
                 :class="statusButtonClass(3)"
                 type="button"
                 value="3"
+                title="Проект создан — доступно в онлайн-плеере"
                 @click="setStatus(3)"
               >
                 Prj🛠
               </button>
               <button
-                class="group-button"
+                class="group-button group-button-legacy"
                 :class="statusButtonClass(4)"
                 type="button"
                 value="4"
+                title="Легаси: этап старого MLT-рендера, не влияет на онлайн-плеер"
                 @click="setStatus(4)"
               >
                 Prj✅
               </button>
               <button
-                class="group-button"
+                class="group-button group-button-legacy"
                 :class="statusButtonClass(6)"
                 type="button"
                 value="6"
+                title="Легаси: этап старого MLT-рендера, не влияет на онлайн-плеер"
                 @click="setStatus(6)"
               >
                 ✅
@@ -4586,6 +4589,12 @@ export default {
 }
 .group-button-active {
   background-color: dodgerblue;
+}
+/* Легаси-этапы старого MLT-рендера (статусы 4/6) — больше не влияют на готовность к онлайн-плееру
+   (та наступает уже на статусе 3), визуально приглушаем, но оставляем кликабельными. */
+.group-button-legacy {
+  opacity: 0.5;
+  filter: grayscale(60%);
 }
 
 .label-and-input {

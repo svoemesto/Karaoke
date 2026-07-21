@@ -2758,6 +2758,49 @@ data class HealthReport(
         // (startRepairAll) и из потоков воркера (onRepairProcessFinished) — нужен потокобезопасный набор.
         val autoRepairSongIds: MutableSet<Long> = ConcurrentHashMap.newKeySet()
 
+        // Сверка персистентных флагов готовности плеера (см. deploy/karaoke-db/26_player_readiness_flags.sql)
+        // с фактическим состоянием файлов в LOCAL_STORAGE (тот же бакет "karaoke", который в итоге видит
+        // публичный плеер — не REMOTE_STORAGE, это отдельный сервер для другого назначения). Ловит
+        // рассинхрон (например, ручное удаление файла в MinIO мимо приложения). Точки записи флага "в
+        // момент успешной заливки" — ApiController/SongEditorController.pushMp3ToStorage и
+        // Settings.pictureAlbum/pictureAuthor геттеры; это — вторая, подстраховочная линия.
+        private fun reconcilePlayerReadinessFlags(
+            settings: Settings,
+            reports: List<HealthReport>,
+        ) {
+            fun isOkInLocalStorage(karaokeFileType: KaraokeFileType): Boolean =
+                reports.any {
+                    it.description == "${karaokeFileType.name}/${LOCAL_STORAGE.name}" && it.healthReportStatus == OK
+                }
+
+            var changed = false
+            isOkInLocalStorage(KaraokeFileType.MP3_ACCOMPANIMENT).let {
+                if (settings.stemAccompanimentReady != it) {
+                    settings.stemAccompanimentReady = it
+                    changed = true
+                }
+            }
+            isOkInLocalStorage(KaraokeFileType.MP3_VOCAL).let {
+                if (settings.stemVocalReady != it) {
+                    settings.stemVocalReady = it
+                    changed = true
+                }
+            }
+            isOkInLocalStorage(KaraokeFileType.PICTURE_ALBUM).let {
+                if (settings.pictureAlbumReady != it) {
+                    settings.pictureAlbumReady = it
+                    changed = true
+                }
+            }
+            isOkInLocalStorage(KaraokeFileType.PICTURE_AUTHOR).let {
+                if (settings.pictureAuthorReady != it) {
+                    settings.pictureAuthorReady = it
+                    changed = true
+                }
+            }
+            if (changed) settings.saveToDb()
+        }
+
         // Единая точка «пересчитать HealthReport песни и разослать SSE healthReports» — та же логика,
         // что в эндпоинте /song/healthReportList. Возвращает ПОЛНЫЙ список отчётов (с canResolve) —
         // нужен каскаду для выбора следующего решаемого шага.
@@ -2775,9 +2818,37 @@ data class HealthReport(
                     storageApiClient = storageApiClient,
                 ) ?: return emptyList()
             val reports = settings.healthReportList()
+            reconcilePlayerReadinessFlags(settings, reports)
             val dtoErrors = reports.errorsOnly().map { it.toDTO() }
             SNS.send(SseNotification.healthReports(settingsId = settingsId, healthReportDtoList = dtoErrors))
             return reports
+        }
+
+        // Разовый backfill персистентных флагов готовности плеера (см. deploy/karaoke-db/26_player_readiness_flags.sql)
+        // для уже существующих песен — новые колонки создаются с DEFAULT false, поэтому без этого
+        // прогона ранее готовые песни временно "исчезнут" из плеера, пока их кто-то не откроет в
+        // редакторе/health-репорте. Переиспользует recomputeAndBroadcast (== reconcilePlayerReadinessFlags),
+        // не дублирует логику проверки. author = null/пусто → обработать ВСЕ песни всех авторов (по
+        // образцу ApiController.autoAssignOriginalAll) — вызывающая сторона должна гнать это в фоновом
+        // потоке (полный скан одной песни небыстрый — много I/O-проверок на файл, а по всему каталогу
+        // это может быть тысячи песен).
+        fun recalculatePlayerReadiness(
+            author: String?,
+            database: KaraokeConnection,
+            storageService: KaraokeStorageService,
+            storageApiClient: StorageApiClient,
+        ): Int {
+            val authorFilter = author?.trim()?.takeIf { it.isNotEmpty() }
+            val listSettings =
+                Settings.loadListFromDb(
+                    args = if (authorFilter != null) mapOf("author" to authorFilter) else emptyMap(),
+                    database = database,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                    withoutMarkersAndText = true,
+                )
+            listSettings.forEach { recomputeAndBroadcast(it.id, database, storageService, storageApiClient) }
+            return listSettings.size
         }
 
         // Выполнить все прямо сейчас решаемые (canResolve && ERROR) действия отчётов. Каждое действие

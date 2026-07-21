@@ -115,4 +115,12 @@ enum class SettingField : Serializable {
     // JSON-история уже выполненных сравнений (id кандидата, %, дельта, ok, время) — чтобы не
     // сравнивать повторно одни и те же пары при последующих запусках поиска.
     AUDIO_COMPARE_HISTORY,
+
+    // Персистентная готовность файлов песни к онлайн-плееру — проставляется точечно в момент
+    // успешной заливки в хранилище (ApiController.pushMp3ToStorage, Settings.pictureAlbum/pictureAuthor)
+    // и сверяется HealthReport'ом, чтобы список песен не бил по MinIO на каждый показ.
+    STEM_ACCOMPANIMENT_READY,
+    STEM_VOCAL_READY,
+    PICTURE_ALBUM_READY,
+    PICTURE_AUTHOR_READY,
 }

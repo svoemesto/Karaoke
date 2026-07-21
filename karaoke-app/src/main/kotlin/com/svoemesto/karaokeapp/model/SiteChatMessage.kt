@@ -1,6 +1,5 @@
 package com.svoemesto.karaokeapp.model
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.svoemesto.karaokeapp.KaraokeConnection
 import com.svoemesto.karaokeapp.WORKING_DATABASE
 import com.svoemesto.karaokeapp.services.KSS_APP
@@ -18,11 +17,19 @@ import java.sql.Timestamp
 // karaoke-app с target=remote (Connection.remote()) напрямую в ту же БД (19_site_chat_messages.sql).
 
 /**
- * Класс Site Chat Message.
+ * Сообщение в чате «с автором» (admin ↔ site-user).
  *
- * @see docs/features/dual-db-sync.md
+ * Содержит:
+ * - `id`, `idSiteUser` — пользователь.
+ * - `direction` — IN (от user) / OUT (от admin).
+ * - `text` — текст.
+ * - `created`, `isRead` — таймстамп + статус прочтения.
+ *
+ * Рассылается по SSE `MESSAGE` для live-обновления в `webvue3` (чат-виджет).
+ * Непрочитанные счётчики — в Vuex-модуле `chat` (см. `App.vue`).
+ *
+ * @see docs/features/sse-notifications.md
  */
-@JsonIgnoreProperties(value = ["database", "sqlToInsert"])
 class SiteChatMessage(
     override val database: KaraokeConnection = WORKING_DATABASE,
     override val storageService: KaraokeStorageService = KSS_APP,

@@ -1,6 +1,5 @@
 package com.svoemesto.karaokeapp.model
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.svoemesto.karaokeapp.KaraokeConnection
 import com.svoemesto.karaokeapp.WORKING_DATABASE
 import com.svoemesto.karaokeapp.services.KSS_APP
@@ -54,11 +53,21 @@ object StemJobMode {
 // детерминированно из mode (см. StemJobMode.stemNames).
 
 /**
- * Класс Stem Job.
+ * Задание на стем-разделение (Demucs, Spleeter, UVR).
  *
- * @see docs/features/dual-db-sync.md
+ * Хранит:
+ * - `id`, `idSettings` — песня.
+ * - `model` — модель Demucs (`htdemucs`, `mdx_q`, `htdemucs_ft`, и т.п.).
+ * - `status` — текущее состояние (WAITING/WORKING/DONE/ERROR).
+ * - `result` — JSON с путями к выходным стемам.
+ * - `created`, `finished` — таймстампы.
+ *
+ * Запускается через `StemJobController` (admin) или
+ * `PublicStemJobController` (karaoke-public) — запись создаётся в
+ * `tbl_stem_jobs`, далее `KaraokeProcess*` подхватывает.
+ *
+ * @see docs/features/premium-stems.md
  */
-@JsonIgnoreProperties(value = ["database", "sqlToInsert"])
 class StemJob(
     override val database: KaraokeConnection = WORKING_DATABASE,
     override val storageService: KaraokeStorageService = KSS_APP,

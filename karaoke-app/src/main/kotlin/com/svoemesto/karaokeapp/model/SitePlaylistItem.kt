@@ -1,6 +1,5 @@
 package com.svoemesto.karaokeapp.model
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.svoemesto.karaokeapp.KaraokeConnection
 import com.svoemesto.karaokeapp.WORKING_DATABASE
 import com.svoemesto.karaokeapp.services.KSS_APP
@@ -16,11 +15,16 @@ import java.sql.Timestamp
 // проигрывании (остаётся в списке).
 
 /**
- * Класс Site Playlist Item.
+ * Песня в `SitePlaylist` (с порядковым номером).
+ *
+ * Содержит:
+ * - `id`, `idPlaylist` — плейлист.
+ * - `idSettings` — песня.
+ * - `order` — позиция в плейлисте (0-based).
+ * - `added` — дата добавления.
  *
  * @see docs/features/dual-db-sync.md
  */
-@JsonIgnoreProperties(value = ["database", "sqlToInsert"])
 class SitePlaylistItem(
     override val database: KaraokeConnection = WORKING_DATABASE,
     override val storageService: KaraokeStorageService = KSS_APP,

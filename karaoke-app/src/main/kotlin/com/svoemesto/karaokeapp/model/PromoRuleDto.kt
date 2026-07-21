@@ -4,9 +4,9 @@ import com.svoemesto.karaokeapp.KaraokeConnection
 import java.io.Serializable
 
 /**
- * DTO для promo rule: сериализуемое представление для API/UI.
+ * DTO промо-правила для API/UI.
  *
- * @see docs/features/dual-db-sync.md
+ * @see docs/features/telegram-auto-publish.md
  */
 data class PromoRuleDto(
     val id: Long = 0,

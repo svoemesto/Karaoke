@@ -1,6 +1,5 @@
 package com.svoemesto.karaokeapp.model
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.svoemesto.karaokeapp.KaraokeConnection
 import com.svoemesto.karaokeapp.WORKING_DATABASE
 import com.svoemesto.karaokeapp.services.KSS_APP
@@ -16,11 +15,18 @@ import java.sql.Timestamp
 // @KaraokeDbTableField, БД несёт recordhash-триггер (09_playlists.sql).
 
 /**
- * Класс Site Playlist.
+ * Плейлист пользователя сайта (например, «Любимые», «В дорогу»).
+ *
+ * Содержит:
+ * - `id`, `idSiteUser` — владелец.
+ * - `name`, `description` — метаданные.
+ * - `created` — дата создания.
+ * - `isPublic` — виден ли другим пользователям.
+ *
+ * Содержит `SitePlaylistItem` (порядок, песни).
  *
  * @see docs/features/dual-db-sync.md
  */
-@JsonIgnoreProperties(value = ["database", "sqlToInsert"])
 class SitePlaylist(
     override val database: KaraokeConnection = WORKING_DATABASE,
     override val storageService: KaraokeStorageService = KSS_APP,

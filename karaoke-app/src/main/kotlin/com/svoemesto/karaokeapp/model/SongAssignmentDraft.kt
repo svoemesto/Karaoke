@@ -1,6 +1,5 @@
 package com.svoemesto.karaokeapp.model
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.svoemesto.karaokeapp.KaraokeConnection
 import com.svoemesto.karaokeapp.WORKING_DATABASE
 import com.svoemesto.karaokeapp.services.KSS_APP
@@ -27,11 +26,16 @@ import java.sql.Timestamp
 // перехода на multi-voice, читаются как один голос (voice 0), не ломаются.
 
 /**
- * Класс Song Assignment Draft.
+ * Черновик (промежуточное состояние) для `SongAssignment`.
  *
- * @see docs/features/dual-db-sync.md
+ * Хранит незакоммиченные изменения правок до того, как пользователь нажмёт
+ * «Отправить на ревью». Используется для восстановления при сбое и
+ * для версионирования правок.
+ *
+ * Поля аналогичны `SongAssignment` плюс `payload` (JSON с diff'ом).
+ *
+ * @see docs/features/async-process-queue.md
  */
-@JsonIgnoreProperties(value = ["database", "sqlToInsert"])
 class SongAssignmentDraft(
     override val database: KaraokeConnection = WORKING_DATABASE,
     override val storageService: KaraokeStorageService = KSS_APP,

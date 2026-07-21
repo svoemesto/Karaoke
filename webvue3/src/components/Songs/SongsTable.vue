@@ -724,8 +724,26 @@ const ASSIGN_STATUS_LABELS = {
  * @see Songs/store.js Vuex-модуль с actions/mutations
  */
 /**
- * Таблица со списком songs с пагинацией, фильтрами и сортировкой.
+ * Главная таблица Karaoke: список песен (Settings) с пагинацией, сортировкой,
+ * bulk-операциями.
  *
+ * Столбцы: id, автор, альбом, имя файла, тип (song/instrumental/poetry),
+ * статус публикации (цвет через `SettingState`), ссылки (TG/VK/Dzen/Boosty).
+ *
+ * **Bulk-операции** (выбранные чекбоксами):
+ * - **Sync** (LOCAL→SERVER / SERVER→LOCAL) — `KaraokeProcess*` (см. `dual-db-sync.md`).
+ * - **Push** — POST `/api/sync/pushOne` или `/pushSelected`.
+ * - **Delete** — каскадное удаление со всеми связанными таблицами.
+ *
+ * **Пагинация** сохраняется в Vuex (`songsTableCurrentPage`) — при уходе
+ * на другую страницу и возврате позиция не теряется (см. AGENTS.md,
+ * паттерн «вернуться на ту же страницу»).
+ *
+ * **Сортировка** — клик на заголовке столбца; направление циклически.
+ * Сортируется на бэкенде через `Settings.getList` ORDER BY.
+ *
+ * @emits row-click - клик по строке (открывает `SongEdit`)
+ * @emits selection-change - изменился набор выбранных ID
  * @see docs/features/dual-db-sync.md
  */
 export default {

@@ -74,8 +74,18 @@
 
 <script>
 /**
- * Компонент «Custom Confirm».
+ * Универсальная модалка подтверждения (да/нет) с настраиваемым контентом.
  *
+ * Принимает объект `params` с полями:
+ * - `title` — заголовок модалки.
+ * - `message` — основной текст.
+ * - `confirmText` / `cancelText` — кнопки (по умолчанию «ОК»/«Отмена»).
+ * - `onConfirm` / `onCancel` — колбэки (или `Promise`).
+ *
+ * Использует `v-html` для message (поэтому message должен быть
+ * подготовленным, не пользовательским вводом).
+ *
+ * @emits close - закрытие модалки (с `confirmed: true/false`)
  * @see AGENTS.md
  */
 export default {

@@ -15,9 +15,21 @@ import java.sql.Timestamp
 // Пользователь публичного сайта (karaoke-public).
 
 /**
- * Класс Site User.
+ * Зарегистрированный пользователь сайта (karaoke-public).
+ *
+ * Хранит:
+ * - `id`, `idVk`, `idTelegram` — внешние ID (для OAuth).
+ * - `email`, `firstName`, `lastName` — профиль.
+ * - `idTariff` — ID подписки (см. `Subscription.kt`).
+ * - `isAdmin`, `isSiteUserEditor` — роли.
+ * - `passwordHash` — bcrypt-хеш пароля (НЕ передаётся в API, см.
+ *   `SiteUserDto` без password).
+ *
+ * Триггер `update_tbl_site_users_recordhash` поддерживает recordhash
+ * для dual-db-sync. Синхронизируется через `SyncTarget<SiteUser>`.
  *
  * @see docs/features/dual-db-sync.md
+ * @see docs/features/telegram-auto-publish.md (рассылки по `SiteUser`)
  */
 @JsonIgnoreProperties(value = ["database", "sqlToInsert"])
 class SiteUser(

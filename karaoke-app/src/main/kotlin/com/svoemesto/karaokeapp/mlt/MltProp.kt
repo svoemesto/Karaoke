@@ -4,9 +4,25 @@ import com.svoemesto.karaokeapp.KaraokeVoice
 import com.svoemesto.karaokeapp.model.*
 
 /**
- * Класс Mlt Prop.
+ * Параметры рендера одного MLT-проекта (≈150 настраиваемых параметров).
+ *
+ * `props: MutableMap<Any, Any>` хранит пары `(KEY, value)`, где `KEY` —
+ * константа из `MltProp.KEYS` (enum). Примеры:
+ * - `FRAME_WIDTH_PX = 1920`, `FRAME_HEIGHT_PX = 1080`.
+ * - `FONT_MAIN_NAME`, `FONT_CHORD_NAME` — имена шрифтов.
+ * - `SONG_VERSION` — `SongVersion` (набор Producer'ов).
+ * - `SETTINGS` — `Settings` (для обратной ссылки).
+ * - Цвета (`COLOR_TEXT_NORMAL`, `COLOR_BACKGROUND`).
+ * - Тайминги (`START_LINE_OFFSET_MS`, `END_LINE_OFFSET_MS`).
+ * - Горизонт (`HORIZONTAL_GAP`).
+ * - Watermark (`WATERMARK_TEXT`).
+ * - `ROOT` — корневая папка.
+ *
+ * Используется всеми `MltGenerator` (см. пакет `mko`). Создаётся из
+ * `Settings` + `SongVersion` в `MltProp.getMltProp(...)`.
  *
  * @see docs/features/mlt-generator.md
+ * @see `KaraokeProperties.kt` — дефолтные значения параметров.
  */
 data class MltProp(
     val props: MutableMap<Any, Any> = mutableMapOf(),

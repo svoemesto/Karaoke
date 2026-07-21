@@ -14,9 +14,19 @@ import java.sql.Timestamp
 import java.time.Instant
 
 /**
- * Класс Author.
+ * Сущность «Автор» (исполнитель) — отдельная таблица `tbl_authors` для
+ * переиспользования (один автор — много песен).
+ *
+ * Содержит:
+ * - `id`, `author` — имя.
+ * - `ymId`, `vkId` — ID на Яндекс.Музыке и VK (для парсинга).
+ * - `pathToFolder` — папка с исходниками (audio/text/chords).
+ * - `firstAlbumId` — ID первого альбома (для UI группировки).
+ *
+ * Синхронизируется LOCAL↔SERVER через `SyncTarget<Author>`.
  *
  * @see docs/features/dual-db-sync.md
+ * @see docs/features/llm-lyrics-search.md (использование `ymId` для парсинга)
  */
 @JsonIgnoreProperties(value = ["database", "sqlToInsert"])
 class Author(

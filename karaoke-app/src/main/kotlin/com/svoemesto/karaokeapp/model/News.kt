@@ -18,9 +18,19 @@ import java.sql.Timestamp
 // новость с будущим publishAt, уже уехавшая на прод, сама «всплывает» в назначенный момент.
 
 /**
- * Класс News.
+ * Сущность «Новость» (пост в Telegram / Boosty / VK).
+ *
+ * Хранит:
+ * - `id`, `idAuthor` — привязка к автору.
+ * - `datePublicate` — дата публикации (используется для сортировки).
+ * - `idTelegram`, `idBoosty`, `idVk` — ссылки на опубликованные копии.
+ * - `text` — текст новости.
+ * - `idPicture` — обложка (`Picture.kt`).
+ *
+ * Синхронизируется LOCAL↔SERVER.
  *
  * @see docs/features/dual-db-sync.md
+ * @see docs/features/telegram-auto-publish.md
  */
 @JsonIgnoreProperties(value = ["database", "sqlToInsert"])
 class News(

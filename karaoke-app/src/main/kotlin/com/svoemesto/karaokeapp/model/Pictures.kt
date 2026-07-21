@@ -18,9 +18,17 @@ import java.util.*
 import javax.imageio.ImageIO
 
 /**
- * Класс Pictures.
+ * Менеджер картинок альбома/трека: обложка, баннер, превью для соцсетей.
+ *
+ * Хранит URLs картинок из MinIO (`pictureCoverFull`, `pictureAlbumFull`,
+ * `pictureAlbumPreview`, `pictureBoostyFull`, `pictureDzenKaraoke`, и т.д.).
+ *
+ * `pictureFull`-поля (содержат base64-данные) помечены `useInList = false`
+ * в `@KaraokeDbTableField` — НЕ загружаются в `loadList` (OutOfMemory
+ * на 18k+ записей). Доступны только через `loadFromDbById` (lazy).
  *
  * @see docs/features/dual-db-sync.md
+ * @see docs/features/telegram-auto-publish.md (картинки для постинга)
  */
 class Pictures(
     override val database: KaraokeConnection = WORKING_DATABASE,

@@ -21,9 +21,19 @@ import java.sql.Timestamp
 // но реально создаётся/читается почти всегда из karaoke-web (там платёжный конвейер на проде).
 
 /**
- * Класс Subscription.
+ * Подписка пользователя (см. `PriceTariff.kt` для тарифов).
  *
- * @see docs/features/dual-db-sync.md
+ * Содержит:
+ * - `id`, `idSiteUser` — пользователь.
+ * - `idTariff` — ID тарифа.
+ * - `startDate`, `endDate` — период действия.
+ * - `isActive` — автопродление/ручное.
+ * - `paymentId` — ID платежа (внешняя система).
+ *
+ * `SubscriptionRenewalScheduler` раз в сутки проверяет истёкшие подписки
+ * и отправляет уведомления.
+ *
+ * @see docs/features/telegram-auto-publish.md (доступ по подписке)
  */
 @JsonIgnoreProperties(value = ["database", "sqlToInsert"])
 class Subscription(

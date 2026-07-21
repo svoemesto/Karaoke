@@ -48,6 +48,12 @@ const CATEGORY_META = {
   general: { icon: '📰', label: 'Новость' },
 }
 
+/**
+ * View-страница «News» — основной layout и data-fetching.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
+
 export default {
   name: 'NewsView',
   data() {

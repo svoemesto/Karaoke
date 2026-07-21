@@ -6,6 +6,12 @@
 
 <script>
 import ChatPanel from '../components/Chat/ChatPanel.vue'
+
+/**
+ * View-страница «Chat» — основной layout и data-fetching.
+ *
+ * @see AGENTS.md
+ */
 export default {
   name: 'ChatView',
   components: {

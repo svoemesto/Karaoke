@@ -81,6 +81,12 @@ import { fetchMessages, sendMessage } from '../services/chatApi'
 
 const POLL_INTERVAL_MS = 7000
 
+/**
+ * View-страница «Chat» — основной layout и data-fetching.
+ *
+ * @see AGENTS.md
+ */
+
 export default {
   name: 'ChatView',
   components: { LoginRequired },

@@ -50,6 +50,12 @@ import { fetchTasks } from '../services/songEditorApi'
 import { useAuth } from '../composables/useAuth'
 import { STATUS_LABELS } from '../composables/editorStatus'
 
+/**
+ * View-страница «Editor Tasks» — основной layout и data-fetching.
+ *
+ * @see AGENTS.md
+ */
+
 export default {
   name: 'EditorTasksView',
   setup() {

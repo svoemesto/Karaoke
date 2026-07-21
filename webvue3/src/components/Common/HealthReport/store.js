@@ -1,5 +1,11 @@
 import { promisedXMLHttpRequest } from '../../../lib/utils.js'
 
+/**
+ * Компонент «Store».
+ *
+ * @see AGENTS.md
+ */
+
 export default {
   state: {
     healthReportList: [],

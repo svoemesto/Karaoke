@@ -63,6 +63,11 @@ import CustomConfirm from '../CustomConfirm.vue'
 import { promisedXMLHttpRequest } from '../../../lib/utils'
 // Vue.use(TablePlugin)
 // Vue.use(SpinnerPlugin)
+/**
+ * Модальное окно для explorer.
+ *
+ * @see AGENTS.md
+ */
 export default {
   name: 'FileExplorerModal',
   components: {

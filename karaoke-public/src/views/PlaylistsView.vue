@@ -63,6 +63,12 @@ import { useAuth } from '../composables/useAuth'
 import { usePremiumModal } from '../composables/usePremiumModal'
 import { fetchPlaylists, createPlaylist, deletePlaylist } from '../services/playlistApi'
 
+/**
+ * View-страница «Playlists» — основной layout и data-fetching.
+ *
+ * @see AGENTS.md
+ */
+
 export default {
   name: 'PlaylistsView',
   components: { SvgIcon, LoginRequired },

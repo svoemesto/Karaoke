@@ -119,6 +119,12 @@
 const POLL_INTERVAL_MS = 7000
 const SEARCH_DEBOUNCE_MS = 300
 
+/**
+ * Компонент «Chat Panel».
+ *
+ * @see AGENTS.md
+ */
+
 export default {
   name: 'ChatPanel',
   data() {

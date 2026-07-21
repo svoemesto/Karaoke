@@ -148,6 +148,12 @@ const socialLinks = [
   },
 ]
 
+/**
+ * Компонент «vkgroup».
+ *
+ * @see AGENTS.md
+ */
+
 export default {
   name: 'HomeView',
   components: { SvgIcon, AuthStatusWidget },

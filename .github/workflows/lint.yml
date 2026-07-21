@@ -172,3 +172,18 @@ jobs:
 
       - name: Print KDoc coverage
         run: bash tools/check-kdoc-coverage.sh
+
+  # === JSDoc coverage (informational) ===
+  # FR-006 для Vue/TS — процент export-default-компонентов с JSDoc.
+  # Strict-mode (--strict) валит при < 50%.
+  jsdoc-coverage:
+    name: JSDoc coverage (informational)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Print JSDoc coverage
+        run: bash tools/check-jsdoc-coverage.sh

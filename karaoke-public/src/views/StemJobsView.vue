@@ -124,6 +124,12 @@ const ALLOWED_EXTENSIONS = ['mp3', 'wav', 'flac', 'ogg', 'm4a', 'aac', 'wma', 'o
 
 let pollTimer = null
 
+/**
+ * View-страница «Stem Jobs» — основной layout и data-fetching.
+ *
+ * @see AGENTS.md
+ */
+
 export default {
   name: 'StemJobsView',
   setup() {

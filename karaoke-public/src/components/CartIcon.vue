@@ -15,6 +15,12 @@ import { useRouter, useRoute } from 'vue-router'
 import { useAuth } from '../composables/useAuth'
 import { useCart } from '../composables/useCart'
 
+/**
+ * Компонент «Cart Icon».
+ *
+ * @see AGENTS.md
+ */
+
 export default {
   name: 'CartIcon',
   props: {

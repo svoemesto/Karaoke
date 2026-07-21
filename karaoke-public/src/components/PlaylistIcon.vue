@@ -74,6 +74,12 @@ import { usePlaylistMembership } from '../composables/usePlaylistMembership'
 import { usePremiumModal } from '../composables/usePremiumModal'
 import { addSongToPlaylist, removeSongFromPlaylist, createPlaylist } from '../services/playlistApi'
 
+/**
+ * Компонент «Playlist Icon».
+ *
+ * @see AGENTS.md
+ */
+
 export default {
   name: 'PlaylistIcon',
   components: { SvgIcon },

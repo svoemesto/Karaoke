@@ -4,6 +4,11 @@ import { promisedXMLHttpRequest } from '../../lib/utils'
 // публичного сайта). stemJobsTarget ('local'|'remote') — реальные задания создают пользователи на
 // прод-сайте (karaoke-web), поэтому по умолчанию 'remote'; 'local' — для локальной отладки очереди
 // (тот же паттерн, что siteUsersTarget/chatTarget).
+/**
+ * Компонент «Store».
+ *
+ * @see AGENTS.md
+ */
 export default {
   state: {
     stemJobs: [],

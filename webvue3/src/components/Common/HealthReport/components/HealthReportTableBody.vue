@@ -11,6 +11,12 @@
 <script>
 import HealthReportTableRow from './HealthReportTableRow.vue'
 
+/**
+ * Компонент «Health Report Table Body».
+ *
+ * @see docs/features/monitoring.md
+ */
+
 export default {
   name: 'HealthReportTableBody',
   components: { HealthReportTableRow },

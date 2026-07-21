@@ -162,6 +162,12 @@ import { usePlayerReadiness } from '../composables/usePlayerReadiness'
 import { useAuth } from '../composables/useAuth'
 import LoginRequired from '../components/LoginRequired.vue'
 
+/**
+ * View-страница «Playlist Edit» — основной layout и data-fetching.
+ *
+ * @see AGENTS.md
+ */
+
 export default {
   name: 'PlaylistEditView',
   components: { draggable, LoginRequired },

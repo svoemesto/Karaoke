@@ -4,6 +4,11 @@ import { promisedXMLHttpRequest } from '../../lib/utils'
 // логины webvue3). siteUsersTarget ('local'|'remote') добавляется в каждый запрос к бэкенду и заставляет
 // SiteUsersController явно выбрать Connection.local()/remote() — реальные посетители сайта регистрируются
 // на боевой БД сервера, а не в локальной dev-БД.
+/**
+ * Компонент «Store».
+ *
+ * @see AGENTS.md
+ */
 export default {
   state: {
     siteUsersDigest: [],

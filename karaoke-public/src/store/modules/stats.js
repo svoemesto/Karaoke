@@ -1,5 +1,11 @@
 import { apiGet } from '../../services/api'
 
+/**
+ * Компонент «Stats».
+ *
+ * @see AGENTS.md
+ */
+
 export default {
   namespaced: true,
   state: {

@@ -169,6 +169,12 @@ import CustomConfirm from '../Common/CustomConfirm.vue'
 import PictureEditModal from '../../components/Pictures/edit/PictureEditModal.vue'
 import AuthorAliasesModal from './AuthorAliasesModal.vue'
 
+/**
+ * Таблица со списком authors с пагинацией, фильтрами и сортировкой.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
+
 export default {
   name: 'AuthorsTable',
   components: {

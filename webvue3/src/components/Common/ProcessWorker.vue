@@ -33,6 +33,12 @@
 <script>
 import CustomConfirm from './CustomConfirm.vue'
 
+/**
+ * Компонент «Process Worker».
+ *
+ * @see docs/features/async-process-queue.md
+ */
+
 export default {
   name: 'ProcessWorker',
   components: {

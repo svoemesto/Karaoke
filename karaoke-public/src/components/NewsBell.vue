@@ -39,6 +39,12 @@ function lastSeenId() {
   return Number(localStorage.getItem(STORAGE_KEY)) || 0
 }
 
+/**
+ * Компонент «News Bell».
+ *
+ * @see AGENTS.md
+ */
+
 export default {
   name: 'NewsBell',
   data() {

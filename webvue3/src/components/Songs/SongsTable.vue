@@ -723,6 +723,11 @@ const ASSIGN_STATUS_LABELS = {
  * @see CONTRIBUTING.md#vue-table-layout-fixed
  * @see Songs/store.js Vuex-модуль с actions/mutations
  */
+/**
+ * Таблица со списком songs с пагинацией, фильтрами и сортировкой.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 export default {
   name: 'SongsTable',
   components: {

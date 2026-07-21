@@ -6,6 +6,11 @@ import { promisedXMLHttpRequest } from '../../lib/utils'
 // (target=local) без похода на прод. Live-обновление — не SSE (сообщения создаёт karaoke-web, а не
 // karaoke-app, поэтому save()/createDbInstance() из karaoke-app для них не вызывается), а polling
 // (см. ChatPanel.vue и бейдж в App.vue).
+/**
+ * Компонент «Store».
+ *
+ * @see AGENTS.md
+ */
 export default {
   state: {
     chatThreads: [],

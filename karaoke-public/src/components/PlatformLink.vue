@@ -22,6 +22,12 @@ const iconMap = {
   pl: 'pl',
 }
 
+/**
+ * Компонент «Platform Link».
+ *
+ * @see AGENTS.md
+ */
+
 export default {
   name: 'PlatformLink',
   components: { SvgIcon },

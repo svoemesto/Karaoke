@@ -148,6 +148,12 @@ const PREMIUM_BENEFITS = [
   'Экспорт аудио-дорожек песни',
 ]
 
+/**
+ * View-страница «Author Playlist» — основной layout и data-fetching.
+ *
+ * @see AGENTS.md
+ */
+
 export default {
   name: 'AuthorPlaylistView',
   components: { LoginRequired },

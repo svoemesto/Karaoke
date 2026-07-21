@@ -130,6 +130,15 @@
 <script>
 import HealthReportTable from '../Common/HealthReport/HealthReportTable.vue'
 
+/**
+ * Модальное окно для assign.
+ *
+ * @emits close
+ * @emits assigned
+ *
+ * @see AGENTS.md
+ */
+
 export default {
   name: 'AssignModal',
   components: { HealthReportTable },

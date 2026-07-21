@@ -73,6 +73,11 @@
 </template>
 
 <script>
+/**
+ * Компонент «Custom Confirm».
+ *
+ * @see AGENTS.md
+ */
 export default {
   name: 'CustomConfirm',
   props: {

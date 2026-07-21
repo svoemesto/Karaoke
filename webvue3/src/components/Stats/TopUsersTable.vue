@@ -67,6 +67,14 @@
 <script>
 import { BSpinner, BPagination } from 'bootstrap-vue-next'
 
+/**
+ * Таблица со списком users с пагинацией, фильтрами и сортировкой.
+ *
+ * @emits page
+ *
+ * @see AGENTS.md
+ */
+
 export default {
   name: 'TopUsersTable',
   components: { BSpinner, BPagination },

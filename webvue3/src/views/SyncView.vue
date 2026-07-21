@@ -6,6 +6,12 @@
 
 <script>
 import SyncTable from '../components/Sync/SyncTable.vue'
+
+/**
+ * View-страница «Sync» — основной layout и data-fetching.
+ *
+ * @see AGENTS.md
+ */
 export default {
   name: 'SyncView',
   components: { SyncTable },

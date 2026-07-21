@@ -56,6 +56,12 @@ import { useAuth } from '../composables/useAuth'
 
 const CAPTCHA_SCRIPT_SRC = 'https://smartcaptcha.yandexcloud.net/captcha.js'
 
+/**
+ * View-страница «Register» — основной layout и data-fetching.
+ *
+ * @see AGENTS.md
+ */
+
 export default {
   name: 'RegisterView',
   setup() {

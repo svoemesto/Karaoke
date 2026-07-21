@@ -19,6 +19,11 @@
 </template>
 
 <script>
+/**
+ * Компонент «Login Required».
+ *
+ * @see AGENTS.md
+ */
 export default {
   name: 'LoginRequired',
   props: {

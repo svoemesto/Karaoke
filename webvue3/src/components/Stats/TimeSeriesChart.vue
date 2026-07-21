@@ -33,6 +33,12 @@ function colorForDetail(label) {
   return '#9c9c9c'
 }
 
+/**
+ * Компонент «Time Series Chart».
+ *
+ * @see AGENTS.md
+ */
+
 export default {
   name: 'TimeSeriesChart',
   components: { BSpinner },

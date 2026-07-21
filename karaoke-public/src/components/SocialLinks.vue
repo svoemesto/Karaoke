@@ -29,6 +29,12 @@ const links = [
   },
 ]
 
+/**
+ * Компонент «vkgroup».
+ *
+ * @see AGENTS.md
+ */
+
 export default {
   name: 'SocialLinks',
   components: { SvgIcon },

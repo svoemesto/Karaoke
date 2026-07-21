@@ -3,6 +3,11 @@ import { promisedXMLHttpRequest } from '../../lib/utils'
 // «Новости» проекта (tbl_news). Готовятся на LOCAL, уходят на прод штатной синхронизацией (Sync,
 // key=news) — как Словари (components/Dictionaries/store.js). target оставлен переключаемым (как
 // у Чата) для локальной отладки, дефолт — LOCAL.
+/**
+ * Компонент «Store».
+ *
+ * @see AGENTS.md
+ */
 export default {
   state: {
     newsList: [],

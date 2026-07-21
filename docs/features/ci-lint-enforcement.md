@@ -8,7 +8,7 @@
 ## Что делает
 
 Запускает на каждый `push` в `master` и каждый `pull_request` в `master`
-пять GitHub Actions job-ов, которые проверяют, что код соответствует
+шесть GitHub Actions job-ов, которые проверяют, что код соответствует
 требованиям CONTRIBUTING.md и per-feature контрактам:
 
 1. **`backend-lint`** — `./gradlew ktlintCheck` (baseline-aware).
@@ -22,8 +22,11 @@
 4. **`baseline-stats`** — `tools/baseline-stats.sh` (informational,
    `continue-on-error: true`); публикует текущие счётчики в summary.
 5. **`kdoc-coverage`** — `tools/check-kdoc-coverage.sh` (informational,
-   `continue-on-error: true`); FR-006 — процент top-level классов
+   `continue-on-error: true`); FR-006 — процент top-level Kotlin-классов
    с KDoc-блоком. Strict-mode (`--strict`) валит при < 50%.
+6. **`jsdoc-coverage`** — `tools/check-jsdoc-coverage.sh` (informational,
+   `continue-on-error: true`); FR-006 — процент Vue/TS-компонентов
+   с JSDoc-блоком. Strict-mode (`--strict`) валит при < 50%.
 
 ## Зачем
 

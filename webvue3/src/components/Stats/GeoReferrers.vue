@@ -46,6 +46,12 @@
 <script>
 import { BSpinner } from 'bootstrap-vue-next'
 
+/**
+ * Компонент «Geo Referrers».
+ *
+ * @see AGENTS.md
+ */
+
 export default {
   name: 'GeoReferrers',
   components: { BSpinner },

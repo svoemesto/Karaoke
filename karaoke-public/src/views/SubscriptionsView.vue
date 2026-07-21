@@ -50,6 +50,12 @@
 import { authGet, authPost } from '../services/authApi'
 import { useAuth } from '../composables/useAuth'
 
+/**
+ * View-страница «Subscriptions» — основной layout и data-fetching.
+ *
+ * @see AGENTS.md
+ */
+
 export default {
   name: 'SubscriptionsView',
   setup() {

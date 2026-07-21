@@ -4,9 +4,20 @@ import java.io.Serializable
 import kotlin.math.absoluteValue
 
 /**
- * Перечисление возможных значений для music chord.
+ * Аккорд в karaoke-нотации (например, `Am`, `C7`, `Dm/F`).
  *
- * @see docs/features/dual-db-sync.md
+ * Хранит:
+ * - `value` — строковое представление (например, `"Am"`).
+ * - `baseNote` — основная нота (`MusicNote`).
+ * - `modification` — модификатор (`"m"`, `"7"`, `"maj7"`, `"sus4"`, и т.п.).
+ * - `bassNote` (опционально) — нота баса для slash-аккордов.
+ *
+ * Парсинг из текста — `parseChord()`, сериализация — `toString()`.
+ *
+ * Также `Fingerboard` (data class) — позиция на грифе.
+ *
+ * @see docs/features/mlt-generator.md
+ * @see docs/features/llm-lyrics-search.md (парсинг аккордов)
  */
 enum class MusicChord(
     val text: String,

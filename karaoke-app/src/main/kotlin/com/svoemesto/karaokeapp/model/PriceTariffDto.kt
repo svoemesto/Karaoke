@@ -4,9 +4,9 @@ import com.svoemesto.karaokeapp.KaraokeConnection
 import java.io.Serializable
 
 /**
- * DTO для price tariff: сериализуемое представление для API/UI.
+ * DTO тарифа подписки для API/UI.
  *
- * @see docs/features/dual-db-sync.md
+ * @see docs/features/telegram-auto-publish.md
  */
 data class PriceTariffDto(
     val id: Long = 0,

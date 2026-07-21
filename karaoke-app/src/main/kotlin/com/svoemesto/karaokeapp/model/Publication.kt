@@ -48,9 +48,20 @@ data class PublicationDTO(
 )
 
 /**
- * Класс Publication.
+ * Состояние публикации песни (одна запись в `tbl_publications`).
  *
- * @see docs/features/dual-db-sync.md
+ * Содержит:
+ * - `id`, `idSettings` — песня.
+ * - `idState` — текущее состояние (см. `SettingState`).
+ * - `datePublicate` — плановая дата.
+ * - `datePublicated` — фактическая дата.
+ * - Ссылки на опубликованные версии (TG/VK/Dzen/Boosty/Sponsr/PL).
+ * - Флаги: `isTextNeed`, `isChordsNeed`, `isVocalNeed`, и т.п.
+ *
+ * Создаётся при планировании публикации (`Settings.idStatus` → 6).
+ * Обновляется при факте публикации (см. `telegram-auto-publish.md`).
+ *
+ * @see docs/features/telegram-auto-publish.md
  */
 class Publication(
     val database: KaraokeConnection = WORKING_DATABASE,

@@ -3,9 +3,16 @@ package com.svoemesto.karaokeapp.model
 import java.io.Serializable
 
 /**
- * Перечисление возможных значений для music interval.
+ * Музыкальный интервал между двумя нотами.
  *
- * @see docs/features/dual-db-sync.md
+ * Используется для расчёта позиции нот на грифе и для анализа мелодии.
+ * Каждое значение — фиксированное количество полутонов (`halfTones`):
+ * - `UNISON` (0), `MINOR_SECOND` (1), `MAJOR_SECOND` (2), и т.д.
+ * - До `PERFECT_OCTAVE` (12).
+ *
+ * @property halfTones количество полутонов (0..12)
+ * @property text русское название
+ * @see docs/features/mlt-generator.md
  */
 enum class MusicInterval(
     val halfTones: Int,

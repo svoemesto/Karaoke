@@ -3351,6 +3351,8 @@ fun applyLiveCpuLimitToRunningProcesses() {
             KaraokeProcessTypes.DEMUCS2,
             KaraokeProcessTypes.DEMUCS5,
             KaraokeProcessTypes.KEY_BPM_FROM_FILE,
+            KaraokeProcessTypes.STEM_JOB_DEMUCS2,
+            KaraokeProcessTypes.STEM_JOB_DEMUCS5,
         )
     val workingTypes =
         KaraokeProcess
@@ -3373,6 +3375,13 @@ fun applyLiveCpuLimitToRunningProcesses() {
                 KaraokeProcessTypes.KEY_BPM_FROM_FILE ->
                     runCommand(
                         listOf("docker", "ps", "--filter", "ancestor=svoemestodev/keybpmfinder:latest", "--format", "{{.ID}}"),
+                        ignoreErrors = true,
+                    ).lineSequence()
+                        .firstOrNull { it.isNotBlank() }
+                KaraokeProcessTypes.STEM_JOB_DEMUCS2, KaraokeProcessTypes.STEM_JOB_DEMUCS5 ->
+                    // Per-job имя (stemjob-{id}), а не фиксированное, как у DEMUCS2/DEMUCS5 — ищем по префиксу.
+                    runCommand(
+                        listOf("docker", "ps", "--filter", "name=^stemjob-", "--format", "{{.ID}}"),
                         ignoreErrors = true,
                     ).lineSequence()
                         .firstOrNull { it.isNotBlank() }
@@ -3411,6 +3420,8 @@ fun killRunningDockerContainers() {
             KaraokeProcessTypes.DEMUCS2,
             KaraokeProcessTypes.DEMUCS5,
             KaraokeProcessTypes.KEY_BPM_FROM_FILE,
+            KaraokeProcessTypes.STEM_JOB_DEMUCS2,
+            KaraokeProcessTypes.STEM_JOB_DEMUCS5,
         )
     val workingTypes =
         KaraokeProcess
@@ -3434,6 +3445,15 @@ fun killRunningDockerContainers() {
                 KaraokeProcessTypes.KEY_BPM_FROM_FILE ->
                     runCommand(
                         listOf("docker", "ps", "--filter", "ancestor=svoemestodev/keybpmfinder:latest", "--format", "{{.ID}}"),
+                        ignoreErrors = true,
+                    ).lineSequence()
+                        .filter { it.isNotBlank() }
+                        .toList()
+                KaraokeProcessTypes.STEM_JOB_DEMUCS2, KaraokeProcessTypes.STEM_JOB_DEMUCS5 ->
+                    // Per-job имя (stemjob-{id}), а не фиксированное, как у DEMUCS2/DEMUCS5 — ищем по префиксу,
+                    // может быть >1 (лейн один, но защититься от гонки не помешает).
+                    runCommand(
+                        listOf("docker", "ps", "--filter", "name=^stemjob-", "--format", "{{.ID}}"),
                         ignoreErrors = true,
                     ).lineSequence()
                         .filter { it.isNotBlank() }

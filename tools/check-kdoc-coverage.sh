@@ -46,10 +46,11 @@ for entry in "${MODULES[@]}"; do
   while IFS= read -r f; do
     [ -s "$f" ] || continue
     # Найти все top-level декларации (без ведущих пробелов)
-    # и проверить KDoc в предыдущих 10 строках
+    # и проверить KDoc в предыдущих 50 строках (для длинных KDoc
+    # на критичные классы: Settings, KaraokeProcessWorker, и т.п.)
     while IFS=: read -r line_num _; do
       total=$((total + 1))
-      start=$((line_num - 10))
+      start=$((line_num - 50))
       [ $start -lt 1 ] && start=1
       end=$((line_num - 1))
       if sed -n "${start},${end}p" "$f" | grep -qE '^\s*/\*\*'; then

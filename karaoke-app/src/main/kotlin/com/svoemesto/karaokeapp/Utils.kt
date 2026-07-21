@@ -4143,6 +4143,26 @@ fun applyDuplicateOriginal(
     newSettings.saveToDb()
 }
 
+/**
+ * Применяет текст/маркеры аудио-родителя (см. findAudioParentByWaveform) к только что импортированной
+ * песне - вызывается, только если аудио-родитель найден и уже "готов" (idStatus >= 3, т.е. как минимум
+ * прошёл создание проекта). Маркеры сдвигаются под таймлайн текущей песни тем же способом, что и в
+ * applyFamilySongSelection (shiftMarkersAndFixEnd), но, в отличие от неё, root_id не трогается -
+ * audio_parent_id уже отдельно связывает пару (см. findAudioParentByWaveform), а статус выставляется
+ * в 3 (PROJECT_CREATE) безусловно, независимо от текущего статуса песни.
+ */
+fun applyAudioParentMarkers(
+    settings: Settings,
+    audioParent: Settings,
+    deltaMs: Long,
+) {
+    settings.sourceText = audioParent.sourceText
+    settings.resultText = audioParent.resultText
+    settings.sourceMarkers = shiftMarkersAndFixEnd(audioParent.sourceMarkers, deltaMs, settings.ms)
+    settings.fields[SettingField.ID_STATUS] = "3"
+    settings.saveToDb()
+}
+
 fun applyFamilySongSelection(
     settings: Settings,
     another: Settings,

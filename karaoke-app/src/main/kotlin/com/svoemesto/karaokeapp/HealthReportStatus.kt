@@ -1,5 +1,10 @@
 package com.svoemesto.karaokeapp
 
+/**
+ * Перечисление возможных значений для health report status.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 enum class HealthReportStatus(
     val color: String,
 ) {

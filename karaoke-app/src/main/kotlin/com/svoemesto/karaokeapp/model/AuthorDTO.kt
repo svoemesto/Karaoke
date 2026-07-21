@@ -3,6 +3,11 @@ package com.svoemesto.karaokeapp.model
 import com.svoemesto.karaokeapp.KaraokeConnection
 import java.io.Serializable
 
+/**
+ * DTO для author: сериализуемое представление для API/UI.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 data class AuthorDTO(
     val id: Long,
     val author: String,

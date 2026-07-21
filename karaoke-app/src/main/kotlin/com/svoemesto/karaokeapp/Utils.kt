@@ -2587,6 +2587,11 @@ fun getSyllables(text: String): List<String> {
     return result
 }
 
+/**
+ * Класс Solution.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 @Suppress("unused")
 class Solution {
     fun merge(
@@ -2907,6 +2912,11 @@ fun searchLastAlbumYm2(authorYmId: String): String {
     return result
 }
 
+/**
+ * Класс Album Search Result.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 sealed class AlbumSearchResult {
     data class Success(
         val albumTitle: String,

@@ -5,6 +5,11 @@ import com.svoemesto.karaokeapp.model.KaraokeDbTableDto
 import java.io.Serializable
 import java.sql.Timestamp
 
+/**
+ * DTO для karaoke proces: сериализуемое представление для API/UI.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 data class KaraokeProcessDTO(
     val id: Long,
     val name: String,

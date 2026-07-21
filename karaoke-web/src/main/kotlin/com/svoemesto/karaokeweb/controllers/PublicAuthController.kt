@@ -17,6 +17,11 @@ import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.web.bind.annotation.*
 import java.sql.Timestamp
 
+/**
+ * Контроллер (HTTP/WebSocket endpoints) для public auth .
+ *
+ * @see AGENTS.md
+ */
 @RestController
 @RequestMapping("/api/public/auth")
 class PublicAuthController(

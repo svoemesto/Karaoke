@@ -17,6 +17,12 @@ import java.io.File
 // Админка Sponsr-синхронизации (webvue3, панель Sponsr-sync) — ручной импорт списка подписчиков и
 // запуск экспериментального скрейпинга (см. SponsrSyncService). Target-aware, как SiteUsersController —
 // реальные site-users живут на прод-БД (target=remote).
+
+/**
+ * Контроллер (HTTP/WebSocket endpoints) для sponsr sync .
+ *
+ * @see AGENTS.md
+ */
 @Controller
 @RequestMapping("/api/sponsrsync")
 class SponsrSyncController {

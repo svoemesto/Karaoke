@@ -62,6 +62,12 @@ import java.util.zip.ZipOutputStream
  * Если админ ни разу не открывал плеер для песни — стемов в MinIO ещё нет, и публичный плеер
  * корректно покажет "песня пока не может быть проиграна" вместо падения.
  */
+
+/**
+ * Контроллер (HTTP/WebSocket endpoints) для public player .
+ *
+ * @see AGENTS.md
+ */
 @RestController
 @RequestMapping("/api/public/player")
 class PublicPlayerController(

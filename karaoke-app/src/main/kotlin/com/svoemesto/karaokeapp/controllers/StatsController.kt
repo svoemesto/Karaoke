@@ -14,6 +14,12 @@ import org.springframework.web.bind.annotation.RestController
 // нет активного механизма аутентификации, AuthorizationServerConfig полностью закомментирован,
 // поэтому эти эндпоинты заведены под обычным /api, как и весь остальной API, которым
 // сегодня пользуется webvue3.
+
+/**
+ * Контроллер (HTTP/WebSocket endpoints) для stats .
+ *
+ * @see AGENTS.md
+ */
 @RestController
 class StatsController {
     private fun resolveDb(target: String?): KaraokeConnection = if (target == "remote") Connection.remote() else Connection.local()

@@ -6,6 +6,11 @@ import javax.crypto.Cipher
 import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
 
+/**
+ * Класс Crypto.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 class Crypto {
     companion object {
         private const val KEY = "aesEncryptionKey"

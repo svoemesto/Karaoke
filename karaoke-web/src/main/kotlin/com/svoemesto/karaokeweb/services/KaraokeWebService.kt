@@ -18,6 +18,11 @@ lateinit var DB_LOCAL_POSTGRES_PASSWORD: String
 lateinit var DB_SERVER_POSTGRES_USER: String
 lateinit var DB_SERVER_POSTGRES_PASSWORD: String
 
+/**
+ * Сервис для karaoke web .
+ *
+ * @see docs/features/async-process-queue.md
+ */
 @Service
 class KaraokeWebService(
     val webSocket: SimpMessagingTemplate,

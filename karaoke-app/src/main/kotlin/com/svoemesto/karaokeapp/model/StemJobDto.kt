@@ -6,6 +6,12 @@ import java.sql.Timestamp
 
 // availableStems — НЕ БД-поле, выводится детерминированно из mode (StemJobMode.stemNames), нужен
 // фронту (webvue3 Processes / будущая admin-панель), чтобы не дублировать список режимов.
+
+/**
+ * DTO для stem job: сериализуемое представление для API/UI.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 data class StemJobDto(
     val id: Long = 0,
     val siteUserId: Long = 0,

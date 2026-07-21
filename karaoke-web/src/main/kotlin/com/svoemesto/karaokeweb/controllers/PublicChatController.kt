@@ -22,6 +22,12 @@ import org.springframework.web.bind.annotation.*
 // KSS_APP/SAC_APP из karaoke-app.services: karaoke-web не сканирует com.svoemesto.karaokeapp.services
 // (нет @ComponentScan туда, см. KaraokeWebService.kt) — эти lateinit var никогда бы не были
 // инициализированы и упали бы UninitializedPropertyAccessException на первом же вызове.
+
+/**
+ * Контроллер (HTTP/WebSocket endpoints) для public chat .
+ *
+ * @see AGENTS.md
+ */
 @RestController
 @RequestMapping("/api/public/account/chat")
 class PublicChatController(

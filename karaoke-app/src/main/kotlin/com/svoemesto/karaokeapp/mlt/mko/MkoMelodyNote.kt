@@ -6,6 +6,11 @@ import com.svoemesto.karaokeapp.mlt.MltProp
 import com.svoemesto.karaokeapp.mlt.mltNode
 import com.svoemesto.karaokeapp.model.*
 
+/**
+ * Класс Mko Melody Note.
+ *
+ * @see docs/features/mlt-generator.md
+ */
 data class MkoMelodyNote(
     val mltProp: MltProp,
     val type: ProducerType = ProducerType.MELODYNOTE,

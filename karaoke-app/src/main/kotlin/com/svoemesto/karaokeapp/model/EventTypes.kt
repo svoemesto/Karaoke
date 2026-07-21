@@ -3,6 +3,12 @@ package com.svoemesto.karaokeapp.model
 // Централизованные строковые значения tbl_events.event_type/link_type/rest_name. dbValue — не
 // .name/ordinal, чтобы уже сохранённые в БД строки (250k+ строк) остались единственным
 // источником истины без миграции данных; enum — только замена разбросанных по коду литералов.
+
+/**
+ * Перечисление возможных значений для event type.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 enum class EventType(
     val dbValue: String,
 ) {
@@ -21,6 +27,12 @@ enum class EventType(
 
 // Подтипы для event_type = EventType.UI (значение link_type). Хранятся как строки в БД, отдельного
 // enum-класса LinkType не заводим — значения свободные, меньше связанности.
+
+/**
+ * Перечисление возможных значений для ui action.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 enum class UiAction(
     val dbValue: String,
 ) {
@@ -34,6 +46,11 @@ enum class UiAction(
     }
 }
 
+/**
+ * Перечисление возможных значений для rest name.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 enum class RestName(
     val dbValue: String,
 ) {
@@ -48,6 +65,11 @@ enum class RestName(
     }
 }
 
+/**
+ * Перечисление возможных значений для link type.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 enum class LinkType(
     val dbValue: String,
 ) {
@@ -63,6 +85,12 @@ enum class LinkType(
 
 // Значение tbl_events.link_type, когда event_type = EventType.PLAYER. link_name при этом
 // переиспользуется как деталь действия: ключ стема для EXPORT, позиция в секундах для SEEK.
+
+/**
+ * Перечисление возможных значений для player action.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 enum class PlayerAction(
     val dbValue: String,
 ) {

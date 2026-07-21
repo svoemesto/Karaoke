@@ -16,6 +16,12 @@ import org.springframework.web.bind.annotation.RestController
 // WEB_WORK_ON_SERVER) — НЕ com.svoemesto.karaokeapp.WORKING_DATABASE (тот резолвится в LOCAL по
 // флагам karaoke-app, которые на проде не выставлены; см. инвариант "karaoke-web Settings trap"
 // в DEVELOPMENT.md — здесь модель News не тянет ничего из ConstantsKt, поэтому безопасна для karaoke-web).
+
+/**
+ * Контроллер (HTTP/WebSocket endpoints) для public news .
+ *
+ * @see AGENTS.md
+ */
 @RestController
 @RequestMapping("/api/public/news")
 class PublicNewsController {

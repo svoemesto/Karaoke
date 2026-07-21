@@ -30,6 +30,12 @@ import java.text.SimpleDateFormat
  * последний раз (sub.finalPrice). Так проще и предсказуемее для пользователя; специальные акции
  * (NEW_USER_PERCENT/HAPPY_HOUR/NTH_FREE) по смыслу разовые/новым пользователям, не для ренты.
  */
+
+/**
+ * Класс Subscription Renewal Scheduler.
+ *
+ * @see docs/features/async-process-queue.md
+ */
 @Service
 class SubscriptionRenewalScheduler(
     private val storageService: KaraokeStorageService,

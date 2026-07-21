@@ -58,6 +58,11 @@ import java.util.zip.ZipOutputStream
 import javax.imageio.ImageIO
 import kotlin.concurrent.thread
 
+/**
+ * DTO для family song: сериализуемое представление для API/UI.
+ *
+ * @see AGENTS.md
+ */
 data class FamilySongDto(
     val id: Long,
     val songName: String,
@@ -70,11 +75,21 @@ data class FamilySongDto(
     val idStatus: Long,
 )
 
+/**
+ * DTO для select family song result: сериализуемое представление для API/UI.
+ *
+ * @see AGENTS.md
+ */
 data class SelectFamilySongResultDto(
     val rootId: Long,
     val idStatus: Long,
 )
 
+/**
+ * DTO для find audio parent result: сериализуемое представление для API/UI.
+ *
+ * @see AGENTS.md
+ */
 data class FindAudioParentResultDto(
     val audioParentId: Long,
     val audioSimilarityPercent: Int,
@@ -83,6 +98,11 @@ data class FindAudioParentResultDto(
     val reason: String,
 )
 
+/**
+ * DTO для sync entity info: сериализуемое представление для API/UI.
+ *
+ * @see AGENTS.md
+ */
 data class SyncEntityInfoDto(
     val key: String,
     val displayName: String,
@@ -100,6 +120,11 @@ data class SyncEntityInfoDto(
     val pullMove: Boolean,
 )
 
+/**
+ * DTO для sync run result: сериализуемое представление для API/UI.
+ *
+ * @see AGENTS.md
+ */
 data class SyncRunResultDto(
     val created: List<String>,
     val updated: List<String>,
@@ -107,6 +132,11 @@ data class SyncRunResultDto(
     val moved: List<String>,
 )
 
+/**
+ * DTO для sync one click result: сериализуемое представление для API/UI.
+ *
+ * @see AGENTS.md
+ */
 data class SyncOneClickResultDto(
     val key: String,
     val displayName: String,
@@ -118,6 +148,11 @@ data class SyncOneClickResultDto(
     val moved: List<String>,
 )
 
+/**
+ * Контроллер (HTTP/WebSocket endpoints) для api .
+ *
+ * @see AGENTS.md
+ */
 @SuppressWarnings("SpellCheckingInspection")
 @Controller
 @RequestMapping("/api")

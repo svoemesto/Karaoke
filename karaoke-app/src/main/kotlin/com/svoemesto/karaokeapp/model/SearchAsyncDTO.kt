@@ -4,6 +4,11 @@ import com.svoemesto.karaokeapp.KaraokeConnection
 import java.io.Serializable
 import java.sql.Timestamp
 
+/**
+ * DTO для search async: сериализуемое представление для API/UI.
+ *
+ * @see docs/features/llm-lyrics-search.md
+ */
 class SearchAsyncDTO(
     val id: Long,
     val songId: Long,

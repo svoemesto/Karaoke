@@ -19,6 +19,12 @@ lateinit var DB_SERVER_POSTGRES_USER: String
 lateinit var DB_SERVER_POSTGRES_PASSWORD: String
 
 // @Component
+
+/**
+ * Сервис для karaoke app .
+ *
+ * @see docs/features/async-process-queue.md
+ */
 @Service
 class KaraokeAppService(
     sseNotificationService: SseNotificationService,

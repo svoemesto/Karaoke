@@ -8,6 +8,12 @@ import java.sql.Timestamp
 // НЕ БД-поля, заполняются контроллером для UI (композитный статус + метаданные песни и пользователя).
 // draftSourceText/draftMarkers — тоже заполняются контроллером из связанного черновика (для просмотра
 // админом в webvue3 и для загрузки в редактор). Булевых is-полей нет (Jackson bean convention).
+
+/**
+ * DTO для song assignment: сериализуемое представление для API/UI.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 data class SongAssignmentDto(
     val id: Long = 0,
     val assigneeId: Long = 0,

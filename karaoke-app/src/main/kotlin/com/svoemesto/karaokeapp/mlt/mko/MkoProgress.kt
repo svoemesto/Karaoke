@@ -11,6 +11,11 @@ import com.svoemesto.karaokeapp.model.ProducerType
 import com.svoemesto.karaokeapp.model.TransformProperty
 import com.svoemesto.karaokeapp.xmldata
 
+/**
+ * Класс Mko Progress.
+ *
+ * @see docs/features/mlt-generator.md
+ */
 data class MkoProgress(
     val mltProp: MltProp,
     val type: ProducerType,

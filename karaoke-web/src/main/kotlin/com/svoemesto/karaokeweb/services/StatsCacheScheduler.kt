@@ -20,6 +20,12 @@ import org.springframework.stereotype.Service
  *  - не нужно кешировать по ключу (один счётчик на весь сайт) и инвалидации по событию —
  *    достаточно периодического «почти свежего» значения.
  */
+
+/**
+ * Класс Stats Cache Scheduler.
+ *
+ * @see docs/features/async-process-queue.md
+ */
 @Service
 class StatsCacheScheduler {
     /**

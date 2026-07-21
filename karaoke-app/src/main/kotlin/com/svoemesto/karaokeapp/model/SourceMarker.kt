@@ -1,6 +1,11 @@
 package com.svoemesto.karaokeapp.model
 
 @kotlinx.serialization.Serializable
+/**
+ * Класс Source Marker.
+ *
+ * @see docs/features/mlt-generator.md
+ */
 data class SourceMarker(
     var time: Double,
     var label: String = "",

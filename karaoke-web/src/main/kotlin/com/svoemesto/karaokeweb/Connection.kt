@@ -8,6 +8,11 @@ import com.svoemesto.karaokeweb.services.DB_SERVER_POSTGRES_USER
 import com.svoemesto.karaokeweb.services.WEB_WORK_IN_CONTAINER
 import com.svoemesto.karaokeweb.services.WEB_WORK_ON_SERVER
 
+/**
+ * Класс Connection.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 class Connection(
     override val url: String,
     override val username: String,

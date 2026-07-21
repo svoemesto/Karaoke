@@ -54,6 +54,11 @@ fun parseHtmlUrls(xmlText: String): List<String> {
     return urls
 }
 
+/**
+ * Класс Find Song Result.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 @Serializable
 data class FindSongResult(
     val id: Int,
@@ -411,6 +416,11 @@ fun findSongText(
     return resultList
 }
 
+/**
+ * Класс Api Response Sync.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 @Serializable
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class ApiResponseSync(
@@ -418,6 +428,11 @@ data class ApiResponseSync(
     val rawData: String? = null,
 )
 
+/**
+ * Класс Api Response Async.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 @Serializable
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class ApiResponseAsync(

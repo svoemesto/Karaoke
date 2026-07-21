@@ -4,6 +4,11 @@ import com.svoemesto.karaokeapp.model.Zakroma
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
+/**
+ * DTO для zakroma album settings public: сериализуемое представление для API/UI.
+ *
+ * @see AGENTS.md
+ */
 data class ZakromaAlbumSettingsPublicDto(
     val id: Long,
     val track: Long,
@@ -36,6 +41,11 @@ data class ZakromaAlbumSettingsPublicDto(
     val linkMaxChords: String,
 )
 
+/**
+ * DTO для zakroma album public: сериализуемое представление для API/UI.
+ *
+ * @see AGENTS.md
+ */
 data class ZakromaAlbumPublicDto(
     val albumName: String,
     val year: Long,
@@ -43,6 +53,11 @@ data class ZakromaAlbumPublicDto(
     val albumSettings: List<ZakromaAlbumSettingsPublicDto>,
 )
 
+/**
+ * DTO для zakroma public: сериализуемое представление для API/UI.
+ *
+ * @see AGENTS.md
+ */
 data class ZakromaPublicDto(
     val author: String,
     val authorPictureUrl: String,

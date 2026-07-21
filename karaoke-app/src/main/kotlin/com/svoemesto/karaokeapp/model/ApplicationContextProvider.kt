@@ -5,6 +5,11 @@ import org.springframework.context.ApplicationContext
 import org.springframework.context.ApplicationContextAware
 import org.springframework.stereotype.Component
 
+/**
+ * Класс Application Context Provider.
+ *
+ * @see docs/features/async-process-queue.md
+ */
 @Component
 class ApplicationContextProvider : ApplicationContextAware {
     companion object {

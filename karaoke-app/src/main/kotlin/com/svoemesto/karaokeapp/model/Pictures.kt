@@ -17,6 +17,11 @@ import java.io.Serializable
 import java.util.*
 import javax.imageio.ImageIO
 
+/**
+ * Класс Pictures.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 class Pictures(
     override val database: KaraokeConnection = WORKING_DATABASE,
     override val storageService: KaraokeStorageService = KSS_APP,

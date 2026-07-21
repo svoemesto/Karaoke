@@ -30,6 +30,12 @@ import java.sql.Timestamp
  * единый проход удаляет объекты из MinIO (SAC_APP, тем же клиентом, каким они туда и попали) и саму
  * строку в tbl_stem_jobs.
  */
+
+/**
+ * Класс Stem Job Poll Scheduler.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 @Component
 class StemJobPollScheduler {
     @Scheduled(fixedDelay = 45_000L, initialDelay = 30_000L)

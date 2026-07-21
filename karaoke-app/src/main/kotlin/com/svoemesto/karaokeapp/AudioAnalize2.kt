@@ -7,6 +7,11 @@ import be.tarsos.dsp.onsets.PercussionOnsetDetector
 import java.io.File
 import javax.sound.sampled.AudioSystem
 
+/**
+ * Класс My Onset Handler.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 class MyOnsetHandler : OnsetHandler {
     private var lastOnsetTime = 0.0
     private var bpm = 0.0

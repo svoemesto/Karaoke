@@ -6,6 +6,11 @@ import com.svoemesto.karaokeapp.model.MltNode
 import com.svoemesto.karaokeapp.model.MltNodeBuilder
 import com.svoemesto.karaokeapp.model.ProducerType
 
+/**
+ * Класс Mko Fillcolor Songtexts.
+ *
+ * @see docs/features/mlt-generator.md
+ */
 data class MkoFillcolorSongtexts(
     val mltProp: MltProp,
     val type: ProducerType,

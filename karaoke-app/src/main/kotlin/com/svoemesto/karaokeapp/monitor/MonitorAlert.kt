@@ -13,6 +13,12 @@ package com.svoemesto.karaokeapp.monitor
  * detail - изменчивая часть текста для отображения (например "недоступен уже N мин") - сознательно
  * НЕ входит в contentHash(), иначе сообщение "мигало" бы read/unread на каждом тике планировщика.
  */
+
+/**
+ * Класс Monitor Alert.
+ *
+ * @see docs/features/monitoring.md
+ */
 data class MonitorAlert(
     val key: String,
     val severity: MonitorSeverity,

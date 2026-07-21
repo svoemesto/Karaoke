@@ -24,6 +24,11 @@ import java.util.Date
 import java.util.concurrent.TimeUnit
 import kotlin.io.path.Path
 
+/**
+ * Класс Karaoke Process.
+ *
+ * @see docs/features/async-process-queue.md
+ */
 class KaraokeProcess(
     override val database: KaraokeConnection = WORKING_DATABASE,
     override val storageService: KaraokeStorageService = KSS_APP,

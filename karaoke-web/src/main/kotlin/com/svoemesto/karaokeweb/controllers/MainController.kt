@@ -24,6 +24,11 @@ import org.springframework.web.bind.annotation.*
 import java.sql.Timestamp
 import java.time.Instant
 
+/**
+ * Контроллер (HTTP/WebSocket endpoints) для main .
+ *
+ * @see AGENTS.md
+ */
 @Controller
 class MainController(
     @Suppress("unused") private val webSocket: SimpMessagingTemplate,

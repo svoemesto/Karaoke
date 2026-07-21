@@ -3,6 +3,11 @@ package com.svoemesto.karaokeapp.model
 import com.svoemesto.karaokeapp.*
 import java.io.Serializable
 
+/**
+ * Класс Setting Voice Line.
+ *
+ * @see docs/features/mlt-generator.md
+ */
 data class SettingVoiceLine(
     val rootId: Long,
 //    var parentVoice: SettingVoice?,

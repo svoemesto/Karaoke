@@ -3,6 +3,11 @@ package com.svoemesto.karaokeapp.model
 import com.svoemesto.karaokeapp.KaraokeConnection
 import java.io.Serializable
 
+/**
+ * DTO для picture: сериализуемое представление для API/UI.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 data class PicturesDTO(
     val id: Long,
     val name: String,

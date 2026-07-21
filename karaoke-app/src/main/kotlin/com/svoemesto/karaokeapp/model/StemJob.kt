@@ -11,6 +11,11 @@ import java.io.Serializable
 import java.sql.SQLException
 import java.sql.Timestamp
 
+/**
+ * Singleton-объект Stem Job Status.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 object StemJobStatus {
     const val WAITING = "WAITING"
     const val WORKING = "WORKING"
@@ -20,6 +25,12 @@ object StemJobStatus {
 
 // DEMUCS2 = музыка/голос (2 стема); DEMUCS5 = музыка/голос/бас/ударные/остальное (5 стемов) — те же
 // режимы, что уже используются в обычном пайплайне выпуска песен (KaraokeProcessTypes.DEMUCS2/5).
+
+/**
+ * Singleton-объект Stem Job Mode.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 object StemJobMode {
     const val DEMUCS2 = "DEMUCS2"
     const val DEMUCS5 = "DEMUCS5"
@@ -41,6 +52,12 @@ object StemJobMode {
 // проде = серверная БД), karaoke-app забирает его в работу через Connection.remote() (см.
 // StemJobPollScheduler) напрямую в ту же БД. Список доступных стемов не хранится — выводится
 // детерминированно из mode (см. StemJobMode.stemNames).
+
+/**
+ * Класс Stem Job.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 @JsonIgnoreProperties(value = ["database", "sqlToInsert"])
 class StemJob(
     override val database: KaraokeConnection = WORKING_DATABASE,
@@ -334,6 +351,12 @@ class StemJob(
 // StemJobsAdminController), по образцу ChatThreadDto (SiteChatMessage.kt). Timestamp-поля — уже
 // отформатированные строки (toString()), а не Timestamp?, т.к. это одноразовая read-only проекция
 // для таблицы, не KaraokeDbTable-сущность с diff/save.
+
+/**
+ * DTO для stem job admin: сериализуемое представление для API/UI.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 data class StemJobAdminDto(
     val id: Long,
     val siteUserId: Long,

@@ -2,6 +2,11 @@ package com.svoemesto.karaokeapp.model
 
 import java.io.Serializable
 
+/**
+ * Класс Song2.
+ *
+ * @see docs/features/mlt-generator.md
+ */
 @Suppress("unused")
 data class Song2(
     val settings: Settings,

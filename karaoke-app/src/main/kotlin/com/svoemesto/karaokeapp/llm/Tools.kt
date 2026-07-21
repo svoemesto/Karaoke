@@ -12,6 +12,11 @@ import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.time.Duration
 
+/**
+ * Класс Search Tool.
+ *
+ * @see docs/features/llm-lyrics-search.md
+ */
 @Component
 class SearchTool(
     @Value("\${searxng.base-url:http://searxng:8080}")
@@ -64,11 +69,21 @@ class SearchTool(
     }
 }
 
+/**
+ * Класс Search Response.
+ *
+ * @see docs/features/llm-lyrics-search.md
+ */
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class SearchResponse(
     val results: List<SearchResult> = emptyList(),
 )
 
+/**
+ * Класс Search Result.
+ *
+ * @see docs/features/llm-lyrics-search.md
+ */
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class SearchResult(
     val url: String = "",

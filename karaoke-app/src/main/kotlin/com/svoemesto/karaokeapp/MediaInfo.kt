@@ -13,6 +13,11 @@ fun mainMediaInfo() {
     println(MediaInfo.getInfoBySectionAndParameter(TEST_AUDIO_FILE_PATH, "Audio", "Duration"))
 }
 
+/**
+ * Класс Media Info.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 class MediaInfo {
     companion object {
         fun getInfo(media: String): Map<String, Any> {

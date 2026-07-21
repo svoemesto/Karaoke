@@ -157,3 +157,18 @@ jobs:
 
       - name: Print baseline stats
         run: bash tools/baseline-stats.sh
+
+  # === KDoc coverage (informational) ===
+  # FR-006 требует KDoc/JSDoc на публичных API. Текущее покрытие —
+  # отчёт, не валит CI. Strict-mode (--strict) валит при < 50%.
+  kdoc-coverage:
+    name: KDoc coverage (informational)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Print KDoc coverage
+        run: bash tools/check-kdoc-coverage.sh

@@ -5,6 +5,11 @@ import com.svoemesto.karaokeapp.model.MltNodeBuilder
 import com.svoemesto.karaokeapp.model.ProducerType
 import com.svoemesto.karaokeapp.model.PropertiesMltNodeBuilder
 
+/**
+ * Класс Mlt Generator.
+ *
+ * @see docs/features/mlt-generator.md
+ */
 data class MltGenerator(
     var mltProp: MltProp,
     var type: ProducerType,

@@ -8,6 +8,11 @@ import java.awt.Color
 import java.awt.Font
 import java.io.Serializable
 
+/**
+ * Класс Mlt Object.
+ *
+ * @see docs/features/mlt-generator.md
+ */
 data class MltObject(
     val privateShape: MltShape,
     val layoutW: Int = 100,
@@ -73,6 +78,11 @@ data class MltObject(
         }
 }
 
+/**
+ * Перечисление возможных значений для mlt object type.
+ *
+ * @see docs/features/mlt-generator.md
+ */
 enum class MltObjectType : Serializable {
     TEXT,
     RECTANGLE,
@@ -80,18 +90,33 @@ enum class MltObjectType : Serializable {
     ROUNDEDRECTANGLE,
 }
 
+/**
+ * Перечисление возможных значений для mlt object alignment y.
+ *
+ * @see docs/features/mlt-generator.md
+ */
 enum class MltObjectAlignmentY : Serializable {
     TOP,
     CENTER,
     BOTTOM,
 }
 
+/**
+ * Перечисление возможных значений для mlt object alignment x.
+ *
+ * @see docs/features/mlt-generator.md
+ */
 enum class MltObjectAlignmentX : Serializable {
     LEFT,
     CENTER,
     RIGHT,
 }
 
+/**
+ * Класс Mlt Text.
+ *
+ * @see docs/features/mlt-generator.md
+ */
 data class MltText(
     var text: String = "",
     var font: Font,

@@ -3,6 +3,11 @@ package com.svoemesto.karaokeapp.services
 import java.io.File
 import java.io.InputStream
 
+/**
+ * Интерфейс для karaoke storage.
+ *
+ * @see docs/features/async-process-queue.md
+ */
 interface KaraokeStorage {
     val storageService: KaraokeStorageService
     val storageBucketName: String

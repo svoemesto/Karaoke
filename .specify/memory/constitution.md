@@ -1,19 +1,34 @@
 <!--
   Sync Impact Report
-  - Version change: 1.0.0 → 1.1.0 (amendment: добавлен Принцип VI «Code Standards»)
-  - Modified principles: none (Principle I-V без изменений)
-  - Added sections: Core Principle VI «Code Standards (NON-NEGOTIABLE)» — MUST
-    ktlint/eslint baseline-процесс, MUST KDoc/JSDoc на публичных API, MUST
-    per-feature документ при правке кода фичи (FR-009).
+  - Version change: 1.1.0 → 1.2.0 (amendment: добавлен Принцип VII «Cross-Machine Setup»,
+    обновлены ссылки на Phase 002 документы)
+  - Modified principles: none (Principle I-VI без изменений)
+  - Added sections:
+      - Core Principle VII «Cross-Machine Setup (NON-NEGOTIABLE)» — MUST
+        личные AI-конфиги (CLAUDE.md, .cursorrules) НЕ коммитить, MUST
+        .git-blame-ignore-revs и .gitattributes, MUST docs/onboarding.md
+        и docs/claude-code-setup.md для cross-machine.
+      - Секция «Рабочий процесс» — добавлен .git-blame-ignore + .gitattributes
+        в обязательные git-конфиги.
+      - Секция «Governance» — расширена: общие правила в гите, персональные
+        локально (через .git/info/exclude или ~/.gitignore_global).
   - Removed sections: none
   - Templates requiring updates:
-      .specify/templates/plan-template.md   ✅ aligned (Constitution Check 6/6)
+      .specify/templates/plan-template.md   ✅ aligned (Constitution Check 7/7)
       .specify/templates/spec-template.md   ✅ aligned (FR-006/FR-009 references)
       .specify/templates/tasks-template.md  ✅ aligned (Phase 6 KDoc/JSDoc + Phase 7 Polish)
       .specify/templates/checklist-template.md ✅ aligned (FR-009 verification gate)
+  - New artifacts to reference:
+      - docs/onboarding.md — общий setup для нового разработчика
+      - docs/claude-code-setup.md — настройка Claude Code (локальный CLAUDE.md)
+      - .git-blame-ignore-revs — список шумных коммитов
+      - .gitattributes — нормализация line endings
+      - docs/architecture-notes.md — датированный changelog (Pass 1-14)
   - Follow-up TODOs:
       - detekt (после выхода версии с поддержкой Kotlin 2.2) — см. T049
       - typedoc-plugin-vue (для парсинга .vue single-file components) — backlog
+      - рефакторинг WORKING_DATABASE/KSS_APP в DI (Pass 15+)
+      - ADR (Architecture Decision Records) в docs/adr/ (Pass 16+)
 -->
 # Karaoke Constitution
 
@@ -104,6 +119,44 @@ Sheetsage) и локальный SearXNG. Любая новая фича, тре
   качества, отслеживаемая в `tools/baseline-stats.sh` (текущее значение —
   см. `git log -p baseline-*.xml`).
 
+### VII. Cross-Machine Setup (NON-NEGOTIABLE)
+
+> **Контекст.** Phase 002 (PR #27-#30) зафиксировала правила для
+> **нескольких разработчиков** с **разными AI-агентами** (opencode / Claude
+> Code / Cursor / другие). Эти правила НЕОБХОДИМЫ для согласованной работы
+> на разных машинах.
+
+- **VII.1. Локальные AI-конфиги НЕ коммитить.** Персональные файлы
+  (`CLAUDE.md`, `.cursorrules`, `.aider*`, `AGENTS.md.local`, `.claude/`)
+  MUST быть в `.git/info/exclude` или `~/.gitignore_global`. Только общие
+  правила (для всех opencode-сессий) — в `AGENTS.md` (в гите).
+  **Рациональ**: личные настройки отличаются у разных разработчиков;
+  коммит в master = `git pull` merge conflict + потерянная локальная работа
+  (см. PR #29 как пример).
+- **VII.2. `.git-blame-ignore-revs`** MUST содержать хэши **всех** коммитов,
+  которые меняли сотни файлов без изменения логики (prettier formatting,
+  baseline healing, авто-KDoc/JSDoc, документация). После настройки
+  `git config blame.ignoreRevsFile .git-blame-ignore-revs` (один раз на машине)
+  `git blame` показывает автора оригинальной строки, а не автора рефакторинга.
+  **Рациональ**: 7 коммитов Phase 001 затронули 548 файлов (+57K/−28K строк);
+  без `.git-blame-ignore-revs` `git blame` показывает шум.
+- **VII.3. `.gitattributes`** MUST нормализовать line endings (`* text=auto eol=lf`)
+  и помечать бинарные файлы (`*.png binary`, `*.jar binary`). Без этого
+  разработчики на Windows получают `git diff` «всё изменилось» в каждом PR.
+  **Рациональ**: CRLF→LF нормализация при commit + lock-файлы `-diff`.
+- **VII.4. Cross-machine документация** MUST включать как минимум:
+  - [`docs/onboarding.md`](../docs/onboarding.md) — общий setup для любого AI-агента.
+  - [`docs/claude-code-setup.md`](../docs/claude-code-setup.md) — настройка Claude Code
+    (локальный `CLAUDE.md`, FAQ, troubleshooting).
+  - [`docs/architecture-notes.md`](../docs/architecture-notes.md) — датированный
+    changelog (Pass 1-14), чтобы новый разработчик понимал «почему так, а не иначе».
+  **Рациональ**: новый разработчик за 30-60 минут должен привести машину
+  в состояние «готова к PR, который пройдёт CI без правок».
+- **Рациональ**: Phase 002 зафиксировала, что «общее в гите, персональное
+  локально» — единственный масштабируемый подход для команд с разными
+  AI-агентами. Без этих правил каждый разработчик изобретает свой setup,
+  что ломает consistency и on-call.
+
 ## Технологический стек
 
 - **Backend**: Kotlin 1.x, Spring Boot 2.x/3.x, JDK 17, Gradle multi-module.
@@ -175,7 +228,11 @@ Sheetsage) и локальный SearXNG. Любая новая фича, тре
   требует подтверждения.
 - **Git** — не коммитить без явного запроса пользователя. Перед `git add` —
   обязательно `git status` + `git diff --stat`. Commit-сообщения — на русском,
-  коротко и по существу, в стиле `area: краткое описание`.
+  коротко и по существу, в стиле `area: краткое описание`. **На каждой машине**
+  разработчик MUST настроить: `git config blame.ignoreRevsFile .git-blame-ignore-revs`
+  (после клонирования). **Перед коммитом** проверить, что
+  `.gitattributes` нормализовал line endings (`git diff --stat` показывает
+  только значимые изменения, не `M` для всех строк).
 - **Push-ловушка**: при падении `deploy_web.sh` по `EOF`/`400 Bad request` — попросить
   пользователя запустить вручную без VPN. После деплоя обязательно проверить
   `Status: Downloaded newer image` (не `Image is up to date`) и реальное
@@ -195,6 +252,10 @@ Sheetsage) и локальный SearXNG. Любая новая фича, тре
    инструкции для агента; `DEVELOPMENT.md` — архитектурный контекст и
    dated-историю конкретных фич (для durable-правил смотреть в этом файле секцию
    «Architecture notes», для dated-истории — `docs/architecture-notes-archive.md`).
+   **Дополнение (Phase 002)**: в иерархии 9 уровней (см. таблицу в `AGENTS.md`,
+   секция «Документация и иерархия») — добавились `docs/onboarding.md`,
+   `docs/claude-code-setup.md`, `docs/architecture-notes.md` и
+   `.git-blame-ignore-revs` / `.gitattributes`.
 2. **Внесение изменений**: каждое изменение Конституции оформляется как
    `docs: amend constitution to vX.Y.Z (краткое описание)` в коммите. В commit-body
    указывается Sync Impact Report (какие принципы добавлены/удалены/переименованы,
@@ -215,7 +276,9 @@ Sheetsage) и локальный SearXNG. Любая новая фича, тре
    артефакты (шаблоны планов, спецификаций, задач; runtime-guidance в
    `AGENTS.md`/`DEVELOPMENT.md`; agent-specific skills и команды, если
    ссылаются на принципы). Sync Impact Report пишется в HTML-комментарии
-   в начале `constitution.md` при каждом amend.
+   в начале `constitution.md` при каждом amend. **Дополнение (Phase 002)**:
+   при добавлении нового принципа обновлять `docs/architecture-notes.md`
+   (запись о PR) + `AGENTS.md` (если меняется иерархия документации).
 6. **Compliance-проверка в production** (на стороне пользователя, не агента):
    - после `deploy_web.sh` — логи push **не** содержат `EOF`/`400 Bad request`,
      на сервере `Status: Downloaded newer image`;
@@ -223,4 +286,4 @@ Sheetsage) и локальный SearXNG. Любая новая фича, тре
    - `docker exec karaoke-web env | grep <VAR>` для проверки реально прокинутых
      env-переменных.
 
-**Version**: 1.1.0 | **Ratified**: 2026-07-20 | **Last Amended**: 2026-07-20
+**Version**: 1.2.0 | **Ratified**: 2026-07-20 | **Last Amended**: 2026-07-21

@@ -25,7 +25,24 @@ import java.util.concurrent.TimeUnit
 import kotlin.io.path.Path
 
 /**
- * Класс Karaoke Process.
+ * Задание в async-очереди (см. `async-process-queue.md`).
+ *
+ * Жизненный цикл:
+ * 1. `WAITING` — создано в БД (`tbl_processes`).
+ * 2. `WORKING` — `KaraokeProcessWorker` подхватил, запустил subprocess.
+ * 3. `DONE` / `ERROR` / `WAITING` (если force-stop) — терминальное.
+ *
+ * Содержит:
+ * - `threadId`, `name`, `type`, `description` — UI-метаданные.
+ * - `args` — параметры для subprocess или Kotlin-функции
+ *   (для `runFunctionWithArgs` — `[(funcName, [args])]`).
+ * - `percentage` — прогресс (парсится из stdout).
+ * - `start`, `finish` — таймстампы.
+ * - `errorMessage` — если `ERROR`.
+ * - `processChainId` — id родительского процесса (для цепочек).
+ * - `isKillPreviousChainTasksOnStart` — отменить предыдущие в цепочке.
+ *
+ * Все статусы — в `KaraokeProcessStatuses` enum.
  *
  * @see docs/features/async-process-queue.md
  */

@@ -15,7 +15,20 @@ import java.util.concurrent.ConcurrentHashMap
 import kotlin.properties.Delegates
 
 /**
- * Класс Health Report.
+ * Отчёт о «здоровье» одной песни (файлы, sync-консистентность, статусы).
+ *
+ * Содержит:
+ * - `settings` — `Settings` (через `KaraokeDbTable`).
+ * - `healthReportType` — тип проверки (`FILE_VIOLATION`,
+ *   `CONSISTENCY_VIOLATION`, `STATUS_VIOLATION`).
+ * - `healthReportStatus` — статус (`OK` / `WARNING` / `ERROR`).
+ * - `listChecks` — список нарушений (для UI).
+ *
+ * Обновляется при:
+ * - завершении `KaraokeProcess*` (через `KaraokeProcessThread.onRepairProcessFinished`);
+ * - ручном запуске из `webvue3/HealthReportView`.
+ *
+ * Рассылается по SSE `HEALTH_REPORTS` для live-обновления в админке.
  *
  * @see docs/features/monitoring.md
  */

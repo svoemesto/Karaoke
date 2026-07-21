@@ -1,9 +1,5 @@
 # Karaoke Project Guidelines
 
-> **Новый разработчик?** Начни с [`docs/onboarding.md`](docs/onboarding.md) — там
-> пошаговый чеклист для новой машины + настройка AI-агента. Документ ниже —
-> краткая выжимка для Claude Code.
-
 ## Project Overview
 "Karaoke" (svoemesto) is a self-hosted pipeline for automated karaoke video production.
 
@@ -48,15 +44,3 @@ When you need to understand:
 - Use nullable types for database columns that allow NULL
 - Avoid `is*` prefix for boolean fields in DTOs (Jackson serialization issue)
 - Always URL-encode query parameters with special characters
-- **KDoc/JSDoc** на публичных API обязателен (FR-006 spec.md)
-- **per-feature документ** обновлять при правке кода фичи (FR-009 spec.md)
-
-## AI-Agent Specific
-
-- Прочитай `AGENTS.md` в дополнение к этому файлу — там паттерны opencode,
-  ловушки ktlint, Docker-особенности.
-- Перед правкой — найди per-feature документ в `docs/features/<slug>.md`
-  (если он есть) и обнови его в том же PR.
-- Перед commit запусти `pre-commit run --all-files` — там 7 проверок
-  (ktlint, eslint×2, prettier×2, lychee, check-feature-doc).
-- Перед push убедись: `bash tools/check-kdoc-coverage.sh` показывает 100%.

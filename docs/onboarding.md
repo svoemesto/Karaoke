@@ -94,16 +94,19 @@ git config alias.co checkout
 
 ### Claude Code
 1. Установить: `npm install -g @anthropic-ai/claude-code` или через [claude.ai/code](https://claude.ai/code).
-2. В корне репозитория уже есть `CLAUDE.md` — Claude Code подхватит его автоматически.
-3. **Дополнительно прочитать `AGENTS.md` вручную** — там паттерны, специфичные для проекта
-   (KDoc/JSDoc требования, ловушки ktlint, Docker-особенности, per-feature docs).
+2. **`CLAUDE.md` — локальный файл**, НЕ в гите. Создать свой в корне проекта.
+3. **Добавить `CLAUDE.md` в `.git/info/exclude`** — чтобы `git pull` не давал merge conflict.
+4. Шаблон и подробная инструкция — [`docs/claude-code-setup.md`](./claude-code-setup.md).
+5. **Claude Code НЕ читает `AGENTS.md` автоматически** — добавить инструкцию в свой
+   `CLAUDE.md` «прочитай `AGENTS.md` в начале сессии» (есть в шаблоне).
 
 ### Cursor
 1. Cursor читает `.cursorrules` (можно создать на основе `AGENTS.md` + `CLAUDE.md`).
 2. Symlink: `ln -s AGENTS.md .cursorrules` (Cursor понимает KDoc-стиль).
+3. Добавить `.cursorrules` в `.git/info/exclude` (если персональный).
 
 ### Любой другой агент
-1. Скопировать содержимое `AGENTS.md` + `CLAUDE.md` в системный промпт.
+1. Скопировать содержимое `AGENTS.md` + `docs/claude-code-setup.md` в системный промпт.
 2. Добавить инструкцию: «Перед любыми правками прочитай
    `constitution.md`, `CONTRIBUTING.md` и `docs/features/<соответствующий>.md`».
 

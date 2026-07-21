@@ -9,12 +9,11 @@
 </template>
 
 <script>
-import { BTable } from 'bootstrap-vue-next'
 import HealthReportTableRow from './HealthReportTableRow.vue'
 
 export default {
   name: 'HealthReportTableBody',
-  components: { HealthReportTableRow, BTable },
+  components: { HealthReportTableRow },
   props: {
     healthReportList: {
       type: Array,

@@ -1,3 +1,5 @@
+@file:Suppress("ktlint:standard:max-line-length")
+
 package com.svoemesto.karaokeapp.model
 
 import com.fasterxml.jackson.annotation.JsonIgnore
@@ -1703,7 +1705,9 @@ class Settings(
     val kdenliveTemplate: String get() =
         "<?xml version='1.0' encoding='utf-8'?>\n" +
             "<mlt LC_NUMERIC=\"C\" producer=\"main_bin\" version=\"7.28.0\" root=\"${rootFolder.replace("&", "&amp;")}\">\n" +
-            " <profile frame_rate_num=\"60\" sample_aspect_num=\"1\" display_aspect_den=\"9\" colorspace=\"709\" progressive=\"1\" description=\"HD 1080p 60 fps\" display_aspect_num=\"16\" frame_rate_den=\"1\" width=\"1920\" height=\"1080\" sample_aspect_den=\"1\"/>\n" +
+            " <profile frame_rate_num=\"60\" sample_aspect_num=\"1\" display_aspect_den=\"9\" colorspace=\"709\"" +
+            " progressive=\"1\" description=\"HD 1080p 60 fps\" display_aspect_num=\"16\"" +
+            " frame_rate_den=\"1\" width=\"1920\" height=\"1080\" sample_aspect_den=\"1\"/>\n" +
             " <producer id=\"producer0\" in=\"00:00:00.000\" out=\"${durationTimecode}\">\n" +
             "  <property name=\"length\">$durationFrames</property>\n" +
             "  <property name=\"eof\">pause</property>\n" +

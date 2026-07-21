@@ -1,7 +1,8 @@
 package com.svoemesto.karaokeweb.services
 
-import com.svoemesto.karaokeapp.model.SiteUser
 import com.svoemesto.karaokeweb.WORKING_DATABASE
+
+import com.svoemesto.karaokeapp.model.SiteUser
 import jakarta.servlet.http.HttpServletRequest
 import org.springframework.stereotype.Component
 

@@ -399,7 +399,7 @@ export function buildInlinePlayerData({
   track,
   key,
   bpm,
-  sourceTexts,
+  _sourceTexts,
   markersPerVoice,
   audioVocalsUrl,
   audioAccompanimentUrl,

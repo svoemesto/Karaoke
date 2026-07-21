@@ -49,13 +49,13 @@ export default {
     includedThreadId: {
       type: Array,
       required: false,
-      default: [],
+      default: () => [],
     },
     // Не показывать потоки с id из списка
     excludedThreadId: {
       type: Array,
       required: false,
-      default: [],
+      default: () => [],
     },
   },
   data() {

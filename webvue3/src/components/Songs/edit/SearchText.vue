@@ -94,7 +94,6 @@ export default {
     return {
       isCustomConfirmVisible: false,
       customConfirmParams: undefined,
-      searchAsyncId: undefined,
       searchResultsList: [],
       currentSearchAsync: undefined,
       currentResult: undefined,

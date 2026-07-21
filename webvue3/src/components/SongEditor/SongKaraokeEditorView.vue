@@ -227,7 +227,6 @@ import {
   currentMarkerIndex,
   addMarker,
   deleteMarkerAtTime,
-  ensureEndMarker,
   formatText,
   buildTail,
   markersToSave,

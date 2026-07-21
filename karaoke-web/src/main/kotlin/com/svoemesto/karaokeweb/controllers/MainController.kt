@@ -1,5 +1,7 @@
 package com.svoemesto.karaokeweb.controllers
 
+import com.svoemesto.karaokeweb.WORKING_DATABASE
+
 import com.svoemesto.karaokeapp.Crypto
 import com.svoemesto.karaokeapp.model.EventType
 import com.svoemesto.karaokeapp.model.LinkType
@@ -12,7 +14,6 @@ import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.StorageApiClient
 import com.svoemesto.karaokeweb.services.WEB_WORK_IN_CONTAINER
 import com.svoemesto.karaokeweb.util.ClientIpResolver
-import com.svoemesto.karaokeweb.WORKING_DATABASE
 // import com.svoemesto.karaokeweb.services.KSS_WEB
 import jakarta.servlet.http.HttpServletRequest
 import org.springframework.beans.factory.annotation.Value

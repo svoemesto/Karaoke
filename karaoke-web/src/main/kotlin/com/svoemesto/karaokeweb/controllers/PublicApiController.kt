@@ -1,5 +1,7 @@
 package com.svoemesto.karaokeweb.controllers
 
+import com.svoemesto.karaokeweb.WORKING_DATABASE
+
 import com.svoemesto.karaokeapp.model.Author
 import com.svoemesto.karaokeapp.model.EventType
 import com.svoemesto.karaokeapp.model.Pictures
@@ -10,7 +12,6 @@ import com.svoemesto.karaokeapp.resizeBufferedImage
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.StorageApiClient
 import com.svoemesto.karaokeweb.StatBySong
-import com.svoemesto.karaokeweb.WORKING_DATABASE
 import com.svoemesto.karaokeweb.dto.AuthorTilePublicDto
 import com.svoemesto.karaokeweb.dto.SettingsPublicDto
 import com.svoemesto.karaokeweb.dto.ZakromaPublicDto

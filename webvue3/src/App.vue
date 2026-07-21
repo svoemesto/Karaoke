@@ -107,7 +107,6 @@ const route = useRoute()
 
 <script>
 import { EventSourcePolyfill } from 'event-source-polyfill'
-import store from './store/index.js'
 import { useToast } from 'bootstrap-vue-next'
 import { h } from 'vue'
 import { getTabId } from './lib/utils.js'
@@ -433,7 +432,7 @@ export default {
           ) // Если это не массив, возвращаем как одну строку
         }
         const vnodes = []
-        lines.forEach((line, index) => {
+        lines.forEach((line, _index) => {
           const lineToAdd = h(
             'div',
             {
@@ -552,7 +551,7 @@ export default {
           ) // Если это не массив, возвращаем как одну строку
         }
         const vnodes = []
-        lines.forEach((line, index) => {
+        lines.forEach((line, _index) => {
           const lineToAdd = h(
             'div',
             {

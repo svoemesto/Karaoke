@@ -54,7 +54,9 @@ object ProdContainerCheck : MonitorCheck {
                 body = "Недоступен(ы): $whatIsDown.",
                 category = "Инфраструктура",
                 detail = "недоступен уже $downForMinutes мин.",
-                recommendations = "Проверьте сервер 79.174.95.69 по SSH: nginx (`nginx -t`, `systemctl status nginx`), `docker ps` (karaoke-web/karaoke-public/karaoke-db), логи контейнеров (`docker logs <container>`).",
+                recommendations =
+                    "Проверьте сервер 79.174.95.69 по SSH: nginx (`nginx -t`, `systemctl status nginx`), " +
+                        "`docker ps` (karaoke-web/karaoke-public/karaoke-db), логи контейнеров (`docker logs <container>`).",
             ),
         )
     }

@@ -1,7 +1,8 @@
 package com.svoemesto.karaokeweb.services
 
-import com.svoemesto.karaokeweb.StatBySong
 import com.svoemesto.karaokeweb.WORKING_DATABASE
+
+import com.svoemesto.karaokeweb.StatBySong
 import jakarta.annotation.PostConstruct
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service

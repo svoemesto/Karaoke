@@ -458,6 +458,9 @@ export default {
     const playlistMembership = usePlaylistMembership()
     return { theme, setTheme, isLoggedIn, playerAccess, cart, playlistMembership }
   },
+  data() {
+    return { playerDisplayMode: 'embed', songSubscriptionModalVisible: false }
+  },
   computed: {
     ...mapGetters('songs', ['currentSong', 'currentSongIsLoading']),
     playerCanWatch() {
@@ -505,9 +508,7 @@ export default {
       )
     },
   },
-  data() {
-    return { playerDisplayMode: 'embed', songSubscriptionModalVisible: false }
-  },
+
   watch: {
     '$route.query.id': {
       immediate: true,

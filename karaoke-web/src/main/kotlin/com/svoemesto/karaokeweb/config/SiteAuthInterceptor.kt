@@ -1,6 +1,7 @@
 package com.svoemesto.karaokeweb.config
 
 import com.svoemesto.karaokeweb.WORKING_DATABASE
+
 import com.svoemesto.karaokeweb.services.SiteUserTokenService
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse

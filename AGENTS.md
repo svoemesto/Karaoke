@@ -1,5 +1,17 @@
 # AGENTS.md — инструкции для агентов
 
+> **Этот файл — для opencode** (наш primary AI-агент). Если вы используете
+> другой AI-агент (Claude Code, Cursor, Cody, Aider) — см.
+> [`docs/onboarding.md`](./docs/onboarding.md) (общий quick-start) и
+> [`docs/claude-code-setup.md`](./docs/claude-code-setup.md) (настройка Claude Code).
+>
+> **Мета**: `AGENTS.md` лежит в гите (общий для всех opencode-сессий).
+> `CLAUDE.md` — локальный у каждого разработчика (НЕ в гите).
+> `.cursorrules` — аналог для Cursor (тоже локальный).
+>
+> **Если вы ведёте разработку с другим AI-агентом** и он понимает
+> `AGENTS.md` — этого файла достаточно. Если нет — см. ссылки выше.
+
 ## АБСОЛЮТНОЕ ПРАВИЛО: язык общения
 
 **Всё общение с пользователем — ТОЛЬКО на русском языке.** Это касается всех ответов, комментариев, объяснений, вопросов и любого текста,irected к пользователю. Это правило имеет наивысший приоритет и действует всегда.
@@ -26,6 +38,37 @@ Per-feature описание каждой из 9 ключевых подсист
 
 Непреложные принципы проекта (NON-NEGOTIABLE) — в
 [**`.specify/memory/constitution.md`**](./.specify/memory/constitution.md).
+
+## Документация и иерархия
+
+| Приоритет | Файл | Зачем | Размер |
+|-----------|------|-------|--------|
+| 1 (макс) | `.specify/memory/constitution.md` | **NON-NEGOTIABLE** принципы | ~150 строк |
+| 2 | `AGENTS.md` (этот файл) | opencode: общие правила | 230 строк |
+| 3 | `docs/onboarding.md` | Setup новой машины (любой AI-агент) | 271 строка |
+| 4 | `CLAUDE.md` (локально, НЕ в гите) | Claude Code: персональные настройки | ~50 строк |
+| 5 | `docs/claude-code-setup.md` | Claude Code: инструкция + шаблон | 197+ строк |
+| 6 | `DEVELOPMENT.md` | Архитектура + команды | 164 строки |
+| 7 | `CONTRIBUTING.md` | Стиль кода (Kotlin/Vue/SQL/MD) | 892 строки |
+| 8 | `docs/architecture-notes.md` | Changelog PR #12-#29 | 268+ строк |
+| 9 | `docs/features/<slug>.md` | Per-feature (11 + 1 документ) | 50-180 строк каждый |
+
+**При расхождении** — приоритет у файла с меньшим номером.
+**AI-агент**: читай файлы в этом порядке при старте сессии (1 → 9).
+
+## Где правила для разных AI-агентов
+
+| Агент | Файл конфига | В гите? | Документация |
+|-------|--------------|---------|--------------|
+| **opencode** (primary) | `AGENTS.md` | ✅ да | этот файл |
+| **Claude Code** | `CLAUDE.md` (локально) | ❌ нет | [`docs/claude-code-setup.md`](./docs/claude-code-setup.md) |
+| **Cursor** | `.cursorrules` (локально) | ❌ нет | см. onboarding.md |
+| **Cody, Aider, Continue** | `.cody/.cody.yml`, `.aider*`, `.continue/*` | ❌ нет | см. onboarding.md |
+| **Любой другой** | системный промпт | — | см. onboarding.md |
+
+**Принцип:** общие правила — в гите (`AGENTS.md`, `CONTRIBUTING.md`).
+**Персональные настройки** — локально (`CLAUDE.md`, `.cursorrules`).
+**Никогда** не коммитьте персональные AI-конфиги в общий репо (см. PR #29).
 
 
 ## Тип песни (song_type)

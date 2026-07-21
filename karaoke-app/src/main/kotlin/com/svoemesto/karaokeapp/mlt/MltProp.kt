@@ -3,6 +3,11 @@ package com.svoemesto.karaokeapp.mlt
 import com.svoemesto.karaokeapp.KaraokeVoice
 import com.svoemesto.karaokeapp.model.*
 
+/**
+ * Класс Mlt Prop.
+ *
+ * @see docs/features/mlt-generator.md
+ */
 data class MltProp(
     val props: MutableMap<Any, Any> = mutableMapOf(),
 ) {

@@ -15,6 +15,11 @@ import java.time.Duration
 // Минимальные DTO Telegram Bot API (getUpdates) - только поля, реально используемые
 // TelegramUpdatesConsumer для отлова вышедшего channel_post. Формат ключей - snake_case (как у Telegram).
 
+/**
+ * Класс Telegram Chat.
+ *
+ * @see docs/features/async-process-queue.md
+ */
 @Serializable
 data class TelegramChat(
     val id: Long,
@@ -22,6 +27,11 @@ data class TelegramChat(
     val title: String? = null,
 )
 
+/**
+ * Класс Telegram Message.
+ *
+ * @see docs/features/async-process-queue.md
+ */
 @Serializable
 data class TelegramMessage(
     @SerialName("message_id") val messageId: Long,
@@ -31,12 +41,22 @@ data class TelegramMessage(
     val caption: String? = null,
 )
 
+/**
+ * Класс Telegram Update.
+ *
+ * @see docs/features/async-process-queue.md
+ */
 @Serializable
 data class TelegramUpdate(
     @SerialName("update_id") val updateId: Long,
     @SerialName("channel_post") val channelPost: TelegramMessage? = null,
 )
 
+/**
+ * Класс Telegram Updates Response.
+ *
+ * @see docs/features/async-process-queue.md
+ */
 @Serializable
 data class TelegramUpdatesResponse(
     val ok: Boolean = false,
@@ -53,6 +73,12 @@ data class TelegramUpdatesResponse(
  * HTTP-прокси (VLESS/xray, KaraokeProperties.telegramProxyUrl) и остаётся на нём, периодически (раз в
  * telegramProxyModeTtlMs) пробуя вернуться на прямой путь. Если telegramProxyUrl не задан - прокси
  * недоступен, ошибка пробрасывается наверх без изменений.
+ */
+
+/**
+ * Класс Telegram Api Client.
+ *
+ * @see docs/features/async-process-queue.md
  */
 class TelegramApiClient {
     private val json = Json { ignoreUnknownKeys = true }

@@ -2,6 +2,11 @@ package com.svoemesto.karaokeweb.dto
 
 import com.svoemesto.karaokeapp.model.Settings
 
+/**
+ * DTO для settings public: сериализуемое представление для API/UI.
+ *
+ * @see AGENTS.md
+ */
 data class SettingsPublicDto(
     val id: Long,
     val songName: String,

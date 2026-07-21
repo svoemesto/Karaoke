@@ -16,6 +16,11 @@ import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.TimeUnit
 
+/**
+ * Интерфейс для karaoke storage service.
+ *
+ * @see docs/features/premium-stems.md
+ */
 interface KaraokeStorageService {
     fun uploadFile(
         bucketName: String,
@@ -101,6 +106,11 @@ interface KaraokeStorageService {
     fun listFilesInfo(bucketName: String): List<StorageFileInfo>
 }
 
+/**
+ * Класс Storage File Info.
+ *
+ * @see docs/features/async-process-queue.md
+ */
 data class StorageFileInfo(
     val bucketName: String,
     val fileName: String,
@@ -108,6 +118,11 @@ data class StorageFileInfo(
     val size: Long,
 ) : Serializable
 
+/**
+ * Класс Karaoke Storage Service Impl.
+ *
+ * @see docs/features/async-process-queue.md
+ */
 @Service
 class KaraokeStorageServiceImpl(
     @Value($$"${storage.key}") val storageKey: String,

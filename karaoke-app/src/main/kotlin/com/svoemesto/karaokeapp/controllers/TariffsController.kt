@@ -14,6 +14,12 @@ import org.springframework.web.bind.annotation.ResponseBody
 // Админка тарифов подписки (tbl_price_tariffs). Target-aware, как SiteUsersController: реальные
 // тарифы правятся на прод-БД (target=remote), т.к. платёжный конвейер karaoke-web работает на
 // проде и читает тарифы оттуда; локальная БД используется для теста/разработки.
+
+/**
+ * Контроллер (HTTP/WebSocket endpoints) для tariffs .
+ *
+ * @see AGENTS.md
+ */
 @Controller
 @RequestMapping("/api/tariffs")
 class TariffsController {

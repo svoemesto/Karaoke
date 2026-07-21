@@ -3,6 +3,11 @@ package com.svoemesto.karaokeapp.model
 import com.svoemesto.karaokeapp.KaraokeConnection
 import java.io.Serializable
 
+/**
+ * DTO для web event: сериализуемое представление для API/UI.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 data class WebEventDTO(
     val id: Long = 0,
     val eventType: String = "",

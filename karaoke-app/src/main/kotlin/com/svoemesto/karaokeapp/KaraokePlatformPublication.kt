@@ -4,6 +4,11 @@ import com.svoemesto.karaokeapp.model.Settings
 import com.svoemesto.karaokeapp.model.SongVersion
 import java.io.Serializable
 
+/**
+ * Класс Karaoke Platform Publication.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 data class KaraokePlatformPublication(
     val platform: KaraokePlatform,
     val songVersionName: String,

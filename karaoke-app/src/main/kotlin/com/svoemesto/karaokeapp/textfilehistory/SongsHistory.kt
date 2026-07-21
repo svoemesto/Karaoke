@@ -2,6 +2,11 @@ package com.svoemesto.karaokeapp.textfilehistory
 
 import com.svoemesto.karaokeapp.SONGS_HISTORY_FILE_PATH
 
+/**
+ * Класс Songs History.
+ *
+ * @see AGENTS.md
+ */
 class SongsHistory : TextFileHistory {
     override var history = loadList()
 
@@ -35,6 +40,11 @@ class SongsHistory : TextFileHistory {
     }
 }
 
+/**
+ * DTO для song history: сериализуемое представление для API/UI.
+ *
+ * @see AGENTS.md
+ */
 data class SongHistoryDTO(
     val historyName: String,
     val historyArgs: Map<String, String>,

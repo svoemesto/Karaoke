@@ -9,6 +9,11 @@ import org.springframework.http.HttpHeaders
 import org.springframework.web.reactive.function.client.WebClient
 import java.util.Base64
 
+/**
+ * Конфигурация для web client .
+ *
+ * @see AGENTS.md
+ */
 @Configuration
 class WebClientConfig {
     // @Primary: другие места (например StorageApiClientWeb) инжектят WebClient без @Qualifier —

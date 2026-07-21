@@ -13,6 +13,11 @@ import java.sql.SQLException
 import java.sql.Timestamp
 import java.time.Instant
 
+/**
+ * Класс Author.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 @JsonIgnoreProperties(value = ["database", "sqlToInsert"])
 class Author(
     override val database: KaraokeConnection = WORKING_DATABASE,
@@ -280,6 +285,11 @@ class Author(
     }
 }
 
+/**
+ * Класс Author Alias Match.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 data class AuthorAliasMatch(
     val author: String,
     val matchedAliases: List<String>,

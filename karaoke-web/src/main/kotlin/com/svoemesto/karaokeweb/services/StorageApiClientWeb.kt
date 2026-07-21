@@ -20,6 +20,11 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.Paths
 
+/**
+ * Класс Storage Api Client Web.
+ *
+ * @see docs/features/async-process-queue.md
+ */
 @Service
 class StorageApiClientWeb(
     private val webClient: WebClient,

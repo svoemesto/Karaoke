@@ -39,6 +39,12 @@ import java.sql.Timestamp
  * открытии задания (владение уже проверено), вне зависимости от onAir/премиума — редактор работает
  * до публикации.
  */
+
+/**
+ * Контроллер (HTTP/WebSocket endpoints) для public song editor .
+ *
+ * @see AGENTS.md
+ */
 @RestController
 @RequestMapping("/api/public/account/editor")
 class PublicSongEditorController(

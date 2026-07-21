@@ -14,6 +14,12 @@ import java.sql.Timestamp
 // жизнью и синхронизируются отдельно). Участвует в LOCAL<->SERVER синхронизации (SyncRegistry:
 // siteplaylistitems). Порядок в плейлисте — колонка position (drag-drop), muted — пропуск при
 // проигрывании (остаётся в списке).
+
+/**
+ * Класс Site Playlist Item.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 @JsonIgnoreProperties(value = ["database", "sqlToInsert"])
 class SitePlaylistItem(
     override val database: KaraokeConnection = WORKING_DATABASE,

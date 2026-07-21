@@ -21,6 +21,12 @@ import java.time.Instant
  * длительности сбоя начнётся заново (severity временно упадёт до WARNING); это осознанный компромисс
  * (см. план фичи), т.к. karaoke-app и так не 24/7 аптайм-монитор.
  */
+
+/**
+ * Singleton-объект Prod Container Check.
+ *
+ * @see docs/features/monitoring.md
+ */
 object ProdContainerCheck : MonitorCheck {
     private const val PING_URL = "https://sm-karaoke.ru/"
 

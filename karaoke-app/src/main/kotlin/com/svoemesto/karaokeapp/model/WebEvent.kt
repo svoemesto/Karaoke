@@ -12,6 +12,12 @@ import java.sql.Timestamp
 
 // Модель tbl_events только для LOCAL<->SERVER синхронизации (sync/SyncTarget.kt). Чтение статистики
 // для вьюхи "Статистика" по-прежнему идёт через StatBySong.kt/StatsByEvents (ручной JDBC) — не трогать.
+
+/**
+ * Класс Web Event.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 @JsonIgnoreProperties(value = ["database", "sqlToInsert"])
 class WebEvent(
     override val database: KaraokeConnection = WORKING_DATABASE,

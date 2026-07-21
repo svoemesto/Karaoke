@@ -6,6 +6,11 @@ import java.io.Serializable
 import java.util.*
 import kotlin.String
 
+/**
+ * DTO для setting: сериализуемое представление для API/UI.
+ *
+ * @see docs/features/mlt-generator.md
+ */
 data class SettingsDTO(
     val id: Long,
     var idPrevious: Long,

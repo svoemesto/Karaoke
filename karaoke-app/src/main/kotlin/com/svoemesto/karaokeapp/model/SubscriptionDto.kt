@@ -3,6 +3,11 @@ package com.svoemesto.karaokeapp.model
 import com.svoemesto.karaokeapp.KaraokeConnection
 import java.io.Serializable
 
+/**
+ * DTO для subscription: сериализуемое представление для API/UI.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 data class SubscriptionDto(
     val id: Long = 0,
     val siteUserId: Long = 0,

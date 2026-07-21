@@ -9,6 +9,11 @@ import java.io.Serializable
 import java.text.SimpleDateFormat
 import java.util.*
 
+/**
+ * DTO для publication: сериализуемое представление для API/UI.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 data class PublicationDTO(
     val id: Int?,
     val publishDate: String?,
@@ -42,6 +47,11 @@ data class PublicationDTO(
     val publish23text: String,
 )
 
+/**
+ * Класс Publication.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 class Publication(
     val database: KaraokeConnection = WORKING_DATABASE,
 ) : Serializable,

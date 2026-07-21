@@ -35,6 +35,12 @@ import java.sql.Timestamp
  * готовых стемов — не редирект на публичный MinIO URL (как /api/public/picture), а стрим ЧЕРЕЗ
  * приложение: содержимое приватное (чужой аудиофайл пользователя), должно оставаться за авторизацией.
  */
+
+/**
+ * Контроллер (HTTP/WebSocket endpoints) для public stem job .
+ *
+ * @see AGENTS.md
+ */
 @RestController
 @RequestMapping("/api/public/account/stemjobs")
 class PublicStemJobController(

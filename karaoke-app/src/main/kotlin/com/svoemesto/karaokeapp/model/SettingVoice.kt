@@ -4,6 +4,11 @@ import com.svoemesto.karaokeapp.Karaoke
 import com.svoemesto.karaokeapp.convertMillisecondsToTimecode
 import java.io.Serializable
 
+/**
+ * Класс Setting Voice.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 data class SettingVoice(
     val rootId: Long,
 //    var lines: List<SettingVoiceLine>

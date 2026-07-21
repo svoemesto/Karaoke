@@ -4,6 +4,11 @@ import com.svoemesto.karaokeapp.HealthReportDTO
 import java.io.Serializable
 import java.util.*
 
+/**
+ * Класс Settings DT Odigest.
+ *
+ * @see docs/features/mlt-generator.md
+ */
 data class SettingsDTOdigest(
     val id: Long,
     var idPrevious: Long,

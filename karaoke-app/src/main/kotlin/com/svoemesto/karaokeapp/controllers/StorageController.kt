@@ -14,6 +14,11 @@ import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.multipart.MultipartFile
 
+/**
+ * Контроллер (HTTP/WebSocket endpoints) для storage .
+ *
+ * @see AGENTS.md
+ */
 @RestController
 @RequestMapping("/api/storage")
 class StorageController(

@@ -11,6 +11,11 @@ import java.io.File
 import java.nio.file.Path
 import java.sql.Timestamp
 
+/**
+ * Класс Sponsr Sync Result.
+ *
+ * @see docs/features/async-process-queue.md
+ */
 data class SponsrSyncResult(
     val ok: Boolean,
     val foundIdentifiers: Int,
@@ -34,6 +39,12 @@ data class SponsrSyncResult(
  * (SiteUser.sponsrUid, привязка на сайте). На каждого найденного активного подписчика —
  * sponsr_premium_until = now + sponsrSyncWindowDays (скользящее окно; выпал из списка Sponsr в
  * следующий раз — лапснется само по истечении окна, без явного удаления/сброса).
+ */
+
+/**
+ * Singleton-объект Sponsr Sync Service.
+ *
+ * @see docs/features/async-process-queue.md
  */
 object SponsrSyncService {
     private val EMAIL_REGEX = Regex("""[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}""")

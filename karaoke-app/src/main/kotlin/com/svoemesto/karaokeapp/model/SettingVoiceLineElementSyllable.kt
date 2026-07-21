@@ -4,6 +4,11 @@ import com.svoemesto.karaokeapp.*
 import com.svoemesto.karaokeapp.mlt.MltText
 import java.io.Serializable
 
+/**
+ * Класс Setting Voice Line Element Syllable.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 data class SettingVoiceLineElementSyllable(
     val rootId: Long,
     val text: String,

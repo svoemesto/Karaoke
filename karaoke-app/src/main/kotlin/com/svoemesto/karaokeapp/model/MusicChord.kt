@@ -3,6 +3,11 @@ package com.svoemesto.karaokeapp.model
 import java.io.Serializable
 import kotlin.math.absoluteValue
 
+/**
+ * Перечисление возможных значений для music chord.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 enum class MusicChord(
     val text: String,
     val names: List<String>,
@@ -798,6 +803,11 @@ enum class MusicChord(
     }
 }
 
+/**
+ * Класс Fingerboard.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 data class Fingerboard(
     val guitarString: GuitarString,
     val rootFret: Int,

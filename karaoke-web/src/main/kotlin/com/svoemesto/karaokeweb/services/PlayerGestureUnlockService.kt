@@ -13,6 +13,12 @@ import java.util.concurrent.ConcurrentHashMap
  * Состояние не пишется в БД намеренно: это чисто сессионный артефакт, не участвующий в
  * синхронизации LOCAL/SERVER и не оседающий в бэкапах/дампах.
  */
+
+/**
+ * Сервис для player gesture unlock .
+ *
+ * @see docs/features/async-process-queue.md
+ */
 @Service
 class PlayerGestureUnlockService {
     private data class ClickBucket(

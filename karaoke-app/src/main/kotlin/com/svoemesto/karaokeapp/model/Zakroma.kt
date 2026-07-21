@@ -6,6 +6,11 @@ import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.StorageApiClient
 import java.io.Serializable
 
+/**
+ * Класс Zakroma.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 class Zakroma(
     val database: KaraokeConnection,
 ) : Serializable,
@@ -121,6 +126,11 @@ class Zakroma(
     override fun compareTo(other: Zakroma): Int = author.compareTo(other.author)
 }
 
+/**
+ * Класс Zakroma Album Settings.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 class ZakromaAlbumSettings :
     Serializable,
     Comparable<ZakromaAlbumSettings> {
@@ -163,6 +173,11 @@ class ZakromaAlbumSettings :
     }
 }
 
+/**
+ * Класс Zakroma Album.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 class ZakromaAlbum :
     Serializable,
     Comparable<ZakromaAlbum> {

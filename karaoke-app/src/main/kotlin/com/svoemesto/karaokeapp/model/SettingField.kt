@@ -2,6 +2,11 @@ package com.svoemesto.karaokeapp.model
 
 import java.io.Serializable
 
+/**
+ * Перечисление возможных значений для setting field.
+ *
+ * @see docs/features/mlt-generator.md
+ */
 enum class SettingField : Serializable {
     ID,
     NAME,

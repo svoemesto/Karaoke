@@ -44,6 +44,12 @@ import java.sql.Timestamp
 //    задание, живущее на remote, не показывало пользователю отказ и блокировало дальнейшее редактирование).
 //  - approve — читает черновик из target (обычно remote, если работа шла там), но ПРИМЕНЯЕТ разметку в
 //    tbl_settings и статус задания ВСЕГДА в LOCAL — только здесь есть локальный диск для .srt/рендера.
+
+/**
+ * Контроллер (HTTP/WebSocket endpoints) для song editor .
+ *
+ * @see AGENTS.md
+ */
 @Controller
 @RequestMapping("/api/songeditor")
 class SongEditorController(

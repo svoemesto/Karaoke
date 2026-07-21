@@ -10,6 +10,12 @@ import org.springframework.stereotype.Service
 // обращением в никуда. tbl_public_settings, напротив, лежит в той же Postgres, к которой
 // karaoke-web и так подключён через WORKING_DATABASE (на сервере это сервер­ная БД, локально —
 // локальная), поэтому читаем настройки прямым JDBC-запросом.
+
+/**
+ * Сервис для captcha config .
+ *
+ * @see docs/features/async-process-queue.md
+ */
 @Service
 class CaptchaConfigService {
     private data class CachedKeys(

@@ -3,6 +3,11 @@ package com.svoemesto.karaokeapp.model
 import com.svoemesto.karaokeapp.HealthReportDTO
 import com.svoemesto.karaokeapp.monitor.MonitorAlertDto
 
+/**
+ * Класс Sse Notification.
+ *
+ * @see docs/features/sse-notifications.md
+ */
 data class SseNotification(
     val type: SseNotificationType,
     val data: Any,

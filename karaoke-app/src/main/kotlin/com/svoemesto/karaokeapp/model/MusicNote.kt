@@ -2,6 +2,11 @@ package com.svoemesto.karaokeapp.model
 
 import java.io.Serializable
 
+/**
+ * Перечисление возможных значений для music note.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 enum class MusicNote(
     val text: String,
     val names: List<String>,
@@ -95,6 +100,11 @@ enum class MusicNote(
     }
 }
 
+/**
+ * Класс Note Octave Fret.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 data class NoteOctaveFret(
     val musicNote: MusicNote,
     val octave: Int,

@@ -12,12 +12,22 @@ import java.io.Serializable
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
+/**
+ * Класс Notification.
+ *
+ * @see docs/features/async-process-queue.md
+ */
 class Notification<out T>(
     @Suppress("unused") val userId: Long,
     @Suppress("unused") val payload: T? = null,
     val timestamp: Long = System.currentTimeMillis(),
 ) : Serializable
 
+/**
+ * Класс User Key.
+ *
+ * @see docs/features/async-process-queue.md
+ */
 data class UserKey(
     val userId: Long,
     val browserTabId: String,
@@ -26,6 +36,12 @@ data class UserKey(
 // Контекст id вкладки браузера, инициировавшей текущий HTTP-запрос (см. TabIdFilter). Заполняется
 // фильтром на входе запроса и обязательно очищается в finally - иначе на переиспользуемом потоке
 // пула значение "протечёт" в следующий, не связанный с этой вкладкой запрос.
+
+/**
+ * Singleton-объект Tab Id Context.
+ *
+ * @see docs/features/async-process-queue.md
+ */
 object TabIdContext {
     private val tl = ThreadLocal<String?>()
 
@@ -68,6 +84,12 @@ object TabIdContext {
  * @see docs/features/sse-notifications.md
  * @see TabIdContext ThreadLocal с tabId текущего запроса
  * @see SseController REST-эндпоинт `/api/subscribe`
+ */
+
+/**
+ * Сервис для sse notification .
+ *
+ * @see docs/features/sse-notifications.md
  */
 @Service
 class SseNotificationService(

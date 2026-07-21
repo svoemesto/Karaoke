@@ -6,6 +6,12 @@ import java.sql.Timestamp
 // tbl_song_assignments — пишет админ; user_status в tbl_song_assignment_drafts — пишет пользователь),
 // а UI показывает единый статус. resolve() детерминированно выводит его из пары + временных меток —
 // без общей на запись колонки, что критично для sync (см. 10_song_assignments.sql).
+
+/**
+ * Перечисление возможных значений для song assignment status.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 enum class SongAssignmentStatus(
     val dbValue: String,
 ) {

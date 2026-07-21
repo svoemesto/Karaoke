@@ -10,6 +10,11 @@ import com.svoemesto.karaokeapp.model.MltNodeBuilder
 import com.svoemesto.karaokeapp.model.ProducerType
 import com.svoemesto.karaokeapp.model.childs
 
+/**
+ * Класс Mko Element.
+ *
+ * @see docs/features/mlt-generator.md
+ */
 data class MkoElement(
     val mltProp: MltProp,
     val type: ProducerType = ProducerType.ELEMENT,

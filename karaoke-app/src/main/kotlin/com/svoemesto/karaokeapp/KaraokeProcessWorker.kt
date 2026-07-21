@@ -53,6 +53,12 @@ import javax.net.ssl.HttpsURLConnection
  * @see KaraokeProcessWorker главный воркер, создаёт и запускает потоки
  * @see KaraokeProcess модель задания
  */
+
+/**
+ * Класс Karaoke Process Thread.
+ *
+ * @see docs/features/async-process-queue.md
+ */
 class KaraokeProcessThread(
     val karaokeProcess: KaraokeProcess? = null,
     var percentage: String? = null,
@@ -393,6 +399,12 @@ class KaraokeProcessThread(
  * @see KaraokeProcessThread обёртка subprocess
  * @see KaraokeProcess модель задания
  * @see KaraokeProcessTypes типы заданий
+ */
+
+/**
+ * Класс Karaoke Process Worker.
+ *
+ * @see docs/features/async-process-queue.md
  */
 @Component
 class KaraokeProcessWorker {

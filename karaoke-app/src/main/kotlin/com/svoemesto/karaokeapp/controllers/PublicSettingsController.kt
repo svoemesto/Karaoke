@@ -8,6 +8,11 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.ResponseBody
 
+/**
+ * DTO для public setting: сериализуемое представление для API/UI.
+ *
+ * @see AGENTS.md
+ */
 data class PublicSettingDto(
     val key: String,
     val value: String,
@@ -19,6 +24,12 @@ data class PublicSettingDto(
 // ~150 файловых настроек KaraokeProperties (локальный файл, есть только на машине администратора —
 // karaoke-app на сервере не разворачивается), эта таблица в Postgres, поэтому доступна и
 // локально, и на сервере через тот же паттерн target=local|remote, что и SiteUsersController.
+
+/**
+ * Контроллер (HTTP/WebSocket endpoints) для public settings .
+ *
+ * @see AGENTS.md
+ */
 @Controller
 @RequestMapping("/api/publicsettings")
 class PublicSettingsController {

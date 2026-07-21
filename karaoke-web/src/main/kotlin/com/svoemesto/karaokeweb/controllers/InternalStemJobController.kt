@@ -24,6 +24,12 @@ import java.io.File
  * удалить. Best-effort: если этот запрос не дойдёт, temp-файл всё равно зачистится по TTL
  * (см. StemJobTempCleanupScheduler).
  */
+
+/**
+ * Контроллер (HTTP/WebSocket endpoints) для internal stem job .
+ *
+ * @see AGENTS.md
+ */
 @RestController
 @RequestMapping("/api/internal/stemjobs")
 class InternalStemJobController(

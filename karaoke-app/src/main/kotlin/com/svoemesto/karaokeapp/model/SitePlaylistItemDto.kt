@@ -5,6 +5,12 @@ import java.io.Serializable
 
 // Булево поле muted — без префикса `is` (Jackson bean convention, см. SitePlaylistDto). Поля
 // songName/author/album/year — не БД-поля, заполняются контроллером (метаданные песни для UI).
+
+/**
+ * DTO для site playlist item: сериализуемое представление для API/UI.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 data class SitePlaylistItemDto(
     val id: Long = 0,
     val playlistId: Long = 0,

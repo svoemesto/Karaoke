@@ -6,6 +6,12 @@ import java.io.Serializable
 // стихи = только вокал без музыки). Хранится в tbl_settings.song_type в lowercase-форме dbValue.
 // Значение по умолчанию — SONG (dbValue "song") — применяется для всех существующих песен
 // через DEFAULT в миграции БД; новые песни тоже получают это значение по умолчанию.
+
+/**
+ * Перечисление возможных значений для song type.
+ *
+ * @see docs/features/mlt-generator.md
+ */
 @Suppress("unused")
 enum class SongType(
     val dbValue: String,

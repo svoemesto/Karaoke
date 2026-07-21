@@ -9,7 +9,7 @@ import java.util.*
 import javax.imageio.ImageIO
 
 /**
- * Класс Mko Fingerboard.
+ * Producer для грифа гитары внизу кадра. Создаёт MLT-блоки для отображения позиций аккордов на грифе в текущий момент времени.
  *
  * @see docs/features/mlt-generator.md
  */

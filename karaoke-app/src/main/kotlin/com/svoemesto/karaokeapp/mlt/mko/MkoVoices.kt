@@ -10,7 +10,7 @@ import com.svoemesto.karaokeapp.model.ProducerType
 import com.svoemesto.karaokeapp.model.TransformProperty
 
 /**
- * Класс Mko Voices.
+ * Обёртка для всех голосов песни (multitrack). Создаёт родительский `<multitrack>`-узел с голосами как вложенными `<playlist>`.
  *
  * @see docs/features/mlt-generator.md
  */

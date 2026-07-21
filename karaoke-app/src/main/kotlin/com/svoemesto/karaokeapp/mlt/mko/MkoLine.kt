@@ -10,7 +10,7 @@ import com.svoemesto.karaokeapp.model.MltNodeBuilder
 import com.svoemesto.karaokeapp.model.ProducerType
 
 /**
- * Класс Mko Line.
+ * Producer для одной строки текста песни. Содержит слоги с таймингами. Создаёт MLT-блоки для отображения текста с karaoke-подсветкой.
  *
  * @see docs/features/mlt-generator.md
  */

@@ -7,7 +7,7 @@ import com.svoemesto.karaokeapp.mlt.mltNode
 import com.svoemesto.karaokeapp.model.*
 
 /**
- * Класс Mko Melody Note.
+ * Producer для одной ноты мелодии (знак ноты на грифе + лейбл). Создаёт MLT-блоки для отображения позиции ноты в текущий момент времени.
  *
  * @see docs/features/mlt-generator.md
  */

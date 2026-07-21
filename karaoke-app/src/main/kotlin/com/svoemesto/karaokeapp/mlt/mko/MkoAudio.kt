@@ -8,7 +8,7 @@ import com.svoemesto.karaokeapp.model.ProducerType
 import com.svoemesto.karaokeapp.model.PropertiesMltNodeBuilder
 
 /**
- * Класс Mko Audio.
+ * Producer для аудио-слоя (vocals/accompaniment/mix/source) в karaoke-видео. Создаёт MLT-блоки для загрузки FLAC-стемов и их синхронизации с таймлайном.
  *
  * @see docs/features/mlt-generator.md
  */

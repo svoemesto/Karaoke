@@ -20,6 +20,8 @@
 | 7 | `llm-lyrics-search` | LLM-assisted поиск текстов и аккордов | [llm-lyrics-search.md](./llm-lyrics-search.md) |
 | 8 | `telegram-auto-publish` | Автопубликация в Telegram-канал | [telegram-auto-publish.md](./telegram-auto-publish.md) |
 | 9 | `monitoring` | Мониторинг ключевых моментов | [monitoring.md](./monitoring.md) |
+| 10 | `dictionaries` | Словари (DB + TextFile) для lyrics | [dictionaries.md](./dictionaries.md) |
+| 11 | `stats` | Статистика (главная + события + KPI) | [stats.md](./stats.md) |
 
 ## Cross-cutting (инфраструктура)
 

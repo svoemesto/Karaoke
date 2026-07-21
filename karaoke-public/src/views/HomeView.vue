@@ -149,11 +149,20 @@ const socialLinks = [
 ]
 
 /**
- * Компонент «vkgroup».
+ * Главная публичной части сайта: список «новых песен» / «в эфире» / «по подписке».
+ *
+ * Функционал:
+ * - **Featured carousel**: превью нескольких песен (cover + title + author).
+ * - **Группы соцсетей**: VK-паблик, Telegram-канал, Boosty, Sponsr —
+ *   при клике открывает соответствующую ссылку.
+ * - **Подписка**: «Оформить подписку» (если не авторизован → modal login).
+ *
+ * Использует `StatBySong.getCountSongsCollection/OnAir/Exclusive` через
+ * `/api/public/stats` (кеш в `StatsCacheScheduler`, см. `monitoring.md`).
  *
  * @see AGENTS.md
+ * @see docs/features/monitoring.md (счётчики)
  */
-
 export default {
   name: 'HomeView',
   components: { SvgIcon, AuthStatusWidget },

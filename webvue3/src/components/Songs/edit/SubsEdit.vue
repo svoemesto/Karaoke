@@ -1077,7 +1077,19 @@ import SearchText from './SearchText.vue'
 // import ZoomPlugin from 'wavesurfer.js/dist/plugins/zoom.esm.js'
 // import { isStringContainThisSymbols } from '@/lib/utils'
 /**
- * Форма редактирования subs.
+ * Inline-редактор текста песни с поддержкой аккордов и меток.
+ *
+ * Содержит:
+ * - **Список строк** (`SettingVoiceLine`) с возможностью drag-and-drop
+ *   перестановки.
+ * - **Inline-редактор каждой строки** (текст, аккорды, ноты, комментарии).
+ * - **Массовые операции**: split-merge, удаление, дублирование.
+ * - **Подсветка ошибок** (синтаксис разметки текста/аккордов).
+ *
+ * Двухсторонний биндинг с `Settings.subsText` / `Settings.chordsText`
+ * через `SettingVoiceLine.parseFromText` / `serializeToText`.
+ *
+ * Используется в `SongEdit.vue` (вкладка «Текст»).
  *
  * @see docs/features/mlt-generator.md
  */

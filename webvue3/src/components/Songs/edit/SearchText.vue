@@ -79,11 +79,22 @@ import CustomConfirm from '../../Common/CustomConfirm.vue'
 import SearchTextResultsTable from './SearchTextResultsTable.vue'
 
 /**
- * Компонент «Search Text».
+ * UI для LLM-поиска текста песни и аккордов.
  *
+ * Workflow:
+ * 1. Пользователь нажимает «Найти текст» или «Найти аккорды».
+ * 2. POST `/api/llm/findLyrics` или `/findChords` с параметрами песни.
+ * 3. Backend `LyricsFinderService` ищет 5-10 кандидатов через
+ *    `SearchTool` (Google/Bing) и парсит через `ScraperAgent` (LLM).
+ * 4. UI показывает превью результатов, пользователь выбирает лучший.
+ * 5. Применение → `Settings.subsText` / `Settings.chordsText` сохраняется.
+ *
+ * Использует SSE для live-обновления прогресса поиска (статус задачи).
+ *
+ * @emits apply-text - текст применён (`{ text: string }`)
+ * @emits apply-chords - аккорды применены (`{ chords: string }`)
  * @see docs/features/llm-lyrics-search.md
  */
-
 export default {
   name: 'SearchText',
   components: {

@@ -121,11 +121,28 @@ const CHAT_UNREAD_POLL_INTERVAL_MS = 20000
 const SONGEDITOR_SUBMITTED_POLL_INTERVAL_MS = 20000
 
 /**
- * Корневой компонент приложения.
+ * Корневой компонент админ-SPA (Vue 3 + Bootstrap-vue-next + Vuex).
+ *
+ * Отвечает за:
+ * - **Layout**: левая навигация (sidebar) + основной контейнер для `router-view`.
+ * - **SSE-подключение**: `connectSse()` к `EventSourcePolyfill` (HTTP-Streaming
+ *   fallback для прокси, которые не поддерживают `text/event-stream`),
+ *   авто-reconnect с экспоненциальной задержкой (`SSE_RECONNECT_DELAY_MS`).
+ *   Получает события типов `RECORD_CHANGE`, `RECORD_ADD`, `RECORD_DELETE`,
+ *   `CRUD`, `SYNC`, `HEALTH_REPORTS`, `MONITOR_ALERTS`, `PROCESS_*`.
+ * - **Навигация-гард**: для роутов `/player` используется отдельный
+ *   `router-view` (полноэкранный плеер), для остальных — основной layout.
+ * - **Глобальные bootstrap-данные**: подгружает `PropertiesStore`,
+ *   `SiteUserStore` (авторизация), `StatsStore` (бейджи) при старте.
+ *
+ * Использует Vuex-модули:
+ * - `auth` — текущий пользователь, логин/логаут.
+ * - `chat` — непрочитанные сообщения чата.
+ *
+ * SSE-конфигурация: `KaraokeEventStreamer` (см. backend `SseNotificationService`).
  *
  * @see AGENTS.md
  */
-
 export default {
   data() {
     return {

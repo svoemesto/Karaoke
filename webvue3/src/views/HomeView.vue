@@ -131,7 +131,18 @@ import CustomConfirm from '../components/Common/CustomConfirm.vue'
 import FileExplorerModal from '../components/Common/FileExplorer/FileExplorerModal.vue'
 // import { useFileDialog } from '@vueuse/core'
 /**
- * View-страница «Home» — основной layout и data-fetching.
+ * Главная страница админ-SPA: «добавить файлы из папки».
+ *
+ * Функционал:
+ * - **Поле пути**: `pathToFolder` (ввод + `FileExplorerModal` для выбора).
+ * - **Добавление файлов**: «Добавить файлы из папки» — POST
+ *   `/api/song/addFilesFromFolder` с путём.
+ * - **Создание Dzen-картинок**: «Создать картинки плейлистов Dzen для папки» —
+ *   рендер PNG-картинок альбома для публикации в Dzen (см. `Pictures.kt`).
+ * - **Подсказки**: `<datalist>` для автодополнения имён авторов/словарей
+ *   (берутся из Settings/Dictionaries через `songAuthors` / `dicts` computed).
+ *
+ * Использует `CustomConfirm` и `FileExplorerModal`.
  *
  * @see AGENTS.md
  */

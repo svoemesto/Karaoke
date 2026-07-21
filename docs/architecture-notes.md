@@ -11,13 +11,15 @@
 > - [`DEVELOPMENT.md`](./DEVELOPMENT.md) — durable-карта архитектуры.
 > - [`AGENTS.md`](../AGENTS.md) — инструкции для AI-агента.
 > - [`docs/features/<slug>.md`](./features/) — per-feature документы.
+> - [`docs/onboarding.md`](./onboarding.md) — setup новой машины.
+> - [`docs/claude-code-setup.md`](./claude-code-setup.md) — настройка Claude Code.
 
 ---
 
 ## 2026-07 — Phase 001: Code Standards & Documentation
 
 > **Цель фазы.** Привести проект в состояние «production-grade» по качеству
-> кода, документации и CI. 14 PR, 548 файлов, +57217/−27869 строк.
+> кода, документации и CI. 15 PR (#12-#26), 548 файлов, +57217/−27869 строк.
 > Все коммиты прошли CI (7/7 jobs PASS) на момент мержа.
 
 ### 2026-07-20 — PR #12: `001-code-standards-docs` (`221b2d1`)
@@ -227,67 +229,158 @@ substitution. Решение: Python-скрипт с dict'ом описаний.
 
 ---
 
-## Метрики
+### 2026-07-21 — PR #26: `015-architecture-notes` (`64d4d89`)
 
-| Метрика | До Phase 001 | После Phase 001 |
-|---------|--------------|-----------------|
-| ktlint baseline | 30612 | **0** |
-| ESLint baseline | 436 | **0** |
-| KDoc coverage | 0% | **100%** (356/356) |
-| JSDoc coverage | 0% | **100%** (165/165) |
-| Качественный KDoc | 0 классов | **89+ классов** |
-| Per-feature документы | 0 | **11 + 1** |
-| Документация | 1 файл (DEVELOPMENT.md) | **4 файла** (DEPLOYMENT, DATABASE, PUBLIC-MODULES, INVARIANTS) + 12 per-feature |
-| CI jobs | 0 | **7 jobs** (все enforced) |
+**Что.** Создан [`docs/architecture-notes.md`](./architecture-notes.md) (268
+строк) — датированный changelog по PR #12-#25. Фокус — «что изменилось
+и почему», без пересказа деталей реализации.
 
-## Принципы, зафиксированные в Phase 001
-
-1. **Baseline = 0** — единственное «правильное» состояние. Техдолг по
-   лит-правилам не копится.
-2. **100% coverage = baseline, не цель.** Качественные KDoc/JSDoc — это
-   ручная работа поверх coverage.
-3. **CI enforced** — лит-проверки, coverage, baseline stats.
-   `informational` jobs (kdoc-coverage, jsdoc-coverage) дают метрики,
-   но не блокируют merge.
-4. **Per-feature документы** обязательны для каждой продуктовой фичи
-   (FR-009 spec.md).
-5. **KDoc/JSDoc выше всех аннотаций** (`@Service`/`@Component`),
-   а не между ними и class — иначе ktlint ругается.
-6. **Backticks в KDoc** могут сломать парсер — заменять на «пакет mko»,
-   «файлы mko», «multitrack», «playlist» без backticks.
-7. **Wildcard imports** разрешены (правило `no-wildcard-imports` отключено
-   в `.editorconfig` как не-autofixable).
-
-## Следующие фазы
-
-- **Phase 002**: продуктовая фича (по согласованию).
-- **Phase 003**: TBD (после Phase 002).
+**Зачем.** Раньше детальная история жила в `DEVELOPMENT.md` (686 строк) —
+нечитаемо. Разделили: durable-карта в `DEVELOPMENT.md`, история в
+`architecture-notes.md`.
 
 ---
 
-*Последнее обновление: 2026-07-21. Следующий changelog — после PR #26.*
+## 2026-07 — Phase 002: Developer Experience & Cross-Machine Setup
+
+> **Цель фазы.** Сделать проект удобным для **нескольких разработчиков**
+> с **разными AI-агентами** (opencode / Claude Code / Cursor / другие).
+> 4 PR (#27-#30), +530 строк, 0 production-кода — только tooling и docs.
+
+### 2026-07-21 — PR #27: `016-git-blame-ignore` (`22bfaae`)
+
+**Что.**
+- `.git-blame-ignore-revs` (1526 байт) — 7 шумных коммитов Phase 001.
+- `.gitattributes` — line endings (LF для всех текстов) + binary files.
+
+**Зачем.** `git blame` показывал авторов prettier/baseline/авто-KDoc
+вместо авторов оригинальных строк. После настройки
+`git config blame.ignoreRevsFile .git-blame-ignore-revs` blame
+показывает оригинальных авторов.
+
+**Уроки.** `.gitattributes` с `* text=auto eol=lf` нормализует line
+endings на Windows (CRLF → LF при commit) — без этого `git diff`
+показывает «всё изменилось» в каждом PR.
 
 ---
 
-## 2026-07-21 — PR #29: `017-onboarding-docs` follow-up (`018-claude-md-fix`)
+### 2026-07-21 — PR #28: `017-onboarding-docs` (`a710ed0`)
 
-**Что.** Hotfix: revert `CLAUDE.md` (46 строк) + создание
-`docs/claude-code-setup.md` (190 строк) + обновление `docs/onboarding.md`.
+**Что.** Создан [`docs/onboarding.md`](./onboarding.md) (271 строка) —
+чеклист из 8 шагов для нового разработчика (с любым AI-агентом):
+1. Установить зависимости.
+2. Клонировать + настроить git.
+3. Прочитать ключевые документы.
+4. Настроить AI-агента.
+5. Pre-commit хуки.
+6. Собрать проект.
+7. Проверить CI.
+8. Создать первый PR.
 
-**Зачем.** В PR #28 (`docs: add onboarding.md + update CLAUDE.md`) я
-закоммитил свою версию `CLAUDE.md` (78 строк) в master. На другой машине
-у разработчика уже есть **локальный** `CLAUDE.md` (не в гите). При
-`git pull` он получит merge conflict и потеряет свою работу.
+**Ловушка #4 (ОБНАРУЖЕНА ПОЗЖЕ).** Я также закоммитил свою версию
+`CLAUDE.md` (78 строк) в master, перезаписав оригинальную (46 строк).
+На другой машине у разработчика с Claude Code уже был локальный
+`CLAUDE.md` (не в гите) — `git pull` дал бы merge conflict.
 
-**Решение.**
-- `CLAUDE.md` в репо — оригинальный 46-строчный файл.
-- Разработчик с Claude Code создаёт **локальный** `CLAUDE.md` в корне
-  (НЕ в гите, добавить в `.git/info/exclude`).
-- Шаблон и подробная инструкция — в `docs/claude-code-setup.md`.
+---
+
+### 2026-07-21 — PR #29: `018-claude-md-fix` (`19c6b8e`) — hotfix
+
+**Что.**
+- **Revert `CLAUDE.md`** к состоянию до PR #28 (46 строк, baseline).
+- Создан [`docs/claude-code-setup.md`](./claude-code-setup.md) (190 строк)
+  — инструкция + шаблон для локального `CLAUDE.md`.
+- Обновлён `docs/onboarding.md` — явно про локальный `CLAUDE.md`.
+
+**Зачем.** Hotfix после ловушки #4.
+
+**Решение для разработчика с Claude Code:**
+```bash
+echo "CLAUDE.md" >> .git/info/exclude
+cp <template> ./CLAUDE.md   # локально, НЕ коммитить
+```
 
 **Уроки.**
 - **Персональные AI-конфиги** (`CLAUDE.md`, `.cursorrules`, `AGENTS.md.local`)
-  никогда не коммитить в общий репо. Каждый разработчик имеет свой стиль.
-- **В onboarding/onboarding.md** явно прописывать, что для Claude Code
-  нужно создать локальный файл + исключить его из git.
+  **никогда не коммитить** в общий репо. Каждый разработчик имеет свой стиль.
+- **В onboarding.md** явно прописывать про локальный `CLAUDE.md`.
 - **Revert + новый документ** лучше, чем force-push: история сохраняется.
+
+---
+
+### 2026-07-21 — PR #30: `019-claude-faq-agents-update` (`a02ae83`)
+
+**Что.**
+- Pass 9.2: [`docs/claude-code-setup.md`](./claude-code-setup.md) расширен
+  FAQ-секцией (197 → 350 строк, 14 Q&A).
+- Pass 10: [`AGENTS.md`](../AGENTS.md) — добавлены 2 секции:
+  - «Документация и иерархия» — таблица 9 уровней приоритетов.
+  - «Где правила для разных AI-агентов» — таблица 5 агентов.
+
+**14 Q&A** покрывают:
+- Claude Code не подхватывает `CLAUDE.md`.
+- Merge conflict в `CLAUDE.md` при `git pull`.
+- Claude Code игнорирует инструкции (слишком длинный файл).
+- Claude Code не знает проект (как заставить читать `AGENTS.md`).
+- `.claude/rules.md` с `@import` для автоподключения.
+- «Proactive mode» — как отключить непрошеные изменения.
+- npm install упал / Docker не стартует / pre-commit падает.
+- VS Code + Claude Code.
+- Где хранить API-ключи.
+
+**Принцип иерархии документации** (9 уровней):
+1. `constitution.md` (макс) — NON-NEGOTIABLE
+2. `AGENTS.md` — opencode правила
+3. `docs/onboarding.md` — setup
+4. `CLAUDE.md` (локально) — Claude Code персональные
+5. `docs/claude-code-setup.md` — Claude Code шаблон
+6. `DEVELOPMENT.md` — архитектура
+7. `CONTRIBUTING.md` — стиль кода
+8. `docs/architecture-notes.md` — changelog
+9. `docs/features/<slug>.md` — per-feature
+
+---
+
+## Метрики
+
+| Метрика | До Phase 001 | После Phase 001 | После Phase 002 |
+|---------|--------------|-----------------|-----------------|
+| PR в master | — | 15 | **19** |
+| ktlint baseline | 30612 | **0** | **0** |
+| ESLint baseline | 436 | **0** | **0** |
+| KDoc coverage | 0% | **100%** (356/356) | **100%** |
+| JSDoc coverage | 0% | **100%** (165/165) | **100%** |
+| Качественный KDoc | 0 классов | **89+ классов** | **89+** |
+| Per-feature документы | 0 | **11 + 1** | **11 + 1** |
+| Документы в `docs/` | 1 (DEVELOPMENT.md) | **6** + 12 per-feature | **8** + 12 per-feature |
+| CI jobs | 0 | **7** | **7** |
+| Production-код | baseline | +57217/−27869 в 548 файлах | (без изменений) |
+| Tooling/docs | 0 | — | +530 строк в 4 PR |
+
+## Принципы, зафиксированные в Phase 001+002
+
+### Phase 001 (качество кода)
+1. **Baseline = 0** — единственное «правильное» состояние.
+2. **100% coverage = baseline, не цель.** Качественные KDoc/JSDoc — ручная работа.
+3. **CI enforced** — лит, coverage, baseline stats. 7 jobs.
+4. **Per-feature документы** обязательны (FR-009).
+5. **KDoc/JSDoc выше всех аннотаций** (`@Service`/`@Component`).
+6. **Backticks в KDoc** могут сломать парсер.
+7. **Wildcard imports** разрешены (правило отключено в `.editorconfig`).
+
+### Phase 002 (developer experience)
+8. **Общие правила — в гите**, персональные — локально.
+9. **CLAUDE.md / .cursorrules НЕ коммитить** в общий репо.
+10. **Иерархия документации — 9 уровней** (см. AGENTS.md).
+11. **Revert лучше, чем force-push** — история сохраняется.
+12. **Per-developer tooling** (`.git/info/exclude`, `~/.gitignore_global`)
+    для исключения локальных файлов.
+
+## Следующие фазы
+
+- **Phase 003**: продуктовая фича (по согласованию).
+- **Phase 004**: TBD (после Phase 003).
+
+---
+
+*Последнее обновление: 2026-07-21 (Pass 14, 19 PR в master).*

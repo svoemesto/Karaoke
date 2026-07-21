@@ -7,7 +7,15 @@ import java.io.File
 import javax.imageio.ImageIO
 
 /**
- * Класс Picture.
+ * Одна картинка из MinIO (cover/album/author).
+ *
+ * Хранит:
+ * - `id`, `pictureFileName` — идентификаторы.
+ * - `pictureAuthor`, `pictureAlbum` — внешние ссылки на `Pictures.kt`
+ *   (для отображения в UI).
+ * - `pictureFull` — base64-данные (НЕ загружаются в `loadList`).
+ * - `picturePreviewUrl` / `pictureFullUrl` — публичные URLs
+ *   (presigned MinIO, см. `KaraokeStorageService.upload`).
  *
  * @see docs/features/dual-db-sync.md
  */

@@ -335,7 +335,7 @@ export default {
           periodEnd: result.periodEnd,
           smartCopyPathPrefix: result.smartCopyPathPrefix,
         })
-        .then((data) => {
+        .then((_data) => {
           this.customConfirmParams = {
             isAlert: true,
             alertType: 'info',

@@ -82,7 +82,7 @@ export default {
         delete state.workingProcessByThreadId[threadId]
       }
     },
-    addProcessByUserEvent(state, userEventData) {
+    addProcessByUserEvent(_state, _userEventData) {
       // console.log('mutations addProcessByUserEvent from store.js ProcessesBv')
       // console.log('Событие добавления процесса: ', userEventData)
       // console.log('Процесс добавлен не будет, установлена заглушка.')

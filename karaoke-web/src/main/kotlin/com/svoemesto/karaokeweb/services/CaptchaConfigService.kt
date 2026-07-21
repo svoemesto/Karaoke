@@ -1,6 +1,7 @@
 package com.svoemesto.karaokeweb.services
 
 import com.svoemesto.karaokeweb.WORKING_DATABASE
+
 import org.springframework.stereotype.Service
 
 // Ключи Yandex SmartCaptcha живут в tbl_public_settings (Postgres), не в файловых KaraokeProperties

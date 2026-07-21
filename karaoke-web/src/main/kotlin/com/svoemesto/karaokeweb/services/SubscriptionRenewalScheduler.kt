@@ -1,10 +1,11 @@
 package com.svoemesto.karaokeweb.services
 
+import com.svoemesto.karaokeweb.WORKING_DATABASE
+
 import com.svoemesto.karaokeapp.model.SiteUser
 import com.svoemesto.karaokeapp.model.Subscription
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.StorageApiClient
-import com.svoemesto.karaokeweb.WORKING_DATABASE
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
 import java.sql.Timestamp

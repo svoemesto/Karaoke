@@ -26,7 +26,7 @@ import java.io.InputStream
  * а случайный будущий вызов упадёт громко и понятно вместо тихого обращения к недоступному MinIO.
  */
 @Service
-class KaraokeStorageServiceImpl : KaraokeStorageService {
+class WebKaraokeStorageServiceImpl : KaraokeStorageService {
     private fun nope(): Nothing =
         throw UnsupportedOperationException(
             "karaoke-web не обращается к MinIO напрямую — только через minio-proxy " +

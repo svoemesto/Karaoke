@@ -1948,7 +1948,7 @@ export default {
     songsDigests: {
       type: Array,
       required: false,
-      dafaults: [],
+      default: () => [],
     },
     publishDigest: {
       type: Array,
@@ -2243,7 +2243,7 @@ export default {
   watch: {
     diff: {
       deep: true, // КРИТИЧНО для отслеживания изменений внутри массива
-      handler(newVal) {
+      handler(_newVal) {
         if (this.diff.length !== 0 && this.autoSave) {
           clearTimeout(this.saveTimer)
           this.saveTimer = setTimeout(this.save, this.autoSaveDelayMs)

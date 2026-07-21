@@ -43,7 +43,7 @@ export default {
       }
       let request = { method: 'POST', url: '/api/song/executeHealthReportActions', params: params }
       promisedXMLHttpRequest(request)
-        .then((data) => {
+        .then((_data) => {
           this.dispatch('loadHealthReportList', item.settingsId)
         })
         .catch((error) => {
@@ -57,7 +57,7 @@ export default {
     repairAllPromise(ctx, id) {
       let request = { method: 'POST', url: '/api/song/repairAll', params: { id: id } }
       promisedXMLHttpRequest(request)
-        .then((data) => {
+        .then((_data) => {
           this.dispatch('loadHealthReportList', id)
         })
         .catch((error) => {

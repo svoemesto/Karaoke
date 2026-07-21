@@ -1,8 +1,9 @@
 package com.svoemesto.karaokeweb.controllers
 
+import com.svoemesto.karaokeweb.WORKING_DATABASE
+
 import com.svoemesto.karaokeapp.model.News
 import com.svoemesto.karaokeapp.model.NewsDto
-import com.svoemesto.karaokeweb.WORKING_DATABASE
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam

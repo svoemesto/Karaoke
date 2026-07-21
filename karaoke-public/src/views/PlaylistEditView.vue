@@ -146,7 +146,7 @@
 </template>
 
 <script>
-import { ref, reactive, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute } from 'vue-router'
 import draggable from 'vuedraggable'
 import { fetchPlayerToken } from '../services/playerLauncher'

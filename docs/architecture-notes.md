@@ -266,3 +266,28 @@ substitution. Решение: Python-скрипт с dict'ом описаний.
 ---
 
 *Последнее обновление: 2026-07-21. Следующий changelog — после PR #26.*
+
+---
+
+## 2026-07-21 — PR #29: `017-onboarding-docs` follow-up (`018-claude-md-fix`)
+
+**Что.** Hotfix: revert `CLAUDE.md` (46 строк) + создание
+`docs/claude-code-setup.md` (190 строк) + обновление `docs/onboarding.md`.
+
+**Зачем.** В PR #28 (`docs: add onboarding.md + update CLAUDE.md`) я
+закоммитил свою версию `CLAUDE.md` (78 строк) в master. На другой машине
+у разработчика уже есть **локальный** `CLAUDE.md` (не в гите). При
+`git pull` он получит merge conflict и потеряет свою работу.
+
+**Решение.**
+- `CLAUDE.md` в репо — оригинальный 46-строчный файл.
+- Разработчик с Claude Code создаёт **локальный** `CLAUDE.md` в корне
+  (НЕ в гите, добавить в `.git/info/exclude`).
+- Шаблон и подробная инструкция — в `docs/claude-code-setup.md`.
+
+**Уроки.**
+- **Персональные AI-конфиги** (`CLAUDE.md`, `.cursorrules`, `AGENTS.md.local`)
+  никогда не коммитить в общий репо. Каждый разработчик имеет свой стиль.
+- **В onboarding/onboarding.md** явно прописывать, что для Claude Code
+  нужно создать локальный файл + исключить его из git.
+- **Revert + новый документ** лучше, чем force-push: история сохраняется.

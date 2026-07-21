@@ -8,7 +8,7 @@ import com.svoemesto.karaokeapp.model.MltNodeBuilder
 import com.svoemesto.karaokeapp.model.ProducerType
 
 /**
- * Класс Mko Chord Picture Line Track.
+ * Трек для отображения всех линий аккордной картинки. Создаёт MLT-`<tractor>` с несколькими MkoChordPictureLine.
  *
  * @see docs/features/mlt-generator.md
  */

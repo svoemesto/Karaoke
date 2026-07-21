@@ -10,7 +10,7 @@ import com.svoemesto.karaokeapp.model.TransformProperty
 import com.svoemesto.karaokeapp.xmldata
 
 /**
- * Класс Mko Fader Text.
+ * Producer для фейд-эффекта на тексте (появление/исчезновение). Создаёт MLT-блоки с alpha-анимацией.
  *
  * @see docs/features/mlt-generator.md
  */

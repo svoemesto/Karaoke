@@ -12,7 +12,7 @@ import com.svoemesto.karaokeapp.model.TransformProperty
 import com.svoemesto.karaokeapp.xmldata
 
 /**
- * Класс Mko Progress.
+ * Producer для прогресс-бара внизу видео. Создаёт MLT-блоки с динамической шириной progress-bar.
  *
  * @see docs/features/mlt-generator.md
  */

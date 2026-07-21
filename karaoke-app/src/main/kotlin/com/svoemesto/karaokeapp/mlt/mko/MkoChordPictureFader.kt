@@ -11,7 +11,7 @@ import com.svoemesto.karaokeapp.model.ProducerType
 import com.svoemesto.karaokeapp.xmldata
 
 /**
- * Класс Mko Chord Picture Fader.
+ * Producer для фейд-эффекта на аккордной картинке. Создаёт MLT-блоки с alpha-анимацией появления/исчезновения.
  *
  * @see docs/features/mlt-generator.md
  */

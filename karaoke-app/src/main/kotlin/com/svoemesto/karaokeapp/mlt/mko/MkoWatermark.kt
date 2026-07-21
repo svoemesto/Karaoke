@@ -13,7 +13,7 @@ import com.svoemesto.karaokeapp.model.TransformProperty
 import com.svoemesto.karaokeapp.xmldata
 
 /**
- * Класс Mko Watermark.
+ * Producer для водяного знака («ДЕМО», «ПОДПИСКА», и т.п.) в углу видео. Создаёт полупрозрачный текстовый overlay с настраиваемой позицией.
  *
  * @see docs/features/mlt-generator.md
  */

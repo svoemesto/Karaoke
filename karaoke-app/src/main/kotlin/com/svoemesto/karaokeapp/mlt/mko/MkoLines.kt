@@ -7,7 +7,7 @@ import com.svoemesto.karaokeapp.model.MltNodeBuilder
 import com.svoemesto.karaokeapp.model.ProducerType
 
 /**
- * Класс Mko Lines.
+ * Набор строк текста с общей позицией/стилем. Содержит все MkoLine текущего голоса как вложенные элементы.
  *
  * @see docs/features/mlt-generator.md
  */

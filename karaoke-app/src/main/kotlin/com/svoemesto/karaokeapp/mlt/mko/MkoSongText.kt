@@ -10,7 +10,7 @@ import com.svoemesto.karaokeapp.model.*
 import com.svoemesto.karaokeapp.xmldata
 
 /**
- * Класс Mko Song Text.
+ * Producer для основного текста песни (все строки, синхронизированные по времени). Главный визуальный слой — отображает karaoke-текст с подсветкой текущего слога.
  *
  * @see docs/features/mlt-generator.md
  */

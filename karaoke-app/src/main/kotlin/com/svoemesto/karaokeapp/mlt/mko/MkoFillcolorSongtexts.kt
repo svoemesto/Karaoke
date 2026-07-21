@@ -7,7 +7,7 @@ import com.svoemesto.karaokeapp.model.MltNodeBuilder
 import com.svoemesto.karaokeapp.model.ProducerType
 
 /**
- * Класс Mko Fillcolor Songtexts.
+ * Producer для заливки цветом фона за текстом песни. Создаёт MLT-блоки с прямоугольником заданного цвета под текстом.
  *
  * @see docs/features/mlt-generator.md
  */

@@ -7,7 +7,7 @@ import com.svoemesto.karaokeapp.mlt.mltNode
 import com.svoemesto.karaokeapp.model.*
 
 /**
- * Класс Mko String.
+ * Одна струна грифа гитары. Создаёт MLT-блоки для горизонтальной линии струны на грифе.
  *
  * @see docs/features/mlt-generator.md
  */

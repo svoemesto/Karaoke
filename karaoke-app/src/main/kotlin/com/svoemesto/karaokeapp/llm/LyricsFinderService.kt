@@ -4,6 +4,11 @@ import org.jsoup.Jsoup
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 
+/**
+ * Сервис для lyrics finder .
+ *
+ * @see docs/features/llm-lyrics-search.md
+ */
 @Service
 class LyricsFinderService(
     private val searchTool: SearchTool,

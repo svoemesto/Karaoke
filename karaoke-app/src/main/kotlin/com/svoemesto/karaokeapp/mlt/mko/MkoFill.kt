@@ -5,6 +5,11 @@ import com.svoemesto.karaokeapp.mlt.MltGenerator
 import com.svoemesto.karaokeapp.mlt.MltProp
 import com.svoemesto.karaokeapp.model.*
 
+/**
+ * Класс Mko Fill.
+ *
+ * @see docs/features/mlt-generator.md
+ */
 data class MkoFill(
     val mltProp: MltProp,
     val type: ProducerType = ProducerType.FILL,

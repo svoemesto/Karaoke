@@ -12,6 +12,11 @@ import com.svoemesto.karaokeapp.model.ProducerType
 import com.svoemesto.karaokeapp.model.TransformProperty
 import com.svoemesto.karaokeapp.xmldata
 
+/**
+ * Класс Mko Watermark.
+ *
+ * @see docs/features/mlt-generator.md
+ */
 data class MkoWatermark(
     val mltProp: MltProp,
     val type: ProducerType,

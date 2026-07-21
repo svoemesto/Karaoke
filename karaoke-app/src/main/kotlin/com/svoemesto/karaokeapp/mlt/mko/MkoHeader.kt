@@ -9,6 +9,11 @@ import com.svoemesto.karaokeapp.model.*
 import com.svoemesto.karaokeapp.xmldata
 import java.awt.Font
 
+/**
+ * Класс Mko Header.
+ *
+ * @see docs/features/mlt-generator.md
+ */
 data class MkoHeader(
     val mltProp: MltProp,
     val type: ProducerType,

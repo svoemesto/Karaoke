@@ -9,6 +9,11 @@ import java.sql.Statement
 import java.sql.Timestamp
 import java.time.Instant
 
+/**
+ * Класс Uuids.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 class Uuids(
     var id: Int,
     var uuid: String,

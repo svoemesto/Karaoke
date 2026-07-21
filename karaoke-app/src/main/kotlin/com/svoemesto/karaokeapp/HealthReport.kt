@@ -14,6 +14,11 @@ import java.io.File
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.properties.Delegates
 
+/**
+ * Класс Health Report.
+ *
+ * @see docs/features/monitoring.md
+ */
 data class HealthReport(
     val settings: Settings,
     val description: String = "",

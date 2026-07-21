@@ -13,6 +13,11 @@ import java.sql.Statement
 import java.sql.Timestamp
 import java.time.Instant
 
+/**
+ * DTO для stat by song: сериализуемое представление для API/UI.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 data class StatBySongDto(
     val songId: Int,
     val description: String,
@@ -43,6 +48,12 @@ data class StatBySongDto(
 // Метрика "дослушали до 75% и дальше": событие progress@75 ИЛИ ended (трек автоматически >= 75%).
 // pListened = кол-во таких событий по песне; pPlayed — для контекста (сколько раз вообще нажали play);
 // доля дослушивания считается на фронте как pListened / max(pPlayed, 1).
+
+/**
+ * DTO для top listened song: сериализуемое представление для API/UI.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 data class TopListenedSongDto(
     val songId: Int,
     val description: String,
@@ -64,6 +75,12 @@ data class TopListenedSongDto(
 
 // Строка лога событий: и человекочитаемые поля (eventType/eventDescription), и ВСЕ сырые колонки
 // tbl_events — чтобы админ-таблица могла показать полный набор полей БД.
+
+/**
+ * DTO для web event: сериализуемое представление для API/UI.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 data class WebEventDto(
     val id: Long = 0,
     val eventType: String, // человекочитаемый ярлык
@@ -89,6 +106,12 @@ data class WebEventDto(
 
 // Детализация события: event_type + человекочитаемая подпись комбинации + число. eventType нужен
 // фронтенду для drill-down по клику на сегмент донат-графика «Типы событий».
+
+/**
+ * DTO для detail count: сериализуемое представление для API/UI.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 data class DetailCountDto(
     val eventType: String,
     val name: String,
@@ -96,6 +119,12 @@ data class DetailCountDto(
 )
 
 // Сводные показатели для KPI-карточек дашборда.
+
+/**
+ * DTO для stats summary: сериализуемое представление для API/UI.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 data class StatsSummaryDto(
     val totalEvents: Int,
     val uniqueVisitors: Int,
@@ -109,6 +138,12 @@ data class StatsSummaryDto(
 )
 
 // Точка временного ряда: дата (YYYY-MM-DD), опциональный тип события, число.
+
+/**
+ * DTO для time point: сериализуемое представление для API/UI.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 data class TimePointDto(
     val date: String,
     val eventType: String,
@@ -116,6 +151,12 @@ data class TimePointDto(
 )
 
 // Пара «ключ → число» для разбивок (типы событий, каналы).
+
+/**
+ * DTO для named count: сериализуемое представление для API/UI.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 data class NamedCountDto(
     val name: String,
     val count: Int,
@@ -123,6 +164,12 @@ data class NamedCountDto(
 
 // Строка топа пользователей. Булевы поля без is-префикса — иначе Jackson сериализует их как
 // "premium"/"banned" (bean convention), см. правило в DEVELOPMENT.md.
+
+/**
+ * DTO для top user: сериализуемое представление для API/UI.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 data class TopUserDto(
     val siteUserId: Long,
     val anonId: String = "", // идентификатор анонимной строки (для drill-down); у залогиненных ""

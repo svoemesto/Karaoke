@@ -11,6 +11,12 @@ import java.sql.Timestamp
 // Персистентные токены сессии сайта. Сознательно НЕ JWT — баны/logout должны действовать мгновенно,
 // а не только после истечения TTL подписанного токена. Чистый JDBC поверх tbl_site_user_tokens,
 // без reflection-машинерии KaraokeDbTable — это самая горячая таблица (на каждый защищённый запрос).
+
+/**
+ * Сервис для site user token .
+ *
+ * @see docs/features/async-process-queue.md
+ */
 @Service
 class SiteUserTokenService(
     private val storageService: KaraokeStorageService,

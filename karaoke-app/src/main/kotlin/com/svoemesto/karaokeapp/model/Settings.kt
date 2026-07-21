@@ -65,6 +65,12 @@ import kotlin.math.abs
  * @see docs/features/dual-db-sync.md (Settings — основная syncable-сущность)
  * @see docs/features/mlt-generator.md (Settings — входные данные для MLT)
  */
+
+/**
+ * Класс Settings.
+ *
+ * @see docs/features/mlt-generator.md
+ */
 @JsonIgnoreProperties(value = ["database", "storageService", "pictureAuthor", "pictureAlbum"])
 class Settings(
     override val database: KaraokeConnection = WORKING_DATABASE,

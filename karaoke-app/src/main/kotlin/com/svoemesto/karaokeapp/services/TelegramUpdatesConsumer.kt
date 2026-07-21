@@ -12,6 +12,12 @@ import java.time.Instant
 
 // Автозапуск фонового потребителя апдейтов при старте приложения (если включён в свойствах) - не зависит
 // от ручного нажатия кнопки в UI, в отличие от KaraokeProcessWorker.
+
+/**
+ * Класс Telegram Updates Consumer Starter.
+ *
+ * @see docs/features/async-process-queue.md
+ */
 @Component
 class TelegramUpdatesConsumerStarter {
     @EventListener(ApplicationReadyEvent::class)
@@ -30,6 +36,12 @@ class TelegramUpdatesConsumerStarter {
  *
  * Паттерн потока - по образцу KaraokeProcessWorker (isWork-флаг + companion start/stop), но запускается
  * в явном daemon-Thread, а не блокирует вызывающий (HTTP/event-listener) поток.
+ */
+
+/**
+ * Singleton-объект Telegram Updates Consumer.
+ *
+ * @see docs/features/async-process-queue.md
  */
 object TelegramUpdatesConsumer {
     @Volatile var isWork: Boolean = false

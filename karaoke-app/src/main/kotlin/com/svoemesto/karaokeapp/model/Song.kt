@@ -6,6 +6,11 @@ import java.io.File
 import java.io.Serializable
 import kotlin.math.absoluteValue
 
+/**
+ * Класс Song.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 data class Song(
     val settings: Settings,
     val songVersion: SongVersion,
@@ -700,6 +705,11 @@ data class Song(
     }
 }
 
+/**
+ * Класс Song Voice.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 data class SongVoice(
     val srtFileBody: String = "",
     var lines: MutableList<SongVoiceLine> = mutableListOf(),
@@ -799,6 +809,11 @@ data class SongVoice(
     }
 }
 
+/**
+ * Перечисление возможных значений для song voice line type.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 enum class SongVoiceLineType : Serializable {
     EMPTY,
     TEXT,
@@ -806,6 +821,11 @@ enum class SongVoiceLineType : Serializable {
     COMMENTS,
 }
 
+/**
+ * Класс Song Voice Line.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 data class SongVoiceLine(
     var type: SongVoiceLineType = SongVoiceLineType.TEXT,
     var subtitles: MutableList<Subtitle> = mutableListOf(),
@@ -1082,6 +1102,11 @@ data class SongVoiceLine(
     }
 }
 
+/**
+ * Класс Song Voice Line Symbol.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 data class SongVoiceLineSymbol(
     var start: String,
     var mltText: MltText =
@@ -1114,6 +1139,11 @@ data class SongVoiceLineSymbol(
     }
 }
 
+/**
+ * Класс Subtitle.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 data class Subtitle(
     var startTimecode: String = "",
     var endTimecode: String = "",
@@ -1145,12 +1175,22 @@ data class Subtitle(
     val deltaEndH: Int get() = 2 * deltaEndY
 }
 
+/**
+ * Класс Chord.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 data class Chord(
     val timecode: String = "",
     val text: String = "",
 ) : Serializable
 
 @kotlinx.serialization.Serializable
+/**
+ * Класс Wave Surfer Marker.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 @Suppress("unused")
 data class WaveSurferMarker(
     var time: Double = 0.0,

@@ -15,6 +15,11 @@ import com.svoemesto.karaokeapp.services.SAC_APP
 import com.svoemesto.karaokeapp.services.StorageApiClient
 import java.io.Serializable
 
+/**
+ * Класс Search Result.
+ *
+ * @see docs/features/llm-lyrics-search.md
+ */
 @JsonIgnoreProperties(value = ["database", "sqlToInsert"])
 class SearchResult(
     override val database: KaraokeConnection = WORKING_DATABASE,

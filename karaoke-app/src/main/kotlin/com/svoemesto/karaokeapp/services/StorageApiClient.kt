@@ -16,6 +16,11 @@ import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.TimeUnit
 
+/**
+ * Интерфейс для storage api client.
+ *
+ * @see docs/features/async-process-queue.md
+ */
 interface StorageApiClient {
     fun uploadFile(
         bucketName: String,
@@ -117,6 +122,12 @@ interface StorageApiClient {
  * вызывающие места (HealthReport/Utils) не менялись; `Mono`-методы обёрнуты в `Mono.fromCallable`, чтобы
  * реальная работа (и возможная ошибка) происходила на `.block()` — под уже существующим try/catch
  * вызывающего кода.
+ */
+
+/**
+ * Класс Storage Api Client Impl.
+ *
+ * @see docs/features/async-process-queue.md
  */
 @Service
 class StorageApiClientImpl(

@@ -28,6 +28,12 @@ import java.util.UUID
  * Весь класс под /api/public/account — проходит через SiteAuthInterceptor (WebMvcConfig), доступно
  * только вошедшим. Цена всегда пересчитывается на сервере при checkout — клиент не может её подменить.
  */
+
+/**
+ * Контроллер (HTTP/WebSocket endpoints) для public cart .
+ *
+ * @see AGENTS.md
+ */
 @RestController
 @RequestMapping("/api/public/account/cart")
 class PublicCartController(

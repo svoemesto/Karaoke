@@ -8,6 +8,11 @@ import java.io.ByteArrayOutputStream
 import java.util.*
 import javax.imageio.ImageIO
 
+/**
+ * Класс Mko Fingerboard.
+ *
+ * @see docs/features/mlt-generator.md
+ */
 data class MkoFingerboard(
     val mltProp: MltProp,
     val type: ProducerType,

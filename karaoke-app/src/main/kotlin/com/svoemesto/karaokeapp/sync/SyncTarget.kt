@@ -23,6 +23,11 @@ import com.svoemesto.karaokeapp.services.KSS_APP
 import com.svoemesto.karaokeapp.services.SAC_APP
 import kotlin.reflect.KClass
 
+/**
+ * Перечисление возможных значений для sync direction.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 enum class SyncDirection { LOCAL_TO_SERVER, SERVER_TO_LOCAL }
 
 /**
@@ -419,6 +424,11 @@ val SiteChatMessagesSyncTarget =
         rowChunkSize = 500,
     )
 
+/**
+ * Singleton-объект Sync Registry.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 object SyncRegistry {
     // Размер пачки для операций УДАЛЕНИЯ на удалённом сервере (зеркальное удаление в цели + move-удаление
     // из источника, оба идут как зашифрованный "DELETE ... WHERE id=X" на /changerecords). Payload одной

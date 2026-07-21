@@ -2,6 +2,11 @@ package com.svoemesto.karaokeapp.model
 
 import java.io.Serializable
 
+/**
+ * Перечисление возможных значений для music interval.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 enum class MusicInterval(
     val halfTones: Int,
     val text: String,

@@ -14,6 +14,12 @@ import java.sql.Timestamp
 // isFavorites = true (ровно один на пользователя, гарантируется частичным UNIQUE-индексом в БД).
 // Участвует в LOCAL<->SERVER синхронизации (SyncRegistry: siteplaylists) — колонки аннотированы
 // @KaraokeDbTableField, БД несёт recordhash-триггер (09_playlists.sql).
+
+/**
+ * Класс Site Playlist.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 @JsonIgnoreProperties(value = ["database", "sqlToInsert"])
 class SitePlaylist(
     override val database: KaraokeConnection = WORKING_DATABASE,

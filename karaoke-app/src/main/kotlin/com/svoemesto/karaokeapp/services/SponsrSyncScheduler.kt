@@ -14,6 +14,12 @@ import org.springframework.stereotype.Component
  * Молчаливо no-op, если Karaoke.sponsrSubscribersUrl не настроен (см. SponsrSyncService) — не
  * спамит ошибками, пока Sponsr-скрейпинг не откалиброван под реальный кабинет.
  */
+
+/**
+ * Класс Sponsr Sync Scheduler.
+ *
+ * @see docs/features/async-process-queue.md
+ */
 @Component
 class SponsrSyncScheduler {
     @Scheduled(fixedRate = 12 * 3600_000L, initialDelay = 5 * 60_000L)

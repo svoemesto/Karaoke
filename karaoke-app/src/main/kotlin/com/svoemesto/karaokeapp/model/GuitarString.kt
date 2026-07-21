@@ -13,6 +13,11 @@ fun mainGuitarString() {
     }
 }
 
+/**
+ * Перечисление возможных значений для guitar string.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 enum class GuitarString(
     val text: String,
     val number: Int,

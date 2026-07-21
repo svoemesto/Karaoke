@@ -13,6 +13,12 @@ import java.sql.Timestamp
 // Акция поверх тарифа. paramsJson — параметры конкретного типа правила (см. TYPE_* ниже),
 // расширяемо без миграций схемы. Применяется PriceService (karaoke-web) при расчёте итоговой цены,
 // по приоритету (больше priority — раньше проверяется/побеждает при конфликте — решает PriceService).
+
+/**
+ * Класс Promo Rule.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 @JsonIgnoreProperties(value = ["database", "sqlToInsert"])
 class PromoRule(
     override val database: KaraokeConnection = WORKING_DATABASE,

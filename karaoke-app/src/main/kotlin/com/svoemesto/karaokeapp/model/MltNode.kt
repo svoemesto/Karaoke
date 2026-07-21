@@ -2,6 +2,11 @@ package com.svoemesto.karaokeapp.model
 
 import java.io.Serializable
 
+/**
+ * Класс Mlt Node.
+ *
+ * @see docs/features/mlt-generator.md
+ */
 data class MltNode(
     var name: String = "",
     var fields: MutableMap<String, String> = mutableMapOf(),
@@ -27,6 +32,11 @@ data class MltNode(
         }}"
 }
 
+/**
+ * Builder для mlt node .
+ *
+ * @see docs/features/mlt-generator.md
+ */
 data class MltNodeBuilder(
     val nodes: MutableList<MltNode> = mutableListOf(),
 ) {
@@ -413,6 +423,11 @@ data class MltNodeBuilder(
     fun build(): MutableList<MltNode> = nodes
 }
 
+/**
+ * Builder для properties mlt node .
+ *
+ * @see docs/features/mlt-generator.md
+ */
 data class PropertiesMltNodeBuilder(
     val properties: MutableMap<String, String> = mutableMapOf(),
 ) {

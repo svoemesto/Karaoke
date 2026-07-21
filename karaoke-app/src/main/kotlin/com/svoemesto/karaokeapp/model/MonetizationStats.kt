@@ -6,6 +6,11 @@ import java.sql.ResultSet
 import java.sql.SQLException
 import java.sql.Statement
 
+/**
+ * DTO для monetization summary: сериализуемое представление для API/UI.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 data class MonetizationSummaryDto(
     val revenueTotal: Double,
     val revenueSong: Double,
@@ -22,6 +27,11 @@ data class MonetizationSummaryDto(
     val totalSiteUsers: Int,
 )
 
+/**
+ * DTO для top subscribed song: сериализуемое представление для API/UI.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 data class TopSubscribedSongDto(
     val songId: Long,
     val songName: String,
@@ -33,6 +43,12 @@ data class TopSubscribedSongDto(
 // Статистика монетизации (подписки — см. план монетизации) для дашборда «Статистика» в webvue3.
 // Тот же ручной-JDBC стиль, что и StatBySong (scalarInt/scalarDouble — маленькие независимые
 // хелперы, не переиспользуют private scalarInt оттуда, чтобы не тащить зависимость между файлами).
+
+/**
+ * Singleton-объект Monetization Stats.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 object MonetizationStats {
     private fun scalarInt(
         database: KaraokeConnection,

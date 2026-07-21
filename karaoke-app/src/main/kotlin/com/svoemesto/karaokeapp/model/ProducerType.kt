@@ -4,6 +4,11 @@ import java.io.Serializable
 
 // import com.sun.org.apache.xpath.internal.operations.Bool
 
+/**
+ * Перечисление возможных значений для producer type.
+ *
+ * @see docs/features/mlt-generator.md
+ */
 enum class ProducerType(
     val parent: ProducerType?,
     val text: String, // Текст

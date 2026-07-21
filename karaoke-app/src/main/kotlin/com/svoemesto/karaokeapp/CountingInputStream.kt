@@ -3,6 +3,11 @@ package com.svoemesto.karaokeapp
 import java.io.FilterInputStream
 import java.io.InputStream
 
+/**
+ * Класс Counting Input Stream.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 class CountingInputStream(
     input: InputStream,
     private val onBytesRead: (bytesRead: Long) -> Unit,

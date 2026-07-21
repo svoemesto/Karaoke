@@ -13,6 +13,12 @@ import java.sql.Timestamp
 // Позиция «Корзины» — песня, которую пользователь копит для пакетной оплаты одним заказом
 // (см. PublicCartController в karaoke-web). Прод-only данные, вне LOCAL<->SERVER SyncRegistry —
 // как tbl_subscriptions.
+
+/**
+ * Класс Cart Item.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 @JsonIgnoreProperties(value = ["database", "sqlToInsert"])
 class CartItem(
     override val database: KaraokeConnection = WORKING_DATABASE,

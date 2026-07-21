@@ -7,6 +7,11 @@ import com.svoemesto.karaokeapp.model.MltNodeBuilder
 import com.svoemesto.karaokeapp.model.ProducerType
 import com.svoemesto.karaokeapp.xmldata
 
+/**
+ * Класс Mko Back Chords.
+ *
+ * @see docs/features/mlt-generator.md
+ */
 data class MkoBackChords(
     val mltProp: MltProp,
     val type: ProducerType,

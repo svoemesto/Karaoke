@@ -17,6 +17,12 @@ import org.springframework.web.bind.annotation.ResponseBody
 // Админский просмотр «Избранного»/плейлистов пользователей сайта (read-only). Тот же паттерн, что и
 // SiteUsersController: target=local|remote выбирается явно клиентом (webvue3), т.к. реальные плейлисты
 // создаются на боевой БД. withDb закрывает per-request соединение (иначе "too many clients").
+
+/**
+ * Контроллер (HTTP/WebSocket endpoints) для site playlists .
+ *
+ * @see AGENTS.md
+ */
 @Controller
 @RequestMapping("/api/siteplaylists")
 class SitePlaylistsController {

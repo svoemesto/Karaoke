@@ -21,6 +21,11 @@ import java.io.Serializable
 import java.util.*
 
 @kotlinx.serialization.Serializable
+/**
+ * Класс Karaoke Property Serializable.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 data class KaraokePropertySerializable(
     val key: String,
     val serializableValue: String,
@@ -119,12 +124,22 @@ data class KaraokePropertySerializable(
     }
 }
 
+/**
+ * Класс Karaoke Property.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 data class KaraokeProperty(
     val key: String,
     val defaultValue: Any,
     val description: String,
 )
 
+/**
+ * DTO для karaoke property: сериализуемое представление для API/UI.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 data class KaraokePropertyDTO(
     val key: String = "",
     val value: String = "",
@@ -133,6 +148,11 @@ data class KaraokePropertyDTO(
     val type: String = "",
 ) : Serializable
 
+/**
+ * Класс Karaoke.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 class Karaoke : Serializable {
     companion object {
         // Мониторинг SearchAsync

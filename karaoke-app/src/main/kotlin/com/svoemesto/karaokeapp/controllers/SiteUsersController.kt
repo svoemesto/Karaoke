@@ -20,6 +20,12 @@ import java.sql.Timestamp
 // параметр target выбирается явно клиентом (webvue3), а не берётся из compile-time WORKING_DATABASE —
 // реальные посетители сайта регистрируются на боевой БД сервера, а не в локальной dev-БД, поэтому
 // админке нужно уметь смотреть и туда, и туда.
+
+/**
+ * Контроллер (HTTP/WebSocket endpoints) для site users .
+ *
+ * @see AGENTS.md
+ */
 @Controller
 @RequestMapping("/api/siteusers")
 class SiteUsersController {

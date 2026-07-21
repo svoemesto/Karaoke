@@ -14,6 +14,12 @@ import org.springframework.web.bind.annotation.ResponseBody
 // Админка словарей (tbl_dictionaries: пары dict_name/dict_value — "Слова с Ё", "Censored",
 // "Sync Ids"). Только LOCAL — правки уходят на сервер штатной синхронизацией (SyncTarget
 // "dictionaries", см. sync/SyncTarget.kt), отдельного target=remote тут не нужно.
+
+/**
+ * Контроллер (HTTP/WebSocket endpoints) для dictionaries .
+ *
+ * @see AGENTS.md
+ */
 @Controller
 @RequestMapping("/api/dictionaries")
 class DictionariesController {

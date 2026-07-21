@@ -8,6 +8,11 @@ import com.svoemesto.karaokeapp.model.*
 import java.awt.Color
 import java.awt.Font
 
+/**
+ * Класс Mko Splash Start.
+ *
+ * @see docs/features/mlt-generator.md
+ */
 data class MkoSplashStart(
     val mltProp: MltProp,
     val type: ProducerType,

@@ -1,5 +1,10 @@
 package com.svoemesto.karaokeapp
 
+/**
+ * Перечисление возможных значений для karaoke process types.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 enum class KaraokeProcessTypes {
     NONE,
     MELT_LYRICS,

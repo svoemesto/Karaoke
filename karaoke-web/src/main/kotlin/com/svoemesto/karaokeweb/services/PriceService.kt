@@ -20,6 +20,12 @@ import java.time.LocalDateTime
  * списке) — не суммируем несколько акций одновременно, чтобы не пришлось разбираться в порядке
  * начисления процентов.
  */
+
+/**
+ * Сервис для price .
+ *
+ * @see docs/features/async-process-queue.md
+ */
 @Service
 class PriceService {
     data class PriceResult(

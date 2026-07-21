@@ -9,6 +9,11 @@ import com.svoemesto.karaokeapp.mlt.mltNode
 import com.svoemesto.karaokeapp.model.*
 import com.svoemesto.karaokeapp.xmldata
 
+/**
+ * Класс Mko Song Text.
+ *
+ * @see docs/features/mlt-generator.md
+ */
 data class MkoSongText(
     val mltProp: MltProp,
     val type: ProducerType,

@@ -14,6 +14,12 @@ import org.springframework.web.filter.OncePerRequestFilter
 //
 // TabIdContext.clear() в finally обязателен: поток обрабатывается из пула Tomcat и переиспользуется
 // между запросами - без очистки значение "протечёт" в следующий, никак не связанный запрос.
+
+/**
+ * Класс Tab Id Filter.
+ *
+ * @see AGENTS.md
+ */
 @Component
 class TabIdFilter : OncePerRequestFilter() {
     companion object {

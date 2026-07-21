@@ -69,17 +69,20 @@ import kotlin.use
 
 // Повторный поиск родителей и аудио-родителей: для КАЖДОЙ песни с root_id = 0 И id_status < 3
 // (ещё не привязана ни к куратору-родителю, ни к автоматическому, и ещё в начале пайплайна)
-// прогоняет ДВА независимых механизма подряд, в два прохода по всей выборке:
-//   1) "родитель" (findParentCandidateId + applyDuplicateOriginal) - точное совпадение
-//      нормализованного названия среди ВСЕХ песен; root_id/текст/статус переписываются всегда,
-//      кроме случая, когда у текущей песни уже есть свой текст И он уже прошёл проверку
+// прогоняет ДВА независимых механизма подряд, в два прохода:
+//   1) "родитель" (findParentCandidateId + applyDuplicateOriginal) - по ВСЕЙ выборке; точное
+//      совпадение нормализованного названия среди ВСЕХ песен; root_id/текст/статус переписываются
+//      всегда, кроме случая, когда у текущей песни уже есть свой текст И он уже прошёл проверку
 //      (id_status >= 2 = TEXT_CHECK) - такой текст не затираем;
-//   2) "аудио-родитель" (findAudioParentByWaveform) - акустическая сверка, независимое поле
+//   2) "аудио-родитель" (findAudioParentByWaveform) - ТОЛЬКО по песням, которым в проходе 1
+//      реально назначен родитель (root_id проставлен) - акустическая сверка, независимое поле
 //      audio_parent_id, текст/статус не трогает.
 // Проход 1 выполняется целиком по всем песням ДО начала прохода 2: к этому моменту у части песен
 // уже проставлен root_id, и findFamilySongIds (использует findAudioParentByWaveform) видит более
 // полную "семью" - точность подбора аудио-родителя от этого выше, чем при чередовании обоих
-// механизмов по одной песне за раз.
+// механизмов по одной песне за раз. Проход 2 сужен именно до "свежепривязанных" песен - остальные
+// (без нового root_id) не стали ближе к семье относительно предыдущего запуска, так что повторно
+// гонять по ним тяжёлую акустическую сверку бессмысленно.
 // Разовая/повторяемая тяжёлая операция для админа (кнопка "Custom Function" на главной странице
 // админки) - т.к. акустическая сверка (ffmpeg-декод + кросс-корреляция) на тысячах песен может
 // идти долго, вся работа уходит в фоновый поток; функция возвращает управление сразу же, итоговая
@@ -109,6 +112,7 @@ fun customFunction(
         // --- Фаза 1: родители (по всей выборке, ДО фазы 2) -----------------------------------
         var parentMatched = 0
         var parentSkippedHasText = 0
+        val matchedParentIds = mutableListOf<Long>()
         ids.forEachIndexed { index, id ->
             try {
                 val settings =
@@ -152,6 +156,7 @@ fun customFunction(
                                 settings.saveToDb()
                             }
                             parentMatched++
+                            matchedParentIds.add(id)
                             println("  [родитель ${index + 1}/${ids.size}] ${songLogLabel(settings)} — привязан родитель [${songLogLabel(original)}]")
                         }
                     }
@@ -162,9 +167,9 @@ fun customFunction(
         }
         println("Поиск родителей: завершено. Обработано ${ids.size}, назначено $parentMatched, найдено но пропущено (текст уже есть) $parentSkippedHasText")
 
-        // --- Фаза 2: аудио-родители (по той же выборке, после фазы 1) ------------------------
+        // --- Фаза 2: аудио-родители (только по песням, которым в фазе 1 назначен родитель) ---
         var audioMatched = 0
-        ids.forEachIndexed { index, id ->
+        matchedParentIds.forEachIndexed { index, id ->
             try {
                 val settings =
                     Settings.loadFromDbById(
@@ -174,19 +179,22 @@ fun customFunction(
                         storageApiClient = storageApiClient,
                     )
                 if (settings == null) {
-                    println("  [аудио-родитель ${index + 1}/${ids.size}] id=$id — пропущено (не найдено)")
+                    println("  [аудио-родитель ${index + 1}/${matchedParentIds.size}] id=$id — пропущено (не найдено)")
                     return@forEachIndexed
                 }
                 val result = findAudioParentByWaveform(settings, WORKING_DATABASE, storageService, storageApiClient)
                 if (result.matched) audioMatched++
-                println("  [аудио-родитель ${index + 1}/${ids.size}] ${songLogLabel(settings)} — ${result.reason}")
+                println("  [аудио-родитель ${index + 1}/${matchedParentIds.size}] ${songLogLabel(settings)} — ${result.reason}")
             } catch (e: Exception) {
-                println("  [аудио-родитель ${index + 1}/${ids.size}] id=$id — ошибка: ${e.message}")
+                println("  [аудио-родитель ${index + 1}/${matchedParentIds.size}] id=$id — ошибка: ${e.message}")
             }
         }
-        println("Поиск аудио-родителей: завершено. Обработано ${ids.size}, назначено $audioMatched")
+        println("Поиск аудио-родителей: завершено. Обработано ${matchedParentIds.size}, назначено $audioMatched")
 
-        val summary = "Обработано ${ids.size}, родитель назначен $parentMatched (найдено, но пропущено из-за текста: $parentSkippedHasText), аудио-родитель назначен $audioMatched"
+        val summary =
+            "Обработано ${ids.size}, родитель назначен $parentMatched " +
+                "(найдено, но пропущено из-за текста: $parentSkippedHasText), " +
+                "аудио-родитель назначен $audioMatched из ${matchedParentIds.size} с родителем"
         println("Поиск родителей и аудио-родителей: завершено. $summary")
 
         SNS.send(

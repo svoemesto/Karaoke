@@ -1,0 +1,35 @@
+# .git-blame-ignore-revs
+# Список коммитов, которые «шумные» для git blame — лучше видеть автора
+# оригинальной строки, а не автора рефакторинга/форматирования.
+#
+# Использование:
+#   git blame --ignore-revs-file .git-blame-ignore-revs <file>
+# Или настроить глобально (один раз):
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+#
+# Документация: https://git-scm.com/docs/git-blame#Documentation/git-blame.txt---ignore-revs-fileltfilegt
+
+# === Phase 001 — Code Standards & Documentation (PR #12-#26, 2026-07-20..21) ===
+# Эти коммиты затронули сотни файлов, но не меняли логику — только
+# форматирование, baseline, авто-KDoc/JSDoc, документацию.
+
+# 2026-07-20 — PR #12: prettier formatting + ESLint baseline (274 файла, +51K/−25K)
+8e7b346
+
+# 2026-07-20 — PR #14: ktlint baseline healing 426 → 96
+89ee040
+
+# 2026-07-20 — PR #14 follow-up: regenerate karaoke-public baseline (1 file)
+9b17087
+
+# 2026-07-20 — PR #15: ktlint baseline 96 → 0
+ddea921
+
+# 2026-07-20 — PR #16: авто-KDoc 100% coverage (247 файлов, +2179 строк KDoc)
+14a36aa
+
+# 2026-07-20 — PR #18: авто-JSDoc 100% coverage (168 файлов, +1414 строк JSDoc)
+1b12394
+
+# 2026-07-21 — PR #23: rewrite DEVELOPMENT.md (5 файлов, +511/−645 строк)
+56b12bf

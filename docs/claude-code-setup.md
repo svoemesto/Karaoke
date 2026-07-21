@@ -195,3 +195,183 @@ Claude Code может сделать commit + push + создать PR, но **
 - [`DEVELOPMENT.md`](../DEVELOPMENT.md) — архитектура
 - [`.specify/memory/constitution.md`](../.specify/memory/constitution.md) — NON-NEGOTIABLE
 - [`docs/architecture-notes.md`](./architecture-notes.md) — changelog
+
+---
+
+## FAQ / Troubleshooting
+
+### Q: Claude Code не подхватывает мой `CLAUDE.md`
+
+**Проверьте:**
+1. Файл лежит **в корне проекта** (рядом с `package.json` и `build.gradle.kts`), а не в подпапке.
+2. Имя файла **точно `CLAUDE.md`** (заглавные буквы, без пробелов).
+3. Файл не пустой и содержит хотя бы один заголовок (`# ...`).
+4. Перезапустите Claude Code (закройте сессию, откройте заново).
+
+**Если не помогло:** Claude Code читает `CLAUDE.md` из **текущей директории**
++ родительских. Запускайте Claude Code из корня проекта:
+```bash
+cd ~/projects/Karaoke
+claude
+```
+
+### Q: При `git pull` появляется merge conflict в `CLAUDE.md`
+
+**Решение:** добавьте `CLAUDE.md` в `.git/info/exclude`:
+```bash
+echo "CLAUDE.md" >> .git/info/exclude
+```
+
+Если уже случился конфликт:
+```bash
+# 1. Сохраните свою версию:
+cp CLAUDE.md CLAUDE.md.local.bak
+
+# 2. Откатите origin-версию:
+git checkout --theirs CLAUDE.md
+
+# 3. Восстановите свою:
+mv CLAUDE.md.local.bak CLAUDE.md
+
+# 4. Добавьте в exclude (чтобы не повторилось):
+echo "CLAUDE.md" >> .git/info/exclude
+
+# 5. Продолжайте merge:
+git add CLAUDE.md
+git merge --continue
+```
+
+### Q: Claude Code игнорирует мои инструкции в `CLAUDE.md`
+
+**Возможные причины:**
+- `CLAUDE.md` слишком длинный (Claude Code обрезает до ~8K токенов).
+  Держите **до 200 строк / 1500 слов**. Длинные правила — в отдельные
+  файлы (`.claude/rules.md`) и подключайте через `@include`.
+- Инструкции противоречивы (например, «всегда тестируй» + «не трать время на тесты»).
+  Claude Code выберет последнее. Сделайте иерархию явной.
+- Формат не структурирован (сплошной текст без заголовков).
+  Используйте `## Секции` и `- bullet`-списки.
+
+**Как проверить, что Claude Code прочитал:** в начале сессии спросите
+«Какие у тебя инструкции по этому проекту?» — должен процитировать
+`CLAUDE.md`.
+
+### Q: Claude Code не знает проект (не читал `AGENTS.md`)
+
+По умолчанию Claude Code **НЕ** читает `AGENTS.md`. Добавьте в свой
+`CLAUDE.md` явную инструкцию:
+```markdown
+## Начало сессии
+
+Перед любыми правками прочитай:
+1. \`AGENTS.md\` (общие правила проекта, 230 строк)
+2. \`.specify/memory/constitution.md\` (непреложные принципы)
+3. \`docs/features/<slug>.md\` — если правлю код этой фичи
+```
+
+Claude Code прочитает эти файлы при первом упоминании в сессии.
+
+### Q: Хочу, чтобы Claude Code прочитал `AGENTS.md` автоматически
+
+Используйте `.claude/rules.md` с директивой `@include`:
+```markdown
+<!-- .claude/rules.md -->
+# Project rules
+
+@import ../AGENTS.md
+@import ../CONTRIBUTING.md
+@import ../.specify/memory/constitution.md
+```
+
+Claude Code подхватит `.claude/rules.md` при старте сессии.
+
+> ⚠️ `.claude/` — локальная папка, добавьте в `.git/info/exclude`.
+
+### Q: Claude Code делает то, что я не просил
+
+Это поведение «proactive» — Claude Code может предлагать изменения,
+которые кажутся ему логичными. Чтобы отключить:
+1. В шаблоне `CLAUDE.md` явно: «Не делай непрошеных изменений».
+2. Используйте «approval mode» в Claude Code: попросите показывать план
+   перед каждым действием.
+
+### Q: Мой `CLAUDE.md` использует другой AI-агент на этой же машине
+
+Если вы переключаетесь между opencode и Claude Code:
+- `AGENTS.md` (в гите) — opencode читает его автоматически.
+- `CLAUDE.md` (локально) — Claude Code читает его автоматически.
+- Не дублируйте содержимое: в `CLAUDE.md` просто сошлитесь на `AGENTS.md`.
+
+### Q: Как синхронизировать `CLAUDE.md` с командой?
+
+**Не синхронизируйте.** `CLAUDE.md` — личный файл. У каждого свой стиль.
+**Общие правила** живут в `AGENTS.md` / `CONTRIBUTING.md` / `constitution.md`.
+**Персональные настройки** — в `~/.claude/` (глобально) или `CLAUDE.md` (локально).
+
+Если нашли общее полезное правило — предложите PR в `AGENTS.md`.
+
+### Q: CI падает на KDoc/JSDoc, а Claude Code говорит «всё ОК»
+
+**Причина:** Claude Code проверяет синтаксис, но не запускает лит-скрипты.
+**Решение:** в `CLAUDE.md` явно пропишите:
+```markdown
+## Перед commit ОБЯЗАТЕЛЬНО запусти:
+./gradlew ktlintCheck
+cd webvue3 && npm run lint:check && cd ..
+bash tools/check-kdoc-coverage.sh
+bash tools/check-jsdoc-coverage.sh webvue3
+```
+
+И в начале сессии скажите: «Перед коммитом покажи мне вывод всех 4 команд».
+
+### Q: `npm install` упал с peer dependency conflict
+
+**Не пытайтесь чинить вручную.** Проверьте:
+1. Node версия: `node -v` (должна быть 22+).
+2. Удалите `node_modules` + `package-lock.json`:
+   ```bash
+   cd webvue3
+   rm -rf node_modules package-lock.json
+   npm install
+   ```
+3. Если не помогло — обновите lock-файл до актуального с `master`:
+   ```bash
+   git checkout master -- package-lock.json
+   npm install
+   ```
+
+### Q: Docker-контейнер не стартует
+
+**Частые причины** (см. AGENTS.md, секция «Dockerfile-ловушки»):
+- `nginx:alpine` → заменить на `nginx:stable`.
+- `node:latest` → заменить на `node:22-alpine`.
+- Порты заняты другим процессом → `lsof -i :8080` и убить.
+- `do.env` отсутствует → скопировать `do.env.example`.
+
+### Q: Pre-commit хук падает на каждом коммите
+
+**См.** [CONTRIBUTING.md](../CONTRIBUTING.md) секция «Pre-commit и CI».
+Часто решается:
+```bash
+./gradlew ktlintFormat           # авто-форматирование
+cd webvue3 && npx prettier --write "src/**/*.{vue,js,ts}" && cd ..
+```
+
+Если хук мешает срочному коммиту: `git commit --no-verify`. Но CI всё
+равно поймает — лучше исправить сразу.
+
+### Q: Хочу пользоваться VS Code + Claude Code (не CLI)
+
+Расширение Claude Code for VS Code читает `CLAUDE.md` так же, как CLI.
+Дополнительно настройте:
+1. `Claude > Settings: Workspace Trust` — enabled для проекта.
+2. `Claude > Edit Permissions` — `Edit`, `Bash(npm:*)`, `Bash(./gradlew:*)`.
+
+### Q: Где хранить API-ключи для LLM в Claude Code?
+
+**Не в `CLAUDE.md`.** Используйте:
+- `~/.claude/.env` (глобально).
+- Переменные окружения в shell-профиле.
+- Vault (1Password CLI, Bitwarden CLI).
+
+Claude Code автоматически подхватит `.env` из `~/.claude/`.

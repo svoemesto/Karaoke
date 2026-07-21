@@ -8,7 +8,7 @@ import com.svoemesto.karaokeapp.model.MltNodeBuilder
 import com.svoemesto.karaokeapp.model.ProducerType
 
 /**
- * Класс Mko Line Track.
+ * Трек для отображения всех строк текста песни. Создаёт MLT-`<tractor>` с несколькими `MkoLine` как вложенными элементами.
  *
  * @see docs/features/mlt-generator.md
  */

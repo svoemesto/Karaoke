@@ -6,7 +6,7 @@ import com.svoemesto.karaokeapp.mlt.MltProp
 import com.svoemesto.karaokeapp.model.*
 
 /**
- * Класс Mko Separ.
+ * Producer для разделителя между строками текста (горизонтальная линия). Создаёт MLT-блоки для визуального отделения куплетов/припевов.
  *
  * @see docs/features/mlt-generator.md
  */

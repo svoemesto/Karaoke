@@ -9,7 +9,7 @@ import com.svoemesto.karaokeapp.model.ProducerType
 import com.svoemesto.karaokeapp.model.TransformProperty
 
 /**
- * Класс Mko Flash.
+ * Producer для вспышки при смене строки/куплета. Создаёт MLT-блоки с короткой белой вспышкой (50-100ms).
  *
  * @see docs/features/mlt-generator.md
  */

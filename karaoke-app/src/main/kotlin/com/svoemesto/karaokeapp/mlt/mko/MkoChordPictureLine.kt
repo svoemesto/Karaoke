@@ -10,7 +10,7 @@ import com.svoemesto.karaokeapp.model.MltNodeBuilder
 import com.svoemesto.karaokeapp.model.ProducerType
 
 /**
- * Класс Mko Chord Picture Line.
+ * Одна линия аккордной картинки (горизонтальная позиция грифа). Часть аккордной диаграммы.
  *
  * @see docs/features/mlt-generator.md
  */

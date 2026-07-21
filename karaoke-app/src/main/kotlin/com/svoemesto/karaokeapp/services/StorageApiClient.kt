@@ -17,9 +17,9 @@ import java.nio.charset.StandardCharsets
 import java.util.concurrent.TimeUnit
 
 /**
- * Интерфейс для storage api client.
+ * HTTP-клиент для удалённого MinIO через karaoke-web (proxy). Используется в karaoke-web, где нет прямого доступа к MinIO. Поддерживает upload/download с прогрессом через `CountingInputStream`.
  *
- * @see docs/features/async-process-queue.md
+ * @see docs/features/mlt-generator.md
  */
 interface StorageApiClient {
     fun uploadFile(

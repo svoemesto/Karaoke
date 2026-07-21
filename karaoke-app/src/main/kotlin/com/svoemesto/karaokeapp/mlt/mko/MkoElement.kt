@@ -11,7 +11,7 @@ import com.svoemesto.karaokeapp.model.ProducerType
 import com.svoemesto.karaokeapp.model.childs
 
 /**
- * Класс Mko Element.
+ * Базовый элемент визуального слоя (родитель для текста, аккордов, нот). Содержит общие параметры: позиция, цвет, шрифт, transform-properties.
  *
  * @see docs/features/mlt-generator.md
  */

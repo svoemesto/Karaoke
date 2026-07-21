@@ -9,7 +9,7 @@ import java.awt.Color
 import java.awt.Font
 
 /**
- * Класс Mko Splash Start.
+ * Producer для заставки в начале видео (логотип, название, обложка). Создаёт MLT-блоки, видимые первые N секунд, затем исчезающие.
  *
  * @see docs/features/mlt-generator.md
  */

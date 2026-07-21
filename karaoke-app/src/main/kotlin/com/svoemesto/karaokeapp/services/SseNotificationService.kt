@@ -85,12 +85,6 @@ object TabIdContext {
  * @see TabIdContext ThreadLocal с tabId текущего запроса
  * @see SseController REST-эндпоинт `/api/subscribe`
  */
-
-/**
- * Сервис для sse notification .
- *
- * @see docs/features/sse-notifications.md
- */
 @Service
 class SseNotificationService(
     private val mapper: ObjectMapper,

@@ -17,7 +17,17 @@ import java.nio.charset.StandardCharsets
 import java.util.concurrent.TimeUnit
 
 /**
- * Интерфейс для karaoke storage service.
+ * Абстракция S3-совместимого хранилища (MinIO) для караоке-файлов.
+ *
+ * Реализации:
+ * - [KaraokeStorageServiceImpl] — локальный MinIO (`karaoke-storage:9000`,
+ *   admin-машина, доступ на чтение+запись).
+ * - [WebKaraokeStorageServiceImpl] (`karaoke-web`) — прокси к MinIO
+ *   через `StorageApiClient` (HTTP), потому что `karaoke-web` НЕ имеет
+ *   прямого доступа к MinIO из контейнера.
+ *
+ * Все операции логируют через `logger` (stdout) — это помогает
+ * диагностировать проблемы с правами доступа на проде.
  *
  * @see docs/features/premium-stems.md
  */
@@ -119,9 +129,24 @@ data class StorageFileInfo(
 ) : Serializable
 
 /**
- * Класс Karaoke Storage Service Impl.
+ * Локальная реализация [KaraokeStorageService] для admin-машины.
  *
- * @see docs/features/async-process-queue.md
+ * Использует MinIO Java SDK для прямого доступа к MinIO
+ * (`karaoke-storage:9000` внутри Docker-сети). Конфигурация —
+ * через `storage.*` properties в `KaraokeProperties.kt`:
+ * `key`, `secret`, `container-name`, `port-inside-container`,
+ * `port-host`, `public-host` (для presigned URL).
+ *
+ * На проде `karaoke-web` НЕ использует эту реализацию — там
+ * [WebKaraokeStorageServiceImpl] (HTTP-прокси через `StorageApiClient`).
+ *
+ * @property storageKey MinIO access key.
+ * @property storageSecret MinIO secret key.
+ * @property storageContainerName имя bucket (например, `"karaoke"`).
+ * @property storagePortInsideContainer порт MinIO внутри Docker-сети.
+ * @property storagePortHost порт MinIO на host (для presigned URL).
+ * @property storagePublicHost публичный hostname для presigned URL.
+ * @see docs/features/premium-stems.md
  */
 @Service
 class KaraokeStorageServiceImpl(

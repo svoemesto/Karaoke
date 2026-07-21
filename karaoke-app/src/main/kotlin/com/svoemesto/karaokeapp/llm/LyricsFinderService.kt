@@ -5,8 +5,18 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 
 /**
- * Сервис для lyrics finder .
+ * Сервис поиска текстов песен и аккордов через LLM.
  *
+ * Алгоритм (`findLyrics` / `findChords`):
+ * 1. [SearchTool] ищет 5-10 кандидатов (Google/Bing через прокси).
+ * 2. [ScraperAgent] (langchain4j + LLM) парсит каждую страницу и
+ *    извлекает структурированный текст/аккорды.
+ * 3. Результаты ранжируются по эвристикам (длина текста, наличие
+ *    аккордов, качество разметки).
+ * 4. Лучший результат сохраняется в [com.svoemesto.karaokeapp.model.Settings].
+ *
+ * @property searchTool HTTP-поисковик (Google/Bing через scraping).
+ * @property scraperAgent LLM-агент для парсинга HTML.
  * @see docs/features/llm-lyrics-search.md
  */
 @Service

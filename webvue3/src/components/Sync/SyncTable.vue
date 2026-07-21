@@ -103,7 +103,19 @@ import CustomConfirm from '../Common/CustomConfirm.vue'
  * @see SyncController REST-эндпоинты
  */
 /**
- * Таблица со списком sync с пагинацией, фильтрами и сортировкой.
+ * UI для двух-БД синхронизации LOCAL↔SERVER.
+ *
+ * Функционал:
+ * - **«1 клик» sync**: кнопка `Push` (LOCAL→SERVER) / `Pull` (SERVER→LOCAL)
+ *   для всех таблиц согласно `oneClickDirection` в `SyncTarget<T>`.
+ * - **Sync одной таблицы**: выбор из списка зарегистрированных
+ *   `SyncRegistry.all` (Settings, Authors, Pictures, и т.д.).
+ * - **Diff preview**: показывает `RecordDiff[]` (только изменённые поля)
+ *   до отправки — пользователь может отменить.
+ * - **Форс-стоп**: прервать sync посередине (`SyncService.abort`).
+ *
+ * Подписывается на SSE `SYNC` для live-обновления прогресса
+ * (текущая таблица, текущий ID, процент).
  *
  * @see docs/features/dual-db-sync.md
  */

@@ -7,6 +7,11 @@ import com.svoemesto.karaokeapp.mlt.MltGenerator
 import com.svoemesto.karaokeapp.mlt.MltProp
 import com.svoemesto.karaokeapp.model.*
 
+/**
+ * Класс Mko Chord Picture Element.
+ *
+ * @see docs/features/mlt-generator.md
+ */
 data class MkoChordPictureElement(
     val mltProp: MltProp,
     val type: ProducerType = ProducerType.CHORDPICTUREELEMENT,

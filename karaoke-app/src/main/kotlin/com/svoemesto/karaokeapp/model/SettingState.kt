@@ -1,5 +1,10 @@
 package com.svoemesto.karaokeapp.model
 
+/**
+ * Перечисление возможных значений для setting state.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 enum class SettingState(
     val color: String,
 ) {

@@ -4,6 +4,11 @@ import dev.langchain4j.service.SystemMessage
 import dev.langchain4j.service.UserMessage
 import dev.langchain4j.service.spring.AiService
 
+/**
+ * Интерфейс для scraper agent.
+ *
+ * @see docs/features/llm-lyrics-search.md
+ */
 @AiService
 interface ScraperAgent {
     @SystemMessage(

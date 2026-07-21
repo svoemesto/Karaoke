@@ -16,6 +16,12 @@ import org.springframework.web.bind.annotation.ResponseBody
 // на PROD-БД (пользователи пишут через karaoke-web на проде) — фронт всегда шлёт target=remote, но
 // параметр оставлен свободным (как в TariffsController/SiteUsersController) на случай локальной
 // отладки с target=local.
+
+/**
+ * Контроллер (HTTP/WebSocket endpoints) для chat .
+ *
+ * @see AGENTS.md
+ */
 @Controller
 @RequestMapping("/api/chat")
 class ChatController {

@@ -6,6 +6,11 @@ import com.svoemesto.karaokeapp.mlt.MltProp
 import com.svoemesto.karaokeapp.mlt.mltNode
 import com.svoemesto.karaokeapp.model.*
 
+/**
+ * Класс Mko String.
+ *
+ * @see docs/features/mlt-generator.md
+ */
 data class MkoString(
     val mltProp: MltProp,
     val type: ProducerType = ProducerType.STRING,

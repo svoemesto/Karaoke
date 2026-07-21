@@ -11,6 +11,12 @@ import org.springframework.web.bind.annotation.*
 
 // Весь класс проходит через SiteAuthInterceptor (см. WebMvcConfig — addPathPatterns("/api/public/account/**")),
 // поэтому "siteUser" в request всегда установлен и не забанен к моменту вызова любого метода здесь.
+
+/**
+ * Контроллер (HTTP/WebSocket endpoints) для public account .
+ *
+ * @see AGENTS.md
+ */
 @RestController
 @RequestMapping("/api/public/account")
 class PublicAccountController(

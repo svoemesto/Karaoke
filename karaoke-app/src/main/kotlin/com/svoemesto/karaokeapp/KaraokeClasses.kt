@@ -5,6 +5,11 @@ import java.awt.Color
 import java.awt.Font
 import java.io.Serializable
 
+/**
+ * Класс Karaoke Voice.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 data class KaraokeVoice(
     val groups: MutableList<KaraokeVoiceGroup>,
     val fill: KaraokeVoiceFill,
@@ -17,10 +22,20 @@ data class KaraokeVoice(
     }
 }
 
+/**
+ * Класс Karaoke Voice Group.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 data class KaraokeVoiceGroup(
     var mltText: MltText,
 ) : Serializable
 
+/**
+ * Класс Karaoke Voice Fill.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 data class KaraokeVoiceFill(
     val evenColor: Color,
     val evenOpacity: Double,

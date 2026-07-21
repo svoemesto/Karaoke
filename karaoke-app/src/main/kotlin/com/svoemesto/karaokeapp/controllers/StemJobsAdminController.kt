@@ -16,6 +16,12 @@ import org.springframework.web.bind.annotation.ResponseBody
 // реальные задания живут на прод-БД (target=remote), target=local — для локальной отладки.
 // Остановка/удаление (docker kill, чистка tbl_processes/temp/MinIO) физически возможны только на
 // этой машине (администратора) — независимо от target, который выбирает лишь БД для tbl_stem_jobs.
+
+/**
+ * Контроллер (HTTP/WebSocket endpoints) для stem jobs admin .
+ *
+ * @see AGENTS.md
+ */
 @Controller
 @RequestMapping("/api/stemjobs")
 class StemJobsAdminController {

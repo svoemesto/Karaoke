@@ -27,6 +27,12 @@ import org.springframework.web.bind.annotation.*
  * Verification. Fulfillment (реальная разблокировка/продление) происходит в PublicPaymentController
  * по вебхуку ЮKassa, а не здесь — до оплаты запись остаётся в CREATED/PENDING.
  */
+
+/**
+ * Контроллер (HTTP/WebSocket endpoints) для public subscription .
+ *
+ * @see AGENTS.md
+ */
 @RestController
 @RequestMapping("/api/public/account/subscription")
 class PublicSubscriptionController(

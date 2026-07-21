@@ -9,11 +9,21 @@ import kotlinx.serialization.json.decodeFromStream
 import java.io.*
 import java.util.*
 
+/**
+ * Класс History Map.
+ *
+ * @see AGENTS.md
+ */
 @Serializable
 data class HistoryMap(
     val args: Map<String, String>,
 )
 
+/**
+ * Интерфейс для text file history.
+ *
+ * @see AGENTS.md
+ */
 interface TextFileHistory {
     fun pathToFile(): String
 

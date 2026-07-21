@@ -16,6 +16,12 @@ import java.sql.Timestamp
 // синхронизации — нет записи в SyncRegistry, нет sync_* флагов) — пользователи пишут через
 // karaoke-web (WORKING_DATABASE на проде = серверная БД), автор читает/пишет из webvue3 через
 // karaoke-app с target=remote (Connection.remote()) напрямую в ту же БД (19_site_chat_messages.sql).
+
+/**
+ * Класс Site Chat Message.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 @JsonIgnoreProperties(value = ["database", "sqlToInsert"])
 class SiteChatMessage(
     override val database: KaraokeConnection = WORKING_DATABASE,
@@ -206,6 +212,12 @@ class SiteChatMessage(
 }
 
 // Не БД-сущность — агрегат для списка тредов (webvue3, ChatController.threads).
+
+/**
+ * DTO для chat thread: сериализуемое представление для API/UI.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 data class ChatThreadDto(
     val siteUserId: Long,
     val email: String,

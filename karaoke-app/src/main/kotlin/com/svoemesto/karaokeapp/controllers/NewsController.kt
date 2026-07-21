@@ -14,6 +14,12 @@ import java.sql.Timestamp
 // синхронизацией (SyncTarget "news", см. sync/SyncTarget.kt), как Словари (DictionariesController).
 // Параметр target оставлен свободным (как в ChatController) на случай локальной отладки с
 // target=remote, дефолт — LOCAL.
+
+/**
+ * Контроллер (HTTP/WebSocket endpoints) для news .
+ *
+ * @see AGENTS.md
+ */
 @Controller
 @RequestMapping("/api/news")
 class NewsController {

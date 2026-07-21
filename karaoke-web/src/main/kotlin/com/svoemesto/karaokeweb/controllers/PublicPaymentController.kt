@@ -22,6 +22,12 @@ import java.sql.Timestamp
  * триггер, статус платежа ВСЕГДА перезапрашивается у ЮKassa (verifyAndFetch) перед fulfillment.
  * Идемпотентно: повторный вызов на уже PAID-подписке no-op (проверка status до обработки).
  */
+
+/**
+ * Контроллер (HTTP/WebSocket endpoints) для public payment .
+ *
+ * @see AGENTS.md
+ */
 @RestController
 @RequestMapping("/api/public/payment")
 class PublicPaymentController(

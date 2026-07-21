@@ -19,6 +19,11 @@ import org.springframework.ui.Model
 import org.springframework.web.bind.annotation.*
 import java.io.File
 
+/**
+ * Контроллер (HTTP/WebSocket endpoints) для main .
+ *
+ * @see AGENTS.md
+ */
 @Controller
 class MainController(
     private val storageService: KaraokeStorageService,

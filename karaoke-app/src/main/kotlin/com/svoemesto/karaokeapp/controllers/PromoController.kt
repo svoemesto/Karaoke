@@ -13,6 +13,12 @@ import org.springframework.web.bind.annotation.ResponseBody
 import java.sql.Timestamp
 
 // Админка акций (tbl_promo_rules). Target-aware, как TariffsController/SiteUsersController.
+
+/**
+ * Контроллер (HTTP/WebSocket endpoints) для promo .
+ *
+ * @see AGENTS.md
+ */
 @Controller
 @RequestMapping("/api/promorules")
 class PromoController {

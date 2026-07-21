@@ -13,6 +13,11 @@ import java.io.Serializable
 import java.sql.Timestamp
 import java.time.LocalDateTime
 
+/**
+ * Класс Search Async.
+ *
+ * @see docs/features/llm-lyrics-search.md
+ */
 @JsonIgnoreProperties(value = ["database", "sqlToInsert"])
 class SearchAsync(
     override val database: KaraokeConnection = WORKING_DATABASE,

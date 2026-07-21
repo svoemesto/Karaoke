@@ -8,6 +8,11 @@ import jakarta.servlet.http.HttpServletResponse
 import org.springframework.stereotype.Component
 import org.springframework.web.servlet.HandlerInterceptor
 
+/**
+ * Класс Site Auth Interceptor.
+ *
+ * @see AGENTS.md
+ */
 @Component
 class SiteAuthInterceptor(
     private val siteUserTokenService: SiteUserTokenService,

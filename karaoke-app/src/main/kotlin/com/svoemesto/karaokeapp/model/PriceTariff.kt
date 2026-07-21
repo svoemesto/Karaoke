@@ -15,6 +15,12 @@ import java.sql.Timestamp
 // (periodDays продлевает SiteUser.sitePremiumUntil). См. также PromoRule (акции поверх тарифа) и
 // Subscription (запись оформленной подписки). Не участвует в LOCAL<->SERVER content-sync
 // (SyncRegistry) — тарифы правятся напрямую через target=local|remote, как SiteUser.
+
+/**
+ * Класс Price Tariff.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 @JsonIgnoreProperties(value = ["database", "sqlToInsert"])
 class PriceTariff(
     override val database: KaraokeConnection = WORKING_DATABASE,

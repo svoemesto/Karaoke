@@ -6,6 +6,12 @@ import java.io.Serializable
 // DTO черновика. Отдельно наружу почти не ходит (данные черновика попадают в UI через
 // SongAssignmentDto.draftSourceText/draftMarkers) — существует ради контракта KaraokeDbTable.toDTO()
 // и sync (fromDto). Булевых is-полей нет (Jackson bean convention).
+
+/**
+ * DTO для song assignment draft: сериализуемое представление для API/UI.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 data class SongAssignmentDraftDto(
     val id: Long = 0,
     val assignmentId: Long = 0,

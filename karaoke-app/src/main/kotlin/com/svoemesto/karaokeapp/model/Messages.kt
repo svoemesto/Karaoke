@@ -1,5 +1,10 @@
 package com.svoemesto.karaokeapp.model
 
+/**
+ * Класс Message.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 data class Message(
     val type: String = "info",
     val head: String = "",
@@ -24,21 +29,41 @@ data class Message(
     }
 }
 
+/**
+ * Класс Process Worker State Message.
+ *
+ * @see docs/features/async-process-queue.md
+ */
 data class ProcessWorkerStateMessage(
     val isWork: Boolean,
     val stopAfterThreadIsDone: Boolean,
 )
 
+/**
+ * Класс Process Count Waiting Message.
+ *
+ * @see docs/features/async-process-queue.md
+ */
 data class ProcessCountWaitingMessage(
     val countWaiting: Long,
 )
 
+/**
+ * Класс Record Delete Message.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 data class RecordDeleteMessage(
     val recordId: Long,
     val tableName: String,
     val databaseName: String,
 )
 
+/**
+ * Класс Record Add Message.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 data class RecordAddMessage(
     val recordId: Long,
     val tableName: String,
@@ -46,6 +71,11 @@ data class RecordAddMessage(
     val record: Any?,
 )
 
+/**
+ * Класс Record Change Message.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 data class RecordChangeMessage(
     val recordId: Long,
     val tableName: String,

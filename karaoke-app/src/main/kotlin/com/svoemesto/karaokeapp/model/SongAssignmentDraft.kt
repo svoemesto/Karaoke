@@ -25,6 +25,12 @@ import java.sql.Timestamp
 // editedSourceText = List<String>. editedMarkers{Per}/editedTextsPerVoice() терпимы к СТАРОМУ
 // одноголосому формату (голая строка / плоский List<SourceMarker>) — черновики, сохранённые до
 // перехода на multi-voice, читаются как один голос (voice 0), не ломаются.
+
+/**
+ * Класс Song Assignment Draft.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 @JsonIgnoreProperties(value = ["database", "sqlToInsert"])
 class SongAssignmentDraft(
     override val database: KaraokeConnection = WORKING_DATABASE,

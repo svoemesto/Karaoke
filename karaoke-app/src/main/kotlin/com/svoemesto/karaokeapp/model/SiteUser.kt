@@ -13,6 +13,12 @@ import java.sql.SQLException
 import java.sql.Timestamp
 
 // Пользователь публичного сайта (karaoke-public).
+
+/**
+ * Класс Site User.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 @JsonIgnoreProperties(value = ["database", "sqlToInsert"])
 class SiteUser(
     override val database: KaraokeConnection = WORKING_DATABASE,

@@ -22,6 +22,12 @@ import java.util.concurrent.ConcurrentHashMap
  * локальный IP, «серый» адрес, сервис не ответил): кэшируем и его, чтобы не долбить внешний
  * сервис повторно по тем же IP.
  */
+
+/**
+ * Singleton-объект Geo Ip Service.
+ *
+ * @see docs/features/async-process-queue.md
+ */
 object GeoIpService {
     private val memCache = ConcurrentHashMap<String, String>()
     private val COUNTRY_RE = Regex(""""country"\s*:\s*"([A-Za-z]{2})"""")

@@ -19,6 +19,12 @@ import java.util.Date
  * body намеренно не содержит изменчивых чисел (часов) - только detail (см. MonitorAlert.contentHash),
  * иначе сообщение "мигало" бы read/unread на каждом тике планировщика.
  */
+
+/**
+ * Singleton-объект Telegram Horizon Check.
+ *
+ * @see docs/features/monitoring.md
+ */
 object TelegramHorizonCheck : MonitorCheck {
     override fun run(ctx: MonitorContext): List<MonitorAlert> {
         val thresholdDays = KaraokeProperties.getLong("monitorTelegramHorizonDays").takeIf { it > 0 } ?: 2L

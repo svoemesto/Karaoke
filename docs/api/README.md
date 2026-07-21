@@ -138,7 +138,16 @@ export default defineComponent({
 ## TODO: список классов для KDoc (приоритет)
 
 Эти классы упоминаются в per-feature документах, но ещё не имеют полного
-KDoc. Список для следующих итераций:
+KDoc. Список для следующих итераций.
+
+> **Состояние на 2026-07-21 (PR #16, 005-kdoc-coverage)**:
+> KDoc coverage = **100%** (356/356) на top-level классах в `karaoke-app` и
+> `karaoke-web`. Все нижеуказанные классы имеют KDoc (авто-генерация через
+> `tools/auto-kdoc.py` + ручной pass для критичных).
+>
+> Pass 2: улучшение качества KDoc (замена авто-генерации на ручной для
+> критичных классов: Settings, KaraokeProcessWorker, SyncTarget, MLT-генератор).
+> Pass 3: JSDoc для Vue/TS (сейчас 0% — см. ниже).
 
 ### karaoke-app (P1)
 
@@ -155,6 +164,8 @@ KDoc. Список для следующих итераций:
 - [x] `KaraokeStorageService.upload` (`services/KaraokeStorageService.kt`) ✅ 2026-07-20
 - [x] `MonitoringService.run` (`monitor/MonitoringService.kt`) ✅ 2026-07-20
 - [x] `MainController` (`controllers/MainController.kt`) — базовый KDoc ✅ 2026-07-20
+- [ ] **Pass 2**: ручной KDoc для Settings, KaraokeProcessWorker, SyncTarget,
+  MLT-генератор (заменить авто-генерацию на качественный)
 
 ### karaoke-web (P2)
 
@@ -179,6 +190,33 @@ KDoc. Список для следующих итераций:
 - [x] `PlayerView.vue` — караоке-плеер ✅ 2026-07-20
 - [ ] `SongView.vue` — страница песни
 - [ ] Composables: `useAuth.js`, `usePlayer.js`, `useFavorites.js`
+
+### Авто-генерация KDoc
+
+Для ускорения покрытия используется `tools/auto-kdoc.py` —
+генерирует базовый KDoc (краткое описание + `@see`) для всех
+top-level классов без KDoc. Логика:
+
+1. Находит top-level декларации (`class`/`object`/`interface`/`enum`/`sealed`/`data`).
+2. Проверяет наличие KDoc выше (в предыдущих 5 строках).
+3. Вставляет KDoc **выше всех аннотаций** (например, `@Service`),
+   чтобы соблюсти `annotation-spacing` правило ktlint.
+4. Slug для `@see` берётся из маппинга `CLASS_SLUG_OVERRIDE`
+   (для критичных классов) или из директории (`model/` → `dual-db-sync.md`).
+
+```bash
+# Dry-run (показывает, что будет сделано):
+python3 tools/auto-kdoc.py --dry-run karaoke-app/src/main/kotlin
+
+# Применить:
+python3 tools/auto-kdoc.py karaoke-app/src/main/kotlin
+python3 tools/auto-kdoc.py karaoke-web/src/main/kotlin
+```
+
+**Когда использовать**:
+- Массовое покрытие для больших модулей.
+- Временный baseline (затем заменяется на ручной KDoc в Pass 2).
+- Не подходит для классов со сложной семантикой — там ручной KDoc лучше.
 
 ## Автоматизация
 

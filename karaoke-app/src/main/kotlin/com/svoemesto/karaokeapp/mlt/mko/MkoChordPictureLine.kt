@@ -9,6 +9,11 @@ import com.svoemesto.karaokeapp.model.MltNode
 import com.svoemesto.karaokeapp.model.MltNodeBuilder
 import com.svoemesto.karaokeapp.model.ProducerType
 
+/**
+ * Класс Mko Chord Picture Line.
+ *
+ * @see docs/features/mlt-generator.md
+ */
 data class MkoChordPictureLine(
     val mltProp: MltProp,
     val type: ProducerType = ProducerType.CHORDPICTURELINE,

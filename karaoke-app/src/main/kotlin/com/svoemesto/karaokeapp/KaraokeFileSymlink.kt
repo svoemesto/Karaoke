@@ -7,6 +7,11 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import kotlin.io.path.Path
 
+/**
+ * Класс Karaoke File Symlink.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 data class KaraokeFileSymlink(
     val folder: String, // имя папки внутри root_folder-а
     val name: String = "", // имя файла ссылки. Если пустое - имя совпадает с файлом, на который указывает ссылка.

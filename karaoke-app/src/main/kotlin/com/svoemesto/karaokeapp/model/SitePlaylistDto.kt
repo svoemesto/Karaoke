@@ -6,6 +6,12 @@ import java.io.Serializable
 // Булевы поля БЕЗ префикса `is` — Jackson сериализует геттер isX() в JSON-ключ "x" (без "is"),
 // а фронтенд читает ключ буквально (см. DEVELOPMENT.md про Jackson bean convention). itemsCount —
 // не БД-поле, заполняется контроллером для списка плейлистов.
+
+/**
+ * DTO для site playlist: сериализуемое представление для API/UI.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 data class SitePlaylistDto(
     val id: Long = 0,
     val ownerId: Long = 0,

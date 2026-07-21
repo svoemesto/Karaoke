@@ -11,6 +11,12 @@ import org.springframework.stereotype.Component
 // (в отличие от SiteAuthInterceptor, который требует токен и покрывает только
 // /api/public/account/**, /api/public/auth/**). Не кэшируется — бан/снятие премиума должны
 // действовать немедленно, а не по TTL какого-то локального кэша.
+
+/**
+ * Класс Site User Resolver.
+ *
+ * @see docs/features/async-process-queue.md
+ */
 @Component
 class SiteUserResolver(
     private val siteUserTokenService: SiteUserTokenService,

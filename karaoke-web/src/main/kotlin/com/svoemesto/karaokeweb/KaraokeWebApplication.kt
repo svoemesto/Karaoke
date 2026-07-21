@@ -9,6 +9,12 @@ import org.springframework.scheduling.annotation.EnableScheduling
 // где рассматривался вариант admin-машины): PaymentService/YooKassa WebClient/yookassa-proxy уже
 // живут только в karaoke-web, а именно karaoke-web (не karaoke-app) развёрнут на проде — держать
 // автопродление там же, без лишнего HTTP-моста между процессами.
+
+/**
+ * Класс Karaoke Web Application.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 @EnableScheduling
 @SpringBootApplication
 class KaraokeWebApplication

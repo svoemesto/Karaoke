@@ -57,6 +57,12 @@ import kotlin.reflect.jvm.isAccessible
  * @see docs/features/dual-db-sync.md
  * @see docs/architecture-notes-archive.md «reflection-loader и nullable-колонки»
  */
+
+/**
+ * Интерфейс для karaoke db table.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 interface KaraokeDbTable {
     val database: KaraokeConnection
     val storageService: KaraokeStorageService

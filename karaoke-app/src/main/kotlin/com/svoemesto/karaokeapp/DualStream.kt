@@ -4,6 +4,11 @@ import com.svoemesto.karaokeapp.model.SseNotification
 import com.svoemesto.karaokeapp.services.SNS
 import java.io.PrintStream
 
+/**
+ * Класс Dual Stream.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 class DualStream(
     @Suppress("unused") private val out1: PrintStream,
 ) : PrintStream(out1) {

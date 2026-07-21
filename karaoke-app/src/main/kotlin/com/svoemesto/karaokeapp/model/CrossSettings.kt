@@ -5,6 +5,11 @@ import com.svoemesto.karaokeapp.services.KSS_APP
 import com.svoemesto.karaokeapp.services.SAC_APP
 import java.io.Serializable
 
+/**
+ * Класс Cross Settings Row.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 data class CrossSettingsRow(
     val csrId: Int,
     val csrName: String,
@@ -24,6 +29,11 @@ data class CrossSettingsRow(
     }
 }
 
+/**
+ * Класс Cross Settings Cell.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 data class CrossSettingsCell(
     val cscIs: Int,
     val cscName: String,
@@ -45,6 +55,12 @@ data class CrossSettingsCell(
 //    )
 //
 // }
+
+/**
+ * Класс Cross Settings.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 class CrossSettings {
     companion object {
         fun publications(

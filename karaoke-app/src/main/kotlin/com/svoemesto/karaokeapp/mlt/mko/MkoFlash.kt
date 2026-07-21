@@ -8,6 +8,11 @@ import com.svoemesto.karaokeapp.model.MltNodeBuilder
 import com.svoemesto.karaokeapp.model.ProducerType
 import com.svoemesto.karaokeapp.model.TransformProperty
 
+/**
+ * Класс Mko Flash.
+ *
+ * @see docs/features/mlt-generator.md
+ */
 data class MkoFlash(
     val mltProp: MltProp,
     val type: ProducerType,

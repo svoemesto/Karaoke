@@ -16,6 +16,12 @@ import java.sql.Timestamp
 // см. sync/SyncTarget.kt) — как Dictionary (20_news.sql, deploy/karaoke-db/17_dictionaries.sql).
 // «Опубликовано» — вычисляемое условие publishAt <= now() (как Settings.onAir), а не отдельный статус:
 // новость с будущим publishAt, уже уехавшая на прод, сама «всплывает» в назначенный момент.
+
+/**
+ * Класс News.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 @JsonIgnoreProperties(value = ["database", "sqlToInsert"])
 class News(
     override val database: KaraokeConnection = WORKING_DATABASE,

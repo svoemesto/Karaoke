@@ -18,6 +18,11 @@ elementId: Int - id элемента
 НЕ ЗАБЫВАТЬ ПРОПИСЫВАТЬ КЛАССЫ В producerTypeClass
  */
 
+/**
+ * Класс Mlt Initial Structure.
+ *
+ * @see docs/features/mlt-generator.md
+ */
 data class MltInitialStructure(
     var mltProp: MltProp,
     var type: ProducerType,

@@ -4,6 +4,11 @@ import com.svoemesto.karaokeapp.model.SettingField
 import com.svoemesto.karaokeapp.model.Settings
 import com.svoemesto.karaokeapp.model.SongVersion
 
+/**
+ * Перечисление возможных значений для karaoke platform.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 enum class KaraokePlatform(
     val id: Long,
     @Suppress("unused") val caption: String,

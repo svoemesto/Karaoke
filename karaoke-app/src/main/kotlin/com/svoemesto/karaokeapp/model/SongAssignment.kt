@@ -14,6 +14,12 @@ import java.sql.Timestamp
 // Направление sync SERVER_TO_LOCAL (SyncRegistry: songassignments) — как pull пользователей/статистики:
 // реальный рабочий цикл (назначение→работа→апрув) часто идёт целиком на PROD. Рабочая копия пользователя —
 // в отдельной таблице SongAssignmentDraft, см. 10_song_assignments.sql про причину разделения.
+
+/**
+ * Класс Song Assignment.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 @JsonIgnoreProperties(value = ["database", "sqlToInsert"])
 class SongAssignment(
     override val database: KaraokeConnection = WORKING_DATABASE,

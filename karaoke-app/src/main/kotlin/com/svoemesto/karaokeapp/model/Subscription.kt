@@ -19,6 +19,12 @@ import java.sql.Timestamp
 //                (autoRenew + yookassaPaymentMethodId).
 // Модель живёт в karaoke-app, т.к. karaoke-web зависит от него (implementation(project(":karaoke-app"))),
 // но реально создаётся/читается почти всегда из karaoke-web (там платёжный конвейер на проде).
+
+/**
+ * Класс Subscription.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 @JsonIgnoreProperties(value = ["database", "sqlToInsert"])
 class Subscription(
     override val database: KaraokeConnection = WORKING_DATABASE,

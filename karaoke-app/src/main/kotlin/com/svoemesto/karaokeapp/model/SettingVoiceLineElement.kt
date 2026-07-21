@@ -5,6 +5,11 @@ import com.svoemesto.karaokeapp.convertMillisecondsToTimecode
 import com.svoemesto.karaokeapp.mlt.MltText
 import java.io.Serializable
 
+/**
+ * Класс Setting Voice Line Element.
+ *
+ * @see docs/features/mlt-generator.md
+ */
 data class SettingVoiceLineElement(
     val rootId: Long,
     val type: SettingVoiceLineElementTypes, // Тип элемента (текст / аккорд / нота / комментарий / пустая строка)

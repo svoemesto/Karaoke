@@ -17,6 +17,11 @@ import java.net.http.HttpResponse
 import java.nio.charset.StandardCharsets
 import java.time.LocalDate
 
+/**
+ * Класс Ollama Request.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 @Serializable
 data class OllamaRequest(
     val model: String,
@@ -25,6 +30,11 @@ data class OllamaRequest(
     val stream: Boolean = false, // Отключаем streaming для простого ответа
 )
 
+/**
+ * Класс Ollama Stream Response.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 @Serializable
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class OllamaStreamResponse(
@@ -54,6 +64,11 @@ data class OllamaStreamResponse(
     val evalDuration: Long? = null,
 )
 
+/**
+ * Класс AI Assistant.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 class AIAssistant(
 //    private val model: String = "llama3",
 //    private val model: String = "qwen3:8b",

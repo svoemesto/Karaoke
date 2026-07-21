@@ -15,6 +15,11 @@ import java.util.*
 
 const val PATH_TO_KARAOKE_PROPERTIES_FILE = "/sm-karaoke/system/Karaoke.properties"
 
+/**
+ * Класс Karaoke Properties.
+ *
+ * @see docs/features/async-process-queue.md
+ */
 class KaraokeProperties {
     companion object {
         fun pathToFile(): String = PATH_TO_KARAOKE_PROPERTIES_FILE

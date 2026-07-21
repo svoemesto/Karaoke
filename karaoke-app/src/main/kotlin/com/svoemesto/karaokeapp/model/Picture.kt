@@ -6,6 +6,11 @@ import java.awt.image.BufferedImage
 import java.io.File
 import javax.imageio.ImageIO
 
+/**
+ * Класс Picture.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 class Picture(
     val params: PictureParams,
     val childs: MutableList<PictureChild> = mutableListOf(),
@@ -498,12 +503,22 @@ class Picture(
     )
 }
 
+/**
+ * Класс Picture Child.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 data class PictureChild(
     val x: Int,
     val y: Int,
     val child: Picture,
 )
 
+/**
+ * Класс Area Params.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 data class AreaParams(
     val w: Int,
     val h: Int,
@@ -511,6 +526,11 @@ data class AreaParams(
     val opaque: Float = 1f,
 ) : PictureParams
 
+/**
+ * Класс Image Params.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 data class ImageParams(
     val w: Int,
     val h: Int,
@@ -518,6 +538,11 @@ data class ImageParams(
     val biImage: BufferedImage? = null,
 ) : PictureParams
 
+/**
+ * Класс Text Params.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 data class TextParams(
     val w: Int,
     val h: Int,
@@ -532,4 +557,9 @@ data class TextParams(
     val shadowOffset: Int = 2,
 ) : PictureParams
 
+/**
+ * Интерфейс для picture params.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 interface PictureParams

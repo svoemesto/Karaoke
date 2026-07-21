@@ -5,6 +5,12 @@ import java.io.Serializable
 
 // Булевы поля БЕЗ префикса `is` — Jackson сериализует геттер isX() в JSON-ключ "x" (без "is"), фронт
 // читает fromAuthor/read буквально (см. DEVELOPMENT.md про Jackson bean convention).
+
+/**
+ * DTO для site chat message: сериализуемое представление для API/UI.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 data class SiteChatMessageDto(
     val id: Long = 0,
     val siteUserId: Long = 0,

@@ -11,6 +11,11 @@ import com.svoemesto.karaokeapp.model.ProducerType
 import com.svoemesto.karaokeapp.model.PropertiesMltNodeBuilder
 import java.awt.Font
 
+/**
+ * Класс Mko Scroller.
+ *
+ * @see docs/features/mlt-generator.md
+ */
 data class MkoScroller(
     val mltProp: MltProp,
     val type: ProducerType,

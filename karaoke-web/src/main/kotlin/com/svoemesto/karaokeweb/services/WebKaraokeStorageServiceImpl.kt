@@ -25,6 +25,12 @@ import java.io.InputStream
  * все методы бросают [UnsupportedOperationException]: в нормальной работе это никогда не срабатывает,
  * а случайный будущий вызов упадёт громко и понятно вместо тихого обращения к недоступному MinIO.
  */
+
+/**
+ * Класс Web Karaoke Storage Service Impl.
+ *
+ * @see docs/features/premium-stems.md
+ */
 @Service
 class WebKaraokeStorageServiceImpl : KaraokeStorageService {
     private fun nope(): Nothing =

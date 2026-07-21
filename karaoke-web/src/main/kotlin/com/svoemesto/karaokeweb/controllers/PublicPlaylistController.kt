@@ -24,6 +24,12 @@ import org.springframework.web.bind.annotation.*
  * Лимиты: не-премиум — только «Избранное» (до 100 песен); премиум — до 50 плейлистов (включая
  * «Избранное») × до 500 песен в каждом.
  */
+
+/**
+ * Контроллер (HTTP/WebSocket endpoints) для public playlist .
+ *
+ * @see AGENTS.md
+ */
 @RestController
 @RequestMapping("/api/public/account")
 class PublicPlaylistController(

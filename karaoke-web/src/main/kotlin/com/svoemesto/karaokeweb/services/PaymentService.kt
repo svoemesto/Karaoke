@@ -22,6 +22,12 @@ import java.util.UUID
  * Все внешние вызовы идут через host-nginx прокси (yookassa.proxy-url), см. WebClientConfig —
  * тот же обход MTU black-hole, что и CAPTCHA_PROXY_URL/STORAGE_PROXY_URL.
  */
+
+/**
+ * Сервис для payment .
+ *
+ * @see docs/features/async-process-queue.md
+ */
 @Service
 class PaymentService(
     @Qualifier("yookassaWebClient") private val webClient: WebClient,

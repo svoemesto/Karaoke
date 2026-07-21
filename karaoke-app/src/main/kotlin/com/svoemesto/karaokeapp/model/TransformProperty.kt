@@ -2,6 +2,11 @@ package com.svoemesto.karaokeapp.model
 
 import java.io.Serializable
 
+/**
+ * Класс Transform Property.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 data class TransformProperty(
     val time: String = "",
     val x: Int = 0,

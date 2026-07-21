@@ -2,6 +2,11 @@ package com.svoemesto.karaokeapp.model
 
 import java.io.Serializable
 
+/**
+ * Перечисление возможных значений для song output file.
+ *
+ * @see docs/features/mlt-generator.md
+ */
 enum class SongOutputFile(
     val extension: String,
 ) : Serializable {

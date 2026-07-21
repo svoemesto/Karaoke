@@ -7,6 +7,11 @@ import com.svoemesto.karaokeapp.model.MltNodeBuilder
 import com.svoemesto.karaokeapp.model.ProducerType
 import com.svoemesto.karaokeapp.model.PropertiesMltNodeBuilder
 
+/**
+ * Класс Mko Audio.
+ *
+ * @see docs/features/mlt-generator.md
+ */
 data class MkoAudio(
     val mltProp: MltProp,
     val type: ProducerType,

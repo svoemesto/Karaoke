@@ -24,6 +24,12 @@ import java.util.concurrent.atomic.AtomicInteger
 // + метод refreshCache() ниже). Холодный старт инициирует синхронное обновление кеша при первом
 // обращении, чтобы endpoint /api/public/stats не вернул нули после рестарта приложения, если
 // scheduler ещё не успел отработать (Spring не гарантирует порядок инициализации Service/Controller).
+
+/**
+ * Singleton-объект Stat By Song.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 object StatBySong {
     private val cachedTotal = AtomicInteger(-1)
     private val cachedCollection = AtomicInteger(-1)

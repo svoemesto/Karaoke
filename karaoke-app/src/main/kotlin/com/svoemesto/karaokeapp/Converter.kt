@@ -7,6 +7,11 @@ import com.svoemesto.karaokeapp.mlt.setting
 import java.awt.Color
 import java.awt.Font
 
+/**
+ * Класс Converter.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 class Converter {
     companion object {
         fun getColorsFromString(settingString: String): MutableList<Color> {

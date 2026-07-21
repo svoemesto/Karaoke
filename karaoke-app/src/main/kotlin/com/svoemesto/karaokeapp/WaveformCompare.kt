@@ -21,6 +21,12 @@ import kotlin.math.sqrt
  */
 
 // Результат сверки. Возвращается эндпоинтом /api/song/comparewaveform как есть (Jackson).
+
+/**
+ * DTO для waveform compare result: сериализуемое представление для API/UI.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 data class WaveformCompareResultDto(
     val idAnother: Long,
     val similarityPercent: Int,
@@ -30,6 +36,11 @@ data class WaveformCompareResultDto(
     val error: String?,
 )
 
+/**
+ * Singleton-объект Waveform Compare.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 object WaveformCompare {
     private const val SAMPLE_RATE = 8000 // Гц, моно — декодируем сюда через ffmpeg
     private const val FRAME_RATE_HZ = 100 // Гц огибающей ⇒ 10 мс на кадр

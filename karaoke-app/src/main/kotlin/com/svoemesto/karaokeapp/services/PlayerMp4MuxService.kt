@@ -16,6 +16,12 @@ import java.time.Instant
  * Параметры кодека — дефолты как у MLT-консьюмера (mlt/Consumer.kt): libx265/CRF15/ultrafast,
  * AAC 160k/2 канала — переопределяемы через параметры функции.
  */
+
+/**
+ * Singleton-объект Player Mp4Mux Service.
+ *
+ * @see docs/features/async-process-queue.md
+ */
 object PlayerMp4MuxService {
     // Путь к flac-стему + линейный множитель громкости (0 = тишина, 1 = как есть в исходнике).
     //

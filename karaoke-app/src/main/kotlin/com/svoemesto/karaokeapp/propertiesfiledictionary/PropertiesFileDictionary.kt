@@ -3,6 +3,11 @@ package com.svoemesto.karaokeapp.propertiesfiledictionary
 import com.svoemesto.karaokeapp.runCommand
 import java.io.File
 
+/**
+ * Интерфейс для properties file dictionary.
+ *
+ * @see AGENTS.md
+ */
 interface PropertiesFileDictionary {
     fun separator() = "{WEBVUE_PROPERTIES_SEPARATOR}"
 

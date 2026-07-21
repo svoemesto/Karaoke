@@ -7,6 +7,12 @@ import jakarta.servlet.http.HttpServletRequest
 // IP клиента, даже когда прод-nginx (80to8897) уже правильно проставляет X-Real-IP/
 // X-Forwarded-For. Фолбэк на remoteHost остаётся только для случая отсутствия обоих
 // заголовков (например, локальный dev без nginx перед приложением).
+
+/**
+ * Singleton-объект Client Ip Resolver.
+ *
+ * @see AGENTS.md
+ */
 object ClientIpResolver {
     fun resolve(request: HttpServletRequest): String {
         request

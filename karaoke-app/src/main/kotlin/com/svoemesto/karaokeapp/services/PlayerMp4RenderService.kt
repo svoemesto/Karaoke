@@ -11,6 +11,11 @@ import java.time.Instant
 import java.util.Base64
 import kotlin.math.ceil
 
+/**
+ * Перечисление возможных значений для render version.
+ *
+ * @see docs/features/async-process-queue.md
+ */
 enum class RenderVersion(
     val label: String,
     val comment: String,
@@ -23,6 +28,11 @@ enum class RenderVersion(
     DEMO("Karaoke (Demo)", "Ознакомительный фрагмент", "[demo]"),
 }
 
+/**
+ * Класс Render Mp4Params.
+ *
+ * @see docs/features/async-process-queue.md
+ */
 data class RenderMp4Params(
     val songId: Long,
     val width: Int = 1920,
@@ -33,6 +43,11 @@ data class RenderMp4Params(
     val demoFragmentEnd: Double? = null,
 )
 
+/**
+ * Класс Render Mp4Frames Result.
+ *
+ * @see docs/features/async-process-queue.md
+ */
 data class RenderMp4FramesResult(
     val framesDir: File,
     val preroll: Double,
@@ -57,6 +72,12 @@ data class RenderMp4FramesResult(
  * MVP: результат — JPEG-секвенция во временной папке, БЕЗ встраивания в очередь KaraokeProcess (нет
  * прогресса по SSE, нет thread-лейна) — только для визуальной сверки с эталонным MLT-рендером той же
  * песни. Встройка в очередь — следующий этап (см. план "Рендер видео MP4 из онлайн-плеера").
+ */
+
+/**
+ * Singleton-объект Player Mp4Render Service.
+ *
+ * @see docs/features/async-process-queue.md
  */
 object PlayerMp4RenderService {
     // webvue3-контейнер в docker-сети (nginx слушает 7906, проксирует /api → karaoke-app:8899 — тот

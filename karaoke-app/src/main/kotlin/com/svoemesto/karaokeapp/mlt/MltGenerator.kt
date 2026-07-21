@@ -6,8 +6,21 @@ import com.svoemesto.karaokeapp.model.ProducerType
 import com.svoemesto.karaokeapp.model.PropertiesMltNodeBuilder
 
 /**
- * Класс Mlt Generator.
+ * Генератор одного MLT-Producer'а (визуального слоя) karaoke-видео.
  *
+ * Каждый экземпляр соответствует одному [ProducerType] (текст, аккорды,
+ * нота, гриф, фоновый цвет и т.д.) для конкретного голоса
+ * ([voiceId]) и/или дочернего элемента ([childId]).
+ *
+ * Использует [MltProp] (параметры рендера) и [MltNodeBuilder] (DSL
+ * для построения XML-узлов MLT) — см. `mko` пакет для конкретных
+ * Producer'ов.
+ *
+ * @property mltProp параметры рендера (см. [MltProp]).
+ * @property type тип Producer'а (см. [ProducerType]).
+ * @property voiceId ID голоса (0 для основного).
+ * @property childId ID дочернего элемента (для составных Producer'ов).
+ * @property elementId ID элемента (для диагностики и логирования).
  * @see docs/features/mlt-generator.md
  */
 data class MltGenerator(

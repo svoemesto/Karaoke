@@ -1926,11 +1926,30 @@ const SONG_TYPE_OPTIONS = [
 ]
 
 /**
- * Форма редактирования song.
+ * Главная форма редактирования песни (Karaoke-редактор).
+ *
+ * Это самый большой и сложный Vue-компонент в проекте (~3000 строк).
+ * Содержит 8 логических секций:
+ * 1. **Header**: id, автор, альбом, имя файла, тип песни, статус.
+ * 2. **Аудио**: source/origin/mix/vocals/accompaniment, BPM, Key.
+ * 3. **Текст**: `subsText` (исходник), `translatedText` (перевод),
+ *    `chordsText` (аккорды), автоматический поиск через `SearchText`.
+ * 4. **Markers**: маркеры слогов/нот/аккордов для MLT (см. `mlt-generator.md`).
+ * 5. **Render params**: ~150 параметров рендера (шрифты, цвета, отступы,
+ *    тайминги, горизонт, watermark, fade-in/out).
+ * 6. **MLT preview**: превью XML-структуры.
+ * 7. **Публикация**: ссылки на соцсети (TG/VK/Dzen/Boosty/Sponsr).
+ * 8. **Repair flags**: флаги ремонта (`isAudioAnalizeNeed`, `isMelodyNeed`,
+ *    `isChordsNeed`, `isVocalNeed`, `isAccompanimentNeed`).
+ *
+ * Автосохранение: `watch(diff)` с debounce 1 сек → `Settings.saveToDb()`.
+ *
+ * Использует `SubsEdit` для inline-редактирования текста/аккордов,
+ * `SearchText` для LLM-поиска текстов и аккордов.
  *
  * @see docs/features/mlt-generator.md
+ * @see docs/features/llm-lyrics-search.md
  */
-
 export default {
   name: 'SongEdit',
   components: {

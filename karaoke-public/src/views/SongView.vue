@@ -442,11 +442,25 @@ import SongSubscriptionModal from '../components/SongSubscriptionModal.vue'
 import { useCart } from '../composables/useCart'
 
 /**
- * View-страница «Song» — основной layout и data-fetching.
+ * Публичная страница песни (`/song?id=...`).
  *
- * @see docs/features/mlt-generator.md
+ * Функционал:
+ * - **Header**: автор, альбом, год, имя песни, тип (song/instrumental/poetry).
+ * - **Player**: переключатель «embed» (встроенный) / «premium» (полный плеер).
+ * - **Waiting screen**: показывается если песня ещё не вышла в эфир
+ *   (использует `currentSong.airTimestamp` и `daysUntilAir`).
+ * - **Subscription modal**: если песня доступна только по подписке
+ *   (`songSubscriptionAvailable`) — предлагает купить.
+ * - **Metadata**: «сгенерировано Kdenlive + MLT», ссылка на Boosty.
+ *
+ * Использует Vuex-модули:
+ * - `auth` — авторизация (влияет на доступ к премиум-плееру).
+ * - `cart` — добавление в корзину.
+ * - `playlistMembership` — добавление в плейлисты.
+ *
+ * @see docs/features/premium-stems.md
+ * @see docs/features/mp4-render.md (Player)
  */
-
 export default {
   name: 'SongView',
   components: { PlatformLink, AuthStatusWidget, SongSubscriptionModal, FavoriteIcon, PlaylistIcon },

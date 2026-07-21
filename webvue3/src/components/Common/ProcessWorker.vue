@@ -34,11 +34,19 @@
 import CustomConfirm from './CustomConfirm.vue'
 
 /**
- * Компонент «Process Worker».
+ * UI-компонент для отображения статуса KaraokeProcess-воркера.
+ *
+ * Используется на странице `ProcessesView` и в `HealthReport` для показа
+ * текущего состояния очереди задач:
+ * - `WAITING` (запланировано), `WORKING` (выполняется), `DONE`, `ERROR`.
+ * - Прогресс-бар (парсится из `KaraokeProcess.percentage`).
+ * - Кнопки `Force stop` (вызывает `forceStop()` через `/api/process/forceStop`).
+ *
+ * Подписывается на SSE `PROCESS_WORKER_STATE` и `PROCESS_COUNT_WAITING`
+ * для live-обновления.
  *
  * @see docs/features/async-process-queue.md
  */
-
 export default {
   name: 'ProcessWorker',
   components: {

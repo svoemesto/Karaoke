@@ -9,11 +9,19 @@
 import SongsTable from '../components/Songs/SongsTable.vue'
 
 /**
- * View-страница «Song» — основной layout и data-fetching.
+ * View-страница «Songs» — список песен с фильтрами.
  *
- * @see docs/features/mlt-generator.md
+ * Контейнер для `SongsTable` + `SongsFilterModal`. Использует Vuex-модуль
+ * `songs` для хранения фильтров (выбранные словари, авторы, статусы,
+ * publish-флаги). Применение фильтра → `SongsTable` перезагружает данные
+ * через `loadList`.
+ *
+ * Содержит также кнопки bulk-операций (sync, push, pull, delete) —
+ * см. `SongsTable.vue` для деталей.
+ *
+ * @see docs/features/dual-db-sync.md
+ * @see docs/features/mlt-generator.md (откуда берутся параметры рендера)
  */
-
 export default {
   name: 'SongView',
   components: {

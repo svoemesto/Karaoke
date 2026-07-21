@@ -1,0 +1,68 @@
+# .gitattributes — нормализация line endings и diff drivers
+#
+# Гарантирует, что в репо всегда LF (Unix line endings), даже если
+# разработчик работает на Windows (CRLF → LF при commit).
+# `* text=auto` — git сам выбирает, но на checkout всегда LF.
+#
+# Документация: https://git-scm.com/docs/gitattributes
+
+# === Текстовые файлы — нормализация в LF ===
+*          text=auto eol=lf
+
+# Скрипты и shell — точно LF, executable
+*.sh       text eol=lf
+*.bash     text eol=lf
+*.py       text eol=lf diff=python
+
+# Kotlin/Java
+*.kt       text eol=lf diff=kotlin
+*.kts      text eol=lf diff=kotlin
+*.java     text eol=lf diff=java
+*.gradle   text eol=lf
+
+# Web
+*.vue      text eol=lf
+*.js       text eol=lf
+*.ts       text eol=lf
+*.tsx      text eol=lf
+*.jsx      text eol=lf
+*.json     text eol=lf
+*.css      text eol=lf
+*.scss     text eol=lf
+*.html     text eol=lf
+
+# Документация
+*.md       text eol=lf
+*.markdown text eol=lf
+*.yml      text eol=lf
+*.yaml     text eol=lf
+
+# SQL миграции
+*.sql      text eol=lf
+
+# === Бинарные файлы — без обработки ===
+*.png      binary
+*.jpg      binary
+*.jpeg     binary
+*.gif      binary
+*.webp     binary
+*.ico      binary
+*.pdf      binary
+*.zip      binary
+*.jar      binary
+*.war      binary
+*.mp4      binary
+*.mp3      binary
+*.flac     binary
+*.ogg      binary
+*.webm     binary
+
+# === Gradle wrapper — точно LF, executable ===
+gradlew          text eol=lf
+gradlew.bat      text eol=lf
+gradle/wrapper/* text eol=lf
+
+# === Lock-файлы — НЕ должны меняться в PR ===
+package-lock.json -diff
+yarn.lock         -diff
+pnpm-lock.yaml    -diff

@@ -7,9 +7,9 @@ import java.io.Serializable
 // читает fromAuthor/read буквально (см. DEVELOPMENT.md про Jackson bean convention).
 
 /**
- * DTO для site chat message: сериализуемое представление для API/UI.
+ * DTO сообщения чата для API/UI.
  *
- * @see docs/features/dual-db-sync.md
+ * @see docs/features/sse-notifications.md
  */
 data class SiteChatMessageDto(
     val id: Long = 0,

@@ -1,6 +1,5 @@
 package com.svoemesto.karaokeapp.model
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.svoemesto.karaokeapp.KaraokeConnection
 import com.svoemesto.karaokeapp.WORKING_DATABASE
 import com.svoemesto.karaokeapp.services.KSS_APP
@@ -16,11 +15,20 @@ import java.sql.Timestamp
 // в отдельной таблице SongAssignmentDraft, см. 10_song_assignments.sql про причину разделения.
 
 /**
- * Класс Song Assignment.
+ * Задание на редактирование песни, выданное пользователю (см. AdminAssign).
  *
- * @see docs/features/dual-db-sync.md
+ * Хранит:
+ * - `id`, `idSettings` — песня.
+ * - `idSiteUser` — исполнитель.
+ * - `idReviewer` — кто проверил (`null` = не проверено).
+ * - `status` — `ASSIGNED` / `IN_PROGRESS` / `REVIEW` / `APPROVED` / `REJECTED`.
+ * - `dueDate` — крайний срок.
+ * - `result` — комментарий ревьюера.
+ *
+ * При `APPROVED` → создаётся `KaraokeProcess` для финальной обработки.
+ *
+ * @see docs/features/async-process-queue.md
  */
-@JsonIgnoreProperties(value = ["database", "sqlToInsert"])
 class SongAssignment(
     override val database: KaraokeConnection = WORKING_DATABASE,
     override val storageService: KaraokeStorageService = KSS_APP,

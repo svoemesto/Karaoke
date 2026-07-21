@@ -3,9 +3,17 @@ package com.svoemesto.karaokeapp.model
 import java.io.Serializable
 
 /**
- * Перечисление возможных значений для music note.
+ * Нота в karaoke-нотации (12 основных нот + диезы/бемоли).
  *
- * @see docs/features/dual-db-sync.md
+ * Хранит:
+ * - `value` — символ ноты (`"C"`, `"C#"`, `"Db"`, и т.п.).
+ * - `octaveDefault` — дефолтная октава.
+ *
+ * Используется в `MusicChord.baseNote` и в `NoteOctaveFret`
+ * (data class) — нота с октавой и позицией на грифе.
+ *
+ * @see docs/features/mlt-generator.md
+ * @see docs/features/llm-lyrics-search.md
  */
 enum class MusicNote(
     val text: String,

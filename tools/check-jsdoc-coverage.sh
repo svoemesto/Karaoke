@@ -41,22 +41,44 @@ for entry in "${MODULES[@]}"; do
   kdoc=0
   while IFS= read -r f; do
     [[ "$f" =~ \.(vue|js|ts)$ ]] || continue
-    # Проверяем, что файл содержит export default или defineComponent
-    if ! grep -qE '^[[:space:]]*export[[:space:]]+default[[:space:]]+(\w+[[:space:]]*)?\{' "$f" 2>/dev/null \
-       && ! grep -qE '^[[:space:]]*defineComponent[[:space:]]*\(' "$f" 2>/dev/null; then
+    # Проверяем, что файл содержит:
+    # 1. export default {...} (Options API)
+    # 2. defineComponent({...}) (Composition API)
+    # 3. <script setup> (Composition API в Vue SFC)
+    has_export_default=0
+    has_define_component=0
+    has_script_setup=0
+    grep -qE '^[[:space:]]*export[[:space:]]+default[[:space:]]+(\w+[[:space:]]*)?\{' "$f" 2>/dev/null && has_export_default=1
+    grep -qE '^[[:space:]]*defineComponent[[:space:]]*\(' "$f" 2>/dev/null && has_define_component=1
+    grep -qE '<script[[:space:]]+setup' "$f" 2>/dev/null && has_script_setup=1
+    if [ "$has_export_default" -eq 0 ] && [ "$has_define_component" -eq 0 ] && [ "$has_script_setup" -eq 0 ]; then
       continue
     fi
     total=$((total + 1))
-    # Проверяем JSDoc перед export default / defineComponent
-    # Берём последние 50 строк ПЕРЕД export default
-    line_num=$(grep -nE '^[[:space:]]*export[[:space:]]+default|^[[:space:]]*defineComponent' "$f" 2>/dev/null | head -1 | cut -d: -f1)
-    if [ -z "$line_num" ]; then
-      continue
+    has_jsdoc=0
+    # Для export default / defineComponent — JSDoc перед target
+    if [ "$has_export_default" -eq 1 ] || [ "$has_define_component" -eq 1 ]; then
+      line_num=$(grep -nE '^[[:space:]]*export[[:space:]]+default|^[[:space:]]*defineComponent' "$f" 2>/dev/null | head -1 | cut -d: -f1)
+      if [ -n "$line_num" ]; then
+        start=$((line_num - 50))
+        [ $start -lt 1 ] && start=1
+        end=$((line_num - 1))
+        if sed -n "${start},${end}p" "$f" | grep -qE '^\s*/\*\*'; then
+          has_jsdoc=1
+        fi
+      fi
     fi
-    start=$((line_num - 50))
-    [ $start -lt 1 ] && start=1
-    end=$((line_num - 1))
-    if sed -n "${start},${end}p" "$f" | grep -qE '^\s*/\*\*'; then
+    # Для <script setup> — JSDoc в первых 10 строках ПОСЛЕ открывающего <script setup>
+    if [ "$has_script_setup" -eq 1 ] && [ "$has_jsdoc" -eq 0 ]; then
+      line_num=$(grep -nE '<script[[:space:]]+setup' "$f" 2>/dev/null | head -1 | cut -d: -f1)
+      if [ -n "$line_num" ]; then
+        end=$((line_num + 15))
+        if sed -n "${line_num},${end}p" "$f" | grep -qE '^\s*/\*\*'; then
+          has_jsdoc=1
+        fi
+      fi
+    fi
+    if [ "$has_jsdoc" -eq 1 ]; then
       kdoc=$((kdoc + 1))
     fi
   done < <(find "$module/$src_dir" -type f \( -name "*.vue" -o -name "*.js" -o -name "*.ts" \) 2>/dev/null)

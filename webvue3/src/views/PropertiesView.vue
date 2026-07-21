@@ -6,6 +6,12 @@
 
 <script>
 import PropertiesTable from '../components/Properties/PropertiesTable.vue'
+
+/**
+ * View-страница «Properties» — основной layout и data-fetching.
+ *
+ * @see AGENTS.md
+ */
 export default {
   name: 'PropertiesView',
   components: {

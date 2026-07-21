@@ -6,6 +6,12 @@
 
 <script>
 import PublicSettingsTable from '../components/PublicSettings/PublicSettingsTable.vue'
+
+/**
+ * View-страница «Public Settings» — основной layout и data-fetching.
+ *
+ * @see AGENTS.md
+ */
 export default {
   name: 'PublicSettingsView',
   components: {

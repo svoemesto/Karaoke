@@ -2,6 +2,11 @@ import { promisedXMLHttpRequest } from '../../lib/utils'
 
 // Sponsr-синхронизация премиума (см. SponsrSyncService в karaoke-app). sponsrSyncTarget ('local'|'remote') —
 // тот же паттерн, что siteUsersTarget/tariffsTarget: реальные подписчики матчатся на прод-БД.
+/**
+ * Компонент «Store».
+ *
+ * @see AGENTS.md
+ */
 export default {
   state: {
     sponsrSyncStatus: null,

@@ -441,6 +441,12 @@ import { pluralDays } from '../utils/pluralRu'
 import SongSubscriptionModal from '../components/SongSubscriptionModal.vue'
 import { useCart } from '../composables/useCart'
 
+/**
+ * View-страница «Song» — основной layout и data-fetching.
+ *
+ * @see docs/features/mlt-generator.md
+ */
+
 export default {
   name: 'SongView',
   components: { PlatformLink, AuthStatusWidget, SongSubscriptionModal, FavoriteIcon, PlaylistIcon },

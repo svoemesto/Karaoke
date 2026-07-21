@@ -23,6 +23,12 @@
 <script>
 import { usePremiumModal } from '../composables/usePremiumModal'
 
+/**
+ * Модальное окно для upsell.
+ *
+ * @see AGENTS.md
+ */
+
 export default {
   name: 'PremiumUpsellModal',
   setup() {

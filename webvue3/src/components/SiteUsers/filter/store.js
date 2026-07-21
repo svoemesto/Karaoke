@@ -1,4 +1,10 @@
 import { setWebvueProp } from '../../../lib/utils'
+
+/**
+ * Компонент «Store».
+ *
+ * @see AGENTS.md
+ */
 export default {
   state: {
     siteUsersFilterId: '',

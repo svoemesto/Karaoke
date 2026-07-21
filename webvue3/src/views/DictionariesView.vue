@@ -6,6 +6,12 @@
 
 <script>
 import DictionariesTable from '../components/Dictionaries/DictionariesTable.vue'
+
+/**
+ * View-страница «Dictionaries» — основной layout и data-fetching.
+ *
+ * @see AGENTS.md
+ */
 export default {
   name: 'DictionariesView',
   components: {

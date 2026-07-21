@@ -5,6 +5,11 @@
 </template>
 
 <script>
+/**
+ * Компонент «Backend Console».
+ *
+ * @see AGENTS.md
+ */
 export default {
   name: 'BackendConsole',
   computed: {

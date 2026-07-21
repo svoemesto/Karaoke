@@ -10,6 +10,11 @@
 </template>
 
 <script>
+/**
+ * Компонент «Publish Table Head».
+ *
+ * @see AGENTS.md
+ */
 export default {
   name: 'PublishTableHead',
   props: {

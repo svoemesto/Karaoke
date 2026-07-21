@@ -15,6 +15,11 @@
 // сообщения от пользователей в «Чате с автором проекта». chatUnreadTotal уже опрашивается
 // периодически в App.vue (loadChatUnreadCount, см. CHAT_UNREAD_POLL_INTERVAL_MS) — здесь только
 // презентация, отдельный опрос не нужен. Клик — переход в раздел «Чат» из любой страницы админки.
+/**
+ * Компонент «Chat Notify Button».
+ *
+ * @see AGENTS.md
+ */
 export default {
   name: 'ChatNotifyButton',
   computed: {

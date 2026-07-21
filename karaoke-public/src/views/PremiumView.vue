@@ -145,6 +145,12 @@ import { useAuth } from '../composables/useAuth'
 import { useSiteSubscription } from '../composables/useSiteSubscription'
 import { authGet } from '../services/authApi'
 
+/**
+ * View-страница «Premium» — основной layout и data-fetching.
+ *
+ * @see AGENTS.md
+ */
+
 export default {
   name: 'PremiumView',
   setup() {

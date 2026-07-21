@@ -3,6 +3,12 @@ import { apiGet } from '../../services/api'
 let latestSearchId = 0
 let latestSongId = 0
 
+/**
+ * Компонент «Songs».
+ *
+ * @see AGENTS.md
+ */
+
 export default {
   namespaced: true,
   state: {

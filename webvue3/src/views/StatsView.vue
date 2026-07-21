@@ -332,6 +332,12 @@ import TopListenedSongsTable from '../components/Stats/TopListenedSongsTable.vue
 import UserEventsModal from '../components/Stats/UserEventsModal.vue'
 import SongEventsModal from '../components/Stats/SongEventsModal.vue'
 
+/**
+ * View-страница «Stats» — основной layout и data-fetching.
+ *
+ * @see docs/features/monitoring.md
+ */
+
 export default {
   name: 'StatsView',
   components: {

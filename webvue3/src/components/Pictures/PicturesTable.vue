@@ -95,6 +95,11 @@ import CustomConfirm from '../Common/CustomConfirm.vue'
 // Vue.use(TablePlugin)
 // Vue.use(PaginationPlugin)
 // Vue.use(SpinnerPlugin)
+/**
+ * Таблица со списком pictures с пагинацией, фильтрами и сортировкой.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 
 export default {
   name: 'PicturesTable',

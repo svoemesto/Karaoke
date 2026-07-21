@@ -6,6 +6,12 @@
 
 <script>
 import StemJobsTable from '../components/StemJobs/StemJobsTable.vue'
+
+/**
+ * View-страница «Stem Jobs» — основной layout и data-fetching.
+ *
+ * @see AGENTS.md
+ */
 export default {
   name: 'StemJobsView',
   components: {

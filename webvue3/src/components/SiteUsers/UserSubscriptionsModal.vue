@@ -57,6 +57,13 @@
 </template>
 
 <script>
+/**
+ * Модальное окно для subscriptions.
+ *
+ * @emits close
+ *
+ * @see AGENTS.md
+ */
 export default {
   name: 'UserSubscriptionsModal',
   props: {

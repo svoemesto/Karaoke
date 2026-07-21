@@ -231,6 +231,12 @@ import { usePlaylistMembership } from '../composables/usePlaylistMembership'
 import { useCart } from '../composables/useCart'
 import { useAuth } from '../composables/useAuth'
 
+/**
+ * View-страница «Search» — основной layout и data-fetching.
+ *
+ * @see AGENTS.md
+ */
+
 export default {
   name: 'SearchView',
   components: {

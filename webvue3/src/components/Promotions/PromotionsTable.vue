@@ -97,6 +97,11 @@
 </template>
 
 <script>
+/**
+ * Таблица со списком promotions с пагинацией, фильтрами и сортировкой.
+ *
+ * @see AGENTS.md
+ */
 export default {
   name: 'PromotionsTable',
   data() {

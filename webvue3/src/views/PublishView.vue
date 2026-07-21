@@ -7,6 +7,12 @@
 <script>
 import PublishTable from '../components/Publish/PublishTable.vue'
 
+/**
+ * View-страница «Publish» — основной layout и data-fetching.
+ *
+ * @see docs/features/telegram-auto-publish.md
+ */
+
 export default {
   name: 'PublishView',
   components: { PublishTable },

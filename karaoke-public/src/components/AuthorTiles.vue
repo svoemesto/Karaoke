@@ -26,6 +26,13 @@
 </template>
 
 <script>
+/**
+ * Компонент «Author Tiles».
+ *
+ * @emits select
+ *
+ * @see AGENTS.md
+ */
 export default {
   name: 'AuthorTiles',
   props: {

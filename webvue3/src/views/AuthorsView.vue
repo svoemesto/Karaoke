@@ -6,6 +6,12 @@
 
 <script>
 import AuthorsTable from '../components/Authors/AuthorsTable.vue'
+
+/**
+ * View-страница «Authors» — основной layout и data-fetching.
+ *
+ * @see AGENTS.md
+ */
 export default {
   name: 'AuthorsView',
   components: {

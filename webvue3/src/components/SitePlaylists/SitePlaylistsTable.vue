@@ -95,6 +95,11 @@ import SitePlaylistDetailModal from './SitePlaylistDetailModal.vue'
  * @see docs/features/dual-db-sync.md
  * @see CONTRIBUTING.md#vue-table-layout-fixed
  */
+/**
+ * Таблица со списком playlists с пагинацией, фильтрами и сортировкой.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 export default {
   name: 'SitePlaylistsTable',
   components: { SitePlaylistDetailModal, BPagination, BSpinner, BTable },

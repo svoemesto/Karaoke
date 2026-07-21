@@ -1,3 +1,8 @@
+/**
+ * Компонент «Store».
+ *
+ * @see AGENTS.md
+ */
 export default {
   state: {
     smartCopySongVersion: 'ALL',

@@ -17,6 +17,12 @@
 <script>
 import SiteUserEdit from './SiteUserEdit.vue'
 
+/**
+ * Модальное окно для edit.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
+
 export default {
   name: 'SiteUserEditModal',
   components: { SiteUserEdit },

@@ -94,6 +94,12 @@ import CustomConfirm from '../../Common/CustomConfirm.vue'
 import FileExplorerModal from '../../../components/Common/FileExplorer/FileExplorerModal.vue'
 import { useToast } from 'bootstrap-vue-next'
 import { h } from 'vue'
+
+/**
+ * Форма редактирования picture.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 export default {
   name: 'PictureEdit',
   components: {

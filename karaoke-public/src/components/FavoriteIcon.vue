@@ -22,6 +22,12 @@ import { usePlaylistMembership } from '../composables/usePlaylistMembership'
 import { usePremiumModal } from '../composables/usePremiumModal'
 import { toggleFavorite } from '../services/playlistApi'
 
+/**
+ * Компонент «Favorite Icon».
+ *
+ * @see AGENTS.md
+ */
+
 export default {
   name: 'FavoriteIcon',
   components: { SvgIcon },

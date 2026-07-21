@@ -3,6 +3,12 @@ import { promisedXMLHttpRequest } from '../../../lib/utils.js'
 // Держим в синхроне с backend MonitorSeverity.rank (karaoke-app/.../monitor/MonitorSeverity.kt).
 const SEVERITY_RANK = { INFO: 0, WARNING: 1, ERROR: 2, CRITICAL: 3 }
 
+/**
+ * Компонент «Store».
+ *
+ * @see AGENTS.md
+ */
+
 export default {
   state: {
     monitorAlerts: [],

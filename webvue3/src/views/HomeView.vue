@@ -130,6 +130,11 @@
 import CustomConfirm from '../components/Common/CustomConfirm.vue'
 import FileExplorerModal from '../components/Common/FileExplorer/FileExplorerModal.vue'
 // import { useFileDialog } from '@vueuse/core'
+/**
+ * View-страница «Home» — основной layout и data-fetching.
+ *
+ * @see AGENTS.md
+ */
 export default {
   name: 'HomeView',
   components: {

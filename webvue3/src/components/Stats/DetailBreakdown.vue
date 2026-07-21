@@ -36,6 +36,12 @@ function colorForLabel(label) {
   return '#9c9c9c'
 }
 
+/**
+ * Компонент «Detail Breakdown».
+ *
+ * @see AGENTS.md
+ */
+
 export default {
   name: 'DetailBreakdown',
   components: { BSpinner },

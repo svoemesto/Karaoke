@@ -656,6 +656,11 @@ class Settings(
                 pic = Pictures.createNewPicture(pict, database, storageService = storageService, storageApiClient = storageApiClient)
             }
         }
+        // Персистентный флаг готовности плеера (см. deploy/karaoke-db/26_player_readiness_flags.sql).
+        if (pic != null && !pictureAuthorReady) {
+            pictureAuthorReady = true
+            saveToDb()
+        }
         return pic
     }
 
@@ -688,6 +693,11 @@ class Settings(
 //                pict.preview = preview
                 pic = Pictures.createNewPicture(pict, database, storageService = storageService, storageApiClient = storageApiClient)
             }
+        }
+        // Персистентный флаг готовности плеера (см. deploy/karaoke-db/26_player_readiness_flags.sql).
+        if (pic != null && !pictureAlbumReady) {
+            pictureAlbumReady = true
+            saveToDb()
         }
         return pic
     }
@@ -816,6 +826,44 @@ class Settings(
         }
         set(value) {
             fields[SettingField.FREE] = value.toString()
+        }
+
+    // Персистентная готовность файлов песни к онлайн-плееру (см. SettingField.STEM_ACCOMPANIMENT_READY
+    // и т.д.) — проставляется точечно при успешной заливке в хранилище, сверяется HealthReport'ом.
+    var stemAccompanimentReady: Boolean
+        get() {
+            val txt = fields[SettingField.STEM_ACCOMPANIMENT_READY] ?: false.toString()
+            return txt == true.toString()
+        }
+        set(value) {
+            fields[SettingField.STEM_ACCOMPANIMENT_READY] = value.toString()
+        }
+
+    var stemVocalReady: Boolean
+        get() {
+            val txt = fields[SettingField.STEM_VOCAL_READY] ?: false.toString()
+            return txt == true.toString()
+        }
+        set(value) {
+            fields[SettingField.STEM_VOCAL_READY] = value.toString()
+        }
+
+    var pictureAlbumReady: Boolean
+        get() {
+            val txt = fields[SettingField.PICTURE_ALBUM_READY] ?: false.toString()
+            return txt == true.toString()
+        }
+        set(value) {
+            fields[SettingField.PICTURE_ALBUM_READY] = value.toString()
+        }
+
+    var pictureAuthorReady: Boolean
+        get() {
+            val txt = fields[SettingField.PICTURE_AUTHOR_READY] ?: false.toString()
+            return txt == true.toString()
+        }
+        set(value) {
+            fields[SettingField.PICTURE_AUTHOR_READY] = value.toString()
         }
 
     val idBoosty: String get() = fields[SettingField.ID_BOOSTY]?.nullIfEmpty() ?: ""
@@ -5310,6 +5358,10 @@ class Settings(
         fieldsValues.add(Pair("formatted_text_song", settings.formattedTextSong))
         fieldsValues.add(Pair("formatted_text_tabs", settings.formattedTextTabs))
         fieldsValues.add(Pair("formatted_text_chords", settings.formattedTextChords))
+        fieldsValues.add(Pair("stem_accompaniment_ready", settings.stemAccompanimentReady))
+        fieldsValues.add(Pair("stem_vocal_ready", settings.stemVocalReady))
+        fieldsValues.add(Pair("picture_album_ready", settings.pictureAlbumReady))
+        fieldsValues.add(Pair("picture_author_ready", settings.pictureAuthorReady))
 
         return "INSERT INTO tbl_settings${if (sync) "_sync" else ""} (${fieldsValues.joinToString(
             ", ",
@@ -6240,6 +6292,18 @@ class Settings(
                 }
                 if (settA.exclusive != settB.exclusive) result.add(RecordDiff("exclusive", settA.exclusive, settB.exclusive))
                 if (settA.free != settB.free) result.add(RecordDiff("free", settA.free, settB.free))
+                if (settA.stemAccompanimentReady != settB.stemAccompanimentReady) {
+                    result.add(RecordDiff("stem_accompaniment_ready", settA.stemAccompanimentReady, settB.stemAccompanimentReady))
+                }
+                if (settA.stemVocalReady != settB.stemVocalReady) {
+                    result.add(RecordDiff("stem_vocal_ready", settA.stemVocalReady, settB.stemVocalReady))
+                }
+                if (settA.pictureAlbumReady != settB.pictureAlbumReady) {
+                    result.add(RecordDiff("picture_album_ready", settA.pictureAlbumReady, settB.pictureAlbumReady))
+                }
+                if (settA.pictureAuthorReady != settB.pictureAuthorReady) {
+                    result.add(RecordDiff("picture_author_ready", settA.pictureAuthorReady, settB.pictureAuthorReady))
+                }
                 if (settA.idTariff != settB.idTariff) result.add(RecordDiff("id_tariff", settA.idTariff, settB.idTariff))
                 if (settA.songType != settB.songType) result.add(RecordDiff("song_type", settA.songType.dbValue, settB.songType.dbValue))
 
@@ -7118,6 +7182,10 @@ class Settings(
                     rs.getString("audio_compare_history")?.let { value -> settings.audioCompareHistory = value }
                     rs.getBoolean("exclusive").let { value -> settings.exclusive = value }
                     rs.getBoolean("free").let { value -> settings.free = value }
+                    rs.getBoolean("stem_accompaniment_ready").let { value -> settings.stemAccompanimentReady = value }
+                    rs.getBoolean("stem_vocal_ready").let { value -> settings.stemVocalReady = value }
+                    rs.getBoolean("picture_album_ready").let { value -> settings.pictureAlbumReady = value }
+                    rs.getBoolean("picture_author_ready").let { value -> settings.pictureAuthorReady = value }
 
                     settings.statusProcessLyrics = rs.getString("status_process_lyrics") ?: ""
                     settings.statusProcessKaraoke = rs.getString("status_process_karaoke") ?: ""

@@ -60,6 +60,9 @@
           <button class="button-action" :disabled="!author" @click="autoAssignOriginalAll">
             Автопривязать оригинал по аудио (статус 1 → 2)
           </button>
+          <button class="button-action" @click="recalcPlayerReadiness">
+            Пересчитать готовность плеера{{ author ? '' : ' (все авторы)' }}
+          </button>
         </div>
         <!-- <button class="button-action" @click="delDublicates">Удалить дубликаты</button>
       <button class="button-action" @click="clearPreDublicates">Очистить информацию о пре-дубликатах</button> -->
@@ -451,6 +454,31 @@ export default {
           alertType: 'info',
           header: 'Автопривязка оригинала',
           body: `Операция запущена в фоне.<br>Итог придёт уведомлением по завершении.`,
+          timeout: 10,
+        }
+        this.isCustomConfirmVisible = true
+      })
+    },
+    recalcPlayerReadiness() {
+      const scope = this.author ? `песен автора «<strong>${this.author}</strong>»` : `<strong>ВСЕХ</strong> песен всех авторов`
+      this.customConfirmParams = {
+        header: 'Подтвердите действие',
+        body:
+          `Пересчитать и сохранить флаги готовности онлайн-плеера (стемы/картинки) для ${scope}?<br>` +
+          `Разовая сверка нужна после введения персистентных флагов готовности — иначе уже готовые песни могут временно не показываться как готовые.<br>` +
+          `<strong>Операция тяжёлая и идёт в фоне — итог придёт уведомлением.</strong>`,
+        timeout: 10,
+        callback: this.doRecalcPlayerReadiness,
+      }
+      this.isCustomConfirmVisible = true
+    },
+    doRecalcPlayerReadiness() {
+      this.$store.dispatch('recalcPlayerReadinessPromise', { author: this.author }).then(() => {
+        this.customConfirmParams = {
+          isAlert: true,
+          alertType: 'info',
+          header: 'Пересчёт готовности плеера',
+          body: `Операция запущена.<br>Итог придёт уведомлением по завершении.`,
           timeout: 10,
         }
         this.isCustomConfirmVisible = true

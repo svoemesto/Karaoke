@@ -47,6 +47,12 @@
 import { authPost } from '../services/authApi'
 import { useAuth } from '../composables/useAuth'
 
+/**
+ * View-страница «Login» — основной layout и data-fetching.
+ *
+ * @see AGENTS.md
+ */
+
 export default {
   name: 'LoginView',
   setup() {

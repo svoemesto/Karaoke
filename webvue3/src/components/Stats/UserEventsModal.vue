@@ -89,6 +89,14 @@
 <script>
 import { BSpinner } from 'bootstrap-vue-next'
 
+/**
+ * Модальное окно для events.
+ *
+ * @emits close
+ *
+ * @see AGENTS.md
+ */
+
 export default {
   name: 'UserEventsModal',
   components: { BSpinner },

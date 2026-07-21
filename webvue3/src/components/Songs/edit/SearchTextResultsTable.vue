@@ -15,6 +15,11 @@
 </template>
 
 <script>
+/**
+ * Таблица со списком results с пагинацией, фильтрами и сортировкой.
+ *
+ * @see AGENTS.md
+ */
 export default {
   name: 'SearchTextResultsTable',
   components: {},

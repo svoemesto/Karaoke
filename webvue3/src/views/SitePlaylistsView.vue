@@ -6,6 +6,12 @@
 
 <script>
 import SitePlaylistsTable from '../components/SitePlaylists/SitePlaylistsTable.vue'
+
+/**
+ * View-страница «Site Playlists» — основной layout и data-fetching.
+ *
+ * @see AGENTS.md
+ */
 export default {
   name: 'SitePlaylistsView',
   components: { SitePlaylistsTable },

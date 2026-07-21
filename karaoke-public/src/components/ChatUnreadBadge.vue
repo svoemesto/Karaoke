@@ -20,6 +20,12 @@ import { fetchUnreadCount } from '../services/chatApi'
 
 const POLL_INTERVAL_MS = 20000
 
+/**
+ * Компонент «Chat Unread Badge».
+ *
+ * @see AGENTS.md
+ */
+
 export default {
   name: 'ChatUnreadBadge',
   setup() {

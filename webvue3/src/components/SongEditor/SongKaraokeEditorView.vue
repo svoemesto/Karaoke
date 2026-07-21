@@ -283,6 +283,12 @@ const ALWAYS_ALLOWED_KEYS = new Set([
   'Period',
 ])
 
+/**
+ * View-страница «Song Karaoke Editor» — основной layout и data-fetching.
+ *
+ * @see docs/features/mlt-generator.md
+ */
+
 export default {
   name: 'SongKaraokeEditorView',
   props: {

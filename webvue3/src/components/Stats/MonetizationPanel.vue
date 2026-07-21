@@ -86,6 +86,12 @@
 <script>
 import { BSpinner } from 'bootstrap-vue-next'
 
+/**
+ * Компонент «Monetization Panel».
+ *
+ * @see AGENTS.md
+ */
+
 export default {
   name: 'MonetizationPanel',
   components: { BSpinner },

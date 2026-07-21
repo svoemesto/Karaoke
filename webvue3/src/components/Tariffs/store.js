@@ -3,6 +3,11 @@ import { promisedXMLHttpRequest } from '../../lib/utils'
 // Тарифы подписки (монетизация, tbl_price_tariffs). tariffsTarget ('local'|'remote') — тот же
 // паттерн, что siteUsersTarget/publicSettingsTarget: реальные тарифы правятся на прод-БД
 // (target=remote), т.к. платёжный конвейер karaoke-web читает их оттуда.
+/**
+ * Компонент «Store».
+ *
+ * @see AGENTS.md
+ */
 export default {
   state: {
     tariffsList: [],

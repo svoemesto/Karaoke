@@ -157,6 +157,12 @@ import { authPost } from '../services/authApi'
 import { useAuth } from '../composables/useAuth'
 import { useCart } from '../composables/useCart'
 
+/**
+ * View-страница «Account» — основной layout и data-fetching.
+ *
+ * @see AGENTS.md
+ */
+
 export default {
   name: 'AccountView',
   setup() {

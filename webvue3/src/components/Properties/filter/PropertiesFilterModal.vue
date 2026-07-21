@@ -93,6 +93,11 @@
 </template>
 
 <script>
+/**
+ * Модальное окно для filter.
+ *
+ * @see docs/features/mlt-generator.md
+ */
 export default {
   name: 'PropertiesFilterModal',
   computed: {

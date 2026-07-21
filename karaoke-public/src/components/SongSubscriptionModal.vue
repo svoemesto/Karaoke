@@ -92,6 +92,15 @@
 import { useSongSubscription } from '../composables/useSongSubscription'
 import { useCart } from '../composables/useCart'
 
+/**
+ * Модальное окно для subscription.
+ *
+ * @emits close
+ * @emits activated
+ *
+ * @see AGENTS.md
+ */
+
 export default {
   name: 'SongSubscriptionModal',
   props: {

@@ -110,6 +110,12 @@ import { BPagination, BSpinner, BTable } from 'bootstrap-vue-next'
 import PropertiesFilter from '../../components/Properties/filter/PropertiesFilterModal.vue'
 import CustomConfirm from '../Common/CustomConfirm.vue'
 
+/**
+ * Таблица со списком properties с пагинацией, фильтрами и сортировкой.
+ *
+ * @see docs/features/mlt-generator.md
+ */
+
 export default {
   name: 'PropertiesTable',
   components: {

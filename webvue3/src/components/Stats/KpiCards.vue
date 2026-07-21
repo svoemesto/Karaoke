@@ -12,6 +12,11 @@
 </template>
 
 <script>
+/**
+ * Компонент «Kpi Cards».
+ *
+ * @see AGENTS.md
+ */
 export default {
   name: 'KpiCards',
   props: { summary: { type: Object, default: null } },

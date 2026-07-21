@@ -85,6 +85,12 @@ import { useAuth } from '../composables/useAuth'
 import { useCart } from '../composables/useCart'
 import { fetchCartPrice, checkoutCart } from '../services/cartApi'
 
+/**
+ * View-страница «Cart» — основной layout и data-fetching.
+ *
+ * @see AGENTS.md
+ */
+
 export default {
   name: 'CartView',
   setup() {

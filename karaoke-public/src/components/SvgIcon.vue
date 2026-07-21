@@ -234,6 +234,12 @@ const viewBoxMap = {
   playlist: '0 0 20 20',
 }
 
+/**
+ * Компонент «Svg Icon».
+ *
+ * @see AGENTS.md
+ */
+
 export default {
   name: 'SvgIcon',
   props: {

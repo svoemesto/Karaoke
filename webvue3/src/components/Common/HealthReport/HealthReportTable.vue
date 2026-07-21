@@ -15,6 +15,12 @@ import HealthReportTableBody from './components/HealthReportTableBody.vue'
 import HealthReportTableFooter from './components/HealthReportTableFooter.vue'
 import HealthReportTableHeader from './components/HealthReportTableHeader.vue'
 
+/**
+ * Таблица со списком report с пагинацией, фильтрами и сортировкой.
+ *
+ * @see docs/features/monitoring.md
+ */
+
 export default {
   name: 'HealthReportTable',
   components: { HealthReportTableHeader, HealthReportTableFooter, HealthReportTableBody },

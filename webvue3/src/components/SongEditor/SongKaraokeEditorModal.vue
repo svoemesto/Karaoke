@@ -80,6 +80,11 @@ import SongKaraokeEditorView from './SongKaraokeEditorView.vue'
 // работать в фоне) и «Сохранить» (принудительный flush текущего черновика).
 //
 // Автосохранение через 3 секунды молчания (как в karaoke-public) — удобство без сюрприза.
+/**
+ * Модальное окно для editor.
+ *
+ * @see docs/features/mlt-generator.md
+ */
 export default {
   name: 'SongKaraokeEditorModal',
   components: { SongKaraokeEditorView },

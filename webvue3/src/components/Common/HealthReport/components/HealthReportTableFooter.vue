@@ -5,6 +5,11 @@
 </template>
 
 <script>
+/**
+ * Компонент «Health Report Table Footer».
+ *
+ * @see AGENTS.md
+ */
 export default {
   name: 'HealthReportTableFooter',
   methods: {

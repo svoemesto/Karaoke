@@ -21,6 +21,12 @@
 import PublishTableHead from '../../../components/Publish/components/PublishTableHead.vue'
 import PublishTableBodyTd from '../../../components/Publish/components/PublishTableBodyTd.vue'
 
+/**
+ * Компонент «Publish Table Body».
+ *
+ * @see AGENTS.md
+ */
+
 export default {
   name: 'PublishTableBody',
   components: { PublishTableBodyTd, PublishTableHead },

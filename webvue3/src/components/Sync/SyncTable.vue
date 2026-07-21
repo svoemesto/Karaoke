@@ -102,6 +102,11 @@ import CustomConfirm from '../Common/CustomConfirm.vue'
  * @see docs/features/dual-db-sync.md
  * @see SyncController REST-эндпоинты
  */
+/**
+ * Таблица со списком sync с пагинацией, фильтрами и сортировкой.
+ *
+ * @see docs/features/dual-db-sync.md
+ */
 export default {
   name: 'SyncTable',
   components: { CustomConfirm },

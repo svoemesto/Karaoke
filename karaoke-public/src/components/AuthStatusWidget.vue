@@ -24,6 +24,12 @@ import { useAuth } from '../composables/useAuth'
 import { useCart } from '../composables/useCart'
 import { authPost } from '../services/authApi'
 
+/**
+ * Компонент «Auth Status Widget».
+ *
+ * @see AGENTS.md
+ */
+
 export default {
   name: 'AuthStatusWidget',
   setup() {

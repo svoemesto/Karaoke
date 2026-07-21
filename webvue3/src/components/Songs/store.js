@@ -28,6 +28,11 @@ import { promisedXMLHttpRequest } from '../../lib/utils'
  * @see docs/features/sse-notifications.md
  * @see docs/features/dual-db-sync.md
  */
+/**
+ * Компонент «id».
+ *
+ * @see AGENTS.md
+ */
 export default {
   state: {
     toSync: false,

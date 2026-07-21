@@ -72,6 +72,11 @@
 </template>
 
 <script>
+/**
+ * Компонент «Sponsr Sync Panel».
+ *
+ * @see AGENTS.md
+ */
 export default {
   name: 'SponsrSyncPanel',
   data() {

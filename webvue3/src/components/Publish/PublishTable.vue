@@ -9,6 +9,12 @@
 import PublishTableBody from '../../components/Publish/components/PublishTableBody.vue'
 import PublishTableFooter from '../../components/Publish/components/PublishTableFooter.vue'
 
+/**
+ * Таблица со списком publish с пагинацией, фильтрами и сортировкой.
+ *
+ * @see AGENTS.md
+ */
+
 export default {
   name: 'PublishTable',
   components: { PublishTableFooter, PublishTableBody },

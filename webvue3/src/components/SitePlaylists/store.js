@@ -2,6 +2,11 @@ import { promisedXMLHttpRequest } from '../../lib/utils'
 
 // Плейлисты/«Избранное» пользователей ПУБЛИЧНОГО САЙТА (tbl_site_playlists/items). Read-only просмотр.
 // target ('local'|'remote') — как в SiteUsers: реальные плейлисты создаются на боевой БД сервера.
+/**
+ * Компонент «Store».
+ *
+ * @see AGENTS.md
+ */
 export default {
   state: {
     sitePlaylistsDigest: [],

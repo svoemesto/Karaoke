@@ -38,6 +38,12 @@ async function fetchPublishDigest(params) {
   return result.publicationsDigest
 }
 
+/**
+ * Компонент «Store».
+ *
+ * @see AGENTS.md
+ */
+
 export default {
   state: {
     publishDigest: [],

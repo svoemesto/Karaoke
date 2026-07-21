@@ -140,14 +140,14 @@ export default defineComponent({
 Эти классы упоминаются в per-feature документах, но ещё не имеют полного
 KDoc. Список для следующих итераций.
 
-> **Состояние на 2026-07-21 (PR #16, 005-kdoc-coverage)**:
+> **Состояние на 2026-07-21 (PR #18, 007-jsdoc-coverage)**:
 > KDoc coverage = **100%** (356/356) на top-level классах в `karaoke-app` и
-> `karaoke-web`. Все нижеуказанные классы имеют KDoc (авто-генерация через
-> `tools/auto-kdoc.py` + ручной pass для критичных).
+> `karaoke-web`. JSDoc coverage = **100%** (163/163) на Vue/TS компонентах
+> в `webvue3` и `karaoke-public`. Авто-генерация через `tools/auto-kdoc.py`
+> (Kotlin) и `tools/auto-jsdoc.py` (Vue/TS) + ручной pass для критичных.
 >
-> Pass 2: улучшение качества KDoc (замена авто-генерации на ручной для
-> критичных классов: Settings, KaraokeProcessWorker, SyncTarget, MLT-генератор).
-> Pass 3: JSDoc для Vue/TS (сейчас 0% — см. ниже).
+> Pass 3: улучшение качества JSDoc (замена авто-генерации на ручной для
+> топ-10 Vue-компонентов: HomeView, SongsTable, SongView, PlayerView и т.п.).
 
 ### karaoke-app (P1)
 
@@ -213,10 +213,28 @@ python3 tools/auto-kdoc.py karaoke-app/src/main/kotlin
 python3 tools/auto-kdoc.py karaoke-web/src/main/kotlin
 ```
 
+### Авто-генерация JSDoc
+
+Для Vue/TS используется `tools/auto-jsdoc.py` — генерирует
+базовый JSDoc (`/** ... */`) перед `export default {...}` или
+`defineComponent({...})`. Логика:
+
+1. Находит `export default` или `defineComponent`.
+2. Проверяет JSDoc выше (в предыдущих 10 строках).
+3. Извлекает `name` из `name: 'X'`, `props` из `props: {...}` и `emits` из `emits: [...]`.
+4. Генерирует JSDoc с `@prop`, `@emits`, `@see`.
+5. Slug для `@see` берётся из маппинга `NAME_SLUG_OVERRIDE`
+   (для критичных компонентов) или `AGENTS.md` (дефолт).
+
+```bash
+python3 tools/auto-jsdoc.py webvue3/src
+python3 tools/auto-jsdoc.py karaoke-public/src
+```
+
 **Когда использовать**:
 - Массовое покрытие для больших модулей.
-- Временный baseline (затем заменяется на ручной KDoc в Pass 2).
-- Не подходит для классов со сложной семантикой — там ручной KDoc лучше.
+- Временный baseline (затем заменяется на ручной JSDoc в Pass 3).
+- Не подходит для компонентов со сложной семантикой — там ручной JSDoc лучше.
 
 ## Автоматизация
 

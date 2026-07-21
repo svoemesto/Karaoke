@@ -43,6 +43,11 @@
 </template>
 
 <script>
+/**
+ * Таблица со списком settings с пагинацией, фильтрами и сортировкой.
+ *
+ * @see AGENTS.md
+ */
 export default {
   name: 'PublicSettingsTable',
   data() {

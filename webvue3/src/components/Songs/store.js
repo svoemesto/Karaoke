@@ -2379,6 +2379,12 @@ export default {
       }
       return promisedXMLHttpRequest(request)
     },
+    recalcPlayerReadinessPromise(ctx, payload) {
+      // author не передаётся (или пустой) → обработка всех авторов.
+      let params = payload && payload.author ? { author: payload.author } : {}
+      let request = { method: 'POST', url: '/api/utils/recalcplayerreadiness', params: params }
+      return promisedXMLHttpRequest(request)
+    },
     autoAssignOriginalAllPromise(ctx, payload) {
       // author не передаётся (или пустой) → обработка всех авторов; возможность оставлена намеренно.
       let params = payload && payload.author ? { author: payload.author } : {}

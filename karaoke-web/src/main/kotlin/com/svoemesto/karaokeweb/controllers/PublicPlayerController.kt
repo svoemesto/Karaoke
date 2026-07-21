@@ -38,8 +38,9 @@ import java.util.zip.ZipOutputStream
  * структурно одинаковый токен из одного и того же хранилища. Без токена (или с чужим/просроченным)
  * файловые эндпоинты (fileminus.mp3 и т.п.) ведут себя как несуществующий ресурс (404).
  *
- * ДЕМО-РЕЖИМ: если контент готов ([stemsReady]), но пользователь не может смотреть целиком
- * (не премиум/не подписан/не "в эфире"), [access] всё равно выдаёт токен — но демо-токен,
+ * ДЕМО-РЕЖИМ: если контент готов ([stemsReady] — персистентные флаги idStatus>=3 + оба стема
+ * + обе картинки, без единого живого обращения к MinIO, см. ниже), но пользователь не может
+ * смотреть целиком (не премиум/не подписан/не "в эфире"), [access] всё равно выдаёт токен — но демо-токен,
  * ограниченный ДИАПАЗОНОМ (см. Settings.demoFragmentStartSeconds/demoFragmentEndSeconds — фрагмент
  * "первый куплет (текст группы 0) минус отступ под фейд-ин" по маркерам разметки; куплет закрывает
  * смена группы или принудительная пустая строка). Ограничение применяется на СЕРВЕРЕ в двух местах:
@@ -61,6 +62,14 @@ import java.util.zip.ZipOutputStream
  * при каждом обращении к admin-эндпоинтам fileminus.mp3/filevoice.mp3/filebass.mp3/filedrums.mp3.
  * Если админ ни разу не открывал плеер для песни — стемов в MinIO ещё нет, и публичный плеер
  * корректно покажет "песня пока не может быть проиграна" вместо падения.
+ *
+ * ГОТОВНОСТЬ (см. [stemsReady]) больше не проверяется живым обращением к MinIO — раньше это были
+ * 2 HEAD-запроса на КАЖДЫЙ вызов [access]/[readiness], что било по MinIO на каждый показ списка
+ * песен (Закрома/Поиск). Теперь готовность — персистентные булевы поля Settings (см.
+ * deploy/karaoke-db/26_player_readiness_flags.sql), которые karaoke-app проставляет точечно в
+ * момент успешной заливки файла в хранилище и сверяет через HealthReport. [existsInMinIO] всё ещё
+ * используется — но только для отдачи самих байт (stemResponse/fetchFromMinIO) и для необязательных
+ * bass/drums-полей в [playerData], которые не входят в гейт готовности.
  */
 
 /**
@@ -100,10 +109,16 @@ class PublicPlayerController(
         return Subscription.isSubscribedToSong(userId, id, WORKING_DATABASE, storageService, storageApiClient)
     }
 
+    // Готовность — персистентные флаги (см. deploy/karaoke-db/26_player_readiness_flags.sql),
+    // проставляемые karaoke-app в момент успешной заливки стема/картинки в хранилище и сверяемые
+    // HealthReport'ом. НИКАКИХ обращений к MinIO здесь больше нет — раньше стемы проверялись через
+    // 2 живых HEAD-запроса на каждый вызов, что било по MinIO на каждый показ списка песен.
     private fun stemsReady(settings: Settings): Boolean =
         settings.idStatus >= 3 &&
-            existsInMinIO(stemStorageKey(settings, KaraokeFileType.MP3_ACCOMPANIMENT)) &&
-            existsInMinIO(stemStorageKey(settings, KaraokeFileType.MP3_VOCAL)) &&
+            settings.stemAccompanimentReady &&
+            settings.stemVocalReady &&
+            settings.pictureAlbumReady &&
+            settings.pictureAuthorReady &&
             settings.sourceMarkersList.isNotEmpty()
 
     /**
@@ -174,14 +189,16 @@ class PublicPlayerController(
      * плеера и его логирование происходят позже, по клику, через [access] с source=list).
      *
      * Премиум резолвится один раз на весь запрос. Возвращаемые поля на песню:
-     *  - contentReady — премиум-независимая готовность контента ([stemsReady]: idStatus>=3 + оба стема
-     *    в MinIO + непустые маркеры). Нужна фронту, чтобы отличить «золотую» монетку (контент готов,
-     *    премиум смог бы открыть плеер прямо сейчас) от «серебряной» (ещё не готов).
+     *  - contentReady — премиум-независимая готовность контента ([stemsReady]: idStatus>=3 + оба
+     *    стема + обе картинки (персистентные флаги Settings, БЕЗ обращения к MinIO) + непустые
+     *    маркеры). Нужна фронту, чтобы отличить «золотую» монетку (контент готов, премиум смог бы
+     *    открыть плеер прямо сейчас) от «серебряной» (ещё не готов).
      *  - watchable (= ready, для обратной совместимости) — может ли ПРЯМО СЕЙЧАС открыть плеер сам
      *    запрашивающий: contentReady && (onAir || premium). Управляет активностью иконки плеера.
      * Короткого замыкания по (onAir||premium) больше нет — [stemsReady] нужен и для не-onAir песен,
-     * чтобы вычислить contentReady для монетки (тяжёлые 2 HEAD в MinIO смягчаются чанками/параллелизмом
-     * на фронте, см. usePlayerReadiness.js).
+     * чтобы вычислить contentReady для монетки. Батч больше не бьёт по MinIO (раньше — 2 HEAD на
+     * песню, смягчённые чанками/параллелизмом на фронте, см. usePlayerReadiness.js), т.к. readiness
+     * теперь строится только из уже загруженных полей Settings.
      */
     @PostMapping("/readiness")
     fun readiness(
@@ -215,6 +232,17 @@ class PublicPlayerController(
         settings: Settings,
         fileType: KaraokeFileType,
     ) = "${settings.storageFileName}${fileType.suffix}.${fileType.extention}"
+
+    // Тот же формат ключа, что HealthReport.kt использует для PICTURE_ALBUM/PICTURE_AUTHOR — ЧИСТАЯ
+    // строковая формула, без обращения к settings.pictureAlbum/pictureAuthor. Эти геттеры трогают
+    // rootFolder и валят процесс karaoke-web, если для песни ещё нет строки в tbl_pictures и они
+    // пытаются лениво создать её из локального файла (см. предупреждение в комментарии класса выше).
+    private fun pictureAlbumStorageKey(settings: Settings) =
+        "${settings.author}/${settings.year} - ${settings.album}/${settings.author} - ${settings.year} - " +
+            "${settings.album}${KaraokeFileType.PICTURE_ALBUM.suffix}.${KaraokeFileType.PICTURE_ALBUM.extention}"
+
+    private fun pictureAuthorStorageKey(settings: Settings) =
+        "${settings.author}/${settings.author}${KaraokeFileType.PICTURE_AUTHOR.suffix}.${KaraokeFileType.PICTURE_AUTHOR.extention}"
 
     private fun encodedProxyPath(storageKey: String): String =
         storageKey.split("/").joinToString("/") { segment ->
@@ -378,13 +406,22 @@ class PublicPlayerController(
                 "audioVocalsUrl" to if (hasVocals) "/api/public/player/$id/filevoice.mp3$tokenSuffix" else null,
                 "audioBassUrl" to if (hasBass) "/api/public/player/$id/filebass.mp3$tokenSuffix" else null,
                 "audioDrumsUrl" to if (hasDrums) "/api/public/player/$id/filedrums.mp3$tokenSuffix" else null,
+                // Ключи строятся чистой формулой (pictureAlbumStorageKey/pictureAuthorStorageKey), НЕ
+                // через settings.pictureAlbum/pictureAuthor — см. предупреждение в комментарии класса
+                // выше про rootFolder/APP_WORK_ON_SERVER. Гейтируется персистентным флагом готовности,
+                // а не наличием файла (флаг уже проверен в stemsReady() выше по вызовам access/readiness,
+                // но playerData может быть вызван и напрямую по валидному токену — перепроверяем).
                 "albumImageUrl" to
-                    settings.pictureAlbum?.storageFileName?.let {
-                        "/api/public/picture?file=${java.net.URLEncoder.encode(it, java.nio.charset.StandardCharsets.UTF_8)}"
+                    if (settings.pictureAlbumReady) {
+                        "/api/public/picture?file=${java.net.URLEncoder.encode(pictureAlbumStorageKey(settings), java.nio.charset.StandardCharsets.UTF_8)}"
+                    } else {
+                        null
                     },
                 "artistImageUrl" to
-                    settings.pictureAuthor?.storageFileName?.let {
-                        "/api/public/picture?file=${java.net.URLEncoder.encode(it, java.nio.charset.StandardCharsets.UTF_8)}"
+                    if (settings.pictureAuthorReady) {
+                        "/api/public/picture?file=${java.net.URLEncoder.encode(pictureAuthorStorageKey(settings), java.nio.charset.StandardCharsets.UTF_8)}"
+                    } else {
+                        null
                     },
                 "exportBaseName" to "${settings.fileName} [id-$id]".rightFileName(),
                 // Живая проверка, не завязанная на TTL токена плеера — открывает/закрывает пункт меню
@@ -448,14 +485,16 @@ class PublicPlayerController(
         addStemIfPresent(KaraokeFileType.MP3_BASS, "audio/bass.mp3", "bass")
         addStemIfPresent(KaraokeFileType.MP3_DRUMS, "audio/drums.mp3", "drums")
 
-        settings.pictureAlbum?.let { pic ->
-            fetchFromMinIO(pic.storageFileName)?.let { bytes ->
+        // Ключи строятся чистой формулой, а не через settings.pictureAlbum/pictureAuthor — см.
+        // предупреждение в комментарии класса выше про rootFolder/APP_WORK_ON_SERVER.
+        if (settings.pictureAlbumReady) {
+            fetchFromMinIO(pictureAlbumStorageKey(settings))?.let { bytes ->
                 addStored(zip, "images/album.png", bytes)
                 images["album"] = "images/album.png"
             }
         }
-        settings.pictureAuthor?.let { pic ->
-            fetchFromMinIO(pic.storageFileName)?.let { bytes ->
+        if (settings.pictureAuthorReady) {
+            fetchFromMinIO(pictureAuthorStorageKey(settings))?.let { bytes ->
                 addStored(zip, "images/artist.png", bytes)
                 images["artist"] = "images/artist.png"
             }

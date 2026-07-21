@@ -848,15 +848,17 @@ Workflow запускается на push в `master` и pull_request в `master
 
 | Правило | Причина отключения | Альтернатива |
 |---------|---------------------|--------------|
-| `no-wildcard-imports` | Не autofixable; 77 в baseline. IntelliJ IDEA сворачивает в wildcard автоматически. | Соблюдать вручную при добавлении нового импорта. |
-| `argument-list-wrapping` | Не autofixable; 54 в baseline. | Соблюдать вручную. |
-| `function-literal` | Не autofixable; 24 в baseline. | Соблюдать вручную. |
-| `parameter-list-wrapping` | Не autofixable; 11 в baseline. | Соблюдать вручную. |
-| `function-signature` | Не autofixable; 6 в baseline. | Соблюдать вручную. |
-| `no-consecutive-comments` | Не autofixable; 1 в baseline. | Соблюдать вручную. |
-| `import-ordering` | Не autofixable; 1 в baseline. | Соблюдать вручную. |
+| `no-wildcard-imports` | Не autofixable; 77 в baseline (PR #14). IntelliJ IDEA сворачивает в wildcard автоматически. | Соблюдать вручную при добавлении нового импорта. |
+| `argument-list-wrapping` | Не autofixable; 54 в baseline (PR #14). | Соблюдать вручную. |
+| `function-literal` | Не autofixable; 24 в baseline (PR #14). | Соблюдать вручную. |
+| `parameter-list-wrapping` | Не autofixable; 11 в baseline (PR #14). | Соблюдать вручную. |
+| `function-signature` | Не autofixable; 6 в baseline (PR #14). | Соблюдать вручную. |
+| `no-consecutive-comments` | Не autofixable; 1 в baseline (PR #14). | Соблюдать вручную. |
+| `import-ordering` | Не autofixable; 1 в baseline (PR #14). | Соблюдать вручную. |
 | `trailing-comma-on-call-site` | Зависит от `wrapping`. | Соблюдать вручную. |
 | `trailing-comma-on-declaration-site` | Зависит от `wrapping`. | Соблюдать вручную. |
+| `property-naming` (для `KaraokeAppService.kt`, `KaraokeWebService.kt`) | 17 в baseline (PR #15). Глобальные `lateinit var`/`var by Delegates` с UPPER_CASE — легитимный Kotlin-паттерн для global service singletons (SNS, KSS_APP и т.п., ~130 ссылок). Переименование в camelCase сломает публичный API. | Соблюдать camelCase в новых `var`. |
+| `backing-property-naming` (для `SettingVoiceLine.kt`) | 1 в baseline (PR #15). | ktlint 1.7.1 неверно интерпретирует naming `_elements` для Kotlin backing field. |
 
 **Когда включать обратно**: после выхода ktlint с работающим autofix
 для Kotlin 2.2 (отслеживать [ktlint releases](https://github.com/pinterest/ktlint/releases))
@@ -866,8 +868,10 @@ Workflow запускается на push в `master` и pull_request в `master
 
 | Правило | Файл | Причина отключения |
 |---------|------|---------------------|
-| `vue/require-explicit-emits` | `webvue3/.eslintrc.cjs`, `karaoke-public/.eslintrc.cjs` | 50 в baseline. Стилистическая рекомендация (явная декларация emits для IDE автодополнения), не баг. Рекомендуется добавлять `emits: [...]` в новых компонентах. |
-| `vue/no-template-shadow` | `webvue3/.eslintrc.cjs` | 1 в baseline. Стилистическое (имя переменной в `<template>` совпадает с внешней). |
+| `vue/require-explicit-emits` | `webvue3/.eslintrc.cjs`, `karaoke-public/.eslintrc.cjs` | 50 в baseline (PR #14). Стилистическая рекомендация (явная декларация emits для IDE автодополнения), не баг. Рекомендуется добавлять `emits: [...]` в новых компонентах. |
+| `vue/no-template-shadow` | `webvue3/.eslintrc.cjs` | 1 в baseline (PR #14). Стилистическое. |
+| `vue/no-v-html` | `webvue3/.eslintrc.cjs`, `karaoke-public/.eslintrc.cjs` | 14 в baseline (PR #15). `v-html` используется только для уже подготовленного сервером текста (lyrics с `<br>`, preview с разметкой) — пользовательский ввод не передаётся напрямую. Долгосрочно: заменить на `v-text` + DOMPurify или парсинг BBCode/Markdown. |
+| `vue/require-toggle-inside-transition` | `webvue3/.eslintrc.cjs` | 20 в baseline (PR #15). Стилистическое. В проекте `<transition>` оборачивает модалки с show/hide через v-model + Boolean prop, либо используется для CSS-анимаций выхода. |
 | `vue/multi-word-component-names` | оба | Имя компонента может быть одним словом (Vue-компоненты админки). |
 | `vue/singleline-html-element-content-newline` | оба | Конфликтует с Prettier. |
 | `vue/html-indent` | оба | Конфликтует с Prettier. |
@@ -875,4 +879,14 @@ Workflow запускается на push в `master` и pull_request в `master
 **Когда включать `vue/require-explicit-emits` обратно**: добавить
 `emits: [...]` в каждый компонент с emit() (50 файлов) → удалить строку
 `'vue/require-explicit-emits': 'off'` → регенерировать baseline.
+
+**Когда включать `vue/no-v-html` обратно**: для каждого `v-html` либо
+(1) заменить на `v-text` + парсинг переносов строк в `<br>`, либо
+(2) добавить санитизацию через DOMPurify с явным allowlist тегов →
+удалить `'vue/no-v-html': 'off'` → регенерировать baseline.
+
+**Когда включать `vue/require-toggle-inside-transition` обратно**:
+добавить `v-if`/`v-show` внутрь каждого `<transition>`-блока (20 мест
+в webvue3) → удалить строку `'vue/require-toggle-inside-transition': 'off'`
+→ регенерировать baseline.
 ```

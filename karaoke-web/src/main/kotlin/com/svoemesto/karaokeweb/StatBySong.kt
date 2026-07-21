@@ -1,5 +1,4 @@
 package com.svoemesto.karaokeweb
-
 import com.svoemesto.karaokeapp.KaraokeConnection
 import java.sql.ResultSet
 import java.sql.SQLException

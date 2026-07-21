@@ -41,11 +41,11 @@ const val FOLDER_ID_FILE_PATH = "/sm-karaoke/system/yandex/folderId.txt"
 //    "♪" to 1.0
 // )
 
-const val delimiterVoices = "|[VOICE]|"
-const val delimiterGroups = "|[GROUP]|"
-const val delimiterFields = "|[FIELD]|"
-const val delimiterVoiceFields = "|[VOICEFIELDS]|"
-const val delimiterNames = "|[NAME]|"
+const val DELIMITER_VOICES = "|[VOICE]|"
+const val DELIMITER_GROUPS = "|[GROUP]|"
+const val DELIMITER_FIELDS = "|[FIELD]|"
+const val DELIMITER_VOICE_FIELDS = "|[VOICEFIELDS]|"
+const val DELIMITER_NAMES = "|[NAME]|"
 
 // const val MAIN_FONT_NAME = "Roboto"
 const val MAIN_FONT_NAME = "Roboto Black"
@@ -60,8 +60,8 @@ const val MELODY_OCTAVE_FONT_NAME = "Fira Sans Extra Condensed Medium"
 // const val SHADOW = "1;#64000000;3;3;3"
 // const val ALIGNMENT = 0L
 // const val TYPEWRITER = "0;2;1;0;0"
-const val vovels = "ёуеыаоэяиюeuioaїієѣ"
-val LETTERS_VOWEL = "${vovels}${vovels.uppercase()}♪"
+const val VOVELS = "ёуеыаоэяиюeuioaїієѣ"
+val LETTERS_VOWEL = "${VOVELS}${VOVELS.uppercase()}♪"
 const val NOTES_SYMBOLS = "♬♩♪△▲⬦⬥"
 const val RUSSIAN_LETTERS = "ЙЦУКЕНГШЩЗХЪФЫВАПРОЛДЖЭЯЧСМИТЬБЮЁйцукенгшщзхъфывапролджэячсмитьбюё"
 const val ENGLISH_LETTERS = "QWERTYUIOPASDFGHJKLZXCVBNMqwertyuiopasdfghjklzxcvbnm"

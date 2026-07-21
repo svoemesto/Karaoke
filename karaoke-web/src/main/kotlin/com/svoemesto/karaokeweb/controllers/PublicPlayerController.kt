@@ -1,5 +1,7 @@
 package com.svoemesto.karaokeweb.controllers
 
+import com.svoemesto.karaokeweb.WORKING_DATABASE
+
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.svoemesto.karaokeapp.KaraokeFileType
 import com.svoemesto.karaokeapp.model.EventType
@@ -11,7 +13,6 @@ import com.svoemesto.karaokeapp.model.Subscription
 import com.svoemesto.karaokeapp.rightFileName
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.StorageApiClient
-import com.svoemesto.karaokeweb.WORKING_DATABASE
 import com.svoemesto.karaokeweb.services.PlayerGestureUnlockService
 import com.svoemesto.karaokeweb.services.SiteUserResolver
 import com.svoemesto.karaokeweb.util.Mp3Trimmer

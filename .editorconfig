@@ -40,6 +40,20 @@ ktlint_standard_import-ordering = disabled
 ktlint_standard_trailing-comma-on-call-site = disabled
 ktlint_standard_trailing-comma-on-declaration-site = disabled
 
+# Глобальные var/lateinit var с UPPER_CASE — это легитимный Kotlin-паттерн
+# для global service singletons (SNS, WVP, KSS_APP и т.п., см. ~130 ссылок).
+# Переименование в camelCase сломает публичный API. Подавляем только в
+# файлах с глобальными сервисными переменными.
+[**/services/KaraokeAppService.kt]
+ktlint_standard_property-naming = disabled
+[**/services/KaraokeWebService.kt]
+ktlint_standard_property-naming = disabled
+
+# backing-property-naming в SettingVoiceLine.kt — используется naming
+# `_elements` для Kotlin backing field, ktlint 1.7.1 считает иначе.
+[**/model/SettingVoiceLine.kt]
+ktlint_standard_backing-property-naming = disabled
+
 # Markdown — без обрезки trailing whitespace (важно для перевода строк)
 [*.md]
 trim_trailing_whitespace = false

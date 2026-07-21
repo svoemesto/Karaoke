@@ -33,7 +33,7 @@ export default {
     songsDigests: {
       type: Array,
       required: false,
-      dafaults: [],
+      default: () => [],
     },
     publishDigest: {
       type: Array,

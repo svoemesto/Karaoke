@@ -1,5 +1,7 @@
 package com.svoemesto.karaokeweb.controllers
 
+import com.svoemesto.karaokeweb.WORKING_DATABASE
+
 import com.svoemesto.karaokeapp.model.Settings
 import com.svoemesto.karaokeapp.model.SitePlaylist
 import com.svoemesto.karaokeapp.model.SitePlaylistDto
@@ -7,7 +9,6 @@ import com.svoemesto.karaokeapp.model.SitePlaylistItem
 import com.svoemesto.karaokeapp.model.SiteUser
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.StorageApiClient
-import com.svoemesto.karaokeweb.WORKING_DATABASE
 import com.svoemesto.karaokeweb.config.SiteAuthInterceptor
 import jakarta.servlet.http.HttpServletRequest
 import org.springframework.http.HttpStatus

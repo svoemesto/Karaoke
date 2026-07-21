@@ -47,6 +47,21 @@ module.exports = {
       argsIgnorePattern: '^_',
       varsIgnorePattern: '^_',
     }],
+    // vue/no-v-html — ОТКЛЮЧЁН (10 в baseline). Правило рекомендует
+    // избегать v-html из-за XSS, но в проекте v-html используется только
+    // для уже подготовленного сервером текста (lyrics с <br>, preview с
+    // разметкой) — пользовательский ввод не передаётся напрямую.
+    // Долгосрочно: заменить v-html на v-text + DOMPurify или парсинг
+    // BBCode/Markdown. См. CONTRIBUTING.md, раздел "Vue: v-html usage".
+    'vue/no-v-html': 'off',
+    // vue/require-toggle-inside-transition — ОТКЛЮЧЁН (20 в baseline).
+    // Стилистическое правило: требует v-if/v-show внутри <transition>.
+    // В проекте <transition> оборачивает модалки с show/hide через
+    // v-model + Boolean prop, либо используется для CSS-анимаций выхода
+    // (появление гарантировано v-if на самом <transition>). Не баг.
+    // Включение обратно: убрать строку ниже, добавить v-if/v-show в
+    // каждый <transition>-блок (20 мест в webvue3).
+    'vue/require-toggle-inside-transition': 'off',
   },
   env: {
     browser: true,

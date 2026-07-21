@@ -20,19 +20,19 @@ class Converter {
 
         fun getVoicesFromString(settingString: String): MutableList<KaraokeVoice> {
             val karaokeVoices: MutableList<KaraokeVoice> = mutableListOf()
-            val partsVoices = settingString.split(delimiterVoices)
+            val partsVoices = settingString.split(DELIMITER_VOICES)
             partsVoices.forEach { partVoice ->
-                val partsVoiceFields = partVoice.split(delimiterVoiceFields)
+                val partsVoiceFields = partVoice.split(DELIMITER_VOICE_FIELDS)
                 val partVoiceFieldGroups = partsVoiceFields[0]
                 val partVoiceFieldFill = partsVoiceFields[1]
 
-                val partsFills = partVoiceFieldFill.split(delimiterFields)
+                val partsFills = partVoiceFieldFill.split(DELIMITER_FIELDS)
                 var evenColor: Color? = null
                 var evenOpacity: Double? = null
                 var oddColor: Color? = null
                 var oddOpacity: Double? = null
                 partsFills.forEach { partFill ->
-                    val parts = partFill.split(delimiterNames)
+                    val parts = partFill.split(DELIMITER_NAMES)
                     val partName = parts[0]
                     val partValue = parts[1]
                     try {
@@ -55,13 +55,13 @@ class Converter {
                     )
 
                 val karaokeGroups: MutableList<KaraokeVoiceGroup> = mutableListOf()
-                val partsGroups = partVoiceFieldGroups.split(delimiterGroups)
+                val partsGroups = partVoiceFieldGroups.split(DELIMITER_GROUPS)
                 partsGroups.forEach { partGroup ->
-                    val partsFields = partGroup.split(delimiterFields)
+                    val partsFields = partGroup.split(DELIMITER_FIELDS)
                     var songtextTextMltText: MltText? = null
 //                    val songtextBeatMltText: MltText? = null
                     partsFields.forEach { partField ->
-                        val parts = partField.split(delimiterNames)
+                        val parts = partField.split(DELIMITER_NAMES)
                         val partName = parts[0]
                         val partValue = parts[1]
                         try {
@@ -84,32 +84,32 @@ class Converter {
         }
 
         fun getStringFromVoices(voices: MutableList<KaraokeVoice>): String =
-            voices.joinToString(delimiterVoices) { voice ->
+            voices.joinToString(DELIMITER_VOICES) { voice ->
                 val groupsText =
-                    voice.groups.joinToString(delimiterGroups) { group ->
+                    voice.groups.joinToString(DELIMITER_GROUPS) { group ->
                         val fieldsText =
                             "songtextTextMltFont" +
-                                delimiterNames +
+                                DELIMITER_NAMES +
                                 group.mltText.setting()
                         fieldsText
                     }
                 val fillText =
                     "evenColor" +
-                        delimiterNames +
+                        DELIMITER_NAMES +
                         voice.fill.evenColor.setting() +
-                        delimiterFields +
+                        DELIMITER_FIELDS +
                         "evenOpacity" +
-                        delimiterNames +
+                        DELIMITER_NAMES +
                         voice.fill.evenOpacity +
-                        delimiterFields +
+                        DELIMITER_FIELDS +
                         "oddColor" +
-                        delimiterNames +
+                        DELIMITER_NAMES +
                         voice.fill.oddColor.setting() +
-                        delimiterFields +
+                        DELIMITER_FIELDS +
                         "oddOpacity" +
-                        delimiterNames +
+                        DELIMITER_NAMES +
                         voice.fill.oddOpacity
-                "${groupsText}${delimiterVoiceFields}$fillText"
+                "${groupsText}${DELIMITER_VOICE_FIELDS}$fillText"
             }
 
         fun getMltFontFromString(settingString: String): MltText {

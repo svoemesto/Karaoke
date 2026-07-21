@@ -145,7 +145,10 @@ interface KaraokeDbTable {
                         else -> ps.setString(index, it.recordDiffValueNew.toString())
                     }
                 } catch (e: Exception) {
-                    val errorMessage = "Не удалось сохранить запись в БД. Поле «${it.recordDiffName}» имеет значение «${it.recordDiffValueNew}», несовместимое с форматом данных этого поля в БД. Оригинальный текст ошибки: «${e.message}»"
+                    val errorMessage =
+                        "Не удалось сохранить запись в БД. Поле «${it.recordDiffName}» имеет значение " +
+                            "«${it.recordDiffValueNew}», несовместимое с форматом данных этого поля в БД. " +
+                            "Оригинальный текст ошибки: «${e.message}»"
                     println(errorMessage)
                 }
                 index++

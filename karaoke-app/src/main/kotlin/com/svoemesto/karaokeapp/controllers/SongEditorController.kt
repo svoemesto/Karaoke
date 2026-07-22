@@ -13,10 +13,12 @@ import com.svoemesto.karaokeapp.model.SongAssignment
 import com.svoemesto.karaokeapp.model.SongAssignmentDraft
 import com.svoemesto.karaokeapp.model.SongAssignmentStatus
 import com.svoemesto.karaokeapp.model.SourceMarker
+import com.svoemesto.karaokeapp.model.WhisperMarkerAligner
 import com.svoemesto.karaokeapp.rightFileName
 import com.svoemesto.karaokeapp.runCommand
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.StorageApiClient
+import com.svoemesto.karaokeapp.services.WhisperAsrService
 import com.svoemesto.karaokeapp.updateRemoteSettingFromLocalDatabase
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
@@ -667,5 +669,36 @@ class SongEditorController(
                 )
             }
         }
+    }
+
+    // Авто-расстановка маркеров: прогоняет вокальный стем через Whisper (см. WhisperAsrService) и
+    // сопоставляет результат с уже введённым текстом голоса (WhisperMarkerAligner). Ничего не
+    // сохраняет — возвращает черновой набор маркеров, дальше редактор в SubsEdit.vue применяет их
+    // локально, пользователь правит и сохраняет обычным Save (или отменяет, перезагрузив голос).
+    // Settings читаем ВСЕГДА из WORKING_DATABASE - только там есть локальный диск с FLAC (тот же
+    // принцип, что и в editById); sourceText берём из запроса, а не пересобираем его из БД/черновика.
+    @PostMapping("/edit/autoMarkers")
+    @ResponseBody
+    fun editAutoMarkers(
+        @RequestParam id: Long,
+        @RequestParam sourceText: String,
+    ): Map<String, Any?> {
+        if (sourceText.isBlank()) return mapOf("ok" to false, "error" to "empty_source_text")
+
+        val settings =
+            Settings.loadFromDbById(id, WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+                ?: return mapOf("ok" to false, "error" to "song_not_found")
+
+        val vocalsFile = File(settings.vocalsNameFlac)
+        if (!vocalsFile.exists()) return mapOf("ok" to false, "error" to "vocals_not_found")
+
+        val transcription = WhisperAsrService.transcribe(vocalsFile) ?: return mapOf("ok" to false, "error" to "whisper_unavailable")
+        val words = WhisperAsrService.flatWords(transcription)
+        if (words.isEmpty()) return mapOf("ok" to false, "error" to "no_speech_recognized")
+
+        val markers = WhisperMarkerAligner.alignToMarkers(sourceText, words)
+        if (markers.isEmpty()) return mapOf("ok" to false, "error" to "alignment_failed")
+
+        return mapOf("ok" to true, "markers" to markers)
     }
 }

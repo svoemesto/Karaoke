@@ -1566,4 +1566,25 @@ val listKaraokeProperties =
             defaultValue = 5L,
             description = "Мониторинг: через сколько минут недоступности прод-сервера предупреждение становится критическим",
         ),
+        // Авто-расстановка маркеров через Whisper ASR (SubsEdit "Авто-маркеры") — см. WhisperAsrService.
+        KaraokeProperty(
+            key = "whisperAsrUrl",
+            defaultValue = "",
+            description = "Whisper ASR: полный URL /v1/audio/transcriptions (напр. http://<admin-host>:8015/v1/audio/transcriptions). Пусто = функция выключена",
+        ),
+        KaraokeProperty(
+            key = "whisperApiKey",
+            defaultValue = "",
+            description = "Whisper ASR: Bearer-токен (WHISPER_API_KEY в docker-compose whisper-сервера)",
+        ),
+        KaraokeProperty(
+            key = "whisperLanguage",
+            defaultValue = "ru",
+            description = "Whisper ASR: код языка для распознавания",
+        ),
+        KaraokeProperty(
+            key = "whisperTimeoutMs",
+            defaultValue = 300_000L,
+            description = "Whisper ASR: таймаут HTTP-запроса распознавания (миллисекунды)",
+        ),
     )

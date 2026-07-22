@@ -135,6 +135,9 @@ data class StatsSummaryDto(
     val events30d: Int,
     val topChannel: String,
     val topChannelCount: Int,
+    val uniqueVisitors24h: Int,
+    val uniqueVisitors7d: Int,
+    val uniqueVisitors30d: Int,
 )
 
 // Точка временного ряда: дата (YYYY-MM-DD), опциональный тип события, число.
@@ -866,6 +869,27 @@ object StatsByEvents {
         val d7 = scalarInt(database, "select count(*) from tbl_events where last_update >= now() - interval '7 days'")
         val d30 = scalarInt(database, "select count(*) from tbl_events where last_update >= now() - interval '30 days'")
         val topChannel = getChannelBreakdown(database).maxByOrNull { it.count }
+        // Уник. посетители за периоды — та же метрика (distinct anon_id), что и uniqueVisitors, но
+        // с окном по времени. anon_id ставится и залогиненным пользователям, поэтому одного поля
+        // достаточно для «уникальных посетителей» без отдельного объединения с site_user_id.
+        val uniqueVisitors24h =
+            scalarInt(
+                database,
+                "select count(distinct anon_id) from tbl_events where anon_id is not null and anon_id <> '' " +
+                    "and last_update >= now() - interval '24 hours'",
+            )
+        val uniqueVisitors7d =
+            scalarInt(
+                database,
+                "select count(distinct anon_id) from tbl_events where anon_id is not null and anon_id <> '' " +
+                    "and last_update >= now() - interval '7 days'",
+            )
+        val uniqueVisitors30d =
+            scalarInt(
+                database,
+                "select count(distinct anon_id) from tbl_events where anon_id is not null and anon_id <> '' " +
+                    "and last_update >= now() - interval '30 days'",
+            )
         return StatsSummaryDto(
             totalEvents = total,
             uniqueVisitors = uniqueVisitors,
@@ -876,6 +900,9 @@ object StatsByEvents {
             events30d = d30,
             topChannel = topChannel?.name ?: "-",
             topChannelCount = topChannel?.count ?: 0,
+            uniqueVisitors24h = uniqueVisitors24h,
+            uniqueVisitors7d = uniqueVisitors7d,
+            uniqueVisitors30d = uniqueVisitors30d,
         )
     }
 

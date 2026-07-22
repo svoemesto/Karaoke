@@ -59,7 +59,12 @@
       <div v-if="loading" class="km-hint">Загрузка...</div>
       <div v-else-if="jobs.length === 0" class="km-empty">Заданий пока нет.</div>
       <div v-else class="km-job-list">
-        <div v-for="job in jobs" :key="job.id" class="km-job-card">
+        <div
+          v-for="job in jobs"
+          :key="job.id"
+          class="km-job-card"
+          :class="{ 'km-job-removing': job.removing }"
+        >
           <div class="km-job-main">
             <div class="km-job-title">
               {{ job.originalFileName || 'Задание #' + job.id }}
@@ -76,8 +81,8 @@
               <span v-else :class="['km-status-badge', statusClass(job.status)]">{{
                 statusText(job.status)
               }}</span>
-              <span v-if="job.status === 'DONE'">
-                · осталось {{ timeLeftText(job.expiresAt) }}</span
+              <span v-if="job.status === 'DONE' && timeLeftText(job.expiresAt)">
+                · осталось {{ timeLeftText(job.expiresAt) }} до автоматического удаления</span
               >
               <span v-if="job.status === 'ERROR' && job.errorMessage">
                 · {{ job.errorMessage }}</span
@@ -136,6 +141,7 @@
               :disabled="job.deleteRequested"
               @click="onDelete(job)"
             >
+              <span v-if="job.deleteRequested" class="km-mini-spinner km-mini-spinner-danger" />
               {{ job.deleteRequested ? 'Удаляется...' : 'Удалить' }}
             </button>
           </div>
@@ -333,8 +339,31 @@ export default {
     async onDelete(job) {
       if (!confirm('Удалить задание? Файлы будут удалены из хранилища.')) return
       job.deleteRequested = true
-      await authPost(`/api/public/account/stemjobs/${job.id}/delete`, {}, this.token)
-      await this.load(true)
+      try {
+        const { status } = await authPost(
+          `/api/public/account/stemjobs/${job.id}/delete`,
+          {},
+          this.token,
+        )
+        if (status !== 200) {
+          job.deleteRequested = false
+          alert('Не удалось удалить задание')
+          return
+        }
+        // Фактическое удаление (MinIO + строка в БД) выполняет фоновый cleanup на
+        // karaoke-app раз в 5 минут (см. StemJobPollScheduler.cleanup), а pollTimer
+        // здесь опрашивает список только пока есть WAITING/WORKING задания — ждать
+        // исчезновения задания из /list означало бы "зависшую" кнопку на несколько
+        // минут. Поэтому убираем карточку из списка сразу же, как только запрос на
+        // удаление принят сервером.
+        job.removing = true
+        setTimeout(() => {
+          this.jobs = this.jobs.filter((j) => j.id !== job.id)
+        }, 300)
+      } catch (e) {
+        job.deleteRequested = false
+        alert('Не удалось связаться с сервером')
+      }
     },
     stemKey(job, stem) {
       return `${job.id}:${stem}`
@@ -566,6 +595,14 @@ export default {
   border: 1px solid var(--km-border);
   border-radius: 12px;
   padding: 1rem 1.25rem;
+  transition:
+    opacity 0.25s ease,
+    transform 0.25s ease;
+}
+.km-job-removing {
+  opacity: 0;
+  transform: scale(0.97);
+  pointer-events: none;
 }
 .km-job-main {
   flex: 1;
@@ -722,5 +759,12 @@ export default {
 .km-btn-danger:disabled {
   opacity: 0.5;
   cursor: default;
+}
+.km-mini-spinner-danger {
+  display: inline-block;
+  vertical-align: middle;
+  border-color: rgba(224, 85, 85, 0.35);
+  border-top-color: #e05555;
+  margin-right: 0.15rem;
 }
 </style>

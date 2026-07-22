@@ -154,10 +154,17 @@ def main():
     parser.add_argument("--dry-run", action="store_true",
                          help="Только построить чанки и вывести статистику - без загрузки модели и GPU "
                               "(можно гонять параллельно с align.py/evaluate.py на той же видеокарте)")
+    parser.add_argument("--include-secondary-voices", action="store_true",
+                         help="Включить voice>0 (по умолчанию исключены - один файл вокала на несколько "
+                              "голосов, with_star помогает частично/нестабильно, см. align.py)")
     args = parser.parse_args()
 
     rows = load_manifest(args.manifest)
     rows = [r for r in rows if r.audio_exists]
+    if not args.include_secondary_voices:
+        before = len(rows)
+        rows = [r for r in rows if r.voice == 0]
+        print(f"Исключено голосов voice>0: {before - len(rows)} (--include-secondary-voices, чтобы включить)")
     if args.limit:
         rows = rows[: args.limit]
     if not rows:

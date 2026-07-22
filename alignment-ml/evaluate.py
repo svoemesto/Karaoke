@@ -19,8 +19,24 @@ from align import align_syllables
 from manifest import load_manifest
 
 
-def evaluate(manifest_path: str, limit: int | None = None, model_path: str | None = None) -> None:
+def evaluate(
+    manifest_path: str,
+    limit: int | None = None,
+    model_path: str | None = None,
+    include_secondary_voices: bool = False,
+) -> None:
     rows = load_manifest(manifest_path)
+
+    if not include_secondary_voices:
+        # voice>0 (второй/третий голос и т.п.) делит ОДИН файл вокала с voice=0 - текст одного
+        # голоса покрывает лишь часть аудио. with_star=True (см. align.py) помогает частично и
+        # нестабильно (проверено на реальных песнях), катастрофические ошибки (десятки секунд)
+        # остаются нередки. Пока исключаем из обучения/оценки - решать отдельно, не мешая обычному
+        # случаю (voice=0), где baseline уже стабильно хорош (медиана ~60мс).
+        before = len(rows)
+        rows = [r for r in rows if r.voice == 0]
+        print(f"[evaluate] исключено голосов voice>0: {before - len(rows)} (--include-secondary-voices, чтобы включить)")
+
     if limit:
         rows = rows[:limit]
 
@@ -78,6 +94,8 @@ if __name__ == "__main__":
     parser.add_argument("--manifest", default="data/manifest.jsonl", help="Путь к manifest.jsonl")
     parser.add_argument("--limit", type=int, default=None, help="Ограничить количество строк (для смоук-теста)")
     parser.add_argument("--model", default=None, help="Путь к дообученному чекпоинту (train.py); без флага - baseline MMS_FA")
+    parser.add_argument("--include-secondary-voices", action="store_true",
+                         help="Включить voice>0 (по умолчанию исключены - см. комментарий в evaluate())")
     args = parser.parse_args()
 
-    evaluate(args.manifest, args.limit, args.model)
+    evaluate(args.manifest, args.limit, args.model, args.include_secondary_voices)

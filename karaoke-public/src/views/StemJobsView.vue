@@ -20,20 +20,52 @@
         <h2 class="km-subtitle">Новое задание</h2>
         <div class="km-field">
           <label class="km-label">Режим разделения</label>
-          <select v-model="createForm.mode" class="km-input">
-            <option value="DEMUCS2">Музыка + голос (2 дорожки)</option>
-            <option value="DEMUCS5">Музыка + голос + бас + ударные (5 дорожек)</option>
-          </select>
+          <div class="km-mode-toggle" role="radiogroup" aria-label="Режим разделения">
+            <button
+              type="button"
+              class="km-mode-btn"
+              :class="{ 'km-mode-btn-active': createForm.mode === 'DEMUCS2' }"
+              :disabled="uploading"
+              role="radio"
+              :aria-checked="createForm.mode === 'DEMUCS2'"
+              @click="createForm.mode = 'DEMUCS2'"
+            >
+              Музыка + голос
+              <span class="km-mode-btn-sub">2 дорожки</span>
+            </button>
+            <button
+              type="button"
+              class="km-mode-btn"
+              :class="{ 'km-mode-btn-active': createForm.mode === 'DEMUCS5' }"
+              :disabled="uploading"
+              role="radio"
+              :aria-checked="createForm.mode === 'DEMUCS5'"
+              @click="createForm.mode = 'DEMUCS5'"
+            >
+              Музыка + голос + бас + ударные
+              <span class="km-mode-btn-sub">5 дорожек</span>
+            </button>
+          </div>
         </div>
         <div class="km-field">
           <label class="km-label">Аудиофайл</label>
-          <input
-            ref="fileInput"
-            type="file"
-            :accept="acceptExtensions"
-            class="km-input"
-            @change="onFileChange"
-          />
+          <div class="km-file-picker">
+            <label class="km-file-btn" :class="{ 'km-file-btn-disabled': uploading }" for="stemFileInput">
+              Выбрать файл
+            </label>
+            <input
+              id="stemFileInput"
+              ref="fileInput"
+              type="file"
+              :accept="acceptExtensions"
+              :disabled="uploading"
+              class="km-file-input-hidden"
+              @change="onFileChange"
+            />
+            <span class="km-file-name" :class="{ 'km-file-name-empty': !selectedFile }">
+              {{ selectedFile ? selectedFile.name : 'Файл не выбран' }}
+            </span>
+          </div>
           <span class="km-hint-text km-limits-hint">
             До {{ maxFileSizeMb }} МБ, до {{ maxDurationMin }} мин. Форматы:
             {{ allowedExtensionsText }}.
@@ -535,6 +567,98 @@ export default {
 .km-input:focus {
   outline: none;
   border-color: var(--km-accent);
+}
+.km-mode-toggle {
+  display: flex;
+  gap: 0.5rem;
+}
+.km-mode-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  background: var(--km-input);
+  color: var(--km-text);
+  border: 1px solid var(--km-border);
+  border-radius: 8px;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-align: center;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    color 0.15s;
+}
+.km-mode-btn:hover:not(:disabled) {
+  border-color: var(--km-accent);
+}
+.km-mode-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.km-mode-btn-active {
+  background: var(--km-accent);
+  color: #fff;
+  border-color: var(--km-accent);
+}
+.km-mode-btn-sub {
+  font-size: 0.72rem;
+  font-weight: 400;
+  opacity: 0.8;
+}
+.km-file-picker {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.km-file-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--km-accent);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.5rem 1.1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.15s;
+}
+.km-file-btn:hover {
+  opacity: 0.88;
+}
+.km-file-btn-disabled {
+  opacity: 0.6;
+  cursor: default;
+  pointer-events: none;
+}
+.km-file-input-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.km-file-name {
+  font-size: 0.85rem;
+  color: var(--km-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.km-file-name-empty {
+  color: var(--km-text2);
 }
 .km-message {
   font-size: 0.85rem;

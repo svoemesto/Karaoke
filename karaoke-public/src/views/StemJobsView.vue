@@ -90,10 +90,20 @@
                 :disabled="isStemBusy(job, 'original')"
                 @click="downloadStem(job, 'original', 'оригинал')"
               >
-                <span v-if="stemState(job, 'original') === 'loading'" class="km-mini-spinner" />
-                <span v-else-if="stemState(job, 'original') === 'done'">✓</span>
-                <span v-else>⬇</span>
-                Оригинал
+                <span
+                  v-if="stemProgress(job, 'original') > 0"
+                  class="km-stem-btn-progress"
+                  :style="{ width: stemProgress(job, 'original') + '%' }"
+                />
+                <span class="km-stem-btn-label">
+                  <span v-if="stemState(job, 'original') === 'loading'" class="km-mini-spinner" />
+                  <span v-else-if="stemState(job, 'original') === 'done'">✓</span>
+                  <span v-else>⬇</span>
+                  Оригинал
+                  <template v-if="stemProgress(job, 'original') > 0">
+                    {{ stemProgress(job, 'original') }}%
+                  </template>
+                </span>
               </button>
               <button
                 v-for="stem in job.availableStems"
@@ -103,10 +113,20 @@
                 :disabled="isStemBusy(job, stem)"
                 @click="downloadStem(job, stem, stemLabel(stem))"
               >
-                <span v-if="stemState(job, stem) === 'loading'" class="km-mini-spinner" />
-                <span v-else-if="stemState(job, stem) === 'done'">✓</span>
-                <span v-else>⬇</span>
-                {{ stemLabel(stem) }}
+                <span
+                  v-if="stemProgress(job, stem) > 0"
+                  class="km-stem-btn-progress"
+                  :style="{ width: stemProgress(job, stem) + '%' }"
+                />
+                <span class="km-stem-btn-label">
+                  <span v-if="stemState(job, stem) === 'loading'" class="km-mini-spinner" />
+                  <span v-else-if="stemState(job, stem) === 'done'">✓</span>
+                  <span v-else>⬇</span>
+                  {{ stemLabel(stem) }}
+                  <template v-if="stemProgress(job, stem) > 0">
+                    {{ stemProgress(job, stem) }}%
+                  </template>
+                </span>
               </button>
             </div>
           </div>
@@ -172,6 +192,7 @@ export default {
       allowedExtensionsText: ALLOWED_EXTENSIONS.join(', '),
       acceptExtensions: ALLOWED_EXTENSIONS.map((e) => '.' + e).join(','),
       stemDownloadState: {},
+      stemDownloadProgress: {},
     }
   },
   computed: {
@@ -330,16 +351,41 @@ export default {
       if (state === 'done') return 'km-stem-btn-done'
       return ''
     },
+    stemProgress(job, stem) {
+      return this.stemDownloadProgress[this.stemKey(job, stem)] || 0
+    },
     setStemState(key, state) {
       const next = { ...this.stemDownloadState }
       if (state) next[key] = state
       else delete next[key]
       this.stemDownloadState = next
     },
+    setStemProgress(key, pct) {
+      const next = { ...this.stemDownloadProgress }
+      if (pct === null || pct === undefined) delete next[key]
+      else next[key] = pct
+      this.stemDownloadProgress = next
+    },
+    async readResponseWithProgress(res, onProgress) {
+      const total = parseInt(res.headers.get('content-length') || '0', 10)
+      if (!res.body || !total) return res.blob()
+      const reader = res.body.getReader()
+      const chunks = []
+      let loaded = 0
+      for (;;) {
+        const { done, value } = await reader.read()
+        if (done) break
+        chunks.push(value)
+        loaded += value.length
+        onProgress(Math.min(100, Math.round((loaded / total) * 100)))
+      }
+      return new Blob(chunks, { type: res.headers.get('content-type') || undefined })
+    },
     async downloadStem(job, stem, label) {
       const key = this.stemKey(job, stem)
       if (this.isStemBusy(job, stem)) return
       this.setStemState(key, 'loading')
+      this.setStemProgress(key, 0)
       try {
         const res = await fetch(
           `/api/public/account/stemjobs/${job.id}/download?stem=${encodeURIComponent(stem)}`,
@@ -350,9 +396,10 @@ export default {
         if (!res.ok) {
           alert('Не удалось скачать файл — возможно, срок хранения истёк')
           this.setStemState(key, null)
+          this.setStemProgress(key, null)
           return
         }
-        const blob = await res.blob()
+        const blob = await this.readResponseWithProgress(res, (pct) => this.setStemProgress(key, pct))
         const url = URL.createObjectURL(blob)
         const baseName = (job.originalFileName || 'stem').replace(/\.[^.]+$/, '')
         const ext = stem === 'original' ? job.originalExt || 'bin' : 'mp3'
@@ -364,10 +411,12 @@ export default {
         a.remove()
         URL.revokeObjectURL(url)
         this.setStemState(key, 'done')
+        this.setStemProgress(key, null)
         setTimeout(() => this.setStemState(key, null), 1500)
       } catch (e) {
         alert('Не удалось скачать файл')
         this.setStemState(key, null)
+        this.setStemProgress(key, null)
       }
     },
   },
@@ -593,6 +642,8 @@ export default {
   margin-top: 0.6rem;
 }
 .km-stem-btn {
+  position: relative;
+  overflow: hidden;
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
@@ -612,11 +663,28 @@ export default {
   cursor: default;
 }
 .km-stem-btn-loading {
-  opacity: 0.75;
+  opacity: 0.9;
 }
 .km-stem-btn-done {
   color: #3fae5b;
   border-color: #3fae5b;
+}
+.km-stem-btn-progress {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  background: var(--km-accent);
+  opacity: 0.22;
+  transition: width 0.15s linear;
+  z-index: 0;
+}
+.km-stem-btn-label {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
 }
 .km-mini-spinner {
   width: 9px;

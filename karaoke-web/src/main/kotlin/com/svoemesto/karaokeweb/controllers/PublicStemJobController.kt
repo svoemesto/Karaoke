@@ -178,6 +178,9 @@ class PublicStemJobController(
                     .replace("\"", "")
             response.contentType = if (ext == "mp3") "audio/mpeg" else "application/octet-stream"
             response.setHeader("Content-Disposition", "attachment; filename=\"$baseName - $stem.$ext\"")
+            if (connection.contentLengthLong >= 0) {
+                response.setContentLengthLong(connection.contentLengthLong)
+            }
             connection.inputStream.use { input -> response.outputStream.use { output -> input.copyTo(output) } }
             connection.disconnect()
         } catch (e: Exception) {

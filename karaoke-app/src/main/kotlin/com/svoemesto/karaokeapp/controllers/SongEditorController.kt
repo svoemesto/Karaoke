@@ -711,4 +711,37 @@ class SongEditorController(
             "markers" to markers,
         )
     }
+
+    // Согласование официального текста с Whisper для ещё НЕ размеченной песни (см. план фичи
+    // "Согласование официального текста с Whisper"): находит вставки (что-то реально спето, но
+    // отсутствует в тексте) и возвращает дополненный текст. Ничего не сохраняет - только
+    // предоставляет исправленный текст, дальше он идёт как вход для forced-alignment (align.py/
+    // serve.py, взамен нынешнего alignToMarkers на этом эндпоинте) - интеграция с SubsEdit/serve.py
+    // отдельная, следующая итерация (см. план фичи, "Вне рамок").
+    @PostMapping("/edit/reconcileText")
+    @ResponseBody
+    fun editReconcileText(
+        @RequestParam id: Long,
+        @RequestParam sourceText: String,
+    ): Map<String, Any?> {
+        if (sourceText.isBlank()) return mapOf("ok" to false, "error" to "empty_source_text")
+
+        val settings =
+            Settings.loadFromDbById(id, WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+                ?: return mapOf("ok" to false, "error" to "song_not_found")
+
+        val vocalsFile = File(settings.vocalsNameFlac)
+        if (!vocalsFile.exists()) return mapOf("ok" to false, "error" to "vocals_not_found")
+
+        val transcription = WhisperAsrService.transcribe(vocalsFile) ?: return mapOf("ok" to false, "error" to "whisper_unavailable")
+        val words = WhisperAsrService.flatWords(transcription)
+        if (words.isEmpty()) return mapOf("ok" to false, "error" to "no_speech_recognized")
+
+        val reconciledText = WhisperMarkerAligner.reconcileText(sourceText, words)
+        return mapOf(
+            "ok" to true,
+            "text" to reconciledText,
+            "changed" to (reconciledText != sourceText),
+        )
+    }
 }

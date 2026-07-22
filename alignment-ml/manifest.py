@@ -1,7 +1,11 @@
 """Загрузка manifest.jsonl, экспортированного karaoke-app (ExportAlignmentDataset.kt, кнопка
 "Экспорт датасета для forced-alignment" на Home). Одна строка - один голос одной песни:
-{songId, voice, audioFile, text, syllables: [{label, timeMs}], durationMs}.
-audioFile - абсолютный путь на диске админской машины (аудио не копируется, см. план фичи)."""
+{songId, voice, audioFile, text, syllables: [{label, timeMs, hasGroundTruth}], durationMs}.
+audioFile - абсолютный путь на диске админской машины (аудио не копируется, см. план фичи).
+
+hasGroundTruth=False - слог из вставки, найденной сверкой официального текста с Whisper
+(WhisperMarkerAligner.reconcileWithGroundTruth) - что-то реально спето, но отсутствовало в
+официальном тексте; реального тайминга от человека для таких слогов нет (см. evaluate.py)."""
 
 import json
 from dataclasses import dataclass
@@ -12,6 +16,7 @@ from pathlib import Path
 class Syllable:
     label: str
     time_ms: int
+    has_ground_truth: bool = True  # False - вставка Whisper (реального тайминга от человека нет, см. план фичи)
 
 
 @dataclass
@@ -42,7 +47,9 @@ def load_manifest(path: str) -> list[ManifestRow]:
                     voice=data["voice"],
                     audio_file=data["audioFile"],
                     text=data["text"],
-                    syllables=[Syllable(s["label"], s["timeMs"]) for s in data["syllables"]],
+                    syllables=[
+                        Syllable(s["label"], s["timeMs"], s.get("hasGroundTruth", True)) for s in data["syllables"]
+                    ],
                     duration_ms=data["durationMs"],
                 )
             )

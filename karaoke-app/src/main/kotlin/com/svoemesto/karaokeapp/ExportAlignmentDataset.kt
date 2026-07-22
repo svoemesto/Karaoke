@@ -12,6 +12,7 @@ import com.svoemesto.karaokeapp.services.WhisperAsrService
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.io.File
+import java.io.FileWriter
 import kotlin.concurrent.thread
 
 @Serializable
@@ -75,6 +76,27 @@ fun exportAlignmentDataset(
         datasetDir.mkdirs()
         val manifestFile = File(datasetDir, "manifest.jsonl")
 
+        // Возобновляемость: полный экспорт теперь занимает часы (Whisper на каждую песню) - если
+        // процесс прервать (например, чтобы перезапустить karaoke-app с новым кодом) и запустить
+        // заново, НЕ начинаем с нуля - песни, чьи строки уже есть в существующем манифесте,
+        // пропускаем, дописываем файл (append), а не перезаписываем. Edge case: если прервали
+        // ПОСЕРЕДИНЕ песни с несколькими голосами, для неё могли остаться неполные строки - осознанно
+        // не усложняем резюмирование транзакционностью на уровне песни ради одной песни из тысяч.
+        val alreadyExportedSongIds = mutableSetOf<Long>()
+        if (manifestFile.exists()) {
+            manifestFile.forEachLine { line ->
+                if (line.isNotBlank()) {
+                    try {
+                        alreadyExportedSongIds.add(json.decodeFromString(AlignmentDatasetRow.serializer(), line).songId)
+                    } catch (_: Exception) {
+                    }
+                }
+            }
+        }
+        if (alreadyExportedSongIds.isNotEmpty()) {
+            println("Экспорт датасета для forced-alignment: возобновление - уже в манифесте песен: ${alreadyExportedSongIds.size}")
+        }
+
         var songsScanned = 0
         var tracksExported = 0
         var tracksSkippedNoMarkers = 0
@@ -88,87 +110,96 @@ fun exportAlignmentDataset(
         // линейный однопроходный скан).
         val progressStepSongs = maxOf(1, minOf(200, ids.size / 20))
 
-        manifestFile.bufferedWriter().use { writer ->
+        FileWriter(manifestFile, true).buffered().use { writer ->
             ids.forEachIndexed { index, id ->
-                try {
-                    val settings =
-                        Settings.loadFromDbById(
-                            id = id,
-                            database = WORKING_DATABASE,
-                            storageService = storageService,
-                            storageApiClient = storageApiClient,
-                        )
-                    if (settings == null) {
-                        println("  [${index + 1}/${ids.size}] id=$id - пропущено (не найдено)")
-                        return@forEachIndexed
-                    }
-                    songsScanned++
-
-                    // Whisper прогоняется один раз на песню (не на голос) - вокальный стем общий для
-                    // всех голосов; недоступность/ошибка Whisper не блокирует экспорт песни, просто
-                    // остаёмся без вставок для неё (см. комментарий у exportAlignmentDataset).
-                    val audioFile = File(settings.vocalsNameFlac)
-                    val whisperWords =
-                        if (audioFile.exists()) {
-                            WhisperAsrService.transcribe(audioFile)?.let { WhisperAsrService.flatWords(it) } ?: emptyList()
-                        } else {
-                            emptyList()
+                // Пропуск уже экспортированных - НЕ через return@forEachIndexed, иначе на длинной
+                // перемотке через уже готовые записи (резюме после прерывания) пропал бы и блок
+                // прогресса ниже - админ не видел бы вообще никакого движения, пока перемотка идёт.
+                if (id !in alreadyExportedSongIds) {
+                    try {
+                        val settings =
+                            Settings.loadFromDbById(
+                                id = id,
+                                database = WORKING_DATABASE,
+                                storageService = storageService,
+                                storageApiClient = storageApiClient,
+                            )
+                        if (settings == null) {
+                            println("  [${index + 1}/${ids.size}] id=$id - пропущено (не найдено)")
+                            return@forEachIndexed
                         }
+                        songsScanned++
 
-                    for (voice in 0 until settings.countVoices) {
-                        val markers =
-                            settings.sourceMarkersList
-                                .getOrNull(voice)
-                                ?.filter { it.markertype == Markertype.SYLLABLES.value }
-                                ?.sortedBy { it.time }
-                                ?: emptyList()
-                        if (markers.isEmpty()) {
-                            tracksSkippedNoMarkers++
-                            continue
-                        }
-                        if (!audioFile.exists()) {
-                            tracksSkippedNoAudio++
-                            continue
-                        }
-
-                        val sourceText = settings.getSourceText(voice)
-                        val reconciled =
-                            if (whisperWords.isNotEmpty()) {
-                                WhisperMarkerAligner.reconcileWithGroundTruth(sourceText, markers, whisperWords)
+                        // Whisper прогоняется один раз на песню (не на голос) - вокальный стем общий
+                        // для всех голосов; недоступность/ошибка Whisper не блокирует экспорт песни,
+                        // просто остаёмся без вставок для неё (см. комментарий у exportAlignmentDataset).
+                        val audioFile = File(settings.vocalsNameFlac)
+                        val whisperWords =
+                            if (audioFile.exists()) {
+                                WhisperAsrService.transcribe(audioFile)?.let { WhisperAsrService.flatWords(it) } ?: emptyList()
                             } else {
-                                null
+                                emptyList()
                             }
 
-                        val text: String
-                        val syllableDtos: List<AlignmentSyllableDto>
-                        if (reconciled != null) {
-                            text = reconciled.text
-                            syllableDtos =
-                                reconciled.syllables.map {
-                                    AlignmentSyllableDto(label = it.label, timeMs = it.timeMs.toLong(), hasGroundTruth = it.hasGroundTruth)
-                                }
-                            if (reconciled.syllables.any { !it.hasGroundTruth }) tracksWithInsertions++
-                        } else {
-                            text = sourceText
-                            syllableDtos = markers.map { AlignmentSyllableDto(label = it.label, timeMs = (it.time * 1000).toLong()) }
-                        }
+                        for (voice in 0 until settings.countVoices) {
+                            val markers =
+                                settings.sourceMarkersList
+                                    .getOrNull(voice)
+                                    ?.filter { it.markertype == Markertype.SYLLABLES.value }
+                                    ?.sortedBy { it.time }
+                                    ?: emptyList()
+                            if (markers.isEmpty()) {
+                                tracksSkippedNoMarkers++
+                                continue
+                            }
+                            if (!audioFile.exists()) {
+                                tracksSkippedNoAudio++
+                                continue
+                            }
 
-                        val row =
-                            AlignmentDatasetRow(
-                                songId = id,
-                                voice = voice,
-                                audioFile = audioFile.absolutePath,
-                                text = text,
-                                syllables = syllableDtos,
-                                durationMs = syllableDtos.maxOfOrNull { it.timeMs } ?: 0L,
-                            )
-                        writer.write(json.encodeToString(AlignmentDatasetRow.serializer(), row))
-                        writer.newLine()
-                        tracksExported++
+                            val sourceText = settings.getSourceText(voice)
+                            val reconciled =
+                                if (whisperWords.isNotEmpty()) {
+                                    WhisperMarkerAligner.reconcileWithGroundTruth(sourceText, markers, whisperWords)
+                                } else {
+                                    null
+                                }
+
+                            val text: String
+                            val syllableDtos: List<AlignmentSyllableDto>
+                            if (reconciled != null) {
+                                text = reconciled.text
+                                syllableDtos =
+                                    reconciled.syllables.map {
+                                        AlignmentSyllableDto(
+                                            label = it.label,
+                                            timeMs = it.timeMs.toLong(),
+                                            hasGroundTruth = it.hasGroundTruth,
+                                        )
+                                    }
+                                if (reconciled.syllables.any { !it.hasGroundTruth }) tracksWithInsertions++
+                            } else {
+                                text = sourceText
+                                syllableDtos = markers.map { AlignmentSyllableDto(label = it.label, timeMs = (it.time * 1000).toLong()) }
+                            }
+
+                            val row =
+                                AlignmentDatasetRow(
+                                    songId = id,
+                                    voice = voice,
+                                    audioFile = audioFile.absolutePath,
+                                    text = text,
+                                    syllables = syllableDtos,
+                                    durationMs = syllableDtos.maxOfOrNull { it.timeMs } ?: 0L,
+                                )
+                            writer.write(json.encodeToString(AlignmentDatasetRow.serializer(), row))
+                            writer.newLine()
+                            tracksExported++
+                        }
+                        println("  [${index + 1}/${ids.size}] ${settings.songName} (id=$id) - обработано")
+                    } catch (e: Exception) {
+                        println("  [${index + 1}/${ids.size}] id=$id - ошибка: ${e.message}")
                     }
-                    println("  [${index + 1}/${ids.size}] ${settings.songName} (id=$id) - обработано")
-                } catch (e: Exception) {
-                    println("  [${index + 1}/${ids.size}] id=$id - ошибка: ${e.message}")
                 }
 
                 if ((index + 1) % progressStepSongs == 0 || index + 1 == ids.size) {

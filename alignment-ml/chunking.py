@@ -23,6 +23,7 @@ from syllables import split_text_into_words
 
 DEFAULT_SILENCE_THRESHOLD_MS = 3000
 DEFAULT_MAX_CHUNK_MS = 30_000
+DEFAULT_MIN_CHUNK_MS = 1000
 DEFAULT_LEAD_PAD_MS = 200
 DEFAULT_TAIL_PAD_MS = 800
 
@@ -78,12 +79,48 @@ def _enforce_max_length(group: list[int], times_ms: list[int], max_ms: int) -> l
     return result
 
 
+def _merge_short_chunks(
+    groups: list[list[int]],
+    times_ms: list[int],
+    min_ms: int,
+    silence_threshold_ms: int,
+) -> list[list[int]]:
+    """Вырожденно короткие куски (одно слово/восклицание между двумя длинными паузами) почти не
+    несут сигнала для обучения - но клеить их с соседом стоит, ТОЛЬКО если между ними нет настоящей
+    паузы (граница появилась исключительно из-за принудительной нарезки по max_chunk_ms на
+    непрерывном пении, а не из-за тишины между строками/куплетами) - иначе слияние вернуло бы в
+    чанк ровно ту длинную тишину, которую вся эта нарезка должна была убрать (см. _split_by_gaps).
+    Короткий кусок, у которого оба соседа отделены настоящей паузой (например, одиночное восклицание
+    между двумя длинными фрагментами тишины), остаётся коротким - клеить его попросту не с чем."""
+    if len(groups) <= 1:
+        return groups
+
+    result: list[list[int]] = []
+    for group in groups:
+        if result:
+            gap_ms = times_ms[group[0]] - times_ms[result[-1][-1]]
+            prev_duration = times_ms[result[-1][-1]] - times_ms[result[-1][0]]
+            if gap_ms <= silence_threshold_ms and prev_duration < min_ms:
+                result[-1] = result[-1] + group
+                continue
+        result.append(group)
+
+    if len(result) > 1:
+        gap_ms = times_ms[result[-1][0]] - times_ms[result[-2][-1]]
+        last_duration = times_ms[result[-1][-1]] - times_ms[result[-1][0]]
+        if gap_ms <= silence_threshold_ms and last_duration < min_ms:
+            tail = result.pop()
+            result[-1] = result[-1] + tail
+    return result
+
+
 def build_chunks(
     text: str,
     syllables: list,  # manifest.Syllable - объекты с .label и .time_ms, отсортированы по времени
     duration_ms: int,
     silence_threshold_ms: int = DEFAULT_SILENCE_THRESHOLD_MS,
     max_chunk_ms: int = DEFAULT_MAX_CHUNK_MS,
+    min_chunk_ms: int = DEFAULT_MIN_CHUNK_MS,
     lead_pad_ms: int = DEFAULT_LEAD_PAD_MS,
     tail_pad_ms: int = DEFAULT_TAIL_PAD_MS,
 ) -> list[Chunk]:
@@ -100,6 +137,7 @@ def build_chunks(
 
     groups = _split_by_gaps(indices, times_ms, silence_threshold_ms)
     groups = [g for group in groups for g in _enforce_max_length(group, times_ms, max_chunk_ms)]
+    groups = _merge_short_chunks(groups, times_ms, min_chunk_ms, silence_threshold_ms)
 
     chunks = []
     for group in groups:

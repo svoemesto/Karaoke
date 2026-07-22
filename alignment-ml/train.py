@@ -43,7 +43,14 @@ from transformers import (
 )
 
 from align import read_audio_segment
-from chunking import DEFAULT_LEAD_PAD_MS, DEFAULT_MAX_CHUNK_MS, DEFAULT_SILENCE_THRESHOLD_MS, DEFAULT_TAIL_PAD_MS, build_chunks
+from chunking import (
+    DEFAULT_LEAD_PAD_MS,
+    DEFAULT_MAX_CHUNK_MS,
+    DEFAULT_MIN_CHUNK_MS,
+    DEFAULT_SILENCE_THRESHOLD_MS,
+    DEFAULT_TAIL_PAD_MS,
+    build_chunks,
+)
 from manifest import load_manifest
 
 BASE_CHECKPOINT = "facebook/mms-1b-all"  # тот же чекпоинт, что использует align.py как baseline
@@ -140,6 +147,8 @@ def main():
                          help="Пауза между слогами длиннее этого - граница чанка (см. chunking.py)")
     parser.add_argument("--max-chunk-ms", type=int, default=DEFAULT_MAX_CHUNK_MS,
                          help="Потолок длины чанка, даже если естественной паузы не нашлось")
+    parser.add_argument("--min-chunk-ms", type=int, default=DEFAULT_MIN_CHUNK_MS,
+                         help="Чанки короче этого клеятся к соседнему - почти не несут сигнала как есть")
     parser.add_argument("--lead-pad-ms", type=int, default=DEFAULT_LEAD_PAD_MS)
     parser.add_argument("--tail-pad-ms", type=int, default=DEFAULT_TAIL_PAD_MS)
     parser.add_argument("--dry-run", action="store_true",
@@ -157,6 +166,7 @@ def main():
     chunk_args = dict(
         silence_threshold_ms=args.silence_threshold_ms,
         max_chunk_ms=args.max_chunk_ms,
+        min_chunk_ms=args.min_chunk_ms,
         lead_pad_ms=args.lead_pad_ms,
         tail_pad_ms=args.tail_pad_ms,
     )

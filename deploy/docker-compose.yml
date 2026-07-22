@@ -47,10 +47,12 @@ services:
       - java
       - -Dfile.encoding=UTF-8
       - -Djava.security.egd=file:/dev/./urandom
-    command:
-      - ${APP_JAVA_OPTS}
-      - -jar
-      - /app.jar
+    # Строка, а не YAML-список — список превращает пустую/неустановленную APP_JAVA_OPTS в отдельный
+    # пустой аргумент перед "-jar", и java воспринимает его как имя main-класса
+    # ("Could not find or load main class"), а не как "нет опций". Тот же приём, что в
+    # docker-compose-app.yml (см. соседний karaoke-web ниже — там была ровно эта причина зависания
+    # в перезапусках на локальном dev-стенде, см. deploy/docker-compose-web.yml для образца).
+    command: ${APP_JAVA_OPTS} -jar /app.jar
 
   searxng:
     image: searxng/searxng:latest
@@ -83,10 +85,12 @@ services:
       - -Djava.security.egd=file:/dev/./urandom
       - -XX:+HeapDumpOnOutOfMemoryError
       - -XX:HeapDumpPath=/dumps
-    command:
-      - ${WEB_JAVA_OPTS}
-      - -jar
-      - /app.jar
+    # Строка, а не YAML-список — см. комментарий у karaoke-app.command выше. Именно эта форма (список +
+    # незаданная WEB_JAVA_OPTS => пустой аргумент перед "-jar" => java грузит "" как main-класс) вешала
+    # локальный karaoke-web в бесконечный restart-loop ("Could not find or load main class"), пока
+    # контейнер поднимался через do.sh start/load (см. docker-compose-web.yml — тот же образец,
+    # которым поднимается WEB через правильный scoped do.sh start_web).
+    command: ${WEB_JAVA_OPTS} -jar /app.jar
     restart: always
 
   karaoke-webvue:

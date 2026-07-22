@@ -9,6 +9,7 @@ import com.svoemesto.karaokeapp.mlt.MltProp
 import com.svoemesto.karaokeapp.services.*
 import com.svoemesto.karaokeapp.textfiledictionary.SyncIdsDictionary
 import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -828,43 +829,52 @@ class Settings(
             fields[SettingField.FREE] = value.toString()
         }
 
-    // Персистентная готовность файлов песни к онлайн-плееру (см. SettingField.STEM_ACCOMPANIMENT_READY
-    // и т.д.) — проставляется точечно при успешной заливке в хранилище, сверяется HealthReport'ом.
-    var stemAccompanimentReady: Boolean
-        get() {
-            val txt = fields[SettingField.STEM_ACCOMPANIMENT_READY] ?: false.toString()
-            return txt == true.toString()
-        }
+    // Персистентная готовность файлов песни к онлайн-плееру (см. SettingField.PLAYER_READINESS_FLAGS)
+    // — проставляется точечно при успешной заливке в хранилище, сверяется HealthReport'ом. Хранится
+    // одним JSON-полем (формат {"stemAccompanimentReady":true,...}), а не отдельной колонкой на флаг,
+    // чтобы новый флаг добавлялся без новой миграции/колонки/правки recordhash-триггера — см.
+    // deploy/karaoke-db/26_player_readiness_flags.sql.
+    @get:JsonIgnore
+    var playerReadinessFlags: String
+        get() = fields[SettingField.PLAYER_READINESS_FLAGS]?.ifBlank { "{}" } ?: "{}"
         set(value) {
-            fields[SettingField.STEM_ACCOMPANIMENT_READY] = value.toString()
+            fields[SettingField.PLAYER_READINESS_FLAGS] = value
         }
+
+    @get:JsonIgnore
+    val playerReadinessFlagsMap: Map<String, Boolean> get() =
+        try {
+            Json.decodeFromString(MapSerializer(String.serializer(), Boolean.serializer()), playerReadinessFlags)
+        } catch (_: Exception) {
+            emptyMap()
+        }
+
+    private fun readinessFlag(key: String): Boolean = playerReadinessFlagsMap[key] == true
+
+    private fun setReadinessFlag(
+        key: String,
+        value: Boolean,
+    ) {
+        val updated = playerReadinessFlagsMap.toMutableMap()
+        updated[key] = value
+        playerReadinessFlags = Json.encodeToString(MapSerializer(String.serializer(), Boolean.serializer()), updated)
+    }
+
+    var stemAccompanimentReady: Boolean
+        get() = readinessFlag("stemAccompanimentReady")
+        set(value) = setReadinessFlag("stemAccompanimentReady", value)
 
     var stemVocalReady: Boolean
-        get() {
-            val txt = fields[SettingField.STEM_VOCAL_READY] ?: false.toString()
-            return txt == true.toString()
-        }
-        set(value) {
-            fields[SettingField.STEM_VOCAL_READY] = value.toString()
-        }
+        get() = readinessFlag("stemVocalReady")
+        set(value) = setReadinessFlag("stemVocalReady", value)
 
     var pictureAlbumReady: Boolean
-        get() {
-            val txt = fields[SettingField.PICTURE_ALBUM_READY] ?: false.toString()
-            return txt == true.toString()
-        }
-        set(value) {
-            fields[SettingField.PICTURE_ALBUM_READY] = value.toString()
-        }
+        get() = readinessFlag("pictureAlbumReady")
+        set(value) = setReadinessFlag("pictureAlbumReady", value)
 
     var pictureAuthorReady: Boolean
-        get() {
-            val txt = fields[SettingField.PICTURE_AUTHOR_READY] ?: false.toString()
-            return txt == true.toString()
-        }
-        set(value) {
-            fields[SettingField.PICTURE_AUTHOR_READY] = value.toString()
-        }
+        get() = readinessFlag("pictureAuthorReady")
+        set(value) = setReadinessFlag("pictureAuthorReady", value)
 
     val idBoosty: String get() = fields[SettingField.ID_BOOSTY]?.nullIfEmpty() ?: ""
     val versionBoosty: Int get() = (fields[SettingField.VERSION_BOOSTY]?.nullIfEmpty() ?: "0").toInt()
@@ -5358,10 +5368,8 @@ class Settings(
         fieldsValues.add(Pair("formatted_text_song", settings.formattedTextSong))
         fieldsValues.add(Pair("formatted_text_tabs", settings.formattedTextTabs))
         fieldsValues.add(Pair("formatted_text_chords", settings.formattedTextChords))
-        fieldsValues.add(Pair("stem_accompaniment_ready", settings.stemAccompanimentReady))
-        fieldsValues.add(Pair("stem_vocal_ready", settings.stemVocalReady))
-        fieldsValues.add(Pair("picture_album_ready", settings.pictureAlbumReady))
-        fieldsValues.add(Pair("picture_author_ready", settings.pictureAuthorReady))
+        // player_readiness_flags намеренно не добавляется — как и audio_compare_history, полагается
+        // на DEFAULT '{}' колонки (см. deploy/karaoke-db/26_player_readiness_flags.sql).
 
         return "INSERT INTO tbl_settings${if (sync) "_sync" else ""} (${fieldsValues.joinToString(
             ", ",
@@ -6292,17 +6300,8 @@ class Settings(
                 }
                 if (settA.exclusive != settB.exclusive) result.add(RecordDiff("exclusive", settA.exclusive, settB.exclusive))
                 if (settA.free != settB.free) result.add(RecordDiff("free", settA.free, settB.free))
-                if (settA.stemAccompanimentReady != settB.stemAccompanimentReady) {
-                    result.add(RecordDiff("stem_accompaniment_ready", settA.stemAccompanimentReady, settB.stemAccompanimentReady))
-                }
-                if (settA.stemVocalReady != settB.stemVocalReady) {
-                    result.add(RecordDiff("stem_vocal_ready", settA.stemVocalReady, settB.stemVocalReady))
-                }
-                if (settA.pictureAlbumReady != settB.pictureAlbumReady) {
-                    result.add(RecordDiff("picture_album_ready", settA.pictureAlbumReady, settB.pictureAlbumReady))
-                }
-                if (settA.pictureAuthorReady != settB.pictureAuthorReady) {
-                    result.add(RecordDiff("picture_author_ready", settA.pictureAuthorReady, settB.pictureAuthorReady))
+                if (settA.playerReadinessFlags != settB.playerReadinessFlags) {
+                    result.add(RecordDiff("player_readiness_flags", settA.playerReadinessFlags, settB.playerReadinessFlags))
                 }
                 if (settA.idTariff != settB.idTariff) result.add(RecordDiff("id_tariff", settA.idTariff, settB.idTariff))
                 if (settA.songType != settB.songType) result.add(RecordDiff("song_type", settA.songType.dbValue, settB.songType.dbValue))
@@ -7182,10 +7181,7 @@ class Settings(
                     rs.getString("audio_compare_history")?.let { value -> settings.audioCompareHistory = value }
                     rs.getBoolean("exclusive").let { value -> settings.exclusive = value }
                     rs.getBoolean("free").let { value -> settings.free = value }
-                    rs.getBoolean("stem_accompaniment_ready").let { value -> settings.stemAccompanimentReady = value }
-                    rs.getBoolean("stem_vocal_ready").let { value -> settings.stemVocalReady = value }
-                    rs.getBoolean("picture_album_ready").let { value -> settings.pictureAlbumReady = value }
-                    rs.getBoolean("picture_author_ready").let { value -> settings.pictureAuthorReady = value }
+                    rs.getString("player_readiness_flags")?.let { value -> settings.playerReadinessFlags = value }
 
                     settings.statusProcessLyrics = rs.getString("status_process_lyrics") ?: ""
                     settings.statusProcessKaraoke = rs.getString("status_process_karaoke") ?: ""

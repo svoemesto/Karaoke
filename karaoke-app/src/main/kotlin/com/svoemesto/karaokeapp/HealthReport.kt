@@ -2838,17 +2838,15 @@ data class HealthReport(
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
         ): Int {
+            // Лёгкий запрос id вместо полного List<Settings> — recomputeAndBroadcast сам перезагружает
+            // каждую запись целиком по id, так что грузить их дважды (Settings.loadListFromDb, потом
+            // ещё раз внутри recomputeAndBroadcast) незачем. Settings.listHashes — тот же метод, что
+            // использует SettingsSyncTarget для sync, читает только (id, recordhash) парами.
             val authorFilter = author?.trim()?.takeIf { it.isNotEmpty() }
-            val listSettings =
-                Settings.loadListFromDb(
-                    args = if (authorFilter != null) mapOf("author" to authorFilter) else emptyMap(),
-                    database = database,
-                    storageService = storageService,
-                    storageApiClient = storageApiClient,
-                    withoutMarkersAndText = true,
-                )
-            listSettings.forEach { recomputeAndBroadcast(it.id, database, storageService, storageApiClient) }
-            return listSettings.size
+            val whereText = authorFilter?.let { "WHERE LOWER(song_author) = '${it.rightFileName().lowercase()}'" } ?: ""
+            val ids = Settings.listHashes(database = database, whereText = whereText)?.map { it.id } ?: return 0
+            ids.forEach { recomputeAndBroadcast(it, database, storageService, storageApiClient) }
+            return ids.size
         }
 
         // Выполнить все прямо сейчас решаемые (canResolve && ERROR) действия отчётов. Каждое действие

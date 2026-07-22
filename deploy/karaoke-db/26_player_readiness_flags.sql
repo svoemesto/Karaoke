@@ -1,22 +1,36 @@
 -- Готовность песни к онлайн-плееру больше не вычисляется на лету через MinIO при каждом
--- запросе (это било по MinIO на каждый показ списка песен) — вместо этого 4 булевых флага
--- персистентно хранятся вместе с песней и обновляются точечно в момент успешной заливки
--- файла в хранилище (см. ApiController.pushMp3ToStorage / Settings.pictureAlbum/pictureAuthor),
--- плюс сверяются механизмом HealthReport (see HealthReport.recomputeAndBroadcast) на случай
--- рассинхрона (например, ручного удаления файла в MinIO).
+-- запросе (это било по MinIO на каждый показ списка песен) — вместо этого персистентно хранится
+-- вместе с песней и обновляется точечно в момент успешной заливки файла в хранилище
+-- (см. ApiController.pushMp3ToStorage / Settings.pictureAlbum/pictureAuthor), плюс сверяется
+-- механизмом HealthReport (see HealthReport.recomputeAndBroadcast) на случай рассинхрона
+-- (например, ручного удаления файла в MinIO).
+--
+-- Хранится ОДНИМ JSON-полем (player_readiness_flags, text, формат {"stemAccompanimentReady":true,...}),
+-- а не отдельной boolean-колонкой на каждый флаг: так добавление нового флага готовности в будущем
+-- требует правки только Kotlin-кода (Settings.kt) — без новой миграции, без новой колонки и без
+-- правки md5-формулы recordhash-триггера ниже. Раньше (первая версия этой миграции) было 4 отдельных
+-- boolean-колонки — у каждой новой такой колонки была своя правка ОБЕИХ md5-формул (tbl_settings и
+-- tbl_settings_sync) и свой массовый UPDATE recordhash; забыть это — верный способ рассинхронить
+-- LOCAL/SERVER хэши и заставить sync перезаливать записи после каждого сохранения без реальных
+-- изменений.
+--
+-- Эта версия миграции ПЕРЕЛИВАЕТ уже существующие 4 boolean-флага (stem_accompaniment_ready,
+-- stem_vocal_ready, picture_album_ready, picture_author_ready — на случай, если где-то они уже были
+-- проставлены кодом фичи до перехода на JSON) в новое JSON-поле и только потом дропает старые
+-- колонки — чтобы не терять уже посчитанное состояние и не гонять для этого повторно дорогой
+-- HealthReport-пересчёт по всем песням.
 --
 -- Применяется вручную на КАЖДОЙ БД (LOCAL и PROD) — миграция сама на сервер не попадает
 -- (см. karaoke-db/22_stem_jobs.sql, тот же комментарий).
 --
--- ОБЯЗАТЕЛЬНО после миграции:
--- 1. В recordhash-триггерах добавлены 4 новых поля в md5 — иначе LOCAL и SERVER
---    будут иметь разные хэши для одной и той же песни, и sync (Settings) решит, что запись
---    расходится, начнёт перезаливать tbl_settings_sync ↔ tbl_settings после КАЖДОГО сохранения
---    (даже без реальных изменений). Оба триггера пересоздаются тут (см. karaoke-db/25_audio_parent.sql).
--- 2. Существующие песни получат все 4 флага = false (DEFAULT) — нужен разовый backfill-прогон
---    (см. план миграции, Фаза 5), иначе ранее готовые песни временно "исчезнут" из плеера,
---    пока их кто-то не откроет в редакторе/health-репорте.
+-- ОБЯЗАТЕЛЬНО после миграции: разовый backfill (см. HealthReport.recalculatePlayerReadiness /
+-- POST /utils/recalcplayerreadiness) для песен, у которых нет старых boolean-флагов вовсе (заведомо
+-- новая БД) — иначе такие песни временно "исчезнут" из плеера, пока их кто-то не откроет в
+-- редакторе/health-репорте.
 
+-- 1) На случай свежей БД (где старых boolean-колонок ещё нет) — создаём их, чтобы backfill-шагу
+--    ниже было из чего читать. Идемпотентно: если колонки уже существуют (например, из ранее
+--    применённой первой версии этой миграции) — не пересоздаются, их текущие значения используются.
 ALTER TABLE public.tbl_settings
     ADD COLUMN IF NOT EXISTS stem_accompaniment_ready boolean NOT NULL DEFAULT false;
 ALTER TABLE public.tbl_settings
@@ -35,7 +49,48 @@ ALTER TABLE public.tbl_settings_sync
 ALTER TABLE public.tbl_settings_sync
     ADD COLUMN IF NOT EXISTS picture_author_ready boolean NOT NULL DEFAULT false;
 
--- Пересоздаём триггер хэша для tbl_settings с новыми колонками.
+-- 2) Новое единое JSON-поле готовности (text, не jsonb — в этой схеме все JSON-подобные данные
+--    хранятся как text, см. tbl_promo_rules.params_json в karaoke-db/15_monetization.sql и
+--    audio_compare_history в karaoke-db/25_audio_parent.sql).
+ALTER TABLE public.tbl_settings
+    ADD COLUMN IF NOT EXISTS player_readiness_flags text NOT NULL DEFAULT '{}';
+ALTER TABLE public.tbl_settings_sync
+    ADD COLUMN IF NOT EXISTS player_readiness_flags text NOT NULL DEFAULT '{}';
+
+-- 3) Backfill JSON из уже существующих (пусть и дефолтных false) boolean-колонок — переливает то,
+--    что уже могло быть проставлено кодом фичи, без повторного HealthReport-пересчёта.
+UPDATE public.tbl_settings
+SET player_readiness_flags = json_build_object(
+        'stemAccompanimentReady', stem_accompaniment_ready,
+        'stemVocalReady', stem_vocal_ready,
+        'pictureAlbumReady', picture_album_ready,
+        'pictureAuthorReady', picture_author_ready
+    )::text
+WHERE id > 0;
+
+UPDATE public.tbl_settings_sync
+SET player_readiness_flags = json_build_object(
+        'stemAccompanimentReady', stem_accompaniment_ready,
+        'stemVocalReady', stem_vocal_ready,
+        'pictureAlbumReady', picture_album_ready,
+        'pictureAuthorReady', picture_author_ready
+    )::text
+WHERE id > 0;
+
+-- 4) Старые boolean-колонки больше не нужны — данные уже перелиты на шаге 3.
+ALTER TABLE public.tbl_settings
+    DROP COLUMN IF EXISTS stem_accompaniment_ready,
+    DROP COLUMN IF EXISTS stem_vocal_ready,
+    DROP COLUMN IF EXISTS picture_album_ready,
+    DROP COLUMN IF EXISTS picture_author_ready;
+
+ALTER TABLE public.tbl_settings_sync
+    DROP COLUMN IF EXISTS stem_accompaniment_ready,
+    DROP COLUMN IF EXISTS stem_vocal_ready,
+    DROP COLUMN IF EXISTS picture_album_ready,
+    DROP COLUMN IF EXISTS picture_author_ready;
+
+-- Пересоздаём триггер хэша для tbl_settings с новой колонкой.
 -- Идемпотентно: CREATE OR REPLACE FUNCTION, новый триггер пересоздаётся через DROP+CREATE.
 CREATE OR REPLACE FUNCTION public.update_tbl_settings_recordhash()
     RETURNS trigger
@@ -136,10 +191,7 @@ BEGIN
                                 COALESCE(NEW.audio_similarity_percent::TEXT, '') ||
                                 COALESCE(NEW.audio_delta_ms::TEXT, '') ||
                                 COALESCE(NEW.audio_compare_history, '') ||
-                                COALESCE(NEW.stem_accompaniment_ready::TEXT, '') ||
-                                COALESCE(NEW.stem_vocal_ready::TEXT, '') ||
-                                COALESCE(NEW.picture_album_ready::TEXT, '') ||
-                                COALESCE(NEW.picture_author_ready::TEXT, '')
+                                COALESCE(NEW.player_readiness_flags, '')
         );
 RETURN NEW;
 END;
@@ -148,7 +200,7 @@ $$;
 DROP TRIGGER IF EXISTS update_recordhash_trigger ON public.tbl_settings;
 CREATE TRIGGER update_recordhash_trigger BEFORE INSERT OR UPDATE ON public.tbl_settings FOR EACH ROW EXECUTE FUNCTION public.update_tbl_settings_recordhash();
 
--- Аналогично для tbl_settings_sync — та же md5-формула с добавленными 4 полями.
+-- Аналогично для tbl_settings_sync — та же md5-формула с одним добавленным полем.
 CREATE OR REPLACE FUNCTION public.update_tbl_settings_sync_recordhash()
     RETURNS trigger
     LANGUAGE plpgsql
@@ -247,10 +299,7 @@ BEGIN
         COALESCE(NEW.audio_similarity_percent::TEXT, '') ||
         COALESCE(NEW.audio_delta_ms::TEXT, '') ||
         COALESCE(NEW.audio_compare_history, '') ||
-        COALESCE(NEW.stem_accompaniment_ready::TEXT, '') ||
-        COALESCE(NEW.stem_vocal_ready::TEXT, '') ||
-        COALESCE(NEW.picture_album_ready::TEXT, '') ||
-        COALESCE(NEW.picture_author_ready::TEXT, '')
+        COALESCE(NEW.player_readiness_flags, '')
     );
     RETURN NEW;
 END;
@@ -261,7 +310,7 @@ CREATE TRIGGER update_recordhash_settings_synctrigger BEFORE UPDATE OR INSERT ON
 
 -- Полный пересчёт recordhash по новой формуле для всех существующих строк в обеих таблицах.
 -- Триггер сделает то же при UPDATE любых полей, но те строки, которые никто не трогает,
--- останутся со старыми хэшами (вычисленными БЕЗ новых полей) и будут восприниматься sync'ом
+-- останутся со старыми хэшами (вычисленными по старой формуле) и будут восприниматься sync'ом
 -- как отличающиеся от "правильных" с любой стороны. Поэтому делаем массовый UPDATE.
 UPDATE public.tbl_settings
 SET recordhash = md5(
@@ -358,10 +407,7 @@ SET recordhash = md5(
         COALESCE(audio_similarity_percent::TEXT, '') ||
         COALESCE(audio_delta_ms::TEXT, '') ||
         COALESCE(audio_compare_history, '') ||
-        COALESCE(stem_accompaniment_ready::TEXT, '') ||
-        COALESCE(stem_vocal_ready::TEXT, '') ||
-        COALESCE(picture_album_ready::TEXT, '') ||
-        COALESCE(picture_author_ready::TEXT, '')
+        COALESCE(player_readiness_flags, '')
 ) WHERE id > 0;
 
 UPDATE public.tbl_settings_sync
@@ -458,8 +504,5 @@ SET recordhash = md5(
         COALESCE(audio_similarity_percent::TEXT, '') ||
         COALESCE(audio_delta_ms::TEXT, '') ||
         COALESCE(audio_compare_history, '') ||
-        COALESCE(stem_accompaniment_ready::TEXT, '') ||
-        COALESCE(stem_vocal_ready::TEXT, '') ||
-        COALESCE(picture_album_ready::TEXT, '') ||
-        COALESCE(picture_author_ready::TEXT, '')
+        COALESCE(player_readiness_flags, '')
 ) WHERE id > 0;

@@ -893,16 +893,21 @@ private fun <T : Any> collectSyncOps(
 
     // Зеркальное удаление в ЦЕЛИ (строки, которых нет в источнике) — только если операция разрешена
     // для этого направления. Для режима «перемещение» обычно выключено (см. SyncOperation.DELETE/MOVE).
+    // Чанкуем по target.rowChunkSize — при большом числе удаляемых id (например, десятки тысяч
+    // событий) loadByIds иначе вернул бы одну огромную Map со всеми строками разом (сами данные нужны
+    // только ради label() для лога) — риск OutOfMemoryError на «синхронизации в 1 клик».
     if (deleteAllowed) {
-        val toDeleteMap = target.loadByIds(idsToDelete, toDatabase)
-        idsToDelete.forEach { id ->
-            toDeleteMap[id]?.let { listToDeleteNames.add(target.label(it)) }
-            if (toDatabase.name == "SERVER") {
-                val sqlToDelete = "DELETE FROM $tableName WHERE id = $id"
-                val setStrEncrypted = Crypto.encrypt(sqlToDelete)
-                listToDelete.add(mapOf("sqlToDelete" to (setStrEncrypted ?: "")))
-            } else {
-                target.deleteLocal(id, toDatabase)
+        idsToDelete.chunked(target.rowChunkSize).forEach { chunkIds ->
+            val toDeleteMap = target.loadByIds(chunkIds, toDatabase)
+            chunkIds.forEach { id ->
+                toDeleteMap[id]?.let { listToDeleteNames.add(target.label(it)) }
+                if (toDatabase.name == "SERVER") {
+                    val sqlToDelete = "DELETE FROM $tableName WHERE id = $id"
+                    val setStrEncrypted = Crypto.encrypt(sqlToDelete)
+                    listToDelete.add(mapOf("sqlToDelete" to (setStrEncrypted ?: "")))
+                } else {
+                    target.deleteLocal(id, toDatabase)
+                }
             }
         }
     }
@@ -912,100 +917,108 @@ private fun <T : Any> collectSyncOps(
     val actuallyInserted = mutableListOf<Long>()
     val actuallyUpdated = mutableListOf<Long>()
 
+    // Чанкуем по target.rowChunkSize (уже подобран под вес строки данной сущности — см. SyncTarget.kt)
+    // — при большом числе id (реалистично при первом прогоне или после большой правки схемы, пример —
+    // 19000+ изменённых записей) loadByIds иначе вернул бы одну Map со всеми полными объектами разом,
+    // держа их все одновременно в памяти — риск OutOfMemoryError на «синхронизации в 1 клик».
     if (insertAllowed) {
-        val toInsertMap = target.loadByIds(idsToInsert, fromDatabase)
-        idsToInsert.forEach { id ->
-            val itemFrom = toInsertMap[id] ?: return@forEach
-            listToCreateNames.add(target.label(itemFrom))
-            println("[${Timestamp.from(Instant.now())}] Добавляем запись в $tableName: id=$id, ${target.label(itemFrom)}")
-            val sqlToInsert = target.getSqlToInsert(itemFrom)
-            if (toDatabase.name == "SERVER") {
-                val setStrEncrypted = Crypto.encrypt(sqlToInsert)
-                listToCreate.add(mapOf("sqlToInsert" to (setStrEncrypted ?: "")))
-            } else {
-                val connection = toDatabase.getConnection()
-                if (connection == null) {
-                    println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${toDatabase.name}")
-                    return false
+        idsToInsert.chunked(target.rowChunkSize).forEach { chunkIds ->
+            val toInsertMap = target.loadByIds(chunkIds, fromDatabase)
+            chunkIds.forEach { id ->
+                val itemFrom = toInsertMap[id] ?: return@forEach
+                listToCreateNames.add(target.label(itemFrom))
+                println("[${Timestamp.from(Instant.now())}] Добавляем запись в $tableName: id=$id, ${target.label(itemFrom)}")
+                val sqlToInsert = target.getSqlToInsert(itemFrom)
+                if (toDatabase.name == "SERVER") {
+                    val setStrEncrypted = Crypto.encrypt(sqlToInsert)
+                    listToCreate.add(mapOf("sqlToInsert" to (setStrEncrypted ?: "")))
+                } else {
+                    val connection = toDatabase.getConnection()
+                    if (connection == null) {
+                        println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${toDatabase.name}")
+                        return false
+                    }
+                    val ps = connection.prepareStatement(sqlToInsert)
+                    ps.executeUpdate()
+                    ps.close()
                 }
-                val ps = connection.prepareStatement(sqlToInsert)
-                ps.executeUpdate()
-                ps.close()
+                actuallyInserted.add(id)
             }
-            actuallyInserted.add(id)
         }
     }
 
     if (updateAllowed) {
-        val fromMap = target.loadByIds(idsToUpdate, fromDatabase)
-        val toMap = target.loadByIds(idsToUpdate, toDatabase)
-        idsToUpdate.forEach { id ->
-            val itemFrom = fromMap[id]
-            val itemTo = toMap[id]
-            if (itemFrom != null && itemTo != null) {
-                val diff = target.getDiff(itemFrom, itemTo)
-                if (target.shouldPush(diff)) {
-                    listToUpdateNames.add(target.label(itemFrom))
-                    println(
-                        "[${Timestamp.from(
-                            Instant.now(),
-                        )}] Изменяем запись в $tableName: id=$id, ${target.label(
-                            itemFrom,
-                        )}, поля: ${diff.joinToString(", ") { it.recordDiffName }}",
-                    )
-                    val messageRecordChange =
-                        RecordChangeMessage(
-                            tableName = tableName,
-                            recordId = id,
-                            diffs = diff,
-                            databaseName = toDatabase.name,
-                            record = itemFrom,
+        idsToUpdate.chunked(target.rowChunkSize).forEach { chunkIds ->
+            val fromMap = target.loadByIds(chunkIds, fromDatabase)
+            val toMap = target.loadByIds(chunkIds, toDatabase)
+            chunkIds.forEach { id ->
+                val itemFrom = fromMap[id]
+                val itemTo = toMap[id]
+                if (itemFrom != null && itemTo != null) {
+                    val diff = target.getDiff(itemFrom, itemTo)
+                    if (target.shouldPush(diff)) {
+                        listToUpdateNames.add(target.label(itemFrom))
+                        println(
+                            "[${Timestamp.from(
+                                Instant.now(),
+                            )}] Изменяем запись в $tableName: id=$id, ${target.label(
+                                itemFrom,
+                            )}, поля: ${diff.joinToString(", ") { it.recordDiffName }}",
                         )
-                    if (toDatabase.name == "SERVER") {
-                        val setStr = messageRecordChange.getSetString()
-                        if (setStr != "") {
-                            val setStrEncrypted = Crypto.encrypt(setStr)
-                            listToUpdate.add(
-                                mapOf(
-                                    "tableName" to messageRecordChange.tableName,
-                                    "idRecord" to messageRecordChange.recordId,
-                                    "setText" to (setStrEncrypted ?: ""),
-                                ),
+                        val messageRecordChange =
+                            RecordChangeMessage(
+                                tableName = tableName,
+                                recordId = id,
+                                diffs = diff,
+                                databaseName = toDatabase.name,
+                                record = itemFrom,
                             )
-                        }
-                    } else {
-                        val setStr = diff.filter { it.recordDiffRealField }.joinToString(", ") { "${it.recordDiffName} = ?" }
-                        if (setStr != "") {
-                            val sql = "UPDATE $tableName SET $setStr WHERE id = ?"
-                            val connection = toDatabase.getConnection()
-                            if (connection == null) {
-                                println(
-                                    "[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${toDatabase.name}",
+                        if (toDatabase.name == "SERVER") {
+                            val setStr = messageRecordChange.getSetString()
+                            if (setStr != "") {
+                                val setStrEncrypted = Crypto.encrypt(setStr)
+                                listToUpdate.add(
+                                    mapOf(
+                                        "tableName" to messageRecordChange.tableName,
+                                        "idRecord" to messageRecordChange.recordId,
+                                        "setText" to (setStrEncrypted ?: ""),
+                                    ),
                                 )
-                                return false
                             }
-                            val ps = connection.prepareStatement(sql)
-                            var index = 1
-                            diff.filter { it.recordDiffRealField }.forEach {
-                                when (val v = it.recordDiffValueNew) {
-                                    null -> ps.setObject(index, null)
-                                    is String -> ps.setString(index, v)
-                                    is Long -> ps.setLong(index, v)
-                                    is Int -> ps.setInt(index, v)
-                                    is Double -> ps.setDouble(index, v)
-                                    is Float -> ps.setFloat(index, v)
-                                    is Timestamp -> ps.setTimestamp(index, v)
-                                    is Boolean -> ps.setBoolean(index, v)
-                                    else -> ps.setString(index, v.toString())
+                        } else {
+                            val setStr = diff.filter { it.recordDiffRealField }.joinToString(", ") { "${it.recordDiffName} = ?" }
+                            if (setStr != "") {
+                                val sql = "UPDATE $tableName SET $setStr WHERE id = ?"
+                                val connection = toDatabase.getConnection()
+                                if (connection == null) {
+                                    println(
+                                        "[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${toDatabase.name}",
+                                    )
+                                    return false
                                 }
-                                index++
+                                val ps = connection.prepareStatement(sql)
+                                var index = 1
+                                diff.filter { it.recordDiffRealField }.forEach {
+                                    when (val v = it.recordDiffValueNew) {
+                                        null -> ps.setObject(index, null)
+                                        is String -> ps.setString(index, v)
+                                        is Long -> ps.setLong(index, v)
+                                        is Int -> ps.setInt(index, v)
+                                        is Double -> ps.setDouble(index, v)
+                                        is Float -> ps.setFloat(index, v)
+                                        is Timestamp -> ps.setTimestamp(index, v)
+                                        is Boolean -> ps.setBoolean(index, v)
+                                        else -> ps.setString(index, v.toString())
+                                    }
+                                    index++
+                                }
+                                ps.setLong(index, id)
+                                ps.executeUpdate()
+                                ps.close()
                             }
-                            ps.setLong(index, id)
-                            ps.executeUpdate()
-                            ps.close()
                         }
+                        actuallyUpdated.add(id)
                     }
-                    actuallyUpdated.add(id)
                 }
             }
         }
@@ -1020,13 +1033,15 @@ private fun <T : Any> collectSyncOps(
                 .filter { toHashMap[it.id]?.recordhash == it.recordhash }
                 .map { it.id }
         val movedIds = (actuallyInserted + actuallyUpdated + unchangedIds).distinct()
-        val movedItems = target.loadByIds(movedIds, fromDatabase)
-        movedIds.forEach { id ->
-            movedItems[id]?.let { listToMoveNames.add(target.label(it)) }
-            listToDeleteFromSource.add(mapOf("tableName" to tableName, "id" to id))
-            println(
-                "[${Timestamp.from(Instant.now())}] Перемещение: помечаем на удаление из источника ${fromDatabase.name}.$tableName: id=$id",
-            )
+        movedIds.chunked(target.rowChunkSize).forEach { chunkIds ->
+            val movedItems = target.loadByIds(chunkIds, fromDatabase)
+            chunkIds.forEach { id ->
+                movedItems[id]?.let { listToMoveNames.add(target.label(it)) }
+                listToDeleteFromSource.add(mapOf("tableName" to tableName, "id" to id))
+                println(
+                    "[${Timestamp.from(Instant.now())}] Перемещение: помечаем на удаление из источника ${fromDatabase.name}.$tableName: id=$id",
+                )
+            }
         }
     }
 

@@ -32,6 +32,7 @@ from transformers import (
     Wav2Vec2Processor,
 )
 
+from align import read_audio
 from manifest import load_manifest
 
 BASE_CHECKPOINT = "facebook/mms-1b-all"  # тот же чекпоинт, что использует align.py как baseline
@@ -60,7 +61,7 @@ class AlignmentDataset(Dataset):
 
     def __getitem__(self, idx):
         row = self.rows[idx]
-        waveform, sr = torchaudio.load(row.audio_file)
+        waveform, sr = read_audio(row.audio_file)
         if waveform.size(0) > 1:
             waveform = waveform.mean(dim=0, keepdim=True)
         if sr != self.sample_rate:

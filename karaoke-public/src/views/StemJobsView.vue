@@ -66,7 +66,14 @@
               <span class="km-job-mode">{{ modeText(job.mode) }}</span>
             </div>
             <div class="km-job-meta">
-              <span :class="['km-status-badge', statusClass(job.status)]">{{
+              <span
+                v-if="job.status === 'WAITING' || job.status === 'WORKING'"
+                class="km-status-badge km-status-working"
+              >
+                <span class="km-status-spinner" />
+                {{ statusText(job.status) }}
+              </span>
+              <span v-else :class="['km-status-badge', statusClass(job.status)]">{{
                 statusText(job.status)
               }}</span>
               <span v-if="job.status === 'DONE'">
@@ -77,16 +84,29 @@
               >
             </div>
             <div v-if="job.status === 'DONE'" class="km-stem-links">
-              <button class="km-stem-btn" @click="downloadStem(job, 'original', 'оригинал')">
-                ⬇ Оригинал
+              <button
+                class="km-stem-btn"
+                :class="stemBtnClass(job, 'original')"
+                :disabled="isStemBusy(job, 'original')"
+                @click="downloadStem(job, 'original', 'оригинал')"
+              >
+                <span v-if="stemState(job, 'original') === 'loading'" class="km-mini-spinner" />
+                <span v-else-if="stemState(job, 'original') === 'done'">✓</span>
+                <span v-else>⬇</span>
+                Оригинал
               </button>
               <button
                 v-for="stem in job.availableStems"
                 :key="stem"
                 class="km-stem-btn"
+                :class="stemBtnClass(job, stem)"
+                :disabled="isStemBusy(job, stem)"
                 @click="downloadStem(job, stem, stemLabel(stem))"
               >
-                ⬇ {{ stemLabel(stem) }}
+                <span v-if="stemState(job, stem) === 'loading'" class="km-mini-spinner" />
+                <span v-else-if="stemState(job, stem) === 'done'">✓</span>
+                <span v-else>⬇</span>
+                {{ stemLabel(stem) }}
               </button>
             </div>
           </div>
@@ -151,6 +171,7 @@ export default {
       maxActiveJobs: MAX_ACTIVE_JOBS,
       allowedExtensionsText: ALLOWED_EXTENSIONS.join(', '),
       acceptExtensions: ALLOWED_EXTENSIONS.map((e) => '.' + e).join(','),
+      stemDownloadState: {},
     }
   },
   computed: {
@@ -294,7 +315,31 @@ export default {
       await authPost(`/api/public/account/stemjobs/${job.id}/delete`, {}, this.token)
       await this.load(true)
     },
+    stemKey(job, stem) {
+      return `${job.id}:${stem}`
+    },
+    stemState(job, stem) {
+      return this.stemDownloadState[this.stemKey(job, stem)] || 'idle'
+    },
+    isStemBusy(job, stem) {
+      return this.stemState(job, stem) === 'loading'
+    },
+    stemBtnClass(job, stem) {
+      const state = this.stemState(job, stem)
+      if (state === 'loading') return 'km-stem-btn-loading'
+      if (state === 'done') return 'km-stem-btn-done'
+      return ''
+    },
+    setStemState(key, state) {
+      const next = { ...this.stemDownloadState }
+      if (state) next[key] = state
+      else delete next[key]
+      this.stemDownloadState = next
+    },
     async downloadStem(job, stem, label) {
+      const key = this.stemKey(job, stem)
+      if (this.isStemBusy(job, stem)) return
+      this.setStemState(key, 'loading')
       try {
         const res = await fetch(
           `/api/public/account/stemjobs/${job.id}/download?stem=${encodeURIComponent(stem)}`,
@@ -304,6 +349,7 @@ export default {
         )
         if (!res.ok) {
           alert('Не удалось скачать файл — возможно, срок хранения истёк')
+          this.setStemState(key, null)
           return
         }
         const blob = await res.blob()
@@ -317,8 +363,11 @@ export default {
         a.click()
         a.remove()
         URL.revokeObjectURL(url)
+        this.setStemState(key, 'done')
+        setTimeout(() => this.setStemState(key, null), 1500)
       } catch (e) {
         alert('Не удалось скачать файл')
+        this.setStemState(key, null)
       }
     },
   },
@@ -499,8 +548,35 @@ export default {
   font-size: 0.75rem;
 }
 .km-status-working {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
   background: rgba(212, 175, 55, 0.18);
   color: #a67c00;
+  animation: km-badge-pulse 1.6s ease-in-out infinite;
+}
+.km-status-spinner {
+  width: 9px;
+  height: 9px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 2px solid rgba(166, 124, 0, 0.35);
+  border-top-color: #a67c00;
+  animation: km-spin 0.7s linear infinite;
+}
+@keyframes km-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes km-badge-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 .km-status-done {
   background: rgba(63, 174, 91, 0.18);
@@ -517,6 +593,9 @@ export default {
   margin-top: 0.6rem;
 }
 .km-stem-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
   background: transparent;
   color: var(--km-accent);
   border: 1px solid var(--km-accent);
@@ -528,6 +607,25 @@ export default {
 }
 .km-stem-btn:hover {
   background: var(--km-hover);
+}
+.km-stem-btn:disabled {
+  cursor: default;
+}
+.km-stem-btn-loading {
+  opacity: 0.75;
+}
+.km-stem-btn-done {
+  color: #3fae5b;
+  border-color: #3fae5b;
+}
+.km-mini-spinner {
+  width: 9px;
+  height: 9px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 2px solid rgba(212, 175, 55, 0.35);
+  border-top-color: var(--km-accent);
+  animation: km-spin 0.7s linear infinite;
 }
 .km-job-actions {
   display: flex;

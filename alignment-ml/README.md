@@ -60,6 +60,8 @@ python align.py --audio /path/to/vocals.flac --text "Текст песни..."
 python evaluate.py --manifest "$MANIFEST" --limit 50
 
 # (опционально, только если evaluate.py показал недостаточную точность)
+# --dry-run - только чанки + статистика по ним, без GPU - безопасно гонять параллельно с align.py/evaluate.py
+python train.py --manifest "$MANIFEST" --dry-run
 python train.py --manifest "$MANIFEST" --limit 50 --epochs 1   # калибровка времени на маленькой выборке
 python train.py --manifest "$MANIFEST" --limit 500              # дальше - на бОльшей выборке
 python align.py --audio ... --text ... --model checkpoints/mms-ft/checkpoint-XXX

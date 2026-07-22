@@ -1883,7 +1883,7 @@ export default class KaraokePlayer {
 
     ctx.fillStyle = '#000'
     ctx.fillRect(0, 0, W, H)
-    this._renderBackground(ctx, W, H, _dt)
+    this._renderBackground(ctx, W, H, dt)
 
     // Background-only mode: data/audio not ready yet — logo shown unconditionally, independent of
     // any dt/audioTime-based fade (those only make sense once a song is actually loaded).

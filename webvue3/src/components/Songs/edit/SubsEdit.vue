@@ -14,6 +14,14 @@
             @close="closeSearchText"
             @return="returnSearchText"
           />
+          <whisper-debug-modal
+            v-if="isWhisperDebugVisible"
+            :whisper-text="autoMarkersDebug.whisperText"
+            :whisper-words="autoMarkersDebug.whisperWords"
+            :markers="autoMarkersDebug.markers"
+            @apply="applyAutoMarkersToEditor"
+            @close="closeWhisperDebug"
+          />
 
           <div class="se-grid-item-header">
             <div class="se-subsedit-header-song-name">«{{ song.songName }}»</div>
@@ -1088,6 +1096,7 @@ import TimelinePlugin from 'wavesurfer.js/dist/plugins/timeline.esm.js'
 import Minimap from 'wavesurfer.js/dist/plugins/minimap.esm.js'
 import CustomConfirm from '../../Common/CustomConfirm.vue'
 import SearchText from './SearchText.vue'
+import WhisperDebugModal from './WhisperDebugModal.vue'
 // import {TabsPlugin} from 'bootstrap-vue'
 // import Vue from "vue";
 // Vue.use(TabsPlugin)
@@ -1115,6 +1124,7 @@ export default {
   components: {
     CustomConfirm,
     SearchText,
+    WhisperDebugModal,
   },
   props: {
     voices: {
@@ -1214,6 +1224,8 @@ export default {
       isCustomConfirmVisible: false,
       customConfirmParams: undefined,
       isAutoMarkersLoading: false,
+      isWhisperDebugVisible: false,
+      autoMarkersDebug: { whisperText: '', whisperWords: [], markers: [] },
       isSearchTextVisible: false,
       selectedText: '',
       midi: null,
@@ -4165,21 +4177,35 @@ export default {
           return
         }
 
-        this.wsRegions.clearRegions()
-        this.sourceMarkers = []
-        result.markers.forEach((m) => {
-          let marker = Object.assign({}, m)
-          marker.region = this.createRegionMarker(marker)
-          this.sourceMarkers.push(marker)
-        })
-        this.updateMarkersBySyllables()
-        this.createBeatMarkers()
+        // Сначала показываем "сырой" ответ Whisper и получившиеся маркеры в отдельном окне —
+        // применяем к голосу только после явного подтверждения (см. applyAutoMarkersToEditor).
+        this.autoMarkersDebug = {
+          whisperText: result.whisperText || '',
+          whisperWords: result.whisperWords || [],
+          markers: result.markers || [],
+        }
+        this.isWhisperDebugVisible = true
       } catch (error) {
         console.error('Ошибка авто-маркеров:', error)
         alert('Ошибка авто-маркеров, подробности в консоли.')
       } finally {
         this.isAutoMarkersLoading = false
       }
+    },
+    applyAutoMarkersToEditor() {
+      this.wsRegions.clearRegions()
+      this.sourceMarkers = []
+      this.autoMarkersDebug.markers.forEach((m) => {
+        let marker = Object.assign({}, m)
+        marker.region = this.createRegionMarker(marker)
+        this.sourceMarkers.push(marker)
+      })
+      this.updateMarkersBySyllables()
+      this.createBeatMarkers()
+      this.isWhisperDebugVisible = false
+    },
+    closeWhisperDebug() {
+      this.isWhisperDebugVisible = false
     },
     addAccent() {
       let textComponent = document.getElementById('editor')

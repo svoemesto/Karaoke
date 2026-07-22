@@ -16,8 +16,10 @@ Forced-alignment модуль: по известному тексту песни
    (`ExportAlignmentDataset.kt`) сканирует все песни с `idStatus >= 3` (маркеры уже финальны/
    проверены) и пишет `manifest.jsonl` в `/sm-karaoke/system/alignment-dataset/` — **без копирования
    аудио**: в манифесте абсолютные пути к уже существующим на диске FLAC-файлам
-   (`Settings.vocalsNameFlac`). Положите (или симлинкните — файл маленький, KB) этот `manifest.jsonl`
-   в `alignment-ml/data/`.
+   (`Settings.vocalsNameFlac`). Скрипты по умолчанию ждут `--manifest data/manifest.jsonl`, но
+   удобнее просто указывать реальный путь `--manifest /sm-karaoke/system/alignment-dataset/manifest.jsonl`
+   напрямую — копировать/симлинковать в `alignment-ml/data/` не обязательно (файл маленький, но и
+   лишний шаг не нужен).
 2. **Baseline** — `align.py` использует готовую multilingual CTC-модель
    `torchaudio.pipelines.MMS_FA` (Meta MMS, forced alignment, включая русский) БЕЗ дообучения.
 3. **Оценка** — `evaluate.py` прогоняет `align.py` по манифесту и считает среднюю/медианную
@@ -42,15 +44,17 @@ cd alignment-ml
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 
+MANIFEST=/sm-karaoke/system/alignment-dataset/manifest.jsonl
+
 # baseline на одном файле - смоук-тест
 python align.py --audio /path/to/vocals.flac --text "Текст песни..."
 
 # оценка на части датасета
-python evaluate.py --manifest data/manifest.jsonl --limit 50
+python evaluate.py --manifest "$MANIFEST" --limit 50
 
 # (опционально, только если evaluate.py показал недостаточную точность)
-python train.py --manifest data/manifest.jsonl --limit 500   # сначала на малой выборке
-python align.py --audio ... --text ... --model checkpoints/mms-ft   # TODO: параметр --model в align.py
+python train.py --manifest "$MANIFEST" --limit 500   # сначала на малой выборке
+python align.py --audio ... --text ... --model checkpoints/mms-ft/checkpoint-XXX
 
 # сервис
 uvicorn serve:app --host 0.0.0.0 --port 8017

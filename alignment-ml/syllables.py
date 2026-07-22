@@ -23,6 +23,12 @@ _SYLLABLE_RE = re.compile(
 )
 _WORD_RE = re.compile(r"\S+")
 _VOWELS = set("ЁУЕЫАОЭЯИЮёуеыаоэяиюEUIOAeuioaїієѣ")
+# Пунктуация (запятые, тире-разделители, кавычки и т.п.) вообще не должна попадать в слоговую
+# разбивку - в отличие от одиночного согласного слога-частицы (см. слияние ниже), она не сливается
+# ни с чем и превращалась бы в самостоятельный "слог" без гласной, который потом ломает
+# forced-align (токенизатор CTC-модели не знает символа ","). Чистим её ДО разбивки на слоги,
+# а не пытаемся домержить постфактум.
+_NON_LETTER_RE = re.compile(r"[^A-Za-zА-Яа-яЁёЇїІіЄєѢѣ\-]")
 
 
 def _has_vowel(s: str) -> bool:
@@ -40,7 +46,10 @@ def split_line_into_words(line: str) -> list[list[str]]:
     слогов). Одна запись верхнего уровня = одно "целевое слово" для сопоставления с распознаванием."""
     flat: list[list] = []  # [text, word_index]
     for word_index, match in enumerate(_WORD_RE.finditer(line)):
-        for syl in _split_word_raw(match.group(0)):
+        cleaned = _NON_LETTER_RE.sub("", match.group(0))
+        if cleaned == "":
+            continue  # слово состояло целиком из пунктуации ("-", "—", кавычка и т.п.) - пропускаем
+        for syl in _split_word_raw(cleaned):
             flat.append([syl, word_index])
 
     i = 0

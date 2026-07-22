@@ -981,6 +981,23 @@
                   src="../../../assets/svg/icon_erase.svg"
                 />
               </button>
+              <button
+                class="se-group-button"
+                type="button"
+                :disabled="isAutoMarkersLoading"
+                @click="doAutoMarkers"
+              >
+                <img
+                  alt="auto markers"
+                  class="se-icon-40"
+                  :title="
+                    isAutoMarkersLoading
+                      ? 'Распознавание...'
+                      : 'Авто-маркеры (Whisper): распознать вокал и расставить маркеры голоса'
+                  "
+                  src="../../../assets/svg/icon_auto_markers.svg"
+                />
+              </button>
               <button class="se-group-button" type="button" @click="addWordToDict">
                 <img
                   alt="add to dict"
@@ -1196,6 +1213,7 @@ export default {
       activeRegion: null,
       isCustomConfirmVisible: false,
       customConfirmParams: undefined,
+      isAutoMarkersLoading: false,
       isSearchTextVisible: false,
       selectedText: '',
       midi: null,
@@ -4114,6 +4132,54 @@ export default {
 
       // this.sourceMarkers = [];
       // this.wsRegions.clearRegions();
+    },
+    doAutoMarkers() {
+      this.customConfirmParams = {
+        header: 'Авто-маркеры (Whisper)',
+        body:
+          `Распознать вокал голоса «<strong>${this.currentVoice + 1}</strong>» через Whisper и ` +
+          `<strong>полностью заменить</strong> его текущие маркеры результатом? Действие не сохраняется ` +
+          `автоматически — черновик можно будет доправить и сохранить обычным Save, либо отменить перезагрузкой голоса.`,
+        timeout: 10,
+        callback: this.doApplyAutoMarkers,
+      }
+      this.isCustomConfirmVisible = true
+    },
+    async doApplyAutoMarkers() {
+      this.isAutoMarkersLoading = true
+      try {
+        const responseText = await this.$store.dispatch('getAutoMarkers', {
+          sourceText: this.sourceText,
+        })
+        const result = JSON.parse(responseText)
+        if (!result.ok) {
+          const messages = {
+            empty_source_text: 'У голоса пока нет текста — нечего сопоставлять с распознаванием.',
+            song_not_found: 'Песня не найдена.',
+            vocals_not_found: 'Не найден файл вокального стема (демукс ещё не выполнен?).',
+            whisper_unavailable: 'Whisper недоступен — проверьте настройку whisperAsrUrl и доступность сервера.',
+            no_speech_recognized: 'Whisper не распознал речь в вокальном стеме.',
+            alignment_failed: 'Не удалось сопоставить распознанный текст с текстом голоса.',
+          }
+          alert(messages[result.error] || `Ошибка авто-маркеров: ${result.error}`)
+          return
+        }
+
+        this.wsRegions.clearRegions()
+        this.sourceMarkers = []
+        result.markers.forEach((m) => {
+          let marker = Object.assign({}, m)
+          marker.region = this.createRegionMarker(marker)
+          this.sourceMarkers.push(marker)
+        })
+        this.updateMarkersBySyllables()
+        this.createBeatMarkers()
+      } catch (error) {
+        console.error('Ошибка авто-маркеров:', error)
+        alert('Ошибка авто-маркеров, подробности в консоли.')
+      } finally {
+        this.isAutoMarkersLoading = false
+      }
     },
     addAccent() {
       let textComponent = document.getElementById('editor')

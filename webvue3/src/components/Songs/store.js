@@ -2426,6 +2426,14 @@ export default {
       let request = { method: 'POST', url: '/api/song/savesourcetextmarkers', params: params }
       return await promisedXMLHttpRequest(request)
     },
+    async getAutoMarkers(ctx, payload) {
+      let params = {
+        id: ctx.state.currentSongId,
+        sourceText: payload.sourceText,
+      }
+      let request = { method: 'POST', url: '/api/songeditor/edit/autoMarkers', params: params }
+      return await promisedXMLHttpRequest(request)
+    },
 
     async loadPublications(ctx, params) {
       let request = { method: 'POST', url: '/api/publications', params: params }

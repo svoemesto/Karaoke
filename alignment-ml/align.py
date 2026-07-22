@@ -73,15 +73,19 @@ def _load_model(model_path: str | None = None):
 
 def _romanize(words: list[str]) -> list[str]:
     """Романизация через uroman (pip install uroman) - MMS_FA обучен на латинизированном тексте
-    для нелатинских языков. Слово-в-слово, порядок/количество слов не меняется."""
+    для нелатинских языков. Слово-в-слово, порядок/количество слов не меняется.
+
+    .lower() ОБЯЗАТЕЛЕН: uroman сохраняет регистр исходного текста (например, первая буква строки
+    после романизации кириллицы - заглавная латинская), а словарь MMS_FA построен только по
+    строчным буквам - без lower() токенизатор падает с KeyError на такую заглавную букву."""
     try:
         import uroman as ur
 
         romanizer = ur.Uroman()
-        return [romanizer.romanize_string(w) for w in words]
+        return [romanizer.romanize_string(w).lower() for w in words]
     except ImportError:
         print("[align] uroman не установлен - пробуем подать кириллицу как есть (может не сработать)")
-        return words
+        return [w.lower() for w in words]
 
 
 def _load_audio(audio_path: str) -> torch.Tensor:

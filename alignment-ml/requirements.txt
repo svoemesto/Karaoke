@@ -3,6 +3,7 @@ torchaudio>=2.1
 transformers>=4.40
 uroman>=1.2
 soundfile>=0.12
+bitsandbytes>=0.43
 fastapi>=0.110
 uvicorn>=0.29
 python-multipart>=0.0.9

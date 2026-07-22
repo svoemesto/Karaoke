@@ -99,11 +99,18 @@ object WhisperMarkerAligner {
                 }
             }
 
+            // Условие смешивает ДВЕ ветки из frontend getSyllables (SubsEdit.vue): там последний
+            // элемент строки мержится назад ВСЕГДА, если без гласной (не только буквальное "-_") —
+            // через ИЛИ, а не через И. Раньше здесь стояло "i == last && text == '-'" (И) — это
+            // сильнее фронтенда и оставляло, например, повисшую запятую в конце строки как
+            // самостоятельный "слог" (в отличие от фронтенда, где она смержилась бы назад). i != 0
+            // — защита от IndexOutOfBounds на однословной строке без гласной (в JS это undefined,
+            // не падение — тут безопаснее просто не мержить).
             var i = 0
             while (i < flat.size) {
                 val piece = flat[i]
                 if (!piece.text.haveVowel()) {
-                    if (i == flat.size - 1 && piece.text == "-" && i != 0) {
+                    if (i != 0 && (i == flat.size - 1 || piece.text == "-")) {
                         flat[i - 1].text += piece.text
                         flat.removeAt(i)
                         i--

@@ -86,6 +86,55 @@ object WhisperMarkerAligner {
         return buildMarkers(targetWords, wordTimes)
     }
 
+    // Строит маркеры из результата forced-alignment (align.py/serve.py, см. AlignmentServiceClient) -
+    // точный тайминг КАЖДОГО слога уже известен (в отличие от Whisper, где известен только тайминг
+    // слова), поэтому интерполяция не нужна - только раскладка по строкам текста (для endofline/
+    // раскраски первого слога строки, идентично buildMarkers). syllableTimes - по одному на каждый
+    // слог, В ТОМ ЖЕ ПОРЯДКЕ, что и syllables.split_text_into_words(sourceText) в Python (align.py) -
+    // тот же алгоритм слоговой разбивки, что и buildTargetWords здесь (см. комментарий там). null -
+    // число слогов не совпало (не должно происходить в норме, но безопаснее не гадать про позиции).
+    fun buildMarkersFromSyllableTimes(
+        sourceText: String,
+        syllableTimes: List<Pair<Double, Double>>,
+    ): List<SourceMarker>? {
+        val targetWords = buildTargetWords(sourceText.replace("\r\n", "\n").split("\n"))
+        if (targetWords.sumOf { it.syllables.size } != syllableTimes.size) return null
+
+        val markers = mutableListOf<SourceMarker>()
+        var syllableIndex = 0
+        targetWords.forEachIndexed { wordIndex, word ->
+            val isFirstOfLine = wordIndex == 0 || targetWords[wordIndex - 1].lineIndex != word.lineIndex
+            word.syllables.forEachIndexed { syllableIndexInWord, syllable ->
+                val (start, _) = syllableTimes[syllableIndex]
+                markers.add(
+                    SourceMarker(
+                        time = start,
+                        label = syllable,
+                        color = if (isFirstOfLine && syllableIndexInWord == 0) COLOR_FIRST_SYLLABLE else COLOR_SYLLABLE,
+                        position = "bottom",
+                        markertype = Markertype.SYLLABLES.value,
+                    ),
+                )
+                syllableIndex++
+            }
+
+            val isLastOfLine = wordIndex == targetWords.size - 1 || targetWords[wordIndex + 1].lineIndex != word.lineIndex
+            if (isLastOfLine && wordIndex != targetWords.size - 1) {
+                val (_, wordEndTime) = syllableTimes[syllableIndex - 1]
+                markers.add(
+                    SourceMarker(
+                        time = wordEndTime,
+                        label = "",
+                        color = COLOR_ENDOFLINE,
+                        position = "bottom",
+                        markertype = Markertype.ENDOFLINE.value,
+                    ),
+                )
+            }
+        }
+        return markers.sortedBy { it.time }
+    }
+
     private fun buildRecognizedWords(whisperWords: List<WhisperWordDto>): List<RecognizedWord> =
         whisperWords
             .filter { it.word.isNotBlank() }

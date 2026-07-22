@@ -49,8 +49,13 @@ Forced-alignment модуль: по известному тексту песни
    1B-параметров модель на 16GB VRAM — тесно даже с fp16 + gradient checkpointing, поэтому по
    умолчанию `--batch-size 1` + `--grad-accum-steps 8` (эмулирует больший эффективный батч без доп.
    памяти на активации) + 8-bit AdamW (`bitsandbytes`, экономит память под состояния оптимизатора).
-5. **Сервис (позже)** — `serve.py`, тонкая FastAPI-обёртка, прототип контракта, который сможет
-   заменить/дополнить `WhisperAsrService` в karaoke-app — интеграция сюда не входит.
+5. **Сервис** — `serve.py`, тонкая FastAPI-обёртка (`POST /align`, аудио-файл + текст → тайминги
+   слогов). Уже подключена в karaoke-app: `AlignmentServiceClient.kt` + кнопка «Точные маркеры
+   (forced-alignment)» в SubsEdit — сначала согласует текст с Whisper (`/edit/reconcileText`, ищет
+   вставки), затем выравнивает через `serve.py` (`/edit/forcedAlignMarkers`). URL сервиса —
+   свойство `alignmentServiceUrl` в webvue3 → Свойства (напр.
+   `http://<admin-host>:8017/align`, пусто = функция выключена) — тот же паттерн конфигурации, что
+   и `whisperAsrUrl`.
 
 ## GPU
 

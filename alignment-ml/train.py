@@ -27,6 +27,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import statistics
 from pathlib import Path
 
 import torch
@@ -141,6 +142,9 @@ def main():
                          help="Потолок длины чанка, даже если естественной паузы не нашлось")
     parser.add_argument("--lead-pad-ms", type=int, default=DEFAULT_LEAD_PAD_MS)
     parser.add_argument("--tail-pad-ms", type=int, default=DEFAULT_TAIL_PAD_MS)
+    parser.add_argument("--dry-run", action="store_true",
+                         help="Только построить чанки и вывести статистику - без загрузки модели и GPU "
+                              "(можно гонять параллельно с align.py/evaluate.py на той же видеокарте)")
     args = parser.parse_args()
 
     rows = load_manifest(args.manifest)
@@ -159,6 +163,15 @@ def main():
     items = build_chunk_items(rows, chunk_args)
     if not items:
         raise SystemExit("Ни одного чанка не получилось построить - проверьте манифест/пороги чанкинга")
+
+    durations_sec = [(end - start) / 1000 for _, start, end, _ in items]
+    print(f"Длительность чанков (сек): среднее={statistics.mean(durations_sec):.1f}, "
+          f"медиана={statistics.median(durations_sec):.1f}, "
+          f"мин={min(durations_sec):.1f}, макс={max(durations_sec):.1f}")
+
+    if args.dry_run:
+        print("--dry-run: модель не загружается, обучение не запускается.")
+        return
 
     holdout_n = max(1, int(len(items) * args.eval_holdout))
     train_items, eval_items = items[:-holdout_n], items[-holdout_n:]

@@ -20,6 +20,15 @@ Forced-alignment модуль: по известному тексту песни
    удобнее просто указывать реальный путь `--manifest /sm-karaoke/system/alignment-dataset/manifest.jsonl`
    напрямую — копировать/симлинковать в `alignment-ml/data/` не обязательно (файл маленький, но и
    лишний шаг не нужен).
+
+   При экспорте каждая песня дополнительно прогоняется через Whisper (`WhisperAsrService`) —
+   `WhisperMarkerAligner.reconcileWithGroundTruth` (karaoke-app) ищет ВСТАВКИ: слова, реально спетые,
+   но отсутствующие в официальном тексте (ad-libs и т.п.) — без этого forced-align вынужден
+   "размазывать" непокрытое текстом аудио по соседним словам, что часть текущих аутлайеров в
+   `evaluate.py` и объясняет. Слоги вставок помечаются `hasGroundTruth: false` в манифесте — у них
+   нет реального тайминга от человека, `evaluate.py` их не сравнивает, а `train.py`/`chunking.py`
+   всё равно используют (CTC-обучению нужен только полный правильный текст чанка, не точный тайминг
+   каждого слога).
 2. **Baseline** — `align.py` использует готовую multilingual CTC-модель
    `torchaudio.pipelines.MMS_FA` (Meta MMS, forced alignment, включая русский) БЕЗ дообучения.
 3. **Оценка** — `evaluate.py` прогоняет `align.py` по манифесту и считает среднюю/медианную

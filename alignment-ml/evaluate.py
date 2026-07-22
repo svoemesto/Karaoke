@@ -24,33 +24,43 @@ def evaluate(manifest_path: str, limit: int | None = None, model_path: str | Non
     if limit:
         rows = rows[:limit]
 
+    print(f"[evaluate] строк в манифесте (после --limit): {len(rows)}", flush=True)
+
     errors_ms: list[float] = []
     rows_ok = 0
     rows_skipped_no_audio = 0
     rows_skipped_mismatch = 0
 
-    for row in rows:
+    for idx, row in enumerate(rows):
+        prefix = f"[evaluate] ({idx + 1}/{len(rows)}) song={row.song_id} voice={row.voice}"
+
         if not row.audio_exists:
+            print(f"{prefix}: пропущено - нет аудио по пути {row.audio_file}", flush=True)
             rows_skipped_no_audio += 1
             continue
+
+        print(f"{prefix}: выравниваю...", flush=True)
         try:
             predicted = align_syllables(row.audio_file, row.text, model_path)
         except Exception as e:
-            print(f"[evaluate] song={row.song_id} voice={row.voice}: ошибка align - {e}")
+            print(f"{prefix}: ошибка align - {e}", flush=True)
             rows_skipped_mismatch += 1
             continue
 
         if len(predicted) != len(row.syllables):
             print(
-                f"[evaluate] song={row.song_id} voice={row.voice}: расхождение числа слогов "
-                f"(предсказано {len(predicted)}, в разметке {len(row.syllables)}) - пропущено"
+                f"{prefix}: расхождение числа слогов "
+                f"(предсказано {len(predicted)}, в разметке {len(row.syllables)}) - пропущено",
+                flush=True,
             )
             rows_skipped_mismatch += 1
             continue
 
         rows_ok += 1
-        for pred, truth in zip(predicted, row.syllables):
-            errors_ms.append(abs(pred["start_ms"] - truth.time_ms))
+        row_errors = [abs(pred["start_ms"] - truth.time_ms) for pred, truth in zip(predicted, row.syllables)]
+        errors_ms.extend(row_errors)
+        print(f"{prefix}: ok, слогов {len(row_errors)}, "
+              f"средняя ошибка {statistics.mean(row_errors):.0f} мс", flush=True)
 
     print(f"\nПесен/голосов обработано: {rows_ok}, пропущено (нет аудио): {rows_skipped_no_audio}, "
           f"пропущено (расхождение разбивки/ошибка): {rows_skipped_mismatch}")

@@ -35,6 +35,19 @@ def read_audio(path: str) -> tuple[torch.Tensor, int]:
     waveform = torch.from_numpy(np.ascontiguousarray(data.T))  # (channels, frames)
     return waveform, sample_rate
 
+
+def read_audio_segment(path: str, start_ms: int, end_ms: int) -> tuple[torch.Tensor, int]:
+    """Как read_audio, но читает только указанный отрезок (в мс) через soundfile start/frames - не
+    грузя в память весь файл. Нужно для train.py: тренировочные чанки (20-30 сек, см. chunking.py)
+    вырезаются из многоминутных исходников, грузить каждый раз всю песню целиком расточительно."""
+    info = sf.info(path)
+    start_frame = max(0, int(start_ms / 1000 * info.samplerate))
+    end_frame = min(info.frames, int(end_ms / 1000 * info.samplerate))
+    frames = max(0, end_frame - start_frame)
+    data, sample_rate = sf.read(path, start=start_frame, frames=frames, dtype="float32", always_2d=True)
+    waveform = torch.from_numpy(np.ascontiguousarray(data.T))
+    return waveform, sample_rate
+
 _bundle = None
 _model = None
 _tokenizer = None

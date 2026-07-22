@@ -9,8 +9,17 @@ torchaudio.pipelines.MMS_FA, и через HuggingFace transformers Wav2Vec2ForC
 Wav2Vec2 под ASR (CTC loss сама по себе улучшает и распознавание, и forced alignment, т.к. и то,
 и другое строится на одних и тех же по-фреймовых вероятностях символов).
 
+Целые песни (2-4 минуты) не грузим - нетипично длинные клипы для CTC-тренировки, риск OOM/очень
+медленных шагов, особенно на 1B-параметров модели при 16GB VRAM. Режем на короткие сегменты по
+паузам между строками/куплетами (chunking.py) - см. README про то, почему именно так.
+
+16GB VRAM под модель такого размера - тесно даже с fp16 + gradient checkpointing: по умолчанию
+--batch-size 1 + --grad-accum-steps (эмулирует больший эффективный батч без доп. памяти на
+активации) + 8-bit AdamW (bitsandbytes, см. requirements.txt) - существенно снижает память под
+состояния оптимизатора по сравнению с обычным fp32 AdamW.
+
 Ожидаемо потребует правок при первом реальном запуске на данных админа (конкретные версии
-transformers/torch, доступность чекпоинта, память GPU и т.п.) - см. план фичи.
+transformers/torch, доступность чекпоинта, реальный бюджет памяти и т.п.) - см. план фичи.
 """
 
 from __future__ import annotations
@@ -32,7 +41,8 @@ from transformers import (
     Wav2Vec2Processor,
 )
 
-from align import read_audio
+from align import read_audio_segment
+from chunking import DEFAULT_LEAD_PAD_MS, DEFAULT_MAX_CHUNK_MS, DEFAULT_SILENCE_THRESHOLD_MS, DEFAULT_TAIL_PAD_MS, build_chunks
 from manifest import load_manifest
 
 BASE_CHECKPOINT = "facebook/mms-1b-all"  # тот же чекпоинт, что использует align.py как baseline
@@ -47,28 +57,48 @@ def build_vocab(texts: list[str]) -> dict[str, int]:
     return vocab
 
 
-class AlignmentDataset(Dataset):
-    """Каждый элемент - (аудио, полный текст голоса). CTC-цель строится из текста напрямую -
-    точные тайминги слогов из манифеста здесь НЕ нужны, они нужны только для evaluate.py."""
+def build_chunk_items(rows, chunk_args: dict) -> list[tuple[str, int, int, str]]:
+    """Раскладывает строки манифеста на короткие (аудио-файл, start_ms, end_ms, текст) - см.
+    chunking.py. Строки, где слоговая разбивка текста разошлась с числом слогов в манифесте (не
+    должно происходить в норме - обе стороны используют один и тот же алгоритм, см.
+    WhisperMarkerAligner.kt/syllables.py), пропускаются целиком (как и в evaluate.py)."""
+    items = []
+    skipped_rows = 0
+    for row in rows:
+        chunks = build_chunks(row.text, row.syllables, row.duration_ms, **chunk_args)
+        if not chunks:
+            skipped_rows += 1
+            continue
+        for chunk in chunks:
+            items.append((row.audio_file, chunk.start_ms, chunk.end_ms, chunk.text))
+    print(f"Песен: {len(rows)}, пропущено (расхождение слоговой разбивки): {skipped_rows}, "
+          f"итого чанков для обучения: {len(items)}")
+    return items
 
-    def __init__(self, rows, processor: Wav2Vec2Processor, sample_rate: int):
-        self.rows = rows
+
+class AlignmentDataset(Dataset):
+    """Каждый элемент - короткий (20-30 сек, см. chunking.py) кусок аудио + текст ИМЕННО этого
+    куска (не всей песни). Точные тайминги слогов из манифеста здесь дальше не нужны - только для
+    подбора границ чанка и для evaluate.py."""
+
+    def __init__(self, items: list[tuple[str, int, int, str]], processor: Wav2Vec2Processor, sample_rate: int):
+        self.items = items
         self.processor = processor
         self.sample_rate = sample_rate
 
     def __len__(self):
-        return len(self.rows)
+        return len(self.items)
 
     def __getitem__(self, idx):
-        row = self.rows[idx]
-        waveform, sr = read_audio(row.audio_file)
+        audio_file, start_ms, end_ms, text = self.items[idx]
+        waveform, sr = read_audio_segment(audio_file, start_ms, end_ms)
         if waveform.size(0) > 1:
             waveform = waveform.mean(dim=0, keepdim=True)
         if sr != self.sample_rate:
             waveform = torchaudio.functional.resample(waveform, sr, self.sample_rate)
 
         input_values = self.processor(waveform.squeeze(0).numpy(), sampling_rate=self.sample_rate).input_values[0]
-        text_normalized = re.sub(r"\s+", "|", row.text.strip().lower())
+        text_normalized = re.sub(r"\s+", "|", text.strip().lower())
         with self.processor.as_target_processor():
             labels = self.processor(text_normalized).input_ids
 
@@ -96,10 +126,21 @@ def main():
     parser = argparse.ArgumentParser(description="Fine-tuning CTC-модели на manifest.jsonl")
     parser.add_argument("--manifest", default="data/manifest.jsonl")
     parser.add_argument("--output-dir", default="checkpoints/mms-ft")
-    parser.add_argument("--limit", type=int, default=None, help="Ограничить число строк (смоук-тест)")
-    parser.add_argument("--eval-holdout", type=float, default=0.05, help="Доля строк на eval-выборку")
+    parser.add_argument("--limit", type=int, default=None, help="Ограничить число песен (смоук-тест)")
+    parser.add_argument("--eval-holdout", type=float, default=0.05, help="Доля чанков на eval-выборку")
     parser.add_argument("--epochs", type=int, default=3)
-    parser.add_argument("--batch-size", type=int, default=2)
+    parser.add_argument("--batch-size", type=int, default=1, help="1 по умолчанию - 1B-модель на 16GB VRAM тесно")
+    parser.add_argument("--grad-accum-steps", type=int, default=8,
+                         help="Эмулирует batch-size=batch-size*grad-accum-steps без доп. памяти на активации")
+    parser.add_argument("--optim", default="adamw_bnb_8bit",
+                         help="8-bit AdamW (bitsandbytes) по умолчанию - экономит память под состояния "
+                              "оптимизатора; 'adamw_torch' если bitsandbytes недоступен/не работает")
+    parser.add_argument("--silence-threshold-ms", type=int, default=DEFAULT_SILENCE_THRESHOLD_MS,
+                         help="Пауза между слогами длиннее этого - граница чанка (см. chunking.py)")
+    parser.add_argument("--max-chunk-ms", type=int, default=DEFAULT_MAX_CHUNK_MS,
+                         help="Потолок длины чанка, даже если естественной паузы не нашлось")
+    parser.add_argument("--lead-pad-ms", type=int, default=DEFAULT_LEAD_PAD_MS)
+    parser.add_argument("--tail-pad-ms", type=int, default=DEFAULT_TAIL_PAD_MS)
     args = parser.parse_args()
 
     rows = load_manifest(args.manifest)
@@ -109,11 +150,21 @@ def main():
     if not rows:
         raise SystemExit("Манифест пуст или ни один аудиофайл не найден на диске")
 
-    holdout_n = max(1, int(len(rows) * args.eval_holdout))
-    train_rows, eval_rows = rows[:-holdout_n], rows[-holdout_n:]
-    print(f"Строк для обучения: {len(train_rows)}, для оценки: {len(eval_rows)}")
+    chunk_args = dict(
+        silence_threshold_ms=args.silence_threshold_ms,
+        max_chunk_ms=args.max_chunk_ms,
+        lead_pad_ms=args.lead_pad_ms,
+        tail_pad_ms=args.tail_pad_ms,
+    )
+    items = build_chunk_items(rows, chunk_args)
+    if not items:
+        raise SystemExit("Ни одного чанка не получилось построить - проверьте манифест/пороги чанкинга")
 
-    vocab = build_vocab([r.text for r in train_rows])
+    holdout_n = max(1, int(len(items) * args.eval_holdout))
+    train_items, eval_items = items[:-holdout_n], items[-holdout_n:]
+    print(f"Чанков для обучения: {len(train_items)}, для оценки: {len(eval_items)}")
+
+    vocab = build_vocab([text for _, _, _, text in train_items])
     vocab_path = Path(args.output_dir) / "vocab.json"
     vocab_path.parent.mkdir(parents=True, exist_ok=True)
     vocab_path.write_text(json.dumps(vocab, ensure_ascii=False), encoding="utf-8")
@@ -133,14 +184,16 @@ def main():
     )
     model.freeze_feature_encoder()
 
-    train_dataset = AlignmentDataset(train_rows, processor, feature_extractor.sampling_rate)
-    eval_dataset = AlignmentDataset(eval_rows, processor, feature_extractor.sampling_rate)
+    train_dataset = AlignmentDataset(train_items, processor, feature_extractor.sampling_rate)
+    eval_dataset = AlignmentDataset(eval_items, processor, feature_extractor.sampling_rate)
     data_collator = DataCollatorCTCWithPadding(processor)
 
     training_args = TrainingArguments(
         output_dir=args.output_dir,
         per_device_train_batch_size=args.batch_size,
         per_device_eval_batch_size=args.batch_size,
+        gradient_accumulation_steps=args.grad_accum_steps,
+        optim=args.optim,
         num_train_epochs=args.epochs,
         eval_strategy="epoch",
         save_strategy="epoch",

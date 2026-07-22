@@ -88,6 +88,28 @@ def _romanize(words: list[str]) -> list[str]:
         return [w.lower() for w in words]
 
 
+def _sanitize_for_vocab(words: list[str]) -> list[str]:
+    """MMS_FA словарь (bundle.get_dict(): символ -> индекс) - конечный набор символов, на которых
+    обучена модель. Любой другой символ в romanized-тексте (артефакт uroman - апострофы, диакритика,
+    случайно оставшийся пробел и т.п.) токенизатор либо не найдёт, либо смапит на blank/id=0, а
+    forced_align считает такой target невалидным ("targets Tensor shouldn't contain blank index").
+    Фильтруем строго по реальному словарю модели, а не гадаем заранее, какие символы "безопасны"."""
+    vocab = _bundle.get_dict()
+    blank_chars = {c for c, i in vocab.items() if i == 0}
+    valid = set(vocab.keys()) - blank_chars
+
+    result = []
+    for w in words:
+        cleaned = "".join(c for c in w if c in valid)
+        if cleaned == "":
+            # Слово целиком состояло из символов вне словаря - не оставляем его вовсе без токенов
+            # (сломало бы соответствие индексов со списком слов дальше по конвейеру), берём заглушку.
+            cleaned = next(iter(valid), "a")
+            print(f"[align] слово '{w}' целиком вне словаря MMS_FA после романизации - заменено заглушкой")
+        result.append(cleaned)
+    return result
+
+
 def _load_audio(audio_path: str) -> torch.Tensor:
     waveform, sample_rate = read_audio(audio_path)
     if waveform.size(0) > 1:
@@ -101,7 +123,7 @@ def _align_words_baseline(waveform: torch.Tensor, words: list[str]) -> list[tupl
     with torch.inference_mode():
         emission, _ = _model(waveform)
 
-    romanized = _romanize(words)
+    romanized = _sanitize_for_vocab(_romanize(words))
     token_spans = _aligner(emission[0], _tokenizer(romanized))
 
     num_frames = emission.size(1)

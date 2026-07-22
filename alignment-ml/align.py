@@ -19,10 +19,21 @@ from __future__ import annotations
 import argparse
 import json
 
+import numpy as np
+import soundfile as sf
 import torch
 import torchaudio
 
 from syllables import split_text_into_words
+
+
+def read_audio(path: str) -> tuple[torch.Tensor, int]:
+    """Читает аудио через soundfile (libsndfile) вместо torchaudio.load - новые версии torchaudio
+    (2.9+) убрали встроенный FFmpeg-бэкенд и требуют отдельный пакет torchcodec (+ подходящую по
+    версии системную FFmpeg) для .load(); soundfile читает FLAC/WAV нативно без этой возни."""
+    data, sample_rate = sf.read(path, dtype="float32", always_2d=True)  # (frames, channels)
+    waveform = torch.from_numpy(np.ascontiguousarray(data.T))  # (channels, frames)
+    return waveform, sample_rate
 
 _bundle = None
 _model = None
@@ -74,7 +85,7 @@ def _romanize(words: list[str]) -> list[str]:
 
 
 def _load_audio(audio_path: str) -> torch.Tensor:
-    waveform, sample_rate = torchaudio.load(audio_path)
+    waveform, sample_rate = read_audio(audio_path)
     if waveform.size(0) > 1:
         waveform = waveform.mean(dim=0, keepdim=True)
     if sample_rate != _sample_rate:

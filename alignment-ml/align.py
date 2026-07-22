@@ -12,6 +12,15 @@ alignment, 1000+ языков включая русский) БЕЗ дообуч
 задачи (нужны только тайминги ПО СЛОВАМ, не посимвольная привязка) romanize-then-align с
 последующим сопоставлением по индексу слова должно работать. Если версия torchaudio/MMS_FA
 ведёт себя иначе - см. официальный тьюториал "Forced alignment for multilingual data".
+
+ЭКСПЕРИМЕНТАЛЬНО: у многоголосых песен несколько голосов делят один файл вокала - текст одного
+голоса покрывает лишь часть аудио. Без специального механизма forced_align размазывает весь текст
+по ВСЕЙ длительности - на реальном датасете наблюдались ошибки в десятки СЕКУНД именно на
+второстепенных голосах (voice > 0). Добавлен звёздный токен MMS_FA (with_star=True, "*" между
+словами - модель может списать на него кусок аудио, не описанный транскриптом) как попытка это
+починить - требует проверки реальным прогоном на тех же песнях, где были катастрофические ошибки.
+При любой проблеме с загрузкой (несовпадение версии torchaudio и т.п.) - тихий откат на обычный
+режим без звёздного токена (см. _load_model).
 """
 
 from __future__ import annotations
@@ -54,6 +63,7 @@ _tokenizer = None
 _aligner = None
 _sample_rate = None
 _custom_processor = None  # заполнено только в ветке --model (дообученный чекпоинт из train.py)
+_star_id = None  # id "звёздного" токена (см. _align_words_baseline) - None, если with_star не удалось загрузить
 
 
 def _load_model(model_path: str | None = None):
@@ -61,7 +71,7 @@ def _load_model(model_path: str | None = None):
     С --model <путь> - дообученный HF Wav2Vec2ForCTC чекпоинт (см. train.py) со своим словарём
     символов; выравнивание тогда идёт через общую torchaudio.functional.forced_align (не через
     bundle.get_aligner(), который завязан на словарь именно MMS_FA)."""
-    global _bundle, _model, _tokenizer, _aligner, _sample_rate, _custom_processor
+    global _bundle, _model, _tokenizer, _aligner, _sample_rate, _custom_processor, _star_id
     if _model is not None:
         return
 
@@ -77,11 +87,26 @@ def _load_model(model_path: str | None = None):
     from torchaudio.pipelines import MMS_FA as bundle
 
     _bundle = bundle
-    _model = bundle.get_model()
-    _model.eval()
     _tokenizer = bundle.get_tokenizer()
-    _aligner = bundle.get_aligner()
     _sample_rate = bundle.sample_rate
+
+    # with_star=True: у многоголосых песен несколько голосов делят один и тот же файл вокала -
+    # текст ОДНОГО голоса покрывает только часть аудио (остальное время поёт другой голос). Без
+    # звёздного токена forced_align вынужден размазать весь текст по ВСЕЙ длительности аудио -
+    # наблюдались ошибки в десятки секунд именно на второстепенных голосах. "*" - специальный токен
+    # MMS_FA именно под "кусок аудио не описан транскриптом" (экспериментально - первый реальный
+    # прогон должен показать, действительно ли это чинит именно эти случаи).
+    try:
+        _model = bundle.get_model(with_star=True)
+        _aligner = bundle.get_aligner()
+        star_dict = bundle.get_dict(star="*")
+        _star_id = star_dict["*"]
+    except Exception as e:
+        print(f"[align] with_star=True недоступен ({e}) - откатываюсь на обычную загрузку без звёздного токена")
+        _model = bundle.get_model()
+        _aligner = bundle.get_aligner()
+        _star_id = None
+    _model.eval()
 
 
 def _romanize(words: list[str]) -> list[str]:
@@ -137,7 +162,21 @@ def _align_words_baseline(waveform: torch.Tensor, words: list[str]) -> list[tupl
         emission, _ = _model(waveform)
 
     romanized = _sanitize_for_vocab(_romanize(words))
-    token_spans = _aligner(emission[0], _tokenizer(romanized))
+    token_sequences = _tokenizer(romanized)
+
+    if _star_id is not None:
+        # Звёздный токен ДО, МЕЖДУ и ПОСЛЕ каждого реального слова - модель может "списать" на "*"
+        # произвольный кусок аудио между словами (в т.ч. пение другого голоса), а не размазывать
+        # реальные слова по всей длительности. Реальные слова после этого - на НЕЧЁТНЫХ позициях
+        # (0=*, 1=word0, 2=*, 3=word1, ..., 2N=*).
+        interleaved = [[_star_id]]
+        for seq in token_sequences:
+            interleaved.append(seq)
+            interleaved.append([_star_id])
+        all_spans = _aligner(emission[0], interleaved)
+        token_spans = all_spans[1::2]
+    else:
+        token_spans = _aligner(emission[0], token_sequences)
 
     num_frames = emission.size(1)
     ratio = waveform.size(1) / num_frames / _sample_rate

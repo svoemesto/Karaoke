@@ -16,6 +16,7 @@ import com.svoemesto.karaokeapp.model.SourceMarker
 import com.svoemesto.karaokeapp.model.WhisperMarkerAligner
 import com.svoemesto.karaokeapp.rightFileName
 import com.svoemesto.karaokeapp.runCommand
+import com.svoemesto.karaokeapp.services.AlignmentServiceClient
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.StorageApiClient
 import com.svoemesto.karaokeapp.services.WhisperAsrService
@@ -742,6 +743,41 @@ class SongEditorController(
             "ok" to true,
             "text" to reconciledText,
             "changed" to (reconciledText != sourceText),
+            // Для отладочного окна на фронте (переиспользует WhisperDebugModal) - видно, что именно
+            // услышал Whisper, раз текст в итоге поменялся.
+            "whisperWords" to words,
         )
+    }
+
+    // Расстановка маркеров через forced-alignment (alignment-ml/serve.py, см. AlignmentServiceClient) -
+    // взамен Whisper ASR (editAutoMarkers): текст УЖЕ известен (обычно после /edit/reconcileText),
+    // модель просто выравнивает его по аудио - точность на слог, без интерполяции. Ничего не
+    // сохраняет, как и editAutoMarkers - фронт показывает результат на подтверждение, сохраняет
+    // обычным Save.
+    @PostMapping("/edit/forcedAlignMarkers")
+    @ResponseBody
+    fun editForcedAlignMarkers(
+        @RequestParam id: Long,
+        @RequestParam sourceText: String,
+    ): Map<String, Any?> {
+        if (sourceText.isBlank()) return mapOf("ok" to false, "error" to "empty_source_text")
+
+        val settings =
+            Settings.loadFromDbById(id, WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+                ?: return mapOf("ok" to false, "error" to "song_not_found")
+
+        val vocalsFile = File(settings.vocalsNameFlac)
+        if (!vocalsFile.exists()) return mapOf("ok" to false, "error" to "vocals_not_found")
+
+        val response =
+            AlignmentServiceClient.align(vocalsFile, sourceText) ?: return mapOf("ok" to false, "error" to "alignment_service_unavailable")
+        if (!response.ok || response.syllables.isEmpty()) return mapOf("ok" to false, "error" to "no_alignment_result")
+
+        val syllableTimes = response.syllables.map { (it.startMs / 1000.0) to (it.endMs / 1000.0) }
+        val markers =
+            WhisperMarkerAligner.buildMarkersFromSyllableTimes(sourceText, syllableTimes)
+                ?: return mapOf("ok" to false, "error" to "syllable_count_mismatch")
+
+        return mapOf("ok" to true, "markers" to markers)
     }
 }

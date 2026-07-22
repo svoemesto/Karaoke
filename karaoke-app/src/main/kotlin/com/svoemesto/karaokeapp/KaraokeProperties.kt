@@ -1587,4 +1587,16 @@ val listKaraokeProperties =
             defaultValue = 300_000L,
             description = "Whisper ASR: таймаут HTTP-запроса распознавания (миллисекунды)",
         ),
+        // Forced-alignment сервис (alignment-ml/serve.py) — точная расстановка маркеров по уже
+        // известному тексту, взамен Whisper ASR (см. AlignmentServiceClient).
+        KaraokeProperty(
+            key = "alignmentServiceUrl",
+            defaultValue = "",
+            description = "Forced-alignment: полный URL /align (напр. http://<admin-host>:8017/align, см. alignment-ml/serve.py). Пусто = функция выключена",
+        ),
+        KaraokeProperty(
+            key = "alignmentServiceTimeoutMs",
+            defaultValue = 300_000L,
+            description = "Forced-alignment: таймаут HTTP-запроса (миллисекунды)",
+        ),
     )

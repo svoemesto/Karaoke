@@ -2438,6 +2438,22 @@ export default {
       let request = { method: 'POST', url: '/api/songeditor/edit/autoMarkers', params: params }
       return await promisedXMLHttpRequest(request)
     },
+    async getReconcileText(ctx, payload) {
+      let params = {
+        id: ctx.state.currentSongId,
+        sourceText: payload.sourceText,
+      }
+      let request = { method: 'POST', url: '/api/songeditor/edit/reconcileText', params: params }
+      return await promisedXMLHttpRequest(request)
+    },
+    async getForcedAlignMarkers(ctx, payload) {
+      let params = {
+        id: ctx.state.currentSongId,
+        sourceText: payload.sourceText,
+      }
+      let request = { method: 'POST', url: '/api/songeditor/edit/forcedAlignMarkers', params: params }
+      return await promisedXMLHttpRequest(request)
+    },
 
     async loadPublications(ctx, params) {
       let request = { method: 'POST', url: '/api/publications', params: params }

@@ -43,6 +43,27 @@ export default {
         { label: 'За 7 дней', value: s.events7d || 0, icon: '🗓️', color: '#76b7b2' },
         { label: 'За 30 дней', value: s.events30d || 0, icon: '📈', color: '#af7aa1' },
         {
+          label: 'Уник. посет. за 24ч',
+          value: s.uniqueVisitors24h || 0,
+          icon: '👤',
+          color: '#59a14f',
+          sub: 'по anon_id',
+        },
+        {
+          label: 'Уник. посет. за неделю',
+          value: s.uniqueVisitors7d || 0,
+          icon: '👤',
+          color: '#59a14f',
+          sub: 'по anon_id',
+        },
+        {
+          label: 'Уник. посет. за месяц',
+          value: s.uniqueVisitors30d || 0,
+          icon: '👤',
+          color: '#59a14f',
+          sub: 'по anon_id',
+        },
+        {
           label: 'Топ-канал',
           value: s.topChannelCount || 0,
           icon: '🏆',

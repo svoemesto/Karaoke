@@ -124,6 +124,13 @@
         >
           Поиск родителей и аудио-родителей (Custom Function)
         </button>
+        <button
+          class="button-action"
+          title="Экспорт манифеста (текст + тайминг слогов + путь к вокальному стему) по всем песням с готовой разметкой — для дообучения forced-alignment модели (alignment-ml/)"
+          @click="exportAlignmentDataset"
+        >
+          Экспорт датасета для forced-alignment
+        </button>
       </div>
     </div>
   </div>
@@ -615,6 +622,30 @@ export default {
           isAlert: true,
           alertType: 'info',
           header: 'Поиск родителей и аудио-родителей',
+          body: `Операция запущена в фоне.<br>Итог придёт уведомлением по завершении.`,
+          timeout: 10,
+        }
+        this.isCustomConfirmVisible = true
+      })
+    },
+    exportAlignmentDataset() {
+      this.customConfirmParams = {
+        header: 'Подтвердите действие',
+        body:
+          `Собрать манифест (текст + тайминг слогов + путь к вокальному стему) по всем песням с готовой разметкой (статус ≥ PROJECT_CREATE) для дообучения forced-alignment модели?<br>` +
+          `Аудио никуда не копируется — в манифест пишутся только пути к уже существующим файлам.<br>` +
+          `<strong>Операция идёт в фоне — итог придёт уведомлением. Можно запускать повторно, чтобы обновить манифест.</strong>`,
+        timeout: 15,
+        callback: this.doExportAlignmentDataset,
+      }
+      this.isCustomConfirmVisible = true
+    },
+    doExportAlignmentDataset() {
+      this.$store.dispatch('exportAlignmentDatasetPromise').then(() => {
+        this.customConfirmParams = {
+          isAlert: true,
+          alertType: 'info',
+          header: 'Экспорт датасета для forced-alignment',
           body: `Операция запущена в фоне.<br>Итог придёт уведомлением по завершении.`,
           timeout: 10,
         }

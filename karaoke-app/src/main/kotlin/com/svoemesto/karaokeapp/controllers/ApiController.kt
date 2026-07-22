@@ -5191,6 +5191,22 @@ class ApiController(
         )
     }
 
+    // Экспорт манифеста для дообучения forced-alignment модели (см. alignment-ml/, ExportAlignmentDataset.kt)
+    @PostMapping("/utils/exportalignmentdataset")
+    @ResponseBody
+    fun doExportAlignmentDataset() {
+        val result = exportAlignmentDataset(storageService = storageService, storageApiClient = storageApiClient)
+        SNS.send(
+            SseNotification.message(
+                Message(
+                    type = "info",
+                    head = "Экспорт датасета для forced-alignment",
+                    body = result,
+                ),
+            ),
+        )
+    }
+
     // Актуализация VKLinkPictureWeb
 //    @PostMapping("/utils/actualizevklinkpictureweb")
 //    @ResponseBody

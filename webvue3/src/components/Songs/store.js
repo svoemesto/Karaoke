@@ -2403,6 +2403,10 @@ export default {
       let request = { method: 'POST', url: '/api/utils/customfunction' }
       return promisedXMLHttpRequest(request)
     },
+    exportAlignmentDatasetPromise() {
+      let request = { method: 'POST', url: '/api/utils/exportalignmentdataset' }
+      return promisedXMLHttpRequest(request)
+    },
     autorizeYMstartPromise() {
       let request = { method: 'POST', url: '/api/authymstart' }
       return promisedXMLHttpRequest(request)

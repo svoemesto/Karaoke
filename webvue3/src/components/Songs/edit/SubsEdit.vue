@@ -1006,6 +1006,23 @@
                   src="../../../assets/svg/icon_auto_markers.svg"
                 />
               </button>
+              <button
+                class="se-group-button"
+                type="button"
+                :disabled="isForcedAlignLoading"
+                @click="doForcedAlignMarkers"
+              >
+                <img
+                  alt="forced align markers"
+                  class="se-icon-40"
+                  :title="
+                    isForcedAlignLoading
+                      ? 'Выравнивание...'
+                      : 'Точные маркеры (forced-alignment): согласовать текст с Whisper и расставить маркеры по слогам напрямую'
+                  "
+                  src="../../../assets/svg/icon_auto_markers.svg"
+                />
+              </button>
               <button class="se-group-button" type="button" @click="addWordToDict">
                 <img
                   alt="add to dict"
@@ -1224,6 +1241,7 @@ export default {
       isCustomConfirmVisible: false,
       customConfirmParams: undefined,
       isAutoMarkersLoading: false,
+      isForcedAlignLoading: false,
       isWhisperDebugVisible: false,
       autoMarkersDebug: { whisperText: '', whisperWords: [], markers: [] },
       isSearchTextVisible: false,
@@ -4206,6 +4224,76 @@ export default {
     },
     closeWhisperDebug() {
       this.isWhisperDebugVisible = false
+    },
+    doForcedAlignMarkers() {
+      this.customConfirmParams = {
+        header: 'Точные маркеры (forced-alignment)',
+        body:
+          `Согласовать текст голоса «<strong>${this.currentVoice + 1}</strong>» с Whisper (найти реально спетые, ` +
+          `но отсутствующие в тексте вставки) и расставить маркеры через forced-alignment (точность на слог, ` +
+          `без интерполяции)? Текущие маркеры голоса будут <strong>полностью заменены</strong>. Действие не ` +
+          `сохраняется автоматически — черновик можно будет доправить и сохранить обычным Save, либо отменить ` +
+          `перезагрузкой голоса.`,
+        timeout: 10,
+        callback: this.doApplyForcedAlignMarkers,
+      }
+      this.isCustomConfirmVisible = true
+    },
+    async doApplyForcedAlignMarkers() {
+      this.isForcedAlignLoading = true
+      try {
+        const reconcileResponseText = await this.$store.dispatch('getReconcileText', {
+          sourceText: this.sourceText,
+        })
+        const reconcileResult = JSON.parse(reconcileResponseText)
+        if (!reconcileResult.ok) {
+          const messages = {
+            empty_source_text: 'У голоса пока нет текста — нечего согласовывать.',
+            song_not_found: 'Песня не найдена.',
+            vocals_not_found: 'Не найден файл вокального стема (демукс ещё не выполнен?).',
+            whisper_unavailable: 'Whisper недоступен — проверьте настройку whisperAsrUrl и доступность сервера.',
+            no_speech_recognized: 'Whisper не распознал речь в вокальном стеме.',
+          }
+          alert(messages[reconcileResult.error] || `Ошибка согласования текста: ${reconcileResult.error}`)
+          return
+        }
+
+        const textForAlignment = reconcileResult.text || this.sourceText
+
+        const alignResponseText = await this.$store.dispatch('getForcedAlignMarkers', {
+          sourceText: textForAlignment,
+        })
+        const alignResult = JSON.parse(alignResponseText)
+        if (!alignResult.ok) {
+          const messages = {
+            empty_source_text: 'Пустой текст для выравнивания.',
+            song_not_found: 'Песня не найдена.',
+            vocals_not_found: 'Не найден файл вокального стема.',
+            alignment_service_unavailable:
+              'Сервис forced-alignment недоступен — проверьте настройку alignmentServiceUrl и доступность сервера.',
+            no_alignment_result: 'Сервис не вернул результат выравнивания.',
+            syllable_count_mismatch:
+              'Число слогов в тексте не совпало с результатом выравнивания (внутренняя ошибка).',
+          }
+          alert(messages[alignResult.error] || `Ошибка forced-alignment: ${alignResult.error}`)
+          return
+        }
+
+        // То же отладочное окно, что и у Whisper-варианта - whisperText здесь уже СОГЛАСОВАННЫЙ
+        // текст (с вставками, если были найдены), whisperWords - сырой ответ Whisper из шага
+        // согласования (для наглядности, что именно было услышано).
+        this.autoMarkersDebug = {
+          whisperText: textForAlignment,
+          whisperWords: reconcileResult.whisperWords || [],
+          markers: alignResult.markers || [],
+        }
+        this.isWhisperDebugVisible = true
+      } catch (error) {
+        console.error('Ошибка forced-alignment маркеров:', error)
+        alert('Ошибка forced-alignment маркеров, подробности в консоли.')
+      } finally {
+        this.isForcedAlignLoading = false
+      }
     },
     addAccent() {
       let textComponent = document.getElementById('editor')

@@ -8,6 +8,10 @@
 ОДИНАКОВЫЕ (обе стороны используют один и тот же алгоритм разбивки), количество и порядок слогов
 должны совпадать 1:1 - сравниваем по индексу, без fuzzy-сопоставления (в отличие от Whisper-ветки,
 где сопоставление с распознанным текстом было необходимо и являлось источником ошибок).
+
+Текст в манифесте может быть дополнен вставками, найденными сверкой с Whisper (см.
+WhisperMarkerAligner.reconcileWithGroundTruth в karaoke-app) - их слоги помечены
+hasGroundTruth=False и НЕ участвуют в подсчёте ошибки (реального тайминга от человека для них нет).
 """
 
 from __future__ import annotations
@@ -73,10 +77,22 @@ def evaluate(
             continue
 
         rows_ok += 1
-        row_errors = [abs(pred["start_ms"] - truth.time_ms) for pred, truth in zip(predicted, row.syllables)]
+        # Слоги вставок (hasGroundTruth=False, см. план фичи "Согласование текста с Whisper") не с
+        # чем сравнивать по-настоящему - у них нет реального тайминга от человека, только
+        # приблизительный из самого Whisper. Пропускаем именно их, а не всю строку.
+        row_errors = [
+            abs(pred["start_ms"] - truth.time_ms)
+            for pred, truth in zip(predicted, row.syllables)
+            if truth.has_ground_truth
+        ]
+        skipped_syllables = len(row.syllables) - len(row_errors)
         errors_ms.extend(row_errors)
-        print(f"{prefix}: ok, слогов {len(row_errors)}, "
-              f"средняя ошибка {statistics.mean(row_errors):.0f} мс", flush=True)
+        suffix = f" ({skipped_syllables} без ground truth - вставки)" if skipped_syllables else ""
+        if row_errors:
+            print(f"{prefix}: ok, слогов {len(row_errors)}{suffix}, "
+                  f"средняя ошибка {statistics.mean(row_errors):.0f} мс", flush=True)
+        else:
+            print(f"{prefix}: ok, но нет слогов с ground truth для сравнения{suffix}", flush=True)
 
     print(f"\nПесен/голосов обработано: {rows_ok}, пропущено (нет аудио): {rows_skipped_no_audio}, "
           f"пропущено (расхождение разбивки/ошибка): {rows_skipped_mismatch}")

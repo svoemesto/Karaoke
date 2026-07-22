@@ -4,9 +4,11 @@ import com.svoemesto.karaokeapp.model.Markertype
 import com.svoemesto.karaokeapp.model.Message
 import com.svoemesto.karaokeapp.model.Settings
 import com.svoemesto.karaokeapp.model.SseNotification
+import com.svoemesto.karaokeapp.model.WhisperMarkerAligner
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.SNS
 import com.svoemesto.karaokeapp.services.StorageApiClient
+import com.svoemesto.karaokeapp.services.WhisperAsrService
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.io.File
@@ -16,6 +18,7 @@ import kotlin.concurrent.thread
 data class AlignmentSyllableDto(
     val label: String,
     val timeMs: Long,
+    val hasGroundTruth: Boolean = true,
 )
 
 @Serializable
@@ -36,6 +39,16 @@ data class AlignmentDatasetRow(
 // (Settings.vocalsNameFlac) - обучение идёт на той же машине, копирование только удвоило бы место
 // на диске без пользы. idStatus >= 3 - тот же порог "маркеры уже финальны/проверены", что и у
 // player-readiness флагов (проект уже собран из разметки на этом этапе пайплайна).
+//
+// Дополнительно для каждой песни прогоняем вокал через Whisper (WhisperAsrService, тот же сервис,
+// что и в SubsEdit) и ищем ВСТАВКИ - что-то реально спето, но отсутствует в официальном тексте
+// (WhisperMarkerAligner.reconcileWithGroundTruth) - forced-align (align.py) иначе вынужден
+// "размазывать" непокрытое текстом аудио по соседним словам, что и объясняет часть текущих
+// аутлайеров в evaluate.py. Слоги вставок помечаются hasGroundTruth=false (реального тайминга от
+// человека для них нет - align.py/train.py используют полный текст, evaluate.py их игнорирует).
+// Whisper прогоняется ОДИН РАЗ на песню (не на голос) - вокальный стем один на все голоса песни.
+// Если Whisper недоступен/ошибся - тихий откат на прежнее поведение (только реальные маркеры,
+// без вставок) для этой песни, а не пропуск всей песни целиком.
 fun exportAlignmentDataset(
     storageService: KaraokeStorageService,
     storageApiClient: StorageApiClient,
@@ -66,6 +79,7 @@ fun exportAlignmentDataset(
         var tracksExported = 0
         var tracksSkippedNoMarkers = 0
         var tracksSkippedNoAudio = 0
+        var tracksWithInsertions = 0
 
         // Прогресс - раз в ~5% (не реже, чем раз в 200 песен), помимо построчного println ниже (для
         // логов) - чтобы админ видел живой прогресс в UI на такой массовой операции, не только по
@@ -90,6 +104,17 @@ fun exportAlignmentDataset(
                     }
                     songsScanned++
 
+                    // Whisper прогоняется один раз на песню (не на голос) - вокальный стем общий для
+                    // всех голосов; недоступность/ошибка Whisper не блокирует экспорт песни, просто
+                    // остаёмся без вставок для неё (см. комментарий у exportAlignmentDataset).
+                    val audioFile = File(settings.vocalsNameFlac)
+                    val whisperWords =
+                        if (audioFile.exists()) {
+                            WhisperAsrService.transcribe(audioFile)?.let { WhisperAsrService.flatWords(it) } ?: emptyList()
+                        } else {
+                            emptyList()
+                        }
+
                     for (voice in 0 until settings.countVoices) {
                         val markers =
                             settings.sourceMarkersList
@@ -101,10 +126,31 @@ fun exportAlignmentDataset(
                             tracksSkippedNoMarkers++
                             continue
                         }
-                        val audioFile = File(settings.vocalsNameFlac)
                         if (!audioFile.exists()) {
                             tracksSkippedNoAudio++
                             continue
+                        }
+
+                        val sourceText = settings.getSourceText(voice)
+                        val reconciled =
+                            if (whisperWords.isNotEmpty()) {
+                                WhisperMarkerAligner.reconcileWithGroundTruth(sourceText, markers, whisperWords)
+                            } else {
+                                null
+                            }
+
+                        val text: String
+                        val syllableDtos: List<AlignmentSyllableDto>
+                        if (reconciled != null) {
+                            text = reconciled.text
+                            syllableDtos =
+                                reconciled.syllables.map {
+                                    AlignmentSyllableDto(label = it.label, timeMs = it.timeMs.toLong(), hasGroundTruth = it.hasGroundTruth)
+                                }
+                            if (reconciled.syllables.any { !it.hasGroundTruth }) tracksWithInsertions++
+                        } else {
+                            text = sourceText
+                            syllableDtos = markers.map { AlignmentSyllableDto(label = it.label, timeMs = (it.time * 1000).toLong()) }
                         }
 
                         val row =
@@ -112,12 +158,9 @@ fun exportAlignmentDataset(
                                 songId = id,
                                 voice = voice,
                                 audioFile = audioFile.absolutePath,
-                                text = settings.getSourceText(voice),
-                                syllables =
-                                    markers.map {
-                                        AlignmentSyllableDto(label = it.label, timeMs = (it.time * 1000).toLong())
-                                    },
-                                durationMs = (markers.last().time * 1000).toLong(),
+                                text = text,
+                                syllables = syllableDtos,
+                                durationMs = syllableDtos.maxOfOrNull { it.timeMs } ?: 0L,
                             )
                         writer.write(json.encodeToString(AlignmentDatasetRow.serializer(), row))
                         writer.newLine()
@@ -145,7 +188,8 @@ fun exportAlignmentDataset(
 
         val summary =
             "Песен просканировано: $songsScanned, треков экспортировано: $tracksExported " +
-                "(пропущено без разметки: $tracksSkippedNoMarkers, без аудио: $tracksSkippedNoAudio). " +
+                "(пропущено без разметки: $tracksSkippedNoMarkers, без аудио: $tracksSkippedNoAudio), " +
+                "с найденными вставками (Whisper): $tracksWithInsertions. " +
                 "Манифест: ${manifestFile.absolutePath}"
         println("Экспорт датасета для forced-alignment: завершено. $summary")
 

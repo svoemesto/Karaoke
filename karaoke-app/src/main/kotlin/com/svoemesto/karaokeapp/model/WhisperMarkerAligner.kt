@@ -14,6 +14,15 @@ private const val COLOR_ENDOFLINE = "#FF0000"
 // просто угадать мимо, и доверять его времени в этом случае опаснее, чем интерполировать.
 private const val MIN_WORD_CONFIDENCE = 0.3
 
+// Пороги для распознавания ВСТАВОК (Whisper услышал то, чего нет в официальном тексте, см.
+// WhisperMarkerAligner.reconcile*) — сознательно строже, чем MIN_WORD_CONFIDENCE для обычных
+// якорей: ложная вставка портит текст/датасет, а не просто одну метку времени. Одиночное
+// низкоуверенное непойманное слово чаще ASR-шум/галлюцинация, чем реальная вставка — требуем
+// подряд идущих слов и более высокую уверенность на каждом. Оба порога — кандидаты на калибровку
+// по факту первого реального прогона (как и весь остальной alignment-ml пайплайн).
+private const val MIN_INSERTION_CONFIDENCE = 0.6
+private const val MIN_INSERTION_RUN_LENGTH = 2
+
 /**
  * Сопоставляет word-level результат Whisper (см. WhisperAsrService) с уже введённым текстом песни
  * и строит слоговые маркеры. Whisper не даёт точности выше слова (см. решение в плане фичи), поэтому
@@ -27,6 +36,7 @@ object WhisperMarkerAligner {
     )
 
     private data class RecognizedWord(
+        val raw: String,
         val start: Double,
         val end: Double,
         val confidence: Double,
@@ -39,32 +49,176 @@ object WhisperMarkerAligner {
         val end: Double,
     )
 
+    // Подряд идущие recognized-слова, не сопоставленные ни с одним target-словом ("else -> j--" в
+    // traceback alignWords) - кандидаты на вставку (Whisper услышал то, чего нет в тексте). Все
+    // слова одного run-а всегда идут подряд и относятся к одной и той же позиции - i в traceback
+    // между ними не менялся (см. alignWords). afterTargetIndex = -1 значит "перед первым словом".
+    private data class RecognizedRun(
+        val afterTargetIndex: Int,
+        val words: List<RecognizedWord>,
+    )
+
+    data class ReconciledSyllable(
+        val label: String,
+        val timeMs: Double,
+        val hasGroundTruth: Boolean,
+    )
+
+    data class ReconciledResult(
+        val text: String,
+        val syllables: List<ReconciledSyllable>,
+    )
+
     fun alignToMarkers(
         sourceText: String,
         whisperWords: List<WhisperWordDto>,
     ): List<SourceMarker> {
-        val lines = sourceText.replace("\r\n", "\n").split("\n")
-        val targetWords = buildTargetWords(lines)
+        val targetWords = buildTargetWords(sourceText.replace("\r\n", "\n").split("\n"))
         if (targetWords.isEmpty()) return emptyList()
 
-        val recognizedWords =
-            whisperWords
-                .filter { it.word.isNotBlank() }
-                .map {
-                    RecognizedWord(
-                        start = it.start,
-                        end = it.end,
-                        confidence = it.confidence,
-                        normalized = normalize(it.word),
-                    )
-                }.filter { it.normalized.isNotEmpty() }
+        val recognizedWords = buildRecognizedWords(whisperWords)
         if (recognizedWords.isEmpty()) return emptyList()
 
-        val anchors = alignWords(targetWords, recognizedWords)
+        val (anchors, _) = alignWords(targetWords, recognizedWords)
         if (anchors.isEmpty()) return emptyList()
 
         val wordTimes = interpolateWordTimes(targetWords, anchors)
         return buildMarkers(targetWords, wordTimes)
+    }
+
+    private fun buildRecognizedWords(whisperWords: List<WhisperWordDto>): List<RecognizedWord> =
+        whisperWords
+            .filter { it.word.isNotBlank() }
+            .map {
+                RecognizedWord(
+                    raw = it.word.trim(),
+                    start = it.start,
+                    end = it.end,
+                    confidence = it.confidence,
+                    normalized = normalize(it.word),
+                )
+            }.filter { it.normalized.isNotEmpty() }
+
+    // Согласование официального текста с Whisper для НОВОЙ/ещё не размеченной песни - нет
+    // существующих маркеров, поэтому нет и понятия hasGroundTruth: просто возвращает текст,
+    // дополненный подтверждёнными вставками (см. RecognizedRun/acceptInsertionRuns), готовый как
+    // вход для forced-alignment (align.py/serve.py) взамен нынешней Whisper-кнопки в SubsEdit.
+    fun reconcileText(
+        sourceText: String,
+        whisperWords: List<WhisperWordDto>,
+    ): String {
+        val lines = sourceText.replace("\r\n", "\n").split("\n")
+        val targetWords = buildTargetWords(lines)
+        if (targetWords.isEmpty()) return sourceText
+
+        val recognizedWords = buildRecognizedWords(whisperWords)
+        if (recognizedWords.isEmpty()) return sourceText
+
+        val (_, runs) = alignWords(targetWords, recognizedWords)
+        val insertions = acceptInsertionRuns(runs)
+        if (insertions.isEmpty()) return sourceText
+
+        return rebuildText(targetWords, insertions)
+    }
+
+    // Согласование для УЖЕ РАЗМЕЧЕННОЙ песни (датасет, см. ExportAlignmentDataset.kt) - existingMarkers
+    // это реальные, вручную выставленные маркеры (markertype=syllables, отсортированы по времени).
+    // Возвращает null, если их количество не совпадает с числом слогов в sourceText (тот же случай
+    // "расхождение слоговой разбивки", что уже встречается ~10-14% случаев в evaluate.py/chunking.py) -
+    // безопаснее пропустить согласование для такой песни целиком, чем гадать про сопоставление позиций.
+    fun reconcileWithGroundTruth(
+        sourceText: String,
+        existingMarkers: List<SourceMarker>,
+        whisperWords: List<WhisperWordDto>,
+    ): ReconciledResult? {
+        val lines = sourceText.replace("\r\n", "\n").split("\n")
+        val targetWords = buildTargetWords(lines)
+        if (targetWords.isEmpty()) return null
+
+        val realSyllables = existingMarkers.filter { it.markertype == Markertype.SYLLABLES.value }.sortedBy { it.time }
+        if (realSyllables.size != targetWords.sumOf { it.syllables.size }) return null
+
+        val recognizedWords = buildRecognizedWords(whisperWords)
+        val insertions =
+            if (recognizedWords.isEmpty()) {
+                emptyList()
+            } else {
+                val (_, runs) = alignWords(targetWords, recognizedWords)
+                acceptInsertionRuns(runs)
+            }
+
+        val syllables = mutableListOf<ReconciledSyllable>()
+        var realSyllableIndex = 0
+        val insertionsByAnchor = insertions.groupBy { it.afterTargetIndex }
+
+        insertionsByAnchor[-1]?.forEach { run -> syllables.addAll(insertionSyllables(run)) }
+        targetWords.forEachIndexed { wordIndex, word ->
+            word.syllables.forEach { syllable ->
+                val real = realSyllables[realSyllableIndex]
+                syllables.add(ReconciledSyllable(label = syllable, timeMs = real.time * 1000, hasGroundTruth = true))
+                realSyllableIndex++
+            }
+            insertionsByAnchor[wordIndex]?.forEach { run -> syllables.addAll(insertionSyllables(run)) }
+        }
+
+        return ReconciledResult(text = rebuildText(targetWords, insertions), syllables = syllables)
+    }
+
+    // Внутри вставки время делится пропорционально длине символов слога - тот же приём, что и в
+    // buildMarkers для обычных слов. Границы спана - от начала первого до конца последнего
+    // recognized-слова run-а (её собственный Whisper-тайминг, единственный доступный для вставки).
+    private fun insertionSyllables(run: RecognizedRun): List<ReconciledSyllable> {
+        val result = mutableListOf<ReconciledSyllable>()
+        run.words.forEach { word ->
+            val syllables = getSyllables(word.raw).map { it.removeSuffix("_") }
+            val totalChars = syllables.sumOf { it.length }.coerceAtLeast(1)
+            val duration = (word.end - word.start).coerceAtLeast(0.0)
+            var cursor = word.start
+            syllables.forEach { syllable ->
+                val share = duration * syllable.length / totalChars
+                result.add(ReconciledSyllable(label = syllable, timeMs = cursor * 1000, hasGroundTruth = false))
+                cursor += share
+            }
+        }
+        return result
+    }
+
+    // Отбирает только надёжные run-ы (см. MIN_INSERTION_CONFIDENCE/MIN_INSERTION_RUN_LENGTH) -
+    // одиночное низкоуверенное слово чаще ASR-шум, чем реальная вставка.
+    private fun acceptInsertionRuns(runs: List<RecognizedRun>): List<RecognizedRun> =
+        runs.filter { run ->
+            run.words.size >= MIN_INSERTION_RUN_LENGTH && run.words.all { it.confidence >= MIN_INSERTION_CONFIDENCE }
+        }
+
+    // Собирает текст заново: официальные слова + принятые вставки сразу после того target-слова, к
+    // которому они привязаны (afterTargetIndex) - перенос строки ставится там же, где менялся
+    // lineIndex в оригинале, вставка остаётся в строке своего "якоря", а не разрывает её пополам.
+    private fun rebuildText(
+        targetWords: List<TargetWord>,
+        insertions: List<RecognizedRun>,
+    ): String {
+        val insertionsByAnchor = insertions.groupBy { it.afterTargetIndex }
+        val lines = mutableListOf<StringBuilder>()
+        var currentLine = StringBuilder()
+        lines.add(currentLine)
+
+        fun appendWord(text: String) {
+            if (currentLine.isNotEmpty()) currentLine.append(' ')
+            currentLine.append(text)
+        }
+
+        insertionsByAnchor[-1]?.forEach { run -> run.words.forEach { appendWord(it.raw) } }
+        targetWords.forEachIndexed { wordIndex, word ->
+            appendWord(word.syllables.joinToString(""))
+            insertionsByAnchor[wordIndex]?.forEach { run -> run.words.forEach { appendWord(it.raw) } }
+
+            val isLastWord = wordIndex == targetWords.size - 1
+            if (!isLastWord && targetWords[wordIndex + 1].lineIndex != word.lineIndex) {
+                currentLine = StringBuilder()
+                lines.add(currentLine)
+            }
+        }
+        return lines.joinToString("\n") { it.toString() }
     }
 
     private val wordRegex = Regex("""\S+""")
@@ -186,10 +340,16 @@ object WhisperMarkerAligner {
     // совпадение 2, похожее (Левенштейн <= 30% длины) 1, иначе -2; гэп (пропуск с любой стороны) -1.
     // n/m - обычно несколько сотен слов на песню, O(n*m) с большим запасом укладывается в
     // интерактивный отклик кнопки.
+    // Возвращает и якоря (для тайминга, как раньше), и RecognizedRun - подряд идущие recognized-слова,
+    // не сопоставленные ни с одним target-словом ("else" ниже) - кандидаты на вставку (см.
+    // reconcileText/reconcileWithGroundTruth). NB: DP иногда предпочтёт "плохую" диагональ (полное
+    // несовпадение, matchScore=-2) отдельным gap-ходам с тем же суммарным счётом (-1-1=-2) - в этом
+    // редком случае вставка окажется "молча" поглощена как несостоявшийся анchor и не будет замечена;
+    // это ограничение текущей схемы весов, не баг конкретно детектора вставок.
     private fun alignWords(
         targetWords: List<TargetWord>,
         recognizedWords: List<RecognizedWord>,
-    ): List<Anchor> {
+    ): Pair<List<Anchor>, List<RecognizedRun>> {
         val n = targetWords.size
         val m = recognizedWords.size
         val gapPenalty = -1
@@ -207,6 +367,9 @@ object WhisperMarkerAligner {
         }
 
         val anchors = mutableListOf<Anchor>()
+        // (afterTargetIndex, recognizedWordIndex), в ОБРАТНОМ (traceback) порядке - переворачивается
+        // вместе с anchors ниже.
+        val skipped = mutableListOf<Pair<Int, Int>>()
         var i = n
         var j = m
         while (i > 0 && j > 0) {
@@ -221,11 +384,36 @@ object WhisperMarkerAligner {
                     j--
                 }
                 dp[i][j] == dp[i - 1][j] + gapPenalty -> i--
-                else -> j--
+                else -> {
+                    skipped.add((i - 1) to (j - 1))
+                    j--
+                }
             }
         }
+        // Recognized-слова ДО самого первого сопоставления (i дошло до 0 раньше j) - тоже кандидаты,
+        // привязаны к позиции "перед первым target-словом" (afterTargetIndex = -1).
+        while (j > 0) {
+            skipped.add(-1 to (j - 1))
+            j--
+        }
+
         anchors.reverse()
-        return anchors
+        skipped.reverse()
+
+        val runs = mutableListOf<RecognizedRun>()
+        var currentAnchor: Int? = null
+        var currentWords = mutableListOf<RecognizedWord>()
+        skipped.forEach { (afterTargetIndex, recognizedIndex) ->
+            if (currentAnchor != null && currentAnchor != afterTargetIndex) {
+                runs.add(RecognizedRun(currentAnchor!!, currentWords))
+                currentWords = mutableListOf()
+            }
+            currentAnchor = afterTargetIndex
+            currentWords.add(recognizedWords[recognizedIndex])
+        }
+        if (currentAnchor != null) runs.add(RecognizedRun(currentAnchor!!, currentWords))
+
+        return anchors to runs
     }
 
     // Для каждого целевого слова вычисляет (start, end): у якорей - реальное время Whisper, у

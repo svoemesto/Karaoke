@@ -118,9 +118,9 @@ enum class SettingField : Serializable {
 
     // Персистентная готовность файлов песни к онлайн-плееру — проставляется точечно в момент
     // успешной заливки в хранилище (ApiController.pushMp3ToStorage, Settings.pictureAlbum/pictureAuthor)
-    // и сверяется HealthReport'ом, чтобы список песен не бил по MinIO на каждый показ.
-    STEM_ACCOMPANIMENT_READY,
-    STEM_VOCAL_READY,
-    PICTURE_ALBUM_READY,
-    PICTURE_AUTHOR_READY,
+    // и сверяется HealthReport'ом, чтобы список песен не бил по MinIO на каждый показ. Единое
+    // JSON-поле (формат {"stemAccompanimentReady":true,...}) вместо отдельной колонки на флаг —
+    // новый флаг добавляется только в Kotlin-коде (Settings.kt), без новой миграции/колонки/правки
+    // recordhash-триггера (см. deploy/karaoke-db/26_player_readiness_flags.sql).
+    PLAYER_READINESS_FLAGS,
 }

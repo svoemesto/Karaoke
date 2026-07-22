@@ -699,6 +699,16 @@ class SongEditorController(
         val markers = WhisperMarkerAligner.alignToMarkers(sourceText, words)
         if (markers.isEmpty()) return mapOf("ok" to false, "error" to "alignment_failed")
 
-        return mapOf("ok" to true, "markers" to markers)
+        // "Сырой" ответ Whisper возвращаем вместе с маркерами - SubsEdit.vue показывает его в
+        // отдельном отладочном окне ДО применения, т.к. качество распознавания надо видеть перед
+        // тем как доверять этой разметке (см. WhisperDebugModal.vue).
+        val whisperText = transcription.text.ifBlank { transcription.segments.joinToString(" ") { it.text }.trim() }
+
+        return mapOf(
+            "ok" to true,
+            "whisperText" to whisperText,
+            "whisperWords" to words,
+            "markers" to markers,
+        )
     }
 }

@@ -1,6 +1,7 @@
 package com.svoemesto.karaokeapp.model
 
 import com.svoemesto.karaokeapp.getSyllables
+import com.svoemesto.karaokeapp.haveVowel
 import com.svoemesto.karaokeapp.services.WhisperWordDto
 import kotlin.math.max
 import kotlin.math.min
@@ -66,23 +67,61 @@ object WhisperMarkerAligner {
         return buildMarkers(targetWords, wordTimes)
     }
 
-    // Разбивает текст на "целевые слова" с их слогами через getSyllables (Utils.kt) — ту же слоговую
-    // разбивку, что использует весь остальной проект. Граница слова закодирована в самой разбивке:
-    // последний слог слова оканчивается на "_".
+    private val wordRegex = Regex("""\S+""")
+
+    private data class RawSyllable(
+        var text: String,
+        val wordIndex: Int,
+    )
+
+    // Разбивает текст на "целевые слова" с их слогами — должно 1:1 совпадать с тем, как frontend
+    // (SubsEdit.vue getSyllables computed) реально нарезал слоги для уже размеченных песен, иначе
+    // расхождение в счётчике слогов на строку молча сдвигает подписи ВСЕХ последующих маркеров при
+    // загрузке в редактор (updateMarkersBySyllables сопоставляет маркеры с sourceSyllables по индексу,
+    // без учёта содержимого).
+    //
+    // ВАЖНО: getSyllables(text) (Utils.kt) сама разбивает text на слова через regexWords.find(text)
+    // (не findAll!) — при многословном входе она молча обрабатывает только ПЕРВОЕ слово. Поэтому слова
+    // выделяем здесь сами (findAll), зовём getSyllables() ПОШТУЧНО на каждом слове (на одном слове её
+    // "найти первое" работает корректно) — но проход слияния слогов без гласной (частицы вроде "в",
+    // "с", "к" без гласной приклеиваются к следующему слову) делаем ОДИН РАЗ по всей строке, а не
+    // отдельно на каждом слове — именно так это делает и JS-версия, и оригинальная (корректная для
+    // одного слова) Kotlin getSyllables.
     private fun buildTargetWords(lines: List<String>): List<TargetWord> {
         val result = mutableListOf<TargetWord>()
         lines.forEachIndexed { lineIndex, line ->
             if (line.isBlank()) return@forEachIndexed
-            var current = mutableListOf<String>()
-            getSyllables(line).forEach { syl ->
-                val isWordEnd = syl.endsWith("_")
-                current.add(syl.removeSuffix("_"))
-                if (isWordEnd) {
-                    addTargetWord(result, lineIndex, current)
-                    current = mutableListOf()
+
+            val flat = mutableListOf<RawSyllable>()
+            wordRegex.findAll(line).forEachIndexed { wordIndex, match ->
+                getSyllables(match.value).forEach { syl ->
+                    flat.add(RawSyllable(syl.removeSuffix("_"), wordIndex))
                 }
             }
-            addTargetWord(result, lineIndex, current)
+
+            var i = 0
+            while (i < flat.size) {
+                val piece = flat[i]
+                if (!piece.text.haveVowel()) {
+                    if (i == flat.size - 1 && piece.text == "-" && i != 0) {
+                        flat[i - 1].text += piece.text
+                        flat.removeAt(i)
+                        i--
+                    } else if (i < flat.size - 2) {
+                        flat[i + 1].text = piece.text + flat[i + 1].text
+                        flat.removeAt(i)
+                        i--
+                    }
+                }
+                i++
+            }
+
+            flat
+                .groupBy { it.wordIndex }
+                .toSortedMap()
+                .forEach { (_, syllables) ->
+                    addTargetWord(result, lineIndex, syllables.map { it.text })
+                }
         }
         return result
     }

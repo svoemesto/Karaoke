@@ -23,6 +23,10 @@ const val PATH_TO_TEMP_KEYBPMFINDER_FOLDER = "/sm-karaoke/system/keybpmfinder-do
 // плеера") — PNG-секвенция и промежуточный mp4 для визуальной сверки с эталонным MLT-рендером.
 // Не встроено в очередь KaraokeProcess/done_files на этом этапе — см. PlayerMp4RenderService.
 const val PATH_TO_TEMP_RENDERMP4_FOLDER = "/sm-karaoke/system/rendermp4-preview/tmp"
+
+// Манифест для дообучения forced-alignment модели (см. alignment-ml/) — только manifest.jsonl,
+// само аудио НЕ копируется сюда (уже лежит локально, путь берётся из Settings.vocalsNameFlac как есть).
+const val PATH_TO_ALIGNMENT_DATASET_FOLDER = "/sm-karaoke/system/alignment-dataset"
 const val IAM_TOKEN_FILE_PATH = "/sm-karaoke/system/yandex/iam_token.txt"
 const val FOLDER_ID_FILE_PATH = "/sm-karaoke/system/yandex/folderId.txt"
 // const val COLOR_ALL_DONE = "#7FFFD4"        // Полностью готово

@@ -49,6 +49,11 @@ Forced-alignment модуль: по известному тексту песни
    1B-параметров модель на 16GB VRAM — тесно даже с fp16 + gradient checkpointing, поэтому по
    умолчанию `--batch-size 1` + `--grad-accum-steps 8` (эмулирует больший эффективный батч без доп.
    памяти на активации) + 8-bit AdamW (`bitsandbytes`, экономит память под состояния оптимизатора).
+   Чекпоинт пишется каждые `--save-steps` шагов (по умолчанию 500), не только по эпохам — можно
+   безопасно прервать обучение (Ctrl+C) и продолжить с того же места флагом `--resume` (см. ниже).
+   Прогресс (шаг/всего, %, loss, eval_loss, прошло/осталось времени) печатается каждые
+   `--logging-steps` (по умолчанию `--save-steps`/10) отдельными строками, а не перезаписываемым
+   на месте tqdm-баром — удобно смотреть через `tail -f`, если процесс запущен в фоне.
 5. **Сервис** — `serve.py`, тонкая FastAPI-обёртка (`POST /align`, аудио-файл + текст → тайминги
    слогов). Уже подключена в karaoke-app: `AlignmentServiceClient.kt` + кнопка «Точные маркеры
    (forced-alignment)» в SubsEdit — сначала согласует текст с Whisper (`/edit/reconcileText`, ищет
@@ -83,6 +88,13 @@ python evaluate.py --manifest "$MANIFEST" --limit 50
 python train.py --manifest "$MANIFEST" --dry-run
 python train.py --manifest "$MANIFEST" --limit 50 --epochs 1   # калибровка времени на маленькой выборке
 python train.py --manifest "$MANIFEST" --limit 500              # дальше - на бОльшей выборке
+
+# если обучение прервали (Ctrl+C/перезагрузка) - продолжить с последнего чекпоинта в --output-dir
+# ВАЖНО: --resume должен использовать ТЕ ЖЕ --manifest/--limit/--include-secondary-voices/пороги
+# чанкинга, что и прерванный запуск (иначе набор чанков и, как следствие, ожидаемое число шагов на
+# эпоху съедут - хотя сам словарь символов теперь безопасен, см. ниже)
+python train.py --manifest "$MANIFEST" --limit 500 --resume
+
 python align.py --audio ... --text ... --model checkpoints/mms-ft/checkpoint-XXX
 
 # сервис

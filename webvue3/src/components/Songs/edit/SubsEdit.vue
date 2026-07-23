@@ -22,6 +22,12 @@
             @apply="applyAutoMarkersToEditor"
             @close="closeWhisperDebug"
           />
+          <ai-text-editor-modal
+            v-if="isAiTextEditorVisible"
+            :source-text="sourceText"
+            @apply="applyAiTextEditor"
+            @close="closeAiTextEditor"
+          />
 
           <div class="se-grid-item-header">
             <div class="se-subsedit-header-song-name">«{{ song.songName }}»</div>
@@ -973,6 +979,14 @@
                   src="../../../assets/svg/icon_search_text.svg"
                 />
               </button>
+              <button class="se-group-button" type="button" @click="doAiTextEditor">
+                <img
+                  alt="ai text editor"
+                  class="se-icon-40"
+                  title="AI-редактор текста: исправление орфографии и пунктуации через LLM"
+                  src="../../../assets/svg/icon_repair.svg"
+                />
+              </button>
               <button class="se-group-button" type="button" @click="addAccent">
                 <img
                   alt="erase markers"
@@ -1114,6 +1128,7 @@ import Minimap from 'wavesurfer.js/dist/plugins/minimap.esm.js'
 import CustomConfirm from '../../Common/CustomConfirm.vue'
 import SearchText from './SearchText.vue'
 import WhisperDebugModal from './WhisperDebugModal.vue'
+import AiTextEditorModal from './AiTextEditorModal.vue'
 // import {TabsPlugin} from 'bootstrap-vue'
 // import Vue from "vue";
 // Vue.use(TabsPlugin)
@@ -1142,6 +1157,7 @@ export default {
     CustomConfirm,
     SearchText,
     WhisperDebugModal,
+    AiTextEditorModal,
   },
   props: {
     voices: {
@@ -1245,6 +1261,7 @@ export default {
       isWhisperDebugVisible: false,
       autoMarkersDebug: { whisperText: '', whisperWords: [], markers: [] },
       isSearchTextVisible: false,
+      isAiTextEditorVisible: false,
       selectedText: '',
       midi: null,
       isShowMarkerTypeSyllables: true,
@@ -2606,6 +2623,16 @@ export default {
     returnSearchText(returnedText) {
       this.sourceText = returnedText
       this.isSearchTextVisible = false
+    },
+    doAiTextEditor() {
+      this.isAiTextEditorVisible = true
+    },
+    closeAiTextEditor() {
+      this.isAiTextEditorVisible = false
+    },
+    applyAiTextEditor(correctedText) {
+      this.sourceText = correctedText
+      this.isAiTextEditorVisible = false
     },
     save() {
       this.addEndMarker()

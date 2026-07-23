@@ -2454,6 +2454,14 @@ export default {
       let request = { method: 'POST', url: '/api/songeditor/edit/forcedAlignMarkers', params: params }
       return await promisedXMLHttpRequest(request)
     },
+    async correctText(ctx, payload) {
+      let params = {
+        mode: payload.mode,
+        sourceText: payload.sourceText,
+      }
+      let request = { method: 'POST', url: '/api/songeditor/edit/correctText', params: params }
+      return await promisedXMLHttpRequest(request)
+    },
 
     async loadPublications(ctx, params) {
       let request = { method: 'POST', url: '/api/publications', params: params }

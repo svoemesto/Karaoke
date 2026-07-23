@@ -19,6 +19,18 @@
               <div v-else class="acm-message">Картинки альбома пока нет</div>
             </div>
             <div v-if="searchError" class="acm-error">{{ searchError }}</div>
+            <div class="acm-search-controls">
+              <input
+                v-model="searchQuery"
+                type="text"
+                class="acm-search-input"
+                placeholder="Поисковый запрос"
+              />
+              <label class="acm-checkbox-label">
+                <input v-model="skipYandex" type="checkbox" />
+                Не искать в Яндекс.Музыке
+              </label>
+            </div>
             <div class="acm-buttons-group">
               <button
                 type="button"
@@ -58,6 +70,18 @@
                 </div>
               </div>
             </div>
+            <div class="acm-search-controls">
+              <input
+                v-model="searchQuery"
+                type="text"
+                class="acm-search-input"
+                placeholder="Поисковый запрос"
+              />
+              <label class="acm-checkbox-label">
+                <input v-model="skipYandex" type="checkbox" />
+                Не искать в Яндекс.Музыке
+              </label>
+            </div>
             <div class="acm-buttons-group">
               <button type="button" class="acm-button" @click="searchInternet">
                 Искать снова
@@ -83,6 +107,7 @@
                 class="acm-cropper"
                 :src="cropSourceUrl"
                 :stencil-props="{ aspectRatio: 1 }"
+                :default-size="cropperDefaultSize"
                 @ready="onCropperImageReady"
                 @error="onCropperError"
               />
@@ -150,6 +175,8 @@ export default {
       isSaving: false,
       saveError: '',
       lowResolutionWarning: false,
+      searchQuery: '',
+      skipYandex: false,
     }
   },
   computed: {
@@ -157,8 +184,14 @@ export default {
       const song = this.$store.getters.getCurrentSong
       return (song && song.rootFolder) || ''
     },
+    defaultSearchQuery() {
+      const song = this.$store.getters.getCurrentSong
+      if (!song) return ''
+      return `${song.author} ${song.album} обложка альбома`
+    },
   },
   async mounted() {
+    this.searchQuery = this.defaultSearchQuery
     await this.loadCurrentPicture()
   },
   methods: {
@@ -177,7 +210,10 @@ export default {
       this.step = 'searching'
       this.searchError = ''
       try {
-        const data = await this.$store.dispatch('searchAlbumCoverPromise')
+        const data = await this.$store.dispatch('searchAlbumCoverPromise', {
+          query: this.searchQuery,
+          skipYandex: this.skipYandex,
+        })
         const result = JSON.parse(data)
         if (result && result.candidates && result.candidates.length > 0) {
           this.candidates = result.candidates
@@ -222,6 +258,13 @@ export default {
       this.lowResolutionWarning = false
       this.saveError = ''
       this.step = 'cropping'
+    },
+    // vue-advanced-cropper по умолчанию ставит рамку кропа на 80% от картинки (core.defaultSize) —
+    // хотим сразу максимальный возможный квадрат (по меньшей стороне изображения).
+    cropperDefaultSize({ imageSize, visibleArea }) {
+      const area = visibleArea || imageSize
+      const side = Math.min(area.width, area.height)
+      return { width: side, height: side }
     },
     onCropperImageReady() {
       const cropper = this.$refs.cropper
@@ -388,6 +431,33 @@ export default {
   justify-content: center;
   gap: 10px;
   margin-top: 10px;
+}
+
+.acm-search-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.acm-search-input {
+  flex: 1 1 260px;
+  max-width: 400px;
+  padding: 6px 10px;
+  border: 1px solid #999;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.acm-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  white-space: nowrap;
+  cursor: pointer;
 }
 
 .acm-button {

@@ -104,6 +104,7 @@ data class AlbumCoverSearchResponseDto(
     val ok: Boolean,
     val message: String,
     val candidates: List<AlbumCoverCandidateDto>,
+    val defaultQuery: String = "",
 )
 
 /**
@@ -3062,6 +3063,8 @@ class ApiController(
     @ResponseBody
     fun searchAlbumCover(
         @RequestParam id: Long,
+        @RequestParam(required = false) query: String?,
+        @RequestParam(required = false) skipYandex: Boolean?,
     ): AlbumCoverSearchResponseDto {
         val settings =
             Settings.loadFromDbById(
@@ -3080,9 +3083,17 @@ class ApiController(
                     storageApiClient = storageApiClient,
                 )?.ymId
 
+        val defaultQuery = albumCoverService.defaultSearchQuery(settings.author, settings.album)
+
         return when (
             val outcome =
-                albumCoverService.search(authorYmId = authorYmId, author = settings.author, album = settings.album)
+                albumCoverService.search(
+                    authorYmId = authorYmId,
+                    author = settings.author,
+                    album = settings.album,
+                    skipYandex = skipYandex ?: false,
+                    customQuery = query,
+                )
         ) {
             is AlbumCoverSearchOutcome.Found -> {
                 val candidates =
@@ -3096,10 +3107,10 @@ class ApiController(
                             source = candidate.source.name,
                         )
                     }
-                AlbumCoverSearchResponseDto(ok = true, message = outcome.note, candidates = candidates)
+                AlbumCoverSearchResponseDto(ok = true, message = outcome.note, candidates = candidates, defaultQuery = defaultQuery)
             }
             is AlbumCoverSearchOutcome.NotFound ->
-                AlbumCoverSearchResponseDto(ok = false, message = outcome.reason, candidates = emptyList())
+                AlbumCoverSearchResponseDto(ok = false, message = outcome.reason, candidates = emptyList(), defaultQuery = defaultQuery)
         }
     }
 

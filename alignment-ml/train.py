@@ -139,6 +139,50 @@ def build_chunk_items(rows, chunk_args: dict) -> list[tuple[str, int, int, str]]
     return items
 
 
+def _feat_extract_output_length(num_samples: int, model: Wav2Vec2ForCTC) -> int:
+    """Длина выходной последовательности conv-фичеэкстрактора Wav2Vec2/MMS для входа в num_samples
+    семплов - та же формула, что transformers считает внутри себя (config.conv_kernel/conv_stride),
+    нужна ЗАРАНЕЕ (до реального forward), чтобы отфильтровать чанки, для которых аудио физически
+    коротко для их собственного текста (см. _filter_ctc_viable)."""
+    length = num_samples
+    for kernel, stride in zip(model.config.conv_kernel, model.config.conv_stride):
+        length = (length - kernel) // stride + 1
+    return max(0, length)
+
+
+def _filter_ctc_viable(
+    items: list[tuple[str, int, int, str]],
+    model: Wav2Vec2ForCTC,
+    tokenizer: Wav2Vec2CTCTokenizer,
+    sample_rate: int,
+    label_for_log: str,
+) -> list[tuple[str, int, int, str]]:
+    """CTC loss требует, чтобы длина выхода модели (T, кадров) была не меньше 2*L+1, где L - число
+    токенов текста (L, включая дубликаты - в худшем случае между КАЖДОЙ парой соседних токенов нужен
+    разделительный blank) - иначе loss/градиент становится -inf/NaN, а поскольку optimizer.step()
+    молча "съедает" NaN-градиент, ВСЯ модель необратимо портится с этого шага (не только один пример).
+    На реальном датасете такое бывает: см. build_chunks/_merge_short_chunks в chunking.py - изолированный
+    короткий кусок (одно слово между двумя длинными паузами) НАМЕРЕННО остаётся коротким, клеить его
+    не с чем, но CTC-тренировке такой кусок просто физически не по силам (аудио короче собственного
+    текста), поэтому отсеиваем его здесь, а не полагаемся на упавший через часы NaN grad_norm."""
+    viable = []
+    skipped = 0
+    for item in items:
+        _, start_ms, end_ms, text = item
+        num_samples = int((end_ms - start_ms) / 1000 * sample_rate)
+        output_len = _feat_extract_output_length(num_samples, model)
+        text_normalized = re.sub(r"\s+", "|", text.strip().lower())
+        label_len = len(tokenizer(text_normalized).input_ids)
+        if output_len >= 2 * label_len + 1:
+            viable.append(item)
+        else:
+            skipped += 1
+    if skipped:
+        print(f"Отфильтровано чанков для {label_for_log} (аудио физически коротко под собственный "
+              f"текст, T<2L+1 для CTC): {skipped} из {len(items)}")
+    return viable
+
+
 class AlignmentDataset(Dataset):
     """Каждый элемент - короткий (20-30 сек, см. chunking.py) кусок аудио + текст ИМЕННО этого
     куска (не всей песни). Точные тайминги слогов из манифеста здесь дальше не нужны - только для
@@ -287,6 +331,11 @@ def main():
         ignore_mismatched_sizes=True,  # свой словарь по символам, не оригинальный MMS-словарь
     )
     model.freeze_feature_encoder()
+
+    train_items = _filter_ctc_viable(train_items, model, tokenizer, feature_extractor.sampling_rate, "обучения")
+    eval_items = _filter_ctc_viable(eval_items, model, tokenizer, feature_extractor.sampling_rate, "оценки")
+    if not train_items:
+        raise SystemExit("После фильтрации не осталось ни одного чанка для обучения - см. вывод выше")
 
     train_dataset = AlignmentDataset(train_items, processor, feature_extractor.sampling_rate)
     eval_dataset = AlignmentDataset(eval_items, processor, feature_extractor.sampling_rate)

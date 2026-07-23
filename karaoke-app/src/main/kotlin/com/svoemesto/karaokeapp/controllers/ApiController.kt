@@ -86,6 +86,27 @@ data class SelectFamilySongResultDto(
 )
 
 /**
+ * DTO кандидата картинки альбома (результат поиска обложки): сериализуемое представление для API/UI.
+ *
+ * @see AGENTS.md
+ */
+data class AlbumCoverCandidateDto(
+    val url: String,
+    val source: String,
+)
+
+/**
+ * DTO результата поиска обложки альбома: сериализуемое представление для API/UI.
+ *
+ * @see AGENTS.md
+ */
+data class AlbumCoverSearchResponseDto(
+    val ok: Boolean,
+    val message: String,
+    val candidates: List<AlbumCoverCandidateDto>,
+)
+
+/**
  * DTO для find audio parent result: сериализуемое представление для API/UI.
  *
  * @see AGENTS.md
@@ -161,6 +182,7 @@ class ApiController(
     private val storageService: KaraokeStorageService,
     private val storageApiClient: StorageApiClient,
     private val lyricsFinderService: LyricsFinderService,
+    private val albumCoverService: AlbumCoverService,
 ) {
     private val lenientJson = Json { ignoreUnknownKeys = true }
 
@@ -3033,6 +3055,134 @@ class ApiController(
             return "/api/picture/file?file=${java.net.URLEncoder.encode(pic.storageFileName, java.nio.charset.StandardCharsets.UTF_8)}"
         }
         return ""
+    }
+
+    // Поиск обложки альбома (Яндекс.Музыка → SearXNG-фолбэк), см. AlbumCoverFinder.kt
+    @PostMapping("/song/searchalbumcover")
+    @ResponseBody
+    fun searchAlbumCover(
+        @RequestParam id: Long,
+    ): AlbumCoverSearchResponseDto {
+        val settings =
+            Settings.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            ) ?: return AlbumCoverSearchResponseDto(ok = false, message = "Песня не найдена", candidates = emptyList())
+
+        val authorYmId =
+            Author
+                .getAuthorByName(
+                    author = settings.author,
+                    database = WORKING_DATABASE,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                )?.ymId
+
+        return when (
+            val outcome =
+                albumCoverService.search(authorYmId = authorYmId, author = settings.author, album = settings.album)
+        ) {
+            is AlbumCoverSearchOutcome.Found -> {
+                val candidates =
+                    outcome.candidates.map { candidate ->
+                        AlbumCoverCandidateDto(
+                            url =
+                                "/api/song/albumcoverproxy?url=${java.net.URLEncoder.encode(
+                                    candidate.sourceUrl,
+                                    java.nio.charset.StandardCharsets.UTF_8,
+                                )}",
+                            source = candidate.source.name,
+                        )
+                    }
+                AlbumCoverSearchResponseDto(ok = true, message = outcome.note, candidates = candidates)
+            }
+            is AlbumCoverSearchOutcome.NotFound ->
+                AlbumCoverSearchResponseDto(ok = false, message = outcome.reason, candidates = emptyList())
+        }
+    }
+
+    // Same-origin прокси для внешних картинок-кандидатов — нужен, чтобы фронтовый кроппер мог
+    // читать пиксели через <canvas> без "tainted canvas" (внешние домены не шлют CORS-заголовки).
+    // Используется только из admin-контекста (karaoke-app), не выносить в karaoke-web/публичные модули.
+    @GetMapping("/song/albumcoverproxy")
+    fun getAlbumCoverProxy(
+        @RequestParam url: String,
+    ): ResponseEntity<ByteArray> {
+        val bytes = downloadImageBytes(url) ?: return ResponseEntity.notFound().build()
+        val contentType =
+            if (bytes.size >= 2 && bytes[0] == 0xFF.toByte() && bytes[1] == 0xD8.toByte()) {
+                MediaType.IMAGE_JPEG
+            } else {
+                MediaType.IMAGE_PNG
+            }
+        return ResponseEntity.ok().contentType(contentType).body(bytes)
+    }
+
+    // Сохранение выбранной/скадрированной картинки альбома как LogoAlbum.png в папке альбома +
+    // инвалидация кэша Pictures/MinIO. Фронт присылает уже скадрированный к 1:1 и смасштабированный
+    // до 400x400 PNG (см. AlbumCoverModal.vue); бэкенд defensively досаживает размер на всякий случай.
+    @PostMapping("/song/savealbumcover")
+    @ResponseBody
+    fun saveAlbumCover(
+        @RequestParam id: Long,
+        @RequestParam imageBase64: String,
+    ): String {
+        val settings =
+            Settings.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            ) ?: return ""
+
+        val decodedBytes =
+            try {
+                Base64.getDecoder().decode(imageBase64)
+            } catch (e: Exception) {
+                println("saveAlbumCover: не удалось декодировать base64: ${e.message}")
+                return ""
+            }
+
+        val finalImage = cropCenterSquareAndResize(decodedBytes, targetSize = 400) ?: return ""
+
+        val targetPath = "${settings.rootFolder}/LogoAlbum.png"
+        try {
+            val file = File(targetPath)
+            ImageIO.write(finalImage, "png", file)
+            runCommand(listOf("chmod", "666", targetPath))
+        } catch (e: Exception) {
+            println("saveAlbumCover: не удалось сохранить файл '$targetPath': ${e.message}")
+            return ""
+        }
+
+        val iosFull = ByteArrayOutputStream()
+        ImageIO.write(finalImage, "png", iosFull)
+        val finalBase64 = Base64.getEncoder().encodeToString(iosFull.toByteArray())
+
+        // Инвалидация кэша: если запись Pictures с таким именем уже существует — обновляем её
+        // (а не создаём новую, чтобы не плодить дубли, см. docs/architecture-notes-archive.md).
+        // Если записи ещё нет — settings.pictureAlbum сам создаст её из только что записанного файла.
+        val existingPicture =
+            Pictures.getPictureByName(
+                name = settings.pictureNameAlbum,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
+        val picture =
+            if (existingPicture != null) {
+                existingPicture.full = finalBase64
+                existingPicture.save()
+                existingPicture
+            } else {
+                settings.pictureAlbum
+            }
+
+        return picture?.let {
+            "/api/picture/file?file=${java.net.URLEncoder.encode(it.storageFileName, java.nio.charset.StandardCharsets.UTF_8)}"
+        } ?: ""
     }
 
     // Получаем дату начала для публикаций

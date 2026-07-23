@@ -1602,10 +1602,13 @@ val listKaraokeProperties =
         // LM Studio (OpenAI-совместимый /v1/chat/completions) на хост-машине админа - LLM для
         // поиска текстов песен (ScraperAgent) и AI-редактора текста (TextCorrectorAgent, SubsEdit
         // "AI-редактор текста"). Заменяет собой прежний путь через LangChain4j + Ollama.
+        // ВАЖНО: при включённом в LM Studio "Обслуживание по локальной сети" сервер слушает
+        // конкретный LAN-адрес хоста (видно в Developer -> Local Server -> "Reachable at"), а НЕ
+        // 0.0.0.0 - поэтому host.docker.internal туда не достучится, нужен именно этот LAN IP.
         KaraokeProperty(
             key = "lmStudioUrl",
-            defaultValue = "http://host.docker.internal:1234/v1/chat/completions",
-            description = "LM Studio: полный URL /v1/chat/completions (сервер на хосте, доступен с хоста как http://127.0.0.1:1234). Пусто = функция выключена",
+            defaultValue = "",
+            description = "LM Studio: полный URL /v1/chat/completions. Берите адрес из LM Studio -> Developer -> Local Server -> \"Reachable at\" (обычно LAN IP хоста, не host.docker.internal). Пусто = функция выключена",
         ),
         KaraokeProperty(
             key = "lmStudioModel",

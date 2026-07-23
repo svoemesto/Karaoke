@@ -32,6 +32,18 @@
               <textarea v-model="originalText" class="ae-textarea" />
             </div>
 
+            <div class="ae-transfer">
+              <button
+                class="ae-transfer-button"
+                type="button"
+                :disabled="!correctedText"
+                title="Перенести текст результата в исходное поле"
+                @click="copyResultToOriginal"
+              >
+                ←
+              </button>
+            </div>
+
             <div class="ae-column">
               <div class="ae-column-title">Результат корректора</div>
               <div ref="resultBox" class="ae-textarea ae-result" contenteditable="true" @input="onResultInput" />
@@ -44,7 +56,7 @@
           </div>
 
           <div class="ae-footer">
-            <button class="ae-btn ae-btn-apply" type="button" :disabled="!correctedText" @click="apply">
+            <button class="ae-btn ae-btn-apply" type="button" :disabled="!originalText.trim()" @click="apply">
               Применить изменения
             </button>
             <button class="ae-btn ae-btn-close" type="button" @click="close">Закрыть без применения</button>
@@ -117,12 +129,13 @@ function buildDiffHtml(oldText, newText) {
 }
 
 /**
- * AI-редактор текста песни (кнопка в SubsEdit.vue): отправляет текст на коррекцию в LLM
- * (langchain4j + Ollama, тот же стек, что уже используется в проекте для поиска текстов песен)
- * и показывает результат рядом с исходным текстом, подсвечивая цветом внесённые правки.
- * Результат можно доредактировать вручную перед применением.
+ * AI-редактор текста песни (кнопка в SubsEdit.vue): отправляет текст на коррекцию в LLM (LM
+ * Studio, см. LmStudioService/TextCorrectorAgent) и показывает результат рядом с исходным
+ * текстом, подсвечивая цветом внесённые правки. Кнопка "←" переносит результат в исходное поле
+ * (можно применить несколько коррекций подряд), "Применить изменения" отправляет наружу именно
+ * ИСХОДНОЕ (левое) поле.
  *
- * @emits apply(text: string) - перенести текст результата в текст голоса
+ * @emits apply(text: string) - перенести текст исходного (левого) поля в текст голоса
  * @emits close - закрыть без применения
  */
 export default {
@@ -182,11 +195,16 @@ export default {
     onResultInput(event) {
       // Правая панель — contenteditable "неконтролируемый" компонент: innerHTML не биндится
       // реактивно (иначе курсор прыгал бы на каждый ререндер), поэтому при ручной правке текста
-      // результата просто синхронизируем plain-text в correctedText для кнопки "Применить".
+      // результата просто синхронизируем plain-text в correctedText для кнопки "←".
       this.correctedText = event.target.innerText
     },
+    copyResultToOriginal() {
+      this.originalText = this.correctedText
+    },
     apply() {
-      this.$emit('apply', this.correctedText)
+      // Применяется всегда ИСХОДНЫЙ (левый) текст - чтобы попасть в песню, результат корректора
+      // сначала нужно явно перенести туда кнопкой "←".
+      this.$emit('apply', this.originalText)
     },
     close() {
       this.$emit('close')
@@ -270,6 +288,29 @@ export default {
   gap: 10px;
 }
 
+.ae-transfer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 20px;
+}
+
+.ae-transfer-button {
+  border: solid 1px black;
+  border-radius: 6px;
+  padding: 10px 12px;
+  background-color: antiquewhite;
+  font-size: 20px;
+  line-height: 1;
+}
+.ae-transfer-button:hover {
+  background-color: lightpink;
+}
+.ae-transfer-button[disabled] {
+  background-color: lightgray;
+  cursor: not-allowed;
+}
+
 .ae-column {
   display: flex;
   flex-direction: column;
@@ -287,6 +328,7 @@ export default {
   min-height: 200px;
   font-family: 'Courier New', Courier, monospace;
   font-size: small;
+  text-align: left;
   overflow: auto;
   resize: none;
   white-space: pre-wrap;
@@ -306,15 +348,6 @@ export default {
   margin-top: 10px;
   font-size: small;
   color: dimgray;
-}
-
-.ae-mark {
-  border-radius: 3px;
-  padding: 0 2px;
-}
-
-.ae-added {
-  background-color: #b6f2b6;
 }
 
 .ae-footer {
@@ -345,5 +378,20 @@ export default {
 
 .ae-btn-apply {
   font-weight: bold;
+}
+</style>
+
+<!--
+  Не scoped: buildDiffHtml() вставляет эти span'ы через $refs.resultBox.innerHTML (мимо Vue-компилятора),
+  поэтому они не получают атрибут data-v-xxx и правила из <style scoped> выше на них не действуют.
+-->
+<style>
+.ae-mark {
+  border-radius: 3px;
+  padding: 0 2px;
+}
+
+.ae-added {
+  background-color: #b6f2b6;
 }
 </style>

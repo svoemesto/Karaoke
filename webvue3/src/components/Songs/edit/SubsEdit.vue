@@ -19,6 +19,8 @@
             :whisper-text="autoMarkersDebug.whisperText"
             :whisper-words="autoMarkersDebug.whisperWords"
             :markers="autoMarkersDebug.markers"
+            :is-loading="isAutoMarkersLoading || isForcedAlignLoading"
+            :loading-text="autoMarkersDebugLoadingText"
             @apply="applyAutoMarkersToEditor"
             @close="closeWhisperDebug"
           />
@@ -1260,6 +1262,7 @@ export default {
       isForcedAlignLoading: false,
       isWhisperDebugVisible: false,
       autoMarkersDebug: { whisperText: '', whisperWords: [], markers: [] },
+      autoMarkersDebugLoadingText: '',
       isSearchTextVisible: false,
       isAiTextEditorVisible: false,
       selectedText: '',
@@ -4204,12 +4207,18 @@ export default {
     },
     async doApplyAutoMarkers() {
       this.isAutoMarkersLoading = true
+      // Открываем модалку сразу (со спинером) — распознавание Whisper может идти долго, и
+      // пользователь не должен смотреть на "ничего не происходит" всё это время.
+      this.autoMarkersDebug = { whisperText: '', whisperWords: [], markers: [] }
+      this.autoMarkersDebugLoadingText = 'Распознавание вокала (Whisper)...'
+      this.isWhisperDebugVisible = true
       try {
         const responseText = await this.$store.dispatch('getAutoMarkers', {
           sourceText: this.sourceText,
         })
         const result = JSON.parse(responseText)
         if (!result.ok) {
+          this.isWhisperDebugVisible = false
           const messages = {
             empty_source_text: 'У голоса пока нет текста — нечего сопоставлять с распознаванием.',
             song_not_found: 'Песня не найдена.',
@@ -4229,8 +4238,8 @@ export default {
           whisperWords: result.whisperWords || [],
           markers: result.markers || [],
         }
-        this.isWhisperDebugVisible = true
       } catch (error) {
+        this.isWhisperDebugVisible = false
         console.error('Ошибка авто-маркеров:', error)
         alert('Ошибка авто-маркеров, подробности в консоли.')
       } finally {
@@ -4268,12 +4277,18 @@ export default {
     },
     async doApplyForcedAlignMarkers() {
       this.isForcedAlignLoading = true
+      // Открываем модалку сразу (со спинером) - согласование + forced-alignment вместе могут
+      // идти долго, и пользователь не должен смотреть на "ничего не происходит" всё это время.
+      this.autoMarkersDebug = { whisperText: '', whisperWords: [], markers: [] }
+      this.autoMarkersDebugLoadingText = 'Согласование текста с Whisper...'
+      this.isWhisperDebugVisible = true
       try {
         const reconcileResponseText = await this.$store.dispatch('getReconcileText', {
           sourceText: this.sourceText,
         })
         const reconcileResult = JSON.parse(reconcileResponseText)
         if (!reconcileResult.ok) {
+          this.isWhisperDebugVisible = false
           const messages = {
             empty_source_text: 'У голоса пока нет текста — нечего согласовывать.',
             song_not_found: 'Песня не найдена.',
@@ -4287,11 +4302,13 @@ export default {
 
         const textForAlignment = reconcileResult.text || this.sourceText
 
+        this.autoMarkersDebugLoadingText = 'Выравнивание по слогам (forced-alignment)...'
         const alignResponseText = await this.$store.dispatch('getForcedAlignMarkers', {
           sourceText: textForAlignment,
         })
         const alignResult = JSON.parse(alignResponseText)
         if (!alignResult.ok) {
+          this.isWhisperDebugVisible = false
           const messages = {
             empty_source_text: 'Пустой текст для выравнивания.',
             song_not_found: 'Песня не найдена.',
@@ -4314,8 +4331,8 @@ export default {
           whisperWords: reconcileResult.whisperWords || [],
           markers: alignResult.markers || [],
         }
-        this.isWhisperDebugVisible = true
       } catch (error) {
+        this.isWhisperDebugVisible = false
         console.error('Ошибка forced-alignment маркеров:', error)
         alert('Ошибка forced-alignment маркеров, подробности в консоли.')
       } finally {

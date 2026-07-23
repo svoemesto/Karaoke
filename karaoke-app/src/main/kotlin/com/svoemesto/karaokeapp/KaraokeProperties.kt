@@ -1608,7 +1608,9 @@ val listKaraokeProperties =
         KaraokeProperty(
             key = "lmStudioUrl",
             defaultValue = "",
-            description = "LM Studio: полный URL /v1/chat/completions. Берите адрес из LM Studio -> Developer -> Local Server -> \"Reachable at\" (обычно LAN IP хоста, не host.docker.internal). Пусто = функция выключена",
+            description =
+                "LM Studio: полный URL /v1/chat/completions. Берите адрес из LM Studio -> Developer -> " +
+                    "Local Server -> \"Reachable at\" (обычно LAN IP хоста, не host.docker.internal). Пусто = функция выключена",
         ),
         KaraokeProperty(
             key = "lmStudioModel",

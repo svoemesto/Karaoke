@@ -15,7 +15,7 @@ services:
       - WHISPER_API_KEY=nafanya_whisper_2026
       - HF_TOKEN=hf_key _
     volumes:
-      - /opt/whisper_models:/var/lib/whisper
+      - ./whisper_models:/var/lib/whisper
     deploy:
       resources:
         reservations:

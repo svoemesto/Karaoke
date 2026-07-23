@@ -5,6 +5,7 @@ import com.svoemesto.karaokeapp.Karaoke
 import com.svoemesto.karaokeapp.KaraokeConnection
 import com.svoemesto.karaokeapp.KaraokeFileType
 import com.svoemesto.karaokeapp.WORKING_DATABASE
+import com.svoemesto.karaokeapp.llm.TextCorrectorAgent
 import com.svoemesto.karaokeapp.model.KaraokeDbTable
 import com.svoemesto.karaokeapp.model.SettingField
 import com.svoemesto.karaokeapp.model.Settings
@@ -781,5 +782,28 @@ class SongEditorController(
                 ?: return mapOf("ok" to false, "error" to "syllable_count_mismatch")
 
         return mapOf("ok" to true, "markers" to markers)
+    }
+
+    // AI-редактор текста (кнопка в SubsEdit.vue): исправление орфографии/пунктуации через LLM -
+    // LM Studio, тот же клиент (LmStudioService), что и ScraperAgent для поиска текстов песен
+    // (см. docs/features/llm-lyrics-search.md). Ничего не сохраняет - фронт показывает результат
+    // с подсветкой правок, применяет обычным Apply, сохраняет обычным Save.
+    @PostMapping("/edit/correctText")
+    @ResponseBody
+    fun editCorrectText(
+        @RequestParam mode: String,
+        @RequestParam sourceText: String,
+    ): Map<String, Any?> {
+        if (sourceText.isBlank()) return mapOf("ok" to false, "error" to "empty_source_text")
+        if (mode != "spelling" && mode != "punctuation") return mapOf("ok" to false, "error" to "bad_mode")
+
+        val corrected =
+            try {
+                if (mode == "spelling") TextCorrectorAgent.fixSpelling(sourceText) else TextCorrectorAgent.fixPunctuation(sourceText)
+            } catch (e: Exception) {
+                null
+            } ?: return mapOf("ok" to false, "error" to "lm_studio_unavailable")
+
+        return mapOf("ok" to true, "text" to corrected)
     }
 }

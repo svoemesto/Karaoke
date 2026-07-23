@@ -319,7 +319,7 @@ def main():
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
         data_collator=data_collator,
-        tokenizer=processor.feature_extractor,
+        processing_class=processor.feature_extractor,  # Trainer(tokenizer=...) переименован/убран
         callbacks=[ProgressLoggerCallback()],
     )
 

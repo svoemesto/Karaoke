@@ -1599,4 +1599,27 @@ val listKaraokeProperties =
             defaultValue = 300_000L,
             description = "Forced-alignment: таймаут HTTP-запроса (миллисекунды)",
         ),
+        // LM Studio (OpenAI-совместимый /v1/chat/completions) на хост-машине админа - LLM для
+        // поиска текстов песен (ScraperAgent) и AI-редактора текста (TextCorrectorAgent, SubsEdit
+        // "AI-редактор текста"). Заменяет собой прежний путь через LangChain4j + Ollama.
+        KaraokeProperty(
+            key = "lmStudioUrl",
+            defaultValue = "http://host.docker.internal:1234/v1/chat/completions",
+            description = "LM Studio: полный URL /v1/chat/completions (сервер на хосте, доступен с хоста как http://127.0.0.1:1234). Пусто = функция выключена",
+        ),
+        KaraokeProperty(
+            key = "lmStudioModel",
+            defaultValue = "",
+            description = "LM Studio: id модели, загруженной в LM Studio (см. вкладку Local Server / список /v1/models)",
+        ),
+        KaraokeProperty(
+            key = "lmStudioApiKey",
+            defaultValue = "",
+            description = "LM Studio: Bearer-токен, если в LM Studio включена проверка ключа (обычно не требуется)",
+        ),
+        KaraokeProperty(
+            key = "lmStudioTimeoutMs",
+            defaultValue = 120_000L,
+            description = "LM Studio: таймаут HTTP-запроса (миллисекунды)",
+        ),
     )

@@ -59,8 +59,10 @@ dependencies {
 
     implementation("com.microsoft.playwright:playwright:1.56.0")
 
+    // LangChain4j используется только ради @Tool на SearchTool (см. llm/Tools.kt) - сами LLM-вызовы
+    // (ScraperAgent, TextCorrectorAgent) идут напрямую через LmStudioService (LM Studio), путь через
+    // langchain4j-ollama-spring-boot-starter/Ollama устарел и убран.
     implementation("dev.langchain4j:langchain4j-spring-boot-starter:0.36.2")
-    implementation("dev.langchain4j:langchain4j-ollama-spring-boot-starter:0.36.2")
 }
 
 tasks.withType<KotlinCompile> {

@@ -5,7 +5,11 @@
         <div class="wd-modal-header">Whisper: результат распознавания (отладка)</div>
 
         <div class="wd-modal-body">
-          <div class="wd-body">
+          <div v-if="isLoading" class="wd-loading">
+            <div class="wd-spinner" />
+            <div class="wd-loading-text">{{ loadingText || 'Обработка...' }}</div>
+          </div>
+          <div v-else class="wd-body">
             <div class="wd-column">
               <div class="wd-column-title">Сырой текст Whisper</div>
               <textarea class="wd-textarea" readonly v-text="whisperText" />
@@ -35,13 +39,15 @@
             <button
               class="wd-btn wd-btn-apply"
               type="button"
-              :disabled="markers.length === 0"
+              :disabled="isLoading || markers.length === 0"
               :title="markers.length === 0 ? 'Маркеров нет — нечего применять (текст можно скопировать выше)' : ''"
               @click="apply"
             >
               Применить маркеры к голосу
             </button>
-            <button class="wd-btn wd-btn-close" type="button" @click="close">Закрыть без применения</button>
+            <button class="wd-btn wd-btn-close" type="button" :disabled="isLoading" @click="close">
+              Закрыть без применения
+            </button>
           </div>
         </div>
       </div>
@@ -73,6 +79,14 @@ export default {
     markers: {
       type: Array,
       default: () => [],
+    },
+    isLoading: {
+      type: Boolean,
+      default: false,
+    },
+    loadingText: {
+      type: String,
+      default: '',
     },
   },
   computed: {
@@ -141,6 +155,36 @@ export default {
   display: flex;
   flex-direction: row;
   gap: 10px;
+}
+
+.wd-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  width: calc(400px * 3 + 20px);
+  height: calc(100vh - 320px);
+}
+
+.wd-spinner {
+  width: 48px;
+  height: 48px;
+  border: 5px solid lightgray;
+  border-top-color: darkslategray;
+  border-radius: 50%;
+  animation: wd-spin 1s linear infinite;
+}
+
+.wd-loading-text {
+  font-size: larger;
+  color: black;
+}
+
+@keyframes wd-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .wd-column {

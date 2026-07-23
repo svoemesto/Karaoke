@@ -9,6 +9,12 @@ import kotlin.math.min
 private const val COLOR_FIRST_SYLLABLE = "#008000"
 private const val COLOR_SYLLABLE = "#D2691E"
 private const val COLOR_ENDOFLINE = "#FF0000"
+private const val COLOR_NEWLINE = "#FF0000"
+
+// Ручной аналог в SubsEdit.vue — клавиша "4" (пустая строка между блоками текста, см. addMarker):
+// в авто-маркерах вставляем NEWLINE-маркер за столько секунд ДО начала следующей строки, либо
+// посередине "тишины" между строками, если та короче этого отступа (см. newLineMarkerTime).
+private const val NEWLINE_LEAD_IN_SECONDS = 1.0
 
 // Ниже этой уверенности распознанное слово не используется как "якорь" времени — Whisper мог
 // просто угадать мимо, и доверять его времени в этом случае опаснее, чем интерполировать.
@@ -119,7 +125,7 @@ object WhisperMarkerAligner {
             }
 
             val isLastOfLine = wordIndex == targetWords.size - 1 || targetWords[wordIndex + 1].lineIndex != word.lineIndex
-            if (isLastOfLine && wordIndex != targetWords.size - 1) {
+            if (isLastOfLine) {
                 val (_, wordEndTime) = syllableTimes[syllableIndex - 1]
                 markers.add(
                     SourceMarker(
@@ -130,6 +136,21 @@ object WhisperMarkerAligner {
                         markertype = Markertype.ENDOFLINE.value,
                     ),
                 )
+                if (wordIndex != targetWords.size - 1) {
+                    val nextWord = targetWords[wordIndex + 1]
+                    if (nextWord.lineIndex - word.lineIndex > 1) {
+                        val (nextLineStartTime, _) = syllableTimes[syllableIndex]
+                        markers.add(
+                            SourceMarker(
+                                time = newLineMarkerTime(wordEndTime, nextLineStartTime),
+                                label = "",
+                                color = COLOR_NEWLINE,
+                                position = "bottom",
+                                markertype = Markertype.NEWLINE.value,
+                            ),
+                        )
+                    }
+                }
             }
         }
         return markers.sortedBy { it.time }
@@ -560,7 +581,7 @@ object WhisperMarkerAligner {
             }
 
             val isLastOfLine = wordIndex == targetWords.size - 1 || targetWords[wordIndex + 1].lineIndex != word.lineIndex
-            if (isLastOfLine && wordIndex != targetWords.size - 1) {
+            if (isLastOfLine) {
                 markers.add(
                     SourceMarker(
                         time = wordEnd,
@@ -570,8 +591,39 @@ object WhisperMarkerAligner {
                         markertype = Markertype.ENDOFLINE.value,
                     ),
                 )
+                if (wordIndex != targetWords.size - 1) {
+                    val nextWord = targetWords[wordIndex + 1]
+                    if (nextWord.lineIndex - word.lineIndex > 1) {
+                        val (nextLineStartTime, _) = wordTimes[wordIndex + 1]
+                        markers.add(
+                            SourceMarker(
+                                time = newLineMarkerTime(wordEnd, nextLineStartTime),
+                                label = "",
+                                color = COLOR_NEWLINE,
+                                position = "bottom",
+                                markertype = Markertype.NEWLINE.value,
+                            ),
+                        )
+                    }
+                }
             }
         }
         return markers.sortedBy { it.time }
+    }
+
+    // Между соседними target-словами лежит >=1 полностью пустая строка исходного текста (граница
+    // блока/куплета — см. lineIndex в buildTargetWords, индекс СЫРОЙ строки, включая пустые).
+    // Время маркера NEWLINE: за NEWLINE_LEAD_IN_SECONDS до начала следующей строки, либо
+    // посередине "тишины" между строками, если та короче этого отступа.
+    private fun newLineMarkerTime(
+        prevLineEndTime: Double,
+        nextLineStartTime: Double,
+    ): Double {
+        val gap = (nextLineStartTime - prevLineEndTime).coerceAtLeast(0.0)
+        return if (gap >= NEWLINE_LEAD_IN_SECONDS) {
+            nextLineStartTime - NEWLINE_LEAD_IN_SECONDS
+        } else {
+            prevLineEndTime + gap / 2
+        }
     }
 }

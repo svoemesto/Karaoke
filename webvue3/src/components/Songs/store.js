@@ -2579,6 +2579,16 @@ export default {
       let request = { method: 'POST', url: '/api/song/findaudioparent', params: params }
       return promisedXMLHttpRequest(request)
     },
+    searchAlbumCoverPromise(ctx) {
+      let params = { id: ctx.state.currentSongId }
+      let request = { method: 'POST', url: '/api/song/searchalbumcover', params: params }
+      return promisedXMLHttpRequest(request)
+    },
+    saveAlbumCoverPromise(ctx, { imageBase64 }) {
+      let params = { id: ctx.state.currentSongId, imageBase64: imageBase64 }
+      let request = { method: 'POST', url: '/api/song/savealbumcover', params: params }
+      return promisedXMLHttpRequest(request)
+    },
     addSyncForAll(ctx) {
       let params = { songsIds: ctx.getters.getSongsDigestIds.join(';') }
       let request = { method: 'POST', url: '/api/songs/addsyncforall', params: params }

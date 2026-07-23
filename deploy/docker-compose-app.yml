@@ -9,6 +9,8 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
+      - LANG=C.utf8
+      - LC_ALL=C.utf8
       - WORK_IN_CONTAINER=1
       - STORAGE_FOLDER=${STORAGE_FOLDER}
       - STORAGE_PORT_HOST=${STORAGE_PORT_HOST}

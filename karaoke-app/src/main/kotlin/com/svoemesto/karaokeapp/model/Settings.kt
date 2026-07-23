@@ -4861,6 +4861,13 @@ class Settings(
 //            println("diff = $diff")
             if (diff.isEmpty()) return
 
+            // Порог показа песни в публичном плеере (см. PublicPlayerController.stemsReady: idStatus>=3
+            // + флаги готовности). Если статус меняют напрямую (правка в таблице/редакторе, апрув
+            // маркеров, авто-подстановка по audio-parent) - персистентные флаги (см.
+            // deploy/karaoke-db/26_player_readiness_flags.sql) без этого пересчёта остаются дефолтным
+            // {} до отдельного прогона health-репорта/recalcplayerreadiness.
+            val crossedReadyThreshold = savedSettings != null && savedSettings.idStatus < 3L && this.idStatus >= 3L
+
             val messageRecordChange =
                 SseNotification.recordChange(
                     RecordChangeMessage(
@@ -4940,6 +4947,15 @@ class Settings(
                         println(e.message)
                     }
                 }
+            }
+
+            if (crossedReadyThreshold) {
+                HealthReport.recomputeAndBroadcast(
+                    settingsId = id,
+                    database = database,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                )
             }
 
             if (savedSettings != null) renameFilesIfDiff(this, savedSettings)

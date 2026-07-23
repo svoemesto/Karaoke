@@ -194,6 +194,12 @@ fun exportAlignmentDataset(
                                 )
                             writer.write(json.encodeToString(AlignmentDatasetRow.serializer(), row))
                             writer.newLine()
+                            // flush после КАЖДОЙ строки - при многочасовом прогоне процесс могут прервать
+                            // (перезапуск karaoke-app) в любой момент; без flush недописанные строки висят
+                            // в буфере BufferedWriter и при жёстком завершении процесса теряются/обрываются
+                            // на середине - именно так уже случалась битая строка в манифесте (см.
+                            // load_manifest в manifest.py, который теперь такие строки пропускает).
+                            writer.flush()
                             tracksExported++
                         }
                         println("  [${index + 1}/${ids.size}] ${settings.songName} (id=$id) - обработано")

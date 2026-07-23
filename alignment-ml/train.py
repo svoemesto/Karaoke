@@ -162,8 +162,10 @@ class AlignmentDataset(Dataset):
 
         input_values = self.processor(waveform.squeeze(0).numpy(), sampling_rate=self.sample_rate).input_values[0]
         text_normalized = re.sub(r"\s+", "|", text.strip().lower())
-        with self.processor.as_target_processor():
-            labels = self.processor(text_normalized).input_ids
+        # processor.as_target_processor() - устаревший (и в установленной версии transformers уже
+        # убранный) способ переключить процессор на токенизатор текста; современный - звать
+        # tokenizer напрямую, он всегда доступен как атрибут Wav2Vec2Processor.
+        labels = self.processor.tokenizer(text_normalized).input_ids
 
         return {"input_values": input_values, "labels": labels}
 
@@ -177,8 +179,7 @@ class DataCollatorCTCWithPadding:
         label_features = [{"input_ids": f["labels"]} for f in features]
 
         batch = self.processor.pad(input_features, padding=True, return_tensors="pt")
-        with self.processor.as_target_processor():
-            labels_batch = self.processor.pad(label_features, padding=True, return_tensors="pt")
+        labels_batch = self.processor.tokenizer.pad(label_features, padding=True, return_tensors="pt")
 
         labels = labels_batch["input_ids"].masked_fill(labels_batch["attention_mask"].ne(1), -100)
         batch["labels"] = labels

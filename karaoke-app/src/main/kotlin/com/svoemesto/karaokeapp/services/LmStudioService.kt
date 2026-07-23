@@ -40,9 +40,11 @@ data class LmStudioChatResponseDto(
 
 /**
  * Тонкий клиент над LM Studio (OpenAI-совместимый `/v1/chat/completions`), поднятым на
- * хост-машине админа отдельно от контейнеров этого проекта (доступен с хоста по
- * http://127.0.0.1:1234, из контейнера — через host.docker.internal). Тот же паттерн тонкого
- * клиента, что и WhisperAsrService/AlignmentServiceClient, только с JSON-body вместо multipart.
+ * хост-машине админа отдельно от контейнеров этого проекта. LM Studio с включённым
+ * "Обслуживание по локальной сети" слушает конкретный LAN IP хоста (не 0.0.0.0), поэтому
+ * host.docker.internal не подходит - см. lmStudioUrl в KaraokeProperties.kt. Тот же паттерн
+ * тонкого клиента, что и WhisperAsrService/AlignmentServiceClient, только с JSON-body вместо
+ * multipart.
  */
 object LmStudioService {
     private val json = Json { ignoreUnknownKeys = true }

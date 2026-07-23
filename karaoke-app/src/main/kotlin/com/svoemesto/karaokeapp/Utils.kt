@@ -4040,6 +4040,9 @@ fun findAndFillDublicates(
             newSettings.sourceText = findedSettings.sourceText
             newSettings.resultText = findedSettings.resultText
             newSettings.sourceMarkers = findedSettings.sourceMarkers
+            newSettings.formattedTextSong = findedSettings.formattedTextSong
+            newSettings.formattedTextTabs = findedSettings.formattedTextTabs
+            newSettings.formattedTextChords = findedSettings.formattedTextChords
             newSettings.fields[SettingField.ID_STATUS] = "1"
             newSettings.saveToDb()
             result++
@@ -4198,6 +4201,9 @@ fun applyDuplicateOriginal(
     newSettings.sourceText = original.sourceText
     newSettings.resultText = original.resultText
     newSettings.sourceMarkers = original.sourceMarkers
+    newSettings.formattedTextSong = original.formattedTextSong
+    newSettings.formattedTextTabs = original.formattedTextTabs
+    newSettings.formattedTextChords = original.formattedTextChords
     newSettings.fields[SettingField.ID_STATUS] = "1"
     newSettings.saveToDb()
 }
@@ -4218,6 +4224,9 @@ fun applyAudioParentMarkers(
     settings.sourceText = audioParent.sourceText
     settings.resultText = audioParent.resultText
     settings.sourceMarkers = shiftMarkersAndFixEnd(audioParent.sourceMarkers, deltaMs, settings.ms)
+    settings.formattedTextSong = audioParent.formattedTextSong
+    settings.formattedTextTabs = audioParent.formattedTextTabs
+    settings.formattedTextChords = audioParent.formattedTextChords
     settings.fields[SettingField.ID_STATUS] = "3"
     settings.saveToDb()
 }
@@ -4249,6 +4258,9 @@ fun applyFamilySongSelection(
         } else {
             another.sourceMarkers
         }
+    settings.formattedTextSong = another.formattedTextSong
+    settings.formattedTextTabs = another.formattedTextTabs
+    settings.formattedTextChords = another.formattedTextChords
     settings.rootId = if (another.rootId != 0L) another.rootId else another.id
     if (settings.idStatus == 0L) settings.fields[SettingField.ID_STATUS] = "1"
     settings.saveToDb()

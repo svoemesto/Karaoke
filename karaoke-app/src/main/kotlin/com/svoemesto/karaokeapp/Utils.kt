@@ -2876,6 +2876,49 @@ fun String.textBetween(
     return stringToSearch.substring(0, lastIndexOfStartString)
 }
 
+/**
+ * Аналог [extractBalancedBracesFromString], но для массива `[...]` объектов `{...}`:
+ * находит `[` сразу после [startWord], затем последовательно вырезает каждый сбалансированный
+ * по фигурным скобкам объект внутри массива (а не только первый, как делает
+ * [extractBalancedBracesFromString] будучи применён к массиву). Используется для перебора ВСЕХ
+ * альбомов автора со страницы Яндекс.Музыки (не только последнего/первого).
+ */
+fun String.extractAllBalancedBraceObjects(startWord: String): List<String> {
+    val result: MutableList<String> = mutableListOf()
+    val firstIndexOfStartWord = this.indexOf(startWord)
+    if (firstIndexOfStartWord < 0) return result
+
+    val indexToStartSearch = firstIndexOfStartWord + startWord.length
+    if (indexToStartSearch >= this.length) return result
+    if (this[indexToStartSearch] != '[') return result
+
+    var i = indexToStartSearch + 1
+    while (i < this.length) {
+        while (i < this.length && (this[i] == ',' || this[i].isWhitespace())) i++
+        if (i >= this.length || this[i] == ']') break
+        if (this[i] != '{') break // неожиданный токен — прекращаем, не пытаемся угадать дальше
+
+        val currentObject = StringBuilder()
+        var counter = 0
+        var j = i
+        while (j < this.length) {
+            val currentSymbol = this[j]
+            currentObject.append(currentSymbol)
+            when (currentSymbol) {
+                '{' -> counter++
+                '}' -> counter--
+            }
+            j++
+            if (counter == 0) break
+        }
+        if (counter != 0) break // скобки не сбалансировались до конца строки
+
+        result.add(currentObject.toString())
+        i = j
+    }
+    return result
+}
+
 fun searchLastAlbumVk(vkId: String): String {
     var result = ""
     val authorUrl = "https://vk.ru/artist/$vkId"

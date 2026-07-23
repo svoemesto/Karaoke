@@ -133,6 +133,16 @@ def build_chunks(
 
     word_of_syllable = [w_idx for w_idx, word in enumerate(words) for _ in word]
     times_ms = [s.time_ms for s in syllables]
+    if any(times_ms[i] > times_ms[i + 1] for i in range(len(times_ms) - 1)):
+        # Не монотонно по времени - весь остальной чанкинг молча предполагает порядок = время
+        # (см. докстринг модуля). На практике встречается, когда WhisperMarkerAligner.kt подобрал
+        # вставке (hasGroundTruth=false) тайминг, "выбивающийся" из её текстовой позиции (известное
+        # ограничение NW-выравнивания, см. комментарий у alignWords в WhisperMarkerAligner.kt) - без
+        # этой проверки такая строка давала бы чанк с отрицательной длительностью (end_ms < start_ms,
+        # см. end_ms = min(duration_ms, ...) ниже), что дальше либо портит обучающий пример пустым
+        # аудио, либо роняет CTC loss (T < S). Пропускаем строку целиком - как и при расхождении
+        # числа слогов (_words_for_syllables выше), надёжнее не гадать про порядок.
+        return []
     indices = list(range(len(syllables)))
 
     groups = _split_by_gaps(indices, times_ms, silence_threshold_ms)
@@ -142,7 +152,10 @@ def build_chunks(
     chunks = []
     for group in groups:
         start_ms = max(0, times_ms[group[0]] - lead_pad_ms)
-        end_ms = min(duration_ms, times_ms[group[-1]] + tail_pad_ms)
+        # duration_ms - тоже данные из манифеста (см. вызывающую сторону) - на случай, если оно
+        # само окажется меньше времени последнего слога группы (не должно происходить в норме, но
+        # это отдельное поле, а не производное от times_ms), не допускаем end_ms < start_ms.
+        end_ms = max(start_ms, min(duration_ms, times_ms[group[-1]] + tail_pad_ms))
         word_indices = sorted({word_of_syllable[i] for i in group})
         text_chunk = " ".join("".join(words[w]) for w in word_indices)
         chunks.append(Chunk(start_ms=start_ms, end_ms=end_ms, text=text_chunk))

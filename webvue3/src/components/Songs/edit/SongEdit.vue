@@ -18,6 +18,11 @@
         @select="selectFamilySong"
         @close="closeFamilySongs"
       />
+      <album-cover-modal
+        v-if="isAlbumCoverModalVisible"
+        @saved="onAlbumCoverSaved"
+        @close="closeAlbumCoverModal"
+      />
       <ReviewModal
         v-if="isAssignReviewVisible"
         @close="isAssignReviewVisible = false"
@@ -1538,6 +1543,14 @@
           <div class="picture-album">
             <img class="image-album" alt="Album image" :src="imageAlbumBase64" />
           </div>
+          <button
+            type="button"
+            class="group-button"
+            title="Найти обложку альбома в интернете или загрузить с диска, скадрировать и сохранить как LogoAlbum.png"
+            @click="showAlbumCoverModal"
+          >
+            Изменить обложку альбома
+          </button>
           <div class="label-and-input">
             <div class="label-medium">Эксклюзивно на sponsr:</div>
             <button
@@ -1897,6 +1910,7 @@ import SubsEdit from './SubsEdit.vue'
 import CustomConfirm from '../../Common/CustomConfirm.vue'
 import HealthReportTable from '../../Common/HealthReport/HealthReportTable.vue'
 import FamilySongsModal from './FamilySongsModal.vue'
+import AlbumCoverModal from './AlbumCoverModal.vue'
 import ReviewModal from '../../SongEditor/ReviewModal.vue'
 import SongKaraokeEditorModal from '../../SongEditor/SongKaraokeEditorModal.vue'
 import {
@@ -1959,6 +1973,7 @@ export default {
     CustomConfirm,
     HealthReportTable,
     FamilySongsModal,
+    AlbumCoverModal,
     ReviewModal,
     SongKaraokeEditorModal,
     SubsEdit,
@@ -1990,6 +2005,7 @@ export default {
       isCustomConfirmVisible: false,
       isHealthReportTableVisible: false,
       isFamilySongsVisible: false,
+      isAlbumCoverModalVisible: false,
       isFindingAudioParent: false,
       isAssignReviewVisible: false,
       isKaraokeEditorVisible: false,
@@ -3031,6 +3047,16 @@ export default {
         this.song.rootId = result.rootId
         this.song.idStatus = result.idStatus
       }
+    },
+    showAlbumCoverModal() {
+      this.isAlbumCoverModalVisible = true
+    },
+    closeAlbumCoverModal() {
+      this.isAlbumCoverModalVisible = false
+    },
+    onAlbumCoverSaved(url) {
+      this.imageAlbumBase64 = url
+      this.isAlbumCoverModalVisible = false
     },
     async findAudioParent() {
       if (this.isFindingAudioParent) return

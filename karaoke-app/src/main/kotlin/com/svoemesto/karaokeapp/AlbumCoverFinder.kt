@@ -282,12 +282,19 @@ class AlbumCoverService(
             .connectTimeout(Duration.ofSeconds(10))
             .build()
 
+    fun defaultSearchQuery(
+        author: String,
+        album: String,
+    ): String = "$author $album обложка альбома"
+
     fun search(
         authorYmId: String?,
         author: String,
         album: String,
+        skipYandex: Boolean = false,
+        customQuery: String? = null,
     ): AlbumCoverSearchOutcome {
-        if (!authorYmId.isNullOrBlank()) {
+        if (!skipYandex && !authorYmId.isNullOrBlank()) {
             if (isVpnActive()) {
                 logger.info("AlbumCoverService: VPN активен на этой машине — пропускаем Яндекс.Музыку для '$author - $album'")
             } else {
@@ -299,7 +306,8 @@ class AlbumCoverService(
                 )
             }
         }
-        val fallbackCandidates = searchSearxngImages("$author $album обложка альбома")
+        val query = customQuery?.trim()?.takeIf { it.isNotEmpty() } ?: defaultSearchQuery(author, album)
+        val fallbackCandidates = searchSearxngImages(query)
         return if (fallbackCandidates.isNotEmpty()) {
             AlbumCoverSearchOutcome.Found(fallbackCandidates, note = "Найдено через общий веб-поиск (не Яндекс.Музыка)")
         } else {

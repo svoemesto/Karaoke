@@ -2579,8 +2579,10 @@ export default {
       let request = { method: 'POST', url: '/api/song/findaudioparent', params: params }
       return promisedXMLHttpRequest(request)
     },
-    searchAlbumCoverPromise(ctx) {
+    searchAlbumCoverPromise(ctx, payload) {
       let params = { id: ctx.state.currentSongId }
+      if (payload && payload.query) params.query = payload.query
+      if (payload && payload.skipYandex) params.skipYandex = true
       let request = { method: 'POST', url: '/api/song/searchalbumcover', params: params }
       return promisedXMLHttpRequest(request)
     },

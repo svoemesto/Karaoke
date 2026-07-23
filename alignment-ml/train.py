@@ -41,6 +41,7 @@ from transformers import (
     Wav2Vec2ForCTC,
     Wav2Vec2Processor,
 )
+from transformers.trainer_utils import get_last_checkpoint
 
 from align import read_audio_segment
 from chunking import (
@@ -157,6 +158,13 @@ def main():
     parser.add_argument("--include-secondary-voices", action="store_true",
                          help="Включить voice>0 (по умолчанию исключены - один файл вокала на несколько "
                               "голосов, with_star помогает частично/нестабильно, см. align.py)")
+    parser.add_argument("--save-steps", type=int, default=500,
+                         help="Чекпоинт каждые N шагов оптимизатора (не только по эпохам) - точка, с "
+                              "которой можно продолжить после остановки (см. --resume). Меньше значение "
+                              "= чаще пишем на диск (I/O-накладные расходы), но меньше теряем при остановке.")
+    parser.add_argument("--resume", action="store_true",
+                         help="Продолжить обучение с последнего чекпоинта в --output-dir (если он там "
+                              "есть) - вместо того чтобы начинать с нуля от facebook/mms-1b-all.")
     args = parser.parse_args()
 
     rows = load_manifest(args.manifest)
@@ -194,10 +202,18 @@ def main():
     train_items, eval_items = items[:-holdout_n], items[-holdout_n:]
     print(f"Чанков для обучения: {len(train_items)}, для оценки: {len(eval_items)}")
 
-    vocab = build_vocab([text for _, _, _, text in train_items])
     vocab_path = Path(args.output_dir) / "vocab.json"
     vocab_path.parent.mkdir(parents=True, exist_ok=True)
-    vocab_path.write_text(json.dumps(vocab, ensure_ascii=False), encoding="utf-8")
+    if vocab_path.exists():
+        # Уже есть словарь от предыдущего запуска (в т.ч. при --resume) - переиспользуем как есть,
+        # НЕ перестраиваем из текущих train_items: у уже сохранённых чекпоинтов CTC-голова модели
+        # зашита под конкретный vocab_size/индексы символов - малейшее расхождение (другой --limit,
+        # другой набор голосов и т.п. дали бы другой набор символов) сломает загрузку весов чекпоинта.
+        vocab = json.loads(vocab_path.read_text(encoding="utf-8"))
+        print(f"Использую существующий словарь {vocab_path} (для совместимости с уже сохранёнными чекпоинтами)")
+    else:
+        vocab = build_vocab([text for _, _, _, text in train_items])
+        vocab_path.write_text(json.dumps(vocab, ensure_ascii=False), encoding="utf-8")
 
     tokenizer = Wav2Vec2CTCTokenizer(str(vocab_path), unk_token="[UNK]", pad_token="[PAD]", word_delimiter_token="|")
     feature_extractor = Wav2Vec2FeatureExtractor(
@@ -225,14 +241,18 @@ def main():
         gradient_accumulation_steps=args.grad_accum_steps,
         optim=args.optim,
         num_train_epochs=args.epochs,
-        eval_strategy="epoch",
-        save_strategy="epoch",
+        eval_strategy="steps",
+        eval_steps=args.save_steps,
+        save_strategy="steps",
+        save_steps=args.save_steps,
+        logging_steps=max(1, args.save_steps // 10),
         learning_rate=1e-5,
         warmup_steps=100,
         fp16=torch.cuda.is_available(),
         group_by_length=True,
         gradient_checkpointing=True,
         save_total_limit=2,
+        report_to=[],  # без wandb/tensorboard - без этого Trainer может ждать интерактивный wandb-логин
     )
 
     trainer = Trainer(
@@ -244,7 +264,20 @@ def main():
         tokenizer=processor.feature_extractor,
     )
 
-    trainer.train()
+    # --resume - продолжаем с последнего чекпоинта в output-dir (веса модели, состояние оптимизатора
+    # и шедулера, пройденные шаги/эпохи - HF Trainer восстанавливает всё это сам). Без --resume, но с
+    # уже существующими чекпоинтами в output-dir, НАМЕРЕННО не подхватываем их автоматически -
+    # чтобы случайный повторный запуск команды без --resume не тихо "доучивал" старую модель, а
+    # начинал заново (что и было поведением по умолчанию раньше).
+    resume_from_checkpoint = None
+    if args.resume:
+        resume_from_checkpoint = get_last_checkpoint(args.output_dir)
+        if resume_from_checkpoint is None:
+            print(f"--resume указан, но в {args.output_dir} нет сохранённых чекпоинтов - начинаем с нуля.")
+        else:
+            print(f"Продолжаем обучение с чекпоинта: {resume_from_checkpoint}")
+
+    trainer.train(resume_from_checkpoint=resume_from_checkpoint)
     trainer.save_model(args.output_dir)
     processor.save_pretrained(args.output_dir)
     print(f"Готово. Чекпоинт сохранён в {args.output_dir} - передайте его в align.py через --model.")

@@ -28,6 +28,7 @@ import argparse
 import json
 import re
 import statistics
+import time
 from pathlib import Path
 
 import torch
@@ -35,6 +36,7 @@ import torchaudio
 from torch.utils.data import Dataset
 from transformers import (
     Trainer,
+    TrainerCallback,
     TrainingArguments,
     Wav2Vec2CTCTokenizer,
     Wav2Vec2FeatureExtractor,
@@ -55,6 +57,57 @@ from chunking import (
 from manifest import load_manifest
 
 BASE_CHECKPOINT = "facebook/mms-1b-all"  # тот же чекпоинт, что использует align.py как baseline
+
+
+def _format_duration(seconds: float) -> str:
+    if seconds == float("inf") or seconds != seconds:  # inf или NaN (rate ещё не посчитан)
+        return "?"
+    seconds = int(seconds)
+    hours, seconds = divmod(seconds, 3600)
+    minutes, seconds = divmod(seconds, 60)
+    return f"{hours}ч{minutes:02d}м{seconds:02d}с" if hours else f"{minutes}м{seconds:02d}с"
+
+
+class ProgressLoggerCallback(TrainerCallback):
+    """Печатает прогресс дообучения ПОСТРОЧНО (не через tqdm-бар с '\\r') - при многочасовом фоновом
+    прогоне (nohup/screen) удобно смотреть через `tail -f`, а перезаписываемая на месте строка
+    прогресс-бара в файле лога превращается в мусор. См. disable_tqdm=True рядом в TrainingArguments -
+    эта колбэк-печать полностью заменяет стандартный прогресс-бар, а не дублирует его."""
+
+    def __init__(self):
+        self.start_time: float | None = None
+
+    def on_train_begin(self, args, state, control, **kwargs):
+        self.start_time = time.time()
+        print(
+            f"[train] начало: всего шагов={state.max_steps}, эпох={args.num_train_epochs}, "
+            f"текущий шаг={state.global_step} (0, если не --resume)",
+            flush=True,
+        )
+
+    def on_log(self, args, state, control, logs=None, **kwargs):
+        if not logs or self.start_time is None:
+            return
+        # eval-логи (eval_loss и т.п.) идут отдельным вызовом on_log без "loss" - печатаем и их,
+        # чтобы было видно и обучающий, и eval-лосс на каждой контрольной точке (--save-steps).
+        elapsed = time.time() - self.start_time
+        step = state.global_step
+        total = state.max_steps or 1
+        percent = 100 * step / total
+        rate = step / elapsed if elapsed > 0 else 0
+        remaining = (total - step) / rate if rate > 0 else float("inf")
+
+        parts = [f"шаг {step}/{total} ({percent:.1f}%)", f"эпоха {logs.get('epoch', state.epoch or 0):.2f}"]
+        for key, label in (("loss", "loss"), ("eval_loss", "eval_loss"), ("learning_rate", "lr")):
+            if key in logs:
+                value = logs[key]
+                parts.append(f"{label}={value:.2e}" if key == "learning_rate" else f"{label}={value:.4f}")
+        parts.append(f"прошло={_format_duration(elapsed)}")
+        parts.append(f"осталось≈{_format_duration(remaining)}")
+        print("[train] " + " | ".join(parts), flush=True)
+
+    def on_save(self, args, state, control, **kwargs):
+        print(f"[train] чекпоинт сохранён: шаг {state.global_step} -> {args.output_dir}", flush=True)
 
 
 def build_vocab(texts: list[str]) -> dict[str, int]:
@@ -165,6 +218,9 @@ def main():
     parser.add_argument("--resume", action="store_true",
                          help="Продолжить обучение с последнего чекпоинта в --output-dir (если он там "
                               "есть) - вместо того чтобы начинать с нуля от facebook/mms-1b-all.")
+    parser.add_argument("--logging-steps", type=int, default=None,
+                         help="Как часто печатать прогресс в лог (шагов оптимизатора). "
+                              "По умолчанию - save-steps/10 (можно чаще логировать, чем сохранять).")
     args = parser.parse_args()
 
     rows = load_manifest(args.manifest)
@@ -245,7 +301,9 @@ def main():
         eval_steps=args.save_steps,
         save_strategy="steps",
         save_steps=args.save_steps,
-        logging_steps=max(1, args.save_steps // 10),
+        logging_steps=args.logging_steps or max(1, args.save_steps // 10),
+        logging_first_step=True,  # лог сразу на первом шаге - видно, что процесс реально пошёл
+        disable_tqdm=True,  # прогресс печатает ProgressLoggerCallback построчно (см. его докстринг)
         learning_rate=1e-5,
         warmup_steps=100,
         fp16=torch.cuda.is_available(),
@@ -262,6 +320,7 @@ def main():
         eval_dataset=eval_dataset,
         data_collator=data_collator,
         tokenizer=processor.feature_extractor,
+        callbacks=[ProgressLoggerCallback()],
     )
 
     # --resume - продолжаем с последнего чекпоинта в output-dir (веса модели, состояние оптимизатора

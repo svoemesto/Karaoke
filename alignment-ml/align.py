@@ -193,8 +193,9 @@ def _align_words_finetuned(waveform: torch.Tensor, words: list[str]) -> list[tup
         logits = _model(torch.tensor(input_values)).logits
         emission = torch.log_softmax(logits, dim=-1)
 
-    with _custom_processor.as_target_processor():
-        token_ids = torch.tensor([_custom_processor(text_normalized).input_ids])
+    # as_target_processor() - устаревший способ переключить процессор на токенизатор текста (и уже
+    # убран в некоторых версиях transformers, см. train.py) - зовём tokenizer напрямую.
+    token_ids = torch.tensor([_custom_processor.tokenizer(text_normalized).input_ids])
 
     aligned_tokens, scores = torchaudio.functional.forced_align(emission, token_ids, blank=_custom_processor.tokenizer.pad_token_id)
     token_spans = torchaudio.functional.merge_tokens(aligned_tokens[0], scores[0])

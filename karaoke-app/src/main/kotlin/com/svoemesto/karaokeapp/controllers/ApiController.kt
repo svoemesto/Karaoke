@@ -5096,8 +5096,31 @@ class ApiController(
                     }
                 }
 
-                // Фоновый интернет-поиск текста - только если текст так и не был получен ни одним из
-                // предыдущих способов (заодно исключает гонку нескольких фоновых потоков над одним newSettings).
+                // Поиск текста на Яндекс.Музыке (см. YandexLyricsFinder.kt) - только если текст ещё не
+                // получен ни родителем, ни аудио-родителем. Синхронно (не в фоне): один Playwright-прогон,
+                // не гонка нескольких потоков над одним newSettings, как и предыдущие два шага.
+                if (!textResolved) {
+                    val yandexLyricsResult =
+                        try {
+                            findYandexSongLyrics(newSettings.author, newSettings.songName)
+                        } catch (e: Exception) {
+                            println(
+                                "[${Timestamp.from(
+                                    Instant.now(),
+                                )}] doCreateFromFolder - ошибка поиска текста на Яндекс.Музыке для песни id=${newSettings.id}: ${e.message}",
+                            )
+                            null
+                        }
+                    if (yandexLyricsResult is YandexLyricsSearchOutcome.Found && yandexLyricsResult.text.isNotBlank()) {
+                        newSettings.sourceText = yandexLyricsResult.text
+                        if (newSettings.idStatus == 0L) newSettings.fields[SettingField.ID_STATUS] = "1"
+                        newSettings.saveToDb()
+                        textResolved = true
+                    }
+                }
+
+                // Фоновый интернет-поиск текста (SearXNG) - только если текст так и не был получен ни одним
+                // из предыдущих способов (заодно исключает гонку нескольких фоновых потоков над одним newSettings).
                 if (!textResolved) {
                     thread(start = true) {
                         try {

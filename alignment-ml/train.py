@@ -331,6 +331,12 @@ def main():
         ignore_mismatched_sizes=True,  # свой словарь по символам, не оригинальный MMS-словарь
     )
     model.freeze_feature_encoder()
+    # SpecAugment (случайное маскирование по времени/фиче, Wav2Vec2Model._mask_hidden_states) требует
+    # sequence_length > mask_time_length (обычно 10 кадров) - у части наших коротких чанков (после
+    # conv-даунсемплинга) кадров меньше, что валит forward с ValueError. Регуляризация от SpecAugment
+    # не критична при дообучении (не с нуля) на датасете такого размера - проще выключить целиком,
+    # чем городить ещё один порог длины вдобавок к CTC-фильтру выше (_filter_ctc_viable).
+    model.config.apply_spec_augment = False
 
     train_items = _filter_ctc_viable(train_items, model, tokenizer, feature_extractor.sampling_rate, "обучения")
     eval_items = _filter_ctc_viable(eval_items, model, tokenizer, feature_extractor.sampling_rate, "оценки")

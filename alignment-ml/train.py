@@ -121,9 +121,10 @@ def build_vocab(texts: list[str]) -> dict[str, int]:
 
 def build_chunk_items(rows, chunk_args: dict) -> list[tuple[str, int, int, str]]:
     """Раскладывает строки манифеста на короткие (аудио-файл, start_ms, end_ms, текст) - см.
-    chunking.py. Строки, где слоговая разбивка текста разошлась с числом слогов в манифесте (не
-    должно происходить в норме - обе стороны используют один и тот же алгоритм, см.
-    WhisperMarkerAligner.kt/syllables.py), пропускаются целиком (как и в evaluate.py)."""
+    chunking.py. Строка пропускается целиком (как и в evaluate.py), если: слоговая разбивка текста
+    разошлась с числом слогов в манифесте (не должно происходить в норме - обе стороны используют
+    один и тот же алгоритм, см. WhisperMarkerAligner.kt/syllables.py), ИЛИ тайминги слогов оказались
+    не монотонны (редкий побочный эффект неточной вставки Whisper, см. проверку в build_chunks)."""
     items = []
     skipped_rows = 0
     for row in rows:
@@ -133,7 +134,7 @@ def build_chunk_items(rows, chunk_args: dict) -> list[tuple[str, int, int, str]]
             continue
         for chunk in chunks:
             items.append((row.audio_file, chunk.start_ms, chunk.end_ms, chunk.text))
-    print(f"Песен: {len(rows)}, пропущено (расхождение слоговой разбивки): {skipped_rows}, "
+    print(f"Песен: {len(rows)}, пропущено (несогласованные слоги/тайминг): {skipped_rows}, "
           f"итого чанков для обучения: {len(items)}")
     return items
 
@@ -307,7 +308,6 @@ def main():
         learning_rate=1e-5,
         warmup_steps=100,
         fp16=torch.cuda.is_available(),
-        group_by_length=True,
         gradient_checkpointing=True,
         save_total_limit=2,
         report_to=[],  # без wandb/tensorboard - без этого Trainer может ждать интерактивный wandb-логин

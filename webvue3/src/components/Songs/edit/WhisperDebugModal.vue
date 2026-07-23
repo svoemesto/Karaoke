@@ -32,7 +32,13 @@
           </div>
 
           <div class="wd-footer">
-            <button class="wd-btn wd-btn-apply" type="button" @click="apply">
+            <button
+              class="wd-btn wd-btn-apply"
+              type="button"
+              :disabled="markers.length === 0"
+              :title="markers.length === 0 ? 'Маркеров нет — нечего применять (текст можно скопировать выше)' : ''"
+              @click="apply"
+            >
               Применить маркеры к голосу
             </button>
             <button class="wd-btn wd-btn-close" type="button" @click="close">Закрыть без применения</button>
@@ -188,6 +194,10 @@ export default {
 }
 .wd-btn:hover {
   background-color: lightpink;
+}
+.wd-btn[disabled] {
+  background-color: lightgray;
+  cursor: not-allowed;
 }
 
 .wd-btn-apply {

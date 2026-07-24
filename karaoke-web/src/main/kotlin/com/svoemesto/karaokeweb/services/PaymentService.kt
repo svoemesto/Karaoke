@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
+import org.springframework.web.reactive.function.client.WebClientResponseException
 import org.springframework.web.reactive.function.client.bodyToMono
 import java.util.UUID
 
@@ -90,11 +91,32 @@ class PaymentService(
         val payment_method: PaymentMethodRef? = null,
     )
 
+    private fun postPayment(
+        idempotenceKey: String,
+        body: Map<String, Any>,
+    ): PaymentResponse? =
+        webClient
+            .post()
+            .uri("/payments")
+            .header("Idempotence-Key", idempotenceKey)
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(body)
+            .retrieve()
+            .bodyToMono<PaymentResponse>()
+            .block()
+
     /**
      * Создаёт платёж на новую подписку (redirect-подтверждение — пользователь уходит на страницу
      * ЮKassa). Для scope=SITE с автопродлением передаём save_payment_method=true, чтобы получить
      * payment_method.id для будущих chargeRecurring(). Idempotence-Key = "sub-<id>" — повторный вызов
      * с тем же id (например, повторный клик "Оплатить" до редиректа) не создаёт дублирующий платёж.
+     *
+     * save_payment_method=true требует, чтобы менеджер ЮKassa включил рекуррентные платежи для
+     * магазина — без этого ЮKassa отвечает 4xx (403). Если это ещё не включено, не проваливаем всё
+     * оформление подписки: повторяем тот же платёж без save_payment_method (отдельный
+     * Idempotence-Key) — подписка оформится как обычная, разовая, без автопродления. Как только
+     * рекуррентные платежи будут включены в кабинете ЮKassa, автопродление заработает само, без
+     * повторного деплоя.
      */
     fun createPayment(
         sub: Subscription,
@@ -120,16 +142,26 @@ class PaymentService(
                     ),
             )
         if (saveMethod) body["save_payment_method"] = true
+        val idempotenceKey = "sub-${sub.id}-${sub.createdAt.time}"
         return try {
-            webClient
-                .post()
-                .uri("/payments")
-                .header("Idempotence-Key", "sub-${sub.id}-${sub.createdAt.time}")
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(body)
-                .retrieve()
-                .bodyToMono<PaymentResponse>()
-                .block()
+            postPayment(idempotenceKey, body)
+        } catch (e: WebClientResponseException) {
+            if (saveMethod && e.statusCode.is4xxClientError) {
+                println(
+                    "PaymentService.createPayment: save_payment_method отклонён ЮKassa (${e.statusCode}) для sub=${sub.id} " +
+                        "— повтор без сохранения способа оплаты (проверьте, включены ли рекуррентные платежи в кабинете ЮKassa)",
+                )
+                body.remove("save_payment_method")
+                try {
+                    postPayment("$idempotenceKey-nosave", body)
+                } catch (e2: Exception) {
+                    println("PaymentService.createPayment: повтор без save_payment_method тоже не удался для sub=${sub.id}: ${e2.message}")
+                    null
+                }
+            } else {
+                println("PaymentService.createPayment: ошибка создания платежа для sub=${sub.id}: ${e.message}")
+                null
+            }
         } catch (e: Exception) {
             println("PaymentService.createPayment: ошибка создания платежа для sub=${sub.id}: ${e.message}")
             null

@@ -61,29 +61,73 @@
 
     <!-- Фильтр автора -->
     <div class="km-content">
-      <AuthorTiles
-        v-if="!authorChosen"
-        :tiles="authorTiles"
-        :selected="selectedAuthor"
-        @select="onAuthorSelect"
-      />
-
-      <!-- Виртуальная плашка «Отдельные песни разных авторов» — последняя в Закромах,
-           содержит песни авторов с is_special_order=true (1-2 песни каждый).
-           Только если не выбран конкретный автор (чтобы не дублировать).
+      <!-- Обычный режим: сетка тайлов + одна спец-плашка в конце.
+           Режим specialBucket: сетка скрыта, рендерится таблица спецзаказных ниже.
            @see specs/008-special-orders/spec.md -->
-      <section v-if="!authorChosen && specialBucket.length > 0" class="km-special-bucket">
-        <div class="km-special-header">
-          <span class="km-special-icon">📁</span>
-          <h2 class="km-special-name">Отдельные песни разных авторов</h2>
-        </div>
-        <p class="km-special-note">
+      <div v-if="!authorChosen">
+        <AuthorTiles :tiles="authorTiles" :selected="selectedAuthor" @select="onAuthorSelect" />
+
+        <!-- Спец-плашка «Отдельные песни разных авторов» — последняя в сетке, выглядит как обычная.
+             Клик → обычная «навигация» (как клик на тайл автора) — открывает табличное отображение. -->
+        <button
+          v-if="specialBucket.length > 0"
+          type="button"
+          class="km-special-tile"
+          :title="`Открыть таблицу «Отдельные песни разных авторов»`"
+          :class="{ 'at-selected': isSpecialBucketSelected }"
+          @click="onSelectSpecialBucket"
+        >
+          <div class="at-pic">
+            <span class="km-special-tile-icon">📁</span>
+          </div>
+          <div class="at-namerow">
+            <span class="at-name">Отдельные песни разных авторов</span>
+            <span class="at-count" :title="`Песен в коллекции: ${totalSpecialSongs}`">{{
+              totalSpecialSongs
+            }}</span>
+          </div>
+        </button>
+
+        <p v-if="specialBucket.length > 0" class="km-special-note">
           Здесь собраны авторы, у которых в нашей коллекции только 1–2 песни, сделанные по
           индивидуальному заказу — не вся дискография. В основном каталоге мы стремимся к полноте.
         </p>
+      </div>
 
-        <template v-for="zak in specialBucket" :key="zak.author">
-          <!-- Заголовок под-автора -->
+      <button
+        v-if="authorChosen && !isSpecialBucketSelected"
+        type="button"
+        class="km-back-btn"
+        @click="backToAuthors"
+      >
+        ← К списку авторов
+      </button>
+      <button
+        v-if="isSpecialBucketSelected"
+        type="button"
+        class="km-back-btn"
+        @click="backToAuthors"
+      >
+        ← К списку авторов
+      </button>
+
+      <!-- Обычный автор: таблица песен (как раньше) -->
+      <div v-if="authorChosen && !isSpecialBucketSelected && isLoading" class="km-loading">
+        Загрузка...
+      </div>
+
+      <div v-if="authorChosen && !displayedZakroma.length && songFilter" class="km-loading">
+        Ничего не найдено по запросу «{{ songFilter }}»
+      </div>
+
+      <!-- Таблица: либо обычный автор, либо виртуальный спец-автор. -->
+      <template v-if="authorChosen">
+        <div
+          v-for="zak in displayedZakroma"
+          :key="isSpecialBucketSelected ? '__special__' : zak.author"
+          class="km-author-block"
+        >
+          <!-- Заголовок автора -->
           <div class="km-author-header">
             <img
               v-if="zak.authorPictureUrl"
@@ -93,10 +137,15 @@
               @error="$event.target.style.display = 'none'"
             />
             <span class="km-author-name">{{ zak.author }}</span>
-            <span class="km-special-tag">по спецзаказу</span>
+            <RouterLink
+              :to="{ path: '/author-playlist', query: { author: zak.author } }"
+              class="km-author-pl-btn"
+              :title="`Плейлист по песням автора «${zak.author}»`"
+              >🎧 Плейлист по песням автора «{{ zak.author }}»</RouterLink
+            >
           </div>
 
-          <!-- Альбомы под-автора -->
+          <!-- Альбомы -->
           <div v-for="alb in zak.albums" :key="alb.albumName" class="km-album-block">
             <div class="km-album-header">
               <img
@@ -109,6 +158,7 @@
               <span class="km-album-name">{{ alb.year }} — {{ alb.albumName }}</span>
             </div>
 
+            <!-- Десктоп: таблица -->
             <div class="km-table-wrap">
               <table class="km-table">
                 <colgroup>
@@ -168,167 +218,53 @@
                     <td class="km-td km-td-center">
                       <FavoriteIcon :song-id="sett.id" />
                     </td>
+                    <td class="km-td km-td-center km-group-end">
+                      <PlaylistIcon :song-id="sett.id" />
+                    </td>
                   </tr>
                 </tbody>
               </table>
             </div>
-          </div>
-        </template>
-      </section>
 
-      <button v-if="authorChosen" type="button" class="km-back-btn" @click="backToAuthors">
-        ← К списку авторов
-      </button>
-
-      <div v-if="authorChosen && isLoading" class="km-loading">Загрузка...</div>
-
-      <div
-        v-if="authorChosen && !isLoading && songFilter && filteredZakroma.length === 0"
-        class="km-loading"
-      >
-        Ничего не найдено по запросу «{{ songFilter }}»
-      </div>
-
-      <div
-        v-for="zak in authorChosen ? filteredZakroma : []"
-        :key="zak.author"
-        class="km-author-block"
-      >
-        <!-- Заголовок автора -->
-        <div class="km-author-header">
-          <img
-            v-if="zak.authorPictureUrl"
-            :src="zak.authorPictureUrl"
-            class="km-author-pic"
-            alt=""
-            @error="$event.target.style.display = 'none'"
-          />
-          <span class="km-author-name">{{ zak.author }}</span>
-          <RouterLink
-            :to="{ path: '/author-playlist', query: { author: zak.author } }"
-            class="km-author-pl-btn"
-            :title="`Плейлист по песням автора «${zak.author}»`"
-            >🎧 Плейлист по песням автора «{{ zak.author }}»</RouterLink
-          >
-        </div>
-
-        <!-- Альбомы -->
-        <div v-for="alb in zak.albums" :key="alb.albumName" class="km-album-block">
-          <div class="km-album-header">
-            <img
-              v-if="alb.albumPictureUrl"
-              :src="alb.albumPictureUrl"
-              class="km-album-pic"
-              alt=""
-              @error="$event.target.style.display = 'none'"
-            />
-            <span class="km-album-name">{{ alb.year }} — {{ alb.albumName }}</span>
-          </div>
-
-          <!-- Десктоп: таблица -->
-          <div class="km-table-wrap">
-            <table class="km-table">
-              <colgroup>
-                <col style="width: 28px" />
-                <col />
-                <col style="width: 220px" />
-                <col style="width: 24px" />
-                <col style="width: 24px" />
-                <col style="width: 32px" />
-                <col style="width: 26px" />
-                <col style="width: 26px" />
-              </colgroup>
-              <thead>
-                <tr>
-                  <th class="km-th km-th-center">№</th>
-                  <th class="km-th">Композиция</th>
-                  <th class="km-th" colspan="6">&nbsp;</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="sett in alb.albumSettings" :key="sett.id" class="km-tr">
-                  <td class="km-td km-td-center km-track">{{ sett.track }}</td>
-                  <td class="km-td km-td-name">
-                    <RouterLink
-                      :to="{ path: '/song', query: { id: sett.id } }"
-                      class="km-song-link"
-                      >{{ sett.songName }}</RouterLink
-                    >
-                  </td>
-                  <td class="km-td km-td-date">
-                    <span v-if="showDate(sett)" class="km-date-text">{{ sett.datePublish }}</span>
-                    <PremiumIcon
-                      v-if="showCoin(sett)"
-                      :state="readiness.contentReadyFor(sett.id)"
-                      :clickable="showCartIcon(sett)"
-                      @subscribe="onSubscribeClick(sett, zak.author)"
-                    />
-                  </td>
-                  <td class="km-td km-td-center">
-                    <CartIcon v-if="showCartIcon(sett)" :song-id="sett.id" />
-                  </td>
-                  <td class="km-td km-td-center">
-                    <PlayerIcon
-                      :song-id="sett.id"
-                      :watch-state="readiness.stateFor(sett.id)"
-                      :content-ready-state="readiness.contentReadyFor(sett.id)"
-                    />
-                  </td>
-                  <td class="km-td km-td-center">
-                    <PlatformLink
-                      link-name="sponsr"
-                      :link-value="sett.linkSponsrPlay"
-                      :song-id="sett.id"
-                      song-version="all"
-                    />
-                  </td>
-                  <td class="km-td km-td-center">
-                    <FavoriteIcon :song-id="sett.id" />
-                  </td>
-                  <td class="km-td km-td-center km-group-end">
-                    <PlaylistIcon :song-id="sett.id" />
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <!-- Мобильные карточки -->
-          <div class="km-cards">
-            <div v-for="sett in alb.albumSettings" :key="sett.id" class="km-card">
-              <div class="km-card-top">
-                <span class="km-card-track">{{ sett.track }}</span>
-                <RouterLink :to="{ path: '/song', query: { id: sett.id } }" class="km-card-title">{{
-                  sett.songName
-                }}</RouterLink>
-                <CartIcon v-if="showCartIcon(sett)" :song-id="sett.id" />
-                <PlayerIcon
-                  :song-id="sett.id"
-                  :watch-state="readiness.stateFor(sett.id)"
-                  :content-ready-state="readiness.contentReadyFor(sett.id)"
-                />
-                <PlatformLink
-                  link-name="sponsr"
-                  :link-value="sett.linkSponsrPlay"
-                  :song-id="sett.id"
-                  song-version="all"
-                />
-                <FavoriteIcon :song-id="sett.id" />
-                <PlaylistIcon :song-id="sett.id" />
-              </div>
-              <div v-if="showDate(sett) || showCoin(sett)" class="km-card-date">
-                <span v-if="showDate(sett)" class="km-date-text">{{ sett.datePublish }}</span>
-                <PremiumIcon
-                  v-if="showCoin(sett)"
-                  :state="readiness.contentReadyFor(sett.id)"
-                  :clickable="showCartIcon(sett)"
-                  @subscribe="onSubscribeClick(sett, zak.author)"
-                />
+            <!-- Мобильные карточки -->
+            <div class="km-cards">
+              <div v-for="sett in alb.albumSettings" :key="sett.id" class="km-card">
+                <div class="km-card-top">
+                  <span class="km-card-track">{{ sett.track }}</span>
+                  <RouterLink
+                    :to="{ path: '/song', query: { id: sett.id } }"
+                    class="km-card-title"
+                    >{{ sett.songName }}</RouterLink
+                  >
+                  <CartIcon v-if="showCartIcon(sett)" :song-id="sett.id" />
+                  <PlayerIcon
+                    :song-id="sett.id"
+                    :watch-state="readiness.stateFor(sett.id)"
+                    :content-ready-state="readiness.contentReadyFor(sett.id)"
+                  />
+                  <PlatformLink
+                    link-name="sponsr"
+                    :link-value="sett.linkSponsrPlay"
+                    :song-id="sett.id"
+                    song-version="all"
+                  />
+                  <FavoriteIcon :song-id="sett.id" />
+                  <PlaylistIcon :song-id="sett.id" />
+                </div>
+                <div v-if="showDate(sett) || showCoin(sett)" class="km-card-date">
+                  <span v-if="showDate(sett)" class="km-date-text">{{ sett.datePublish }}</span>
+                  <PremiumIcon
+                    v-if="showCoin(sett)"
+                    :state="readiness.contentReadyFor(sett.id)"
+                    :clickable="showCartIcon(sett)"
+                    @subscribe="onSubscribeClick(sett, zak.author)"
+                  />
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      </template>
     </div>
 
     <SongSubscriptionModal
@@ -408,6 +344,8 @@ export default {
       selectedAuthor: this.$route.query.author || '',
       // Плитки-пикер видны, пока автор не выбран. После выбора (в т.ч. «Все авторы») скрываются.
       authorChosen: !!this.$route.query.author,
+      // Режим «Отдельные песни разных авторов» (открывается кликом по спец-плашке в сетке).
+      specialBucketShown: this.$route.query.specialBucket === 'true',
       // Модалка подписки на конкретную песню — открывается кликом по золотой иконке плеера.
       subscribingSongId: null,
       subscribingSongName: '',
@@ -419,6 +357,53 @@ export default {
     ...mapGetters('zakroma', ['authorTiles', 'zakroma', 'specialBucket', 'isLoading']),
     isPremium() {
       return !!(this.user && this.user.effectivePremium)
+    },
+    /** True, когда открыт режим «Отдельные песни разных авторов».
+     * Используется для скрытия обычных тайлов и рендера плоской таблицы спецзаказных. */
+    isSpecialBucketSelected() {
+      return this.specialBucketShown
+    },
+    /** Все песни спецзаказных авторов (плоский список).
+     * Из специальной структуры {author → albums → settings} сворачиваем в плоский массив.
+     * Используется для рендера плоской таблицы и подсчёта счётчика на тайле. */
+    flatSpecialSongs() {
+      const arr = []
+      for (const zak of this.specialBucket || []) {
+        for (const alb of zak.albums || []) {
+          for (const s of alb.albumSettings || []) {
+            arr.push({ ...s, author: zak.author })
+          }
+        }
+      }
+      return arr
+    },
+    /** Общее число песен в спец-ведре — для пилюли-счётчика на тайле. */
+    totalSpecialSongs() {
+      return this.flatSpecialSongs.length
+    },
+    /** Виртуальный «автор» для плоской таблицы в режиме specialBucket —
+     * одна общая шапка «Отдельные песни разных авторов», как у обычного автора в Закромах. */
+    virtualSpecialZak() {
+      const songs = this.flatSpecialSongs
+      if (songs.length === 0) return null
+      return {
+        author: 'Отдельные песни разных авторов',
+        authorPictureUrl: '',
+        // Один «виртуальный альбом» — все песни спецзаказных (плоский список).
+        albums: [
+          {
+            albumName: 'Все спецзаказы',
+            year: 0,
+            albumPictureUrl: '',
+            albumSettings: songs.map((s, idx) => ({
+              ...s,
+              track: idx + 1,
+              // Подмешиваем имя автора в название песни при плоском отображении.
+              songName: `${s.author} — ${s.songName}`,
+            })),
+          },
+        ],
+      }
     },
     // Тот же zakroma, но с albumSettings/альбомами/авторами, отфильтрованными по songFilter.
     // Watch/загрузка readiness-membership намеренно завязаны на исходный zakroma (см. watch ниже),
@@ -440,6 +425,22 @@ export default {
         }))
         .filter((zak) => zak.albums.length > 0)
     },
+    /** Zakroma для отображения: либо обычная (запрос автора), либо виртуальный спец-автор
+     * (плоская таблица всех спецзаказных). Используется в template вместо filteredZakroma. */
+    displayedZakroma() {
+      if (this.specialBucketShown) {
+        return this.virtualSpecialZak ? [this.virtualSpecialZak] : []
+      }
+      return this.filteredZakroma
+    },
+    /** Сейчас идёт загрузка? Учитываем оба режима (обычный + спец). */
+    isLoadingAny() {
+      if (this.specialBucketShown) {
+        // Спец-режим загружает через loadSpecialBucket (без isLoading в сторе)
+        return false
+      }
+      return this.isLoading
+    },
   },
   watch: {
     // Готовность плеера подгружаем асинхронно, как только пришли данные закромов (и при их смене).
@@ -457,9 +458,8 @@ export default {
   mounted() {
     // Основной каталог: scope='main' — авторы БЕЗ is_special_order=true.
     this.loadAuthorTiles('main')
-    // Виртуальная плашка «Отдельные песни разных авторов» в конце списка.
-    // Скрывается, когда пользователь выбрал конкретного автора (author=...).
-    if (!this.authorChosen) this.loadSpecialBucket()
+    // Спец-каталог (виртуальный «автор» в конце) — нужен для тайла и плоской таблицы.
+    this.loadSpecialBucket()
     // Таблицу грузим только если автор уже выбран (например, зашли по ссылке ?author=...).
     if (this.authorChosen) this.loadZakroma(this.selectedAuthor)
   },
@@ -511,9 +511,17 @@ export default {
       this.$router.replace({ path: '/zakroma', query: author ? { author } : {} })
       this.loadZakroma(author)
     },
+    /** Открыть табличное отображение «Отдельные песни разных авторов» как обычного автора. */
+    onSelectSpecialBucket() {
+      this.specialBucketShown = true
+      this.authorChosen = true
+      this.songFilter = ''
+      this.$router.replace({ path: '/zakroma', query: { specialBucket: 'true' } })
+    },
     backToAuthors() {
       this.selectedAuthor = ''
       this.authorChosen = false
+      this.specialBucketShown = false
       this.songFilter = ''
       this.$router.replace({ path: '/zakroma', query: {} })
     },
@@ -702,44 +710,45 @@ export default {
   font-weight: 700;
   color: var(--km-text);
 }
-/* Виртуальная плашка «Отдельные песни разных авторов» в конце Закромов.
+/* Спец-тайл «Отдельные песни разных авторов» в сетке Закромов (выглядит как обычный тайл
+   автора, но визуально отличается иконкой папки).
    @see specs/008-special-orders/spec.md */
-.km-special-bucket {
-  margin-top: 2rem;
-  padding-top: 1.5rem;
-  border-top: 2px dashed var(--km-border);
-}
-.km-special-header {
+.km-special-tile {
   display: flex;
-  align-items: center;
-  gap: 0.7rem;
-  margin-bottom: 0.5rem;
+  flex-direction: column;
+  align-items: stretch;
+  padding: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  text-align: center;
+  background: var(--km-card);
+  border: 1px solid var(--km-border);
+  margin-top: 12px;
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.12s ease,
+    border-color 0.12s ease;
 }
-.km-special-icon {
-  font-size: 1.6rem;
+.km-special-tile:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
 }
-.km-special-name {
-  font-size: 1.2rem;
-  font-weight: 700;
-  margin: 0;
-  color: var(--km-text);
+.km-special-tile.at-selected {
+  border-color: var(--km-accent);
+  box-shadow: 0 0 0 2px var(--km-accent);
+}
+.km-special-tile-icon {
+  font-size: 2.2rem;
+  line-height: 64px;
+  color: var(--km-text2);
+  user-select: none;
 }
 .km-special-note {
-  font-size: 0.88rem;
+  font-size: 0.85rem;
   color: var(--km-text2);
-  margin: 0 0 1.25rem;
-  line-height: 1.5;
-}
-.km-special-tag {
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: var(--km-text2);
-  background: var(--km-hover);
-  border: 1px solid var(--km-border);
-  border-radius: 12px;
-  padding: 0.15rem 0.6rem;
-  text-transform: lowercase;
-  white-space: nowrap;
+  margin: 0.8rem 0.4rem 1rem;
+  line-height: 1.45;
 }
 .km-author-pl-btn {
   margin-left: auto;

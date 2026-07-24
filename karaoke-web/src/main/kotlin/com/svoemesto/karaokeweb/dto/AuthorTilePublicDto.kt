@@ -1,5 +1,6 @@
 package com.svoemesto.karaokeweb.dto
 
+import com.fasterxml.jackson.annotation.JsonProperty
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
@@ -18,7 +19,10 @@ data class AuthorTilePublicDto(
     val songCount: Long,
     /**
      * Флаг "По спецзаказу" — автор с 1-2 песнями, не вся дискография.
+     *
+     * @JsonProperty нужен, потому что Jackson по умолчанию отбрасывает префикс `is` для boolean-полей.
      */
+    @get:JsonProperty("isSpecialOrder")
     val isSpecialOrder: Boolean = false,
 ) {
     companion object {

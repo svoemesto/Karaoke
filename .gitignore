@@ -11,6 +11,7 @@ dist/
 
 # Sensitive data
 deploy/ollama_data/
+deploy/whisper_models/
 
 # Dependencies
 .gradle/

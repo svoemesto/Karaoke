@@ -142,7 +142,12 @@ export default {
       const request = {
         method: 'POST',
         url: '/api/chat/messages',
-        params: { siteUserId: ctx.state.chatCurrentUserId, target: ctx.state.chatTarget, beforeId, limit: count },
+        params: {
+          siteUserId: ctx.state.chatCurrentUserId,
+          target: ctx.state.chatTarget,
+          beforeId,
+          limit: count,
+        },
       }
       return promisedXMLHttpRequest(request)
         .then((data) => {
@@ -171,7 +176,8 @@ export default {
       return promisedXMLHttpRequest(request)
         .then((data) => {
           const result = JSON.parse(data)
-          if (result.messages && result.messages.length) ctx.commit('appendChatMessages', result.messages)
+          if (result.messages && result.messages.length)
+            ctx.commit('appendChatMessages', result.messages)
           ctx.commit('setChatMessagesTotal', result.total || ctx.state.chatMessagesTotal)
         })
         .catch((error) => console.log(error))

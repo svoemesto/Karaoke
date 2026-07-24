@@ -36,7 +36,7 @@
             <template v-if="s.scope === 'SITE' && s.status === 'PAID'">
               <span v-if="!s.autoRenew" class="km-sub-canceled">Автопродление отключено</span>
               <button v-else class="km-btn km-btn-danger" @click="onCancel(s.id)">
-                Отключить автопродление
+                Отвязать карту и отключить автопродление
               </button>
             </template>
           </div>
@@ -103,7 +103,11 @@ export default {
       this.loading = false
     },
     async onCancel(id) {
-      if (!confirm('Отключить автопродление? Доступ сохранится до конца оплаченного периода.'))
+      if (
+        !confirm(
+          'Отвязать сохранённую карту и отключить автопродление? Доступ сохранится до конца оплаченного периода, повторных списаний не будет.',
+        )
+      )
         return
       await authPost('/api/public/account/subscription/cancel', { id }, this.token)
       await this.load()

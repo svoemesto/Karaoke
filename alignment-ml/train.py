@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import random
 import re
 import statistics
 import time
@@ -196,9 +197,20 @@ class AlignmentDataset(Dataset):
     def __len__(self):
         return len(self.items)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx, _attempt: int = 0):
         audio_file, start_ms, end_ms, text = self.items[idx]
-        waveform, sr = read_audio_segment(audio_file, start_ms, end_ms)
+        try:
+            waveform, sr = read_audio_segment(audio_file, start_ms, end_ms)
+        except Exception as e:
+            # Многочасовое обучение не должно падать целиком из-за одного нечитаемого файла
+            # (битый FLAC, временный сбой сетевого диска и т.п. - соседи по батчу это уже видели,
+            # см. soundfile.LibsndfileError). Пробуем другой случайный чанк вместо этого индекса;
+            # ограничение попыток - на случай, если проблема массовая (например, диск отвалился
+            # целиком), чтобы не уйти в бесконечную рекурсию, а упасть с понятной ошибкой.
+            if _attempt >= 5:
+                raise
+            print(f"[train] чанк idx={idx} ({audio_file}) не прочитан ({e}) - беру другой чанк", flush=True)
+            return self.__getitem__(random.randrange(len(self.items)), _attempt + 1)
         if waveform.size(0) > 1:
             waveform = waveform.mean(dim=0, keepdim=True)
         if sr != self.sample_rate:

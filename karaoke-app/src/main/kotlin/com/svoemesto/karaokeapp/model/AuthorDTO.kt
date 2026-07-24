@@ -19,6 +19,13 @@ data class AuthorDTO(
     val watched: Boolean,
     val skip: Boolean,
     val aliases: String = "",
+    /**
+     * Флаг автора "по спецзаказу" — отдельно от основного каталога.
+     *
+     * @see specs/008-special-orders/spec.md
+     * @see docs/strategy/growth.md (H1.20, M-23)
+     */
+    val isSpecialOrder: Boolean = false,
     val haveNewAlbum: Boolean,
     val pictureId: Long = 0,
     val picturePreview: String = "",
@@ -40,6 +47,7 @@ data class AuthorDTO(
         entity.watched = watched
         entity.skip = skip
         entity.aliases = aliases
+        entity.isSpecialOrder = isSpecialOrder
         return entity
     }
 }

@@ -30,6 +30,48 @@ class Zakroma(
                     storageApiClient = storageApiClient,
                     withoutMarkersAndText = true,
                 )
+            return buildFromSettings(listSettings, database, storageService, storageApiClient)
+        }
+
+        /**
+         * Спецзаказные авторы («Отдельные песни разных авторов») одним SQL-запросом.
+         *
+         * Вместо N последовательных вызовов [getZakroma] на каждого спецзаказного автора
+         * (N+1, см. историю бага в docs/features/special-orders.md) грузит имена авторов
+         * с `is_special_order=true` один раз, затем все их песни одним запросом через
+         * уже существующий `author_in`-фильтр [Settings.getWhereList].
+         *
+         * @see docs/features/special-orders.md
+         */
+        fun getZakromaBySpecialOrder(
+            database: KaraokeConnection,
+            storageService: KaraokeStorageService,
+            storageApiClient: StorageApiClient,
+        ): List<Zakroma> {
+            val names =
+                Settings.loadListAuthors(
+                    withSkiped = false,
+                    isSpecialOrder = true,
+                    database = database,
+                )
+            if (names.isEmpty()) return emptyList()
+            val listSettings =
+                Settings.loadListFromDb(
+                    args = mapOf("author_in" to names.joinToString(Settings.AUTHOR_IN_DELIMITER)),
+                    database = database,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                    withoutMarkersAndText = true,
+                )
+            return buildFromSettings(listSettings, database, storageService, storageApiClient)
+        }
+
+        private fun buildFromSettings(
+            listSettings: List<Settings>,
+            database: KaraokeConnection,
+            storageService: KaraokeStorageService,
+            storageApiClient: StorageApiClient,
+        ): List<Zakroma> {
             val settingsByAuthor = listSettings.groupBy { it.author }
             return settingsByAuthor.map { (authorName, settingsByAuthor) ->
                 val zakroma = Zakroma(database)

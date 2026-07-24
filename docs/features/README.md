@@ -7,7 +7,7 @@
 > **Правило**: PR, меняющий код одной из этих фич, **обязан** обновлять
 > соответствующий документ (FR-009 spec.md).
 
-## 9 ключевых подсистем
+## 12 ключевых подсистем
 
 | # | Slug | Название | Файл |
 |---|------|----------|------|
@@ -22,6 +22,7 @@
 | 9 | `monitoring` | Мониторинг ключевых моментов | [monitoring.md](./monitoring.md) |
 | 10 | `dictionaries` | Словари (DB + TextFile) для lyrics | [dictionaries.md](./dictionaries.md) |
 | 11 | `stats` | Статистика (главная + события + KPI) | [stats.md](./stats.md) |
+| 12 | `special-orders` | Спецзаказные авторы (виртуальная плашка в Закромах) | [special-orders.md](./special-orders.md) |
 
 ## Cross-cutting (инфраструктура)
 

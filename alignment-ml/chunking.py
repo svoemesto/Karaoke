@@ -22,7 +22,7 @@ from dataclasses import dataclass
 from syllables import split_text_into_words
 
 DEFAULT_SILENCE_THRESHOLD_MS = 3000
-DEFAULT_MAX_CHUNK_MS = 30_000
+DEFAULT_MAX_CHUNK_MS = 20_000  # снижено с 30с - меньше пиковая память на самых длинных чанках (16GB VRAM впритык)
 DEFAULT_MIN_CHUNK_MS = 1000
 DEFAULT_LEAD_PAD_MS = 200
 DEFAULT_TAIL_PAD_MS = 800

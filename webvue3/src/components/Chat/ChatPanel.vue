@@ -80,8 +80,16 @@
           <div v-else-if="!messages.length" class="chat-empty">
             Сообщений пока нет — напишите первым
           </div>
+          <div v-if="hasMoreHistory" class="chat-history-row">
+            <button v-if="canLoadPartial" class="chat-history-btn" @click="loadMoreHistory">
+              Подгрузить ещё {{ pageSize }}
+            </button>
+            <button class="chat-history-btn" @click="loadAllHistory">
+              Подгрузить все {{ messages.length }}
+            </button>
+          </div>
           <div
-            v-for="m in messages"
+            v-for="m in visibleMessages"
             :key="m.id"
             class="chat-bubble"
             :class="m.fromAuthor ? 'chat-bubble-author' : 'chat-bubble-user'"
@@ -118,6 +126,7 @@
 <script>
 const POLL_INTERVAL_MS = 7000
 const SEARCH_DEBOUNCE_MS = 300
+const PAGE_SIZE = 10
 
 /**
  * Компонент «Chat Panel».
@@ -137,6 +146,8 @@ export default {
       searchResults: [],
       searching: false,
       searchDebounceTimer: null,
+      visibleCount: PAGE_SIZE,
+      pageSize: PAGE_SIZE,
     }
   },
   computed: {
@@ -163,10 +174,26 @@ export default {
         this.$store.dispatch('setChatTarget', value)
       },
     },
+    // Показываем только последние visibleCount сообщений — при открытии треда и до нажатия
+    // "Подгрузить ещё"/"Подгрузить все" не рендерим всю историю переписки.
+    visibleMessages() {
+      return this.messages.slice(Math.max(0, this.messages.length - this.visibleCount))
+    },
+    hasMoreHistory() {
+      return this.messages.length > this.visibleCount
+    },
+    canLoadPartial() {
+      return this.messages.length - this.visibleCount > PAGE_SIZE
+    },
   },
   watch: {
     messages() {
       this.$nextTick(this.scrollToBottom)
+    },
+    // Новый открытый тред — снова показываем только последние N, а не то, что успел
+    // раскрыть пользователь в предыдущей переписке.
+    currentUserId() {
+      this.visibleCount = PAGE_SIZE
     },
   },
   mounted() {
@@ -226,6 +253,23 @@ export default {
     scrollToBottom() {
       const el = this.$refs.messagesEl
       if (el) el.scrollTop = el.scrollHeight
+    },
+    // Подгрузка старых сообщений раскрывает список вверх — без компенсации скролла лента визуально
+    // "прыгала" бы вниз (браузер сохраняет scrollTop, а не позицию просмотра при росте контента сверху).
+    revealMore(count) {
+      const el = this.$refs.messagesEl
+      const prevHeight = el ? el.scrollHeight : 0
+      const prevTop = el ? el.scrollTop : 0
+      this.visibleCount = count
+      this.$nextTick(() => {
+        if (el) el.scrollTop = prevTop + (el.scrollHeight - prevHeight)
+      })
+    },
+    loadMoreHistory() {
+      this.revealMore(this.visibleCount + PAGE_SIZE)
+    },
+    loadAllHistory() {
+      this.revealMore(this.messages.length)
     },
     // Авто-рост textarea по мере ввода многострочного текста — высота ограничена CSS
     // (max-height: 25vh, четверть экрана), дальше поле само уходит в внутренний скролл.
@@ -421,6 +465,26 @@ export default {
   background-image: url('/chat-bg-pattern.svg?v=3');
   background-repeat: repeat;
   background-size: 150px 166px;
+}
+.chat-history-row {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  padding: 2px 0 6px;
+  flex-wrap: wrap;
+}
+.chat-history-btn {
+  background-color: #fff;
+  color: #555;
+  border: 1px solid #ccc;
+  border-radius: 14px;
+  padding: 3px 10px;
+  font-size: x-small;
+  cursor: pointer;
+}
+.chat-history-btn:hover {
+  background-color: #eef3f2;
 }
 .chat-bubble {
   max-width: 68%;

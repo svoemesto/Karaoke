@@ -41,14 +41,36 @@ class PublicChatController(
 
     // Чат целиком — премиум-функция: и чтение истории, и отправка доступны только активному премиуму
     // (истёкший премиум теряет доступ к разделу, не только к отправке). Заодно отмечает сообщения ОТ
-    // автора прочитанными — только если запрос реально прошёл гейт.
+    // автора прочитанными — только если запрос реально прошёл гейт. Пагинация курсором по id (тред
+    // append-only, id стабилен между запросами) — beforeId подгружает историю вверх, afterId — новые
+    // сообщения при поллинге; без курсоров — последние DEFAULT_PAGE_SIZE (первое открытие чата).
     @GetMapping("/messages")
-    fun messages(request: HttpServletRequest): ResponseEntity<Any> {
+    fun messages(
+        @RequestParam(required = false) limit: Int?,
+        @RequestParam(required = false) beforeId: Long?,
+        @RequestParam(required = false) afterId: Long?,
+        request: HttpServletRequest,
+    ): ResponseEntity<Any> {
         val user = currentUser(request)
         if (!user.isEffectivePremium) return premiumRequired()
-        val list = SiteChatMessage.loadByUser(user.id, WORKING_DATABASE, storageService, storageApiClient).map { it.toDTO() }
+        val list =
+            SiteChatMessage
+                .loadPageByUser(
+                    siteUserId = user.id,
+                    database = WORKING_DATABASE,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                    limit = limit ?: SiteChatMessage.DEFAULT_PAGE_SIZE,
+                    beforeId = beforeId,
+                    afterId = afterId,
+                ).map { it.toDTO() }
         SiteChatMessage.markThreadReadByUser(user.id, WORKING_DATABASE)
-        return ResponseEntity.ok(list)
+        return ResponseEntity.ok(
+            mapOf(
+                "messages" to list,
+                "total" to SiteChatMessage.countByUser(user.id, WORKING_DATABASE),
+            ),
+        )
     }
 
     // Отправка нового сообщения — только активный премиум.
@@ -81,11 +103,7 @@ class PublicChatController(
     fun unreadCount(request: HttpServletRequest): Map<String, Int> {
         val user = currentUser(request)
         if (!user.isEffectivePremium) return mapOf("count" to 0)
-        val count =
-            SiteChatMessage.loadByUser(user.id, WORKING_DATABASE, storageService, storageApiClient).count {
-                it.isFromAuthor &&
-                    !it.isRead
-            }
+        val count = SiteChatMessage.countUnreadForUser(user.id, WORKING_DATABASE)
         return mapOf("count" to count)
     }
 }

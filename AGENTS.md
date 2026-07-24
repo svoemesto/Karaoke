@@ -432,6 +432,11 @@ DTO `AuthorDTO` сериализовало `isSpecialOrder` → `{"specialOrder"
 тригер на любые изменения ломает sync LOCAL↔SERVER). Лучше прямой `UPDATE` через
 `@RequestParam`. См. PR #49 `apisUpdateAuthor`.
 
+**Подхват работы между сессиями/машинами**: шаблон промта для передачи задачи
+другому AI-агенту (включая M-23) — [`docs/onboarding-handoff/011-m23-special-orders-pickup.md`](./docs/onboarding-handoff/011-m23-special-orders-pickup.md).
+Скопировать блок «ПРОМТ НИЖЕ» в первую реплику новому агенту — он подхватит
+работу с того же места.
+
 ### Q: Где найти датированный changelog последних PR?
 
 [`docs/architecture-notes.md`](./docs/architecture-notes.md) — Pass 1-14 (21 PR).

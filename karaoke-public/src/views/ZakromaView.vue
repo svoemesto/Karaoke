@@ -89,11 +89,6 @@
             </button>
           </template>
         </AuthorTiles>
-
-        <p v-if="specialBucket.length > 0" class="km-special-note">
-          Здесь собраны авторы, у которых в нашей коллекции только 1–2 песни, сделанные по
-          индивидуальному заказу — не вся дискография. В основном каталоге мы стремимся к полноте.
-        </p>
       </div>
 
       <button
@@ -764,12 +759,6 @@ export default {
   white-space: nowrap;
   color: var(--km-text2);
   background: var(--km-bg2);
-}
-.km-special-note {
-  font-size: 0.85rem;
-  color: var(--km-text2);
-  margin: 0.8rem 0.4rem 1rem;
-  line-height: 1.45;
 }
 .km-author-pl-btn {
   margin-left: auto;

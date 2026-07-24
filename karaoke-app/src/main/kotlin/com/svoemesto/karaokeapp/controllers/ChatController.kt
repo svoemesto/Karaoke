@@ -53,17 +53,36 @@ class ChatController {
             mapOf("threads" to SiteChatMessage.loadThreads(db))
         }
 
-    // Открытие треда автором — заодно отмечает сообщения ОТ пользователя прочитанными.
+    // Открытие треда автором — заодно отмечает сообщения ОТ пользователя прочитанными. Пагинация
+    // курсором по id (не offset — тред append-only, id стабилен даже если между запросами пришли
+    // новые сообщения): beforeId — подгрузка истории вверх, afterId — поллинг новых сообщений.
+    // Без limit/курсоров — последние DEFAULT_PAGE_SIZE сообщений (первое открытие треда).
     @PostMapping("/messages")
     @ResponseBody
     fun messages(
         @RequestParam siteUserId: Long,
         @RequestParam(required = false) target: String?,
+        @RequestParam(required = false) limit: Int?,
+        @RequestParam(required = false) beforeId: Long?,
+        @RequestParam(required = false) afterId: Long?,
     ): Map<String, Any> =
         withDb(target) { db ->
-            val list = SiteChatMessage.loadByUser(siteUserId, db, KSS_APP, SAC_APP).map { it.toDTO() }
+            val list =
+                SiteChatMessage
+                    .loadPageByUser(
+                        siteUserId = siteUserId,
+                        database = db,
+                        storageService = KSS_APP,
+                        storageApiClient = SAC_APP,
+                        limit = limit ?: SiteChatMessage.DEFAULT_PAGE_SIZE,
+                        beforeId = beforeId,
+                        afterId = afterId,
+                    ).map { it.toDTO() }
             SiteChatMessage.markThreadReadByAuthor(siteUserId, db)
-            mapOf("messages" to list)
+            mapOf(
+                "messages" to list,
+                "total" to SiteChatMessage.countByUser(siteUserId, db),
+            )
         }
 
     @PostMapping("/reply")

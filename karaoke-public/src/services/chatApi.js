@@ -8,8 +8,13 @@ function token() {
 
 const BASE = '/api/public/account/chat'
 
-export function fetchMessages() {
-  return authGet(`${BASE}/messages`, token())
+// params: { limit, beforeId, afterId } — курсорная пагинация, см. ChatView.vue.
+export function fetchMessages(params) {
+  const query = Object.entries(params || {})
+    .filter(([, v]) => v !== undefined && v !== null)
+    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+    .join('&')
+  return authGet(`${BASE}/messages${query ? `?${query}` : ''}`, token())
 }
 export function sendMessage(body) {
   return authPost(`${BASE}/send`, { body }, token())

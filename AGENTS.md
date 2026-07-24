@@ -53,6 +53,7 @@ Per-feature описание каждой из 9 ключевых подсист
 | 3 | `docs/onboarding.md` | Setup новой машины (любой AI-агент) | 271 строка |
 | 4 | `CLAUDE.md` (локально, НЕ в гите) | Claude Code: персональные настройки | ~50 строк |
 | 5 | `docs/claude-code-setup.md` | Claude Code: инструкция + шаблон | 197+ строк |
+| 5a | `docs/CLAUDE.md.template` | **Шаблон для копирования в локальный `CLAUDE.md`** | ~170 строк |
 | 6 | `DEVELOPMENT.md` | Архитектура + команды | 164 строки |
 | 7 | `CONTRIBUTING.md` | Стиль кода (Kotlin/Vue/SQL/MD) | 892 строки |
 | 8 | `docs/architecture-notes.md` | Changelog PR #12-#29 | 268+ строк |

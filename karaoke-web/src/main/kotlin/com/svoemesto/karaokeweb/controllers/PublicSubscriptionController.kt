@@ -212,12 +212,12 @@ class PublicSubscriptionController(
                 description = description,
                 email = user.email,
                 returnUrl = returnUrl,
-                // ВРЕМЕННО отключено: save_payment_method=true даёт 403 Forbidden от ЮKassa — в кабинете
-                // ЮKassa ещё не включено сохранение платёжных данных/автоплатежи (отдельное разрешение,
-                // не совпадает с базовым одобрением "На своём сайте"). Пока это так, подписка на сайт
-                // оформляется БЕЗ автопродления (пользователь будет продлевать вручную). Включить обратно
-                // (saveMethod = scope == Subscription.SCOPE_SITE && sub.autoRenew), когда ЮKassa разрешит.
-                saveMethod = false,
+                // save_payment_method=true требует, чтобы менеджер ЮKassa включил рекуррентные платежи
+                // для магазина (это отдельное разрешение, не совпадает с базовым одобрением "На своём
+                // сайте", и не переключается тумблером в кабинете самостоятельно). Пока это не включено,
+                // ЮKassa отвечает 403 — PaymentService.createPayment сам перехватывает это и повторяет
+                // платёж без save_payment_method, чтобы оформление подписки не ломалось (см. её kdoc).
+                saveMethod = scope == Subscription.SCOPE_SITE && sub.autoRenew,
             )
         if (payment == null) {
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(

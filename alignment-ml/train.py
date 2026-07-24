@@ -90,7 +90,7 @@ class ProgressLoggerCallback(TrainerCallback):
         if not logs or self.start_time is None:
             return
         # eval-логи (eval_loss и т.п.) идут отдельным вызовом on_log без "loss" - печатаем и их,
-        # чтобы было видно и обучающий, и eval-лосс на каждой контрольной точке (--save-steps).
+        # чтобы было видно и обучающий, и eval-лосс на каждой контрольной точке (--eval-steps).
         elapsed = time.time() - self.start_time
         step = state.global_step
         total = state.max_steps or 1
@@ -269,10 +269,15 @@ def main():
     parser.add_argument("--include-secondary-voices", action="store_true",
                          help="Включить voice>0 (по умолчанию исключены - один файл вокала на несколько "
                               "голосов, with_star помогает частично/нестабильно, см. align.py)")
-    parser.add_argument("--save-steps", type=int, default=500,
+    parser.add_argument("--save-steps", type=int, default=200,
                          help="Чекпоинт каждые N шагов оптимизатора (не только по эпохам) - точка, с "
                               "которой можно продолжить после остановки (см. --resume). Меньше значение "
                               "= чаще пишем на диск (I/O-накладные расходы), но меньше теряем при остановке.")
+    parser.add_argument("--eval-steps", type=int, default=1000,
+                         help="Как часто гонять полный eval по оценочной выборке (шагов оптимизатора) - "
+                              "НЕ привязано к --save-steps: eval заметно дороже самой записи чекпоинта "
+                              "(полный форвард-проход по всей eval-выборке), поэтому чекпоинтиться можно "
+                              "часто, а оценивать - реже.")
     parser.add_argument("--resume", action="store_true",
                          help="Продолжить обучение с последнего чекпоинта в --output-dir (если он там "
                               "есть) - вместо того чтобы начинать с нуля от facebook/mms-1b-all.")
@@ -367,7 +372,7 @@ def main():
         optim=args.optim,
         num_train_epochs=args.epochs,
         eval_strategy="steps",
-        eval_steps=args.save_steps,
+        eval_steps=args.eval_steps,
         save_strategy="steps",
         save_steps=args.save_steps,
         logging_steps=args.logging_steps or max(1, args.save_steps // 10),

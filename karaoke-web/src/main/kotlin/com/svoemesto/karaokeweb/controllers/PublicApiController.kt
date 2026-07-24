@@ -100,14 +100,56 @@ class PublicApiController(
     }
 
     @GetMapping("/authors")
-    fun authors(): List<String> = Settings.loadListAuthors(withSkiped = false, database = WORKING_DATABASE)
+    fun authors(
+        @RequestParam(required = false, defaultValue = "main") scope: String?,
+    ): List<String> {
+        val isSpecialOrderFilter: Boolean? =
+            when (scope) {
+                "special" -> true
+                "main" -> false
+                "all" -> null
+                else -> false
+            }
+        return Settings.loadListAuthors(
+            withSkiped = false,
+            isSpecialOrder = isSpecialOrderFilter,
+            database = WORKING_DATABASE,
+        )
+    }
 
     @GetMapping("/authors-tiles")
-    fun authorsTiles(): List<AuthorTilePublicDto> {
-        val counts = Settings.loadAuthorSongCounts(WORKING_DATABASE)
-        return Settings
-            .loadListAuthors(withSkiped = false, database = WORKING_DATABASE)
-            .map { AuthorTilePublicDto.fromAuthorName(it, counts[it] ?: 0L) }
+    fun authorsTiles(
+        @RequestParam(required = false, defaultValue = "main") scope: String?,
+    ): List<AuthorTilePublicDto> {
+        val isSpecialOrderFilter: Boolean? =
+            when (scope) {
+                "special" -> true
+                "main" -> false
+                "all" -> null
+                else -> false
+            }
+        val counts =
+            Settings.loadAuthorSongCounts(
+                isSpecialOrder = isSpecialOrderFilter,
+                database = WORKING_DATABASE,
+            )
+        val loadedAuthors: List<String> =
+            Settings.loadListAuthors(
+                withSkiped = false,
+                isSpecialOrder = isSpecialOrderFilter,
+                database = WORKING_DATABASE,
+            )
+        val specialFlags: Map<String, Boolean> =
+            loadedAuthors.associateWith {
+                it in counts.keys && (isSpecialOrderFilter ?: false)
+            }
+        return loadedAuthors.map {
+            AuthorTilePublicDto.fromAuthorName(
+                author = it,
+                songCount = counts[it] ?: 0L,
+                isSpecialOrder = it in specialFlags && specialFlags[it] == true,
+            )
+        }
     }
 
     @GetMapping("/zakroma")

@@ -21,6 +21,13 @@
         <h1 class="km-name-fixed">🎧 Плейлист по песням автора «{{ author }}»</h1>
         <span class="km-name-count">{{ songs.length }} {{ pluralSongs(songs.length) }}</span>
       </div>
+      <div v-if="isSpecialOrder" class="km-special-banner">
+        <span class="km-special-banner-icon">📁</span>
+        <span>
+          Это автор «по спецзаказу» — в нашей коллекции только его отдельные песни, не вся
+          дискография. Полный список таких авторов — в «Закромах», последняя плашка.
+        </span>
+      </div>
       <p class="km-note">
         Плейлист формируется автоматически. Кликните по песне, чтобы начать с неё. Недоступные вам
         сейчас песни отмечены замком и пропускаются при проигрывании.
@@ -169,6 +176,11 @@ export default {
     const author = ref(route.query.author || '')
     const loading = ref(true)
     const songs = ref([])
+    /**
+     * Флаг "по спецзаказу" для текущего автора. Загружается из /api/public/authors-tiles?scope=all.
+     * @see specs/008-special-orders/spec.md
+     */
+    const isSpecialOrder = ref(false)
     const modes = reactive({ continuous: true, repeatMode: 'none', shuffle: false })
 
     const repeatLabel = computed(() =>
@@ -238,6 +250,17 @@ export default {
 
     async function loadSongs() {
       loading.value = true
+      // Определяем, is_special_order для текущего автора (через authors-tiles scope=all).
+      try {
+        const tiles = await apiGet('/api/public/authors-tiles', { scope: 'all' })
+        if (Array.isArray(tiles)) {
+          const found = tiles.find((t) => t.author === author.value)
+          isSpecialOrder.value = !!(found && found.isSpecialOrder)
+        }
+      } catch (e) {
+        // Тихо: пометка — косметика, не критично для работы плеера.
+        isSpecialOrder.value = false
+      }
       const data = await apiGet('/api/public/zakroma', { author: author.value })
       const flat = []
       for (const block of data || []) {
@@ -295,6 +318,7 @@ export default {
     return {
       author,
       isLoggedIn,
+      isSpecialOrder,
       loading,
       songs,
       modes,
@@ -382,6 +406,26 @@ export default {
   font-size: 0.8rem;
   color: var(--km-text2);
   margin: 0 0 1rem;
+}
+/* Пометка «По спецзаказу» для одиночных авторов.
+   @see specs/008-special-orders/spec.md */
+.km-special-banner {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  background: var(--km-hover);
+  border: 1px solid var(--km-border);
+  border-left: 3px solid var(--km-accent);
+  border-radius: 6px;
+  padding: 0.7rem 0.9rem;
+  margin: 0 0 1rem;
+  font-size: 0.88rem;
+  color: var(--km-text);
+  line-height: 1.5;
+}
+.km-special-banner-icon {
+  font-size: 1.2rem;
+  flex-shrink: 0;
 }
 
 .km-player-box {

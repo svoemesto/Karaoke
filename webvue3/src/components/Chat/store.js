@@ -1,5 +1,8 @@
 import { promisedXMLHttpRequest } from '../../lib/utils'
 
+const PAGE_SIZE = 10
+const POLL_BATCH_LIMIT = 500 // защита от аномального залпа между двумя поллами, не реальный лимит
+
 // «Чат с автором проекта» (сторона автора). Таблица tbl_site_chat_messages в норме живёт на PROD-БД
 // (реальные пользователи пишут через karaoke-web на проде) — chatTarget по умолчанию 'remote', как
 // siteUsersTarget/sitePlaylistsTarget. Переключатель в UI (ChatPanel.vue) нужен для локальной отладки
@@ -17,6 +20,7 @@ export default {
     chatThreadsIsLoading: false,
     chatCurrentUserId: 0,
     chatMessages: [],
+    chatMessagesTotal: 0,
     chatMessagesIsLoading: false,
     chatUnreadTotal: 0,
     chatTarget: 'remote',
@@ -33,6 +37,9 @@ export default {
     },
     getChatMessages(state) {
       return state.chatMessages
+    },
+    getChatMessagesTotal(state) {
+      return state.chatMessagesTotal
     },
     getChatMessagesIsLoading(state) {
       return state.chatMessagesIsLoading
@@ -56,6 +63,15 @@ export default {
     },
     setChatMessages(state, messages) {
       state.chatMessages = messages
+    },
+    setChatMessagesTotal(state, total) {
+      state.chatMessagesTotal = total
+    },
+    prependChatMessages(state, messages) {
+      state.chatMessages = messages.concat(state.chatMessages)
+    },
+    appendChatMessages(state, messages) {
+      state.chatMessages = state.chatMessages.concat(messages)
     },
     setChatMessagesIsLoading(state, isLoading) {
       state.chatMessagesIsLoading = isLoading
@@ -95,18 +111,22 @@ export default {
     clearChatThread(ctx) {
       ctx.commit('setChatCurrentUserId', 0)
       ctx.commit('setChatMessages', [])
+      ctx.commit('setChatMessagesTotal', 0)
     },
+    // Открытие треда — только последние PAGE_SIZE сообщений (не вся история разом), остальное — по
+    // кнопкам "Подгрузить ещё"/"Подгрузить все" (loadMoreChatMessages) в ChatPanel.vue.
     loadChatMessages(ctx, siteUserId) {
       const request = {
         method: 'POST',
         url: '/api/chat/messages',
-        params: { siteUserId, target: ctx.state.chatTarget },
+        params: { siteUserId, target: ctx.state.chatTarget, limit: PAGE_SIZE },
       }
       ctx.commit('setChatMessagesIsLoading', true)
       return promisedXMLHttpRequest(request)
         .then((data) => {
           const result = JSON.parse(data)
           ctx.commit('setChatMessages', result.messages || [])
+          ctx.commit('setChatMessagesTotal', result.total || 0)
           ctx.commit('setChatMessagesIsLoading', false)
         })
         .catch((error) => {
@@ -114,11 +134,53 @@ export default {
           console.log(error)
         })
     },
+    // Подгрузка старых сообщений (курсор beforeId = id самого старого уже загруженного) — вызывается
+    // кнопками истории в ChatPanel.vue, count — сколько запросить (PAGE_SIZE или весь остаток).
+    loadMoreChatMessages(ctx, count) {
+      const beforeId = ctx.state.chatMessages[0]?.id
+      if (!beforeId || count <= 0) return Promise.resolve()
+      const request = {
+        method: 'POST',
+        url: '/api/chat/messages',
+        params: { siteUserId: ctx.state.chatCurrentUserId, target: ctx.state.chatTarget, beforeId, limit: count },
+      }
+      return promisedXMLHttpRequest(request)
+        .then((data) => {
+          const result = JSON.parse(data)
+          ctx.commit('prependChatMessages', result.messages || [])
+          ctx.commit('setChatMessagesTotal', result.total || ctx.state.chatMessagesTotal)
+        })
+        .catch((error) => console.log(error))
+    },
+    // Поллинг новых сообщений (курсор afterId = id самого свежего уже загруженного) — вместо
+    // перезагрузки всего треда целиком на каждый тик, см. ChatPanel.vue.
+    pollChatMessages(ctx) {
+      const messages = ctx.state.chatMessages
+      if (!messages.length) return Promise.resolve()
+      const afterId = messages[messages.length - 1].id
+      const request = {
+        method: 'POST',
+        url: '/api/chat/messages',
+        params: {
+          siteUserId: ctx.state.chatCurrentUserId,
+          target: ctx.state.chatTarget,
+          afterId,
+          limit: POLL_BATCH_LIMIT,
+        },
+      }
+      return promisedXMLHttpRequest(request)
+        .then((data) => {
+          const result = JSON.parse(data)
+          if (result.messages && result.messages.length) ctx.commit('appendChatMessages', result.messages)
+          ctx.commit('setChatMessagesTotal', result.total || ctx.state.chatMessagesTotal)
+        })
+        .catch((error) => console.log(error))
+    },
     sendChatReply(ctx, body) {
       const params = { siteUserId: ctx.state.chatCurrentUserId, body, target: ctx.state.chatTarget }
       const request = { method: 'POST', url: '/api/chat/reply', params }
       return promisedXMLHttpRequest(request).then(() => {
-        return ctx.dispatch('loadChatMessages', ctx.state.chatCurrentUserId)
+        return ctx.dispatch('pollChatMessages')
       })
     },
     loadChatUnreadCount(ctx) {

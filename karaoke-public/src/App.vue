@@ -6,6 +6,8 @@
     </div>
     <router-view v-else />
     <footer class="km-global-footer">
+      <RouterLink to="/about">О проекте</RouterLink>
+      <span class="km-footer-sep">·</span>
       <RouterLink to="/oferta">Оферта</RouterLink>
     </footer>
   </template>
@@ -57,5 +59,10 @@ export default {
 }
 .km-global-footer a:hover {
   text-decoration: underline;
+}
+.km-footer-sep {
+  margin: 0 0.5rem;
+  color: var(--km-text2, #888);
+  opacity: 0.5;
 }
 </style>

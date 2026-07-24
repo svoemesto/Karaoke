@@ -63,8 +63,8 @@
 
       <!-- Описание -->
       <p class="km-desc">
-        Каждый день в открытый доступ (в «эфир») выходит до 10 песен на 5 площадках: Sponsr, Dzen,
-        VK, Max и Telegram. Вся коллекция доступна по подписке на сайте.
+        Каждый день мы пополняем коллекцию новыми песнями — преимущественно русский рок. Вся
+        коллекция — на нашем сайте.
       </p>
 
       <!-- Навигация -->
@@ -88,6 +88,11 @@
           <div class="km-nav-icon">🪙</div>
           <div class="km-nav-title">Премиум-подписка</div>
           <div class="km-nav-desc">Подписка на всю коллекцию или на одну песню</div>
+        </RouterLink>
+        <RouterLink to="/about" class="km-nav-card">
+          <div class="km-nav-icon">ℹ️</div>
+          <div class="km-nav-title">О проекте</div>
+          <div class="km-nav-desc">Что это за сайт, кто делает, какие авторы</div>
         </RouterLink>
       </div>
 
@@ -336,11 +341,11 @@ export default {
 /* Навигационные карточки */
 .km-nav-cards {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  /* auto-fit + minmax: 5 карточек адаптивно: 3+2 на десктопе, 2+2+1 на планшете, 1 столбец на мобильном. */
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 1rem;
   margin-bottom: 2.5rem;
 }
-/* 4 карточки — ровная сетка 2×2, особый full-width случай (был для 3-й карточки) больше не нужен. */
 .km-nav-card {
   display: block;
   background: var(--km-card);

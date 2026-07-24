@@ -21,6 +21,7 @@ import StemJobsView from '../views/StemJobsView.vue'
 import CartView from '../views/CartView.vue'
 import OfertaView from '../views/OfertaView.vue'
 import NewsView from '../views/NewsView.vue'
+import AboutView from '../views/AboutView.vue'
 
 // Быстрая синхронная проверка токена для защищённых маршрутов личного кабинета — сами страницы
 // перепроверяют через fetchMe(); здесь лишь чтобы не мигнуть защищённым контентом анониму.
@@ -40,6 +41,8 @@ const routes = [
   { path: '/oferta', name: 'oferta', component: OfertaView },
   // Публично, без requireAuth — новости видны и анонимам.
   { path: '/news', name: 'news', component: NewsView },
+  // Публично, без requireAuth — страница «О проекте» видна и анонимам.
+  { path: '/about', name: 'about', component: AboutView },
   {
     path: '/account',
     name: 'account',

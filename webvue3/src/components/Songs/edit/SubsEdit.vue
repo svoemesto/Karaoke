@@ -4223,7 +4223,8 @@ export default {
             empty_source_text: 'У голоса пока нет текста — нечего сопоставлять с распознаванием.',
             song_not_found: 'Песня не найдена.',
             vocals_not_found: 'Не найден файл вокального стема (демукс ещё не выполнен?).',
-            whisper_unavailable: 'Whisper недоступен — проверьте настройку whisperAsrUrl и доступность сервера.',
+            whisper_unavailable:
+              'Whisper недоступен — проверьте настройку whisperAsrUrl и доступность сервера.',
             no_speech_recognized: 'Whisper не распознал речь в вокальном стеме.',
             alignment_failed: 'Не удалось сопоставить распознанный текст с текстом голоса.',
           }
@@ -4293,10 +4294,14 @@ export default {
             empty_source_text: 'У голоса пока нет текста — нечего согласовывать.',
             song_not_found: 'Песня не найдена.',
             vocals_not_found: 'Не найден файл вокального стема (демукс ещё не выполнен?).',
-            whisper_unavailable: 'Whisper недоступен — проверьте настройку whisperAsrUrl и доступность сервера.',
+            whisper_unavailable:
+              'Whisper недоступен — проверьте настройку whisperAsrUrl и доступность сервера.',
             no_speech_recognized: 'Whisper не распознал речь в вокальном стеме.',
           }
-          alert(messages[reconcileResult.error] || `Ошибка согласования текста: ${reconcileResult.error}`)
+          alert(
+            messages[reconcileResult.error] ||
+              `Ошибка согласования текста: ${reconcileResult.error}`,
+          )
           return
         }
 

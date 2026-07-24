@@ -68,6 +68,17 @@ class Author(
     @KaraokeDbTableField(name = "aliases")
     var aliases: String = ""
 
+    /**
+     * Флаг "По спецзаказу" — автор с 1-2 песнями (по индивидуальному заказу, а не вся
+     * дискография). Используется в karaoke-public для виртуальной плашки
+     * "Отдельные песни разных авторов" в конце Закромов.
+     *
+     * @see specs/008-special-orders/spec.md
+     * @see docs/strategy/growth.md (H1.20, M-23)
+     */
+    @KaraokeDbTableField(name = "is_special_order")
+    var isSpecialOrder: Boolean = false
+
     val haveNewAlbum: Boolean get() =
         watched &&
             (ymId != "" || vkId != "") &&
@@ -107,6 +118,7 @@ class Author(
             watched = watched,
             skip = skip,
             aliases = aliases,
+            isSpecialOrder = isSpecialOrder,
             haveNewAlbum = haveNewAlbum,
             pictureId = pictureId,
             picturePreview = "",
@@ -154,6 +166,13 @@ class Author(
                     where += "skip = true"
                 } else if (whereArgs["skip"] == "-" || whereArgs["skip"] == "false") {
                     where += "skip = false"
+                }
+            }
+            if (whereArgs.containsKey("is_special_order")) {
+                if (whereArgs["is_special_order"] == "+" || whereArgs["is_special_order"] == "true") {
+                    where += "is_special_order = true"
+                } else if (whereArgs["is_special_order"] == "-" || whereArgs["is_special_order"] == "false") {
+                    where += "is_special_order = false"
                 }
             }
 

@@ -6606,6 +6606,7 @@ class Settings(
 
         fun loadListAuthors(
             withSkiped: Boolean = true,
+            isSpecialOrder: Boolean? = null,
             database: KaraokeConnection,
         ): List<String> {
             val connection = database.getConnection()
@@ -6620,10 +6621,18 @@ class Settings(
             try {
                 statement = connection.createStatement()
                 sql =
-                    if (withSkiped) {
-                        "select DISTINCT song_author from tbl_settings order by song_author"
-                    } else {
-                        "select DISTINCT author as song_author from tbl_authors where skip = false order by author "
+                    when {
+                        // from tbl_settings (с skip-фильтром по умолчанию); опционально только спецзаказные
+                        withSkiped && isSpecialOrder == null -> "select DISTINCT song_author from tbl_settings order by song_author"
+                        withSkiped && isSpecialOrder == true ->
+                            "select DISTINCT song_author from tbl_settings where song_author in (select author from tbl_authors where is_special_order = true) order by song_author"
+                        withSkiped && isSpecialOrder == false ->
+                            "select DISTINCT song_author from tbl_settings where song_author in (select author from tbl_authors where is_special_order = false) order by song_author"
+                        // from tbl_authors (фильтрованные по skip); опционально по is_special_order
+                        !withSkiped && isSpecialOrder == null -> "select DISTINCT author as song_author from tbl_authors where skip = false order by author"
+                        !withSkiped && isSpecialOrder == true -> "select DISTINCT author as song_author from tbl_authors where skip = false and is_special_order = true order by author"
+                        !withSkiped && isSpecialOrder == false -> "select DISTINCT author as song_author from tbl_authors where skip = false and is_special_order = false order by author"
+                        else -> "select DISTINCT author as song_author from tbl_authors where skip = false order by author"
                     }
 
                 rs = statement.executeQuery(sql)
@@ -6647,7 +6656,10 @@ class Settings(
         }
 
         // Количество песен в базе по каждому автору (song_author -> count). Один запрос с GROUP BY.
-        fun loadAuthorSongCounts(database: KaraokeConnection): Map<String, Long> {
+        fun loadAuthorSongCounts(
+            isSpecialOrder: Boolean? = null,
+            database: KaraokeConnection,
+        ): Map<String, Long> {
             val connection = database.getConnection()
             if (connection == null) {
                 println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
@@ -6657,7 +6669,16 @@ class Settings(
             var rs: ResultSet? = null
             try {
                 statement = connection.createStatement()
-                rs = statement.executeQuery("select song_author, count(*) as cnt from tbl_settings group by song_author")
+                val sql =
+                    when {
+                        isSpecialOrder == null -> "select song_author, count(*) as cnt from tbl_settings group by song_author"
+                        isSpecialOrder == true ->
+                            "select song_author, count(*) as cnt from tbl_settings where song_author in (select author from tbl_authors where is_special_order = true) group by song_author"
+                        isSpecialOrder == false ->
+                            "select song_author, count(*) as cnt from tbl_settings where song_author in (select author from tbl_authors where is_special_order = false) group by song_author"
+                        else -> "select song_author, count(*) as cnt from tbl_settings group by song_author"
+                    }
+                rs = statement.executeQuery(sql)
                 val result: MutableMap<String, Long> = mutableMapOf()
                 while (rs.next()) {
                     result[rs.getString("song_author")] = rs.getLong("cnt")

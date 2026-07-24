@@ -1,0 +1,170 @@
+# CLAUDE.md — шаблон для Claude Code
+
+> **Скопируйте содержимое этого файла в свой `CLAUDE.md`** (в корне проекта,
+> НЕ в гите — добавить в `.git/info/exclude`).
+>
+> Claude Code читает `CLAUDE.md` при старте сессии **и следует этим правилам**
+> на каждом шаге. Без этого файла Claude Code пишет код «как умеет» — и CI падает.
+
+---
+
+## 🚦 ОБЯЗАТЕЛЬНО при старте сессии
+
+Перед **любыми** правками прочитай эти файлы **в этом порядке**:
+
+1. **`AGENTS.md`** (общие правила, 280+ строк) — runtime-инструкции, иерархия документов, ловушки
+2. **`.specify/memory/constitution.md`** (NON-NEGOTIABLE принципы) — если нарушаешь, должен явно обосновать
+3. **`CONTRIBUTING.md`** (стиль кода, 892 строки) — Kotlin/Vue/SQL/MD/Sh/Docker
+4. **`DEVELOPMENT.md`** (архитектура, 164 строки) — как устроен проект
+5. **`docs/features/<slug>.md`** — per-feature документ, **если правлю код этой фичи** (FR-009)
+6. **`docs/strategy/growth.md`** — если правлю публичный модуль или монетизацию
+
+> ⚠️ **Не игнорируй этот список.** Без `AGENTS.md` ты не знаешь про ktlint-ловушки,
+> KDoc coverage 100%, pre-commit хуки, `redirectErrorStream(true)` и кучу другого.
+
+---
+
+## 🚦 ОБЯЗАТЕЛЬНО перед каждым `git commit`
+
+```bash
+# 1. Линтеры
+./gradlew ktlintCheck                                      # Kotlin
+cd webvue3       && npm run lint:check && cd ..            # webvue3
+cd karaoke-public && npm run lint:check && cd ..          # karaoke-public
+
+# 2. Покрытие документацией (FR-006)
+bash tools/check-kdoc-coverage.sh                          # 100%
+bash tools/check-jsdoc-coverage.sh webvue3                 # 100%
+bash tools/check-jsdoc-coverage.sh karaoke-public          # 100%
+
+# 3. Prettier --check (CI падает на любых warning)
+cd webvue3       && npx prettier --check "src/**/*.{vue,js,ts,json}" && cd ..
+cd karaoke-public && npx prettier --check "src/**/*.{vue,js,ts,json}" && cd ..
+
+# 4. Pre-commit (7 проверок, единая точка)
+pre-commit run --all-files
+```
+
+Если что-то падает — **исправь**, не коммить с `--no-verify` (исключение: срочный hotfix).
+
+---
+
+## 🚦 CI 7/7 PASS — обязательно перед merge
+
+| Проверка | Команда для локальной проверки |
+|----------|------------------------------|
+| ktlint (Kotlin/Java) | `./gradlew ktlintCheck` |
+| ESLint + Prettier (webvue3) | `cd webvue3 && npm run lint:check && npx prettier --check "src/**/*.{vue,js,ts,json}" && cd ..` |
+| ESLint + Prettier (karaoke-public) | `cd karaoke-public && npm run lint:check && npx prettier --check "src/**/*.{vue,js,ts,json}" && cd ..` |
+| Docs (structure + offline links) | автоматически в CI |
+| Baseline stats | автоматически в CI (informational) |
+| KDoc coverage (informational) | `bash tools/check-kdoc-coverage.sh` |
+| JSDoc coverage (informational) | `bash tools/check-jsdoc-coverage.sh webvue3 && bash tools/check-jsdoc-coverage.sh karaoke-public` |
+
+**Если хотя бы одна падает — PR не мержится** (CI блокирует merge).
+
+---
+
+## 🚦 TOP-10 ловушек (из реальных багов)
+
+1. **Backticks в KDoc** ломают парсер ktlint. Заменять `` `multitrack` `` → «multitrack».
+2. **`redirectErrorStream(false)`** для `ProcessBuilder` блокирует процесс. Всегда `true` (CONTRIBUTING.md).
+3. **`nginx:alpine`** — нет bash, контейнер падает. Использовать `nginx:stable`.
+4. **`node:latest`** — недетерминированный. Использовать `node:22-alpine`.
+5. **Двух-фронтенд**: admin (`webvue3`) и public (`karaoke-public`) — **разные приложения**, не смешивать.
+6. **Сырой JDBC + recordhash** (никакого JPA/Hibernate), `associateBy { it.id }` для diff — не O(n²).
+7. **Per-feature документ** обновлять при правке кода фичи (FR-009) — иначе PR rejection.
+8. **Git push через VPN** — может упасть `EOF` / `400 Bad request`. Запускать без VPN.
+9. **CI блокирует merge** при любом failing check. Не использовать `gh pr merge --admin` для обхода (только в исключительных случаях, по согласованию).
+10. **«Доступ — только онлайн»** (см. оферту). **НЕ упоминать** MP4/скачивание в рекламных материалах и комментариях к коду.
+
+---
+
+## 🚦 Стратегия проекта (visitor→registration→premium)
+
+**Главный фокус**: visitor → registration (конверсия 0.4%, потенциал ×5-13).
+Модель монетизации и trial — вторичные приоритеты.
+
+**Принятые решения** (полный список в `docs/strategy/growth.md`):
+- **Модель D (гибрид)**: эфир-N-дней + 1 трек/исполнитель + 1 альбом/исполнитель free
+- **11 097 grandfathered** (эфирные): «решим позже», не трогаем в первом раунде
+- **Без trial** в первом раунде (anti-fraud дороже выгоды)
+- **Сайт-центричная модель**: площадки (Sponsr/Dzen/VK/Max/TG) = технический канал (DEMO), **не реклама**
+- **Только онлайн** (оферта): не упоминать MP4/скачивание
+
+**Top-3 фичи первого раунда**: QW-9 (страница «О проекте»), QW-2 (5 причин зарегистрироваться), QW-1 (таблица FREE vs PREMIUM).
+
+---
+
+## 🚦 Git workflow
+
+```bash
+# Перед серьёзной работой
+git pull && git status
+
+# Перед правкой кода фичи — обновить docs/features/<slug>.md (FR-009)
+# Перед commit — 7 проверок (см. выше)
+
+# НЕ делать:
+# - Прямые коммиты в master (только в feature-ветке: 0XX-name)
+# - git add . / git add *  (всегда проверять git status)
+# - git commit --no-verify (только в крайнем случае)
+# - Force-push в main/master (своя ветка — можно)
+```
+
+---
+
+## 🚦 Tech Stack (краткая выжимка)
+
+- **Backend**: Kotlin 2.x, Spring Boot 3.x, JDK 17, Gradle
+- **Frontend**: Vue 3 + Vite + Bootstrap 5 (karaoke-public) / Bootstrap-vue-next (webvue3)
+- **DB**: PostgreSQL (raw JDBC, без JPA/Hibernate)
+- **Storage**: MinIO (S3-compatible)
+- **ML**: Ollama, Demucs, Sheetsage (локально)
+- **Deploy**: Docker + docker-compose
+
+---
+
+## 🚦 Документы проекта (докуда ходить)
+
+| Файл | Зачем |
+|------|-------|
+| `AGENTS.md` | Правила opencode-стиля (читай обязательно) |
+| `DEVELOPMENT.md` | Архитектура + команды |
+| `CONTRIBUTING.md` | Стиль кода (Kotlin/Vue/SQL/MD/Sh/Docker) |
+| `docs/onboarding.md` | Setup новой машины |
+| `docs/claude-code-setup.md` | Эта инструкция + детали для Claude Code |
+| `docs/architecture-notes.md` | Changelog последних PR |
+| `docs/features/<slug>.md` | Per-feature (11 + 1 документ) |
+| `docs/strategy/growth.md` | Стратегия роста (воронка, гипотезы, roadmap) |
+| `docs/strategy/growth-audit.md` | Полный аудит (37+ гипотез) |
+| `docs/api/` | API-эндпоинты (сгенерировано из кода) |
+| `.specify/memory/constitution.md` | NON-NEGOTIABLE принципы |
+
+---
+
+## 🚦 MCP-серверы (если доступны)
+
+- **`codegraph`** — read-only индекс символов. **Использовать ПЕРЕД `grep`/`Read`**
+  для понимания кода (быстрее + точнее, ловит dynamic dispatch).
+
+---
+
+## 🚦 НЕ делать
+
+- ❌ Коммитить в master (только в feature-ветке)
+- ❌ Менять `AGENTS.md`, `constitution.md`, `.gitignore` без согласования
+- ❌ Менять конфигурацию линтеров (`.pre-commit-config.yaml`, baseline-файлы) без согласования
+- ❌ Использовать `nginx:alpine`, `node:latest` (см. ловушки)
+- ❌ Импортировать JPA/Hibernate (только raw JDBC)
+- ❌ Обещать в коде/рекламе MP4/скачивание (см. оферту)
+- ❌ Упоминать площадки в рекламных материалах (сайт-центричная модель)
+- ❌ Добавлять «trial»-механику (отложено до следующего раунда)
+
+---
+
+**Версия**: 1.0 (2026-07-24)
+**Связанные документы**:
+- `docs/claude-code-setup.md` — детальная инструкция
+- `AGENTS.md` — runtime-правила
+- `docs/strategy/growth.md` — стратегия

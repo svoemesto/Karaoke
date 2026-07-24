@@ -250,27 +250,34 @@ class AlignmentDataset(Dataset):
         audio_file, start_ms, end_ms, text = self.items[idx]
         try:
             waveform, sr = read_audio_segment(audio_file, start_ms, end_ms)
+            if waveform.numel() == 0:
+                # Пустой (0 семплов) фрагмент - не исключение при чтении (sf.read успешно вернул
+                # 0 фреймов), а следствие рассинхрона манифеста с реальным файлом на диске (напр.
+                # duration_ms в манифесте больше, чем реальная длина уже пересобранного стема) -
+                # тот же класс проблемы, что и LibsndfileError ниже, но падает ПОЗЖЕ, в resample
+                # ("cannot reshape tensor of 0 elements"), т.к. само чтение прошло без ошибки.
+                raise ValueError("пустой аудио-фрагмент (0 семплов) - вероятно, файл короче, чем предполагал манифест")
+            if waveform.size(0) > 1:
+                waveform = waveform.mean(dim=0, keepdim=True)
+            if sr != self.sample_rate:
+                waveform = torchaudio.functional.resample(waveform, sr, self.sample_rate)
+
+            input_values = self.processor(waveform.squeeze(0).numpy(), sampling_rate=self.sample_rate).input_values[0]
+            text_normalized = re.sub(r"\s+", "|", text.strip().lower())
+            # processor.as_target_processor() - устаревший (и в установленной версии transformers уже
+            # убранный) способ переключить процессор на токенизатор текста; современный - звать
+            # tokenizer напрямую, он всегда доступен как атрибут Wav2Vec2Processor.
+            labels = self.processor.tokenizer(text_normalized).input_ids
         except Exception as e:
-            # Многочасовое обучение не должно падать целиком из-за одного нечитаемого файла
-            # (битый FLAC, временный сбой сетевого диска и т.п. - соседи по батчу это уже видели,
-            # см. soundfile.LibsndfileError). Пробуем другой случайный чанк вместо этого индекса;
-            # ограничение попыток - на случай, если проблема массовая (например, диск отвалился
-            # целиком), чтобы не уйти в бесконечную рекурсию, а упасть с понятной ошибкой.
+            # Многочасовое обучение не должно падать целиком из-за одного плохого чанка (битый
+            # FLAC, временный сбой сетевого диска, пустой фрагмент и т.п. - см. выше). Пробуем
+            # другой случайный чанк вместо этого индекса; ограничение попыток - на случай, если
+            # проблема массовая (например, диск отвалился целиком), чтобы не уйти в бесконечную
+            # рекурсию, а упасть с понятной ошибкой.
             if _attempt >= 5:
                 raise
-            print(f"[train] чанк idx={idx} ({audio_file}) не прочитан ({e}) - беру другой чанк", flush=True)
+            print(f"[train] чанк idx={idx} ({audio_file}) не обработан ({e}) - беру другой чанк", flush=True)
             return self.__getitem__(random.randrange(len(self.items)), _attempt + 1)
-        if waveform.size(0) > 1:
-            waveform = waveform.mean(dim=0, keepdim=True)
-        if sr != self.sample_rate:
-            waveform = torchaudio.functional.resample(waveform, sr, self.sample_rate)
-
-        input_values = self.processor(waveform.squeeze(0).numpy(), sampling_rate=self.sample_rate).input_values[0]
-        text_normalized = re.sub(r"\s+", "|", text.strip().lower())
-        # processor.as_target_processor() - устаревший (и в установленной версии transformers уже
-        # убранный) способ переключить процессор на токенизатор текста; современный - звать
-        # tokenizer напрямую, он всегда доступен как атрибут Wav2Vec2Processor.
-        labels = self.processor.tokenizer(text_normalized).input_ids
 
         return {"input_values": input_values, "labels": labels}
 

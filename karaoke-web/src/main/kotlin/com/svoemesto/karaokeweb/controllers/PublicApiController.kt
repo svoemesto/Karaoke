@@ -155,12 +155,14 @@ class PublicApiController(
     @GetMapping("/zakroma")
     fun zakroma(
         @RequestParam(required = false) author: String?,
+        @RequestParam(required = false, defaultValue = "false") specialBucket: Boolean,
         @RequestParam(required = false) anonId: String?,
         @RequestParam(required = false) referrer: String?,
         request: HttpServletRequest,
     ): List<ZakromaPublicDto> {
         val data: MutableMap<String, Any> = mutableMapOf()
         author?.let { data["author"] = it }
+        if (specialBucket) data["specialBucket"] = true
         mainController.doRegisterEvent(
             mapOf(
                 "eventType" to EventType.CALL_REST.dbValue,
@@ -172,13 +174,24 @@ class PublicApiController(
             request,
             siteUserResolver.resolve(request)?.id ?: 0,
         )
+        // specialBucket=true — виртуальная плашка «Отдельные песни разных авторов»: все
+        // is_special_order=true авторы одним запросом, вместо N+1 по каждому автору отдельно.
+        // @see docs/features/special-orders.md
         val zakroma =
-            Zakroma.getZakroma(
-                author = author ?: "",
-                database = WORKING_DATABASE,
-                storageService = storageService,
-                storageApiClient = storageApiClient,
-            )
+            if (specialBucket) {
+                Zakroma.getZakromaBySpecialOrder(
+                    database = WORKING_DATABASE,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                )
+            } else {
+                Zakroma.getZakroma(
+                    author = author ?: "",
+                    database = WORKING_DATABASE,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                )
+            }
         return ZakromaPublicDto.fromZakroma(zakroma)
     }
 

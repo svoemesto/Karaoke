@@ -65,33 +65,30 @@
            Режим specialBucket: сетка скрыта, рендерится таблица спецзаказных ниже.
            @see specs/008-special-orders/spec.md -->
       <div v-if="!authorChosen">
-        <AuthorTiles :tiles="authorTiles" :selected="selectedAuthor" @select="onAuthorSelect" />
-
-        <!-- Спец-плашка «Отдельные песни разных авторов» — последняя в сетке, выглядит как обычная.
-             Клик → обычная «навигация» (как клик на тайл автора) — открывает табличное отображение. -->
-        <button
-          v-if="specialBucket.length > 0"
-          type="button"
-          class="km-special-tile"
-          :title="`Открыть таблицу «Отдельные песни разных авторов»`"
-          :class="{ 'at-selected': isSpecialBucketSelected }"
-          @click="onSelectSpecialBucket"
-        >
-          <div class="at-pic">
-            <span class="km-special-tile-icon">📁</span>
-          </div>
-          <div class="at-namerow">
-            <span class="at-name">Отдельные песни разных авторов</span>
-            <span class="at-count" :title="`Песен в коллекции: ${totalSpecialSongs}`">{{
-              totalSpecialSongs
-            }}</span>
-          </div>
-        </button>
-
-        <p v-if="specialBucket.length > 0" class="km-special-note">
-          Здесь собраны авторы, у которых в нашей коллекции только 1–2 песни, сделанные по
-          индивидуальному заказу — не вся дискография. В основном каталоге мы стремимся к полноте.
-        </p>
+        <AuthorTiles :tiles="authorTiles" :selected="selectedAuthor" @select="onAuthorSelect">
+          <!-- Спец-плашка «Отдельные песни разных авторов» — последний элемент ТОЙ ЖЕ сетки
+               тайлов (слот trailing в AuthorTiles.vue), поэтому по размеру/раскладке не
+               отличается от обычных тайлов авторов. Клик → табличное отображение. -->
+          <template v-if="specialBucket.length > 0" #trailing>
+            <button
+              type="button"
+              class="at-tile km-special-tile"
+              :title="`Открыть таблицу «Отдельные песни разных авторов»`"
+              :class="{ 'at-selected': isSpecialBucketSelected }"
+              @click="onSelectSpecialBucket"
+            >
+              <div class="at-pic">
+                <span class="km-special-tile-icon">📁</span>
+              </div>
+              <div class="at-namerow">
+                <span class="at-name">Отдельные песни разных авторов</span>
+                <span class="at-count" :title="`Песен в коллекции: ${totalSpecialSongs}`">{{
+                  totalSpecialSongs
+                }}</span>
+              </div>
+            </button>
+          </template>
+        </AuthorTiles>
       </div>
 
       <button
@@ -122,11 +119,7 @@
 
       <!-- Таблица: либо обычный автор, либо виртуальный спец-автор. -->
       <template v-if="authorChosen">
-        <div
-          v-for="zak in displayedZakroma"
-          :key="isSpecialBucketSelected ? '__special__' : zak.author"
-          class="km-author-block"
-        >
+        <div v-for="zak in displayedZakroma" :key="zak.author" class="km-author-block">
           <!-- Заголовок автора -->
           <div class="km-author-header">
             <img
@@ -363,47 +356,13 @@ export default {
     isSpecialBucketSelected() {
       return this.specialBucketShown
     },
-    /** Все песни спецзаказных авторов (плоский список).
-     * Из специальной структуры {author → albums → settings} сворачиваем в плоский массив.
-     * Используется для рендера плоской таблицы и подсчёта счётчика на тайле. */
-    flatSpecialSongs() {
-      const arr = []
-      for (const zak of this.specialBucket || []) {
-        for (const alb of zak.albums || []) {
-          for (const s of alb.albumSettings || []) {
-            arr.push({ ...s, author: zak.author })
-          }
-        }
-      }
-      return arr
-    },
-    /** Общее число песен в спец-ведре — для пилюли-счётчика на тайле. */
+    /** Общее число песен во всех спецзаказных авторах — для пилюли-счётчика на тайле. */
     totalSpecialSongs() {
-      return this.flatSpecialSongs.length
-    },
-    /** Виртуальный «автор» для плоской таблицы в режиме specialBucket —
-     * одна общая шапка «Отдельные песни разных авторов», как у обычного автора в Закромах. */
-    virtualSpecialZak() {
-      const songs = this.flatSpecialSongs
-      if (songs.length === 0) return null
-      return {
-        author: 'Отдельные песни разных авторов',
-        authorPictureUrl: '',
-        // Один «виртуальный альбом» — все песни спецзаказных (плоский список).
-        albums: [
-          {
-            albumName: 'Все спецзаказы',
-            year: 0,
-            albumPictureUrl: '',
-            albumSettings: songs.map((s, idx) => ({
-              ...s,
-              track: idx + 1,
-              // Подмешиваем имя автора в название песни при плоском отображении.
-              songName: `${s.author} — ${s.songName}`,
-            })),
-          },
-        ],
-      }
+      return (this.specialBucket || []).reduce(
+        (sum, zak) =>
+          sum + (zak.albums || []).reduce((s2, alb) => s2 + (alb.albumSettings || []).length, 0),
+        0,
+      )
     },
     // Тот же zakroma, но с albumSettings/альбомами/авторами, отфильтрованными по songFilter.
     // Watch/загрузка readiness-membership намеренно завязаны на исходный zakroma (см. watch ниже),
@@ -425,11 +384,12 @@ export default {
         }))
         .filter((zak) => zak.albums.length > 0)
     },
-    /** Zakroma для отображения: либо обычная (запрос автора), либо виртуальный спец-автор
-     * (плоская таблица всех спецзаказных). Используется в template вместо filteredZakroma. */
+    /** Zakroma для отображения: либо обычная (запрос автора), либо реальные спецзаказные
+     * авторы (каждый — свой блок Автор→Альбом→Песни, как обычный автор в Закромах).
+     * Используется в template вместо filteredZakroma. */
     displayedZakroma() {
       if (this.specialBucketShown) {
-        return this.virtualSpecialZak ? [this.virtualSpecialZak] : []
+        return this.specialBucket || []
       }
       return this.filteredZakroma
     },
@@ -445,6 +405,19 @@ export default {
   watch: {
     // Готовность плеера подгружаем асинхронно, как только пришли данные закромов (и при их смене).
     zakroma: {
+      immediate: true,
+      handler(list) {
+        const ids = (list || []).flatMap((z) =>
+          z.albums.flatMap((a) => a.albumSettings.map((s) => s.id)),
+        )
+        this.readiness.load(ids)
+        this.membership.load(ids)
+      },
+    },
+    // То же самое для спецзаказных авторов — без этого watcher-а иконки готовности
+    // (PlayerIcon/PremiumIcon/CartIcon) в режиме specialBucket вечно висели в состоянии
+    // "loading", т.к. readiness/membership для этих id никогда не запрашивались.
+    specialBucket: {
       immediate: true,
       handler(list) {
         const ids = (list || []).flatMap((z) =>
@@ -710,8 +683,12 @@ export default {
   font-weight: 700;
   color: var(--km-text);
 }
-/* Спец-тайл «Отдельные песни разных авторов» в сетке Закромов (выглядит как обычный тайл
-   автора, но визуально отличается иконкой папки).
+/* Спец-тайл «Отдельные песни разных авторов» — встраивается последним элементом в сетку
+   .at-grid (слот trailing в AuthorTiles.vue), поэтому по размеру строго совпадает с обычными
+   тайлами авторов (grid сам растягивает/выравнивает любой прямой потомок). Классы
+   .at-pic/.at-namerow/.at-name/.at-count позаимствованы у AuthorTiles.vue для единообразия,
+   но их правила scoped к AuthorTiles.vue и не действуют на слот-контент — поэтому дублируем
+   их здесь под префиксом .km-special-tile (см. AuthorTiles.vue на случай синхронизации стиля).
    @see specs/008-special-orders/spec.md */
 .km-special-tile {
   display: flex;
@@ -724,7 +701,6 @@ export default {
   text-align: center;
   background: var(--km-card);
   border: 1px solid var(--km-border);
-  margin-top: 12px;
   transition:
     transform 0.12s ease,
     box-shadow 0.12s ease,
@@ -738,17 +714,51 @@ export default {
   border-color: var(--km-accent);
   box-shadow: 0 0 0 2px var(--km-accent);
 }
+.km-special-tile .at-pic {
+  position: relative;
+  height: 64px;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 .km-special-tile-icon {
-  font-size: 2.2rem;
-  line-height: 64px;
-  color: var(--km-text2);
+  font-size: 1.7rem;
+  line-height: 1;
+  color: #fff;
+  opacity: 0.85;
   user-select: none;
 }
-.km-special-note {
-  font-size: 0.85rem;
+.km-special-tile .at-namerow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 6px 8px;
+}
+.km-special-tile .at-name {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--km-text);
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.km-special-tile .at-count {
+  flex-shrink: 0;
+  padding: 1px 7px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.5;
+  border-radius: 10px;
+  white-space: nowrap;
   color: var(--km-text2);
-  margin: 0.8rem 0.4rem 1rem;
-  line-height: 1.45;
+  background: var(--km-bg2);
 }
 .km-author-pl-btn {
   margin-left: auto;

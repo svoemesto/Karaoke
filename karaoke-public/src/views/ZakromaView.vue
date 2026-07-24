@@ -68,6 +68,114 @@
         @select="onAuthorSelect"
       />
 
+      <!-- Виртуальная плашка «Отдельные песни разных авторов» — последняя в Закромах,
+           содержит песни авторов с is_special_order=true (1-2 песни каждый).
+           Только если не выбран конкретный автор (чтобы не дублировать).
+           @see specs/008-special-orders/spec.md -->
+      <section v-if="!authorChosen && specialBucket.length > 0" class="km-special-bucket">
+        <div class="km-special-header">
+          <span class="km-special-icon">📁</span>
+          <h2 class="km-special-name">Отдельные песни разных авторов</h2>
+        </div>
+        <p class="km-special-note">
+          Здесь собраны авторы, у которых в нашей коллекции только 1–2 песни, сделанные по
+          индивидуальному заказу — не вся дискография. В основном каталоге мы стремимся к полноте.
+        </p>
+
+        <template v-for="zak in specialBucket" :key="zak.author">
+          <!-- Заголовок под-автора -->
+          <div class="km-author-header">
+            <img
+              v-if="zak.authorPictureUrl"
+              :src="zak.authorPictureUrl"
+              class="km-author-pic"
+              alt=""
+              @error="$event.target.style.display = 'none'"
+            />
+            <span class="km-author-name">{{ zak.author }}</span>
+            <span class="km-special-tag">по спецзаказу</span>
+          </div>
+
+          <!-- Альбомы под-автора -->
+          <div v-for="alb in zak.albums" :key="alb.albumName" class="km-album-block">
+            <div class="km-album-header">
+              <img
+                v-if="alb.albumPictureUrl"
+                :src="alb.albumPictureUrl"
+                class="km-album-pic"
+                alt=""
+                @error="$event.target.style.display = 'none'"
+              />
+              <span class="km-album-name">{{ alb.year }} — {{ alb.albumName }}</span>
+            </div>
+
+            <div class="km-table-wrap">
+              <table class="km-table">
+                <colgroup>
+                  <col style="width: 28px" />
+                  <col />
+                  <col style="width: 220px" />
+                  <col style="width: 24px" />
+                  <col style="width: 24px" />
+                  <col style="width: 32px" />
+                  <col style="width: 26px" />
+                  <col style="width: 26px" />
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th class="km-th km-th-center">№</th>
+                    <th class="km-th">Композиция</th>
+                    <th class="km-th" colspan="6">&nbsp;</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="sett in alb.albumSettings" :key="sett.id" class="km-tr">
+                    <td class="km-td km-td-center km-track">{{ sett.track }}</td>
+                    <td class="km-td km-td-name">
+                      <RouterLink
+                        :to="{ path: '/song', query: { id: sett.id } }"
+                        class="km-song-link"
+                        >{{ sett.songName }}</RouterLink
+                      >
+                    </td>
+                    <td class="km-td km-td-date">
+                      <span v-if="showDate(sett)" class="km-date-text">{{ sett.datePublish }}</span>
+                      <PremiumIcon
+                        v-if="showCoin(sett)"
+                        :state="readiness.contentReadyFor(sett.id)"
+                        :clickable="showCartIcon(sett)"
+                        @subscribe="onSubscribeClick(sett, zak.author)"
+                      />
+                    </td>
+                    <td class="km-td km-td-center">
+                      <CartIcon v-if="showCartIcon(sett)" :song-id="sett.id" />
+                    </td>
+                    <td class="km-td km-td-center">
+                      <PlayerIcon
+                        :song-id="sett.id"
+                        :watch-state="readiness.stateFor(sett.id)"
+                        :content-ready-state="readiness.contentReadyFor(sett.id)"
+                      />
+                    </td>
+                    <td class="km-td km-td-center">
+                      <PlatformLink
+                        link-name="sponsr"
+                        :link-value="sett.linkSponsrPlay"
+                        :song-id="sett.id"
+                        song-version="all"
+                      />
+                    </td>
+                    <td class="km-td km-td-center">
+                      <FavoriteIcon :song-id="sett.id" />
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </template>
+      </section>
+
       <button v-if="authorChosen" type="button" class="km-back-btn" @click="backToAuthors">
         ← К списку авторов
       </button>
@@ -308,7 +416,7 @@ export default {
     }
   },
   computed: {
-    ...mapGetters('zakroma', ['authorTiles', 'zakroma', 'isLoading']),
+    ...mapGetters('zakroma', ['authorTiles', 'zakroma', 'specialBucket', 'isLoading']),
     isPremium() {
       return !!(this.user && this.user.effectivePremium)
     },
@@ -347,12 +455,16 @@ export default {
     },
   },
   mounted() {
-    this.loadAuthorTiles()
+    // Основной каталог: scope='main' — авторы БЕЗ is_special_order=true.
+    this.loadAuthorTiles('main')
+    // Виртуальная плашка «Отдельные песни разных авторов» в конце списка.
+    // Скрывается, когда пользователь выбрал конкретного автора (author=...).
+    if (!this.authorChosen) this.loadSpecialBucket()
     // Таблицу грузим только если автор уже выбран (например, зашли по ссылке ?author=...).
     if (this.authorChosen) this.loadZakroma(this.selectedAuthor)
   },
   methods: {
-    ...mapActions('zakroma', ['loadAuthorTiles', 'loadZakroma']),
+    ...mapActions('zakroma', ['loadAuthorTiles', 'loadZakroma', 'loadSpecialBucket']),
     // Монетка «премиум-контент» — только не-премиум посетителю и только для контента, доступного
     // лишь премиуму (эксклюзив или ещё не в эфире). Золотая/серебряная — по contentReadyFor().
     showCoin(sett) {
@@ -589,6 +701,45 @@ export default {
   font-size: 1.1rem;
   font-weight: 700;
   color: var(--km-text);
+}
+/* Виртуальная плашка «Отдельные песни разных авторов» в конце Закромов.
+   @see specs/008-special-orders/spec.md */
+.km-special-bucket {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 2px dashed var(--km-border);
+}
+.km-special-header {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin-bottom: 0.5rem;
+}
+.km-special-icon {
+  font-size: 1.6rem;
+}
+.km-special-name {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin: 0;
+  color: var(--km-text);
+}
+.km-special-note {
+  font-size: 0.88rem;
+  color: var(--km-text2);
+  margin: 0 0 1.25rem;
+  line-height: 1.5;
+}
+.km-special-tag {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--km-text2);
+  background: var(--km-hover);
+  border: 1px solid var(--km-border);
+  border-radius: 12px;
+  padding: 0.15rem 0.6rem;
+  text-transform: lowercase;
+  white-space: nowrap;
 }
 .km-author-pl-btn {
   margin-left: auto;

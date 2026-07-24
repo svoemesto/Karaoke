@@ -46,7 +46,11 @@ object WhisperAsrService {
     // синтезируем слова из текста сегмента, распределяя время линейно по длине символов слова
     // внутри длительности сегмента. Грубее настоящих word-таймкодов, но лучше, чем ничего.
     private fun synthesizeWordsFromSegment(segment: WhisperSegmentDto): List<WhisperWordDto> {
-        val words = segment.text.trim().split(Regex("\\s+")).filter { it.isNotEmpty() }
+        val words =
+            segment.text
+                .trim()
+                .split(Regex("\\s+"))
+                .filter { it.isNotEmpty() }
         if (words.isEmpty()) return emptyList()
         val totalChars = words.sumOf { it.length }.coerceAtLeast(1)
         val duration = (segment.end - segment.start).coerceAtLeast(0.0)

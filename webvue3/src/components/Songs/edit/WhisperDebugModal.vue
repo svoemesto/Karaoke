@@ -40,7 +40,11 @@
               class="wd-btn wd-btn-apply"
               type="button"
               :disabled="isLoading || markers.length === 0"
-              :title="markers.length === 0 ? 'Маркеров нет — нечего применять (текст можно скопировать выше)' : ''"
+              :title="
+                markers.length === 0
+                  ? 'Маркеров нет — нечего применять (текст можно скопировать выше)'
+                  : ''
+              "
               @click="apply"
             >
               Применить маркеры к голосу
@@ -92,11 +96,16 @@ export default {
   computed: {
     wordsText() {
       return this.whisperWords
-        .map((w) => `${w.start.toFixed(2)}-${w.end.toFixed(2)}s\t${w.word}\t(${w.confidence.toFixed(2)})`)
+        .map(
+          (w) =>
+            `${w.start.toFixed(2)}-${w.end.toFixed(2)}s\t${w.word}\t(${w.confidence.toFixed(2)})`,
+        )
         .join('\n')
     },
     markersText() {
-      return this.markers.map((m) => `${m.time.toFixed(3)}s\t${m.markertype}\t${m.label}`).join('\n')
+      return this.markers
+        .map((m) => `${m.time.toFixed(3)}s\t${m.markertype}\t${m.label}`)
+        .join('\n')
     },
   },
   methods: {

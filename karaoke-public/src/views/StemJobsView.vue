@@ -50,7 +50,11 @@
         <div class="km-field">
           <label class="km-label">Аудиофайл</label>
           <div class="km-file-picker">
-            <label class="km-file-btn" :class="{ 'km-file-btn-disabled': uploading }" for="stemFileInput">
+            <label
+              class="km-file-btn"
+              :class="{ 'km-file-btn-disabled': uploading }"
+              for="stemFileInput"
+            >
               Выбрать файл
             </label>
             <input
@@ -460,7 +464,9 @@ export default {
           this.setStemProgress(key, null)
           return
         }
-        const blob = await this.readResponseWithProgress(res, (pct) => this.setStemProgress(key, pct))
+        const blob = await this.readResponseWithProgress(res, (pct) =>
+          this.setStemProgress(key, pct),
+        )
         const url = URL.createObjectURL(blob)
         const baseName = (job.originalFileName || 'stem').replace(/\.[^.]+$/, '')
         const ext = stem === 'original' ? job.originalExt || 'bin' : 'mp3'

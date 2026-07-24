@@ -2451,7 +2451,11 @@ export default {
         id: ctx.state.currentSongId,
         sourceText: payload.sourceText,
       }
-      let request = { method: 'POST', url: '/api/songeditor/edit/forcedAlignMarkers', params: params }
+      let request = {
+        method: 'POST',
+        url: '/api/songeditor/edit/forcedAlignMarkers',
+        params: params,
+      }
       return await promisedXMLHttpRequest(request)
     },
     async correctText(ctx, payload) {

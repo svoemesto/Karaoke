@@ -61,7 +61,12 @@ object AlignmentServiceClient {
                 .addFormDataPart("text", text)
                 .build()
 
-        val request = Request.Builder().url(url).post(requestBody).build()
+        val request =
+            Request
+                .Builder()
+                .url(url)
+                .post(requestBody)
+                .build()
 
         return try {
             client.newCall(request).execute().use { response ->

@@ -5562,6 +5562,7 @@ class ApiController(
         @RequestParam(required = true) watched: Boolean,
         @RequestParam(required = true) skip: Boolean,
         @RequestParam(required = false) aliases: String?,
+        @RequestParam(required = false) isSpecialOrder: Boolean?,
     ): Long {
         Author
             .getAuthorById(
@@ -5579,6 +5580,7 @@ class ApiController(
                 it.watched = watched
                 it.skip = skip
                 aliases?.let { a -> it.aliases = a }
+                isSpecialOrder?.let { v -> it.isSpecialOrder = v }
                 it.save()
                 return id
             }

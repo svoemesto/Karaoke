@@ -88,6 +88,23 @@ class ProgressLoggerCallback(TrainerCallback):
         # на порядок (500 "бесплатных" шагов из чекпоинта / несколько реальных минут), и ETA
         # получался абсурдно оптимистичным, а затем каждый следующий шаг рос обратно к реальности.
         self.start_step = state.global_step
+
+        # При --resume Trainer подгружает TrainerState из trainer_state.json ЧЕКПОИНТА - включая
+        # ЕГО save_steps/eval_steps/logging_steps (проверено эмпирически: --save-steps 200 в CLI, а
+        # следующий чекпоинт всё равно ожидался по старому расписанию 500 из чекпоинта). Форсируем
+        # состояние под текущие args сразу здесь - иначе смена этих флагов между запусками просто
+        # тихо игнорируется на весь резюмированный прогон.
+        if state.save_steps != args.save_steps or state.eval_steps != args.eval_steps or state.logging_steps != args.logging_steps:
+            print(
+                f"[train] --resume: расписание чекпоинта/eval/лога из checkpoint отличалось от текущих "
+                f"аргументов - переключаю на текущие (save_steps={args.save_steps}, "
+                f"eval_steps={args.eval_steps}, logging_steps={args.logging_steps})",
+                flush=True,
+            )
+            state.save_steps = args.save_steps
+            state.eval_steps = args.eval_steps
+            state.logging_steps = args.logging_steps
+
         print(
             f"[train] начало: всего шагов={state.max_steps}, эпох={args.num_train_epochs}, "
             f"текущий шаг={state.global_step} (0, если не --resume)",

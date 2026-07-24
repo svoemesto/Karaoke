@@ -77,9 +77,16 @@ class ProgressLoggerCallback(TrainerCallback):
 
     def __init__(self):
         self.start_time: float | None = None
+        self.start_step: int | None = None
 
     def on_train_begin(self, args, state, control, **kwargs):
         self.start_time = time.time()
+        # При --resume state.global_step уже не 0 (например, 500) - скорость/ETA считаем от ЭТОГО
+        # шага, а не от нуля, иначе "шагов пройдено" в on_log ниже включал бы шаги из ПРОШЛОГО
+        # запуска, которых за время работы ТЕКУЩЕГО процесса физически не было - rate завышался бы
+        # на порядок (500 "бесплатных" шагов из чекпоинта / несколько реальных минут), и ETA
+        # получался абсурдно оптимистичным, а затем каждый следующий шаг рос обратно к реальности.
+        self.start_step = state.global_step
         print(
             f"[train] начало: всего шагов={state.max_steps}, эпох={args.num_train_epochs}, "
             f"текущий шаг={state.global_step} (0, если не --resume)",
@@ -95,7 +102,8 @@ class ProgressLoggerCallback(TrainerCallback):
         step = state.global_step
         total = state.max_steps or 1
         percent = 100 * step / total
-        rate = step / elapsed if elapsed > 0 else 0
+        steps_this_run = step - (self.start_step or 0)
+        rate = steps_this_run / elapsed if elapsed > 0 and steps_this_run > 0 else 0
         remaining = (total - step) / rate if rate > 0 else float("inf")
 
         parts = [f"шаг {step}/{total} ({percent:.1f}%)", f"эпоха {logs.get('epoch', state.epoch or 0):.2f}"]

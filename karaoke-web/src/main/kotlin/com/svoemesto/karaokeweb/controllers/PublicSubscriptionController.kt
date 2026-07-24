@@ -280,7 +280,11 @@ class PublicSubscriptionController(
     }
 
     // Отключает автопродление подписки на сайт — доступ доживает до текущего sitePremiumUntil,
-    // повторного списания больше не будет (см. план: POST /cancel).
+    // повторного списания больше не будет (см. план: POST /cancel). Также отвязывает сохранённый
+    // способ оплаты (yookassaPaymentMethodId) — самостоятельный, без обращения в поддержку,
+    // интерфейс отвязки карты обязателен по условиям подключения автоплатежей ЮKassa. Отвязываем
+    // именно здесь (а не отдельным эндпоинтом), т.к. карта без autoRenew всё равно бесполезна —
+    // раздельные действия только создавали бы противоречивое состояние (autoRenew=true без карты).
     @PostMapping("/cancel")
     fun cancel(
         @RequestParam id: Long,
@@ -293,6 +297,7 @@ class PublicSubscriptionController(
                 ?.takeIf { it.siteUserId == user.id && it.scope == Subscription.SCOPE_SITE }
                 ?: return ResponseEntity.notFound().build()
         sub.autoRenew = false
+        sub.yookassaPaymentMethodId = ""
         sub.save()
         return ResponseEntity.ok(mapOf("ok" to true))
     }

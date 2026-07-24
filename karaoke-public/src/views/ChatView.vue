@@ -36,8 +36,16 @@
         <template v-else>
           <div ref="listEl" class="km-chat-messages">
             <p v-if="!messages.length" class="km-empty">Сообщений пока нет. Напишите первым!</p>
+            <div v-if="hasMoreHistory" class="km-chat-history-row">
+              <button v-if="canLoadPartial" class="km-chat-history-btn" @click="loadMoreHistory">
+                Подгрузить ещё {{ pageSize }}
+              </button>
+              <button class="km-chat-history-btn" @click="loadAllHistory">
+                Подгрузить все {{ messages.length }}
+              </button>
+            </div>
             <div
-              v-for="m in messages"
+              v-for="m in visibleMessages"
               :key="m.id"
               class="km-chat-bubble"
               :class="m.fromAuthor ? 'km-chat-bubble-author' : 'km-chat-bubble-me'"
@@ -80,6 +88,7 @@ import { useAuth } from '../composables/useAuth'
 import { fetchMessages, sendMessage } from '../services/chatApi'
 
 const POLL_INTERVAL_MS = 7000
+const PAGE_SIZE = 10
 
 /**
  * View-страница «Chat» — основной layout и data-fetching.
@@ -95,11 +104,31 @@ export default {
     return { user, isLoggedIn }
   },
   data() {
-    return { messages: [], loading: true, draft: '', sending: false, error: '', pollTimer: null }
+    return {
+      messages: [],
+      loading: true,
+      draft: '',
+      sending: false,
+      error: '',
+      pollTimer: null,
+      visibleCount: PAGE_SIZE,
+      pageSize: PAGE_SIZE,
+    }
   },
   computed: {
     isPremium() {
       return !!(this.user && this.user.effectivePremium)
+    },
+    // Показываем только последние visibleCount сообщений — при открытии чата и до нажатия
+    // "Подгрузить историю"/"Подгрузить все" не рендерим (и не грузим лишний скролл) всю переписку.
+    visibleMessages() {
+      return this.messages.slice(Math.max(0, this.messages.length - this.visibleCount))
+    },
+    hasMoreHistory() {
+      return this.messages.length > this.visibleCount
+    },
+    canLoadPartial() {
+      return this.messages.length - this.visibleCount > PAGE_SIZE
     },
   },
   async mounted() {
@@ -137,6 +166,23 @@ export default {
     scrollToBottom() {
       const el = this.$refs.listEl
       if (el) el.scrollTop = el.scrollHeight
+    },
+    // Подгрузка старых сообщений раскрывает список вверх — без компенсации скролла лента визуально
+    // "прыгала" бы вниз (браузер сохраняет scrollTop, а не позицию просмотра при росте контента сверху).
+    revealMore(count) {
+      const el = this.$refs.listEl
+      const prevHeight = el ? el.scrollHeight : 0
+      const prevTop = el ? el.scrollTop : 0
+      this.visibleCount = count
+      this.$nextTick(() => {
+        if (el) el.scrollTop = prevTop + (el.scrollHeight - prevHeight)
+      })
+    },
+    loadMoreHistory() {
+      this.revealMore(this.visibleCount + PAGE_SIZE)
+    },
+    loadAllHistory() {
+      this.revealMore(this.messages.length)
     },
     // Авто-рост textarea по мере ввода многострочного текста — высота ограничена CSS
     // (max-height: 25vh, четверть экрана), дальше поле само уходит в внутренний скролл.
@@ -321,6 +367,26 @@ export default {
   background-image: url('/chat-bg-pattern.svg?v=3');
   background-repeat: repeat;
   background-size: 150px 166px;
+}
+.km-chat-history-row {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.2rem 0 0.4rem;
+  flex-wrap: wrap;
+}
+.km-chat-history-btn {
+  background: var(--km-card);
+  color: var(--km-text2);
+  border: 1px solid var(--km-border);
+  border-radius: 20px;
+  padding: 0.35rem 0.9rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+.km-chat-history-btn:hover {
+  opacity: 0.85;
 }
 .km-chat-bubble {
   max-width: 78%;

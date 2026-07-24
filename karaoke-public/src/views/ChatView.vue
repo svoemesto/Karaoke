@@ -37,15 +37,20 @@
           <div ref="listEl" class="km-chat-messages">
             <p v-if="!messages.length" class="km-empty">Сообщений пока нет. Напишите первым!</p>
             <div v-if="hasMoreHistory" class="km-chat-history-row">
-              <button v-if="canLoadPartial" class="km-chat-history-btn" @click="loadMoreHistory">
+              <button
+                v-if="canLoadPartial"
+                class="km-chat-history-btn"
+                :disabled="loadingHistory"
+                @click="loadMoreHistory"
+              >
                 Подгрузить ещё {{ pageSize }}
               </button>
-              <button class="km-chat-history-btn" @click="loadAllHistory">
-                Подгрузить все {{ messages.length }}
+              <button class="km-chat-history-btn" :disabled="loadingHistory" @click="loadAllHistory">
+                Подгрузить все {{ total }}
               </button>
             </div>
             <div
-              v-for="m in visibleMessages"
+              v-for="m in messages"
               :key="m.id"
               class="km-chat-bubble"
               :class="m.fromAuthor ? 'km-chat-bubble-author' : 'km-chat-bubble-me'"
@@ -89,6 +94,7 @@ import { fetchMessages, sendMessage } from '../services/chatApi'
 
 const POLL_INTERVAL_MS = 7000
 const PAGE_SIZE = 10
+const POLL_BATCH_LIMIT = 500 // защита от аномального залпа между двумя поллами, не реальный лимит
 
 /**
  * View-страница «Chat» — основной layout и data-fetching.
@@ -105,13 +111,14 @@ export default {
   },
   data() {
     return {
-      messages: [],
+      messages: [], // окно уже загруженных сообщений (по возрастанию id), а не вся история треда
+      total: 0, // общее число сообщений в треде — от бэкенда, для "Подгрузить все N" и hasMoreHistory
       loading: true,
+      loadingHistory: false,
       draft: '',
       sending: false,
       error: '',
       pollTimer: null,
-      visibleCount: PAGE_SIZE,
       pageSize: PAGE_SIZE,
     }
   },
@@ -119,22 +126,17 @@ export default {
     isPremium() {
       return !!(this.user && this.user.effectivePremium)
     },
-    // Показываем только последние visibleCount сообщений — при открытии чата и до нажатия
-    // "Подгрузить историю"/"Подгрузить все" не рендерим (и не грузим лишний скролл) всю переписку.
-    visibleMessages() {
-      return this.messages.slice(Math.max(0, this.messages.length - this.visibleCount))
-    },
     hasMoreHistory() {
-      return this.messages.length > this.visibleCount
+      return this.messages.length < this.total
     },
     canLoadPartial() {
-      return this.messages.length - this.visibleCount > PAGE_SIZE
+      return this.total - this.messages.length > PAGE_SIZE
     },
   },
   async mounted() {
     if (!this.isLoggedIn || !this.isPremium) return
-    await this.reload(true)
-    this.pollTimer = setInterval(() => this.reload(false), POLL_INTERVAL_MS)
+    await this.initialLoad()
+    this.pollTimer = setInterval(() => this.poll(), POLL_INTERVAL_MS)
   },
   beforeUnmount() {
     if (this.pollTimer) clearInterval(this.pollTimer)
@@ -154,14 +156,32 @@ export default {
         return tsString
       }
     },
-    async reload(showLoading) {
-      if (showLoading) this.loading = true
-      const { status, body } = await fetchMessages()
-      if (status === 200 && Array.isArray(body)) {
-        this.messages = body
+    async initialLoad() {
+      this.loading = true
+      const { status, body } = await fetchMessages({ limit: PAGE_SIZE })
+      if (status === 200 && body) {
+        this.messages = body.messages || []
+        this.total = body.total || 0
         this.$nextTick(this.scrollToBottom)
       }
-      if (showLoading) this.loading = false
+      this.loading = false
+    },
+    // Поллинг подтягивает только НОВЫЕ сообщения (id > последнего загруженного) — не всю историю
+    // треда заново. Автоскролл вниз — только если пользователь и так был у низа ленты (не выдёргиваем
+    // его вниз, если он в этот момент читает историю выше).
+    async poll() {
+      if (!this.messages.length) return
+      const el = this.$refs.listEl
+      const wasNearBottom = el ? el.scrollHeight - el.scrollTop - el.clientHeight < 40 : true
+      const afterId = this.messages[this.messages.length - 1].id
+      const { status, body } = await fetchMessages({ afterId, limit: POLL_BATCH_LIMIT })
+      if (status === 200 && body) {
+        if (body.messages && body.messages.length) {
+          this.messages = this.messages.concat(body.messages)
+          if (wasNearBottom) this.$nextTick(this.scrollToBottom)
+        }
+        this.total = body.total || this.total
+      }
     },
     scrollToBottom() {
       const el = this.$refs.listEl
@@ -169,20 +189,31 @@ export default {
     },
     // Подгрузка старых сообщений раскрывает список вверх — без компенсации скролла лента визуально
     // "прыгала" бы вниз (браузер сохраняет scrollTop, а не позицию просмотра при росте контента сверху).
-    revealMore(count) {
+    async loadHistory(count) {
+      if (this.loadingHistory || !this.messages.length) return
+      this.loadingHistory = true
       const el = this.$refs.listEl
       const prevHeight = el ? el.scrollHeight : 0
       const prevTop = el ? el.scrollTop : 0
-      this.visibleCount = count
-      this.$nextTick(() => {
-        if (el) el.scrollTop = prevTop + (el.scrollHeight - prevHeight)
-      })
+      const beforeId = this.messages[0].id
+      try {
+        const { status, body } = await fetchMessages({ beforeId, limit: count })
+        if (status === 200 && body) {
+          this.messages = (body.messages || []).concat(this.messages)
+          this.total = body.total || this.total
+          this.$nextTick(() => {
+            if (el) el.scrollTop = prevTop + (el.scrollHeight - prevHeight)
+          })
+        }
+      } finally {
+        this.loadingHistory = false
+      }
     },
     loadMoreHistory() {
-      this.revealMore(this.visibleCount + PAGE_SIZE)
+      this.loadHistory(PAGE_SIZE)
     },
     loadAllHistory() {
-      this.revealMore(this.messages.length)
+      this.loadHistory(this.total - this.messages.length)
     },
     // Авто-рост textarea по мере ввода многострочного текста — высота ограничена CSS
     // (max-height: 25vh, четверть экрана), дальше поле само уходит в внутренний скролл.
@@ -201,6 +232,7 @@ export default {
         const { status, body: resp } = await sendMessage(body)
         if (status === 200 && resp) {
           this.messages.push(resp)
+          this.total += 1
           this.draft = ''
           this.$nextTick(() => {
             this.scrollToBottom()

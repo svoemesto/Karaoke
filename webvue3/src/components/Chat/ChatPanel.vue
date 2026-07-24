@@ -80,16 +80,21 @@
           <div v-else-if="!messages.length" class="chat-empty">
             Сообщений пока нет — напишите первым
           </div>
-          <div v-if="hasMoreHistory" class="chat-history-row">
-            <button v-if="canLoadPartial" class="chat-history-btn" @click="loadMoreHistory">
+          <div v-if="messages.length && hasMoreHistory" class="chat-history-row">
+            <button
+              v-if="canLoadPartial"
+              class="chat-history-btn"
+              :disabled="loadingHistory"
+              @click="loadMoreHistory"
+            >
               Подгрузить ещё {{ pageSize }}
             </button>
-            <button class="chat-history-btn" @click="loadAllHistory">
-              Подгрузить все {{ messages.length }}
+            <button class="chat-history-btn" :disabled="loadingHistory" @click="loadAllHistory">
+              Подгрузить все {{ messagesTotal }}
             </button>
           </div>
           <div
-            v-for="m in visibleMessages"
+            v-for="m in messages"
             :key="m.id"
             class="chat-bubble"
             :class="m.fromAuthor ? 'chat-bubble-author' : 'chat-bubble-user'"
@@ -146,7 +151,7 @@ export default {
       searchResults: [],
       searching: false,
       searchDebounceTimer: null,
-      visibleCount: PAGE_SIZE,
+      loadingHistory: false,
       pageSize: PAGE_SIZE,
     }
   },
@@ -163,6 +168,9 @@ export default {
     messages() {
       return this.$store.getters.getChatMessages
     },
+    messagesTotal() {
+      return this.$store.getters.getChatMessagesTotal
+    },
     messagesIsLoading() {
       return this.$store.getters.getChatMessagesIsLoading
     },
@@ -174,33 +182,18 @@ export default {
         this.$store.dispatch('setChatTarget', value)
       },
     },
-    // Показываем только последние visibleCount сообщений — при открытии треда и до нажатия
-    // "Подгрузить ещё"/"Подгрузить все" не рендерим всю историю переписки.
-    visibleMessages() {
-      return this.messages.slice(Math.max(0, this.messages.length - this.visibleCount))
-    },
     hasMoreHistory() {
-      return this.messages.length > this.visibleCount
+      return this.messages.length < this.messagesTotal
     },
     canLoadPartial() {
-      return this.messages.length - this.visibleCount > PAGE_SIZE
-    },
-  },
-  watch: {
-    messages() {
-      this.$nextTick(this.scrollToBottom)
-    },
-    // Новый открытый тред — снова показываем только последние N, а не то, что успел
-    // раскрыть пользователь в предыдущей переписке.
-    currentUserId() {
-      this.visibleCount = PAGE_SIZE
+      return this.messagesTotal - this.messages.length > PAGE_SIZE
     },
   },
   mounted() {
     this.reloadThreads()
     this.pollTimer = setInterval(() => {
       this.reloadThreads()
-      if (this.currentUserId) this.$store.dispatch('loadChatMessages', this.currentUserId)
+      this.poll()
     }, POLL_INTERVAL_MS)
   },
   beforeUnmount() {
@@ -211,9 +204,20 @@ export default {
     reloadThreads() {
       this.$store.dispatch('loadChatThreads')
     },
-    openThread(siteUserId) {
+    async openThread(siteUserId) {
       this.isSearchVisible = false
-      this.$store.dispatch('openChatThread', siteUserId)
+      await this.$store.dispatch('openChatThread', siteUserId)
+      this.$nextTick(this.scrollToBottom)
+    },
+    // Поллинг подтягивает только НОВЫЕ сообщения треда (не всю историю заново). Автоскролл вниз —
+    // только если админ и так был у низа ленты (не выдёргиваем его вниз посреди чтения истории).
+    poll() {
+      if (!this.currentUserId || !this.messages.length) return
+      const el = this.$refs.messagesEl
+      const wasNearBottom = el ? el.scrollHeight - el.scrollTop - el.clientHeight < 40 : true
+      this.$store.dispatch('pollChatMessages').then(() => {
+        if (wasNearBottom) this.$nextTick(this.scrollToBottom)
+      })
     },
     onTargetChange() {
       this.closeSearch()
@@ -246,9 +250,10 @@ export default {
         this.searching = false
       }
     },
-    startChatWith(siteUserId) {
+    async startChatWith(siteUserId) {
       this.closeSearch()
-      this.$store.dispatch('openChatThread', siteUserId)
+      await this.$store.dispatch('openChatThread', siteUserId)
+      this.$nextTick(this.scrollToBottom)
     },
     scrollToBottom() {
       const el = this.$refs.messagesEl
@@ -256,20 +261,26 @@ export default {
     },
     // Подгрузка старых сообщений раскрывает список вверх — без компенсации скролла лента визуально
     // "прыгала" бы вниз (браузер сохраняет scrollTop, а не позицию просмотра при росте контента сверху).
-    revealMore(count) {
+    async loadHistory(count) {
+      if (this.loadingHistory || !this.messages.length || count <= 0) return
+      this.loadingHistory = true
       const el = this.$refs.messagesEl
       const prevHeight = el ? el.scrollHeight : 0
       const prevTop = el ? el.scrollTop : 0
-      this.visibleCount = count
-      this.$nextTick(() => {
-        if (el) el.scrollTop = prevTop + (el.scrollHeight - prevHeight)
-      })
+      try {
+        await this.$store.dispatch('loadMoreChatMessages', count)
+        this.$nextTick(() => {
+          if (el) el.scrollTop = prevTop + (el.scrollHeight - prevHeight)
+        })
+      } finally {
+        this.loadingHistory = false
+      }
     },
     loadMoreHistory() {
-      this.revealMore(this.visibleCount + PAGE_SIZE)
+      this.loadHistory(PAGE_SIZE)
     },
     loadAllHistory() {
-      this.revealMore(this.messages.length)
+      this.loadHistory(this.messagesTotal - this.messages.length)
     },
     // Авто-рост textarea по мере ввода многострочного текста — высота ограничена CSS
     // (max-height: 25vh, четверть экрана), дальше поле само уходит в внутренний скролл.
@@ -308,7 +319,10 @@ export default {
         await this.$store.dispatch('sendChatReply', body)
         this.draft = ''
         this.reloadThreads()
-        this.$nextTick(this.autoGrowComposer)
+        this.$nextTick(() => {
+          this.scrollToBottom()
+          this.autoGrowComposer()
+        })
       } finally {
         this.sending = false
       }

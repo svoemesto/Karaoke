@@ -72,8 +72,11 @@ class SiteChatMessage(
 
     companion object {
         const val TABLE_NAME = "tbl_site_chat_messages"
+        const val DEFAULT_PAGE_SIZE = 10
+        const val MAX_PAGE_SIZE = 2000
 
-        // Тред одного пользователя целиком, по возрастанию id (= по времени).
+        // Тред одного пользователя целиком, по возрастанию id (= по времени). Используется только там,
+        // где реально нужна вся история разом (сейчас — нигде в контроллерах, см. loadPageByUser).
         fun loadByUser(
             siteUserId: Long,
             database: KaraokeConnection,
@@ -90,6 +93,98 @@ class SiteChatMessage(
                     storageApiClient = storageApiClient,
                 ).map { it as SiteChatMessage }
                 .sortedBy { it.id }
+
+        // Одна "страница" переписки для infinite-scroll UI — raw SQL (не generic KaraokeDbTable.loadList:
+        // тот не добавляет ORDER BY в SQL вообще, полагаясь на сортировку в памяти ПОСЛЕ полной выборки —
+        // с LIMIT это отдало бы произвольные строки, а не именно последние/следующие по id).
+        // - beforeId=null, afterId=null → последние `limit` сообщений треда (открытие чата).
+        // - beforeId=X → `limit` более старых сообщений (id < X), подгрузка истории вверх.
+        // - afterId=X → сообщения новее X, без ограничения по времени, но с тем же `limit` как
+        //   защитой от аномально большого залпа (поллинг новых сообщений).
+        // Результат всегда возвращается по возрастанию id, независимо от направления курсора.
+        fun loadPageByUser(
+            siteUserId: Long,
+            database: KaraokeConnection,
+            storageService: KaraokeStorageService,
+            storageApiClient: StorageApiClient,
+            limit: Int,
+            beforeId: Long? = null,
+            afterId: Long? = null,
+        ): List<SiteChatMessage> {
+            val connection = database.getConnection() ?: return emptyList()
+            val result = mutableListOf<SiteChatMessage>()
+            val where = StringBuilder("site_user_id = ?")
+            if (beforeId != null) where.append(" AND id < ?")
+            if (afterId != null) where.append(" AND id > ?")
+            // DESC (+ разворот результата в конце) нужен и для beforeId (история вверх), и для
+            // случая без курсоров вообще (открытие чата — нужны последние `limit`, а не первые).
+            // ASC — только при afterId (поллинг: следующие по хронологии сразу после курсора).
+            val orderDesc = afterId == null
+            val sql =
+                "SELECT id, site_user_id, is_from_author, body, is_read, created_at FROM $TABLE_NAME " +
+                    "WHERE $where ORDER BY id ${if (orderDesc) "DESC" else "ASC"} LIMIT ?"
+            try {
+                connection.prepareStatement(sql).use { ps ->
+                    var idx = 1
+                    ps.setLong(idx++, siteUserId)
+                    if (beforeId != null) ps.setLong(idx++, beforeId)
+                    if (afterId != null) ps.setLong(idx++, afterId)
+                    ps.setInt(idx, limit.coerceIn(1, MAX_PAGE_SIZE))
+                    ps.executeQuery().use { rs ->
+                        while (rs.next()) {
+                            val entity =
+                                SiteChatMessage(database = database, storageService = storageService, storageApiClient = storageApiClient)
+                            entity.id = rs.getLong("id")
+                            entity.siteUserId = rs.getLong("site_user_id")
+                            entity.isFromAuthor = rs.getBoolean("is_from_author")
+                            entity.body = rs.getString("body") ?: ""
+                            entity.isRead = rs.getBoolean("is_read")
+                            entity.createdAt = rs.getTimestamp("created_at")
+                            result.add(entity)
+                        }
+                    }
+                }
+            } catch (e: SQLException) {
+                println("SiteChatMessage.loadPageByUser SQLException: ${e.message}")
+            }
+            return if (orderDesc) result.asReversed() else result
+        }
+
+        fun countByUser(
+            siteUserId: Long,
+            database: KaraokeConnection,
+        ): Int {
+            val connection = database.getConnection() ?: return 0
+            val sql = "SELECT COUNT(*) AS cnt FROM $TABLE_NAME WHERE site_user_id = ?"
+            return try {
+                connection.prepareStatement(sql).use { ps ->
+                    ps.setLong(1, siteUserId)
+                    ps.executeQuery().use { rs -> if (rs.next()) rs.getInt("cnt") else 0 }
+                }
+            } catch (e: SQLException) {
+                println("SiteChatMessage.countByUser SQLException: ${e.message}")
+                0
+            }
+        }
+
+        // Непрочитанные автором сообщения В КОНКРЕТНОМ треде — бейдж на публичной стороне
+        // (в отличие от countUnreadFromUsers, который считает глобально по всем тредам для webvue3).
+        fun countUnreadForUser(
+            siteUserId: Long,
+            database: KaraokeConnection,
+        ): Int {
+            val connection = database.getConnection() ?: return 0
+            val sql = "SELECT COUNT(*) AS cnt FROM $TABLE_NAME WHERE site_user_id = ? AND is_from_author = true AND is_read = false"
+            return try {
+                connection.prepareStatement(sql).use { ps ->
+                    ps.setLong(1, siteUserId)
+                    ps.executeQuery().use { rs -> if (rs.next()) rs.getInt("cnt") else 0 }
+                }
+            } catch (e: SQLException) {
+                println("SiteChatMessage.countUnreadForUser SQLException: ${e.message}")
+                0
+            }
+        }
 
         fun getById(
             id: Long,

@@ -12,8 +12,8 @@
 > **Если вы ведёте разработку с другим AI-агентом** и он понимает
 > `AGENTS.md` — этого файла достаточно. Если нет — см. ссылки выше.
 
-> **Версия файла**: 1.3.0
-> **Last updated**: 2026-07-24 (Pass 24, добавлен раздел «Стратегия роста»)
+> **Версия файла**: 1.4.0
+> **Last updated**: 2026-07-24 (Pass 25, добавлен урок про Jackson `is`-boolean)
 > **Ответственный**: opencode-агент
 > **Как обновлять**: см. секцию «Как обновлять этот файл» в конце.
 
@@ -390,6 +390,47 @@ echo "CLAUDE.md" >> .git/info/exclude
 Добавить строку с 4 колонками: агент / файл конфига / в гите? / документация.
 Пример: см. существующие 5 строк (opencode / Claude Code / Cursor / Cody-Aider-Continue / любой).
 См. также [`docs/onboarding.md`](./docs/onboarding.md) секция «Настроить AI-агента».
+
+### Q: Jackson отбрасывает `is` в boolean-полях Kotlin DTO — что делать?
+
+**КРИТИЧНО**. В Kotlin data class Jackson по умолчанию **отбрасывает префикс `is`**
+в boolean-полях при сериализации в JSON. Это особенность Kotlin-Jackson-маппинга
+(`is`-префикс считается частью геттера `isXxx` → Jackson `Boolean`-биндинг отбрасывает
+его как языковой префикс, а не как префикс имени поля).
+
+**Симптом**: данные компилируются и работают на бэке, но фронт получает пустые
+значения / `undefined`. Первое подозрение — баг в коде или binding к форме.
+На самом деле проблема в **имени JSON-поля**: фронт ждёт `isXxx`, бэк отдаёт `xxx`.
+
+**Решение — ВСЕГДА `@JsonProperty("isOriginalName")` на boolean-полях DTO:**
+
+```kotlin
+import com.fasterxml.jackson.annotation.JsonProperty
+
+@get:JsonProperty("isSpecialOrder")
+val isSpecialOrder: Boolean = false,
+```
+
+**Без аннотации** поле попадёт во ВСЕ ответы API как `{"specialOrder": true}` вместо
+`{"isSpecialOrder": true}`. Биндинг на фронте молча ломается, форма не сохраняется,
+админка показывает пустые поля.
+
+**Применить ко всем DTO, у которых boolean-поле идёт в `get*`/`post*` API:**
+- `karaoke-app/src/main/kotlin/.../dto/*DTO.kt` (responses)
+- `karaoke-web/src/main/kotlin/.../dto/*Dto.kt` (responses)
+- Любые другие классы, сериализующиеся как ответ API контроллера.
+
+**НЕ нужно** на `@RequestParam` (Spring берёт параметр напрямую по имени — там
+Jackson-конвенция НЕ применяется).
+
+**Исторический контекст**: M-23 «Спецзаказные» PR #48 был сломан именно этим —
+DTO `AuthorDTO` сериализовало `isSpecialOrder` → `{"specialOrder": ...}`, фронт
+ждал `isSpecialOrder`. Поле «не работало» во фронте 2 дня. Фикс в PR #49.
+
+**Дополнительно — boolean updateable через админку**: не использовать `save()`
+через `getDiff()` для boolean-апдейтов (плохо работает с boxed `Boolean?` + recordhash-
+тригер на любые изменения ломает sync LOCAL↔SERVER). Лучше прямой `UPDATE` через
+`@RequestParam`. См. PR #49 `apisUpdateAuthor`.
 
 ### Q: Где найти датированный changelog последних PR?
 

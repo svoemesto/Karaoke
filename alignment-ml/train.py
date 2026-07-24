@@ -30,6 +30,7 @@ import random
 import re
 import statistics
 import time
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import torch
@@ -93,6 +94,16 @@ class ProgressLoggerCallback(TrainerCallback):
             flush=True,
         )
 
+    def _rate(self, state) -> float:
+        """Шагов/сек, посчитано ТОЛЬКО по шагам текущего процесса (см. start_step в
+        on_train_begin) - общая логика для on_log (ETA до конца) и on_save (ETA до
+        следующего чекпоинта)."""
+        if self.start_time is None:
+            return 0.0
+        elapsed = time.time() - self.start_time
+        steps_this_run = state.global_step - (self.start_step or 0)
+        return steps_this_run / elapsed if elapsed > 0 and steps_this_run > 0 else 0.0
+
     def on_log(self, args, state, control, logs=None, **kwargs):
         if not logs or self.start_time is None:
             return
@@ -102,8 +113,7 @@ class ProgressLoggerCallback(TrainerCallback):
         step = state.global_step
         total = state.max_steps or 1
         percent = 100 * step / total
-        steps_this_run = step - (self.start_step or 0)
-        rate = steps_this_run / elapsed if elapsed > 0 and steps_this_run > 0 else 0
+        rate = self._rate(state)
         remaining = (total - step) / rate if rate > 0 else float("inf")
 
         parts = [f"шаг {step}/{total} ({percent:.1f}%)", f"эпоха {logs.get('epoch', state.epoch or 0):.2f}"]
@@ -116,7 +126,21 @@ class ProgressLoggerCallback(TrainerCallback):
         print("[train] " + " | ".join(parts), flush=True)
 
     def on_save(self, args, state, control, **kwargs):
-        print(f"[train] чекпоинт сохранён: шаг {state.global_step} -> {args.output_dir}", flush=True)
+        now = datetime.now()
+        next_step = state.global_step + args.save_steps
+        rate = self._rate(state)
+        if rate > 0:
+            eta_seconds = args.save_steps / rate
+            eta_in = _format_duration(eta_seconds)
+            eta_at = (now + timedelta(seconds=eta_seconds)).strftime("%H:%M:%S")
+        else:
+            eta_in = eta_at = "?"
+        print(
+            f"[train] чекпоинт сохранён: шаг {state.global_step} -> {args.output_dir} "
+            f"({now.strftime('%H:%M:%S')}); следующий - шаг {next_step}, ожидается через ≈{eta_in} "
+            f"(примерно в {eta_at})",
+            flush=True,
+        )
 
 
 def build_vocab(texts: list[str]) -> dict[str, int]:

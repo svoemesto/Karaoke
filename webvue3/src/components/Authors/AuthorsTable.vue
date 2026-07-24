@@ -145,6 +145,14 @@
           />
         </template>
 
+        <template #cell(isSpecialOrder)="data">
+          <div
+            class="fld-isSpecialOrder"
+            :style="{ color: currentAuthorId === data.item.id ? 'blue' : 'black' }"
+            v-text="data.value ? '🪙' : ''"
+          />
+        </template>
+
         <template #cell(aliases)="data">
           <div
             class="fld-aliases"
@@ -338,6 +346,17 @@ export default {
           },
         },
         {
+          key: 'isSpecialOrder',
+          sortable: true,
+          label: 'Спец',
+          style: {
+            minWidth: '50px',
+            maxWidth: '50px',
+            textAlign: 'left',
+            fontSize: 'small',
+          },
+        },
+        {
           key: 'aliases',
           sortable: true,
           label: 'Алиасы',
@@ -465,6 +484,14 @@ export default {
             fldValue: item.watched,
             fldIsBoolean: true,
             disabled: true,
+            fldLabelStyle: { width: '300px', textAlign: 'right', paddingRight: '5px' },
+            fldValueStyle: { width: '300px', textAlign: 'center', borderRadius: '5px' },
+          },
+          {
+            fldName: 'isSpecialOrder',
+            fldLabel: 'По спецзаказу?:',
+            fldValue: item.isSpecialOrder || false,
+            fldIsBoolean: true,
             fldLabelStyle: { width: '300px', textAlign: 'right', paddingRight: '5px' },
             fldValueStyle: { width: '300px', textAlign: 'center', borderRadius: '5px' },
           },

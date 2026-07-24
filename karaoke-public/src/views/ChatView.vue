@@ -45,7 +45,11 @@
               >
                 Подгрузить ещё {{ pageSize }}
               </button>
-              <button class="km-chat-history-btn" :disabled="loadingHistory" @click="loadAllHistory">
+              <button
+                class="km-chat-history-btn"
+                :disabled="loadingHistory"
+                @click="loadAllHistory"
+              >
                 Подгрузить все {{ total }}
               </button>
             </div>

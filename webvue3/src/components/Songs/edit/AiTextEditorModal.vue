@@ -12,7 +12,9 @@
               :disabled="isLoading"
               @click="runCorrection('spelling')"
             >
-              {{ isLoading && activeMode === 'spelling' ? 'Исправляем...' : 'Исправить орфографию' }}
+              {{
+                isLoading && activeMode === 'spelling' ? 'Исправляем...' : 'Исправить орфографию'
+              }}
             </button>
             <button
               class="ae-action-button"
@@ -20,7 +22,9 @@
               :disabled="isLoading"
               @click="runCorrection('punctuation')"
             >
-              {{ isLoading && activeMode === 'punctuation' ? 'Исправляем...' : 'Исправить пунктуацию' }}
+              {{
+                isLoading && activeMode === 'punctuation' ? 'Исправляем...' : 'Исправить пунктуацию'
+              }}
             </button>
           </div>
 
@@ -46,7 +50,12 @@
 
             <div class="ae-column">
               <div class="ae-column-title">Результат корректора</div>
-              <div ref="resultBox" class="ae-textarea ae-result" contenteditable="true" @input="onResultInput" />
+              <div
+                ref="resultBox"
+                class="ae-textarea ae-result"
+                contenteditable="true"
+                @input="onResultInput"
+              />
             </div>
           </div>
 
@@ -56,10 +65,17 @@
           </div>
 
           <div class="ae-footer">
-            <button class="ae-btn ae-btn-apply" type="button" :disabled="!originalText.trim()" @click="apply">
+            <button
+              class="ae-btn ae-btn-apply"
+              type="button"
+              :disabled="!originalText.trim()"
+              @click="apply"
+            >
               Применить изменения
             </button>
-            <button class="ae-btn ae-btn-close" type="button" @click="close">Закрыть без применения</button>
+            <button class="ae-btn ae-btn-close" type="button" @click="close">
+              Закрыть без применения
+            </button>
           </div>
         </div>
       </div>

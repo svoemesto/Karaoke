@@ -83,9 +83,7 @@
               </label>
             </div>
             <div class="acm-buttons-group">
-              <button type="button" class="acm-button" @click="searchInternet">
-                Искать снова
-              </button>
+              <button type="button" class="acm-button" @click="searchInternet">Искать снова</button>
               <button type="button" class="acm-button" @click="openFileExplorer">
                 Загрузить с диска
               </button>
@@ -98,8 +96,8 @@
           <!-- Шаг: кадрирование -->
           <div v-else-if="step === 'cropping'" class="acm-cropping">
             <div v-if="lowResolutionWarning" class="acm-warning">
-              Картинка небольшого разрешения — после масштабирования до 400×400 качество может
-              быть низким.
+              Картинка небольшого разрешения — после масштабирования до 400×400 качество может быть
+              низким.
             </div>
             <div class="acm-cropper-wrap">
               <Cropper
@@ -114,15 +112,15 @@
             </div>
             <div v-if="saveError" class="acm-error">{{ saveError }}</div>
             <div class="acm-buttons-group">
-              <button
-                type="button"
-                class="acm-button"
-                :disabled="isSaving"
-                @click="saveCover"
-              >
+              <button type="button" class="acm-button" :disabled="isSaving" @click="saveCover">
                 {{ isSaving ? 'Сохранение…' : 'Сохранить' }}
               </button>
-              <button type="button" class="acm-button-secondary" :disabled="isSaving" @click="backFromCropping">
+              <button
+                type="button"
+                class="acm-button-secondary"
+                :disabled="isSaving"
+                @click="backFromCropping"
+              >
                 Назад
               </button>
             </div>
@@ -279,7 +277,8 @@ export default {
     },
     backFromCropping() {
       this.saveError = ''
-      this.step = this.cropSourceFrom === 'search' && this.candidates.length > 0 ? 'results' : 'view'
+      this.step =
+        this.cropSourceFrom === 'search' && this.candidates.length > 0 ? 'results' : 'view'
     },
     // Кроппер отдаёт canvas произвольного размера (зависит от выбранной области) — досаживаем
     // до ровно 400x400, чтобы бэкенду не нужно было гадать/пересчитывать.

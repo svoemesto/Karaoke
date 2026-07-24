@@ -467,7 +467,9 @@ export default {
       })
     },
     recalcPlayerReadiness() {
-      const scope = this.author ? `песен автора «<strong>${this.author}</strong>»` : `<strong>ВСЕХ</strong> песен всех авторов`
+      const scope = this.author
+        ? `песен автора «<strong>${this.author}</strong>»`
+        : `<strong>ВСЕХ</strong> песен всех авторов`
       this.customConfirmParams = {
         header: 'Подтвердите действие',
         body:

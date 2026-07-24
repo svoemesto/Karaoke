@@ -69,25 +69,17 @@ export default {
       }
     },
     /**
-     * Загружает данные для виртуальной плашки "Отдельные песни разных авторов":
-     * по каждому спецзаказному автору делает запрос /api/public/zakroma?author=X.
-     * Результат — список ZakromaPublicDto (как для обычных авторов).
+     * Загружает данные для виртуальной плашки "Отдельные песни разных авторов" одним
+     * batch-запросом (/api/public/zakroma?specialBucket=true) — бэкенд сам находит всех
+     * is_special_order=true авторов и отдаёт их песни одним SQL-запросом. Результат —
+     * список ZakromaPublicDto (та же форма, что и для обычного автора, Автор→Альбом→Песни).
      *
      * @see specs/008-special-orders/spec.md
+     * @see docs/features/special-orders.md
      */
     async loadSpecialBucket({ commit }) {
-      const specialAuthors = await apiGet('/api/public/authors', { scope: 'special' })
-      if (!specialAuthors || specialAuthors.length === 0) {
-        commit('setSpecialBucket', [])
-        return
-      }
-      const all = []
-      for (const author of specialAuthors) {
-        if (!author) continue
-        const data = await apiGet('/api/public/zakroma', { author })
-        if (data && data.length > 0) all.push(...data)
-      }
-      commit('setSpecialBucket', all)
+      const data = await apiGet('/api/public/zakroma', { specialBucket: true })
+      commit('setSpecialBucket', data || [])
     },
   },
 }

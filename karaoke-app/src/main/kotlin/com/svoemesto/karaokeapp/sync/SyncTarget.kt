@@ -5,6 +5,7 @@ import com.svoemesto.karaokeapp.KaraokeProperties
 import com.svoemesto.karaokeapp.model.Author
 import com.svoemesto.karaokeapp.model.Dictionary
 import com.svoemesto.karaokeapp.model.KaraokeDbTable
+import com.svoemesto.karaokeapp.model.ListeningHistory
 import com.svoemesto.karaokeapp.model.News
 import com.svoemesto.karaokeapp.model.Pictures
 import com.svoemesto.karaokeapp.model.PriceTariff
@@ -334,6 +335,22 @@ val SitePlaylistsSyncTarget =
         rowChunkSize = 500,
     )
 
+// История прослушиваний (QW-13) — данные создаются реальными пользователями на PROD, тот же
+// паттерн, что плейлисты. НЕ tbl_events (та регулярно опустошается через
+// sync_events_pull_move_allowed=true, см. specs/009-listening-history/research.md Decision 1) —
+// эта таблица не растёт на каждое прослушивание (апсерт), поэтому не нуждается в ротации.
+val ListeningHistorySyncTarget =
+    GenericKaraokeDbTableSyncTarget(
+        key = "listeninghistory",
+        tableName = ListeningHistory.TABLE_NAME,
+        displayName = "История прослушиваний",
+        oneClickDirection = SyncDirection.SERVER_TO_LOCAL,
+        clazz = ListeningHistory::class,
+        labelFn = { "id=${it.id} user=${it.siteUserId} song=${it.songId} x${it.playCount}" },
+        // Лёгкие строки (нет текста/base64) — по 500 фактически один запрос.
+        rowChunkSize = 500,
+    )
+
 val SitePlaylistItemsSyncTarget =
     GenericKaraokeDbTableSyncTarget(
         key = "siteplaylistitems",
@@ -455,6 +472,7 @@ object SyncRegistry {
             SiteUsersSyncTarget,
             SitePlaylistsSyncTarget,
             SitePlaylistItemsSyncTarget,
+            ListeningHistorySyncTarget,
             SongAssignmentsSyncTarget,
             SongAssignmentDraftsSyncTarget,
             EventsSyncTarget,

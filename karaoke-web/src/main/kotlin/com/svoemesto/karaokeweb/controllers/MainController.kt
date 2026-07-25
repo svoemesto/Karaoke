@@ -5,6 +5,8 @@ import com.svoemesto.karaokeweb.WORKING_DATABASE
 import com.svoemesto.karaokeapp.Crypto
 import com.svoemesto.karaokeapp.model.EventType
 import com.svoemesto.karaokeapp.model.LinkType
+import com.svoemesto.karaokeapp.model.ListeningHistory
+import com.svoemesto.karaokeapp.model.PlayerAction
 import com.svoemesto.karaokeapp.model.RestName
 import com.svoemesto.karaokeapp.model.Settings
 import com.svoemesto.karaokeweb.StatBySong
@@ -180,6 +182,7 @@ class MainController(
                 if (!data.containsKey("songVersion")) return false
                 val songVersion = data["songVersion"] as String
                 println("Просмотр на странице: id=$songId, Версия: $songVersion")
+                // Апсерт в персональную «Историю прослушиваний» (QW-13) — дополнительно к обычной
                 return insertEvent(
                     mutableListOf(
                         Pair("event_type", EventType.PLAY.dbValue),
@@ -219,6 +222,14 @@ class MainController(
                 // link_name — деталь действия: ключ стема при export, позиция в секундах при seek,
                 // процент-веха при progress
                 (data["linkName"] as? String)?.let { fieldsValues.add(Pair("link_name", it)) }
+                // Реальный запуск онлайн-плеера (не legacy EventType.PLAY — тот только для внешних
+                // VK-ссылок на странице песни). Запись в tbl_listening_history — доп. к tbl_events,
+                // не вместо неё (tbl_events регулярно опустошается на PROD через sync, непригодна
+                // как персистентный источник личной истории — см.
+                // specs/009-listening-history/research.md Decision 1/4). Только для залогиненных.
+                if (siteUserId > 0 && linkType == PlayerAction.PLAY.dbValue) {
+                    ListeningHistory.upsert(siteUserId, songId, WORKING_DATABASE)
+                }
                 return insertEvent(fieldsValues)
             }
             EventType.ENGAGEMENT.dbValue -> {

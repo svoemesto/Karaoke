@@ -55,14 +55,9 @@
 </template>
 
 <script>
-// import Vue from "vue";
-// import { TablePlugin } from 'bootstrap-vue-next'
-// import { SpinnerPlugin } from 'bootstrap-vue-next'
 import CustomConfirm from '../CustomConfirm.vue'
-// import CustomConfirm from "@/components/Common/CustomConfirm.vue";
 import { promisedXMLHttpRequest } from '../../../lib/utils'
-// Vue.use(TablePlugin)
-// Vue.use(SpinnerPlugin)
+import { BTable, BSpinner } from 'bootstrap-vue-next'
 /**
  * Модальное окно для explorer.
  *
@@ -72,6 +67,8 @@ export default {
   name: 'FileExplorerModal',
   components: {
     CustomConfirm,
+    BTable,
+    BSpinner,
   },
   props: {
     path: {

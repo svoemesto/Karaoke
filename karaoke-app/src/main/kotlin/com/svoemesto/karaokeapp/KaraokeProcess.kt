@@ -1286,13 +1286,13 @@ class KaraokeProcess(
 
                     KaraokeProcessTypes.DEMUCS2 -> {
                         description = "Демукс 2"
-                        val (demuxArgs, demuxEnvs) = settings.argsDemucs2()
+                        val (demuxArgs, demuxEnvs) = settings.argsDemucs2(threadId = this.threadId)
                         args = demuxArgs
                         envs = demuxEnvs
                     }
                     KaraokeProcessTypes.DEMUCS5 -> {
                         description = "Демукс 5"
-                        val (demuxArgs, demuxEnvs) = settings.argsDemucs5()
+                        val (demuxArgs, demuxEnvs) = settings.argsDemucs5(threadId = this.threadId)
                         args = demuxArgs
                         envs = demuxEnvs
                     }

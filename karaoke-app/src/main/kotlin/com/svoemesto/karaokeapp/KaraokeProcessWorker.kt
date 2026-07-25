@@ -102,6 +102,9 @@ class KaraokeProcessThread(
                             KaraokeProcessTypes.STEM_JOB_DEMUCS2,
                             KaraokeProcessTypes.STEM_JOB_DEMUCS5,
                             -> executeFinalizeStemJob(params)
+                            KaraokeProcessTypes.DEMUCS2,
+                            KaraokeProcessTypes.DEMUCS5,
+                            -> executeFinalizeDemucs(params)
                             KaraokeProcessTypes.RENDER_MP4_LYRICS,
                             KaraokeProcessTypes.RENDER_MP4_KARAOKE,
                             KaraokeProcessTypes.RENDER_MP4_CHORDS,

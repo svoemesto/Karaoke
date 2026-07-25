@@ -3663,6 +3663,73 @@ fun executeGetKeyBpmFromFile(params: Map<String, String>): Boolean {
     return true
 }
 
+/**
+ * Финальный шаг обычного пайплайна demucs (см. Settings.argsDemucs2/5) — по образцу
+ * executeFinalizeStemJob (StemJobProcessing.kt) для премиум-фичи «Создать минусовку»: очередь
+ * заданий НЕ прерывает цепочку шагов при ошибке одного из них (см. KaraokeProcess.getProcessesToStart/
+ * KaraokeProcessThread.run()), поэтому только финальный шаг может достоверно проверить, что demucs
+ * реально создал ожидаемые flac-стемы, а не считать обработку успешной по факту запуска docker.
+ *
+ * Если стемов не хватает, но исходный file.flac (вход demucs) на месте и это ещё не CPU-повтор (см.
+ * retriedOnCpu/argsDemucs2RetryCpu/argsDemucs5RetryCpu) — считаем, что упал именно demucs (обычно
+ * нехватка видеопамяти GPU — на админской машине GPU общий с локальной LLM-моделью) и тут же ставим
+ * в очередь повтор без GPU вместо немедленного ERROR.
+ */
+fun executeFinalizeDemucs(params: Map<String, String>): Boolean {
+    val settingsId = params["settingsId"]?.toLongOrNull() ?: return false
+    val demucsType = params["demucsType"] ?: return false
+    val threadId = params["threadId"]?.toIntOrNull() ?: KaraokeProcess.THREAD_LANE_HEAVY_RENDER
+    val retriedOnCpu = params["retriedOnCpu"]?.toBoolean() ?: false
+    val settings =
+        Settings.loadFromDbById(
+            id = settingsId,
+            database = WORKING_DATABASE,
+            sync = false,
+            storageService = KSS_APP,
+            storageApiClient = SAC_APP,
+        )
+            ?: return false
+
+    val stemFiles =
+        if (demucsType == KaraokeProcessTypes.DEMUCS5.name) {
+            listOf(settings.accompanimentNameFlac, settings.vocalsNameFlac, settings.drumsNameFlac, settings.bassNameFlac, settings.otherNameFlac)
+        } else {
+            listOf(settings.accompanimentNameFlac, settings.vocalsNameFlac)
+        }
+    val missingStems = stemFiles.any { !File(it).exists() || File(it).length() == 0L }
+
+    if (missingStems) {
+        val tempFlac = File("$PATH_TO_TEMP_DEMUCS_FOLDER/file.flac")
+        if (!retriedOnCpu && tempFlac.exists() && tempFlac.length() > 0L) {
+            val (retryArgs, retryEnvs) =
+                if (demucsType == KaraokeProcessTypes.DEMUCS5.name) {
+                    settings.argsDemucs5RetryCpu(threadId)
+                } else {
+                    settings.argsDemucs2RetryCpu(threadId)
+                }
+            val retryProcess = KaraokeProcess(settings.database)
+            retryProcess.name = "[${settings.author}] - [${settings.album}] - «${settings.songName}»"
+            retryProcess.status = KaraokeProcessStatuses.WAITING.name
+            retryProcess.priority = 1
+            retryProcess.command = ""
+            retryProcess.type = demucsType
+            retryProcess.settingsId = settings.id.toInt()
+            retryProcess.threadId = threadId
+            retryProcess.description = "Демукс ${if (demucsType == KaraokeProcessTypes.DEMUCS5.name) "5" else "2"} (повтор без GPU)"
+            retryProcess.args = retryArgs
+            retryProcess.envs = retryEnvs
+            KaraokeProcess.createDbInstance(KaraokeProcess.separate(retryProcess))
+            return false
+        }
+
+        File(PATH_TO_TEMP_DEMUCS_FOLDER).deleteRecursively()
+        return false
+    }
+
+    File(PATH_TO_TEMP_DEMUCS_FOLDER).deleteRecursively()
+    return true
+}
+
 fun executeUploadToLocalStore(
     params: Map<String, String>,
     onProgress: ((Int) -> Unit)? = null,

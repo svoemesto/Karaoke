@@ -71,4 +71,4 @@
 
 **Purpose**: расхождение, найденное `/speckit-converge` (2026-07-25) между кодом и spec.md/tasks.md.
 
-- [ ] **T074**: Добавить `workflow_dispatch: {}` в `on:` блок `.github/workflows/lint.yml` (Q3 из `spec.md` был решён «да, добавим», T027 отмечен выполненным, но триггер фактически отсутствует — сейчас `on:` содержит только `push`/`pull_request`) per Q3/T027 (contradicts)
+- [X] **T074**: Добавить `workflow_dispatch: {}` в `on:` блок `.github/workflows/lint.yml` (Q3 из `spec.md` был решён «да, добавим», T027 отмечен выполненным, но триггер фактически отсутствует — сейчас `on:` содержит только `push`/`pull_request`) per Q3/T027 (contradicts)

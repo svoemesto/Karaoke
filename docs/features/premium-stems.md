@@ -61,9 +61,10 @@
 ## Ссылки на ключевые классы/файлы
 
 - [`StemJob.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/StemJob.kt) — модель задания
-- [`StemJobController.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/StemJobController.kt) — REST для пользователя
+- [`PublicStemJobController.kt`](../../karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicStemJobController.kt) — REST для пользователя
+- [`InternalStemJobController.kt`](../../karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/InternalStemJobController.kt) — внутренний REST karaoke-web↔karaoke-app
 - [`StemJobsAdminController.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/StemJobsAdminController.kt) — admin-управление
-- [`StemJobPollScheduler.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/StemJobPollScheduler.kt) — polling из karaoke-web
-- [`StemJobCleanup.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/StemJobCleanup.kt) — очистка старых заданий
+- [`StemJobPollScheduler.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/StemJobPollScheduler.kt) — polling из karaoke-web
+- [`StemJobCleanup.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/StemJobCleanup.kt) — очистка старых заданий
 - [`tbl_stem_jobs.sql`](../../deploy/karaoke-db/) — таблица
 - [`docs/stemjobs-admin-guide.md`](../stemjobs-admin-guide.md) — настройка и эксплуатация

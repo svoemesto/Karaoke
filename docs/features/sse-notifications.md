@@ -69,8 +69,8 @@
 ## Ссылки на ключевые классы/файлы
 
 - [`SseNotificationService.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/SseNotificationService.kt) — главный сервис
-- [`SseController.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/SseController.kt) — `/api/subscribe`
-- [`TabIdFilter.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/security/TabIdFilter.kt) — извлечение tabId из запроса
-- [`TabIdContext.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/security/TabIdContext.kt) — ThreadLocal для tabId
+- [`ApiController.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt) — `/api/subscribe` (`subscribeSse`)
+- [`TabIdFilter.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/config/TabIdFilter.kt) — извлечение tabId из запроса
+- [`TabIdContext`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/SseNotificationService.kt) — ThreadLocal для tabId, объявлен в `SseNotificationService.kt`
 - [`KaraokeAppApplication.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeAppApplication.kt) — `@EnableScheduling`
 - [`webvue3/src/lib/utils.js`](../../webvue3/src/lib/utils.js) — `getTabId()` (sessionStorage)

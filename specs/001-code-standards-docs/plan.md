@@ -80,9 +80,12 @@ multi-module web-service проекта. Не отдельный проект �
 - 5 активных модулей (`karaoke-app`, `karaoke-web`, `webvue3`,
   `karaoke-public`, `deploy/`).
 - ~10k+ LOC Kotlin (оценка по `karaoke-app`), ~5k+ LOC Vue/TS (в двух SPA).
-- 9 per-feature документов (FR-004): MLT-генератор, async-очередь
-  `KaraokeProcess*`, двух-БД sync, рендер MP4, SSE-уведомления, премиум-стемы,
-  LLM-поиск текстов, Telegram-автопубликация, мониторинг.
+- 13 per-feature документов (FR-004, актуализировано 2026-07-25 — источник
+  истины `docs/features/README.md`): 12 продуктовых подсистем (MLT-генератор,
+  async-очередь `KaraokeProcess*`, двух-БД sync, рендер MP4, SSE-уведомления,
+  премиум-стемы, LLM-поиск текстов, Telegram-автопубликация, мониторинг,
+  словари, статистика, спецзаказные авторы) + 1 cross-cutting
+  (`ci-lint-enforcement`).
 - 1 `CONTRIBUTING.md` (или `docs/code-style.md`) с правилами для Kotlin и Vue.
 - 3+1 baseline-файла: `config/ktlint/baseline.xml`, `config/detekt/baseline.xml`,
   `webvue3/.eslint-baseline.json`, `karaoke-public/.eslint-baseline.json`.

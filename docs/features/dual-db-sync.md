@@ -77,9 +77,7 @@ Karaoke — self-pipeline. Admin-машина разрабатывает нов�
 
 ## Ссылки на ключевые классы/файлы
 
-- [`sync/SyncTarget.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/sync/SyncTarget.kt) — описание сущности
-- [`sync/SyncRegistry.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/sync/SyncRegistry.kt) — реестр
-- [`sync/SyncOperation.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/sync/SyncOperation.kt) — операция diff
+- [`sync/SyncTarget.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/sync/SyncTarget.kt) — описание сущности, `object SyncRegistry` и `enum class SyncOperation` объявлены в этом же файле
 - [`Utils.updateDatabases`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt) — общий sync runner
-- [`SyncController.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/SyncController.kt) — REST-контроллер
+- [`ApiController.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt) — REST-контроллер (sync-эндпоинты в составе общего `/api`)
 - [`deploy/recordhash_*.sql`](../../deploy/karaoke-db/) — триггеры для всех syncable-таблиц

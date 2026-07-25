@@ -158,32 +158,32 @@ jobs:
       - name: Print baseline stats
         run: bash tools/baseline-stats.sh
 
-  # === KDoc coverage (informational) ===
-  # FR-006 требует KDoc/JSDoc на публичных API. Текущее покрытие —
-  # отчёт, не валит CI. Strict-mode (--strict) валит при < 50%.
+  # === KDoc coverage ===
+  # Constitution Principle VI / FR-006 (NON-NEGOTIABLE): CI MUST падать
+  # при недостаточном покрытии KDoc. Порог — 50% (см. tools/check-kdoc-coverage.sh);
+  # текущее фактическое покрытие ~97%, так что --strict здесь не блокер, а гарантия.
   kdoc-coverage:
-    name: KDoc coverage (informational)
+    name: KDoc coverage
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    continue-on-error: true
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Print KDoc coverage
-        run: bash tools/check-kdoc-coverage.sh
+      - name: Check KDoc coverage (strict, ≥50%)
+        run: bash tools/check-kdoc-coverage.sh --strict
 
-  # === JSDoc coverage (informational) ===
-  # FR-006 для Vue/TS — процент export-default-компонентов с JSDoc.
-  # Strict-mode (--strict) валит при < 50%.
+  # === JSDoc coverage ===
+  # Constitution Principle VI / FR-006 (NON-NEGOTIABLE): CI MUST падать
+  # при недостаточном покрытии JSDoc. Порог — 50% (см. tools/check-jsdoc-coverage.sh);
+  # текущее фактическое покрытие 100%.
   jsdoc-coverage:
-    name: JSDoc coverage (informational)
+    name: JSDoc coverage
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    continue-on-error: true
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Print JSDoc coverage
-        run: bash tools/check-jsdoc-coverage.sh
+      - name: Check JSDoc coverage (strict, ≥50%)
+        run: bash tools/check-jsdoc-coverage.sh --strict

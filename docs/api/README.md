@@ -281,6 +281,6 @@ components игнорируются (для них нужен `typedoc-plugin-vu
 ## Связь с другими документами
 
 - [CONTRIBUTING.md](../../CONTRIBUTING.md#kotlin-kdoc-public-api) — MUST-правило
-- [specs/001-code-standards-docs/spec.md#fr-006](../specs/001-code-standards-docs/spec.md) — формальное требование
-- [specs/001-code-standards-docs/plan.md#phase-6](../specs/001-code-standards-docs/plan.md) — план реализации
+- [specs/001-code-standards-docs/spec.md#fr-006](../../specs/001-code-standards-docs/spec.md) — формальное требование
+- [specs/001-code-standards-docs/plan.md#phase-6](../../specs/001-code-standards-docs/plan.md) — план реализации
 - [docs/features/README.md](../features/README.md) — список 9 фич

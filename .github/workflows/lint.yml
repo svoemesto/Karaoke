@@ -27,6 +27,7 @@ on:
     branches: [master]
   pull_request:
     branches: [master]
+  workflow_dispatch: {}
 
 concurrency:
   group: lint-${{ github.workflow }}-${{ github.ref }}

@@ -48,21 +48,27 @@
 
 ## Phase 5: Документация
 
-- [ ] **T051**: Обновить `docs/features/README.md` — добавить `ci-lint-enforcement` в оглавление.
-- [ ] **T052**: Обновить `CONTRIBUTING.md` — раздел «Поток разработки: CI flow» (3-5 строк).
-- [ ] **T053**: Обновить `README.md` — badge GitHub Actions + ссылка на workflow.
+- [X] **T051**: Обновить `docs/features/README.md` — добавить `ci-lint-enforcement` в оглавление.
+- [X] **T052**: Обновить `CONTRIBUTING.md` — раздел «Поток разработки: CI flow» (3-5 строк). *(секция `precommit-baseline-check`, CONTRIBUTING.md:765)*
+- [X] **T053**: Обновить `README.md` — badge GitHub Actions + ссылка на workflow.
 
 ## Phase 6: Commit + Push + PR
 
-- [ ] **T061**: `git add webvue3/src karaoke-public/src webvue3/.eslint-baseline.json karaoke-public/.eslint-baseline.json`.
-- [ ] **T062**: Commit 1: `style: apply prettier formatting + regenerate eslint baselines`.
-- [ ] **T063**: `git add .github/workflows/lint.yml docs/features/ specs/002-ci-lint-enforcement/`.
-- [ ] **T064**: Commit 2: `feat(ci): add GitHub Actions lint enforcement workflow`.
-- [ ] **T065**: `git push origin 002-ci-lint-enforcement`.
-- [ ] **T066**: Показать пользователю URL PR (НЕ создавать автоматически).
+- [X] **T061**: `git add webvue3/src karaoke-public/src webvue3/.eslint-baseline.json karaoke-public/.eslint-baseline.json`. *(коммит 8e7b346)*
+- [X] **T062**: Commit 1: `style: apply prettier formatting + regenerate eslint baselines`. *(8e7b346)*
+- [X] **T063**: `git add .github/workflows/lint.yml docs/features/ specs/002-ci-lint-enforcement/`. *(коммит 8a63eed)*
+- [X] **T064**: Commit 2: `feat(ci): add GitHub Actions lint enforcement workflow`. *(8a63eed)*
+- [X] **T065**: `git push origin 002-ci-lint-enforcement`. *(PR #13)*
+- [X] **T066**: Показать пользователю URL PR (НЕ создавать автоматически). *(PR #13, смёржен 2026-07-20)*
 
 ## Phase 7: Verify (post-merge, ручной)
 
 - [ ] **T071**: Добавить branch protection rule в GitHub UI (required check: `Lint`).
 - [ ] **T072**: Создать тестовый PR с `// noinspection` в Kotlin → убедиться что CI валится.
-- [ ] **T073**: Обновить `AGENTS.md` — добавить ссылку на workflow + per-feature doc.
+- [X] **T073**: Обновить `AGENTS.md` — добавить ссылку на workflow + per-feature doc. *(v1.4.0→1.4.1, docs/architecture-notes.md запись)*
+
+## Phase 8: Convergence
+
+**Purpose**: расхождение, найденное `/speckit-converge` (2026-07-25) между кодом и spec.md/tasks.md.
+
+- [ ] **T074**: Добавить `workflow_dispatch: {}` в `on:` блок `.github/workflows/lint.yml` (Q3 из `spec.md` был решён «да, добавим», T027 отмечен выполненным, но триггер фактически отсутствует — сейчас `on:` содержит только `push`/`pull_request`) per Q3/T027 (contradicts)

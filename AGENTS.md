@@ -12,8 +12,8 @@
 > **Если вы ведёте разработку с другим AI-агентом** и он понимает
 > `AGENTS.md` — этого файла достаточно. Если нет — см. ссылки выше.
 
-> **Версия файла**: 1.4.0
-> **Last updated**: 2026-07-24 (Pass 25, добавлен урок про Jackson `is`-boolean)
+> **Версия файла**: 1.4.1
+> **Last updated**: 2026-07-25 (Pass 26, ссылка на CI-workflow в разделе «Как проверить, что CI пройдёт»)
 > **Ответственный**: opencode-агент
 > **Как обновлять**: см. секцию «Как обновлять этот файл» в конце.
 
@@ -490,7 +490,9 @@ bash tools/check-jsdoc-coverage.sh karaoke-public
 pre-commit run --all-files               # 7 проверок
 ./gradlew :karaoke-app:compileKotlin
 ```
-Все должны быть зелёными (или baseline = 0).
+Все должны быть зелёными (или baseline = 0). Тот же набор прогоняет CI —
+см. [`.github/workflows/lint.yml`](./.github/workflows/lint.yml) и
+[`docs/features/ci-lint-enforcement.md`](./docs/features/ci-lint-enforcement.md).
 
 ---
 

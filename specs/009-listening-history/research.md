@@ -105,8 +105,11 @@ LOCAL/admin» оказался неверным — консистентност
 ## Decision 4: Запись — рядом с существующей записью в `tbl_events`, не вместо неё
 
 **Decision**: апсерт в `tbl_listening_history` происходит **дополнительно** к
-существующей записи в `tbl_events` (в той же ветке `EventType.PLAY.dbValue`
-в `MainController.doRegisterEvent`), не заменяет её.
+существующей записи в `tbl_events` (в ветке `EventType.PLAYER.dbValue` при
+`linkType == PlayerAction.PLAY.dbValue` в `MainController.doRegisterEvent` —
+реальный запуск онлайн-плеера; **не** в `EventType.PLAY.dbValue`, это
+legacy-клик по внешней VK-ссылке на странице песни, см. исправление в
+`tasks.md` T007), не заменяет её.
 
 **Rationale**: `tbl_events` продолжает служить своей текущей цели (общая
 аналитика/статистика, `StatsByEvents`, `webevents`-страница) — эта фича её не

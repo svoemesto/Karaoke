@@ -51,6 +51,11 @@
           <span class="km-nav-card-arrow">→</span>
         </RouterLink>
 
+        <RouterLink to="/account/history" class="km-nav-card">
+          <span class="km-nav-card-title">📜 История прослушиваний</span>
+          <span class="km-nav-card-arrow">→</span>
+        </RouterLink>
+
         <RouterLink to="/account/chat" class="km-nav-card">
           <span class="km-nav-card-title">💬 Чат с автором проекта</span>
           <span class="km-nav-card-arrow">→</span>

@@ -630,6 +630,46 @@ val listKaraokeProperties =
             description = "Синхронизация: Элементы плейлистов — pull, Перемещение",
         ),
         KaraokeProperty(
+            key = "sync_listeninghistory_push_insert_allowed",
+            defaultValue = false,
+            description = "Синхронизация: История прослушиваний — push, Добавление",
+        ),
+        KaraokeProperty(
+            key = "sync_listeninghistory_push_update_allowed",
+            defaultValue = false,
+            description = "Синхронизация: История прослушиваний — push, Изменение",
+        ),
+        KaraokeProperty(
+            key = "sync_listeninghistory_push_delete_allowed",
+            defaultValue = false,
+            description = "Синхронизация: История прослушиваний — push, Удаление",
+        ),
+        KaraokeProperty(
+            key = "sync_listeninghistory_push_move_allowed",
+            defaultValue = false,
+            description = "Синхронизация: История прослушиваний — push, Перемещение",
+        ),
+        KaraokeProperty(
+            key = "sync_listeninghistory_pull_insert_allowed",
+            defaultValue = false,
+            description = "Синхронизация: История прослушиваний — pull, Добавление",
+        ),
+        KaraokeProperty(
+            key = "sync_listeninghistory_pull_update_allowed",
+            defaultValue = false,
+            description = "Синхронизация: История прослушиваний — pull, Изменение",
+        ),
+        KaraokeProperty(
+            key = "sync_listeninghistory_pull_delete_allowed",
+            defaultValue = false,
+            description = "Синхронизация: История прослушиваний — pull, Удаление",
+        ),
+        KaraokeProperty(
+            key = "sync_listeninghistory_pull_move_allowed",
+            defaultValue = false,
+            description = "Синхронизация: История прослушиваний — pull, Перемещение",
+        ),
+        KaraokeProperty(
             key = "sync_songassignments_push_insert_allowed",
             defaultValue = false,
             description = "Синхронизация: Задания редактора — push, Добавление",

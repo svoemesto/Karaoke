@@ -10,6 +10,7 @@ import RegisterView from '../views/RegisterView.vue'
 import AccountView from '../views/AccountView.vue'
 import PlaylistsView from '../views/PlaylistsView.vue'
 import PlaylistEditView from '../views/PlaylistEditView.vue'
+import HistoryView from '../views/HistoryView.vue'
 import ChatView from '../views/ChatView.vue'
 import AuthorPlaylistView from '../views/AuthorPlaylistView.vue'
 import EditorTasksView from '../views/EditorTasksView.vue'
@@ -54,6 +55,8 @@ const routes = [
   // Без requireAuth: аноним не редиректится, а видит внутри страницы сообщение «только для
   // зарегистрированных» с кнопками Войти/Регистрация (LoginRequired).
   { path: '/account/playlists', name: 'playlists', component: PlaylistsView },
+  // Без requireAuth — как /account/playlists: LoginRequired внутри компонента (US3, не редирект).
+  { path: '/account/history', name: 'history', component: HistoryView },
   { path: '/account/chat', name: 'chat', component: ChatView, beforeEnter: requireAuth },
   {
     path: '/account/subscriptions',

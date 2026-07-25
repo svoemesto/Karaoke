@@ -32,7 +32,7 @@
    см. историю сессии 2026-07-25 в архиве разговоров; когда пользователь
    будет готов обсуждать — оформить через `/speckit-specify` заново, не
    продолжать `004-reasons-to-register` как есть.
-3. **QW-1** — Таблица «FREE vs PREMIUM» на /premium
+3. **QW-1** ✅ — Таблица «FREE vs PREMIUM» на /premium (сделано, PR #61)
 
 **Roadmap**: 14 QW + 22 M + 11 L. См. раздел «Roadmap».
 
@@ -168,7 +168,7 @@ Anti-fraud нужен только если/когда добавим trial.
 |----|-----|----------|--------------|---------|
 | **QW-9** ✅ | Страница «О проекте» | H1.9 | 2-5 дней | ↑↑↑ visitor→registration |
 | **QW-2** ⏸️ on hold | «5 причин зарегистрироваться» | H1.1 | 1 день | ↑ visitor→registration |
-| **QW-1** | Таблица «FREE vs PREMIUM» | H2.1 | 2-3 дня | ↑↑ registration→premium |
+| **QW-1** ✅ | Таблица «FREE vs PREMIUM» | H2.1 | 2-3 дня | ↑↑ registration→premium |
 
 **Готовятся отдельно** (spec.md):
 - [QW-9: страница «О проекте»](../../specs/003-about-page/spec.md) — ✅ сделано (`4240b98`)
@@ -185,7 +185,7 @@ Anti-fraud нужен только если/когда добавим trial.
 |----|-----|---------|
 | QW-9 ★ ✅ | Страница «О проекте» | visitor→reg |
 | QW-2 ★ ⏸️ on hold | «5 причин зарегистрироваться» | visitor→reg |
-| QW-1 ★ | Таблица «FREE vs PREMIUM» | reg→premium |
+| QW-1 ★ ✅ | Таблица «FREE vs PREMIUM» | reg→premium |
 | QW-4 | «-10% на первую подписку» (NEW_USER_PERCENT) | reg→premium |
 | QW-5 | «N зарегистрированных» на главной | visitor→reg |
 | QW-7 | «Регистрация» в демо-плеере | visitor→reg |

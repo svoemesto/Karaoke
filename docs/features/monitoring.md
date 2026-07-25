@@ -74,6 +74,7 @@
 - [`MonitorRegistry.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/monitor/MonitorRegistry.kt) — реестр проверок
 - [`MonitorCheck.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/monitor/MonitorCheck.kt) — интерфейс проверки
 - [`MonitoringService.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/monitor/MonitoringService.kt) — `@Scheduled` runner
-- [`MonitorController.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/MonitorController.kt) — REST
+- [`MonitoringController.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/MonitoringController.kt) — REST
 - [`MonitorAlert.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/monitor/MonitorAlert.kt) — модель алерта
-- [`webvue3/src/components/Header/MonitorBadge.vue`](../../webvue3/src/components/Header/MonitorBadge.vue) — UI светофор
+- [`webvue3/src/components/Common/Monitor/MonitorLight.vue`](../../webvue3/src/components/Common/Monitor/MonitorLight.vue) — UI светофор
+- [`webvue3/src/components/Common/Monitor/MonitorModal.vue`](../../webvue3/src/components/Common/Monitor/MonitorModal.vue) — модалка со списком алертов

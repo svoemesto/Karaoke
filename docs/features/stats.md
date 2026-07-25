@@ -27,7 +27,7 @@
 
 ## Как работает (кратко)
 
-### Счётчики главной страницы (`Stat.kt`)
+### Счётчики главной страницы (`StatBySong`, модуль karaoke-web)
 
 | Лейбл | Формула (SQL, без учёта SKIP) |
 |-------|-------------------------------|
@@ -48,7 +48,7 @@ SQL-аппроксимация готовности премиум-плеера 
 
 ### Кеш в AtomicInteger
 
-`Stat.kt` хранит `cachedTotal/Collection/OnAir/Exclusive/InWork` в
+`StatBySong` (karaoke-web) хранит `cachedTotal/Collection/OnAir/Exclusive/InWork` в
 `AtomicInteger` для мгновенного ответа без обращения к БД. Обновление:
 - `StatsCacheScheduler.warmUp()` (`@PostConstruct`) — cold start.
 - `@Scheduled cron "0 0 * * * *"` — каждый час.
@@ -90,8 +90,8 @@ Spring `@Cacheable` намеренно НЕ подключён (нет `@EnableC
 - **MUST**: события из `tbl_web_event` агрегируются асинхронно
   (PostgreSQL materialized view или ETL-ночью) — на лету считать по
   18k записей × 100k событий = 30+ секунд.
-- **SHOULD**: новые счётчики добавляются как поле в `Stat.kt` с
-  `AtomicInteger` + обновление в `StatsCacheScheduler.refresh()`.
+- **SHOULD**: новые счётчики добавляются как поле в `StatBySong` (karaoke-web) с
+  `AtomicInteger` + обновление в `StatBySong.refreshCache()`.
 
 ## Известные ловушки
 
@@ -109,12 +109,12 @@ Spring `@Cacheable` намеренно НЕ подключён (нет `@EnableC
 
 ### Ключевые классы и файлы
 
-- [`Stat.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Stat.kt) — счётчики главной страницы
-- [`StatBySong.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/StatBySong.kt) — DTO статистики по событиям
-- [`StatsController.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/StatsController.kt) — REST-эндпоинты для админа
-- `PublicApiController.kt` (`/api/stats`) — JSON для главной karaoke-public
-- `StatsCacheScheduler` — `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/StatsCacheScheduler.kt`
-- Vue: [`webvue3/src/components/Stats/`](../../webvue3/src/components/Stats/), `karaoke-public/src/views/classic/HomeView.vue`
+- [`StatBySong.kt`](../../karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/StatBySong.kt) — кеш счётчиков главной страницы (`AtomicInteger`), см. «Как работает»
+- [`StatsCacheScheduler.kt`](../../karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/StatsCacheScheduler.kt) — `@PostConstruct`/`@Scheduled` обновление кеша
+- [`StatsByEvents`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/StatBySong.kt) — статистика по событиям (`tbl_web_event`), объявлен в `model/StatBySong.kt` (karaoke-app; не путать с `karaoke-web`'s `StatBySong.kt` выше)
+- [`StatsController.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/StatsController.kt) — REST-эндпоинты для админа (`webvue3`)
+- [`PublicApiController.kt`](../../karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicApiController.kt) — JSON для главной `karaoke-public`
+- Vue: [`webvue3/src/components/Stats/`](../../webvue3/src/components/Stats/), [`karaoke-public/src/views/HomeView.vue`](../../karaoke-public/src/views/HomeView.vue)
 
 ### Связанные документы
 

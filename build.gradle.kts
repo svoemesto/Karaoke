@@ -13,7 +13,10 @@ plugins {
     // Dokka 2.0.x требует Jackson 2.18+ (конфликт с Spring Boot 3.5 BOM).
     id("org.jetbrains.dokka") version "1.9.20" apply false
     // detekt 1.23.x скомпилирован с Kotlin 2.0.x и не запускается на Kotlin 2.2.20 runtime.
-    // До выхода detekt 2.0 (с поддержкой Kotlin 2.2) — оставляем как TODO, см. plan.md Phase 2.
+    // FR-002/FR-007 (specs/001-code-standards-docs/spec.md) требуют ktlint+detekt вместе;
+    // до выхода detekt-релиза с поддержкой Kotlin 2.2 detekt остаётся отключён (config/detekt/
+    // baseline.xml + detekt.yml уже готовы и подключатся, как только апстрим станет совместим).
+    // Открытый TODO зафиксирован в .specify/memory/constitution.md (Follow-up TODOs).
     // id("io.gitlab.arturbosch.detekt") version "1.23.7" apply false
 }
 

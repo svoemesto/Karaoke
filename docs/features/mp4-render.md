@@ -65,4 +65,4 @@ MLT-рендер (`melt`) — основной путь, но иногда ну�
 - [`PlayerMp4MuxService.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/PlayerMp4MuxService.kt) — ffmpeg mux
 - [`Utils.executeRenderMp4`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt) — диспетчер
 - [`ApiController.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt) — REST `/song/renderMp4Preview`
-- [`KaraokeProcess.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/KaraokeProcess.kt) — дефолты DEMO
+- [`KaraokeProcess.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcess.kt) — дефолты DEMO

@@ -19,7 +19,6 @@
 set -uo pipefail
 
 CONTRIBUTING="${CONTRIBUTING_FILE:-CONTRIBUTING.md}"
-KTLINT_BASELINE="${KTLINT_BASELINE:-config/ktlint/baseline.xml}"
 DETEKT_BASELINE="${DETEKT_BASELINE:-config/detekt/baseline.xml}"
 
 if [ ! -f "$CONTRIBUTING" ]; then
@@ -30,25 +29,41 @@ fi
 
 echo "==> Проверка enforcement правил из $CONTRIBUTING..."
 
-# Считаем MUST-правила (грубый парсинг Markdown)
-must_rules=$(grep -cP '^### [a-z][a-z0-9-]+:.*MUST' "$CONTRIBUTING" 2>/dev/null || echo "0")
+# Считаем MUST-правила. Реальная структура CONTRIBUTING.md — заголовок
+# '### <slug>: <title>', а Severity/Enforced by идут отдельными строками
+# ниже (не в самом заголовке), например:
+#   ### kotlin-naming-classes: Именование классов
+#
+#   **Severity**: MUST
+#   **Enforced by**: ktlint
+# Поэтому считаем блоки между заголовками и ищем внутри каждого блока
+# '**Severity**: MUST' (grep -c на самом заголовке всегда давал 0 —
+# исторический баг).
+must_rules=$(awk '
+  /^### / { if (block != "" && block ~ /\*\*Severity\*\*:[ \t]*MUST/) count++; block = "" ; next }
+  { block = block "\n" $0 }
+  END { if (block != "" && block ~ /\*\*Severity\*\*:[ \t]*MUST/) count++; print count+0 }
+' "$CONTRIBUTING")
 echo "Найдено MUST-правил: $must_rules"
 
 # Считаем правила, enforced by линтер
-enforced=$(grep -cP 'Enforced by\*\*:\s*(ktlint|detekt|eslint|prettier|pre-commit)' "$CONTRIBUTING" 2>/dev/null || echo "0")
+enforced=$(grep -cP 'Enforced by\*\*:\s*(ktlint|detekt|eslint|prettier|pre-commit)' "$CONTRIBUTING" 2>/dev/null)
 echo "Из них enforced by линтер: $enforced"
 
-# Считаем покрытие baseline
-ktlint_baseline_count=$(if [ -f "$KTLINT_BASELINE" ]; then
-  grep -cE '<error ' "$KTLINT_BASELINE" 2>/dev/null || echo "0"
-else
-  echo "0"
-fi)
-detekt_baseline_count=$(if [ -f "$DETEKT_BASELINE" ]; then
-  grep -cE '<ID>' "$DETEKT_BASELINE" 2>/dev/null || echo "0"
-else
-  echo "0"
-fi)
+# Считаем покрытие baseline.
+# ktlint baseline — per-module файлы config/ktlint/baseline-<module>.xml
+# (нет единого config/ktlint/baseline.xml — см. build.gradle.kts).
+ktlint_baseline_count=0
+for f in config/ktlint/baseline-*.xml; do
+  [ -f "$f" ] || continue
+  n=$(grep -cE '<error ' "$f" 2>/dev/null)
+  ktlint_baseline_count=$((ktlint_baseline_count + n))
+done
+
+detekt_baseline_count=0
+if [ -f "$DETEKT_BASELINE" ]; then
+  detekt_baseline_count=$(grep -cE '<ID>' "$DETEKT_BASELINE" 2>/dev/null)
+fi
 
 echo ""
 echo "Baseline:"

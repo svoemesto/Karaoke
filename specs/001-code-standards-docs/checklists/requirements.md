@@ -16,7 +16,7 @@
 - [x] No [NEEDS CLARIFICATION] markers remain
 - [x] Requirements are testable and unambiguous — *каждое FR с явным MUST и измеримым критерием приёмки.*
 - [x] Success criteria are measurable — *SC-001..SC-007 с конкретными числами (100%, 9 фич, 6 разделов, 0 битых ссылок, 10%/мес, 30%, 90%).*
-- [ ] Success criteria are technology-agnostic (no implementation details) — *частично: SC-002 упоминает ktlint/detekt/eslint; это допустимо, т.к. спецификация описывает внедрение этих инструментов, но в SC можно переформулировать как «линтеры Kotlin и Vue». В плане можно оставить имена инструментов, в SC — убрать.*
+- [x] Success criteria are technology-agnostic (no implementation details) — *SC-002 уже был нейтрален («линтеры», без имён инструментов). SC-004 переформулирован 2026-07-25: убраны «Dokka/typedoc», оставлены только doc-комментарии (KDoc/JSDoc) как часть требуемого результата, а не конкретный инструмент-генератор. Имена инструментов (ktlint, detekt, eslint, prettier, Dokka, typedoc) остаются в FR-002/FR-006 и в plan.md — это допустимо (FR могут содержать implementation details, см. пункт выше).*
 - [x] All acceptance scenarios are defined — *по 2-3 сценария на каждую User Story (Given/When/Then).*
 - [x] Edge cases are identified — *5 edge cases в одноимённой секции.*
 - [x] Scope is clearly bounded — *FR-011 явно ограничивает скоуп 5 модулями; legacy вне.*

@@ -97,10 +97,11 @@ pre-commit run --all-files
 | ESLint + Prettier (karaoke-public) | `cd karaoke-public && npm run lint:check && npx prettier --check "src/**/*.{vue,js,ts,json}" && cd ..` |
 | Docs (structure + offline links) | автоматически в CI |
 | Baseline stats | автоматически в CI (informational) |
-| KDoc coverage (informational) | `bash tools/check-kdoc-coverage.sh` |
-| JSDoc coverage (informational) | `bash tools/check-jsdoc-coverage.sh webvue3 && bash tools/check-jsdoc-coverage.sh karaoke-public` |
+| KDoc coverage (≥50%, блокирует) | `bash tools/check-kdoc-coverage.sh --strict` |
+| JSDoc coverage (≥50%, блокирует) | `bash tools/check-jsdoc-coverage.sh --strict` |
 
-**Если хотя бы одна падает — PR не мержится** (CI блокирует merge).
+**Если хотя бы одна падает — PR не мержится** (CI блокирует merge). Единственная
+информационная (не блокирующая) проверка — Baseline stats.
 
 ---
 

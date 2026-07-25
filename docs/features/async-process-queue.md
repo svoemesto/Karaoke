@@ -77,9 +77,8 @@
 
 ## Ссылки на ключевые классы/файлы
 
-- [`KaraokeProcess.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/KaraokeProcess.kt) — модель задания
-- [`KaraokeProcessTypes.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/KaraokeProcessTypes.kt) — enum типов
-- [`KaraokeProcessWorker.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/KaraokeProcessWorker.kt) — главный воркер
-- [`KaraokeProcessThread.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/KaraokeProcessThread.kt) — обёртка subprocess
-- [`KaraokeProcessWorkerThread.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/KaraokeProcessWorkerThread.kt) — внутренний воркер
-- [`tbl_processes.sql`](../../deploy/karaoke-db/) — таблица заданий
+- [`KaraokeProcess.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcess.kt) — модель задания
+- [`KaraokeProcessTypes.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcessTypes.kt) — enum типов
+- [`KaraokeProcessStatuses.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcessStatuses.kt) — enum статусов
+- [`KaraokeProcessWorker.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcessWorker.kt) — главный воркер (`class KaraokeProcessWorker`) и обёртка subprocess (`class KaraokeProcessThread`, объявлен в том же файле)
+- [`tbl_processes` (`01_initdb.sql`)](../../deploy/karaoke-db/01_initdb.sql) — таблица заданий

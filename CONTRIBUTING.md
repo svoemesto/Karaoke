@@ -52,7 +52,7 @@ class settings_dto                    // snake_case в имени
 **Рациональ**: Kotlin-конвенция + совместимость с reflection-loader'ом
 `KaraokeDbTable`.
 
-**Связанные инварианты**: [`constitution.md#ii-сырой-jdbc--дифф-по-хэшам`](../.specify/memory/constitution.md)
+**Связанные инварианты**: [`constitution.md#ii-сырой-jdbc--дифф-по-хэшам`](.specify/memory/constitution.md)
 
 ---
 
@@ -134,9 +134,9 @@ val process = ProcessBuilder(command)
 ```
 
 **Рациональ**: восстановлено после инцидента на проде, см.
-[DEVELOPMENT.md](../DEVELOPMENT.md).
+[DEVELOPMENT.md](DEVELOPMENT.md).
 
-**Связанные инварианты**: [`constitution.md#iv-async-очередь-задач-с-парсингом-stdout`](../.specify/memory/constitution.md)
+**Связанные инварианты**: [`constitution.md#iv-async-очередь-задач-с-парсингом-stdout`](.specify/memory/constitution.md)
 
 ---
 
@@ -166,7 +166,7 @@ data class UserDto(
 )
 ```
 
-**Связанные инварианты**: [`DEVELOPMENT.md#kotlin-is-поля`](../DEVELOPMENT.md)
+**Связанные инварианты**: [`DEVELOPMENT.md#kotlin-is-поля`](DEVELOPMENT.md)
 
 ---
 
@@ -199,7 +199,7 @@ data class Song(
 )
 ```
 
-**Связанные инварианты**: [`DEVELOPMENT.md#reflection-loader-и-nullable-колонки`](../DEVELOPMENT.md)
+**Связанные инварианты**: [`DEVELOPMENT.md#reflection-loader-и-nullable-колонки`](DEVELOPMENT.md)
 
 ---
 
@@ -217,7 +217,7 @@ data class Song(
 
 **Рациональ**: см. ловушку с `tbl_subscriptions` в DEVELOPMENT.md (2026-07-09).
 
-**Связанные инварианты**: [`constitution.md#iii-двух-бд-синхронизация-через-syncregistry`](../.specify/memory/constitution.md)
+**Связанные инварианты**: [`constitution.md#iii-двух-бд-синхронизация-через-syncregistry`](.specify/memory/constitution.md)
 
 ---
 
@@ -232,7 +232,7 @@ data class Song(
 таблицы на **обоих** окружениях (LOCAL и PROD) — иначе md5 разойдётся и
 sync сломается.
 
-**Связанные инварианты**: [`DEVELOPMENT.md#dual-database-targets`](../DEVELOPMENT.md)
+**Связанные инварианты**: [`DEVELOPMENT.md#dual-database-targets`](DEVELOPMENT.md)
 
 ---
 
@@ -312,7 +312,7 @@ import com.svoemesto.karaokeapp.model.Settings
 fun parseFfmpegProgress(process: Process, onProgress: (Int) -> Unit) { ... }
 ```
 
-**Связанные инварианты**: [`specs/001-code-standards-docs/spec.md#fr-006`](../specs/001-code-standards-docs/spec.md)
+**Связанные инварианты**: [`specs/001-code-standards-docs/spec.md#fr-006`](specs/001-code-standards-docs/spec.md)
 
 ---
 
@@ -339,7 +339,7 @@ fun parseFfmpegProgress(process: Process, onProgress: (Int) -> Unit) { ... }
 <select class="form-control" v-model="selected">  <!-- ❌ неверный класс -->
 ```
 
-**Связанные инварианты**: [`AGENTS.md#bootstrap-5`](../AGENTS.md)
+**Связанные инварианты**: [`AGENTS.md#bootstrap-5`](AGENTS.md)
 
 ---
 
@@ -393,7 +393,7 @@ import * as vue from 'vue'  // tree-shaking ломается
 </table>
 ```
 
-**Связанные инварианты**: [`AGENTS.md#таблицы-karaoke-public`](../AGENTS.md)
+**Связанные инварианты**: [`AGENTS.md#таблицы-karaoke-public`](AGENTS.md)
 
 ---
 
@@ -420,7 +420,7 @@ import * as vue from 'vue'  // tree-shaking ломается
 </td>
 ```
 
-**Связанные инварианты**: [`AGENTS.md#таблицы-karaoke-public`](../AGENTS.md)
+**Связанные инварианты**: [`AGENTS.md#таблицы-karaoke-public`](AGENTS.md)
 
 ---
 
@@ -443,7 +443,7 @@ CSS grid с фиксированными колонками и переменн�
 }
 ```
 
-**Связанные инварианты**: [`AGENTS.md#css-grid-с-фиксированными-колонками`](../AGENTS.md)
+**Связанные инварианты**: [`AGENTS.md#css-grid-с-фиксированными-колонками`](AGENTS.md)
 
 ---
 
@@ -462,7 +462,7 @@ CSS grid с фиксированными колонками и переменн�
 Без `width: fit-content` поле растягивается на 200px-контейнер и кнопка
 «X» наезжает на текст.
 
-**Связанные инварианты**: [`AGENTS.md#круглая-кнопка-очистки-в-entityfiltermodalvue`](../AGENTS.md)
+**Связанные инварианты**: [`AGENTS.md#круглая-кнопка-очистки-в-entityfiltermodalvue`](AGENTS.md)
 
 ---
 
@@ -476,7 +476,7 @@ CSS grid с фиксированными колонками и переменн�
 `state`. Async (XHR, dispatch) — в `actions`. Удаление/правки песни — через
 SSE (`recordDelete`/`recordChange`), не локальным рендерингом.
 
-**Связанные инварианты**: [`DEVELOPMENT.md#vuex-паттерны-songsstorejs`](../DEVELOPMENT.md)
+**Связанные инварианты**: [`DEVELOPMENT.md#vuex-паттерны-songsstorejs`](DEVELOPMENT.md)
 
 ---
 
@@ -503,7 +503,7 @@ JSDoc-блок с описанием props, emits, slots. JSDoc-блок **до�
 export default defineComponent({ ... })
 ```
 
-**Связанные инварианты**: [`specs/001-code-standards-docs/spec.md#fr-006`](../specs/001-code-standards-docs/spec.md)
+**Связанные инварианты**: [`specs/001-code-standards-docs/spec.md#fr-006`](specs/001-code-standards-docs/spec.md)
 
 ---
 
@@ -551,7 +551,7 @@ END;
 $$ LANGUAGE plpgsql;
 ```
 
-**Связанные инварианты**: [`constitution.md#ii-сырой-jdbc--дифф-по-хэшам`](../.specify/memory/constitution.md)
+**Связанные инварианты**: [`constitution.md#ii-сырой-jdbc--дифф-по-хэшам`](.specify/memory/constitution.md)
 
 ---
 
@@ -580,7 +580,7 @@ $$ LANGUAGE plpgsql;
 «удалено по требованию правообладателя». Тег `SKIP` в БД — **одно слово**
 через пробел (не подстрока).
 
-**Связанные инварианты**: [`DEVELOPMENT.md#тег-skip`](../DEVELOPMENT.md)
+**Связанные инварианты**: [`DEVELOPMENT.md#тег-skip`](DEVELOPMENT.md)
 
 ---
 
@@ -604,7 +604,7 @@ $$ LANGUAGE plpgsql;
 PR с новой ключевой фичей (из FR-004 spec.md) **обязан** создать
 соответствующий per-feature документ в том же PR.
 
-**Связанные инварианты**: [`specs/001-code-standards-docs/spec.md#fr-009`](../specs/001-code-standards-docs/spec.md)
+**Связанные инварианты**: [`specs/001-code-standards-docs/spec.md#fr-009`](specs/001-code-standards-docs/spec.md)
 
 ---
 
@@ -617,7 +617,7 @@ PR с новой ключевой фичей (из FR-004 spec.md) **обяза�
 Все ссылки в `.md`-файлах валидируются через `lychee` в pre-commit и CI.
 Битая ссылка — блокер.
 
-**Связанные инварианты**: [`specs/001-code-standards-docs/spec.md#sc-005`](../specs/001-code-standards-docs/spec.md)
+**Связанные инварианты**: [`specs/001-code-standards-docs/spec.md#sc-005`](specs/001-code-standards-docs/spec.md)
 
 ---
 
@@ -658,7 +658,7 @@ set -euo pipefail
 # без set -e — ошибка в середине скрипта не остановит выполнение
 ```
 
-**Связанные инварианты**: [`DEVELOPMENT.md#очередь-взаимное-исключение-gradle-сборок-deploybuild-locksh`](../DEVELOPMENT.md)
+**Связанные инварианты**: [`DEVELOPMENT.md#очередь-взаимное-исключение-gradle-сборок-deploybuild-locksh`](DEVELOPMENT.md)
 
 ---
 
@@ -694,7 +694,7 @@ cp $SRC $DST   # ❌ ломается на пробелах в путях
 
 **Рациональ**: попадает в логи и в переписку с AI-ассистентом.
 
-**Связанные инварианты**: [`AGENTS.md#не-редактировать-напрямую-на-сервере`](../AGENTS.md), [`DEVELOPMENT.md#do.sh-не-должен-печатать-секреты`](../DEVELOPMENT.md)
+**Связанные инварианты**: [`AGENTS.md#не-редактировать-напрямую-на-сервере`](AGENTS.md), [`DEVELOPMENT.md#do.sh-не-должен-печатать-секреты`](DEVELOPMENT.md)
 
 ---
 
@@ -709,7 +709,7 @@ cp $SRC $DST   # ❌ ломается на пробелах в путях
 Все `Dockerfile` для `webvue3` и `karaoke-public` используют `node:22-alpine`,
 **не** `node:latest` (недетерминирован).
 
-**Связанные инварианты**: [`AGENTS.md#dockerfile-ловушки`](../AGENTS.md)
+**Связанные инварианты**: [`AGENTS.md#dockerfile-ловушки`](AGENTS.md)
 
 ---
 
@@ -723,7 +723,7 @@ Production-стадия `Dockerfile` для `webvue3` и `karaoke-public` исп
 `nginx:stable`, **не** `nginx:alpine` — compose использует `/bin/bash -c`,
 в alpine его нет → контейнер падает.
 
-**Связанные инварианты**: [`AGENTS.md#dockerfile-ловушки`](../AGENTS.md)
+**Связанные инварианты**: [`AGENTS.md#dockerfile-ловушки`](AGENTS.md)
 
 ---
 
@@ -737,7 +737,7 @@ Production-стадия `karaoke-app` и `karaoke-web` использует
 `eclipse-temurin:22-jre-jammy`, **не** `-jdk-`. Spring Boot fat jar не
 требует компилятора.
 
-**Связанные инварианты**: [`AGENTS.md#dockerfile-ловушки`](../AGENTS.md)
+**Связанные инварианты**: [`AGENTS.md#dockerfile-ловушки`](AGENTS.md)
 
 ---
 
@@ -768,7 +768,7 @@ Baseline-чек в CI строгий, `--no-verify` отменяет тольк�
 **Section**: tooling
 **Enforced by**: CI (workflow `.github/workflows/lint.yml`)
 
-CI **обязательно** запускает (см. [`.github/workflows/lint.yml`](../.github/workflows/lint.yml)):
+CI **обязательно** запускает (см. [`.github/workflows/lint.yml`](.github/workflows/lint.yml)):
 
 - `backend-lint` — `./gradlew ktlintCheck` (baseline-aware,
   читает `config/ktlint/baseline-*.xml`).
@@ -780,7 +780,7 @@ CI **обязательно** запускает (см. [`.github/workflows/lint
 Любое увеличение baseline-метрик (новые нарушения сверх baseline) — блокер.
 Workflow запускается на push в `master` и pull_request в `master`.
 
-**Связанные инварианты**: [`specs/001-code-standards-docs/spec.md#sc-002`](../specs/001-code-standards-docs/spec.md), [`.github/workflows/lint.yml`](../.github/workflows/lint.yml), [`docs/features/ci-lint-enforcement.md`](../docs/features/ci-lint-enforcement.md)
+**Связанные инварианты**: [`specs/001-code-standards-docs/spec.md#sc-002`](specs/001-code-standards-docs/spec.md), [`.github/workflows/lint.yml`](.github/workflows/lint.yml), [`docs/features/ci-lint-enforcement.md`](docs/features/ci-lint-enforcement.md)
 
 ---
 
@@ -835,7 +835,7 @@ Workflow запускается на push в `master` и pull_request в `master
 
 **Рациональ**: <почему>
 
-**Связанные инварианты**: [`<file>#<anchor>`](<path>)
+**Связанные инварианты**: `<file>#<anchor>` (markdown-ссылка на реальный путь в репозитории)
 
 ---
 

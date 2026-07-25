@@ -16,7 +16,7 @@
 после роста базы. Trial не делаем в первом раунде (anti-fraud дороже выгоды).
 
 **Топ-3 фичи первого раунда** (visitor→registration):
-1. **QW-9** — Страница «О проекте» с акцентом на русский рок
+1. **QW-9** ✅ — Страница «О проекте» с акцентом на русский рок (сделано, `4240b98`)
 2. **QW-2** — «5 причин зарегистрироваться» на главной
 3. **QW-1** — Таблица «FREE vs PREMIUM» на /premium
 
@@ -152,14 +152,14 @@ Anti-fraud нужен только если/когда добавим trial.
 
 | ID | Что | Гипотеза | Трудозатраты | Влияние |
 |----|-----|----------|--------------|---------|
-| **QW-9** | Страница «О проекте» | H1.9 | 2-5 дней | ↑↑↑ visitor→registration |
+| **QW-9** ✅ | Страница «О проекте» | H1.9 | 2-5 дней | ↑↑↑ visitor→registration |
 | **QW-2** | «5 причин зарегистрироваться» | H1.1 | 1 день | ↑ visitor→registration |
 | **QW-1** | Таблица «FREE vs PREMIUM» | H2.1 | 2-3 дня | ↑↑ registration→premium |
 
 **Готовятся отдельно** (spec.md):
-- [QW-9: страница «О проекте»](../../specs/001-about-page/spec.md)
-- [QW-2: 5 причин зарегистрироваться](../../specs/002-reasons-to-register/spec.md)
-- [QW-1: FREE vs PREMIUM](../../specs/003-free-vs-premium/spec.md)
+- [QW-9: страница «О проекте»](../../specs/003-about-page/spec.md) — ✅ сделано (`4240b98`)
+- [QW-2: 5 причин зарегистрироваться](../../specs/004-reasons-to-register/spec.md)
+- [QW-1: FREE vs PREMIUM](../../specs/005-free-vs-premium/spec.md)
 
 ---
 
@@ -169,7 +169,7 @@ Anti-fraud нужен только если/когда добавим trial.
 
 | ID | Что | Сегмент |
 |----|-----|---------|
-| QW-9 ★ | Страница «О проекте» | visitor→reg |
+| QW-9 ★ ✅ | Страница «О проекте» | visitor→reg |
 | QW-2 ★ | «5 причин зарегистрироваться» | visitor→reg |
 | QW-1 ★ | Таблица «FREE vs PREMIUM» | reg→premium |
 | QW-4 | «-10% на первую подписку» (NEW_USER_PERCENT) | reg→premium |

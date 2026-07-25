@@ -85,6 +85,15 @@
         </p>
       </section>
 
+      <!-- Площадки: те же соцсети/каналы, что и на главной (переиспользуем SocialLinks) -->
+      <section class="km-section">
+        <h2 class="km-section-title">Где ещё мы есть</h2>
+        <p class="km-hint-text">
+          Кроме сайта — публикуем анонсы и общаемся с аудиторией на этих площадках.
+        </p>
+        <SocialLinks />
+      </section>
+
       <!-- Статистика — те же 4 категории, что и на главной (consistency) -->
       <section v-if="stats" class="km-stats-section">
         <h2 class="km-section-title">Коллекция</h2>
@@ -155,6 +164,9 @@
           <RouterLink to="/premium">премиум-подписку</RouterLink> (449 ₽/мес). Одна песня навсегда —
           49 ₽.
         </p>
+        <div class="km-share-wrap">
+          <ShareButton />
+        </div>
       </section>
     </div>
   </div>
@@ -165,6 +177,8 @@ import { apiGet } from '../services/api'
 import { useAuth } from '../composables/useAuth'
 import { useEngagementTracking } from '../composables/useEngagementTracking'
 import { trackUi } from '../services/tracking'
+import SocialLinks from '../components/SocialLinks.vue'
+import ShareButton from '../components/ShareButton.vue'
 
 // Топ-15 авторов с полной дискографией — список согласован с владельцем проекта.
 // Эти 15 исполнителей представлены в коллекции максимально полно: официальные релизы +
@@ -197,6 +211,7 @@ const TOP_AUTHORS = [
  */
 export default {
   name: 'AboutView',
+  components: { SocialLinks, ShareButton },
   setup() {
     const { isLoggedIn } = useAuth()
     // Трекинг времени на странице + scroll-вехи 25/50/75/100% в tbl_events.
@@ -483,6 +498,11 @@ export default {
 }
 .km-cta-secondary:hover {
   background: var(--km-hover);
+}
+.km-share-wrap {
+  display: flex;
+  justify-content: center;
+  margin-top: 1.5rem;
 }
 
 /* Mobile */

@@ -65,7 +65,7 @@
 
 - [ ] **T071**: Добавить branch protection rule в GitHub UI (required check: `Lint`).
 - [ ] **T072**: Создать тестовый PR с `// noinspection` в Kotlin → убедиться что CI валится.
-- [ ] **T073**: Обновить `AGENTS.md` — добавить ссылку на workflow + per-feature doc.
+- [X] **T073**: Обновить `AGENTS.md` — добавить ссылку на workflow + per-feature doc. *(v1.4.0→1.4.1, docs/architecture-notes.md запись)*
 
 ## Phase 8: Convergence
 

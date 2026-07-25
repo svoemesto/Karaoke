@@ -17,8 +17,56 @@
         Играть можно сразу в браузере на этом сайте.
       </p>
 
+      <!-- Сравнение FREE/PREMIUM: для не-премиум — таблица-продажник, для премиум — «спасибо». -->
+      <section v-if="!isPremium" class="km-compare-section">
+        <h2 class="km-compare-title">Что вы получите за подписку</h2>
+        <table class="km-compare-table">
+          <thead>
+            <tr>
+              <th class="km-compare-feature-col">Фича</th>
+              <th>FREE</th>
+              <th class="km-compare-premium-col">PREMIUM</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="row in comparisonRows" :key="row.feature">
+              <td class="km-compare-feature-col" data-label="Фича">{{ row.feature }}</td>
+              <td data-label="FREE">
+                <span v-if="typeof row.free === 'boolean'" :aria-label="row.free ? 'есть' : 'нет'">
+                  {{ row.free ? '✅' : '❌' }}
+                </span>
+                <span v-else>{{ row.free }}</span>
+              </td>
+              <td class="km-compare-premium-col" data-label="PREMIUM">
+                <span
+                  v-if="typeof row.premium === 'boolean'"
+                  :aria-label="row.premium ? 'есть' : 'нет'"
+                >
+                  {{ row.premium ? '✅' : '❌' }}
+                </span>
+                <span v-else>{{ row.premium }}</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <button class="km-btn km-btn-primary km-compare-cta" @click="onCompareCta">
+          Оформить премиум-подписку
+        </button>
+      </section>
+      <section v-else class="km-compare-section km-compare-thanks">
+        <h2 class="km-compare-title">Вы премиум-пользователь — спасибо!</h2>
+        <p class="km-card-body">
+          Что вы получили: полный доступ к плееру (все песни), безлимитное избранное и до 50 своих
+          плейлистов, непрерывное воспроизведение с повтором и случайным порядком, создание
+          минусовок и чат с автором проекта.
+        </p>
+        <RouterLink to="/account/subscriptions" class="km-btn km-btn-secondary">
+          Управление подпиской →
+        </RouterLink>
+      </section>
+
       <!-- Путь 1: подписка на сайт (основной, рекомендуемый способ) -->
-      <div class="km-card km-card-primary">
+      <div ref="tariffCard" class="km-card km-card-primary">
         <span class="km-recommend-badge">Рекомендуем</span>
         <h2 class="km-card-title">1. Подписка на сайт</h2>
         <p class="km-card-body">
@@ -144,6 +192,28 @@
 import { useAuth } from '../composables/useAuth'
 import { useSiteSubscription } from '../composables/useSiteSubscription'
 import { authGet } from '../services/authApi'
+import { trackUi } from '../services/tracking'
+
+// Таблица «FREE vs PREMIUM» (QW-1). Список согласован построчно с реальным кодом —
+// см. specs/005-free-vs-premium/research.md Decision 1 (12 предложенных строк → 9
+// подтверждённых). Числа 100/500/50 — точные константы FREE_FAVORITES_LIMIT/
+// PREMIUM_ITEMS_LIMIT/PREMIUM_PLAYLIST_LIMIT из PublicPlaylistController.kt; если
+// бэкенд-константы изменятся, эту таблицу нужно обновить вручную (см. data-model.md).
+const COMPARISON_ROWS = [
+  { feature: 'Онлайн-плеер для песен «в эфире»', free: true, premium: true },
+  { feature: 'Поиск и каталог', free: true, premium: true },
+  { feature: 'Демо-фрагменты эксклюзивных', free: true, premium: true },
+  { feature: 'Полный доступ к плееру (все песни)', free: false, premium: true },
+  { feature: 'Избранное', free: 'до 100', premium: 'до 500' },
+  { feature: 'Свои плейлисты', free: '1 (избранное)', premium: 'до 50' },
+  {
+    feature: 'Непрерывное воспроизведение, повтор, случайный порядок',
+    free: false,
+    premium: true,
+  },
+  { feature: 'Создание минусовок (Demucs)', free: false, premium: true },
+  { feature: 'Чат с автором проекта', free: false, premium: true },
+]
 
 /**
  * View-страница «Premium» — основной layout и data-fetching.
@@ -154,7 +224,7 @@ import { authGet } from '../services/authApi'
 export default {
   name: 'PremiumView',
   setup() {
-    const { isLoggedIn } = useAuth()
+    const { isLoggedIn, user } = useAuth()
     const {
       loadingTariffs,
       tariffs,
@@ -168,6 +238,7 @@ export default {
     } = useSiteSubscription()
     return {
       isLoggedIn,
+      user,
       loadingTariffs,
       tariffs,
       loadingPrice,
@@ -187,6 +258,7 @@ export default {
       submitError: false,
       songTariff: null,
       loadingSongTariff: false,
+      comparisonRows: COMPARISON_ROWS,
     }
   },
   computed: {
@@ -194,6 +266,10 @@ export default {
       if (this.error === 'payment_unavailable')
         return 'Оплата временно недоступна, попробуйте позже.'
       return 'Не удалось оформить подписку. Попробуйте ещё раз.'
+    },
+    // Тот же паттерн, что в SearchView.vue/ZakromaView.vue/PlaylistsView.vue и др.
+    isPremium() {
+      return !!(this.user && this.user.effectivePremium)
     },
   },
   mounted() {
@@ -203,6 +279,12 @@ export default {
     this.loadSongTariff()
   },
   methods: {
+    // CTA под таблицей сравнения — ведёт к уже существующему блоку выбора тарифа
+    // (плавный скролл к нему), не на отдельный роут (FR-005). Клик трекается (FR-008).
+    onCompareCta() {
+      trackUi('navigate', 'free_vs_premium_cta')
+      this.$refs.tariffCard?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    },
     async loadSongTariff() {
       this.loadingSongTariff = true
       try {
@@ -293,6 +375,94 @@ export default {
   border-radius: 8px;
   padding: 0.6rem 0.9rem;
   margin: -0.75rem 0 1.5rem;
+}
+
+/* Сравнение FREE/PREMIUM */
+.km-compare-section {
+  margin-bottom: 2rem;
+}
+.km-compare-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin: 0 0 1rem;
+}
+.km-compare-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--km-card);
+  border: 1px solid var(--km-border);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 1.25rem;
+}
+.km-compare-table th,
+.km-compare-table td {
+  padding: 0.6rem 0.75rem;
+  text-align: center;
+  border-bottom: 1px solid var(--km-border);
+  font-size: 0.88rem;
+}
+.km-compare-table tbody tr:last-child td {
+  border-bottom: none;
+}
+.km-compare-feature-col {
+  text-align: left;
+  color: var(--km-text);
+}
+.km-compare-table thead th {
+  font-weight: 700;
+  color: var(--km-text2);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+}
+.km-compare-premium-col {
+  background: var(--km-hover);
+  font-weight: 600;
+  position: relative;
+}
+.km-compare-table thead th.km-compare-premium-col::before {
+  content: '👑 ';
+}
+.km-compare-cta {
+  width: 100%;
+}
+.km-compare-thanks .km-card-body {
+  margin-bottom: 1.25rem;
+}
+
+/* Мобильная адаптация таблицы: стопка вместо горизонтального скролла */
+@media (max-width: 500px) {
+  .km-compare-table thead {
+    display: none;
+  }
+  .km-compare-table,
+  .km-compare-table tbody,
+  .km-compare-table tr,
+  .km-compare-table td {
+    display: block;
+    width: 100%;
+  }
+  .km-compare-table tr {
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--km-border);
+  }
+  .km-compare-table td {
+    text-align: left;
+    border-bottom: none;
+    padding: 0.2rem 0;
+  }
+  .km-compare-table td::before {
+    content: attr(data-label) ': ';
+    font-weight: 700;
+    color: var(--km-text2);
+  }
+  .km-compare-feature-col::before {
+    content: none !important;
+  }
+  .km-compare-feature-col {
+    font-weight: 700;
+    margin-bottom: 0.2rem;
+  }
 }
 .km-card {
   background: var(--km-card);

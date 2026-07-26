@@ -1,39 +1,27 @@
 version: '3.8'
 
-services:
-  whisper-downloader:
-    image: hwdsl2/whisper-server:cuda
-    container_name: whisper-downloader
-    restart: "no"
-    init: true
-    # WHISPER_MODEL должен совпадать со значением в whisper-asr/whisper-asr-cpu ниже -
-    # download_model.py читает именно эту переменную (см. deploy/download_model.py), иначе
-    # скачает не ту модель (дефолт скрипта - medium), которую реально будут грузить сервисы.
-    environment:
-      - WHISPER_MODEL=large-v3-turbo
-    volumes:
-      - ./whisper_models:/var/lib/whisper
-      - ./download_model.py:/download_model.py:ro
-    # Используем наш Python-скрипт - работает через стандартную библиотеку
-    entrypoint: ["python", "/download_model.py"]
-    # Без GPU - загрузчику видеокарта не нужна
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 0
-              capabilities: [gpu]
+# Whisper ASR (распознавание вокала для авто-маркеров, см. WhisperAsrService.kt/AGENTS.md) -
+# hwdsl2/whisper-server сам умеет скачивать модель по имени в WHISPER_MODEL (faster-whisper/
+# huggingface_hub внутри образа уже знает правильные репозитории и заголовки авторизации для
+# каждого имени модели, включая нестандартные вроде large-v3-turbo) - отдельный кастомный
+# загрузчик тут больше не нужен (было: whisper-downloader + download_model.py - убраны после
+# серии проблем: не тот репозиторий на HF, отсутствие Authorization-заголовка, IPv6 без
+# маршрута в контейнере - образ решает всё это сам, надёжнее, чем самодельная реализация).
 
+services:
   # GPU-версия Whisper (основная, быстрая)
   whisper-asr:
     image: hwdsl2/whisper-server:cuda
     container_name: whisper-asr
     restart: always
     init: true
-    depends_on:
-      whisper-downloader:
-        condition: service_completed_successfully
+    # Обычный docker0/"bridge" вместо отдельной Compose-сети проекта (которую Compose создаёт
+    # по умолчанию, если не указан networks:) - на этой машине именно кастомные Compose-сети (не
+    # docker0) не могли достучаться наружу (DNS/HTTPS таймауты), а простой "docker run --rm
+    # alpine" (который как раз использует docker0) работал без проблем. Похоже на несовпадение
+    # MTU между VPN-туннелем хоста и кастомным bridge (VPN режет MTU, кастомная Compose-сеть
+    # использует MTU 1500 по умолчанию - крупные пакеты молча теряются).
+    network_mode: bridge
     ports:
       - "8015:9000"
     environment:
@@ -43,14 +31,32 @@ services:
       - WHISPER_COMPUTE_TYPE=int8
       - WHISPER_API_KEY=nafanya_whisper_2026
       - HF_TOKEN=hf_key
+    # Docker-мост не всегда получает рабочий DNS от хоста (VPN/локальный резолвер могут
+    # возвращать адреса, недоступные из контейнера) - см. тот же приём в docker-compose-ollama.yml
+    # для другого GPU-контейнера, которому тоже нужен внешний интернет.
+    dns:
+      - 1.1.1.1 # Cloudflare DNS
+      - 8.8.4.4 # Google DNS (альтернативный)
+      - 77.88.8.8 # Яндекс DNS (если вы в РФ)
     volumes:
       - ./whisper_models:/var/lib/whisper
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:9000/v1/models')"]
+      # /v1/models требует авторизации (API key authentication is enabled, см. WHISPER_API_KEY) -
+      # без заголовка сервер отвечает 401, и Docker никогда не увидит контейнер healthy (из-за
+      # чего whisper-asr-cpu, ждущий condition: service_healthy, никогда бы не стартовал).
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import os, urllib.request; urllib.request.urlopen(urllib.request.Request('http://localhost:9000/v1/models', headers={'Authorization': 'Bearer ' + os.environ['WHISPER_API_KEY']}))",
+        ]
       interval: 30s
       timeout: 10s
-      retries: 5
-      start_period: 30s
+      # Первый старт скачивает модель (может занять несколько минут) - до первого успешного
+      # health-check'а retries*interval должно этого хватать с запасом.
+      retries: 20
+      start_period: 60s
     deploy:
       resources:
         reservations:
@@ -65,9 +71,14 @@ services:
     container_name: whisper-asr-cpu
     restart: always
     init: true
+    # Дожидаемся, пока GPU-версия скачает и загрузит модель - оба сервиса делят один volume с
+    # кешем моделей, не нужно тянуть одну и ту же модель по сети дважды параллельно при первом
+    # старте (huggingface_hub внутри образа, скорее всего, безопасен для параллельного доступа
+    # к кешу за счёт файловых локов, но зачем без нужды удваивать сетевую нагрузку).
     depends_on:
-      whisper-downloader:
-        condition: service_completed_successfully
+      whisper-asr:
+        condition: service_healthy
+    network_mode: bridge
     ports:
       - "8016:9000"
     environment:
@@ -77,14 +88,27 @@ services:
       - WHISPER_COMPUTE_TYPE=int8
       - WHISPER_API_KEY=nafanya_whisper_2026
       - HF_TOKEN=hf_key
+    dns:
+      - 1.1.1.1 # Cloudflare DNS
+      - 8.8.4.4 # Google DNS (альтернативный)
+      - 77.88.8.8 # Яндекс DNS (если вы в РФ)
     volumes:
       - ./whisper_models:/var/lib/whisper
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:9000/v1/models')"]
+      # /v1/models требует авторизации (API key authentication is enabled, см. WHISPER_API_KEY) -
+      # без заголовка сервер отвечает 401, и Docker никогда не увидит контейнер healthy (из-за
+      # чего whisper-asr-cpu, ждущий condition: service_healthy, никогда бы не стартовал).
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import os, urllib.request; urllib.request.urlopen(urllib.request.Request('http://localhost:9000/v1/models', headers={'Authorization': 'Bearer ' + os.environ['WHISPER_API_KEY']}))",
+        ]
       interval: 30s
       timeout: 10s
-      retries: 5
-      start_period: 30s
+      retries: 20
+      start_period: 60s
     # CPU не требует GPU
     deploy:
       resources:

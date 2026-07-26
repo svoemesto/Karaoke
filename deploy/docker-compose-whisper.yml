@@ -41,7 +41,16 @@ services:
     volumes:
       - ./whisper_models:/var/lib/whisper
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:9000/v1/models')"]
+      # /v1/models требует авторизации (API key authentication is enabled, см. WHISPER_API_KEY) -
+      # без заголовка сервер отвечает 401, и Docker никогда не увидит контейнер healthy (из-за
+      # чего whisper-asr-cpu, ждущий condition: service_healthy, никогда бы не стартовал).
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import os, urllib.request; urllib.request.urlopen(urllib.request.Request('http://localhost:9000/v1/models', headers={'Authorization': 'Bearer ' + os.environ['WHISPER_API_KEY']}))",
+        ]
       interval: 30s
       timeout: 10s
       # Первый старт скачивает модель (может занять несколько минут) - до первого успешного
@@ -86,7 +95,16 @@ services:
     volumes:
       - ./whisper_models:/var/lib/whisper
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:9000/v1/models')"]
+      # /v1/models требует авторизации (API key authentication is enabled, см. WHISPER_API_KEY) -
+      # без заголовка сервер отвечает 401, и Docker никогда не увидит контейнер healthy (из-за
+      # чего whisper-asr-cpu, ждущий condition: service_healthy, никогда бы не стартовал).
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import os, urllib.request; urllib.request.urlopen(urllib.request.Request('http://localhost:9000/v1/models', headers={'Authorization': 'Bearer ' + os.environ['WHISPER_API_KEY']}))",
+        ]
       interval: 30s
       timeout: 10s
       retries: 20

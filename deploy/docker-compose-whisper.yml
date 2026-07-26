@@ -9,8 +9,11 @@ services:
     # WHISPER_MODEL должен совпадать со значением в whisper-asr/whisper-asr-cpu ниже -
     # download_model.py читает именно эту переменную (см. deploy/download_model.py), иначе
     # скачает не ту модель (дефолт скрипта - medium), которую реально будут грузить сервисы.
+    # HF_TOKEN - для гейтед-репозиториев на HuggingFace (некоторые модели требуют авторизации
+    # и принятой лицензии, в отличие от полностью публичного medium).
     environment:
       - WHISPER_MODEL=large-v3-turbo
+      - HF_TOKEN=hf_key
     volumes:
       - ./whisper_models:/var/lib/whisper
       - ./download_model.py:/download_model.py:ro

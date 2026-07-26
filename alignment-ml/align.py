@@ -201,12 +201,16 @@ def _align_words_finetuned(waveform: torch.Tensor, words: list[str]) -> list[tup
     token_spans = torchaudio.functional.merge_tokens(aligned_tokens[0], scores[0])
 
     # merge_tokens даёт спаны по СИМВОЛАМ, включая "|" (разделитель слов) - схлопываем в спаны по словам.
+    # span.token - ЧИСЛОВОЙ индекс токена (id из словаря), а не строка - сравнивать нужно с
+    # word_delimiter_token_id, а не с самим word_delimiter_token (строкой "|"); иначе сравнение
+    # int == str всегда False, весь список токенов схлопывается в один спан на всю песню.
+    word_delimiter_id = _custom_processor.tokenizer.word_delimiter_token_id
     word_spans: list[tuple[float, float]] = []
     current_start = None
     current_end = None
     ratio = waveform.size(1) / emission.size(1) / _sample_rate
     for span in token_spans:
-        if span.token == _custom_processor.tokenizer.word_delimiter_token:
+        if span.token == word_delimiter_id:
             if current_start is not None:
                 word_spans.append((current_start * ratio, current_end * ratio))
             current_start = None

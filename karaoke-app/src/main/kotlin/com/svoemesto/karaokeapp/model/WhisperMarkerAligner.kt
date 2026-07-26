@@ -24,10 +24,13 @@ private const val MIN_WORD_CONFIDENCE = 0.3
 // WhisperMarkerAligner.reconcile*) — сознательно строже, чем MIN_WORD_CONFIDENCE для обычных
 // якорей: ложная вставка портит текст/датасет, а не просто одну метку времени. Одиночное
 // низкоуверенное непойманное слово чаще ASR-шум/галлюцинация, чем реальная вставка — требуем
-// подряд идущих слов и более высокую уверенность на каждом. Оба порога — кандидаты на калибровку
-// по факту первого реального прогона (как и весь остальной alignment-ml пайплайн).
-private const val MIN_INSERTION_CONFIDENCE = 0.6
-private const val MIN_INSERTION_RUN_LENGTH = 2
+// подряд идущих слов и более высокую уверенность на каждом. Подняты с 0.6/2 после реального
+// прогона (Whisper medium): наблюдалась галлюцинация "бизнес -змей" (2 связных слова, confidence
+// в районе 0.6-0.7) перед реально спетым "бизнезмей-искуситель" - ложная вставка прошла старый
+// порог. 0.75/3 - более консервативный компромисс (может пропустить короткий 2-словный настоящий
+// ad-lib), откалиброван по этому случаю, а не по датасету - дальнейшая калибровка по факту.
+private const val MIN_INSERTION_CONFIDENCE = 0.75
+private const val MIN_INSERTION_RUN_LENGTH = 3
 
 /**
  * Сопоставляет word-level результат Whisper (см. WhisperAsrService) с уже введённым текстом песни
@@ -284,10 +287,20 @@ object WhisperMarkerAligner {
 
         insertionsByAnchor[-1]?.forEach { run -> run.words.forEach { appendWord(it.raw) } }
         targetWords.forEachIndexed { wordIndex, word ->
-            // syllables хранит "_" на последнем слоге слова (конвенция для SourceMarker.label, см.
-            // buildMarkers/buildMarkersFromSyllableTimes выше) - здесь же собирается ОБЫЧНЫЙ текст
-            // (пробелы между словами уже добавляет appendWord), поэтому "_" - лишний символ, срезаем.
-            appendWord(word.syllables.joinToString("").removeSuffix("_"))
+            // syllables хранит "_" на последнем слоге СВОЕГО исходного слова (конвенция для
+            // SourceMarker.label, см. buildMarkers/buildMarkersFromSyllableTimes выше) - но одно
+            // "TargetWord" тут иногда СКЛЕЕНО из НЕСКОЛЬКИХ исходных слов (см. цикл слияния безгласных
+            // слогов в buildTargetWords - однобуквенные предлоги "в"/"и"/"к" и одиночные дефисы без
+            // гласной сливаются с соседним словом ПОЛНОСТЬЮ, а не только неудачным слогом) - "_"
+            // тогда остаётся ВНУТРИ склеенной строки, не только на конце. removeSuffix убирал бы
+            // только последний - заменяем ВСЕ "_" на пробел (как и делает Settings.getText() для
+            // marker.label), это восстанавливает исходные границы слов внутри склейки.
+            appendWord(
+                word.syllables
+                    .joinToString("")
+                    .replace("_", " ")
+                    .trim()
+            )
             insertionsByAnchor[wordIndex]?.forEach { run -> run.words.forEach { appendWord(it.raw) } }
 
             val isLastWord = wordIndex == targetWords.size - 1

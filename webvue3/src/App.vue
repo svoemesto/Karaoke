@@ -195,6 +195,9 @@ export default {
     this.$store.dispatch('setLastPriorDemucs', {
       value: await this.$store.getters.getWebvueProp('lastPriorDemucs', '-1'),
     })
+    this.$store.dispatch('setLastPriorForcedAlign', {
+      value: await this.$store.getters.getWebvueProp('lastPriorForcedAlign', '-1'),
+    })
     this.$store.dispatch('setLastPriorSymlinks', {
       value: await this.$store.getters.getWebvueProp('lastPriorSymlinks', '-1'),
     })

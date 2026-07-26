@@ -4262,7 +4262,20 @@ export default {
     closeWhisperDebug() {
       this.isWhisperDebugVisible = false
     },
-    doForcedAlignMarkers() {
+    async doForcedAlignMarkers() {
+      // Дефолт чекбокса - из глобальной настройки (Свойства -> alignmentUseFinetunedModel), но
+      // выбор можно переопределить прямо здесь на конкретный запуск.
+      let defaultUseFinetuned = 'false'
+      try {
+        const property = await this.$store.dispatch(
+          'getPropertyValuePromise',
+          'alignmentUseFinetunedModel',
+        )
+        if (property?.value === 'true' || property?.value === true) defaultUseFinetuned = 'true'
+      } catch (error) {
+        console.error('Не удалось прочитать настройку alignmentUseFinetunedModel:', error)
+      }
+
       this.customConfirmParams = {
         header: 'Точные маркеры (forced-alignment)',
         body:
@@ -4271,12 +4284,23 @@ export default {
           `без интерполяции)? Текущие маркеры голоса будут <strong>полностью заменены</strong>. Действие не ` +
           `сохраняется автоматически — черновик можно будет доправить и сохранить обычным Save, либо отменить ` +
           `перезагрузкой голоса.`,
-        timeout: 10,
         callback: this.doApplyForcedAlignMarkers,
+        fields: [
+          {
+            fldName: 'useFinetunedModel',
+            fldLabel: 'Дообученная модель:',
+            fldValue: defaultUseFinetuned,
+            fldIsBoolean: true,
+            fldLabelStyle: { width: '160px', textAlign: 'right', paddingRight: '5px' },
+            fldValueStyle: { width: '150px', textAlign: 'left' },
+          },
+        ],
       }
       this.isCustomConfirmVisible = true
     },
-    async doApplyForcedAlignMarkers() {
+    async doApplyForcedAlignMarkers(params) {
+      const useFinetunedModel =
+        params?.useFinetunedModel === 'true' || params?.useFinetunedModel === true
       this.isForcedAlignLoading = true
       // Открываем модалку сразу (со спинером) - согласование + forced-alignment вместе могут
       // идти долго, и пользователь не должен смотреть на "ничего не происходит" всё это время.
@@ -4307,9 +4331,12 @@ export default {
 
         const textForAlignment = reconcileResult.text || this.sourceText
 
-        this.autoMarkersDebugLoadingText = 'Выравнивание по слогам (forced-alignment)...'
+        this.autoMarkersDebugLoadingText = useFinetunedModel
+          ? 'Выравнивание по слогам (forced-alignment, дообученная модель)...'
+          : 'Выравнивание по слогам (forced-alignment)...'
         const alignResponseText = await this.$store.dispatch('getForcedAlignMarkers', {
           sourceText: textForAlignment,
+          useFinetunedModel,
         })
         const alignResult = JSON.parse(alignResponseText)
         if (!alignResult.ok) {

@@ -4,6 +4,7 @@ import com.svoemesto.karaokeapp.Connection
 import com.svoemesto.karaokeapp.Karaoke
 import com.svoemesto.karaokeapp.KaraokeConnection
 import com.svoemesto.karaokeapp.KaraokeFileType
+import com.svoemesto.karaokeapp.KaraokeProperties
 import com.svoemesto.karaokeapp.WORKING_DATABASE
 import com.svoemesto.karaokeapp.llm.TextCorrectorAgent
 import com.svoemesto.karaokeapp.model.KaraokeDbTable
@@ -762,6 +763,7 @@ class SongEditorController(
     fun editForcedAlignMarkers(
         @RequestParam id: Long,
         @RequestParam sourceText: String,
+        @RequestParam(required = false) useFinetunedModel: Boolean?,
     ): Map<String, Any?> {
         if (sourceText.isBlank()) return mapOf("ok" to false, "error" to "empty_source_text")
 
@@ -772,8 +774,12 @@ class SongEditorController(
         val vocalsFile = File(settings.vocalsNameFlac)
         if (!vocalsFile.exists()) return mapOf("ok" to false, "error" to "vocals_not_found")
 
+        // useFinetunedModel не передан фронтом (старый кэш и т.п.) - берём дефолт из настроек
+        // (alignmentUseFinetunedModel), а не жёстко false, чтобы свойство реально на что-то влияло.
+        val effectiveUseFinetuned = useFinetunedModel ?: KaraokeProperties.getBoolean("alignmentUseFinetunedModel")
         val response =
-            AlignmentServiceClient.align(vocalsFile, sourceText) ?: return mapOf("ok" to false, "error" to "alignment_service_unavailable")
+            AlignmentServiceClient.align(vocalsFile, sourceText, effectiveUseFinetuned)
+                ?: return mapOf("ok" to false, "error" to "alignment_service_unavailable")
         if (!response.ok || response.syllables.isEmpty()) return mapOf("ok" to false, "error" to "no_alignment_result")
 
         val syllableTimes = response.syllables.map { (it.startMs / 1000.0) to (it.endMs / 1000.0) }

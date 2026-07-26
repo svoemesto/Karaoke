@@ -39,6 +39,11 @@ enum class KaraokeProcessTypes {
     RENDER_MP4_DEMO,
 //    RECODE_48000,
 
+    // Автоматическая расстановка маркеров через forced-alignment (alignment-ml/serve.py) - фоновый
+    // аналог кнопки «Точные маркеры» в SubsEdit, но для ВСЕХ голосов песни сразу и без ручного
+    // подтверждения. См. Utils.executeForcedAlignMarkers.
+    FORCED_ALIGN_MARKERS,
+
     // Премиум-фича «Создать минусовку из аудиофайла» (StemJob, tbl_stem_jobs) — тот же демукс, что и
     // DEMUCS2/DEMUCS5, но для произвольного файла, загруженного пользователем публичного сайта, а не
     // для Settings/песни (settingsId=0). См. StemJobProcessing.kt.

@@ -1789,6 +1789,20 @@ class KaraokeProcess(
                             )
                     }
 
+                    KaraokeProcessTypes.FORCED_ALIGN_MARKERS -> {
+                        description = "Точные маркеры (forced-alignment)"
+                        val useFinetunedModel = context["useFinetunedModel"] as? String ?: "false"
+                        args =
+                            listOf(
+                                listOf(
+                                    "runFunctionWithArgs",
+                                    "executeForcedAlignMarkers",
+                                    "settingsId=${settings.id}",
+                                    "useFinetunedModel=$useFinetunedModel",
+                                ),
+                            )
+                    }
+
                     else -> {}
                 }
             }

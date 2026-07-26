@@ -618,6 +618,18 @@
       >
         <img alt="create demucs5 for all" class="icon-40" src="../../assets/svg/icon_demucs5.svg" />
       </button>
+      <button
+        class="btn-round-double"
+        :disabled="countRows === 0"
+        title="Точные маркеры (forced-alignment) для всех песен из текущей выборки (статус >= 3 - пропускается)"
+        @click="createForcedAlignMarkersForAll"
+      >
+        <img
+          alt="create forced align markers for all"
+          class="icon-40"
+          src="../../assets/svg/icon_auto_markers.svg"
+        />
+      </button>
       <!-- <button class="btn-round-double" @click="createMP3KaraokeForAll" :disabled="countRows===0" title="Создать MP3 KARAOKE для всех песен"><img alt="create mp3 karaoke for all" class="icon-40" src="../../assets/svg/icon_mp3karaoke.svg"></button> -->
       <!-- <button class="btn-round-double" @click="createMP3LyricsForAll" :disabled="countRows===0" title="Создать MP3 LYRICS для всех песен"><img alt="create mp3 lyrics for all" class="icon-40" src="../../assets/svg/icon_mp3lyrics.svg"></button> -->
       <button
@@ -1626,6 +1638,74 @@ export default {
             alertType: response ? 'info' : 'error',
             header: 'Создание DEMUCS2',
             body: `Создание DEMUCS2 для всех песен прошло успешно.`,
+            timeout: 10,
+          }
+          this.isCustomConfirmVisible = true
+        })
+    },
+    async createForcedAlignMarkersForAll() {
+      let defaultUseFinetuned = 'false'
+      try {
+        const property = await this.$store.dispatch(
+          'getPropertyValuePromise',
+          'alignmentUseFinetunedModel',
+        )
+        if (property?.value === 'true' || property?.value === true) defaultUseFinetuned = 'true'
+      } catch (error) {
+        console.error('Не удалось прочитать настройку alignmentUseFinetunedModel:', error)
+      }
+      this.customConfirmParams = {
+        header: 'Подтвердите создание процесса «Точные маркеры»',
+        body:
+          `Выбрано песен: <strong>${this.countRows}.</strong><br>Расставить маркеры через ` +
+          `forced-alignment фоном для всех песен из выборки? Песни со статусом &gt;= 3 ` +
+          `(маркеры уже финальны) будут пропущены.`,
+        callback: this.doCreateForcedAlignMarkersForAll,
+        fields: [
+          {
+            fldName: 'prior',
+            fldLabel: 'Приоритет:',
+            fldValue: this.$store.getters.getLastPriorForcedAlign,
+            fldLabelStyle: { width: '100px', textAlign: 'right', paddingRight: '5px' },
+            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px' },
+          },
+          {
+            fldName: 'threadId',
+            fldLabel: 'threadId:',
+            fldValue: this.$store.getters.getLastThreadId,
+            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px' },
+            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px' },
+          },
+          {
+            fldName: 'useFinetunedModel',
+            fldLabel: 'Дообученная модель:',
+            fldValue: defaultUseFinetuned,
+            fldIsBoolean: true,
+            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px' },
+            fldValueStyle: { width: '150px', textAlign: 'left' },
+          },
+        ],
+      }
+      this.isCustomConfirmVisible = true
+    },
+    doCreateForcedAlignMarkersForAll(result) {
+      const useFinetunedModel =
+        result.useFinetunedModel === 'true' || result.useFinetunedModel === true
+      this.$store.dispatch('setLastPriorForcedAlign', { value: result.prior })
+      this.$store.dispatch('setLastThreadId', { value: result.threadId })
+      this.$store
+        .dispatch('createForcedAlignMarkersForAllPromise', {
+          prior: result.prior,
+          threadId: result.threadId,
+          useFinetunedModel,
+        })
+        .then((data) => {
+          let response = JSON.parse(data)
+          this.customConfirmParams = {
+            isAlert: true,
+            alertType: response ? 'info' : 'error',
+            header: 'Точные маркеры',
+            body: `Создание процесса «Точные маркеры» для всех песен из выборки прошло успешно.`,
             timeout: 10,
           }
           this.isCustomConfirmVisible = true

@@ -2,7 +2,7 @@
 
 > **Status**: active
 > **Feature Key**: async-process-queue
-> **Last Updated**: 2026-07-20
+> **Last Updated**: 2026-07-26
 
 ## Что делает
 
@@ -40,8 +40,19 @@
    и обновляет `percentage` в БД.
 5. **SSE** — UI получает `processWorkerState` через `SseNotificationService`.
 6. **Functional types** — некоторые типы (`KEY_BPM_FROM_FILE`,
-   `UPLOAD_TO_LOCAL/REMOTE_STORE`) выполняются как Kotlin-функция
-   (`runFunctionWithArgs`), не как subprocess.
+   `UPLOAD_TO_LOCAL/REMOTE_STORE`, `FORCED_ALIGN_MARKERS`) выполняются как
+   Kotlin-функция (`runFunctionWithArgs`), не как subprocess.
+   `FORCED_ALIGN_MARKERS` (`Utils.executeForcedAlignMarkers`) — фоновый
+   аналог кнопки «Точные маркеры» в SubsEdit (см. `alignment-ml/README.md`):
+   расставляет маркеры сразу для всех голосов песни и сохраняет результат
+   (в отличие от `SongEditorController.editForcedAlignMarkers`, который
+   только возвращает черновик на подтверждение фронта). **Нельзя** ставить
+   в очередь для песни со статусом `idStatus >= 3` (маркеры уже финальны) —
+   проверяется и на постановку в очередь (`ApiController.doProcessForcedAlignMarkers`/
+   `getSongsCreateForcedAlignMarkersAll`), и повторно внутри самого
+   `executeForcedAlignMarkers` (статус мог измениться, пока задание ждало
+   своей очереди). При успехе `idStatus` поднимается до `2`, если он был
+   меньше.
 
 ## Инварианты / правила
 

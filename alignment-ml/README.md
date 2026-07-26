@@ -64,7 +64,8 @@ Forced-alignment модуль: по известному тексту песни
    вставки), затем выравнивает через `serve.py` (`/edit/forcedAlignMarkers`). URL сервиса —
    свойство `alignmentServiceUrl` в webvue3 → Свойства (напр.
    `http://<admin-host>:8017/align`, пусто = функция выключена) — тот же паттерн конфигурации, что
-   и `whisperAsrUrl`.
+   и `whisperAsrUrl`. По умолчанию `serve.py` использует baseline MMS_FA; переменная окружения
+   `ALIGN_MODEL_PATH` переключает на дообученный чекпоинт (`train.py`) — см. ниже.
 
 ## GPU
 
@@ -101,8 +102,11 @@ python train.py --manifest "$MANIFEST" --limit 500 --resume
 
 python align.py --audio ... --text ... --model checkpoints/mms-ft/checkpoint-XXX
 
-# сервис
+# сервис (baseline)
 uvicorn serve:app --host 0.0.0.0 --port 8017
+
+# сервис на дообученном чекпоинте (только после evaluate.py --model, если он точнее baseline)
+ALIGN_MODEL_PATH=checkpoints/mms-ft uvicorn serve:app --host 0.0.0.0 --port 8017
 ```
 
 Первый реальный прогон почти наверняка потребует правок (конкретные версии

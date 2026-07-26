@@ -12,11 +12,13 @@ import com.svoemesto.karaokeapp.mlt.MltObjectAlignmentX
 import com.svoemesto.karaokeapp.mlt.MltObjectAlignmentY
 import com.svoemesto.karaokeapp.mlt.MltObjectType
 import com.svoemesto.karaokeapp.model.*
+import com.svoemesto.karaokeapp.services.AlignmentServiceClient
 import com.svoemesto.karaokeapp.services.KSS_APP
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.SAC_APP
 import com.svoemesto.karaokeapp.services.SNS
 import com.svoemesto.karaokeapp.services.StorageApiClient
+import com.svoemesto.karaokeapp.services.WhisperAsrService
 import com.svoemesto.karaokeapp.sync.SyncDirection
 import com.svoemesto.karaokeapp.sync.SyncOperation
 import com.svoemesto.karaokeapp.sync.SyncRegistry
@@ -3660,6 +3662,63 @@ fun executeGetKeyBpmFromFile(params: Map<String, String>): Boolean {
     settings.fields[SettingField.KEY] = key
     settings.fields[SettingField.BPM] = bpm.toString()
     settings.saveToDb()
+    return true
+}
+
+/**
+ * Фоновый аналог кнопки «Точные маркеры» в SubsEdit (см. SongEditorController.editReconcileText/
+ * editForcedAlignMarkers) - но для ВСЕХ голосов песни сразу и с автосохранением результата (не
+ * черновик на подтверждение фронта). Whisper-транскрипция вокала не зависит от голоса - одна на
+ * всю песню, переиспользуется для согласования текста (вставки) каждого голоса.
+ *
+ * idStatus проверяется дважды - на постановку в очередь (ApiController.doProcessForcedAlignMarkers/
+ * getSongsCreateForcedAlignMarkersAll) и здесь: очередь может ждать своего хода долго, за это время
+ * идстатус песни мог измениться руками через UI.
+ */
+fun executeForcedAlignMarkers(params: Map<String, String>): Boolean {
+    val settingsId = params["settingsId"]?.toLongOrNull() ?: return false
+    val useFinetunedModel = params["useFinetunedModel"]?.toBoolean() ?: false
+    val settings =
+        Settings.loadFromDbById(
+            id = settingsId,
+            database = WORKING_DATABASE,
+            sync = false,
+            storageService = KSS_APP,
+            storageApiClient = SAC_APP,
+        )
+            ?: return false
+    if (settings.idStatus >= 3) return false
+
+    val vocalsFile = File(settings.vocalsNameFlac)
+    if (!vocalsFile.exists()) return false
+
+    val transcription = WhisperAsrService.transcribe(vocalsFile) ?: return false
+    val words = WhisperAsrService.flatWords(transcription)
+    if (words.isEmpty()) return false
+
+    var anyVoiceProcessed = false
+    for (voice in settings.sourceTextList.indices) {
+        val sourceText = settings.getSourceText(voice)
+        if (sourceText.isBlank()) continue
+
+        val reconciledText = WhisperMarkerAligner.reconcileText(sourceText, words)
+
+        val response = AlignmentServiceClient.align(vocalsFile, reconciledText, useFinetunedModel) ?: continue
+        if (!response.ok || response.syllables.isEmpty()) continue
+
+        val syllableTimes = response.syllables.map { (it.startMs / 1000.0) to (it.endMs / 1000.0) }
+        val markers = WhisperMarkerAligner.buildMarkersFromSyllableTimes(reconciledText, syllableTimes) ?: continue
+
+        settings.setSourceMarkers(voice, markers)
+        if (reconciledText != sourceText) settings.setSourceText(voice, reconciledText)
+        anyVoiceProcessed = true
+    }
+    if (!anyVoiceProcessed) return false
+
+    if (settings.idStatus < 2) {
+        settings.fields[SettingField.ID_STATUS] = "2"
+        settings.saveToDb()
+    }
     return true
 }
 

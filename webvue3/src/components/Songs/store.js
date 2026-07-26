@@ -48,6 +48,7 @@ export default {
     lastPriorCodeLyrics: '',
     lastPriorCodeKaraoke: '',
     lastPriorDemucs: '',
+    lastPriorForcedAlign: '',
     lastPriorSymlinks: '',
     lastPriorSmartCopy: '',
     songPages: [[]],
@@ -414,6 +415,9 @@ export default {
     },
     getLastPriorDemucs(state) {
       return state.lastPriorDemucs
+    },
+    getLastPriorForcedAlign(state) {
+      return state.lastPriorForcedAlign
     },
     getLastPriorSymlinks(state) {
       return state.lastPriorSymlinks
@@ -1265,6 +1269,22 @@ export default {
       }
       state.lastPriorDemucs = value
     },
+    setLastPriorForcedAlign(state, value) {
+      if (
+        state.lastPriorForcedAlign !== undefined &&
+        state.lastPriorForcedAlign !== null &&
+        value !== undefined &&
+        value !== null
+      ) {
+        const key = 'lastPriorForcedAlign'
+        promisedXMLHttpRequest({
+          method: 'POST',
+          url: '/api/setwebvueprop',
+          params: { key: key, value: value },
+        })
+      }
+      state.lastPriorForcedAlign = value
+    },
     setLastPriorSymlinks(state, value) {
       if (
         state.lastPriorSymlinks !== undefined &&
@@ -1945,6 +1965,9 @@ export default {
     setLastPriorDemucs(ctx, payload) {
       ctx.commit('setLastPriorDemucs', payload.value)
     },
+    setLastPriorForcedAlign(ctx, payload) {
+      ctx.commit('setLastPriorForcedAlign', payload.value)
+    },
     setLastPriorSymlinks(ctx, payload) {
       ctx.commit('setLastPriorSymlinks', payload.value)
     },
@@ -2178,6 +2201,16 @@ export default {
         threadId: payload.threadId,
       }
       let request = { method: 'POST', url: '/api/song/demucs2', params: params }
+      return promisedXMLHttpRequest(request)
+    },
+    createForcedAlignMarkersPromise(ctx, payload) {
+      let params = {
+        id: ctx.state.currentSongId,
+        prior: payload.prior,
+        threadId: payload.threadId,
+        useFinetunedModel: payload.useFinetunedModel,
+      }
+      let request = { method: 'POST', url: '/api/song/forcedalignmarkers', params: params }
       return promisedXMLHttpRequest(request)
     },
     createDemucs5Promise(ctx, payload) {
@@ -2629,6 +2662,20 @@ export default {
         threadId: payload.threadId,
       }
       let request = { method: 'POST', url: '/api/songs/createdemucs2all', params: params }
+      return promisedXMLHttpRequest(request)
+    },
+    createForcedAlignMarkersForAllPromise(ctx, payload) {
+      let params = {
+        songsIds: ctx.getters.getSongsDigestIds.join(';'),
+        prior: payload.prior,
+        threadId: payload.threadId,
+        useFinetunedModel: payload.useFinetunedModel,
+      }
+      let request = {
+        method: 'POST',
+        url: '/api/songs/createforcedalignmarkersall',
+        params: params,
+      }
       return promisedXMLHttpRequest(request)
     },
     createDemucs5ForAllPromise(ctx, payload) {

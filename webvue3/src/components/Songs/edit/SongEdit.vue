@@ -1881,6 +1881,22 @@
         <button class="btn-round-double" title="Создать DEMUCS5" @click="createDemucs5">
           <img alt="create demucs5" class="icon-40" src="../../../assets/svg/icon_demucs5.svg" />
         </button>
+        <button
+          class="btn-round-double"
+          :disabled="song.idStatus >= 3"
+          :title="
+            song.idStatus >= 3
+              ? 'Точные маркеры: недоступно - статус песни уже >= 3 (маркеры финальны)'
+              : 'Точные маркеры (forced-alignment) фоном для всех голосов песни'
+          "
+          @click="createForcedAlignMarkers"
+        >
+          <img
+            alt="create forced align markers"
+            class="icon-40"
+            src="../../../assets/svg/icon_auto_markers.svg"
+          />
+        </button>
         <!-- <button class="btn-round-double" @click="createMP3Karaoke" title="Создать MP3 Karaoke"><img alt="create mp3 karaoke" class="icon-40" src="../../../assets/svg/icon_mp3karaoke.svg"></button> -->
         <!-- <button class="btn-round-double" @click="createMP3Lyrics" title="Создать MP3 Lyrics"><img alt="create mp3 lyrics" class="icon-40" src="../../../assets/svg/icon_mp3lyrics.svg"></button> -->
         <button class="btn-round-double" title="Создать SYMLINKS" @click="createSymlinks">
@@ -3623,6 +3639,51 @@ export default {
       }
       this.isCustomConfirmVisible = true
     },
+    async createForcedAlignMarkers() {
+      let defaultUseFinetuned = 'false'
+      try {
+        const property = await this.$store.dispatch(
+          'getPropertyValuePromise',
+          'alignmentUseFinetunedModel',
+        )
+        if (property?.value === 'true' || property?.value === true) defaultUseFinetuned = 'true'
+      } catch (error) {
+        console.error('Не удалось прочитать настройку alignmentUseFinetunedModel:', error)
+      }
+      this.customConfirmParams = {
+        header: 'Подтвердите создание процесса «Точные маркеры»',
+        body:
+          `Расставить маркеры через forced-alignment для ВСЕХ голосов песни ` +
+          `<strong>«${this.song.songName}»</strong> фоновым процессом? Текущие маркеры каждого ` +
+          `голоса будут <strong>полностью заменены</strong>.`,
+        callback: this.doCreateForcedAlignMarkers,
+        fields: [
+          {
+            fldName: 'prior',
+            fldLabel: 'Приоритет:',
+            fldValue: this.$store.getters.getLastPriorForcedAlign,
+            fldLabelStyle: { width: '160px', textAlign: 'right', paddingRight: '5px' },
+            fldValueStyle: { width: '80px', textAlign: 'center', borderRadius: '10px' },
+          },
+          {
+            fldName: 'threadId',
+            fldLabel: 'threadId:',
+            fldValue: this.$store.getters.getLastThreadId,
+            fldLabelStyle: { width: '160px', textAlign: 'right', paddingRight: '5px' },
+            fldValueStyle: { width: '80px', textAlign: 'center', borderRadius: '10px' },
+          },
+          {
+            fldName: 'useFinetunedModel',
+            fldLabel: 'Дообученная модель:',
+            fldValue: defaultUseFinetuned,
+            fldIsBoolean: true,
+            fldLabelStyle: { width: '160px', textAlign: 'right', paddingRight: '5px' },
+            fldValueStyle: { width: '150px', textAlign: 'left' },
+          },
+        ],
+      }
+      this.isCustomConfirmVisible = true
+    },
     createSheetsage() {
       this.customConfirmParams = {
         header: 'Подтвердите создание SHEETSAGE',
@@ -3701,6 +3762,17 @@ export default {
       this.$store.dispatch('createDemucs2Promise', {
         prior: result.prior,
         threadId: result.threadId,
+      })
+    },
+    doCreateForcedAlignMarkers(result) {
+      const useFinetunedModel =
+        result.useFinetunedModel === 'true' || result.useFinetunedModel === true
+      this.$store.dispatch('setLastPriorForcedAlign', { value: result.prior })
+      this.$store.dispatch('setLastThreadId', { value: result.threadId })
+      this.$store.dispatch('createForcedAlignMarkersPromise', {
+        prior: result.prior,
+        threadId: result.threadId,
+        useFinetunedModel,
       })
     },
     doCreateDemucs5(result) {

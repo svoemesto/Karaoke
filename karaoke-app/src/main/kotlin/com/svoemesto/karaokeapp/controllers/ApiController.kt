@@ -3727,6 +3727,126 @@ class ApiController(
         }
     }
 
+    // Точные маркеры (forced-alignment) для песни - фоновый аналог кнопки «Точные маркеры» в
+    // SubsEdit (см. Utils.executeForcedAlignMarkers), обрабатывает все голоса песни разом. Нельзя
+    // ставить в очередь для песен со статусом idStatus>=3 (маркеры уже финальны/проверены, см.
+    // alignment-ml/README.md) - иначе фоновый процесс молча затёр бы уже подтверждённую разметку.
+    @PostMapping("/song/forcedalignmarkers")
+    @ResponseBody
+    fun doProcessForcedAlignMarkers(
+        @RequestParam id: Long,
+        @RequestParam(required = false) prior: Int = -1,
+        @RequestParam(required = false) threadId: String? = "0",
+        @RequestParam(required = false) useFinetunedModel: Boolean?,
+    ) {
+        val settings =
+            Settings.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
+        if (settings != null && settings.idStatus < 3) {
+            val effectiveUseFinetuned = useFinetunedModel ?: KaraokeProperties.getBoolean("alignmentUseFinetunedModel")
+            KaraokeProcess.createProcess(
+                settings,
+                KaraokeProcessTypes.FORCED_ALIGN_MARKERS,
+                true,
+                prior,
+                threadId = threadId?.toInt() ?: 0,
+                context = mapOf("useFinetunedModel" to effectiveUseFinetuned.toString()),
+            )
+            SNS.send(
+                SseNotification.message(
+                    Message(
+                        type = "info",
+                        head = "Точные маркеры",
+                        body = "Создание процесса «Точные маркеры» прошло успешно",
+                    ),
+                ),
+            )
+            return
+        }
+        SNS.send(
+            SseNotification.message(
+                Message(
+                    type = "warning",
+                    head = "Точные маркеры",
+                    body =
+                        if (settings == null) {
+                            "Что-то пошло не так"
+                        } else {
+                            "Песня уже имеет статус ${settings.idStatus} (маркеры финальны) - процесс не создан"
+                        },
+                ),
+            ),
+        )
+    }
+
+    // Точные маркеры (forced-alignment) для всех песен (из текущей выборки) - песни со статусом
+    // idStatus>=3 молча пропускаются (см. комментарий у doProcessForcedAlignMarkers выше).
+    @PostMapping("/songs/createforcedalignmarkersall")
+    @ResponseBody
+    fun getSongsCreateForcedAlignMarkersAll(
+        @RequestParam songsIds: String,
+        @RequestParam(required = false) prior: Int = -1,
+        @RequestParam(required = false) threadId: String? = "0",
+        @RequestParam(required = false) useFinetunedModel: Boolean?,
+    ) {
+        val effectiveUseFinetuned = useFinetunedModel ?: KaraokeProperties.getBoolean("alignmentUseFinetunedModel")
+        var queued = 0
+        var skipped = 0
+        val ids =
+            songsIds
+                .split(";")
+                .map { it }
+                .filter { it != "" }
+                .map { it.toLong() }
+        ids.forEach { id ->
+            val settings =
+                Settings.loadFromDbById(
+                    id = id,
+                    database = WORKING_DATABASE,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                )
+            if (settings != null && settings.idStatus < 3) {
+                KaraokeProcess.createProcess(
+                    settings,
+                    KaraokeProcessTypes.FORCED_ALIGN_MARKERS,
+                    true,
+                    prior,
+                    threadId = threadId?.toInt() ?: 0,
+                    context = mapOf("useFinetunedModel" to effectiveUseFinetuned.toString()),
+                )
+                queued++
+            } else {
+                skipped++
+            }
+        }
+        if (queued > 0) {
+            SNS.send(
+                SseNotification.message(
+                    Message(
+                        type = "info",
+                        head = "Точные маркеры",
+                        body = "Поставлено в очередь: $queued. Пропущено (статус >= 3): $skipped",
+                    ),
+                ),
+            )
+        } else {
+            SNS.send(
+                SseNotification.message(
+                    Message(
+                        type = "warning",
+                        head = "Точные маркеры",
+                        body = "Ни одна песня не подошла (статус >= 3 у всех выбранных)",
+                    ),
+                ),
+            )
+        }
+    }
+
     // DEMUCS5 для песни
     @PostMapping("/song/demucs5")
     @ResponseBody

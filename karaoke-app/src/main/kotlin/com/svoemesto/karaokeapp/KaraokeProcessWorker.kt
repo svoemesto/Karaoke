@@ -111,6 +111,7 @@ class KaraokeProcessThread(
                             KaraokeProcessTypes.RENDER_MP4_TABS,
                             KaraokeProcessTypes.RENDER_MP4_DEMO,
                             -> executeRenderMp4(params) { pct -> percentage = pct.toString() }
+                            KaraokeProcessTypes.FORCED_ALIGN_MARKERS -> executeForcedAlignMarkers(params)
                             else -> false
                         }
                     if (forceStopped) {

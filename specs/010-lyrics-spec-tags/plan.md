@@ -26,7 +26,7 @@
 
 **Constraints**: Жёсткое требование обратной совместимости (см. `spec.md` FR-004, FR-005, FR-010) — при отсутствии тегов в тексте результат обеих операций (авто-разметка, ручной пересчёт) должен быть побайтово идентичен сегодняшнему. Механизм не должен искажать подсчёт слогов, используемый для сопоставления с результатом форс-алаймента (Whisper/`align.py`) — тег обязан быть невидим для этого сопоставления.
 
-**Scale/Scope**: Изменения затрагивают ЧЕТЫРЕ независимые реализации одного контракта (см. `contracts/tag-registry.md`): `WhisperMarkerAligner.kt` (+ новый файл-реестр тегов) на backend, `SubsEdit.vue` в `webvue3` (admin-редактор), `useKaraokeEditor.js`+`EditorWorkView.vue` в `karaoke-public` (краудсорсинг-редактор заданий — найдено постфактум по вопросу пользователя) и `alignment-ml/syllables.py` (форс-алаймент Python-сервис за кнопкой "Точные маркеры" — найдено постфактум по реальной ошибке "Число слогов не совпало" на проде, см. `research.md` §9; частичная реализация — только грамматика, без реестра/алиасов). `karaoke-web` (`PublicSongEditorController.kt`) — чистый passthrough sourceText/markers, изменений не требует. БД-схему, `SyncRegistry`, деплой не затрагивает.
+**Scale/Scope**: Изменения затрагивают ПЯТЬ независимых реализаций одного контракта (см. `contracts/tag-registry.md`): `WhisperMarkerAligner.kt` (+ новый файл-реестр тегов) на backend; `SubsEdit.vue` в `webvue3` (полновесный admin-редактор); `useKaraokeEditor.js`+`EditorWorkView.vue` в `karaoke-public` (краудсорсинг-редактор заданий — найдено постфактум по вопросу пользователя); `alignment-ml/syllables.py` (форс-алаймент Python-сервис за кнопкой "Точные маркеры" — найдено постфактум по реальной ошибке "Число слогов не совпало" на проде, частичная реализация без реестра/алиасов); `useKaraokeEditor.js`+`SongKaraokeEditorView.vue` в `webvue3` (лёгкий admin-редактор, ОТДЕЛЬНАЯ от `SubsEdit.vue` копия — найдено постфактум по скриншоту пользователя, см. `research.md` §11). `karaoke-web` (`PublicSongEditorController.kt`) — чистый passthrough sourceText/markers, изменений не требует. БД-схему, `SyncRegistry`, деплой не затрагивает.
 
 ## Constitution Check
 
@@ -90,6 +90,15 @@ alignment-ml/
                                       # рассинхрон числа слогов с Kotlin ломает "Точные маркеры"
                                       # ("Число слогов в тексте не совпало с результатами
                                       # выравнивания") на любом тексте со спецтегами
+
+webvue3/src/
+├── composables/useKaraokeEditor.js          # ПЯТАЯ независимая копия - ОТДЕЛЬНАЯ от
+│                                             # karaoke-public (не импорт), используется лёгким
+│                                             # admin-редактором ниже
+└── components/SongEditor/
+    └── SongKaraokeEditorView.vue            # вызов syncMarkersFromSpecTags() при загрузке
+                                              # (loadVoicesFromProps) и на ввод текста
+                                              # (onTextInput) + кнопки быстрой вставки
 
 docs/
 └── architecture-notes.md          # датированная запись об изменении (не новый per-feature документ — см. Constitution Check VI)

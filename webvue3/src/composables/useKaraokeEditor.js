@@ -75,12 +75,182 @@ function uppercaseFirstLetter(s) {
   return s && s.length ? s.charAt(0).toUpperCase() + s.slice(1) : s
 }
 
+// Спецтеги в тексте песни (~имя~ / ~имя:значение~, только отдельной строкой) - ЭТО ПЯТАЯ независимая
+// реализация того же контракта (см. specs/010-lyrics-spec-tags/contracts/tag-registry.md для полного
+// списка мест и практического чек-листа "где искать все места" при следующей правке контракта):
+// backend SpecTags.kt, webvue3 SubsEdit.vue (WaveSurfer-редактор), karaoke-public useKaraokeEditor.js,
+// alignment-ml/syllables.py (Python, только грамматика) и вот этот файл - ЛЁГКИЙ admin-редактор
+// (SongKaraokeEditorView.vue/SongKaraokeEditorModal.vue), отдельный от полновесного SubsEdit.vue,
+// который был найден постфактум - изначально считалось, что "webvue3" = только SubsEdit.vue.
+const SPEC_TAG_REGEX = /~(\p{L}+)(?::([^~]*))?~/gu
+
+const SPEC_TAG_REGISTRY = {
+  newline: {
+    validate: (value) => value === null,
+    markertype: 'newline',
+    buildLabel: () => '',
+  },
+  group: {
+    validate: (value) => value !== null && /^[0-4]$/.test(value),
+    markertype: 'setting',
+    buildLabel: (value) => 'GROUP|' + value,
+  },
+  comment: {
+    validate: (value) => !!(value && value.trim() !== ''),
+    markertype: 'setting',
+    buildLabel: (value) => 'COMMENT|' + value,
+  },
+}
+
+// v1 алиасы - см. contracts/tag-registry.md "Алиасы v1". Для group:4 алиаса нет.
+const SPEC_TAG_ALIASES = {
+  куплет: { targetTagName: 'group', targetValue: '0' },
+  припев: { targetTagName: 'group', targetValue: '1' },
+  бридж: { targetTagName: 'group', targetValue: '2' },
+  приговор: { targetTagName: 'group', targetValue: '3' },
+}
+
+// Снимает со строки все синтаксически валидные теги - возвращает [строку без тег-токенов, список
+// найденных тегов]. Независимо от того, распознаны ли они в реестре (см. resolveSpecTag).
+function parseSpecTagLine(line) {
+  const tags = []
+  const stripped = line.replace(SPEC_TAG_REGEX, (match, name, value) => {
+    tags.push({ name: name.toLowerCase(), value: value === undefined ? null : value })
+    return ''
+  })
+  return [stripped, tags]
+}
+
+// Резолвит тег (включая алиасы) в маркер разметки {markertype, label}. null - нераспознан.
+function resolveSpecTag(tag) {
+  const alias = SPEC_TAG_ALIASES[tag.name]
+  if (alias) {
+    if (tag.value !== null) return null
+    return resolveSpecTag({ name: alias.targetTagName, value: alias.targetValue })
+  }
+  const entry = SPEC_TAG_REGISTRY[tag.name]
+  if (!entry || !entry.validate(tag.value)) return null
+  return { markertype: entry.markertype, label: entry.buildLabel(tag.value) }
+}
+
+// Спецтеги (~newline~ и т.п.), стоящие единственным содержимым отдельной строки, не должны
+// попадать в слоговую разбивку как "слово" - иначе они молча сдвигают счётчик слогов и портят
+// сопоставление маркеров с текстом (см. contracts/tag-registry.md). Строки, где тег не единственное
+// содержимое, идут в разбивку без изменений (тег остаётся обычным текстом).
+function stripSpecTagOnlyLines(sourceText) {
+  return sourceText
+    .replace(/\r\n/g, '\n')
+    .split('\n')
+    .map((line) => (parseSpecTagLine(line)[0].trim() === '' ? '' : line))
+    .join('\n')
+}
+
+// Тег-якоря для syncMarkersFromSpecTags(): для каждого распознанного тега на отдельной строке -
+// после какого ординального индекса splitSyllables(sourceText) он стоит. syllableIndex считается
+// через сам splitSyllables на РЕАЛЬНОМ префиксе обработанных строк, поэтому всегда совпадает с
+// полным результатом.
+export function specTagAnchors(sourceText) {
+  const anchors = []
+  const rawLines = sourceText.replace(/\r\n/g, '\n').split('\n')
+  const processedLines = []
+  let syllableCount = 0
+  rawLines.forEach((line) => {
+    const [stripped, tags] = parseSpecTagLine(line)
+    if (stripped.trim() === '') {
+      tags.forEach((tag) => {
+        const resolved = resolveSpecTag(tag)
+        if (resolved) {
+          anchors.push({
+            syllableIndex: syllableCount,
+            markertype: resolved.markertype,
+            label: resolved.label,
+          })
+        }
+      })
+      processedLines.push('')
+    } else {
+      processedLines.push(line)
+      syllableCount = splitSyllables(processedLines.join('\n')).length
+    }
+  })
+  return anchors
+}
+
+// Строго аддитивная синхронизация: добавляет отсутствующий маркер для каждого распознанного
+// спецтега (см. specTagAnchors); НИКОГДА не удаляет и не изменяет существующие маркеры (см.
+// contracts/tag-registry.md "Инварианты"). Мутирует и возвращает markers - вызывающая сторона
+// (SongKaraokeEditorView.vue) сама перерисовывает регионы после вызова.
+export function syncMarkersFromSpecTags(markers, sourceText) {
+  const anchors = specTagAnchors(sourceText)
+  if (anchors.length === 0) return markers
+
+  const syllablePositions = []
+  markers.forEach((marker, index) => {
+    if (marker.markertype === 'syllables') syllablePositions.push(index)
+  })
+
+  anchors.forEach((anchor) => {
+    const insertPos =
+      anchor.syllableIndex < syllablePositions.length
+        ? syllablePositions[anchor.syllableIndex]
+        : markers.length
+    const windowStart =
+      anchor.syllableIndex > 0 ? syllablePositions[anchor.syllableIndex - 1] + 1 : 0
+
+    const alreadyExists = markers
+      .slice(windowStart, insertPos)
+      .some((m) => m.markertype === anchor.markertype && m.label === anchor.label)
+    if (alreadyExists) return
+
+    const prevMarker = insertPos > 0 ? markers[insertPos - 1] : null
+    const nextMarker = insertPos < markers.length ? markers[insertPos] : null
+    const prevEndTime = prevMarker ? prevMarker.time : 0
+    const nextStartTime = nextMarker ? nextMarker.time : prevEndTime
+    const gap = Math.max(0, nextStartTime - prevEndTime)
+    // Тот же приём, что backend newLineMarkerTime (лид-ин 1с перед следующим маркером).
+    const time = gap >= 1.0 ? nextStartTime - 1.0 : prevEndTime + gap / 2
+
+    markers.splice(insertPos, 0, {
+      uid: nextUid(),
+      time,
+      label: anchor.label,
+      color: anchor.markertype === 'newline' ? MARKER_COLOR_NEWLINE : MARKER_COLOR_SETTING,
+      position: 'bottom',
+      markertype: anchor.markertype,
+    })
+
+    for (let i = 0; i < syllablePositions.length; i++) {
+      if (syllablePositions[i] >= insertPos) syllablePositions[i]++
+    }
+  })
+
+  sortMarkers(markers)
+  return markers
+}
+
+// Вставляет tagText (например "~newline~") в текст в позиции курсора, гарантируя, что тег окажется
+// ЕДИНСТВЕННЫМ содержимым своей строки (контракт спецтегов требует этого) - добавляет перевод
+// строки перед/после вставки, если рядом уже нет своего "\n". Чистая функция - DOM/textarea-специфику
+// (курсор, фокус) держит SongKaraokeEditorView.vue.
+export function insertSpecTagAtCursor(text, selectionStart, selectionEnd, tagText) {
+  const before = text.slice(0, selectionStart)
+  const after = text.slice(selectionEnd)
+  const needsLeadingNewline = before.length > 0 && !before.endsWith('\n')
+  const needsTrailingNewline = after.length > 0 && !after.startsWith('\n')
+  const insertion = (needsLeadingNewline ? '\n' : '') + tagText + (needsTrailingNewline ? '\n' : '')
+  return {
+    text: before + insertion + after,
+    cursorPos: before.length + insertion.length,
+  }
+}
+
 // Слогоделение (точная копия getSyllables из SubsEdit.vue и karaoke-public): разбивает текст на
 // слоги регэкспом по гласным (рус/лат), последний слог слова помечается суффиксом '_'. Слоги без
-// гласной приклеиваются к соседям.
+// гласной приклеиваются к соседям. Спецтеги на отдельных строках снимаются перед разбивкой (см.
+// stripSpecTagOnlyLines).
 export function splitSyllables(sourceText) {
   const result = []
-  const words = sourceText.match(/\S+/gi) || []
+  const words = stripSpecTagOnlyLines(sourceText).match(/\S+/gi) || []
   for (let i = 0; i < words.length; i++) {
     const word = words[i]
     const syllables = word

@@ -8,16 +8,16 @@ import java.nio.file.Files
 import kotlin.io.path.Path
 
 fun getVoices(
-    settings: Settings,
+    settings: Song,
     songVersion: SongVersion,
-): List<SettingVoice> {
-    val listOfVoices: MutableList<SettingVoice> = mutableListOf()
+): List<SongVoice> {
+    val listOfVoices: MutableList<SongVoice> = mutableListOf()
     val countNotEmptyVoices = settings.sourceMarkersList.filter { it.isNotEmpty() }.size
 
     if (countNotEmptyVoices == 0) return listOfVoices
     val startSilentOffsetMs = settings.getStartSilentOffsetMs()
     for (voiceIndex in 0 until countNotEmptyVoices) {
-        val voice = SettingVoice(rootId = settings.id)
+        val voice = SongVoice(rootId = settings.id)
         voice.voiceId = voiceIndex
         voice.rootSongLengthMs = settings.songLengthMs
         voice.rootStartSilentOffsetMs = settings.getStartSilentOffsetMs()
@@ -28,13 +28,13 @@ fun getVoices(
                     songVersion.markertypes.map { it.value }
             }
         var groupId = 0
-        val lines: MutableList<SettingVoiceLine> = mutableListOf()
-        val tmpLines: MutableList<SettingVoiceLine> = mutableListOf()
-        var tmpElements: MutableList<SettingVoiceLineElement> = mutableListOf()
-        var tmpTextSyllables: MutableList<SettingVoiceLineElementSyllable> = mutableListOf()
-//        var tmpChordSyllables: MutableList<SettingVoiceLineElementSyllable> = mutableListOf()
-        var tmpNoteSyllables: MutableList<SettingVoiceLineElementSyllable> = mutableListOf()
-        var prevTextSyllable: SettingVoiceLineElementSyllable? = null
+        val lines: MutableList<SongVoiceLine> = mutableListOf()
+        val tmpLines: MutableList<SongVoiceLine> = mutableListOf()
+        var tmpElements: MutableList<SongVoiceLineElement> = mutableListOf()
+        var tmpTextSyllables: MutableList<SongVoiceLineElementSyllable> = mutableListOf()
+//        var tmpChordSyllables: MutableList<SongVoiceLineElementSyllable> = mutableListOf()
+        var tmpNoteSyllables: MutableList<SongVoiceLineElementSyllable> = mutableListOf()
+        var prevTextSyllable: SongVoiceLineElementSyllable? = null
 
         var lastTextLineWasComment = false
 
@@ -54,20 +54,20 @@ fun getVoices(
                                 if (groupId != labelValue.toInt()) {
                                     groupId = labelValue.toInt()
                                     if (tmpLines.isNotEmpty() && !lastTextLineWasComment) {
-                                        tmpLines.add(SettingVoiceLine.newLine(settings.id, timeMs, groupId))
+                                        tmpLines.add(SongVoiceLine.newLine(settings.id, timeMs, groupId))
                                     }
                                 }
                             }
                             "COMMENT" -> {
                                 // Создаём элемент "комментарий" и добавляем его в список временных элементов
                                 val element =
-                                    SettingVoiceLineElement(
+                                    SongVoiceLineElement(
                                         rootId = settings.id,
-                                        type = SettingVoiceLineElementTypes.COMMENT,
+                                        type = SongVoiceLineElementTypes.COMMENT,
                                     )
                                 element.groupId = groupId
                                 element.addSyllable(
-                                    SettingVoiceLineElementSyllable(
+                                    SongVoiceLineElementSyllable(
                                         rootId = settings.id,
                                         text = labelValue,
                                         note = "",
@@ -81,7 +81,7 @@ fun getVoices(
                                 )
 
                                 val lineToAdd =
-                                    SettingVoiceLine(
+                                    SongVoiceLine(
                                         rootId = settings.id,
                                         lineStartMs = timeMs,
                                         lineEndMs = timeMs,
@@ -114,7 +114,7 @@ fun getVoices(
                                 txt = txt.uppercaseFirstLetter()
                                 prevTextSyllable = null
                             }
-                            SettingVoiceLineElementSyllable(
+                            SongVoiceLineElementSyllable(
                                 rootId = settings.id,
                                 text = txt,
                                 note = sourceMarker.note,
@@ -148,7 +148,7 @@ fun getVoices(
                     }
 
                     val textSyllable =
-                        SettingVoiceLineElementSyllable(
+                        SongVoiceLineElementSyllable(
                             rootId = settings.id,
                             text = txt,
                             note = sourceMarker.note,
@@ -176,9 +176,9 @@ fun getVoices(
                         }
 
                         val element =
-                            SettingVoiceLineElement(
+                            SongVoiceLineElement(
                                 rootId = settings.id,
-                                type = SettingVoiceLineElementTypes.TEXT,
+                                type = SongVoiceLineElementTypes.TEXT,
                             )
                         element.groupId = groupId
                         element.addSyllables(tmpTextSyllables)
@@ -188,9 +188,9 @@ fun getVoices(
 
                     if (tmpNoteSyllables.isNotEmpty()) {
                         val noteElement =
-                            SettingVoiceLineElement(
+                            SongVoiceLineElement(
                                 rootId = settings.id,
-                                type = SettingVoiceLineElementTypes.NOTE,
+                                type = SongVoiceLineElementTypes.NOTE,
                             )
                         noteElement.groupId = groupId
                         noteElement.addSyllables(tmpNoteSyllables)
@@ -200,7 +200,7 @@ fun getVoices(
 
                     if (tmpElements.isNotEmpty()) {
                         val lineToAdd =
-                            SettingVoiceLine(
+                            SongVoiceLine(
                                 rootId = settings.id,
                                 lineStartMs = tmpElements.minOf { element -> element.getSyllables().minOf { it.syllableStartMs } },
                                 lineEndMs = tmpElements.minOf { element -> element.getSyllables().maxOf { it.syllableEndMs } },
@@ -210,14 +210,14 @@ fun getVoices(
                         tmpElements = mutableListOf()
                     } else {
                         if (tmpLines.isNotEmpty()) {
-                            tmpLines.add(SettingVoiceLine.emptyLine(settings.id, timeMs, groupId))
-                            tmpLines.add(SettingVoiceLine.newLine(settings.id, timeMs, groupId))
+                            tmpLines.add(SongVoiceLine.emptyLine(settings.id, timeMs, groupId))
+                            tmpLines.add(SongVoiceLine.newLine(settings.id, timeMs, groupId))
                         }
                     }
                 }
                 Markertype.NEWLINE.value, Markertype.NEWLINE_NOTE.value, Markertype.NEWLINE_CHORD.value -> {
                     if (tmpLines.isNotEmpty()) {
-                        tmpLines.add(SettingVoiceLine.newLine(settings.id, timeMs, groupId))
+                        tmpLines.add(SongVoiceLine.newLine(settings.id, timeMs, groupId))
                     }
                 }
                 else -> {} // "unmute", "beat", и т.п.
@@ -243,7 +243,7 @@ fun getVoices(
             val countStartEmptyLines = (tmpLines.first().lineStartMs / maxDuration)
 
             // В любом случае добавляем пустую строку в самое начало
-            lines.add(SettingVoiceLine.emptyLine(settings.id, 0, groupId))
+            lines.add(SongVoiceLine.emptyLine(settings.id, 0, groupId))
 
             // Если кол-во пустых строк которые нужно вставить в начало > 0
             if (countStartEmptyLines > 0) {
@@ -252,7 +252,7 @@ fun getVoices(
                 val silentDuration = tmpLines.first().lineStartMs / (countStartEmptyLines + 1)
                 for (emptyLineIndex in 0 until countStartEmptyLines) {
                     val timeMs = (emptyLineIndex + 1) * silentDuration
-                    lines.add(SettingVoiceLine.emptyLine(settings.id, timeMs, groupId))
+                    lines.add(SongVoiceLine.emptyLine(settings.id, timeMs, groupId))
                 }
             }
 
@@ -289,7 +289,7 @@ fun getVoices(
                                 val durationEmptyLine = (endTimeMs - startTimeMs) / (countEmptyLinesToAdd + 1)
                                 for (emptyLineIndex in 0 until countEmptyLinesToAdd) {
                                     val timeMs = startTimeMs + (emptyLineIndex + 1) * durationEmptyLine
-                                    lines.add(SettingVoiceLine.emptyLine(settings.id, timeMs, groupId))
+                                    lines.add(SongVoiceLine.emptyLine(settings.id, timeMs, groupId))
                                 }
 
                                 // Устанавливаем указатель цикла на линию перед следующей, чтобы на следующей итерации цикла
@@ -319,12 +319,12 @@ fun getVoices(
                     val silentDuration = (endTime - startTime) / (countEndEmptyLines + 1)
                     for (emptyLineIndex in 0 until countEndEmptyLines) {
                         val timeMs = startTime + (emptyLineIndex + 1) * silentDuration
-                        lines.add(SettingVoiceLine.emptyLine(settings.id, timeMs, groupId))
+                        lines.add(SongVoiceLine.emptyLine(settings.id, timeMs, groupId))
                     }
                 }
 
                 // В любом случае добавляем пустую строку в самый конец
-                lines.add(SettingVoiceLine.emptyLine(settings.id, endTime, groupId))
+                lines.add(SongVoiceLine.emptyLine(settings.id, endTime, groupId))
             }
 
             /*
@@ -364,8 +364,8 @@ fun getVoices(
         }
 
         // Проставляем previousLineEndMs и nextLineStartMs для линий
-        var previousVoiceLine: SettingVoiceLine? = null
-        var nextVoiceLine: SettingVoiceLine? = null
+        var previousVoiceLine: SongVoiceLine? = null
+        var nextVoiceLine: SongVoiceLine? = null
         lines.forEachIndexed { indexLine, currentVoiceLine ->
             if (indexLine < lines.size - 1) nextVoiceLine = lines[indexLine + 1]
             currentVoiceLine.previousLineEndMs = previousVoiceLine?.lineEndMs
@@ -395,12 +395,12 @@ fun getVoices(
                     currCrossingLines.maxBy { it.w(songVersion) }.textElement(songVersion)!!
                 } else {
                     val longerCurrElement = currVoice.textLines(songVersion).maxBy { it.w(songVersion) }.textElement(songVersion)!!
-                    val halfSyllables: MutableList<SettingVoiceLineElementSyllable> = mutableListOf()
+                    val halfSyllables: MutableList<SongVoiceLineElementSyllable> = mutableListOf()
                     for (indexSyllable in 0..longerCurrElement.getSyllables().size / 2) {
                         halfSyllables.add(longerCurrElement.getSyllables()[indexSyllable])
                     }
                     val halfElement =
-                        SettingVoiceLineElement(
+                        SongVoiceLineElement(
                             rootId = settings.id,
                             type = longerCurrElement.type,
                         )
@@ -431,7 +431,7 @@ fun getVoices(
 }
 
 fun createKaraoke(
-    settings: Settings,
+    settings: Song,
     songVersion: SongVersion,
 ) {
 //    val voices = getVoices(settings, songVersion)

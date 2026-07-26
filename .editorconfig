@@ -49,9 +49,10 @@ ktlint_standard_property-naming = disabled
 [**/services/KaraokeWebService.kt]
 ktlint_standard_property-naming = disabled
 
-# backing-property-naming в SettingVoiceLine.kt — используется naming
-# `_elements` для Kotlin backing field, ktlint 1.7.1 считает иначе.
-[**/model/SettingVoiceLine.kt]
+# backing-property-naming в SongVoiceLine.kt (specs/011-album-song-rename: переименован из
+# SettingVoiceLine.kt) — используется naming `_elements` для Kotlin backing field, ktlint 1.7.1
+# считает иначе.
+[**/model/SongVoiceLine.kt]
 ktlint_standard_backing-property-naming = disabled
 
 # Markdown — без обрезки trailing whitespace (важно для перевода строк)

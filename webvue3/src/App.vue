@@ -18,6 +18,9 @@
               <router-link class="nav-link" to="/authors">Авторы</router-link>
             </li>
             <li class="nav-item">
+              <router-link class="nav-link" to="/albums">Альбомы</router-link>
+            </li>
+            <li class="nav-item">
               <router-link class="nav-link" to="/pictures">Картинки</router-link>
             </li>
             <li class="nav-item">
@@ -267,7 +270,7 @@ export default {
       switch (userEvent.type) {
         case 'RECORD_CHANGE': {
           switch (userEvent.data.tableName) {
-            case 'tbl_settings': {
+            case 'tbl_songs': {
               this.updateSongByUserEvent(userEvent.data)
               break
             }
@@ -283,7 +286,7 @@ export default {
         }
         case 'RECORD_ADD': {
           switch (userEvent.data.tableName) {
-            case 'tbl_settings': {
+            case 'tbl_songs': {
               this.addSongByUserEvent(userEvent.data)
               break
             }
@@ -299,7 +302,7 @@ export default {
         }
         case 'RECORD_DELETE': {
           switch (userEvent.data.tableName) {
-            case 'tbl_settings': {
+            case 'tbl_songs': {
               this.deleteSongByUserEvent(userEvent.data)
               break
             }

@@ -2,6 +2,7 @@ package com.svoemesto.karaokeapp.sync
 
 import com.svoemesto.karaokeapp.KaraokeConnection
 import com.svoemesto.karaokeapp.KaraokeProperties
+import com.svoemesto.karaokeapp.model.Album
 import com.svoemesto.karaokeapp.model.Author
 import com.svoemesto.karaokeapp.model.Dictionary
 import com.svoemesto.karaokeapp.model.KaraokeDbTable
@@ -11,13 +12,14 @@ import com.svoemesto.karaokeapp.model.Pictures
 import com.svoemesto.karaokeapp.model.PriceTariff
 import com.svoemesto.karaokeapp.model.RecordDiff
 import com.svoemesto.karaokeapp.model.RecordHash
-import com.svoemesto.karaokeapp.model.Settings
+import com.svoemesto.karaokeapp.model.Song
 import com.svoemesto.karaokeapp.model.SiteChatMessage
 import com.svoemesto.karaokeapp.model.SitePlaylist
 import com.svoemesto.karaokeapp.model.SitePlaylistItem
 import com.svoemesto.karaokeapp.model.SiteUser
 import com.svoemesto.karaokeapp.model.SongAssignment
 import com.svoemesto.karaokeapp.model.SongAssignmentDraft
+import com.svoemesto.karaokeapp.model.SongCoAuthor
 import com.svoemesto.karaokeapp.model.Subscription
 import com.svoemesto.karaokeapp.model.WebEvent
 import com.svoemesto.karaokeapp.services.KSS_APP
@@ -74,7 +76,7 @@ enum class SyncOperation(
  *
  * @param T тип сущности (наследник [KaraokeDbTable]).
  * @param key уникальный идентификатор в `SyncRegistry.all` (например, `"settings"`).
- * @param tableName имя таблицы в БД (например, `"tbl_settings"`).
+ * @param tableName имя таблицы в БД (например, `"tbl_songs"`).
  * @param displayName человекочитаемое имя для UI.
  * @param oneClickDirection направление при «1 клик».
  * @param rowChunkSize размер пачки для полнострочных операций (READ/INSERT/UPDATE).
@@ -209,15 +211,15 @@ class GenericKaraokeDbTableSyncTarget<T : KaraokeDbTable>(
 }
 
 /**
- * Settings реализует KaraokeDbTable только ради типизации (см. DEVELOPMENT.md) — её поля НЕ аннотированы
+ * Song реализует KaraokeDbTable только ради типизации (см. DEVELOPMENT.md) — её поля НЕ аннотированы
  * @KaraokeDbTableField (виртуальные diff-поля status/color/processColorXxx, тяжёлые side-effect
- * геттеры ms/rootFolder и вся tbl_settings_sync-инфраструктура несовместимы с generic reflection).
- * Поэтому здесь — bespoke SyncTarget поверх уже существующих статических методов Settings, а не
- * GenericKaraokeDbTableSyncTarget<Settings>: тот молча дал бы пустые диффы/пустой INSERT.
+ * геттеры ms/rootFolder и вся tbl_songs_sync-инфраструктура несовместимы с generic reflection).
+ * Поэтому здесь — bespoke SyncTarget поверх уже существующих статических методов Song, а не
+ * GenericKaraokeDbTableSyncTarget<Song>: тот молча дал бы пустые диффы/пустой INSERT.
  */
-object SettingsSyncTarget : SyncTarget<Settings>(
+object SongSyncTarget : SyncTarget<Song>(
     key = "settings",
-    tableName = Settings.TABLE_NAME,
+    tableName = Song.TABLE_NAME,
     displayName = "Настройки песен",
     oneClickDirection = SyncDirection.LOCAL_TO_SERVER,
     // Самые тяжёлые строки в базе: source_text/result_text/source_markers/formatted_text_tabs. Несколько
@@ -227,36 +229,36 @@ object SettingsSyncTarget : SyncTarget<Settings>(
     override fun listHashes(
         db: KaraokeConnection,
         whereText: String,
-    ): List<RecordHash>? = Settings.listHashes(database = db, whereText = whereText)
+    ): List<RecordHash>? = Song.listHashes(database = db, whereText = whereText)
 
     // Грузим пачками по rowChunkSize (25), чтобы не упереться в socketTimeout=30 на remote.
     override fun loadByIds(
         ids: List<Long>,
         db: KaraokeConnection,
-    ): Map<Long, Settings> =
-        ids.chunked(rowChunkSize).fold(LinkedHashMap<Long, Settings>()) { acc, chunk ->
-            acc.putAll(Settings.loadListFromDbByIds(ids = chunk, database = db, storageService = KSS_APP, storageApiClient = SAC_APP))
+    ): Map<Long, Song> =
+        ids.chunked(rowChunkSize).fold(LinkedHashMap<Long, Song>()) { acc, chunk ->
+            acc.putAll(Song.loadListFromDbByIds(ids = chunk, database = db, storageService = KSS_APP, storageApiClient = SAC_APP))
             acc
         }
 
     override fun getDiff(
-        from: Settings,
-        to: Settings,
-    ): List<RecordDiff> = Settings.getDiff(from, to)
+        from: Song,
+        to: Song,
+    ): List<RecordDiff> = Song.getDiff(from, to)
 
-    override fun getSqlToInsert(item: Settings): String = item.getSqlToInsert(sync = false)
+    override fun getSqlToInsert(item: Song): String = item.getSqlToInsert(sync = false)
 
     override fun deleteLocal(
         id: Long,
         db: KaraokeConnection,
     ): Boolean {
-        Settings.deleteFromDb(id = id, database = db)
+        Song.deleteFromDb(id = id, database = db)
         return true
     }
 
-    override fun label(item: Settings): String = item.fileName
+    override fun label(item: Song): String = item.fileName
 
-    // Точь-в-точь текущий фильтр из Utils.kt (Settings.saveToDb() автопуш) — не пушим, если diff
+    // Точь-в-точь текущий фильтр из Utils.kt (Song.saveToDb() автопуш) — не пушим, если diff
     // состоит только из виртуальных полей (status/color/processColorXxx) или шума status_process_*.
     override fun shouldPush(diff: List<RecordDiff>): Boolean =
         diff.isNotEmpty() && !diff.all { !it.recordDiffRealField || it.recordDiffName.startsWith("status_process_") }
@@ -284,6 +286,30 @@ val AuthorsSyncTarget =
         clazz = Author::class,
         labelFn = { it.author },
         // Лёгкие строки, вся таблица ~125 записей — по 500 это фактически один запрос.
+        rowChunkSize = 500,
+    )
+
+val AlbumsSyncTarget =
+    GenericKaraokeDbTableSyncTarget(
+        key = "albums",
+        tableName = Album.TABLE_NAME,
+        displayName = "Альбомы",
+        oneClickDirection = SyncDirection.LOCAL_TO_SERVER,
+        clazz = Album::class,
+        labelFn = { "${it.name} (${it.year})" },
+        // Лёгкие строки (нет текста/base64), по образцу Authors — по 500 фактически один запрос.
+        rowChunkSize = 500,
+    )
+
+val SongCoAuthorsSyncTarget =
+    GenericKaraokeDbTableSyncTarget(
+        key = "songcoauthors",
+        tableName = SongCoAuthor.TABLE_NAME,
+        displayName = "Соавторы песен",
+        oneClickDirection = SyncDirection.LOCAL_TO_SERVER,
+        clazz = SongCoAuthor::class,
+        labelFn = { "song=${it.songId} author=${it.authorId}" },
+        // Лёгкие строки (два числа), по образцу Authors — по 500 фактически один запрос.
         rowChunkSize = 500,
     )
 
@@ -402,7 +428,7 @@ val SongAssignmentDraftsSyncTarget =
         oneClickDirection = SyncDirection.SERVER_TO_LOCAL,
         clazz = SongAssignmentDraft::class,
         labelFn = { "id=${it.id} assignment=${it.assignmentId} ${it.userStatus}" },
-        // edited_markers/edited_source_text тяжёлые — мелкими пачками, как SettingsSyncTarget.
+        // edited_markers/edited_source_text тяжёлые — мелкими пачками, как SongSyncTarget.
         rowChunkSize = 25,
     )
 
@@ -464,9 +490,11 @@ object SyncRegistry {
 
     val all: List<SyncTarget<*>> =
         listOf(
-            SettingsSyncTarget,
+            SongSyncTarget,
             PicturesSyncTarget,
             AuthorsSyncTarget,
+            AlbumsSyncTarget,
+            SongCoAuthorsSyncTarget,
             DictionariesSyncTarget,
             NewsSyncTarget,
             SiteUsersSyncTarget,

@@ -7,7 +7,7 @@
         <PublishTableBodyTd
           v-for="csrCell in publishRow.csrCells"
           :key="csrCell.cscId"
-          :publish="csrCell.settingsDTO"
+          :publish="csrCell.songDTO"
           :publish-digest="publishDigest"
         />
         <div class="tr-right-block" v-text="publishRow.csrName" />

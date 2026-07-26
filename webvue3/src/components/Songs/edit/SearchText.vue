@@ -87,7 +87,7 @@ import SearchTextResultsTable from './SearchTextResultsTable.vue'
  * 3. Backend `LyricsFinderService` ищет 5-10 кандидатов через
  *    `SearchTool` (Google/Bing) и парсит через `ScraperAgent` (LLM).
  * 4. UI показывает превью результатов, пользователь выбирает лучший.
- * 5. Применение → `Settings.subsText` / `Settings.chordsText` сохраняется.
+ * 5. Применение → `Song.subsText` / `Song.chordsText` сохраняется.
  *
  * Использует SSE для live-обновления прогресса поиска (статус задачи).
  *

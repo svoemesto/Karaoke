@@ -8,67 +8,67 @@ import java.io.Serializable
  *
  * @see docs/features/mlt-generator.md
  */
-data class SettingVoiceLine(
+data class SongVoiceLine(
     val rootId: Long,
-//    var parentVoice: SettingVoice?,
+//    var parentVoice: SongVoice?,
     var lineStartMs: Long, // Начало линии (в мс) - в этот момент линия встала в центр
     var lineEndMs: Long, // Конец линии (с мс) - в этот момент линия начала уходить с центра
     var previousLineEndMs: Long? = null,
     var nextLineStartMs: Long? = null,
-//    var elements: List<SettingVoiceLineElement>
+//    var elements: List<SongVoiceLineElement>
 ) : Serializable {
-//    val elementsForMlt: List<SettingVoiceLineElement> get() = elements.filter { element->  element.type != SettingVoiceLineElementTypes.NEWLINE}
-//    val elementsForMlt: List<SettingVoiceLineElement> get() = elements
+//    val elementsForMlt: List<SongVoiceLineElement> get() = elements.filter { element->  element.type != SongVoiceLineElementTypes.NEWLINE}
+//    val elementsForMlt: List<SongVoiceLineElement> get() = elements
 
-    private val _elements: MutableList<SettingVoiceLineElement> = mutableListOf()
+    private val _elements: MutableList<SongVoiceLineElement> = mutableListOf()
 
-    fun getElements(songVersion: SongVersion): List<SettingVoiceLineElement> {
+    fun getElements(songVersion: SongVersion): List<SongVoiceLineElement> {
         val listOfElementTypes =
             when (songVersion) {
                 SongVersion.KARAOKE -> {
                     listOf(
-                        SettingVoiceLineElementTypes.TEXT,
-                        SettingVoiceLineElementTypes.COMMENT,
-                        SettingVoiceLineElementTypes.EMPTY,
-                        SettingVoiceLineElementTypes.NEWLINE,
+                        SongVoiceLineElementTypes.TEXT,
+                        SongVoiceLineElementTypes.COMMENT,
+                        SongVoiceLineElementTypes.EMPTY,
+                        SongVoiceLineElementTypes.NEWLINE,
                     )
                 }
                 SongVersion.LYRICS -> {
                     listOf(
-                        SettingVoiceLineElementTypes.TEXT,
-                        SettingVoiceLineElementTypes.COMMENT,
-                        SettingVoiceLineElementTypes.EMPTY,
-                        SettingVoiceLineElementTypes.NEWLINE,
+                        SongVoiceLineElementTypes.TEXT,
+                        SongVoiceLineElementTypes.COMMENT,
+                        SongVoiceLineElementTypes.EMPTY,
+                        SongVoiceLineElementTypes.NEWLINE,
                     )
                 }
                 SongVersion.CHORDS -> {
                     listOf(
-                        SettingVoiceLineElementTypes.TEXT,
-                        SettingVoiceLineElementTypes.COMMENT,
-                        SettingVoiceLineElementTypes.EMPTY,
-                        SettingVoiceLineElementTypes.NEWLINE,
-                        SettingVoiceLineElementTypes.ACCORD,
+                        SongVoiceLineElementTypes.TEXT,
+                        SongVoiceLineElementTypes.COMMENT,
+                        SongVoiceLineElementTypes.EMPTY,
+                        SongVoiceLineElementTypes.NEWLINE,
+                        SongVoiceLineElementTypes.ACCORD,
                     )
                 }
                 SongVersion.TABS -> {
                     listOf(
-                        SettingVoiceLineElementTypes.TEXT,
-                        SettingVoiceLineElementTypes.COMMENT,
-                        SettingVoiceLineElementTypes.EMPTY,
-                        SettingVoiceLineElementTypes.NEWLINE,
-                        SettingVoiceLineElementTypes.NOTE,
+                        SongVoiceLineElementTypes.TEXT,
+                        SongVoiceLineElementTypes.COMMENT,
+                        SongVoiceLineElementTypes.EMPTY,
+                        SongVoiceLineElementTypes.NEWLINE,
+                        SongVoiceLineElementTypes.NOTE,
                     )
                 }
             }
         return _elements.filter { it.type in listOfElementTypes }
     }
 
-    fun addElement(element: SettingVoiceLineElement) {
+    fun addElement(element: SongVoiceLineElement) {
         _elements.add(element)
         actuateChilds()
     }
 
-    fun addElements(elements: List<SettingVoiceLineElement>) {
+    fun addElements(elements: List<SongVoiceLineElement>) {
         elements.forEach { element -> _elements.add(element) }
         actuateChilds()
     }
@@ -80,12 +80,12 @@ data class SettingVoiceLine(
         }
     }
 
-//    val isNewLine: Boolean get() = _elements.any { element->  element.type == SettingVoiceLineElementTypes.NEWLINE}
-    val isEmptyLine: Boolean get() = _elements.any { element -> element.type == SettingVoiceLineElementTypes.EMPTY }
+//    val isNewLine: Boolean get() = _elements.any { element->  element.type == SongVoiceLineElementTypes.NEWLINE}
+    val isEmptyLine: Boolean get() = _elements.any { element -> element.type == SongVoiceLineElementTypes.EMPTY }
     val isEmptyLineOrComment: Boolean get() =
         _elements.any { element ->
-            element.type == SettingVoiceLineElementTypes.EMPTY ||
-                element.type == SettingVoiceLineElementTypes.COMMENT
+            element.type == SongVoiceLineElementTypes.EMPTY ||
+                element.type == SongVoiceLineElementTypes.COMMENT
         }
 
     companion object {
@@ -93,22 +93,22 @@ data class SettingVoiceLine(
             rootId: Long,
             timeMs: Long,
             groupId: Int = 0,
-        ): SettingVoiceLine {
+        ): SongVoiceLine {
             val settingVoiceLine =
-                SettingVoiceLine(
+                SongVoiceLine(
                     rootId = rootId,
                     lineStartMs = timeMs,
                     lineEndMs = timeMs,
                 )
             val settingVoiceLineElement =
-                SettingVoiceLineElement(
+                SongVoiceLineElement(
                     rootId = rootId,
-                    type = SettingVoiceLineElementTypes.NEWLINE,
+                    type = SongVoiceLineElementTypes.NEWLINE,
                 )
             settingVoiceLineElement.groupId = groupId
 
             val settingVoiceLineElementSyllable =
-                SettingVoiceLineElementSyllable(
+                SongVoiceLineElementSyllable(
                     rootId = rootId,
                     text = "",
                     note = "",
@@ -129,22 +129,22 @@ data class SettingVoiceLine(
             rootId: Long,
             timeMs: Long,
             groupId: Int = 0,
-        ): SettingVoiceLine {
+        ): SongVoiceLine {
             val settingVoiceLine =
-                SettingVoiceLine(
+                SongVoiceLine(
                     rootId = rootId,
                     lineStartMs = timeMs,
                     lineEndMs = timeMs,
                 )
             val settingVoiceLineElement =
-                SettingVoiceLineElement(
+                SongVoiceLineElement(
                     rootId = rootId,
-                    type = SettingVoiceLineElementTypes.EMPTY,
+                    type = SongVoiceLineElementTypes.EMPTY,
                 )
             settingVoiceLineElement.groupId = groupId
 
             val settingVoiceLineElementSyllable =
-                SettingVoiceLineElementSyllable(
+                SongVoiceLineElementSyllable(
                     rootId = rootId,
                     text = "",
                     note = "",
@@ -196,16 +196,16 @@ data class SettingVoiceLine(
             _textLineHeight = value
         }
 
-    fun textElement(songVersion: SongVersion): SettingVoiceLineElement? =
+    fun textElement(songVersion: SongVersion): SongVoiceLineElement? =
         getElements(songVersion).firstOrNull {
             it.type ==
-                SettingVoiceLineElementTypes.TEXT
+                SongVoiceLineElementTypes.TEXT
         }
 
-    fun commentElement(songVersion: SongVersion): SettingVoiceLineElement? =
+    fun commentElement(songVersion: SongVersion): SongVoiceLineElement? =
         getElements(songVersion).firstOrNull {
             it.type ==
-                SettingVoiceLineElementTypes.COMMENT
+                SongVoiceLineElementTypes.COMMENT
         }
 
     fun haveTextElement(songVersion: SongVersion): Boolean = textElement(songVersion) != null
@@ -220,7 +220,7 @@ data class SettingVoiceLine(
         songVersion: SongVersion,
         withTimeCode: Boolean = false,
     ): String {
-        if (getElements(songVersion).any { it.type == SettingVoiceLineElementTypes.NEWLINE }) return "\n"
+        if (getElements(songVersion).any { it.type == SongVoiceLineElementTypes.NEWLINE }) return "\n"
         textElement(songVersion)?.let { element ->
             val text = element.getSyllables().joinToString("") { it.text }.trim() + "\n"
             val timecode =
@@ -239,7 +239,7 @@ data class SettingVoiceLine(
         songVersion: SongVersion,
         withTimeCode: Boolean = false,
     ): String {
-        if (getElements(songVersion).any { it.type == SettingVoiceLineElementTypes.NEWLINE }) return ""
+        if (getElements(songVersion).any { it.type == SongVoiceLineElementTypes.NEWLINE }) return ""
         textElement(songVersion)?.let { element ->
             val text = element.getSyllables().joinToString("") { it.text }.trim()
             val timecode =
@@ -253,7 +253,7 @@ data class SettingVoiceLine(
         return ""
     }
 
-    fun isCrossing(otherLine: SettingVoiceLine): Boolean =
+    fun isCrossing(otherLine: SongVoiceLine): Boolean =
         (this.lineDurationWithNeighboursMs() + otherLine.lineDurationWithNeighboursMs()) > (
             this
                 .lineEndWithNeighboursMs()
@@ -328,7 +328,7 @@ data class SettingVoiceLine(
         return lineDurationMs() - deltaStartMs - deltaEndMs
     }
 
-//    fun deltaY(line: SettingVoiceLine): Int {
+//    fun deltaY(line: SongVoiceLine): Int {
 //        val indA = Integer.min(line.lineId,this.lineId)
 //        val indB = Integer.max(line.lineId,this.lineId)
 //        val increment = if (line.lineId > this.lineId) 1 else -1

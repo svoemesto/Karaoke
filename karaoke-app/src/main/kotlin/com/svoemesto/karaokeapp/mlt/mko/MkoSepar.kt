@@ -94,7 +94,7 @@ data class MkoSepar(
                 sett.voicesForMlt[voiceId]
                     .getLines()[lineId]
                     .getElements(songVersion)
-                    .first { it.type == SettingVoiceLineElementTypes.TEXT }
+                    .first { it.type == SongVoiceLineElementTypes.TEXT }
             } catch (_: Exception) {
                 return MltNode()
             }

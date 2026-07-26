@@ -9,7 +9,7 @@ import java.io.Serializable
  *
  * @see docs/features/dual-db-sync.md
  */
-data class SettingVoiceLineElementSyllable(
+data class SongVoiceLineElementSyllable(
     val rootId: Long,
     val text: String,
     val note: String,
@@ -18,10 +18,10 @@ data class SettingVoiceLineElementSyllable(
     val lockLad: String,
     var syllableStartMs: Long, // Начало слога (в мс) - в этот момент слог начинает выделяться (если в элементе предусмотрено выделение)
     var syllableEndMs: Long, // Конец слога (с мс) - в этот момент слог заканчивается выделяться (если в элементе предусмотрено выделение)
-    var previous: SettingVoiceLineElementSyllable?, // Для аккорда это должно быть полный текст до него, чтобы вычислить положение на экране
+    var previous: SongVoiceLineElementSyllable?, // Для аккорда это должно быть полный текст до него, чтобы вычислить положение на экране
 ) : Serializable {
-    fun copy(): SettingVoiceLineElementSyllable =
-        SettingVoiceLineElementSyllable(
+    fun copy(): SongVoiceLineElementSyllable =
+        SongVoiceLineElementSyllable(
             rootId = rootId,
             text = text,
             note = note,

@@ -3,7 +3,7 @@ package com.svoemesto.karaokeapp.services
 import com.svoemesto.karaokeapp.KaraokeProperties
 import com.svoemesto.karaokeapp.WORKING_DATABASE
 import com.svoemesto.karaokeapp.model.Message
-import com.svoemesto.karaokeapp.model.Settings
+import com.svoemesto.karaokeapp.model.Song
 import com.svoemesto.karaokeapp.model.SseNotification
 import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.context.event.EventListener
@@ -31,8 +31,8 @@ class TelegramUpdatesConsumerStarter {
 /**
  * Фаза 1 автоматизации публикации в Telegram: фоновый демон-поток, long-polling getUpdates.
  * Ловит вышедшие channel_post канала @svoemestokaraoke, сопоставляет их с песней/версией по содержимому
- * (см. Settings.parseTelegramPostSongId/parseTelegramPostSongVersion) и записывает message_id через
- * штатный Settings.saveToDb() - чтобы сработали SSE recordChange и LOCAL/SERVER sync.
+ * (см. Song.parseTelegramPostSongId/parseTelegramPostSongVersion) и записывает message_id через
+ * штатный Song.saveToDb() - чтобы сработали SSE recordChange и LOCAL/SERVER sync.
  *
  * Паттерн потока - по образцу KaraokeProcessWorker (isWork-флаг + companion start/stop), но запускается
  * в явном daemon-Thread, а не блокирует вызывающий (HTTP/event-listener) поток.
@@ -111,8 +111,8 @@ object TelegramUpdatesConsumer {
 
     private fun handleChannelPost(post: TelegramMessage) {
         val text = post.text ?: post.caption ?: ""
-        val songId = Settings.parseTelegramPostSongId(text)
-        val songVersion = Settings.parseTelegramPostSongVersion(text)
+        val songId = Song.parseTelegramPostSongId(text)
+        val songVersion = Song.parseTelegramPostSongVersion(text)
 
         if (songId == null || songVersion == null) {
             notifyManualAttention(
@@ -121,7 +121,7 @@ object TelegramUpdatesConsumer {
             return
         }
 
-        val sett = Settings.loadFromDbById(id = songId, database = WORKING_DATABASE, storageService = KSS_APP, storageApiClient = SAC_APP)
+        val sett = Song.loadFromDbById(id = songId, database = WORKING_DATABASE, storageService = KSS_APP, storageApiClient = SAC_APP)
         if (sett == null) {
             notifyManualAttention(
                 "Вышедший пост Telegram (message_id=${post.messageId}) ссылается на песню id=$songId, которая не найдена в LOCAL БД.",

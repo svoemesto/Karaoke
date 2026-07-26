@@ -9,18 +9,18 @@ import java.io.Serializable
  *
  * @see docs/features/dual-db-sync.md
  */
-data class SettingVoice(
+data class SongVoice(
     val rootId: Long,
-//    var lines: List<SettingVoiceLine>
+//    var lines: List<SongVoiceLine>
 ) : Serializable {
-//    val linesForMlt: List<SettingVoiceLine> get() = lines.filter { line->  !line.isNewLine }
-    private val _lines: MutableList<SettingVoiceLine> = mutableListOf()
+//    val linesForMlt: List<SongVoiceLine> get() = lines.filter { line->  !line.isNewLine }
+    private val _lines: MutableList<SongVoiceLine> = mutableListOf()
 
-    fun getLines(): List<SettingVoiceLine> = _lines
+    fun getLines(): List<SongVoiceLine> = _lines
 
-    fun getLastTextLine(songVersion: SongVersion): SettingVoiceLine? = _lines.lastOrNull { it.haveTextElement(songVersion) }
+    fun getLastTextLine(songVersion: SongVersion): SongVoiceLine? = _lines.lastOrNull { it.haveTextElement(songVersion) }
 
-    fun getLinesForCounters(songVersion: SongVersion): List<SettingVoiceLine> =
+    fun getLinesForCounters(songVersion: SongVersion): List<SongVoiceLine> =
         getLines().filterIndexed { index, line ->
             index > 0 &&
                 getLines()[index - 1].isEmptyLineOrComment &&
@@ -30,7 +30,7 @@ data class SettingVoice(
     @Suppress("unused")
     fun addLine(
         songVersion: SongVersion,
-        line: SettingVoiceLine,
+        line: SongVoiceLine,
     ) {
         _lines.add(line)
         actuateChilds(songVersion)
@@ -38,7 +38,7 @@ data class SettingVoice(
 
     fun addLines(
         songVersion: SongVersion,
-        lines: List<SettingVoiceLine>,
+        lines: List<SongVoiceLine>,
     ) {
         lines.forEach { line -> _lines.add(line) }
         actuateChilds(songVersion)
@@ -123,7 +123,7 @@ data class SettingVoice(
 
     private fun getIndexChordEnd(
         chordId: Int,
-        chords: List<SettingVoiceLineElementSyllable>,
+        chords: List<SongVoiceLineElementSyllable>,
     ): Int {
         val frameWidthPx = Karaoke.frameWidthPx
         val chordWidth = Karaoke.frameHeightPx / 4
@@ -206,7 +206,7 @@ data class SettingVoice(
 
     private fun getChordTransformProperties(
         chordId: Int,
-        chords: List<SettingVoiceLineElementSyllable>,
+        chords: List<SongVoiceLineElementSyllable>,
         deltaMs: Long = 0L,
     ): List<TransformProperty> {
         val frameWidthPx = Karaoke.frameWidthPx
@@ -225,7 +225,7 @@ data class SettingVoice(
 
         val zeroWidth = frameWidthPx - (frameWidthPx / 2 + chordWidth / 2)
 
-        val lstChords: MutableList<SettingVoiceLineElementSyllable> = mutableListOf()
+        val lstChords: MutableList<SongVoiceLineElementSyllable> = mutableListOf()
         for (indexChord in startIndex..endIndex) {
             lstChords.add(chords[indexChord])
         }
@@ -307,7 +307,7 @@ data class SettingVoice(
 //        val textLineHeight = parentVoice?.textLines()?.firstOrNull()?.h() ?: 0
         val zeroHeight = frameHeightPx - (frameHeightPx / 2 + thisLine.textLineHeight / 2)
 
-        val lines: MutableList<SettingVoiceLine> = mutableListOf()
+        val lines: MutableList<SongVoiceLine> = mutableListOf()
         for (indexLine in startIndex..endIndex) {
             lines.add(getLines()[indexLine])
         }
@@ -367,13 +367,13 @@ data class SettingVoice(
         return result
     }
 
-    fun linesForMlt(): List<SettingVoiceLine> = getLines()
+    fun linesForMlt(): List<SongVoiceLine> = getLines()
 
-    var longerElementPreviousVoice: SettingVoiceLineElement? = null
+    var longerElementPreviousVoice: SongVoiceLineElement? = null
 
-    fun textLines(songVersion: SongVersion): List<SettingVoiceLine> = getLines().filter { it.haveTextElement(songVersion) }
+    fun textLines(songVersion: SongVersion): List<SongVoiceLine> = getLines().filter { it.haveTextElement(songVersion) }
 
-    fun longerTextElement(songVersion: SongVersion): SettingVoiceLineElement? =
+    fun longerTextElement(songVersion: SongVersion): SongVoiceLineElement? =
         textLines(songVersion)
             .maxBy {
                 it.w(songVersion)
@@ -382,7 +382,7 @@ data class SettingVoice(
     var voiceId: Int = -1
 
 //    val voiceId: Int get() {
-//        return Settings.loadFromDbById(rootId, WORKING_DATABASE)?.voicesForMlt?.indexOf(this) ?: 0
+//        return Song.loadFromDbById(rootId, WORKING_DATABASE)?.voicesForMlt?.indexOf(this) ?: 0
 //    }
 
     var privateCountLineTracks: Int? = null

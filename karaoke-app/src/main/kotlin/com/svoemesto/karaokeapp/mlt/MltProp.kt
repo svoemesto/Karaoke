@@ -11,7 +11,7 @@ import com.svoemesto.karaokeapp.model.*
  * - `FRAME_WIDTH_PX = 1920`, `FRAME_HEIGHT_PX = 1080`.
  * - `FONT_MAIN_NAME`, `FONT_CHORD_NAME` — имена шрифтов.
  * - `SONG_VERSION` — `SongVersion` (набор Producer'ов).
- * - `SETTINGS` — `Settings` (для обратной ссылки).
+ * - `SETTINGS` — `Song` (для обратной ссылки).
  * - Цвета (`COLOR_TEXT_NORMAL`, `COLOR_BACKGROUND`).
  * - Тайминги (`START_LINE_OFFSET_MS`, `END_LINE_OFFSET_MS`).
  * - Горизонт (`HORIZONTAL_GAP`).
@@ -19,7 +19,7 @@ import com.svoemesto.karaokeapp.model.*
  * - `ROOT` — корневая папка.
  *
  * Используется всеми `MltGenerator` (см. пакет `mko`). Создаётся из
- * `Settings` + `SongVersion` в `MltProp.getMltProp(...)`.
+ * `Song` + `SongVersion` в `MltProp.getMltProp(...)`.
  *
  * @see docs/features/mlt-generator.md
  * @see `KaraokeProperties.kt` — дефолтные значения параметров.
@@ -89,19 +89,19 @@ data class MltProp(
             mutableMapOf()
         }
 
-    fun getSettings(key: Any = KEYS.ROOT): Settings? = props[key.convertToList(KEYS.SETTINGS)]?.let { it as Settings }
+    fun getSettings(key: Any = KEYS.ROOT): Song? = props[key.convertToList(KEYS.SETTINGS)]?.let { it as Song }
 
     fun setSettings(
-        value: Settings,
+        value: Song,
         key: Any = KEYS.ROOT,
     ) {
         props[key.convertToList(KEYS.SETTINGS)] = value
     }
 
     @Suppress("UNCHECKED_CAST")
-    fun getScrollTrack(key: Any = KEYS.ROOT): MutableList<Pair<SongVoiceLine, Int>> =
-        props[key.convertToList(KEYS.SCROLL_TRACK)]?.let { it as MutableList<Pair<SongVoiceLine, Int>> } ?: mutableListOf()
-//    fun setScrollTrack(value: MutableList<Pair<SongVoiceLine, Int>>, key: Any = KEYS.ROOT) {props[key.convertToList(KEYS.SCROLL_TRACK)] = value}
+    fun getScrollTrack(key: Any = KEYS.ROOT): MutableList<Pair<SongRenderVoiceLine, Int>> =
+        props[key.convertToList(KEYS.SCROLL_TRACK)]?.let { it as MutableList<Pair<SongRenderVoiceLine, Int>> } ?: mutableListOf()
+//    fun setScrollTrack(value: MutableList<Pair<SongRenderVoiceLine, Int>>, key: Any = KEYS.ROOT) {props[key.convertToList(KEYS.SCROLL_TRACK)] = value}
 //    fun getScrollLineDurationMs(key: Any = KEYS.ROOT): Long = props[key.convertToList(KEYS.SCROLL_LINE_DURATION_MS)]?.let { it as Long } ?: 0L
 //    fun setScrollLineDurationMs(value: Long, key: Any = KEYS.ROOT) {props[key.convertToList(KEYS.SCROLL_LINE_DURATION_MS)] = value}
 
@@ -141,10 +141,10 @@ data class MltProp(
     }
 
     @Suppress("UNCHECKED_CAST")
-    fun getScrollLines(key: Any = KEYS.ROOT): List<SongVoiceLine> =
-        props[key.convertToList(KEYS.SCROLL_LINES)]?.let { it as List<SongVoiceLine> } ?: listOf()
+    fun getScrollLines(key: Any = KEYS.ROOT): List<SongRenderVoiceLine> =
+        props[key.convertToList(KEYS.SCROLL_LINES)]?.let { it as List<SongRenderVoiceLine> } ?: listOf()
 
-//    fun setScrollLines(value: List<SongVoiceLine>, key: Any = KEYS.ROOT) {props[key.convertToList(KEYS.SCROLL_LINES)] = value}
+//    fun setScrollLines(value: List<SongRenderVoiceLine>, key: Any = KEYS.ROOT) {props[key.convertToList(KEYS.SCROLL_LINES)] = value}
     fun getWidthPxPerMsCoeff(): Double = props[KEYS.ROOT.convertToList(KEYS.WIDTH_PX_PER_MS_COEFF)]?.let { it as Double } ?: 1.0
 //    fun setWidthPxPerMsCoeff(value: Double) {props[KEYS.ROOT.convertToList(KEYS.WIDTH_PX_PER_MS_COEFF)] = value}
 //    fun getHeightPxPerMsCoeff(): Double = props[KEYS.ROOT.convertToList(KEYS.HEIGHT_PX_PER_MS_COEFF)]?.let { it as Double } ?: 1.0
@@ -621,9 +621,9 @@ data class MltProp(
 //    fun setWorkAreaHeightPx(value: Long, key: Any = KEYS.ROOT) {props[key.convertToList(KEYS.WORK_AREA_HEIGHT_PX)] = value}
 
     @Suppress("UNCHECKED_CAST")
-    fun getVoicelines(key: Any = KEYS.ROOT): MutableList<SongVoiceLine> =
-        props[key.convertToList(KEYS.VOICELINES)]?.let { it as MutableList<SongVoiceLine> } ?: mutableListOf()
-//    fun setVoicelines(value: MutableList<SongVoiceLine>, key: Any = KEYS.ROOT) {props[key.convertToList(KEYS.VOICELINES)] = value}
+    fun getVoicelines(key: Any = KEYS.ROOT): MutableList<SongRenderVoiceLine> =
+        props[key.convertToList(KEYS.VOICELINES)]?.let { it as MutableList<SongRenderVoiceLine> } ?: mutableListOf()
+//    fun setVoicelines(value: MutableList<SongRenderVoiceLine>, key: Any = KEYS.ROOT) {props[key.convertToList(KEYS.VOICELINES)] = value}
 
     fun getFontSize(key: Any = KEYS.ROOT): Int = props[key.convertToList(KEYS.FONT_SIZE)]?.let { it as Int } ?: 0
 
@@ -681,11 +681,11 @@ data class MltProp(
 //    fun getCountFingerboards(key: Any = KEYS.ROOT): Int = props[key.convertToList(KEYS.COUNT_FINGERBOARDS)]?.let { it as Int } ?: 0
 //    fun setCountFingerboards(value: Int, key: Any = KEYS.ROOT) {props[key.convertToList(KEYS.COUNT_FINGERBOARDS)] = value}
     @Suppress("UNCHECKED_CAST")
-    fun getChords(key: Any = KEYS.ROOT): MutableList<SettingVoiceLineElementSyllable> =
-        props[key.convertToList(KEYS.CHORDS)]?.let { it as MutableList<SettingVoiceLineElementSyllable> } ?: mutableListOf()
+    fun getChords(key: Any = KEYS.ROOT): MutableList<SongVoiceLineElementSyllable> =
+        props[key.convertToList(KEYS.CHORDS)]?.let { it as MutableList<SongVoiceLineElementSyllable> } ?: mutableListOf()
 
     fun setChords(
-        value: MutableList<SettingVoiceLineElementSyllable>,
+        value: MutableList<SongVoiceLineElementSyllable>,
         key: Any = KEYS.ROOT,
     ) {
         props[key.convertToList(KEYS.CHORDS)] = value

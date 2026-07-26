@@ -1,13 +1,13 @@
 package com.svoemesto.karaokeweb.dto
 
-import com.svoemesto.karaokeapp.model.Settings
+import com.svoemesto.karaokeapp.model.Song
 
 /**
  * DTO для settings public: сериализуемое представление для API/UI.
  *
  * @see AGENTS.md
  */
-data class SettingsPublicDto(
+data class SongPublicDto(
     val id: Long,
     val songName: String,
     val author: String,
@@ -78,10 +78,10 @@ data class SettingsPublicDto(
          * а её в процессе karaoke-web никто не инициализирует (KaraokeAppService там не поднимается).
          */
         fun fromSettings(
-            s: Settings,
+            s: Song,
             includeDetails: Boolean = true,
-        ): SettingsPublicDto =
-            SettingsPublicDto(
+        ): SongPublicDto =
+            SongPublicDto(
                 id = s.id,
                 songName = s.songName,
                 author = s.author,

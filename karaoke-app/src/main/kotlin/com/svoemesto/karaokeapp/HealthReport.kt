@@ -4,7 +4,7 @@ import com.svoemesto.karaokeapp.HealthReportStatus.*
 import com.svoemesto.karaokeapp.HealthReportType.CONSISTENCY_VIOLATION
 import com.svoemesto.karaokeapp.HealthReportType.FILE_VIOLATION
 import com.svoemesto.karaokeapp.KaraokeFileTypeLocations.*
-import com.svoemesto.karaokeapp.model.Settings
+import com.svoemesto.karaokeapp.model.Song
 import com.svoemesto.karaokeapp.model.SseNotification
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.SNS
@@ -17,7 +17,7 @@ import kotlin.properties.Delegates
  * Отчёт о «здоровье» одной песни (файлы, sync-консистентность, статусы).
  *
  * Содержит:
- * - `settings` — `Settings` (через `KaraokeDbTable`).
+ * - `settings` — `Song` (через `KaraokeDbTable`).
  * - `healthReportType` — тип проверки (`FILE_VIOLATION`,
  *   `CONSISTENCY_VIOLATION`, `STATUS_VIOLATION`).
  * - `healthReportStatus` — статус (`OK` / `WARNING` / `ERROR`).
@@ -32,7 +32,7 @@ import kotlin.properties.Delegates
  * @see docs/features/monitoring.md
  */
 data class HealthReport(
-    val settings: Settings,
+    val settings: Song,
     val description: String = "",
     val healthReportType: HealthReportType,
     val healthReportStatus: HealthReportStatus,
@@ -60,7 +60,7 @@ data class HealthReport(
         private fun actions(
             karaokeFileType: KaraokeFileType,
             karaokePlatform: KaraokePlatform?,
-            settings: Settings,
+            settings: Song,
             rootFolder: String,
             pathToFile: String,
             description: String,
@@ -159,7 +159,7 @@ data class HealthReport(
         private fun actionsLocalFileSystem(
             karaokeFileType: KaraokeFileType,
             karaokePlatform: KaraokePlatform?,
-            settings: Settings,
+            settings: Song,
             rootFolder: String,
             pathToFile: String,
             description: String,
@@ -499,7 +499,7 @@ data class HealthReport(
         private fun actionsLocalStorage(
             karaokeFileType: KaraokeFileType,
             karaokePlatform: KaraokePlatform?,
-            settings: Settings,
+            settings: Song,
             rootFolder: String,
             pathToFile: String,
             description: String,
@@ -787,7 +787,7 @@ data class HealthReport(
         private fun actionsRemoteStorage(
             karaokeFileType: KaraokeFileType,
             karaokePlatform: KaraokePlatform?,
-            settings: Settings,
+            settings: Song,
             rootFolder: String,
             pathToFile: String,
             description: String,
@@ -1083,7 +1083,7 @@ data class HealthReport(
         }
 
         fun getHealthReport(
-            settings: Settings,
+            settings: Song,
             dto: HealthReportDTO,
         ): HealthReport? {
             val healthReportList = getHealthReportList(settings = settings)
@@ -1113,7 +1113,7 @@ data class HealthReport(
                 KaraokeFileType.PROJECT_SONGVERSION_TXT,
             )
 
-        fun getHealthReportList(settings: Settings): List<HealthReport> {
+        fun getHealthReportList(settings: Song): List<HealthReport> {
             val result: MutableList<HealthReport> = mutableListOf()
             val database = settings.database
             val storageService = settings.storageService
@@ -2106,9 +2106,9 @@ data class HealthReport(
         // публичный плеер — не REMOTE_STORAGE, это отдельный сервер для другого назначения). Ловит
         // рассинхрон (например, ручное удаление файла в MinIO мимо приложения). Точки записи флага "в
         // момент успешной заливки" — ApiController/SongEditorController.pushMp3ToStorage и
-        // Settings.pictureAlbum/pictureAuthor геттеры; это — вторая, подстраховочная линия.
+        // Song.pictureAlbum/pictureAuthor геттеры; это — вторая, подстраховочная линия.
         private fun reconcilePlayerReadinessFlags(
-            settings: Settings,
+            settings: Song,
             reports: List<HealthReport>,
         ) {
             fun isOkInLocalStorage(karaokeFileType: KaraokeFileType): Boolean =
@@ -2154,7 +2154,7 @@ data class HealthReport(
             storageApiClient: StorageApiClient,
         ): List<HealthReport> {
             val settings =
-                Settings.loadFromDbById(
+                Song.loadFromDbById(
                     id = settingsId,
                     database = database,
                     storageService = storageService,
@@ -2181,13 +2181,13 @@ data class HealthReport(
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
         ): Int {
-            // Лёгкий запрос id вместо полного List<Settings> — recomputeAndBroadcast сам перезагружает
-            // каждую запись целиком по id, так что грузить их дважды (Settings.loadListFromDb, потом
-            // ещё раз внутри recomputeAndBroadcast) незачем. Settings.listHashes — тот же метод, что
+            // Лёгкий запрос id вместо полного List<Song> — recomputeAndBroadcast сам перезагружает
+            // каждую запись целиком по id, так что грузить их дважды (Song.loadListFromDb, потом
+            // ещё раз внутри recomputeAndBroadcast) незачем. Song.listHashes — тот же метод, что
             // использует SettingsSyncTarget для sync, читает только (id, recordhash) парами.
             val authorFilter = author?.trim()?.takeIf { it.isNotEmpty() }
             val whereText = authorFilter?.let { "WHERE LOWER(song_author) = '${it.rightFileName().lowercase()}'" } ?: ""
-            val ids = Settings.listHashes(database = database, whereText = whereText)?.map { it.id } ?: return 0
+            val ids = Song.listHashes(database = database, whereText = whereText)?.map { it.id } ?: return 0
             ids.forEach { recomputeAndBroadcast(it, database, storageService, storageApiClient) }
             return ids.size
         }
@@ -2203,7 +2203,7 @@ data class HealthReport(
 
         // Старт каскадного «Исправить всё» по песне: пометить песню и выполнить всё решаемое сейчас.
         fun startRepairAll(
-            settings: Settings,
+            settings: Song,
             database: KaraokeConnection,
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,

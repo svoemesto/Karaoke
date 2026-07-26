@@ -14,7 +14,7 @@ import java.sql.Timestamp
 // «Новости» проекта (новая песня в эфире/премиум-доступе, новый функционал сайта). Готовится заранее
 // на LOCAL из webvue3, синхронизируется на PROD штатным движком (LOCAL_TO_SERVER, SyncTarget "news",
 // см. sync/SyncTarget.kt) — как Dictionary (20_news.sql, deploy/karaoke-db/17_dictionaries.sql).
-// «Опубликовано» — вычисляемое условие publishAt <= now() (как Settings.onAir), а не отдельный статус:
+// «Опубликовано» — вычисляемое условие publishAt <= now() (как Song.onAir), а не отдельный статус:
 // новость с будущим publishAt, уже уехавшая на прод, сама «всплывает» в назначенный момент.
 
 /**

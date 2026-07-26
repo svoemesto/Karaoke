@@ -5,11 +5,11 @@ import java.io.Serializable
 import java.util.*
 
 /**
- * Класс Settings DT Odigest.
+ * Класс Song DT Odigest.
  *
  * @see docs/features/mlt-generator.md
  */
-data class SettingsDTOdigest(
+data class SongDTOdigest(
     val id: Long,
     var idPrevious: Long,
     var idNext: Long,
@@ -122,8 +122,10 @@ data class SettingsDTOdigest(
     val free: Boolean,
     val songType: String,
     val haveSourceText: Boolean,
+    val albumId: Long,
+    val albumName: String,
 ) : Serializable,
-    Comparable<SettingsDTOdigest> {
+    Comparable<SongDTOdigest> {
     private val sortString: String get() {
 //        return listOf(
 //                author, year.toString(), album, "%3d".format(track)
@@ -140,5 +142,5 @@ data class SettingsDTOdigest(
         }
     }
 
-    override fun compareTo(other: SettingsDTOdigest): Int = sortString.compareTo(other.sortString)
+    override fun compareTo(other: SongDTOdigest): Int = sortString.compareTo(other.sortString)
 }

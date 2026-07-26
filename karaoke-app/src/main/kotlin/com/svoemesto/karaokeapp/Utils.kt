@@ -99,7 +99,7 @@ fun customFunction(
         try {
             val connection = WORKING_DATABASE.getConnection()
             if (connection != null) {
-                val ps = connection.prepareStatement("SELECT id FROM tbl_settings WHERE root_id = 0 AND id_status < 3 ORDER BY id")
+                val ps = connection.prepareStatement("SELECT id FROM tbl_songs WHERE root_id = 0 AND id_status < 3 ORDER BY id")
                 val rs = ps.executeQuery()
                 while (rs.next()) ids.add(rs.getLong("id"))
                 rs.close()
@@ -118,7 +118,7 @@ fun customFunction(
         ids.forEachIndexed { index, id ->
             try {
                 val settings =
-                    Settings.loadFromDbById(
+                    Song.loadFromDbById(
                         id = id,
                         database = WORKING_DATABASE,
                         storageService = storageService,
@@ -142,7 +142,7 @@ fun customFunction(
                     }
                     else -> {
                         val original =
-                            Settings.loadFromDbById(
+                            Song.loadFromDbById(
                                 id = candidateId,
                                 database = WORKING_DATABASE,
                                 storageService = storageService,
@@ -174,7 +174,7 @@ fun customFunction(
         matchedParentIds.forEachIndexed { index, id ->
             try {
                 val settings =
-                    Settings.loadFromDbById(
+                    Song.loadFromDbById(
                         id = id,
                         database = WORKING_DATABASE,
                         storageService = storageService,
@@ -217,7 +217,7 @@ fun fillFormattedFields(
     storageApiClient: StorageApiClient,
 ) {
     val listSettings =
-        Settings.loadListFromDb(
+        Song.loadListFromDb(
             database = WORKING_DATABASE,
             storageService = storageService,
             storageApiClient = storageApiClient,
@@ -246,7 +246,7 @@ fun checkHealth(
     executeActions: Boolean = false,
 ) {
     val listSettings =
-        Settings.loadListFromDb(
+        Song.loadListFromDb(
             database = WORKING_DATABASE,
             storageService = storageService,
             storageApiClient = storageApiClient,
@@ -425,7 +425,7 @@ fun uploadPicturesToStorage() {
 
 fun setSettingsToSyncRemoteTable(id: Long) {
     val sqlToInsert =
-        Settings
+        Song
             .loadFromDbById(
                 id = id,
                 database = Connection.local(),
@@ -433,7 +433,7 @@ fun setSettingsToSyncRemoteTable(id: Long) {
                 storageApiClient = SAC_APP,
             )?.getSqlToInsert(sync = true)
     if (sqlToInsert != null) {
-        Settings.deleteFromDb(id = id, database = Connection.remote(), sync = true)
+        Song.deleteFromDb(id = id, database = Connection.remote(), sync = true)
         val connection = Connection.remote().getConnection()
         if (connection == null) {
             println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных REMOTE")
@@ -451,7 +451,7 @@ fun setSettingsToSyncRemoteTable(ids: List<Long>): List<String> {
     val listToCreateNames: MutableList<String> = mutableListOf()
 
     val fromDatabase = Connection.local()
-    val tableName = "tbl_settings_sync"
+    val tableName = "tbl_songs_sync"
 
     ids.forEach { id ->
         val sqlToDelete = "DELETE FROM $tableName WHERE id = $id"
@@ -464,7 +464,7 @@ fun setSettingsToSyncRemoteTable(ids: List<Long>): List<String> {
     }
 
     ids.forEach { id ->
-        val itemFrom = Settings.loadFromDbById(id = id, database = fromDatabase, storageService = KSS_APP, storageApiClient = SAC_APP)
+        val itemFrom = Song.loadFromDbById(id = id, database = fromDatabase, storageService = KSS_APP, storageApiClient = SAC_APP)
         if (itemFrom != null) {
             listToCreateNames.add(itemFrom.fileName)
             println("Добавляем запись в $tableName: id=${itemFrom.id}, ${itemFrom.fileName}")
@@ -561,7 +561,7 @@ fun updateRemotePictureFromLocalDatabase(id: Long): SyncResult =
             ),
     )
 
-fun updateRemoteSettingFromLocalDatabase(id: Long): SyncResult =
+fun updateRemoteSongFromLocalDatabase(id: Long): SyncResult =
     updateDatabases(
         fromDatabase = Connection.local(),
         toDatabase = Connection.remote(),
@@ -573,34 +573,34 @@ fun updateRemoteSettingFromLocalDatabase(id: Long): SyncResult =
     )
 
 fun updateRemoteDatabaseFromLocalDatabase(
-    updateSettings: Boolean = true,
+    updateSongs: Boolean = true,
     updatePictures: Boolean = true,
     updateAuthors: Boolean = true,
 ): SyncResult =
     updateDatabases(
         fromDatabase = Connection.local(),
         toDatabase = Connection.remote(),
-        keys = legacySyncKeys(updateSettings, updatePictures, updateAuthors),
+        keys = legacySyncKeys(updateSongs, updatePictures, updateAuthors),
     )
 
 fun updateLocalDatabaseFromRemoteDatabase(
-    updateSettings: Boolean = true,
+    updateSongs: Boolean = true,
     updatePictures: Boolean = true,
     updateAuthors: Boolean = true,
 ): SyncResult =
     updateDatabases(
         fromDatabase = Connection.remote(),
         toDatabase = Connection.local(),
-        keys = legacySyncKeys(updateSettings, updatePictures, updateAuthors),
+        keys = legacySyncKeys(updateSongs, updatePictures, updateAuthors),
     )
 
 private fun legacySyncKeys(
-    updateSettings: Boolean,
+    updateSongs: Boolean,
     updatePictures: Boolean,
     updateAuthors: Boolean,
 ): Set<String> =
     buildSet {
-        if (updateSettings) add("settings")
+        if (updateSongs) add("settings")
         if (updatePictures) add("pictures")
         if (updateAuthors) add("authors")
     }
@@ -825,7 +825,7 @@ fun updateDatabases(
 }
 
 // Универсальный hash-diff sync одной сущности реестра (SyncRegistry) — заменяет то, что раньше было
-// тремя copy-paste блоками (Settings/Pictures/Authors) внутри updateDatabases(). Возвращает false при
+// тремя copy-paste блоками (Song/Pictures/Authors) внутри updateDatabases(). Возвращает false при
 // сбое соединения ИЛИ когда fromDatabase вернула пустой список хэшей (защита от случая, когда сбойный
 // коннект молча даёт пустой, но не null, результат — без этой проверки idsToDelete включил бы ВСЕ
 // записи toDatabase, что стало бы массовым удалением). false — сигнал вызывающему коду прервать всю
@@ -1107,7 +1107,7 @@ fun updateBpmAndKey(
     storageApiClient: StorageApiClient,
 ): Int {
     val listSettings =
-        Settings.loadListFromDb(
+        Song.loadListFromDb(
             mapOf("song_tone" to "''", "song_bpm" to "0"),
             database = database,
             storageService = storageService,
@@ -1118,8 +1118,8 @@ fun updateBpmAndKey(
         val (bpm, key) = getBpmAndKeyFromCsv(settings)
         if (bpm != 0L && key != "") {
             println("${settings.fileName} : bpm = $bpm, tone = $key")
-            settings.fields[SettingField.BPM] = bpm.toString()
-            settings.fields[SettingField.KEY] = key
+            settings.fields[SongField.BPM] = bpm.toString()
+            settings.fields[SongField.KEY] = key
             settings.saveToDb()
             counter++
         }
@@ -1133,7 +1133,7 @@ fun updateBpmAndKeyLV(
     storageApiClient: StorageApiClient,
 ): Pair<Int, Int> {
     val listSettings =
-        Settings.loadListFromDb(
+        Song.loadListFromDb(
             mapOf("song_tone" to "''", "song_bpm" to "0"),
             database = database,
             storageService = storageService,
@@ -1148,8 +1148,8 @@ fun updateBpmAndKeyLV(
             val key = sheetsageInfo["key"] as String
             if (bpm != "" && key != "") {
                 println("${settings.fileName} : bpm = $bpm, tone = $key")
-                settings.fields[SettingField.BPM] = bpm
-                settings.fields[SettingField.KEY] = key
+                settings.fields[SongField.BPM] = bpm
+                settings.fields[SongField.KEY] = key
                 settings.saveToDb()
                 counterSuccess++
             } else {
@@ -1160,7 +1160,7 @@ fun updateBpmAndKeyLV(
     return Pair(counterSuccess, counterFailed)
 }
 
-fun getBpmAndKeyFromCsv(settings: Settings): Pair<Long, String> {
+fun getBpmAndKeyFromCsv(settings: Song): Pair<Long, String> {
     var csvFilePath = settings.rootFolder + "/key_bpm.csv"
     var file = File(csvFilePath)
     if (!file.exists()) {
@@ -1200,7 +1200,7 @@ fun delDublicates(
 ): Int {
     var counter = 0
     val listSettings =
-        Settings.loadListFromDb(
+        Song.loadListFromDb(
             mapOf(Pair("tags", "DD")),
             database = database,
             storageService = storageService,
@@ -1222,7 +1222,7 @@ fun clearPreDublicates(
 ): Int {
     var counter = 0
     val listSettings =
-        Settings.loadListFromDb(
+        Song.loadListFromDb(
             mapOf(Pair("tags", "D")),
             database = database,
             storageService = storageService,
@@ -1246,7 +1246,7 @@ fun markDublicates(
 ): Int {
     var counter = 0
     val listSettings =
-        Settings.loadListFromDb(
+        Song.loadListFromDb(
             mapOf(Pair("song_author", author)),
             database = database,
             storageService = storageService,
@@ -1279,7 +1279,7 @@ fun create720pForAllUncreated(
     storageService: KaraokeStorageService,
     storageApiClient: StorageApiClient,
 ) {
-    val settingsList = Settings.loadListFromDb(database = database, storageService = storageService, storageApiClient = storageApiClient)
+    val settingsList = Song.loadListFromDb(database = database, storageService = storageService, storageApiClient = storageApiClient)
     settingsList.forEach { settings ->
         if (File(settings.pathToFileLyrics).exists() && !File(settings.pathToFile720Lyrics).exists()) {
             if (!File(settings.pathToFolder720Lyrics).exists()) {
@@ -1323,13 +1323,13 @@ fun copyIfNeed(
 }
 
 fun collectDoneFilesToStoreFolderAndCreate720pForAllUncreated(
-    settingsList: List<Settings>,
+    settingsList: List<Song>,
     priorLyrics: Int = 10,
     priorKaraoke: Int = 10,
     threadId: Int,
 ): Pair<Int, Int> {
     println("Копирование в хранилище и создание заданий на кодирование в 720р")
-//    val settingsList = Settings.loadListFromDb(database = database)
+//    val settingsList = Song.loadListFromDb(database = database)
     var countCopy = 0
     var countCode = 0
     settingsList.forEach { settings ->
@@ -1484,7 +1484,7 @@ fun createFilesByTags(
     val listTags =
         (
             if (listOfTags.isEmpty()) {
-                Settings.getSetOfTags(database = database)
+                Song.getSetOfTags(database = database)
             } else {
                 listOfTags
                     .map {
@@ -1507,7 +1507,7 @@ fun createFilesByTags(
         }
 
         val listOfSettings =
-            Settings.loadListFromDb(
+            Song.loadListFromDb(
                 mapOf(Pair("tags", tag)),
                 database = database,
                 storageService = storageService,
@@ -1604,7 +1604,7 @@ fun getAuthorsForDigest(database: KaraokeConnection): List<String> {
         statement = connection.createStatement()
 
         sql = "select song_author, count(DISTINCT song_album) as albums, count(DISTINCT id) as songs " +
-            "from tbl_settings " +
+            "from tbl_songs " +
 //                "where id_boosty != '' AND id_boosty IS NOT NULL AND root_folder NOT LIKE '%/Разное/%' " +
             "where id_boosty != '' AND id_boosty IS NOT NULL " +
             "group by song_author"
@@ -1640,7 +1640,7 @@ fun getAuthorDigest(
     val maxSymbols = 16300
 
     val listDigest =
-        Settings
+        Song
             .loadListFromDb(
                 mapOf(Pair("song_author", author)),
                 database = database,
@@ -1666,7 +1666,7 @@ fun getAuthorDigest(
 }
 
 @Suppress("unused")
-fun searchSongText2(settings: Settings) {
+fun searchSongText2(settings: Song) {
     val searchQuery = "${settings.author} ${settings.songName}"
     val searchUrl = "https://www.google.com/search?q=${searchQuery.replace(" ", "+")}+текст+песни"
 
@@ -1682,7 +1682,7 @@ fun searchSongText2(settings: Settings) {
     }
 }
 
-fun searchSongText(settings: Settings): String {
+fun searchSongText(settings: Song): String {
     val searchQuery = "${settings.author} ${settings.songName}".replace("&", "")
     val searchUrl = "https://www.google.com/search?q=${searchQuery.replace(" ", "+")}+текст+песни"
 
@@ -2192,7 +2192,7 @@ fun getFileNameByMasks(
 }
 
 fun createSongTextFile(
-    settings: Settings,
+    settings: Song,
     songVersion: SongVersion,
 ) {
     val filePath = settings.getOutputFilename(SongOutputFile.TEXT, songVersion)
@@ -2205,7 +2205,7 @@ fun createSongTextFile(
 }
 
 fun createSongDescriptionFile(
-    settings: Settings,
+    settings: Song,
     songVersion: SongVersion,
 ) {
     val filePath = settings.getOutputFilename(SongOutputFile.DESCRIPTION, songVersion)
@@ -2706,8 +2706,8 @@ class Solution {
 // Возвращает "самый длинный элемент", состоящий из слогов самой длинной комбинированной строки всех голосов
 fun getLongerElement(
     songVersion: SongVersion,
-    listOfVoices: List<SettingVoice>,
-): SettingVoiceLineElement? {
+    listOfVoices: List<SongVoice>,
+): SongVoiceLineElement? {
     if (listOfVoices.isEmpty()) return null
 
     val longerElementLastVoice = listOfVoices.last().longerTextElement(songVersion) ?: return null
@@ -2722,8 +2722,8 @@ fun getLongerElement(
     if (listLongerElementPreviousVoices.isEmpty()) {
         return longerElementLastVoice
     } else {
-        val syls: MutableList<SettingVoiceLineElementSyllable> = mutableListOf()
-        var prevSyl: SettingVoiceLineElementSyllable? = null
+        val syls: MutableList<SongVoiceLineElementSyllable> = mutableListOf()
+        var prevSyl: SongVoiceLineElementSyllable? = null
         listLongerElementPreviousVoices.forEach { el ->
             val elGetSylls = el.getSyllables()
             elGetSylls.first().previous = prevSyl
@@ -2734,7 +2734,7 @@ fun getLongerElement(
         elGetSylls.first().previous = prevSyl
         syls.addAll(elGetSylls)
         val result =
-            SettingVoiceLineElement(
+            SongVoiceLineElement(
                 rootId = listOfVoices[0].rootId,
                 type = longerElementLastVoice.type,
             )
@@ -2747,7 +2747,7 @@ fun getLongerElement(
 // Вычисляет максимальный размер шрифта, чтобы все голоса поместились на экране по ширине
 fun getFontSize(
     songVersion: SongVersion,
-    listOfVoices: List<SettingVoice>,
+    listOfVoices: List<SongVoice>,
 ): Int {
     var fontSize = 10
     if (listOfVoices.isEmpty()) return fontSize
@@ -3169,7 +3169,7 @@ fun searchLastAlbumYm3(authorYmId: String): AlbumSearchResult {
 // }
 
 fun getAuthorForRequest(lastAuthor: String = ""): Author? {
-    val listSongAuthors = Settings.loadListAuthors(database = WORKING_DATABASE)
+    val listSongAuthors = Song.loadListAuthors(database = WORKING_DATABASE)
     if (listSongAuthors.isEmpty()) return null
     val requestNewSongLastSuccessAuthor = if (lastAuthor != "") lastAuthor else Karaoke.requestNewSongLastSuccessAuthor
 
@@ -3638,7 +3638,7 @@ fun createScriptForHost(
  * Map<String, String> — именованный доступ вместо позиционных индексов, общий для типобезопасной
  * диспетчеризации по KaraokeProcessTypes (KaraokeProcessThread.run()) и строкового диспетчера
  * runFunctionWithArgs() ниже (единственное место без доступа к KaraokeProcess.type — runCommand()).
- * Каждая execute*-функция возвращает false, если запись Settings не найдена (вместо прежнего
+ * Каждая execute*-функция возвращает false, если запись Song не найдена (вместо прежнего
  * молчаливого "успеха"), чтобы вызывающая сторона могла корректно проставить ERROR.
  */
 fun parseRunFunctionWithArgsParams(args: List<String>): Map<String, String> =
@@ -3650,7 +3650,7 @@ fun parseRunFunctionWithArgsParams(args: List<String>): Map<String, String> =
 fun executeGetKeyBpmFromFile(params: Map<String, String>): Boolean {
     val settingsId = params["settingsId"]?.toLongOrNull() ?: return false
     val settings =
-        Settings.loadFromDbById(
+        Song.loadFromDbById(
             id = settingsId,
             database = WORKING_DATABASE,
             sync = false,
@@ -3659,8 +3659,8 @@ fun executeGetKeyBpmFromFile(params: Map<String, String>): Boolean {
         )
             ?: return false
     val (key, bpm) = settings.getKeyBpmFromFile(reFind = false)
-    settings.fields[SettingField.KEY] = key
-    settings.fields[SettingField.BPM] = bpm.toString()
+    settings.fields[SongField.KEY] = key
+    settings.fields[SongField.BPM] = bpm.toString()
     settings.saveToDb()
     return true
 }
@@ -3679,7 +3679,7 @@ fun executeForcedAlignMarkers(params: Map<String, String>): Boolean {
     val settingsId = params["settingsId"]?.toLongOrNull() ?: return false
     val useFinetunedModel = params["useFinetunedModel"]?.toBoolean() ?: false
     val settings =
-        Settings.loadFromDbById(
+        Song.loadFromDbById(
             id = settingsId,
             database = WORKING_DATABASE,
             sync = false,
@@ -3716,14 +3716,14 @@ fun executeForcedAlignMarkers(params: Map<String, String>): Boolean {
     if (!anyVoiceProcessed) return false
 
     if (settings.idStatus < 2) {
-        settings.fields[SettingField.ID_STATUS] = "2"
+        settings.fields[SongField.ID_STATUS] = "2"
         settings.saveToDb()
     }
     return true
 }
 
 /**
- * Финальный шаг обычного пайплайна demucs (см. Settings.argsDemucs2/5) — по образцу
+ * Финальный шаг обычного пайплайна demucs (см. Song.argsDemucs2/5) — по образцу
  * executeFinalizeStemJob (StemJobProcessing.kt) для премиум-фичи «Создать минусовку»: очередь
  * заданий НЕ прерывает цепочку шагов при ошибке одного из них (см. KaraokeProcess.getProcessesToStart/
  * KaraokeProcessThread.run()), поэтому только финальный шаг может достоверно проверить, что demucs
@@ -3740,7 +3740,7 @@ fun executeFinalizeDemucs(params: Map<String, String>): Boolean {
     val threadId = params["threadId"]?.toIntOrNull() ?: KaraokeProcess.THREAD_LANE_HEAVY_RENDER
     val retriedOnCpu = params["retriedOnCpu"]?.toBoolean() ?: false
     val settings =
-        Settings.loadFromDbById(
+        Song.loadFromDbById(
             id = settingsId,
             database = WORKING_DATABASE,
             sync = false,
@@ -3800,7 +3800,7 @@ fun executeUploadToLocalStore(
     val fileType = KaraokeFileType.valueOf(karaokeFileType)
     val storageService = KSS_APP
     val settings =
-        Settings.loadFromDbById(
+        Song.loadFromDbById(
             id = settingsId,
             database = WORKING_DATABASE,
             sync = false,
@@ -3847,7 +3847,7 @@ fun executeUploadToRemoteStore(
     val fileType = KaraokeFileType.valueOf(karaokeFileType)
     val storageApiClient = SAC_APP
     val settings =
-        Settings.loadFromDbById(
+        Song.loadFromDbById(
             id = settingsId,
             database = WORKING_DATABASE,
             sync = false,
@@ -3891,7 +3891,7 @@ fun executeRenderMp4(
             com.svoemesto.karaokeapp.services.RenderVersion.KARAOKE
         }
     val settings =
-        Settings.loadFromDbById(
+        Song.loadFromDbById(
             id = settingsId,
             database = WORKING_DATABASE,
             sync = false,
@@ -3900,7 +3900,7 @@ fun executeRenderMp4(
         )
             ?: return false
 
-    // Для DEMO — границы фрагмента из Settings (первый куплет)
+    // Для DEMO — границы фрагмента из Song (первый куплет)
     val demoStart = if (version == com.svoemesto.karaokeapp.services.RenderVersion.DEMO) settings.demoFragmentStartSeconds else null
     val demoEnd = if (version == com.svoemesto.karaokeapp.services.RenderVersion.DEMO) settings.demoFragmentEndSeconds else null
     val demoFadeIn = if (version == com.svoemesto.karaokeapp.services.RenderVersion.DEMO) settings.demoFragmentFadeInSeconds else null
@@ -4152,7 +4152,7 @@ fun findAndFillDublicates(
      */
     var result = 0
     val listSettings =
-        Settings.loadListFromDb(
+        Song.loadListFromDb(
             args = mapOf("author" to author),
             database = database,
             storageService = storageService,
@@ -4169,7 +4169,7 @@ fun findAndFillDublicates(
             newSettings.formattedTextSong = findedSettings.formattedTextSong
             newSettings.formattedTextTabs = findedSettings.formattedTextTabs
             newSettings.formattedTextChords = findedSettings.formattedTextChords
-            newSettings.fields[SettingField.ID_STATUS] = "1"
+            newSettings.fields[SongField.ID_STATUS] = "1"
             newSettings.saveToDb()
             result++
         }
@@ -4197,11 +4197,11 @@ fun normalizeSongNameForSearch(name: String): String {
 }
 
 fun findDuplicateOriginal(
-    newSettings: Settings,
+    newSettings: Song,
     database: KaraokeConnection,
     storageService: KaraokeStorageService,
     storageApiClient: StorageApiClient,
-): Settings? {
+): Song? {
     /*
     Для новой песни (обычно только что импортированной из папки) ищет "оригинал" - уже существующую в базе
     песню с тем же названием без учёта содержимого в скобках, знаков препинания и различия "е"/"ё"
@@ -4214,7 +4214,7 @@ fun findDuplicateOriginal(
     fun findId(sameAuthorOnly: Boolean): Long? {
         val connection = database.getConnection() ?: return null
         val sql =
-            "SELECT id, song_name FROM tbl_settings" +
+            "SELECT id, song_name FROM tbl_songs" +
                 " WHERE id <> ?" +
                 (if (sameAuthorOnly) " AND LOWER(song_author) = LOWER(?)" else "") +
                 " AND TRIM(source_text) <> ''" +
@@ -4237,7 +4237,7 @@ fun findDuplicateOriginal(
     }
 
     val id = findId(sameAuthorOnly = true) ?: findId(sameAuthorOnly = false) ?: return null
-    return Settings.loadFromDbById(id = id, database = database, storageService = storageService, storageApiClient = storageApiClient)
+    return Song.loadFromDbById(id = id, database = database, storageService = storageService, storageApiClient = storageApiClient)
 }
 
 private data class ParentCandidate(
@@ -4255,7 +4255,7 @@ private data class ParentCandidate(
  * наименьшим id.
  */
 fun findParentCandidateId(
-    settings: Settings,
+    settings: Song,
     database: KaraokeConnection,
 ): Long? {
     val cleanedName = normalizeSongNameForSearch(settings.songName)
@@ -4263,7 +4263,7 @@ fun findParentCandidateId(
     val connection = database.getConnection() ?: return null
     val ps =
         connection.prepareStatement(
-            "SELECT id, song_name, song_author, source_text FROM tbl_settings WHERE id <> ?",
+            "SELECT id, song_name, song_author, source_text FROM tbl_songs WHERE id <> ?",
         )
     ps.setLong(1, settings.id)
     val rs = ps.executeQuery()
@@ -4291,7 +4291,7 @@ fun findParentCandidateId(
 }
 
 fun searchSongsByNormalizedName(
-    currentSettings: Settings,
+    currentSettings: Song,
     searchQuery: String,
     database: KaraokeConnection,
 ): List<Long> {
@@ -4304,7 +4304,7 @@ fun searchSongsByNormalizedName(
     val normalizedQuery = normalizeSongNameForSearch(searchQuery)
     if (normalizedQuery.isBlank() || normalizedQuery.length < 4) return emptyList()
     val connection = database.getConnection() ?: return emptyList()
-    val sql = "SELECT id, song_name FROM tbl_settings WHERE id <> ? AND TRIM(source_text) <> ''"
+    val sql = "SELECT id, song_name FROM tbl_songs WHERE id <> ? AND TRIM(source_text) <> ''"
     val ps = connection.prepareStatement(sql)
     ps.setLong(1, currentSettings.id)
     val rs = ps.executeQuery()
@@ -4320,8 +4320,8 @@ fun searchSongsByNormalizedName(
 }
 
 fun applyDuplicateOriginal(
-    newSettings: Settings,
-    original: Settings,
+    newSettings: Song,
+    original: Song,
 ) {
     newSettings.rootId = original.id
     newSettings.sourceText = original.sourceText
@@ -4330,7 +4330,7 @@ fun applyDuplicateOriginal(
     newSettings.formattedTextSong = original.formattedTextSong
     newSettings.formattedTextTabs = original.formattedTextTabs
     newSettings.formattedTextChords = original.formattedTextChords
-    newSettings.fields[SettingField.ID_STATUS] = "1"
+    newSettings.fields[SongField.ID_STATUS] = "1"
     newSettings.saveToDb()
 }
 
@@ -4343,8 +4343,8 @@ fun applyDuplicateOriginal(
  * в 3 (PROJECT_CREATE) безусловно, независимо от текущего статуса песни.
  */
 fun applyAudioParentMarkers(
-    settings: Settings,
-    audioParent: Settings,
+    settings: Song,
+    audioParent: Song,
     deltaMs: Long,
 ) {
     settings.sourceText = audioParent.sourceText
@@ -4353,13 +4353,13 @@ fun applyAudioParentMarkers(
     settings.formattedTextSong = audioParent.formattedTextSong
     settings.formattedTextTabs = audioParent.formattedTextTabs
     settings.formattedTextChords = audioParent.formattedTextChords
-    settings.fields[SettingField.ID_STATUS] = "3"
+    settings.fields[SongField.ID_STATUS] = "3"
     settings.saveToDb()
 }
 
 fun applyFamilySongSelection(
-    settings: Settings,
-    another: Settings,
+    settings: Song,
+    another: Song,
     deltaMs: Long? = null,
 ) {
     /*
@@ -4388,14 +4388,14 @@ fun applyFamilySongSelection(
     settings.formattedTextTabs = another.formattedTextTabs
     settings.formattedTextChords = another.formattedTextChords
     settings.rootId = if (another.rootId != 0L) another.rootId else another.id
-    if (settings.idStatus == 0L) settings.fields[SettingField.ID_STATUS] = "1"
+    if (settings.idStatus == 0L) settings.fields[SongField.ID_STATUS] = "1"
     settings.saveToDb()
 }
 
 /**
  * Сдвигает все маркеры на deltaMs (мс) в таймлайн текущей песни и выставляет END-маркер на реальную
  * длительность текущей песни (currentMs). Разбор JSON - тем же способом, что геттер
- * Settings.sourceMarkersList (список голосов; фолбэк на одиночный список маркеров).
+ * Song.sourceMarkersList (список голосов; фолбэк на одиночный список маркеров).
  */
 fun shiftMarkersAndFixEnd(
     sourceMarkersJson: String,
@@ -4425,7 +4425,7 @@ fun shiftMarkersAndFixEnd(
 }
 
 fun findFamilySongIds(
-    currentSettings: Settings,
+    currentSettings: Song,
     database: KaraokeConnection,
 ): List<Long> {
     /*
@@ -4437,7 +4437,7 @@ fun findFamilySongIds(
     if (currentSettings.rootId != 0L) keys.add(currentSettings.rootId)
     val connection = database.getConnection() ?: return emptyList()
     val placeholders = keys.joinToString(",") { "?" }
-    val sql = "SELECT id FROM tbl_settings WHERE id <> ? AND (id IN ($placeholders) OR root_id IN ($placeholders))"
+    val sql = "SELECT id FROM tbl_songs WHERE id <> ? AND (id IN ($placeholders) OR root_id IN ($placeholders))"
     val ps = connection.prepareStatement(sql)
     var idx = 1
     ps.setLong(idx++, currentSettings.id)
@@ -4465,7 +4465,7 @@ data class AutoOriginalResult(
 )
 
 /** Человекочитаемое описание песни для логов автопривязки: автор / год / альбом / название (+ id). */
-fun songLogLabel(s: Settings): String = "${s.author} / ${s.year} / ${s.album} / «${s.songName}» (id=${s.id})"
+fun songLogLabel(s: Song): String = "${s.author} / ${s.year} / ${s.album} / «${s.songName}» (id=${s.id})"
 
 /**
  * Автоматический аналог ручного сценария из модалки "Похожие версии песни" на карточке песни:
@@ -4479,7 +4479,7 @@ fun songLogLabel(s: Settings): String = "${s.author} / ${s.year} / ${s.album} / 
  * один кандидат не прошёл сверку (нет аудио) или не набрал порога — статус остаётся прежним.
  */
 fun autoAssignOriginalByWaveform(
-    settings: Settings,
+    settings: Song,
     database: KaraokeConnection,
     storageService: KaraokeStorageService,
     storageApiClient: StorageApiClient,
@@ -4489,7 +4489,7 @@ fun autoAssignOriginalByWaveform(
     if (familyIds.isEmpty()) {
         return AutoOriginalResult(settings.id, false, null, null, null, "Нет песен в семье")
     }
-    val family = Settings.loadListFromDbByIds(familyIds, database, storageService, storageApiClient)
+    val family = Song.loadListFromDbByIds(familyIds, database, storageService, storageApiClient)
     // Кандидат годится, только если у него есть непустые маркеры — из пустого копировать нечего,
     // заодно экономим тяжёлый ffmpeg-декод в сверке.
     val candidates = family.values.filter { c -> c.sourceMarkersList.any { it.isNotEmpty() } }
@@ -4545,7 +4545,7 @@ fun autoAssignOriginalByWaveform(
     }
 
     // 3) Переводим песню в статус 2 (TEXT_CHECK) и сохраняем всё одним saveToDb().
-    settings.fields[SettingField.ID_STATUS] = "2"
+    settings.fields[SongField.ID_STATUS] = "2"
     settings.saveToDb()
 
     return AutoOriginalResult(
@@ -4590,7 +4590,7 @@ data class AudioParentResult(
  * audio_parent_id не трогаем, песня остаётся корнем.
  */
 fun findAudioParentByWaveform(
-    settings: Settings,
+    settings: Song,
     database: KaraokeConnection,
     storageService: KaraokeStorageService,
     storageApiClient: StorageApiClient,
@@ -4604,10 +4604,10 @@ fun findAudioParentByWaveform(
 
     val historyById = settings.audioCompareHistoryList.associateBy { it.id }.toMutableMap()
     val newIds = candidateIds.filter { it !in historyById }
-    var loadedCandidates: Map<Long, Settings> = emptyMap()
+    var loadedCandidates: Map<Long, Song> = emptyMap()
 
     if (newIds.isNotEmpty()) {
-        loadedCandidates = Settings.loadListFromDbByIds(newIds, database, storageService, storageApiClient)
+        loadedCandidates = Song.loadListFromDbByIds(newIds, database, storageService, storageApiClient)
         val now = Instant.now().toString()
         newIds.forEach { id ->
             val candidate = loadedCandidates[id] ?: return@forEach
@@ -4642,7 +4642,7 @@ fun findAudioParentByWaveform(
 
     val bestSettings =
         loadedCandidates[best.id]
-            ?: Settings.loadFromDbById(best.id, database = database, storageService = storageService, storageApiClient = storageApiClient)
+            ?: Song.loadFromDbById(best.id, database = database, storageService = storageService, storageApiClient = storageApiClient)
             ?: run {
                 settings.saveToDb()
                 return AudioParentResult(
@@ -4699,7 +4699,7 @@ fun getFreeTimeSlots(): List<String> {
         SELECT PD
         FROM (
             SELECT TO_DATE(ts.publish_date, 'DD.MM.YY') + INTERVAL '1 day' + INTERVAL '11 hour' AS PD
-            FROM tbl_settings ts
+            FROM tbl_songs ts
             WHERE ts.publish_time = '11:00'
             ORDER BY PD DESC
             LIMIT 1
@@ -4708,7 +4708,7 @@ fun getFreeTimeSlots(): List<String> {
         SELECT PD
         FROM (
             SELECT TO_DATE(ts.publish_date, 'DD.MM.YY') + INTERVAL '1 day' + INTERVAL '12 hour' AS PD
-            FROM tbl_settings ts
+            FROM tbl_songs ts
             WHERE ts.publish_time = '12:00'
             ORDER BY PD DESC
             LIMIT 1
@@ -4717,7 +4717,7 @@ fun getFreeTimeSlots(): List<String> {
         SELECT PD
         FROM (
             SELECT TO_DATE(ts.publish_date, 'DD.MM.YY') + INTERVAL '1 day' + INTERVAL '13 hour' AS PD
-            FROM tbl_settings ts
+            FROM tbl_songs ts
             WHERE ts.publish_time = '13:00'
             ORDER BY PD DESC
             LIMIT 1
@@ -4726,7 +4726,7 @@ fun getFreeTimeSlots(): List<String> {
         SELECT PD
         FROM (
             SELECT TO_DATE(ts.publish_date, 'DD.MM.YY') + INTERVAL '1 day' + INTERVAL '14 hour' AS PD
-            FROM tbl_settings ts
+            FROM tbl_songs ts
             WHERE ts.publish_time = '14:00'
             ORDER BY PD DESC
             LIMIT 1
@@ -4735,7 +4735,7 @@ fun getFreeTimeSlots(): List<String> {
         SELECT PD
         FROM (
             SELECT TO_DATE(ts.publish_date, 'DD.MM.YY') + INTERVAL '1 day' + INTERVAL '15 hour' AS PD
-            FROM tbl_settings ts
+            FROM tbl_songs ts
             WHERE ts.publish_time = '15:00'
             ORDER BY PD DESC
             LIMIT 1
@@ -4744,7 +4744,7 @@ fun getFreeTimeSlots(): List<String> {
         SELECT PD
         FROM (
             SELECT TO_DATE(ts.publish_date, 'DD.MM.YY') + INTERVAL '1 day' + INTERVAL '16 hour' AS PD
-            FROM tbl_settings ts
+            FROM tbl_songs ts
             WHERE ts.publish_time = '16:00'
             ORDER BY PD DESC
             LIMIT 1
@@ -4753,7 +4753,7 @@ fun getFreeTimeSlots(): List<String> {
         SELECT PD
         FROM (
             SELECT TO_DATE(ts.publish_date, 'DD.MM.YY') + INTERVAL '1 day' + INTERVAL '17 hour' AS PD
-            FROM tbl_settings ts
+            FROM tbl_songs ts
             WHERE ts.publish_time = '17:00'
             ORDER BY PD DESC
             LIMIT 1

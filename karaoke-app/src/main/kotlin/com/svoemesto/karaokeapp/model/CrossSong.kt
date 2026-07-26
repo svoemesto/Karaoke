@@ -6,17 +6,17 @@ import com.svoemesto.karaokeapp.services.SAC_APP
 import java.io.Serializable
 
 /**
- * Класс Cross Settings Row.
+ * Класс Cross Song Row.
  *
  * @see docs/features/dual-db-sync.md
  */
-data class CrossSettingsRow(
+data class CrossSongRow(
     val csrId: Int,
     val csrName: String,
-    val csrCells: List<CrossSettingsCell>,
+    val csrCells: List<CrossSongCell>,
 ) : Serializable,
-    Comparable<CrossSettingsRow> {
-    override fun compareTo(other: CrossSettingsRow): Int = sortString.compareTo(other.sortString)
+    Comparable<CrossSongRow> {
+    override fun compareTo(other: CrossSongRow): Int = sortString.compareTo(other.sortString)
 
     private val sortString: String get() {
         val result =
@@ -30,34 +30,34 @@ data class CrossSettingsRow(
 }
 
 /**
- * Класс Cross Settings Cell.
+ * Класс Cross Song Cell.
  *
  * @see docs/features/dual-db-sync.md
  */
-data class CrossSettingsCell(
+data class CrossSongCell(
     val cscIs: Int,
     val cscName: String,
-    var settingsDTO: SettingsDTO? = null,
+    var songDTO: SongDTO? = null,
 ) : Serializable,
-    Comparable<CrossSettingsCell> {
-    override fun compareTo(other: CrossSettingsCell): Int = cscIs.compareTo(other.cscIs)
+    Comparable<CrossSongCell> {
+    override fun compareTo(other: CrossSongCell): Int = cscIs.compareTo(other.cscIs)
 }
 
 // fun main() {
 //    APP_WORK_IN_CONTAINER = false
-//    val listOfSettings = Settings.loadListFromDb(mapOf(Pair("song_author", "Ундервуд")), WORKING_DATABASE)
-//    CrossSettings.publications(
+//    val listOfSettings = Song.loadListFromDb(mapOf(Pair("song_author", "Ундервуд")), WORKING_DATABASE)
+//    CrossSong.publications(
 //        listOfSettings = listOfSettings
 //    )
 //
-//    CrossSettings.unpublications(
+//    CrossSong.unpublications(
 //        listOfSettings = listOfSettings
 //    )
 //
 // }
 
 /**
- * Кросс-настройки (между `Settings` и связанными сущностями).
+ * Кросс-настройки (между `Song` и связанными сущностями).
  *
  * Содержит методы для поиска «перекрёстных» данных:
  * - По `idSettings` найти `Author`, `Album` (через `SongAssignment`/`Picture`).
@@ -68,13 +68,13 @@ data class CrossSettingsCell(
  *
  * @see docs/features/dual-db-sync.md
  */
-class CrossSettings {
+class CrossSong {
     companion object {
         fun publications(
-            listOfSettings: List<Settings>,
-            rowField: SettingField = SettingField.DATE,
-            columnField: SettingField = SettingField.TIME,
-        ): List<CrossSettingsRow> {
+            listOfSettings: List<Song>,
+            rowField: SongField = SongField.DATE,
+            columnField: SongField = SongField.TIME,
+        ): List<CrossSongRow> {
             val columns =
                 listOfSettings
                     .map { sett ->
@@ -83,7 +83,7 @@ class CrossSettings {
                         (fields.get(sett) as Map<*, *>)[columnField] as String
                     }.distinct()
                     .sortedBy {
-                        if (columnField == SettingField.DATE) {
+                        if (columnField == SongField.DATE) {
                             it.split(".").asReversed().joinToString("")
                         } else {
                             it
@@ -100,12 +100,12 @@ class CrossSettings {
 
             val listCSR =
                 rows.mapIndexed { rowIndex, rowName ->
-                    CrossSettingsRow(
+                    CrossSongRow(
                         csrId = rowIndex,
                         csrName = rowName,
                         csrCells =
                             columns.mapIndexed { columnIndex, columnName ->
-                                CrossSettingsCell(cscIs = columnIndex, cscName = columnName)
+                                CrossSongCell(cscIs = columnIndex, cscName = columnName)
                             },
                     )
                 }
@@ -119,7 +119,7 @@ class CrossSettings {
                     .first { it.csrName == fldRow }
                     .csrCells
                     .first { it.cscName == fldCol }
-                    .settingsDTO = sett.toDTO()
+                    .songDTO = sett.toDTO()
             }
 
 //            println(listCSR)
@@ -128,9 +128,9 @@ class CrossSettings {
         }
 
         fun unpublications(
-            listOfSettings: List<Settings>,
-            columnField: SettingField = SettingField.AUTHOR,
-        ): List<CrossSettingsRow> {
+            listOfSettings: List<Song>,
+            columnField: SongField = SongField.AUTHOR,
+        ): List<CrossSongRow> {
             val skipedAuthors =
                 Author
                     .loadList(
@@ -149,7 +149,7 @@ class CrossSettings {
                         (fields.get(sett) as Map<*, *>)[columnField] as String
                     }.distinct()
                     .sortedBy {
-                        if (columnField == SettingField.DATE) {
+                        if (columnField == SongField.DATE) {
                             it.split(".").asReversed().joinToString("")
                         } else {
                             it
@@ -169,12 +169,12 @@ class CrossSettings {
 
             val listCSR =
                 rows.mapIndexed { rowIndex, rowName ->
-                    CrossSettingsRow(
+                    CrossSongRow(
                         csrId = rowIndex,
                         csrName = rowName,
                         csrCells =
                             columns.mapIndexed { columnIndex, columnName ->
-                                CrossSettingsCell(cscIs = columnIndex, cscName = columnName)
+                                CrossSongCell(cscIs = columnIndex, cscName = columnName)
                             },
                     )
                 }
@@ -191,7 +191,7 @@ class CrossSettings {
                             .first { it.csrId == index }
                             .csrCells
                             .first { it.cscName == col }
-                            .settingsDTO = settings.toDTO()
+                            .songDTO = settings.toDTO()
                     }
             }
 
@@ -201,9 +201,9 @@ class CrossSettings {
         }
 
         fun skiped(
-            listOfSettings: List<Settings>,
-            columnField: SettingField = SettingField.AUTHOR,
-        ): List<CrossSettingsRow> {
+            listOfSettings: List<Song>,
+            columnField: SongField = SongField.AUTHOR,
+        ): List<CrossSongRow> {
             val skipedAuthors =
                 Author
                     .loadList(
@@ -222,7 +222,7 @@ class CrossSettings {
                         (fields.get(sett) as Map<*, *>)[columnField] as String
                     }.distinct()
                     .sortedBy {
-                        if (columnField == SettingField.DATE) {
+                        if (columnField == SongField.DATE) {
                             it.split(".").asReversed().joinToString("")
                         } else {
                             it
@@ -242,12 +242,12 @@ class CrossSettings {
 
             val listCSR =
                 rows.mapIndexed { rowIndex, rowName ->
-                    CrossSettingsRow(
+                    CrossSongRow(
                         csrId = rowIndex,
                         csrName = rowName,
                         csrCells =
                             columns.mapIndexed { columnIndex, columnName ->
-                                CrossSettingsCell(cscIs = columnIndex, cscName = columnName)
+                                CrossSongCell(cscIs = columnIndex, cscName = columnName)
                             },
                     )
                 }
@@ -264,7 +264,7 @@ class CrossSettings {
                             .first { it.csrId == index }
                             .csrCells
                             .first { it.cscName == col }
-                            .settingsDTO = settings.toDTO()
+                            .songDTO = settings.toDTO()
                     }
             }
 

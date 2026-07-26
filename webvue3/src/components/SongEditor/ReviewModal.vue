@@ -158,7 +158,7 @@ export default {
       return this.$store.getters.getAssignmentsTarget || 'local'
     },
     // Превью неодобрённого черновика: /player/:id понимает assignmentId и подставляет edited_markers
-    // ВСЕЙ песни (все голоса задания) вместо того, что уже сохранено в tbl_settings (см. ApiController.getSongPlayerData).
+    // ВСЕЙ песни (все голоса задания) вместо того, что уже сохранено в tbl_songs (см. ApiController.getSongPlayerData).
     // target — откуда реально читать задание/черновик (см. getAssignmentsTarget): реальный цикл
     // назначение→работа часто идёт целиком на remote, а local ещё не синкнут.
     playerSrc() {

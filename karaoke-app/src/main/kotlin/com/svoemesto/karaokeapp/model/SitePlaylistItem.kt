@@ -9,7 +9,7 @@ import com.svoemesto.karaokeapp.services.StorageApiClient
 import java.io.Serializable
 import java.sql.Timestamp
 
-// Элемент плейлиста (одна песня в плейлисте). song_id -> tbl_settings.id, БЕЗ FK (песни живут своей
+// Элемент плейлиста (одна песня в плейлисте). song_id -> tbl_songs.id, БЕЗ FK (песни живут своей
 // жизнью и синхронизируются отдельно). Участвует в LOCAL<->SERVER синхронизации (SyncRegistry:
 // siteplaylistitems). Порядок в плейлисте — колонка position (drag-drop), muted — пропуск при
 // проигрывании (остаётся в списке).

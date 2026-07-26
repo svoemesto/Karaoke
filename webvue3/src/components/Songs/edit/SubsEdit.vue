@@ -1008,7 +1008,7 @@
               <button
                 class="se-group-button"
                 type="button"
-                :disabled="isAutoMarkersLoading"
+                :disabled="isAutoMarkersLoading || sourceText.trim() !== ''"
                 @click="doAutoMarkers"
               >
                 <img
@@ -1017,7 +1017,9 @@
                   :title="
                     isAutoMarkersLoading
                       ? 'Распознавание...'
-                      : 'Авто-маркеры (Whisper): распознать вокал и расставить маркеры голоса'
+                      : sourceText.trim() !== ''
+                        ? 'Распознать текст (Whisper): только для голоса без текста - используйте «Точные маркеры», если текст уже есть'
+                        : 'Распознать текст (Whisper): получить черновик текста песни из вокала (маркеры не расставляет)'
                   "
                   src="../../../assets/svg/icon_auto_markers.svg"
                 />
@@ -4195,11 +4197,11 @@ export default {
     },
     doAutoMarkers() {
       this.customConfirmParams = {
-        header: 'Авто-маркеры (Whisper)',
+        header: 'Распознать текст (Whisper)',
         body:
           `Распознать вокал голоса «<strong>${this.currentVoice + 1}</strong>» через Whisper и ` +
-          `<strong>полностью заменить</strong> его текущие маркеры результатом? Действие не сохраняется ` +
-          `автоматически — черновик можно будет доправить и сохранить обычным Save, либо отменить перезагрузкой голоса.`,
+          `получить черновик текста песни? Маркеры при этом не расставляются — для точной расстановки ` +
+          `маркеров используйте «Точные маркеры» после того, как текст будет введён.`,
         timeout: 10,
         callback: this.doApplyAutoMarkers,
       }
@@ -4210,7 +4212,7 @@ export default {
       // Открываем модалку сразу (со спинером) — распознавание Whisper может идти долго, и
       // пользователь не должен смотреть на "ничего не происходит" всё это время.
       this.autoMarkersDebug = { whisperText: '', whisperWords: [], markers: [] }
-      this.autoMarkersDebugLoadingText = 'Распознавание вокала (Whisper)...'
+      this.autoMarkersDebugLoadingText = 'Распознавание текста (Whisper)...'
       this.isWhisperDebugVisible = true
       try {
         const responseText = await this.$store.dispatch('getAutoMarkers', {
@@ -4220,20 +4222,21 @@ export default {
         if (!result.ok) {
           this.isWhisperDebugVisible = false
           const messages = {
-            empty_source_text: 'У голоса пока нет текста — нечего сопоставлять с распознаванием.',
+            text_already_exists:
+              'У голоса уже есть текст — используйте «Точные маркеры» вместо распознавания текста заново.',
             song_not_found: 'Песня не найдена.',
             vocals_not_found: 'Не найден файл вокального стема (демукс ещё не выполнен?).',
             whisper_unavailable:
               'Whisper недоступен — проверьте настройку whisperAsrUrl и доступность сервера.',
             no_speech_recognized: 'Whisper не распознал речь в вокальном стеме.',
-            alignment_failed: 'Не удалось сопоставить распознанный текст с текстом голоса.',
           }
-          alert(messages[result.error] || `Ошибка авто-маркеров: ${result.error}`)
+          alert(messages[result.error] || `Ошибка распознавания текста: ${result.error}`)
           return
         }
 
-        // Сначала показываем "сырой" ответ Whisper и получившиеся маркеры в отдельном окне —
-        // применяем к голосу только после явного подтверждения (см. applyAutoMarkersToEditor).
+        // Показываем "сырой" ответ Whisper в отдельном окне - markers всегда пуст (маркеры этот
+        // путь больше не расставляет, см. SongEditorController.editAutoMarkers), можно только
+        // скопировать текст и вставить его в поле песни вручную.
         this.autoMarkersDebug = {
           whisperText: result.whisperText || '',
           whisperWords: result.whisperWords || [],
@@ -4241,8 +4244,8 @@ export default {
         }
       } catch (error) {
         this.isWhisperDebugVisible = false
-        console.error('Ошибка авто-маркеров:', error)
-        alert('Ошибка авто-маркеров, подробности в консоли.')
+        console.error('Ошибка распознавания текста:', error)
+        alert('Ошибка распознавания текста, подробности в консоли.')
       } finally {
         this.isAutoMarkersLoading = false
       }

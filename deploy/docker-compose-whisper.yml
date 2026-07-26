@@ -14,6 +14,13 @@ services:
     environment:
       - WHISPER_MODEL=large-v3-turbo
       - HF_TOKEN=hf_key
+    # Docker-мост не всегда получает рабочий DNS от хоста (VPN/локальный резолвер могут
+    # возвращать адреса, недоступные из контейнера, см. docker-compose-ollama.yml - тот же
+    # приём уже используется для другого GPU-контейнера, которому тоже нужен внешний интернет).
+    dns:
+      - 1.1.1.1 # Cloudflare DNS
+      - 8.8.4.4 # Google DNS (альтернативный)
+      - 77.88.8.8 # Яндекс DNS (если вы в РФ)
     volumes:
       - ./whisper_models:/var/lib/whisper
       - ./download_model.py:/download_model.py:ro
@@ -46,6 +53,10 @@ services:
       - WHISPER_COMPUTE_TYPE=int8
       - WHISPER_API_KEY=nafanya_whisper_2026
       - HF_TOKEN=hf_key
+    dns:
+      - 1.1.1.1 # Cloudflare DNS
+      - 8.8.4.4 # Google DNS (альтернативный)
+      - 77.88.8.8 # Яндекс DNS (если вы в РФ)
     volumes:
       - ./whisper_models:/var/lib/whisper
     healthcheck:
@@ -80,6 +91,10 @@ services:
       - WHISPER_COMPUTE_TYPE=int8
       - WHISPER_API_KEY=nafanya_whisper_2026
       - HF_TOKEN=hf_key
+    dns:
+      - 1.1.1.1 # Cloudflare DNS
+      - 8.8.4.4 # Google DNS (альтернативный)
+      - 77.88.8.8 # Яндекс DNS (если вы в РФ)
     volumes:
       - ./whisper_models:/var/lib/whisper
     healthcheck:

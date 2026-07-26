@@ -1,25 +1,90 @@
 version: '3.8'
 
 services:
+  whisper-downloader:
+    image: hwdsl2/whisper-server:cuda
+    container_name: whisper-downloader
+    restart: "no"
+    init: true
+    volumes:
+      - ./whisper_models:/var/lib/whisper
+      - ./download_model.py:/download_model.py:ro
+    # Используем наш Python-скрипт - работает через стандартную библиотеку
+    entrypoint: ["python", "/download_model.py"]
+    # Без GPU - загрузчику видеокарта не нужна
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 0
+              capabilities: [gpu]
+
+  # GPU-версия Whisper (основная, быстрая)
   whisper-asr:
     image: hwdsl2/whisper-server:cuda
     container_name: whisper-asr
     restart: always
+    init: true
+    depends_on:
+      whisper-downloader:
+        condition: service_completed_successfully
     ports:
-      - "8015:9000"  # Контейнер внутри слушает порт 9000, пробрасываем наружу на 8015
+      - "8015:9000"
     environment:
-      - WHISPER_MODEL=medium
+      - WHISPER_MODEL=distil-large-v3
       - WHISPER_ENGINE=faster-whisper
       - WHISPER_DEVICE=cuda
-      - WHISPER_COMPUTE_TYPE=float16
+      - WHISPER_COMPUTE_TYPE=int8
       - WHISPER_API_KEY=nafanya_whisper_2026
-      - HF_TOKEN=hf_key _
+      - HF_TOKEN=hf_key
     volumes:
       - ./whisper_models:/var/lib/whisper
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:9000/v1/models')"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
     deploy:
       resources:
         reservations:
           devices:
             - driver: nvidia
               count: 1
+              capabilities: [gpu]
+
+  # CPU-версия Whisper (fallback, если GPU не справился с VRAM)
+  whisper-asr-cpu:
+    image: hwdsl2/whisper-server:cuda
+    container_name: whisper-asr-cpu
+    restart: always
+    init: true
+    depends_on:
+      whisper-downloader:
+        condition: service_completed_successfully
+    ports:
+      - "8016:9000"
+    environment:
+      - WHISPER_MODEL=distil-large-v3
+      - WHISPER_ENGINE=faster-whisper
+      - WHISPER_DEVICE=cpu
+      - WHISPER_COMPUTE_TYPE=int8
+      - WHISPER_API_KEY=nafanya_whisper_2026
+      - HF_TOKEN=hf_key
+    volumes:
+      - ./whisper_models:/var/lib/whisper
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:9000/v1/models')"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    # CPU не требует GPU
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 0
               capabilities: [gpu]

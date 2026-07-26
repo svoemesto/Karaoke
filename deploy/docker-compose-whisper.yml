@@ -6,6 +6,11 @@ services:
     container_name: whisper-downloader
     restart: "no"
     init: true
+    # WHISPER_MODEL должен совпадать со значением в whisper-asr/whisper-asr-cpu ниже -
+    # download_model.py читает именно эту переменную (см. deploy/download_model.py), иначе
+    # скачает не ту модель (дефолт скрипта - medium), которую реально будут грузить сервисы.
+    environment:
+      - WHISPER_MODEL=large-v3-turbo
     volumes:
       - ./whisper_models:/var/lib/whisper
       - ./download_model.py:/download_model.py:ro

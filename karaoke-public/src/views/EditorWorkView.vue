@@ -208,7 +208,68 @@
               <input v-model.number="textFontSize" type="range" min="6" max="36" step="1" />
             </label>
           </div>
+          <!-- Быстрая вставка спецтегов (specs/010-lyrics-spec-tags/contracts/tag-registry.md) в
+               текст на месте курсора - альтернатива печатанию тега руками. -->
+          <div v-if="canEdit" class="ke-spectag-toolbar">
+            <button
+              type="button"
+              class="ke-spectag-btn"
+              title="Вставить тег новой строки (~newline~) - явный аналог пустой строки"
+              @click="onInsertSpecTag('newline')"
+            >
+              ¶ Новая строка
+            </button>
+            <button
+              type="button"
+              class="ke-spectag-btn"
+              title="Вставить алиас группы «Куплет» (~Куплет~ = ~group:0~)"
+              @click="onInsertSpecTag('куплет')"
+            >
+              Куплет
+            </button>
+            <button
+              type="button"
+              class="ke-spectag-btn"
+              title="Вставить алиас группы «Припев» (~Припев~ = ~group:1~)"
+              @click="onInsertSpecTag('припев')"
+            >
+              Припев
+            </button>
+            <button
+              type="button"
+              class="ke-spectag-btn"
+              title="Вставить алиас группы «Бридж» (~Бридж~ = ~group:2~)"
+              @click="onInsertSpecTag('бридж')"
+            >
+              Бридж
+            </button>
+            <button
+              type="button"
+              class="ke-spectag-btn"
+              title="Вставить алиас группы «Приговор» (~Приговор~ = ~group:3~)"
+              @click="onInsertSpecTag('приговор')"
+            >
+              Приговор
+            </button>
+            <button
+              type="button"
+              class="ke-spectag-btn"
+              title="Вставить тег группы №4 (~group:4~) - у этой группы нет человекочитаемого алиаса"
+              @click="onInsertSpecTag('group:4')"
+            >
+              Группа 4
+            </button>
+            <button
+              type="button"
+              class="ke-spectag-btn"
+              title="Вставить тег комментария (~comment:текст~)"
+              @click="onInsertSpecTagComment"
+            >
+              Комментарий…
+            </button>
+          </div>
           <textarea
+            ref="sourceTextarea"
             v-model="sourceText"
             class="ke-textarea"
             :style="{ fontSize: textFontSize + 'px' }"
@@ -259,6 +320,8 @@ import { useAuth } from '../composables/useAuth'
 import { STATUS_LABELS } from '../composables/editorStatus'
 import {
   splitSyllables,
+  syncMarkersFromSpecTags,
+  insertSpecTagAtCursor,
   sortMarkers,
   relabelSyllables,
   currentSyllableIndex,
@@ -628,6 +691,7 @@ export default {
         const markers = markersFromServer(rawMarkersPerVoice[i] || [])
         const syllables = splitSyllables(text)
         relabelSyllables(markers, syllables)
+        syncMarkersFromSpecTags(markers, text)
         this.voices.push({ sourceText: text, markers, syllables })
       }
       this.currentVoiceIdx = 0
@@ -898,8 +962,36 @@ export default {
     onTextInput() {
       this.syllables = splitSyllables(this.sourceText)
       relabelSyllables(this.markers, this.syllables)
+      syncMarkersFromSpecTags(this.markers, this.sourceText)
       this.scheduleRedraw()
       this.scheduleAutosave()
+    },
+    // Вставляет "~tagBody~" отдельной строкой в позиции курсора текстового поля (кнопки панели
+    // ke-spectag-toolbar) - альтернатива печатанию тега руками. insertSpecTagAtCursor (импорт из
+    // useKaraokeEditor.js) - чистая функция, этот метод только читает/пишет DOM textarea.
+    onInsertSpecTag(tagBody) {
+      const el = this.$refs.sourceTextarea
+      const selectionStart = el ? el.selectionStart : this.sourceText.length
+      const selectionEnd = el ? el.selectionEnd : this.sourceText.length
+      const { text, cursorPos } = insertSpecTagAtCursor(
+        this.sourceText,
+        selectionStart,
+        selectionEnd,
+        `~${tagBody}~`,
+      )
+      this.sourceText = text
+      this.onTextInput()
+      this.$nextTick(() => {
+        if (!el) return
+        el.focus()
+        el.setSelectionRange(cursorPos, cursorPos)
+      })
+    },
+    // Комментарий требует текста значения - тот же паттерн window.prompt, что и addComment() ниже.
+    onInsertSpecTagComment() {
+      const text = window.prompt('Текст комментария (отобразится курсивом в разметке):', '')
+      if (!text || !text.trim()) return
+      this.onInsertSpecTag('comment:' + text.trim())
     },
     // --- Сохранение ---
     scheduleAutosave() {
@@ -1754,6 +1846,24 @@ export default {
 .ke-btn:disabled {
   opacity: 0.5;
   cursor: default;
+}
+
+.ke-spectag-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+.ke-spectag-btn {
+  border-radius: 8px;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.72rem;
+  cursor: pointer;
+  border: 1px solid var(--km-border);
+  background: var(--km-card);
+  color: var(--km-text);
+}
+.ke-spectag-btn:hover {
+  background: var(--km-hover);
 }
 
 @media (max-width: 720px) {

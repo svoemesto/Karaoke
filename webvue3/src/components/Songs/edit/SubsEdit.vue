@@ -1090,8 +1090,69 @@
               </button>
             </div>
           </div>
+          <!-- Быстрая вставка спецтегов (specs/010-lyrics-spec-tags/contracts/tag-registry.md) в
+               текст на месте курсора - альтернатива печатанию тега руками. -->
+          <div class="se-spectag-toolbar">
+            <button
+              class="se-spectag-button"
+              type="button"
+              title="Вставить тег новой строки (~newline~) - явный аналог пустой строки"
+              @click="insertSpecTagAtCursor('newline')"
+            >
+              ¶ Новая строка
+            </button>
+            <button
+              class="se-spectag-button"
+              type="button"
+              title="Вставить алиас группы «Куплет» (~Куплет~ = ~group:0~)"
+              @click="insertSpecTagAtCursor('куплет')"
+            >
+              Куплет
+            </button>
+            <button
+              class="se-spectag-button"
+              type="button"
+              title="Вставить алиас группы «Припев» (~Припев~ = ~group:1~)"
+              @click="insertSpecTagAtCursor('припев')"
+            >
+              Припев
+            </button>
+            <button
+              class="se-spectag-button"
+              type="button"
+              title="Вставить алиас группы «Бридж» (~Бридж~ = ~group:2~)"
+              @click="insertSpecTagAtCursor('бридж')"
+            >
+              Бридж
+            </button>
+            <button
+              class="se-spectag-button"
+              type="button"
+              title="Вставить алиас группы «Приговор» (~Приговор~ = ~group:3~)"
+              @click="insertSpecTagAtCursor('приговор')"
+            >
+              Приговор
+            </button>
+            <button
+              class="se-spectag-button"
+              type="button"
+              title="Вставить тег группы №4 (~group:4~) - у этой группы нет человекочитаемого алиаса"
+              @click="insertSpecTagAtCursor('group:4')"
+            >
+              Группа 4
+            </button>
+            <button
+              class="se-spectag-button"
+              type="button"
+              title="Вставить тег комментария (~comment:текст~)"
+              @click="insertSpecTagCommentAtCursor"
+            >
+              Комментарий…
+            </button>
+          </div>
           <textarea
             id="editor"
+            ref="sourceTextEditor"
             v-model="sourceText"
             class="se-grid-item-sourcetext"
             @focus="setEditMode(false)"
@@ -1138,6 +1199,128 @@ import AiTextEditorModal from './AiTextEditorModal.vue'
 // Vue.use(TabsPlugin)
 // import ZoomPlugin from 'wavesurfer.js/dist/plugins/zoom.esm.js'
 // import { isStringContainThisSymbols } from '@/lib/utils'
+
+// Спецтеги в тексте песни (`~имя~` / `~имя:значение~`, только отдельной строкой) - зеркальная
+// реализация backend SpecTags.kt/WhisperMarkerAligner.kt. Единственный источник правды по
+// синтаксису и реестру: specs/010-lyrics-spec-tags/contracts/tag-registry.md - эта реализация
+// ДОЛЖНА давать идентичный результат распознавания на одном и том же тексте.
+const SPEC_TAG_REGEX = /~(\p{L}+)(?::([^~]*))?~/gu
+
+const SPEC_TAG_REGISTRY = {
+  newline: {
+    validate: (value) => value === null,
+    markertype: 'newline',
+    buildLabel: () => '',
+  },
+  group: {
+    validate: (value) => value !== null && /^[0-4]$/.test(value),
+    markertype: 'setting',
+    buildLabel: (value) => 'GROUP|' + value,
+  },
+  comment: {
+    validate: (value) => !!(value && value.trim() !== ''),
+    markertype: 'setting',
+    buildLabel: (value) => 'COMMENT|' + value,
+  },
+}
+
+// v1 алиасы - см. contracts/tag-registry.md "Алиасы v1". Набор и нумерация согласованы с
+// пользователем явно; для group:4 алиаса нет. Алиас не принимает значение (resolveSpecTag ниже).
+const SPEC_TAG_ALIASES = {
+  куплет: { targetTagName: 'group', targetValue: '0' },
+  припев: { targetTagName: 'group', targetValue: '1' },
+  бридж: { targetTagName: 'group', targetValue: '2' },
+  приговор: { targetTagName: 'group', targetValue: '3' },
+}
+
+// Снимает со строки все синтаксически валидные теги (независимо от того, распознаны ли они в
+// реестре) - возвращает [строку без тег-токенов, список найденных тегов в порядке появления].
+function parseSpecTagLine(line) {
+  const tags = []
+  const stripped = line.replace(SPEC_TAG_REGEX, (match, name, value) => {
+    tags.push({ name: name.toLowerCase(), value: value === undefined ? null : value })
+    return ''
+  })
+  return [stripped, tags]
+}
+
+// Резолвит тег (включая алиасы) в маркер разметки {markertype, label}. null - нераспознан
+// (неизвестное имя или невалидное значение, см. contracts/tag-registry.md).
+function resolveSpecTag(tag) {
+  const alias = SPEC_TAG_ALIASES[tag.name]
+  if (alias) {
+    if (tag.value !== null) return null
+    return resolveSpecTag({ name: alias.targetTagName, value: alias.targetValue })
+  }
+  const entry = SPEC_TAG_REGISTRY[tag.name]
+  if (!entry || !entry.validate(tag.value)) return null
+  return { markertype: entry.markertype, label: entry.buildLabel(tag.value) }
+}
+
+// Разбивка текста на слоги (слово -> слоги, затем склейка безгласных фрагментов с соседом) -
+// вынесено из getSyllables() как чистая функция, чтобы её же можно было применять к произвольному
+// префиксу текста при вычислении тег-якорей (см. specTagAnchors) без дублирования регулярок.
+function computeSyllables(text) {
+  let result = []
+  let words = text.match(/\S+/gi) || []
+  for (let i = 0; i < words.length; i++) {
+    const word = words[i]
+    const syllables = word
+      .replace(
+        /[ЙЦКНГШЩЗХЪФВПРЛДЖЧСМТЬБQWRTYPSDFGHJKLZXCVBNM-]*[ЁУЕЫАОЭЯИЮEUIOAїієѣ][ЙЦКНГШЩЗХЪФВПРЛДЖЧСМТЬБQWRTYPSDFGHJKLZXCVBNM-]*?(?=[ЦКНГШЩЗХФВПРЛДЖЧСМТБQWRTYPSDFGHJKLZXCVBNM-]?[ЁУЕЫАОЭЯИЮEUIOAїієѣ]|[Й|Y][АИУЕОEUIOAїієѣ])/gi,
+        '$& ',
+      )
+      .split(' ')
+    if (syllables.length === 0) {
+      result.push(word + '_')
+    } else {
+      for (let j = 0; j < syllables.length; j++) {
+        let syllable = syllables[j]
+        result.push(syllable + (j === syllables.length - 1 ? '_' : ''))
+      }
+    }
+  }
+  for (let i = 0; i < result.length; i++) {
+    const word = result[i]
+    let haveVowel = false
+    for (let j = 0; j < word.length; j++) {
+      if ('ЁУЕЫАОЭЯИЮёуеыаоэяиюEUIOAeuioaїієѣ'.includes(word[j])) {
+        haveVowel = true
+        break
+      }
+    }
+    if (!haveVowel) {
+      if (i === result.length - 1 || (word === '-_' && i !== 0)) {
+        result[i - 1] = result[i - 1] + word
+        result.splice(i, 1)
+        i--
+      } else if (i < result.length - 2) {
+        result[i + 1] = word + result[i + 1]
+        result.splice(i, 1)
+        i--
+      }
+    }
+  }
+  return result
+}
+
+// Вставляет tagText (например "~newline~") в текст в позиции курсора, гарантируя, что тег окажется
+// ЕДИНСТВЕННЫМ содержимым своей строки (контракт спецтегов требует этого, см.
+// contracts/tag-registry.md) - независимо от того, где именно стоял курсор: добавляет перевод
+// строки перед/после вставки, если рядом уже нет своего "\n". Чистая функция - легко покрыть
+// юнит-тестом отдельно от DOM/textarea.
+function insertSpecTagAtCursorImpl(text, selectionStart, selectionEnd, tagText) {
+  const before = text.slice(0, selectionStart)
+  const after = text.slice(selectionEnd)
+  const needsLeadingNewline = before.length > 0 && !before.endsWith('\n')
+  const needsTrailingNewline = after.length > 0 && !after.startsWith('\n')
+  const insertion = (needsLeadingNewline ? '\n' : '') + tagText + (needsTrailingNewline ? '\n' : '')
+  return {
+    text: before + insertion + after,
+    cursorPos: before.length + insertion.length,
+  }
+}
+
 /**
  * Inline-редактор текста песни с поддержкой аккордов и меток.
  *
@@ -1856,48 +2039,48 @@ export default {
     markers() {
       return this.voice ? this.voice.markers : []
     },
+    // Спецтеги (~newline~ и т.п.), стоящие единственным содержимым отдельной строки, не должны
+    // попадать в слоговую разбивку как "слово" - см. contracts/tag-registry.md. Строки, где тег не
+    // единственное содержимое, идут в разбивку БЕЗ изменений (тег остаётся обычным текстом).
+    getProcessedSourceText() {
+      return this.sourceText
+        .replace(/\r\n/g, '\n')
+        .split('\n')
+        .map((line) => (parseSpecTagLine(line)[0].trim() === '' ? '' : line))
+        .join('\n')
+    },
     getSyllables() {
-      let result = []
-      let words = this.sourceText.match(/\S+/gi) || []
-      for (let i = 0; i < words.length; i++) {
-        const word = words[i]
-        const syllables = word
-          .replace(
-            /[ЙЦКНГШЩЗХЪФВПРЛДЖЧСМТЬБQWRTYPSDFGHJKLZXCVBNM-]*[ЁУЕЫАОЭЯИЮEUIOAїієѣ][ЙЦКНГШЩЗХЪФВПРЛДЖЧСМТЬБQWRTYPSDFGHJKLZXCVBNM-]*?(?=[ЦКНГШЩЗХФВПРЛДЖЧСМТБQWRTYPSDFGHJKLZXCVBNM-]?[ЁУЕЫАОЭЯИЮEUIOAїієѣ]|[Й|Y][АИУЕОEUIOAїієѣ])/gi,
-            '$& ',
-          )
-          .split(' ')
-        if (syllables.length === 0) {
-          result.push(word + '_')
+      return computeSyllables(this.getProcessedSourceText)
+    },
+    // Тег-якоря для syncMarkersFromSpecTags(): для каждого распознанного тега на отдельной строке -
+    // после какого ординального индекса sourceSyllables он стоит. syllableIndex считается через тот
+    // же computeSyllables() на РЕАЛЬНОМ префиксе обработанных строк (не на приближении), поэтому
+    // всегда совпадает с тем, что фактически даст getSyllables на полном тексте.
+    specTagAnchors() {
+      const anchors = []
+      const rawLines = this.sourceText.replace(/\r\n/g, '\n').split('\n')
+      const processedLines = []
+      let syllableCount = 0
+      rawLines.forEach((line) => {
+        const [stripped, tags] = parseSpecTagLine(line)
+        if (stripped.trim() === '') {
+          tags.forEach((tag) => {
+            const resolved = resolveSpecTag(tag)
+            if (resolved) {
+              anchors.push({
+                syllableIndex: syllableCount,
+                markertype: resolved.markertype,
+                label: resolved.label,
+              })
+            }
+          })
+          processedLines.push('')
         } else {
-          for (let j = 0; j < syllables.length; j++) {
-            let syllable = syllables[j]
-            result.push(syllable + (j === syllables.length - 1 ? '_' : ''))
-          }
+          processedLines.push(line)
+          syllableCount = computeSyllables(processedLines.join('\n')).length
         }
-      }
-      for (let i = 0; i < result.length; i++) {
-        const word = result[i]
-        let haveVowel = false
-        for (let j = 0; j < word.length; j++) {
-          if ('ЁУЕЫАОЭЯИЮёуеыаоэяиюEUIOAeuioaїієѣ'.includes(word[j])) {
-            haveVowel = true
-            break
-          }
-        }
-        if (!haveVowel) {
-          if (i === result.length - 1 || (word === '-_' && i !== 0)) {
-            result[i - 1] = result[i - 1] + word
-            result.splice(i, 1)
-            i--
-          } else if (i < result.length - 2) {
-            result[i + 1] = word + result[i + 1]
-            result.splice(i, 1)
-            i--
-          }
-        }
-      }
-      return result
+      })
+      return anchors
     },
     lstVoices() {
       let result = []
@@ -1950,6 +2133,7 @@ export default {
           }
           this.createBeatMarkers()
         }
+        this.syncMarkersFromSpecTags()
       },
     },
     sound: {
@@ -1985,6 +2169,7 @@ export default {
       handler() {
         this.sourceSyllables = this.getSyllables
         this.updateMarkersBySyllables()
+        this.syncMarkersFromSpecTags()
         this.tail = this.getTail
         this.textFormatted = this.getFormattedText
         this.notesFormatted = this.getFormattedNotes
@@ -2639,6 +2824,33 @@ export default {
       this.sourceText = correctedText
       this.isAiTextEditorVisible = false
     },
+    // Вставляет "~tagBody~" отдельной строкой в позиции курсора текстового поля (кнопки панели
+    // se-spectag-toolbar) - альтернатива печатанию тега руками. insertSpecTagAtCursorImpl - чистая
+    // функция (см. верх файла), сам метод только читает/пишет DOM textarea и this.sourceText.
+    insertSpecTagAtCursor(tagBody) {
+      const el = this.$refs.sourceTextEditor
+      const selectionStart = el ? el.selectionStart : this.sourceText.length
+      const selectionEnd = el ? el.selectionEnd : this.sourceText.length
+      const { text, cursorPos } = insertSpecTagAtCursorImpl(
+        this.sourceText,
+        selectionStart,
+        selectionEnd,
+        `~${tagBody}~`,
+      )
+      this.sourceText = text
+      this.$nextTick(() => {
+        if (!el) return
+        el.focus()
+        el.setSelectionRange(cursorPos, cursorPos)
+      })
+    },
+    // Комментарий требует текста значения - тот же паттерн window.prompt, что и addComment() в
+    // публичном краудсорсинг-редакторе (karaoke-public/EditorWorkView.vue).
+    insertSpecTagCommentAtCursor() {
+      const text = window.prompt('Текст комментария (отобразится курсивом в разметке):', '')
+      if (!text || !text.trim()) return
+      this.insertSpecTagAtCursor('comment:' + text.trim())
+    },
     save() {
       this.addEndMarker()
       this.$store.dispatch('saveSourceTextAndMarkers', {
@@ -3189,6 +3401,66 @@ export default {
       //   }
       // }
       // if (needSort) this.sortSourceMarkers();
+
+      this.sortSourceMarkers()
+    },
+    // Строго аддитивная синхронизация: для каждого распознанного спецтега в тексте (specTagAnchors)
+    // добавляет отсутствующий маркер в нужной позиции; НИКОГДА не удаляет и не изменяет существующие
+    // маркеры (см. contracts/tag-registry.md "Инварианты", FR-005/FR-006/FR-007 spec.md). В отличие
+    // от backend buildMarkersFromSyllableTimes, для обычной пустой строки БЕЗ тега маркер здесь не
+    // создаётся вовсе - это ответственность авто-разметки ("Точные маркеры"), а не ручного редактора.
+    syncMarkersFromSpecTags() {
+      if (!this.wsRegions) return
+      const anchors = this.specTagAnchors
+      if (anchors.length === 0) return
+
+      // i-й элемент - индекс в sourceMarkers i-го по счёту (в порядке времени) syllables-маркера,
+      // тот же принцип ординального сопоставления, что и в updateMarkersBySyllables().
+      const syllablePositions = []
+      this.sourceMarkers.forEach((marker, index) => {
+        if (marker.markertype === 'syllables') syllablePositions.push(index)
+      })
+
+      anchors.forEach((anchor) => {
+        const insertPos =
+          anchor.syllableIndex < syllablePositions.length
+            ? syllablePositions[anchor.syllableIndex]
+            : this.sourceMarkers.length
+        const windowStart =
+          anchor.syllableIndex > 0 ? syllablePositions[anchor.syllableIndex - 1] + 1 : 0
+
+        const alreadyExists = this.sourceMarkers
+          .slice(windowStart, insertPos)
+          .some(
+            (marker) => marker.markertype === anchor.markertype && marker.label === anchor.label,
+          )
+        if (alreadyExists) return
+
+        const prevMarker = insertPos > 0 ? this.sourceMarkers[insertPos - 1] : null
+        const nextMarker =
+          insertPos < this.sourceMarkers.length ? this.sourceMarkers[insertPos] : null
+        const prevEndTime = prevMarker ? prevMarker.time : 0
+        const nextStartTime = nextMarker ? nextMarker.time : prevEndTime
+        const gap = Math.max(0, nextStartTime - prevEndTime)
+        // Тот же приём, что backend newLineMarkerTime (NEWLINE_LEAD_IN_SECONDS=1.0).
+        const time = gap >= 1.0 ? nextStartTime - 1.0 : prevEndTime + gap / 2
+
+        const newMarker = {
+          time: time,
+          label: anchor.label,
+          color: anchor.markertype === 'newline' ? '#FF0000' : '#000080',
+          position: 'bottom',
+          markertype: anchor.markertype,
+        }
+        newMarker.region = this.createRegionMarker(newMarker)
+        this.sourceMarkers.splice(insertPos, 0, newMarker)
+
+        // Вставка сдвигает индексы всех последующих syllables-маркеров на 1 - обновляем локальный
+        // кэш позиций, чтобы следующие анкоры этого же прохода позиционировались верно.
+        for (let i = 0; i < syllablePositions.length; i++) {
+          if (syllablePositions[i] >= insertPos) syllablePositions[i]++
+        }
+      })
 
       this.sortSourceMarkers()
     },
@@ -4986,6 +5258,24 @@ export default {
 }
 .se-group-button-active:hover {
   background-color: lightskyblue;
+}
+
+.se-spectag-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 2px 0;
+}
+.se-spectag-button {
+  border: solid black thin;
+  border-radius: 5px;
+  background-color: white;
+  font-size: 12px;
+  padding: 2px 8px;
+  cursor: pointer;
+}
+.se-spectag-button:hover {
+  background-color: lightpink;
 }
 
 .se-subsedit-area {

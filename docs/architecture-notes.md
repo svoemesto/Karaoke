@@ -8,7 +8,7 @@
 > **Связанные документы**:
 > - [`architecture-notes-archive.md`](./architecture-notes-archive.md) — старая
 >   детальная история фич и ловушек (1718 строк, до PR #12).
-> - [`DEVELOPMENT.md`](./DEVELOPMENT.md) — durable-карта архитектуры.
+> - [`DEVELOPMENT.md`](../DEVELOPMENT.md) — durable-карта архитектуры.
 > - [`AGENTS.md`](../AGENTS.md) — инструкции для AI-агента.
 > - [`docs/features/<slug>.md`](./features/) — per-feature документы.
 > - [`docs/onboarding.md`](./onboarding.md) — setup новой машины.

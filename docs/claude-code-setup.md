@@ -47,7 +47,7 @@ Claude Code в проекте Karaoke должен прочитать **2 фай
 
 ## Рекомендуемый `CLAUDE.md` (шаблон)
 
-> **TL;DR**: скопируйте содержимое [`docs/CLAUDE.md.template`](../CLAUDE.md.template) в свой
+> **TL;DR**: скопируйте содержимое [`docs/CLAUDE.md.template`](./CLAUDE.md.template) в свой
 > `CLAUDE.md` (в корне проекта). Шаблон короткий, **обязательный**, и Claude Code будет
 > следовать этим правилам при старте сессии.
 

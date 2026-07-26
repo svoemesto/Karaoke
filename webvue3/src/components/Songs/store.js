@@ -2450,6 +2450,7 @@ export default {
       let params = {
         id: ctx.state.currentSongId,
         sourceText: payload.sourceText,
+        useFinetunedModel: payload.useFinetunedModel,
       }
       let request = {
         method: 'POST',

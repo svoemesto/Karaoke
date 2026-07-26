@@ -57,38 +57,42 @@ def read_audio_segment(path: str, start_ms: int, end_ms: int) -> tuple[torch.Ten
     waveform = torch.from_numpy(np.ascontiguousarray(data.T))
     return waveform, sample_rate
 
-_bundle = None
-_model = None
-_tokenizer = None
-_aligner = None
-_sample_rate = None
-_custom_processor = None  # заполнено только в ветке --model (дообученный чекпоинт из train.py)
-_star_id = None  # id "звёздного" токена (см. _align_words_baseline) - None, если with_star не удалось загрузить
+# Кэш загруженных моделей, отдельно по model_path (None = baseline MMS_FA) - serve.py должен уметь
+# держать baseline И дообученный чекпоинт ОДНОВРЕМЕННО в памяти и переключаться между ними на
+# каждый запрос (см. --use-finetuned в /align), поэтому кэш не может быть одним набором глобальных
+# переменных "текущей" модели, как было раньше (это работало только пока процесс за весь свой
+# жизненный цикл вызывал align с одним и тем же model_path - верно для CLI/evaluate.py/train.py,
+# но не для serve.py с переключением из UI).
+_model_cache: dict[str | None, dict] = {}
 
 
-def _load_model(model_path: str | None = None):
-    """Без --model - baseline torchaudio.pipelines.MMS_FA (готовая модель, без обучения).
-    С --model <путь> - дообученный HF Wav2Vec2ForCTC чекпоинт (см. train.py) со своим словарём
+def _load_model(model_path: str | None = None) -> dict:
+    """Без model_path - baseline torchaudio.pipelines.MMS_FA (готовая модель, без обучения).
+    С model_path - дообученный HF Wav2Vec2ForCTC чекпоинт (см. train.py) со своим словарём
     символов; выравнивание тогда идёт через общую torchaudio.functional.forced_align (не через
-    bundle.get_aligner(), который завязан на словарь именно MMS_FA)."""
-    global _bundle, _model, _tokenizer, _aligner, _sample_rate, _custom_processor, _star_id
-    if _model is not None:
-        return
+    bundle.get_aligner(), который завязан на словарь именно MMS_FA). Возвращает dict состояния
+    модели (тот же dict при повторном вызове с тем же model_path - кэш, тяжёлая модель грузится
+    только один раз за процесс)."""
+    if model_path in _model_cache:
+        return _model_cache[model_path]
+
+    state: dict = {}
 
     if model_path:
         from transformers import Wav2Vec2ForCTC, Wav2Vec2Processor
 
-        _custom_processor = Wav2Vec2Processor.from_pretrained(model_path)
-        _model = Wav2Vec2ForCTC.from_pretrained(model_path)
-        _model.eval()
-        _sample_rate = _custom_processor.feature_extractor.sampling_rate
-        return
+        state["custom_processor"] = Wav2Vec2Processor.from_pretrained(model_path)
+        state["model"] = Wav2Vec2ForCTC.from_pretrained(model_path)
+        state["model"].eval()
+        state["sample_rate"] = state["custom_processor"].feature_extractor.sampling_rate
+        _model_cache[model_path] = state
+        return state
 
     from torchaudio.pipelines import MMS_FA as bundle
 
-    _bundle = bundle
-    _tokenizer = bundle.get_tokenizer()
-    _sample_rate = bundle.sample_rate
+    state["bundle"] = bundle
+    state["tokenizer"] = bundle.get_tokenizer()
+    state["sample_rate"] = bundle.sample_rate
 
     # with_star=True: у многоголосых песен несколько голосов делят один и тот же файл вокала -
     # текст ОДНОГО голоса покрывает только часть аудио (остальное время поёт другой голос). Без
@@ -97,16 +101,18 @@ def _load_model(model_path: str | None = None):
     # MMS_FA именно под "кусок аудио не описан транскриптом" (экспериментально - первый реальный
     # прогон должен показать, действительно ли это чинит именно эти случаи).
     try:
-        _model = bundle.get_model(with_star=True)
-        _aligner = bundle.get_aligner()
+        state["model"] = bundle.get_model(with_star=True)
+        state["aligner"] = bundle.get_aligner()
         star_dict = bundle.get_dict(star="*")
-        _star_id = star_dict["*"]
+        state["star_id"] = star_dict["*"]
     except Exception as e:
         print(f"[align] with_star=True недоступен ({e}) - откатываюсь на обычную загрузку без звёздного токена")
-        _model = bundle.get_model()
-        _aligner = bundle.get_aligner()
-        _star_id = None
-    _model.eval()
+        state["model"] = bundle.get_model()
+        state["aligner"] = bundle.get_aligner()
+        state["star_id"] = None
+    state["model"].eval()
+    _model_cache[model_path] = state
+    return state
 
 
 def _romanize(words: list[str]) -> list[str]:
@@ -126,13 +132,13 @@ def _romanize(words: list[str]) -> list[str]:
         return [w.lower() for w in words]
 
 
-def _sanitize_for_vocab(words: list[str]) -> list[str]:
+def _sanitize_for_vocab(words: list[str], bundle) -> list[str]:
     """MMS_FA словарь (bundle.get_dict(): символ -> индекс) - конечный набор символов, на которых
     обучена модель. Любой другой символ в romanized-тексте (артефакт uroman - апострофы, диакритика,
     случайно оставшийся пробел и т.п.) токенизатор либо не найдёт, либо смапит на blank/id=0, а
     forced_align считает такой target невалидным ("targets Tensor shouldn't contain blank index").
     Фильтруем строго по реальному словарю модели, а не гадаем заранее, какие символы "безопасны"."""
-    vocab = _bundle.get_dict()
+    vocab = bundle.get_dict()
     blank_chars = {c for c, i in vocab.items() if i == 0}
     valid = set(vocab.keys()) - blank_chars
 
@@ -148,67 +154,72 @@ def _sanitize_for_vocab(words: list[str]) -> list[str]:
     return result
 
 
-def _load_audio(audio_path: str) -> torch.Tensor:
+def _load_audio(audio_path: str, sample_rate_target: int) -> torch.Tensor:
     waveform, sample_rate = read_audio(audio_path)
     if waveform.size(0) > 1:
         waveform = waveform.mean(dim=0, keepdim=True)
-    if sample_rate != _sample_rate:
-        waveform = torchaudio.functional.resample(waveform, sample_rate, _sample_rate)
+    if sample_rate != sample_rate_target:
+        waveform = torchaudio.functional.resample(waveform, sample_rate, sample_rate_target)
     return waveform
 
 
-def _align_words_baseline(waveform: torch.Tensor, words: list[str]) -> list[tuple[float, float]]:
+def _align_words_baseline(waveform: torch.Tensor, words: list[str], state: dict) -> list[tuple[float, float]]:
+    bundle = state["bundle"]
+    sample_rate = state["sample_rate"]
     with torch.inference_mode():
-        emission, _ = _model(waveform)
+        emission, _ = state["model"](waveform)
 
-    romanized = _sanitize_for_vocab(_romanize(words))
-    token_sequences = _tokenizer(romanized)
+    romanized = _sanitize_for_vocab(_romanize(words), bundle)
+    token_sequences = state["tokenizer"](romanized)
 
-    if _star_id is not None:
+    star_id = state["star_id"]
+    if star_id is not None:
         # Звёздный токен ДО, МЕЖДУ и ПОСЛЕ каждого реального слова - модель может "списать" на "*"
         # произвольный кусок аудио между словами (в т.ч. пение другого голоса), а не размазывать
         # реальные слова по всей длительности. Реальные слова после этого - на НЕЧЁТНЫХ позициях
         # (0=*, 1=word0, 2=*, 3=word1, ..., 2N=*).
-        interleaved = [[_star_id]]
+        interleaved = [[star_id]]
         for seq in token_sequences:
             interleaved.append(seq)
-            interleaved.append([_star_id])
-        all_spans = _aligner(emission[0], interleaved)
+            interleaved.append([star_id])
+        all_spans = state["aligner"](emission[0], interleaved)
         token_spans = all_spans[1::2]
     else:
-        token_spans = _aligner(emission[0], token_sequences)
+        token_spans = state["aligner"](emission[0], token_sequences)
 
     num_frames = emission.size(1)
-    ratio = waveform.size(1) / num_frames / _sample_rate
+    ratio = waveform.size(1) / num_frames / sample_rate
 
     return [(spans[0].start * ratio, spans[-1].end * ratio) for spans in token_spans]
 
 
-def _align_words_finetuned(waveform: torch.Tensor, words: list[str]) -> list[tuple[float, float]]:
-    """Ветка --model: дообученный HF Wav2Vec2ForCTC (train.py), выравнивание через общую
-    torchaudio.functional.forced_align (не привязана к словарю MMS_FA, работает с любым CTC)."""
+def _align_words_finetuned(waveform: torch.Tensor, words: list[str], state: dict) -> list[tuple[float, float]]:
+    """Ветка --model/use_finetuned: дообученный HF Wav2Vec2ForCTC (train.py), выравнивание через
+    общую torchaudio.functional.forced_align (не привязана к словарю MMS_FA, работает с любым CTC)."""
+    processor = state["custom_processor"]
+    sample_rate = state["sample_rate"]
     text_normalized = "|".join(words).lower()
     with torch.inference_mode():
-        input_values = _custom_processor(waveform.squeeze(0).numpy(), sampling_rate=_sample_rate).input_values
-        logits = _model(torch.tensor(input_values)).logits
+        input_values = processor(waveform.squeeze(0).numpy(), sampling_rate=sample_rate).input_values
+        logits = state["model"](torch.tensor(input_values)).logits
         emission = torch.log_softmax(logits, dim=-1)
 
     # as_target_processor() - устаревший способ переключить процессор на токенизатор текста (и уже
     # убран в некоторых версиях transformers, см. train.py) - зовём tokenizer напрямую.
-    token_ids = torch.tensor([_custom_processor.tokenizer(text_normalized).input_ids])
+    token_ids = torch.tensor([processor.tokenizer(text_normalized).input_ids])
 
-    aligned_tokens, scores = torchaudio.functional.forced_align(emission, token_ids, blank=_custom_processor.tokenizer.pad_token_id)
+    aligned_tokens, scores = torchaudio.functional.forced_align(emission, token_ids, blank=processor.tokenizer.pad_token_id)
     token_spans = torchaudio.functional.merge_tokens(aligned_tokens[0], scores[0])
 
     # merge_tokens даёт спаны по СИМВОЛАМ, включая "|" (разделитель слов) - схлопываем в спаны по словам.
     # span.token - ЧИСЛОВОЙ индекс токена (id из словаря), а не строка - сравнивать нужно с
     # word_delimiter_token_id, а не с самим word_delimiter_token (строкой "|"); иначе сравнение
     # int == str всегда False, весь список токенов схлопывается в один спан на всю песню.
-    word_delimiter_id = _custom_processor.tokenizer.word_delimiter_token_id
+    word_delimiter_id = processor.tokenizer.word_delimiter_token_id
     word_spans: list[tuple[float, float]] = []
     current_start = None
     current_end = None
-    ratio = waveform.size(1) / emission.size(1) / _sample_rate
+    ratio = waveform.size(1) / emission.size(1) / sample_rate
     for span in token_spans:
         if span.token == word_delimiter_id:
             if current_start is not None:
@@ -227,11 +238,11 @@ def align_words(audio_path: str, words: list[str], model_path: str | None = None
     """Возвращает список (start_sec, end_sec) - по одному на каждое слово из `words`, в том же
     порядке. Слова - НЕ то, что распознал сам аудиофайл, а известный ground-truth текст (в этом и
     смысл forced alignment в отличие от ASR)."""
-    _load_model(model_path)
-    waveform = _load_audio(audio_path)
-    if _custom_processor is not None:
-        return _align_words_finetuned(waveform, words)
-    return _align_words_baseline(waveform, words)
+    state = _load_model(model_path)
+    waveform = _load_audio(audio_path, state["sample_rate"])
+    if "custom_processor" in state:
+        return _align_words_finetuned(waveform, words, state)
+    return _align_words_baseline(waveform, words, state)
 
 
 def align_syllables(audio_path: str, text: str, model_path: str | None = None) -> list[dict]:

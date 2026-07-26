@@ -9,10 +9,25 @@
 гейтед-репозиториев на HuggingFace (некоторые модели, в отличие от "обычного" medium, доступны
 только авторизованным аккаунтам, принявшим лицензию)."""
 import os
+import socket
 import sys
 import urllib.request
 import urllib.error
 import json
+
+# "Errno 101 Network is unreachable" - классическая проблема Docker + IPv6: huggingface.co
+# резолвится и в IPv4, и в IPv6, Python пробует адреса по порядку, а у контейнера часто нет
+# реального маршрута в IPv6 (IPv6 включён в хост-ОС, но не настроен на уровне docker-сети).
+# Форсируем резолвинг только IPv4 для ВСЕХ соединений в процессе (включая urllib) - не трогает
+# конфигурацию docker/хоста, чинится на уровне приложения.
+_original_getaddrinfo = socket.getaddrinfo
+
+
+def _getaddrinfo_ipv4_only(host, port, family=0, type=0, proto=0, flags=0):
+    return _original_getaddrinfo(host, port, socket.AF_INET, type, proto, flags)
+
+
+socket.getaddrinfo = _getaddrinfo_ipv4_only
 
 CACHE_DIR = "/var/lib/whisper"
 WHISPER_MODEL = os.environ.get("WHISPER_MODEL", "medium")

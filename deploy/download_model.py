@@ -16,7 +16,19 @@ import json
 
 CACHE_DIR = "/var/lib/whisper"
 WHISPER_MODEL = os.environ.get("WHISPER_MODEL", "medium")
-MODEL_ID = f"Systran/faster-whisper-{WHISPER_MODEL}"
+
+# CTranslate2-конверсия (нужна faster-whisper) публикуется НЕ у всех моделей одним и тем же
+# издателем на HuggingFace: большинство - у Systran (faster-whisper-{model}), но large-v3-turbo/
+# turbo конвертировал не Systran, а сообщество - тот же репозиторий, что использует сама
+# библиотека faster-whisper внутри (см. faster_whisper.utils._MODELS). ВАЖНО: openai/whisper-* -
+# это ИСХОДНЫЙ чекпоинт в формате HuggingFace Transformers, НЕ формат CTranslate2 - для
+# WHISPER_ENGINE=faster-whisper (см. docker-compose-whisper.yml) нужен именно CT2-репозиторий,
+# иначе файлы (model.bin и т.п.) не совпадут по формату/имени.
+_MODEL_REPO_OVERRIDES = {
+    "large-v3-turbo": "mobiuslabsgmbh/faster-whisper-large-v3-turbo",
+    "turbo": "mobiuslabsgmbh/faster-whisper-large-v3-turbo",
+}
+MODEL_ID = _MODEL_REPO_OVERRIDES.get(WHISPER_MODEL, f"Systran/faster-whisper-{WHISPER_MODEL}")
 BASE_URL = f"https://huggingface.co/{MODEL_ID}/resolve/main"
 
 HF_TOKEN = os.environ.get("HF_TOKEN", "").strip()

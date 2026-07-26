@@ -15,6 +15,13 @@ services:
     container_name: whisper-asr
     restart: always
     init: true
+    # Обычный docker0/"bridge" вместо отдельной Compose-сети проекта (которую Compose создаёт
+    # по умолчанию, если не указан networks:) - на этой машине именно кастомные Compose-сети (не
+    # docker0) не могли достучаться наружу (DNS/HTTPS таймауты), а простой "docker run --rm
+    # alpine" (который как раз использует docker0) работал без проблем. Похоже на несовпадение
+    # MTU между VPN-туннелем хоста и кастомным bridge (VPN режет MTU, кастомная Compose-сеть
+    # использует MTU 1500 по умолчанию - крупные пакеты молча теряются).
+    network_mode: bridge
     ports:
       - "8015:9000"
     environment:
@@ -62,6 +69,7 @@ services:
     depends_on:
       whisper-asr:
         condition: service_healthy
+    network_mode: bridge
     ports:
       - "8016:9000"
     environment:

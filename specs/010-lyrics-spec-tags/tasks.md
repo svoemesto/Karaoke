@@ -150,6 +150,23 @@
 
 ---
 
+## Phase 5e: `webvue3/SongKaraokeEditorView.vue` — пятое независимое место (найдено по скриншоту пользователя)
+
+**Почему эта фаза появилась после Phase 5d**: пользователь спросил "где кнопки" и приложил скриншот модалки "редактирование песни" — на нём не было ни кнопок из Phase 5c, ни узнаваемого UI `SubsEdit.vue` (иконки-тулбар), а был layout, идентичный краудсорсинг-редактору (`EditorWorkView.vue`): слайдеры зум/скорость/громкость, "Показать клавиатуру"/"Очистить маркеры". Оказалось: `webvue3` содержит ВТОРОЙ, лёгкий модальный редактор (`SongKaraokeEditorView.vue`/`SongKaraokeEditorModal.vue`) со своей ОТДЕЛЬНОЙ (не импорт из `karaoke-public`) копией `useKaraokeEditor.js` (`webvue3/src/composables/useKaraokeEditor.js`) — не входил ни в Phase 0/1 (искали только `SubsEdit.vue`), ни в Phase 5b/5c (искали "другой пакет", не "второй компонент в том же пакете"). См. `research.md` §11 и обновлённый чек-лист в `contracts/tag-registry.md`.
+
+**Goal**: Лёгкий admin-редактор (`SongKaraokeEditorView.vue`) распознаёт те же спецтеги и даёт те же кнопки быстрой вставки, что и остальные редакторы.
+
+**Independent Test**: Песня с `~newline~`/`~group:N~`/алиасом в тексте даёт идентичный результат разметки, будь она открыта через `SubsEdit.vue` или через модалку `SongKaraokeEditorModal.vue`; кнопки на панели `ske-spectag-toolbar` вставляют тег так же, как в двух других редакторах.
+
+- [X] T043 [P] В `webvue3/src/composables/useKaraokeEditor.js` (ОТДЕЛЬНАЯ от `karaoke-public` копия) портирован тот же парсер/реестр/алиасы + `specTagAnchors`/`syncMarkersFromSpecTags`/`insertSpecTagAtCursor`, что и в `karaoke-public`; `splitSyllables` обновлён снимать тег-только строки. Проверено вручную через `node --input-type=module -e` на тех же фикстурах, что и в `karaoke-public`/Kotlin — идентичный результат.
+- [X] T044 В `webvue3/src/components/SongEditor/SongKaraokeEditorView.vue`: вызов `syncMarkersFromSpecTags()` в `loadVoicesFromProps()` (загрузка) и `onTextInput()` (правка текста); методы `onInsertSpecTag(tagBody)`/`onInsertSpecTagComment()` + панель `ske-spectag-toolbar` с теми же 7 кнопками над textarea. `SongKaraokeEditorModal.vue` (тонкая обёртка, сама текст не парсит) — без изменений.
+- [X] T045 Линтеры/prettier/сборка (`npx eslint`, `npx prettier --check`, `npm run build`) для обоих изменённых файлов — чисто; JSDoc coverage `webvue3` не упал (100%). `webvue3` пересобран и перезапущен в докере повторно (`do.sh build_webvue3` + `start_webvue3`) после этой фазы.
+- [X] T046 Обновлены `contracts/tag-registry.md` (место 5, практический чек-лист, общее правило поиска по факту использования `getSyllables`/`splitSyllables`), `research.md` (§11), `plan.md`, `spec.md` (FR-011 расширен на три редактора, новый Edge Case "разные редакторы — идентичный результат") — задокументирован главный урок: пакет ≠ один редактор.
+
+**Checkpoint**: Все пять независимых мест реализации контракта синхронизированы; спецтеги работают идентично в любом из трёх текстовых редакторов и на backend/форс-алаймент сервисе.
+
+---
+
 ## Phase 6: Polish & Cross-Cutting Concerns
 
 - [X] T025 [P] Добавить KDoc для новых публичных Kotlin-символов (`SpecTags`, `SpecTag`, изменённые сигнатуры `buildTargetWords`/`buildMarkersFromSyllableTimes`) со ссылкой `@see` на `specs/010-lyrics-spec-tags/contracts/tag-registry.md` (FR-006/Constitution Principle VI; см. T003 — новый per-feature документ не создаётся).

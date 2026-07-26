@@ -674,22 +674,22 @@ class SongEditorController(
         }
     }
 
-    // Авто-расстановка маркеров: прогоняет вокальный стем через Whisper (см. WhisperAsrService) и
-    // сопоставляет результат с уже введённым текстом голоса (WhisperMarkerAligner). Ничего не
-    // сохраняет — возвращает черновой набор маркеров, дальше редактор в SubsEdit.vue применяет их
-    // локально, пользователь правит и сохраняет обычным Save (или отменяет, перезагрузив голос).
-    // Settings читаем ВСЕГДА из WORKING_DATABASE - только там есть локальный диск с FLAC (тот же
-    // принцип, что и в editById); sourceText берём из запроса, а не пересобираем его из БД/черновика.
-    //
-    // Если текста ещё нет вообще - Whisper всё равно прогоняем: маркеров тогда не будет (сопоставлять
-    // не с чем), но "сырой" распознанный текст (whisperText) можно скопировать в WhisperDebugModal и
-    // использовать как отправную точку для текста песни - это ok:true с пустыми markers, а не ошибка.
+    // Бутстрап текста песни через Whisper-транскрипцию (см. WhisperAsrService) - ТОЛЬКО для
+    // голоса, у которого текста ещё нет вообще: "сырой" распознанный текст (whisperText) можно
+    // скопировать в WhisperDebugModal и использовать как отправную точку. Раньше этот эндпоинт
+    // ещё и расставлял маркеры (word-level интерполяция через WhisperMarkerAligner.alignToMarkers)
+    // для уже введённого текста - убрано: forced-alignment ("Точные маркеры",
+    // editForcedAlignMarkers) даёт точность на слог вместо интерполяции по слову и дублировал
+    // этот путь при непустом тексте, поэтому кнопка "Авто-маркеры" в SubsEdit.vue теперь
+    // задизейблена, если текст уже есть - используйте "Точные маркеры" вместо неё.
     @PostMapping("/edit/autoMarkers")
     @ResponseBody
     fun editAutoMarkers(
         @RequestParam id: Long,
         @RequestParam sourceText: String,
     ): Map<String, Any?> {
+        if (sourceText.isNotBlank()) return mapOf("ok" to false, "error" to "text_already_exists")
+
         val settings =
             Settings.loadFromDbById(id, WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
                 ?: return mapOf("ok" to false, "error" to "song_not_found")
@@ -701,19 +701,16 @@ class SongEditorController(
         val words = WhisperAsrService.flatWords(transcription)
         if (words.isEmpty()) return mapOf("ok" to false, "error" to "no_speech_recognized")
 
-        val markers = if (sourceText.isBlank()) emptyList() else WhisperMarkerAligner.alignToMarkers(sourceText, words)
-        if (sourceText.isNotBlank() && markers.isEmpty()) return mapOf("ok" to false, "error" to "alignment_failed")
-
-        // "Сырой" ответ Whisper возвращаем вместе с маркерами - SubsEdit.vue показывает его в
-        // отдельном отладочном окне ДО применения, т.к. качество распознавания надо видеть перед
-        // тем как доверять этой разметке (см. WhisperDebugModal.vue).
+        // "Сырой" ответ Whisper - SubsEdit.vue показывает его в отдельном отладочном окне,
+        // markers всегда пуст (см. комментарий выше) - WhisperDebugModal умеет копировать один
+        // текст без применения маркеров (кнопка "Применить маркеры" задизейблена без них).
         val whisperText = transcription.text.ifBlank { transcription.segments.joinToString(" ") { it.text }.trim() }
 
         return mapOf(
             "ok" to true,
             "whisperText" to whisperText,
             "whisperWords" to words,
-            "markers" to markers,
+            "markers" to emptyList<Any>(),
         )
     }
 

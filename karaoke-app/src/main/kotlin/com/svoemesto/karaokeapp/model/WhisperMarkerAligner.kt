@@ -33,9 +33,14 @@ private const val MIN_INSERTION_CONFIDENCE = 0.75
 private const val MIN_INSERTION_RUN_LENGTH = 3
 
 /**
- * Сопоставляет word-level результат Whisper (см. WhisperAsrService) с уже введённым текстом песни
- * и строит слоговые маркеры. Whisper не даёт точности выше слова (см. решение в плане фичи), поэтому
- * время внутри слова распределяется по слогам пропорционально их длине в символах.
+ * Согласовывает официальный текст песни с word-level результатом Whisper (см. WhisperAsrService) -
+ * находит реально спетые, но отсутствующие в тексте вставки (reconcileText/reconcileWithGroundTruth)
+ * - и строит слоговые маркеры из результата forced-alignment, где тайминг каждого слога уже точно
+ * известен (buildMarkersFromSyllableTimes, см. align.py/serve.py). Раньше здесь же был отдельный
+ * word-level путь через интерполяцию (alignToMarkers, без forced-alignment) - убран как дублирующий
+ * forced-alignment (точнее по таймингу) для песен с уже введённым текстом; кнопка "Авто-маркеры" в
+ * SubsEdit.vue теперь используется только для бутстрапа текста ещё не размеченной песни (см.
+ * SongEditorController.editAutoMarkers).
  */
 object WhisperMarkerAligner {
     private data class TargetWord(
@@ -77,23 +82,6 @@ object WhisperMarkerAligner {
         val text: String,
         val syllables: List<ReconciledSyllable>,
     )
-
-    fun alignToMarkers(
-        sourceText: String,
-        whisperWords: List<WhisperWordDto>,
-    ): List<SourceMarker> {
-        val targetWords = buildTargetWords(sourceText.replace("\r\n", "\n").split("\n"))
-        if (targetWords.isEmpty()) return emptyList()
-
-        val recognizedWords = buildRecognizedWords(whisperWords)
-        if (recognizedWords.isEmpty()) return emptyList()
-
-        val (anchors, _) = alignWords(targetWords, recognizedWords)
-        if (anchors.isEmpty()) return emptyList()
-
-        val wordTimes = interpolateWordTimes(targetWords, anchors)
-        return buildMarkers(targetWords, wordTimes)
-    }
 
     // Строит маркеры из результата forced-alignment (align.py/serve.py, см. AlignmentServiceClient) -
     // точный тайминг КАЖДОГО слога уже известен (в отличие от Whisper, где известен только тайминг
@@ -542,131 +530,6 @@ object WhisperMarkerAligner {
         if (currentAnchor != null) runs.add(RecognizedRun(currentAnchor!!, currentWords))
 
         return anchors to runs
-    }
-
-    // Для каждого целевого слова вычисляет (start, end): у якорей - реальное время Whisper, у
-    // остальных - линейная интерполяция по накопленной длине символов между соседними якорями
-    // (и экстраполяция по локальной скорости символ/сек на краях, до первого и после последнего якоря).
-    private fun interpolateWordTimes(
-        targetWords: List<TargetWord>,
-        anchors: List<Anchor>,
-    ): List<Pair<Double, Double>> {
-        val charLengths = targetWords.map { it.syllables.sumOf { s -> s.length }.coerceAtLeast(1) }
-        val result = arrayOfNulls<Pair<Double, Double>>(targetWords.size)
-        anchors.forEach { result[it.targetIndex] = Pair(it.start, it.end) }
-
-        for (anchorPos in anchors.indices) {
-            val anchor = anchors[anchorPos]
-            val prevAnchor = anchors.getOrNull(anchorPos - 1)
-            val rangeStart = (prevAnchor?.targetIndex ?: -1) + 1
-            val rangeEnd = anchor.targetIndex - 1
-            if (rangeEnd < rangeStart) continue
-
-            val totalChars = (rangeStart..rangeEnd).sumOf { charLengths[it] }.coerceAtLeast(1)
-            val spanEndTime = anchor.start
-            val spanStartTime =
-                prevAnchor?.end ?: run {
-                    // Перед первым якорем нет опоры слева - экстраполируем той же плотностью,
-                    // что и внутри самого диапазона (символы поровну делят время до якоря).
-                    val rate = if (totalChars > 0) spanEndTime / totalChars else 0.0
-                    spanEndTime - totalChars * rate
-                }
-            var cursor = spanStartTime
-            val span = (spanEndTime - spanStartTime).coerceAtLeast(0.0)
-            for (idx in rangeStart..rangeEnd) {
-                val share = span * charLengths[idx] / totalChars
-                result[idx] = Pair(cursor, cursor + share)
-                cursor += share
-            }
-        }
-
-        val lastAnchor = anchors.lastOrNull()
-        if (lastAnchor != null && lastAnchor.targetIndex < targetWords.size - 1) {
-            val rangeStart = lastAnchor.targetIndex + 1
-            val rangeEnd = targetWords.size - 1
-            val prevAnchor = anchors.getOrNull(anchors.size - 2)
-            val rate =
-                if (prevAnchor != null && lastAnchor.start > prevAnchor.end) {
-                    val chars = (prevAnchor.targetIndex + 1..lastAnchor.targetIndex).sumOf { charLengths[it] }.coerceAtLeast(1)
-                    (lastAnchor.start - prevAnchor.end) / chars
-                } else {
-                    0.35 // грубая эвристика (сек/символ), если экстраполировать не от чего
-                }
-            var cursor = lastAnchor.end
-            for (idx in rangeStart..rangeEnd) {
-                val share = charLengths[idx] * rate
-                result[idx] = Pair(cursor, cursor + share)
-                cursor += share
-            }
-        }
-
-        // Финальная защита от отрицательных/немонотонных значений на краях грубой экстраполяции.
-        var prevEnd = 0.0
-        for (idx in result.indices) {
-            val pair = result[idx] ?: Pair(prevEnd, prevEnd)
-            val s = max(pair.first, prevEnd)
-            val e = max(pair.second, s)
-            result[idx] = Pair(s, e)
-            prevEnd = e
-        }
-
-        return result.map { it!! }
-    }
-
-    private fun buildMarkers(
-        targetWords: List<TargetWord>,
-        wordTimes: List<Pair<Double, Double>>,
-    ): List<SourceMarker> {
-        val markers = mutableListOf<SourceMarker>()
-        targetWords.forEachIndexed { wordIndex, word ->
-            val (wordStart, wordEnd) = wordTimes[wordIndex]
-            val totalChars = word.syllables.sumOf { it.length }.coerceAtLeast(1)
-            val duration = (wordEnd - wordStart).coerceAtLeast(0.0)
-            val isFirstOfLine = wordIndex == 0 || targetWords[wordIndex - 1].lineIndex != word.lineIndex
-            var cursor = wordStart
-            word.syllables.forEachIndexed { syllableIndex, syllable ->
-                val share = duration * syllable.length / totalChars
-                markers.add(
-                    SourceMarker(
-                        time = cursor,
-                        label = syllable,
-                        color = if (isFirstOfLine && syllableIndex == 0) COLOR_FIRST_SYLLABLE else COLOR_SYLLABLE,
-                        position = "bottom",
-                        markertype = Markertype.SYLLABLES.value,
-                    ),
-                )
-                cursor += share
-            }
-
-            val isLastOfLine = wordIndex == targetWords.size - 1 || targetWords[wordIndex + 1].lineIndex != word.lineIndex
-            if (isLastOfLine) {
-                markers.add(
-                    SourceMarker(
-                        time = wordEnd,
-                        label = "",
-                        color = COLOR_ENDOFLINE,
-                        position = "bottom",
-                        markertype = Markertype.ENDOFLINE.value,
-                    ),
-                )
-                if (wordIndex != targetWords.size - 1) {
-                    val nextWord = targetWords[wordIndex + 1]
-                    if (nextWord.lineIndex - word.lineIndex > 1) {
-                        val (nextLineStartTime, _) = wordTimes[wordIndex + 1]
-                        markers.add(
-                            SourceMarker(
-                                time = newLineMarkerTime(wordEnd, nextLineStartTime),
-                                label = "",
-                                color = COLOR_NEWLINE,
-                                position = "bottom",
-                                markertype = Markertype.NEWLINE.value,
-                            ),
-                        )
-                    }
-                }
-            }
-        }
-        return markers.sortedBy { it.time }
     }
 
     // Между соседними target-словами лежит >=1 полностью пустая строка исходного текста (граница

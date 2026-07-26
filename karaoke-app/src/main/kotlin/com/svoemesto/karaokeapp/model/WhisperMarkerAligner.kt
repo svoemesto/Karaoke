@@ -188,7 +188,7 @@ object WhisperMarkerAligner {
         if (recognizedWords.isEmpty()) return sourceText
 
         val (_, runs) = alignWords(targetWords, recognizedWords)
-        val insertions = acceptInsertionRuns(runs)
+        val insertions = acceptInsertionRuns(runs, targetWords)
         if (insertions.isEmpty()) return sourceText
 
         return rebuildText(targetWords, insertions)
@@ -217,7 +217,7 @@ object WhisperMarkerAligner {
                 emptyList()
             } else {
                 val (_, runs) = alignWords(targetWords, recognizedWords)
-                acceptInsertionRuns(runs)
+                acceptInsertionRuns(runs, targetWords)
             }
 
         val syllables = mutableListOf<ReconciledSyllable>()
@@ -262,11 +262,40 @@ object WhisperMarkerAligner {
     }
 
     // Отбирает только надёжные run-ы (см. MIN_INSERTION_CONFIDENCE/MIN_INSERTION_RUN_LENGTH) -
-    // одиночное низкоуверенное слово чаще ASR-шум, чем реальная вставка.
-    private fun acceptInsertionRuns(runs: List<RecognizedRun>): List<RecognizedRun> =
+    // одиночное низкоуверенное слово чаще ASR-шум, чем реальная вставка. targetWords - для
+    // looksLikeRepeatOfNextWord (см. ниже): confidence тут не спасает, Whisper часто "уверен" в
+    // своей неверной догадке.
+    private fun acceptInsertionRuns(
+        runs: List<RecognizedRun>,
+        targetWords: List<TargetWord>,
+    ): List<RecognizedRun> =
         runs.filter { run ->
-            run.words.size >= MIN_INSERTION_RUN_LENGTH && run.words.all { it.confidence >= MIN_INSERTION_CONFIDENCE }
+            run.words.size >= MIN_INSERTION_RUN_LENGTH &&
+                run.words.all { it.confidence >= MIN_INSERTION_CONFIDENCE } &&
+                !looksLikeRepeatOfNextWord(run, targetWords)
         }
+
+    // Whisper иногда "спотыкается" перед редким словом/неологизмом (составные придумки вроде
+    // "бизнезмей-искуситель" не встречаются в её обучающих данных) - сначала выдаёт фонетически
+    // похожий черновик из более привычных слов ("бизнес", "змей"), и только следом - настоящее
+    // слово. Это галлюцинация-повтор акустически ОДНОГО И ТОГО ЖЕ места записи, а не реальная
+    // вставка - confidence на таком черновике часто высокий (модель уверена в своей неверной
+    // догадке), поэтому MIN_INSERTION_CONFIDENCE её не ловит. Проверяем текстовое сходство
+    // вставки с НАЧАЛОМ следующего официального слова (тем же приёмом, что и wordScore - Левенштейн
+    // относительно длины) - непохоже на реальный ad-lib, который обычно не пересказывает то, что
+    // сейчас будет спето следующим словом.
+    private fun looksLikeRepeatOfNextWord(
+        run: RecognizedRun,
+        targetWords: List<TargetWord>,
+    ): Boolean {
+        val nextWord = targetWords.getOrNull(run.afterTargetIndex + 1) ?: return false
+        val insertionText = normalize(run.words.joinToString("") { it.raw })
+        if (insertionText.isEmpty() || nextWord.normalized.isEmpty()) return false
+        val prefix = nextWord.normalized.take(insertionText.length)
+        val dist = levenshtein(insertionText, prefix)
+        val threshold = max(1, (insertionText.length * 0.4).toInt())
+        return dist <= threshold
+    }
 
     // Собирает текст заново: официальные слова + принятые вставки сразу после того target-слова, к
     // которому они привязаны (afterTargetIndex) - перенос строки ставится там же, где менялся

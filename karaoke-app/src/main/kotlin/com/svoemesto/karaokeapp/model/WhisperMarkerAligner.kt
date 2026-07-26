@@ -10,6 +10,7 @@ private const val COLOR_FIRST_SYLLABLE = "#008000"
 private const val COLOR_SYLLABLE = "#D2691E"
 private const val COLOR_ENDOFLINE = "#FF0000"
 private const val COLOR_NEWLINE = "#FF0000"
+private const val COLOR_SETTING = "#000080"
 
 // Ручной аналог в SubsEdit.vue — клавиша "4" (пустая строка между блоками текста, см. addMarker):
 // в авто-маркерах вставляем NEWLINE-маркер за столько секунд ДО начала следующей строки, либо
@@ -94,7 +95,8 @@ object WhisperMarkerAligner {
         sourceText: String,
         syllableTimes: List<Pair<Double, Double>>,
     ): List<SourceMarker>? {
-        val targetWords = buildTargetWords(sourceText.replace("\r\n", "\n").split("\n"))
+        val lineTags = mutableMapOf<Int, List<SpecTags.SpecTag>>()
+        val targetWords = buildTargetWords(sourceText.replace("\r\n", "\n").split("\n"), lineTags)
         if (targetWords.sumOf { it.syllables.size } != syllableTimes.size) return null
 
         val markers = mutableListOf<SourceMarker>()
@@ -131,20 +133,55 @@ object WhisperMarkerAligner {
                     val nextWord = targetWords[wordIndex + 1]
                     if (nextWord.lineIndex - word.lineIndex > 1) {
                         val (nextLineStartTime, _) = syllableTimes[syllableIndex]
-                        markers.add(
-                            SourceMarker(
-                                time = newLineMarkerTime(wordEndTime, nextLineStartTime),
-                                label = "",
-                                color = COLOR_NEWLINE,
-                                position = "bottom",
-                                markertype = Markertype.NEWLINE.value,
-                            ),
+                        markers.addAll(
+                            buildGapMarkers(word.lineIndex, nextWord.lineIndex, lineTags, wordEndTime, nextLineStartTime),
                         )
                     }
                 }
             }
         }
         return markers.sortedBy { it.time }
+    }
+
+    // Между word.lineIndex и nextWord.lineIndex (эксклюзивно) лежат пропущенные строки — пустые
+    // и/или строки с единственным спецтегом (см. buildTargetWords/SpecTags.parseLine). Если ни
+    // одна из них не даёт распознанного тега (resolved пуст) — поведение ОБЯЗАНО совпадать с тем,
+    // что было до появления спецтегов: ровно один NEWLINE-маркер, независимо от того, сколько
+    // именно строк пропущено (см. FR-004/FR-010 spec.md). Если распознанные теги есть — вместо
+    // NEWLINE вставляется маркер по каждому из них (см. contracts/tag-registry.md).
+    private fun buildGapMarkers(
+        fromLineIndexExclusive: Int,
+        toLineIndexExclusive: Int,
+        lineTags: Map<Int, List<SpecTags.SpecTag>>,
+        prevLineEndTime: Double,
+        nextLineStartTime: Double,
+    ): List<SourceMarker> {
+        val time = newLineMarkerTime(prevLineEndTime, nextLineStartTime)
+        val resolved =
+            (fromLineIndexExclusive + 1 until toLineIndexExclusive)
+                .flatMap { lineIndex -> lineTags[lineIndex].orEmpty() }
+                .mapNotNull { SpecTags.resolve(it) }
+
+        if (resolved.isEmpty()) {
+            return listOf(
+                SourceMarker(
+                    time = time,
+                    label = "",
+                    color = COLOR_NEWLINE,
+                    position = "bottom",
+                    markertype = Markertype.NEWLINE.value,
+                ),
+            )
+        }
+        return resolved.map { (markertype, label) ->
+            SourceMarker(
+                time = time,
+                label = label,
+                color = if (markertype == Markertype.NEWLINE) COLOR_NEWLINE else COLOR_SETTING,
+                position = "bottom",
+                markertype = markertype.value,
+            )
+        }
     }
 
     private fun buildRecognizedWords(whisperWords: List<WhisperWordDto>): List<RecognizedWord> =
@@ -349,10 +386,22 @@ object WhisperMarkerAligner {
     // "с", "к" без гласной приклеиваются к следующему слову) делаем ОДИН РАЗ по всей строке, а не
     // отдельно на каждом слове — именно так это делает и JS-версия, и оригинальная (корректная для
     // одного слова) Kotlin getSyllables.
-    private fun buildTargetWords(lines: List<String>): List<TargetWord> {
+    // tagsOut - если передан, заполняется тегами (см. SpecTags.parseLine) со строк, которые ПОСЛЕ
+    // снятия тегов оказались пустыми (т.е. тег был единственным содержимым строки) - используется
+    // только вызывающей стороной buildMarkersFromSyllableTimes (см. buildGapMarkers выше);
+    // reconcileText/reconcileWithGroundTruth эти теги не нужны, они просто исключают такие строки
+    // из ASR-сопоставления слов, как и раньше исключали обычные пустые строки.
+    private fun buildTargetWords(
+        lines: List<String>,
+        tagsOut: MutableMap<Int, List<SpecTags.SpecTag>>? = null,
+    ): List<TargetWord> {
         val result = mutableListOf<TargetWord>()
         lines.forEachIndexed { lineIndex, line ->
-            if (line.isBlank()) return@forEachIndexed
+            val (stripped, tags) = SpecTags.parseLine(line)
+            if (stripped.isBlank()) {
+                if (tags.isNotEmpty()) tagsOut?.put(lineIndex, tags)
+                return@forEachIndexed
+            }
 
             // getSyllables (Utils.kt) добавляет "_" к ПОСЛЕДНЕМУ слогу каждого слова - это не
             // визуальный артефакт, а конвенция, на которой держится Settings.getText/getTextFormatted

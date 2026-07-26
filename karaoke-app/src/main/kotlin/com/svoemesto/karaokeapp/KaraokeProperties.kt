@@ -1639,6 +1639,14 @@ val listKaraokeProperties =
             defaultValue = 300_000L,
             description = "Forced-alignment: таймаут HTTP-запроса (миллисекунды)",
         ),
+        KaraokeProperty(
+            key = "alignmentUseFinetunedModel",
+            defaultValue = false,
+            description =
+                "Forced-alignment: по умолчанию использовать дообученный чекпоинт (train.py) вместо " +
+                    "baseline MMS_FA - требует ALIGN_MODEL_PATH на сервере serve.py. Переопределяется на " +
+                    "конкретный запуск флажком в модалке «Точные маркеры» в SubsEdit",
+        ),
         // LM Studio (OpenAI-совместимый /v1/chat/completions) на хост-машине админа - LLM для
         // поиска текстов песен (ScraperAgent) и AI-редактора текста (TextCorrectorAgent, SubsEdit
         // "AI-редактор текста"). Заменяет собой прежний путь через LangChain4j + Ollama.

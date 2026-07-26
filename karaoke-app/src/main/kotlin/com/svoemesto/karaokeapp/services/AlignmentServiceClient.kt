@@ -36,6 +36,7 @@ object AlignmentServiceClient {
     fun align(
         audioFile: File,
         text: String,
+        useFinetuned: Boolean = KaraokeProperties.getBoolean("alignmentUseFinetunedModel"),
     ): AlignResponseDto? {
         val url = KaraokeProperties.getString("alignmentServiceUrl")
         if (url.isBlank()) return null
@@ -59,6 +60,7 @@ object AlignmentServiceClient {
                 .setType(MultipartBody.FORM)
                 .addFormDataPart("file", audioFile.name, audioFile.asRequestBody(mediaType))
                 .addFormDataPart("text", text)
+                .addFormDataPart("use_finetuned", useFinetuned.toString())
                 .build()
 
         val request =

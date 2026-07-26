@@ -316,10 +316,17 @@ object WhisperMarkerAligner {
         lines.forEachIndexed { lineIndex, line ->
             if (line.isBlank()) return@forEachIndexed
 
+            // getSyllables (Utils.kt) добавляет "_" к ПОСЛЕДНЕМУ слогу каждого слова - это не
+            // визуальный артефакт, а конвенция, на которой держится Settings.getText/getTextFormatted
+            // (marker.label.replace("_", " ")) при реконструкции текста из маркеров: "_" - это будущий
+            // пробел между словами. Раньше здесь стоял removeSuffix("_"), который эту метку молча
+            // стирал - в результате auto-маркеры (buildMarkers/buildMarkersFromSyllableTimes ниже)
+            // давали слова без пробелов между ними при реконструкции текста. Ручные маркеры (SubsEdit
+            // getSyllables во фронтенде) уже сегодня сохраняют "_" - значит и авто-маркеры должны.
             val flat = mutableListOf<RawSyllable>()
             wordRegex.findAll(line).forEachIndexed { wordIndex, match ->
                 getSyllables(match.value).forEach { syl ->
-                    flat.add(RawSyllable(syl.removeSuffix("_"), wordIndex))
+                    flat.add(RawSyllable(syl, wordIndex))
                 }
             }
 
@@ -329,12 +336,13 @@ object WhisperMarkerAligner {
             // сильнее фронтенда и оставляло, например, повисшую запятую в конце строки как
             // самостоятельный "слог" (в отличие от фронтенда, где она смержилась бы назад). i != 0
             // — защита от IndexOutOfBounds на однословной строке без гласной (в JS это undefined,
-            // не падение — тут безопаснее просто не мержить).
+            // не падение — тут безопаснее просто не мержить). Сравнение с "-_" (не "-") - т.к. "_"
+            // теперь не срезается заранее (см. комментарий выше про getSyllables/removeSuffix).
             var i = 0
             while (i < flat.size) {
                 val piece = flat[i]
                 if (!piece.text.haveVowel()) {
-                    if (i != 0 && (i == flat.size - 1 || piece.text == "-")) {
+                    if (i != 0 && (i == flat.size - 1 || piece.text == "-_")) {
                         flat[i - 1].text += piece.text
                         flat.removeAt(i)
                         i--

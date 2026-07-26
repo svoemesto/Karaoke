@@ -223,9 +223,14 @@ object WhisperMarkerAligner {
 
         insertionsByAnchor[-1]?.forEach { run -> syllables.addAll(insertionSyllables(run)) }
         targetWords.forEachIndexed { wordIndex, word ->
+            // "_" (маркер конца слова, см. buildMarkers/buildMarkersFromSyllableTimes выше) здесь не
+            // нужен - экспортируемый датасет (alignment-ml) ожидает чистый текст слога, как и
+            // insertionSyllables ниже (там тот же removeSuffix уже стоял).
             word.syllables.forEach { syllable ->
                 val real = realSyllables[realSyllableIndex]
-                syllables.add(ReconciledSyllable(label = syllable, timeMs = real.time * 1000, hasGroundTruth = true))
+                syllables.add(
+                    ReconciledSyllable(label = syllable.removeSuffix("_"), timeMs = real.time * 1000, hasGroundTruth = true),
+                )
                 realSyllableIndex++
             }
             insertionsByAnchor[wordIndex]?.forEach { run -> syllables.addAll(insertionSyllables(run)) }
@@ -279,7 +284,10 @@ object WhisperMarkerAligner {
 
         insertionsByAnchor[-1]?.forEach { run -> run.words.forEach { appendWord(it.raw) } }
         targetWords.forEachIndexed { wordIndex, word ->
-            appendWord(word.syllables.joinToString(""))
+            // syllables хранит "_" на последнем слоге слова (конвенция для SourceMarker.label, см.
+            // buildMarkers/buildMarkersFromSyllableTimes выше) - здесь же собирается ОБЫЧНЫЙ текст
+            // (пробелы между словами уже добавляет appendWord), поэтому "_" - лишний символ, срезаем.
+            appendWord(word.syllables.joinToString("").removeSuffix("_"))
             insertionsByAnchor[wordIndex]?.forEach { run -> run.words.forEach { appendWord(it.raw) } }
 
             val isLastWord = wordIndex == targetWords.size - 1

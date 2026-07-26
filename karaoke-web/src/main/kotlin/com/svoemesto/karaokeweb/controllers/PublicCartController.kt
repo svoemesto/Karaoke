@@ -4,7 +4,7 @@ import com.svoemesto.karaokeweb.WORKING_DATABASE
 
 import com.svoemesto.karaokeapp.model.CartItem
 import com.svoemesto.karaokeapp.model.PriceTariff
-import com.svoemesto.karaokeapp.model.Settings
+import com.svoemesto.karaokeapp.model.Song
 import com.svoemesto.karaokeapp.model.SiteUser
 import com.svoemesto.karaokeapp.model.Subscription
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
@@ -47,8 +47,8 @@ class PublicCartController(
 
     private fun currentUser(request: HttpServletRequest): SiteUser = request.getAttribute(SiteAuthInterceptor.SITE_USER_ATTR) as SiteUser
 
-    private fun songInfo(idSong: Long): Settings? =
-        Settings.loadFromDbById(idSong, db, storageService = storageService, storageApiClient = storageApiClient)
+    private fun songInfo(idSong: Long): Song? =
+        Song.loadFromDbById(idSong, db, storageService = storageService, storageApiClient = storageApiClient)
 
     // Песню могли купить напрямую (SongSubscriptionModal), минуя корзину — она навсегда остаётся
     // "непокупаемой" через корзину. Убираем такие позиции при каждом обращении к корзине (не только

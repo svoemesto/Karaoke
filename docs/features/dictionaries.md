@@ -105,7 +105,7 @@ interface TextFileDictionary {
 - [`CensoredWords.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/textfiledictionary/CensoredWordsDictionary.kt) — список нецензурных слов
 - [`DictionariesController.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/DictionariesController.kt) — REST CRUD для DB-словарей
 - `ApiController.doTextFileDictionary()` — фасад для фронта в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt`
-- `Settings.getWhereList()` — потребитель словарей в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Settings.kt`
+- `Song.getWhereList()` — потребитель словарей в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt`
 
 ### Связанные документы
 

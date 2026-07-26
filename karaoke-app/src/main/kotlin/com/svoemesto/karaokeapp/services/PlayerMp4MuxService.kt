@@ -1,6 +1,6 @@
 package com.svoemesto.karaokeapp.services
 
-import com.svoemesto.karaokeapp.model.Settings
+import com.svoemesto.karaokeapp.model.Song
 import com.svoemesto.karaokeapp.runCommand
 import java.io.File
 import java.sql.Timestamp
@@ -25,9 +25,9 @@ import java.time.Instant
 object PlayerMp4MuxService {
     // Путь к flac-стему + линейный множитель громкости (0 = тишина, 1 = как есть в исходнике).
     //
-    // ВАЖНО (сознательное упрощение MVP): это НЕ формат громкости MLT (Settings.propAudioVolumeOn/
+    // ВАЖНО (сознательное упрощение MVP): это НЕ формат громкости MLT (Song.propAudioVolumeOn/
     // Off/Custom, "timecode=dB", с посекундными "unmute"-окнами вокала для версии Karaoke,
-    // Settings.sourceUnmute) — воспроизводить эту огибающую под ffmpeg не требуется для цели Этапа 1
+    // Song.sourceUnmute) — воспроизводить эту огибающую под ffmpeg не требуется для цели Этапа 1
     // ("экспорт плеера как есть"): сам онлайн-плеер по умолчанию держит постоянный баланс
     // accVol=100/vocVol=0 (см. конструктор KaraokePlayer.js), без вокальных "окон" — тот же баланс
     // воспроизводится и здесь. Полная параметризация под per-версийные MLT-огибающие громкости —
@@ -38,7 +38,7 @@ object PlayerMp4MuxService {
     )
 
     /** Состав/громкости по умолчанию — как у MLT-версии Karaoke: аккомпанемент слышен, вокал приглушён. */
-    fun defaultTracks(settings: Settings): List<AudioTrack> =
+    fun defaultTracks(settings: Song): List<AudioTrack> =
         listOf(
             AudioTrack(settings.accompanimentNameFlac, 1.0),
             AudioTrack(settings.vocalsNameFlac, 0.0),
@@ -46,7 +46,7 @@ object PlayerMp4MuxService {
 
     /** Микс аудио-стемов для конкретной версии рендера. */
     fun tracksForVersion(
-        settings: Settings,
+        settings: Song,
         version: RenderVersion,
     ): List<AudioTrack> =
         when (version) {

@@ -95,7 +95,7 @@ data class MkoString(
                 sett.voicesForMlt[voiceId]
                     .getLines()[lineId]
                     .getElements(songVersion)
-                    .first { it.type in listOf(SettingVoiceLineElementTypes.TEXT, SettingVoiceLineElementTypes.COMMENT) }
+                    .first { it.type in listOf(SongVoiceLineElementTypes.TEXT, SongVoiceLineElementTypes.COMMENT) }
             } catch (_: Exception) {
                 return MltNode()
             }

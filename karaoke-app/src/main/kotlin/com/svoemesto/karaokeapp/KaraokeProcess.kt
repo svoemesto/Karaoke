@@ -394,7 +394,7 @@ class KaraokeProcess(
     ) {
         if (settingsId != 0) {
             val settings =
-                Settings.loadFromDbById(
+                Song.loadFromDbById(
                     id = settingsId.toLong(),
                     database = database,
                     storageService = storageService,
@@ -409,7 +409,7 @@ class KaraokeProcess(
                                 settings.statusProcessKaraoke == KaraokeProcessStatuses.DONE.name &&
                                 settings.idStatus == 4L
                             ) {
-                                settings.fields[SettingField.ID_STATUS] = "6"
+                                settings.fields[SongField.ID_STATUS] = "6"
                             }
                             settings.saveToDb()
                         }
@@ -422,7 +422,7 @@ class KaraokeProcess(
                                 settings.statusProcessKaraoke == KaraokeProcessStatuses.DONE.name &&
                                 settings.idStatus == 4L
                             ) {
-                                settings.fields[SettingField.ID_STATUS] = "6"
+                                settings.fields[SongField.ID_STATUS] = "6"
                             }
                             settings.saveToDb()
                         }
@@ -899,7 +899,7 @@ class KaraokeProcess(
 
         @Suppress("UNCHECKED_CAST")
         fun createProcess(
-            settings: Settings,
+            settings: Song,
             action: KaraokeProcessTypes,
             doWait: Boolean = false,
             prior: Int = 1,

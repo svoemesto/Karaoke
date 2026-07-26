@@ -5,7 +5,7 @@ package com.svoemesto.karaokeapp.model
  *
  * @see docs/features/mlt-generator.md
  */
-enum class SettingVoiceLineElementTypes {
+enum class SongVoiceLineElementTypes {
     TEXT, // Текст
     ACCORD, // Аккорд
     NOTE, // Нота

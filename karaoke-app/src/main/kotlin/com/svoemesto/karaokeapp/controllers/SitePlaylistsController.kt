@@ -2,7 +2,7 @@ package com.svoemesto.karaokeapp.controllers
 
 import com.svoemesto.karaokeapp.Connection
 import com.svoemesto.karaokeapp.KaraokeConnection
-import com.svoemesto.karaokeapp.model.Settings
+import com.svoemesto.karaokeapp.model.Song
 import com.svoemesto.karaokeapp.model.SitePlaylist
 import com.svoemesto.karaokeapp.model.SitePlaylistItem
 import com.svoemesto.karaokeapp.model.SiteUser
@@ -91,7 +91,7 @@ class SitePlaylistsController {
                 if (items.isEmpty()) {
                     emptyMap()
                 } else {
-                    Settings.loadListFromDbByIds(items.map { it.songId }.distinct(), db, KSS_APP, SAC_APP)
+                    Song.loadListFromDbByIds(items.map { it.songId }.distinct(), db, KSS_APP, SAC_APP)
                 }
             mapOf(
                 "id" to pl.id,

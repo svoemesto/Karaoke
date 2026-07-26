@@ -367,7 +367,7 @@ class ApiController(
     @ResponseBody
     fun getCnt(): String {
         val settings =
-            Settings.loadListFromDb(
+            Song.loadListFromDb(
                 database = WORKING_DATABASE,
                 storageService = storageService,
                 storageApiClient = storageApiClient,
@@ -389,7 +389,7 @@ class ApiController(
     fun getSongFileDrums(
         @PathVariable id: Long,
     ): ResponseEntity<Resource> {
-        Settings.loadFromDbById(id, WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)?.let { settings ->
+        Song.loadFromDbById(id, WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)?.let { settings ->
             val filename = File(settings.drumsNameFlac)
             val resource = FileSystemResource(filename)
             if (resource.exists()) {
@@ -406,7 +406,7 @@ class ApiController(
     fun getSongFileBass(
         @PathVariable id: Long,
     ): ResponseEntity<Resource> {
-        Settings.loadFromDbById(id, WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)?.let { settings ->
+        Song.loadFromDbById(id, WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)?.let { settings ->
             val filename = File(settings.bassNameFlac)
             val resource = FileSystemResource(filename)
             if (resource.exists()) {
@@ -423,7 +423,7 @@ class ApiController(
     fun getSongFileVocal(
         @PathVariable id: Long,
     ): ResponseEntity<Resource> {
-        Settings.loadFromDbById(id, WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)?.let { settings ->
+        Song.loadFromDbById(id, WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)?.let { settings ->
             val filename = File(settings.vocalsNameFlac)
             val resource = FileSystemResource(filename)
             if (resource.exists()) {
@@ -440,7 +440,7 @@ class ApiController(
     fun getSongFileMusic(
         @PathVariable id: Long,
     ): ResponseEntity<Resource> {
-        Settings.loadFromDbById(id, WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)?.let { settings ->
+        Song.loadFromDbById(id, WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)?.let { settings ->
             val filename = File(settings.accompanimentNameFlac)
             val resource = FileSystemResource(filename)
             if (resource.exists()) {
@@ -457,7 +457,7 @@ class ApiController(
     fun getSongFileSong(
         @PathVariable id: Long,
     ): ResponseEntity<Resource> {
-        Settings.loadFromDbById(id, WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)?.let { settings ->
+        Song.loadFromDbById(id, WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)?.let { settings ->
             val filename = File(settings.fileAbsolutePath)
             val resource = FileSystemResource(filename)
             if (resource.exists()) {
@@ -484,7 +484,7 @@ class ApiController(
             return emptyList()
         }
         var rs: ResultSet? = null
-        val sql = "select id from tbl_settings where EXTRACT(EPOCH FROM last_update at time zone 'UTC-3')*1000 > ?;"
+        val sql = "select id from tbl_songs where EXTRACT(EPOCH FROM last_update at time zone 'UTC-3')*1000 > ?;"
         val statement = connection.prepareStatement(sql)
         statement.setLong(1, time)
         try {
@@ -558,14 +558,14 @@ class ApiController(
         @RequestParam idAnother: Long,
         @RequestParam fields: String,
     ): String {
-        Settings
+        Song
             .loadFromDbById(
                 id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
                 storageApiClient = storageApiClient,
             )?.let { settings ->
-                settings.copyFieldsFromAnother(idAnother, fields.split(";").map { SettingField.valueOf(it) })
+                settings.copyFieldsFromAnother(idAnother, fields.split(";").map { SongField.valueOf(it) })
             }
         return "OK"
     }
@@ -578,7 +578,7 @@ class ApiController(
         @RequestParam id: Long,
     ): Boolean {
         val settings =
-            Settings.loadFromDbById(id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+            Song.loadFromDbById(id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
                 ?: return false
         val original =
             findDuplicateOriginal(
@@ -603,11 +603,11 @@ class ApiController(
         @RequestParam id: Long,
     ): List<FamilySongDto> {
         val settings =
-            Settings.loadFromDbById(id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+            Song.loadFromDbById(id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
                 ?: return emptyList()
         val familyIds = findFamilySongIds(settings, database = WORKING_DATABASE)
         val familySettings =
-            Settings.loadListFromDbByIds(
+            Song.loadListFromDbByIds(
                 familyIds,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -641,12 +641,12 @@ class ApiController(
         @RequestParam search: String,
     ): List<FamilySongDto> {
         val settings =
-            Settings.loadFromDbById(id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+            Song.loadFromDbById(id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
                 ?: return emptyList()
         val ids = searchSongsByNormalizedName(settings, search, database = WORKING_DATABASE)
         if (ids.isEmpty()) return emptyList()
         val candidates =
-            Settings.loadListFromDbByIds(
+            Song.loadListFromDbByIds(
                 ids,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -682,10 +682,10 @@ class ApiController(
         @RequestParam(required = false) deltaMs: Long?,
     ): SelectFamilySongResultDto? {
         val settings =
-            Settings.loadFromDbById(id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+            Song.loadFromDbById(id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
                 ?: return null
         val another =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 idAnother,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -705,10 +705,10 @@ class ApiController(
         @RequestParam idAnother: Long,
     ): WaveformCompareResultDto {
         val settings =
-            Settings.loadFromDbById(id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+            Song.loadFromDbById(id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
                 ?: return WaveformCompareResultDto(idAnother, 0, 0, "", false, "Текущая песня не найдена")
         val another =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 idAnother,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -729,7 +729,7 @@ class ApiController(
         @RequestParam id: Long,
     ): FindAudioParentResultDto? {
         val settings =
-            Settings.loadFromDbById(id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+            Song.loadFromDbById(id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
                 ?: return null
         val result = findAudioParentByWaveform(settings, WORKING_DATABASE, storageService, storageApiClient)
         return FindAudioParentResultDto(
@@ -749,7 +749,7 @@ class ApiController(
         @RequestParam voiceId: Int,
     ): String {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -769,14 +769,14 @@ class ApiController(
         @RequestParam id: Long,
     ): Long {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
                 storageApiClient = storageApiClient,
             )
         return settings?.let {
-            settings.fields[SettingField.DIFFBEATS] = (settings.diffBeats + 1).toString()
+            settings.fields[SongField.DIFFBEATS] = (settings.diffBeats + 1).toString()
             settings.saveToDb()
             settings.diffBeats
         } ?: -1
@@ -789,7 +789,7 @@ class ApiController(
         @RequestParam id: Long,
     ): Long {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -797,7 +797,7 @@ class ApiController(
             )
         return settings?.let {
             if (settings.diffBeats > 0) {
-                settings.fields[SettingField.DIFFBEATS] = (settings.diffBeats - 1).toString()
+                settings.fields[SongField.DIFFBEATS] = (settings.diffBeats - 1).toString()
                 settings.saveToDb()
             }
             settings.diffBeats
@@ -811,7 +811,7 @@ class ApiController(
         @RequestParam id: Long,
     ): Map<String, Any> {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -831,7 +831,7 @@ class ApiController(
         @RequestParam id: Long,
     ): String {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -851,7 +851,7 @@ class ApiController(
         @RequestParam id: Long,
     ): String {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -871,7 +871,7 @@ class ApiController(
         @RequestParam id: Long,
     ): List<String> {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -892,7 +892,7 @@ class ApiController(
         @RequestParam id: Long,
     ): List<Double> {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -914,7 +914,7 @@ class ApiController(
         @RequestParam voiceId: Int,
     ): List<String> {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -935,7 +935,7 @@ class ApiController(
         @RequestParam voiceId: Int,
     ): List<SourceMarker> {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -955,7 +955,7 @@ class ApiController(
         @RequestParam id: Long,
     ): String {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -976,7 +976,7 @@ class ApiController(
         @RequestParam id: Long,
     ): String {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -997,7 +997,7 @@ class ApiController(
         @RequestParam id: Long,
     ): String {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -1018,7 +1018,7 @@ class ApiController(
         @RequestParam id: Long,
     ): String {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -1039,7 +1039,7 @@ class ApiController(
         @RequestParam id: Long,
     ): String {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -1060,7 +1060,7 @@ class ApiController(
         @RequestParam id: Long,
     ): String {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -1081,7 +1081,7 @@ class ApiController(
         @RequestParam id: Long,
     ): String {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -1102,7 +1102,7 @@ class ApiController(
         @RequestParam id: Long,
     ): String {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -1123,7 +1123,7 @@ class ApiController(
         @RequestParam id: Long,
     ): String {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -1144,7 +1144,7 @@ class ApiController(
         @RequestParam id: Long,
     ): String {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -1165,7 +1165,7 @@ class ApiController(
         @RequestParam id: Long,
     ): String {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -1186,7 +1186,7 @@ class ApiController(
         @RequestParam id: Long,
     ): String {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -1207,7 +1207,7 @@ class ApiController(
         @RequestParam id: Long,
     ): String {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -1228,7 +1228,7 @@ class ApiController(
         @RequestParam id: Long,
     ): String {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -1249,7 +1249,7 @@ class ApiController(
         @RequestParam id: Long,
     ): String {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -1270,7 +1270,7 @@ class ApiController(
         @RequestParam id: Long,
     ): String {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -1291,7 +1291,7 @@ class ApiController(
         @RequestParam id: Long,
     ): String {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -1312,7 +1312,7 @@ class ApiController(
         @RequestParam id: Long,
     ): String {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -1333,7 +1333,7 @@ class ApiController(
         @RequestParam id: Long,
     ): String {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -1354,7 +1354,7 @@ class ApiController(
         @RequestParam id: Long,
     ): String {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -1375,7 +1375,7 @@ class ApiController(
         @RequestParam id: Long,
     ): String {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -1396,7 +1396,7 @@ class ApiController(
         @RequestParam id: Long,
     ): String {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -1417,7 +1417,7 @@ class ApiController(
         @RequestParam id: Long,
     ): String {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -1438,7 +1438,7 @@ class ApiController(
         @RequestParam id: Long,
     ): String {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -1459,7 +1459,7 @@ class ApiController(
         @RequestParam id: Long,
     ): String {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -1480,7 +1480,7 @@ class ApiController(
         @RequestParam id: Long,
     ): String {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -1501,7 +1501,7 @@ class ApiController(
         @RequestParam id: Long,
     ): String {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -1522,7 +1522,7 @@ class ApiController(
         @RequestParam id: Long,
     ): String {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -1543,7 +1543,7 @@ class ApiController(
         @RequestParam id: Long,
     ): String {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -1551,7 +1551,7 @@ class ApiController(
             )
         val text =
             settings?.let {
-                Song(settings, SongVersion.KARAOKE)
+                SongRenderContext(settings, SongVersion.KARAOKE)
                 val text = it.getDescriptionVkHeader(SongVersion.KARAOKE)
                 text
             } ?: ""
@@ -1565,7 +1565,7 @@ class ApiController(
         @RequestParam id: Long,
     ): String {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -1586,7 +1586,7 @@ class ApiController(
         @RequestParam id: Long,
     ): String {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -1607,7 +1607,7 @@ class ApiController(
         @RequestParam id: Long,
     ): String {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -1628,7 +1628,7 @@ class ApiController(
         @RequestParam id: Long,
     ): String {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -1649,7 +1649,7 @@ class ApiController(
         @RequestParam id: Long,
     ): String {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -1670,7 +1670,7 @@ class ApiController(
         @RequestParam id: Long,
     ): String {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -1691,7 +1691,7 @@ class ApiController(
         @RequestParam id: Long,
     ): String {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -1712,7 +1712,7 @@ class ApiController(
         @RequestParam id: Long,
     ): String {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -1733,7 +1733,7 @@ class ApiController(
         @RequestParam id: Long,
     ): String {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -1754,7 +1754,7 @@ class ApiController(
         @RequestParam id: Long,
     ): String {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -1775,7 +1775,7 @@ class ApiController(
         @RequestParam id: Long,
     ): String {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -1796,7 +1796,7 @@ class ApiController(
         @RequestParam id: Long,
     ): String {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -1817,7 +1817,7 @@ class ApiController(
         @RequestParam id: Long,
     ): String {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -1838,7 +1838,7 @@ class ApiController(
         @RequestParam id: Long,
     ): String {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -1859,7 +1859,7 @@ class ApiController(
         @RequestParam id: Long,
     ): String {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -1880,7 +1880,7 @@ class ApiController(
         @RequestParam id: Long,
     ): String {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -1901,7 +1901,7 @@ class ApiController(
         @RequestParam id: Long,
     ): String {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -1922,7 +1922,7 @@ class ApiController(
         @RequestParam id: Long,
     ): String {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -1943,7 +1943,7 @@ class ApiController(
         @RequestParam id: Long,
     ): String {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -1964,7 +1964,7 @@ class ApiController(
         @RequestParam id: Long,
     ): Int {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -1978,7 +1978,7 @@ class ApiController(
     @ResponseBody
     fun authors(): Map<String, Any> =
         mapOf(
-            "authors" to Settings.loadListAuthors(database = WORKING_DATABASE),
+            "authors" to Song.loadListAuthors(database = WORKING_DATABASE),
         )
 
     // Получение списка словарей
@@ -2019,8 +2019,8 @@ class ApiController(
     @ResponseBody
     fun apisSongsByIds(
         @RequestParam ids: List<Long>,
-    ): List<SettingsDTO> =
-        Settings
+    ): List<SongDTO> =
+        Song
             .loadListFromDb(
                 mapOf(Pair("ids", ids.joinToString(","))),
                 database = WORKING_DATABASE,
@@ -2119,7 +2119,7 @@ class ApiController(
         return mapOf(
             "workInContainer" to APP_WORK_IN_CONTAINER,
             "publications" to
-                CrossSettings.publications(
+                CrossSong.publications(
                     Publication.getSettingsListForPublications(
                         args,
                         database = WORKING_DATABASE,
@@ -2137,7 +2137,7 @@ class ApiController(
         mapOf(
             "workInContainer" to APP_WORK_IN_CONTAINER,
             "publications" to
-                CrossSettings.unpublications(
+                CrossSong.unpublications(
                     Publication.getSettingsListForUnpublications(
                         database = WORKING_DATABASE,
                         storageService = storageService,
@@ -2167,13 +2167,13 @@ class ApiController(
         val publications =
             when (filterCond) {
                 "unpublish" -> {
-                    CrossSettings.unpublications(listOfSettings)
+                    CrossSong.unpublications(listOfSettings)
                 }
                 "skiped" -> {
-                    CrossSettings.skiped(listOfSettings)
+                    CrossSong.skiped(listOfSettings)
                 }
                 else -> {
-                    CrossSettings.publications(listOfSettings)
+                    CrossSong.publications(listOfSettings)
                 }
             }
         return mapOf(
@@ -2284,7 +2284,7 @@ class ApiController(
         @RequestParam(required = false) filterRootId: String?,
         @RequestParam(required = false) filterSongType: String?,
         // filterAssignmentStatus/target — фильтр по назначенному заданию онлайн-редактора ("unassigned"
-        // или dbValue из SongAssignmentStatus). Settings по-прежнему всегда грузятся из WORKING_DATABASE
+        // или dbValue из SongAssignmentStatus). Song по-прежнему всегда грузятся из WORKING_DATABASE
         // (как раньше) — target относится ТОЛЬКО к тому, где искать назначения (local/remote).
         @RequestParam(required = false) filterAssignmentStatus: String?,
         @RequestParam(required = false) target: String?,
@@ -2364,7 +2364,7 @@ class ApiController(
         SongsHistory().add(args)
 
         var settingsList =
-            Settings.loadListFromDb(
+            Song.loadListFromDb(
                 args,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -2406,8 +2406,8 @@ class ApiController(
         return mapOf(
             "workInContainer" to APP_WORK_IN_CONTAINER,
             "songsDigests" to lst,
-            "authors" to Settings.loadListAuthors(database = WORKING_DATABASE),
-            "albums" to Settings.loadListAlbums(WORKING_DATABASE),
+            "authors" to Song.loadListAuthors(database = WORKING_DATABASE),
+            "albums" to Song.loadListAlbums(WORKING_DATABASE),
             "totalDuration" to convertMillisecondsToDtoTimecode(totalMs),
         )
     }
@@ -2539,7 +2539,7 @@ class ApiController(
         SongsHistory().add(args)
 
         val lst =
-            Settings
+            Song
                 .loadListFromDb(
                     args,
                     database = WORKING_DATABASE,
@@ -2557,8 +2557,8 @@ class ApiController(
         return mapOf(
             "workInContainer" to APP_WORK_IN_CONTAINER,
             "pages" to lst.chunked(pageSize),
-            "authors" to Settings.loadListAuthors(database = WORKING_DATABASE),
-            "albums" to Settings.loadListAlbums(WORKING_DATABASE),
+            "authors" to Song.loadListAuthors(database = WORKING_DATABASE),
+            "albums" to Song.loadListAlbums(WORKING_DATABASE),
         )
     }
 
@@ -2605,7 +2605,7 @@ class ApiController(
         @RequestParam id: Long,
     ): Boolean {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -2624,7 +2624,7 @@ class ApiController(
         @RequestParam id: Long,
     ): Boolean {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -2644,7 +2644,7 @@ class ApiController(
         @RequestParam(required = false) version: String?,
     ): Boolean {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -2670,7 +2670,7 @@ class ApiController(
         @RequestParam id: Long,
     ): Boolean {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -2689,7 +2689,7 @@ class ApiController(
         @RequestParam id: Long,
     ): Boolean {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -2709,7 +2709,7 @@ class ApiController(
     ): Any? {
         val settCurrId = id.toLong()
         val currSett =
-            Settings
+            Song
                 .loadFromDbById(
                     id.toLong(),
                     database = WORKING_DATABASE,
@@ -2718,7 +2718,7 @@ class ApiController(
                 )?.toDTO()
         if (currSett != null) {
             val lst =
-                Settings.loadListFromDb(
+                Song.loadListFromDb(
                     args = mapOf("song_author" to currSett.author),
                     database = WORKING_DATABASE,
                     storageService = storageService,
@@ -2736,7 +2736,7 @@ class ApiController(
                 val leftTime = "%02d".format(currSett.time.split(":")[0].toLong() - 1) + ":00"
                 val rightTime = "%02d".format(currSett.time.split(":")[0].toLong() + 1) + ":00"
                 val leftSett =
-                    Settings.loadListFromDb(
+                    Song.loadListFromDb(
                         args = mapOf("publish_date" to currSett.date, "publish_time" to leftTime),
                         database = WORKING_DATABASE,
                         storageService = storageService,
@@ -2744,7 +2744,7 @@ class ApiController(
                         withoutMarkersAndText = true,
                     )
                 val rightSett =
-                    Settings.loadListFromDb(
+                    Song.loadListFromDb(
                         args = mapOf("publish_date" to currSett.date, "publish_time" to rightTime),
                         database = WORKING_DATABASE,
                         storageService = storageService,
@@ -2758,7 +2758,7 @@ class ApiController(
             return currSett
         }
 
-        return Settings
+        return Song
             .loadFromDbById(
                 id.toLong(),
                 database = WORKING_DATABASE,
@@ -2853,103 +2853,122 @@ class ApiController(
         @RequestParam(required = false) free: String?,
         @RequestParam(required = false) idTariff: String?,
         @RequestParam(required = false) songType: String?,
+        @RequestParam(required = false) albumId: String?,
     ): Boolean {
         val settingsId: Long = id.toLong()
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 settingsId,
                 database = WORKING_DATABASE,
                 storageService = storageService,
                 storageApiClient = storageApiClient,
             )
+        var albumLinkValid = true
         settings?.let { sett ->
             fileName?.let { sett.fileName = it }
             rootFolder?.let { sett.rootFolder = it }
             tags?.let { sett.tags = it }
-            id.let { sett.fields[SettingField.ID] = it }
-            songName?.let { sett.fields[SettingField.NAME] = it }
-            author?.let { sett.fields[SettingField.AUTHOR] = it }
-            year?.let { sett.fields[SettingField.YEAR] = it }
-            album?.let { sett.fields[SettingField.ALBUM] = it }
-            track?.let { sett.fields[SettingField.TRACK] = it }
-            date?.let { sett.fields[SettingField.DATE] = it }
-            time?.let { sett.fields[SettingField.TIME] = it }
-            key?.let { sett.fields[SettingField.KEY] = it }
-            bpm?.let { sett.fields[SettingField.BPM] = it }
-            ms?.let { sett.fields[SettingField.MS] = it }
-            idBoosty?.let { sett.fields[SettingField.ID_BOOSTY] = it }
-            idBoostyFiles?.let { sett.fields[SettingField.ID_BOOSTY_FILES] = it }
-            idSponsr?.let { sett.fields[SettingField.ID_SPONSR] = it }
-            versionBoosty?.let { sett.fields[SettingField.VERSION_BOOSTY] = it }
-            versionBoostyFiles?.let { sett.fields[SettingField.VERSION_BOOSTY_FILES] = it }
-            versionSponsr?.let { sett.fields[SettingField.VERSION_SPONSR] = it }
-            indexTabsVariant?.let { sett.fields[SettingField.INDEX_TABS_VARIANT] = it }
-            idVk?.let { sett.fields[SettingField.ID_VK] = it }
-            idDzenLyrics?.let { sett.fields[SettingField.ID_DZEN_LYRICS] = it }
-            idDzenKaraoke?.let { sett.fields[SettingField.ID_DZEN_KARAOKE] = it }
-            idDzenChords?.let { sett.fields[SettingField.ID_DZEN_CHORDS] = it }
-            idDzenMelody?.let { sett.fields[SettingField.ID_DZEN_MELODY] = it }
-            idVkLyrics?.let { sett.fields[SettingField.ID_VK_LYRICS] = it }
-            idVkKaraoke?.let { sett.fields[SettingField.ID_VK_KARAOKE] = it }
-            idVkChords?.let { sett.fields[SettingField.ID_VK_CHORDS] = it }
-            idVkMelody?.let { sett.fields[SettingField.ID_VK_MELODY] = it }
-            idTelegramLyrics?.let { sett.fields[SettingField.ID_TELEGRAM_LYRICS] = it }
-            idTelegramKaraoke?.let { sett.fields[SettingField.ID_TELEGRAM_KARAOKE] = it }
-            idTelegramChords?.let { sett.fields[SettingField.ID_TELEGRAM_CHORDS] = it }
-            idTelegramMelody?.let { sett.fields[SettingField.ID_TELEGRAM_MELODY] = it }
-            idPlLyrics?.let { sett.fields[SettingField.ID_PL_LYRICS] = it }
-            idPlKaraoke?.let { sett.fields[SettingField.ID_PL_KARAOKE] = it }
-            idPlChords?.let { sett.fields[SettingField.ID_PL_CHORDS] = it }
-            idPlMelody?.let { sett.fields[SettingField.ID_PL_MELODY] = it }
-            idMaxLyrics?.let { sett.fields[SettingField.ID_MAX_LYRICS] = it }
-            idMaxKaraoke?.let { sett.fields[SettingField.ID_MAX_KARAOKE] = it }
-            idMaxChords?.let { sett.fields[SettingField.ID_MAX_CHORDS] = it }
-            idMaxMelody?.let { sett.fields[SettingField.ID_MAX_MELODY] = it }
-            idDzenDemo?.let { sett.fields[SettingField.ID_DZEN_DEMO] = it }
-            idVkDemo?.let { sett.fields[SettingField.ID_VK_DEMO] = it }
-            idTelegramDemo?.let { sett.fields[SettingField.ID_TELEGRAM_DEMO] = it }
-            idMaxDemo?.let { sett.fields[SettingField.ID_MAX_DEMO] = it }
-            versionDzenLyrics?.let { sett.fields[SettingField.VERSION_DZEN_LYRICS] = it }
-            versionDzenKaraoke?.let { sett.fields[SettingField.VERSION_DZEN_KARAOKE] = it }
-            versionDzenChords?.let { sett.fields[SettingField.VERSION_DZEN_CHORDS] = it }
-            versionDzenMelody?.let { sett.fields[SettingField.VERSION_DZEN_MELODY] = it }
-            versionVkLyrics?.let { sett.fields[SettingField.VERSION_VK_LYRICS] = it }
-            versionVkKaraoke?.let { sett.fields[SettingField.VERSION_VK_KARAOKE] = it }
-            versionVkChords?.let { sett.fields[SettingField.VERSION_VK_CHORDS] = it }
-            versionVkMelody?.let { sett.fields[SettingField.VERSION_VK_MELODY] = it }
-            versionTelegramLyrics?.let { sett.fields[SettingField.VERSION_TELEGRAM_LYRICS] = it }
-            versionTelegramKaraoke?.let { sett.fields[SettingField.VERSION_TELEGRAM_KARAOKE] = it }
-            versionTelegramChords?.let { sett.fields[SettingField.VERSION_TELEGRAM_CHORDS] = it }
-            versionTelegramMelody?.let { sett.fields[SettingField.VERSION_TELEGRAM_MELODY] = it }
-            versionPlLyrics?.let { sett.fields[SettingField.VERSION_PL_LYRICS] = it }
-            versionPlKaraoke?.let { sett.fields[SettingField.VERSION_PL_KARAOKE] = it }
-            versionPlChords?.let { sett.fields[SettingField.VERSION_PL_CHORDS] = it }
-            versionPlMelody?.let { sett.fields[SettingField.VERSION_PL_MELODY] = it }
-            versionMaxLyrics?.let { sett.fields[SettingField.VERSION_MAX_LYRICS] = it }
-            versionMaxKaraoke?.let { sett.fields[SettingField.VERSION_MAX_KARAOKE] = it }
-            versionMaxChords?.let { sett.fields[SettingField.VERSION_MAX_CHORDS] = it }
-            versionMaxMelody?.let { sett.fields[SettingField.VERSION_MAX_MELODY] = it }
-            versionDzenDemo?.let { sett.fields[SettingField.VERSION_DZEN_DEMO] = it }
-            versionVkDemo?.let { sett.fields[SettingField.VERSION_VK_DEMO] = it }
-            versionTelegramDemo?.let { sett.fields[SettingField.VERSION_TELEGRAM_DEMO] = it }
-            versionMaxDemo?.let { sett.fields[SettingField.VERSION_MAX_DEMO] = it }
-            resultVersion?.let { sett.fields[SettingField.RESULT_VERSION] = it }
-            diffBeats?.let { sett.fields[SettingField.DIFFBEATS] = it }
-            idStatus?.let { sett.fields[SettingField.ID_STATUS] = it }
-            rate?.let { sett.fields[SettingField.RATE] = it }
-            rootId?.let { sett.fields[SettingField.ROOT_ID] = it }
-            audioParentId?.let { sett.fields[SettingField.AUDIO_PARENT_ID] = it }
-            audioSimilarityPercent?.let { sett.fields[SettingField.AUDIO_SIMILARITY_PERCENT] = it }
-            audioDeltaMs?.let { sett.fields[SettingField.AUDIO_DELTA_MS] = it }
-            exclusive?.let { sett.fields[SettingField.EXCLUSIVE] = it }
-            free?.let { sett.fields[SettingField.FREE] = it }
-            idTariff?.let { sett.fields[SettingField.ID_TARIFF] = it }
+            id.let { sett.fields[SongField.ID] = it }
+            songName?.let { sett.fields[SongField.NAME] = it }
+            author?.let { sett.fields[SongField.AUTHOR] = it }
+            year?.let { sett.fields[SongField.YEAR] = it }
+            album?.let { sett.fields[SongField.ALBUM] = it }
+            track?.let { sett.fields[SongField.TRACK] = it }
+            date?.let { sett.fields[SongField.DATE] = it }
+            time?.let { sett.fields[SongField.TIME] = it }
+            key?.let { sett.fields[SongField.KEY] = it }
+            bpm?.let { sett.fields[SongField.BPM] = it }
+            ms?.let { sett.fields[SongField.MS] = it }
+            idBoosty?.let { sett.fields[SongField.ID_BOOSTY] = it }
+            idBoostyFiles?.let { sett.fields[SongField.ID_BOOSTY_FILES] = it }
+            idSponsr?.let { sett.fields[SongField.ID_SPONSR] = it }
+            versionBoosty?.let { sett.fields[SongField.VERSION_BOOSTY] = it }
+            versionBoostyFiles?.let { sett.fields[SongField.VERSION_BOOSTY_FILES] = it }
+            versionSponsr?.let { sett.fields[SongField.VERSION_SPONSR] = it }
+            indexTabsVariant?.let { sett.fields[SongField.INDEX_TABS_VARIANT] = it }
+            idVk?.let { sett.fields[SongField.ID_VK] = it }
+            idDzenLyrics?.let { sett.fields[SongField.ID_DZEN_LYRICS] = it }
+            idDzenKaraoke?.let { sett.fields[SongField.ID_DZEN_KARAOKE] = it }
+            idDzenChords?.let { sett.fields[SongField.ID_DZEN_CHORDS] = it }
+            idDzenMelody?.let { sett.fields[SongField.ID_DZEN_MELODY] = it }
+            idVkLyrics?.let { sett.fields[SongField.ID_VK_LYRICS] = it }
+            idVkKaraoke?.let { sett.fields[SongField.ID_VK_KARAOKE] = it }
+            idVkChords?.let { sett.fields[SongField.ID_VK_CHORDS] = it }
+            idVkMelody?.let { sett.fields[SongField.ID_VK_MELODY] = it }
+            idTelegramLyrics?.let { sett.fields[SongField.ID_TELEGRAM_LYRICS] = it }
+            idTelegramKaraoke?.let { sett.fields[SongField.ID_TELEGRAM_KARAOKE] = it }
+            idTelegramChords?.let { sett.fields[SongField.ID_TELEGRAM_CHORDS] = it }
+            idTelegramMelody?.let { sett.fields[SongField.ID_TELEGRAM_MELODY] = it }
+            idPlLyrics?.let { sett.fields[SongField.ID_PL_LYRICS] = it }
+            idPlKaraoke?.let { sett.fields[SongField.ID_PL_KARAOKE] = it }
+            idPlChords?.let { sett.fields[SongField.ID_PL_CHORDS] = it }
+            idPlMelody?.let { sett.fields[SongField.ID_PL_MELODY] = it }
+            idMaxLyrics?.let { sett.fields[SongField.ID_MAX_LYRICS] = it }
+            idMaxKaraoke?.let { sett.fields[SongField.ID_MAX_KARAOKE] = it }
+            idMaxChords?.let { sett.fields[SongField.ID_MAX_CHORDS] = it }
+            idMaxMelody?.let { sett.fields[SongField.ID_MAX_MELODY] = it }
+            idDzenDemo?.let { sett.fields[SongField.ID_DZEN_DEMO] = it }
+            idVkDemo?.let { sett.fields[SongField.ID_VK_DEMO] = it }
+            idTelegramDemo?.let { sett.fields[SongField.ID_TELEGRAM_DEMO] = it }
+            idMaxDemo?.let { sett.fields[SongField.ID_MAX_DEMO] = it }
+            versionDzenLyrics?.let { sett.fields[SongField.VERSION_DZEN_LYRICS] = it }
+            versionDzenKaraoke?.let { sett.fields[SongField.VERSION_DZEN_KARAOKE] = it }
+            versionDzenChords?.let { sett.fields[SongField.VERSION_DZEN_CHORDS] = it }
+            versionDzenMelody?.let { sett.fields[SongField.VERSION_DZEN_MELODY] = it }
+            versionVkLyrics?.let { sett.fields[SongField.VERSION_VK_LYRICS] = it }
+            versionVkKaraoke?.let { sett.fields[SongField.VERSION_VK_KARAOKE] = it }
+            versionVkChords?.let { sett.fields[SongField.VERSION_VK_CHORDS] = it }
+            versionVkMelody?.let { sett.fields[SongField.VERSION_VK_MELODY] = it }
+            versionTelegramLyrics?.let { sett.fields[SongField.VERSION_TELEGRAM_LYRICS] = it }
+            versionTelegramKaraoke?.let { sett.fields[SongField.VERSION_TELEGRAM_KARAOKE] = it }
+            versionTelegramChords?.let { sett.fields[SongField.VERSION_TELEGRAM_CHORDS] = it }
+            versionTelegramMelody?.let { sett.fields[SongField.VERSION_TELEGRAM_MELODY] = it }
+            versionPlLyrics?.let { sett.fields[SongField.VERSION_PL_LYRICS] = it }
+            versionPlKaraoke?.let { sett.fields[SongField.VERSION_PL_KARAOKE] = it }
+            versionPlChords?.let { sett.fields[SongField.VERSION_PL_CHORDS] = it }
+            versionPlMelody?.let { sett.fields[SongField.VERSION_PL_MELODY] = it }
+            versionMaxLyrics?.let { sett.fields[SongField.VERSION_MAX_LYRICS] = it }
+            versionMaxKaraoke?.let { sett.fields[SongField.VERSION_MAX_KARAOKE] = it }
+            versionMaxChords?.let { sett.fields[SongField.VERSION_MAX_CHORDS] = it }
+            versionMaxMelody?.let { sett.fields[SongField.VERSION_MAX_MELODY] = it }
+            versionDzenDemo?.let { sett.fields[SongField.VERSION_DZEN_DEMO] = it }
+            versionVkDemo?.let { sett.fields[SongField.VERSION_VK_DEMO] = it }
+            versionTelegramDemo?.let { sett.fields[SongField.VERSION_TELEGRAM_DEMO] = it }
+            versionMaxDemo?.let { sett.fields[SongField.VERSION_MAX_DEMO] = it }
+            resultVersion?.let { sett.fields[SongField.RESULT_VERSION] = it }
+            diffBeats?.let { sett.fields[SongField.DIFFBEATS] = it }
+            idStatus?.let { sett.fields[SongField.ID_STATUS] = it }
+            rate?.let { sett.fields[SongField.RATE] = it }
+            rootId?.let { sett.fields[SongField.ROOT_ID] = it }
+            audioParentId?.let { sett.fields[SongField.AUDIO_PARENT_ID] = it }
+            audioSimilarityPercent?.let { sett.fields[SongField.AUDIO_SIMILARITY_PERCENT] = it }
+            audioDeltaMs?.let { sett.fields[SongField.AUDIO_DELTA_MS] = it }
+            exclusive?.let { sett.fields[SongField.EXCLUSIVE] = it }
+            free?.let { sett.fields[SongField.FREE] = it }
+            idTariff?.let { sett.fields[SongField.ID_TARIFF] = it }
             songType?.let { sett.songType = SongType.entries.firstOrNull { st -> st.dbValue == it.lowercase() } ?: SongType.SONG }
+            // FR-008 (specs/011-album-song-rename): альбом песни обязан принадлежать тому же автору,
+            // что и главный автор песни — иначе противоречивое состояние "автор песни" != "автор альбома".
+            albumId?.let { rawAlbumId ->
+                val newAlbumId = rawAlbumId.toLongOrNull()
+                if (newAlbumId == null || newAlbumId <= 0L) {
+                    sett.albumId = null
+                } else {
+                    val album = Album.getAlbumById(newAlbumId, WORKING_DATABASE, storageService, storageApiClient)
+                    val albumAuthor =
+                        album?.let { Author.getAuthorById(it.authorId, WORKING_DATABASE, storageService, storageApiClient) }
+                    if (album != null && albumAuthor != null && albumAuthor.author.equals(sett.author, ignoreCase = true)) {
+                        sett.albumId = newAlbumId
+                    } else {
+                        albumLinkValid = false
+                    }
+                }
+            }
             sett.saveToDb()
             sett.saveToFile()
         }
 
-        return true
+        return albumLinkValid
     }
 
     // Получение процесса
@@ -2995,7 +3014,7 @@ class ApiController(
         @RequestParam id: Long,
     ): Map<String, Any> {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -3026,7 +3045,7 @@ class ApiController(
         @RequestParam id: Long,
     ): String {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -3045,7 +3064,7 @@ class ApiController(
         @RequestParam id: Long,
     ): String {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -3067,7 +3086,7 @@ class ApiController(
         @RequestParam(required = false) skipYandex: Boolean?,
     ): AlbumCoverSearchResponseDto {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -3141,7 +3160,7 @@ class ApiController(
         @RequestParam imageBase64: String,
     ): String {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -3209,7 +3228,7 @@ class ApiController(
         val currentDate = formatter.parse(formatter.format(currentDateTime))
 
         val settings =
-            Settings.loadListFromDb(
+            Song.loadListFromDb(
                 emptyMap(),
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -3343,7 +3362,7 @@ class ApiController(
         var result = false
         if (sourceMarkers.trim() != "") {
             val settings =
-                Settings.loadFromDbById(
+                Song.loadFromDbById(
                     id = id,
                     database = WORKING_DATABASE,
                     storageService = storageService,
@@ -3370,7 +3389,7 @@ class ApiController(
         @RequestParam(required = false) sourceText: String = "",
     ): Boolean {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -3394,7 +3413,7 @@ class ApiController(
         @RequestParam indexTabsVariant: Int,
     ): Boolean {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -3435,7 +3454,7 @@ class ApiController(
         @RequestParam(required = false) threadId: String? = "0",
     ): Boolean {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -3539,7 +3558,7 @@ class ApiController(
                     .map { it.toLong() }
             ids.forEach { id ->
                 val settings =
-                    Settings.loadFromDbById(
+                    Song.loadFromDbById(
                         id = id,
                         database = WORKING_DATABASE,
                         storageService = storageService,
@@ -3643,7 +3662,7 @@ class ApiController(
         @RequestParam(required = false) threadId: String? = "0",
     ) {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -3692,7 +3711,7 @@ class ApiController(
                     .map { it.toLong() }
             ids.forEach { id ->
                 val settings =
-                    Settings.loadFromDbById(
+                    Song.loadFromDbById(
                         id = id,
                         database = WORKING_DATABASE,
                         storageService = storageService,
@@ -3740,7 +3759,7 @@ class ApiController(
         @RequestParam(required = false) useFinetunedModel: Boolean?,
     ) {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -3804,7 +3823,7 @@ class ApiController(
                 .map { it.toLong() }
         ids.forEach { id ->
             val settings =
-                Settings.loadFromDbById(
+                Song.loadFromDbById(
                     id = id,
                     database = WORKING_DATABASE,
                     storageService = storageService,
@@ -3856,7 +3875,7 @@ class ApiController(
         @RequestParam(required = false) threadId: String? = "0",
     ) {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -3905,7 +3924,7 @@ class ApiController(
                     .map { it.toLong() }
             ids.forEach { id ->
                 val settings =
-                    Settings.loadFromDbById(
+                    Song.loadFromDbById(
                         id = id,
                         database = WORKING_DATABASE,
                         storageService = storageService,
@@ -3950,7 +3969,7 @@ class ApiController(
         @RequestParam(required = false) threadId: String? = "0",
     ) {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -3999,7 +4018,7 @@ class ApiController(
                     .map { it.toLong() }
             ids.forEach { id ->
                 val settings =
-                    Settings.loadFromDbById(
+                    Song.loadFromDbById(
                         id = id,
                         database = WORKING_DATABASE,
                         storageService = storageService,
@@ -4049,7 +4068,7 @@ class ApiController(
         @RequestParam id: Long,
     ) {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -4062,7 +4081,7 @@ class ApiController(
 //    @PostMapping("/song/mp3karaoke")
 //    @ResponseBody
 //    fun doMP3Karaoke(@RequestParam id: Long, @RequestParam(required = false) prior: Int = -1, @RequestParam(required = false) threadId: String? = "0") {
-//        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+//        val settings = Song.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
 //        settings?.doMP3Karaoke(prior, threadId = threadId?.toInt() ?: 0)
 //        SNS.send(SseNotification.message(Message(
 //            type = "info",
@@ -4079,7 +4098,7 @@ class ApiController(
 //        songsIds.let {
 //            val ids = songsIds.split(";").map { it }.filter { it != "" }.map { it.toLong() }
 //            ids.forEach { id ->
-//                val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+//                val settings = Song.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
 //                settings?.doMP3Karaoke(prior, threadId = threadId?.toInt() ?: 0)
 //                result = true
 //            }
@@ -4103,7 +4122,7 @@ class ApiController(
 //    @PostMapping("/song/mp3lyrics")
 //    @ResponseBody
 //    fun doMP3Lyrics(@RequestParam id: Long, @RequestParam(required = false) prior: Int = -1, @RequestParam(required = false) threadId: String? = "0") {
-//        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+//        val settings = Song.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
 //        settings?.doMP3Lyrics(prior, threadId = threadId?.toInt() ?: 0)
 //        SNS.send(SseNotification.message(Message(
 //            type = "info",
@@ -4120,7 +4139,7 @@ class ApiController(
 //        songsIds.let {
 //            val ids = songsIds.split(";").map { it }.filter { it != "" }.map { it.toLong() }
 //            ids.forEach { id ->
-//                val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+//                val settings = Song.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
 //                settings?.doMP3Lyrics(prior, threadId = threadId?.toInt() ?: 0)
 //                result = true
 //            }
@@ -4149,7 +4168,7 @@ class ApiController(
         @RequestParam(required = false) threadId: String? = "0",
     ) {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -4173,7 +4192,7 @@ class ApiController(
     fun doCreatePictureBoostyTeaser(
         @RequestParam id: Long,
     ) {
-        Settings
+        Song
             .loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
@@ -4199,7 +4218,7 @@ class ApiController(
     fun doCreatePictureSponsrTeaser(
         @RequestParam id: Long,
     ) {
-        Settings
+        Song
             .loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
@@ -4225,7 +4244,7 @@ class ApiController(
     fun doCreatePictureBoostyFiles(
         @RequestParam id: Long,
     ) {
-        Settings
+        Song
             .loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
@@ -4251,7 +4270,7 @@ class ApiController(
     fun doCreatePictureVK(
         @RequestParam id: Long,
     ) {
-        Settings
+        Song
             .loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
@@ -4277,7 +4296,7 @@ class ApiController(
     fun doCreatePictureVKlink(
         @RequestParam id: Long,
     ) {
-        Settings
+        Song
             .loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
@@ -4303,7 +4322,7 @@ class ApiController(
     fun doCreatePictureLyrics(
         @RequestParam id: Long,
     ) {
-        Settings
+        Song
             .loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
@@ -4329,7 +4348,7 @@ class ApiController(
     fun doCreatePictureKaraoke(
         @RequestParam id: Long,
     ) {
-        Settings
+        Song
             .loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
@@ -4355,7 +4374,7 @@ class ApiController(
     fun doCreatePictureChords(
         @RequestParam id: Long,
     ) {
-        Settings
+        Song
             .loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
@@ -4381,7 +4400,7 @@ class ApiController(
     fun doCreatePictureTabs(
         @RequestParam id: Long,
     ) {
-        Settings
+        Song
             .loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
@@ -4407,7 +4426,7 @@ class ApiController(
     fun doCreateDescriptionFileLyrics(
         @RequestParam id: Long,
     ) {
-        Settings
+        Song
             .loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
@@ -4433,7 +4452,7 @@ class ApiController(
     fun doCreateDescriptionFileKaraoke(
         @RequestParam id: Long,
     ) {
-        Settings
+        Song
             .loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
@@ -4459,7 +4478,7 @@ class ApiController(
     fun doCreateDescriptionFileChords(
         @RequestParam id: Long,
     ) {
-        Settings
+        Song
             .loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
@@ -4485,7 +4504,7 @@ class ApiController(
     fun doCreateDescriptionFileTabs(
         @RequestParam id: Long,
     ) {
-        Settings
+        Song
             .loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
@@ -4523,7 +4542,7 @@ class ApiController(
                     .map { it.toLong() }
             ids.forEach { id ->
                 val settings =
-                    Settings.loadFromDbById(
+                    Song.loadFromDbById(
                         id = id,
                         database = WORKING_DATABASE,
                         storageService = storageService,
@@ -4596,7 +4615,7 @@ class ApiController(
                     .map { it.toLong() }
             ids.forEach { id ->
                 val settings =
-                    Settings.loadFromDbById(
+                    Song.loadFromDbById(
                         id = id,
                         database = WORKING_DATABASE,
                         storageService = storageService,
@@ -4620,9 +4639,9 @@ class ApiController(
         sendSmartCopyResultNotification(result)
     }
 
-    // Общая часть getSmartCopyAll/getSmartCopyPeriodByDay: копирование одного набора Settings во всех версиях
+    // Общая часть getSmartCopyAll/getSmartCopyPeriodByDay: копирование одного набора Song во всех версиях
     private fun doSmartCopyForVersions(
-        settings: Settings,
+        settings: Song,
         versions: List<SongVersion>,
         prior: Int,
         scResolution: String,
@@ -4698,7 +4717,7 @@ class ApiController(
             val smartCopyPath = "$smartCopyPathPrefix/$dayFolder"
 
             val settingsList =
-                Settings.loadListFromDb(
+                Song.loadListFromDb(
                     args = mapOf("publish_date" to filterString),
                     database = WORKING_DATABASE,
                     storageService = storageService,
@@ -4731,7 +4750,7 @@ class ApiController(
         @RequestParam id: Long,
     ): List<FindSongResult> {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -4749,7 +4768,7 @@ class ApiController(
         @RequestParam id: Long,
     ): String {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -4776,7 +4795,7 @@ class ApiController(
                     .map { it.toLong() }
             ids.forEach { id ->
                 val settings =
-                    Settings.loadFromDbById(
+                    Song.loadFromDbById(
                         id = id,
                         database = WORKING_DATABASE,
                         storageService = storageService,
@@ -4813,9 +4832,9 @@ class ApiController(
             try {
                 val connection = WORKING_DATABASE.getConnection()
                 if (connection != null) {
-                    // Колонка автора в tbl_settings — song_author (не author); сравнение регистронезависимо.
+                    // Колонка автора в tbl_songs — song_author (не author); сравнение регистронезависимо.
                     val sql =
-                        "SELECT id FROM tbl_settings WHERE id_status = 1 AND root_id <> 0" +
+                        "SELECT id FROM tbl_songs WHERE id_status = 1 AND root_id <> 0" +
                             (if (authorFilter != null) " AND LOWER(song_author) = LOWER(?)" else "") +
                             " ORDER BY id"
                     val ps = connection.prepareStatement(sql)
@@ -4836,7 +4855,7 @@ class ApiController(
             ids.forEachIndexed { index, id ->
                 try {
                     val settings =
-                        Settings.loadFromDbById(
+                        Song.loadFromDbById(
                             id = id,
                             database = WORKING_DATABASE,
                             storageService = storageService,
@@ -4877,14 +4896,14 @@ class ApiController(
         @RequestParam(required = false) skipPublished: Boolean = false,
     ) {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
                 storageApiClient = storageApiClient,
             )
         settings?.let {
-            Settings.setPublishDateTimeToAuthor(settings, skipPublished = skipPublished)
+            Song.setPublishDateTimeToAuthor(settings, skipPublished = skipPublished)
         }
         SNS.send(
             SseNotification.message(
@@ -4965,12 +4984,12 @@ class ApiController(
     }
 
     // Обновляем одну песню в RemoteDatabase
-    @PostMapping("/utils/updateremotesettingsfromlocaldatabase")
+    @PostMapping("/utils/updateremotesongfromlocaldatabase")
     @ResponseBody
-    fun doUpdateRemoteSettingFromLocalDatabase(
+    fun doUpdateRemoteSongFromLocalDatabase(
         @RequestParam(required = true) id: Long,
     ): List<List<String>> {
-        val (listCreate, listUpdate, listDelete) = updateRemoteSettingFromLocalDatabase(id)
+        val (listCreate, listUpdate, listDelete) = updateRemoteSongFromLocalDatabase(id)
         if (listCreate.size + listUpdate.size + listDelete.size != 0) {
             SNS.send(SseNotification.crud(listOf(listCreate, listUpdate, listDelete)))
         }
@@ -4984,7 +5003,7 @@ class ApiController(
         @RequestParam(required = true) id: Long,
     ) {
         setSettingsToSyncRemoteTable(id)
-        val body = "Запись ${Settings.loadFromDbById(
+        val body = "Запись ${Song.loadFromDbById(
             id = id,
             database = WORKING_DATABASE,
             storageService = storageService,
@@ -5006,13 +5025,13 @@ class ApiController(
     @PostMapping("/utils/updateremotedatabasefromlocaldatabase")
     @ResponseBody
     fun doUpdateRemoteDatabaseFromLocalDatabase(
-        @RequestParam(required = false) updateSettings: Boolean = true,
+        @RequestParam(required = false) updateSongs: Boolean = true,
         @RequestParam(required = false) updatePictures: Boolean = true,
         @RequestParam(required = false) updateAuthors: Boolean = true,
     ): List<List<String>> {
         val (listCreate, listUpdate, listDelete) =
             updateRemoteDatabaseFromLocalDatabase(
-                updateSettings = updateSettings,
+                updateSongs = updateSongs,
                 updatePictures = updatePictures,
                 updateAuthors = updateAuthors,
             )
@@ -5026,13 +5045,13 @@ class ApiController(
     @PostMapping("/utils/updatelocaldatabasefromremotedatabase")
     @ResponseBody
     fun doUpdateLocalDatabaseFromRemoteDatabase(
-        @RequestParam(required = false) updateSettings: Boolean = true,
+        @RequestParam(required = false) updateSongs: Boolean = true,
         @RequestParam(required = false) updatePictures: Boolean = true,
         @RequestParam(required = false) updateAuthors: Boolean = true,
     ): List<List<String>> {
         val (listCreate, listUpdate, listDelete) =
             updateLocalDatabaseFromRemoteDatabase(
-                updateSettings = updateSettings,
+                updateSongs = updateSongs,
                 updatePictures = updatePictures,
                 updateAuthors = updateAuthors,
             )
@@ -5043,7 +5062,7 @@ class ApiController(
     }
 
     // Универсальная синхронизация LOCAL<->SERVER (webvue3, раздел "Синхронизация") — по любой
-    // сущности SyncRegistry (Settings/Pictures/Authors/SiteUsers/Events), в любую сторону, с проверкой
+    // сущности SyncRegistry (Song/Pictures/Authors/SiteUsers/Events), в любую сторону, с проверкой
     // разрешения через sync_<key>_push/pull_allowed (см. KaraokeProperties.kt).
     private fun syncEntityInfo(target: SyncTarget<*>): SyncEntityInfoDto =
         SyncEntityInfoDto(
@@ -5170,7 +5189,7 @@ class ApiController(
         @RequestParam(required = true) folder: String,
     ) {
         val createdList =
-            Settings.createFromPath(
+            Song.createFromPath(
                 folder,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -5204,7 +5223,7 @@ class ApiController(
                     )
                 if (audioParentResult.matched && audioParentResult.bestId != null && audioParentResult.deltaMs != null) {
                     val audioParent =
-                        Settings.loadFromDbById(
+                        Song.loadFromDbById(
                             id = audioParentResult.bestId,
                             database = WORKING_DATABASE,
                             storageService = storageService,
@@ -5233,7 +5252,7 @@ class ApiController(
                         }
                     if (yandexLyricsResult is YandexLyricsSearchOutcome.Found && yandexLyricsResult.text.isNotBlank()) {
                         newSettings.sourceText = yandexLyricsResult.text
-                        if (newSettings.idStatus == 0L) newSettings.fields[SettingField.ID_STATUS] = "1"
+                        if (newSettings.idStatus == 0L) newSettings.fields[SongField.ID_STATUS] = "1"
                         newSettings.saveToDb()
                         textResolved = true
                     }
@@ -5308,7 +5327,7 @@ class ApiController(
     ): Any {
         val settingsList =
             if (songsIds == "") {
-                Settings.loadListFromDb(
+                Song.loadListFromDb(
                     database = WORKING_DATABASE,
                     storageService = storageService,
                     storageApiClient = storageApiClient,
@@ -5321,10 +5340,10 @@ class ApiController(
                         .map { it }
                         .filter { it != "" }
                         .map { it.toLong() }
-                val result: MutableList<Settings> = mutableListOf()
+                val result: MutableList<Song> = mutableListOf()
                 ids.forEach { id ->
                     val settings =
-                        Settings.loadFromDbById(
+                        Song.loadFromDbById(
                             id = id,
                             database = WORKING_DATABASE,
                             storageService = storageService,
@@ -5519,7 +5538,7 @@ class ApiController(
 //        var cntDelete = 0
 //        var cntCreate = 0
 //
-//        Settings.loadListFromDb(database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient, withoutMarkersAndText = true).forEach { settings ->
+//        Song.loadListFromDb(database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient, withoutMarkersAndText = true).forEach { settings ->
 //            when (createVKLinkPictureWeb(settings, false)) {
 //                "delete" -> cntDelete++
 //                "skip" -> cntSkip++
@@ -5747,6 +5766,184 @@ class ApiController(
             "workInContainer" to APP_WORK_IN_CONTAINER,
             "authorsDigests" to authorsList,
         )
+    }
+
+    @PostMapping("/albums/albumsdigests")
+    @ResponseBody
+    fun apisAlbumsDigest(
+        @RequestParam(required = false) filterId: String?,
+        @RequestParam(required = false) filterAuthorId: String?,
+        @RequestParam(required = false) filterYear: String?,
+        @RequestParam(required = false) filterName: String?,
+        @RequestParam(required = false) filterAlbumType: String?,
+    ): Map<String, Any> {
+        val args: MutableMap<String, String> = mutableMapOf()
+        filterId?.let { if (filterId != "") args["id"] = filterId }
+        filterAuthorId?.let { if (filterAuthorId != "") args["author_id"] = filterAuthorId }
+        filterYear?.let { if (filterYear != "") args["year"] = filterYear }
+        filterName?.let { if (filterName != "") args["name"] = filterName }
+        filterAlbumType?.let { if (filterAlbumType != "") args["album_type"] = filterAlbumType }
+        val albumsList =
+            Album
+                .loadList(
+                    whereArgs = args,
+                    database = WORKING_DATABASE,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                    ignoreUseInList = true,
+                ).map { it.toDTO() }
+                .sorted()
+
+        return mapOf(
+            "workInContainer" to APP_WORK_IN_CONTAINER,
+            "albumsDigests" to albumsList,
+        )
+    }
+
+    @PostMapping("/albums/createalbum")
+    @ResponseBody
+    fun apisCreateAlbum(
+        @RequestParam(required = true) authorId: Long,
+        @RequestParam(required = true) year: Int,
+        @RequestParam(required = true) name: String,
+        @RequestParam(required = false) albumType: String?,
+        @RequestParam(required = false) sortOrder: Int?,
+    ): Long {
+        val newAlbum = Album(database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+        newAlbum.authorId = authorId
+        newAlbum.year = year
+        newAlbum.name = name
+        albumType?.let { newAlbum.albumType = it }
+        sortOrder?.let { newAlbum.sortOrder = it }
+        return Album.createNewAlbum(newAlbum, WORKING_DATABASE)?.id ?: 0L
+    }
+
+    @PostMapping("/albums/updatealbum")
+    @ResponseBody
+    fun apisUpdateAlbum(
+        @RequestParam(required = true) id: Long,
+        @RequestParam(required = true) authorId: Long,
+        @RequestParam(required = true) year: Int,
+        @RequestParam(required = true) name: String,
+        @RequestParam(required = true) albumType: String,
+        @RequestParam(required = true) sortOrder: Int,
+    ): Long {
+        Album
+            .getAlbumById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )?.let {
+                it.authorId = authorId
+                it.year = year
+                it.name = name
+                it.albumType = albumType
+                it.sortOrder = sortOrder
+                it.save()
+                return id
+            }
+        return 0L
+    }
+
+    @PostMapping("/albums/deletealbum")
+    @ResponseBody
+    fun apisDeleteAlbum(
+        @RequestParam(required = true) id: Long,
+    ): Boolean = Album.delete(id = id, database = WORKING_DATABASE)
+
+    @PostMapping("/songs/coauthors/list")
+    @ResponseBody
+    fun apisSongCoAuthorsList(
+        @RequestParam(required = true) songId: Long,
+    ): Map<String, Any> {
+        val coAuthorAuthorIds =
+            SongCoAuthor
+                .getCoAuthorsBySongId(
+                    songId = songId,
+                    database = WORKING_DATABASE,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                ).map { it.authorId }
+        val coAuthors =
+            Author
+                .getAuthorsByIds(
+                    ids = coAuthorAuthorIds,
+                    database = WORKING_DATABASE,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                ).values
+                .map { it.toDTO() }
+        return mapOf("coAuthors" to coAuthors)
+    }
+
+    // FR-009/FR-011 (specs/011-album-song-rename): произвольное число соавторов песни, отдельно
+    // от главного автора (Song.author, свободный текст) — не влияет на группировку/URL/альбом.
+    @PostMapping("/songs/coauthors/add")
+    @ResponseBody
+    fun apisSongCoAuthorsAdd(
+        @RequestParam(required = true) songId: Long,
+        @RequestParam(required = true) authorId: Long,
+    ): Boolean {
+        val song =
+            Song.loadFromDbById(
+                songId,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            ) ?: return false
+        val author =
+            Author.getAuthorById(authorId, WORKING_DATABASE, storageService, storageApiClient) ?: return false
+        // Edge case (spec.md): соавтор не должен дублировать уже указанного главного автора песни.
+        if (author.author.equals(song.author, ignoreCase = true)) return false
+        val alreadyExists =
+            SongCoAuthor
+                .getCoAuthorsBySongId(songId, WORKING_DATABASE, storageService, storageApiClient)
+                .any { it.authorId == authorId }
+        if (alreadyExists) return true
+        val newCoAuthor =
+            SongCoAuthor(database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+        newCoAuthor.songId = songId
+        newCoAuthor.authorId = authorId
+        return SongCoAuthor.createNew(newCoAuthor, WORKING_DATABASE) != null
+    }
+
+    @PostMapping("/songs/coauthors/remove")
+    @ResponseBody
+    fun apisSongCoAuthorsRemove(
+        @RequestParam(required = true) songId: Long,
+        @RequestParam(required = true) authorId: Long,
+    ): Boolean {
+        val toDelete =
+            SongCoAuthor
+                .getCoAuthorsBySongId(songId, WORKING_DATABASE, storageService, storageApiClient)
+                .firstOrNull { it.authorId == authorId } ?: return false
+        return SongCoAuthor.delete(id = toDelete.id, database = WORKING_DATABASE)
+    }
+
+    // Одноразовый бэкфилл Album из song_author/song_year/song_album существующих песен
+    // (specs/011-album-song-rename, FR-005/SC-003). Безопасно перезапускать — идемпотентно
+    // (обрабатывает только album_id IS NULL).
+    @PostMapping("/utils/backfillalbumsfromsongs")
+    @ResponseBody
+    fun doBackfillAlbumsFromSongs(): Boolean {
+        thread {
+            println("Бэкфилл альбомов из песен: начало")
+            val result = AlbumBackfill.run(database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+            println("Бэкфилл альбомов из песен: завершено — $result")
+            SNS.send(
+                SseNotification.message(
+                    Message(
+                        type = "info",
+                        head = "Бэкфилл альбомов из песен",
+                        body =
+                            "Групп обработано: ${result.groupsProcessed}, альбомов создано: ${result.albumsCreated}, " +
+                                "переиспользовано: ${result.albumsReused}, песен привязано: ${result.songsLinked}",
+                    ),
+                ),
+            )
+        }
+        return true
     }
 
     data class FileDTO(
@@ -5990,7 +6187,7 @@ class ApiController(
     fun createKeyBpmFinderProcess(
         @RequestParam id: Long,
     ) {
-        Settings
+        Song
             .loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
@@ -6019,7 +6216,7 @@ class ApiController(
         @RequestParam(required = false) version: String?,
     ): Map<String, Any> {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -6146,7 +6343,7 @@ class ApiController(
     fun repairAll(
         @RequestParam id: Long,
     ) {
-        Settings
+        Song
             .loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
@@ -6171,7 +6368,7 @@ class ApiController(
         @RequestParam healthReportTypeName: String,
         @RequestParam description: String,
     ) {
-        Settings
+        Song
             .loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
@@ -6265,7 +6462,7 @@ class ApiController(
     // carries its own leading dot (e.g. ".accompaniment"), NOT a dash.
     private fun pushMp3ToStorage(
         mp3File: File,
-        settings: Settings,
+        settings: Song,
         fileType: KaraokeFileType,
     ) {
         val bucket = "karaoke"
@@ -6295,7 +6492,7 @@ class ApiController(
     fun getSongFileMusicMp3(
         @PathVariable id: Long,
     ): ResponseEntity<Resource> {
-        Settings.loadFromDbById(id, WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)?.let { settings ->
+        Song.loadFromDbById(id, WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)?.let { settings ->
             convertFlacToMp3(settings.accompanimentNameFlac)?.let { mp3File ->
                 pushMp3ToStorage(mp3File, settings, KaraokeFileType.MP3_ACCOMPANIMENT)
                 return ResponseEntity
@@ -6312,7 +6509,7 @@ class ApiController(
     fun getSongFileVocalMp3(
         @PathVariable id: Long,
     ): ResponseEntity<Resource> {
-        Settings.loadFromDbById(id, WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)?.let { settings ->
+        Song.loadFromDbById(id, WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)?.let { settings ->
             convertFlacToMp3(settings.vocalsNameFlac)?.let { mp3File ->
                 pushMp3ToStorage(mp3File, settings, KaraokeFileType.MP3_VOCAL)
                 return ResponseEntity
@@ -6329,7 +6526,7 @@ class ApiController(
     fun getSongFileBassMp3(
         @PathVariable id: Long,
     ): ResponseEntity<Resource> {
-        Settings.loadFromDbById(id, WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)?.let { settings ->
+        Song.loadFromDbById(id, WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)?.let { settings ->
             convertFlacToMp3(settings.bassNameFlac)?.let { mp3File ->
                 pushMp3ToStorage(mp3File, settings, KaraokeFileType.MP3_BASS)
                 return ResponseEntity
@@ -6346,7 +6543,7 @@ class ApiController(
     fun getSongFileDrumsMp3(
         @PathVariable id: Long,
     ): ResponseEntity<Resource> {
-        Settings.loadFromDbById(id, WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)?.let { settings ->
+        Song.loadFromDbById(id, WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)?.let { settings ->
             convertFlacToMp3(settings.drumsNameFlac)?.let { mp3File ->
                 pushMp3ToStorage(mp3File, settings, KaraokeFileType.MP3_DRUMS)
                 return ResponseEntity
@@ -6360,13 +6557,13 @@ class ApiController(
     }
 
     // assignmentId (опционально) — превью НЕОДОБРЕННОГО черновика онлайн-редактора (tbl_song_assignment_drafts):
-    // до approve() правки живут только в drafts, tbl_settings их не видит. Задание покрывает ВСЮ песню —
+    // до approve() правки живут только в drafts, tbl_songs их не видит. Задание покрывает ВСЮ песню —
     // черновик несёт ВСЕ голоса разом, подменяем весь sourceMarkersList целиком. assignment должен
     // принадлежать именно этой песне (id) — иначе подмена игнорируется (fail-safe, без утечки чужого черновика).
     // target (опционально, только вместе с assignmentId) — где реально читать задание/черновик: реальный
     // рабочий цикл онлайн-редактора часто идёт целиком на REMOTE (см. SongEditorController), а local ещё
     // не синкнут — без этого параметра подстановка молча не находила черновик и превью показывало пустой
-    // текст. Settings (метаданные, аудио с локального диска) всегда из WORKING_DATABASE — id совпадает.
+    // текст. Song (метаданные, аудио с локального диска) всегда из WORKING_DATABASE — id совпадает.
     @GetMapping("/song/{id}/playerdata")
     @ResponseBody
     fun getSongPlayerData(
@@ -6375,7 +6572,7 @@ class ApiController(
         @RequestParam(required = false) target: String?,
     ): ResponseEntity<Map<String, Any?>> {
         val settings =
-            Settings.loadFromDbById(id, WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+            Song.loadFromDbById(id, WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
                 ?: return ResponseEntity.notFound().build()
 
         var markersList = settings.sourceMarkersList
@@ -6436,7 +6633,7 @@ class ApiController(
         @PathVariable id: Long,
     ): ResponseEntity<Map<String, Double?>> {
         val settings =
-            Settings.loadFromDbById(id, WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+            Song.loadFromDbById(id, WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
                 ?: return ResponseEntity.notFound().build()
         return ResponseEntity.ok(
             mapOf(
@@ -6456,7 +6653,7 @@ class ApiController(
         response: HttpServletResponse,
     ) {
         val settings =
-            Settings.loadFromDbById(id, WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+            Song.loadFromDbById(id, WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
                 ?: run {
                     response.status = 404
                     return

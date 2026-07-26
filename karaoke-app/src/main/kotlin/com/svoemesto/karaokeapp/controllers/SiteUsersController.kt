@@ -3,7 +3,7 @@ package com.svoemesto.karaokeapp.controllers
 import com.svoemesto.karaokeapp.Connection
 import com.svoemesto.karaokeapp.KaraokeConnection
 import com.svoemesto.karaokeapp.model.PriceTariff
-import com.svoemesto.karaokeapp.model.Settings
+import com.svoemesto.karaokeapp.model.Song
 import com.svoemesto.karaokeapp.model.SiteUser
 import com.svoemesto.karaokeapp.model.Subscription
 import com.svoemesto.karaokeapp.services.KSS_APP
@@ -204,7 +204,7 @@ class SiteUsersController {
             Subscription.loadByUser(id, db, KSS_APP, SAC_APP).map { sub ->
                 val songName =
                     sub.idSong?.let {
-                        Settings
+                        Song
                             .loadFromDbById(
                                 it,
                                 db,

@@ -184,7 +184,7 @@ data class TopUserDto(
 )
 
 /**
- * Перенесённая в karaoke-app аналитика по тбл_events/tbl_settings — раньше жила только в
+ * Перенесённая в karaoke-app аналитика по тбл_events/tbl_songs — раньше жила только в
  * karaoke-web (Stat.kt), теперь нужна и для админки (webvue3), которая ходит за данными
  * исключительно в karaoke-app.
  */
@@ -276,7 +276,7 @@ object StatsByEvents {
         var statement: Statement? = null
         var rs: ResultSet? = null
         try {
-            // Первый проход: читаем ВСЕ сырые строки страницы в память (без N+1 загрузки Settings).
+            // Первый проход: читаем ВСЕ сырые строки страницы в память (без N+1 загрузки Song).
             val rows = mutableListOf<RawEventRow>()
             statement = connection.createStatement()
             rs = statement.executeQuery(sql)
@@ -312,7 +312,7 @@ object StatsByEvents {
                 val st2 = connection.createStatement()
                 val rs2 =
                     st2.executeQuery(
-                        "select id, song_author, song_album, song_name from tbl_settings where id in (${songIds.joinToString(",")})",
+                        "select id, song_author, song_album, song_name from tbl_songs where id in (${songIds.joinToString(",")})",
                     )
                 while (rs2.next()) {
                     songNames[rs2.getLong("id")] =
@@ -375,7 +375,7 @@ object StatsByEvents {
         return result
     }
 
-    // Сырая строка tbl_events для двухпроходной сборки лога (без N+1 загрузки Settings).
+    // Сырая строка tbl_events для двухпроходной сборки лога (без N+1 загрузки Song).
     private data class RawEventRow(
         val id: Long,
         val eventType: String,
@@ -482,7 +482,7 @@ object StatsByEvents {
                 count(*) filter (where e.link_name = 'max') as max_clicks,
                 count(*) filter (where e.link_name = 'sponsr') as sponsr_clicks
             from tbl_events e
-            left join tbl_settings sett on e.song_id = sett.id
+            left join tbl_songs sett on e.song_id = sett.id
             where e.song_id is not null and e.song_id > 0
             group by e.song_id, sett.song_author, sett.song_album, sett.song_name
             order by total desc, e.song_id asc
@@ -608,7 +608,7 @@ object StatsByEvents {
                 (select count(*) from tbl_events where song_id = s.song_id
                     and event_type = 'clickToLink' and link_type = 'linkToSong' and link_name = 'sponsr') as cnt_sponsr
             from tbl_events e
-            left join tbl_settings sett on sett.id = e.song_id
+            left join tbl_songs sett on sett.id = e.song_id
             -- Один срез событий «дослушали ≥75%» по конкретному song_id. Внутренний подзапрос
             -- фильтрует до агрегации, чтобы count(*) считался только по нужным строкам. Затем
             -- GROUP BY по song_id даёт одну строку на песню.

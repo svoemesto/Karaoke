@@ -17,20 +17,20 @@ import java.util.*
 data class PublicationDTO(
     val id: Int?,
     val publishDate: String?,
-    val publish10: SettingsDTO?,
-    val publish11: SettingsDTO?,
-    val publish12: SettingsDTO?,
-    val publish13: SettingsDTO?,
-    val publish14: SettingsDTO?,
-    val publish15: SettingsDTO?,
-    val publish16: SettingsDTO?,
-    val publish17: SettingsDTO?,
-    val publish18: SettingsDTO?,
-    val publish19: SettingsDTO?,
-    val publish20: SettingsDTO?,
-    val publish21: SettingsDTO?,
-    val publish22: SettingsDTO?,
-    val publish23: SettingsDTO?,
+    val publish10: SongDTO?,
+    val publish11: SongDTO?,
+    val publish12: SongDTO?,
+    val publish13: SongDTO?,
+    val publish14: SongDTO?,
+    val publish15: SongDTO?,
+    val publish16: SongDTO?,
+    val publish17: SongDTO?,
+    val publish18: SongDTO?,
+    val publish19: SongDTO?,
+    val publish20: SongDTO?,
+    val publish21: SongDTO?,
+    val publish22: SongDTO?,
+    val publish23: SongDTO?,
     val publish10text: String,
     val publish11text: String,
     val publish12text: String,
@@ -58,7 +58,7 @@ data class PublicationDTO(
  * - Ссылки на опубликованные версии (TG/VK/Dzen/Boosty/Sponsr/PL).
  * - Флаги: `isTextNeed`, `isChordsNeed`, `isVocalNeed`, и т.п.
  *
- * Создаётся при планировании публикации (`Settings.idStatus` → 6).
+ * Создаётся при планировании публикации (`Song.idStatus` → 6).
  * Обновляется при факте публикации (см. `telegram-auto-publish.md`).
  *
  * @see docs/features/telegram-auto-publish.md
@@ -69,20 +69,20 @@ class Publication(
     Comparable<Publication> {
     var id: Int? = null
     var publishDate: String? = null
-    var publish10: Settings? = null
-    var publish11: Settings? = null
-    var publish12: Settings? = null
-    var publish13: Settings? = null
-    var publish14: Settings? = null
-    var publish15: Settings? = null
-    var publish16: Settings? = null
-    var publish17: Settings? = null
-    var publish18: Settings? = null
-    var publish19: Settings? = null
-    var publish20: Settings? = null
-    var publish21: Settings? = null
-    var publish22: Settings? = null
-    var publish23: Settings? = null
+    var publish10: Song? = null
+    var publish11: Song? = null
+    var publish12: Song? = null
+    var publish13: Song? = null
+    var publish14: Song? = null
+    var publish15: Song? = null
+    var publish16: Song? = null
+    var publish17: Song? = null
+    var publish18: Song? = null
+    var publish19: Song? = null
+    var publish20: Song? = null
+    var publish21: Song? = null
+    var publish22: Song? = null
+    var publish23: Song? = null
 
     val publish10text: String get() =
         if (publish10 !=
@@ -1367,7 +1367,7 @@ class Publication(
                 filterDateTo = ""
             } else if (filterCond == "fromnotpublish") {
                 val listOfSettingsTemp =
-                    Settings
+                    Song
                         .loadListFromDb(
                             database = database,
                             storageService = storageService,
@@ -1391,7 +1391,7 @@ class Publication(
                 }
             } else if (filterCond == "fromnotdone") {
                 val listOfSettingsTemp =
-                    Settings
+                    Song
                         .loadListFromDb(
                             database = database,
                             storageService = storageService,
@@ -1415,7 +1415,7 @@ class Publication(
                 }
             } else if (filterCond == "fromnotcheck") {
                 val listOfSettingsTemp =
-                    Settings
+                    Song
                         .loadListFromDb(
                             database = database,
                             storageService = storageService,
@@ -1440,7 +1440,7 @@ class Publication(
             }
 
             val listOfSettings =
-                Settings
+                Song
                     .loadListFromDb(
                         database = database,
                         storageService = storageService,
@@ -1516,7 +1516,7 @@ class Publication(
                     ).map { it.author }
 
             val listUnpublished =
-                Settings
+                Song
                     .loadListFromDb(
                         mapOf("publish_date" to "-", "publish_time" to "-"),
                         database = database,
@@ -1528,9 +1528,9 @@ class Publication(
                     .map { it.value }
                     .sortedBy { it.size }
 
-            val listStack: MutableList<Stack<Settings?>> = mutableListOf()
+            val listStack: MutableList<Stack<Song?>> = mutableListOf()
             for (@Suppress("unused") i in listUnpublished.indices) {
-                listStack.add(Stack<Settings?>())
+                listStack.add(Stack<Song?>())
             }
 
             listUnpublished.forEachIndexed { index, settings ->
@@ -1579,7 +1579,7 @@ class Publication(
                     ).map { it.author }
 
             val listUnpublished =
-                Settings
+                Song
                     .loadListFromDb(
                         mapOf("publish_date" to "-", "publish_time" to "-"),
                         database = database,
@@ -1591,9 +1591,9 @@ class Publication(
                     .map { it.value }
                     .sortedBy { it.size }
 
-            val listStack: MutableList<Stack<Settings?>> = mutableListOf()
+            val listStack: MutableList<Stack<Song?>> = mutableListOf()
             for (@Suppress("unused") i in listUnpublished.indices) {
-                listStack.add(Stack<Settings?>())
+                listStack.add(Stack<Song?>())
             }
 
             listUnpublished.forEachIndexed { index, settings ->
@@ -1629,7 +1629,7 @@ class Publication(
             database: KaraokeConnection,
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
-        ): List<Settings> {
+        ): List<Song> {
             val skipedAuthors =
                 Author
                     .loadList(
@@ -1652,7 +1652,7 @@ class Publication(
                 filterDateTo = ""
             } else if (filterCond == "fromnotpublish") {
                 val listOfSettingsTemp =
-                    Settings
+                    Song
                         .loadListFromDb(
                             database = database,
                             storageService = storageService,
@@ -1676,7 +1676,7 @@ class Publication(
                 }
             } else if (filterCond == "fromnotdone") {
                 val listOfSettingsTemp =
-                    Settings
+                    Song
                         .loadListFromDb(
                             database = database,
                             storageService = storageService,
@@ -1700,7 +1700,7 @@ class Publication(
                 }
             } else if (filterCond == "fromnotcheck") {
                 val listOfSettingsTemp =
-                    Settings
+                    Song
                         .loadListFromDb(
                             database = database,
                             storageService = storageService,
@@ -1723,7 +1723,7 @@ class Publication(
                     filterDateTo = ""
                 }
             } else if (filterCond == "unpublish") {
-                return Settings
+                return Song
                     .loadListFromDb(
                         mapOf("unpublish" to "+"),
                         database = database,
@@ -1735,7 +1735,7 @@ class Publication(
                             skipedAuthors
                     }
             } else if (filterCond == "skiped") {
-                return Settings
+                return Song
                     .loadListFromDb(
                         mapOf("publish_date" to "-", "publish_time" to "-"),
                         database = database,
@@ -1748,7 +1748,7 @@ class Publication(
                     }
             }
 
-            return Settings
+            return Song
                 .loadListFromDb(
                     database = database,
                     storageService = storageService,
@@ -1785,8 +1785,8 @@ class Publication(
             database: KaraokeConnection,
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
-        ): List<Settings> =
-            Settings.loadListFromDb(
+        ): List<Song> =
+            Song.loadListFromDb(
                 mapOf("publish_date" to "-", "publish_time" to "-"),
                 database = database,
                 storageService = storageService,

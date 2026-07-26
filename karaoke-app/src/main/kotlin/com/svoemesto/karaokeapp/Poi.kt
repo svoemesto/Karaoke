@@ -1,7 +1,7 @@
 package com.svoemesto.karaokeapp
 
-import com.svoemesto.karaokeapp.model.SettingField
-import com.svoemesto.karaokeapp.model.Song
+import com.svoemesto.karaokeapp.model.SongField
+import com.svoemesto.karaokeapp.model.SongRenderContext
 import org.odftoolkit.simple.SpreadsheetDocument
 import org.odftoolkit.simple.table.Row
 import java.io.File
@@ -97,12 +97,12 @@ class Ods {
             author: String,
             songName: String,
             spreadsheetDocument: SpreadsheetDocument,
-        ): MutableMap<SettingField, String>? {
+        ): MutableMap<SongField, String>? {
             val (firstRow, row) = findRow(author, songName, spreadsheetDocument)
             if (row == null) {
                 return null
             } else {
-                val result: MutableMap<SettingField, String> = mutableMapOf()
+                val result: MutableMap<SongField, String> = mutableMapOf()
 
                 val date = row.getCellByIndex(getColumnIndex(firstRow!!, ODS_COLUMN_DATE)).stringValue.trim()
                 val time = row.getCellByIndex(getColumnIndex(firstRow, ODS_COLUMN_TIME)).stringValue.trim()
@@ -120,23 +120,23 @@ class Ods {
                 val bpm = row.getCellByIndex(getColumnIndex(firstRow, ODS_COLUMN_BPM)).stringValue.trim()
                 val format = row.getCellByIndex(getColumnIndex(firstRow, ODS_COLUMN_FORMAT)).stringValue.trim()
 
-                result[SettingField.AUTHOR] = author
-                result[SettingField.NAME] = songName
-                if (date != "") result[SettingField.DATE] = date
-                if (time != "") result[SettingField.TIME] = time
-                if (year != "") result[SettingField.YEAR] = year
-                if (album != "") result[SettingField.ALBUM] = album
-                if (track != "") result[SettingField.TRACK] = track
-                if (tone != "") result[SettingField.KEY] = tone
-                if (bpm != "") result[SettingField.BPM] = bpm
-                if (format != "") result[SettingField.FORMAT] = format
-                if (boostyNormal != "") result[SettingField.ID_BOOSTY] = boostyNormal
-                if (lyricsNormal != "") result[SettingField.ID_DZEN_LYRICS] = lyricsNormal
-//                if (lyricsDelay != "") result[SettingField.ID_DZEN_LYRICS_BT] = lyricsDelay
-                if (karaokeNormal != "") result[SettingField.ID_DZEN_KARAOKE] = karaokeNormal
-//                if (karaokeDelay != "") result[SettingField.ID_DZEN_KARAOKE_BT] = karaokeDelay
-                if (chordsNormal != "") result[SettingField.ID_DZEN_CHORDS] = chordsNormal
-//                if (chordsDelay != "") result[SettingField.ID_DZEN_CHORDS_BT] = chordsDelay
+                result[SongField.AUTHOR] = author
+                result[SongField.NAME] = songName
+                if (date != "") result[SongField.DATE] = date
+                if (time != "") result[SongField.TIME] = time
+                if (year != "") result[SongField.YEAR] = year
+                if (album != "") result[SongField.ALBUM] = album
+                if (track != "") result[SongField.TRACK] = track
+                if (tone != "") result[SongField.KEY] = tone
+                if (bpm != "") result[SongField.BPM] = bpm
+                if (format != "") result[SongField.FORMAT] = format
+                if (boostyNormal != "") result[SongField.ID_BOOSTY] = boostyNormal
+                if (lyricsNormal != "") result[SongField.ID_DZEN_LYRICS] = lyricsNormal
+//                if (lyricsDelay != "") result[SongField.ID_DZEN_LYRICS_BT] = lyricsDelay
+                if (karaokeNormal != "") result[SongField.ID_DZEN_KARAOKE] = karaokeNormal
+//                if (karaokeDelay != "") result[SongField.ID_DZEN_KARAOKE_BT] = karaokeDelay
+                if (chordsNormal != "") result[SongField.ID_DZEN_CHORDS] = chordsNormal
+//                if (chordsDelay != "") result[SongField.ID_DZEN_CHORDS_BT] = chordsDelay
 
                 return result
             }
@@ -144,7 +144,7 @@ class Ods {
 
         @Suppress("unused")
         fun getSongVKDescription(
-            song: Song,
+            song: SongRenderContext,
             fileName: String,
             spreadsheetDocument: SpreadsheetDocument?,
         ): Pair<String, String>? {

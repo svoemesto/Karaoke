@@ -2,7 +2,7 @@
 
 > **Status**: active
 > **Feature Key**: dual-db-sync
-> **Last Updated**: 2026-07-20
+> **Last Updated**: 2026-07-26
 
 ## Что делает
 
@@ -74,6 +74,15 @@ Karaoke — self-pipeline. Admin-машина разрабатывает нов�
   новые сущности — через `SyncRegistry`.
 - **`last_update useInDiff=false`**: некоторые таблицы имеют
   `last_update` только для UI, не для диффа. Помечается в entity.
+- **Historical rename (2026-07-26, specs/011-album-song-rename)**: главная syncable-сущность
+  `Settings`/`tbl_settings` переименована в `Song`/`tbl_songs` (класс, DTO, `SyncTarget` —
+  `SettingsSyncTarget`→`SongSyncTarget`; физическая таблица тоже переименована). Строковый
+  `key = "settings"` в `SyncRegistry` **намеренно не менялся** — он зашит в несохранённый в git
+  `Karaoke.properties` на машине администратора, и смена ключа обнулила бы уже настроенные флаги
+  синхронизации без предупреждения (см. `specs/011-album-song-rename/research.md` §5). Одновременно
+  добавлены две новые сущности по тому же паттерну `GenericKaraokeDbTableSyncTarget`: `Album`
+  (`key = "albums"`, `tbl_albums`) и `SongCoAuthor` (`key = "songcoauthors"`, `tbl_song_authors`,
+  многие-ко-многим `Song`↔`Author` для соавторов, отдельно от главного автора).
 
 ## Ссылки на ключевые классы/файлы
 

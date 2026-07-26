@@ -3,7 +3,7 @@ package com.svoemesto.karaokeweb.controllers
 import com.svoemesto.karaokeweb.WORKING_DATABASE
 
 import com.svoemesto.karaokeapp.model.KaraokeDbTable
-import com.svoemesto.karaokeapp.model.Settings
+import com.svoemesto.karaokeapp.model.Song
 import com.svoemesto.karaokeapp.model.SiteUser
 import com.svoemesto.karaokeapp.model.SongAssignment
 import com.svoemesto.karaokeapp.model.SongAssignmentDraft
@@ -28,9 +28,9 @@ import java.sql.Timestamp
  * установлен и не забанен. Пользователь видит только СВОИ задания (проверка assignee_id == user.id).
  *
  * КРИТИЧНО: этот контроллер ПИШЕТ только в tbl_song_assignment_drafts (черновик пользователя), НИКОГДА
- * не трогает Settings.setSourceMarkers / rootFolder / *NameFlac-геттеры — это уронило бы процесс karaoke-web
- * (Settings trap: APP_WORK_ON_SERVER не инициализирован, см. PublicPlayerController). Применение
- * разметки в tbl_settings делает karaoke-app при апруве. Чтение метаданных песни (songName/author/…)
+ * не трогает Song.setSourceMarkers / rootFolder / *NameFlac-геттеры — это уронило бы процесс karaoke-web
+ * (Song trap: APP_WORK_ON_SERVER не инициализирован, см. PublicPlayerController). Применение
+ * разметки в tbl_songs делает karaoke-app при апруве. Чтение метаданных песни (songName/author/…)
  * и seed текста/маркеров (getSourceText/getSourceMarkers — парсинг JSON-колонок) безопасно — ровно
  * это уже делает PublicPlayerController.playerData.
  *
@@ -98,7 +98,7 @@ class PublicSongEditorController(
             if (assignments.isEmpty()) {
                 emptyMap()
             } else {
-                Settings.loadListFromDbByIds(assignments.map { it.songId }.distinct(), db, storageService, storageApiClient)
+                Song.loadListFromDbByIds(assignments.map { it.songId }.distinct(), db, storageService, storageApiClient)
             }
         return assignments.map { a ->
             val draft = drafts[a.id]
@@ -133,11 +133,11 @@ class PublicSongEditorController(
         val a = loadOwnedAssignment(id, user.id) ?: return notFound()
         val draft = SongAssignmentDraft.getByAssignment(id, db, storageService, storageApiClient)
         val settings =
-            Settings.loadFromDbById(a.songId, WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+            Song.loadFromDbById(a.songId, WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
                 ?: return notFound()
         val status = statusOf(a, draft)
 
-        // Текст/маркеры ПО ГОЛОСАМ: из черновика, если есть; иначе seed из Settings (текущее
+        // Текст/маркеры ПО ГОЛОСАМ: из черновика, если есть; иначе seed из Song (текущее
         // состояние песни, целиком — все уже существующие голоса).
         val sourceTexts: List<String>
         val markersPerVoice: List<List<SourceMarker>>

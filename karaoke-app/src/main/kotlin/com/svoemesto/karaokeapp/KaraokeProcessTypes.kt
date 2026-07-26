@@ -46,7 +46,7 @@ enum class KaraokeProcessTypes {
 
     // Премиум-фича «Создать минусовку из аудиофайла» (StemJob, tbl_stem_jobs) — тот же демукс, что и
     // DEMUCS2/DEMUCS5, но для произвольного файла, загруженного пользователем публичного сайта, а не
-    // для Settings/песни (settingsId=0). См. StemJobProcessing.kt.
+    // для Song/песни (settingsId=0). См. StemJobProcessing.kt.
     STEM_JOB_DEMUCS2,
     STEM_JOB_DEMUCS5,
 }

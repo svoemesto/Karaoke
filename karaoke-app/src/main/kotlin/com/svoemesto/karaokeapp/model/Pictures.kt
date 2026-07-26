@@ -122,7 +122,7 @@ class Pictures(
         return if (isAlbumPicture) {
             // Ищем первую песню автора, года и альбома
             val args = mapOf("author" to author, "song_year" to year, "album" to album, "limit" to "1")
-            Settings
+            Song
                 .loadListFromDb(
                     args = args,
                     database = WORKING_DATABASE,
@@ -134,7 +134,7 @@ class Pictures(
                 ?: ""
         } else if (isAuthorPicture) {
             val args = mapOf("author" to author, "limit" to "1")
-            Settings
+            Song
                 .loadListFromDb(
                     args = args,
                     database = WORKING_DATABASE,

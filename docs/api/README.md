@@ -155,7 +155,7 @@ KDoc. Список для следующих итераций.
 
 - [x] `KaraokeProcessWorker` (`KaraokeProcessWorker.kt`) — главный воркер ✅ 2026-07-20
 - [x] `KaraokeProcessThread` (`KaraokeProcessThread.kt`) — обёртка subprocess ✅ 2026-07-20
-- [x] `Settings` (`model/Settings.kt`) — главная сущность ✅ 2026-07-20
+- [x] `Song` (`model/Song.kt`, переименовано из `Settings`/`Settings.kt` — specs/011-album-song-rename) — главная сущность ✅ 2026-07-20
 - [x] `Settings.loadListFromDb` / `Settings.saveToDb` — критичные методы ✅ 2026-07-20
 - [x] `KaraokeDbTable.save` / `KaraokeDbTable.loadList` — reflection-loader ✅ 2026-07-20
 - [x] `Connection.local` / `Connection.remote` / `Connection.virtual` — фабрики БД ✅ 2026-07-20

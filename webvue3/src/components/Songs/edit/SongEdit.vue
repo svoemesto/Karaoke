@@ -175,6 +175,45 @@
               <img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg" />
             </button>
           </div>
+          <!-- specs/011-album-song-rename: настоящая ссылка на Album (albumId), в дополнение к
+               свободнотекстовому song.album выше. Список ограничен альбомами того же автора,
+               что и главный автор песни (FR-008 — сервер отклонит несовпадение). -->
+          <div class="label-and-input">
+            <div class="label">Альбом (ссылка):</div>
+            <select v-model.number="song.albumId" class="input-field">
+              <option :value="0">— без альбома —</option>
+              <option v-for="alb in albumsForSongAuthor" :key="alb.id" :value="alb.id">
+                {{ alb.name }} ({{ alb.year }})
+              </option>
+            </select>
+            <button
+              class="btn-round"
+              :disabled="notChanged('albumId')"
+              @click="undoField('albumId')"
+            >
+              <img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg" />
+            </button>
+          </div>
+          <!-- specs/011-album-song-rename (US2): произвольное число соавторов, отдельно от
+               главного автора выше — не влияет на группировку/URL/альбом (FR-010). -->
+          <div class="label-and-input">
+            <div class="label">Соавторы:</div>
+            <div class="coauthors-list">
+              <span v-for="ca in coAuthors" :key="ca.id" class="coauthor-chip">
+                {{ ca.author }}
+                <button class="coauthor-remove" title="Удалить" @click="removeCoAuthor(ca.id)">
+                  ×
+                </button>
+              </span>
+              <input
+                v-model="coAuthorAuthorIdToAdd"
+                class="input-field coauthor-add-input"
+                placeholder="ID автора"
+                @keyup.enter="addCoAuthor"
+              />
+              <button class="btn-round" title="Добавить соавтора" @click="addCoAuthor">+</button>
+            </div>
+          </div>
           <div class="label-and-input">
             <div class="label">№ трека:</div>
             <input v-model="song.track" class="input-field" />
@@ -1949,7 +1988,7 @@ const ASSIGN_STATUS_LABELS = {
   rejected: 'Отклонено',
 }
 
-// Тип песни: dbValue — то, что хранится в БД (tbl_settings.song_type) и в SettingsDTO.songType,
+// Тип песни: dbValue — то, что хранится в БД (tbl_songs.song_type) и в SongDTO.songType,
 // и попадает в ApiController.songs2Update как параметр songType. Значение по умолчанию — 'song'
 // (см. SongType.SONG в karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SongType.kt).
 const SONG_TYPE_OPTIONS = [
@@ -1975,7 +2014,7 @@ const SONG_TYPE_OPTIONS = [
  * 8. **Repair flags**: флаги ремонта (`isAudioAnalizeNeed`, `isMelodyNeed`,
  *    `isChordsNeed`, `isVocalNeed`, `isAccompanimentNeed`).
  *
- * Автосохранение: `watch(diff)` с debounce 1 сек → `Settings.saveToDb()`.
+ * Автосохранение: `watch(diff)` с debounce 1 сек → `Song.saveToDb()`.
  *
  * Использует `SubsEdit` для inline-редактирования текста/аккордов,
  * `SearchText` для LLM-поиска текстов и аккордов.
@@ -2030,6 +2069,9 @@ export default {
       customConfirmParams: undefined,
       imageAuthorBase64: '',
       imageAlbumBase64: '',
+      // specs/011-album-song-rename (US2): соавторы текущей песни + поле ввода ID для добавления.
+      coAuthors: [],
+      coAuthorAuthorIdToAdd: '',
       textFormatted: '',
       notesFormatted: '',
       chordsFormatted: '',
@@ -2115,6 +2157,19 @@ export default {
     },
     snapshot() {
       return this.$store.getters.getSnapshotSong
+    },
+    // specs/011-album-song-rename: альбомы того же автора, что и главный автор текущей песни —
+    // источник для пикера «Альбом (ссылка)». Сопоставление по имени автора (song.author — свободный
+    // текст, без FK), т.к. другого способа связать песню с Author.id в текущей модели нет.
+    albumsForSongAuthor() {
+      if (!this.song || !this.song.author) return []
+      const author = (this.$store.getters.getAuthorsDigest || []).find(
+        (a) => a.author.toLowerCase() === this.song.author.toLowerCase(),
+      )
+      if (!author) return []
+      return (this.$store.getters.getAlbumsDigest || [])
+        .filter((alb) => alb.authorId === author.id)
+        .sort((a, b) => a.year - b.year || a.sortOrder - b.sortOrder)
     },
     diff() {
       return this.$store.getters.getSongDiff
@@ -2328,6 +2383,7 @@ export default {
           .dispatch('getChordsFormattedPromise')
           .then((chordsFormatted) => (this.chordsFormatted = chordsFormatted))
         this.reloadAssignmentStatus()
+        this.loadCoAuthors()
       },
     },
     // На случай когда сервер ещё не отдаёт songType (старая БД/билд) — подставляем дефолт 'song'.
@@ -2973,11 +3029,59 @@ export default {
     await this.$store.dispatch('loadEditorDefaultTarget')
     this.$store.dispatch('loadEditorSiteUsers', this.$store.getters.getEditorDefaultTarget)
     this.reloadAssignmentStatus()
+    // specs/011-album-song-rename: список альбомов для пикера «Альбом (ссылка)» — грузим один раз,
+    // фильтруем по автору песни на клиенте (computed albumsForSongAuthor).
+    if (!this.$store.getters.getAlbumsDigest || this.$store.getters.getAlbumsDigest.length === 0) {
+      this.$store.dispatch('loadAlbumsDigests', {})
+    }
+    if (
+      !this.$store.getters.getAuthorsDigest ||
+      this.$store.getters.getAuthorsDigest.length === 0
+    ) {
+      this.$store.dispatch('loadAuthorsDigests', {})
+    }
+    this.loadCoAuthors()
   },
 
   methods: {
     openPlayer() {
       window.open(`/player/${this.song.id}`, '_blank')
+    },
+    // --- Соавторы песни (US2, specs/011-album-song-rename) ----------------------------------
+    loadCoAuthors() {
+      if (!this.song || !this.song.id) {
+        this.coAuthors = []
+        return
+      }
+      this.$store.dispatch('loadSongCoAuthorsPromise', this.song.id).then((coAuthors) => {
+        this.coAuthors = coAuthors || []
+      })
+    },
+    addCoAuthor() {
+      const authorId = Number(this.coAuthorAuthorIdToAdd)
+      if (!authorId || !this.song || !this.song.id) return
+      this.$store
+        .dispatch('addSongCoAuthorPromise', { songId: this.song.id, authorId })
+        .then((success) => {
+          if (success) {
+            this.coAuthorAuthorIdToAdd = ''
+            this.loadCoAuthors()
+          } else {
+            this.createToast({
+              props: {
+                title: 'Ошибка',
+                body: 'Не удалось добавить соавтора (совпадает с главным автором или автор не найден)',
+                variant: 'danger',
+              },
+            })
+          }
+        })
+    },
+    removeCoAuthor(authorId) {
+      if (!this.song || !this.song.id) return
+      this.$store
+        .dispatch('removeSongCoAuthorPromise', { songId: this.song.id, authorId })
+        .then(() => this.loadCoAuthors())
     },
     // --- Кнопка «Назначить»/«Назначено» (онлайн-редактор) -----------------------------------
     reloadAssignmentStatus() {
@@ -3444,9 +3548,7 @@ export default {
           // Поиск целевого объекта
           for (let i = 0; i < this.publishDigest.length; i++) {
             const row = this.publishDigest[i].csrCells
-            const indexCell = row.findIndex(
-              (cell) => cell.settingsDTO && cell.settingsDTO.id === targetId,
-            )
+            const indexCell = row.findIndex((cell) => cell.songDTO && cell.songDTO.id === targetId)
             if (indexCell !== -1) {
               targetRowIndex = i
               targetCellIndex = indexCell
@@ -3458,9 +3560,8 @@ export default {
               case 'Left': {
                 id =
                   targetCellIndex > 0
-                    ? this.publishDigest[targetRowIndex].csrCells[targetCellIndex - 1].settingsDTO
-                      ? this.publishDigest[targetRowIndex].csrCells[targetCellIndex - 1].settingsDTO
-                          .id
+                    ? this.publishDigest[targetRowIndex].csrCells[targetCellIndex - 1].songDTO
+                      ? this.publishDigest[targetRowIndex].csrCells[targetCellIndex - 1].songDTO.id
                       : id
                     : id
                 break
@@ -3468,9 +3569,8 @@ export default {
               case 'Right': {
                 id =
                   targetCellIndex < this.publishDigest[targetRowIndex].csrCells.length - 1
-                    ? this.publishDigest[targetRowIndex].csrCells[targetCellIndex + 1].settingsDTO
-                      ? this.publishDigest[targetRowIndex].csrCells[targetCellIndex + 1].settingsDTO
-                          .id
+                    ? this.publishDigest[targetRowIndex].csrCells[targetCellIndex + 1].songDTO
+                      ? this.publishDigest[targetRowIndex].csrCells[targetCellIndex + 1].songDTO.id
                       : id
                     : id
                 break
@@ -3478,9 +3578,8 @@ export default {
               case 'Next': {
                 id =
                   targetRowIndex < this.publishDigest.length - 1
-                    ? this.publishDigest[targetRowIndex + 1].csrCells[targetCellIndex].settingsDTO
-                      ? this.publishDigest[targetRowIndex + 1].csrCells[targetCellIndex].settingsDTO
-                          .id
+                    ? this.publishDigest[targetRowIndex + 1].csrCells[targetCellIndex].songDTO
+                      ? this.publishDigest[targetRowIndex + 1].csrCells[targetCellIndex].songDTO.id
                       : id
                     : id
                 break
@@ -3488,9 +3587,8 @@ export default {
               case 'Previous': {
                 id =
                   targetRowIndex > 0
-                    ? this.publishDigest[targetRowIndex - 1].csrCells[targetCellIndex].settingsDTO
-                      ? this.publishDigest[targetRowIndex - 1].csrCells[targetCellIndex].settingsDTO
-                          .id
+                    ? this.publishDigest[targetRowIndex - 1].csrCells[targetCellIndex].songDTO
+                      ? this.publishDigest[targetRowIndex - 1].csrCells[targetCellIndex].songDTO.id
                       : id
                     : id
                 break
@@ -3881,7 +3979,7 @@ export default {
       this.isSubsEditVisible = false
     },
     showKaraokeEditor() {
-      // При открытии редактора из карточки песни — режим 'song', пишем в Settings той же БД,
+      // При открытии редактора из карточки песни — режим 'song', пишем в Song той же БД,
       // что сейчас активна для заданий (assignmentsTarget), единообразно с логикой остальных
       // target-aware эндпоинтов SongEditorController.
       try {
@@ -3940,10 +4038,10 @@ export default {
       window.open(this.mainLink, '_blank')
     },
     updateRemote() {
-      this.$store.dispatch('updateOneRemoteSettingsPromise', this.song.id)
+      this.$store.dispatch('updateOneRemoteSongPromise', this.song.id)
     },
     toSyncRemote() {
-      // this.$store.dispatch('toSyncOneRemoteSettingsPromise', this.song.id);
+      // this.$store.dispatch('toSyncOneRemoteSongPromise', this.song.id);
       this.$store.dispatch('changeToSync')
     },
     async openLinkBoostyNew() {
@@ -4732,6 +4830,34 @@ export default {
   border-radius: 5px;
   border-color: black;
   border-width: thin;
+}
+.coauthors-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  max-width: 320px;
+}
+.coauthor-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background-color: antiquewhite;
+  border: 1px solid black;
+  border-radius: 10px;
+  padding: 1px 6px;
+  font-size: small;
+}
+.coauthor-remove {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-weight: bold;
+  color: indianred;
+  padding: 0;
+}
+.coauthor-add-input {
+  width: 90px !important;
 }
 .input-field:hover {
   background-color: lightyellow;

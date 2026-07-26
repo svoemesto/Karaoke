@@ -2,7 +2,7 @@ package com.svoemesto.karaokeweb.controllers
 
 import com.svoemesto.karaokeweb.WORKING_DATABASE
 
-import com.svoemesto.karaokeapp.model.Settings
+import com.svoemesto.karaokeapp.model.Song
 import com.svoemesto.karaokeapp.model.SitePlaylist
 import com.svoemesto.karaokeapp.model.SitePlaylistDto
 import com.svoemesto.karaokeapp.model.SitePlaylistItem
@@ -116,7 +116,7 @@ class PublicPlaylistController(
             if (items.isEmpty()) {
                 emptyMap()
             } else {
-                Settings.loadListFromDbByIds(items.map { it.songId }.distinct(), db, storageService, storageApiClient)
+                Song.loadListFromDbByIds(items.map { it.songId }.distinct(), db, storageService, storageApiClient)
             }
         val itemsDto =
             items.map { item ->

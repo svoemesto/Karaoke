@@ -7,7 +7,7 @@ import java.io.Serializable
  *
  * @see docs/features/mlt-generator.md
  */
-enum class SettingField : Serializable {
+enum class SongField : Serializable {
     ID,
     NAME,
     AUTHOR,
@@ -93,7 +93,7 @@ enum class SettingField : Serializable {
     ID_TARIFF,
 
     // Публикация DEMO-версии (RenderVersion.DEMO) на площадках — по образцу LYRICS/KARAOKE/CHORDS/MELODY,
-    // но намеренно не привязана к SongVersion (см. Settings.getDescriptionDemoHeader и т.п.).
+    // но намеренно не привязана к SongVersion (см. Song.getDescriptionDemoHeader и т.п.).
     ID_DZEN_DEMO,
     VERSION_DZEN_DEMO,
     ID_VK_DEMO,
@@ -103,7 +103,7 @@ enum class SettingField : Serializable {
     ID_MAX_DEMO,
     VERSION_MAX_DEMO,
 
-    // Тип песни: песня/инструментал/стихи (см. SongType). Хранится в tbl_settings.song_type.
+    // Тип песни: песня/инструментал/стихи (см. SongType). Хранится в tbl_songs.song_type.
     SONG_TYPE,
 
     // "Аудио-родитель" — песня, максимально похожая по звучанию (WaveformCompare), независимо
@@ -117,10 +117,15 @@ enum class SettingField : Serializable {
     AUDIO_COMPARE_HISTORY,
 
     // Персистентная готовность файлов песни к онлайн-плееру — проставляется точечно в момент
-    // успешной заливки в хранилище (ApiController.pushMp3ToStorage, Settings.pictureAlbum/pictureAuthor)
+    // успешной заливки в хранилище (ApiController.pushMp3ToStorage, Song.pictureAlbum/pictureAuthor)
     // и сверяется HealthReport'ом, чтобы список песен не бил по MinIO на каждый показ. Единое
     // JSON-поле (формат {"stemAccompanimentReady":true,...}) вместо отдельной колонки на флаг —
-    // новый флаг добавляется только в Kotlin-коде (Settings.kt), без новой миграции/колонки/правки
+    // новый флаг добавляется только в Kotlin-коде (Song.kt), без новой миграции/колонки/правки
     // recordhash-триггера (см. deploy/karaoke-db/26_player_readiness_flags.sql).
     PLAYER_READINESS_FLAGS,
+
+    // Ссылка на альбом (tbl_albums.id), опционально — NULL для синглов без альбома. Реальный FK
+    // (ON DELETE SET NULL), в отличие от свободнотекстовых AUTHOR/ALBUM/YEAR выше.
+    // @see specs/011-album-song-rename/data-model.md
+    ALBUM_ID,
 }

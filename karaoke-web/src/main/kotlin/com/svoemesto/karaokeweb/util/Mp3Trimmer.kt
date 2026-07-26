@@ -10,7 +10,7 @@ import java.io.ByteArrayOutputStream
 // секундах. Вместо этого разбираем реальные MPEG-фреймы (11-битный sync + таблицы битрейта/
 // частоты дискретизации) и режем строго по их границе — работает и с CBR, и с VBR.
 // Используется из PublicPlayerController.stemResponse только для demo-токенов (см.
-// Settings.demoFragmentStartSeconds/demoFragmentEndSeconds, PlayerGestureUnlockService.demoRangeForToken)
+// Song.demoFragmentStartSeconds/demoFragmentEndSeconds, PlayerGestureUnlockService.demoRangeForToken)
 // — обычный (не-демо) токен получает исходные байты без изменений.
 // ВАЖНО: фрагмент теперь может начинаться НЕ с нуля (демо = "куплет минус 5 секунд отступа"), а
 // значит режем и по НАЧАЛУ, отбрасывая всё до него. У LAME есть bit reservoir (кадр может занимать

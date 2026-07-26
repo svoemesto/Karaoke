@@ -284,10 +284,20 @@ object WhisperMarkerAligner {
 
         insertionsByAnchor[-1]?.forEach { run -> run.words.forEach { appendWord(it.raw) } }
         targetWords.forEachIndexed { wordIndex, word ->
-            // syllables хранит "_" на последнем слоге слова (конвенция для SourceMarker.label, см.
-            // buildMarkers/buildMarkersFromSyllableTimes выше) - здесь же собирается ОБЫЧНЫЙ текст
-            // (пробелы между словами уже добавляет appendWord), поэтому "_" - лишний символ, срезаем.
-            appendWord(word.syllables.joinToString("").removeSuffix("_"))
+            // syllables хранит "_" на последнем слоге СВОЕГО исходного слова (конвенция для
+            // SourceMarker.label, см. buildMarkers/buildMarkersFromSyllableTimes выше) - но одно
+            // "TargetWord" тут иногда СКЛЕЕНО из НЕСКОЛЬКИХ исходных слов (см. цикл слияния безгласных
+            // слогов в buildTargetWords - однобуквенные предлоги "в"/"и"/"к" и одиночные дефисы без
+            // гласной сливаются с соседним словом ПОЛНОСТЬЮ, а не только неудачным слогом) - "_"
+            // тогда остаётся ВНУТРИ склеенной строки, не только на конце. removeSuffix убирал бы
+            // только последний - заменяем ВСЕ "_" на пробел (как и делает Settings.getText() для
+            // marker.label), это восстанавливает исходные границы слов внутри склейки.
+            appendWord(
+                word.syllables
+                    .joinToString("")
+                    .replace("_", " ")
+                    .trim()
+            )
             insertionsByAnchor[wordIndex]?.forEach { run -> run.words.forEach { appendWord(it.raw) } }
 
             val isLastWord = wordIndex == targetWords.size - 1

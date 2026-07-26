@@ -5,16 +5,42 @@
 
 Модель берётся из переменной окружения WHISPER_MODEL (тот же список значений, что
 принимает hwdsl2/whisper-server, см. docker-compose-whisper.yml) - по умолчанию "medium",
-если переменная не задана."""
+если переменная не задана. HF_TOKEN (если задан) отправляется как Bearer-токен - нужен для
+гейтед-репозиториев на HuggingFace (некоторые модели, в отличие от "обычного" medium, доступны
+только авторизованным аккаунтам, принявшим лицензию)."""
 import os
 import sys
 import urllib.request
+import urllib.error
 import json
 
 CACHE_DIR = "/var/lib/whisper"
 WHISPER_MODEL = os.environ.get("WHISPER_MODEL", "medium")
 MODEL_ID = f"Systran/faster-whisper-{WHISPER_MODEL}"
 BASE_URL = f"https://huggingface.co/{MODEL_ID}/resolve/main"
+
+HF_TOKEN = os.environ.get("HF_TOKEN", "").strip()
+AUTH_HEADERS = {"Authorization": f"Bearer {HF_TOKEN}"} if HF_TOKEN else {}
+
+
+def fetch_json(url: str):
+    request = urllib.request.Request(url, headers=AUTH_HEADERS)
+    with urllib.request.urlopen(request, timeout=30) as resp:
+        return json.loads(resp.read())
+
+
+def download_file(url: str, dest: str) -> int:
+    """Скачивает файл с авторизацией (в отличие от urlretrieve, который не умеет слать
+    заголовки) - возвращает размер скачанного файла в байтах."""
+    request = urllib.request.Request(url, headers=AUTH_HEADERS)
+    with urllib.request.urlopen(request, timeout=300) as resp, open(dest, "wb") as out:
+        while True:
+            chunk = resp.read(1024 * 1024)
+            if not chunk:
+                break
+            out.write(chunk)
+    return os.path.getsize(dest)
+
 
 # Создаем структуру каталогов как у HuggingFace cache
 model_dir = os.path.join(CACHE_DIR, f"models--{MODEL_ID.replace('/', '--')}")
@@ -26,9 +52,7 @@ print(f"Модель: {MODEL_ID} (WHISPER_MODEL={WHISPER_MODEL})")
 print("Проверяю актуальную версию модели...")
 api_url = f"https://huggingface.co/api/models/{MODEL_ID}"
 try:
-    with urllib.request.urlopen(api_url, timeout=30) as resp:
-        data = json.loads(resp.read())
-        revision = data.get("sha", "main")
+    revision = fetch_json(api_url).get("sha", "main")
 except Exception as e:
     print(f"Не удалось получить метаданные: {e}, использую main")
     revision = "main"
@@ -59,10 +83,9 @@ print(f"Использую revision: {revision}")
 tree_url = f"https://huggingface.co/api/models/{MODEL_ID}/tree/{revision}"
 print("Получаю дерево файлов...")
 try:
-    with urllib.request.urlopen(tree_url, timeout=30) as resp:
-        files = json.loads(resp.read())
-        file_list = [f["path"] for f in files if f.get("type") == "file"]
-        print(f"Найдено файлов: {len(file_list)}")
+    files = fetch_json(tree_url)
+    file_list = [f["path"] for f in files if f.get("type") == "file"]
+    print(f"Найдено файлов: {len(file_list)}")
 except Exception as e:
     print(f"Ошибка получения дерева: {e}")
     file_list = ["config.json", "model.bin", "tokenizer.json", "vocabulary.txt", "preprocessor_config.json"]
@@ -79,6 +102,7 @@ with open(os.path.join(refs_dir, "main"), "w") as f:
 snapshot_path = os.path.join(snapshots_dir, revision)
 os.makedirs(snapshot_path, exist_ok=True)
 
+failed_files = []
 for i, filename in enumerate(file_list, 1):
     dest = os.path.join(snapshot_path, filename)
 
@@ -94,11 +118,26 @@ for i, filename in enumerate(file_list, 1):
     os.makedirs(os.path.dirname(dest), exist_ok=True)
 
     try:
-        urllib.request.urlretrieve(url, dest)
-        size_mb = os.path.getsize(dest) / (1024 * 1024)
+        size_mb = download_file(url, dest) / (1024 * 1024)
         print(f"  ✓ {filename} ({size_mb:.1f} MB)")
+    except urllib.error.HTTPError as e:
+        hint = " (гейтед репозиторий - нужен HF_TOKEN с принятой лицензией?)" if e.code == 401 else ""
+        print(f"  ✗ Ошибка скачивания {filename}: HTTP {e.code}{hint}")
+        failed_files.append(filename)
+        if os.path.exists(dest):
+            os.remove(dest)  # не оставляем пустой/оборванный файл - иначе "уже скачан" соврёт в следующий раз
     except Exception as e:
         print(f"  ✗ Ошибка скачивания {filename}: {e}")
+        failed_files.append(filename)
+        if os.path.exists(dest):
+            os.remove(dest)
+
+if failed_files:
+    print(f"\n=== Ошибка: не удалось скачать {len(failed_files)} из {len(file_list)} файлов: {failed_files} ===")
+    # Ненулевой код выхода - whisper-downloader "restart: no" + whisper-asr/whisper-asr-cpu
+    # "depends_on: condition: service_completed_successfully" (docker-compose-whisper.yml) не
+    # запустят ASR-сервисы с заведомо неполной моделью, вместо молчаливого "успеха" с битым кешем.
+    sys.exit(1)
 
 print("\n=== Готово! Все файлы модели в кеше ===")
 print(f"Путь: {snapshot_path}")

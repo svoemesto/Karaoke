@@ -26,7 +26,7 @@
 
 **Constraints**: Жёсткое требование обратной совместимости (см. `spec.md` FR-004, FR-005, FR-010) — при отсутствии тегов в тексте результат обеих операций (авто-разметка, ручной пересчёт) должен быть побайтово идентичен сегодняшнему. Механизм не должен искажать подсчёт слогов, используемый для сопоставления с результатом форс-алаймента (Whisper/`align.py`) — тег обязан быть невидим для этого сопоставления.
 
-**Scale/Scope**: Изменения затрагивают ТРИ независимые реализации одного контракта (см. `contracts/tag-registry.md`): `WhisperMarkerAligner.kt` (+ новый файл-реестр тегов) на backend, `SubsEdit.vue` в `webvue3` (admin-редактор), и `useKaraokeEditor.js`+`EditorWorkView.vue` в `karaoke-public` (краудсорсинг-редактор заданий — найдено постфактум, см. Constitution Check ниже и `research.md` §9: текст задания там — прямая копия официального `sourceText`, который может уже содержать спецтеги). `karaoke-web` (`PublicSongEditorController.kt`) — чистый passthrough sourceText/markers, изменений не требует. БД-схему, `SyncRegistry`, деплой не затрагивает.
+**Scale/Scope**: Изменения затрагивают ЧЕТЫРЕ независимые реализации одного контракта (см. `contracts/tag-registry.md`): `WhisperMarkerAligner.kt` (+ новый файл-реестр тегов) на backend, `SubsEdit.vue` в `webvue3` (admin-редактор), `useKaraokeEditor.js`+`EditorWorkView.vue` в `karaoke-public` (краудсорсинг-редактор заданий — найдено постфактум по вопросу пользователя) и `alignment-ml/syllables.py` (форс-алаймент Python-сервис за кнопкой "Точные маркеры" — найдено постфактум по реальной ошибке "Число слогов не совпало" на проде, см. `research.md` §9; частичная реализация — только грамматика, без реестра/алиасов). `karaoke-web` (`PublicSongEditorController.kt`) — чистый passthrough sourceText/markers, изменений не требует. БД-схему, `SyncRegistry`, деплой не затрагивает.
 
 ## Constitution Check
 
@@ -83,11 +83,19 @@ karaoke-public/src/
 └── views/EditorWorkView.vue         # вызов syncMarkersFromSpecTags() при загрузке задания
                                       # (loadTask) и на ввод текста (onTextInput)
 
+alignment-ml/
+└── syllables.py                     # ЧЕТВЁРТАЯ (частичная - только грамматика тега, без
+                                      # реестра/алиасов) реализация: split_text_into_words снимает
+                                      # тег-только строки перед проверкой "пуста ли строка" - иначе
+                                      # рассинхрон числа слогов с Kotlin ломает "Точные маркеры"
+                                      # ("Число слогов в тексте не совпало с результатами
+                                      # выравнивания") на любом тексте со спецтегами
+
 docs/
 └── architecture-notes.md          # датированная запись об изменении (не новый per-feature документ — см. Constitution Check VI)
 ```
 
-**Structure Decision**: Никакой новой структуры проекта не вводится — фича целиком укладывается в существующие файлы `WhisperMarkerAligner.kt` (backend, ядро генерации маркеров из текста) и `SubsEdit.vue` (frontend, ручной редактор маркеров), плюс один новый небольшой файл-реестр на backend (`SpecTags.kt`) и один новый per-feature документ. Отдельного контракта REST API не требуется — существующие эндпоинты (`/edit/forcedAlignMarkers`, `/song/savesourcetextmarkers`, `/song/voicesourcemarkers`) не меняют форму запроса/ответа, меняется только то, какие маркеры туда попадают. Формальный "контракт" здесь — это сам синтаксис тега и таблица реестра (см. `contracts/tag-registry.md`), потому что он реализуется независимо в двух местах (Kotlin и Vue, как и `getSyllables()` сегодня) и должен оставаться идентичным в обеих реализациях.
+**Structure Decision**: Никакой новой структуры проекта не вводится — фича целиком укладывается в существующие файлы (`WhisperMarkerAligner.kt`, `SubsEdit.vue`, `useKaraokeEditor.js`+`EditorWorkView.vue`, `alignment-ml/syllables.py`), плюс один новый небольшой файл-реестр на backend (`SpecTags.kt`); нового per-feature документа НЕ создаётся (см. Constitution Check VI). Отдельного контракта REST API не требуется — существующие эндпоинты (`/edit/forcedAlignMarkers`, `/song/savesourcetextmarkers`, `/song/voicesourcemarkers`, `/api/public/account/editor/tasks/*`, `POST /align` в `serve.py`) не меняют форму запроса/ответа, меняется только то, какие маркеры/тайминги туда попадают. Формальный "контракт" здесь — это сам синтаксис тега (+ реестр/алиасы там, где они нужны) — см. `contracts/tag-registry.md`, потому что он реализуется независимо в ЧЕТЫРЁХ местах (Kotlin, 2×Vue/JS, Python — как и слогоделение сегодня) и должен оставаться согласованным во всех.
 
 ## Complexity Tracking
 

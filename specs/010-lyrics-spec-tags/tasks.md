@@ -132,6 +132,24 @@
 
 ---
 
+## Phase 5d: `alignment-ml/syllables.py` — четвёртое независимое место (FR-012, найдено по реальному багу в проде)
+
+**Почему эта фаза появилась после Phase 5c**: пользователь воспроизвёл реальную ошибку — клик "Точные маркеры" на тексте со спецтегами возвращал "Число слогов в тексте не совпало с результатами выравнивания (внутренняя ошибка)", хотя тот же текст без тегов размечался нормально. Причина: `alignment-ml/syllables.py` (Python, форс-алаймент сервис за `AlignmentServiceClient`, реально вызываемый кнопкой "Точные маркеры") — ЧЕТВЁРТОЕ независимое место со своей копией слогоделения (`split_text_into_words`, используется `align.py`/`align_syllables`/`serve.py`), не входившее ни в исходное исследование (Phase 0/1), ни в находку про `karaoke-public` (Phase 5b) — потому что оно не UI-редактор и физически в другом языке/каталоге. Не зная про спецтеги, оно считало тег-строку "словом" и давало другое число слогов, чем уже пофикшенный `WhisperMarkerAligner.buildTargetWords` — расхождение ловится проверкой `targetWords.sumOf { it.syllables.size } != syllableTimes.size` в `buildMarkersFromSyllableTimes`, которая и выдаёт эту ошибку. См. `research.md` §9 и практический чек-лист "где искать все места" в `contracts/tag-registry.md`.
+
+**Goal**: `alignment-ml/syllables.py` считает слоги/слова так же, как `WhisperMarkerAligner.buildTargetWords`, на любом тексте со спецтегами — без реестра/алиасов (этому сервису тип итогового маркера не нужен, только количество/границы слов).
+
+**Independent Test**: `split_text_into_words("да\n~newline~\nно")` даёт тот же результат (число слов/слогов), что `split_text_into_words("да\n\nно")` (обычная пустая строка) — проверено напрямую (см. T041).
+
+- [X] T040 В `alignment-ml/syllables.py` добавить `_SPEC_TAG_RE` (грамматика тега — Python-эквивалент `\p{L}+` через `[^\W\d_]+`, без реестра/алиасов — они здесь не нужны) и `_strip_spec_tags(line)`.
+- [X] T041 Обновить `split_text_into_words`: строка, которая после `_strip_spec_tags` пуста — пропускается (как и раньше пропускалась обычная пустая строка); для непустых строк в `split_line_into_words` передаётся ОРИГИНАЛЬНАЯ строка (не очищенная — тег, смешанный с текстом, не распознаётся, см. Edge Cases в `spec.md`). Проверено вручную (`python3 -c ...` с фикстурами `да\n\nно` / `да\n~newline~\nно` / `да\n~Куплет~\nно` / несколько тегов подряд / нераспознанный тег — все дают идентичный результат baseline).
+- [X] T042 Обновлены `contracts/tag-registry.md` (места 1-4, практический чек-лист), `research.md` (§9), `plan.md` (Scope/Project Structure), `spec.md` (FR-012, Assumptions, Edge Cases) — задокументирован урок на будущее.
+
+**Checkpoint**: "Точные маркеры" больше не отказывает на текстах со спецтегами по причине рассинхрона счётчика слогов между Kotlin и Python-сервисом.
+
+**⚠️ Не покрыто автоматическим тестом (нет pytest/CI в `alignment-ml`)** — проверено вручную через `python3 -c`, см. T041. Если в `alignment-ml` появится тестовая инфраструктура — перенести туда как `test_syllables.py`.
+
+---
+
 ## Phase 6: Polish & Cross-Cutting Concerns
 
 - [X] T025 [P] Добавить KDoc для новых публичных Kotlin-символов (`SpecTags`, `SpecTag`, изменённые сигнатуры `buildTargetWords`/`buildMarkersFromSyllableTimes`) со ссылкой `@see` на `specs/010-lyrics-spec-tags/contracts/tag-registry.md` (FR-006/Constitution Principle VI; см. T003 — новый per-feature документ не создаётся).

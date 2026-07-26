@@ -555,8 +555,8 @@ B1 «Семейный» — как легальная альтернатива s
 ---
 
 **Связанные документы:**
-- [AGENTS.md](../AGENTS.md) — общие правила
-- [.specify/memory/constitution.md](../.specify/memory/constitution.md) — принципы
+- [AGENTS.md](../../AGENTS.md) — общие правила
+- [.specify/memory/constitution.md](../../.specify/memory/constitution.md) — принципы
 - [docs/public-modules.md](../public-modules.md) — публичные модули
 - [docs/features/](../features/README.md) — 11 ключевых подсистем
 - [docs/features/mp4-render.md](../features/mp4-render.md) — скачивание MP4

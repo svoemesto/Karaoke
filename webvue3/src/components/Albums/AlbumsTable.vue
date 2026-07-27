@@ -90,12 +90,13 @@ import CustomConfirm from '../Common/CustomConfirm.vue'
 
 // Значения соответствуют AlbumType.dbValue (karaoke-app/model/AlbumType.kt) — не менять без
 // синхронной правки бэкенда.
-const ALBUM_TYPE_OPTIONS = ['studio', 'live', 'compilation', 'bootleg']
+const ALBUM_TYPE_OPTIONS = ['studio', 'live', 'compilation', 'bootleg', 'single']
 const ALBUM_TYPE_LABELS = {
   studio: 'Студийный',
   live: 'Концертный',
   compilation: 'Сборник',
   bootleg: 'Бутлег',
+  single: 'Сингл',
 }
 
 /**

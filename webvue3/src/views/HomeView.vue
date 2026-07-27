@@ -63,6 +63,9 @@
           <button class="button-action" @click="recalcPlayerReadiness">
             Пересчитать готовность плеера{{ author ? '' : ' (все авторы)' }}
           </button>
+          <button class="button-action" @click="deleteSearchResultsForReadySongs">
+            Удалить результаты поиска готовых песен
+          </button>
         </div>
         <div class="field-and-buttons-wrapper">
           <button class="button-action" @click="backfillAlbumsFromSongs">
@@ -495,6 +498,34 @@ export default {
           isAlert: true,
           alertType: 'info',
           header: 'Пересчёт готовности плеера',
+          body: `Операция запущена.<br>Итог придёт уведомлением по завершении.`,
+          timeout: 10,
+        }
+        this.isCustomConfirmVisible = true
+      })
+    },
+    // specs/015-search-engine-selection: backfill очистки результатов поиска текста для песен,
+    // ставших готовыми (статус ≥3) ДО появления автоочистки в Song.saveToDb(). Затрагивает ВСЕ
+    // готовые песни всех авторов — фильтра по автору у этой кнопки нет (в отличие от
+    // recalcPlayerReadiness), т.к. цель — просто освободить место в таблицах результатов поиска.
+    deleteSearchResultsForReadySongs() {
+      this.customConfirmParams = {
+        header: 'Подтвердите действие',
+        body:
+          `Удалить сохранённые результаты поиска текста для ВСЕХ готовых песен (статус ≥3)?<br>` +
+          `Песни со статусом &lt;3 не затрагиваются.<br>` +
+          `<strong>Операция может занять время и идёт в фоне — итог придёт уведомлением.</strong>`,
+        timeout: 10,
+        callback: this.doDeleteSearchResultsForReadySongs,
+      }
+      this.isCustomConfirmVisible = true
+    },
+    doDeleteSearchResultsForReadySongs() {
+      this.$store.dispatch('deleteSearchResultsForReadySongsPromise').then(() => {
+        this.customConfirmParams = {
+          isAlert: true,
+          alertType: 'info',
+          header: 'Удаление результатов поиска готовых песен',
           body: `Операция запущена.<br>Итог придёт уведомлением по завершении.`,
           timeout: 10,
         }

@@ -5082,6 +5082,10 @@ class Song(
                     storageService = storageService,
                     storageApiClient = storageApiClient,
                 )
+                // Результаты поиска текста песни больше не нужны готовой песне — не должны
+                // занимать место в tbl_search_async/tbl_search_results (specs/015-search-engine-selection).
+                SearchResult.deleteBySongId(id, database, storageService, storageApiClient)
+                SearchAsync.deleteBySongId(id, database, storageService, storageApiClient)
             }
 
             if (savedSettings != null) renameFilesIfDiff(this, savedSettings)

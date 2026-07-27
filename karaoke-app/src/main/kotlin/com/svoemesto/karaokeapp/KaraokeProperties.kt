@@ -180,6 +180,20 @@ val karaokePropertiesMap: MutableMap<String, Any> = mutableMapOf()
 val listKaraokeProperties =
     listOf(
         KaraokeProperty(key = "checkSearchAsync", defaultValue = false, description = "Мониторинг SearchAsync"),
+        // Выбор движка поиска (specs/015-search-engine-selection) — строка с именем константы
+        // enum'а (LyricsSearchEngine/AlbumCoverSearchEngine, см. UtilsAI.kt/AlbumCoverFinder.kt).
+        // Нативного enum-типа у KaraokeProperties нет (см. types()) — парсится на границе
+        // использования, с фолбэком на дефолт при некорректном значении.
+        KaraokeProperty(
+            key = "lyricsSearchEngine",
+            defaultValue = "FOURGET",
+            description = "Движок поиска текстов песен по умолчанию: YANDEX_SYNC / YANDEX_ASYNC / SEARXNG / FOURGET",
+        ),
+        KaraokeProperty(
+            key = "albumCoverSearchEngine",
+            defaultValue = "SEARXNG",
+            description = "Движок поиска обложек альбомов по умолчанию: SEARXNG / FOURGET",
+        ),
         KaraokeProperty(
             key = "requestAsyncUrl",
             defaultValue = "https://searchapi.api.cloud.yandex.net/v2/web/searchAsync",

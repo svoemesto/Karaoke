@@ -128,17 +128,22 @@ class PublicApiController(
                 "all" -> null
                 else -> false
             }
+        // Публичная поверхность прода — считаем и показываем только готовые песни
+        // (specs/013-song-status-filter): плашка автора без готовых песен не отображается,
+        // подпись плашки считает только их.
         val counts =
             Song.loadAuthorSongCounts(
                 isSpecialOrder = isSpecialOrderFilter,
+                onlyPublished = true,
                 database = WORKING_DATABASE,
             )
         val loadedAuthors: List<String> =
-            Song.loadListAuthors(
-                withSkiped = false,
-                isSpecialOrder = isSpecialOrderFilter,
-                database = WORKING_DATABASE,
-            )
+            Song
+                .loadListAuthors(
+                    withSkiped = false,
+                    isSpecialOrder = isSpecialOrderFilter,
+                    database = WORKING_DATABASE,
+                ).filter { (counts[it] ?: 0L) > 0L }
         val specialFlags: Map<String, Boolean> =
             loadedAuthors.associateWith {
                 it in counts.keys && (isSpecialOrderFilter ?: false)

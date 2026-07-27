@@ -6793,8 +6793,13 @@ class Song(
         }
 
         // Количество песен в базе по каждому автору (song_author -> count). Один запрос с GROUP BY.
+        //
+        // @param onlyPublished при true считает только песни со статусом готовности >= 3 (то же
+        // определение «в коллекции», что и в [Zakroma.getZakroma]) — используется для подписи
+        // плашки автора в закромах на проде, чтобы счётчик не включал ещё не готовые песни.
         fun loadAuthorSongCounts(
             isSpecialOrder: Boolean? = null,
+            onlyPublished: Boolean = false,
             database: KaraokeConnection,
         ): Map<String, Long> {
             val connection = database.getConnection()
@@ -6806,15 +6811,15 @@ class Song(
             var rs: ResultSet? = null
             try {
                 statement = connection.createStatement()
-                val sql =
-                    when {
-                        isSpecialOrder == null -> "select song_author, count(*) as cnt from tbl_songs group by song_author"
-                        isSpecialOrder == true ->
-                            "select song_author, count(*) as cnt from tbl_songs where song_author in (select author from tbl_authors where is_special_order = true) group by song_author"
-                        isSpecialOrder == false ->
-                            "select song_author, count(*) as cnt from tbl_songs where song_author in (select author from tbl_authors where is_special_order = false) group by song_author"
-                        else -> "select song_author, count(*) as cnt from tbl_songs group by song_author"
-                    }
+                val where = mutableListOf<String>()
+                when (isSpecialOrder) {
+                    true -> where += "song_author in (select author from tbl_authors where is_special_order = true)"
+                    false -> where += "song_author in (select author from tbl_authors where is_special_order = false)"
+                    null -> {}
+                }
+                if (onlyPublished) where += "id_status >= 3"
+                val whereClause = if (where.isNotEmpty()) "where ${where.joinToString(" AND ")}" else ""
+                val sql = "select song_author, count(*) as cnt from tbl_songs $whereClause group by song_author"
                 rs = statement.executeQuery(sql)
                 val result: MutableMap<String, Long> = mutableMapOf()
                 while (rs.next()) {

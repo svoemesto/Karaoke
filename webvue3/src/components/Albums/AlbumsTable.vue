@@ -65,7 +65,9 @@
           <div
             class="fld-picture-preview"
             :class="{ 'is-clickable': canEditCover(data.item) }"
-            :title="canEditCover(data.item) ? data.item.name : 'У альбома нет песен — обложка недоступна'"
+            :title="
+              canEditCover(data.item) ? data.item.name : 'У альбома нет песен — обложка недоступна'
+            "
             @click.left="canEditCover(data.item) && openAlbumCoverModal(data.item)"
           >
             <img
@@ -98,8 +100,14 @@
           <div
             class="fld-album-name"
             :class="{ 'is-clickable': canEditCover(data.item) }"
-            :title="canEditCover(data.item) ? 'Изменить обложку альбома' : 'У альбома нет песен — обложка недоступна'"
-            @click.left="canEditCover(data.item) ? openAlbumCoverModal(data.item) : changeValue(data.item)"
+            :title="
+              canEditCover(data.item)
+                ? 'Изменить обложку альбома'
+                : 'У альбома нет песен — обложка недоступна'
+            "
+            @click.left="
+              canEditCover(data.item) ? openAlbumCoverModal(data.item) : changeValue(data.item)
+            "
             v-text="data.value"
           />
         </template>
@@ -357,10 +365,7 @@ export default {
       this.currentAlbumCoverAlbumId = item.id
       this.isBusy = true
       try {
-        const firstSongId = await this.$store.dispatch(
-          'getFirstSongIdByAlbumIdPromise',
-          item.id,
-        )
+        const firstSongId = await this.$store.dispatch('getFirstSongIdByAlbumIdPromise', item.id)
         if (!firstSongId) {
           // Бэк вернул 0 — песен нет (race condition с UI-блокировкой songsCount === 0)
           console.warn('Альбом без песен, модалка не открыта:', item.id)

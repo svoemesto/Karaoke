@@ -83,5 +83,21 @@ export default {
       let request = { method: 'POST', url: '/api/albums/deletealbum', params: { id } }
       return promisedXMLHttpRequest(request)
     },
+    loadAlbumsByAuthorIdPromise(ctx, authorId) {
+      let request = {
+        method: 'POST',
+        url: '/api/albums/albumsdigests',
+        params: { filterAuthorId: authorId },
+      }
+      return promisedXMLHttpRequest(request).then((data) => JSON.parse(data).albumsDigests)
+    },
+    reorderAlbumsPromise(ctx, ids) {
+      let request = { method: 'POST', url: '/api/albums/reorderalbums', params: { ids } }
+      return promisedXMLHttpRequest(request)
+    },
+    normalizeAlbumSortOrderPromise() {
+      let request = { method: 'POST', url: '/api/utils/normalizealbumsortorder', params: {} }
+      return promisedXMLHttpRequest(request)
+    },
   },
 }

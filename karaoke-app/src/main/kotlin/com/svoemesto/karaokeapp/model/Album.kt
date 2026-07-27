@@ -20,7 +20,8 @@ import java.io.Serializable
  * - `albumType` — тип альбома, хранится как `AlbumType.dbValue` (строка); типизированный доступ
  *   через [albumTypeEnum] (reflection-слой `KaraokeDbTable` не поддерживает enum-поля напрямую —
  *   только скалярные типы, см. `KaraokeDbTable.kt`).
- * - `sortOrder` — порядок отображения внутри пары (`authorId`, `year`), меньше = раньше.
+ * - `sortOrder` — порядок отображения альбомов автора, сквозной (не привязан к году), меньше = раньше.
+ *   Переупорядочивается драг-дропом в модалке "Альбомы автора" (webvue3, компонент Authors).
  *
  * Синхронизируется LOCAL↔SERVER через `GenericKaraokeDbTableSyncTarget<Album>` (`key = "albums"`).
  *
@@ -62,7 +63,7 @@ class Album(
         }
 
     override fun compareTo(other: Album): Int =
-        compareValuesBy(this, other, { it.authorId }, { it.year }, { it.sortOrder }, { it.name })
+        compareValuesBy(this, other, { it.authorId }, { it.sortOrder }, { it.year }, { it.name })
 
     override fun toDTO(): AlbumDTO {
         // Превью автора/альбома ищутся в tbl_pictures по имени — тот же паттерн, что и
@@ -200,6 +201,65 @@ class Album(
                 .associateBy { it.id }
 
         /**
+         * Переупорядочить альбомы (например, после drag-and-drop в модалке "Альбомы автора"):
+         * `orderedIds` — id альбомов в желаемом порядке отображения (сквозном, не по годам),
+         * каждому присваивается `sortOrder` = его индекс в списке. Альбомы, чей `sortOrder` уже
+         * совпадает с целевым, не пересохраняются. Id, не найденные в БД, молча пропускаются.
+         */
+        fun reorderAlbums(
+            orderedIds: List<Long>,
+            database: KaraokeConnection,
+            storageService: KaraokeStorageService,
+            storageApiClient: StorageApiClient,
+        ) {
+            val albumsById = getAlbumsByIds(orderedIds, database, storageService, storageApiClient)
+            orderedIds.forEachIndexed { index, id ->
+                albumsById[id]?.let { album ->
+                    if (album.sortOrder != index) {
+                        album.sortOrder = index
+                        album.save()
+                    }
+                }
+            }
+        }
+
+        /**
+         * Одноразовая (идемпотентная) миграция: раньше `sortOrder` был порядковым номером ВНУТРИ
+         * пары (автор, год) (см. [AlbumBackfill], старый компаратор), теперь — сквозной по автору
+         * (см. [reorderAlbums]). Пересчитывает `sortOrder` = индекс при сортировке по (год, старый
+         * `sortOrder`, название) — то есть сохраняет прежний видимый порядок альбомов, просто
+         * "разворачивая" его в сквозную нумерацию. Повторный запуск на уже нормализованных данных
+         * ничего не меняет.
+         *
+         * @return число обновлённых записей.
+         */
+        fun normalizeSortOrderAcrossYears(
+            database: KaraokeConnection,
+            storageService: KaraokeStorageService,
+            storageApiClient: StorageApiClient,
+        ): Int {
+            var updated = 0
+            loadList(
+                whereArgs = emptyMap(),
+                database = database,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            ).groupBy { it.authorId }
+                .forEach { (_, albumsOfAuthor) ->
+                    albumsOfAuthor
+                        .sortedWith(compareBy({ it.year }, { it.sortOrder }, { it.name }))
+                        .forEachIndexed { index, album ->
+                            if (album.sortOrder != index) {
+                                album.sortOrder = index
+                                album.save()
+                                updated++
+                            }
+                        }
+                }
+            return updated
+        }
+
+        /**
          * Найти альбом по (авторId, год, название) — для идемпотентного бэкфилла и для UI-проверки
          * дублей при ручном создании (см. также уникальный констрейнт `tbl_albums_author_year_name_key`).
          */
@@ -236,9 +296,10 @@ class Album(
          * при импорте новых песен из папки ([Song.createFromPath]), так и одноразовым бэкфиллом
          * ([AlbumBackfill]). Создаёт (или переиспользует) [Author] по имени. Пустое название альбома
          * — валидный случай "без альбома" (сингл), возвращает `null`, альбом не создаётся (FR-006).
-         * Новый альбом получает `sortOrder` = "в конец" (максимум среди уже существующих альбомов
-         * этого автора+года плюс один) — не пытается угадать алфавитную позицию среди ещё не
-         * загруженных альбомов, чтобы не переставлять уже сохранённый вручную порядок соседей.
+         * Новый альбом получает `sortOrder` = "в конец" (максимум среди ВСЕХ уже существующих
+         * альбомов этого автора плюс один — порядок сквозной по автору, не привязан к году) — не
+         * пытается угадать алфавитную позицию среди ещё не загруженных альбомов, чтобы не
+         * переставлять уже сохранённый вручную порядок соседей.
          */
         fun findOrCreateForSongImport(
             authorName: String,
@@ -275,7 +336,6 @@ class Album(
 
             val nextSortOrder =
                 getAlbumsByAuthorId(author.id, database, storageService, storageApiClient)
-                    .filter { it.year == year }
                     .maxOfOrNull { it.sortOrder }
                     ?.plus(1) ?: 0
 

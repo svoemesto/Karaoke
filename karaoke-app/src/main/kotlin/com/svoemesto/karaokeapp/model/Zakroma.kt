@@ -248,17 +248,18 @@ class ZakromaAlbum :
     var picturePreviewFileName: String = ""
     var albumSettings: MutableList<ZakromaAlbumSettings> = mutableListOf()
 
-    // specs/011-album-song-rename FR-001/FR-007: тип и заданный порядок отображения внутри
-    // (автор, год) — из реального Album, если песни альбома уже к нему привязаны (см. buildFromSettings).
-    // Int.MAX_VALUE — сентинел "не привязано", такие альбомы уходят в конец сортировки внутри года.
+    // specs/011-album-song-rename FR-001/FR-007, дополнено сквозной сортировкой альбомов автора:
+    // тип и заданный порядок отображения — сквозной по автору (не по году) — из реального Album,
+    // если песни альбома уже к нему привязаны (см. buildFromSettings). Int.MAX_VALUE — сентинел
+    // "не привязано", такие альбомы уходят в конец сортировки.
     var albumType: String = AlbumType.STUDIO.dbValue
     var sortOrder: Int = Int.MAX_VALUE
 
     override fun compareTo(other: ZakromaAlbum): Int {
-        val compYear = year.compareTo(other.year)
-        if (compYear != 0) return compYear
         val compSortOrder = sortOrder.compareTo(other.sortOrder)
         if (compSortOrder != 0) return compSortOrder
+        val compYear = year.compareTo(other.year)
+        if (compYear != 0) return compYear
         return albumName.compareTo(other.albumName)
     }
 }

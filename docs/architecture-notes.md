@@ -423,9 +423,14 @@ cp <template> ./CLAUDE.md   # локально, НЕ коммитить
 
 - **Backend** (`karaoke-app`):
   - `Album.kt` — новый helper `fun getFirstSongId(albumId, database): Long?`
-    (SQL: сначала `first_song_in_album = TRUE`, fallback `MIN(id)`).
+    (SQL: `MIN(id)` среди песен альбома).
   - `ApiController.kt` — новый endpoint `POST /api/albums/firstsongid?albumId=X`
     (возвращает `Long` или `0L`). **НЕ участвует в sync** (read-only lookup).
+
+**Hotfix после PR #80:** первая реализация использовала `WHERE first_song_in_album = TRUE`
+(с fallback на `MIN(id)`), но колонки `first_song_in_album` **нет в `tbl_songs`** — `Song.firstSongInAlbum`
+это in-memory property, не персистируется (нет в `getSqlToInsert`/`loadFromDb`, нет миграции).
+Убран первый запрос, оставлен только `MIN(id)`. PR #82.
 
 - **Frontend** (`webvue3`):
   - `Albums/store.js` — action `getFirstSongIdByAlbumIdPromise(albumId)`.
@@ -447,6 +452,7 @@ cp <template> ./CLAUDE.md   # локально, НЕ коммитить
 **Решения (research.md):**
 1. Новый endpoint вместо расширения `AlbumDTO` (минимальная инвазивность).
 2. Подмена `currentSongId` обратима (защита от потери рабочего контекста администратора).
-3. Комбинация `first_song_in_album = TRUE` + fallback на `MIN(id)`.
+3. `MIN(id)` как единственный стабильный критерий «репрезентативной» песни альбома
+   (после hotfix: `first_song_in_album` в БД не сохраняется, комбинация с TRUE невозможна).
 
 **Связанные документы:** `specs/014-album-cell-album-cover-modal/{spec,plan,research,data-model,quickstart,contracts/api,tasks}.md`.

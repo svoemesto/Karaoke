@@ -5836,15 +5836,16 @@ class ApiController(
     }
 
     /**
-     * Возвращает id «главной» песни альбома для контекста [AlbumCoverModal] (модалка обложки
-     * альбома, вызываемая из `webvue3/src/components/Albums/AlbumsTable.vue` по клику на
-     * preview `(альбом)` или на название альбома). Модалка привязана к конкретной песне
+     * Возвращает id «репрезентативной» песни альбома для контекста [AlbumCoverModal] (модалка
+     * обложки альбома, вызываемая из `webvue3/src/components/Albums/AlbumsTable.vue` по клику
+     * на preview `(альбом)` или на название альбома). Модалка привязана к конкретной песне
      * через `currentSongId` — ей нужен `Song.rootFolder` для чтения/записи `LogoAlbum.png`
      * и `Song.album`/`Song.author` для дефолтного поискового запроса.
      *
-     * Поиск: сначала `first_song_in_album = TRUE` (семантика из [Song.firstSongInAlbum]),
-     * иначе fallback на `MIN(id)`. Если у альбома нет ни одной песни — возвращает `0L`
-     * (UI должен блокировать клик в этом случае — см. `AlbumsTable.vue::canEditCover`).
+     * Поиск: `MIN(id)` среди песен альбома (единственный стабильный критерий — в `tbl_songs`
+     * нет колонки `first_song_in_album`, см. KDoc [Album.getFirstSongId]). Если у альбома нет
+     * ни одной песни — возвращает `0L` (UI должен блокировать клик в этом случае — см.
+     * `AlbumsTable.vue::canEditCover`).
      *
      * Не участвует в LOCAL↔SERVER sync (read-only lookup, не меняет данные).
      *

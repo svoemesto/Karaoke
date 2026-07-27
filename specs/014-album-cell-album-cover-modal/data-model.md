@@ -26,7 +26,7 @@
 
 ### Song (существующая)
 - **Что:** Запись песни. tbl_songs (PostgreSQL) + DTO `SongDTO` + `SongDTOdigest`.
-- **Ключевые поля для фичи:** `id`, `albumId`, `firstSongInAlbum` (Boolean), `rootFolder`, `album`, `author`, `pictureNameAlbum` (см. `Song.kt:335`).
+- **Ключевые поля для фичи:** `id`, `albumId`, `rootFolder`, `album`, `author`, `pictureNameAlbum`. **Замечание:** `Song.firstSongInAlbum: Boolean` существует как in-memory property (`Song.kt:335`), но **не сохраняется в БД** (нет колонки `first_song_in_album`, нет упоминания в `getSqlToInsert`/`loadFromDb`, нет миграции). Для выбора «репрезентативной» песни альбома используется `MIN(id)` — см. `research.md` Decision 3.
 - **Связи:** `albumId → Album.id` (многие к одному), `pictureNameAlbum → Pictures.name` (один к одному).
 - **Изменения в фиче:** нет.
 

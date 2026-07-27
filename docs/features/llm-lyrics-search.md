@@ -22,32 +22,54 @@ web-поиск (fourget) + скрейпинг сайтов + LLM-анализ (L
 
 1. **`LyricsFinderService`** — оркестратор: получает `Settings` (песня),
    формирует запрос (автор + название), запускает поиск.
-2. **fourget** (`lyrics-search.base-url` / `LYRICS_SEARCH_BASE_URL`,
-   `SearchTool.searchUrls` в `llm/Tools.kt`) — self-hosted мета-поисковик
-   (`/api/v1/web?s=...&scraper=...`), замена SearXNG для поиска текстов песен
-   (см. `specs/014-lyrics-search-replacement/research.md`). Изначально
-   планировался движок Yandex (лучше индексирует русскоязычные "текст песни"
-   запросы), но на практике на admin-машине он тихо возвращает пустой
-   результат (вероятно, бан/капча по IP) — реально рабочие на этом хостинге
-   scraper'ы — `brave` (основной) и `yep` (фолбэк, если `brave` пуст);
-   `SearchTool` перебирает их по очереди, пока один не даст непустой список
-   URL. Поиск обложек альбомов (`AlbumCoverService.searchSearxngImages`)
-   по-прежнему использует SearXNG — эта замена его не затрагивает.
-3. **Скрейпинг** — для каждого результата парсим HTML:
+2. **Движок поиска текста** — выбираемый (`specs/015-search-engine-selection`),
+   один из четырёх (enum `LyricsSearchEngine` в `UtilsAI.kt`): `YANDEX_SYNC`/
+   `YANDEX_ASYNC` (Yandex Cloud Search API, IAM-токен — `getYandexSearch`),
+   `SEARXNG` (прямой запрос к self-hosted SearXNG — `SearchTool.searchUrlsViaSearxng`),
+   `FOURGET` (self-hosted мета-поисковик fourget, `/api/v1/web?s=...&scraper=...`,
+   brave→yep, см. `specs/014-lyrics-search-replacement/research.md` — `SearchTool.searchUrls`).
+   Диспетчер — `getLyricsSearch(settings, lyricsFinderService, engine, forceResearch)`
+   в `UtilsAI.kt` (заменил собой прежний `getSearXNGSearch`, имя которого стало
+   вводящим в заблуждение после фичи 014). Движок по умолчанию —
+   `KaraokeProperties.lyricsSearchEngine` (редактируется в UI «Свойства»),
+   либо явно передан параметром `engine` в `/api/songs/searchsongtextall`.
+   `forceResearch=true` — сначала удаляет старые `SearchResult`/`SearchAsync`
+   для песни (`deleteBySongId`), чтобы обойти кэширующую проверку «уже есть
+   запрос — вернуть его» и искать заново другим движком (кнопка «Искать
+   заново» в `SearchText.vue`). Кнопка «Удалить результаты поиска» в том же
+   окне — `POST /api/song/deletesearchresults`, без нового поиска.
+3. **Движок поиска обложки альбома** — отдельный выбор (enum
+   `AlbumCoverSearchEngine` в `AlbumCoverFinder.kt`, только 2 варианта —
+   Yandex Cloud Search API возвращает текстовые результаты, не картинки):
+   `SEARXNG` (`AlbumCoverService.searchSearxngImages`, сегодняшнее поведение
+   по умолчанию) или `FOURGET` (`AlbumCoverService.searchFourgetImages`,
+   `fourget` `/api/v1/images?s=...&scraper=brave`). Настройка —
+   `KaraokeProperties.albumCoverSearchEngine`, либо параметр `engine` в
+   `POST /api/song/searchalbumcover`.
+4. **Автоочистка результатов поиска для готовых песен**
+   (`specs/015-search-engine-selection`): как только `Song.saveToDb()`
+   фиксирует пересечение песней порога готовности (статус ≥3, тот же порог,
+   что для публичного плеера — `crossedReadyThreshold`), результаты поиска
+   текста для неё удаляются автоматически. Для уже готовых песен — кнопка
+   «Удалить результаты поиска готовых песен» на главной странице админки
+   (`POST /api/utils/deletesearchresultsforreadysongs`,
+   `HealthReport.deleteSearchResultsForReadySongs`, фоновый прогон + SSE-тост,
+   по образцу `doRecalcPlayerReadiness`).
+5. **Скрейпинг** — для каждого результата парсим HTML:
    - Статический — `jsoup` (см. [jsoup](https://jsoup.org/)).
    - JS-рендер / авторизация — `UtilsPlaywright.kt` через Playwright/Selenium.
-4. **LLM-анализ** — `ScraperAgent.kt` через `LmStudioService.kt` (тонкий клиент над
+6. **LLM-анализ** — `ScraperAgent.kt` через `LmStudioService.kt` (тонкий клиент над
    OpenAI-совместимым `/v1/chat/completions` LM Studio, поднятого на хост-машине админа):
    - Структурирование текста (разбивка на строки/куплеты/припевы).
    - Нормализация аккордов (`Am`, `A minor`, `a-moll` → `Am`).
    - Определение ключа и BPM.
    - Тем же клиентом (`LmStudioService`) пользуется `TextCorrectorAgent.kt` — AI-редактор текста
      в SubsEdit.vue (исправление орфографии/пунктуации).
-5. **Яндекс.Музыка** — отдельный путь (`searchLastAlbumYm3`/
+7. **Яндекс.Музыка** — отдельный путь (`searchLastAlbumYm3`/
    `checkLastAlbumYm`): авторизация по сохранённой сессии на диске, поиск
    нового альбома автора. Возвращает `AlbumSearchResult`:
    `Success`/`VpnBlocked`/`AuthExpired`/`BotDetected`/`Unknown`.
-6. **VPN-детект** — `isVpnActive()` через `api.country.is` (страна != RU →
+8. **VPN-детект** — `isVpnActive()` через `api.country.is` (страна != RU →
    ВПН включён → Playwright не запускаем).
 
 ## Инварианты / правила
@@ -89,6 +111,12 @@ web-поиск (fourget) + скрейпинг сайтов + LLM-анализ (L
   `LYRICS_SEARCH_SCRAPERS` в `llm/Tools.kt` (сейчас `brave`, `yep`) — при
   очередной блокировке добавить/заменить на другой рабочий scraper из этого
   списка, а не менять весь бэкенд заново.
+- **Все self-hosted движки временно недоступны**: переключите
+  `KaraokeProperties.lyricsSearchEngine` на `YANDEX_SYNC`/`YANDEX_ASYNC` (UI
+  «Свойства») как временный запасной вариант — платный внешний Yandex Cloud
+  Search API, но независимый от состояния `searxng`/`fourget` на этой машине.
+  Для конкретной уже проверенной песни — кнопка «Искать заново» в
+  `SearchText.vue` позволяет выбрать движок разово, не трогая общую настройку.
 
 ## Ссылки на ключевые классы/файлы
 
@@ -96,6 +124,9 @@ web-поиск (fourget) + скрейпинг сайтов + LLM-анализ (L
 - [`ScraperAgent.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/llm/ScraperAgent.kt) — извлечение текста песни из HTML через LLM
 - [`TextCorrectorAgent.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/llm/TextCorrectorAgent.kt) — AI-редактор текста (SubsEdit.vue)
 - [`LmStudioService.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/LmStudioService.kt) — тонкий клиент LM Studio
-- [`Tools.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/llm/Tools.kt) — инструменты для LLM
+- [`Tools.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/llm/Tools.kt) — инструменты для LLM (`SearchTool`)
+- [`UtilsAI.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/UtilsAI.kt) — `getLyricsSearch` (диспетчер движков), `getYandexSearch`, `LyricsSearchEngine`
+- [`AlbumCoverFinder.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/AlbumCoverFinder.kt) — `AlbumCoverService`, `AlbumCoverSearchEngine`
+- [`HealthReport.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/HealthReport.kt) — `deleteSearchResultsForReadySongs` (массовая очистка)
 - [`UtilsPlaywright.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/UtilsPlaywright.kt) — Playwright/Selenium
 - [`Utils.searchLastAlbumYm3`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt) — Яндекс.Музыка

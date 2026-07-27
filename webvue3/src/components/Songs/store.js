@@ -2445,6 +2445,13 @@ export default {
       let request = { method: 'POST', url: '/api/utils/recalcplayerreadiness', params: params }
       return promisedXMLHttpRequest(request)
     },
+    // specs/015-search-engine-selection: массовая очистка результатов поиска текста для
+    // уже готовых песен (статус ≥3) — backfill для песен, ставших готовыми до появления
+    // автоочистки в Song.saveToDb().
+    deleteSearchResultsForReadySongsPromise(_ctx) {
+      let request = { method: 'POST', url: '/api/utils/deletesearchresultsforreadysongs' }
+      return promisedXMLHttpRequest(request)
+    },
     // specs/011-album-song-rename: одноразовый (но идемпотентный) бэкфилл Album из уже
     // существующих у песен song_author/song_year/song_album. Только LOCAL — эндпоинт живёт
     // в karaoke-app, который на PROD не разворачивается (см. RUNBOOK.md §2.2 — на сервер
@@ -2624,9 +2631,21 @@ export default {
       let request = { method: 'POST', url: '/api/songs/searchsongtextall', params: params }
       return promisedXMLHttpRequest(request)
     },
-    searchTextForSong(ctx) {
+    searchTextForSong(ctx, payload) {
+      // payload: { engine, forceResearch } — оба опциональны (specs/015-search-engine-selection).
+      // Без payload поведение как раньше: движок по умолчанию, без переискивания.
       let params = { songsIds: ctx.getters.getCurrentSongId }
+      if (payload && payload.engine) params.engine = payload.engine
+      if (payload && payload.forceResearch) params.forceResearch = payload.forceResearch
       let request = { method: 'POST', url: '/api/songs/searchsongtextall', params: params }
+      return promisedXMLHttpRequest(request)
+    },
+    deleteSearchResults(ctx, songId) {
+      let request = {
+        method: 'POST',
+        url: '/api/song/deletesearchresults',
+        params: { songId: songId },
+      }
       return promisedXMLHttpRequest(request)
     },
     findOriginalForSong(ctx) {

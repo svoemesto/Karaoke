@@ -187,6 +187,23 @@ class SearchAsync(
                 ignoreUseInList = true,
             )
 
+        /**
+         * Удаляет все [SearchAsync] для конкретной песни — используется для «переискать»/
+         * «удалить результаты поиска» (specs/015-search-engine-selection) и для автоочистки
+         * при достижении песней статуса готовности. По образцу [com.svoemesto.karaokeapp.model.CartItem.deleteByUserAndSongs].
+         *
+         * @see docs/features/llm-lyrics-search.md
+         */
+        fun deleteBySongId(
+            songId: Long,
+            database: KaraokeConnection,
+            storageService: KaraokeStorageService,
+            storageApiClient: StorageApiClient,
+        ) {
+            getSearchAsyncListBySongId(songId, database, storageService, storageApiClient)
+                .forEach { delete(it.id, database) }
+        }
+
         fun getSearchAsyncListNotDone(
             database: KaraokeConnection,
             storageService: KaraokeStorageService,

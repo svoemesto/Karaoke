@@ -28,6 +28,36 @@ suspend fun main000() {
 //    println(findSongText("Nautilus Pompilius", "Мальчик зима"))
 }
 
+/**
+ * Движок поиска URL с текстами песен — выбираемый в настройках
+ * (`KaraokeProperties.lyricsSearchEngine`) или явно для конкретного запуска
+ * (specs/015-search-engine-selection).
+ *
+ * @see docs/features/llm-lyrics-search.md
+ */
+enum class LyricsSearchEngine {
+    YANDEX_SYNC,
+    YANDEX_ASYNC,
+    SEARXNG,
+    FOURGET,
+}
+
+/**
+ * Разрешает движок поиска текстов песен: явно переданное [engine] приоритетнее настройки
+ * `KaraokeProperties.lyricsSearchEngine`; некорректное/отсутствующее значение (в обоих
+ * источниках) — фолбэк на [LyricsSearchEngine.FOURGET] (specs/015-search-engine-selection).
+ *
+ * @see docs/features/llm-lyrics-search.md
+ */
+fun resolveLyricsSearchEngine(engine: String? = null): LyricsSearchEngine =
+    (engine ?: KaraokeProperties.getString("lyricsSearchEngine")).let {
+        try {
+            enumValueOf<LyricsSearchEngine>(it)
+        } catch (e: IllegalArgumentException) {
+            LyricsSearchEngine.FOURGET
+        }
+    }
+
 fun parseXmlUrls(xmlText: String): List<String> {
     val urls = mutableListOf<String>()
     val urlRegex = Regex("<url>(.*?)</url>")
@@ -85,9 +115,47 @@ fun getIamToken(): String {
     return Karaoke.requestIamToken
 }
 
-fun getSearXNGSearch(
+/**
+ * Диспетчер поиска текста песни по выбранному движку (specs/015-search-engine-selection).
+ * Заменяет собой прежний `getSearXNGSearch`, который после фичи 014 уже реально ходил
+ * в fourget, а не в SearXNG — имя стало вводящим в заблуждение.
+ *
+ * `forceResearch=true` — сначала удаляет уже сохранённые `SearchResult`/`SearchAsync`
+ * для этой песни (см. [SearchResult.deleteBySongId]/[SearchAsync.deleteBySongId]), чтобы
+ * обойти кэширующую проверку «уже есть запрос — вернуть его», которая иначе сработала бы
+ * и в [getYandexSearch], и в [getLyricsSearchViaSearchTool].
+ *
+ * @see docs/features/llm-lyrics-search.md
+ */
+fun getLyricsSearch(
     settings: Song,
     lyricsFinderService: LyricsFinderService,
+    engine: LyricsSearchEngine,
+    forceResearch: Boolean = false,
+): SearchAsync {
+    if (forceResearch) {
+        SearchResult.deleteBySongId(settings.id, settings.database, settings.storageService, settings.storageApiClient)
+        SearchAsync.deleteBySongId(settings.id, settings.database, settings.storageService, settings.storageApiClient)
+    }
+    return when (engine) {
+        LyricsSearchEngine.YANDEX_SYNC -> getYandexSearch(settings = settings, async = false)
+        LyricsSearchEngine.YANDEX_ASYNC -> getYandexSearch(settings = settings, async = true)
+        LyricsSearchEngine.SEARXNG -> getLyricsSearchViaSearchTool(settings, lyricsFinderService, useSearxng = true)
+        LyricsSearchEngine.FOURGET -> getLyricsSearchViaSearchTool(settings, lyricsFinderService, useSearxng = false)
+    }
+}
+
+/**
+ * Общая реализация поиска текста песни через [SearchTool] (движки `SEARXNG`/`FOURGET`,
+ * см. [getLyricsSearch]) — прежнее тело `getSearXNGSearch`, параметризованное выбором
+ * между [LyricsFinderService.searchUrlsViaSearxng] и [LyricsFinderService.searchUrls] (fourget).
+ *
+ * @see docs/features/llm-lyrics-search.md
+ */
+private fun getLyricsSearchViaSearchTool(
+    settings: Song,
+    lyricsFinderService: LyricsFinderService,
+    useSearxng: Boolean,
 ): SearchAsync {
     println("Начинаем получение запроса поиска для песни ${settings.fileName}.")
     val searchAsyncList =
@@ -110,7 +178,12 @@ fun getSearXNGSearch(
     println("Запрос будет выполнен для поисковой сроки: '$queryText'")
 
     // Получаем список URL
-    val urls = lyricsFinderService.searchUrls(author = author, songName = songNameForFind)
+    val urls =
+        if (useSearxng) {
+            lyricsFinderService.searchUrlsViaSearxng(author = author, songName = songNameForFind)
+        } else {
+            lyricsFinderService.searchUrls(author = author, songName = songNameForFind)
+        }
 
     val result = SearchAsync()
     result.songId = settings.id

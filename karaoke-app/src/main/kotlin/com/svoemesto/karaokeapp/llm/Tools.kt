@@ -27,6 +27,8 @@ import java.time.Duration
 class SearchTool(
     @Value("\${lyrics-search.base-url:http://fourget:80}")
     private val lyricsSearchBaseUrl: String,
+    @Value("\${searxng.base-url:http://searxng:8080}")
+    private val searxngBaseUrl: String,
     private val objectMapper: ObjectMapper,
 ) {
     private val logger = LoggerFactory.getLogger(SearchTool::class.java)
@@ -45,6 +47,50 @@ class SearchTool(
         }
         return emptyList()
     }
+
+    /**
+     * Прямой поиск URL с текстами песен через self-hosted SearXNG (`searxng.base-url`) —
+     * движок `SEARXNG` в [com.svoemesto.karaokeapp.LyricsSearchEngine]
+     * (specs/015-search-engine-selection). То же, что делал [searchUrls] до фичи
+     * 014-lyrics-search-replacement, но как отдельный, явно называемый метод — теперь
+     * `searchUrls` (fourget) не единственная реализация.
+     *
+     * @see docs/features/llm-lyrics-search.md
+     */
+    fun searchUrlsViaSearxng(query: String): List<String> =
+        try {
+            val encodedQuery = URLEncoder.encode(query, "UTF-8")
+            val url = "$searxngBaseUrl/search?q=$encodedQuery&format=json&language=ru"
+
+            logger.info("🔍 [SearchTool] Запрос к SearXNG: $url")
+
+            val request =
+                HttpRequest
+                    .newBuilder()
+                    .uri(URI.create(url))
+                    .timeout(Duration.ofSeconds(30))
+                    .header("Accept", "application/json")
+                    .GET()
+                    .build()
+
+            val response = httpClient.send(request, HttpResponse.BodyHandlers.ofString())
+
+            if (response.statusCode() != 200) {
+                logger.error("❌ [SearchTool] SearXNG вернул статус ${response.statusCode()}")
+                emptyList()
+            } else {
+                val searchResponse = objectMapper.readValue(response.body(), SearxngTextSearchResponse::class.java)
+                val urls = searchResponse.results.map { it.url }.filter { it.isNotBlank() }
+
+                logger.info("✅ [SearchTool] SearXNG — найдено URL: ${urls.size}")
+                urls.forEach { logger.info("  → $it") }
+
+                urls
+            }
+        } catch (e: Exception) {
+            logger.error("❌ [SearchTool] Ошибка SearXNG: ${e.message}", e)
+            emptyList()
+        }
 
     private fun searchUrlsViaScraper(
         query: String,
@@ -117,4 +163,27 @@ data class LyricsSearchResult(
     val url: String = "",
     val title: String = "",
     val description: String = "",
+)
+
+/**
+ * Класс Searxng Text Search Response — ответ SearXNG (`/search?format=json`) для
+ * прямого текстового поиска (движок `SEARXNG`, см. [SearchTool.searchUrlsViaSearxng]).
+ *
+ * @see docs/features/llm-lyrics-search.md
+ */
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class SearxngTextSearchResponse(
+    val results: List<SearxngTextSearchResult> = emptyList(),
+)
+
+/**
+ * Класс Searxng Text Search Result — один результат текстового поиска SearXNG.
+ *
+ * @see docs/features/llm-lyrics-search.md
+ */
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class SearxngTextSearchResult(
+    val url: String = "",
+    val title: String = "",
+    val content: String = "",
 )

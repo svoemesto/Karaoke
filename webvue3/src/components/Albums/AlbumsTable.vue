@@ -354,11 +354,16 @@ export default {
     // SongEdit.vue по кнопке «Изменить обложку альбома»). Перед открытием:
     //   1) запоминаем prevCurrentSongId (если SongsStore.currentSongId был установлен — мы
     //      могли прийти сюда из /Songs);
-    //   2) узнаём id «главной» песни альбома через Albums/getFirstSongIdByAlbumIdPromise
-    //      (см. research.md Decision 1, fallback на MIN(id) — любая песня альбома подойдёт);
-    //   3) устанавливаем currentSongId БЕЗ сетевого запроса (setCurrentSongIdOnly — модалка
-    //      сама дёрнет getAlbumPictureBase64Promise, который подтянет данные).
-    // На @close / @saved — closeAlbumCoverModal восстанавливает prevCurrentSongId.
+    //   2) узнаём id «репрезентативной» песни альбома через Albums/getFirstSongIdByAlbumIdPromise
+    //      (см. research.md Decision 1, MIN(id) — единственная песня альбома подойдёт);
+    //   3) дожидаемся полной загрузки SongsStore.currentSong через setCurrentSongId (async) —
+    //      это тот же action, что использует SongEdit.vue: после него `getCurrentSong`
+    //      возвращает полноценный объект песни с author/album, и AlbumCoverModal.defaultSearchQuery
+    //      правильно подставляет «{author} {album} обложка альбома» в поле «Поисковый запрос».
+    //      Без этого шага (если бы использовался setCurrentSongIdOnly) модалка в mounted()
+    //      читала бы старую/null песню и поле было бы пустым.
+    // На @close / @saved — closeAlbumCoverModal восстанавливает prevCurrentSongId (синхронно,
+    // модалка уже не нуждается в currentSong).
     async openAlbumCoverModal(item) {
       if (!this.canEditCover(item)) return
       this.prevCurrentSongId = this.$store.getters.getCurrentSongId
@@ -372,10 +377,12 @@ export default {
           this.currentAlbumCoverAlbumId = null
           return
         }
-        this.$store.commit('setCurrentSongIdOnly', firstSongId)
+        // Дожидаемся полной загрузки currentSong (тот же action, что в SongEdit.vue).
+        // После этого defaultSearchQuery в модалке подставит корректную строку.
+        await this.$store.dispatch('setCurrentSongId', firstSongId)
         this.isAlbumCoverModalVisible = true
       } catch (e) {
-        console.error('Ошибка при получении firstSongId для альбома', item.id, e)
+        console.error('Ошибка при открытии модалки обложки альбома', item.id, e)
         this.currentAlbumCoverAlbumId = null
       } finally {
         this.isBusy = false

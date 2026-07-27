@@ -2,7 +2,7 @@
 
 > **Status**: active
 > **Feature Key**: llm-lyrics-search
-> **Last Updated**: 2026-07-20
+> **Last Updated**: 2026-07-27
 
 ## Что делает
 
@@ -24,12 +24,15 @@ web-поиск (fourget) + скрейпинг сайтов + LLM-анализ (L
    формирует запрос (автор + название), запускает поиск.
 2. **fourget** (`lyrics-search.base-url` / `LYRICS_SEARCH_BASE_URL`,
    `SearchTool.searchUrls` в `llm/Tools.kt`) — self-hosted мета-поисковик
-   (`/api/v1/web?s=...&scraper=yandex`), замена SearXNG для поиска текстов
-   песен (см. `specs/014-lyrics-search-replacement/research.md`) — Yandex
-   как источник лучше индексирует русскоязычные "текст песни" запросы, чем
-   движки, доступные в прежнем SearXNG-бэкенде. Поиск обложек альбомов
-   (`AlbumCoverService.searchSearxngImages`) по-прежнему использует SearXNG —
-   эта замена его не затрагивает.
+   (`/api/v1/web?s=...&scraper=...`), замена SearXNG для поиска текстов песен
+   (см. `specs/014-lyrics-search-replacement/research.md`). Изначально
+   планировался движок Yandex (лучше индексирует русскоязычные "текст песни"
+   запросы), но на практике на admin-машине он тихо возвращает пустой
+   результат (вероятно, бан/капча по IP) — реально рабочие на этом хостинге
+   scraper'ы — `brave` (основной) и `yep` (фолбэк, если `brave` пуст);
+   `SearchTool` перебирает их по очереди, пока один не даст непустой список
+   URL. Поиск обложек альбомов (`AlbumCoverService.searchSearxngImages`)
+   по-прежнему использует SearXNG — эта замена его не затрагивает.
 3. **Скрейпинг** — для каждого результата парсим HTML:
    - Статический — `jsoup` (см. [jsoup](https://jsoup.org/)).
    - JS-рендер / авторизация — `UtilsPlaywright.kt` через Playwright/Selenium.
@@ -75,6 +78,17 @@ web-поиск (fourget) + скрейпинг сайтов + LLM-анализ (L
   пайплайн не падает (см. `specs/014-lyrics-search-replacement/spec.md`,
   FR-006), но песня останется без автоматически найденного текста до
   следующей попытки.
+- **Scraper fourget заблокирован конкретным движком**: многие scraper'ы
+  fourget (DuckDuckGo и всё, что через него проксируется — bing, yahoo_jp,
+  mullvad_brave, presearch, ecosia в этой сборке; также Startpage/Qwant —
+  капча, Mojeek — бан инстанса, Yandex — тихо пустой результат без ошибки)
+  могут не работать на конкретном IP/хостинге. Проверить вручную:
+  `curl "http://<lyrics-search.base-url>/api/v1/web?s=test&scraper=<имя>"` —
+  `status: "ok"` с непустым `web` значит движок реально работает. Список
+  scraper'ов, перебираемых `SearchTool` по очереди, — константа
+  `LYRICS_SEARCH_SCRAPERS` в `llm/Tools.kt` (сейчас `brave`, `yep`) — при
+  очередной блокировке добавить/заменить на другой рабочий scraper из этого
+  списка, а не менять весь бэкенд заново.
 
 ## Ссылки на ключевые классы/файлы
 

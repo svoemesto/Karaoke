@@ -2169,7 +2169,7 @@ export default {
       if (!author) return []
       return (this.$store.getters.getAlbumsDigest || [])
         .filter((alb) => alb.authorId === author.id)
-        .sort((a, b) => a.year - b.year || a.sortOrder - b.sortOrder)
+        .sort((a, b) => a.sortOrder - b.sortOrder || a.year - b.year)
     },
     diff() {
       return this.$store.getters.getSongDiff

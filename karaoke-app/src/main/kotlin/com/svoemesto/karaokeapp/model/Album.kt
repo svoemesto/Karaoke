@@ -246,8 +246,8 @@ class Album(
         }
 
         /**
-         * Возвращает id «главной» песни альбома ([Song.firstSongInAlbum] = TRUE), либо — fallback —
-         * id песни с минимальным id в этом альбоме. `null`, если у альбома нет песен.
+         * Возвращает id «репрезентативной» песни альбома — песни с минимальным id в этом альбоме.
+         * `null`, если у альбома нет песен.
          *
          * Используется в админском компоненте `webvue3/src/components/Albums/AlbumsTable.vue`
          * для контекста [AlbumCoverModal]: модалка привязана к конкретной песне через
@@ -255,9 +255,11 @@ class Album(
          * Возвращаемый id — это «репрезентативная» песня альбома, через которую модалка
          * получает доступ к обложке. Никак не модифицирует данные.
          *
-         * Семантика `first_song_in_album` живёт в [Song.firstSongInAlbum] и используется
-         * в [Publication] как маркер «главной» песни. Fallback на `MIN(id)` — страховка
-         * от неполных данных (когда ни одна песня альбома не помечена `first_song_in_album`).
+         * **Замечание:** в [Song] есть in-memory поле [Song.firstSongInAlbum] (Boolean), но
+         * оно **не сохраняется в БД** (нет колонки «first_song_in_album» в «tbl_songs» —
+         * см. миграции в «deploy/karaoke-db/», нет упоминания в [Song.getSqlToInsert]).
+         * Поэтому «семантический» вариант `WHERE first_song_in_album = TRUE` невозможен —
+         * используем `MIN(id)` как единственный стабильный критерий.
          *
          * @return id песни альбома или `null`, если у альбома нет ни одной песни
          * @see specs/014-album-cell-album-cover-modal/contracts/api.md
@@ -268,34 +270,17 @@ class Album(
         ): Long? {
             val connection = database.getConnection() ?: return null
 
-            // Сначала ищем firstSongInAlbum = TRUE (семантически «главная» песня альбома).
-            val firstSql =
-                """
-                SELECT id FROM tbl_songs
-                WHERE album_id = ?
-                  AND first_song_in_album = TRUE
-                ORDER BY id
-                LIMIT 1
-                """.trimIndent()
-            connection.prepareStatement(firstSql).use { ps ->
-                ps.setLong(1, albumId)
-                val rs = ps.executeQuery()
-                if (rs.next()) {
-                    val id = rs.getLong("id")
-                    if (!rs.wasNull()) return id
-                }
-            }
-
-            // Fallback: минимальный id (защита от неполных данных, когда firstSongInAlbum
-            // не выставлен ни для одной песни альбома).
-            val fallbackSql =
+            // Репрезентативная песня альбома — с минимальным id. Это стабильный
+            // критерий, не зависящий от того, выставлен ли first_song_in_album (который
+            // сейчас не сохраняется в БД — см. KDoc).
+            val sql =
                 """
                 SELECT id FROM tbl_songs
                 WHERE album_id = ?
                 ORDER BY id
                 LIMIT 1
                 """.trimIndent()
-            connection.prepareStatement(fallbackSql).use { ps ->
+            connection.prepareStatement(sql).use { ps ->
                 ps.setLong(1, albumId)
                 val rs = ps.executeQuery()
                 if (rs.next()) {

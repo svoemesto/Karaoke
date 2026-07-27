@@ -64,15 +64,41 @@ class Album(
     override fun compareTo(other: Album): Int =
         compareValuesBy(this, other, { it.authorId }, { it.year }, { it.sortOrder }, { it.name })
 
-    override fun toDTO(): AlbumDTO =
-        AlbumDTO(
+    override fun toDTO(): AlbumDTO {
+        // Превью автора/альбома ищутся в tbl_pictures по имени — тот же паттерн, что и
+        // Author.toDTO() (по имени автора) и Zakroma.kt (по "$author - $year - $name" для
+        // альбома). Пустое имя автора (не должно случаться при корректном authorId) — без превью.
+        val author = Author.getAuthorById(authorId, database, storageService, storageApiClient)
+        val authorName = author?.author ?: ""
+        val authorPicture =
+            authorName
+                .takeIf { it.isNotEmpty() }
+                ?.let { Pictures.getPictureByName(name = it, database = database, storageService = storageService, storageApiClient = storageApiClient) }
+        val albumPicture =
+            authorName
+                .takeIf { it.isNotEmpty() }
+                ?.let {
+                    Pictures.getPictureByName(
+                        name = "$it - $year - $name",
+                        database = database,
+                        storageService = storageService,
+                        storageApiClient = storageApiClient,
+                    )
+                }
+        return AlbumDTO(
             id = id,
             authorId = authorId,
+            authorName = authorName,
             year = year,
             name = name,
             albumType = albumType,
             sortOrder = sortOrder,
+            authorPictureId = authorPicture?.id ?: 0,
+            authorPicturePreviewUrl = authorPicture?.toDTO()?.previewUrl ?: "",
+            albumPictureId = albumPicture?.id ?: 0,
+            albumPicturePreviewUrl = albumPicture?.toDTO()?.previewUrl ?: "",
         )
+    }
 
     companion object {
         const val TABLE_NAME = "tbl_albums"
@@ -89,6 +115,11 @@ class Album(
             if (whereArgs.containsKey("author_id")) where += "author_id=${whereArgs["author_id"]}"
             if (whereArgs.containsKey("year")) where += "year=${whereArgs["year"]}"
             if (whereArgs.containsKey("name")) where += "name = '${whereArgs["name"]?.replace("'", "''")}'"
+            // Частичный поиск по названию для UI-фильтра (в отличие от точного "name" выше,
+            // используемого getAlbumByAuthorYearName/findOrCreateForSongImport — их менять нельзя).
+            if (whereArgs.containsKey("name_search")) {
+                where += "LOWER(name) LIKE '%${whereArgs["name_search"]?.lowercase()?.replace("'", "''")}%'"
+            }
             if (whereArgs.containsKey("album_type")) where += "album_type = '${whereArgs["album_type"]}'"
             return where
         }

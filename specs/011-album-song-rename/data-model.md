@@ -41,7 +41,7 @@ Kotlin: `model/Song.kt` (бывший `model/Settings.kt`), `SongDTO`, `SongDTOd
 | `authorId` | `author_id` | `Long` / `INTEGER NOT NULL` | обязательно | FK → `tbl_authors.id`, `ON DELETE RESTRICT`. |
 | `year` | `year` | `Int` / `INTEGER NOT NULL DEFAULT 0` | обязательно | 0 = год неизвестен (консистентно с текущим `Song.year` fallback). |
 | `name` | `name` | `String` / `VARCHAR NOT NULL` | обязательно | Название альбома. |
-| `albumType` | `album_type` | `AlbumType` (enum) / `VARCHAR NOT NULL DEFAULT 'studio'` | обязательно | `AlbumType.STUDIO \| LIVE \| COMPILATION \| BOOTLEG`, `dbValue`-паттерн как `SongType` (research.md §4). |
+| `albumType` | `album_type` | `AlbumType` (enum) / `VARCHAR NOT NULL DEFAULT 'studio'` | обязательно | `AlbumType.STUDIO \| LIVE \| COMPILATION \| BOOTLEG \| SINGLE` (последний добавлен позже первоначальной реализации), `dbValue`-паттерн как `SongType` (research.md §4). |
 | `sortOrder` | `sort_order` | `Int` / `INTEGER NOT NULL DEFAULT 0` | обязательно | Порядок отображения внутри `(authorId, year)`; меньше = раньше. Уникальность не требуется (админ может оставить одинаковые значения — тай-брейк по `id`). |
 | `recordhash` | `recordhash` | `VARCHAR(32)` | генерируется триггером | Стандартный для sync (Principle II/III). |
 

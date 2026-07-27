@@ -7,23 +7,29 @@
 ## Что делает
 
 Автоматически находит тексты песен, аккорды, ключ, BPM через
-web-поиск (SearXNG) + скрейпинг сайтов + LLM-анализ (LM Studio). Для сайтов
+web-поиск (fourget) + скрейпинг сайтов + LLM-анализ (LM Studio). Для сайтов
 с JS-рендером или авторизованной сессией (Яндекс.Музыка) — Playwright/Selenium.
 
 ## Зачем
 
 Ручной поиск текстов и аккордов — часы на песню. LLM умеет извлекать
 структурированные данные из сырого HTML, догадываться о формате аккордов,
-исправлять опечатки. SearXNG + LM Studio — локальные инструменты, не
-зависят от внешних SaaS (см.
+исправлять опечатки. fourget + LM Studio — локальные (self-hosted)
+инструменты, не зависят от внешних SaaS (см.
 [constitution.md#i-self-contained-автопайплайн](../../.specify/memory/constitution.md)).
 
 ## Как работает (кратко)
 
 1. **`LyricsFinderService`** — оркестратор: получает `Settings` (песня),
    формирует запрос (автор + название), запускает поиск.
-2. **SearXNG** (`SEARXNG_BASE_URL`) — мета-поисковик, агрегирует
-   результаты Google/Bing/DuckDuckGo.
+2. **fourget** (`lyrics-search.base-url` / `LYRICS_SEARCH_BASE_URL`,
+   `SearchTool.searchUrls` в `llm/Tools.kt`) — self-hosted мета-поисковик
+   (`/api/v1/web?s=...&scraper=yandex`), замена SearXNG для поиска текстов
+   песен (см. `specs/014-lyrics-search-replacement/research.md`) — Yandex
+   как источник лучше индексирует русскоязычные "текст песни" запросы, чем
+   движки, доступные в прежнем SearXNG-бэкенде. Поиск обложек альбомов
+   (`AlbumCoverService.searchSearxngImages`) по-прежнему использует SearXNG —
+   эта замена его не затрагивает.
 3. **Скрейпинг** — для каждого результата парсим HTML:
    - Статический — `jsoup` (см. [jsoup](https://jsoup.org/)).
    - JS-рендер / авторизация — `UtilsPlaywright.kt` через Playwright/Selenium.
@@ -62,8 +68,13 @@ web-поиск (SearXNG) + скрейпинг сайтов + LLM-анализ (L
   переавторизоваться вручную (сохранение сессии на диске).
 - **Долгие LLM-запросы**: LM Studio на CPU медленная. Лучше вынести
   в отдельный лейн/поток, чтобы не блокировать.
-- **SearXNG недоступен**: проверяйте `SEARXNG_BASE_URL` перед первым
-  запуском. Фолбэк — `DuckDuckGo HTML` (без SearXNG), но он rate-limited.
+- **fourget недоступен**: проверяйте `lyrics-search.base-url` /
+  `LYRICS_SEARCH_BASE_URL` перед первым запуском (контейнер `fourget` в
+  `deploy/docker-compose*.yml`, рядом с `searxng`). При недоступности/ошибке
+  `SearchTool.searchUrls` логирует ошибку и возвращает пустой список —
+  пайплайн не падает (см. `specs/014-lyrics-search-replacement/spec.md`,
+  FR-006), но песня останется без автоматически найденного текста до
+  следующей попытки.
 
 ## Ссылки на ключевые классы/файлы
 

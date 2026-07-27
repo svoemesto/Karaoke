@@ -1,5 +1,43 @@
 # Phase 0: Research — замена поискового бэкенда для текстов песен
 
+## Production finding (после деплоя, 2026-07-27)
+
+После реального разворачивания `fourget` на admin-машине выяснилось:
+`scraper=yandex` (см. Вопрос 1 ниже) на практике возвращает `status: "ok"` с
+полностью пустыми результатами даже на generic-запрос типа "test" — то есть
+тихо не работает (вероятно, бан/капча по IP хостинга; в отличие от других
+scraper'ов, yandex НЕ отдаёт явный текст ошибки в `status`, из-за чего
+проблема не была видна в логах приложения как ошибка). Диагностика через
+прямой `curl` к `fourget` (`/api/v1/web?s=test&scraper=<имя>`) на 10 кандидатов
+показала:
+
+| Scraper | Результат |
+|---|---|
+| `yandex` | `status: ok`, но `web: []` (тихо пусто) |
+| `google` | явная ошибка: "Still working on a Google scraper..." (не реализован в этой версии 4get) |
+| default (без `scraper`) | DuckDuckGo, ошибка "detected an anomaly in the Javascript challenge response" |
+| `bing`, `yahoo_jp`, `mullvad_brave`, `presearch`, `ecosia` | та же ошибка DuckDuckGo — в этой сборке проксируются через общий (сломанный) DDG-бэкенд |
+| `startpage` | ошибка: "returned a captcha" |
+| `qwant` | ошибка: "returned a captcha redirect" |
+| `mojeek` | ошибка: "blocked this instance or request proxy" |
+| **`brave`** | **`status: ok`, реальные непустые результаты** |
+| **`yep`** | **`status: ok`, реальные непустые результаты** |
+
+**Решение (обновлено)**: `SearchTool` перебирает scraper'ы по очереди —
+`brave` (основной), затем `yep` (фолбэк, если `brave` пуст) — оба подтверждённо
+рабочие на этой машине. Список вынесен в константу `LYRICS_SEARCH_SCRAPERS`
+(`llm/Tools.kt`), чтобы при очередной блокировке можно было быстро
+добавить/заменить scraper, не меняя архитектуру.
+
+**Урок**: анти-бот блокировка происхождения (Yandex/Google/DuckDuckGo и т.д.)
+конкретно с IP этого хостинга — тот же класс проблемы, что убил исходный
+SearXNG (см. Известные ловушки в `docs/features/llm-lyrics-search.md`), и
+переносится на любой scraper-based мета-поиск независимо от продукта. Выбор
+конкретного scraper'а внутри 4get — эксплуатационная деталь, которая может
+снова потребовать пересмотра при изменении сетевых условий (VPN/IP) — процедура
+диагностики (curl-перебор `scraper=`) задокументирована выше и в
+`docs/features/llm-lyrics-search.md` → «Известные ловушки».
+
 ## Вопрос 1: Каким self-hosted движком заменить SearXNG для поиска URL с текстами песен?
 
 **Decision**: [4get](https://git.lolcat.ca/lolcat/4get) — самостоятельно хостируемый

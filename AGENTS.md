@@ -12,8 +12,8 @@
 > **Если вы ведёте разработку с другим AI-агентом** и он понимает
 > `AGENTS.md` — этого файла достаточно. Если нет — см. ссылки выше.
 
-> **Версия файла**: 1.4.1
-> **Last updated**: 2026-07-25 (Pass 26, ссылка на CI-workflow в разделе «Как проверить, что CI пройдёт»)
+> **Версия файла**: 1.5.0
+> **Last updated**: 2026-07-27 (Pass 28, новый Q&A про потерю маркеров на reopen в `SubsEdit.vue`, см. PR #016)
 > **Ответственный**: opencode-агент
 > **Как обновлять**: см. секцию «Как обновлять этот файл» в конце.
 
@@ -493,6 +493,10 @@ pre-commit run --all-files               # 7 проверок
 Все должны быть зелёными (или baseline = 0). Тот же набор прогоняет CI —
 см. [`.github/workflows/lint.yml`](./.github/workflows/lint.yml) и
 [`docs/features/ci-lint-enforcement.md`](./docs/features/ci-lint-enforcement.md).
+
+### Q: После «Точные маркеры → Apply → Save → reopen» в `SubsEdit.vue` пропадают маркеры на песне со спецтегами — почему?
+
+**Кратко**: в `SubsEdit.vue:mounted()` `loadedMarkers` грузился ПОСЛЕ `sourceText`, а заполнение `sourceMarkers` жило в `ws.on('decode')` (отложенно). Watcher `sourceText` (Vue 2 async) срабатывал раньше, чем аудио декодировалось — `syncMarkersFromSpecTags()` с пустым `syllablePositions` втыкал spec tag-маркеры в позицию 0, и условие `sourceMarkers.length === 0` в `ws.on('decode')` блокировало загрузку реальных маркеров из БД. На Save уезжал мусор. Исправлено в PR #016: `loadedMarkers` + заполнение `sourceMarkers` теперь **синхронно** в `mounted()` ДО `sourceText`; цикл загрузки удалён из `ws.on('decode')`; тот же приём применён в watcher'е `currentVoice`. Подробности + 7 ручных сценариев проверки — [`specs/016-fix-spec-tags-marker-loss-on-reopen/`](./specs/016-fix-spec-tags-marker-loss-on-reopen/) (Pass 28, `docs/architecture-notes.md`).
 
 ---
 

@@ -25,7 +25,38 @@ import javax.imageio.ImageIO
  *
  * @see docs/features/llm-lyrics-search.md (аналогичная инфраструктура поиска)
  */
-enum class AlbumCoverSource { YANDEX_MUSIC, SEARXNG }
+enum class AlbumCoverSource { YANDEX_MUSIC, SEARXNG, FOURGET }
+
+/**
+ * Движок поиска обложки альбома (после фолбэка на общий веб-поиск, т.е. когда
+ * поиск не через Яндекс.Музыку) — выбираемый в настройках
+ * (`KaraokeProperties.albumCoverSearchEngine`) или явно для конкретного запроса
+ * (specs/015-search-engine-selection). Яндекс-варианты не предлагаются — Yandex
+ * Cloud Search API возвращает только текстовые веб-результаты, не картинки.
+ *
+ * @see docs/features/llm-lyrics-search.md
+ */
+enum class AlbumCoverSearchEngine {
+    SEARXNG,
+    FOURGET,
+}
+
+/**
+ * Разрешает движок поиска обложек альбомов: явно переданное [engine] приоритетнее настройки
+ * `KaraokeProperties.albumCoverSearchEngine`; некорректное/отсутствующее значение (в обоих
+ * источниках) — фолбэк на [AlbumCoverSearchEngine.SEARXNG] (сегодняшнее поведение,
+ * specs/015-search-engine-selection).
+ *
+ * @see docs/features/llm-lyrics-search.md
+ */
+fun resolveAlbumCoverSearchEngine(engine: String? = null): AlbumCoverSearchEngine =
+    (engine ?: KaraokeProperties.getString("albumCoverSearchEngine")).let {
+        try {
+            enumValueOf<AlbumCoverSearchEngine>(it)
+        } catch (e: IllegalArgumentException) {
+            AlbumCoverSearchEngine.SEARXNG
+        }
+    }
 
 data class AlbumCoverCandidate(
     val sourceUrl: String,
@@ -273,6 +304,8 @@ data class SearxngImageSearchResult(
 class AlbumCoverService(
     @Value("\${searxng.base-url:http://searxng:8080}")
     private val searxngBaseUrl: String,
+    @Value("\${lyrics-search.base-url:http://fourget:80}")
+    private val fourgetBaseUrl: String,
     private val objectMapper: ObjectMapper,
 ) {
     private val logger = LoggerFactory.getLogger(AlbumCoverService::class.java)
@@ -293,6 +326,7 @@ class AlbumCoverService(
         album: String,
         skipYandex: Boolean = false,
         customQuery: String? = null,
+        engine: AlbumCoverSearchEngine = AlbumCoverSearchEngine.SEARXNG,
     ): AlbumCoverSearchOutcome {
         if (!skipYandex && !authorYmId.isNullOrBlank()) {
             if (isVpnActive()) {
@@ -307,7 +341,11 @@ class AlbumCoverService(
             }
         }
         val query = customQuery?.trim()?.takeIf { it.isNotEmpty() } ?: defaultSearchQuery(author, album)
-        val fallbackCandidates = searchSearxngImages(query)
+        val fallbackCandidates =
+            when (engine) {
+                AlbumCoverSearchEngine.SEARXNG -> searchSearxngImages(query)
+                AlbumCoverSearchEngine.FOURGET -> searchFourgetImages(query)
+            }
         return if (fallbackCandidates.isNotEmpty()) {
             AlbumCoverSearchOutcome.Found(fallbackCandidates, note = "Найдено через общий веб-поиск (не Яндекс.Музыка)")
         } else {
@@ -342,4 +380,89 @@ class AlbumCoverService(
             logger.error("AlbumCoverService.searchSearxngImages: ошибка: ${e.message}", e)
             emptyList()
         }
+
+    /**
+     * Поиск картинок-кандидатов обложки через self-hosted fourget (`/api/v1/images`,
+     * scraper `brave` — подтверждённо рабочий на admin-машине, см.
+     * specs/014-lyrics-search-replacement/research.md). Движок `FOURGET` в
+     * [AlbumCoverSearchEngine] (specs/015-search-engine-selection). Каждый элемент
+     * `image[]` содержит `source[]` — список URL самой картинки в разных размерах
+     * (первый — как правило оригинал/наибольшее качество); верхнеуровневый `url` —
+     * это страница-источник, НЕ сама картинка.
+     *
+     * @see docs/features/llm-lyrics-search.md
+     */
+    fun searchFourgetImages(query: String): List<AlbumCoverCandidate> =
+        try {
+            val encodedQuery = URLEncoder.encode(query, "UTF-8")
+            val url = "$fourgetBaseUrl/api/v1/images?s=$encodedQuery&scraper=brave"
+            val request =
+                HttpRequest
+                    .newBuilder()
+                    .uri(URI.create(url))
+                    .timeout(Duration.ofSeconds(30))
+                    .header("Accept", "application/json")
+                    .GET()
+                    .build()
+            val response = httpClient.send(request, HttpResponse.BodyHandlers.ofString())
+            if (response.statusCode() != 200) {
+                logger.error("AlbumCoverService.searchFourgetImages: fourget вернул статус ${response.statusCode()}")
+                emptyList()
+            } else {
+                val searchResponse = objectMapper.readValue(response.body(), FourgetImageSearchResponse::class.java)
+                if (searchResponse.status != "ok") {
+                    logger.error("AlbumCoverService.searchFourgetImages: fourget вернул status='${searchResponse.status}'")
+                    emptyList()
+                } else {
+                    searchResponse.image
+                        .mapNotNull { img ->
+                            img.source
+                                .firstOrNull()
+                                ?.url
+                                ?.takeIf { it.isNotBlank() }
+                        }.map { imageUrl -> AlbumCoverCandidate(sourceUrl = imageUrl, source = AlbumCoverSource.FOURGET) }
+                        .distinctBy { it.sourceUrl }
+                        .take(24)
+                }
+            }
+        } catch (e: Exception) {
+            logger.error("AlbumCoverService.searchFourgetImages: ошибка: ${e.message}", e)
+            emptyList()
+        }
 }
+
+/**
+ * Класс Fourget Image Search Response — ответ fourget (`/api/v1/images`).
+ *
+ * @see docs/features/llm-lyrics-search.md
+ */
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class FourgetImageSearchResponse(
+    val status: String = "",
+    val image: List<FourgetImageResult> = emptyList(),
+)
+
+/**
+ * Класс Fourget Image Result — один результат картиночного поиска fourget. `url` —
+ * страница-источник (не сама картинка), `source` — сама картинка в разных размерах.
+ *
+ * @see docs/features/llm-lyrics-search.md
+ */
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class FourgetImageResult(
+    val title: String = "",
+    val source: List<FourgetImageSource> = emptyList(),
+    val url: String = "",
+)
+
+/**
+ * Класс Fourget Image Source — сама картинка (один из размеров) в результате fourget.
+ *
+ * @see docs/features/llm-lyrics-search.md
+ */
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class FourgetImageSource(
+    val url: String = "",
+    val width: Int = 0,
+    val height: Int = 0,
+)

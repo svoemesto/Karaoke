@@ -58,6 +58,20 @@
               <img alt="copy text" class="icon-40" src="../../../assets/svg/icon_copy.svg" />
             </button>
 
+            <!-- Искать заново (другим движком) -->
+            <button class="group-button" title="Искать заново" @click="openResearchConfirm">
+              Искать заново
+            </button>
+
+            <!-- Удалить результаты поиска (без нового поиска) -->
+            <button
+              class="group-button"
+              title="Удалить результаты поиска"
+              @click="openDeleteConfirm"
+            >
+              Удалить результаты поиска
+            </button>
+
             <!-- Выйти-->
             <button class="btn-round-double" title="Выйти" @click="close">
               <img alt="close" class="icon-40" src="../../../assets/svg/icon_close.svg" />
@@ -194,6 +208,64 @@ export default {
     doSearchTextForSong() {
       this.$store.dispatch('searchTextForSong')
       this.close
+    },
+    /**
+     * Открывает диалог подтверждения повторного поиска с выбором движка
+     * (specs/015-search-engine-selection). Значение по умолчанию для селектора —
+     * текущая настройка `lyricsSearchEngine`.
+     */
+    async openResearchConfirm() {
+      const defaultEngine = await this.$store.getters.getPropValue('lyricsSearchEngine')
+      this.customConfirmParams = {
+        header: 'Выполнить поиск заново?',
+        body: 'Ранее сохранённые результаты поиска для этой песни будут удалены. Продолжить?',
+        fields: [
+          {
+            fldName: 'engine',
+            fldLabel: 'Движок поиска',
+            fldIsSelect: true,
+            fldOptions: ['YANDEX_SYNC', 'YANDEX_ASYNC', 'SEARXNG', 'FOURGET'],
+            fldValue: defaultEngine || 'FOURGET',
+          },
+        ],
+        callback: (ret) => this.doResearch(ret.engine),
+      }
+      this.isCustomConfirmVisible = true
+    },
+    /** Удаляет старые результаты (на бэкенде, через forceResearch) и ищет заново выбранным движком. */
+    async doResearch(engine) {
+      await this.$store.dispatch('searchTextForSong', { forceResearch: true, engine: engine })
+      const listSearchAsync = await this.getAsyncList(this.songId)
+      if (listSearchAsync.length > 0) {
+        const currentSearchAsync = listSearchAsync[0]
+        this.searchIsDone = currentSearchAsync.done
+        this.currentSearchAsync = currentSearchAsync
+        this.searchResultsList = currentSearchAsync.done
+          ? await this.getResultsList(currentSearchAsync.id)
+          : []
+      } else {
+        this.searchIsDone = false
+        this.currentSearchAsync = undefined
+        this.searchResultsList = []
+      }
+      this.currentResult = undefined
+    },
+    /** Открывает диалог подтверждения удаления результатов поиска без нового поиска. */
+    openDeleteConfirm() {
+      this.customConfirmParams = {
+        header: 'Удалить результаты поиска?',
+        body: 'Все сохранённые результаты поиска текста для этой песни будут удалены. Продолжить?',
+        callback: () => this.doDeleteResults(),
+      }
+      this.isCustomConfirmVisible = true
+    },
+    /** Удаляет результаты поиска (на бэкенде) и очищает локальное состояние, без нового поиска. */
+    async doDeleteResults() {
+      await this.$store.dispatch('deleteSearchResults', this.songId)
+      this.searchResultsList = []
+      this.currentSearchAsync = undefined
+      this.currentResult = undefined
+      this.searchIsDone = false
     },
   },
 }

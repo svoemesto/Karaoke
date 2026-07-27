@@ -75,10 +75,10 @@
           </button>
           <button
             :class="['km-tb', albumDisplayMode === 'grouped' ? 'active' : '']"
-            title="По группам типа"
+            title="По типам альбомов"
             @click="setAlbumDisplayMode('grouped')"
           >
-            По группам
+            По типам альбомов
           </button>
         </div>
         <div class="km-album-type-filters">

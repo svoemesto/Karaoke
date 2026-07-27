@@ -68,6 +68,9 @@
           <button class="button-action" @click="backfillAlbumsFromSongs">
             Заполнить альбомы из песен
           </button>
+          <button class="button-action" @click="normalizeAlbumSortOrder">
+            Нормализовать сквозную сортировку альбомов
+          </button>
         </div>
         <!-- <button class="button-action" @click="delDublicates">Удалить дубликаты</button>
       <button class="button-action" @click="clearPreDublicates">Очистить информацию о пре-дубликатах</button> -->
@@ -521,6 +524,35 @@ export default {
           isAlert: true,
           alertType: 'info',
           header: 'Заполнение альбомов из песен',
+          body: `Операция запущена в фоне.<br>Итог придёт уведомлением по завершении.`,
+          timeout: 10,
+        }
+        this.isCustomConfirmVisible = true
+      })
+    },
+    // Одноразовая миграция: раньше sortOrder нумеровался внутри (автор, год), теперь — сквозной
+    // по автору (управляется драг-дропом в модалке "Альбомы автора"). Сохраняет текущий видимый
+    // порядок, просто переводя его в сквозную нумерацию — можно перезапускать без риска.
+    normalizeAlbumSortOrder() {
+      this.customConfirmParams = {
+        header: 'Подтвердите действие',
+        body:
+          `Перевести порядок отображения альбомов с "внутри года" на сквозной по автору?<br>` +
+          `Текущий видимый порядок альбомов сохранится — просто станет сквозной нумерацией, ` +
+          `дальше её можно менять драг-дропом в карточке автора.<br>` +
+          `Действует только на LOCAL. Идемпотентно — можно запускать повторно.<br>` +
+          `<strong>Операция может занять время и идёт в фоне — итог придёт уведомлением.</strong>`,
+        timeout: 15,
+        callback: this.doNormalizeAlbumSortOrder,
+      }
+      this.isCustomConfirmVisible = true
+    },
+    doNormalizeAlbumSortOrder() {
+      this.$store.dispatch('normalizeAlbumSortOrderPromise').then(() => {
+        this.customConfirmParams = {
+          isAlert: true,
+          alertType: 'info',
+          header: 'Нормализация порядка альбомов',
           body: `Операция запущена в фоне.<br>Итог придёт уведомлением по завершении.`,
           timeout: 10,
         }

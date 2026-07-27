@@ -12,8 +12,8 @@ import java.sql.Timestamp
 
 /**
  * Билдер OS-подпроцесс-пайплайна для demucs премиум-задания (StemJob, tbl_stem_jobs) — по образцу
- * Settings.argsDemucs2/5 (model/Settings.kt), но для произвольного файла пользователя, а не для
- * Settings/песни (settingsId=0, свой thread-лейн THREAD_LANE_STEM_JOBS). Своя temp-папка
+ * Song.argsDemucs2/5 (model/Song.kt), но для произвольного файла пользователя, а не для
+ * Song/песни (settingsId=0, свой thread-лейн THREAD_LANE_STEM_JOBS). Своя temp-папка
  * (PATH_TO_TEMP_STEMJOB_FOLDER/{jobId}) — общая с песенным пайплайном привела бы к коллизии файлов,
  * т.к. оба лейна могут работать параллельно. Сырой файл уже скачан туда поллером
  * (StemJobPollScheduler) ДО постановки в очередь, под именем upload.<ext>.
@@ -58,7 +58,7 @@ fun argsStemJobDemucs(
                 ),
         )
     // Перекодирование каждого flac-стема в mp3 (320k) — по образцу существующих FF_MP3_* шагов
-    // (model/Settings.kt) — экономит место в MinIO относительно flac (см. решение по режиму
+    // (model/Song.kt) — экономит место в MinIO относительно flac (см. решение по режиму
     // хранения стемов в плане фичи).
     StemJobMode.stemNames(job.mode).forEach { stem ->
         steps.add(

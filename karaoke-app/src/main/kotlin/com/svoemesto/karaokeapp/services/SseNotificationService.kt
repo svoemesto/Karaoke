@@ -78,7 +78,7 @@ object TabIdContext {
  * **Ловушки** (см. [docs/features/sse-notifications.md]):
  * - `TabIdContext` живёт в `ThreadLocal` — должен очищаться после
  *   HTTP-запроса через `TabIdFilter` (OncePerRequestFilter).
- * - Длинные payload'ы (recordChange с большим `SettingsDTO`) могут
+ * - Длинные payload'ы (recordChange с большим `SongDTO`) могут
  *   рвать соединение — дробите на части.
  *
  * @see docs/features/sse-notifications.md

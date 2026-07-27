@@ -704,7 +704,7 @@ const ASSIGN_STATUS_LABELS = {
 /**
  * Главная таблица песен в admin SPA `webvue3`.
  *
- * Отображает список песен (`SettingsDTO`) с пагинацией, фильтрами
+ * Отображает список песен (`SongDTO`) с пагинацией, фильтрами
  * (через `SongsFilterModal`), inline-редактированием, bulk-операциями
  * и health-report. Подписана на SSE `recordChange` через Vuex —
  * обновляет строки без polling.
@@ -725,18 +725,18 @@ const ASSIGN_STATUS_LABELS = {
  * - `currentPage` хранится в Vuex (`Songs/tableCurrentPage`) — переживает
  *   переход «Песни → Публикации → Песни» и возвращает на ту же страницу.
  *
- * @prop {SettingsDTO[]} songs - список песен
+ * @prop {SongDTO[]} songs - список песен
  * @prop {number} page - текущая страница (1-based)
- * @emits row-click - клик по строке (payload: SettingsDTO)
+ * @emits row-click - клик по строке (payload: SongDTO)
  * @emits row-edit - открыть SongEditModal
  * @emits row-delete - удалить песню
  * @see docs/features/sse-notifications.md
- * @see docs/features/dual-db-sync.md (Settings — основная syncable-сущность)
+ * @see docs/features/dual-db-sync.md (Song — основная syncable-сущность)
  * @see CONTRIBUTING.md#vue-table-layout-fixed
  * @see Songs/store.js Vuex-модуль с actions/mutations
  */
 /**
- * Главная таблица Karaoke: список песен (Settings) с пагинацией, сортировкой,
+ * Главная таблица Karaoke: список песен (Song) с пагинацией, сортировкой,
  * bulk-операциями.
  *
  * Столбцы: id, автор, альбом, имя файла, тип (song/instrumental/poetry),
@@ -752,7 +752,7 @@ const ASSIGN_STATUS_LABELS = {
  * паттерн «вернуться на ту же страницу»).
  *
  * **Сортировка** — клик на заголовке столбца; направление циклически.
- * Сортируется на бэкенде через `Settings.getList` ORDER BY.
+ * Сортируется на бэкенде через `Song.getList` ORDER BY.
  *
  * @emits row-click - клик по строке (открывает `SongEdit`)
  * @emits selection-change - изменился набор выбранных ID

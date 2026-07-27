@@ -2,7 +2,7 @@
 // слоги + концы/новые строки + END). Никакой завязки на WaveSurfer — оперирует простыми объектами
 // маркеров { uid, time, label, color, position, markertype }. Отрисовку регионов и транспорт держит
 // компонент EditorWorkView.vue. Формат маркеров идентичен admin-редактору, поэтому разметка,
-// одобренная админом, применяется в tbl_settings один-в-один.
+// одобренная админом, применяется в tbl_songs один-в-один.
 
 const MARKER_COLOR_SYLLABLES = '#D2691E'
 const MARKER_COLOR_FIRSTSYLLABLE = '#008000'

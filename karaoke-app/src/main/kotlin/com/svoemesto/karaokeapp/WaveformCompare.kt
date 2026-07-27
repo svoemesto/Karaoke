@@ -1,6 +1,6 @@
 package com.svoemesto.karaokeapp
 
-import com.svoemesto.karaokeapp.model.Settings
+import com.svoemesto.karaokeapp.model.Song
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.abs
@@ -55,8 +55,8 @@ object WaveformCompare {
     private val envelopeCache = ConcurrentHashMap<String, FloatArray>()
 
     fun compareWaveforms(
-        current: Settings,
-        candidate: Settings,
+        current: Song,
+        candidate: Song,
     ): WaveformCompareResultDto {
         val id = candidate.id
         val useVocals = File(current.vocalsNameFlac).exists() && File(candidate.vocalsNameFlac).exists()

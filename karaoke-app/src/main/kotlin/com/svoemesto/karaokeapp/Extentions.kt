@@ -1,6 +1,6 @@
 package com.svoemesto.karaokeapp
 
-import com.svoemesto.karaokeapp.model.Settings
+import com.svoemesto.karaokeapp.model.Song
 import com.svoemesto.karaokeapp.textfiledictionary.CensoredWordsDictionary
 import java.awt.Color
 import java.awt.Font
@@ -223,7 +223,7 @@ fun String.base64ifFileExists(): String {
 fun String.stripToNumeric(): String = this.replace("\\D+".toRegex(), "")
 
 @Suppress("unused")
-fun Settings.karaokePlatformPublications(): List<KaraokePlatformPublication> = KaraokePlatformPublication.getList(settings = this)
+fun Song.karaokePlatformPublications(): List<KaraokePlatformPublication> = KaraokePlatformPublication.getList(settings = this)
 
 fun List<HealthReport>.errorsOnly(): List<HealthReport> = this.filter { it.healthReportStatus != HealthReportStatus.OK }
 

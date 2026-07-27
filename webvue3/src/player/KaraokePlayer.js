@@ -252,7 +252,7 @@ export default class KaraokePlayer {
       // DEMO: filter markers to fragment and shift to start from 0
       if (this._renderVersion === 'DEMO' && this._demoStart != null && this._demoEnd != null) {
         this._applyDemoFragment(this._demoStart, this._demoEnd)
-        // Compute fade-in duration from the first syllable position (mirrors Settings.demoFragmentFadeInSeconds).
+        // Compute fade-in duration from the first syllable position (mirrors Song.demoFragmentFadeInSeconds).
         // After _applyDemoFragment, first text line starts at (verseStart - demoStart) seconds —
         // this is exactly the fade-in duration the server would send in demoFadeInSeconds.
         let firstTextTime = Infinity
@@ -2975,7 +2975,7 @@ export default class KaraokePlayer {
   }
 
   // Flash times: all text line starts + counter lines get n*halfNote offsets (n=1..4)
-  // Mirrors Kotlin timesForFlashSet in Settings.kt
+  // Mirrors Kotlin timesForFlashSet in Song.kt
   _buildFlashTimes() {
     const bpm = this.data?.bpm || 120
     const halfNote = (60 / bpm) * 2
@@ -3203,7 +3203,7 @@ export default class KaraokePlayer {
 
   // ─── Counter ──────────────────────────────────────────────────────────────
 
-  // Mirrors Kotlin MkoCounter + Settings.kt counter transform properties:
+  // Mirrors Kotlin MkoCounter + Song.kt counter transform properties:
   // - font size = same fontSize as text lines (Kotlin: mltProp.getFontSize())
   // - canvas starts at y=0 (counter center = centerY), moves to y=-symbolHeightPx over halfNote
   // - opacity linearly 1→0 over the full halfNote duration
@@ -3252,7 +3252,7 @@ export default class KaraokePlayer {
   // ─── Header ───────────────────────────────────────────────────────────────
 
   // Returns normalized slide progress: 0 = fully visible (y=0), 1 = fully hidden (y=-headerH).
-  // Mirrors Kotlin Settings.kt propHeaderLineTps: slides over 4 halfNotes at song start,
+  // Mirrors Kotlin Song.kt propHeaderLineTps: slides over 4 halfNotes at song start,
   // hides until last text line, then slides back over 4 halfNotes.
   _getHeaderSlide(ct) {
     const bpm = this.data?.bpm || 120

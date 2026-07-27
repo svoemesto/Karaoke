@@ -8,8 +8,8 @@ import com.svoemesto.karaokeapp.KaraokeProperties
 import com.svoemesto.karaokeapp.WORKING_DATABASE
 import com.svoemesto.karaokeapp.llm.TextCorrectorAgent
 import com.svoemesto.karaokeapp.model.KaraokeDbTable
-import com.svoemesto.karaokeapp.model.SettingField
-import com.svoemesto.karaokeapp.model.Settings
+import com.svoemesto.karaokeapp.model.SongField
+import com.svoemesto.karaokeapp.model.Song
 import com.svoemesto.karaokeapp.model.SiteUser
 import com.svoemesto.karaokeapp.model.SongAssignment
 import com.svoemesto.karaokeapp.model.SongAssignmentDraft
@@ -22,7 +22,7 @@ import com.svoemesto.karaokeapp.services.AlignmentServiceClient
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.StorageApiClient
 import com.svoemesto.karaokeapp.services.WhisperAsrService
-import com.svoemesto.karaokeapp.updateRemoteSettingFromLocalDatabase
+import com.svoemesto.karaokeapp.updateRemoteSongFromLocalDatabase
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
@@ -36,7 +36,7 @@ import java.sql.Timestamp
 
 // Админская сторона онлайн-редактора караоке-разметки (webvue3). Живёт в karaoke-app (admin-машина):
 // назначение песни пользователю с автозаливкой стемов в MinIO, просмотр черновиков, апрув (применение
-// разметки в tbl_settings через Settings.setSourceMarkers — только здесь есть локальный диск +
+// разметки в tbl_songs через Song.setSourceMarkers — только здесь есть локальный диск +
 // WORKING_DATABASE) и реджект с комментарием.
 //
 // Пары эндпоинтов по назначению БД (songassignments синкается SERVER_TO_LOCAL — remote первичен для
@@ -48,7 +48,7 @@ import java.sql.Timestamp
 //    читает, и правка останется невидимой (был баг: reject() был жёстко local, из-за чего отклонённое
 //    задание, живущее на remote, не показывало пользователю отказ и блокировало дальнейшее редактирование).
 //  - approve — читает черновик из target (обычно remote, если работа шла там), но ПРИМЕНЯЕТ разметку в
-//    tbl_settings и статус задания ВСЕГДА в LOCAL — только здесь есть локальный диск для .srt/рендера.
+//    tbl_songs и статус задания ВСЕГДА в LOCAL — только здесь есть локальный диск для .srt/рендера.
 
 /**
  * Контроллер (HTTP/WebSocket endpoints) для song editor .
@@ -103,7 +103,7 @@ class SongEditorController(
 
     private fun pushMp3ToStorage(
         mp3File: File,
-        settings: Settings,
+        settings: Song,
         fileType: KaraokeFileType,
     ) {
         val bucket = "karaoke"
@@ -128,7 +128,7 @@ class SongEditorController(
         }
     }
 
-    private fun ensureStemsInStorage(settings: Settings) {
+    private fun ensureStemsInStorage(settings: Song) {
         convertFlacToMp3(settings.vocalsNameFlac)?.let { pushMp3ToStorage(it, settings, KaraokeFileType.MP3_VOCAL) }
         convertFlacToMp3(settings.accompanimentNameFlac)?.let { pushMp3ToStorage(it, settings, KaraokeFileType.MP3_ACCOMPANIMENT) }
     }
@@ -159,7 +159,7 @@ class SongEditorController(
     ): Map<String, Any?> =
         withDb(target) { db ->
             val settings =
-                Settings.loadFromDbById(songId, db, storageService = storageService, storageApiClient = storageApiClient)
+                Song.loadFromDbById(songId, db, storageService = storageService, storageApiClient = storageApiClient)
                     ?: return@withDb mapOf("ok" to false, "error" to "song_not_found")
             SiteUser.getSiteUserById(assigneeId, db, storageService, storageApiClient)
                 ?: return@withDb mapOf("ok" to false, "error" to "user_not_found")
@@ -221,7 +221,7 @@ class SongEditorController(
                 if (assignments.isEmpty()) {
                     emptyMap()
                 } else {
-                    Settings.loadListFromDbByIds(assignments.map { it.songId }.distinct(), db, storageService, storageApiClient)
+                    Song.loadListFromDbByIds(assignments.map { it.songId }.distinct(), db, storageService, storageApiClient)
                 }
 
             var list =
@@ -267,7 +267,7 @@ class SongEditorController(
             val a = SongAssignment.getById(id, db, storageService, storageApiClient) ?: return@withDb null
             val draft = SongAssignmentDraft.getByAssignment(id, db, storageService, storageApiClient)
             val user = SiteUser.getSiteUserById(a.assigneeId, db, storageService, storageApiClient)
-            val s = Settings.loadFromDbById(a.songId, db, storageService = storageService, storageApiClient = storageApiClient)
+            val s = Song.loadFromDbById(a.songId, db, storageService = storageService, storageApiClient = storageApiClient)
             val status = SongAssignmentStatus.resolve(a.adminStatus, draft?.userStatus, a.reviewedAt, draft?.submittedAt)
             mapOf(
                 "id" to a.id,
@@ -290,10 +290,10 @@ class SongEditorController(
             )
         }
 
-    // Одобрить: применить черновик в tbl_settings для КАЖДОГО голоса черновика (setSourceMarkers
+    // Одобрить: применить черновик в tbl_songs для КАЖДОГО голоса черновика (setSourceMarkers
     // пересчитывает resultText/formattedText*/srt + saveToDb) и поднять id_status до 3 (порог
     // доступности в онлайн-плеере — PublicPlayerController.stemsReady). Если голосов в черновике
-    // МЕНЬШЕ, чем сейчас в Settings — пользователь удалил хвостовые голоса, обрезаем их и в Settings
+    // МЕНЬШЕ, чем сейчас в Song — пользователь удалил хвостовые голоса, обрезаем их и в Song
     // (truncateVoicesTo).
     //
     // Задание/черновик читаются И апрувятся (статус, reviewComment, reviewedAt) в ОДНОЙ И ТОЙ ЖЕ БД —
@@ -303,7 +303,7 @@ class SongEditorController(
     // бы применить УСТАРЕВШУЮ разметку и апрувить "чужую" (несинкнутую) копию задания, которую следующий
     // pull с сервера перезатрёт обратно статусом "open" (remote первичен для sync).
     //
-    // ИСКЛЮЧЕНИЕ — сама песня (`Settings`): применение разметки (setSourceMarkers/.srt-файлы) и подъём
+    // ИСКЛЮЧЕНИЕ — сама песня (`Song`): применение разметки (setSourceMarkers/.srt-файлы) и подъём
     // id_status ВСЕГДА идёт в LOCAL, независимо от target — karaoke-app умеет писать .srt и резолвить
     // rootFolder только на локальном диске админ-машины.
     @PostMapping("/approve")
@@ -324,7 +324,7 @@ class SongEditorController(
                     SongAssignmentDraft.getByAssignment(id, assignmentDb, storageService, storageApiClient)
                         ?: return@withDb mapOf("ok" to false, "error" to "draft_not_found")
                 val settings =
-                    Settings.loadFromDbById(aRead.songId, localDb, storageService = storageService, storageApiClient = storageApiClient)
+                    Song.loadFromDbById(aRead.songId, localDb, storageService = storageService, storageApiClient = storageApiClient)
                         ?: return@withDb mapOf("ok" to false, "error" to "song_not_found")
 
                 val markersPerVoice = draft.editedMarkersPerVoice(json)
@@ -344,7 +344,7 @@ class SongEditorController(
                     }
                     settings.setSourceText(voice, textsPerVoice.getOrElse(voice) { "" })
                 }
-                // Хвостовые голоса, удалённые пользователем в черновике (были в Settings, но их больше нет
+                // Хвостовые голоса, удалённые пользователем в черновике (были в Song, но их больше нет
                 // в присланном списке) — обрезаем.
                 if (markersPerVoice.size < prevVoiceCount) {
                     settings.truncateVoicesTo(markersPerVoice.size)
@@ -352,19 +352,19 @@ class SongEditorController(
 
                 // Сделать песню доступной в онлайн-плеере (idStatus>=3).
                 if (settings.idStatus < 3) {
-                    settings.fields[SettingField.ID_STATUS] = "3"
+                    settings.fields[SongField.ID_STATUS] = "3"
                     settings.saveToDb()
                 }
 
                 // Пушим изменённую песню на сервер — тот же механизм, что кнопка "Обновить на сервере"
                 // в SongEdit.vue (doUpdateRemoteSettingFromLocalDatabase). Applied markers/idStatus
                 // живут пока только в LOCAL; без явного push remote их не увидит (обычная запись
-                // Settings НЕ синкается по diff'у автоматически). Тот же предохранитель, что у самой
+                // Song НЕ синкается по diff'у автоматически). Тот же предохранитель, что у самой
                 // кнопки (allowUpdateRemote, :disabled="!allowUpdateRemote") — best-effort, ошибка
                 // пуша не должна откатывать уже совершённый апрув.
                 if (Karaoke.allowUpdateRemote) {
                     try {
-                        updateRemoteSettingFromLocalDatabase(settings.id)
+                        updateRemoteSongFromLocalDatabase(settings.id)
                     } catch (_: Exception) {
                     }
                 }
@@ -494,7 +494,7 @@ class SongEditorController(
     // Зеркало PublicSongEditorController для админской стороны: тот же UX редактора, что и в
     // karaoke-public, но canEdit=true всегда (админ — не конечный редактор сайта, проверки ему не
     // мешают) и без кнопок submit/recall. Поддерживает два режима, по параметру mode:
-    //   - "song"        — id это songId; читаем/пишем Settings (tbl_settings) для ВСЕХ голосов.
+    //   - "song"        — id это songId; читаем/пишем Song (tbl_songs) для ВСЕХ голосов.
     //   - "assignment"  — id это assignmentId; читаем/пишем черновик задания (tbl_song_assignment_drafts).
     // target (local|remote) — куда писать и откуда читать (по умолчанию local). Для режима "song"
     // target определяет, ГДЕ будут жить правки; в "assignment" — где лежит само задание (status
@@ -523,10 +523,10 @@ class SongEditorController(
                         ?: return@withDb mapOf("found" to false, "id" to id)
                 }
 
-            // Settings читаем ВСЕГДА из WORKING_DATABASE: только там есть локальный диск с FLAC и .srt
-            // (см. комментарий getSongPlayerData в ApiController). target не влияет на выбор Settings.
+            // Song читаем ВСЕГДА из WORKING_DATABASE: только там есть локальный диск с FLAC и .srt
+            // (см. комментарий getSongPlayerData в ApiController). target не влияет на выбор Song.
             val settings =
-                Settings.loadFromDbById(
+                Song.loadFromDbById(
                     songId,
                     WORKING_DATABASE,
                     storageService = storageService,
@@ -604,7 +604,7 @@ class SongEditorController(
     }
 
     // Сохранить правки (ВСЕ голоса разом). sourceTexts/markersPerVoice — JSON-массивы.
-    // В режиме "song" пишет напрямую в Settings в ту же БД, что и assignmentsTarget (setSourceMarkers/
+    // В режиме "song" пишет напрямую в Song в ту же БД, что и assignmentsTarget (setSourceMarkers/
     // setSourceText тригерят saveToDb внутри). В режиме "assignment" — создаёт/обновляет черновик
     // задания (аналогично PublicSongEditorController.save, но без проверки canEdit — для админа
     // редактирование открыто в любом статусе).
@@ -631,12 +631,12 @@ class SongEditorController(
         }
 
         if (mode == "song") {
-            // Пишем в Settings в ту же БД, что и assignmentsTarget — единообразно с логикой
-            // остальных target-aware методов. Settings.setSourceMarkers/setSourceText делают saveToDb()
+            // Пишем в Song в ту же БД, что и assignmentsTarget — единообразно с логикой
+            // остальных target-aware методов. Song.setSourceMarkers/setSourceText делают saveToDb()
             // внутри (пересчитывают resultText/formattedTextSong/formattedTextTabs/formattedTextChords).
             return withDb(target) { db ->
                 val settings =
-                    Settings.loadFromDbById(id, db, storageService = storageService, storageApiClient = storageApiClient)
+                    Song.loadFromDbById(id, db, storageService = storageService, storageApiClient = storageApiClient)
                         ?: return@withDb mapOf("ok" to false, "error" to "song_not_found")
                 val voiceCount = maxOf(settings.countVoices, parsedMarkers.size)
                 for (v in 0 until voiceCount) {
@@ -691,7 +691,7 @@ class SongEditorController(
         if (sourceText.isNotBlank()) return mapOf("ok" to false, "error" to "text_already_exists")
 
         val settings =
-            Settings.loadFromDbById(id, WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+            Song.loadFromDbById(id, WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
                 ?: return mapOf("ok" to false, "error" to "song_not_found")
 
         val vocalsFile = File(settings.vocalsNameFlac)
@@ -729,7 +729,7 @@ class SongEditorController(
         if (sourceText.isBlank()) return mapOf("ok" to false, "error" to "empty_source_text")
 
         val settings =
-            Settings.loadFromDbById(id, WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+            Song.loadFromDbById(id, WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
                 ?: return mapOf("ok" to false, "error" to "song_not_found")
 
         val vocalsFile = File(settings.vocalsNameFlac)
@@ -765,7 +765,7 @@ class SongEditorController(
         if (sourceText.isBlank()) return mapOf("ok" to false, "error" to "empty_source_text")
 
         val settings =
-            Settings.loadFromDbById(id, WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+            Song.loadFromDbById(id, WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
                 ?: return mapOf("ok" to false, "error" to "song_not_found")
 
         val vocalsFile = File(settings.vocalsNameFlac)

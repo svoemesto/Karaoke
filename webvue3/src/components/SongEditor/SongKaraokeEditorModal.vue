@@ -71,7 +71,7 @@ import SongKaraokeEditorView from './SongKaraokeEditorView.vue'
 
 // Модалка админского онлайн-редактора караоке-разметки (webvue3). Один и тот же режим редактора
 // работает в двух сценариях:
-//   - mode='song'        — id это songId; правки пишутся напрямую в Settings (tbl_settings).
+//   - mode='song'        — id это songId; правки пишутся напрямую в Song (tbl_songs).
 //   - mode='assignment'  — id это assignmentId; правки пишутся в tbl_song_assignment_drafts.
 // В обоих режимах canEdit=true всегда (для админа нет блокировки по статусу, как было в karaoke-public
 // для конечных редакторов сайта).

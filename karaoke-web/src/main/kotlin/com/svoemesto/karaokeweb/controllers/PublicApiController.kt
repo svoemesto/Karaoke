@@ -6,14 +6,14 @@ import com.svoemesto.karaokeapp.model.Author
 import com.svoemesto.karaokeapp.model.EventType
 import com.svoemesto.karaokeapp.model.Pictures
 import com.svoemesto.karaokeapp.model.RestName
-import com.svoemesto.karaokeapp.model.Settings
+import com.svoemesto.karaokeapp.model.Song
 import com.svoemesto.karaokeapp.model.Zakroma
 import com.svoemesto.karaokeapp.resizeBufferedImage
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.StorageApiClient
 import com.svoemesto.karaokeweb.StatBySong
 import com.svoemesto.karaokeweb.dto.AuthorTilePublicDto
-import com.svoemesto.karaokeweb.dto.SettingsPublicDto
+import com.svoemesto.karaokeweb.dto.SongPublicDto
 import com.svoemesto.karaokeweb.dto.ZakromaPublicDto
 import com.svoemesto.karaokeweb.services.PlayerGestureUnlockService
 import com.svoemesto.karaokeweb.services.SiteUserResolver
@@ -110,7 +110,7 @@ class PublicApiController(
                 "all" -> null
                 else -> false
             }
-        return Settings.loadListAuthors(
+        return Song.loadListAuthors(
             withSkiped = false,
             isSpecialOrder = isSpecialOrderFilter,
             database = WORKING_DATABASE,
@@ -129,12 +129,12 @@ class PublicApiController(
                 else -> false
             }
         val counts =
-            Settings.loadAuthorSongCounts(
+            Song.loadAuthorSongCounts(
                 isSpecialOrder = isSpecialOrderFilter,
                 database = WORKING_DATABASE,
             )
         val loadedAuthors: List<String> =
-            Settings.loadListAuthors(
+            Song.loadListAuthors(
                 withSkiped = false,
                 isSpecialOrder = isSpecialOrderFilter,
                 database = WORKING_DATABASE,
@@ -204,7 +204,7 @@ class PublicApiController(
         @RequestParam(required = false) anonId: String?,
         @RequestParam(required = false) referrer: String?,
         request: HttpServletRequest,
-    ): List<SettingsPublicDto> {
+    ): List<SongPublicDto> {
         val attr: MutableMap<String, String> = mutableMapOf()
         if (!songName.isNullOrEmpty()) attr["song_name"] = songName
         // Поиск по автору: сначала резолвим term (может быть и реальным именем, и алиасом —
@@ -215,7 +215,7 @@ class PublicApiController(
         if (!author.isNullOrEmpty()) {
             val matches = Author.resolveByTerm(author, WORKING_DATABASE)
             if (matches.isNotEmpty()) {
-                attr["author_in"] = matches.joinToString(Settings.AUTHOR_IN_DELIMITER) { it.author }
+                attr["author_in"] = matches.joinToString(Song.AUTHOR_IN_DELIMITER) { it.author }
                 aliasByAuthor =
                     matches
                         .filter { it.matchedAliases.isNotEmpty() }
@@ -227,11 +227,11 @@ class PublicApiController(
         if (!text.isNullOrEmpty()) attr["text"] = text
         if (!album.isNullOrEmpty()) attr["song_album"] = album
 
-        val settings: List<Settings> =
+        val settings: List<Song> =
             if ("${songName ?: ""}${author ?: ""}${album ?: ""}${text ?: ""}".length < 3) {
                 emptyList()
             } else {
-                Settings.loadListFromDb(
+                Song.loadListFromDb(
                     attr,
                     database = WORKING_DATABASE,
                     storageService = storageService,
@@ -258,7 +258,7 @@ class PublicApiController(
         )
 
         return settings.map {
-            val dto = SettingsPublicDto.fromSettings(it, includeDetails = false)
+            val dto = SongPublicDto.fromSettings(it, includeDetails = false)
             dto.copy(authorAlias = aliasByAuthor[dto.author.lowercase()] ?: "")
         }
     }
@@ -269,9 +269,9 @@ class PublicApiController(
         @RequestParam(required = false) anonId: String?,
         @RequestParam(required = false) referrer: String?,
         request: HttpServletRequest,
-    ): SettingsPublicDto? {
+    ): SongPublicDto? {
         val sett =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -288,7 +288,7 @@ class PublicApiController(
             request,
             siteUserResolver.resolve(request)?.id ?: 0,
         )
-        return sett?.let { SettingsPublicDto.fromSettings(it) }
+        return sett?.let { SongPublicDto.fromSettings(it) }
     }
 
     @PostMapping("/events")
@@ -328,7 +328,7 @@ class PublicApiController(
 //        }
 
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -383,7 +383,7 @@ class PublicApiController(
         @PathVariable id: Long,
     ): ResponseEntity<ByteArray> {
         val settings =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id,
                 database = WORKING_DATABASE,
                 storageService = storageService,

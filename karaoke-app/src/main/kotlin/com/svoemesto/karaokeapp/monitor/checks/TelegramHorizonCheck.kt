@@ -1,7 +1,7 @@
 package com.svoemesto.karaokeapp.monitor.checks
 
 import com.svoemesto.karaokeapp.KaraokeProperties
-import com.svoemesto.karaokeapp.model.Settings
+import com.svoemesto.karaokeapp.model.Song
 import com.svoemesto.karaokeapp.monitor.MonitorAlert
 import com.svoemesto.karaokeapp.monitor.MonitorCheck
 import com.svoemesto.karaokeapp.monitor.MonitorContext
@@ -33,7 +33,7 @@ object TelegramHorizonCheck : MonitorCheck {
         // Сужаем выборку до песен с датой публикации сегодня/в будущем - не тянем всю таблицу
         // (getWhereList поддерживает ">" как "publish_date >= указанной даты").
         val candidates =
-            Settings.loadListFromDb(
+            Song.loadListFromDb(
                 args = mapOf("publish_date" to ">$todayStr"),
                 database = ctx.localDb,
                 storageService = ctx.storageService,

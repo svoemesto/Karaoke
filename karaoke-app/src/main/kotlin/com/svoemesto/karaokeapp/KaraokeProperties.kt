@@ -305,7 +305,7 @@ val listKaraokeProperties =
         // Разрешения универсальной синхронизации (webvue3 "Синхронизация", /api/sync/*) — по одному
         // флагу на (сущность SyncRegistry × направление push/pull × операция insert/update/delete/move).
         // Раздельно от allowUpdateRemote/allowUpdateLocal выше (те управляют только старыми 6 кнопками на
-        // Home и автопушем Settings при сохранении). insert/update/delete — операции над ЦЕЛЬЮ; move —
+        // Home и автопушем Song при сохранении). insert/update/delete — операции над ЦЕЛЬЮ; move —
         // режим «перемещение»: после переноса удалить перенесённые строки из ИСТОЧНИКА (см. Utils.kt).
         // Дефолт всех — false (синхронизация выключена), КРОМЕ events/pull (перелив статистики с сервера
         // на LOCAL с очисткой сервера): insert/update/move = true, delete = false.
@@ -428,6 +428,86 @@ val listKaraokeProperties =
             key = "sync_authors_pull_move_allowed",
             defaultValue = false,
             description = "Синхронизация: Авторы — pull, Перемещение",
+        ),
+        KaraokeProperty(
+            key = "sync_albums_push_insert_allowed",
+            defaultValue = false,
+            description = "Синхронизация: Альбомы — push, Добавление",
+        ),
+        KaraokeProperty(
+            key = "sync_albums_push_update_allowed",
+            defaultValue = false,
+            description = "Синхронизация: Альбомы — push, Изменение",
+        ),
+        KaraokeProperty(
+            key = "sync_albums_push_delete_allowed",
+            defaultValue = false,
+            description = "Синхронизация: Альбомы — push, Удаление",
+        ),
+        KaraokeProperty(
+            key = "sync_albums_push_move_allowed",
+            defaultValue = false,
+            description = "Синхронизация: Альбомы — push, Перемещение",
+        ),
+        KaraokeProperty(
+            key = "sync_albums_pull_insert_allowed",
+            defaultValue = false,
+            description = "Синхронизация: Альбомы — pull, Добавление",
+        ),
+        KaraokeProperty(
+            key = "sync_albums_pull_update_allowed",
+            defaultValue = false,
+            description = "Синхронизация: Альбомы — pull, Изменение",
+        ),
+        KaraokeProperty(
+            key = "sync_albums_pull_delete_allowed",
+            defaultValue = false,
+            description = "Синхронизация: Альбомы — pull, Удаление",
+        ),
+        KaraokeProperty(
+            key = "sync_albums_pull_move_allowed",
+            defaultValue = false,
+            description = "Синхронизация: Альбомы — pull, Перемещение",
+        ),
+        KaraokeProperty(
+            key = "sync_songcoauthors_push_insert_allowed",
+            defaultValue = false,
+            description = "Синхронизация: Соавторы песен — push, Добавление",
+        ),
+        KaraokeProperty(
+            key = "sync_songcoauthors_push_update_allowed",
+            defaultValue = false,
+            description = "Синхронизация: Соавторы песен — push, Изменение",
+        ),
+        KaraokeProperty(
+            key = "sync_songcoauthors_push_delete_allowed",
+            defaultValue = false,
+            description = "Синхронизация: Соавторы песен — push, Удаление",
+        ),
+        KaraokeProperty(
+            key = "sync_songcoauthors_push_move_allowed",
+            defaultValue = false,
+            description = "Синхронизация: Соавторы песен — push, Перемещение",
+        ),
+        KaraokeProperty(
+            key = "sync_songcoauthors_pull_insert_allowed",
+            defaultValue = false,
+            description = "Синхронизация: Соавторы песен — pull, Добавление",
+        ),
+        KaraokeProperty(
+            key = "sync_songcoauthors_pull_update_allowed",
+            defaultValue = false,
+            description = "Синхронизация: Соавторы песен — pull, Изменение",
+        ),
+        KaraokeProperty(
+            key = "sync_songcoauthors_pull_delete_allowed",
+            defaultValue = false,
+            description = "Синхронизация: Соавторы песен — pull, Удаление",
+        ),
+        KaraokeProperty(
+            key = "sync_songcoauthors_pull_move_allowed",
+            defaultValue = false,
+            description = "Синхронизация: Соавторы песен — pull, Перемещение",
         ),
         KaraokeProperty(
             key = "sync_dictionaries_push_insert_allowed",

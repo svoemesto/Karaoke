@@ -10,29 +10,29 @@ import java.io.Serializable
  *
  * @see docs/features/mlt-generator.md
  */
-data class SettingVoiceLineElement(
+data class SongVoiceLineElement(
     val rootId: Long,
-    val type: SettingVoiceLineElementTypes, // Тип элемента (текст / аккорд / нота / комментарий / пустая строка)
+    val type: SongVoiceLineElementTypes, // Тип элемента (текст / аккорд / нота / комментарий / пустая строка)
 ) : Serializable {
-    private val _syllables: MutableList<SettingVoiceLineElementSyllable> = mutableListOf()
+    private val _syllables: MutableList<SongVoiceLineElementSyllable> = mutableListOf()
 
-    fun getSyllables(): List<SettingVoiceLineElementSyllable> = _syllables
+    fun getSyllables(): List<SongVoiceLineElementSyllable> = _syllables
 
     @Suppress("unused")
-    fun getCopySyllables(): List<SettingVoiceLineElementSyllable> = _syllables.map { it.copy() }
+    fun getCopySyllables(): List<SongVoiceLineElementSyllable> = _syllables.map { it.copy() }
 
-    fun addSyllable(syllable: SettingVoiceLineElementSyllable) {
+    fun addSyllable(syllable: SongVoiceLineElementSyllable) {
         _syllables.add(syllable)
         actuateChilds()
     }
 
-    fun addSyllables(syllables: List<SettingVoiceLineElementSyllable>) {
+    fun addSyllables(syllables: List<SongVoiceLineElementSyllable>) {
         syllables.forEach { syllable -> _syllables.add(syllable) }
         actuateChilds()
     }
 
     fun actuateChilds() {
-        var prevSyllable: SettingVoiceLineElementSyllable? = null
+        var prevSyllable: SongVoiceLineElementSyllable? = null
         getSyllables().forEachIndexed { indexSyllable, syllable ->
             syllable.syllableId = indexSyllable
             syllable.isFirst = indexSyllable == 0
@@ -50,7 +50,7 @@ data class SettingVoiceLineElement(
             return _fontSize ?: 10
         }
         set(value) {
-            val coeff = if (type == SettingVoiceLineElementTypes.COMMENT) 0.75 else 1.0
+            val coeff = if (type == SongVoiceLineElementTypes.COMMENT) 0.75 else 1.0
             val valueWithCoeff = (value * coeff).toInt()
             _fontSize = value
 //            _fontSize = valueWithCoeff
@@ -92,7 +92,7 @@ data class SettingVoiceLineElement(
     fun text(): String = getSyllables().joinToString("") { it.text }
 
     fun mltText(): MltText {
-        val coeff = if (type == SettingVoiceLineElementTypes.COMMENT) 0.75 else 1.0
+        val coeff = if (type == SongVoiceLineElementTypes.COMMENT) 0.75 else 1.0
         val fontSizeWithCoeff = (fontSize * coeff).toInt()
         return Karaoke.voices[0]
             .groups[groupId]
@@ -152,7 +152,7 @@ data class SettingVoiceLineElement(
     var elementId: Int = -1
 
     @Suppress("unused")
-    fun isCrossing(otherLineElement: SettingVoiceLineElement): Boolean =
+    fun isCrossing(otherLineElement: SongVoiceLineElement): Boolean =
         (this.lineElementDurationMs() + otherLineElement.lineElementDurationMs()) > (
             this
                 .lineElementEndMs()
@@ -164,9 +164,9 @@ data class SettingVoiceLineElement(
 
     fun transformProperties(): List<TransformProperty> {
         if (getSyllables().isEmpty() ||
-            type == SettingVoiceLineElementTypes.EMPTY ||
-            type == SettingVoiceLineElementTypes.NEWLINE ||
-            type == SettingVoiceLineElementTypes.COMMENT
+            type == SongVoiceLineElementTypes.EMPTY ||
+            type == SongVoiceLineElementTypes.NEWLINE ||
+            type == SongVoiceLineElementTypes.COMMENT
         ) {
             return emptyList()
         }

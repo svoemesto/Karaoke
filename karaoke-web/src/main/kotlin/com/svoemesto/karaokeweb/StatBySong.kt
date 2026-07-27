@@ -13,7 +13,7 @@ import java.util.concurrent.atomic.AtomicInteger
 // у которых нет аналога в karaoke-app.
 //
 // Формулы счётчиков (применяется ко всем — песни с тегом SKIP игнорируются):
-//   total       — все записи tbl_settings, кроме SKIP
+//   total       — все записи tbl_songs, кроме SKIP
 //   collection  — id_status >= 3 AND непустой source_markers (можно проиграть в онлайн-плеере
 //                 премиум-пользователю — тот же фильтр, что рисует зелёную монетку в закромах)
 //   onAir       — подмножество collection с истёкшим publish_date/publish_time
@@ -71,18 +71,18 @@ object StatBySong {
         val total =
             runCountQuery(
                 database,
-                """select count(DISTINCT id) as cnt from tbl_settings where $SKIP_FILTER;""",
+                """select count(DISTINCT id) as cnt from tbl_songs where $SKIP_FILTER;""",
             )
         val collection =
             runCountQuery(
                 database,
-                """select count(DISTINCT id) as cnt from tbl_settings where $CONTENT_READY_FILTER AND $SKIP_FILTER;""",
+                """select count(DISTINCT id) as cnt from tbl_songs where $CONTENT_READY_FILTER AND $SKIP_FILTER;""",
             )
         val onAir =
             runCountQuery(
                 database,
                 """select count(DISTINCT id) as cnt
-                 from tbl_settings
+                 from tbl_songs
                  where $CONTENT_READY_FILTER
                    AND $SKIP_FILTER
                    and publish_date != ''

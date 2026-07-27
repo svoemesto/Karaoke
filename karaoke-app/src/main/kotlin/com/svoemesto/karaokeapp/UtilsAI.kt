@@ -8,8 +8,8 @@ import com.svoemesto.karaokeapp.llm.LyricsFinderService
 import com.svoemesto.karaokeapp.model.SearchAsync
 import com.svoemesto.karaokeapp.model.SearchResponseFormat
 import com.svoemesto.karaokeapp.model.SearchResult
-import com.svoemesto.karaokeapp.model.SettingField
-import com.svoemesto.karaokeapp.model.Settings
+import com.svoemesto.karaokeapp.model.SongField
+import com.svoemesto.karaokeapp.model.Song
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.jsoup.Jsoup
@@ -86,7 +86,7 @@ fun getIamToken(): String {
 }
 
 fun getSearXNGSearch(
-    settings: Settings,
+    settings: Song,
     lyricsFinderService: LyricsFinderService,
 ): SearchAsync {
     println("Начинаем получение запроса поиска для песни ${settings.fileName}.")
@@ -153,7 +153,7 @@ fun getSearXNGSearch(
     if (settings.sourceText.isBlank() && settings.idStatus == 0L && searchedRightResultsNotEmpty.isNotEmpty()) {
         println("Первое из найденных не пустых значений применяем для текста песни ${settings.fileName}")
         settings.sourceText = searchedRightResultsNotEmpty.first().text
-        settings.fields[SettingField.ID_STATUS] = "1"
+        settings.fields[SongField.ID_STATUS] = "1"
         settings.saveToDb()
     }
 
@@ -161,7 +161,7 @@ fun getSearXNGSearch(
 }
 
 fun getYandexSearch(
-    settings: Settings,
+    settings: Song,
     countInPage: Int = 100,
     responseFormat: SearchResponseFormat = SearchResponseFormat.FORMAT_XML,
     async: Boolean = false,
@@ -317,7 +317,7 @@ fun getYandexSearch(
 }
 
 fun findSongText(
-    settings: Settings,
+    settings: Song,
     countInPage: Int = 100,
     countInResult: Int = 0,
 ): List<FindSongResult> {

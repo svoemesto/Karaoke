@@ -6,7 +6,7 @@ import { promisedXMLHttpRequest } from '../../lib/utils'
  *
  * **State** (см. код ниже):
  * - `toSync` — флаг, что локальный state требует синхронизации с сервером.
- * - `songs` — массив `SettingsDTO` (текущая страница).
+ * - `songs` — массив `SongDTO` (текущая страница).
  * - `countRows` — общее количество песен (для пагинации).
  * - `songsTableCurrentPage` — текущая страница (1-based, persistent в `localStorage` через Vuex).
  * - `selectedRows` — массив ID выбранных строк (для bulk-операций).
@@ -1865,6 +1865,33 @@ export default {
     },
   },
   actions: {
+    // specs/011-album-song-rename (US2): соавторы песни — отдельная связь многие-ко-многим,
+    // не пересекается с generic diff-механизмом (song.albumId и т.п.), т.к. это не поле песни,
+    // а список отдельных записей своей сущности.
+    async loadSongCoAuthorsPromise(ctx, songId) {
+      const data = await promisedXMLHttpRequest({
+        method: 'POST',
+        url: '/api/songs/coauthors/list',
+        params: { songId },
+      })
+      return JSON.parse(data).coAuthors
+    },
+    async addSongCoAuthorPromise(ctx, { songId, authorId }) {
+      const data = await promisedXMLHttpRequest({
+        method: 'POST',
+        url: '/api/songs/coauthors/add',
+        params: { songId, authorId },
+      })
+      return JSON.parse(data)
+    },
+    async removeSongCoAuthorPromise(ctx, { songId, authorId }) {
+      const data = await promisedXMLHttpRequest({
+        method: 'POST',
+        url: '/api/songs/coauthors/remove',
+        params: { songId, authorId },
+      })
+      return JSON.parse(data)
+    },
     async setCurrentSongId(ctx, currId) {
       ctx.commit('setCurrentSongIdOnly', currId)
 
@@ -2124,60 +2151,60 @@ export default {
         params: { id: ctx.state.currentSongId },
       })
     },
-    updateOneRemoteSettingsPromise(ctx, id) {
+    updateOneRemoteSongPromise(ctx, id) {
       return promisedXMLHttpRequest({
         method: 'POST',
-        url: '/api/utils/updateremotesettingsfromlocaldatabase',
+        url: '/api/utils/updateremotesongfromlocaldatabase',
         params: { id: id },
       })
     },
-    toSyncOneRemoteSettingsPromise(ctx, id) {
+    toSyncOneRemoteSongPromise(ctx, id) {
       return promisedXMLHttpRequest({
         method: 'POST',
         url: '/api/utils/tosync',
         params: { id: id },
       })
     },
-    updateRemoteSettingsPromise() {
+    updateRemoteSongPromise() {
       return promisedXMLHttpRequest({
         method: 'POST',
         url: '/api/utils/updateremotedatabasefromlocaldatabase',
-        params: { updateSettings: true, updatePictures: false, updateAuthors: false },
+        params: { updateSongs: true, updatePictures: false, updateAuthors: false },
       })
     },
     updateRemotePicturesPromise() {
       return promisedXMLHttpRequest({
         method: 'POST',
         url: '/api/utils/updateremotedatabasefromlocaldatabase',
-        params: { updateSettings: false, updatePictures: true, updateAuthors: false },
+        params: { updateSongs: false, updatePictures: true, updateAuthors: false },
       })
     },
     updateRemoteAuthorsPromise() {
       return promisedXMLHttpRequest({
         method: 'POST',
         url: '/api/utils/updateremotedatabasefromlocaldatabase',
-        params: { updateSettings: false, updatePictures: false, updateAuthors: true },
+        params: { updateSongs: false, updatePictures: false, updateAuthors: true },
       })
     },
-    updateLocalSettingsPromise() {
+    updateLocalSongPromise() {
       return promisedXMLHttpRequest({
         method: 'POST',
         url: '/api/utils/updatelocaldatabasefromremotedatabase',
-        params: { updateSettings: true, updatePictures: false, updateAuthors: false },
+        params: { updateSongs: true, updatePictures: false, updateAuthors: false },
       })
     },
     updateLocalPicturesPromise() {
       return promisedXMLHttpRequest({
         method: 'POST',
         url: '/api/utils/updatelocaldatabasefromremotedatabase',
-        params: { updateSettings: false, updatePictures: true, updateAuthors: false },
+        params: { updateSongs: false, updatePictures: true, updateAuthors: false },
       })
     },
     updateLocalAuthorsPromise() {
       return promisedXMLHttpRequest({
         method: 'POST',
         url: '/api/utils/updatelocaldatabasefromremotedatabase',
-        params: { updateSettings: false, updatePictures: false, updateAuthors: true },
+        params: { updateSongs: false, updatePictures: false, updateAuthors: true },
       })
     },
     setDateTimeAuthorPromise(ctx) {

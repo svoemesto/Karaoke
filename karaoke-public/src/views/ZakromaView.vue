@@ -149,6 +149,11 @@
                 @error="$event.target.style.display = 'none'"
               />
               <span class="km-album-name">{{ alb.year }} — {{ alb.albumName }}</span>
+              <span
+                v-if="alb.albumType && alb.albumType !== 'studio'"
+                class="km-album-type-badge"
+                >{{ albumTypeLabel(alb.albumType) }}</span
+              >
             </div>
 
             <!-- Десктоп: таблица -->
@@ -438,6 +443,13 @@ export default {
   },
   methods: {
     ...mapActions('zakroma', ['loadAuthorTiles', 'loadZakroma', 'loadSpecialBucket']),
+    // specs/011-album-song-rename: подпись типа альбома (значения — AlbumType.dbValue на бэкенде).
+    // "studio" не показываем — это подразумеваемый тип большинства альбомов, бейдж только для
+    // отличающихся (концерт/сборник/бутлег).
+    albumTypeLabel(albumType) {
+      const labels = { live: 'концерт', compilation: 'сборник', bootleg: 'бутлег' }
+      return labels[albumType] || albumType
+    },
     // Монетка «премиум-контент» — только не-премиум посетителю и только для контента, доступного
     // лишь премиуму (эксклюзив или ещё не в эфире). Золотая/серебряная — по contentReadyFor().
     showCoin(sett) {
@@ -799,6 +811,16 @@ export default {
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--km-text2);
+}
+.km-album-type-badge {
+  font-size: 0.7rem;
+  font-weight: 500;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  background: var(--km-border);
+  color: var(--km-text2);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
 }
 
 /* Таблица (десктоп) */

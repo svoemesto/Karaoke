@@ -150,7 +150,7 @@ import FileExplorerModal from '../components/Common/FileExplorer/FileExplorerMod
  * - **Создание Dzen-картинок**: «Создать картинки плейлистов Dzen для папки» —
  *   рендер PNG-картинок альбома для публикации в Dzen (см. `Pictures.kt`).
  * - **Подсказки**: `<datalist>` для автодополнения имён авторов/словарей
- *   (берутся из Settings/Dictionaries через `songAuthors` / `dicts` computed).
+ *   (берутся из Song/Dictionaries через `songAuthors` / `dicts` computed).
  *
  * Использует `CustomConfirm` и `FileExplorerModal`.
  *

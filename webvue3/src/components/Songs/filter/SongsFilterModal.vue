@@ -933,7 +933,7 @@ export default {
       if (this.songsFilterFlagFree !== '') params.flagFree = this.songsFilterFlagFree
       if (this.songsFilterSongType !== '') params.filterSongType = this.songsFilterSongType
       // Задание редактора — БД для проверки назначений (KaraokeProperty editorAssignmentDefaultTarget),
-      // не связано с остальными filter*-параметрами (те идут в Settings.loadListFromDb, эти — в
+      // не связано с остальными filter*-параметрами (те идут в Song.loadListFromDb, эти — в
       // отдельную проверку SongAssignment, см. ApiController.apisSongsDigests).
       if (this.songsFilterAssignmentStatus !== '') {
         params.filterAssignmentStatus = this.songsFilterAssignmentStatus
@@ -998,7 +998,7 @@ export default {
       this.songsFilterRootId = args['filter_root_id'] ? args['filter_root_id'] : ''
       this.songsFilterFlagExclusive = args['flag_exclusive'] ? args['flag_exclusive'] : ''
       this.songsFilterSongType = args['song_type'] ? args['song_type'] : ''
-      // Задание редактора не входит в historyArgs (отдельная от Settings.loadListFromDb проверка) —
+      // Задание редактора не входит в historyArgs (отдельная от Song.loadListFromDb проверка) —
       // при восстановлении из истории сбрасываем, а не оставляем текущее значение.
       this.songsFilterAssignmentStatus = ''
 

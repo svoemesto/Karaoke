@@ -102,7 +102,7 @@ fun createDzenPicture(pathToAuthor: String) {
     runCommand(listOf("chmod", "666", pathToFile2))
 }
 
-fun getVKPictureBase64(settings: Settings): String {
+fun getVKPictureBase64(settings: Song): String {
     val frameW = 800
     val frameH = 194
     val opaque = 1f
@@ -134,7 +134,7 @@ fun getVKPictureBase64(settings: Settings): String {
 }
 
 fun createVKLinkPictureWeb(
-    settings: Settings,
+    settings: Song,
     reCreateIfExist: Boolean = true,
 ): String {
     val fName = "~/Karaoke/karaoke-web/src/main/resources/static/tmp/${settings.id}.png"
@@ -219,7 +219,7 @@ fun createVKLinkPictureWeb(
 }
 
 fun createVKLinkPicture(
-    settings: Settings,
+    settings: Song,
     fileName: String = "",
 ) {
     val fName =
@@ -291,7 +291,7 @@ fun createVKLinkPicture(
 }
 
 fun createVKPicture(
-    settings: Settings,
+    settings: Song,
     fileName: String = "",
 ) {
     val fName =
@@ -358,7 +358,7 @@ fun createVKPicture(
 }
 
 fun createBoostyFilesPicture(
-    settings: Settings,
+    settings: Song,
     fileName: String = "",
 ) {
     val fName =
@@ -444,7 +444,7 @@ fun createBoostyFilesPicture(
 }
 
 fun createBoostyTeaserPicture(
-    settings: Settings,
+    settings: Song,
     fileName: String = "",
 ) {
     val fName =
@@ -522,7 +522,7 @@ fun resizeBufferedImage(
     return dimg
 }
 
-fun createAuthorPreview(settings: Settings) {
+fun createAuthorPreview(settings: Song) {
     val pathToFile = settings.pathToFileLogoAuthor
     val pathToFilePreview = settings.pathToFileLogoAuthorPreview
     if (pathToFile != "") {
@@ -539,7 +539,7 @@ fun createAuthorPreview(settings: Settings) {
     }
 }
 
-fun createAlbumPreview(settings: Settings) {
+fun createAlbumPreview(settings: Song) {
     val pathToFile = settings.pathToFileLogoAlbum
     val pathToFilePreview = settings.pathToFileLogoAlbumPreview
     if (pathToFile != "") {
@@ -557,7 +557,7 @@ fun createAlbumPreview(settings: Settings) {
 }
 
 fun createSongPicture(
-    settings: Settings,
+    settings: Song,
     songVersion: SongVersion,
 ) {
     val fileName = settings.getOutputFilename(SongOutputFile.PICTURE, songVersion)
@@ -656,7 +656,7 @@ fun createSongPicture(
 }
 
 fun getSongChordsPicture(
-    settings: Settings,
+    settings: Song,
     mltNode: MltNode,
 ): BufferedImage {
     @Suppress("UNCHECKED_CAST")
@@ -839,7 +839,7 @@ fun getSongChordsPicture(
 
 @Suppress("unused")
 fun createSongChordsPicture(
-    settings: Settings,
+    settings: Song,
     fileName: String,
     songVersion: SongVersion,
     mltNode: MltNode,
@@ -935,7 +935,7 @@ fun getChordLayoutPicture(mltObjects: List<MltObject>): BufferedImage {
 }
 
 fun createSponsrTeaserPicture(
-    settings: Settings,
+    settings: Song,
     fileName: String = "",
 ) {
     val fName =

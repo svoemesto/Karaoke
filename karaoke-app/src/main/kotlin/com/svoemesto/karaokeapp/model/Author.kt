@@ -68,6 +68,18 @@ class Author(
     @KaraokeDbTableField(name = "aliases")
     var aliases: String = ""
 
+    /** Краткий текст-факт об авторе (без разметки/выделения), показывается в тултипе на Закромах. */
+    @KaraokeDbTableField(name = "description")
+    var description: String = ""
+
+    /** Короткая пометка после имени автора на Закромах (напр. "Remastered 2018"). */
+    @KaraokeDbTableField(name = "short_description")
+    var shortDescription: String = ""
+
+    /** Предупреждение, показываемое красным над именем автора на Закромах (напр. про иноагента). */
+    @KaraokeDbTableField(name = "warning")
+    var warning: String = ""
+
     /**
      * Флаг "По спецзаказу" — автор с 1-2 песнями (по индивидуальному заказу, а не вся
      * дискография). Используется в karaoke-public для виртуальной плашки
@@ -119,6 +131,9 @@ class Author(
             skip = skip,
             aliases = aliases,
             isSpecialOrder = isSpecialOrder,
+            description = description,
+            shortDescription = shortDescription,
+            warning = warning,
             haveNewAlbum = haveNewAlbum,
             pictureId = pictureId,
             picturePreview = "",

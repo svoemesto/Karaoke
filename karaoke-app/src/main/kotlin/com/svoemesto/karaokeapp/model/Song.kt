@@ -188,6 +188,27 @@ class Song(
             fields[SongField.FORMATTED_TEXT_CHORDS] = value
         }
 
+    /** Краткий текст-факт о песне (без разметки/выделения), показывается в тултипе на странице песни. */
+    var description: String
+        get() = fields[SongField.DESCRIPTION] ?: ""
+        set(value) {
+            fields[SongField.DESCRIPTION] = value
+        }
+
+    /** Короткая пометка рядом с названием песни в информационном блоке. */
+    var shortDescription: String
+        get() = fields[SongField.SHORT_DESCRIPTION] ?: ""
+        set(value) {
+            fields[SongField.SHORT_DESCRIPTION] = value
+        }
+
+    /** Предупреждение, показываемое красным в информационном блоке карточки песни. */
+    var warning: String
+        get() = fields[SongField.WARNING] ?: ""
+        set(value) {
+            fields[SongField.WARNING] = value
+        }
+
     private var _rootFolder: String = ""
     var readonly = false
 
@@ -5489,6 +5510,9 @@ class Song(
         fieldsValues.add(Pair("formatted_text_song", settings.formattedTextSong))
         fieldsValues.add(Pair("formatted_text_tabs", settings.formattedTextTabs))
         fieldsValues.add(Pair("formatted_text_chords", settings.formattedTextChords))
+        fieldsValues.add(Pair("description", settings.description))
+        fieldsValues.add(Pair("short_description", settings.shortDescription))
+        fieldsValues.add(Pair("warning", settings.warning))
         // player_readiness_flags намеренно не добавляется — как и audio_compare_history, полагается
         // на DEFAULT '{}' колонки (см. deploy/karaoke-db/26_player_readiness_flags.sql).
 
@@ -6398,6 +6422,13 @@ class Song(
                 ) {
                     result.add(RecordDiff("formatted_text_chords", settA.formattedTextChords, settB.formattedTextChords))
                 }
+                if (settA.description != settB.description) result.add(RecordDiff("description", settA.description, settB.description))
+                if (settA.shortDescription !=
+                    settB.shortDescription
+                ) {
+                    result.add(RecordDiff("short_description", settA.shortDescription, settB.shortDescription))
+                }
+                if (settA.warning != settB.warning) result.add(RecordDiff("warning", settA.warning, settB.warning))
                 if (settA.rootId != settB.rootId) result.add(RecordDiff("root_id", settA.rootId, settB.rootId))
                 if (settA.audioParentId !=
                     settB.audioParentId
@@ -7318,6 +7349,9 @@ class Song(
                     rs.getInt("rate").let { value -> settings.fields[SongField.RATE] = value.toString() }
                     rs.getInt("id_tariff").let { value -> settings.fields[SongField.ID_TARIFF] = value.toString() }
                     rs.getString("song_type")?.let { value -> settings.fields[SongField.SONG_TYPE] = value }
+                    rs.getString("description")?.let { value -> settings.description = value }
+                    rs.getString("short_description")?.let { value -> settings.shortDescription = value }
+                    rs.getString("warning")?.let { value -> settings.warning = value }
 
                     rs.getLong("root_id").let { value -> settings.rootId = value }
                     rs.getLong("audio_parent_id").let { value -> settings.audioParentId = value }
@@ -7838,6 +7872,9 @@ class Song(
             formattedTextSong = formattedTextSong,
             formattedTextTabs = formattedTextTabs,
             formattedTextChords = formattedTextChords,
+            description = description,
+            shortDescription = shortDescription,
+            warning = warning,
             rootId = rootId,
             audioParentId = audioParentId,
             audioSimilarityPercent = audioSimilarityPercent,

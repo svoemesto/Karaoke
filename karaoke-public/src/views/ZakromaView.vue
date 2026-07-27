@@ -59,6 +59,45 @@
       </div>
     </div>
 
+    <!-- Переключатель сквозной/групповой + быстрые фильтры по типу альбома
+         (specs/012-entity-description-fields FR-023/024/025/026/027). Показывается только для
+         одного выбранного реального автора — у "спецзаказных"/множественных наборов эта шапка
+         не показывается (нет единого набора счётчиков типов). -->
+    <div v-if="authorChosen && zakromaAlbumTypeCounts.length > 0" class="km-album-controls-bar">
+      <div class="km-album-controls-inner">
+        <div class="km-theme-toggle km-album-mode-toggle">
+          <button
+            :class="['km-tb', albumDisplayMode === 'continuous' ? 'active' : '']"
+            title="Сквозной список"
+            @click="setAlbumDisplayMode('continuous')"
+          >
+            Сквозной
+          </button>
+          <button
+            :class="['km-tb', albumDisplayMode === 'grouped' ? 'active' : '']"
+            title="По группам типа"
+            @click="setAlbumDisplayMode('grouped')"
+          >
+            По группам
+          </button>
+        </div>
+        <div class="km-album-type-filters">
+          <button
+            v-for="summary in zakromaAlbumTypeCounts"
+            :key="summary.dbValue"
+            type="button"
+            :class="[
+              'km-album-type-filter-btn',
+              hiddenAlbumTypes.has(summary.dbValue) ? 'off' : '',
+            ]"
+            @click="toggleAlbumType(summary.dbValue)"
+          >
+            {{ summary.filterLabel }} ({{ summary.count }})
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Фильтр автора -->
     <div class="km-content">
       <!-- Обычный режим: сетка тайлов + одна спец-плашка в конце.
@@ -129,7 +168,17 @@
               alt=""
               @error="$event.target.style.display = 'none'"
             />
-            <span class="km-author-name">{{ zak.author }}</span>
+            <div class="km-author-name-wrap">
+              <div v-if="zak.authorWarning" class="km-warning-text">{{ zak.authorWarning }}</div>
+              <span class="km-author-name-line">
+                <span class="km-author-name" :title="zak.authorDescription || null">{{
+                  zak.author
+                }}</span>
+                <span v-if="zak.authorShortDescription" class="km-short-description-text">{{
+                  zak.authorShortDescription
+                }}</span>
+              </span>
+            </div>
             <RouterLink
               :to="{ path: '/author-playlist', query: { author: zak.author } }"
               class="km-author-pl-btn"
@@ -138,129 +187,147 @@
             >
           </div>
 
-          <!-- Альбомы -->
-          <div v-for="alb in zak.albums" :key="alb.albumName" class="km-album-block">
-            <div class="km-album-header">
-              <img
-                v-if="alb.albumPictureUrl"
-                :src="alb.albumPictureUrl"
-                class="km-album-pic"
-                alt=""
-                @error="$event.target.style.display = 'none'"
-              />
-              <span class="km-album-name">{{ alb.year }} — {{ alb.albumName }}</span>
-              <span
-                v-if="alb.albumType && alb.albumType !== 'studio'"
-                class="km-album-type-badge"
-                >{{ albumTypeLabel(alb.albumType) }}</span
-              >
-            </div>
-
-            <!-- Десктоп: таблица -->
-            <div class="km-table-wrap">
-              <table class="km-table">
-                <colgroup>
-                  <col style="width: 28px" />
-                  <col />
-                  <col style="width: 220px" />
-                  <col style="width: 24px" />
-                  <col style="width: 24px" />
-                  <col style="width: 32px" />
-                  <col style="width: 26px" />
-                  <col style="width: 26px" />
-                </colgroup>
-                <thead>
-                  <tr>
-                    <th class="km-th km-th-center">№</th>
-                    <th class="km-th">Композиция</th>
-                    <th class="km-th" colspan="6">&nbsp;</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="sett in alb.albumSettings" :key="sett.id" class="km-tr">
-                    <td class="km-td km-td-center km-track">{{ sett.track }}</td>
-                    <td class="km-td km-td-name">
-                      <RouterLink
-                        :to="{ path: '/song', query: { id: sett.id } }"
-                        class="km-song-link"
-                        >{{ sett.songName }}</RouterLink
-                      >
-                    </td>
-                    <td class="km-td km-td-date">
-                      <span v-if="showDate(sett)" class="km-date-text">{{ sett.datePublish }}</span>
-                      <PremiumIcon
-                        v-if="showCoin(sett)"
-                        :state="readiness.contentReadyFor(sett.id)"
-                        :clickable="showCartIcon(sett)"
-                        @subscribe="onSubscribeClick(sett, zak.author)"
-                      />
-                    </td>
-                    <td class="km-td km-td-center">
-                      <CartIcon v-if="showCartIcon(sett)" :song-id="sett.id" />
-                    </td>
-                    <td class="km-td km-td-center">
-                      <PlayerIcon
-                        :song-id="sett.id"
-                        :watch-state="readiness.stateFor(sett.id)"
-                        :content-ready-state="readiness.contentReadyFor(sett.id)"
-                      />
-                    </td>
-                    <td class="km-td km-td-center">
-                      <PlatformLink
-                        link-name="sponsr"
-                        :link-value="sett.linkSponsrPlay"
-                        :song-id="sett.id"
-                        song-version="all"
-                      />
-                    </td>
-                    <td class="km-td km-td-center">
-                      <FavoriteIcon :song-id="sett.id" />
-                    </td>
-                    <td class="km-td km-td-center km-group-end">
-                      <PlaylistIcon :song-id="sett.id" />
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <!-- Мобильные карточки -->
-            <div class="km-cards">
-              <div v-for="sett in alb.albumSettings" :key="sett.id" class="km-card">
-                <div class="km-card-top">
-                  <span class="km-card-track">{{ sett.track }}</span>
-                  <RouterLink
-                    :to="{ path: '/song', query: { id: sett.id } }"
-                    class="km-card-title"
-                    >{{ sett.songName }}</RouterLink
-                  >
-                  <CartIcon v-if="showCartIcon(sett)" :song-id="sett.id" />
-                  <PlayerIcon
-                    :song-id="sett.id"
-                    :watch-state="readiness.stateFor(sett.id)"
-                    :content-ready-state="readiness.contentReadyFor(sett.id)"
-                  />
-                  <PlatformLink
-                    link-name="sponsr"
-                    :link-value="sett.linkSponsrPlay"
-                    :song-id="sett.id"
-                    song-version="all"
-                  />
-                  <FavoriteIcon :song-id="sett.id" />
-                  <PlaylistIcon :song-id="sett.id" />
+          <!-- Альбомы: сквозной список либо группировка по типу (переключатель в шапке,
+               specs/012-entity-description-fields FR-023/024) — единый v-for отдаёт вперемешку
+               заголовки групп и сами альбомы, чтобы не дублировать разметку блока альбома дважды. -->
+          <template v-for="item in albumRenderItems(zak)" :key="item.key">
+            <div v-if="item.type === 'header'" class="km-album-group-header">{{ item.label }}</div>
+            <div v-else class="km-album-block">
+              <div class="km-album-header">
+                <img
+                  v-if="item.alb.albumPictureUrl"
+                  :src="item.alb.albumPictureUrl"
+                  class="km-album-pic"
+                  alt=""
+                  @error="$event.target.style.display = 'none'"
+                />
+                <div class="km-album-name-wrap">
+                  <div v-if="item.alb.warning" class="km-warning-text">{{ item.alb.warning }}</div>
+                  <span class="km-album-name-line">
+                    <span class="km-album-name" :title="item.alb.description || null"
+                      >{{ item.alb.year }} — {{ item.alb.albumName }}</span
+                    >
+                    <span v-if="item.alb.shortDescription" class="km-short-description-text">{{
+                      item.alb.shortDescription
+                    }}</span>
+                  </span>
+                  <!-- FR-017: подпись типа теперь показывается для ВСЕХ типов, включая "studio" —
+                     каноническая подпись приходит с бэкенда (AlbumType.description), фронт больше
+                     не хранит свою (рассинхронизированную) RU-мапу. -->
+                  <span v-if="item.alb.albumTypeLabel" class="km-album-type-badge">{{
+                    item.alb.albumTypeLabel
+                  }}</span>
                 </div>
-                <div v-if="showDate(sett) || showCoin(sett)" class="km-card-date">
-                  <span v-if="showDate(sett)" class="km-date-text">{{ sett.datePublish }}</span>
-                  <PremiumIcon
-                    v-if="showCoin(sett)"
-                    :state="readiness.contentReadyFor(sett.id)"
-                    :clickable="showCartIcon(sett)"
-                    @subscribe="onSubscribeClick(sett, zak.author)"
-                  />
+              </div>
+
+              <!-- Десктоп: таблица -->
+              <div class="km-table-wrap">
+                <table class="km-table">
+                  <colgroup>
+                    <col style="width: 28px" />
+                    <col />
+                    <col style="width: 220px" />
+                    <col style="width: 24px" />
+                    <col style="width: 24px" />
+                    <col style="width: 32px" />
+                    <col style="width: 26px" />
+                    <col style="width: 26px" />
+                  </colgroup>
+                  <thead>
+                    <tr>
+                      <th class="km-th km-th-center">№</th>
+                      <th class="km-th">Композиция</th>
+                      <th class="km-th" colspan="6">&nbsp;</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="sett in item.alb.albumSettings" :key="sett.id" class="km-tr">
+                      <td class="km-td km-td-center km-track">{{ sett.track }}</td>
+                      <td class="km-td km-td-name">
+                        <RouterLink
+                          :to="{ path: '/song', query: { id: sett.id } }"
+                          class="km-song-link"
+                          >{{ sett.songName }}</RouterLink
+                        >
+                      </td>
+                      <td class="km-td km-td-date">
+                        <span v-if="showDate(sett)" class="km-date-text">{{
+                          sett.datePublish
+                        }}</span>
+                        <PremiumIcon
+                          v-if="showCoin(sett)"
+                          :state="readiness.contentReadyFor(sett.id)"
+                          :clickable="showCartIcon(sett)"
+                          @subscribe="onSubscribeClick(sett, zak.author)"
+                        />
+                      </td>
+                      <td class="km-td km-td-center">
+                        <CartIcon v-if="showCartIcon(sett)" :song-id="sett.id" />
+                      </td>
+                      <td class="km-td km-td-center">
+                        <PlayerIcon
+                          :song-id="sett.id"
+                          :watch-state="readiness.stateFor(sett.id)"
+                          :content-ready-state="readiness.contentReadyFor(sett.id)"
+                        />
+                      </td>
+                      <td class="km-td km-td-center">
+                        <PlatformLink
+                          link-name="sponsr"
+                          :link-value="sett.linkSponsrPlay"
+                          :song-id="sett.id"
+                          song-version="all"
+                        />
+                      </td>
+                      <td class="km-td km-td-center">
+                        <FavoriteIcon :song-id="sett.id" />
+                      </td>
+                      <td class="km-td km-td-center km-group-end">
+                        <PlaylistIcon :song-id="sett.id" />
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Мобильные карточки -->
+              <div class="km-cards">
+                <div v-for="sett in item.alb.albumSettings" :key="sett.id" class="km-card">
+                  <div class="km-card-top">
+                    <span class="km-card-track">{{ sett.track }}</span>
+                    <RouterLink
+                      :to="{ path: '/song', query: { id: sett.id } }"
+                      class="km-card-title"
+                      >{{ sett.songName }}</RouterLink
+                    >
+                    <CartIcon v-if="showCartIcon(sett)" :song-id="sett.id" />
+                    <PlayerIcon
+                      :song-id="sett.id"
+                      :watch-state="readiness.stateFor(sett.id)"
+                      :content-ready-state="readiness.contentReadyFor(sett.id)"
+                    />
+                    <PlatformLink
+                      link-name="sponsr"
+                      :link-value="sett.linkSponsrPlay"
+                      :song-id="sett.id"
+                      song-version="all"
+                    />
+                    <FavoriteIcon :song-id="sett.id" />
+                    <PlaylistIcon :song-id="sett.id" />
+                  </div>
+                  <div v-if="showDate(sett) || showCoin(sett)" class="km-card-date">
+                    <span v-if="showDate(sett)" class="km-date-text">{{ sett.datePublish }}</span>
+                    <PremiumIcon
+                      v-if="showCoin(sett)"
+                      :state="readiness.contentReadyFor(sett.id)"
+                      :clickable="showCartIcon(sett)"
+                      @subscribe="onSubscribeClick(sett, zak.author)"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          </template>
         </div>
       </template>
     </div>
@@ -349,6 +416,20 @@ export default {
       subscribingSongName: '',
       // Быстрый клиентский фильтр по названию песни (без запроса к бэку).
       songFilter: '',
+      // specs/012-entity-description-fields: режим отображения альбомов ("continuous"/"grouped")
+      // и скрытые типы альбомов (быстрый фильтр) — персистентны в localStorage (как тема), не
+      // привязаны к конкретному автору (общая настройка посетителя, FR-023/025).
+      albumDisplayMode:
+        localStorage.getItem('km-zakroma-album-mode') === 'grouped' ? 'grouped' : 'continuous',
+      hiddenAlbumTypes: new Set(
+        (() => {
+          try {
+            return JSON.parse(localStorage.getItem('km-zakroma-hidden-album-types') || '[]')
+          } catch {
+            return []
+          }
+        })(),
+      ),
     }
   },
   computed: {
@@ -398,6 +479,13 @@ export default {
       }
       return this.filteredZakroma
     },
+    /** Счётчики альбомов по типу (для переключателя/быстрых фильтров в шапке) — только когда
+     * показан ровно один автор (specs/012-entity-description-fields FR-025/026); в спецзаказном
+     * режиме (несколько виртуальных авторов сразу) единого набора счётчиков нет. */
+    zakromaAlbumTypeCounts() {
+      if (this.displayedZakroma.length !== 1) return []
+      return this.displayedZakroma[0].albumTypeCounts || []
+    },
     /** Сейчас идёт загрузка? Учитываем оба режима (обычный + спец). */
     isLoadingAny() {
       if (this.specialBucketShown) {
@@ -443,12 +531,48 @@ export default {
   },
   methods: {
     ...mapActions('zakroma', ['loadAuthorTiles', 'loadZakroma', 'loadSpecialBucket']),
-    // specs/011-album-song-rename: подпись типа альбома (значения — AlbumType.dbValue на бэкенде).
-    // "studio" не показываем — это подразумеваемый тип большинства альбомов, бейдж только для
-    // отличающихся (концерт/сборник/бутлег).
-    albumTypeLabel(albumType) {
-      const labels = { live: 'концерт', compilation: 'сборник', bootleg: 'бутлег', single: 'сингл' }
-      return labels[albumType] || albumType
+    /** Переключатель "сквозной/по группам" (FR-023) — персистентно в localStorage. */
+    setAlbumDisplayMode(mode) {
+      this.albumDisplayMode = mode
+      localStorage.setItem('km-zakroma-album-mode', mode)
+    },
+    /** Быстрый фильтр по типу альбома (FR-025/027) — вкл/выкл, персистентно в localStorage;
+     * действует одинаково в обоих режимах отображения (сквозном и групповом). */
+    toggleAlbumType(dbValue) {
+      const next = new Set(this.hiddenAlbumTypes)
+      if (next.has(dbValue)) {
+        next.delete(dbValue)
+      } else {
+        next.add(dbValue)
+      }
+      this.hiddenAlbumTypes = next
+      localStorage.setItem('km-zakroma-hidden-album-types', JSON.stringify(Array.from(next)))
+    },
+    /** Альбомы автора без скрытых по быстрому фильтру типов — общая точка для обоих режимов
+     * отображения (визуальный порядок внутри — как пришло с бэка, уже отсортировано по sortOrder,
+     * см. US4). */
+    visibleAlbums(zak) {
+      return (zak.albums || []).filter((alb) => !this.hiddenAlbumTypes.has(alb.albumType))
+    },
+    /** Единый плоский список элементов для рендера альбомного блока автора: в сквозном режиме —
+     * только альбомы (уже отфильтрованные быстрым фильтром), в групповом — заголовок группы перед
+     * каждой непустой группой (FR-024), в порядке `albumTypeCounts` (studio→single→live→
+     * compilation→bootleg, только типы с count>0 у этого автора). */
+    albumRenderItems(zak) {
+      const visible = this.visibleAlbums(zak)
+      if (this.albumDisplayMode !== 'grouped') {
+        return visible.map((alb) => ({ type: 'album', key: `a-${alb.albumName}-${alb.year}`, alb }))
+      }
+      const items = []
+      for (const summary of zak.albumTypeCounts || []) {
+        const albumsOfType = visible.filter((alb) => alb.albumType === summary.dbValue)
+        if (albumsOfType.length === 0) continue
+        items.push({ type: 'header', key: `h-${summary.dbValue}`, label: summary.groupLabel })
+        for (const alb of albumsOfType) {
+          items.push({ type: 'album', key: `a-${alb.albumName}-${alb.year}`, alb })
+        }
+      }
+      return items
     },
     // Монетка «премиум-контент» — только не-премиум посетителю и только для контента, доступного
     // лишь премиуму (эксклюзив или ещё не в эфире). Золотая/серебряная — по contentReadyFor().
@@ -622,6 +746,56 @@ export default {
   color: var(--km-text);
 }
 
+/* Переключатель сквозной/групповой + быстрые фильтры по типу альбома
+   (specs/012-entity-description-fields FR-023/024/025/026/027) — переиспользует визуальный
+   паттерн .km-theme-toggle/.km-tb (та же "таблетка"), sticky-панель как .km-filter-bar. */
+.km-album-controls-bar {
+  position: sticky;
+  top: 53px;
+  z-index: 89;
+  background: var(--km-header);
+  border-bottom: 1px solid var(--km-border);
+  padding: 0.5rem 1rem;
+}
+.km-album-controls-inner {
+  max-width: 900px;
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+.km-album-type-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.km-album-type-filter-btn {
+  background: var(--km-accent);
+  color: #fff;
+  border: 1px solid var(--km-accent);
+  border-radius: 14px;
+  padding: 0.15rem 0.6rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+.km-album-type-filter-btn.off {
+  background: transparent;
+  color: var(--km-text2);
+  border-color: var(--km-border);
+}
+.km-album-group-header {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--km-text);
+  margin: 1rem 0 0.4rem;
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid var(--km-border);
+}
+
 /* Поле ввода (общий стиль km-input, как в SearchView/LoginView/AccountView) */
 .km-input {
   background: var(--km-input);
@@ -694,6 +868,33 @@ export default {
   font-size: 1.1rem;
   font-weight: 700;
   color: var(--km-text);
+}
+/* specs/012-entity-description-fields: предупреждение (красным, над именем), короткое описание
+   (серым, через пробел после имени), описание — в title-тултипе на имени/названии. */
+.km-author-name-wrap,
+.km-album-name-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+.km-author-name-line,
+.km-album-name-line {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+.km-warning-text {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--km-danger, #dc3545);
+  text-transform: uppercase;
+}
+.km-short-description-text {
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--km-text2);
 }
 /* Спец-тайл «Отдельные песни разных авторов» — встраивается последним элементом в сетку
    .at-grid (слот trailing в AuthorTiles.vue), поэтому по размеру строго совпадает с обычными

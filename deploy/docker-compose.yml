@@ -22,6 +22,7 @@ services:
       - XAUTHORITY=/.Xauthority
       - OLLAMA_BASE_URL=http://host.docker.internal:11434
       - SEARXNG_BASE_URL=http://searxng:8080
+      - LYRICS_SEARCH_BASE_URL=http://fourget:80
     volumes:
       - ${APP_FOLDER_HOST}:${APP_FOLDER_IN_CONTAINER}
       - ${APP_FOLDER_K1}:${APP_FOLDER_K1}
@@ -64,6 +65,25 @@ services:
     environment:
       - SEARXNG_BASE_URL=http://searxng:8080/
       - SEARXNG_SECRET=i-love-my-wife-oxana
+    restart: unless-stopped
+    networks:
+      - karaokenet
+
+  # Замена поискового бэкенда для текстов песен (specs/014-lyrics-search-replacement):
+  # SearXNG (сервис выше) возвращал мало/пустые результаты по русским запросам
+  # "автор текст песни ..." — searxng остаётся только для поиска обложек альбомов
+  # (AlbumCoverService), тексты песен теперь ищутся через fourget (см.
+  # specs/014-lyrics-search-replacement/research.md). Образ luuul/4get:1.0.44 —
+  # актуальный на момент написания тег (проверить hub.docker.com/r/luuul/4get/tags
+  # перед деплоем на прод и при необходимости обновить).
+  fourget:
+    image: luuul/4get:1.0.44
+    container_name: fourget
+    ports:
+      - "8889:80"
+    environment:
+      - FOURGET_PROTO=http
+      - FOURGET_SERVER_NAME=fourget
     restart: unless-stopped
     networks:
       - karaokenet

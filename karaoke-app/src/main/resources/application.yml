@@ -50,6 +50,12 @@ storage:
 searxng:
   base-url: http://searxng:8080
 
+# Поиск URL с текстами песен (specs/014-lyrics-search-replacement) — отдельный
+# self-hosted бэкенд (fourget), НЕ searxng.base-url выше: тот остаётся только для
+# поиска обложек альбомов (AlbumCoverService).
+lyrics-search:
+  base-url: http://fourget:80
+
 #logging:
 #  level:
 #    org.springframework.security: DEBUG

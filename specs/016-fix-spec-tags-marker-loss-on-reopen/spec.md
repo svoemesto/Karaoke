@@ -1,6 +1,6 @@
 # Feature Specification: Спецтеги — сохранение маркеров после «Точные маркеры → Apply → Save → reopen»
 
-**Feature Branch**: `[015-fix-spec-tags-marker-loss-on-reopen]`
+**Feature Branch**: `[016-fix-spec-tags-marker-loss-on-reopen]`
 **Created**: 2026-07-27
 **Status**: Draft
 **Input**: User description: "Баг: если в тексте песни есть спецтэги (~припев~ и т.п.) и если у неё уже расставлены маркеры, то при открытии в редакторе (SubsEdit.vue) имеющиеся маркеры перезатираются и автоматически выставляются маркеры по спецтегам!"

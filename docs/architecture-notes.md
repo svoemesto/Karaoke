@@ -457,13 +457,13 @@ cp <template> ./CLAUDE.md   # локально, НЕ коммитить
 
 **Связанные документы:** `specs/014-album-cell-album-cover-modal/{spec,plan,research,data-model,quickstart,contracts/api,tasks}.md`.
 
-## Pass 27: fix(webvue3): спецтеги — сохранение маркеров после «Точные маркеры → Apply → Save → reopen» (#015)
+## Pass 28: fix(webvue3): спецтеги — сохранение маркеров после «Точные маркеры → Apply → Save → reopen» (#016)
 
 **Контекст:** на песнях, в `sourceText` которых есть распознаваемые спецтеги (`~Припев~` и т.п.), после цикла
 «Точные маркеры → Apply → Save → close → reopen» в `SubsEdit.vue` пропадали syllable/endofline/group/comment/beat
 маркеры, оставались только spec tag-маркеры, автоподставленные `syncMarkersFromSpecTags()`.
 
-**Первопричина** (локализована в `specs/015-fix-spec-tags-marker-loss-on-reopen/research.md` §2.2):
+**Первопричина** (локализована в `specs/016-fix-spec-tags-marker-loss-on-reopen/research.md` §2.2):
 - `mounted()` ставил `sourceText = await ...` ДО `loadedMarkers = await ...`, и заполнение
   `sourceMarkers` жило в `ws.on('decode')` (отложенно на момент декодирования аудио — десятки мс-секунды).
 - Watcher `sourceText` (Vue 2 async) срабатывал раньше `ws.on('decode')` с пустым `sourceMarkers`.
@@ -510,4 +510,4 @@ KDoc 100% (43/43 в karaoke-public), `npm run build` ✅, backend regression `Sp
 3. Гард в `syncMarkersFromSpecTags()` (P2 по плану) — страховка от регрессии в будущем; сам по себе
    баг не устраняет, но защищает от его возврата.
 
-**Связанные документы:** `specs/015-fix-spec-tags-marker-loss-on-reopen/{spec,plan,research,data-model,quickstart,contracts/README,tasks}.md`.
+**Связанные документы:** `specs/016-fix-spec-tags-marker-loss-on-reopen/{spec,plan,research,data-model,quickstart,contracts/README,tasks}.md`.

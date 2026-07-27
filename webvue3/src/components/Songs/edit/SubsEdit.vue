@@ -2114,7 +2114,7 @@ export default {
         // Порядок КРИТИЧЕН: loadedMarkers грузится ДО sourceText, иначе watcher `sourceText`
         // срабатывает между двумя `await` (на микротаске Vue 2) со СТАРЫМИ sourceMarkers и
         // syncMarkersFromSpecTags() корраптит их spec tag-маркерами из НОВОГО текста. См.
-        // specs/015-fix-spec-tags-marker-loss-on-reopen/research.md §2.4.
+        // specs/016-fix-spec-tags-marker-loss-on-reopen/research.md §2.4.
         this.loadedMarkers = await this.$store.getters.getSourceMarkers(this.currentVoice)
         this.sourceMarkers = []
         this.sourceText = await this.$store.getters.getSourceText(this.currentVoice)
@@ -2624,7 +2624,7 @@ export default {
     // Инициализируем Wavesurfer
     this.initWavesurfer()
     this.isEditMode = true
-    // Порядок присваиваний КРИТИЧЕН (specs/015-fix-spec-tags-marker-loss-on-reopen/research.md §2.2):
+    // Порядок присваиваний КРИТИЧЕН (specs/016-fix-spec-tags-marker-loss-on-reopen/research.md §2.2):
     // `loadedMarkers` + заполнение `sourceMarkers` ДОЛЖНЫ произойти ДО `this.sourceText = ...`,
     // иначе watcher `sourceText` сработает с пустым `sourceMarkers` (асинхронно, на следующем
     // микротаске Vue 2) и `syncMarkersFromSpecTags()` вставит spec tag-маркеры через splice(0,0,...)
@@ -2669,7 +2669,7 @@ export default {
       // Маркеры уже загружены выше в mounted() (синхронно, до `sourceText`) — здесь только
       // очистка регионов и расчёт видимой области. Цикл заполнения `sourceMarkers` из
       // `loadedMarkers` намеренно убран из этого обработчика: см. JSDoc выше и
-      // specs/015-fix-spec-tags-marker-loss-on-reopen/research.md §2.2 - иначе watcher `sourceText`
+      // specs/016-fix-spec-tags-marker-loss-on-reopen/research.md §2.2 - иначе watcher `sourceText`
       // срабатывал РАНЬШЕ `ws.on('decode')` с пустым `sourceMarkers`, и условие
       // `sourceMarkers.length === 0` ломалось.
     })
@@ -3433,7 +3433,7 @@ export default {
     // присваиваний в `mounted()`. Защитный гард `if (this.sourceMarkers.length === 0) return` ниже -
     // страховка от вызова в неожиданных местах (например, если watcher `sourceText` когда-нибудь
     // сработает ДО заполнения `loadedMarkers`).
-    // @see specs/015-fix-spec-tags-marker-loss-on-reopen/research.md §2.2
+    // @see specs/016-fix-spec-tags-marker-loss-on-reopen/research.md §2.2
     syncMarkersFromSpecTags() {
       if (!this.wsRegions) return
       // Защитный гард: если `sourceMarkers` ещё не заполнен из `loadedMarkers` (например, watcher

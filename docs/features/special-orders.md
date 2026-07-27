@@ -2,7 +2,7 @@
 
 > **Status**: active
 > **Feature Key**: special-orders
-> **Last Updated**: 2026-07-24
+> **Last Updated**: 2026-07-27
 
 ## Что делает
 
@@ -43,6 +43,14 @@
   переиспользуют общую приватную `buildFromSettings()` (группировка Автор→Альбом→Песни).
 - `PublicApiController.zakroma()` — параметр `specialBucket: Boolean` (`?specialBucket=true`)
   переключает на batch-путь вместо `author`.
+- **`onlyPublished: Boolean = false`** (specs/013-song-status-filter) — оба метода
+  (`getZakroma`/`getZakromaBySpecialOrder`) принимают этот параметр; при `true` добавляют
+  `id_status>=3` в фильтр (то же определение «в коллекции», что и в `StatBySong`). Публичные
+  call-site'ы прода (`PublicApiController.zakroma`, legacy `MainController.zakroma` в
+  `karaoke-web`) обязаны передавать `true` — иначе спецзаказная плашка и обычные закрома
+  на проде будут показывать ещё не готовые песни. Admin call-site
+  (`karaoke-app/controllers/MainController.zakroma`) параметр не передаёт — редактор
+  видит все статусы.
 
 ### Frontend
 
@@ -69,6 +77,10 @@
 - **MUST**: batch-загрузка спецзаказных авторов — одним SQL-запросом через `author_in`
   (`Settings.getWhereList`), не циклом `for (author in names) loadOne(author)` — иначе
   N+1 и «вечный» индикатор загрузки при большом числе спецзаказных авторов.
+- **MUST**: любой новый публичный (прод) call-site `Zakroma.getZakroma`/
+  `getZakromaBySpecialOrder` обязан передавать `onlyPublished = true` — иначе на проде
+  протекут ещё не готовые песни (см. specs/013-song-status-filter). Admin-код этот параметр
+  не передаёт намеренно.
 - **MUST**: при изменении набора полей `tbl_authors`, участвующих в `recordhash`,
   пересоздавать триггер `update_tbl_authors_recordhash()` на LOCAL и PROD (см.
   [dual-db-sync.md](./dual-db-sync.md)).
@@ -107,6 +119,7 @@
 ### Связанные документы
 
 - [specs/008-special-orders/spec.md](../../specs/008-special-orders/spec.md) — исходная спецификация
+- [specs/013-song-status-filter/spec.md](../../specs/013-song-status-filter/spec.md) — фильтр `id_status>=3` на публичных поверхностях
 - [dual-db-sync.md](./dual-db-sync.md) — recordhash-триггеры, `author_in`-фильтр
 - [docs/strategy/growth-audit.md](../strategy/growth-audit.md) — гипотеза H1.20
 - [docs/strategy/growth.md](../strategy/growth.md) — M-23 в roadmap

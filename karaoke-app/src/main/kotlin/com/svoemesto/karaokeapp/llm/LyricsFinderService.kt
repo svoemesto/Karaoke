@@ -78,6 +78,26 @@ class LyricsFinderService(
     }
 
     /**
+     * То же самое, что [searchUrls], но через движок `SEARXNG`
+     * ([com.svoemesto.karaokeapp.LyricsSearchEngine], specs/015-search-engine-selection) —
+     * прямой запрос к self-hosted SearXNG вместо fourget.
+     *
+     * @see docs/features/llm-lyrics-search.md
+     */
+    fun searchUrlsViaSearxng(
+        author: String,
+        songName: String,
+    ): List<String> {
+        val query = "$author текст песни $songName"
+        logger.info("🔍 [Поиск URL, SearXNG] Формирую запрос: '$query'")
+
+        val urls = searchTool.searchUrlsViaSearxng(query)
+        logger.info("✅ [Поиск URL, SearXNG] Получено URL: ${urls.size}")
+
+        return urls
+    }
+
+    /**
      * Функция извлечения текста песни с одного URL
      * @return текст песни или null, если текст не найден
      */

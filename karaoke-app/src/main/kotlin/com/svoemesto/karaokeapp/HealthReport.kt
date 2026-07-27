@@ -4,6 +4,8 @@ import com.svoemesto.karaokeapp.HealthReportStatus.*
 import com.svoemesto.karaokeapp.HealthReportType.CONSISTENCY_VIOLATION
 import com.svoemesto.karaokeapp.HealthReportType.FILE_VIOLATION
 import com.svoemesto.karaokeapp.KaraokeFileTypeLocations.*
+import com.svoemesto.karaokeapp.model.SearchAsync
+import com.svoemesto.karaokeapp.model.SearchResult
 import com.svoemesto.karaokeapp.model.Song
 import com.svoemesto.karaokeapp.model.SseNotification
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
@@ -2189,6 +2191,27 @@ data class HealthReport(
             val whereText = authorFilter?.let { "WHERE LOWER(song_author) = '${it.rightFileName().lowercase()}'" } ?: ""
             val ids = Song.listHashes(database = database, whereText = whereText)?.map { it.id } ?: return 0
             ids.forEach { recomputeAndBroadcast(it, database, storageService, storageApiClient) }
+            return ids.size
+        }
+
+        /**
+         * Массовая очистка результатов поиска текста для уже готовых песен (статус ≥3) —
+         * backfill для песен, ставших готовыми ДО появления автоочистки в `Song.saveToDb()`
+         * (specs/015-search-engine-selection, кнопка «Удалить результаты поиска готовых песен»
+         * на главной странице). Возвращает количество обработанных песен.
+         *
+         * @see docs/features/llm-lyrics-search.md
+         */
+        fun deleteSearchResultsForReadySongs(
+            database: KaraokeConnection,
+            storageService: KaraokeStorageService,
+            storageApiClient: StorageApiClient,
+        ): Int {
+            val ids = Song.listHashes(database = database, whereText = "WHERE id_status >= 3")?.map { it.id } ?: return 0
+            ids.forEach { id ->
+                SearchResult.deleteBySongId(id, database, storageService, storageApiClient)
+                SearchAsync.deleteBySongId(id, database, storageService, storageApiClient)
+            }
             return ids.size
         }
 

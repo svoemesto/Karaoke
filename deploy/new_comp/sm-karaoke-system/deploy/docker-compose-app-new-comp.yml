@@ -31,6 +31,7 @@ services:
       - XAUTHORITY=/.Xauthority
       - OLLAMA_BASE_URL=http://host.docker.internal:11434
       - SEARXNG_BASE_URL=http://searxng:8080
+      - LYRICS_SEARCH_BASE_URL=http://fourget:80
     volumes:
       - /sm-karaoke/work:/sm-karaoke/work
       - /sm-karaoke/done1:/sm-karaoke/done1
@@ -68,6 +69,21 @@ services:
     environment:
       - SEARXNG_BASE_URL=http://searxng:8080/
       - SEARXNG_SECRET=i-love-my-wife-oxana
+    restart: unless-stopped
+    networks:
+      - karaokenet
+
+  # Замена поискового бэкенда для текстов песен (specs/014-lyrics-search-replacement) —
+  # см. комментарий в deploy/docker-compose.yml. searxng выше не трогаем (нужен для
+  # обложек альбомов).
+  fourget:
+    image: luuul/4get:1.0.44
+    container_name: fourget
+    ports:
+      - "8889:80"
+    environment:
+      - FOURGET_PROTO=http
+      - FOURGET_SERVER_NAME=fourget
     restart: unless-stopped
     networks:
       - karaokenet

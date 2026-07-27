@@ -591,7 +591,7 @@ class ApiController(
             applyDuplicateOriginal(settings, original)
             true
         } else {
-            getSearXNGSearch(settings = settings, lyricsFinderService = lyricsFinderService)
+            getLyricsSearch(settings = settings, lyricsFinderService = lyricsFinderService, engine = resolveLyricsSearchEngine())
             false
         }
     }
@@ -3090,6 +3090,7 @@ class ApiController(
         @RequestParam id: Long,
         @RequestParam(required = false) query: String?,
         @RequestParam(required = false) skipYandex: Boolean?,
+        @RequestParam(required = false) engine: String?,
     ): AlbumCoverSearchResponseDto {
         val settings =
             Song.loadFromDbById(
@@ -3109,6 +3110,7 @@ class ApiController(
                 )?.ymId
 
         val defaultQuery = albumCoverService.defaultSearchQuery(settings.author, settings.album)
+        val resolvedEngine = resolveAlbumCoverSearchEngine(engine)
 
         return when (
             val outcome =
@@ -3118,6 +3120,7 @@ class ApiController(
                     album = settings.album,
                     skipYandex = skipYandex ?: false,
                     customQuery = query,
+                    engine = resolvedEngine,
                 )
         ) {
             is AlbumCoverSearchOutcome.Found -> {
@@ -4790,7 +4793,11 @@ class ApiController(
     @ResponseBody
     fun getSearchSongTextAll(
         @RequestParam songsIds: String,
+        @RequestParam(required = false) engine: String?,
+        @RequestParam(required = false) forceResearch: Boolean = false,
     ): Boolean {
+        val resolvedEngine = resolveLyricsSearchEngine(engine)
+
         var result = false
         songsIds.let {
             val ids =
@@ -4810,8 +4817,12 @@ class ApiController(
                 settings?.let {
                     println("settings.haveSourceText = ${settings.haveSourceText}")
                     if (!settings.haveSourceText || ids.size == 1) {
-//                        getYandexSearch(settings = settings, async = true)
-                        getSearXNGSearch(settings = settings, lyricsFinderService = lyricsFinderService)
+                        getLyricsSearch(
+                            settings = settings,
+                            lyricsFinderService = lyricsFinderService,
+                            engine = resolvedEngine,
+                            forceResearch = forceResearch,
+                        )
                     }
                 }
                 result = true
@@ -5269,7 +5280,11 @@ class ApiController(
                 if (!textResolved) {
                     thread(start = true) {
                         try {
-                            getSearXNGSearch(settings = newSettings, lyricsFinderService = lyricsFinderService)
+                            getLyricsSearch(
+                                settings = newSettings,
+                                lyricsFinderService = lyricsFinderService,
+                                engine = resolveLyricsSearchEngine(),
+                            )
                         } catch (e: Exception) {
                             println(
                                 "[${Timestamp.from(
@@ -5464,6 +5479,35 @@ class ApiController(
                         type = "info",
                         head = "Пересчёт готовности плеера ($scope)",
                         body = "Проверено песен: $result",
+                    ),
+                ),
+            )
+        }
+        return true
+    }
+
+    // Массовая очистка результатов поиска текста для уже готовых песен (статус ≥3) — backfill
+    // для песен, ставших готовыми ДО появления автоочистки в Song.saveToDb() (см. HealthReport.kt,
+    // specs/015-search-engine-selection). Тяжёлая операция — уходит в фоновый поток, по образцу
+    // doRecalcPlayerReadiness выше, итог приходит тостом по SSE.
+    @PostMapping("/utils/deletesearchresultsforreadysongs")
+    @ResponseBody
+    fun doDeleteSearchResultsForReadySongs(): Boolean {
+        thread {
+            println("Удаление результатов поиска готовых песен: начало")
+            val result =
+                HealthReport.deleteSearchResultsForReadySongs(
+                    database = WORKING_DATABASE,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                )
+            println("Удаление результатов поиска готовых песен: завершено, обработано песен: $result")
+            SNS.send(
+                SseNotification.message(
+                    Message(
+                        type = "info",
+                        head = "Удаление результатов поиска готовых песен",
+                        body = "Обработано песен: $result",
                     ),
                 ),
             )
@@ -6526,6 +6570,18 @@ class ApiController(
                     storageApiClient = storageApiClient,
                 ).map { it.toDTO() }
         return result
+    }
+
+    // Удаление результатов поиска текста песни без запуска нового поиска
+    // (specs/015-search-engine-selection, кнопка «Удалить результаты поиска» в SearchText.vue)
+    @PostMapping("/song/deletesearchresults")
+    @ResponseBody
+    fun deleteSearchResults(
+        @RequestParam songId: Long,
+    ): Boolean {
+        SearchResult.deleteBySongId(songId, WORKING_DATABASE, storageService, storageApiClient)
+        SearchAsync.deleteBySongId(songId, WORKING_DATABASE, storageService, storageApiClient)
+        return true
     }
 
     @PostMapping("/authymstart")

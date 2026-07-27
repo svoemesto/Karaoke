@@ -12,6 +12,11 @@
       :author-id="aliasesAuthorId"
       @close="closeAuthorAliases"
     />
+    <AuthorAlbumsModal
+      v-if="isAuthorAlbumsVisible"
+      :author-id="albumsAuthorId"
+      @close="closeAuthorAlbums"
+    />
     <div class="authors-bv-table-header">
       <b-pagination
         v-model="currentPage"
@@ -160,6 +165,10 @@
             v-text="aliasesSummary(data.value)"
           />
         </template>
+
+        <template #cell(albums)="data">
+          <button class="fld-albums-btn" @click.left="editAlbums(data.item)">Альбомы автора</button>
+        </template>
       </b-table>
     </div>
     <div class="authors-bv-table-footer">
@@ -176,6 +185,7 @@ import AuthorsFilter from '../../components/Authors/filter/AuthorsFilterModal.vu
 import CustomConfirm from '../Common/CustomConfirm.vue'
 import PictureEditModal from '../../components/Pictures/edit/PictureEditModal.vue'
 import AuthorAliasesModal from './AuthorAliasesModal.vue'
+import AuthorAlbumsModal from './AuthorAlbumsModal.vue'
 
 /**
  * Таблица со списком authors с пагинацией, фильтрами и сортировкой.
@@ -189,6 +199,7 @@ export default {
     AuthorsFilter,
     PictureEditModal,
     AuthorAliasesModal,
+    AuthorAlbumsModal,
     CustomConfirm,
     BPagination,
     BSpinner,
@@ -207,6 +218,8 @@ export default {
       isCustomConfirmVisible: false,
       isAuthorAliasesVisible: false,
       aliasesAuthorId: null,
+      isAuthorAlbumsVisible: false,
+      albumsAuthorId: null,
       customConfirmParams: undefined,
       isBusy: false,
       currentAuthorId: '',
@@ -364,6 +377,16 @@ export default {
             minWidth: '250px',
             maxWidth: '250px',
             textAlign: 'left',
+            fontSize: 'small',
+          },
+        },
+        {
+          key: 'albums',
+          label: '',
+          style: {
+            minWidth: '140px',
+            maxWidth: '140px',
+            textAlign: 'center',
             fontSize: 'small',
           },
         },
@@ -537,6 +560,15 @@ export default {
 
     closeAuthorAliases() {
       this.isAuthorAliasesVisible = false
+    },
+
+    editAlbums(item) {
+      this.albumsAuthorId = item.id
+      this.isAuthorAlbumsVisible = true
+    },
+
+    closeAuthorAlbums() {
+      this.isAuthorAlbumsVisible = false
     },
 
     editAuthor(key) {
@@ -725,6 +757,18 @@ export default {
 .fld-aliases:hover {
   text-decoration: underline;
   cursor: pointer;
+}
+
+.fld-albums-btn {
+  border: solid 1px black;
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: small;
+  background-color: antiquewhite;
+  cursor: pointer;
+}
+.fld-albums-btn:hover {
+  background-color: lightpink;
 }
 
 .fld-picture-preview {

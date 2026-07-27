@@ -5862,6 +5862,22 @@ class ApiController(
         @RequestParam(required = true) id: Long,
     ): Boolean = Album.delete(id = id, database = WORKING_DATABASE)
 
+    // Переупорядочивание альбомов автора (drag-and-drop в webvue3, модалка "Альбомы автора").
+    // ids — все альбомы автора в желаемом порядке отображения, sortOrder = их индекс в списке.
+    @PostMapping("/albums/reorderalbums")
+    @ResponseBody
+    fun apisReorderAlbums(
+        @RequestParam ids: List<Long>,
+    ): Boolean {
+        Album.reorderAlbums(
+            orderedIds = ids,
+            database = WORKING_DATABASE,
+            storageService = storageService,
+            storageApiClient = storageApiClient,
+        )
+        return true
+    }
+
     @PostMapping("/songs/coauthors/list")
     @ResponseBody
     fun apisSongCoAuthorsList(
@@ -5949,6 +5965,28 @@ class ApiController(
                         body =
                             "Групп обработано: ${result.groupsProcessed}, альбомов создано: ${result.albumsCreated}, " +
                                 "переиспользовано: ${result.albumsReused}, песен привязано: ${result.songsLinked}",
+                    ),
+                ),
+            )
+        }
+        return true
+    }
+
+    // Одноразовая миграция sortOrder альбомов с "внутри (автор,год)" на сквозной по автору
+    // (см. Album.normalizeSortOrderAcrossYears). Безопасно перезапускать — идемпотентно.
+    @PostMapping("/utils/normalizealbumsortorder")
+    @ResponseBody
+    fun doNormalizeAlbumSortOrder(): Boolean {
+        thread {
+            println("Нормализация sortOrder альбомов: начало")
+            val updated = Album.normalizeSortOrderAcrossYears(database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+            println("Нормализация sortOrder альбомов: завершено — обновлено $updated")
+            SNS.send(
+                SseNotification.message(
+                    Message(
+                        type = "info",
+                        head = "Нормализация порядка альбомов",
+                        body = "Обновлено записей: $updated",
                     ),
                 ),
             )

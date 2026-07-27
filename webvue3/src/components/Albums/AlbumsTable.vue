@@ -257,7 +257,7 @@ export default {
         },
         {
           key: 'songsCount',
-          sortable: false,
+          sortable: true,
           label: 'Песен',
           style: { minWidth: '60px', maxWidth: '60px', textAlign: 'center', fontSize: 'small' },
         },
@@ -586,12 +586,19 @@ export default {
 .btn-round-double {
   border: solid 1px black;
   border-radius: 6px;
-  width: 40px;
-  height: 40px;
+  width: 50px;
+  height: 50px;
+  margin-left: 2px;
   background-color: antiquewhite;
 }
 .btn-round-double:hover {
   background-color: lightpink;
+}
+.btn-round-double:focus {
+  background-color: darksalmon;
+}
+.btn-round-double[disabled] {
+  background-color: lightgray;
 }
 .btn-round-double-small {
   border: solid 1px black;

@@ -128,4 +128,11 @@ enum class SongField : Serializable {
     // (ON DELETE SET NULL), в отличие от свободнотекстовых AUTHOR/ALBUM/YEAR выше.
     // @see specs/011-album-song-rename/data-model.md
     ALBUM_ID,
+
+    // Описание/короткое описание/предупреждение песни — показываются в информационном блоке
+    // карточки песни (рядом с тональностью/темпом). Пустые по умолчанию.
+    // @see specs/012-entity-description-fields/data-model.md
+    DESCRIPTION,
+    SHORT_DESCRIPTION,
+    WARNING,
 }

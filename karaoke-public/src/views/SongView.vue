@@ -75,6 +75,28 @@
       <div class="km-content">
         <!-- Метаданные -->
         <div class="km-meta-card">
+          <!-- specs/012-entity-description-fields FR-019/020/021: предупреждение/короткое
+               описание/описание песни — независимо друг от друга. -->
+          <div
+            v-if="currentSong.warning || currentSong.shortDescription || currentSong.description"
+            class="km-song-notes"
+          >
+            <div v-if="currentSong.warning" class="km-warning-text">{{ currentSong.warning }}</div>
+            <div
+              v-if="currentSong.shortDescription || currentSong.description"
+              class="km-song-note-line"
+            >
+              <span v-if="currentSong.shortDescription" class="km-short-description-text">{{
+                currentSong.shortDescription
+              }}</span>
+              <span
+                v-if="currentSong.description"
+                class="km-info-icon"
+                :title="currentSong.description"
+                >ⓘ</span
+              >
+            </div>
+          </div>
           <div class="km-meta-grid">
             <div class="km-meta-item">
               <span class="km-meta-label">Исполнитель</span>
@@ -796,6 +818,32 @@ export default {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   gap: 0.75rem;
+}
+/* specs/012-entity-description-fields: предупреждение (красным), короткое описание (серым),
+   описание (в тултипе через иконку ⓘ) — над сеткой тональности/темпа, в том же блоке информации. */
+.km-song-notes {
+  margin-bottom: 0.75rem;
+}
+.km-warning-text {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--km-danger, #dc3545);
+  text-transform: uppercase;
+  margin-bottom: 0.2rem;
+}
+.km-song-note-line {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.km-short-description-text {
+  font-size: 0.85rem;
+  color: var(--km-text2);
+}
+.km-info-icon {
+  cursor: help;
+  color: var(--km-text2);
+  font-size: 0.9rem;
 }
 .km-meta-item {
   display: flex;

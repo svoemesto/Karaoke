@@ -518,6 +518,28 @@ export default {
             fldLabelStyle: { width: '300px', textAlign: 'right', paddingRight: '5px' },
             fldValueStyle: { width: '300px', textAlign: 'center', borderRadius: '5px' },
           },
+          {
+            fldName: 'shortDescription',
+            fldLabel: 'Короткое описание:',
+            fldValue: item.shortDescription || '',
+            fldLabelStyle: { width: '300px', textAlign: 'right', paddingRight: '5px' },
+            fldValueStyle: { width: '300px', textAlign: 'left', borderRadius: '5px' },
+          },
+          {
+            fldName: 'warning',
+            fldLabel: 'Предупреждение:',
+            fldValue: item.warning || '',
+            fldLabelStyle: { width: '300px', textAlign: 'right', paddingRight: '5px' },
+            fldValueStyle: { width: '300px', textAlign: 'left', borderRadius: '5px' },
+          },
+          {
+            fldName: 'description',
+            fldLabel: 'Описание:',
+            fldValue: item.description || '',
+            fldIsTextarea: true,
+            fldLabelStyle: { width: '300px', textAlign: 'right', paddingRight: '5px' },
+            fldValueStyle: { width: '300px', textAlign: 'left', borderRadius: '5px' },
+          },
         ],
       }
       this.isCustomConfirmVisible = true

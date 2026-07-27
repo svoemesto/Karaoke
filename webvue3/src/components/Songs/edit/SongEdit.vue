@@ -266,6 +266,39 @@
             </button>
           </div>
           <div class="label-and-input">
+            <div class="label">Короткое описание:</div>
+            <input v-model="song.shortDescription" class="input-field" />
+            <button
+              class="btn-round"
+              :disabled="notChanged('shortDescription')"
+              @click="undoField('shortDescription')"
+            >
+              <img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg" />
+            </button>
+          </div>
+          <div class="label-and-input">
+            <div class="label">Предупреждение:</div>
+            <input v-model="song.warning" class="input-field" />
+            <button
+              class="btn-round"
+              :disabled="notChanged('warning')"
+              @click="undoField('warning')"
+            >
+              <img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg" />
+            </button>
+          </div>
+          <div class="label-and-input">
+            <div class="label">Описание:</div>
+            <textarea v-model="song.description" class="input-field" rows="4" />
+            <button
+              class="btn-round"
+              :disabled="notChanged('description')"
+              @click="undoField('description')"
+            >
+              <img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg" />
+            </button>
+          </div>
+          <div class="label-and-input">
             <div class="label">Тэги:</div>
             <input v-model="song.tags" class="input-field" />
             <button class="btn-round" :disabled="notChanged('tags')" @click="undoField('tags')">

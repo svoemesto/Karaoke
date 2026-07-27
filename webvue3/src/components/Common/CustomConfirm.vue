@@ -47,6 +47,15 @@
                 <option v-for="opt in fld.fldOptions" :key="opt" :value="opt" v-text="opt" />
               </select>
             </div>
+            <div v-else-if="fld.fldIsTextarea" class="сс-param-line-buttons">
+              <textarea
+                v-model="fld.fldValue"
+                class="сс-textarea-field"
+                :style="fld.fldValueStyle"
+                :disabled="fld.disabled"
+                rows="4"
+              />
+            </div>
             <div v-else class="сс-param-line-buttons">
               <input v-model="fld.fldValue" :style="fld.fldValueStyle" :disabled="fld.disabled" />
             </div>
@@ -85,8 +94,13 @@
  * Использует `v-html` для message (поэтому message должен быть
  * подготовленным, не пользовательским вводом).
  *
+ * Элементы `params.fields[]` рендерятся как `<input>` по умолчанию, `fldIsBoolean`/`fldIsSelect` —
+ * как переключатель/`<select>`, `fldIsTextarea: true` — как многострочный `<textarea>`
+ * (используется для длинных полей вроде "Описание", см. specs/012-entity-description-fields).
+ *
  * @emits close - закрытие модалки (с `confirmed: true/false`)
  * @see AGENTS.md
+ * @see specs/012-entity-description-fields/spec.md
  */
 export default {
   name: 'CustomConfirm',
@@ -319,5 +333,14 @@ export default {
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
+}
+
+.сс-textarea-field {
+  box-sizing: border-box;
+  border: 1px solid gray;
+  padding: 4px 6px;
+  background-color: white;
+  font-family: inherit;
+  resize: vertical;
 }
 </style>

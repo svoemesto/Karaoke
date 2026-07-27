@@ -2854,6 +2854,9 @@ class ApiController(
         @RequestParam(required = false) idTariff: String?,
         @RequestParam(required = false) songType: String?,
         @RequestParam(required = false) albumId: String?,
+        @RequestParam(required = false) description: String?,
+        @RequestParam(required = false) shortDescription: String?,
+        @RequestParam(required = false) warning: String?,
     ): Boolean {
         val settingsId: Long = id.toLong()
         val settings =
@@ -2947,6 +2950,9 @@ class ApiController(
             free?.let { sett.fields[SongField.FREE] = it }
             idTariff?.let { sett.fields[SongField.ID_TARIFF] = it }
             songType?.let { sett.songType = SongType.entries.firstOrNull { st -> st.dbValue == it.lowercase() } ?: SongType.SONG }
+            description?.let { sett.description = it }
+            shortDescription?.let { sett.shortDescription = it }
+            warning?.let { sett.warning = it }
             // FR-008 (specs/011-album-song-rename): альбом песни обязан принадлежать тому же автору,
             // что и главный автор песни — иначе противоречивое состояние "автор песни" != "автор альбома".
             albumId?.let { rawAlbumId ->
@@ -5702,6 +5708,9 @@ class ApiController(
         @RequestParam(required = true) skip: Boolean,
         @RequestParam(required = false) aliases: String?,
         @RequestParam(required = false) isSpecialOrder: Boolean?,
+        @RequestParam(required = false) description: String?,
+        @RequestParam(required = false) shortDescription: String?,
+        @RequestParam(required = false) warning: String?,
     ): Long {
         Author
             .getAuthorById(
@@ -5720,6 +5729,9 @@ class ApiController(
                 it.skip = skip
                 aliases?.let { a -> it.aliases = a }
                 isSpecialOrder?.let { v -> it.isSpecialOrder = v }
+                description?.let { v -> it.description = v }
+                shortDescription?.let { v -> it.shortDescription = v }
+                warning?.let { v -> it.warning = v }
                 it.save()
                 return id
             }
@@ -5831,6 +5843,9 @@ class ApiController(
         @RequestParam(required = true) name: String,
         @RequestParam(required = false) albumType: String?,
         @RequestParam(required = false) sortOrder: Int?,
+        @RequestParam(required = false) description: String?,
+        @RequestParam(required = false) shortDescription: String?,
+        @RequestParam(required = false) warning: String?,
     ): Long {
         val newAlbum = Album(database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
         newAlbum.authorId = authorId
@@ -5838,6 +5853,9 @@ class ApiController(
         newAlbum.name = name
         albumType?.let { newAlbum.albumType = it }
         sortOrder?.let { newAlbum.sortOrder = it }
+        description?.let { newAlbum.description = it }
+        shortDescription?.let { newAlbum.shortDescription = it }
+        warning?.let { newAlbum.warning = it }
         return Album.createNewAlbum(newAlbum, WORKING_DATABASE)?.id ?: 0L
     }
 
@@ -5850,6 +5868,9 @@ class ApiController(
         @RequestParam(required = true) name: String,
         @RequestParam(required = true) albumType: String,
         @RequestParam(required = true) sortOrder: Int,
+        @RequestParam(required = false) description: String?,
+        @RequestParam(required = false) shortDescription: String?,
+        @RequestParam(required = false) warning: String?,
     ): Long {
         Album
             .getAlbumById(
@@ -5863,6 +5884,9 @@ class ApiController(
                 it.name = name
                 it.albumType = albumType
                 it.sortOrder = sortOrder
+                description?.let { v -> it.description = v }
+                shortDescription?.let { v -> it.shortDescription = v }
+                warning?.let { v -> it.warning = v }
                 it.save()
                 return id
             }

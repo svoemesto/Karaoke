@@ -165,6 +165,9 @@ data class SongDTO(
     val formattedTextSong: String,
     val formattedTextTabs: String,
     val formattedTextChords: String,
+    val description: String = "",
+    val shortDescription: String = "",
+    val warning: String = "",
     val rootId: Long,
     val audioParentId: Long,
     val audioSimilarityPercent: Int,
@@ -266,6 +269,9 @@ data class SongDTO(
         entity.formattedTextSong = formattedTextSong
         entity.formattedTextTabs = formattedTextTabs
         entity.formattedTextChords = formattedTextChords
+        entity.description = description
+        entity.shortDescription = shortDescription
+        entity.warning = warning
         entity.rootId = rootId
         entity.audioParentId = audioParentId
         entity.audioSimilarityPercent = audioSimilarityPercent
@@ -406,6 +412,9 @@ data class SongDTO(
             formattedTextSong = formattedTextSong,
             formattedTextTabs = formattedTextTabs,
             formattedTextChords = formattedTextChords,
+            description = description,
+            shortDescription = shortDescription,
+            warning = warning,
             rootId = rootId,
             exclusive = exclusive,
             free = free,

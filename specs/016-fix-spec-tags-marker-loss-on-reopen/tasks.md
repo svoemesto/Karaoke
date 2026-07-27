@@ -4,7 +4,7 @@ description: "Task list — багфикс потери маркеров пос�
 
 # Tasks: Спецтеги — сохранение маркеров после «Точные маркеры → Apply → Save → reopen»
 
-**Input**: Design documents from `/specs/015-fix-spec-tags-marker-loss-on-reopen/`
+**Input**: Design documents from `/specs/016-fix-spec-tags-marker-loss-on-reopen/`
 - `plan.md` (required) — Technical Context + Constitution Check 7/7 PASS + Project Structure
 - `spec.md` (required) — 3 user stories: US1 (P1), US2 (P2), US3 (P3)
 - `research.md` — локализация первопричины (13-шаговый trace + 4-шаговый fix)
@@ -34,7 +34,7 @@ description: "Task list — багфикс потери маркеров пос�
 
 **Purpose**: убедиться, что мы в нужной ветке, baseline-файлы на месте, существующие тесты проходят (регрессия).
 
-- [x] T001 [P] Проверить `git status` — должна быть чистая ветка `015-fix-spec-tags-marker-loss-on-reopen` от свежего `master` (`git log --oneline -1` показывает `master` HEAD)
+- [x] T001 [P] Проверить `git status` — должна быть чистая ветка `016-fix-spec-tags-marker-loss-on-reopen` от свежего `master` (`git log --oneline -1` показывает `master` HEAD)
 - [x] T002 [P] Убедиться, что `webvue3/src/components/Songs/edit/SubsEdit.vue` существует и `wc -l` показывает ~5711 строк (текущий размер файла на момент планирования)
 - [x] T003 Запустить `./gradlew :karaoke-app:test --tests "com.svoemesto.karaokeapp.model.SpecTagsTest"` — должен пройти (регрессия для backend-контракта спецтегов)
 - [x] T004 [P] Запустить `./gradlew :karaoke-app:test --tests "com.svoemesto.karaokeapp.model.WhisperMarkerAlignerSpecTagsTest"` (если класс существует) — должен пройти
@@ -162,9 +162,9 @@ description: "Task list — багфикс потери маркеров пос�
 - [x] T018 [P] Запустить `cd webvue3 && npm run build` — должен собраться без ошибок и warnings (Smoke test сборки)
 - [x] T019 [P] Запустить `bash tools/check-jsdoc-coverage.sh webvue3` — KDoc/JSDoc coverage должен остаться 100% (или в пределах baseline)
 - [x] T020 Запустить `./gradlew :karaoke-app:test --tests "com.svoemesto.karaokeapp.model.SpecTagsTest" --tests "com.svoemesto.karaokeapp.model.WhisperMarkerAlignerSpecTagsTest"` — должны пройти (регрессия backend-контракта спецтегов)
-- [x] T021 [P] Обновить `specs/010-lyrics-spec-tags/tasks.md` — поставить `[X]` (завершено) на T024 («Ручная проверка в браузере по `quickstart.md` Сценариям D и E»), заменив его ссылкой на `specs/015-fix-spec-tags-marker-loss-on-reopen/quickstart.md` (новые сценарии A-G расширяют и формализуют старую проверку)
+- [x] T021 [P] Обновить `specs/010-lyrics-spec-tags/tasks.md` — поставить `[X]` (завершено) на T024 («Ручная проверка в браузере по `quickstart.md` Сценариям D и E»), заменив его ссылкой на `specs/016-fix-spec-tags-marker-loss-on-reopen/quickstart.md` (новые сценарии A-G расширяют и формализуют старую проверку)
 - [x] T022 [P] Добавить запись в `docs/architecture-notes.md` (Pass 26+) — короткий changelog-блок про 015-фикс: первопричина (асимметрия watcher'ов в `mounted()`), что изменилось (порядок в `mounted()` + `currentVoice` watcher'е, опциональные гарды), какие сценарии покрывает (`quickstart.md` A-G), какие задачи остаются (`T023`/`T024` из спеки 010 закрыты этим PR; `T025`/`T026` — KDoc/JSDoc-синхронизация)
-- [x] T023 [P] В `AGENTS.md` секции «Q&A (Pass 24)» добавить новый вопрос «Какая первопричина потери маркеров на reopen в `SubsEdit.vue`?» с кратким ответом (1-2 предложения) и ссылкой на `specs/015-fix-spec-tags-marker-loss-on-reopen/`
+- [x] T023 [P] В `AGENTS.md` секции «Q&A (Pass 24)» добавить новый вопрос «Какая первопричина потери маркеров на reopen в `SubsEdit.vue`?» с кратким ответом (1-2 предложения) и ссылкой на `specs/016-fix-spec-tags-marker-loss-on-reopen/`
 - [ ] T024 Пройти `quickstart.md` Сценарий A (баг-репро: открыть → Точные маркеры → Apply → Save → close → reopen) — все маркеры должны быть на месте, без дубликатов
 - [ ] T025 Пройти `quickstart.md` Сценарий B (регрессия: та же последовательность на песне БЕЗ спецтегов) — поведение должно быть байт-в-байт как до фикса
 - [ ] T026 Пройти `quickstart.md` Сценарии C, D, E, F, G — все должны проходить

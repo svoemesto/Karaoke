@@ -1,8 +1,8 @@
 # Implementation Plan: Спецтеги — сохранение маркеров после «Точные маркеры → Apply → Save → reopen»
 
-**Branch**: `015-fix-spec-tags-marker-loss-on-reopen` | **Date**: 2026-07-27 | **Spec**: [spec.md](./spec.md)
+**Branch**: `016-fix-spec-tags-marker-loss-on-reopen` | **Date**: 2026-07-27 | **Spec**: [spec.md](./spec.md)
 
-**Input**: Feature specification from `/specs/015-fix-spec-tags-marker-loss-on-reopen/spec.md`
+**Input**: Feature specification from `/specs/016-fix-spec-tags-marker-loss-on-reopen/spec.md`
 
 ## Summary
 
@@ -49,7 +49,7 @@ Bugfix для `webvue3/src/components/Songs/edit/SubsEdit.vue`: на ПЕРВО�
 ### Documentation (this feature)
 
 ```text
-specs/015-fix-spec-tags-marker-loss-on-reopen/
+specs/016-fix-spec-tags-marker-loss-on-reopen/
 ├── plan.md              # Этот файл
 ├── research.md          # Phase 0: первопричина + дизайн фикса
 ├── data-model.md        # Phase 1: sourceMarkers / loadedMarkers / SourceMarker

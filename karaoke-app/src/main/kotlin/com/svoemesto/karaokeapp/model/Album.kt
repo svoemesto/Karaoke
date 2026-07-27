@@ -246,6 +246,68 @@ class Album(
         }
 
         /**
+         * Возвращает id «главной» песни альбома ([Song.firstSongInAlbum] = TRUE), либо — fallback —
+         * id песни с минимальным id в этом альбоме. `null`, если у альбома нет песен.
+         *
+         * Используется в админском компоненте `webvue3/src/components/Albums/AlbumsTable.vue`
+         * для контекста [AlbumCoverModal]: модалка привязана к конкретной песне через
+         * `currentSongId` (нужен [Song.rootFolder] для чтения/записи `LogoAlbum.png`).
+         * Возвращаемый id — это «репрезентативная» песня альбома, через которую модалка
+         * получает доступ к обложке. Никак не модифицирует данные.
+         *
+         * Семантика `first_song_in_album` живёт в [Song.firstSongInAlbum] и используется
+         * в [Publication] как маркер «главной» песни. Fallback на `MIN(id)` — страховка
+         * от неполных данных (когда ни одна песня альбома не помечена `first_song_in_album`).
+         *
+         * @return id песни альбома или `null`, если у альбома нет ни одной песни
+         * @see specs/014-album-cell-album-cover-modal/contracts/api.md
+         */
+        fun getFirstSongId(
+            albumId: Long,
+            database: KaraokeConnection,
+        ): Long? {
+            val connection = database.getConnection() ?: return null
+
+            // Сначала ищем firstSongInAlbum = TRUE (семантически «главная» песня альбома).
+            val firstSql =
+                """
+                SELECT id FROM tbl_songs
+                WHERE album_id = ?
+                  AND first_song_in_album = TRUE
+                ORDER BY id
+                LIMIT 1
+                """.trimIndent()
+            connection.prepareStatement(firstSql).use { ps ->
+                ps.setLong(1, albumId)
+                val rs = ps.executeQuery()
+                if (rs.next()) {
+                    val id = rs.getLong("id")
+                    if (!rs.wasNull()) return id
+                }
+            }
+
+            // Fallback: минимальный id (защита от неполных данных, когда firstSongInAlbum
+            // не выставлен ни для одной песни альбома).
+            val fallbackSql =
+                """
+                SELECT id FROM tbl_songs
+                WHERE album_id = ?
+                ORDER BY id
+                LIMIT 1
+                """.trimIndent()
+            connection.prepareStatement(fallbackSql).use { ps ->
+                ps.setLong(1, albumId)
+                val rs = ps.executeQuery()
+                if (rs.next()) {
+                    val id = rs.getLong("id")
+                    if (!rs.wasNull()) return id
+                }
+            }
+
+            return null
+        }
+
+        /**
          * Переупорядочить альбомы (например, после drag-and-drop в модалке "Альбомы автора"):
          * `orderedIds` — id альбомов в желаемом порядке отображения (сквозном, не по годам),
          * каждому присваивается `sortOrder` = его индекс в списке. Альбомы, чей `sortOrder` уже

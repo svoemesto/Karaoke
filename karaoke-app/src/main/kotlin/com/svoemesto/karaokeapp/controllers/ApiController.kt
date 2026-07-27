@@ -5835,6 +5835,28 @@ class ApiController(
         )
     }
 
+    /**
+     * Возвращает id «главной» песни альбома для контекста [AlbumCoverModal] (модалка обложки
+     * альбома, вызываемая из `webvue3/src/components/Albums/AlbumsTable.vue` по клику на
+     * preview `(альбом)` или на название альбома). Модалка привязана к конкретной песне
+     * через `currentSongId` — ей нужен `Song.rootFolder` для чтения/записи `LogoAlbum.png`
+     * и `Song.album`/`Song.author` для дефолтного поискового запроса.
+     *
+     * Поиск: сначала `first_song_in_album = TRUE` (семантика из [Song.firstSongInAlbum]),
+     * иначе fallback на `MIN(id)`. Если у альбома нет ни одной песни — возвращает `0L`
+     * (UI должен блокировать клик в этом случае — см. `AlbumsTable.vue::canEditCover`).
+     *
+     * Не участвует в LOCAL↔SERVER sync (read-only lookup, не меняет данные).
+     *
+     * @return id песни альбома или `0L`, если у альбома нет песен
+     * @see specs/014-album-cell-album-cover-modal/contracts/api.md
+     */
+    @PostMapping("/albums/firstsongid")
+    @ResponseBody
+    fun apisGetFirstSongIdByAlbumId(
+        @RequestParam(required = true) albumId: Long,
+    ): Long = Album.getFirstSongId(albumId, WORKING_DATABASE) ?: 0L
+
     @PostMapping("/albums/createalbum")
     @ResponseBody
     fun apisCreateAlbum(

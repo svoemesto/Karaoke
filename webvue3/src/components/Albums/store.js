@@ -58,6 +58,25 @@ export default {
           console.log(error)
         })
     },
+    /**
+     * Возвращает id «главной» песни альбома для контекста AlbumCoverModal.
+     * Используется в AlbumsTable.vue при клике по preview `(альбом)` или по названию
+     * альбома — модалка привязана к конкретной песне через `currentSongId`.
+     * Возвращает 0, если у альбома нет песен (UI должен блокировать клик в этом случае).
+     *
+     * @param {object} ctx — Vuex action context
+     * @param {number} albumId — id альбома из albumsDigest
+     * @return {Promise<number>} id песни альбома или 0, если песен нет
+     * @see specs/014-album-cell-album-cover-modal/contracts/api.md
+     */
+    getFirstSongIdByAlbumIdPromise(ctx, albumId) {
+      let request = {
+        method: 'POST',
+        url: '/api/albums/firstsongid',
+        params: { albumId },
+      }
+      return promisedXMLHttpRequest(request).then((data) => Number(data))
+    },
     loadAlbumsDigests(ctx, params) {
       let request = { method: 'POST', url: '/api/albums/albumsdigests', params: params }
       ctx.commit('setAlbumsDigestIsLoading', true)

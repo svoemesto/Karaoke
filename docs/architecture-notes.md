@@ -413,3 +413,40 @@ cp <template> ./CLAUDE.md   # локально, НЕ коммитить
 ---
 
 *Последнее обновление: 2026-07-21 (Pass 14, 19 PR в master).*
+
+## Pass 27 — Альбомы: клик по ячейке открывает модалку обложки альбома (2026-07-27)
+
+**Спецификация:** `specs/014-album-cell-album-cover-modal/`
+**Ветка:** `014-album-cell-album-cover-modal`
+
+**Что сделано:**
+
+- **Backend** (`karaoke-app`):
+  - `Album.kt` — новый helper `fun getFirstSongId(albumId, database): Long?`
+    (SQL: сначала `first_song_in_album = TRUE`, fallback `MIN(id)`).
+  - `ApiController.kt` — новый endpoint `POST /api/albums/firstsongid?albumId=X`
+    (возвращает `Long` или `0L`). **НЕ участвует в sync** (read-only lookup).
+
+- **Frontend** (`webvue3`):
+  - `Albums/store.js` — action `getFirstSongIdByAlbumIdPromise(albumId)`.
+  - `AlbumsTable.vue`:
+    - Computed `canEditCover(item)` — `true` только при `songsCount > 0`.
+    - Data: `isAlbumCoverModalVisible`, `prevCurrentSongId`, `currentAlbumCoverAlbumId`.
+    - Импорт + регистрация `AlbumCoverModal` (компонент НЕ изменён).
+    - Методы `openAlbumCoverModal`/`closeAlbumCoverModal`/`onAlbumCoverSaved`
+      с подменой/восстановлением `currentSongId` через `setCurrentSongIdOnly`.
+    - Клик по `cell(albumPicture)` (preview) И `cell(name)` (название) — теперь
+      открывает `AlbumCoverModal` (раньше preview открывал `PictureEditModal`,
+      название — `CustomConfirm` редактирования атрибутов).
+    - CSS `.is-clickable` — единый hover для обеих ячеек.
+  - `AlbumCoverModal.vue` — **НЕ ИЗМЕНЁН** (требование пользователя: «такая же модалка»).
+  - `Song.kt`, `Picture.kt`, `Pictures.kt`, `SyncTarget.kt` — **НЕ ИЗМЕНЕНЫ** (инвариант).
+
+**Линт/coverage:** ktlintCheck ✅, eslint ✅, KDoc 96.7% (≥ 50% target), JSDoc 100%.
+
+**Решения (research.md):**
+1. Новый endpoint вместо расширения `AlbumDTO` (минимальная инвазивность).
+2. Подмена `currentSongId` обратима (защита от потери рабочего контекста администратора).
+3. Комбинация `first_song_in_album = TRUE` + fallback на `MIN(id)`.
+
+**Связанные документы:** `specs/014-album-cell-album-cover-modal/{spec,plan,research,data-model,quickstart,contracts/api,tasks}.md`.

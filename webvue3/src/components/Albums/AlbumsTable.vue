@@ -7,6 +7,11 @@
     />
     <AlbumsFilter v-if="isAlbumsFilterVisible" @close="closeAlbumsFilter" />
     <PictureEditModal v-if="isPictureEditVisible" @close="closePictureEdit" />
+    <AlbumCoverModal
+      v-if="isAlbumCoverModalVisible"
+      @saved="onAlbumCoverSaved"
+      @close="closeAlbumCoverModal"
+    />
     <div class="albums-bv-table-header">
       <b-pagination
         v-model="currentPage"
@@ -59,8 +64,9 @@
         <template #cell(albumPicture)="data">
           <div
             class="fld-picture-preview"
-            :title="data.item.name"
-            @click.left="editPicture(data.item.albumPictureId)"
+            :class="{ 'is-clickable': canEditCover(data.item) }"
+            :title="canEditCover(data.item) ? data.item.name : 'У альбома нет песен — обложка недоступна'"
+            @click.left="canEditCover(data.item) && openAlbumCoverModal(data.item)"
           >
             <img
               v-if="data.item.albumPicturePreviewUrl"
@@ -89,7 +95,13 @@
         </template>
 
         <template #cell(name)="data">
-          <div class="fld-album-name" @click.left="changeValue(data.item)" v-text="data.value" />
+          <div
+            class="fld-album-name"
+            :class="{ 'is-clickable': canEditCover(data.item) }"
+            :title="canEditCover(data.item) ? 'Изменить обложку альбома' : 'У альбома нет песен — обложка недоступна'"
+            @click.left="canEditCover(data.item) ? openAlbumCoverModal(data.item) : changeValue(data.item)"
+            v-text="data.value"
+          />
         </template>
 
         <template #cell(albumType)="data">
@@ -145,6 +157,7 @@ import { BPagination, BSpinner, BTable } from 'bootstrap-vue-next'
 import CustomConfirm from '../Common/CustomConfirm.vue'
 import AlbumsFilter from './filter/AlbumsFilterModal.vue'
 import PictureEditModal from '../Pictures/edit/PictureEditModal.vue'
+import AlbumCoverModal from '../Songs/edit/AlbumCoverModal.vue'
 
 // Значения соответствуют AlbumType.dbValue (karaoke-app/model/AlbumType.kt) — не менять без
 // синхронной правки бэкенда.
@@ -176,6 +189,7 @@ export default {
     CustomConfirm,
     AlbumsFilter,
     PictureEditModal,
+    AlbumCoverModal,
     BPagination,
     BSpinner,
     BTable,
@@ -188,6 +202,14 @@ export default {
       isCustomConfirmVisible: false,
       isAlbumsFilterVisible: false,
       isPictureEditVisible: false,
+      isAlbumCoverModalVisible: false,
+      // prevCurrentSongId запоминается при открытии модалки AlbumCoverModal из AlbumsTable
+      // и восстанавливается при её закрытии — чтобы не терять рабочий контекст администратора,
+      // если он до этого был в /Songs. Подробнее — research.md Decision 2.
+      prevCurrentSongId: null,
+      // id альбома, для которого сейчас открыта модалка обложки (нужен для loadOneRecord
+      // после @saved, чтобы обновить preview в строке таблицы).
+      currentAlbumCoverAlbumId: null,
       customConfirmParams: undefined,
       isBusy: false,
       // Объединённый список опций типа альбома (value + label) для inline-<select>
@@ -212,6 +234,12 @@ export default {
     // Показывать подсказку «Задайте фильтр», если таблица пуста и загрузка не идёт.
     showEmptyHint() {
       return !this.albumsDigestIsLoading && this.countRows === 0
+    },
+    // Можно ли открыть модалку обложки альбома — true только если у альбома есть хотя бы
+    // одна песня (songsCount > 0). Без песен у альбома нет rootFolder/LogoAlbum.png —
+    // AlbumCoverModal работать не сможет (см. research.md Decision 1 + INV-1 в data-model.md).
+    canEditCover() {
+      return (item) => item && item.songsCount > 0
     },
     albumDigestFields() {
       return [
@@ -313,6 +341,56 @@ export default {
     },
     closeAlbumsFilter() {
       this.isAlbumsFilterVisible = false
+    },
+    // Открывает модалку AlbumCoverModal для смены обложки альбома (та же модалка, что в
+    // SongEdit.vue по кнопке «Изменить обложку альбома»). Перед открытием:
+    //   1) запоминаем prevCurrentSongId (если SongsStore.currentSongId был установлен — мы
+    //      могли прийти сюда из /Songs);
+    //   2) узнаём id «главной» песни альбома через Albums/getFirstSongIdByAlbumIdPromise
+    //      (см. research.md Decision 1, fallback на MIN(id) — любая песня альбома подойдёт);
+    //   3) устанавливаем currentSongId БЕЗ сетевого запроса (setCurrentSongIdOnly — модалка
+    //      сама дёрнет getAlbumPictureBase64Promise, который подтянет данные).
+    // На @close / @saved — closeAlbumCoverModal восстанавливает prevCurrentSongId.
+    async openAlbumCoverModal(item) {
+      if (!this.canEditCover(item)) return
+      this.prevCurrentSongId = this.$store.getters.getCurrentSongId
+      this.currentAlbumCoverAlbumId = item.id
+      this.isBusy = true
+      try {
+        const firstSongId = await this.$store.dispatch(
+          'getFirstSongIdByAlbumIdPromise',
+          item.id,
+        )
+        if (!firstSongId) {
+          // Бэк вернул 0 — песен нет (race condition с UI-блокировкой songsCount === 0)
+          console.warn('Альбом без песен, модалка не открыта:', item.id)
+          this.currentAlbumCoverAlbumId = null
+          return
+        }
+        this.$store.commit('setCurrentSongIdOnly', firstSongId)
+        this.isAlbumCoverModalVisible = true
+      } catch (e) {
+        console.error('Ошибка при получении firstSongId для альбома', item.id, e)
+        this.currentAlbumCoverAlbumId = null
+      } finally {
+        this.isBusy = false
+      }
+    },
+    closeAlbumCoverModal() {
+      this.isAlbumCoverModalVisible = false
+      // Восстанавливаем прежнее значение currentSongId (либо null, если до клика не было).
+      // Подробнее — research.md Decision 2 + US3/SC-004 в spec.md.
+      this.$store.commit('setCurrentSongIdOnly', this.prevCurrentSongId || null)
+      this.prevCurrentSongId = null
+    },
+    onAlbumCoverSaved() {
+      // Модалка эмитнула saved → close (внутри себя) → наш @close уже сработал
+      // и currentSongId восстановлен. Здесь только обновляем превью в строке таблицы.
+      const albumId = this.currentAlbumCoverAlbumId
+      this.currentAlbumCoverAlbumId = null
+      if (albumId) {
+        this.$store.dispatch('loadOneRecord', albumId)
+      }
     },
     changeValue(item) {
       this.customConfirmParams = {
@@ -599,6 +677,19 @@ export default {
 .fld-album-sort-order:hover {
   text-decoration: underline;
   cursor: pointer;
+}
+/* Кликабельные ячейки открытия обложки альбома (preview `(альбом)` и `Название`) — см.
+   specs/014-album-cell-album-cover-modal. Класс .is-clickable добавляется computed'ом
+   canEditCover только если songsCount > 0; без песен — клик заблокирован (INV-1). */
+.fld-picture-preview.is-clickable,
+.fld-album-name.is-clickable {
+  cursor: pointer;
+}
+.fld-picture-preview.is-clickable:hover {
+  background-color: #2a2a2a;
+}
+.fld-album-name.is-clickable:hover {
+  text-decoration: underline;
 }
 .fld-picture-preview {
   min-width: 50px;

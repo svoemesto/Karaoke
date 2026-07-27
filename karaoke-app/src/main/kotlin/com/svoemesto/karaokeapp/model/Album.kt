@@ -199,5 +199,65 @@ class Album(
                 storageService = storageService,
                 storageApiClient = storageApiClient,
             )
+
+        /**
+         * Найти или создать альбом по свободнотекстовым автору/году/названию — используется как
+         * при импорте новых песен из папки ([Song.createFromPath]), так и одноразовым бэкфиллом
+         * ([AlbumBackfill]). Создаёт (или переиспользует) [Author] по имени. Пустое название альбома
+         * — валидный случай "без альбома" (сингл), возвращает `null`, альбом не создаётся (FR-006).
+         * Новый альбом получает `sortOrder` = "в конец" (максимум среди уже существующих альбомов
+         * этого автора+года плюс один) — не пытается угадать алфавитную позицию среди ещё не
+         * загруженных альбомов, чтобы не переставлять уже сохранённый вручную порядок соседей.
+         */
+        fun findOrCreateForSongImport(
+            authorName: String,
+            year: Int,
+            albumName: String,
+            database: KaraokeConnection,
+            storageService: KaraokeStorageService,
+            storageApiClient: StorageApiClient,
+        ): Album? {
+            if (albumName.isBlank()) return null
+            val author =
+                Author.getAuthorByName(
+                    author = authorName,
+                    database = database,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                ) ?: Author
+                    .createNewAuthor(
+                        newAuthor =
+                            Author(database = database, storageService = storageService, storageApiClient = storageApiClient).apply {
+                                this.author = authorName
+                            },
+                        database = database,
+                    ) ?: return null
+
+            getAlbumByAuthorYearName(
+                authorId = author.id,
+                year = year,
+                name = albumName,
+                database = database,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )?.let { return it }
+
+            val nextSortOrder =
+                getAlbumsByAuthorId(author.id, database, storageService, storageApiClient)
+                    .filter { it.year == year }
+                    .maxOfOrNull { it.sortOrder }
+                    ?.plus(1) ?: 0
+
+            return createNewAlbum(
+                newAlbum =
+                    Album(database = database, storageService = storageService, storageApiClient = storageApiClient).apply {
+                        this.authorId = author.id
+                        this.year = year
+                        this.name = albumName
+                        this.sortOrder = nextSortOrder
+                    },
+                database = database,
+            )
+        }
     }
 }

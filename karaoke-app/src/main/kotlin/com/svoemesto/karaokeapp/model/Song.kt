@@ -7548,6 +7548,20 @@ class Song(
                             settings.fields[SongField.ALBUM] = albumStr
                             settings.fields[SongField.TRACK] = numberStr
                             settings.fields[SongField.AUTHOR] = authorStr
+                            // specs/011-album-song-rename: находим/создаём Author+Album по тем же
+                            // author/year/album, что распарсили из пути, и сразу проставляем albumId
+                            // — иначе песня из импорта остаётся без связи с альбомом до ручного
+                            // запуска бэкфилла (см. AlbumBackfill).
+                            settings.albumId =
+                                Album
+                                    .findOrCreateForSongImport(
+                                        authorName = authorStr,
+                                        year = yearStr.toIntOrNull() ?: 0,
+                                        albumName = albumStr,
+                                        database = database,
+                                        storageService = storageService,
+                                        storageApiClient = storageApiClient,
+                                    )?.id
                             settings.saveToDb()
                             result.add(settings)
 

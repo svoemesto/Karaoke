@@ -78,6 +78,7 @@ class MainController(
         }
         model.addAttribute("author_init", author ?: "")
         model.addAttribute("authors", Song.loadListAuthors(withSkiped = false, database = WORKING_DATABASE))
+        // Публичная поверхность прода — показываем только готовые песни (specs/013-song-status-filter).
         model.addAttribute(
             "zakroma",
             Zakroma.getZakroma(
@@ -85,6 +86,7 @@ class MainController(
                 database = WORKING_DATABASE,
                 storageService = storageService,
                 storageApiClient = storageApiClient,
+                onlyPublished = true,
             ),
         )
         doRegisterEvent(
@@ -328,6 +330,8 @@ class MainController(
         if (author != null && author != "") attr["author"] = author
         if (text != null && text != "") attr["text"] = text
         if (album != null && album != "") attr["song_album"] = album
+        // Публичная поверхность прода — показываем только готовые песни (specs/013-song-status-filter).
+        attr["id_status"] = ">=3"
 
         val settings: List<Song> =
             if ("${songName ?: ""}${author ?: ""}${album ?: ""}${text ?: ""}".length <

@@ -2,7 +2,7 @@
 
 > **Status**: active
 > **Feature Key**: stats
-> **Last Updated**: 2026-07-21
+> **Last Updated**: 2026-07-27
 
 ## Что делает
 
@@ -45,6 +45,16 @@
 SQL-аппроксимация готовности премиум-плеера (точная проверка живёт в
 `PublicPlayerController.stemsReady()` и делает 2 HEAD-запроса в MinIO на
 песню — слишком дорого для 18k+ записей на главной).
+
+**Согласованность с листингами** (specs/013-song-status-filter): до этой
+фичи счётчик «Песен в коллекции» использовал `id_status>=3`, но публичные
+закрома и поиск (`PublicApiController`/`MainController` в `karaoke-web`)
+показывали песни любого статуса — счётчик на главной мог показывать меньше,
+чем реально было видно в закромах/поиске. Теперь `Zakroma.getZakroma`/
+`getZakromaBySpecialOrder` (параметр `onlyPublished`) и прямые вызовы
+`Song.loadListFromDb` в публичных read-путях используют тот же порог
+`id_status>=3`, что и этот счётчик — см. [special-orders.md](./special-orders.md)
+для деталей параметра.
 
 ### Кеш в AtomicInteger
 
@@ -121,3 +131,5 @@ Spring `@Cacheable` намеренно НЕ подключён (нет `@EnableC
 - [dual-db-sync.md](./dual-db-sync.md) — синхронизация `tbl_web_event` LOCAL↔SERVER
 - [ci-lint-enforcement.md](./ci-lint-enforcement.md) — почему нет `@Cacheable`
 - [CONTRIBUTING.md](../../CONTRIBUTING.md) — правила оформления кода
+- [special-orders.md](./special-orders.md) — `Zakroma.getZakroma`/`getZakromaBySpecialOrder` теперь тоже фильтруют по `id_status>=3`
+- [specs/013-song-status-filter/spec.md](../../specs/013-song-status-filter/spec.md) — согласование счётчика «в коллекции» с листингами

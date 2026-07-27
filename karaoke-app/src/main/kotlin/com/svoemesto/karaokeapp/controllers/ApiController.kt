@@ -5773,6 +5773,7 @@ class ApiController(
     fun apisAlbumsDigest(
         @RequestParam(required = false) filterId: String?,
         @RequestParam(required = false) filterAuthorId: String?,
+        @RequestParam(required = false) filterAuthorName: String?,
         @RequestParam(required = false) filterYear: String?,
         @RequestParam(required = false) filterName: String?,
         @RequestParam(required = false) filterAlbumType: String?,
@@ -5780,8 +5781,17 @@ class ApiController(
         val args: MutableMap<String, String> = mutableMapOf()
         filterId?.let { if (filterId != "") args["id"] = filterId }
         filterAuthorId?.let { if (filterAuthorId != "") args["author_id"] = filterAuthorId }
+        // Автор фильтруется по точному имени (как и в Author.getWhereList) — при отсутствии
+        // совпадения форсируем заведомо пустой результат, а не игнорируем фильтр молча.
+        filterAuthorName?.let {
+            if (it != "") {
+                val author = Author.getAuthorByName(it, WORKING_DATABASE, storageService, storageApiClient)
+                args["author_id"] = author?.id?.toString() ?: "-1"
+            }
+        }
         filterYear?.let { if (filterYear != "") args["year"] = filterYear }
-        filterName?.let { if (filterName != "") args["name"] = filterName }
+        // Частичный поиск (LOWER(name) LIKE) — не точное совпадение, см. Album.getWhereList.
+        filterName?.let { if (filterName != "") args["name_search"] = filterName }
         filterAlbumType?.let { if (filterAlbumType != "") args["album_type"] = filterAlbumType }
         val albumsList =
             Album

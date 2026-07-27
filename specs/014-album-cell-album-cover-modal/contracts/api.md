@@ -46,25 +46,17 @@ fun apisGetFirstSongIdByAlbumId(@RequestParam albumId: Long): Long {
 
 ```kotlin
 /**
- * Возвращает id «главной» песни альбома (firstSongInAlbum = TRUE), либо — fallback — id
- * песни с минимальным id в этом альбоме. null, если у альбома нет песен.
+ * Возвращает id «репрезентативной» песни альбома — песни с минимальным id в этом альбоме.
+ * null, если у альбома нет песен.
  *
  * Используется в AlbumsTable.vue для контекста AlbumCoverModal (модалка привязана к
  * конкретной песне через currentSongId — см. specs/014-album-cell-album-cover-modal).
+ *
+ * ВНИМАНИЕ: в Song есть in-memory поле Song.firstSongInAlbum, но оно НЕ сохраняется
+ * в БД (нет колонки в tbl_songs, нет упоминания в Song.getSqlToInsert). Поэтому
+ * «семантический» вариант first_song_in_album = TRUE невозможен — используем MIN(id).
  */
 fun getFirstSongId(albumId: Long, database: KaraokeConnection): Long? {
-    // Сначала ищем firstSongInAlbum = TRUE
-    val firstSong = database.query("""
-        SELECT id FROM tbl_songs
-        WHERE album_id = ?
-          AND first_song_in_album = TRUE
-        ORDER BY id
-        LIMIT 1
-    """, albumId).firstOrNull()?.getLong("id")
-    if (firstSong != null) return firstSong
-
-    // Fallback: песня с минимальным id (защита от неполных данных, когда
-    // firstSongInAlbum не выставлен ни для одной песни альбома)
     return database.query("""
         SELECT id FROM tbl_songs
         WHERE album_id = ?

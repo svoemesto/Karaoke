@@ -58,22 +58,25 @@
 
 ## Decision 3: Какой endpoint выбрать для получения `firstSongId`
 
-**Контекст:** на бэке уже есть `Song.firstSongInAlbum: Boolean` (`Song.kt:335`) — у каждого альбома есть «главная» песня.
+**Контекст:** на бэке есть `Song.firstSongInAlbum: Boolean` (`Song.kt:335`) — in-memory property, выставляется в коде (строка `Song.kt:7272`), но **НЕ сохраняется в БД** (нет колонки `first_song_in_album` в `tbl_songs`, нет упоминания в `Song.getSqlToInsert`/`Song.loadFromDb`, нет миграции в `deploy/karaoke-db/`).
 
 **Альтернативы:**
 
 | Вариант | Плюсы | Минусы |
 |---|---|---|
-| **A. Искать `first_song_in_album = TRUE`** | Семантически правильно | Может вернуть null, если ни одна песня альбома не помечена как `first` (старая БД / edge cases) |
-| **B. `MIN(id)` среди песен альбома** | Всегда есть результат | Не использует семантику `firstSongInAlbum`, может вернуть «не ту» песню, если у альбома есть песня до `firstSongInAlbum` |
-| **C. Комбинация: сначала `first_song_in_album = TRUE`, иначе `MIN(id)`** | Устойчиво ко всем edge cases | Чуть больше кода в helper'е |
+| **A. Искать `first_song_in_album = TRUE`** | Семантически правильно | **Падает с `column does not exist`** — колонки в БД нет. |
+| **B. `MIN(id)` среди песен альбома** | Всегда есть результат, O(1) | Не использует семантику `firstSongInAlbum`, может вернуть «не главную» песню (но любая песня альбома — корректный контекст для `LogoAlbum.png`) |
+| **C. Добавить миграцию + сохранять `firstSongInAlbum` в `getSqlToInsert`/`loadFromDb`** | Семантически правильно | Большой объём работы (миграция + `recordhash`-триггеры по конституции III, sync-зависимости), выходит за scope hotfix-фичи. **В backlog.** |
 
-**Решение: C (комбинация).**
+**Решение: B (`MIN(id)`).**
 
 **Обоснование:**
-- Семантика `firstSongInAlbum` заведена в `Song.kt:335` именно для таких случаев (см. комментарии в `Publication.kt:91-200`, где `firstSongInAlbum` используется как маркер «главной» песни альбома).
-- Fallback на `MIN(id)` — страховка от неполных данных, цена одного дополнительного `SELECT` на edge case.
+- Единственный стабильный критерий, не зависящий от того, сохранена ли колонка.
+- Любая песня альбома — корректный контекст для `LogoAlbum.png` (картинка хранится в `rootFolder` одной из песен, но видна всем).
+- Стоимость: один `SELECT` O(1) с индексом по `tbl_songs.album_id`.
 - Реализация: helper `Album.getFirstSongId(albumId, database): Long?` в `Album.kt`, вызывается из нового эндпоинта `apisGetFirstSongIdByAlbumId` в `ApiController.kt`.
+
+**Долгосрочно (backlog):** миграция `32_first_song_in_album.sql` + проброс поля в `getSqlToInsert`/`loadFromDb` + обновление `recordhash`-триггеров. Сейчас — out of scope.
 
 ---
 

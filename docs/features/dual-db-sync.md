@@ -83,6 +83,12 @@ Karaoke — self-pipeline. Admin-машина разрабатывает нов�
   добавлены две новые сущности по тому же паттерну `GenericKaraokeDbTableSyncTarget`: `Album`
   (`key = "albums"`, `tbl_albums`) и `SongCoAuthor` (`key = "songcoauthors"`, `tbl_song_authors`,
   многие-ко-многим `Song`↔`Author` для соавторов, отдельно от главного автора).
+- **Новые колонки на уже syncable-таблицах (2026-07-27, specs/012-entity-description-fields)**:
+  `tbl_authors`, `tbl_albums`, `tbl_songs` получили по 3 новых столбца
+  (`description`, `short_description`, `warning`, миграция
+  `deploy/karaoke-db/31_entity_description_fields.sql`) — новых `SyncTarget`/sync-флагов заводить
+  не потребовалось (все три таблицы уже зарегистрированы), но все три `recordhash`-триггера были
+  пересобраны с новыми колонками (иначе diff молча не увидел бы их как расхождение — см. MUST выше).
 
 ## Ссылки на ключевые классы/файлы
 

@@ -92,6 +92,20 @@ class Zakroma(
                         ignoreUseInList = false,
                     )
                 zakroma.picturePreviewFileName = picForAuthorPreview?.storageFileNamePreview ?: ""
+                // specs/012-entity-description-fields FR-011/012/013: описание/короткое
+                // описание/предупреждение автора — из сущности Author по имени (пусто, если
+                // автор ещё не заведён как отдельная сущность, например спецзаказные).
+                Author
+                    .getAuthorByName(
+                        author = authorName,
+                        database = database,
+                        storageService = storageService,
+                        storageApiClient = storageApiClient,
+                    )?.let { linkedAuthor ->
+                        zakroma.authorDescription = linkedAuthor.description
+                        zakroma.authorShortDescription = linkedAuthor.shortDescription
+                        zakroma.authorWarning = linkedAuthor.warning
+                    }
                 val settingsByAlbum = settingsByAuthor.groupBy { it.album }
                 zakroma.albums =
                     settingsByAlbum
@@ -120,6 +134,9 @@ class Zakroma(
                             // привязаны к реальному Album (бэкфилл/ручная привязка), берём его
                             // albumType/sortOrder — иначе остаются дефолты (сортировка по алфавиту,
                             // как и было раньше для ещё не забэкфилленных данных).
+                            // specs/012-entity-description-fields FR-017: дополнительно берём
+                            // description/shortDescription/warning и КАНОНИЧЕСКОЕ название альбома
+                            // из сущности Album (не из свободнотекстовой группировки по песням).
                             settingsByAlbum
                                 .firstOrNull { it.albumId != null }
                                 ?.albumId
@@ -131,8 +148,13 @@ class Zakroma(
                                             storageService = storageService,
                                             storageApiClient = storageApiClient,
                                         )?.let { linkedAlbum ->
+                                            album.albumName = linkedAlbum.name
                                             album.albumType = linkedAlbum.albumType
                                             album.sortOrder = linkedAlbum.sortOrder
+                                            album.description = linkedAlbum.description
+                                            album.shortDescription = linkedAlbum.shortDescription
+                                            album.warning = linkedAlbum.warning
+                                            album.albumTypeLabel = linkedAlbum.albumTypeEnum.description
                                         }
                                 }
                             album.albumSettings =
@@ -183,6 +205,12 @@ class Zakroma(
     var picture: String = ""
     var picturePreviewFileName: String = ""
     var albums: MutableList<ZakromaAlbum> = mutableListOf()
+
+    // specs/012-entity-description-fields: описание/короткое описание/предупреждение автора,
+    // копируются из сущности Author по имени в buildFromSettings() (пусто, если автор не найден).
+    var authorDescription: String = ""
+    var authorShortDescription: String = ""
+    var authorWarning: String = ""
 
     override fun compareTo(other: Zakroma): Int = author.compareTo(other.author)
 }
@@ -254,6 +282,15 @@ class ZakromaAlbum :
     // "не привязано", такие альбомы уходят в конец сортировки.
     var albumType: String = AlbumType.STUDIO.dbValue
     var sortOrder: Int = Int.MAX_VALUE
+
+    // specs/012-entity-description-fields: описание/короткое описание/предупреждение альбома,
+    // копируются из связанной сущности Album (если песни альбома уже к ней привязаны) в
+    // buildFromSettings() — иначе остаются пустыми. albumTypeLabel — каноническая русская подпись
+    // типа (AlbumType.description), единый источник правды вместо дублирующей RU-мапы на фронте.
+    var description: String = ""
+    var shortDescription: String = ""
+    var warning: String = ""
+    var albumTypeLabel: String = AlbumType.STUDIO.description
 
     override fun compareTo(other: ZakromaAlbum): Int {
         val compSortOrder = sortOrder.compareTo(other.sortOrder)

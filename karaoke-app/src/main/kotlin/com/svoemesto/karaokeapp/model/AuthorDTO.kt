@@ -31,6 +31,9 @@ data class AuthorDTO(
      */
     @get:JsonProperty("isSpecialOrder")
     val isSpecialOrder: Boolean = false,
+    val description: String = "",
+    val shortDescription: String = "",
+    val warning: String = "",
     val haveNewAlbum: Boolean,
     val pictureId: Long = 0,
     val picturePreview: String = "",
@@ -53,6 +56,9 @@ data class AuthorDTO(
         entity.skip = skip
         entity.aliases = aliases
         entity.isSpecialOrder = isSpecialOrder
+        entity.description = description
+        entity.shortDescription = shortDescription
+        entity.warning = warning
         return entity
     }
 }

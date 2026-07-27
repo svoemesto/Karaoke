@@ -56,6 +56,18 @@ class Album(
     @KaraokeDbTableField(name = "sort_order")
     var sortOrder: Int = 0
 
+    /** Краткий текст-факт об альбоме (без разметки/выделения), показывается в тултипе на Закромах. */
+    @KaraokeDbTableField(name = "description")
+    var description: String = ""
+
+    /** Короткая пометка после названия альбома на Закромах (напр. "Remastered 2018"). */
+    @KaraokeDbTableField(name = "short_description")
+    var shortDescription: String = ""
+
+    /** Предупреждение, показываемое красным над названием альбома на Закромах. */
+    @KaraokeDbTableField(name = "warning")
+    var warning: String = ""
+
     var albumTypeEnum: AlbumType
         get() = AlbumType.fromDb(albumType)
         set(value) {
@@ -94,6 +106,9 @@ class Album(
             name = name,
             albumType = albumType,
             sortOrder = sortOrder,
+            description = description,
+            shortDescription = shortDescription,
+            warning = warning,
             authorPictureId = authorPicture?.id ?: 0,
             authorPicturePreviewUrl = authorPicture?.toDTO()?.previewUrl ?: "",
             albumPictureId = albumPicture?.id ?: 0,

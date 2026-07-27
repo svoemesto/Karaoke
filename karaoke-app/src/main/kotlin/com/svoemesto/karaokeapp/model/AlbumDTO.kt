@@ -16,6 +16,13 @@ data class AlbumDTO(
     val name: String,
     val albumType: String,
     val sortOrder: Int,
+    // Денормализовано для UI (webvue3 "Альбомы" — превью автора/альбома, как в "Авторы"), не
+    // персистится сама по себе — источник истины остаётся authorId/tbl_pictures.
+    val authorName: String = "",
+    val authorPictureId: Long = 0,
+    val authorPicturePreviewUrl: String = "",
+    val albumPictureId: Long = 0,
+    val albumPicturePreviewUrl: String = "",
 ) : Serializable,
     Comparable<AlbumDTO>,
     KaraokeDbTableDto {

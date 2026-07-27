@@ -5,6 +5,8 @@
       :params="customConfirmParams"
       @close="closeCustomConfirm"
     />
+    <AlbumsFilter v-if="isAlbumsFilterVisible" @close="closeAlbumsFilter" />
+    <PictureEditModal v-if="isPictureEditVisible" @close="closePictureEdit" />
     <div class="albums-bv-table-header">
       <b-pagination
         v-model="currentPage"
@@ -38,6 +40,38 @@
           <col v-for="field in scope.fields" :key="field.key" :style="field.style" />
         </template>
 
+        <template #cell(authorPicture)="data">
+          <div
+            class="fld-picture-preview"
+            :title="data.item.authorName"
+            @click.left="editPicture(data.item.authorPictureId)"
+          >
+            <img
+              v-if="data.item.authorPicturePreviewUrl"
+              :src="data.item.authorPicturePreviewUrl"
+              alt="Author preview"
+              class="preview-image"
+            />
+            <div v-else class="no-image-placeholder">Нет изображения</div>
+          </div>
+        </template>
+
+        <template #cell(albumPicture)="data">
+          <div
+            class="fld-picture-preview"
+            :title="data.item.name"
+            @click.left="editPicture(data.item.albumPictureId)"
+          >
+            <img
+              v-if="data.item.albumPicturePreviewUrl"
+              :src="data.item.albumPicturePreviewUrl"
+              alt="Album preview"
+              class="preview-image"
+            />
+            <div v-else class="no-image-placeholder">Нет изображения</div>
+          </div>
+        </template>
+
         <template #cell(id)="data">
           <div class="fld-album-id" @click.left="changeValue(data.item)" v-text="data.value" />
         </template>
@@ -46,7 +80,7 @@
           <div
             class="fld-album-author"
             @click.left="changeValue(data.item)"
-            v-text="authorName(data.value)"
+            v-text="data.item.authorName || `#${data.value}`"
           />
         </template>
 
@@ -81,12 +115,19 @@
         </template>
       </b-table>
     </div>
+    <div class="albums-bv-table-footer">
+      <button class="btn-round-double" title="Фильтр" @click="isAlbumsFilterVisible = true">
+        <img alt="filter" class="icon-40" src="../../assets/svg/icon_filter.svg" />
+      </button>
+    </div>
   </div>
 </template>
 
 <script>
 import { BPagination, BSpinner, BTable } from 'bootstrap-vue-next'
 import CustomConfirm from '../Common/CustomConfirm.vue'
+import AlbumsFilter from './filter/AlbumsFilterModal.vue'
+import PictureEditModal from '../Pictures/edit/PictureEditModal.vue'
 
 // Значения соответствуют AlbumType.dbValue (karaoke-app/model/AlbumType.kt) — не менять без
 // синхронной правки бэкенда.
@@ -100,8 +141,8 @@ const ALBUM_TYPE_LABELS = {
 }
 
 /**
- * Таблица со списком albums с пагинацией, сортировкой и inline-редактированием — по образцу
- * AuthorsTable.vue.
+ * Таблица со списком albums с пагинацией, фильтром, превью картинок автора/альбома и
+ * inline-редактированием — по образцу AuthorsTable.vue.
  *
  * @see specs/011-album-song-rename/contracts/api.md
  */
@@ -109,6 +150,8 @@ export default {
   name: 'AlbumsTable',
   components: {
     CustomConfirm,
+    AlbumsFilter,
+    PictureEditModal,
     BPagination,
     BSpinner,
     BTable,
@@ -119,6 +162,8 @@ export default {
       currentPage: this.$store.getters.getAlbumsTableCurrentPage || 1,
       sortBy: [],
       isCustomConfirmVisible: false,
+      isAlbumsFilterVisible: false,
+      isPictureEditVisible: false,
       customConfirmParams: undefined,
       isBusy: false,
     }
@@ -138,6 +183,16 @@ export default {
     },
     albumDigestFields() {
       return [
+        {
+          key: 'authorPicture',
+          label: '(автор)',
+          style: { minWidth: '125px', maxWidth: '125px', textAlign: 'center', fontSize: 'small' },
+        },
+        {
+          key: 'albumPicture',
+          label: '(альбом)',
+          style: { minWidth: '125px', maxWidth: '125px', textAlign: 'center', fontSize: 'small' },
+        },
         {
           key: 'id',
           sortable: true,
@@ -201,10 +256,6 @@ export default {
     }
   },
   methods: {
-    authorName(authorId) {
-      const author = (this.authorsDigests || []).find((a) => a.id === authorId)
-      return author ? author.author : `#${authorId}`
-    },
     albumTypeLabel(value) {
       return ALBUM_TYPE_LABELS[value] || value
     },
@@ -213,6 +264,16 @@ export default {
     },
     valueStyle() {
       return { width: '300px', textAlign: 'left', borderRadius: '5px' }
+    },
+    editPicture(id) {
+      this.$store.commit('setPictureCurrentId', id)
+      this.isPictureEditVisible = true
+    },
+    closePictureEdit() {
+      this.isPictureEditVisible = false
+    },
+    closeAlbumsFilter() {
+      this.isAlbumsFilterVisible = false
     },
     changeValue(item) {
       this.customConfirmParams = {
@@ -368,6 +429,12 @@ export default {
 .albums-bv-table-body {
   width: fit-content;
 }
+.albums-bv-table-footer {
+  margin-top: auto;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
 .fld-album-id,
 .fld-album-author,
 .fld-album-year,
@@ -386,6 +453,33 @@ export default {
 .fld-album-sort-order:hover {
   text-decoration: underline;
   cursor: pointer;
+}
+.fld-picture-preview {
+  min-width: 50px;
+  max-width: 125px;
+  text-align: center;
+  font-size: small;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 54px;
+  overflow: hidden;
+  background-color: black;
+}
+.fld-picture-preview:hover {
+  cursor: pointer;
+}
+.preview-image {
+  width: auto;
+  height: 50px;
+  object-fit: contain;
+  vertical-align: middle;
+}
+.no-image-placeholder {
+  font-size: 0.7em;
+  color: white;
+  text-align: center;
+  padding: 5px;
 }
 .btn-round-double {
   border: solid 1px black;
@@ -406,5 +500,9 @@ export default {
 }
 .btn-round-double-small:hover {
   background-color: lightpink;
+}
+.icon-40 {
+  width: 40px;
+  height: 40px;
 }
 </style>

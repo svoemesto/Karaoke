@@ -456,3 +456,58 @@ cp <template> ./CLAUDE.md   # локально, НЕ коммитить
    (после hotfix: `first_song_in_album` в БД не сохраняется, комбинация с TRUE невозможна).
 
 **Связанные документы:** `specs/014-album-cell-album-cover-modal/{spec,plan,research,data-model,quickstart,contracts/api,tasks}.md`.
+
+## Pass 27: fix(webvue3): спецтеги — сохранение маркеров после «Точные маркеры → Apply → Save → reopen» (#015)
+
+**Контекст:** на песнях, в `sourceText` которых есть распознаваемые спецтеги (`~Припев~` и т.п.), после цикла
+«Точные маркеры → Apply → Save → close → reopen» в `SubsEdit.vue` пропадали syllable/endofline/group/comment/beat
+маркеры, оставались только spec tag-маркеры, автоподставленные `syncMarkersFromSpecTags()`.
+
+**Первопричина** (локализована в `specs/015-fix-spec-tags-marker-loss-on-reopen/research.md` §2.2):
+- `mounted()` ставил `sourceText = await ...` ДО `loadedMarkers = await ...`, и заполнение
+  `sourceMarkers` жило в `ws.on('decode')` (отложенно на момент декодирования аудио — десятки мс-секунды).
+- Watcher `sourceText` (Vue 2 async) срабатывал раньше `ws.on('decode')` с пустым `sourceMarkers`.
+- `syncMarkersFromSpecTags()` с пустым `syllablePositions` вставлял spec tag-маркеры через `splice(0, 0, ...)`
+  (все в позицию 0), `sourceMarkers.length` становился > 0.
+- Условие `this.sourceMarkers.length === 0` в `ws.on('decode')` переставало выполняться — реальные
+  маркеры из БД **не загружались** в UI.
+- На Save уезжал мусор. Цикл Apply→Save→reopen усугублял потерю.
+- Тот же механизм затрагивал watcher `currentVoice` (см. research.md §2.4) — между двумя `await` watcher
+  `sourceText` срабатывал со СТАРЫМИ `sourceMarkers` и корраптил их spec tag-маркерами из НОВОГО текста.
+
+**Что изменилось** (только `webvue3/src/components/Songs/edit/SubsEdit.vue`, +48/−17 строк):
+1. **`mounted()`**: `loadedMarkers = await ...` + заполнение `sourceMarkers` (с фильтром `COMMENT| ` и пустых
+   syllables) + `createBeatMarkers()` — теперь ПЕРЕД `sourceText = await ...`. Watcher `sourceText`
+   срабатывает с **уже заполненным** `sourceMarkers` → `syncMarkersFromSpecTags()` корректно проверяет
+   наличие syllables-маркеров в окнах и аддитивно добавляет spec tag-маркеры.
+2. **`ws.on('decode')`**: цикл загрузки `sourceMarkers` из `loadedMarkers` удалён (оставлены только
+   `clearRegions()` + расчёт `duration`/`visibleStartTime`/`visibleEndTime`). Это устраняет
+   race-condition: маркеры больше не зависят от времени декодирования аудио.
+3. **Watcher `currentVoice`**: `loadedMarkers` ставится ДО `sourceText` (а не наоборот). Это устраняет
+   second-order race: между двумя `await` watcher `sourceText` не сможет сработать с чужими маркерами.
+4. **`syncMarkersFromSpecTags()`**: добавлен **защитный гард** `if (this.sourceMarkers.length === 0) return`
+   (страховка от вызова с пустым `sourceMarkers` в неожиданных местах в будущем).
+5. JSDoc-комментарии обновлены для `syncMarkersFromSpecTags()` и `mounted()` — отражают новый инвариант
+   порядка присваиваний и ссылаются на research.md §2.2.
+
+**Что НЕ изменилось** (явно зафиксировано в spec.md FR-007/FR-008/FR-009):
+- Контракт `specs/010-lyrics-spec-tags/contracts/tag-registry.md` — без изменений.
+- `applyAutoMarkersToEditor()` (`SubsEdit.vue:4525-4536`) — остаётся «жёсткой заменой» маркеров
+  (by design «Точные маркеры + Apply», текст подтверждения в `doForcedAlignMarkers` остаётся прежним).
+- Backend (`karaoke-app`, `karaoke-web`), `karaoke-public`, `alignment-ml`, схема БД, Vuex-стор — без изменений.
+- Лёгкий admin-редактор `SongKaraokeEditorView` и краудсорсинг `EditorWorkView` — вне scope (там нет
+  потока «Точные маркеры», баг не воспроизводится).
+
+**Линт/coverage:** ktlintCheck ✅, eslint ✅ (`npm run lint:check`), JSDoc 100% (134/134 в webvue3),
+KDoc 100% (43/43 в karaoke-public), `npm run build` ✅, backend regression `SpecTagsTest` +
+`WhisperMarkerAlignerSpecTagsTest` ✅ (UP-TO-DATE, нет изменений в backend).
+
+**Решения (research.md §4):**
+1. Синхронный перенос загрузки `loadedMarkers` в `mounted()` (а не флаг-гард `isLoadingVoice`) —
+   исправляет порядок по построению, без хрупкого гарда в watcher'е.
+2. Удаление цикла из `ws.on('decode')` (а не смягчение условия `sourceMarkers.length === 0`) — явно
+   фиксирует, что маркеры зависят только от БД, а не от времени декодирования.
+3. Гард в `syncMarkersFromSpecTags()` (P2 по плану) — страховка от регрессии в будущем; сам по себе
+   баг не устраняет, но защищает от его возврата.
+
+**Связанные документы:** `specs/015-fix-spec-tags-marker-loss-on-reopen/{spec,plan,research,data-model,quickstart,contracts/README,tasks}.md`.

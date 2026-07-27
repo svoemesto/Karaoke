@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RestController
 // разделом). Хранилище — tbl_news, синхронизируется на PROD с LOCAL штатным движком (SyncTarget
 // "news"). ВАЖНО: используем com.svoemesto.karaokeweb.WORKING_DATABASE (свой Connection, env-флаг
 // WEB_WORK_ON_SERVER) — НЕ com.svoemesto.karaokeapp.WORKING_DATABASE (тот резолвится в LOCAL по
-// флагам karaoke-app, которые на проде не выставлены; см. инвариант "karaoke-web Settings trap"
+// флагам karaoke-app, которые на проде не выставлены; см. инвариант "karaoke-web Song trap"
 // в DEVELOPMENT.md — здесь модель News не тянет ничего из ConstantsKt, поэтому безопасна для karaoke-web).
 
 /**

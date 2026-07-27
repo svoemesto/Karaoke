@@ -8,7 +8,7 @@ import com.svoemesto.karaokeapp.model.Dictionary
  * Раньше словарь хранился в текстовом файле на диске (pathToFile()/save()/loadList() читали
  * и писали .txt). Теперь все значения живут в единой таблице БД tbl_dictionaries
  * (см. model/Dictionary.kt) — интерфейс сохранён как тонкий фасад над ней, чтобы не трогать
- * вызывающий код (Extentions.censored(), Utils.replaceSymbolsInSong, Settings.getWhereList,
+ * вызывающий код (Extentions.censored(), Utils.replaceSymbolsInSong, Song.getWhereList,
  * ApiController.doTextFileDictionary/getDict/addSyncForAll).
  */
 interface TextFileDictionary {
@@ -38,7 +38,7 @@ interface TextFileDictionary {
     /** Имя словаря (колонка dict_name в tbl_dictionaries) — раньше был путь к текстовому файлу. */
     fun dictName(): String
 
-    // karaoke-web не имеет полноценной инициализации ConstantsKt/Connection (см. «karaoke-web Settings
+    // karaoke-web не имеет полноценной инициализации ConstantsKt/Connection (см. «karaoke-web Song
     // trap» в DEVELOPMENT.md) — обращение к WORKING_DATABASE там может бросить NoClassDefFoundError (Error,
     // не Exception), роняя весь запрос (Zakroma, страница песни и т.п.). Деградируем до пустого словаря,
     // а не валим вызывающий эндпоинт.

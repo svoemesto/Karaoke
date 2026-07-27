@@ -23,7 +23,7 @@
  * KARAOKE (только acc) / LYRICS (acc+voc) / DEMO (с watermark).
  *
  * Использует route-параметры:
- * - `id` — ID песни (`Settings.id`).
+ * - `id` — ID песни (`Song.id`).
  * - `assignmentId` (query, опционально) — ID черновика задания для ревью.
  * - `target` (query, вместе с assignmentId) — `local`/`remote`.
  * - `render=1` (query) — headless-режим для MP4-рендера через Playwright

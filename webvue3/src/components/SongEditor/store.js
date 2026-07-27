@@ -3,7 +3,7 @@ import { promisedXMLHttpRequest } from '../../lib/utils'
 // Задания онлайн-редактора караоке-разметки (tbl_song_assignments + tbl_song_assignment_drafts).
 // target ('local'|'remote') — в запросах просмотра (digest/byId), в assign (где создать — обычно
 // сервер, если весь цикл назначение→работа→апрув идёт на PROD) и в approve (читает черновик оттуда,
-// где реально идёт работа, но Settings пишет всегда в LOCAL — см. SongEditorController). reject/delete
+// где реально идёт работа, но Song пишет всегда в LOCAL — см. SongEditorController). reject/delete
 // ТОЖЕ обязаны получать target — это запись статуса, а не просмотр: если писать не в ту БД, где реально
 // работает пользователь (karaoke-web читает только свою единственную БД), правка останется невидимой
 // и пользователь не сможет продолжить редактирование после отказа.
@@ -195,7 +195,7 @@ export default {
         (data) => JSON.parse(data),
       )
     },
-    // target — откуда читать задание/черновик (по умолчанию local); Settings и статус задания
+    // target — откуда читать задание/черновик (по умолчанию local); Song и статус задания
     // бэкенд в любом случае пишет только в LOCAL (см. SongEditorController.approve).
     approveAssignment(ctx, id) {
       return promisedXMLHttpRequest({

@@ -6,6 +6,7 @@ import PublishView from '../views/PublishView.vue'
 import ProcessesView from '../views/ProcessesView.vue'
 import PropertiesView from '../views/PropertiesView.vue'
 import AuthorsView from '../views/AuthorsView.vue'
+import AlbumsView from '../views/AlbumsView.vue'
 import SiteUsersView from '../views/SiteUsersView.vue'
 import StemJobsView from '../views/StemJobsView.vue'
 import SitePlaylistsView from '../views/SitePlaylistsView.vue'
@@ -51,6 +52,11 @@ const routes = [
     path: '/authors',
     name: 'authors',
     component: AuthorsView,
+  },
+  {
+    path: '/albums',
+    name: 'albums',
+    component: AlbumsView,
   },
   {
     path: '/pictures',

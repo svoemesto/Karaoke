@@ -9,7 +9,7 @@ import java.nio.charset.StandardCharsets
  *
  * @see AGENTS.md
  */
-data class ZakromaAlbumSettingsPublicDto(
+data class ZakromaAlbumSongPublicDto(
     val id: Long,
     val track: Long,
     val songName: String,
@@ -50,7 +50,10 @@ data class ZakromaAlbumPublicDto(
     val albumName: String,
     val year: Long,
     val albumPictureUrl: String,
-    val albumSettings: List<ZakromaAlbumSettingsPublicDto>,
+    val albumSettings: List<ZakromaAlbumSongPublicDto>,
+    // "studio"/"live"/"compilation"/"bootleg" (AlbumType.dbValue) — "studio" по умолчанию, если
+    // песни альбома ещё не привязаны к реальному Album (specs/011-album-song-rename).
+    val albumType: String,
 )
 
 /**
@@ -87,7 +90,7 @@ data class ZakromaPublicDto(
                                     },
                                 albumSettings =
                                     alb.albumSettings.map { s ->
-                                        ZakromaAlbumSettingsPublicDto(
+                                        ZakromaAlbumSongPublicDto(
                                             id = s.id,
                                             track = s.track,
                                             songName = s.songName,
@@ -119,6 +122,7 @@ data class ZakromaPublicDto(
                                             linkMaxChords = s.linkMaxChords,
                                         )
                                     },
+                                albumType = alb.albumType,
                             )
                         },
                 )

@@ -1,6 +1,6 @@
 package com.svoemesto.karaokeapp
 
-import com.svoemesto.karaokeapp.model.Settings
+import com.svoemesto.karaokeapp.model.Song
 import com.svoemesto.karaokeapp.model.SongVersion
 import java.io.Serializable
 
@@ -24,7 +24,7 @@ data class KaraokePlatformPublication(
     }
 
     companion object {
-        fun getList(settings: Settings): List<KaraokePlatformPublication> {
+        fun getList(settings: Song): List<KaraokePlatformPublication> {
             val result: MutableList<KaraokePlatformPublication> = mutableListOf()
             val platforms = KaraokePlatform.entries
             platforms.forEach { platform ->
@@ -33,7 +33,7 @@ data class KaraokePlatformPublication(
                     val settingFieldId =
                         platform.settingsFieldPublicationId[songVersionName]
                             ?: throw RuntimeException(
-                                "В мапе settingsFieldPublicationId экземпляра класса KaraokePlatform указано значение '$songVersionName', для которого отсутствует экземпляр в классе SettingField",
+                                "В мапе settingsFieldPublicationId экземпляра класса KaraokePlatform указано значение '$songVersionName', для которого отсутствует экземпляр в классе SongField",
                             )
                     val publicationId = settings.fields[settingFieldId] ?: ""
                     val linkToPlay = "${platform.prefixPlay}$publicationId${platform.suffixPlay}"
@@ -46,7 +46,7 @@ data class KaraokePlatformPublication(
                             val settingFieldVersionNumber =
                                 platform.settingsFieldVersionNumber[songVersionName]
                                     ?: throw RuntimeException(
-                                        "В мапе settingsFieldVersionNumber экземпляра класса KaraokePlatform указано значение '$songVersionName', для которого отсутствует экземпляр в классе SettingField",
+                                        "В мапе settingsFieldVersionNumber экземпляра класса KaraokePlatform указано значение '$songVersionName', для которого отсутствует экземпляр в классе SongField",
                                     )
                             (settings.fields[settingFieldVersionNumber]?.nullIfEmpty() ?: "0").toInt()
                         }
@@ -67,7 +67,7 @@ data class KaraokePlatformPublication(
                         val settingFieldId =
                             platform.settingsFieldPublicationId[songVersionName]
                                 ?: throw RuntimeException(
-                                    "В мапе settingsFieldPublicationId экземпляра класса KaraokePlatform указано значение '$songVersionName', для которого отсутствует экземпляр в классе SettingField",
+                                    "В мапе settingsFieldPublicationId экземпляра класса KaraokePlatform указано значение '$songVersionName', для которого отсутствует экземпляр в классе SongField",
                                 )
                         val publicationId = settings.fields[settingFieldId] ?: ""
                         val linkToPlay = "${platform.prefixPlay}$publicationId${platform.suffixPlay}"
@@ -80,7 +80,7 @@ data class KaraokePlatformPublication(
                                 val settingFieldVersionNumber =
                                     platform.settingsFieldVersionNumber[songVersionName]
                                         ?: throw RuntimeException(
-                                            "В мапе settingsFieldVersionNumber экземпляра класса KaraokePlatform указано значение '$songVersionName', для которого отсутствует экземпляр в классе SettingField",
+                                            "В мапе settingsFieldVersionNumber экземпляра класса KaraokePlatform указано значение '$songVersionName', для которого отсутствует экземпляр в классе SongField",
                                         )
                                 (settings.fields[settingFieldVersionNumber]?.nullIfEmpty() ?: "0").toInt()
                             }

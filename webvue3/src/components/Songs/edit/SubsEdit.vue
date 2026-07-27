@@ -1331,7 +1331,7 @@ function insertSpecTagAtCursorImpl(text, selectionStart, selectionEnd, tagText) 
  * - **Массовые операции**: split-merge, удаление, дублирование.
  * - **Подсветка ошибок** (синтаксис разметки текста/аккордов).
  *
- * Двухсторонний биндинг с `Settings.subsText` / `Settings.chordsText`
+ * Двухсторонний биндинг с `Song.subsText` / `Song.chordsText`
  * через `SettingVoiceLine.parseFromText` / `serializeToText`.
  *
  * Используется в `SongEdit.vue` (вкладка «Текст»).

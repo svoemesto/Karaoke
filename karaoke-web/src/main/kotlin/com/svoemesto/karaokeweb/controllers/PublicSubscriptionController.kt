@@ -3,7 +3,7 @@ package com.svoemesto.karaokeweb.controllers
 import com.svoemesto.karaokeweb.WORKING_DATABASE
 
 import com.svoemesto.karaokeapp.model.PriceTariff
-import com.svoemesto.karaokeapp.model.Settings
+import com.svoemesto.karaokeapp.model.Song
 import com.svoemesto.karaokeapp.model.SiteUser
 import com.svoemesto.karaokeapp.model.Subscription
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
@@ -133,7 +133,7 @@ class PublicSubscriptionController(
         if (scope == Subscription.SCOPE_SONG) {
             if (songId == null) return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(mapOf("error" to "song_id_required"))
             val settings =
-                Settings.loadFromDbById(songId, db, storageService = storageService, storageApiClient = storageApiClient)
+                Song.loadFromDbById(songId, db, storageService = storageService, storageApiClient = storageApiClient)
                     ?: return ResponseEntity.status(HttpStatus.NOT_FOUND).body(mapOf("error" to "song_not_found"))
             // id_tariff: 0 (дефолт новой песни) = подписка разрешена тарифом по умолчанию; -1 = автор
             // явно запретил подписку на эту песню. Любое другое значение зарезервировано на будущее.
@@ -262,7 +262,7 @@ class PublicSubscriptionController(
         return Subscription.loadByUser(user.id, db, storageService, storageApiClient).map { sub ->
             val songName =
                 sub.idSong?.let {
-                    Settings.loadFromDbById(it, db, storageService = storageService, storageApiClient = storageApiClient)?.songName
+                    Song.loadFromDbById(it, db, storageService = storageService, storageApiClient = storageApiClient)?.songName
                 }
             mapOf(
                 "id" to sub.id,

@@ -23,7 +23,7 @@ class Zakroma(
             storageApiClient: StorageApiClient,
         ): List<Zakroma> {
             val listSettings =
-                Settings.loadListFromDb(
+                Song.loadListFromDb(
                     args = mapOf("author" to author),
                     database = database,
                     storageService = storageService,
@@ -39,7 +39,7 @@ class Zakroma(
          * Вместо N последовательных вызовов [getZakroma] на каждого спецзаказного автора
          * (N+1, см. историю бага в docs/features/special-orders.md) грузит имена авторов
          * с `is_special_order=true` один раз, затем все их песни одним запросом через
-         * уже существующий `author_in`-фильтр [Settings.getWhereList].
+         * уже существующий `author_in`-фильтр [Song.getWhereList].
          *
          * @see docs/features/special-orders.md
          */
@@ -49,15 +49,15 @@ class Zakroma(
             storageApiClient: StorageApiClient,
         ): List<Zakroma> {
             val names =
-                Settings.loadListAuthors(
+                Song.loadListAuthors(
                     withSkiped = false,
                     isSpecialOrder = true,
                     database = database,
                 )
             if (names.isEmpty()) return emptyList()
             val listSettings =
-                Settings.loadListFromDb(
-                    args = mapOf("author_in" to names.joinToString(Settings.AUTHOR_IN_DELIMITER)),
+                Song.loadListFromDb(
+                    args = mapOf("author_in" to names.joinToString(Song.AUTHOR_IN_DELIMITER)),
                     database = database,
                     storageService = storageService,
                     storageApiClient = storageApiClient,
@@ -67,7 +67,7 @@ class Zakroma(
         }
 
         private fun buildFromSettings(
-            listSettings: List<Settings>,
+            listSettings: List<Song>,
             database: KaraokeConnection,
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
@@ -116,6 +116,25 @@ class Zakroma(
                                     ignoreUseInList = false,
                                 )
                             album.picturePreviewFileName = picForPreview?.storageFileNamePreview ?: ""
+                            // specs/011-album-song-rename FR-007: если песни этого альбома уже
+                            // привязаны к реальному Album (бэкфилл/ручная привязка), берём его
+                            // albumType/sortOrder — иначе остаются дефолты (сортировка по алфавиту,
+                            // как и было раньше для ещё не забэкфилленных данных).
+                            settingsByAlbum
+                                .firstOrNull { it.albumId != null }
+                                ?.albumId
+                                ?.let { linkedAlbumId ->
+                                    Album
+                                        .getAlbumById(
+                                            id = linkedAlbumId,
+                                            database = database,
+                                            storageService = storageService,
+                                            storageApiClient = storageApiClient,
+                                        )?.let { linkedAlbum ->
+                                            album.albumType = linkedAlbum.albumType
+                                            album.sortOrder = linkedAlbum.sortOrder
+                                        }
+                                }
                             album.albumSettings =
                                 settingsByAlbum
                                     .map { settings ->
@@ -169,7 +188,7 @@ class Zakroma(
 }
 
 /**
- * Класс Zakroma Album Settings.
+ * Класс Zakroma Album Song.
  *
  * @see docs/features/dual-db-sync.md
  */
@@ -229,11 +248,17 @@ class ZakromaAlbum :
     var picturePreviewFileName: String = ""
     var albumSettings: MutableList<ZakromaAlbumSettings> = mutableListOf()
 
+    // specs/011-album-song-rename FR-001/FR-007: тип и заданный порядок отображения внутри
+    // (автор, год) — из реального Album, если песни альбома уже к нему привязаны (см. buildFromSettings).
+    // Int.MAX_VALUE — сентинел "не привязано", такие альбомы уходят в конец сортировки внутри года.
+    var albumType: String = AlbumType.STUDIO.dbValue
+    var sortOrder: Int = Int.MAX_VALUE
+
     override fun compareTo(other: ZakromaAlbum): Int {
         val compYear = year.compareTo(other.year)
-        if (compYear == 0) {
-            return albumName.compareTo(other.albumName)
-        }
-        return compYear
+        if (compYear != 0) return compYear
+        val compSortOrder = sortOrder.compareTo(other.sortOrder)
+        if (compSortOrder != 0) return compSortOrder
+        return albumName.compareTo(other.albumName)
     }
 }

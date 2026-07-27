@@ -8,7 +8,7 @@ import com.svoemesto.karaokeapp.model.LinkType
 import com.svoemesto.karaokeapp.model.ListeningHistory
 import com.svoemesto.karaokeapp.model.PlayerAction
 import com.svoemesto.karaokeapp.model.RestName
-import com.svoemesto.karaokeapp.model.Settings
+import com.svoemesto.karaokeapp.model.Song
 import com.svoemesto.karaokeweb.StatBySong
 import com.svoemesto.karaokeapp.model.Zakroma
 import com.svoemesto.karaokeapp.rightFileName
@@ -77,7 +77,7 @@ class MainController(
             data["author"] = it
         }
         model.addAttribute("author_init", author ?: "")
-        model.addAttribute("authors", Settings.loadListAuthors(withSkiped = false, database = WORKING_DATABASE))
+        model.addAttribute("authors", Song.loadListAuthors(withSkiped = false, database = WORKING_DATABASE))
         model.addAttribute(
             "zakroma",
             Zakroma.getZakroma(
@@ -329,13 +329,13 @@ class MainController(
         if (text != null && text != "") attr["text"] = text
         if (album != null && album != "") attr["song_album"] = album
 
-        val settings: List<Settings> =
+        val settings: List<Song> =
             if ("${songName ?: ""}${author ?: ""}${album ?: ""}${text ?: ""}".length <
                 3
             ) {
                 emptyList()
             } else {
-                Settings.loadListFromDb(
+                Song.loadListFromDb(
                     attr,
                     database = WORKING_DATABASE,
                     storageService = storageService,
@@ -344,7 +344,7 @@ class MainController(
                 )
             }
 
-        model.addAttribute("authors", Settings.loadListAuthors(withSkiped = false, database = WORKING_DATABASE))
+        model.addAttribute("authors", Song.loadListAuthors(withSkiped = false, database = WORKING_DATABASE))
         model.addAttribute("settings", settings)
 
         val data: MutableMap<String, Any> = mutableMapOf()
@@ -367,7 +367,7 @@ class MainController(
         request: HttpServletRequest,
     ): String {
         val sett =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
@@ -433,7 +433,7 @@ class MainController(
         model: Model,
     ): String {
         val sett =
-            Settings.loadFromDbById(
+            Song.loadFromDbById(
                 id,
                 database = WORKING_DATABASE,
                 storageService = storageService,

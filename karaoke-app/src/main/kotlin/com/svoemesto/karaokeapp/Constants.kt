@@ -25,7 +25,7 @@ const val PATH_TO_TEMP_KEYBPMFINDER_FOLDER = "/sm-karaoke/system/keybpmfinder-do
 const val PATH_TO_TEMP_RENDERMP4_FOLDER = "/sm-karaoke/system/rendermp4-preview/tmp"
 
 // Манифест для дообучения forced-alignment модели (см. alignment-ml/) — только manifest.jsonl,
-// само аудио НЕ копируется сюда (уже лежит локально, путь берётся из Settings.vocalsNameFlac как есть).
+// само аудио НЕ копируется сюда (уже лежит локально, путь берётся из Song.vocalsNameFlac как есть).
 const val PATH_TO_ALIGNMENT_DATASET_FOLDER = "/sm-karaoke/system/alignment-dataset"
 const val IAM_TOKEN_FILE_PATH = "/sm-karaoke/system/yandex/iam_token.txt"
 const val FOLDER_ID_FILE_PATH = "/sm-karaoke/system/yandex/folderId.txt"

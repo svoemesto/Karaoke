@@ -10,6 +10,7 @@ import fileExplorer from '../components/Common/FileExplorer/store'
 import processes from '../components/Processes/store'
 import properties from '../components/Properties/store'
 import authors from '../components/Authors/store'
+import albums from '../components/Albums/store'
 import siteUsers from '../components/SiteUsers/store'
 import sitePlaylists from '../components/SitePlaylists/store'
 import songEditor from '../components/SongEditor/store'
@@ -45,6 +46,7 @@ export default createStore({
     processes,
     properties,
     authors,
+    albums,
     siteUsers,
     sitePlaylists,
     songEditor,

@@ -64,7 +64,7 @@ data class MkoSongText(
                 .filter {
                     it.startTp != null &&
                         it.endTp != null &&
-                        (it.type == SongVoiceLineType.TEXT || it == voiceLines.first() || it == voiceLines.last())
+                        (it.type == SongRenderVoiceLineType.TEXT || it == voiceLines.first() || it == voiceLines.last())
                 }.joinToString(";") { listOf(it.startTp.toString(), it.endTp.toString()).joinToString(";") }
         return propRect
     }
@@ -84,7 +84,7 @@ data class MkoSongText(
 
                 val mltText: MltText = lineSymbol.mltText
                 val text =
-                    if (voiceLineSongtext.type == SongVoiceLineType.CHORDS) {
+                    if (voiceLineSongtext.type == SongRenderVoiceLineType.CHORDS) {
                         if (capo == 0 || mltProp.getIgnoreCapo()) {
                             mltText.text.split("|")[0]
                         } else {

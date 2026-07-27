@@ -2,7 +2,7 @@ package com.svoemesto.karaokeapp
 
 import com.svoemesto.karaokeapp.model.Markertype
 import com.svoemesto.karaokeapp.model.Message
-import com.svoemesto.karaokeapp.model.Settings
+import com.svoemesto.karaokeapp.model.Song
 import com.svoemesto.karaokeapp.model.SseNotification
 import com.svoemesto.karaokeapp.model.WhisperMarkerAligner
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
@@ -37,7 +37,7 @@ data class AlignmentDatasetRow(
 // но ОТДЕЛЬНАЯ функция: customFunction() - живая фича поиска родителей, её нельзя затирать.
 //
 // Аудио НЕ копируется: манифест хранит абсолютный путь к уже существующему на диске FLAC
-// (Settings.vocalsNameFlac) - обучение идёт на той же машине, копирование только удвоило бы место
+// (Song.vocalsNameFlac) - обучение идёт на той же машине, копирование только удвоило бы место
 // на диске без пользы. idStatus >= 3 - тот же порог "маркеры уже финальны/проверены", что и у
 // player-readiness флагов (проект уже собран из разметки на этом этапе пайплайна).
 //
@@ -60,7 +60,7 @@ fun exportAlignmentDataset(
         try {
             val connection = WORKING_DATABASE.getConnection()
             if (connection != null) {
-                val ps = connection.prepareStatement("SELECT id FROM tbl_settings WHERE id_status >= 3 ORDER BY id")
+                val ps = connection.prepareStatement("SELECT id FROM tbl_songs WHERE id_status >= 3 ORDER BY id")
                 val rs = ps.executeQuery()
                 while (rs.next()) ids.add(rs.getLong("id"))
                 rs.close()
@@ -118,7 +118,7 @@ fun exportAlignmentDataset(
                 if (id !in alreadyExportedSongIds) {
                     try {
                         val settings =
-                            Settings.loadFromDbById(
+                            Song.loadFromDbById(
                                 id = id,
                                 database = WORKING_DATABASE,
                                 storageService = storageService,

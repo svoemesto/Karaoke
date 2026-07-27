@@ -31,7 +31,7 @@ class PlayerGestureUnlockService {
     // demoStart/demoEndSeconds (опционально, оба сразу или оба null) — токен демо-режима
     // (не-премиум/не-подписан/не-в-эфире): ограничивает и байты стема (см.
     // PublicPlayerController.stemResponse + Mp3Trimmer.trimToRange), и маркеры playerdata диапазоном
-    // демо-фрагмента "куплет минус отступ под фейд-ин" (см. Settings.demoFragmentStartSeconds/
+    // демо-фрагмента "куплет минус отступ под фейд-ин" (см. Song.demoFragmentStartSeconds/
     // demoFragmentEndSeconds). null = обычный токен, доступ без ограничения.
     private data class TokenInfo(
         val songId: Long,
@@ -106,7 +106,7 @@ class PlayerGestureUnlockService {
 
     // Демо-режим (PublicPlayerController.access, ветка !canWatch): токен, ограниченный диапазоном —
     // stemResponse обрежет байты стема через Mp3Trimmer.trimToRange, playerdata обрежет и перебазирует
-    // маркеры — оба по этому же диапазону, взятому из Settings.demoFragmentStartSeconds/
+    // маркеры — оба по этому же диапазону, взятому из Song.demoFragmentStartSeconds/
     // demoFragmentEndSeconds на момент выдачи.
     fun issueDemoAccessToken(
         songId: Long,

@@ -16,11 +16,11 @@ import java.sql.Timestamp
 // Рабочая копия пользователя для назначения (SongAssignment): отредактированный текст + маркеры
 // ВСЕЙ песни (все голоса, не один) + флаг отправки на проверку. Пишет ТОЛЬКО пользователь (SERVER),
 // направление sync SERVER_TO_LOCAL (SyncRegistry: songassignmentdrafts) — как siteusers/siteplaylists.
-// На апруве karaoke-app применяет edited_markers в Settings.setSourceMarkers(voice, ...) для КАЖДОГО
+// На апруве karaoke-app применяет edited_markers в Song.setSourceMarkers(voice, ...) для КАЖДОГО
 // голоса (только на LOCAL).
 //
 // Формат editedSourceText/editedMarkers — JSON-массив ПО ГОЛОСАМ (тот же формат, что
-// Settings.sourceTextList/sourceMarkersList): editedMarkers = List<List<SourceMarker>>,
+// Song.sourceTextList/sourceMarkersList): editedMarkers = List<List<SourceMarker>>,
 // editedSourceText = List<String>. editedMarkers{Per}/editedTextsPerVoice() терпимы к СТАРОМУ
 // одноголосому формату (голая строка / плоский List<SourceMarker>) — черновики, сохранённые до
 // перехода на multi-voice, читаются как один голос (voice 0), не ломаются.

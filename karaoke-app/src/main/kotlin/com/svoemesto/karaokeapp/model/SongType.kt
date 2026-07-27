@@ -3,7 +3,7 @@ package com.svoemesto.karaokeapp.model
 import java.io.Serializable
 
 // Тип песни (отличает её по составу: песня = вокал + музыка, инструментал = только музыка без вокала,
-// стихи = только вокал без музыки). Хранится в tbl_settings.song_type в lowercase-форме dbValue.
+// стихи = только вокал без музыки). Хранится в tbl_songs.song_type в lowercase-форме dbValue.
 // Значение по умолчанию — SONG (dbValue "song") — применяется для всех существующих песен
 // через DEFAULT в миграции БД; новые песни тоже получают это значение по умолчанию.
 

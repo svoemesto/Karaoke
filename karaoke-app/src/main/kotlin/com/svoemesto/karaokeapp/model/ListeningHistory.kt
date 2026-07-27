@@ -128,7 +128,7 @@ class ListeningHistory(
                         SELECT h.song_id, s.song_name, s.song_author, s.song_album,
                                h.last_played_at, h.play_count
                         FROM $TABLE_NAME h
-                        JOIN tbl_settings s ON s.id = h.song_id
+                        JOIN tbl_songs s ON s.id = h.song_id
                         WHERE h.site_user_id = $siteUserId
                           AND (s.tags IS NULL OR NOT ('SKIP' = ANY(string_to_array(upper(coalesce(s.tags,'')), ' '))))
                         ORDER BY h.last_played_at DESC

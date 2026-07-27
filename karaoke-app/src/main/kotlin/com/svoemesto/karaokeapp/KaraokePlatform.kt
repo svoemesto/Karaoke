@@ -1,7 +1,7 @@
 package com.svoemesto.karaokeapp
 
-import com.svoemesto.karaokeapp.model.SettingField
-import com.svoemesto.karaokeapp.model.Settings
+import com.svoemesto.karaokeapp.model.SongField
+import com.svoemesto.karaokeapp.model.Song
 import com.svoemesto.karaokeapp.model.SongVersion
 
 /**
@@ -22,8 +22,8 @@ enum class KaraokePlatform(
     val suffixEdit: String = "",
     val linkToCreate: String = "",
     @Suppress("unused") val svg: String,
-    val settingsFieldPublicationId: Map<String, SettingField>,
-    val settingsFieldVersionNumber: Map<String, SettingField>,
+    val settingsFieldPublicationId: Map<String, SongField>,
+    val settingsFieldVersionNumber: Map<String, SongField>,
     val onAirPublications: Boolean,
 ) {
     SPONSR(
@@ -37,8 +37,8 @@ enum class KaraokePlatform(
         prefixPlay = "https://sponsr.ru/smkaraoke/",
         prefixEdit = "https://sponsr.ru/smkaraoke/manage/post/",
         linkToCreate = "https://sponsr.ru/smkaraoke/manage/post/new/",
-        settingsFieldPublicationId = mapOf("ALL" to SettingField.ID_SPONSR),
-        settingsFieldVersionNumber = mapOf("ALL" to SettingField.VERSION_SPONSR),
+        settingsFieldPublicationId = mapOf("ALL" to SongField.ID_SPONSR),
+        settingsFieldVersionNumber = mapOf("ALL" to SongField.VERSION_SPONSR),
         onAirPublications = false,
     ),
     VKGROUP(
@@ -50,7 +50,7 @@ enum class KaraokePlatform(
         haveVersionNumber = false,
         svg = SVG["icon_vk2"] ?: "",
         prefixPlay = "https://vk.com/wall-",
-        settingsFieldPublicationId = mapOf("ALL" to SettingField.ID_VK),
+        settingsFieldPublicationId = mapOf("ALL" to SongField.ID_VK),
         settingsFieldVersionNumber = emptyMap(),
         onAirPublications = true,
     ),
@@ -66,17 +66,17 @@ enum class KaraokePlatform(
         prefixEdit = "https://dzen.ru/profile/editor/svoemesto/publications?videoEditorPublicationId=",
         settingsFieldPublicationId =
             mapOf(
-                SongVersion.KARAOKE.name to SettingField.ID_DZEN_KARAOKE,
-                SongVersion.LYRICS.name to SettingField.ID_DZEN_LYRICS,
-                SongVersion.CHORDS.name to SettingField.ID_DZEN_CHORDS,
-                SongVersion.TABS.name to SettingField.ID_DZEN_MELODY,
+                SongVersion.KARAOKE.name to SongField.ID_DZEN_KARAOKE,
+                SongVersion.LYRICS.name to SongField.ID_DZEN_LYRICS,
+                SongVersion.CHORDS.name to SongField.ID_DZEN_CHORDS,
+                SongVersion.TABS.name to SongField.ID_DZEN_MELODY,
             ),
         settingsFieldVersionNumber =
             mapOf(
-                SongVersion.KARAOKE.name to SettingField.VERSION_DZEN_KARAOKE,
-                SongVersion.LYRICS.name to SettingField.VERSION_DZEN_LYRICS,
-                SongVersion.CHORDS.name to SettingField.VERSION_DZEN_CHORDS,
-                SongVersion.TABS.name to SettingField.VERSION_DZEN_MELODY,
+                SongVersion.KARAOKE.name to SongField.VERSION_DZEN_KARAOKE,
+                SongVersion.LYRICS.name to SongField.VERSION_DZEN_LYRICS,
+                SongVersion.CHORDS.name to SongField.VERSION_DZEN_CHORDS,
+                SongVersion.TABS.name to SongField.VERSION_DZEN_MELODY,
             ),
         onAirPublications = true,
     ),
@@ -91,17 +91,17 @@ enum class KaraokePlatform(
         prefixPlay = "https://vkvideo.ru/video",
         settingsFieldPublicationId =
             mapOf(
-                SongVersion.KARAOKE.name to SettingField.ID_VK_KARAOKE,
-                SongVersion.LYRICS.name to SettingField.ID_VK_LYRICS,
-                SongVersion.CHORDS.name to SettingField.ID_VK_CHORDS,
-                SongVersion.TABS.name to SettingField.ID_VK_MELODY,
+                SongVersion.KARAOKE.name to SongField.ID_VK_KARAOKE,
+                SongVersion.LYRICS.name to SongField.ID_VK_LYRICS,
+                SongVersion.CHORDS.name to SongField.ID_VK_CHORDS,
+                SongVersion.TABS.name to SongField.ID_VK_MELODY,
             ),
         settingsFieldVersionNumber =
             mapOf(
-                SongVersion.KARAOKE.name to SettingField.VERSION_VK_KARAOKE,
-                SongVersion.LYRICS.name to SettingField.VERSION_VK_LYRICS,
-                SongVersion.CHORDS.name to SettingField.VERSION_VK_CHORDS,
-                SongVersion.TABS.name to SettingField.VERSION_VK_MELODY,
+                SongVersion.KARAOKE.name to SongField.VERSION_VK_KARAOKE,
+                SongVersion.LYRICS.name to SongField.VERSION_VK_LYRICS,
+                SongVersion.CHORDS.name to SongField.VERSION_VK_CHORDS,
+                SongVersion.TABS.name to SongField.VERSION_VK_MELODY,
             ),
         onAirPublications = true,
     ),
@@ -118,17 +118,17 @@ enum class KaraokePlatform(
         suffixEdit = "/edit",
         settingsFieldPublicationId =
             mapOf(
-                SongVersion.KARAOKE.name to SettingField.ID_PL_KARAOKE,
-                SongVersion.LYRICS.name to SettingField.ID_PL_LYRICS,
-                SongVersion.CHORDS.name to SettingField.ID_PL_CHORDS,
-                SongVersion.TABS.name to SettingField.ID_PL_MELODY,
+                SongVersion.KARAOKE.name to SongField.ID_PL_KARAOKE,
+                SongVersion.LYRICS.name to SongField.ID_PL_LYRICS,
+                SongVersion.CHORDS.name to SongField.ID_PL_CHORDS,
+                SongVersion.TABS.name to SongField.ID_PL_MELODY,
             ),
         settingsFieldVersionNumber =
             mapOf(
-                SongVersion.KARAOKE.name to SettingField.VERSION_PL_KARAOKE,
-                SongVersion.LYRICS.name to SettingField.VERSION_PL_LYRICS,
-                SongVersion.CHORDS.name to SettingField.VERSION_PL_CHORDS,
-                SongVersion.TABS.name to SettingField.VERSION_PL_MELODY,
+                SongVersion.KARAOKE.name to SongField.VERSION_PL_KARAOKE,
+                SongVersion.LYRICS.name to SongField.VERSION_PL_LYRICS,
+                SongVersion.CHORDS.name to SongField.VERSION_PL_CHORDS,
+                SongVersion.TABS.name to SongField.VERSION_PL_MELODY,
             ),
         onAirPublications = true,
     ),
@@ -143,17 +143,17 @@ enum class KaraokePlatform(
         prefixPlay = "https://t.me/svoemestokaraoke/",
         settingsFieldPublicationId =
             mapOf(
-                SongVersion.KARAOKE.name to SettingField.ID_TELEGRAM_KARAOKE,
-                SongVersion.LYRICS.name to SettingField.ID_TELEGRAM_LYRICS,
-                SongVersion.CHORDS.name to SettingField.ID_TELEGRAM_CHORDS,
-                SongVersion.TABS.name to SettingField.ID_TELEGRAM_MELODY,
+                SongVersion.KARAOKE.name to SongField.ID_TELEGRAM_KARAOKE,
+                SongVersion.LYRICS.name to SongField.ID_TELEGRAM_LYRICS,
+                SongVersion.CHORDS.name to SongField.ID_TELEGRAM_CHORDS,
+                SongVersion.TABS.name to SongField.ID_TELEGRAM_MELODY,
             ),
         settingsFieldVersionNumber =
             mapOf(
-                SongVersion.KARAOKE.name to SettingField.VERSION_TELEGRAM_KARAOKE,
-                SongVersion.LYRICS.name to SettingField.VERSION_TELEGRAM_LYRICS,
-                SongVersion.CHORDS.name to SettingField.VERSION_TELEGRAM_CHORDS,
-                SongVersion.TABS.name to SettingField.VERSION_TELEGRAM_MELODY,
+                SongVersion.KARAOKE.name to SongField.VERSION_TELEGRAM_KARAOKE,
+                SongVersion.LYRICS.name to SongField.VERSION_TELEGRAM_LYRICS,
+                SongVersion.CHORDS.name to SongField.VERSION_TELEGRAM_CHORDS,
+                SongVersion.TABS.name to SongField.VERSION_TELEGRAM_MELODY,
             ),
         onAirPublications = true,
     ),
@@ -168,24 +168,24 @@ enum class KaraokePlatform(
         prefixPlay = "https://max.ru/c/-70935843913828/",
         settingsFieldPublicationId =
             mapOf(
-                SongVersion.KARAOKE.name to SettingField.ID_MAX_KARAOKE,
-                SongVersion.LYRICS.name to SettingField.ID_MAX_LYRICS,
-                SongVersion.CHORDS.name to SettingField.ID_MAX_CHORDS,
-                SongVersion.TABS.name to SettingField.ID_MAX_MELODY,
+                SongVersion.KARAOKE.name to SongField.ID_MAX_KARAOKE,
+                SongVersion.LYRICS.name to SongField.ID_MAX_LYRICS,
+                SongVersion.CHORDS.name to SongField.ID_MAX_CHORDS,
+                SongVersion.TABS.name to SongField.ID_MAX_MELODY,
             ),
         settingsFieldVersionNumber =
             mapOf(
-                SongVersion.KARAOKE.name to SettingField.VERSION_MAX_KARAOKE,
-                SongVersion.LYRICS.name to SettingField.VERSION_MAX_LYRICS,
-                SongVersion.CHORDS.name to SettingField.VERSION_MAX_CHORDS,
-                SongVersion.TABS.name to SettingField.VERSION_MAX_MELODY,
+                SongVersion.KARAOKE.name to SongField.VERSION_MAX_KARAOKE,
+                SongVersion.LYRICS.name to SongField.VERSION_MAX_LYRICS,
+                SongVersion.CHORDS.name to SongField.VERSION_MAX_CHORDS,
+                SongVersion.TABS.name to SongField.VERSION_MAX_MELODY,
             ),
         onAirPublications = true,
     ),
     ;
 
     fun actionToCreatePicture(
-        settings: Settings,
+        settings: Song,
         pathToFile: String,
     ) {
         when (this) {

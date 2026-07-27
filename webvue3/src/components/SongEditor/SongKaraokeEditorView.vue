@@ -395,7 +395,7 @@ export default {
       isPlaying: false,
       // Настройки, персистентные между сессиями (см. loadEditorSettings/saveEditorSettings в
       // useKaraokeEditor.js) — всё, что юзер подкручивает ползунками, должно сохраняться и
-      // подхватываться при следующем открытии редактора (как _loadPersistedSettings в плеере).
+      // подхватываться при следующем открытии редактора (как _loadPersistedSong в плеере).
       ...loadEditorSettings(),
       heldKeys: {},
       scrubTimers: {},
@@ -589,7 +589,7 @@ export default {
     },
     loadVoicesFromProps() {
       // Задание покрывает ВСЮ песню — массив sourceTexts[]/markersPerVoice[], индекс = номер голоса.
-      // Длины МОГУТ разойтись (см. Settings.kt: setSourceText/setSourceMarkers — два отдельных
+      // Длины МОГУТ разойтись (см. Song.kt: setSourceText/setSourceMarkers — два отдельных
       // вызова, не атомарны) — берём максимум, недостающее считаем пустым.
       const rawTexts = this.sourceTexts && this.sourceTexts.length ? this.sourceTexts : ['']
       const rawMarkers =

@@ -109,7 +109,7 @@ import CustomConfirm from '../Common/CustomConfirm.vue'
  * - **«1 клик» sync**: кнопка `Push` (LOCAL→SERVER) / `Pull` (SERVER→LOCAL)
  *   для всех таблиц согласно `oneClickDirection` в `SyncTarget<T>`.
  * - **Sync одной таблицы**: выбор из списка зарегистрированных
- *   `SyncRegistry.all` (Settings, Authors, Pictures, и т.д.).
+ *   `SyncRegistry.all` (Song, Authors, Pictures, и т.д.).
  * - **Diff preview**: показывает `RecordDiff[]` (только изменённые поля)
  *   до отправки — пользователь может отменить.
  * - **Форс-стоп**: прервать sync посередине (`SyncService.abort`).
@@ -199,7 +199,7 @@ export default {
     confirmOneClick() {
       this.customConfirmParams = {
         header: 'Синхронизация в 1 клик',
-        body: 'Синхронизировать все разрешённые таблицы, каждую в её сторону (Settings/Pictures/Authors — на Server, пользователи сайта/статистика — на Local)?',
+        body: 'Синхронизировать все разрешённые таблицы, каждую в её сторону (Song/Pictures/Authors — на Server, пользователи сайта/статистика — на Local)?',
         timeout: 10,
         callback: this.doOneClick,
       }

@@ -4,7 +4,7 @@ import com.svoemesto.karaokeapp.KaraokeConnection
 import java.io.Serializable
 
 /**
- * DTO позиции в корзине для API/UI (без ссылок на `Settings`/`PriceTariff`).
+ * DTO позиции в корзине для API/UI (без ссылок на `Song`/`PriceTariff`).
  *
  * Содержит только сериализуемые поля (id, idSiteUser, idSettings,
  * idPriceTariff, idPromoRule, created).

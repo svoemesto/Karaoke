@@ -4,7 +4,7 @@ import { promisedXMLHttpRequest } from '../../lib/utils'
 let publishReloadTimer = null
 
 // 'dd.mm.yy' -> 'yymmdd' - в таком виде даты сравнимы лексикографически (тот же приём,
-// что и на бэкенде для сортировки строк сетки по SettingField.DATE, см. CrossSettings.kt).
+// что и на бэкенде для сортировки строк сетки по SongField.DATE, см. CrossSong.kt).
 function dateKey(str) {
   return str ? str.split('.').reverse().join('') : ''
 }
@@ -21,8 +21,8 @@ function isDateInLoadedRange(dateStr, from, to) {
 function findCellDTO(publishDigest, songId) {
   for (const publishRow of publishDigest) {
     for (const csrCell of publishRow.csrCells) {
-      if (csrCell.settingsDTO && csrCell.settingsDTO.id === songId) {
-        return csrCell.settingsDTO
+      if (csrCell.songDTO && csrCell.songDTO.id === songId) {
+        return csrCell.songDTO
       }
     }
   }
@@ -73,8 +73,8 @@ export default {
           let publishRow = state.publishDigest[i]
           for (let j = 0; j < publishRow.csrCells.length; j++) {
             let csrCell = publishRow.csrCells[j]
-            if (csrCell.settingsDTO && csrCell.settingsDTO.id === songsAndIndexesFromRest.song.id) {
-              csrCell.settingsDTO = songsAndIndexesFromRest.song
+            if (csrCell.songDTO && csrCell.songDTO.id === songsAndIndexesFromRest.song.id) {
+              csrCell.songDTO = songsAndIndexesFromRest.song
               state.publishDigest.splice(i, 1, publishRow)
             }
           }
@@ -87,8 +87,8 @@ export default {
         let publishRow = state.publishDigest[i]
         for (let j = 0; j < publishRow.csrCells.length; j++) {
           let csrCell = publishRow.csrCells[j]
-          if (csrCell.settingsDTO && csrCell.settingsDTO.id === songId) {
-            csrCell.settingsDTO = userEventData.record
+          if (csrCell.songDTO && csrCell.songDTO.id === songId) {
+            csrCell.songDTO = userEventData.record
             state.publishDigest.splice(i, 1, publishRow)
           }
         }
@@ -103,8 +103,8 @@ export default {
         let publishRow = state.publishDigest[i]
         for (let j = 0; j < publishRow.csrCells.length; j++) {
           let csrCell = publishRow.csrCells[j]
-          if (csrCell.settingsDTO && csrCell.settingsDTO.id === songId) {
-            csrCell.settingsDTO = null
+          if (csrCell.songDTO && csrCell.songDTO.id === songId) {
+            csrCell.songDTO = null
             state.publishDigest.splice(i, 1, publishRow)
           }
         }
@@ -133,7 +133,7 @@ export default {
       }
       ctx.commit('updatePublishDigestByUserEvent', userEventData)
     },
-    // Новая песня (RECORD_ADD tbl_settings) - если её дата уже попадает в загруженный диапазон,
+    // Новая песня (RECORD_ADD tbl_songs) - если её дата уже попадает в загруженный диапазон,
     // она должна появиться в сетке -> тихая перезагрузка.
     addPublishDigestByUserEvent(ctx, userEventData) {
       const rec = userEventData.record

@@ -34,7 +34,7 @@ object StemJobMode {
     const val DEMUCS2 = "DEMUCS2"
     const val DEMUCS5 = "DEMUCS5"
 
-    // Имена стемов на выходе demucs для каждого режима (см. Settings.argsDemucs2/5) — используются и
+    // Имена стемов на выходе demucs для каждого режима (см. Song.argsDemucs2/5) — используются и
     // для построения путей файлов в MinIO (stemjobs/{id}/<имя>.mp3), и для валидации query-параметра
     // ?stem= при скачивании.
     fun stemNames(mode: String): List<String> =

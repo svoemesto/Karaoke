@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.svoemesto.karaokeapp.KaraokeFileType
 import com.svoemesto.karaokeapp.model.EventType
 import com.svoemesto.karaokeapp.model.PlayerAction
-import com.svoemesto.karaokeapp.model.Settings
+import com.svoemesto.karaokeapp.model.Song
 import com.svoemesto.karaokeapp.model.SongAssignment
 import com.svoemesto.karaokeapp.model.SongAssignmentDraft
 import com.svoemesto.karaokeapp.model.Subscription
@@ -41,7 +41,7 @@ import java.util.zip.ZipOutputStream
  * ДЕМО-РЕЖИМ: если контент готов ([stemsReady] — персистентные флаги idStatus>=3 + оба стема
  * + обе картинки, без единого живого обращения к MinIO, см. ниже), но пользователь не может
  * смотреть целиком (не премиум/не подписан/не "в эфире"), [access] всё равно выдаёт токен — но демо-токен,
- * ограниченный ДИАПАЗОНОМ (см. Settings.demoFragmentStartSeconds/demoFragmentEndSeconds — фрагмент
+ * ограниченный ДИАПАЗОНОМ (см. Song.demoFragmentStartSeconds/demoFragmentEndSeconds — фрагмент
  * "первый куплет (текст группы 0) минус отступ под фейд-ин" по маркерам разметки; куплет закрывает
  * смена группы или принудительная пустая строка). Ограничение применяется на СЕРВЕРЕ в двух местах:
  * [stemResponse] обрезает байты стема через [Mp3Trimmer] (полный файл физически не отдаётся —
@@ -52,11 +52,11 @@ import java.util.zip.ZipOutputStream
  * [access]/[playerData] — demoFadeInSeconds задаёт длину фейд-ина в начале фрагмента.
  *
  * ВАЖНО: karaoke-web выполняется на другом хосте, чем karaoke-app (тот, где физически лежат FLAC
- * и работает Demucs/ffmpeg) — доступа к локальным путям вроде Settings.accompanimentNameFlac у
+ * и работает Demucs/ffmpeg) — доступа к локальным путям вроде Song.accompanimentNameFlac у
  * этого процесса нет и быть не может (кроме того, обращение к ним из процесса karaoke-web роняет
  * его целиком, см. IllegalStateException: Property APP_WORK_ON_SERVER should be initialized before
- * get — Settings.rootFolder тянет за собой инициализацию karaoke-app, которая тут никогда не
- * происходит; тот же класс проблем уже отмечен комментарием в SettingsPublicDto.kt).
+ * get — Song.rootFolder тянет за собой инициализацию karaoke-app, которая тут никогда не
+ * происходит; тот же класс проблем уже отмечен комментарием в SongPublicDto.kt).
  * Поэтому стемы читаются ИСКЛЮЧИТЕЛЬНО из MinIO (storageService, как и картинки в
  * PublicApiController) — их туда лениво заливает karaoke-app (см. ApiController.pushMp3ToStorage),
  * при каждом обращении к admin-эндпоинтам fileminus.mp3/filevoice.mp3/filebass.mp3/filedrums.mp3.
@@ -65,7 +65,7 @@ import java.util.zip.ZipOutputStream
  *
  * ГОТОВНОСТЬ (см. [stemsReady]) больше не проверяется живым обращением к MinIO — раньше это были
  * 2 HEAD-запроса на КАЖДЫЙ вызов [access]/[readiness], что било по MinIO на каждый показ списка
- * песен (Закрома/Поиск). Теперь готовность — персистентные булевы поля Settings (см.
+ * песен (Закрома/Поиск). Теперь готовность — персистентные булевы поля Song (см.
  * deploy/karaoke-db/26_player_readiness_flags.sql), которые karaoke-app проставляет точечно в
  * момент успешной заливки файла в хранилище и сверяет через HealthReport. [existsInMinIO] всё ещё
  * используется — но только для отдачи самих байт (stemResponse/fetchFromMinIO) и для необязательных
@@ -113,7 +113,7 @@ class PublicPlayerController(
     // проставляемые karaoke-app в момент успешной заливки стема/картинки в хранилище и сверяемые
     // HealthReport'ом. НИКАКИХ обращений к MinIO здесь больше нет — раньше стемы проверялись через
     // 2 живых HEAD-запроса на каждый вызов, что било по MinIO на каждый показ списка песен.
-    private fun stemsReady(settings: Settings): Boolean =
+    private fun stemsReady(settings: Song): Boolean =
         settings.idStatus >= 3 &&
             settings.stemAccompanimentReady &&
             settings.stemVocalReady &&
@@ -190,7 +190,7 @@ class PublicPlayerController(
      *
      * Премиум резолвится один раз на весь запрос. Возвращаемые поля на песню:
      *  - contentReady — премиум-независимая готовность контента ([stemsReady]: idStatus>=3 + оба
-     *    стема + обе картинки (персистентные флаги Settings, БЕЗ обращения к MinIO) + непустые
+     *    стема + обе картинки (персистентные флаги Song, БЕЗ обращения к MinIO) + непустые
      *    маркеры). Нужна фронту, чтобы отличить «золотую» монетку (контент готов, премиум смог бы
      *    открыть плеер прямо сейчас) от «серебряной» (ещё не готов).
      *  - watchable (= ready, для обратной совместимости) — может ли ПРЯМО СЕЙЧАС открыть плеер сам
@@ -198,7 +198,7 @@ class PublicPlayerController(
      * Короткого замыкания по (onAir||premium) больше нет — [stemsReady] нужен и для не-onAir песен,
      * чтобы вычислить contentReady для монетки. Батч больше не бьёт по MinIO (раньше — 2 HEAD на
      * песню, смягчённые чанками/параллелизмом на фронте, см. usePlayerReadiness.js), т.к. readiness
-     * теперь строится только из уже загруженных полей Settings.
+     * теперь строится только из уже загруженных полей Song.
      */
     @PostMapping("/readiness")
     fun readiness(
@@ -229,7 +229,7 @@ class PublicPlayerController(
     // with a REMOTE_STORAGE location: "${settings.storageFileName}${suffix}.${extention}" — suffix
     // already carries its own leading dot (e.g. ".accompaniment"), NOT a dash.
     private fun stemStorageKey(
-        settings: Settings,
+        settings: Song,
         fileType: KaraokeFileType,
     ) = "${settings.storageFileName}${fileType.suffix}.${fileType.extention}"
 
@@ -237,11 +237,11 @@ class PublicPlayerController(
     // строковая формула, без обращения к settings.pictureAlbum/pictureAuthor. Эти геттеры трогают
     // rootFolder и валят процесс karaoke-web, если для песни ещё нет строки в tbl_pictures и они
     // пытаются лениво создать её из локального файла (см. предупреждение в комментарии класса выше).
-    private fun pictureAlbumStorageKey(settings: Settings) =
+    private fun pictureAlbumStorageKey(settings: Song) =
         "${settings.author}/${settings.year} - ${settings.album}/${settings.author} - ${settings.year} - " +
             "${settings.album}${KaraokeFileType.PICTURE_ALBUM.suffix}.${KaraokeFileType.PICTURE_ALBUM.extention}"
 
-    private fun pictureAuthorStorageKey(settings: Settings) =
+    private fun pictureAuthorStorageKey(settings: Song) =
         "${settings.author}/${settings.author}${KaraokeFileType.PICTURE_AUTHOR.suffix}.${KaraokeFileType.PICTURE_AUTHOR.extention}"
 
     private fun encodedProxyPath(storageKey: String): String =
@@ -287,7 +287,7 @@ class PublicPlayerController(
     // download-менеджера обходили токен и его 30-минутный TTL). Проксирование байтов устраняет этот
     // постоянный публичный URL — каждый запрос снова проверяет token.
     private fun stemResponse(
-        settings: Settings,
+        settings: Song,
         fileType: KaraokeFileType,
         demoRange: PlayerGestureUnlockService.DemoRange?,
     ): ResponseEntity<ByteArray> {
@@ -300,7 +300,7 @@ class PublicPlayerController(
     }
 
     private fun loadSettings(id: Long) =
-        Settings.loadFromDbById(id, WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+        Song.loadFromDbById(id, WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
 
     @GetMapping("/{id}/fileminus.mp3")
     fun fileAccompaniment(

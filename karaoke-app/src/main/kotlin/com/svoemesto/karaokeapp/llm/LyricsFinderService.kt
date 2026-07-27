@@ -13,7 +13,7 @@ import org.springframework.stereotype.Service
  *    извлекает структурированный текст/аккорды.
  * 3. Результаты ранжируются по эвристикам (длина текста, наличие
  *    аккордов, качество разметки).
- * 4. Лучший результат сохраняется в [com.svoemesto.karaokeapp.model.Settings].
+ * 4. Лучший результат сохраняется в [com.svoemesto.karaokeapp.model.Song].
  *
  * @property searchTool HTTP-поисковик (Google/Bing через scraping).
  * @property scraperAgent LLM-агент для парсинга HTML.

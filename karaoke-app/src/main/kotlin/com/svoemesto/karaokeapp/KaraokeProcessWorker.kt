@@ -276,7 +276,7 @@ class KaraokeProcessThread(
                     ) {
                         // Если процесс SHEETSAGE завершился ошибкой - создаём для этой же песни процесс SHEETSAGE2 с таким же приоритетом
                         val settings =
-                            Settings.loadFromDbById(
+                            Song.loadFromDbById(
                                 id = karaokeProcess.settingsId.toLong(),
                                 database = WORKING_DATABASE,
                                 storageService = KSS_APP,
@@ -374,7 +374,7 @@ class KaraokeProcessThread(
  * Главный Spring-компонент очереди задач Karaoke. Цикл, который берёт
  * `WAITING` задания из `tbl_processes` (отсортированные по приоритету),
  * запускает их через [KaraokeProcessThread] в соответствующем `threadId`-
- * лейне, и обрабатывает периодические проверки (SearchAsync, Settings.
+ * лейне, и обрабатывает периодические проверки (SearchAsync, Song.
  * requestNewSongLastTimeMs, и др.).
  *
  * Потокобезопасность: все mutable-состояния (`isWork`, `stopAfterThreadIsDone`,
@@ -617,7 +617,7 @@ class KaraokeProcessWorker {
                                                 println("Из них записей с наличием текста: ${searchedRightResults.size}")
                                                 if (searchedRightResults.isNotEmpty()) {
                                                     val songId = searchAsync.songId
-                                                    Settings
+                                                    Song
                                                         .loadFromDbById(
                                                             id = songId,
                                                             database = database,
@@ -629,7 +629,7 @@ class KaraokeProcessWorker {
                                                                     "Первое из найденных не пустых значений применяем для текста песни ${settings.fileName}",
                                                                 )
                                                                 settings.sourceText = searchedRightResults.first().text
-                                                                settings.fields[SettingField.ID_STATUS] = "1"
+                                                                settings.fields[SongField.ID_STATUS] = "1"
                                                                 settings.saveToDb()
                                                             }
                                                         }
@@ -727,7 +727,7 @@ class KaraokeProcessWorker {
 //                            println("ProcessWorker: Проверка sync-записей по таймеру...")
                             // Получаем список sync-записей из REMOTE DATABASE
                             val listSettingsSync =
-                                Settings.loadListFromDb(
+                                Song.loadListFromDb(
                                     database = Connection.remote(),
                                     sync = true,
                                     storageService = KSS_APP,
@@ -735,7 +735,7 @@ class KaraokeProcessWorker {
                                 )
                             listSettingsSync.forEach { settingsSync ->
                                 val settingsLocal =
-                                    Settings.loadFromDbById(
+                                    Song.loadFromDbById(
                                         id = settingsSync.id,
                                         database = Connection.local(),
                                         storageService = KSS_APP,
@@ -743,13 +743,13 @@ class KaraokeProcessWorker {
                                     )
                                 if (settingsLocal != null) {
                                     // Запись в локальной БД есть, надо обновить
-                                    val diff = Settings.getDiff(settingsSync, settingsLocal)
+                                    val diff = Song.getDiff(settingsSync, settingsLocal)
                                     val setStr =
                                         diff
                                             .filter { it.recordDiffRealField }
                                             .joinToString(", ") { "${it.recordDiffName} = ?" }
                                     if (setStr != "") {
-                                        val sql = "UPDATE tbl_settings SET $setStr WHERE id = ?"
+                                        val sql = "UPDATE tbl_songs SET $setStr WHERE id = ?"
 
                                         val connection = Connection.local().getConnection()
                                         if (connection == null) {
@@ -773,7 +773,7 @@ class KaraokeProcessWorker {
                                             ps.close()
                                             if (Karaoke.autoUpdateRemoteSettings && Karaoke.allowUpdateRemote) {
                                                 val (listCreate, listUpdate, listDelete) =
-                                                    updateRemoteSettingFromLocalDatabase(
+                                                    updateRemoteSongFromLocalDatabase(
                                                         settingsLocal.id,
                                                     )
                                                 if (listCreate.size + listUpdate.size + listDelete.size != 0) {
@@ -797,7 +797,7 @@ class KaraokeProcessWorker {
 
                                 if (settingsSync.tags == "RENDER") {
                                     val settingsLocal =
-                                        Settings.loadFromDbById(
+                                        Song.loadFromDbById(
                                             id = settingsSync.id,
                                             database = Connection.local(),
                                             storageService = KSS_APP,
@@ -832,7 +832,7 @@ class KaraokeProcessWorker {
                             }
                             // Удаляем записи из sync-таблицы
                             listSettingsSync.map { it.id }.forEach { idToDel ->
-                                Settings.deleteFromDb(id = idToDel, database = Connection.remote(), sync = true)
+                                Song.deleteFromDb(id = idToDel, database = Connection.remote(), sync = true)
                             }
                         }
                     }

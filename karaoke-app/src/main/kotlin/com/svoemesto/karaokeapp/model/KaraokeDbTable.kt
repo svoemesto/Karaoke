@@ -19,7 +19,7 @@ import kotlin.reflect.jvm.isAccessible
 
 /**
  * Базовый интерфейс для всех персистентных сущностей Karaoke
- * (Settings, Author, Picture, KaraokeProcess, и др.).
+ * (Song, Author, Picture, KaraokeProcess, и др.).
  *
  * Реализует:
  * 1. **Reflection-based persistence** — поля класса напрямую мапятся
@@ -64,7 +64,7 @@ interface KaraokeDbTable {
     var id: Long
 
     /**
-     * Имя таблицы в БД (например, `"tbl_settings"`, `"tbl_authors"`).
+     * Имя таблицы в БД (например, `"tbl_songs"`, `"tbl_authors"`).
      * Используется reflection-загрузчиком и sync-механизмом.
      */
     fun getTableName(): String

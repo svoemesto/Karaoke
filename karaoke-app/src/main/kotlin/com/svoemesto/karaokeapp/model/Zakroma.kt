@@ -16,15 +16,27 @@ class Zakroma(
 ) : Serializable,
     Comparable<Zakroma> {
     companion object {
+        /**
+         * Закрома автора: все его песни, сгруппированные по альбомам.
+         *
+         * @param onlyPublished при true — только песни со статусом готовности >= 3 (то же
+         * определение «песня в коллекции», что уже используется для публичных счётчиков в
+         * [StatBySong]). Публичные (проде) call-site'ы обязаны передавать true; admin-путь
+         * оставляет значение по умолчанию (false), чтобы редакторы видели все песни.
+         * @see docs/features/special-orders.md
+         */
         fun getZakroma(
             author: String,
             database: KaraokeConnection,
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
+            onlyPublished: Boolean = false,
         ): List<Zakroma> {
+            val args = mutableMapOf("author" to author)
+            if (onlyPublished) args["id_status"] = ">=3"
             val listSettings =
                 Song.loadListFromDb(
-                    args = mapOf("author" to author),
+                    args = args,
                     database = database,
                     storageService = storageService,
                     storageApiClient = storageApiClient,
@@ -41,12 +53,15 @@ class Zakroma(
          * с `is_special_order=true` один раз, затем все их песни одним запросом через
          * уже существующий `author_in`-фильтр [Song.getWhereList].
          *
+         * @param onlyPublished при true — только песни со статусом готовности >= 3, см.
+         * [getZakroma].
          * @see docs/features/special-orders.md
          */
         fun getZakromaBySpecialOrder(
             database: KaraokeConnection,
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
+            onlyPublished: Boolean = false,
         ): List<Zakroma> {
             val names =
                 Song.loadListAuthors(
@@ -55,9 +70,11 @@ class Zakroma(
                     database = database,
                 )
             if (names.isEmpty()) return emptyList()
+            val args = mutableMapOf("author_in" to names.joinToString(Song.AUTHOR_IN_DELIMITER))
+            if (onlyPublished) args["id_status"] = ">=3"
             val listSettings =
                 Song.loadListFromDb(
-                    args = mapOf("author_in" to names.joinToString(Song.AUTHOR_IN_DELIMITER)),
+                    args = args,
                     database = database,
                     storageService = storageService,
                     storageApiClient = storageApiClient,

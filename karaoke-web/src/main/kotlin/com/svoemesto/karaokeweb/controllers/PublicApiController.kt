@@ -177,12 +177,14 @@ class PublicApiController(
         // specialBucket=true — виртуальная плашка «Отдельные песни разных авторов»: все
         // is_special_order=true авторы одним запросом, вместо N+1 по каждому автору отдельно.
         // @see docs/features/special-orders.md
+        // Публичная поверхность прода — показываем только готовые песни (specs/013-song-status-filter).
         val zakroma =
             if (specialBucket) {
                 Zakroma.getZakromaBySpecialOrder(
                     database = WORKING_DATABASE,
                     storageService = storageService,
                     storageApiClient = storageApiClient,
+                    onlyPublished = true,
                 )
             } else {
                 Zakroma.getZakroma(
@@ -190,6 +192,7 @@ class PublicApiController(
                     database = WORKING_DATABASE,
                     storageService = storageService,
                     storageApiClient = storageApiClient,
+                    onlyPublished = true,
                 )
             }
         return ZakromaPublicDto.fromZakroma(zakroma)
@@ -226,6 +229,8 @@ class PublicApiController(
         }
         if (!text.isNullOrEmpty()) attr["text"] = text
         if (!album.isNullOrEmpty()) attr["song_album"] = album
+        // Публичная поверхность прода — показываем только готовые песни (specs/013-song-status-filter).
+        attr["id_status"] = ">=3"
 
         val settings: List<Song> =
             if ("${songName ?: ""}${author ?: ""}${album ?: ""}${text ?: ""}".length < 3) {

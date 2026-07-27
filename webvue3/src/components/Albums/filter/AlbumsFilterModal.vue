@@ -89,6 +89,27 @@
                 v-text="'X'"
               />
             </div>
+
+            <div class="afm-filter-row">
+              <div class="afm-row-label">
+                <div v-text="'Песен (от):'" />
+              </div>
+              <div class="afm-row-input">
+                <input
+                  v-model="albumsFilterSongsCountMin"
+                  type="number"
+                  min="0"
+                  step="1"
+                  class="afm-input-field"
+                />
+              </div>
+              <button
+                :disabled="!albumsFilterSongsCountMin"
+                class="afm-button-clear-field"
+                @click.left="albumsFilterSongsCountMin = ''"
+                v-text="'X'"
+              />
+            </div>
           </div>
         </div>
 
@@ -165,6 +186,14 @@ export default {
         this.$store.dispatch('setAlbumsFilterAlbumType', { value: value })
       },
     },
+    albumsFilterSongsCountMin: {
+      get() {
+        return this.$store.getters.getAlbumsFilterSongsCountMin
+      },
+      set(value) {
+        this.$store.dispatch('setAlbumsFilterSongsCountMin', { value: value })
+      },
+    },
   },
   async beforeMount() {
     this.$store.dispatch('setAlbumsFilterId', {
@@ -182,6 +211,9 @@ export default {
     this.$store.dispatch('setAlbumsFilterAlbumType', {
       value: await this.$store.getters.getWebvueProp('albumsFilterAlbumType', ''),
     })
+    this.$store.dispatch('setAlbumsFilterSongsCountMin', {
+      value: await this.$store.getters.getWebvueProp('albumsFilterSongsCountMin', ''),
+    })
     if (
       !this.$store.getters.getAuthorsDigest ||
       this.$store.getters.getAuthorsDigest.length === 0
@@ -197,6 +229,9 @@ export default {
       if (this.albumsFilterYear) params.filterYear = this.albumsFilterYear
       if (this.albumsFilterName) params.filterName = this.albumsFilterName
       if (this.albumsFilterAlbumType) params.filterAlbumType = this.albumsFilterAlbumType
+      if (this.albumsFilterSongsCountMin) {
+        params.filterSongsCountMin = this.albumsFilterSongsCountMin
+      }
       this.$store.dispatch('loadAlbumsDigests', params)
 
       this.$emit('close')

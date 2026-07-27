@@ -447,7 +447,7 @@ export default {
     // "studio" не показываем — это подразумеваемый тип большинства альбомов, бейдж только для
     // отличающихся (концерт/сборник/бутлег).
     albumTypeLabel(albumType) {
-      const labels = { live: 'концерт', compilation: 'сборник', bootleg: 'бутлег' }
+      const labels = { live: 'концерт', compilation: 'сборник', bootleg: 'бутлег', single: 'сингл' }
       return labels[albumType] || albumType
     },
     // Монетка «премиум-контент» — только не-премиум посетителю и только для контента, доступного

@@ -21,6 +21,7 @@ enum class AlbumType(
     LIVE(dbValue = "live", description = "Концертный альбом"),
     COMPILATION(dbValue = "compilation", description = "Сборник"),
     BOOTLEG(dbValue = "bootleg", description = "Бутлег"),
+    SINGLE(dbValue = "single", description = "Сингл"),
     ;
 
     companion object {

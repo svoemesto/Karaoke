@@ -5777,6 +5777,7 @@ class ApiController(
         @RequestParam(required = false) filterYear: String?,
         @RequestParam(required = false) filterName: String?,
         @RequestParam(required = false) filterAlbumType: String?,
+        @RequestParam(required = false) filterSongsCountMin: String?,
     ): Map<String, Any> {
         val args: MutableMap<String, String> = mutableMapOf()
         filterId?.let { if (filterId != "") args["id"] = filterId }
@@ -5793,6 +5794,10 @@ class ApiController(
         // Частичный поиск (LOWER(name) LIKE) — не точное совпадение, см. Album.getWhereList.
         filterName?.let { if (filterName != "") args["name_search"] = filterName }
         filterAlbumType?.let { if (filterAlbumType != "") args["album_type"] = filterAlbumType }
+        // Минимальное число песен в альбоме. Считаем в Kotlin ПОСЛЕ batch-подсчёта
+        // (см. Album.countSongsByAlbumIds) — subquery HAVING в WHERE тут не нужен, фильтр
+        // работает в связке с другими и резко сужает выборку уже на клиенте.
+        val minSongsCount = filterSongsCountMin?.takeIf { it.isNotBlank() }?.toIntOrNull() ?: 0
         val albums =
             Album
                 .loadList(
@@ -5809,6 +5814,7 @@ class ApiController(
         val albumsList =
             albums
                 .map { it.toDTO().copy(songsCount = songsCountByAlbumId[it.id] ?: 0) }
+                .filter { minSongsCount <= 0 || it.songsCount >= minSongsCount }
                 .sorted()
 
         return mapOf(

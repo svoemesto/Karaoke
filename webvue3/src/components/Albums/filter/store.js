@@ -12,6 +12,7 @@ export default {
     albumsFilterYear: '',
     albumsFilterName: '',
     albumsFilterAlbumType: '',
+    albumsFilterSongsCountMin: '',
   },
   getters: {
     getAlbumsFilterId(state) {
@@ -28,6 +29,9 @@ export default {
     },
     getAlbumsFilterAlbumType(state) {
       return state.albumsFilterAlbumType
+    },
+    getAlbumsFilterSongsCountMin(state) {
+      return state.albumsFilterSongsCountMin
     },
   },
   mutations: {
@@ -51,6 +55,10 @@ export default {
       setWebvueProp(state.albumsFilterAlbumType, 'albumsFilterAlbumType', value)
       state.albumsFilterAlbumType = value
     },
+    setAlbumsFilterSongsCountMin(state, value) {
+      setWebvueProp(state.albumsFilterSongsCountMin, 'albumsFilterSongsCountMin', value)
+      state.albumsFilterSongsCountMin = value
+    },
   },
   actions: {
     setAlbumsFilterId(ctx, payload) {
@@ -67,6 +75,9 @@ export default {
     },
     setAlbumsFilterAlbumType(ctx, payload) {
       ctx.commit('setAlbumsFilterAlbumType', payload.value)
+    },
+    setAlbumsFilterSongsCountMin(ctx, payload) {
+      ctx.commit('setAlbumsFilterSongsCountMin', payload.value)
     },
   },
 }

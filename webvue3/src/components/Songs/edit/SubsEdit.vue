@@ -2111,9 +2111,13 @@ export default {
             syllables: [],
           })
         }
-        this.sourceText = await this.$store.getters.getSourceText(this.currentVoice)
+        // Порядок КРИТИЧЕН: loadedMarkers грузится ДО sourceText, иначе watcher `sourceText`
+        // срабатывает между двумя `await` (на микротаске Vue 2) со СТАРЫМИ sourceMarkers и
+        // syncMarkersFromSpecTags() корраптит их spec tag-маркерами из НОВОГО текста. См.
+        // specs/015-fix-spec-tags-marker-loss-on-reopen/research.md §2.4.
         this.loadedMarkers = await this.$store.getters.getSourceMarkers(this.currentVoice)
         this.sourceMarkers = []
+        this.sourceText = await this.$store.getters.getSourceText(this.currentVoice)
         // clearRegions() — БЕЗУСЛОВНО, независимо от того, есть ли маркеры у НОВОГО голоса: иначе при
         // переключении на голос без разметки регионы предыдущего голоса оставались висеть на вейвформе
         // (условие ниже раньше оборачивало и очистку тоже, а не только заполнение).
@@ -2620,8 +2624,31 @@ export default {
     // Инициализируем Wavesurfer
     this.initWavesurfer()
     this.isEditMode = true
-    this.sourceText = await this.$store.getters.getSourceText(this.currentVoice)
+    // Порядок присваиваний КРИТИЧЕН (specs/015-fix-spec-tags-marker-loss-on-reopen/research.md §2.2):
+    // `loadedMarkers` + заполнение `sourceMarkers` ДОЛЖНЫ произойти ДО `this.sourceText = ...`,
+    // иначе watcher `sourceText` сработает с пустым `sourceMarkers` (асинхронно, на следующем
+    // микротаске Vue 2) и `syncMarkersFromSpecTags()` вставит spec tag-маркеры через splice(0,0,...)
+    // (потому что `syllablePositions` пуст → `insertPos = 0` для всех якорей). Условие
+    // `this.sourceMarkers.length === 0` в `ws.on('decode')` ниже тогда перестанет выполняться, и
+    // реальные маркеры из БД не загрузятся в UI — пользователь увидит только spec tag-маркеры.
+    // Раньше эта загрузка жила в `ws.on('decode')`, что срабатывает ПОЗЖЕ watcher'а `sourceText`.
     this.loadedMarkers = await this.$store.getters.getSourceMarkers(this.currentVoice)
+    if (this.loadedMarkers.length > 0) {
+      for (let index = 0; index < this.loadedMarkers.length; index++) {
+        let marker = Object.assign({}, this.loadedMarkers[index])
+        if (
+          (marker.markertype === 'setting' && marker.label && marker.label === 'COMMENT| ') ||
+          (marker.markertype === 'syllables' && marker.label && marker.label.trim() === '')
+        ) {
+          console.log('ignored')
+        } else {
+          marker.region = this.createRegionMarker(marker)
+          this.sourceMarkers.push(marker)
+        }
+      }
+      this.createBeatMarkers()
+    }
+    this.sourceText = await this.$store.getters.getSourceText(this.currentVoice)
     this.indexTabsVariant = await this.$store.getters.getIndexTabsVariant
 
     // Навешиваем обработчики событий на Wavesurfer
@@ -2639,21 +2666,12 @@ export default {
       // сработать повторно (перезагрузка трека), и если loadedMarkers у голоса пуст, старые регионы
       // иначе остались бы висеть на вейвформе.
       this.wsRegions.clearRegions()
-      if (this.loadedMarkers.length > 0 && this.sourceMarkers.length === 0) {
-        for (let index = 0; index < this.loadedMarkers.length; index++) {
-          let marker = Object.assign({}, this.loadedMarkers[index])
-          if (
-            (marker.markertype === 'setting' && marker.label && marker.label === 'COMMENT| ') ||
-            (marker.markertype === 'syllables' && marker.label && marker.label.trim() === '')
-          ) {
-            console.log('ignored')
-          } else {
-            marker.region = this.createRegionMarker(marker)
-            this.sourceMarkers.push(marker)
-          }
-        }
-        this.createBeatMarkers()
-      }
+      // Маркеры уже загружены выше в mounted() (синхронно, до `sourceText`) — здесь только
+      // очистка регионов и расчёт видимой области. Цикл заполнения `sourceMarkers` из
+      // `loadedMarkers` намеренно убран из этого обработчика: см. JSDoc выше и
+      // specs/015-fix-spec-tags-marker-loss-on-reopen/research.md §2.2 - иначе watcher `sourceText`
+      // срабатывал РАНЬШЕ `ws.on('decode')` с пустым `sourceMarkers`, и условие
+      // `sourceMarkers.length === 0` ломалось.
     })
     this.ws.on('timeupdate', (currentTime) => {
       if (this.currentTime !== currentTime) {
@@ -3409,8 +3427,21 @@ export default {
     // маркеры (см. contracts/tag-registry.md "Инварианты", FR-005/FR-006/FR-007 spec.md). В отличие
     // от backend buildMarkersFromSyllableTimes, для обычной пустой строки БЕЗ тега маркер здесь не
     // создаётся вовсе - это ответственность авто-разметки ("Точные маркеры"), а не ручного редактора.
+    //
+    // Вызывается СТРОГО после того, как `sourceMarkers` заполнен из `loadedMarkers` (в `mounted()`
+    // или в `currentVoice` watcher'е). На первом открытии голоса это гарантируется порядком
+    // присваиваний в `mounted()`. Защитный гард `if (this.sourceMarkers.length === 0) return` ниже -
+    // страховка от вызова в неожиданных местах (например, если watcher `sourceText` когда-нибудь
+    // сработает ДО заполнения `loadedMarkers`).
+    // @see specs/015-fix-spec-tags-marker-loss-on-reopen/research.md §2.2
     syncMarkersFromSpecTags() {
       if (!this.wsRegions) return
+      // Защитный гард: если `sourceMarkers` ещё не заполнен из `loadedMarkers` (например, watcher
+      // `sourceText` сработал на первом открытии до загрузки маркеров из БД), не вставлять маркеры -
+      // иначе они окажутся в позиции 0 (т.к. `syllablePositions` пуст) и сломают последующее
+      // наполнение `sourceMarkers` в `ws.on('decode')` (его условие `sourceMarkers.length === 0`
+      // перестанет выполняться, и реальные маркеры из БД не загрузятся в UI). См. research.md §2.2.
+      if (this.sourceMarkers.length === 0) return
       const anchors = this.specTagAnchors
       if (anchors.length === 0) return
 

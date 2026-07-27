@@ -1016,9 +1016,6 @@ export default {
 .km-album-type-badge {
   font-size: 0.7rem;
   font-weight: 500;
-  padding: 0.1rem 0.4rem;
-  border-radius: 999px;
-  background: var(--km-border);
   color: var(--km-text2);
   text-transform: uppercase;
   letter-spacing: 0.02em;

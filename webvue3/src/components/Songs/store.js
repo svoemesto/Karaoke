@@ -2445,6 +2445,14 @@ export default {
       let request = { method: 'POST', url: '/api/utils/recalcplayerreadiness', params: params }
       return promisedXMLHttpRequest(request)
     },
+    // specs/011-album-song-rename: одноразовый (но идемпотентный) бэкфилл Album из уже
+    // существующих у песен song_author/song_year/song_album. Только LOCAL — эндпоинт живёт
+    // в karaoke-app, который на PROD не разворачивается (см. RUNBOOK.md §2.2 — на сервер
+    // результат попадает через обычную синхронизацию, не повторным вызовом).
+    backfillAlbumsFromSongsPromise() {
+      let request = { method: 'POST', url: '/api/utils/backfillalbumsfromsongs', params: {} }
+      return promisedXMLHttpRequest(request)
+    },
     autoAssignOriginalAllPromise(ctx, payload) {
       // author не передаётся (или пустой) → обработка всех авторов; возможность оставлена намеренно.
       let params = payload && payload.author ? { author: payload.author } : {}

@@ -64,6 +64,11 @@
             Пересчитать готовность плеера{{ author ? '' : ' (все авторы)' }}
           </button>
         </div>
+        <div class="field-and-buttons-wrapper">
+          <button class="button-action" @click="backfillAlbumsFromSongs">
+            Заполнить альбомы из песен
+          </button>
+        </div>
         <!-- <button class="button-action" @click="delDublicates">Удалить дубликаты</button>
       <button class="button-action" @click="clearPreDublicates">Очистить информацию о пре-дубликатах</button> -->
         <div class="field-and-buttons-wrapper">
@@ -488,6 +493,35 @@ export default {
           alertType: 'info',
           header: 'Пересчёт готовности плеера',
           body: `Операция запущена.<br>Итог придёт уведомлением по завершении.`,
+          timeout: 10,
+        }
+        this.isCustomConfirmVisible = true
+      })
+    },
+    // specs/011-album-song-rename: разовый (идемпотентный) бэкфилл Album из song_author/
+    // song_year/song_album существующих песен. Только LOCAL — на SERVER результат попадает
+    // через обычную синхронизацию (RUNBOOK.md §2.2), не повторным запуском этой кнопки.
+    backfillAlbumsFromSongs() {
+      this.customConfirmParams = {
+        header: 'Подтвердите действие',
+        body:
+          `Создать альбомы из уже заполненных у песен автора/года/альбома и связать с ними песни?<br>` +
+          `Обрабатывает только ещё не привязанные песни — можно запускать повторно, дубли не создаются.<br>` +
+          `Действует только на LOCAL. Чтобы новые альбомы попали на сервер — запустите синхронизацию ` +
+          `«Альбомы» и «Настройки песен» после завершения.<br>` +
+          `<strong>Операция может занять время и идёт в фоне — итог придёт уведомлением.</strong>`,
+        timeout: 15,
+        callback: this.doBackfillAlbumsFromSongs,
+      }
+      this.isCustomConfirmVisible = true
+    },
+    doBackfillAlbumsFromSongs() {
+      this.$store.dispatch('backfillAlbumsFromSongsPromise').then(() => {
+        this.customConfirmParams = {
+          isAlert: true,
+          alertType: 'info',
+          header: 'Заполнение альбомов из песен',
+          body: `Операция запущена в фоне.<br>Итог придёт уведомлением по завершении.`,
           timeout: 10,
         }
         this.isCustomConfirmVisible = true

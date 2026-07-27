@@ -23,6 +23,9 @@ data class AlbumDTO(
     val authorPicturePreviewUrl: String = "",
     val albumPictureId: Long = 0,
     val albumPicturePreviewUrl: String = "",
+    // Количество песен в альбоме (для UI-таблицы "Альбомы"). Денормализовано — считается
+    // батчем в ApiController.apisAlbumsDigest, не персистится. 0 для нового/пустого альбома.
+    val songsCount: Int = 0,
 ) : Serializable,
     Comparable<AlbumDTO>,
     KaraokeDbTableDto {

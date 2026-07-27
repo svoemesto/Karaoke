@@ -201,6 +201,36 @@ class Album(
                 .associateBy { it.id }
 
         /**
+         * Батч-подсчёт количества песен по списку album_id.
+         * Один SQL-запрос с `album_id = ANY(?)` + `GROUP BY album_id` (см. [AlbumBackfill]
+         * — тот же паттерн setArray/createArrayOf). Используется в [apisAlbumsDigest] для
+         * денормализации `AlbumDTO.songsCount` (UI-таблица "Альбомы" в webvue3).
+         *
+         * @return map albumId -> songsCount; альбомы без песен в map не попадают
+         * (потребитель должен дефолтить на 0 — см. ApiController).
+         */
+        fun countSongsByAlbumIds(
+            ids: List<Long>,
+            database: KaraokeConnection,
+        ): Map<Long, Int> {
+            if (ids.isEmpty()) return emptyMap()
+            val connection = database.getConnection() ?: return emptyMap()
+            val result = mutableMapOf<Long, Int>()
+            val sql = "SELECT album_id, COUNT(*) AS cnt FROM tbl_songs WHERE album_id = ANY(?) GROUP BY album_id"
+            connection.prepareStatement(sql).use { ps ->
+                ps.setArray(1, connection.createArrayOf("bigint", ids.toTypedArray()))
+                val rs = ps.executeQuery()
+                while (rs.next()) {
+                    val albumId = rs.getLong("album_id")
+                    if (!rs.wasNull()) {
+                        result[albumId] = rs.getInt("cnt")
+                    }
+                }
+            }
+            return result
+        }
+
+        /**
          * Переупорядочить альбомы (например, после drag-and-drop в модалке "Альбомы автора"):
          * `orderedIds` — id альбомов в желаемом порядке отображения (сквозном, не по годам),
          * каждому присваивается `sortOrder` = его индекс в списке. Альбомы, чей `sortOrder` уже

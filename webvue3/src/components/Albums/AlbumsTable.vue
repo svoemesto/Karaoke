@@ -93,11 +93,23 @@
         </template>
 
         <template #cell(albumType)="data">
-          <div
-            class="fld-album-type"
-            @click.left="changeValue(data.item)"
-            v-text="albumTypeLabel(data.value)"
-          />
+          <select
+            class="form-select form-select-sm fld-album-type-select"
+            :value="data.value"
+            :title="albumTypeLabel(data.value)"
+            @change="onAlbumTypeChange(data.item, $event)"
+          >
+            <option
+              v-for="opt in albumTypeOptions"
+              :key="opt.value"
+              :value="opt.value"
+              v-text="opt.label"
+            />
+          </select>
+        </template>
+
+        <template #cell(songsCount)="data">
+          <div class="fld-album-songs-count" v-text="data.value" />
         </template>
 
         <template #cell(sortOrder)="data">
@@ -114,6 +126,11 @@
           </button>
         </template>
       </b-table>
+      <div v-if="showEmptyHint" class="albums-empty-hint">
+        Список пуст. Нажмите кнопку
+        <img alt="filter" class="icon-20" src="../../assets/svg/icon_filter.svg" />
+        и задайте фильтр, чтобы загрузить альбомы.
+      </div>
     </div>
     <div class="albums-bv-table-footer">
       <button class="btn-round-double" title="Фильтр" @click="isAlbumsFilterVisible = true">
@@ -141,8 +158,15 @@ const ALBUM_TYPE_LABELS = {
 }
 
 /**
- * Таблица со списком albums с пагинацией, фильтром, превью картинок автора/альбома и
- * inline-редактированием — по образцу AuthorsTable.vue.
+ * Таблица со списком albums с пагинацией, фильтром, превью картинок автора/альбома,
+ * inline-<select> для типа альбома и колонкой «Песен» (денормализованный счётчик из
+ * AlbumDTO.songsCount). По образцу AuthorsTable.vue.
+ *
+ * Загрузка по фильтру: в `mounted()` НЕ дёргаем `loadAlbumsDigests` — таблица содержит 5k+
+ * альбомов с превью картинок, без фильтра она заметно тормозит. Данные подгружаются только
+ * по нажатию «Применить фильтр» в AlbumsFilterModal (см. ok() там) и при мутациях
+ * create/delete (если таблица уже не пустая — обновляем, иначе оставляем пустой до явного
+ * фильтра).
  *
  * @see specs/011-album-song-rename/contracts/api.md
  */
@@ -166,6 +190,10 @@ export default {
       isPictureEditVisible: false,
       customConfirmParams: undefined,
       isBusy: false,
+      // Объединённый список опций типа альбома (value + label) для inline-<select>
+      // в ячейке и для модалок create/change. Источник истины — AlbumType.dbValue на бэке
+      // (karaoke-app/model/AlbumType.kt), см. комментарий к ALBUM_TYPE_OPTIONS ниже.
+      albumTypeOptions: ALBUM_TYPE_OPTIONS.map((v) => ({ value: v, label: ALBUM_TYPE_LABELS[v] })),
     }
   },
   computed: {
@@ -180,6 +208,10 @@ export default {
     },
     countRows() {
       return this.albumsDigests ? this.albumsDigests.length : 0
+    },
+    // Показывать подсказку «Задайте фильтр», если таблица пуста и загрузка не идёт.
+    showEmptyHint() {
+      return !this.albumsDigestIsLoading && this.countRows === 0
     },
     albumDigestFields() {
       return [
@@ -221,7 +253,13 @@ export default {
           key: 'albumType',
           sortable: true,
           label: 'Тип',
-          style: { minWidth: '120px', maxWidth: '120px', textAlign: 'left', fontSize: 'small' },
+          style: { minWidth: '140px', maxWidth: '140px', textAlign: 'left', fontSize: 'small' },
+        },
+        {
+          key: 'songsCount',
+          sortable: false,
+          label: 'Песен',
+          style: { minWidth: '60px', maxWidth: '60px', textAlign: 'center', fontSize: 'small' },
         },
         {
           key: 'sortOrder',
@@ -250,10 +288,11 @@ export default {
     },
   },
   mounted() {
-    this.$store.dispatch('loadAlbumsDigests', {})
-    if (!this.authorsDigests || this.authorsDigests.length === 0) {
-      this.$store.dispatch('loadAuthorsDigests', {})
-    }
+    // Намеренно НЕ грузим альбомы при входе — таблица содержит 5k+ записей с превью картинок,
+    // загрузка занимает заметное время. Альбомы подгружаются ТОЛЬКО по фильтру (см. ok() в
+    // AlbumsFilterModal и явные мутации — create/delete). Если таблица пустая, пользователь
+    // увидит «Задайте фильтр» ниже. loadAuthorsDigests тоже не дёргаем: длинный список
+    // подсказок в AlbumsFilterModal догружает себя сам в beforeMount при открытии.
   },
   methods: {
     albumTypeLabel(value) {
@@ -382,11 +421,45 @@ export default {
           console.error('Ошибка при выполнении setAlbumValuePromise:', error)
         })
     },
+    // Inline-смена типа альбома прямо в строке таблицы: шлёт минимальный payload
+    // (id + только изменённое поле albumType) и патчит локальный digest без лишнего GET.
+    // Бэкенд (apisUpdateAlbum) требует authorId/year/name/sortOrder — берём их из текущей
+    // строки, чтобы не открывать модалку.
+    onAlbumTypeChange(item, event) {
+      const newAlbumType = event.target.value
+      if (newAlbumType === item.albumType) return
+      const payload = {
+        id: item.id,
+        authorId: item.authorId,
+        year: item.year,
+        name: item.name,
+        albumType: newAlbumType,
+        sortOrder: item.sortOrder,
+      }
+      this.$store
+        .dispatch('setAlbumValuePromise', payload)
+        .then((result) => {
+          if (result !== 0 && result !== '0') {
+            this.$store.commit('updateAlbumsDigests', [{ ...item, albumType: newAlbumType }])
+          } else {
+            // Бэк вернул 0 — альбом не найден, откатываем UI к прежнему значению.
+            event.target.value = item.albumType
+          }
+        })
+        .catch((error) => {
+          console.error('Ошибка при смене типа альбома:', error)
+          event.target.value = item.albumType
+        })
+    },
     doCreateAlbum(album) {
       this.$store
         .dispatch('createAlbumPromise', album)
         .then(() => {
-          this.$store.dispatch('loadAlbumsDigests', {})
+          // Не дёргаем сервер без фильтра — см. mounted(). Если таблица уже загружена
+          // (фильтр применён), обновим, чтобы новый альбом попал в видимое подмножество.
+          if (this.countRows > 0) {
+            this.$store.dispatch('loadAlbumsDigests', {})
+          }
         })
         .catch((error) => {
           console.error('Ошибка при выполнении createAlbumPromise:', error)
@@ -396,7 +469,9 @@ export default {
       this.$store
         .dispatch('deleteAlbumPromise', item.id)
         .then(() => {
-          this.$store.dispatch('loadAlbumsDigests', {})
+          if (this.countRows > 0) {
+            this.$store.dispatch('loadAlbumsDigests', {})
+          }
         })
         .catch((error) => {
           console.error('Ошибка при выполнении deleteAlbumPromise:', error)
@@ -440,10 +515,37 @@ export default {
 .fld-album-year,
 .fld-album-name,
 .fld-album-type,
+.fld-album-songs-count,
 .fld-album-sort-order {
   font-size: small;
   white-space: nowrap;
   overflow: hidden;
+}
+.fld-album-type-select {
+  font-size: small;
+  padding: 1px 4px;
+  width: 100%;
+  min-width: 130px;
+}
+.fld-album-songs-count {
+  text-align: center;
+  color: #444;
+  font-weight: 500;
+}
+.albums-empty-hint {
+  margin-top: 12px;
+  padding: 8px 14px;
+  font-size: small;
+  color: #555;
+  background-color: lightyellow;
+  border: 1px dashed #c0a060;
+  border-radius: 6px;
+}
+.albums-empty-hint .icon-20 {
+  width: 18px;
+  height: 18px;
+  vertical-align: middle;
+  margin: 0 2px;
 }
 .fld-album-id:hover,
 .fld-album-author:hover,

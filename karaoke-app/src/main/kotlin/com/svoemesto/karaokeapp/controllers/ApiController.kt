@@ -5793,7 +5793,7 @@ class ApiController(
         // Частичный поиск (LOWER(name) LIKE) — не точное совпадение, см. Album.getWhereList.
         filterName?.let { if (filterName != "") args["name_search"] = filterName }
         filterAlbumType?.let { if (filterAlbumType != "") args["album_type"] = filterAlbumType }
-        val albumsList =
+        val albums =
             Album
                 .loadList(
                     whereArgs = args,
@@ -5801,7 +5801,14 @@ class ApiController(
                     storageService = storageService,
                     storageApiClient = storageApiClient,
                     ignoreUseInList = true,
-                ).map { it.toDTO() }
+                )
+        // Батч-подсчёт песен по альбомам одним SQL-запросом (см. Album.countSongsByAlbumIds).
+        // Без N+1 на 5000+ альбомах. Альбомы без песен в map не попадут — дефолтим на 0.
+        val songsCountByAlbumId =
+            Album.countSongsByAlbumIds(albums.map { it.id }, WORKING_DATABASE)
+        val albumsList =
+            albums
+                .map { it.toDTO().copy(songsCount = songsCountByAlbumId[it.id] ?: 0) }
                 .sorted()
 
         return mapOf(

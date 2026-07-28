@@ -624,14 +624,7 @@ class KaraokeProcessWorker {
                                                             storageService = storageService,
                                                             storageApiClient = storageApiClient,
                                                         )?.let { settings ->
-                                                            if (settings.sourceText.isBlank() && settings.idStatus == 0L) {
-                                                                println(
-                                                                    "Первое из найденных не пустых значений применяем для текста песни ${settings.fileName}",
-                                                                )
-                                                                settings.sourceText = searchedRightResults.first().text
-                                                                settings.fields[SongField.ID_STATUS] = "1"
-                                                                settings.saveToDb()
-                                                            }
+                                                            applyFoundLyricsIfMissing(settings, searchedRightResults.map { it.text })
                                                         }
                                                 }
                                             } else {

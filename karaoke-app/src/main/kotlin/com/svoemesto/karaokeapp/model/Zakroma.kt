@@ -83,6 +83,16 @@ class Zakroma(
             return buildFromSettings(listSettings, database, storageService, storageApiClient)
         }
 
+        /**
+         * Группирует плоский список песен в структуру Автор→Альбом→Песни для закромов.
+         *
+         * Ключ группировки альбома внутри автора — пара (год, название), а НЕ одно только
+         * название: у автора могут быть два разных альбома с одинаковым названием, но разными
+         * годами (переиздание и т.п.) — их идентичность в БД это тройка
+         * автор+год+название (`tbl_albums_author_year_name_key`). Группировка по одному
+         * названию схлопывала бы такие альбомы в одну карточку.
+         * @see docs/features/special-orders.md
+         */
         private fun buildFromSettings(
             listSettings: List<Song>,
             database: KaraokeConnection,
@@ -123,13 +133,19 @@ class Zakroma(
                         zakroma.authorShortDescription = linkedAuthor.shortDescription
                         zakroma.authorWarning = linkedAuthor.warning
                     }
-                val settingsByAlbum = settingsByAuthor.groupBy { it.album }
+                // Ключ группировки — (год, название), а не только название: у автора могут быть
+                // два РАЗНЫХ альбома с одинаковым названием, но разными годами (см. уникальный
+                // констрейнт tbl_albums_author_year_name_key на Album — идентичность альбома это
+                // тройка автор+год+название). Группировка по одному названию схлопывала такие
+                // альбомы в одну карточку и «теряла» год/песни второго. specs/018-fix-album-name-year-grouping.
+                val settingsByAlbum = settingsByAuthor.groupBy { it.year to it.album }
                 zakroma.albums =
                     settingsByAlbum
-                        .map { (albumName, settingsByAlbum) ->
+                        .map { (albumKey, settingsByAlbum) ->
+                            val (albumYear, albumName) = albumKey
                             val album = ZakromaAlbum()
                             album.albumName = albumName
-                            album.year = settingsByAlbum.first().year
+                            album.year = albumYear
                             album.picture = Pictures
                                 .getPictureByName(
                                     name = "$authorName - ${album.year} - $albumName",

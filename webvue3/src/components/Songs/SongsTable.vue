@@ -1498,17 +1498,32 @@ export default {
       const propValue = await this.$store.getters.getPropValue('allowAddSync')
       return propValue === 'true'
     },
-    searchTextForAll() {
+    /**
+     * Открывает диалог подтверждения поиска текста с выбором движка
+     * (specs/015-search-engine-selection). Ранее сохранённые результаты поиска
+     * для песен без текста (если есть) удаляются перед поиском. Значение по
+     * умолчанию для селектора — текущая настройка `lyricsSearchEngine`.
+     */
+    async searchTextForAll() {
+      const defaultEngine = await this.$store.getters.getPropValue('lyricsSearchEngine')
       this.customConfirmParams = {
         header: 'Подтвердите поиск текста',
-        body: `Выбрано песен: <strong>${this.countRows}.</strong><br>Найти в Интернете тексты для всех песен, для которых ещё нет текстов?`,
-        timeout: 10,
-        callback: this.doSearchTextForAll,
+        body: `Выбрано песен: <strong>${this.countRows}.</strong><br>Найти в Интернете тексты для всех песен, для которых ещё нет текстов? Ранее сохранённые результаты поиска (если есть) будут удалены.`,
+        fields: [
+          {
+            fldName: 'engine',
+            fldLabel: 'Движок поиска',
+            fldIsSelect: true,
+            fldOptions: ['YANDEX_SYNC', 'YANDEX_ASYNC', 'SEARXNG', 'FOURGET'],
+            fldValue: defaultEngine || 'FOURGET',
+          },
+        ],
+        callback: (ret) => this.doSearchTextForAll(ret.engine),
       }
       this.isCustomConfirmVisible = true
     },
-    doSearchTextForAll() {
-      this.$store.dispatch('searchTextForAll')
+    doSearchTextForAll(engine) {
+      this.$store.dispatch('searchTextForAll', { engine: engine })
     },
     addSyncForAll() {
       this.customConfirmParams = {

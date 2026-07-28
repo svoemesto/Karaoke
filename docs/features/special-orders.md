@@ -2,7 +2,7 @@
 
 > **Status**: active
 > **Feature Key**: special-orders
-> **Last Updated**: 2026-07-27
+> **Last Updated**: 2026-07-28
 
 ## Что делает
 
@@ -51,6 +51,17 @@
   на проде будут показывать ещё не готовые песни. Admin call-site
   (`karaoke-app/controllers/MainController.zakroma`) параметр не передаёт — редактор
   видит все статусы.
+- **Исключение для "редактора" на публичном сайте** (specs/017-editor-status-bypass) —
+  `PublicApiController` (`zakroma`, `authorsTiles`, `songs`) больше не передаёт `true`
+  жёстко: значение вычисляется приватным хелпером
+  `onlyPublishedFor(request) = siteUserResolver.resolve(request)?.isEditor != true`.
+  Если текущий запрос несёт `Authorization: Bearer`-токен залогиненного `SiteUser` с
+  `isEditor=true`, фильтр `id_status>=3` снимается — редактор на публичном сайте видит те
+  же статусы, что и в admin-панели. Для анонимов, обычных пользователей и невалидных
+  токенов ничего не меняется (`!= true`, а не `== false`, — намеренно, чтобы отсутствие
+  резолва тоже попадало в «фильтр действует»). `Song.loadAuthorSongCounts` в
+  `authorsTiles()` получает тот же флаг, поэтому подпись количества песен у плашки автора
+  для редактора считает все статусы, согласованно с тем, что он видит в самих закромах.
 
 ### Frontend
 
@@ -120,6 +131,7 @@
 
 - [specs/008-special-orders/spec.md](../../specs/008-special-orders/spec.md) — исходная спецификация
 - [specs/013-song-status-filter/spec.md](../../specs/013-song-status-filter/spec.md) — фильтр `id_status>=3` на публичных поверхностях
+- [specs/017-editor-status-bypass/spec.md](../../specs/017-editor-status-bypass/spec.md) — исключение фильтра для "редактора" на публичном сайте
 - [dual-db-sync.md](./dual-db-sync.md) — recordhash-триггеры, `author_in`-фильтр
 - [docs/strategy/growth-audit.md](../strategy/growth-audit.md) — гипотеза H1.20
 - [docs/strategy/growth.md](../strategy/growth.md) — M-23 в roadmap

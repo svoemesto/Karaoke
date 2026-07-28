@@ -3511,7 +3511,17 @@ export default {
         const nextStartTime = nextMarker ? nextMarker.time : prevEndTime
         const gap = Math.max(0, nextStartTime - prevEndTime)
         // Тот же приём, что backend newLineMarkerTime (NEWLINE_LEAD_IN_SECONDS=1.0).
-        const time = gap >= 1.0 ? nextStartTime - 1.0 : prevEndTime + gap / 2
+        // FIX #018: если `prevMarker` и `nextMarker` оба в нуле (например, первый syllables-маркер
+        // на time=0.1, а перед ним endofline на time=0), формула `prevEndTime + gap/2` даёт ~0.05.
+        // Маркер рисуется визуально «слипшимся» с линией 0 на вейвформе и пользователь видит красную
+        // полосу в нуле (см. specs/018-fix-spec-tag-markers-at-zero). Защита: если результат меньше
+        // 0.5 — сдвигаем маркер на 0.5s вперёд от `prevEndTime` (или от 0, если prev нет). Это
+        // гарантирует, что spec tag-маркер всегда виден на вейвформе, не зависит от «шума» в данных
+        // и не наезжает на syllables-маркеры (т.к. 0.5 < типичного расстояния между слогами).
+        let time = gap >= 1.0 ? nextStartTime - 1.0 : prevEndTime + gap / 2
+        if (time < 0.5) {
+          time = prevEndTime + 0.5
+        }
 
         const newMarker = {
           time: time,

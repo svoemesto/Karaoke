@@ -3159,17 +3159,32 @@ export default {
       this.isAssignReviewVisible = false
       this.reloadAssignmentStatus()
     },
-    searchTextForSong() {
+    /**
+     * Открывает диалог подтверждения поиска текста с выбором движка
+     * (specs/015-search-engine-selection). Ранее сохранённые результаты поиска
+     * для этой песни (если есть) удаляются перед поиском. Значение по умолчанию
+     * для селектора — текущая настройка `lyricsSearchEngine`.
+     */
+    async searchTextForSong() {
+      const defaultEngine = await this.$store.getters.getPropValue('lyricsSearchEngine')
       this.customConfirmParams = {
         header: 'Подтвердите поиск текста',
-        body: `Найти в Интернете тексты для этой песни?`,
-        timeout: 10,
-        callback: this.doSearchTextForSong,
+        body: 'Найти в Интернете тексты для этой песни? Ранее сохранённые результаты поиска (если есть) будут удалены.',
+        fields: [
+          {
+            fldName: 'engine',
+            fldLabel: 'Движок поиска',
+            fldIsSelect: true,
+            fldOptions: ['YANDEX_SYNC', 'YANDEX_ASYNC', 'SEARXNG', 'FOURGET'],
+            fldValue: defaultEngine || 'FOURGET',
+          },
+        ],
+        callback: (ret) => this.doSearchTextForSong(ret.engine),
       }
       this.isCustomConfirmVisible = true
     },
-    doSearchTextForSong() {
-      this.$store.dispatch('searchTextForSong')
+    doSearchTextForSong(engine) {
+      this.$store.dispatch('searchTextForSong', { forceResearch: true, engine: engine })
     },
     findOriginalForSong() {
       this.customConfirmParams = {

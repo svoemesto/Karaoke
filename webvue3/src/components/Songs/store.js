@@ -2626,8 +2626,15 @@ export default {
       let request = { method: 'POST', url: '/api/songsdigests', params: params }
       return promisedXMLHttpRequest(request)
     },
-    searchTextForAll(ctx) {
-      let params = { songsIds: ctx.getters.getSongsDigestIds.join(';') }
+    searchTextForAll(ctx, payload) {
+      // payload: { engine } — опционально (specs/015-search-engine-selection).
+      // Всегда forceResearch: true — старые результаты поиска для песен без
+      // текста удаляются перед повторным поиском выбранным движком.
+      let params = {
+        songsIds: ctx.getters.getSongsDigestIds.join(';'),
+        forceResearch: true,
+      }
+      if (payload && payload.engine) params.engine = payload.engine
       let request = { method: 'POST', url: '/api/songs/searchsongtextall', params: params }
       return promisedXMLHttpRequest(request)
     },

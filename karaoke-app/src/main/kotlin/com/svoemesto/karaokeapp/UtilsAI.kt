@@ -116,6 +116,29 @@ fun getIamToken(): String {
 }
 
 /**
+ * Единая точка автоподстановки найденного текста песни (specs/020-fix-search-lyrics-autofill).
+ * Вызывается из всех точек завершения поиска текста (YANDEX_SYNC, YANDEX_ASYNC, SEARXNG,
+ * FOURGET), чтобы поведение не расходилось между движками. Использует [Song.haveSourceText]
+ * как единственный источник истины о том, есть ли у песни текст (учитывает оба представления
+ * "текста ещё нет" — пустую строку `""` и значение-заглушку `["\"\"]"`) — НЕ дублировать эту
+ * проверку через `sourceText.isBlank()` в новом коде.
+ *
+ * @see docs/features/llm-lyrics-search.md
+ */
+fun applyFoundLyricsIfMissing(
+    settings: Song,
+    candidateTexts: List<String>,
+) {
+    val firstNonEmpty = candidateTexts.firstOrNull { it.isNotBlank() } ?: return
+    if (!settings.haveSourceText && settings.idStatus == 0L) {
+        println("Первое из найденных не пустых значений применяем для текста песни ${settings.fileName}")
+        settings.sourceText = firstNonEmpty
+        settings.fields[SongField.ID_STATUS] = "1"
+        settings.saveToDb()
+    }
+}
+
+/**
  * Диспетчер поиска текста песни по выбранному движку (specs/015-search-engine-selection).
  * Заменяет собой прежний `getSearXNGSearch`, который после фичи 014 уже реально ходил
  * в fourget, а не в SearXNG — имя стало вводящим в заблуждение.
@@ -223,12 +246,7 @@ private fun getLyricsSearchViaSearchTool(
     }
 
     val searchedRightResultsNotEmpty = searchedRightResults.filter { it.text != "" }
-    if (settings.sourceText.isBlank() && settings.idStatus == 0L && searchedRightResultsNotEmpty.isNotEmpty()) {
-        println("Первое из найденных не пустых значений применяем для текста песни ${settings.fileName}")
-        settings.sourceText = searchedRightResultsNotEmpty.first().text
-        settings.fields[SongField.ID_STATUS] = "1"
-        settings.saveToDb()
-    }
+    applyFoundLyricsIfMissing(settings, searchedRightResultsNotEmpty.map { it.text })
 
     return savedResult
 }
@@ -370,7 +388,15 @@ fun getYandexSearch(
                         } else {
                             println("Не удалось создать SearchAsync (синхронный) в базе данных. $result")
                         }
-                        savedResult ?: throw RuntimeException("Не удалось создать SearchAsync (синхронный) в базе данных. $result")
+                        val nonNullSavedResult =
+                            savedResult
+                                ?: throw RuntimeException("Не удалось создать SearchAsync (синхронный) в базе данных. $result")
+                        // specs/020-fix-search-lyrics-autofill: у YANDEX_SYNC (в отличие от SEARXNG/FOURGET
+                        // и завершения YANDEX_ASYNC) этого шага раньше не было вообще — результат сохранялся,
+                        // но не разбирался в SearchResult и не подставлялся в текст песни.
+                        val searchResults = SearchResult.getSearchResultsForSearchAsync(searchAsync = nonNullSavedResult)
+                        applyFoundLyricsIfMissing(settings, searchResults.filter { !it.wrongResult }.map { it.text })
+                        nonNullSavedResult
                     } else {
                         println("Пустой id operations в ответе")
                         throw RuntimeException("Пустой rawData в ответе")

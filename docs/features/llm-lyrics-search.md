@@ -2,7 +2,7 @@
 
 > **Status**: active
 > **Feature Key**: llm-lyrics-search
-> **Last Updated**: 2026-07-27
+> **Last Updated**: 2026-07-28
 
 ## Что делает
 
@@ -44,7 +44,23 @@ web-поиск (fourget) + скрейпинг сайтов + LLM-анализ (L
    и кнопка «Найти тексты для всех песен» в `SongsTable.vue` — все три
    всегда передают `forceResearch=true` (bulk-вариант удаляет старые
    результаты только для песен без `sourceText`, см. `getSearchSongTextAll`).
-3. **Движок поиска обложки альбома** — отдельный выбор (enum
+3. **Автоподстановка найденного текста** (`specs/020-fix-search-lyrics-autofill`):
+   по завершении поиска (независимо от движка) первый найденный непустой
+   текст-кандидат автоматически подставляется в `Song.sourceText`, если у
+   песни ещё нет текста (`id_status == 0`). Единственный источник истины о
+   том, "есть ли у песни текст" — `Song.haveSourceText`
+   (`sourceText != "" && sourceText != "[\"\"]"`, учитывает оба
+   представления "текста ещё нет"). Сам шаг подстановки — общая функция
+   `applyFoundLyricsIfMissing(settings, candidateTexts)` в `UtilsAI.kt`,
+   вызывается из всех трёх точек завершения поиска одинаково: конец
+   синхронной Yandex-ветки (`getYandexSearch`, `async=false` — до фичи 020
+   этого шага там не было вообще), конец обработки завершённого
+   асинхронного Yandex-запроса (`KaraokeProcessWorker.checkSearchAsync`) и
+   ветка SEARXNG/FOURGET (`getLyricsSearchViaSearchTool`). **Не** дублировать
+   проверку "есть текст" через `sourceText.isBlank()`/`isEmpty()` в новом
+   коде — это и было первопричиной бага 020 (значение-заглушка `["\"\"]"`
+   не ловилось `isBlank()`).
+4. **Движок поиска обложки альбома** — отдельный выбор (enum
    `AlbumCoverSearchEngine` в `AlbumCoverFinder.kt`, только 2 варианта —
    Yandex Cloud Search API возвращает текстовые результаты, не картинки):
    `SEARXNG` (`AlbumCoverService.searchSearxngImages`, сегодняшнее поведение
@@ -52,7 +68,7 @@ web-поиск (fourget) + скрейпинг сайтов + LLM-анализ (L
    `fourget` `/api/v1/images?s=...&scraper=brave`). Настройка —
    `KaraokeProperties.albumCoverSearchEngine`, либо параметр `engine` в
    `POST /api/song/searchalbumcover`.
-4. **Автоочистка результатов поиска для готовых песен**
+5. **Автоочистка результатов поиска для готовых песен**
    (`specs/015-search-engine-selection`): как только `Song.saveToDb()`
    фиксирует пересечение песней порога готовности (статус ≥3, тот же порог,
    что для публичного плеера — `crossedReadyThreshold`), результаты поиска
@@ -61,27 +77,30 @@ web-поиск (fourget) + скрейпинг сайтов + LLM-анализ (L
    (`POST /api/utils/deletesearchresultsforreadysongs`,
    `HealthReport.deleteSearchResultsForReadySongs`, фоновый прогон + SSE-тост,
    по образцу `doRecalcPlayerReadiness`).
-5. **Скрейпинг** — для каждого результата парсим HTML:
+6. **Скрейпинг** — для каждого результата парсим HTML:
    - Статический — `jsoup` (см. [jsoup](https://jsoup.org/)).
    - JS-рендер / авторизация — `UtilsPlaywright.kt` через Playwright/Selenium.
-6. **LLM-анализ** — `ScraperAgent.kt` через `LmStudioService.kt` (тонкий клиент над
+7. **LLM-анализ** — `ScraperAgent.kt` через `LmStudioService.kt` (тонкий клиент над
    OpenAI-совместимым `/v1/chat/completions` LM Studio, поднятого на хост-машине админа):
    - Структурирование текста (разбивка на строки/куплеты/припевы).
    - Нормализация аккордов (`Am`, `A minor`, `a-moll` → `Am`).
    - Определение ключа и BPM.
    - Тем же клиентом (`LmStudioService`) пользуется `TextCorrectorAgent.kt` — AI-редактор текста
      в SubsEdit.vue (исправление орфографии/пунктуации).
-7. **Яндекс.Музыка** — отдельный путь (`searchLastAlbumYm3`/
+8. **Яндекс.Музыка** — отдельный путь (`searchLastAlbumYm3`/
    `checkLastAlbumYm`): авторизация по сохранённой сессии на диске, поиск
    нового альбома автора. Возвращает `AlbumSearchResult`:
    `Success`/`VpnBlocked`/`AuthExpired`/`BotDetected`/`Unknown`.
-8. **VPN-детект** — `isVpnActive()` через `api.country.is` (страна != RU →
+9. **VPN-детект** — `isVpnActive()` через `api.country.is` (страна != RU →
    ВПН включён → Playwright не запускаем).
 
 ## Инварианты / правила
 
 - **MUST**: не использовать внешние SaaS (OpenAI, Anthropic) в горячем
   пути. Только локальный LM Studio (`lmStudioUrl`, см. `KaraokeProperties.kt`).
+- **MUST**: проверка "есть ли у песни текст" — только через
+  `Song.haveSourceText`, никогда через `sourceText.isBlank()`/`isEmpty()`
+  напрямую (`specs/020-fix-search-lyrics-autofill`, см. пункт 3 выше).
 - **MUST**: `isVpnActive()` проверяется ДО запуска Playwright (если ВПН —
   скрейпинг Яндекс.Музыки заблокирован).
 - **MUST**: результат `AlbumSearchResult` логируется с reason-кодом
@@ -131,7 +150,7 @@ web-поиск (fourget) + скрейпинг сайтов + LLM-анализ (L
 - [`TextCorrectorAgent.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/llm/TextCorrectorAgent.kt) — AI-редактор текста (SubsEdit.vue)
 - [`LmStudioService.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/LmStudioService.kt) — тонкий клиент LM Studio
 - [`Tools.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/llm/Tools.kt) — инструменты для LLM (`SearchTool`)
-- [`UtilsAI.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/UtilsAI.kt) — `getLyricsSearch` (диспетчер движков), `getYandexSearch`, `LyricsSearchEngine`
+- [`UtilsAI.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/UtilsAI.kt) — `getLyricsSearch` (диспетчер движков), `getYandexSearch`, `LyricsSearchEngine`, `applyFoundLyricsIfMissing` (единая автоподстановка, см. пункт 3)
 - [`AlbumCoverFinder.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/AlbumCoverFinder.kt) — `AlbumCoverService`, `AlbumCoverSearchEngine`
 - [`HealthReport.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/HealthReport.kt) — `deleteSearchResultsForReadySongs` (массовая очистка)
 - [`UtilsPlaywright.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/UtilsPlaywright.kt) — Playwright/Selenium

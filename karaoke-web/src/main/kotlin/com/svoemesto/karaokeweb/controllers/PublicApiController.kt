@@ -73,6 +73,13 @@ class PublicApiController(
         }
     }
 
+    // specs/017-editor-status-bypass: анонимные/обычные посетители продолжают видеть только
+    // готовые песни (id_status >= 3, specs/013-song-status-filter); для "редактора" (SiteUser
+    // .isEditor) фильтр по статусу снимается целиком — поэтому здесь и в местах вызова
+    // проверяем именно "!= true", а не "== false": невалидный/отсутствующий токен, как и явный
+    // isEditor=false, должны попадать в ветку "фильтр действует", а не в исключение.
+    private fun onlyPublishedFor(request: HttpServletRequest): Boolean = siteUserResolver.resolve(request)?.isEditor != true
+
     @GetMapping("/stats")
     fun stats(
         @RequestParam(required = false) anonId: String?,
@@ -120,6 +127,7 @@ class PublicApiController(
     @GetMapping("/authors-tiles")
     fun authorsTiles(
         @RequestParam(required = false, defaultValue = "main") scope: String?,
+        request: HttpServletRequest,
     ): List<AuthorTilePublicDto> {
         val isSpecialOrderFilter: Boolean? =
             when (scope) {
@@ -130,11 +138,12 @@ class PublicApiController(
             }
         // Публичная поверхность прода — считаем и показываем только готовые песни
         // (specs/013-song-status-filter): плашка автора без готовых песен не отображается,
-        // подпись плашки считает только их.
+        // подпись плашки считает только их. Кроме "редактора" — для него фильтр по статусу снят,
+        // подпись отражает полное количество песен автора (specs/017-editor-status-bypass).
         val counts =
             Song.loadAuthorSongCounts(
                 isSpecialOrder = isSpecialOrderFilter,
-                onlyPublished = true,
+                onlyPublished = onlyPublishedFor(request),
                 database = WORKING_DATABASE,
             )
         val loadedAuthors: List<String> =
@@ -182,14 +191,16 @@ class PublicApiController(
         // specialBucket=true — виртуальная плашка «Отдельные песни разных авторов»: все
         // is_special_order=true авторы одним запросом, вместо N+1 по каждому автору отдельно.
         // @see docs/features/special-orders.md
-        // Публичная поверхность прода — показываем только готовые песни (specs/013-song-status-filter).
+        // Публичная поверхность прода — показываем только готовые песни (specs/013-song-status-filter),
+        // кроме "редактора" — для него фильтр по статусу снят (specs/017-editor-status-bypass).
+        val onlyPublished = onlyPublishedFor(request)
         val zakroma =
             if (specialBucket) {
                 Zakroma.getZakromaBySpecialOrder(
                     database = WORKING_DATABASE,
                     storageService = storageService,
                     storageApiClient = storageApiClient,
-                    onlyPublished = true,
+                    onlyPublished = onlyPublished,
                 )
             } else {
                 Zakroma.getZakroma(
@@ -197,7 +208,7 @@ class PublicApiController(
                     database = WORKING_DATABASE,
                     storageService = storageService,
                     storageApiClient = storageApiClient,
-                    onlyPublished = true,
+                    onlyPublished = onlyPublished,
                 )
             }
         return ZakromaPublicDto.fromZakroma(zakroma)
@@ -234,8 +245,9 @@ class PublicApiController(
         }
         if (!text.isNullOrEmpty()) attr["text"] = text
         if (!album.isNullOrEmpty()) attr["song_album"] = album
-        // Публичная поверхность прода — показываем только готовые песни (specs/013-song-status-filter).
-        attr["id_status"] = ">=3"
+        // Публичная поверхность прода — показываем только готовые песни (specs/013-song-status-filter),
+        // кроме "редактора" — для него фильтр по статусу снят (specs/017-editor-status-bypass).
+        if (onlyPublishedFor(request)) attr["id_status"] = ">=3"
 
         val settings: List<Song> =
             if ("${songName ?: ""}${author ?: ""}${album ?: ""}${text ?: ""}".length < 3) {

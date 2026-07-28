@@ -2158,6 +2158,12 @@ export default {
     sourceSyllables: {
       handler() {
         this.updateMarkersBySyllables()
+        // FIX #019: updateMarkersBySyllables() вызывает marker.region.setContent(...) и
+        // setOptions({ color }) для syllables-маркеров. В wavesurfer regions-plugin это перерисовывает
+        // регион, и в зависимости от версии плагина `start` сбрасывается на 0 (визуально все
+        // маркеры «слипаются» в нулевой позиции, см. specs/019). Явный redrawMarkers() после —
+        // обходной путь: clearRegions + пересоздание из sourceMarkers с актуальным marker.time.
+        this.redrawMarkers()
       },
     },
     sourceMarkers: {
@@ -2174,6 +2180,11 @@ export default {
         this.sourceSyllables = this.getSyllables
         this.updateMarkersBySyllables()
         this.syncMarkersFromSpecTags()
+        // FIX #019: см. комментарий в sourceSyllables watcher. Дополнительно: syncMarkersFromSpecTags
+        // только что добавил spec tag-маркеры (через createRegionMarker), их регионы уже созданы
+        // корректно. Но updateMarkersBySyllables() ДО syncMarkersFromSpecTags мог сбросить позиции
+        // ранее созданных маркеров — redrawMarkers ниже восстанавливает их все.
+        this.redrawMarkers()
         this.tail = this.getTail
         this.textFormatted = this.getFormattedText
         this.notesFormatted = this.getFormattedNotes

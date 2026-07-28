@@ -1,29 +1,29 @@
 <!--
   Sync Impact Report
-  - Version change: 1.1.0 → 1.2.0 (amendment: добавлен Принцип VII «Cross-Machine Setup»,
-    обновлены ссылки на Phase 002 документы)
-  - Modified principles: none (Principle I-VI без изменений)
-  - Added sections:
-      - Core Principle VII «Cross-Machine Setup (NON-NEGOTIABLE)» — MUST
-        личные AI-конфиги (CLAUDE.md, .cursorrules) НЕ коммитить, MUST
-        .git-blame-ignore-revs и .gitattributes, MUST docs/onboarding.md
-        и docs/claude-code-setup.md для cross-machine.
-      - Секция «Рабочий процесс» — добавлен .git-blame-ignore + .gitattributes
-        в обязательные git-конфиги.
-      - Секция «Governance» — расширена: общие правила в гите, персональные
-        локально (через .git/info/exclude или ~/.gitignore_global).
+  - Version change: 1.2.0 → 2.0.0 (MAJOR: изменение ограничений доступа агента,
+    см. Governance rule 3 — feature specs/021-dev-pc-agent-permissions)
+  - Modified principles: none renamed/removed; секция «Ограничения и доступы
+    агента» (не пронумерованный Core Principle, но NON-NEGOTIABLE-приоритетный
+    раздел) получила machine-scoped исключение:
+      - П.1 «Категорически запрещено»: пересборка/перезапуск `karaoke-app`
+        локально — добавлено исключение для hostname `dev-pc` + OS-пользователь
+        `dev` (на этой паре разрешено без согласия пользователя; на любой
+        другой машине/пользователе запрет в силе).
+      - «Разрешено агенту»: добавлены пп. 6-7 — на `dev-pc`/`dev` разрешены (а)
+        пересборка/перезапуск любого локального контейнера и (б) любые операции
+        с локальной БД без согласия пользователя. Серверная (прод) БД и деплой
+        на сервер (п. 2 «Категорически запрещено») не затронуты.
+  - Added sections: none new (расширение существующего раздела, не новый Principle)
   - Removed sections: none
   - Templates requiring updates:
-      .specify/templates/plan-template.md   ✅ aligned (Constitution Check 7/7)
-      .specify/templates/spec-template.md   ✅ aligned (FR-006/FR-009 references)
-      .specify/templates/tasks-template.md  ✅ aligned (Phase 6 KDoc/JSDoc + Phase 7 Polish)
-      .specify/templates/checklist-template.md ✅ aligned (FR-009 verification gate)
+      .specify/templates/plan-template.md   ✅ aligned (Constitution Check gate
+        exercised in specs/021-dev-pc-agent-permissions/plan.md)
+      .specify/templates/spec-template.md   ✅ aligned (no change needed)
+      .specify/templates/tasks-template.md  ✅ aligned (no change needed)
+      .specify/templates/checklist-template.md ✅ aligned (no change needed)
   - New artifacts to reference:
-      - docs/onboarding.md — общий setup для нового разработчика
-      - docs/claude-code-setup.md — настройка Claude Code (локальный CLAUDE.md)
-      - .git-blame-ignore-revs — список шумных коммитов
-      - .gitattributes — нормализация line endings
-      - docs/architecture-notes.md — датированный changelog (Pass 1-14)
+      - specs/021-dev-pc-agent-permissions/ — spec.md, plan.md, tasks.md для
+        этого amendment (machine-scoped agent-permission exception)
   - Follow-up TODOs:
       - detekt (после выхода версии с поддержкой Kotlin 2.2) — см. T049
       - typedoc-plugin-vue (для парсинга .vue single-file components) — backlog
@@ -189,6 +189,10 @@ Sheetsage) и локальный SearXNG. Любая новая фича, тре
 
 **Категорически запрещено агенту:**
 1. Пересобирать/перезапускать контейнер `karaoke-app` локально (только пользователь).
+   **Исключение**: если агент работает на машине с hostname `dev-pc` под OS-пользователем
+   `dev`, это ограничение снимается — агент может пересобирать/перезапускать `karaoke-app`
+   (и любой другой локальный контейнер проекта) на этой машине без согласия пользователя.
+   На любой другой машине и/или под любым другим пользователем действует общее правило.
 2. Деплоить на сервер (`deploy_web.sh`, `deploy_public.sh`, rsync на `<PROD_SERVER_IP>`,
    прямые DDL/DML к серверной БД) — только по прямому согласию пользователя, на
    каждое действие отдельно.
@@ -209,6 +213,13 @@ Sheetsage) и локальный SearXNG. Любая новая фича, тре
    `build_*` из `~/Karaoke/deploy`, `start_*` из `/sm-karaoke/system/deploy`,
    кроме `karaoke-public` — там одной командой `build_start_public`).
 5. Самостоятельно собирать (без перезапуска) `karaoke-app`.
+6. **На машине с hostname `dev-pc` под OS-пользователем `dev`**: пересобирать/перезапускать
+   любой локальный контейнер проекта (включая `karaoke-app`) без согласия пользователя (см.
+   исключение из п. 1 «Категорически запрещено» выше).
+7. **На машине с hostname `dev-pc` под OS-пользователем `dev`**: выполнять любые операции с
+   локальной базой данных (запросы, миграции, изменения схемы/данных) без согласия
+   пользователя. Это не распространяется на серверную (прод) БД — прямые DDL/DML к ней
+   остаются в п. 2 «Категорически запрещено» (только по прямому согласию пользователя).
 
 **Граница доступа к MLT/Karaoke.properties** (настройки рендера, ~150 параметров):
 персистятся в `/sm-karaoke/system/Karaoke.properties` (base64-properties), редактируются
@@ -286,4 +297,4 @@ Sheetsage) и локальный SearXNG. Любая новая фича, тре
    - `docker exec karaoke-web env | grep <VAR>` для проверки реально прокинутых
      env-переменных.
 
-**Version**: 1.2.0 | **Ratified**: 2026-07-20 | **Last Amended**: 2026-07-21
+**Version**: 2.0.0 | **Ratified**: 2026-07-20 | **Last Amended**: 2026-07-28

@@ -623,923 +623,1313 @@
             </div>
           </div>
 
-          <div v-if="!song.exclusive" class="links-table">
-            <div class="links-table-column-1">
-              <img class="icon-36" alt="dzen" src="../../../assets/svg/icon_dzen.svg" />
+          <div v-if="!song.exclusive" class="links-tabs-widget">
+            <div class="links-tabs-header">
+              <button
+                type="button"
+                class="links-tab-petal"
+                :class="{ active: activeLinksTab === 'dzen' }"
+                @click="activeLinksTab = 'dzen'"
+              >
+                <img class="icon-24" alt="dzen" src="../../../assets/svg/icon_dzen.svg" />
+                <span>Дзен</span>
+              </button>
+              <button
+                type="button"
+                class="links-tab-petal"
+                :class="{ active: activeLinksTab === 'vk' }"
+                @click="activeLinksTab = 'vk'"
+              >
+                <img class="icon-24" alt="vk" src="../../../assets/svg/icon_vk.svg" />
+                <span>VK</span>
+              </button>
+              <button
+                type="button"
+                class="links-tab-petal"
+                :class="{ active: activeLinksTab === 'telegram' }"
+                @click="activeLinksTab = 'telegram'"
+              >
+                <img class="icon-24" alt="tg" src="../../../assets/svg/icon_telegram.svg" />
+                <span>Telegram</span>
+              </button>
+              <button
+                type="button"
+                class="links-tab-petal"
+                :class="{ active: activeLinksTab === 'max' }"
+                @click="activeLinksTab = 'max'"
+              >
+                <img class="icon-24" alt="max" src="../../../assets/svg/icon_max.svg" />
+                <span>Max</span>
+              </button>
             </div>
-            <div class="links-table-column-2">
-              <div class="label-and-input">
-                <img class="icon-24" alt="karaoke" src="../../../assets/svg/icon_microphone.svg" />
-                <button
-                  class="btn-round"
-                  :disabled="!song.idDzenKaraoke"
-                  @click="openLinkDzenKaraokePlay"
-                >
-                  <img alt="play" class="icon-play" src="../../../assets/svg/icon_play.svg" />
-                </button>
-                <button
-                  class="btn-round"
-                  :disabled="!song.idDzenKaraoke"
-                  @click="openLinkDzenKaraokeEdit"
-                >
-                  <img alt="edit" class="icon-edit" src="../../../assets/svg/icon_edit.svg" />
-                </button>
-                <button class="btn-round" @click="getDzenKaraokeHeader">
-                  <img alt="head" class="icon-texthead" src="../../../assets/svg/icon_head.svg" />
-                </button>
-                <button class="btn-round" @click="getDzenKaraokeBody">
-                  <img alt="body" class="icon-textbody" src="../../../assets/svg/icon_body.svg" />
-                </button>
-                <button
-                  class="btn-round"
-                  :disabled="!song.idDzenKaraoke"
-                  @click="getLinkDzenKaraokePlay"
-                >
-                  <img alt="link" class="icon-textlink" src="../../../assets/svg/icon_link.svg" />
-                </button>
-                <input v-model="song.idDzenKaraoke" class="input-link-field" />
-                <input v-model="song.versionDzenKaraoke" class="input-field-version" />
-                <button
-                  class="btn-round"
-                  :disabled="notChanged('idDzenKaraoke')"
-                  @click="undoField('idDzenKaraoke')"
-                >
-                  <img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg" />
-                </button>
-                <button
-                  class="btn-round"
-                  :disabled="!song.idDzenKaraoke"
-                  @click="copyToClipboard(song.idDzenKaraoke, 'idDzenKaraoke')"
-                >
-                  <img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg" />
-                </button>
-                <button class="btn-round" @click="pasteFromClipboard('idDzenKaraoke')">
-                  <img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg" />
-                </button>
+            <div class="links-tabs-body">
+              <div v-show="activeLinksTab === 'dzen'" class="links-table">
+                <div class="links-table-column-1">
+                  <img class="icon-36" alt="dzen" src="../../../assets/svg/icon_dzen.svg" />
+                </div>
+                <div class="links-table-column-2">
+                  <div class="label-and-input">
+                    <img
+                      class="icon-24"
+                      alt="karaoke"
+                      src="../../../assets/svg/icon_microphone.svg"
+                    />
+                    <button
+                      class="btn-round"
+                      :disabled="!song.idDzenKaraoke"
+                      @click="openLinkDzenKaraokePlay"
+                    >
+                      <img alt="play" class="icon-play" src="../../../assets/svg/icon_play.svg" />
+                    </button>
+                    <button
+                      class="btn-round"
+                      :disabled="!song.idDzenKaraoke"
+                      @click="openLinkDzenKaraokeEdit"
+                    >
+                      <img alt="edit" class="icon-edit" src="../../../assets/svg/icon_edit.svg" />
+                    </button>
+                    <button class="btn-round" @click="getDzenKaraokeHeader">
+                      <img
+                        alt="head"
+                        class="icon-texthead"
+                        src="../../../assets/svg/icon_head.svg"
+                      />
+                    </button>
+                    <button class="btn-round" @click="getDzenKaraokeBody">
+                      <img
+                        alt="body"
+                        class="icon-textbody"
+                        src="../../../assets/svg/icon_body.svg"
+                      />
+                    </button>
+                    <button
+                      class="btn-round"
+                      :disabled="!song.idDzenKaraoke"
+                      @click="getLinkDzenKaraokePlay"
+                    >
+                      <img
+                        alt="link"
+                        class="icon-textlink"
+                        src="../../../assets/svg/icon_link.svg"
+                      />
+                    </button>
+                    <input v-model="song.idDzenKaraoke" class="input-link-field" />
+                    <input v-model="song.versionDzenKaraoke" class="input-field-version" />
+                    <button
+                      class="btn-round"
+                      :disabled="notChanged('idDzenKaraoke')"
+                      @click="undoField('idDzenKaraoke')"
+                    >
+                      <img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg" />
+                    </button>
+                    <button
+                      class="btn-round"
+                      :disabled="!song.idDzenKaraoke"
+                      @click="copyToClipboard(song.idDzenKaraoke, 'idDzenKaraoke')"
+                    >
+                      <img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg" />
+                    </button>
+                    <button class="btn-round" @click="pasteFromClipboard('idDzenKaraoke')">
+                      <img
+                        alt="paste"
+                        class="icon-paste"
+                        src="../../../assets/svg/icon_paste.svg"
+                      />
+                    </button>
+                  </div>
+                  <div class="label-and-input">
+                    <img class="icon-24" alt="song" src="../../../assets/svg/icon_song.svg" />
+                    <button
+                      class="btn-round"
+                      :disabled="!song.idDzenLyrics"
+                      @click="openLinkDzenLyricsPlay"
+                    >
+                      <img alt="play" class="icon-play" src="../../../assets/svg/icon_play.svg" />
+                    </button>
+                    <button
+                      class="btn-round"
+                      :disabled="!song.idDzenLyrics"
+                      @click="openLinkDzenLyricsEdit"
+                    >
+                      <img alt="edit" class="icon-edit" src="../../../assets/svg/icon_edit.svg" />
+                    </button>
+                    <button class="btn-round" @click="getDzenLyricsHeader">
+                      <img
+                        alt="head"
+                        class="icon-texthead"
+                        src="../../../assets/svg/icon_head.svg"
+                      />
+                    </button>
+                    <button class="btn-round" @click="getDzenLyricsBody">
+                      <img
+                        alt="body"
+                        class="icon-textbody"
+                        src="../../../assets/svg/icon_body.svg"
+                      />
+                    </button>
+                    <button
+                      class="btn-round"
+                      :disabled="!song.idDzenLyrics"
+                      @click="getLinkDzenLyricsPlay"
+                    >
+                      <img
+                        alt="link"
+                        class="icon-textlink"
+                        src="../../../assets/svg/icon_link.svg"
+                      />
+                    </button>
+                    <input v-model="song.idDzenLyrics" class="input-link-field" />
+                    <input v-model="song.versionDzenLyrics" class="input-field-version" />
+                    <button
+                      class="btn-round"
+                      :disabled="notChanged('idDzenLyrics')"
+                      @click="undoField('idDzenLyrics')"
+                    >
+                      <img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg" />
+                    </button>
+                    <button
+                      class="btn-round"
+                      :disabled="!song.idDzenLyrics"
+                      @click="copyToClipboard(song.idDzenLyrics, 'idDzenLyrics')"
+                    >
+                      <img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg" />
+                    </button>
+                    <button class="btn-round" @click="pasteFromClipboard('idDzenLyrics')">
+                      <img
+                        alt="paste"
+                        class="icon-paste"
+                        src="../../../assets/svg/icon_paste.svg"
+                      />
+                    </button>
+                  </div>
+                  <div class="label-and-input">
+                    <img class="icon-24" alt="demo" src="../../../assets/svg/icon_demo.svg" />
+                    <button
+                      class="btn-round"
+                      :disabled="!song.idDzenDemo"
+                      @click="openLinkDzenDemoPlay"
+                    >
+                      <img alt="play" class="icon-play" src="../../../assets/svg/icon_play.svg" />
+                    </button>
+                    <button
+                      class="btn-round"
+                      :disabled="!song.idDzenDemo"
+                      @click="openLinkDzenDemoEdit"
+                    >
+                      <img alt="edit" class="icon-edit" src="../../../assets/svg/icon_edit.svg" />
+                    </button>
+                    <button class="btn-round" @click="getDzenDemoHeader">
+                      <img
+                        alt="head"
+                        class="icon-texthead"
+                        src="../../../assets/svg/icon_head.svg"
+                      />
+                    </button>
+                    <button class="btn-round" @click="getDzenDemoBody">
+                      <img
+                        alt="body"
+                        class="icon-textbody"
+                        src="../../../assets/svg/icon_body.svg"
+                      />
+                    </button>
+                    <button
+                      class="btn-round"
+                      :disabled="!song.idDzenDemo"
+                      @click="getLinkDzenDemoPlay"
+                    >
+                      <img
+                        alt="link"
+                        class="icon-textlink"
+                        src="../../../assets/svg/icon_link.svg"
+                      />
+                    </button>
+                    <input v-model="song.idDzenDemo" class="input-link-field" />
+                    <input v-model="song.versionDzenDemo" class="input-field-version" />
+                    <button
+                      class="btn-round"
+                      :disabled="notChanged('idDzenDemo')"
+                      @click="undoField('idDzenDemo')"
+                    >
+                      <img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg" />
+                    </button>
+                    <button
+                      class="btn-round"
+                      :disabled="!song.idDzenDemo"
+                      @click="copyToClipboard(song.idDzenDemo, 'idDzenDemo')"
+                    >
+                      <img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg" />
+                    </button>
+                    <button class="btn-round" @click="pasteFromClipboard('idDzenDemo')">
+                      <img
+                        alt="paste"
+                        class="icon-paste"
+                        src="../../../assets/svg/icon_paste.svg"
+                      />
+                    </button>
+                  </div>
+                  <div v-if="showChordsDzen" class="label-and-input">
+                    <img class="icon-24" alt="chords" src="../../../assets/svg/icon_chords.svg" />
+                    <button
+                      class="btn-round"
+                      :disabled="!song.idDzenChords"
+                      @click="openLinkDzenChordsPlay"
+                    >
+                      <img alt="play" class="icon-play" src="../../../assets/svg/icon_play.svg" />
+                    </button>
+                    <button
+                      class="btn-round"
+                      :disabled="!song.idDzenChords"
+                      @click="openLinkDzenChordsEdit"
+                    >
+                      <img alt="edit" class="icon-edit" src="../../../assets/svg/icon_edit.svg" />
+                    </button>
+                    <button class="btn-round" @click="getDzenChordsHeader">
+                      <img
+                        alt="head"
+                        class="icon-texthead"
+                        src="../../../assets/svg/icon_head.svg"
+                      />
+                    </button>
+                    <button class="btn-round" @click="getDzenChordsBody">
+                      <img
+                        alt="body"
+                        class="icon-textbody"
+                        src="../../../assets/svg/icon_body.svg"
+                      />
+                    </button>
+                    <button
+                      class="btn-round"
+                      :disabled="!song.idDzenChords"
+                      @click="getLinkDzenChordsPlay"
+                    >
+                      <img
+                        alt="link"
+                        class="icon-textlink"
+                        src="../../../assets/svg/icon_link.svg"
+                      />
+                    </button>
+                    <input v-model="song.idDzenChords" class="input-link-field" />
+                    <input v-model="song.versionDzenChords" class="input-field-version" />
+                    <button
+                      class="btn-round"
+                      :disabled="notChanged('idDzenChords')"
+                      @click="undoField('idDzenChords')"
+                    >
+                      <img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg" />
+                    </button>
+                    <button
+                      class="btn-round"
+                      :disabled="!song.idDzenChords"
+                      @click="copyToClipboard(song.idDzenChords, 'idDzenChords')"
+                    >
+                      <img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg" />
+                    </button>
+                    <button class="btn-round" @click="pasteFromClipboard('idDzenChords')">
+                      <img
+                        alt="paste"
+                        class="icon-paste"
+                        src="../../../assets/svg/icon_paste.svg"
+                      />
+                    </button>
+                  </div>
+                  <div v-if="showMelodyDzen" class="label-and-input">
+                    <img class="icon-24" alt="melody" src="../../../assets/svg/icon_melody.svg" />
+                    <button
+                      class="btn-round"
+                      :disabled="!song.idDzenMelody"
+                      @click="openLinkDzenTabsPlay"
+                    >
+                      <img alt="play" class="icon-play" src="../../../assets/svg/icon_play.svg" />
+                    </button>
+                    <button
+                      class="btn-round"
+                      :disabled="!song.idDzenMelody"
+                      @click="openLinkDzenTabsEdit"
+                    >
+                      <img alt="edit" class="icon-edit" src="../../../assets/svg/icon_edit.svg" />
+                    </button>
+                    <button class="btn-round" @click="getDzenTabsHeader">
+                      <img
+                        alt="head"
+                        class="icon-texthead"
+                        src="../../../assets/svg/icon_head.svg"
+                      />
+                    </button>
+                    <button class="btn-round" @click="getDzenTabsBody">
+                      <img
+                        alt="body"
+                        class="icon-textbody"
+                        src="../../../assets/svg/icon_body.svg"
+                      />
+                    </button>
+                    <button
+                      class="btn-round"
+                      :disabled="!song.idDzenMelody"
+                      @click="getLinkDzenTabsPlay"
+                    >
+                      <img
+                        alt="link"
+                        class="icon-textlink"
+                        src="../../../assets/svg/icon_link.svg"
+                      />
+                    </button>
+                    <input v-model="song.idDzenMelody" class="input-link-field" />
+                    <input v-model="song.versionDzenMelody" class="input-field-version" />
+                    <button
+                      class="btn-round"
+                      :disabled="notChanged('idDzenMelody')"
+                      @click="undoField('idDzenMelody')"
+                    >
+                      <img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg" />
+                    </button>
+                    <button
+                      class="btn-round"
+                      :disabled="!song.idDzenMelody"
+                      @click="copyToClipboard(song.idDzenMelody, 'idDzenMelody')"
+                    >
+                      <img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg" />
+                    </button>
+                    <button class="btn-round" @click="pasteFromClipboard('idDzenMelody')">
+                      <img
+                        alt="paste"
+                        class="icon-paste"
+                        src="../../../assets/svg/icon_paste.svg"
+                      />
+                    </button>
+                  </div>
+                </div>
               </div>
-              <div class="label-and-input">
-                <img class="icon-24" alt="song" src="../../../assets/svg/icon_song.svg" />
-                <button
-                  class="btn-round"
-                  :disabled="!song.idDzenLyrics"
-                  @click="openLinkDzenLyricsPlay"
-                >
-                  <img alt="play" class="icon-play" src="../../../assets/svg/icon_play.svg" />
-                </button>
-                <button
-                  class="btn-round"
-                  :disabled="!song.idDzenLyrics"
-                  @click="openLinkDzenLyricsEdit"
-                >
-                  <img alt="edit" class="icon-edit" src="../../../assets/svg/icon_edit.svg" />
-                </button>
-                <button class="btn-round" @click="getDzenLyricsHeader">
-                  <img alt="head" class="icon-texthead" src="../../../assets/svg/icon_head.svg" />
-                </button>
-                <button class="btn-round" @click="getDzenLyricsBody">
-                  <img alt="body" class="icon-textbody" src="../../../assets/svg/icon_body.svg" />
-                </button>
-                <button
-                  class="btn-round"
-                  :disabled="!song.idDzenLyrics"
-                  @click="getLinkDzenLyricsPlay"
-                >
-                  <img alt="link" class="icon-textlink" src="../../../assets/svg/icon_link.svg" />
-                </button>
-                <input v-model="song.idDzenLyrics" class="input-link-field" />
-                <input v-model="song.versionDzenLyrics" class="input-field-version" />
-                <button
-                  class="btn-round"
-                  :disabled="notChanged('idDzenLyrics')"
-                  @click="undoField('idDzenLyrics')"
-                >
-                  <img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg" />
-                </button>
-                <button
-                  class="btn-round"
-                  :disabled="!song.idDzenLyrics"
-                  @click="copyToClipboard(song.idDzenLyrics, 'idDzenLyrics')"
-                >
-                  <img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg" />
-                </button>
-                <button class="btn-round" @click="pasteFromClipboard('idDzenLyrics')">
-                  <img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg" />
-                </button>
-              </div>
-              <div class="label-and-input">
-                <img class="icon-24" alt="demo" src="../../../assets/svg/icon_demo.svg" />
-                <button
-                  class="btn-round"
-                  :disabled="!song.idDzenDemo"
-                  @click="openLinkDzenDemoPlay"
-                >
-                  <img alt="play" class="icon-play" src="../../../assets/svg/icon_play.svg" />
-                </button>
-                <button
-                  class="btn-round"
-                  :disabled="!song.idDzenDemo"
-                  @click="openLinkDzenDemoEdit"
-                >
-                  <img alt="edit" class="icon-edit" src="../../../assets/svg/icon_edit.svg" />
-                </button>
-                <button class="btn-round" @click="getDzenDemoHeader">
-                  <img alt="head" class="icon-texthead" src="../../../assets/svg/icon_head.svg" />
-                </button>
-                <button class="btn-round" @click="getDzenDemoBody">
-                  <img alt="body" class="icon-textbody" src="../../../assets/svg/icon_body.svg" />
-                </button>
-                <button class="btn-round" :disabled="!song.idDzenDemo" @click="getLinkDzenDemoPlay">
-                  <img alt="link" class="icon-textlink" src="../../../assets/svg/icon_link.svg" />
-                </button>
-                <input v-model="song.idDzenDemo" class="input-link-field" />
-                <input v-model="song.versionDzenDemo" class="input-field-version" />
-                <button
-                  class="btn-round"
-                  :disabled="notChanged('idDzenDemo')"
-                  @click="undoField('idDzenDemo')"
-                >
-                  <img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg" />
-                </button>
-                <button
-                  class="btn-round"
-                  :disabled="!song.idDzenDemo"
-                  @click="copyToClipboard(song.idDzenDemo, 'idDzenDemo')"
-                >
-                  <img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg" />
-                </button>
-                <button class="btn-round" @click="pasteFromClipboard('idDzenDemo')">
-                  <img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg" />
-                </button>
-              </div>
-              <div v-if="showChordsDzen" class="label-and-input">
-                <img class="icon-24" alt="chords" src="../../../assets/svg/icon_chords.svg" />
-                <button
-                  class="btn-round"
-                  :disabled="!song.idDzenChords"
-                  @click="openLinkDzenChordsPlay"
-                >
-                  <img alt="play" class="icon-play" src="../../../assets/svg/icon_play.svg" />
-                </button>
-                <button
-                  class="btn-round"
-                  :disabled="!song.idDzenChords"
-                  @click="openLinkDzenChordsEdit"
-                >
-                  <img alt="edit" class="icon-edit" src="../../../assets/svg/icon_edit.svg" />
-                </button>
-                <button class="btn-round" @click="getDzenChordsHeader">
-                  <img alt="head" class="icon-texthead" src="../../../assets/svg/icon_head.svg" />
-                </button>
-                <button class="btn-round" @click="getDzenChordsBody">
-                  <img alt="body" class="icon-textbody" src="../../../assets/svg/icon_body.svg" />
-                </button>
-                <button
-                  class="btn-round"
-                  :disabled="!song.idDzenChords"
-                  @click="getLinkDzenChordsPlay"
-                >
-                  <img alt="link" class="icon-textlink" src="../../../assets/svg/icon_link.svg" />
-                </button>
-                <input v-model="song.idDzenChords" class="input-link-field" />
-                <input v-model="song.versionDzenChords" class="input-field-version" />
-                <button
-                  class="btn-round"
-                  :disabled="notChanged('idDzenChords')"
-                  @click="undoField('idDzenChords')"
-                >
-                  <img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg" />
-                </button>
-                <button
-                  class="btn-round"
-                  :disabled="!song.idDzenChords"
-                  @click="copyToClipboard(song.idDzenChords, 'idDzenChords')"
-                >
-                  <img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg" />
-                </button>
-                <button class="btn-round" @click="pasteFromClipboard('idDzenChords')">
-                  <img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg" />
-                </button>
-              </div>
-              <div v-if="showMelodyDzen" class="label-and-input">
-                <img class="icon-24" alt="melody" src="../../../assets/svg/icon_melody.svg" />
-                <button
-                  class="btn-round"
-                  :disabled="!song.idDzenMelody"
-                  @click="openLinkDzenTabsPlay"
-                >
-                  <img alt="play" class="icon-play" src="../../../assets/svg/icon_play.svg" />
-                </button>
-                <button
-                  class="btn-round"
-                  :disabled="!song.idDzenMelody"
-                  @click="openLinkDzenTabsEdit"
-                >
-                  <img alt="edit" class="icon-edit" src="../../../assets/svg/icon_edit.svg" />
-                </button>
-                <button class="btn-round" @click="getDzenTabsHeader">
-                  <img alt="head" class="icon-texthead" src="../../../assets/svg/icon_head.svg" />
-                </button>
-                <button class="btn-round" @click="getDzenTabsBody">
-                  <img alt="body" class="icon-textbody" src="../../../assets/svg/icon_body.svg" />
-                </button>
-                <button
-                  class="btn-round"
-                  :disabled="!song.idDzenMelody"
-                  @click="getLinkDzenTabsPlay"
-                >
-                  <img alt="link" class="icon-textlink" src="../../../assets/svg/icon_link.svg" />
-                </button>
-                <input v-model="song.idDzenMelody" class="input-link-field" />
-                <input v-model="song.versionDzenMelody" class="input-field-version" />
-                <button
-                  class="btn-round"
-                  :disabled="notChanged('idDzenMelody')"
-                  @click="undoField('idDzenMelody')"
-                >
-                  <img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg" />
-                </button>
-                <button
-                  class="btn-round"
-                  :disabled="!song.idDzenMelody"
-                  @click="copyToClipboard(song.idDzenMelody, 'idDzenMelody')"
-                >
-                  <img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg" />
-                </button>
-                <button class="btn-round" @click="pasteFromClipboard('idDzenMelody')">
-                  <img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg" />
-                </button>
-              </div>
-            </div>
-          </div>
 
-          <div v-if="!song.exclusive" class="links-table">
-            <div class="links-table-column-1">
-              <img class="icon-36" alt="vk" src="../../../assets/svg/icon_vk.svg" />
-            </div>
-            <div class="links-table-column-2">
-              <div class="label-and-input">
-                <img class="icon-24" alt="karaoke" src="../../../assets/svg/icon_microphone.svg" />
-                <button
-                  class="btn-round-wide"
-                  :disabled="!song.idVkKaraoke"
-                  @click="openLinkVkKaraoke"
-                >
-                  <img alt="play" class="icon-play-wide" src="../../../assets/svg/icon_play.svg" />
-                </button>
-                <button class="btn-round" @click="getVkKaraokeHeader">
-                  <img alt="head" class="icon-texthead" src="../../../assets/svg/icon_head.svg" />
-                </button>
-                <button class="btn-round" @click="getVkKaraokeBody">
-                  <img alt="body" class="icon-textbody" src="../../../assets/svg/icon_body.svg" />
-                </button>
-                <button class="btn-round" :disabled="!song.idVkKaraoke" @click="getLinkVkKaraoke">
-                  <img alt="link" class="icon-textlink" src="../../../assets/svg/icon_link.svg" />
-                </button>
-                <input v-model="song.idVkKaraoke" class="input-link-field" />
-                <input v-model="song.versionVkKaraoke" class="input-field-version" />
-                <button
-                  class="btn-round"
-                  :disabled="notChanged('idVkKaraoke')"
-                  @click="undoField('idVkKaraoke')"
-                >
-                  <img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg" />
-                </button>
-                <button
-                  class="btn-round"
-                  :disabled="!song.idVkKaraoke"
-                  @click="copyToClipboard(song.idVkKaraoke, 'idVkKaraoke')"
-                >
-                  <img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg" />
-                </button>
-                <button class="btn-round" @click="pasteFromClipboard('idVkKaraoke')">
-                  <img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg" />
-                </button>
+              <div v-show="activeLinksTab === 'vk'" class="links-table">
+                <div class="links-table-column-1">
+                  <img class="icon-36" alt="vk" src="../../../assets/svg/icon_vk.svg" />
+                </div>
+                <div class="links-table-column-2">
+                  <div class="label-and-input">
+                    <img
+                      class="icon-24"
+                      alt="karaoke"
+                      src="../../../assets/svg/icon_microphone.svg"
+                    />
+                    <button
+                      class="btn-round-wide"
+                      :disabled="!song.idVkKaraoke"
+                      @click="openLinkVkKaraoke"
+                    >
+                      <img
+                        alt="play"
+                        class="icon-play-wide"
+                        src="../../../assets/svg/icon_play.svg"
+                      />
+                    </button>
+                    <button class="btn-round" @click="getVkKaraokeHeader">
+                      <img
+                        alt="head"
+                        class="icon-texthead"
+                        src="../../../assets/svg/icon_head.svg"
+                      />
+                    </button>
+                    <button class="btn-round" @click="getVkKaraokeBody">
+                      <img
+                        alt="body"
+                        class="icon-textbody"
+                        src="../../../assets/svg/icon_body.svg"
+                      />
+                    </button>
+                    <button
+                      class="btn-round"
+                      :disabled="!song.idVkKaraoke"
+                      @click="getLinkVkKaraoke"
+                    >
+                      <img
+                        alt="link"
+                        class="icon-textlink"
+                        src="../../../assets/svg/icon_link.svg"
+                      />
+                    </button>
+                    <input v-model="song.idVkKaraoke" class="input-link-field" />
+                    <input v-model="song.versionVkKaraoke" class="input-field-version" />
+                    <button
+                      class="btn-round"
+                      :disabled="notChanged('idVkKaraoke')"
+                      @click="undoField('idVkKaraoke')"
+                    >
+                      <img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg" />
+                    </button>
+                    <button
+                      class="btn-round"
+                      :disabled="!song.idVkKaraoke"
+                      @click="copyToClipboard(song.idVkKaraoke, 'idVkKaraoke')"
+                    >
+                      <img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg" />
+                    </button>
+                    <button class="btn-round" @click="pasteFromClipboard('idVkKaraoke')">
+                      <img
+                        alt="paste"
+                        class="icon-paste"
+                        src="../../../assets/svg/icon_paste.svg"
+                      />
+                    </button>
+                  </div>
+                  <div class="label-and-input">
+                    <img class="icon-24" alt="song" src="../../../assets/svg/icon_song.svg" />
+                    <button
+                      class="btn-round-wide"
+                      :disabled="!song.idVkLyrics"
+                      @click="openLinkVkLyrics"
+                    >
+                      <img
+                        alt="play"
+                        class="icon-play-wide"
+                        src="../../../assets/svg/icon_play.svg"
+                      />
+                    </button>
+                    <button class="btn-round" @click="getVkLyricsHeader">
+                      <img
+                        alt="head"
+                        class="icon-texthead"
+                        src="../../../assets/svg/icon_head.svg"
+                      />
+                    </button>
+                    <button class="btn-round" @click="getVkLyricsBody">
+                      <img
+                        alt="body"
+                        class="icon-textbody"
+                        src="../../../assets/svg/icon_body.svg"
+                      />
+                    </button>
+                    <button class="btn-round" :disabled="!song.idVkLyrics" @click="getLinkVkLyrics">
+                      <img
+                        alt="link"
+                        class="icon-textlink"
+                        src="../../../assets/svg/icon_link.svg"
+                      />
+                    </button>
+                    <input v-model="song.idVkLyrics" class="input-link-field" />
+                    <input v-model="song.versionVkLyrics" class="input-field-version" />
+                    <button
+                      class="btn-round"
+                      :disabled="notChanged('idVkLyrics')"
+                      @click="undoField('idVkLyrics')"
+                    >
+                      <img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg" />
+                    </button>
+                    <button
+                      class="btn-round"
+                      :disabled="!song.idVkLyrics"
+                      @click="copyToClipboard(song.idVkLyrics, 'idVkLyrics')"
+                    >
+                      <img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg" />
+                    </button>
+                    <button class="btn-round" @click="pasteFromClipboard('idVkLyrics')">
+                      <img
+                        alt="paste"
+                        class="icon-paste"
+                        src="../../../assets/svg/icon_paste.svg"
+                      />
+                    </button>
+                  </div>
+                  <div class="label-and-input">
+                    <img class="icon-24" alt="demo" src="../../../assets/svg/icon_demo.svg" />
+                    <button
+                      class="btn-round-wide"
+                      :disabled="!song.idVkDemo"
+                      @click="openLinkVkDemo"
+                    >
+                      <img
+                        alt="play"
+                        class="icon-play-wide"
+                        src="../../../assets/svg/icon_play.svg"
+                      />
+                    </button>
+                    <button class="btn-round" @click="getVkDemoHeader">
+                      <img
+                        alt="head"
+                        class="icon-texthead"
+                        src="../../../assets/svg/icon_head.svg"
+                      />
+                    </button>
+                    <button class="btn-round" @click="getVkDemoBody">
+                      <img
+                        alt="body"
+                        class="icon-textbody"
+                        src="../../../assets/svg/icon_body.svg"
+                      />
+                    </button>
+                    <button class="btn-round" :disabled="!song.idVkDemo" @click="getLinkVkDemo">
+                      <img
+                        alt="link"
+                        class="icon-textlink"
+                        src="../../../assets/svg/icon_link.svg"
+                      />
+                    </button>
+                    <input v-model="song.idVkDemo" class="input-link-field" />
+                    <input v-model="song.versionVkDemo" class="input-field-version" />
+                    <button
+                      class="btn-round"
+                      :disabled="notChanged('idVkDemo')"
+                      @click="undoField('idVkDemo')"
+                    >
+                      <img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg" />
+                    </button>
+                    <button
+                      class="btn-round"
+                      :disabled="!song.idVkDemo"
+                      @click="copyToClipboard(song.idVkDemo, 'idVkDemo')"
+                    >
+                      <img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg" />
+                    </button>
+                    <button class="btn-round" @click="pasteFromClipboard('idVkDemo')">
+                      <img
+                        alt="paste"
+                        class="icon-paste"
+                        src="../../../assets/svg/icon_paste.svg"
+                      />
+                    </button>
+                  </div>
+                  <div v-if="showChordsVk" class="label-and-input">
+                    <img class="icon-24" alt="song" src="../../../assets/svg/icon_chords.svg" />
+                    <button
+                      class="btn-round-wide"
+                      :disabled="!song.idVkChords"
+                      @click="openLinkVkChords"
+                    >
+                      <img
+                        alt="play"
+                        class="icon-play-wide"
+                        src="../../../assets/svg/icon_play.svg"
+                      />
+                    </button>
+                    <button class="btn-round" @click="getVkChordsHeader">
+                      <img
+                        alt="head"
+                        class="icon-texthead"
+                        src="../../../assets/svg/icon_head.svg"
+                      />
+                    </button>
+                    <button class="btn-round" @click="getVkChordsBody">
+                      <img
+                        alt="body"
+                        class="icon-textbody"
+                        src="../../../assets/svg/icon_body.svg"
+                      />
+                    </button>
+                    <button class="btn-round" :disabled="!song.idVkChords" @click="getLinkVkChords">
+                      <img
+                        alt="link"
+                        class="icon-textlink"
+                        src="../../../assets/svg/icon_link.svg"
+                      />
+                    </button>
+                    <input v-model="song.idVkChords" class="input-link-field" />
+                    <input v-model="song.versionVkChords" class="input-field-version" />
+                    <button
+                      class="btn-round"
+                      :disabled="notChanged('idVkChords')"
+                      @click="undoField('idVkChords')"
+                    >
+                      <img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg" />
+                    </button>
+                    <button
+                      class="btn-round"
+                      :disabled="!song.idVkChords"
+                      @click="copyToClipboard(song.idVkChords, 'idVkChords')"
+                    >
+                      <img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg" />
+                    </button>
+                    <button class="btn-round" @click="pasteFromClipboard('idVkChords')">
+                      <img
+                        alt="paste"
+                        class="icon-paste"
+                        src="../../../assets/svg/icon_paste.svg"
+                      />
+                    </button>
+                  </div>
+                  <div v-if="showMelodyVk" class="label-and-input">
+                    <img class="icon-24" alt="song" src="../../../assets/svg/icon_melody.svg" />
+                    <button
+                      class="btn-round-wide"
+                      :disabled="!song.idVkMelody"
+                      @click="openLinkVkTabs"
+                    >
+                      <img
+                        alt="play"
+                        class="icon-play-wide"
+                        src="../../../assets/svg/icon_play.svg"
+                      />
+                    </button>
+                    <button class="btn-round" @click="getVkTabsHeader">
+                      <img
+                        alt="head"
+                        class="icon-texthead"
+                        src="../../../assets/svg/icon_head.svg"
+                      />
+                    </button>
+                    <button class="btn-round" @click="getVkTabsBody">
+                      <img
+                        alt="body"
+                        class="icon-textbody"
+                        src="../../../assets/svg/icon_body.svg"
+                      />
+                    </button>
+                    <button class="btn-round" :disabled="!song.idVkMelody" @click="getLinkVkTabs">
+                      <img
+                        alt="link"
+                        class="icon-textlink"
+                        src="../../../assets/svg/icon_link.svg"
+                      />
+                    </button>
+                    <input v-model="song.idVkMelody" class="input-link-field" />
+                    <input v-model="song.versionVkMelody" class="input-field-version" />
+                    <button
+                      class="btn-round"
+                      :disabled="notChanged('idVkMelody')"
+                      @click="undoField('idVkMelody')"
+                    >
+                      <img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg" />
+                    </button>
+                    <button
+                      class="btn-round"
+                      :disabled="!song.idVkMelody"
+                      @click="copyToClipboard(song.idVkMelody, 'idVkMelody')"
+                    >
+                      <img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg" />
+                    </button>
+                    <button class="btn-round" @click="pasteFromClipboard('idVkMelody')">
+                      <img
+                        alt="paste"
+                        class="icon-paste"
+                        src="../../../assets/svg/icon_paste.svg"
+                      />
+                    </button>
+                  </div>
+                </div>
               </div>
-              <div class="label-and-input">
-                <img class="icon-24" alt="song" src="../../../assets/svg/icon_song.svg" />
-                <button
-                  class="btn-round-wide"
-                  :disabled="!song.idVkLyrics"
-                  @click="openLinkVkLyrics"
-                >
-                  <img alt="play" class="icon-play-wide" src="../../../assets/svg/icon_play.svg" />
-                </button>
-                <button class="btn-round" @click="getVkLyricsHeader">
-                  <img alt="head" class="icon-texthead" src="../../../assets/svg/icon_head.svg" />
-                </button>
-                <button class="btn-round" @click="getVkLyricsBody">
-                  <img alt="body" class="icon-textbody" src="../../../assets/svg/icon_body.svg" />
-                </button>
-                <button class="btn-round" :disabled="!song.idVkLyrics" @click="getLinkVkLyrics">
-                  <img alt="link" class="icon-textlink" src="../../../assets/svg/icon_link.svg" />
-                </button>
-                <input v-model="song.idVkLyrics" class="input-link-field" />
-                <input v-model="song.versionVkLyrics" class="input-field-version" />
-                <button
-                  class="btn-round"
-                  :disabled="notChanged('idVkLyrics')"
-                  @click="undoField('idVkLyrics')"
-                >
-                  <img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg" />
-                </button>
-                <button
-                  class="btn-round"
-                  :disabled="!song.idVkLyrics"
-                  @click="copyToClipboard(song.idVkLyrics, 'idVkLyrics')"
-                >
-                  <img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg" />
-                </button>
-                <button class="btn-round" @click="pasteFromClipboard('idVkLyrics')">
-                  <img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg" />
-                </button>
-              </div>
-              <div class="label-and-input">
-                <img class="icon-24" alt="demo" src="../../../assets/svg/icon_demo.svg" />
-                <button class="btn-round-wide" :disabled="!song.idVkDemo" @click="openLinkVkDemo">
-                  <img alt="play" class="icon-play-wide" src="../../../assets/svg/icon_play.svg" />
-                </button>
-                <button class="btn-round" @click="getVkDemoHeader">
-                  <img alt="head" class="icon-texthead" src="../../../assets/svg/icon_head.svg" />
-                </button>
-                <button class="btn-round" @click="getVkDemoBody">
-                  <img alt="body" class="icon-textbody" src="../../../assets/svg/icon_body.svg" />
-                </button>
-                <button class="btn-round" :disabled="!song.idVkDemo" @click="getLinkVkDemo">
-                  <img alt="link" class="icon-textlink" src="../../../assets/svg/icon_link.svg" />
-                </button>
-                <input v-model="song.idVkDemo" class="input-link-field" />
-                <input v-model="song.versionVkDemo" class="input-field-version" />
-                <button
-                  class="btn-round"
-                  :disabled="notChanged('idVkDemo')"
-                  @click="undoField('idVkDemo')"
-                >
-                  <img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg" />
-                </button>
-                <button
-                  class="btn-round"
-                  :disabled="!song.idVkDemo"
-                  @click="copyToClipboard(song.idVkDemo, 'idVkDemo')"
-                >
-                  <img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg" />
-                </button>
-                <button class="btn-round" @click="pasteFromClipboard('idVkDemo')">
-                  <img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg" />
-                </button>
-              </div>
-              <div v-if="showChordsVk" class="label-and-input">
-                <img class="icon-24" alt="song" src="../../../assets/svg/icon_chords.svg" />
-                <button
-                  class="btn-round-wide"
-                  :disabled="!song.idVkChords"
-                  @click="openLinkVkChords"
-                >
-                  <img alt="play" class="icon-play-wide" src="../../../assets/svg/icon_play.svg" />
-                </button>
-                <button class="btn-round" @click="getVkChordsHeader">
-                  <img alt="head" class="icon-texthead" src="../../../assets/svg/icon_head.svg" />
-                </button>
-                <button class="btn-round" @click="getVkChordsBody">
-                  <img alt="body" class="icon-textbody" src="../../../assets/svg/icon_body.svg" />
-                </button>
-                <button class="btn-round" :disabled="!song.idVkChords" @click="getLinkVkChords">
-                  <img alt="link" class="icon-textlink" src="../../../assets/svg/icon_link.svg" />
-                </button>
-                <input v-model="song.idVkChords" class="input-link-field" />
-                <input v-model="song.versionVkChords" class="input-field-version" />
-                <button
-                  class="btn-round"
-                  :disabled="notChanged('idVkChords')"
-                  @click="undoField('idVkChords')"
-                >
-                  <img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg" />
-                </button>
-                <button
-                  class="btn-round"
-                  :disabled="!song.idVkChords"
-                  @click="copyToClipboard(song.idVkChords, 'idVkChords')"
-                >
-                  <img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg" />
-                </button>
-                <button class="btn-round" @click="pasteFromClipboard('idVkChords')">
-                  <img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg" />
-                </button>
-              </div>
-              <div v-if="showMelodyVk" class="label-and-input">
-                <img class="icon-24" alt="song" src="../../../assets/svg/icon_melody.svg" />
-                <button class="btn-round-wide" :disabled="!song.idVkMelody" @click="openLinkVkTabs">
-                  <img alt="play" class="icon-play-wide" src="../../../assets/svg/icon_play.svg" />
-                </button>
-                <button class="btn-round" @click="getVkTabsHeader">
-                  <img alt="head" class="icon-texthead" src="../../../assets/svg/icon_head.svg" />
-                </button>
-                <button class="btn-round" @click="getVkTabsBody">
-                  <img alt="body" class="icon-textbody" src="../../../assets/svg/icon_body.svg" />
-                </button>
-                <button class="btn-round" :disabled="!song.idVkMelody" @click="getLinkVkTabs">
-                  <img alt="link" class="icon-textlink" src="../../../assets/svg/icon_link.svg" />
-                </button>
-                <input v-model="song.idVkMelody" class="input-link-field" />
-                <input v-model="song.versionVkMelody" class="input-field-version" />
-                <button
-                  class="btn-round"
-                  :disabled="notChanged('idVkMelody')"
-                  @click="undoField('idVkMelody')"
-                >
-                  <img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg" />
-                </button>
-                <button
-                  class="btn-round"
-                  :disabled="!song.idVkMelody"
-                  @click="copyToClipboard(song.idVkMelody, 'idVkMelody')"
-                >
-                  <img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg" />
-                </button>
-                <button class="btn-round" @click="pasteFromClipboard('idVkMelody')">
-                  <img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg" />
-                </button>
-              </div>
-            </div>
-          </div>
 
-          <!--          <div class="links-table" v-if="!song.exclusive">-->
-          <!--            <div class="links-table-column-1">-->
-          <!--              <img class="icon-36" alt="pl" src="../../../assets/svg/icon_pl.svg">-->
-          <!--            </div>-->
-          <!--            <div class="links-table-column-2">-->
-          <!--              <div class="label-and-input">-->
-          <!--                <img class="icon-24" alt="karaoke" src="../../../assets/svg/icon_microphone.svg">-->
-          <!--                <button class="btn-round" @click="openLinkPlKaraokePlay" :disabled="!song.idPlKaraoke"><img alt="play" class="icon-play" src="../../../assets/svg/icon_play.svg"></button>-->
-          <!--                <button class="btn-round" @click="openLinkPlKaraokeEdit" :disabled="!song.idPlKaraoke"><img alt="edit" class="icon-edit" src="../../../assets/svg/icon_edit.svg"></button>-->
-          <!--                <button class="btn-round" @click="getPlKaraokeHeader"><img alt="head" class="icon-texthead" src="../../../assets/svg/icon_head.svg"></button>-->
-          <!--                <button class="btn-round" @click="getPlKaraokeBody"><img alt="body" class="icon-textbody" src="../../../assets/svg/icon_body.svg"></button>-->
-          <!--                <button class="btn-round" @click="getLinkPlKaraokePlay" :disabled="!song.idPlKaraoke"><img alt="link" class="icon-textlink" src="../../../assets/svg/icon_link.svg"></button>-->
-          <!--                <input class="input-link-field" v-model="song.idPlKaraoke">-->
-          <!--                <input class="input-field-version" v-model="song.versionPlKaraoke">-->
-          <!--                <button class="btn-round" @click="undoField('idPlKaraoke')" :disabled="notChanged('idPlKaraoke')"><img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg"></button>-->
-          <!--                <button class="btn-round" @click="copyToClipboard(song.idPlKaraoke,'idPlKaraoke')" :disabled="!song.idPlKaraoke"><img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg"></button>-->
-          <!--                <button class="btn-round" @click="pasteFromClipboard('idPlKaraoke')"><img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg"></button>-->
-          <!--              </div>-->
-          <!--              <div class="label-and-input">-->
-          <!--                <img class="icon-24" alt="song" src="../../../assets/svg/icon_song.svg">-->
-          <!--                <button class="btn-round" @click="openLinkPlLyricsPlay" :disabled="!song.idPlLyrics"><img alt="play" class="icon-play" src="../../../assets/svg/icon_play.svg"></button>-->
-          <!--                <button class="btn-round" @click="openLinkPlLyricsEdit" :disabled="!song.idPlLyrics"><img alt="edit" class="icon-edit" src="../../../assets/svg/icon_edit.svg"></button>-->
-          <!--                <button class="btn-round" @click="getPlLyricsHeader"><img alt="head" class="icon-texthead" src="../../../assets/svg/icon_head.svg"></button>-->
-          <!--                <button class="btn-round" @click="getPlLyricsBody"><img alt="body" class="icon-textbody" src="../../../assets/svg/icon_body.svg"></button>-->
-          <!--                <button class="btn-round" @click="getLinkPlLyricsPlay" :disabled="!song.idPlLyrics"><img alt="link" class="icon-textlink" src="../../../assets/svg/icon_link.svg"></button>-->
-          <!--                <input class="input-link-field" v-model="song.idPlLyrics">-->
-          <!--                <input class="input-field-version" v-model="song.versionPlLyrics">-->
-          <!--                <button class="btn-round" @click="undoField('idPlLyrics')" :disabled="notChanged('idPlLyrics')"><img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg"></button>-->
-          <!--                <button class="btn-round" @click="copyToClipboard(song.idPlLyrics, 'idPlLyrics')" :disabled="!song.idPlLyrics"><img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg"></button>-->
-          <!--                <button class="btn-round" @click="pasteFromClipboard('idPlLyrics')"><img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg"></button>-->
-          <!--              </div>-->
-          <!--              <div class="label-and-input">-->
-          <!--                <img class="icon-24" alt="song" src="../../../assets/svg/icon_chords.svg">-->
-          <!--                <button class="btn-round" @click="openLinkPlChordsPlay" :disabled="!song.idPlChords"><img alt="play" class="icon-play" src="../../../assets/svg/icon_play.svg"></button>-->
-          <!--                <button class="btn-round" @click="openLinkPlChordsEdit" :disabled="!song.idPlChords"><img alt="edit" class="icon-edit" src="../../../assets/svg/icon_edit.svg"></button>-->
-          <!--                <button class="btn-round" @click="getPlChordsHeader"><img alt="head" class="icon-texthead" src="../../../assets/svg/icon_head.svg"></button>-->
-          <!--                <button class="btn-round" @click="getPlChordsBody"><img alt="body" class="icon-textbody" src="../../../assets/svg/icon_body.svg"></button>-->
-          <!--                <button class="btn-round" @click="getLinkPlChordsPlay" :disabled="!song.idPlChords"><img alt="link" class="icon-textlink" src="../../../assets/svg/icon_link.svg"></button>-->
-          <!--                <input class="input-link-field" v-model="song.idPlChords">-->
-          <!--                <input class="input-field-version" v-model="song.versionPlChords">-->
-          <!--                <button class="btn-round" @click="undoField('idPlChords')" :disabled="notChanged('idPlChords')"><img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg"></button>-->
-          <!--                <button class="btn-round" @click="copyToClipboard(song.idPlChords,'idPlChords')" :disabled="!song.idPlChords"><img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg"></button>-->
-          <!--                <button class="btn-round" @click="pasteFromClipboard('idPlChords')"><img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg"></button>-->
-          <!--              </div>-->
-          <!--              <div class="label-and-input">-->
-          <!--                <img class="icon-24" alt="song" src="../../../assets/svg/icon_melody.svg">-->
-          <!--                <button class="btn-round" @click="openLinkPlTabsPlay" :disabled="!song.idPlMelody"><img alt="play" class="icon-play" src="../../../assets/svg/icon_play.svg"></button>-->
-          <!--                <button class="btn-round" @click="openLinkPlTabsEdit" :disabled="!song.idPlMelody"><img alt="edit" class="icon-edit" src="../../../assets/svg/icon_edit.svg"></button>-->
-          <!--                <button class="btn-round" @click="getPlTabsHeader"><img alt="head" class="icon-texthead" src="../../../assets/svg/icon_head.svg"></button>-->
-          <!--                <button class="btn-round" @click="getPlTabsBody"><img alt="body" class="icon-textbody" src="../../../assets/svg/icon_body.svg"></button>-->
-          <!--                <button class="btn-round" @click="getLinkPlTabsPlay" :disabled="!song.idPlMelody"><img alt="link" class="icon-textlink" src="../../../assets/svg/icon_link.svg"></button>-->
-          <!--                <input class="input-link-field" v-model="song.idPlMelody">-->
-          <!--                <input class="input-field-version" v-model="song.versionPlMelody">-->
-          <!--                <button class="btn-round" @click="undoField('idPlMelody')" :disabled="notChanged('idPlMelody')"><img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg"></button>-->
-          <!--                <button class="btn-round" @click="copyToClipboard(song.idPlMelody,'idPlMelody')" :disabled="!song.idPlMelody"><img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg"></button>-->
-          <!--                <button class="btn-round" @click="pasteFromClipboard('idPlMelody')"><img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg"></button>-->
-          <!--              </div>-->
-          <!--            </div>-->
-          <!--          </div>-->
+              <!--          <div class="links-table" v-if="!song.exclusive">-->
+              <!--            <div class="links-table-column-1">-->
+              <!--              <img class="icon-36" alt="pl" src="../../../assets/svg/icon_pl.svg">-->
+              <!--            </div>-->
+              <!--            <div class="links-table-column-2">-->
+              <!--              <div class="label-and-input">-->
+              <!--                <img class="icon-24" alt="karaoke" src="../../../assets/svg/icon_microphone.svg">-->
+              <!--                <button class="btn-round" @click="openLinkPlKaraokePlay" :disabled="!song.idPlKaraoke"><img alt="play" class="icon-play" src="../../../assets/svg/icon_play.svg"></button>-->
+              <!--                <button class="btn-round" @click="openLinkPlKaraokeEdit" :disabled="!song.idPlKaraoke"><img alt="edit" class="icon-edit" src="../../../assets/svg/icon_edit.svg"></button>-->
+              <!--                <button class="btn-round" @click="getPlKaraokeHeader"><img alt="head" class="icon-texthead" src="../../../assets/svg/icon_head.svg"></button>-->
+              <!--                <button class="btn-round" @click="getPlKaraokeBody"><img alt="body" class="icon-textbody" src="../../../assets/svg/icon_body.svg"></button>-->
+              <!--                <button class="btn-round" @click="getLinkPlKaraokePlay" :disabled="!song.idPlKaraoke"><img alt="link" class="icon-textlink" src="../../../assets/svg/icon_link.svg"></button>-->
+              <!--                <input class="input-link-field" v-model="song.idPlKaraoke">-->
+              <!--                <input class="input-field-version" v-model="song.versionPlKaraoke">-->
+              <!--                <button class="btn-round" @click="undoField('idPlKaraoke')" :disabled="notChanged('idPlKaraoke')"><img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg"></button>-->
+              <!--                <button class="btn-round" @click="copyToClipboard(song.idPlKaraoke,'idPlKaraoke')" :disabled="!song.idPlKaraoke"><img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg"></button>-->
+              <!--                <button class="btn-round" @click="pasteFromClipboard('idPlKaraoke')"><img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg"></button>-->
+              <!--              </div>-->
+              <!--              <div class="label-and-input">-->
+              <!--                <img class="icon-24" alt="song" src="../../../assets/svg/icon_song.svg">-->
+              <!--                <button class="btn-round" @click="openLinkPlLyricsPlay" :disabled="!song.idPlLyrics"><img alt="play" class="icon-play" src="../../../assets/svg/icon_play.svg"></button>-->
+              <!--                <button class="btn-round" @click="openLinkPlLyricsEdit" :disabled="!song.idPlLyrics"><img alt="edit" class="icon-edit" src="../../../assets/svg/icon_edit.svg"></button>-->
+              <!--                <button class="btn-round" @click="getPlLyricsHeader"><img alt="head" class="icon-texthead" src="../../../assets/svg/icon_head.svg"></button>-->
+              <!--                <button class="btn-round" @click="getPlLyricsBody"><img alt="body" class="icon-textbody" src="../../../assets/svg/icon_body.svg"></button>-->
+              <!--                <button class="btn-round" @click="getLinkPlLyricsPlay" :disabled="!song.idPlLyrics"><img alt="link" class="icon-textlink" src="../../../assets/svg/icon_link.svg"></button>-->
+              <!--                <input class="input-link-field" v-model="song.idPlLyrics">-->
+              <!--                <input class="input-field-version" v-model="song.versionPlLyrics">-->
+              <!--                <button class="btn-round" @click="undoField('idPlLyrics')" :disabled="notChanged('idPlLyrics')"><img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg"></button>-->
+              <!--                <button class="btn-round" @click="copyToClipboard(song.idPlLyrics, 'idPlLyrics')" :disabled="!song.idPlLyrics"><img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg"></button>-->
+              <!--                <button class="btn-round" @click="pasteFromClipboard('idPlLyrics')"><img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg"></button>-->
+              <!--              </div>-->
+              <!--              <div class="label-and-input">-->
+              <!--                <img class="icon-24" alt="song" src="../../../assets/svg/icon_chords.svg">-->
+              <!--                <button class="btn-round" @click="openLinkPlChordsPlay" :disabled="!song.idPlChords"><img alt="play" class="icon-play" src="../../../assets/svg/icon_play.svg"></button>-->
+              <!--                <button class="btn-round" @click="openLinkPlChordsEdit" :disabled="!song.idPlChords"><img alt="edit" class="icon-edit" src="../../../assets/svg/icon_edit.svg"></button>-->
+              <!--                <button class="btn-round" @click="getPlChordsHeader"><img alt="head" class="icon-texthead" src="../../../assets/svg/icon_head.svg"></button>-->
+              <!--                <button class="btn-round" @click="getPlChordsBody"><img alt="body" class="icon-textbody" src="../../../assets/svg/icon_body.svg"></button>-->
+              <!--                <button class="btn-round" @click="getLinkPlChordsPlay" :disabled="!song.idPlChords"><img alt="link" class="icon-textlink" src="../../../assets/svg/icon_link.svg"></button>-->
+              <!--                <input class="input-link-field" v-model="song.idPlChords">-->
+              <!--                <input class="input-field-version" v-model="song.versionPlChords">-->
+              <!--                <button class="btn-round" @click="undoField('idPlChords')" :disabled="notChanged('idPlChords')"><img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg"></button>-->
+              <!--                <button class="btn-round" @click="copyToClipboard(song.idPlChords,'idPlChords')" :disabled="!song.idPlChords"><img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg"></button>-->
+              <!--                <button class="btn-round" @click="pasteFromClipboard('idPlChords')"><img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg"></button>-->
+              <!--              </div>-->
+              <!--              <div class="label-and-input">-->
+              <!--                <img class="icon-24" alt="song" src="../../../assets/svg/icon_melody.svg">-->
+              <!--                <button class="btn-round" @click="openLinkPlTabsPlay" :disabled="!song.idPlMelody"><img alt="play" class="icon-play" src="../../../assets/svg/icon_play.svg"></button>-->
+              <!--                <button class="btn-round" @click="openLinkPlTabsEdit" :disabled="!song.idPlMelody"><img alt="edit" class="icon-edit" src="../../../assets/svg/icon_edit.svg"></button>-->
+              <!--                <button class="btn-round" @click="getPlTabsHeader"><img alt="head" class="icon-texthead" src="../../../assets/svg/icon_head.svg"></button>-->
+              <!--                <button class="btn-round" @click="getPlTabsBody"><img alt="body" class="icon-textbody" src="../../../assets/svg/icon_body.svg"></button>-->
+              <!--                <button class="btn-round" @click="getLinkPlTabsPlay" :disabled="!song.idPlMelody"><img alt="link" class="icon-textlink" src="../../../assets/svg/icon_link.svg"></button>-->
+              <!--                <input class="input-link-field" v-model="song.idPlMelody">-->
+              <!--                <input class="input-field-version" v-model="song.versionPlMelody">-->
+              <!--                <button class="btn-round" @click="undoField('idPlMelody')" :disabled="notChanged('idPlMelody')"><img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg"></button>-->
+              <!--                <button class="btn-round" @click="copyToClipboard(song.idPlMelody,'idPlMelody')" :disabled="!song.idPlMelody"><img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg"></button>-->
+              <!--                <button class="btn-round" @click="pasteFromClipboard('idPlMelody')"><img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg"></button>-->
+              <!--              </div>-->
+              <!--            </div>-->
+              <!--          </div>-->
 
-          <div v-if="!song.exclusive" class="links-table">
-            <div class="links-table-column-1">
-              <img class="icon-36" alt="tg" src="../../../assets/svg/icon_telegram.svg" />
-            </div>
-            <div class="links-table-column-2">
-              <div class="label-and-input">
-                <img class="icon-24" alt="karaoke" src="../../../assets/svg/icon_microphone.svg" />
-                <button
-                  class="btn-round-wide"
-                  :disabled="!song.idTelegramKaraoke"
-                  @click="openLinkTelegramKaraoke"
-                >
-                  <img alt="play" class="icon-play-wide" src="../../../assets/svg/icon_play.svg" />
-                </button>
-                <button class="btn-round-wide" @click="getTelegramKaraokeHeader">
-                  <img
-                    alt="head"
-                    class="icon-texthead-wide"
-                    src="../../../assets/svg/icon_head.svg"
-                  />
-                </button>
-                <button
-                  class="btn-round"
-                  :disabled="!song.idTelegramKaraoke"
-                  @click="getLinkTelegramKaraoke"
-                >
-                  <img alt="link" class="icon-textlink" src="../../../assets/svg/icon_link.svg" />
-                </button>
-                <input v-model="song.idTelegramKaraoke" class="input-link-field" />
-                <input v-model="song.versionTelegramKaraoke" class="input-field-version" />
-                <button
-                  class="btn-round"
-                  :disabled="notChanged('idTelegramKaraoke')"
-                  @click="undoField('idTelegramKaraoke')"
-                >
-                  <img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg" />
-                </button>
-                <button
-                  class="btn-round"
-                  :disabled="!song.idTelegramKaraoke"
-                  @click="copyToClipboard(song.idTelegramKaraoke, 'idTelegramKaraoke')"
-                >
-                  <img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg" />
-                </button>
-                <button class="btn-round" @click="pasteFromClipboard('idTelegramKaraoke')">
-                  <img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg" />
-                </button>
+              <div v-show="activeLinksTab === 'telegram'" class="links-table">
+                <div class="links-table-column-1">
+                  <img class="icon-36" alt="tg" src="../../../assets/svg/icon_telegram.svg" />
+                </div>
+                <div class="links-table-column-2">
+                  <div class="label-and-input">
+                    <img
+                      class="icon-24"
+                      alt="karaoke"
+                      src="../../../assets/svg/icon_microphone.svg"
+                    />
+                    <button
+                      class="btn-round-wide"
+                      :disabled="!song.idTelegramKaraoke"
+                      @click="openLinkTelegramKaraoke"
+                    >
+                      <img
+                        alt="play"
+                        class="icon-play-wide"
+                        src="../../../assets/svg/icon_play.svg"
+                      />
+                    </button>
+                    <button class="btn-round-wide" @click="getTelegramKaraokeHeader">
+                      <img
+                        alt="head"
+                        class="icon-texthead-wide"
+                        src="../../../assets/svg/icon_head.svg"
+                      />
+                    </button>
+                    <button
+                      class="btn-round"
+                      :disabled="!song.idTelegramKaraoke"
+                      @click="getLinkTelegramKaraoke"
+                    >
+                      <img
+                        alt="link"
+                        class="icon-textlink"
+                        src="../../../assets/svg/icon_link.svg"
+                      />
+                    </button>
+                    <input v-model="song.idTelegramKaraoke" class="input-link-field" />
+                    <input v-model="song.versionTelegramKaraoke" class="input-field-version" />
+                    <button
+                      class="btn-round"
+                      :disabled="notChanged('idTelegramKaraoke')"
+                      @click="undoField('idTelegramKaraoke')"
+                    >
+                      <img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg" />
+                    </button>
+                    <button
+                      class="btn-round"
+                      :disabled="!song.idTelegramKaraoke"
+                      @click="copyToClipboard(song.idTelegramKaraoke, 'idTelegramKaraoke')"
+                    >
+                      <img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg" />
+                    </button>
+                    <button class="btn-round" @click="pasteFromClipboard('idTelegramKaraoke')">
+                      <img
+                        alt="paste"
+                        class="icon-paste"
+                        src="../../../assets/svg/icon_paste.svg"
+                      />
+                    </button>
+                  </div>
+                  <div class="label-and-input">
+                    <img class="icon-24" alt="song" src="../../../assets/svg/icon_song.svg" />
+                    <button
+                      class="btn-round-wide"
+                      :disabled="!song.idTelegramLyrics"
+                      @click="openLinkTelegramLyrics"
+                    >
+                      <img
+                        alt="play"
+                        class="icon-play-wide"
+                        src="../../../assets/svg/icon_play.svg"
+                      />
+                    </button>
+                    <button class="btn-round-wide" @click="getTelegramLyricsHeader">
+                      <img
+                        alt="head"
+                        class="icon-texthead-wide"
+                        src="../../../assets/svg/icon_head.svg"
+                      />
+                    </button>
+                    <button
+                      class="btn-round"
+                      :disabled="!song.idTelegramLyrics"
+                      @click="getLinkTelegramLyrics"
+                    >
+                      <img
+                        alt="link"
+                        class="icon-textlink"
+                        src="../../../assets/svg/icon_link.svg"
+                      />
+                    </button>
+                    <input v-model="song.idTelegramLyrics" class="input-link-field" />
+                    <input v-model="song.versionTelegramLyrics" class="input-field-version" />
+                    <button
+                      class="btn-round"
+                      :disabled="notChanged('idTelegramLyrics')"
+                      @click="undoField('idTelegramLyrics')"
+                    >
+                      <img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg" />
+                    </button>
+                    <button
+                      class="btn-round"
+                      :disabled="!song.idTelegramLyrics"
+                      @click="copyToClipboard(song.idTelegramLyrics, 'idTelegramLyrics')"
+                    >
+                      <img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg" />
+                    </button>
+                    <button class="btn-round" @click="pasteFromClipboard('idTelegramLyrics')">
+                      <img
+                        alt="paste"
+                        class="icon-paste"
+                        src="../../../assets/svg/icon_paste.svg"
+                      />
+                    </button>
+                  </div>
+                  <div class="label-and-input">
+                    <img class="icon-24" alt="demo" src="../../../assets/svg/icon_demo.svg" />
+                    <button
+                      class="btn-round-wide"
+                      :disabled="!song.idTelegramDemo"
+                      @click="openLinkTelegramDemo"
+                    >
+                      <img
+                        alt="play"
+                        class="icon-play-wide"
+                        src="../../../assets/svg/icon_play.svg"
+                      />
+                    </button>
+                    <button class="btn-round-wide" @click="getTelegramDemoHeader">
+                      <img
+                        alt="head"
+                        class="icon-texthead-wide"
+                        src="../../../assets/svg/icon_head.svg"
+                      />
+                    </button>
+                    <button
+                      class="btn-round"
+                      :disabled="!song.idTelegramDemo"
+                      @click="getLinkTelegramDemo"
+                    >
+                      <img
+                        alt="link"
+                        class="icon-textlink"
+                        src="../../../assets/svg/icon_link.svg"
+                      />
+                    </button>
+                    <input v-model="song.idTelegramDemo" class="input-link-field" />
+                    <input v-model="song.versionTelegramDemo" class="input-field-version" />
+                    <button
+                      class="btn-round"
+                      :disabled="notChanged('idTelegramDemo')"
+                      @click="undoField('idTelegramDemo')"
+                    >
+                      <img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg" />
+                    </button>
+                    <button
+                      class="btn-round"
+                      :disabled="!song.idTelegramDemo"
+                      @click="copyToClipboard(song.idTelegramDemo, 'idTelegramDemo')"
+                    >
+                      <img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg" />
+                    </button>
+                    <button class="btn-round" @click="pasteFromClipboard('idTelegramDemo')">
+                      <img
+                        alt="paste"
+                        class="icon-paste"
+                        src="../../../assets/svg/icon_paste.svg"
+                      />
+                    </button>
+                  </div>
+                  <div v-if="showChordsTelegram" class="label-and-input">
+                    <img class="icon-24" alt="song" src="../../../assets/svg/icon_chords.svg" />
+                    <button
+                      class="btn-round-wide"
+                      :disabled="!song.idTelegramChords"
+                      @click="openLinkTelegramChords"
+                    >
+                      <img
+                        alt="play"
+                        class="icon-play-wide"
+                        src="../../../assets/svg/icon_play.svg"
+                      />
+                    </button>
+                    <button class="btn-round-wide" @click="getTelegramChordsHeader">
+                      <img
+                        alt="head"
+                        class="icon-texthead-wide"
+                        src="../../../assets/svg/icon_head.svg"
+                      />
+                    </button>
+                    <button
+                      class="btn-round"
+                      :disabled="!song.idTelegramChords"
+                      @click="getLinkTelegramChords"
+                    >
+                      <img
+                        alt="link"
+                        class="icon-textlink"
+                        src="../../../assets/svg/icon_link.svg"
+                      />
+                    </button>
+                    <input v-model="song.idTelegramChords" class="input-link-field" />
+                    <input v-model="song.versionTelegramChords" class="input-field-version" />
+                    <button
+                      class="btn-round"
+                      :disabled="notChanged('idTelegramChords')"
+                      @click="undoField('idTelegramChords')"
+                    >
+                      <img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg" />
+                    </button>
+                    <button
+                      class="btn-round"
+                      :disabled="!song.idTelegramChords"
+                      @click="copyToClipboard(song.idTelegramChords, 'idTelegramChords')"
+                    >
+                      <img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg" />
+                    </button>
+                    <button class="btn-round" @click="pasteFromClipboard('idTelegramChords')">
+                      <img
+                        alt="paste"
+                        class="icon-paste"
+                        src="../../../assets/svg/icon_paste.svg"
+                      />
+                    </button>
+                  </div>
+                  <div v-if="showMelodyTelegram" class="label-and-input">
+                    <img class="icon-24" alt="song" src="../../../assets/svg/icon_melody.svg" />
+                    <button
+                      class="btn-round-wide"
+                      :disabled="!song.idTelegramMelody"
+                      @click="openLinkTelegramTabs"
+                    >
+                      <img
+                        alt="play"
+                        class="icon-play-wide"
+                        src="../../../assets/svg/icon_play.svg"
+                      />
+                    </button>
+                    <button class="btn-round-wide" @click="getTelegramTabsHeader">
+                      <img
+                        alt="head"
+                        class="icon-texthead-wide"
+                        src="../../../assets/svg/icon_head.svg"
+                      />
+                    </button>
+                    <button
+                      class="btn-round"
+                      :disabled="!song.idTelegramMelody"
+                      @click="getLinkTelegramTabs"
+                    >
+                      <img
+                        alt="link"
+                        class="icon-textlink"
+                        src="../../../assets/svg/icon_link.svg"
+                      />
+                    </button>
+                    <input v-model="song.idTelegramMelody" class="input-link-field" />
+                    <input v-model="song.versionTelegramMelody" class="input-field-version" />
+                    <button
+                      class="btn-round"
+                      :disabled="notChanged('idTelegramMelody')"
+                      @click="undoField('idTelegramMelody')"
+                    >
+                      <img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg" />
+                    </button>
+                    <button
+                      class="btn-round"
+                      :disabled="!song.idTelegramMelody"
+                      @click="copyToClipboard(song.idTelegramMelody, 'idTelegramMelody')"
+                    >
+                      <img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg" />
+                    </button>
+                    <button class="btn-round" @click="pasteFromClipboard('idTelegramMelody')">
+                      <img
+                        alt="paste"
+                        class="icon-paste"
+                        src="../../../assets/svg/icon_paste.svg"
+                      />
+                    </button>
+                  </div>
+                </div>
               </div>
-              <div class="label-and-input">
-                <img class="icon-24" alt="song" src="../../../assets/svg/icon_song.svg" />
-                <button
-                  class="btn-round-wide"
-                  :disabled="!song.idTelegramLyrics"
-                  @click="openLinkTelegramLyrics"
-                >
-                  <img alt="play" class="icon-play-wide" src="../../../assets/svg/icon_play.svg" />
-                </button>
-                <button class="btn-round-wide" @click="getTelegramLyricsHeader">
-                  <img
-                    alt="head"
-                    class="icon-texthead-wide"
-                    src="../../../assets/svg/icon_head.svg"
-                  />
-                </button>
-                <button
-                  class="btn-round"
-                  :disabled="!song.idTelegramLyrics"
-                  @click="getLinkTelegramLyrics"
-                >
-                  <img alt="link" class="icon-textlink" src="../../../assets/svg/icon_link.svg" />
-                </button>
-                <input v-model="song.idTelegramLyrics" class="input-link-field" />
-                <input v-model="song.versionTelegramLyrics" class="input-field-version" />
-                <button
-                  class="btn-round"
-                  :disabled="notChanged('idTelegramLyrics')"
-                  @click="undoField('idTelegramLyrics')"
-                >
-                  <img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg" />
-                </button>
-                <button
-                  class="btn-round"
-                  :disabled="!song.idTelegramLyrics"
-                  @click="copyToClipboard(song.idTelegramLyrics, 'idTelegramLyrics')"
-                >
-                  <img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg" />
-                </button>
-                <button class="btn-round" @click="pasteFromClipboard('idTelegramLyrics')">
-                  <img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg" />
-                </button>
-              </div>
-              <div class="label-and-input">
-                <img class="icon-24" alt="demo" src="../../../assets/svg/icon_demo.svg" />
-                <button
-                  class="btn-round-wide"
-                  :disabled="!song.idTelegramDemo"
-                  @click="openLinkTelegramDemo"
-                >
-                  <img alt="play" class="icon-play-wide" src="../../../assets/svg/icon_play.svg" />
-                </button>
-                <button class="btn-round-wide" @click="getTelegramDemoHeader">
-                  <img
-                    alt="head"
-                    class="icon-texthead-wide"
-                    src="../../../assets/svg/icon_head.svg"
-                  />
-                </button>
-                <button
-                  class="btn-round"
-                  :disabled="!song.idTelegramDemo"
-                  @click="getLinkTelegramDemo"
-                >
-                  <img alt="link" class="icon-textlink" src="../../../assets/svg/icon_link.svg" />
-                </button>
-                <input v-model="song.idTelegramDemo" class="input-link-field" />
-                <input v-model="song.versionTelegramDemo" class="input-field-version" />
-                <button
-                  class="btn-round"
-                  :disabled="notChanged('idTelegramDemo')"
-                  @click="undoField('idTelegramDemo')"
-                >
-                  <img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg" />
-                </button>
-                <button
-                  class="btn-round"
-                  :disabled="!song.idTelegramDemo"
-                  @click="copyToClipboard(song.idTelegramDemo, 'idTelegramDemo')"
-                >
-                  <img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg" />
-                </button>
-                <button class="btn-round" @click="pasteFromClipboard('idTelegramDemo')">
-                  <img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg" />
-                </button>
-              </div>
-              <div v-if="showChordsTelegram" class="label-and-input">
-                <img class="icon-24" alt="song" src="../../../assets/svg/icon_chords.svg" />
-                <button
-                  class="btn-round-wide"
-                  :disabled="!song.idTelegramChords"
-                  @click="openLinkTelegramChords"
-                >
-                  <img alt="play" class="icon-play-wide" src="../../../assets/svg/icon_play.svg" />
-                </button>
-                <button class="btn-round-wide" @click="getTelegramChordsHeader">
-                  <img
-                    alt="head"
-                    class="icon-texthead-wide"
-                    src="../../../assets/svg/icon_head.svg"
-                  />
-                </button>
-                <button
-                  class="btn-round"
-                  :disabled="!song.idTelegramChords"
-                  @click="getLinkTelegramChords"
-                >
-                  <img alt="link" class="icon-textlink" src="../../../assets/svg/icon_link.svg" />
-                </button>
-                <input v-model="song.idTelegramChords" class="input-link-field" />
-                <input v-model="song.versionTelegramChords" class="input-field-version" />
-                <button
-                  class="btn-round"
-                  :disabled="notChanged('idTelegramChords')"
-                  @click="undoField('idTelegramChords')"
-                >
-                  <img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg" />
-                </button>
-                <button
-                  class="btn-round"
-                  :disabled="!song.idTelegramChords"
-                  @click="copyToClipboard(song.idTelegramChords, 'idTelegramChords')"
-                >
-                  <img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg" />
-                </button>
-                <button class="btn-round" @click="pasteFromClipboard('idTelegramChords')">
-                  <img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg" />
-                </button>
-              </div>
-              <div v-if="showMelodyTelegram" class="label-and-input">
-                <img class="icon-24" alt="song" src="../../../assets/svg/icon_melody.svg" />
-                <button
-                  class="btn-round-wide"
-                  :disabled="!song.idTelegramMelody"
-                  @click="openLinkTelegramTabs"
-                >
-                  <img alt="play" class="icon-play-wide" src="../../../assets/svg/icon_play.svg" />
-                </button>
-                <button class="btn-round-wide" @click="getTelegramTabsHeader">
-                  <img
-                    alt="head"
-                    class="icon-texthead-wide"
-                    src="../../../assets/svg/icon_head.svg"
-                  />
-                </button>
-                <button
-                  class="btn-round"
-                  :disabled="!song.idTelegramMelody"
-                  @click="getLinkTelegramTabs"
-                >
-                  <img alt="link" class="icon-textlink" src="../../../assets/svg/icon_link.svg" />
-                </button>
-                <input v-model="song.idTelegramMelody" class="input-link-field" />
-                <input v-model="song.versionTelegramMelody" class="input-field-version" />
-                <button
-                  class="btn-round"
-                  :disabled="notChanged('idTelegramMelody')"
-                  @click="undoField('idTelegramMelody')"
-                >
-                  <img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg" />
-                </button>
-                <button
-                  class="btn-round"
-                  :disabled="!song.idTelegramMelody"
-                  @click="copyToClipboard(song.idTelegramMelody, 'idTelegramMelody')"
-                >
-                  <img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg" />
-                </button>
-                <button class="btn-round" @click="pasteFromClipboard('idTelegramMelody')">
-                  <img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg" />
-                </button>
-              </div>
-            </div>
-          </div>
 
-          <div v-if="!song.exclusive" class="links-table">
-            <div class="links-table-column-1">
-              <img class="icon-36" alt="tg" src="../../../assets/svg/icon_max.svg" />
-            </div>
-            <div class="links-table-column-2">
-              <div class="label-and-input">
-                <img class="icon-24" alt="karaoke" src="../../../assets/svg/icon_microphone.svg" />
-                <button
-                  class="btn-round-wide"
-                  :disabled="!song.idMaxKaraoke"
-                  @click="openLinkMaxKaraoke"
-                >
-                  <img alt="play" class="icon-play-wide" src="../../../assets/svg/icon_play.svg" />
-                </button>
-                <button class="btn-round-wide" @click="getMaxKaraokeHeader">
-                  <img
-                    alt="head"
-                    class="icon-texthead-wide"
-                    src="../../../assets/svg/icon_head.svg"
-                  />
-                </button>
-                <button class="btn-round" :disabled="!song.idMaxKaraoke" @click="getLinkMaxKaraoke">
-                  <img alt="link" class="icon-textlink" src="../../../assets/svg/icon_link.svg" />
-                </button>
-                <input v-model="song.idMaxKaraoke" class="input-link-field" />
-                <input v-model="song.versionMaxKaraoke" class="input-field-version" />
-                <button
-                  class="btn-round"
-                  :disabled="notChanged('idMaxKaraoke')"
-                  @click="undoField('idMaxKaraoke')"
-                >
-                  <img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg" />
-                </button>
-                <button
-                  class="btn-round"
-                  :disabled="!song.idMaxKaraoke"
-                  @click="copyToClipboard(song.idMaxKaraoke, 'idMaxKaraoke')"
-                >
-                  <img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg" />
-                </button>
-                <button class="btn-round" @click="pasteFromClipboard('idMaxKaraoke')">
-                  <img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg" />
-                </button>
-              </div>
-              <div class="label-and-input">
-                <img class="icon-24" alt="song" src="../../../assets/svg/icon_song.svg" />
-                <button
-                  class="btn-round-wide"
-                  :disabled="!song.idMaxLyrics"
-                  @click="openLinkMaxLyrics"
-                >
-                  <img alt="play" class="icon-play-wide" src="../../../assets/svg/icon_play.svg" />
-                </button>
-                <button class="btn-round-wide" @click="getMaxLyricsHeader">
-                  <img
-                    alt="head"
-                    class="icon-texthead-wide"
-                    src="../../../assets/svg/icon_head.svg"
-                  />
-                </button>
-                <button class="btn-round" :disabled="!song.idMaxLyrics" @click="getLinkMaxLyrics">
-                  <img alt="link" class="icon-textlink" src="../../../assets/svg/icon_link.svg" />
-                </button>
-                <input v-model="song.idMaxLyrics" class="input-link-field" />
-                <input v-model="song.versionMaxLyrics" class="input-field-version" />
-                <button
-                  class="btn-round"
-                  :disabled="notChanged('idMaxLyrics')"
-                  @click="undoField('idMaxLyrics')"
-                >
-                  <img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg" />
-                </button>
-                <button
-                  class="btn-round"
-                  :disabled="!song.idMaxLyrics"
-                  @click="copyToClipboard(song.idMaxLyrics, 'idMaxLyrics')"
-                >
-                  <img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg" />
-                </button>
-                <button class="btn-round" @click="pasteFromClipboard('idMaxLyrics')">
-                  <img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg" />
-                </button>
-              </div>
-              <div class="label-and-input">
-                <img class="icon-24" alt="demo" src="../../../assets/svg/icon_demo.svg" />
-                <button class="btn-round-wide" :disabled="!song.idMaxDemo" @click="openLinkMaxDemo">
-                  <img alt="play" class="icon-play-wide" src="../../../assets/svg/icon_play.svg" />
-                </button>
-                <button class="btn-round-wide" @click="getMaxDemoHeader">
-                  <img
-                    alt="head"
-                    class="icon-texthead-wide"
-                    src="../../../assets/svg/icon_head.svg"
-                  />
-                </button>
-                <button class="btn-round" :disabled="!song.idMaxDemo" @click="getLinkMaxDemo">
-                  <img alt="link" class="icon-textlink" src="../../../assets/svg/icon_link.svg" />
-                </button>
-                <input v-model="song.idMaxDemo" class="input-link-field" />
-                <input v-model="song.versionMaxDemo" class="input-field-version" />
-                <button
-                  class="btn-round"
-                  :disabled="notChanged('idMaxDemo')"
-                  @click="undoField('idMaxDemo')"
-                >
-                  <img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg" />
-                </button>
-                <button
-                  class="btn-round"
-                  :disabled="!song.idMaxDemo"
-                  @click="copyToClipboard(song.idMaxDemo, 'idMaxDemo')"
-                >
-                  <img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg" />
-                </button>
-                <button class="btn-round" @click="pasteFromClipboard('idMaxDemo')">
-                  <img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg" />
-                </button>
-              </div>
-              <div v-if="showChordsMax" class="label-and-input">
-                <img class="icon-24" alt="song" src="../../../assets/svg/icon_chords.svg" />
-                <button
-                  class="btn-round-wide"
-                  :disabled="!song.idMaxChords"
-                  @click="openLinkMaxChords"
-                >
-                  <img alt="play" class="icon-play-wide" src="../../../assets/svg/icon_play.svg" />
-                </button>
-                <button class="btn-round-wide" @click="getMaxChordsHeader">
-                  <img
-                    alt="head"
-                    class="icon-texthead-wide"
-                    src="../../../assets/svg/icon_head.svg"
-                  />
-                </button>
-                <button class="btn-round" :disabled="!song.idMaxChords" @click="getLinkMaxChords">
-                  <img alt="link" class="icon-textlink" src="../../../assets/svg/icon_link.svg" />
-                </button>
-                <input v-model="song.idMaxChords" class="input-link-field" />
-                <input v-model="song.versionMaxChords" class="input-field-version" />
-                <button
-                  class="btn-round"
-                  :disabled="notChanged('idMaxChords')"
-                  @click="undoField('idMaxChords')"
-                >
-                  <img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg" />
-                </button>
-                <button
-                  class="btn-round"
-                  :disabled="!song.idMaxChords"
-                  @click="copyToClipboard(song.idMaxChords, 'idMaxChords')"
-                >
-                  <img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg" />
-                </button>
-                <button class="btn-round" @click="pasteFromClipboard('idMaxChords')">
-                  <img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg" />
-                </button>
-              </div>
-              <div v-if="showMelodyVk" class="label-and-input">
-                <img class="icon-24" alt="song" src="../../../assets/svg/icon_melody.svg" />
-                <button
-                  class="btn-round-wide"
-                  :disabled="!song.idMaxMelody"
-                  @click="openLinkMaxTabs"
-                >
-                  <img alt="play" class="icon-play-wide" src="../../../assets/svg/icon_play.svg" />
-                </button>
-                <button class="btn-round-wide" @click="getMaxTabsHeader">
-                  <img
-                    alt="head"
-                    class="icon-texthead-wide"
-                    src="../../../assets/svg/icon_head.svg"
-                  />
-                </button>
-                <button class="btn-round" :disabled="!song.idMaxMelody" @click="getLinkMaxTabs">
-                  <img alt="link" class="icon-textlink" src="../../../assets/svg/icon_link.svg" />
-                </button>
-                <input v-model="song.idMaxMelody" class="input-link-field" />
-                <input v-model="song.versionMaxMelody" class="input-field-version" />
-                <button
-                  class="btn-round"
-                  :disabled="notChanged('idMaxMelody')"
-                  @click="undoField('idMaxMelody')"
-                >
-                  <img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg" />
-                </button>
-                <button
-                  class="btn-round"
-                  :disabled="!song.idMaxMelody"
-                  @click="copyToClipboard(song.idMaxMelody, 'idMaxMelody')"
-                >
-                  <img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg" />
-                </button>
-                <button class="btn-round" @click="pasteFromClipboard('idMaxMelody')">
-                  <img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg" />
-                </button>
+              <div v-show="activeLinksTab === 'max'" class="links-table">
+                <div class="links-table-column-1">
+                  <img class="icon-36" alt="tg" src="../../../assets/svg/icon_max.svg" />
+                </div>
+                <div class="links-table-column-2">
+                  <div class="label-and-input">
+                    <img
+                      class="icon-24"
+                      alt="karaoke"
+                      src="../../../assets/svg/icon_microphone.svg"
+                    />
+                    <button
+                      class="btn-round-wide"
+                      :disabled="!song.idMaxKaraoke"
+                      @click="openLinkMaxKaraoke"
+                    >
+                      <img
+                        alt="play"
+                        class="icon-play-wide"
+                        src="../../../assets/svg/icon_play.svg"
+                      />
+                    </button>
+                    <button class="btn-round-wide" @click="getMaxKaraokeHeader">
+                      <img
+                        alt="head"
+                        class="icon-texthead-wide"
+                        src="../../../assets/svg/icon_head.svg"
+                      />
+                    </button>
+                    <button
+                      class="btn-round"
+                      :disabled="!song.idMaxKaraoke"
+                      @click="getLinkMaxKaraoke"
+                    >
+                      <img
+                        alt="link"
+                        class="icon-textlink"
+                        src="../../../assets/svg/icon_link.svg"
+                      />
+                    </button>
+                    <input v-model="song.idMaxKaraoke" class="input-link-field" />
+                    <input v-model="song.versionMaxKaraoke" class="input-field-version" />
+                    <button
+                      class="btn-round"
+                      :disabled="notChanged('idMaxKaraoke')"
+                      @click="undoField('idMaxKaraoke')"
+                    >
+                      <img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg" />
+                    </button>
+                    <button
+                      class="btn-round"
+                      :disabled="!song.idMaxKaraoke"
+                      @click="copyToClipboard(song.idMaxKaraoke, 'idMaxKaraoke')"
+                    >
+                      <img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg" />
+                    </button>
+                    <button class="btn-round" @click="pasteFromClipboard('idMaxKaraoke')">
+                      <img
+                        alt="paste"
+                        class="icon-paste"
+                        src="../../../assets/svg/icon_paste.svg"
+                      />
+                    </button>
+                  </div>
+                  <div class="label-and-input">
+                    <img class="icon-24" alt="song" src="../../../assets/svg/icon_song.svg" />
+                    <button
+                      class="btn-round-wide"
+                      :disabled="!song.idMaxLyrics"
+                      @click="openLinkMaxLyrics"
+                    >
+                      <img
+                        alt="play"
+                        class="icon-play-wide"
+                        src="../../../assets/svg/icon_play.svg"
+                      />
+                    </button>
+                    <button class="btn-round-wide" @click="getMaxLyricsHeader">
+                      <img
+                        alt="head"
+                        class="icon-texthead-wide"
+                        src="../../../assets/svg/icon_head.svg"
+                      />
+                    </button>
+                    <button
+                      class="btn-round"
+                      :disabled="!song.idMaxLyrics"
+                      @click="getLinkMaxLyrics"
+                    >
+                      <img
+                        alt="link"
+                        class="icon-textlink"
+                        src="../../../assets/svg/icon_link.svg"
+                      />
+                    </button>
+                    <input v-model="song.idMaxLyrics" class="input-link-field" />
+                    <input v-model="song.versionMaxLyrics" class="input-field-version" />
+                    <button
+                      class="btn-round"
+                      :disabled="notChanged('idMaxLyrics')"
+                      @click="undoField('idMaxLyrics')"
+                    >
+                      <img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg" />
+                    </button>
+                    <button
+                      class="btn-round"
+                      :disabled="!song.idMaxLyrics"
+                      @click="copyToClipboard(song.idMaxLyrics, 'idMaxLyrics')"
+                    >
+                      <img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg" />
+                    </button>
+                    <button class="btn-round" @click="pasteFromClipboard('idMaxLyrics')">
+                      <img
+                        alt="paste"
+                        class="icon-paste"
+                        src="../../../assets/svg/icon_paste.svg"
+                      />
+                    </button>
+                  </div>
+                  <div class="label-and-input">
+                    <img class="icon-24" alt="demo" src="../../../assets/svg/icon_demo.svg" />
+                    <button
+                      class="btn-round-wide"
+                      :disabled="!song.idMaxDemo"
+                      @click="openLinkMaxDemo"
+                    >
+                      <img
+                        alt="play"
+                        class="icon-play-wide"
+                        src="../../../assets/svg/icon_play.svg"
+                      />
+                    </button>
+                    <button class="btn-round-wide" @click="getMaxDemoHeader">
+                      <img
+                        alt="head"
+                        class="icon-texthead-wide"
+                        src="../../../assets/svg/icon_head.svg"
+                      />
+                    </button>
+                    <button class="btn-round" :disabled="!song.idMaxDemo" @click="getLinkMaxDemo">
+                      <img
+                        alt="link"
+                        class="icon-textlink"
+                        src="../../../assets/svg/icon_link.svg"
+                      />
+                    </button>
+                    <input v-model="song.idMaxDemo" class="input-link-field" />
+                    <input v-model="song.versionMaxDemo" class="input-field-version" />
+                    <button
+                      class="btn-round"
+                      :disabled="notChanged('idMaxDemo')"
+                      @click="undoField('idMaxDemo')"
+                    >
+                      <img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg" />
+                    </button>
+                    <button
+                      class="btn-round"
+                      :disabled="!song.idMaxDemo"
+                      @click="copyToClipboard(song.idMaxDemo, 'idMaxDemo')"
+                    >
+                      <img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg" />
+                    </button>
+                    <button class="btn-round" @click="pasteFromClipboard('idMaxDemo')">
+                      <img
+                        alt="paste"
+                        class="icon-paste"
+                        src="../../../assets/svg/icon_paste.svg"
+                      />
+                    </button>
+                  </div>
+                  <div v-if="showChordsMax" class="label-and-input">
+                    <img class="icon-24" alt="song" src="../../../assets/svg/icon_chords.svg" />
+                    <button
+                      class="btn-round-wide"
+                      :disabled="!song.idMaxChords"
+                      @click="openLinkMaxChords"
+                    >
+                      <img
+                        alt="play"
+                        class="icon-play-wide"
+                        src="../../../assets/svg/icon_play.svg"
+                      />
+                    </button>
+                    <button class="btn-round-wide" @click="getMaxChordsHeader">
+                      <img
+                        alt="head"
+                        class="icon-texthead-wide"
+                        src="../../../assets/svg/icon_head.svg"
+                      />
+                    </button>
+                    <button
+                      class="btn-round"
+                      :disabled="!song.idMaxChords"
+                      @click="getLinkMaxChords"
+                    >
+                      <img
+                        alt="link"
+                        class="icon-textlink"
+                        src="../../../assets/svg/icon_link.svg"
+                      />
+                    </button>
+                    <input v-model="song.idMaxChords" class="input-link-field" />
+                    <input v-model="song.versionMaxChords" class="input-field-version" />
+                    <button
+                      class="btn-round"
+                      :disabled="notChanged('idMaxChords')"
+                      @click="undoField('idMaxChords')"
+                    >
+                      <img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg" />
+                    </button>
+                    <button
+                      class="btn-round"
+                      :disabled="!song.idMaxChords"
+                      @click="copyToClipboard(song.idMaxChords, 'idMaxChords')"
+                    >
+                      <img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg" />
+                    </button>
+                    <button class="btn-round" @click="pasteFromClipboard('idMaxChords')">
+                      <img
+                        alt="paste"
+                        class="icon-paste"
+                        src="../../../assets/svg/icon_paste.svg"
+                      />
+                    </button>
+                  </div>
+                  <div v-if="showMelodyVk" class="label-and-input">
+                    <img class="icon-24" alt="song" src="../../../assets/svg/icon_melody.svg" />
+                    <button
+                      class="btn-round-wide"
+                      :disabled="!song.idMaxMelody"
+                      @click="openLinkMaxTabs"
+                    >
+                      <img
+                        alt="play"
+                        class="icon-play-wide"
+                        src="../../../assets/svg/icon_play.svg"
+                      />
+                    </button>
+                    <button class="btn-round-wide" @click="getMaxTabsHeader">
+                      <img
+                        alt="head"
+                        class="icon-texthead-wide"
+                        src="../../../assets/svg/icon_head.svg"
+                      />
+                    </button>
+                    <button class="btn-round" :disabled="!song.idMaxMelody" @click="getLinkMaxTabs">
+                      <img
+                        alt="link"
+                        class="icon-textlink"
+                        src="../../../assets/svg/icon_link.svg"
+                      />
+                    </button>
+                    <input v-model="song.idMaxMelody" class="input-link-field" />
+                    <input v-model="song.versionMaxMelody" class="input-field-version" />
+                    <button
+                      class="btn-round"
+                      :disabled="notChanged('idMaxMelody')"
+                      @click="undoField('idMaxMelody')"
+                    >
+                      <img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg" />
+                    </button>
+                    <button
+                      class="btn-round"
+                      :disabled="!song.idMaxMelody"
+                      @click="copyToClipboard(song.idMaxMelody, 'idMaxMelody')"
+                    >
+                      <img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg" />
+                    </button>
+                    <button class="btn-round" @click="pasteFromClipboard('idMaxMelody')">
+                      <img
+                        alt="paste"
+                        class="icon-paste"
+                        src="../../../assets/svg/icon_paste.svg"
+                      />
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -2098,6 +2488,7 @@ export default {
       isAssignReviewVisible: false,
       isKaraokeEditorVisible: false,
       karaokeEditorTarget: 'local',
+      activeLinksTab: 'dzen',
       voices: [],
       customConfirmParams: undefined,
       imageAuthorBase64: '',
@@ -4788,6 +5179,45 @@ export default {
   margin: 0 0 0 10px;
   font-family: monospace;
   font-weight: bold;
+}
+
+.links-tabs-widget {
+  margin-top: 10px;
+  width: 500px;
+  border: solid #dee2e6 thin;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.links-tabs-header {
+  display: flex;
+  flex-direction: row;
+  background-color: #f1f3f5;
+  border-bottom: solid #dee2e6 thin;
+}
+
+.links-tab-petal {
+  flex: 1 1 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px 4px;
+  border: none;
+  border-bottom: solid 3px transparent;
+  background-color: transparent;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.links-tab-petal.active {
+  border-bottom-color: #0d6efd;
+  background-color: white;
+  font-weight: bold;
+}
+
+.links-tabs-body {
+  background-color: white;
 }
 
 .links-table {

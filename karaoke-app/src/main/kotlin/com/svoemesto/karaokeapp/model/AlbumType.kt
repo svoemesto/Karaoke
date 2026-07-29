@@ -2,7 +2,7 @@ package com.svoemesto.karaokeapp.model
 
 import java.io.Serializable
 
-// Тип альбома (студийный/концертный/сборник/бутлег). Хранится в tbl_albums.album_type в
+// Тип альбома (студийный/концертный/сборник/бутлег/архив). Хранится в tbl_albums.album_type в
 // lowercase-форме dbValue, по образцу SongType — enum только типобезопасная обёртка над уже
 // сохранённой строкой (не .name/.ordinal), чтобы переименование констант в коде не требовало
 // миграции данных. Значение по умолчанию — STUDIO (dbValue "studio").
@@ -30,6 +30,7 @@ enum class AlbumType(
     COMPILATION(dbValue = "compilation", description = "Сборник", groupLabel = "Сборники", filterLabel = "Сборники"),
     BOOTLEG(dbValue = "bootleg", description = "Бутлег", groupLabel = "Бутлеги", filterLabel = "Бутлеги"),
     SINGLE(dbValue = "single", description = "Сингл", groupLabel = "Синглы", filterLabel = "Синглы"),
+    ARCHIVE(dbValue = "archive", description = "Исторические/архивные записи", groupLabel = "Архивные записи", filterLabel = "Архивные"),
     ;
 
     companion object {
@@ -37,8 +38,8 @@ enum class AlbumType(
 
         /**
          * Порядок группировки/фильтров альбомов на Закромах (FR-024): студийные → синглы →
-         * концертные → сборники → бутлеги — НЕ порядок объявления констант enum выше.
+         * концертные → сборники → бутлеги → архивные — НЕ порядок объявления констант enum выше.
          */
-        val ZAKROMA_GROUP_ORDER: List<AlbumType> = listOf(STUDIO, SINGLE, LIVE, COMPILATION, BOOTLEG)
+        val ZAKROMA_GROUP_ORDER: List<AlbumType> = listOf(STUDIO, SINGLE, LIVE, COMPILATION, BOOTLEG, ARCHIVE)
     }
 }

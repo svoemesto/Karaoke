@@ -52,6 +52,8 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.*
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 import java.util.zip.CRC32
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
@@ -186,6 +188,11 @@ class ApiController(
     private val albumCoverService: AlbumCoverService,
 ) {
     private val lenientJson = Json { ignoreUnknownKeys = true }
+
+    // specs/082-fix-import-folder-oom: ограничивает конкурентность фонового поиска текста песни
+    // (SearXNG) при массовом импорте из папки — без лимита doCreateFromFolder создавал бы
+    // отдельный OS-поток на каждую новую песню без найденного текста одновременно.
+    private val lyricsSearchExecutor: ExecutorService = Executors.newFixedThreadPool(4)
 
     @GetMapping("/diagnostics") // GET запрос на /api/diagnostics
     @ResponseBody
@@ -5206,13 +5213,14 @@ class ApiController(
     fun doCreateFromFolder(
         @RequestParam(required = true) folder: String,
     ) {
-        val createdList =
+        val importResult =
             Song.createFromPath(
                 folder,
                 database = WORKING_DATABASE,
                 storageService = storageService,
                 storageApiClient = storageApiClient,
             )
+        val createdList = importResult.addedSongs
         createdList.forEach { newSettings ->
             try {
                 var textResolved = false
@@ -5279,8 +5287,10 @@ class ApiController(
 
                 // Фоновый интернет-поиск текста (SearXNG) - только если текст так и не был получен ни одним
                 // из предыдущих способов (заодно исключает гонку нескольких фоновых потоков над одним newSettings).
+                // Через ограниченный по конкурентности lyricsSearchExecutor (не kotlin.concurrent.thread) -
+                // на массовом импорте не должно запускаться по одному потоку на каждую песню без текста.
                 if (!textResolved) {
-                    thread(start = true) {
+                    lyricsSearchExecutor.submit {
                         try {
                             getLyricsSearch(
                                 settings = newSettings,
@@ -5311,12 +5321,13 @@ class ApiController(
             }
         }
         val result = createdList.size
+        val skipped = importResult.skippedFilesCount
         SNS.send(
             SseNotification.message(
                 Message(
                     type = "info",
                     head = "Добавление файлов из папки",
-                    body = "Добавлено файлов из папки «$folder»: $result",
+                    body = "Добавлено файлов из папки «$folder»: $result (пропущено: $skipped)",
                 ),
             ),
         )

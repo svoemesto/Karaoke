@@ -4,8 +4,10 @@
 # Абсолютные пути ниже намеренные: этот файл должен работать одинаково независимо
 # от того, из какой директории его подключают.
 
-SILERO_PY="~/.venvs/karaoke-tts/bin/python"
-SILERO_SCRIPT="~/Karaoke/deploy/tts/silero_say.py"
+# tilde-раскрытие НЕ работает в присваивании в кавычках ("~/..." остаётся литералом),
+# поэтому только $HOME (PR #084, см. AGENTS.md).
+SILERO_PY="$HOME/.venvs/karaoke-tts/bin/python"
+SILERO_SCRIPT="$HOME/Karaoke/deploy/tts/silero_say.py"
 
 function announce() {
   local notify_text="$1"

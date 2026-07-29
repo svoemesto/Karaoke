@@ -2,37 +2,41 @@
 
 clear
 
+# set -a включается ТОЛЬКО на время загрузки секретов из do.env — иначе утекают
+# в env gradle/docker локальные переменные (BL_FD, BL_PENDING, DATABASE, …).
+# PR #084: см. AGENTS.md, раздел «Ограничения агента» → «set -a без set +a».
 set -a
-
 echo "Starting do.sh"
 
 DEPLOY_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null && pwd)"
-BASE_DIR="$(cd ${DEPLOY_DIR} && cd .. && pwd)"
+BASE_DIR="$(cd "${DEPLOY_DIR}" && cd .. && pwd)"
 GRADLE="$BASE_DIR/gradlew --no-daemon"
 APP_VERSION="$(cd $BASE_DIR && $GRADLE | grep KaraokeVersion | awk '/':'/{print $2}')"
 DOCKER=$(which docker)
 COMPOSE=$(which docker-compose)
 
+# .version — абсолютный путь: do.sh может запускаться не из deploy/ (PR #084).
 if [[ -z "${BUILD_VERSION}" ]]; then
-  BUILD_VERSION="$(touch .version && cat .version)"
+  BUILD_VERSION="$(touch "${DEPLOY_DIR}/.version" && cat "${DEPLOY_DIR}/.version")"
   if [[ -z "${BUILD_VERSION}" ]]; then
-    echo "${APP_VERSION}" >.version
+    echo "${APP_VERSION}" >"${DEPLOY_DIR}/.version"
   fi
 else
-  echo "${BUILD_VERSION}" >.version
+  echo "${BUILD_VERSION}" >"${DEPLOY_DIR}/.version"
 fi
 
-source ${DEPLOY_DIR}/do.env
+source "${DEPLOY_DIR}/do.env"
+set +a
 
 # GPU-override для karaoke-app подключается только при ENABLE_APP_GPU=1 (см. do.env и
 # docker-compose-app.gpu.yml) — на dev-машинах без nvidia passthrough держите его в 0.
 APP_GPU_COMPOSE_FILE=""
 if [[ "${ENABLE_APP_GPU:-1}" == "1" ]]; then
-  APP_GPU_COMPOSE_FILE="-f $DEPLOY_DIR/docker-compose-app.gpu.yml"
+  APP_GPU_COMPOSE_FILE="-f ${DEPLOY_DIR}/docker-compose-app.gpu.yml"
 fi
 
 # Очередь/взаимное исключение gradle-сборок (см. build-lock.sh)
-source ${DEPLOY_DIR}/build-lock.sh
+source "${DEPLOY_DIR}/build-lock.sh"
 # Флаг форса: FORCE=1 в окружении или --force среди аргументов do.sh
 case " $* " in *" --force "*) FORCE=1 ;; esac
 
@@ -121,7 +125,7 @@ function do_build_app() {
   [ "$rc" = 10 ] && return 0
   echo "Building APP module"
   cd ${BASE_DIR} && ${GRADLE} clean karaoke-app:bootJar
-  cp $DEPLOY_DIR/karaoke-app/files/* ~/Karaoke/karaoke-app/build/libs
+  cp $DEPLOY_DIR/karaoke-app/files/* "${BASE_DIR}/karaoke-app/build/libs/"
   ${DOCKER} image build $BASE_DIR/karaoke-app/build/libs/ \
    --build-arg VERSION=${BUILD_VERSION} \
    --build-arg APP_VERSION=${APP_VERSION} \
@@ -138,7 +142,7 @@ function do_build_app_nocache() {
   [ "$rc" = 10 ] && return 0
   echo "Building APP module"
   cd ${BASE_DIR} && ${GRADLE} clean karaoke-app:bootJar
-  cp $DEPLOY_DIR/karaoke-app/files/* ~/Karaoke/karaoke-app/build/libs
+  cp $DEPLOY_DIR/karaoke-app/files/* "${BASE_DIR}/karaoke-app/build/libs/"
   ${DOCKER} image build --no-cache $BASE_DIR/karaoke-app/build/libs/ \
    --build-arg VERSION=${BUILD_VERSION} \
    --build-arg APP_VERSION=${APP_VERSION} \
@@ -296,42 +300,42 @@ function do_push_app() {
   echo "Pushing APP"
   ${DOCKER} login --username ${DOCKER_REGISTRY} --password ${DOCKER_PASSWORD}
   ${DOCKER} image push "$DOCKER_REGISTRY/karaoke-app:${BUILD_VERSION}"
-  announce "Pushing APP!"
+  announce "П+ушинг апп"
 }
 
 function do_push_demucs() {
   echo "Pushing DEMUCS"
   ${DOCKER} login --username ${DOCKER_REGISTRY} --password ${DOCKER_PASSWORD}
   ${DOCKER} image push "$DOCKER_REGISTRY/demucs:latest"
-  announce "Pushing DEMUCS!"
+  announce "П+ушинг дем+укс"
 }
 
 function do_push_web() {
   echo "Pushing WEB"
   ${DOCKER} login --username ${DOCKER_REGISTRY} --password ${DOCKER_PASSWORD}
   ${DOCKER} image push "$DOCKER_REGISTRY/karaoke-web:${BUILD_VERSION}"
-  announce "Pushing WEB!"
+  announce "П+ушинг веб"
 }
 
 function do_push_webvue() {
   echo "Pushing WEBVUE"
   ${DOCKER} login --username ${DOCKER_REGISTRY} --password ${DOCKER_PASSWORD}
   ${DOCKER} image push "$DOCKER_REGISTRY/karaoke-webvue:${BUILD_VERSION}"
-  announce "Pushing WEBVUE!"
+  announce "П+ушинг вебвь+ю"
 }
 
 function do_push_webvue3() {
   echo "Pushing WEBVUE3"
   ${DOCKER} login --username ${DOCKER_REGISTRY} --password ${DOCKER_PASSWORD}
   ${DOCKER} image push "$DOCKER_REGISTRY/karaoke-webvue3:${BUILD_VERSION}"
-  announce "Pushing WEBVUE3!"
+  announce "П+ушинг вебвь+ю"
 }
 
 function do_push_public() {
   echo "Pushing PUBLIC"
   ${DOCKER} login --username ${DOCKER_REGISTRY} --password ${DOCKER_PASSWORD}
   ${DOCKER} image push "$DOCKER_REGISTRY/karaoke-public:${BUILD_VERSION}"
-  announce "Pushing PUBLIC!"
+  announce "П+ушинг п+аблик"
 }
 
 function do_pull() {

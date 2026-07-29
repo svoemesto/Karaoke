@@ -132,6 +132,7 @@ const ALBUM_TYPE_LABEL_OPTIONS = [
   { value: 'bootleg', label: 'Бутлег' },
   { value: 'single', label: 'Сингл' },
   { value: 'archive', label: 'Архивный' },
+  { value: 'tribute', label: 'Трибьют/Кавер' },
 ]
 
 /**

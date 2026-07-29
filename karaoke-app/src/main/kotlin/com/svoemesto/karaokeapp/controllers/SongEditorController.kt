@@ -350,9 +350,12 @@ class SongEditorController(
                     settings.truncateVoicesTo(markersPerVoice.size)
                 }
 
-                // Сделать песню доступной в онлайн-плеере (idStatus>=3).
-                if (settings.idStatus < 3) {
-                    settings.fields[SongField.ID_STATUS] = "3"
+                // Сделать песню доступной в онлайн-плеере (idStatus>=6). Апрув админом присланной
+                // разметки — явное ручное подтверждение (не автоматика, FR-011 не применяется),
+                // поэтому статус выставляется сразу в терминальное значение 6 (READY), а не на 1 шаг
+                // вперёд (specs/022-song-status-lifecycle).
+                if (settings.idStatus < 6) {
+                    settings.fields[SongField.ID_STATUS] = "6"
                     settings.saveToDb()
                 }
 

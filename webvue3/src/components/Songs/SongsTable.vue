@@ -220,7 +220,7 @@
         <template #cell(player)="data">
           <div class="fld-player" :style="{ backgroundColor: data.item.color }">
             <a
-              v-if="data.item.idStatus >= 3"
+              v-if="data.item.idStatus >= 6"
               href="#"
               class="player-icon-link"
               title="Открыть онлайн-плеер"
@@ -237,7 +237,7 @@
                 <path d="M8 6.5v7l6-3.5-6-3.5Z" fill="#fff" />
               </svg>
             </a>
-            <span v-else class="player-icon-disabled" title="Плеер недоступен (статус < 3)">
+            <span v-else class="player-icon-disabled" title="Плеер недоступен (статус < 6)">
               <svg
                 width="18"
                 height="18"
@@ -254,7 +254,7 @@
         <template #cell(playerDemo)="data">
           <div class="fld-player" :style="{ backgroundColor: data.item.color }">
             <a
-              v-if="data.item.idStatus >= 3"
+              v-if="data.item.idStatus >= 6"
               href="#"
               class="player-icon-link"
               title="Открыть DEMO-плеер"
@@ -271,7 +271,7 @@
                 <path d="M8 6.5v7l6-3.5-6-3.5Z" fill="#fff" />
               </svg>
             </a>
-            <span v-else class="player-icon-disabled" title="DEMO-плеер недоступен (статус < 3)">
+            <span v-else class="player-icon-disabled" title="DEMO-плеер недоступен (статус < 6)">
               <svg
                 width="18"
                 height="18"
@@ -287,7 +287,7 @@
         </template>
         <template #cell(assign)="data">
           <div class="fld-assign" :style="{ backgroundColor: data.item.color }" @click.stop>
-            <template v-if="data.item.idStatus < 3">
+            <template v-if="data.item.idStatus < 6">
               <button
                 v-if="assignmentStatusFor(data.item.id)"
                 class="assign-badge"

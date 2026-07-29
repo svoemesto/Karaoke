@@ -405,12 +405,6 @@ class KaraokeProcess(
                     KaraokeProcessTypes.MELT_LYRICS.name -> {
                         if (settings.statusProcessLyrics != status) {
                             settings.statusProcessLyrics = status
-                            if (settings.statusProcessLyrics == KaraokeProcessStatuses.DONE.name &&
-                                settings.statusProcessKaraoke == KaraokeProcessStatuses.DONE.name &&
-                                settings.idStatus == 4L
-                            ) {
-                                settings.fields[SongField.ID_STATUS] = "6"
-                            }
                             settings.saveToDb()
                         }
                     }
@@ -418,12 +412,6 @@ class KaraokeProcess(
                     KaraokeProcessTypes.MELT_KARAOKE.name -> {
                         if (settings.statusProcessKaraoke != status) {
                             settings.statusProcessKaraoke = status
-                            if (settings.statusProcessLyrics == KaraokeProcessStatuses.DONE.name &&
-                                settings.statusProcessKaraoke == KaraokeProcessStatuses.DONE.name &&
-                                settings.idStatus == 4L
-                            ) {
-                                settings.fields[SongField.ID_STATUS] = "6"
-                            }
                             settings.saveToDb()
                         }
                     }

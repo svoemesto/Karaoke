@@ -33,7 +33,7 @@ class Zakroma(
             onlyPublished: Boolean = false,
         ): List<Zakroma> {
             val args = mutableMapOf("author" to author)
-            if (onlyPublished) args["id_status"] = ">=3"
+            if (onlyPublished) args["id_status"] = ">=6"
             val listSettings =
                 Song.loadListFromDb(
                     args = args,
@@ -53,7 +53,7 @@ class Zakroma(
          * с `is_special_order=true` один раз, затем все их песни одним запросом через
          * уже существующий `author_in`-фильтр [Song.getWhereList].
          *
-         * @param onlyPublished при true — только песни со статусом готовности >= 3, см.
+         * @param onlyPublished при true — только песни со статусом готовности >= 6, см.
          * [getZakroma].
          * @see docs/features/special-orders.md
          */
@@ -71,7 +71,7 @@ class Zakroma(
                 )
             if (names.isEmpty()) return emptyList()
             val args = mutableMapOf("author_in" to names.joinToString(Song.AUTHOR_IN_DELIMITER))
-            if (onlyPublished) args["id_status"] = ">=3"
+            if (onlyPublished) args["id_status"] = ">=6"
             val listSettings =
                 Song.loadListFromDb(
                     args = args,

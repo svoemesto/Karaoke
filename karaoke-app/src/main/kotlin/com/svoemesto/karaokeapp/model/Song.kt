@@ -362,10 +362,10 @@ class Song(
             0L -> "NONE"
             1L -> "TEXT_CREATE"
             2L -> "TEXT_CHECK"
-            3L -> "PROJECT_CREATE"
-            4L -> "PROJECT_CHECK"
-            5L -> "RENDERING"
-            6L -> "DONE"
+            3L -> "TEXT_WORDS_VERIFIED"
+            4L -> "MARKERS_CREATED"
+            5L -> "MARKERS_VERIFIED"
+            6L -> "READY"
             else -> "N/A"
         }
     }
@@ -4983,12 +4983,12 @@ class Song(
 //            println("diff = $diff")
             if (diff.isEmpty()) return
 
-            // Порог показа песни в публичном плеере (см. PublicPlayerController.stemsReady: idStatus>=3
-            // + флаги готовности). Если статус меняют напрямую (правка в таблице/редакторе, апрув
-            // маркеров, авто-подстановка по audio-parent) - персистентные флаги (см.
-            // deploy/karaoke-db/26_player_readiness_flags.sql) без этого пересчёта остаются дефолтным
-            // {} до отдельного прогона health-репорта/recalcplayerreadiness.
-            val crossedReadyThreshold = savedSettings != null && savedSettings.idStatus < 3L && this.idStatus >= 3L
+            // Порог показа песни в публичном плеере (см. PublicPlayerController.stemsReady: idStatus>=6
+            // + флаги готовности, specs/022-song-status-lifecycle). Если статус меняют напрямую (правка
+            // в таблице/редакторе, апрув маркеров, авто-подстановка по audio-parent) - персистентные
+            // флаги (см. deploy/karaoke-db/26_player_readiness_flags.sql) без этого пересчёта остаются
+            // дефолтным {} до отдельного прогона health-репорта/recalcplayerreadiness.
+            val crossedReadyThreshold = savedSettings != null && savedSettings.idStatus < 6L && this.idStatus >= 6L
 
             val messageRecordChange =
                 SseNotification.recordChange(
@@ -5414,9 +5414,6 @@ class Song(
 //        if (createChordsVk) createKaraoke(this, SongVersion.CHORDSVK)
 //        if (createMelodyVk) createKaraoke(this, SongVersion.TABSVK)
 
-        if (idStatus < 3) {
-            fields[SongField.ID_STATUS] = "3"
-        }
         fields[SongField.RESULT_VERSION] = CURRENT_RESULT_VERSION.toString()
         saveToDb()
     }
@@ -6798,7 +6795,7 @@ class Song(
 
         // Количество песен в базе по каждому автору (song_author -> count). Один запрос с GROUP BY.
         //
-        // @param onlyPublished при true считает только песни со статусом готовности >= 3 (то же
+        // @param onlyPublished при true считает только песни со статусом готовности >= 6 (то же
         // определение «в коллекции», что и в [Zakroma.getZakroma]) — используется для подписи
         // плашки автора в закромах на проде, чтобы счётчик не включал ещё не готовые песни.
         fun loadAuthorSongCounts(
@@ -6821,7 +6818,7 @@ class Song(
                     false -> where += "song_author in (select author from tbl_authors where is_special_order = false)"
                     null -> {}
                 }
-                if (onlyPublished) where += "id_status >= 3"
+                if (onlyPublished) where += "id_status >= 6"
                 val whereClause = if (where.isNotEmpty()) "where ${where.joinToString(" AND ")}" else ""
                 val sql = "select song_author, count(*) as cnt from tbl_songs $whereClause group by song_author"
                 rs = statement.executeQuery(sql)

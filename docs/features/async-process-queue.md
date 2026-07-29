@@ -29,11 +29,16 @@
 2. **Приоритет** — числовое поле, чем меньше, тем выше приоритет.
 3. **Thread-лейн** — `threadId` группирует задания в независимые
    последовательные очереди:
-   - `THREAD_LANE_HEAVY_RENDER=0` — MLT/melt-рендер (тяжёлый, CPU).
+   - `THREAD_LANE_HEAVY_RENDER=0` — MLT/melt-рендер, ручной запуск
+     `DEMUCS*`/`SHEETSAGE` (тяжёлые задачи, нельзя гнать параллельно).
    - `THREAD_LANE_LIGHT_BACKGROUND=-1` — копирование, symlink, мелочи.
    - `THREAD_LANE_REMOTE_STORE_UPLOAD=-2` — загрузка в MinIO.
-   - `THREAD_LANE_STEM_JOBS=-3` — премиум-стемы (отдельный лейн, чтобы
-     не забивать рендер).
+   - `THREAD_LANE_HEALTH_REPORT=1` — каскад автоисправления `HealthReport`
+     (кортеж задач одной песни: демукс → mp3 музыки/голоса → загрузка в
+     локальное/удалённое хранилище, см. инвариант ниже).
+   - `THREAD_LANE_STEM_JOBS=2` — премиум-фича «Создать минусовку» (StemJob,
+     отдельный лейн, чтобы не блокировать и не блокироваться обычным
+     пайплайном выпуска песен).
 4. **Worker** — `KaraokeProcessWorker` берёт задание из очереди,
    создаёт `KaraokeProcessThread` (subprocess через `ProcessBuilder`),
    парсит stdout регексами (ffmpeg `time=`/`Duration:`, Sheetsage `NN%|`)
@@ -89,6 +94,33 @@
     гарантированно сбрасывается в `false` (safety-net `try/catch/finally` в
     `start()`) — иначе очередь выглядела бы «работающей» в UI/мониторинге,
     но фактически была бы мертва.
+- **MUST**: кортеж заданий одной песни, добавленной через «Добавить файлы
+  из папки» (демукс → создание mp3 музыки/голоса → загрузка в локальное
+  хранилище → загрузка в удалённое хранилище), ДОЛЖЕН целиком оставаться
+  в `THREAD_LANE_HEALTH_REPORT` (specs/082-fix-import-folder-oom). Первый
+  шаг (`DEMUCS2`) ставится в этот лейн явно в `Song.createFromPath`;
+  остальные шаги (`FF_MP3_ACCOMPANIMENT`/`FF_MP3_VOCAL`,
+  `UPLOAD_TO_LOCAL_STORE`/`UPLOAD_TO_REMOTE_STORE`) наследуют этот лейн по
+  умолчанию через каскад `HealthReport.startRepairAll`/`onRepairProcessFinished`
+  (`HealthReport.actionsLocalFileSystem`, дефолт `threadId = THREAD_LANE_HEALTH_REPORT`,
+  либо наследование от уже запущенного «родителя» того же кортежа — никогда
+  не от постороннего лейна).
+  - **Исключение — `KEY_BPM_FROM_FILE` НЕ входит в этот кортеж.** При
+    импорте он намеренно ставится в `THREAD_LANE_STEM_JOBS` (см. комментарий
+    в `Song.createFromPath` рядом с его постановкой) — определение key/BPM
+    ни от чего в кортеже не зависит и ничего в кортеже от него не зависит,
+    поэтому не должно занимать слот в лейне кортежа. Расхождение лейнов
+    `KEY_BPM_FROM_FILE` (2) и `DEMUCS2` (1) в одной и той же функции —
+    это осознанное решение, а не баг рассогласования (см. `research.md`,
+    Находка C в specs/082-fix-import-folder-oom).
+  - **Не путать N одинаковых строк `tbl_processes` с задвоением.** Один
+    логический тип задания (`process_type`) может представлять собой
+    многошаговый shell-пайплайн (`Song.args*()`, например `argsDemucs2()`/
+    `argsKeyBpmFinder()`) — `KaraokeProcess.separate()` разбивает такой
+    пайплайн на N отдельных строк `tbl_processes` (по одной на команду) для
+    пошагового отслеживания прогресса; все дочерние строки наследуют
+    `threadId` родителя. N строк с одинаковым `settings_id`+`process_type`+
+    `thread_id` — это штатное поведение, не дублирование.
 - **SHOULD**: каждое задание с CPU-нагрузкой > 30 секунд идёт в
   `THREAD_LANE_HEAVY_RENDER`, чтобы не блокировать лёгкие задачи.
 - **SHOULD**: регулирование `MLT_CPU_LIMIT` (env-переменная для
@@ -125,4 +157,6 @@
 - [`KaraokeProcessTypes.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcessTypes.kt) — enum типов
 - [`KaraokeProcessStatuses.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcessStatuses.kt) — enum статусов
 - [`KaraokeProcessWorker.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcessWorker.kt) — главный воркер (`class KaraokeProcessWorker`) и обёртка subprocess (`class KaraokeProcessThread`, объявлен в том же файле)
+- [`HealthReport.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/HealthReport.kt) — каскад автоисправления (`startRepairAll`/`onRepairProcessFinished`), формирует кортеж заданий одной песни
+- [`Song.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt) — `createFromPath` (постановка первых шагов кортежа при импорте из папки), `args*()` (шаги shell-пайплайнов для `KaraokeProcess.separate()`)
 - [`tbl_processes` (`01_initdb.sql`)](../../deploy/karaoke-db/01_initdb.sql) — таблица заданий

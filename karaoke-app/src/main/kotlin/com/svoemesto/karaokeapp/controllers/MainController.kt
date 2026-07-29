@@ -98,7 +98,7 @@ class MainController(
                 database = WORKING_DATABASE,
                 storageService = storageService,
                 storageApiClient = storageApiClient,
-            ).size
+            ).addedSongs.size
 
     @PostMapping("/utils/createdzenpicturesforfolder")
     @ResponseBody

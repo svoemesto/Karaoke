@@ -378,7 +378,12 @@ export default {
       if (!this.canEditCover(item)) return
       this.prevCurrentSongId = this.$store.getters.getCurrentSongId
       this.currentAlbumCoverAlbumId = item.id
-      this.isBusy = true
+      // Намеренно НЕ выставляем this.isBusy = true: модалка открывается поверх таблицы,
+      // и показ спиннера на BTable во время getFirstSongIdByAlbumIdPromise +
+      // setCurrentSongId визуально неотличим от реальной перезагрузки дайджеста
+      // альбомов (хотя albumsDigest не перезапрашивается). Спиннер на таблице
+      // оставлен только для РЕАЛЬНОЙ загрузки albumsDigest (watcher на
+      // albumsDigestIsLoading, строки 324-329).
       try {
         const firstSongId = await this.$store.dispatch('getFirstSongIdByAlbumIdPromise', item.id)
         if (!firstSongId) {
@@ -394,8 +399,6 @@ export default {
       } catch (e) {
         console.error('Ошибка при открытии модалки обложки альбома', item.id, e)
         this.currentAlbumCoverAlbumId = null
-      } finally {
-        this.isBusy = false
       }
     },
     closeAlbumCoverModal() {

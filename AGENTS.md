@@ -12,8 +12,8 @@
 > **Если вы ведёте разработку с другим AI-агентом** и он понимает
 > `AGENTS.md` — этого файла достаточно. Если нет — см. ссылки выше.
 
-> **Версия файла**: 1.5.0
-> **Last updated**: 2026-07-27 (Pass 28, новый Q&A про потерю маркеров на reopen в `SubsEdit.vue`, см. PR #016)
+> **Версия файла**: 1.5.1
+> **Last updated**: 2026-07-29 (Pass 33, правило CI-gate для master: никаких прямых пушей в master без прогона CI 7/7)
 > **Ответственный**: opencode-агент
 > **Как обновлять**: см. секцию «Как обновлять этот файл» в конце.
 
@@ -309,6 +309,43 @@ Root `pom.xml` — leftover от Maven, не использовать. Прое�
 ## Git
 
 Не коммитить: `deploy/ollama_data/`, `dist/`, `node_modules/`, `deploy/.env`, `deploy/do.env`. Всегда проверять `git status` перед `git add`.
+
+### CI-gate для master (NON-NEGOTIABLE)
+
+**Прямые пуши в `master` ЗАПРЕЩЕНЫ без прогона CI 7/7 SUCCESS.** Любые
+изменения в коде, документации, спеках, per-feature-документах,
+`AGENTS.md`, `constitution.md` и т.п. — только через:
+
+1. Feature-ветка (`NNN-slug`, см. ниже).
+2. `git push -u origin NNN-slug`.
+3. `gh pr create --base master` (PR триггерит GitHub Actions workflow `lint.yml`
+   с 7 проверками: ktlint, ESLint webvue3, ESLint karaoke-public, Docs,
+   Baseline, KDoc, JSDoc).
+4. **Дождаться CI 7/7 SUCCESS** (см. `gh pr checks` или `gh run watch`).
+5. Только после зелёного CI: `gh pr merge --merge --delete-branch`.
+6. Опционально — отдельный `gh workflow run lint.yml --ref master` для
+   повторной валидации уже-merged master (полезно, если workflow на
+   push в master не сработал по какой-то причине).
+
+**Зачем.** Без CI-gate регрессия вроде «общий класс `.preview-image`
+нечаянно затронул колонку `(автор)`» (Pass 31, 2026-07-29) попадает
+в master без проверки. CI ловит линтинг, покрытие, structure — то,
+что сложно заметить глазами в PR. История с ложным `isBusy` на
+таблице (Pass 32) тоже была бы поймана ревьюером, если бы PR
+существовал и был внятный diff для ревью.
+
+**Исключения для документации-only изменений:** правка `docs/architecture-notes.md`
+(добавление записи о PR в конец файла) допускается как **отдельный коммит
+напрямую в master** (не feature-ветка) — при условии, что PR с основным
+изменением кода уже смержен и CI для него был зелёный. Это нужно,
+чтобы changelog-строка попала в тот же merge-commit, что и описание
+PR, а не «догоняла» отдельным merge. Все остальные изменения — только
+через feature-ветку + PR + CI 7/7.
+
+**Самопроверка перед коммитом:** `git log -1 master` — последний commit
+на master должен быть merge-коммитом (`Merge pull request #NNN from
+svoemesto/...`) от PR с зелёным CI, а НЕ одиночный коммит напрямую
+в master. Если это одиночный коммит — push не делать, создать PR.
 
 ### Нумерация feature-веток (NNN-slug)
 

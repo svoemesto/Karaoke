@@ -95,6 +95,32 @@ function setPlaylistIds(id, ids) {
   ensureEntry(id).playlistIds = ids
 }
 
+// Синхронизация «Избранного» между вкладками/окнами/iframe одного origin: плеер открывается
+// window.open()'ом в новой вкладке (playerLauncher.js) либо встроен iframe'ом (SongView.vue,
+// PlaylistEditView.vue) — в каждом случае это отдельный JS-контекст со своим синглтоном
+// usePlaylistMembership, sessionStorage/reactive-состояние между ними не расшарено. BroadcastChannel
+// рассылает изменение всем ДРУГИМ same-origin контекстам (по спеке — не возвращается отправителю,
+// зацикливания нет); localStorage 'storage'-событие сюда не подходит так же просто, т.к. не
+// добавляет ничего сверх BroadcastChannel и требует ручной сериализации. Старые браузеры без
+// BroadcastChannel — тихий no-op (страница просто ведёт себя как раньше, до этого фикса).
+const favoritesChannel =
+  typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('km-favorites') : null
+if (favoritesChannel) {
+  favoritesChannel.onmessage = (e) => {
+    const { songId, favorited } = e.data || {}
+    if (songId != null) setFavorited(songId, !!favorited)
+  }
+}
+
+// То же, что setFavorited(), но дополнительно рассылает изменение в другие вкладки/iframe.
+// Вызывать из места, где толчок к изменению — реальное действие пользователя (клик по иконке),
+// а не применение уже пришедшего откуда-то состояния (load(), входящий broadcast) — иначе будет
+// эхо между контекстами (не бесконечный цикл, BroadcastChannel не шлёт себе, но лишний трафик).
+function broadcastFavorited(id, val) {
+  setFavorited(id, val)
+  favoritesChannel?.postMessage({ songId: String(id), favorited: val })
+}
+
 async function loadPlaylists(force = false) {
   const { token } = useAuth()
   if (!token.value) {
@@ -119,6 +145,7 @@ export function usePlaylistMembership() {
     load,
     loadPlaylists,
     setFavorited,
+    broadcastFavorited,
     setPlaylistIds,
   }
 }

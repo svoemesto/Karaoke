@@ -39,7 +39,7 @@ export default {
     const router = useRouter()
     const route = useRoute()
     const { token } = useAuth()
-    const { favStateFor, setFavorited } = usePlaylistMembership()
+    const { favStateFor, broadcastFavorited } = usePlaylistMembership()
     const { openLimit } = usePremiumModal()
     const busy = ref(false)
 
@@ -59,7 +59,7 @@ export default {
           if (body.limitReached) {
             openLimit({ limit: body.limit, benefits: body.benefits })
           } else {
-            setFavorited(props.songId, !!body.favorited)
+            broadcastFavorited(props.songId, !!body.favorited)
           }
         }
       } finally {

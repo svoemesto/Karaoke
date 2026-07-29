@@ -11,6 +11,13 @@
       overflow: hidden;
     "
   />
+  <!-- Вне container: KaraokePlayer._buildUI() заменяет container.innerHTML целиком, что снесло бы
+       Vue-смонтированный дочерний узел. Сайблинг переживает переинициализацию; исключение —
+       нативный fullscreen (браузер рендерит только потомков document.fullscreenElement, а им
+       становится container, см. KaraokePlayer._toggleFullscreen) — иконка на это время скрыта. -->
+  <div v-if="currentSongId" class="kp-favorite-overlay">
+    <FavoriteIcon :song-id="currentSongId" />
+  </div>
 </template>
 
 <script setup>
@@ -37,12 +44,19 @@ import { onMounted, onBeforeUnmount, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import KaraokePlayer from '../player/KaraokePlayer.js'
 import { useAuth } from '../composables/useAuth'
+import FavoriteIcon from '../components/FavoriteIcon.vue'
+import { usePlaylistMembership } from '../composables/usePlaylistMembership'
 
 const route = useRoute()
 const router = useRouter()
 const container = ref(null)
 let player = null
 const { token: authToken } = useAuth()
+const playlistMembership = usePlaylistMembership()
+// QW-11: «В избранное» прямо из плеера. Отдельный реактивный id (не route.params.id напрямую) —
+// в режиме плейлиста (isPlaylist) трек внутри одного и того же PlayerView сменяется через
+// postMessage/playPos() без навигации, route.params.id при этом не меняется.
+const currentSongId = ref(route.params.id)
 
 // --- Режим плейлиста ---------------------------------------------------------------------------
 // Когда /player/:id открыт с ?pl=1 (в iframe на странице редактора плейлиста), плеер сам ведёт
@@ -84,6 +98,8 @@ async function playPos(p) {
   if (p < 0 || p >= queue.length) return
   pos = p
   const songId = queue[pos]
+  currentSongId.value = songId
+  playlistMembership.load([songId])
   const token = await requestToken(songId)
   if (!token) {
     advanceAfterEnd()
@@ -170,6 +186,8 @@ onMounted(() => {
     pos = queue.findIndex((sid) => String(sid) === String(songId))
     if (pos < 0) pos = 0
     tokenCache[queue[pos]] = token
+    currentSongId.value = queue[pos]
+    playlistMembership.load([queue[pos]])
     window.addEventListener('message', onParentMessage)
 
     player = new KaraokePlayer(
@@ -188,6 +206,8 @@ onMounted(() => {
     return
   }
 
+  playlistMembership.load([songId])
+
   // authToken (km_auth_token) шлётся, чтобы бэкенд определил живой премиум-статус для canExport
   // в playerdata — иначе пункт «Экспорт аудио...» не появится даже у залогиненного премиума.
   player = new KaraokePlayer(container.value, songId, '/api/public/player', token, authToken.value)
@@ -199,3 +219,17 @@ onBeforeUnmount(() => {
   player?.destroy()
 })
 </script>
+
+<style scoped>
+.kp-favorite-overlay {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  z-index: 20;
+  background: rgba(17, 17, 17, 0.7);
+  border: 1px solid #444;
+  border-radius: 6px;
+  padding: 4px 8px;
+  line-height: 0;
+}
+</style>

@@ -14,7 +14,7 @@ import java.util.concurrent.atomic.AtomicInteger
 //
 // Формулы счётчиков (применяется ко всем — песни с тегом SKIP игнорируются):
 //   total       — все записи tbl_songs, кроме SKIP
-//   collection  — id_status >= 3 AND непустой source_markers (можно проиграть в онлайн-плеере
+//   collection  — id_status >= 6 AND непустой source_markers (можно проиграть в онлайн-плеере
 //                 премиум-пользователю — тот же фильтр, что рисует зелёную монетку в закромах)
 //   onAir       — подмножество collection с истёкшим publish_date/publish_time
 //   subscription— collection − onAir (на бэкенде, одним SQL)
@@ -42,12 +42,13 @@ object StatBySong {
     private const val SKIP_FILTER = "(tags IS NULL OR NOT ('SKIP' = ANY(string_to_array(upper(coalesce(tags,'')), ' '))))"
 
     // Фильтр «можно проиграть в онлайн-плеере премиум-пользователю»: нижняя граница готовности
-    // контента — id_status дошёл до PROJECT_CREATE, и есть непустые source_markers (markers —
-    // последний из трёх шагов stemsReady в PublicPlayerController.stemsReady: id_status>=3,
-    // mp3 accompaniment+vocal в MinIO, source_markers есть; SQL-фильтр ниже берёт самый
-    // последний/стабильный из этих сигналов — наличие маркеров).
+    // контента — id_status дошёл до READY (6, specs/022-song-status-lifecycle), и есть непустые
+    // source_markers (markers — последний из трёх шагов stemsReady в
+    // PublicPlayerController.stemsReady: id_status>=6, mp3 accompaniment+vocal в MinIO,
+    // source_markers есть; SQL-фильтр ниже берёт самый последний/стабильный из этих сигналов —
+    // наличие маркеров).
     private const val CONTENT_READY_FILTER =
-        "id_status >= 3 AND btrim(coalesce(source_markers, '')) != ''"
+        "id_status >= 6 AND btrim(coalesce(source_markers, '')) != ''"
 
     fun getCountSongsExclusive(database: KaraokeConnection = WORKING_DATABASE): Int =
         cachedExclusive.get().also { ensureCacheInitialized(database) }

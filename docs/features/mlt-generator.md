@@ -2,7 +2,7 @@
 
 > **Status**: active
 > **Feature Key**: mlt-generator
-> **Last Updated**: 2026-07-26 (specs/011-album-song-rename: `Settings`→`Song`)
+> **Last Updated**: 2026-07-29 (specs/022-song-status-lifecycle: `createKaraoke()`/`MELT_LYRICS`/`MELT_KARAOKE` больше не трогают `id_status`)
 
 ## Что делает
 
@@ -52,6 +52,13 @@ Karaoke-видео — это не просто видео со звуком и 
 - **SHOULD**: `KaraokeProperties` — единственное место для глобальных
   параметров рендера. Локальные переопределения — через `Song` (если
   нужно) или hardcode с комментарием «// intentional:».
+- **MUST**: рендер видео для соцплатформ (`Song.createKaraoke()`, задания
+  `MELT_LYRICS`/`MELT_KARAOKE` в `KaraokeProcess.updateStatusProcessSettings`)
+  НЕ читает и НЕ пишет `Song.idStatus` — этот пайплайн полностью независим от
+  жизненного цикла готовности контента для онлайн-плеера (см.
+  specs/022-song-status-lifecycle). До 2026-07-29 здесь был побочный эффект,
+  переиспользовавший числа 3/4/6 `idStatus` под собственный (легаси) смысл —
+  убран, т.к. эти числа теперь означают этапы проверки текста/маркеров.
 
 ## Известные ловушки
 

@@ -9,7 +9,7 @@ import { apiGet } from '../../services/api'
 export default {
   namespaced: true,
   state: {
-    // Песен в коллекции — id_status>=3 + непустой source_markers, без SKIP.
+    // Песен в коллекции — id_status>=6 + непустой source_markers, без SKIP.
     // Кеш бэкенда обновляется раз в час (StatsCacheScheduler), фронт дёргает /api/public/stats
     // разово при загрузке HomeView и кладёт сюда.
     onSponsr: 0,

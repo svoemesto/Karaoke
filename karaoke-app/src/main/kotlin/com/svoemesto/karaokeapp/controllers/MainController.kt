@@ -1430,10 +1430,6 @@ class MainController(
         val text =
             settings?.let {
                 settings.createKaraoke()
-                if (settings.idStatus < 3) {
-                    settings.fields[SongField.ID_STATUS] = "3"
-                    settings.saveToDb()
-                }
                 KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS, true, 0, threadId = threadId?.toInt() ?: 0)
                 KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, 1, threadId = threadId?.toInt() ?: 0)
                 "OK"

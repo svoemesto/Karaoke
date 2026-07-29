@@ -50,7 +50,7 @@
                 :class="{
                   'fsm-row-original': s.original,
                   'fsm-row-disabled': s.current,
-                  'fsm-row-low-status': s.idStatus < 3,
+                  'fsm-row-low-status': s.idStatus < 6,
                 }"
                 :title="s.current ? 'Текущая песня' : 'Скопировать текст из этой песни'"
                 @click="select(s)"

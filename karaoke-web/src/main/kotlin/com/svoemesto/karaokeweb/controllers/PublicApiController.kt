@@ -74,7 +74,8 @@ class PublicApiController(
     }
 
     // specs/017-editor-status-bypass: анонимные/обычные посетители продолжают видеть только
-    // готовые песни (id_status >= 3, specs/013-song-status-filter); для "редактора" (SiteUser
+    // готовые песни (id_status >= 6, specs/013-song-status-filter, specs/022-song-status-lifecycle);
+    // для "редактора" (SiteUser
     // .isEditor) фильтр по статусу снимается целиком — поэтому здесь и в местах вызова
     // проверяем именно "!= true", а не "== false": невалидный/отсутствующий токен, как и явный
     // isEditor=false, должны попадать в ветку "фильтр действует", а не в исключение.
@@ -247,7 +248,7 @@ class PublicApiController(
         if (!album.isNullOrEmpty()) attr["song_album"] = album
         // Публичная поверхность прода — показываем только готовые песни (specs/013-song-status-filter),
         // кроме "редактора" — для него фильтр по статусу снят (specs/017-editor-status-bypass).
-        if (onlyPublishedFor(request)) attr["id_status"] = ">=3"
+        if (onlyPublishedFor(request)) attr["id_status"] = ">=6"
 
         val settings: List<Song> =
             if ("${songName ?: ""}${author ?: ""}${album ?: ""}${text ?: ""}".length < 3) {

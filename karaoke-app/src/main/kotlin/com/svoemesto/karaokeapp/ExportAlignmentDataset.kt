@@ -38,8 +38,9 @@ data class AlignmentDatasetRow(
 //
 // Аудио НЕ копируется: манифест хранит абсолютный путь к уже существующему на диске FLAC
 // (Song.vocalsNameFlac) - обучение идёт на той же машине, копирование только удвоило бы место
-// на диске без пользы. idStatus >= 3 - тот же порог "маркеры уже финальны/проверены", что и у
-// player-readiness флагов (проект уже собран из разметки на этом этапе пайплайна).
+// на диске без пользы. idStatus >= 6 - тот же порог "маркеры уже финальны/проверены"
+// (specs/022-song-status-lifecycle), что и у player-readiness флагов (проект уже собран из
+// разметки на этом этапе пайплайна).
 //
 // Дополнительно для каждой песни прогоняем вокал через Whisper (WhisperAsrService, тот же сервис,
 // что и в SubsEdit) и ищем ВСТАВКИ - что-то реально спето, но отсутствует в официальном тексте
@@ -60,7 +61,7 @@ fun exportAlignmentDataset(
         try {
             val connection = WORKING_DATABASE.getConnection()
             if (connection != null) {
-                val ps = connection.prepareStatement("SELECT id FROM tbl_songs WHERE id_status >= 3 ORDER BY id")
+                val ps = connection.prepareStatement("SELECT id FROM tbl_songs WHERE id_status >= 6 ORDER BY id")
                 val rs = ps.executeQuery()
                 while (rs.next()) ids.add(rs.getLong("id"))
                 rs.close()

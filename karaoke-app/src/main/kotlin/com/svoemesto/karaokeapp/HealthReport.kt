@@ -1100,9 +1100,10 @@ data class HealthReport(
         }
 
         // Легаси MLT-конвейер (mlt/run/kdenlive/txt-проекты, картинки площадок, финальное видео) заморожен —
-        // эти файлы больше не подразумеваются автоматически по idStatus>=3 (раньше это гарантированно значило
-        // «MLT сформирован», теперь просто «маркеры расставлены»), а создаются только вручную через
-        // Functions.createKaraoke. HealthReport их больше не отслеживает.
+        // эти файлы больше не подразумеваются автоматически по статусу готовности (раньше idStatus>=3
+        // гарантированно значило «MLT сформирован»; после specs/022-song-status-lifecycle idStatus не
+        // связан с MLT-конвейером вовсе, см. docs/features/mlt-generator.md), а создаются только вручную
+        // через Functions.createKaraoke. HealthReport их больше не отслеживает.
         private val LEGACY_MLT_FILE_TYPES: Set<KaraokeFileType> =
             setOf(
                 KaraokeFileType.PICTURE_PUBLICATION,
@@ -2207,7 +2208,7 @@ data class HealthReport(
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
         ): Int {
-            val ids = Song.listHashes(database = database, whereText = "WHERE id_status >= 3")?.map { it.id } ?: return 0
+            val ids = Song.listHashes(database = database, whereText = "WHERE id_status >= 6")?.map { it.id } ?: return 0
             ids.forEach { id ->
                 SearchResult.deleteBySongId(id, database, storageService, storageApiClient)
                 SearchAsync.deleteBySongId(id, database, storageService, storageApiClient)

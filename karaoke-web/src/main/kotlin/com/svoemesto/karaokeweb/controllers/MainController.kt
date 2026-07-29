@@ -330,8 +330,9 @@ class MainController(
         if (author != null && author != "") attr["author"] = author
         if (text != null && text != "") attr["text"] = text
         if (album != null && album != "") attr["song_album"] = album
-        // Публичная поверхность прода — показываем только готовые песни (specs/013-song-status-filter).
-        attr["id_status"] = ">=3"
+        // Публичная поверхность прода — показываем только готовые песни (specs/013-song-status-filter,
+        // specs/022-song-status-lifecycle).
+        attr["id_status"] = ">=6"
 
         val settings: List<Song> =
             if ("${songName ?: ""}${author ?: ""}${album ?: ""}${text ?: ""}".length <

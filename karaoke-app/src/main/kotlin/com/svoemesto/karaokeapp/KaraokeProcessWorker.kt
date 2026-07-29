@@ -175,20 +175,26 @@ class KaraokeProcessThread(
 
                 processBuilder.redirectErrorStream(true)
 
-                val process = processBuilder.start()
-                osProcess = process
-                if (process.isAlive) {
-                    if (karaokeProcess.command != "tail" || karaokeProcess.args[0][0] !in KaraokeProcessWorker.argsIgnoredToLog) {
-                        println(
-                            "[${Timestamp.from(
-                                Instant.now(),
-                            )}] KaraokeProcessThread[${karaokeProcess.threadId}]: Установка приоритета задания: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}",
-                        )
-                    }
-                    setProcessPriority(process.pid(), karaokeProcess.prioritet)
-                }
-
+                // try охватывает и сам запуск subprocess (не только чтение stdout) - если
+                // processBuilder.start() бросит исключение (например, недоступен бинарник/docker),
+                // задание всё равно должно получить терминальный статус (ERROR/WAITING), а не остаться
+                // в WORKING навсегда и заблокировать очередь своего лейна. См. specs/029-fix-queue-lane-stall/research.md.
+                var process: Process? = null
                 try {
+                    val startedProcess = processBuilder.start()
+                    process = startedProcess
+                    osProcess = startedProcess
+                    if (startedProcess.isAlive) {
+                        if (karaokeProcess.command != "tail" || karaokeProcess.args[0][0] !in KaraokeProcessWorker.argsIgnoredToLog) {
+                            println(
+                                "[${Timestamp.from(
+                                    Instant.now(),
+                                )}] KaraokeProcessThread[${karaokeProcess.threadId}]: Установка приоритета задания: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}",
+                            )
+                        }
+                        setProcessPriority(startedProcess.pid(), karaokeProcess.prioritet)
+                    }
+
                     if (karaokeProcess.command != "tail" || karaokeProcess.args[0][0] !in KaraokeProcessWorker.argsIgnoredToLog) {
                         println(
                             "[${Timestamp.from(
@@ -197,7 +203,7 @@ class KaraokeProcessThread(
                         )
                         KaraokeProcessWorker.sendCountWaitingMessage(KaraokeProcess.getCountWaiting(database = karaokeProcess.database))
                     }
-                    val inputStream = process.inputStream
+                    val inputStream = startedProcess.inputStream
                     var duration: String? = null
                     val reader = BufferedReader(InputStreamReader(inputStream))
                     var line: String? = reader.readLine()
@@ -319,8 +325,8 @@ class KaraokeProcessThread(
 //                if (karaokeProcess.type == KaraokeProcessTypes.DEMUCS2.name) {
 //                    KaraokeProcess.delete(karaokeProcess.id, karaokeProcess.database)
 //                }
-                } catch (_: Exception) {
-                    process.destroy()
+                } catch (e: Exception) {
+                    process?.destroy()
                     if (forceStopped) {
                         println(
                             "[${Timestamp.from(
@@ -333,7 +339,7 @@ class KaraokeProcessThread(
                         println(
                             "[${Timestamp.from(
                                 Instant.now(),
-                            )}] KaraokeProcessThread[${karaokeProcess.threadId}]: ERROR задание: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}",
+                            )}] KaraokeProcessThread[${karaokeProcess.threadId}]: ERROR задание: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}: ${e.message}",
                         )
                         karaokeProcess.status = KaraokeProcessStatuses.ERROR.name
                         karaokeProcess.end = Timestamp.from(Instant.now())
@@ -423,26 +429,48 @@ class KaraokeProcessWorker {
         /**
          * Флаг работы воркера. Управляется через [start] / [stop]. Цикл
          * `while (isWork)` в [doStart] прерывается при `false`.
+         *
+         * `@Volatile` — читается/пишется как минимум из потока, исполняющего
+         * [doStart] (демон-поток), и из HTTP-потоков, вызывающих
+         * [stop]/[forceStop] — без этого запись могла быть не видна другому
+         * потоку вовремя (JMM не гарантирует visibility для обычного `var`).
          */
-        var isWork: Boolean = false
+        @Volatile var isWork: Boolean = false
 
         /**
          * Если `true` — после завершения текущего потока воркер остановится
          * (используется для «мягкой» остановки с ожиданием завершения).
          */
-        var stopAfterThreadIsDone: Boolean = false
+        @Volatile var stopAfterThreadIsDone: Boolean = false
 
         /**
-         * Режим без UI-контроля (для batch-прогонов на admin-машине).
+         * Режим без UI-контроля (для batch-прогонов на admin-машине): пока хотя бы один ЖИВОЙ поток
+         * в любом лейне обрабатывает задание с `karaokeProcess.withoutControl == true`, главный цикл
+         * [doStart] не делает `Thread.sleep` между итерациями. Пересчитывается заново на каждой
+         * итерации по фактически живым потокам ([threadsMap]) - НЕ хранит флаг "последнего стартовавшего
+         * задания" (в любом лейне), иначе задание одного лейна могло бы молча менять поведение цикла
+         * для задания из ДРУГОГО лейна. Per-lane-решения (сохранять ли дифф конкретного задания,
+         * слать ли для него SSE-прогресс) используют `karaokeProcess.withoutControl` НАПРЯМУЮ у
+         * задания своего потока, а не это поле.
          */
-        var withoutControl = false
+        @Volatile var withoutControl = false
 
         // Периодическая проверка активных потоков вне очереди (для SSE-прогресса).
         // Каждые ~500мс (50 итераций × 10мс) — достаточно для плавного прогресс-бара.
         var runningThreadsCheckCounter: Int = 0
         const val RUNNING_THREADS_CHECK_INTERVAL = 50
 
-        val threadsMap: MutableMap<Int, KaraokeProcessThread?> = mutableMapOf()
+        // ConcurrentHashMap - карта мутируется как минимум из потока doStart() и из forceStop()
+        // (вызывается на отдельном HTTP-потоке); обычный mutableMapOf() не даёт гарантий видимости
+        // записи между потоками и не защищён от ConcurrentModificationException при одновременном
+        // чтении/итерации в doStart() и записи в forceStop(). См. specs/029-fix-queue-lane-stall/research.md.
+        val threadsMap: MutableMap<Int, KaraokeProcessThread?> = java.util.concurrent.ConcurrentHashMap()
+
+        // Гарантирует, что цикл doStart() запускается не более чем в одном экземпляре одновременно:
+        // без этой блокировки два быстрых подряд HTTP-вызова start() могли проверить `!isWork` оба
+        // как true ДО того, как первый успеет выставить isWork=true, и оба запустить свой doStart() -
+        // два параллельных воркера на общем threadsMap. См. Кандидат A в research.md.
+        private val startStopLock = Any()
 
 //        var workThread: KaraokeProcessThread? = null
 
@@ -452,10 +480,14 @@ class KaraokeProcessWorker {
          * Перед стартом: очищает `DONE` задания (`KaraokeProcess.deleteDone`),
          * восстанавливает `WORKING` → `WAITING` после возможного падения
          * (`setWorkingToWaiting`), рассылает SSE-сообщение с количеством
-         * ожидающих.
+         * ожидающих. Цикл [doStart] выполняется в отдельном демон-потоке —
+         * вызывающий HTTP-поток (`/api/processes/workerstartstop`) не
+         * блокируется на всё время работы очереди.
          *
          * Если воркер уже запущен — сбрасывает `stopAfterThreadIsDone` и
-         * отправляет текущее состояние через SSE.
+         * отправляет текущее состояние через SSE. Проверка-и-установка
+         * `isWork` защищена [startStopLock], чтобы два быстрых подряд вызова
+         * `start()` не запустили два параллельных цикла [doStart].
          *
          * @param database подключение к БД (local/remote/virtual)
          * @param storageService MinIO-клиент (для типов с загрузкой)
@@ -468,15 +500,47 @@ class KaraokeProcessWorker {
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
         ) {
-            if (!isWork) {
-                KaraokeProcess.deleteDone(database)
-                KaraokeProcess.setWorkingToWaiting(database)
-                sendCountWaitingMessage(KaraokeProcess.getCountWaiting(database))
-                doStart(database = database, storageService = storageService, storageApiClient = storageApiClient)
-            } else {
+            val shouldLaunch =
+                synchronized(startStopLock) {
+                    if (isWork) {
+                        false
+                    } else {
+                        isWork = true
+                        true
+                    }
+                }
+            if (!shouldLaunch) {
                 stopAfterThreadIsDone = false
                 sendStateMessage()
+                return
             }
+            KaraokeProcess.deleteDone(database)
+            KaraokeProcess.setWorkingToWaiting(database)
+            sendCountWaitingMessage(KaraokeProcess.getCountWaiting(database))
+            Thread {
+                try {
+                    doStart(database = database, storageService = storageService, storageApiClient = storageApiClient)
+                } catch (e: Exception) {
+                    println(
+                        "[${Timestamp.from(
+                            Instant.now(),
+                        )}] ProcessWorker: главный цикл очереди упал с необработанным исключением: ${e.message}",
+                    )
+                    e.printStackTrace()
+                } finally {
+                    // Не оставляем isWork=true, если цикл упал сам (не через штатный stop()/forceStop()) -
+                    // иначе очередь выглядит "работающей" в UI/мониторинге, но фактически мертва, и
+                    // RenderQueueStalledCheck (который смотрит только на isWork) не смог бы это обнаружить.
+                    synchronized(startStopLock) {
+                        isWork = false
+                        stopAfterThreadIsDone = false
+                    }
+                    sendStateMessage()
+                }
+            }.apply {
+                isDaemon = true
+                name = "karaoke-process-worker"
+            }.start()
         }
 
         /**
@@ -712,7 +776,14 @@ class KaraokeProcessWorker {
                 }
 
                 counter++
-                if (!withoutControl) {
+                // Признак "без контроля" пересчитывается на каждой итерации по фактически ЖИВЫМ потокам,
+                // а не хранится как флаг последнего стартовавшего задания (в любом лейне) - иначе задание
+                // одного лейна могло молча "перетереть" этот флаг для ВСЕХ лейнов при своём старте, ломая
+                // паузу/поведение цикла для задания, стартовавшего в ДРУГОМ лейне. См. FR-002/US3,
+                // specs/029-fix-queue-lane-stall/spec.md.
+                val anyLaneWithoutControl = threadsMap.values.any { it != null && it.isAlive && it.karaokeProcess?.withoutControl == true }
+                withoutControl = anyLaneWithoutControl
+                if (!anyLaneWithoutControl) {
                     Thread.sleep(timeout)
 
                     if (counter % (intervalCheckFiles / timeout) == 0L) {
@@ -870,7 +941,6 @@ class KaraokeProcessWorker {
                                     threadsMap[threadId] = KaraokeProcessThread(karaokeProcess)
 
                                     id = karaokeProcess.id
-                                    withoutControl = karaokeProcess.withoutControl
                                     if (karaokeProcess.command != "tail" || karaokeProcess.args[0][0] !in argsIgnoredToLog) {
                                         println(
                                             "[${Timestamp.from(
@@ -890,7 +960,10 @@ class KaraokeProcessWorker {
                                 }
                             }
                         } else {
-                            if (!withoutControl) {
+                            // Признак "без контроля" берётся у КОНКРЕТНОГО задания этого лейна, а не у
+                            // общего флага воркера - иначе batch-задание в ДРУГОМ лейне могло бы отключить
+                            // обычное сохранение диффа для этого лейна (и наоборот). См. FR-002/US3.
+                            if (threadsMap[threadId]?.karaokeProcess?.withoutControl != true) {
                                 val kp = threadsMap[threadId]?.karaokeProcess
                                 val diffs = KaraokeProcess.getDiff(kp)
                                 if (diffs.isNotEmpty()) {
@@ -913,7 +986,9 @@ class KaraokeProcessWorker {
                         runningThreadsCheckCounter = 0
                         val startThreadIds = karaokeProcessesToStartIds.toSet()
                         threadsMap.filter { it.value != null && it.value!!.isAlive }.forEach { (threadId, thread) ->
-                            if (threadId !in startThreadIds && !withoutControl) {
+                            // Признак "без контроля" - у задания ЭТОГО потока, не общий флаг воркера
+                            // (см. пояснение выше про изоляцию лейнов, FR-002/US3).
+                            if (threadId !in startThreadIds && thread?.karaokeProcess?.withoutControl != true) {
                                 thread?.karaokeProcess?.save()
                             }
                         }

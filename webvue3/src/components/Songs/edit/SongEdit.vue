@@ -1935,7 +1935,6 @@
           </div>
 
           <div class="links-table">
-            <div class="links-table-column-1">Статус</div>
             <div class="links-table-column-2">
               <button
                 class="group-button"
@@ -5277,12 +5276,6 @@ export default {
 }
 .group-button-active {
   background-color: dodgerblue;
-}
-/* Легаси-этапы старого MLT-рендера (статусы 4/6) — больше не влияют на готовность к онлайн-плееру
-   (та наступает уже на статусе 3), визуально приглушаем, но оставляем кликабельными. */
-.group-button-legacy {
-  opacity: 0.5;
-  filter: grayscale(60%);
 }
 
 .label-and-input {

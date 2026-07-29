@@ -163,16 +163,21 @@ class Pictures(
 
     override fun getTableName(): String = TABLE_NAME
 
+    // Дешёвая (без DB-запроса) URL превью-картинки — в отличие от pathToFolder ниже, зависит
+    // только от author/year/album/name (строковые производные от name, см. геттеры выше).
+    // Используется дайджест-эндпоинтами (Album.toDigestDTOs), которым нужен только этот URL,
+    // а не полный toDTO() (тот тянет pathToFolder — Song.loadListFromDb на КАЖДЫЙ вызов, N+1
+    // на тысячах картинок, см. KDoc Album.toDigestDTOs).
+    fun previewUrl(): String =
+        "/api/picture/file?file=${java.net.URLEncoder.encode(storageFileNamePreview, java.nio.charset.StandardCharsets.UTF_8)}"
+
     override fun toDTO(): PicturesDTO =
         PicturesDTO(
             id = id,
             name = name,
             preview = "",
             full = "",
-            previewUrl = "/api/picture/file?file=${java.net.URLEncoder.encode(
-                storageFileNamePreview,
-                java.nio.charset.StandardCharsets.UTF_8,
-            )}",
+            previewUrl = previewUrl(),
             fullUrl = "/api/picture/file?file=${java.net.URLEncoder.encode(storageFileName, java.nio.charset.StandardCharsets.UTF_8)}",
             author = author,
             year = year,
@@ -330,5 +335,29 @@ class Pictures(
                 storageApiClient = storageApiClient,
                 ignoreUseInList = ignoreUseInList,
             ).firstOrNull()
+
+        // Пакетная версия getPictureByName — WHERE picture_name IN (...) одним запросом, не по
+        // одному имени в цикле (Constitution Principle II). Используется дайджест-эндпоинтами
+        // (Album.toDigestDTOs), где getPictureByName в цикле по N записям давал N+1 SQL-запросов.
+        fun getPicturesByNames(
+            names: List<String>,
+            database: KaraokeConnection,
+            storageService: KaraokeStorageService,
+            storageApiClient: StorageApiClient,
+        ): Map<String, Pictures> {
+            val distinctNames = names.filter { it.isNotBlank() }.distinct()
+            if (distinctNames.isEmpty()) return emptyMap()
+            return KaraokeDbTable
+                .loadList(
+                    clazz = Pictures::class,
+                    tableName = TABLE_NAME,
+                    whereList = listOf("picture_name IN (${distinctNames.joinToString(",") { "'${it.replace("'", "''")}'" }})"),
+                    database = database,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                    ignoreUseInList = true,
+                ).filterIsInstance<Pictures>()
+                .associateBy { it.name }
+        }
     }
 }

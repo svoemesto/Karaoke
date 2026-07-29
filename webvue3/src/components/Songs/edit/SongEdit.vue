@@ -2598,13 +2598,15 @@ export default {
     // specs/011-album-song-rename: альбомы того же автора, что и главный автор текущей песни —
     // источник для пикера «Альбом (ссылка)». Сопоставление по имени автора (song.author — свободный
     // текст, без FK), т.к. другого способа связать песню с Author.id в текущей модели нет.
+    // Лёгкий дайджест (getAlbumsDigestLite, specs/022) — этому пикеру не нужны автор/картинки/
+    // счётчик песен, которые тянет "тяжёлый" getAlbumsDigest для AlbumsTable.vue.
     albumsForSongAuthor() {
       if (!this.song || !this.song.author) return []
       const author = (this.$store.getters.getAuthorsDigest || []).find(
         (a) => a.author.toLowerCase() === this.song.author.toLowerCase(),
       )
       if (!author) return []
-      return (this.$store.getters.getAlbumsDigest || [])
+      return (this.$store.getters.getAlbumsDigestLite || [])
         .filter((alb) => alb.authorId === author.id)
         .sort((a, b) => a.sortOrder - b.sortOrder || a.year - b.year)
     },
@@ -3467,9 +3469,13 @@ export default {
     this.$store.dispatch('loadEditorSiteUsers', this.$store.getters.getEditorDefaultTarget)
     this.reloadAssignmentStatus()
     // specs/011-album-song-rename: список альбомов для пикера «Альбом (ссылка)» — грузим один раз,
-    // фильтруем по автору песни на клиенте (computed albumsForSongAuthor).
-    if (!this.$store.getters.getAlbumsDigest || this.$store.getters.getAlbumsDigest.length === 0) {
-      this.$store.dispatch('loadAlbumsDigests', {})
+    // фильтруем по автору песни на клиенте (computed albumsForSongAuthor). Лёгкий дайджест
+    // (specs/022) — без картинок/автора/счётчика песен, не нужных этому пикеру.
+    if (
+      !this.$store.getters.getAlbumsDigestLite ||
+      this.$store.getters.getAlbumsDigestLite.length === 0
+    ) {
+      this.$store.dispatch('loadAlbumsDigestsLite')
     }
     if (
       !this.$store.getters.getAuthorsDigest ||

@@ -11,6 +11,11 @@ export default {
   state: {
     albumsDigest: [],
     albumsDigestIsLoading: false,
+    // Лёгкий дайджест (без автора/картинок/счётчика песен, specs/022) — отдельный от albumsDigest
+    // слот стора, чтобы пикер «Альбом (ссылка)» в SongEdit.vue не толкался в один кеш с
+    // "тяжёлым" дайджестом AlbumsTable.vue (иначе кто первый загрузился — того и кеш).
+    albumsDigestLite: [],
+    albumsDigestLiteIsLoading: false,
     // Текущая страница пагинации в AlbumsTable — как у Authors, переживает уход/возврат к компоненту.
     albumsTableCurrentPage: 1,
   },
@@ -20,6 +25,12 @@ export default {
     },
     getAlbumsDigestIsLoading(state) {
       return state.albumsDigestIsLoading
+    },
+    getAlbumsDigestLite(state) {
+      return state.albumsDigestLite
+    },
+    getAlbumsDigestLiteIsLoading(state) {
+      return state.albumsDigestLiteIsLoading
     },
     getAlbumsTableCurrentPage(state) {
       return state.albumsTableCurrentPage
@@ -40,6 +51,12 @@ export default {
     },
     setAlbumsDigestIsLoading(state, isLoading) {
       state.albumsDigestIsLoading = isLoading
+    },
+    setAlbumsDigestsLite(state, result) {
+      state.albumsDigestLite = result.albumsDigests
+    },
+    setAlbumsDigestLiteIsLoading(state, isLoading) {
+      state.albumsDigestLiteIsLoading = isLoading
     },
     setAlbumsTableCurrentPage(state, page) {
       state.albumsTableCurrentPage = page
@@ -85,6 +102,22 @@ export default {
           let result = JSON.parse(data)
           ctx.commit('setAlbumsDigests', result)
           ctx.commit('setAlbumsDigestIsLoading', false)
+        })
+        .catch((error) => {
+          console.log(error)
+        })
+    },
+    // Лёгкий дайджест (без автора/картинок/счётчика песен) — для пикеров, которым нужны только
+    // id/authorId/year/name (см. SongEdit.vue albumsForSongAuthor). Отдельный экшен/эндпоинт —
+    // не толкается в общий кеш albumsDigest с AlbumsTable.vue.
+    loadAlbumsDigestsLite(ctx) {
+      let request = { method: 'POST', url: '/api/albums/albumsdigestslite', params: {} }
+      ctx.commit('setAlbumsDigestLiteIsLoading', true)
+      promisedXMLHttpRequest(request)
+        .then((data) => {
+          let result = JSON.parse(data)
+          ctx.commit('setAlbumsDigestsLite', result)
+          ctx.commit('setAlbumsDigestLiteIsLoading', false)
         })
         .catch((error) => {
           console.log(error)

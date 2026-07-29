@@ -20,19 +20,24 @@ set -euo pipefail
 
 SLUG="${1:-}"
 MAX_ATTEMPTS=30
+REPO_ROOT=$(git rev-parse --show-toplevel)
 
 git fetch origin --quiet --tags
 
 # Максимальный уже использованный номер: локальные ветки, ветки на origin,
 # теги-резервации на origin (теги переживают удаление смерженной ветки —
 # самый надёжный источник истории после внедрения этой конвенции; ветки —
-# бэкфилл истории до её внедрения).
+# бэкфилл истории до её внедрения), плюс папки specs/NNN-slug (у
+# /speckit-specify — своя, не связанная с git-ветками нумерация, см. AGENTS.md;
+# папки specs/ не удаляются после мержа, в отличие от веток — самый долгоживущий
+# источник истории).
 max_num() {
-  # `|| true`: под set -e -o pipefail пустой grep (ни одной NNN-ветки/тега —
+  # `|| true`: под set -e -o pipefail пустой grep (ни одной NNN-ветки/тега/спеки —
   # валидный случай на «пустом» репозитории) иначе уронит весь скрипт.
   {
     git for-each-ref --format='%(refname:short)' refs/heads/ refs/remotes/origin/ 2>/dev/null
     git ls-remote --tags origin 'refs/tags/seq/*' 2>/dev/null | sed -E 's#.*refs/tags/seq/##'
+    ls -1 "$REPO_ROOT/specs/" 2>/dev/null
   } | grep -oE '^[0-9]+' | sort -n | tail -1 || true
 }
 

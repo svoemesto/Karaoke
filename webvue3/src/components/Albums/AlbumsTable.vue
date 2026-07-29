@@ -269,7 +269,7 @@ export default {
         {
           key: 'albumPicture',
           label: '(альбом)',
-          style: { minWidth: '125px', maxWidth: '125px', textAlign: 'center', fontSize: 'small' },
+          style: { minWidth: '54px', maxWidth: '54px', textAlign: 'center', fontSize: 'small' },
         },
         {
           key: 'id',
@@ -715,7 +715,7 @@ export default {
 }
 .fld-picture-preview {
   min-width: 50px;
-  max-width: 125px;
+  max-width: 100%;
   text-align: center;
   font-size: small;
   display: flex;
@@ -729,8 +729,10 @@ export default {
   cursor: pointer;
 }
 .preview-image {
+  max-width: 50px;
+  max-height: 50px;
   width: auto;
-  height: 50px;
+  height: auto;
   object-fit: contain;
   vertical-align: middle;
 }

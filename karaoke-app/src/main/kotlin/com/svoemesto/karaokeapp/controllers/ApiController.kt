@@ -5869,15 +5869,45 @@ class ApiController(
         // Без N+1 на 5000+ альбомах. Альбомы без песен в map не попадут — дефолтим на 0.
         val songsCountByAlbumId =
             Album.countSongsByAlbumIds(albums.map { it.id }, WORKING_DATABASE)
+        // Album.toDigestDTOs — пакетная версия toDTO() (батчит автора/картинки), не .map{it.toDTO()}
+        // по одному альбому — иначе N+1 на 2000+ альбомах (см. KDoc Album.toDigestDTOs).
         val albumsList =
-            albums
-                .map { it.toDTO().copy(songsCount = songsCountByAlbumId[it.id] ?: 0) }
+            Album
+                .toDigestDTOs(albums, WORKING_DATABASE, storageService, storageApiClient)
+                .map { it.copy(songsCount = songsCountByAlbumId[it.id] ?: 0) }
                 .filter { minSongsCount <= 0 || it.songsCount >= minSongsCount }
                 .sorted()
 
         return mapOf(
             "workInContainer" to APP_WORK_IN_CONTAINER,
             "albumsDigests" to albumsList,
+        )
+    }
+
+    /**
+     * Облегчённая версия [apisAlbumsDigest] — без автора/картинок/счётчика песен (без единого
+     * дополнительного запроса сверх основного списка альбомов, см. [Album.toLiteDTOs]).
+     * Используется пикером «Альбом (ссылка)» в `SongEdit.vue` — там нужны только id/authorId/
+     * year/name, чтобы отфильтровать альбомы по автору песни на клиенте и подписать `<option>`;
+     * загрузка полного [apisAlbumsDigest] (нужен таблице "Альбомы" — там реально нужны 2 картинки
+     * на строку) для этого избыточна.
+     *
+     * @see docs/features/dual-db-sync.md
+     */
+    @PostMapping("/albums/albumsdigestslite")
+    @ResponseBody
+    fun apisAlbumsDigestLite(): Map<String, Any> {
+        val albums =
+            Album.loadList(
+                whereArgs = emptyMap(),
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+                ignoreUseInList = true,
+            )
+        return mapOf(
+            "workInContainer" to APP_WORK_IN_CONTAINER,
+            "albumsDigests" to Album.toLiteDTOs(albums).sorted(),
         )
     }
 

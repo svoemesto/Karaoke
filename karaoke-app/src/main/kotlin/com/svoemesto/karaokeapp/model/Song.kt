@@ -7525,12 +7525,32 @@ class Song(
             return settings
         }
 
+        /**
+         * Результат [createFromPath]: добавленные песни и общее число подходящих по расширению
+         * файлов, найденных в папке — разница ([skippedFilesCount]) нужна вызывающей стороне для
+         * итоговой сводки «добавлено/пропущено» (specs/082-fix-import-folder-oom, SC-004).
+         */
+        data class FolderImportResult(
+            val addedSongs: List<Song>,
+            val totalFilesFound: Int,
+        ) {
+            val skippedFilesCount: Int get() = totalFilesFound - addedSongs.size
+        }
+
+        /**
+         * Импортирует flac/mp3/m4a-файлы из [startFolder] (рекурсивно, включая подпапки) как новые
+         * песни, распознавая автора/альбом/год/номер/название из пути по имени файла и родительской
+         * папки-альбома. Для каждой добавленной песни сразу ставит в очередь KEY_BPM_FROM_FILE
+         * (свой независимый лейн) и DEMUCS2 (первый шаг кортежа демукс→mp3→загрузка).
+         *
+         * @see docs/features/async-process-queue.md
+         */
         fun createFromPath(
             startFolder: String,
             database: KaraokeConnection,
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
-        ): MutableList<Song> {
+        ): FolderImportResult {
             val result: MutableList<Song> = mutableListOf()
             val listFiles = getListFiles(startFolder, listOf("flac", "mp3", "m4a"))
             listFiles.forEach { pathToFile ->
@@ -7605,6 +7625,10 @@ class Song(
                             settings.saveToDb()
                             result.add(settings)
 
+                            // threadId=2 (THREAD_LANE_STEM_JOBS) - НАМЕРЕННО отдельный от кортежа лейн: определение
+                            // key/BPM ни от чего в кортеже не зависит и ничего в кортеже от него не зависит, поэтому
+                            // не должно занимать слот в THREAD_LANE_HEALTH_REPORT (specs/082-fix-import-folder-oom,
+                            // research.md Находка C). НЕ "выравнивать" под threadId=1 без отдельного решения.
                             KaraokeProcess.createProcess(
                                 settings = settings,
                                 action = KaraokeProcessTypes.KEY_BPM_FROM_FILE,
@@ -7613,6 +7637,10 @@ class Song(
                                 threadId = 2,
                             )
 
+                            // Первый шаг кортежа демукс→mp3→загрузка (см. docs/features/async-process-queue.md):
+                            // threadId=1 (THREAD_LANE_HEALTH_REPORT) - тот же лейн, в котором HealthReport.actions()
+                            // по умолчанию ставит все дальнейшие шаги каскада (FF_MP3_*/UPLOAD_*), иначе кортеж
+                            // расползётся по разным лейнам.
                             KaraokeProcess.createProcess(
                                 settings = settings,
                                 action = KaraokeProcessTypes.DEMUCS2,
@@ -7640,7 +7668,7 @@ class Song(
                     }
                 }
             }
-            return result
+            return FolderImportResult(addedSongs = result, totalFilesFound = listFiles.size)
         }
 
         fun getSetOfTags(database: KaraokeConnection): Set<String> {

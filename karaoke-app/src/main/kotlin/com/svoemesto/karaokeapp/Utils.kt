@@ -2405,6 +2405,15 @@ fun getRandomFile(
     return if (listFiles.isEmpty()) "" else listFiles[Random.nextInt(listFiles.size)]
 }
 
+/**
+ * Рекурсивно обходит [pathToFolder] и возвращает пути файлов, отфильтрованные по [extension]/[startWith].
+ *
+ * Фильтрация происходит внутри цепочки [Files.walk], до материализации в список — на произвольно
+ * большом/глубоко вложенном дереве в памяти не накапливается ничего сверх уже отфильтрованного
+ * результата. [Files.walk] закрывается через [use] независимо от исхода обхода.
+ *
+ * @see docs/features/async-process-queue.md
+ */
 fun getListFiles(
     pathToFolder: String,
     extension: String = "",
@@ -2413,54 +2422,51 @@ fun getListFiles(
     try {
         Files
             .walk(Path(pathToFolder))
-            .filter(Files::isRegularFile)
-            .map { it.toString() }
-            .filter {
-                it.endsWith(extension) &&
-                    it.startsWith("$pathToFolder/$startWith")
-            }.toList()
-            .sorted()
+            .use { stream ->
+                stream
+                    .filter(Files::isRegularFile)
+                    .map { it.toString() }
+                    .filter {
+                        it.endsWith(extension) &&
+                            it.startsWith("$pathToFolder/$startWith")
+                    }.toList()
+            }.sorted()
     } catch (_: Exception) {
         emptyList()
     }
 
+/**
+ * Рекурсивно обходит [pathToFolder] и возвращает пути файлов, подходящие под любое из [extensions]
+ * (если список не пуст), любое из [startsWith] (если список не пуст) и ни одно из [excludes].
+ *
+ * Один проход по дереву — не переиспользует однорасширенческую перегрузку с пустым `extension`
+ * (что буферизовало бы в памяти все файлы дерева независимо от расширения, см. `research.md`,
+ * Находка A этой фичи).
+ *
+ * @see docs/features/async-process-queue.md
+ */
 fun getListFiles(
     pathToFolder: String,
     extensions: List<String> = listOf(),
     startsWith: List<String> = listOf(),
     excludes: List<String> = listOf(),
-): List<String> {
-    val result = mutableListOf<String>()
-    val preRes = getListFiles(pathToFolder)
-    val filteredEndRes = mutableListOf<String>()
-    val filteredStartRes = mutableListOf<String>()
-//    val filteredExcludeRes = mutableListOf<String>()
-    if (extensions.isNotEmpty()) {
-        extensions.forEach { extension ->
-            filteredEndRes.addAll(preRes.filter { it.endsWith(extension) })
-        }
-    } else {
-        filteredEndRes.addAll(preRes)
+): List<String> =
+    try {
+        Files
+            .walk(Path(pathToFolder))
+            .use { stream ->
+                stream
+                    .filter(Files::isRegularFile)
+                    .map { it.toString() }
+                    .filter { path ->
+                        (extensions.isEmpty() || extensions.any { path.endsWith(it) }) &&
+                            (startsWith.isEmpty() || startsWith.any { path.startsWith("$pathToFolder/$it") }) &&
+                            (excludes.isEmpty() || excludes.none { path.contains(it) })
+                    }.toList()
+            }.sorted()
+    } catch (_: Exception) {
+        emptyList()
     }
-    if (startsWith.isNotEmpty()) {
-        startsWith.forEach { startWith ->
-            filteredStartRes.addAll(filteredEndRes.filter { it.startsWith("$pathToFolder/$startWith") })
-        }
-    } else {
-        filteredStartRes.addAll(filteredEndRes)
-    }
-    if (excludes.isNotEmpty()) {
-        val excludeRes = mutableListOf<String>()
-        excludes.forEach { exclude ->
-            excludeRes.addAll(filteredStartRes.filter { it.contains(exclude) })
-        }
-        result.addAll(filteredStartRes.filter { it !in excludeRes })
-    } else {
-        result.addAll(filteredStartRes)
-    }
-
-    return result.sorted().toList()
-}
 
 @Suppress("unused")
 fun extractSubtitlesFromAutorecognizedFile(

@@ -53,4 +53,4 @@ if ! command -v lychee >/dev/null 2>&1; then
 fi
 
 echo "==> Запуск lychee (${OFFLINE_FLAG:-online}) на: ${TARGETS[*]}"
-lychee $OFFLINE_FLAG --no-progress --exclude-loopback --exclude-mail "${TARGETS[@]}"
+lychee $OFFLINE_FLAG --no-progress --exclude-loopback "${TARGETS[@]}"

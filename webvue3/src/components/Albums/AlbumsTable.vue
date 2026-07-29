@@ -74,7 +74,7 @@
               v-if="data.item.albumPicturePreviewUrl"
               :src="data.item.albumPicturePreviewUrl"
               alt="Album preview"
-              class="preview-image"
+              class="preview-image preview-image--square"
             />
             <div v-else class="no-image-placeholder">Нет изображения</div>
           </div>
@@ -729,12 +729,19 @@ export default {
   cursor: pointer;
 }
 .preview-image {
+  width: auto;
+  height: 50px;
+  object-fit: contain;
+  vertical-align: middle;
+}
+/* Квадратная вёрстка только для колонки (альбом): object-fit: contain
+   работает в bounding box 50×50 вместо height-only 50px, чтобы ширина
+   горизонтальных картинок не «вылезала» за квадратную ячейку 54×54. */
+.preview-image--square {
   max-width: 50px;
   max-height: 50px;
   width: auto;
   height: auto;
-  object-fit: contain;
-  vertical-align: middle;
 }
 .no-image-placeholder {
   font-size: 0.7em;

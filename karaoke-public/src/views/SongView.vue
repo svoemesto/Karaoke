@@ -133,6 +133,7 @@
             <div class="km-meta-actions">
               <FavoriteIcon :song-id="currentSong.id" label="В избранное" />
               <PlaylistIcon :song-id="currentSong.id" label="В плейлист" />
+              <ShareButton />
             </div>
           </div>
         </div>
@@ -453,6 +454,7 @@ import PlatformLink from '../components/PlatformLink.vue'
 import AuthStatusWidget from '../components/AuthStatusWidget.vue'
 import FavoriteIcon from '../components/FavoriteIcon.vue'
 import PlaylistIcon from '../components/PlaylistIcon.vue'
+import ShareButton from '../components/ShareButton.vue'
 import { useDesign } from '../composables/useDesign'
 import { useEngagementTracking } from '../composables/useEngagementTracking'
 import { useAuth } from '../composables/useAuth'
@@ -485,7 +487,14 @@ import { useCart } from '../composables/useCart'
  */
 export default {
   name: 'SongView',
-  components: { PlatformLink, AuthStatusWidget, SongSubscriptionModal, FavoriteIcon, PlaylistIcon },
+  components: {
+    PlatformLink,
+    AuthStatusWidget,
+    SongSubscriptionModal,
+    FavoriteIcon,
+    PlaylistIcon,
+    ShareButton,
+  },
   setup() {
     const route = useRoute()
     useEngagementTracking('song', () => route.query.id)
@@ -900,6 +909,18 @@ export default {
 .km-meta-actions :deep(.pl-icon.pl-on) {
   color: #0077ff;
   border-color: #0077ff;
+}
+.km-meta-actions :deep(.share-trigger) {
+  padding: 0.4rem 0.85rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border-radius: 999px;
+  background: var(--km-bg);
+  color: var(--km-text);
+  border-color: var(--km-border);
+}
+.km-meta-actions :deep(.share-trigger:hover) {
+  border-color: var(--km-accent);
 }
 
 /* Ссылки */

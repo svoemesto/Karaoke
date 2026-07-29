@@ -17,7 +17,6 @@
        становится container, см. KaraokePlayer._toggleFullscreen) — блок на это время скрыт. -->
   <div v-if="currentSongId" class="kp-overlay-actions">
     <FavoriteIcon :song-id="currentSongId" />
-    <ShareButton />
   </div>
 </template>
 
@@ -46,7 +45,6 @@ import { useRoute, useRouter } from 'vue-router'
 import KaraokePlayer from '../player/KaraokePlayer.js'
 import { useAuth } from '../composables/useAuth'
 import FavoriteIcon from '../components/FavoriteIcon.vue'
-import ShareButton from '../components/ShareButton.vue'
 import { usePlaylistMembership } from '../composables/usePlaylistMembership'
 
 const route = useRoute()
@@ -72,14 +70,6 @@ let pos = 0
 let modes = { continuous: true, repeatMode: 'none' }
 const tokenCache = {} // songId -> token
 const pendingToken = {} // songId -> [resolve...]
-
-// QW-14: ShareButton читает document.title как текст шеринга (тот же паттерн, что SongView.vue).
-// player.data (songName/author) появляется только после успешной загрузки playerdata — до этого
-// заголовок вкладки остаётся дефолтным (index.html).
-function updateDocTitle() {
-  const data = player?.data
-  if (data?.songName) document.title = `${data.songName} — ${data.author || ''}`
-}
 
 function postToParent(msg) {
   try {
@@ -116,7 +106,6 @@ async function playPos(p) {
     return
   } // недоступна (истёк токен и т.п.) — дальше
   await player.playSong(songId, token, authToken.value, true)
-  updateDocTitle()
   postToParent({ type: 'track', songId })
   postToParent({ type: 'state', playing: true })
 }
@@ -210,7 +199,6 @@ onMounted(() => {
     )
     player.onTrackEnded = advanceAfterEnd
     player.init().then(() => {
-      updateDocTitle()
       player.play() // iframe allow="autoplay" → первый трек стартует
       postToParent({ type: 'track', songId: queue[pos] })
       postToParent({ type: 'state', playing: true })
@@ -223,7 +211,7 @@ onMounted(() => {
   // authToken (km_auth_token) шлётся, чтобы бэкенд определил живой премиум-статус для canExport
   // в playerdata — иначе пункт «Экспорт аудио...» не появится даже у залогиненного премиума.
   player = new KaraokePlayer(container.value, songId, '/api/public/player', token, authToken.value)
-  player.init().then(updateDocTitle)
+  player.init()
 })
 
 onBeforeUnmount(() => {
@@ -236,7 +224,7 @@ onBeforeUnmount(() => {
 .kp-overlay-actions {
   position: fixed;
   top: 10px;
-  right: 10px;
+  left: 10px;
   z-index: 20;
   display: flex;
   align-items: center;
@@ -249,17 +237,5 @@ onBeforeUnmount(() => {
   border-radius: 6px;
   padding: 4px 8px;
   line-height: 0;
-}
-.kp-overlay-actions :deep(.share-trigger) {
-  padding: 4px 10px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  border-radius: 6px;
-  background: rgba(17, 17, 17, 0.7);
-  border-color: #444;
-  color: #ccc;
-}
-.kp-overlay-actions :deep(.share-trigger:hover) {
-  border-color: #888;
 }
 </style>

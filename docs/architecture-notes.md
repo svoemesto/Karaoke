@@ -542,3 +542,17 @@ KDoc 100% (43/43 в karaoke-public), `npm run build` ✅, backend regression `Sp
 bump и Sync Impact Report, а не просто правка текста.
 
 **Связанные документы:** `specs/021-dev-pc-agent-permissions/{spec,plan,research,data-model,quickstart,tasks}.md`.
+
+---
+
+## Pass 30: webvue3 — квадратная ячейка обложки альбома в `AlbumsTable` (2026-07-29, #083)
+
+**Что.** В `webvue3/src/components/Albums/AlbumsTable.vue` колонка `(альбом)` сужена со 125px до 54px (= высоте строки) — ячейка с обложкой стала квадратной. Параллельно CSS `.fld-picture-preview` (`max-width: 125px → 100%`) и `.preview-image` (`max-width: 50px; max-height: 50px; width: auto; height: auto` вместо `width: auto; height: 50px`) подогнаны под квадрат с сохранением `object-fit: contain` — картинка вписывается пропорционально, без обрезки. 1 файл, +5/−3 строк, 0 миграций БД, 0 изменений бэкенда, 0 изменений в `karaoke-public`.
+
+**Зачем.** Прямой запрос пользователя: «в админке в компоненте "Альбомы" в таблице надо ширину колонки с картинкой альбома сделать такой же как высота строк (ячейка должна быть квадратной)». До правки картинки 1:1, 4:3, 3:4 в прямоугольной ячейке 125×54 «прыгали» по ширине, таблица выглядела неаккуратно.
+
+**Что НЕ изменилось.** Колонка `(автор)` (`authorPicture` в `albumDigestFields` — 125×54, не квадрат) сохранена без изменений (явный scope — US2 в спеке). Клик-логика модалки `AlbumCoverModal` не тронута. Все остальные колонки, фильтр, пагинация — без изменений.
+
+**Уроки.** Если бы я просто сузил CSS `.fld-picture-preview { width: 54px }` без правки `style` поля `albumPicture` в `albumDigestFields`, ширина колонки осталась бы 125px (colgroup определил бы её по `minWidth/maxWidth` поля), а внутри ячейки появилось бы «лишнее» пустое пространство. Квадрата не получилось бы. Правильный путь — задать ширину **на уровне colgroup** (через `field.style`), а не на уровне отдельной ячейки.
+
+**Связанные документы:** `specs/083-album-cover-square-cell/{spec,plan,research,data-model,quickstart,tasks}.md`. Смежная фича: Pass 27 (`specs/014-album-cell-album-cover-modal/`) — клик по этой же ячейке открывает `AlbumCoverModal`; клик-логика сохранена.

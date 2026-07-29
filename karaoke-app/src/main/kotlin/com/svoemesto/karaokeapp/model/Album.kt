@@ -119,6 +119,77 @@ class Album(
     companion object {
         const val TABLE_NAME = "tbl_albums"
 
+        /**
+         * Облегчённая версия [Album.toDTO] для потребителей, которым НЕ нужны денормализованные
+         * автор/картинки/счётчик песен — только сырые поля альбома (id/authorId/year/name/...).
+         * Используется пикером «Альбом (ссылка)» в `SongEdit.vue` (нужны только id/authorId/year/
+         * name для клиентской фильтрации по автору и подписи в `<option>`). Ни одного
+         * дополнительного запроса к БД, в отличие от [toDigestDTOs].
+         */
+        fun toLiteDTOs(albums: List<Album>): List<AlbumDTO> =
+            albums.map { album ->
+                AlbumDTO(
+                    id = album.id,
+                    authorId = album.authorId,
+                    year = album.year,
+                    name = album.name,
+                    albumType = album.albumType,
+                    sortOrder = album.sortOrder,
+                    description = album.description,
+                    shortDescription = album.shortDescription,
+                    warning = album.warning,
+                )
+            }
+
+        /**
+         * Пакетная версия [Album.toDTO] для дайджест-эндпоинтов (`apisAlbumsDigest`) — избегает
+         * N+1. Обычный `toDTO()` делает до 3 отдельных запросов НА КАЖДЫЙ альбом (автор по id +
+         * 2 картинки по имени); на 2000+ альбомах это тысячи запросов и десятки секунд (упавший
+         * в проде дайджест-пикер «Альбом (ссылка)» в SongEdit — 504 Gateway Timeout). Здесь автор
+         * и картинки грузятся пакетно (`WHERE id IN (..)` / `WHERE picture_name IN (..)`), не в
+         * цикле — Constitution Principle II.
+         */
+        fun toDigestDTOs(
+            albums: List<Album>,
+            database: KaraokeConnection,
+            storageService: KaraokeStorageService,
+            storageApiClient: StorageApiClient,
+        ): List<AlbumDTO> {
+            if (albums.isEmpty()) return emptyList()
+            val authorsById =
+                Author.getAuthorsByIds(albums.map { it.authorId }.distinct(), database, storageService, storageApiClient)
+            val pictureNames = mutableSetOf<String>()
+            albums.forEach { album ->
+                val authorName = authorsById[album.authorId]?.author ?: ""
+                if (authorName.isNotEmpty()) {
+                    pictureNames += authorName
+                    pictureNames += "$authorName - ${album.year} - ${album.name}"
+                }
+            }
+            val picturesByName = Pictures.getPicturesByNames(pictureNames.toList(), database, storageService, storageApiClient)
+            return albums.map { album ->
+                val authorName = authorsById[album.authorId]?.author ?: ""
+                val authorPicture = picturesByName[authorName]
+                val albumPicture = picturesByName["$authorName - ${album.year} - ${album.name}"]
+                AlbumDTO(
+                    id = album.id,
+                    authorId = album.authorId,
+                    authorName = authorName,
+                    year = album.year,
+                    name = album.name,
+                    albumType = album.albumType,
+                    sortOrder = album.sortOrder,
+                    description = album.description,
+                    shortDescription = album.shortDescription,
+                    warning = album.warning,
+                    authorPictureId = authorPicture?.id ?: 0,
+                    authorPicturePreviewUrl = authorPicture?.previewUrl() ?: "",
+                    albumPictureId = albumPicture?.id ?: 0,
+                    albumPicturePreviewUrl = albumPicture?.previewUrl() ?: "",
+                )
+            }
+        }
+
         @Suppress("unused")
         fun listHashes(
             database: KaraokeConnection,

@@ -2,14 +2,15 @@
 
 > **Status**: active
 > **Feature Key**: monitoring
-> **Last Updated**: 2026-07-20
+> **Last Updated**: 2026-07-29
 
 ## Что делает
 
 Обобщение подсистемы `HealthReport`, но НЕ привязанное к конкретной
 песне `Settings`. Системные проверки состояния проекта в целом.
 Снимок показывается в хедере webvue3 как «светофор» (красный/жёлтый/
-зелёный). Шесть проверок из коробки + легко добавить новую.
+зелёный). Восемь проверок из коробки (см. `MonitorRegistry.checks`) +
+легко добавить новую.
 
 ## Зачем
 
@@ -22,11 +23,18 @@
 1. **`MonitorRegistry.checks`** — список `object : MonitorCheck`:
    - Горизонт запланированных постов в Telegram (< N дней).
    - Доступность прод-сервера (HTTP HEAD на `https://sm-karaoke.ru`).
-   - Остановленная очередь рендера (нет процессов в `RUNNING` > 30 мин).
+   - Остановленная очередь рендера целиком — `isWork == false`, хотя есть
+     ждущие задания (`RenderQueueStalledCheck`).
+   - Зависший ОТДЕЛЬНЫЙ thread-лейн очереди — воркер в целом работает
+     (`isWork == true`), но конкретный лейн не продвигается дольше
+     порога простоя, хотя у него есть ожидающие задания
+     (`LaneStalledCheck`, см. specs/029-fix-queue-lane-stall) — дополняет
+     `RenderQueueStalledCheck`, не дублирует.
    - Выключенный Telegram-поллинг (`telegramPollingEnabled = false`).
    - Непрочитанные сообщения в чате от пользователей.
    - Задания онлайн-редактора «на проверке» (`SubmittedAssignmentsCheck`,
      смотрит remote-БД).
+   - Зависшие премиум-стемы (`StemJobsStuckCheck`).
    - Добавление новой проверки — одна строка в реестре.
 2. **`MonitoringService`** — `@Scheduled` раз в минуту, прогоняет
    все проверки, хранит снапшот в памяти, рассылает по SSE
@@ -68,11 +76,18 @@
 - **SSE flood**: при 10+ одновременных проверках, каждая из которых
   публикует алерт, UI может захлебнуться. Группируйте алерты в
   `MonitorAlert.bucket` (1-2-3 severity).
+- **`LaneStalledCheck` хранит «с какого момента лейн простаивает» в
+  памяти** (`ConcurrentHashMap`, не в БД) — переживает только пока жив
+  процесс `karaoke-app`; после рестарта отсчёт порога простоя начинается
+  заново. Это осознанный компромисс (best-effort детектор, не источник
+  истины) — избавляет от новой колонки в `tbl_processes` и лишней миграции
+  ради вспомогательной проверки.
 
 ## Ссылки на ключевые классы/файлы
 
 - [`MonitorRegistry.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/monitor/MonitorRegistry.kt) — реестр проверок
 - [`MonitorCheck.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/monitor/MonitorCheck.kt) — интерфейс проверки
+- [`LaneStalledCheck.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/monitor/checks/LaneStalledCheck.kt) — зависание отдельного thread-лейна (см. `docs/features/async-process-queue.md`)
 - [`MonitoringService.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/monitor/MonitoringService.kt) — `@Scheduled` runner
 - [`MonitoringController.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/MonitoringController.kt) — REST
 - [`MonitorAlert.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/monitor/MonitorAlert.kt) — модель алерта

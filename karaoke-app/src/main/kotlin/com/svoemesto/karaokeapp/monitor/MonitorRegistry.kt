@@ -1,5 +1,6 @@
 package com.svoemesto.karaokeapp.monitor
 
+import com.svoemesto.karaokeapp.monitor.checks.LaneStalledCheck
 import com.svoemesto.karaokeapp.monitor.checks.ProdContainerCheck
 import com.svoemesto.karaokeapp.monitor.checks.RenderQueueStalledCheck
 import com.svoemesto.karaokeapp.monitor.checks.StemJobsStuckCheck
@@ -18,6 +19,7 @@ object MonitorRegistry {
             TelegramHorizonCheck,
             ProdContainerCheck,
             RenderQueueStalledCheck,
+            LaneStalledCheck,
             TelegramPollingDisabledCheck,
             UnreadChatMessagesCheck,
             SubmittedAssignmentsCheck,

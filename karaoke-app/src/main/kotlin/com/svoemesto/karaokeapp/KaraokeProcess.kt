@@ -606,6 +606,52 @@ class KaraokeProcess(
             }
         }
 
+        /**
+         * Точечный аналог [setWorkingToWaiting] для одного thread-лейна: возвращает в `WAITING`
+         * только записи конкретного `threadId`, которые числятся `WORKING` (осиротевшие - без живого
+         * обработчика в `KaraokeProcessWorker.threadsMap`), не трогая другие лейны.
+         *
+         * Используется `resolveAction` проверки мониторинга `LaneStalledCheck` для восстановления
+         * зависшего лейна без перезапуска всего воркера.
+         *
+         * @param database подключение к БД (local/remote/virtual)
+         * @param threadId thread-лейн, который нужно восстановить
+         * @return число восстановленных записей (0, если восстанавливать было нечего)
+         * @see docs/features/async-process-queue.md
+         * @see docs/features/monitoring.md
+         */
+        fun setWorkingToWaitingForThread(
+            database: KaraokeConnection,
+            threadId: Int,
+        ): Int {
+            println(
+                "[${Timestamp.from(
+                    Instant.now(),
+                )}] KaraokeProcess: Сбрасываем WORKING в WAITING точечно для лейна threadId=$threadId...",
+            )
+            try {
+                val connection = database.getConnection()
+                if (connection == null) {
+                    println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
+                    return 0
+                }
+                val sql =
+                    "UPDATE tbl_processes SET " +
+                        "process_status = ? " +
+                        "WHERE process_status = ? AND thread_id = ?"
+                val ps = connection.prepareStatement(sql)
+                ps.setString(1, "WAITING")
+                ps.setString(2, "WORKING")
+                ps.setInt(3, threadId)
+                val updated = ps.executeUpdate()
+                ps.close()
+                return updated
+            } catch (e: Exception) {
+                println(e.message)
+                return 0
+            }
+        }
+
         fun createDbInstance(process: KaraokeProcess): KaraokeProcess? {
             val sql =
                 "INSERT INTO tbl_processes (" +

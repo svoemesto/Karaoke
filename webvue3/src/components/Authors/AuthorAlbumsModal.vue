@@ -62,6 +62,8 @@ const ALBUM_TYPE_LABELS = {
   compilation: 'Сборник',
   bootleg: 'Бутлег',
   single: 'Сингл',
+  archive: 'Архивный',
+  tribute: 'Трибьют/Кавер',
 }
 
 /**

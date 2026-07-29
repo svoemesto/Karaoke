@@ -169,13 +169,15 @@ import AlbumCoverModal from '../Songs/edit/AlbumCoverModal.vue'
 
 // Значения соответствуют AlbumType.dbValue (karaoke-app/model/AlbumType.kt) — не менять без
 // синхронной правки бэкенда.
-const ALBUM_TYPE_OPTIONS = ['studio', 'live', 'compilation', 'bootleg', 'single']
+const ALBUM_TYPE_OPTIONS = ['studio', 'live', 'compilation', 'bootleg', 'single', 'archive', 'tribute']
 const ALBUM_TYPE_LABELS = {
   studio: 'Студийный',
   live: 'Концертный',
   compilation: 'Сборник',
   bootleg: 'Бутлег',
   single: 'Сингл',
+  archive: 'Архивный',
+  tribute: 'Трибьют/Кавер',
 }
 
 /**

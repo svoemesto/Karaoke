@@ -103,7 +103,7 @@ abstract class SyncTarget<T : Any>(
      * Загрузить список `recordhash` для записей, удовлетворяющих `whereText`.
      * Используется для быстрого сравнения LOCAL vs SERVER (O(n) по хешам, не по строкам).
      * @param db подключение к LOCAL- или SERVER-БД.
-     * @param whereText дополнительный WHERE (например, `"AND id_status >= 3"`).
+     * @param whereText дополнительный WHERE (например, `"AND id_status >= 6"`).
      * @return список пар `(id, recordhash)` или `null`, если `whereText` недопустим.
      */
     abstract fun listHashes(

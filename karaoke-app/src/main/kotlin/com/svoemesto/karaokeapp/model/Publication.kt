@@ -1400,7 +1400,7 @@ class Publication(
                         ).filter {
                             it.date != "" &&
                                 it.time != "" &&
-                                it.idStatus < 3L
+                                it.idStatus < 6L
                         }
                 if (listOfSettingsTemp.isNotEmpty()) {
                     var minDate = ""
@@ -1424,7 +1424,7 @@ class Publication(
                         ).filter {
                             it.date != "" &&
                                 it.time != "" &&
-                                it.idStatus < 4L
+                                it.idStatus < 3L
                         }
                 if (listOfSettingsTemp.isNotEmpty()) {
                     var minDate = ""
@@ -1685,7 +1685,7 @@ class Publication(
                         ).filter {
                             it.date != "" &&
                                 it.time != "" &&
-                                it.idStatus < 3L
+                                it.idStatus < 6L
                         }
                 if (listOfSettingsTemp.isNotEmpty()) {
                     var minDate = ""
@@ -1709,7 +1709,7 @@ class Publication(
                         ).filter {
                             it.date != "" &&
                                 it.time != "" &&
-                                it.idStatus < 4L
+                                it.idStatus < 3L
                         }
                 if (listOfSettingsTemp.isNotEmpty()) {
                     var minDate = ""

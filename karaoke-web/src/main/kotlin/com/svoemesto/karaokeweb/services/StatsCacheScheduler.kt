@@ -9,7 +9,7 @@ import org.springframework.stereotype.Service
 
 /**
  * Обновляет кеш счётчиков главной страницы (StatBySong) раз в час. Источник истины — SQL,
- * считается при стандартных фильтрах (id_status>=3, source_markers непустой, без SKIP) — гланая
+ * считается при стандартных фильтрах (id_status>=6, source_markers непустой, без SKIP) — гланая
  * отвечает за миллисекунды без обращения к БД и без блокирующих HEAD-запросов в MinIO на
  * 18k+ записей. Точная проверка стемов (stemsReady в PublicPlayerController) живёт отдельно и
  * используется только для иконки плеера в закромах/поиске (@see usePlayerReadiness в karaoke-public).

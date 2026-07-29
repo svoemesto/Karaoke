@@ -2,7 +2,7 @@
 
 > **Status**: active
 > **Feature Key**: stats
-> **Last Updated**: 2026-07-27
+> **Last Updated**: 2026-07-29 (specs/022-song-status-lifecycle: порог «готова» `id_status>=3` → `>=6`)
 
 ## Что делает
 
@@ -31,7 +31,7 @@
 
 | Лейбл | Формула (SQL, без учёта SKIP) |
 |-------|-------------------------------|
-| **Песен в коллекции** | `count(*) WHERE id_status>=3 AND btrim(source_markers)!=''` |
+| **Песен в коллекции** | `count(*) WHERE id_status>=6 AND btrim(source_markers)!=''` |
 | **В открытом доступе** | подмножество «коллекции» с истёкшим `publish_date`/`publish_time` |
 | **По подписке** | «коллекция» − «в открытом доступе» |
 | **В работе** | «всего в БД» − «в коллекции» |
@@ -46,15 +46,25 @@ SQL-аппроксимация готовности премиум-плеера 
 `PublicPlayerController.stemsReady()` и делает 2 HEAD-запроса в MinIO на
 песню — слишком дорого для 18k+ записей на главной).
 
-**Согласованность с листингами** (specs/013-song-status-filter): до этой
-фичи счётчик «Песен в коллекции» использовал `id_status>=3`, но публичные
+**Согласованность с листингами** (specs/013-song-status-filter): до фичи 013
+счётчик «Песен в коллекции» использовал `id_status>=3`, но публичные
 закрома и поиск (`PublicApiController`/`MainController` в `karaoke-web`)
 показывали песни любого статуса — счётчик на главной мог показывать меньше,
-чем реально было видно в закромах/поиске. Теперь `Zakroma.getZakroma`/
+чем реально было видно в закромах/поиске. `Zakroma.getZakroma`/
 `getZakromaBySpecialOrder` (параметр `onlyPublished`) и прямые вызовы
-`Song.loadListFromDb` в публичных read-путях используют тот же порог
-`id_status>=3`, что и этот счётчик — см. [special-orders.md](./special-orders.md)
-для деталей параметра.
+`Song.loadListFromDb` в публичных read-путях используют тот же порог, что и
+этот счётчик — см. [special-orders.md](./special-orders.md) для деталей
+параметра.
+
+**Расширенный жизненный цикл статуса** (specs/022-song-status-lifecycle,
+2026-07-29): `id_status` теперь имеет 7 значений (0-6) вместо 4 (0-3) —
+0 новая, 1 текст найден, 2 текст проверен (орфография/пунктуация), 3 текст
+проверен (слова соответствуют песне), 4 маркеры расставлены, 5 маркеры
+проверены, 6 песня готова. Порог «готова» перенесён с `id_status>=3` на
+`id_status>=6` — везде, где раньше использовался старый порог (эта таблица,
+`PublicPlayerController.stemsReady()`, `Zakroma`/`Song.loadListFromDb`
+публичные read-пути). Значения 3-5 могут временно встречаться у песен
+в процессе производства и не считаются «готовыми».
 
 ### Кеш в AtomicInteger
 
@@ -131,5 +141,6 @@ Spring `@Cacheable` намеренно НЕ подключён (нет `@EnableC
 - [dual-db-sync.md](./dual-db-sync.md) — синхронизация `tbl_web_event` LOCAL↔SERVER
 - [ci-lint-enforcement.md](./ci-lint-enforcement.md) — почему нет `@Cacheable`
 - [CONTRIBUTING.md](../../CONTRIBUTING.md) — правила оформления кода
-- [special-orders.md](./special-orders.md) — `Zakroma.getZakroma`/`getZakromaBySpecialOrder` теперь тоже фильтруют по `id_status>=3`
+- [special-orders.md](./special-orders.md) — `Zakroma.getZakroma`/`getZakromaBySpecialOrder` теперь тоже фильтруют по `id_status>=6`
 - [specs/013-song-status-filter/spec.md](../../specs/013-song-status-filter/spec.md) — согласование счётчика «в коллекции» с листингами
+- [specs/022-song-status-lifecycle/spec.md](../../specs/022-song-status-lifecycle/spec.md) — расширение жизненного цикла статуса до 7 значений, перенос порога готовности на `>=6`

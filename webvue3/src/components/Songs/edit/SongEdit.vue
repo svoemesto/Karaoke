@@ -69,7 +69,7 @@
               >⬇</a
             >
           </div>
-          <div v-if="song.idStatus < 3" style="margin-top: 4px">
+          <div v-if="song.idStatus < 6" style="margin-top: 4px">
             <button
               v-if="assignmentInfo"
               class="assign-badge"
@@ -1942,6 +1942,7 @@
                 :class="statusButtonClass(0)"
                 type="button"
                 value="0"
+                title="Новая песня"
                 @click="setStatus(0)"
               >
                 ❎
@@ -1951,6 +1952,7 @@
                 :class="statusButtonClass(1)"
                 type="button"
                 value="1"
+                title="Текст найден"
                 @click="setStatus(1)"
               >
                 Тxt🛠
@@ -1960,6 +1962,7 @@
                 :class="statusButtonClass(2)"
                 type="button"
                 value="2"
+                title="Текст проверен: орфография и пунктуация"
                 @click="setStatus(2)"
               >
                 Txt✅
@@ -1969,27 +1972,37 @@
                 :class="statusButtonClass(3)"
                 type="button"
                 value="3"
-                title="Проект создан — доступно в онлайн-плеере"
+                title="Текст проверен: слова соответствуют песне"
                 @click="setStatus(3)"
               >
-                Prj🛠
+                TxtSl✅
               </button>
               <button
-                class="group-button group-button-legacy"
+                class="group-button"
                 :class="statusButtonClass(4)"
                 type="button"
                 value="4"
-                title="Легаси: этап старого MLT-рендера, не влияет на онлайн-плеер"
+                title="Маркеры расставлены"
                 @click="setStatus(4)"
               >
-                Prj✅
+                Mrk🛠
               </button>
               <button
-                class="group-button group-button-legacy"
+                class="group-button"
+                :class="statusButtonClass(5)"
+                type="button"
+                value="5"
+                title="Маркеры проверены"
+                @click="setStatus(5)"
+              >
+                Mrk✅
+              </button>
+              <button
+                class="group-button"
                 :class="statusButtonClass(6)"
                 type="button"
                 value="6"
-                title="Легаси: этап старого MLT-рендера, не влияет на онлайн-плеер"
+                title="Готова — доступна в онлайн-плеере"
                 @click="setStatus(6)"
               >
                 ✅
@@ -2345,10 +2358,10 @@
         </button>
         <button
           class="btn-round-double"
-          :disabled="song.idStatus >= 3"
+          :disabled="song.idStatus >= 4"
           :title="
-            song.idStatus >= 3
-              ? 'Точные маркеры: недоступно - статус песни уже >= 3 (маркеры финальны)'
+            song.idStatus >= 4
+              ? 'Точные маркеры: недоступно - статус песни уже >= 4 (маркеры расставлены)'
               : 'Точные маркеры (forced-alignment) фоном для всех голосов песни'
           "
           @click="createForcedAlignMarkers"
@@ -2425,7 +2438,8 @@ const SONG_TYPE_OPTIONS = [
  *
  * Это самый большой и сложный Vue-компонент в проекте (~3000 строк).
  * Содержит 8 логических секций:
- * 1. **Header**: id, автор, альбом, имя файла, тип песни, статус.
+ * 1. **Header**: id, автор, альбом, имя файла, тип песни, статус (7 значений
+ *    0-6 жизненного цикла готовности — см. `specs/022-song-status-lifecycle`).
  * 2. **Аудио**: source/origin/mix/vocals/accompaniment, BPM, Key.
  * 3. **Текст**: `subsText` (исходник), `translatedText` (перевод),
  *    `chordsText` (аккорды), автоматический поиск через `SearchText`.
@@ -3676,19 +3690,19 @@ export default {
           break
         }
         case 3: {
-          status = 'PROJECT_CREATE'
+          status = 'TEXT_WORDS_VERIFIED'
           break
         }
         case 4: {
-          status = 'PROJECT_CHECK'
+          status = 'MARKERS_CREATED'
           break
         }
         case 5: {
-          status = 'RENDERING'
+          status = 'MARKERS_VERIFIED'
           break
         }
         case 6: {
-          status = 'DONE'
+          status = 'READY'
           break
         }
       }

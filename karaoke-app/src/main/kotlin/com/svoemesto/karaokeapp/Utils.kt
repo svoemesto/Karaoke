@@ -69,8 +69,10 @@ import kotlin.math.roundToInt
 import kotlin.random.Random
 import kotlin.use
 
-// Повторный поиск родителей и аудио-родителей: для КАЖДОЙ песни с root_id = 0 И id_status < 3
-// (ещё не привязана ни к куратору-родителю, ни к автоматическому, и ещё в начале пайплайна)
+// Повторный поиск родителей и аудио-родителей: для КАЖДОЙ песни с root_id = 0 И id_status < 6
+// (ещё не привязана ни к куратору-родителю, ни к автоматическому, и ещё не полностью готова —
+// прескан намеренно широкий, реальная защита от перезаписи уже проверенного текста - отдельная
+// проверка id_status >= 2 чуть ниже, specs/022-song-status-lifecycle)
 // прогоняет ДВА независимых механизма подряд, в два прохода:
 //   1) "родитель" (findParentCandidateId + applyDuplicateOriginal) - по ВСЕЙ выборке; точное
 //      совпадение нормализованного названия среди ВСЕХ песен; root_id/текст/статус переписываются
@@ -99,7 +101,7 @@ fun customFunction(
         try {
             val connection = WORKING_DATABASE.getConnection()
             if (connection != null) {
-                val ps = connection.prepareStatement("SELECT id FROM tbl_songs WHERE root_id = 0 AND id_status < 3 ORDER BY id")
+                val ps = connection.prepareStatement("SELECT id FROM tbl_songs WHERE root_id = 0 AND id_status < 6 ORDER BY id")
                 val rs = ps.executeQuery()
                 while (rs.next()) ids.add(rs.getLong("id"))
                 rs.close()
@@ -3674,6 +3676,10 @@ fun executeGetKeyBpmFromFile(params: Map<String, String>): Boolean {
  * idStatus проверяется дважды - на постановку в очередь (ApiController.doProcessForcedAlignMarkers/
  * getSongsCreateForcedAlignMarkersAll) и здесь: очередь может ждать своего хода долго, за это время
  * идстатус песни мог измениться руками через UI.
+ *
+ * Реализует «автоматическую расстановку маркеров» из жизненного цикла статуса готовности
+ * (specs/022-song-status-lifecycle) - продвигает idStatus строго на 1 шаг (3 -> 4, FR-011), не
+ * трогая его, если текущий статус не 3 (например, орфография/сверка слов ещё не пройдены вручную).
  */
 fun executeForcedAlignMarkers(params: Map<String, String>): Boolean {
     val settingsId = params["settingsId"]?.toLongOrNull() ?: return false
@@ -3687,7 +3693,7 @@ fun executeForcedAlignMarkers(params: Map<String, String>): Boolean {
             storageApiClient = SAC_APP,
         )
             ?: return false
-    if (settings.idStatus >= 3) return false
+    if (settings.idStatus >= 4) return false
 
     val vocalsFile = File(settings.vocalsNameFlac)
     if (!vocalsFile.exists()) return false
@@ -3715,8 +3721,8 @@ fun executeForcedAlignMarkers(params: Map<String, String>): Boolean {
     }
     if (!anyVoiceProcessed) return false
 
-    if (settings.idStatus < 2) {
-        settings.fields[SongField.ID_STATUS] = "2"
+    if (settings.idStatus == 3L) {
+        settings.fields[SongField.ID_STATUS] = "4"
         settings.saveToDb()
     }
     return true
@@ -4147,8 +4153,8 @@ fun findAndFillDublicates(
     /*
     На вход подаётся список песен. Предполагается, что это песни одного автора. На всякий случай будет это учитывать при фильтрации
     Дла каждой песни со статусом 0 нужно получить её имя без скобок "Имя песни (1992)" - "Имя песни"
-    Найти это имя среди готовых песен (idStatus >= 3 — готова к онлайн-плееру, старый рендер mp4
-    больше не обязателен) и скопировать root_id, поля текста, установить статус в 1
+    Найти это имя среди готовых песен (idStatus >= 6 — готова к онлайн-плееру, specs/022-song-status-lifecycle)
+    и скопировать root_id, поля текста, установить статус в 1
      */
     var result = 0
     val listSettings =
@@ -4161,7 +4167,7 @@ fun findAndFillDublicates(
         )
     listSettings.filter { it.idStatus == 0L }.forEach { newSettings ->
         val nameToFind = newSettings.songName.replace(Regex("""\([^)]*\)"""), "").trim()
-        listSettings.firstOrNull { it.idStatus >= 3L && it.songName.replace(Regex("""\([^)]*\)"""), "").trim() == nameToFind }?.let { findedSettings ->
+        listSettings.firstOrNull { it.idStatus >= 6L && it.songName.replace(Regex("""\([^)]*\)"""), "").trim() == nameToFind }?.let { findedSettings ->
             newSettings.rootId = findedSettings.id
             newSettings.sourceText = findedSettings.sourceText
             newSettings.resultText = findedSettings.resultText
@@ -4336,11 +4342,14 @@ fun applyDuplicateOriginal(
 
 /**
  * Применяет текст/маркеры аудио-родителя (см. findAudioParentByWaveform) к только что импортированной
- * песне - вызывается, только если аудио-родитель найден и уже "готов" (idStatus >= 3, т.е. как минимум
- * прошёл создание проекта). Маркеры сдвигаются под таймлайн текущей песни тем же способом, что и в
- * applyFamilySongSelection (shiftMarkersAndFixEnd), но, в отличие от неё, root_id не трогается -
- * audio_parent_id уже отдельно связывает пару (см. findAudioParentByWaveform), а статус выставляется
- * в 3 (PROJECT_CREATE) безусловно, независимо от текущего статуса песни.
+ * песне - вызывается, только если аудио-родитель найден и уже полностью "готов" (idStatus >= 6, т.е.
+ * прошёл весь жизненный цикл проверки текста/маркеров - specs/022-song-status-lifecycle). Маркеры
+ * сдвигаются под таймлайн текущей песни тем же способом, что и в applyFamilySongSelection
+ * (shiftMarkersAndFixEnd), но, в отличие от неё, root_id не трогается - audio_parent_id уже отдельно
+ * связывает пару (см. findAudioParentByWaveform), а статус выставляется в 6 (READY) безусловно,
+ * независимо от текущего статуса песни: копирование уже полностью проверенного контента от
+ * аудио-подтверждённого родителя - осознанный обход промежуточных ручных проверок, а не итеративное
+ * автоматическое продвижение статуса (поэтому не подчиняется правилу "1 шаг за раз" FR-011).
  */
 fun applyAudioParentMarkers(
     settings: Song,
@@ -4353,7 +4362,7 @@ fun applyAudioParentMarkers(
     settings.formattedTextSong = audioParent.formattedTextSong
     settings.formattedTextTabs = audioParent.formattedTextTabs
     settings.formattedTextChords = audioParent.formattedTextChords
-    settings.fields[SongField.ID_STATUS] = "3"
+    settings.fields[SongField.ID_STATUS] = "6"
     settings.saveToDb()
 }
 

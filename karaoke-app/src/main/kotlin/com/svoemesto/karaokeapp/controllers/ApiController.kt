@@ -3757,8 +3757,9 @@ class ApiController(
 
     // Точные маркеры (forced-alignment) для песни - фоновый аналог кнопки «Точные маркеры» в
     // SubsEdit (см. Utils.executeForcedAlignMarkers), обрабатывает все голоса песни разом. Нельзя
-    // ставить в очередь для песен со статусом idStatus>=3 (маркеры уже финальны/проверены, см.
-    // alignment-ml/README.md) - иначе фоновый процесс молча затёр бы уже подтверждённую разметку.
+    // ставить в очередь для песен со статусом idStatus>=4 (маркеры уже расставлены, см.
+    // alignment-ml/README.md, specs/022-song-status-lifecycle) - иначе фоновый процесс молча
+    // затёр бы уже подтверждённую разметку.
     @PostMapping("/song/forcedalignmarkers")
     @ResponseBody
     fun doProcessForcedAlignMarkers(
@@ -3774,7 +3775,7 @@ class ApiController(
                 storageService = storageService,
                 storageApiClient = storageApiClient,
             )
-        if (settings != null && settings.idStatus < 3) {
+        if (settings != null && settings.idStatus < 4) {
             val effectiveUseFinetuned = useFinetunedModel ?: KaraokeProperties.getBoolean("alignmentUseFinetunedModel")
             KaraokeProcess.createProcess(
                 settings,
@@ -3804,7 +3805,7 @@ class ApiController(
                         if (settings == null) {
                             "Что-то пошло не так"
                         } else {
-                            "Песня уже имеет статус ${settings.idStatus} (маркеры финальны) - процесс не создан"
+                            "Песня уже имеет статус ${settings.idStatus} (маркеры расставлены) - процесс не создан"
                         },
                 ),
             ),
@@ -3812,7 +3813,7 @@ class ApiController(
     }
 
     // Точные маркеры (forced-alignment) для всех песен (из текущей выборки) - песни со статусом
-    // idStatus>=3 молча пропускаются (см. комментарий у doProcessForcedAlignMarkers выше).
+    // idStatus>=4 молча пропускаются (см. комментарий у doProcessForcedAlignMarkers выше).
     @PostMapping("/songs/createforcedalignmarkersall")
     @ResponseBody
     fun getSongsCreateForcedAlignMarkersAll(
@@ -3838,7 +3839,7 @@ class ApiController(
                     storageService = storageService,
                     storageApiClient = storageApiClient,
                 )
-            if (settings != null && settings.idStatus < 3) {
+            if (settings != null && settings.idStatus < 4) {
                 KaraokeProcess.createProcess(
                     settings,
                     KaraokeProcessTypes.FORCED_ALIGN_MARKERS,
@@ -5229,8 +5230,9 @@ class ApiController(
                 }
 
                 // Поиск аудио-родителя (по звучанию) - независимо от результата обычного поиска по названию.
-                // Если найден и уже "готов" (idStatus >= 3) - его маркеры точнее/полнее, применяем их со
-                // сдвигом и переводим песню в статус 3 (перекрывая более слабый статус 1 обычного родителя).
+                // Если найден и уже полностью "готов" (idStatus >= 6) - его маркеры точнее/полнее,
+                // применяем их со сдвигом и переводим песню в статус 6 (перекрывая более слабый статус 1
+                // обычного родителя).
                 val audioParentResult =
                     findAudioParentByWaveform(
                         newSettings,
@@ -5246,7 +5248,7 @@ class ApiController(
                             storageService = storageService,
                             storageApiClient = storageApiClient,
                         )
-                    if (audioParent != null && audioParent.idStatus >= 3) {
+                    if (audioParent != null && audioParent.idStatus >= 6) {
                         applyAudioParentMarkers(newSettings, audioParent, audioParentResult.deltaMs)
                         textResolved = true
                     }

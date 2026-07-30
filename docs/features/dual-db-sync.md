@@ -104,6 +104,23 @@ Karaoke — self-pipeline. Admin-машина разрабатывает нов�
   сознательно НЕ участвовать в sync, если это явно задокументировано. `recordhash`-триггер
   `tbl_news` НЕ пересобирался — новые колонки в хэш не входят намеренно. См.
   `specs/089-auto-news-song-release/research.md` (п.2) и `data-model.md`.
+- **Три независимых триггера авто-новостей вместо одного (2026-07-30, specs/092-fix-auto-news-triggers)**:
+  `SongReleaseAnnouncementService.checkAndAnnounce` (см. выше) до этой фичи вызывался ровно из одной
+  точки — `MainController.doChangeRecords`, то есть только в момент синхронизации таблиц. Это
+  создавало два разрыва: новость об «эфире по расписанию» появлялась только при следующей ручной
+  синхронизации (иногда с задержкой в часы/дни), а новость о песне, ставшей доступной через апрув
+  задания редактора администратором, не появлялась вовсе без отдельной синхронизации. Добавлены ещё
+  две вызывающие точки той же самой идемпотентной функции (логика детекции/идемпотентности —
+  `Song.isPubliclyWatchable` + `tbl_song_news_announced` — не менялась, см.
+  `specs/092-fix-auto-news-triggers/research.md`):
+  1. `SongReleaseAnnouncementScheduler` (`karaoke-web/.../services/`) — новый `@Scheduled`-компонент,
+     периодическая проверка раз в ~5 минут, независимая от факта синхронизации.
+  2. `SongEditorController.approve()` (`karaoke-app`) — сразу после подтверждённого (`SyncResult`
+     непуст) best-effort push песни на `Connection.remote()`, тем же прямым JDBC-паттерном, что уже
+     используется в этом методе для `SongAssignment` при `target == "remote"` — то есть в обход
+     generic sync-движка, аналогично исключению из предыдущего пункта.
+  Одновременно `checkAndAnnounce` расширил формируемый текст новости альбомом/годом песни (`Song.album`/
+  `Song.year`), когда они заполнены — см. `specs/092-fix-auto-news-triggers/contracts/news-triggers.md`.
 
 ## Ссылки на ключевые классы/файлы
 

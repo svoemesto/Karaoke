@@ -3,6 +3,9 @@ package com.svoemesto.karaokeapp.controllers
 import com.svoemesto.karaokeapp.Connection
 import com.svoemesto.karaokeapp.KaraokeConnection
 import com.svoemesto.karaokeapp.model.News
+import com.svoemesto.karaokeapp.services.KSS_APP
+import com.svoemesto.karaokeapp.services.SAC_APP
+import com.svoemesto.karaokeapp.services.SongReleaseAnnouncementService
 import org.springframework.stereotype.Controller
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestMapping
@@ -117,4 +120,19 @@ class NewsController {
         @RequestParam id: Long,
         @RequestParam(required = false) target: String?,
     ): Boolean = withDb(target) { db -> News.delete(id, db) }
+
+    // Одноразовый backfill при включении «Автоматических новостей о выходе песни в эфир»
+    // (specs/083-auto-news-song-release, FR-005/User Story 3) — помечает уже публично доступные
+    // песни как «анонсированные» БЕЗ создания видимой новости, чтобы первый же прогон
+    // /changerecords на проде не создал лавину исторических новостей. Вызывается ОДИН РАЗ вручную
+    // администратором (обычно с target=remote — против PROD БД, по прямому согласию пользователя на
+    // каждое выполнение, см. constitution.md), ДО начала штатной работы механизма.
+    @PostMapping("/backfill-announcements")
+    @ResponseBody
+    fun backfillAnnouncements(
+        @RequestParam(required = false) target: String?,
+    ): Map<String, Any> =
+        withDb(target) { db ->
+            mapOf("markedCount" to SongReleaseAnnouncementService.backfillExistingReadySongs(db, KSS_APP, SAC_APP))
+        }
 }

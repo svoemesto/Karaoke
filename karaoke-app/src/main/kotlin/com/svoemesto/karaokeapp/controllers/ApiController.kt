@@ -5504,23 +5504,43 @@ class ApiController(
         thread {
             val scope = if (authorFilter != null) "автор «$authorFilter»" else "все авторы"
             println("Пересчёт готовности плеера ($scope): начало")
-            val result =
-                HealthReport.recalculatePlayerReadiness(
-                    authorFilter,
-                    database = WORKING_DATABASE,
-                    storageService = storageService,
-                    storageApiClient = storageApiClient,
-                )
-            println("Пересчёт готовности плеера ($scope): завершено, проверено песен: $result")
-            SNS.send(
-                SseNotification.message(
-                    Message(
-                        type = "info",
-                        head = "Пересчёт готовности плеера ($scope)",
-                        body = "Проверено песен: $result",
+            // specs/100-fix-recalc-readiness-progress-resilience: без этого try/catch необработанное
+            // исключение в этом потоке (например, из SNS.send) тихо убивает фоновый поток — ни строки
+            // "завершено", ни тоста, ни ошибки в логе; администратор не может отличить "ещё считает"
+            // от "давно упало".
+            try {
+                val result =
+                    HealthReport.recalculatePlayerReadiness(
+                        authorFilter,
+                        database = WORKING_DATABASE,
+                        storageService = storageService,
+                        storageApiClient = storageApiClient,
+                    )
+                println("Пересчёт готовности плеера ($scope): завершено, проверено песен: $result")
+                SNS.send(
+                    SseNotification.message(
+                        Message(
+                            type = "info",
+                            head = "Пересчёт готовности плеера ($scope)",
+                            body = "Проверено песен: $result",
+                        ),
                     ),
-                ),
-            )
+                )
+            } catch (e: Exception) {
+                println("Пересчёт готовности плеера ($scope): аварийно прерван: ${e.message}")
+                try {
+                    SNS.send(
+                        SseNotification.error(
+                            Message(
+                                type = "error",
+                                head = "Пересчёт готовности плеера ($scope)",
+                                body = "Прервано ошибкой: ${e.message}",
+                            ),
+                        ),
+                    )
+                } catch (_: Exception) {
+                }
+            }
         }
         return true
     }

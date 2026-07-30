@@ -911,6 +911,16 @@ export default class KaraokePlayer {
       const isOpen = menu.style.display === 'block'
       this._closeMenu()
       menu.style.display = isOpen ? 'none' : 'block'
+      // Для бесплатных пользователей скрываем подменю транспонирования при открытии меню
+      if (transposeSubmenu && this.data?.isPremiumUser !== true) {
+        transposeSubmenu.style.display = 'none'
+      }
+      // Обновляем визуальный статус пункта "Тональность" в зависимости от премиум-статуса
+      if (transposeItem) {
+        const isPremium = this.data?.isPremiumUser === true
+        transposeItem.style.cursor = isPremium ? 'pointer' : 'not-allowed'
+        transposeItem.style.opacity = isPremium ? '1' : '0.6'
+      }
     })
 
     // Speed submenu
@@ -926,36 +936,30 @@ export default class KaraokePlayer {
     }
     this._updateSpeedMenu()
 
-    // Transpose submenu (premium) or prompt (free)
+    // Transpose: ленивый gate — решение принимается при первом клике, когда data уже загружена.
     if (transposeItem) {
-      const isPremium = this.data?.isPremiumUser === true
-      if (isPremium) {
-        transposeItem.addEventListener('click', (e) => {
-          e.stopPropagation()
+      transposeItem.addEventListener('click', (e) => {
+        e.stopPropagation()
+        const isPremium = this.data?.isPremiumUser === true
+        if (isPremium) {
           transposeItem.classList.toggle('kp-submenu-open')
-        })
-        for (const el of transposeSubmenu.querySelectorAll('[data-transpose]')) {
-          el.addEventListener('click', () => {
-            this._closeMenu()
-            this.setTransposeOffset(Number(el.dataset.transpose))
-          })
-        }
-      } else {
-        // Free user: hide submenu and show prompt on click
-        if (transposeSubmenu) transposeSubmenu.style.display = 'none'
-        transposeItem.addEventListener('click', (e) => {
-          e.stopPropagation()
+        } else {
           this._closeMenu()
           // eslint-disable-next-line no-alert
           alert(
             'Смена тональности доступна только для премиум-подписчиков. Оформите подписку на /premium',
           )
+        }
+      })
+      for (const el of transposeSubmenu.querySelectorAll('[data-transpose]')) {
+        el.addEventListener('click', (e) => {
+          e.stopPropagation()
+          this._closeMenu()
+          this.setTransposeOffset(Number(el.dataset.transpose))
         })
-        transposeItem.style.cursor = 'not-allowed'
-        transposeItem.style.opacity = '0.6'
       }
-      this._updateTransposeMenu()
     }
+    this._updateTransposeMenu()
 
     document.addEventListener('click', this._menuOutsideClickHandler)
   }

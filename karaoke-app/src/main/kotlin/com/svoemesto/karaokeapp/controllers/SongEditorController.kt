@@ -344,32 +344,43 @@ class SongEditorController(
                     return@withDb mapOf("ok" to false, "status" to "error", "error" to "bad_markers")
                 }
 
-                val prevVoiceCount = settings.sourceMarkersList.size
-                for (voice in markersPerVoice.indices) {
-                    settings.setSourceMarkers(voice, markersPerVoice[voice])
-                    val srt = settings.convertMarkersToSrt(voice)
-                    try {
-                        val pathToFile = "${settings.rootFolder}/${settings.fileName}.voice${voice + 1}.srt"
-                        File(pathToFile).writeText(srt)
-                        runCommand(listOf("chmod", "666", pathToFile))
-                    } catch (_: Exception) {
-                        println("Ошибка при создании файла субтитров при апруве задания $id (голос $voice).")
+                // Применение разметки к Song (маркеры/текст/файлы .srt + подъём idStatus) не должно
+                // остаться необработанным исключением (specs/095-fix-approve-song-save-exception, тот
+                // же класс риска, что чинил specs/094-fix-approve-news-failure для aRead.save()): при
+                // сбое (например, SQLException на JDBC-соединении внутри settings.saveToDb()) задание
+                // НЕ помечается одобренным (return ниже — до блока push/checkAndAnnounce/aRead.save()),
+                // администратор получает типизированную ошибку вместо необработанного HTTP 500.
+                try {
+                    val prevVoiceCount = settings.sourceMarkersList.size
+                    for (voice in markersPerVoice.indices) {
+                        settings.setSourceMarkers(voice, markersPerVoice[voice])
+                        val srt = settings.convertMarkersToSrt(voice)
+                        try {
+                            val pathToFile = "${settings.rootFolder}/${settings.fileName}.voice${voice + 1}.srt"
+                            File(pathToFile).writeText(srt)
+                            runCommand(listOf("chmod", "666", pathToFile))
+                        } catch (_: Exception) {
+                            println("Ошибка при создании файла субтитров при апруве задания $id (голос $voice).")
+                        }
+                        settings.setSourceText(voice, textsPerVoice.getOrElse(voice) { "" })
                     }
-                    settings.setSourceText(voice, textsPerVoice.getOrElse(voice) { "" })
-                }
-                // Хвостовые голоса, удалённые пользователем в черновике (были в Song, но их больше нет
-                // в присланном списке) — обрезаем.
-                if (markersPerVoice.size < prevVoiceCount) {
-                    settings.truncateVoicesTo(markersPerVoice.size)
-                }
+                    // Хвостовые голоса, удалённые пользователем в черновике (были в Song, но их больше
+                    // нет в присланном списке) — обрезаем.
+                    if (markersPerVoice.size < prevVoiceCount) {
+                        settings.truncateVoicesTo(markersPerVoice.size)
+                    }
 
-                // Сделать песню доступной в онлайн-плеере (idStatus>=6). Апрув админом присланной
-                // разметки — явное ручное подтверждение (не автоматика, FR-011 не применяется),
-                // поэтому статус выставляется сразу в терминальное значение 6 (READY), а не на 1 шаг
-                // вперёд (specs/022-song-status-lifecycle).
-                if (settings.idStatus < 6) {
-                    settings.fields[SongField.ID_STATUS] = "6"
-                    settings.saveToDb()
+                    // Сделать песню доступной в онлайн-плеере (idStatus>=6). Апрув админом присланной
+                    // разметки — явное ручное подтверждение (не автоматика, FR-011 не применяется),
+                    // поэтому статус выставляется сразу в терминальное значение 6 (READY), а не на 1 шаг
+                    // вперёд (specs/022-song-status-lifecycle).
+                    if (settings.idStatus < 6) {
+                        settings.fields[SongField.ID_STATUS] = "6"
+                        settings.saveToDb()
+                    }
+                } catch (e: Exception) {
+                    println("[SongEditorController.approve] применение разметки к песне ${settings.id} не удалось: ${e.message}")
+                    return@withDb mapOf("ok" to false, "status" to "error", "error" to "song_save_failed")
                 }
 
                 // Пушим изменённую песню на сервер — тот же механизм, что кнопка "Обновить на сервере"

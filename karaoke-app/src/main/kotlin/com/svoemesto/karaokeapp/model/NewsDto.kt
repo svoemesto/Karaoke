@@ -20,6 +20,9 @@ data class NewsDto(
     val publishAt: String = "",
     val createdAt: String = "",
     val published: Boolean = false,
+    // "manual" | "auto" — см. News.source (specs/089-auto-news-song-release). Позволяет webvue3
+    // отличить автоматически созданные новости от ручных в общем списке (FR-007 spec.md).
+    val source: String = "manual",
 ) : Serializable,
     KaraokeDbTableDto {
     override fun fromDto(database: KaraokeConnection): News {
@@ -29,6 +32,7 @@ data class NewsDto(
         entity.body = body
         entity.category = category
         entity.link = link.ifBlank { null }
+        entity.source = source
         return entity
     }
 }

@@ -69,6 +69,20 @@ class News(
     @KaraokeDbTableField(name = "created_at", useInDiff = false)
     var createdAt: Timestamp? = null
 
+    // Ссылка на песню — заполняется только для авто-созданных новостей (specs/089-auto-news-song-release).
+    // useInDiff=false: не должно участвовать в generic sync-diff (см. также source ниже и listHashes()).
+    @KaraokeDbTableField(name = "song_id", useInDiff = false)
+    var songId: Long? = null
+
+    // "manual" (создана администратором через NewsController) | "auto" (создана
+    // SongReleaseAnnouncementService). useInDiff=false, а строки с source="auto" полностью исключены
+    // из listHashes() ниже — авто-новости физически существуют только на PROD и НЕ должны участвовать
+    // в LOCAL↔SERVER hash-diff sync-движке (см. specs/089-auto-news-song-release/research.md, п.2):
+    // иначе следующий admin-триггерный «1 клик» может стереть их как «отсутствующие в источнике»
+    // (mirror-delete), если когда-либо включат sync_news_push_delete_allowed.
+    @KaraokeDbTableField(name = "source", useInDiff = false)
+    var source: String = "manual"
+
     override fun toDTO(): NewsDto =
         NewsDto(
             id = id,
@@ -79,6 +93,7 @@ class News(
             publishAt = publishAt?.toString() ?: "",
             createdAt = createdAt?.toString() ?: "",
             published = isPublished(publishAt),
+            source = source,
         )
 
     companion object {
@@ -86,10 +101,17 @@ class News(
 
         private fun isPublished(publishAt: Timestamp?): Boolean = publishAt != null && publishAt <= Timestamp(System.currentTimeMillis())
 
+        // Используется ТОЛЬКО NewsSyncTarget (generic LOCAL↔SERVER sync-движок, sync/SyncTarget.kt).
+        // Принудительно исключает source='auto' — авто-новости не должны попадать в hash-diff (см.
+        // KDoc поля News.source выше и specs/089-auto-news-song-release/research.md, п.2).
         fun listHashes(
             database: KaraokeConnection,
             whereText: String = "",
-        ): List<RecordHash>? = KaraokeDbTable.getListHashes(tableName = TABLE_NAME, database = database, whereText = whereText)
+        ): List<RecordHash>? {
+            val autoExclusion = "source = 'manual'"
+            val combinedWhere = if (whereText.isBlank()) "WHERE $autoExclusion" else "$whereText AND $autoExclusion"
+            return KaraokeDbTable.getListHashes(tableName = TABLE_NAME, database = database, whereText = combinedWhere)
+        }
 
         // Полный список (в т.ч. черновики/будущие) для админки — свежие сверху.
         fun loadAll(
@@ -219,6 +241,32 @@ class News(
             entity.link = link
             entity.publishAt = publishAt
             entity.createdAt = Timestamp(System.currentTimeMillis())
+            return KaraokeDbTable.createDbInstance(entity = entity, database = database) as? News?
+        }
+
+        // Создаёт новость автоматически, без участия администратора — вызывается ТОЛЬКО
+        // SongReleaseAnnouncementService при обнаружении песни, ставшей публично доступной
+        // (specs/089-auto-news-song-release). publishAt = сейчас — новость публикуется немедленно
+        // (иначе она осталась бы невидимым черновиком, см. research.md, п.6). source="auto" исключает
+        // строку из LOCAL↔SERVER sync (см. listHashes() выше).
+        fun createAutoAnnouncement(
+            songId: Long,
+            title: String,
+            body: String,
+            link: String,
+            database: KaraokeConnection,
+            storageService: KaraokeStorageService = KSS_APP,
+            storageApiClient: StorageApiClient = SAC_APP,
+        ): News? {
+            val entity = News(database = database, storageService = storageService, storageApiClient = storageApiClient)
+            entity.title = title
+            entity.body = body
+            entity.category = "air"
+            entity.link = link
+            entity.publishAt = Timestamp(System.currentTimeMillis())
+            entity.createdAt = Timestamp(System.currentTimeMillis())
+            entity.songId = songId
+            entity.source = "auto"
             return KaraokeDbTable.createDbInstance(entity = entity, database = database) as? News?
         }
 

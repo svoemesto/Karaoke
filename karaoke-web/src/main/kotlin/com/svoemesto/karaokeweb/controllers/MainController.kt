@@ -13,6 +13,7 @@ import com.svoemesto.karaokeweb.StatBySong
 import com.svoemesto.karaokeapp.model.Zakroma
 import com.svoemesto.karaokeapp.rightFileName
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
+import com.svoemesto.karaokeapp.services.SongReleaseAnnouncementService
 import com.svoemesto.karaokeapp.services.StorageApiClient
 import com.svoemesto.karaokeweb.services.WEB_WORK_IN_CONTAINER
 import com.svoemesto.karaokeweb.util.ClientIpResolver
@@ -310,6 +311,16 @@ class MainController(
 
             result =
                 "[${Timestamp.from(Instant.now())}] Created: ${dataCreate.size}, Updated: ${dataUpdate.size}, Deleted: ${dataDelete.size}"
+
+            // Автоматические новости о выходе песни в эфир (specs/089-auto-news-song-release) —
+            // единственная точка кода, реально исполняемая на PROD в момент синхронизации таблиц
+            // (см. contracts/news-api.md). Обёрнуто отдельно: сбой детекции анонсов не должен ронять
+            // уже успешно применённую синхронизацию и не должен менять формат ответа выше.
+            try {
+                SongReleaseAnnouncementService.checkAndAnnounce(WORKING_DATABASE, storageService, storageApiClient)
+            } catch (e: Exception) {
+                println("[${Timestamp.from(Instant.now())}] SongReleaseAnnouncementService.checkAndAnnounce error: ${e.message}")
+            }
         } catch (e: Exception) {
             return e.message!!
         }

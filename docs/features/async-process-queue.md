@@ -2,7 +2,7 @@
 
 > **Status**: active
 > **Feature Key**: async-process-queue
-> **Last Updated**: 2026-07-29
+> **Last Updated**: 2026-07-30
 
 ## Что делает
 
@@ -90,10 +90,39 @@
     `/api/processes/workerstartstop` могли запустить два параллельных
     воркера на одном `threadsMap`). Сам цикл `doStart()` выполняется в
     отдельном демон-потоке — вызывающий HTTP-поток не блокируется.
-  - Если цикл `doStart()` падает с необработанным исключением, `isWork`
-    гарантированно сбрасывается в `false` (safety-net `try/catch/finally` в
-    `start()`) — иначе очередь выглядела бы «работающей» в UI/мониторинге,
-    но фактически была бы мертва.
+  - Если цикл `doStart()` падает с необработанным исключением — до 5 попыток
+    возобновить его в том же демон-потоке с нарастающей паузой между ними
+    (2с → 5с → 15с → 30с → 60с, `KaraokeProcessWorker.start()`,
+    specs/087-fix-shared-db-connection). `isWork` остаётся `true` на время
+    retry. Только после исчерпания попыток (или если `isWork` сброшен извне,
+    например `forceStop()`, во время паузы) — прежний safety-net
+    `try/catch/finally` гарантированно сбрасывает `isWork` в `false`, иначе
+    очередь выглядела бы «работающей» в UI/мониторинге, но фактически была
+    бы мертва; `RenderQueueStalledCheck` подхватывает как и раньше.
+  - Это одинаково работает для **любого** DB-вызова внутри `doStart()`, не
+    только для `.save()`: `KaraokeProcess.getCountWaiting()`/
+    `getProcessesToStart()` принимают параметр `throwOnError` (по умолчанию
+    `false`), и все 3 вызова этих функций **внутри `doStart()`**
+    (`KaraokeProcessWorker.kt`, ~955/979/1028) передают `throwOnError = true`
+    — сбой БД пробрасывается как `SQLException` и одинаково запускает retry
+    выше, независимо от того, какая именно операция столкнулась со сбоем
+    первой (specs/088-fix-queue-swallowed-errors). Остальные вызывающие
+    места этих же функций (создание задания из HTTP — `KaraokeProcess.kt:744`;
+    `KaraokeProcessThread.run()` — `KaraokeProcessWorker.kt:204`; `start()`
+    до `Thread{...}` — `:536`; `forceStop()` — `:1090`; оба мониторинг-чека
+    `RenderQueueStalledCheck`/`LaneStalledCheck`) намеренно остаются на
+    дефолте `false` — сбой в них не должен превращать не связанный с
+    главным циклом HTTP-запрос/проверку в новую ошибку.
+- **MUST**: каждый `KaraokeConnection`-инстанс (в т. ч. `WORKING_DATABASE`)
+  кеширует по одному физическому JDBC-соединению **на поток выполнения**
+  (`ThreadLocal`, `KaraokeConnection.getConnection()`,
+  specs/087-fix-shared-db-connection) — не одно общее на весь инстанс.
+  PostgreSQL JDBC `Connection` не рассчитан на конкурентное использование из
+  разных потоков; до этой фичи общее соединение между HTTP-потоками и
+  потоком очереди приводило к протокольным сбоям (`SocketTimeoutException`/
+  «соединение уже закрыто»), ронявшим главный цикл очереди. Self-healing
+  (пересоздание при `isClosed`/`!isValid(3)`) применяется к соединению
+  текущего потока и не меняет сигнатуру/поведение для вызывающего кода.
 - **MUST**: кортеж заданий одной песни, добавленной через «Добавить файлы
   из папки» (демукс → создание mp3 музыки/голоса → загрузка в локальное
   хранилище → загрузка в удалённое хранилище), ДОЛЖЕН целиком оставаться
@@ -141,6 +170,17 @@
 - **Sheetsage без GPU**: Sheetsage-распознавание требует GPU или долго
   работает на CPU. Если на admin-машине нет GPU, Sheetsage-задания
   лучше не запускать в рабочие часы.
+- **Непоследовательная обработка ошибок БД внутри `doStart()`** (устранено в
+  specs/088-fix-queue-swallowed-errors, 2026-07-30): изначально не все
+  DB-вызовы в главном цикле вели себя одинаково при сбое соединения —
+  `KaraokeProcess.save()` пробрасывал `SQLException` наружу (запуская
+  retry), а `getCountWaiting()`/`getProcessesToStart()` ловили её внутри
+  себя и молча возвращали `0`/пустой список. При длительном сбое БД это
+  означало, что `doStart()` мог НЕ упасть вовсе (retry не срабатывал), а
+  просто тихо крутиться, ничего не делая, пока соединение не восстановится
+  само (обнаружено при живой проверке specs/087-fix-shared-db-connection,
+  T010: 4.5-минутный `docker pause karaoke-db` не уронил `doStart()` ни
+  разу). Исправлено параметром `throwOnError` — см. инвариант выше.
 - **Зависание отдельного лейна** (устранено в specs/029-fix-queue-lane-stall,
   2026-07-29): периодически, особенно при параллельной работе нескольких
   лейнов, следующее задание лейна не стартовало после завершения/ошибки
@@ -157,6 +197,7 @@
 - [`KaraokeProcessTypes.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcessTypes.kt) — enum типов
 - [`KaraokeProcessStatuses.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcessStatuses.kt) — enum статусов
 - [`KaraokeProcessWorker.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcessWorker.kt) — главный воркер (`class KaraokeProcessWorker`) и обёртка subprocess (`class KaraokeProcessThread`, объявлен в том же файле)
+- [`KaraokeConnection.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeConnection.kt) — `getConnection()`, кеш соединения по потоку (`ThreadLocal`)
 - [`HealthReport.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/HealthReport.kt) — каскад автоисправления (`startRepairAll`/`onRepairProcessFinished`), формирует кортеж заданий одной песни
 - [`Song.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt) — `createFromPath` (постановка первых шагов кортежа при импорте из папки), `args*()` (шаги shell-пайплайнов для `KaraokeProcess.separate()`)
 - [`tbl_processes` (`01_initdb.sql`)](../../deploy/karaoke-db/01_initdb.sql) — таблица заданий

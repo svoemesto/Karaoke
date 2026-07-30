@@ -476,10 +476,27 @@ class KaraokeProcess(
             return result
         }
 
-        fun getCountWaiting(database: KaraokeConnection): Long {
+        /**
+         * Считает число `WAITING`-заданий (кроме `tail`-продолжений shell-пайплайна).
+         *
+         * @param throwOnError specs/088-fix-queue-swallowed-errors: по умолчанию `false` —
+         *   сбой БД тихо логируется, возвращается `0` (сегодняшнее поведение для всех
+         *   вызывающих мест, кроме главного цикла очереди). При `true` (используется только
+         *   изнутри `KaraokeProcessWorker.doStart()`) сбой пробрасывается как [SQLException] —
+         *   тот же тип, что и `.save()`, чтобы retry-механизм `KaraokeProcessWorker.start()`
+         *   (specs/087-fix-shared-db-connection) одинаково реагировал на любой сбой БД внутри
+         *   главного цикла, а не только на сбой сохранения прогресса.
+         * @see docs/features/async-process-queue.md
+         */
+        fun getCountWaiting(
+            database: KaraokeConnection,
+            throwOnError: Boolean = false,
+        ): Long {
             val connection = database.getConnection()
             if (connection == null) {
-                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
+                val message = "Невозможно установить соединение с базой данных ${database.name}"
+                println("[${Timestamp.from(Instant.now())}] $message")
+                if (throwOnError) throw SQLException(message)
                 return 0L
             }
             var statement: Statement? = null
@@ -493,6 +510,7 @@ class KaraokeProcess(
                 rs.next()
                 result = rs.getLong("cnt")
             } catch (e: SQLException) {
+                if (throwOnError) throw e
                 e.printStackTrace()
             } finally {
                 try {
@@ -747,12 +765,27 @@ class KaraokeProcess(
             return result
         }
 
-        fun getProcessesToStart(database: KaraokeConnection): Map<Int, KaraokeProcess> {
+        /**
+         * Выбирает по одному ближайшему к запуску `WAITING`-заданию на каждый thread-лейн.
+         *
+         * @param throwOnError specs/088-fix-queue-swallowed-errors: по умолчанию `false` —
+         *   сбой БД тихо логируется, возвращается пустая карта (сегодняшнее поведение для
+         *   всех вызывающих мест, кроме главного цикла очереди). При `true` (используется
+         *   только изнутри `KaraokeProcessWorker.doStart()`) сбой пробрасывается как
+         *   [SQLException] — см. [getCountWaiting].
+         * @see docs/features/async-process-queue.md
+         */
+        fun getProcessesToStart(
+            database: KaraokeConnection,
+            throwOnError: Boolean = false,
+        ): Map<Int, KaraokeProcess> {
             val result: MutableMap<Int, KaraokeProcess> = mutableMapOf()
 
             val connection = database.getConnection()
             if (connection == null) {
-                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
+                val message = "Невозможно установить соединение с базой данных ${database.name}"
+                println("[${Timestamp.from(Instant.now())}] $message")
+                if (throwOnError) throw SQLException(message)
                 return emptyMap()
             }
 
@@ -801,6 +834,7 @@ class KaraokeProcess(
                     result.put(process.threadId, process)
                 }
             } catch (e: SQLException) {
+                if (throwOnError) throw e
                 e.printStackTrace()
             } finally {
                 try {

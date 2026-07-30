@@ -474,6 +474,16 @@ class KaraokeProcessWorker {
 
 //        var workThread: KaraokeProcessThread? = null
 
+        // specs/087-fix-shared-db-connection: если doStart() падает необработанным исключением (например,
+        // из-за кратковременного сетевого сбоя до БД), пробуем возобновить его в том же демон-потоке до
+        // MAX_START_ATTEMPTS раз, с нарастающей паузой между попытками - вместо немедленной остановки
+        // очереди с ожиданием ручного клика оператора по алерту RenderQueueStalledCheck. isWork остаётся
+        // true на время retry (для UI/мониторинга очередь всё ещё "работает" - что по сути верно, она
+        // пытается продолжить). Если попытки исчерпаны (или isWork сброшен извне, см. forceStop()) -
+        // применяется тот же safety-net, что и раньше (specs/029-fix-queue-lane-stall).
+        private const val MAX_START_ATTEMPTS = 5
+        private val START_RETRY_BACKOFF_MS = longArrayOf(2_000, 5_000, 15_000, 30_000, 60_000)
+
         /**
          * Запустить воркер (если ещё не запущен).
          *
@@ -483,6 +493,13 @@ class KaraokeProcessWorker {
          * ожидающих. Цикл [doStart] выполняется в отдельном демон-потоке —
          * вызывающий HTTP-поток (`/api/processes/workerstartstop`) не
          * блокируется на всё время работы очереди.
+         *
+         * Если [doStart] падает необработанным исключением — до
+         * [MAX_START_ATTEMPTS] попыток возобновить его в том же потоке, с
+         * нарастающей паузой ([START_RETRY_BACKOFF_MS]) между попытками
+         * (specs/087-fix-shared-db-connection). После исчерпания попыток —
+         * прежний safety-net (`isWork=false`, `RenderQueueStalledCheck`
+         * подхватывает одноклик-восстановлением).
          *
          * Если воркер уже запущен — сбрасывает `stopAfterThreadIsDone` и
          * отправляет текущее состояние через SSE. Проверка-и-установка
@@ -519,18 +536,51 @@ class KaraokeProcessWorker {
             sendCountWaitingMessage(KaraokeProcess.getCountWaiting(database))
             Thread {
                 try {
-                    doStart(database = database, storageService = storageService, storageApiClient = storageApiClient)
+                    var attempt = 0
+                    while (true) {
+                        try {
+                            doStart(database = database, storageService = storageService, storageApiClient = storageApiClient)
+                            break
+                        } catch (e: Exception) {
+                            attempt++
+                            println(
+                                "[${Timestamp.from(
+                                    Instant.now(),
+                                )}] ProcessWorker: главный цикл очереди упал с необработанным исключением " +
+                                    "(попытка $attempt/$MAX_START_ATTEMPTS): ${e.message}",
+                            )
+                            e.printStackTrace()
+                            if (attempt >= MAX_START_ATTEMPTS || !isWork) {
+                                println(
+                                    "[${Timestamp.from(Instant.now())}] ProcessWorker: " +
+                                        if (!isWork) {
+                                            "очередь остановлена извне во время повторных попыток - retry прекращён"
+                                        } else {
+                                            "попытки восстановления ($MAX_START_ATTEMPTS) исчерпаны, очередь остановлена"
+                                        },
+                                )
+                                break
+                            }
+                            val pauseMs = START_RETRY_BACKOFF_MS[(attempt - 1).coerceAtMost(START_RETRY_BACKOFF_MS.lastIndex)]
+                            println(
+                                "[${Timestamp.from(Instant.now())}] ProcessWorker: пробуем возобновить через ${pauseMs}мс",
+                            )
+                            Thread.sleep(pauseMs)
+                        }
+                    }
                 } catch (e: Exception) {
+                    // Ловит в т.ч. InterruptedException из Thread.sleep(pauseMs) выше - без этого внешнего
+                    // catch/finally такое исключение вышло бы из Thread.run() мимо блока очистки ниже,
+                    // оставив isWork=true навсегда (тот самый зомби-баг, устранённый в specs/029).
                     println(
-                        "[${Timestamp.from(
-                            Instant.now(),
-                        )}] ProcessWorker: главный цикл очереди упал с необработанным исключением: ${e.message}",
+                        "[${Timestamp.from(Instant.now())}] ProcessWorker: retry-цикл прерван необработанным исключением: ${e.message}",
                     )
                     e.printStackTrace()
                 } finally {
-                    // Не оставляем isWork=true, если цикл упал сам (не через штатный stop()/forceStop()) -
-                    // иначе очередь выглядит "работающей" в UI/мониторинге, но фактически мертва, и
-                    // RenderQueueStalledCheck (который смотрит только на isWork) не смог бы это обнаружить.
+                    // Не оставляем isWork=true, если цикл завершился сам (штатно, после исчерпания retry,
+                    // либо из-за исключения выше) - иначе очередь выглядит "работающей" в UI/мониторинге,
+                    // но фактически мертва, и RenderQueueStalledCheck (который смотрит только на isWork)
+                    // не смог бы это обнаружить.
                     synchronized(startStopLock) {
                         isWork = false
                         stopAfterThreadIsDone = false
@@ -595,8 +645,10 @@ class KaraokeProcessWorker {
             }
         }
 
+        // throwOnError=true - вызывается только из главного цикла doStart(), сбой БД должен
+        // пробрасываться наружу и запускать retry в start() (specs/088-fix-queue-swallowed-errors).
         private fun getKaraokeProcessesToStart(database: KaraokeConnection): Map<Int, KaraokeProcess> =
-            KaraokeProcess.getProcessesToStart(database)
+            KaraokeProcess.getProcessesToStart(database, throwOnError = true)
 
         private fun doStart(
             database: KaraokeConnection,
@@ -926,7 +978,8 @@ class KaraokeProcessWorker {
                             (threadsIds.contains(threadId) && (threadsMap[threadId] == null || !threadsMap[threadId]!!.isAlive))
                         ) {
                             val karaokeProcess = karaokeProcessesToStart[threadId]
-                            val countWaiting = KaraokeProcess.getCountWaiting(database)
+                            // throwOnError=true - см. комментарий у getKaraokeProcessesToStart() выше.
+                            val countWaiting = KaraokeProcess.getCountWaiting(database, throwOnError = true)
                             sendCountWaitingMessage(countWaiting)
                             if (karaokeProcess != null && (!stopAfterThreadIsDone || karaokeProcess.command == "tail")) {
                                 val args = karaokeProcess.args[0]
@@ -974,8 +1027,9 @@ class KaraokeProcessWorker {
                     }
 
                     // Если очередь пуста — отправляем актуальный счётчик, чтобы бейдж сбросился в 0
+                    // throwOnError=true - см. комментарий у getKaraokeProcessesToStart() выше.
                     if (karaokeProcessesToStartIds.isEmpty()) {
-                        sendCountWaitingMessage(KaraokeProcess.getCountWaiting(database))
+                        sendCountWaitingMessage(KaraokeProcess.getCountWaiting(database, throwOnError = true))
                     }
 
                     // Периодическая отправка SSE для активных потоков, которые уже не WAITING

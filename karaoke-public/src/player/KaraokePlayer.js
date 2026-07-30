@@ -1396,7 +1396,8 @@ export default class KaraokePlayer {
    */
   setTransposeOffset(offset) {
     offset = Number(offset)
-    if (!Number.isFinite(offset) || offset < -6 || offset > 6 || offset === this._transposeOffset) return
+    if (!Number.isFinite(offset) || offset < -6 || offset > 6 || offset === this._transposeOffset)
+      return
 
     // Debounce: сбрасываем предыдущий таймер
     if (this._transposeDebounceTimer) {

@@ -4,13 +4,9 @@
  * @see docs/features/audio-transpose.md
  */
 
-const MAJOR_KEYS = [
-  'C', 'C♯', 'D', 'E♭', 'E', 'F', 'F♯', 'G', 'A♭', 'A', 'B♭', 'B'
-]
+const MAJOR_KEYS = ['C', 'C♯', 'D', 'E♭', 'E', 'F', 'F♯', 'G', 'A♭', 'A', 'B♭', 'B']
 
-const MINOR_KEYS = [
-  'A', 'A♯', 'B', 'C', 'C♯', 'D', 'E♭', 'E', 'F', 'F♯', 'G', 'G♯'
-]
+const MINOR_KEYS = ['A', 'A♯', 'B', 'C', 'C♯', 'D', 'E♭', 'E', 'F', 'F♯', 'G', 'G♯']
 
 /**
  * Parse a base key string into chromatic index and mode.
@@ -31,9 +27,7 @@ function parseKey(baseKey) {
   if (modePart !== 'major' && modePart !== 'minor') return null
 
   const arr = modePart === 'major' ? MAJOR_KEYS : MINOR_KEYS
-  const index = arr.findIndex(
-    (k) => k.toLowerCase() === notePart
-  )
+  const index = arr.findIndex((k) => k.toLowerCase() === notePart)
 
   if (index === -1) return null
 

@@ -6,12 +6,8 @@
         Изменяйте тональность песни на лету, чтобы петь в комфортной для вас тональности.
       </div>
       <div class="transpose-prompt-actions">
-        <button class="transpose-prompt-cta" @click="goPremium">
-          Оформить подписку →
-        </button>
-        <button class="transpose-prompt-dismiss" @click="$emit('dismiss')">
-          Закрыть
-        </button>
+        <button class="transpose-prompt-cta" @click="goPremium">Оформить подписку →</button>
+        <button class="transpose-prompt-dismiss" @click="$emit('dismiss')">Закрыть</button>
       </div>
     </div>
   </div>

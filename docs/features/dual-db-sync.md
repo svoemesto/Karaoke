@@ -58,13 +58,29 @@ Karaoke — self-pipeline. Admin-машина разрабатывает нов�
 
 ## Известные ловушки
 
-- **Identity-sequence дрейф**: sync вставляет строки с явным серверным `id`
-  через `INSERT .. OVERRIDING SYSTEM VALUE` — это **не двигает** локальную
-  `GENERATED ALWAYS AS IDENTITY`-последовательность. У таких таблиц
-  `nextval()` рано или поздно попадает на занятый id.
-  `KaraokeDbTable.createDbInstance()` сам обнаруживает дрейф и
-  рестартует sequence — но через **два `executeQuery()` на одном
-  `Statement`** нельзя (закрывает `ResultSet`).
+- **Identity-sequence дрейф (реальный инцидент, 2026-07-30,
+  specs/099-fix-sync-sequence-drift)**: sync вставляет строки с явным
+  исходным `id` через `INSERT .. OVERRIDING SYSTEM VALUE` — это **не
+  двигает** целевую `GENERATED ALWAYS AS IDENTITY`-последовательность.
+  У таблиц, в которые ОДНОВРЕМЕННО пишут и синк (явные id), и обычные
+  локально-сгенерированные вставки (например, `tbl_events` — статистика с
+  прод ПЛЮС события реальных посетителей локального сайта), `nextval()`
+  рано или поздно попадает на уже занятый синком id — `duplicate key value
+  violates unique constraint "tbl_events_id_key"`, ломающее сайт целиком
+  (любой запрос, регистрирующий событие, падает).
+  `KaraokeDbTable.createDbInstance()` действительно сам обнаруживает и
+  чинит такой дрейф (сверка `MAX(id)` с `last_value` сиквенса, `ALTER
+  SEQUENCE ... RESTART`) — но эта защита была ТОЛЬКО в пути обычного
+  создания записи приложением. Сам движок синхронизации (`collectSyncOps`
+  в `Utils.kt`, вставка в LOCAL-цель при `insertAllowed`) этой защиты не
+  наследовал — и именно там происходят explicit-id вставки, вызывающие
+  дрейф. Исправлено: после КАЖДОГО батча sync-вставок в non-SERVER цель
+  сиквенс таблицы принудительно подтягивается к её актуальному `MAX(id)`
+  (`SELECT setval(pg_get_serial_sequence(tableName,'id'), MAX(id))`) — один
+  запрос на весь батч (не на строку), сразу после цикла `insertAllowed`.
+  **Быстрый ручной фикс** (до раскатки этой правки, безопасен, не трогает
+  данные): `SELECT setval('tbl_events_id_seq', (SELECT MAX(id) FROM
+  tbl_events));` — выполнить на пострадавшей БД.
 - **Timestamp-биндинг**: `Timestamp.valueOf()` падает на `null` или
   некорректной строке. Используйте `try-catch` с default.
 - **Nullable-колонки**: при изменении nullable-колонки `recordhash`

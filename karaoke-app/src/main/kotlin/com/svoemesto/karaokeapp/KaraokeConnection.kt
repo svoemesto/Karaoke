@@ -45,4 +45,30 @@ abstract class KaraokeConnection(
         }
         return threadLocalConnection.get()
     }
+
+    /**
+     * Явно закрывает и освобождает физическое соединение **текущего потока**, если оно
+     * было открыто (specs/091-fix-connection-leak).
+     *
+     * Вызывать ТОЛЬКО в конце работы одноразовых/недолговечных потоков (например,
+     * `KaraokeProcessThread` — создаётся заново на каждое задание очереди и никогда не
+     * переиспользуется) — иначе кеш [ThreadLocal] в [getConnection] держит соединение
+     * открытым вечно, так как такой поток больше никогда не вызовет `getConnection()`
+     * повторно, чтобы его переиспользовать или обнаружить как невалидное.
+     *
+     * НЕ вызывать из переиспользуемых/долгоживущих потоков (пул потоков Tomcat, главный
+     * цикл `KaraokeProcessWorker.doStart()`) — это разрушит их кеш соединения и заставит
+     * открывать новое соединение на каждое обращение к БД, отменяя смысл
+     * specs/087-fix-shared-db-connection.
+     */
+    fun closeThreadConnection() {
+        val conn = threadLocalConnection.get() ?: return
+        try {
+            conn.close()
+        } catch (e: Exception) {
+            println("KaraokeConnection closeThreadConnection Exception: ${e.message}")
+        } finally {
+            threadLocalConnection.remove()
+        }
+    }
 }

@@ -74,7 +74,7 @@
               v-if="data.item.albumPicturePreviewUrl"
               :src="data.item.albumPicturePreviewUrl"
               alt="Album preview"
-              class="preview-image"
+              class="preview-image preview-image--square"
             />
             <div v-else class="no-image-placeholder">Нет изображения</div>
           </div>
@@ -269,7 +269,7 @@ export default {
         {
           key: 'albumPicture',
           label: '(альбом)',
-          style: { minWidth: '125px', maxWidth: '125px', textAlign: 'center', fontSize: 'small' },
+          style: { minWidth: '54px', maxWidth: '54px', textAlign: 'center', fontSize: 'small' },
         },
         {
           key: 'id',
@@ -378,7 +378,12 @@ export default {
       if (!this.canEditCover(item)) return
       this.prevCurrentSongId = this.$store.getters.getCurrentSongId
       this.currentAlbumCoverAlbumId = item.id
-      this.isBusy = true
+      // Намеренно НЕ выставляем this.isBusy = true: модалка открывается поверх таблицы,
+      // и показ спиннера на BTable во время getFirstSongIdByAlbumIdPromise +
+      // setCurrentSongId визуально неотличим от реальной перезагрузки дайджеста
+      // альбомов (хотя albumsDigest не перезапрашивается). Спиннер на таблице
+      // оставлен только для РЕАЛЬНОЙ загрузки albumsDigest (watcher на
+      // albumsDigestIsLoading, строки 324-329).
       try {
         const firstSongId = await this.$store.dispatch('getFirstSongIdByAlbumIdPromise', item.id)
         if (!firstSongId) {
@@ -394,8 +399,6 @@ export default {
       } catch (e) {
         console.error('Ошибка при открытии модалки обложки альбома', item.id, e)
         this.currentAlbumCoverAlbumId = null
-      } finally {
-        this.isBusy = false
       }
     },
     closeAlbumCoverModal() {
@@ -715,7 +718,7 @@ export default {
 }
 .fld-picture-preview {
   min-width: 50px;
-  max-width: 125px;
+  max-width: 100%;
   text-align: center;
   font-size: small;
   display: flex;
@@ -733,6 +736,15 @@ export default {
   height: 50px;
   object-fit: contain;
   vertical-align: middle;
+}
+/* Квадратная вёрстка только для колонки (альбом): object-fit: contain
+   работает в bounding box 50×50 вместо height-only 50px, чтобы ширина
+   горизонтальных картинок не «вылезала» за квадратную ячейку 54×54. */
+.preview-image--square {
+  max-width: 50px;
+  max-height: 50px;
+  width: auto;
+  height: auto;
 }
 .no-image-placeholder {
   font-size: 0.7em;

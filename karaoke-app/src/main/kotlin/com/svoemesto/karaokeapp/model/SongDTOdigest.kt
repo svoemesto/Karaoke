@@ -121,6 +121,7 @@ data class SongDTOdigest(
     val shortDescription: String = "",
     val warning: String = "",
     val rootId: Long,
+    val audioParentId: Long,
     val exclusive: Boolean,
     val free: Boolean,
     val songType: String,

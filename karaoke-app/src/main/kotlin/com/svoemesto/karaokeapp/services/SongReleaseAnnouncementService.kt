@@ -53,11 +53,33 @@ object SongReleaseAnnouncementService {
     }
 
     /**
+     * Альбом и год песни в виде суффикса `" (альбом «X», Y)"` для заголовка новости
+     * (specs/092-fix-auto-news-triggers) — пустая строка, если ни альбом, ни год не заполнены;
+     * без плейсхолдеров для отдельно отсутствующего альбома/года (FR-008 spec.md).
+     */
+    private fun albumYearSuffix(song: Song): String {
+        val parts = mutableListOf<String>()
+        if (song.album.isNotBlank()) parts.add("альбом «${song.album}»")
+        if (song.year > 0) parts.add(song.year.toString())
+        return if (parts.isEmpty()) "" else " (" + parts.joinToString(", ") + ")"
+    }
+
+    /** Автор + альбом/год одной строкой для тела новости (specs/092-fix-auto-news-triggers). */
+    private fun bodyDetails(song: Song): String {
+        val parts = mutableListOf(song.author)
+        if (song.album.isNotBlank()) parts.add("альбом «${song.album}»")
+        if (song.year > 0) parts.add(song.year.toString())
+        return parts.joinToString(", ")
+    }
+
+    /**
      * Находит песни, ставшие публично доступными ([Song.isPubliclyWatchable]), но ещё не
      * анонсированные, и создаёт по каждой отдельную новость (FR-006 spec.md). Идемпотентно —
      * безопасно вызывать многократно, в т.ч. параллельно (см. `PRIMARY KEY(song_id)` в
-     * `tbl_song_news_announced`, `SongNewsAnnounced.markAnnounced`). Ошибки логируются и не
-     * пробрасываются — сбой детекции анонсов не должен ронять уже применённую синхронизацию
+     * `tbl_song_news_announced`, `SongNewsAnnounced.markAnnounced`) и из трёх независимых вызывающих
+     * точек (синхронизация, периодическая проверка эфира, апрув/сохранение — см.
+     * specs/092-fix-auto-news-triggers/contracts/news-triggers.md). Ошибки логируются и не
+     * пробрасываются — сбой детекции анонсов не должен ронять вызывающий код
      * (см. contracts/news-api.md).
      *
      * `storageService`/`storageApiClient` ДОЛЖНЫ передаваться явно вызывающим кодом (без дефолта на
@@ -81,8 +103,8 @@ object SongReleaseAnnouncementService {
                 val news =
                     News.createAutoAnnouncement(
                         songId = song.id,
-                        title = "Новая песня: ${song.author} — ${song.songName}",
-                        body = "Стала доступна песня «${song.songName}» (${song.author}).",
+                        title = "Новая песня: ${song.author} — ${song.songName}${albumYearSuffix(song)}",
+                        body = "Стала доступна песня «${song.songName}» (${bodyDetails(song)}).",
                         link = "/song?id=${song.id}",
                         database = database,
                         storageService = storageService,

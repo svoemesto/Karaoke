@@ -19,7 +19,10 @@ import com.svoemesto.karaokeapp.model.WhisperMarkerAligner
 import com.svoemesto.karaokeapp.rightFileName
 import com.svoemesto.karaokeapp.runCommand
 import com.svoemesto.karaokeapp.services.AlignmentServiceClient
+import com.svoemesto.karaokeapp.services.KSS_APP
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
+import com.svoemesto.karaokeapp.services.SAC_APP
+import com.svoemesto.karaokeapp.services.SongReleaseAnnouncementService
 import com.svoemesto.karaokeapp.services.StorageApiClient
 import com.svoemesto.karaokeapp.services.WhisperAsrService
 import com.svoemesto.karaokeapp.updateRemoteSongFromLocalDatabase
@@ -367,7 +370,22 @@ class SongEditorController(
                 // пуша не должна откатывать уже совершённый апрув.
                 if (Karaoke.allowUpdateRemote) {
                     try {
-                        updateRemoteSongFromLocalDatabase(settings.id)
+                        val pushResult = updateRemoteSongFromLocalDatabase(settings.id)
+                        // Апрув должен мгновенно (без ожидания отдельной синхронизации) отразиться
+                        // новостью на сайте (specs/092-fix-auto-news-triggers) — но только если push
+                        // реально применился (непустой SyncResult), иначе checkAndAnnounce сверился бы
+                        // с устаревшей копией песни на сервере (см. research.md фичи 092, п.2-3: путь
+                        // через updateDatabases → /changerecords best-effort и зависит от orthogonal
+                        // sync-тумблеров, полагаться на него нельзя). Тот же паттерн прямой записи на
+                        // Connection.remote(), что уже используется ниже для SongAssignment при
+                        // target == "remote".
+                        if (pushResult.created.isNotEmpty() || pushResult.updated.isNotEmpty()) {
+                            try {
+                                SongReleaseAnnouncementService.checkAndAnnounce(Connection.remote(), KSS_APP, SAC_APP)
+                            } catch (e: Exception) {
+                                println("[SongEditorController.approve] checkAndAnnounce error: ${e.message}")
+                            }
+                        }
                     } catch (_: Exception) {
                     }
                 }

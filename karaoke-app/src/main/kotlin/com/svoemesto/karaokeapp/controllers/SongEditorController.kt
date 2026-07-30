@@ -390,6 +390,10 @@ class SongEditorController(
                 // кнопки (allowUpdateRemote, :disabled="!allowUpdateRemote") — best-effort, ошибка
                 // пуша не должна откатывать уже совершённый апрув.
                 if (Karaoke.allowUpdateRemote) {
+                    // Тайминги (specs/096-approve-news-timing-diagnostics) — временная диагностика:
+                    // раньше сбой здесь тонул в пустом catch (_: Exception) без единого сообщения в
+                    // логе, что делало невозможным отличить "быстро упало" от "долго висело".
+                    val pushStart = System.currentTimeMillis()
                     try {
                         // Одно соединение на push И на анонс — вместо двух независимых Connection.remote()
                         // (specs/094-fix-approve-news-failure, research.md п.1-2: каждый Connection.remote()
@@ -397,6 +401,11 @@ class SongEditorController(
                         // прод-серверу — KaraokeConnection кеширует соединение на экземпляр, не глобально).
                         val remoteConnection = Connection.remote()
                         val pushResult = updateRemoteSongFromLocalDatabase(settings.id, toDatabase = remoteConnection)
+                        val pushDone = System.currentTimeMillis()
+                        println(
+                            "[approve/timing] push на SERVER: ${pushDone - pushStart} ms, " +
+                                "created=${pushResult.created.size} updated=${pushResult.updated.size}",
+                        )
                         // Апрув должен мгновенно (без ожидания отдельной синхронизации) отразиться
                         // новостью на сайте (specs/092-fix-auto-news-triggers) — но только если push
                         // реально применился (непустой SyncResult), иначе checkAndAnnounce сверился бы
@@ -407,12 +416,21 @@ class SongEditorController(
                         // target == "remote".
                         if (pushResult.created.isNotEmpty() || pushResult.updated.isNotEmpty()) {
                             try {
+                                val announceStart = System.currentTimeMillis()
                                 SongReleaseAnnouncementService.checkAndAnnounce(remoteConnection, KSS_APP, SAC_APP)
+                                println(
+                                    "[approve/timing] checkAndAnnounce (из approve): " +
+                                        "${System.currentTimeMillis() - announceStart} ms",
+                                )
                             } catch (e: Exception) {
                                 println("[SongEditorController.approve] checkAndAnnounce error: ${e.message}")
                             }
                         }
-                    } catch (_: Exception) {
+                    } catch (e: Exception) {
+                        println(
+                            "[SongEditorController.approve] push на SERVER не удался " +
+                                "(${System.currentTimeMillis() - pushStart} ms): ${e.message}",
+                        )
                     }
                 }
 
@@ -421,13 +439,18 @@ class SongEditorController(
                 // необработанным исключением (specs/094-fix-approve-news-failure, FR-003/FR-005): при
                 // сбое задание НЕ помечается одобренным, администратор получает типизированную ошибку
                 // вместо необработанного HTTP 500 (см. research.md, п.2 — ранее незащищённое место).
+                val saveStatusStart = System.currentTimeMillis()
                 try {
                     aRead.adminStatus = SongAssignmentStatus.ADMIN_APPROVED
                     aRead.reviewedAt = Timestamp(System.currentTimeMillis())
                     aRead.reviewComment = ""
                     aRead.save()
+                    println("[approve/timing] aRead.save(): ${System.currentTimeMillis() - saveStatusStart} ms")
                 } catch (e: Exception) {
-                    println("[SongEditorController.approve] сохранение статуса задания $id не удалось: ${e.message}")
+                    println(
+                        "[SongEditorController.approve] сохранение статуса задания $id не удалось " +
+                            "(${System.currentTimeMillis() - saveStatusStart} ms): ${e.message}",
+                    )
                     return@withDb mapOf("ok" to false, "status" to "error", "error" to "save_failed")
                 }
                 mapOf("ok" to true, "status" to "success", "idStatus" to settings.idStatus)

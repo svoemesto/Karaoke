@@ -33,26 +33,49 @@ object SongReleaseAnnouncementService {
      * все полные объекты разом и воспроизвёл бы тот же `OutOfMemoryError`, что чанкование запроса
      * само по себе не предотвращает).
      */
+    // Точечные тайминги (specs/096-approve-news-timing-diagnostics) — временная диагностика по
+    // репорту "зависает после Получено хешей: N" (specs/094/095 не устранили симптом; нужны факты
+    // о том, на каком именно шаге уходит время, вместо гипотез). Поведение не меняет, только println.
     private fun forEachNewlyReadyCandidate(
         database: KaraokeConnection,
         storageService: KaraokeStorageService,
         storageApiClient: StorageApiClient,
         action: (Song) -> Unit,
     ) {
+        val t0 = System.currentTimeMillis()
         val alreadyAnnounced = SongNewsAnnounced.loadAnnouncedSongIds(database)
-        val candidateIds =
-            (Song.listHashes(database = database, whereText = "WHERE id_status >= 6") ?: emptyList())
-                .map { it.id }
-                .filter { it !in alreadyAnnounced }
-        candidateIds.chunked(CHUNK_SIZE).forEach { chunk ->
-            Song
-                .loadListFromDb(
+        val t1 = System.currentTimeMillis()
+        println(
+            "[checkAndAnnounce/timing] loadAnnouncedSongIds: ${t1 - t0} ms, уже анонсировано: ${alreadyAnnounced.size}",
+        )
+
+        val hashes = Song.listHashes(database = database, whereText = "WHERE id_status >= 6") ?: emptyList()
+        val t2 = System.currentTimeMillis()
+        println("[checkAndAnnounce/timing] Song.listHashes(id_status>=6): ${t2 - t1} ms, записей: ${hashes.size}")
+
+        val candidateIds = hashes.map { it.id }.filter { it !in alreadyAnnounced }
+        val t3 = System.currentTimeMillis()
+        println(
+            "[checkAndAnnounce/timing] фильтрация уже анонсированных: ${t3 - t2} ms, кандидатов: ${candidateIds.size}",
+        )
+
+        val chunks = candidateIds.chunked(CHUNK_SIZE)
+        chunks.forEachIndexed { index, chunk ->
+            val chunkStart = System.currentTimeMillis()
+            val loaded =
+                Song.loadListFromDb(
                     args = mapOf("ids" to chunk.joinToString(",")),
                     database = database,
                     storageService = storageService,
                     storageApiClient = storageApiClient,
-                ).filter { it.isPubliclyWatchable }
-                .forEach(action)
+                )
+            val chunkLoaded = System.currentTimeMillis()
+            loaded.filter { it.isPubliclyWatchable }.forEach(action)
+            val chunkDone = System.currentTimeMillis()
+            println(
+                "[checkAndAnnounce/timing] чанк ${index + 1}/${chunks.size} (${chunk.size} id): " +
+                    "loadListFromDb ${chunkLoaded - chunkStart} ms, action() ${chunkDone - chunkLoaded} ms",
+            )
         }
     }
 
@@ -101,9 +124,12 @@ object SongReleaseAnnouncementService {
         storageService: KaraokeStorageService,
         storageApiClient: StorageApiClient,
     ): List<Long> {
+        val startedAt = System.currentTimeMillis()
+        println("[checkAndAnnounce/timing] старт (${database.name})")
         val created = mutableListOf<Long>()
         try {
             forEachNewlyReadyCandidate(database, storageService, storageApiClient) { song ->
+                val songStart = System.currentTimeMillis()
                 val news =
                     News.createAutoAnnouncement(
                         songId = song.id,
@@ -114,13 +140,20 @@ object SongReleaseAnnouncementService {
                         storageService = storageService,
                         storageApiClient = storageApiClient,
                     )
+                val newsCreated = System.currentTimeMillis()
                 if (SongNewsAnnounced.markAnnounced(songId = song.id, newsId = news?.id, database = database)) {
                     created.add(song.id)
                 }
+                val marked = System.currentTimeMillis()
+                println(
+                    "[checkAndAnnounce/timing] песня ${song.id}: createAutoAnnouncement ${newsCreated - songStart} ms, " +
+                        "markAnnounced ${marked - newsCreated} ms",
+                )
             }
         } catch (e: Exception) {
             println("SongReleaseAnnouncementService.checkAndAnnounce error: ${e.message}")
         }
+        println("[checkAndAnnounce/timing] итого: ${System.currentTimeMillis() - startedAt} ms, создано новостей: ${created.size}")
         return created
     }
 

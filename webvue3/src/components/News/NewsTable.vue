@@ -81,6 +81,20 @@
           />
         </template>
 
+        <template #cell(source)="data">
+          <div
+            class="fld-news-source"
+            :class="data.value === 'auto' ? 'fld-news-source-auto' : 'fld-news-source-manual'"
+            :title="
+              data.value === 'auto'
+                ? 'Создана автоматически (выход песни в эфир)'
+                : 'Создана вручную администратором'
+            "
+          >
+            {{ data.value === 'auto' ? '🤖 авто' : 'ручная' }}
+          </div>
+        </template>
+
         <template #cell(category)="data">
           <div class="fld-news-category" v-text="categoryLabel(data.value)" />
         </template>
@@ -183,6 +197,11 @@ export default {
           key: 'published',
           label: 'Статус',
           style: { minWidth: '120px', maxWidth: '120px', textAlign: 'center', fontSize: 'small' },
+        },
+        {
+          key: 'source',
+          label: 'Источник',
+          style: { minWidth: '90px', maxWidth: '90px', textAlign: 'center', fontSize: 'small' },
         },
         {
           key: 'actions',
@@ -434,6 +453,19 @@ export default {
 }
 .fld-news-status-scheduled {
   color: #a06a00;
+}
+.fld-news-source {
+  min-width: 90px;
+  max-width: 90px;
+  text-align: center;
+  font-size: small;
+  white-space: nowrap;
+}
+.fld-news-source-auto {
+  color: #2f6a8a;
+}
+.fld-news-source-manual {
+  color: #666;
 }
 .fld-news-actions {
   min-width: 50px;

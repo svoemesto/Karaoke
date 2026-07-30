@@ -113,13 +113,9 @@ class PublicPlayerController(
     // проставляемые karaoke-app в момент успешной заливки стема/картинки в хранилище и сверяемые
     // HealthReport'ом. НИКАКИХ обращений к MinIO здесь больше нет — раньше стемы проверялись через
     // 2 живых HEAD-запроса на каждый вызов, что било по MinIO на каждый показ списка песен.
-    private fun stemsReady(settings: Song): Boolean =
-        settings.idStatus >= 6 &&
-            settings.stemAccompanimentReady &&
-            settings.stemVocalReady &&
-            settings.pictureAlbumReady &&
-            settings.pictureAuthorReady &&
-            settings.sourceMarkersList.isNotEmpty()
+    // Делегирует в Song.isContentReady — единственный источник истины для этого условия (см. KDoc
+    // Song.isContentReady, specs/089-auto-news-song-release).
+    private fun stemsReady(settings: Song): Boolean = settings.isContentReady
 
     /**
      * Решает, можно ли прямо сейчас показать на странице песни встроенный онлайн-плеер вместо

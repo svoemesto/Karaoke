@@ -909,6 +909,29 @@ class Song(
         get() = readinessFlag("pictureAuthorReady")
         set(value) = setReadinessFlag("pictureAuthorReady", value)
 
+    // Готовность КОНТЕНТА песни (без учёта даты эфира/премиума) — статус жизненного цикла (см.
+    // specs/022-song-status-lifecycle) + персистентные флаги готовности стемов/обложек + непустые
+    // маркеры. Единственный источник истины для этого условия — используется и
+    // PublicPlayerController.stemsReady() (караоке-плеер, с доп. онлайн/премиум-логикой), и
+    // isPubliclyWatchable ниже (specs/089-auto-news-song-release), чтобы не заводить третью
+    // независимую копию одного и того же условия (см. StatBySong.CONTENT_READY_FILTER — это
+    // отдельная, оправданная raw-SQL реализация того же условия ради производительности
+    // агрегатных COUNT-запросов; при изменении правил готовности проверять оба места).
+    val isContentReady: Boolean get() = (
+        idStatus >= 6 &&
+            stemAccompanimentReady &&
+            stemVocalReady &&
+            pictureAlbumReady &&
+            pictureAuthorReady &&
+            sourceMarkersList.isNotEmpty()
+    )
+
+    // Песня публично доступна ЛЮБОМУ пользователю сайта прямо сейчас — контент готов И наступила
+    // дата эфира. В отличие от PublicPlayerController.canWatch, НЕ включает premium/подписочный обход
+    // даты эфира (ранний доступ премиум-пользователей — это отдельная, более узкая ситуация, не
+    // «песня стала публично доступна всем», см. specs/089-auto-news-song-release/spec.md FR-009).
+    val isPubliclyWatchable: Boolean get() = isContentReady && onAir
+
     val idBoosty: String get() = fields[SongField.ID_BOOSTY]?.nullIfEmpty() ?: ""
     val versionBoosty: Int get() = (fields[SongField.VERSION_BOOSTY]?.nullIfEmpty() ?: "0").toInt()
     val idBoostyFiles: String get() = fields[SongField.ID_BOOSTY_FILES]?.nullIfEmpty() ?: ""

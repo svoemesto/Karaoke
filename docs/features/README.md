@@ -23,6 +23,7 @@
 | 10 | `dictionaries` | Словари (DB + TextFile) для lyrics | [dictionaries.md](./dictionaries.md) |
 | 11 | `stats` | Статистика (главная + события + KPI) | [stats.md](./stats.md) |
 | 12 | `special-orders` | Спецзаказные авторы (виртуальная плашка в Закромах) | [special-orders.md](./special-orders.md) |
+| 13 | `songs-table` | Таблица песен в админке (webvue3) | [songs-table.md](./songs-table.md) |
 
 ## Cross-cutting (инфраструктура)
 

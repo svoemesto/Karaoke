@@ -7171,6 +7171,7 @@ class Song(
                     Pair("filter_version_max_karaoke", "version_max_karaoke"),
                     Pair("filter_rate", "rate"),
                     Pair("filter_root_id", "root_id"),
+                    Pair("filter_audio_parent_id", "audio_parent_id"),
                     Pair("filter_exclusive", "exclusive"),
                     Pair("filter_free", "free"),
                 )

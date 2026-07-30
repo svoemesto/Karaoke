@@ -7,9 +7,13 @@ import com.svoemesto.karaokeapp.model.SongNewsAnnounced
 
 /**
  * Автоматическое создание новостей о выходе песни в эфир (specs/089-auto-news-song-release).
- * Единственный вызывающий — `karaoke-web` `MainController.doChangeRecords` (PROD-only, единственная
- * точка кода, реально исполняемая на PROD в момент существующего механизма синхронизации таблиц —
- * см. research.md фичи 083, п.1).
+ * Три независимых вызывающих (specs/092-fix-auto-news-triggers): `karaoke-web`
+ * `MainController.doChangeRecords` (PROD, момент синхронизации таблиц), `karaoke-web`
+ * `SongReleaseAnnouncementScheduler` (PROD, периодическая проверка наступления времени эфира) и
+ * `karaoke-app` `SongEditorController.approve()` (admin-машина, мгновенный триггер при апруве
+ * задания редактора — см. specs/094-fix-approve-news-failure). Идемпотентность (`PRIMARY
+ * KEY(song_id)` в `tbl_song_news_announced`) рассчитана именно на такие независимые параллельные
+ * вызовы — см. KDoc [checkAndAnnounce].
  *
  * @see docs/features/dual-db-sync.md
  */

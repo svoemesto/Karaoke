@@ -563,10 +563,17 @@ fun updateRemotePictureFromLocalDatabase(id: Long): SyncResult =
             ),
     )
 
-fun updateRemoteSongFromLocalDatabase(id: Long): SyncResult =
+// toDatabase — по умолчанию новое подключение Connection.remote(); вызывающий код (например,
+// SongEditorController.approve(), specs/094-fix-approve-news-failure) может передать уже открытое
+// remote-соединение, чтобы не плодить лишние физические JDBC-подключения к прод-серверу в рамках
+// одного запроса (см. research.md фичи 094, п.1-2).
+fun updateRemoteSongFromLocalDatabase(
+    id: Long,
+    toDatabase: KaraokeConnection = Connection.remote(),
+): SyncResult =
     updateDatabases(
         fromDatabase = Connection.local(),
-        toDatabase = Connection.remote(),
+        toDatabase = toDatabase,
         keys = setOf("settings"),
         idFilter =
             mapOf(

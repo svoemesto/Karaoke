@@ -2178,6 +2178,13 @@ data class HealthReport(
         // образцу ApiController.autoAssignOriginalAll) — вызывающая сторона должна гнать это в фоновом
         // потоке (полный скан одной песни небыстрый — много I/O-проверок на файл, а по всему каталогу
         // это может быть тысячи песен).
+        // Каждые PROGRESS_LOG_EVERY песен — строка прогресса в лог (specs/100-fix-recalc-readiness-
+        // progress-resilience): при 20000+ песнях и полном отсутствии логирования по ходу невозможно
+        // отличить «ещё считает» от «фоновый поток тихо умер на необработанном исключении» — что и
+        // произошло с этой функцией до фикса ниже (per-song try/catch отсутствовал, forEach() падал на
+        // первой же проблемной песне без единого сообщения в логе).
+        private const val PROGRESS_LOG_EVERY = 200
+
         fun recalculatePlayerReadiness(
             author: String?,
             database: KaraokeConnection,
@@ -2191,8 +2198,31 @@ data class HealthReport(
             val authorFilter = author?.trim()?.takeIf { it.isNotEmpty() }
             val whereText = authorFilter?.let { "WHERE LOWER(song_author) = '${it.rightFileName().lowercase()}'" } ?: ""
             val ids = Song.listHashes(database = database, whereText = whereText)?.map { it.id } ?: return 0
-            ids.forEach { recomputeAndBroadcast(it, database, storageService, storageApiClient) }
-            return ids.size
+            val total = ids.size
+            val startedAt = System.currentTimeMillis()
+            var failed = 0
+            println("[recalcPlayerReadiness/progress] старт: песен к проверке $total")
+            ids.forEachIndexed { index, id ->
+                try {
+                    recomputeAndBroadcast(id, database, storageService, storageApiClient)
+                } catch (e: Exception) {
+                    // Одна проблемная песня (например, сбой при проверке файла в MinIO) не должна
+                    // обрывать весь прогон — пропускаем её и продолжаем с остальными.
+                    failed++
+                    println("[recalcPlayerReadiness/progress] песня $id: ошибка при пересчёте, пропущена: ${e.message}")
+                }
+                val done = index + 1
+                if (done % PROGRESS_LOG_EVERY == 0 || done == total) {
+                    val elapsedMs = System.currentTimeMillis() - startedAt
+                    val avgMsPerSong = elapsedMs.toDouble() / done
+                    val remainingMs = (avgMsPerSong * (total - done)).toLong()
+                    println(
+                        "[recalcPlayerReadiness/progress] $done/$total (${(done * 100L) / total}%), " +
+                            "ошибок: $failed, прошло: ${elapsedMs / 1000} с, осталось примерно: ${remainingMs / 1000} с",
+                    )
+                }
+            }
+            return total
         }
 
         /**

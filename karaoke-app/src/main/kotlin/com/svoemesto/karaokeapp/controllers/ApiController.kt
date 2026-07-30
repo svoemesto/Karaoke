@@ -392,6 +392,28 @@ class ApiController(
         return "Вызван getFls. Файлы в папке /sm-karaoke/work: $files"
     }
 
+    @GetMapping("/song/{id}/shortinfo")
+    fun getSongShortInfo(
+        @PathVariable id: Long,
+    ): ResponseEntity<SongShortInfoDto> {
+        val settings =
+            Song.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            ) ?: return ResponseEntity.notFound().build()
+        return ResponseEntity.ok(
+            SongShortInfoDto(
+                id = settings.id,
+                author = settings.author,
+                year = settings.year,
+                album = settings.album,
+                songName = settings.songName,
+            ),
+        )
+    }
+
     @GetMapping("/song/{id}/filedrums")
     fun getSongFileDrums(
         @PathVariable id: Long,
@@ -2289,6 +2311,7 @@ class ApiController(
         @RequestParam(required = false) filterStatusProcessDemo: String?,
         @RequestParam(required = false) filterIsSync: String?,
         @RequestParam(required = false) filterRootId: String?,
+        @RequestParam(required = false) filterAudioParentId: String?,
         @RequestParam(required = false) filterSongType: String?,
         // filterAssignmentStatus/target — фильтр по назначенному заданию онлайн-редактора ("unassigned"
         // или dbValue из SongAssignmentStatus). Song по-прежнему всегда грузятся из WORKING_DATABASE
@@ -2366,6 +2389,7 @@ class ApiController(
         filterStatusProcessDemo?.let { if (filterStatusProcessDemo != "") args["filter_status_process_demo"] = filterStatusProcessDemo }
         filterIsSync?.let { if (filterIsSync != "") args["is_sync"] = filterIsSync }
         filterRootId?.let { if (filterRootId != "") args["filter_root_id"] = filterRootId }
+        filterAudioParentId?.let { if (filterAudioParentId != "") args["filter_audio_parent_id"] = filterAudioParentId }
         filterSongType?.let { if (filterSongType != "") args["song_type"] = filterSongType }
 
         SongsHistory().add(args)
@@ -2472,6 +2496,7 @@ class ApiController(
         @RequestParam(required = false) filterStatusProcessKaraoke: String?,
         @RequestParam(required = false) filterStatusProcessDemo: String?,
         @RequestParam(required = false) filterRootId: String?,
+        @RequestParam(required = false) filterAudioParentId: String?,
         @RequestParam(required = false) pageSize: Int = 30,
     ): Map<String, Any> {
         val args: MutableMap<String, String> = mutableMapOf()
@@ -2542,6 +2567,7 @@ class ApiController(
         }
         filterStatusProcessDemo?.let { if (filterStatusProcessDemo != "") args["filter_status_process_demo"] = filterStatusProcessDemo }
         filterRootId?.let { if (filterRootId != "") args["filter_root_id"] = filterRootId }
+        filterAudioParentId?.let { if (filterAudioParentId != "") args["filter_audio_parent_id"] = filterAudioParentId }
 
         SongsHistory().add(args)
 

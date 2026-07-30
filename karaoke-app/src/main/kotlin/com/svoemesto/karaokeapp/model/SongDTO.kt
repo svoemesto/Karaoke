@@ -416,6 +416,7 @@ data class SongDTO(
             shortDescription = shortDescription,
             warning = warning,
             rootId = rootId,
+            audioParentId = audioParentId,
             exclusive = exclusive,
             free = free,
             songType = songType,

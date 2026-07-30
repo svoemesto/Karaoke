@@ -32,6 +32,7 @@ export default {
     songsFilterStatusProcessKaraoke: '',
     songsFilterStatusProcessDemo: '',
     songsFilterRootId: '',
+    songsFilterAudioParentId: '',
     songsFilterFlagExclusive: '',
     songsFilterFlagFree: '',
     songsFilterAssignmentStatus: '',
@@ -117,6 +118,9 @@ export default {
     },
     getSongsFilterRootId(state) {
       return state.songsFilterRootId
+    },
+    getSongsFilterAudioParentId(state) {
+      return state.songsFilterAudioParentId
     },
     getSongsFilterFlagExclusive(state) {
       return state.songsFilterFlagExclusive
@@ -239,6 +243,10 @@ export default {
       setWebvueProp(state.songsFilterRootId, 'songsFilterRootId', value)
       state.songsFilterRootId = value
     },
+    setSongsFilterAudioParentId(state, value) {
+      setWebvueProp(state.songsFilterAudioParentId, 'songsFilterAudioParentId', value)
+      state.songsFilterAudioParentId = value
+    },
     setSongsFilterFlagExclusive(state, value) {
       setWebvueProp(state.songsFilterFlagExclusive, 'songsFilterFlagExclusive', value)
       state.songsFilterFlagExclusive = value
@@ -341,6 +349,9 @@ export default {
     },
     setSongsFilterRootId(ctx, payload) {
       ctx.commit('setSongsFilterRootId', payload.value)
+    },
+    setSongsFilterAudioParentId(ctx, payload) {
+      ctx.commit('setSongsFilterAudioParentId', payload.value)
     },
     setSongsFilterFlagExclusive(ctx, payload) {
       ctx.commit('setSongsFilterFlagExclusive', payload.value)

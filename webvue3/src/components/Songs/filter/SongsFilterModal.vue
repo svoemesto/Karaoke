@@ -99,6 +99,21 @@
 
                 <div class="sfm-filter-row">
                   <div class="sfm-row-label">
+                    <div v-text="'A-root ID:'" />
+                  </div>
+                  <div class="sfm-row-input">
+                    <input v-model="songsFilterAudioParentId" class="sfm-input-field" />
+                  </div>
+                  <button
+                    :disabled="!songsFilterAudioParentId"
+                    class="sfm-button-clear-field"
+                    @click.left="songsFilterAudioParentId = ''"
+                    v-text="'X'"
+                  />
+                </div>
+
+                <div class="sfm-filter-row">
+                  <div class="sfm-row-label">
                     <div v-text="'Композиция:'" />
                   </div>
                   <div class="sfm-row-input">
@@ -683,6 +698,14 @@ export default {
         this.$store.dispatch('setSongsFilterRootId', { value: value })
       },
     },
+    songsFilterAudioParentId: {
+      get() {
+        return this.$store.getters.getSongsFilterAudioParentId
+      },
+      set(value) {
+        this.$store.dispatch('setSongsFilterAudioParentId', { value: value })
+      },
+    },
     songsFilterFlagExclusive: {
       get() {
         return this.$store.getters.getSongsFilterFlagExclusive
@@ -822,6 +845,9 @@ export default {
     this.$store.dispatch('setSongsFilterRootId', {
       value: await this.$store.getters.getWebvueProp('songsFilterRootId', ''),
     })
+    this.$store.dispatch('setSongsFilterAudioParentId', {
+      value: await this.$store.getters.getWebvueProp('songsFilterAudioParentId', ''),
+    })
     this.$store.dispatch('setSongsFilterFlagExclusive', {
       value: await this.$store.getters.getWebvueProp('songsFilterFlagExclusive', ''),
     })
@@ -885,6 +911,7 @@ export default {
         value: this.songsFilterStatusProcessDemo,
       })
       this.$store.dispatch('setSongsFilterRootId', { value: this.songsFilterRootId })
+      this.$store.dispatch('setSongsFilterAudioParentId', { value: this.songsFilterAudioParentId })
       this.$store.dispatch('setSongsFilterFlagExclusive', { value: this.songsFilterFlagExclusive })
       this.$store.dispatch('setSongsFilterFlagFree', { value: this.songsFilterFlagFree })
       this.$store.dispatch('setSongsFilterAssignmentStatus', {
@@ -929,6 +956,8 @@ export default {
       if (this.songsFilterStatusProcessDemo !== '')
         params.filterStatusProcessDemo = this.songsFilterStatusProcessDemo
       if (this.songsFilterRootId !== '') params.filterRootId = this.songsFilterRootId
+      if (this.songsFilterAudioParentId !== '')
+        params.filterAudioParentId = this.songsFilterAudioParentId
       if (this.songsFilterFlagExclusive !== '') params.flagExclusive = this.songsFilterFlagExclusive
       if (this.songsFilterFlagFree !== '') params.flagFree = this.songsFilterFlagFree
       if (this.songsFilterSongType !== '') params.filterSongType = this.songsFilterSongType

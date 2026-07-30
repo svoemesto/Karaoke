@@ -67,12 +67,28 @@
         </template>
         <template #cell(rootId)="data">
           <div
+            v-b-tooltip.hover
             class="fld-root-id"
             :style="{
               backgroundColor: data.item.color,
               color: currentSongId === data.item.id ? 'blue' : 'black',
             }"
+            :title="formatTooltipTitle(data.value)"
+            @mouseenter="setTooltipTitle(data.value, $event.target)"
             v-text="data.value"
+          />
+        </template>
+        <template #cell(audioParentId)="data">
+          <div
+            v-b-tooltip.hover
+            class="fld-audio-parent-id"
+            :style="{
+              backgroundColor: data.item.color,
+              color: currentSongId === data.item.id ? 'blue' : 'black',
+            }"
+            :title="formatTooltipTitle(data.value)"
+            @mouseenter="setTooltipTitle(data.value, $event.target)"
+            v-text="data.value ? data.value : '-'"
           />
         </template>
         <template #cell(songName)="data">
@@ -791,6 +807,9 @@ export default {
       hrQueue: [],
       hrRunning: 0,
       HR_MAX_CONCURRENT: 3,
+      // Кэш короткой информации о песнях для тултипов root/A-root.
+      // Ключ — id песни, значение — { author, year, album, songName }.
+      songShortInfoCache: {},
     }
   },
   computed: {
@@ -859,6 +878,17 @@ export default {
           key: 'rootId',
           sortable: true,
           label: 'root',
+          style: {
+            minWidth: '50px',
+            maxWidth: '50px',
+            textAlign: 'center',
+            fontSize: 'smaller',
+          },
+        },
+        {
+          key: 'audioParentId',
+          sortable: true,
+          label: 'A-root',
           style: {
             minWidth: '50px',
             maxWidth: '50px',
@@ -1382,6 +1412,67 @@ export default {
     songTypeLetter(value) {
       const map = { song: 'S', instrumental: 'I', poetry: 'P' }
       return map[value] || ''
+    },
+    /**
+     * Возвращает Promise с короткой информацией о песне по id для тултипа.
+     * Результаты кэшируются в `songShortInfoCache`, чтобы не делать повторных запросов.
+     *
+     * @param {number} id - id песни
+     * @returns {Promise<{author: string, year: number, album: string, songName: string}|null>}
+     */
+    async getSongShortInfo(id) {
+      if (!id || id <= 0) return null
+      if (this.songShortInfoCache[id]) {
+        return this.songShortInfoCache[id]
+      }
+      try {
+        const response = await fetch(`/api/song/${id}/shortinfo`)
+        if (!response.ok) {
+          this.songShortInfoCache[id] = null
+          return null
+        }
+        const info = await response.json()
+        this.songShortInfoCache[id] = info
+        return info
+      } catch (error) {
+        console.error('getSongShortInfo error:', error)
+        return null
+      }
+    },
+    /**
+     * Формирует статичный fallback-заголовок тултипа по id.
+     * Используется до загрузки реальных данных.
+     *
+     * @param {number} id - id связанной песни
+     * @returns {string}
+     */
+    formatTooltipTitle(id) {
+      if (!id || id <= 0) return 'Нет связанной песни'
+      return 'Загрузка...'
+    },
+    /**
+     * Формирует текст тултипа для ячеек root/A-root.
+     * Асинхронно загружает информацию о песне и обновляет title элемента.
+     *
+     * @param {number} id - id связанной песни
+     * @param {HTMLElement} el - DOM-элемент, на который повешен тултип
+     */
+    async setTooltipTitle(id, el) {
+      const info = await this.getSongShortInfo(id)
+      if (!el) return
+      let title
+      if (!info) {
+        title = id <= 0 ? 'Нет связанной песни' : 'Не найдено'
+      } else {
+        title = [info.author, info.year, info.album, info.songName]
+          .filter((part) => part !== null && part !== undefined && part !== '')
+          .join(' — ')
+      }
+      el.setAttribute('title', title)
+      // Принудительно обновляем тултип, если он уже инициализирован.
+      if (el.__tooltip) {
+        el.__tooltip.setContent({ '.tooltip-inner': title })
+      }
     },
     openPlayer(id) {
       window.open('/player/' + id, '_blank')
@@ -2104,6 +2195,14 @@ export default {
   overflow: hidden;
 }
 .fld-root-id {
+  min-width: 50px;
+  max-width: 50px;
+  text-align: center;
+  font-size: smaller;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.fld-audio-parent-id {
   min-width: 50px;
   max-width: 50px;
   text-align: center;

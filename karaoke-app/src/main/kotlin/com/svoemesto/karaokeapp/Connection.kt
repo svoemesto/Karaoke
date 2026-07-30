@@ -15,10 +15,21 @@ import com.svoemesto.karaokeapp.services.DB_SERVER_POSTGRES_USER
  * [Companion.virtual]. Прямое создание `Connection(...)` — не рекомендуется
  * (нет валидации параметров).
  *
- * Потокобезопасность: каждый [Connection] — stateless wrapper, `getConnection()`
- * возвращает НОВОЕ JDBC-соединение из пула при каждом вызове. Закрывайте
- * соединения через `withDb { ... }` в контроллерах, иначе утечка → «too many
- * clients» (см. DEVELOPMENT.md «Dual database targets»).
+ * Потокобезопасность: `getConnection()` (см. [KaraokeConnection]) кеширует
+ * по одному физическому JDBC-соединению **на поток выполнения**
+ * (`ThreadLocal`, specs/087-fix-shared-db-connection) — не на весь инстанс
+ * и тем более не «новое соединение на каждый вызов». Для долгоживущего
+ * инстанса, на который ссылаются многие потоки (типично для
+ * [WORKING_DATABASE]), это означает одно устойчивое соединение на поток,
+ * переиспользуемое между вызовами без явного `close()`.
+ *
+ * Отдельный, дополнительный паттерн — короткоживущий `Connection`,
+ * создаваемый заново на каждый HTTP-запрос через приватный `withDb { ... }`
+ * в части контроллеров (`SponsrSyncController`, `SiteUsersController`):
+ * там именно НОВЫЙ инстанс `Connection` на вызов, закрываемый явно в
+ * `finally`, чтобы не плодить лишние физические соединения при работе с
+ * `target`-параметром (LOCAL/SERVER на выбор). Это выбор конкретных
+ * контроллеров, а не общее свойство класса `Connection`.
  *
  * @see KaraokeConnection базовый интерфейс
  * @see WORKING_DATABASE глобальный singleton (обычно = `Connection.local()`)

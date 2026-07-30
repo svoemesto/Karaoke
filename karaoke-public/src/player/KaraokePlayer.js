@@ -7,7 +7,6 @@ import {
   trackPlayerEnded,
 } from '../services/tracking'
 import { createPitchShifterNode } from '../utils/PitchShifterNode.js'
-import { getTransposedKeyName, getTransposeOptions } from '../utils/musicTheory.js'
 
 // Thrown when required audio isn't available yet (missing file in storage, no mp3 rendered, etc.) —
 // distinguished from other init errors so the UI can show a friendly message instead of raw details.

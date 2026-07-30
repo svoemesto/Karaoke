@@ -1,5 +1,9 @@
 # Audio Transpose (Транспонирование аудио)
 
+> **Status**: active
+> **Feature Key**: audio-transpose
+> **Last Updated**: 2026-07-30
+
 ## Что делает
 
 Функция позволяет премиум-пользователям изменять тональность воспроизведения караоке-трека в онлайн-плеере на лету (real-time), без перезагрузки страницы и без сохранения транспонированных стемов в хранилище. Доступен диапазон ±6 полутонов от базовой тональности песни.
@@ -53,8 +57,8 @@
 
 ## Ссылки
 
-- Spec: `specs/095-transpose-audio/spec.md`
-- Plan: `specs/095-transpose-audio/plan.md`
-- Research: `specs/095-transpose-audio/research.md`
-- Tasks: `specs/095-transpose-audio/tasks.md`
-- Quickstart: `specs/095-transpose-audio/quickstart.md`
+- [Spec](specs/095-transpose-audio/spec.md)
+- [Plan](specs/095-transpose-audio/plan.md)
+- [Research](specs/095-transpose-audio/research.md)
+- [Tasks](specs/095-transpose-audio/tasks.md)
+- [Quickstart](specs/095-transpose-audio/quickstart.md)

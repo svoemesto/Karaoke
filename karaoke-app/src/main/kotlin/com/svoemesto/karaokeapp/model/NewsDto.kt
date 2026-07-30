@@ -20,7 +20,7 @@ data class NewsDto(
     val publishAt: String = "",
     val createdAt: String = "",
     val published: Boolean = false,
-    // "manual" | "auto" — см. News.source (specs/083-auto-news-song-release). Позволяет webvue3
+    // "manual" | "auto" — см. News.source (specs/089-auto-news-song-release). Позволяет webvue3
     // отличить автоматически созданные новости от ручных в общем списке (FR-007 spec.md).
     val source: String = "manual",
 ) : Serializable,

@@ -6,7 +6,7 @@ import com.svoemesto.karaokeapp.model.Song
 import com.svoemesto.karaokeapp.model.SongNewsAnnounced
 
 /**
- * Автоматическое создание новостей о выходе песни в эфир (specs/083-auto-news-song-release).
+ * Автоматическое создание новостей о выходе песни в эфир (specs/089-auto-news-song-release).
  * Единственный вызывающий — `karaoke-web` `MainController.doChangeRecords` (PROD-only, единственная
  * точка кода, реально исполняемая на PROD в момент существующего механизма синхронизации таблиц —
  * см. research.md фичи 083, п.1).

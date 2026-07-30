@@ -69,7 +69,7 @@ class News(
     @KaraokeDbTableField(name = "created_at", useInDiff = false)
     var createdAt: Timestamp? = null
 
-    // Ссылка на песню — заполняется только для авто-созданных новостей (specs/083-auto-news-song-release).
+    // Ссылка на песню — заполняется только для авто-созданных новостей (specs/089-auto-news-song-release).
     // useInDiff=false: не должно участвовать в generic sync-diff (см. также source ниже и listHashes()).
     @KaraokeDbTableField(name = "song_id", useInDiff = false)
     var songId: Long? = null
@@ -77,7 +77,7 @@ class News(
     // "manual" (создана администратором через NewsController) | "auto" (создана
     // SongReleaseAnnouncementService). useInDiff=false, а строки с source="auto" полностью исключены
     // из listHashes() ниже — авто-новости физически существуют только на PROD и НЕ должны участвовать
-    // в LOCAL↔SERVER hash-diff sync-движке (см. specs/083-auto-news-song-release/research.md, п.2):
+    // в LOCAL↔SERVER hash-diff sync-движке (см. specs/089-auto-news-song-release/research.md, п.2):
     // иначе следующий admin-триггерный «1 клик» может стереть их как «отсутствующие в источнике»
     // (mirror-delete), если когда-либо включат sync_news_push_delete_allowed.
     @KaraokeDbTableField(name = "source", useInDiff = false)
@@ -103,7 +103,7 @@ class News(
 
         // Используется ТОЛЬКО NewsSyncTarget (generic LOCAL↔SERVER sync-движок, sync/SyncTarget.kt).
         // Принудительно исключает source='auto' — авто-новости не должны попадать в hash-diff (см.
-        // KDoc поля News.source выше и specs/083-auto-news-song-release/research.md, п.2).
+        // KDoc поля News.source выше и specs/089-auto-news-song-release/research.md, п.2).
         fun listHashes(
             database: KaraokeConnection,
             whereText: String = "",
@@ -246,7 +246,7 @@ class News(
 
         // Создаёт новость автоматически, без участия администратора — вызывается ТОЛЬКО
         // SongReleaseAnnouncementService при обнаружении песни, ставшей публично доступной
-        // (specs/083-auto-news-song-release). publishAt = сейчас — новость публикуется немедленно
+        // (specs/089-auto-news-song-release). publishAt = сейчас — новость публикуется немедленно
         // (иначе она осталась бы невидимым черновиком, см. research.md, п.6). source="auto" исключает
         // строку из LOCAL↔SERVER sync (см. listHashes() выше).
         fun createAutoAnnouncement(

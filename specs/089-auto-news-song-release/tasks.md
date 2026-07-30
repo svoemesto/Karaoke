@@ -5,7 +5,7 @@ description: "Task list for feature implementation"
 
 # Tasks: Автоматические новости о выходе песни в эфир
 
-**Input**: Design documents from `/specs/083-auto-news-song-release/`
+**Input**: Design documents from `/specs/089-auto-news-song-release/`
 
 **Prerequisites**: plan.md, spec.md, research.md, data-model.md, contracts/news-api.md, quickstart.md
 
@@ -45,7 +45,7 @@ description: "Task list for feature implementation"
 - [X] T007 Заменить локальную логику `stemsReady`/`canWatch` в `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicPlayerController.kt` на вызов `Song.isPubliclyWatchable` из T006 (устранение дублирования, а не создание третьей копии)
 - [X] T008 Создать модель/DAO для `tbl_song_news_announced` (например `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SongNewsAnnounced.kt`, сырой JDBC через `KaraokeConnection`, без JPA): методы `isAnnounced(songId, db): Boolean`, `markAnnounced(songId, newsId: Long?, db): Boolean` (INSERT, идемпотентно — игнорировать конфликт по PK `song_id`), `loadAnnouncedSongIds(db): Set<Long>` (для пакетной фильтрации кандидатов)
 - [X] T009 Создать `SongReleaseAnnouncementService` (`karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/SongReleaseAnnouncementService.kt`) с методом `checkAndAnnounce(database: KaraokeConnection): List<Long>` по контракту из `contracts/news-api.md`: загрузить кандидатов (`id_status >= 6`, дата эфира наступила — узкий SQL-фильтр через `Song.loadListFromDb`), отфильтровать по `Song.isPubliclyWatchable` (T006) и по отсутствию в `SongNewsAnnounced` (T008), для каждого — создать `News` (`source = "auto"`, `songId = id`, заголовок/текст/ссылка по шаблону из research.md п.6) и вызвать `markAnnounced`; обернуть в try/catch с логированием (не должен ронять вызывающий код)
-- [X] T010 [P] Обновить `docs/features/dual-db-sync.md`: добавить раздел про авто-новости — почему они намеренно исключены из `NewsSyncTarget`-scope (FR-009 Конституции, ссылка на `specs/083-auto-news-song-release/research.md`)
+- [X] T010 [P] Обновить `docs/features/dual-db-sync.md`: добавить раздел про авто-новости — почему они намеренно исключены из `NewsSyncTarget`-scope (FR-009 Конституции, ссылка на `specs/089-auto-news-song-release/research.md`)
 
 **Checkpoint**: фундамент готов — сервис детекции существует и протестирован изолированно, но ещё не подключён ни к `/changerecords`, ни к UI, ни к backfill-процедуре
 
@@ -93,7 +93,7 @@ description: "Task list for feature implementation"
 ### Implementation for User Story 3
 
 - [X] T017 [US3] Добавить в `SongReleaseAnnouncementService` (T009) отдельный метод `backfillExistingReadySongs(database: KaraokeConnection): Int` — находит ВСЕ песни, уже удовлетворяющие `Song.isPubliclyWatchable`, и вызывает `SongNewsAnnounced.markAnnounced(songId, newsId = null, db)` для каждой БЕЗ создания записи в `tbl_news` (см. research.md п.5, шаг 3)
-- [X] T018 [US3] Документировать одноразовую процедуру запуска backfill (`docs/features/dual-db-sync.md` или отдельный раздел в `specs/083-auto-news-song-release/quickstart.md`): backfill выполняется один раз при включении фичи на PROD, ПЕРЕД тем как `doChangeRecords` начнёт вызывать `checkAndAnnounce` в реальном режиме; запуск на PROD БД — только по прямому согласию пользователя, на каждое выполнение отдельно (см. Constitution → «Ограничения агента»)
+- [X] T018 [US3] Документировать одноразовую процедуру запуска backfill (`docs/features/dual-db-sync.md` или отдельный раздел в `specs/089-auto-news-song-release/quickstart.md`): backfill выполняется один раз при включении фичи на PROD, ПЕРЕД тем как `doChangeRecords` начнёт вызывать `checkAndAnnounce` в реальном режиме; запуск на PROD БД — только по прямому согласию пользователя, на каждое выполнение отдельно (см. Constitution → «Ограничения агента»)
 - [X] T019 [US3] Ручная проверка: выполнить Сценарии 3 и 5 из `quickstart.md` на локальном dev-стенде (backfill не создаёт видимых новостей по историческим песням; включение `sync_news_push_delete_allowed=true` и последующий «1 клик» не удаляют уже созданную авто-новость — проверка исправления из T005)
 
 **Checkpoint**: все три user story работают независимо и вместе; фичу можно безопасно включать на PROD без лавины исторических новостей и без риска их удаления обычным sync-прогоном
@@ -171,4 +171,4 @@ Task: "Обновить docs/features/dual-db-sync.md"                          
 - Тесты не запрошены — вместо них ручные сценарии по `quickstart.md` внутри каждой фазы
 - T005 и T006/T007 — самые рискованные задачи Foundational-фазы (защита от потери данных и устранение дублирования условия готовности); не пропускать и не откладывать
 - Перед PROD-деплоем и перед PROD-миграцией — обязательное отдельное согласие пользователя на каждое действие (T002 — только LOCAL; T023 — чек-лист, не автономное выполнение)
-- Commit — после каждой задачи или логической группы задач, в соответствии с правилами проекта (не коммитить в master, ветка `083-auto-news-song-release`)
+- Commit — после каждой задачи или логической группы задач, в соответствии с правилами проекта (не коммитить в master, ветка `089-auto-news-song-release`)

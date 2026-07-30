@@ -113,22 +113,72 @@ class News(
             return KaraokeDbTable.getListHashes(tableName = TABLE_NAME, database = database, whereText = combinedWhere)
         }
 
-        // Полный список (в т.ч. черновики/будущие) для админки — свежие сверху.
+        // Постранично (в т.ч. черновики/будущие) для админки — свежие сверху (specs/090-news-pagination).
+        // Прямой SQL вместо generic KaraokeDbTable.loadList — LIMIT/OFFSET должен применяться в БД,
+        // не после полной загрузки в память (та же проблема класса OOM, что и в
+        // SongReleaseAnnouncementService, см. specs/089-auto-news-song-release/research.md п.5).
         fun loadAll(
             database: KaraokeConnection,
+            limit: Int,
+            offset: Int,
             storageService: KaraokeStorageService = KSS_APP,
             storageApiClient: StorageApiClient = SAC_APP,
-        ): List<News> =
-            KaraokeDbTable
-                .loadList(
-                    clazz = News::class,
-                    tableName = TABLE_NAME,
-                    whereList = emptyList(),
-                    database = database,
-                    storageService = storageService,
-                    storageApiClient = storageApiClient,
-                ).map { it as News }
-                .sortedByDescending { it.id }
+        ): List<News> {
+            val result: MutableList<News> = mutableListOf()
+            val connection = database.getConnection() ?: return result
+            val sql =
+                """
+                SELECT id FROM $TABLE_NAME
+                ORDER BY id DESC
+                LIMIT ? OFFSET ?
+                """.trimIndent()
+            val ids: MutableList<Long> = mutableListOf()
+            try {
+                connection.prepareStatement(sql).use { ps ->
+                    ps.setInt(1, limit)
+                    ps.setInt(2, offset)
+                    ps.executeQuery().use { rs ->
+                        while (rs.next()) ids.add(rs.getLong("id"))
+                    }
+                }
+            } catch (e: SQLException) {
+                println("News.loadAll SQLException: ${e.message}")
+                return result
+            }
+            val byId =
+                if (ids.isEmpty()) {
+                    emptyMap()
+                } else {
+                    KaraokeDbTable
+                        .loadList(
+                            clazz = News::class,
+                            tableName = TABLE_NAME,
+                            whereList = listOf("id IN (${ids.joinToString(",")})"),
+                            database = database,
+                            storageService = storageService,
+                            storageApiClient = storageApiClient,
+                        ).map { it as News }
+                        .associateBy { it.id }
+                }
+            ids.forEach { id -> byId[id]?.let { result.add(it) } }
+            return result
+        }
+
+        // Общее число новостей — для пагинации админского списка (specs/090-news-pagination).
+        fun countAll(database: KaraokeConnection): Long {
+            val connection = database.getConnection() ?: return 0L
+            val sql = "SELECT COUNT(*) FROM $TABLE_NAME"
+            try {
+                connection.prepareStatement(sql).use { ps ->
+                    ps.executeQuery().use { rs ->
+                        if (rs.next()) return rs.getLong(1)
+                    }
+                }
+            } catch (e: SQLException) {
+                println("News.countAll SQLException: ${e.message}")
+            }
+            return 0L
+        }
 
         fun getById(
             id: Long,
@@ -148,18 +198,29 @@ class News(
         // Только опубликованные (publish_at уже наступил), свежие сверху — публичная лента/бейдж.
         // Raw-SQL (не через generic loadList) — нужен фильтр по времени, которого нет в getWhereList
         // словарного паттерна (паттерн агрегата — см. SiteChatMessage.loadThreads).
-        fun loadPublished(database: KaraokeConnection): List<NewsDto> {
+        // Постранично (specs/090-news-pagination) — при 19000+ строках в tbl_news (см. FR-005
+        // specs/089-auto-news-song-release) полная выгрузка одним запросом деградирует публичную
+        // ленту; второй ключ сортировки id DESC — детерминированность на границе страниц, т.к.
+        // publish_at не уникален (несколько авто-новостей одного прогона получают близкие значения).
+        fun loadPublished(
+            database: KaraokeConnection,
+            limit: Int,
+            offset: Int,
+        ): List<NewsDto> {
             val result: MutableList<NewsDto> = mutableListOf()
             val connection = database.getConnection() ?: return result
             val sql =
                 """
-                SELECT id, title, body, category, link, publish_at, created_at
+                SELECT id, title, body, category, link, publish_at, created_at, source
                 FROM $TABLE_NAME
                 WHERE publish_at IS NOT NULL AND publish_at <= now()
-                ORDER BY publish_at DESC
+                ORDER BY publish_at DESC, id DESC
+                LIMIT ? OFFSET ?
                 """.trimIndent()
             try {
                 connection.prepareStatement(sql).use { ps ->
+                    ps.setInt(1, limit)
+                    ps.setInt(2, offset)
                     ps.executeQuery().use { rs ->
                         while (rs.next()) {
                             result.add(
@@ -172,6 +233,7 @@ class News(
                                     publishAt = rs.getTimestamp("publish_at")?.toString() ?: "",
                                     createdAt = rs.getTimestamp("created_at")?.toString() ?: "",
                                     published = true,
+                                    source = rs.getString("source") ?: "manual",
                                 ),
                             )
                         }
@@ -181,6 +243,22 @@ class News(
                 println("News.loadPublished SQLException: ${e.message}")
             }
             return result
+        }
+
+        // Общее число опубликованных новостей — для пагинации публичной ленты (specs/090-news-pagination).
+        fun countPublished(database: KaraokeConnection): Long {
+            val connection = database.getConnection() ?: return 0L
+            val sql = "SELECT COUNT(*) FROM $TABLE_NAME WHERE publish_at IS NOT NULL AND publish_at <= now()"
+            try {
+                connection.prepareStatement(sql).use { ps ->
+                    ps.executeQuery().use { rs ->
+                        if (rs.next()) return rs.getLong(1)
+                    }
+                }
+            } catch (e: SQLException) {
+                println("News.countPublished SQLException: ${e.message}")
+            }
+            return 0L
         }
 
         // Только опубликованные с id больше lastSeenId — лёгкий запрос для бейджа/тоста

@@ -4,8 +4,10 @@ import { apiGet } from './api'
 
 const BASE = '/api/public/news'
 
-export function fetchNews() {
-  return apiGet(BASE)
+// Постранично (specs/090-news-pagination) — ответ {items, total, hasMore} вместо плоского массива,
+// т.к. tbl_news уже накопил 19000+ строк (см. specs/089-auto-news-song-release).
+export function fetchNews(page = 0, size = 20) {
+  return apiGet(BASE, { page, size })
 }
 
 export function fetchNewsSince(lastSeenId) {

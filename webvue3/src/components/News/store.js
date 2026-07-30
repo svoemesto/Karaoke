@@ -8,11 +8,18 @@ import { promisedXMLHttpRequest } from '../../lib/utils'
  *
  * @see AGENTS.md
  */
+const NEWS_PER_PAGE = 50
+
 export default {
   state: {
     newsList: [],
     newsListIsLoading: false,
     newsTarget: 'local',
+    // Постранично (specs/090-news-pagination) — newsList хранит только текущую страницу,
+    // newsTotalCount/newsCurrentPage приводят в действие <b-pagination> в NewsTable.vue.
+    newsTotalCount: 0,
+    newsCurrentPage: 1,
+    newsPerPage: NEWS_PER_PAGE,
   },
   getters: {
     getNewsList(state) {
@@ -23,6 +30,15 @@ export default {
     },
     getNewsTarget(state) {
       return state.newsTarget
+    },
+    getNewsTotalCount(state) {
+      return state.newsTotalCount
+    },
+    getNewsCurrentPage(state) {
+      return state.newsCurrentPage
+    },
+    getNewsPerPage(state) {
+      return state.newsPerPage
     },
   },
   mutations: {
@@ -35,9 +51,11 @@ export default {
     setNewsTarget(state, target) {
       state.newsTarget = target
     },
-    removeNewsItem(state, id) {
-      const index = state.newsList.findIndex((item) => item.id === id)
-      if (index !== -1) state.newsList.splice(index, 1)
+    setNewsTotalCount(state, count) {
+      state.newsTotalCount = count
+    },
+    setNewsCurrentPage(state, page) {
+      state.newsCurrentPage = page
     },
   },
   actions: {
@@ -45,13 +63,18 @@ export default {
       const request = {
         method: 'POST',
         url: '/api/news/list',
-        params: { target: ctx.state.newsTarget },
+        params: {
+          target: ctx.state.newsTarget,
+          page: ctx.state.newsCurrentPage - 1,
+          pageSize: ctx.state.newsPerPage,
+        },
       }
       ctx.commit('setNewsListIsLoading', true)
       return promisedXMLHttpRequest(request)
         .then((data) => {
           const result = JSON.parse(data)
           ctx.commit('setNewsList', result.news || [])
+          ctx.commit('setNewsTotalCount', Number(result.total) || 0)
           ctx.commit('setNewsListIsLoading', false)
         })
         .catch((error) => {
@@ -59,8 +82,13 @@ export default {
           console.log(error)
         })
     },
+    setNewsCurrentPage(ctx, page) {
+      ctx.commit('setNewsCurrentPage', page)
+      return ctx.dispatch('loadNews')
+    },
     setNewsTarget(ctx, target) {
       ctx.commit('setNewsTarget', target)
+      ctx.commit('setNewsCurrentPage', 1)
     },
     createNewsPromise(ctx, payload) {
       const params = { ...payload, target: ctx.state.newsTarget }

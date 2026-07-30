@@ -645,8 +645,10 @@ class KaraokeProcessWorker {
             }
         }
 
+        // throwOnError=true - вызывается только из главного цикла doStart(), сбой БД должен
+        // пробрасываться наружу и запускать retry в start() (specs/088-fix-queue-swallowed-errors).
         private fun getKaraokeProcessesToStart(database: KaraokeConnection): Map<Int, KaraokeProcess> =
-            KaraokeProcess.getProcessesToStart(database)
+            KaraokeProcess.getProcessesToStart(database, throwOnError = true)
 
         private fun doStart(
             database: KaraokeConnection,
@@ -976,7 +978,8 @@ class KaraokeProcessWorker {
                             (threadsIds.contains(threadId) && (threadsMap[threadId] == null || !threadsMap[threadId]!!.isAlive))
                         ) {
                             val karaokeProcess = karaokeProcessesToStart[threadId]
-                            val countWaiting = KaraokeProcess.getCountWaiting(database)
+                            // throwOnError=true - см. комментарий у getKaraokeProcessesToStart() выше.
+                            val countWaiting = KaraokeProcess.getCountWaiting(database, throwOnError = true)
                             sendCountWaitingMessage(countWaiting)
                             if (karaokeProcess != null && (!stopAfterThreadIsDone || karaokeProcess.command == "tail")) {
                                 val args = karaokeProcess.args[0]
@@ -1024,8 +1027,9 @@ class KaraokeProcessWorker {
                     }
 
                     // Если очередь пуста — отправляем актуальный счётчик, чтобы бейдж сбросился в 0
+                    // throwOnError=true - см. комментарий у getKaraokeProcessesToStart() выше.
                     if (karaokeProcessesToStartIds.isEmpty()) {
-                        sendCountWaitingMessage(KaraokeProcess.getCountWaiting(database))
+                        sendCountWaitingMessage(KaraokeProcess.getCountWaiting(database, throwOnError = true))
                     }
 
                     // Периодическая отправка SSE для активных потоков, которые уже не WAITING

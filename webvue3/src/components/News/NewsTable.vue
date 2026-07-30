@@ -53,6 +53,14 @@
     </div>
 
     <div class="news-table-body">
+      <b-pagination
+        v-model="currentPageModel"
+        :total-rows="totalCount"
+        :per-page="perPage"
+        align="center"
+        size="sm"
+      />
+
       <b-table
         :items="newsList"
         :busy="newsListIsLoading"
@@ -120,14 +128,6 @@
           </div>
         </template>
       </b-table>
-
-      <b-pagination
-        v-model="currentPageModel"
-        :total-rows="totalCount"
-        :per-page="perPage"
-        align="center"
-        size="sm"
-      />
     </div>
   </div>
 </template>

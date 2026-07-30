@@ -167,18 +167,6 @@ export default class KaraokePlayer {
       if (!this.data?.audioAccompanimentUrl || !this.data?.audioVocalsUrl) {
         throw new PlayerUnavailableError('Missing required audio tracks')
       }
-      // Восстанавливаем сохранённое транспонирование (только для премиум-пользователей)
-      try {
-        const saved = localStorage.getItem(`transpose_${this.songId}`)
-        if (saved !== null && this.data?.isPremiumUser) {
-          const off = parseInt(saved, 10)
-          if (!isNaN(off) && off >= -6 && off <= 6) {
-            this._transposeOffset = off
-          }
-        }
-      } catch (e) {
-        /* localStorage недоступен */
-      }
       await Promise.all([
         new FontFace('Roboto', 'url(/fonts/Roboto.ttf)', { weight: '900', style: 'normal' })
           .load()
@@ -693,8 +681,8 @@ export default class KaraokePlayer {
           <div id="kp-progress-wrap" style="flex:1;height:5px;background:#333;border-radius:3px;cursor:pointer;position:relative">
             <div id="kp-progress-bar" style="height:100%;background:#f80;border-radius:3px;width:0%;pointer-events:none"></div>
           </div>
-          <!-- Меню (☰) в публичном плеере содержит «Скорость» и «Тональность» для премиум-пользователей.
-               Пункты "Открыть файл..."/"Сохранить файл"/#kp-file-input из admin-копии
+          <!-- Меню (☰) в публичном плеере урезано ДО ОДНОГО пункта — «Скорость». Пункты "Открыть
+               файл..."/"Сохранить файл"/#kp-file-input из admin-копии
                (webvue3/src/player/KaraokePlayer.js) сюда намеренно не перенесены: публичная
                монетизация не отдаёт файлы пользователю наружу (см. план монетизации — только
                онлайн-разблокировка, никаких .smkaraoke). "Экспорт аудио..." — отдельная,
@@ -708,12 +696,6 @@ export default class KaraokePlayer {
                 <span>Скорость: <span id="kp-speed-label">1x</span></span><span class="kp-menu-arrow">▸</span>
                 <div class="kp-submenu" id="kp-submenu-speed">
                   ${KaraokePlayer.SPEED_OPTIONS.map((o) => `<div class="kp-menu-item" data-rate="${o.value}"><span>${o.label}</span></div>`).join('')}
-                </div>
-              </div>
-              <div class="kp-menu-item kp-menu-parent" id="kp-menu-transpose">
-                <span>Тональность: <span id="kp-transpose-label">Оригинал</span></span><span class="kp-menu-arrow">▸</span>
-                <div class="kp-submenu" id="kp-submenu-transpose">
-                  ${KaraokePlayer.TRANSPOSE_OPTIONS.map((o) => `<div class="kp-menu-item" data-transpose="${o.offset}"><span>${o.label}</span></div>`).join('')}
                 </div>
               </div>
             </div>
@@ -871,22 +853,6 @@ export default class KaraokePlayer {
     { value: 3, label: '3x' },
   ]
 
-  static TRANSPOSE_OPTIONS = [
-    { offset: -6, label: '-6' },
-    { offset: -5, label: '-5' },
-    { offset: -4, label: '-4' },
-    { offset: -3, label: '-3' },
-    { offset: -2, label: '-2' },
-    { offset: -1, label: '-1' },
-    { offset: 0, label: 'Оригинал' },
-    { offset: 1, label: '+1' },
-    { offset: 2, label: '+2' },
-    { offset: 3, label: '+3' },
-    { offset: 4, label: '+4' },
-    { offset: 5, label: '+5' },
-    { offset: 6, label: '+6' },
-  ]
-
   static STEM_EXPORT_MAP = {
     vocals: { urlField: 'audioVocalsUrl', suffix: 'voice' },
     accompaniment: { urlField: 'audioAccompanimentUrl', suffix: 'accompaniment' },
@@ -894,17 +860,15 @@ export default class KaraokePlayer {
     drums: { urlField: 'audioDrumsUrl', suffix: 'drums' },
   }
 
-  // Публичное меню содержит «Скорость» и «Тональность». В отличие от admin-копии
-  // (webvue3/src/player/KaraokePlayer.js), здесь нет «Открыть файл...»/
-  // «Сохранить файл»/«Экспорт аудио...».
+  // Публичное меню намеренно содержит ТОЛЬКО пункт «Скорость» (см. комментарий в шаблоне _buildUI)
+  // — в отличие от admin-копии (webvue3/src/player/KaraokePlayer.js), здесь нет «Открыть файл...»/
+  // «Сохранить файл»/«Экспорт аудио...», поэтому их wiring сюда не переносится вовсе.
   _buildMenu() {
     const menuBtn = this.container.querySelector('#kp-menu-btn')
     if (!menuBtn) return
     const menu = this.container.querySelector('#kp-menu')
     const speedItem = this.container.querySelector('#kp-menu-speed')
     const speedSubmenu = this.container.querySelector('#kp-submenu-speed')
-    const transposeItem = this.container.querySelector('#kp-menu-transpose')
-    const transposeSubmenu = this.container.querySelector('#kp-submenu-transpose')
 
     menuBtn.addEventListener('click', (e) => {
       e.stopPropagation()
@@ -913,11 +877,13 @@ export default class KaraokePlayer {
       menu.style.display = isOpen ? 'none' : 'block'
     })
 
-    // Speed submenu
+    // The submenu already opens on hover via CSS (:hover); click toggles a class so it also
+    // works without a pointing device that supports hover (touch, or a deliberate click).
     speedItem.addEventListener('click', (e) => {
       e.stopPropagation()
       speedItem.classList.toggle('kp-submenu-open')
     })
+
     for (const el of speedSubmenu.querySelectorAll('[data-rate]')) {
       el.addEventListener('click', () => {
         this._closeMenu()
@@ -925,37 +891,6 @@ export default class KaraokePlayer {
       })
     }
     this._updateSpeedMenu()
-
-    // Transpose submenu (premium) or prompt (free)
-    if (transposeItem) {
-      const isPremium = this.data?.isPremiumUser === true
-      if (isPremium) {
-        transposeItem.addEventListener('click', (e) => {
-          e.stopPropagation()
-          transposeItem.classList.toggle('kp-submenu-open')
-        })
-        for (const el of transposeSubmenu.querySelectorAll('[data-transpose]')) {
-          el.addEventListener('click', () => {
-            this._closeMenu()
-            this.setTransposeOffset(Number(el.dataset.transpose))
-          })
-        }
-      } else {
-        // Free user: hide submenu and show prompt on click
-        if (transposeSubmenu) transposeSubmenu.style.display = 'none'
-        transposeItem.addEventListener('click', (e) => {
-          e.stopPropagation()
-          this._closeMenu()
-          // eslint-disable-next-line no-alert
-          alert(
-            'Смена тональности доступна только для премиум-подписчиков. Оформите подписку на /premium',
-          )
-        })
-        transposeItem.style.cursor = 'not-allowed'
-        transposeItem.style.opacity = '0.6'
-      }
-      this._updateTransposeMenu()
-    }
 
     document.addEventListener('click', this._menuOutsideClickHandler)
   }
@@ -967,22 +902,6 @@ export default class KaraokePlayer {
     if (label) label.textContent = opt ? opt.label : `${this._playbackRate}x`
     for (const el of this.container?.querySelectorAll('#kp-submenu-speed [data-rate]') || []) {
       const active = Number(el.dataset.rate) === this._playbackRate
-      el.style.background = active ? '#08f' : 'none'
-      el.style.color = active ? '#fff' : '#eee'
-    }
-  }
-
-  // Подсвечивает текущую тональность в подменю + обновляет лейбл в родительском пункте.
-  _updateTransposeMenu() {
-    const label = this.container?.querySelector('#kp-transpose-label')
-    const opt = KaraokePlayer.TRANSPOSE_OPTIONS.find((o) => o.offset === this._transposeOffset)
-    if (label)
-      label.textContent = opt
-        ? opt.label
-        : `${this._transposeOffset > 0 ? '+' : ''}${this._transposeOffset}`
-    for (const el of this.container?.querySelectorAll('#kp-submenu-transpose [data-transpose]') ||
-      []) {
-      const active = Number(el.dataset.transpose) === this._transposeOffset
       el.style.background = active ? '#08f' : 'none'
       el.style.color = active ? '#fff' : '#eee'
     }
@@ -1086,23 +1005,6 @@ export default class KaraokePlayer {
       this._stNodeVoc = createPitchShifterNode(this.audioCtx, 1.0)
       this._stNodeAcc.connect(this.accGain)
       this._stNodeVoc.connect(this.vocGain)
-      // Применяем сохранённое транспонирование сразу после создания нод
-      if (this._transposeOffset !== 0) {
-        if (this._stNodeAcc.setPitchSemitones) {
-          try {
-            this._stNodeAcc.setPitchSemitones(this._transposeOffset)
-          } catch (e) {
-            /* ignore */
-          }
-        }
-        if (this._stNodeVoc.setPitchSemitones) {
-          try {
-            this._stNodeVoc.setPitchSemitones(this._transposeOffset)
-          } catch (e) {
-            /* ignore */
-          }
-        }
-      }
     } catch (e) {
       console.warn('Pitch shifter init failed:', e)
       this._stNodeAcc = null
@@ -1529,7 +1431,6 @@ export default class KaraokePlayer {
       }
 
       this._transposeDebounceTimer = null
-      this._updateTransposeMenu()
     }, 300)
   }
 
@@ -2133,7 +2034,6 @@ export default class KaraokePlayer {
 
     this._renderLogo(ctx, W, H, logoAlpha)
     this._renderSpeedBadge(ctx, W, H)
-    this._renderTransposeBadge(ctx, W, H)
     this._renderScreenIconAnim(ctx, W, H)
     this._renderDemoWatermark(ctx, W, H)
     if (!this._offline) this._updateControls(dt)
@@ -2198,37 +2098,6 @@ export default class KaraokePlayer {
     ctx.roundRect(x, y, boxW, boxH, boxH / 2)
     ctx.fill()
     ctx.fillStyle = '#f80'
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'middle'
-    ctx.fillText(label, x + boxW / 2, y + boxH / 2 + 1)
-    ctx.restore()
-  }
-
-  // Бейдж с текущей тональностью в углу экрана (под бейджем скорости), пока она отличается от оригинала.
-  _renderTransposeBadge(ctx, W, H) {
-    if (this._transposeOffset === 0) return
-    const scale = H / 1080
-    const opt = KaraokePlayer.TRANSPOSE_OPTIONS.find((o) => o.offset === this._transposeOffset)
-    const label = opt
-      ? opt.label
-      : `${this._transposeOffset > 0 ? '+' : ''}${this._transposeOffset}`
-
-    const fs = Math.max(14, Math.round(24 * scale))
-    ctx.font = `700 ${fs}px sans-serif`
-    const padX = Math.round(14 * scale),
-      padY = Math.round(7 * scale)
-    const boxW = ctx.measureText(label).width + padX * 2
-    const boxH = fs + padY * 2
-    const margin = Math.round(20 * scale)
-    const x = W - boxW - margin
-    const y = margin + boxH + Math.round(6 * scale)
-
-    ctx.save()
-    ctx.fillStyle = 'rgba(0,0,0,0.55)'
-    ctx.beginPath()
-    ctx.roundRect(x, y, boxW, boxH, boxH / 2)
-    ctx.fill()
-    ctx.fillStyle = '#0bf'
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
     ctx.fillText(label, x + boxW / 2, y + boxH / 2 + 1)

@@ -283,8 +283,18 @@ export default {
       this.message = ''
       try {
         const res = await this.$store.dispatch('approveAssignment', this.a.id)
-        if (res && res.ok) {
-          this.$emit('reviewed')
+        if (res && res.ok && res.status === 'already_approved') {
+          // Повторный/двойной клик по уже одобренному заданию (specs/094-fix-approve-news-failure,
+          // FR-002/FR-006) — явное сообщение вместо тихого закрытия окна без результата.
+          this.isError = false
+          this.message = 'Задание уже одобрено'
+          setTimeout(() => this.$emit('reviewed'), 900)
+        } else if (res && res.ok) {
+          // Явное сообщение об успехе (FR-001/FR-005) — раньше окно закрывалось молча, и
+          // администратор не мог отличить реальный успех от «зависшего» запроса.
+          this.isError = false
+          this.message = 'Одобрено'
+          setTimeout(() => this.$emit('reviewed'), 900)
         } else {
           this.isError = true
           this.message = 'Не удалось одобрить: ' + ((res && res.error) || '')

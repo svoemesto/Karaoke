@@ -61,7 +61,7 @@ const router = useRouter()
 const container = ref(null)
 let player = null
 const { token: authToken } = useAuth()
-const { isPremiumUser } = usePlayerAccess()
+const { isPremiumUser, checkAccess } = usePlayerAccess()
 const playlistMembership = usePlaylistMembership()
 // QW-11: «В избранное» прямо из плеера. Отдельный реактивный id (не route.params.id напрямую) —
 // в режиме плейлиста (isPlaylist) трек внутри одного и того же PlayerView сменяется через

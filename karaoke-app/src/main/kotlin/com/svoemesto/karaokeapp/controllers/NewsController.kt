@@ -55,13 +55,21 @@ class NewsController {
         }
     }
 
+    // Постранично (specs/090-news-pagination) — при 19000+ строках в tbl_news (см.
+    // specs/089-auto-news-song-release) полная выгрузка одним ответом делает список непригодным.
     @PostMapping("/list")
     @ResponseBody
     fun list(
         @RequestParam(required = false) target: String?,
+        @RequestParam(required = false, defaultValue = "0") page: Int,
+        @RequestParam(required = false, defaultValue = "50") pageSize: Int,
     ): Map<String, Any> =
         withDb(target) { db ->
-            mapOf("news" to News.loadAll(db).map { it.toDTO() })
+            val offset = page * pageSize
+            mapOf(
+                "news" to News.loadAll(db, limit = pageSize, offset = offset).map { it.toDTO() },
+                "total" to News.countAll(db),
+            )
         }
 
     @PostMapping("/create")

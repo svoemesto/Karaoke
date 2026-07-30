@@ -6,6 +6,8 @@ import {
   trackPlayerProgress,
   trackPlayerEnded,
 } from '../services/tracking'
+import { createPitchShifterNode } from '../utils/PitchShifterNode.js'
+import { getTransposedKeyName, getTransposeOptions } from '../utils/musicTheory.js'
 
 // Thrown when required audio isn't available yet (missing file in storage, no mp3 rendered, etc.) —
 // distinguished from other init errors so the UI can show a friendly message instead of raw details.
@@ -62,6 +64,12 @@ export default class KaraokePlayer {
     // скорости на лету (playbackRate — живой AudioParam, меняется прямо на playing-источниках).
     this._playbackRate = 1
     this._rateAnchorPos = 0
+    this._transposeOffset = 0
+    this._transposeDebounceTimer = null
+    this._stNodeAcc = null
+    this._stNodeVoc = null
+    this._stNodeAcc = null
+    this._stNodeVoc = null
 
     // Громкость/якорь/скорость сверх этого ещё и глобально персистентны в localStorage (на машину
     // пользователя, не привязаны к конкретной песне) — открытие плеера на ЛЮБОЙ другой песне (не
@@ -990,6 +998,20 @@ export default class KaraokePlayer {
     // Применяем персистентные уровни (наследуются при смене трека в плейлисте).
     this.accGain.gain.value = this._accVol / 100
     this.vocGain.gain.value = this._vocVol / 100
+
+    // ─── SoundTouch pitch-shifting (optional insert node) ──────────────────
+    // Если создание pitch-shifter не удалось — песня просто играет в оригинальной тональности
+    try {
+      this._stNodeAcc = createPitchShifterNode(this.audioCtx, 1.0)
+      this._stNodeVoc = createPitchShifterNode(this.audioCtx, 1.0)
+      this._stNodeAcc.connect(this.accGain)
+      this._stNodeVoc.connect(this.vocGain)
+    } catch (e) {
+      console.warn('Pitch shifter init failed:', e)
+      this._stNodeAcc = null
+      this._stNodeVoc = null
+    }
+
     this.accGain.connect(this.audioCtx.destination)
     this.vocGain.connect(this.audioCtx.destination)
 
@@ -1212,16 +1234,29 @@ export default class KaraokePlayer {
     if (this.audioCtx.state === 'suspended') await this.audioCtx.resume()
     const accSrc = this.audioCtx.createBufferSource()
     accSrc.buffer = this.accBuffer
-    accSrc.connect(this.accGain)
     const vocSrc = this.audioCtx.createBufferSource()
     vocSrc.buffer = this.vocBuffer
-    vocSrc.connect(this.vocGain)
     this.accSource = accSrc
     this.vocSource = vocSrc
     accSrc.playbackRate.value = this._playbackRate
     vocSrc.playbackRate.value = this._playbackRate
     this.startedAt = this.audioCtx.currentTime
     this._rateAnchorPos = offset
+
+    // ─── SoundTouch pitch-shifting insert ──────────────────────────────────
+    // accSrc → _stNodeAcc → accGain → destination
+    // vocSrc → _stNodeVoc → vocGain → destination
+    if (this._stNodeAcc) {
+      accSrc.connect(this._stNodeAcc)
+    } else {
+      accSrc.connect(this.accGain)
+    }
+    if (this._stNodeVoc) {
+      vocSrc.connect(this._stNodeVoc)
+    } else {
+      vocSrc.connect(this.vocGain)
+    }
+
     accSrc.start(0, offset)
     vocSrc.start(0, offset)
     this.isPlaying = true
@@ -1353,6 +1388,50 @@ export default class KaraokePlayer {
     if (this.vocSource) this.vocSource.playbackRate.value = rate
     this._updateSpeedMenu()
     this._savePersistedSettings()
+  }
+
+  /**
+   * Установить транспонирование (сдвиг тональности) в полутонах.
+   *
+   * @param offset - Целое от -6 до +6
+   */
+  setTransposeOffset(offset) {
+    offset = Number(offset)
+    if (!Number.isFinite(offset) || offset < -6 || offset > 6 || offset === this._transposeOffset) return
+
+    // Debounce: сбрасываем предыдущий таймер
+    if (this._transposeDebounceTimer) {
+      clearTimeout(this._transposeDebounceTimer)
+    }
+
+    this._transposeDebounceTimer = setTimeout(() => {
+      this._transposeOffset = offset
+
+      // Применяем к активным pitch-shifter node
+      if (this._stNodeAcc && this._stNodeAcc.setPitchSemitones) {
+        try {
+          this._stNodeAcc.setPitchSemitones(offset)
+        } catch (e) {
+          console.warn('Failed to set transpose on acc node:', e)
+        }
+      }
+      if (this._stNodeVoc && this._stNodeVoc.setPitchSemitones) {
+        try {
+          this._stNodeVoc.setPitchSemitones(offset)
+        } catch (e) {
+          console.warn('Failed to set transpose on voc node:', e)
+        }
+      }
+
+      // Сохраняем в localStorage
+      try {
+        localStorage.setItem(`transpose_${this.songId}`, String(offset))
+      } catch (e) {
+        /* localStorage недоступен */
+      }
+
+      this._transposeDebounceTimer = null
+    }, 300)
   }
 
   // Сменить проигрываемую песню в api-режиме, переиспользуя инстанс (без destroy). Зеркалит

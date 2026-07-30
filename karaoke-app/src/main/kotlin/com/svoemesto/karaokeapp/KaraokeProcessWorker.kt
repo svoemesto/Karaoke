@@ -74,303 +74,310 @@ class KaraokeProcessThread(
     override fun run() {
         super.run()
         if (karaokeProcess != null) {
-            karaokeProcess.status = KaraokeProcessStatuses.WORKING.name
-            karaokeProcess.start = Timestamp.from(Instant.now())
-            karaokeProcess.save()
+            // Одноразовый поток задания (в отличие от переиспользуемых потоков Tomcat/doStart()) —
+            // явно освобождает своё ThreadLocal-соединение по завершении (specs/091-fix-connection-leak),
+            // иначе оно остаётся открытым в PostgreSQL навсегда, так как поток больше не обратится к БД.
+            try {
+                karaokeProcess.status = KaraokeProcessStatuses.WORKING.name
+                karaokeProcess.start = Timestamp.from(Instant.now())
+                karaokeProcess.save()
 
-            if (karaokeProcess.args[0][0] == "runFunctionWithArgs") {
-                val params = parseRunFunctionWithArgsParams(karaokeProcess.args[0])
-                percentage = "0"
-                println(
-                    "[${Timestamp.from(
-                        Instant.now(),
-                    )}] KaraokeProcessThread[${karaokeProcess.threadId}]: Начинаем работу с заданием: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}",
-                )
-                try {
-                    val success =
-                        when (KaraokeProcessTypes.valueOf(karaokeProcess.type)) {
-                            KaraokeProcessTypes.KEY_BPM_FROM_FILE -> executeGetKeyBpmFromFile(params)
-                            KaraokeProcessTypes.UPLOAD_TO_LOCAL_STORE ->
-                                executeUploadToLocalStore(
-                                    params,
-                                ) { pct -> percentage = pct.toString() }
-                            KaraokeProcessTypes.UPLOAD_TO_REMOTE_STORE ->
-                                executeUploadToRemoteStore(params) { pct ->
-                                    percentage =
-                                        pct.toString()
-                                }
-                            KaraokeProcessTypes.STEM_JOB_DEMUCS2,
-                            KaraokeProcessTypes.STEM_JOB_DEMUCS5,
-                            -> executeFinalizeStemJob(params)
-                            KaraokeProcessTypes.DEMUCS2,
-                            KaraokeProcessTypes.DEMUCS5,
-                            -> executeFinalizeDemucs(params)
-                            KaraokeProcessTypes.RENDER_MP4_LYRICS,
-                            KaraokeProcessTypes.RENDER_MP4_KARAOKE,
-                            KaraokeProcessTypes.RENDER_MP4_CHORDS,
-                            KaraokeProcessTypes.RENDER_MP4_TABS,
-                            KaraokeProcessTypes.RENDER_MP4_DEMO,
-                            -> executeRenderMp4(params) { pct -> percentage = pct.toString() }
-                            KaraokeProcessTypes.FORCED_ALIGN_MARKERS -> executeForcedAlignMarkers(params)
-                            else -> false
+                if (karaokeProcess.args[0][0] == "runFunctionWithArgs") {
+                    val params = parseRunFunctionWithArgsParams(karaokeProcess.args[0])
+                    percentage = "0"
+                    println(
+                        "[${Timestamp.from(
+                            Instant.now(),
+                        )}] KaraokeProcessThread[${karaokeProcess.threadId}]: Начинаем работу с заданием: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}",
+                    )
+                    try {
+                        val success =
+                            when (KaraokeProcessTypes.valueOf(karaokeProcess.type)) {
+                                KaraokeProcessTypes.KEY_BPM_FROM_FILE -> executeGetKeyBpmFromFile(params)
+                                KaraokeProcessTypes.UPLOAD_TO_LOCAL_STORE ->
+                                    executeUploadToLocalStore(
+                                        params,
+                                    ) { pct -> percentage = pct.toString() }
+                                KaraokeProcessTypes.UPLOAD_TO_REMOTE_STORE ->
+                                    executeUploadToRemoteStore(params) { pct ->
+                                        percentage =
+                                            pct.toString()
+                                    }
+                                KaraokeProcessTypes.STEM_JOB_DEMUCS2,
+                                KaraokeProcessTypes.STEM_JOB_DEMUCS5,
+                                -> executeFinalizeStemJob(params)
+                                KaraokeProcessTypes.DEMUCS2,
+                                KaraokeProcessTypes.DEMUCS5,
+                                -> executeFinalizeDemucs(params)
+                                KaraokeProcessTypes.RENDER_MP4_LYRICS,
+                                KaraokeProcessTypes.RENDER_MP4_KARAOKE,
+                                KaraokeProcessTypes.RENDER_MP4_CHORDS,
+                                KaraokeProcessTypes.RENDER_MP4_TABS,
+                                KaraokeProcessTypes.RENDER_MP4_DEMO,
+                                -> executeRenderMp4(params) { pct -> percentage = pct.toString() }
+                                KaraokeProcessTypes.FORCED_ALIGN_MARKERS -> executeForcedAlignMarkers(params)
+                                else -> false
+                            }
+                        if (forceStopped) {
+                            // Форс-стоп: возвращаем задание в очередь, чтобы оно переиграло заново.
+                            println(
+                                "[${Timestamp.from(
+                                    Instant.now(),
+                                )}] KaraokeProcessThread[${karaokeProcess.threadId}]: WAITING (форс-стоп) задание: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}",
+                            )
+                            karaokeProcess.status = KaraokeProcessStatuses.WAITING.name
+                            karaokeProcess.save()
+                        } else {
+                            println(
+                                "[${Timestamp.from(
+                                    Instant.now(),
+                                )}] KaraokeProcessThread[${karaokeProcess.threadId}]: ${if (success) "DONE успешно завершенное" else "ERROR (данные не найдены)"} задание: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}",
+                            )
+                            karaokeProcess.status = (if (success) KaraokeProcessStatuses.DONE else KaraokeProcessStatuses.ERROR).name
+                            karaokeProcess.end = Timestamp.from(Instant.now())
+                            karaokeProcess.priority = if (success) 999 else -1
+                            percentage = "100"
+                            karaokeProcess.save()
                         }
-                    if (forceStopped) {
-                        // Форс-стоп: возвращаем задание в очередь, чтобы оно переиграло заново.
-                        println(
-                            "[${Timestamp.from(
-                                Instant.now(),
-                            )}] KaraokeProcessThread[${karaokeProcess.threadId}]: WAITING (форс-стоп) задание: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}",
-                        )
-                        karaokeProcess.status = KaraokeProcessStatuses.WAITING.name
-                        karaokeProcess.save()
-                    } else {
-                        println(
-                            "[${Timestamp.from(
-                                Instant.now(),
-                            )}] KaraokeProcessThread[${karaokeProcess.threadId}]: ${if (success) "DONE успешно завершенное" else "ERROR (данные не найдены)"} задание: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}",
-                        )
-                        karaokeProcess.status = (if (success) KaraokeProcessStatuses.DONE else KaraokeProcessStatuses.ERROR).name
-                        karaokeProcess.end = Timestamp.from(Instant.now())
-                        karaokeProcess.priority = if (success) 999 else -1
-                        percentage = "100"
-                        karaokeProcess.save()
+                    } catch (e: Exception) {
+                        if (forceStopped) {
+                            println(
+                                "[${Timestamp.from(
+                                    Instant.now(),
+                                )}] KaraokeProcessThread[${karaokeProcess.threadId}]: WAITING (форс-стоп) задание: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}",
+                            )
+                            karaokeProcess.status = KaraokeProcessStatuses.WAITING.name
+                            karaokeProcess.save()
+                        } else {
+                            println(
+                                "[${Timestamp.from(
+                                    Instant.now(),
+                                )}] KaraokeProcessThread[${karaokeProcess.threadId}]: ERROR задание: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}: ${e.message}",
+                            )
+                            karaokeProcess.status = KaraokeProcessStatuses.ERROR.name
+                            karaokeProcess.end = Timestamp.from(Instant.now())
+                            karaokeProcess.priority = -1
+                            percentage = "100"
+                            karaokeProcess.save()
+                        }
                     }
-                } catch (e: Exception) {
-                    if (forceStopped) {
-                        println(
-                            "[${Timestamp.from(
-                                Instant.now(),
-                            )}] KaraokeProcessThread[${karaokeProcess.threadId}]: WAITING (форс-стоп) задание: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}",
-                        )
-                        karaokeProcess.status = KaraokeProcessStatuses.WAITING.name
-                        karaokeProcess.save()
-                    } else {
-                        println(
-                            "[${Timestamp.from(
-                                Instant.now(),
-                            )}] KaraokeProcessThread[${karaokeProcess.threadId}]: ERROR задание: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}: ${e.message}",
-                        )
-                        karaokeProcess.status = KaraokeProcessStatuses.ERROR.name
-                        karaokeProcess.end = Timestamp.from(Instant.now())
-                        karaokeProcess.priority = -1
-                        percentage = "100"
-                        karaokeProcess.save()
-                    }
-                }
-            } else {
-                val regex = Regex("Current Frame:\\s+(\\d+), percentage:\\s+(\\d+)")
-                val regexDuration = Regex("Duration:\\s+(\\d\\d:\\d\\d:\\d\\d\\.\\d\\d),")
-                val regexCurrent = Regex("time=(\\d\\d:\\d\\d:\\d\\d\\.\\d\\d)")
-                val regexPercentageSheetsage = Regex("^\\s{0,2}(\\d{1,3})%\\|")
-                val karaokeProcessType = karaokeProcess.type
-                val typeEnum = runCatching { KaraokeProcessTypes.valueOf(karaokeProcessType) }.getOrNull()
-                // Лимит CPU пересобирается заново прямо перед стартом (не берётся "как есть" из БД) -
-                // настройки могли поменяться, пока задание стояло в очереди WAITING.
-                val args = if (typeEnum != null) refreshArgvCpuLimit(typeEnum, karaokeProcess.args[0]) else karaokeProcess.args[0]
-                val envs = if (typeEnum != null) refreshEnvCpuLimit(typeEnum, karaokeProcess.envs) else karaokeProcess.envs
-                val processBuilder = ProcessBuilder(args)
+                } else {
+                    val regex = Regex("Current Frame:\\s+(\\d+), percentage:\\s+(\\d+)")
+                    val regexDuration = Regex("Duration:\\s+(\\d\\d:\\d\\d:\\d\\d\\.\\d\\d),")
+                    val regexCurrent = Regex("time=(\\d\\d:\\d\\d:\\d\\d\\.\\d\\d)")
+                    val regexPercentageSheetsage = Regex("^\\s{0,2}(\\d{1,3})%\\|")
+                    val karaokeProcessType = karaokeProcess.type
+                    val typeEnum = runCatching { KaraokeProcessTypes.valueOf(karaokeProcessType) }.getOrNull()
+                    // Лимит CPU пересобирается заново прямо перед стартом (не берётся "как есть" из БД) -
+                    // настройки могли поменяться, пока задание стояло в очереди WAITING.
+                    val args = if (typeEnum != null) refreshArgvCpuLimit(typeEnum, karaokeProcess.args[0]) else karaokeProcess.args[0]
+                    val envs = if (typeEnum != null) refreshEnvCpuLimit(typeEnum, karaokeProcess.envs) else karaokeProcess.envs
+                    val processBuilder = ProcessBuilder(args)
 
-                val processBuilderEnvironment = processBuilder.environment()
-                processBuilderEnvironment.putAll(envs)
+                    val processBuilderEnvironment = processBuilder.environment()
+                    processBuilderEnvironment.putAll(envs)
 
-                processBuilder.redirectErrorStream(true)
+                    processBuilder.redirectErrorStream(true)
 
-                // try охватывает и сам запуск subprocess (не только чтение stdout) - если
-                // processBuilder.start() бросит исключение (например, недоступен бинарник/docker),
-                // задание всё равно должно получить терминальный статус (ERROR/WAITING), а не остаться
-                // в WORKING навсегда и заблокировать очередь своего лейна. См. specs/029-fix-queue-lane-stall/research.md.
-                var process: Process? = null
-                try {
-                    val startedProcess = processBuilder.start()
-                    process = startedProcess
-                    osProcess = startedProcess
-                    if (startedProcess.isAlive) {
+                    // try охватывает и сам запуск subprocess (не только чтение stdout) - если
+                    // processBuilder.start() бросит исключение (например, недоступен бинарник/docker),
+                    // задание всё равно должно получить терминальный статус (ERROR/WAITING), а не остаться
+                    // в WORKING навсегда и заблокировать очередь своего лейна. См. specs/029-fix-queue-lane-stall/research.md.
+                    var process: Process? = null
+                    try {
+                        val startedProcess = processBuilder.start()
+                        process = startedProcess
+                        osProcess = startedProcess
+                        if (startedProcess.isAlive) {
+                            if (karaokeProcess.command != "tail" || karaokeProcess.args[0][0] !in KaraokeProcessWorker.argsIgnoredToLog) {
+                                println(
+                                    "[${Timestamp.from(
+                                        Instant.now(),
+                                    )}] KaraokeProcessThread[${karaokeProcess.threadId}]: Установка приоритета задания: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}",
+                                )
+                            }
+                            setProcessPriority(startedProcess.pid(), karaokeProcess.prioritet)
+                        }
+
                         if (karaokeProcess.command != "tail" || karaokeProcess.args[0][0] !in KaraokeProcessWorker.argsIgnoredToLog) {
                             println(
                                 "[${Timestamp.from(
                                     Instant.now(),
-                                )}] KaraokeProcessThread[${karaokeProcess.threadId}]: Установка приоритета задания: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}",
+                                )}] KaraokeProcessThread[${karaokeProcess.threadId}]: Начинаем работу с заданием: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}",
                             )
+                            KaraokeProcessWorker.sendCountWaitingMessage(KaraokeProcess.getCountWaiting(database = karaokeProcess.database))
                         }
-                        setProcessPriority(startedProcess.pid(), karaokeProcess.prioritet)
-                    }
-
-                    if (karaokeProcess.command != "tail" || karaokeProcess.args[0][0] !in KaraokeProcessWorker.argsIgnoredToLog) {
-                        println(
-                            "[${Timestamp.from(
-                                Instant.now(),
-                            )}] KaraokeProcessThread[${karaokeProcess.threadId}]: Начинаем работу с заданием: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}",
-                        )
-                        KaraokeProcessWorker.sendCountWaitingMessage(KaraokeProcess.getCountWaiting(database = karaokeProcess.database))
-                    }
-                    val inputStream = startedProcess.inputStream
-                    var duration: String? = null
-                    val reader = BufferedReader(InputStreamReader(inputStream))
-                    var line: String? = reader.readLine()
-                    var log = ""
-                    var lastLine = ""
-                    while (line != null) {
-                        lastLine = line
-                        log += "[${Timestamp.from(Instant.now())}] $line\n"
-                        val matchResult = regex.find(line)
-                        if (matchResult != null) {
+                        val inputStream = startedProcess.inputStream
+                        var duration: String? = null
+                        val reader = BufferedReader(InputStreamReader(inputStream))
+                        var line: String? = reader.readLine()
+                        var log = ""
+                        var lastLine = ""
+                        while (line != null) {
+                            lastLine = line
+                            log += "[${Timestamp.from(Instant.now())}] $line\n"
+                            val matchResult = regex.find(line)
+                            if (matchResult != null) {
 //                        val currentFrame = matchResult.groupValues[1]
-                            val percentage = matchResult.groupValues[2]
-                            this.percentage = percentage
-                        } else {
-                            if (duration != null) {
-                                val matchResultCurrent = regexCurrent.find(line)
-                                if (matchResultCurrent != null) {
-                                    val current = matchResultCurrent.groupValues[1]
-                                    this.percentage =
-                                        (
+                                val percentage = matchResult.groupValues[2]
+                                this.percentage = percentage
+                            } else {
+                                if (duration != null) {
+                                    val matchResultCurrent = regexCurrent.find(line)
+                                    if (matchResultCurrent != null) {
+                                        val current = matchResultCurrent.groupValues[1]
+                                        this.percentage =
                                             (
                                                 (
-                                                    convertTimecodeToMilliseconds(current).toDouble() /
-                                                        convertTimecodeToMilliseconds(duration).toDouble()
-                                                ) *
-                                                    10000
-                                            ).toInt().toDouble() /
-                                                100
-                                        ).toString()
-                                }
-                            } else {
-                                val matchResultDuration = regexDuration.find(line)
-                                if (matchResultDuration != null) {
-                                    duration = matchResultDuration.groupValues[1]
+                                                    (
+                                                        convertTimecodeToMilliseconds(current).toDouble() /
+                                                            convertTimecodeToMilliseconds(duration).toDouble()
+                                                    ) *
+                                                        10000
+                                                ).toInt().toDouble() /
+                                                    100
+                                            ).toString()
+                                    }
                                 } else {
-                                    val matchResultPercentageSheetsage = regexPercentageSheetsage.find(line)
-                                    if (matchResultPercentageSheetsage != null) {
-                                        val percentage = matchResultPercentageSheetsage.groupValues[1]
-                                        this.percentage = percentage
+                                    val matchResultDuration = regexDuration.find(line)
+                                    if (matchResultDuration != null) {
+                                        duration = matchResultDuration.groupValues[1]
+                                    } else {
+                                        val matchResultPercentageSheetsage = regexPercentageSheetsage.find(line)
+                                        if (matchResultPercentageSheetsage != null) {
+                                            val percentage = matchResultPercentageSheetsage.groupValues[1]
+                                            this.percentage = percentage
+                                        }
                                     }
                                 }
                             }
+                            line = reader.readLine()
                         }
-                        line = reader.readLine()
-                    }
-                    if (karaokeProcess.command != "tail" || karaokeProcess.args[0][0] !in KaraokeProcessWorker.argsIgnoredToLog) {
-                        println(
-                            "[${Timestamp.from(
-                                Instant.now(),
-                            )}] KaraokeProcessThread[${karaokeProcess.threadId}]: Завершаем работу с заданием: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}",
-                        )
-                    }
-                    if (log != "") {
                         if (karaokeProcess.command != "tail" || karaokeProcess.args[0][0] !in KaraokeProcessWorker.argsIgnoredToLog) {
                             println(
                                 "[${Timestamp.from(
                                     Instant.now(),
-                                )}] KaraokeProcessThread[${karaokeProcess.threadId}]: Выводим лог задания: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}",
+                                )}] KaraokeProcessThread[${karaokeProcess.threadId}]: Завершаем работу с заданием: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}",
                             )
                         }
-                        log = args.joinToString(" ") + "\n\n" + log
-                        val logFileName =
-                            "$PATH_TO_LOGS/[${Timestamp.from(
-                                Instant.now(),
-                            )}] ${karaokeProcess.name} - ${karaokeProcess.description}.log".rightFileName()
-                        try {
-                            File(logFileName).writeText(log, Charsets.UTF_8)
-                            runCommand(listOf("chmod", "666", logFileName))
-                        } catch (e: Exception) {
-                            println(e.message)
+                        if (log != "") {
+                            if (karaokeProcess.command != "tail" || karaokeProcess.args[0][0] !in KaraokeProcessWorker.argsIgnoredToLog) {
+                                println(
+                                    "[${Timestamp.from(
+                                        Instant.now(),
+                                    )}] KaraokeProcessThread[${karaokeProcess.threadId}]: Выводим лог задания: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}",
+                                )
+                            }
+                            log = args.joinToString(" ") + "\n\n" + log
+                            val logFileName =
+                                "$PATH_TO_LOGS/[${Timestamp.from(
+                                    Instant.now(),
+                                )}] ${karaokeProcess.name} - ${karaokeProcess.description}.log".rightFileName()
+                            try {
+                                File(logFileName).writeText(log, Charsets.UTF_8)
+                                runCommand(listOf("chmod", "666", logFileName))
+                            } catch (e: Exception) {
+                                println(e.message)
+                            }
                         }
-                    }
 
-                    if (karaokeProcess.type == "SHEETSAGE" &&
-                        lastLine == "NotImplementedError: Dynamic chunking not implemented. Try halving measures_per_chunk."
-                    ) {
-                        // Если процесс SHEETSAGE завершился ошибкой - создаём для этой же песни процесс SHEETSAGE2 с таким же приоритетом
-                        val settings =
-                            Song.loadFromDbById(
-                                id = karaokeProcess.settingsId.toLong(),
-                                database = WORKING_DATABASE,
-                                storageService = KSS_APP,
-                                storageApiClient = SAC_APP,
-                            )
-                        settings?.let {
-                            KaraokeProcess.createProcess(
-                                settings = settings,
-                                action = KaraokeProcessTypes.SHEETSAGE2,
-                                doWait = true,
-                                prior = karaokeProcess.priority,
-                                threadId = 0,
-                            )
+                        if (karaokeProcess.type == "SHEETSAGE" &&
+                            lastLine == "NotImplementedError: Dynamic chunking not implemented. Try halving measures_per_chunk."
+                        ) {
+                            // Если процесс SHEETSAGE завершился ошибкой - создаём для этой же песни процесс SHEETSAGE2 с таким же приоритетом
+                            val settings =
+                                Song.loadFromDbById(
+                                    id = karaokeProcess.settingsId.toLong(),
+                                    database = WORKING_DATABASE,
+                                    storageService = KSS_APP,
+                                    storageApiClient = SAC_APP,
+                                )
+                            settings?.let {
+                                KaraokeProcess.createProcess(
+                                    settings = settings,
+                                    action = KaraokeProcessTypes.SHEETSAGE2,
+                                    doWait = true,
+                                    prior = karaokeProcess.priority,
+                                    threadId = 0,
+                                )
+                            }
                         }
-                    }
 
-                    if (forceStopped) {
-                        // Форс-стоп: подпроцесс завершился из-за убитого docker-контейнера — возвращаем в очередь.
-                        println(
-                            "[${Timestamp.from(
-                                Instant.now(),
-                            )}] KaraokeProcessThread[${karaokeProcess.threadId}]: WAITING (форс-стоп) задание: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}",
-                        )
-                        karaokeProcess.status = KaraokeProcessStatuses.WAITING.name
-                        karaokeProcess.save()
-                    } else {
-                        if (karaokeProcess.command != "tail" || karaokeProcess.args[0][0] !in KaraokeProcessWorker.argsIgnoredToLog) {
+                        if (forceStopped) {
+                            // Форс-стоп: подпроцесс завершился из-за убитого docker-контейнера — возвращаем в очередь.
                             println(
                                 "[${Timestamp.from(
                                     Instant.now(),
-                                )}] KaraokeProcessThread[${karaokeProcess.threadId}]: DONE успешно завершенное задание: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}",
+                                )}] KaraokeProcessThread[${karaokeProcess.threadId}]: WAITING (форс-стоп) задание: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}",
                             )
+                            karaokeProcess.status = KaraokeProcessStatuses.WAITING.name
+                            karaokeProcess.save()
+                        } else {
+                            if (karaokeProcess.command != "tail" || karaokeProcess.args[0][0] !in KaraokeProcessWorker.argsIgnoredToLog) {
+                                println(
+                                    "[${Timestamp.from(
+                                        Instant.now(),
+                                    )}] KaraokeProcessThread[${karaokeProcess.threadId}]: DONE успешно завершенное задание: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}",
+                                )
+                            }
+                            karaokeProcess.status = KaraokeProcessStatuses.DONE.name
+                            karaokeProcess.end = Timestamp.from(Instant.now())
+                            karaokeProcess.priority = 999
+                            karaokeProcess.save()
                         }
-                        karaokeProcess.status = KaraokeProcessStatuses.DONE.name
-                        karaokeProcess.end = Timestamp.from(Instant.now())
-                        karaokeProcess.priority = 999
-                        karaokeProcess.save()
-                    }
 
 //                if (karaokeProcess.type == KaraokeProcessTypes.DEMUCS2.name) {
 //                    KaraokeProcess.delete(karaokeProcess.id, karaokeProcess.database)
 //                }
-                } catch (e: Exception) {
-                    process?.destroy()
-                    if (forceStopped) {
-                        println(
-                            "[${Timestamp.from(
-                                Instant.now(),
-                            )}] KaraokeProcessThread[${karaokeProcess.threadId}]: WAITING (форс-стоп) задание: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}",
-                        )
-                        karaokeProcess.status = KaraokeProcessStatuses.WAITING.name
-                        karaokeProcess.save()
-                    } else {
-                        println(
-                            "[${Timestamp.from(
-                                Instant.now(),
-                            )}] KaraokeProcessThread[${karaokeProcess.threadId}]: ERROR задание: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}: ${e.message}",
-                        )
-                        karaokeProcess.status = KaraokeProcessStatuses.ERROR.name
-                        karaokeProcess.end = Timestamp.from(Instant.now())
-                        karaokeProcess.priority = -1
-                        karaokeProcess.save()
+                    } catch (e: Exception) {
+                        process?.destroy()
+                        if (forceStopped) {
+                            println(
+                                "[${Timestamp.from(
+                                    Instant.now(),
+                                )}] KaraokeProcessThread[${karaokeProcess.threadId}]: WAITING (форс-стоп) задание: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}",
+                            )
+                            karaokeProcess.status = KaraokeProcessStatuses.WAITING.name
+                            karaokeProcess.save()
+                        } else {
+                            println(
+                                "[${Timestamp.from(
+                                    Instant.now(),
+                                )}] KaraokeProcessThread[${karaokeProcess.threadId}]: ERROR задание: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}: ${e.message}",
+                            )
+                            karaokeProcess.status = KaraokeProcessStatuses.ERROR.name
+                            karaokeProcess.end = Timestamp.from(Instant.now())
+                            karaokeProcess.priority = -1
+                            karaokeProcess.save()
+                        }
                     }
                 }
-            }
 
-            // Пост-хук: после завершения репаир-задания пересчитать HealthReport песни и разослать SSE
-            // (иначе счётчик ошибок в таблице «застывает» на IN_PROGRESS). Для песен в каскаде
-            // «Исправить всё» — поставить следующий ставший решаемым шаг. Ограничение по типам исключает
-            // многократный пересчёт на sub-шагах тяжёлых MELT_*-рендеров.
-            val kp = karaokeProcess
-            val typeEnum = runCatching { KaraokeProcessTypes.valueOf(kp.type) }.getOrNull()
-            if (!forceStopped && kp.settingsId > 0 && typeEnum in HealthReport.HR_REPAIR_PROCESS_TYPES) {
-                try {
-                    HealthReport.onRepairProcessFinished(
-                        settingsId = kp.settingsId.toLong(),
-                        success = kp.status == KaraokeProcessStatuses.DONE.name,
-                        database = WORKING_DATABASE,
-                        storageService = KSS_APP,
-                        storageApiClient = SAC_APP,
-                    )
-                } catch (e: Exception) {
-                    println(
-                        "[${Timestamp.from(
-                            Instant.now(),
-                        )}] KaraokeProcessThread[${kp.threadId}]: ошибка пересчёта HealthReport после задания: ${e.message}",
-                    )
+                // Пост-хук: после завершения репаир-задания пересчитать HealthReport песни и разослать SSE
+                // (иначе счётчик ошибок в таблице «застывает» на IN_PROGRESS). Для песен в каскаде
+                // «Исправить всё» — поставить следующий ставший решаемым шаг. Ограничение по типам исключает
+                // многократный пересчёт на sub-шагах тяжёлых MELT_*-рендеров.
+                val kp = karaokeProcess
+                val typeEnum = runCatching { KaraokeProcessTypes.valueOf(kp.type) }.getOrNull()
+                if (!forceStopped && kp.settingsId > 0 && typeEnum in HealthReport.HR_REPAIR_PROCESS_TYPES) {
+                    try {
+                        HealthReport.onRepairProcessFinished(
+                            settingsId = kp.settingsId.toLong(),
+                            success = kp.status == KaraokeProcessStatuses.DONE.name,
+                            database = WORKING_DATABASE,
+                            storageService = KSS_APP,
+                            storageApiClient = SAC_APP,
+                        )
+                    } catch (e: Exception) {
+                        println(
+                            "[${Timestamp.from(
+                                Instant.now(),
+                            )}] KaraokeProcessThread[${kp.threadId}]: ошибка пересчёта HealthReport после задания: ${e.message}",
+                        )
+                    }
                 }
+            } finally {
+                karaokeProcess.database.closeThreadConnection()
             }
         }
     }

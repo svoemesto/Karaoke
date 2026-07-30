@@ -17,6 +17,13 @@
        становится container, см. KaraokePlayer._toggleFullscreen) — блок на это время скрыт. -->
   <div v-if="currentSongId" class="kp-overlay-actions">
     <FavoriteIcon :song-id="currentSongId" />
+    <TransposeControl
+      v-if="player"
+      :player="player"
+      :base-key="baseKey"
+      :song-id="currentSongId"
+      :is-premium="isPremiumUser"
+    />
   </div>
 </template>
 
@@ -44,7 +51,9 @@ import { onMounted, onBeforeUnmount, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import KaraokePlayer from '../player/KaraokePlayer.js'
 import { useAuth } from '../composables/useAuth'
+import { usePlayerAccess } from '../composables/usePlayerAccess'
 import FavoriteIcon from '../components/FavoriteIcon.vue'
+import TransposeControl from '../components/player/TransposeControl.vue'
 import { usePlaylistMembership } from '../composables/usePlaylistMembership'
 
 const route = useRoute()
@@ -52,11 +61,13 @@ const router = useRouter()
 const container = ref(null)
 let player = null
 const { token: authToken } = useAuth()
+const { isPremiumUser } = usePlayerAccess()
 const playlistMembership = usePlaylistMembership()
 // QW-11: «В избранное» прямо из плеера. Отдельный реактивный id (не route.params.id напрямую) —
 // в режиме плейлиста (isPlaylist) трек внутри одного и того же PlayerView сменяется через
 // postMessage/playPos() без навигации, route.params.id при этом не меняется.
 const currentSongId = ref(route.params.id)
+const baseKey = ref(null)
 
 // --- Режим плейлиста ---------------------------------------------------------------------------
 // Когда /player/:id открыт с ?pl=1 (в iframe на странице редактора плейлиста), плеер сам ведёт
@@ -211,7 +222,11 @@ onMounted(() => {
   // authToken (km_auth_token) шлётся, чтобы бэкенд определил живой премиум-статус для canExport
   // в playerdata — иначе пункт «Экспорт аудио...» не появится даже у залогиненного премиума.
   player = new KaraokePlayer(container.value, songId, '/api/public/player', token, authToken.value)
-  player.init()
+  player.init().then(async () => {
+    baseKey.value = player.data?.key || null
+    // Загружаем premium-статус для transpose gate (FR-005)
+    await checkAccess(songId)
+  })
 })
 
 onBeforeUnmount(() => {

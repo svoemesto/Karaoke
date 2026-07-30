@@ -2,7 +2,7 @@
 
 > **Status**: active
 > **Feature Key**: async-process-queue
-> **Last Updated**: 2026-07-29
+> **Last Updated**: 2026-07-30
 
 ## Что делает
 
@@ -90,10 +90,25 @@
     `/api/processes/workerstartstop` могли запустить два параллельных
     воркера на одном `threadsMap`). Сам цикл `doStart()` выполняется в
     отдельном демон-потоке — вызывающий HTTP-поток не блокируется.
-  - Если цикл `doStart()` падает с необработанным исключением, `isWork`
-    гарантированно сбрасывается в `false` (safety-net `try/catch/finally` в
-    `start()`) — иначе очередь выглядела бы «работающей» в UI/мониторинге,
-    но фактически была бы мертва.
+  - Если цикл `doStart()` падает с необработанным исключением — до 5 попыток
+    возобновить его в том же демон-потоке с нарастающей паузой между ними
+    (2с → 5с → 15с → 30с → 60с, `KaraokeProcessWorker.start()`,
+    specs/087-fix-shared-db-connection). `isWork` остаётся `true` на время
+    retry. Только после исчерпания попыток (или если `isWork` сброшен извне,
+    например `forceStop()`, во время паузы) — прежний safety-net
+    `try/catch/finally` гарантированно сбрасывает `isWork` в `false`, иначе
+    очередь выглядела бы «работающей» в UI/мониторинге, но фактически была
+    бы мертва; `RenderQueueStalledCheck` подхватывает как и раньше.
+- **MUST**: каждый `KaraokeConnection`-инстанс (в т. ч. `WORKING_DATABASE`)
+  кеширует по одному физическому JDBC-соединению **на поток выполнения**
+  (`ThreadLocal`, `KaraokeConnection.getConnection()`,
+  specs/087-fix-shared-db-connection) — не одно общее на весь инстанс.
+  PostgreSQL JDBC `Connection` не рассчитан на конкурентное использование из
+  разных потоков; до этой фичи общее соединение между HTTP-потоками и
+  потоком очереди приводило к протокольным сбоям (`SocketTimeoutException`/
+  «соединение уже закрыто»), ронявшим главный цикл очереди. Self-healing
+  (пересоздание при `isClosed`/`!isValid(3)`) применяется к соединению
+  текущего потока и не меняет сигнатуру/поведение для вызывающего кода.
 - **MUST**: кортеж заданий одной песни, добавленной через «Добавить файлы
   из папки» (демукс → создание mp3 музыки/голоса → загрузка в локальное
   хранилище → загрузка в удалённое хранилище), ДОЛЖЕН целиком оставаться
@@ -141,6 +156,18 @@
 - **Sheetsage без GPU**: Sheetsage-распознавание требует GPU или долго
   работает на CPU. Если на admin-машине нет GPU, Sheetsage-задания
   лучше не запускать в рабочие часы.
+- **Непоследовательная обработка ошибок БД внутри `doStart()`**: не все
+  DB-вызовы в главном цикле ведут себя одинаково при сбое соединения.
+  `KaraokeProcess.save()` пробрасывает `SQLException` наружу (что и
+  запускает retry, см. инвариант выше), а `KaraokeProcess.getCountWaiting()`/
+  `getProcessesToStart()` (`KaraokeProcess.kt`, район строк 480-500 и 779)
+  ловят `SQLException` внутри себя и молча возвращают
+  `0`/пустой список, не пробрасывая ошибку дальше. При длительном сбое БД
+  это означает, что `doStart()` может НЕ упасть вовсе (и retry не
+  сработает), а просто тихо крутиться, ничего не делая, пока соединение не
+  восстановится само (обнаружено при живой проверке
+  specs/087-fix-shared-db-connection, T010 — не баг этой фичи, существующее
+  расхождение в обработке ошибок между разными местами `doStart()`).
 - **Зависание отдельного лейна** (устранено в specs/029-fix-queue-lane-stall,
   2026-07-29): периодически, особенно при параллельной работе нескольких
   лейнов, следующее задание лейна не стартовало после завершения/ошибки
@@ -157,6 +184,7 @@
 - [`KaraokeProcessTypes.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcessTypes.kt) — enum типов
 - [`KaraokeProcessStatuses.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcessStatuses.kt) — enum статусов
 - [`KaraokeProcessWorker.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcessWorker.kt) — главный воркер (`class KaraokeProcessWorker`) и обёртка subprocess (`class KaraokeProcessThread`, объявлен в том же файле)
+- [`KaraokeConnection.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeConnection.kt) — `getConnection()`, кеш соединения по потоку (`ThreadLocal`)
 - [`HealthReport.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/HealthReport.kt) — каскад автоисправления (`startRepairAll`/`onRepairProcessFinished`), формирует кортеж заданий одной песни
 - [`Song.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt) — `createFromPath` (постановка первых шагов кортежа при импорте из папки), `args*()` (шаги shell-пайплайнов для `KaraokeProcess.separate()`)
 - [`tbl_processes` (`01_initdb.sql`)](../../deploy/karaoke-db/01_initdb.sql) — таблица заданий

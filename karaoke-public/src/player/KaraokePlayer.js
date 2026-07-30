@@ -1086,6 +1086,23 @@ export default class KaraokePlayer {
       this._stNodeVoc = createPitchShifterNode(this.audioCtx, 1.0)
       this._stNodeAcc.connect(this.accGain)
       this._stNodeVoc.connect(this.vocGain)
+      // Применяем сохранённое транспонирование сразу после создания нод
+      if (this._transposeOffset !== 0) {
+        if (this._stNodeAcc.setPitchSemitones) {
+          try {
+            this._stNodeAcc.setPitchSemitones(this._transposeOffset)
+          } catch (e) {
+            /* ignore */
+          }
+        }
+        if (this._stNodeVoc.setPitchSemitones) {
+          try {
+            this._stNodeVoc.setPitchSemitones(this._transposeOffset)
+          } catch (e) {
+            /* ignore */
+          }
+        }
+      }
     } catch (e) {
       console.warn('Pitch shifter init failed:', e)
       this._stNodeAcc = null

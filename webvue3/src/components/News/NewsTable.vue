@@ -120,12 +120,20 @@
           </div>
         </template>
       </b-table>
+
+      <b-pagination
+        v-model="currentPageModel"
+        :total-rows="totalCount"
+        :per-page="perPage"
+        align="center"
+        size="sm"
+      />
     </div>
   </div>
 </template>
 
 <script>
-import { BSpinner, BTable } from 'bootstrap-vue-next'
+import { BPagination, BSpinner, BTable } from 'bootstrap-vue-next'
 
 const CATEGORY_OPTIONS = [
   { value: 'air', label: 'Эфир', icon: '📻' },
@@ -144,7 +152,7 @@ const emptyForm = () => ({ title: '', body: '', category: 'general', link: '', p
 
 export default {
   name: 'NewsTable',
-  components: { BSpinner, BTable },
+  components: { BPagination, BSpinner, BTable },
   data() {
     return {
       form: emptyForm(),
@@ -170,6 +178,22 @@ export default {
         this.$store.dispatch('setNewsTarget', value)
         this.$store.dispatch('loadNews')
       },
+    },
+    // Серверная пагинация (specs/090-news-pagination): newsList уже содержит только текущую
+    // страницу — b-table рендерит её целиком, b-pagination лишь триггерит перезапрос на бэкенд.
+    currentPageModel: {
+      get() {
+        return this.$store.getters.getNewsCurrentPage
+      },
+      set(value) {
+        this.$store.dispatch('setNewsCurrentPage', value)
+      },
+    },
+    totalCount() {
+      return this.$store.getters.getNewsTotalCount
+    },
+    perPage() {
+      return this.$store.getters.getNewsPerPage
     },
     newsFields() {
       return [
@@ -289,7 +313,9 @@ export default {
       this.$store
         .dispatch('deleteNewsPromise', item.id)
         .then(() => {
-          this.$store.commit('removeNewsItem', item.id)
+          // Перезагрузка текущей страницы (а не локальный splice) — total и разбивка на страницы
+          // должны пересчитаться из total, который знает только бэкенд (specs/090-news-pagination).
+          this.$store.dispatch('loadNews')
         })
         .catch((error) => console.error('Ошибка при удалении новости:', error))
     },

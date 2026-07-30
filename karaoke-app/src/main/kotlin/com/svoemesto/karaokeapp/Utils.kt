@@ -956,6 +956,34 @@ private fun <T : Any> collectSyncOps(
                 actuallyInserted.add(id)
             }
         }
+        // Дрейф сиквенса после sync-вставки с явным id (specs/099-fix-sync-sequence-drift):
+        // sqlToInsert (target.getSqlToInsert) сохраняет ИСХОДНЫЙ id записи с другой БД через
+        // OVERRIDING SYSTEM VALUE — GENERATED ALWAYS AS IDENTITY-сиквенс ЦЕЛИ при этом НЕ продвигается
+        // (Postgres не трогает сиквенс при явно заданном значении identity-колонки). Если в ЦЕЛЕВУЮ
+        // таблицу параллельно пишут и локально-сгенерированные строки (например, tbl_events —
+        // посетители локального сайта, не только синк статистики с прод), следующая такая запись берёт
+        // из сиквенса номер, который синк уже занял явно, и падает с duplicate key (см. инцидент:
+        // "tbl_events_id_key" на локальном karaoke-web). Тот же класс самолечения, что уже есть в
+        // KaraokeDbTable.createDbInstance() (сверка сиквенса с MAX(id)), но применительно ко ВСЕЙ
+        // пачке вставленных id разом (один setval на весь батч, а не на каждую строку — insertAllowed
+        // может вставлять тысячи строк за один синк).
+        if (toDatabase.name != "SERVER" && actuallyInserted.isNotEmpty()) {
+            val connection = toDatabase.getConnection()
+            if (connection != null) {
+                try {
+                    connection.createStatement().use { st ->
+                        st.execute(
+                            "SELECT setval(pg_get_serial_sequence('$tableName', 'id'), " +
+                                "(SELECT COALESCE(MAX(id), 0) FROM $tableName));",
+                        )
+                    }
+                } catch (e: Exception) {
+                    println(
+                        "[${Timestamp.from(Instant.now())}] Не удалось выровнять сиквенс $tableName после синка: ${e.message}",
+                    )
+                }
+            }
+        }
     }
 
     if (updateAllowed) {

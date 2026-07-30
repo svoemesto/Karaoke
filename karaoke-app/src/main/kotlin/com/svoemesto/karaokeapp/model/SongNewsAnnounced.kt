@@ -7,7 +7,7 @@ import java.sql.Types
 
 /**
  * Бухгалтерия «по какой песне уже принято решение об анонсе» (`tbl_song_news_announced`,
- * specs/083-auto-news-song-release). Строка означает либо «новость реально создана» (`newsId`
+ * specs/089-auto-news-song-release). Строка означает либо «новость реально создана» (`newsId`
  * заполнен), либо «песня попала в разовый backfill при включении фичи и анонс намеренно не
  * создавался» (`newsId = null`, см. [SongReleaseAnnouncementService.backfillExistingReadySongs]).
  *

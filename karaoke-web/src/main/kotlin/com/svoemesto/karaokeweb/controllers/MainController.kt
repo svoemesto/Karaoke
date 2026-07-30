@@ -312,7 +312,7 @@ class MainController(
             result =
                 "[${Timestamp.from(Instant.now())}] Created: ${dataCreate.size}, Updated: ${dataUpdate.size}, Deleted: ${dataDelete.size}"
 
-            // Автоматические новости о выходе песни в эфир (specs/083-auto-news-song-release) —
+            // Автоматические новости о выходе песни в эфир (specs/089-auto-news-song-release) —
             // единственная точка кода, реально исполняемая на PROD в момент синхронизации таблиц
             // (см. contracts/news-api.md). Обёрнуто отдельно: сбой детекции анонсов не должен ронять
             // уже успешно применённую синхронизацию и не должен менять формат ответа выше.

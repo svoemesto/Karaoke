@@ -1,8 +1,8 @@
 # Implementation Plan: Автоматические новости о выходе песни в эфир
 
-**Branch**: `083-auto-news-song-release` | **Date**: 2026-07-29 | **Spec**: [spec.md](./spec.md)
+**Branch**: `089-auto-news-song-release` | **Date**: 2026-07-29 | **Spec**: [spec.md](./spec.md)
 
-**Input**: Feature specification from `/specs/083-auto-news-song-release/spec.md`
+**Input**: Feature specification from `/specs/089-auto-news-song-release/spec.md`
 
 ## Summary
 
@@ -64,7 +64,7 @@ LOCAL↔SERVER синхронизации.
 ### Documentation (this feature)
 
 ```text
-specs/083-auto-news-song-release/
+specs/089-auto-news-song-release/
 ├── plan.md              # Этот файл
 ├── research.md          # Phase 0 — решения и их обоснование
 ├── data-model.md         # Phase 1 — новые сущности/поля

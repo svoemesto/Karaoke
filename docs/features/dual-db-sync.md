@@ -89,7 +89,7 @@ Karaoke — self-pipeline. Admin-машина разрабатывает нов�
   `deploy/karaoke-db/31_entity_description_fields.sql`) — новых `SyncTarget`/sync-флагов заводить
   не потребовалось (все три таблицы уже зарегистрированы), но все три `recordhash`-триггера были
   пересобраны с новыми колонками (иначе diff молча не увидел бы их как расхождение — см. MUST выше).
-- **Намеренное исключение строк из sync-scope (2026-07-29, specs/083-auto-news-song-release)**:
+- **Намеренное исключение строк из sync-scope (2026-07-29, specs/089-auto-news-song-release)**:
   автоматически создаваемые новости («песня вышла в эфир») физически существуют ТОЛЬКО на PROD —
   их создаёт сам `karaoke-web` (`SongReleaseAnnouncementService`) напрямую в `WORKING_DATABASE` в
   момент применения синхронизации (`MainController.doChangeRecords`), а не через обычный push с
@@ -103,7 +103,7 @@ Karaoke — self-pipeline. Admin-машина разрабатывает нов�
   («recordhash-триггер... не означает участие в sync») в обратную сторону: колонка/строка может
   сознательно НЕ участвовать в sync, если это явно задокументировано. `recordhash`-триггер
   `tbl_news` НЕ пересобирался — новые колонки в хэш не входят намеренно. См.
-  `specs/083-auto-news-song-release/research.md` (п.2) и `data-model.md`.
+  `specs/089-auto-news-song-release/research.md` (п.2) и `data-model.md`.
 
 ## Ссылки на ключевые классы/файлы
 

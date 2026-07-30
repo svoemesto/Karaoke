@@ -1,6 +1,6 @@
 # Feature Specification: Автоматические новости о выходе песни в эфир
 
-**Feature Branch**: `083-auto-news-song-release`
+**Feature Branch**: `089-auto-news-song-release`
 
 **Created**: 2026-07-29
 

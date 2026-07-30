@@ -1,4 +1,4 @@
--- Автоматические новости о выходе песни в эфир (specs/083-auto-news-song-release).
+-- Автоматические новости о выходе песни в эфир (specs/089-auto-news-song-release).
 --
 -- 1) tbl_news получает song_id/source — ссылка на песню и признак «кто создал новость»
 --    (auto/manual). ВАЖНО: обе колонки НЕ участвуют в update_tbl_news_recordhash() (см. 20_news.sql)
@@ -6,7 +6,7 @@
 --    — иначе авто-созданная на PROD новость (которой никогда не будет на LOCAL) была бы
 --    воспринята обычным hash-diff sync-движком как «удалённая в источнике» и стёрта при
 --    следующей admin-триггерной синхронизации, если когда-либо включат
---    sync_news_push_delete_allowed (см. specs/083-auto-news-song-release/research.md, п.2).
+--    sync_news_push_delete_allowed (см. specs/089-auto-news-song-release/research.md, п.2).
 --
 -- 2) tbl_song_news_announced — отдельная PROD-локальная таблица-метка «по этой песне уже принято
 --    решение об анонсе» (реальная новость создана ИЛИ песня попала в разовый backfill при

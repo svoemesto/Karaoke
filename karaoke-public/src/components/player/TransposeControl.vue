@@ -6,14 +6,14 @@
       @click="toggleMenu"
     >
       <span class="transpose-icon">♫</span>
-      <span v-if="currentOffset !== 0 && isPremium" class="transpose-badge">{{ formatOffset(currentOffset) }}</span>
+      <span v-if="currentOffset !== 0 && isPremium" class="transpose-badge">{{
+        formatOffset(currentOffset)
+      }}</span>
     </button>
 
     <!-- Premium user: transpose menu -->
     <div v-if="menuOpen && isPremium" class="transpose-menu kp-menu">
-      <div v-if="baseKey" class="transpose-base-key">
-        Базовая: {{ baseKey }}
-      </div>
+      <div v-if="baseKey" class="transpose-base-key">Базовая: {{ baseKey }}</div>
       <div class="transpose-options">
         <div
           v-for="opt in options"
@@ -23,16 +23,18 @@
           @click="selectOffset(opt.offset)"
         >
           <span>{{ opt.label }}</span>
-          <span v-if="Math.abs(opt.offset) === 6" class="transpose-warning" title="Возможны артефакты">⚠️</span>
+          <span
+            v-if="Math.abs(opt.offset) === 6"
+            class="transpose-warning"
+            title="Возможны артефакты"
+            >⚠️</span
+          >
         </div>
       </div>
     </div>
 
     <!-- Free user: premium prompt -->
-    <TransposePrompt
-      v-if="menuOpen && !isPremium"
-      @dismiss="menuOpen = false"
-    />
+    <TransposePrompt v-if="menuOpen && !isPremium" @dismiss="menuOpen = false" />
   </div>
 </template>
 

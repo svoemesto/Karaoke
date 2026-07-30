@@ -123,6 +123,20 @@
   «соединение уже закрыто»), ронявшим главный цикл очереди. Self-healing
   (пересоздание при `isClosed`/`!isValid(3)`) применяется к соединению
   текущего потока и не меняет сигнатуру/поведение для вызывающего кода.
+- **MUST**: одноразовые/недолговечные потоки очереди (`KaraokeProcessThread`
+  — создаётся заново на каждое задание, никогда не переиспользуется)
+  ОБЯЗАНЫ явно освобождать своё физическое JDBC-соединение по завершении
+  через `KaraokeConnection.closeThreadConnection()` (specs/091-fix-connection-leak).
+  Вызов — в `finally`, оборачивающем всё тело `KaraokeProcessThread.run()`
+  (`KaraokeProcessWorker.kt`). Без этого `ThreadLocal`-слот соединения
+  (см. инвариант выше, specs/087) остаётся занят навсегда — поток умирает
+  и больше никогда не обращается к `getConnection()`, чтобы соединение
+  могло быть переиспользовано или обнаружено как невалидное. При тысячах
+  обработанных заданий это приводило к утечке одного физического соединения
+  на каждое задание и в итоге к `FATAL: sorry, too many clients already`
+  на PostgreSQL. Долгоживущие/переиспользуемые потоки (пул Tomcat, поток
+  `KaraokeProcessWorker.doStart()`) `closeThreadConnection()` НЕ вызывают —
+  это разрушило бы их кеш и отменило бы смысл specs/087.
 - **MUST**: кортеж заданий одной песни, добавленной через «Добавить файлы
   из папки» (демукс → создание mp3 музыки/голоса → загрузка в локальное
   хранилище → загрузка в удалённое хранилище), ДОЛЖЕН целиком оставаться
@@ -190,6 +204,20 @@
   `LaneStalledCheck` (см. `docs/features/monitoring.md`), которая
   оповещает про конкретный зависший лейн (не только про полную остановку
   воркера, как более старый `RenderQueueStalledCheck`).
+- **Утечка соединений с БД от одноразовых потоков очереди** (устранено в
+  specs/091-fix-connection-leak, 2026-07-30): регрессия от specs/087 —
+  `ThreadLocal`-кеш соединения безопасен для переиспользуемых потоков, но
+  `KaraokeProcessThread` создаётся заново на каждое задание и никогда не
+  вызывает `getConnection()` повторно после завершения своей работы, поэтому
+  закешированное соединение никогда не закрывалось и не удалялось из
+  `ThreadLocal`. При тысячах обработанных заданий (реальный инцидент на
+  admin-машине) это постепенно исчерпывало `max_connections` PostgreSQL
+  (100 по умолчанию), после чего падали ЛЮБЫЕ новые подключения к БД —
+  `FATAL: sorry, too many clients already`, включая HTTP-запросы и главный
+  цикл очереди. Исправлено методом `closeThreadConnection()` — см.
+  инвариант выше. Живая проверка на dev-pc: ~4 минуты непрерывной работы
+  очереди, 946 обработанных заданий, число соединений (`pg_stat_activity`)
+  стабильно держалось на 20 (не росло пропорционально числу заданий).
 
 ## Ссылки на ключевые классы/файлы
 
@@ -197,7 +225,7 @@
 - [`KaraokeProcessTypes.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcessTypes.kt) — enum типов
 - [`KaraokeProcessStatuses.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcessStatuses.kt) — enum статусов
 - [`KaraokeProcessWorker.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcessWorker.kt) — главный воркер (`class KaraokeProcessWorker`) и обёртка subprocess (`class KaraokeProcessThread`, объявлен в том же файле)
-- [`KaraokeConnection.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeConnection.kt) — `getConnection()`, кеш соединения по потоку (`ThreadLocal`)
+- [`KaraokeConnection.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeConnection.kt) — `getConnection()`, кеш соединения по потоку (`ThreadLocal`); `closeThreadConnection()` — явное освобождение для одноразовых потоков
 - [`HealthReport.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/HealthReport.kt) — каскад автоисправления (`startRepairAll`/`onRepairProcessFinished`), формирует кортеж заданий одной песни
 - [`Song.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt) — `createFromPath` (постановка первых шагов кортежа при импорте из папки), `args*()` (шаги shell-пайплайнов для `KaraokeProcess.separate()`)
 - [`tbl_processes` (`01_initdb.sql`)](../../deploy/karaoke-db/01_initdb.sql) — таблица заданий

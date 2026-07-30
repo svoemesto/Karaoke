@@ -2,6 +2,13 @@ server:
   port: 8899
   tomcat:
     connection-timeout: 300000 # 300000 миллисекунд = 5 минут. Установите нужное значение.
+    threads:
+      # specs/087-fix-shared-db-connection: с переходом KaraokeConnection на ThreadLocal-кеш
+      # соединений каждый поток Tomcat, обратившийся к WORKING_DATABASE, держит своё
+      # физическое соединение с БД. Дефолт Spring Boot (200) даёт запас потоков больше,
+      # чем max_connections у PostgreSQL (100, дефолт образа postgres:16) - консервативно
+      # снижаем, чтобы держать заведомый запас под лимитом БД.
+      max: 50
 
 spring:
   thymeleaf:

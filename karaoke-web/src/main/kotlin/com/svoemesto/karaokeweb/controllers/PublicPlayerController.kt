@@ -425,6 +425,7 @@ class PublicPlayerController(
                 // флагом не ограничена — эти же URL нужны и для обычного воспроизведения всем, у кого
                 // есть валидный token; canExport — только про предложение сохранить файл себе.
                 "canExport" to isPremiumUser(request),
+                "isPremiumUser" to isPremiumUser(request),
                 "isDemo" to (demoRange != null),
                 "demoFadeInSeconds" to demoFadeInSeconds,
             )

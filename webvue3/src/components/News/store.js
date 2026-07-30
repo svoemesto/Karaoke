@@ -8,7 +8,7 @@ import { promisedXMLHttpRequest } from '../../lib/utils'
  *
  * @see AGENTS.md
  */
-const NEWS_PER_PAGE = 50
+const NEWS_PER_PAGE = 35
 
 export default {
   state: {

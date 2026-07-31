@@ -1468,9 +1468,17 @@ export default {
         const minute = parseInt(parts[4], 10)
         const publishAt = new Date(year, month - 1, day, hour, minute)
         if (publishAt > now) {
-          return { symbol: '⏱', title: 'Запланирована: ' + item.date + ' ' + item.time, class: 'tg-publish-scheduled' }
+          return {
+            symbol: '⏱',
+            title: 'Запланирована: ' + item.date + ' ' + item.time,
+            class: 'tg-publish-scheduled',
+          }
         }
-        return { symbol: '⚠', title: 'Опоздавшая: ' + item.date + ' ' + item.time, class: 'tg-publish-late' }
+        return {
+          symbol: '⚠',
+          title: 'Опоздавшая: ' + item.date + ' ' + item.time,
+          class: 'tg-publish-late',
+        }
       }
       return { symbol: '⏱', title: 'Запланирована', class: 'tg-publish-scheduled' }
     },

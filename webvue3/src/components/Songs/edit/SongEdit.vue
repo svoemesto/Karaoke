@@ -1532,42 +1532,48 @@
                     >
                       <img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg" />
                     </button>
-                     <button class="btn-round" @click="pasteFromClipboard('idTelegramDemo')">
-                       <img
-                         alt="paste"
-                         class="icon-paste"
-                         src="../../../assets/svg/icon_paste.svg"
-                       />
-                     </button>
-                   </div>
-                   <!-- Фаза 2 автопубликации (specs/113-telegram-demo-publish, FR-015/FR-016):
+                    <button class="btn-round" @click="pasteFromClipboard('idTelegramDemo')">
+                      <img
+                        alt="paste"
+                        class="icon-paste"
+                        src="../../../assets/svg/icon_paste.svg"
+                      />
+                    </button>
+                  </div>
+                  <!-- Фаза 2 автопубликации (specs/113-telegram-demo-publish, FR-015/FR-016):
                      кнопка «Опубликовать сейчас» — видна только если idTelegramDemo пуст
                      (FR-016). Триггерит POST /api/song/publishToTelegramNow (тот же путь, что
                      scheduler, но allowPastDate=true — публикует даже «опоздавшую»).
                      Дополнительно — inline-индикатор состояния публикации (FR-012), вычисляется
                      из idTelegramDemo + date/time через computed telegramPublishState. -->
-                   <div v-if="!song.idTelegramDemo || (song.date && song.time)" class="label-and-input">
-                     <span
-                       v-if="telegramPublishState"
-                       class="tg-publish-state-badge"
-                       :class="telegramPublishState.class"
-                       :title="telegramPublishState.title"
-                     >{{ telegramPublishState.label }}</span>
-                     <button
-                       v-if="!song.idTelegramDemo"
-                       class="btn-round-wide btn-publish-telegram-now"
-                       :disabled="isPublishingTelegram"
-                       @click="publishToTelegramNow"
-                     >
-                       <img
-                         alt="publish"
-                         class="icon-publish"
-                         src="../../../assets/svg/icon_telegram.svg"
-                       />
-                       <span>{{ isPublishingTelegram ? 'Публикация…' : 'Опубликовать сейчас' }}</span>
-                     </button>
-                   </div>
-                   <div v-if="showChordsTelegram" class="label-and-input">
+                  <div
+                    v-if="!song.idTelegramDemo || (song.date && song.time)"
+                    class="label-and-input"
+                  >
+                    <span
+                      v-if="telegramPublishState"
+                      class="tg-publish-state-badge"
+                      :class="telegramPublishState.class"
+                      :title="telegramPublishState.title"
+                      >{{ telegramPublishState.label }}</span
+                    >
+                    <button
+                      v-if="!song.idTelegramDemo"
+                      class="btn-round-wide btn-publish-telegram-now"
+                      :disabled="isPublishingTelegram"
+                      @click="publishToTelegramNow"
+                    >
+                      <img
+                        alt="publish"
+                        class="icon-publish"
+                        src="../../../assets/svg/icon_telegram.svg"
+                      />
+                      <span>{{
+                        isPublishingTelegram ? 'Публикация…' : 'Опубликовать сейчас'
+                      }}</span>
+                    </button>
+                  </div>
+                  <div v-if="showChordsTelegram" class="label-and-input">
                     <img class="icon-24" alt="song" src="../../../assets/svg/icon_chords.svg" />
                     <button
                       class="btn-round-wide"
@@ -2572,7 +2578,11 @@ export default {
       const hasDateTime = !!(this.song.date && this.song.time)
       if (!published && !hasDateTime) return null
       if (published) {
-        return { label: 'Опубликована', class: 'tg-publish-state-published', title: 'idTelegramDemo=' + this.song.idTelegramDemo }
+        return {
+          label: 'Опубликована',
+          class: 'tg-publish-state-published',
+          title: 'idTelegramDemo=' + this.song.idTelegramDemo,
+        }
       }
       const now = new Date()
       const parts = (this.song.date + ' ' + this.song.time).trim().split(/[. :]+/)
@@ -2584,11 +2594,23 @@ export default {
         const minute = parseInt(parts[4], 10)
         const publishAt = new Date(year, month - 1, day, hour, minute)
         if (publishAt > now) {
-          return { label: 'Запланирована: ' + this.song.date + ' ' + this.song.time, class: 'tg-publish-state-scheduled', title: 'Бот опубликует автоматически' }
+          return {
+            label: 'Запланирована: ' + this.song.date + ' ' + this.song.time,
+            class: 'tg-publish-state-scheduled',
+            title: 'Бот опубликует автоматически',
+          }
         }
-        return { label: 'Опоздавшая: ' + this.song.date + ' ' + this.song.time, class: 'tg-publish-state-late', title: 'Дата в прошлом; нажмите «Опубликовать сейчас»' }
+        return {
+          label: 'Опоздавшая: ' + this.song.date + ' ' + this.song.time,
+          class: 'tg-publish-state-late',
+          title: 'Дата в прошлом; нажмите «Опубликовать сейчас»',
+        }
       }
-      return { label: 'Запланирована', class: 'tg-publish-state-scheduled', title: 'Бот опубликует автоматически' }
+      return {
+        label: 'Запланирована',
+        class: 'tg-publish-state-scheduled',
+        title: 'Бот опубликует автоматически',
+      }
     },
     editorSiteUsers() {
       return this.$store.getters.getEditorSiteUsers || []

@@ -909,6 +909,17 @@ class Song(
         get() = readinessFlag("pictureAuthorReady")
         set(value) = setReadinessFlag("pictureAuthorReady", value)
 
+    // Одноразовый флаг «песня появилась в коллекции» (specs/101-song-news-flag) — хранится тем же
+    // ключом-в-JSON паттерном, что и флаги готовности выше, НЕ новой колонкой: избегает правки
+    // md5-формулы recordhash-триггера/миграции схемы (см. deploy/karaoke-db/26_player_readiness_flags.sql,
+    // research.md фичи). Устанавливается в true в saveToDb(), когда впервые выполняется условие полной
+    // готовности контента (см. isContentReady); никогда не сбрасывается обратно в false. Сервер
+    // детектирует переход false→true при применении синхронизации и создаёт по этому событию новость
+    // (см. MainController.doChangeRecords) — это НЕ то же самое, что готовность к онлайн-плееру.
+    var newsAvailableAnnounced: Boolean
+        get() = readinessFlag("newsAvailableAnnounced")
+        set(value) = setReadinessFlag("newsAvailableAnnounced", value)
+
     // Готовность КОНТЕНТА песни (без учёта даты эфира/премиума) — статус жизненного цикла (см.
     // specs/022-song-status-lifecycle) + персистентные флаги готовности стемов/обложек + непустые
     // маркеры. Единственный источник истины для этого условия — используется и
@@ -4843,14 +4854,34 @@ class Song(
      *
      * @see docs/features/dual-db-sync.md
      */
+    // Флаг «доступна для новости» (specs/101-song-news-flag) — выставляется здесь, а не в самом
+    // isContentReady/getter'е, чтобы попасть в ТОТ ЖЕ diff/UPDATE, что и остальные изменения этого
+    // save() (иначе транзиция обнаружилась бы синхронизацией только через один save() позже). FR-002/
+    // FR-003 spec.md: onAir намеренно не учитывается (это событие «доступна», не «в эфире»); once true,
+    // никогда не сбрасывается обратно.
+    private fun markNewsAvailableIfReady() {
+        if (!newsAvailableAnnounced &&
+            idStatus == 6L &&
+            stemAccompanimentReady &&
+            stemVocalReady &&
+            pictureAlbumReady &&
+            pictureAuthorReady &&
+            sourceMarkersList.isNotEmpty()
+        ) {
+            newsAvailableAnnounced = true
+        }
+    }
+
     fun saveToDb() {
         if (readonly) return
         if (id == 0L) {
+            markNewsAvailableIfReady()
             val newSett = createDbInstance(this, database)
             newSett?.let {
                 newSett.saveToFile()
             }
         } else {
+            markNewsAvailableIfReady()
             val savedSettings =
                 loadFromDbById(id = id, database = database, storageService = storageService, storageApiClient = storageApiClient)
 
@@ -6969,6 +7000,36 @@ class Song(
                 }
             }
             return result
+        }
+
+        // Дешёвое точечное чтение флага «доступна для новости» одной песни (specs/101-song-news-flag)
+        // — без загрузки полного Song (стемы/маркеры/base64), нужно только для before/after-сравнения
+        // в MainController.doChangeRecords перед применением UPDATE к tbl_songs. Отсутствие строки или
+        // самого ключа в JSON трактуется как false (тот же дефолт, что и readinessFlag() у экземпляра).
+        fun readNewsAvailableFlag(
+            songId: Long,
+            database: KaraokeConnection,
+        ): Boolean {
+            val connection = database.getConnection() ?: return false
+            return try {
+                connection.prepareStatement("SELECT player_readiness_flags FROM tbl_songs WHERE id = ?").use { ps ->
+                    ps.setLong(1, songId)
+                    ps.executeQuery().use { rs ->
+                        if (!rs.next()) return false
+                        val raw = rs.getString("player_readiness_flags")?.ifBlank { "{}" } ?: "{}"
+                        val flags =
+                            try {
+                                Json.decodeFromString(MapSerializer(String.serializer(), Boolean.serializer()), raw)
+                            } catch (_: Exception) {
+                                emptyMap()
+                            }
+                        flags["newsAvailableAnnounced"] == true
+                    }
+                }
+            } catch (e: SQLException) {
+                println("Song.readNewsAvailableFlag SQLException: ${e.message}")
+                false
+            }
         }
 
         fun getWhereList(

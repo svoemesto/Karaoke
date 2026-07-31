@@ -3,9 +3,6 @@ package com.svoemesto.karaokeapp.controllers
 import com.svoemesto.karaokeapp.Connection
 import com.svoemesto.karaokeapp.KaraokeConnection
 import com.svoemesto.karaokeapp.model.News
-import com.svoemesto.karaokeapp.services.KSS_APP
-import com.svoemesto.karaokeapp.services.SAC_APP
-import com.svoemesto.karaokeapp.services.SongReleaseAnnouncementService
 import org.springframework.stereotype.Controller
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestMapping
@@ -129,18 +126,10 @@ class NewsController {
         @RequestParam(required = false) target: String?,
     ): Boolean = withDb(target) { db -> News.delete(id, db) }
 
-    // Одноразовый backfill при включении «Автоматических новостей о выходе песни в эфир»
-    // (specs/089-auto-news-song-release, FR-005/User Story 3) — помечает уже публично доступные
-    // песни как «анонсированные» БЕЗ создания видимой новости, чтобы первый же прогон
-    // /changerecords на проде не создал лавину исторических новостей. Вызывается ОДИН РАЗ вручную
-    // администратором (обычно с target=remote — против PROD БД, по прямому согласию пользователя на
-    // каждое выполнение, см. constitution.md), ДО начала штатной работы механизма.
-    @PostMapping("/backfill-announcements")
-    @ResponseBody
-    fun backfillAnnouncements(
-        @RequestParam(required = false) target: String?,
-    ): Map<String, Any> =
-        withDb(target) { db ->
-            mapOf("markedCount" to SongReleaseAnnouncementService.backfillExistingReadySongs(db, KSS_APP, SAC_APP))
-        }
+    // Старый backfill «в эфире» (specs/089-auto-news-song-release) удалён вместе с
+    // tbl_song_news_announced (specs/101-song-news-flag) — механизм «в эфире» больше не нуждается в
+    // backfill'е (узкое скользящее окно проверки само не захватывает старые события). Backfill для
+    // нового флага «доступна» — см. ApiController.doBackfillNewsAvailable
+    // (POST /utils/backfillnewsavailable), тяжёлая операция выполняется в фоновом потоке с
+    // SSE-тостом, не синхронно внутри HTTP-запроса.
 }

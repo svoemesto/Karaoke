@@ -282,12 +282,28 @@ class MainController(
                 println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${WORKING_DATABASE.name}")
                 return "ERROR: Невозможно установить соединение с базой данных ${WORKING_DATABASE.name}"
             }
+            // Флаг «доступна для новости» (specs/101-song-news-flag, FR-004 spec.md) — для каждой
+            // затронутой строки tbl_songs запоминаем значение ДО применения изменения (для dataUpdate
+            // — точечный SELECT перед UPDATE; для dataCreate — «до» считается false по определению
+            // новой строки, см. contracts/news-lifecycle.md п.2). Детекция перехода выполняется после
+            // применения всего батча.
+            val songAvailabilityBefore = mutableListOf<Pair<Long, Boolean>>()
+
             dataCreate.forEach { action ->
                 val sqlToInsert = action["sqlToInsert"] as String
                 val sqlToInsertDecrypted = Crypto.decrypt(sqlToInsert)
                 val ps = connection.prepareStatement(sqlToInsertDecrypted)
                 ps.executeUpdate()
                 ps.close()
+                // Редкий путь (обычный пайплайн доводит песню до готовности через несколько
+                // отдельных UPDATE, не одним INSERT) — но должен быть покрыт: id всегда идёт первым
+                // значением после VALUES( при явной вставке (см. KaraokeDbTable.getSqlToInsert,
+                // OVERRIDING SYSTEM VALUE).
+                if (sqlToInsertDecrypted != null && sqlToInsertDecrypted.trimStart().startsWith("INSERT INTO ${Song.TABLE_NAME} ")) {
+                    Regex("""VALUES\((\d+)""").find(sqlToInsertDecrypted)?.groupValues?.get(1)?.toLongOrNull()?.let { newSongId ->
+                        songAvailabilityBefore.add(newSongId to false)
+                    }
+                }
             }
 
             dataUpdate.forEach { action ->
@@ -295,6 +311,9 @@ class MainController(
                 val idRecord = action["idRecord"] as Int
                 val setText = action["setText"] as String
                 val setTextDecrypted = Crypto.decrypt(setText)
+                if (tableName == Song.TABLE_NAME) {
+                    songAvailabilityBefore.add(idRecord.toLong() to Song.readNewsAvailableFlag(idRecord.toLong(), WORKING_DATABASE))
+                }
                 val sql = "UPDATE $tableName SET $setTextDecrypted WHERE id = $idRecord"
                 val ps = connection.prepareStatement(sql)
                 ps.executeUpdate()
@@ -312,14 +331,24 @@ class MainController(
             result =
                 "[${Timestamp.from(Instant.now())}] Created: ${dataCreate.size}, Updated: ${dataUpdate.size}, Deleted: ${dataDelete.size}"
 
-            // Автоматические новости о выходе песни в эфир (specs/089-auto-news-song-release) —
-            // единственная точка кода, реально исполняемая на PROD в момент синхронизации таблиц
-            // (см. contracts/news-api.md). Обёрнуто отдельно: сбой детекции анонсов не должен ронять
-            // уже успешно применённую синхронизацию и не должен менять формат ответа выше.
+            // Новость «песня появилась в коллекции» (specs/101-song-news-flag) — единственная точка
+            // кода, создающая этот вид новости: детекция перехода false→true для каждой затронутой в
+            // этом батче песни (FR-004 spec.md). Новость «песня вышла в эфир» синхронизацией больше
+            // НЕ создаётся (FR-007 spec.md) — только SongReleaseAnnouncementScheduler или вручную.
+            // Обёрнуто отдельно: сбой детекции не должен ронять уже успешно применённую синхронизацию
+            // и не должен менять формат ответа выше.
             try {
-                SongReleaseAnnouncementService.checkAndAnnounce(WORKING_DATABASE, storageService, storageApiClient)
+                songAvailabilityBefore.forEach { (songId, wasAvailableBefore) ->
+                    SongReleaseAnnouncementService.detectAndAnnounceAvailability(
+                        database = WORKING_DATABASE,
+                        storageService = storageService,
+                        storageApiClient = storageApiClient,
+                        songId = songId,
+                        wasAvailableBefore = wasAvailableBefore,
+                    )
+                }
             } catch (e: Exception) {
-                println("[${Timestamp.from(Instant.now())}] SongReleaseAnnouncementService.checkAndAnnounce error: ${e.message}")
+                println("[${Timestamp.from(Instant.now())}] SongReleaseAnnouncementService.detectAndAnnounceAvailability error: ${e.message}")
             }
         } catch (e: Exception) {
             return e.message!!

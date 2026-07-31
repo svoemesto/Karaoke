@@ -186,6 +186,36 @@ Karaoke — self-pipeline. Admin-машина разрабатывает нов�
   не ждёт результата этого сканирования, что напрямую соответствует уже принятому в specs/094
   правилу (FR-004: появление новости не гейтит успех ответа `approve()`). Корневая причина (флаги
   готовности для 4126 старых песен) заведена отдельным issue — не блокирует эту фичу.
+- **Механизм авто-новостей полностью переработан: второй, самостоятельный вид новости + отказ от
+  таблицы учёта (2026-07-31, specs/101-song-news-flag)**: единственная до этой фичи авто-новость
+  (условие `Song.isPubliclyWatchable` — статус ≥ 6 + флаги готовности **и** наступившая дата эфира,
+  идемпотентность через `tbl_song_news_announced`) заменена на два независимых механизма:
+  1. **«Доступна»** (`category="premium"`) — новый персистентный флаг `Song.newsAvailableAnnounced`,
+     хранится НЕ новой колонкой, а ключом внутри уже существующего JSON-поля
+     `player_readiness_flags` (тот же паттерн, что и `stemAccompanimentReady`/`pictureAlbumReady` —
+     см. запись про `deploy/karaoke-db/26_player_readiness_flags.sql` выше в этом файле; избегает
+     правки md5-формулы `recordhash`-триггера). Выставляется в `Song.saveToDb()`
+     (`markNewsAvailableIfReady()`), когда впервые выполняется `Song.isContentReady` — **без**
+     учёта даты эфира. Новость создаётся сервером (`MainController.doChangeRecords`), когда при
+     применении синхронизации обнаруживается переход флага false→true (точечный `SELECT` перед
+     `UPDATE`/значение по умолчанию `false` для `INSERT`) — `SongReleaseAnnouncementService.detectAndAnnounceAvailability`.
+  2. **«В эфире»** (`category="air"`, без изменений по сути события) — плановая проверка
+     (`SongReleaseAnnouncementScheduler`, ~раз в 5 минут) теперь рассматривает только песни, чья
+     дата/время эфира попали в последнее скользящее окно (~10 минут,
+     `SongReleaseAnnouncementService.checkOnAirWindow`), а не весь каталог — идемпотентность внутри
+     окна достигается проверкой существования новости (`News.existsAutoAnnouncement`), без отдельной
+     таблицы учёта. Синхронизация и `SongEditorController.approve()` больше НЕ вызывают этот механизм
+     напрямую (было — специфика specs/092/098 выше) — только плановая проверка или ручное создание
+     администратором.
+
+  `tbl_song_news_announced` удалена (`deploy/karaoke-db/34_cleanup_song_news_announced.sql`, тем же
+  файлом очищена `tbl_news` — историческая «заспамленная» лента). Обе гарантии «без лавины новостей
+  задним числом» достигаются по-разному: для «в эфире» — самим устройством скользящего окна (старые
+  события физически не попадают в него); для «доступна» — одноразовым Kotlin-backfill'ом
+  (`SongReleaseAnnouncementService.backfillNewsAvailableFlag`, `POST /utils/backfillnewsavailable` в
+  `ApiController.kt`, запускается администратором отдельно на LOCAL и на PROD ДО очистки `tbl_news`).
+  См. `specs/101-song-news-flag/research.md` (обоснование решений) и `contracts/news-lifecycle.md`
+  (контракты трёх точек: `saveToDb()`/`doChangeRecords`/`checkOnAir()`).
 
 ## Ссылки на ключевые классы/файлы
 

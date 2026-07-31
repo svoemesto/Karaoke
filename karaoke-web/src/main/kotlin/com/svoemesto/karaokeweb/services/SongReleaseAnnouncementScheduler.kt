@@ -9,12 +9,15 @@ import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 
 /**
- * Периодическая проверка «песня вышла в эфир по расписанию» (specs/092-fix-auto-news-triggers) —
- * независимая от синхронизации таблиц (`MainController.doChangeRecords`) точка входа в тот же
- * идемпотентный `SongReleaseAnnouncementService.checkAndAnnounce`, что уже вызывается оттуда
- * (specs/089-auto-news-song-release). Закрывает разрыв «дата/время эфира наступили, но никто не
- * запускал синхронизацию» — без этого джоба новость появлялась бы только при следующем
- * администраторском клике «Синхронизация в 1 клик», иногда с задержкой в часы/дни.
+ * Периодическая проверка «песня вышла в эфир по расписанию» (specs/101-song-news-flag, заменяет
+ * специфику specs/092-fix-auto-news-triggers) — единственная точка кода, создающая новость «в
+ * эфире» (FR-006/FR-007 spec.md 101): синхронизация и апрув задания редактора больше её не создают.
+ * Вызывает `SongReleaseAnnouncementService.checkOnAirWindow`, которая рассматривает только песни,
+ * чья дата/время эфира попали в последнее скользящее окно (~10 минут) — без отдельной таблицы учёта.
+ * Закрывает разрыв «дата/время эфира наступили, но никто не запускал синхронизацию» — без этого
+ * джоба новость никогда не появилась бы автоматически (см. spec.md 101, FR-009 — пропуск окна
+ * недоступности сервиса допустим, задним числом новость не создаётся, администратор может создать
+ * её вручную).
  *
  * Периодичность (~5 минут) — согласованное с пользователем допустимое отставание от фактического
  * времени эфира (см. spec.md, раздел Clarifications). По образцу `StatsCacheScheduler`/
@@ -30,7 +33,7 @@ class SongReleaseAnnouncementScheduler(
     @Scheduled(fixedDelay = 5 * 60_000L, initialDelay = 60_000L)
     fun checkOnAir() {
         try {
-            SongReleaseAnnouncementService.checkAndAnnounce(WORKING_DATABASE, storageService, storageApiClient)
+            SongReleaseAnnouncementService.checkOnAirWindow(WORKING_DATABASE, storageService, storageApiClient)
         } catch (e: Exception) {
             println("[SongReleaseAnnouncementScheduler] checkOnAir error: ${e.message}")
         }

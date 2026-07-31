@@ -23,6 +23,127 @@
 это автоматизировано: бот сам ловит вышедший пост и привязывает
 `message_id` к правильной песне/версии.
 
+## Настройка бота с нуля (BotFather → канал → Karaoke.properties)
+
+> Если бот уже создан и настроен — пропустите этот раздел. Все ключи
+> хранятся в `/sm-karaoke/system/Karaoke.properties` (admin-машина,
+> base64-файл, в git НЕ лежит). Менять можно через Properties UI в
+> `webvue3` (раздел Telegram) с последующим перезапуском `karaoke-app`,
+> либо прямым редактированием файла.
+
+### Шаг 1. Создать бота в @BotFather
+
+1. В Telegram откройте [@BotFather](https://t.me/BotFather) → `/newbot`.
+2. Имя (Display Name) — любое, напр. «Svoemesto Караоке Бот».
+3. Username — любое, оканчивающееся на `bot`, напр. `svoemesto_karaoke_bot`.
+4. BotFather ответит сообщением с **токеном** вида
+   `123456789:AA-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`. Скопируйте его.
+5. (Опц.) `/setdescription` — краткое описание, что бот публикует демо
+   караоке-видео по расписанию.
+6. (Опц.) `/setuserpic` — иконка бота (можно ту же, что у канала).
+
+### Шаг 2. Создать Telegram-канал
+
+Если канал `@svoemestokaraoke` уже существует — пропустите. Иначе:
+
+1. В Telegram: «Создать канал».
+2. Тип — **Публичный** (нужен username для ссылки `t.me/...`),
+   напр. `@svoemestokaraoke`.
+3. Имя — «Svoemesto Караоке» (или существующее).
+
+### Шаг 3. Добавить бота администратором канала
+
+**Обязательно для Фазы 2** (sendVideo требует прав на публикацию):
+
+1. Откройте канал → «Управление каналом» → «Администраторы» → «Добавить».
+2. Найдите бота по username (из Шага 1).
+3. Дайте права: **«Публикация сообщений»** (обязательно для Фазы 2),
+   «Редактирование сообщений» (опц.). Не давайте право «Удаление» —
+   бот не должен удалять посты.
+4. Подтвердите.
+
+### Шаг 4. Узнать числовой chat_id канала
+
+`chat_id` публичного канала можно получить через `getUpdates` (после
+первого поста в канале) или через @userinfobot. Самый надёжный способ
+для канала — через Bot API:
+
+1. Опубликуйте ЛЮБОЙ пост в канал вручную (бот должен быть админом к
+   этому моменту).
+2. Откройте в браузере:
+   `https://api.telegram.org/bot<ТОКЕН>/getUpdates`
+   (замените `<ТОКЕН>` на токен из Шага 1).
+3. В JSON-ответе найдите `result[].channel_post.chat.id` — это число
+   вида `-1001234567890` (с префиксом `-100`).
+4. Скопируйте это число — это и есть `telegramChannelChatId`.
+
+### Шаг 5. Заполнить Karaoke.properties
+
+Откройте `webvue3` → **Properties** (раздел Telegram) и заполните:
+
+| Ключ | Значение | Зачем |
+|------|----------|-------|
+| `telegramBotToken` | токен из Шага 1 | Авторизация всех запросов к Bot API |
+| `telegramChannelUsername` | `svoemestokaraoke` (без @) | Фаза 1: фильтр «наш канал» по username |
+| `telegramChannelChatId` | `-1001234567890` (из Шага 4) | Фаза 1: фильтр «наш канал» по chat_id |
+| `telegramBotApiBaseUrl` | `https://api.telegram.org` (по умолчанию) | Базовый URL Bot API. Локальный сервер — `http://localhost:8081` |
+| `telegramPollingEnabled` | `true` | Включить Фазу 1 (отлов постов) |
+| `telegramProxyUrl` | `http://telegram-xray:1082` или пусто | HTTP-прокси для доступа к Telegram из России (см. Шаг 6) |
+| `telegramDirectTimeoutMs` | `10000` (по умолчанию) | Таймаут прямой попытки перед переключением на прокси |
+| `telegramProxyModeTtlMs` | `60000` (по умолчанию) | Как часто перепроверять восстановление прямого доступа |
+| `telegramAutoPublishEnabled` | `true` | Включить Фазу 2 (автопубликация) |
+| `telegramAutoPublishChannelId` | `-1001234567890` (тот же, что telegramChannelChatId) | Куда публиковать демо-MP4 |
+| `telegramAutoPublishWindowMinutes` | `5` (по умолчанию) | Ширина окна тика (мин) |
+| `telegramAutoPublishMaxFileSizeMb` | `50` (по умолчанию) | Лимит размера MP4 для sendVideo |
+
+После заполнения — **перезапустить `karaoke-app`** (properties читаются
+при старте, см. `KaraokeProperties.loadPropertiesMap`).
+
+### Шаг 6. Прокси для доступа к Telegram из России (опционально)
+
+Telegram из Docker-контейнера на admin-машине в РФ может быть недоступен
+напрямую (блокировки). Решение — HTTP-прокси (VLESS/xray), который
+`TelegramApiClient` использует для авто-fallback «напрямую → прокси»:
+
+1. Поднять HTTP-прокси (VLESS/xray) — отдельный контейнер или внешний
+   сервис, слушающий `http://telegram-xray:1082` внутри docker-сети
+   `deploy_karaokenet` (имя сервиса / порт — на усмотрение настройки).
+2. Заполнить `telegramProxyUrl=http://telegram-xray:1082`.
+3. `TelegramApiClient` сначала пробует напрямую; при ошибке — через
+   прокси; периодически (раз в `telegramProxyModeTtlMs`) перепроверяет
+   восстановление прямого доступа.
+4. Если прокси не нужен (сервер вне РФ / Telegram доступен) — оставить
+   `telegramProxyUrl` пустым.
+
+### Проверка настройки
+
+1. **Фаза 1**: в канале вручную опубликовать пост со ссылкой
+   `https://sm-karaoke.ru/song?id=<id>` → в логах `karaoke-app` должно
+   появиться `TelegramUpdatesConsumer: записана ссылка Telegram ... для
+   песни id=<id>, message_id=...`.
+2. **Фаза 2**: у песни с заполненными `date`/`time` (в будущем, через 5
+   мин) и `isContentReady=true` — дождаться тика scheduler'а (лог
+   `TelegramAutoPublishService: song id=... → PUBLISHED`). Либо нажать
+   кнопку «Опубликовать сейчас» в `webvue3` (карточка песни, вкладка
+   Telegram) — пост должен появиться в канале, `idTelegramDemo`
+   заполнится.
+
+### Ловушки настройки
+
+- **Бот не админ канала** → `sendVideo` вернёт `403 Forbidden`,
+  `telegramAutoPublishState` = `send_failed`, `lastError` = «...403...».
+  Решение: Шаг 3.
+- **Неверный chat_id** → `getUpdates` ничего не возвращает (Фаза 1 не
+  ловит посты), `sendVideo` → `400 Bad Request`. Проверьте Шаг 4.
+- **Прокси не отвечает** → `sendVideo`/`getUpdates` падают с
+  network-ошибкой, `lastError` = «Telegram недоступен напрямую, а
+  telegramProxyUrl не задан». Решение: Шаг 6.
+- **Токен невалидный** → все запросы → `401 Unauthorized`. Проверьте
+  копирование токена из BotFather (без лишних пробелов/символов).
+- **`telegramAutoPublishEnabled=false`** → scheduler no-op (Фаза 2 не
+  работает), но кнопка «Опубликовать сейчас» работает (endpoint
+  доступен всегда).
+
 ## Как работает (кратко)
 
 1. **Запуск** — авто-старт на `ApplicationReadyEvent`, флаг

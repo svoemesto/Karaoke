@@ -6442,6 +6442,29 @@ class Song(
                 ) {
                     result.add(RecordDiff("id_telegram_melody", settA.idTelegramMelody, settB.idTelegramMelody))
                 }
+                // Фаза 2 автопубликации (specs/113-telegram-demo-publish): demo-message_id для
+                // всех 4 площадок (dzen/vk/telegram/max). Без этого getDiff() возвращает пустой diff
+                // и saveToDb() не делает UPDATE — поля остаются в памяти, но не попадают в БД.
+                if (settA.idTelegramDemo !=
+                    settB.idTelegramDemo
+                ) {
+                    result.add(RecordDiff("id_telegram_demo", settA.idTelegramDemo, settB.idTelegramDemo))
+                }
+                if (settA.idDzenDemo !=
+                    settB.idDzenDemo
+                ) {
+                    result.add(RecordDiff("id_dzen_demo", settA.idDzenDemo, settB.idDzenDemo))
+                }
+                if (settA.idVkDemo !=
+                    settB.idVkDemo
+                ) {
+                    result.add(RecordDiff("id_vk_demo", settA.idVkDemo, settB.idVkDemo))
+                }
+                if (settA.idMaxDemo !=
+                    settB.idMaxDemo
+                ) {
+                    result.add(RecordDiff("id_max_demo", settA.idMaxDemo, settB.idMaxDemo))
+                }
                 if (settA.versionTelegramLyrics !=
                     settB.versionTelegramLyrics
                 ) {
@@ -6461,6 +6484,29 @@ class Song(
                     settB.versionTelegramMelody
                 ) {
                     result.add(RecordDiff("version_telegram_melody", settA.versionTelegramMelody, settB.versionTelegramMelody))
+                }
+                // Фаза 2 автопубликации (specs/113-telegram-demo-publish): version_*_demo для
+                // всех 4 площадок (dzen/vk/telegram/max). Аналогично id_*_demo выше — без этого
+                // getDiff() не видит изменений version и saveToDb() не делает UPDATE.
+                if (settA.versionTelegramDemo !=
+                    settB.versionTelegramDemo
+                ) {
+                    result.add(RecordDiff("version_telegram_demo", settA.versionTelegramDemo, settB.versionTelegramDemo))
+                }
+                if (settA.versionDzenDemo !=
+                    settB.versionDzenDemo
+                ) {
+                    result.add(RecordDiff("version_dzen_demo", settA.versionDzenDemo, settB.versionDzenDemo))
+                }
+                if (settA.versionVkDemo !=
+                    settB.versionVkDemo
+                ) {
+                    result.add(RecordDiff("version_vk_demo", settA.versionVkDemo, settB.versionVkDemo))
+                }
+                if (settA.versionMaxDemo !=
+                    settB.versionMaxDemo
+                ) {
+                    result.add(RecordDiff("version_max_demo", settA.versionMaxDemo, settB.versionMaxDemo))
                 }
                 if (settA.idPlLyrics != settB.idPlLyrics) result.add(RecordDiff("id_pl_lyrics", settA.idPlLyrics, settB.idPlLyrics))
                 if (settA.idPlKaraoke != settB.idPlKaraoke) result.add(RecordDiff("id_pl_karaoke", settA.idPlKaraoke, settB.idPlKaraoke))

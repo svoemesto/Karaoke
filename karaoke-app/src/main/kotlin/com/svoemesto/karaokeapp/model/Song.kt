@@ -7520,6 +7520,13 @@ class Song(
                     rs.getString("id_telegram_karaoke")?.let { value -> settings.fields[SongField.ID_TELEGRAM_KARAOKE] = value }
                     rs.getString("id_telegram_chords")?.let { value -> settings.fields[SongField.ID_TELEGRAM_CHORDS] = value }
                     rs.getString("id_telegram_melody")?.let { value -> settings.fields[SongField.ID_TELEGRAM_MELODY] = value }
+                    // Фаза 2 автопубликации (specs/113-telegram-demo-publish): demo-поля для
+                    // всех 4 площадок. Без чтения из БД объект Song имеет id_*_demo="" (default),
+                    // и дайджест для webvue3 возвращает пустое значение — даже если в БД оно есть.
+                    rs.getString("id_dzen_demo")?.let { value -> settings.fields[SongField.ID_DZEN_DEMO] = value }
+                    rs.getString("id_vk_demo")?.let { value -> settings.fields[SongField.ID_VK_DEMO] = value }
+                    rs.getString("id_telegram_demo")?.let { value -> settings.fields[SongField.ID_TELEGRAM_DEMO] = value }
+                    rs.getString("id_max_demo")?.let { value -> settings.fields[SongField.ID_MAX_DEMO] = value }
                     rs.getString("id_pl_lyrics")?.let { value -> settings.fields[SongField.ID_PL_LYRICS] = value }
                     rs.getString("id_pl_karaoke")?.let { value -> settings.fields[SongField.ID_PL_KARAOKE] = value }
                     rs.getString("id_pl_chords")?.let { value -> settings.fields[SongField.ID_PL_CHORDS] = value }
@@ -7552,6 +7559,11 @@ class Song(
                         settings.fields[SongField.VERSION_TELEGRAM_MELODY] =
                             value.toString()
                     }
+                    // Фаза 2 автопубликации: version_*_demo для всех 4 площадок (см. id_*_demo выше).
+                    rs.getInt("version_dzen_demo").let { value -> settings.fields[SongField.VERSION_DZEN_DEMO] = value.toString() }
+                    rs.getInt("version_vk_demo").let { value -> settings.fields[SongField.VERSION_VK_DEMO] = value.toString() }
+                    rs.getInt("version_telegram_demo").let { value -> settings.fields[SongField.VERSION_TELEGRAM_DEMO] = value.toString() }
+                    rs.getInt("version_max_demo").let { value -> settings.fields[SongField.VERSION_MAX_DEMO] = value.toString() }
                     rs.getInt("version_pl_lyrics").let { value -> settings.fields[SongField.VERSION_PL_LYRICS] = value.toString() }
                     rs.getInt("version_pl_karaoke").let { value -> settings.fields[SongField.VERSION_PL_KARAOKE] = value.toString() }
                     rs.getInt("version_pl_chords").let { value -> settings.fields[SongField.VERSION_PL_CHORDS] = value.toString() }

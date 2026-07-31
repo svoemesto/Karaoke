@@ -1687,6 +1687,85 @@ val listKaraokeProperties =
             defaultValue = 60_000L,
             description = "Telegram: как часто перепроверять восстановление прямого доступа, пока используется прокси",
         ),
+        // Фаза 2 автопубликации: VLESS-конфиг прокси — задаётся прямо в коде через KaraokeProperties.
+        // При старте karaoke-app генерирует /sm-karaoke/system/telegram-proxy/config.json из этих полей
+        // и делает docker restart karaoke-telegram-proxy. Если telegramVlessEnabled=false — файл
+        // не трогается (можно редактировать вручную), VLESS-свойства игнорируются.
+        KaraokeProperty(
+            key = "telegramVlessEnabled",
+            defaultValue = false,
+            description = "Telegram: включить генерацию VLESS-конфига xray из свойств (иначе используется существующий config.json на диске)",
+        ),
+        KaraokeProperty(
+            key = "telegramVlessAddress",
+            defaultValue = "",
+            description = "Telegram VLESS: адрес удалённого xray-сервера (напр. 87.58.202.244)",
+        ),
+        KaraokeProperty(
+            key = "telegramVlessPort",
+            defaultValue = 443L,
+            description = "Telegram VLESS: порт удалённого xray-сервера",
+        ),
+        KaraokeProperty(
+            key = "telegramVlessUuid",
+            defaultValue = "",
+            description = "Telegram VLESS: UUID пользователя (xray vnext.users[].id)",
+        ),
+        KaraokeProperty(
+            key = "telegramVlessFlow",
+            defaultValue = "",
+            description = "Telegram VLESS: flow (пусто для xhttp/tcp; xtls-rprx-vision для XTLS-direct)",
+        ),
+        KaraokeProperty(
+            key = "telegramVlessNetwork",
+            defaultValue = "tcp",
+            description = "Telegram VLESS: transport network (tcp, ws, grpc, xhttp)",
+        ),
+        KaraokeProperty(
+            key = "telegramVlessSecurity",
+            defaultValue = "none",
+            description = "Telegram VLESS: stream security (none, tls, reality)",
+        ),
+        KaraokeProperty(
+            key = "telegramVlessPath",
+            defaultValue = "/",
+            description = "Telegram VLESS: path для ws/grpc/xhttp",
+        ),
+        KaraokeProperty(
+            key = "telegramVlessHost",
+            defaultValue = "",
+            description = "Telegram VLESS: Host header для ws/grpc/xhttp (пусто = не задавать)",
+        ),
+        KaraokeProperty(
+            key = "telegramVlessSni",
+            defaultValue = "",
+            description = "Telegram VLESS: SNI для tls/reality",
+        ),
+        KaraokeProperty(
+            key = "telegramVlessAlpn",
+            defaultValue = "h2,http/1.1",
+            description = "Telegram VLESS: ALPN (через запятую; для tls/reality)",
+        ),
+        KaraokeProperty(
+            key = "telegramVlessFingerprint",
+            defaultValue = "chrome",
+            description = "Telegram VLESS: uTLS fingerprint (для tls/reality)",
+        ),
+        KaraokeProperty(
+            key = "telegramVlessPadding",
+            defaultValue = "100-1000",
+            description = "Telegram VLESS: xPaddingBytes для xhttp (формат min-max)",
+        ),
+        KaraokeProperty(
+            key = "telegramProxyConfigPath",
+            defaultValue = "/sm-karaoke/system/telegram-proxy/config.json",
+            description = "Путь к xray config.json на хосте (монтируется в karaoke-telegram-proxy)",
+        ),
+        KaraokeProperty(
+            key = "telegramProxyContainerName",
+            defaultValue = "karaoke-telegram-proxy",
+            description = "Имя docker-контейнера xray для docker restart",
+        ),
         // Фаза 2 автоматизации публикации в Telegram (specs/113-telegram-demo-publish) — плановый бот
         // автопубликации демо-версии песни по наступлению её date/time. В отличие от Фазы 1
         // (telegramPollingEnabled — отлов уже вышедших постов), Фаза 2 САМА публикует демо-MP4 в канал

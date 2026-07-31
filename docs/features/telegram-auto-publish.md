@@ -103,15 +103,58 @@
 
 Telegram из Docker-контейнера на admin-машине в РФ может быть недоступен
 напрямую (блокировки). Решение — HTTP-прокси (VLESS/xray), который
-`TelegramApiClient` использует для авто-fallback «напрямую → прокси»:
+`TelegramApiClient` использует для авто-fallback «напрямую → прокси».
 
-1. Поднять HTTP-прокси (VLESS/xray) — отдельный контейнер или внешний
-   сервис, слушающий `http://telegram-xray:1082` внутри docker-сети
-   `deploy_karaokenet` (имя сервиса / порт — на усмотрение настройки).
-2. Заполнить `telegramProxyUrl=http://telegram-xray:1082`.
-3. `TelegramApiClient` сначала пробует напрямую; при ошибке — через
-   прокси; периодически (раз в `telegramProxyModeTtlMs`) перепроверяет
-   восстановление прямого доступа.
+В проекте есть готовый xray-контейнер `karaoke-telegram-proxy`
+(`deploy/docker-compose-telegram-proxy.yml`), слушающий
+`http://karaoke-telegram-proxy:1082` внутри сети `deploy_karaokenet`.
+Содержимое его `config.json` монтируется из
+`/sm-karaoke/system/telegram-proxy/config.json`.
+
+#### Вариант A. Управление VLESS из кода (рекомендуется)
+
+Все параметры VLESS — через Properties UI в `webvue3` → раздел Telegram:
+
+| Ключ | Пример | Описание |
+|------|--------|----------|
+| `telegramVlessEnabled` | `true` | Включить генерацию config.json из свойств |
+| `telegramVlessAddress` | `87.58.202.244` | Адрес удалённого xray |
+| `telegramVlessPort` | `443` | Порт |
+| `telegramVlessUuid` | `38ea8438-a353-4a82-ac2b-b79f64640736` | UUID |
+| `telegramVlessFlow` | `""` (пусто для xhttp/tcp) | flow (xtls-rprx-vision для XTLS-direct) |
+| `telegramVlessNetwork` | `xhttp` / `tcp` / `ws` / `grpc` | transport |
+| `telegramVlessSecurity` | `tls` / `reality` / `none` | stream security |
+| `telegramVlessPath` | `/` | path для ws/grpc/xhttp |
+| `telegramVlessHost` | `""` (пусто) | Host header |
+| `telegramVlessSni` | `""` (пусто) | SNI для tls/reality |
+| `telegramVlessAlpn` | `h2,http/1.1,h3` | ALPN (через запятую) |
+| `telegramVlessFingerprint` | `chrome` | uTLS fingerprint |
+| `telegramVlessPadding` | `100-1000` | xPaddingBytes для xhttp |
+| `telegramProxyConfigPath` | `/sm-karaoke/system/telegram-proxy/config.json` | Путь к config.json |
+| `telegramProxyContainerName` | `karaoke-telegram-proxy` | Имя контейнера для restart |
+
+`TelegramProxyManager` на `ApplicationReadyEvent`:
+1. Если `telegramVlessEnabled=true` и `telegramVlessAddress`/`Uuid` заполнены —
+   генерирует `config.json` из свойств и пишет в `telegramProxyConfigPath`.
+2. Выполняет `docker restart <telegramProxyContainerName>` через
+   `ProcessBuilder` (docker-socket доступен karaoke-app).
+3. Контейнер поднимается с актуальным outbound → `TelegramApiClient`
+   использует его как прежде (`http://karaoke-telegram-proxy:1082`).
+
+> После изменения VLESS-свойств в Properties UI — перезапустить
+> `karaoke-app` (docker container). Менеджер перегенерирует config.json и
+> перезапустит xray-контейнер.
+
+> Bind-mount в `docker-compose-telegram-proxy.yml` — `:rw` (с правом
+> записи для karaoke-app). Если раньше было `:ro` — обновите compose-файл
+> и выполните `cd deploy && docker compose up -d karaoke-telegram-proxy`.
+
+#### Вариант B. Ручной config.json (legacy)
+
+Если `telegramVlessEnabled=false` (по умолчанию) — `TelegramProxyManager`
+не трогает файл и не перезапускает контейнер. Можно редактировать
+`/sm-karaoke/system/telegram-proxy/config.json` вручную. После правок —
+`docker restart karaoke-telegram-proxy`.
 4. Если прокси не нужен (сервер вне РФ / Telegram доступен) — оставить
    `telegramProxyUrl` пустым.
 

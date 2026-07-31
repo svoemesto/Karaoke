@@ -91,11 +91,13 @@ export default class KaraokePlayer {
     // _pitchShifts хранит Tone.PitchShift-узлы по ключу стема ('acc'/'voc'; в будущем 'bass'/'drums')
     // — setTranspose применяет pitch ко всем узлам синхронно, чтобы смесь оставалась в одной
     // тональности (FR-005). _transposeSupported=false блокирует подменю с подсказкой (FR-018).
+    // Дефолт true (оптимистично): реальная проверка — в _ensurePitchShift при первом _startAudio
+    // (после audioCtx.resume()), где создание узла может выбросить и переключить в false.
     // @see docs/features/player-transpose.md
     this._transpose = 0
     /** @type {Map<string, import('tone').PitchShift>} */
     this._pitchShifts = new Map()
-    this._transposeSupported = false
+    this._transposeSupported = true
 
     // Громкость/якорь/скорость сверх этого ещё и глобально персистентны в localStorage (на машину
     // пользователя, не привязаны к конкретной песне) — открытие плеера на ЛЮБОЙ другой песне (не

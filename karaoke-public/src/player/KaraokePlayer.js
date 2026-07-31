@@ -643,6 +643,7 @@ export default class KaraokePlayer {
     style.id = 'kp-menu-styles'
     style.textContent = `
       .kp-menu { display:none; position:absolute; bottom:100%; right:0; margin-bottom:6px; background:#222; border:1px solid #444; border-radius:6px; padding:4px 0; min-width:190px; box-shadow:0 4px 16px rgba(0,0,0,0.6); z-index:30; font-size:13px; }
+      .kp-menu.kp-menu-down { bottom:auto; top:100%; margin-bottom:0; margin-top:6px; }
       .kp-menu-item { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:7px 14px; cursor:pointer; color:#eee; white-space:nowrap; }
       .kp-menu-item:hover, .kp-menu-item.kp-menu-active { background:#08f; color:#fff; }
       .kp-menu-separator { height:1px; background:#444; margin:4px 0; }
@@ -650,6 +651,7 @@ export default class KaraokePlayer {
       .kp-menu-item:hover .kp-menu-arrow { color:#fff; }
       .kp-menu-parent { position:relative; }
       .kp-submenu { display:none; position:absolute; right:100%; bottom:-5px; background:#222; border:1px solid #444; border-radius:6px; padding:4px 0; min-width:150px; box-shadow:0 4px 16px rgba(0,0,0,0.6); }
+      .kp-submenu.kp-submenu-down { bottom:auto; top:-5px; }
       .kp-menu-parent.kp-submenu-open > .kp-submenu { display:block; }
     `
     document.head.appendChild(style)
@@ -958,11 +960,14 @@ export default class KaraokePlayer {
       const isOpen = menu.style.display === 'block'
       this._closeMenu()
       menu.style.display = isOpen ? 'none' : 'block'
+      if (!isOpen) this._orientMenu(menu)
     })
 
     speedItem.addEventListener('click', (e) => {
       e.stopPropagation()
+      const willOpen = !speedItem.classList.contains('kp-submenu-open')
       speedItem.classList.toggle('kp-submenu-open')
+      if (willOpen) this._orientSubmenu(speedItem)
     })
 
     for (const el of speedSubmenu.querySelectorAll('[data-rate]')) {
@@ -981,7 +986,9 @@ export default class KaraokePlayer {
     const transposeSubmenu = this.container.querySelector('#kp-submenu-transpose')
     transposeItem.addEventListener('click', (e) => {
       e.stopPropagation()
+      const willOpen = !transposeItem.classList.contains('kp-submenu-open')
       transposeItem.classList.toggle('kp-submenu-open')
+      if (willOpen) this._orientSubmenu(transposeItem)
     })
     for (const el of transposeSubmenu.querySelectorAll('[data-transpose]')) {
       el.addEventListener('click', () => {
@@ -1033,6 +1040,7 @@ export default class KaraokePlayer {
         cancelClose(parent)
         closeOtherSubmenus(parent)
         parent.classList.add('kp-submenu-open')
+        this._orientSubmenu(parent)
       })
       parent.addEventListener('mouseleave', () => scheduleClose(parent))
       if (submenu) {
@@ -1066,6 +1074,33 @@ export default class KaraokePlayer {
     if (this._submenuCloseTimers) {
       for (const t of this._submenuCloseTimers.values()) clearTimeout(t)
       this._submenuCloseTimers.clear()
+    }
+  }
+
+  // Ориентация основного меню (.kp-menu): по умолчанию вверх (bottom:100%). Если места над
+  // кнопкой ☰ не хватает — открывает вниз (kp-menu-down). Вызывается после display:block.
+  _orientMenu(menu) {
+    const r = menu.getBoundingClientRect()
+    if (r.top < 0 && r.height > 0) {
+      menu.classList.add('kp-menu-down')
+    } else {
+      menu.classList.remove('kp-menu-down')
+    }
+  }
+
+  // Ориентация подменю (.kp-submenu): по умолчанию вверх (bottom:-5px). Если над родителем не
+  // хватает места — открывает вниз (kp-submenu-down, top:-5px). Подменю тональностей (25 пунктов)
+  // в маленьком контейнере не помещается вверх — открывается вниз. Вызывается при открытии.
+  _orientSubmenu(parent) {
+    const sub = parent.querySelector(':scope > .kp-submenu')
+    if (!sub) return
+    const parentRect = parent.getBoundingClientRect()
+    const subRect = sub.getBoundingClientRect()
+    const spaceAbove = parentRect.top - subRect.height + 5
+    if (spaceAbove < 0 && subRect.height > 0) {
+      sub.classList.add('kp-submenu-down')
+    } else {
+      sub.classList.remove('kp-submenu-down')
     }
   }
 

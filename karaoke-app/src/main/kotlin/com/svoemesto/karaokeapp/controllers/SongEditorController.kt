@@ -19,10 +19,7 @@ import com.svoemesto.karaokeapp.model.WhisperMarkerAligner
 import com.svoemesto.karaokeapp.rightFileName
 import com.svoemesto.karaokeapp.runCommand
 import com.svoemesto.karaokeapp.services.AlignmentServiceClient
-import com.svoemesto.karaokeapp.services.KSS_APP
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
-import com.svoemesto.karaokeapp.services.SAC_APP
-import com.svoemesto.karaokeapp.services.SongReleaseAnnouncementService
 import com.svoemesto.karaokeapp.services.StorageApiClient
 import com.svoemesto.karaokeapp.services.WhisperAsrService
 import com.svoemesto.karaokeapp.updateRemoteSongFromLocalDatabase
@@ -36,7 +33,6 @@ import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.ResponseBody
 import java.io.File
 import java.sql.Timestamp
-import java.util.concurrent.atomic.AtomicBoolean
 
 // Админская сторона онлайн-редактора караоке-разметки (webvue3). Живёт в karaoke-app (admin-машина):
 // назначение песни пользователю с автозаливкой стемов в MinIO, просмотр черновиков, апрув (применение
@@ -68,15 +64,6 @@ class SongEditorController(
     // Терпимый к неизвестным ключам декодер — маркеры черновика несут поля admin-формата (locklad и т.п.),
     // которых нет в SourceMarker; строгий Json.Default бросил бы на них.
     private val json = Json { ignoreUnknownKeys = true }
-
-    companion object {
-        // Защита от параллельных фоновых сканирований checkAndAnnounce (specs/098-fix-approve-
-        // blocking-checkandannounce) — если админ апрувит несколько заданий подряд, не плодим
-        // одновременно несколько 4000+-кандидатных сканов поверх одного и того же прод-соединения.
-        // Пропущенный запуск не теряет анонсы навсегда — следующий вызов (approve/scheduler/sync)
-        // всё равно найдёт тех же кандидатов (идемпотентно, см. checkAndAnnounce KDoc).
-        private val checkAndAnnounceRunning = AtomicBoolean(false)
-    }
 
     private fun resolveDb(target: String?): KaraokeConnection = if (target == "remote") Connection.remote() else Connection.local()
 
@@ -358,7 +345,7 @@ class SongEditorController(
                 // остаться необработанным исключением (specs/095-fix-approve-song-save-exception, тот
                 // же класс риска, что чинил specs/094-fix-approve-news-failure для aRead.save()): при
                 // сбое (например, SQLException на JDBC-соединении внутри settings.saveToDb()) задание
-                // НЕ помечается одобренным (return ниже — до блока push/checkAndAnnounce/aRead.save()),
+                // НЕ помечается одобренным (return ниже — до блока push/aRead.save()),
                 // администратор получает типизированную ошибку вместо необработанного HTTP 500.
                 try {
                     val prevVoiceCount = settings.sourceMarkersList.size
@@ -411,53 +398,13 @@ class SongEditorController(
                             "[approve/timing] push на SERVER: ${pushDone - pushStart} ms, " +
                                 "created=${pushResult.created.size} updated=${pushResult.updated.size}",
                         )
-                        // Апрув должен мгновенно (без ожидания отдельной синхронизации) отразиться
-                        // новостью на сайте (specs/092-fix-auto-news-triggers) — но только если push
-                        // реально применился (непустой SyncResult), иначе checkAndAnnounce сверился бы
-                        // с устаревшей копией песни на сервере (см. research.md фичи 092, п.2-3: путь
-                        // через updateDatabases → /changerecords best-effort и зависит от orthogonal
-                        // sync-тумблеров, полагаться на него нельзя).
-                        //
-                        // checkAndAnnounce ЗАПУСКАЕТСЯ В ФОНОВОМ ПОТОКЕ, НЕ дожидаясь его завершения
-                        // (specs/098-fix-approve-blocking-checkandannounce) — живая проверка на проде
-                        // (specs/096) показала, что при накопленном «хвосте» ранее не анонсированных
-                        // песен (в наблюдавшемся случае — 4126 кандидатов, ни один не прошёл
-                        // isPubliclyWatchable) этот вызов синхронно занимает 50+ секунд, что превышает
-                        // любой разумный тайм-аут браузера/прокси и превращает успешный апрув в «Ошибка
-                        // запроса» для администратора. HTTP-ответ (и статус задания) не должны зависеть
-                        // от длительности этого сканирования — оно и так best-effort и не гейтит success
-                        // (FR-004 specs/094-fix-approve-news-failure). AtomicBoolean-гвард не даёт
-                        // параллельным апрувам плодить несколько одновременных сканов поверх одного и
-                        // того же прод-соединения.
-                        if (pushResult.created.isNotEmpty() || pushResult.updated.isNotEmpty()) {
-                            if (checkAndAnnounceRunning.compareAndSet(false, true)) {
-                                Thread {
-                                    val announceStart = System.currentTimeMillis()
-                                    try {
-                                        SongReleaseAnnouncementService.checkAndAnnounce(Connection.remote(), KSS_APP, SAC_APP)
-                                        println(
-                                            "[approve/timing] checkAndAnnounce (фоновый поток): " +
-                                                "${System.currentTimeMillis() - announceStart} ms",
-                                        )
-                                    } catch (e: Exception) {
-                                        println(
-                                            "[SongEditorController.approve] checkAndAnnounce error (фоновый поток, " +
-                                                "${System.currentTimeMillis() - announceStart} ms): ${e.message}",
-                                        )
-                                    } finally {
-                                        checkAndAnnounceRunning.set(false)
-                                    }
-                                }.apply {
-                                    isDaemon = true
-                                    name = "approve-check-and-announce"
-                                }.start()
-                            } else {
-                                println(
-                                    "[SongEditorController.approve] checkAndAnnounce уже выполняется в фоне — " +
-                                        "пропускаем повторный запуск для задания $id (идемпотентно, найдётся следующим вызовом)",
-                                )
-                            }
-                        }
+                        // Новость «в эфире» здесь больше НЕ создаётся напрямую (specs/101-song-news-flag,
+                        // FR-007 spec.md) — только плановая проверка (SongReleaseAnnouncementScheduler)
+                        // или ручное создание администратором. Новость «доступна» тоже не создаётся
+                        // здесь: флаг newsAvailableAnnounced уже выставлен внутри settings.saveToDb()
+                        // выше (см. Song.markNewsAvailableIfReady) и уже отправлен этим push'ом — сама
+                        // новость появится при следующей серверной синхронизации, обнаружившей переход
+                        // (MainController.doChangeRecords).
                     } catch (e: Exception) {
                         println(
                             "[SongEditorController.approve] push на SERVER не удался " +

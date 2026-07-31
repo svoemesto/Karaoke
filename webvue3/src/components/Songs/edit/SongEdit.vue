@@ -1559,18 +1559,18 @@
                     >
                     <button
                       v-if="!song.idTelegramDemo"
-                      class="btn-round-wide btn-publish-telegram-now"
+                      class="btn-round btn-publish-telegram-now"
                       :disabled="isPublishingTelegram"
+                      :title="
+                        isPublishingTelegram ? 'Публикация…' : 'Опубликовать сейчас в Telegram'
+                      "
                       @click="publishToTelegramNow"
                     >
                       <img
                         alt="publish"
-                        class="icon-24"
+                        class="icon-publish-telegram"
                         src="../../../assets/svg/icon_telegram.svg"
                       />
-                      <span>{{
-                        isPublishingTelegram ? 'Публикация…' : 'Опубликовать сейчас'
-                      }}</span>
                     </button>
                   </div>
                   <div v-if="showChordsTelegram" class="label-and-input">
@@ -5959,6 +5959,11 @@ export default {
 .btn-publish-telegram-now {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
+  padding: 0;
+}
+.icon-publish-telegram {
+  width: 16px;
+  height: 16px;
 }
 </style>

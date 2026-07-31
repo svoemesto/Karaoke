@@ -7,6 +7,7 @@ import com.svoemesto.karaokeapp.model.*
 import com.svoemesto.karaokeapp.services.APP_WORK_IN_CONTAINER
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.SNS
+import com.svoemesto.karaokeapp.services.SongReleaseAnnouncementService
 import com.svoemesto.karaokeapp.services.SseNotificationService
 import com.svoemesto.karaokeapp.services.StorageApiClient
 import com.svoemesto.karaokeapp.services.WVP
@@ -5534,6 +5535,59 @@ class ApiController(
                             Message(
                                 type = "error",
                                 head = "Пересчёт готовности плеера ($scope)",
+                                body = "Прервано ошибкой: ${e.message}",
+                            ),
+                        ),
+                    )
+                } catch (_: Exception) {
+                }
+            }
+        }
+        return true
+    }
+
+    // Разовый backfill флага «доступна для новости» (specs/101-song-news-flag, FR-012 spec.md) —
+    // выставляет Song.newsAvailableAnnounced=true (через обычный saveToDb(), не raw SQL) для песен,
+    // уже удовлетворяющих Song.isContentReady на момент включения фичи, БЕЗ создания новости — иначе
+    // первая же обычная синхронизация такой песни создала бы новость «доступна» из ничего. Нужно
+    // выполнить ОТДЕЛЬНО на LOCAL и на REMOTE (target) ДО очистки tbl_news/удаления
+    // tbl_song_news_announced (см. quickstart.md, Шаг 0-1) — иначе серверное «до»-значение флага
+    // останется false и следующая обычная синхронизация уже готовой песни создаст новость из ничего
+    // (см. research.md фичи 101, п.3). Тяжёлая операция — уходит в фоновый поток, по образцу
+    // doRecalcPlayerReadiness выше, итог приходит тостом по SSE.
+    @PostMapping("/utils/backfillnewsavailable")
+    @ResponseBody
+    fun doBackfillNewsAvailable(
+        @RequestParam(required = false) target: String? = null,
+    ): Boolean {
+        val database = if (target == "remote") Connection.remote() else Connection.local()
+        thread {
+            println("Backfill флага «доступна для новости» (${database.name}): начало")
+            try {
+                val result =
+                    SongReleaseAnnouncementService.backfillNewsAvailableFlag(
+                        database = database,
+                        storageService = storageService,
+                        storageApiClient = storageApiClient,
+                    )
+                println("Backfill флага «доступна для новости» (${database.name}): завершено, затронуто песен: $result")
+                SNS.send(
+                    SseNotification.message(
+                        Message(
+                            type = "info",
+                            head = "Backfill флага «доступна» (${database.name})",
+                            body = "Затронуто песен: $result",
+                        ),
+                    ),
+                )
+            } catch (e: Exception) {
+                println("Backfill флага «доступна для новости» (${database.name}): аварийно прерван: ${e.message}")
+                try {
+                    SNS.send(
+                        SseNotification.error(
+                            Message(
+                                type = "error",
+                                head = "Backfill флага «доступна» (${database.name})",
                                 body = "Прервано ошибкой: ${e.message}",
                             ),
                         ),

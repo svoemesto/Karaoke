@@ -332,6 +332,7 @@ class News(
             title: String,
             body: String,
             link: String,
+            category: String = "air",
             database: KaraokeConnection,
             storageService: KaraokeStorageService = KSS_APP,
             storageApiClient: StorageApiClient = SAC_APP,
@@ -339,7 +340,7 @@ class News(
             val entity = News(database = database, storageService = storageService, storageApiClient = storageApiClient)
             entity.title = title
             entity.body = body
-            entity.category = "air"
+            entity.category = category
             entity.link = link
             entity.publishAt = Timestamp(System.currentTimeMillis())
             entity.createdAt = Timestamp(System.currentTimeMillis())
@@ -352,5 +353,37 @@ class News(
             id: Long,
             database: KaraokeConnection,
         ): Boolean = KaraokeDbTable.delete(tableName = TABLE_NAME, id = id, database = database)
+
+        // Существование новости данного вида по песне (specs/101-song-news-flag) — единственная
+        // идемпотентность механизма «в эфире» внутри узкого скользящего окна проверки (research.md
+        // п.4): не более одной auto-новости категории "air" на песню, а ручная новость той же
+        // категории также блокирует повторное авто-создание (source не фильтруется намеренно).
+        // Матчинг по song_id ИЛИ по link: у ручных новостей (NewsController.create, webvue3
+        // NewsTable.vue) сегодня нет поля для указания song_id — единственный способ администратору
+        // связать вручную созданную новость с конкретной песней — вписать в поле "Ссылка" тот же
+        // формат, что использует авто-создание (`/song?id={id}`). Без этой альтернативной проверки
+        // ручная новость никогда не блокировала бы повторное авто-создание (FR-008 spec.md).
+        fun existsAnnouncement(
+            songId: Long,
+            link: String,
+            category: String,
+            database: KaraokeConnection,
+        ): Boolean {
+            val connection = database.getConnection() ?: return false
+            return try {
+                connection
+                    .prepareStatement(
+                        "SELECT 1 FROM $TABLE_NAME WHERE category = ? AND (song_id = ? OR link = ?)",
+                    ).use { ps ->
+                        ps.setString(1, category)
+                        ps.setLong(2, songId)
+                        ps.setString(3, link)
+                        ps.executeQuery().use { rs -> rs.next() }
+                    }
+            } catch (e: SQLException) {
+                println("News.existsAnnouncement SQLException: ${e.message}")
+                false
+            }
+        }
     }
 }

@@ -3,17 +3,28 @@ package com.svoemesto.karaokeapp.services
 import com.svoemesto.karaokeapp.KaraokeConnection
 import com.svoemesto.karaokeapp.model.News
 import com.svoemesto.karaokeapp.model.Song
-import com.svoemesto.karaokeapp.model.SongNewsAnnounced
+import java.sql.SQLException
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.TimeZone
 
 /**
- * Автоматическое создание новостей о выходе песни в эфир (specs/089-auto-news-song-release).
- * Три независимых вызывающих (specs/092-fix-auto-news-triggers): `karaoke-web`
- * `MainController.doChangeRecords` (PROD, момент синхронизации таблиц), `karaoke-web`
- * `SongReleaseAnnouncementScheduler` (PROD, периодическая проверка наступления времени эфира) и
- * `karaoke-app` `SongEditorController.approve()` (admin-машина, мгновенный триггер при апруве
- * задания редактора — см. specs/094-fix-approve-news-failure). Идемпотентность (`PRIMARY
- * KEY(song_id)` в `tbl_song_news_announced`) рассчитана именно на такие независимые параллельные
- * вызовы — см. KDoc [checkAndAnnounce].
+ * Автоматическое создание двух независимых видов новостей о песне (specs/101-song-news-flag,
+ * заменяет прежний единый механизм specs/089-auto-news-song-release/specs/092-fix-auto-news-triggers):
+ *
+ * - **«Доступна»** (`category="premium"`) — [detectAndAnnounceAvailability], вызывается ТОЛЬКО из
+ *   `karaoke-web` `MainController.doChangeRecords` в момент применения синхронизации, когда
+ *   обнаруживается переход флага [Song.newsAvailableAnnounced] false→true.
+ * - **«В эфире»** (`category="air"`) — [checkOnAirWindow], вызывается ТОЛЬКО из `karaoke-web`
+ *   `SongReleaseAnnouncementScheduler` (плановая проверка на проде, ~раз в 5 минут) или создаётся
+ *   вручную администратором. Синхронизация и апрув задания редактора больше НЕ создают эту новость
+ *   напрямую (FR-006/FR-007 spec.md).
+ *
+ * Ни один из двух механизмов не использует отдельную вспомогательную таблицу учёта
+ * (`tbl_song_news_announced` удалена) — идемпотентность «доступна» строится на самом флаге песни,
+ * идемпотентность «в эфире» — на узком скользящем окне проверки + существовании новости
+ * ([News.existsAutoAnnouncement]).
  *
  * @see docs/features/dual-db-sync.md
  */
@@ -23,67 +34,13 @@ object SongReleaseAnnouncementService {
     // specs/082-fix-import-folder-oom, тот же класс бага).
     private const val CHUNK_SIZE = 25
 
-    /**
-     * Дешёвый первый проход: только `id` + `recordhash` по всем песням со статусом >= 6 (без
-     * текста/маркеров/base64 — `Song.listHashes`, тот же путь, что использует sync-движок), минус уже
-     * отмеченные в `tbl_song_news_announced`. Полные объекты (нужны для проверки
-     * [Song.isPubliclyWatchable] — стемы/обложки/маркеры) грузятся пачками по [CHUNK_SIZE] через
-     * `WHERE id IN (...)` и обрабатываются [action] СРАЗУ ЖЕ, чанк за чанком — результат НЕ
-     * накапливается в единый список между чанками (флаг `chunked(...).flatMap {...}` тихо собрал бы
-     * все полные объекты разом и воспроизвёл бы тот же `OutOfMemoryError`, что чанкование запроса
-     * само по себе не предотвращает).
-     */
-    // Точечные тайминги (specs/096-approve-news-timing-diagnostics) — временная диагностика по
-    // репорту "зависает после Получено хешей: N" (specs/094/095 не устранили симптом; нужны факты
-    // о том, на каком именно шаге уходит время, вместо гипотез). Поведение не меняет, только println.
-    private fun forEachNewlyReadyCandidate(
-        database: KaraokeConnection,
-        storageService: KaraokeStorageService,
-        storageApiClient: StorageApiClient,
-        action: (Song) -> Unit,
-    ) {
-        val t0 = System.currentTimeMillis()
-        val alreadyAnnounced = SongNewsAnnounced.loadAnnouncedSongIds(database)
-        val t1 = System.currentTimeMillis()
-        println(
-            "[checkAndAnnounce/timing] loadAnnouncedSongIds: ${t1 - t0} ms, уже анонсировано: ${alreadyAnnounced.size}",
-        )
+    // Запас в 2× периодичность плановой проверки (~5 минут) — компенсирует дрейф между тиками
+    // @Scheduled(fixedDelay=...), который не гарантирует точного попадания в границы 5-минутных
+    // интервалов (research.md п.4). Дубли внутри окна отсекаются существование-проверкой в
+    // checkOnAirWindow, а не сужением окна.
+    private const val ON_AIR_WINDOW_LOOKBACK_MINUTES = 10L
 
-        val hashes = Song.listHashes(database = database, whereText = "WHERE id_status >= 6") ?: emptyList()
-        val t2 = System.currentTimeMillis()
-        println("[checkAndAnnounce/timing] Song.listHashes(id_status>=6): ${t2 - t1} ms, записей: ${hashes.size}")
-
-        val candidateIds = hashes.map { it.id }.filter { it !in alreadyAnnounced }
-        val t3 = System.currentTimeMillis()
-        println(
-            "[checkAndAnnounce/timing] фильтрация уже анонсированных: ${t3 - t2} ms, кандидатов: ${candidateIds.size}",
-        )
-
-        val chunks = candidateIds.chunked(CHUNK_SIZE)
-        chunks.forEachIndexed { index, chunk ->
-            val chunkStart = System.currentTimeMillis()
-            val loaded =
-                Song.loadListFromDb(
-                    args = mapOf("ids" to chunk.joinToString(",")),
-                    database = database,
-                    storageService = storageService,
-                    storageApiClient = storageApiClient,
-                )
-            val chunkLoaded = System.currentTimeMillis()
-            loaded.filter { it.isPubliclyWatchable }.forEach(action)
-            val chunkDone = System.currentTimeMillis()
-            println(
-                "[checkAndAnnounce/timing] чанк ${index + 1}/${chunks.size} (${chunk.size} id): " +
-                    "loadListFromDb ${chunkLoaded - chunkStart} ms, action() ${chunkDone - chunkLoaded} ms",
-            )
-        }
-    }
-
-    /**
-     * Альбом и год песни в виде суффикса `" (альбом «X», Y)"` для заголовка новости
-     * (specs/092-fix-auto-news-triggers) — пустая строка, если ни альбом, ни год не заполнены;
-     * без плейсхолдеров для отдельно отсутствующего альбома/года (FR-008 spec.md).
-     */
+    /** Альбом и год песни в виде суффикса `" (альбом «X», Y)"` для заголовка новости — пустая строка, если ни альбом, ни год не заполнены. */
     private fun albumYearSuffix(song: Song): String {
         val parts = mutableListOf<String>()
         if (song.album.isNotBlank()) parts.add("альбом «${song.album}»")
@@ -91,7 +48,7 @@ object SongReleaseAnnouncementService {
         return if (parts.isEmpty()) "" else " (" + parts.joinToString(", ") + ")"
     }
 
-    /** Автор + альбом/год одной строкой для тела новости (specs/092-fix-auto-news-triggers). */
+    /** Автор + альбом/год одной строкой для тела новости. */
     private fun bodyDetails(song: Song): String {
         val parts = mutableListOf(song.author)
         if (song.album.isNotBlank()) parts.add("альбом «${song.album}»")
@@ -100,83 +57,189 @@ object SongReleaseAnnouncementService {
     }
 
     /**
-     * Находит песни, ставшие публично доступными ([Song.isPubliclyWatchable]), но ещё не
-     * анонсированные, и создаёт по каждой отдельную новость (FR-006 spec.md). Идемпотентно —
-     * безопасно вызывать многократно, в т.ч. параллельно (см. `PRIMARY KEY(song_id)` в
-     * `tbl_song_news_announced`, `SongNewsAnnounced.markAnnounced`) и из трёх независимых вызывающих
-     * точек (синхронизация, периодическая проверка эфира, апрув/сохранение — см.
-     * specs/092-fix-auto-news-triggers/contracts/news-triggers.md). Ошибки логируются и не
-     * пробрасываются — сбой детекции анонсов не должен ронять вызывающий код
-     * (см. contracts/news-api.md).
+     * Детекция перехода флага [Song.newsAvailableAnnounced] false→true при применении синхронизации
+     * на сервере (FR-004 spec.md) — вызывается ПОСЛЕ того, как соответствующий `UPDATE`/`INSERT` в
+     * `tbl_songs` уже применён. [wasAvailableBefore] — значение флага ДО применения этого конкретного
+     * изменения (читает вызывающий код заранее, см. `MainController.doChangeRecords`); `false` для
+     * совсем новой (только что вставленной) строки. Если сервер уже хранил `true`, переход не
+     * обнаруживается повторно — новость не дублируется (идемпотентно без отдельной таблицы учёта).
+     * Ошибки логируются и не пробрасываются — сбой детекции не должен ронять уже применённую
+     * синхронизацию.
      *
-     * `storageService`/`storageApiClient` ДОЛЖНЫ передаваться явно вызывающим кодом (без дефолта на
-     * `KSS_APP`/`SAC_APP`) — эта функция вызывается и из `karaoke-app` (одна JVM, где эти lateinit
-     * глобальные переменные проинициализированы), и из `karaoke-web` (другая JVM, другая реализация
-     * `KaraokeStorageService`/`StorageApiClient`, инжектируемая через Spring DI в `MainController`
-     * — `KSS_APP`/`SAC_APP` там никогда не инициализируются и обращение к ним падает с
-     * `lateinit property ... has not been initialized`, что и произошло при первой ручной проверке
-     * — см. tasks.md T012).
-     *
-     * @return id песен, для которых в этом вызове была создана новость.
+     * @return true, если новость была создана в этом вызове.
      */
-    fun checkAndAnnounce(
+    fun detectAndAnnounceAvailability(
         database: KaraokeConnection,
         storageService: KaraokeStorageService,
         storageApiClient: StorageApiClient,
+        songId: Long,
+        wasAvailableBefore: Boolean,
+    ): Boolean {
+        if (wasAvailableBefore) return false
+        return try {
+            val song =
+                Song.loadFromDbById(songId, database = database, storageService = storageService, storageApiClient = storageApiClient)
+                    ?: return false
+            if (!song.newsAvailableAnnounced) return false
+            News.createAutoAnnouncement(
+                songId = song.id,
+                title = "Новая песня: ${song.author} — ${song.songName}${albumYearSuffix(song)}",
+                body = "Песня «${song.songName}» (${bodyDetails(song)}) появилась в коллекции.",
+                link = "/song?id=${song.id}",
+                category = "premium",
+                database = database,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
+            true
+        } catch (e: Exception) {
+            println("SongReleaseAnnouncementService.detectAndAnnounceAvailability error (songId=$songId): ${e.message}")
+            false
+        }
+    }
+
+    /**
+     * Момент "сейчас" в московской таймзоне — та же точка отсчёта, что использует [Song.onAir], чтобы
+     * окно проверки было согласовано с тем, что в итоге проверяет `isPubliclyWatchable` на загруженных
+     * полных объектах.
+     */
+    private fun nowMoscow(): Date = Calendar.getInstance(TimeZone.getTimeZone("Europe/Moscow")).time
+
+    /** Тот же парсинг, что использует [Song.dateTimePublish] — `null`, если поля пустые/некорректные. */
+    private fun parseDateTimePublish(
+        date: String,
+        time: String,
+    ): Date? =
+        if (date.isBlank() || time.isBlank()) {
+            null
+        } else {
+            try {
+                SimpleDateFormat("dd.MM.yy HH:mm").parse("$date $time")
+            } catch (_: Exception) {
+                null
+            }
+        }
+
+    /**
+     * Дешёвый первый проход для механизма «в эфире» (research.md п.4): только `id` + текстовые
+     * `publish_date`/`publish_time` для песен со статусом >= 6 (без текста/маркеров/base64) —
+     * оставляет только те id, чей вычисленный момент эфира попал в скользящее окно
+     * `(now - lookbackMinutes, now]`. Старые (давно вышедшие в эфир) песни физически никогда не
+     * попадают в это окно — поэтому очистка `tbl_news` не создаёт по ним новостей задним числом.
+     */
+    private fun windowCandidateIds(
+        database: KaraokeConnection,
+        lookbackMinutes: Long,
     ): List<Long> {
-        val startedAt = System.currentTimeMillis()
-        println("[checkAndAnnounce/timing] старт (${database.name})")
+        val connection = database.getConnection() ?: return emptyList()
+        val result = mutableListOf<Long>()
+        val now = nowMoscow()
+        val windowStart = Date(now.time - lookbackMinutes * 60_000L)
+        try {
+            connection.createStatement().use { statement ->
+                statement.executeQuery("SELECT id, publish_date, publish_time FROM tbl_songs WHERE id_status >= 6").use { rs ->
+                    while (rs.next()) {
+                        val date = rs.getString("publish_date") ?: ""
+                        val time = rs.getString("publish_time") ?: ""
+                        val publishAt = parseDateTimePublish(date, time) ?: continue
+                        if (publishAt > windowStart && publishAt <= now) {
+                            result.add(rs.getLong("id"))
+                        }
+                    }
+                }
+            }
+        } catch (e: SQLException) {
+            println("SongReleaseAnnouncementService.windowCandidateIds SQLException: ${e.message}")
+        }
+        return result
+    }
+
+    /**
+     * Плановая проверка «песня вышла в эфир» (FR-006 spec.md) — вызывается ТОЛЬКО из
+     * `SongReleaseAnnouncementScheduler` (~раз в 5 минут, PROD). Рассматривает только кандидатов из
+     * [windowCandidateIds] (не весь каталог), загружает их полными объектами чанками, фильтрует по
+     * [Song.isPubliclyWatchable], и для каждого — создаёт ровно одну новость категории `"air"`, если
+     * такой (автоматической или созданной вручную администратором) для этой песни ещё нет
+     * ([News.existsAutoAnnouncement]). Ошибки логируются и не пробрасываются.
+     *
+     * @return id песен, для которых в этом вызове была создана новость.
+     */
+    fun checkOnAirWindow(
+        database: KaraokeConnection,
+        storageService: KaraokeStorageService,
+        storageApiClient: StorageApiClient,
+        lookbackMinutes: Long = ON_AIR_WINDOW_LOOKBACK_MINUTES,
+    ): List<Long> {
         val created = mutableListOf<Long>()
         try {
-            forEachNewlyReadyCandidate(database, storageService, storageApiClient) { song ->
-                val songStart = System.currentTimeMillis()
-                val news =
-                    News.createAutoAnnouncement(
-                        songId = song.id,
-                        title = "Новая песня: ${song.author} — ${song.songName}${albumYearSuffix(song)}",
-                        body = "Стала доступна песня «${song.songName}» (${bodyDetails(song)}).",
-                        link = "/song?id=${song.id}",
+            val candidateIds = windowCandidateIds(database, lookbackMinutes)
+            candidateIds.chunked(CHUNK_SIZE).forEach { chunk ->
+                val loaded =
+                    Song.loadListFromDb(
+                        args = mapOf("ids" to chunk.joinToString(",")),
                         database = database,
                         storageService = storageService,
                         storageApiClient = storageApiClient,
                     )
-                val newsCreated = System.currentTimeMillis()
-                if (SongNewsAnnounced.markAnnounced(songId = song.id, newsId = news?.id, database = database)) {
-                    created.add(song.id)
+                loaded.filter { it.isPubliclyWatchable }.forEach { song ->
+                    val link = "/song?id=${song.id}"
+                    if (!News.existsAnnouncement(songId = song.id, link = link, category = "air", database = database)) {
+                        News.createAutoAnnouncement(
+                            songId = song.id,
+                            title = "Новая песня: ${song.author} — ${song.songName}${albumYearSuffix(song)}",
+                            body = "Песня «${song.songName}» (${bodyDetails(song)}) вышла в эфир.",
+                            link = link,
+                            category = "air",
+                            database = database,
+                            storageService = storageService,
+                            storageApiClient = storageApiClient,
+                        )
+                        created.add(song.id)
+                    }
                 }
-                val marked = System.currentTimeMillis()
-                println(
-                    "[checkAndAnnounce/timing] песня ${song.id}: createAutoAnnouncement ${newsCreated - songStart} ms, " +
-                        "markAnnounced ${marked - newsCreated} ms",
-                )
             }
         } catch (e: Exception) {
-            println("SongReleaseAnnouncementService.checkAndAnnounce error: ${e.message}")
+            println("SongReleaseAnnouncementService.checkOnAirWindow error: ${e.message}")
         }
-        println("[checkAndAnnounce/timing] итого: ${System.currentTimeMillis() - startedAt} ms, создано новостей: ${created.size}")
         return created
     }
 
     /**
-     * Одноразовый backfill при включении фичи на PROD (FR-005 spec.md, User Story 3) — помечает уже
-     * публично доступные песни как «анонсированные» БЕЗ создания видимой новости, чтобы первое
-     * включение механизма не создало лавину исторических новостей (см. research.md, п.5). Вызывается
-     * вручную и отдельно от [checkAndAnnounce], один раз, до начала штатной работы этого механизма.
+     * Одноразовый backfill флага «доступна для новости» (FR-012 spec.md) — выставляет
+     * [Song.newsAvailableAnnounced] в `true` через обычный `Song.saveToDb()` (НЕ raw SQL, см.
+     * research.md п.3 — гарантирует консистентный `recordhash` без риска разойтись между LOCAL/PROD)
+     * для песен, уже удовлетворяющих [Song.isContentReady], но у которых флаг ещё `false`. Не создаёт
+     * никакой новости — единственная цель backfill'а именно в этом, иначе первая же обычная
+     * синхронизация уже готовой песни создала бы новость «доступна» из ничего. Вызывается
+     * администратором вручную, отдельно на `Connection.local()` и на `Connection.remote()` — до
+     * очистки `tbl_news`/удаления `tbl_song_news_announced`.
      *
-     * @return число песен, помеченных backfill'ом в этом вызове.
+     * @return число песен, у которых флаг был выставлен в этом вызове.
      */
-    fun backfillExistingReadySongs(
+    fun backfillNewsAvailableFlag(
         database: KaraokeConnection,
         storageService: KaraokeStorageService,
         storageApiClient: StorageApiClient,
     ): Int {
         var count = 0
         try {
-            forEachNewlyReadyCandidate(database, storageService, storageApiClient) { song ->
-                if (SongNewsAnnounced.markAnnounced(songId = song.id, newsId = null, database = database)) count++
+            val hashes = Song.listHashes(database = database, whereText = "WHERE id_status = 6") ?: emptyList()
+            hashes.map { it.id }.chunked(CHUNK_SIZE).forEach { chunk ->
+                val loaded =
+                    Song.loadListFromDb(
+                        args = mapOf("ids" to chunk.joinToString(",")),
+                        database = database,
+                        storageService = storageService,
+                        storageApiClient = storageApiClient,
+                    )
+                loaded.filter { it.isContentReady && !it.newsAvailableAnnounced }.forEach { song ->
+                    song.newsAvailableAnnounced = true
+                    song.saveToDb()
+                    count++
+                }
             }
         } catch (e: Exception) {
-            println("SongReleaseAnnouncementService.backfillExistingReadySongs error: ${e.message}")
+            println("SongReleaseAnnouncementService.backfillNewsAvailableFlag error: ${e.message}")
         }
         return count
     }

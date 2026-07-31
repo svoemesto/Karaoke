@@ -82,4 +82,9 @@ docs/api/typedoc-*/
 # Local tool indexes / config (per-machine, not part of repo)
 .codegraph/
 .opencode/
+
+# Per-machine speckit session state (specs/102-gitignore-feature-json) — указывает, какая фича
+# сейчас активна НА ЭТОЙ машине/агенте; при параллельной работе нескольких машин/агентов над
+# разными фичами коммит этого файла даёт merge-конфликт при каждом слиянии веток (см. PR #133/#134).
+.specify/feature.json
 ```

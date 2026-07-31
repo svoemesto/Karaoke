@@ -1108,17 +1108,28 @@ export default class KaraokePlayer {
     const items = sub.querySelectorAll(':scope > .kp-menu-item')
     if (items.length === 0) return
     const itemH = subRect.height / items.length
+    // Доступная высота вверх и вниз от родителя (запас 12px на padding/тень).
     const spaceAbove = parentRect.top - 12
     const spaceBelow = window.innerHeight - parentRect.bottom - 12
-    const availH = Math.max(spaceAbove, spaceBelow)
-    const rowsPerCol = Math.max(1, Math.floor(availH / itemH))
-    let cols = 1
-    if (items.length > rowsPerCol) {
-      cols = Math.ceil(items.length / rowsPerCol)
+    // Сколько строк помещается вверх/вниз — предпочитаем ВВЕРХ (подменю выравнивается по нижнему
+    // краю родителя, растёт вверх — bottom:-5px по умолчанию). Вниз — только если вверх не помещается.
+    const rowsUp = Math.max(1, Math.floor(spaceAbove / itemH))
+    const rowsDown = Math.max(1, Math.floor(spaceBelow / itemH))
+    let rowsPerCol
+    let goDown = false
+    if (rowsUp >= items.length) {
+      rowsPerCol = items.length
+    } else if (rowsDown >= items.length) {
+      rowsPerCol = items.length
+      goDown = true
+    } else if (rowsUp >= rowsDown) {
+      rowsPerCol = rowsUp
+    } else {
+      rowsPerCol = rowsDown
+      goDown = true
     }
-    if (spaceBelow >= spaceAbove || spaceAbove < subRect.height) {
-      sub.classList.add('kp-submenu-down')
-    }
+    const cols = Math.ceil(items.length / rowsPerCol)
+    if (goDown) sub.classList.add('kp-submenu-down')
     if (cols > 1) {
       sub.style.setProperty('--kp-cols', String(cols))
       sub.style.setProperty('--kp-maxh', `${rowsPerCol * itemH}px`)

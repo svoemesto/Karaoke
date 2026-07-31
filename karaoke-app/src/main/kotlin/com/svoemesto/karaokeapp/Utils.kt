@@ -4387,10 +4387,12 @@ fun applyDuplicateOriginal(
  * прошёл весь жизненный цикл проверки текста/маркеров - specs/022-song-status-lifecycle). Маркеры
  * сдвигаются под таймлайн текущей песни тем же способом, что и в applyFamilySongSelection
  * (shiftMarkersAndFixEnd), но, в отличие от неё, root_id не трогается - audio_parent_id уже отдельно
- * связывает пару (см. findAudioParentByWaveform), а статус выставляется в 6 (READY) безусловно,
+ * связывает пару (см. findAudioParentByWaveform), а статус выставляется в 5 (MARKERS_CHECK) безусловно,
  * независимо от текущего статуса песни: копирование уже полностью проверенного контента от
- * аудио-подтверждённого родителя - осознанный обход промежуточных ручных проверок, а не итеративное
- * автоматическое продвижение статуса (поэтому не подчиняется правилу "1 шаг за раз" FR-011).
+ * аудио-подтверждённого родителя (сходство >= AUDIO_PARENT_THRESHOLD, т.е. >= 95%) - осознанная
+ * остановка на предфинальной вычитке куратором перед публикацией, а не автоматический переход в READY:
+ * акустическая сверка не гарантирует идеального совпадения таймлайнов, поэтому статус 6 (READY)
+ * проставляется только после ручного подтверждения куратора (FR-003 spec.md).
  */
 fun applyAudioParentMarkers(
     settings: Song,
@@ -4403,7 +4405,7 @@ fun applyAudioParentMarkers(
     settings.formattedTextSong = audioParent.formattedTextSong
     settings.formattedTextTabs = audioParent.formattedTextTabs
     settings.formattedTextChords = audioParent.formattedTextChords
-    settings.fields[SongField.ID_STATUS] = "6"
+    settings.fields[SongField.ID_STATUS] = "5"
     settings.saveToDb()
 }
 
@@ -4525,7 +4527,7 @@ fun songLogLabel(s: Song): String = "${s.author} / ${s.year} / ${s.album} / «${
  * (applyFamilySongSelection со сдвигом маркеров), доиграть серверный эквивалент кнопки "Сохранить"
  * (пересчёт производных полей + запись .srt по каждому голосу) и перевести песню в статус 2 (TEXT_CHECK).
  *
- * Порог по умолчанию — 85 %. Кандидат обязан иметь непустые маркеры (иначе копировать нечего). Если ни
+ * Порог по умолчанию — 95 %. Кандидат обязан иметь непустые маркеры (иначе копировать нечего). Если ни
  * один кандидат не прошёл сверку (нет аудио) или не набрал порога — статус остаётся прежним.
  */
 fun autoAssignOriginalByWaveform(
@@ -4533,7 +4535,7 @@ fun autoAssignOriginalByWaveform(
     database: KaraokeConnection,
     storageService: KaraokeStorageService,
     storageApiClient: StorageApiClient,
-    threshold: Int = 85,
+    threshold: Int = 95,
 ): AutoOriginalResult {
     val familyIds = findFamilySongIds(settings, database)
     if (familyIds.isEmpty()) {
@@ -4609,7 +4611,7 @@ fun autoAssignOriginalByWaveform(
 }
 
 /** Порог схожести (%), начиная с которого кандидат может быть записан как "аудио-родитель". См. findAudioParentByWaveform. */
-const val AUDIO_PARENT_THRESHOLD = 85
+const val AUDIO_PARENT_THRESHOLD = 95
 
 /** Результат поиска "аудио-родителя" песни (см. findAudioParentByWaveform). */
 data class AudioParentResult(
@@ -4632,7 +4634,7 @@ data class AudioParentResult(
  * searchSongsByNormalizedName по названию текущей песни (across all authors) - тот же набор
  * источников, что уже видит пользователь в модалке "Похожие версии песни".
  *
- * Порог отбора - AUDIO_PARENT_THRESHOLD (85%). Дерево audio_parent_id, как и root_id, должно
+ * Порог отбора - AUDIO_PARENT_THRESHOLD (95%). Дерево audio_parent_id, как и root_id, должно
  * оставаться плоским (глубина 1) и без петель: если у лучшего кандидата уже есть свой
  * audio_parent_id, текущая песня получает ЕГО (а не id самого кандидата) - флэттенинг в один хоп.
  * Если у кандидата ещё нет аудио-родителя ("первичный анализ"), корнем считается песня с меньшим id;

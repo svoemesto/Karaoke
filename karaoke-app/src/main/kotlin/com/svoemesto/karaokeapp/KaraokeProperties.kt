@@ -1687,6 +1687,33 @@ val listKaraokeProperties =
             defaultValue = 60_000L,
             description = "Telegram: как часто перепроверять восстановление прямого доступа, пока используется прокси",
         ),
+        // Фаза 2 автоматизации публикации в Telegram (specs/113-telegram-demo-publish) — плановый бот
+        // автопубликации демо-версии песни по наступлению её date/time. В отличие от Фазы 1
+        // (telegramPollingEnabled — отлов уже вышедших постов), Фаза 2 САМА публикует демо-MP4 в канал
+        // через sendVideo. telegramAutoPublishChannelId — тот же канал, что и Фаза 1, но явно задан
+        // (не выводится из chat_id пришедшего channel_post).
+        KaraokeProperty(
+            key = "telegramAutoPublishEnabled",
+            defaultValue = false,
+            description = "Telegram Фаза 2: включить плановый бот автопубликации демо-MP4 (sendVideo). Endpoint /api/song/publishToTelegramNow работает независимо от этого флага",
+        ),
+        KaraokeProperty(
+            key = "telegramAutoPublishChannelId",
+            defaultValue = "",
+            description = "Telegram Фаза 2: ID/username канала для sendVideo (напр. -1001234567890 или @svoemestokaraoke). Пусто = бот не публикует",
+        ),
+        KaraokeProperty(
+            key = "telegramAutoPublishWindowMinutes",
+            defaultValue = 5L,
+            description = "Telegram Фаза 2: ширина скользящего окна тика (минуты), 1-30. Бот публикует песни, чья date/time попала в [now - window, now]",
+        ),
+        KaraokeProperty(
+            key = "telegramAutoPublishMaxFileSizeMb",
+            defaultValue = 50L,
+            description =
+                "Telegram Фаза 2: лимит размера MP4 (МБ) для sendVideo. Стандартный Bot API — 50; " +
+                    "локальный Bot API server — больше. При превышении ставит перерендер RENDER_MP4_DEMO с уменьшенными параметрами",
+        ),
         // Мониторинг ключевых моментов проекта (светофор в хедере webvue3, MonitoringService/MonitorRegistry).
         // monitorDismissed - служебное поле (JSON key->contentHash прочитанных алертов), не редактировать вручную.
         KaraokeProperty(key = "monitorDismissed", defaultValue = "{}", description = "Мониторинг: прочитанные алерты (служебное, JSON)"),

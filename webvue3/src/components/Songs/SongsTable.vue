@@ -2601,14 +2601,15 @@ export default {
    (дата в будущем), оранжевый — «опоздавшая» (дата в прошлом, не опубликована). */
 .fld-tg-publish-badge {
   display: inline-block;
-  width: 22px;
-  height: 22px;
-  line-height: 22px;
+  width: 16px;
+  height: 16px;
+  line-height: 16px;
   border-radius: 50%;
   text-align: center;
-  font-size: 13px;
+  font-size: 10px;
   font-weight: bold;
   color: #fff;
+  vertical-align: middle;
 }
 .fld-tg-publish-badge.tg-publish-published {
   background-color: #28a745;

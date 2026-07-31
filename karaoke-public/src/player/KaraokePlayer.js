@@ -213,6 +213,13 @@ export default class KaraokePlayer {
       this._ready = true
       if (!this._offline) this._startFadeStartedAt = Date.now() // запустить переход logo→splash
       this._updateExportMenuAvailability()
+      // Премиум-гейт скорости: не-премиум в api-режиме не наследует сохранённую не-базовую
+      // скорость — сброс к 1x (как и для тональности). blob/inlineData — без гейта.
+      // @see docs/features/player-transpose.md
+      if (this._mode === 'api' && this.data?.canExport !== true && this._playbackRate !== 1) {
+        this._playbackRate = 1
+        this._updateSpeedMenu()
+      }
       // Восстановить per-song сдвиг тональности (FR-011) и пересчитать подписи подменю от
       // загруженного data.key. Премиум-гейт: не-премиум в api-режиме не восстанавливает.
       // @see docs/features/player-transpose.md
@@ -1606,6 +1613,15 @@ export default class KaraokePlayer {
   setPlaybackRate(rate) {
     rate = Number(rate)
     if (!isFinite(rate) || rate <= 0 || rate === this._playbackRate) return
+    // Премиум-гейт: смена скорости (rate !== 1) в api-режиме — премиум-функция. Не-премиум при
+    // попытке сменить скорость → оверлей «Оформите подписку» (аналогично транспонированию).
+    // Возврат к 1x (rate === 1) — доступен всем (это «отключить», базовая скорость).
+    // blob/inlineData (локальный файл) — без гейта.
+    // @see docs/features/player-transpose.md
+    if (this._mode === 'api' && rate !== 1 && this.data?.canExport !== true) {
+      this._showPremiumUpsellOverlay()
+      return
+    }
     if (this.isPlaying && !this._isPrerolling && this.audioCtx) {
       this._rateAnchorPos = this._getCurrentTime()
       this.startedAt = this.audioCtx.currentTime

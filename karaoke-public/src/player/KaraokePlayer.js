@@ -1619,7 +1619,7 @@ export default class KaraokePlayer {
     // blob/inlineData (локальный файл) — без гейта.
     // @see docs/features/player-transpose.md
     if (this._mode === 'api' && rate !== 1 && this.data?.canExport !== true) {
-      this._showPremiumUpsellOverlay()
+      this._showPremiumUpsellOverlay('speed')
       return
     }
     if (this.isPlaying && !this._isPrerolling && this.audioCtx) {
@@ -1736,7 +1736,7 @@ export default class KaraokePlayer {
     if (!this._transposeSupported) return
     // Премиум-гейт: api-режим требует canExport (живая проверка бэкендом). blob/inlineData — без.
     if (this._mode === 'api' && this.data?.canExport !== true) {
-      this._showPremiumUpsellOverlay()
+      this._showPremiumUpsellOverlay('transpose')
       return
     }
     this._transpose = n
@@ -1796,20 +1796,29 @@ export default class KaraokePlayer {
     }
   }
 
-  // Оверлей «Транспонирование — премиум-функция» — по образцу _showDemoEndOverlay. Показывается
-  // при попытке сменить тональность не-премиумом в api-режиме. Кнопка ведёт на /premium.
+  // Оверлей «... — премиум-функция» — по образцу _showDemoEndOverlay. Показывается при попытке
+  // сменить тональность/скорость не-премиумом в api-режиме. feature: 'transpose' | 'speed'.
+  // Текст заголовка и подписи зависит от фичи. Кнопка ведёт на /premium.
   // @see docs/features/player-transpose.md
-  _showPremiumUpsellOverlay() {
+  _showPremiumUpsellOverlay(feature = 'transpose') {
     this._hidePremiumUpsellOverlay()
     const wrap = this.container.querySelector('#kp-canvas-wrap')
     if (!wrap) return
+    const title =
+      feature === 'speed'
+        ? 'Смена скорости — премиум-функция'
+        : 'Смена тональности — премиум-функция'
+    const sub =
+      feature === 'speed'
+        ? 'Изменение скорости воспроизведения доступно с премиум-подпиской. Оформите её, чтобы подбирать комфортный темп прямо в плеере.'
+        : 'Смена тональности доступна с премиум-подпиской. Оформите её, чтобы подбирать тональность под свой голос прямо в плеере.'
     const overlay = document.createElement('div')
     overlay.id = 'kp-transpose-premium-overlay'
     overlay.style.cssText =
       'position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:rgba(0,0,0,0.72);text-align:center;padding:24px;z-index:20'
     overlay.innerHTML = `
-      <div style="color:#fff;font-size:20px;font-weight:700">Транспонирование — премиум-функция</div>
-      <div style="color:#ccc;font-size:14px;max-width:360px">Смена тональности доступна с премиум-подпиской. Оформите её, чтобы подбирать тональность под свой голос прямо в плеере.</div>
+      <div style="color:#fff;font-size:20px;font-weight:700">${title}</div>
+      <div style="color:#ccc;font-size:14px;max-width:360px">${sub}</div>
       <button id="kp-transpose-premium-cta" style="background:#08f;border:none;color:#fff;font-size:15px;font-weight:600;padding:10px 22px;border-radius:6px;cursor:pointer">Оформить подписку →</button>
       <button id="kp-transpose-premium-close" style="background:none;border:none;color:#888;font-size:13px;padding:6px;cursor:pointer">Закрыть</button>
     `

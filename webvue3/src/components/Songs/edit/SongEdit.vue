@@ -1565,7 +1565,7 @@
                     >
                       <img
                         alt="publish"
-                        class="icon-publish"
+                        class="icon-24"
                         src="../../../assets/svg/icon_telegram.svg"
                       />
                       <span>{{

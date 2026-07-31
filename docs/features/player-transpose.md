@@ -23,27 +23,32 @@
 
 ## Как работает
 
-**Pitch-shift с сохранением темпа (time-stretch)** через `Tone.PitchShift`
-(библиотека Tone.js, ESM-импорт с tree-shaking). Узел вставляется в
-существующий аудио-граф плеера **между** `AudioBufferSourceNode` и
-`GainNode` для каждого проигрываемого стема:
+**Офлайн-предобработка буферов** через SoundTouch.js (time-stretch
+pitch-shift). При выборе тональности стемы **полностью транспонируются**
+от оригинальных буферов, затем воспроизведение продолжается с той же
+позиции в новой тональности. Не «на лету» — есть короткая пауза на
+обработку (≈1-3 сек в зависимости от длины песни).
 
-```
-accSource → Tone.PitchShift('acc') → accGain → destination
-vocSource → Tone.PitchShift('voc') → vocGain → destination
-```
+**Архитектура**: `_transposeBuffer(buffer, semitones)` — чистая функция
+офлайн-обработки через `SoundTouch` + `SimpleFilter` +
+`WebAudioBufferSource` (чтение исходного AudioBuffer → новый
+транспонированный AudioBuffer). `tempo=1` сохраняет длительность →
+караоке-маркеры остаются синхронными (FR-006). `pitchSemitones=N` — сдвиг
+в полутонах.
 
-**Map-based архитектура**: `_pitchShifts: Map<stemKey, Tone.PitchShift>`.
-`_ensurePitchShift(stemKey)` lazy-создаёт узел. `setTranspose(n)` применяет
-`pitch = n` ко **всем** узлам в Map синхронно — смесь остаётся в одной
-тональности. Добавление bass/drums/прочих стемов в будущем = вызов
-`_ensurePitchShift('bass')` без изменения `setTranspose`/меню/бейджа.
+**Оригинальные буферы** (`_accBufferOriginal`/`_vocBufferOriginal`)
+сохраняются при `_loadAudio`; `_applyTranspose` всегда транспонирует от
+них (не от уже транспонированных) — без накопления артефактов при
+повторной смене тональности (выбрал +3, потом −2 = итог −2 от оригинала).
 
-**Бесшовность**: `setTranspose` НЕ трогает `accSource`/`vocSource` — узлы
-живут между source и gain, `pitch` меняется на инстансах (как
-`setPlaybackRate` меняет `playbackRate`). Не меняет `_playbackRate` → темп
-неизменен → `_getCurrentTime()` формула корректна → синхронность с
-караоке-маркерами сохраняется.
+**Применение ко всем стемам** (FR-005): `_applyTranspose` транспонирует и
+acc, и voc (в первой реализации; bass/drums при появлении добавляются
+один-в-один — `this._transposeBuffer(this._<stem>BufferOriginal, n)`).
+
+**Бесшовность продолжения**: `setTranspose(n)` → пауза (сохранить позицию
+`_getCurrentTime()`) → `_applyTranspose` (офлайн-обработка) → `_play` с
+той же позиции в новой тональности. `_playbackRate` не затрагивается →
+темп неизменен → `_getCurrentTime()` формула корректна.
 
 **Базовая тональность** — `data.key` (отдаётся playerdata-эндпоинтами без
 изменений бэкенда). `_transposeLabel(n)` вычисляет результирующую подпись
@@ -53,24 +58,26 @@ vocSource → Tone.PitchShift('voc') → vocGain → destination
 **Персистентность** — per-song: `localStorage['kp_transpose_<data.id>']`.
 В отличие от скорости (глобальная настройка плеера), тональность
 индивидуальна для каждой песни. Восстановление — `_restoreTranspose()` в
-`init()`; сброс — в `playSong()`/`_loadNewFile()` перед `init()`
-(новая песня стартует в базовой).
+`init()` (синхронно, до первого `_play`); сброс — в `playSong()`/
+`_loadNewFile()` перед `init()` (новая песня стартует в базовой).
 
-**Деградация**: feature-detect `Tone.PitchShift` в `_loadAudio`. Если
-браузер не поддерживает — `_transposeSupported = false`, подменю
-«Тональность» видно, но пункты заблокированы с подсказкой «Браузер не
-поддерживает».
+**Деградация**: `_transposeSupported=false` если `_transposeBuffer`
+выбрасывает (старый браузер, CSP). Подменю «Тональность» видно, но пункты
+заблокированы с подсказкой «Браузер не поддерживает» (FR-018).
 
 ## Инварианты
 
 - Сдвиг применяется ко **всем** проигрываемым стемам синхронно (acc + voc;
-  bass/drums при появлении) — рассинхрон тональности внутри микса
-  невозможен (Map-перебор в `setTranspose`).
-- Темп не меняется при транспонировании — `_playbackRate` не затрагивается
-  pitch-shift'ом; `_getCurrentTime()` формула остаётся корректной.
+  bass/drums при появлении) — `_applyTranspose` транспонирует каждый от
+  своего оригинала.
+- Темп не меняется при транспонировании — SoundTouch `tempo=1` (time-stretch,
+  не resampling); `_playbackRate` не затрагивается; `_getCurrentTime()`
+  формула остаётся корректной.
 - Транспонирование полностью клиентское — нет HTTP-запросов к серверу
   при смене тональности (проверяется в DevTools Network).
 - Сдвиг хранится per-song по `data.id`, не глобально (отличие от скорости).
+- Всегда от **оригинальных** буферов — повторная смена тональности не
+  накапливает артефакты (выбрал +3, потом −2 = −2 от оригинала, не +1).
 - Бейдж тональности (синий, `#08f`) — под бейджем скорости (оранжевый,
   `#f80`), не перекрывает его; оба видны одновременно при активных обоих.
 - Бейдж показывается при сдвиге ≠ 0, исчезает при 0; ±12 (октава) — бейдж
@@ -78,36 +85,38 @@ vocSource → Tone.PitchShift('voc') → vocGain → destination
 
 ## Известные ловушки
 
-- **`AudioBufferSourceNode.detune` НЕ подходит** для транспонирования —
-  это `playbackRate` в центах, меняет высоту **и** темп одновременно
-  (resampling), ломает синхронность с маркерами (FR-006). Нужен именно
-  time-stretch pitch-shift (Tone.PitchShift). `playbackRate`+`detune`
-  компенсация тоже не работает — они мультипликативны по эффекту на темп.
-- **Pitch-shift узлы привязаны к `AudioContext`**. `playSong`/`_loadNewFile`
-  закрывают `audioCtx` — `_disposePitchShifts()` обязан вызываться ДО
-  `audioCtx.close()`, иначе узлы уже невалидны. При новом `_startAudio`
-  `_ensurePitchShift` создаст свежие узлы на новом context.
-- **`Tone.setContext(this.audioCtx)` в `_loadAudio`** — обязателен, иначе
-  Tone.PitchShift создаст свой собственный context и подключение
-  source→pitchShift→gain跨 contexts будет невозможно. При множественных
-  инстансах плеера `setContext` может выбросить ( Tone уже привязан) —
-  тогда `new Tone.PitchShift({ context: this.audioCtx })` с явным
-  контекстом спасает (см. `_ensurePitchShift`).
-- **Bundle size**: Tone.js добавляет ~+60 KB gzip (tree-shaking `PitchShift`
-  + зависимости). Порог +100 KB gzip (research.md) — не превышен.
-- **Подписи пунктов меню** рендерятся в `_buildUI` ДО загрузки `data.key`
-  (data ещё null) — без тональности (`(+3)`). `_updateTransposeMenu`
-  пересчитывает их после `init()` с реальным `data.key`. Не «кэшировать»
-  подписи в HTML — всегда пересчитывать при смене песни.
+- **Tone.PitchShift (живой узел) НЕ подходит** — в Яндекс.Браузере
+  (Chromium-производный) старт LFO в конструкторе PitchShift выбрасывает
+  на suspended AudioContext (init бежит при загрузке страницы, до
+  пользовательского жеста). Звучало бы после resume(), но probe на
+  suspended context ложно помечал фичу неподдерживаемой. Звуковой
+  аудио-граф с живым pitch-shift узлом также нестабилен в
+  Chromium-производных. Решение — офлайн-предобработка буферов через
+  SoundTouch.js (не требует live-context/AudioWorklet).
+- **`AudioBufferSourceNode.detune` НЕ подходит** — это `playbackRate` в
+  центах, меняет высоту **и** темп одновременно (resampling), ломает
+  синхронность с маркерами (FR-006). Нужен именно time-stretch.
+- **Оригиналы буферов** (`_accBufferOriginal`/`_vocBufferOriginal`) MUST
+  сохраняться в `_loadAudio` и сбрасываться в `playSong`/`_loadNewFile`.
+  Без них повторная смена тональности накапливала бы артефакты
+  (транспонирование от уже транспонированного).
+- **Пауза при смене тональности** — `_applyTranspose` сохраняет позицию
+  `_getCurrentTime()` ДО обработки и продолжает с неё после. Не
+  «на лету» — есть короткая пауза (≈1-3 сек). Это осознанное решение
+  (взамен нестабильного живого pitch-shift узла).
 - **`_saveTranspose` вызывается ТОЛЬКО из `setTranspose`** (явный выбор
   пользователя). Не вызывать из `init`/`playSong` (восстановление не
-  должно перезаписывать localStorage мусором).
-- **Per-song ≠ global**: НЕ расширять `LS_SETTINGS_KEY`/`_savePersistedSettings`
-  тональностью — там глобальные настройки (скорость/громкость). Тональность
-  — отдельный ключ `kp_transpose_<songId>`.
-- **Pitch-shift артефакты**: GrainDelay-based алгоритм Tone.PitchShift
-  имеет лёгкое фазовое «плавание» на голосе. Для караоке-подбора-под-голос
-  допустимо. При явной жалобе — рассмотреть SoundTouch.js (research.md §3b).
+  должно перезаписывать localStorage).
+- **Per-song ≠ global**: НЕ расширять `LS_SETTINGS_KEY`/
+  `_savePersistedSettings` тональностью — там глобальные настройки
+  (скорость/громкость). Тональность — отдельный ключ
+  `kp_transpose_<songId>`.
+- **SoundTouch.js выходной буфер** — длина `buffer.length * 1.05 + 4096`
+  с запасом (tempo=1, но overlap/hop окна могут дать чуть больше сэмплов),
+  затем обрезается до реально записанной длины.
+- **Артефакты SoundTouch** — WSOLA-алгоритм имеет лёгкое «плавание» на
+  голосе. Для караоке-подбора-под-голос допустимо. Качество среднее,
+  проверенная библиотека.
 
 ## Ссылки
 
@@ -116,14 +125,14 @@ vocSource → Tone.PitchShift('voc') → vocGain → destination
 - [plan.md](../../specs/101-audio-transpose-player/plan.md) — план
   реализации (Technical Context, Constitution Check)
 - [research.md](../../specs/101-audio-transpose-player/research.md) —
-  выбор pitch-shift библиотеки (Tone.PitchShift vs detune vs SoundTouch)
+  выбор pitch-shift библиотеки (изначально Tone.PitchShift, потом SoundTouch)
 - [data-model.md](../../specs/101-audio-transpose-player/data-model.md) —
-  сущности (`_transpose`, `_pitchShifts` Map, аудио-граф)
+  сущности (`_transpose`, оригинальные буферы, аудио-граф)
 - [contracts/player-transpose-ui-contract.md](../../specs/101-audio-transpose-player/contracts/player-transpose-ui-contract.md) —
   контракт UI (меню, бейдж, JS-API, серверный контракт БЕЗ изменений)
 - [quickstart.md](../../specs/101-audio-transpose-player/quickstart.md) —
   7 сценариев ручной валидации (SC-001..SC-006 + FR-018)
 - `webvue3/src/player/KaraokePlayer.js` — реализация (меню «Тональность»,
-  `_ensurePitchShift`, `setTranspose`, `_renderTransposeBadge`,
-  `_restoreTranspose`/`_saveTranspose`)
-- `webvue3/package.json` — зависимость `tone`
+  `_transposeBuffer`, `_applyTranspose`, `setTranspose`,
+  `_renderTransposeBadge`, `_restoreTranspose`/`_saveTranspose`)
+- `webvue3/package.json` — зависимость `soundtouchjs`

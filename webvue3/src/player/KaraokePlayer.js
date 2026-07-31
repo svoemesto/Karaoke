@@ -829,7 +829,7 @@ export default class KaraokePlayer {
     style.textContent = `
       .kp-menu { display:none; position:absolute; bottom:100%; right:0; margin-bottom:6px; background:#222; border:1px solid #444; border-radius:6px; padding:4px 0; min-width:190px; box-shadow:0 4px 16px rgba(0,0,0,0.6); z-index:30; font-size:13px; }
       .kp-menu-item { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:7px 14px; cursor:pointer; color:#eee; white-space:nowrap; }
-      .kp-menu-item:hover { background:#08f; color:#fff; }
+      .kp-menu-item:hover, .kp-menu-item.kp-menu-active { background:#08f; color:#fff; }
       .kp-menu-separator { height:1px; background:#444; margin:4px 0; }
       .kp-menu-arrow { color:#999; font-size:11px; }
       .kp-menu-item:hover .kp-menu-arrow { color:#fff; }
@@ -1214,8 +1214,10 @@ export default class KaraokePlayer {
     // Hover-открытие подменю (export/speed/transpose). Логика:
     // - mouseenter на родителе → мгновенно открыть своё подменю + СРАЗУ закрыть все остальные
     //   (без задержки) — переключение между пунктами меню должно быть мгновенным.
-    // - mouseleave с родителя → таймер 1с, по истечении класс снимается (подменю скрывается).
-    //   Возврат мыши в пределы родителя раньше 1с — отменяет закрытие.
+    // - mouseleave с родителя ИЛИ подменю → таймер 1с на закрытие. Возврат мыши в пределы
+    //   родителя ИЛИ подменю раньше 1с — отменяет закрытие. Подменю позиционировано абсолютно
+    //   за пределами родителя (right:100%), поэтому mouseleave родителя срабатывает при уходе
+    //   в подменю — таймер запускается, но немедленно отменяется mouseenter на подменю.
     // - Клик по родителю — toggle (для touch/без-hover устройств), как и раньше.
     // @see docs/features/player-transpose.md
     this._submenuCloseTimers = new Map()
@@ -1231,34 +1233,51 @@ export default class KaraokePlayer {
         }
       }
     }
+    const cancelClose = (parent) => {
+      const t = this._submenuCloseTimers.get(parent)
+      if (t) {
+        clearTimeout(t)
+        this._submenuCloseTimers.delete(parent)
+      }
+    }
+    const scheduleClose = (parent) => {
+      cancelClose(parent)
+      const t = setTimeout(() => {
+        parent.classList.remove('kp-submenu-open')
+        this._submenuCloseTimers.delete(parent)
+      }, 1000)
+      this._submenuCloseTimers.set(parent, t)
+    }
     for (const parent of parents) {
-      const open = () => {
-        closeOtherSubmenus(parent) // новое подменю → старые закрываются сразу
+      const submenu = parent.querySelector(':scope > .kp-submenu')
+      // Открытие: mouseenter на родителе → открыть + закрыть другие.
+      parent.addEventListener('mouseenter', () => {
+        cancelClose(parent)
+        closeOtherSubmenus(parent)
         parent.classList.add('kp-submenu-open')
+      })
+      // Закрытие: mouseleave с родителя → таймер 1с (отменится, если мышь в подменю).
+      parent.addEventListener('mouseleave', () => scheduleClose(parent))
+      // Подменю: mouseenter отменяет таймер закрытия; mouseleave запускает новый.
+      if (submenu) {
+        submenu.addEventListener('mouseenter', () => cancelClose(parent))
+        submenu.addEventListener('mouseleave', () => scheduleClose(parent))
       }
-      const scheduleClose = () => {
-        const t = setTimeout(() => {
-          parent.classList.remove('kp-submenu-open')
-          this._submenuCloseTimers.delete(parent)
-        }, 1000)
-        this._submenuCloseTimers.set(parent, t)
-      }
-      parent.addEventListener('mouseenter', open)
-      parent.addEventListener('mouseleave', scheduleClose)
     }
 
     document.addEventListener('click', this._menuOutsideClickHandler)
   }
 
   // Подсвечивает текущую выбранную скорость в подменю + обновляет лейбл в родительском пункте.
+  // Активный пункт получает класс kp-menu-active (CSS даёт #08f/#fff). Без инлайн-стилей —
+  // чтобы :hover на неактивных пунктах работал (инлайн-стиль перекрывал бы :hover).
   _updateSpeedMenu() {
     const label = this.container?.querySelector('#kp-speed-label')
     const opt = KaraokePlayer.SPEED_OPTIONS.find((o) => o.value === this._playbackRate)
     if (label) label.textContent = opt ? opt.label : `${this._playbackRate}x`
     for (const el of this.container?.querySelectorAll('#kp-submenu-speed [data-rate]') || []) {
       const active = Number(el.dataset.rate) === this._playbackRate
-      el.style.background = active ? '#08f' : 'none'
-      el.style.color = active ? '#fff' : '#eee'
+      el.classList.toggle('kp-menu-active', active)
     }
   }
 
@@ -1294,11 +1313,11 @@ export default class KaraokePlayer {
       if (!this._transposeSupported) {
         el.style.pointerEvents = 'none'
         el.style.opacity = '0.5'
+        el.classList.remove('kp-menu-active')
       } else {
         el.style.pointerEvents = ''
         el.style.opacity = ''
-        el.style.background = active ? '#08f' : 'none'
-        el.style.color = active ? '#fff' : '#eee'
+        el.classList.toggle('kp-menu-active', active)
       }
     }
   }

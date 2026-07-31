@@ -1266,8 +1266,8 @@ export default {
           sortable: true,
           label: 'TG',
           style: {
-            minWidth: '28px',
-            maxWidth: '28px',
+            minWidth: '20px',
+            maxWidth: '20px',
             textAlign: 'center',
             fontSize: 'small',
           },
@@ -2600,25 +2600,21 @@ export default {
    демо в Telegram для SongsTable. Зелёный — опубликована, серый — запланирована
    (дата в будущем), оранжевый — «опоздавшая» (дата в прошлом, не опубликована). */
 .fld-tg-publish-badge {
-  display: inline-block;
-  width: 12px;
-  height: 12px;
-  line-height: 12px;
-  border-radius: 50%;
+  min-width: 20px;
+  max-width: 20px;
   text-align: center;
-  font-size: 8px;
-  font-weight: bold;
-  color: #fff;
-  vertical-align: middle;
+  font-size: small;
+  white-space: nowrap;
+  overflow: hidden;
 }
 .fld-tg-publish-badge.tg-publish-published {
-  background-color: #28a745;
+  color: #28a745;
 }
 .fld-tg-publish-badge.tg-publish-scheduled {
-  background-color: #6c757d;
+  color: #6c757d;
 }
 .fld-tg-publish-badge.tg-publish-late {
-  background-color: #fd7e14;
+  color: #fd7e14;
 }
 .fld-flag-max-lyrics {
   min-width: 20px;

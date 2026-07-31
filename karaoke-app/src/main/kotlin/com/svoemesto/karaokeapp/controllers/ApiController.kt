@@ -6562,6 +6562,59 @@ class ApiController(
         }
     }
 
+    // Фаза 2 автопубликации в Telegram (specs/113-telegram-demo-publish): ручной триггер того же
+    // пути, что scheduler (FR-015). Кнопка «Опубликовать сейчас» в SongEdit.vue вызывает этот
+    // endpoint для немедленной публикации или «опоздавшей» песни (прошедшая date/time).
+    // В отличие от scheduler'а, endpoint игнорирует прошедшую дату (allowPastDate=true) —
+    // админ явно инициировал публикацию. Возвращает JSON {success, state, messageId, error}
+    // (контракт specs/113-telegram-demo-publish/contracts/telegram-auto-publish.md §1).
+    // Endpoint доступен всегда (даже при telegramAutoPublishEnabled=false) — это ручной
+    // триггер, не плановый бот. Паттерн /api/** = permitAll (SecurityConfig), как у
+    // renderMp4Preview — отдельный adminKey в проекте не используется.
+    @PostMapping("/song/publishToTelegramNow")
+    @ResponseBody
+    fun publishToTelegramNow(
+        @RequestParam id: Long,
+    ): Map<String, Any> {
+        val settings =
+            Song.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            ) ?: return mapOf(
+                "success" to false as Any,
+                "state" to "scheduled" as Any,
+                "messageId" to null as Any,
+                "error" to "Песня не найдена: id=$id" as Any,
+            )
+
+        // FR-016: если уже опубликовано — отказ (кнопка должна быть скрыта во фронте,
+        // сервер всё равно проверяет idTelegramDemo для защиты от гонок).
+        if (settings.idTelegramDemo.isNotEmpty()) {
+            return mapOf(
+                "success" to false as Any,
+                "state" to "published" as Any,
+                "messageId" to settings.idTelegramDemo as Any,
+                "error" to "Song $id is already published (idTelegramDemo=${settings.idTelegramDemo}); clear idTelegramDemo first to re-publish" as Any,
+            )
+        }
+
+        val result =
+            com.svoemesto.karaokeapp.services.TelegramAutoPublishService.publishToTelegram(
+                settings,
+                allowPastDate = true,
+            )
+        val response: MutableMap<String, Any> = mutableMapOf()
+        response["success"] = result.state == com.svoemesto.karaokeapp.services.TelegramAutoPublishState.PUBLISHED ||
+            result.state == com.svoemesto.karaokeapp.services.TelegramAutoPublishState.RENDERING ||
+            result.state == com.svoemesto.karaokeapp.services.TelegramAutoPublishState.PUBLISHING
+        response["state"] = result.state.code
+        response["messageId"] = result.messageId ?: ""
+        response["error"] = result.error ?: ""
+        return response
+    }
+
     // Статус рендера MP4
     @PostMapping("/song/renderMp4Status")
     @ResponseBody

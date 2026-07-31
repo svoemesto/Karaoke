@@ -423,5 +423,6 @@ data class SongDTO(
             haveSourceText = haveSourceText,
             albumId = albumId,
             albumName = albumName,
+            idTelegramDemo = idTelegramDemo,
         )
 }

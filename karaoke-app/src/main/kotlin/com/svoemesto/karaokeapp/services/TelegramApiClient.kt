@@ -10,6 +10,7 @@ import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
+import java.nio.file.Files
 import java.time.Duration
 
 // Минимальные DTO Telegram Bot API (getUpdates) - только поля, реально используемые
@@ -63,6 +64,33 @@ data class TelegramUpdatesResponse(
     val result: List<TelegramUpdate> = emptyList(),
     @SerialName("error_code") val errorCode: Int? = null,
     val description: String? = null,
+)
+
+/**
+ * Результат `sendVideo` Telegram Bot API: только поля, используемые Фазой 2
+ * (specs/113-telegram-demo-publish). `ok=true` → success, `result.message_id`
+ * записывается в `Settings.idTelegramDemo`. `ok=false` → `errorCode` определяет
+ * retryable (429/5xx) vs non-retryable (400/403/404) — см. retry-цикл в
+ * [TelegramApiClient.sendVideo].
+ *
+ * @see docs/features/telegram-auto-publish.md
+ */
+@Serializable
+data class TelegramSendVideoResponse(
+    val ok: Boolean = false,
+    @SerialName("error_code") val errorCode: Int? = null,
+    val description: String? = null,
+    val result: TelegramSendVideoResult? = null,
+)
+
+/**
+ * Внутренний `result` sendVideo — нужен только `message_id`.
+ *
+ * @see docs/features/telegram-auto-publish.md
+ */
+@Serializable
+data class TelegramSendVideoResult(
+    @SerialName("message_id") val messageId: Long? = null,
 )
 
 /**
@@ -174,5 +202,158 @@ class TelegramApiClient {
             send(request)
         } catch (_: Exception) {
         }
+    }
+
+    /**
+     * Фаза 2 (specs/113-telegram-demo-publish): отправляет демо-MP4 в канал через Telegram Bot API
+     * `sendVideo` с подписью (caption). Реализует retry-цикл FR-010: до [maxAttempts] попыток с
+     * экспоненциальным backoff [backoffScheduleMs] (по умолчанию 30с / 2м / 5м). Каждая попытка
+     * использует существующий прокси-fallback [send] (тот же паттерн, что в Фазе 1 для getUpdates).
+     *
+     * Перед каждой попыткой проверяет `videoFile.length() <= maxFileSizeBytes` — если файл
+     * превышает лимит, сразу возвращает `SEND_FAILED` без сетевой попытки (FR-004: вызывающий
+     * код ставит перерендер с уменьшенными параметрами вместо отправки заведомо слишком большого
+     * файла).
+     *
+     * @param channelId ID/username канала (значение `telegramAutoPublishChannelId`)
+     * @param videoFile готовый MP4-файл демо-версии
+     * @param caption подпись к видео (≤1024 символов, FR-005)
+     * @param maxFileSizeBytes лимит размера файла в байтах (значение
+     *   `telegramAutoPublishMaxFileSizeMb * 1024 * 1024`); файл больше лимита → `SEND_FAILED`
+     * @param maxAttempts число попыток (по умолчанию 3, FR-010)
+     * @param backoffScheduleMs интервалы между попытками в миллисекундах (по умолчанию
+     *   `[30_000, 120_000, 300_000]` — 30с / 2м / 5м); длина должна быть >= `maxAttempts - 1`
+     * @return `PUBLISHED` с `messageId` при успехе; `SEND_FAILED` с `error` при исчерпании ретраев
+     *   или превышении размера файла
+     *
+     * @see docs/features/telegram-auto-publish.md
+     */
+    fun sendVideo(
+        channelId: String,
+        videoFile: java.io.File,
+        caption: String,
+        maxFileSizeBytes: Long,
+        maxAttempts: Int = 3,
+        backoffScheduleMs: List<Long> = listOf(30_000L, 120_000L, 300_000L),
+    ): TelegramAutoPublishResult {
+        // FR-004: проверка размера перед сетевой попыткой — отправлять заведомо слишком большой
+        // файл впустую расходует квоту и время.
+        if (videoFile.length() > maxFileSizeBytes) {
+            return TelegramAutoPublishResult(
+                state = TelegramAutoPublishState.SEND_FAILED,
+                error = "file size ${videoFile.length()} exceeds limit $maxFileSizeBytes bytes (render with smaller params first)",
+            )
+        }
+        if (channelId.isBlank()) {
+            return TelegramAutoPublishResult(
+                state = TelegramAutoPublishState.SEND_FAILED,
+                error = "channelId is empty (telegramAutoPublishChannelId not configured)",
+            )
+        }
+
+        val boundary = "karaoke-${System.currentTimeMillis()}"
+        val bytes = Files.readAllBytes(videoFile.toPath())
+        var lastError: String? = null
+
+        for (attempt in 1..maxAttempts) {
+            val result = trySendVideo(channelId, bytes, videoFile.name, caption, boundary)
+            if (result.ok && result.result?.messageId != null) {
+                val messageId = result.result.messageId.toString()
+                println("TelegramApiClient.sendVideo: success on attempt $attempt, message_id=$messageId")
+                return TelegramAutoPublishResult(
+                    state = TelegramAutoPublishState.PUBLISHED,
+                    messageId = messageId,
+                )
+            }
+            // Non-retryable: 400/403/404 — сразу выходим без backoff (FR-010).
+            val code = result.errorCode
+            if (code != null && code in NON_RETRYABLE_ERROR_CODES) {
+                lastError = "non-retryable ($code): ${result.description ?: "no description"}"
+                println("TelegramApiClient.sendVideo: non-retryable error $code on attempt $attempt: ${result.description}")
+                break
+            }
+            lastError = "attempt $attempt failed (${code ?: "no code"}): ${result.description ?: "no description"}"
+            println("TelegramApiClient.sendVideo: attempt $attempt failed: $lastError")
+            if (attempt < maxAttempts) {
+                val delayMs = backoffScheduleMs.getOrElse(attempt - 1) { backoffScheduleMs.last() }
+                try {
+                    Thread.sleep(delayMs)
+                } catch (_: InterruptedException) {
+                    Thread.currentThread().interrupt()
+                    return TelegramAutoPublishResult(
+                        state = TelegramAutoPublishState.SEND_FAILED,
+                        error = "interrupted during backoff on attempt $attempt",
+                    )
+                }
+            }
+        }
+        return TelegramAutoPublishResult(
+            state = TelegramAutoPublishState.SEND_FAILED,
+            error = "retries exhausted: $lastError",
+        )
+    }
+
+    // Одна попытка sendVideo — multipart/form-data сборка и отправка через [send] (с прокси-fallback).
+    private fun trySendVideo(
+        channelId: String,
+        videoBytes: ByteArray,
+        videoFileName: String,
+        caption: String,
+        boundary: String,
+    ): TelegramSendVideoResponse {
+        val body = buildSendVideoMultipartBody(channelId, videoBytes, videoFileName, caption, boundary)
+        val uri = URI("${baseUrl()}/sendVideo")
+        val request =
+            HttpRequest
+                .newBuilder()
+                .uri(uri)
+                .timeout(Duration.ofSeconds(60))
+                .header("Content-Type", "multipart/form-data; boundary=$boundary")
+                .POST(HttpRequest.BodyPublishers.ofByteArray(body))
+                .build()
+        val response = send(request)
+        return json.decodeFromString(TelegramSendVideoResponse.serializer(), response.body())
+    }
+
+    // Сборка multipart/form-data тела запроса sendVideo вручную (JDK HttpClient не имеет
+    // встроенного multipart-билдера). Поля: chat_id, video (файл), caption, parse_mode=HTML,
+    // disable_notification=false. Бинарное содержимое видео пишется как есть между boundary-рами.
+    private fun buildSendVideoMultipartBody(
+        channelId: String,
+        videoBytes: ByteArray,
+        videoFileName: String,
+        caption: String,
+        boundary: String,
+    ): ByteArray {
+        val crlf = "\r\n"
+        val out = java.io.ByteArrayOutputStream()
+
+        fun field(name: String, value: String) {
+            out.write("--$boundary$crlf".toByteArray(Charsets.UTF_8))
+            out.write("Content-Disposition: form-data; name=\"$name\"$crlf$crlf".toByteArray(Charsets.UTF_8))
+            out.write("$value$crlf".toByteArray(Charsets.UTF_8))
+        }
+
+        fun fileField(name: String, fileName: String, contentType: String, data: ByteArray) {
+            out.write("--$boundary$crlf".toByteArray(Charsets.UTF_8))
+            out.write(
+                "Content-Disposition: form-data; name=\"$name\"; filename=\"$fileName\"$crlf".toByteArray(Charsets.UTF_8),
+            )
+            out.write("Content-Type: $contentType$crlf$crlf".toByteArray(Charsets.UTF_8))
+            out.write(data)
+            out.write(crlf.toByteArray(Charsets.UTF_8))
+        }
+        field("chat_id", channelId)
+        fileField("video", videoFileName, "video/mp4", videoBytes)
+        field("caption", caption)
+        field("parse_mode", "HTML")
+        field("disable_notification", "false")
+        out.write("--$boundary--$crlf".toByteArray(Charsets.UTF_8))
+        return out.toByteArray()
+    }
+
+    companion object {
+        // HTTP-коды Telegram, при которых retry бесполезен (FR-010: non-retryable).
+        private val NON_RETRYABLE_ERROR_CODES = setOf(400, 403, 404)
     }
 }

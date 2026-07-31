@@ -4038,41 +4038,48 @@ export default {
         .dispatch('publishToTelegramNowPromise')
         .then((response) => {
           this.isPublishingTelegram = false
-          const data = response.data || {}
+          // promisedXMLHttpRequest резолвит xhr.response (строка) — нужен JSON.parse.
+          let data = {}
+          try {
+            data = typeof response === 'string' ? JSON.parse(response) : response
+          } catch (_e) {
+            data = {}
+          }
           const state = data.state || 'unknown'
           const error = data.error || ''
-          if (data.success) {
+          const success = data.success === true
+          if (success) {
             const msg =
               state === 'rendering'
-                ? `Поставлен рендер демо; публикация продолжится после рендера (state=${state}).`
+                ? `Поставлен рендер демо; публикация продолжится после рендера.`
                 : state === 'publishing'
-                  ? `Демо-MP4 отправляется в Telegram (state=${state}).`
-                  : `Публикация выполнена (state=${state}).`
-            this.createToast({
-              title: 'Telegram',
-              slots: { default: () => [msg] },
-              autoHideDelay: 5000,
-              position: 'top-start',
-            })
+                  ? `Демо-MP4 отправляется в Telegram.`
+                  : `Публикация выполнена.`
+            this.showTelegramToast(
+              msg,
+              'Telegram',
+              'toast-header-copytoclipboard',
+              'toast-body-copytoclipboard',
+            )
           } else {
             const msg = error || `Публикация не выполнена (state=${state}).`
-            this.createToast({
-              title: 'Telegram: ошибка',
-              slots: { default: () => [msg] },
-              autoHideDelay: 8000,
-              position: 'top-start',
-            })
+            this.showTelegramToast(
+              msg,
+              'Telegram: ошибка',
+              'toast-header-copytoclipboard',
+              'toast-body-copytoclipboard',
+            )
           }
         })
         .catch((error) => {
           this.isPublishingTelegram = false
           const msg = error && error.message ? error.message : 'Ошибка запроса публикации.'
-          this.createToast({
-            title: 'Telegram: ошибка',
-            slots: { default: () => [msg] },
-            autoHideDelay: 8000,
-            position: 'top-start',
-          })
+          this.showTelegramToast(
+            msg,
+            'Telegram: ошибка',
+            'toast-header-copytoclipboard',
+            'toast-body-copytoclipboard',
+          )
         })
     },
 
@@ -5147,6 +5154,23 @@ export default {
     async pasteFromClipboard(name) {
       await navigator.clipboard.readText().then((data) => {
         return this.$store.dispatch('setCurrentSongField', { name: name, value: data })
+      })
+    },
+    showTelegramToast(message, title, headerClass, bodyClass) {
+      if (document.hidden) return
+      const vNodesMsg = h(
+        'div',
+        { style: { fontFamily: 'sans-serif', fontSize: 'small', textAlign: 'left' } },
+        [message],
+      )
+      this.createToast({
+        slots: { default: () => [vNodesMsg] },
+        title: title,
+        autoHideDelay: 8000,
+        bodyClass: bodyClass || 'toast-body-copytoclipboard',
+        headerClass: headerClass || 'toast-header-copytoclipboard',
+        appendToast: false,
+        position: 'top-start',
       })
     },
     showCopyToClipboardToast(fieldName, fieldValue) {

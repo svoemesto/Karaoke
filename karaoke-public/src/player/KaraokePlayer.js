@@ -652,6 +652,8 @@ export default class KaraokePlayer {
       .kp-menu-parent { position:relative; }
       .kp-submenu { display:none; position:absolute; right:100%; bottom:-5px; background:#222; border:1px solid #444; border-radius:6px; padding:4px 0; min-width:150px; box-shadow:0 4px 16px rgba(0,0,0,0.6); }
       .kp-submenu.kp-submenu-down { bottom:auto; top:-5px; }
+      .kp-submenu.kp-submenu-multi { column-count: var(--kp-cols, 1); column-gap: 0; max-height: var(--kp-maxh, none); overflow: hidden; }
+      .kp-submenu.kp-submenu-multi .kp-menu-item { break-inside: avoid; }
       .kp-menu-parent.kp-submenu-open > .kp-submenu { display:block; }
     `
     document.head.appendChild(style)
@@ -1088,19 +1090,39 @@ export default class KaraokePlayer {
     }
   }
 
-  // Ориентация подменю (.kp-submenu): по умолчанию вверх (bottom:-5px). Если над родителем не
-  // хватает места — открывает вниз (kp-submenu-down, top:-5px). Подменю тональностей (25 пунктов)
-  // в маленьком контейнере не помещается вверх — открывается вниз. Вызывается при открытии.
+  // Ориентация подменю (.kp-submenu внутри .kp-menu-parent): по умолчанию открывается вверх
+  // (bottom:-5px). Если над родителем не хватает места — вниз (kp-submenu-down, top:-5px).
+  // Если подменю не помещается по высоте ни вверх, ни вниз — разбивает пункты на несколько
+  // столбцов (kp-submenu-multi, column-count) так, чтобы по высоте влезло в доступное место.
+  // Подменю тональностей (25 пунктов) в маленьком контейнере — многоколоночное.
+  // Вызывается при открытии подменю (mouseenter/click).
   _orientSubmenu(parent) {
     const sub = parent.querySelector(':scope > .kp-submenu')
     if (!sub) return
+    // Сбросить предыдущую ориентацию для чистого измерения.
+    sub.classList.remove('kp-submenu-down', 'kp-submenu-multi')
+    sub.style.removeProperty('--kp-cols')
+    sub.style.removeProperty('--kp-maxh')
     const parentRect = parent.getBoundingClientRect()
     const subRect = sub.getBoundingClientRect()
-    const spaceAbove = parentRect.top - subRect.height + 5
-    if (spaceAbove < 0 && subRect.height > 0) {
+    const items = sub.querySelectorAll(':scope > .kp-menu-item')
+    if (items.length === 0) return
+    const itemH = subRect.height / items.length
+    const spaceAbove = parentRect.top - 12
+    const spaceBelow = window.innerHeight - parentRect.bottom - 12
+    const availH = Math.max(spaceAbove, spaceBelow)
+    const rowsPerCol = Math.max(1, Math.floor(availH / itemH))
+    let cols = 1
+    if (items.length > rowsPerCol) {
+      cols = Math.ceil(items.length / rowsPerCol)
+    }
+    if (spaceBelow >= spaceAbove || spaceAbove < subRect.height) {
       sub.classList.add('kp-submenu-down')
-    } else {
-      sub.classList.remove('kp-submenu-down')
+    }
+    if (cols > 1) {
+      sub.style.setProperty('--kp-cols', String(cols))
+      sub.style.setProperty('--kp-maxh', `${rowsPerCol * itemH}px`)
+      sub.classList.add('kp-submenu-multi')
     }
   }
 

@@ -57,8 +57,8 @@
         <h2 class="km-compare-title">Вы премиум-пользователь — спасибо!</h2>
         <p class="km-card-body">
           Что вы получили: полный доступ к плееру (все песни), безлимитное избранное и до 50 своих
-          плейлистов, непрерывное воспроизведение с повтором и случайным порядком, создание
-          минусовок и чат с автором проекта.
+          плейлистов, непрерывное воспроизведение с повтором и случайным порядком, смену скорости и
+          тональности в плеере, создание минусовок и чат с автором проекта.
         </p>
         <RouterLink to="/account/subscriptions" class="km-btn km-btn-secondary">
           Управление подпиской →
@@ -196,7 +196,9 @@ import { trackUi } from '../services/tracking'
 
 // Таблица «FREE vs PREMIUM» (QW-1). Список согласован построчно с реальным кодом —
 // см. specs/005-free-vs-premium/research.md Decision 1 (12 предложенных строк → 9
-// подтверждённых). Числа 100/500/50 — точные константы FREE_FAVORITES_LIMIT/
+// подтверждённых), плюс 2 строки (скорость/тональность), добавленные в 113-premium-features-docs-news
+// вслед за реальным premium-гейтом в KaraokePlayer.js (setPlaybackRate/setTranspose,
+// PR #146/#142). Числа 100/500/50 — точные константы FREE_FAVORITES_LIMIT/
 // PREMIUM_ITEMS_LIMIT/PREMIUM_PLAYLIST_LIMIT из PublicPlaylistController.kt; если
 // бэкенд-константы изменятся, эту таблицу нужно обновить вручную (см. data-model.md).
 const COMPARISON_ROWS = [
@@ -211,6 +213,8 @@ const COMPARISON_ROWS = [
     free: false,
     premium: true,
   },
+  { feature: 'Смена скорости воспроизведения в плеере', free: false, premium: true },
+  { feature: 'Смена тональности (транспонирование) в плеере', free: false, premium: true },
   { feature: 'Создание минусовок (Demucs)', free: false, premium: true },
   { feature: 'Чат с автором проекта', free: false, premium: true },
 ]

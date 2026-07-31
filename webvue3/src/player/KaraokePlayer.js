@@ -1331,27 +1331,38 @@ export default class KaraokePlayer {
     sub.classList.remove('kp-submenu-down', 'kp-submenu-multi')
     sub.style.removeProperty('--kp-cols')
     sub.style.removeProperty('--kp-maxh')
-    // Естественные размеры (одна колонка).
     const parentRect = parent.getBoundingClientRect()
     const subRect = sub.getBoundingClientRect()
     const items = sub.querySelectorAll(':scope > .kp-menu-item')
     if (items.length === 0) return
     // Высота одного пункта = высота подменю / число пунктов (одна колонка, padding учтён в subRect).
     const itemH = subRect.height / items.length
-    // Доступная высота вверх и вниз от родителя (с запасом 12px на padding/тень).
+    // Доступная высота вверх и вниз от родителя (запас 12px на padding/тень).
     const spaceAbove = parentRect.top - 12
     const spaceBelow = window.innerHeight - parentRect.bottom - 12
-    const availH = Math.max(spaceAbove, spaceBelow)
-    // Сколько строк помещается в доступную высоту.
-    const rowsPerCol = Math.max(1, Math.floor(availH / itemH))
-    let cols = 1
-    if (items.length > rowsPerCol) {
-      cols = Math.ceil(items.length / rowsPerCol)
+    // Сколько строк помещается вверх/вниз — выбираем направление где больше; предпочитаем ВВЕРХ
+    // (подменю выравнивается по нижнему краю родителя, растёт вверх — bottom:-5px по умолчанию).
+    const rowsUp = Math.max(1, Math.floor(spaceAbove / itemH))
+    const rowsDown = Math.max(1, Math.floor(spaceBelow / itemH))
+    let rowsPerCol
+    let goDown = false
+    if (rowsUp >= items.length) {
+      // Все помещаются вверх — одна колонка вверх.
+      rowsPerCol = items.length
+    } else if (rowsDown >= items.length) {
+      // Все помещаются вниз (вверх не помещается) — одна колонка вниз.
+      rowsPerCol = items.length
+      goDown = true
+    } else if (rowsUp >= rowsDown) {
+      // Вверх помещается больше — многоколоночно вверх.
+      rowsPerCol = rowsUp
+    } else {
+      // Вниз помещается больше — многоколоночно вниз.
+      rowsPerCol = rowsDown
+      goDown = true
     }
-    // Ориентация вверх/вниз: предпочитаем туда, где больше места.
-    if (spaceBelow >= spaceAbove || spaceAbove < subRect.height) {
-      sub.classList.add('kp-submenu-down')
-    }
+    const cols = Math.ceil(items.length / rowsPerCol)
+    if (goDown) sub.classList.add('kp-submenu-down')
     if (cols > 1) {
       sub.style.setProperty('--kp-cols', String(cols))
       sub.style.setProperty('--kp-maxh', `${rowsPerCol * itemH}px`)

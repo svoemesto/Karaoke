@@ -893,6 +893,62 @@ class Song(
         playerReadinessFlags = Json.encodeToString(MapSerializer(String.serializer(), Boolean.serializer()), updated)
     }
 
+    // Фаза 2 (specs/113-telegram-demo-publish): string-ключи состояния автопубликации демо в тот же
+    // JSON-блоб player_readiness_flags. В отличие от boolean readiness-флагов выше, эти ключи хранят
+    // строковые значения (state-code, ISO-8601 timestamp, текст ошибки) — поэтому парсятся через
+    // JsonObject, а не Map<String, Boolean>. Существующие boolean-флаги не затрагиваются: kx-сериализация
+    // JsonObject прозрачно сосуществует с boolean-значениями в том же объекте (см. specs/101-song-news-flag
+    // — тот же паттерн «новый ключ в существующем JSON без миграции/колонки»).
+    private fun readinessStringFlag(key: String): String =
+        try {
+            val obj =
+                Json.decodeFromString(
+                    kotlinx.serialization.json.JsonObject
+                        .serializer(),
+                    playerReadinessFlags
+                )
+            obj[key]?.let { el ->
+                if (el is kotlinx.serialization.json.JsonPrimitive) el.content else ""
+            } ?: ""
+        } catch (_: Exception) {
+            ""
+        }
+
+    private fun setReadinessStringFlag(
+        key: String,
+        value: String,
+    ) {
+        val updated =
+            try {
+                Json
+                    .decodeFromString(
+                        kotlinx.serialization.json.JsonObject
+                            .serializer(),
+                        playerReadinessFlags
+                    ).toMutableMap()
+            } catch (_: Exception) {
+                mutableMapOf()
+            }
+        updated[key] = kotlinx.serialization.json.JsonPrimitive(value)
+        playerReadinessFlags = Json.encodeToString(updated)
+    }
+
+    // Текущее состояние автопубликации демо в Telegram (один из TelegramAutoPublishState.code или ""
+    // если ещё не устанавливался). Хранится в player_readiness_flags, не отдельной колонкой.
+    var telegramAutoPublishState: String
+        get() = readinessStringFlag("telegramAutoPublishState")
+        set(value) = setReadinessStringFlag("telegramAutoPublishState", value)
+
+    // ISO-8601 timestamp последней попытки публикации (для отладки в UI). Пусто = попыток не было.
+    var telegramAutoPublishLastAttemptAt: String
+        get() = readinessStringFlag("telegramAutoPublishLastAttemptAt")
+        set(value) = setReadinessStringFlag("telegramAutoPublishLastAttemptAt", value)
+
+    // Текст последней ошибки публикации (для отладки в UI). Пусто = ошибок не было или успех.
+    var telegramAutoPublishLastError: String
+        get() = readinessStringFlag("telegramAutoPublishLastError")
+        set(value) = setReadinessStringFlag("telegramAutoPublishLastError", value)
+
     var stemAccompanimentReady: Boolean
         get() = readinessFlag("stemAccompanimentReady")
         set(value) = setReadinessFlag("stemAccompanimentReady", value)
@@ -1032,6 +1088,37 @@ class Song(
     val versionTelegramDemo: Int get() = (fields[SongField.VERSION_TELEGRAM_DEMO]?.nullIfEmpty() ?: "0").toInt()
     val idMaxDemo: String get() = fields[SongField.ID_MAX_DEMO]?.nullIfEmpty() ?: ""
     val versionMaxDemo: Int get() = (fields[SongField.VERSION_MAX_DEMO]?.nullIfEmpty() ?: "0").toInt()
+
+    // Производное состояние автопубликации демо в Telegram (Фаза 2, specs/113-telegram-demo-publish,
+    // см. data-model.md «Производное правило чтения»). Единый источник истины для UI и для логики
+    // scheduler'а: PUBLISHED определяется по заполненному idTelegramDemo (FR-008), а не по полю state —
+    // чтобы любая попытка записи (Фаза 2 автоматически или Фаза 1 через TelegramUpdatesConsumer)
+    // согласованно отражалась в UI. Прошедшая date/time отображается как SCHEDULED («опоздавшая» в UI)
+    // и НЕ публикуется ботом (Q1 clarify) — админ должен переставить дату/время или нажать «Опубликовать
+    // сейчас». Поле state из player_readiness_flags уважается, только если не противоречит двум
+    // вышестоящим правилам (PUBLISHED/CANCELLED).
+    @get:JsonIgnore
+    val effectiveTelegramAutoPublishState: com.svoemesto.karaokeapp.services.TelegramAutoPublishState
+        get() {
+            if (idTelegramDemo.isNotEmpty()) {
+                return com.svoemesto.karaokeapp.services.TelegramAutoPublishState.PUBLISHED
+            }
+            if (telegramAutoPublishState == "cancelled") {
+                return com.svoemesto.karaokeapp.services.TelegramAutoPublishState.CANCELLED
+            }
+            val dt = dateTimePublish
+            if (dt == null) {
+                return com.svoemesto.karaokeapp.services.TelegramAutoPublishState.SCHEDULED
+            }
+            val nowMoscow = Calendar.getInstance(TimeZone.getTimeZone("Europe/Moscow")).time
+            if (dt.before(nowMoscow)) {
+                // Прошедшая дата/время — «опоздавшая» (Q1 clarify): бот НЕ публикует; UI маркирует.
+                return com.svoemesto.karaokeapp.services.TelegramAutoPublishState.SCHEDULED
+            }
+            return com.svoemesto.karaokeapp.services.TelegramAutoPublishState
+                .fromCode(telegramAutoPublishState)
+                ?: com.svoemesto.karaokeapp.services.TelegramAutoPublishState.SCHEDULED
+        }
 
     val idSponsr: String get() = fields[SongField.ID_SPONSR]?.nullIfEmpty() ?: ""
     val versionSponsr: Int get() = (fields[SongField.VERSION_SPONSR]?.nullIfEmpty() ?: "0").toInt()

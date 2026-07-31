@@ -36,19 +36,19 @@ Phase 1 + Phase 2).
 конфигурация Telegram-параметров и базовые перечисления/типы
 данных.
 
-- [ ] T001 Добавить 4 новых ключа в `KaraokeProperties.kt` —
+- [X] T001 Добавить 4 новых ключа в `KaraokeProperties.kt` —
   `telegramAutoPublishEnabled` (Boolean, default `false`),
   `telegramAutoPublishChannelId` (String, default `""`),
   `telegramAutoPublishWindowMinutes` (Long, default `5`),
   `telegramAutoPublishMaxFileSizeMb` (Long, default `50`).
   Файл: `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProperties.kt`
   (раздел с `telegramBotToken`/`telegramPollingEnabled`).
-- [ ] T002 [P] Создать enum `TelegramAutoPublishState` (6 значений:
+- [X] T002 [P] Создать enum `TelegramAutoPublishState` (6 значений:
   `SCHEDULED`, `RENDERING`, `PUBLISHING`, `PUBLISHED`, `SEND_FAILED`,
   `CANCELLED`) с компаньоном `fromCode(code: String?)` в новом
   файле `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/TelegramAutoPublishState.kt`.
   KDoc с `@see docs/features/telegram-auto-publish.md`.
-- [ ] T003 [P] Создать data class `TelegramAutoPublishResult`
+- [X] T003 [P] Создать data class `TelegramAutoPublishResult`
   (поля: `state: TelegramAutoPublishState`,
   `messageId: String? = null`, `error: String? = null`) в новом
   файле `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/TelegramAutoPublishResult.kt`.
@@ -69,7 +69,7 @@ Phase 1 + Phase 2).
 **⚠️ CRITICAL**: Никакая user story не может стартовать до
 завершения этой фазы.
 
-- [ ] T004 Расширить `TelegramApiClient.kt` — добавить
+- [X] T004 Расширить `TelegramApiClient.kt` — добавить
   `fun sendVideo(channelId: String, videoFile: File, caption:
   String, maxFileSizeBytes: Long, maxAttempts: Int = 3,
   backoffScheduleMs: List<Long> = listOf(30_000L, 120_000L, 300_000L)):
@@ -83,7 +83,7 @@ Phase 1 + Phase 2).
   error=...)` при исчерпании ретраев. Файл:
   `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/TelegramApiClient.kt`.
   KDoc с `@see docs/features/telegram-auto-publish.md`.
-- [ ] T005 [P] Добавить в `Song.kt` Kotlin-property accessors
+- [X] T005 [P] Добавить в `Song.kt` Kotlin-property accessors
   для новых ключей JSON-блоба `player_readiness_flags`:
   `telegramAutoPublishState: String get/set` (через
   `readinessFlag("telegramAutoPublishState")` / `setReadinessFlag(...)`),
@@ -94,7 +94,7 @@ Phase 1 + Phase 2).
   `specs/101-song-news-flag/data-model.md`). Файл:
   `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt`
   (рядом с уже существующими `idTelegramDemo` getter'ами, ~строка 1031).
-- [ ] T006 [P] Добавить в `Song.kt` derived property
+- [X] T006 [P] Добавить в `Song.kt` derived property
   `effectiveTelegramAutoPublishState: TelegramAutoPublishState`
   (см. точный псевдокод в
   `data-model.md` — секция «Производное правило чтения»):
@@ -134,7 +134,7 @@ no-op (idempotent). «Опоздавшая» дата/время — skip.
 
 ### Implementation for User Story 1
 
-- [ ] T007 Создать `TelegramAutoPublishService.kt` —
+- [X] T007 Создать `TelegramAutoPublishService.kt` —
   бизнес-логика публикации. Метод
   `fun publishToTelegram(song: Song): TelegramAutoPublishResult`,
   который:
@@ -167,7 +167,7 @@ no-op (idempotent). «Опоздавшая» дата/время — skip.
      возвращает `Result(state=SEND_FAILED, error=...)`.
   Файл: `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/TelegramAutoPublishService.kt`.
   KDoc с `@see docs/features/telegram-auto-publish.md`.
-- [ ] T008 [P] Создать `TelegramAutoPublishService.onRenderCompleted(songId:
+- [X] T008 [P] Создать `TelegramAutoPublishService.onRenderCompleted(songId:
   Long, success: Boolean, error: String?)` —
   callback, вызываемый из `KaraokeProcessWorker` при завершении
   `RENDER_MP4_DEMO`. Если `success=true` — загружает `Song`,
@@ -177,7 +177,7 @@ no-op (idempotent). «Опоздавшая» дата/время — skip.
   `state=SEND_FAILED`, `lastError="render failed: <error>"`.
   Файл: `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/TelegramAutoPublishService.kt`
   (тот же файл, что T007).
-- [ ] T009 Создать `TelegramAutoPublishScheduler.kt` —
+- [X] T009 Создать `TelegramAutoPublishScheduler.kt` —
   `@Service` с методом
   `@Scheduled(fixedDelayString = "PT${window}M")` (где
   `window` = `KaraokeProperties.getLong("telegramAutoPublishWindowMinutes")`).
@@ -196,7 +196,7 @@ no-op (idempotent). «Опоздавшая» дата/время — skip.
      `telegramAutoPublishService.publishToTelegram(song)`.
   Файл: `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/TelegramAutoPublishScheduler.kt`.
   KDoc с `@see docs/features/telegram-auto-publish.md`.
-- [ ] T010 [P] Создать `TelegramAutoPublishSchedulerStarter.kt` —
+- [X] T010 [P] Создать `TelegramAutoPublishSchedulerStarter.kt` —
   `@Component` с `@EventListener(ApplicationReadyEvent)`
   (по образцу `TelegramUpdatesConsumerStarter`):
   если `KaraokeProperties.getBoolean("telegramAutoPublishEnabled")` —
@@ -205,7 +205,7 @@ no-op (idempotent). «Опоздавшая» дата/время — skip.
   добавляем явный `println("TelegramAutoPublishScheduler: старт")`).
   Файл: `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/scheduler/TelegramAutoPublishSchedulerStarter.kt`.
   KDoc с `@see docs/features/telegram-auto-publish.md`.
-- [ ] T011 [P] Добавить endpoint `POST /api/song/publishToTelegramNow`
+- [X] T011 [P] Добавить endpoint `POST /api/song/publishToTelegramNow`
   в `ApiController.kt`:
   - `@RequestParam songId: Long` (обязательный);
   - `@RequestParam adminKey: String?` (обязательный, проверяется
@@ -218,7 +218,7 @@ no-op (idempotent). «Опоздавшая» дата/время — skip.
     (контракт см. `contracts/telegram-auto-publish.md`, раздел 1).
   Файл: `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt`.
   KDoc на endpoint с `@see docs/features/telegram-auto-publish.md`.
-- [ ] T012 [P] [US1] Добавить кнопку «Опубликовать сейчас» в
+- [X] T012 [P] [US1] Добавить кнопку «Опубликовать сейчас» в
   `SongEdit.vue`:
   - Кнопка видна **только** если `settings.idTelegramDemo === ''`
     (FR-016, через `v-if` или `disabled` binding);
@@ -259,13 +259,13 @@ no-op (idempotent). «Опоздавшая» дата/время — skip.
 > «не сломать существующее поведение». Проверка — через
 > quickstart.md Step 8.
 
-- [ ] T013 [P] [US2] Убедиться, что `TelegramUpdatesConsumer.kt`
+- [X] T013 [P] [US2] Убедиться, что `TelegramUpdatesConsumer.kt`
   **НЕ модифицирован** (diff против `master` показывает 0
   изменений). Файл:
   `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/TelegramUpdatesConsumer.kt`.
   Если файл был случайно изменён — откатить (это нарушение
   FR-009 spec.md).
-- [ ] T014 [P] [US2] Убедиться, что `Song.parseTelegramPostSongId`
+- [X] T014 [P] [US2] Убедиться, что `Song.parseTelegramPostSongId`
   и `Song.parseTelegramPostSongVersion` **НЕ модифицированы**
   (та же проверка через diff). Файл:
   `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt`
@@ -294,7 +294,7 @@ no-op (idempotent). «Опоздавшая» дата/время — skip.
 
 ### Implementation for User Story 3
 
-- [ ] T015 [P] [US3] Добавить badge-индикатор состояния
+- [X] T015 [P] [US3] Добавить badge-индикатор состояния
   Telegram-публикации в `SongsTable.vue`:
   - Новый столбец (или inline badge в существующем) для песен,
     у которых `id_telegram_demo` заполнен ИЛИ `date`/`time` заполнены;
@@ -302,7 +302,7 @@ no-op (idempotent). «Опоздавшая» дата/время — skip.
     (по образцу существующих badge в `NewsTable.vue` для статусов
     новостей — `badge bg-success/bg-warning/bg-danger/bg-secondary`).
   Файл: `webvue3/src/components/Songs/SongsTable.vue`.
-- [ ] T016 [P] [US3] Добавить блок «Telegram-публикация» в
+- [X] T016 [P] [US3] Добавить блок «Telegram-публикация» в
   `SongEdit.vue` (рядом с существующим блоком «Telegram
   посты»):
   - `state` (локализованный лейбл: «Запланирована» /
@@ -327,7 +327,7 @@ no-op (idempotent). «Опоздавшая» дата/время — skip.
 соответствие Constitution Principle VI (per-feature документ +
 KDoc), прогон quickstart-сценариев.
 
-- [ ] T017 Обновить `docs/features/telegram-auto-publish.md` —
+- [X] T017 Обновить `docs/features/telegram-auto-publish.md` —
   добавить секцию «Фаза 2 — автопубликация» (с тем же форматом,
   что уже есть для Фазы 1: «Как работает», «Инварианты / правила»,
   «Известные ловушки», «Ссылки на ключевые классы/файлы»).
@@ -335,7 +335,7 @@ KDoc), прогон quickstart-сценариев.
   6 состояний публикации, retry-политику, переиспользование
   `KaraokeProcess*` (RENDER_MP4_DEMO). Файл:
   `docs/features/telegram-auto-publish.md`.
-- [ ] T018 Добавить `@see docs/features/telegram-auto-publish.md`
+- [X] T018 Добавить `@see docs/features/telegram-auto-publish.md`
   в KDoc всех новых/изменённых классов:
   `TelegramAutoPublishState.kt`, `TelegramAutoPublishResult.kt`,
   `TelegramAutoPublishService.kt`, `TelegramAutoPublishScheduler.kt`,
@@ -343,7 +343,7 @@ KDoc), прогон quickstart-сценариев.
   (на `sendVideo`), `Song.kt` (на `effectiveTelegramAutoPublishState`),
   `ApiController.kt` (на endpoint), `SongEdit.vue`
   (JSDoc на новый метод).
-- [ ] T019 Запустить `./gradlew ktlintCheck` (в корне репозитория) —
+- [X] T019 Запустить `./gradlew ktlintCheck` (в корне репозитория) —
   все новые/изменённые Kotlin-файлы из T004–T011 (KaraokeProperties.kt,
   TelegramApiClient.kt, Song.kt, TelegramAutoPublishState.kt,
   TelegramAutoPublishResult.kt, TelegramAutoPublishService.kt,
@@ -351,14 +351,14 @@ KDoc), прогон quickstart-сценариев.
   ApiController.kt) проходят `ktlint` (или в
   `config/ktlint/baseline-*.xml` нет новых нарушений).
   Если нарушения — исправить в изменённых файлах.
-- [ ] T020 Запустить `cd webvue3 && npm run lint:check` —
+- [X] T020 Запустить `cd webvue3 && npm run lint:check` —
   все новые/изменённые Vue/JS-файлы проходят `eslint` (или в
   `webvue3/.eslint-baseline.json` нет новых нарушений).
   Если нарушения — исправить.
-- [ ] T021 Запустить `bash tools/check-kdoc-coverage.sh` —
+- [X] T021 Запустить `bash tools/check-kdoc-coverage.sh` —
   должно вернуть 100% (новые Kotlin-классы с KDoc, см. T018);
   если меньше — добавить KDoc.
-- [ ] T022 Запустить `bash tools/check-jsdoc-coverage.sh webvue3` —
+- [X] T022 Запустить `bash tools/check-jsdoc-coverage.sh webvue3` —
   должно вернуть 100% (новые Vue/JS-методы с JSDoc, см. T018);
   если меньше — добавить JSDoc.
 - [ ] T023 Прогнать quickstart.md сценарии Step 1–11 вручную на

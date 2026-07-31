@@ -2342,6 +2342,18 @@ export default {
       let request = { method: 'POST', url: '/api/song/renderMp4Preview', params: params }
       return promisedXMLHttpRequest(request)
     },
+    /**
+     * Ручной триггер автопубликации демо-версии песни в Telegram-канал (Фаза 2,
+     * specs/113-telegram-demo-publish, FR-015). Вызывает
+     * POST /api/song/publishToTelegramNow?songId=<id> — тот же путь, что scheduler,
+     * но с allowPastDate=true (публикует даже с прошедшей date/time).
+     * @see docs/features/telegram-auto-publish.md
+     */
+    publishToTelegramNowPromise(ctx) {
+      let params = { id: ctx.state.currentSongId }
+      let request = { method: 'POST', url: '/api/song/publishToTelegramNow', params: params }
+      return promisedXMLHttpRequest(request)
+    },
     createMP3KaraokePromise(ctx, payload) {
       let params = {
         id: ctx.state.currentSongId,

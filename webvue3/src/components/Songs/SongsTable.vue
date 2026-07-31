@@ -477,6 +477,18 @@
             v-text="data.value ? data.value : '-'"
           />
         </template>
+        <!-- Фаза 2 автопубликации (specs/113-telegram-demo-publish, FR-012): badge состояния
+          публикации демо в Telegram. computed telegramPublishBadgeFor(item) возвращает
+          {symbol, title, class} — пусто, если date/time не заполнены и idTelegramDemo пуст. -->
+        <template #cell(telegramPublish)="data">
+          <div
+            v-if="telegramPublishBadgeFor(data.item)"
+            class="fld-tg-publish-badge"
+            :class="telegramPublishBadgeFor(data.item).class"
+            :title="telegramPublishBadgeFor(data.item).title"
+            v-text="telegramPublishBadgeFor(data.item).symbol"
+          />
+        </template>
         <template #cell(flagExclusive)="data">
           <div
             class="fld-flag-exclusive"
@@ -1246,6 +1258,21 @@ export default {
           },
         },
         {
+          // Фаза 2 автопубликации (specs/113-telegram-demo-publish, FR-012): badge состояния
+          // публикации демо в Telegram. Показывается только для песен с заполненными date/time
+          // или уже опубликованных (idTelegramDemo). Цвета: зелёный — опубликована, серый —
+          // запланирована (дата в будущем), оранжевый — «опоздавшая» (дата в прошлом, не опубликована).
+          key: 'telegramPublish',
+          sortable: true,
+          label: 'TG',
+          style: {
+            minWidth: '28px',
+            maxWidth: '28px',
+            textAlign: 'center',
+            fontSize: 'small',
+          },
+        },
+        {
           key: 'flagMaxLyrics',
           sortable: true,
           label: 'ML',
@@ -1412,6 +1439,40 @@ export default {
     songTypeLetter(value) {
       const map = { song: 'S', instrumental: 'I', poetry: 'P' }
       return map[value] || ''
+    },
+    /**
+     * Badge состояния автопубликации демо в Telegram для строки таблицы (Фаза 2,
+     * specs/113-telegram-demo-publish, FR-012). Показывается только для песен с
+     * заполненными date/time или уже опубликованных (idTelegramDemo). Возвращает
+     * null, если badge не нужен.
+     * @param {Object} item — строка songsDigest (поля date, time, idTelegramDemo)
+     * @returns {{symbol: string, title: string, class: string}|null}
+     * @see docs/features/telegram-auto-publish.md
+     */
+    telegramPublishBadgeFor(item) {
+      if (!item) return null
+      const published = !!item.idTelegramDemo
+      const hasDateTime = !!(item.date && item.time)
+      if (!published && !hasDateTime) return null
+      if (published) {
+        return { symbol: '✓', title: 'Опубликовано в Telegram', class: 'tg-publish-published' }
+      }
+      // date/time заполнены, но не опубликовано — проверяем, в будущем ли дата.
+      const now = new Date()
+      const parts = (item.date + ' ' + item.time).trim().split(/[. :]+/)
+      if (parts.length >= 5) {
+        const day = parseInt(parts[0], 10)
+        const month = parseInt(parts[1], 10)
+        const year = 2000 + parseInt(parts[2], 10)
+        const hour = parseInt(parts[3], 10)
+        const minute = parseInt(parts[4], 10)
+        const publishAt = new Date(year, month - 1, day, hour, minute)
+        if (publishAt > now) {
+          return { symbol: '⏱', title: 'Запланирована: ' + item.date + ' ' + item.time, class: 'tg-publish-scheduled' }
+        }
+        return { symbol: '⚠', title: 'Опоздавшая: ' + item.date + ' ' + item.time, class: 'tg-publish-late' }
+      }
+      return { symbol: '⏱', title: 'Запланирована', class: 'tg-publish-scheduled' }
     },
     /**
      * Возвращает Promise с короткой информацией о песне по id для тултипа.
@@ -2526,6 +2587,29 @@ export default {
   font-size: small;
   white-space: nowrap;
   overflow: hidden;
+}
+/* Фаза 2 автопубликации (specs/113-telegram-demo-publish): badge состояния публикации
+   демо в Telegram для SongsTable. Зелёный — опубликована, серый — запланирована
+   (дата в будущем), оранжевый — «опоздавшая» (дата в прошлом, не опубликована). */
+.fld-tg-publish-badge {
+  display: inline-block;
+  width: 22px;
+  height: 22px;
+  line-height: 22px;
+  border-radius: 50%;
+  text-align: center;
+  font-size: 13px;
+  font-weight: bold;
+  color: #fff;
+}
+.fld-tg-publish-badge.tg-publish-published {
+  background-color: #28a745;
+}
+.fld-tg-publish-badge.tg-publish-scheduled {
+  background-color: #6c757d;
+}
+.fld-tg-publish-badge.tg-publish-late {
+  background-color: #fd7e14;
 }
 .fld-flag-max-lyrics {
   min-width: 20px;

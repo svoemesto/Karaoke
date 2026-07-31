@@ -2,6 +2,8 @@
 // distinguished from other init errors so the UI can show a friendly message instead of raw details.
 class PlayerUnavailableError extends Error {}
 
+import { PitchShift as TonePitchShift, setContext as toneSetContext } from 'tone'
+
 export default class KaraokePlayer {
   // Usage modes:
   //   new KaraokePlayer(container, songId, apiBase)                      — online, loads via /api
@@ -82,6 +84,18 @@ export default class KaraokePlayer {
     // скорости на лету (playbackRate — живой AudioParam, меняется прямо на playing-источниках).
     this._playbackRate = 1
     this._rateAnchorPos = 0
+
+    // Транспонирование тональности (сдвиг в полутонах −12..+12 относительно базовой тональности
+    // data.key). 0 = базовая. В отличие от _playbackRate (глобальная настройка плеера), _transpose
+    // хранится per-song (localStorage по data.id) — см. _saveTranspose/_restoreTranspose. Map
+    // _pitchShifts хранит Tone.PitchShift-узлы по ключу стема ('acc'/'voc'; в будущем 'bass'/'drums')
+    // — setTranspose применяет pitch ко всем узлам синхронно, чтобы смесь оставалась в одной
+    // тональности (FR-005). _transposeSupported=false блокирует подменю с подсказкой (FR-018).
+    // @see docs/features/player-transpose.md
+    this._transpose = 0
+    /** @type {Map<string, import('tone').PitchShift>} */
+    this._pitchShifts = new Map()
+    this._transposeSupported = false
 
     // Громкость/якорь/скорость сверх этого ещё и глобально персистентны в localStorage (на машину
     // пользователя, не привязаны к конкретной песне) — открытие плеера на ЛЮБОЙ другой песне (не
@@ -276,6 +290,12 @@ export default class KaraokePlayer {
       this._ready = true
       if (!this._offline) this._startFadeStartedAt = Date.now() // запустить переход logo→splash
       this._updateExportMenuAvailability()
+      // Восстановить per-song сдвиг тональности (FR-011) и пересчитать подписи подменю от
+      // загруженного data.key. _buildUI рендерил подписи до загрузки данных — здесь они
+      // обновляются реальными значениями. FR-013 (пустой key → только сдвиг).
+      // @see docs/features/player-transpose.md
+      this._restoreTranspose()
+      this._updateTransposeMenu()
     } catch (e) {
       console.error('KaraokePlayer init error:', e)
       const loading = this.container?.querySelector('#kp-loading')
@@ -867,6 +887,13 @@ export default class KaraokePlayer {
                   ${KaraokePlayer.SPEED_OPTIONS.map((o) => `<div class="kp-menu-item" data-rate="${o.value}"><span>${o.label}</span></div>`).join('')}
                 </div>
               </div>
+              <div class="kp-menu-item kp-menu-parent" id="kp-menu-transpose">
+                <span>Тональность: <span id="kp-transpose-label">0</span></span><span class="kp-menu-arrow">▸</span>
+                <div class="kp-submenu" id="kp-submenu-transpose">
+                  <div class="kp-menu-item" id="kp-transpose-unsupported-hint" style="display:none;color:#999;font-style:italic;padding:4px 12px">Браузер не поддерживает</div>
+                  ${KaraokePlayer.TRANSPOSE_OPTIONS.map((n) => `<div class="kp-menu-item" data-transpose="${n}"><span class="kp-transpose-opt">${this._transposeLabel(n, true)}</span></div>`).join('')}
+                </div>
+              </div>
               <div class="kp-menu-separator"></div>
               <div class="kp-menu-item kp-menu-parent" id="kp-menu-export">
                 <span>Экспорт аудио...</span><span class="kp-menu-arrow">▸</span>
@@ -1033,6 +1060,70 @@ export default class KaraokePlayer {
     { value: 3, label: '3x' },
   ]
 
+  // Доступные сдвиги тональности в полутонах от базовой (data.key): −12 … +12 с шагом 1 (25
+  // вариантов). 0 = базовая. FR-002. Хроматическая шкала для расчёта результирующей подписи —
+  // _transposeLabel.
+  // @see docs/features/player-transpose.md
+  static TRANSPOSE_OPTIONS = Array.from({ length: 25 }, (_, i) => i - 12) // [-12, -11, ..., 0, ..., 11, 12]
+
+  // Хроматическая шкала (по полутонам, индекс 0 = C). Используется _transposeLabel для расчёта
+  // результирующей ноты сдвигом от базовой. Диезь-обозначения (C#, D# ...) — соответствует
+  // формату поля key в проекте.
+  // @see docs/features/player-transpose.md
+  static CHROMATIC = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
+
+  // Разбор строки базовой тональности (data.key) в { index, suffix }. index — позиция в
+  // CHROMATIC (0..11), suffix — оставшаяся часть ('m' для минора, '' для мажора, иное как есть).
+  // Возвращает null если нота не распознана (нестандартный key) — тогда _transposeLabel падает
+  // на подпись «только сдвиг» (FR-013 расширенно, Assumption).
+  // @see docs/features/player-transpose.md
+  static _parseKey(key) {
+    if (!key || typeof key !== 'string') return null
+    const m = key.trim().match(/^([A-G])([#b]?)(.*)$/)
+    if (!m) return null
+    let base = m[1] // 'A'..'G'
+    let accidental = m[2] // '', '#', 'b'
+    let note = base + accidental
+    // Нормализуем 'b' в '#' для поиска в CHROMATIC (Bb → A#, Db → C#, ...).
+    const flatToSharp = {
+      C: 'B',
+      Db: 'C#',
+      D: 'C#',
+      Eb: 'D#',
+      E: 'D#',
+      Fb: 'E',
+      Gb: 'F#',
+      G: 'F#',
+      Ab: 'G#',
+      A: 'G#',
+      Bb: 'A#',
+      B: 'A#',
+    }
+    if (accidental === 'b') {
+      note = flatToSharp[note] || note
+    }
+    const idx = KaraokePlayer.CHROMATIC.indexOf(note)
+    if (idx < 0) return null
+    return { index: idx, suffix: m[3] || '' }
+  }
+
+  // Подпись сдвига тональности для пункта подменю или бейджа. forMenu=true → "(+3) Cm" (в скобках,
+  // для пункта меню); false → "+3 Cm" (без скобок, для бейджа/краткого лейбла). При пустом
+  // data.key или нераспознанном — только сдвиг "(+3)" / "+3" (FR-013). Сдвиг 0 → "0"/"(0)" (без
+  // знака). Результирующая нота = CHROMATIC[(baseIndex + n) mod 12] + suffix базовой (FR-004).
+  // @see docs/features/player-transpose.md
+  _transposeLabel(n, forMenu) {
+    const sign = n > 0 ? '+' : ''
+    const shift = `${sign}${n}`
+    const parsed = KaraokePlayer._parseKey(this.data?.key)
+    if (!parsed) {
+      return forMenu ? `(${shift})` : shift
+    }
+    const resultIdx = (((parsed.index + n) % 12) + 12) % 12
+    const note = KaraokePlayer.CHROMATIC[resultIdx] + parsed.suffix
+    return forMenu ? `(${shift}) ${note}` : `${shift} ${note}`
+  }
+
   static STEM_EXPORT_MAP = {
     vocals: { urlField: 'audioVocalsUrl', suffix: 'voice' },
     accompaniment: { urlField: 'audioAccompanimentUrl', suffix: 'accompaniment' },
@@ -1094,6 +1185,24 @@ export default class KaraokePlayer {
     }
     this._updateSpeedMenu()
 
+    // Транспонирование: wiring подменю «Тональность» (параллельно speed). При отсутствии поддержки
+    // (FR-018) пункты заблокированы — клик игнорируется. Иначе клик по [data-transpose] → setTranspose.
+    // @see docs/features/player-transpose.md
+    const transposeItem = this.container.querySelector('#kp-menu-transpose')
+    const transposeSubmenu = this.container.querySelector('#kp-submenu-transpose')
+    transposeItem.addEventListener('click', (e) => {
+      e.stopPropagation()
+      transposeItem.classList.toggle('kp-submenu-open')
+    })
+    for (const el of transposeSubmenu.querySelectorAll('[data-transpose]')) {
+      el.addEventListener('click', () => {
+        if (!this._transposeSupported) return
+        this._closeMenu()
+        this.setTranspose(Number(el.dataset.transpose))
+      })
+    }
+    this._updateTransposeMenu()
+
     document.addEventListener('click', this._menuOutsideClickHandler)
   }
 
@@ -1114,6 +1223,35 @@ export default class KaraokePlayer {
     if (menu) menu.style.display = 'none'
     for (const el of this.container.querySelectorAll('.kp-menu-parent'))
       el.classList.remove('kp-submenu-open')
+  }
+
+  // Подсвечивает текущий выбранный сдвиг в подменю «Тональность» + обновляет лейбл родительского
+  // пункта (параллель _updateSpeedMenu). Также пересчитывает подписи пунктов от текущего data.key
+  // (вызывается из setTranspose и из init/playSong, когда data.key может измениться). При
+  // _transposeSupported=false — блокирует пункты и показывает подсказку (FR-018).
+  // @see docs/features/player-transpose.md
+  _updateTransposeMenu() {
+    const label = this.container?.querySelector('#kp-transpose-label')
+    if (label) label.textContent = this._transposeLabel(this._transpose, false)
+    const hint = this.container?.querySelector('#kp-transpose-unsupported-hint')
+    if (hint) hint.style.display = this._transposeSupported ? 'none' : 'block'
+    for (const el of this.container?.querySelectorAll('#kp-submenu-transpose [data-transpose]') ||
+      []) {
+      const n = Number(el.dataset.transpose)
+      // Пересчитать подпись пункта от текущего data.key (меняется при смене песни).
+      const span = el.querySelector('.kp-transpose-opt')
+      if (span) span.textContent = this._transposeLabel(n, true)
+      const active = n === this._transpose
+      if (!this._transposeSupported) {
+        el.style.pointerEvents = 'none'
+        el.style.opacity = '0.5'
+      } else {
+        el.style.pointerEvents = ''
+        el.style.opacity = ''
+        el.style.background = active ? '#08f' : 'none'
+        el.style.color = active ? '#fff' : '#eee'
+      }
+    }
   }
 
   // Shows "Бас"/"Ударные" export items only if those stems actually exist for the loaded song.
@@ -1214,6 +1352,29 @@ export default class KaraokePlayer {
 
   async _loadAudio() {
     this.audioCtx = new AudioContext()
+    // Привязать Tone.js к тому же AudioContext, что использует плеер — чтобы Tone.PitchShift-узлы
+    // жили в общем аудио-графе с accSource/vocSource/accGain/vocGain. Без этого Tone создал бы
+    // свой собственный context и подключение source→pitchShift→gain跨越 contexts было бы нельзя.
+    // @see docs/features/player-transpose.md
+    try {
+      toneSetContext(this.audioCtx)
+    } catch (e) {
+      // Если Tone уже привязан к другому context в этом модуле (множественные инстансы плеера в
+      // одном документе) — setContext выбросит. В таком случае используем getContext() Tone и
+      // передаём его в конструктор PitchShift явно (см. _ensurePitchShift).
+      console.warn('KaraokePlayer: toneSetContext failed, will pass context per-node:', e)
+    }
+    // Feature-detect: попытка создать тестовый Tone.PitchShift. Если выбросило (нет AudioWorklet,
+    // старый браузер, CSP) — _transposeSupported=false, подменю блокируется с подсказкой (FR-018).
+    // @see docs/features/player-transpose.md
+    try {
+      const probe = new TonePitchShift({ context: this.audioCtx, pitch: 0 })
+      probe.dispose && probe.dispose()
+      this._transposeSupported = true
+    } catch (e) {
+      this._transposeSupported = false
+      console.warn('KaraokePlayer: Tone.PitchShift unavailable, transpose disabled:', e)
+    }
     this.accGain = this.audioCtx.createGain()
     this.vocGain = this.audioCtx.createGain()
     // Применяем персистентные уровни (наследуются при смене трека в плейлисте).
@@ -1476,10 +1637,26 @@ export default class KaraokePlayer {
     if (this.audioCtx.state === 'suspended') await this.audioCtx.resume()
     const accSrc = this.audioCtx.createBufferSource()
     accSrc.buffer = this.accBuffer
-    accSrc.connect(this.accGain)
+    // Транспонирование: вставляем pitch-shift узел между source и gain (source → pitchShift →
+    // gain), если поддержка есть. _ensurePitchShift lazy-создаёт узел с pitch=this._transpose.
+    // playbackRate не трогаем — темп управляется им, pitch-shift меняет только высоту (FR-006).
+    // @see docs/features/player-transpose.md
+    const accPs = this._ensurePitchShift('acc')
+    if (accPs) {
+      accSrc.connect(accPs)
+      accPs.connect(this.accGain)
+    } else {
+      accSrc.connect(this.accGain)
+    }
     const vocSrc = this.audioCtx.createBufferSource()
     vocSrc.buffer = this.vocBuffer
-    vocSrc.connect(this.vocGain)
+    const vocPs = this._ensurePitchShift('voc')
+    if (vocPs) {
+      vocSrc.connect(vocPs)
+      vocPs.connect(this.vocGain)
+    } else {
+      vocSrc.connect(this.vocGain)
+    }
     this.accSource = accSrc
     this.vocSource = vocSrc
     accSrc.playbackRate.value = this._playbackRate
@@ -1587,6 +1764,90 @@ export default class KaraokePlayer {
     this._savePersistedSettings()
   }
 
+  // Lazy-создание Tone.PitchShift-узла для стема. Map-based: ключ = 'acc'/'voc' (в первой
+  // реализации; 'bass'/'drums' в будущем, когда станут проигрываемыми). Узлы создаются один раз
+  // на текущий audioCtx, переиспользуются между _startAudio-вызовами. При смене песни (playSong
+  // закрывает audioCtx) Map очищается в _disposePitchShifts(). Добавление нового стема = вызов
+  // _ensurePitchShift(stemKey) без изменения setTranspose (FR-005).
+  // @see docs/features/player-transpose.md
+  _ensurePitchShift(stemKey) {
+    if (this._pitchShifts.has(stemKey)) return this._pitchShifts.get(stemKey)
+    if (!this._transposeSupported || !this.audioCtx) return null
+    const ps = new TonePitchShift({ context: this.audioCtx, pitch: this._transpose })
+    this._pitchShifts.set(stemKey, ps)
+    return ps
+  }
+
+  // Освобождает все Tone.PitchShift-узлы и очищает Map. Вызывается в playSong перед закрытием
+  // audioCtx (узлы привязаны к context — после close() они невалидны) и в destroy().
+  // @see docs/features/player-transpose.md
+  _disposePitchShifts() {
+    for (const ps of this._pitchShifts.values()) {
+      try {
+        ps.dispose && ps.dispose()
+      } catch (e) {
+        /* узел уже мог быть dispose'нут при закрытии context */
+      }
+    }
+    this._pitchShifts.clear()
+  }
+
+  // Установить сдвиг тональности для текущей песни. Валидирует n ∈ [-12, +12] целое; иначе no-op
+  // (как setPlaybackRate). Сохраняет в localStorage per-song (по data.id); применяет pitch=n ко
+  // всем pitch-shift узлам в _pitchShifts синхронно (FR-005 — все стемы); обновляет подменю и
+  // бейдж. Бесшовно: НЕ трогает accSource/vocSource (узлы живы между source и gain, pitch
+  // меняется на инстансах). Не меняет _playbackRate → темп неизменен (FR-006).
+  // @see docs/features/player-transpose.md
+  setTranspose(n) {
+    n = Number(n)
+    if (!Number.isInteger(n) || n < -12 || n > 12 || n === this._transpose) return
+    this._transpose = n
+    for (const ps of this._pitchShifts.values()) {
+      ps.pitch = n
+    }
+    this._updateTransposeMenu()
+    this._saveTranspose()
+  }
+
+  /**
+   * Текущий сдвиг тональности для активной песни (полутоны, −12..+12; 0 = базовая).
+   * @see docs/features/player-transpose.md
+   */
+  get transpose() {
+    return this._transpose
+  }
+
+  // Восстановить per-song сдвиг из localStorage по data.id. Вызывается в init() после готовности
+  // this.data. Применяет восстановленное значение к существующим pitch-shift узлам (если уже
+  // созданы) — иначе применится при следующем _startAudio через _ensurePitchShift (узел
+  // создаётся с pitch=this._transpose). FR-011 (per-song персистентность).
+  // @see docs/features/player-transpose.md
+  _restoreTranspose() {
+    if (!this.data || this.data.id == null) {
+      this._transpose = 0
+      return
+    }
+    const saved = localStorage.getItem('kp_transpose_' + this.data.id)
+    const n = saved !== null ? Number(saved) : 0
+    this._transpose = saved !== null && Number.isInteger(n) && n >= -12 && n <= 12 ? n : 0
+    for (const ps of this._pitchShifts.values()) {
+      ps.pitch = this._transpose
+    }
+  }
+
+  // Сохранить per-song сдвиг в localStorage по data.id. Вызывается ТОЛЬКО из setTranspose
+  // (явный выбор пользователя) — НЕ из init/playSong (восстановление не должно перезаписывать
+  // localStorage). FR-011. Не расширяет _savePersistedSettings (там глобальные настройки).
+  // @see docs/features/player-transpose.md
+  _saveTranspose() {
+    if (!this.data || this.data.id == null) return
+    try {
+      localStorage.setItem('kp_transpose_' + this.data.id, String(this._transpose))
+    } catch (e) {
+      /* localStorage недоступен (приватный режим/квота) — просто не персистится */
+    }
+  }
+
   // Сменить проигрываемую песню в api-режиме, переиспользуя инстанс (без destroy). Зеркалит
   // teardown/сброс из _loadNewFile, но остаётся в 'api'. autoplay=true — играть сразу по готовности.
   async playSong(songId, autoplay = true) {
@@ -1596,6 +1857,11 @@ export default class KaraokePlayer {
     }
     this._endedHandled = true
     this._stopSources()
+    // Pitch-shift узлы привязаны к текущему audioCtx — освободить их ДО close() (после close они
+    // уже невалидны). Map очистится; при следующем _startAudio _ensurePitchShift создаст новые
+    // узлы на новом context. FR-005 (корректная очистка по стемам).
+    // @see docs/features/player-transpose.md
+    this._disposePitchShifts()
     if (this.audioCtx) {
       await this.audioCtx.close()
       this.audioCtx = null
@@ -1645,6 +1911,13 @@ export default class KaraokePlayer {
     this._preroll = this._splashDur
     this._startFadeStartedAt = null
     this._endFadeStartedAt = null
+    // Транспонирование: сбросить к базовой ПЕРЕД init(), чтобы до загрузки данных новой песни
+    // меню/бейдж не показывали старый сдвиг (FR-012 — другая песня стартует в базовой). init()
+    // вызовет _restoreTranspose() и восстановит сохранённый для НОВОЙ песни сдвиг из localStorage
+    // (или оставит 0). _pitchShifts уже очищен выше через _disposePitchShifts().
+    // @see docs/features/player-transpose.md
+    this._transpose = 0
+    this._updateTransposeMenu()
     // _volumeAnchored / _accVol / _vocVol НЕ сбрасываем — уровни громкости и якорь наследуются
     // следующим треком плейлиста (по требованию).
     clearTimeout(this._prerollTimeout)
@@ -2163,6 +2436,7 @@ export default class KaraokePlayer {
       this._renderLogo(ctx, W, H, logoAlpha)
     }
     this._renderSpeedBadge(ctx, W, H)
+    this._renderTransposeBadge(ctx, W, H)
     this._renderScreenIconAnim(ctx, W, H)
     this._renderDemoWatermark(ctx, W, H)
     // DEMO end screen: offline (MP4 render) shows logo+text+arrows; online uses idle transition.
@@ -2215,6 +2489,46 @@ export default class KaraokePlayer {
     ctx.roundRect(x, y, boxW, boxH, boxH / 2)
     ctx.fill()
     ctx.fillStyle = '#f80'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText(label, x + boxW / 2, y + boxH / 2 + 1)
+    ctx.restore()
+  }
+
+  // Синий бейдж тональности в правом верхнем углу, пока сдвиг ≠ 0 — постоянный, под бейджем
+  // скорости (FR-008/FR-009/FR-010). Цвет #08f (синий), фон/форма/шрифт — как у _renderSpeedBadge.
+  // Подпись = _transposeLabel(n, false) (без скобок: "+3 Cm" / "+3" при пустом key). Позиция Y:
+  // если _playbackRate !== 1 (бейдж скорости активен) — margin + speedBadgeHeight + gap (под ним,
+  // FR-009 — не перекрывать); иначе margin (как у speed-бейджа). Высота speed-бейджа
+  // пересчитывается по той же формуле, что в _renderSpeedBadge, чтобы не плодить общее состояние.
+  // @see docs/features/player-transpose.md
+  _renderTransposeBadge(ctx, W, H) {
+    if (this._transpose === 0) return
+    const scale = H / 1080
+    const label = this._transposeLabel(this._transpose, false)
+
+    const fs = Math.max(14, Math.round(24 * scale))
+    ctx.font = `700 ${fs}px sans-serif`
+    const padX = Math.round(14 * scale),
+      padY = Math.round(7 * scale)
+    const boxW = ctx.measureText(label).width + padX * 2
+    const boxH = fs + padY * 2
+    const margin = Math.round(20 * scale)
+    const gap = Math.round(6 * scale)
+    const x = W - boxW - margin
+    // Y: если бейдж скорости активен — отступить его высоту + gap, иначе с самого верха.
+    let y = margin
+    if (this._playbackRate !== 1) {
+      const speedBadgeH = fs + padY * 2 // та же формула, что в _renderSpeedBadge
+      y = margin + speedBadgeH + gap
+    }
+
+    ctx.save()
+    ctx.fillStyle = 'rgba(0,0,0,0.55)'
+    ctx.beginPath()
+    ctx.roundRect(x, y, boxW, boxH, boxH / 2)
+    ctx.fill()
+    ctx.fillStyle = '#08f'
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
     ctx.fillText(label, x + boxW / 2, y + boxH / 2 + 1)
@@ -3410,6 +3724,11 @@ export default class KaraokePlayer {
     }
     this._endedHandled = true
     this._stopSources()
+    // Pitch-shift узлы привязаны к текущему audioCtx — освободить их ДО close() (после close они
+    // уже невалидны). Map очистится; при следующем _startAudio _ensurePitchShift создаст новые
+    // узлы на новом context. FR-005 (корректная очистка по стемам).
+    // @see docs/features/player-transpose.md
+    this._disposePitchShifts()
     if (this.audioCtx) {
       await this.audioCtx.close()
       this.audioCtx = null
@@ -3457,6 +3776,11 @@ export default class KaraokePlayer {
     this._startFadeStartedAt = null
     this._endFadeStartedAt = null
     this._volumeAnchored = false
+    // Транспонирование: сброс к базовой перед init() (загрузка нового файла = новые данные,
+    // новый data.id → _restoreTranspose в init возьмёт свой сдвиг или 0). FR-012.
+    // @see docs/features/player-transpose.md
+    this._transpose = 0
+    this._updateTransposeMenu()
     clearTimeout(this._prerollTimeout)
     this._prerollTimeout = null
 
@@ -3468,6 +3792,9 @@ export default class KaraokePlayer {
     clearTimeout(this._prerollTimeout)
     this._endedHandled = true
     this._stopSources()
+    // Освободить pitch-shift узлы ДО закрытия audioCtx (узлы привязаны к context).
+    // @see docs/features/player-transpose.md
+    this._disposePitchShifts()
     this.audioCtx?.close()
     this.wsAcc?.destroy()
     this.wsVoc?.destroy()

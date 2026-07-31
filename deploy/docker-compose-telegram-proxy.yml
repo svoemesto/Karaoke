@@ -5,7 +5,10 @@ services:
     container_name: karaoke-telegram-proxy
     command: ["run", "-c", "/usr/local/etc/xray/config.json"]
     volumes:
-      - /sm-karaoke/system/telegram-proxy/config.json:/usr/local/etc/xray/config.json:ro
+      # :rw — karaoke-app перегенерирует config.json из KaraokeProperties при старте
+      # (TelegramProxyManager) и делает docker restart. Если telegramVlessEnabled=false —
+      # файл не трогается, можно редактировать вручную как раньше.
+      - /sm-karaoke/system/telegram-proxy/config.json:/usr/local/etc/xray/config.json:rw
     networks:
       - karaokenet
     restart: always

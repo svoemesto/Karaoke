@@ -128,6 +128,9 @@ data class SongDTOdigest(
     val haveSourceText: Boolean,
     val albumId: Long,
     val albumName: String,
+    // Фаза 2 автопубликации (specs/113-telegram-demo-publish): для badge в SongsTable —
+    // заполнен ли message_id демо-версии в Telegram. Пусто = не опубликовано.
+    val idTelegramDemo: String = "",
 ) : Serializable,
     Comparable<SongDTOdigest> {
     private val sortString: String get() {

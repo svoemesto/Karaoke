@@ -6,6 +6,7 @@ import {
   trackPlayerProgress,
   trackPlayerEnded,
 } from '../services/tracking'
+import { SoundTouch, SimpleFilter, WebAudioBufferSource } from 'soundtouchjs'
 
 // Thrown when required audio isn't available yet (missing file in storage, no mp3 rendered, etc.) —
 // distinguished from other init errors so the UI can show a friendly message instead of raw details.
@@ -62,6 +63,18 @@ export default class KaraokePlayer {
     // скорости на лету (playbackRate — живой AudioParam, меняется прямо на playing-источниках).
     this._playbackRate = 1
     this._rateAnchorPos = 0
+
+    // Транспонирование тональности (сдвиг в полутонах −12..+12 относительно data.key). 0 = базовая.
+    // Per-song (localStorage по data.id), в отличие от _playbackRate (глобальной). Реализация —
+    // офлайн-предобработка буферов через SoundTouch.js (time-stretch). ПРЕМИУМ-фича: доступна
+    // только если data.canExport === true (живая проверка бэкендом, как для «Экспорт аудио»).
+    // Не-премиум при попытке сменить тональность → оверлей «Оформите подписку».
+    // @see docs/features/player-transpose.md
+    this._transpose = 0
+    this._accBufferOriginal = null
+    this._vocBufferOriginal = null
+    this._transposeSupported = true
+    this._transposing = false
 
     // Громкость/якорь/скорость сверх этого ещё и глобально персистентны в localStorage (на машину
     // пользователя, не привязаны к конкретной песне) — открытие плеера на ЛЮБОЙ другой песне (не
@@ -200,6 +213,11 @@ export default class KaraokePlayer {
       this._ready = true
       if (!this._offline) this._startFadeStartedAt = Date.now() // запустить переход logo→splash
       this._updateExportMenuAvailability()
+      // Восстановить per-song сдвиг тональности (FR-011) и пересчитать подписи подменю от
+      // загруженного data.key. Премиум-гейт: не-премиум в api-режиме не восстанавливает.
+      // @see docs/features/player-transpose.md
+      this._restoreTranspose()
+      this._updateTransposeMenu()
     } catch (e) {
       console.error('KaraokePlayer init error:', e)
       const loading = this.container?.querySelector('#kp-loading')
@@ -626,13 +644,13 @@ export default class KaraokePlayer {
     style.textContent = `
       .kp-menu { display:none; position:absolute; bottom:100%; right:0; margin-bottom:6px; background:#222; border:1px solid #444; border-radius:6px; padding:4px 0; min-width:190px; box-shadow:0 4px 16px rgba(0,0,0,0.6); z-index:30; font-size:13px; }
       .kp-menu-item { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:7px 14px; cursor:pointer; color:#eee; white-space:nowrap; }
-      .kp-menu-item:hover { background:#08f; color:#fff; }
+      .kp-menu-item:hover, .kp-menu-item.kp-menu-active { background:#08f; color:#fff; }
       .kp-menu-separator { height:1px; background:#444; margin:4px 0; }
       .kp-menu-arrow { color:#999; font-size:11px; }
       .kp-menu-item:hover .kp-menu-arrow { color:#fff; }
       .kp-menu-parent { position:relative; }
       .kp-submenu { display:none; position:absolute; right:100%; bottom:-5px; background:#222; border:1px solid #444; border-radius:6px; padding:4px 0; min-width:150px; box-shadow:0 4px 16px rgba(0,0,0,0.6); }
-      .kp-menu-parent:hover > .kp-submenu, .kp-menu-parent.kp-submenu-open > .kp-submenu { display:block; }
+      .kp-menu-parent.kp-submenu-open > .kp-submenu { display:block; }
     `
     document.head.appendChild(style)
   }
@@ -689,6 +707,13 @@ export default class KaraokePlayer {
                 <span>Скорость: <span id="kp-speed-label">1x</span></span><span class="kp-menu-arrow">▸</span>
                 <div class="kp-submenu" id="kp-submenu-speed">
                   ${KaraokePlayer.SPEED_OPTIONS.map((o) => `<div class="kp-menu-item" data-rate="${o.value}"><span>${o.label}</span></div>`).join('')}
+                </div>
+              </div>
+              <div class="kp-menu-item kp-menu-parent" id="kp-menu-transpose">
+                <span>Тональность: <span id="kp-transpose-label">0</span></span><span class="kp-menu-arrow">▸</span>
+                <div class="kp-submenu" id="kp-submenu-transpose">
+                  <div class="kp-menu-item" id="kp-transpose-unsupported-hint" style="display:none;color:#999;font-style:italic;padding:4px 12px">Браузер не поддерживает</div>
+                  ${KaraokePlayer.TRANSPOSE_OPTIONS.map((n) => `<div class="kp-menu-item" data-transpose="${n}"><span class="kp-transpose-opt">${this._transposeLabel(n, true)}</span></div>`).join('')}
                 </div>
               </div>
             </div>
@@ -846,6 +871,72 @@ export default class KaraokePlayer {
     { value: 3, label: '3x' },
   ]
 
+  // Доступные сдвиги тональности в полутонах от базовой (data.key): −12 … +12 с шагом 1 (25
+  // вариантов). 0 = базовая. FR-002. Хроматическая шкала для расчёта результирующей подписи —
+  // _transposeLabel. Премиум-фича в публичном плеере (data.canExport).
+  // @see docs/features/player-transpose.md
+  static TRANSPOSE_OPTIONS = Array.from({ length: 25 }, (_, i) => i - 12) // [-12, -11, ..., 0, ..., 11, 12]
+
+  // Хроматическая шкала (по полутонам, индекс 0 = C). _transposeLabel для расчёта результирующей
+  // ноты сдвигом от базовой. Диезь-обозначения (C#, D# ...) — соответствует формату поля key.
+  // @see docs/features/player-transpose.md
+  static CHROMATIC = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
+
+  // Разбор строки базовой тональности (data.key) в { index, suffix }. index — позиция в
+  // CHROMATIC (0..11), suffix — 'm' для минора, '' для мажора (краткое обозначение: Am, C, F#m —
+  // не "A minor", "C major"). Принимает полные формы ("A minor", "C major") и краткие ("Am", "C").
+  // Возвращает null если нота не распознана — тогда _transposeLabel падает на подпись «только
+  // сдвиг» (FR-013 расширенно, Assumption).
+  // @see docs/features/player-transpose.md
+  static _parseKey(key) {
+    if (!key || typeof key !== 'string') return null
+    const m = key.trim().match(/^([A-G])([#b]?)(.*)$/)
+    if (!m) return null
+    let base = m[1]
+    let accidental = m[2]
+    let note = base + accidental
+    const flatToSharp = {
+      C: 'B',
+      Db: 'C#',
+      D: 'C#',
+      Eb: 'D#',
+      E: 'D#',
+      Fb: 'E',
+      Gb: 'F#',
+      G: 'F#',
+      Ab: 'G#',
+      A: 'G#',
+      Bb: 'A#',
+      B: 'A#',
+    }
+    if (accidental === 'b') {
+      note = flatToSharp[note] || note
+    }
+    const idx = KaraokePlayer.CHROMATIC.indexOf(note)
+    if (idx < 0) return null
+    const rest = (m[3] || '').trim().toLowerCase()
+    const suffix = rest === 'minor' || rest === 'm' ? 'm' : ''
+    return { index: idx, suffix }
+  }
+
+  // Подпись сдвига тональности. Краткое обозначение (Cm, G, F#m — не "C minor"/"G major").
+  // forMenu=true → "(+3) Cm" (сдвиг в скобках первым — для пункта меню); false → "Cm (+3)"
+  // (тональность первой — для бейджа). При пустом data.key или нераспознанном — только сдвиг
+  // "(+3)" (FR-013). Сдвиг 0 → "(0)" (без знака). Результирующая нота =
+  // CHROMATIC[(baseIndex + n) mod 12] + suffix базовой (FR-004).
+  // @see docs/features/player-transpose.md
+  _transposeLabel(n, forMenu) {
+    const sign = n > 0 ? '+' : ''
+    const shift = `(${sign}${n})`
+    const parsed = KaraokePlayer._parseKey(this.data?.key)
+    if (!parsed) {
+      return shift
+    }
+    const resultIdx = (((parsed.index + n) % 12) + 12) % 12
+    const note = KaraokePlayer.CHROMATIC[resultIdx] + parsed.suffix
+    return forMenu ? `${shift} ${note}` : `${note} ${shift}`
+  }
+
   static STEM_EXPORT_MAP = {
     vocals: { urlField: 'audioVocalsUrl', suffix: 'voice' },
     accompaniment: { urlField: 'audioAccompanimentUrl', suffix: 'accompaniment' },
@@ -853,9 +944,8 @@ export default class KaraokePlayer {
     drums: { urlField: 'audioDrumsUrl', suffix: 'drums' },
   }
 
-  // Публичное меню намеренно содержит ТОЛЬКО пункт «Скорость» (см. комментарий в шаблоне _buildUI)
-  // — в отличие от admin-копии (webvue3/src/player/KaraokePlayer.js), здесь нет «Открыть файл...»/
-  // «Сохранить файл»/«Экспорт аудио...», поэтому их wiring сюда не переносится вовсе.
+  // Публичное меню содержит «Скорость» и «Тональность» (премиум). «Открыть файл...»/«Сохранить
+  // файл»/«Экспорт аудио...» из admin-копии сюда не перенесены (см. комментарий в шаблоне _buildUI).
   _buildMenu() {
     const menuBtn = this.container.querySelector('#kp-menu-btn')
     if (!menuBtn) return
@@ -870,8 +960,6 @@ export default class KaraokePlayer {
       menu.style.display = isOpen ? 'none' : 'block'
     })
 
-    // The submenu already opens on hover via CSS (:hover); click toggles a class so it also
-    // works without a pointing device that supports hover (touch, or a deliberate click).
     speedItem.addEventListener('click', (e) => {
       e.stopPropagation()
       speedItem.classList.toggle('kp-submenu-open')
@@ -885,18 +973,87 @@ export default class KaraokePlayer {
     }
     this._updateSpeedMenu()
 
+    // Транспонирование: wiring подменю «Тональность» (параллельно speed). ПРЕМИУМ-фича: при попытке
+    // сменить тональность не-премиумом (data.canExport !== true) → оверлей «Оформите подписку»
+    // вместо применения. При отсутствии поддержки браузером (FR-018) пункты заблокированы.
+    // @see docs/features/player-transpose.md
+    const transposeItem = this.container.querySelector('#kp-menu-transpose')
+    const transposeSubmenu = this.container.querySelector('#kp-submenu-transpose')
+    transposeItem.addEventListener('click', (e) => {
+      e.stopPropagation()
+      transposeItem.classList.toggle('kp-submenu-open')
+    })
+    for (const el of transposeSubmenu.querySelectorAll('[data-transpose]')) {
+      el.addEventListener('click', () => {
+        if (!this._transposeSupported) return
+        this._closeMenu()
+        this.setTranspose(Number(el.dataset.transpose))
+      })
+    }
+    this._updateTransposeMenu()
+
+    // Hover-открытие подменю (speed/transpose). Логика:
+    // - mouseenter на родителе → мгновенно открыть своё подменю + СРАЗУ закрыть все остальные.
+    // - mouseleave с родителя ИЛИ подменю → таймер 1с на закрытие. Возврат мыши в пределы
+    //   родителя ИЛИ подменю раньше 1с — отменяет закрытие. Подменю позиционировано абсолютно
+    //   за пределами родителя (right:100%), поэтому mouseleave родителя срабатывает при уходе
+    //   в подменю — таймер запускается, но немедленно отменяется mouseenter на подменю.
+    // @see docs/features/player-transpose.md
+    this._submenuCloseTimers = new Map()
+    const parents = this.container.querySelectorAll('.kp-menu-parent')
+    const closeOtherSubmenus = (except) => {
+      for (const p of parents) {
+        if (p === except) continue
+        p.classList.remove('kp-submenu-open')
+        const t = this._submenuCloseTimers.get(p)
+        if (t) {
+          clearTimeout(t)
+          this._submenuCloseTimers.delete(p)
+        }
+      }
+    }
+    const cancelClose = (parent) => {
+      const t = this._submenuCloseTimers.get(parent)
+      if (t) {
+        clearTimeout(t)
+        this._submenuCloseTimers.delete(parent)
+      }
+    }
+    const scheduleClose = (parent) => {
+      cancelClose(parent)
+      const t = setTimeout(() => {
+        parent.classList.remove('kp-submenu-open')
+        this._submenuCloseTimers.delete(parent)
+      }, 1000)
+      this._submenuCloseTimers.set(parent, t)
+    }
+    for (const parent of parents) {
+      const submenu = parent.querySelector(':scope > .kp-submenu')
+      parent.addEventListener('mouseenter', () => {
+        cancelClose(parent)
+        closeOtherSubmenus(parent)
+        parent.classList.add('kp-submenu-open')
+      })
+      parent.addEventListener('mouseleave', () => scheduleClose(parent))
+      if (submenu) {
+        submenu.addEventListener('mouseenter', () => cancelClose(parent))
+        submenu.addEventListener('mouseleave', () => scheduleClose(parent))
+      }
+    }
+
     document.addEventListener('click', this._menuOutsideClickHandler)
   }
 
   // Подсвечивает текущую выбранную скорость в подменю + обновляет лейбл в родительском пункте.
+  // Активный пункт получает класс kp-menu-active (CSS даёт #08f/#fff). Без инлайн-стилей —
+  // чтобы :hover на неактивных пунктах работал (инлайн-стиль перекрывал бы :hover).
   _updateSpeedMenu() {
     const label = this.container?.querySelector('#kp-speed-label')
     const opt = KaraokePlayer.SPEED_OPTIONS.find((o) => o.value === this._playbackRate)
     if (label) label.textContent = opt ? opt.label : `${this._playbackRate}x`
     for (const el of this.container?.querySelectorAll('#kp-submenu-speed [data-rate]') || []) {
       const active = Number(el.dataset.rate) === this._playbackRate
-      el.style.background = active ? '#08f' : 'none'
-      el.style.color = active ? '#fff' : '#eee'
+      el.classList.toggle('kp-menu-active', active)
     }
   }
 
@@ -905,6 +1062,38 @@ export default class KaraokePlayer {
     if (menu) menu.style.display = 'none'
     for (const el of this.container.querySelectorAll('.kp-menu-parent'))
       el.classList.remove('kp-submenu-open')
+    // Отменить pending-таймеры закрытия подменю (иначе сработают после закрытия всего меню).
+    if (this._submenuCloseTimers) {
+      for (const t of this._submenuCloseTimers.values()) clearTimeout(t)
+      this._submenuCloseTimers.clear()
+    }
+  }
+
+  // Подсвечивает текущий выбранный сдвиг в подменю «Тональность» + обновляет лейбл родительского
+  // пункта. Пересчитывает подписи пунктов от текущего data.key. При _transposeSupported=false —
+  // блокирует пункты и показывает подсказку (FR-018).
+  // @see docs/features/player-transpose.md
+  _updateTransposeMenu() {
+    const label = this.container?.querySelector('#kp-transpose-label')
+    if (label) label.textContent = this._transposeLabel(this._transpose, false)
+    const hint = this.container?.querySelector('#kp-transpose-unsupported-hint')
+    if (hint) hint.style.display = this._transposeSupported ? 'none' : 'block'
+    for (const el of this.container?.querySelectorAll('#kp-submenu-transpose [data-transpose]') ||
+      []) {
+      const n = Number(el.dataset.transpose)
+      const span = el.querySelector('.kp-transpose-opt')
+      if (span) span.textContent = this._transposeLabel(n, true)
+      const active = n === this._transpose
+      if (!this._transposeSupported) {
+        el.style.pointerEvents = 'none'
+        el.style.opacity = '0.5'
+        el.classList.remove('kp-menu-active')
+      } else {
+        el.style.pointerEvents = ''
+        el.style.opacity = ''
+        el.classList.toggle('kp-menu-active', active)
+      }
+    }
   }
 
   // "Экспорт аудио..." целиком доступен только для локально открытого файла ('blob'/'url-smkaraoke'
@@ -1016,6 +1205,11 @@ export default class KaraokePlayer {
     ])
     this.accBuffer = accBuf
     this.vocBuffer = vocBuf
+    // Сохранить оригинальные буферы для офлайн-транспонирования (всегда от оригинала, не от уже
+    // транспонированного — без накопления артефактов при повторной смене тональности).
+    // @see docs/features/player-transpose.md
+    this._accBufferOriginal = accBuf
+    this._vocBufferOriginal = vocBuf
     this.duration = Math.max(accBuf.duration, vocBuf.duration)
   }
 
@@ -1355,6 +1549,208 @@ export default class KaraokePlayer {
     this._savePersistedSettings()
   }
 
+  // Офлайн-транспонирование AudioBuffer через SoundTouch.js (time-stretch pitch-shift). Возвращает
+  // НОВЫЙ AudioBuffer с изменённой высотой при сохранении темпа/длительности. tempo=1 сохраняет
+  // длительность → караоке-маркеры остаются синхронными (FR-006). Работает во всех браузерах с
+  // Web Audio API. @see docs/features/player-transpose.md
+  _transposeBuffer(buffer, semitones) {
+    if (!this.audioCtx || semitones === 0) return buffer
+    const soundTouch = new SoundTouch()
+    soundTouch.pitchSemitones = semitones
+    soundTouch.tempo = 1
+    const source = new WebAudioBufferSource(buffer)
+    const filter = new SimpleFilter(source, soundTouch)
+    const numChannels = buffer.numberOfChannels
+    const sampleRate = buffer.sampleRate
+    const outLength = Math.ceil(buffer.length * 1.05) + 4096
+    const outBuffer = this.audioCtx.createBuffer(numChannels, outLength, sampleRate)
+    const outL = outBuffer.getChannelData(0)
+    const outR = numChannels > 1 ? outBuffer.getChannelData(1) : outL
+    const CHUNK = 4096
+    let written = 0
+    const tmp = new Float32Array(CHUNK * 2)
+    while (written < outLength) {
+      const frames = filter.extract(tmp, CHUNK)
+      if (frames === 0) break
+      for (let i = 0; i < frames; i++) {
+        if (written + i >= outLength) break
+        outL[written + i] = tmp[i * 2]
+        if (numChannels > 1) outR[written + i] = tmp[i * 2 + 1]
+      }
+      written += frames
+    }
+    const final = this.audioCtx.createBuffer(numChannels, written, sampleRate)
+    final.getChannelData(0).set(outL.subarray(0, written))
+    if (numChannels > 1) final.getChannelData(1).set(outR.subarray(0, written))
+    return final
+  }
+
+  // Применить текущий _transpose к accBuffer/vocBuffer от оригиналов. Офлайн, с паузой и
+  // индикатором «Транспонирование…». После — продолжить с позиции. _transposing=true во время
+  // обработки. FR-005 (все стемы), FR-006 (time-stretch, темп сохранён).
+  // @see docs/features/player-transpose.md
+  async _applyTranspose() {
+    if (this._transposing) return
+    if (!this._accBufferOriginal || !this._vocBufferOriginal) return
+    const wasPlaying = this.isPlaying
+    const resumePos = this._getCurrentTime()
+    this._transposing = true
+    this._updateTransposeMenu()
+    if (wasPlaying) {
+      clearTimeout(this._prerollTimeout)
+      if (this._isPrerolling) {
+        this._dtPaused = this._getDisplayTime()
+        this._isPrerolling = false
+      } else {
+        this.pausedAt = resumePos
+        this._endedHandled = true
+        this._stopSources()
+      }
+      this.isPlaying = false
+      const btn = this.container.querySelector('#kp-play')
+      if (btn) btn.textContent = '▶'
+    }
+    const loading = this.container?.querySelector('#kp-loading')
+    if (loading) {
+      loading.textContent = 'Транспонирование…'
+      loading.style.background = 'transparent'
+      loading.style.display = 'flex'
+    }
+    await new Promise((r) => setTimeout(r, 0))
+    try {
+      if (this._transpose === 0) {
+        this.accBuffer = this._accBufferOriginal
+        this.vocBuffer = this._vocBufferOriginal
+      } else {
+        this.accBuffer = this._transposeBuffer(this._accBufferOriginal, this._transpose)
+        this.vocBuffer = this._transposeBuffer(this._vocBufferOriginal, this._transpose)
+      }
+      this.duration = Math.max(this.accBuffer.duration, this.vocBuffer.duration)
+    } catch (e) {
+      console.error('KaraokePlayer: offline transpose failed, disabling:', e)
+      this._transposeSupported = false
+      this.accBuffer = this._accBufferOriginal
+      this.vocBuffer = this._vocBufferOriginal
+      this._transpose = 0
+    }
+    if (loading) loading.style.display = 'none'
+    this._transposing = false
+    this._updateTransposeMenu()
+    if (wasPlaying) {
+      this.pausedAt = resumePos
+      this._play()
+    }
+  }
+
+  // Установить сдвиг тональности. ПРЕМИУМ-фича: если data.canExport !== true (не-премиум в api-
+  // режиме) — показывает оверлей «Оформите подписку» вместо применения. В blob-режиме
+  // (локальный файл) — применяется без гейта (файл уже у пользователя).
+  // @see docs/features/player-transpose.md
+  setTranspose(n) {
+    n = Number(n)
+    if (!Number.isInteger(n) || n < -12 || n > 12 || n === this._transpose) return
+    if (!this._transposeSupported) return
+    // Премиум-гейт: api-режим требует canExport (живая проверка бэкендом). blob/inlineData — без.
+    if (this._mode === 'api' && this.data?.canExport !== true) {
+      this._showPremiumUpsellOverlay()
+      return
+    }
+    this._transpose = n
+    this._updateTransposeMenu()
+    this._saveTranspose()
+    this._applyTranspose()
+  }
+
+  /**
+   * Текущий сдвиг тональности для активной песни (полутоны, −12..+12; 0 = базовая).
+   * @see docs/features/player-transpose.md
+   */
+  get transpose() {
+    return this._transpose
+  }
+
+  // Восстановить per-song сдвиг из localStorage. Применяет офлайн-транспонирование к буферам
+  // (синхронно, до первого _play). FR-011. Премиум-гейт: не-премиум в api-режиме не
+  // восстанавливает сохранённый сдвиг (фича недоступна) — оставляет 0/оригиналы.
+  // @see docs/features/player-transpose.md
+  _restoreTranspose() {
+    if (!this.data || this.data.id == null) {
+      this._transpose = 0
+      return
+    }
+    const saved = localStorage.getItem('kp_transpose_' + this.data.id)
+    const n = saved !== null ? Number(saved) : 0
+    this._transpose = saved !== null && Number.isInteger(n) && n >= -12 && n <= 12 ? n : 0
+    // Премиум-гейт: не-премиум в api-режиме — не восстанавливать (фича недоступна).
+    if (this._mode === 'api' && this.data?.canExport !== true) {
+      this._transpose = 0
+      return
+    }
+    if (this._transpose !== 0 && this._accBufferOriginal && this._transposeSupported) {
+      try {
+        this.accBuffer = this._transposeBuffer(this._accBufferOriginal, this._transpose)
+        this.vocBuffer = this._transposeBuffer(this._vocBufferOriginal, this._transpose)
+        this.duration = Math.max(this.accBuffer.duration, this.vocBuffer.duration)
+      } catch (e) {
+        console.error('KaraokePlayer: restore transpose failed, disabling:', e)
+        this._transposeSupported = false
+        this._transpose = 0
+        this.accBuffer = this._accBufferOriginal
+        this.vocBuffer = this._vocBufferOriginal
+      }
+    }
+  }
+
+  // Сохранить per-song сдвиг в localStorage. ТОЛЬКО из setTranspose (явный выбор).
+  // @see docs/features/player-transpose.md
+  _saveTranspose() {
+    if (!this.data || this.data.id == null) return
+    try {
+      localStorage.setItem('kp_transpose_' + this.data.id, String(this._transpose))
+    } catch (e) {
+      /* localStorage недоступен — просто не персистится */
+    }
+  }
+
+  // Оверлей «Транспонирование — премиум-функция» — по образцу _showDemoEndOverlay. Показывается
+  // при попытке сменить тональность не-премиумом в api-режиме. Кнопка ведёт на /premium.
+  // @see docs/features/player-transpose.md
+  _showPremiumUpsellOverlay() {
+    this._hidePremiumUpsellOverlay()
+    const wrap = this.container.querySelector('#kp-canvas-wrap')
+    if (!wrap) return
+    const overlay = document.createElement('div')
+    overlay.id = 'kp-transpose-premium-overlay'
+    overlay.style.cssText =
+      'position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:rgba(0,0,0,0.72);text-align:center;padding:24px;z-index:20'
+    overlay.innerHTML = `
+      <div style="color:#fff;font-size:20px;font-weight:700">Транспонирование — премиум-функция</div>
+      <div style="color:#ccc;font-size:14px;max-width:360px">Смена тональности доступна с премиум-подпиской. Оформите её, чтобы подбирать тональность под свой голос прямо в плеере.</div>
+      <button id="kp-transpose-premium-cta" style="background:#08f;border:none;color:#fff;font-size:15px;font-weight:600;padding:10px 22px;border-radius:6px;cursor:pointer">Оформить подписку →</button>
+      <button id="kp-transpose-premium-close" style="background:none;border:none;color:#888;font-size:13px;padding:6px;cursor:pointer">Закрыть</button>
+    `
+    wrap.appendChild(overlay)
+    overlay.querySelector('#kp-transpose-premium-cta').addEventListener('click', (e) => {
+      e.stopPropagation()
+      try {
+        window.top.location.href = '/premium'
+      } catch (_e) {
+        window.location.href = '/premium'
+      }
+    })
+    overlay.querySelector('#kp-transpose-premium-close').addEventListener('click', (e) => {
+      e.stopPropagation()
+      this._hidePremiumUpsellOverlay()
+    })
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) this._hidePremiumUpsellOverlay()
+    })
+  }
+
+  _hidePremiumUpsellOverlay() {
+    this.container.querySelector('#kp-transpose-premium-overlay')?.remove()
+  }
+
   // Сменить проигрываемую песню в api-режиме, переиспользуя инстанс (без destroy). Зеркалит
   // teardown/сброс состояния из _loadNewFile, но остаётся в 'api' и заново дёргает init().
   // autoplay=true — начать воспроизведение сразу после готовности (авто-переход в плейлисте).
@@ -1364,6 +1760,7 @@ export default class KaraokePlayer {
       this.animId = null
     }
     this._hideDemoEndOverlay()
+    this._hidePremiumUpsellOverlay()
     this._endedHandled = true
     this._stopSources()
     if (this.audioCtx) {
@@ -1415,6 +1812,14 @@ export default class KaraokePlayer {
     this._preroll = this._splashDur
     this._startFadeStartedAt = null
     this._endFadeStartedAt = null
+    // Транспонирование: сброс к базовой ПЕРЕД init() (FR-012). init() вызовет _restoreTranspose()
+    // и восстановит сохранённый для НОВОЙ песни сдвиг (или 0). Оригиналы пересоздадутся в _loadAudio.
+    // @see docs/features/player-transpose.md
+    this._transpose = 0
+    this._accBufferOriginal = null
+    this._vocBufferOriginal = null
+    this._transposing = false
+    this._updateTransposeMenu()
     // _volumeAnchored / _accVol / _vocVol НЕ сбрасываем — уровни громкости и якорь наследуются
     // следующим треком плейлиста (по требованию).
     this._progressFlags = { 25: false, 50: false, 75: false }
@@ -1955,6 +2360,7 @@ export default class KaraokePlayer {
 
     this._renderLogo(ctx, W, H, logoAlpha)
     this._renderSpeedBadge(ctx, W, H)
+    this._renderTransposeBadge(ctx, W, H)
     this._renderScreenIconAnim(ctx, W, H)
     this._renderDemoWatermark(ctx, W, H)
     if (!this._offline) this._updateControls(dt)
@@ -2019,6 +2425,40 @@ export default class KaraokePlayer {
     ctx.roundRect(x, y, boxW, boxH, boxH / 2)
     ctx.fill()
     ctx.fillStyle = '#f80'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText(label, x + boxW / 2, y + boxH / 2 + 1)
+    ctx.restore()
+  }
+
+  // Синий бейдж тональности в правом верхнем углу, пока сдвиг ≠ 0 — под бейджем скорости (FR-008/
+  // FR-009/FR-010). Цвет #08f, подпись = _transposeLabel(n, false) ("Cm (+3)" / "(+3)" при пустом
+  // key). Y: если _playbackRate !== 1 — отступить высоту speed-бейджа + gap, иначе margin.
+  // @see docs/features/player-transpose.md
+  _renderTransposeBadge(ctx, W, H) {
+    if (this._transpose === 0) return
+    const scale = H / 1080
+    const label = this._transposeLabel(this._transpose, false)
+    const fs = Math.max(14, Math.round(24 * scale))
+    ctx.font = `700 ${fs}px sans-serif`
+    const padX = Math.round(14 * scale),
+      padY = Math.round(7 * scale)
+    const boxW = ctx.measureText(label).width + padX * 2
+    const boxH = fs + padY * 2
+    const margin = Math.round(20 * scale)
+    const gap = Math.round(6 * scale)
+    const x = W - boxW - margin
+    let y = margin
+    if (this._playbackRate !== 1) {
+      const speedBadgeH = fs + padY * 2
+      y = margin + speedBadgeH + gap
+    }
+    ctx.save()
+    ctx.fillStyle = 'rgba(0,0,0,0.55)'
+    ctx.beginPath()
+    ctx.roundRect(x, y, boxW, boxH, boxH / 2)
+    ctx.fill()
+    ctx.fillStyle = '#08f'
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
     ctx.fillText(label, x + boxW / 2, y + boxH / 2 + 1)
@@ -2986,6 +3426,7 @@ export default class KaraokePlayer {
       cancelAnimationFrame(this.animId)
       this.animId = null
     }
+    this._hidePremiumUpsellOverlay()
     this._endedHandled = true
     this._stopSources()
     if (this.audioCtx) {
@@ -3035,6 +3476,13 @@ export default class KaraokePlayer {
     this._startFadeStartedAt = null
     this._endFadeStartedAt = null
     this._volumeAnchored = false
+    // Транспонирование: сброс к базовой перед init() (загрузка нового файла = новые данные).
+    // @see docs/features/player-transpose.md
+    this._transpose = 0
+    this._accBufferOriginal = null
+    this._vocBufferOriginal = null
+    this._transposing = false
+    this._updateTransposeMenu()
     clearTimeout(this._prerollTimeout)
     this._prerollTimeout = null
 
@@ -3045,6 +3493,7 @@ export default class KaraokePlayer {
     if (this.animId) cancelAnimationFrame(this.animId)
     clearTimeout(this._prerollTimeout)
     this._endedHandled = true
+    this._hidePremiumUpsellOverlay()
     this._stopSources()
     this.audioCtx?.close()
     this.wsAcc?.destroy()

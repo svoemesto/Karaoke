@@ -1085,7 +1085,20 @@ export default class KaraokePlayer {
     let accidental = m[2] // '', '#', 'b'
     let note = base + accidental
     // Нормализуем 'b' в '#' для поиска в CHROMATIC (Bb → A#, Db → C#, ...).
-    const flatToSharp = { C: 'B', Db: 'C#', D: 'C#', Eb: 'D#', E: 'D#', Fb: 'E', Gb: 'F#', G: 'F#', Ab: 'G#', A: 'G#', Bb: 'A#', B: 'A#' }
+    const flatToSharp = {
+      C: 'B',
+      Db: 'C#',
+      D: 'C#',
+      Eb: 'D#',
+      E: 'D#',
+      Fb: 'E',
+      Gb: 'F#',
+      G: 'F#',
+      Ab: 'G#',
+      A: 'G#',
+      Bb: 'A#',
+      B: 'A#',
+    }
     if (accidental === 'b') {
       note = flatToSharp[note] || note
     }
@@ -1106,7 +1119,7 @@ export default class KaraokePlayer {
     if (!parsed) {
       return forMenu ? `(${shift})` : shift
     }
-    const resultIdx = ((parsed.index + n) % 12 + 12) % 12
+    const resultIdx = (((parsed.index + n) % 12) + 12) % 12
     const note = KaraokePlayer.CHROMATIC[resultIdx] + parsed.suffix
     return forMenu ? `(${shift}) ${note}` : `${shift} ${note}`
   }
@@ -1222,7 +1235,8 @@ export default class KaraokePlayer {
     if (label) label.textContent = this._transposeLabel(this._transpose, false)
     const hint = this.container?.querySelector('#kp-transpose-unsupported-hint')
     if (hint) hint.style.display = this._transposeSupported ? 'none' : 'block'
-    for (const el of this.container?.querySelectorAll('#kp-submenu-transpose [data-transpose]') || []) {
+    for (const el of this.container?.querySelectorAll('#kp-submenu-transpose [data-transpose]') ||
+      []) {
       const n = Number(el.dataset.transpose)
       // Пересчитать подпись пункта от текущего data.key (меняется при смене песни).
       const span = el.querySelector('.kp-transpose-opt')
@@ -1815,8 +1829,7 @@ export default class KaraokePlayer {
     }
     const saved = localStorage.getItem('kp_transpose_' + this.data.id)
     const n = saved !== null ? Number(saved) : 0
-    this._transpose =
-      saved !== null && Number.isInteger(n) && n >= -12 && n <= 12 ? n : 0
+    this._transpose = saved !== null && Number.isInteger(n) && n >= -12 && n <= 12 ? n : 0
     for (const ps of this._pitchShifts.values()) {
       ps.pitch = this._transpose
     }

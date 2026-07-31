@@ -3,6 +3,7 @@ package com.svoemesto.karaokeapp.services
 import com.svoemesto.karaokeapp.KaraokeProperties
 import com.svoemesto.karaokeapp.runCommand
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.add

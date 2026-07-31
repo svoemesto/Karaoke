@@ -1354,27 +1354,24 @@ export default class KaraokePlayer {
     this.audioCtx = new AudioContext()
     // Привязать Tone.js к тому же AudioContext, что использует плеер — чтобы Tone.PitchShift-узлы
     // жили в общем аудио-графе с accSource/vocSource/accGain/vocGain. Без этого Tone создал бы
-    // свой собственный context и подключение source→pitchShift→gain跨越 contexts было бы нельзя.
+    // свой собственный context и подключение source→pitchShift→gain跨 contexts было бы нельзя.
     // @see docs/features/player-transpose.md
     try {
       toneSetContext(this.audioCtx)
     } catch (e) {
       // Если Tone уже привязан к другому context в этом модуле (множественные инстансы плеера в
-      // одном документе) — setContext выбросит. В таком случае используем getContext() Tone и
-      // передаём его в конструктор PitchShift явно (см. _ensurePitchShift).
+      // одном документе) — setContext выбросит. В таком случае передаём context в конструктор
+      // PitchShift явно (см. _ensurePitchShift).
       console.warn('KaraokePlayer: toneSetContext failed, will pass context per-node:', e)
     }
-    // Feature-detect: попытка создать тестовый Tone.PitchShift. Если выбросило (нет AudioWorklet,
-    // старый браузер, CSP) — _transposeSupported=false, подменю блокируется с подсказкой (FR-018).
+    // Feature-detect НЕ создаём PitchShift здесь намеренно: AudioContext на момент _loadAudio
+    // ещё suspended (init() бежит при загрузке страницы, до пользовательского жеста) — Tone.PitchShift
+    // в конструкторе стартует LFO (OscillatorNode.start) на suspended context, что в некоторых
+    // браузерах (Яндекс.Браузер, Chromium-производные) выбрасывает, хотя после resume() узел бы
+    // работал. Реальная проверка — в _ensurePitchShift при первом _startAudio (после resume()).
+    // _transposeSupported остаётся true по умолчанию (из конструктора); переключается в false
+    // только если создание узла падает уже на running context.
     // @see docs/features/player-transpose.md
-    try {
-      const probe = new TonePitchShift({ context: this.audioCtx, pitch: 0 })
-      probe.dispose && probe.dispose()
-      this._transposeSupported = true
-    } catch (e) {
-      this._transposeSupported = false
-      console.warn('KaraokePlayer: Tone.PitchShift unavailable, transpose disabled:', e)
-    }
     this.accGain = this.audioCtx.createGain()
     this.vocGain = this.audioCtx.createGain()
     // Применяем персистентные уровни (наследуются при смене трека в плейлисте).
@@ -1773,9 +1770,25 @@ export default class KaraokePlayer {
   _ensurePitchShift(stemKey) {
     if (this._pitchShifts.has(stemKey)) return this._pitchShifts.get(stemKey)
     if (!this._transposeSupported || !this.audioCtx) return null
-    const ps = new TonePitchShift({ context: this.audioCtx, pitch: this._transpose })
-    this._pitchShifts.set(stemKey, ps)
-    return ps
+    // Создание Tone.PitchShift может выбросить на некоторых браузерах (старых, CSP, без нужных
+    // нативных узлов). Берём в try/catch: при неудаче — переключаем _transposeSupported=false,
+    // обновляем подменю (FR-018 — блокировка с подсказкой) и возвращаем null, чтобы вызывающий
+    // _startAudio сделал прямое source.connect(gain) без pitch-shift. ВАЖНО: создаём на уже
+    // resumed context (audioCtx.state === 'running') — _startAudio вызывает resume() выше по
+    // стеку, иначе на suspended context старт LFO в конструкторе PitchShift падает в Яндекс.Браузере.
+    try {
+      const ps = new TonePitchShift({ context: this.audioCtx, pitch: this._transpose })
+      this._pitchShifts.set(stemKey, ps)
+      return ps
+    } catch (e) {
+      console.warn(
+        `KaraokePlayer: Tone.PitchShift create failed for stem "${stemKey}", disabling transpose:`,
+        e,
+      )
+      this._transposeSupported = false
+      this._updateTransposeMenu()
+      return null
+    }
   }
 
   // Освобождает все Tone.PitchShift-узлы и очищает Map. Вызывается в playSong перед закрытием

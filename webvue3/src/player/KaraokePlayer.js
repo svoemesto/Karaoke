@@ -1076,9 +1076,10 @@ export default class KaraokePlayer {
   static CHROMATIC = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
 
   // Разбор строки базовой тональности (data.key) в { index, suffix }. index — позиция в
-  // CHROMATIC (0..11), suffix — оставшаяся часть ('m' для минора, '' для мажора, иное как есть).
-  // Возвращает null если нота не распознана (нестандартный key) — тогда _transposeLabel падает
-  // на подпись «только сдвиг» (FR-013 расширенно, Assumption).
+  // CHROMATIC (0..11), suffix — 'm' для минора, '' для мажора (краткое обозначение: Am, C, F#m —
+  // не "A minor", "C major"). Принимает полные формы ("A minor", "C major") и краткие ("Am", "C").
+  // Возвращает null если нота не распознана — тогда _transposeLabel падает на подпись «только
+  // сдвиг» (FR-013 расширенно, Assumption).
   // @see docs/features/player-transpose.md
   static _parseKey(key) {
     if (!key || typeof key !== 'string') return null
@@ -1107,7 +1108,10 @@ export default class KaraokePlayer {
     }
     const idx = KaraokePlayer.CHROMATIC.indexOf(note)
     if (idx < 0) return null
-    return { index: idx, suffix: m[3] || '' }
+    // Нормализуем суффикс: "minor"/"m" → "m", "major"/"" → "" (краткое обозначение).
+    const rest = (m[3] || '').trim().toLowerCase()
+    const suffix = rest === 'minor' || rest === 'm' ? 'm' : ''
+    return { index: idx, suffix }
   }
 
   // Подпись сдвига тональности. Краткое обозначение тональности (Cm, G, F#m — не "C minor"/
@@ -1207,21 +1211,29 @@ export default class KaraokePlayer {
     }
     this._updateTransposeMenu()
 
-    // Hover-открытие подменю (export/speed/transpose) с задержкой закрытия 1с. Раньше opening
-    // шёл через CSS :hover, что закрывало подменю мгновенно при уходе мыши. Теперь :hover убран
-    // из CSS (см. _injectMenuStyles), открытие/закрытие управляется здесь через класс
-    // kp-submenu-open: mouseenter открывает сразу и отменяет pending-закрытие; mouseleave
-    // запускает таймер 1с, по истечении которого класс снимается (подменю скрывается).
-    // Возврат мыши в пределы подменю/родителя раньше 1с — отменяет закрытие.
+    // Hover-открытие подменю (export/speed/transpose). Логика:
+    // - mouseenter на родителе → мгновенно открыть своё подменю + СРАЗУ закрыть все остальные
+    //   (без задержки) — переключение между пунктами меню должно быть мгновенным.
+    // - mouseleave с родителя → таймер 1с, по истечении класс снимается (подменю скрывается).
+    //   Возврат мыши в пределы родителя раньше 1с — отменяет закрытие.
+    // - Клик по родителю — toggle (для touch/без-hover устройств), как и раньше.
+    // @see docs/features/player-transpose.md
     this._submenuCloseTimers = new Map()
     const parents = this.container.querySelectorAll('.kp-menu-parent')
-    for (const parent of parents) {
-      const open = () => {
-        const t = this._submenuCloseTimers.get(parent)
+    const closeOtherSubmenus = (except) => {
+      for (const p of parents) {
+        if (p === except) continue
+        p.classList.remove('kp-submenu-open')
+        const t = this._submenuCloseTimers.get(p)
         if (t) {
           clearTimeout(t)
-          this._submenuCloseTimers.delete(parent)
+          this._submenuCloseTimers.delete(p)
         }
+      }
+    }
+    for (const parent of parents) {
+      const open = () => {
+        closeOtherSubmenus(parent) // новое подменю → старые закрываются сразу
         parent.classList.add('kp-submenu-open')
       }
       const scheduleClose = () => {
@@ -1825,7 +1837,7 @@ export default class KaraokePlayer {
     const wasPlaying = this.isPlaying
     const resumePos = this._getCurrentTime()
     this._transposing = true
-    this._updateTransposeMenu() // показать состояние «обработка» (опционально)
+    this._updateTransposeMenu()
     // Пауза: остановить текущие источники (если играли), чтобы не играть старые буферы во время
     // обработки. _pause() ставит pausedAt — используем напрямую, без toggle UI.
     if (wasPlaying) {
@@ -1842,9 +1854,17 @@ export default class KaraokePlayer {
       const btn = this.container.querySelector('#kp-play')
       if (btn) btn.textContent = '▶'
     }
+    // Показать индикатор «Транспонирование…» (переиспользуем #kp-loading оверлей из _buildUI).
+    // @see docs/features/player-transpose.md
+    const loading = this.container?.querySelector('#kp-loading')
+    if (loading) {
+      loading.textContent = 'Транспонирование…'
+      loading.style.background = 'transparent'
+      loading.style.display = 'flex'
+    }
     // Транспонировать от оригиналов (не от уже транспонированных — без накопления артефактов).
-    // yield в event loop, чтобы UI не залочился и показал индикатор.
-    await Promise.resolve()
+    // setTimeout(0) даёт браузеру отрисовать индикатор перед тяжёлой синхронной обработкой.
+    await new Promise((r) => setTimeout(r, 0))
     try {
       if (this._transpose === 0) {
         this.accBuffer = this._accBufferOriginal
@@ -1862,6 +1882,8 @@ export default class KaraokePlayer {
       this.vocBuffer = this._vocBufferOriginal
       this._transpose = 0
     }
+    // Скрыть индикатор.
+    if (loading) loading.style.display = 'none'
     this._transposing = false
     this._updateTransposeMenu()
     // Продолжить воспроизведение с той же позиции в новой тональности.

@@ -1,3 +1,5 @@
+@file:Suppress("ktlint:standard:max-line-length")
+
 package com.svoemesto.karaokeapp
 
 import com.svoemesto.karaokeapp.mlt.MltObjectType
@@ -1443,7 +1445,7 @@ val listKaraokeProperties =
         ),
         KaraokeProperty(
             key = "boostyText",
-            defaultValue = "Поддержи создание караоке\nна https://boosty.to/svoemesto\n\nГруппа ВКонтакте:\nhttps://vk.com/svoemestokaraoke\n\nВсе ссылки - в описании.",
+            defaultValue = "Поддержи создание караоке\nна https://boosty.to/svoemesto\n\nГруппа ВКонтакте:\nhttps://vk.ru/svoemestokaraoke\n\nВсе ссылки - в описании.",
             description = "Текст Бусти",
         ),
         KaraokeProperty(
@@ -1783,8 +1785,8 @@ val listKaraokeProperties =
         ),
         KaraokeProperty(
             key = "telegramAutoPublishWindowMinutes",
-            defaultValue = 5L,
-            description = "Telegram Фаза 2: ширина скользящего окна тика (минуты), 1-30. Бот публикует песни, чья date/time попала в [now - window, now]",
+            defaultValue = 59L,
+            description = "Telegram Фаза 2: ширина скользящего окна тика (минуты), 1-1440. Бот публикует песни, чья date/time попала в [now - window, now]. Увеличено до 59 мин (02.08.2026) — иначе при простаивающем scheduler'е песни с publish_time=14:00 пропускаются в первом же тике после рестарта. Потом уменьшим обратно до 5-15 мин, когда scheduler станет стабильным.",
         ),
         KaraokeProperty(
             key = "telegramAutoPublishMaxFileSizeMb",
@@ -1792,6 +1794,78 @@ val listKaraokeProperties =
             description =
                 "Telegram Фаза 2: лимит размера MP4 (МБ) для sendVideo. Стандартный Bot API — 50; " +
                     "локальный Bot API server — больше. При превышении ставит перерендер RENDER_MP4_DEMO с уменьшенными параметрами",
+        ),
+        // Автопубликация новостей в группу ВКонтакте (specs/121-vk-news-auto-publish).
+        // Бот работает на admin-машине в karaoke-app (как Telegram-Фаза 2), на проде не разворачивается.
+        // Читает tbl_news (категория air, publish_at <= now()) после sync LOCAL↔SERVER, публикует пост
+        // в группу ВК через wall.post + video.save (демо-MP4). Идемпотентность по Song.idVk (tbl_songs.id_vk).
+        // Два типа публикаций: air (авто) и premium (ручной, кнопка в карточке песни). Каждый тип — свой
+        // шаблон (vkTemplateAir / vkTemplatePremium) с плейсхолдерами {author}, {songName}, {songNameCensored}, {year}, {album}, {link}, {id}, {newsBody}, {descriptionHeader}, {descriptionFooter}, {description}, {descriptionWithTimecodes}.
+        // @see docs/features/vk-news-auto-publish.md
+        KaraokeProperty(
+            key = "vkAutoPublishEnabled",
+            defaultValue = false,
+            description = "ВК: включить плановый бот автопубликации новостей категории air в группу ВК. Endpoint /api/song/publishToVkNow работает независимо от этого флага",
+        ),
+        KaraokeProperty(
+            key = "vkGroupId",
+            defaultValue = "",
+            description = "ВК: ID группы (без минуса, напр. 123456). Бот добавляет '-' для owner_id. Пусто = бот не публикует",
+        ),
+        KaraokeProperty(
+            key = "vkAccessToken",
+            defaultValue = "",
+            description = "ВК: Community access token (секрет, в git НЕ попадает). Получается из настроек группы: Управление → Работа с API → Ключи доступа",
+        ),
+        KaraokeProperty(
+            key = "vkApiVersion",
+            defaultValue = "5.199",
+            description = "ВК: версия VK API (стабильная, напр. 5.199)",
+        ),
+        KaraokeProperty(
+            key = "vkProxyUrl",
+            defaultValue = "",
+            description = "ВК: HTTP-прокси (host:port) для доступа к VK API, если admin-машина за firewall. Пусто = прямой доступ. По образцу telegramProxyUrl",
+        ),
+        KaraokeProperty(
+            key = "vkProxyModeTtlMs",
+            defaultValue = 60000L,
+            description = "ВК: TTL окна прокси-режима (мс), после которого бот пробует вернуться на прямой доступ. По образцу telegramProxyModeTtlMs",
+        ),
+        KaraokeProperty(
+            key = "vkAutoPublishWindowMinutes",
+            defaultValue = 5L,
+            description = "ВК: ширина окна тика (минуты). Оставлено для консистентности с Telegram; источник триггера — tbl_news.publish_at, не дата песни",
+        ),
+        KaraokeProperty(
+            key = "vkAutoPublishMaxVideoSizeMb",
+            defaultValue = 50L,
+            description = "ВК: лимит размера демо-MP4 (МБ) для video.save. При превышении ставит перерендер RENDER_MP4_DEMO с уменьшенными параметрами",
+        ),
+        KaraokeProperty(
+            key = "vkAutoPublishRateLimitPerHour",
+            defaultValue = 3L,
+            description = "ВК: max постов в час (FR-006). Бот считает свои посты за последний час и переносит остаток на следующий тик",
+        ),
+        KaraokeProperty(
+            key = "vkTemplateAir",
+            defaultValue = "",
+            description = "ВК: шаблон поста типа 'в эфире' (air, авто) с плейсхолдерами. Многострочная строка. Пусто = дефолт в коде (VkTemplateService)",
+        ),
+        KaraokeProperty(
+            key = "vkTemplatePremium",
+            defaultValue = "",
+            description = "ВК: шаблон поста типа 'премиум-выпуск' (premium, ручной) с плейсхолдерами. Пусто = дефолт в коде (VkTemplateService)",
+        ),
+        KaraokeProperty(
+            key = "telegramTemplateAir",
+            defaultValue = "",
+            description = "Telegram: шаблон caption типа 'в эфире' (air, авто) с плейсхолдерами {author}, {songName}, {songNameCensored}, {year}, {album}, {link}, {id}, {descriptionHeader}, {descriptionFooter}, {description}, {descriptionWithTimecodes}. Лимит 1024 символа. Пусто = дефолт в коде (TelegramTemplateService)",
+        ),
+        KaraokeProperty(
+            key = "telegramTemplatePremium",
+            defaultValue = "",
+            description = "Telegram: шаблон caption типа 'премиум-выпуск' (premium) с плейсхолдерами. Лимит 1024. Пусто = дефолт в коде (TelegramTemplateService)",
         ),
         // Мониторинг ключевых моментов проекта (светофор в хедере webvue3, MonitoringService/MonitorRegistry).
         // monitorDismissed - служебное поле (JSON key->contentHash прочитанных алертов), не редактировать вручную.
@@ -1874,5 +1948,21 @@ val listKaraokeProperties =
             key = "lmStudioTimeoutMs",
             defaultValue = 120_000L,
             description = "LM Studio: таймаут HTTP-запроса (миллисекунды)",
+        ),
+        // Автоматическая премиум-публикация при становлении песни доступной (specs/122-premium-auto-publish).
+        // Отдельный плановый тик (PremiumAutoPublishScheduler) ищет песни с newsPremiumPublishPending=true
+        // в player_readiness_flags (выставляется в Song.markNewsAvailableIfReady при first-time
+        // newsAvailableAnnounced=false→true) и публикует их в Telegram (PREMIUM-шаблон) и VK (PREMIUM-шаблон)
+        // БЕЗ сохранения id в песню — чтобы этот же slot заняла будущая air-публикация при выходе в эфир.
+        // Идемпотентность — newsPremiumTelegramSent / newsPremiumVkSent (отдельные по каналам).
+        KaraokeProperty(
+            key = "premiumAutoPublishEnabled",
+            defaultValue = false,
+            description = "Премиум-публикация: включить плановый бот автопубликации премиум-выпусков в Telegram+VK. Endpoint /api/song/publishPremium работает независимо от этого флага",
+        ),
+        KaraokeProperty(
+            key = "premiumAutoPublishMaxAttempts",
+            defaultValue = 3L,
+            description = "Премиум-публикация: максимум попыток на канал перед тем как пометить задачу FAILED (premiumAutoPublishState=FAILED, newsPremiumPublishPending=false). 0/отрицательное = 3",
         ),
     )

@@ -109,7 +109,7 @@ const val URL_PREFIX_DZEN_PLAY = "https://dzen.ru/video/watch/{REPLACE}"
 const val URL_PREFIX_DZEN_EDIT = "https://dzen.ru/profile/editor/svoemesto/publications?videoEditorPublicationId={REPLACE}"
 const val URL_PREFIX_VK_PLAY = "https://vkvideo.ru/video{REPLACE}"
 const val URL_PREFIX_VK_EDIT = "https://vkvideo.ru/video{REPLACE}"
-const val URL_PREFIX_VK = "https://vk.com/wall-{REPLACE}"
+const val URL_PREFIX_VK = "https://vk.ru/wall-{REPLACE}"
 
 const val URL_PREFIX_TELEGRAM_PLAY = "https://t.me/svoemestokaraoke/{REPLACE}"
 const val URL_PREFIX_TELEGRAM_EDIT = "https://t.me/svoemestokaraoke/{REPLACE}"

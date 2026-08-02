@@ -33,6 +33,7 @@
               <router-link class="nav-link" to="/dictionaries">Словари</router-link>
             </li>
             <li class="nav-item"><router-link class="nav-link" to="/news">Новости</router-link></li>
+            <li class="nav-item"><router-link class="nav-link" to="/publish-templates">Шаблоны публикаций</router-link></li>
             <li class="nav-item">
               <router-link class="nav-link chat-nav-link" to="/chat">
                 Чат

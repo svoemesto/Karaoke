@@ -450,7 +450,7 @@ fun findSongText(
                 "genius.com" -> listOf("Lyrics__Container")
                 "tekst-pesni.online" -> listOf("entry-content", "clearfix")
                 "www.shazam.com" -> listOf("AppleMusicLyrics_lyricsBlock")
-                "vk.com" -> listOf("vkitFeedShowMoreText")
+                "vk.ru", "vk.com" -> listOf("vkitFeedShowMoreText")
                 "darktexts.ru" -> listOf("full-text")
                 "www.beesona.pro" -> listOf("copys")
                 "alllyr.ru" -> listOf("inline")

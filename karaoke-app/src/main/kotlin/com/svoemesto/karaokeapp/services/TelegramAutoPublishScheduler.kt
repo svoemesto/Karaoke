@@ -16,8 +16,8 @@ import java.util.TimeZone
  * specs/113-telegram-demo-publish, FR-001).
  *
  * Вызывается с фиксированной задержкой (~60 секунд — короче, чем скользящее окно
- * `telegramAutoPublishWindowMinutes` по умолчанию 5 минут, чтобы гарантированно
- * поймать любую песню, чья date/time попала в окно). На каждый тик:
+ * `telegramAutoPublishWindowMinutes` по умолчанию 59 минут (временно для отладки),
+ * чтобы гарантированно поймать любую песню, чья date/time попала в окно). На каждый тик:
  *
  *  1. Если `telegramAutoPublishEnabled=false` — no-op (FR-013).
  *  2. Cheap SELECT кандидатов из `tbl_songs` (только id + publish_date/publish_time,
@@ -47,12 +47,17 @@ import java.util.TimeZone
  */
 @Component
 class TelegramAutoPublishScheduler {
-    // Периодичность тика: 60 секунд. Короче window (5 мин по умолчанию), чтобы любая песня,
+    // Периодичность тика: 60 секунд. Короче window (59 мин по умолчанию, временно для отладки), чтобы любая песня,
     // чья date/time попала в окно, гарантированно поймана. fixedDelay (не fixedRate) —
     // гарантия, что долгий тик (несколько sendVideo с retry) не наезжает на следующий.
     @Scheduled(fixedDelay = 60_000L, initialDelay = 60_000L)
     fun tick() {
-        if (!KaraokeProperties.getBoolean("telegramAutoPublishEnabled")) return
+        val tickStartMs = System.currentTimeMillis()
+        println("TelegramAutoPublishScheduler.tick ENTER at ${java.time.Instant.ofEpochMilli(tickStartMs)}")
+        if (!KaraokeProperties.getBoolean("telegramAutoPublishEnabled")) {
+            println("TelegramAutoPublishScheduler.tick SKIP: telegramAutoPublishEnabled=false")
+            return
+        }
 
         val channelId = KaraokeProperties.getString("telegramAutoPublishChannelId")
         if (channelId.isBlank()) {
@@ -62,11 +67,17 @@ class TelegramAutoPublishScheduler {
         }
 
         try {
+            val beforeResume = System.currentTimeMillis()
             resumeRenderingSongs()
+            println("TelegramAutoPublishScheduler.tick resumeRenderingSongs done in ${System.currentTimeMillis() - beforeResume}ms")
+            val beforePublish = System.currentTimeMillis()
             publishScheduledSongs()
+            println("TelegramAutoPublishScheduler.tick publishScheduledSongs done in ${System.currentTimeMillis() - beforePublish}ms")
         } catch (e: Exception) {
             println("TelegramAutoPublishScheduler.tick error: ${e.message}")
+            e.printStackTrace()
         }
+        println("TelegramAutoPublishScheduler.tick EXIT total=${System.currentTimeMillis() - tickStartMs}ms")
     }
 
     // Фаза 1 тика: песни в состоянии RENDERING, чья render-задача завершена → продолжить.
@@ -96,8 +107,9 @@ class TelegramAutoPublishScheduler {
 
     // Фаза 2 тика: песни с заполненными date/time и пустым idTelegramDemo → publishToTelegram.
     private fun publishScheduledSongs() {
-        val windowMinutes = KaraokeProperties.getLong("telegramAutoPublishWindowMinutes").let { if (it <= 0) 5L else it }
+        val windowMinutes = KaraokeProperties.getLong("telegramAutoPublishWindowMinutes").let { if (it <= 0) 59L else it }
         val candidates = loadWindowCandidateIds(windowMinutes)
+        println("TelegramAutoPublishScheduler: windowMinutes=$windowMinutes, candidates.size=${candidates.size}, ids=$candidates")
         for (songId in candidates) {
             val song =
                 Song.loadFromDbById(
@@ -105,8 +117,18 @@ class TelegramAutoPublishScheduler {
                     database = WORKING_DATABASE,
                     storageService = KSS_APP,
                     storageApiClient = SAC_APP,
-                ) ?: continue
-            TelegramAutoPublishService.publishToTelegram(song, allowPastDate = false)
+                )
+            if (song == null) {
+                println("TelegramAutoPublishScheduler: song id=$songId loadFromDbById returned null, skip")
+                continue
+            }
+            println("TelegramAutoPublishScheduler: processing song id=$songId (${song.author} - ${song.songName})")
+            // allowPastDate=true: окно (windowMinutes) — единственный контроль допустимого
+            // опоздания для auto-публикации. Без этого бот пропустит любую песню, чьё
+            // publishTime прошло более нескольких секунд назад (по строгому Q1 clarify
+            // "опоздавшие").
+            val result = TelegramAutoPublishService.publishToTelegram(song, allowPastDate = true)
+            println("TelegramAutoPublishScheduler: song id=$songId result: state=${result.state.code}, messageId=${result.messageId}, error=${result.error}")
         }
     }
 
@@ -216,7 +238,15 @@ class TelegramAutoPublishScheduler {
             null
         } else {
             try {
-                SimpleDateFormat("dd.MM.yy HH:mm").parse("$date $time")
+                // Явная таймзона MSK: в контейнере karaoke-app JVM-локаль = UTC (TZ env не
+                // применяется к SimpleDateFormat), а publish_date/publish_time в БД
+                // интерпретируются как московское время. Без явной таймзоны парсинг
+                // даёт UTC-время, и сравнение с nowMoscow() (MSK) даёт ошибку в 3 часа
+                // (диагностировано 02.08.2026 — песня 14:00 не публиковалась).
+                SimpleDateFormat("dd.MM.yy HH:mm")
+                    .apply {
+                        timeZone = TimeZone.getTimeZone("Europe/Moscow")
+                    }.parse("$date $time")
             } catch (_: Exception) {
                 null
             }

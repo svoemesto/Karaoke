@@ -6,6 +6,7 @@ import com.svoemesto.karaokeapp.KaraokeProperties
 import com.svoemesto.karaokeapp.WORKING_DATABASE
 import com.svoemesto.karaokeapp.model.Song
 import com.svoemesto.karaokeapp.model.SongField
+import com.svoemesto.karaokeapp.model.PublicationType
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -45,7 +46,16 @@ object TelegramAutoPublishService {
      * @param song загруженная песня (полный объект через `Song.loadFromDbById`)
      * @param allowPastDate `true` для ручного триггера (кнопка «Опубликовать сейчас» —
      *   публикует даже с прошедшей date/time); `false` для scheduler'а (Q1 clarify —
-     *   прошедшие даты пропускаются как «опоздавшая»)
+     *   прошедшие даты пропускаются как «опоздавшая»). Для премиум-публикации (при
+     *   `publicationType=PREMIUM`) всегда интерпретируется как `true` — у неё нет своего
+     *   расписания date/time, она триггерится событием newsAvailableAnnounced false→true.
+     * @param publicationType Тип публикации: `AIR` (по расписанию) или `PREMIUM` (при становлении
+     *   песни доступной для premium-подписчиков — specs/122-premium-auto-publish). От типа зависит
+     *   только выбор шаблона подписи (AIR-шаблон при AIR, PREMIUM-шаблон при PREMIUM).
+     * @param persistMessageId `true` (по умолчанию) — после успешной sendVideo записать message_id
+     *   в `Song.idTelegramDemo` через штатный saveToDb (FR-006). `false` — только отправить,
+     *   **не сохранять** message_id (используется для PREMIUM-публикации, чтобы этот же слот
+     *   `idTelegramDemo` мог заполнить будущая AIR-публикация при выходе песни в эфир).
      * @return результат: `PUBLISHED` (успех, `messageId` заполнен), `RENDERING` (поставлен
      *   рендер, публикация продолжится через [onRenderCompleted]), `SEND_FAILED` (ошибка
      *   send или рендера), `SCHEDULED` (песня не готова или дата в прошлом при
@@ -56,8 +66,12 @@ object TelegramAutoPublishService {
     fun publishToTelegram(
         song: Song,
         allowPastDate: Boolean = false,
+        publicationType: com.svoemesto.karaokeapp.model.PublicationType = com.svoemesto.karaokeapp.model.PublicationType.AIR,
+        persistMessageId: Boolean = true,
     ): TelegramAutoPublishResult {
         // FR-008: идемпотентность — уже опубликовано, ничего не делаем.
+        // Для PREMIUM: если idTelegramDemo заполнен — это значит, что air-публикация уже прошла;
+        // повторный premium в этом случае бесполезен (премиум-период заведомо позади), skip.
         if (song.idTelegramDemo.isNotEmpty()) {
             return TelegramAutoPublishResult(
                 state = TelegramAutoPublishState.PUBLISHED,
@@ -65,10 +79,23 @@ object TelegramAutoPublishService {
             )
         }
 
+        // Для PREMIUM: если уже есть newsPremiumTelegramSent=true — повторно не публикуем
+        // (страховка от дублей между тиками scheduler'a и ручными вызовами).
+        if (publicationType == com.svoemesto.karaokeapp.model.PublicationType.PREMIUM &&
+            song.newsPremiumTelegramSent
+        ) {
+            return TelegramAutoPublishResult(
+                state = TelegramAutoPublishState.PUBLISHED,
+                messageId = "",
+            )
+        }
+
         // FR-001 / Q1 clarify: прошедшая date/time — «опоздавшая», бот не публикует
-        // (кроме ручного триггера allowPastDate=true).
+        // (кроме ручного триггера allowPastDate=true). Для PREMIUM — всегда allowPastDate=true
+        // (у премиум-публикации нет своего расписания).
+        val effectiveAllowPastDate = allowPastDate || publicationType == com.svoemesto.karaokeapp.model.PublicationType.PREMIUM
         val dt = song.dateTimePublish
-        if (!allowPastDate && dt != null && dt.before(nowMoscow())) {
+        if (!effectiveAllowPastDate && dt != null && dt.before(nowMoscow())) {
             return TelegramAutoPublishResult(
                 state = TelegramAutoPublishState.SCHEDULED,
                 error = "dateTimePublish < now() — опоздавшая публикация",
@@ -77,6 +104,11 @@ object TelegramAutoPublishService {
 
         // FR-011: песня должна быть публично готова (контент), иначе публикация бессмысленна.
         if (!song.isContentReady) {
+            println(
+                "TelegramAutoPublishService: song id=${song.id} isContentReady=false: idStatus=${song.idStatus} " +
+                    "stemAcc=${song.stemAccompanimentReady} stemVoc=${song.stemVocalReady} " +
+                    "picAlb=${song.pictureAlbumReady} picAuth=${song.pictureAuthorReady} markersLen=${song.sourceMarkersList.size}",
+            )
             return TelegramAutoPublishResult(
                 state = TelegramAutoPublishState.SCHEDULED,
                 error = "not content-ready (idStatus=${song.idStatus})",
@@ -91,11 +123,11 @@ object TelegramAutoPublishService {
         if (!demoFile.exists() || demoFile.length() > maxFileSizeBytes) {
             // FR-003 сц. 2/3: файла нет или превышает лимит → ставим рендер, продолжим через
             // onRenderCompleted (вызывается scheduler'ом при обнаружении DONE/ERROR задачи).
-            return startRenderAndReturn(song)
+            return startRenderAndReturn(song, publicationType)
         }
 
         // Файл готов и в лимите → переходим к sendVideo (FR-005, FR-010).
-        return publishFile(song, demoFile)
+        return publishFile(song, demoFile, publicationType, persistMessageId)
     }
 
     /**
@@ -108,6 +140,8 @@ object TelegramAutoPublishService {
      * `state=SEND_FAILED`, `lastError="render failed: <error>"`.
      *
      * @param songId id песни
+     * @param publicationType тип публикации (AIR/PREMIUM) — прокидывается в publishFile для выбора шаблона.
+     * @param persistMessageId true для AIR (записать idTelegramDemo после sendVideo), false для PREMIUM.
      * @param successtrue если render-задача завершилась DONE
      * @param error текст ошибки рендера (null/пусто при success=true)
      * @return результат публикации (PUBLISHED/SEND_FAILED) или null, если песня не найдена /
@@ -117,6 +151,8 @@ object TelegramAutoPublishService {
      */
     fun onRenderCompleted(
         songId: Long,
+        publicationType: com.svoemesto.karaokeapp.model.PublicationType = com.svoemesto.karaokeapp.model.PublicationType.AIR,
+        persistMessageId: Boolean = true,
         success: Boolean,
         error: String?,
     ): TelegramAutoPublishResult? {
@@ -133,6 +169,16 @@ object TelegramAutoPublishService {
             return TelegramAutoPublishResult(
                 state = TelegramAutoPublishState.PUBLISHED,
                 messageId = song.idTelegramDemo,
+            )
+        }
+
+        // Для PREMIUM: повторный skip если уже отправлено.
+        if (publicationType == com.svoemesto.karaokeapp.model.PublicationType.PREMIUM &&
+            song.newsPremiumTelegramSent
+        ) {
+            return TelegramAutoPublishResult(
+                state = TelegramAutoPublishState.PUBLISHED,
+                messageId = "",
             )
         }
 
@@ -165,12 +211,17 @@ object TelegramAutoPublishService {
                 error = "file still exceeds limit after re-render",
             )
         }
-        return publishFile(song, demoFile)
+        return publishFile(song, demoFile, publicationType, persistMessageId)
     }
 
     // Ставит задачу RENDER_MP4_DEMO в очередь (FR-003 сц. 2/3) и возвращает RENDERING.
     // Дефолты DEMO (1280/720/30) — те же, что в ApiController.kt и KaraokeProcess.kt.
-    private fun startRenderAndReturn(song: Song): TelegramAutoPublishResult {
+    // publicationType пробрасывается в context KaraokeProcess (для логирования/идентификации задачи)
+    // — сам рендер DEMO один и тот же независимо от типа публикации.
+    private fun startRenderAndReturn(
+        song: Song,
+        publicationType: com.svoemesto.karaokeapp.model.PublicationType,
+    ): TelegramAutoPublishResult {
         val processId =
             KaraokeProcess.createProcess(
                 settings = song,
@@ -184,6 +235,7 @@ object TelegramAutoPublishService {
                         "height" to 720,
                         "fps" to 30,
                         "version" to com.svoemesto.karaokeapp.services.RenderVersion.DEMO.name,
+                        "telegramType" to publicationType.code,
                     ),
             )
         if (processId <= 0) {
@@ -196,14 +248,19 @@ object TelegramAutoPublishService {
         song.telegramAutoPublishState = TelegramAutoPublishState.RENDERING.code
         song.telegramAutoPublishLastError = ""
         song.saveToDb()
-        println("TelegramAutoPublishService: song id=${song.id} → RENDERING (processId=$processId)")
+        println("TelegramAutoPublishService: song id=${song.id} type=${publicationType.code} → RENDERING (processId=$processId)")
         return TelegramAutoPublishResult(state = TelegramAutoPublishState.RENDERING)
     }
 
     // Выполняет sendVideo (FR-005, FR-010) и записывает результат (FR-006) или ошибку.
+    // publicationType — выбор шаблона (AIR-шаблон или PREMIUM-шаблон).
+    // persistMessageId — false для PREMIUM-публикации (не записывать idTelegramDemo, чтобы этот же
+    // слот заполнила будущая AIR-публикация).
     private fun publishFile(
         song: Song,
         demoFile: File,
+        publicationType: com.svoemesto.karaokeapp.model.PublicationType,
+        persistMessageId: Boolean,
     ): TelegramAutoPublishResult {
         val channelId = KaraokeProperties.getString("telegramAutoPublishChannelId")
         if (channelId.isBlank()) {
@@ -214,9 +271,14 @@ object TelegramAutoPublishService {
             )
         }
 
-        // FR-005: подпись к видео (≤1024 символа). Та же ссылка, что и для ручных постов Фазы 1
-        // (Song.parseTelegramPostSongId парсит sm-karaoke.ru/song?id=<id>), + автор/название.
-        val caption = buildCaption(song)
+        // FR-005: подпись к видео (≤1024 символа). Шаблон выбирается по publicationType:
+        // AIR — telegramTemplateAir (по расписанию), PREMIUM — telegramTemplatePremium
+        // (при становлении песни доступной premium-подписчикам).
+        val caption =
+            TelegramTemplateService.render(
+                TelegramTemplateService.templateFor(publicationType),
+                song,
+            )
 
         // PUBLISHING — фиксируем начало sendVideo (для UI «Публикуется»).
         song.telegramAutoPublishState = TelegramAutoPublishState.PUBLISHING.code
@@ -229,18 +291,24 @@ object TelegramAutoPublishService {
         val result = client.sendVideo(channelId, demoFile, caption, maxFileSizeBytes)
 
         if (result.state == TelegramAutoPublishState.PUBLISHED && result.messageId != null) {
-            // FR-006: запись message_id в idTelegramDemo через штатный saveToDb → SSE + sync.
-            song.fields[SongField.ID_TELEGRAM_DEMO] = result.messageId
+            if (persistMessageId) {
+                // FR-006 (AIR): запись message_id в idTelegramDemo через штатный saveToDb → SSE + sync.
+                song.fields[SongField.ID_TELEGRAM_DEMO] = result.messageId
+            } else {
+                // PREMIUM: не сохраняем message_id — этот слот заполнится будущей AIR-публикацией.
+                // Но отмечаем факт успешной премиум-отправки для идемпотентности и UI.
+                song.newsPremiumTelegramSent = true
+            }
             song.telegramAutoPublishState = TelegramAutoPublishState.PUBLISHED.code
             song.telegramAutoPublishLastError = ""
             song.saveToDb()
-            println("TelegramAutoPublishService: song id=${song.id} → PUBLISHED (message_id=${result.messageId})")
+            println("TelegramAutoPublishService: song id=${song.id} type=${publicationType.code} → PUBLISHED (message_id=${result.messageId}, persisted=$persistMessageId)")
             return result
         }
 
         // SEND_FAILED — все ретраи FR-010 исчерпаны.
         writeFailure(song, result.error ?: "sendVideo failed (no error description)")
-        println("TelegramAutoPublishService: song id=${song.id} → SEND_FAILED: ${result.error}")
+        println("TelegramAutoPublishService: song id=${song.id} type=${publicationType.code} → SEND_FAILED: ${result.error}")
         return result
     }
 
@@ -253,15 +321,6 @@ object TelegramAutoPublishService {
         song.telegramAutoPublishLastAttemptAt = nowIso8601()
         song.telegramAutoPublishLastError = error
         song.saveToDb()
-    }
-
-    // FR-005: подпись к демо-MP4 (≤1024 символа). Содержит ссылку sm-karaoke.ru/song?id=<id>,
-    // чтобы TelegramUpdatesConsumer (Фаза 1) мог привязать post к песне при необходимости.
-    private fun buildCaption(song: Song): String {
-        val link = "https://sm-karaoke.ru/song?id=${song.id}"
-        val title = "${song.author} — ${song.songName} (демо)"
-        val caption = "$title\n$link\n#караоке #svoemesto"
-        return if (caption.length > 1024) caption.substring(0, 1024) else caption
     }
 
     private fun nowMoscow(): Date = Calendar.getInstance(TimeZone.getTimeZone("Europe/Moscow")).time

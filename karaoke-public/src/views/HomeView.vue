@@ -141,7 +141,7 @@ import { useEngagementTracking } from '../composables/useEngagementTracking'
 import { trackLinkToSocialNetwork } from '../services/tracking'
 
 const socialLinks = [
-  { name: 'vkgroup', icon: 'vkgroup', url: 'https://vk.com/svoemestokaraoke' },
+  { name: 'vkgroup', icon: 'vkgroup', url: 'https://vk.ru/svoemestokaraoke' },
   { name: 'sponsr', icon: 'sponsr', url: 'https://sponsr.ru/smkaraoke' },
   { name: 'dzen', icon: 'dzen', url: 'https://dzen.ru/svoemesto' },
   { name: 'vkvideo', icon: 'vk', url: 'https://vkvideo.ru/video/@nsasvoemesto' },

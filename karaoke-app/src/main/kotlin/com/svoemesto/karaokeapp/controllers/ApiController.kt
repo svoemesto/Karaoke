@@ -6615,6 +6615,386 @@ class ApiController(
         return response
     }
 
+    // specs/121-vk-news-auto-publish: принудительная публикация песни в группу ВКонтакте
+    // (кнопки «Опубликовать во ВК (air)» / «Опубликовать во ВК (premium)» в webvue3, FR-016/FR-026).
+    // По образцу publishToTelegramNow выше. Endpoint доступен всегда (даже при
+    // vkAutoPublishEnabled=false) — ручной триггер. Паттерн /api/** = permitAll (SecurityConfig).
+    // Контракт: specs/121-vk-news-auto-publish/contracts/vk-api-contract.md §6. FR-027 — расширяемо.
+    @PostMapping("/song/publishToVkNow")
+    @ResponseBody
+    fun publishToVkNow(
+        @RequestParam id: Long,
+        @RequestParam(required = false, defaultValue = "air") type: String,
+    ): Map<String, Any> {
+        val settings =
+            Song.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            ) ?: return mapOf(
+                "success" to false as Any,
+                "state" to "scheduled" as Any,
+                "postId" to null as Any,
+                "error" to "Песня не найдена: id=$id" as Any,
+            )
+
+        // FR-008/FR-016: общая идемпотентность по idVk (один пост на песню, независимо от типа).
+        if (settings.idVk.isNotEmpty()) {
+            return mapOf(
+                "success" to false as Any,
+                "state" to "published" as Any,
+                "postId" to settings.idVk as Any,
+                "error" to "Song $id is already published (idVk=${settings.idVk}); clear idVk first to re-publish" as Any,
+            )
+        }
+
+        val pubType =
+            com.svoemesto.karaokeapp.model.PublicationType
+                .fromCode(type) ?: com.svoemesto.karaokeapp.model.PublicationType.AIR
+        val result =
+            com.svoemesto.karaokeapp.services.VkAutoPublishService
+                .publishToVk(settings, pubType)
+        val response: MutableMap<String, Any> = mutableMapOf()
+        response["success"] = result.state == com.svoemesto.karaokeapp.services.VkAutoPublishState.PUBLISHED ||
+            result.state == com.svoemesto.karaokeapp.services.VkAutoPublishState.RENDERING ||
+            result.state == com.svoemesto.karaokeapp.services.VkAutoPublishState.PUBLISHING
+        response["state"] = result.state.code
+        response["postId"] = result.postId ?: ""
+        response["error"] = result.error ?: ""
+        return response
+    }
+
+    // specs/122-premium-auto-publish: ручная премиум-публикация в Telegram. Endpoint доступен
+    // всегда (даже при premiumAutoPublishEnabled=false) — позволяет админу форсировать публикацию
+    // повторно после сброса флага или для тестов. В отличие от /api/song/publishToTelegramNow,
+    // здесь persistMessageId=false (не записывает idTelegramDemo, чтобы тот же слот заполнила
+    // будущая AIR-публикация).
+    @PostMapping("/song/publishPremiumTelegram")
+    @ResponseBody
+    fun publishPremiumTelegram(
+        @RequestParam id: Long,
+    ): Map<String, Any> {
+        val settings =
+            Song.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            ) ?: return mapOf(
+                "success" to false as Any,
+                "state" to "scheduled" as Any,
+                "messageId" to null as Any,
+                "error" to "Песня не найдена: id=$id" as Any,
+            )
+
+        // Идемпотентность: если air-публикация уже произошла — skip (премиум-период заведомо позади).
+        if (settings.idTelegramDemo.isNotEmpty()) {
+            return mapOf(
+                "success" to false as Any,
+                "state" to "published" as Any,
+                "messageId" to settings.idTelegramDemo as Any,
+                "error" to "Song $id already has air-publication (idTelegramDemo=${settings.idTelegramDemo}); premium is no-op" as Any,
+            )
+        }
+
+        val result =
+            com.svoemesto.karaokeapp.services.TelegramAutoPublishService.publishToTelegram(
+                song = settings,
+                allowPastDate = true,
+                publicationType = com.svoemesto.karaokeapp.model.PublicationType.PREMIUM,
+                persistMessageId = false,
+            )
+        // Помечаем флаг задачи как снятый, если публикация завершилась (успех/рендер/фейл), чтобы
+        // при ручном вызове scheduler на следующем тике не начинал повторно. PREMIUM-опубликованная
+        // песня — задача завершена.
+        if (result.state == com.svoemesto.karaokeapp.services.TelegramAutoPublishState.PUBLISHED ||
+            result.state == com.svoemesto.karaokeapp.services.TelegramAutoPublishState.RENDERING ||
+            result.state == com.svoemesto.karaokeapp.services.TelegramAutoPublishState.SEND_FAILED
+        ) {
+            settings.newsPremiumTelegramSent = settings.newsPremiumTelegramSent ||
+                result.state == com.svoemesto.karaokeapp.services.TelegramAutoPublishState.PUBLISHED
+            if (settings.idTelegramDemo.isEmpty() &&
+                settings.idVk.isEmpty() &&
+                settings.newsPremiumTelegramSent &&
+                settings.newsPremiumVkSent
+            ) {
+                settings.newsPremiumPublishPending = false
+                if (settings.premiumAutoPublishState != "FAILED") {
+                    settings.premiumAutoPublishState = "COMPLETE"
+                }
+            }
+            settings.saveToDb()
+        }
+
+        val response: MutableMap<String, Any> = mutableMapOf()
+        response["success"] = result.state == com.svoemesto.karaokeapp.services.TelegramAutoPublishState.PUBLISHED ||
+            result.state == com.svoemesto.karaokeapp.services.TelegramAutoPublishState.RENDERING ||
+            result.state == com.svoemesto.karaokeapp.services.TelegramAutoPublishState.PUBLISHING
+        response["state"] = result.state.code
+        response["messageId"] = result.messageId ?: ""
+        response["error"] = result.error ?: ""
+        response["newsPremiumPublishPending"] = settings.newsPremiumPublishPending as Any
+        response["newsPremiumTelegramSent"] = settings.newsPremiumTelegramSent as Any
+        response["newsPremiumVkSent"] = settings.newsPremiumVkSent as Any
+        response["premiumAutoPublishState"] = settings.premiumAutoPublishState as Any
+        return response
+    }
+
+    // specs/122-premium-auto-publish: ручная премиум-публикация в VK.
+    // persistPostId=false, persistMessageId-equivalent для VK.
+    @PostMapping("/song/publishPremiumVk")
+    @ResponseBody
+    fun publishPremiumVk(
+        @RequestParam id: Long,
+    ): Map<String, Any> {
+        val settings =
+            Song.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            ) ?: return mapOf(
+                "success" to false as Any,
+                "state" to "scheduled" as Any,
+                "postId" to null as Any,
+                "error" to "Песня не найдена: id=$id" as Any,
+            )
+
+        if (settings.idVk.isNotEmpty()) {
+            return mapOf(
+                "success" to false as Any,
+                "state" to "published" as Any,
+                "postId" to settings.idVk as Any,
+                "error" to "Song $id already has air-publication (idVk=${settings.idVk}); premium is no-op" as Any,
+            )
+        }
+
+        val result =
+            com.svoemesto.karaokeapp.services.VkAutoPublishService.publishToVk(
+                song = settings,
+                type = com.svoemesto.karaokeapp.model.PublicationType.PREMIUM,
+                persistPostId = false,
+            )
+
+        if (result.state == com.svoemesto.karaokeapp.services.VkAutoPublishState.PUBLISHED ||
+            result.state == com.svoemesto.karaokeapp.services.VkAutoPublishState.RENDERING ||
+            result.state == com.svoemesto.karaokeapp.services.VkAutoPublishState.SEND_FAILED
+        ) {
+            settings.newsPremiumVkSent = settings.newsPremiumVkSent ||
+                result.state == com.svoemesto.karaokeapp.services.VkAutoPublishState.PUBLISHED
+            if (settings.idTelegramDemo.isEmpty() &&
+                settings.idVk.isEmpty() &&
+                settings.newsPremiumTelegramSent &&
+                settings.newsPremiumVkSent
+            ) {
+                settings.newsPremiumPublishPending = false
+                if (settings.premiumAutoPublishState != "FAILED") {
+                    settings.premiumAutoPublishState = "COMPLETE"
+                }
+            }
+            settings.saveToDb()
+        }
+
+        val response: MutableMap<String, Any> = mutableMapOf()
+        response["success"] = result.state == com.svoemesto.karaokeapp.services.VkAutoPublishState.PUBLISHED ||
+            result.state == com.svoemesto.karaokeapp.services.VkAutoPublishState.RENDERING ||
+            result.state == com.svoemesto.karaokeapp.services.VkAutoPublishState.PUBLISHING
+        response["state"] = result.state.code
+        response["postId"] = result.postId ?: ""
+        response["error"] = result.error ?: ""
+        response["newsPremiumPublishPending"] = settings.newsPremiumPublishPending as Any
+        response["newsPremiumTelegramSent"] = settings.newsPremiumTelegramSent as Any
+        response["newsPremiumVkSent"] = settings.newsPremiumVkSent as Any
+        response["premiumAutoPublishState"] = settings.premiumAutoPublishState as Any
+        return response
+    }
+
+    // specs/121-vk-news-auto-publish: редактор шаблонов постов ВК (FR-025). Возвращает все шаблоны
+    // и список плейсхолдеров для UI редактора в webvue3 (VkTemplatesEditor.vue).
+    // Контракт: specs/121-vk-news-auto-publish/contracts/vk-api-contract.md §6.
+    @GetMapping("/vk/templates")
+    @ResponseBody
+    fun getVkTemplates(): Map<String, Any> {
+        val templates =
+            com.svoemesto.karaokeapp.model.PublicationType.entries.map { pt ->
+                val key = "vkTemplate${pt.name.lowercase().replaceFirstChar { it.uppercase() }}"
+                mapOf(
+                    "type" to pt.code,
+                    "key" to key,
+                    "value" to KaraokeProperties.getString(key),
+                    "description" to (KaraokeProperties.getDTO(key).description),
+                )
+            }
+        return mapOf(
+            "templates" to templates,
+            "placeholders" to
+                com.svoemesto.karaokeapp.services.VkTemplateService
+                    .placeholders(),
+        )
+    }
+
+    // specs/121-vk-news-auto-publish: сохранение шаблона поста ВК (FR-025, FR-015 — без перезапуска).
+    @PostMapping("/vk/templates")
+    @ResponseBody
+    fun saveVkTemplate(
+        @RequestParam key: String,
+        @RequestParam value: String,
+    ): Map<String, Any> {
+        val allowedKeys =
+            com.svoemesto.karaokeapp.model.PublicationType.entries
+                .map { pt -> "vkTemplate${pt.name.lowercase().replaceFirstChar { it.uppercase() }}" }
+                .toSet()
+        if (key !in allowedKeys) {
+            return mapOf(
+                "success" to false as Any,
+                "error" to "unknown key: $key (allowed: ${allowedKeys.joinToString(", ")})" as Any,
+            )
+        }
+        KaraokeProperties.set(key, value)
+        return mapOf("success" to true as Any, "key" to key as Any)
+    }
+
+    // specs/121-vk-news-auto-publish: preview шаблона на тестовой песне (FR-025, для редактора).
+    // Принимает value шаблона (не сохранённого — для live-preview) и songId, возвращает отрендеренный
+    // текст через VkTemplateService.render.
+    @PostMapping("/vk/templates/preview")
+    @ResponseBody
+    fun previewVkTemplate(
+        @RequestParam value: String,
+        @RequestParam id: Long,
+    ): Map<String, Any> {
+        val song =
+            Song.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            ) ?: return mapOf(
+                "success" to false as Any,
+                "error" to "Песня не найдена: id=$id" as Any,
+            )
+        val rendered =
+            com.svoemesto.karaokeapp.services.VkTemplateService
+                .render(value, song, null)
+        return mapOf(
+            "success" to true as Any,
+            "preview" to rendered as Any,
+            "truncated" to (rendered.length >= com.svoemesto.karaokeapp.services.VkTemplateService.VK_POST_MAX_LENGTH) as Any,
+            "length" to rendered.length as Any,
+            "maxLength" to com.svoemesto.karaokeapp.services.VkTemplateService.VK_POST_MAX_LENGTH as Any,
+        )
+    }
+
+    // specs/121-vk-news-auto-publish: дефолтные шаблоны (FR-025, для кнопки «Сбросить к дефолту»).
+    @GetMapping("/vk/templates/defaults")
+    @ResponseBody
+    fun getVkTemplateDefaults(): Map<String, Any> {
+        val defaults =
+            com.svoemesto.karaokeapp.model.PublicationType.entries.associate { pt ->
+                val key = "vkTemplate${pt.name.lowercase().replaceFirstChar { it.uppercase() }}"
+                val default =
+                    when (pt) {
+                        com.svoemesto.karaokeapp.model.PublicationType.AIR ->
+                            com.svoemesto.karaokeapp.services.VkTemplateService.DEFAULT_AIR_TEMPLATE
+                        com.svoemesto.karaokeapp.model.PublicationType.PREMIUM ->
+                            com.svoemesto.karaokeapp.services.VkTemplateService.DEFAULT_PREMIUM_TEMPLATE
+                    }
+                key to default
+            }
+        return mapOf("defaults" to defaults)
+    }
+
+    // specs/121-vk-news-auto-publish: Telegram-шаблоны (caption) — управляются через общий
+    // редактор шаблонов публикаций (frontend) на странице «Шаблоны публикаций».
+    // Эндпойнты симметричны VK-аналогам (/vk/templates).
+    @GetMapping("/telegram/templates")
+    @ResponseBody
+    fun getTelegramTemplates(): Map<String, Any> {
+        val templates =
+            com.svoemesto.karaokeapp.model.PublicationType.entries.map { pt ->
+                val key = "telegramTemplate${pt.name.lowercase().replaceFirstChar { it.uppercase() }}"
+                mapOf(
+                    "type" to pt.code,
+                    "key" to key,
+                    "value" to KaraokeProperties.getString(key),
+                    "description" to (KaraokeProperties.getDTO(key).description),
+                )
+            }
+        return mapOf(
+            "templates" to templates,
+            "placeholders" to
+                com.svoemesto.karaokeapp.services.TelegramTemplateService
+                    .placeholders(),
+        )
+    }
+
+    @PostMapping("/telegram/templates")
+    @ResponseBody
+    fun saveTelegramTemplate(
+        @RequestParam key: String,
+        @RequestParam value: String,
+    ): Map<String, Any> {
+        val allowedKeys =
+            com.svoemesto.karaokeapp.model.PublicationType.entries
+                .map { pt -> "telegramTemplate${pt.name.lowercase().replaceFirstChar { it.uppercase() }}" }
+                .toSet()
+        if (key !in allowedKeys) {
+            return mapOf(
+                "success" to false as Any,
+                "error" to "unknown key: $key (allowed: ${allowedKeys.joinToString(", ")})" as Any,
+            )
+        }
+        KaraokeProperties.set(key, value)
+        return mapOf("success" to true as Any, "key" to key as Any)
+    }
+
+    @PostMapping("/telegram/templates/preview")
+    @ResponseBody
+    fun previewTelegramTemplate(
+        @RequestParam value: String,
+        @RequestParam id: Long,
+    ): Map<String, Any> {
+        val song =
+            Song.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            ) ?: return mapOf(
+                "success" to false as Any,
+                "error" to "Песня не найдена: id=$id" as Any,
+            )
+        val rendered =
+            com.svoemesto.karaokeapp.services.TelegramTemplateService
+                .render(value, song)
+        return mapOf(
+            "success" to true as Any,
+            "preview" to rendered as Any,
+            "truncated" to (rendered.length >= com.svoemesto.karaokeapp.services.TelegramTemplateService.TELEGRAM_CAPTION_MAX_LENGTH) as Any,
+            "length" to rendered.length as Any,
+            "maxLength" to com.svoemesto.karaokeapp.services.TelegramTemplateService.TELEGRAM_CAPTION_MAX_LENGTH as Any,
+        )
+    }
+
+    @GetMapping("/telegram/templates/defaults")
+    @ResponseBody
+    fun getTelegramTemplateDefaults(): Map<String, Any> {
+        val defaults =
+            com.svoemesto.karaokeapp.model.PublicationType.entries.associate { pt ->
+                val key = "telegramTemplate${pt.name.lowercase().replaceFirstChar { it.uppercase() }}"
+                val default =
+                    when (pt) {
+                        com.svoemesto.karaokeapp.model.PublicationType.AIR ->
+                            com.svoemesto.karaokeapp.services.TelegramTemplateService.DEFAULT_AIR_TEMPLATE
+                        com.svoemesto.karaokeapp.model.PublicationType.PREMIUM ->
+                            com.svoemesto.karaokeapp.services.TelegramTemplateService.DEFAULT_PREMIUM_TEMPLATE
+                    }
+                key to default
+            }
+        return mapOf("defaults" to defaults)
+    }
+
     // Статус рендера MP4
     @PostMapping("/song/renderMp4Status")
     @ResponseBody

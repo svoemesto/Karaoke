@@ -26,7 +26,17 @@ class TelegramAutoPublishSchedulerStarter {
     @EventListener(ApplicationReadyEvent::class)
     fun onApplicationReady() {
         if (KaraokeProperties.getBoolean("telegramAutoPublishEnabled")) {
-            println("TelegramAutoPublishScheduler: старт (telegramAutoPublishEnabled=true)")
+            println("TelegramAutoPublishScheduler: старт (telegramAutoPublishEnabled=true) at ${java.time.Instant.now()}")
+        }
+        // Диагностика: проверим, что @Scheduled-бин вообще зарегистрирован в Spring-контексте.
+        val ctx =
+            org.springframework.web.context.ContextLoader
+                .getCurrentWebApplicationContext()
+        if (ctx != null) {
+            val beans = ctx.getBeansOfType(TelegramAutoPublishScheduler::class.java)
+            println("TelegramAutoPublishSchedulerStarter: beans of type TelegramAutoPublishScheduler in context = ${beans.size} (expected=1)")
+        } else {
+            println("TelegramAutoPublishSchedulerStarter: WARN — no WebApplicationContext available")
         }
     }
 }

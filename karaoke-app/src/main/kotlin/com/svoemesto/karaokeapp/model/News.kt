@@ -29,8 +29,15 @@ import java.sql.Timestamp
  *
  * Синхронизируется LOCAL↔SERVER.
  *
+ * specs/121-vk-news-auto-publish: `category="air"` + `publish_at <= now()` — триггер
+ * автопубликации в ВК. `song_id` — привязка к песне (для идемпотентности по `Song.idVk`).
+ * Редкий случай (ручная `air`-новость без `song_id`, FR-004a) — идемпотентность через
+ * in-memory Set в `VkAutoPublishScheduler` (News не имеет JSON-блоба для хранения
+ * состояния, и добавлять его — избыточная миграция).
+ *
  * @see docs/features/dual-db-sync.md
  * @see docs/features/telegram-auto-publish.md
+ * @see docs/features/vk-news-auto-publish.md
  */
 @JsonIgnoreProperties(value = ["database", "sqlToInsert"])
 class News(

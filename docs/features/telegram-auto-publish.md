@@ -343,6 +343,117 @@ Telegram из Docker-контейнера на admin-машине в РФ мож
   состояния публикации парсятся через отдельный `JsonObject` helper
   (`readinessStringFlag`), не ломая существующие boolean readiness-флаги.
 
+## Премиум-публикация (автоматическая при становлении песни доступной)
+
+> **Status**: active (auto-publish PREMIUM-выпусков одновременно с Telegram и VK)
+> **Feature Key**: premium-auto-publish
+> **Spec**: specs/122-premium-auto-publish/
+
+### Что делает
+
+Автоматически публикует PREMIUM-выпуск песни в Telegram-канал **и** в группу
+ВК в момент, когда песня становится доступной для premium-подписчиков
+(переход флага `newsAvailableAnnounced` false→true). Использует отдельный
+PREMIUM-шаблон (отличается от AIR-шаблона, по умолчанию содержит маркер
+«премиум» в тексте). Главная особенность: `message_id` Telegram-поста и
+`post_id` VK-поста **НЕ записываются** в `Song.idTelegramDemo` /
+`Song.idVk` — те же слоты должны заполниться будущей AIR-публикацией
+при выходе песни в эфир (это и есть основная «фишка»: один bot-cycle
+с PREMIUM-шаблоном, потом отдельный bot-cycle в эфире с AIR-шаблоном).
+
+### Триггер
+
+Хук стоит в `Song.markNewsAvailableIfReady()` (Song.kt). При первом
+переходе `newsAvailableAnnounced` false→true выставляется
+`newsPremiumPublishPending=true`. Этот же `saveToDb()` дальше запишет
+новое значение в БД через стандартный diff/UPDATE (как и остальные
+изменения в этом сейве). Никаких отдельных таблиц/колонок не нужно.
+
+### Поток
+
+1. `markNewsAvailableIfReady()` в `Song.saveToDb()` — `newsPremiumPublishPending=true`.
+2. `PremiumAutoPublishScheduler` (отдельный `@Scheduled`-tick каждые 30 сек)
+   — `SELECT id FROM tbl_songs WHERE player_readiness_flags LIKE '%newsPremiumPublishPending%'`
+   + JSON-парсинг для фильтрации точного `true`.
+3. Для каждой песни:
+   - Загружает полный `Song`, перепроверяет `newsPremiumPublishPending=true`.
+   - Если канал занят RENDERING/PUBLISHING (от прошлой попытки) — skip до следующего тика.
+   - Если `idTelegramDemo`/`idVk` уже заполнены или `newsPremiumTelegramSent`/`newsPremiumVkSent`
+     уже установлены — отмечаем закрытие задачи (`state=COMPLETE`).
+   - Последовательно `TelegramAutoPublishService.publishToTelegram(song,
+     allowPastDate=true, publicationType=PREMIUM, persistMessageId=false)` и
+     `VkAutoPublishService.publishToVk(song, type=PREMIUM, persistPostId=false)`.
+   - При успехе в обоих каналах — `newsPremiumPublishPending=false`,
+     `premiumAutoPublishState="COMPLETE"`.
+
+### Идемпотентность
+
+Четыре независимых «галочки» в `player_readiness_flags` JSON-блобе:
+
+- `newsPremiumPublishPending` (Boolean) — задача для scheduler'а; снимается после
+  `COMPLETE` или `FAILED`.
+- `newsPremiumTelegramSent` (Boolean) — успешная PREMIUM-публикация в Telegram;
+  не сбрасывается (новое событие «доступна» для одной песни быть не может —
+  `newsAvailableAnnounced` монотонно растёт).
+- `newsPremiumVkSent` (Boolean) — то же для ВКонтакте.
+- `premiumAttemptCount` (int-as-string) — счётчик SEND_FAILED-попыток (общий для TG+VK).
+
+Плюс уже существующие идемпотентности:
+- `song.idTelegramDemo.isNotEmpty()` / `song.idVk.isNotEmpty()` — если AIR-публикация
+  уже прошла до PREMIUM-тика (теоретически возможно, если эфир наступил раньше
+  премиум-тика), skip (защита от дублирования сообщений).
+
+### Лимит попыток
+
+`premiumAutoPublishMaxAttempts` (KaraokeProperties, default 3). При каждом
+`SEND_FAILED` (в любом канале) `premiumAttemptCount++`. При достижении лимита —
+`newsPremiumPublishPending=false` и `premiumAutoPublishState="FAILED"`. После
+FAILED админ видит проблему в UI и может сбросить через прямой
+`UPDATE tbl_songs SET player_readiness_flags = REPLACE(...)` или просто
+пересохранить песню.
+
+### Шаблоны
+
+PREMIUM-шаблоны конфигурируются отдельно от AIR:
+- `telegramTemplatePremium` (KaraokeProperties) — caption для PREMIUM-Telegram-поста.
+- `vkTemplatePremium` (KaraokeProperties) — текст для PREMIUM-VK-поста.
+
+Дефолты — `TelegramTemplateService.DEFAULT_PREMIUM_TEMPLATE` и
+`VkTemplateService.DEFAULT_PREMIUM_TEMPLATE`. Оба содержат
+маркер «премиум» (например, `#премиум`). Плейсхолдеры — те же, что у AIR
+({author}, {songName}, {link}, {description}, ...). UI редактируется в том же
+«Шаблоны публикаций» в `webvue3` (вкладка «Telegram» → premium).
+
+### Endpoint для ручного триггера
+
+- `POST /api/song/publishPremiumTelegram?id=<songId>` — PREMIUM-публикация в Telegram.
+- `POST /api/song/publishPremiumVk?id=<songId>` — PREMIUM-публикация в VK.
+
+Оба возвращают стандартный JSON `{success, state, messageId/postId, error,
+newsPremiumPublishPending, newsPremiumTelegramSent, newsPremiumVkSent,
+premiumAutoPublishState}` и доступны всегда (даже при
+`premiumAutoPublishEnabled=false`) для ручного форсирования/тестов.
+
+### Известные нюансы
+
+- **Задержка до 30 сек** между `saveToDb()` и фактической PREMIUM-публикацией
+  (следующий tick scheduler'а). Если нужен моментальный эффект — endpoint
+  `/api/song/publishPremiumTelegram`.
+- **Две публикации подряд** (PREMIUM + AIR) для одной песни с разными шаблонами —
+  в Telegram/VK это нормально, разные сообщения в одном канале с разным текстом.
+- **`persistMessageId=false` / `persistPostId=false`** — критичный флаг, без него
+  PREMIUM-публикация перезапишет `idTelegramDemo`/`idVk` и сломает идемпотентность
+  для будущей AIR-публикации.
+
+### Ссылки на ключевые классы/файлы (премиум)
+
+- [`PremiumAutoPublishScheduler.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/PremiumAutoPublishScheduler.kt) — `@Scheduled` бот
+- [`Song.markNewsAvailableIfReady`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt) — хук на переход `newsAvailableAnnounced`
+- [`TelegramAutoPublishService.publishToTelegram`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/TelegramAutoPublishService.kt) — параметр `publicationType`, `persistMessageId`
+- [`VkAutoPublishService.publishToVk`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkAutoPublishService.kt) — параметр `persistPostId`
+- [`ApiController.publishPremiumTelegram` / `publishPremiumVk`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt) — ручные endpoint'ы
+- [`KaraokeProperties.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProperties.kt) — `premiumAutoPublishEnabled` (default false), `premiumAutoPublishMaxAttempts` (default 3)
+
 ### Ссылки на ключевые классы/файлы (Фаза 2)
 
 - [`TelegramAutoPublishState.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/TelegramAutoPublishState.kt) — enum 6 состояний

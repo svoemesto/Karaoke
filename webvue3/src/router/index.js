@@ -21,6 +21,7 @@ import SponsrSyncView from '../views/SponsrSyncView.vue'
 import DictionariesView from '../views/DictionariesView.vue'
 import ChatView from '../views/ChatView.vue'
 import NewsView from '../views/NewsView.vue'
+import PublishTemplatesView from '../views/PublishTemplatesView.vue'
 
 const routes = [
   {
@@ -127,6 +128,11 @@ const routes = [
     path: '/news',
     name: 'news',
     component: NewsView,
+  },
+  {
+    path: '/publish-templates',
+    name: 'publish-templates',
+    component: PublishTemplatesView,
   },
   {
     path: '/player/:id',

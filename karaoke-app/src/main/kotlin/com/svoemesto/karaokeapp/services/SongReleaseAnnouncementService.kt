@@ -114,7 +114,14 @@ object SongReleaseAnnouncementService {
             null
         } else {
             try {
-                SimpleDateFormat("dd.MM.yy HH:mm").parse("$date $time")
+                // Явная таймзона MSK: в контейнере karaoke-app JVM-локаль = UTC (TZ env не
+                // применяется к SimpleDateFormat), а publish_date/publish_time в БД
+                // интерпретируются как московское время. Без явной таймзоны парсинг
+                // даёт UTC-время, и сравнение с nowMoscow() (MSK) даёт ошибку в 3 часа.
+                SimpleDateFormat("dd.MM.yy HH:mm")
+                    .apply {
+                        timeZone = TimeZone.getTimeZone("Europe/Moscow")
+                    }.parse("$date $time")
             } catch (_: Exception) {
                 null
             }

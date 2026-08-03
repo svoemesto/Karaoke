@@ -326,44 +326,44 @@ val listKaraokeProperties =
         // Дефолт всех — false (синхронизация выключена), КРОМЕ events/pull (перелив статистики с сервера
         // на LOCAL с очисткой сервера): insert/update/move = true, delete = false.
         KaraokeProperty(
-            key = "sync_settings_push_insert_allowed",
+            key = "sync_songs_push_insert_allowed",
             defaultValue = false,
-            description = "Синхронизация: Настройки песен — push, Добавление",
+            description = "Синхронизация: Песни — push, Добавление",
         ),
         KaraokeProperty(
-            key = "sync_settings_push_update_allowed",
+            key = "sync_songs_push_update_allowed",
             defaultValue = false,
-            description = "Синхронизация: Настройки песен — push, Изменение",
+            description = "Синхронизация: Песни — push, Изменение",
         ),
         KaraokeProperty(
-            key = "sync_settings_push_delete_allowed",
+            key = "sync_songs_push_delete_allowed",
             defaultValue = false,
-            description = "Синхронизация: Настройки песен — push, Удаление",
+            description = "Синхронизация: Песни — push, Удаление",
         ),
         KaraokeProperty(
-            key = "sync_settings_push_move_allowed",
+            key = "sync_songs_push_move_allowed",
             defaultValue = false,
-            description = "Синхронизация: Настройки песен — push, Перемещение",
+            description = "Синхронизация: Песни — push, Перемещение",
         ),
         KaraokeProperty(
-            key = "sync_settings_pull_insert_allowed",
+            key = "sync_songs_pull_insert_allowed",
             defaultValue = false,
-            description = "Синхронизация: Настройки песен — pull, Добавление",
+            description = "Синхронизация: Песни — pull, Добавление",
         ),
         KaraokeProperty(
-            key = "sync_settings_pull_update_allowed",
+            key = "sync_songs_pull_update_allowed",
             defaultValue = false,
-            description = "Синхронизация: Настройки песен — pull, Изменение",
+            description = "Синхронизация: Песни — pull, Изменение",
         ),
         KaraokeProperty(
-            key = "sync_settings_pull_delete_allowed",
+            key = "sync_songs_pull_delete_allowed",
             defaultValue = false,
-            description = "Синхронизация: Настройки песен — pull, Удаление",
+            description = "Синхронизация: Песни — pull, Удаление",
         ),
         KaraokeProperty(
-            key = "sync_settings_pull_move_allowed",
+            key = "sync_songs_pull_move_allowed",
             defaultValue = false,
-            description = "Синхронизация: Настройки песен — pull, Перемещение",
+            description = "Синхронизация: Песни — pull, Перемещение",
         ),
         KaraokeProperty(
             key = "sync_pictures_push_insert_allowed",

@@ -1708,7 +1708,17 @@ class Song(
 
     @Suppress("unused")
     val fileAbsolutePathTmp: String get() = "$rootFolder/$fileName-tmp.flac"
-    val fileSettingsAbsolutePath: String get() = "$rootFolder/$fileName.settings"
+    val fileSongAbsolutePath: String get() = "$rootFolder/$fileName.song"
+
+    /** Устаревшее расширение файла метаданных (specs/125-rename-remaining-song-artifacts). */
+    private val fileSongAbsolutePathLegacy: String get() = "$rootFolder/$fileName.settings"
+
+    /**
+     * Путь к файлу метаданных песни на диске: `.song`, если уже существует, иначе
+     * `.settings` — обратная совместимость с песнями, обработанными до переименования
+     * расширения. Новые/пересохранённые файлы всегда пишутся как `.song` (см. [saveToFile]).
+     */
+    val fileSongOrLegacySettingsAbsolutePath: String get() = if (File(fileSongAbsolutePath).exists()) fileSongAbsolutePath else fileSongAbsolutePathLegacy
     val fileSearchedLinksAbsolutePath: String get() = "$rootFolder/$fileName [searched links].xml"
 
     @Suppress("unused")
@@ -5563,7 +5573,7 @@ class Song(
     ) {
         if (withFiles) {
             if (File(fileAbsolutePath).exists()) File(fileAbsolutePath).delete()
-            if (File(fileSettingsAbsolutePath).exists()) File(fileSettingsAbsolutePath).deleteOnExit()
+            if (File(fileSongOrLegacySettingsAbsolutePath).exists()) File(fileSongOrLegacySettingsAbsolutePath).deleteOnExit()
             if (File(vocalsNameFlac).exists()) File(vocalsNameFlac).deleteOnExit()
             if (File(accompanimentNameFlac).exists()) File(accompanimentNameFlac).deleteOnExit()
         }
@@ -5596,7 +5606,7 @@ class Song(
             SongField.entries.forEach { settingField ->
                 if (fields.contains(settingField)) txt += "${settingField.name}=${fields[settingField]}\n"
             }
-            val pathToFile = "$rootFolder/$fileName.settings".rightFileName()
+            val pathToFile = fileSongAbsolutePath.rightFileName()
             File(pathToFile).writeText(txt)
             runCommand(listOf("chmod", "666", pathToFile))
         }
@@ -6221,15 +6231,15 @@ class Song(
                 }
                 if (Paths
                         .get(
-                            settOldVersion.fileSettingsAbsolutePath,
+                            settOldVersion.fileSongOrLegacySettingsAbsolutePath,
                         ).toFile()
                         .exists()
                 ) {
                     Paths
                         .get(
-                            settOldVersion.fileSettingsAbsolutePath,
+                            settOldVersion.fileSongOrLegacySettingsAbsolutePath,
                         ).toFile()
-                        .renameTo(Paths.get(settNewVersion.fileSettingsAbsolutePath).toFile())
+                        .renameTo(Paths.get(settNewVersion.fileSongOrLegacySettingsAbsolutePath).toFile())
                 }
 //                if (Paths.get("~/Karaoke/karaoke-web/src/main/resources/static/tmp/${settNewVersion.id}.png").toFile().exists()) createVKLinkPictureWeb(settNewVersion)
 //                if (Paths.get(settNewVersion.getOutputFilename(SongOutputFile.PICTUREBOOSTYFILES)).toFile().exists()) createBoostyFilesPicture(settNewVersion)

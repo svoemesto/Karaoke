@@ -1649,7 +1649,7 @@ class MainController(
         filter_order?.let { if (filter_order != "") args["process_order"] = filter_order }
         filter_priority?.let { if (filter_priority != "") args["process_priority"] = filter_priority }
         filter_description?.let { if (filter_description != "") args["process_description"] = filter_description }
-        filter_song_id?.let { if (filter_song_id != "") args["settings_id"] = filter_song_id }
+        filter_song_id?.let { if (filter_song_id != "") args["song_id"] = filter_song_id }
         filter_type?.let { if (filter_type != "") args["process_type"] = filter_type }
         filter_limit?.let { if (filter_limit != "") args["filter_limit"] = filter_limit }
         model.addAttribute("workInContainer", APP_WORK_IN_CONTAINER)

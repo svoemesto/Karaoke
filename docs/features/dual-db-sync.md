@@ -92,13 +92,20 @@ Karaoke — self-pipeline. Admin-машина разрабатывает нов�
   `last_update` только для UI, не для диффа. Помечается в entity.
 - **Historical rename (2026-07-26, specs/011-album-song-rename)**: главная syncable-сущность
   `Settings`/`tbl_settings` переименована в `Song`/`tbl_songs` (класс, DTO, `SyncTarget` —
-  `SettingsSyncTarget`→`SongSyncTarget`; физическая таблица тоже переименована). Строковый
-  `key = "settings"` в `SyncRegistry` **намеренно не менялся** — он зашит в несохранённый в git
-  `Karaoke.properties` на машине администратора, и смена ключа обнулила бы уже настроенные флаги
-  синхронизации без предупреждения (см. `specs/011-album-song-rename/research.md` §5). Одновременно
-  добавлены две новые сущности по тому же паттерну `GenericKaraokeDbTableSyncTarget`: `Album`
-  (`key = "albums"`, `tbl_albums`) и `SongCoAuthor` (`key = "songcoauthors"`, `tbl_song_authors`,
-  многие-ко-многим `Song`↔`Author` для соавторов, отдельно от главного автора).
+  `SettingsSyncTarget`→`SongSyncTarget`; физическая таблица тоже переименована). На тот момент
+  строковый `key = "settings"` в `SyncRegistry` намеренно НЕ меняли (риск обнулить уже настроенные
+  флаги синхронизации в `Karaoke.properties` без предупреждения). Одновременно добавлены две новые
+  сущности по тому же паттерну `GenericKaraokeDbTableSyncTarget`: `Album` (`key = "albums"`,
+  `tbl_albums`) и `SongCoAuthor` (`key = "songcoauthors"`, `tbl_song_authors`, многие-ко-многим
+  `Song`↔`Author` для соавторов, отдельно от главного автора).
+- **Доименование key (2026-08-03, specs/125-rename-remaining-song-artifacts)**: `key = "settings"`
+  всё же переименован в `key = "songs"` (вместе с `tbl_processes.settings_id`→`song_id` и файлами
+  `<песня>.settings`→`.song` на диске — см. `docs/features/async-process-queue.md`). **Требуется
+  ручное действие на машине администратора**: в `Karaoke.properties` переименовать 8 ключей
+  `sync_settings_push/pull_insert/update/delete/move_allowed` → `sync_songs_...`, сохранив текущие
+  значения true/false — иначе после деплоя этого кода флаги синхронизации песен молча сбросятся на
+  default (`false`, синхронизация выключена), т.к. `SyncTarget.operationPropertyKey()` строит имя
+  свойства динамически из `key` (`"sync_${key}_..."`, см. `SyncTarget.kt`).
 - **Новые колонки на уже syncable-таблицах (2026-07-27, specs/012-entity-description-fields)**:
   `tbl_authors`, `tbl_albums`, `tbl_songs` получили по 3 новых столбца
   (`description`, `short_description`, `warning`, миграция

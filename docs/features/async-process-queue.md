@@ -162,8 +162,10 @@
     `argsKeyBpmFinder()`) — `KaraokeProcess.separate()` разбивает такой
     пайплайн на N отдельных строк `tbl_processes` (по одной на команду) для
     пошагового отслеживания прогресса; все дочерние строки наследуют
-    `threadId` родителя. N строк с одинаковым `settings_id`+`process_type`+
-    `thread_id` — это штатное поведение, не дублирование.
+    `threadId` родителя. N строк с одинаковым `song_id`+`process_type`+
+    `thread_id` — это штатное поведение, не дублирование (колонка
+    `tbl_processes.settings_id` переименована в `song_id`,
+    specs/125-rename-remaining-song-artifacts, 2026-08-03).
 - **SHOULD**: каждое задание с CPU-нагрузкой > 30 секунд идёт в
   `THREAD_LANE_HEAVY_RENDER`, чтобы не блокировать лёгкие задачи.
 - **SHOULD**: регулирование `MLT_CPU_LIMIT` (env-переменная для

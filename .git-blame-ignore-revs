@@ -33,3 +33,14 @@ ddea921
 
 # 2026-07-21 — PR #23: rewrite DEVELOPMENT.md (5 файлов, +511/−645 строк)
 56b12bf
+
+# === PR #158 — rename settings -> song (2026-08-03) ===
+# Механический рефакторинг: доименование исторического Settings->Song —
+# идентификаторы, DTO/HTTP/SSE-контракты, Thymeleaf-шаблоны (88 файлов,
+# +3997/−2741 строк). specs/102-rename-song-settings-vars.
+
+# 2026-08-03 — PR #158: settings -> song rename (88 файлов)
+2e99996
+
+# 2026-08-03 — PR #158 follow-up: Prettier-формат, унаследованный из master (3 файла)
+d4e5784

@@ -148,9 +148,9 @@ class Ods {
             fileName: String,
             spreadsheetDocument: SpreadsheetDocument?,
         ): Pair<String, String>? {
-            val template = song.settings.getVKGroupDescription()
-            val author = song.settings.author
-            val songName = song.settings.songName
+            val template = song.song.getVKGroupDescription()
+            val author = song.song.author
+            val songName = song.song.songName
 
             var date: String
             var time: String
@@ -183,15 +183,15 @@ class Ods {
 //                    chordsDelay = row.getCellByIndex(getColumnIndex(firstRow!!, ODS_COLUMN_DZEN_CHORDS_BT)).stringValue.trim()
                 }
             } else {
-                date = song.settings.date
-                time = song.settings.time.replace(":", ".")
-                boostyNormal = song.settings.idBoosty
-                lyricsNormal = song.settings.idDzenLyrics
-//                lyricsDelay = song.settings.idDzenLyricsBt ?: ""
-                karaokeNormal = song.settings.idDzenKaraoke
-//                karaokeDelay = song.settings.idDzenKaraokeBt ?: ""
-                chordsNormal = song.settings.idDzenChords
-//                chordsDelay = song.settings.idDzenChordsBt ?: ""
+                date = song.song.date
+                time = song.song.time.replace(":", ".")
+                boostyNormal = song.song.idBoosty
+                lyricsNormal = song.song.idDzenLyrics
+//                lyricsDelay = song.song.idDzenLyricsBt ?: ""
+                karaokeNormal = song.song.idDzenKaraoke
+//                karaokeDelay = song.song.idDzenKaraokeBt ?: ""
+                chordsNormal = song.song.idDzenChords
+//                chordsDelay = song.song.idDzenChordsBt ?: ""
             }
 
             if ("$lyricsNormal$karaokeNormal" != "") {

@@ -51,8 +51,8 @@ data class PublicationDTO(
  * Состояние публикации песни (одна запись в `tbl_publications`).
  *
  * Содержит:
- * - `id`, `idSettings` — песня.
- * - `idState` — текущее состояние (см. `SettingState`).
+ * - `id` — песня.
+ * - `idState` — текущее состояние (см. `SongState`).
  * - `datePublicate` — плановая дата.
  * - `datePublicated` — фактическая дата.
  * - Ссылки на опубликованные версии (TG/VK/Dzen/Boosty/Sponsr/PL).
@@ -1366,7 +1366,7 @@ class Publication(
                 filterDateFrom = SimpleDateFormat("dd.MM.yy").format(Date())
                 filterDateTo = ""
             } else if (filterCond == "fromnotpublish") {
-                val listOfSettingsTemp =
+                val listOfSongsTemp =
                     Song
                         .loadListFromDb(
                             database = database,
@@ -1378,9 +1378,9 @@ class Publication(
                                 it.time != "" &&
                                 it.flags != ""
                         }
-                if (listOfSettingsTemp.isNotEmpty()) {
+                if (listOfSongsTemp.isNotEmpty()) {
                     var minDate = ""
-                    listOfSettingsTemp.forEach {
+                    listOfSongsTemp.forEach {
                         if (minDate == "" || SimpleDateFormat("dd.MM.yy").parse(it.date) < SimpleDateFormat("dd.MM.yy").parse(minDate)) {
                             minDate = it.date
                         }
@@ -1390,7 +1390,7 @@ class Publication(
                     filterDateTo = ""
                 }
             } else if (filterCond == "fromnotdone") {
-                val listOfSettingsTemp =
+                val listOfSongsTemp =
                     Song
                         .loadListFromDb(
                             database = database,
@@ -1402,9 +1402,9 @@ class Publication(
                                 it.time != "" &&
                                 it.idStatus < 6L
                         }
-                if (listOfSettingsTemp.isNotEmpty()) {
+                if (listOfSongsTemp.isNotEmpty()) {
                     var minDate = ""
-                    listOfSettingsTemp.forEach {
+                    listOfSongsTemp.forEach {
                         if (minDate == "" || SimpleDateFormat("dd.MM.yy").parse(it.date) < SimpleDateFormat("dd.MM.yy").parse(minDate)) {
                             minDate = it.date
                         }
@@ -1414,7 +1414,7 @@ class Publication(
                     filterDateTo = ""
                 }
             } else if (filterCond == "fromnotcheck") {
-                val listOfSettingsTemp =
+                val listOfSongsTemp =
                     Song
                         .loadListFromDb(
                             database = database,
@@ -1426,9 +1426,9 @@ class Publication(
                                 it.time != "" &&
                                 it.idStatus < 3L
                         }
-                if (listOfSettingsTemp.isNotEmpty()) {
+                if (listOfSongsTemp.isNotEmpty()) {
                     var minDate = ""
-                    listOfSettingsTemp.forEach {
+                    listOfSongsTemp.forEach {
                         if (minDate == "" || SimpleDateFormat("dd.MM.yy").parse(it.date) < SimpleDateFormat("dd.MM.yy").parse(minDate)) {
                             minDate = it.date
                         }
@@ -1439,7 +1439,7 @@ class Publication(
                 }
             }
 
-            val listOfSettings =
+            val listOfSongs =
                 Song
                     .loadListFromDb(
                         database = database,
@@ -1469,29 +1469,29 @@ class Publication(
                             )
                     }
 
-            listOfSettings.forEach { settings ->
-                var publicationInList = result.firstOrNull { it.publishDate == settings.date }
+            listOfSongs.forEach { song ->
+                var publicationInList = result.firstOrNull { it.publishDate == song.date }
                 if (publicationInList == null) {
                     publicationInList = Publication(database)
-                    publicationInList.publishDate = settings.date
-                    publicationInList.id = (settings.date.split(".")[2] + settings.date.split(".")[1] + settings.date.split(".")[0]).toInt()
+                    publicationInList.publishDate = song.date
+                    publicationInList.id = (song.date.split(".")[2] + song.date.split(".")[1] + song.date.split(".")[0]).toInt()
                     result.add(publicationInList)
                 }
-                when (settings.time) {
-                    "10:00" -> publicationInList.publish10 = settings
-                    "11:00" -> publicationInList.publish11 = settings
-                    "12:00" -> publicationInList.publish12 = settings
-                    "13:00" -> publicationInList.publish13 = settings
-                    "14:00" -> publicationInList.publish14 = settings
-                    "15:00" -> publicationInList.publish15 = settings
-                    "16:00" -> publicationInList.publish16 = settings
-                    "17:00" -> publicationInList.publish17 = settings
-                    "18:00" -> publicationInList.publish18 = settings
-                    "19:00" -> publicationInList.publish19 = settings
-                    "20:00" -> publicationInList.publish20 = settings
-                    "21:00" -> publicationInList.publish21 = settings
-                    "22:00" -> publicationInList.publish22 = settings
-                    "23:00" -> publicationInList.publish23 = settings
+                when (song.time) {
+                    "10:00" -> publicationInList.publish10 = song
+                    "11:00" -> publicationInList.publish11 = song
+                    "12:00" -> publicationInList.publish12 = song
+                    "13:00" -> publicationInList.publish13 = song
+                    "14:00" -> publicationInList.publish14 = song
+                    "15:00" -> publicationInList.publish15 = song
+                    "16:00" -> publicationInList.publish16 = song
+                    "17:00" -> publicationInList.publish17 = song
+                    "18:00" -> publicationInList.publish18 = song
+                    "19:00" -> publicationInList.publish19 = song
+                    "20:00" -> publicationInList.publish20 = song
+                    "21:00" -> publicationInList.publish21 = song
+                    "22:00" -> publicationInList.publish22 = song
+                    "23:00" -> publicationInList.publish23 = song
                 }
             }
             result.sort()
@@ -1533,9 +1533,9 @@ class Publication(
                 listStack.add(Stack<Song?>())
             }
 
-            listUnpublished.forEachIndexed { index, settings ->
-                for (i in (settings.size - 1) downTo 0) {
-                    listStack[index].push(settings[i])
+            listUnpublished.forEachIndexed { index, song ->
+                for (i in (song.size - 1) downTo 0) {
+                    listStack[index].push(song[i])
                 }
             }
 
@@ -1596,9 +1596,9 @@ class Publication(
                 listStack.add(Stack<Song?>())
             }
 
-            listUnpublished.forEachIndexed { index, settings ->
-                for (i in (settings.size - 1) downTo 0) {
-                    listStack[index].push(settings[i])
+            listUnpublished.forEachIndexed { index, song ->
+                for (i in (song.size - 1) downTo 0) {
+                    listStack[index].push(song[i])
                 }
             }
 
@@ -1624,7 +1624,7 @@ class Publication(
             return result
         }
 
-        fun getSettingsListForPublications(
+        fun getSongListForPublications(
             args: Map<String, String> = emptyMap(),
             database: KaraokeConnection,
             storageService: KaraokeStorageService,
@@ -1651,7 +1651,7 @@ class Publication(
                 filterDateFrom = SimpleDateFormat("dd.MM.yy").format(Date())
                 filterDateTo = ""
             } else if (filterCond == "fromnotpublish") {
-                val listOfSettingsTemp =
+                val listOfSongsTemp =
                     Song
                         .loadListFromDb(
                             database = database,
@@ -1663,9 +1663,9 @@ class Publication(
                                 it.time != "" &&
                                 it.flags != ""
                         }
-                if (listOfSettingsTemp.isNotEmpty()) {
+                if (listOfSongsTemp.isNotEmpty()) {
                     var minDate = ""
-                    listOfSettingsTemp.forEach {
+                    listOfSongsTemp.forEach {
                         if (minDate == "" || SimpleDateFormat("dd.MM.yy").parse(it.date) < SimpleDateFormat("dd.MM.yy").parse(minDate)) {
                             minDate = it.date
                         }
@@ -1675,7 +1675,7 @@ class Publication(
                     filterDateTo = ""
                 }
             } else if (filterCond == "fromnotdone") {
-                val listOfSettingsTemp =
+                val listOfSongsTemp =
                     Song
                         .loadListFromDb(
                             database = database,
@@ -1687,9 +1687,9 @@ class Publication(
                                 it.time != "" &&
                                 it.idStatus < 6L
                         }
-                if (listOfSettingsTemp.isNotEmpty()) {
+                if (listOfSongsTemp.isNotEmpty()) {
                     var minDate = ""
-                    listOfSettingsTemp.forEach {
+                    listOfSongsTemp.forEach {
                         if (minDate == "" || SimpleDateFormat("dd.MM.yy").parse(it.date) < SimpleDateFormat("dd.MM.yy").parse(minDate)) {
                             minDate = it.date
                         }
@@ -1699,7 +1699,7 @@ class Publication(
                     filterDateTo = ""
                 }
             } else if (filterCond == "fromnotcheck") {
-                val listOfSettingsTemp =
+                val listOfSongsTemp =
                     Song
                         .loadListFromDb(
                             database = database,
@@ -1711,9 +1711,9 @@ class Publication(
                                 it.time != "" &&
                                 it.idStatus < 3L
                         }
-                if (listOfSettingsTemp.isNotEmpty()) {
+                if (listOfSongsTemp.isNotEmpty()) {
                     var minDate = ""
-                    listOfSettingsTemp.forEach {
+                    listOfSongsTemp.forEach {
                         if (minDate == "" || SimpleDateFormat("dd.MM.yy").parse(it.date) < SimpleDateFormat("dd.MM.yy").parse(minDate)) {
                             minDate = it.date
                         }
@@ -1781,7 +1781,7 @@ class Publication(
                 }
         }
 
-        fun getSettingsListForUnpublications(
+        fun getSongListForUnpublications(
             database: KaraokeConnection,
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,

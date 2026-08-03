@@ -35,7 +35,7 @@ data class MkoChordPictureFader(
     private val songCapo = mltProp.getSongCapo()
     private val songChordDescription = mltProp.getSongChordDescription()
     private var folderIdVoice = mltProp.getId(listOf(ProducerType.VOICE, voiceId))
-    private val settings = mltProp.getSettings()
+    private val song = mltProp.getSong()
 //    private val capo = mltProp.getSongCapo()
 
     override fun producer(): MltNode =
@@ -334,7 +334,7 @@ data class MkoChordPictureFader(
                     ),
             ),
         )
-        val bpmMltText = Karaoke.chordsFont.copy("Темп: ${settings!!.bpm} bpm", 36)
+        val bpmMltText = Karaoke.chordsFont.copy("Темп: ${song!!.bpm} bpm", 36)
         body.add(
             MltNode(
                 name = "item",
@@ -361,7 +361,7 @@ data class MkoChordPictureFader(
                     ),
             ),
         )
-        val originalKey = settings.key.replace(" minor", "m").replace(" major", "")
+        val originalKey = song.key.replace(" minor", "m").replace(" major", "")
         val originalKeyMltText = Karaoke.chordsFont.copy("Оригинальная тональность: $originalKey", 36)
         body.add(
             MltNode(

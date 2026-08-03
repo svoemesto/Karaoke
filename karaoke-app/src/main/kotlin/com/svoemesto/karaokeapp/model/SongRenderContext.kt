@@ -14,7 +14,7 @@ import kotlin.math.absoluteValue
  * @see docs/features/mlt-generator.md
  */
 data class SongRenderContext(
-    val settings: Song,
+    val song: Song,
     val songVersion: SongVersion,
     val woInit: Boolean = false,
 ) : Serializable {
@@ -38,7 +38,7 @@ data class SongRenderContext(
     val propAudioVolumeCustom: String get() {
         val prop = mutableListOf<String>()
         prop.add("00:00:00.000=-100")
-        settings.sourceUnmute.forEach { (unMuteStart, unMuteEnd) ->
+        song.sourceUnmute.forEach { (unMuteStart, unMuteEnd) ->
             prop.add("${convertFramesToTimecode(convertMillisecondsToFrames((unMuteStart * 1000).toLong()) - 2)}=-100")
             prop.add("${convertFramesToTimecode(convertMillisecondsToFrames((unMuteStart * 1000).toLong()))}=0")
             prop.add("${convertFramesToTimecode(convertMillisecondsToFrames((unMuteEnd * 1000).toLong()))}=0")
@@ -61,7 +61,7 @@ data class SongRenderContext(
 
     @Suppress("unused")
     fun getOutputFilename2(songOutputFile: SongOutputFile): String =
-        "${settings.rootFolder}/done_${
+        "${song.rootFolder}/done_${
             when (songOutputFile) {
                 in
                 listOf(
@@ -76,7 +76,7 @@ data class SongRenderContext(
                 SongOutputFile.PICTURECHORDS -> "chords"
                 else -> "files"
             }
-        }/${if (songOutputFile == SongOutputFile.VK) "[{REPLACE_DATE}_{REPLACE_TIME}] " else ""}${settings.fileName}${songVersion.suffix}${if (songOutputFile == SongOutputFile.PICTURECHORDS) " chords" else ""}${if (songOutputFile == SongOutputFile.PICTUREBOOSTY) " boosty" else ""}${if (songOutputFile == SongOutputFile.PICTUREVK) " VK" else ""}${if (songOutputFile == SongOutputFile.VK) " [VK]" else ""}.${songOutputFile.extension}"
+        }/${if (songOutputFile == SongOutputFile.VK) "[{REPLACE_DATE}_{REPLACE_TIME}] " else ""}${song.fileName}${songVersion.suffix}${if (songOutputFile == SongOutputFile.PICTURECHORDS) " chords" else ""}${if (songOutputFile == SongOutputFile.PICTUREBOOSTY) " boosty" else ""}${if (songOutputFile == SongOutputFile.PICTUREVK) " VK" else ""}${if (songOutputFile == SongOutputFile.VK) " [VK]" else ""}.${songOutputFile.extension}"
 
     var endTimecode: String = ""
     var capo: Int = 0
@@ -94,18 +94,18 @@ data class SongRenderContext(
 
     init {
         if (!woInit) {
-//            val beatMs = if (settings.ms == 0L) (60000.0 / settings.bpm).toLong() else settings.ms
+//            val beatMs = if (song.ms == 0L) (60000.0 / song.bpm).toLong() else song.ms
 
             val mapFiles = mutableListOf<String>()
             // Считываем сабы
-            var listFile = getListFiles(settings.rootFolder, ".srt", "${settings.fileName}.voice")
-            var bodyText = settings.sourceText
+            var listFile = getListFiles(song.rootFolder, ".srt", "${song.fileName}.voice")
+            var bodyText = song.sourceText
             if (listFile.isEmpty()) {
-                listFile = getListFiles(settings.rootFolder, ".srt", "${settings.fileName}.srt")
-                bodyText = settings.sourceText
+                listFile = getListFiles(song.rootFolder, ".srt", "${song.fileName}.srt")
+                bodyText = song.sourceText
                 if (listFile.isEmpty()) {
-                    listFile = getListFiles(settings.rootFolder, ".srt", "${settings.fileName}.kdenlive")
-                    val listFileTxt = getListFiles(settings.rootFolder, ".txt", settings.fileName)
+                    listFile = getListFiles(song.rootFolder, ".srt", "${song.fileName}.kdenlive")
+                    val listFileTxt = getListFiles(song.rootFolder, ".txt", song.fileName)
                     if (listFileTxt.size == 1) {
                         bodyText = File(listFileTxt[0]).readText(Charsets.UTF_8)
                     }

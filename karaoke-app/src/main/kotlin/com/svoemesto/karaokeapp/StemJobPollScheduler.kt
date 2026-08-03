@@ -91,7 +91,7 @@ class StemJobPollScheduler {
         karaokeProcess.command = ""
         karaokeProcess.type =
             if (job.mode == StemJobMode.DEMUCS5) KaraokeProcessTypes.STEM_JOB_DEMUCS5.name else KaraokeProcessTypes.STEM_JOB_DEMUCS2.name
-        karaokeProcess.settingsId = 0
+        karaokeProcess.songId = 0
         karaokeProcess.threadId = KaraokeProcess.THREAD_LANE_STEM_JOBS
         karaokeProcess.description = "Демукс премиум-задания #${job.id}"
         karaokeProcess.args = args

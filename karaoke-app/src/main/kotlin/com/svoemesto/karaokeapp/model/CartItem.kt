@@ -18,7 +18,7 @@ import java.sql.Timestamp
  *
  * Содержит:
  * - `id`, `idSiteUser` — пользователь.
- * - `idSettings` — песня, которую хотят купить.
+ * - `idSong` — песня, которую хотят купить.
  * - `idPriceTariff` — выбранный тариф.
  * - `idPromoRule` (опционально) — применённое промо.
  * - `created` — дата добавления.

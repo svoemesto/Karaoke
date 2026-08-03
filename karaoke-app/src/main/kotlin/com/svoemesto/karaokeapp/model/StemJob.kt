@@ -56,7 +56,7 @@ object StemJobMode {
  * Задание на стем-разделение (Demucs, Spleeter, UVR).
  *
  * Хранит:
- * - `id`, `idSettings` — песня.
+ * - `id` — песня.
  * - `model` — модель Demucs (`htdemucs`, `mdx_q`, `htdemucs_ft`, и т.п.).
  * - `status` — текущее состояние (WAITING/WORKING/DONE/ERROR).
  * - `result` — JSON с путями к выходным стемам.

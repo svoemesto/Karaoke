@@ -132,12 +132,12 @@ class PublicSubscriptionController(
 
         if (scope == Subscription.SCOPE_SONG) {
             if (songId == null) return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(mapOf("error" to "song_id_required"))
-            val settings =
+            val song =
                 Song.loadFromDbById(songId, db, storageService = storageService, storageApiClient = storageApiClient)
                     ?: return ResponseEntity.status(HttpStatus.NOT_FOUND).body(mapOf("error" to "song_not_found"))
             // id_tariff: 0 (дефолт новой песни) = подписка разрешена тарифом по умолчанию; -1 = автор
             // явно запретил подписку на эту песню. Любое другое значение зарезервировано на будущее.
-            if (settings.idTariff <
+            if (song.idTariff <
                 0
             ) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(mapOf("error" to "song_not_for_subscription"))

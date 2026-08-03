@@ -86,7 +86,7 @@ class Song(
         prior: Int? = null,
     ) {
         KaraokeProcess.createProcess(
-            settings = this,
+            song = this,
             action = KaraokeProcessTypes.DEMUCS2,
             doWait = true,
             prior = prior ?: -1,
@@ -99,7 +99,7 @@ class Song(
         prior: Int? = null,
     ) {
         KaraokeProcess.createProcess(
-            settings = this,
+            song = this,
             action = KaraokeProcessTypes.DEMUCS5,
             doWait = true,
             prior = prior ?: -1,
@@ -109,7 +109,7 @@ class Song(
 
 //    fun createProcessMp3Song(threadId: Int? = null, prior:Int? = null) {
 //        KaraokeProcess.createProcess(
-//            settings = this,
+//            song = this,
 //            action = KaraokeProcessTypes.FF_MP3_LYR,
 //            doWait = true,
 //            prior = prior ?: -1,
@@ -119,7 +119,7 @@ class Song(
 //
 //    fun createProcessMp3Accompaniment(threadId: Int? = null, prior:Int? = null) {
 //        KaraokeProcess.createProcess(
-//            settings = this,
+//            song = this,
 //            action = KaraokeProcessTypes.FF_MP3_KAR,
 //            doWait = true,
 //            prior = prior ?: -1,
@@ -135,7 +135,7 @@ class Song(
         when (songVersion) {
             SongVersion.KARAOKE -> {
                 KaraokeProcess.createProcess(
-                    settings = this,
+                    song = this,
                     action = KaraokeProcessTypes.FF_720_KAR,
                     doWait = true,
                     prior = prior ?: -1,
@@ -144,7 +144,7 @@ class Song(
             }
             SongVersion.LYRICS -> {
                 KaraokeProcess.createProcess(
-                    settings = this,
+                    song = this,
                     action = KaraokeProcessTypes.FF_720_LYR,
                     doWait = true,
                     prior = prior ?: -1,
@@ -159,7 +159,7 @@ class Song(
     }
 
     @Suppress("unused")
-    fun healthReportList(): List<HealthReport> = HealthReport.getHealthReportList(settings = this)
+    fun healthReportList(): List<HealthReport> = HealthReport.getHealthReportList(song = this)
 
     var formattedTextSong: String
         get() {
@@ -1824,7 +1824,7 @@ class Song(
                 ),
                 listOf("chmod", "666", pathToFileKeyBpmFinder.rightFileName()),
                 listOf("rm", "-rf", PATH_TO_TEMP_KEYBPMFINDER_FOLDER),
-                listOf("runFunctionWithArgs", "getKeyBpmFromFile", "settingsId=$id"),
+                listOf("runFunctionWithArgs", "getKeyBpmFromFile", "songId=$id"),
             ),
             mapOf("DOCKER_API_VERSION" to "1.53"),
         )
@@ -1864,7 +1864,7 @@ class Song(
                 listOf("chmod", "666", accompanimentNameFlac.rightFileName()),
                 listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName-vocals.flac", vocalsNameFlac.rightFileName()),
                 listOf("chmod", "666", vocalsNameFlac.rightFileName()),
-                listOf("runFunctionWithArgs", "finalizeDemucs", "settingsId=$id", "demucsType=DEMUCS2", "threadId=$threadId"),
+                listOf("runFunctionWithArgs", "finalizeDemucs", "songId=$id", "demucsType=DEMUCS2", "threadId=$threadId"),
             ),
             mapOf("DOCKER_API_VERSION" to "1.53"),
         )
@@ -1906,7 +1906,7 @@ class Song(
                 listOf("chmod", "666", bassNameFlac.rightFileName()),
                 listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName-other.flac", otherNameFlac.rightFileName()),
                 listOf("chmod", "666", otherNameFlac.rightFileName()),
-                listOf("runFunctionWithArgs", "finalizeDemucs", "settingsId=$id", "demucsType=DEMUCS5", "threadId=$threadId"),
+                listOf("runFunctionWithArgs", "finalizeDemucs", "songId=$id", "demucsType=DEMUCS5", "threadId=$threadId"),
             ),
             mapOf("DOCKER_API_VERSION" to "1.53"),
         )
@@ -1941,7 +1941,7 @@ class Song(
                 listOf(
                     "runFunctionWithArgs",
                     "finalizeDemucs",
-                    "settingsId=$id",
+                    "songId=$id",
                     "demucsType=DEMUCS2",
                     "threadId=$threadId",
                     "retriedOnCpu=true",
@@ -1981,7 +1981,7 @@ class Song(
                 listOf(
                     "runFunctionWithArgs",
                     "finalizeDemucs",
-                    "settingsId=$id",
+                    "songId=$id",
                     "demucsType=DEMUCS5",
                     "threadId=$threadId",
                     "retriedOnCpu=true",
@@ -2671,8 +2671,8 @@ class Song(
     fun getMltProp(songVersion: SongVersion): MltProp {
         val mltProp = MltProp()
 
-        // setSettings - текущий settings
-        mltProp.setSettings(this)
+        // setSong - текущий song
+        mltProp.setSong(this)
 
         this.voicesForMlt = getVoices(this, songVersion)
 
@@ -5116,158 +5116,158 @@ class Song(
             }
         } else {
             markNewsAvailableIfReady()
-            val savedSettings =
+            val savedSong =
                 loadFromDbById(id = id, database = database, storageService = storageService, storageApiClient = storageApiClient)
 
             // При сохранении проверяем и меняем если надо номера версий на площадках. Если на площадке 0 и было изменение id - обновляем
-            if (savedSettings !== null) {
+            if (savedSong !== null) {
                 if (
-                    savedSettings.idBoosty.isBlank() &&
+                    savedSong.idBoosty.isBlank() &&
                     this.idBoosty.isNotBlank() &&
-                    savedSettings.versionBoosty == 0
+                    savedSong.versionBoosty == 0
                 ) {
                     fields[SongField.VERSION_BOOSTY] = resultVersion.toString()
                 }
-                if (savedSettings.idBoostyFiles.isBlank() &&
+                if (savedSong.idBoostyFiles.isBlank() &&
                     this.idBoostyFiles.isNotBlank() &&
-                    savedSettings.versionBoostyFiles == 0
+                    savedSong.versionBoostyFiles == 0
                 ) {
                     fields[SongField.VERSION_BOOSTY_FILES] = resultVersion.toString()
                 }
-                if (savedSettings.idSponsr.isBlank() &&
+                if (savedSong.idSponsr.isBlank() &&
                     this.idSponsr.isNotBlank() &&
-                    savedSettings.versionSponsr == 0
+                    savedSong.versionSponsr == 0
                 ) {
                     fields[SongField.VERSION_SPONSR] = resultVersion.toString()
                 }
-                if (savedSettings.idDzenLyrics.isBlank() &&
+                if (savedSong.idDzenLyrics.isBlank() &&
                     this.idDzenLyrics.isNotBlank() &&
-                    savedSettings.versionDzenLyrics == 0
+                    savedSong.versionDzenLyrics == 0
                 ) {
                     fields[SongField.VERSION_DZEN_LYRICS] = resultVersion.toString()
                 }
-                if (savedSettings.idDzenKaraoke.isBlank() &&
+                if (savedSong.idDzenKaraoke.isBlank() &&
                     this.idDzenKaraoke.isNotBlank() &&
-                    savedSettings.versionDzenKaraoke == 0
+                    savedSong.versionDzenKaraoke == 0
                 ) {
                     fields[SongField.VERSION_DZEN_KARAOKE] = resultVersion.toString()
                 }
-                if (savedSettings.idDzenMelody.isBlank() &&
+                if (savedSong.idDzenMelody.isBlank() &&
                     this.idDzenMelody.isNotBlank() &&
-                    savedSettings.versionDzenMelody == 0
+                    savedSong.versionDzenMelody == 0
                 ) {
                     fields[SongField.VERSION_DZEN_MELODY] = resultVersion.toString()
                 }
-                if (savedSettings.idDzenChords.isBlank() &&
+                if (savedSong.idDzenChords.isBlank() &&
                     this.idDzenChords.isNotBlank() &&
-                    savedSettings.versionDzenChords == 0
+                    savedSong.versionDzenChords == 0
                 ) {
                     fields[SongField.VERSION_DZEN_CHORDS] = resultVersion.toString()
                 }
-                if (savedSettings.idVkLyrics.isBlank() &&
+                if (savedSong.idVkLyrics.isBlank() &&
                     this.idVkLyrics.isNotBlank() &&
-                    savedSettings.versionVkLyrics == 0
+                    savedSong.versionVkLyrics == 0
                 ) {
                     fields[SongField.VERSION_VK_LYRICS] = resultVersion.toString()
                 }
-                if (savedSettings.idVkKaraoke.isBlank() &&
+                if (savedSong.idVkKaraoke.isBlank() &&
                     this.idVkKaraoke.isNotBlank() &&
-                    savedSettings.versionVkKaraoke == 0
+                    savedSong.versionVkKaraoke == 0
                 ) {
                     fields[SongField.VERSION_VK_KARAOKE] = resultVersion.toString()
                 }
-                if (savedSettings.idVkMelody.isBlank() &&
+                if (savedSong.idVkMelody.isBlank() &&
                     this.idVkMelody.isNotBlank() &&
-                    savedSettings.versionVkMelody == 0
+                    savedSong.versionVkMelody == 0
                 ) {
                     fields[SongField.VERSION_VK_MELODY] = resultVersion.toString()
                 }
-                if (savedSettings.idVkChords.isBlank() &&
+                if (savedSong.idVkChords.isBlank() &&
                     this.idVkChords.isNotBlank() &&
-                    savedSettings.versionVkChords == 0
+                    savedSong.versionVkChords == 0
                 ) {
                     fields[SongField.VERSION_VK_CHORDS] = resultVersion.toString()
                 }
-                if ((savedSettings.idTelegramLyrics.isBlank() || savedSettings.idTelegramLyrics == "-") &&
+                if ((savedSong.idTelegramLyrics.isBlank() || savedSong.idTelegramLyrics == "-") &&
                     this.idTelegramLyrics.isNotBlank() &&
                     this.idTelegramLyrics != "-" &&
-                    savedSettings.versionTelegramLyrics == 0
+                    savedSong.versionTelegramLyrics == 0
                 ) {
                     fields[SongField.VERSION_TELEGRAM_LYRICS] = resultVersion.toString()
                 }
                 if (
-                    (savedSettings.idTelegramKaraoke.isBlank() || savedSettings.idTelegramKaraoke == "-") &&
+                    (savedSong.idTelegramKaraoke.isBlank() || savedSong.idTelegramKaraoke == "-") &&
                     this.idTelegramKaraoke.isNotBlank() &&
                     this.idTelegramKaraoke != "-" &&
-                    savedSettings.versionTelegramKaraoke == 0
+                    savedSong.versionTelegramKaraoke == 0
                 ) {
                     fields[SongField.VERSION_TELEGRAM_KARAOKE] = resultVersion.toString()
                 }
-                if ((savedSettings.idTelegramMelody.isBlank() || savedSettings.idTelegramMelody == "-") &&
+                if ((savedSong.idTelegramMelody.isBlank() || savedSong.idTelegramMelody == "-") &&
                     this.idTelegramMelody.isNotBlank() &&
                     this.idTelegramMelody != "-" &&
-                    savedSettings.versionTelegramMelody == 0
+                    savedSong.versionTelegramMelody == 0
                 ) {
                     fields[SongField.VERSION_TELEGRAM_MELODY] = resultVersion.toString()
                 }
-                if ((savedSettings.idTelegramChords.isBlank() || savedSettings.idTelegramChords == "-") &&
+                if ((savedSong.idTelegramChords.isBlank() || savedSong.idTelegramChords == "-") &&
                     this.idTelegramChords.isNotBlank() &&
                     this.idTelegramChords != "-" &&
-                    savedSettings.versionTelegramChords == 0
+                    savedSong.versionTelegramChords == 0
                 ) {
                     fields[SongField.VERSION_TELEGRAM_CHORDS] = resultVersion.toString()
                 }
-                if (savedSettings.idPlLyrics.isBlank() &&
+                if (savedSong.idPlLyrics.isBlank() &&
                     this.idPlLyrics.isNotBlank() &&
-                    savedSettings.versionPlLyrics == 0
+                    savedSong.versionPlLyrics == 0
                 ) {
                     fields[SongField.VERSION_PL_LYRICS] = resultVersion.toString()
                 }
-                if (savedSettings.idPlKaraoke.isBlank() &&
+                if (savedSong.idPlKaraoke.isBlank() &&
                     this.idPlKaraoke.isNotBlank() &&
-                    savedSettings.versionPlKaraoke == 0
+                    savedSong.versionPlKaraoke == 0
                 ) {
                     fields[SongField.VERSION_PL_KARAOKE] = resultVersion.toString()
                 }
-                if (savedSettings.idPlMelody.isBlank() &&
+                if (savedSong.idPlMelody.isBlank() &&
                     this.idPlMelody.isNotBlank() &&
-                    savedSettings.versionPlMelody == 0
+                    savedSong.versionPlMelody == 0
                 ) {
                     fields[SongField.VERSION_PL_MELODY] = resultVersion.toString()
                 }
-                if (savedSettings.idPlChords.isBlank() &&
+                if (savedSong.idPlChords.isBlank() &&
                     this.idPlChords.isNotBlank() &&
-                    savedSettings.versionPlChords == 0
+                    savedSong.versionPlChords == 0
                 ) {
                     fields[SongField.VERSION_PL_CHORDS] = resultVersion.toString()
                 }
-                if (savedSettings.idMaxLyrics.isBlank() &&
+                if (savedSong.idMaxLyrics.isBlank() &&
                     this.idMaxLyrics.isNotBlank() &&
-                    savedSettings.versionMaxLyrics == 0
+                    savedSong.versionMaxLyrics == 0
                 ) {
                     fields[SongField.VERSION_MAX_LYRICS] = resultVersion.toString()
                 }
-                if (savedSettings.idMaxKaraoke.isBlank() &&
+                if (savedSong.idMaxKaraoke.isBlank() &&
                     this.idMaxKaraoke.isNotBlank() &&
-                    savedSettings.versionMaxKaraoke == 0
+                    savedSong.versionMaxKaraoke == 0
                 ) {
                     fields[SongField.VERSION_MAX_KARAOKE] = resultVersion.toString()
                 }
-                if (savedSettings.idMaxMelody.isBlank() &&
+                if (savedSong.idMaxMelody.isBlank() &&
                     this.idMaxMelody.isNotBlank() &&
-                    savedSettings.versionMaxMelody == 0
+                    savedSong.versionMaxMelody == 0
                 ) {
                     fields[SongField.VERSION_MAX_MELODY] = resultVersion.toString()
                 }
-                if (savedSettings.idMaxChords.isBlank() &&
+                if (savedSong.idMaxChords.isBlank() &&
                     this.idMaxChords.isNotBlank() &&
-                    savedSettings.versionMaxChords == 0
+                    savedSong.versionMaxChords == 0
                 ) {
                     fields[SongField.VERSION_MAX_CHORDS] = resultVersion.toString()
                 }
             }
 
-            val diff = getDiff(this, savedSettings)
+            val diff = getDiff(this, savedSong)
 //            println("diff = $diff")
             if (diff.isEmpty()) return
 
@@ -5276,7 +5276,7 @@ class Song(
             // в таблице/редакторе, апрув маркеров, авто-подстановка по audio-parent) - персистентные
             // флаги (см. deploy/karaoke-db/26_player_readiness_flags.sql) без этого пересчёта остаются
             // дефолтным {} до отдельного прогона health-репорта/recalcplayerreadiness.
-            val crossedReadyThreshold = savedSettings != null && savedSettings.idStatus < 6L && this.idStatus >= 6L
+            val crossedReadyThreshold = savedSong != null && savedSong.idStatus < 6L && this.idStatus >= 6L
 
             val messageRecordChange =
                 SseNotification.recordChange(
@@ -5365,7 +5365,7 @@ class Song(
 
             if (crossedReadyThreshold) {
                 HealthReport.recomputeAndBroadcast(
-                    settingsId = id,
+                    songId = id,
                     database = database,
                     storageService = storageService,
                     storageApiClient = storageApiClient,
@@ -5376,7 +5376,7 @@ class Song(
                 SearchAsync.deleteBySongId(id, database, storageService, storageApiClient)
             }
 
-            if (savedSettings != null) renameFilesIfDiff(this, savedSettings)
+            if (savedSong != null) renameFilesIfDiff(this, savedSong)
 
             if (Karaoke.autoUpdateRemoteSettings &&
                 Karaoke.allowUpdateRemote &&
@@ -5540,7 +5540,7 @@ class Song(
                 context["typesText"] = "${KaraokeProcessTypes.SMARTCOPY.name}_${scVersion.name}_$scResolution"
 
                 KaraokeProcess.createProcess(
-                    settings = this,
+                    song = this,
                     action = KaraokeProcessTypes.SMARTCOPY,
                     doWait = true,
                     prior = prior,
@@ -5709,99 +5709,99 @@ class Song(
     override fun getSqlToInsert(): String = getSqlToInsert(sync = false)
 
     fun getSqlToInsert(sync: Boolean): String {
-        val settings = this
+        val song = this
         val fieldsValues: MutableList<Pair<String, Any>> = mutableListOf()
 
-        if (settings.id > 0) fieldsValues.add(Pair("id", settings.id))
-        fieldsValues.add(Pair("song_name", settings.songName))
-        fieldsValues.add(Pair("song_author", settings.author))
-        fieldsValues.add(Pair("song_album", settings.album))
-        fieldsValues.add(Pair("publish_date", settings.date))
-        fieldsValues.add(Pair("publish_time", settings.time))
-        fieldsValues.add(Pair("song_year", settings.year))
-        fieldsValues.add(Pair("song_track", settings.track))
-        fieldsValues.add(Pair("song_tone", settings.key))
-        fieldsValues.add(Pair("song_bpm", settings.bpm))
-        fieldsValues.add(Pair("result_version", settings.resultVersion))
-        fieldsValues.add(Pair("diff_beats", settings.diffBeats))
-        fieldsValues.add(Pair("song_ms", settings.ms))
-        fieldsValues.add(Pair("file_name", settings.fileName))
-        fieldsValues.add(Pair("root_folder", settings.rootFolder))
-        fieldsValues.add(Pair("id_boosty", settings.idBoosty))
-        fieldsValues.add(Pair("version_boosty", settings.versionBoosty))
-        fieldsValues.add(Pair("id_boosty_files", settings.idBoostyFiles))
-        fieldsValues.add(Pair("version_boosty_files", settings.versionBoostyFiles))
-        fieldsValues.add(Pair("id_sponsr", settings.idSponsr))
-        fieldsValues.add(Pair("version_sponsr", settings.versionSponsr))
-        fieldsValues.add(Pair("index_tabs_variant", settings.indexTabsVariant))
-        fieldsValues.add(Pair("id_vk", settings.idVk))
-        fieldsValues.add(Pair("id_dzen_lyrics", settings.idDzenLyrics))
-        fieldsValues.add(Pair("id_dzen_karaoke", settings.idDzenKaraoke))
-        fieldsValues.add(Pair("id_dzen_chords", settings.idDzenChords))
-        fieldsValues.add(Pair("id_dzen_melody", settings.idDzenMelody))
-        fieldsValues.add(Pair("version_dzen_lyrics", settings.versionDzenLyrics))
-        fieldsValues.add(Pair("version_dzen_karaoke", settings.versionDzenKaraoke))
-        fieldsValues.add(Pair("version_dzen_chords", settings.versionDzenChords))
-        fieldsValues.add(Pair("version_dzen_melody", settings.versionDzenMelody))
-        fieldsValues.add(Pair("id_vk_lyrics", settings.idVkLyrics))
-        fieldsValues.add(Pair("id_vk_karaoke", settings.idVkKaraoke))
-        fieldsValues.add(Pair("id_vk_chords", settings.idVkChords))
-        fieldsValues.add(Pair("id_vk_melody", settings.idVkMelody))
-        fieldsValues.add(Pair("version_vk_lyrics", settings.versionVkLyrics))
-        fieldsValues.add(Pair("version_vk_karaoke", settings.versionVkKaraoke))
-        fieldsValues.add(Pair("version_vk_chords", settings.versionVkChords))
-        fieldsValues.add(Pair("version_vk_melody", settings.versionVkMelody))
-        fieldsValues.add(Pair("id_telegram_lyrics", settings.idTelegramLyrics))
-        fieldsValues.add(Pair("id_telegram_karaoke", settings.idTelegramKaraoke))
-        fieldsValues.add(Pair("id_telegram_chords", settings.idTelegramChords))
-        fieldsValues.add(Pair("id_telegram_melody", settings.idTelegramMelody))
-        fieldsValues.add(Pair("version_telegram_lyrics", settings.versionTelegramLyrics))
-        fieldsValues.add(Pair("version_telegram_karaoke", settings.versionTelegramKaraoke))
-        fieldsValues.add(Pair("version_telegram_chords", settings.versionTelegramChords))
-        fieldsValues.add(Pair("version_telegram_melody", settings.versionTelegramMelody))
-        fieldsValues.add(Pair("id_pl_lyrics", settings.idPlLyrics))
-        fieldsValues.add(Pair("id_pl_karaoke", settings.idPlKaraoke))
-        fieldsValues.add(Pair("id_pl_chords", settings.idPlChords))
-        fieldsValues.add(Pair("id_pl_melody", settings.idPlMelody))
-        fieldsValues.add(Pair("version_pl_lyrics", settings.versionPlLyrics))
-        fieldsValues.add(Pair("version_pl_karaoke", settings.versionPlKaraoke))
-        fieldsValues.add(Pair("version_pl_chords", settings.versionPlChords))
-        fieldsValues.add(Pair("version_pl_melody", settings.versionPlMelody))
-        fieldsValues.add(Pair("id_max_lyrics", settings.idMaxLyrics))
-        fieldsValues.add(Pair("id_max_karaoke", settings.idMaxKaraoke))
-        fieldsValues.add(Pair("id_max_chords", settings.idMaxChords))
-        fieldsValues.add(Pair("id_max_melody", settings.idMaxMelody))
-        fieldsValues.add(Pair("version_max_lyrics", settings.versionMaxLyrics))
-        fieldsValues.add(Pair("version_max_karaoke", settings.versionMaxKaraoke))
-        fieldsValues.add(Pair("version_max_chords", settings.versionMaxChords))
-        fieldsValues.add(Pair("version_max_melody", settings.versionMaxMelody))
-        fieldsValues.add(Pair("id_dzen_demo", settings.idDzenDemo))
-        fieldsValues.add(Pair("version_dzen_demo", settings.versionDzenDemo))
-        fieldsValues.add(Pair("id_vk_demo", settings.idVkDemo))
-        fieldsValues.add(Pair("version_vk_demo", settings.versionVkDemo))
-        fieldsValues.add(Pair("id_telegram_demo", settings.idTelegramDemo))
-        fieldsValues.add(Pair("version_telegram_demo", settings.versionTelegramDemo))
-        fieldsValues.add(Pair("id_max_demo", settings.idMaxDemo))
-        fieldsValues.add(Pair("version_max_demo", settings.versionMaxDemo))
-        fieldsValues.add(Pair("id_status", settings.idStatus))
-        fieldsValues.add(Pair("source_text", settings.sourceText))
-        fieldsValues.add(Pair("result_text", settings.resultText))
-        fieldsValues.add(Pair("source_markers", settings.sourceMarkers))
-        fieldsValues.add(Pair("status_process_lyrics", settings.statusProcessLyrics))
-        fieldsValues.add(Pair("status_process_karaoke", settings.statusProcessKaraoke))
-        fieldsValues.add(Pair("status_process_chords", settings.statusProcessChords))
-        fieldsValues.add(Pair("status_process_melody", settings.statusProcessMelody))
-        fieldsValues.add(Pair("status_process_demo", settings.statusProcessDemo))
-        fieldsValues.add(Pair("tags", settings.tags))
-        fieldsValues.add(Pair("rate", settings.rate))
-        fieldsValues.add(Pair("id_tariff", settings.idTariff))
-        fieldsValues.add(Pair("song_type", settings.songType.dbValue))
-        fieldsValues.add(Pair("formatted_text_song", settings.formattedTextSong))
-        fieldsValues.add(Pair("formatted_text_tabs", settings.formattedTextTabs))
-        fieldsValues.add(Pair("formatted_text_chords", settings.formattedTextChords))
-        fieldsValues.add(Pair("description", settings.description))
-        fieldsValues.add(Pair("short_description", settings.shortDescription))
-        fieldsValues.add(Pair("warning", settings.warning))
+        if (song.id > 0) fieldsValues.add(Pair("id", song.id))
+        fieldsValues.add(Pair("song_name", song.songName))
+        fieldsValues.add(Pair("song_author", song.author))
+        fieldsValues.add(Pair("song_album", song.album))
+        fieldsValues.add(Pair("publish_date", song.date))
+        fieldsValues.add(Pair("publish_time", song.time))
+        fieldsValues.add(Pair("song_year", song.year))
+        fieldsValues.add(Pair("song_track", song.track))
+        fieldsValues.add(Pair("song_tone", song.key))
+        fieldsValues.add(Pair("song_bpm", song.bpm))
+        fieldsValues.add(Pair("result_version", song.resultVersion))
+        fieldsValues.add(Pair("diff_beats", song.diffBeats))
+        fieldsValues.add(Pair("song_ms", song.ms))
+        fieldsValues.add(Pair("file_name", song.fileName))
+        fieldsValues.add(Pair("root_folder", song.rootFolder))
+        fieldsValues.add(Pair("id_boosty", song.idBoosty))
+        fieldsValues.add(Pair("version_boosty", song.versionBoosty))
+        fieldsValues.add(Pair("id_boosty_files", song.idBoostyFiles))
+        fieldsValues.add(Pair("version_boosty_files", song.versionBoostyFiles))
+        fieldsValues.add(Pair("id_sponsr", song.idSponsr))
+        fieldsValues.add(Pair("version_sponsr", song.versionSponsr))
+        fieldsValues.add(Pair("index_tabs_variant", song.indexTabsVariant))
+        fieldsValues.add(Pair("id_vk", song.idVk))
+        fieldsValues.add(Pair("id_dzen_lyrics", song.idDzenLyrics))
+        fieldsValues.add(Pair("id_dzen_karaoke", song.idDzenKaraoke))
+        fieldsValues.add(Pair("id_dzen_chords", song.idDzenChords))
+        fieldsValues.add(Pair("id_dzen_melody", song.idDzenMelody))
+        fieldsValues.add(Pair("version_dzen_lyrics", song.versionDzenLyrics))
+        fieldsValues.add(Pair("version_dzen_karaoke", song.versionDzenKaraoke))
+        fieldsValues.add(Pair("version_dzen_chords", song.versionDzenChords))
+        fieldsValues.add(Pair("version_dzen_melody", song.versionDzenMelody))
+        fieldsValues.add(Pair("id_vk_lyrics", song.idVkLyrics))
+        fieldsValues.add(Pair("id_vk_karaoke", song.idVkKaraoke))
+        fieldsValues.add(Pair("id_vk_chords", song.idVkChords))
+        fieldsValues.add(Pair("id_vk_melody", song.idVkMelody))
+        fieldsValues.add(Pair("version_vk_lyrics", song.versionVkLyrics))
+        fieldsValues.add(Pair("version_vk_karaoke", song.versionVkKaraoke))
+        fieldsValues.add(Pair("version_vk_chords", song.versionVkChords))
+        fieldsValues.add(Pair("version_vk_melody", song.versionVkMelody))
+        fieldsValues.add(Pair("id_telegram_lyrics", song.idTelegramLyrics))
+        fieldsValues.add(Pair("id_telegram_karaoke", song.idTelegramKaraoke))
+        fieldsValues.add(Pair("id_telegram_chords", song.idTelegramChords))
+        fieldsValues.add(Pair("id_telegram_melody", song.idTelegramMelody))
+        fieldsValues.add(Pair("version_telegram_lyrics", song.versionTelegramLyrics))
+        fieldsValues.add(Pair("version_telegram_karaoke", song.versionTelegramKaraoke))
+        fieldsValues.add(Pair("version_telegram_chords", song.versionTelegramChords))
+        fieldsValues.add(Pair("version_telegram_melody", song.versionTelegramMelody))
+        fieldsValues.add(Pair("id_pl_lyrics", song.idPlLyrics))
+        fieldsValues.add(Pair("id_pl_karaoke", song.idPlKaraoke))
+        fieldsValues.add(Pair("id_pl_chords", song.idPlChords))
+        fieldsValues.add(Pair("id_pl_melody", song.idPlMelody))
+        fieldsValues.add(Pair("version_pl_lyrics", song.versionPlLyrics))
+        fieldsValues.add(Pair("version_pl_karaoke", song.versionPlKaraoke))
+        fieldsValues.add(Pair("version_pl_chords", song.versionPlChords))
+        fieldsValues.add(Pair("version_pl_melody", song.versionPlMelody))
+        fieldsValues.add(Pair("id_max_lyrics", song.idMaxLyrics))
+        fieldsValues.add(Pair("id_max_karaoke", song.idMaxKaraoke))
+        fieldsValues.add(Pair("id_max_chords", song.idMaxChords))
+        fieldsValues.add(Pair("id_max_melody", song.idMaxMelody))
+        fieldsValues.add(Pair("version_max_lyrics", song.versionMaxLyrics))
+        fieldsValues.add(Pair("version_max_karaoke", song.versionMaxKaraoke))
+        fieldsValues.add(Pair("version_max_chords", song.versionMaxChords))
+        fieldsValues.add(Pair("version_max_melody", song.versionMaxMelody))
+        fieldsValues.add(Pair("id_dzen_demo", song.idDzenDemo))
+        fieldsValues.add(Pair("version_dzen_demo", song.versionDzenDemo))
+        fieldsValues.add(Pair("id_vk_demo", song.idVkDemo))
+        fieldsValues.add(Pair("version_vk_demo", song.versionVkDemo))
+        fieldsValues.add(Pair("id_telegram_demo", song.idTelegramDemo))
+        fieldsValues.add(Pair("version_telegram_demo", song.versionTelegramDemo))
+        fieldsValues.add(Pair("id_max_demo", song.idMaxDemo))
+        fieldsValues.add(Pair("version_max_demo", song.versionMaxDemo))
+        fieldsValues.add(Pair("id_status", song.idStatus))
+        fieldsValues.add(Pair("source_text", song.sourceText))
+        fieldsValues.add(Pair("result_text", song.resultText))
+        fieldsValues.add(Pair("source_markers", song.sourceMarkers))
+        fieldsValues.add(Pair("status_process_lyrics", song.statusProcessLyrics))
+        fieldsValues.add(Pair("status_process_karaoke", song.statusProcessKaraoke))
+        fieldsValues.add(Pair("status_process_chords", song.statusProcessChords))
+        fieldsValues.add(Pair("status_process_melody", song.statusProcessMelody))
+        fieldsValues.add(Pair("status_process_demo", song.statusProcessDemo))
+        fieldsValues.add(Pair("tags", song.tags))
+        fieldsValues.add(Pair("rate", song.rate))
+        fieldsValues.add(Pair("id_tariff", song.idTariff))
+        fieldsValues.add(Pair("song_type", song.songType.dbValue))
+        fieldsValues.add(Pair("formatted_text_song", song.formattedTextSong))
+        fieldsValues.add(Pair("formatted_text_tabs", song.formattedTextTabs))
+        fieldsValues.add(Pair("formatted_text_chords", song.formattedTextChords))
+        fieldsValues.add(Pair("description", song.description))
+        fieldsValues.add(Pair("short_description", song.shortDescription))
+        fieldsValues.add(Pair("warning", song.warning))
         // player_readiness_flags намеренно не добавляется — как и audio_compare_history, полагается
         // на DEFAULT '{}' колонки (см. deploy/karaoke-db/26_player_readiness_flags.sql).
 
@@ -5814,16 +5814,16 @@ class Song(
         })"
     }
 
-    val state: SettingState get() {
+    val state: SongState get() {
         val currentCalendar = Calendar.getInstance()
         val currentDateTime = currentCalendar.time
 
         val formatter = SimpleDateFormat("dd/MM/yyyy")
         val currentDate = formatter.parse(formatter.format(currentDateTime))
         val datePublish = if (dateTimePublish == null) null else formatter.parse(formatter.format(dateTimePublish))
-        if (datePublish == null && idStatus >= 6 && haveSponsr && exclusive && free) return SettingState.EXCLUSIVE_FREE
-        if (datePublish == null && idStatus >= 6 && haveSponsr && exclusive) return SettingState.EXCLUSIVE
-        if (datePublish == null || idStatus < 6) return SettingState.IN_WORK
+        if (datePublish == null && idStatus >= 6 && haveSponsr && exclusive && free) return SongState.EXCLUSIVE_FREE
+        if (datePublish == null && idStatus >= 6 && haveSponsr && exclusive) return SongState.EXCLUSIVE
+        if (datePublish == null || idStatus < 6) return SongState.IN_WORK
 
         if (datePublish == currentDate) {
             if (
@@ -5834,7 +5834,7 @@ class Song(
                 haveVkGroup &&
                 haveSponsr
             ) {
-                return SettingState.ALL_DONE
+                return SongState.ALL_DONE
             } else if (
                 haveTelegram &&
                 haveVk &&
@@ -5843,9 +5843,9 @@ class Song(
                 haveVkGroup &&
                 !haveSponsr
             ) {
-                return SettingState.ALL_DONE_WO_SPONSR
+                return SongState.ALL_DONE_WO_SPONSR
             } else {
-                return SettingState.TODAY
+                return SongState.TODAY
             }
         }
 
@@ -5858,7 +5858,7 @@ class Song(
                 haveVkGroup &&
                 haveSponsr
             ) {
-                return SettingState.ALL_DONE
+                return SongState.ALL_DONE
             } else if (
                 haveTelegram &&
                 haveVk &&
@@ -5867,9 +5867,9 @@ class Song(
                 haveVkGroup &&
                 !haveSponsr
             ) {
-                return SettingState.ALL_DONE_WO_SPONSR
+                return SongState.ALL_DONE_WO_SPONSR
             } else {
-                return SettingState.OVERDUE
+                return SongState.OVERDUE
             }
         }
 
@@ -5881,7 +5881,7 @@ class Song(
             haveVkGroup &&
             haveSponsr
         ) {
-            return SettingState.ALL_UPLOADED
+            return SongState.ALL_UPLOADED
         }
 
         if (
@@ -5892,7 +5892,7 @@ class Song(
             haveVkGroup &&
             haveSponsr
         ) {
-            return SettingState.WO_TG
+            return SongState.WO_TG
         }
 
         if (
@@ -5903,7 +5903,7 @@ class Song(
             haveVkGroup &&
             haveSponsr
         ) {
-            return SettingState.WO_PL
+            return SongState.WO_PL
         }
 
         if (
@@ -5914,7 +5914,7 @@ class Song(
             haveVkGroup &&
             haveSponsr
         ) {
-            return SettingState.WO_VK_WO_PL
+            return SongState.WO_VK_WO_PL
         }
 
         if (
@@ -5925,7 +5925,7 @@ class Song(
             haveVkGroup &&
             haveSponsr
         ) {
-            return SettingState.WO_VK
+            return SongState.WO_VK
         }
 
         if (
@@ -5936,7 +5936,7 @@ class Song(
             haveVkGroup &&
             haveSponsr
         ) {
-            return SettingState.WO_DZEN_WITH_VK_WITH_PL
+            return SongState.WO_DZEN_WITH_VK_WITH_PL
         }
 
         if (
@@ -5947,7 +5947,7 @@ class Song(
             haveVkGroup &&
             haveSponsr
         ) {
-            return SettingState.WO_DZEN_WITH_VK
+            return SongState.WO_DZEN_WITH_VK
         }
 
         if (
@@ -5958,7 +5958,7 @@ class Song(
             haveVkGroup &&
             haveSponsr
         ) {
-            return SettingState.WO_DZEN
+            return SongState.WO_DZEN
         }
 
         if (
@@ -5969,16 +5969,16 @@ class Song(
             haveVkGroup &&
             haveSponsr
         ) {
-            return SettingState.BOOSTY_SPONSR
+            return SongState.BOOSTY_SPONSR
         }
 
         if (
             !haveVkGroup
         ) {
-            return SettingState.WO_VKG
+            return SongState.WO_VKG
         }
 
-        return SettingState.IN_WORK
+        return SongState.IN_WORK
     }
 
     companion object {
@@ -7022,10 +7022,10 @@ class Song(
         }
 
         fun createDbInstance(
-            settings: Song,
+            song: Song,
             database: KaraokeConnection,
         ): Song? {
-            val sql = settings.getSqlToInsert()
+            val sql = song.getSqlToInsert()
 
             val connection = database.getConnection()
             if (connection == null) {
@@ -7052,9 +7052,9 @@ class Song(
             val rs = ps.generatedKeys
 
             val result =
-                if (rs.next() && settings.id <= 0) {
-                    settings.fields[SongField.ID] = rs.getInt(1).toString()
-                    settings
+                if (rs.next() && song.id <= 0) {
+                    song.fields[SongField.ID] = rs.getInt(1).toString()
+                    song
                 } else {
                     null
                 }
@@ -7624,143 +7624,143 @@ class Song(
                 val result: MutableList<Song> = mutableListOf()
                 var prevAlbum = ""
                 while (rs.next()) {
-                    val settings = Song(database = database, storageService = storageService, storageApiClient = storageApiClient)
-                    settings.fileName = rs.getString("file_name")
-                    settings.rootFolder = rs.getString("root_folder")
-                    rs.getInt("id").let { value -> settings.fields[SongField.ID] = value.toString() }
-                    rs.getInt("id_status").let { value -> settings.fields[SongField.ID_STATUS] = value.toString() }
-                    rs.getString("song_name")?.let { value -> settings.fields[SongField.NAME] = value }
-                    rs.getString("song_author")?.let { value -> settings.fields[SongField.AUTHOR] = value }
+                    val song = Song(database = database, storageService = storageService, storageApiClient = storageApiClient)
+                    song.fileName = rs.getString("file_name")
+                    song.rootFolder = rs.getString("root_folder")
+                    rs.getInt("id").let { value -> song.fields[SongField.ID] = value.toString() }
+                    rs.getInt("id_status").let { value -> song.fields[SongField.ID_STATUS] = value.toString() }
+                    rs.getString("song_name")?.let { value -> song.fields[SongField.NAME] = value }
+                    rs.getString("song_author")?.let { value -> song.fields[SongField.AUTHOR] = value }
                     rs.getString("song_album")?.let { value ->
-                        settings.fields[SongField.ALBUM] = value
+                        song.fields[SongField.ALBUM] = value
                         if (value != prevAlbum) {
                             prevAlbum = value
-                            settings.firstSongInAlbum = true
+                            song.firstSongInAlbum = true
                         }
                     }
-                    rs.getString("publish_date")?.let { value -> settings.fields[SongField.DATE] = value }
-                    rs.getString("publish_time")?.let { value -> settings.fields[SongField.TIME] = value }
-                    rs.getInt("song_year").let { value -> settings.fields[SongField.YEAR] = value.toString() }
+                    rs.getString("publish_date")?.let { value -> song.fields[SongField.DATE] = value }
+                    rs.getString("publish_time")?.let { value -> song.fields[SongField.TIME] = value }
+                    rs.getInt("song_year").let { value -> song.fields[SongField.YEAR] = value.toString() }
                     // album_id nullable — rs.getInt() не отличает NULL от 0, поэтому getObject().
-                    (rs.getObject("album_id") as? Number)?.let { value -> settings.fields[SongField.ALBUM_ID] = value.toString() }
-                    rs.getInt("song_track").let { value -> settings.fields[SongField.TRACK] = value.toString() }
-                    rs.getString("song_tone")?.let { value -> settings.fields[SongField.KEY] = value }
-                    rs.getInt("song_bpm").let { value -> settings.fields[SongField.BPM] = value.toString() }
-                    rs.getInt("song_ms").let { value -> settings.fields[SongField.MS] = value.toString() }
-                    rs.getString("id_boosty")?.let { value -> settings.fields[SongField.ID_BOOSTY] = value }
-                    rs.getString("id_boosty_files")?.let { value -> settings.fields[SongField.ID_BOOSTY_FILES] = value }
-                    rs.getString("id_sponsr")?.let { value -> settings.fields[SongField.ID_SPONSR] = value }
-                    rs.getInt("version_boosty").let { value -> settings.fields[SongField.VERSION_BOOSTY] = value.toString() }
-                    rs.getInt("version_boosty_files").let { value -> settings.fields[SongField.VERSION_BOOSTY_FILES] = value.toString() }
-                    rs.getInt("version_sponsr").let { value -> settings.fields[SongField.VERSION_SPONSR] = value.toString() }
-                    rs.getInt("index_tabs_variant").let { value -> settings.fields[SongField.INDEX_TABS_VARIANT] = value.toString() }
-                    rs.getString("id_vk")?.let { value -> settings.fields[SongField.ID_VK] = value }
-                    rs.getString("id_dzen_lyrics")?.let { value -> settings.fields[SongField.ID_DZEN_LYRICS] = value }
-                    rs.getString("id_dzen_karaoke")?.let { value -> settings.fields[SongField.ID_DZEN_KARAOKE] = value }
-                    rs.getString("id_dzen_chords")?.let { value -> settings.fields[SongField.ID_DZEN_CHORDS] = value }
-                    rs.getString("id_dzen_melody")?.let { value -> settings.fields[SongField.ID_DZEN_MELODY] = value }
-                    rs.getString("id_vk_lyrics")?.let { value -> settings.fields[SongField.ID_VK_LYRICS] = value }
-                    rs.getString("id_vk_karaoke")?.let { value -> settings.fields[SongField.ID_VK_KARAOKE] = value }
-                    rs.getString("id_vk_chords")?.let { value -> settings.fields[SongField.ID_VK_CHORDS] = value }
-                    rs.getString("id_vk_melody")?.let { value -> settings.fields[SongField.ID_VK_MELODY] = value }
-                    rs.getString("id_telegram_lyrics")?.let { value -> settings.fields[SongField.ID_TELEGRAM_LYRICS] = value }
-                    rs.getString("id_telegram_karaoke")?.let { value -> settings.fields[SongField.ID_TELEGRAM_KARAOKE] = value }
-                    rs.getString("id_telegram_chords")?.let { value -> settings.fields[SongField.ID_TELEGRAM_CHORDS] = value }
-                    rs.getString("id_telegram_melody")?.let { value -> settings.fields[SongField.ID_TELEGRAM_MELODY] = value }
+                    (rs.getObject("album_id") as? Number)?.let { value -> song.fields[SongField.ALBUM_ID] = value.toString() }
+                    rs.getInt("song_track").let { value -> song.fields[SongField.TRACK] = value.toString() }
+                    rs.getString("song_tone")?.let { value -> song.fields[SongField.KEY] = value }
+                    rs.getInt("song_bpm").let { value -> song.fields[SongField.BPM] = value.toString() }
+                    rs.getInt("song_ms").let { value -> song.fields[SongField.MS] = value.toString() }
+                    rs.getString("id_boosty")?.let { value -> song.fields[SongField.ID_BOOSTY] = value }
+                    rs.getString("id_boosty_files")?.let { value -> song.fields[SongField.ID_BOOSTY_FILES] = value }
+                    rs.getString("id_sponsr")?.let { value -> song.fields[SongField.ID_SPONSR] = value }
+                    rs.getInt("version_boosty").let { value -> song.fields[SongField.VERSION_BOOSTY] = value.toString() }
+                    rs.getInt("version_boosty_files").let { value -> song.fields[SongField.VERSION_BOOSTY_FILES] = value.toString() }
+                    rs.getInt("version_sponsr").let { value -> song.fields[SongField.VERSION_SPONSR] = value.toString() }
+                    rs.getInt("index_tabs_variant").let { value -> song.fields[SongField.INDEX_TABS_VARIANT] = value.toString() }
+                    rs.getString("id_vk")?.let { value -> song.fields[SongField.ID_VK] = value }
+                    rs.getString("id_dzen_lyrics")?.let { value -> song.fields[SongField.ID_DZEN_LYRICS] = value }
+                    rs.getString("id_dzen_karaoke")?.let { value -> song.fields[SongField.ID_DZEN_KARAOKE] = value }
+                    rs.getString("id_dzen_chords")?.let { value -> song.fields[SongField.ID_DZEN_CHORDS] = value }
+                    rs.getString("id_dzen_melody")?.let { value -> song.fields[SongField.ID_DZEN_MELODY] = value }
+                    rs.getString("id_vk_lyrics")?.let { value -> song.fields[SongField.ID_VK_LYRICS] = value }
+                    rs.getString("id_vk_karaoke")?.let { value -> song.fields[SongField.ID_VK_KARAOKE] = value }
+                    rs.getString("id_vk_chords")?.let { value -> song.fields[SongField.ID_VK_CHORDS] = value }
+                    rs.getString("id_vk_melody")?.let { value -> song.fields[SongField.ID_VK_MELODY] = value }
+                    rs.getString("id_telegram_lyrics")?.let { value -> song.fields[SongField.ID_TELEGRAM_LYRICS] = value }
+                    rs.getString("id_telegram_karaoke")?.let { value -> song.fields[SongField.ID_TELEGRAM_KARAOKE] = value }
+                    rs.getString("id_telegram_chords")?.let { value -> song.fields[SongField.ID_TELEGRAM_CHORDS] = value }
+                    rs.getString("id_telegram_melody")?.let { value -> song.fields[SongField.ID_TELEGRAM_MELODY] = value }
                     // Фаза 2 автопубликации (specs/113-telegram-demo-publish): demo-поля для
                     // всех 4 площадок. Без чтения из БД объект Song имеет id_*_demo="" (default),
                     // и дайджест для webvue3 возвращает пустое значение — даже если в БД оно есть.
-                    rs.getString("id_dzen_demo")?.let { value -> settings.fields[SongField.ID_DZEN_DEMO] = value }
-                    rs.getString("id_vk_demo")?.let { value -> settings.fields[SongField.ID_VK_DEMO] = value }
-                    rs.getString("id_telegram_demo")?.let { value -> settings.fields[SongField.ID_TELEGRAM_DEMO] = value }
-                    rs.getString("id_max_demo")?.let { value -> settings.fields[SongField.ID_MAX_DEMO] = value }
-                    rs.getString("id_pl_lyrics")?.let { value -> settings.fields[SongField.ID_PL_LYRICS] = value }
-                    rs.getString("id_pl_karaoke")?.let { value -> settings.fields[SongField.ID_PL_KARAOKE] = value }
-                    rs.getString("id_pl_chords")?.let { value -> settings.fields[SongField.ID_PL_CHORDS] = value }
-                    rs.getString("id_pl_melody")?.let { value -> settings.fields[SongField.ID_PL_MELODY] = value }
-                    rs.getString("id_max_lyrics")?.let { value -> settings.fields[SongField.ID_MAX_LYRICS] = value }
-                    rs.getString("id_max_karaoke")?.let { value -> settings.fields[SongField.ID_MAX_KARAOKE] = value }
-                    rs.getString("id_max_chords")?.let { value -> settings.fields[SongField.ID_MAX_CHORDS] = value }
-                    rs.getString("id_max_melody")?.let { value -> settings.fields[SongField.ID_MAX_MELODY] = value }
-                    rs.getInt("version_dzen_lyrics").let { value -> settings.fields[SongField.VERSION_DZEN_LYRICS] = value.toString() }
-                    rs.getInt("version_dzen_karaoke").let { value -> settings.fields[SongField.VERSION_DZEN_KARAOKE] = value.toString() }
-                    rs.getInt("version_dzen_chords").let { value -> settings.fields[SongField.VERSION_DZEN_CHORDS] = value.toString() }
-                    rs.getInt("version_dzen_melody").let { value -> settings.fields[SongField.VERSION_DZEN_MELODY] = value.toString() }
-                    rs.getInt("version_vk_lyrics").let { value -> settings.fields[SongField.VERSION_VK_LYRICS] = value.toString() }
-                    rs.getInt("version_vk_karaoke").let { value -> settings.fields[SongField.VERSION_VK_KARAOKE] = value.toString() }
-                    rs.getInt("version_vk_chords").let { value -> settings.fields[SongField.VERSION_VK_CHORDS] = value.toString() }
-                    rs.getInt("version_vk_melody").let { value -> settings.fields[SongField.VERSION_VK_MELODY] = value.toString() }
+                    rs.getString("id_dzen_demo")?.let { value -> song.fields[SongField.ID_DZEN_DEMO] = value }
+                    rs.getString("id_vk_demo")?.let { value -> song.fields[SongField.ID_VK_DEMO] = value }
+                    rs.getString("id_telegram_demo")?.let { value -> song.fields[SongField.ID_TELEGRAM_DEMO] = value }
+                    rs.getString("id_max_demo")?.let { value -> song.fields[SongField.ID_MAX_DEMO] = value }
+                    rs.getString("id_pl_lyrics")?.let { value -> song.fields[SongField.ID_PL_LYRICS] = value }
+                    rs.getString("id_pl_karaoke")?.let { value -> song.fields[SongField.ID_PL_KARAOKE] = value }
+                    rs.getString("id_pl_chords")?.let { value -> song.fields[SongField.ID_PL_CHORDS] = value }
+                    rs.getString("id_pl_melody")?.let { value -> song.fields[SongField.ID_PL_MELODY] = value }
+                    rs.getString("id_max_lyrics")?.let { value -> song.fields[SongField.ID_MAX_LYRICS] = value }
+                    rs.getString("id_max_karaoke")?.let { value -> song.fields[SongField.ID_MAX_KARAOKE] = value }
+                    rs.getString("id_max_chords")?.let { value -> song.fields[SongField.ID_MAX_CHORDS] = value }
+                    rs.getString("id_max_melody")?.let { value -> song.fields[SongField.ID_MAX_MELODY] = value }
+                    rs.getInt("version_dzen_lyrics").let { value -> song.fields[SongField.VERSION_DZEN_LYRICS] = value.toString() }
+                    rs.getInt("version_dzen_karaoke").let { value -> song.fields[SongField.VERSION_DZEN_KARAOKE] = value.toString() }
+                    rs.getInt("version_dzen_chords").let { value -> song.fields[SongField.VERSION_DZEN_CHORDS] = value.toString() }
+                    rs.getInt("version_dzen_melody").let { value -> song.fields[SongField.VERSION_DZEN_MELODY] = value.toString() }
+                    rs.getInt("version_vk_lyrics").let { value -> song.fields[SongField.VERSION_VK_LYRICS] = value.toString() }
+                    rs.getInt("version_vk_karaoke").let { value -> song.fields[SongField.VERSION_VK_KARAOKE] = value.toString() }
+                    rs.getInt("version_vk_chords").let { value -> song.fields[SongField.VERSION_VK_CHORDS] = value.toString() }
+                    rs.getInt("version_vk_melody").let { value -> song.fields[SongField.VERSION_VK_MELODY] = value.toString() }
                     rs.getInt("version_telegram_lyrics").let { value ->
-                        settings.fields[SongField.VERSION_TELEGRAM_LYRICS] =
+                        song.fields[SongField.VERSION_TELEGRAM_LYRICS] =
                             value.toString()
                     }
                     rs.getInt("version_telegram_karaoke").let { value ->
-                        settings.fields[SongField.VERSION_TELEGRAM_KARAOKE] =
+                        song.fields[SongField.VERSION_TELEGRAM_KARAOKE] =
                             value.toString()
                     }
                     rs.getInt("version_telegram_chords").let { value ->
-                        settings.fields[SongField.VERSION_TELEGRAM_CHORDS] =
+                        song.fields[SongField.VERSION_TELEGRAM_CHORDS] =
                             value.toString()
                     }
                     rs.getInt("version_telegram_melody").let { value ->
-                        settings.fields[SongField.VERSION_TELEGRAM_MELODY] =
+                        song.fields[SongField.VERSION_TELEGRAM_MELODY] =
                             value.toString()
                     }
                     // Фаза 2 автопубликации: version_*_demo для всех 4 площадок (см. id_*_demo выше).
-                    rs.getInt("version_dzen_demo").let { value -> settings.fields[SongField.VERSION_DZEN_DEMO] = value.toString() }
-                    rs.getInt("version_vk_demo").let { value -> settings.fields[SongField.VERSION_VK_DEMO] = value.toString() }
-                    rs.getInt("version_telegram_demo").let { value -> settings.fields[SongField.VERSION_TELEGRAM_DEMO] = value.toString() }
-                    rs.getInt("version_max_demo").let { value -> settings.fields[SongField.VERSION_MAX_DEMO] = value.toString() }
-                    rs.getInt("version_pl_lyrics").let { value -> settings.fields[SongField.VERSION_PL_LYRICS] = value.toString() }
-                    rs.getInt("version_pl_karaoke").let { value -> settings.fields[SongField.VERSION_PL_KARAOKE] = value.toString() }
-                    rs.getInt("version_pl_chords").let { value -> settings.fields[SongField.VERSION_PL_CHORDS] = value.toString() }
-                    rs.getInt("version_pl_melody").let { value -> settings.fields[SongField.VERSION_PL_MELODY] = value.toString() }
-                    rs.getInt("version_max_lyrics").let { value -> settings.fields[SongField.VERSION_MAX_LYRICS] = value.toString() }
-                    rs.getInt("version_max_karaoke").let { value -> settings.fields[SongField.VERSION_MAX_KARAOKE] = value.toString() }
-                    rs.getInt("version_max_chords").let { value -> settings.fields[SongField.VERSION_MAX_CHORDS] = value.toString() }
-                    rs.getInt("version_max_melody").let { value -> settings.fields[SongField.VERSION_MAX_MELODY] = value.toString() }
-                    rs.getInt("result_version").let { value -> settings.fields[SongField.RESULT_VERSION] = value.toString() }
-                    rs.getInt("diff_beats").let { value -> settings.fields[SongField.DIFFBEATS] = value.toString() }
+                    rs.getInt("version_dzen_demo").let { value -> song.fields[SongField.VERSION_DZEN_DEMO] = value.toString() }
+                    rs.getInt("version_vk_demo").let { value -> song.fields[SongField.VERSION_VK_DEMO] = value.toString() }
+                    rs.getInt("version_telegram_demo").let { value -> song.fields[SongField.VERSION_TELEGRAM_DEMO] = value.toString() }
+                    rs.getInt("version_max_demo").let { value -> song.fields[SongField.VERSION_MAX_DEMO] = value.toString() }
+                    rs.getInt("version_pl_lyrics").let { value -> song.fields[SongField.VERSION_PL_LYRICS] = value.toString() }
+                    rs.getInt("version_pl_karaoke").let { value -> song.fields[SongField.VERSION_PL_KARAOKE] = value.toString() }
+                    rs.getInt("version_pl_chords").let { value -> song.fields[SongField.VERSION_PL_CHORDS] = value.toString() }
+                    rs.getInt("version_pl_melody").let { value -> song.fields[SongField.VERSION_PL_MELODY] = value.toString() }
+                    rs.getInt("version_max_lyrics").let { value -> song.fields[SongField.VERSION_MAX_LYRICS] = value.toString() }
+                    rs.getInt("version_max_karaoke").let { value -> song.fields[SongField.VERSION_MAX_KARAOKE] = value.toString() }
+                    rs.getInt("version_max_chords").let { value -> song.fields[SongField.VERSION_MAX_CHORDS] = value.toString() }
+                    rs.getInt("version_max_melody").let { value -> song.fields[SongField.VERSION_MAX_MELODY] = value.toString() }
+                    rs.getInt("result_version").let { value -> song.fields[SongField.RESULT_VERSION] = value.toString() }
+                    rs.getInt("diff_beats").let { value -> song.fields[SongField.DIFFBEATS] = value.toString() }
                     if (!withoutMarkersAndText) {
-                        rs.getString("source_text")?.let { value -> settings.sourceText = value }
-                        rs.getString("result_text")?.let { value -> settings.resultText = value }
-                        rs.getString("source_markers")?.let { value -> settings.sourceMarkers = value }
-                        rs.getString("formatted_text_song")?.let { value -> settings.formattedTextSong = value }
-                        rs.getString("formatted_text_tabs")?.let { value -> settings.formattedTextTabs = value }
-                        rs.getString("formatted_text_chords")?.let { value -> settings.formattedTextChords = value }
+                        rs.getString("source_text")?.let { value -> song.sourceText = value }
+                        rs.getString("result_text")?.let { value -> song.resultText = value }
+                        rs.getString("source_markers")?.let { value -> song.sourceMarkers = value }
+                        rs.getString("formatted_text_song")?.let { value -> song.formattedTextSong = value }
+                        rs.getString("formatted_text_tabs")?.let { value -> song.formattedTextTabs = value }
+                        rs.getString("formatted_text_chords")?.let { value -> song.formattedTextChords = value }
                     }
-                    rs.getInt("rate").let { value -> settings.fields[SongField.RATE] = value.toString() }
-                    rs.getInt("id_tariff").let { value -> settings.fields[SongField.ID_TARIFF] = value.toString() }
-                    rs.getString("song_type")?.let { value -> settings.fields[SongField.SONG_TYPE] = value }
-                    rs.getString("description")?.let { value -> settings.description = value }
-                    rs.getString("short_description")?.let { value -> settings.shortDescription = value }
-                    rs.getString("warning")?.let { value -> settings.warning = value }
+                    rs.getInt("rate").let { value -> song.fields[SongField.RATE] = value.toString() }
+                    rs.getInt("id_tariff").let { value -> song.fields[SongField.ID_TARIFF] = value.toString() }
+                    rs.getString("song_type")?.let { value -> song.fields[SongField.SONG_TYPE] = value }
+                    rs.getString("description")?.let { value -> song.description = value }
+                    rs.getString("short_description")?.let { value -> song.shortDescription = value }
+                    rs.getString("warning")?.let { value -> song.warning = value }
 
-                    rs.getLong("root_id").let { value -> settings.rootId = value }
-                    rs.getLong("audio_parent_id").let { value -> settings.audioParentId = value }
-                    rs.getInt("audio_similarity_percent").let { value -> settings.audioSimilarityPercent = value }
-                    rs.getLong("audio_delta_ms").let { value -> settings.audioDeltaMs = value }
-                    rs.getString("audio_compare_history")?.let { value -> settings.audioCompareHistory = value }
-                    rs.getBoolean("exclusive").let { value -> settings.exclusive = value }
-                    rs.getBoolean("free").let { value -> settings.free = value }
-                    rs.getString("player_readiness_flags")?.let { value -> settings.playerReadinessFlags = value }
+                    rs.getLong("root_id").let { value -> song.rootId = value }
+                    rs.getLong("audio_parent_id").let { value -> song.audioParentId = value }
+                    rs.getInt("audio_similarity_percent").let { value -> song.audioSimilarityPercent = value }
+                    rs.getLong("audio_delta_ms").let { value -> song.audioDeltaMs = value }
+                    rs.getString("audio_compare_history")?.let { value -> song.audioCompareHistory = value }
+                    rs.getBoolean("exclusive").let { value -> song.exclusive = value }
+                    rs.getBoolean("free").let { value -> song.free = value }
+                    rs.getString("player_readiness_flags")?.let { value -> song.playerReadinessFlags = value }
 
-                    settings.statusProcessLyrics = rs.getString("status_process_lyrics") ?: ""
-                    settings.statusProcessKaraoke = rs.getString("status_process_karaoke") ?: ""
-                    settings.statusProcessChords = rs.getString("status_process_chords") ?: ""
-                    settings.statusProcessMelody = rs.getString("status_process_melody") ?: ""
-                    settings.statusProcessDemo = rs.getString("status_process_demo") ?: ""
-                    settings.tags = rs.getString("tags") ?: ""
+                    song.statusProcessLyrics = rs.getString("status_process_lyrics") ?: ""
+                    song.statusProcessKaraoke = rs.getString("status_process_karaoke") ?: ""
+                    song.statusProcessChords = rs.getString("status_process_chords") ?: ""
+                    song.statusProcessMelody = rs.getString("status_process_melody") ?: ""
+                    song.statusProcessDemo = rs.getString("status_process_demo") ?: ""
+                    song.tags = rs.getString("tags") ?: ""
 
 //                    val currentCalendar = Calendar.getInstance()
 //                    val currentDateTime = currentCalendar.time
 
 //                    val formatter = SimpleDateFormat("dd/MM/yyyy")
 //                    val currentDate = formatter.parse(formatter.format(currentDateTime))
-//                    val datePublish = if (settings.dateTimePublish == null) null else  formatter.parse(formatter.format(settings.dateTimePublish))
+//                    val datePublish = if (song.dateTimePublish == null) null else  formatter.parse(formatter.format(song.dateTimePublish))
 
                     val color1 =
-                        when (settings.idStatus) {
+                        when (song.idStatus) {
                             0L -> "#FFFFFF"
                             1L -> "#DDA0DD"
                             2L -> "#EE82EE"
@@ -7771,18 +7771,18 @@ class Song(
                             else -> "#FFFFFF"
                         }
 
-                    settings.fields[SongField.COLOR] = if (settings.state.color == "") color1 else settings.state.color
+                    song.fields[SongField.COLOR] = if (song.state.color == "") color1 else song.state.color
 
 //                    if (args.containsKey("text")) {
-//                        if (settings.getWords().containsAll((args["text"]?:"").getWords())) result.add(settings)
+//                        if (song.getWords().containsAll((args["text"]?:"").getWords())) result.add(song)
 //                    } else {
-//                        result.add(settings)
+//                        result.add(song)
 //                    }
 
                     if (!args.containsKey("filter_count_voices") ||
-                        (args.containsKey("filter_count_voices") && args["filter_count_voices"] == settings.countVoices.toString())
+                        (args.containsKey("filter_count_voices") && args["filter_count_voices"] == song.countVoices.toString())
                     ) {
-                        result.add(settings)
+                        result.add(song)
                     }
                 }
                 result.sort()
@@ -7866,8 +7866,8 @@ class Song(
             readonly: Boolean = false,
             database: KaraokeConnection,
         ): Song {
-            val settings = Song(database)
-            settings.readonly = readonly
+            val song = Song(database)
+            song.readonly = readonly
             val settingFilePath = Path(pathToSettingsFile)
             val settingRoot = settingFilePath.parent.toString()
             val settingFileNameList =
@@ -7878,8 +7878,8 @@ class Song(
             settingFileNameList.removeLast()
             val settingFileName = settingFileNameList.joinToString(".")
 
-            settings.rootFolder = settingRoot
-            settings.fileName = settingFileName
+            song.rootFolder = settingRoot
+            song.fileName = settingFileName
 
             val body = File(pathToSettingsFile).readText(Charsets.UTF_8)
             body.split("\n").forEach { line ->
@@ -7896,10 +7896,10 @@ class Song(
                         } else {
                             null
                         }
-                    settingField?.let { settings.fields[settingField] = settingValue.trim() }
+                    settingField?.let { song.fields[settingField] = settingValue.trim() }
                 }
             }
-            return settings
+            return song
         }
 
         /**
@@ -7977,19 +7977,19 @@ class Song(
                                 )
                                 runCommand(listOf("rm", pathToFile))
                             }
-                            val settings = Song(database)
-                            settings.fileName = fileName
-                            settings.rootFolder = rootFolder
-                            settings.fields[SongField.NAME] = songNameStr
-                            settings.fields[SongField.YEAR] = yearStr
-                            settings.fields[SongField.ALBUM] = albumStr
-                            settings.fields[SongField.TRACK] = numberStr
-                            settings.fields[SongField.AUTHOR] = authorStr
+                            val song = Song(database)
+                            song.fileName = fileName
+                            song.rootFolder = rootFolder
+                            song.fields[SongField.NAME] = songNameStr
+                            song.fields[SongField.YEAR] = yearStr
+                            song.fields[SongField.ALBUM] = albumStr
+                            song.fields[SongField.TRACK] = numberStr
+                            song.fields[SongField.AUTHOR] = authorStr
                             // specs/011-album-song-rename: находим/создаём Author+Album по тем же
                             // author/year/album, что распарсили из пути, и сразу проставляем albumId
                             // — иначе песня из импорта остаётся без связи с альбомом до ручного
                             // запуска бэкфилла (см. AlbumBackfill).
-                            settings.albumId =
+                            song.albumId =
                                 Album
                                     .findOrCreateForSongImport(
                                         authorName = authorStr,
@@ -7999,15 +7999,15 @@ class Song(
                                         storageService = storageService,
                                         storageApiClient = storageApiClient,
                                     )?.id
-                            settings.saveToDb()
-                            result.add(settings)
+                            song.saveToDb()
+                            result.add(song)
 
                             // threadId=2 (THREAD_LANE_STEM_JOBS) - НАМЕРЕННО отдельный от кортежа лейн: определение
                             // key/BPM ни от чего в кортеже не зависит и ничего в кортеже от него не зависит, поэтому
                             // не должно занимать слот в THREAD_LANE_HEALTH_REPORT (specs/082-fix-import-folder-oom,
                             // research.md Находка C). НЕ "выравнивать" под threadId=1 без отдельного решения.
                             KaraokeProcess.createProcess(
-                                settings = settings,
+                                song = song,
                                 action = KaraokeProcessTypes.KEY_BPM_FROM_FILE,
                                 doWait = true,
                                 prior = -1,
@@ -8019,7 +8019,7 @@ class Song(
                             // по умолчанию ставит все дальнейшие шаги каскада (FF_MP3_*/UPLOAD_*), иначе кортеж
                             // расползётся по разным лейнам.
                             KaraokeProcess.createProcess(
-                                settings = settings,
+                                song = song,
                                 action = KaraokeProcessTypes.DEMUCS2,
                                 doWait = true,
                                 prior = -1,
@@ -8027,7 +8027,7 @@ class Song(
                             )
 
 //                            KaraokeProcess.createProcess(
-//                                settings = settings,
+//                                song = song,
 //                                action = KaraokeProcessTypes.FF_MP3_KAR,
 //                                doWait = true,
 //                                prior = -1,
@@ -8035,7 +8035,7 @@ class Song(
 //                            )
 //
 //                            KaraokeProcess.createProcess(
-//                                settings = settings,
+//                                song = song,
 //                                action = KaraokeProcessTypes.FF_MP3_LYR,
 //                                doWait = true,
 //                                prior = -1,
@@ -8085,42 +8085,42 @@ class Song(
         }
 
         fun setPublishDateTimeToAuthor(
-            startSettings: Song,
+            startSong: Song,
             skipPublished: Boolean = false,
         ) {
-            val listOfSettings =
+            val listOfSongs =
                 loadListFromDb(
-                    args = mapOf(Pair("song_author", startSettings.author)),
-                    database = startSettings.database,
-                    storageService = startSettings.storageService,
-                    storageApiClient = startSettings.storageApiClient,
+                    args = mapOf(Pair("song_author", startSong.author)),
+                    database = startSong.database,
+                    storageService = startSong.storageService,
+                    storageApiClient = startSong.storageApiClient,
                     withoutMarkersAndText = false,
-                ).filter { it.id > startSettings.id }
+                ).filter { it.id > startSong.id }
 
-            if (startSettings.date == "") {
-                listOfSettings.forEach { settings ->
+            if (startSong.date == "") {
+                listOfSongs.forEach { song ->
                     // Уже опубликованные песни (onAir) не трогаем, если так указано
-                    if (skipPublished && settings.onAir) return@forEach
-                    settings.fields[SongField.DATE] = ""
-                    settings.fields[SongField.TIME] = ""
-                    settings.saveToDb()
+                    if (skipPublished && song.onAir) return@forEach
+                    song.fields[SongField.DATE] = ""
+                    song.fields[SongField.TIME] = ""
+                    song.saveToDb()
                 }
             } else {
-                var publishDate = SimpleDateFormat("dd.MM.yy").parse(startSettings.date)
-                val publishTime = startSettings.time
-                listOfSettings.forEach { settings ->
+                var publishDate = SimpleDateFormat("dd.MM.yy").parse(startSong.date)
+                val publishTime = startSong.time
+                listOfSongs.forEach { song ->
                     // Уже опубликованные песни (onAir) не трогаем и не сдвигаем счётчик дат на них
-                    if (skipPublished && settings.onAir) return@forEach
+                    if (skipPublished && song.onAir) return@forEach
 
                     val calendar = Calendar.getInstance(TimeZone.getTimeZone("Europe/Moscow"))
                     calendar.time = publishDate
                     calendar.add(Calendar.DAY_OF_MONTH, 1)
                     publishDate = calendar.time
 
-                    settings.fields[SongField.DATE] = SimpleDateFormat("dd.MM.yy").format(publishDate)
-                    settings.fields[SongField.TIME] = publishTime
+                    song.fields[SongField.DATE] = SimpleDateFormat("dd.MM.yy").format(publishDate)
+                    song.fields[SongField.TIME] = publishTime
 
-                    settings.saveToDb()
+                    song.saveToDb()
                 }
             }
         }
@@ -8311,10 +8311,10 @@ class Song(
             database = this.database,
             storageService = this.storageService,
             storageApiClient = this.storageApiClient,
-        )?. let { anotherSettings ->
+        )?. let { anotherSong ->
             var wasChange = false
             listFields.forEach { settingField ->
-                anotherSettings.fields[settingField]?.let { anotherValue ->
+                anotherSong.fields[settingField]?.let { anotherValue ->
                     this.fields[settingField] = anotherValue
                     wasChange = true
                 }

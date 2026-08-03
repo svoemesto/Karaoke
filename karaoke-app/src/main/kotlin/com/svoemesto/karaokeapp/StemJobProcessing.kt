@@ -13,7 +13,7 @@ import java.sql.Timestamp
 /**
  * Билдер OS-подпроцесс-пайплайна для demucs премиум-задания (StemJob, tbl_stem_jobs) — по образцу
  * Song.argsDemucs2/5 (model/Song.kt), но для произвольного файла пользователя, а не для
- * Song/песни (settingsId=0, свой thread-лейн THREAD_LANE_STEM_JOBS). Своя temp-папка
+ * Song/песни (songId=0, свой thread-лейн THREAD_LANE_STEM_JOBS). Своя temp-папка
  * (PATH_TO_TEMP_STEMJOB_FOLDER/{jobId}) — общая с песенным пайплайном привела бы к коллизии файлов,
  * т.к. оба лейна могут работать параллельно. Сырой файл уже скачан туда поллером
  * (StemJobPollScheduler) ДО постановки в очередь, под именем upload.<ext>.
@@ -173,7 +173,7 @@ fun executeFinalizeStemJob(params: Map<String, String>): Boolean {
                 retryProcess.command = ""
                 retryProcess.type =
                     if (job.mode == StemJobMode.DEMUCS5) KaraokeProcessTypes.STEM_JOB_DEMUCS5.name else KaraokeProcessTypes.STEM_JOB_DEMUCS2.name
-                retryProcess.settingsId = 0
+                retryProcess.songId = 0
                 retryProcess.threadId = KaraokeProcess.THREAD_LANE_STEM_JOBS
                 retryProcess.description = "Демукс премиум-задания #${job.id} (повтор без GPU)"
                 retryProcess.args = retryArgs

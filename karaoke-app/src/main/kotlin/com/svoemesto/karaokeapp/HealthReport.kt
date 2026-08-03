@@ -19,7 +19,7 @@ import kotlin.properties.Delegates
  * Отчёт о «здоровье» одной песни (файлы, sync-консистентность, статусы).
  *
  * Содержит:
- * - `settings` — `Song` (через `KaraokeDbTable`).
+ * - `song` — `Song` (через `KaraokeDbTable`).
  * - `healthReportType` — тип проверки (`FILE_VIOLATION`,
  *   `CONSISTENCY_VIOLATION`, `STATUS_VIOLATION`).
  * - `healthReportStatus` — статус (`OK` / `WARNING` / `ERROR`).
@@ -34,7 +34,7 @@ import kotlin.properties.Delegates
  * @see docs/features/monitoring.md
  */
 data class HealthReport(
-    val settings: Song,
+    val song: Song,
     val description: String = "",
     val healthReportType: HealthReportType,
     val healthReportStatus: HealthReportStatus,
@@ -45,8 +45,8 @@ data class HealthReport(
 ) {
     fun toDTO(): HealthReportDTO =
         HealthReportDTO(
-            settingsId = settings.id,
-            settingsFileName = settings.fileName,
+            songId = song.id,
+            songFileName = song.fileName,
             description = description,
             healthReportTypeName = healthReportType.name,
             healthReportStatusName = healthReportStatus.name,
@@ -62,7 +62,7 @@ data class HealthReport(
         private fun actions(
             karaokeFileType: KaraokeFileType,
             karaokePlatform: KaraokePlatform?,
-            settings: Song,
+            song: Song,
             rootFolder: String,
             pathToFile: String,
             description: String,
@@ -90,7 +90,7 @@ data class HealthReport(
                     actionsLocalFileSystem(
                         karaokeFileType = karaokeFileType,
                         karaokePlatform = karaokePlatform,
-                        settings = settings,
+                        song = song,
                         rootFolder = rootFolder,
                         pathToFile = pathToFile,
                         description = locationDescription,
@@ -113,7 +113,7 @@ data class HealthReport(
                     actionsLocalStorage(
                         karaokeFileType = karaokeFileType,
                         karaokePlatform = karaokePlatform,
-                        settings = settings,
+                        song = song,
                         rootFolder = rootFolder,
                         pathToFile = pathToFile,
                         description = locationDescription,
@@ -136,7 +136,7 @@ data class HealthReport(
                     actionsRemoteStorage(
                         karaokeFileType = karaokeFileType,
                         karaokePlatform = karaokePlatform,
-                        settings = settings,
+                        song = song,
                         rootFolder = rootFolder,
                         pathToFile = pathToFile,
                         description = locationDescription,
@@ -161,7 +161,7 @@ data class HealthReport(
         private fun actionsLocalFileSystem(
             karaokeFileType: KaraokeFileType,
             karaokePlatform: KaraokePlatform?,
-            settings: Song,
+            song: Song,
             rootFolder: String,
             pathToFile: String,
             description: String,
@@ -364,7 +364,7 @@ data class HealthReport(
                                     actions.add { println("actionsLocalFileSystem [$solutionText] >>>") }
                                     actions.add {
                                         KaraokeProcess.createProcess(
-                                            settings = settings,
+                                            song = song,
                                             action = karaokeProcessTypesToCreate,
                                             doWait = true,
                                             prior = priority,
@@ -485,7 +485,7 @@ data class HealthReport(
             val healthReport =
                 HealthReport(
                     healthReportType = FILE_VIOLATION,
-                    settings = settings,
+                    song = song,
                     description = description,
                     healthReportStatus = healthReportStatus,
                     canResolve = canBeResolved,
@@ -501,7 +501,7 @@ data class HealthReport(
         private fun actionsLocalStorage(
             karaokeFileType: KaraokeFileType,
             karaokePlatform: KaraokePlatform?,
-            settings: Song,
+            song: Song,
             rootFolder: String,
             pathToFile: String,
             description: String,
@@ -571,7 +571,7 @@ data class HealthReport(
                     .loadList(
                         args =
                             mapOf(
-                                "settings_id" to settings.id.toString(),
+                                "settings_id" to song.id.toString(),
                                 "process_type" to KaraokeProcessTypes.UPLOAD_TO_LOCAL_STORE.name,
                                 "thread_id" to KaraokeProcess.THREAD_LANE_HEALTH_REPORT.toString(),
                                 "process_args" to "karaokeFileType=${karaokeFileType.name}",
@@ -615,7 +615,7 @@ data class HealthReport(
                                 actions.add { println("actionsLocalStorage [Загрузка файла с диска в локальное хранилище] >>>") }
                                 actions.add {
                                     KaraokeProcess.createProcess(
-                                        settings = settings,
+                                        song = song,
                                         action = KaraokeProcessTypes.UPLOAD_TO_LOCAL_STORE,
                                         doWait = true,
                                         prior = -2,
@@ -677,7 +677,7 @@ data class HealthReport(
                             actions.add { println("actionsLocalStorage [$solutionText] >>>") }
                             actions.add {
                                 KaraokeProcess.createProcess(
-                                    settings = settings,
+                                    song = song,
                                     action = KaraokeProcessTypes.UPLOAD_TO_LOCAL_STORE,
                                     doWait = true,
                                     prior = -2,
@@ -724,7 +724,7 @@ data class HealthReport(
                                 actions.add { println("actionsLocalStorage [Загрузка файла с диска в локальное хранилище] >>>") }
                                 actions.add {
                                     KaraokeProcess.createProcess(
-                                        settings = settings,
+                                        song = song,
                                         action = KaraokeProcessTypes.UPLOAD_TO_LOCAL_STORE,
                                         doWait = true,
                                         prior = -2,
@@ -773,7 +773,7 @@ data class HealthReport(
             val healthReport =
                 HealthReport(
                     healthReportType = FILE_VIOLATION,
-                    settings = settings,
+                    song = song,
                     description = description,
                     healthReportStatus = healthReportStatus,
                     canResolve = canBeResolved,
@@ -789,7 +789,7 @@ data class HealthReport(
         private fun actionsRemoteStorage(
             karaokeFileType: KaraokeFileType,
             karaokePlatform: KaraokePlatform?,
-            settings: Song,
+            song: Song,
             rootFolder: String,
             pathToFile: String,
             description: String,
@@ -859,7 +859,7 @@ data class HealthReport(
                     .loadList(
                         args =
                             mapOf(
-                                "settings_id" to settings.id.toString(),
+                                "settings_id" to song.id.toString(),
                                 "process_type" to KaraokeProcessTypes.UPLOAD_TO_REMOTE_STORE.name,
                                 "thread_id" to KaraokeProcess.THREAD_LANE_HEALTH_REPORT.toString(),
                                 "process_args" to "karaokeFileType=${karaokeFileType.name}",
@@ -907,7 +907,7 @@ data class HealthReport(
                                 actions.add { println("actionsRemoteStorage [Загрузка файла с диска в удалённое хранилище] >>>") }
                                 actions.add {
                                     KaraokeProcess.createProcess(
-                                        settings = settings,
+                                        song = song,
                                         action = KaraokeProcessTypes.UPLOAD_TO_REMOTE_STORE,
                                         doWait = true,
                                         prior = -2,
@@ -969,7 +969,7 @@ data class HealthReport(
                             actions.add { println("actionsRemoteStorage [$solutionText] >>>") }
                             actions.add {
                                 KaraokeProcess.createProcess(
-                                    settings = settings,
+                                    song = song,
                                     action = KaraokeProcessTypes.UPLOAD_TO_REMOTE_STORE,
                                     doWait = true,
                                     prior = -2,
@@ -1017,7 +1017,7 @@ data class HealthReport(
                                 actions.add { println("actionsRemoteStorage [Загрузка файла с диска в удалённое хранилище] >>>") }
                                 actions.add {
                                     KaraokeProcess.createProcess(
-                                        settings = settings,
+                                        song = song,
                                         action = KaraokeProcessTypes.UPLOAD_TO_REMOTE_STORE,
                                         doWait = true,
                                         prior = -2,
@@ -1071,7 +1071,7 @@ data class HealthReport(
             val healthReport =
                 HealthReport(
                     healthReportType = FILE_VIOLATION,
-                    settings = settings,
+                    song = song,
                     description = description,
                     healthReportStatus = healthReportStatus,
                     canResolve = canBeResolved,
@@ -1085,10 +1085,10 @@ data class HealthReport(
         }
 
         fun getHealthReport(
-            settings: Song,
+            song: Song,
             dto: HealthReportDTO,
         ): HealthReport? {
-            val healthReportList = getHealthReportList(settings = settings)
+            val healthReportList = getHealthReportList(song = song)
             val result =
                 healthReportList.firstOrNull { healthReport ->
                     healthReport.healthReportStatus.name == dto.healthReportStatusName &&
@@ -1116,22 +1116,22 @@ data class HealthReport(
                 KaraokeFileType.PROJECT_SONGVERSION_TXT,
             )
 
-        fun getHealthReportList(settings: Song): List<HealthReport> {
+        fun getHealthReportList(song: Song): List<HealthReport> {
             val result: MutableList<HealthReport> = mutableListOf()
-            val database = settings.database
-            val storageService = settings.storageService
-            val storageApiClient = settings.storageApiClient
+            val database = song.database
+            val storageService = song.storageService
+            val storageApiClient = song.storageApiClient
 
             // CONSISTENCY_VIOLATION
 
             // Если у песни нету тональности
-            if (settings.key == "") {
+            if (song.key == "") {
                 val problemText = "У песни отсутствует тональность"
-                val canResolve = File(settings.fileAbsolutePath).exists()
+                val canResolve = File(song.fileAbsolutePath).exists()
                 if (canResolve) {
                     val processArgs =
                         mapOf(
-                            "settings_id" to settings.id.toString(),
+                            "settings_id" to song.id.toString(),
                             "process_status" to KaraokeProcessStatuses.WAITING.name,
                             "process_type" to KaraokeProcessTypes.KEY_BPM_FROM_FILE.name,
                         )
@@ -1140,7 +1140,7 @@ data class HealthReport(
                         result.add(
                             HealthReport(
                                 healthReportType = CONSISTENCY_VIOLATION,
-                                settings = settings,
+                                song = song,
                                 healthReportStatus = IN_PROGRESS,
                                 canResolve = true,
                                 problemText = problemText,
@@ -1157,7 +1157,7 @@ data class HealthReport(
                         result.add(
                             HealthReport(
                                 healthReportType = CONSISTENCY_VIOLATION,
-                                settings = settings,
+                                song = song,
                                 healthReportStatus = ERROR,
                                 canResolve = true,
                                 problemText = problemText,
@@ -1167,10 +1167,10 @@ data class HealthReport(
                                         { println("HealthReportSolutionActions >>>") },
                                         {
                                             println(
-                                                "HealthReportSolutionActions: Создание задания для автоматического определения тональности для песни '${settings.fileName}'",
+                                                "HealthReportSolutionActions: Создание задания для автоматического определения тональности для песни '${song.fileName}'",
                                             )
                                             KaraokeProcess.createProcess(
-                                                settings = settings,
+                                                song = song,
                                                 action = KaraokeProcessTypes.KEY_BPM_FROM_FILE,
                                                 doWait = true,
                                                 threadId = KaraokeProcess.THREAD_LANE_HEALTH_REPORT,
@@ -1185,7 +1185,7 @@ data class HealthReport(
                     result.add(
                         HealthReport(
                             healthReportType = CONSISTENCY_VIOLATION,
-                            settings = settings,
+                            song = song,
                             healthReportStatus = FATAL_ERROR,
                             canResolve = false,
                             problemText = problemText,
@@ -1227,13 +1227,13 @@ data class HealthReport(
 
                 val textFile = karaokeFileType.name
                 val canResolve = karaokeFileType.canResolve
-                val rootFolder = settings.rootFolder
+                val rootFolder = song.rootFolder
 
                 lateinit var pathToFile: String
                 var canBe by Delegates.notNull<Boolean>()
                 var canCreate by Delegates.notNull<Boolean>()
                 var existsInLocalFileSystem by Delegates.notNull<Boolean>()
-                val storageBucketName = settings.storageBucketName
+                val storageBucketName = song.storageBucketName
                 lateinit var storageFileName: String
                 lateinit var description: String
                 var inProgressOwnArgs: Map<String, String> = emptyMap()
@@ -1245,11 +1245,11 @@ data class HealthReport(
                 when (karaokeFileType) {
                     // Исходный аудио файл
                     KaraokeFileType.AUDIO_SONG -> {
-                        pathToFile = settings.fileAbsolutePath
+                        pathToFile = song.fileAbsolutePath
                         existsInLocalFileSystem = if (pathToFile != "") File(pathToFile).exists() else false
                         canBe = true // файл должен быть на диске
                         canCreate = false // файл невозможно создать автоматически
-                        storageFileName = "${settings.storageFileName}${karaokeFileType.suffix}.${karaokeFileType.extention}"
+                        storageFileName = "${song.storageFileName}${karaokeFileType.suffix}.${karaokeFileType.extention}"
 //                        inProgressOwnArgs = emptyMap() // нет аргументов для процесса, т.к. файл нельзя создать автоматически
 //                        inProgressParentArgs = emptyMap() // нет аргументов для процесса, т.к. файл нельзя создать автоматически
 //                        karaokeProcessTypesToCreate = null // нет типа процесса для создания, т.к. файл нельзя создать автоматически
@@ -1261,7 +1261,7 @@ data class HealthReport(
                                 actions(
                                     karaokeFileType = karaokeFileType,
                                     karaokePlatform = null,
-                                    settings = settings,
+                                    song = song,
                                     rootFolder = rootFolder,
                                     pathToFile = pathToFile,
                                     description = description,
@@ -1286,22 +1286,22 @@ data class HealthReport(
 
                     // Исходный аудио файл в формате mp3
 //                     KaraokeFileType.MP3_STORE_SONG -> {
-//                         pathToFile = settings.pathToFileMP3Lyrics
+//                         pathToFile = song.pathToFileMP3Lyrics
 //                         existsInLocalFileSystem = if (pathToFile != "") File(pathToFile).exists() else false
 //                         canBe = true // Файл должнен быть
 //
-//                         storageFileName = "${settings.storageFileName}${karaokeFileType.suffix}.${karaokeFileType.extention}"
+//                         storageFileName = "${song.storageFileName}${karaokeFileType.suffix}.${karaokeFileType.extention}"
 //                         description = karaokeFileType.name
 //
 //                         // файл возможно создать автоматически, если есть файл типа AUDIO_SONG
 //                         val patentFileType = KaraokeFileType.AUDIO_SONG
-//                         val pathToParentFile = settings.fileAbsolutePath
+//                         val pathToParentFile = song.fileAbsolutePath
 //                         val parentFileExistsInLocalFileSystem = if (pathToParentFile != "") File(pathToParentFile).exists() else false
 //                         canCreate = parentFileExistsInLocalFileSystem
 //
 //                         if (canCreate) {
 //                             inProgressOwnArgs = mapOf(
-//                                 "settings_id" to settings.id.toString(),
+//                                 "settings_id" to song.id.toString(),
 //                                 "process_status" to KaraokeProcessStatuses.WAITING.name,
 //                                 "process_type" to KaraokeProcessTypes.FF_MP3_LYR.name
 //                             )
@@ -1316,7 +1316,7 @@ data class HealthReport(
 //                             val actions = actions(
 //                                 karaokeFileType = karaokeFileType,
 //                                 karaokePlatform = null,
-//                                 settings = settings,
+//                                 song = song,
 //                                 rootFolder = rootFolder,
 //                                 pathToFile = pathToFile,
 //                                 description = description,
@@ -1341,22 +1341,22 @@ data class HealthReport(
 
                     // Минусовка
                     KaraokeFileType.AUDIO_ACCOMPANIMENT -> {
-                        pathToFile = settings.accompanimentNameFlac
+                        pathToFile = song.accompanimentNameFlac
                         existsInLocalFileSystem = if (pathToFile != "") File(pathToFile).exists() else false
                         canBe = true
-                        storageFileName = "${settings.storageFileName}${karaokeFileType.suffix}.${karaokeFileType.extention}"
+                        storageFileName = "${song.storageFileName}${karaokeFileType.suffix}.${karaokeFileType.extention}"
                         description = karaokeFileType.name
 
                         // файл возможно создать автоматически, если есть файл типа AUDIO_SONG
                         val patentFileType = KaraokeFileType.AUDIO_SONG
-                        val pathToParentFile = settings.fileAbsolutePath
+                        val pathToParentFile = song.fileAbsolutePath
                         val parentFileExistsInLocalFileSystem = if (pathToParentFile != "") File(pathToParentFile).exists() else false
                         canCreate = parentFileExistsInLocalFileSystem
 
                         if (canCreate) {
                             inProgressOwnArgs =
                                 mapOf(
-                                    "settings_id" to settings.id.toString(),
+                                    "settings_id" to song.id.toString(),
                                     "process_status" to KaraokeProcessStatuses.WAITING.name,
                                     "process_type" to KaraokeProcessTypes.DEMUCS2.name,
                                 )
@@ -1368,7 +1368,7 @@ data class HealthReport(
                                 actions(
                                     karaokeFileType = karaokeFileType,
                                     karaokePlatform = null,
-                                    settings = settings,
+                                    song = song,
                                     rootFolder = rootFolder,
                                     pathToFile = pathToFile,
                                     description = description,
@@ -1393,21 +1393,21 @@ data class HealthReport(
 
                     // Минусовка в формате mp3 в хранилище
 //                     KaraokeFileType.MP3_STORE_ACCOMPANIMENT -> {
-//                         pathToFile = settings.pathToFileMP3Karaoke
+//                         pathToFile = song.pathToFileMP3Karaoke
 //                         existsInLocalFileSystem = if (pathToFile != "") File(pathToFile).exists() else false
 //                         canBe = true
-//                         storageFileName = "${settings.storageFileName}${karaokeFileType.suffix}.${karaokeFileType.extention}"
+//                         storageFileName = "${song.storageFileName}${karaokeFileType.suffix}.${karaokeFileType.extention}"
 //                         description = karaokeFileType.name
 //
 //                         // файл возможно создать автоматически, если есть файл типа AUDIO_ACCOMPANIMENT
 //                         val patentFileType = KaraokeFileType.AUDIO_ACCOMPANIMENT
-//                         val pathToParentFile = settings.accompanimentNameFlac
+//                         val pathToParentFile = song.accompanimentNameFlac
 //                         val parentFileExistsInLocalFileSystem = if (pathToParentFile != "") File(pathToParentFile).exists() else false
 //                         canCreate = parentFileExistsInLocalFileSystem
 //
 //                         if (canCreate) {
 //                             inProgressOwnArgs = mapOf(
-//                                 "settings_id" to settings.id.toString(),
+//                                 "settings_id" to song.id.toString(),
 //                                 "process_status" to KaraokeProcessStatuses.WAITING.name,
 //                                 "process_type" to KaraokeProcessTypes.FF_MP3_KAR.name
 //                             )
@@ -1418,7 +1418,7 @@ data class HealthReport(
 //                             val actions = actions(
 //                                 karaokeFileType = karaokeFileType,
 //                                 karaokePlatform = null,
-//                                 settings = settings,
+//                                 song = song,
 //                                 rootFolder = rootFolder,
 //                                 pathToFile = pathToFile,
 //                                 description = description,
@@ -1443,22 +1443,22 @@ data class HealthReport(
 
                     // Минусовка в формате mp3
                     KaraokeFileType.MP3_ACCOMPANIMENT -> {
-                        pathToFile = settings.accompanimentNameMp3
+                        pathToFile = song.accompanimentNameMp3
                         existsInLocalFileSystem = if (pathToFile != "") File(pathToFile).exists() else false
                         canBe = true
-                        storageFileName = "${settings.storageFileName}${karaokeFileType.suffix}.${karaokeFileType.extention}"
+                        storageFileName = "${song.storageFileName}${karaokeFileType.suffix}.${karaokeFileType.extention}"
                         description = karaokeFileType.name
 
                         // файл возможно создать автоматически, если есть файл типа AUDIO_ACCOMPANIMENT
                         val patentFileType = KaraokeFileType.AUDIO_ACCOMPANIMENT
-                        val pathToParentFile = settings.accompanimentNameFlac
+                        val pathToParentFile = song.accompanimentNameFlac
                         val parentFileExistsInLocalFileSystem = if (pathToParentFile != "") File(pathToParentFile).exists() else false
                         canCreate = parentFileExistsInLocalFileSystem
 
                         if (canCreate) {
                             inProgressOwnArgs =
                                 mapOf(
-                                    "settings_id" to settings.id.toString(),
+                                    "settings_id" to song.id.toString(),
                                     "process_status" to KaraokeProcessStatuses.WAITING.name,
                                     "process_type" to KaraokeProcessTypes.FF_MP3_ACCOMPANIMENT.name,
                                 )
@@ -1470,7 +1470,7 @@ data class HealthReport(
                                 actions(
                                     karaokeFileType = karaokeFileType,
                                     karaokePlatform = null,
-                                    settings = settings,
+                                    song = song,
                                     rootFolder = rootFolder,
                                     pathToFile = pathToFile,
                                     description = description,
@@ -1495,22 +1495,22 @@ data class HealthReport(
 
                     // Чистый голос
                     KaraokeFileType.AUDIO_VOCAL -> {
-                        pathToFile = settings.vocalsNameFlac
+                        pathToFile = song.vocalsNameFlac
                         existsInLocalFileSystem = if (pathToFile != "") File(pathToFile).exists() else false
                         canBe = true
-                        storageFileName = "${settings.storageFileName}${karaokeFileType.suffix}.${karaokeFileType.extention}"
+                        storageFileName = "${song.storageFileName}${karaokeFileType.suffix}.${karaokeFileType.extention}"
                         description = karaokeFileType.name
 
                         // файл возможно создать автоматически, если есть файл типа AUDIO_SONG
                         val patentFileType = KaraokeFileType.AUDIO_SONG
-                        val pathToParentFile = settings.fileAbsolutePath
+                        val pathToParentFile = song.fileAbsolutePath
                         val parentFileExistsInLocalFileSystem = if (pathToParentFile != "") File(pathToParentFile).exists() else false
                         canCreate = parentFileExistsInLocalFileSystem
 
                         if (canCreate) {
                             inProgressOwnArgs =
                                 mapOf(
-                                    "settings_id" to settings.id.toString(),
+                                    "settings_id" to song.id.toString(),
                                     "process_status" to KaraokeProcessStatuses.WAITING.name,
                                     "process_type" to KaraokeProcessTypes.DEMUCS2.name,
                                 )
@@ -1522,7 +1522,7 @@ data class HealthReport(
                                 actions(
                                     karaokeFileType = karaokeFileType,
                                     karaokePlatform = null,
-                                    settings = settings,
+                                    song = song,
                                     rootFolder = rootFolder,
                                     pathToFile = pathToFile,
                                     description = description,
@@ -1547,22 +1547,22 @@ data class HealthReport(
 
                     // Голос в формате mp3
                     KaraokeFileType.MP3_VOCAL -> {
-                        pathToFile = settings.vocalsNameMp3
+                        pathToFile = song.vocalsNameMp3
                         existsInLocalFileSystem = if (pathToFile != "") File(pathToFile).exists() else false
                         canBe = true
-                        storageFileName = "${settings.storageFileName}${karaokeFileType.suffix}.${karaokeFileType.extention}"
+                        storageFileName = "${song.storageFileName}${karaokeFileType.suffix}.${karaokeFileType.extention}"
                         description = karaokeFileType.name
 
                         // файл возможно создать автоматически, если есть файл типа AUDIO_VOCAL
                         val patentFileType = KaraokeFileType.AUDIO_VOCAL
-                        val pathToParentFile = settings.vocalsNameFlac
+                        val pathToParentFile = song.vocalsNameFlac
                         val parentFileExistsInLocalFileSystem = if (pathToParentFile != "") File(pathToParentFile).exists() else false
                         canCreate = parentFileExistsInLocalFileSystem
 
                         if (canCreate) {
                             inProgressOwnArgs =
                                 mapOf(
-                                    "settings_id" to settings.id.toString(),
+                                    "settings_id" to song.id.toString(),
                                     "process_status" to KaraokeProcessStatuses.WAITING.name,
                                     "process_type" to KaraokeProcessTypes.FF_MP3_VOCAL.name,
                                 )
@@ -1574,7 +1574,7 @@ data class HealthReport(
                                 actions(
                                     karaokeFileType = karaokeFileType,
                                     karaokePlatform = null,
-                                    settings = settings,
+                                    song = song,
                                     rootFolder = rootFolder,
                                     pathToFile = pathToFile,
                                     description = description,
@@ -1599,22 +1599,22 @@ data class HealthReport(
 
                     // Бас
                     KaraokeFileType.AUDIO_BASS -> {
-                        pathToFile = settings.bassNameFlac
+                        pathToFile = song.bassNameFlac
                         existsInLocalFileSystem = if (pathToFile != "") File(pathToFile).exists() else false
-                        canBe = (settings.hasChords || settings.hasMelody)
-                        storageFileName = "${settings.storageFileName}${karaokeFileType.suffix}.${karaokeFileType.extention}"
+                        canBe = (song.hasChords || song.hasMelody)
+                        storageFileName = "${song.storageFileName}${karaokeFileType.suffix}.${karaokeFileType.extention}"
                         description = karaokeFileType.name
 
                         // файл возможно создать автоматически, если есть файл типа AUDIO_SONG
                         val patentFileType = KaraokeFileType.AUDIO_SONG
-                        val pathToParentFile = settings.fileAbsolutePath
+                        val pathToParentFile = song.fileAbsolutePath
                         val parentFileExistsInLocalFileSystem = if (pathToParentFile != "") File(pathToParentFile).exists() else false
                         canCreate = parentFileExistsInLocalFileSystem
 
                         if (canCreate) {
                             inProgressOwnArgs =
                                 mapOf(
-                                    "settings_id" to settings.id.toString(),
+                                    "settings_id" to song.id.toString(),
                                     "process_status" to KaraokeProcessStatuses.WAITING.name,
                                     "process_type" to KaraokeProcessTypes.DEMUCS5.name,
                                 )
@@ -1626,7 +1626,7 @@ data class HealthReport(
                                 actions(
                                     karaokeFileType = karaokeFileType,
                                     karaokePlatform = null,
-                                    settings = settings,
+                                    song = song,
                                     rootFolder = rootFolder,
                                     pathToFile = pathToFile,
                                     description = description,
@@ -1651,22 +1651,22 @@ data class HealthReport(
 
                     // Бас в формате mp3
                     KaraokeFileType.MP3_BASS -> {
-                        pathToFile = settings.bassNameMp3
+                        pathToFile = song.bassNameMp3
                         existsInLocalFileSystem = if (pathToFile != "") File(pathToFile).exists() else false
-                        canBe = (settings.hasChords || settings.hasMelody)
-                        storageFileName = "${settings.storageFileName}${karaokeFileType.suffix}.${karaokeFileType.extention}"
+                        canBe = (song.hasChords || song.hasMelody)
+                        storageFileName = "${song.storageFileName}${karaokeFileType.suffix}.${karaokeFileType.extention}"
                         description = karaokeFileType.name
 
                         // файл возможно создать автоматически, если есть файл типа AUDIO_BASS
                         val patentFileType = KaraokeFileType.AUDIO_BASS
-                        val pathToParentFile = settings.bassNameFlac
+                        val pathToParentFile = song.bassNameFlac
                         val parentFileExistsInLocalFileSystem = if (pathToParentFile != "") File(pathToParentFile).exists() else false
                         canCreate = parentFileExistsInLocalFileSystem
 
                         if (canCreate) {
                             inProgressOwnArgs =
                                 mapOf(
-                                    "settings_id" to settings.id.toString(),
+                                    "settings_id" to song.id.toString(),
                                     "process_status" to KaraokeProcessStatuses.WAITING.name,
                                     "process_type" to KaraokeProcessTypes.FF_MP3_BASS.name,
                                 )
@@ -1678,7 +1678,7 @@ data class HealthReport(
                                 actions(
                                     karaokeFileType = karaokeFileType,
                                     karaokePlatform = null,
-                                    settings = settings,
+                                    song = song,
                                     rootFolder = rootFolder,
                                     pathToFile = pathToFile,
                                     description = description,
@@ -1703,22 +1703,22 @@ data class HealthReport(
 
                     // Ударные
                     KaraokeFileType.AUDIO_DRUMS -> {
-                        pathToFile = settings.drumsNameFlac
+                        pathToFile = song.drumsNameFlac
                         existsInLocalFileSystem = if (pathToFile != "") File(pathToFile).exists() else false
-                        canBe = (settings.hasChords || settings.hasMelody)
-                        storageFileName = "${settings.storageFileName}${karaokeFileType.suffix}.${karaokeFileType.extention}"
+                        canBe = (song.hasChords || song.hasMelody)
+                        storageFileName = "${song.storageFileName}${karaokeFileType.suffix}.${karaokeFileType.extention}"
                         description = karaokeFileType.name
 
                         // файл возможно создать автоматически, если есть файл типа AUDIO_SONG
                         val patentFileType = KaraokeFileType.AUDIO_SONG
-                        val pathToParentFile = settings.fileAbsolutePath
+                        val pathToParentFile = song.fileAbsolutePath
                         val parentFileExistsInLocalFileSystem = if (pathToParentFile != "") File(pathToParentFile).exists() else false
                         canCreate = parentFileExistsInLocalFileSystem
 
                         if (canCreate) {
                             inProgressOwnArgs =
                                 mapOf(
-                                    "settings_id" to settings.id.toString(),
+                                    "settings_id" to song.id.toString(),
                                     "process_status" to KaraokeProcessStatuses.WAITING.name,
                                     "process_type" to KaraokeProcessTypes.DEMUCS5.name,
                                 )
@@ -1730,7 +1730,7 @@ data class HealthReport(
                                 actions(
                                     karaokeFileType = karaokeFileType,
                                     karaokePlatform = null,
-                                    settings = settings,
+                                    song = song,
                                     rootFolder = rootFolder,
                                     pathToFile = pathToFile,
                                     description = description,
@@ -1755,22 +1755,22 @@ data class HealthReport(
 
                     // Ударные в формате mp3
                     KaraokeFileType.MP3_DRUMS -> {
-                        pathToFile = settings.drumsNameMp3
+                        pathToFile = song.drumsNameMp3
                         existsInLocalFileSystem = if (pathToFile != "") File(pathToFile).exists() else false
-                        canBe = (settings.hasChords || settings.hasMelody)
-                        storageFileName = "${settings.storageFileName}${karaokeFileType.suffix}.${karaokeFileType.extention}"
+                        canBe = (song.hasChords || song.hasMelody)
+                        storageFileName = "${song.storageFileName}${karaokeFileType.suffix}.${karaokeFileType.extention}"
                         description = karaokeFileType.name
 
                         // файл возможно создать автоматически, если есть файл типа AUDIO_DRUMS
                         val patentFileType = KaraokeFileType.AUDIO_DRUMS
-                        val pathToParentFile = settings.drumsNameFlac
+                        val pathToParentFile = song.drumsNameFlac
                         val parentFileExistsInLocalFileSystem = if (pathToParentFile != "") File(pathToParentFile).exists() else false
                         canCreate = parentFileExistsInLocalFileSystem
 
                         if (canCreate) {
                             inProgressOwnArgs =
                                 mapOf(
-                                    "settings_id" to settings.id.toString(),
+                                    "settings_id" to song.id.toString(),
                                     "process_status" to KaraokeProcessStatuses.WAITING.name,
                                     "process_type" to KaraokeProcessTypes.FF_MP3_DRUMS.name,
                                 )
@@ -1782,7 +1782,7 @@ data class HealthReport(
                                 actions(
                                     karaokeFileType = karaokeFileType,
                                     karaokePlatform = null,
-                                    settings = settings,
+                                    song = song,
                                     rootFolder = rootFolder,
                                     pathToFile = pathToFile,
                                     description = description,
@@ -1807,22 +1807,22 @@ data class HealthReport(
 
                     // Мелодия без баса и ударных
                     KaraokeFileType.AUDIO_OTHER -> {
-                        pathToFile = settings.otherNameFlac
+                        pathToFile = song.otherNameFlac
                         existsInLocalFileSystem = if (pathToFile != "") File(pathToFile).exists() else false
-                        canBe = (settings.hasChords || settings.hasMelody)
-                        storageFileName = "${settings.storageFileName}${karaokeFileType.suffix}.${karaokeFileType.extention}"
+                        canBe = (song.hasChords || song.hasMelody)
+                        storageFileName = "${song.storageFileName}${karaokeFileType.suffix}.${karaokeFileType.extention}"
                         description = karaokeFileType.name
 
                         // файл возможно создать автоматически, если есть файл типа AUDIO_SONG
                         val patentFileType = KaraokeFileType.AUDIO_SONG
-                        val pathToParentFile = settings.fileAbsolutePath
+                        val pathToParentFile = song.fileAbsolutePath
                         val parentFileExistsInLocalFileSystem = if (pathToParentFile != "") File(pathToParentFile).exists() else false
                         canCreate = parentFileExistsInLocalFileSystem
 
                         if (canCreate) {
                             inProgressOwnArgs =
                                 mapOf(
-                                    "settings_id" to settings.id.toString(),
+                                    "settings_id" to song.id.toString(),
                                     "process_status" to KaraokeProcessStatuses.WAITING.name,
                                     "process_type" to KaraokeProcessTypes.DEMUCS5.name,
                                 )
@@ -1834,7 +1834,7 @@ data class HealthReport(
                                 actions(
                                     karaokeFileType = karaokeFileType,
                                     karaokePlatform = null,
-                                    settings = settings,
+                                    song = song,
                                     rootFolder = rootFolder,
                                     pathToFile = pathToFile,
                                     description = description,
@@ -1859,22 +1859,22 @@ data class HealthReport(
 
                     // Мелодия без баса и ударных в формате mp3
                     KaraokeFileType.MP3_OTHER -> {
-                        pathToFile = settings.otherNameMp3
+                        pathToFile = song.otherNameMp3
                         existsInLocalFileSystem = if (pathToFile != "") File(pathToFile).exists() else false
-                        canBe = (settings.hasChords || settings.hasMelody)
-                        storageFileName = "${settings.storageFileName}${karaokeFileType.suffix}.${karaokeFileType.extention}"
+                        canBe = (song.hasChords || song.hasMelody)
+                        storageFileName = "${song.storageFileName}${karaokeFileType.suffix}.${karaokeFileType.extention}"
                         description = karaokeFileType.name
 
                         // файл возможно создать автоматически, если есть файл типа AUDIO_OTHER
                         val patentFileType = KaraokeFileType.AUDIO_OTHER
-                        val pathToParentFile = settings.otherNameFlac
+                        val pathToParentFile = song.otherNameFlac
                         val parentFileExistsInLocalFileSystem = if (pathToParentFile != "") File(pathToParentFile).exists() else false
                         canCreate = parentFileExistsInLocalFileSystem
 
                         if (canCreate) {
                             inProgressOwnArgs =
                                 mapOf(
-                                    "settings_id" to settings.id.toString(),
+                                    "settings_id" to song.id.toString(),
                                     "process_status" to KaraokeProcessStatuses.WAITING.name,
                                     "process_type" to KaraokeProcessTypes.FF_MP3_OTHER.name,
                                 )
@@ -1886,7 +1886,7 @@ data class HealthReport(
                                 actions(
                                     karaokeFileType = karaokeFileType,
                                     karaokePlatform = null,
-                                    settings = settings,
+                                    song = song,
                                     rootFolder = rootFolder,
                                     pathToFile = pathToFile,
                                     description = description,
@@ -1911,11 +1911,11 @@ data class HealthReport(
 
                     // Картинка альбома
                     KaraokeFileType.PICTURE_ALBUM -> {
-                        pathToFile = settings.pathToFileLogoAlbum
+                        pathToFile = song.pathToFileLogoAlbum
                         existsInLocalFileSystem = if (pathToFile != "") File(pathToFile).exists() else false
                         canBe = true
                         storageFileName =
-                            "${settings.author}/${settings.year} - ${settings.album}/${settings.author} - ${settings.year} - ${settings.album}${karaokeFileType.suffix}.${karaokeFileType.extention}"
+                            "${song.author}/${song.year} - ${song.album}/${song.author} - ${song.year} - ${song.album}${karaokeFileType.suffix}.${karaokeFileType.extention}"
                         description = karaokeFileType.name
                         canCreate = false // файл невозможно создать автоматически
 
@@ -1924,7 +1924,7 @@ data class HealthReport(
                                 actions(
                                     karaokeFileType = karaokeFileType,
                                     karaokePlatform = null,
-                                    settings = settings,
+                                    song = song,
                                     rootFolder = rootFolder,
                                     pathToFile = pathToFile,
                                     description = description,
@@ -1949,27 +1949,27 @@ data class HealthReport(
 
                     // Картинка альбома (preview)
                     KaraokeFileType.PICTURE_ALBUM_PREVIEW -> {
-                        pathToFile = settings.pathToFileLogoAlbumPreview
+                        pathToFile = song.pathToFileLogoAlbumPreview
                         existsInLocalFileSystem = if (pathToFile != "") File(pathToFile).exists() else false
                         canBe = true
                         storageFileName =
-                            "${settings.author}/${settings.year} - ${settings.album}/${settings.author} - ${settings.year} - ${settings.album}${karaokeFileType.suffix}.${karaokeFileType.extention}"
+                            "${song.author}/${song.year} - ${song.album}/${song.author} - ${song.year} - ${song.album}${karaokeFileType.suffix}.${karaokeFileType.extention}"
                         description = karaokeFileType.name
 
                         // файл возможно создать автоматически, если есть файл типа PICTURE_ALBUM
                         val patentFileType = KaraokeFileType.PICTURE_ALBUM
-                        val pathToParentFile = settings.pathToFileLogoAlbum
+                        val pathToParentFile = song.pathToFileLogoAlbum
                         val parentFileExistsInLocalFileSystem = if (pathToParentFile != "") File(pathToParentFile).exists() else false
                         canCreate = parentFileExistsInLocalFileSystem
 
-                        actionToCreate = { createAlbumPreview(settings = settings) }
+                        actionToCreate = { createAlbumPreview(song = song) }
 
                         karaokeFileType.locations.forEach { location ->
                             val actions =
                                 actions(
                                     karaokeFileType = karaokeFileType,
                                     karaokePlatform = null,
-                                    settings = settings,
+                                    song = song,
                                     rootFolder = rootFolder,
                                     pathToFile = pathToFile,
                                     description = description,
@@ -1994,10 +1994,10 @@ data class HealthReport(
 
                     // Картинка автора
                     KaraokeFileType.PICTURE_AUTHOR -> {
-                        pathToFile = settings.pathToFileLogoAuthor
+                        pathToFile = song.pathToFileLogoAuthor
                         existsInLocalFileSystem = if (pathToFile != "") File(pathToFile).exists() else false
                         canBe = true
-                        storageFileName = "${settings.author}/${settings.author}${karaokeFileType.suffix}.${karaokeFileType.extention}"
+                        storageFileName = "${song.author}/${song.author}${karaokeFileType.suffix}.${karaokeFileType.extention}"
                         description = karaokeFileType.name
                         canCreate = false // файл невозможно создать автоматически
 
@@ -2006,7 +2006,7 @@ data class HealthReport(
                                 actions(
                                     karaokeFileType = karaokeFileType,
                                     karaokePlatform = null,
-                                    settings = settings,
+                                    song = song,
                                     rootFolder = rootFolder,
                                     pathToFile = pathToFile,
                                     description = description,
@@ -2031,26 +2031,26 @@ data class HealthReport(
 
                     // Картинка автора (preview)
                     KaraokeFileType.PICTURE_AUTHOR_PREVIEW -> {
-                        pathToFile = settings.pathToFileLogoAuthorPreview
+                        pathToFile = song.pathToFileLogoAuthorPreview
                         existsInLocalFileSystem = if (pathToFile != "") File(pathToFile).exists() else false
                         canBe = true
-                        storageFileName = "${settings.author}/${settings.author}${karaokeFileType.suffix}.${karaokeFileType.extention}"
+                        storageFileName = "${song.author}/${song.author}${karaokeFileType.suffix}.${karaokeFileType.extention}"
                         description = karaokeFileType.name
 
                         // файл возможно создать автоматически, если есть файл типа PICTURE_AUTHOR
                         val patentFileType = KaraokeFileType.PICTURE_AUTHOR
-                        val pathToParentFile = settings.pathToFileLogoAuthor
+                        val pathToParentFile = song.pathToFileLogoAuthor
                         val parentFileExistsInLocalFileSystem = if (pathToParentFile != "") File(pathToParentFile).exists() else false
                         canCreate = parentFileExistsInLocalFileSystem
 
-                        actionToCreate = { createAuthorPreview(settings = settings) }
+                        actionToCreate = { createAuthorPreview(song = song) }
 
                         karaokeFileType.locations.forEach { location ->
                             val actions =
                                 actions(
                                     karaokeFileType = karaokeFileType,
                                     karaokePlatform = null,
-                                    settings = settings,
+                                    song = song,
                                     rootFolder = rootFolder,
                                     pathToFile = pathToFile,
                                     description = description,
@@ -2111,7 +2111,7 @@ data class HealthReport(
         // момент успешной заливки" — ApiController/SongEditorController.pushMp3ToStorage и
         // Song.pictureAlbum/pictureAuthor геттеры; это — вторая, подстраховочная линия.
         private fun reconcilePlayerReadinessFlags(
-            settings: Song,
+            song: Song,
             reports: List<HealthReport>,
         ) {
             fun isOkInLocalStorage(karaokeFileType: KaraokeFileType): Boolean =
@@ -2121,52 +2121,52 @@ data class HealthReport(
 
             var changed = false
             isOkInLocalStorage(KaraokeFileType.MP3_ACCOMPANIMENT).let {
-                if (settings.stemAccompanimentReady != it) {
-                    settings.stemAccompanimentReady = it
+                if (song.stemAccompanimentReady != it) {
+                    song.stemAccompanimentReady = it
                     changed = true
                 }
             }
             isOkInLocalStorage(KaraokeFileType.MP3_VOCAL).let {
-                if (settings.stemVocalReady != it) {
-                    settings.stemVocalReady = it
+                if (song.stemVocalReady != it) {
+                    song.stemVocalReady = it
                     changed = true
                 }
             }
             isOkInLocalStorage(KaraokeFileType.PICTURE_ALBUM).let {
-                if (settings.pictureAlbumReady != it) {
-                    settings.pictureAlbumReady = it
+                if (song.pictureAlbumReady != it) {
+                    song.pictureAlbumReady = it
                     changed = true
                 }
             }
             isOkInLocalStorage(KaraokeFileType.PICTURE_AUTHOR).let {
-                if (settings.pictureAuthorReady != it) {
-                    settings.pictureAuthorReady = it
+                if (song.pictureAuthorReady != it) {
+                    song.pictureAuthorReady = it
                     changed = true
                 }
             }
-            if (changed) settings.saveToDb()
+            if (changed) song.saveToDb()
         }
 
         // Единая точка «пересчитать HealthReport песни и разослать SSE healthReports» — та же логика,
         // что в эндпоинте /song/healthReportList. Возвращает ПОЛНЫЙ список отчётов (с canResolve) —
         // нужен каскаду для выбора следующего решаемого шага.
         fun recomputeAndBroadcast(
-            settingsId: Long,
+            songId: Long,
             database: KaraokeConnection,
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
         ): List<HealthReport> {
-            val settings =
+            val song =
                 Song.loadFromDbById(
-                    id = settingsId,
+                    id = songId,
                     database = database,
                     storageService = storageService,
                     storageApiClient = storageApiClient,
                 ) ?: return emptyList()
-            val reports = settings.healthReportList()
-            reconcilePlayerReadinessFlags(settings, reports)
+            val reports = song.healthReportList()
+            reconcilePlayerReadinessFlags(song, reports)
             val dtoErrors = reports.errorsOnly().map { it.toDTO() }
-            SNS.send(SseNotification.healthReports(settingsId = settingsId, healthReportDtoList = dtoErrors))
+            SNS.send(SseNotification.healthReports(songId = songId, healthReportDtoList = dtoErrors))
             return reports
         }
 
@@ -2257,16 +2257,16 @@ data class HealthReport(
 
         // Старт каскадного «Исправить всё» по песне: пометить песню и выполнить всё решаемое сейчас.
         fun startRepairAll(
-            settings: Song,
+            song: Song,
             database: KaraokeConnection,
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
         ) {
-            autoRepairSongIds.add(settings.id)
-            val reports = recomputeAndBroadcast(settings.id, database, storageService, storageApiClient)
+            autoRepairSongIds.add(song.id)
+            val reports = recomputeAndBroadcast(song.id, database, storageService, storageApiClient)
             executeResolvable(reports)
             // повторный пересчёт — отразить в UI перевод отчётов в IN_PROGRESS
-            recomputeAndBroadcast(settings.id, database, storageService, storageApiClient)
+            recomputeAndBroadcast(song.id, database, storageService, storageApiClient)
         }
 
         // Хук завершения репаир-задания (вызывается из KaraokeProcessThread.run()). Всегда пересчитывает
@@ -2275,17 +2275,17 @@ data class HealthReport(
         // success=false (задание упало с ERROR) обрывает каскад: иначе тот же упавший отчёт снова
         // окажется решаемым и хук вечно перезапускал бы падающую задачу.
         fun onRepairProcessFinished(
-            settingsId: Long,
+            songId: Long,
             success: Boolean,
             database: KaraokeConnection,
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
         ) {
-            val reports = recomputeAndBroadcast(settingsId, database, storageService, storageApiClient)
-            if (settingsId !in autoRepairSongIds) return
+            val reports = recomputeAndBroadcast(songId, database, storageService, storageApiClient)
+            if (songId !in autoRepairSongIds) return
 
             if (!success) {
-                autoRepairSongIds.remove(settingsId)
+                autoRepairSongIds.remove(songId)
                 return
             }
 
@@ -2293,9 +2293,9 @@ data class HealthReport(
             val inProgress = reports.any { it.healthReportStatus == IN_PROGRESS }
             if (resolvable.isNotEmpty()) {
                 executeResolvable(resolvable)
-                recomputeAndBroadcast(settingsId, database, storageService, storageApiClient)
+                recomputeAndBroadcast(songId, database, storageService, storageApiClient)
             } else if (!inProgress) {
-                autoRepairSongIds.remove(settingsId)
+                autoRepairSongIds.remove(songId)
             }
         }
     }

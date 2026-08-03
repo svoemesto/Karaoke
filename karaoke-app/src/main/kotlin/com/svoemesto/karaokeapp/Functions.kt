@@ -8,22 +8,22 @@ import java.nio.file.Files
 import kotlin.io.path.Path
 
 fun getVoices(
-    settings: Song,
+    song: Song,
     songVersion: SongVersion,
 ): List<SongVoice> {
     val listOfVoices: MutableList<SongVoice> = mutableListOf()
-    val countNotEmptyVoices = settings.sourceMarkersList.filter { it.isNotEmpty() }.size
+    val countNotEmptyVoices = song.sourceMarkersList.filter { it.isNotEmpty() }.size
 
     if (countNotEmptyVoices == 0) return listOfVoices
-    val startSilentOffsetMs = settings.getStartSilentOffsetMs()
+    val startSilentOffsetMs = song.getStartSilentOffsetMs()
     for (voiceIndex in 0 until countNotEmptyVoices) {
-        val voice = SongVoice(rootId = settings.id)
+        val voice = SongVoice(rootId = song.id)
         voice.voiceId = voiceIndex
-        voice.rootSongLengthMs = settings.songLengthMs
-        voice.rootStartSilentOffsetMs = settings.getStartSilentOffsetMs()
+        voice.rootSongLengthMs = song.songLengthMs
+        voice.rootStartSilentOffsetMs = song.getStartSilentOffsetMs()
 
         val voiceMarkers =
-            settings.sourceMarkersList[voiceIndex].filter { marker ->
+            song.sourceMarkersList[voiceIndex].filter { marker ->
                 marker.markertype in
                     songVersion.markertypes.map { it.value }
             }
@@ -54,7 +54,7 @@ fun getVoices(
                                 if (groupId != labelValue.toInt()) {
                                     groupId = labelValue.toInt()
                                     if (tmpLines.isNotEmpty() && !lastTextLineWasComment) {
-                                        tmpLines.add(SongVoiceLine.newLine(settings.id, timeMs, groupId))
+                                        tmpLines.add(SongVoiceLine.newLine(song.id, timeMs, groupId))
                                     }
                                 }
                             }
@@ -62,13 +62,13 @@ fun getVoices(
                                 // Создаём элемент "комментарий" и добавляем его в список временных элементов
                                 val element =
                                     SongVoiceLineElement(
-                                        rootId = settings.id,
+                                        rootId = song.id,
                                         type = SongVoiceLineElementTypes.COMMENT,
                                     )
                                 element.groupId = groupId
                                 element.addSyllable(
                                     SongVoiceLineElementSyllable(
-                                        rootId = settings.id,
+                                        rootId = song.id,
                                         text = labelValue,
                                         note = "",
                                         chord = "",
@@ -82,7 +82,7 @@ fun getVoices(
 
                                 val lineToAdd =
                                     SongVoiceLine(
-                                        rootId = settings.id,
+                                        rootId = song.id,
                                         lineStartMs = timeMs,
                                         lineEndMs = timeMs,
                                     )
@@ -115,7 +115,7 @@ fun getVoices(
                                 prevTextSyllable = null
                             }
                             SongVoiceLineElementSyllable(
-                                rootId = settings.id,
+                                rootId = song.id,
                                 text = txt,
                                 note = sourceMarker.note,
                                 chord = sourceMarker.chord,
@@ -149,7 +149,7 @@ fun getVoices(
 
                     val textSyllable =
                         SongVoiceLineElementSyllable(
-                            rootId = settings.id,
+                            rootId = song.id,
                             text = txt,
                             note = sourceMarker.note,
                             chord = sourceMarker.chord,
@@ -177,7 +177,7 @@ fun getVoices(
 
                         val element =
                             SongVoiceLineElement(
-                                rootId = settings.id,
+                                rootId = song.id,
                                 type = SongVoiceLineElementTypes.TEXT,
                             )
                         element.groupId = groupId
@@ -189,7 +189,7 @@ fun getVoices(
                     if (tmpNoteSyllables.isNotEmpty()) {
                         val noteElement =
                             SongVoiceLineElement(
-                                rootId = settings.id,
+                                rootId = song.id,
                                 type = SongVoiceLineElementTypes.NOTE,
                             )
                         noteElement.groupId = groupId
@@ -201,7 +201,7 @@ fun getVoices(
                     if (tmpElements.isNotEmpty()) {
                         val lineToAdd =
                             SongVoiceLine(
-                                rootId = settings.id,
+                                rootId = song.id,
                                 lineStartMs = tmpElements.minOf { element -> element.getSyllables().minOf { it.syllableStartMs } },
                                 lineEndMs = tmpElements.minOf { element -> element.getSyllables().maxOf { it.syllableEndMs } },
                             )
@@ -210,14 +210,14 @@ fun getVoices(
                         tmpElements = mutableListOf()
                     } else {
                         if (tmpLines.isNotEmpty()) {
-                            tmpLines.add(SongVoiceLine.emptyLine(settings.id, timeMs, groupId))
-                            tmpLines.add(SongVoiceLine.newLine(settings.id, timeMs, groupId))
+                            tmpLines.add(SongVoiceLine.emptyLine(song.id, timeMs, groupId))
+                            tmpLines.add(SongVoiceLine.newLine(song.id, timeMs, groupId))
                         }
                     }
                 }
                 Markertype.NEWLINE.value, Markertype.NEWLINE_NOTE.value, Markertype.NEWLINE_CHORD.value -> {
                     if (tmpLines.isNotEmpty()) {
-                        tmpLines.add(SongVoiceLine.newLine(settings.id, timeMs, groupId))
+                        tmpLines.add(SongVoiceLine.newLine(song.id, timeMs, groupId))
                     }
                 }
                 else -> {} // "unmute", "beat", и т.п.
@@ -243,7 +243,7 @@ fun getVoices(
             val countStartEmptyLines = (tmpLines.first().lineStartMs / maxDuration)
 
             // В любом случае добавляем пустую строку в самое начало
-            lines.add(SongVoiceLine.emptyLine(settings.id, 0, groupId))
+            lines.add(SongVoiceLine.emptyLine(song.id, 0, groupId))
 
             // Если кол-во пустых строк которые нужно вставить в начало > 0
             if (countStartEmptyLines > 0) {
@@ -252,7 +252,7 @@ fun getVoices(
                 val silentDuration = tmpLines.first().lineStartMs / (countStartEmptyLines + 1)
                 for (emptyLineIndex in 0 until countStartEmptyLines) {
                     val timeMs = (emptyLineIndex + 1) * silentDuration
-                    lines.add(SongVoiceLine.emptyLine(settings.id, timeMs, groupId))
+                    lines.add(SongVoiceLine.emptyLine(song.id, timeMs, groupId))
                 }
             }
 
@@ -289,7 +289,7 @@ fun getVoices(
                                 val durationEmptyLine = (endTimeMs - startTimeMs) / (countEmptyLinesToAdd + 1)
                                 for (emptyLineIndex in 0 until countEmptyLinesToAdd) {
                                     val timeMs = startTimeMs + (emptyLineIndex + 1) * durationEmptyLine
-                                    lines.add(SongVoiceLine.emptyLine(settings.id, timeMs, groupId))
+                                    lines.add(SongVoiceLine.emptyLine(song.id, timeMs, groupId))
                                 }
 
                                 // Устанавливаем указатель цикла на линию перед следующей, чтобы на следующей итерации цикла
@@ -306,7 +306,7 @@ fun getVoices(
 
             val lastTextLine = lines.last()
             val startTime = lastTextLine.lineEndMs
-            val endTime = settings.songLengthMs + startSilentOffsetMs
+            val endTime = song.songLengthMs + startSilentOffsetMs
 
             if (endTime > startTime) {
                 // Кол-во пустых строк с начала = начало старта первой строки / время длинной строки
@@ -319,12 +319,12 @@ fun getVoices(
                     val silentDuration = (endTime - startTime) / (countEndEmptyLines + 1)
                     for (emptyLineIndex in 0 until countEndEmptyLines) {
                         val timeMs = startTime + (emptyLineIndex + 1) * silentDuration
-                        lines.add(SongVoiceLine.emptyLine(settings.id, timeMs, groupId))
+                        lines.add(SongVoiceLine.emptyLine(song.id, timeMs, groupId))
                     }
                 }
 
                 // В любом случае добавляем пустую строку в самый конец
-                lines.add(SongVoiceLine.emptyLine(settings.id, endTime, groupId))
+                lines.add(SongVoiceLine.emptyLine(song.id, endTime, groupId))
             }
 
             /*
@@ -401,7 +401,7 @@ fun getVoices(
                     }
                     val halfElement =
                         SongVoiceLineElement(
-                            rootId = settings.id,
+                            rootId = song.id,
                             type = longerCurrElement.type,
                         )
                     halfElement.groupId = longerCurrElement.groupId
@@ -431,33 +431,33 @@ fun getVoices(
 }
 
 fun createKaraoke(
-    settings: Song,
+    song: Song,
     songVersion: SongVersion,
 ) {
-//    val voices = getVoices(settings, songVersion)
+//    val voices = getVoices(song, songVersion)
 
-    if (songVersion in listOf(SongVersion.CHORDS) && (!File(settings.drumsNameFlac).exists() || !File(settings.bassNameFlac).exists())) {
-        val (args, envs) = settings.argsDemucs5()
+    if (songVersion in listOf(SongVersion.CHORDS) && (!File(song.drumsNameFlac).exists() || !File(song.bassNameFlac).exists())) {
+        val (args, envs) = song.argsDemucs5()
         args.forEach { arg ->
             runCommand(arg, envs = envs)
         }
     }
 
-    val mltProp = settings.getMltProp(songVersion)
+    val mltProp = song.getMltProp(songVersion)
 
     val templateProject = "<?xml version='1.0' encoding='utf-8'?>\n${getMlt(mltProp)}"
 
-    val fileProjectPath = settings.getOutputFilename(SongOutputFile.PROJECT, songVersion)
+    val fileProjectPath = song.getOutputFilename(SongOutputFile.PROJECT, songVersion)
     val fileProject = File(fileProjectPath)
 
-    val fileMltPath = settings.getOutputFilename(SongOutputFile.MLT, songVersion)
+    val fileMltPath = song.getOutputFilename(SongOutputFile.MLT, songVersion)
     val fileMlt = File(fileMltPath)
 
     val pathToProjectFolder = fileProject.parent
     Files.createDirectories(Path(pathToProjectFolder))
     runCommand(listOf("chmod", "777", pathToProjectFolder))
 
-    val pathToDoneFilesFolder = File(settings.getOutputFilename(SongOutputFile.PICTURE, songVersion)).parent
+    val pathToDoneFilesFolder = File(song.getOutputFilename(SongOutputFile.PICTURE, songVersion)).parent
     Files.createDirectories(Path(pathToDoneFilesFolder)) // Создаем папку done_files чтобы не было ошибки при создании картинок бусти и спонсора
     runCommand(listOf("chmod", "777", pathToDoneFilesFolder))
 
@@ -467,42 +467,42 @@ fun createKaraoke(
     fileMlt.writeText(templateProject)
     runCommand(listOf("chmod", "666", fileMltPath))
 
-    val fileRunPath = settings.getOutputFilename(SongOutputFile.RUN, songVersion)
+    val fileRunPath = song.getOutputFilename(SongOutputFile.RUN, songVersion)
     val fileRun = File(fileRunPath)
 
     fileRun.writeText(
-        "echo \"${settings.getOutputFilename(SongOutputFile.MLT, songVersion)}\"\n" +
-            "melt -progress \"${settings.getOutputFilename(SongOutputFile.MLT, songVersion)}\"\n",
+        "echo \"${song.getOutputFilename(SongOutputFile.MLT, songVersion)}\"\n" +
+            "melt -progress \"${song.getOutputFilename(SongOutputFile.MLT, songVersion)}\"\n",
     )
     runCommand(listOf("chmod", "777", fileRunPath))
 //    Files.setPosixFilePermissions(fileRun.toPath(), permissions)
 
-//    val fileDescription = File(settings.getOutputFilename(SongOutputFile.DESCRIPTION, songVersion))
+//    val fileDescription = File(song.getOutputFilename(SongOutputFile.DESCRIPTION, songVersion))
 //    Files.createDirectories(Path(fileDescription.parent))
 //    fileDescription.writeText(song.getDescription())
 
-//    createBoostyTeaserPicture(settings)
-//    createBoostyFilesPicture(settings)
-    createSponsrTeaserPicture(settings)
-    createVKLinkPicture(settings)
-//    createVKPicture(settings)
-//    createVKLinkPicture(settings)
-//    createVKLinkPictureWeb(settings)
+//    createBoostyTeaserPicture(song)
+//    createBoostyFilesPicture(song)
+    createSponsrTeaserPicture(song)
+    createVKLinkPicture(song)
+//    createVKPicture(song)
+//    createVKLinkPicture(song)
+//    createVKLinkPictureWeb(song)
 
-    createSongTextFile(settings, songVersion)
-    createSongDescriptionFile(settings, songVersion)
-    createSongPicture(settings, songVersion)
+    createSongTextFile(song, songVersion)
+    createSongDescriptionFile(song, songVersion)
+    createSongPicture(song, songVersion)
 
-//    val filePictureChords = File(settings.getOutputFilename(SongOutputFile.PICTURECHORDS, songVersion))
+//    val filePictureChords = File(song.getOutputFilename(SongOutputFile.PICTURECHORDS, songVersion))
 //    Files.createDirectories(Path(filePictureChords.parent))
-//    createSongChordsPicture(settings, settings.getOutputFilename(SongOutputFile.PICTURECHORDS, songVersion), songVersion, mltProp.getXmlData(listOf(ProducerType.SONGTEXT, 0, "IgnoreCapo")))
+//    createSongChordsPicture(song, song.getOutputFilename(SongOutputFile.PICTURECHORDS, songVersion), songVersion, mltProp.getXmlData(listOf(ProducerType.SONGTEXT, 0, "IgnoreCapo")))
 
     SNS.send(
         SseNotification.message(
             Message(
                 type = "info",
                 head = "createKaraoke",
-                body = "createKaraoke версии «${songVersion.name}» для песни «${settings.fileName}» прошло успешно.",
+                body = "createKaraoke версии «${songVersion.name}» для песни «${song.fileName}» прошло успешно.",
             ),
         ),
     )

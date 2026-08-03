@@ -41,13 +41,13 @@ data class SseNotification(
         fun sync(syncMessage: List<List<String>>): SseNotification = SseNotification(SseNotificationType.SYNC, syncMessage)
 
         fun healthReports(
-            settingsId: Long,
+            songId: Long,
             healthReportDtoList: List<HealthReportDTO>,
         ): SseNotification =
             SseNotification(
                 SseNotificationType.HEALTH_REPORTS,
                 mapOf(
-                    "settingsId" to settingsId,
+                    "songId" to songId,
                     "healthReportDtoList" to healthReportDtoList,
                 ),
             )

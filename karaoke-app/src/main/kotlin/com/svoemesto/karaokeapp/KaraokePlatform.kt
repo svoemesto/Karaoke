@@ -185,16 +185,16 @@ enum class KaraokePlatform(
     ;
 
     fun actionToCreatePicture(
-        settings: Song,
+        song: Song,
         pathToFile: String,
     ) {
         when (this) {
             SPONSR -> {
-                createSponsrTeaserPicture(settings = settings, fileName = pathToFile)
+                createSponsrTeaserPicture(song = song, fileName = pathToFile)
             }
 
             VKGROUP -> {
-                createVKLinkPicture(settings = settings, fileName = pathToFile)
+                createVKLinkPicture(song = song, fileName = pathToFile)
             }
 
             DZEN,

@@ -126,15 +126,15 @@ fun getIamToken(): String {
  * @see docs/features/llm-lyrics-search.md
  */
 fun applyFoundLyricsIfMissing(
-    settings: Song,
+    song: Song,
     candidateTexts: List<String>,
 ) {
     val firstNonEmpty = candidateTexts.firstOrNull { it.isNotBlank() } ?: return
-    if (!settings.haveSourceText && settings.idStatus == 0L) {
-        println("Первое из найденных не пустых значений применяем для текста песни ${settings.fileName}")
-        settings.sourceText = firstNonEmpty
-        settings.fields[SongField.ID_STATUS] = "1"
-        settings.saveToDb()
+    if (!song.haveSourceText && song.idStatus == 0L) {
+        println("Первое из найденных не пустых значений применяем для текста песни ${song.fileName}")
+        song.sourceText = firstNonEmpty
+        song.fields[SongField.ID_STATUS] = "1"
+        song.saveToDb()
     }
 }
 
@@ -151,20 +151,20 @@ fun applyFoundLyricsIfMissing(
  * @see docs/features/llm-lyrics-search.md
  */
 fun getLyricsSearch(
-    settings: Song,
+    song: Song,
     lyricsFinderService: LyricsFinderService,
     engine: LyricsSearchEngine,
     forceResearch: Boolean = false,
 ): SearchAsync {
     if (forceResearch) {
-        SearchResult.deleteBySongId(settings.id, settings.database, settings.storageService, settings.storageApiClient)
-        SearchAsync.deleteBySongId(settings.id, settings.database, settings.storageService, settings.storageApiClient)
+        SearchResult.deleteBySongId(song.id, song.database, song.storageService, song.storageApiClient)
+        SearchAsync.deleteBySongId(song.id, song.database, song.storageService, song.storageApiClient)
     }
     return when (engine) {
-        LyricsSearchEngine.YANDEX_SYNC -> getYandexSearch(settings = settings, async = false)
-        LyricsSearchEngine.YANDEX_ASYNC -> getYandexSearch(settings = settings, async = true)
-        LyricsSearchEngine.SEARXNG -> getLyricsSearchViaSearchTool(settings, lyricsFinderService, useSearxng = true)
-        LyricsSearchEngine.FOURGET -> getLyricsSearchViaSearchTool(settings, lyricsFinderService, useSearxng = false)
+        LyricsSearchEngine.YANDEX_SYNC -> getYandexSearch(song = song, async = false)
+        LyricsSearchEngine.YANDEX_ASYNC -> getYandexSearch(song = song, async = true)
+        LyricsSearchEngine.SEARXNG -> getLyricsSearchViaSearchTool(song, lyricsFinderService, useSearxng = true)
+        LyricsSearchEngine.FOURGET -> getLyricsSearchViaSearchTool(song, lyricsFinderService, useSearxng = false)
     }
 }
 
@@ -176,25 +176,25 @@ fun getLyricsSearch(
  * @see docs/features/llm-lyrics-search.md
  */
 private fun getLyricsSearchViaSearchTool(
-    settings: Song,
+    song: Song,
     lyricsFinderService: LyricsFinderService,
     useSearxng: Boolean,
 ): SearchAsync {
-    println("Начинаем получение запроса поиска для песни ${settings.fileName}.")
+    println("Начинаем получение запроса поиска для песни ${song.fileName}.")
     val searchAsyncList =
         SearchAsync.getSearchAsyncListBySongId(
-            songId = settings.id,
-            database = settings.database,
-            storageApiClient = settings.storageApiClient,
-            storageService = settings.storageService,
+            songId = song.id,
+            database = song.database,
+            storageApiClient = song.storageApiClient,
+            storageService = song.storageService,
         )
     if (searchAsyncList.isNotEmpty()) {
         println("Ранее созданный запрос найден в базе данных, возвращаем его.")
         return searchAsyncList.first()
     }
 
-    val author = settings.author
-    val songName = settings.songName
+    val author = song.author
+    val songName = song.songName
     val songNameForFind = songName.replace(Regex("""\([^)]*\)"""), "").trim()
 
     val queryText = "$author текст песни $songNameForFind"
@@ -209,13 +209,13 @@ private fun getLyricsSearchViaSearchTool(
         }
 
     val result = SearchAsync()
-    result.songId = settings.id
+    result.songId = song.id
     result.query = queryText
     result.operationId = ""
     result.done = true
     result.rawData = urls.joinToString("\n")
 
-    val savedResult = SearchAsync.createNewSearchAsync(newSearchAsync = result, database = settings.database)
+    val savedResult = SearchAsync.createNewSearchAsync(newSearchAsync = result, database = song.database)
     if (savedResult != null) {
         println("Запрос успешно создан. id = '${savedResult.id}', найдено ссылок - ${urls.size}")
     } else {
@@ -240,31 +240,31 @@ private fun getLyricsSearchViaSearchTool(
         val savedSearchResult =
             SearchResult.createNewSearchResult(
                 newSearchResult = searchResult,
-                database = settings.database,
+                database = song.database,
             )
         savedSearchResult?.let { searchedRightResults.add(it) }
     }
 
     val searchedRightResultsNotEmpty = searchedRightResults.filter { it.text != "" }
-    applyFoundLyricsIfMissing(settings, searchedRightResultsNotEmpty.map { it.text })
+    applyFoundLyricsIfMissing(song, searchedRightResultsNotEmpty.map { it.text })
 
     return savedResult
 }
 
 fun getYandexSearch(
-    settings: Song,
+    song: Song,
     countInPage: Int = 100,
     responseFormat: SearchResponseFormat = SearchResponseFormat.FORMAT_XML,
     async: Boolean = false,
 ): SearchAsync {
     // Ищем, есть ли уже в наличии для заданной песни SearchAsync. Если есть - возвращаем первый/единственный
-    println("Начинаем получение ${if (async) "АСИНХРОННОГО" else "СИНХРОННОГО"} запроса поиска для песни ${settings.fileName}.")
+    println("Начинаем получение ${if (async) "АСИНХРОННОГО" else "СИНХРОННОГО"} запроса поиска для песни ${song.fileName}.")
     val searchAsyncList =
         SearchAsync.getSearchAsyncListBySongId(
-            songId = settings.id,
-            database = settings.database,
-            storageApiClient = settings.storageApiClient,
-            storageService = settings.storageService,
+            songId = song.id,
+            database = song.database,
+            storageApiClient = song.storageApiClient,
+            storageService = song.storageService,
         )
     if (searchAsyncList.isNotEmpty()) {
         println("Ранее созданный запрос найден в базе данных, возвращаем его.")
@@ -274,8 +274,8 @@ fun getYandexSearch(
     val iamToken = getIamToken()
     val folderId = Karaoke.yandexCloudFolderId
 
-    val author = settings.author
-    val songName = settings.songName
+    val author = song.author
+    val songName = song.songName
     val songNameForFind = songName.replace(Regex("""\([^)]*\)"""), "").trim()
 
     val queryText = "$author текст песни $songNameForFind"
@@ -344,7 +344,7 @@ fun getYandexSearch(
                     if (operationId.isNotEmpty()) {
                         println("Получен operationId = '$operationId'")
                         val result = SearchAsync()
-                        result.songId = settings.id
+                        result.songId = song.id
                         result.url = requestUrl
                         result.iamToken = iamToken
                         result.query = queryText
@@ -352,7 +352,7 @@ fun getYandexSearch(
                         result.responseFormat = responseFormat.name
                         result.operationId = operationId
                         result.done = apiResponse.done ?: false
-                        val savedResult = SearchAsync.createNewSearchAsync(newSearchAsync = result, database = settings.database)
+                        val savedResult = SearchAsync.createNewSearchAsync(newSearchAsync = result, database = song.database)
                         if (savedResult != null) {
                             println(
                                 "Асинхронный запрос успешно создан. id = '${savedResult.id}', operationId = '${savedResult.operationId}'",
@@ -371,7 +371,7 @@ fun getYandexSearch(
                 return apiResponse.rawData?.let { rawData ->
                     if (rawData.isNotEmpty()) {
                         val result = SearchAsync()
-                        result.songId = settings.id
+                        result.songId = song.id
                         result.url = requestUrl
                         result.iamToken = iamToken
                         result.query = queryText
@@ -380,7 +380,7 @@ fun getYandexSearch(
                         result.operationId = ""
                         result.done = true
                         result.rawData = String(Base64.getDecoder().decode(rawData))
-                        val savedResult = SearchAsync.createNewSearchAsync(newSearchAsync = result, database = settings.database)
+                        val savedResult = SearchAsync.createNewSearchAsync(newSearchAsync = result, database = song.database)
                         if (savedResult != null) {
                             println(
                                 "Синхронный запрос успешно создан. id = '${savedResult.id}', символов в rawData = '${savedResult.rawData.length}'",
@@ -395,7 +395,7 @@ fun getYandexSearch(
                         // и завершения YANDEX_ASYNC) этого шага раньше не было вообще — результат сохранялся,
                         // но не разбирался в SearchResult и не подставлялся в текст песни.
                         val searchResults = SearchResult.getSearchResultsForSearchAsync(searchAsync = nonNullSavedResult)
-                        applyFoundLyricsIfMissing(settings, searchResults.filter { !it.wrongResult }.map { it.text })
+                        applyFoundLyricsIfMissing(song, searchResults.filter { !it.wrongResult }.map { it.text })
                         nonNullSavedResult
                     } else {
                         println("Пустой id operations в ответе")
@@ -416,14 +416,14 @@ fun getYandexSearch(
 }
 
 fun findSongText(
-    settings: Song,
+    song: Song,
     countInPage: Int = 100,
     countInResult: Int = 0,
 ): List<FindSongResult> {
-    val author = settings.author
-    val songName = settings.songName
+    val author = song.author
+    val songName = song.songName
     val songNameForFind = songName.replace(Regex("""\([^)]*\)"""), "").trim()
-    val fileSearchedLinksAbsolutePath = settings.fileSearchedLinksAbsolutePath
+    val fileSearchedLinksAbsolutePath = song.fileSearchedLinksAbsolutePath
     val xmlText =
         if (File(fileSearchedLinksAbsolutePath).exists()) {
             File(fileSearchedLinksAbsolutePath).readText()

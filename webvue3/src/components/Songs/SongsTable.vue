@@ -1608,21 +1608,21 @@ export default {
       this.reloadAssignmentStatus()
     },
     updateHealthReportForCurrentPage() {
-      for (const settingsId of this.songsIds) {
-        const songPageNumber = this.songIdAndPageId.get(settingsId)
+      for (const songId of this.songsIds) {
+        const songPageNumber = this.songIdAndPageId.get(songId)
         if (songPageNumber === this.currentPage) {
-          const filteredSongs = this.songsDigests.filter((song) => song.id === settingsId)
+          const filteredSongs = this.songsDigests.filter((song) => song.id === songId)
           if (filteredSongs && filteredSongs.length > 0) {
             const song = filteredSongs[0]
             if (song.healthReportText === '-') {
-              this._enqueueHrRequest(settingsId)
+              this._enqueueHrRequest(songId)
             }
           }
         }
       }
     },
-    _enqueueHrRequest(settingsId) {
-      this.hrQueue.push(settingsId)
+    _enqueueHrRequest(songId) {
+      this.hrQueue.push(songId)
       this._processHrQueue()
     },
     _processHrQueue() {
@@ -1636,10 +1636,10 @@ export default {
       }
     },
     repairAllForCurrentPage() {
-      for (const settingsId of this.songsIds) {
-        const songPageNumber = this.songIdAndPageId.get(settingsId)
+      for (const songId of this.songsIds) {
+        const songPageNumber = this.songIdAndPageId.get(songId)
         if (songPageNumber === this.currentPage) {
-          const filteredSongs = this.songsDigests.filter((song) => song.id === settingsId)
+          const filteredSongs = this.songsDigests.filter((song) => song.id === songId)
           if (filteredSongs && filteredSongs.length > 0) {
             const song = filteredSongs[0]
             if (song.healthReportText !== '-' && song.healthReportText !== '0') {

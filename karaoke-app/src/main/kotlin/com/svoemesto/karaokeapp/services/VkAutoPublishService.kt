@@ -187,7 +187,7 @@ object VkAutoPublishService {
     ): VkAutoPublishResult {
         val processId =
             KaraokeProcess.createProcess(
-                settings = song,
+                song = song,
                 action = KaraokeProcessTypes.RENDER_MP4_DEMO,
                 doWait = false,
                 prior = 1,

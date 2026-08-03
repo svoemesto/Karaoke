@@ -11,7 +11,7 @@ import com.svoemesto.karaokeapp.model.*
  * - `FRAME_WIDTH_PX = 1920`, `FRAME_HEIGHT_PX = 1080`.
  * - `FONT_MAIN_NAME`, `FONT_CHORD_NAME` — имена шрифтов.
  * - `SONG_VERSION` — `SongVersion` (набор Producer'ов).
- * - `SETTINGS` — `Song` (для обратной ссылки).
+ * - `SONG` — `Song` (для обратной ссылки).
  * - Цвета (`COLOR_TEXT_NORMAL`, `COLOR_BACKGROUND`).
  * - Тайминги (`START_LINE_OFFSET_MS`, `END_LINE_OFFSET_MS`).
  * - Горизонт (`HORIZONTAL_GAP`).
@@ -29,7 +29,7 @@ data class MltProp(
 ) {
     enum class KEYS {
         ROOT,
-        SETTINGS,
+        SONG,
         FRAME_WIDTH_PX,
         FRAME_HEIGHT_PX,
         START_LINE_OFFSET_MS,
@@ -89,13 +89,13 @@ data class MltProp(
             mutableMapOf()
         }
 
-    fun getSettings(key: Any = KEYS.ROOT): Song? = props[key.convertToList(KEYS.SETTINGS)]?.let { it as Song }
+    fun getSong(key: Any = KEYS.ROOT): Song? = props[key.convertToList(KEYS.SONG)]?.let { it as Song }
 
-    fun setSettings(
+    fun setSong(
         value: Song,
         key: Any = KEYS.ROOT,
     ) {
-        props[key.convertToList(KEYS.SETTINGS)] = value
+        props[key.convertToList(KEYS.SONG)] = value
     }
 
     @Suppress("UNCHECKED_CAST")

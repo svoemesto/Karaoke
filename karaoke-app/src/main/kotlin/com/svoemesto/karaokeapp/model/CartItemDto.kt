@@ -6,7 +6,7 @@ import java.io.Serializable
 /**
  * DTO позиции в корзине для API/UI (без ссылок на `Song`/`PriceTariff`).
  *
- * Содержит только сериализуемые поля (id, idSiteUser, idSettings,
+ * Содержит только сериализуемые поля (id, idSiteUser, idSong,
  * idPriceTariff, idPromoRule, created).
  *
  * @see docs/features/telegram-auto-publish.md

@@ -223,7 +223,7 @@ fun String.base64ifFileExists(): String {
 fun String.stripToNumeric(): String = this.replace("\\D+".toRegex(), "")
 
 @Suppress("unused")
-fun Song.karaokePlatformPublications(): List<KaraokePlatformPublication> = KaraokePlatformPublication.getList(settings = this)
+fun Song.karaokePlatformPublications(): List<KaraokePlatformPublication> = KaraokePlatformPublication.getList(song = this)
 
 fun List<HealthReport>.errorsOnly(): List<HealthReport> = this.filter { it.healthReportStatus != HealthReportStatus.OK }
 

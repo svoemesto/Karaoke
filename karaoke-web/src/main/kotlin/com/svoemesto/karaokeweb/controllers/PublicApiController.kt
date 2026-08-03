@@ -250,7 +250,7 @@ class PublicApiController(
         // кроме "редактора" — для него фильтр по статусу снят (specs/017-editor-status-bypass).
         if (onlyPublishedFor(request)) attr["id_status"] = ">=6"
 
-        val settings: List<Song> =
+        val song: List<Song> =
             if ("${songName ?: ""}${author ?: ""}${album ?: ""}${text ?: ""}".length < 3) {
                 emptyList()
             } else {
@@ -280,8 +280,8 @@ class PublicApiController(
             siteUserResolver.resolve(request)?.id ?: 0,
         )
 
-        return settings.map {
-            val dto = SongPublicDto.fromSettings(it, includeDetails = false)
+        return song.map {
+            val dto = SongPublicDto.fromSong(it, includeDetails = false)
             dto.copy(authorAlias = aliasByAuthor[dto.author.lowercase()] ?: "")
         }
     }
@@ -311,7 +311,7 @@ class PublicApiController(
             request,
             siteUserResolver.resolve(request)?.id ?: 0,
         )
-        return sett?.let { SongPublicDto.fromSettings(it) }
+        return sett?.let { SongPublicDto.fromSong(it) }
     }
 
     @PostMapping("/events")
@@ -350,7 +350,7 @@ class PublicApiController(
 //            return ResponseEntity.ok().contentType(MediaType.IMAGE_PNG).body(bytes)
 //        }
 
-        val settings =
+        val song =
             Song.loadFromDbById(
                 id,
                 database = WORKING_DATABASE,
@@ -359,7 +359,7 @@ class PublicApiController(
             )
                 ?: return ResponseEntity.notFound().build()
 
-        val albumPicName = "${settings.author} - ${settings.year} - ${settings.album}"
+        val albumPicName = "${song.author} - ${song.year} - ${song.album}"
         val albumPic =
             Pictures.getPictureByName(
                 albumPicName,
@@ -370,7 +370,7 @@ class PublicApiController(
             )
         val authorPic =
             Pictures.getPictureByName(
-                settings.author,
+                song.author,
                 WORKING_DATABASE,
                 storageService,
                 storageApiClient,
@@ -405,7 +405,7 @@ class PublicApiController(
     fun songVkImage(
         @PathVariable id: Long,
     ): ResponseEntity<ByteArray> {
-        val settings =
+        val song =
             Song.loadFromDbById(
                 id,
                 database = WORKING_DATABASE,
@@ -416,7 +416,7 @@ class PublicApiController(
 
         val cacheFile = File("/tmp/vk_$id.png")
         val bucket = "karaoke"
-        val albumPicName = "${settings.author} - ${settings.year} - ${settings.album}"
+        val albumPicName = "${song.author} - ${song.year} - ${song.album}"
         val albumPic =
             Pictures.getPictureByName(
                 albumPicName,
@@ -427,15 +427,15 @@ class PublicApiController(
             )
         val authorPic =
             Pictures.getPictureByName(
-                settings.author,
+                song.author,
                 WORKING_DATABASE,
                 storageService,
                 storageApiClient,
                 ignoreUseInList = false,
             )
 
-        val albumFilePath = "${settings.author}/${settings.year} - ${settings.album}/$albumPicName.album.png"
-        val authorFilePath = "${settings.author}/${settings.author}.author.png"
+        val albumFilePath = "${song.author}/${song.year} - ${song.album}/$albumPicName.album.png"
+        val authorFilePath = "${song.author}/${song.author}.author.png"
 
         if (cacheFile.exists()) {
             return ResponseEntity.ok().contentType(MediaType.IMAGE_PNG).body(cacheFile.readBytes())
@@ -476,7 +476,7 @@ class PublicApiController(
 
         val textAreaW = frameW - 2 * padding
         val textAreaH = frameH - picAreaH
-        val songText = settings.songName
+        val songText = song.songName
         val baseFont =
             PublicApiController::class.java
                 .getResourceAsStream("/Roboto-Black.ttf")

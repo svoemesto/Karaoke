@@ -285,16 +285,16 @@ class KaraokeProcessThread(
                             lastLine == "NotImplementedError: Dynamic chunking not implemented. Try halving measures_per_chunk."
                         ) {
                             // Если процесс SHEETSAGE завершился ошибкой - создаём для этой же песни процесс SHEETSAGE2 с таким же приоритетом
-                            val settings =
+                            val song =
                                 Song.loadFromDbById(
-                                    id = karaokeProcess.settingsId.toLong(),
+                                    id = karaokeProcess.songId.toLong(),
                                     database = WORKING_DATABASE,
                                     storageService = KSS_APP,
                                     storageApiClient = SAC_APP,
                                 )
-                            settings?.let {
+                            song?.let {
                                 KaraokeProcess.createProcess(
-                                    settings = settings,
+                                    song = song,
                                     action = KaraokeProcessTypes.SHEETSAGE2,
                                     doWait = true,
                                     prior = karaokeProcess.priority,
@@ -359,10 +359,10 @@ class KaraokeProcessThread(
                 // многократный пересчёт на sub-шагах тяжёлых MELT_*-рендеров.
                 val kp = karaokeProcess
                 val typeEnum = runCatching { KaraokeProcessTypes.valueOf(kp.type) }.getOrNull()
-                if (!forceStopped && kp.settingsId > 0 && typeEnum in HealthReport.HR_REPAIR_PROCESS_TYPES) {
+                if (!forceStopped && kp.songId > 0 && typeEnum in HealthReport.HR_REPAIR_PROCESS_TYPES) {
                     try {
                         HealthReport.onRepairProcessFinished(
-                            settingsId = kp.settingsId.toLong(),
+                            songId = kp.songId.toLong(),
                             success = kp.status == KaraokeProcessStatuses.DONE.name,
                             database = WORKING_DATABASE,
                             storageService = KSS_APP,
@@ -665,7 +665,7 @@ class KaraokeProcessWorker {
             val timeout = 10L
             var counter = 0L
             var id = 0L
-//            var settingsId = 0L
+//            var songId = 0L
 //            var processType = ""
 //            var percentage = 0.0
 
@@ -746,8 +746,8 @@ class KaraokeProcessWorker {
                                                             database = database,
                                                             storageService = storageService,
                                                             storageApiClient = storageApiClient,
-                                                        )?.let { settings ->
-                                                            applyFoundLyricsIfMissing(settings, searchedRightResults.map { it.text })
+                                                        )?.let { song ->
+                                                            applyFoundLyricsIfMissing(song, searchedRightResults.map { it.text })
                                                         }
                                                 }
                                             } else {
@@ -849,24 +849,24 @@ class KaraokeProcessWorker {
                         if (Karaoke.monitoringRemoteSettingsSync) {
 //                            println("ProcessWorker: Проверка sync-записей по таймеру...")
                             // Получаем список sync-записей из REMOTE DATABASE
-                            val listSettingsSync =
+                            val listSongsSync =
                                 Song.loadListFromDb(
                                     database = Connection.remote(),
                                     sync = true,
                                     storageService = KSS_APP,
                                     storageApiClient = SAC_APP,
                                 )
-                            listSettingsSync.forEach { settingsSync ->
-                                val settingsLocal =
+                            listSongsSync.forEach { songSync ->
+                                val songLocal =
                                     Song.loadFromDbById(
-                                        id = settingsSync.id,
+                                        id = songSync.id,
                                         database = Connection.local(),
                                         storageService = KSS_APP,
                                         storageApiClient = SAC_APP,
                                     )
-                                if (settingsLocal != null) {
+                                if (songLocal != null) {
                                     // Запись в локальной БД есть, надо обновить
-                                    val diff = Song.getDiff(settingsSync, settingsLocal)
+                                    val diff = Song.getDiff(songSync, songLocal)
                                     val setStr =
                                         diff
                                             .filter { it.recordDiffRealField }
@@ -891,13 +891,13 @@ class KaraokeProcessWorker {
                                                 }
                                                 index++
                                             }
-                                            ps.setLong(index, settingsLocal.id)
+                                            ps.setLong(index, songLocal.id)
                                             ps.executeUpdate()
                                             ps.close()
                                             if (Karaoke.autoUpdateRemoteSettings && Karaoke.allowUpdateRemote) {
                                                 val (listCreate, listUpdate, listDelete) =
                                                     updateRemoteSongFromLocalDatabase(
-                                                        settingsLocal.id,
+                                                        songLocal.id,
                                                     )
                                                 if (listCreate.size + listUpdate.size + listDelete.size != 0) {
                                                     SNS.send(SseNotification.crud(listOf(listCreate, listUpdate, listDelete)))
@@ -907,7 +907,7 @@ class KaraokeProcessWorker {
                                     }
                                 } else {
                                     // Записи в локальной БД нет, надо создать
-                                    val sqlToInsert = settingsSync.getSqlToInsert()
+                                    val sqlToInsert = songSync.getSqlToInsert()
                                     val connection = Connection.local().getConnection()
                                     if (connection == null) {
                                         println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных LOCAL")
@@ -918,33 +918,33 @@ class KaraokeProcessWorker {
                                     }
                                 }
 
-                                if (settingsSync.tags == "RENDER") {
-                                    val settingsLocal =
+                                if (songSync.tags == "RENDER") {
+                                    val songLocal =
                                         Song.loadFromDbById(
-                                            id = settingsSync.id,
+                                            id = songSync.id,
                                             database = Connection.local(),
                                             storageService = KSS_APP,
                                             storageApiClient = SAC_APP,
                                         )
-                                    if (settingsLocal != null) {
-                                        settingsLocal.sourceMarkersList.forEachIndexed { voice, _ ->
-                                            val strText = settingsLocal.convertMarkersToSrt(voice)
-                                            val fileName = "${settingsLocal.rootFolder}/${settingsLocal.fileName}.voice${voice + 1}.srt"
+                                    if (songLocal != null) {
+                                        songLocal.sourceMarkersList.forEachIndexed { voice, _ ->
+                                            val strText = songLocal.convertMarkersToSrt(voice)
+                                            val fileName = "${songLocal.rootFolder}/${songLocal.fileName}.voice${voice + 1}.srt"
                                             File(fileName).writeText(strText)
                                             runCommand(listOf("chmod", "666", fileName))
                                         }
 
-                                        settingsLocal.createKaraoke(createLyrics = true, createKaraoke = true)
+                                        songLocal.createKaraoke(createLyrics = true, createKaraoke = true)
 
                                         KaraokeProcess.createProcess(
-                                            settings = settingsLocal,
+                                            song = songLocal,
                                             action = KaraokeProcessTypes.MELT_LYRICS,
                                             doWait = true,
                                             prior = 0,
                                             threadId = 0,
                                         )
                                         KaraokeProcess.createProcess(
-                                            settings = settingsLocal,
+                                            song = songLocal,
                                             action = KaraokeProcessTypes.MELT_KARAOKE,
                                             doWait = true,
                                             prior = 1,
@@ -954,7 +954,7 @@ class KaraokeProcessWorker {
                                 }
                             }
                             // Удаляем записи из sync-таблицы
-                            listSettingsSync.map { it.id }.forEach { idToDel ->
+                            listSongsSync.map { it.id }.forEach { idToDel ->
                                 Song.deleteFromDb(id = idToDel, database = Connection.remote(), sync = true)
                             }
                         }

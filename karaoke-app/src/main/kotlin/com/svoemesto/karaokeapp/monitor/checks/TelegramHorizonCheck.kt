@@ -42,11 +42,11 @@ object TelegramHorizonCheck : MonitorCheck {
             )
 
         val scheduled =
-            candidates.filter { settings ->
-                settings.idTelegramLyrics == "-" ||
-                    settings.idTelegramKaraoke == "-" ||
-                    settings.idTelegramChords == "-" ||
-                    settings.idTelegramMelody == "-"
+            candidates.filter { song ->
+                song.idTelegramLyrics == "-" ||
+                    song.idTelegramKaraoke == "-" ||
+                    song.idTelegramChords == "-" ||
+                    song.idTelegramMelody == "-"
             }
 
         val maxPublish = scheduled.mapNotNull { it.dateTimePublish }.maxOrNull()

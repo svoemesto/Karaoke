@@ -68,11 +68,11 @@ class PublicCartController(
     fun list(request: HttpServletRequest): List<Map<String, Any?>> {
         val user = currentUser(request)
         return loadCartCleaned(user).mapNotNull { item ->
-            val settings = songInfo(item.idSong) ?: return@mapNotNull null
+            val song = songInfo(item.idSong) ?: return@mapNotNull null
             mapOf(
                 "songId" to item.idSong,
-                "songName" to settings.songName,
-                "author" to settings.author,
+                "songName" to song.songName,
+                "author" to song.author,
             )
         }
     }
@@ -99,8 +99,8 @@ class PublicCartController(
             CartItem.delete(existing.id, db)
             return ResponseEntity.ok(mapOf("inCart" to false))
         }
-        val settings = songInfo(songId) ?: return ResponseEntity.notFound().build()
-        if (settings.idTariff < 0) return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(mapOf("error" to "song_not_for_subscription"))
+        val song = songInfo(songId) ?: return ResponseEntity.notFound().build()
+        if (song.idTariff < 0) return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(mapOf("error" to "song_not_for_subscription"))
         if (Subscription.isSubscribedToSong(user.id, songId, db, storageService, storageApiClient)) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(mapOf("error" to "already_subscribed"))
         }
@@ -124,11 +124,11 @@ class PublicCartController(
         val prices = priceService.computeCartPrice(tariff, items.size, user, db, storageService, storageApiClient)
         val rows =
             items.zip(prices).map { (item, p) ->
-                val settings = songInfo(item.idSong)
+                val song = songInfo(item.idSong)
                 mapOf(
                     "songId" to item.idSong,
-                    "songName" to settings?.songName,
-                    "author" to settings?.author,
+                    "songName" to song?.songName,
+                    "author" to song?.author,
                     "base" to p.base,
                     "discount" to p.discount,
                     "final" to p.final,

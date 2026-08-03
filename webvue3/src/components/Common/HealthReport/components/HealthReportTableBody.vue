@@ -2,7 +2,7 @@
   <div class="hrl-table-body">
     <health-report-table-row
       v-for="healthReport in healthReportList"
-      :key="healthReport.settingsId"
+      :key="healthReport.songId"
       :health-report="healthReport"
     />
   </div>

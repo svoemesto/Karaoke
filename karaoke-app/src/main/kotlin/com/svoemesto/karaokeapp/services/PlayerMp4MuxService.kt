@@ -38,22 +38,22 @@ object PlayerMp4MuxService {
     )
 
     /** Состав/громкости по умолчанию — как у MLT-версии Karaoke: аккомпанемент слышен, вокал приглушён. */
-    fun defaultTracks(settings: Song): List<AudioTrack> =
+    fun defaultTracks(song: Song): List<AudioTrack> =
         listOf(
-            AudioTrack(settings.accompanimentNameFlac, 1.0),
-            AudioTrack(settings.vocalsNameFlac, 0.0),
+            AudioTrack(song.accompanimentNameFlac, 1.0),
+            AudioTrack(song.vocalsNameFlac, 0.0),
         )
 
     /** Микс аудио-стемов для конкретной версии рендера. */
     fun tracksForVersion(
-        settings: Song,
+        song: Song,
         version: RenderVersion,
     ): List<AudioTrack> =
         when (version) {
             RenderVersion.LYRICS ->
                 listOf(
-                    AudioTrack(settings.accompanimentNameFlac, 1.0),
-                    AudioTrack(settings.vocalsNameFlac, 1.0),
+                    AudioTrack(song.accompanimentNameFlac, 1.0),
+                    AudioTrack(song.vocalsNameFlac, 1.0),
                 )
             RenderVersion.KARAOKE,
             RenderVersion.CHORDS,
@@ -61,8 +61,8 @@ object PlayerMp4MuxService {
             RenderVersion.DEMO,
             ->
                 listOf(
-                    AudioTrack(settings.accompanimentNameFlac, 1.0),
-                    AudioTrack(settings.vocalsNameFlac, 0.0),
+                    AudioTrack(song.accompanimentNameFlac, 1.0),
+                    AudioTrack(song.vocalsNameFlac, 0.0),
                 )
         }
 

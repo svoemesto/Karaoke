@@ -1776,13 +1776,13 @@ export default {
       }
     },
     healthReportMessageByUserEvent(state, userEventData) {
-      const settingsId = userEventData.settingsId
+      const songId = userEventData.songId
       const healthReportDtoList = userEventData.healthReportDtoList
 
-      // console.log('healthReportMessageByUserEvent mutation', settingsId, healthReportDtoList);
+      // console.log('healthReportMessageByUserEvent mutation', songId, healthReportDtoList);
 
       if (state.songsDigest && state.songsDigest.length > 0) {
-        const songsFilter = state.songsDigest.filter((song) => song.id === settingsId)
+        const songsFilter = state.songsDigest.filter((song) => song.id === songId)
 
         if (songsFilter && songsFilter.length > 0) {
           const song = songsFilter[0]

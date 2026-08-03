@@ -28,7 +28,7 @@ data class MkoChordPictureLines(
     private val timelineStartTimecode = mltProp.getTimelineStartTimecode()
     private val timelineEndTimecode = mltProp.getTimelineEndTimecode()
     private val totalEndTimecode = mltProp.getTotalEndTimecode()
-    private val settings = mltProp.getSettings()
+    private val song = mltProp.getSong()
     private val songStartTimecode = mltProp.getSongStartTimecode()
     private val songEndTimecode = mltProp.getSongEndTimecode()
     private var mkoLinesUUID = mltProp.getUUID(listOf(type, voiceId))
@@ -80,7 +80,7 @@ data class MkoChordPictureLines(
     override fun tractor(): MltNode = mltGenerator.tractor()
 
     override fun tractorSequence(): MltNode {
-        val sett = settings ?: return MltNode()
+        val sett = song ?: return MltNode()
         val voice = sett.voicesForMlt[0]
         val countChordPictureTracks = voice.countChordPictureTracks
 

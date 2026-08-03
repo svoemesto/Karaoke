@@ -21,7 +21,7 @@ data class MkoLineTrack(
 ) : MltKaraokeObject {
     val mltGenerator = MltGenerator(mltProp, type, voiceId, trackId)
 
-    private val settings = mltProp.getSettings()
+    private val song = mltProp.getSong()
     private val songStartTimecode = mltProp.getSongStartTimecode()
     private val songEndTimecode = mltProp.getSongEndTimecode()
 
@@ -33,8 +33,8 @@ data class MkoLineTrack(
             @Suppress("UNCHECKED_CAST")
             val body = it as MutableList<MltNode>
 
-            settings?.let { settings ->
-                val listOfVoices = settings.voicesForMlt
+            song?.let { song ->
+                val listOfVoices = song.voicesForMlt
                 val voice = listOfVoices[voiceId]
 
                 val linesInTrack = voice.linesForMlt().filter { line -> line.trackId == trackId && !line.isEmptyLine }

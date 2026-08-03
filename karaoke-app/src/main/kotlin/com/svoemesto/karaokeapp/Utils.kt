@@ -119,27 +119,27 @@ fun customFunction(
         val matchedParentIds = mutableListOf<Long>()
         ids.forEachIndexed { index, id ->
             try {
-                val settings =
+                val song =
                     Song.loadFromDbById(
                         id = id,
                         database = WORKING_DATABASE,
                         storageService = storageService,
                         storageApiClient = storageApiClient,
                     )
-                if (settings == null) {
+                if (song == null) {
                     println("  [родитель ${index + 1}/${ids.size}] id=$id — пропущено (не найдено)")
                     return@forEachIndexed
                 }
-                val candidateId = findParentCandidateId(settings, WORKING_DATABASE)
+                val candidateId = findParentCandidateId(song, WORKING_DATABASE)
                 when {
                     candidateId == null -> {
-                        println("  [родитель ${index + 1}/${ids.size}] ${songLogLabel(settings)} — родитель не найден")
+                        println("  [родитель ${index + 1}/${ids.size}] ${songLogLabel(song)} — родитель не найден")
                     }
-                    settings.sourceText.isNotBlank() && settings.idStatus >= 2 -> {
+                    song.sourceText.isNotBlank() && song.idStatus >= 2 -> {
                         parentSkippedHasText++
                         println(
-                            "  [родитель ${index + 1}/${ids.size}] ${songLogLabel(settings)} — " +
-                                "родитель найден (id=$candidateId), но текст уже проверен (id_status=${settings.idStatus}) — пропущено",
+                            "  [родитель ${index + 1}/${ids.size}] ${songLogLabel(song)} — " +
+                                "родитель найден (id=$candidateId), но текст уже проверен (id_status=${song.idStatus}) — пропущено",
                         )
                     }
                     else -> {
@@ -151,17 +151,17 @@ fun customFunction(
                                 storageApiClient = storageApiClient,
                             )
                         if (original == null) {
-                            println("  [родитель ${index + 1}/${ids.size}] ${songLogLabel(settings)} — кандидат id=$candidateId не найден при загрузке")
+                            println("  [родитель ${index + 1}/${ids.size}] ${songLogLabel(song)} — кандидат id=$candidateId не найден при загрузке")
                         } else {
                             if (original.sourceText.isNotBlank()) {
-                                applyDuplicateOriginal(settings, original)
+                                applyDuplicateOriginal(song, original)
                             } else {
-                                settings.rootId = original.id
-                                settings.saveToDb()
+                                song.rootId = original.id
+                                song.saveToDb()
                             }
                             parentMatched++
                             matchedParentIds.add(id)
-                            println("  [родитель ${index + 1}/${ids.size}] ${songLogLabel(settings)} — привязан родитель [${songLogLabel(original)}]")
+                            println("  [родитель ${index + 1}/${ids.size}] ${songLogLabel(song)} — привязан родитель [${songLogLabel(original)}]")
                         }
                     }
                 }
@@ -175,20 +175,20 @@ fun customFunction(
         var audioMatched = 0
         matchedParentIds.forEachIndexed { index, id ->
             try {
-                val settings =
+                val song =
                     Song.loadFromDbById(
                         id = id,
                         database = WORKING_DATABASE,
                         storageService = storageService,
                         storageApiClient = storageApiClient,
                     )
-                if (settings == null) {
+                if (song == null) {
                     println("  [аудио-родитель ${index + 1}/${matchedParentIds.size}] id=$id — пропущено (не найдено)")
                     return@forEachIndexed
                 }
-                val result = findAudioParentByWaveform(settings, WORKING_DATABASE, storageService, storageApiClient)
+                val result = findAudioParentByWaveform(song, WORKING_DATABASE, storageService, storageApiClient)
                 if (result.matched) audioMatched++
-                println("  [аудио-родитель ${index + 1}/${matchedParentIds.size}] ${songLogLabel(settings)} — ${result.reason}")
+                println("  [аудио-родитель ${index + 1}/${matchedParentIds.size}] ${songLogLabel(song)} — ${result.reason}")
             } catch (e: Exception) {
                 println("  [аудио-родитель ${index + 1}/${matchedParentIds.size}] id=$id — ошибка: ${e.message}")
             }
@@ -218,7 +218,7 @@ fun fillFormattedFields(
     storageService: KaraokeStorageService,
     storageApiClient: StorageApiClient,
 ) {
-    val listSettings =
+    val songList =
         Song.loadListFromDb(
             database = WORKING_DATABASE,
             storageService = storageService,
@@ -227,17 +227,17 @@ fun fillFormattedFields(
         )
 
     var lastPrintedPercent = -1
-    listSettings.forEachIndexed { index, settings ->
-        val percent = (((index / listSettings.size.toDouble()) * 100).toInt() / 10) * 10
+    songList.forEachIndexed { index, song ->
+        val percent = (((index / songList.size.toDouble()) * 100).toInt() / 10) * 10
         if (percent != lastPrintedPercent) {
             lastPrintedPercent = percent
             println("fillFormattedFields $percent%")
         }
 
-        settings.formattedTextSong = settings.getTextFormatted()
-        settings.formattedTextTabs = settings.getFormattedNotes()
-        settings.formattedTextChords = settings.getFormattedChords()
-        settings.saveToDb()
+        song.formattedTextSong = song.getTextFormatted()
+        song.formattedTextTabs = song.getFormattedNotes()
+        song.formattedTextChords = song.getFormattedChords()
+        song.saveToDb()
     }
     println("fillFormattedFields 100% - DONE")
 }
@@ -247,7 +247,7 @@ fun checkHealth(
     storageApiClient: StorageApiClient,
     executeActions: Boolean = false,
 ) {
-    val listSettings =
+    val songList =
         Song.loadListFromDb(
             database = WORKING_DATABASE,
             storageService = storageService,
@@ -255,15 +255,15 @@ fun checkHealth(
             withoutMarkersAndText = false,
         )
     var lastPrintedPercent = -1
-    listSettings.forEachIndexed { index, settings ->
-        val percent = (((index / listSettings.size.toDouble()) * 100).toInt() / 10) * 10
+    songList.forEachIndexed { index, song ->
+        val percent = (((index / songList.size.toDouble()) * 100).toInt() / 10) * 10
         if (percent != lastPrintedPercent) {
             lastPrintedPercent = percent
             println("checkHealth $percent%")
         }
-        val healthReport = settings.healthReportList().errorsOnly()
+        val healthReport = song.healthReportList().errorsOnly()
         if (healthReport.isNotEmpty()) {
-            println("${settings.fileName} содержит ошибки:")
+            println("${song.fileName} содержит ошибки:")
             healthReport.forEach { healthReport ->
                 println("    Тип отчёта: ${healthReport.healthReportType.name}")
                 println("    Тип файла: ${healthReport.description}")
@@ -425,7 +425,7 @@ fun uploadPicturesToStorage() {
         }
 }
 
-fun setSettingsToSyncRemoteTable(id: Long) {
+fun setSongToSyncRemoteTable(id: Long) {
     val sqlToInsert =
         Song
             .loadFromDbById(
@@ -447,7 +447,7 @@ fun setSettingsToSyncRemoteTable(id: Long) {
     }
 }
 
-fun setSettingsToSyncRemoteTable(ids: List<Long>): List<String> {
+fun setSongToSyncRemoteTable(ids: List<Long>): List<String> {
     val listToCreate: MutableList<Map<String, Any>> = mutableListOf()
     val listToDelete: MutableList<Map<String, Any>> = mutableListOf()
     val listToCreateNames: MutableList<String> = mutableListOf()
@@ -574,10 +574,10 @@ fun updateRemoteSongFromLocalDatabase(
     updateDatabases(
         fromDatabase = Connection.local(),
         toDatabase = toDatabase,
-        keys = setOf("settings"),
+        keys = setOf("song"),
         idFilter =
             mapOf(
-                "settings" to id,
+                "song" to id,
             ),
     )
 
@@ -609,7 +609,7 @@ private fun legacySyncKeys(
     updateAuthors: Boolean,
 ): Set<String> =
     buildSet {
-        if (updateSongs) add("settings")
+        if (updateSongs) add("song")
         if (updatePictures) add("pictures")
         if (updateAuthors) add("authors")
     }
@@ -1143,7 +1143,7 @@ fun updateBpmAndKey(
     storageService: KaraokeStorageService,
     storageApiClient: StorageApiClient,
 ): Int {
-    val listSettings =
+    val songList =
         Song.loadListFromDb(
             mapOf("song_tone" to "''", "song_bpm" to "0"),
             database = database,
@@ -1151,13 +1151,13 @@ fun updateBpmAndKey(
             storageApiClient = storageApiClient,
         )
     var counter = 0
-    listSettings.forEach { settings ->
-        val (bpm, key) = getBpmAndKeyFromCsv(settings)
+    songList.forEach { song ->
+        val (bpm, key) = getBpmAndKeyFromCsv(song)
         if (bpm != 0L && key != "") {
-            println("${settings.fileName} : bpm = $bpm, tone = $key")
-            settings.fields[SongField.BPM] = bpm.toString()
-            settings.fields[SongField.KEY] = key
-            settings.saveToDb()
+            println("${song.fileName} : bpm = $bpm, tone = $key")
+            song.fields[SongField.BPM] = bpm.toString()
+            song.fields[SongField.KEY] = key
+            song.saveToDb()
             counter++
         }
     }
@@ -1169,7 +1169,7 @@ fun updateBpmAndKeyLV(
     storageService: KaraokeStorageService,
     storageApiClient: StorageApiClient,
 ): Pair<Int, Int> {
-    val listSettings =
+    val songList =
         Song.loadListFromDb(
             mapOf("song_tone" to "''", "song_bpm" to "0"),
             database = database,
@@ -1178,16 +1178,16 @@ fun updateBpmAndKeyLV(
         )
     var counterSuccess = 0
     var counterFailed = 0
-    listSettings.forEach { settings ->
-        val sheetsageInfo = settings.sheetsageInfo
+    songList.forEach { song ->
+        val sheetsageInfo = song.sheetsageInfo
         if (sheetsageInfo.isNotEmpty()) {
             val bpm = sheetsageInfo["tempo"] as String
             val key = sheetsageInfo["key"] as String
             if (bpm != "" && key != "") {
-                println("${settings.fileName} : bpm = $bpm, tone = $key")
-                settings.fields[SongField.BPM] = bpm
-                settings.fields[SongField.KEY] = key
-                settings.saveToDb()
+                println("${song.fileName} : bpm = $bpm, tone = $key")
+                song.fields[SongField.BPM] = bpm
+                song.fields[SongField.KEY] = key
+                song.saveToDb()
                 counterSuccess++
             } else {
                 counterFailed++
@@ -1197,11 +1197,11 @@ fun updateBpmAndKeyLV(
     return Pair(counterSuccess, counterFailed)
 }
 
-fun getBpmAndKeyFromCsv(settings: Song): Pair<Long, String> {
-    var csvFilePath = settings.rootFolder + "/key_bpm.csv"
+fun getBpmAndKeyFromCsv(song: Song): Pair<Long, String> {
+    var csvFilePath = song.rootFolder + "/key_bpm.csv"
     var file = File(csvFilePath)
     if (!file.exists()) {
-        csvFilePath = Path(settings.rootFolder).parent.toString() + "/key_bpm.csv"
+        csvFilePath = Path(song.rootFolder).parent.toString() + "/key_bpm.csv"
         file = File(csvFilePath)
         if (!file.exists()) {
             return Pair(0, "")
@@ -1218,7 +1218,7 @@ fun getBpmAndKeyFromCsv(settings: Song): Pair<Long, String> {
                 val fileName = csvRecord.get(0)
                 val bpm = csvRecord.get(3)
                 val key = csvRecord.get(4)
-                if (fileName == settings.fileName + ".flac") {
+                if (fileName == song.fileName + ".flac") {
                     return Pair(bpm.toLong(), key)
                 }
             }
@@ -1236,16 +1236,16 @@ fun delDublicates(
     storageApiClient: StorageApiClient,
 ): Int {
     var counter = 0
-    val listSettings =
+    val songList =
         Song.loadListFromDb(
             mapOf(Pair("tags", "DD")),
             database = database,
             storageService = storageService,
             storageApiClient = storageApiClient,
         )
-    listSettings.forEach { settings ->
-        if (settings.tags == "DD") {
-            settings.deleteFromDb()
+    songList.forEach { song ->
+        if (song.tags == "DD") {
+            song.deleteFromDb()
             counter++
         }
     }
@@ -1258,17 +1258,17 @@ fun clearPreDublicates(
     storageApiClient: StorageApiClient,
 ): Int {
     var counter = 0
-    val listSettings =
+    val songList =
         Song.loadListFromDb(
             mapOf(Pair("tags", "D")),
             database = database,
             storageService = storageService,
             storageApiClient = storageApiClient,
         )
-    listSettings.forEach { settings ->
-        if (settings.tags == "D") {
-            settings.tags = ""
-            settings.saveToDb()
+    songList.forEach { song ->
+        if (song.tags == "D") {
+            song.tags = ""
+            song.saveToDb()
             counter++
         }
     }
@@ -1282,22 +1282,22 @@ fun markDublicates(
     storageApiClient: StorageApiClient,
 ): Int {
     var counter = 0
-    val listSettings =
+    val songList =
         Song.loadListFromDb(
             mapOf(Pair("song_author", author)),
             database = database,
             storageService = storageService,
             storageApiClient = storageApiClient,
         )
-    listSettings.forEach { settings ->
-        if (settings.tags == "") {
+    songList.forEach { song ->
+        if (song.tags == "") {
             val listDoubles =
-                listSettings.filter {
-                    it.songName == settings.songName && it.id > settings.id
+                songList.filter {
+                    it.songName == song.songName && it.id > song.id
                 }
             if (listDoubles.isNotEmpty()) {
-                settings.tags = "D"
-                settings.saveToDb()
+                song.tags = "D"
+                song.saveToDb()
                 listDoubles.forEach {
                     it.tags = "DD"
                     it.saveToDb()
@@ -1316,23 +1316,23 @@ fun create720pForAllUncreated(
     storageService: KaraokeStorageService,
     storageApiClient: StorageApiClient,
 ) {
-    val settingsList = Song.loadListFromDb(database = database, storageService = storageService, storageApiClient = storageApiClient)
-    settingsList.forEach { settings ->
-        if (File(settings.pathToFileLyrics).exists() && !File(settings.pathToFile720Lyrics).exists()) {
-            if (!File(settings.pathToFolder720Lyrics).exists()) {
-                Files.createDirectories(Path(settings.pathToFolder720Lyrics))
-                runCommand(listOf("chmod", "777", settings.pathToFolder720Lyrics))
+    val songList = Song.loadListFromDb(database = database, storageService = storageService, storageApiClient = storageApiClient)
+    songList.forEach { song ->
+        if (File(song.pathToFileLyrics).exists() && !File(song.pathToFile720Lyrics).exists()) {
+            if (!File(song.pathToFolder720Lyrics).exists()) {
+                Files.createDirectories(Path(song.pathToFolder720Lyrics))
+                runCommand(listOf("chmod", "777", song.pathToFolder720Lyrics))
             }
-            println("Создаём задание на кодирование в 720р для файла: ${settings.nameFileLyrics}")
-            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.FF_720_LYR, true, 1, threadId)
+            println("Создаём задание на кодирование в 720р для файла: ${song.nameFileLyrics}")
+            KaraokeProcess.createProcess(song, KaraokeProcessTypes.FF_720_LYR, true, 1, threadId)
         }
-        if (File(settings.pathToFileKaraoke).exists() && !File(settings.pathToFile720Karaoke).exists()) {
-            if (!File(settings.pathToFolder720Karaoke).exists()) {
-                Files.createDirectories(Path(settings.pathToFolder720Karaoke))
-                runCommand(listOf("chmod", "777", settings.pathToFolder720Karaoke))
+        if (File(song.pathToFileKaraoke).exists() && !File(song.pathToFile720Karaoke).exists()) {
+            if (!File(song.pathToFolder720Karaoke).exists()) {
+                Files.createDirectories(Path(song.pathToFolder720Karaoke))
+                runCommand(listOf("chmod", "777", song.pathToFolder720Karaoke))
             }
-            println("Создаём задание на кодирование в 720р для файла: ${settings.nameFileKaraoke}")
-            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.FF_720_KAR, true, 1, threadId)
+            println("Создаём задание на кодирование в 720р для файла: ${song.nameFileKaraoke}")
+            KaraokeProcess.createProcess(song, KaraokeProcessTypes.FF_720_KAR, true, 1, threadId)
         }
     }
 }
@@ -1360,41 +1360,41 @@ fun copyIfNeed(
 }
 
 fun collectDoneFilesToStoreFolderAndCreate720pForAllUncreated(
-    settingsList: List<Song>,
+    songList: List<Song>,
     priorLyrics: Int = 10,
     priorKaraoke: Int = 10,
     threadId: Int,
 ): Pair<Int, Int> {
     println("Копирование в хранилище и создание заданий на кодирование в 720р")
-//    val settingsList = Song.loadListFromDb(database = database)
+//    val songList = Song.loadListFromDb(database = database)
     var countCopy = 0
     var countCode = 0
-    settingsList.forEach { settings ->
+    songList.forEach { song ->
 
         countCopy +=
             copyIfNeed(
-                settings.pathToFileLyrics,
-                settings.pathToStoreFileLyrics,
-                settings.pathToStoreFolderLyrics,
-                "Копируем в хранилище файл: ${settings.nameFileLyrics}",
+                song.pathToFileLyrics,
+                song.pathToStoreFileLyrics,
+                song.pathToStoreFolderLyrics,
+                "Копируем в хранилище файл: ${song.nameFileLyrics}",
             )
         countCopy +=
             copyIfNeed(
-                settings.pathToFileKaraoke,
-                settings.pathToStoreFileKaraoke,
-                settings.pathToStoreFolderKaraoke,
-                "Копируем в хранилище файл: ${settings.nameFileKaraoke}",
+                song.pathToFileKaraoke,
+                song.pathToStoreFileKaraoke,
+                song.pathToStoreFolderKaraoke,
+                "Копируем в хранилище файл: ${song.nameFileKaraoke}",
             )
         countCopy +=
             copyIfNeed(
-                settings.pathToFileChords,
-                settings.pathToStoreFileChords,
-                settings.pathToStoreFolderChords,
-                "Копируем в хранилище файл: ${settings.nameFileChords}",
+                song.pathToFileChords,
+                song.pathToStoreFileChords,
+                song.pathToStoreFolderChords,
+                "Копируем в хранилище файл: ${song.nameFileChords}",
             )
 
-        val sourceFileLyrics = File(settings.pathToFileLyrics)
-        val destinationFileLyrics720 = File(settings.pathToFile720Lyrics)
+        val sourceFileLyrics = File(song.pathToFileLyrics)
+        val destinationFileLyrics720 = File(song.pathToFile720Lyrics)
         val needCreateLyrics720 =
             if (!sourceFileLyrics.exists()) {
                 false
@@ -1411,13 +1411,13 @@ fun collectDoneFilesToStoreFolderAndCreate720pForAllUncreated(
                 }
             }
         if (needCreateLyrics720) {
-            println("Создаём задание на кодирование в 720р для файла: ${settings.nameFileLyrics}")
-            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.FF_720_LYR, true, priorLyrics, threadId)
+            println("Создаём задание на кодирование в 720р для файла: ${song.nameFileLyrics}")
+            KaraokeProcess.createProcess(song, KaraokeProcessTypes.FF_720_LYR, true, priorLyrics, threadId)
             countCode++
         }
 
-        val sourceFileKaraoke = File(settings.pathToFileKaraoke)
-        val destinationFileKaraoke720 = File(settings.pathToFile720Karaoke)
+        val sourceFileKaraoke = File(song.pathToFileKaraoke)
+        val destinationFileKaraoke720 = File(song.pathToFile720Karaoke)
         val needCreateKaraoke720 =
             if (!sourceFileKaraoke.exists()) {
                 false
@@ -1434,8 +1434,8 @@ fun collectDoneFilesToStoreFolderAndCreate720pForAllUncreated(
                 }
             }
         if (needCreateKaraoke720) {
-            println("Создаём задание на кодирование в 720р для файла: ${settings.nameFileKaraoke}")
-            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.FF_720_KAR, true, priorKaraoke, threadId)
+            println("Создаём задание на кодирование в 720р для файла: ${song.nameFileKaraoke}")
+            KaraokeProcess.createProcess(song, KaraokeProcessTypes.FF_720_KAR, true, priorKaraoke, threadId)
             countCode++
         }
     }
@@ -1543,15 +1543,15 @@ fun createFilesByTags(
             runCommand(listOf("chmod", "777", pathToTagFolder720Karaoke))
         }
 
-        val listOfSettings =
+        val listOfSongs =
             Song.loadListFromDb(
                 mapOf(Pair("tags", tag)),
                 database = database,
                 storageService = storageService,
                 storageApiClient = storageApiClient,
             )
-        listOfSettings.forEach { settings ->
-            val sourceFileKaraoke = settings.pathToFileKaraoke
+        listOfSongs.forEach { song ->
+            val sourceFileKaraoke = song.pathToFileKaraoke
             if (File(sourceFileKaraoke).exists()) {
                 val destinationFile =
                     pathToTagFolder + "/" + sourceFileKaraoke.split("/").last().replace(" [karaoke].mp4", " [karaoke] {$tag}.mp4")
@@ -1560,7 +1560,7 @@ fun createFilesByTags(
                 }
             }
 
-            val sourceFile720Karaoke = settings.pathToFile720Karaoke
+            val sourceFile720Karaoke = song.pathToFile720Karaoke
             if (File(sourceFile720Karaoke).exists()) {
                 val destinationFile =
                     pathToTagFolder720Karaoke + "/" +
@@ -1703,8 +1703,8 @@ fun getAuthorDigest(
 }
 
 @Suppress("unused")
-fun searchSongText2(settings: Song) {
-    val searchQuery = "${settings.author} ${settings.songName}"
+fun searchSongText2(song: Song) {
+    val searchQuery = "${song.author} ${song.songName}"
     val searchUrl = "https://www.google.com/search?q=${searchQuery.replace(" ", "+")}+текст+песни"
 
     // Загрузка страницы результатов поиска
@@ -1719,8 +1719,8 @@ fun searchSongText2(settings: Song) {
     }
 }
 
-fun searchSongText(settings: Song): String {
-    val searchQuery = "${settings.author} ${settings.songName}".replace("&", "")
+fun searchSongText(song: Song): String {
+    val searchQuery = "${song.author} ${song.songName}".replace("&", "")
     val searchUrl = "https://www.google.com/search?q=${searchQuery.replace(" ", "+")}+текст+песни"
 
     // Загрузка страницы результатов поиска
@@ -2229,34 +2229,34 @@ fun getFileNameByMasks(
 }
 
 fun createSongTextFile(
-    settings: Song,
+    song: Song,
     songVersion: SongVersion,
 ) {
-    val filePath = settings.getOutputFilename(SongOutputFile.TEXT, songVersion)
+    val filePath = song.getOutputFilename(SongOutputFile.TEXT, songVersion)
     val fileText = File(filePath)
     Files.createDirectories(Path(fileText.parent))
     runCommand(listOf("chmod", "777", fileText.parent))
-    val text = settings.getTextBody()
+    val text = song.getTextBody()
     fileText.writeText(text)
     runCommand(listOf("chmod", "666", filePath))
 }
 
 fun createSongDescriptionFile(
-    settings: Song,
+    song: Song,
     songVersion: SongVersion,
 ) {
-    val filePath = settings.getOutputFilename(SongOutputFile.DESCRIPTION, songVersion)
+    val filePath = song.getOutputFilename(SongOutputFile.DESCRIPTION, songVersion)
     val fileText = File(filePath)
     Files.createDirectories(Path(fileText.parent))
     runCommand(listOf("chmod", "777", fileText.parent))
-    val text = settings.getDescriptionWithHeaderWOTimecodes(songVersion)
+    val text = song.getDescriptionWithHeaderWOTimecodes(songVersion)
     fileText.writeText(text)
     runCommand(listOf("chmod", "666", filePath))
 }
 
 @Suppress("unused")
 fun test() {
-    val fileNameXml = "src/main/resources/settings.xml"
+    val fileNameXml = "src/main/resources/song.xml"
     val props = Properties()
 //    val frameW = Integer.valueOf(props.getProperty("FRAME_WIDTH_PX", "1"));
 //    val kdeBackgroundFolderPath = props.getProperty("kdeBackgroundFolderPath", "&&&")
@@ -3691,20 +3691,20 @@ fun parseRunFunctionWithArgsParams(args: List<String>): Map<String, String> =
     }
 
 fun executeGetKeyBpmFromFile(params: Map<String, String>): Boolean {
-    val settingsId = params["settingsId"]?.toLongOrNull() ?: return false
-    val settings =
+    val songId = params["songId"]?.toLongOrNull() ?: return false
+    val song =
         Song.loadFromDbById(
-            id = settingsId,
+            id = songId,
             database = WORKING_DATABASE,
             sync = false,
             storageService = KSS_APP,
             storageApiClient = SAC_APP,
         )
             ?: return false
-    val (key, bpm) = settings.getKeyBpmFromFile(reFind = false)
-    settings.fields[SongField.KEY] = key
-    settings.fields[SongField.BPM] = bpm.toString()
-    settings.saveToDb()
+    val (key, bpm) = song.getKeyBpmFromFile(reFind = false)
+    song.fields[SongField.KEY] = key
+    song.fields[SongField.BPM] = bpm.toString()
+    song.saveToDb()
     return true
 }
 
@@ -3723,20 +3723,20 @@ fun executeGetKeyBpmFromFile(params: Map<String, String>): Boolean {
  * трогая его, если текущий статус не 3 (например, орфография/сверка слов ещё не пройдены вручную).
  */
 fun executeForcedAlignMarkers(params: Map<String, String>): Boolean {
-    val settingsId = params["settingsId"]?.toLongOrNull() ?: return false
+    val songId = params["songId"]?.toLongOrNull() ?: return false
     val useFinetunedModel = params["useFinetunedModel"]?.toBoolean() ?: false
-    val settings =
+    val song =
         Song.loadFromDbById(
-            id = settingsId,
+            id = songId,
             database = WORKING_DATABASE,
             sync = false,
             storageService = KSS_APP,
             storageApiClient = SAC_APP,
         )
             ?: return false
-    if (settings.idStatus >= 4) return false
+    if (song.idStatus >= 4) return false
 
-    val vocalsFile = File(settings.vocalsNameFlac)
+    val vocalsFile = File(song.vocalsNameFlac)
     if (!vocalsFile.exists()) return false
 
     val transcription = WhisperAsrService.transcribe(vocalsFile) ?: return false
@@ -3744,8 +3744,8 @@ fun executeForcedAlignMarkers(params: Map<String, String>): Boolean {
     if (words.isEmpty()) return false
 
     var anyVoiceProcessed = false
-    for (voice in settings.sourceTextList.indices) {
-        val sourceText = settings.getSourceText(voice)
+    for (voice in song.sourceTextList.indices) {
+        val sourceText = song.getSourceText(voice)
         if (sourceText.isBlank()) continue
 
         val reconciledText = WhisperMarkerAligner.reconcileText(sourceText, words)
@@ -3756,15 +3756,15 @@ fun executeForcedAlignMarkers(params: Map<String, String>): Boolean {
         val syllableTimes = response.syllables.map { (it.startMs / 1000.0) to (it.endMs / 1000.0) }
         val markers = WhisperMarkerAligner.buildMarkersFromSyllableTimes(reconciledText, syllableTimes) ?: continue
 
-        settings.setSourceMarkers(voice, markers)
-        if (reconciledText != sourceText) settings.setSourceText(voice, reconciledText)
+        song.setSourceMarkers(voice, markers)
+        if (reconciledText != sourceText) song.setSourceText(voice, reconciledText)
         anyVoiceProcessed = true
     }
     if (!anyVoiceProcessed) return false
 
-    if (settings.idStatus == 3L) {
-        settings.fields[SongField.ID_STATUS] = "4"
-        settings.saveToDb()
+    if (song.idStatus == 3L) {
+        song.fields[SongField.ID_STATUS] = "4"
+        song.saveToDb()
     }
     return true
 }
@@ -3782,13 +3782,13 @@ fun executeForcedAlignMarkers(params: Map<String, String>): Boolean {
  * в очередь повтор без GPU вместо немедленного ERROR.
  */
 fun executeFinalizeDemucs(params: Map<String, String>): Boolean {
-    val settingsId = params["settingsId"]?.toLongOrNull() ?: return false
+    val songId = params["songId"]?.toLongOrNull() ?: return false
     val demucsType = params["demucsType"] ?: return false
     val threadId = params["threadId"]?.toIntOrNull() ?: KaraokeProcess.THREAD_LANE_HEAVY_RENDER
     val retriedOnCpu = params["retriedOnCpu"]?.toBoolean() ?: false
-    val settings =
+    val song =
         Song.loadFromDbById(
-            id = settingsId,
+            id = songId,
             database = WORKING_DATABASE,
             sync = false,
             storageService = KSS_APP,
@@ -3798,9 +3798,9 @@ fun executeFinalizeDemucs(params: Map<String, String>): Boolean {
 
     val stemFiles =
         if (demucsType == KaraokeProcessTypes.DEMUCS5.name) {
-            listOf(settings.accompanimentNameFlac, settings.vocalsNameFlac, settings.drumsNameFlac, settings.bassNameFlac, settings.otherNameFlac)
+            listOf(song.accompanimentNameFlac, song.vocalsNameFlac, song.drumsNameFlac, song.bassNameFlac, song.otherNameFlac)
         } else {
-            listOf(settings.accompanimentNameFlac, settings.vocalsNameFlac)
+            listOf(song.accompanimentNameFlac, song.vocalsNameFlac)
         }
     val missingStems = stemFiles.any { !File(it).exists() || File(it).length() == 0L }
 
@@ -3809,17 +3809,17 @@ fun executeFinalizeDemucs(params: Map<String, String>): Boolean {
         if (!retriedOnCpu && tempFlac.exists() && tempFlac.length() > 0L) {
             val (retryArgs, retryEnvs) =
                 if (demucsType == KaraokeProcessTypes.DEMUCS5.name) {
-                    settings.argsDemucs5RetryCpu(threadId)
+                    song.argsDemucs5RetryCpu(threadId)
                 } else {
-                    settings.argsDemucs2RetryCpu(threadId)
+                    song.argsDemucs2RetryCpu(threadId)
                 }
-            val retryProcess = KaraokeProcess(settings.database)
-            retryProcess.name = "[${settings.author}] - [${settings.album}] - «${settings.songName}»"
+            val retryProcess = KaraokeProcess(song.database)
+            retryProcess.name = "[${song.author}] - [${song.album}] - «${song.songName}»"
             retryProcess.status = KaraokeProcessStatuses.WAITING.name
             retryProcess.priority = 1
             retryProcess.command = ""
             retryProcess.type = demucsType
-            retryProcess.settingsId = settings.id.toInt()
+            retryProcess.songId = song.id.toInt()
             retryProcess.threadId = threadId
             retryProcess.description = "Демукс ${if (demucsType == KaraokeProcessTypes.DEMUCS5.name) "5" else "2"} (повтор без GPU)"
             retryProcess.args = retryArgs
@@ -3840,15 +3840,15 @@ fun executeUploadToLocalStore(
     params: Map<String, String>,
     onProgress: ((Int) -> Unit)? = null,
 ): Boolean {
-    val settingsId = params["settingsId"]?.toLongOrNull() ?: return false
+    val songId = params["songId"]?.toLongOrNull() ?: return false
     val pathToFile = params["pathToFile"] ?: return false
     val karaokeFileType = params["karaokeFileType"] ?: return false
     val deleteAfterUpload = params["deleteAfterUpload"]?.toBoolean() ?: false
     val fileType = KaraokeFileType.valueOf(karaokeFileType)
     val storageService = KSS_APP
-    val settings =
+    val song =
         Song.loadFromDbById(
-            id = settingsId,
+            id = songId,
             database = WORKING_DATABASE,
             sync = false,
             storageService = storageService,
@@ -3858,10 +3858,10 @@ fun executeUploadToLocalStore(
 
     val existsInLocalFileSystem = if (pathToFile != "") File(pathToFile).exists() else false
     // storageFileName/bucketName приходят из HealthReport (точный ключ для типа файла - у картинок
-    // альбома/автора он отличается от settings.storageFileName). Фолбэк - старая формула для уже
+    // альбома/автора он отличается от song.storageFileName). Фолбэк - старая формула для уже
     // стоящих в очереди задач без этих параметров (аудио-стемы MP3_*).
-    val storageFileName = params["storageFileName"] ?: "${settings.storageFileName}${fileType.suffix}.${fileType.extention}"
-    val bucketName = params["bucketName"] ?: settings.storageBucketName
+    val storageFileName = params["storageFileName"] ?: "${song.storageFileName}${fileType.suffix}.${fileType.extention}"
+    val bucketName = params["bucketName"] ?: song.storageBucketName
     val existsInLocalStorage = storageService.fileExists(bucketName = bucketName, fileName = storageFileName)
     if (existsInLocalFileSystem && !existsInLocalStorage) {
         val file = File(pathToFile)
@@ -3887,15 +3887,15 @@ fun executeUploadToRemoteStore(
     params: Map<String, String>,
     onProgress: ((Int) -> Unit)? = null,
 ): Boolean {
-    val settingsId = params["settingsId"]?.toLongOrNull() ?: return false
+    val songId = params["songId"]?.toLongOrNull() ?: return false
     val pathToFile = params["pathToFile"] ?: return false
     val karaokeFileType = params["karaokeFileType"] ?: return false
     val deleteAfterUpload = params["deleteAfterUpload"]?.toBoolean() ?: false
     val fileType = KaraokeFileType.valueOf(karaokeFileType)
     val storageApiClient = SAC_APP
-    val settings =
+    val song =
         Song.loadFromDbById(
-            id = settingsId,
+            id = songId,
             database = WORKING_DATABASE,
             sync = false,
             storageService = KSS_APP,
@@ -3905,10 +3905,10 @@ fun executeUploadToRemoteStore(
 
     val existsInLocalFileSystem = if (pathToFile != "") File(pathToFile).exists() else false
     // storageFileName/bucketName приходят из HealthReport (точный ключ для типа файла - у картинок
-    // альбома/автора он отличается от settings.storageFileName). Фолбэк - старая формула для уже
+    // альбома/автора он отличается от song.storageFileName). Фолбэк - старая формула для уже
     // стоящих в очереди задач без этих параметров (аудио-стемы MP3_*).
-    val storageFileName = params["storageFileName"] ?: "${settings.storageFileName}${fileType.suffix}.${fileType.extention}"
-    val bucketName = params["bucketName"] ?: settings.storageBucketName
+    val storageFileName = params["storageFileName"] ?: "${song.storageFileName}${fileType.suffix}.${fileType.extention}"
+    val bucketName = params["bucketName"] ?: song.storageBucketName
     val existsInRemoteStorage = storageApiClient.fileExists(bucketName = bucketName, fileName = storageFileName)
     if (existsInLocalFileSystem && !existsInRemoteStorage) {
         storageApiClient.uploadFile(
@@ -3926,7 +3926,7 @@ fun executeRenderMp4(
     params: Map<String, String>,
     onProgress: ((Int) -> Unit)? = null,
 ): Boolean {
-    val settingsId = params["settingsId"]?.toLongOrNull() ?: return false
+    val songId = params["songId"]?.toLongOrNull() ?: return false
     val width = params["width"]?.toIntOrNull() ?: 1920
     val height = params["height"]?.toIntOrNull() ?: 1080
     val fps = params["fps"]?.toIntOrNull() ?: 60
@@ -3937,9 +3937,9 @@ fun executeRenderMp4(
         } catch (_: Exception) {
             com.svoemesto.karaokeapp.services.RenderVersion.KARAOKE
         }
-    val settings =
+    val song =
         Song.loadFromDbById(
-            id = settingsId,
+            id = songId,
             database = WORKING_DATABASE,
             sync = false,
             storageService = KSS_APP,
@@ -3948,20 +3948,20 @@ fun executeRenderMp4(
             ?: return false
 
     // Для DEMO — границы фрагмента из Song (первый куплет)
-    val demoStart = if (version == com.svoemesto.karaokeapp.services.RenderVersion.DEMO) settings.demoFragmentStartSeconds else null
-    val demoEnd = if (version == com.svoemesto.karaokeapp.services.RenderVersion.DEMO) settings.demoFragmentEndSeconds else null
-    val demoFadeIn = if (version == com.svoemesto.karaokeapp.services.RenderVersion.DEMO) settings.demoFragmentFadeInSeconds else null
+    val demoStart = if (version == com.svoemesto.karaokeapp.services.RenderVersion.DEMO) song.demoFragmentStartSeconds else null
+    val demoEnd = if (version == com.svoemesto.karaokeapp.services.RenderVersion.DEMO) song.demoFragmentEndSeconds else null
+    val demoFadeIn = if (version == com.svoemesto.karaokeapp.services.RenderVersion.DEMO) song.demoFragmentFadeInSeconds else null
 
     println(
         "[${java.sql.Timestamp.from(
             java.time.Instant.now(),
-        )}] executeRenderMp4: старт для id=$settingsId (${width}x$height@$fps) version=${version.name}" +
+        )}] executeRenderMp4: старт для id=$songId (${width}x$height@$fps) version=${version.name}" +
             if (demoStart != null && demoEnd != null) " demo=$demoStart..$demoEnd" else "",
     )
 
     val renderParams =
         com.svoemesto.karaokeapp.services.RenderMp4Params(
-            songId = settingsId,
+            songId = songId,
             width = width,
             height = height,
             fps = fps,
@@ -3974,7 +3974,7 @@ fun executeRenderMp4(
             onProgress?.invoke((framePercent * 80) / 100)
         }
 
-    val tempOutputPath = "${com.svoemesto.karaokeapp.PATH_TO_TEMP_RENDERMP4_FOLDER}/${settingsId}_${version.name}/output.mp4"
+    val tempOutputPath = "${com.svoemesto.karaokeapp.PATH_TO_TEMP_RENDERMP4_FOLDER}/${songId}_${version.name}/output.mp4"
     val tailSeconds = if (version == com.svoemesto.karaokeapp.services.RenderVersion.DEMO) 10.0 else 1.0
     val totalDurationSec = framesResult.preroll + framesResult.duration + tailSeconds
     com.svoemesto.karaokeapp.services.PlayerMp4MuxService.mixAndMux(
@@ -3983,7 +3983,7 @@ fun executeRenderMp4(
         preroll = framesResult.preroll,
         audioTracks =
             com.svoemesto.karaokeapp.services.PlayerMp4MuxService
-                .tracksForVersion(settings, version),
+                .tracksForVersion(song, version),
         outputPath = tempOutputPath,
         totalDurationSeconds = totalDurationSec,
         demoFragmentStart = demoStart,
@@ -3993,17 +3993,17 @@ fun executeRenderMp4(
     )
 
     // Копируем результат в done_files с именем [version].mp4
-    val doneFilesDir = File("${settings.rootFolder}/done_files")
+    val doneFilesDir = File("${song.rootFolder}/done_files")
     if (!doneFilesDir.exists()) {
         doneFilesDir.mkdirs()
     }
-    val destFile = File(settings.pathToFileRenderMp4ForVersion(version))
+    val destFile = File(song.pathToFileRenderMp4ForVersion(version))
     File(tempOutputPath).copyTo(destFile, overwrite = true)
     runCommand(listOf("chmod", "666", destFile.absolutePath))
     println("[${java.sql.Timestamp.from(java.time.Instant.now())}] executeRenderMp4: скопировано в ${destFile.absolutePath}")
 
     // Удаляем временную папку (секвенция кадров + промежуточный mp4)
-    val tempDir = File("${com.svoemesto.karaokeapp.PATH_TO_TEMP_RENDERMP4_FOLDER}/${settingsId}_${version.name}")
+    val tempDir = File("${com.svoemesto.karaokeapp.PATH_TO_TEMP_RENDERMP4_FOLDER}/${songId}_${version.name}")
     tempDir.deleteRecursively()
     println("[${java.sql.Timestamp.from(java.time.Instant.now())}] executeRenderMp4: удалена временная папка ${tempDir.absolutePath}")
 
@@ -4198,7 +4198,7 @@ fun findAndFillDublicates(
     и скопировать root_id, поля текста, установить статус в 1
      */
     var result = 0
-    val listSettings =
+    val songList =
         Song.loadListFromDb(
             args = mapOf("author" to author),
             database = database,
@@ -4206,18 +4206,18 @@ fun findAndFillDublicates(
             storageApiClient = storageApiClient,
             withoutMarkersAndText = false,
         )
-    listSettings.filter { it.idStatus == 0L }.forEach { newSettings ->
-        val nameToFind = newSettings.songName.replace(Regex("""\([^)]*\)"""), "").trim()
-        listSettings.firstOrNull { it.idStatus >= 6L && it.songName.replace(Regex("""\([^)]*\)"""), "").trim() == nameToFind }?.let { findedSettings ->
-            newSettings.rootId = findedSettings.id
-            newSettings.sourceText = findedSettings.sourceText
-            newSettings.resultText = findedSettings.resultText
-            newSettings.sourceMarkers = findedSettings.sourceMarkers
-            newSettings.formattedTextSong = findedSettings.formattedTextSong
-            newSettings.formattedTextTabs = findedSettings.formattedTextTabs
-            newSettings.formattedTextChords = findedSettings.formattedTextChords
-            newSettings.fields[SongField.ID_STATUS] = "1"
-            newSettings.saveToDb()
+    songList.filter { it.idStatus == 0L }.forEach { newSong ->
+        val nameToFind = newSong.songName.replace(Regex("""\([^)]*\)"""), "").trim()
+        songList.firstOrNull { it.idStatus >= 6L && it.songName.replace(Regex("""\([^)]*\)"""), "").trim() == nameToFind }?.let { findedSong ->
+            newSong.rootId = findedSong.id
+            newSong.sourceText = findedSong.sourceText
+            newSong.resultText = findedSong.resultText
+            newSong.sourceMarkers = findedSong.sourceMarkers
+            newSong.formattedTextSong = findedSong.formattedTextSong
+            newSong.formattedTextTabs = findedSong.formattedTextTabs
+            newSong.formattedTextChords = findedSong.formattedTextChords
+            newSong.fields[SongField.ID_STATUS] = "1"
+            newSong.saveToDb()
             result++
         }
     }
@@ -4244,7 +4244,7 @@ fun normalizeSongNameForSearch(name: String): String {
 }
 
 fun findDuplicateOriginal(
-    newSettings: Song,
+    newSong: Song,
     database: KaraokeConnection,
     storageService: KaraokeStorageService,
     storageApiClient: StorageApiClient,
@@ -4255,7 +4255,7 @@ fun findDuplicateOriginal(
     (регистронезависимо), у которой уже есть текст. Сначала ищет у того же автора, если не найдено -
     среди всех авторов. При нескольких совпадениях берёт запись с наименьшим id.
      */
-    val cleanedName = normalizeSongNameForSearch(newSettings.songName)
+    val cleanedName = normalizeSongNameForSearch(newSong.songName)
     if (cleanedName.isBlank()) return null
 
     fun findId(sameAuthorOnly: Boolean): Long? {
@@ -4268,8 +4268,8 @@ fun findDuplicateOriginal(
                 " ORDER BY id ASC"
         val ps = connection.prepareStatement(sql)
         var idx = 1
-        ps.setLong(idx++, newSettings.id)
-        if (sameAuthorOnly) ps.setString(idx, newSettings.author)
+        ps.setLong(idx++, newSong.id)
+        if (sameAuthorOnly) ps.setString(idx, newSong.author)
         val rs = ps.executeQuery()
         var foundId: Long? = null
         while (rs.next()) {
@@ -4302,17 +4302,17 @@ private data class ParentCandidate(
  * наименьшим id.
  */
 fun findParentCandidateId(
-    settings: Song,
+    song: Song,
     database: KaraokeConnection,
 ): Long? {
-    val cleanedName = normalizeSongNameForSearch(settings.songName)
+    val cleanedName = normalizeSongNameForSearch(song.songName)
     if (cleanedName.isBlank()) return null
     val connection = database.getConnection() ?: return null
     val ps =
         connection.prepareStatement(
             "SELECT id, song_name, song_author, source_text FROM tbl_songs WHERE id <> ?",
         )
-    ps.setLong(1, settings.id)
+    ps.setLong(1, song.id)
     val rs = ps.executeQuery()
     val candidates = mutableListOf<ParentCandidate>()
     while (rs.next()) {
@@ -4332,13 +4332,13 @@ fun findParentCandidateId(
 
     val withText = candidates.filter { it.hasText }
     val pool = withText.ifEmpty { candidates }
-    val sameAuthor = pool.filter { it.author.equals(settings.author, ignoreCase = true) }
+    val sameAuthor = pool.filter { it.author.equals(song.author, ignoreCase = true) }
     val finalPool = sameAuthor.ifEmpty { pool }
     return finalPool.minByOrNull { it.id }?.id
 }
 
 fun searchSongsByNormalizedName(
-    currentSettings: Song,
+    currentSong: Song,
     searchQuery: String,
     database: KaraokeConnection,
 ): List<Long> {
@@ -4353,7 +4353,7 @@ fun searchSongsByNormalizedName(
     val connection = database.getConnection() ?: return emptyList()
     val sql = "SELECT id, song_name FROM tbl_songs WHERE id <> ? AND TRIM(source_text) <> ''"
     val ps = connection.prepareStatement(sql)
-    ps.setLong(1, currentSettings.id)
+    ps.setLong(1, currentSong.id)
     val rs = ps.executeQuery()
     val ids = mutableListOf<Long>()
     while (rs.next()) {
@@ -4367,18 +4367,18 @@ fun searchSongsByNormalizedName(
 }
 
 fun applyDuplicateOriginal(
-    newSettings: Song,
+    newSong: Song,
     original: Song,
 ) {
-    newSettings.rootId = original.id
-    newSettings.sourceText = original.sourceText
-    newSettings.resultText = original.resultText
-    newSettings.sourceMarkers = original.sourceMarkers
-    newSettings.formattedTextSong = original.formattedTextSong
-    newSettings.formattedTextTabs = original.formattedTextTabs
-    newSettings.formattedTextChords = original.formattedTextChords
-    newSettings.fields[SongField.ID_STATUS] = "1"
-    newSettings.saveToDb()
+    newSong.rootId = original.id
+    newSong.sourceText = original.sourceText
+    newSong.resultText = original.resultText
+    newSong.sourceMarkers = original.sourceMarkers
+    newSong.formattedTextSong = original.formattedTextSong
+    newSong.formattedTextTabs = original.formattedTextTabs
+    newSong.formattedTextChords = original.formattedTextChords
+    newSong.fields[SongField.ID_STATUS] = "1"
+    newSong.saveToDb()
 }
 
 /**
@@ -4395,22 +4395,22 @@ fun applyDuplicateOriginal(
  * проставляется только после ручного подтверждения куратора (FR-003 spec.md).
  */
 fun applyAudioParentMarkers(
-    settings: Song,
+    song: Song,
     audioParent: Song,
     deltaMs: Long,
 ) {
-    settings.sourceText = audioParent.sourceText
-    settings.resultText = audioParent.resultText
-    settings.sourceMarkers = shiftMarkersAndFixEnd(audioParent.sourceMarkers, deltaMs, settings.ms)
-    settings.formattedTextSong = audioParent.formattedTextSong
-    settings.formattedTextTabs = audioParent.formattedTextTabs
-    settings.formattedTextChords = audioParent.formattedTextChords
-    settings.fields[SongField.ID_STATUS] = "5"
-    settings.saveToDb()
+    song.sourceText = audioParent.sourceText
+    song.resultText = audioParent.resultText
+    song.sourceMarkers = shiftMarkersAndFixEnd(audioParent.sourceMarkers, deltaMs, song.ms)
+    song.formattedTextSong = audioParent.formattedTextSong
+    song.formattedTextTabs = audioParent.formattedTextTabs
+    song.formattedTextChords = audioParent.formattedTextChords
+    song.fields[SongField.ID_STATUS] = "5"
+    song.saveToDb()
 }
 
 fun applyFamilySongSelection(
-    settings: Song,
+    song: Song,
     another: Song,
     deltaMs: Long? = null,
 ) {
@@ -4428,20 +4428,20 @@ fun applyFamilySongSelection(
     сдвигаются на дельту в таймлайн текущей песни, а END-маркер пересчитывается под её реальную
     длительность. Если null (строку не сверяли) - маркеры копируются как есть (прежнее поведение).
      */
-    settings.sourceText = another.sourceText
-    settings.resultText = another.resultText
-    settings.sourceMarkers =
+    song.sourceText = another.sourceText
+    song.resultText = another.resultText
+    song.sourceMarkers =
         if (deltaMs != null) {
-            shiftMarkersAndFixEnd(another.sourceMarkers, deltaMs, settings.ms)
+            shiftMarkersAndFixEnd(another.sourceMarkers, deltaMs, song.ms)
         } else {
             another.sourceMarkers
         }
-    settings.formattedTextSong = another.formattedTextSong
-    settings.formattedTextTabs = another.formattedTextTabs
-    settings.formattedTextChords = another.formattedTextChords
-    settings.rootId = if (another.rootId != 0L) another.rootId else another.id
-    if (settings.idStatus == 0L) settings.fields[SongField.ID_STATUS] = "1"
-    settings.saveToDb()
+    song.formattedTextSong = another.formattedTextSong
+    song.formattedTextTabs = another.formattedTextTabs
+    song.formattedTextChords = another.formattedTextChords
+    song.rootId = if (another.rootId != 0L) another.rootId else another.id
+    if (song.idStatus == 0L) song.fields[SongField.ID_STATUS] = "1"
+    song.saveToDb()
 }
 
 /**
@@ -4477,7 +4477,7 @@ fun shiftMarkersAndFixEnd(
 }
 
 fun findFamilySongIds(
-    currentSettings: Song,
+    currentSong: Song,
     database: KaraokeConnection,
 ): List<Long> {
     /*
@@ -4485,14 +4485,14 @@ fun findFamilySongIds(
     (сама текущая песня в результат не включается). Покрывает случаи: сама "корневая" песня (id == текущий root_id),
     песни-братья (root_id == текущий root_id) и песни-дети текущей (root_id == текущий id, если текущая - корень).
      */
-    val keys = mutableSetOf(currentSettings.id)
-    if (currentSettings.rootId != 0L) keys.add(currentSettings.rootId)
+    val keys = mutableSetOf(currentSong.id)
+    if (currentSong.rootId != 0L) keys.add(currentSong.rootId)
     val connection = database.getConnection() ?: return emptyList()
     val placeholders = keys.joinToString(",") { "?" }
     val sql = "SELECT id FROM tbl_songs WHERE id <> ? AND (id IN ($placeholders) OR root_id IN ($placeholders))"
     val ps = connection.prepareStatement(sql)
     var idx = 1
-    ps.setLong(idx++, currentSettings.id)
+    ps.setLong(idx++, currentSong.id)
     keys.forEach { ps.setLong(idx++, it) }
     keys.forEach { ps.setLong(idx++, it) }
     val rs = ps.executeQuery()
@@ -4531,82 +4531,82 @@ fun songLogLabel(s: Song): String = "${s.author} / ${s.year} / ${s.album} / «${
  * один кандидат не прошёл сверку (нет аудио) или не набрал порога — статус остаётся прежним.
  */
 fun autoAssignOriginalByWaveform(
-    settings: Song,
+    song: Song,
     database: KaraokeConnection,
     storageService: KaraokeStorageService,
     storageApiClient: StorageApiClient,
     threshold: Int = 95,
 ): AutoOriginalResult {
-    val familyIds = findFamilySongIds(settings, database)
+    val familyIds = findFamilySongIds(song, database)
     if (familyIds.isEmpty()) {
-        return AutoOriginalResult(settings.id, false, null, null, null, "Нет песен в семье")
+        return AutoOriginalResult(song.id, false, null, null, null, "Нет песен в семье")
     }
     val family = Song.loadListFromDbByIds(familyIds, database, storageService, storageApiClient)
     // Кандидат годится, только если у него есть непустые маркеры — из пустого копировать нечего,
     // заодно экономим тяжёлый ffmpeg-декод в сверке.
     val candidates = family.values.filter { c -> c.sourceMarkersList.any { it.isNotEmpty() } }
     if (candidates.isEmpty()) {
-        return AutoOriginalResult(settings.id, false, null, null, null, "Нет размеченных кандидатов в семье")
+        return AutoOriginalResult(song.id, false, null, null, null, "Нет размеченных кандидатов в семье")
     }
 
     // Сверяем со всеми кандидатами, оставляем только удачные (есть аудио), берём максимальный процент.
     val best =
         candidates
-            .map { candidate -> candidate to WaveformCompare.compareWaveforms(settings, candidate) }
+            .map { candidate -> candidate to WaveformCompare.compareWaveforms(song, candidate) }
             .filter { it.second.ok }
             .maxByOrNull { it.second.similarityPercent }
 
     if (best == null) {
-        return AutoOriginalResult(settings.id, false, null, null, null, "Не удалось сверить ни одного кандидата (нет аудио)")
+        return AutoOriginalResult(song.id, false, null, null, null, "Не удалось сверить ни одного кандидата (нет аудио)")
     }
 
-    val (bestSettings, cmp) = best
+    val (bestSong, cmp) = best
     if (cmp.similarityPercent < threshold) {
         return AutoOriginalResult(
-            settings.id,
+            song.id,
             false,
-            bestSettings.id,
+            bestSong.id,
             cmp.similarityPercent,
             cmp.deltaMs,
-            "Лучшее совпадение ${cmp.similarityPercent}% [${songLogLabel(bestSettings)}] ниже порога $threshold%",
+            "Лучшее совпадение ${cmp.similarityPercent}% [${songLogLabel(bestSong)}] ниже порога $threshold%",
         )
     }
 
     // 1) Применяем выбор кандидата так же, как клик по строке в модалке (со сдвигом маркеров под таймлайн
     //    текущей песни; END-маркер внутри shiftMarkersAndFixEnd уже сажается на реальную длительность текущей).
-    applyFamilySongSelection(settings, bestSettings, deltaMs = cmp.deltaMs)
+    applyFamilySongSelection(song, bestSong, deltaMs = cmp.deltaMs)
 
     // 2) Серверный эквивалент кнопки "Сохранить" в SubsEdit.vue: applyFamilySongSelection пересчитывает
     //    только resultText, а setSourceMarkers при сохранении пересчитывает ещё 3 форматированных поля —
     //    воспроизводим их из уже установленных (сдвинутых) маркеров.
-    settings.resultText = settings.getText()
-    settings.formattedTextSong = settings.getTextFormatted()
-    settings.formattedTextTabs = settings.getFormattedNotes()
-    settings.formattedTextChords = settings.getFormattedChords()
+    song.resultText = song.getText()
+    song.formattedTextSong = song.getTextFormatted()
+    song.formattedTextTabs = song.getFormattedNotes()
+    song.formattedTextChords = song.getFormattedChords()
 
     // Запись .srt по каждому голосу — как в /song/savesourcetextmarkers.
-    settings.sourceMarkersList.indices.forEach { voice ->
+    song.sourceMarkersList.indices.forEach { voice ->
         try {
-            val srt = settings.convertMarkersToSrt(voice)
-            val pathToFile = "${settings.rootFolder}/${settings.fileName}.voice${voice + 1}.srt"
+            val srt = song.convertMarkersToSrt(voice)
+            val pathToFile = "${song.rootFolder}/${song.fileName}.voice${voice + 1}.srt"
             File(pathToFile).writeText(srt)
             runCommand(listOf("chmod", "666", pathToFile))
         } catch (_: Exception) {
-            println("Ошибка при создании файла субтитров для песни ${settings.id}, голос ${voice + 1}.")
+            println("Ошибка при создании файла субтитров для песни ${song.id}, голос ${voice + 1}.")
         }
     }
 
     // 3) Переводим песню в статус 2 (TEXT_CHECK) и сохраняем всё одним saveToDb().
-    settings.fields[SongField.ID_STATUS] = "2"
-    settings.saveToDb()
+    song.fields[SongField.ID_STATUS] = "2"
+    song.saveToDb()
 
     return AutoOriginalResult(
-        settings.id,
+        song.id,
         true,
-        bestSettings.id,
+        bestSong.id,
         cmp.similarityPercent,
         cmp.deltaMs,
-        "Привязано к [${songLogLabel(bestSettings)}] (${cmp.similarityPercent}%, сдвиг ${cmp.deltaMs} мс)",
+        "Привязано к [${songLogLabel(bestSong)}] (${cmp.similarityPercent}%, сдвиг ${cmp.deltaMs} мс)",
     )
 }
 
@@ -4642,19 +4642,19 @@ data class AudioParentResult(
  * audio_parent_id не трогаем, песня остаётся корнем.
  */
 fun findAudioParentByWaveform(
-    settings: Song,
+    song: Song,
     database: KaraokeConnection,
     storageService: KaraokeStorageService,
     storageApiClient: StorageApiClient,
 ): AudioParentResult {
     val candidateIds =
-        (findFamilySongIds(settings, database) + searchSongsByNormalizedName(settings, settings.songName, database))
-            .toSet() - settings.id
+        (findFamilySongIds(song, database) + searchSongsByNormalizedName(song, song.songName, database))
+            .toSet() - song.id
     if (candidateIds.isEmpty()) {
-        return AudioParentResult(settings.id, false, null, null, null, "Нет кандидатов (ни в семье, ни по названию)")
+        return AudioParentResult(song.id, false, null, null, null, "Нет кандидатов (ни в семье, ни по названию)")
     }
 
-    val historyById = settings.audioCompareHistoryList.associateBy { it.id }.toMutableMap()
+    val historyById = song.audioCompareHistoryList.associateBy { it.id }.toMutableMap()
     val newIds = candidateIds.filter { it !in historyById }
     var loadedCandidates: Map<Long, Song> = emptyMap()
 
@@ -4663,10 +4663,10 @@ fun findAudioParentByWaveform(
         val now = Instant.now().toString()
         newIds.forEach { id ->
             val candidate = loadedCandidates[id] ?: return@forEach
-            val cmp = WaveformCompare.compareWaveforms(settings, candidate)
+            val cmp = WaveformCompare.compareWaveforms(song, candidate)
             historyById[id] = AudioCompareHistoryEntry(id, cmp.similarityPercent, cmp.deltaMs, cmp.ok, now)
         }
-        settings.audioCompareHistory =
+        song.audioCompareHistory =
             Json.encodeToString(ListSerializer(AudioCompareHistoryEntry.serializer()), historyById.values.toList())
     }
 
@@ -4677,9 +4677,9 @@ fun findAudioParentByWaveform(
             .maxByOrNull { it.similarityPercent }
 
     if (best == null || best.similarityPercent < AUDIO_PARENT_THRESHOLD) {
-        settings.saveToDb()
+        song.saveToDb()
         return AudioParentResult(
-            settings.id,
+            song.id,
             false,
             best?.id,
             best?.similarityPercent,
@@ -4692,13 +4692,13 @@ fun findAudioParentByWaveform(
         )
     }
 
-    val bestSettings =
+    val bestSong =
         loadedCandidates[best.id]
             ?: Song.loadFromDbById(best.id, database = database, storageService = storageService, storageApiClient = storageApiClient)
             ?: run {
-                settings.saveToDb()
+                song.saveToDb()
                 return AudioParentResult(
-                    settings.id,
+                    song.id,
                     false,
                     best.id,
                     best.similarityPercent,
@@ -4708,39 +4708,39 @@ fun findAudioParentByWaveform(
             }
 
     val resolvedRoot =
-        if (bestSettings.audioParentId != 0L) {
-            bestSettings.audioParentId
-        } else if (bestSettings.id < settings.id) {
-            bestSettings.id
+        if (bestSong.audioParentId != 0L) {
+            bestSong.audioParentId
+        } else if (bestSong.id < song.id) {
+            bestSong.id
         } else {
-            settings.id
+            song.id
         }
 
-    if (resolvedRoot == settings.id) {
-        settings.saveToDb()
+    if (resolvedRoot == song.id) {
+        song.saveToDb()
         return AudioParentResult(
-            settings.id,
+            song.id,
             false,
             best.id,
             best.similarityPercent,
             best.deltaMs,
-            "Текущая песня определена как корень пары с [${songLogLabel(bestSettings)}] (меньший id)",
+            "Текущая песня определена как корень пары с [${songLogLabel(bestSong)}] (меньший id)",
         )
     }
 
-    settings.audioParentId = resolvedRoot
-    settings.audioSimilarityPercent = best.similarityPercent
-    settings.audioDeltaMs = best.deltaMs
-    settings.saveToDb()
+    song.audioParentId = resolvedRoot
+    song.audioSimilarityPercent = best.similarityPercent
+    song.audioDeltaMs = best.deltaMs
+    song.saveToDb()
 
     return AudioParentResult(
-        settings.id,
+        song.id,
         true,
         resolvedRoot,
         best.similarityPercent,
         best.deltaMs,
-        "Похож на [${songLogLabel(bestSettings)}] (${best.similarityPercent}%, сдвиг ${best.deltaMs} мс)" +
-            if (resolvedRoot != bestSettings.id) ", корень id=$resolvedRoot" else "",
+        "Похож на [${songLogLabel(bestSong)}] (${best.similarityPercent}%, сдвиг ${best.deltaMs} мс)" +
+            if (resolvedRoot != bestSong.id) ", корень id=$resolvedRoot" else "",
     )
 }
 

@@ -35,9 +35,9 @@ fun getMisList(mltProp: MltProp): List<MltInitialStructure> {
     val result: MutableList<MltInitialStructure> = mutableListOf()
 
     val songVersion = mltProp.getSongVersion()
-    val settings = mltProp.getSettings() ?: return result
+    val song = mltProp.getSong() ?: return result
     val songProducers = songVersion.producers
-    val listOfVoices = settings.voicesForMlt
+    val listOfVoices = song.voicesForMlt
     listOfVoices.forEachIndexed { indexVoice, voice ->
 
         voice.linesForMlt().forEachIndexed { indexLine, line ->

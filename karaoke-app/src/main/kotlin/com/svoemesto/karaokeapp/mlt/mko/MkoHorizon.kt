@@ -31,8 +31,8 @@ data class MkoHorizon(
     private val symbolHeightPx = mltProp.getSymbolHeightPx()
     private val fontSize = mltProp.getFontSize()
     private val inOffsetVideo = mltProp.getInOffsetVideo()
-    private val songLengthMs = mltProp.getLengthMs("Song") + mltProp.getSettings()!!.getStartSilentOffsetMs()
-    private val textLines = mltProp.getSettings()!!.voicesForMlt[0].textLines(songVersion)
+    private val songLengthMs = mltProp.getLengthMs("Song") + mltProp.getSong()!!.getStartSilentOffsetMs()
+    private val textLines = mltProp.getSong()!!.voicesForMlt[0].textLines(songVersion)
 
     override fun producer(): MltNode =
         mltGenerator

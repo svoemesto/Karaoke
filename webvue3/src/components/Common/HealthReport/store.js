@@ -42,7 +42,7 @@ export default {
     },
     repairOneRecord(ctx, item) {
       const params = {
-        id: item.settingsId,
+        id: item.songId,
         healthReportTypeName: item.healthReportTypeName,
         healthReportStatusName: item.healthReportStatusName,
         description: item.description,
@@ -50,7 +50,7 @@ export default {
       let request = { method: 'POST', url: '/api/song/executeHealthReportActions', params: params }
       promisedXMLHttpRequest(request)
         .then((_data) => {
-          this.dispatch('loadHealthReportList', item.settingsId)
+          this.dispatch('loadHealthReportList', item.songId)
         })
         .catch((error) => {
           console.log(error)

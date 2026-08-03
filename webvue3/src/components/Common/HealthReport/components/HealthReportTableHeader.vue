@@ -34,8 +34,8 @@ export default {
   methods: {
     repairAll() {
       if (this.healthReportList.length === 0) return
-      const settingsId = this.healthReportList[0].settingsId
-      this.$store.dispatch('repairAllPromise', settingsId)
+      const songId = this.healthReportList[0].songId
+      this.$store.dispatch('repairAllPromise', songId)
     },
   },
 }

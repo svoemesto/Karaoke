@@ -22,7 +22,7 @@ data class MkoSepar(
     private val songVersion = mltProp.getSongVersion()
     private val frameWidthPx = mltProp.getFrameWidthPx()
     private val frameHeightPx = mltProp.getFrameHeightPx()
-    private val settings = mltProp.getSettings()
+    private val song = mltProp.getSong()
     private val songEndTimecode = mltProp.getSongEndTimecode()
     private var lineDurationOnScreen = mltProp.getDurationOnScreen(listOf(ProducerType.LINE, voiceId, lineId))
     private var folderIdLines = mltProp.getId(listOf(ProducerType.LINES, voiceId))
@@ -38,7 +38,7 @@ data class MkoSepar(
         var widthAreaPx = frameWidthPx
         var heightAreaPx = frameHeightPx
 
-        val sett = settings
+        val sett = song
         if (sett != null) {
             try {
                 val element = sett.voicesForMlt[voiceId].getLines()[lineId].getElements(songVersion)[elementId]
@@ -88,7 +88,7 @@ data class MkoSepar(
     override fun tractor(): MltNode = mltGenerator.tractor(timecodeOut = lineEndTimecode)
 
     override fun template(): MltNode {
-        val sett = settings ?: return MltNode()
+        val sett = song ?: return MltNode()
         val element =
             try {
                 sett.voicesForMlt[voiceId]

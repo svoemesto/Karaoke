@@ -18,7 +18,7 @@ import java.sql.Timestamp
  * Задание на редактирование песни, выданное пользователю (см. AdminAssign).
  *
  * Хранит:
- * - `id`, `idSettings` — песня.
+ * - `id` — песня.
  * - `idSiteUser` — исполнитель.
  * - `idReviewer` — кто проверил (`null` = не проверено).
  * - `status` — `ASSIGNED` / `IN_PROGRESS` / `REVIEW` / `APPROVED` / `REJECTED`.

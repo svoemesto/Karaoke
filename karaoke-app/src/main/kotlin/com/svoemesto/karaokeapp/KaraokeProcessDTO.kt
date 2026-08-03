@@ -21,7 +21,7 @@ data class KaraokeProcessDTO(
     val envs: Map<String, String>,
     val argsDescription: List<String>,
     val description: String,
-    val settingsId: Int,
+    val songId: Int,
     val type: String,
     val start: Timestamp?,
     val end: Timestamp?,

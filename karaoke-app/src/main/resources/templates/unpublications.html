@@ -9,7 +9,7 @@
     <script src="stomp.js"></script>
 
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:400,300">
-    <link rel="stylesheet" href="settings_context.css">
+    <link rel="stylesheet" href="song_context.css">
 
     <title>Un-Публикации</title>
     <style>
@@ -123,7 +123,7 @@
                                         target="_blank">
                                     </a>
                                 </div>
-                                <div class="task__actions" th:insert="~{settings_contextmenu_task_actions.html}"></div>
+                                <div class="task__actions" th:insert="~{song_contextmenu_task_actions.html}"></div>
                             </td>
                             <td style="padding: 0; font-size: 0; min-width: 13px; max-width: 13px; border-style: solid; border-width: thin">
                                 <div th:name="'publishBoosty'+${publication.publish10id}" th:style="'background-color: ' + ${publication.publish10colorBoosty} + '; height: 100%; font-size: 0; border-bottom-style: none; border-width: thin;'"></div>
@@ -167,7 +167,7 @@
     </div>
 </div>
 
-<nav id="context-menu" class="context-menu" th:insert="~{settings_contextmenu.html}"></nav>
+<nav id="context-menu" class="context-menu" th:insert="~{song_contextmenu.html}"></nav>
 
 
 <script type="text/javascript">
@@ -357,6 +357,6 @@
 
 </script>
 
-<script src="settings_context.js"></script>
+<script src="song_context.js"></script>
 
 </body>

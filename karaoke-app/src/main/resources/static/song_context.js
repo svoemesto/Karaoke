@@ -217,16 +217,16 @@
      * @param {HTMLElement} link The link that was clicked
      */
     function menuItemListener( link ) {
-        var settingsId = taskItemInContext.getAttribute("data-id");
+        var songId = taskItemInContext.getAttribute("data-id");
         var actionName = link.getAttribute("data-action");
         var actionValue = link.getAttribute("action-value");
-        console.log( "Task ID - " + settingsId + ", Task action - " + actionName + ", Action ID - " + actionValue);
+        console.log( "Task ID - " + songId + ", Task action - " + actionName + ", Action ID - " + actionValue);
 
         if (actionName === "CHANGE_STATUS") {
             $.ajax({
                 type: "POST",
                 url: "/changesettingsstatus",
-                data: {"settingsId": settingsId, "statusId": actionValue},
+                data: {"songId": songId, "statusId": actionValue},
                 success: function() {
                 }
             });

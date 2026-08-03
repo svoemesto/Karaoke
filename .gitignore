@@ -38,6 +38,12 @@ __pycache__/
 /deploy/new_comp/sm-karaoke-system/deploy/.env
 /deploy/new_comp/sm-karaoke-system/deploy/do.env
 
+# Secrets — SSL-сертификаты и приватные ключи (Constitution Principle VIII.2)
+*.key
+*.pem
+*.p12
+*.pfx
+
 # Editors
 .vscode/
 .idea/

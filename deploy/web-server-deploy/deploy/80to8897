@@ -1,6 +1,6 @@
 server {
   listen 443 ssl;
-  server_name 79.174.95.69 sm-karaoke.ru www.sm-karaoke.ru;
+  server_name sm-karaoke.ru www.sm-karaoke.ru;
   ssl_certificate /etc/keys/www.sm-karaoke.ru.crt;
   ssl_certificate_key /etc/keys/www.sm-karaoke.ru.key;
   location /minio/ {
@@ -55,7 +55,7 @@ server {
 
 server {
   listen 80;
-  server_name 79.174.95.69 sm-karaoke.ru www.sm-karaoke.ru minio-proxy;
+  server_name sm-karaoke.ru www.sm-karaoke.ru minio-proxy;
   location /minio/ {
     proxy_pass http://89.125.103.63:9000/;
     proxy_set_header Host 89.125.103.63;

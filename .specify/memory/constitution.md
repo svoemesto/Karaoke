@@ -1,34 +1,31 @@
 <!--
   Sync Impact Report
-  - Version change: 1.2.0 → 2.0.0 (MAJOR: изменение ограничений доступа агента,
-    см. Governance rule 3 — feature specs/021-dev-pc-agent-permissions)
-  - Modified principles: none renamed/removed; секция «Ограничения и доступы
-    агента» (не пронумерованный Core Principle, но NON-NEGOTIABLE-приоритетный
-    раздел) получила machine-scoped исключение:
-      - П.1 «Категорически запрещено»: пересборка/перезапуск `karaoke-app`
-        локально — добавлено исключение для hostname `dev-pc` + OS-пользователь
-        `dev` (на этой паре разрешено без согласия пользователя; на любой
-        другой машине/пользователе запрет в силе).
-      - «Разрешено агенту»: добавлены пп. 6-7 — на `dev-pc`/`dev` разрешены (а)
-        пересборка/перезапуск любого локального контейнера и (б) любые операции
-        с локальной БД без согласия пользователя. Серверная (прод) БД и деплой
-        на сервер (п. 2 «Категорически запрещено») не затронуты.
-  - Added sections: none new (расширение существующего раздела, не новый Principle)
+  - Version change: 2.0.0 → 2.1.0 (MINOR: добавление Principle VIII — секреты
+    и git-гигиена, усиление существующего п. 5 «Категорически запрещено»).
+  - Modified principles: п. 5 «Категорически запрещено» переформулирован
+    с явным указанием механизма (git rm --cached + .gitignore), добавлена
+    обязанность pre-commit проверки.
+  - Added sections: Principle VIII «Секреты и git-гигиена (NON-NEGOTIABLE)» —
+    новый Core Principle с чек-листом и инцидентом-прецедентом (2026-08-03:
+    deploy/.env трекался 3 года в публичном репо с утёкшими паролями).
   - Removed sections: none
   - Templates requiring updates:
       .specify/templates/plan-template.md   ✅ aligned (Constitution Check gate
-        exercised in specs/021-dev-pc-agent-permissions/plan.md)
+        теперь включает Principle VIII)
       .specify/templates/spec-template.md   ✅ aligned (no change needed)
       .specify/templates/tasks-template.md  ✅ aligned (no change needed)
       .specify/templates/checklist-template.md ✅ aligned (no change needed)
   - New artifacts to reference:
-      - specs/021-dev-pc-agent-permissions/ — spec.md, plan.md, tasks.md для
-        этого amendment (machine-scoped agent-permission exception)
+      - docs/migration-prod-server.md — чек-лист миграции прода, в ходе которой
+        обнаружена утечка
   - Follow-up TODOs:
       - detekt (после выхода версии с поддержкой Kotlin 2.2) — см. T049
       - typedoc-plugin-vue (для парсинга .vue single-file components) — backlog
       - рефакторинг WORKING_DATABASE/KSS_APP в DI (Pass 15+)
       - ADR (Architecture Decision Records) в docs/adr/ (Pass 16+)
+      - переписывание истории git (git filter-repo / BFG) для удаления
+        утёкших секретов из старых коммитов — отдельная задача после смены
+        всех утёкших секретов (см. docs/migration-prod-server.md)
 -->
 # Karaoke Constitution
 
@@ -157,6 +154,72 @@ Sheetsage) и локальный SearXNG. Любая новая фича, тре
   AI-агентами. Без этих правил каждый разработчик изобретает свой setup,
   что ломает consistency и on-call.
 
+### VIII. Секреты и git-гигиена (NON-NEGOTIABLE)
+
+> **Контекст.** Инцидент 2026-08-03: при миграции прода обнаружено, что
+> `deploy/.env` (с паролями Postgres, MinIO key/secret, Docker Hub PAT)
+> **трекался в публичном git-репозитории github.com/svoemesto/Karaoke
+> с мая 2023 года** — более 3 лет. Файл был в `.gitignore`, но был закоммичен
+> **до** добавления в `.gitignore`; git продолжает трекать файл, даже если
+> он позже добавлен в `.gitignore`. То же самое с `deploy/do.env`,
+> `deploy/web-server-deploy/deploy/.env`, `deploy/new_comp/sm-karaoke-system/deploy/.env`.
+> Утёкшие секреты: `KaRaOkE-47912130-password` (Postgres prod, активен),
+> `minio_key`/`minio_secret` (MinIO, активны), `dckr_pat_SxLnc...` /
+> `dckr_pat_p8qXV...` (Docker Hub PAT, старые). Все секреты доступны
+> кому угодно в публичной истории git.
+
+- **VIII.1. Секрет-файлы MUST быть в `.gitignore` И НЕ трекаться git.**
+  `.gitignore` игнорирует только **ещё не трекаемые** файлы. Если файл
+  уже в индексе git — добавление в `.gitignore` НЕ убирает его из трекинга.
+  Проверка: `git ls-files deploy/.env` — MUST возвращать пусто. Если
+  возвращает путь — файл трекается, срочно `git rm --cached <file>`.
+
+- **VIII.2. Список файл-паттернов, которые MUST быть в `.gitignore`
+  и НЕ трекаться git (never commit):**
+  - `deploy/.env`, `deploy/do.env` (секреты: пароли БД, MinIO, Docker PAT,
+    YOOKASSA, VK)
+  - `deploy/web-server-deploy/deploy/.env`,
+    `deploy/web-server-deploy/deploy/do.env`
+  - `deploy/new_comp/sm-karaoke-system/deploy/.env`,
+    `deploy/new_comp/sm-karaoke-system/deploy/do.env`
+  - `*.key`, `*.pem`, `*.p12`, `*.pfx` (SSL-сертификаты и приватные ключи)
+  - `deploy/ollama_data/`, `dist/`, `node_modules/`
+  - `CLAUDE.md`, `.cursorrules`, `.aider*` (см. Principle VII.1)
+
+- **VIII.3. Pre-commit check MUST верифицировать, что ни один секрет-файл
+  не попадает в индекс.** Перед каждым `git add` / `git commit`:
+  ```bash
+  git ls-files | grep -iE '\.env$|do\.env$|\.key$|\.pem$|\.p12$|\.pfx$'
+  ```
+  MUST возвращать пусто. Если возвращает пути — коммит ЗАПРЕЩЁН,
+  сначала `git rm --cached <file>` для каждого.
+
+- **VIII.4. При обнаружении утёкшего секрета в истории git:**
+  1. **НЕМЕДЛЕННО** сменить секрет (пароль / ключ / PAT) на новый —
+     даже до переписывания истории. Смена секрета — приоритет выше
+     очистки истории, потому что переписывание не отменяет того, что
+     секрет уже мог быть скопирован.
+  2. Убрать файл из индекса: `git rm --cached <file>`.
+  3. Проверить `.gitignore` — паттерн MUST присутствовать.
+  4. Переписывание истории (`git filter-repo` / BFG) — опционально,
+     если репо приватное и доступ ограничен. Если репо публичное —
+     **обязательно** после смены всех утёкших секретов (старые значения
+     уже невалидны, но переписывание убирает их из клонов/forks).
+  5. Зафиксировать инцидент в `docs/architecture-notes.md`.
+
+- **VIII.5. Секреты в коде (hardcoded) ЗАПРЕЩЕНЫ.** IP-адреса серверов,
+  пароли, ключи, токены MUST приходить из env-переменных (`@Value`,
+  `System.getenv`), не быть захардкожены в `.kt`/`.yml`/`.sh` файлах.
+  Дефолты в `${VAR:default}` допустимы, но дефолт MUST быть невалидным
+  или публичным значением (доменное имя, localhost), не секретом.
+  Проверка: `grep -rE 'password|secret|token|pat' --include='*.kt'`
+  MUST возвращать только `@Value`/`System.getenv`/пустые дефолты.
+
+- **Рациональ**: публичный репозиторий с утёкшими паролями = компрометация
+  всей инфраструктуры. `.gitignore` без `git rm --cached` = иллюзия
+  защиты. Смена секрета после утечки — единственный надёжный путь;
+  переписывание истории — косметика (секрет уже мог быть скопирован).
+
 ## Технологический стек
 
 - **Backend**: Kotlin 1.x, Spring Boot 2.x/3.x, JDK 17, Gradle multi-module.
@@ -199,7 +262,10 @@ Sheetsage) и локальный SearXNG. Любая новая фича, тре
 3. Редактировать файлы на сервере напрямую.
 4. Перезаписывать `deploy/do.env` (содержит секреты).
 5. Коммитить `deploy/ollama_data/`, `dist/`, `node_modules/`, `deploy/.env`,
-   `deploy/do.env` и любые другие секрет-файлы.
+   `deploy/do.env` и любые другие секрет-файлы (см. Principle VIII.2 —
+   полный список). **`.gitignore` НЕ достаточно**: если файл уже в индексе
+   git — `git rm --cached <file>` обязателен. Pre-commit проверка:
+   `git ls-files | grep -iE '\.env$|do\.env$|\.key$|\.pem$'` MUST быть пусто.
 6. Печатать секреты (`DOCKER_PASSWORD`, токены, пароли БД) в вывод `do.sh` или
    в логи — секреты живут только в `do.env`/`.env` (в `.gitignore`).
 7. Использовать `nginx:alpine`, `node:latest`, JDK вместо JRE в прод-образах.
@@ -297,4 +363,4 @@ Sheetsage) и локальный SearXNG. Любая новая фича, тре
    - `docker exec karaoke-web env | grep <VAR>` для проверки реально прокинутых
      env-переменных.
 
-**Version**: 2.0.0 | **Ratified**: 2026-07-20 | **Last Amended**: 2026-07-28
+**Version**: 2.1.0 | **Ratified**: 2026-07-20 | **Last Amended**: 2026-08-03

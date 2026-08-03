@@ -4,6 +4,8 @@ import com.svoemesto.karaokeapp.services.APP_WORK_IN_CONTAINER
 import com.svoemesto.karaokeapp.services.APP_WORK_ON_SERVER
 import com.svoemesto.karaokeapp.services.DB_LOCAL_POSTGRES_PASSWORD
 import com.svoemesto.karaokeapp.services.DB_LOCAL_POSTGRES_USER
+import com.svoemesto.karaokeapp.services.DB_REMOTE_HOST
+import com.svoemesto.karaokeapp.services.DB_REMOTE_PORT
 import com.svoemesto.karaokeapp.services.DB_SERVER_POSTGRES_PASSWORD
 import com.svoemesto.karaokeapp.services.DB_SERVER_POSTGRES_USER
 
@@ -77,7 +79,8 @@ class Connection(
         fun local(): KaraokeConnection = Connection(name = "LOCAL", url = connectionLocalUrl(), username = USERNAME, password = PASSWORD)
 
         /**
-         * Подключение к REMOTE-БД (прод-сервер `79.174.95.69:8832`).
+         * Подключение к REMOTE-БД (прод-сервер, хост/порт из env `DB_REMOTE_HOST`/`DB_REMOTE_PORT`,
+         * дефолт `188.119.64.111:8832`).
          *
          * Используется для [SyncTarget] — pull/push изменений LOCAL ↔ SERVER.
          * В [KaraokeProcessWorker] и других runtime-сервисах используется
@@ -118,7 +121,7 @@ class Connection(
             }
 
         private fun connectionRemoteUrl(): String =
-            "jdbc:postgresql://79.174.95.69:8832/karaoke?currentSchema=public&socketTimeout=30&loginTimeout=10"
+            "jdbc:postgresql://$DB_REMOTE_HOST:$DB_REMOTE_PORT/karaoke?currentSchema=public&socketTimeout=30&loginTimeout=10"
 
         private fun connectionVirtualUrl(): String =
             "jdbc:postgresql://localhost:2230/karaoke?currentSchema=public&socketTimeout=30&loginTimeout=10"

@@ -3,6 +3,8 @@ package com.svoemesto.karaokeweb
 import com.svoemesto.karaokeapp.KaraokeConnection
 import com.svoemesto.karaokeweb.services.DB_LOCAL_POSTGRES_PASSWORD
 import com.svoemesto.karaokeweb.services.DB_LOCAL_POSTGRES_USER
+import com.svoemesto.karaokeweb.services.DB_REMOTE_HOST
+import com.svoemesto.karaokeweb.services.DB_REMOTE_PORT
 import com.svoemesto.karaokeweb.services.DB_SERVER_POSTGRES_PASSWORD
 import com.svoemesto.karaokeweb.services.DB_SERVER_POSTGRES_USER
 import com.svoemesto.karaokeweb.services.WEB_WORK_IN_CONTAINER
@@ -54,7 +56,7 @@ class Connection(
                 "jdbc:postgresql://localhost:8832/karaoke?currentSchema=public"
             }
 
-        private fun connectionRemoteUrl(): String = "jdbc:postgresql://79.174.95.69:8832/karaoke?currentSchema=public"
+        private fun connectionRemoteUrl(): String = "jdbc:postgresql://$DB_REMOTE_HOST:$DB_REMOTE_PORT/karaoke?currentSchema=public"
 
         private fun connectionVirtualUrl(): String = "jdbc:postgresql://localhost:2230/karaoke?currentSchema=public"
     }

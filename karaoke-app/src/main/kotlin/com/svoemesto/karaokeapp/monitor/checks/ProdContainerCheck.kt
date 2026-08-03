@@ -6,14 +6,15 @@ import com.svoemesto.karaokeapp.monitor.MonitorAlert
 import com.svoemesto.karaokeapp.monitor.MonitorCheck
 import com.svoemesto.karaokeapp.monitor.MonitorContext
 import com.svoemesto.karaokeapp.monitor.MonitorSeverity
+import com.svoemesto.karaokeapp.services.DB_REMOTE_HOST
 import java.net.HttpURLConnection
 import java.net.URL
 import java.time.Duration
 import java.time.Instant
 
 /**
- * Проверяет доступность прод-сервера (karaoke-web/karaoke-public за nginx на 79.174.95.69) HTTP-
- * пингом (образец таймаутов - Utils.isVpnActive()) + доступность прод-БД. Серьёзность нарастает:
+ * Проверяет доступность прод-сервера (karaoke-web/karaoke-public за nginx, хост из env `DB_REMOTE_HOST`)
+ * HTTP-пингом (образец таймаутов - Utils.isVpnActive()) + доступность прод-БД. Серьёзность нарастает:
  * WARNING сразу после первого сбоя, CRITICAL - если недоступность длится
  * >= monitorProdDownCriticalMinutes минут.
  *
@@ -61,7 +62,7 @@ object ProdContainerCheck : MonitorCheck {
                 category = "Инфраструктура",
                 detail = "недоступен уже $downForMinutes мин.",
                 recommendations =
-                    "Проверьте сервер 79.174.95.69 по SSH: nginx (`nginx -t`, `systemctl status nginx`), " +
+                    "Проверьте сервер $DB_REMOTE_HOST по SSH: nginx (`nginx -t`, `systemctl status nginx`), " +
                         "`docker ps` (karaoke-web/karaoke-public/karaoke-db), логи контейнеров (`docker logs <container>`).",
             ),
         )

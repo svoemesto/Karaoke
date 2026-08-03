@@ -17,6 +17,8 @@ lateinit var DB_LOCAL_POSTGRES_USER: String
 lateinit var DB_LOCAL_POSTGRES_PASSWORD: String
 lateinit var DB_SERVER_POSTGRES_USER: String
 lateinit var DB_SERVER_POSTGRES_PASSWORD: String
+lateinit var DB_REMOTE_HOST: String
+lateinit var DB_REMOTE_PORT: String
 
 // @Component
 
@@ -36,6 +38,8 @@ class KaraokeAppService(
     @Value($$"${db-local-postgres-password}") val dbLocalPostgresPassword: String,
     @Value($$"${db-remote-postgres-user}") val dbRemotePostgresUser: String,
     @Value($$"${db-remote-postgres-password}") val dbRemotePostgresPassword: String,
+    @Value($$"${db-remote-host}") val dbRemoteHost: String,
+    @Value($$"${db-remote-port}") val dbRemotePort: String,
 ) {
     init {
         APP_WORK_IN_CONTAINER = (wic != 0L)
@@ -44,6 +48,8 @@ class KaraokeAppService(
         DB_LOCAL_POSTGRES_PASSWORD = dbLocalPostgresPassword
         DB_SERVER_POSTGRES_USER = dbRemotePostgresUser
         DB_SERVER_POSTGRES_PASSWORD = dbRemotePostgresPassword
+        DB_REMOTE_HOST = dbRemoteHost
+        DB_REMOTE_PORT = dbRemotePort
         SNS = sseNotificationService
         KSS_APP = karaokeStorageService
         SAC_APP = storageApiClient

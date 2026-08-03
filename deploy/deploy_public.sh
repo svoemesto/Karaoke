@@ -13,7 +13,7 @@ echo "=== Push в Docker Hub ==="
 bash do.sh push_public
 
 echo "=== Pull и restart на сервере ==="
-ssh root@79.174.95.69 "cd Karaoke/deploy && bash do.sh pull_public"
+ssh root@${PROD_HOST:-188.119.64.111} "cd Karaoke/deploy && bash do.sh pull_public"
 
 echo "=== Готово ==="
 announce "PUBLIC обновлён на сервере" "Конт+эйнер фронт+энда с+айта обновл+ён на с+ервере" "1"

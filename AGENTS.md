@@ -289,7 +289,7 @@ Root `pom.xml` — leftover от Maven, не использовать. Прое�
 - Пересобирать/перезапускать контейнер `karaoke-app` локально — делает только пользователь.
   **Исключение**: на машине с hostname `dev-pc` под OS-пользователем `dev` это ограничение
   не действует — см. «Разрешено» ниже. На любой другой машине/пользователе — запрет в силе.
-- Деплоить на сервер (`deploy_web.sh`, `deploy_public.sh`, rsync на 79.174.95.69) — делает только пользователь
+- Деплоить на сервер (`deploy_web.sh`, `deploy_public.sh`, rsync на прод-сервер) — делает только пользователь
 - Редактировать файлы на сервере напрямую
 - Перезаписывать `do.env` на сервере (содержит секреты)
 - Коммитить `deploy/ollama_data/`, `dist/`, `node_modules/`, `deploy/.env`, `deploy/do.env`
@@ -406,7 +406,7 @@ export SPECIFY_FEATURE_DIRECTORY="specs/${N}-my-feature-slug"
 
 - `deploy/deploy_web.sh` — обновление karaoke-web на проде
 - `deploy/deploy_public.sh` — обновление karaoke-public на проде
-- Сервер: `79.174.95.69`, Docker-сеть `deploy_karaokenet`
+- Сервер: `188.119.64.111` (justhost Нск), Docker-сеть `deploy_karaokenet`. IP задаётся через env `PROD_HOST` / `DB_REMOTE_HOST` (см. Principle VIII.5)
 - Не редактировать файлы на сервере напрямую — синхронизировать через rsync
 - `do.env` на сервере содержит секреты — не перезаписывать через rsync
 
@@ -417,7 +417,7 @@ export SPECIFY_FEATURE_DIRECTORY="specs/${N}-my-feature-slug"
 
 **Nginx 80to8897:** это отдельный файл (не симлинк). При rsync обновляется в `/root/Karaoke/deploy/`, но nginx читает из `/etc/nginx/sites-enabled/`. Нужно копировать вручную:
 ```bash
-ssh root@79.174.95.69 "cp /root/Karaoke/deploy/80to8897 /etc/nginx/sites-enabled/80to8897 && nginx -t && systemctl reload nginx"
+ssh root@188.119.64.111 "cp /root/Karaoke/deploy/80to8897 /etc/nginx/sites-enabled/80to8897 && nginx -t && systemctl reload nginx"
 ```
 
 ---

@@ -2389,6 +2389,29 @@ export default {
       let request = { method: 'POST', url: '/api/song/publishToTelegramNow', params: params }
       return promisedXMLHttpRequest(request)
     },
+    /**
+     * Ручной повтор автоматической премиум-публикации в Telegram
+     * (specs/122-premium-auto-publish, FR-008). Вызывает
+     * POST /api/song/publishPremiumTelegram?id=<id> — не сохраняет message_id
+     * (persistMessageId=false на сервере), в отличие от publishToTelegramNowPromise выше.
+     * @see contracts/internal-api.md specs/122-premium-auto-publish
+     */
+    publishPremiumTelegramPromise(ctx) {
+      let params = { id: ctx.state.currentSongId }
+      let request = { method: 'POST', url: '/api/song/publishPremiumTelegram', params: params }
+      return promisedXMLHttpRequest(request)
+    },
+    /**
+     * Ручной повтор автоматической премиум-публикации в ВК (specs/122-premium-auto-publish,
+     * FR-008). Вызывает POST /api/song/publishPremiumVk?id=<id> — не сохраняет post_id
+     * (persistPostId=false на сервере), в отличие от publishToVkNowPromise-аналога.
+     * @see contracts/internal-api.md specs/122-premium-auto-publish
+     */
+    publishPremiumVkPromise(ctx) {
+      let params = { id: ctx.state.currentSongId }
+      let request = { method: 'POST', url: '/api/song/publishPremiumVk', params: params }
+      return promisedXMLHttpRequest(request)
+    },
     createMP3KaraokePromise(ctx, payload) {
       let params = {
         id: ctx.state.currentSongId,

@@ -2,7 +2,7 @@
 
 > **Status**: active (Фаза 1 — отлов ссылки; Фаза 2 — постинг демо-MP4 по расписанию)
 > **Feature Key**: telegram-auto-publish
-> **Last Updated**: 2026-07-31 (Фаза 2)
+> **Last Updated**: 2026-08-03 (Премиум-публикация — FR-003/FR-010 fix, specs/122-premium-auto-publish)
 
 ## Что делает
 
@@ -372,31 +372,53 @@ PREMIUM-шаблон (отличается от AIR-шаблона, по умо�
 ### Поток
 
 1. `markNewsAvailableIfReady()` в `Song.saveToDb()` — `newsPremiumPublishPending=true`.
-2. `PremiumAutoPublishScheduler` (отдельный `@Scheduled`-tick каждые 30 сек)
-   — `SELECT id FROM tbl_songs WHERE player_readiness_flags LIKE '%newsPremiumPublishPending%'`
-   + JSON-парсинг для фильтрации точного `true`.
-3. Для каждой песни:
+2. `PremiumAutoPublishScheduler` (отдельный `@Scheduled`-tick каждые 30 сек) — на каждом
+   тике **две фазы**:
+   - **Фаза 1 — `resumeRenderingSongs()`** (specs/122-premium-auto-publish, FR-003 fix,
+     2026-08-03): cheap SELECT песен с `newsPremiumPublishPending=true`, у которых хотя бы
+     один канал (`telegramAutoPublishState`/`vkAutoPublishState`) в состоянии `rendering` —
+     проверяет терминальный статус связанной `RENDER_MP4_DEMO`-задачи и вызывает
+     `onRenderCompleted(..., publicationType/type=PREMIUM, persistMessageId/persistPostId=false)`
+     соответствующего сервиса. **Не зависит** от `telegramAutoPublishEnabled`/
+     `vkAutoPublishEnabled` — до этого фикса завершение отложенного премиум-рендера
+     целиком зависело от побочного эффекта `TelegramAutoPublishScheduler`/
+     `VkAutoPublishScheduler` (планировщиков ДРУГИХ фич), и молча ломалось, если
+     администратор выключал одну из них.
+   - **Фаза 2 — `publishPendingSongs()`**: `SELECT id FROM tbl_songs WHERE
+     player_readiness_flags LIKE '%newsPremiumPublishPending%'` + JSON-парсинг для
+     фильтрации точного `true`.
+3. Для каждой песни (Фаза 2):
    - Загружает полный `Song`, перепроверяет `newsPremiumPublishPending=true`.
-   - Если канал занят RENDERING/PUBLISHING (от прошлой попытки) — skip до следующего тика.
-   - Если `idTelegramDemo`/`idVk` уже заполнены или `newsPremiumTelegramSent`/`newsPremiumVkSent`
-     уже установлены — отмечаем закрытие задачи (`state=COMPLETE`).
-   - Последовательно `TelegramAutoPublishService.publishToTelegram(song,
-     allowPastDate=true, publicationType=PREMIUM, persistMessageId=false)` и
+   - Если канал занят RENDERING/PUBLISHING (от прошлой попытки) — skip до следующего тика
+     (продолжит Фаза 1).
+   - Если оба канала уже «закрыты» (см. «Лимит попыток» ниже — закрыт значит успех ИЛИ
+     исчерпание собственного лимита попыток) — отмечаем закрытие задачи
+     (`state=COMPLETE`/`FAILED`).
+   - Публикует в канал, который ещё не закрыт: `TelegramAutoPublishService.publishToTelegram(song,
+     allowPastDate=true, publicationType=PREMIUM, persistMessageId=false)` и/или
      `VkAutoPublishService.publishToVk(song, type=PREMIUM, persistPostId=false)`.
    - При успехе в обоих каналах — `newsPremiumPublishPending=false`,
      `premiumAutoPublishState="COMPLETE"`.
 
 ### Идемпотентность
 
-Четыре независимых «галочки» в `player_readiness_flags` JSON-блобе:
+Независимые «галочки» в `player_readiness_flags` JSON-блобе:
 
-- `newsPremiumPublishPending` (Boolean) — задача для scheduler'а; снимается после
-  `COMPLETE` или `FAILED`.
+- `newsPremiumPublishPending` (Boolean) — задача для scheduler'а; снимается, когда
+  **оба** канала «закрыты» (успех ИЛИ исчерпание лимита попыток — см. «Лимит попыток»),
+  `premiumAutoPublishState` становится `COMPLETE` или `FAILED`.
 - `newsPremiumTelegramSent` (Boolean) — успешная PREMIUM-публикация в Telegram;
   не сбрасывается (новое событие «доступна» для одной песни быть не может —
   `newsAvailableAnnounced` монотонно растёт).
 - `newsPremiumVkSent` (Boolean) — то же для ВКонтакте.
-- `premiumAttemptCount` (int-as-string) — счётчик SEND_FAILED-попыток (общий для TG+VK).
+- `premiumAttemptCountTelegram` / `premiumAttemptCountVk` (int-as-string,
+  specs/122-premium-auto-publish FR-010, 2026-08-03) — **раздельные** счётчики
+  SEND_FAILED-попыток по каналам. Заменяют устаревшее общее поле `premiumAttemptCount`
+  (оставлено нетронутым для чтения старых записей/логов, новым кодом не
+  инкрементируется) — раньше сбой только одного канала (например, временно
+  недоступный ВК) мог преждевременно исчерпать общий лимит и пометить `FAILED`
+  канал (например, Telegram), который сам по себе ещё не исчерпал разумное число
+  попыток.
 
 Плюс уже существующие идемпотентности:
 - `song.idTelegramDemo.isNotEmpty()` / `song.idVk.isNotEmpty()` — если AIR-публикация
@@ -405,12 +427,35 @@ PREMIUM-шаблон (отличается от AIR-шаблона, по умо�
 
 ### Лимит попыток
 
-`premiumAutoPublishMaxAttempts` (KaraokeProperties, default 3). При каждом
-`SEND_FAILED` (в любом канале) `premiumAttemptCount++`. При достижении лимита —
-`newsPremiumPublishPending=false` и `premiumAutoPublishState="FAILED"`. После
-FAILED админ видит проблему в UI и может сбросить через прямой
-`UPDATE tbl_songs SET player_readiness_flags = REPLACE(...)` или просто
-пересохранить песню.
+`premiumAutoPublishMaxAttempts` (KaraokeProperties, default 3) — применяется
+**раздельно к каждому каналу**. При `SEND_FAILED` в Telegram —
+`premiumAttemptCountTelegram++`; при `SEND_FAILED` в ВК — `premiumAttemptCountVk++`
+(независимо друг от друга, specs/122 FR-010). Канал считается «закрытым», когда он
+либо успешно опубликован, либо его собственный счётчик достиг лимита — сбой одного
+канала не влияет на количество оставшихся попыток другого. Когда закрыты ОБА
+канала: `newsPremiumPublishPending=false`, и `premiumAutoPublishState="FAILED"`
+(если хотя бы один канал закрылся НЕ через успех) либо `"COMPLETE"` (если оба —
+через успех). После `FAILED` админ видит проблему прямо в карточке песни
+(`SongEdit.vue` — бейджи «Премиум TG:»/«Премиум ВК:», см. «UI-статус и ручной
+повтор» ниже) и может нажать «Повторить» без прямых правок в БД.
+
+### UI-статус и ручной повтор (specs/122-premium-auto-publish, 2026-08-03)
+
+В карточке песни (`SongEdit.vue`, `webvue3`) — два независимых бейджа состояния,
+рядом с существующими AIR-полями `idTelegramDemo`/`idVk`:
+
+- «Премиум TG: Ожидает / Рендерится / Публикуется / Опубликовано / Ошибка отправки»
+  (computed `premiumTelegramPublishState`).
+- «Премиум ВК: …» (computed `premiumVkPublishState`), симметрично.
+
+Оба вычисляются client-side из уже присутствующих в JSON песни полей
+(`newsPremiumPublishPending`/`newsPremiumTelegramSent`/`newsPremiumVkSent`/
+`telegramAutoPublishState`/`vkAutoPublishState`/`premiumAttemptCountTelegram`/
+`premiumAttemptCountVk`/`premiumAutoPublishLastError`) — без нового endpoint'а.
+При статусе «Ошибка отправки» рядом с бейджем появляется кнопка «Повторить»
+(`publishPremiumTelegramNow()`/`publishPremiumVkNow()`), вызывающая существующие
+`POST /api/song/publishPremiumTelegram`/`publishPremiumVk` (Vuex-действия
+`publishPremiumTelegramPromise`/`publishPremiumVkPromise` в `Songs/store.js`).
 
 ### Шаблоны
 
@@ -444,6 +489,17 @@ premiumAutoPublishState}` и доступны всегда (даже при
 - **`persistMessageId=false` / `persistPostId=false`** — критичный флаг, без него
   PREMIUM-публикация перезапишет `idTelegramDemo`/`idVk` и сломает идемпотентность
   для будущей AIR-публикации.
+- **ВК-премиум сегодня публикует только текст** (community-токен не имеет прав
+  `video.save`, дефолтный `vkTemplatePremium` без маркера `{demoVideo}`) — завершается
+  синхронно за один тик, без состояния `rendering`. **Telegram-премиум всегда требует
+  готовое видео** (`sendVideo` не имеет текстового fallback) — если демо-MP4 нет, уходит
+  в `rendering` и ждёт `resumeRenderingSongs()`. Эта асимметрия — по дизайну, не баг; она
+  и была источником изначального баг-репорта specs/122 («ВК публикуется, Telegram — нет»)
+  до фикса FR-003 (см. `resumeRenderingSongs()` выше — раньше зависело от чужого
+  `telegramAutoPublishEnabled`).
+- **`premiumAttemptCount` (старое поле) больше не используется новым кодом** — заменено
+  на `premiumAttemptCountTelegram`/`premiumAttemptCountVk` (FR-010). Поле не удалено (не
+  требует миграции), но инкрементируется только старыми записями/историческими логами.
 
 ### Ссылки на ключевые классы/файлы (премиум)
 
@@ -452,7 +508,10 @@ premiumAutoPublishState}` и доступны всегда (даже при
 - [`TelegramAutoPublishService.publishToTelegram`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/TelegramAutoPublishService.kt) — параметр `publicationType`, `persistMessageId`
 - [`VkAutoPublishService.publishToVk`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkAutoPublishService.kt) — параметр `persistPostId`
 - [`ApiController.publishPremiumTelegram` / `publishPremiumVk`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt) — ручные endpoint'ы
-- [`KaraokeProperties.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProperties.kt) — `premiumAutoPublishEnabled` (default false), `premiumAutoPublishMaxAttempts` (default 3)
+- [`KaraokeProperties.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProperties.kt) — `premiumAutoPublishEnabled` (default false), `premiumAutoPublishMaxAttempts` (default 3, раздельно на канал)
+- [`Song.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt) — `premiumAttemptCountTelegram`/`premiumAttemptCountVk` (specs/122 FR-010)
+- [`SongEdit.vue`](../../webvue3/src/components/Songs/edit/SongEdit.vue) — бейджи `premiumTelegramPublishState`/`premiumVkPublishState` + кнопки «Повторить»
+- [`Songs/store.js`](../../webvue3/src/components/Songs/store.js) — `publishPremiumTelegramPromise`/`publishPremiumVkPromise`
 
 ### Ссылки на ключевые классы/файлы (Фаза 2)
 

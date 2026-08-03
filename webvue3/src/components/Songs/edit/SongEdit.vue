@@ -642,6 +642,29 @@
                   <span style="font-size: 10px; font-weight: bold">ВК+</span>
                 </button>
               </div>
+              <!-- specs/122-premium-auto-publish FR-006/FR-007/FR-008: статус автоматической
+                   премиум-публикации в ВК (независимый цикл от AIR-кнопок выше, срабатывает при
+                   становлении песни доступной, id поста не сохраняется). Кнопка «Повторить» —
+                   только при статусе «Ошибка отправки». -->
+              <div v-if="premiumVkPublishState" class="label-and-input">
+                <span
+                  class="tg-publish-state-badge"
+                  :class="premiumVkPublishState.class"
+                  :title="premiumVkPublishState.title"
+                  >{{ premiumVkPublishState.label }}</span
+                >
+                <button
+                  v-if="premiumVkPublishState.class === 'tg-publish-state-late'"
+                  class="btn-round"
+                  :disabled="isPublishingPremiumVk"
+                  :title="
+                    isPublishingPremiumVk ? 'Публикация…' : 'Повторить премиум-публикацию в ВК'
+                  "
+                  @click="publishPremiumVkNow"
+                >
+                  <img alt="retry" class="icon-undo" src="../../../assets/svg/icon_undo.svg" />
+                </button>
+              </div>
             </div>
           </div>
 
@@ -1593,6 +1616,32 @@
                         class="icon-publish-telegram"
                         src="../../../assets/svg/icon_telegram.svg"
                       />
+                    </button>
+                  </div>
+                  <!-- specs/122-premium-auto-publish FR-006/FR-007/FR-008: статус автоматической
+                       премиум-публикации в Telegram (независимый цикл от AIR-статуса выше,
+                       срабатывает при становлении песни доступной; всегда требует готового
+                       демо-видео — может пройти через «Рендерится», id сообщения не
+                       сохраняется). Кнопка «Повторить» — только при статусе «Ошибка отправки». -->
+                  <div v-if="premiumTelegramPublishState" class="label-and-input">
+                    <span
+                      class="tg-publish-state-badge"
+                      :class="premiumTelegramPublishState.class"
+                      :title="premiumTelegramPublishState.title"
+                      >{{ premiumTelegramPublishState.label }}</span
+                    >
+                    <button
+                      v-if="premiumTelegramPublishState.class === 'tg-publish-state-late'"
+                      class="btn-round"
+                      :disabled="isPublishingPremiumTelegram"
+                      :title="
+                        isPublishingPremiumTelegram
+                          ? 'Публикация…'
+                          : 'Повторить премиум-публикацию в Telegram'
+                      "
+                      @click="publishPremiumTelegramNow"
+                    >
+                      <img alt="retry" class="icon-undo" src="../../../assets/svg/icon_undo.svg" />
                     </button>
                   </div>
                   <div v-if="showChordsTelegram" class="label-and-input">
@@ -2577,6 +2626,10 @@ export default {
       // кнопки «Опубликовать сейчас» во время асинхронного sendVideo с retry (до 5+ минут).
       isPublishingTelegram: false,
       isPublishingVk: false,
+      // specs/122-premium-auto-publish: блокируют повторные клики кнопки «Повторить» для
+      // премиум-цикла (отдельно от AIR-кнопок выше).
+      isPublishingPremiumTelegram: false,
+      isPublishingPremiumVk: false,
       allowUpdateRemote: false,
       allowUpdateLocal: false,
       allowAddSync: false,
@@ -2636,6 +2689,99 @@ export default {
         class: 'tg-publish-state-scheduled',
         title: 'Бот опубликует автоматически',
       }
+    },
+    /**
+     * Статус автоматической премиум-публикации в Telegram (specs/122-premium-auto-publish,
+     * FR-006/FR-009) — независимый цикл от AIR-статуса выше (`telegramPublishState`):
+     * срабатывает при становлении песни доступной, id публикации не сохраняется
+     * (`newsPremiumTelegramSent` вместо `idTelegramDemo`). Возвращает null, если песня
+     * никогда не входила в премиум-цикл. @see docs/features/telegram-auto-publish.md
+     * @returns {{label: string, class: string, title: string}|null}
+     */
+    premiumTelegramPublishState() {
+      if (!this.song) return null
+      if (!this.song.newsPremiumPublishPending && !this.song.newsPremiumTelegramSent) return null
+      if (this.song.newsPremiumTelegramSent) {
+        return {
+          label: 'Премиум TG: Опубликовано',
+          class: 'tg-publish-state-published',
+          title: 'Премиум-пост в Telegram отправлен',
+        }
+      }
+      if (['rendering', 'publishing'].includes(this.song.telegramAutoPublishState)) {
+        return {
+          label:
+            'Премиум TG: ' +
+            (this.song.telegramAutoPublishState === 'rendering' ? 'Рендерится' : 'Публикуется'),
+          class: 'tg-publish-state-scheduled',
+          title: 'Ожидает завершения рендера/отправки',
+        }
+      }
+      const maxAttempts = this.premiumAutoPublishMaxAttempts
+      if ((this.song.premiumAttemptCountTelegram || 0) >= maxAttempts) {
+        return {
+          label: 'Премиум TG: Ошибка отправки',
+          class: 'tg-publish-state-late',
+          title: this.song.premiumAutoPublishLastError || 'Все попытки исчерпаны',
+        }
+      }
+      return {
+        label: 'Премиум TG: Ожидает',
+        class: 'tg-publish-state-scheduled',
+        title: 'В очереди премиум-тика (каждые 30 сек)',
+      }
+    },
+    /**
+     * Статус автоматической премиум-публикации в ВК (specs/122-premium-auto-publish,
+     * FR-006/FR-009) — симметрично premiumTelegramPublishState, но для ВК-канала
+     * (`vkAutoPublishState`/`newsPremiumVkSent`/`premiumAttemptCountVk`). ВК-премиум сегодня
+     * публикует только текст (без видео — community-токен без прав video.save), поэтому
+     * обычно завершается мгновенно, без промежуточных «Рендерится».
+     * @see docs/features/vk-news-auto-publish.md
+     * @returns {{label: string, class: string, title: string}|null}
+     */
+    premiumVkPublishState() {
+      if (!this.song) return null
+      if (!this.song.newsPremiumPublishPending && !this.song.newsPremiumVkSent) return null
+      if (this.song.newsPremiumVkSent) {
+        return {
+          label: 'Премиум ВК: Опубликовано',
+          class: 'tg-publish-state-published',
+          title: 'Премиум-пост в ВК отправлен',
+        }
+      }
+      if (['rendering', 'publishing'].includes(this.song.vkAutoPublishState)) {
+        return {
+          label:
+            'Премиум ВК: ' +
+            (this.song.vkAutoPublishState === 'rendering' ? 'Рендерится' : 'Публикуется'),
+          class: 'tg-publish-state-scheduled',
+          title: 'Ожидает завершения рендера/отправки',
+        }
+      }
+      const maxAttempts = this.premiumAutoPublishMaxAttempts
+      if ((this.song.premiumAttemptCountVk || 0) >= maxAttempts) {
+        return {
+          label: 'Премиум ВК: Ошибка отправки',
+          class: 'tg-publish-state-late',
+          title: this.song.premiumAutoPublishLastError || 'Все попытки исчерпаны',
+        }
+      }
+      return {
+        label: 'Премиум ВК: Ожидает',
+        class: 'tg-publish-state-scheduled',
+        title: 'В очереди премиум-тика (каждые 30 сек)',
+      }
+    },
+    /**
+     * Лимит попыток премиум-публикации на канал (specs/122-premium-auto-publish, FR-010) —
+     * используется для отображения статуса «Ошибка отправки» в premiumTelegramPublishState/
+     * premiumVkPublishState. Дефолт 3 совпадает с серверным дефолтом
+     * `KaraokeProperties.premiumAutoPublishMaxAttempts`, если свойство не загружено на фронт.
+     * @returns {number}
+     */
+    premiumAutoPublishMaxAttempts() {
+      return 3
     },
     editorSiteUsers() {
       return this.$store.getters.getEditorSiteUsers || []
@@ -4191,6 +4337,118 @@ export default {
           this.showTelegramToast(
             msg,
             'ВК: ошибка',
+            'toast-header-copytoclipboard',
+            'toast-body-copytoclipboard',
+          )
+        })
+    },
+
+    /**
+     * Ручной повтор премиум-публикации в Telegram (specs/122-premium-auto-publish, FR-008) —
+     * кнопка «Повторить» видна только при статусе «Ошибка отправки»
+     * (premiumTelegramPublishState). В отличие от publishToTelegramNow, не пишет
+     * idTelegramDemo (сервер не сохраняет message_id для премиум-цикла) — вместо этого
+     * обновляет флаги newsPremiumPublishPending/newsPremiumTelegramSent/premiumAutoPublishState
+     * из ответа, чтобы бейдж статуса обновился без перезагрузки страницы.
+     * @see docs/features/telegram-auto-publish.md
+     */
+    publishPremiumTelegramNow() {
+      if (this.isPublishingPremiumTelegram) return
+      this.isPublishingPremiumTelegram = true
+      this.$store
+        .dispatch('publishPremiumTelegramPromise')
+        .then((response) => {
+          this.isPublishingPremiumTelegram = false
+          let data = {}
+          try {
+            data = typeof response === 'string' ? JSON.parse(response) : response
+          } catch (_e) {
+            data = {}
+          }
+          ;[
+            'newsPremiumPublishPending',
+            'newsPremiumTelegramSent',
+            'premiumAutoPublishState',
+          ].forEach((name) => {
+            if (Object.prototype.hasOwnProperty.call(data, name)) {
+              this.$store.commit('setCurrentSongField', { name, value: data[name] })
+            }
+          })
+          const state = data.state || 'unknown'
+          const error = data.error || ''
+          const success = data.success === true
+          const msg = success
+            ? state === 'rendering'
+              ? 'Поставлен рендер демо; премиум-публикация в Telegram продолжится после рендера.'
+              : 'Премиум-публикация в Telegram выполнена.'
+            : error || `Премиум-публикация в Telegram не выполнена (state=${state}).`
+          this.showTelegramToast(
+            msg,
+            success ? 'Telegram (премиум)' : 'Telegram (премиум): ошибка',
+            'toast-header-copytoclipboard',
+            'toast-body-copytoclipboard',
+          )
+        })
+        .catch((error) => {
+          this.isPublishingPremiumTelegram = false
+          const msg =
+            error && error.message ? error.message : 'Ошибка запроса премиум-публикации в Telegram.'
+          this.showTelegramToast(
+            msg,
+            'Telegram (премиум): ошибка',
+            'toast-header-copytoclipboard',
+            'toast-body-copytoclipboard',
+          )
+        })
+    },
+
+    /**
+     * Ручной повтор премиум-публикации в ВК (specs/122-premium-auto-publish, FR-008) —
+     * симметрично publishPremiumTelegramNow, но для ВК-канала (не пишет idVk).
+     * @see docs/features/vk-news-auto-publish.md
+     */
+    publishPremiumVkNow() {
+      if (this.isPublishingPremiumVk) return
+      this.isPublishingPremiumVk = true
+      this.$store
+        .dispatch('publishPremiumVkPromise')
+        .then((response) => {
+          this.isPublishingPremiumVk = false
+          let data = {}
+          try {
+            data = typeof response === 'string' ? JSON.parse(response) : response
+          } catch (_e) {
+            data = {}
+          }
+          ;['newsPremiumPublishPending', 'newsPremiumVkSent', 'premiumAutoPublishState'].forEach(
+            (name) => {
+              if (Object.prototype.hasOwnProperty.call(data, name)) {
+                this.$store.commit('setCurrentSongField', { name, value: data[name] })
+              }
+            },
+          )
+          const state = data.state || 'unknown'
+          const error = data.error || ''
+          const success = data.success === true
+          const msg = success
+            ? state === 'rendering'
+              ? 'Поставлен рендер демо; премиум-публикация в ВК продолжится после рендера.'
+              : 'Премиум-публикация в ВК выполнена.'
+            : error || `Премиум-публикация в ВК не выполнена (state=${state}).`
+          this.showTelegramToast(
+            msg,
+            success ? 'ВК (премиум)' : 'ВК (премиум): ошибка',
+            'toast-header-copytoclipboard',
+            'toast-body-copytoclipboard',
+          )
+        })
+        .catch((error) => {
+          this.isPublishingPremiumVk = false
+          const msg =
+            error && error.message ? error.message : 'Ошибка запроса премиум-публикации в ВК.'
+          this.showTelegramToast(
+            msg,
+            'ВК (премиум): ошибка',
             'toast-header-copytoclipboard',
             'toast-body-copytoclipboard',
           )

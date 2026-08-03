@@ -1,0 +1,12 @@
+[Unit]
+Description=Karaoke: ежедневный бэкап Postgres БД
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/root/Karaoke/deploy/karaoke-db-backup.sh
+User=root
+Group=root
+StandardOutput=journal
+StandardError=journal

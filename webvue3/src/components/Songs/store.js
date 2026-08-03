@@ -2053,7 +2053,20 @@ export default {
       // 1. КРИТИЧНО: Добавляем return!
       // Теперь await в компоненте будет реально ждать ответа от сервера.
       return promisedXMLHttpRequest(request)
-        .then(() => {
+        .then((data) => {
+          // specs/124-filename-sanitization-rename: /api/song/update теперь возвращает объект
+          // { albumLinkValid, fileNameRenameError } вместо голого boolean — если переименование
+          // "Имя файла" было отклонено (коллизия/пустое имя/активная обработка), fileNameRenameError
+          // непустой; остальные поля params при этом всё равно считаются сохранёнными на сервере.
+          let result = null
+          try {
+            result = JSON.parse(data)
+          } catch (_e) {
+            result = null
+          }
+          if (result && result.fileNameRenameError) {
+            throw new Error(result.fileNameRenameError)
+          }
           // 2. Передаем params в мутацию, чтобы она знала, какие именно поля сохранились
           ctx.commit('saveSong', params)
         })

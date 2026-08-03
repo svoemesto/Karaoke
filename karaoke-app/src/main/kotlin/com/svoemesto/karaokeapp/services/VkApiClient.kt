@@ -66,6 +66,37 @@ data class VkApiError(
 )
 
 /**
+ * Ответ `users.get` (минимальный, только для проверки user-token в [ApiController.saveVkUserToken]).
+ * Не используется в основной публикации — нужны только id + имя для логов.
+ */
+@Serializable
+data class VkUserCheckResponse(
+    val response: List<VkUserCheckEntry>? = null,
+    val error: VkApiError? = null,
+)
+
+@Serializable
+data class VkUserCheckEntry(
+    val id: Long = 0,
+    @SerialName("first_name") val firstName: String? = null,
+    @SerialName("last_name") val lastName: String? = null,
+)
+
+/**
+ * Ответ POST https://oauth.vk.ru/access_token (Authorization Code Flow, обмен code → token).
+ * Поля: `access_token`, `expires_in`, `user_id`, `error`.
+ * Парсится в [ApiController.vkOAuthCallback].
+ */
+@Serializable
+data class VkCodeTokenResponse(
+    @SerialName("access_token") val accessToken: String? = null,
+    @SerialName("expires_in") val expiresIn: Long? = null,
+    @SerialName("user_id") val userId: Long? = null,
+    val error: String? = null,
+    @SerialName("error_description") val errorDescription: String? = null,
+)
+
+/**
  * Тонкий клиент VK API поверх JDK HttpClient (specs/121-vk-news-auto-publish).
  *
  * Реализует методы `wall.post` (создание поста в группе) и `video.save` + загрузка
@@ -109,7 +140,25 @@ class VkApiClient {
 
     private fun baseUrl(): String = "https://api.vk.ru/method"
 
+    /**
+     * Community access token (`vkAccessToken`) — выдаётся в настройках группы ВК.
+     * Используется для методов, доступных сообществам: `wall.post` (от имени группы, FR-006).
+     * **Не работает** для `video.save`, `photos.*`, `docs.*` — для них нужен user-token
+     * (см. [userAccessToken], specs/121 fix 02.08.2026).
+     */
     private fun accessToken(): String = KaraokeProperties.getString("vkAccessToken")
+
+    /**
+     * User access token с scopes `video,photos,wall,offline` (`vkUserAccessToken`).
+     * Получается через Implicit Flow Standalone-приложения VK — см.
+     * `/api/utils/vkOAuthUrl` (формирование URL) + `/api/utils/vkSaveUserToken` (сохранение).
+     * Используется ТОЛЬКО для методов, требующих user scope:
+     * - `video.save` — загрузка видео в группу (право `video`)
+     * - `photos.getWallUploadServer` / `photos.saveWallPhoto` — загрузка фото на стену группы (право `photos`, FR-022 в новой редакции)
+     * Возвращает пустую строку, если user-token не задан — в этом случае `video.save`
+     * вернёт понятную ошибку.
+     */
+    private fun userAccessToken(): String = KaraokeProperties.getString("vkUserAccessToken")
 
     private fun apiVersion(): String = KaraokeProperties.getString("vkApiVersion").ifBlank { "5.199" }
 
@@ -284,16 +333,26 @@ class VkApiClient {
         return wallPost(groupId, message, attachments = attachment)
     }
 
-    /** Шаг 1: `video.save` — резервирование видео-записи (FR-019). */
+    /** Шаг 1: `video.save` — резервирование видео-записи (FR-019). Использует user-token. */
     private fun videoSave(
         groupId: String,
         name: String,
         description: String,
     ): VkSaveVideoResult {
+        // specs/121 fix 02.08.2026: video.save требует USER-token с правом video (community-token
+        // не подходит, см. /api/utils/vkOAuthUrl для получения). Возвращаем понятную ошибку,
+        // если user-token не настроен.
+        val token = userAccessToken()
+        if (token.isBlank()) {
+            return VkSaveVideoResult(
+                state = VkAutoPublishState.SEND_FAILED,
+                error = "vkUserAccessToken is empty — нужен user-token с правом video (см. /api/utils/vkOAuthUrl)",
+            )
+        }
         if (accessToken().isBlank()) {
             return VkSaveVideoResult(
                 state = VkAutoPublishState.SEND_FAILED,
-                error = "vkAccessToken is empty",
+                error = "vkAccessToken (community) is empty",
             )
         }
         val params =
@@ -305,7 +364,7 @@ class VkApiClient {
                 append("&description=")
                 append(java.net.URLEncoder.encode(description, "UTF-8"))
                 append("&access_token=")
-                append(accessToken())
+                append(token)
                 append("&v=")
                 append(apiVersion())
             }
@@ -385,6 +444,20 @@ class VkApiClient {
         // 4 — Incorrect signature; 5 — User authorization failed; 15 — Access denied;
         // 100 — One of the parameters is missing or invalid.
         private val NON_RETRYABLE_ERROR_CODES = setOf(4, 5, 15, 100)
+
+        // Парсер JSON для дешифровки ответа users.get при проверке user-token в
+        // ApiController.saveVkUserToken. ignoreUnknownKeys=true — VK может добавлять новые
+        // поля без сюрпризов.
+        private val checkerJson = Json { ignoreUnknownKeys = true }
+
+        @JvmStatic
+        fun decodeUserCheck(body: String): VkUserCheckResponse =
+            checkerJson.decodeFromString(VkUserCheckResponse.serializer(), body)
+
+        // Парсер ответа POST /access_token (Authorization Code Flow обмен).
+        @JvmStatic
+        fun decodeTokenResponse(body: String): VkCodeTokenResponse =
+            checkerJson.decodeFromString(VkCodeTokenResponse.serializer(), body)
     }
 }
 

@@ -120,6 +120,16 @@ object VkAutoPublishService {
                 storageApiClient = SAC_APP,
             ) ?: return null
 
+        // specs/122 fix: динамически переопределяем effective-параметры если рендер был для PREMIUM.
+        // VkAutoPublishScheduler.resumeRenderingSongs вызывает onRenderCompleted со ЗНАЧЕНИЯМИ
+        // ПО УМОЛЧАНИЮ (хотя у VK он передаёт явно type=AIR), но если в момент завершения флаг
+        // newsPremiumPublishPending=true — этот рендер для PREMIUM, и нужно сменить шаблон +
+        // persist=false, иначе слот idVk займётся преждевременно.
+        val effectiveType =
+            if (song.newsPremiumPublishPending) PublicationType.PREMIUM else type
+        val effectivePersistPostId =
+            if (song.newsPremiumPublishPending) false else persistPostId
+
         // Идемпотентность: если за время рендера песню уже опубликовали (вручную) — ничего не делаем.
         if (song.idVk.isNotEmpty()) {
             return VkAutoPublishResult(
@@ -128,7 +138,7 @@ object VkAutoPublishService {
             )
         }
 
-        if (type == PublicationType.PREMIUM && song.newsPremiumVkSent) {
+        if (effectiveType == PublicationType.PREMIUM && song.newsPremiumVkSent) {
             return VkAutoPublishResult(
                 state = VkAutoPublishState.PUBLISHED,
                 postId = "",
@@ -162,9 +172,11 @@ object VkAutoPublishService {
             )
         }
         // Рендерим шаблон для текста поста (видео уже готово — включаем по маркеру {demoVideo}).
-        val news = newsFor(song, type)
-        val rendered = VkTemplateService.renderWithFlags(VkTemplateService.templateFor(type), song, news)
-        return publishFile(song, demoFile, rendered.message, type, persistPostId)
+        // Используем effectiveType / effectivePersistPostId (specs/122 fix) — для premium-рендеров
+        // берётся PREMIUM-шаблон и persist=false.
+        val news = newsFor(song, effectiveType)
+        val rendered = VkTemplateService.renderWithFlags(VkTemplateService.templateFor(effectiveType), song, news)
+        return publishFile(song, demoFile, rendered.message, effectiveType, effectivePersistPostId)
     }
 
     /** Ставит задачу `RENDER_MP4_DEMO` в очередь (FR-020 сц. 2/3) и возвращает RENDERING. */
@@ -199,7 +211,6 @@ object VkAutoPublishService {
         song.vkAutoPublishState = VkAutoPublishState.RENDERING.code
         song.vkAutoPublishLastError = ""
         song.saveToDb()
-        println("VkAutoPublishService: song id=${song.id} type=${type.code} → RENDERING (processId=$processId)")
         return VkAutoPublishResult(state = VkAutoPublishState.RENDERING)
     }
 
@@ -239,12 +250,10 @@ object VkAutoPublishService {
             song.vkAutoPublishState = VkAutoPublishState.PUBLISHED.code
             song.vkAutoPublishLastError = ""
             song.saveToDb()
-            println("VkAutoPublishService: song id=${song.id} type=${type.code} → PUBLISHED (post_id=${result.postId}, persisted=$persistPostId)")
             return result
         }
 
         writeFailure(song, result.error ?: "sendPostWithVideo failed (no error description)")
-        println("VkAutoPublishService: song id=${song.id} type=${type.code} → SEND_FAILED: ${result.error}")
         return result
     }
 
@@ -280,12 +289,10 @@ object VkAutoPublishService {
             song.vkAutoPublishState = VkAutoPublishState.PUBLISHED.code
             song.vkAutoPublishLastError = ""
             song.saveToDb()
-            println("VkAutoPublishService: song id=${song.id} type=${type.code} → PUBLISHED text-only (post_id=${result.postId}, persisted=$persistPostId)")
             return result
         }
 
         writeFailure(song, result.error ?: "wallPost (text-only) failed")
-        println("VkAutoPublishService: song id=${song.id} type=${type.code} → SEND_FAILED: ${result.error}")
         return result
     }
 
@@ -323,7 +330,6 @@ object VkAutoPublishService {
                     }
                 }
         } catch (e: SQLException) {
-            println("VkAutoPublishService.findAirNewsForSong SQLException: ${e.message}")
         }
         return null
     }

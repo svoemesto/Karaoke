@@ -884,7 +884,29 @@ class Song(
     @get:JsonIgnore
     val playerReadinessFlagsMap: Map<String, Boolean> get() =
         try {
-            Json.decodeFromString(MapSerializer(String.serializer(), Boolean.serializer()), playerReadinessFlags)
+            // Парсим как JsonObject (а не Map<String, Boolean>) — это позволяет сосуществовать
+            // boolean-флагам (stemAccompanimentReady) и string-флагам (telegramAutoPublishState)
+            // в одном JSON-объекте без потери string-ключей (что было критическим багом
+            // 02.08.2026: setReadinessFlag через MapSerializer(String, Boolean) при
+            // encodeToString ОТБРАСЫВАЛ string-значения и сохранял только текущий boolean).
+            val obj =
+                Json.decodeFromString(
+                    kotlinx.serialization.json.JsonObject
+                        .serializer(),
+                    playerReadinessFlags,
+                )
+            obj.entries
+                .mapNotNull { (k, v) ->
+                    // JsonPrimitive.booleanOrNull появился в kotlinx-serialization-json 1.5+;
+                    // для совместимости (на старых версиях booleanContent) используем .content.
+                    val prim = v as? kotlinx.serialization.json.JsonPrimitive ?: return@mapNotNull null
+                    val content = prim.content
+                    when (content) {
+                        "true" -> k to true
+                        "false" -> k to false
+                        else -> null
+                    }
+                }.toMap()
         } catch (_: Exception) {
             emptyMap()
         }
@@ -895,9 +917,24 @@ class Song(
         key: String,
         value: Boolean,
     ) {
-        val updated = playerReadinessFlagsMap.toMutableMap()
-        updated[key] = value
-        playerReadinessFlags = Json.encodeToString(MapSerializer(String.serializer(), Boolean.serializer()), updated)
+        // Раньше использовался MapSerializer(String.serializer(), Boolean.serializer()) — это приводило
+        // к ПОТЕРЕ всех string-ключей в JSON (telegramAutoPublishState, vkAutoPublishState и т.п.) при
+        // любой записи boolean-флага. Теперь: парсим JSON как JsonObject (совместимо с обоими типами
+        // значений), модифицируем и сохраняем через JsonObject.encodeToString — string-значения
+        // сохраняются без искажений.
+        val updated =
+            try {
+                Json
+                    .decodeFromString(
+                        kotlinx.serialization.json.JsonObject
+                            .serializer(),
+                        playerReadinessFlags,
+                    ).toMutableMap()
+            } catch (_: Exception) {
+                mutableMapOf()
+            }
+        updated[key] = kotlinx.serialization.json.JsonPrimitive(value)
+        playerReadinessFlags = Json.encodeToString(kotlinx.serialization.json.JsonObject(updated))
     }
 
     // Фаза 2 (specs/113-telegram-demo-publish): string-ключи состояния автопубликации демо в тот же
@@ -5029,10 +5066,15 @@ class Song(
     // FR-003 spec.md: onAir намеренно не учитывается (это событие «доступна», не «в эфире»); once true,
     // никогда не сбрасывается обратно в false.
     //
-    // specs/122-premium-auto-publish: при первом переходе false→true также выставляется
-    // newsPremiumPublishPending=true — флаг для PremiumAutoPublishScheduler, который сделает
-    // премиум-публикацию в Telegram+VK (отдельная история, не сохраняющая message_id в Song —
-    // чтобы этот же message_id сохранила будущая air-публикация при выходе песни в эфир).
+    // specs/122-premium-auto-publish: разбито на ДВА независимых блока:
+    //   1) newsAvailableAnnounced: ставится при первом переходе false→true (исходное условие).
+    //   2) newsPremiumPublishPending: ставится, если песня контент-ready И премиум-публикация ещё
+    //      не в процессе И песня ещё не в эфире. ВАЖНО — разнесено в отдельный блок потому что
+    //      `newsAvailableAnnounced` мог быть выставлен РАНЕЕ старого кода (premiumAutoPublish-* флагов
+    //      до 02.08.2026 не было), и тогда первый блок не сработает → второй блок подхватит такие
+    //      песни при первом же saveToDb() после развёртывания нового кода.
+    //      Если идём по этому пути на старой песне — это нормальная инициализация: для уже-опубликованных
+    //      в эфир (idTelegramDemo/idVk заполнены) флаг не выставляется вообще — для них премиум-лишний.
     private fun markNewsAvailableIfReady() {
         if (!newsAvailableAnnounced &&
             idStatus == 6L &&
@@ -5043,8 +5085,22 @@ class Song(
             sourceMarkersList.isNotEmpty()
         ) {
             newsAvailableAnnounced = true
+        }
+        // Блок 2 — выставление newsPremiumPublishPending. Идемпотентен: пока флаг уже true или премиум
+        // уже завершён (COMPLETE) или провален окончательно (FAILED) — не переустанавливаем.
+        if (!newsPremiumPublishPending &&
+            (premiumAutoPublishState.isBlank() || premiumAutoPublishState == "RUNNING") &&
+            idTelegramDemo.isEmpty() &&
+            idVk.isEmpty() &&
+            idStatus == 6L &&
+            stemAccompanimentReady &&
+            stemVocalReady &&
+            pictureAlbumReady &&
+            pictureAuthorReady &&
+            sourceMarkersList.isNotEmpty()
+        ) {
             newsPremiumPublishPending = true
-            premiumAutoPublishState = if (premiumAutoPublishState.isBlank()) "RUNNING" else premiumAutoPublishState
+            premiumAutoPublishState = "RUNNING"
             premiumAttemptCount = 0
             premiumAutoPublishLastError = ""
         }

@@ -49,7 +49,6 @@ class VkAutoPublishScheduler {
 
         val groupId = KaraokeProperties.getString("vkGroupId")
         if (groupId.isBlank()) {
-            println("VkAutoPublishScheduler: vkGroupId is empty, skip tick")
             return
         }
 
@@ -57,7 +56,6 @@ class VkAutoPublishScheduler {
             resumeRenderingSongs()
             publishScheduledNews()
         } catch (e: Exception) {
-            println("VkAutoPublishScheduler.tick error: ${e.message}")
         }
     }
 
@@ -130,9 +128,7 @@ class VkAutoPublishScheduler {
         val result = client.wallPost(groupId, message, attachments = null)
         if (result.state == VkAutoPublishState.PUBLISHED) {
             publishedNewsIdsWithoutSong.add(news.id)
-            println("VkAutoPublishScheduler: news id=${news.id} → PUBLISHED (no video, post_id=${result.postId})")
         } else {
-            println("VkAutoPublishScheduler: news id=${news.id} → SEND_FAILED: ${result.error}")
         }
     }
 
@@ -174,7 +170,6 @@ class VkAutoPublishScheduler {
                 }
             }
         } catch (e: SQLException) {
-            println("VkAutoPublishScheduler.loadRenderingCandidateIds SQLException: ${e.message}")
         }
         return result
     }
@@ -210,7 +205,6 @@ class VkAutoPublishScheduler {
                 }
             }
         } catch (e: SQLException) {
-            println("VkAutoPublishScheduler.loadNewsCandidates SQLException: ${e.message}")
         }
         return result
     }
@@ -232,10 +226,11 @@ class VkAutoPublishScheduler {
         val connection = WORKING_DATABASE.getConnection() ?: return null
         try {
             connection.createStatement().use { st ->
+                // 2026-08-02 fix: process_status, не status (старое имя колонки, несовместимо с текущей схемой).
                 val rs =
                     st.executeQuery(
                         """
-                        SELECT status, id
+                        SELECT process_status, id
                         FROM tbl_processes
                         WHERE settings_id = $songId AND process_type = 'RENDER_MP4_DEMO'
                         ORDER BY id DESC LIMIT 1
@@ -243,12 +238,11 @@ class VkAutoPublishScheduler {
                     )
                 rs.use {
                     if (rs.next()) {
-                        return RenderProcessInfo(rs.getString("status"), rs.getLong("id"))
+                        return RenderProcessInfo(rs.getString("process_status"), rs.getLong("id"))
                     }
                 }
             }
         } catch (e: SQLException) {
-            println("VkAutoPublishScheduler.findRenderDemoProcess SQLException: ${e.message}")
         }
         return null
     }

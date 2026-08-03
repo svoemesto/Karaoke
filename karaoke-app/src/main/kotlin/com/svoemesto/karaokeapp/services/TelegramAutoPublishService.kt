@@ -104,11 +104,6 @@ object TelegramAutoPublishService {
 
         // FR-011: песня должна быть публично готова (контент), иначе публикация бессмысленна.
         if (!song.isContentReady) {
-            println(
-                "TelegramAutoPublishService: song id=${song.id} isContentReady=false: idStatus=${song.idStatus} " +
-                    "stemAcc=${song.stemAccompanimentReady} stemVoc=${song.stemVocalReady} " +
-                    "picAlb=${song.pictureAlbumReady} picAuth=${song.pictureAuthorReady} markersLen=${song.sourceMarkersList.size}",
-            )
             return TelegramAutoPublishResult(
                 state = TelegramAutoPublishState.SCHEDULED,
                 error = "not content-ready (idStatus=${song.idStatus})",
@@ -164,6 +159,18 @@ object TelegramAutoPublishService {
                 storageApiClient = SAC_APP,
             ) ?: return null
 
+        // specs/122 fix: динамически переопределяем effective-параметры если в момент завершения
+        // рендера выяснилось, что это PREMIUM-публикация. Без этого TelegramAutoPublishScheduler.
+        // resumeRenderingSongs вызывает onRenderCompleted со ЗНАЧЕНИЯМИ ПО УМОЛЧАНИЮ
+        // (publicationType=AIR, persistMessageId=true), даже если рендер был запущен из
+        // PremiumAutoPublishScheduler для PREMIUM-публикации. Это было критическим багом
+        // 02.08.2026 — публикация пошла бы с AIR-шаблоном и записала id в idTelegramDemo,
+        // не оставив слот для будущей AIR-публикации.
+        val effectivePublicationType =
+            if (song.newsPremiumPublishPending) com.svoemesto.karaokeapp.model.PublicationType.PREMIUM else publicationType
+        val effectivePersistMessageId =
+            if (song.newsPremiumPublishPending) false else persistMessageId
+
         // Идемпотентность: если за время рендера песню уже опубликовали (вручную) — ничего не делаем.
         if (song.idTelegramDemo.isNotEmpty()) {
             return TelegramAutoPublishResult(
@@ -173,7 +180,7 @@ object TelegramAutoPublishService {
         }
 
         // Для PREMIUM: повторный skip если уже отправлено.
-        if (publicationType == com.svoemesto.karaokeapp.model.PublicationType.PREMIUM &&
+        if (effectivePublicationType == com.svoemesto.karaokeapp.model.PublicationType.PREMIUM &&
             song.newsPremiumTelegramSent
         ) {
             return TelegramAutoPublishResult(
@@ -211,7 +218,7 @@ object TelegramAutoPublishService {
                 error = "file still exceeds limit after re-render",
             )
         }
-        return publishFile(song, demoFile, publicationType, persistMessageId)
+        return publishFile(song, demoFile, effectivePublicationType, effectivePersistMessageId)
     }
 
     // Ставит задачу RENDER_MP4_DEMO в очередь (FR-003 сц. 2/3) и возвращает RENDERING.
@@ -248,7 +255,6 @@ object TelegramAutoPublishService {
         song.telegramAutoPublishState = TelegramAutoPublishState.RENDERING.code
         song.telegramAutoPublishLastError = ""
         song.saveToDb()
-        println("TelegramAutoPublishService: song id=${song.id} type=${publicationType.code} → RENDERING (processId=$processId)")
         return TelegramAutoPublishResult(state = TelegramAutoPublishState.RENDERING)
     }
 
@@ -302,13 +308,11 @@ object TelegramAutoPublishService {
             song.telegramAutoPublishState = TelegramAutoPublishState.PUBLISHED.code
             song.telegramAutoPublishLastError = ""
             song.saveToDb()
-            println("TelegramAutoPublishService: song id=${song.id} type=${publicationType.code} → PUBLISHED (message_id=${result.messageId}, persisted=$persistMessageId)")
             return result
         }
 
         // SEND_FAILED — все ретраи FR-010 исчерпаны.
         writeFailure(song, result.error ?: "sendVideo failed (no error description)")
-        println("TelegramAutoPublishService: song id=${song.id} type=${publicationType.code} → SEND_FAILED: ${result.error}")
         return result
     }
 

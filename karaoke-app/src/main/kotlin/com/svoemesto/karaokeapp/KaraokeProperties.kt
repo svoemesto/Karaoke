@@ -1815,7 +1815,49 @@ val listKaraokeProperties =
         KaraokeProperty(
             key = "vkAccessToken",
             defaultValue = "",
-            description = "ВК: Community access token (секрет, в git НЕ попадает). Получается из настроек группы: Управление → Работа с API → Ключи доступа",
+            description =
+                "ВК: Community access token (секрет, в git НЕ попадает). " +
+                    "Получается из настроек группы: Управление → Работа с API → Ключи доступа. " +
+                    "Используется для: wall.post от имени сообщества (✓ работает). " +
+                    "НЕ работает для: video.save, photos.*, docs.* (только user-token с правом video/photos).",
+        ),
+        // specs/121 (фактически fix 02.08.2026): user-token с правом video/photos, полученный через
+        // Implicit Flow Standalone-приложения (см. /api/utils/vkOAuthUrl).
+        KaraokeProperty(
+            key = "vkUserAccessToken",
+            defaultValue = "",
+            description =
+                "ВК: User access token (секрет, в git НЕ попадает) с scopes `video,photos,wall,offline`. " +
+                    "Получается через Implicit Flow Standalone-приложения VK (инструкция: `docs/features/vk-news-auto-publish.md`, " +
+                    "раздел \"User-token через Implicit Flow\"). Используется для: video.save и photos.*. " +
+                    "Пусто = Vk-публикация работает только для премиум-выпусков (только текст через community-token).",
+        ),
+        KaraokeProperty(
+            key = "vkAppId",
+            defaultValue = 0L,
+            description =
+                "ВК: ID Standalone-приложения (целое число). " +
+                    "Получается при создании Standalone-приложения: https://vk.com/apps?act=manage → " +
+                    "Создать приложение → Standalone → Категория \"Другое\". Используется для Implicit Flow.",
+        ),
+        KaraokeProperty(
+            key = "vkRedirectUri",
+            defaultValue = "",
+            description =
+                "ВК: полный URL редиректа для OAuth (Implicit Flow / Code Flow). " +
+                    "Например: \"https://sm-karaoke.ru/api/utils/vkOAuthCallback\". " +
+                    "Должен быть задан в настройках приложения (https://oauth.vk.ru → \"Доверенный Redirect URL\").",
+        ),
+        // specs/121 fix 02.08.2026 + 21:00: client_secret Web-приложения (для Authorization Code Flow —
+        // Implicit Flow на Web заблокирован VK и возвращает Security Error).
+        KaraokeProperty(
+            key = "vkClientSecret",
+            defaultValue = "",
+            description =
+                "ВК: client_secret Web-приложения (секрет, в git НЕ попадает). " +
+                    "Виден на https://oauth.vk.ru/ → \"Защищённый ключ\" (для Standalone) или " +
+                    "\"Сервисный ключ доступа\" (для Web). Используется для Authorization Code Flow: " +
+                    "обмен code → access_token через POST https://oauth.vk.ru/access_token.",
         ),
         KaraokeProperty(
             key = "vkApiVersion",
@@ -1855,7 +1897,12 @@ val listKaraokeProperties =
         KaraokeProperty(
             key = "vkTemplatePremium",
             defaultValue = "",
-            description = "ВК: шаблон поста типа 'премиум-выпуск' (premium, ручной) с плейсхолдерами. Пусто = дефолт в коде (VkTemplateService)",
+            description =
+                "ВК: шаблон поста типа 'премиум-выпуск' (premium, ручной) с плейсхолдерами. " +
+                    "Пусто = дефолт в коде (VkTemplateService) — на 02.08.2026 дефолт БЕЗ маркера {demoVideo}: " +
+                    "video.save API требует user-token с правом video (есть только community-token), " +
+                    "поэтому premium-публикация сейчас идёт без видео (только текст + ссылка). " +
+                    "Для публикации с видео: добавить {demoVideo} и получить user-token с правом video через support VK.",
         ),
         KaraokeProperty(
             key = "telegramTemplateAir",

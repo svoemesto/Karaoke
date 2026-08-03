@@ -44,9 +44,20 @@ object VkTemplateService {
     const val DEFAULT_AIR_TEMPLATE =
         "{songNameCensored} ★♫★ {author}\n{link}\n{demoVideo}\n#караоке #svoemesto"
 
-    /** Дефолтный шаблон для типа `premium` (если `vkTemplatePremium` пустой). */
+    /**
+     * Дефолтный шаблон для типа `premium` (если `vkTemplatePremium` пустой).
+     *
+     * **Без маркера `{demoVideo}`** — на 02.08.2026 выяснилось, что метод VK API `video.save`
+     * требует user-token с правом `video` (выдаётся VK только в исключительных случаях через
+     * запрос в support). У админа есть только Community access token (для `wall.post` от
+     * имени группы), но НЕ для `video.save` (error_code=5, "invalid token type"). Поэтому
+     * дефолтный premium-шаблон публикуется только текстом + ссылка на песню, без видео.
+     * Когда в будущем будет получен user-token с правом `video` — вернуть в шаблон маркер
+     * `{demoVideo}`, и `VkAutoPublishService.publishTextOnly` сменится на `publishFile`
+     * автоматически (по флагу `includeDemoVideo`).
+     */
     const val DEFAULT_PREMIUM_TEMPLATE =
-        "{songNameCensored} ★♫★ {author} (премиум)\n{link}\n{demoVideo}\n#караоке #svoemosto #премиум"
+        "{songNameCensored} ★♫★ {author} (премиум)\n{link}\n#караоке #svoemesto #премиум"
 
     /**
      * Список известных плейсхолдеров с описаниями (для UI/endpoint `/api/vk/templates`).

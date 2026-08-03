@@ -4627,7 +4627,7 @@ class Song(
     fun getTextBoostyFilesHead(): String = "[ФАЙЛЫ] ${songName.censored()} ★♫★ $author"
 
     fun getTextForDescriptionHeader(songVersion: SongVersion? = null): String =
-        "$linkSM ⇐ Страница песни на официальном сайте проекта\n\n" +
+        "$linkSM\n ⇑ Страница песни на официальном сайте проекта ⇑\n\n" +
             (if (songVersion == null) "" else "Версия: ${songVersion.text} (${songVersion.textForDescription})\n") +
             "Композиция: ${songName}\n" +
             "Исполнитель: ${author}\n" +
@@ -4640,11 +4640,11 @@ class Song(
     fun getTextForDescriptionFooter(): String =
         "\n\n" +
             "Официальный сайт проекта: https://sm-karaoke.ru\n" +
-            "Поддержать проект на Sponsr: https://sponsr.ru/smkaraoke\n" +
+//            "Поддержать проект на Sponsr: https://sponsr.ru/smkaraoke\n" +
             "Группа ВКонтакте: https://vk.ru/svoemestokaraoke\n" +
             "Канал Telegram: https://t.me/svoemestokaraoke\n" +
-            "Канал Дзен: https://dzen.ru/svoemesto\n" +
-            "Канал Макс: https://max.ru/join/hYGH-mbcExUtzP5o4zq38uwb0xL9iwL80uSeEBO7Bu0\n" +
+//            "Канал Дзен: https://dzen.ru/svoemesto\n" +
+//            "Канал Макс: https://max.ru/join/hYGH-mbcExUtzP5o4zq38uwb0xL9iwL80uSeEBO7Bu0\n" +
             "${songName.hashtag()} ${author.hashtag()} ${"karaoke".hashtag()} ${"караоке".hashtag()}\n"
 
     fun getTextBoostyBody(): String =
@@ -4753,7 +4753,7 @@ class Song(
         )
 
     private fun getTextForDescriptionHeaderDemo(): String =
-        "$linkSM ⇐ Страница песни на официальном сайте проекта\n\n" +
+        "$linkSM\n ⇑ Страница песни на официальном сайте проекта ⇑\n\n" +
             "Версия: Demo (Karaoke (Demo))\n" +
             "Композиция: ${songName}\n" +
             "Исполнитель: ${author}\n" +

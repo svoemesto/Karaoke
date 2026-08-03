@@ -182,11 +182,6 @@ val karaokePropertiesMap: MutableMap<String, Any> = mutableMapOf()
 val listKaraokeProperties =
     listOf(
         KaraokeProperty(key = "checkSearchAsync", defaultValue = false, description = "Мониторинг SearchAsync"),
-        KaraokeProperty(
-            key = "newsAutoPublishKillSwitch",
-            defaultValue = false,
-            description = "Временный kill-switch (specs/124-news-flags-backfill): при true News.createAutoAnnouncement возвращает null без INSERT — блокирует обе точки авто-новостей (SongReleaseAnnouncementService.detectAndAnnounceAvailability из sync и checkOnAirWindow из scheduler) во время sync-окна после backfill флагов публикации. Ручные новости (News.createNew) не блокируются. Включается/выключается через /api/properties/setproperty без рестарта контейнера.",
-        ),
         // Выбор движка поиска (specs/015-search-engine-selection) — строка с именем константы
         // enum'а (LyricsSearchEngine/AlbumCoverSearchEngine, см. UtilsAI.kt/AlbumCoverFinder.kt).
         // Нативного enum-типа у KaraokeProperties нет (см. types()) — парсится на границе

@@ -2,7 +2,6 @@ package com.svoemesto.karaokeapp.model
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.svoemesto.karaokeapp.KaraokeConnection
-import com.svoemesto.karaokeapp.KaraokeProperties
 import com.svoemesto.karaokeapp.WORKING_DATABASE
 import com.svoemesto.karaokeapp.services.KSS_APP
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
@@ -345,12 +344,23 @@ class News(
             storageService: KaraokeStorageService = KSS_APP,
             storageApiClient: StorageApiClient = SAC_APP,
         ): News? {
-            // specs/124-news-flags-backfill (FR-010/FR-011): временный kill-switch, блокирующий
-            // auto-новости во время sync-окна после backfill флагов публикации. Покрывает ОБЕ точки
-            // создания auto-новостей: SongReleaseAnnouncementService.detectAndAnnounceAvailability
-            // (sync, premium) и checkOnAirWindow (scheduler, air). Ручные новости (News.createNew)
+            // specs/125-news-flags-backfix (FR-010/FR-011): kill-switch, блокирующий auto-новости
+            // во время sync-окна после backfill флагов публикации. Покрывает ОБЕ точки создания
+            // auto-новостей: SongReleaseAnnouncementService.detectAndAnnounceAvailability (sync,
+            // premium) и checkOnAirWindow (scheduler, air). Ручные новости (News.createNew)
             // намеренно НЕ блокируются — админ может публиковать их во время sync-окна.
-            if (KaraokeProperties.getBoolean("newsAutoPublishKillSwitch")) return null
+            //
+            // Читается из `tbl_public_settings` (Postgres) напрямую через JDBC — это ЕДИНСТВЕННЫЙ
+            // слой настроек, работающий и на admin-машине (karaoke-app), и на проде (karaoke-web):
+            // KaraokeProperties читает файл /sm-karaoke/system/Karaoke.properties, который
+            // существует только на admin-машине (на проде karaoke-app не разворачивается). Шаблон
+            // чтения по образцу karaoke-web/services/CaptchaConfigService.kt:35 (там же, где
+            // Yandex SmartCaptcha читается на проде). Endpoint для on/off —
+            // POST /api/properties/setproperty (новый контроллер
+            // karaoke-web/.../controllers/PublicSettingsWebController.kt — старый
+            // /api/publicsettings/update живёт в karaoke-app и на проде возвращает 404, т.к.
+            // Spring в karaoke-web сканирует только com.svoemesto.karaokeweb.*).
+            if (isNewsAutoPublishKillSwitchActive(database)) return null
             val entity = News(database = database, storageService = storageService, storageApiClient = storageApiClient)
             entity.title = title
             entity.body = body
@@ -367,6 +377,35 @@ class News(
             id: Long,
             database: KaraokeConnection,
         ): Boolean = KaraokeDbTable.delete(tableName = TABLE_NAME, id = id, database = database)
+
+        /**
+         * specs/125-news-flags-backfix — kill-switch в `tbl_public_settings.newsAutoPublishKillSwitch`.
+         * Прямой JDBC-запрос (по тому же шаблону, что и
+         * [com.svoemesto.karaokeweb.services.CaptchaConfigService.fetchValue] для SmartCaptcha на
+         * проде): `karaoke-web` не сканирует пакет `com.svoemesto.karaokeapp.*`, поэтому
+         * `KaraokeProperties`-подход не работает (файл только на admin-машине). Значение
+         * сравнивается с литералом `"true"` как строкой (таблица хранит TEXT, не boolean).
+         * Любое другое значение (включая пустую строку — default после миграции) → kill-switch
+         * выключен. Ошибка JDBC (таблица отсутствует/нет коннекта) → false (default, не
+         * активен) — fail-open безопачен: лавина возможна только если kill-switch не успели
+         * включить перед sync'ом; но даже при сбое чтения sync пропустит записи без аварий.
+         */
+        private fun isNewsAutoPublishKillSwitchActive(database: KaraokeConnection): Boolean {
+            return try {
+                val connection = database.getConnection() ?: return false
+                connection
+                    .prepareStatement(
+                        "SELECT value FROM tbl_public_settings WHERE key = 'newsAutoPublishKillSwitch'",
+                    ).use { ps ->
+                        ps.executeQuery().use { rs ->
+                            rs.next() && rs.getString("value") == "true"
+                        }
+                    }
+            } catch (e: Exception) {
+                println("News.isNewsAutoPublishKillSwitchActive error: ${e.message}")
+                false
+            }
+        }
 
         // Существование новости данного вида по песне (specs/101-song-news-flag) — единственная
         // идемпотентность механизма «в эфире» внутри узкого скользящего окна проверки (research.md

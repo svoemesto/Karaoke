@@ -1060,13 +1060,28 @@ class Song(
         get() = readinessFlag("newsPremiumVkSent")
         set(value) = setReadinessFlag("newsPremiumVkSent", value)
 
-    // Счётчик попыток премиум-публикации (общий для TG+VK — каждая попытка любого канала
-    // инкрементирует). При достижении premiumAutoPublishMaxAttempts — newsPremiumPublishPending=false
-    // и premiumAutoPublishState="FAILED". Хранится как String (KV-JSON не поддерживает Int-примитивы
-    // в существующем readinessFlag-парсере), парсится через toIntOrNull с дефолтом 0.
+    // DEPRECATED (specs/122-premium-auto-publish, FR-010 fix): общий счётчик попыток на оба
+    // канала — независимый сбой одного канала (напр. ВК временно недоступен) мог преждевременно
+    // исчерпать общий лимит и пометить FAILED канал (напр. Telegram), который сам по себе ещё не
+    // исчерпал разумное число попыток. Больше НЕ инкрементируется новым кодом
+    // (PremiumAutoPublishScheduler.handleFailure использует premiumAttemptCountTelegram/
+    // premiumAttemptCountVk ниже) — поле оставлено нетронутым для чтения старых
+    // записей/логов, не удаляется.
     var premiumAttemptCount: Int
         get() = readinessStringFlag("premiumAttemptCount").toIntOrNull() ?: 0
         set(value) = setReadinessStringFlag("premiumAttemptCount", value.toString())
+
+    // Раздельные счётчики попыток премиум-публикации по каналам (specs/122-premium-auto-publish,
+    // FR-010) — заменяют общий premiumAttemptCount выше. Независимый сбой одного канала не
+    // блокирует и не ускоряет исчерпание лимита другого. Хранятся как String (тот же паттерн,
+    // что premiumAttemptCount), парсятся через toIntOrNull с дефолтом 0.
+    var premiumAttemptCountTelegram: Int
+        get() = readinessStringFlag("premiumAttemptCountTelegram").toIntOrNull() ?: 0
+        set(value) = setReadinessStringFlag("premiumAttemptCountTelegram", value.toString())
+
+    var premiumAttemptCountVk: Int
+        get() = readinessStringFlag("premiumAttemptCountVk").toIntOrNull() ?: 0
+        set(value) = setReadinessStringFlag("premiumAttemptCountVk", value.toString())
 
     // Состояние премиум-публикации (для UI): "" если ещё не начинали, "RUNNING" если в процессе
     // (хотя бы один канал ещё не завершён), "COMPLETE" если оба канала опубликованы, "FAILED"

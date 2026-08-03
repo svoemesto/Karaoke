@@ -2478,7 +2478,11 @@ export default {
     // не передаётся через UI — для dry-сценария есть отдельный endpoint /api/utils/.../dryRun=true
     // через curl; на UI всегда пишем (для ad-hoc диагностики достаточно тоста с финальным отчётом).
     backfillPublishFlagsPromise() {
-      let request = { method: 'POST', url: '/api/utils/backfillpublishflags', params: { target: 'local' } }
+      let request = {
+        method: 'POST',
+        url: '/api/utils/backfillpublishflags',
+        params: { target: 'local' },
+      }
       return promisedXMLHttpRequest(request)
     },
     autoAssignOriginalAllPromise(ctx, payload) {

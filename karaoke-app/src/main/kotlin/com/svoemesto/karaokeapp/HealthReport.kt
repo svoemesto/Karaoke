@@ -571,7 +571,7 @@ data class HealthReport(
                     .loadList(
                         args =
                             mapOf(
-                                "settings_id" to song.id.toString(),
+                                "song_id" to song.id.toString(),
                                 "process_type" to KaraokeProcessTypes.UPLOAD_TO_LOCAL_STORE.name,
                                 "thread_id" to KaraokeProcess.THREAD_LANE_HEALTH_REPORT.toString(),
                                 "process_args" to "karaokeFileType=${karaokeFileType.name}",
@@ -859,7 +859,7 @@ data class HealthReport(
                     .loadList(
                         args =
                             mapOf(
-                                "settings_id" to song.id.toString(),
+                                "song_id" to song.id.toString(),
                                 "process_type" to KaraokeProcessTypes.UPLOAD_TO_REMOTE_STORE.name,
                                 "thread_id" to KaraokeProcess.THREAD_LANE_HEALTH_REPORT.toString(),
                                 "process_args" to "karaokeFileType=${karaokeFileType.name}",
@@ -1131,7 +1131,7 @@ data class HealthReport(
                 if (canResolve) {
                     val processArgs =
                         mapOf(
-                            "settings_id" to song.id.toString(),
+                            "song_id" to song.id.toString(),
                             "process_status" to KaraokeProcessStatuses.WAITING.name,
                             "process_type" to KaraokeProcessTypes.KEY_BPM_FROM_FILE.name,
                         )
@@ -1301,7 +1301,7 @@ data class HealthReport(
 //
 //                         if (canCreate) {
 //                             inProgressOwnArgs = mapOf(
-//                                 "settings_id" to song.id.toString(),
+//                                 "song_id" to song.id.toString(),
 //                                 "process_status" to KaraokeProcessStatuses.WAITING.name,
 //                                 "process_type" to KaraokeProcessTypes.FF_MP3_LYR.name
 //                             )
@@ -1356,7 +1356,7 @@ data class HealthReport(
                         if (canCreate) {
                             inProgressOwnArgs =
                                 mapOf(
-                                    "settings_id" to song.id.toString(),
+                                    "song_id" to song.id.toString(),
                                     "process_status" to KaraokeProcessStatuses.WAITING.name,
                                     "process_type" to KaraokeProcessTypes.DEMUCS2.name,
                                 )
@@ -1407,7 +1407,7 @@ data class HealthReport(
 //
 //                         if (canCreate) {
 //                             inProgressOwnArgs = mapOf(
-//                                 "settings_id" to song.id.toString(),
+//                                 "song_id" to song.id.toString(),
 //                                 "process_status" to KaraokeProcessStatuses.WAITING.name,
 //                                 "process_type" to KaraokeProcessTypes.FF_MP3_KAR.name
 //                             )
@@ -1458,7 +1458,7 @@ data class HealthReport(
                         if (canCreate) {
                             inProgressOwnArgs =
                                 mapOf(
-                                    "settings_id" to song.id.toString(),
+                                    "song_id" to song.id.toString(),
                                     "process_status" to KaraokeProcessStatuses.WAITING.name,
                                     "process_type" to KaraokeProcessTypes.FF_MP3_ACCOMPANIMENT.name,
                                 )
@@ -1510,7 +1510,7 @@ data class HealthReport(
                         if (canCreate) {
                             inProgressOwnArgs =
                                 mapOf(
-                                    "settings_id" to song.id.toString(),
+                                    "song_id" to song.id.toString(),
                                     "process_status" to KaraokeProcessStatuses.WAITING.name,
                                     "process_type" to KaraokeProcessTypes.DEMUCS2.name,
                                 )
@@ -1562,7 +1562,7 @@ data class HealthReport(
                         if (canCreate) {
                             inProgressOwnArgs =
                                 mapOf(
-                                    "settings_id" to song.id.toString(),
+                                    "song_id" to song.id.toString(),
                                     "process_status" to KaraokeProcessStatuses.WAITING.name,
                                     "process_type" to KaraokeProcessTypes.FF_MP3_VOCAL.name,
                                 )
@@ -1614,7 +1614,7 @@ data class HealthReport(
                         if (canCreate) {
                             inProgressOwnArgs =
                                 mapOf(
-                                    "settings_id" to song.id.toString(),
+                                    "song_id" to song.id.toString(),
                                     "process_status" to KaraokeProcessStatuses.WAITING.name,
                                     "process_type" to KaraokeProcessTypes.DEMUCS5.name,
                                 )
@@ -1666,7 +1666,7 @@ data class HealthReport(
                         if (canCreate) {
                             inProgressOwnArgs =
                                 mapOf(
-                                    "settings_id" to song.id.toString(),
+                                    "song_id" to song.id.toString(),
                                     "process_status" to KaraokeProcessStatuses.WAITING.name,
                                     "process_type" to KaraokeProcessTypes.FF_MP3_BASS.name,
                                 )
@@ -1718,7 +1718,7 @@ data class HealthReport(
                         if (canCreate) {
                             inProgressOwnArgs =
                                 mapOf(
-                                    "settings_id" to song.id.toString(),
+                                    "song_id" to song.id.toString(),
                                     "process_status" to KaraokeProcessStatuses.WAITING.name,
                                     "process_type" to KaraokeProcessTypes.DEMUCS5.name,
                                 )
@@ -1770,7 +1770,7 @@ data class HealthReport(
                         if (canCreate) {
                             inProgressOwnArgs =
                                 mapOf(
-                                    "settings_id" to song.id.toString(),
+                                    "song_id" to song.id.toString(),
                                     "process_status" to KaraokeProcessStatuses.WAITING.name,
                                     "process_type" to KaraokeProcessTypes.FF_MP3_DRUMS.name,
                                 )
@@ -1822,7 +1822,7 @@ data class HealthReport(
                         if (canCreate) {
                             inProgressOwnArgs =
                                 mapOf(
-                                    "settings_id" to song.id.toString(),
+                                    "song_id" to song.id.toString(),
                                     "process_status" to KaraokeProcessStatuses.WAITING.name,
                                     "process_type" to KaraokeProcessTypes.DEMUCS5.name,
                                 )
@@ -1874,7 +1874,7 @@ data class HealthReport(
                         if (canCreate) {
                             inProgressOwnArgs =
                                 mapOf(
-                                    "settings_id" to song.id.toString(),
+                                    "song_id" to song.id.toString(),
                                     "process_status" to KaraokeProcessStatuses.WAITING.name,
                                     "process_type" to KaraokeProcessTypes.FF_MP3_OTHER.name,
                                 )

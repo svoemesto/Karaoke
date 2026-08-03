@@ -2235,7 +2235,7 @@ class ApiController(
         filterOrder?.let { if (filterOrder != "") args["process_order"] = filterOrder }
         filterPriority?.let { if (filterPriority != "") args["process_priority"] = filterPriority }
         filterDescription?.let { if (filterDescription != "") args["process_description"] = filterDescription }
-        filterSongId?.let { if (filterSongId != "") args["settings_id"] = filterSongId }
+        filterSongId?.let { if (filterSongId != "") args["song_id"] = filterSongId }
         filterType?.let { if (filterType != "") args["process_type"] = filterType }
         filterLimit?.let { if (filterLimit != "") args["filter_limit"] = filterLimit }
         filterNotail?.let { if (filterNotail != "") args["filter_notail"] = filterNotail }
@@ -2620,7 +2620,7 @@ class ApiController(
         filterOrder?.let { if (filterOrder != "") args["process_order"] = filterOrder }
         filterPriority?.let { if (filterPriority != "") args["process_priority"] = filterPriority }
         filterDescription?.let { if (filterDescription != "") args["process_description"] = filterDescription }
-        filterSongId?.let { if (filterSongId != "") args["settings_id"] = filterSongId }
+        filterSongId?.let { if (filterSongId != "") args["song_id"] = filterSongId }
         filterType?.let { if (filterType != "") args["process_type"] = filterType }
         filterLimit?.let { if (filterLimit != "") args["filter_limit"] = filterLimit }
 
@@ -7335,7 +7335,7 @@ class ApiController(
             }
         val processes =
             KaraokeProcess.loadList(
-                mapOf("settings_id" to id.toString(), "process_type" to processType.name),
+                mapOf("song_id" to id.toString(), "process_type" to processType.name),
                 WORKING_DATABASE,
             )
         val latest = processes.maxByOrNull { it.id }

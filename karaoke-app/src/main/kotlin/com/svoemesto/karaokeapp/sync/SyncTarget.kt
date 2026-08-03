@@ -75,7 +75,7 @@ enum class SyncOperation(
  * сущность **НЕ участвует** в sync, даже если у неё есть `recordhash`-триггер.
  *
  * @param T тип сущности (наследник [KaraokeDbTable]).
- * @param key уникальный идентификатор в `SyncRegistry.all` (например, `"settings"`).
+ * @param key уникальный идентификатор в `SyncRegistry.all` (например, `"songs"`).
  * @param tableName имя таблицы в БД (например, `"tbl_songs"`).
  * @param displayName человекочитаемое имя для UI.
  * @param oneClickDirection направление при «1 клик».
@@ -218,9 +218,9 @@ class GenericKaraokeDbTableSyncTarget<T : KaraokeDbTable>(
  * GenericKaraokeDbTableSyncTarget<Song>: тот молча дал бы пустые диффы/пустой INSERT.
  */
 object SongSyncTarget : SyncTarget<Song>(
-    key = "settings",
+    key = "songs",
     tableName = Song.TABLE_NAME,
-    displayName = "Настройки песен",
+    displayName = "Песни",
     oneClickDirection = SyncDirection.LOCAL_TO_SERVER,
     // Самые тяжёлые строки в базе: source_text/result_text/source_markers/formatted_text_tabs. Несколько
     // сотен таких за один запрос дают многомегабайтный payload и "Read timed out" на remote — грузим по 25.

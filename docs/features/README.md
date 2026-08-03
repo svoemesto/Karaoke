@@ -28,6 +28,7 @@
 | 15 | `vk-news-auto-publish` | Автопубликация новостей в группу ВКонтакте | [vk-news-auto-publish.md](./vk-news-auto-publish.md) |
 | 16 | `premium-auto-publish` | Премиум-публикация (Telegram+VK) при становлении песни доступной | секция внутри [telegram-auto-publish.md](./telegram-auto-publish.md) |
 | 17 | `news-publish-backfill` | Backfill флагов публикации готовых песен + kill-switch на sync-окне | [news-publish-backfill.md](./news-publish-backfill.md) |
+| 18 | `news-templates` | Шаблоны авто-новостей сайта (title+body, вкладка в `PublishTemplatesView`) | [news-templates.md](./news-templates.md) |
 
 ## Cross-cutting (инфраструктура)
 

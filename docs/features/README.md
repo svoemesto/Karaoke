@@ -27,6 +27,7 @@
 | 14 | `player-transpose` | Транспонирование аудио в онлайн-плеере (админка + публичный премиум) | [player-transpose.md](./player-transpose.md) |
 | 15 | `vk-news-auto-publish` | Автопубликация новостей в группу ВКонтакте | [vk-news-auto-publish.md](./vk-news-auto-publish.md) |
 | 16 | `premium-auto-publish` | Премиум-публикация (Telegram+VK) при становлении песни доступной | секция внутри [telegram-auto-publish.md](./telegram-auto-publish.md) |
+| 17 | `news-publish-backfill` | Backfill флагов публикации готовых песен + kill-switch на sync-окне | [news-publish-backfill.md](./news-publish-backfill.md) |
 
 ## Cross-cutting (инфраструктура)
 

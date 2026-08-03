@@ -1,8 +1,10 @@
 package com.svoemesto.karaokeapp.services
 
 import com.svoemesto.karaokeapp.KaraokeConnection
+import com.svoemesto.karaokeapp.model.Message
 import com.svoemesto.karaokeapp.model.News
 import com.svoemesto.karaokeapp.model.Song
+import com.svoemesto.karaokeapp.model.SseNotification
 import java.sql.SQLException
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -249,5 +251,211 @@ object SongReleaseAnnouncementService {
             println("SongReleaseAnnouncementService.backfillNewsAvailableFlag error: ${e.message}")
         }
         return count
+    }
+
+    /**
+     * Отчёт о backfill флагов публикации (specs/124-news-flags-backfill, FR-013 spec.md) — содержит
+     * разбивку по категориям для анализа и итоговый тост SSE. [skippedNoMarkers] сейчас всегда 0,
+     * потому что фильтр кандидатов идёт через `Song.isContentReady` (см.
+     * [Song.isContentReady]/sourceMarkersList.isNotEmpty()) — оставлено на случай будущего
+     * ослабления критерия ready.
+     */
+    data class BackfillReport(
+        val totalCandidates: Int,
+        val fixedNewsAvailableAnnounced: Int,
+        val fixedPremiumComplete: Int,
+        val alreadyOk: Int,
+        val skippedActivePublishing: Int,
+        val skippedNoMarkers: Int,
+        val durationMs: Long,
+        val dryRun: Boolean,
+    ) {
+        /**
+         * Многострочное представление для `Message.body` финального SSE-тоста. Формат не строго JSON,
+         * чтобы администратор мог прочитать результат глазами без клика на детали (UI-шаблон — по
+         * образцу других backfill-тостов в `HomeView.vue`).
+         */
+        fun toBody(): String =
+            listOf(
+                "Всего кандидатов: $totalCandidates",
+                "Выставлен newsAvailableAnnounced: $fixedNewsAvailableAnnounced",
+                "Переведён в premiumAutoPublishState=COMPLETE: $fixedPremiumComplete",
+                "Уже были в полном complete-состоянии: $alreadyOk",
+                "Пропущено (активная публикация в TG/VK): $skippedActivePublishing",
+                "Пропущено (нет маркеров): $skippedNoMarkers",
+                "Длительность: $durationMs мс",
+                "Режим dry-run: ${if (dryRun) "да (без записи)" else "нет (записано)"}",
+            ).joinToString("\n")
+    }
+
+    /**
+     * Одноразовый backfill ПОЛНОГО complete-набора флагов публикации (specs/124-news-flags-backfill,
+     * FR-001…FR-005 spec.md) для уже готовых песен на LOCAL. В отличие от более узкого
+     * [backfillNewsAvailableFlag], здесь кроме `newsAvailableAnnounced=true` явно выставляется:
+     * `newsPremiumPublishPending=false`, `newsPremiumTelegramSent=true`, `newsPremiumVkSent=true`,
+     * `premiumAutoPublishState="COMPLETE"`, `premiumAutoPublishLastError=""`, `premiumAttemptCount=0`.
+     *
+     * Зачем: до feature 122 некоторые готовые песни были опубликованы без флагов `premiumAutoPublish*`;
+     * при развёртывании feature 122 каждый обычный `Song.saveToDb()` (например, при любом правке в
+     * админке) триггерил бы в `markNewsAvailableIfReady` Block 2 переход `newsPremiumPublishPending
+     * false→true` + state=RUNNING — а за ним `PremiumAutoPublishScheduler` запускал бы автопубликацию
+     * в TG+VK для 15000 песен разом (лавина). Backfill заполняет флаги «уже завершёнными» явно, без
+     * прохождения через state RUNNING. После backfill следующая sync LOCAL→PROD распространяет флаги
+     * обычным recordhash-механизмом; на PROD-окно включается kill-switch (`newsAutoPublishKillSwitch`)
+     * чтобы уже-применённые флаги не сработали в обратку как «новая песня появилась в коллекции» и
+     * не создали лавину auto-новостей.
+     *
+     * Кандидаты фильтруются по `Song.isContentReady` (status ≥6 + стемы + картинки + маркеры).
+     * Дополнительно пропускаются песни с активной автопубликацией в TG/VK (`telegramAutoPublishState`
+     * или `vkAutoPublishState` в `[rendering, publishing]`) — для них менять флаги премиум-каналов
+     * было бы гонкой с уже идущим рендером. Запись идёт через штатный `Song.saveToDb()` (НЕ raw SQL,
+     * см. research.md п.3 — recordhash гарантированно консистентен с sync-движком; raw SQL бы
+     * разошёлся по формуле хэша при неосторожной правке флагов).
+     *
+     * @return отчёт с разбивкой по категориям (всегда, в т.ч. при partial failure — см. catch).
+     */
+    fun backfillPublishFlags(
+        database: KaraokeConnection,
+        storageService: KaraokeStorageService,
+        storageApiClient: StorageApiClient,
+        dryRun: Boolean = false,
+    ): BackfillReport {
+        val startMs = System.currentTimeMillis()
+        // Счётчики объявлены ДО try — чтобы catch мог собрать честный частичный отчёт, если
+        // упали в середине (а не возвращал все нули).
+        var totalCandidates = 0
+        var fixedNewsAvailableAnnounced = 0
+        var fixedPremiumComplete = 0
+        var alreadyOk = 0
+        var skippedActivePublishing = 0
+        var skippedNoMarkers = 0
+        var processedForProgress = 0
+        return try {
+            val hashes = Song.listHashes(database = database, whereText = "WHERE id_status = 6") ?: emptyList()
+            totalCandidates = hashes.size
+            hashes.map { it.id }.chunked(CHUNK_SIZE).forEach { chunk ->
+                val loaded =
+                    Song.loadListFromDb(
+                        args = mapOf("ids" to chunk.joinToString(",")),
+                        database = database,
+                        storageService = storageService,
+                        storageApiClient = storageApiClient,
+                    )
+                loaded.forEach { song ->
+                    // Все фильтры — после загрузки, чтобы SQL-кэш отработал на одном дешёвом
+                    // запросе (WHERE id_status=6); тяжёлые поля (стемы/картинки/маркеры) грузим
+                    // один раз и фильтруем in-memory чанк-локально.
+                    if (!song.isContentReady) {
+                        // sourceMarkersList.isNotEmpty() внутри isContentReady; прочие редкие случаи
+                        // (стемы не готовы, картинки не готовы) считаем «нет маркеров» — для отчёта
+                        // это самая частая причина isContentReady=false на старых песнях.
+                        skippedNoMarkers++
+                        return@forEach
+                    }
+                    val tgBusy = song.telegramAutoPublishState in setOf("rendering", "publishing")
+                    val vkBusy = song.vkAutoPublishState in setOf("rendering", "publishing")
+                    if (tgBusy || vkBusy) {
+                        skippedActivePublishing++
+                        return@forEach
+                    }
+                    // Уже в полном complete-состоянии? Проверяем «идемпотентный» набор (полный
+                    // complete). Если всё так — пропускаем, чтобы diff был действительно пустым при
+                    // повторном запуске и не плодить RSS-шум; saveToDb с теми же значениями дал бы
+                    // пустой diff, но мы экономим round-trip к БД.
+                    val alreadyComplete =
+                        song.premiumAutoPublishState == "COMPLETE" &&
+                            song.newsAvailableAnnounced &&
+                            song.newsPremiumTelegramSent &&
+                            song.newsPremiumVkSent &&
+                            !song.newsPremiumPublishPending &&
+                            song.premiumAutoPublishLastError.isEmpty() &&
+                            song.premiumAttemptCount == 0
+                    if (alreadyComplete) {
+                        alreadyOk++
+                        processedForProgress++
+                        reportProgressIf(processedForProgress, totalCandidates, dryRun)
+                        return@forEach
+                    }
+                    // Фиксируем ДО записи — нужно для отчёта «сколько переходов было».
+                    val willFlipNewsAvailable = !song.newsAvailableAnnounced
+                    val willFixPremiumComplete = song.premiumAutoPublishState != "COMPLETE"
+                    // Установка флагов через setter'ы (см. Song.newsAvailableAnnounced и др.) — они
+                    // идемпотентно модифицируют JSON-блоб playerReadiness_flags. Никаких изменений
+                    // других полей/файлов saveToDb не делает, если других различий в diff нет.
+                    song.newsAvailableAnnounced = true
+                    song.newsPremiumPublishPending = false
+                    song.newsPremiumTelegramSent = true
+                    song.newsPremiumVkSent = true
+                    song.premiumAutoPublishState = "COMPLETE"
+                    song.premiumAutoPublishLastError = ""
+                    song.premiumAttemptCount = 0
+                    if (!dryRun) {
+                        song.saveToDb()
+                    }
+                    if (willFlipNewsAvailable) fixedNewsAvailableAnnounced++
+                    if (willFixPremiumComplete) fixedPremiumComplete++
+                    processedForProgress++
+                    reportProgressIf(processedForProgress, totalCandidates, dryRun)
+                }
+            }
+            BackfillReport(
+                totalCandidates = totalCandidates,
+                fixedNewsAvailableAnnounced = fixedNewsAvailableAnnounced,
+                fixedPremiumComplete = fixedPremiumComplete,
+                alreadyOk = alreadyOk,
+                skippedActivePublishing = skippedActivePublishing,
+                skippedNoMarkers = skippedNoMarkers,
+                durationMs = System.currentTimeMillis() - startMs,
+                dryRun = dryRun,
+            ).also {
+                println(
+                    "SongReleaseAnnouncementService.backfillPublishFlags (${database.name}, " +
+                        "dryRun=$dryRun): ${it.toBody().replace("\n", " | ")}",
+                )
+            }
+        } catch (e: Exception) {
+            println("SongReleaseAnnouncementService.backfillPublishFlags error: ${e.message}")
+            BackfillReport(
+                totalCandidates = totalCandidates,
+                fixedNewsAvailableAnnounced = fixedNewsAvailableAnnounced,
+                fixedPremiumComplete = fixedPremiumComplete,
+                alreadyOk = alreadyOk,
+                skippedActivePublishing = skippedActivePublishing,
+                skippedNoMarkers = skippedNoMarkers,
+                durationMs = System.currentTimeMillis() - startMs,
+                dryRun = dryRun,
+            )
+        }
+    }
+
+    /**
+     * Прогресс-тост для backfill — слать примерно раз в 500 обработанных песен (не в каждом
+     * чанке), иначе поток тостов забивает очередь SSE-уведомлений администратора. Для dry-run
+     * прогресс НЕ слать (операция мгновенная, итог всё равно придёт финальным тостом). Точка
+     * 100% пропускается — финальный «завершено»-тост с отчётом придёт отдельным уведомлением от
+     * endpoint'а в [ApiController].
+     */
+    private fun reportProgressIf(
+        processed: Int,
+        total: Int,
+        dryRun: Boolean,
+    ) {
+        if (dryRun) return
+        if (processed % 500 != 0 || processed == total) return
+        val head = "Backfill флагов публикации"
+        val body = "Обработано $processed / $total"
+        try {
+            com.svoemesto.karaokeapp.services.SNS.send(
+                SseNotification.message(
+                    Message(
+                        type = "info",
+                        head = head,
+                        body = body,
+                    ),
+                ),
+            )
+        } catch (_: Exception) {
+            // SSE — best-effort, не валим backfill из-за падающего уведомления
+        }
     }
 }

@@ -2472,6 +2472,15 @@ export default {
       let request = { method: 'POST', url: '/api/utils/backfillalbumsfromsongs', params: {} }
       return promisedXMLHttpRequest(request)
     },
+    // specs/124-news-flags-backfill: одноразовый (но идемпотентный) backfill ПОЛНОГО complete-набора
+    // флагов публикации для готовых песен на LOCAL. Без этого первый же save() старой песни после
+    // развёртывания feature 122 триггерит автопубликацию в TG+VK для 15000 песен (лавина). dryRun
+    // не передаётся через UI — для dry-сценария есть отдельный endpoint /api/utils/.../dryRun=true
+    // через curl; на UI всегда пишем (для ad-hoc диагностики достаточно тоста с финальным отчётом).
+    backfillPublishFlagsPromise() {
+      let request = { method: 'POST', url: '/api/utils/backfillpublishflags', params: { target: 'local' } }
+      return promisedXMLHttpRequest(request)
+    },
     autoAssignOriginalAllPromise(ctx, payload) {
       // author не передаётся (или пустой) → обработка всех авторов; возможность оставлена намеренно.
       let params = payload && payload.author ? { author: payload.author } : {}

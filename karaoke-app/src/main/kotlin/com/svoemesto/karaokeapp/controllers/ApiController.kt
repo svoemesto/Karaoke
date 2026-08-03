@@ -5602,6 +5602,64 @@ class ApiController(
         return true
     }
 
+    // Разовый backfill ПОЛНОГО complete-набора флагов публикации (specs/124-news-flags-backfill) —
+    // проставляет готовым песням на LOCAL: newsAvailableAnnounced=true, newsPremiumPublishPending=false,
+    // newsPremiumTelegramSent=true, newsPremiumVkSent=true, premiumAutoPublishState="COMPLETE",
+    // premiumAutoPublishLastError="", premiumAttemptCount=0. Без этого первая же правка oldSong.saveToDb()
+    // после развёртывания feature 122 триггерила бы в markNewsAvailableIfReady Block 2 переход
+    // newsPremiumPublishPending false→true + state=RUNNING — а за ним PremiumAutoPublishScheduler
+    // запустил бы автопубликацию в TG+VK для 15000 песен разом (лавина). Backfill явно помечает
+    // «уже-опубликовано и завершено», минуя state=RUNNING. Действует только на LOCAL (target=remote
+    // принимается для симметрии с соседним /backfillnewsavailable, но НЕ рекомендуется — флаги должны
+    // приехать на PROD через обычный sync LOCAL→PROD с активным kill-switch'ом newsAutoPublishKillSwitch,
+    // иначе синхронизация создаст лавину auto-новостей). `dryRun=true` → без записи, только отчёт.
+    // Тяжёлая операция — уходит в фоновый поток, итог приходит тостом по SSE (с многострочным body).
+    @PostMapping("/utils/backfillpublishflags")
+    @ResponseBody
+    fun doBackfillPublishFlags(
+        @RequestParam(required = false) target: String? = null,
+        @RequestParam(required = false, defaultValue = "false") dryRun: Boolean = false,
+    ): Boolean {
+        val database = if (target == "remote") Connection.remote() else Connection.local()
+        thread {
+            println("Backfill флагов публикации (${database.name}, dryRun=$dryRun): начало")
+            try {
+                val report =
+                    SongReleaseAnnouncementService.backfillPublishFlags(
+                        database = database,
+                        storageService = storageService,
+                        storageApiClient = storageApiClient,
+                        dryRun = dryRun,
+                    )
+                println("Backfill флагов публикации (${database.name}, dryRun=$dryRun): ${report.toBody().replace("\n", " | ")}")
+                SNS.send(
+                    SseNotification.message(
+                        Message(
+                            type = "info",
+                            head = "Backfill флагов публикации (${database.name})",
+                            body = report.toBody(),
+                        ),
+                    ),
+                )
+            } catch (e: Exception) {
+                println("Backfill флагов публикации (${database.name}, dryRun=$dryRun): аварийно прерван: ${e.message}")
+                try {
+                    SNS.send(
+                        SseNotification.error(
+                            Message(
+                                type = "error",
+                                head = "Backfill флагов публикации (${database.name})",
+                                body = "Прервано ошибкой: ${e.message}",
+                            ),
+                        ),
+                    )
+                } catch (_: Exception) {
+                }
+            }
+        }
+        return true
+    }
+
     // Массовая очистка результатов поиска текста для уже готовых песен (статус ≥3) — backfill
     // для песен, ставших готовыми ДО появления автоочистки в Song.saveToDb() (см. HealthReport.kt,
     // specs/015-search-engine-selection). Тяжёлая операция — уходит в фоновый поток, по образцу

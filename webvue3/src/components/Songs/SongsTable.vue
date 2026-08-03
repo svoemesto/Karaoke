@@ -236,7 +236,7 @@
         <template #cell(player)="data">
           <div class="fld-player" :style="{ backgroundColor: data.item.color }">
             <a
-              v-if="data.item.idStatus >= 6"
+              v-if="data.item.idStatus >= 4"
               href="#"
               class="player-icon-link"
               title="Открыть онлайн-плеер"
@@ -253,7 +253,7 @@
                 <path d="M8 6.5v7l6-3.5-6-3.5Z" fill="#fff" />
               </svg>
             </a>
-            <span v-else class="player-icon-disabled" title="Плеер недоступен (статус < 6)">
+            <span v-else class="player-icon-disabled" title="Плеер недоступен (статус < 4)">
               <svg
                 width="18"
                 height="18"

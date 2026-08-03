@@ -2,6 +2,7 @@ package com.svoemesto.karaokeapp.model
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.svoemesto.karaokeapp.KaraokeConnection
+import com.svoemesto.karaokeapp.KaraokeProperties
 import com.svoemesto.karaokeapp.WORKING_DATABASE
 import com.svoemesto.karaokeapp.services.KSS_APP
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
@@ -344,6 +345,12 @@ class News(
             storageService: KaraokeStorageService = KSS_APP,
             storageApiClient: StorageApiClient = SAC_APP,
         ): News? {
+            // specs/124-news-flags-backfill (FR-010/FR-011): временный kill-switch, блокирующий
+            // auto-новости во время sync-окна после backfill флагов публикации. Покрывает ОБЕ точки
+            // создания auto-новостей: SongReleaseAnnouncementService.detectAndAnnounceAvailability
+            // (sync, premium) и checkOnAirWindow (scheduler, air). Ручные новости (News.createNew)
+            // намеренно НЕ блокируются — админ может публиковать их во время sync-окна.
+            if (KaraokeProperties.getBoolean("newsAutoPublishKillSwitch")) return null
             val entity = News(database = database, storageService = storageService, storageApiClient = storageApiClient)
             entity.title = title
             entity.body = body

@@ -66,6 +66,9 @@
           <button class="button-action" @click="deleteSearchResultsForReadySongs">
             Удалить результаты поиска готовых песен
           </button>
+          <button class="button-action" @click="backfillPublishFlags">
+            Backfill флагов публикации (LOCAL)
+          </button>
         </div>
         <div class="field-and-buttons-wrapper">
           <button class="button-action" @click="backfillAlbumsFromSongs">
@@ -527,6 +530,39 @@ export default {
           alertType: 'info',
           header: 'Удаление результатов поиска готовых песен',
           body: `Операция запущена.<br>Итог придёт уведомлением по завершении.`,
+          timeout: 10,
+        }
+        this.isCustomConfirmVisible = true
+      })
+    },
+    // specs/124-news-flags-backfill: одноразовый backfill ПОЛНОГО complete-набора флагов публикации
+    // (newsAvailableAnnounced=true, premiumAutoPublishState="COMPLETE" и др.) для уже готовых песен
+    // на LOCAL. Без этого первый же save() старой песни после развёртывания feature 122 триггерит
+    // автопубликацию в TG+VK для 15000 песен (лавина). Действует только на LOCAL — флаги на PROD
+    // попадают через обычную синхронизацию при активном kill-switch'е.
+    backfillPublishFlags() {
+      this.customConfirmParams = {
+        header: 'Подтвердите действие',
+        body:
+          `Проставить готовым песням на LOCAL полный complete-набор флагов публикации ` +
+          `(newsAvailableAnnounced=true, premiumAutoPublishState="COMPLETE", newsPremium*Sent=true)?<br>` +
+          `Песни с активной автопубликацией в TG/VK (rendering/publishing) будут пропущены.<br>` +
+          `Запуск ТОЛЬКО на LOCAL — на PROD флаги попадают через обычную синхронизацию с активным ` +
+          `kill-switch'ом newsAutoPublishKillSwitch.<br>` +
+          `<strong>Операция может занять время и идёт в фоне — итог придёт уведомлением ` +
+          `с разбивкой по категориям.</strong>`,
+        timeout: 15,
+        callback: this.doBackfillPublishFlags,
+      }
+      this.isCustomConfirmVisible = true
+    },
+    doBackfillPublishFlags() {
+      this.$store.dispatch('backfillPublishFlagsPromise').then(() => {
+        this.customConfirmParams = {
+          isAlert: true,
+          alertType: 'info',
+          header: 'Backfill флагов публикации (LOCAL)',
+          body: `Операция запущена в фоне.<br>Итог придёт уведомлением с разбивкой по категориям.`,
           timeout: 10,
         }
         this.isCustomConfirmVisible = true

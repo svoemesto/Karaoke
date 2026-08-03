@@ -66,3 +66,20 @@ storage:
     port-host: ${STORAGE_CONSOLE_PORT_HOST}
     port-inside-container: ${STORAGE_CONSOLE_PORT_INSIDE_CONTAINER}
   proxy-url: ${STORAGE_PROXY_URL:http://minio-proxy}
+# specs/122-premium-auto-publish: VK OAuth (Authorization Code Flow) — endpoints
+# /api/public/utils/vkOAuthCodeUrl и /api/public/utils/vkOAuthCallback.
+# Используются для авторизации Standalone-приложения VK (видео.save, photos.* требуют
+# user-token, см. docs/features/vk-news-auto-publish.md, раздел "User-token через Implicit Flow").
+#
+# ВАЖНО:
+# - vk.app-id, vk.redirect-uri, vk.client-secret задаются через ENV-переменные или прямо в
+#   application.yml (как в Karaoke.properties). См. deploy/do.env на проде.
+# - vk.redirect-uri ОБЯЗАН быть зарегистрирован в Standalone-приложении VK (oauth.vk.ru →
+#   настройки приложения → "Доверенный Redirect URL").
+# - vk.admin-api-url — куда callback попробует сохранить токен; если admin-машина недоступна,
+#   callback вернёт HTML с curl-командой для ручного сохранения.
+vk:
+  app-id: ${VK_APP_ID:54704234}
+  redirect-uri: ${VK_REDIRECT_URI:https://sm-karaoke.ru/api/public/utils/vkOAuthCallback}
+  client-secret: ${VK_CLIENT_SECRET:}
+  admin-api-url: ${VK_ADMIN_API_URL:http://nsa-i9:8898}

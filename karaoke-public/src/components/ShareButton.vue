@@ -32,7 +32,7 @@ const SHARE_TARGETS = [
     name: 'vk',
     emoji: '🔵',
     label: 'ВКонтакте',
-    urlTemplate: 'https://vk.com/share.php?url={url}',
+    urlTemplate: 'https://vk.ru/share.php?url={url}',
   },
   {
     name: 'telegram',

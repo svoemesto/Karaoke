@@ -6615,6 +6615,702 @@ class ApiController(
         return response
     }
 
+    // specs/121-vk-news-auto-publish: принудительная публикация песни в группу ВКонтакте
+    // (кнопки «Опубликовать во ВК (air)» / «Опубликовать во ВК (premium)» в webvue3, FR-016/FR-026).
+    // По образцу publishToTelegramNow выше. Endpoint доступен всегда (даже при
+    // vkAutoPublishEnabled=false) — ручной триггер. Паттерн /api/** = permitAll (SecurityConfig).
+    // Контракт: specs/121-vk-news-auto-publish/contracts/vk-api-contract.md §6. FR-027 — расширяемо.
+    @PostMapping("/song/publishToVkNow")
+    @ResponseBody
+    fun publishToVkNow(
+        @RequestParam id: Long,
+        @RequestParam(required = false, defaultValue = "air") type: String,
+    ): Map<String, Any> {
+        val settings =
+            Song.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            ) ?: return mapOf(
+                "success" to false as Any,
+                "state" to "scheduled" as Any,
+                "postId" to null as Any,
+                "error" to "Песня не найдена: id=$id" as Any,
+            )
+
+        // FR-008/FR-016: общая идемпотентность по idVk (один пост на песню, независимо от типа).
+        if (settings.idVk.isNotEmpty()) {
+            return mapOf(
+                "success" to false as Any,
+                "state" to "published" as Any,
+                "postId" to settings.idVk as Any,
+                "error" to "Song $id is already published (idVk=${settings.idVk}); clear idVk first to re-publish" as Any,
+            )
+        }
+
+        val pubType =
+            com.svoemesto.karaokeapp.model.PublicationType
+                .fromCode(type) ?: com.svoemesto.karaokeapp.model.PublicationType.AIR
+        val result =
+            com.svoemesto.karaokeapp.services.VkAutoPublishService
+                .publishToVk(settings, pubType)
+        val response: MutableMap<String, Any> = mutableMapOf()
+        response["success"] = result.state == com.svoemesto.karaokeapp.services.VkAutoPublishState.PUBLISHED ||
+            result.state == com.svoemesto.karaokeapp.services.VkAutoPublishState.RENDERING ||
+            result.state == com.svoemesto.karaokeapp.services.VkAutoPublishState.PUBLISHING
+        response["state"] = result.state.code
+        response["postId"] = result.postId ?: ""
+        response["error"] = result.error ?: ""
+        return response
+    }
+
+    // specs/122-premium-auto-publish: ручная премиум-публикация в Telegram. Endpoint доступен
+    // всегда (даже при premiumAutoPublishEnabled=false) — позволяет админу форсировать публикацию
+    // повторно после сброса флага или для тестов. В отличие от /api/song/publishToTelegramNow,
+    // здесь persistMessageId=false (не записывает idTelegramDemo, чтобы тот же слот заполнила
+    // будущая AIR-публикация).
+    @PostMapping("/song/publishPremiumTelegram")
+    @ResponseBody
+    fun publishPremiumTelegram(
+        @RequestParam id: Long,
+    ): Map<String, Any> {
+        val settings =
+            Song.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            ) ?: return mapOf(
+                "success" to false as Any,
+                "state" to "scheduled" as Any,
+                "messageId" to null as Any,
+                "error" to "Песня не найдена: id=$id" as Any,
+            )
+
+        // Идемпотентность: если air-публикация уже произошла — skip (премиум-период заведомо позади).
+        if (settings.idTelegramDemo.isNotEmpty()) {
+            return mapOf(
+                "success" to false as Any,
+                "state" to "published" as Any,
+                "messageId" to settings.idTelegramDemo as Any,
+                "error" to "Song $id already has air-publication (idTelegramDemo=${settings.idTelegramDemo}); premium is no-op" as Any,
+            )
+        }
+
+        // specs/122 fix: ВАЖНО — выставить newsPremiumPublishPending=true и related flags ПЕРЕД
+        // публикацией (а не после). Это сигнал для TelegramAutoPublishScheduler.resumeRenderingSongs,
+        // что этот рендер был запущен для PREMIUM-публикации. Без этого scheduler-резюм после
+        // завершения render'а вызвал бы publishFile с дефолтным publicationType=AIR+persistMessageId=true
+        // и СЛОМАЛ идею — записал бы id в idTelegramDemo, не оставив слот для будущей AIR-публикации
+        // при выходе песни в эфир. PremiumAutoPublishScheduler тоже смотрит на эти флаги для skip'а
+        // и для закрытия задачи после успеха обоих каналов.
+        if (!settings.newsPremiumPublishPending &&
+            (settings.premiumAutoPublishState.isBlank() || settings.premiumAutoPublishState == "RUNNING")
+        ) {
+            settings.newsPremiumPublishPending = true
+            settings.premiumAutoPublishState = "RUNNING"
+            settings.premiumAttemptCount = 0
+            settings.premiumAutoPublishLastError = ""
+            settings.saveToDb()
+        }
+
+        val result =
+            com.svoemesto.karaokeapp.services.TelegramAutoPublishService.publishToTelegram(
+                song = settings,
+                allowPastDate = true,
+                publicationType = com.svoemesto.karaokeapp.model.PublicationType.PREMIUM,
+                persistMessageId = false,
+            )
+        // Помечаем флаг задачи как снятый, если публикация завершилась (успех/рендер/фейл), чтобы
+        // при ручном вызове scheduler на следующем тике не начинал повторно. PREMIUM-опубликованная
+        // песня — задача завершена.
+        if (result.state == com.svoemesto.karaokeapp.services.TelegramAutoPublishState.PUBLISHED ||
+            result.state == com.svoemesto.karaokeapp.services.TelegramAutoPublishState.RENDERING ||
+            result.state == com.svoemesto.karaokeapp.services.TelegramAutoPublishState.SEND_FAILED
+        ) {
+            settings.newsPremiumTelegramSent = settings.newsPremiumTelegramSent ||
+                result.state == com.svoemesto.karaokeapp.services.TelegramAutoPublishState.PUBLISHED
+            if (settings.idTelegramDemo.isEmpty() &&
+                settings.idVk.isEmpty() &&
+                settings.newsPremiumTelegramSent &&
+                settings.newsPremiumVkSent
+            ) {
+                settings.newsPremiumPublishPending = false
+                if (settings.premiumAutoPublishState != "FAILED") {
+                    settings.premiumAutoPublishState = "COMPLETE"
+                }
+            }
+            settings.saveToDb()
+        }
+
+        val response: MutableMap<String, Any> = mutableMapOf()
+        response["success"] = result.state == com.svoemesto.karaokeapp.services.TelegramAutoPublishState.PUBLISHED ||
+            result.state == com.svoemesto.karaokeapp.services.TelegramAutoPublishState.RENDERING ||
+            result.state == com.svoemesto.karaokeapp.services.TelegramAutoPublishState.PUBLISHING
+        response["state"] = result.state.code
+        response["messageId"] = result.messageId ?: ""
+        response["error"] = result.error ?: ""
+        response["newsPremiumPublishPending"] = settings.newsPremiumPublishPending as Any
+        response["newsPremiumTelegramSent"] = settings.newsPremiumTelegramSent as Any
+        response["newsPremiumVkSent"] = settings.newsPremiumVkSent as Any
+        response["premiumAutoPublishState"] = settings.premiumAutoPublishState as Any
+        return response
+    }
+
+    // specs/122-premium-auto-publish: ручная премиум-публикация в VK.
+    // persistPostId=false, persistMessageId-equivalent для VK.
+    @PostMapping("/song/publishPremiumVk")
+    @ResponseBody
+    fun publishPremiumVk(
+        @RequestParam id: Long,
+    ): Map<String, Any> {
+        val settings =
+            Song.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            ) ?: return mapOf(
+                "success" to false as Any,
+                "state" to "scheduled" as Any,
+                "postId" to null as Any,
+                "error" to "Песня не найдена: id=$id" as Any,
+            )
+
+        if (settings.idVk.isNotEmpty()) {
+            return mapOf(
+                "success" to false as Any,
+                "state" to "published" as Any,
+                "postId" to settings.idVk as Any,
+                "error" to "Song $id already has air-publication (idVk=${settings.idVk}); premium is no-op" as Any,
+            )
+        }
+
+        // specs/122 fix: выставить newsPremiumPublishPending=true ДО публикации — чтобы
+        // VkAutoPublishScheduler.resumeRenderingSongs знал, что этот рендер для PREMIUM
+        // и не вызвал onRenderCompleted с дефолтным AIR+persistPostId=true.
+        if (!settings.newsPremiumPublishPending &&
+            (settings.premiumAutoPublishState.isBlank() || settings.premiumAutoPublishState == "RUNNING")
+        ) {
+            settings.newsPremiumPublishPending = true
+            settings.premiumAutoPublishState = "RUNNING"
+            settings.premiumAttemptCount = 0
+            settings.premiumAutoPublishLastError = ""
+            settings.saveToDb()
+        }
+
+        val result =
+            com.svoemesto.karaokeapp.services.VkAutoPublishService.publishToVk(
+                song = settings,
+                type = com.svoemesto.karaokeapp.model.PublicationType.PREMIUM,
+                persistPostId = false,
+            )
+
+        if (result.state == com.svoemesto.karaokeapp.services.VkAutoPublishState.PUBLISHED ||
+            result.state == com.svoemesto.karaokeapp.services.VkAutoPublishState.RENDERING ||
+            result.state == com.svoemesto.karaokeapp.services.VkAutoPublishState.SEND_FAILED
+        ) {
+            settings.newsPremiumVkSent = settings.newsPremiumVkSent ||
+                result.state == com.svoemesto.karaokeapp.services.VkAutoPublishState.PUBLISHED
+            if (settings.idTelegramDemo.isEmpty() &&
+                settings.idVk.isEmpty() &&
+                settings.newsPremiumTelegramSent &&
+                settings.newsPremiumVkSent
+            ) {
+                settings.newsPremiumPublishPending = false
+                if (settings.premiumAutoPublishState != "FAILED") {
+                    settings.premiumAutoPublishState = "COMPLETE"
+                }
+            }
+            settings.saveToDb()
+        }
+
+        val response: MutableMap<String, Any> = mutableMapOf()
+        response["success"] = result.state == com.svoemesto.karaokeapp.services.VkAutoPublishState.PUBLISHED ||
+            result.state == com.svoemesto.karaokeapp.services.VkAutoPublishState.RENDERING ||
+            result.state == com.svoemesto.karaokeapp.services.VkAutoPublishState.PUBLISHING
+        response["state"] = result.state.code
+        response["postId"] = result.postId ?: ""
+        response["error"] = result.error ?: ""
+        response["newsPremiumPublishPending"] = settings.newsPremiumPublishPending as Any
+        response["newsPremiumTelegramSent"] = settings.newsPremiumTelegramSent as Any
+        response["newsPremiumVkSent"] = settings.newsPremiumVkSent as Any
+        response["premiumAutoPublishState"] = settings.premiumAutoPublishState as Any
+        return response
+    }
+
+    // specs/121 fix 02.08.2026: User-token через Implicit Flow.
+    //
+    // VkApiClient.video.save требует user-token с правом `video` (community-token НЕ подходит,
+    // error_code=5 "invalid token type"). Получить такой токен можно через Implicit Flow
+    // Standalone-приложения VK:
+    //
+    //   1) Владелец группы создаёт Standalone-приложение:
+    //      https://vk.com/apps?act=manage → Создать приложение → Standalone → Категория "Другое".
+    //      Запоминает App ID (число). В настройках приложения задаёт Redirect URI —
+    //      например, "https://sm-karaoke.ru/api/utils/vkOAuthCallback".
+    //
+    //   2) Сохраняет App ID в Karaoke.properties:
+    //      - vkAppId = <число>
+    //      - vkRedirectUri = "https://sm-karaoke.ru/api/utils/vkOAuthCallback"
+    //
+    //   3) Запрашивает у эндпоинта /api/utils/vkOAuthUrl готовую ссылку для авторизации
+    //      (scope=video,photos,wall,offline) и открывает её в браузере.
+    //
+    //   4) VK редиректит на Redirect URI с фрагментом #access_token=...&user_id=...
+    //      Владелец копирует фрагмент access_token и POST-ит на /api/utils/vkSaveUserToken.
+    //
+    //   5) Эндпоинт /api/utils/vkSaveUserToken сохраняет токен в Karaoke.properties
+    //      (ключ `vkUserAccessToken`). После этого VkApiClient.video.save использует его.
+    //
+    // Этот двухшаговый flow безопасен (Implicit Flow с клиентским JS не хранит секрет
+    // на сервере; Standalone-приложение использует client_id, без client_secret). Срок жизни
+    // токена — бесконечный (благодаря scope=offline), но VK может отозвать при смене пароля.
+
+    /**
+     * Формирует URL для Implicit Flow VK с нужными scopes (video, photos, wall, offline).
+     * Возвращает JSON {url, scopes, appId}.
+     */
+    @GetMapping("/utils/vkOAuthUrl")
+    @ResponseBody
+    fun getVkOAuthUrl(): Map<String, Any> {
+        val appId = KaraokeProperties.getLong("vkAppId")
+        val redirectUri = KaraokeProperties.getString("vkRedirectUri")
+        if (appId <= 0) {
+            return mapOf(
+                "success" to false as Any,
+                "error" to "vkAppId is empty — задайте ID Standalone-приложения в Karaoke.properties" as Any,
+            )
+        }
+        if (redirectUri.isBlank()) {
+            return mapOf(
+                "success" to false as Any,
+                "error" to "vkRedirectUri is empty — задайте Redirect URI в Karaoke.properties" as Any,
+            )
+        }
+        val scopes = "video,photos,wall,offline"
+        val encodedRedirect = java.net.URLEncoder.encode(redirectUri, "UTF-8")
+        val url =
+            "https://oauth.vk.ru/authorize?client_id=$appId&redirect_uri=$encodedRedirect" +
+                "&scope=$scopes&response_type=token&v=5.199&state=karaoke_vk_token"
+        return mapOf(
+            "success" to true as Any,
+            "url" to url as Any,
+            "scopes" to scopes as Any,
+            "appId" to appId as Any,
+            "redirectUri" to redirectUri as Any,
+            "instructions" to
+                listOf(
+                    "1. Откройте этот URL в браузере (от лица владельца группы ВК).",
+                    "2. Подтвердите все scopes (video, photos, wall, offline).",
+                    "3. После редиректа скопируйте фрагмент URL #access_token=...&user_id=...",
+                    "4. POST-ните этот токен на /api/utils/vkSaveUserToken?token=<ваш_токен>.",
+                ),
+        )
+    }
+
+    /**
+     * Сохраняет user-token (полученный после Implicit Flow) в Karaoke.properties
+     * (ключ `vkUserAccessToken`). Сразу проверяет валидность токена через users.get —
+     * если VK вернёт массив response с user_id, токен подходит и записывается.
+     */
+    @PostMapping("/utils/vkSaveUserToken")
+    @ResponseBody
+    fun saveVkUserToken(
+        @RequestParam token: String,
+    ): Map<String, Any> {
+        if (token.isBlank()) {
+            return mapOf(
+                "success" to false as Any,
+                "error" to "token is empty" as Any,
+            )
+        }
+        // Проверяем валидность через users.get (если токен битый — VK вернёт ошибку).
+        val apiVersion = KaraokeProperties.getString("vkApiVersion").ifBlank { "5.199" }
+        val checkUrl =
+            "https://api.vk.ru/method/users.get?access_token=" +
+                java.net.URLEncoder.encode(token, "UTF-8") +
+                "&v=$apiVersion"
+        return try {
+            val conn = java.net.URL(checkUrl).openConnection()
+            conn.connectTimeout = 10_000
+            conn.readTimeout = 15_000
+            val response =
+                conn
+                    .getInputStream()
+                    .bufferedReader()
+                    .use { it.readText() }
+            val parsed =
+                com.svoemesto.karaokeapp.services.VkApiClient
+                    .decodeUserCheck(response)
+            if (parsed.error != null) {
+                return mapOf(
+                    "success" to false as Any,
+                    "error" to "VK rejected token: ${parsed.error.errorCode} ${parsed.error.errorMsg}" as Any,
+                )
+            }
+            val firstUser = parsed.response?.firstOrNull()
+            if (firstUser == null) {
+                return mapOf(
+                    "success" to false as Any,
+                    "error" to "VK вернул пустой массив пользователей (token битый?)" as Any,
+                )
+            }
+            // Токен валиден — сохраняем в Karaoke.properties.
+            KaraokeProperties.set("vkUserAccessToken", token)
+            return mapOf(
+                "success" to true as Any,
+                "userId" to firstUser.id as Any,
+                "userFirstName" to (firstUser.firstName ?: "") as Any,
+                "userLastName" to (firstUser.lastName ?: "") as Any,
+                "message" to
+                    "Токен сохранён в vkUserAccessToken. Теперь VkApiClient.video.save и photos.* будут использовать его." as Any,
+            )
+        } catch (e: Exception) {
+            return mapOf(
+                "success" to false as Any,
+                "error" to "Ошибка проверки токена: ${e.message}" as Any,
+            )
+        }
+    }
+
+    /**
+     * Authorization Code Flow для Web-приложения VK. Implicit Flow на Web возвращает
+     * "Security Error" (проверено 02.08.2026), поэтому мы делаем server-side обмен code → token.
+     *
+     * Браузер пользователя перенаправляется на `vkOAuthCodeUrl` (Authorization Code).
+     * После подтверждения scopes VK редиректит на наш `vkRedirectUri` с параметром `code`.
+     * **Этот endpoint** обрабатывает GET на `vkRedirectUri` — обменивает code на access_token
+     * через POST https://oauth.vk.ru/access_token (с client_secret), сохраняет токен
+     * в `vkUserAccessToken`, и возвращает пользователю HTML-страничку с подтверждением.
+     *
+     * Безопасность: client_secret хранится на сервере и НИКОГДА не отдаётся в браузер.
+     */
+    @GetMapping("/utils/vkOAuthCallback", produces = ["text/html; charset=UTF-8"])
+    @ResponseBody
+    fun vkOAuthCallback(
+        @RequestParam(required = false) code: String?,
+        @RequestParam(required = false) state: String?,
+        @RequestParam(required = false) error: String?,
+    ): String {
+        if (!error.isNullOrBlank()) {
+            return "<html><body style=\"font-family:sans-serif;padding:40px\">" +
+                "<h2>❌ Ошибка авторизации VK</h2>" +
+                "<p>VK вернул: <b>" + error.replace("<", "") + "</b></p>" +
+                "<p>Закройте эту вкладку и попробуйте снова.</p>" +
+                "</body></html>"
+        }
+        if (code.isNullOrBlank()) {
+            return "<html><body style=\"font-family:sans-serif;padding:40px\">" +
+                "<h2>❌ Не получен code от VK</h2>" +
+                "<p>Откройте эту страницу через URL, который мы дали (он начинается с oauth.vk.ru/authorize).</p>" +
+                "</body></html>"
+        }
+        val appId = KaraokeProperties.getLong("vkAppId")
+        val redirectUri = KaraokeProperties.getString("vkRedirectUri")
+        val clientSecret = KaraokeProperties.getString("vkClientSecret")
+        if (appId <= 0 || redirectUri.isBlank() || clientSecret.isBlank()) {
+            return "<html><body style=\"font-family:sans-serif;padding:40px\">" +
+                "<h2>❌ Не настроен Karaoke.properties</h2>" +
+                "<p>Нужны: <code>vkAppId</code>, <code>vkRedirectUri</code>, <code>vkClientSecret</code>.</p>" +
+                "<p>Текущие: appId=$appId redirect=" + (if (redirectUri.isBlank()) "❌" else "✓") +
+                " hasSecret=" + (if (clientSecret.isBlank()) "❌" else "✓") + "</p>" +
+                "</body></html>"
+        }
+        val apiVersion = KaraokeProperties.getString("vkApiVersion").ifBlank { "5.199" }
+        // Обмен code → access_token (server-side, с client_secret).
+        val params =
+            buildString {
+                append("client_id=")
+                append(appId)
+                append("&client_secret=")
+                append(java.net.URLEncoder.encode(clientSecret, "UTF-8"))
+                append("&redirect_uri=")
+                append(java.net.URLEncoder.encode(redirectUri, "UTF-8"))
+                append("&code=")
+                append(java.net.URLEncoder.encode(code, "UTF-8"))
+            }
+        return try {
+            val req =
+                java.net
+                    .URI("https://oauth.vk.ru/access_token")
+                    .toURL()
+                    .openConnection()
+                    .let { conn ->
+                        conn as java.net.HttpURLConnection
+                    }.apply {
+                        requestMethod = "POST"
+                        connectTimeout = 10_000
+                        readTimeout = 15_000
+                        doOutput = true
+                        setRequestProperty("Content-Type", "application/x-www-form-urlencoded")
+                    }
+            req.outputStream.use { it.write(params.toByteArray(Charsets.UTF_8)) }
+            val responseText = req.inputStream.bufferedReader().use { it.readText() }
+            req.disconnect()
+            // Ответ: либо {access_token, expires_in, user_id, ...}, либо {error: ...}
+            val parsed =
+                com.svoemesto.karaokeapp.services.VkApiClient
+                    .decodeTokenResponse(responseText)
+            if (!parsed.error.isNullOrBlank() && parsed.accessToken.isNullOrBlank()) {
+                return "<html><body style=\"font-family:sans-serif;padding:40px\">" +
+                    "<h2>❌ VK отверг code</h2>" +
+                    "<pre>" + (parsed.error ?: responseText.take(500)) + "</pre>" +
+                    "</body></html>"
+            }
+            val accessToken =
+                parsed.accessToken
+                    ?: run {
+                        return "<html><body style=\"font-family:sans-serif;padding:40px\">" +
+                            "<h2>❌ VK не вернул access_token</h2>" +
+                            "<pre>" + responseText.take(500) + "</pre>" +
+                            "</body></html>"
+                    }
+            // Сохраняем токен в Karaoke.properties.
+            KaraokeProperties.set("vkUserAccessToken", accessToken)
+            "<html><body style=\"font-family:sans-serif;padding:40px\">" +
+                "<h2 style=\"color:green\">✅ Токен VK сохранён</h2>" +
+                "<p>access_token (первые 30 символов): <code>" + accessToken.take(30) + "...</code></p>" +
+                "<p>user_id: <code>" + (parsed.userId ?: "?") + "</code></p>" +
+                "<p>expires_in: <code>" + (parsed.expiresIn ?: "?") + "</code> сек</p>" +
+                "<p>VkApiClient.video.save и photos.* теперь будут использовать user-token.</p>" +
+                "<p>Можете закрыть эту вкладку.</p>" +
+                "</body></html>"
+        } catch (e: Exception) {
+            "<html><body style=\"font-family:sans-serif;padding:40px\">" +
+                "<h2>❌ Ошибка обмена code → token</h2>" +
+                "<pre>" + (e.message ?: e.javaClass.simpleName) + "</pre>" +
+                "</body></html>"
+        }
+    }
+
+    /**
+     * Готовая ссылка для авторизации через Authorization Code Flow. Работает
+     * с Web-приложением (client_id+client_secret). Браузер открывает её,
+     * VK после подтверждения делает редирект на наш /api/utils/vkOAuthCallback?code=XXX,
+     * endpoint обменивает code на access_token (server-side) и сохраняет.
+     */
+    @GetMapping("/utils/vkOAuthCodeUrl")
+    @ResponseBody
+    fun getVkOAuthCodeUrl(): Map<String, Any> {
+        val appId = KaraokeProperties.getLong("vkAppId")
+        val redirectUri = KaraokeProperties.getString("vkRedirectUri")
+        val clientSecret = KaraokeProperties.getString("vkClientSecret")
+        if (appId <= 0) {
+            return mapOf("success" to false as Any, "error" to "vkAppId is empty" as Any)
+        }
+        if (redirectUri.isBlank()) {
+            return mapOf("success" to false as Any, "error" to "vkRedirectUri is empty" as Any)
+        }
+        if (clientSecret.isBlank()) {
+            return mapOf("success" to false as Any, "error" to "vkClientSecret is empty — нужен для Code Flow (Web-приложение)" as Any)
+        }
+        val state = (System.currentTimeMillis() / 1_000_000).toString()
+        val scopes = "video,photos,wall,offline"
+        val encodedRedirect = java.net.URLEncoder.encode(redirectUri, "UTF-8")
+        val url =
+            "https://oauth.vk.ru/authorize?client_id=$appId&redirect_uri=$encodedRedirect" +
+                "&scope=$scopes&response_type=code&state=$state"
+        return mapOf(
+            "success" to true as Any,
+            "url" to url as Any,
+            "instructions" to
+                listOf(
+                    "1. В настройках Web-приложения на oauth.vk.ru сервисный ключ должен быть включён.",
+                    "2. В KARAOKE.properties задан vkClientSecret (получено из настроек приложения).",
+                    "3. Откройте этот URL в браузере от лица владельца группы.",
+                    "4. Подтвердите все scopes.",
+                    "5. VK редиректит на наш /api/utils/vkOAuthCallback — токен сохранится в vkUserAccessToken автоматически.",
+                ),
+        )
+    }
+
+    // specs/121-vk-news-auto-publish: редактор шаблонов постов ВК (FR-025). Возвращает все шаблоны
+    // и список плейсхолдеров для UI редактора в webvue3 (VkTemplatesEditor.vue).
+    // Контракт: specs/121-vk-news-auto-publish/contracts/vk-api-contract.md §6.
+    @GetMapping("/vk/templates")
+    @ResponseBody
+    fun getVkTemplates(): Map<String, Any> {
+        val templates =
+            com.svoemesto.karaokeapp.model.PublicationType.entries.map { pt ->
+                val key = "vkTemplate${pt.name.lowercase().replaceFirstChar { it.uppercase() }}"
+                mapOf(
+                    "type" to pt.code,
+                    "key" to key,
+                    "value" to KaraokeProperties.getString(key),
+                    "description" to (KaraokeProperties.getDTO(key).description),
+                )
+            }
+        return mapOf(
+            "templates" to templates,
+            "placeholders" to
+                com.svoemesto.karaokeapp.services.VkTemplateService
+                    .placeholders(),
+        )
+    }
+
+    // specs/121-vk-news-auto-publish: сохранение шаблона поста ВК (FR-025, FR-015 — без перезапуска).
+    @PostMapping("/vk/templates")
+    @ResponseBody
+    fun saveVkTemplate(
+        @RequestParam key: String,
+        @RequestParam value: String,
+    ): Map<String, Any> {
+        val allowedKeys =
+            com.svoemesto.karaokeapp.model.PublicationType.entries
+                .map { pt -> "vkTemplate${pt.name.lowercase().replaceFirstChar { it.uppercase() }}" }
+                .toSet()
+        if (key !in allowedKeys) {
+            return mapOf(
+                "success" to false as Any,
+                "error" to "unknown key: $key (allowed: ${allowedKeys.joinToString(", ")})" as Any,
+            )
+        }
+        KaraokeProperties.set(key, value)
+        return mapOf("success" to true as Any, "key" to key as Any)
+    }
+
+    // specs/121-vk-news-auto-publish: preview шаблона на тестовой песне (FR-025, для редактора).
+    // Принимает value шаблона (не сохранённого — для live-preview) и songId, возвращает отрендеренный
+    // текст через VkTemplateService.render.
+    @PostMapping("/vk/templates/preview")
+    @ResponseBody
+    fun previewVkTemplate(
+        @RequestParam value: String,
+        @RequestParam id: Long,
+    ): Map<String, Any> {
+        val song =
+            Song.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            ) ?: return mapOf(
+                "success" to false as Any,
+                "error" to "Песня не найдена: id=$id" as Any,
+            )
+        val rendered =
+            com.svoemesto.karaokeapp.services.VkTemplateService
+                .render(value, song, null)
+        return mapOf(
+            "success" to true as Any,
+            "preview" to rendered as Any,
+            "truncated" to (rendered.length >= com.svoemesto.karaokeapp.services.VkTemplateService.VK_POST_MAX_LENGTH) as Any,
+            "length" to rendered.length as Any,
+            "maxLength" to com.svoemesto.karaokeapp.services.VkTemplateService.VK_POST_MAX_LENGTH as Any,
+        )
+    }
+
+    // specs/121-vk-news-auto-publish: дефолтные шаблоны (FR-025, для кнопки «Сбросить к дефолту»).
+    @GetMapping("/vk/templates/defaults")
+    @ResponseBody
+    fun getVkTemplateDefaults(): Map<String, Any> {
+        val defaults =
+            com.svoemesto.karaokeapp.model.PublicationType.entries.associate { pt ->
+                val key = "vkTemplate${pt.name.lowercase().replaceFirstChar { it.uppercase() }}"
+                val default =
+                    when (pt) {
+                        com.svoemesto.karaokeapp.model.PublicationType.AIR ->
+                            com.svoemesto.karaokeapp.services.VkTemplateService.DEFAULT_AIR_TEMPLATE
+                        com.svoemesto.karaokeapp.model.PublicationType.PREMIUM ->
+                            com.svoemesto.karaokeapp.services.VkTemplateService.DEFAULT_PREMIUM_TEMPLATE
+                    }
+                key to default
+            }
+        return mapOf("defaults" to defaults)
+    }
+
+    // specs/121-vk-news-auto-publish: Telegram-шаблоны (caption) — управляются через общий
+    // редактор шаблонов публикаций (frontend) на странице «Шаблоны публикаций».
+    // Эндпойнты симметричны VK-аналогам (/vk/templates).
+    @GetMapping("/telegram/templates")
+    @ResponseBody
+    fun getTelegramTemplates(): Map<String, Any> {
+        val templates =
+            com.svoemesto.karaokeapp.model.PublicationType.entries.map { pt ->
+                val key = "telegramTemplate${pt.name.lowercase().replaceFirstChar { it.uppercase() }}"
+                mapOf(
+                    "type" to pt.code,
+                    "key" to key,
+                    "value" to KaraokeProperties.getString(key),
+                    "description" to (KaraokeProperties.getDTO(key).description),
+                )
+            }
+        return mapOf(
+            "templates" to templates,
+            "placeholders" to
+                com.svoemesto.karaokeapp.services.TelegramTemplateService
+                    .placeholders(),
+        )
+    }
+
+    @PostMapping("/telegram/templates")
+    @ResponseBody
+    fun saveTelegramTemplate(
+        @RequestParam key: String,
+        @RequestParam value: String,
+    ): Map<String, Any> {
+        val allowedKeys =
+            com.svoemesto.karaokeapp.model.PublicationType.entries
+                .map { pt -> "telegramTemplate${pt.name.lowercase().replaceFirstChar { it.uppercase() }}" }
+                .toSet()
+        if (key !in allowedKeys) {
+            return mapOf(
+                "success" to false as Any,
+                "error" to "unknown key: $key (allowed: ${allowedKeys.joinToString(", ")})" as Any,
+            )
+        }
+        KaraokeProperties.set(key, value)
+        return mapOf("success" to true as Any, "key" to key as Any)
+    }
+
+    @PostMapping("/telegram/templates/preview")
+    @ResponseBody
+    fun previewTelegramTemplate(
+        @RequestParam value: String,
+        @RequestParam id: Long,
+    ): Map<String, Any> {
+        val song =
+            Song.loadFromDbById(
+                id = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            ) ?: return mapOf(
+                "success" to false as Any,
+                "error" to "Песня не найдена: id=$id" as Any,
+            )
+        val rendered =
+            com.svoemesto.karaokeapp.services.TelegramTemplateService
+                .render(value, song)
+        return mapOf(
+            "success" to true as Any,
+            "preview" to rendered as Any,
+            "truncated" to (rendered.length >= com.svoemesto.karaokeapp.services.TelegramTemplateService.TELEGRAM_CAPTION_MAX_LENGTH) as Any,
+            "length" to rendered.length as Any,
+            "maxLength" to com.svoemesto.karaokeapp.services.TelegramTemplateService.TELEGRAM_CAPTION_MAX_LENGTH as Any,
+        )
+    }
+
+    @GetMapping("/telegram/templates/defaults")
+    @ResponseBody
+    fun getTelegramTemplateDefaults(): Map<String, Any> {
+        val defaults =
+            com.svoemesto.karaokeapp.model.PublicationType.entries.associate { pt ->
+                val key = "telegramTemplate${pt.name.lowercase().replaceFirstChar { it.uppercase() }}"
+                val default =
+                    when (pt) {
+                        com.svoemesto.karaokeapp.model.PublicationType.AIR ->
+                            com.svoemesto.karaokeapp.services.TelegramTemplateService.DEFAULT_AIR_TEMPLATE
+                        com.svoemesto.karaokeapp.model.PublicationType.PREMIUM ->
+                            com.svoemesto.karaokeapp.services.TelegramTemplateService.DEFAULT_PREMIUM_TEMPLATE
+                    }
+                key to default
+            }
+        return mapOf("defaults" to defaults)
+    }
+
     // Статус рендера MP4
     @PostMapping("/song/renderMp4Status")
     @ResponseBody

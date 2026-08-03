@@ -25,6 +25,8 @@
 | 12 | `special-orders` | Спецзаказные авторы (виртуальная плашка в Закромах) | [special-orders.md](./special-orders.md) |
 | 13 | `songs-table` | Таблица песен в админке (webvue3) | [songs-table.md](./songs-table.md) |
 | 14 | `player-transpose` | Транспонирование аудио в онлайн-плеере (админка + публичный премиум) | [player-transpose.md](./player-transpose.md) |
+| 15 | `vk-news-auto-publish` | Автопубликация новостей в группу ВКонтакте | [vk-news-auto-publish.md](./vk-news-auto-publish.md) |
+| 16 | `premium-auto-publish` | Премиум-публикация (Telegram+VK) при становлении песни доступной | секция внутри [telegram-auto-publish.md](./telegram-auto-publish.md) |
 
 ## Cross-cutting (инфраструктура)
 

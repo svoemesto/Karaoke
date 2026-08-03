@@ -2,6 +2,7 @@ package com.svoemesto.karaokeweb.controllers
 
 import com.svoemesto.karaokeweb.WORKING_DATABASE
 import org.springframework.stereotype.Controller
+import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
@@ -80,6 +81,72 @@ class PublicSettingsWebController {
             } catch (_: Exception) {
             }
             false
+        }
+    }
+
+    /**
+     * Прочитать значение одного свойства из `tbl_public_settings`.
+     *
+     * Возвращает `String` (raw value) — пустую строку, если ключ не найден или БД недоступна
+     * (fail-open: kill-switch не активен по дефолту, ровно как обсуждали в specs/125). Для
+     * boolean-флагов сравнение делается через `== "true"`. Чтобы посмотреть описание поля —
+     * используйте [digest].
+     *
+     * @param key имя свойства.
+     * @return строковое значение поля `value` (или пустая строка).
+     */
+    @GetMapping("/getproperty")
+    @ResponseBody
+    fun getProperty(
+        @RequestParam key: String,
+    ): String =
+        try {
+            val connection = WORKING_DATABASE.getConnection() ?: return ""
+            connection
+                .prepareStatement("SELECT value FROM tbl_public_settings WHERE key = ?")
+                .use { ps ->
+                    ps.setString(1, key)
+                    ps.executeQuery().use { rs ->
+                        if (rs.next()) rs.getString("value") ?: "" else ""
+                    }
+                }
+        } catch (e: Exception) {
+            println("PublicSettingsWebController.getProperty error: ${e.message}")
+            ""
+        }
+
+    /**
+     * Дайджест всех свойств в `tbl_public_settings` — key/value/description, для аудита и
+     * отладки kill-switch сценариев. Удобно перед sync-окном проверить, какие настройки вообще
+     * сейчас установлены на проде. `last_update` намеренно не возвращается (внутренняя
+     * аудит-информация, для `specs/125` не нужна).
+     */
+    @GetMapping("/digest")
+    @ResponseBody
+    fun digest(): Map<String, Any> {
+        val list = mutableListOf<Map<String, String>>()
+        return try {
+            val connection = WORKING_DATABASE.getConnection() ?: return mapOf("properties" to list)
+            connection
+                .prepareStatement(
+                    "SELECT key, value, description FROM tbl_public_settings ORDER BY key",
+                ).use { ps ->
+                    ps.executeQuery().use { rs ->
+                        while (rs.next()) {
+                            list.add(
+                                mapOf(
+                                    "key" to (rs.getString("key") ?: ""),
+                                    "value" to (rs.getString("value") ?: ""),
+                                    "description" to (rs.getString("description") ?: ""),
+                                ),
+                            )
+                        }
+                    }
+                }
+            mapOf("properties" to list)
+        } catch (e: Exception) {
+            println("PublicSettingsWebController.digest error: ${e.message}")
+            mapOf("properties" to list)
         }
     }
 }

@@ -1740,6 +1740,28 @@ export default {
     setCurrentSongField(state, payload) {
       state.currentSong[payload.name] = payload.value
     },
+    applyFamilySelectionResult(state, payload) {
+      if (!state.currentSong) return
+      const fields = [
+        'audioParentId',
+        'audioSimilarityPercent',
+        'audioDeltaMs',
+        'rootId',
+        'idStatus',
+      ]
+      const newCurrent = Object.assign({}, state.currentSong)
+      const newSnapshot = state.snapshotSong
+        ? Object.assign({}, state.snapshotSong)
+        : Object.assign({}, newCurrent)
+      for (const key of fields) {
+        if (Object.prototype.hasOwnProperty.call(payload, key) && payload[key] !== undefined) {
+          newCurrent[key] = payload[key]
+          newSnapshot[key] = payload[key]
+        }
+      }
+      state.currentSong = newCurrent
+      state.snapshotSong = newSnapshot
+    },
 
     updatePublications(state, result) {
       state.publications = result.publications
@@ -2708,9 +2730,12 @@ export default {
       let request = { method: 'POST', url: '/api/song/searchoriginal', params: params }
       return promisedXMLHttpRequest(request)
     },
-    selectFamilySongPromise(ctx, { idAnother, deltaMs }) {
+    selectFamilySongPromise(ctx, { idAnother, deltaMs, audioSimilarityPercent }) {
       let params = { id: ctx.state.currentSongId, idAnother: idAnother }
       if (deltaMs !== null && deltaMs !== undefined) params.deltaMs = deltaMs
+      if (audioSimilarityPercent !== null && audioSimilarityPercent !== undefined) {
+        params.audioSimilarityPercent = audioSimilarityPercent
+      }
       let request = { method: 'POST', url: '/api/song/selectfamilysong', params: params }
       return promisedXMLHttpRequest(request)
     },

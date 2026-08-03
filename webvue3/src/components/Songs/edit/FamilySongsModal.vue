@@ -202,8 +202,16 @@ export default {
     select(song) {
       if (song.current) return
       const r = this.compareResults[song.id]
-      const deltaMs = r && r.status === 'done' ? r.deltaMs : null
-      this.$emit('select', { id: song.id, deltaMs: deltaMs })
+      // Наличие результата определяется по status === 'done', а не по truthiness чисел:
+      // корректные нулевые значения (0%, 0 мс) должны быть переданы, а не отброшены.
+      const hasResult = r && r.status === 'done'
+      const deltaMs = hasResult ? r.deltaMs : null
+      const audioSimilarityPercent = hasResult ? r.similarityPercent : null
+      this.$emit('select', {
+        id: song.id,
+        deltaMs: deltaMs,
+        audioSimilarityPercent: audioSimilarityPercent,
+      })
     },
     close() {
       this.$emit('close')

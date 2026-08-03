@@ -2173,10 +2173,11 @@
             </button>
             <button
               class="group-button"
+              :disabled="isSelectingFamilySong"
               title="Показать песни из той же группы (id/root_id)"
               @click="showFamilySongs"
             >
-              Похожие версии песни
+              {{ isSelectingFamilySong ? 'Применение…' : 'Похожие версии песни' }}
             </button>
             <button
               class="group-button"
@@ -2553,6 +2554,7 @@ export default {
       isFamilySongsVisible: false,
       isAlbumCoverModalVisible: false,
       isFindingAudioParent: false,
+      isSelectingFamilySong: false,
       isAssignReviewVisible: false,
       isKaraokeEditorVisible: false,
       karaokeEditorTarget: 'local',
@@ -3718,18 +3720,43 @@ export default {
       this.isFamilySongsVisible = true
     },
     closeFamilySongs() {
+      if (this.isSelectingFamilySong) return
       this.isFamilySongsVisible = false
     },
     async selectFamilySong(payload) {
-      this.isFamilySongsVisible = false
-      const data = await this.$store.dispatch('selectFamilySongPromise', {
-        idAnother: payload.id,
-        deltaMs: payload.deltaMs,
-      })
-      const result = JSON.parse(data)
-      if (result) {
-        this.song.rootId = result.rootId
-        this.song.idStatus = result.idStatus
+      if (this.isSelectingFamilySong) return
+      this.isSelectingFamilySong = true
+      try {
+        const data = await this.$store.dispatch('selectFamilySongPromise', {
+          idAnother: payload.id,
+          deltaMs: payload.deltaMs,
+          audioSimilarityPercent: payload.audioSimilarityPercent,
+        })
+        let result = null
+        try {
+          result = typeof data === 'string' ? JSON.parse(data) : data
+        } catch (_e) {
+          result = null
+        }
+        if (!result) {
+          throw new Error('Сервер не вернул результат выбора похожей версии')
+        }
+        this.$store.commit('applyFamilySelectionResult', {
+          rootId: result.rootId,
+          idStatus: result.idStatus,
+          audioParentId: result.audioParentId,
+          audioSimilarityPercent: result.audioSimilarityPercent,
+          audioDeltaMs: result.audioDeltaMs,
+        })
+        this.isFamilySongsVisible = false
+      } catch (error) {
+        const msg =
+          error && error.message
+            ? error.message
+            : 'Не удалось применить выбор похожей версии. Повторите попытку.'
+        this.showTelegramToast(msg, 'Похожие версии: ошибка')
+      } finally {
+        this.isSelectingFamilySong = false
       }
     },
     showAlbumCoverModal() {

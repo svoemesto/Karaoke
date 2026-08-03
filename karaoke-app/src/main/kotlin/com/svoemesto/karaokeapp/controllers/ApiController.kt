@@ -81,11 +81,20 @@ data class FamilySongDto(
 /**
  * DTO для select family song result: сериализуемое представление для API/UI.
  *
- * @see AGENTS.md
+ * Содержит фактически сохранённые значения после применения выбора похожей версии:
+ * rootId и idStatus — существующие поля результата; audioParentId, audioSimilarityPercent
+ * и audioDeltaMs — три аудиополя текущей песни, синхронизированные с выбранным кандидатом.
+ * Поля аудио возвращаются как Long/Int после нормализации и перечитывания записи,
+ * а не как эхо неподтверждённого запроса.
+ *
+ * @see docs/features/songs-table.md
  */
 data class SelectFamilySongResultDto(
     val rootId: Long,
     val idStatus: Long,
+    val audioParentId: Long,
+    val audioSimilarityPercent: Int,
+    val audioDeltaMs: Long,
 )
 
 /**
@@ -703,14 +712,37 @@ class ApiController(
     }
 
     // Выбор песни из модалки "Похожие версии песни" - копирует текст/маркеры, безусловно проставляет
-    // root_id (осознанный выбор пользователя) и условно статус (только если он ещё NONE/0 -> TEXT_CREATE/1)
+    // root_id (осознанный выбор пользователя) и условно статус (только если он ещё NONE/0 -> TEXT_CREATE/1).
+    // Дополнительно сохраняет три аудиополя (audioParentId, audioSimilarityPercent, audioDeltaMs),
+    // связанные с выбранным кандидатом. Параметр audioSimilarityPercent nullable: отсутствие обеих
+    // метрик (audioSimilarityPercent и deltaMs) означает выбор без сверки и приводит к записи 0/0;
+    // частичная пара (только одна из двух метрик) отклоняется 400 Bad Request до изменения записи.
+    // Подробнее — docs/features/songs-table.md (FR-009).
     @PostMapping("/song/selectfamilysong")
     @ResponseBody
     fun selectFamilySong(
         @RequestParam id: Long,
         @RequestParam idAnother: Long,
         @RequestParam(required = false) deltaMs: Long?,
+        @RequestParam(required = false) audioSimilarityPercent: Int?,
     ): SelectFamilySongResultDto? {
+        if (id == idAnother) {
+            throw IllegalArgumentException("Выбор текущей песни недопустим: id == idAnother ($id)")
+        }
+        // Валидация парности nullable-метрик: либо обе, либо ни одной. Дельта=0 разрешена как
+        // успешный результат сверки, но без процента считается частичной парой.
+        val hasPercent = audioSimilarityPercent != null
+        val hasDelta = deltaMs != null
+        if (hasPercent != hasDelta) {
+            throw IllegalArgumentException(
+                "Метрики сверки должны передаваться парой: либо обе, либо ни одной.",
+            )
+        }
+        if (hasPercent && (audioSimilarityPercent < 0 || audioSimilarityPercent > 100)) {
+            throw IllegalArgumentException(
+                "audioSimilarityPercent должен быть в диапазоне 0..100, получено $audioSimilarityPercent",
+            )
+        }
         val song =
             Song.loadFromDbById(id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
                 ?: return null
@@ -722,8 +754,45 @@ class ApiController(
                 storageApiClient = storageApiClient,
             )
                 ?: return null
-        applyFamilySongSelection(song, another, deltaMs)
-        return SelectFamilySongResultDto(rootId = song.rootId, idStatus = song.idStatus)
+        // Ручной режим: явно передаём audioParentId = another.id и согласованные метрики (или 0/0).
+        val resolvedPercent = audioSimilarityPercent ?: 0
+        val resolvedDelta = deltaMs ?: 0L
+        applyFamilySongSelection(
+            song = song,
+            another = another,
+            deltaMs = deltaMs,
+            audioParentId = another.id,
+            audioSimilarityPercent = resolvedPercent,
+            audioDeltaMs = resolvedDelta,
+        )
+        // Пост-сохранительная проверка: helper уже выполнил saveToDb(); перечитываем и убеждаемся,
+        // что три аудиополя действительно записаны. Иначе возвращаем ошибку вместо ложного успеха.
+        val reloaded =
+            Song.loadFromDbById(
+                id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
+                ?: throw IllegalStateException("Не удалось перечитать запись id=$id после сохранения")
+        if (reloaded.audioParentId != another.id ||
+            reloaded.audioSimilarityPercent != resolvedPercent ||
+            reloaded.audioDeltaMs != resolvedDelta
+        ) {
+            throw IllegalStateException(
+                "Аудиополя не подтверждены после сохранения: " +
+                    "parent=${reloaded.audioParentId} (ожидалось ${another.id}), " +
+                    "percent=${reloaded.audioSimilarityPercent} (ожидалось $resolvedPercent), " +
+                    "deltaMs=${reloaded.audioDeltaMs} (ожидалось $resolvedDelta)",
+            )
+        }
+        return SelectFamilySongResultDto(
+            rootId = song.rootId,
+            idStatus = song.idStatus,
+            audioParentId = reloaded.audioParentId,
+            audioSimilarityPercent = reloaded.audioSimilarityPercent,
+            audioDeltaMs = reloaded.audioDeltaMs,
+        )
     }
 
     // Акустическая сверка текущей песни с кандидатом в оригинал (модалка "Похожие версии песни",

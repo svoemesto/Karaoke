@@ -4413,6 +4413,9 @@ fun applyFamilySongSelection(
     song: Song,
     another: Song,
     deltaMs: Long? = null,
+    audioParentId: Long? = null,
+    audioSimilarityPercent: Int? = null,
+    audioDeltaMs: Long? = null,
 ) {
     /*
     Выбор песни из модалки "Похожие версии песни" (как из общего списка "семьи", так и из ручного
@@ -4427,6 +4430,12 @@ fun applyFamilySongSelection(
     deltaMs - результат акустической сверки (кнопка "Сверить"): если задан, маркеры кандидата
     сдвигаются на дельту в таймлайн текущей песни, а END-маркер пересчитывается под её реальную
     длительность. Если null (строку не сверяли) - маркеры копируются как есть (прежнее поведение).
+
+    Аудиопараметры (audioParentId, audioSimilarityPercent, audioDeltaMs) — opt-in: если все три
+    null, поведение helper'а не меняется (используется автоматическим autoAssignOriginalByWaveform,
+    который трогать нельзя — см. specs/129-copy-family-audio/research.md Decision 3). Если заданы,
+    helper устанавливает их до единственного saveToDb(), чтобы текст/маркеры/root/status и три
+    аудиополя попали в один SQL UPDATE и один recordhash-diff.
      */
     song.sourceText = another.sourceText
     song.resultText = another.resultText
@@ -4441,6 +4450,11 @@ fun applyFamilySongSelection(
     song.formattedTextChords = another.formattedTextChords
     song.rootId = if (another.rootId != 0L) another.rootId else another.id
     if (song.idStatus == 0L) song.fields[SongField.ID_STATUS] = "1"
+    // Аудиополя — opt-in. Передаются только из ручного endpoint'а; autoAssignOriginalByWaveform
+    // вызывает helper с дефолтами (без аудиопараметров) и не трогает audioParentId/percent/delta.
+    if (audioParentId != null) song.audioParentId = audioParentId
+    if (audioSimilarityPercent != null) song.audioSimilarityPercent = audioSimilarityPercent
+    if (audioDeltaMs != null) song.audioDeltaMs = audioDeltaMs
     song.saveToDb()
 }
 

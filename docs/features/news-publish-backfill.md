@@ -21,14 +21,29 @@
 | `premiumAutoPublishLastError` | любой текст | `""` |
 | `premiumAttemptCount` | 0..N | `0` |
 
-**Kill-switch** (`newsAutoPublishKillSwitch` в `KaraokeProperties`, default
-`false`) при `true` блокирует `News.createAutoAnnouncement` — единственная
-точка создания auto-новостей. Покрывает обе ветки:
+**Kill-switch** (`newsAutoPublishKillSwitch` в `tbl_public_settings` —
+Postgres key/value, доступен и на admin-машине, и на проде) при `value="true"`
+блокирует `News.createAutoAnnouncement` — единственная точка создания
+auto-новостей. Покрывает обе ветки:
 
 - `SongReleaseAnnouncementService.detectAndAnnounceAvailability` — вызывается
   из `karaoke-web/MainController.doChangeRecords` при применении синхронизации.
 - `SongReleaseAnnouncementService.checkOnAirWindow` — вызывается из
   `SongReleaseAnnouncementScheduler` (~раз в 5 минут на проде).
+
+**Архитектурный fix (specs/125-news-flags-backfix)** — изначально kill-switch
+хранился в `KaraokeProperties` (файл `/sm-кaraoke/system/Karaoke.properties`),
+но `@SpringBootApplication` в `karaoke-web` БЕЗ `scanBasePackages` (см.
+`KaraokeWebApplication.kt:19` и комментарий в `KaraokeWebService.kt:52`) НЕ
+регистрирует бины/контроллеры из `com.svoemesto.karaokeapp.*`. И файл
+`Karaoke.properties` есть только на admin-машине. То есть фича 124 после merge
+**молча не работала на проде** — `News.createAutoAnnouncement` вызывался
+scheduler'ом, но `KaraokeProperties.getBoolean(...)` возвращал default `false`.
+В 125 это исправлено: kill-switch читается прямым JDBC-запросом к
+`tbl_public_settings` (тот же слой, что и `Yandex SmartCaptcha` на проде —
+см. `CaptchaConfigService.kt:35`). Endpoint для on/off — НОВЫЙ
+`POST /api/properties/setproperty` в `karaoke-web/.../controllers/PublicSettingsWebController.kt`
+(старый `/api/publicsettings/update` живёт в `karaoke-app` и на проде 404).
 
 **Ручные новости** (`News.createNew`, `source="manual"`) намеренно НЕ
 блокируются — администратор может публиковать их во время sync-окна.
@@ -129,24 +144,49 @@ data class BackfillReport(
 
 ```kotlin
 fun createAutoAnnouncement(...): News? {
-    if (KaraokeProperties.getBoolean("newsAutoPublishKillSwitch")) return null
+    if (isNewsAutoPublishKillSwitchActive(database)) return null
     // ... обычная логика INSERT в tbl_news
+}
+
+private fun isNewsAutoPublishKillSwitchActive(database: KaraokeConnection): Boolean {
+    return try {
+        val connection = database.getConnection() ?: return false
+        connection.prepareStatement(
+            "SELECT value FROM tbl_public_settings WHERE key = 'newsAutoPublishKillSwitch'"
+        ).use { ps ->
+            ps.executeQuery().use { rs -> rs.next() && rs.getString("value") == "true" }
+        }
+    } catch (e: Exception) {
+        println("News.isNewsAutoPublishKillSwitchActive error: ${e.message}")
+        false
+    }
 }
 ```
 
-Включение/снимание (через `/api/properties/setproperty`, без рестарта):
+> **Почему здесь НЕ KaraokeProperties** (исправлено в fix 125). KaraokeProperties читает
+> файл `/sm-karaoke/system/Karaoke.properties`, который существует только на admin-машине.
+> `karaoke-web` НЕ сканирует пакет `com.svoemesto.karaokeapp.*` (Spring scan только
+> `com.svoemesto.karaokeweb.*`), поэтому даже контроллер `/api/properties/setproperty` из
+> `karaoke-app/ApiController.kt:5852` на проде возвращает 404. Текущий шаблон чтения — по
+> образцу `CaptchaConfigService.kt:35` (Yandex SmartCaptcha) и прямого JDBC.
+
+Включение/снимание (через прод-endpoint, без рестарта контейнера):
 
 ```bash
-# Включить (ДО sync):
-curl -X POST "https://prod.host/api/properties/setproperty" \
+# Включить (ДО sync) — на проде:
+curl -X POST "http://prod-host:8897/api/properties/setproperty" \
   -d "key=newsAutoPublishKillSwitch&stringValue=true"
 
 # Выполнить sync LOCAL→PROD (через админский UI)
 
-# Снять (ПОСЛЕ sync):
-curl -X POST "https://prod.host/api/properties/setproperty" \
+# Снять (ПОСЛЕ sync) — на проде:
+curl -X POST "http://prod-host:8897/api/properties/setproperty" \
   -d "key=newsAutoPublishKillSwitch&stringValue=false"
 ```
+
+**Pre-deploy**: миграция `deploy/karaoke-db/37_news_auto_publish_kill_switch.sql` — должна
+быть применена на обеих БД (LOCAL и PROD) ДО первого включения kill-switch. Без неё `SELECT`
+вернёт 0 строк, и `isNewsAutoPublishKillSwitchActive` всегда `false`.
 
 ## Инварианты / правила
 

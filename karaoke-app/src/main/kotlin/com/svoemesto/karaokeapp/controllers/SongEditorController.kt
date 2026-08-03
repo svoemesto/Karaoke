@@ -103,11 +103,11 @@ class SongEditorController(
 
     private fun pushMp3ToStorage(
         mp3File: File,
-        settings: Song,
+        song: Song,
         fileType: KaraokeFileType,
     ) {
         val bucket = "karaoke"
-        val storageKey = "${settings.storageFileName}${fileType.suffix}.${fileType.extention}"
+        val storageKey = "${song.storageFileName}${fileType.suffix}.${fileType.extention}"
         if (!storageService.fileExists(bucket, storageKey)) {
             storageService.uploadFile(bucket, storageKey, mp3File.absolutePath)
         }
@@ -115,22 +115,22 @@ class SongEditorController(
         // см. аналогичный хук в ApiController.pushMp3ToStorage.
         when (fileType) {
             KaraokeFileType.MP3_ACCOMPANIMENT ->
-                if (!settings.stemAccompanimentReady) {
-                    settings.stemAccompanimentReady = true
-                    settings.saveToDb()
+                if (!song.stemAccompanimentReady) {
+                    song.stemAccompanimentReady = true
+                    song.saveToDb()
                 }
             KaraokeFileType.MP3_VOCAL ->
-                if (!settings.stemVocalReady) {
-                    settings.stemVocalReady = true
-                    settings.saveToDb()
+                if (!song.stemVocalReady) {
+                    song.stemVocalReady = true
+                    song.saveToDb()
                 }
             else -> {}
         }
     }
 
-    private fun ensureStemsInStorage(settings: Song) {
-        convertFlacToMp3(settings.vocalsNameFlac)?.let { pushMp3ToStorage(it, settings, KaraokeFileType.MP3_VOCAL) }
-        convertFlacToMp3(settings.accompanimentNameFlac)?.let { pushMp3ToStorage(it, settings, KaraokeFileType.MP3_ACCOMPANIMENT) }
+    private fun ensureStemsInStorage(song: Song) {
+        convertFlacToMp3(song.vocalsNameFlac)?.let { pushMp3ToStorage(it, song, KaraokeFileType.MP3_VOCAL) }
+        convertFlacToMp3(song.accompanimentNameFlac)?.let { pushMp3ToStorage(it, song, KaraokeFileType.MP3_ACCOMPANIMENT) }
     }
 
     // --- Эндпоинты ---
@@ -146,7 +146,7 @@ class SongEditorController(
     // clearMarkers — участвует только когда у песни УЖЕ есть непустые маркеры (переиздание/повторная
     // обработка): null → эндпоинт ничего не создаёт и просит фронт переспросить пользователя (ошибка
     // "markers_exist"); true/false — фронт уже получил ответ, назначение создаётся, а при true черновик
-    // задания сразу заводится с ПУСТЫМИ маркерами по каждому голосу (settings.sourceMarkersList в БД не
+    // задания сразу заводится с ПУСТЫМИ маркерами по каждому голосу (song.sourceMarkersList в БД не
     // трогаем — очистка касается только рабочей копии пользователя, не самой песни).
     @PostMapping("/assign")
     @ResponseBody
@@ -158,7 +158,7 @@ class SongEditorController(
         @RequestParam(required = false) clearMarkers: Boolean?,
     ): Map<String, Any?> =
         withDb(target) { db ->
-            val settings =
+            val song =
                 Song.loadFromDbById(songId, db, storageService = storageService, storageApiClient = storageApiClient)
                     ?: return@withDb mapOf("ok" to false, "error" to "song_not_found")
             SiteUser.getSiteUserById(assigneeId, db, storageService, storageApiClient)
@@ -166,7 +166,7 @@ class SongEditorController(
             SongAssignment.findExisting(songId, assigneeId, db, storageService, storageApiClient)?.let {
                 return@withDb mapOf("ok" to false, "error" to "already_assigned", "id" to it.id)
             }
-            val hasMarkers = settings.sourceMarkersList.any { it.isNotEmpty() }
+            val hasMarkers = song.sourceMarkersList.any { it.isNotEmpty() }
             if (hasMarkers && clearMarkers == null) {
                 return@withDb mapOf("ok" to false, "error" to "markers_exist")
             }
@@ -174,7 +174,7 @@ class SongEditorController(
             // работает только на машине админа — локальный диск с FLAC доступен независимо от того, в какую
             // БД (local/remote) пишем сам SongAssignment.
             try {
-                ensureStemsInStorage(settings)
+                ensureStemsInStorage(song)
             } catch (_: Exception) {
             }
             val a = SongAssignment(database = db, storageService = storageService, storageApiClient = storageApiClient)
@@ -189,8 +189,8 @@ class SongEditorController(
                 val draft = SongAssignmentDraft(database = db, storageService = storageService, storageApiClient = storageApiClient)
                 draft.assignmentId = created.id
                 draft.assigneeId = assigneeId
-                draft.editedSourceText = SongAssignmentDraft.encodeTextsPerVoice(settings.sourceTextList)
-                draft.editedMarkers = SongAssignmentDraft.encodeMarkersPerVoice(List(settings.countVoices) { emptyList<SourceMarker>() })
+                draft.editedSourceText = SongAssignmentDraft.encodeTextsPerVoice(song.sourceTextList)
+                draft.editedMarkers = SongAssignmentDraft.encodeMarkersPerVoice(List(song.countVoices) { emptyList<SourceMarker>() })
                 draft.userStatus = SongAssignmentStatus.USER_IN_PROGRESS
                 KaraokeDbTable.createDbInstance(entity = draft, database = db)
             }
@@ -331,7 +331,7 @@ class SongEditorController(
                 val draft =
                     SongAssignmentDraft.getByAssignment(id, assignmentDb, storageService, storageApiClient)
                         ?: return@withDb mapOf("ok" to false, "status" to "error", "error" to "draft_not_found")
-                val settings =
+                val song =
                     Song.loadFromDbById(aRead.songId, localDb, storageService = storageService, storageApiClient = storageApiClient)
                         ?: return@withDb mapOf("ok" to false, "status" to "error", "error" to "song_not_found")
 
@@ -344,39 +344,39 @@ class SongEditorController(
                 // Применение разметки к Song (маркеры/текст/файлы .srt + подъём idStatus) не должно
                 // остаться необработанным исключением (specs/095-fix-approve-song-save-exception, тот
                 // же класс риска, что чинил specs/094-fix-approve-news-failure для aRead.save()): при
-                // сбое (например, SQLException на JDBC-соединении внутри settings.saveToDb()) задание
+                // сбое (например, SQLException на JDBC-соединении внутри song.saveToDb()) задание
                 // НЕ помечается одобренным (return ниже — до блока push/aRead.save()),
                 // администратор получает типизированную ошибку вместо необработанного HTTP 500.
                 try {
-                    val prevVoiceCount = settings.sourceMarkersList.size
+                    val prevVoiceCount = song.sourceMarkersList.size
                     for (voice in markersPerVoice.indices) {
-                        settings.setSourceMarkers(voice, markersPerVoice[voice])
-                        val srt = settings.convertMarkersToSrt(voice)
+                        song.setSourceMarkers(voice, markersPerVoice[voice])
+                        val srt = song.convertMarkersToSrt(voice)
                         try {
-                            val pathToFile = "${settings.rootFolder}/${settings.fileName}.voice${voice + 1}.srt"
+                            val pathToFile = "${song.rootFolder}/${song.fileName}.voice${voice + 1}.srt"
                             File(pathToFile).writeText(srt)
                             runCommand(listOf("chmod", "666", pathToFile))
                         } catch (_: Exception) {
                             println("Ошибка при создании файла субтитров при апруве задания $id (голос $voice).")
                         }
-                        settings.setSourceText(voice, textsPerVoice.getOrElse(voice) { "" })
+                        song.setSourceText(voice, textsPerVoice.getOrElse(voice) { "" })
                     }
                     // Хвостовые голоса, удалённые пользователем в черновике (были в Song, но их больше
                     // нет в присланном списке) — обрезаем.
                     if (markersPerVoice.size < prevVoiceCount) {
-                        settings.truncateVoicesTo(markersPerVoice.size)
+                        song.truncateVoicesTo(markersPerVoice.size)
                     }
 
                     // Сделать песню доступной в онлайн-плеере (idStatus>=6). Апрув админом присланной
                     // разметки — явное ручное подтверждение (не автоматика, FR-011 не применяется),
                     // поэтому статус выставляется сразу в терминальное значение 6 (READY), а не на 1 шаг
                     // вперёд (specs/022-song-status-lifecycle).
-                    if (settings.idStatus < 6) {
-                        settings.fields[SongField.ID_STATUS] = "6"
-                        settings.saveToDb()
+                    if (song.idStatus < 6) {
+                        song.fields[SongField.ID_STATUS] = "6"
+                        song.saveToDb()
                     }
                 } catch (e: Exception) {
-                    println("[SongEditorController.approve] применение разметки к песне ${settings.id} не удалось: ${e.message}")
+                    println("[SongEditorController.approve] применение разметки к песне ${song.id} не удалось: ${e.message}")
                     return@withDb mapOf("ok" to false, "status" to "error", "error" to "song_save_failed")
                 }
 
@@ -392,7 +392,7 @@ class SongEditorController(
                     // логе, что делало невозможным отличить "быстро упало" от "долго висело".
                     val pushStart = System.currentTimeMillis()
                     try {
-                        val pushResult = updateRemoteSongFromLocalDatabase(settings.id)
+                        val pushResult = updateRemoteSongFromLocalDatabase(song.id)
                         val pushDone = System.currentTimeMillis()
                         println(
                             "[approve/timing] push на SERVER: ${pushDone - pushStart} ms, " +
@@ -401,7 +401,7 @@ class SongEditorController(
                         // Новость «в эфире» здесь больше НЕ создаётся напрямую (specs/101-song-news-flag,
                         // FR-007 spec.md) — только плановая проверка (SongReleaseAnnouncementScheduler)
                         // или ручное создание администратором. Новость «доступна» тоже не создаётся
-                        // здесь: флаг newsAvailableAnnounced уже выставлен внутри settings.saveToDb()
+                        // здесь: флаг newsAvailableAnnounced уже выставлен внутри song.saveToDb()
                         // выше (см. Song.markNewsAvailableIfReady) и уже отправлен этим push'ом — сама
                         // новость появится при следующей серверной синхронизации, обнаружившей переход
                         // (MainController.doChangeRecords).
@@ -432,7 +432,7 @@ class SongEditorController(
                     )
                     return@withDb mapOf("ok" to false, "status" to "error", "error" to "save_failed")
                 }
-                mapOf("ok" to true, "status" to "success", "idStatus" to settings.idStatus)
+                mapOf("ok" to true, "status" to "success", "idStatus" to song.idStatus)
             }
         } finally {
             if (readDb != null) {
@@ -583,7 +583,7 @@ class SongEditorController(
 
             // Song читаем ВСЕГДА из WORKING_DATABASE: только там есть локальный диск с FLAC и .srt
             // (см. комментарий getSongPlayerData в ApiController). target не влияет на выбор Song.
-            val settings =
+            val song =
                 Song.loadFromDbById(
                     songId,
                     WORKING_DATABASE,
@@ -598,21 +598,21 @@ class SongEditorController(
             var reviewCommentForResponse: String = ""
 
             if (mode == "song") {
-                sourceTexts = settings.sourceTextList.toMutableList()
-                markersPerVoice = settings.sourceMarkersList.toMutableList()
+                sourceTexts = song.sourceTextList.toMutableList()
+                markersPerVoice = song.sourceMarkersList.toMutableList()
             } else {
                 val a =
                     SongAssignment.getById(id, db, storageService, storageApiClient)
                         ?: return@withDb mapOf("found" to false, "id" to id, "songId" to songId)
-                if (a.songId != settings.id) return@withDb mapOf("found" to false, "id" to id, "songId" to songId)
+                if (a.songId != song.id) return@withDb mapOf("found" to false, "id" to id, "songId" to songId)
                 assignmentId = a.id
                 val draft = SongAssignmentDraft.getByAssignment(a.id, db, storageService, storageApiClient)
                 if (draft != null) {
                     sourceTexts = draft.editedTextsPerVoice(json).toMutableList()
                     markersPerVoice = draft.editedMarkersPerVoice(json).toMutableList()
                 } else {
-                    sourceTexts = settings.sourceTextList.toMutableList()
-                    markersPerVoice = settings.sourceMarkersList.toMutableList()
+                    sourceTexts = song.sourceTextList.toMutableList()
+                    markersPerVoice = song.sourceMarkersList.toMutableList()
                 }
                 statusForResponse =
                     SongAssignmentStatus
@@ -629,30 +629,30 @@ class SongEditorController(
                 "found" to true,
                 "mode" to mode,
                 "id" to id,
-                "songId" to settings.id,
-                "songName" to settings.songName,
-                "author" to settings.author,
-                "album" to settings.album,
-                "year" to settings.year.takeIf { it > 0 },
-                "track" to settings.track.takeIf { it > 0 },
-                "key" to settings.key.takeIf { it.isNotBlank() },
-                "bpm" to settings.bpm,
+                "songId" to song.id,
+                "songName" to song.songName,
+                "author" to song.author,
+                "album" to song.album,
+                "year" to song.year.takeIf { it > 0 },
+                "track" to song.track.takeIf { it > 0 },
+                "key" to song.key.takeIf { it.isNotBlank() },
+                "bpm" to song.bpm,
                 "voiceCount" to markersPerVoice.size,
                 "sourceTexts" to sourceTexts,
                 "markersPerVoice" to markersPerVoice,
-                "audioVocalsUrl" to "/api/song/${settings.id}/filevoice.mp3",
-                "audioAccompanimentUrl" to "/api/song/${settings.id}/fileminus.mp3",
-                "audioBassUrl" to if (File(settings.bassNameFlac).exists()) "/api/song/${settings.id}/filebass.mp3" else null,
-                "audioDrumsUrl" to if (File(settings.drumsNameFlac).exists()) "/api/song/${settings.id}/filedrums.mp3" else null,
+                "audioVocalsUrl" to "/api/song/${song.id}/filevoice.mp3",
+                "audioAccompanimentUrl" to "/api/song/${song.id}/fileminus.mp3",
+                "audioBassUrl" to if (File(song.bassNameFlac).exists()) "/api/song/${song.id}/filebass.mp3" else null,
+                "audioDrumsUrl" to if (File(song.drumsNameFlac).exists()) "/api/song/${song.id}/filedrums.mp3" else null,
                 "albumImageUrl" to
-                    settings.pictureAlbum?.storageFileName?.let {
+                    song.pictureAlbum?.storageFileName?.let {
                         "/api/picture/file?file=${java.net.URLEncoder.encode(it, java.nio.charset.StandardCharsets.UTF_8)}"
                     },
                 "artistImageUrl" to
-                    settings.pictureAuthor?.storageFileName?.let {
+                    song.pictureAuthor?.storageFileName?.let {
                         "/api/picture/file?file=${java.net.URLEncoder.encode(it, java.nio.charset.StandardCharsets.UTF_8)}"
                     },
-                "exportBaseName" to "${settings.fileName} [id-${settings.id}]".rightFileName(),
+                "exportBaseName" to "${song.fileName} [id-${song.id}]".rightFileName(),
                 "canEdit" to true,
                 "assignmentId" to assignmentId,
                 "reviewComment" to reviewCommentForResponse,
@@ -693,20 +693,20 @@ class SongEditorController(
             // остальных target-aware методов. Song.setSourceMarkers/setSourceText делают saveToDb()
             // внутри (пересчитывают resultText/formattedTextSong/formattedTextTabs/formattedTextChords).
             return withDb(target) { db ->
-                val settings =
+                val song =
                     Song.loadFromDbById(id, db, storageService = storageService, storageApiClient = storageApiClient)
                         ?: return@withDb mapOf("ok" to false, "error" to "song_not_found")
-                val voiceCount = maxOf(settings.countVoices, parsedMarkers.size)
+                val voiceCount = maxOf(song.countVoices, parsedMarkers.size)
                 for (v in 0 until voiceCount) {
                     val markers = parsedMarkers.getOrNull(v) ?: emptyList()
-                    settings.setSourceMarkers(v, markers)
+                    song.setSourceMarkers(v, markers)
                     val text = parsedTexts.getOrNull(v) ?: ""
-                    settings.setSourceText(v, text)
+                    song.setSourceText(v, text)
                 }
-                if (parsedMarkers.size < settings.countVoices) {
-                    settings.truncateVoicesTo(parsedMarkers.size)
+                if (parsedMarkers.size < song.countVoices) {
+                    song.truncateVoicesTo(parsedMarkers.size)
                 }
-                mapOf("ok" to true, "voiceCount" to settings.countVoices, "idStatus" to settings.idStatus)
+                mapOf("ok" to true, "voiceCount" to song.countVoices, "idStatus" to song.idStatus)
             }
         } else {
             return withDb(target) { db ->
@@ -748,11 +748,11 @@ class SongEditorController(
     ): Map<String, Any?> {
         if (sourceText.isNotBlank()) return mapOf("ok" to false, "error" to "text_already_exists")
 
-        val settings =
+        val song =
             Song.loadFromDbById(id, WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
                 ?: return mapOf("ok" to false, "error" to "song_not_found")
 
-        val vocalsFile = File(settings.vocalsNameFlac)
+        val vocalsFile = File(song.vocalsNameFlac)
         if (!vocalsFile.exists()) return mapOf("ok" to false, "error" to "vocals_not_found")
 
         val transcription = WhisperAsrService.transcribe(vocalsFile) ?: return mapOf("ok" to false, "error" to "whisper_unavailable")
@@ -786,11 +786,11 @@ class SongEditorController(
     ): Map<String, Any?> {
         if (sourceText.isBlank()) return mapOf("ok" to false, "error" to "empty_source_text")
 
-        val settings =
+        val song =
             Song.loadFromDbById(id, WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
                 ?: return mapOf("ok" to false, "error" to "song_not_found")
 
-        val vocalsFile = File(settings.vocalsNameFlac)
+        val vocalsFile = File(song.vocalsNameFlac)
         if (!vocalsFile.exists()) return mapOf("ok" to false, "error" to "vocals_not_found")
 
         val transcription = WhisperAsrService.transcribe(vocalsFile) ?: return mapOf("ok" to false, "error" to "whisper_unavailable")
@@ -822,11 +822,11 @@ class SongEditorController(
     ): Map<String, Any?> {
         if (sourceText.isBlank()) return mapOf("ok" to false, "error" to "empty_source_text")
 
-        val settings =
+        val song =
             Song.loadFromDbById(id, WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
                 ?: return mapOf("ok" to false, "error" to "song_not_found")
 
-        val vocalsFile = File(settings.vocalsNameFlac)
+        val vocalsFile = File(song.vocalsNameFlac)
         if (!vocalsFile.exists()) return mapOf("ok" to false, "error" to "vocals_not_found")
 
         // useFinetunedModel не передан фронтом (старый кэш и т.п.) - берём дефолт из настроек

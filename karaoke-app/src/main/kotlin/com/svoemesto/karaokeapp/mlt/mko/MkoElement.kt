@@ -27,7 +27,7 @@ data class MkoElement(
     private val songVersion = mltProp.getSongVersion()
     private val frameWidthPx = mltProp.getFrameWidthPx()
     private val frameHeightPx = mltProp.getFrameHeightPx()
-    private val settings = mltProp.getSettings()
+    private val song = mltProp.getSong()
     private val songStartTimecode = mltProp.getSongStartTimecode()
     private val songEndTimecode = mltProp.getSongEndTimecode()
     private var lineDurationOnScreen = mltProp.getDurationOnScreen(listOf(ProducerType.LINE, voiceId, lineId))
@@ -46,7 +46,7 @@ data class MkoElement(
         var widthAreaPx = frameWidthPx
         var heightAreaPx = frameHeightPx
 
-        val sett = settings
+        val sett = song
         if (sett != null) {
             try {
                 val element = sett.voicesForMlt[voiceId].getLines()[lineId].getElements(songVersion)[elementId]
@@ -107,7 +107,7 @@ data class MkoElement(
         var widthAreaPx = frameWidthPx
         var heightAreaPx = frameHeightPx
 
-        val sett = settings
+        val sett = song
         if (sett != null) {
             try {
                 val element = sett.voicesForMlt[voiceId].getLines()[lineId].getElements(songVersion)[elementId]

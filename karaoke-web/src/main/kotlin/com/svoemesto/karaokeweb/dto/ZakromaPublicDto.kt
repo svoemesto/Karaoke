@@ -139,7 +139,7 @@ data class ZakromaPublicDto(
                                         ""
                                     },
                                 albumSettings =
-                                    alb.albumSettings.map { s ->
+                                    alb.albumSongs.map { s ->
                                         ZakromaAlbumSongPublicDto(
                                             id = s.id,
                                             track = s.track,

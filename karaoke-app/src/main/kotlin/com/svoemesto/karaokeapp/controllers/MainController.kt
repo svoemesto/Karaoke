@@ -160,12 +160,12 @@ class MainController(
     @PostMapping("/changesettingsstatus")
     @ResponseBody
     fun doCreateFromFolder(
-        @RequestParam(required = true) settingsId: Long,
+        @RequestParam(required = true) songId: Long,
         @RequestParam(required = true) statusId: Long,
     ) {
         Song
             .loadFromDbById(
-                settingsId,
+                songId,
                 database = WORKING_DATABASE,
                 storageService = storageService,
                 storageApiClient = storageApiClient,
@@ -196,7 +196,7 @@ class MainController(
             process.type = process_type
 
             process.save()
-            process.updateStatusProcessSettings(
+            process.updateStatusProcessSong(
                 database = WORKING_DATABASE,
                 storageService = storageService,
                 storageApiClient = storageApiClient,
@@ -208,7 +208,7 @@ class MainController(
 
     @GetMapping("/songs/lastupdated")
     @ResponseBody
-    fun getLastUpdatedSettings(
+    fun getLastUpdatedSongs(
         @RequestParam(required = false) lastTime: Long? = null,
     ): List<Int> = Song.getLastUpdated(lastTime, WORKING_DATABASE)
 
@@ -259,14 +259,14 @@ class MainController(
     fun getPictureAuthor(
         @PathVariable id: Long,
     ): String {
-        val settings =
+        val song =
             Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
                 storageApiClient = storageApiClient,
             )
-        settings?.let {
+        song?.let {
             return it.pictureAuthor?.full ?: ""
         }
         return ""
@@ -277,14 +277,14 @@ class MainController(
     fun getPictureAlbum(
         @PathVariable id: Long,
     ): String {
-        val settings =
+        val song =
             Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
                 storageApiClient = storageApiClient,
             )
-        settings?.let {
+        song?.let {
             return it.pictureAlbum?.full ?: ""
         }
         return ""
@@ -296,14 +296,14 @@ class MainController(
         @PathVariable id: Long,
         @RequestParam(required = false) threadId: String? = "0",
     ): Int {
-        val settings =
+        val song =
             Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
                 storageApiClient = storageApiClient,
             )
-        settings?.doSymlink(threadId = threadId?.toInt() ?: 0)
+        song?.doSymlink(threadId = threadId?.toInt() ?: 0)
         return 0
     }
 
@@ -312,14 +312,14 @@ class MainController(
     fun doDeleteSong(
         @PathVariable id: Long,
     ): Int {
-        val settings =
+        val song =
             Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
                 storageApiClient = storageApiClient,
             )
-        settings?.deleteFromDb()
+        song?.deleteFromDb()
         return 0
     }
 
@@ -328,15 +328,15 @@ class MainController(
     fun doSetPublishDateTimeToAuthor(
         @PathVariable id: Long,
     ): Int {
-        val settings =
+        val song =
             Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
                 storageApiClient = storageApiClient,
             )
-        settings?.let {
-            Song.setPublishDateTimeToAuthor(settings)
+        song?.let {
+            Song.setPublishDateTimeToAuthor(song)
         }
         return 0
     }
@@ -346,15 +346,15 @@ class MainController(
     fun doPlayLyrics(
         @PathVariable id: Long,
     ): Int {
-        val settings =
+        val song =
             Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
                 storageApiClient = storageApiClient,
             )
-        settings?.let {
-            settings.playLyrics()
+        song?.let {
+            song.playLyrics()
         }
         return 0
     }
@@ -364,15 +364,15 @@ class MainController(
     fun doPlayKaraoke(
         @PathVariable id: Long,
     ): Int {
-        val settings =
+        val song =
             Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
                 storageApiClient = storageApiClient,
             )
-        settings?.let {
-            settings.playKaraoke()
+        song?.let {
+            song.playKaraoke()
         }
         return 0
     }
@@ -382,15 +382,15 @@ class MainController(
     fun doPlayChords(
         @PathVariable id: Long,
     ): Int {
-        val settings =
+        val song =
             Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
                 storageApiClient = storageApiClient,
             )
-        settings?.let {
-            settings.playChords()
+        song?.let {
+            song.playChords()
         }
         return 0
     }
@@ -405,16 +405,16 @@ class MainController(
     ): String {
         var text: String
 //        if (sourceText.trim() != "") {
-        val settings =
+        val song =
             Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
                 storageApiClient = storageApiClient,
             )
-        text = settings?.let {
-            settings.setSourceText(voice, sourceText)
-            settings.updateMarkersFromSourceText(voice)
+        text = song?.let {
+            song.setSourceText(voice, sourceText)
+            song.updateMarkersFromSourceText(voice)
             "OK"
         } ?: "Error"
 //        }
@@ -428,15 +428,15 @@ class MainController(
         @PathVariable id: Long,
         @RequestParam(required = false) threadId: String? = "0",
     ): Long {
-        val settings =
+        val song =
             Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
                 storageApiClient = storageApiClient,
             )
-        settings?.let {
-            return KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS, true, 0, threadId = threadId?.toInt() ?: 0)
+        song?.let {
+            return KaraokeProcess.createProcess(song, KaraokeProcessTypes.MELT_LYRICS, true, 0, threadId = threadId?.toInt() ?: 0)
         }
         return 0
     }
@@ -447,15 +447,15 @@ class MainController(
         @PathVariable id: Long,
         @RequestParam(required = false) threadId: String? = "0",
     ): Long {
-        val settings =
+        val song =
             Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
                 storageApiClient = storageApiClient,
             )
-        settings?.let {
-            return KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, 1, threadId = threadId?.toInt() ?: 0)
+        song?.let {
+            return KaraokeProcess.createProcess(song, KaraokeProcessTypes.MELT_KARAOKE, true, 1, threadId = threadId?.toInt() ?: 0)
         }
         return 0
     }
@@ -466,16 +466,16 @@ class MainController(
         @PathVariable id: Long,
         @RequestParam(required = false) threadId: String? = "0",
     ): Long {
-        val settings =
+        val song =
             Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
                 storageApiClient = storageApiClient,
             )
-        settings?.let {
-            if (SongRenderContext(settings, SongVersion.LYRICS).hasChords) {
-                return KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDS, true, 1, threadId = threadId?.toInt() ?: 0)
+        song?.let {
+            if (SongRenderContext(song, SongVersion.LYRICS).hasChords) {
+                return KaraokeProcess.createProcess(song, KaraokeProcessTypes.MELT_CHORDS, true, 1, threadId = threadId?.toInt() ?: 0)
             }
         }
         return 0
@@ -487,7 +487,7 @@ class MainController(
         @PathVariable id: Long,
         @RequestParam(required = false) threadId: String? = "0",
     ): List<Long> {
-        val settings =
+        val song =
             Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
@@ -495,14 +495,14 @@ class MainController(
                 storageApiClient = storageApiClient,
             )
         val result: MutableList<Long> = mutableListOf()
-        settings?.let {
-            val hasChords = SongRenderContext(settings, SongVersion.LYRICS).hasChords
-            result.add(KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS, true, 4, threadId = threadId?.toInt() ?: 0))
-            result.add(KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, 4, threadId = threadId?.toInt() ?: 0))
+        song?.let {
+            val hasChords = SongRenderContext(song, SongVersion.LYRICS).hasChords
+            result.add(KaraokeProcess.createProcess(song, KaraokeProcessTypes.MELT_LYRICS, true, 4, threadId = threadId?.toInt() ?: 0))
+            result.add(KaraokeProcess.createProcess(song, KaraokeProcessTypes.MELT_KARAOKE, true, 4, threadId = threadId?.toInt() ?: 0))
             if (hasChords) {
                 result.add(
                     KaraokeProcess.createProcess(
-                        settings,
+                        song,
                         KaraokeProcessTypes.MELT_CHORDS,
                         true,
                         4,
@@ -521,7 +521,7 @@ class MainController(
         @PathVariable id: Long,
         @RequestParam(required = false) threadId: String? = "0",
     ): List<Long> {
-        val settings =
+        val song =
             Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
@@ -529,13 +529,13 @@ class MainController(
                 storageApiClient = storageApiClient,
             )
         val result: MutableList<Long> = mutableListOf()
-        settings?.let {
-            val hasChords = SongRenderContext(settings, SongVersion.LYRICS).hasChords
-            result.add(KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, 2, threadId = threadId?.toInt() ?: 0))
+        song?.let {
+            val hasChords = SongRenderContext(song, SongVersion.LYRICS).hasChords
+            result.add(KaraokeProcess.createProcess(song, KaraokeProcessTypes.MELT_KARAOKE, true, 2, threadId = threadId?.toInt() ?: 0))
             if (hasChords) {
                 result.add(
                     KaraokeProcess.createProcess(
-                        settings,
+                        song,
                         KaraokeProcessTypes.MELT_CHORDS,
                         true,
                         3,
@@ -554,16 +554,16 @@ class MainController(
         @PathVariable id: Long,
         @RequestParam(required = false) threadId: String? = "0",
     ): Long {
-        val settings =
+        val song =
             Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
                 storageApiClient = storageApiClient,
             )
-        settings?.let {
-//            if (it.getAudioAspectRate() != "48000") KaraokeProcess.createProcess(settings, KaraokeProcessTypes.RECODE_48000, true, -1)
-            return KaraokeProcess.createProcess(settings, KaraokeProcessTypes.DEMUCS2, true, -1, threadId = threadId?.toInt() ?: 0)
+        song?.let {
+//            if (it.getAudioAspectRate() != "48000") KaraokeProcess.createProcess(song, KaraokeProcessTypes.RECODE_48000, true, -1)
+            return KaraokeProcess.createProcess(song, KaraokeProcessTypes.DEMUCS2, true, -1, threadId = threadId?.toInt() ?: 0)
         }
         return 0
     }
@@ -592,7 +592,7 @@ class MainController(
         @PathVariable id: Long,
         @PathVariable voice: Int,
     ): String {
-        val settings =
+        val song =
             Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
@@ -600,8 +600,8 @@ class MainController(
                 storageApiClient = storageApiClient,
             )
         val text =
-            settings?.let {
-                settings.getSourceText(voice)
+            song?.let {
+                song.getSourceText(voice)
             } ?: ""
 //        model.addAttribute("text", text)
         return text
@@ -613,15 +613,15 @@ class MainController(
         @PathVariable id: Long,
         @PathVariable voice: Int,
     ): List<SourceMarker> {
-        val settings =
+        val song =
             Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
                 storageApiClient = storageApiClient,
             )
-        return settings?.let {
-            settings.getSourceMarkers(voice)
+        return song?.let {
+            song.getSourceMarkers(voice)
         } ?: emptyList()
     }
 
@@ -631,15 +631,15 @@ class MainController(
         @PathVariable id: Long,
         @PathVariable voice: Int,
     ): List<String> {
-        val settings =
+        val song =
             Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
                 storageApiClient = storageApiClient,
             )
-        return settings?.let {
-            settings.getSourceSyllables(voice)
+        return song?.let {
+            song.getSourceSyllables(voice)
         } ?: emptyList()
     }
 
@@ -652,17 +652,17 @@ class MainController(
     ): String {
         var text = "Error"
         if (sourceMarkers.trim() != "") {
-            val settings =
+            val song =
                 Song.loadFromDbById(
                     id = id,
                     database = WORKING_DATABASE,
                     storageService = storageService,
                     storageApiClient = storageApiClient,
                 )
-            text = settings?.let {
-                settings.setSourceMarkers(voice, Json.decodeFromString(ListSerializer(SourceMarker.serializer()), sourceMarkers))
-                val strText = settings.convertMarkersToSrt(voice)
-                val pathToFile = "${settings.rootFolder}/${settings.fileName}.voice${voice + 1}.srt"
+            text = song?.let {
+                song.setSourceMarkers(voice, Json.decodeFromString(ListSerializer(SourceMarker.serializer()), sourceMarkers))
+                val strText = song.convertMarkersToSrt(voice)
+                val pathToFile = "${song.rootFolder}/${song.fileName}.voice${voice + 1}.srt"
                 File(pathToFile).writeText(strText)
                 runCommand(listOf("chmod", "666", pathToFile))
                 "OK"
@@ -682,8 +682,8 @@ class MainController(
                 database = WORKING_DATABASE,
                 storageService = storageService,
                 storageApiClient = storageApiClient,
-            )?.let { settings ->
-                val filename = File(settings.vocalsNameFlac)
+            )?.let { song ->
+                val filename = File(song.vocalsNameFlac)
                 val resource = FileSystemResource(filename)
                 if (resource.exists()) {
                     return ResponseEntity
@@ -705,8 +705,8 @@ class MainController(
                 database = WORKING_DATABASE,
                 storageService = storageService,
                 storageApiClient = storageApiClient,
-            )?.let { settings ->
-                val filename = File(settings.accompanimentNameFlac)
+            )?.let { song ->
+                val filename = File(song.accompanimentNameFlac)
                 val resource = FileSystemResource(filename)
                 if (resource.exists()) {
                     return ResponseEntity
@@ -728,8 +728,8 @@ class MainController(
                 database = WORKING_DATABASE,
                 storageService = storageService,
                 storageApiClient = storageApiClient,
-            )?.let { settings ->
-                val filename = File(settings.fileAbsolutePath)
+            )?.let { song ->
+                val filename = File(song.fileAbsolutePath)
                 val resource = FileSystemResource(filename)
                 if (resource.exists()) {
                     return ResponseEntity
@@ -753,13 +753,13 @@ class MainController(
                 database = WORKING_DATABASE,
                 storageService = storageService,
                 storageApiClient = storageApiClient,
-            )?.let { settings ->
-                val markersValue = Json.encodeToString(settings.getSourceMarkers(voice))
-                val syllablesValue = Json.encodeToString(settings.getSourceSyllables(voice))
+            )?.let { song ->
+                val markersValue = Json.encodeToString(song.getSourceMarkers(voice))
+                val syllablesValue = Json.encodeToString(song.getSourceSyllables(voice))
 
                 model.addAttribute("workInContainer", APP_WORK_IN_CONTAINER)
-                model.addAttribute("settings", settings)
-                model.addAttribute("text", settings.getSourceText(voice))
+                model.addAttribute("song", song)
+                model.addAttribute("text", song.getSourceText(voice))
                 model.addAttribute("markers", markersValue)
                 model.addAttribute("syllables", syllablesValue)
                 model.addAttribute("voice", voice)
@@ -773,7 +773,7 @@ class MainController(
     fun getSongColor(
         @PathVariable id: Long,
     ): String {
-        val settings =
+        val song =
             Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
@@ -781,8 +781,8 @@ class MainController(
                 storageApiClient = storageApiClient,
             )
         val text =
-            settings?.let {
-                settings.color
+            song?.let {
+                song.color
             } ?: "#FFFFFF"
         return text
     }
@@ -792,7 +792,7 @@ class MainController(
     fun getSongTextDzenLyrics(
         @PathVariable id: Long,
     ): String {
-        val settings =
+        val song =
             Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
@@ -800,7 +800,7 @@ class MainController(
                 storageApiClient = storageApiClient,
             )
         val text =
-            settings?.let {
+            song?.let {
                 val text = it.getDescription(SongVersion.LYRICS)
                 text
             } ?: ""
@@ -812,7 +812,7 @@ class MainController(
     fun getSongTextDzenKaraoke(
         @PathVariable id: Long,
     ): String {
-        val settings =
+        val song =
             Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
@@ -820,7 +820,7 @@ class MainController(
                 storageApiClient = storageApiClient,
             )
         val text =
-            settings?.let {
+            song?.let {
                 val text = it.getDescription(SongVersion.KARAOKE)
                 text
             } ?: ""
@@ -832,7 +832,7 @@ class MainController(
     fun getSongTextDzenChords(
         @PathVariable id: Long,
     ): String {
-        val settings =
+        val song =
             Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
@@ -840,7 +840,7 @@ class MainController(
                 storageApiClient = storageApiClient,
             )
         val text =
-            settings?.let {
+            song?.let {
                 val text = it.getDescription(SongVersion.CHORDS)
                 text
             } ?: ""
@@ -852,7 +852,7 @@ class MainController(
     fun getSongTextDzenLyricsHeader(
         @PathVariable id: Long,
     ): String {
-        val settings =
+        val song =
             Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
@@ -860,7 +860,7 @@ class MainController(
                 storageApiClient = storageApiClient,
             )
         val text =
-            settings?.let {
+            song?.let {
                 val text = it.getDescriptionHeader(SongVersion.LYRICS, 140)
                 text
             } ?: ""
@@ -872,7 +872,7 @@ class MainController(
     fun getSongTextDzenKaraokeHeader(
         @PathVariable id: Long,
     ): String {
-        val settings =
+        val song =
             Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
@@ -880,7 +880,7 @@ class MainController(
                 storageApiClient = storageApiClient,
             )
         val text =
-            settings?.let {
+            song?.let {
                 val text = it.getDescriptionHeader(SongVersion.KARAOKE, 140)
                 text
             } ?: ""
@@ -892,7 +892,7 @@ class MainController(
     fun getSongTextDzenChordsHeader(
         @PathVariable id: Long,
     ): String {
-        val settings =
+        val song =
             Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
@@ -900,7 +900,7 @@ class MainController(
                 storageApiClient = storageApiClient,
             )
         val text =
-            settings?.let {
+            song?.let {
                 val text = it.getDescriptionHeader(SongVersion.CHORDS, 140)
                 text
             } ?: ""
@@ -912,7 +912,7 @@ class MainController(
     fun getSongTextDzenLyricsWOHeader(
         @PathVariable id: Long,
     ): String {
-        val settings =
+        val song =
             Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
@@ -920,7 +920,7 @@ class MainController(
                 storageApiClient = storageApiClient,
             )
         val text =
-            settings?.let {
+            song?.let {
                 val text = it.getDescriptionWOHeaderWithTimecodes(SongVersion.LYRICS, 5000)
                 text
             } ?: ""
@@ -932,7 +932,7 @@ class MainController(
     fun getSongTextDzenKaraokeWOHeader(
         @PathVariable id: Long,
     ): String {
-        val settings =
+        val song =
             Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
@@ -940,7 +940,7 @@ class MainController(
                 storageApiClient = storageApiClient,
             )
         val text =
-            settings?.let {
+            song?.let {
                 val text = it.getDescriptionWOHeaderWithTimecodes(SongVersion.KARAOKE, 5000)
                 text
             } ?: ""
@@ -952,7 +952,7 @@ class MainController(
     fun getSongTextDzenChordsWOHeader(
         @PathVariable id: Long,
     ): String {
-        val settings =
+        val song =
             Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
@@ -960,7 +960,7 @@ class MainController(
                 storageApiClient = storageApiClient,
             )
         val text =
-            settings?.let {
+            song?.let {
                 val text = it.getDescriptionWOHeaderWithTimecodes(SongVersion.CHORDS, 5000)
                 text
             } ?: ""
@@ -982,7 +982,7 @@ class MainController(
     fun getSongTextVkLyrics(
         @PathVariable id: Long,
     ): String {
-        val settings =
+        val song =
             Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
@@ -990,7 +990,7 @@ class MainController(
                 storageApiClient = storageApiClient,
             )
         val text =
-            settings?.let {
+            song?.let {
                 val text = it.getDescriptionVk(SongVersion.LYRICS)
                 text
             } ?: ""
@@ -1002,7 +1002,7 @@ class MainController(
     fun getSongTextVkKaraoke(
         @PathVariable id: Long,
     ): String {
-        val settings =
+        val song =
             Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
@@ -1010,7 +1010,7 @@ class MainController(
                 storageApiClient = storageApiClient,
             )
         val text =
-            settings?.let {
+            song?.let {
                 val text = it.getDescriptionVk(SongVersion.KARAOKE)
                 text
             } ?: ""
@@ -1022,7 +1022,7 @@ class MainController(
     fun getSongTextVkChords(
         @PathVariable id: Long,
     ): String {
-        val settings =
+        val song =
             Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
@@ -1030,7 +1030,7 @@ class MainController(
                 storageApiClient = storageApiClient,
             )
         val text =
-            settings?.let {
+            song?.let {
                 val text = it.getDescriptionVk(SongVersion.CHORDS)
                 text
             } ?: ""
@@ -1042,7 +1042,7 @@ class MainController(
     fun getSongTextVkLyricsHeader(
         @PathVariable id: Long,
     ): String {
-        val settings =
+        val song =
             Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
@@ -1050,7 +1050,7 @@ class MainController(
                 storageApiClient = storageApiClient,
             )
         val text =
-            settings?.let {
+            song?.let {
                 val text = it.getDescriptionVkHeader(SongVersion.LYRICS)
                 text
             } ?: ""
@@ -1062,7 +1062,7 @@ class MainController(
     fun getSongTextVkKaraokeHeader(
         @PathVariable id: Long,
     ): String {
-        val settings =
+        val song =
             Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
@@ -1070,7 +1070,7 @@ class MainController(
                 storageApiClient = storageApiClient,
             )
         val text =
-            settings?.let {
+            song?.let {
                 val text = it.getDescriptionVkHeader(SongVersion.KARAOKE)
                 text
             } ?: ""
@@ -1082,7 +1082,7 @@ class MainController(
     fun getSongTextVkChordsHeader(
         @PathVariable id: Long,
     ): String {
-        val settings =
+        val song =
             Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
@@ -1090,7 +1090,7 @@ class MainController(
                 storageApiClient = storageApiClient,
             )
         val text =
-            settings?.let {
+            song?.let {
                 val text = it.getDescriptionVkHeader(SongVersion.CHORDS)
                 text
             } ?: ""
@@ -1102,7 +1102,7 @@ class MainController(
     fun getSongTextVkLyricsWOHeader(
         @PathVariable id: Long,
     ): String {
-        val settings =
+        val song =
             Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
@@ -1110,7 +1110,7 @@ class MainController(
                 storageApiClient = storageApiClient,
             )
         val text =
-            settings?.let {
+            song?.let {
                 val text = it.getDescriptionWOHeaderWithTimecodes(SongVersion.LYRICS, 4785)
                 text
             } ?: ""
@@ -1122,7 +1122,7 @@ class MainController(
     fun getSongTextVkKaraokeWOHeader(
         @PathVariable id: Long,
     ): String {
-        val settings =
+        val song =
             Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
@@ -1130,7 +1130,7 @@ class MainController(
                 storageApiClient = storageApiClient,
             )
         val text =
-            settings?.let {
+            song?.let {
                 val text = it.getDescriptionWOHeaderWithTimecodes(SongVersion.KARAOKE, 4785)
                 text
             } ?: ""
@@ -1142,7 +1142,7 @@ class MainController(
     fun getSongTextVkChordsWOHeader(
         @PathVariable id: Long,
     ): String {
-        val settings =
+        val song =
             Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
@@ -1150,7 +1150,7 @@ class MainController(
                 storageApiClient = storageApiClient,
             )
         val text =
-            settings?.let {
+            song?.let {
                 val text = it.getDescriptionWOHeaderWithTimecodes(SongVersion.CHORDS, 4893)
                 text
             } ?: ""
@@ -1162,7 +1162,7 @@ class MainController(
     fun getSongTextTelegramLyrics(
         @PathVariable id: Long,
     ): String {
-        val settings =
+        val song =
             Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
@@ -1170,7 +1170,7 @@ class MainController(
                 storageApiClient = storageApiClient,
             )
         val text =
-            settings?.let {
+            song?.let {
                 val text = it.getDescriptionVk(SongVersion.LYRICS)
                 text
             } ?: ""
@@ -1182,7 +1182,7 @@ class MainController(
     fun getSongTextTelegramKaraoke(
         @PathVariable id: Long,
     ): String {
-        val settings =
+        val song =
             Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
@@ -1190,7 +1190,7 @@ class MainController(
                 storageApiClient = storageApiClient,
             )
         val text =
-            settings?.let {
+            song?.let {
                 val text = it.getDescriptionVk(SongVersion.KARAOKE)
                 text
             } ?: ""
@@ -1202,7 +1202,7 @@ class MainController(
     fun getSongTextTelegramChords(
         @PathVariable id: Long,
     ): String {
-        val settings =
+        val song =
             Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
@@ -1210,7 +1210,7 @@ class MainController(
                 storageApiClient = storageApiClient,
             )
         val text =
-            settings?.let {
+            song?.let {
                 val text = it.getDescriptionVk(SongVersion.CHORDS)
                 text
             } ?: ""
@@ -1222,7 +1222,7 @@ class MainController(
     fun getSongTextTelegramLyricsHeader(
         @PathVariable id: Long,
     ): String {
-        val settings =
+        val song =
             Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
@@ -1230,7 +1230,7 @@ class MainController(
                 storageApiClient = storageApiClient,
             )
         val text =
-            settings?.let {
+            song?.let {
                 val text = it.getDescriptionVkHeader(SongVersion.LYRICS)
                 text
             } ?: ""
@@ -1242,7 +1242,7 @@ class MainController(
     fun getSongTextTelegramKaraokeHeader(
         @PathVariable id: Long,
     ): String {
-        val settings =
+        val song =
             Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
@@ -1250,7 +1250,7 @@ class MainController(
                 storageApiClient = storageApiClient,
             )
         val text =
-            settings?.let {
+            song?.let {
                 val text = it.getDescriptionVkHeader(SongVersion.KARAOKE)
                 text
             } ?: ""
@@ -1262,7 +1262,7 @@ class MainController(
     fun getSongTextTelegramChordsHeader(
         @PathVariable id: Long,
     ): String {
-        val settings =
+        val song =
             Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
@@ -1270,7 +1270,7 @@ class MainController(
                 storageApiClient = storageApiClient,
             )
         val text =
-            settings?.let {
+            song?.let {
                 val text = it.getDescriptionVkHeader(SongVersion.CHORDS)
                 text
             } ?: ""
@@ -1282,7 +1282,7 @@ class MainController(
     fun getSongTextTelegramLyricsWOHeader(
         @PathVariable id: Long,
     ): String {
-        val settings =
+        val song =
             Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
@@ -1290,7 +1290,7 @@ class MainController(
                 storageApiClient = storageApiClient,
             )
         val text =
-            settings?.let {
+            song?.let {
                 val text = it.getDescriptionWOHeaderWithTimecodes(SongVersion.LYRICS)
                 text
             } ?: ""
@@ -1302,7 +1302,7 @@ class MainController(
     fun getSongTextTelegramKaraokeWOHeader(
         @PathVariable id: Long,
     ): String {
-        val settings =
+        val song =
             Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
@@ -1310,7 +1310,7 @@ class MainController(
                 storageApiClient = storageApiClient,
             )
         val text =
-            settings?.let {
+            song?.let {
                 val text = it.getDescriptionWOHeaderWithTimecodes(SongVersion.KARAOKE)
                 text
             } ?: ""
@@ -1322,7 +1322,7 @@ class MainController(
     fun getSongTextTelegramChordsWOHeader(
         @PathVariable id: Long,
     ): String {
-        val settings =
+        val song =
             Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
@@ -1330,7 +1330,7 @@ class MainController(
                 storageApiClient = storageApiClient,
             )
         val text =
-            settings?.let {
+            song?.let {
                 val text = it.getDescriptionWOHeaderWithTimecodes(SongVersion.CHORDS)
                 text
             } ?: ""
@@ -1342,7 +1342,7 @@ class MainController(
     fun getSongTextBoostyHead(
         @PathVariable id: Long,
     ): String {
-        val settings =
+        val song =
             Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
@@ -1350,7 +1350,7 @@ class MainController(
                 storageApiClient = storageApiClient,
             )
         val text =
-            settings?.let {
+            song?.let {
                 val text = it.getTextBoostyHead()
                 text
             } ?: ""
@@ -1362,7 +1362,7 @@ class MainController(
     fun getSongTextBoostyBody(
         @PathVariable id: Long,
     ): String {
-        val settings =
+        val song =
             Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
@@ -1370,7 +1370,7 @@ class MainController(
                 storageApiClient = storageApiClient,
             )
         val text =
-            settings?.let {
+            song?.let {
                 val text = it.getTextBoostyBody()
                 text
             } ?: ""
@@ -1382,7 +1382,7 @@ class MainController(
     fun getSongTextVkBody(
         @PathVariable id: Long,
     ): String {
-        val settings =
+        val song =
             Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
@@ -1390,7 +1390,7 @@ class MainController(
                 storageApiClient = storageApiClient,
             )
         val text =
-            settings?.let {
+            song?.let {
                 val text = it.getVKGroupDescription()
                 text
             } ?: ""
@@ -1402,15 +1402,15 @@ class MainController(
     fun getSearchSongText(
         @PathVariable id: Long,
     ): String {
-        val settings =
+        val song =
             Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
                 storageApiClient = storageApiClient,
             )
-        return settings?.let {
-            searchSongText(settings)
+        return song?.let {
+            searchSongText(song)
         } ?: ""
     }
 
@@ -1420,7 +1420,7 @@ class MainController(
         model: Model,
         @RequestParam(required = false) threadId: String? = "0",
     ): String {
-        val settings =
+        val song =
             Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
@@ -1428,10 +1428,10 @@ class MainController(
                 storageApiClient = storageApiClient,
             )
         val text =
-            settings?.let {
-                settings.createKaraoke()
-                KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS, true, 0, threadId = threadId?.toInt() ?: 0)
-                KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, 1, threadId = threadId?.toInt() ?: 0)
+            song?.let {
+                song.createKaraoke()
+                KaraokeProcess.createProcess(song, KaraokeProcessTypes.MELT_LYRICS, true, 0, threadId = threadId?.toInt() ?: 0)
+                KaraokeProcess.createProcess(song, KaraokeProcessTypes.MELT_KARAOKE, true, 1, threadId = threadId?.toInt() ?: 0)
                 "OK"
             } ?: "Error"
         model.addAttribute("text", text)
@@ -1445,7 +1445,7 @@ class MainController(
         @RequestParam(required = false) overrideKdenliveSubsFile: Boolean = false,
         model: Model,
     ): String {
-        val settings =
+        val song =
             Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
@@ -1453,8 +1453,8 @@ class MainController(
                 storageApiClient = storageApiClient,
             )
         val text =
-            settings?.let {
-                settings.createKdenliveFiles(overrideKdenliveFile, overrideKdenliveSubsFile)
+            song?.let {
+                song.createKdenliveFiles(overrideKdenliveFile, overrideKdenliveSubsFile)
                 "OK"
             } ?: "Error"
         model.addAttribute("text", text)
@@ -1475,18 +1475,18 @@ class MainController(
                     .filter { it != "" }
                     .map { it.toLong() }
             ids.forEach { id ->
-                val settings =
+                val song =
                     Song.loadFromDbById(
                         id = id,
                         database = WORKING_DATABASE,
                         storageService = storageService,
                         storageApiClient = storageApiClient,
                     )
-                settings?.let {
-                    settings.createKaraoke()
+                song?.let {
+                    song.createKaraoke()
 
-                    KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS, true, 10, threadId = threadId?.toInt() ?: 0)
-                    KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, 10, threadId = threadId?.toInt() ?: 0)
+                    KaraokeProcess.createProcess(song, KaraokeProcessTypes.MELT_LYRICS, true, 10, threadId = threadId?.toInt() ?: 0)
+                    KaraokeProcess.createProcess(song, KaraokeProcessTypes.MELT_KARAOKE, true, 10, threadId = threadId?.toInt() ?: 0)
                 }
                 result = "OK"
             }
@@ -1509,16 +1509,16 @@ class MainController(
                     .filter { it != "" }
                     .map { it.toLong() }
             ids.forEach { id ->
-                val settings =
+                val song =
                     Song.loadFromDbById(
                         id = id,
                         database = WORKING_DATABASE,
                         storageService = storageService,
                         storageApiClient = storageApiClient,
                     )
-                settings?.let {
-//                    if (it.getAudioAspectRate() != "48000") KaraokeProcess.createProcess(settings, KaraokeProcessTypes.RECODE_48000, true, -1)
-                    KaraokeProcess.createProcess(settings, KaraokeProcessTypes.DEMUCS2, true, -1, threadId = threadId?.toInt() ?: 0)
+                song?.let {
+//                    if (it.getAudioAspectRate() != "48000") KaraokeProcess.createProcess(song, KaraokeProcessTypes.RECODE_48000, true, -1)
+                    KaraokeProcess.createProcess(song, KaraokeProcessTypes.DEMUCS2, true, -1, threadId = threadId?.toInt() ?: 0)
                 }
                 result = "OK"
             }
@@ -1541,15 +1541,15 @@ class MainController(
                     .filter { it != "" }
                     .map { it.toLong() }
             ids.forEach { id ->
-                val settings =
+                val song =
                     Song.loadFromDbById(
                         id = id,
                         database = WORKING_DATABASE,
                         storageService = storageService,
                         storageApiClient = storageApiClient,
                     )
-                settings?.let {
-                    KaraokeProcess.createProcess(settings, KaraokeProcessTypes.FF_720_KAR, true, 1, threadId = threadId?.toInt() ?: 0)
+                song?.let {
+                    KaraokeProcess.createProcess(song, KaraokeProcessTypes.FF_720_KAR, true, 1, threadId = threadId?.toInt() ?: 0)
                 }
                 result = "OK"
             }
@@ -1572,15 +1572,15 @@ class MainController(
                     .filter { it != "" }
                     .map { it.toLong() }
             ids.forEach { id ->
-                val settings =
+                val song =
                     Song.loadFromDbById(
                         id = id,
                         database = WORKING_DATABASE,
                         storageService = storageService,
                         storageApiClient = storageApiClient,
                     )
-                settings?.let {
-                    KaraokeProcess.createProcess(settings, KaraokeProcessTypes.FF_720_LYR, true, 1, threadId = threadId?.toInt() ?: 0)
+                song?.let {
+                    KaraokeProcess.createProcess(song, KaraokeProcessTypes.FF_720_LYR, true, 1, threadId = threadId?.toInt() ?: 0)
                 }
                 result = "OK"
             }
@@ -1602,23 +1602,23 @@ class MainController(
                     .filter { it != "" }
                     .map { it.toLong() }
             ids.forEach { id ->
-                val settings =
+                val song =
                     Song.loadFromDbById(
                         id = id,
                         database = WORKING_DATABASE,
                         storageService = storageService,
                         storageApiClient = storageApiClient,
                     )
-                settings?.let {
-                    if (settings.sourceText.isBlank()) {
-                        val text = searchSongText(settings)
+                song?.let {
+                    if (song.sourceText.isBlank()) {
+                        val text = searchSongText(song)
 
                         Thread.sleep(2000)
 
                         if (text.isNotBlank()) {
-                            settings.sourceText = text
-                            settings.fields[SongField.ID_STATUS] = "1"
-                            settings.saveToDb()
+                            song.sourceText = text
+                            song.fields[SongField.ID_STATUS] = "1"
+                            song.saveToDb()
                         }
                     }
                 }
@@ -1637,7 +1637,7 @@ class MainController(
         @RequestParam(required = false) filter_order: String?,
         @RequestParam(required = false) filter_priority: String?,
         @RequestParam(required = false) filter_description: String?,
-        @RequestParam(required = false) filter_settings_id: String?,
+        @RequestParam(required = false) filter_song_id: String?,
         @RequestParam(required = false) filter_type: String?,
         @RequestParam(required = false) filter_limit: String?,
         model: Model,
@@ -1649,7 +1649,7 @@ class MainController(
         filter_order?.let { if (filter_order != "") args["process_order"] = filter_order }
         filter_priority?.let { if (filter_priority != "") args["process_priority"] = filter_priority }
         filter_description?.let { if (filter_description != "") args["process_description"] = filter_description }
-        filter_settings_id?.let { if (filter_settings_id != "") args["settings_id"] = filter_settings_id }
+        filter_song_id?.let { if (filter_song_id != "") args["settings_id"] = filter_song_id }
         filter_type?.let { if (filter_type != "") args["process_type"] = filter_type }
         filter_limit?.let { if (filter_limit != "") args["filter_limit"] = filter_limit }
         model.addAttribute("workInContainer", APP_WORK_IN_CONTAINER)
@@ -1725,75 +1725,75 @@ class MainController(
 
     @PostMapping("/songs_update")
     fun songsUpdate(
-        @RequestParam(required = false) settings_id: String,
-        @RequestParam(required = false) settings_songName: String,
-        @RequestParam(required = false) settings_author: String,
-        @RequestParam(required = false) settings_year: String,
-        @RequestParam(required = false) settings_album: String,
-        @RequestParam(required = false) settings_track: String,
-        @RequestParam(required = false) settings_tags: String,
-        @RequestParam(required = false) settings_date: String,
-        @RequestParam(required = false) settings_time: String,
-        @RequestParam(required = false) settings_key: String,
-        @RequestParam(required = false) settings_bpm: String,
-        @RequestParam(required = false) settings_ms: String,
-        @RequestParam(required = false) settings_fileName: String,
-        @RequestParam(required = false) settings_rootFolder: String,
-        @RequestParam(required = false) settings_idBoosty: String,
-        @RequestParam(required = false) settings_idBoostyFiles: String,
-        @RequestParam(required = false) settings_idVk: String,
-        @RequestParam(required = false) settings_idDzenLyrics: String,
-        @RequestParam(required = false) settings_idDzenKaraoke: String,
-        @RequestParam(required = false) settings_idDzenChords: String,
-        @RequestParam(required = false) settings_idVkLyrics: String,
-        @RequestParam(required = false) settings_idVkKaraoke: String,
-        @RequestParam(required = false) settings_idVkChords: String,
-        @RequestParam(required = false) settings_idTelegramLyrics: String,
-        @RequestParam(required = false) settings_idTelegramKaraoke: String,
-        @RequestParam(required = false) settings_idTelegramChords: String,
-        @RequestParam(required = false) settings_resultVersion: String,
+        @RequestParam(required = false) song_id: String,
+        @RequestParam(required = false) song_songName: String,
+        @RequestParam(required = false) song_author: String,
+        @RequestParam(required = false) song_year: String,
+        @RequestParam(required = false) song_album: String,
+        @RequestParam(required = false) song_track: String,
+        @RequestParam(required = false) song_tags: String,
+        @RequestParam(required = false) song_date: String,
+        @RequestParam(required = false) song_time: String,
+        @RequestParam(required = false) song_key: String,
+        @RequestParam(required = false) song_bpm: String,
+        @RequestParam(required = false) song_ms: String,
+        @RequestParam(required = false) song_fileName: String,
+        @RequestParam(required = false) song_rootFolder: String,
+        @RequestParam(required = false) song_idBoosty: String,
+        @RequestParam(required = false) song_idBoostyFiles: String,
+        @RequestParam(required = false) song_idVk: String,
+        @RequestParam(required = false) song_idDzenLyrics: String,
+        @RequestParam(required = false) song_idDzenKaraoke: String,
+        @RequestParam(required = false) song_idDzenChords: String,
+        @RequestParam(required = false) song_idVkLyrics: String,
+        @RequestParam(required = false) song_idVkKaraoke: String,
+        @RequestParam(required = false) song_idVkChords: String,
+        @RequestParam(required = false) song_idTelegramLyrics: String,
+        @RequestParam(required = false) song_idTelegramKaraoke: String,
+        @RequestParam(required = false) song_idTelegramChords: String,
+        @RequestParam(required = false) song_resultVersion: String,
         @RequestParam(required = false) select_status: String,
     ): String {
-        val settingsId: Long = settings_id.toLong()
-        val settings =
+        val songId: Long = song_id.toLong()
+        val song =
             Song.loadFromDbById(
-                settingsId,
+                songId,
                 database = WORKING_DATABASE,
                 storageService = storageService,
                 storageApiClient = storageApiClient,
             )
-        settings?.let { sett ->
-            sett.fileName = settings_fileName
-            sett.rootFolder = settings_rootFolder
-            sett.tags = settings_tags
-            sett.fields[SongField.ID] = settings_id
-            sett.fields[SongField.NAME] = settings_songName
-            sett.fields[SongField.AUTHOR] = settings_author
-            sett.fields[SongField.YEAR] = settings_year
-            sett.fields[SongField.ALBUM] = settings_album
-            sett.fields[SongField.TRACK] = settings_track
-            sett.fields[SongField.DATE] = settings_date
-            sett.fields[SongField.TIME] = settings_time
-            sett.fields[SongField.KEY] = settings_key
-            sett.fields[SongField.BPM] = settings_bpm
-            sett.fields[SongField.MS] = settings_ms
-            sett.fields[SongField.ID_BOOSTY] = settings_idBoosty
-            sett.fields[SongField.ID_BOOSTY_FILES] = settings_idBoostyFiles
-            sett.fields[SongField.ID_VK] = settings_idVk
-            sett.fields[SongField.ID_DZEN_LYRICS] = settings_idDzenLyrics
-            sett.fields[SongField.ID_DZEN_KARAOKE] = settings_idDzenKaraoke
-            sett.fields[SongField.ID_DZEN_CHORDS] = settings_idDzenChords
-            sett.fields[SongField.ID_VK_LYRICS] = settings_idVkLyrics
-            sett.fields[SongField.ID_VK_KARAOKE] = settings_idVkKaraoke
-            sett.fields[SongField.ID_VK_CHORDS] = settings_idVkChords
-            sett.fields[SongField.ID_TELEGRAM_LYRICS] = settings_idTelegramLyrics
-            sett.fields[SongField.ID_TELEGRAM_KARAOKE] = settings_idTelegramKaraoke
-            sett.fields[SongField.ID_TELEGRAM_CHORDS] = settings_idTelegramChords
-            sett.fields[SongField.RESULT_VERSION] = settings_resultVersion
+        song?.let { sett ->
+            sett.fileName = song_fileName
+            sett.rootFolder = song_rootFolder
+            sett.tags = song_tags
+            sett.fields[SongField.ID] = song_id
+            sett.fields[SongField.NAME] = song_songName
+            sett.fields[SongField.AUTHOR] = song_author
+            sett.fields[SongField.YEAR] = song_year
+            sett.fields[SongField.ALBUM] = song_album
+            sett.fields[SongField.TRACK] = song_track
+            sett.fields[SongField.DATE] = song_date
+            sett.fields[SongField.TIME] = song_time
+            sett.fields[SongField.KEY] = song_key
+            sett.fields[SongField.BPM] = song_bpm
+            sett.fields[SongField.MS] = song_ms
+            sett.fields[SongField.ID_BOOSTY] = song_idBoosty
+            sett.fields[SongField.ID_BOOSTY_FILES] = song_idBoostyFiles
+            sett.fields[SongField.ID_VK] = song_idVk
+            sett.fields[SongField.ID_DZEN_LYRICS] = song_idDzenLyrics
+            sett.fields[SongField.ID_DZEN_KARAOKE] = song_idDzenKaraoke
+            sett.fields[SongField.ID_DZEN_CHORDS] = song_idDzenChords
+            sett.fields[SongField.ID_VK_LYRICS] = song_idVkLyrics
+            sett.fields[SongField.ID_VK_KARAOKE] = song_idVkKaraoke
+            sett.fields[SongField.ID_VK_CHORDS] = song_idVkChords
+            sett.fields[SongField.ID_TELEGRAM_LYRICS] = song_idTelegramLyrics
+            sett.fields[SongField.ID_TELEGRAM_KARAOKE] = song_idTelegramKaraoke
+            sett.fields[SongField.ID_TELEGRAM_CHORDS] = song_idTelegramChords
+            sett.fields[SongField.RESULT_VERSION] = song_resultVersion
             sett.fields[SongField.ID_STATUS] = select_status
             sett.saveToDb()
             sett.saveToFile()
-//            if (settings_idBoosty != "") {
+//            if (song_idBoosty != "") {
 //                sett.createVKDescription()
 //            }
         }
@@ -1914,75 +1914,75 @@ class MainController(
 
     @PostMapping("/songs2_update")
     fun songs2Update(
-        @RequestParam(required = false) settings_id: String,
-        @RequestParam(required = false) settings_songName: String,
-        @RequestParam(required = false) settings_author: String,
-        @RequestParam(required = false) settings_year: String,
-        @RequestParam(required = false) settings_album: String,
-        @RequestParam(required = false) settings_track: String,
-        @RequestParam(required = false) settings_tags: String,
-        @RequestParam(required = false) settings_date: String,
-        @RequestParam(required = false) settings_time: String,
-        @RequestParam(required = false) settings_key: String,
-        @RequestParam(required = false) settings_bpm: String,
-        @RequestParam(required = false) settings_ms: String,
-        @RequestParam(required = false) settings_fileName: String,
-        @RequestParam(required = false) settings_rootFolder: String,
-        @RequestParam(required = false) settings_idBoosty: String,
-        @RequestParam(required = false) settings_idBoostyFiles: String,
-        @RequestParam(required = false) settings_idVk: String,
-        @RequestParam(required = false) settings_idDzenLyrics: String,
-        @RequestParam(required = false) settings_idDzenKaraoke: String,
-        @RequestParam(required = false) settings_idDzenChords: String,
-        @RequestParam(required = false) settings_idVkLyrics: String,
-        @RequestParam(required = false) settings_idVkKaraoke: String,
-        @RequestParam(required = false) settings_idVkChords: String,
-        @RequestParam(required = false) settings_idTelegramLyrics: String,
-        @RequestParam(required = false) settings_idTelegramKaraoke: String,
-        @RequestParam(required = false) settings_idTelegramChords: String,
-        @RequestParam(required = false) settings_resultVersion: String,
+        @RequestParam(required = false) song_id: String,
+        @RequestParam(required = false) song_songName: String,
+        @RequestParam(required = false) song_author: String,
+        @RequestParam(required = false) song_year: String,
+        @RequestParam(required = false) song_album: String,
+        @RequestParam(required = false) song_track: String,
+        @RequestParam(required = false) song_tags: String,
+        @RequestParam(required = false) song_date: String,
+        @RequestParam(required = false) song_time: String,
+        @RequestParam(required = false) song_key: String,
+        @RequestParam(required = false) song_bpm: String,
+        @RequestParam(required = false) song_ms: String,
+        @RequestParam(required = false) song_fileName: String,
+        @RequestParam(required = false) song_rootFolder: String,
+        @RequestParam(required = false) song_idBoosty: String,
+        @RequestParam(required = false) song_idBoostyFiles: String,
+        @RequestParam(required = false) song_idVk: String,
+        @RequestParam(required = false) song_idDzenLyrics: String,
+        @RequestParam(required = false) song_idDzenKaraoke: String,
+        @RequestParam(required = false) song_idDzenChords: String,
+        @RequestParam(required = false) song_idVkLyrics: String,
+        @RequestParam(required = false) song_idVkKaraoke: String,
+        @RequestParam(required = false) song_idVkChords: String,
+        @RequestParam(required = false) song_idTelegramLyrics: String,
+        @RequestParam(required = false) song_idTelegramKaraoke: String,
+        @RequestParam(required = false) song_idTelegramChords: String,
+        @RequestParam(required = false) song_resultVersion: String,
         @RequestParam(required = false) select_status: String,
     ): String {
-        val settingsId: Long = settings_id.toLong()
-        val settings =
+        val songId: Long = song_id.toLong()
+        val song =
             Song.loadFromDbById(
-                settingsId,
+                songId,
                 database = WORKING_DATABASE,
                 storageService = storageService,
                 storageApiClient = storageApiClient,
             )
-        settings?.let { sett ->
-            sett.fileName = settings_fileName
-            sett.rootFolder = settings_rootFolder
-            sett.tags = settings_tags
-            sett.fields[SongField.ID] = settings_id
-            sett.fields[SongField.NAME] = settings_songName
-            sett.fields[SongField.AUTHOR] = settings_author
-            sett.fields[SongField.YEAR] = settings_year
-            sett.fields[SongField.ALBUM] = settings_album
-            sett.fields[SongField.TRACK] = settings_track
-            sett.fields[SongField.DATE] = settings_date
-            sett.fields[SongField.TIME] = settings_time
-            sett.fields[SongField.KEY] = settings_key
-            sett.fields[SongField.BPM] = settings_bpm
-            sett.fields[SongField.MS] = settings_ms
-            sett.fields[SongField.ID_BOOSTY] = settings_idBoosty
-            sett.fields[SongField.ID_BOOSTY_FILES] = settings_idBoostyFiles
-            sett.fields[SongField.ID_VK] = settings_idVk
-            sett.fields[SongField.ID_DZEN_LYRICS] = settings_idDzenLyrics
-            sett.fields[SongField.ID_DZEN_KARAOKE] = settings_idDzenKaraoke
-            sett.fields[SongField.ID_DZEN_CHORDS] = settings_idDzenChords
-            sett.fields[SongField.ID_VK_LYRICS] = settings_idVkLyrics
-            sett.fields[SongField.ID_VK_KARAOKE] = settings_idVkKaraoke
-            sett.fields[SongField.ID_VK_CHORDS] = settings_idVkChords
-            sett.fields[SongField.ID_TELEGRAM_LYRICS] = settings_idTelegramLyrics
-            sett.fields[SongField.ID_TELEGRAM_KARAOKE] = settings_idTelegramKaraoke
-            sett.fields[SongField.ID_TELEGRAM_CHORDS] = settings_idTelegramChords
-            sett.fields[SongField.RESULT_VERSION] = settings_resultVersion
+        song?.let { sett ->
+            sett.fileName = song_fileName
+            sett.rootFolder = song_rootFolder
+            sett.tags = song_tags
+            sett.fields[SongField.ID] = song_id
+            sett.fields[SongField.NAME] = song_songName
+            sett.fields[SongField.AUTHOR] = song_author
+            sett.fields[SongField.YEAR] = song_year
+            sett.fields[SongField.ALBUM] = song_album
+            sett.fields[SongField.TRACK] = song_track
+            sett.fields[SongField.DATE] = song_date
+            sett.fields[SongField.TIME] = song_time
+            sett.fields[SongField.KEY] = song_key
+            sett.fields[SongField.BPM] = song_bpm
+            sett.fields[SongField.MS] = song_ms
+            sett.fields[SongField.ID_BOOSTY] = song_idBoosty
+            sett.fields[SongField.ID_BOOSTY_FILES] = song_idBoostyFiles
+            sett.fields[SongField.ID_VK] = song_idVk
+            sett.fields[SongField.ID_DZEN_LYRICS] = song_idDzenLyrics
+            sett.fields[SongField.ID_DZEN_KARAOKE] = song_idDzenKaraoke
+            sett.fields[SongField.ID_DZEN_CHORDS] = song_idDzenChords
+            sett.fields[SongField.ID_VK_LYRICS] = song_idVkLyrics
+            sett.fields[SongField.ID_VK_KARAOKE] = song_idVkKaraoke
+            sett.fields[SongField.ID_VK_CHORDS] = song_idVkChords
+            sett.fields[SongField.ID_TELEGRAM_LYRICS] = song_idTelegramLyrics
+            sett.fields[SongField.ID_TELEGRAM_KARAOKE] = song_idTelegramKaraoke
+            sett.fields[SongField.ID_TELEGRAM_CHORDS] = song_idTelegramChords
+            sett.fields[SongField.RESULT_VERSION] = song_resultVersion
             sett.fields[SongField.ID_STATUS] = select_status
             sett.saveToDb()
             sett.saveToFile()
-//            if (settings_idBoosty != "") {
+//            if (song_idBoosty != "") {
 //                sett.createVKDescription()
 //            }
         }

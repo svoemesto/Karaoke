@@ -22,7 +22,7 @@ import java.util.TimeZone
  *  - `POST /api/song/publishToTelegramNow` (кнопка «Опубликовать сейчас» в webvue3).
  *
  * Реализует полный цикл FR-003 (render-or-use-existing) → FR-010 (sendVideo с retry)
- * → FR-006 (запись message_id в `Settings.idTelegramDemo` через штатный
+ * → FR-006 (запись message_id в `Song.idTelegramDemo` через штатный
  * [Song.saveToDb]). Идемпотентен (FR-007/FR-008): если `idTelegramDemo` уже заполнен —
  * сразу возвращает `PUBLISHED` без действий. Прошедшая date/time — «опоздавшая»
  * (Q1 clarify): не публикуется, возвращает `SCHEDULED`.
@@ -231,7 +231,7 @@ object TelegramAutoPublishService {
     ): TelegramAutoPublishResult {
         val processId =
             KaraokeProcess.createProcess(
-                settings = song,
+                song = song,
                 action = KaraokeProcessTypes.RENDER_MP4_DEMO,
                 doWait = false,
                 prior = 1,

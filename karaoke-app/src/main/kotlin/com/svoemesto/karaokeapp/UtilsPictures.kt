@@ -102,7 +102,7 @@ fun createDzenPicture(pathToAuthor: String) {
     runCommand(listOf("chmod", "666", pathToFile2))
 }
 
-fun getVKPictureBase64(settings: Song): String {
+fun getVKPictureBase64(song: Song): String {
     val frameW = 800
     val frameH = 194
     val opaque = 1f
@@ -112,9 +112,9 @@ fun getVKPictureBase64(settings: Song): String {
     graphics2D.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
     val alphaChannel = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, opaque)
 
-    val biLogoAlbum = ImageIO.read(ByteArrayInputStream(Base64.getDecoder().decode(settings.pictureAlbum?.full ?: "")))
+    val biLogoAlbum = ImageIO.read(ByteArrayInputStream(Base64.getDecoder().decode(song.pictureAlbum?.full ?: "")))
     val biLogoAuthor =
-        ImageIO.read(ByteArrayInputStream(Base64.getDecoder().decode(settings.pictureAuthor?.full ?: "")))
+        ImageIO.read(ByteArrayInputStream(Base64.getDecoder().decode(song.pictureAuthor?.full ?: "")))
 
     graphics2D.composite = alphaChannel
     graphics2D.background = Color.BLACK
@@ -134,29 +134,29 @@ fun getVKPictureBase64(settings: Song): String {
 }
 
 fun createVKLinkPictureWeb(
-    settings: Song,
+    song: Song,
     reCreateIfExist: Boolean = true,
 ): String {
-    val fName = "~/Karaoke/karaoke-web/src/main/resources/static/tmp/${settings.id}.png"
+    val fName = "~/Karaoke/karaoke-web/src/main/resources/static/tmp/${song.id}.png"
 
-    if (settings.onAir && File(fName).exists()) {
-        println("${settings.fileName} - в эфире, удаляем файл картинки")
+    if (song.onAir && File(fName).exists()) {
+        println("${song.fileName} - в эфире, удаляем файл картинки")
         File(fName).delete()
         return "delete"
-    } else if (settings.onAir) {
-        println("${settings.fileName} - в эфире, пропускаем создание файла картинки")
+    } else if (song.onAir) {
+        println("${song.fileName} - в эфире, пропускаем создание файла картинки")
         return "skip"
-//    } else if (!settings.onAir && settings.idStatus < 3) {
-//        println("${settings.fileName} - не в эфире и не готов, пропускаем создание файла картинки")
+//    } else if (!song.onAir && song.idStatus < 3) {
+//        println("${song.fileName} - не в эфире и не готов, пропускаем создание файла картинки")
 //        return "skip"
-    } else if (!settings.onAir && File(fName).exists() && !reCreateIfExist) {
-        println("${settings.fileName} - не в эфире, не нужно пересоздавать, пропускаем создание файл картинки")
+    } else if (!song.onAir && File(fName).exists() && !reCreateIfExist) {
+        println("${song.fileName} - не в эфире, не нужно пересоздавать, пропускаем создание файл картинки")
         return "skip"
     }
-    println("${settings.fileName} - не в эфире, создаём файл картинки")
+    println("${song.fileName} - не в эфире, создаём файл картинки")
 
-    val pathToLogoAlbum = settings.pathToFileLogoAlbum
-    val pathToLogoAuthor = settings.pathToFileLogoAuthor
+    val pathToLogoAlbum = song.pathToFileLogoAlbum
+    val pathToLogoAuthor = song.pathToFileLogoAuthor
 
     val frameW = 537
     val frameH = 240
@@ -170,8 +170,8 @@ fun createVKLinkPictureWeb(
     val textAreaW = frameW - 2 * padding
     val textAreaH = frameH - picAreaH
 
-//    val biLogoAlbum = ImageIO.read(ByteArrayInputStream(Base64.getDecoder().decode(settings.pictureAlbum?.full ?:"")))
-//    val biLogoAuthor = ImageIO.read(ByteArrayInputStream(Base64.getDecoder().decode(settings.pictureAuthor?.full ?:"")))
+//    val biLogoAlbum = ImageIO.read(ByteArrayInputStream(Base64.getDecoder().decode(song.pictureAlbum?.full ?:"")))
+//    val biLogoAuthor = ImageIO.read(ByteArrayInputStream(Base64.getDecoder().decode(song.pictureAuthor?.full ?:"")))
 
     val albumPic = Picture(params = ImageParams(w = albumW, h = albumH, pathToFile = pathToLogoAlbum))
     val authorPic = Picture(params = ImageParams(w = authorW, h = authorH, pathToFile = pathToLogoAuthor))
@@ -186,7 +186,7 @@ fun createVKLinkPictureWeb(
                     w = textAreaW,
                     h = textAreaH,
                     color = Color(255, 255, 127, 255),
-                    text = settings.songName.censored(),
+                    text = song.songName.censored(),
                     fontName = MAIN_FONT_NAME,
                     fontStyle = 0,
                     fontSize = 4,
@@ -219,18 +219,18 @@ fun createVKLinkPictureWeb(
 }
 
 fun createVKLinkPicture(
-    settings: Song,
+    song: Song,
     fileName: String = "",
 ) {
     val fName =
         if (fileName == "") {
-            settings.getOutputFilename(SongOutputFile.PICTUREVK, SongVersion.LYRICS).replace(" [lyrics] VK", " [VKlink]")
+            song.getOutputFilename(SongOutputFile.PICTUREVK, SongVersion.LYRICS).replace(" [lyrics] VK", " [VKlink]")
         } else {
             fileName
         }
 
-    val pathToLogoAlbum = settings.pathToFileLogoAlbum
-    val pathToLogoAuthor = settings.pathToFileLogoAuthor
+    val pathToLogoAlbum = song.pathToFileLogoAlbum
+    val pathToLogoAuthor = song.pathToFileLogoAuthor
 
     val frameW = 537
     val frameH = 240
@@ -244,8 +244,8 @@ fun createVKLinkPicture(
     val textAreaW = frameW - 2 * padding
     val textAreaH = frameH - picAreaH
 
-//    val biLogoAlbum = ImageIO.read(ByteArrayInputStream(Base64.getDecoder().decode(settings.pictureAlbum?.full ?:"")))
-//    val biLogoAuthor = ImageIO.read(ByteArrayInputStream(Base64.getDecoder().decode(settings.pictureAuthor?.full ?:"")))
+//    val biLogoAlbum = ImageIO.read(ByteArrayInputStream(Base64.getDecoder().decode(song.pictureAlbum?.full ?:"")))
+//    val biLogoAuthor = ImageIO.read(ByteArrayInputStream(Base64.getDecoder().decode(song.pictureAuthor?.full ?:"")))
 
     val albumPic = Picture(params = ImageParams(w = albumW, h = albumH, pathToFile = pathToLogoAlbum))
     val authorPic = Picture(params = ImageParams(w = authorW, h = authorH, pathToFile = pathToLogoAuthor))
@@ -260,7 +260,7 @@ fun createVKLinkPicture(
                     w = textAreaW,
                     h = textAreaH,
                     color = Color(255, 255, 127, 255),
-                    text = settings.songName.censored(),
+                    text = song.songName.censored(),
                     fontName = MAIN_FONT_NAME,
                     fontStyle = 0,
                     fontSize = 4,
@@ -291,18 +291,18 @@ fun createVKLinkPicture(
 }
 
 fun createVKPicture(
-    settings: Song,
+    song: Song,
     fileName: String = "",
 ) {
     val fName =
         if (fileName == "") {
-            settings.getOutputFilename(SongOutputFile.PICTUREVK, SongVersion.LYRICS).replace(" [lyrics] VK", " [VK]")
+            song.getOutputFilename(SongOutputFile.PICTUREVK, SongVersion.LYRICS).replace(" [lyrics] VK", " [VK]")
         } else {
             fileName
         }
 
-    val pathToLogoAlbum = settings.pathToFileLogoAlbum
-    val pathToLogoAuthor = settings.pathToFileLogoAuthor
+    val pathToLogoAlbum = song.pathToFileLogoAlbum
+    val pathToLogoAuthor = song.pathToFileLogoAuthor
 
     val frameW = 575
     val frameH = 300
@@ -327,7 +327,7 @@ fun createVKPicture(
                     w = textAreaW,
                     h = textAreaH,
                     color = Color(255, 255, 127, 255),
-                    text = settings.songName.censored(),
+                    text = song.songName.censored(),
                     fontName = MAIN_FONT_NAME,
                     fontStyle = 0,
                     fontSize = 4,
@@ -358,19 +358,19 @@ fun createVKPicture(
 }
 
 fun createBoostyFilesPicture(
-    settings: Song,
+    song: Song,
     fileName: String = "",
 ) {
     val fName =
         if (fileName == "") {
-            settings.getOutputFilename(SongOutputFile.PICTUREBOOSTYFILES)
+            song.getOutputFilename(SongOutputFile.PICTUREBOOSTYFILES)
         } else {
             fileName
         }
 
     val caption = "Файлы"
-    val pathToLogoAlbum = settings.pathToFileLogoAlbum
-    val pathToLogoAuthor = settings.pathToFileLogoAuthor
+    val pathToLogoAlbum = song.pathToFileLogoAlbum
+    val pathToLogoAuthor = song.pathToFileLogoAuthor
 
     val frameW = 575
     val frameH = 625
@@ -396,7 +396,7 @@ fun createBoostyFilesPicture(
                     w = textAreaW,
                     h = textAreaH,
                     color = Color(255, 255, 127, 255),
-                    text = settings.songName.censored(),
+                    text = song.songName.censored(),
                     fontName = MAIN_FONT_NAME,
                     fontStyle = 0,
                     fontSize = 50,
@@ -444,18 +444,18 @@ fun createBoostyFilesPicture(
 }
 
 fun createBoostyTeaserPicture(
-    settings: Song,
+    song: Song,
     fileName: String = "",
 ) {
     val fName =
         if (fileName == "") {
-            settings.getOutputFilename(SongOutputFile.PICTUREBOOSTYTEASER)
+            song.getOutputFilename(SongOutputFile.PICTUREBOOSTYTEASER)
         } else {
             fileName
         }
 
-    val pathToLogoAlbum = settings.pathToFileLogoAlbum
-    val pathToLogoAuthor = settings.pathToFileLogoAuthor
+    val pathToLogoAlbum = song.pathToFileLogoAlbum
+    val pathToLogoAuthor = song.pathToFileLogoAuthor
 
     val frameW = 575
     val frameH = 625
@@ -479,7 +479,7 @@ fun createBoostyTeaserPicture(
                     w = textAreaW,
                     h = textAreaH,
                     color = Color(255, 255, 127, 255),
-                    text = settings.songName.censored(),
+                    text = song.songName.censored(),
                     fontName = MAIN_FONT_NAME,
                     fontStyle = 0,
                     fontSize = 4,
@@ -522,9 +522,9 @@ fun resizeBufferedImage(
     return dimg
 }
 
-fun createAuthorPreview(settings: Song) {
-    val pathToFile = settings.pathToFileLogoAuthor
-    val pathToFilePreview = settings.pathToFileLogoAuthorPreview
+fun createAuthorPreview(song: Song) {
+    val pathToFile = song.pathToFileLogoAuthor
+    val pathToFilePreview = song.pathToFileLogoAuthorPreview
     if (pathToFile != "") {
         val pictureBites = File(pathToFile).inputStream().readAllBytes()
         val bi = ImageIO.read(ByteArrayInputStream(pictureBites))
@@ -539,9 +539,9 @@ fun createAuthorPreview(settings: Song) {
     }
 }
 
-fun createAlbumPreview(settings: Song) {
-    val pathToFile = settings.pathToFileLogoAlbum
-    val pathToFilePreview = settings.pathToFileLogoAlbumPreview
+fun createAlbumPreview(song: Song) {
+    val pathToFile = song.pathToFileLogoAlbum
+    val pathToFilePreview = song.pathToFileLogoAlbumPreview
     if (pathToFile != "") {
         val pictureBites = File(pathToFile).inputStream().readAllBytes()
         val bi = ImageIO.read(ByteArrayInputStream(pictureBites))
@@ -557,18 +557,18 @@ fun createAlbumPreview(settings: Song) {
 }
 
 fun createSongPicture(
-    settings: Song,
+    song: Song,
     songVersion: SongVersion,
 ) {
-    val fileName = settings.getOutputFilename(SongOutputFile.PICTURE, songVersion)
+    val fileName = song.getOutputFilename(SongOutputFile.PICTURE, songVersion)
     val pathToFolder = File(fileName).parent
     Files.createDirectories(Path(pathToFolder))
     runCommand(listOf("chmod", "777", pathToFolder))
 
     val caption = songVersion.text
     val comment = songVersion.textForDescription
-    val pathToLogoAlbum = settings.pathToFileLogoAlbum
-    val pathToLogoAuthor = settings.pathToFileLogoAuthor
+    val pathToLogoAlbum = song.pathToFileLogoAlbum
+    val pathToLogoAuthor = song.pathToFileLogoAuthor
     val frameW = 1920
     val frameH = 1080
     val padding = 50
@@ -594,7 +594,7 @@ fun createSongPicture(
                     w = textAreaW,
                     h = textAreaH,
                     color = Color(255, 255, 127, 255),
-                    text = settings.songName.censored(),
+                    text = song.songName.censored(),
                     fontName = MAIN_FONT_NAME,
                     fontStyle = 0,
                     fontSize = 50,
@@ -656,7 +656,7 @@ fun createSongPicture(
 }
 
 fun getSongChordsPicture(
-    settings: Song,
+    song: Song,
     mltNode: MltNode,
 ): BufferedImage {
     @Suppress("UNCHECKED_CAST")
@@ -804,7 +804,7 @@ fun getSongChordsPicture(
     graphics2name.color = colorBack
     graphics2name.fillRect(0, 0, nameW, nameH)
     graphics2name.color = colorText
-    val textToOverlay = "${settings.author} - ${settings.year} - «${settings.songName}» (${settings.key}, ${settings.bpm} bpm)"
+    val textToOverlay = "${song.author} - ${song.year} - «${song.songName}» (${song.key}, ${song.bpm} bpm)"
     var rectW: Int
     var rectH: Int
     fontText = Font(MAIN_FONT_NAME, 0, 10)
@@ -839,13 +839,13 @@ fun getSongChordsPicture(
 
 @Suppress("unused")
 fun createSongChordsPicture(
-    settings: Song,
+    song: Song,
     fileName: String,
     songVersion: SongVersion,
     mltNode: MltNode,
 ) {
     if (songVersion == SongVersion.CHORDS) {
-        val resultImage = getSongChordsPicture(settings, mltNode)
+        val resultImage = getSongChordsPicture(song, mltNode)
         val file = File(fileName)
         ImageIO.write(resultImage, "png", file)
         runCommand(listOf("chmod", "666", fileName))
@@ -935,19 +935,19 @@ fun getChordLayoutPicture(mltObjects: List<MltObject>): BufferedImage {
 }
 
 fun createSponsrTeaserPicture(
-    settings: Song,
+    song: Song,
     fileName: String = "",
 ) {
     val fName =
         if (fileName == "") {
-            settings.getOutputFilename(SongOutputFile.PICTURESPONSRTEASER)
+            song.getOutputFilename(SongOutputFile.PICTURESPONSRTEASER)
         } else {
             fileName
         }
 
-    val caption = settings.getTextForSponsrPictureDescription()
-    val pathToLogoAlbum = settings.pathToFileLogoAlbum
-    val pathToLogoAuthor = settings.pathToFileLogoAuthor
+    val caption = song.getTextForSponsrPictureDescription()
+    val pathToLogoAlbum = song.pathToFileLogoAlbum
+    val pathToLogoAuthor = song.pathToFileLogoAuthor
     val frameW = 1920
     val frameH = 1080
     val padding = 50
@@ -973,7 +973,7 @@ fun createSponsrTeaserPicture(
                     w = textAreaW,
                     h = textAreaH,
                     color = Color(255, 255, 127, 255),
-                    text = settings.songName.censored(),
+                    text = song.songName.censored(),
                     fontName = MAIN_FONT_NAME,
                     fontStyle = 0,
                     fontSize = 50,

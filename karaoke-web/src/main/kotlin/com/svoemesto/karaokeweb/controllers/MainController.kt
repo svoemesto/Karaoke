@@ -374,7 +374,7 @@ class MainController(
         // specs/022-song-status-lifecycle).
         attr["id_status"] = ">=6"
 
-        val settings: List<Song> =
+        val song: List<Song> =
             if ("${songName ?: ""}${author ?: ""}${album ?: ""}${text ?: ""}".length <
                 3
             ) {
@@ -390,7 +390,7 @@ class MainController(
             }
 
         model.addAttribute("authors", Song.loadListAuthors(withSkiped = false, database = WORKING_DATABASE))
-        model.addAttribute("settings", settings)
+        model.addAttribute("song", song)
 
         val data: MutableMap<String, Any> = mutableMapOf()
         if (songName != null && songName != "") data["song_name"] = songName

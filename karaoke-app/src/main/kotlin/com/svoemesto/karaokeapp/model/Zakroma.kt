@@ -34,7 +34,7 @@ class Zakroma(
         ): List<Zakroma> {
             val args = mutableMapOf("author" to author)
             if (onlyPublished) args["id_status"] = ">=6"
-            val listSettings =
+            val songList =
                 Song.loadListFromDb(
                     args = args,
                     database = database,
@@ -42,7 +42,7 @@ class Zakroma(
                     storageApiClient = storageApiClient,
                     withoutMarkersAndText = true,
                 )
-            return buildFromSettings(listSettings, database, storageService, storageApiClient)
+            return buildFromSongs(songList, database, storageService, storageApiClient)
         }
 
         /**
@@ -72,7 +72,7 @@ class Zakroma(
             if (names.isEmpty()) return emptyList()
             val args = mutableMapOf("author_in" to names.joinToString(Song.AUTHOR_IN_DELIMITER))
             if (onlyPublished) args["id_status"] = ">=6"
-            val listSettings =
+            val songList =
                 Song.loadListFromDb(
                     args = args,
                     database = database,
@@ -80,7 +80,7 @@ class Zakroma(
                     storageApiClient = storageApiClient,
                     withoutMarkersAndText = true,
                 )
-            return buildFromSettings(listSettings, database, storageService, storageApiClient)
+            return buildFromSongs(songList, database, storageService, storageApiClient)
         }
 
         /**
@@ -93,14 +93,14 @@ class Zakroma(
          * названию схлопывала бы такие альбомы в одну карточку.
          * @see docs/features/special-orders.md
          */
-        private fun buildFromSettings(
-            listSettings: List<Song>,
+        private fun buildFromSongs(
+            songList: List<Song>,
             database: KaraokeConnection,
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
         ): List<Zakroma> {
-            val settingsByAuthor = listSettings.groupBy { it.author }
-            return settingsByAuthor.map { (authorName, settingsByAuthor) ->
+            val songsByAuthor = songList.groupBy { it.author }
+            return songsByAuthor.map { (authorName, songsByAuthor) ->
                 val zakroma = Zakroma(database)
                 zakroma.author = authorName
                 zakroma.picture = Pictures
@@ -138,10 +138,10 @@ class Zakroma(
                 // констрейнт tbl_albums_author_year_name_key на Album — идентичность альбома это
                 // тройка автор+год+название). Группировка по одному названию схлопывала такие
                 // альбомы в одну карточку и «теряла» год/песни второго. specs/018-fix-album-name-year-grouping.
-                val settingsByAlbum = settingsByAuthor.groupBy { it.year to it.album }
+                val songsByAlbum = songsByAuthor.groupBy { it.year to it.album }
                 zakroma.albums =
-                    settingsByAlbum
-                        .map { (albumKey, settingsByAlbum) ->
+                    songsByAlbum
+                        .map { (albumKey, songsByAlbum) ->
                             val (albumYear, albumName) = albumKey
                             val album = ZakromaAlbum()
                             album.albumName = albumName
@@ -170,7 +170,7 @@ class Zakroma(
                             // specs/012-entity-description-fields FR-017: дополнительно берём
                             // description/shortDescription/warning и КАНОНИЧЕСКОЕ название альбома
                             // из сущности Album (не из свободнотекстовой группировки по песням).
-                            settingsByAlbum
+                            songsByAlbum
                                 .firstOrNull { it.albumId != null }
                                 ?.albumId
                                 ?.let { linkedAlbumId ->
@@ -190,40 +190,40 @@ class Zakroma(
                                             album.albumTypeLabel = linkedAlbum.albumTypeEnum.description
                                         }
                                 }
-                            album.albumSettings =
-                                settingsByAlbum
-                                    .map { settings ->
-                                        val zakromaAlbumSettings = ZakromaAlbumSettings()
-                                        zakromaAlbumSettings.id = settings.id
-                                        zakromaAlbumSettings.onAir = settings.onAir
-                                        zakromaAlbumSettings.exclusive = settings.exclusive
-                                        zakromaAlbumSettings.datePublish = settings.datePublish
-                                        zakromaAlbumSettings.songSubscriptionAvailable = settings.idTariff >= 0
-                                        zakromaAlbumSettings.track = settings.track
-                                        zakromaAlbumSettings.songName = settings.songName.censored()
-                                        zakromaAlbumSettings.linkBoosty = settings.linkBoostyTxt
-                                        zakromaAlbumSettings.linkSponsrPlay = settings.linkSponsrPlay
-                                        zakromaAlbumSettings.linkDzenKaraoke = settings.linkDzenKaraoke
-                                        zakromaAlbumSettings.linkDzenLyrics = settings.linkDzenLyrics
-                                        zakromaAlbumSettings.linkDzenTabs = settings.linkDzenTabs
-                                        zakromaAlbumSettings.linkDzenChords = settings.linkDzenChords
-                                        zakromaAlbumSettings.linkVkKaraoke = settings.linkVkKaraoke
-                                        zakromaAlbumSettings.linkVkLyrics = settings.linkVkLyrics
-                                        zakromaAlbumSettings.linkVkTabs = settings.linkVkTabs
-                                        zakromaAlbumSettings.linkVkChords = settings.linkVkChords
-                                        zakromaAlbumSettings.linkTgKaraoke = settings.linkTgKaraoke
-                                        zakromaAlbumSettings.linkTgLyrics = settings.linkTgLyrics
-                                        zakromaAlbumSettings.linkTgTabs = settings.linkTgTabs
-                                        zakromaAlbumSettings.linkTgChords = settings.linkTgChords
-                                        zakromaAlbumSettings.linkPlKaraoke = settings.linkPlKaraoke
-                                        zakromaAlbumSettings.linkPlLyrics = settings.linkPlLyrics
-                                        zakromaAlbumSettings.linkPlTabs = settings.linkPlTabs
-                                        zakromaAlbumSettings.linkPlChords = settings.linkPlChords
-                                        zakromaAlbumSettings.linkMaxKaraoke = settings.linkMaxKaraoke
-                                        zakromaAlbumSettings.linkMaxLyrics = settings.linkMaxLyrics
-                                        zakromaAlbumSettings.linkMaxTabs = settings.linkMaxTabs
-                                        zakromaAlbumSettings.linkMaxChords = settings.linkMaxChords
-                                        zakromaAlbumSettings
+                            album.albumSongs =
+                                songsByAlbum
+                                    .map { song ->
+                                        val zakromaAlbumSong = ZakromaAlbumSong()
+                                        zakromaAlbumSong.id = song.id
+                                        zakromaAlbumSong.onAir = song.onAir
+                                        zakromaAlbumSong.exclusive = song.exclusive
+                                        zakromaAlbumSong.datePublish = song.datePublish
+                                        zakromaAlbumSong.songSubscriptionAvailable = song.idTariff >= 0
+                                        zakromaAlbumSong.track = song.track
+                                        zakromaAlbumSong.songName = song.songName.censored()
+                                        zakromaAlbumSong.linkBoosty = song.linkBoostyTxt
+                                        zakromaAlbumSong.linkSponsrPlay = song.linkSponsrPlay
+                                        zakromaAlbumSong.linkDzenKaraoke = song.linkDzenKaraoke
+                                        zakromaAlbumSong.linkDzenLyrics = song.linkDzenLyrics
+                                        zakromaAlbumSong.linkDzenTabs = song.linkDzenTabs
+                                        zakromaAlbumSong.linkDzenChords = song.linkDzenChords
+                                        zakromaAlbumSong.linkVkKaraoke = song.linkVkKaraoke
+                                        zakromaAlbumSong.linkVkLyrics = song.linkVkLyrics
+                                        zakromaAlbumSong.linkVkTabs = song.linkVkTabs
+                                        zakromaAlbumSong.linkVkChords = song.linkVkChords
+                                        zakromaAlbumSong.linkTgKaraoke = song.linkTgKaraoke
+                                        zakromaAlbumSong.linkTgLyrics = song.linkTgLyrics
+                                        zakromaAlbumSong.linkTgTabs = song.linkTgTabs
+                                        zakromaAlbumSong.linkTgChords = song.linkTgChords
+                                        zakromaAlbumSong.linkPlKaraoke = song.linkPlKaraoke
+                                        zakromaAlbumSong.linkPlLyrics = song.linkPlLyrics
+                                        zakromaAlbumSong.linkPlTabs = song.linkPlTabs
+                                        zakromaAlbumSong.linkPlChords = song.linkPlChords
+                                        zakromaAlbumSong.linkMaxKaraoke = song.linkMaxKaraoke
+                                        zakromaAlbumSong.linkMaxLyrics = song.linkMaxLyrics
+                                        zakromaAlbumSong.linkMaxTabs = song.linkMaxTabs
+                                        zakromaAlbumSong.linkMaxChords = song.linkMaxChords
+                                        zakromaAlbumSong
                                     }.sorted()
                                     .toMutableList()
                             album
@@ -240,7 +240,7 @@ class Zakroma(
     var albums: MutableList<ZakromaAlbum> = mutableListOf()
 
     // specs/012-entity-description-fields: описание/короткое описание/предупреждение автора,
-    // копируются из сущности Author по имени в buildFromSettings() (пусто, если автор не найден).
+    // копируются из сущности Author по имени в buildFromSongs() (пусто, если автор не найден).
     var authorDescription: String = ""
     var authorShortDescription: String = ""
     var authorWarning: String = ""
@@ -253,9 +253,9 @@ class Zakroma(
  *
  * @see docs/features/dual-db-sync.md
  */
-class ZakromaAlbumSettings :
+class ZakromaAlbumSong :
     Serializable,
-    Comparable<ZakromaAlbumSettings> {
+    Comparable<ZakromaAlbumSong> {
     var id: Long = 0
     var track: Long = 0
     var songName: String = ""
@@ -286,7 +286,7 @@ class ZakromaAlbumSettings :
     var datePublish: String = ""
     var songSubscriptionAvailable: Boolean = false
 
-    override fun compareTo(other: ZakromaAlbumSettings): Int {
+    override fun compareTo(other: ZakromaAlbumSong): Int {
         val compTrack = track.compareTo(other.track)
         if (compTrack == 0) {
             return songName.compareTo(other.songName)
@@ -307,18 +307,18 @@ class ZakromaAlbum :
     var year: Long = 0
     var picture: String = ""
     var picturePreviewFileName: String = ""
-    var albumSettings: MutableList<ZakromaAlbumSettings> = mutableListOf()
+    var albumSongs: MutableList<ZakromaAlbumSong> = mutableListOf()
 
     // specs/011-album-song-rename FR-001/FR-007, дополнено сквозной сортировкой альбомов автора:
     // тип и заданный порядок отображения — сквозной по автору (не по году) — из реального Album,
-    // если песни альбома уже к нему привязаны (см. buildFromSettings). Int.MAX_VALUE — сентинел
+    // если песни альбома уже к нему привязаны (см. buildFromSongs). Int.MAX_VALUE — сентинел
     // "не привязано", такие альбомы уходят в конец сортировки.
     var albumType: String = AlbumType.STUDIO.dbValue
     var sortOrder: Int = Int.MAX_VALUE
 
     // specs/012-entity-description-fields: описание/короткое описание/предупреждение альбома,
     // копируются из связанной сущности Album (если песни альбома уже к ней привязаны) в
-    // buildFromSettings() — иначе остаются пустыми. albumTypeLabel — каноническая русская подпись
+    // buildFromSongs() — иначе остаются пустыми. albumTypeLabel — каноническая русская подпись
     // типа (AlbumType.description), единый источник правды вместо дублирующей RU-мапы на фронте.
     var description: String = ""
     var shortDescription: String = ""

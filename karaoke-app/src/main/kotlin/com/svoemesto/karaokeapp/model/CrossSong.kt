@@ -45,13 +45,13 @@ data class CrossSongCell(
 
 // fun main() {
 //    APP_WORK_IN_CONTAINER = false
-//    val listOfSettings = Song.loadListFromDb(mapOf(Pair("song_author", "Ундервуд")), WORKING_DATABASE)
+//    val listOfSongs = Song.loadListFromDb(mapOf(Pair("song_author", "Ундервуд")), WORKING_DATABASE)
 //    CrossSong.publications(
-//        listOfSettings = listOfSettings
+//        listOfSongs = listOfSongs
 //    )
 //
 //    CrossSong.unpublications(
-//        listOfSettings = listOfSettings
+//        listOfSongs = listOfSongs
 //    )
 //
 // }
@@ -60,7 +60,7 @@ data class CrossSongCell(
  * Кросс-настройки (между `Song` и связанными сущностями).
  *
  * Содержит методы для поиска «перекрёстных» данных:
- * - По `idSettings` найти `Author`, `Album` (через `SongAssignment`/`Picture`).
+ * - По `id` найти `Author`, `Album` (через `SongAssignment`/`Picture`).
  * - По `idAuthor` найти все его песни.
  * - По `idSiteUser` найти все его `Subscription`/`CartItem`.
  *
@@ -71,12 +71,12 @@ data class CrossSongCell(
 class CrossSong {
     companion object {
         fun publications(
-            listOfSettings: List<Song>,
+            listOfSongs: List<Song>,
             rowField: SongField = SongField.DATE,
             columnField: SongField = SongField.TIME,
         ): List<CrossSongRow> {
             val columns =
-                listOfSettings
+                listOfSongs
                     .map { sett ->
                         val fields = sett.javaClass.getDeclaredField("fields")
                         fields.isAccessible = true
@@ -91,7 +91,7 @@ class CrossSong {
                     }
 
             val rows =
-                listOfSettings
+                listOfSongs
                     .map { sett ->
                         val fields = sett.javaClass.getDeclaredField("fields")
                         fields.isAccessible = true
@@ -110,7 +110,7 @@ class CrossSong {
                     )
                 }
 
-            listOfSettings.forEach { sett ->
+            listOfSongs.forEach { sett ->
                 val fields = sett.javaClass.getDeclaredField("fields")
                 fields.isAccessible = true
                 val fldRow = (fields.get(sett) as Map<*, *>)[rowField] as String
@@ -128,7 +128,7 @@ class CrossSong {
         }
 
         fun unpublications(
-            listOfSettings: List<Song>,
+            listOfSongs: List<Song>,
             columnField: SongField = SongField.AUTHOR,
         ): List<CrossSongRow> {
             val skipedAuthors =
@@ -141,7 +141,7 @@ class CrossSong {
                         ignoreUseInList = true,
                     ).map { it.author }
             val columns =
-                listOfSettings
+                listOfSongs
                     .filter { it.author !in skipedAuthors }
                     .map { sett ->
                         val fields = sett.javaClass.getDeclaredField("fields")
@@ -157,7 +157,7 @@ class CrossSong {
                     }
 
             val countRows =
-                listOfSettings
+                listOfSongs
                     .groupBy {
                         val fields = it.javaClass.getDeclaredField("fields")
                         fields.isAccessible = true
@@ -180,18 +180,18 @@ class CrossSong {
                 }
 
             columns.forEach { col ->
-                listOfSettings
+                listOfSongs
                     .filter { sett ->
                         val fields = sett.javaClass.getDeclaredField("fields")
                         fields.isAccessible = true
                         val fldCol = (fields.get(sett) as Map<*, *>)[columnField] as String
                         fldCol == col
-                    }.forEachIndexed { index, settings ->
+                    }.forEachIndexed { index, song ->
                         listCSR
                             .first { it.csrId == index }
                             .csrCells
                             .first { it.cscName == col }
-                            .songDTO = settings.toDTO()
+                            .songDTO = song.toDTO()
                     }
             }
 
@@ -201,7 +201,7 @@ class CrossSong {
         }
 
         fun skiped(
-            listOfSettings: List<Song>,
+            listOfSongs: List<Song>,
             columnField: SongField = SongField.AUTHOR,
         ): List<CrossSongRow> {
             val skipedAuthors =
@@ -214,7 +214,7 @@ class CrossSong {
                         ignoreUseInList = true,
                     ).map { it.author }
             val columns =
-                listOfSettings
+                listOfSongs
                     .filter { it.author in skipedAuthors }
                     .map { sett ->
                         val fields = sett.javaClass.getDeclaredField("fields")
@@ -230,7 +230,7 @@ class CrossSong {
                     }
 
             val countRows =
-                listOfSettings
+                listOfSongs
                     .groupBy {
                         val fields = it.javaClass.getDeclaredField("fields")
                         fields.isAccessible = true
@@ -253,18 +253,18 @@ class CrossSong {
                 }
 
             columns.forEach { col ->
-                listOfSettings
+                listOfSongs
                     .filter { sett ->
                         val fields = sett.javaClass.getDeclaredField("fields")
                         fields.isAccessible = true
                         val fldCol = (fields.get(sett) as Map<*, *>)[columnField] as String
                         fldCol == col
-                    }.forEachIndexed { index, settings ->
+                    }.forEachIndexed { index, song ->
                         listCSR
                             .first { it.csrId == index }
                             .csrCells
                             .first { it.cscName == col }
-                            .songDTO = settings.toDTO()
+                            .songDTO = song.toDTO()
                     }
             }
 

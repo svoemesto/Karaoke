@@ -3,9 +3,9 @@
     <h2 class="mb-2">Шаблоны публикаций</h2>
     <p class="text-muted small mb-3">
       Шаблоны caption/постов для автопубликации в группе ВКонтакте и в Telegram-канале
-      (specs/121-vk-news-auto-publish, specs/113-telegram-demo-publish).
-      Шаблоны содержат плейсхолдеры в фигурных скобках. Неизвестные остаются как
-      literal-текст. Изменения применяются без перезапуска.
+      (specs/121-vk-news-auto-publish, specs/113-telegram-demo-publish). Шаблоны содержат
+      плейсхолдеры в фигурных скобках. Неизвестные остаются как literal-текст. Изменения применяются
+      без перезапуска.
     </p>
 
     <div v-if="loading" class="text-center my-4">
@@ -24,7 +24,8 @@
             :class="{ active: platform === 'vk' }"
             href="#"
             @click.prevent="platform = 'vk'"
-          >ВКонтакте</a>
+            >ВКонтакте</a
+          >
         </li>
         <li class="nav-item">
           <a
@@ -32,7 +33,8 @@
             :class="{ active: platform === 'telegram' }"
             href="#"
             @click.prevent="platform = 'telegram'"
-          >Telegram</a>
+            >Telegram</a
+          >
         </li>
       </ul>
 
@@ -43,7 +45,9 @@
           href="#"
           @click.prevent="placeholdersExpanded = !placeholdersExpanded"
         >
-          {{ placeholdersExpanded ? '▾' : '▸' }} Доступные плейсхолдеры ({{ currentPlaceholders.length }})
+          {{ placeholdersExpanded ? '▾' : '▸' }} Доступные плейсхолдеры ({{
+            currentPlaceholders.length
+          }})
         </a>
         <div v-show="placeholdersExpanded" class="ph-list small mt-1">
           <span
@@ -66,7 +70,8 @@
             :class="{ active: activeTab === tpl.type }"
             href="#"
             @click.prevent="activeTab = tpl.type"
-          >{{ tpl.type === 'air' ? 'В эфире (air)' : 'Премиум (premium)' }}</a>
+            >{{ tpl.type === 'air' ? 'В эфире (air)' : 'Премиум (premium)' }}</a
+          >
         </li>
       </ul>
 
@@ -125,7 +130,9 @@
                 {{ tpl.previewLoading ? '…' : 'Превью' }}
               </button>
             </div>
-            <div v-if="tpl.previewError" class="alert alert-danger py-1 small">{{ tpl.previewError }}</div>
+            <div v-if="tpl.previewError" class="alert alert-danger py-1 small">
+              {{ tpl.previewError }}
+            </div>
             <div v-if="tpl.previewText !== null" class="preview-box">
               <div class="d-flex justify-content-between align-items-center mb-1">
                 <span class="small text-muted">
@@ -145,7 +152,9 @@
           >
             {{ saving === tpl.key ? 'Сохранение…' : 'Сохранить' }}
           </button>
-          <span v-if="savedMessage[tpl.key]" class="text-success small ms-2">{{ savedMessage[tpl.key] }}</span>
+          <span v-if="savedMessage[tpl.key]" class="text-success small ms-2">{{
+            savedMessage[tpl.key]
+          }}</span>
         </div>
       </div>
     </div>
@@ -282,7 +291,8 @@ export default {
       tpl.previewLoading = true
       tpl.previewError = ''
       tpl.previewText = null
-      const url = this.platform === 'vk' ? '/api/vk/templates/preview' : '/api/telegram/templates/preview'
+      const url =
+        this.platform === 'vk' ? '/api/vk/templates/preview' : '/api/telegram/templates/preview'
       const params = { value: tpl.value, id: tpl.previewSongId }
       const request = { method: 'POST', url, params }
       promisedXMLHttpRequest(request)

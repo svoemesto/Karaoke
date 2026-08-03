@@ -3,7 +3,7 @@ package com.svoemesto.karaokeweb.dto
 import com.svoemesto.karaokeapp.model.Song
 
 /**
- * DTO для settings public: сериализуемое представление для API/UI.
+ * DTO для song public: сериализуемое представление для API/UI.
  *
  * @see AGENTS.md
  */
@@ -80,7 +80,7 @@ data class SongPublicDto(
          * karaoke-app (Constants.PROJECT_ROOT_FOLDERS), который требует APP_WORK_ON_SERVER —
          * а её в процессе karaoke-web никто не инициализирует (KaraokeAppService там не поднимается).
          */
-        fun fromSettings(
+        fun fromSong(
             s: Song,
             includeDetails: Boolean = true,
         ): SongPublicDto =

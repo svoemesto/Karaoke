@@ -118,14 +118,14 @@ fun exportAlignmentDataset(
                 // прогресса ниже - админ не видел бы вообще никакого движения, пока перемотка идёт.
                 if (id !in alreadyExportedSongIds) {
                     try {
-                        val settings =
+                        val song =
                             Song.loadFromDbById(
                                 id = id,
                                 database = WORKING_DATABASE,
                                 storageService = storageService,
                                 storageApiClient = storageApiClient,
                             )
-                        if (settings == null) {
+                        if (song == null) {
                             println("  [${index + 1}/${ids.size}] id=$id - пропущено (не найдено)")
                             return@forEachIndexed
                         }
@@ -134,7 +134,7 @@ fun exportAlignmentDataset(
                         // Whisper прогоняется один раз на песню (не на голос) - вокальный стем общий
                         // для всех голосов; недоступность/ошибка Whisper не блокирует экспорт песни,
                         // просто остаёмся без вставок для неё (см. комментарий у exportAlignmentDataset).
-                        val audioFile = File(settings.vocalsNameFlac)
+                        val audioFile = File(song.vocalsNameFlac)
                         val whisperWords =
                             if (audioFile.exists()) {
                                 WhisperAsrService.transcribe(audioFile)?.let { WhisperAsrService.flatWords(it) } ?: emptyList()
@@ -142,9 +142,9 @@ fun exportAlignmentDataset(
                                 emptyList()
                             }
 
-                        for (voice in 0 until settings.countVoices) {
+                        for (voice in 0 until song.countVoices) {
                             val markers =
-                                settings.sourceMarkersList
+                                song.sourceMarkersList
                                     .getOrNull(voice)
                                     ?.filter { it.markertype == Markertype.SYLLABLES.value }
                                     ?.sortedBy { it.time }
@@ -158,7 +158,7 @@ fun exportAlignmentDataset(
                                 continue
                             }
 
-                            val sourceText = settings.getSourceText(voice)
+                            val sourceText = song.getSourceText(voice)
                             val reconciled =
                                 if (whisperWords.isNotEmpty()) {
                                     WhisperMarkerAligner.reconcileWithGroundTruth(sourceText, markers, whisperWords)
@@ -203,7 +203,7 @@ fun exportAlignmentDataset(
                             writer.flush()
                             tracksExported++
                         }
-                        println("  [${index + 1}/${ids.size}] ${settings.songName} (id=$id) - обработано")
+                        println("  [${index + 1}/${ids.size}] ${song.songName} (id=$id) - обработано")
                     } catch (e: Exception) {
                         println("  [${index + 1}/${ids.size}] id=$id - ошибка: ${e.message}")
                     }

@@ -1,11 +1,11 @@
 package com.svoemesto.karaokeapp.model
 
 /**
- * Перечисление возможных значений для setting state.
+ * Перечисление возможных значений для состояния песни (song state).
  *
  * @see docs/features/dual-db-sync.md
  */
-enum class SettingState(
+enum class SongState(
     val color: String,
 ) {
     ALL_DONE("#7FFFD4"), // Полностью готово

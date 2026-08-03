@@ -3,9 +3,10 @@
     <h2 class="mb-2">Шаблоны публикаций</h2>
     <p class="text-muted small mb-3">
       Шаблоны caption/постов для автопубликации в группе ВКонтакте и в Telegram-канале
-      (specs/121-vk-news-auto-publish, specs/113-telegram-demo-publish). Шаблоны содержат
-      плейсхолдеры в фигурных скобках. Неизвестные остаются как literal-текст. Изменения применяются
-      без перезапуска.
+      (specs/121-vk-news-auto-publish, specs/113-telegram-demo-publish), а также шаблоны
+      автоматических новостей сайта (title+body) — specs/128-news-publish-templates. Шаблоны
+      содержат плейсхолдеры в фигурных скобках. Неизвестные остаются как literal-текст. Изменения
+      применяются без перезапуска.
     </p>
 
     <div v-if="loading" class="text-center my-4">
@@ -16,7 +17,7 @@
     <div v-if="error" class="alert alert-danger">{{ error }}</div>
 
     <div v-if="!loading && !error">
-      <!-- Платформа: ВК / Telegram -->
+      <!-- Платформа: ВК / Telegram / Новости сайта -->
       <ul class="nav nav-tabs mb-3">
         <li class="nav-item">
           <a
@@ -34,6 +35,15 @@
             href="#"
             @click.prevent="platform = 'telegram'"
             >Telegram</a
+          >
+        </li>
+        <li class="nav-item">
+          <a
+            class="nav-link"
+            :class="{ active: platform === 'news' }"
+            href="#"
+            @click.prevent="platform = 'news'"
+            >Новости сайта</a
           >
         </li>
       </ul>
@@ -62,8 +72,8 @@
         </div>
       </div>
 
-      <!-- Вкладки типов (air / premium) -->
-      <ul class="nav nav-pills mb-3">
+      <!-- Вкладки типов (air / premium) — только для VK/Telegram, у News свой UI -->
+      <ul v-if="platform !== 'news'" class="nav nav-pills mb-3">
         <li v-for="tpl in currentTemplates" :key="tpl.type" class="nav-item">
           <a
             class="nav-link"
@@ -75,102 +85,118 @@
         </li>
       </ul>
 
-      <div
-        v-for="tpl in currentTemplates"
-        v-show="activeTab === tpl.type"
-        :key="tpl.type"
-        class="card"
-      >
-        <div class="card-header d-flex justify-content-between align-items-center">
-          <div>
-            <strong>{{ tpl.type === 'air' ? 'В эфире (air)' : 'Премиум (premium)' }}</strong>
-            <span class="text-muted small ms-2">{{ tpl.description }}</span>
-          </div>
-          <button class="btn btn-sm btn-outline-secondary" @click="resetToDefault(tpl)">
-            Сбросить к дефолту
-          </button>
-        </div>
-        <div class="card-body">
-          <!-- Редактор с подсветкой плейсхолдеров -->
-          <div class="editor-wrap">
-            <textarea
-              v-model="tpl.value"
-              class="form-control template-textarea"
-              rows="6"
-              :placeholder="'Шаблон типа ' + tpl.type"
-              @scroll="syncScroll(tpl)"
-              @input="onTemplateInput(tpl)"
-            />
-            <div
-              :ref="'hl-' + platform + '-' + tpl.type"
-              class="template-highlight"
-              aria-hidden="true"
-              v-html="highlightPlaceholders(tpl.value)"
-            />
-          </div>
-          <div v-if="getBraceWarning(tpl.value)" class="text-warning small mt-1">
-            ⚠ Несбалансированные скобки в плейсхолдерах — неизвестные останутся как literal.
-          </div>
+      <!-- Новости сайта — отдельный компонент (title+body пара вместо одного caption) -->
+      <NewsTemplatesEditor v-if="platform === 'news'" />
 
-          <!-- Preview -->
-          <div class="mt-3">
-            <label class="form-label small fw-bold">Превью на тестовой песне (id):</label>
-            <div class="input-group input-group-sm mb-2" style="max-width: 400px">
-              <input
-                v-model.number="tpl.previewSongId"
-                type="number"
-                class="form-control"
-                placeholder="ID песни"
+      <template v-if="platform !== 'news'">
+        <div
+          v-for="tpl in currentTemplates"
+          v-show="activeTab === tpl.type"
+          :key="tpl.type"
+          class="card"
+        >
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <div>
+              <strong>{{ tpl.type === 'air' ? 'В эфире (air)' : 'Премиум (premium)' }}</strong>
+              <span class="text-muted small ms-2">{{ tpl.description }}</span>
+            </div>
+            <button class="btn btn-sm btn-outline-secondary" @click="resetToDefault(tpl)">
+              Сбросить к дефолту
+            </button>
+          </div>
+          <div class="card-body">
+            <!-- Редактор с подсветкой плейсхолдеров -->
+            <div class="editor-wrap">
+              <textarea
+                v-model="tpl.value"
+                class="form-control template-textarea"
+                rows="6"
+                :placeholder="'Шаблон типа ' + tpl.type"
+                @scroll="syncScroll(tpl)"
+                @input="onTemplateInput(tpl)"
               />
-              <button
-                class="btn btn-outline-primary"
-                :disabled="!tpl.previewSongId || tpl.previewLoading"
-                @click="previewTemplate(tpl)"
-              >
-                {{ tpl.previewLoading ? '…' : 'Превью' }}
-              </button>
+              <div
+                :ref="'hl-' + platform + '-' + tpl.type"
+                class="template-highlight"
+                aria-hidden="true"
+                v-html="highlightPlaceholders(tpl.value)"
+              />
             </div>
-            <div v-if="tpl.previewError" class="alert alert-danger py-1 small">
-              {{ tpl.previewError }}
+            <div v-if="getBraceWarning(tpl.value)" class="text-warning small mt-1">
+              ⚠ Несбалансированные скобки в плейсхолдерах — неизвестные останутся как literal.
             </div>
-            <div v-if="tpl.previewText !== null" class="preview-box">
-              <div class="d-flex justify-content-between align-items-center mb-1">
-                <span class="small text-muted">
-                  Длина: {{ tpl.previewLength }} / {{ tpl.previewMaxLength }}
-                  <span v-if="tpl.previewTruncated" class="text-warning">(усечено до лимита)</span>
-                </span>
-              </div>
-              <pre class="preview-text">{{ tpl.previewText }}</pre>
-            </div>
-          </div>
 
-          <!-- Сохранение -->
-          <button
-            class="btn btn-primary mt-3"
-            :disabled="saving === tpl.key"
-            @click="saveTemplate(tpl)"
-          >
-            {{ saving === tpl.key ? 'Сохранение…' : 'Сохранить' }}
-          </button>
-          <span v-if="savedMessage[tpl.key]" class="text-success small ms-2">{{
-            savedMessage[tpl.key]
-          }}</span>
+            <!-- Preview -->
+            <div class="mt-3">
+              <label class="form-label small fw-bold">Превью на тестовой песне (id):</label>
+              <div class="input-group input-group-sm mb-2" style="max-width: 400px">
+                <input
+                  v-model.number="tpl.previewSongId"
+                  type="number"
+                  class="form-control"
+                  placeholder="ID песни"
+                />
+                <button
+                  class="btn btn-outline-primary"
+                  :disabled="!tpl.previewSongId || tpl.previewLoading"
+                  @click="previewTemplate(tpl)"
+                >
+                  {{ tpl.previewLoading ? '…' : 'Превью' }}
+                </button>
+              </div>
+              <div v-if="tpl.previewError" class="alert alert-danger py-1 small">
+                {{ tpl.previewError }}
+              </div>
+              <div v-if="tpl.previewText !== null" class="preview-box">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <span class="small text-muted">
+                    Длина: {{ tpl.previewLength }} / {{ tpl.previewMaxLength }}
+                    <span v-if="tpl.previewTruncated" class="text-warning"
+                      >(усечено до лимита)</span
+                    >
+                  </span>
+                </div>
+                <pre class="preview-text">{{ tpl.previewText }}</pre>
+              </div>
+            </div>
+
+            <!-- Сохранение -->
+            <button
+              class="btn btn-primary mt-3"
+              :disabled="saving === tpl.key"
+              @click="saveTemplate(tpl)"
+            >
+              {{ saving === tpl.key ? 'Сохранение…' : 'Сохранить' }}
+            </button>
+            <span v-if="savedMessage[tpl.key]" class="text-success small ms-2">{{
+              savedMessage[tpl.key]
+            }}</span>
+          </div>
         </div>
-      </div>
+      </template>
     </div>
   </div>
 </template>
 
 <script>
 import { promisedXMLHttpRequest } from '../lib/utils'
+import NewsTemplatesEditor from '../components/NewsTemplates/NewsTemplatesEditor.vue'
 
+/**
+ * Компонент «Шаблоны публикаций»: редактор caption для VK/Telegram + редактор
+ * шаблонов авто-новостей сайта (title+body). Третья вкладка «Новости сайта»
+ * делегирует работу дочернему компоненту [NewsTemplatesEditor].
+ *
+ * @see docs/features/news-templates.md
+ */
 export default {
   name: 'PublishTemplatesView',
+  components: { NewsTemplatesEditor },
   data() {
     return {
       loading: true,
       error: '',
-      platform: 'vk', // 'vk' | 'telegram'
+      platform: 'vk', // 'vk' | 'telegram' | 'news'
       activeTab: 'air',
       vkTemplates: [],
       telegramTemplates: [],

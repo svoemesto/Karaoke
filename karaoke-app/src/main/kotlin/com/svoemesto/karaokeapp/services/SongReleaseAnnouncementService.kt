@@ -85,8 +85,20 @@ object SongReleaseAnnouncementService {
             if (!song.newsAvailableAnnounced) return false
             News.createAutoAnnouncement(
                 songId = song.id,
-                title = "Новая песня: ${song.author} — ${song.songName}${albumYearSuffix(song)}",
-                body = "Песня «${song.songName}» (${bodyDetails(song)}) появилась в коллекции.",
+                title =
+                    NewsTemplateService.render(
+                        NewsTemplateService.template("newsTemplatePremiumTitle", database),
+                        song,
+                        news = null,
+                        truncate = true,
+                    ),
+                body =
+                    NewsTemplateService.render(
+                        NewsTemplateService.template("newsTemplatePremiumBody", database),
+                        song,
+                        news = null,
+                        truncate = false,
+                    ),
                 link = "/song?id=${song.id}",
                 category = "premium",
                 database = database,
@@ -195,8 +207,20 @@ object SongReleaseAnnouncementService {
                     if (!News.existsAnnouncement(songId = song.id, link = link, category = "air", database = database)) {
                         News.createAutoAnnouncement(
                             songId = song.id,
-                            title = "Новая песня: ${song.author} — ${song.songName}${albumYearSuffix(song)}",
-                            body = "Песня «${song.songName}» (${bodyDetails(song)}) вышла в эфир.",
+                            title =
+                                NewsTemplateService.render(
+                                    NewsTemplateService.template("newsTemplateAirTitle", database),
+                                    song,
+                                    news = null,
+                                    truncate = true,
+                                ),
+                            body =
+                                NewsTemplateService.render(
+                                    NewsTemplateService.template("newsTemplateAirBody", database),
+                                    song,
+                                    news = null,
+                                    truncate = false,
+                                ),
                             link = link,
                             category = "air",
                             database = database,

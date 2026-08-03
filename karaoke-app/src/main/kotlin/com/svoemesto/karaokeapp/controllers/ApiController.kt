@@ -2801,6 +2801,20 @@ class ApiController(
             )?.toDTO()
     }
 
+    /**
+     * Результат [songs2Update] — помимо старого `albumLinkValid` (см. FR-008 specs/011-album-song-rename)
+     * несёт [fileNameRenameError], если переименование файла (специфично для параметра `fileName`,
+     * specs/124-filename-sanitization-rename) было отклонено (коллизия/пустое имя после санитайзинга/
+     * активная фоновая обработка песни). Остальные поля из запроса при этом всё равно применяются и
+     * сохраняются как обычно — отклоняется только сама смена имени файла.
+     *
+     * @see docs/features/premium-stems.md
+     */
+    data class SongUpdateResultDto(
+        val albumLinkValid: Boolean,
+        val fileNameRenameError: String? = null,
+    )
+
     // Обновление песни
     @PostMapping("/song/update")
     @ResponseBody
@@ -2891,7 +2905,7 @@ class ApiController(
         @RequestParam(required = false) description: String?,
         @RequestParam(required = false) shortDescription: String?,
         @RequestParam(required = false) warning: String?,
-    ): Boolean {
+    ): SongUpdateResultDto {
         val songId: Long = id.toLong()
         val song =
             Song.loadFromDbById(
@@ -2901,8 +2915,40 @@ class ApiController(
                 storageApiClient = storageApiClient,
             )
         var albumLinkValid = true
+        var fileNameRenameError: String? = null
         song?.let { sett ->
-            fileName?.let { sett.fileName = it }
+            // specs/124-filename-sanitization-rename FR-006/FR-007/FR-008/FR-011/FR-013: смена
+            // "Имя файла" санитайзируется теми же правилами, что и импорт, отклоняется при коллизии/
+            // пустом имени/активной фоновой обработке песни, и (если применяется) каскадно
+            // переименовывает связанные артефакты на диске и в обоих хранилищах. Остальные поля этого
+            // запроса (ниже) применяются независимо от результата этой проверки.
+            fileName?.let { requestedFileName ->
+                val sanitized = requestedFileName.sanitizeSongFileName()
+                val effectiveRootFolder = rootFolder ?: sett.rootFolder
+                if (sanitized.isEmpty()) {
+                    fileNameRenameError = "Имя файла после удаления недопустимых символов оказалось пустым — введите другое значение."
+                } else if (sanitized != sett.fileName) {
+                    val collision =
+                        Song
+                            .loadListFromDb(
+                                args = mapOf(Pair("file_name", sanitized), Pair("root_folder", effectiveRootFolder)),
+                                database = WORKING_DATABASE,
+                                storageService = storageService,
+                                storageApiClient = storageApiClient,
+                                withoutMarkersAndText = true,
+                            ).any { it.id != sett.id }
+                    if (collision) {
+                        fileNameRenameError = "Песня с именем файла «$sanitized» уже существует в этой папке."
+                    } else if (KaraokeProcess.hasActiveProcess(songId = sett.id, database = WORKING_DATABASE)) {
+                        fileNameRenameError =
+                            "Над песней сейчас выполняется фоновая обработка — дождитесь её завершения и повторите переименование."
+                    } else {
+                        val oldFileName = sett.fileName
+                        sett.fileName = sanitized
+                        sett.renameCascadeExtraArtifacts(oldFileName)
+                    }
+                }
+            }
             rootFolder?.let { sett.rootFolder = it }
             tags?.let { sett.tags = it }
             id.let { sett.fields[SongField.ID] = it }
@@ -3008,7 +3054,7 @@ class ApiController(
             sett.saveToFile()
         }
 
-        return albumLinkValid
+        return SongUpdateResultDto(albumLinkValid = albumLinkValid, fileNameRenameError = fileNameRenameError)
     }
 
     // Получение процесса

@@ -17,6 +17,18 @@ fun String.wrapInQuotes(): String {
 //    return "\"\"" + this + "\"\""
 }
 
+/**
+ * Санитайзирует символы, проблемные для файловых операций/команд, в строке.
+ * ВАЖНО: вызывается и на "голых" именах файлов, и на уже собранных абсолютных
+ * путях (см. [rightFileName] и его 24 вызывающих места, например
+ * `StemJobProcessing.kt`/`KaraokeProcess.kt` — они передают сюда полный путь
+ * вида `"$tempFolder/upload.ext"`). Поэтому здесь НЕЛЬЗЯ удалять `/`/`\` —
+ * это разделители пути, а не проблемные символы имени файла. Санитайзинг
+ * именно "голого" фрагмента имени файла песни (без пути) — см.
+ * [sanitizeSongFileName].
+ *
+ * @see docs/features/async-process-queue.md
+ */
 fun String.rightFileNameSymbols(): String =
     this
         .replace("'", "''")
@@ -25,6 +37,26 @@ fun String.rightFileNameSymbols(): String =
         .replace("!", "")
         .replace("$", "s")
         .replace("*", "x")
+
+/**
+ * Санитайзирует "голый" фрагмент имени файла песни (без пути, до объединения
+ * с `rootFolder`) — используется при импорте ([Song.createFromPath]) и при
+ * ручном переименовании через SongEdit (`ApiController.songs2Update`).
+ * В отличие от [rightFileNameSymbols]/[rightFileName] (которые применяются и
+ * к целым путям и потому не трогают `/`), здесь дополнительно убираются
+ * разделители пути `/`/`\` (защита от выхода за пределы папки песни, FR-001)
+ * и двойные кавычки `"`. Скобки `(` `)` `[` `]` и не-ASCII буквы (кириллица
+ * и т.п.) НЕ трогаются — они либо структурно значимы для парсинга шаблона
+ * имени файла (FR-003), либо не являются проблемными символами (FR-012).
+ *
+ * @see docs/features/async-process-queue.md
+ */
+fun String.sanitizeSongFileName(): String =
+    this
+        .replace("/", "")
+        .replace("\\", "")
+        .replace("\"", "")
+        .rightFileNameSymbols()
 
 fun String.rightFileName(): String {
     return this.rightFileNameSymbols()

@@ -5369,6 +5369,18 @@ export default {
         }
       } catch (error) {
         console.error('Ошибка автосохранения:', error)
+        // specs/124-filename-sanitization-rename: если сервер отклонил переименование "Имя файла"
+        // (коллизия/пустое имя/активная обработка), error.message содержит понятное для
+        // пользователя сообщение (см. store.js saveSong) — показываем его тостом, а не только в
+        // консоли, чтобы пользователь понимал, почему поле не сохранилось.
+        this.createToast({
+          slots: { default: () => [error && error.message ? error.message : 'Ошибка сохранения'] },
+          title: 'Ошибка сохранения',
+          autoHideDelay: 8000,
+          variant: 'danger',
+          appendToast: false,
+          position: 'top-start',
+        })
       } finally {
         this.isSaving = false
       }

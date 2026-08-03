@@ -5612,6 +5612,114 @@ class Song(
         }
     }
 
+    /**
+     * Доводит до нового [fileName] артефакты, которые НЕ покрывает существующий
+     * [renameFilesIfDiff] (вызывается автоматически из [saveToDb] и уже переименовывает
+     * основной аудиофайл и FLAC/WAV-варианты стемов): `.kdenlive`-проект, файл субтитров,
+     * устаревший sidecar-файл метаданных под старым именем, mp3-варианты стемов на диске и
+     * в обоих хранилищах (локальном [storageService] и удалённом [storageApiClient]).
+     *
+     * Вызывается из `ApiController.songs2Update` СРАЗУ ПОСЛЕ присвоения `this.fileName`
+     * нового (уже санитайзированного) значения, но ДО [saveToDb]/[saveToFile] — [oldFileName]
+     * должен быть значением поля, снятым ДО этого присваивания.
+     *
+     * Best-effort вперёд (specs/124-filename-sanitization-rename, FR-010): ошибка на одном
+     * артефакте логируется и НЕ откатывает уже переименованные/перенесённые артефакты и не
+     * прерывает обработку остальных — при частичном отказе несоответствие для конкретного
+     * артефакта проявится через [HealthReport] при следующем его пересчёте для этой песни.
+     *
+     * ПРИМЕЧАНИЕ: шаблон ключа хранилища (`"$storageFileName${suffix}.${extention}"`)
+     * подтверждён для локального хранилища ([storageService], см. `ApiController.pushMp3ToStorage`).
+     * Для удалённого хранилища ([storageApiClient]) используется тот же шаблон по аналогии
+     * (оба реализуют идентичный по форме интерфейс) — это предположение НЕ верифицировано
+     * живой проверкой конкретно этого пути записи в удалённый MinIO и должно быть подтверждено
+     * пользователем перед тем, как полагаться на него в проде.
+     *
+     * @see docs/features/premium-stems.md
+     */
+    fun renameCascadeExtraArtifacts(oldFileName: String) {
+        if (oldFileName == fileName) return
+
+        val oldKdenliveFileName = "$rootFolder/$oldFileName.kdenlive"
+        val oldKdenliveSubsFileName = "$rootFolder/$oldFileName.kdenlive.srt"
+        val oldFileSongAbsolutePath = "$rootFolder/$oldFileName.song"
+
+        try {
+            val oldFile = File(oldKdenliveFileName)
+            if (oldFile.exists()) oldFile.renameTo(File(kdenliveFileName))
+        } catch (e: Exception) {
+            println("[renameCascadeExtraArtifacts] Не удалось переименовать .kdenlive: ${e.message}")
+        }
+        try {
+            val oldFile = File(oldKdenliveSubsFileName)
+            if (oldFile.exists()) oldFile.renameTo(File(kdenliveSubsFileName))
+        } catch (e: Exception) {
+            println("[renameCascadeExtraArtifacts] Не удалось переименовать .kdenlive.srt: ${e.message}")
+        }
+        try {
+            val oldFile = File(oldFileSongAbsolutePath)
+            // Новый sidecar пишется отдельно через saveToFile() под уже новым именем — здесь
+            // только подчищаем "осиротевший" файл под старым именем, если он остался.
+            if (oldFile.exists() && oldFileSongAbsolutePath != fileSongAbsolutePath) oldFile.delete()
+        } catch (e: Exception) {
+            println("[renameCascadeExtraArtifacts] Не удалось удалить устаревший sidecar-файл: ${e.message}")
+        }
+
+        val stemMp3Specs =
+            listOf(
+                Triple(KaraokeFileType.MP3_ACCOMPANIMENT, "accompaniment", accompanimentNameFlac),
+                Triple(KaraokeFileType.MP3_VOCAL, "vocals", vocalsNameFlac),
+                Triple(KaraokeFileType.MP3_BASS, "bass", bassNameFlac),
+                Triple(KaraokeFileType.MP3_DRUMS, "drums", drumsNameFlac),
+                Triple(KaraokeFileType.MP3_OTHER, "other", otherNameFlac),
+            )
+        val oldStorageFileName = "$author/$year - $album/$oldFileName"
+
+        stemMp3Specs.forEach { (fileType, dashSuffix, newFlacPath) ->
+            try {
+                val newMp3Path = newFlacPath.removeSuffix(".flac") + ".mp3"
+                val oldMp3Path = "$pathToResultedModel/$oldFileName-$dashSuffix.mp3"
+                val oldMp3File = File(oldMp3Path)
+                if (oldMp3File.exists()) oldMp3File.renameTo(File(newMp3Path))
+
+                val oldStorageKey = "$oldStorageFileName${fileType.suffix}.${fileType.extention}"
+                val newStorageKey = "$storageFileName${fileType.suffix}.${fileType.extention}"
+                val localSourcePath = if (File(newMp3Path).exists()) newMp3Path else null
+
+                if (storageService.fileExists(storageBucketName, oldStorageKey)) {
+                    if (localSourcePath != null) {
+                        storageService.uploadFile(storageBucketName, newStorageKey, localSourcePath)
+                    } else {
+                        val tmp = File.createTempFile("song-rename-$dashSuffix-", ".mp3")
+                        try {
+                            storageService.downloadFile(storageBucketName, oldStorageKey, tmp.absolutePath)
+                            storageService.uploadFile(storageBucketName, newStorageKey, tmp.absolutePath)
+                        } finally {
+                            tmp.delete()
+                        }
+                    }
+                    storageService.deleteFile(storageBucketName, oldStorageKey)
+                }
+                if (storageApiClient.fileExists(storageBucketName, oldStorageKey)) {
+                    if (localSourcePath != null) {
+                        storageApiClient.uploadFile(storageBucketName, newStorageKey, localSourcePath)
+                    } else {
+                        val tmp = File.createTempFile("song-rename-remote-$dashSuffix-", ".mp3")
+                        try {
+                            storageApiClient.downloadFile(storageBucketName, oldStorageKey, tmp.absolutePath)
+                            storageApiClient.uploadFile(storageBucketName, newStorageKey, tmp.absolutePath)
+                        } finally {
+                            tmp.delete()
+                        }
+                    }
+                    storageApiClient.deleteFile(storageBucketName, oldStorageKey).block()
+                }
+            } catch (e: Exception) {
+                println("[renameCascadeExtraArtifacts] Не удалось перенести стем '$dashSuffix' в хранилищах: ${e.message}")
+            }
+        }
+    }
+
     fun createKdenliveFiles(
         overrideKdenliveFile: Boolean = true,
         overrideKdenliveSubsFile: Boolean = false,
@@ -7930,6 +8038,14 @@ class Song(
          * папки-альбома. Для каждой добавленной песни сразу ставит в очередь KEY_BPM_FROM_FILE
          * (свой независимый лейн) и DEMUCS2 (первый шаг кортежа демукс→mp3→загрузка).
          *
+         * Имя файла на диске/в БД ([Song.fileName]) всегда санитайзируется через
+         * [String.sanitizeSongFileName] до перекодирования в FLAC (specs/124-filename-sanitization-rename,
+         * FR-001) — устраняет падение последующей обработки (Demucs) на символах вроде `!`. Отображаемое
+         * название песни (`SongField.NAME`) сохраняет исходные символы (FR-002). Коллизия
+         * санитайзированного имени между двумя РАЗНЫМИ файлами ОДНОГО вызова этой функции разрешается
+         * автоматическим числовым суффиксом (FR-005) — не влияет на повторный импорт уже существующих
+         * в БД песен (эта проверка не меняется).
+         *
          * @see docs/features/async-process-queue.md
          */
         fun createFromPath(
@@ -7939,11 +8055,18 @@ class Song(
             storageApiClient: StorageApiClient,
         ): FolderImportResult {
             val result: MutableList<Song> = mutableListOf()
+            // Имена файлов, уже присвоенным песням В РАМКАХ ЭТОГО вызова createFromPath, по папке
+            // (rootFolder) — используется только для разрешения коллизии санитайзинга МЕЖДУ файлами
+            // одного импорта (specs/124-filename-sanitization-rename, FR-005/клэрификация Q4). Не
+            // персистится и не влияет на повторный импорт уже существующих в БД песен (та проверка —
+            // отдельная, через loadListFromDb ниже, и её семантика "уже импортировано, пропустить"
+            // не меняется).
+            val usedFileNamesThisRun: MutableMap<String, MutableSet<String>> = mutableMapOf()
             val listFiles = getListFiles(startFolder, listOf("flac", "mp3", "m4a"))
             listFiles.forEach { pathToFile ->
 
                 val file = File(pathToFile)
-                val fileName = file.nameWithoutExtension
+                val rawFileName = file.nameWithoutExtension
                 val fileExtension = file.extension
                 val rootFolder = file.parent
                 val albumFolder = file.parentFile.name
@@ -7951,7 +8074,10 @@ class Song(
                 val regexFile = Regex("(\\d+)\\s+\\((\\d+)\\)\\s+\\[([\\S|\\s]+)]\\s+-\\s+([\\S|\\s]+)")
                 val regexAlbum = Regex("(\\d+)\\s+-\\s+([\\S|\\s]+)")
                 val matchResultAlbum = regexAlbum.find(albumFolder)
-                val matchResultFile = regexFile.find(fileName)
+                // Regex-парсинг ВСЕГДА идёт по "сырому" (не санитайзированному) имени — иначе
+                // отображаемое название песни (songNameStr, FR-002) потеряло бы оригинальные символы
+                // (например `!`) ещё до того, как оно попало бы в SongField.NAME.
+                val matchResultFile = regexFile.find(rawFileName)
                 if (matchResultAlbum != null) {
                     val yearStr = matchResultAlbum.groupValues[1]
                     val albumStr = matchResultAlbum.groupValues[2]
@@ -7959,6 +8085,19 @@ class Song(
                         val numberStr = matchResultFile.groupValues[2]
                         val authorStr = matchResultFile.groupValues[3]
                         val songNameStr = matchResultFile.groupValues[4]
+
+                        // Санитайзинг имени файла на диске (FR-001/FR-003/FR-012) — НЕ влияет на
+                        // songNameStr выше. При коллизии с другим файлом ЭТОГО ЖЕ импорта в той же
+                        // папке — числовой суффикс (FR-005).
+                        val sanitizedBaseFileName = rawFileName.sanitizeSongFileName()
+                        val usedInThisFolder = usedFileNamesThisRun.getOrPut(rootFolder) { mutableSetOf() }
+                        var fileName = sanitizedBaseFileName
+                        var suffixN = 1
+                        while (usedInThisFolder.contains(fileName)) {
+                            suffixN++
+                            fileName = "$sanitizedBaseFileName ($suffixN)"
+                        }
+                        usedInThisFolder.add(fileName)
 
                         if (loadListFromDb(
                                 args =
@@ -7972,7 +8111,8 @@ class Song(
                                 withoutMarkersAndText = true,
                             ).isEmpty()
                         ) {
-                            // если файл не флак - преобразуем во флак и удаляем исходник
+                            // если файл не флак - преобразуем во флак (под уже санитайзированным
+                            // именем) и удаляем исходник
                             if (fileExtension != "flac") {
                                 runCommand(
                                     listOf(
@@ -7981,11 +8121,17 @@ class Song(
                                         pathToFile,
                                         "-compression_level",
                                         "8",
-                                        pathToFile.substring(0, pathToFile.length - fileExtension.length) + "flac",
+                                        "$rootFolder/$fileName.flac",
                                         "-y",
                                     ),
                                 )
                                 runCommand(listOf("rm", pathToFile))
+                            } else if (fileName != rawFileName) {
+                                // Источник уже .flac, но санитайзинг/авто-суффикс изменили имя —
+                                // переименовываем физический файл, чтобы он совпадал с song.fileName
+                                // (иначе — тот самый баг: song.fileName не совпадает с реальным файлом
+                                // на диске, и последующая обработка/Demucs не находит файл).
+                                runCommand(listOf("mv", pathToFile, "$rootFolder/$fileName.flac"))
                             }
                             val song = Song(database)
                             song.fileName = fileName

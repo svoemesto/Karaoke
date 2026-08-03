@@ -932,6 +932,22 @@ class KaraokeProcess(
             return emptyList()
         }
 
+        /**
+         * Есть ли у песни [songId] незавершённое задание в очереди (`WAITING` или `WORKING`).
+         * Используется для блокировки переименования файла песни в SongEdit, пока над ней идёт
+         * фоновая обработка (specs/124-filename-sanitization-rename, FR-013) — иначе
+         * каскадное переименование могло бы переименовать файл, который в этот момент читает/пишет
+         * уже запущенный процесс (например, Demucs).
+         *
+         * @see docs/features/async-process-queue.md
+         */
+        fun hasActiveProcess(
+            songId: Long,
+            database: KaraokeConnection,
+        ): Boolean =
+            loadList(args = mapOf("song_id" to songId.toString()), database = database)
+                .any { it.status == KaraokeProcessStatuses.WAITING.toString() || it.status == KaraokeProcessStatuses.WORKING.toString() }
+
         fun delete(
             id: Long,
             database: KaraokeConnection,

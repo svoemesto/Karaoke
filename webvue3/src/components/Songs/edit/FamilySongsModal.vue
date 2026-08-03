@@ -207,7 +207,11 @@ export default {
       const hasResult = r && r.status === 'done'
       const deltaMs = hasResult ? r.deltaMs : null
       const audioSimilarityPercent = hasResult ? r.similarityPercent : null
-      this.$emit('select', { id: song.id, deltaMs: deltaMs, audioSimilarityPercent: audioSimilarityPercent })
+      this.$emit('select', {
+        id: song.id,
+        deltaMs: deltaMs,
+        audioSimilarityPercent: audioSimilarityPercent,
+      })
     },
     close() {
       this.$emit('close')

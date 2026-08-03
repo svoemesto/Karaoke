@@ -1750,7 +1750,9 @@ export default {
         'idStatus',
       ]
       const newCurrent = Object.assign({}, state.currentSong)
-      const newSnapshot = state.snapshotSong ? Object.assign({}, state.snapshotSong) : Object.assign({}, newCurrent)
+      const newSnapshot = state.snapshotSong
+        ? Object.assign({}, state.snapshotSong)
+        : Object.assign({}, newCurrent)
       for (const key of fields) {
         if (Object.prototype.hasOwnProperty.call(payload, key) && payload[key] !== undefined) {
           newCurrent[key] = payload[key]

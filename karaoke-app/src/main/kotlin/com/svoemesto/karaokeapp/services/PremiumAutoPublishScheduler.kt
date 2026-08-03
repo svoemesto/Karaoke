@@ -53,7 +53,6 @@ class PremiumAutoPublishScheduler {
         try {
             publishPendingSongs()
         } catch (e: Exception) {
-            println("PremiumAutoPublishScheduler.tick error: ${e.message}")
             e.printStackTrace()
         }
     }
@@ -61,12 +60,10 @@ class PremiumAutoPublishScheduler {
     private fun publishPendingSongs() {
         val candidateIds = loadPendingIds()
         if (candidateIds.isEmpty()) return
-        println("PremiumAutoPublishScheduler: candidates.size=${candidateIds.size}, ids=$candidateIds")
         for (songId in candidateIds) {
             try {
                 processSong(songId)
             } catch (e: Exception) {
-                println("PremiumAutoPublishScheduler: song id=$songId unexpected error: ${e.message}")
                 e.printStackTrace()
             }
         }
@@ -80,7 +77,6 @@ class PremiumAutoPublishScheduler {
                 storageService = KSS_APP,
                 storageApiClient = SAC_APP,
             ) ?: run {
-                println("PremiumAutoPublishScheduler: song id=$songId loadFromDbById returned null, skipping")
                 return
             }
 
@@ -94,7 +90,6 @@ class PremiumAutoPublishScheduler {
         val tgBusy = song.telegramAutoPublishState in setOf("rendering", "publishing")
         val vkBusy = song.vkAutoPublishState in setOf("rendering", "publishing")
         if (tgBusy || vkBusy) {
-            println("PremiumAutoPublishScheduler: song id=${song.id} busy: tgState=${song.telegramAutoPublishState} vkState=${song.vkAutoPublishState}, skip")
             return
         }
 
@@ -108,7 +103,6 @@ class PremiumAutoPublishScheduler {
                 song.premiumAutoPublishState = "COMPLETE"
             }
             song.saveToDb()
-            println("PremiumAutoPublishScheduler: song id=${song.id} → both channels done, newsPremiumPublishPending=false")
             return
         }
 
@@ -121,7 +115,6 @@ class PremiumAutoPublishScheduler {
                     publicationType = PublicationType.PREMIUM,
                     persistMessageId = false,
                 )
-            println("PremiumAutoPublishScheduler: song id=${song.id} telegram result: state=${tgResult.state.code} messageId=${tgResult.messageId} error=${tgResult.error}")
             if (tgResult.state.code == "send_failed") {
                 handleFailure(song, "telegram: ${tgResult.error}")
             }
@@ -146,7 +139,6 @@ class PremiumAutoPublishScheduler {
                     type = PublicationType.PREMIUM,
                     persistPostId = false,
                 )
-            println("PremiumAutoPublishScheduler: song id=${reloaded.id} vk result: state=${vkResult.state.code} postId=${vkResult.postId} error=${vkResult.error}")
             if (vkResult.state.code == "send_failed") {
                 handleFailure(reloaded, "vk: ${vkResult.error}")
             }
@@ -191,7 +183,6 @@ class PremiumAutoPublishScheduler {
                 song.premiumAutoPublishState = "COMPLETE"
             }
             song.saveToDb()
-            println("PremiumAutoPublishScheduler: song id=${song.id} → COMPLETE (tgDone=$tgDone vkDone=$vkDone)")
         }
     }
 
@@ -226,7 +217,6 @@ class PremiumAutoPublishScheduler {
                 }
             }
         } catch (e: SQLException) {
-            println("PremiumAutoPublishScheduler.loadPendingIds SQLException: ${e.message}")
         }
         return result
     }

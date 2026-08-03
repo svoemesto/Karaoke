@@ -53,31 +53,24 @@ class TelegramAutoPublishScheduler {
     @Scheduled(fixedDelay = 60_000L, initialDelay = 60_000L)
     fun tick() {
         val tickStartMs = System.currentTimeMillis()
-        println("TelegramAutoPublishScheduler.tick ENTER at ${java.time.Instant.ofEpochMilli(tickStartMs)}")
         if (!KaraokeProperties.getBoolean("telegramAutoPublishEnabled")) {
-            println("TelegramAutoPublishScheduler.tick SKIP: telegramAutoPublishEnabled=false")
             return
         }
 
         val channelId = KaraokeProperties.getString("telegramAutoPublishChannelId")
         if (channelId.isBlank()) {
             // FR-013: без channelId публикация невозможна — логируем и пропускаем тик.
-            println("TelegramAutoPublishScheduler: telegramAutoPublishChannelId is empty, skip tick")
             return
         }
 
         try {
             val beforeResume = System.currentTimeMillis()
             resumeRenderingSongs()
-            println("TelegramAutoPublishScheduler.tick resumeRenderingSongs done in ${System.currentTimeMillis() - beforeResume}ms")
             val beforePublish = System.currentTimeMillis()
             publishScheduledSongs()
-            println("TelegramAutoPublishScheduler.tick publishScheduledSongs done in ${System.currentTimeMillis() - beforePublish}ms")
         } catch (e: Exception) {
-            println("TelegramAutoPublishScheduler.tick error: ${e.message}")
             e.printStackTrace()
         }
-        println("TelegramAutoPublishScheduler.tick EXIT total=${System.currentTimeMillis() - tickStartMs}ms")
     }
 
     // Фаза 1 тика: песни в состоянии RENDERING, чья render-задача завершена → продолжить.
@@ -109,7 +102,6 @@ class TelegramAutoPublishScheduler {
     private fun publishScheduledSongs() {
         val windowMinutes = KaraokeProperties.getLong("telegramAutoPublishWindowMinutes").let { if (it <= 0) 59L else it }
         val candidates = loadWindowCandidateIds(windowMinutes)
-        println("TelegramAutoPublishScheduler: windowMinutes=$windowMinutes, candidates.size=${candidates.size}, ids=$candidates")
         for (songId in candidates) {
             val song =
                 Song.loadFromDbById(
@@ -119,16 +111,13 @@ class TelegramAutoPublishScheduler {
                     storageApiClient = SAC_APP,
                 )
             if (song == null) {
-                println("TelegramAutoPublishScheduler: song id=$songId loadFromDbById returned null, skip")
                 continue
             }
-            println("TelegramAutoPublishScheduler: processing song id=$songId (${song.author} - ${song.songName})")
             // allowPastDate=true: окно (windowMinutes) — единственный контроль допустимого
             // опоздания для auto-публикации. Без этого бот пропустит любую песню, чьё
             // publishTime прошло более нескольких секунд назад (по строгому Q1 clarify
             // "опоздавшие").
             val result = TelegramAutoPublishService.publishToTelegram(song, allowPastDate = true)
-            println("TelegramAutoPublishScheduler: song id=$songId result: state=${result.state.code}, messageId=${result.messageId}, error=${result.error}")
         }
     }
 
@@ -158,7 +147,6 @@ class TelegramAutoPublishScheduler {
                 }
             }
         } catch (e: SQLException) {
-            println("TelegramAutoPublishScheduler.loadRenderingCandidateIds SQLException: ${e.message}")
         }
         return result
     }
@@ -198,7 +186,6 @@ class TelegramAutoPublishScheduler {
                 }
             }
         } catch (e: SQLException) {
-            println("TelegramAutoPublishScheduler.loadWindowCandidateIds SQLException: ${e.message}")
         }
         return result
     }
@@ -209,10 +196,11 @@ class TelegramAutoPublishScheduler {
         val connection = WORKING_DATABASE.getConnection() ?: return null
         try {
             connection.createStatement().use { st ->
+                // 2026-08-02 fix: process_status, не status (старое имя, несовместимо с текущей схемой).
                 val rs =
                     st.executeQuery(
                         """
-                        SELECT status, id
+                        SELECT process_status, id
                         FROM tbl_processes
                         WHERE settings_id = $songId AND process_type = 'RENDER_MP4_DEMO'
                         ORDER BY id DESC LIMIT 1
@@ -220,12 +208,11 @@ class TelegramAutoPublishScheduler {
                     )
                 rs.use {
                     if (rs.next()) {
-                        return RenderProcessInfo(rs.getString("status"), rs.getLong("id"))
+                        return RenderProcessInfo(rs.getString("process_status"), rs.getLong("id"))
                     }
                 }
             }
         } catch (e: SQLException) {
-            println("TelegramAutoPublishScheduler.findRenderDemoProcess SQLException: ${e.message}")
         }
         return null
     }

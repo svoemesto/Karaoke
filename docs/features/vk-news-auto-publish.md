@@ -161,3 +161,110 @@
 заполняется будущей AIR-публикацией при выходе песни в эфир. PREMIUM-выпуск и
 AIR-выпуск — разные посты ВК с разным текстом (отдельные шаблоны
 `vkTemplatePremium` и `vkTemplateAir`).
+
+## User-token через Implicit Flow (для AIR-публикации с видео)
+
+02.08.2026 выяснилось: VK API метод `video.save` (необходим для загрузки
+демо-видео в группу) требует **user-token с правом `video`**. С community-token
+он возвращает `error_code=5 "invalid token type"` — это ограничение VK API design,
+обойти нельзя. Аналогично: `photos.*` методы недоступны с community-token
+(`error_code=27 "Group authorization failed: method is unavailable with group auth"`).
+
+Для полноценной AIR-публикации (с видео) и опционального превью (обложка через
+`photos.getWallUploadServer` → `photos.saveWallPhoto`) нужен **user-token**, полученный
+через Implicit Flow Standalone-приложения:
+
+### Шаг 1. Создать Standalone-приложение
+
+1. Войдите в VK как **владелец группы `svoemestokaraoke`** (тот, кто имеет права
+   администратора).
+2. Откройте https://vk.com/apps?act=manage → **«Создать приложение»**:
+   - Платформа: **Standalone**
+   - Категория: **«Другое»**
+   - Название: любое, например «karaoke-bot»
+3. В **«Настройки»** приложения:
+   - Запомните **App ID** (число)
+   - Задайте **Redirect URI** — например, `https://sm-karaoke.ru/api/utils/vkOAuthCallback`
+     (URI можно любой, главное чтобы был доступен, но `https://sm-karaoke.ru/...` безопаснее).
+   - Сохраните настройки.
+
+### Шаг 2. Сохранить App ID и Redirect URI
+
+В `Karaoke.properties` (admin-машина, в git НЕ лежит):
+```
+vkAppId=1234567                         # числовой ID Standalone-приложения
+vkRedirectUri=https://sm-karaoke.ru/api/utils/vkOAuthCallback
+```
+
+Либо через UI webvue3 (раздел «Свойства → ВК»), либо через API:
+```bash
+curl -s -X POST "http://localhost:8898/api/properties/setproperty" \
+     -d "key=vkAppId&stringValue=1234567"
+curl -s -X POST "http://localhost:8898/api/properties/setproperty" \
+     --data-urlencode "key=vkRedirectUri" \
+     --data-urlencode "stringValue=https://sm-karaoke.ru/api/utils/vkOAuthCallback"
+```
+
+### Шаг 3. Получить готовую ссылку для авторизации
+
+```bash
+curl -s "http://localhost:8898/api/utils/vkOAuthUrl" | python3 -m json.tool
+```
+
+Ответ содержит поле **`url`** — готовая ссылка для авторизации с scopes
+`video,photos,wall,offline`. **Откройте её в браузере** (от лица владельца группы).
+
+### Шаг 4. Подтвердить scopes и получить токен
+
+VK покажет диалог с разрешениями для **«karaoke-bot»**:
+- ✓ Доступ к видео
+- ✓ Доступ к фотографиям
+- ✓ Доступ к стене
+- ✓ Доступ в любое время (offline)
+
+После подтверждения VK редиректит на ваш `Redirect URI` с фрагментом вида:
+```
+https://sm-karaoke.ru/api/utils/vkOAuthCallback#access_token=vk1.a.ваш_токен&expires_in=0&user_id=ваш_id
+```
+
+**Скопируйте токен** (значение после `#access_token=` до `&expires_in`).
+
+### Шаг 5. Сохранить токен
+
+```bash
+curl -s -X POST "http://localhost:8898/api/utils/vkSaveUserToken" \
+     --data-urlencode "token=vk1.a.ваш_токен"
+```
+
+Endpoint проверит токен через `users.get`, и если всё валидно — сохранит в
+`vkUserAccessToken`. В ответ вы получите `userId` и имя.
+
+### Шаг 6. Проверить AIR-публикацию (после сохранения токена)
+
+После сохранения user-token `VkApiClient.video.save` начнёт **использовать
+`vkUserAccessToken`**, а `wall.post` останется на community-token (он работает
+для большинства случаев). Можно протестировать через ручной вызов:
+```bash
+curl -s -X POST "http://localhost:8898/api/song/publishToVkNow" -d "id=23217&type=air"
+```
+
+Если в логах `karaoke-app` видно `video.save error`, проверьте, что токен
+содержит scope `video` (для проверки можно посмотреть на https://oauth.vk.ru/debug).
+
+### Безопасность
+
+- **Standalone-приложение не хранит `client_secret`** (Implicit Flow — client-side flow,
+  в отличие от Authorization Code). Это безопаснее: токен выдаётся **прямо**
+  пользователю в браузер.
+- **Токен бессрочный** (благодаря `scope=offline`), пока не отзовёте руками.
+  VK может отозвать токен при смене пароля владельца.
+- **Если токен утечёт** — отзовите его в https://vk.com/settings?act=安全和登录 (или через
+  Standalone-приложение) и получите новый.
+
+### Когда нужен новый токен
+
+- Сменился пароль владельца группы
+- Владелец удалил приложение / его Standalone-приложение отключили
+- VK отозвал токен автоматически (подозрительная активность)
+
+В любом случае — повторяете шаги 3-5 с тем же `vkAppId` и `vkRedirectUri`.

@@ -4138,20 +4138,35 @@ export default {
                 : state === 'publishing'
                   ? `Демо-MP4 отправляется в ВК.`
                   : `Публикация в ВК выполнена.`
-            this.showTelegramToast(msg, 'ВК', 'toast-header-copytoclipboard', 'toast-body-copytoclipboard')
+            this.showTelegramToast(
+              msg,
+              'ВК',
+              'toast-header-copytoclipboard',
+              'toast-body-copytoclipboard',
+            )
             // Обновим idVk из ответа, если пришёл postId.
             if (data.postId) {
               this.$store.commit('setCurrentSongField', { name: 'idVk', value: data.postId })
             }
           } else {
             const msg = error || `Публикация в ВК не выполнена (state=${state}).`
-            this.showTelegramToast(msg, 'ВК: ошибка', 'toast-header-copytoclipboard', 'toast-body-copytoclipboard')
+            this.showTelegramToast(
+              msg,
+              'ВК: ошибка',
+              'toast-header-copytoclipboard',
+              'toast-body-copytoclipboard',
+            )
           }
         })
         .catch((error) => {
           this.isPublishingVk = false
           const msg = error && error.message ? error.message : 'Ошибка запроса публикации в ВК.'
-          this.showTelegramToast(msg, 'ВК: ошибка', 'toast-header-copytoclipboard', 'toast-body-copytoclipboard')
+          this.showTelegramToast(
+            msg,
+            'ВК: ошибка',
+            'toast-header-copytoclipboard',
+            'toast-body-copytoclipboard',
+          )
         })
     },
 

@@ -37,7 +37,7 @@ object StatBySong {
     private val cachedExclusive = AtomicInteger(-1)
     private val cachedInWork = AtomicInteger(-1)
 
-    // Фильтр «без SKIP» в SQL. В settings.tags теги через пробел; сравнение по элементу массива
+    // Фильтр «без SKIP» в SQL. В song.tags теги через пробел; сравнение по элементу массива
     // надёжнее 'tags LIKE %SKIP%' (не словит 'noSKIP' или подстроку внутри другого тега).
     private const val SKIP_FILTER = "(tags IS NULL OR NOT ('SKIP' = ANY(string_to_array(upper(coalesce(tags,'')), ' '))))"
 

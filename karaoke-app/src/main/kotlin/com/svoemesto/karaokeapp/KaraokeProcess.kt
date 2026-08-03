@@ -85,7 +85,7 @@ class KaraokeProcess(
     var description: String = "description"
 
     @KaraokeDbTableField(name = "settings_id")
-    var settingsId: Int = 0
+    var songId: Int = 0
 
     @KaraokeDbTableField(name = "process_type")
     var type: String = KaraokeProcessTypes.NONE.name
@@ -117,7 +117,7 @@ class KaraokeProcess(
             envs = envs,
             argsDescription = argsDescription,
             description = description,
-            settingsId = settingsId,
+            songId = songId,
             type = type,
             start = start,
             end = end,
@@ -146,7 +146,7 @@ class KaraokeProcess(
         result.envs = envs
         result.argsDescription = argsDescription
         result.description = description
-        result.settingsId = settingsId
+        result.songId = songId
         result.type = type
         result.start = start
         result.end = end
@@ -327,7 +327,7 @@ class KaraokeProcess(
         index++
         ps.setString(index, description)
         index++
-        ps.setInt(index, settingsId)
+        ps.setInt(index, songId)
         index++
         ps.setString(index, type)
         index++
@@ -362,7 +362,7 @@ class KaraokeProcess(
         ps.close()
 
         if (!withoutControl) {
-            updateStatusProcessSettings(database = database, storageService = storageService, storageApiClient = storageApiClient)
+            updateStatusProcessSong(database = database, storageService = storageService, storageApiClient = storageApiClient)
             if (command != "tail" || args[0][0] !in KaraokeProcessWorker.argsIgnoredToLog) {
                 val messageRecordChange =
                     SseNotification.recordChange(
@@ -387,53 +387,53 @@ class KaraokeProcess(
 //        controller.processesUpdate(id.toLong())
     }
 
-    fun updateStatusProcessSettings(
+    fun updateStatusProcessSong(
         database: KaraokeConnection,
         storageService: KaraokeStorageService,
         storageApiClient: StorageApiClient,
     ) {
-        if (settingsId != 0) {
-            val settings =
+        if (songId != 0) {
+            val song =
                 Song.loadFromDbById(
-                    id = settingsId.toLong(),
+                    id = songId.toLong(),
                     database = database,
                     storageService = storageService,
                     storageApiClient = storageApiClient,
                 )
-            settings?.let {
+            song?.let {
                 when (type) {
                     KaraokeProcessTypes.MELT_LYRICS.name -> {
-                        if (settings.statusProcessLyrics != status) {
-                            settings.statusProcessLyrics = status
-                            settings.saveToDb()
+                        if (song.statusProcessLyrics != status) {
+                            song.statusProcessLyrics = status
+                            song.saveToDb()
                         }
                     }
 
                     KaraokeProcessTypes.MELT_KARAOKE.name -> {
-                        if (settings.statusProcessKaraoke != status) {
-                            settings.statusProcessKaraoke = status
-                            settings.saveToDb()
+                        if (song.statusProcessKaraoke != status) {
+                            song.statusProcessKaraoke = status
+                            song.saveToDb()
                         }
                     }
 
                     KaraokeProcessTypes.MELT_CHORDS.name -> {
-                        if (settings.statusProcessChords != status) {
-                            settings.statusProcessChords = status
-                            settings.saveToDb()
+                        if (song.statusProcessChords != status) {
+                            song.statusProcessChords = status
+                            song.saveToDb()
                         }
                     }
 
                     KaraokeProcessTypes.MELT_TABS.name -> {
-                        if (settings.statusProcessMelody != status) {
-                            settings.statusProcessMelody = status
-                            settings.saveToDb()
+                        if (song.statusProcessMelody != status) {
+                            song.statusProcessMelody = status
+                            song.saveToDb()
                         }
                     }
 
                     KaraokeProcessTypes.RENDER_MP4_DEMO.name -> {
-                        if (settings.statusProcessDemo != status) {
-                            settings.statusProcessDemo = status
-                            settings.saveToDb()
+                        if (song.statusProcessDemo != status) {
+                            song.statusProcessDemo = status
+                            song.saveToDb()
                         }
                     }
 
@@ -705,7 +705,7 @@ class KaraokeProcess(
                     "'${process.argsJson.replace("'","''")}', " +
                     "'${process.envsJson.replace("'","''")}', " +
                     "'${process.description.replace("'","''")}', " +
-                    "${process.settingsId}, " +
+                    "${process.songId}, " +
                     "'${process.type}', " +
                     "${process.start}, " +
                     "${process.end}, " +
@@ -823,7 +823,7 @@ class KaraokeProcess(
                     process.args = convertJsonToArgs(rs.getString("process_args"))
                     process.envs = convertJsonToEnvs(rs.getString("process_envs"))
                     process.description = rs.getString("process_description")
-                    process.settingsId = rs.getInt("settings_id")
+                    process.songId = rs.getInt("settings_id")
                     process.type = rs.getString("process_type")
                     process.start = rs.getTimestamp("process_start")
                     process.end = rs.getTimestamp("process_end")
@@ -898,7 +898,7 @@ class KaraokeProcess(
                     process.args = convertJsonToArgs(rs.getString("process_args"))
                     process.envs = convertJsonToEnvs(rs.getString("process_envs"))
                     process.description = rs.getString("process_description")
-                    process.settingsId = rs.getInt("settings_id")
+                    process.songId = rs.getInt("settings_id")
                     process.type = rs.getString("process_type")
                     process.start = rs.getTimestamp("process_start")
                     process.end = rs.getTimestamp("process_end")
@@ -967,7 +967,7 @@ class KaraokeProcess(
 
         @Suppress("UNCHECKED_CAST")
         fun createProcess(
-            settings: Song,
+            song: Song,
             action: KaraokeProcessTypes,
             doWait: Boolean = false,
             prior: Int = 1,
@@ -978,7 +978,7 @@ class KaraokeProcess(
 
             val existedProcessesLookupArgs =
                 mutableMapOf(
-                    "settings_id" to settings.id.toString(),
+                    "settings_id" to song.id.toString(),
                     "process_type" to action.name,
                     "thread_id" to threadId.toString(),
                 )
@@ -989,97 +989,97 @@ class KaraokeProcess(
                     existedProcessesLookupArgs["process_args"] = "karaokeFileType=$it"
                 }
             }
-            val existedProcesses = loadList(existedProcessesLookupArgs, settings.database)
+            val existedProcesses = loadList(existedProcessesLookupArgs, song.database)
 
             var wasWorking = false
             existedProcesses.forEach { existedProcess ->
                 if (existedProcess.status != KaraokeProcessStatuses.WORKING.name) {
-                    delete(existedProcess.id, settings.database)
+                    delete(existedProcess.id, song.database)
                 } else {
                     wasWorking = true
                 }
             }
             if (wasWorking) return 0
 
-            val karaokeProcess = KaraokeProcess(settings.database)
+            val karaokeProcess = KaraokeProcess(song.database)
             with(karaokeProcess) {
-                this.name = "[${settings.author}] - [${settings.album}] - «${settings.songName}»"
+                this.name = "[${song.author}] - [${song.album}] - «${song.songName}»"
                 this.status = if (doWait) KaraokeProcessStatuses.WAITING.name else KaraokeProcessStatuses.CREATING.name
                 this.order = -1
                 this.priority = prior
                 this.command = ""
                 this.type = action.name
-                this.settingsId = settings.id.toInt()
+                this.songId = song.id.toInt()
                 this.threadId = threadId
 
                 when (action) {
                     KaraokeProcessTypes.MELT_LYRICS -> {
-                        val songKaraokeMp4Absolute = settings.getOutputFilename(SongOutputFile.VIDEO, SongVersion.KARAOKE).rightFileName()
-                        val songKaraokePngAbsolute = settings.getOutputFilename(SongOutputFile.PICTURE, SongVersion.KARAOKE).rightFileName()
-                        val songLyricsMp4Absolute = settings.getOutputFilename(SongOutputFile.VIDEO, SongVersion.LYRICS).rightFileName()
-                        val songLyricsPngAbsolute = settings.getOutputFilename(SongOutputFile.PICTURE, SongVersion.LYRICS).rightFileName()
+                        val songKaraokeMp4Absolute = song.getOutputFilename(SongOutputFile.VIDEO, SongVersion.KARAOKE).rightFileName()
+                        val songKaraokePngAbsolute = song.getOutputFilename(SongOutputFile.PICTURE, SongVersion.KARAOKE).rightFileName()
+                        val songLyricsMp4Absolute = song.getOutputFilename(SongOutputFile.VIDEO, SongVersion.LYRICS).rightFileName()
+                        val songLyricsPngAbsolute = song.getOutputFilename(SongOutputFile.PICTURE, SongVersion.LYRICS).rightFileName()
                         val songKaraokeMp4Relative =
-                            settings
+                            song
                                 .getOutputFilename(
                                     SongOutputFile.VIDEO,
                                     SongVersion.KARAOKE,
                                     relative = true,
                                 ).rightFileName()
                         val songKaraokePngRelative =
-                            settings
+                            song
                                 .getOutputFilename(
                                     SongOutputFile.PICTURE,
                                     SongVersion.KARAOKE,
                                     relative = true,
                                 ).rightFileName()
                         val songLyricsMp4Relative =
-                            settings
+                            song
                                 .getOutputFilename(
                                     SongOutputFile.VIDEO,
                                     SongVersion.LYRICS,
                                     relative = true,
                                 ).rightFileName()
                         val songLyricsPngRelative =
-                            settings
+                            song
                                 .getOutputFilename(
                                     SongOutputFile.PICTURE,
                                     SongVersion.LYRICS,
                                     relative = true,
                                 ).rightFileName()
-                        if (!File(settings.pathToSymlinkFolderMP4).exists()) {
-                            Files.createDirectories(Path(settings.pathToSymlinkFolderMP4))
-                            runCommand(listOf("chmod", "777", settings.pathToSymlinkFolderMP4))
+                        if (!File(song.pathToSymlinkFolderMP4).exists()) {
+                            Files.createDirectories(Path(song.pathToSymlinkFolderMP4))
+                            runCommand(listOf("chmod", "777", song.pathToSymlinkFolderMP4))
                         }
-                        if (!File(settings.pathToSymlinkFolderPNG).exists()) {
-                            Files.createDirectories(Path(settings.pathToSymlinkFolderPNG))
-                            runCommand(listOf("chmod", "777", settings.pathToSymlinkFolderPNG))
+                        if (!File(song.pathToSymlinkFolderPNG).exists()) {
+                            Files.createDirectories(Path(song.pathToSymlinkFolderPNG))
+                            runCommand(listOf("chmod", "777", song.pathToSymlinkFolderPNG))
                         }
-                        if (!File(settings.pathToSymlinkFolderSponsr).exists()) {
-                            Files.createDirectories(Path(settings.pathToSymlinkFolderSponsr))
-                            runCommand(listOf("chmod", "777", settings.pathToSymlinkFolderSponsr))
+                        if (!File(song.pathToSymlinkFolderSponsr).exists()) {
+                            Files.createDirectories(Path(song.pathToSymlinkFolderSponsr))
+                            runCommand(listOf("chmod", "777", song.pathToSymlinkFolderSponsr))
                         }
-                        val newNoStemNameFlacSymlinkQ = settings.accompanimentNameFlacSymlink.rightFileName().wrapInQuotes()
+                        val newNoStemNameFlacSymlinkQ = song.accompanimentNameFlacSymlink.rightFileName().wrapInQuotes()
                         val songKaraokeMp4Symlink =
-                            "${settings.pathToSymlinkFolderMP4}/${File(
+                            "${song.pathToSymlinkFolderMP4}/${File(
                                 songKaraokeMp4Absolute,
                             ).name}".rightFileName().wrapInQuotes()
                         val songKaraokePngSymlink =
-                            "${settings.pathToSymlinkFolderPNG}/${File(
+                            "${song.pathToSymlinkFolderPNG}/${File(
                                 songKaraokePngAbsolute,
                             ).name}".rightFileName().wrapInQuotes()
                         val songLyricsMp4Symlink =
-                            "${settings.pathToSymlinkFolderMP4}/${File(
+                            "${song.pathToSymlinkFolderMP4}/${File(
                                 songLyricsMp4Absolute,
                             ).name}".rightFileName().wrapInQuotes()
                         val songLyricsPngSymlink =
-                            "${settings.pathToSymlinkFolderPNG}/${File(
+                            "${song.pathToSymlinkFolderPNG}/${File(
                                 songLyricsPngAbsolute,
                             ).name}".rightFileName().wrapInQuotes()
 
-                        val songSponsrPngAbsolute = settings.getOutputFilename(SongOutputFile.PICTURESPONSRTEASER)
-                        val songSponsrPngRelative = settings.getOutputFilename(SongOutputFile.PICTURESPONSRTEASER, relative = true)
+                        val songSponsrPngAbsolute = song.getOutputFilename(SongOutputFile.PICTURESPONSRTEASER)
+                        val songSponsrPngRelative = song.getOutputFilename(SongOutputFile.PICTURESPONSRTEASER, relative = true)
                         val songSponsrPngSymlink =
-                            "${settings.pathToSymlinkFolderSponsr}/${File(
+                            "${song.pathToSymlinkFolderSponsr}/${File(
                                 songSponsrPngAbsolute,
                             ).name}".rightFileName().wrapInQuotes()
 
@@ -1098,21 +1098,21 @@ class KaraokeProcess(
                                     "--rm",
                                     "mlt",
                                     "-progress",
-                                    "${settings.rootFolder}/done_projects/${settings.fileName} [lyrics].mlt".rightFileName(),
+                                    "${song.rootFolder}/done_projects/${song.fileName} [lyrics].mlt".rightFileName(),
                                 ),
-                                listOf("chmod", "666", settings.pathToFileLyrics),
-                                listOf("mkdir", "-p", settings.pathToStoreFolderLyrics),
-                                listOf("chmod", "777", settings.pathToStoreFolderLyrics),
-                                listOf("cp", settings.pathToFileLyrics, settings.pathToStoreFolderLyrics),
-                                listOf("chmod", "666", settings.pathToStoreFileLyrics),
-                                listOf("mkdir", "-p", settings.pathToFolder720Lyrics),
-                                listOf("chmod", "777", settings.pathToFolder720Lyrics),
-                                listOf("rm", settings.pathToFile720Lyrics),
+                                listOf("chmod", "666", song.pathToFileLyrics),
+                                listOf("mkdir", "-p", song.pathToStoreFolderLyrics),
+                                listOf("chmod", "777", song.pathToStoreFolderLyrics),
+                                listOf("cp", song.pathToFileLyrics, song.pathToStoreFolderLyrics),
+                                listOf("chmod", "666", song.pathToStoreFileLyrics),
+                                listOf("mkdir", "-p", song.pathToFolder720Lyrics),
+                                listOf("chmod", "777", song.pathToFolder720Lyrics),
+                                listOf("rm", song.pathToFile720Lyrics),
                                 cpulimitPrefix(cpuPercentMeltLyrics) +
                                     listOf(
                                         "ffmpeg",
                                         "-i",
-                                        settings.pathToFileLyrics,
+                                        song.pathToFileLyrics,
                                         "-c:v",
                                         "hevc_nvenc",
                                         "-preset",
@@ -1123,10 +1123,10 @@ class KaraokeProcess(
                                         "scale=1280:720,fps=30",
                                         "-c:a",
                                         "aac",
-                                        settings.pathToFile720Lyrics,
+                                        song.pathToFile720Lyrics,
                                         "-y",
                                     ),
-                                listOf("chmod", "666", settings.pathToFile720Lyrics),
+                                listOf("chmod", "666", song.pathToFile720Lyrics),
                                 listOf(
                                     "rm",
                                     "-f",
@@ -1141,7 +1141,7 @@ class KaraokeProcess(
                                 listOf(
                                     "ln",
                                     "-s",
-                                    settings.relativePathToNoStemNameFlac.rightFileName().wrapInQuotes(),
+                                    song.relativePathToNoStemNameFlac.rightFileName().wrapInQuotes(),
                                     newNoStemNameFlacSymlinkQ,
                                 ),
                                 listOf("chmod", "666", newNoStemNameFlacSymlinkQ),
@@ -1163,72 +1163,72 @@ class KaraokeProcess(
                             )
                     }
                     KaraokeProcessTypes.MELT_KARAOKE -> {
-                        val songKaraokeMp4Absolute = settings.getOutputFilename(SongOutputFile.VIDEO, SongVersion.KARAOKE).rightFileName()
-                        val songKaraokePngAbsolute = settings.getOutputFilename(SongOutputFile.PICTURE, SongVersion.KARAOKE).rightFileName()
-                        val songLyricsMp4Absolute = settings.getOutputFilename(SongOutputFile.VIDEO, SongVersion.LYRICS).rightFileName()
-                        val songLyricsPngAbsolute = settings.getOutputFilename(SongOutputFile.PICTURE, SongVersion.LYRICS).rightFileName()
+                        val songKaraokeMp4Absolute = song.getOutputFilename(SongOutputFile.VIDEO, SongVersion.KARAOKE).rightFileName()
+                        val songKaraokePngAbsolute = song.getOutputFilename(SongOutputFile.PICTURE, SongVersion.KARAOKE).rightFileName()
+                        val songLyricsMp4Absolute = song.getOutputFilename(SongOutputFile.VIDEO, SongVersion.LYRICS).rightFileName()
+                        val songLyricsPngAbsolute = song.getOutputFilename(SongOutputFile.PICTURE, SongVersion.LYRICS).rightFileName()
                         val songKaraokeMp4Relative =
-                            settings
+                            song
                                 .getOutputFilename(
                                     SongOutputFile.VIDEO,
                                     SongVersion.KARAOKE,
                                     relative = true,
                                 ).rightFileName()
                         val songKaraokePngRelative =
-                            settings
+                            song
                                 .getOutputFilename(
                                     SongOutputFile.PICTURE,
                                     SongVersion.KARAOKE,
                                     relative = true,
                                 ).rightFileName()
                         val songLyricsMp4Relative =
-                            settings
+                            song
                                 .getOutputFilename(
                                     SongOutputFile.VIDEO,
                                     SongVersion.LYRICS,
                                     relative = true,
                                 ).rightFileName()
                         val songLyricsPngRelative =
-                            settings
+                            song
                                 .getOutputFilename(
                                     SongOutputFile.PICTURE,
                                     SongVersion.LYRICS,
                                     relative = true,
                                 ).rightFileName()
-                        if (!File(settings.pathToSymlinkFolderMP4).exists()) {
-                            Files.createDirectories(Path(settings.pathToSymlinkFolderMP4))
-                            runCommand(listOf("chmod", "777", settings.pathToSymlinkFolderMP4))
+                        if (!File(song.pathToSymlinkFolderMP4).exists()) {
+                            Files.createDirectories(Path(song.pathToSymlinkFolderMP4))
+                            runCommand(listOf("chmod", "777", song.pathToSymlinkFolderMP4))
                         }
-                        if (!File(settings.pathToSymlinkFolderPNG).exists()) {
-                            Files.createDirectories(Path(settings.pathToSymlinkFolderPNG))
-                            runCommand(listOf("chmod", "777", settings.pathToSymlinkFolderPNG))
+                        if (!File(song.pathToSymlinkFolderPNG).exists()) {
+                            Files.createDirectories(Path(song.pathToSymlinkFolderPNG))
+                            runCommand(listOf("chmod", "777", song.pathToSymlinkFolderPNG))
                         }
-                        if (!File(settings.pathToSymlinkFolderSponsr).exists()) {
-                            Files.createDirectories(Path(settings.pathToSymlinkFolderSponsr))
-                            runCommand(listOf("chmod", "777", settings.pathToSymlinkFolderSponsr))
+                        if (!File(song.pathToSymlinkFolderSponsr).exists()) {
+                            Files.createDirectories(Path(song.pathToSymlinkFolderSponsr))
+                            runCommand(listOf("chmod", "777", song.pathToSymlinkFolderSponsr))
                         }
-                        val newNoStemNameFlacSymlinkQ = settings.accompanimentNameFlacSymlink.rightFileName().wrapInQuotes()
+                        val newNoStemNameFlacSymlinkQ = song.accompanimentNameFlacSymlink.rightFileName().wrapInQuotes()
                         val songKaraokeMp4Symlink =
-                            "${settings.pathToSymlinkFolderMP4}/${File(
+                            "${song.pathToSymlinkFolderMP4}/${File(
                                 songKaraokeMp4Absolute,
                             ).name}".rightFileName().wrapInQuotes()
                         val songKaraokePngSymlink =
-                            "${settings.pathToSymlinkFolderPNG}/${File(
+                            "${song.pathToSymlinkFolderPNG}/${File(
                                 songKaraokePngAbsolute,
                             ).name}".rightFileName().wrapInQuotes()
                         val songLyricsMp4Symlink =
-                            "${settings.pathToSymlinkFolderMP4}/${File(
+                            "${song.pathToSymlinkFolderMP4}/${File(
                                 songLyricsMp4Absolute,
                             ).name}".rightFileName().wrapInQuotes()
                         val songLyricsPngSymlink =
-                            "${settings.pathToSymlinkFolderPNG}/${File(
+                            "${song.pathToSymlinkFolderPNG}/${File(
                                 songLyricsPngAbsolute,
                             ).name}".rightFileName().wrapInQuotes()
 
-                        val songSponsrPngAbsolute = settings.getOutputFilename(SongOutputFile.PICTURESPONSRTEASER)
-                        val songSponsrPngRelative = settings.getOutputFilename(SongOutputFile.PICTURESPONSRTEASER, relative = true)
+                        val songSponsrPngAbsolute = song.getOutputFilename(SongOutputFile.PICTURESPONSRTEASER)
+                        val songSponsrPngRelative = song.getOutputFilename(SongOutputFile.PICTURESPONSRTEASER, relative = true)
                         val songSponsrPngSymlink =
-                            "${settings.pathToSymlinkFolderSponsr}/${File(
+                            "${song.pathToSymlinkFolderSponsr}/${File(
                                 songSponsrPngAbsolute,
                             ).name}".rightFileName().wrapInQuotes()
 
@@ -1247,21 +1247,21 @@ class KaraokeProcess(
                                     "--rm",
                                     "mlt",
                                     "-progress",
-                                    "${settings.rootFolder}/done_projects/${settings.fileName} [karaoke].mlt".rightFileName(),
+                                    "${song.rootFolder}/done_projects/${song.fileName} [karaoke].mlt".rightFileName(),
                                 ),
-                                listOf("chmod", "666", settings.pathToFileKaraoke),
-                                listOf("mkdir", "-p", settings.pathToStoreFolderKaraoke),
-                                listOf("chmod", "777", settings.pathToStoreFolderKaraoke),
-                                listOf("cp", settings.pathToFileKaraoke, settings.pathToStoreFileKaraoke),
-                                listOf("chmod", "666", settings.pathToStoreFileKaraoke),
-                                listOf("mkdir", "-p", settings.pathToFolder720Karaoke),
-                                listOf("chmod", "777", settings.pathToFolder720Karaoke),
-                                listOf("rm", settings.pathToFile720Karaoke),
+                                listOf("chmod", "666", song.pathToFileKaraoke),
+                                listOf("mkdir", "-p", song.pathToStoreFolderKaraoke),
+                                listOf("chmod", "777", song.pathToStoreFolderKaraoke),
+                                listOf("cp", song.pathToFileKaraoke, song.pathToStoreFileKaraoke),
+                                listOf("chmod", "666", song.pathToStoreFileKaraoke),
+                                listOf("mkdir", "-p", song.pathToFolder720Karaoke),
+                                listOf("chmod", "777", song.pathToFolder720Karaoke),
+                                listOf("rm", song.pathToFile720Karaoke),
                                 cpulimitPrefix(cpuPercentMeltKaraoke) +
                                     listOf(
                                         "ffmpeg",
                                         "-i",
-                                        settings.pathToFileKaraoke,
+                                        song.pathToFileKaraoke,
                                         "-c:v",
                                         "hevc_nvenc",
                                         "-preset",
@@ -1272,10 +1272,10 @@ class KaraokeProcess(
                                         "scale=1280:720,fps=30",
                                         "-c:a",
                                         "aac",
-                                        settings.pathToFile720Karaoke,
+                                        song.pathToFile720Karaoke,
                                         "-y",
                                     ),
-                                listOf("chmod", "666", settings.pathToFile720Karaoke),
+                                listOf("chmod", "666", song.pathToFile720Karaoke),
                                 listOf(
                                     "rm",
                                     "-f",
@@ -1290,7 +1290,7 @@ class KaraokeProcess(
                                 listOf(
                                     "ln",
                                     "-s",
-                                    settings.relativePathToNoStemNameFlac.rightFileName().wrapInQuotes(),
+                                    song.relativePathToNoStemNameFlac.rightFileName().wrapInQuotes(),
                                     newNoStemNameFlacSymlinkQ,
                                 ),
                                 listOf("chmod", "666", newNoStemNameFlacSymlinkQ),
@@ -1326,9 +1326,9 @@ class KaraokeProcess(
                                     "--rm",
                                     "mlt",
                                     "-progress",
-                                    "${settings.rootFolder}/done_projects/${settings.fileName} [chords].mlt".rightFileName(),
+                                    "${song.rootFolder}/done_projects/${song.fileName} [chords].mlt".rightFileName(),
                                 ),
-                                listOf("chmod", "666", settings.pathToFileChords),
+                                listOf("chmod", "666", song.pathToFileChords),
                             )
                     }
                     KaraokeProcessTypes.MELT_TABS -> {
@@ -1346,21 +1346,21 @@ class KaraokeProcess(
                                     "--rm",
                                     "mlt",
                                     "-progress",
-                                    "${settings.rootFolder}/done_projects/${settings.fileName} [tabs].mlt".rightFileName(),
+                                    "${song.rootFolder}/done_projects/${song.fileName} [tabs].mlt".rightFileName(),
                                 ),
-                                listOf("chmod", "666", settings.pathToFileMelody),
+                                listOf("chmod", "666", song.pathToFileMelody),
                             )
                     }
 
                     KaraokeProcessTypes.DEMUCS2 -> {
                         description = "Демукс 2"
-                        val (demuxArgs, demuxEnvs) = settings.argsDemucs2(threadId = this.threadId)
+                        val (demuxArgs, demuxEnvs) = song.argsDemucs2(threadId = this.threadId)
                         args = demuxArgs
                         envs = demuxEnvs
                     }
                     KaraokeProcessTypes.DEMUCS5 -> {
                         description = "Демукс 5"
-                        val (demuxArgs, demuxEnvs) = settings.argsDemucs5(threadId = this.threadId)
+                        val (demuxArgs, demuxEnvs) = song.argsDemucs5(threadId = this.threadId)
                         args = demuxArgs
                         envs = demuxEnvs
                     }
@@ -1381,7 +1381,7 @@ class KaraokeProcess(
                                     listOf(
                                         "ffmpeg",
                                         "-i",
-                                        settings.fileAbsolutePath.rightFileName(),
+                                        song.fileAbsolutePath.rightFileName(),
                                         "-compression_level",
                                         "8",
                                         srcWav,
@@ -1389,11 +1389,11 @@ class KaraokeProcess(
                                     ),
                                 cpulimitPrefix(cpuPercentSheetsage) +
                                     listOf("~/sheetsage/sheetsage.sh", "-j", "-o", "output/output", srcWav),
-                                listOf("mkdir", "-p", settings.pathToFolderSheetsage),
-                                listOf("mv", resultPdf.rightFileName(), settings.pathToFileSheetsagePDF.rightFileName()),
-                                listOf("mv", resultMidi.rightFileName(), settings.pathToFileSheetsageMIDI.rightFileName()),
-                                listOf("mv", resultLy.rightFileName(), settings.pathToFileSheetsageLY.rightFileName()),
-                                listOf("mv", resultBeattimes.rightFileName(), settings.pathToFileSheetsageBeattimes.rightFileName()),
+                                listOf("mkdir", "-p", song.pathToFolderSheetsage),
+                                listOf("mv", resultPdf.rightFileName(), song.pathToFileSheetsagePDF.rightFileName()),
+                                listOf("mv", resultMidi.rightFileName(), song.pathToFileSheetsageMIDI.rightFileName()),
+                                listOf("mv", resultLy.rightFileName(), song.pathToFileSheetsageLY.rightFileName()),
+                                listOf("mv", resultBeattimes.rightFileName(), song.pathToFileSheetsageBeattimes.rightFileName()),
                             )
                         argsDescription =
                             listOf(
@@ -1425,7 +1425,7 @@ class KaraokeProcess(
                                     listOf(
                                         "ffmpeg",
                                         "-i",
-                                        settings.fileAbsolutePath.rightFileName(),
+                                        song.fileAbsolutePath.rightFileName(),
                                         "-compression_level",
                                         "8",
                                         srcWav,
@@ -1433,11 +1433,11 @@ class KaraokeProcess(
                                     ),
                                 cpulimitPrefix(cpuPercentSheetsage2) +
                                     listOf("~/sheetsage/sheetsage.sh", "-j", "-o", "output/output", "--measures_per_chunk", "4", srcWav),
-                                listOf("mkdir", "-p", settings.pathToFolderSheetsage),
-                                listOf("mv", resultPdf.rightFileName(), settings.pathToFileSheetsagePDF.rightFileName()),
-                                listOf("mv", resultMidi.rightFileName(), settings.pathToFileSheetsageMIDI.rightFileName()),
-                                listOf("mv", resultLy.rightFileName(), settings.pathToFileSheetsageLY.rightFileName()),
-                                listOf("mv", resultBeattimes.rightFileName(), settings.pathToFileSheetsageBeattimes.rightFileName()),
+                                listOf("mkdir", "-p", song.pathToFolderSheetsage),
+                                listOf("mv", resultPdf.rightFileName(), song.pathToFileSheetsagePDF.rightFileName()),
+                                listOf("mv", resultMidi.rightFileName(), song.pathToFileSheetsageMIDI.rightFileName()),
+                                listOf("mv", resultLy.rightFileName(), song.pathToFileSheetsageLY.rightFileName()),
+                                listOf("mv", resultBeattimes.rightFileName(), song.pathToFileSheetsageBeattimes.rightFileName()),
                             )
                         argsDescription =
                             listOf(
@@ -1453,9 +1453,9 @@ class KaraokeProcess(
                             )
                     }
                     KaraokeProcessTypes.FF_720_KAR -> {
-                        val destinationFolder = settings.pathToFolder720Karaoke
-                        val sourceFile = settings.pathToFileKaraoke
-                        val destinationFile = settings.pathToFile720Karaoke
+                        val destinationFolder = song.pathToFolder720Karaoke
+                        val sourceFile = song.pathToFileKaraoke
+                        val destinationFile = song.pathToFile720Karaoke
                         if (File(destinationFile).exists()) return -1
                         if (!File(destinationFolder).exists()) {
                             Files.createDirectories(Path(destinationFolder))
@@ -1486,9 +1486,9 @@ class KaraokeProcess(
                             )
                     }
                     KaraokeProcessTypes.FF_720_LYR -> {
-                        val destinationFolder = settings.pathToFolder720Lyrics
-                        val sourceFile = settings.pathToFileLyrics
-                        val destinationFile = settings.pathToFile720Lyrics
+                        val destinationFolder = song.pathToFolder720Lyrics
+                        val sourceFile = song.pathToFileLyrics
+                        val destinationFile = song.pathToFile720Lyrics
                         if (File(destinationFile).exists()) return -1
                         if (!File(destinationFolder).exists()) {
                             Files.createDirectories(Path(destinationFolder))
@@ -1521,73 +1521,73 @@ class KaraokeProcess(
                     }
                     KaraokeProcessTypes.SYMLINK -> {
                         withoutControl = true
-                        val songKaraokeMp4Absolute = settings.getOutputFilename(SongOutputFile.VIDEO, SongVersion.KARAOKE).rightFileName()
-                        val songKaraokePngAbsolute = settings.getOutputFilename(SongOutputFile.PICTURE, SongVersion.KARAOKE).rightFileName()
-                        val songLyricsMp4Absolute = settings.getOutputFilename(SongOutputFile.VIDEO, SongVersion.LYRICS).rightFileName()
-                        val songLyricsPngAbsolute = settings.getOutputFilename(SongOutputFile.PICTURE, SongVersion.LYRICS).rightFileName()
+                        val songKaraokeMp4Absolute = song.getOutputFilename(SongOutputFile.VIDEO, SongVersion.KARAOKE).rightFileName()
+                        val songKaraokePngAbsolute = song.getOutputFilename(SongOutputFile.PICTURE, SongVersion.KARAOKE).rightFileName()
+                        val songLyricsMp4Absolute = song.getOutputFilename(SongOutputFile.VIDEO, SongVersion.LYRICS).rightFileName()
+                        val songLyricsPngAbsolute = song.getOutputFilename(SongOutputFile.PICTURE, SongVersion.LYRICS).rightFileName()
                         val songKaraokeMp4Relative =
-                            settings
+                            song
                                 .getOutputFilename(
                                     SongOutputFile.VIDEO,
                                     SongVersion.KARAOKE,
                                     relative = true,
                                 ).rightFileName()
                         val songKaraokePngRelative =
-                            settings
+                            song
                                 .getOutputFilename(
                                     SongOutputFile.PICTURE,
                                     SongVersion.KARAOKE,
                                     relative = true,
                                 ).rightFileName()
                         val songLyricsMp4Relative =
-                            settings
+                            song
                                 .getOutputFilename(
                                     SongOutputFile.VIDEO,
                                     SongVersion.LYRICS,
                                     relative = true,
                                 ).rightFileName()
                         val songLyricsPngRelative =
-                            settings
+                            song
                                 .getOutputFilename(
                                     SongOutputFile.PICTURE,
                                     SongVersion.LYRICS,
                                     relative = true,
                                 ).rightFileName()
-                        if (!File(settings.pathToSymlinkFolderMP4).exists()) {
-                            Files.createDirectories(Path(settings.pathToSymlinkFolderMP4))
-                            runCommand(listOf("chmod", "777", settings.pathToSymlinkFolderMP4))
+                        if (!File(song.pathToSymlinkFolderMP4).exists()) {
+                            Files.createDirectories(Path(song.pathToSymlinkFolderMP4))
+                            runCommand(listOf("chmod", "777", song.pathToSymlinkFolderMP4))
                         }
-                        if (!File(settings.pathToSymlinkFolderPNG).exists()) {
-                            Files.createDirectories(Path(settings.pathToSymlinkFolderPNG))
-                            runCommand(listOf("chmod", "777", settings.pathToSymlinkFolderPNG))
+                        if (!File(song.pathToSymlinkFolderPNG).exists()) {
+                            Files.createDirectories(Path(song.pathToSymlinkFolderPNG))
+                            runCommand(listOf("chmod", "777", song.pathToSymlinkFolderPNG))
                         }
-                        if (!File(settings.pathToSymlinkFolderSponsr).exists()) {
-                            Files.createDirectories(Path(settings.pathToSymlinkFolderSponsr))
-                            runCommand(listOf("chmod", "777", settings.pathToSymlinkFolderPNG))
+                        if (!File(song.pathToSymlinkFolderSponsr).exists()) {
+                            Files.createDirectories(Path(song.pathToSymlinkFolderSponsr))
+                            runCommand(listOf("chmod", "777", song.pathToSymlinkFolderPNG))
                         }
 
-                        val newNoStemNameFlacSymlinkQ = settings.accompanimentNameFlacSymlink.rightFileName().wrapInQuotes()
+                        val newNoStemNameFlacSymlinkQ = song.accompanimentNameFlacSymlink.rightFileName().wrapInQuotes()
                         val songKaraokeMp4Symlink =
-                            "${settings.pathToSymlinkFolderMP4}/${File(
+                            "${song.pathToSymlinkFolderMP4}/${File(
                                 songKaraokeMp4Absolute,
                             ).name}".rightFileName().wrapInQuotes()
                         val songKaraokePngSymlink =
-                            "${settings.pathToSymlinkFolderPNG}/${File(
+                            "${song.pathToSymlinkFolderPNG}/${File(
                                 songKaraokePngAbsolute,
                             ).name}".rightFileName().wrapInQuotes()
                         val songLyricsMp4Symlink =
-                            "${settings.pathToSymlinkFolderMP4}/${File(
+                            "${song.pathToSymlinkFolderMP4}/${File(
                                 songLyricsMp4Absolute,
                             ).name}".rightFileName().wrapInQuotes()
                         val songLyricsPngSymlink =
-                            "${settings.pathToSymlinkFolderPNG}/${File(
+                            "${song.pathToSymlinkFolderPNG}/${File(
                                 songLyricsPngAbsolute,
                             ).name}".rightFileName().wrapInQuotes()
 
-                        val songSponsrPngAbsolute = settings.getOutputFilename(SongOutputFile.PICTURESPONSRTEASER)
-                        val songSponsrPngRelative = settings.getOutputFilename(SongOutputFile.PICTURESPONSRTEASER, relative = true)
+                        val songSponsrPngAbsolute = song.getOutputFilename(SongOutputFile.PICTURESPONSRTEASER)
+                        val songSponsrPngRelative = song.getOutputFilename(SongOutputFile.PICTURESPONSRTEASER, relative = true)
                         val songSponsrPngSymlink =
-                            "${settings.pathToSymlinkFolderSponsr}/${File(
+                            "${song.pathToSymlinkFolderSponsr}/${File(
                                 songSponsrPngAbsolute,
                             ).name}".rightFileName().wrapInQuotes()
 
@@ -1608,7 +1608,7 @@ class KaraokeProcess(
                                 listOf(
                                     "ln",
                                     "-s",
-                                    settings.relativePathToNoStemNameFlac.rightFileName().wrapInQuotes(),
+                                    song.relativePathToNoStemNameFlac.rightFileName().wrapInQuotes(),
                                     newNoStemNameFlacSymlinkQ,
                                 ),
                                 listOf("chmod", "666", newNoStemNameFlacSymlinkQ),
@@ -1632,150 +1632,150 @@ class KaraokeProcess(
 //                    KaraokeProcessTypes.FF_MP3_KAR -> {
 //                        description = "MP3 KARAOKE"
 //                        args = listOf(
-//                            listOf("mkdir", "-p", settings.pathToFolderMP3Karaoke),
-//                            listOf("chmod", "777", settings.pathToFolderMP3Karaoke),
-//                            listOf("rm", settings.pathToFileMP3Karaoke),
+//                            listOf("mkdir", "-p", song.pathToFolderMP3Karaoke),
+//                            listOf("chmod", "777", song.pathToFolderMP3Karaoke),
+//                            listOf("rm", song.pathToFileMP3Karaoke),
 //                            listOf(
 //                                "ffmpeg",
 //                                "-i",
-//                                settings.accompanimentNameFlac.rightFileName(),
+//                                song.accompanimentNameFlac.rightFileName(),
 //                                "-ab",
 //                                "320k",
 //                                "-map_metadata",
 //                                "0",
 //                                "-id3v2_version",
 //                                "3",
-//                                settings.pathToFileMP3Karaoke,
+//                                song.pathToFileMP3Karaoke,
 //                                "-y"
 //                            ),
-//                            listOf("chmod", "666", settings.pathToFileMP3Karaoke),
+//                            listOf("chmod", "666", song.pathToFileMP3Karaoke),
 //                        )
 //                    }
 //                    KaraokeProcessTypes.FF_MP3_LYR -> {
 //                        description = "MP3 LYRICS"
 //                        args = listOf(
-//                            listOf("mkdir", "-p", settings.pathToFolderMP3Lyrics),
-//                            listOf("chmod", "777", settings.pathToFolderMP3Lyrics),
-//                            listOf("rm", settings.pathToFileMP3Lyrics),
+//                            listOf("mkdir", "-p", song.pathToFolderMP3Lyrics),
+//                            listOf("chmod", "777", song.pathToFolderMP3Lyrics),
+//                            listOf("rm", song.pathToFileMP3Lyrics),
 //                            listOf(
 //                                "ffmpeg",
 //                                "-i",
-//                                settings.fileAbsolutePath.rightFileName(),
+//                                song.fileAbsolutePath.rightFileName(),
 //                                "-ab",
 //                                "320k",
 //                                "-map_metadata",
 //                                "0",
 //                                "-id3v2_version",
 //                                "3",
-//                                settings.pathToFileMP3Lyrics,
+//                                song.pathToFileMP3Lyrics,
 //                                "-y"
 //                            ),
-//                            listOf("chmod", "666", settings.pathToFileMP3Lyrics),
+//                            listOf("chmod", "666", song.pathToFileMP3Lyrics),
 //                        )
 //                    }
                     KaraokeProcessTypes.FF_MP3_ACCOMPANIMENT -> {
                         description = "MP3 ACCOMPANIMENT"
                         args =
                             listOf(
-                                listOf("rm", settings.accompanimentNameMp3),
+                                listOf("rm", song.accompanimentNameMp3),
                                 listOf(
                                     "ffmpeg",
                                     "-i",
-                                    settings.accompanimentNameFlac.rightFileName(),
+                                    song.accompanimentNameFlac.rightFileName(),
                                     "-ab",
                                     "320k",
                                     "-map_metadata",
                                     "0",
                                     "-id3v2_version",
                                     "3",
-                                    settings.accompanimentNameMp3,
+                                    song.accompanimentNameMp3,
                                     "-y",
                                 ),
-                                listOf("chmod", "666", settings.accompanimentNameMp3),
+                                listOf("chmod", "666", song.accompanimentNameMp3),
                             )
                     }
                     KaraokeProcessTypes.FF_MP3_VOCAL -> {
                         description = "MP3 VOCAL"
                         args =
                             listOf(
-                                listOf("rm", settings.vocalsNameMp3),
+                                listOf("rm", song.vocalsNameMp3),
                                 listOf(
                                     "ffmpeg",
                                     "-i",
-                                    settings.vocalsNameFlac.rightFileName(),
+                                    song.vocalsNameFlac.rightFileName(),
                                     "-ab",
                                     "320k",
                                     "-map_metadata",
                                     "0",
                                     "-id3v2_version",
                                     "3",
-                                    settings.vocalsNameMp3,
+                                    song.vocalsNameMp3,
                                     "-y",
                                 ),
-                                listOf("chmod", "666", settings.vocalsNameMp3),
+                                listOf("chmod", "666", song.vocalsNameMp3),
                             )
                     }
                     KaraokeProcessTypes.FF_MP3_DRUMS -> {
                         description = "MP3 DRUMS"
                         args =
                             listOf(
-                                listOf("rm", settings.drumsNameMp3),
+                                listOf("rm", song.drumsNameMp3),
                                 listOf(
                                     "ffmpeg",
                                     "-i",
-                                    settings.drumsNameFlac.rightFileName(),
+                                    song.drumsNameFlac.rightFileName(),
                                     "-ab",
                                     "320k",
                                     "-map_metadata",
                                     "0",
                                     "-id3v2_version",
                                     "3",
-                                    settings.drumsNameMp3,
+                                    song.drumsNameMp3,
                                     "-y",
                                 ),
-                                listOf("chmod", "666", settings.drumsNameMp3),
+                                listOf("chmod", "666", song.drumsNameMp3),
                             )
                     }
                     KaraokeProcessTypes.FF_MP3_BASS -> {
                         description = "MP3 BASS"
                         args =
                             listOf(
-                                listOf("rm", settings.bassNameMp3),
+                                listOf("rm", song.bassNameMp3),
                                 listOf(
                                     "ffmpeg",
                                     "-i",
-                                    settings.bassNameFlac.rightFileName(),
+                                    song.bassNameFlac.rightFileName(),
                                     "-ab",
                                     "320k",
                                     "-map_metadata",
                                     "0",
                                     "-id3v2_version",
                                     "3",
-                                    settings.bassNameMp3,
+                                    song.bassNameMp3,
                                     "-y",
                                 ),
-                                listOf("chmod", "666", settings.bassNameMp3),
+                                listOf("chmod", "666", song.bassNameMp3),
                             )
                     }
                     KaraokeProcessTypes.FF_MP3_OTHER -> {
                         description = "MP3 OTHER"
                         args =
                             listOf(
-                                listOf("rm", settings.otherNameMp3),
+                                listOf("rm", song.otherNameMp3),
                                 listOf(
                                     "ffmpeg",
                                     "-i",
-                                    settings.otherNameFlac.rightFileName(),
+                                    song.otherNameFlac.rightFileName(),
                                     "-ab",
                                     "320k",
                                     "-map_metadata",
                                     "0",
                                     "-id3v2_version",
                                     "3",
-                                    settings.otherNameMp3,
+                                    song.otherNameMp3,
                                     "-y",
                                 ),
-                                listOf("chmod", "666", settings.otherNameMp3),
+                                listOf("chmod", "666", song.otherNameMp3),
                             )
                     }
                     KaraokeProcessTypes.UPLOAD_TO_LOCAL_STORE -> {
@@ -1788,7 +1788,7 @@ class KaraokeProcess(
                                 listOfNotNull(
                                     "runFunctionWithArgs",
                                     "uploadToLocalStore",
-                                    "settingsId=${settings.id}",
+                                    "songId=${song.id}",
                                     "pathToFile=$pathToFile",
                                     "karaokeFileType=$karaokeFileType",
                                     (context["storageFileName"] as? String)?.let { "storageFileName=$it" },
@@ -1807,7 +1807,7 @@ class KaraokeProcess(
                                 listOfNotNull(
                                     "runFunctionWithArgs",
                                     "uploadToRemoteStore",
-                                    "settingsId=${settings.id}",
+                                    "songId=${song.id}",
                                     "pathToFile=$pathToFile",
                                     "karaokeFileType=$karaokeFileType",
                                     (context["storageFileName"] as? String)?.let { "storageFileName=$it" },
@@ -1825,7 +1825,7 @@ class KaraokeProcess(
 
                     KaraokeProcessTypes.KEY_BPM_FROM_FILE -> {
                         description = "Key Bpm from file"
-                        val (actionArgs, actionEnvs) = settings.argsKeyBpmFinder()
+                        val (actionArgs, actionEnvs) = song.argsKeyBpmFinder()
                         args = actionArgs
                         envs = actionEnvs
                     }
@@ -1838,7 +1838,7 @@ class KaraokeProcess(
                     -> {
                         val version = context["version"] as? String ?: "KARAOKE"
                         description = "RENDER MP4 ($version)"
-                        val songId = settings.id
+                        val songId = song.id
                         val isDemo = version == "DEMO"
                         val width = context["width"] as? Int ?: if (isDemo) 1280 else 1920
                         val height = context["height"] as? Int ?: if (isDemo) 720 else 1080
@@ -1848,7 +1848,7 @@ class KaraokeProcess(
                                 listOf(
                                     "runFunctionWithArgs",
                                     "renderMp4",
-                                    "settingsId=${settings.id}",
+                                    "songId=${song.id}",
                                     "width=$width",
                                     "height=$height",
                                     "fps=$fps",
@@ -1865,7 +1865,7 @@ class KaraokeProcess(
                                 listOf(
                                     "runFunctionWithArgs",
                                     "executeForcedAlignMarkers",
-                                    "settingsId=${settings.id}",
+                                    "songId=${song.id}",
                                     "useFinetunedModel=$useFinetunedModel",
                                 ),
                             )
@@ -1875,10 +1875,10 @@ class KaraokeProcess(
                 }
             }
 
-            karaokeProcess.updateStatusProcessSettings(
-                database = settings.database,
-                storageService = settings.storageService,
-                storageApiClient = settings.storageApiClient,
+            karaokeProcess.updateStatusProcessSong(
+                database = song.database,
+                storageService = song.storageService,
+                storageApiClient = song.storageApiClient,
             )
 
             val separatedProcesses = separate(karaokeProcess)
@@ -1905,7 +1905,7 @@ class KaraokeProcess(
                 childProcess.priority = parentProcess.priority
                 childProcess.command = command
                 childProcess.type = parentProcess.type
-                childProcess.settingsId = parentProcess.settingsId
+                childProcess.songId = parentProcess.songId
                 childProcess.description = desc
                 childProcess.prioritet = parentProcess.prioritet
                 childProcess.withoutControl = parentProcess.withoutControl

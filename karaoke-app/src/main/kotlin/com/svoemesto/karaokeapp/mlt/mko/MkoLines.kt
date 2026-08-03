@@ -23,7 +23,7 @@ data class MkoLines(
     private val timelineStartTimecode = mltProp.getTimelineStartTimecode()
     private val timelineEndTimecode = mltProp.getTimelineEndTimecode()
     private val totalEndTimecode = mltProp.getTotalEndTimecode()
-    private val settings = mltProp.getSettings()
+    private val song = mltProp.getSong()
     private val songStartTimecode = mltProp.getSongStartTimecode()
     private val songEndTimecode = mltProp.getSongEndTimecode()
     private var mkoLinesUUID = mltProp.getUUID(listOf(type, voiceId))
@@ -69,7 +69,7 @@ data class MkoLines(
     }
 
     override fun mainFilePlaylistTransformProperties(): String {
-        val voice = settings?.voicesForMlt?.get(voiceId)
+        val voice = song?.voicesForMlt?.get(voiceId)
         return voice?.linesTransformProperties()?.joinToString(";") ?: ""
     }
 
@@ -78,7 +78,7 @@ data class MkoLines(
     override fun tractor(): MltNode = mltGenerator.tractor()
 
     override fun tractorSequence(): MltNode {
-        val sett = settings ?: return MltNode()
+        val sett = song ?: return MltNode()
         val voice = sett.voicesForMlt[voiceId]
         val countLineTracks = voice.countLineTracks
 

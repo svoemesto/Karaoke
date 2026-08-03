@@ -19,7 +19,7 @@ import java.sql.Timestamp
  *
  * Содержит:
  * - `id`, `idPlaylist` — плейлист.
- * - `idSettings` — песня.
+ * - `id` — песня.
  * - `order` — позиция в плейлисте (0-based).
  * - `added` — дата добавления.
  *

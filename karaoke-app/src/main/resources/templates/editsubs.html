@@ -641,7 +641,7 @@
 
         function doSaveSourceText() {
 
-            const id = document.querySelector('[data-settings-id]').getAttribute('data-settings-id');
+            const id = document.querySelector('[data-song-id]').getAttribute('data-song-id');
             const voice = document.querySelector('[data-voice]').getAttribute('data-voice');
             if (dataMarkers.length > 0) {
                 var lastMarker = dataMarkers[dataMarkers.length-1];
@@ -699,7 +699,7 @@
 
         function doSearchText() {
             if (confirm("Найти текст песни в интернете?")) {
-                const id = document.querySelector('[data-settings-id]').getAttribute('data-settings-id');
+                const id = document.querySelector('[data-song-id]').getAttribute('data-song-id');
                 var request = new XMLHttpRequest();
                 request.open('GET', "/song/" + id + "/searchsongtext", false);
                 request.send();
@@ -711,25 +711,25 @@
         }
 
         function doLoadVoice() {
-            const settingsId = document.querySelector('[data-settings-id]').getAttribute('data-settings-id');
+            const songId = document.querySelector('[data-song-id]').getAttribute('data-song-id');
             wavesurfer.clear;
-            wavesurfer.load('/song/' + settingsId + '/fileVocal');
+            wavesurfer.load('/song/' + songId + '/fileVocal');
         }
 
         function doLoadMusic() {
-            const settingsId = document.querySelector('[data-settings-id]').getAttribute('data-settings-id');
+            const songId = document.querySelector('[data-song-id]').getAttribute('data-song-id');
             wavesurfer.clear;
-            wavesurfer.load('/song/' + settingsId + '/fileMusic');
+            wavesurfer.load('/song/' + songId + '/fileMusic');
         }
 
         function doLoadSong() {
-            const settingsId = document.querySelector('[data-settings-id]').getAttribute('data-settings-id');
+            const songId = document.querySelector('[data-song-id]').getAttribute('data-song-id');
             wavesurfer.clear;
-            wavesurfer.load('/song/' + settingsId + '/fileSong');
+            wavesurfer.load('/song/' + songId + '/fileSong');
         }
 
         function doSaveSourceMarkers() {
-            const id = document.querySelector('[data-settings-id]').getAttribute('data-settings-id');
+            const id = document.querySelector('[data-song-id]').getAttribute('data-song-id');
             const voice = document.querySelector('[data-voice]').getAttribute('data-voice');
             if (dataMarkers.length > 0) {
                 var lastMarker = dataMarkers[dataMarkers.length-1];
@@ -815,9 +815,9 @@
             });
             wavesurfer.addPlugin(pluginTimeline).initPlugin('timeline');
 
-            const settingsId = document.querySelector('[data-settings-id]').getAttribute('data-settings-id');
+            const songId = document.querySelector('[data-song-id]').getAttribute('data-song-id');
             wavesurfer.clear;
-            wavesurfer.load('/song/' + settingsId + '/fileVocal');
+            wavesurfer.load('/song/' + songId + '/fileVocal');
 
             checkboxEditMode = document.getElementById("check_edit_mode");
             checkboxFastMode = document.getElementById("check_fast_mode");
@@ -1025,8 +1025,8 @@
 </head>
 
 <body>
-<div th:text="${settings.songName}"></div>
-<div th:data-settings-id="${settings.id}"></div>
+<div th:text="${song.songName}"></div>
+<div th:data-song-id="${song.id}"></div>
 <div th:data-markers="${markers}"></div>
 <div th:data-syllables="${syllables}"></div>
 <div th:data-voice="${voice}"></div>

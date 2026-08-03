@@ -115,7 +115,7 @@ class PublicPlayerController(
     // 2 живых HEAD-запроса на каждый вызов, что било по MinIO на каждый показ списка песен.
     // Делегирует в Song.isContentReady — единственный источник истины для этого условия (см. KDoc
     // Song.isContentReady, specs/089-auto-news-song-release).
-    private fun stemsReady(settings: Song): Boolean = settings.isContentReady
+    private fun stemsReady(song: Song): Boolean = song.isContentReady
 
     /**
      * Решает, можно ли прямо сейчас показать на странице песни встроенный онлайн-плеер вместо
@@ -127,21 +127,21 @@ class PublicPlayerController(
         @PathVariable id: Long,
         request: HttpServletRequest,
     ): ResponseEntity<Map<String, Any?>> {
-        val settings = loadSettings(id) ?: return ResponseEntity.notFound().build()
-        val ready = stemsReady(settings)
+        val song = loadSong(id) ?: return ResponseEntity.notFound().build()
+        val ready = stemsReady(song)
         val premium = isPremiumUser(request)
         val subscribed = !premium && isSubscribedToSong(request, id)
-        val canWatch = ready && (settings.onAir || premium || subscribed)
+        val canWatch = ready && (song.onAir || premium || subscribed)
         val canExport = canWatch && premium
         // Демо-режим: контент готов, но полного доступа нет — вместо отказа выдаём токен,
         // ограниченный диапазоном (фрагмент "куплет минус отступ под фейд-ин"), чтобы не-премиум
         // мог послушать и оценить разметку/качество перед подпиской.
         val isDemo = ready && !canWatch
-        val demoFadeInSeconds = if (isDemo) settings.demoFragmentFadeInSeconds else null
+        val demoFadeInSeconds = if (isDemo) song.demoFragmentFadeInSeconds else null
         val token =
             when {
                 canWatch -> gestureUnlockService.issueDirectAccessToken(id)
-                isDemo -> gestureUnlockService.issueDemoAccessToken(id, settings.demoFragmentStartSeconds, settings.demoFragmentEndSeconds)
+                isDemo -> gestureUnlockService.issueDemoAccessToken(id, song.demoFragmentStartSeconds, song.demoFragmentEndSeconds)
                 else -> null
             }
         if (canWatch || isDemo) {
@@ -213,32 +213,32 @@ class PublicPlayerController(
             }
         val items =
             songIds.associate { id ->
-                val settings = loadSettings(id)
-                val contentReady = settings != null && stemsReady(settings)
-                val watchable = contentReady && (settings!!.onAir || premium || id in subscribedIds)
+                val song = loadSong(id)
+                val contentReady = song != null && stemsReady(song)
+                val watchable = contentReady && (song!!.onAir || premium || id in subscribedIds)
                 id.toString() to mapOf("ready" to watchable, "watchable" to watchable, "contentReady" to contentReady)
             }
         return ResponseEntity.ok(mapOf("items" to items))
     }
 
     // Same template HealthReport.kt/ApiController.pushMp3ToStorage use for every KaraokeFileType
-    // with a REMOTE_STORAGE location: "${settings.storageFileName}${suffix}.${extention}" — suffix
+    // with a REMOTE_STORAGE location: "${song.storageFileName}${suffix}.${extention}" — suffix
     // already carries its own leading dot (e.g. ".accompaniment"), NOT a dash.
     private fun stemStorageKey(
-        settings: Song,
+        song: Song,
         fileType: KaraokeFileType,
-    ) = "${settings.storageFileName}${fileType.suffix}.${fileType.extention}"
+    ) = "${song.storageFileName}${fileType.suffix}.${fileType.extention}"
 
     // Тот же формат ключа, что HealthReport.kt использует для PICTURE_ALBUM/PICTURE_AUTHOR — ЧИСТАЯ
-    // строковая формула, без обращения к settings.pictureAlbum/pictureAuthor. Эти геттеры трогают
+    // строковая формула, без обращения к song.pictureAlbum/pictureAuthor. Эти геттеры трогают
     // rootFolder и валят процесс karaoke-web, если для песни ещё нет строки в tbl_pictures и они
     // пытаются лениво создать её из локального файла (см. предупреждение в комментарии класса выше).
-    private fun pictureAlbumStorageKey(settings: Song) =
-        "${settings.author}/${settings.year} - ${settings.album}/${settings.author} - ${settings.year} - " +
-            "${settings.album}${KaraokeFileType.PICTURE_ALBUM.suffix}.${KaraokeFileType.PICTURE_ALBUM.extention}"
+    private fun pictureAlbumStorageKey(song: Song) =
+        "${song.author}/${song.year} - ${song.album}/${song.author} - ${song.year} - " +
+            "${song.album}${KaraokeFileType.PICTURE_ALBUM.suffix}.${KaraokeFileType.PICTURE_ALBUM.extention}"
 
-    private fun pictureAuthorStorageKey(settings: Song) =
-        "${settings.author}/${settings.author}${KaraokeFileType.PICTURE_AUTHOR.suffix}.${KaraokeFileType.PICTURE_AUTHOR.extention}"
+    private fun pictureAuthorStorageKey(song: Song) =
+        "${song.author}/${song.author}${KaraokeFileType.PICTURE_AUTHOR.suffix}.${KaraokeFileType.PICTURE_AUTHOR.extention}"
 
     private fun encodedProxyPath(storageKey: String): String =
         storageKey.split("/").joinToString("/") { segment ->
@@ -283,11 +283,11 @@ class PublicPlayerController(
     // download-менеджера обходили токен и его 30-минутный TTL). Проксирование байтов устраняет этот
     // постоянный публичный URL — каждый запрос снова проверяет token.
     private fun stemResponse(
-        settings: Song,
+        song: Song,
         fileType: KaraokeFileType,
         demoRange: PlayerGestureUnlockService.DemoRange?,
     ): ResponseEntity<ByteArray> {
-        val storageKey = stemStorageKey(settings, fileType)
+        val storageKey = stemStorageKey(song, fileType)
         val bytes = fetchFromMinIO(storageKey) ?: return ResponseEntity.notFound().build()
         // Демо-токен — обрезаем байты стема на границе mp3-фрейма (Mp3Trimmer), чтобы полный
         // файл физически не покидал сервер. Обычный токен получает bytes как есть.
@@ -295,7 +295,7 @@ class PublicPlayerController(
         return ResponseEntity.ok().contentType(MediaType.valueOf("audio/mpeg")).body(payload)
     }
 
-    private fun loadSettings(id: Long) =
+    private fun loadSong(id: Long) =
         Song.loadFromDbById(id, WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
 
     @GetMapping("/{id}/fileminus.mp3")
@@ -304,8 +304,8 @@ class PublicPlayerController(
         @RequestParam token: String?,
     ): ResponseEntity<ByteArray> {
         if (!authorized(id, token)) return ResponseEntity.notFound().build()
-        val settings = loadSettings(id) ?: return ResponseEntity.notFound().build()
-        return stemResponse(settings, KaraokeFileType.MP3_ACCOMPANIMENT, gestureUnlockService.demoRangeForToken(token, id))
+        val song = loadSong(id) ?: return ResponseEntity.notFound().build()
+        return stemResponse(song, KaraokeFileType.MP3_ACCOMPANIMENT, gestureUnlockService.demoRangeForToken(token, id))
     }
 
     @GetMapping("/{id}/filevoice.mp3")
@@ -314,8 +314,8 @@ class PublicPlayerController(
         @RequestParam token: String?,
     ): ResponseEntity<ByteArray> {
         if (!authorized(id, token)) return ResponseEntity.notFound().build()
-        val settings = loadSettings(id) ?: return ResponseEntity.notFound().build()
-        return stemResponse(settings, KaraokeFileType.MP3_VOCAL, gestureUnlockService.demoRangeForToken(token, id))
+        val song = loadSong(id) ?: return ResponseEntity.notFound().build()
+        return stemResponse(song, KaraokeFileType.MP3_VOCAL, gestureUnlockService.demoRangeForToken(token, id))
     }
 
     @GetMapping("/{id}/filebass.mp3")
@@ -324,8 +324,8 @@ class PublicPlayerController(
         @RequestParam token: String?,
     ): ResponseEntity<ByteArray> {
         if (!authorized(id, token)) return ResponseEntity.notFound().build()
-        val settings = loadSettings(id) ?: return ResponseEntity.notFound().build()
-        return stemResponse(settings, KaraokeFileType.MP3_BASS, gestureUnlockService.demoRangeForToken(token, id))
+        val song = loadSong(id) ?: return ResponseEntity.notFound().build()
+        return stemResponse(song, KaraokeFileType.MP3_BASS, gestureUnlockService.demoRangeForToken(token, id))
     }
 
     @GetMapping("/{id}/filedrums.mp3")
@@ -334,8 +334,8 @@ class PublicPlayerController(
         @RequestParam token: String?,
     ): ResponseEntity<ByteArray> {
         if (!authorized(id, token)) return ResponseEntity.notFound().build()
-        val settings = loadSettings(id) ?: return ResponseEntity.notFound().build()
-        return stemResponse(settings, KaraokeFileType.MP3_DRUMS, gestureUnlockService.demoRangeForToken(token, id))
+        val song = loadSong(id) ?: return ResponseEntity.notFound().build()
+        return stemResponse(song, KaraokeFileType.MP3_DRUMS, gestureUnlockService.demoRangeForToken(token, id))
     }
 
     @GetMapping("/{id}/playerdata")
@@ -345,13 +345,13 @@ class PublicPlayerController(
         request: HttpServletRequest,
     ): ResponseEntity<Map<String, Any?>> {
         if (!authorized(id, token)) return ResponseEntity.notFound().build()
-        val settings = loadSettings(id) ?: return ResponseEntity.notFound().build()
+        val song = loadSong(id) ?: return ResponseEntity.notFound().build()
 
         // Если токен был выдан онлайн-редактором для конкретного задания (issueDirectAccessTokenForAssignment),
         // подставляем НЕОДОБРЕННЫЙ черновик этого задания целиком вместо опубликованных маркеров —
         // превью "проиграть, что я уже сделал" в самом редакторе (см. PublicSongEditorController.task).
         // Задание покрывает всю песню — черновик несёт ВСЕ голоса разом, отдельный voice не нужен.
-        var markersList = settings.sourceMarkersList
+        var markersList = song.sourceMarkersList
         gestureUnlockService.assignmentIdForToken(token, id)?.let { assignmentId ->
             val assignment =
                 SongAssignment
@@ -377,49 +377,49 @@ class PublicPlayerController(
                         .filter { it.time in demoRange.startSeconds..demoRange.endSeconds }
                         .map { it.copy(time = it.time - demoRange.startSeconds) }
                 }
-            demoFadeInSeconds = settings.demoFragmentFadeInSeconds
+            demoFadeInSeconds = song.demoFragmentFadeInSeconds
         }
 
         val tokenSuffix = "?token=$token"
-        val hasAccompaniment = existsInMinIO(stemStorageKey(settings, KaraokeFileType.MP3_ACCOMPANIMENT))
-        val hasVocals = existsInMinIO(stemStorageKey(settings, KaraokeFileType.MP3_VOCAL))
-        val hasBass = existsInMinIO(stemStorageKey(settings, KaraokeFileType.MP3_BASS))
-        val hasDrums = existsInMinIO(stemStorageKey(settings, KaraokeFileType.MP3_DRUMS))
+        val hasAccompaniment = existsInMinIO(stemStorageKey(song, KaraokeFileType.MP3_ACCOMPANIMENT))
+        val hasVocals = existsInMinIO(stemStorageKey(song, KaraokeFileType.MP3_VOCAL))
+        val hasBass = existsInMinIO(stemStorageKey(song, KaraokeFileType.MP3_BASS))
+        val hasDrums = existsInMinIO(stemStorageKey(song, KaraokeFileType.MP3_DRUMS))
 
         val data =
             mapOf(
                 "id" to id,
-                "songName" to settings.songName,
-                "author" to settings.author,
-                "album" to settings.album,
-                "year" to settings.year.takeIf { it > 0 },
-                "track" to settings.track.takeIf { it > 0 },
-                "key" to settings.key.takeIf { it.isNotBlank() },
-                "bpm" to settings.bpm,
-                "songType" to settings.songType.dbValue,
+                "songName" to song.songName,
+                "author" to song.author,
+                "album" to song.album,
+                "year" to song.year.takeIf { it > 0 },
+                "track" to song.track.takeIf { it > 0 },
+                "key" to song.key.takeIf { it.isNotBlank() },
+                "bpm" to song.bpm,
+                "songType" to song.songType.dbValue,
                 "markers" to markersList,
                 "audioAccompanimentUrl" to if (hasAccompaniment) "/api/public/player/$id/fileminus.mp3$tokenSuffix" else null,
                 "audioVocalsUrl" to if (hasVocals) "/api/public/player/$id/filevoice.mp3$tokenSuffix" else null,
                 "audioBassUrl" to if (hasBass) "/api/public/player/$id/filebass.mp3$tokenSuffix" else null,
                 "audioDrumsUrl" to if (hasDrums) "/api/public/player/$id/filedrums.mp3$tokenSuffix" else null,
                 // Ключи строятся чистой формулой (pictureAlbumStorageKey/pictureAuthorStorageKey), НЕ
-                // через settings.pictureAlbum/pictureAuthor — см. предупреждение в комментарии класса
+                // через song.pictureAlbum/pictureAuthor — см. предупреждение в комментарии класса
                 // выше про rootFolder/APP_WORK_ON_SERVER. Гейтируется персистентным флагом готовности,
                 // а не наличием файла (флаг уже проверен в stemsReady() выше по вызовам access/readiness,
                 // но playerData может быть вызван и напрямую по валидному токену — перепроверяем).
                 "albumImageUrl" to
-                    if (settings.pictureAlbumReady) {
-                        "/api/public/picture?file=${java.net.URLEncoder.encode(pictureAlbumStorageKey(settings), java.nio.charset.StandardCharsets.UTF_8)}"
+                    if (song.pictureAlbumReady) {
+                        "/api/public/picture?file=${java.net.URLEncoder.encode(pictureAlbumStorageKey(song), java.nio.charset.StandardCharsets.UTF_8)}"
                     } else {
                         null
                     },
                 "artistImageUrl" to
-                    if (settings.pictureAuthorReady) {
-                        "/api/public/picture?file=${java.net.URLEncoder.encode(pictureAuthorStorageKey(settings), java.nio.charset.StandardCharsets.UTF_8)}"
+                    if (song.pictureAuthorReady) {
+                        "/api/public/picture?file=${java.net.URLEncoder.encode(pictureAuthorStorageKey(song), java.nio.charset.StandardCharsets.UTF_8)}"
                     } else {
                         null
                     },
-                "exportBaseName" to "${settings.fileName} [id-$id]".rightFileName(),
+                "exportBaseName" to "${song.fileName} [id-$id]".rightFileName(),
                 // Живая проверка, не завязанная на TTL токена плеера — открывает/закрывает пункт меню
                 // "Экспорт аудио..." на фронте. Сама выдача байт стемов (fileminus.mp3 и т.п.) этим
                 // флагом не ограничена — эти же URL нужны и для обычного воспроизведения всем, у кого
@@ -455,8 +455,8 @@ class PublicPlayerController(
             response.writer.write("{\"error\":\"premium_required\"}")
             return
         }
-        val settings =
-            loadSettings(id) ?: run {
+        val song =
+            loadSong(id) ?: run {
                 response.status = 404
                 return
             }
@@ -471,7 +471,7 @@ class PublicPlayerController(
             entryName: String,
             trackKey: String,
         ) {
-            fetchFromMinIO(stemStorageKey(settings, fileType))?.let { bytes ->
+            fetchFromMinIO(stemStorageKey(song, fileType))?.let { bytes ->
                 addStored(zip, entryName, bytes)
                 tracks[trackKey] = entryName
             }
@@ -481,16 +481,16 @@ class PublicPlayerController(
         addStemIfPresent(KaraokeFileType.MP3_BASS, "audio/bass.mp3", "bass")
         addStemIfPresent(KaraokeFileType.MP3_DRUMS, "audio/drums.mp3", "drums")
 
-        // Ключи строятся чистой формулой, а не через settings.pictureAlbum/pictureAuthor — см.
+        // Ключи строятся чистой формулой, а не через song.pictureAlbum/pictureAuthor — см.
         // предупреждение в комментарии класса выше про rootFolder/APP_WORK_ON_SERVER.
-        if (settings.pictureAlbumReady) {
-            fetchFromMinIO(pictureAlbumStorageKey(settings))?.let { bytes ->
+        if (song.pictureAlbumReady) {
+            fetchFromMinIO(pictureAlbumStorageKey(song))?.let { bytes ->
                 addStored(zip, "images/album.png", bytes)
                 images["album"] = "images/album.png"
             }
         }
-        if (settings.pictureAuthorReady) {
-            fetchFromMinIO(pictureAuthorStorageKey(settings))?.let { bytes ->
+        if (song.pictureAuthorReady) {
+            fetchFromMinIO(pictureAuthorStorageKey(song))?.let { bytes ->
                 addStored(zip, "images/artist.png", bytes)
                 images["artist"] = "images/artist.png"
             }
@@ -501,17 +501,17 @@ class PublicPlayerController(
                 "version" to 1,
                 "format" to "smkaraoke",
                 "id" to id,
-                "songName" to settings.songName,
-                "author" to settings.author,
-                "album" to settings.album,
-                "year" to settings.year.takeIf { it > 0 },
-                "track" to settings.track.takeIf { it > 0 },
-                "key" to settings.key.takeIf { it.isNotBlank() },
-                "bpm" to settings.bpm,
-                "markers" to settings.sourceMarkersList,
+                "songName" to song.songName,
+                "author" to song.author,
+                "album" to song.album,
+                "year" to song.year.takeIf { it > 0 },
+                "track" to song.track.takeIf { it > 0 },
+                "key" to song.key.takeIf { it.isNotBlank() },
+                "bpm" to song.bpm,
+                "markers" to song.sourceMarkersList,
                 "tracks" to tracks,
                 "images" to images,
-                "exportBaseName" to "${settings.fileName} [id-$id]".rightFileName(),
+                "exportBaseName" to "${song.fileName} [id-$id]".rightFileName(),
             )
         val manifestBytes = ObjectMapper().writeValueAsBytes(manifest)
         val manifestEntry = ZipEntry("manifest.json").apply { method = ZipEntry.DEFLATED }
@@ -520,7 +520,7 @@ class PublicPlayerController(
         zip.closeEntry()
         zip.close()
 
-        val downloadName = "${settings.fileName} [id-$id].smkaraoke".rightFileName()
+        val downloadName = "${song.fileName} [id-$id].smkaraoke".rightFileName()
         val encodedName = URLEncoder.encode(downloadName, "UTF-8").replace("+", "%20")
         response.contentType = "application/x-smkaraoke"
         response.setHeader(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"song-$id.smkaraoke\"; filename*=UTF-8''$encodedName")

@@ -10,7 +10,7 @@
 
             <div class="container-fluid">
 
-                <h1 id="settings_id_text" name="settings_id_text"></h1><input hidden type="text" class="form-control"  id="settings_id" name="settings_id">
+                <h1 id="song_id_text" name="song_id_text"></h1><input hidden type="text" class="form-control"  id="song_id" name="song_id">
 
                 <table class="table table-hover table-bordered" style="margin: 1px;padding: 1px">
                     <tr style="margin: 1px;padding: 1px">
@@ -21,7 +21,7 @@
                                 </tr>
                                 <tr  style="width: max-content">
                                     <td style="font-size: 14px; padding: 0; padding-left: 1px; padding-right: 1px;">
-                                        <input style="font-size: 14px;" type="text" class="form-control" id="settings_author" name="settings_author" placeholder="Исполнитель">
+                                        <input style="font-size: 14px;" type="text" class="form-control" id="song_author" name="song_author" placeholder="Исполнитель">
                                     </td>
                                 </tr>
                             </table>
@@ -33,7 +33,7 @@
                                 </tr>
                                 <tr style="width: 80px">
                                     <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
-                                        <input style="margin: 0px; font-size: 14px; padding: 0;" type="text" class="form-control" id="settings_year" name="settings_year" placeholder="Год">
+                                        <input style="margin: 0px; font-size: 14px; padding: 0;" type="text" class="form-control" id="song_year" name="song_year" placeholder="Год">
                                     </td>
                                 </tr>
                             </table>
@@ -45,7 +45,7 @@
                                 </tr>
                                 <tr >
                                     <td style="width: max-content; font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
-                                        <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="settings_album" name="settings_album" placeholder="Альбом">
+                                        <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="song_album" name="song_album" placeholder="Альбом">
                                     </td>
                                 </tr>
                             </table>
@@ -61,7 +61,7 @@
                                 </tr>
                                 <tr>
                                     <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
-                                        <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_track" name="settings_track" placeholder="Трек">
+                                        <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="song_track" name="song_track" placeholder="Трек">
                                     </td>
                                 </tr>
                             </table>
@@ -73,7 +73,7 @@
                                 </tr>
                                 <tr>
                                     <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
-                                        <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="settings_songName" name="settings_songName" placeholder="Композиция">
+                                        <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="song_songName" name="song_songName" placeholder="Композиция">
                                     </td>
                                     <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
                                         <button style="width: 35px; height: 35px;" name="button_copy_songName" id="button_copy_songName" class="form-control btn btn-info btn-block" type="button" onclick="copySongName()">📋</button>
@@ -88,7 +88,7 @@
                                 </tr>
                                 <tr>
                                     <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
-                                        <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_tags" name="settings_tags" placeholder="Tags">
+                                        <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="song_tags" name="song_tags" placeholder="Tags">
                                     </td>
                                 </tr>
                             </table>
@@ -104,7 +104,7 @@
                                 </tr>
                                 <tr>
                                     <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
-                                        <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_date" name="settings_date" placeholder="Дата публикации">
+                                        <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="song_date" name="song_date" placeholder="Дата публикации">
                                     </td>
                                 </tr>
                             </table>
@@ -116,7 +116,7 @@
                                 </tr>
                                 <tr>
                                     <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
-                                        <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_time" name="settings_time" placeholder="Время публикации">
+                                        <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="song_time" name="song_time" placeholder="Время публикации">
                                     </td>
                                 </tr>
                             </table>
@@ -128,7 +128,7 @@
                                 </tr>
                                 <tr>
                                     <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
-                                        <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_key" name="settings_key" placeholder="Тональность">
+                                        <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="song_key" name="song_key" placeholder="Тональность">
                                     </td>
                                 </tr>
                             </table>
@@ -140,7 +140,7 @@
                                 </tr>
                                 <tr>
                                     <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
-                                        <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_bpm" name="settings_bpm" placeholder="Темп">
+                                        <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="song_bpm" name="song_bpm" placeholder="Темп">
                                     </td>
                                 </tr>
                             </table>
@@ -152,7 +152,7 @@
                                 </tr>
                                 <tr>
                                     <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
-                                        <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_ms" name="settings_ms" placeholder="MS">
+                                        <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="song_ms" name="song_ms" placeholder="MS">
                                     </td>
                                 </tr>
                             </table>
@@ -168,7 +168,7 @@
                                 </tr>
                                 <tr>
                                     <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
-                                        <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_fileName" name="settings_fileName" placeholder="Имя файла">
+                                        <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="song_fileName" name="song_fileName" placeholder="Имя файла">
                                     </td>
                                 </tr>
                             </table>
@@ -180,7 +180,7 @@
                                 </tr>
                                 <tr>
                                     <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
-                                        <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_rootFolder" name="settings_rootFolder" placeholder="Корневая папка">
+                                        <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="song_rootFolder" name="song_rootFolder" placeholder="Корневая папка">
                                     </td>
                                 </tr>
                             </table>
@@ -197,7 +197,7 @@
                                 </tr>
                                 <tr>
                                     <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
-                                        <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_idBoosty" name="settings_idBoosty" placeholder="Boosty" oninput="extractBoostyId(this)">
+                                        <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="song_idBoosty" name="song_idBoosty" placeholder="Boosty" oninput="extractBoostyId(this)">
                                     </td>
                                     <td style="font-size: 22px; padding: 0; padding-left: 10px; padding-right: 10px; width: 80px;">
                                         <a style="width: 80px; height: 35px;" name="button_link_boosty" id="button_link_boosty" class="btn btn-info btn-block" type="button" target="_blank" href="">OPEN</a>
@@ -214,7 +214,7 @@
 <!--                                </tr>-->
 <!--                                <tr>-->
                                     <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
-                                        <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_idBoostyFiles" name="settings_idBoostyFiles" placeholder="Boosty Files" oninput="extractBoostyId(this)">
+                                        <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="song_idBoostyFiles" name="song_idBoostyFiles" placeholder="Boosty Files" oninput="extractBoostyId(this)">
                                     </td>
                                     <td style="font-size: 22px; padding: 0; padding-left: 10px; padding-right: 10px; width: 80px;">
                                         <a style="width: 80px; height: 35px;" name="button_link_boostyFiles" id="button_link_boostyFiles" class="btn btn-info btn-block" type="button" target="_blank" href="">OPEN</a>
@@ -243,7 +243,7 @@
                                 </tr>
                                 <tr>
                                     <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
-                                        <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_idVk" name="settings_idVk" placeholder="Vk" oninput="extractVkId(this)">
+                                        <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="song_idVk" name="song_idVk" placeholder="Vk" oninput="extractVkId(this)">
                                     </td>
                                     <td style="font-size: 22px; padding: 0; padding-left: 10px; padding-right: 10px; width: 140px;">
                                         <a style="width: 160px; height: 35px;" name="button_link_vk" id="button_link_vk" class="btn btn-info btn-block" type="button" target="_blank" href="">OPEN</a>
@@ -289,7 +289,7 @@
                                         <button style="width: 35px; height: 35px;" name="button_link_DzenKaraoke_link" id="button_link_DzenKaraoke_link" class="form-control btn btn-primary btn-block" type="button" onclick="doDzenKaraokeLink()">L</button>
                                     </td>
                                     <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
-                                        <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_idDzenKaraoke" name="settings_idDzenKaraoke" placeholder="Karaoke" oninput="extractDzenVideoId(this)">
+                                        <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="song_idDzenKaraoke" name="song_idDzenKaraoke" placeholder="Karaoke" oninput="extractDzenVideoId(this)">
                                     </td>
 
                                 </tr>
@@ -311,7 +311,7 @@
                                         <button style="width: 35px; height: 35px;" name="button_link_DzenLyrics_link" id="button_link_DzenLyrics_link" class="form-control btn btn-primary btn-block" type="button" onclick="doDzenLyricsLink()">L</button>
                                     </td>
                                     <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
-                                        <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_idDzenLyrics" name="settings_idDzenLyrics" placeholder="Lyrics" oninput="extractDzenVideoId(this)">
+                                        <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="song_idDzenLyrics" name="song_idDzenLyrics" placeholder="Lyrics" oninput="extractDzenVideoId(this)">
                                     </td>
 
                                 </tr>
@@ -333,7 +333,7 @@
                                         <button style="width: 35px; height: 35px;" name="button_link_DzenChords_link" id="button_link_DzenChords_link" class="form-control btn btn-primary btn-block" type="button" onclick="doDzenChordsLink()">L</button>
                                     </td>
                                     <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
-                                        <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_idDzenChords" name="settings_idDzenChords" placeholder="Chords" oninput="extractDzenVideoId(this)">
+                                        <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="song_idDzenChords" name="song_idDzenChords" placeholder="Chords" oninput="extractDzenVideoId(this)">
                                     </td>
 
                                 </tr>
@@ -388,7 +388,7 @@
                                         <button style="width: 35px; height: 35px;" name="button_link_VkKaraoke_link" id="button_link_VkKaraoke_link" class="form-control btn btn-primary btn-block" type="button" onclick="doVkKaraokeLink()">L</button>
                                     </td>
                                     <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
-                                        <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_idVkKaraoke" name="settings_idVkKaraoke" placeholder="Karaoke" oninput="extractVkVideoId(this)">
+                                        <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="song_idVkKaraoke" name="song_idVkKaraoke" placeholder="Karaoke" oninput="extractVkVideoId(this)">
                                     </td>
 
                                 </tr>
@@ -410,7 +410,7 @@
                                         <button style="width: 35px; height: 35px;" name="button_link_VkLyrics_link" id="button_link_VkLyrics_link" class="form-control btn btn-primary btn-block" type="button" onclick="doVkLyricsLink()">L</button>
                                     </td>
                                     <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
-                                        <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_idVkLyrics" name="settings_idVkLyrics" placeholder="Lyrics" oninput="extractVkVideoId(this)">
+                                        <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="song_idVkLyrics" name="song_idVkLyrics" placeholder="Lyrics" oninput="extractVkVideoId(this)">
                                     </td>
 
                                 </tr>
@@ -432,7 +432,7 @@
                                         <button style="width: 35px; height: 35px;" name="button_link_VkChords_link" id="button_link_VkChords_link" class="form-control btn btn-primary btn-block" type="button" onclick="doVkChordsLink()">L</button>
                                     </td>
                                     <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
-                                        <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_idVkChords" name="settings_idVkChords" placeholder="Chords" oninput="extractVkVideoId(this)">
+                                        <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="song_idVkChords" name="song_idVkChords" placeholder="Chords" oninput="extractVkVideoId(this)">
                                     </td>
 
                                 </tr>
@@ -469,7 +469,7 @@
                                         <button style="width: 35px; height: 35px;" name="button_link_TelegramKaraoke_link" id="button_link_TelegramKaraoke_link" class="form-control btn btn-primary btn-block" type="button" onclick="doTelegramKaraokeLink()">L</button>
                                     </td>
                                     <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
-                                        <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_idTelegramKaraoke" name="settings_idTelegramKaraoke" placeholder="Karaoke" oninput="extractTelegramVideoId(this)">
+                                        <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="song_idTelegramKaraoke" name="song_idTelegramKaraoke" placeholder="Karaoke" oninput="extractTelegramVideoId(this)">
                                     </td>
 
                                 </tr>
@@ -491,7 +491,7 @@
                                         <button style="width: 35px; height: 35px;" name="button_link_TelegramLyrics_link" id="button_link_TelegramLyrics_link" class="form-control btn btn-primary btn-block" type="button" onclick="doTelegramLyricsLink()">L</button>
                                     </td>
                                     <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
-                                        <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_idTelegramLyrics" name="settings_idTelegramLyrics" placeholder="Lyrics" oninput="extractTelegramVideoId(this)">
+                                        <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="song_idTelegramLyrics" name="song_idTelegramLyrics" placeholder="Lyrics" oninput="extractTelegramVideoId(this)">
                                     </td>
 
                                 </tr>
@@ -513,7 +513,7 @@
                                         <button style="width: 35px; height: 35px;" name="button_link_TelegramChords_link" id="button_link_TelegramChords_link" class="form-control btn btn-primary btn-block" type="button" onclick="doTelegramChordsLink()">L</button>
                                     </td>
                                     <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
-                                        <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_idTelegramChords" name="settings_idTelegramChords" placeholder="Chords" oninput="extractTelegramVideoId(this)">
+                                        <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="song_idTelegramChords" name="song_idTelegramChords" placeholder="Chords" oninput="extractTelegramVideoId(this)">
                                     </td>
 
                                 </tr>

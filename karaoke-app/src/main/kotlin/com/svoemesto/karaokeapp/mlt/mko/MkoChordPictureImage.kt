@@ -28,7 +28,7 @@ data class MkoChordPictureImage(
     private val chordHeightPx = chordWidthPx
 
 //    private val songVersion = mltProp.getSongVersion()
-//    private val settings = mltProp.getSettings()
+//    private val song = mltProp.getSong()
     private val songEndTimecode = mltProp.getSongEndTimecode()
     private var chordDurationOnScreen = mltProp.getDurationOnScreen(listOf(ProducerType.CHORDPICTURELINE, voiceId, lineId))
     private var folderIdChordPictures = mltProp.getId(listOf(ProducerType.CHORDPICTUREIMAGE, voiceId))

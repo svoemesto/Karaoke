@@ -41,7 +41,7 @@
 
 - **MUST**: задания НЕ участвуют в `SyncRegistry` (по образцу
   `tbl_site_chat_messages`) — append-only PROD-only.
-- **MUST**: `settingsId=0` (нет привязки к `Settings`/`tbl_settings`).
+- **MUST**: `songId=0` (нет привязки к `Song`/`tbl_songs`).
 - **MUST**: файл передаётся karaoke-app через HTTP с `X-Internal-Secret`
   (см. [DEVELOPMENT.md#premium-фича-создать-минусовку-из-аудиофайла-stemjob-tbl_stem_jobs](../../DEVELOPMENT.md)).
 - **MUST**: премиум-доступ проверяется на стороне karaoke-web

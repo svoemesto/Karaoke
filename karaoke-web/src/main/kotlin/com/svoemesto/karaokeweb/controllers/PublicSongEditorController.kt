@@ -132,7 +132,7 @@ class PublicSongEditorController(
         if (!user.isEditor) return notFound()
         val a = loadOwnedAssignment(id, user.id) ?: return notFound()
         val draft = SongAssignmentDraft.getByAssignment(id, db, storageService, storageApiClient)
-        val settings =
+        val song =
             Song.loadFromDbById(a.songId, WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
                 ?: return notFound()
         val status = statusOf(a, draft)
@@ -145,8 +145,8 @@ class PublicSongEditorController(
             sourceTexts = draft.editedTextsPerVoice(json)
             markersPerVoice = draft.editedMarkersPerVoice(json)
         } else {
-            sourceTexts = settings.sourceTextList
-            markersPerVoice = settings.sourceMarkersList
+            sourceTexts = song.sourceTextList
+            markersPerVoice = song.sourceMarkersList
         }
 
         // Токен доступа к стемам (тот же механизм, что публичный плеер) — привязан к заданию, поэтому
@@ -159,11 +159,11 @@ class PublicSongEditorController(
             mapOf(
                 "id" to a.id,
                 "songId" to a.songId,
-                "songName" to settings.songName,
-                "author" to settings.author,
-                "album" to settings.album,
-                "year" to settings.year.takeIf { it > 0 },
-                "bpm" to settings.bpm,
+                "songName" to song.songName,
+                "author" to song.author,
+                "album" to song.album,
+                "year" to song.year.takeIf { it > 0 },
+                "bpm" to song.bpm,
                 "status" to status.dbValue,
                 "canEdit" to canEdit(a, draft),
                 "reviewComment" to (if (status == SongAssignmentStatus.REJECTED) a.reviewComment else ""),

@@ -69,7 +69,7 @@ data class TelegramUpdatesResponse(
 /**
  * Результат `sendVideo` Telegram Bot API: только поля, используемые Фазой 2
  * (specs/113-telegram-demo-publish). `ok=true` → success, `result.message_id`
- * записывается в `Settings.idTelegramDemo`. `ok=false` → `errorCode` определяет
+ * записывается в `Song.idTelegramDemo`. `ok=false` → `errorCode` определяет
  * retryable (429/5xx) vs non-retryable (400/403/404) — см. retry-цикл в
  * [TelegramApiClient.sendVideo].
  *

@@ -22,7 +22,7 @@ data class MkoFill(
     private val songVersion = mltProp.getSongVersion()
     private val frameWidthPx = mltProp.getFrameWidthPx()
     private val frameHeightPx = mltProp.getFrameHeightPx()
-    private val settings = mltProp.getSettings()
+    private val song = mltProp.getSong()
     private val songEndTimecode = mltProp.getSongEndTimecode()
     private var folderIdLines = mltProp.getId(listOf(ProducerType.FILL, voiceId))
     private var lineDurationOnScreen = mltProp.getDurationOnScreen(listOf(ProducerType.LINE, voiceId, lineId))
@@ -38,7 +38,7 @@ data class MkoFill(
         var widthAreaPx = frameWidthPx
         var heightAreaPx = frameHeightPx
 
-        val sett = settings
+        val sett = song
         if (sett != null) {
             try {
                 val element = sett.voicesForMlt[voiceId].getLines()[lineId].getElements(songVersion)[elementId]
@@ -96,7 +96,7 @@ data class MkoFill(
 
     override fun mainFilePlaylistTransformProperties(): String {
         val elementTransformProperties =
-            settings
+            song
                 ?.voicesForMlt
                 ?.get(voiceId)
                 ?.getLines()
@@ -106,7 +106,7 @@ data class MkoFill(
                 ?.transformProperties()
                 ?: emptyList()
         val default = "00:00:00.000=0 0 1 1 0.0"
-        val sett = settings ?: return default
+        val sett = song ?: return default
         val element =
             try {
                 sett.voicesForMlt[voiceId]

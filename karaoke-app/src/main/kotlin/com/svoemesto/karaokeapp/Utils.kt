@@ -1483,7 +1483,7 @@ fun replaceSymbolsInSong(sourceText: String): String {
             val lineIsEmpty = line.trim() == ""
             val lineHaveOnlyChordsLetters = line.containOnlyThisSymbols(CHORDS_LETTERS) && !lineIsEmpty
             if (!lineHaveOnlyChordsLetters) {
-                linesWithoutChords.add(line)
+                linesWithoutChords.add(line.trimEnd())
             }
         }
         result = linesWithoutChords.joinToString("\n")

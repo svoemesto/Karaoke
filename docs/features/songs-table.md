@@ -21,6 +21,41 @@
 5. SSE-события `recordChange`/`recordDelete` обновляют строки без полного перезапроса.
 6. Связанные песни (`root_id`, `audio_parent_id`) показываются в колонках «root» и «A-root»; при наведении появляется тултип с автором, годом, альбомом и названием песни, загружаемый лениво через `GET /api/song/{id}/shortinfo`.
 
+## Ручной выбор похожей версии и аудиополя
+
+Кнопка «Похожие версии песни» в `SongEdit.vue` открывает модалку `FamilySongsModal.vue` со списком кандидатов из семьи текущей песни (`id`/`root_id`) и ручного поиска по названию. Клик по строке вызывает `POST /api/song/selectfamilysong`, который применяет helper `applyFamilySongSelection(song, another, deltaMs, audioParentId, audioSimilarityPercent, audioDeltaMs)`. Все три аудиополя (`audio_parent_id`, `audio_similarity_percent`, `audio_delta_ms`) устанавливаются до единственного `Song.saveToDb()`, поэтому попадают в один SQL `UPDATE` вместе с текстом, маркерами, `root_id` и условным `id_status`.
+
+### Правило выбора аудиополей
+
+| Состояние результата сверки в модалке | `audio_parent_id` | `audio_similarity_percent` | `audio_delta_ms` |
+|---|---:|---:|---:|
+| Успешная сверка (`status === 'done'`), любое значение | `another.id` | `similarityPercent` из результата | `deltaMs` из результата (signed) |
+| Сверка не выполнялась / ошибка / в процессе | `another.id` | `0` | `0` |
+| Клик по строке текущей песни (`current === true`) | без изменений | без изменений | без изменений |
+
+Нулевые значения `0%` и `0 мс` при `status === 'done'` сохраняются как валидный результат, а не обрабатываются как «сверки не было». Повторный выбор другого кандидата атомарно заменяет все три поля — старые метрики не остаются.
+
+### Контракт endpoint
+
+- `POST /api/song/selectfamilysong` принимает обязательные `id`, `idAnother` и опциональные `deltaMs` (signed Long), `audioSimilarityPercent` (Int 0..100). Параметр `audioParentId` от клиента НЕ принимается — сервер вычисляет его из загруженного `another.id`.
+- Ответ `SelectFamilySongResultDto` содержит `rootId`, `idStatus`, `audioParentId`, `audioSimilarityPercent`, `audioDeltaMs` — нормализованные значения, перечитанные из БД после `saveToDb()`.
+- Self-selection (`id == idAnother`) → 400 Bad Request с сообщением «выбор текущей песни недопустим».
+- Частичная пара метрик (только одна из `audioSimilarityPercent`/`deltaMs`) → 400 Bad Request с сообщением «Метрики сверки должны передаваться парой».
+- Невалидный диапазон процента → 400 Bad Request.
+- После `saveToDb()` backend перечитывает запись и проверяет, что три аудиополя действительно записаны; при расхождении возвращается ошибка (без ложного `success`).
+
+### In-flight guard и UX
+
+- Кнопка открытия модалки получает `:disabled="isSelectingFamilySong"` и текст «Применение…», чтобы исключить повторный клик во время запроса.
+- Модалка закрывается только после успешного ответа. При ошибке остаётся открытой, показывается toast через `showTelegramToast` с текстом ошибки (`error.message`).
+- После успешного ответа применяется Vuex-mutation `applyFamilySelectionResult`, которая обновляет `currentSong` и `snapshotSong` пятью полями (`rootId`, `idStatus`, `audioParentId`, `audioSimilarityPercent`, `audioDeltaMs`) одним коммитом. Это предотвращает повторную отправку этих полей через debounce-autosave.
+
+### Ограничения
+
+- `autoAssignOriginalByWaveform` (автоматический поиск аудио-родителя) использует тот же helper, но вызывает его без аудиопараметров — поведение этого сценария не меняется.
+- `audioCompareHistory`, схема `tbl_songs`, `SongDTO`, `SyncRegistry`, recordhash-триггеры и публичный frontend НЕ изменяются.
+- `audioParentId` относится к фактически выбранной строке, а не к её собственному `audioParentId` — flattening по цепочке не применяется.
+
 ## Инварианты / правила
 
 - **MUST**: Новые колонки добавляются в `songDigestFields()` и имеют matching `#cell(<key>)` слот ([CONTRIBUTING.md#vue-table-layout-fixed](../../CONTRIBUTING.md)).

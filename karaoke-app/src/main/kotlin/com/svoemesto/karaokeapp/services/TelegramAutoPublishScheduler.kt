@@ -16,8 +16,8 @@ import java.util.TimeZone
  * specs/113-telegram-demo-publish, FR-001).
  *
  * Вызывается с фиксированной задержкой (~60 секунд — короче, чем скользящее окно
- * `telegramAutoPublishWindowMinutes` по умолчанию 5 минут, чтобы гарантированно
- * поймать любую песню, чья date/time попала в окно). На каждый тик:
+ * `telegramAutoPublishWindowMinutes` по умолчанию 59 минут (временно для отладки),
+ * чтобы гарантированно поймать любую песню, чья date/time попала в окно). На каждый тик:
  *
  *  1. Если `telegramAutoPublishEnabled=false` — no-op (FR-013).
  *  2. Cheap SELECT кандидатов из `tbl_songs` (только id + publish_date/publish_time,
@@ -47,25 +47,29 @@ import java.util.TimeZone
  */
 @Component
 class TelegramAutoPublishScheduler {
-    // Периодичность тика: 60 секунд. Короче window (5 мин по умолчанию), чтобы любая песня,
+    // Периодичность тика: 60 секунд. Короче window (59 мин по умолчанию, временно для отладки), чтобы любая песня,
     // чья date/time попала в окно, гарантированно поймана. fixedDelay (не fixedRate) —
     // гарантия, что долгий тик (несколько sendVideo с retry) не наезжает на следующий.
     @Scheduled(fixedDelay = 60_000L, initialDelay = 60_000L)
     fun tick() {
-        if (!KaraokeProperties.getBoolean("telegramAutoPublishEnabled")) return
+        val tickStartMs = System.currentTimeMillis()
+        if (!KaraokeProperties.getBoolean("telegramAutoPublishEnabled")) {
+            return
+        }
 
         val channelId = KaraokeProperties.getString("telegramAutoPublishChannelId")
         if (channelId.isBlank()) {
             // FR-013: без channelId публикация невозможна — логируем и пропускаем тик.
-            println("TelegramAutoPublishScheduler: telegramAutoPublishChannelId is empty, skip tick")
             return
         }
 
         try {
+            val beforeResume = System.currentTimeMillis()
             resumeRenderingSongs()
+            val beforePublish = System.currentTimeMillis()
             publishScheduledSongs()
         } catch (e: Exception) {
-            println("TelegramAutoPublishScheduler.tick error: ${e.message}")
+            e.printStackTrace()
         }
     }
 
@@ -96,7 +100,7 @@ class TelegramAutoPublishScheduler {
 
     // Фаза 2 тика: песни с заполненными date/time и пустым idTelegramDemo → publishToTelegram.
     private fun publishScheduledSongs() {
-        val windowMinutes = KaraokeProperties.getLong("telegramAutoPublishWindowMinutes").let { if (it <= 0) 5L else it }
+        val windowMinutes = KaraokeProperties.getLong("telegramAutoPublishWindowMinutes").let { if (it <= 0) 59L else it }
         val candidates = loadWindowCandidateIds(windowMinutes)
         for (songId in candidates) {
             val song =
@@ -105,8 +109,15 @@ class TelegramAutoPublishScheduler {
                     database = WORKING_DATABASE,
                     storageService = KSS_APP,
                     storageApiClient = SAC_APP,
-                ) ?: continue
-            TelegramAutoPublishService.publishToTelegram(song, allowPastDate = false)
+                )
+            if (song == null) {
+                continue
+            }
+            // allowPastDate=true: окно (windowMinutes) — единственный контроль допустимого
+            // опоздания для auto-публикации. Без этого бот пропустит любую песню, чьё
+            // publishTime прошло более нескольких секунд назад (по строгому Q1 clarify
+            // "опоздавшие").
+            val result = TelegramAutoPublishService.publishToTelegram(song, allowPastDate = true)
         }
     }
 
@@ -136,7 +147,6 @@ class TelegramAutoPublishScheduler {
                 }
             }
         } catch (e: SQLException) {
-            println("TelegramAutoPublishScheduler.loadRenderingCandidateIds SQLException: ${e.message}")
         }
         return result
     }
@@ -176,7 +186,6 @@ class TelegramAutoPublishScheduler {
                 }
             }
         } catch (e: SQLException) {
-            println("TelegramAutoPublishScheduler.loadWindowCandidateIds SQLException: ${e.message}")
         }
         return result
     }
@@ -187,10 +196,11 @@ class TelegramAutoPublishScheduler {
         val connection = WORKING_DATABASE.getConnection() ?: return null
         try {
             connection.createStatement().use { st ->
+                // 2026-08-02 fix: process_status, не status (старое имя, несовместимо с текущей схемой).
                 val rs =
                     st.executeQuery(
                         """
-                        SELECT status, id
+                        SELECT process_status, id
                         FROM tbl_processes
                         WHERE settings_id = $songId AND process_type = 'RENDER_MP4_DEMO'
                         ORDER BY id DESC LIMIT 1
@@ -198,12 +208,11 @@ class TelegramAutoPublishScheduler {
                     )
                 rs.use {
                     if (rs.next()) {
-                        return RenderProcessInfo(rs.getString("status"), rs.getLong("id"))
+                        return RenderProcessInfo(rs.getString("process_status"), rs.getLong("id"))
                     }
                 }
             }
         } catch (e: SQLException) {
-            println("TelegramAutoPublishScheduler.findRenderDemoProcess SQLException: ${e.message}")
         }
         return null
     }
@@ -216,7 +225,15 @@ class TelegramAutoPublishScheduler {
             null
         } else {
             try {
-                SimpleDateFormat("dd.MM.yy HH:mm").parse("$date $time")
+                // Явная таймзона MSK: в контейнере karaoke-app JVM-локаль = UTC (TZ env не
+                // применяется к SimpleDateFormat), а publish_date/publish_time в БД
+                // интерпретируются как московское время. Без явной таймзоны парсинг
+                // даёт UTC-время, и сравнение с nowMoscow() (MSK) даёт ошибку в 3 часа
+                // (диагностировано 02.08.2026 — песня 14:00 не публиковалась).
+                SimpleDateFormat("dd.MM.yy HH:mm")
+                    .apply {
+                        timeZone = TimeZone.getTimeZone("Europe/Moscow")
+                    }.parse("$date $time")
             } catch (_: Exception) {
                 null
             }

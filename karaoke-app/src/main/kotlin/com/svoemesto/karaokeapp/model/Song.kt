@@ -615,7 +615,14 @@ class Song(
             null
         } else {
             try {
-                SimpleDateFormat("dd.MM.yy HH:mm").parse("$date $time")
+                // Явная таймзона MSK: в контейнере karaoke-app JVM-локаль = UTC (TZ env не
+                // применяется к SimpleDateFormat), а publish_date/publish_time в БД
+                // интерпретируются как московское время. Без явной таймзоны парсинг
+                // даёт UTC-время, и сравнение с nowMoscow() (MSK) даёт ошибку в 3 часа.
+                SimpleDateFormat("dd.MM.yy HH:mm")
+                    .apply {
+                        timeZone = TimeZone.getTimeZone("Europe/Moscow")
+                    }.parse("$date $time")
             } catch (_: Exception) {
                 null
             }
@@ -877,7 +884,29 @@ class Song(
     @get:JsonIgnore
     val playerReadinessFlagsMap: Map<String, Boolean> get() =
         try {
-            Json.decodeFromString(MapSerializer(String.serializer(), Boolean.serializer()), playerReadinessFlags)
+            // Парсим как JsonObject (а не Map<String, Boolean>) — это позволяет сосуществовать
+            // boolean-флагам (stemAccompanimentReady) и string-флагам (telegramAutoPublishState)
+            // в одном JSON-объекте без потери string-ключей (что было критическим багом
+            // 02.08.2026: setReadinessFlag через MapSerializer(String, Boolean) при
+            // encodeToString ОТБРАСЫВАЛ string-значения и сохранял только текущий boolean).
+            val obj =
+                Json.decodeFromString(
+                    kotlinx.serialization.json.JsonObject
+                        .serializer(),
+                    playerReadinessFlags,
+                )
+            obj.entries
+                .mapNotNull { (k, v) ->
+                    // JsonPrimitive.booleanOrNull появился в kotlinx-serialization-json 1.5+;
+                    // для совместимости (на старых версиях booleanContent) используем .content.
+                    val prim = v as? kotlinx.serialization.json.JsonPrimitive ?: return@mapNotNull null
+                    val content = prim.content
+                    when (content) {
+                        "true" -> k to true
+                        "false" -> k to false
+                        else -> null
+                    }
+                }.toMap()
         } catch (_: Exception) {
             emptyMap()
         }
@@ -888,9 +917,24 @@ class Song(
         key: String,
         value: Boolean,
     ) {
-        val updated = playerReadinessFlagsMap.toMutableMap()
-        updated[key] = value
-        playerReadinessFlags = Json.encodeToString(MapSerializer(String.serializer(), Boolean.serializer()), updated)
+        // Раньше использовался MapSerializer(String.serializer(), Boolean.serializer()) — это приводило
+        // к ПОТЕРЕ всех string-ключей в JSON (telegramAutoPublishState, vkAutoPublishState и т.п.) при
+        // любой записи boolean-флага. Теперь: парсим JSON как JsonObject (совместимо с обоими типами
+        // значений), модифицируем и сохраняем через JsonObject.encodeToString — string-значения
+        // сохраняются без искажений.
+        val updated =
+            try {
+                Json
+                    .decodeFromString(
+                        kotlinx.serialization.json.JsonObject
+                            .serializer(),
+                        playerReadinessFlags,
+                    ).toMutableMap()
+            } catch (_: Exception) {
+                mutableMapOf()
+            }
+        updated[key] = kotlinx.serialization.json.JsonPrimitive(value)
+        playerReadinessFlags = Json.encodeToString(kotlinx.serialization.json.JsonObject(updated))
     }
 
     // Фаза 2 (specs/113-telegram-demo-publish): string-ключи состояния автопубликации демо в тот же
@@ -949,6 +993,25 @@ class Song(
         get() = readinessStringFlag("telegramAutoPublishLastError")
         set(value) = setReadinessStringFlag("telegramAutoPublishLastError", value)
 
+    // specs/121-vk-news-auto-publish: состояние автопубликации в группу ВКонтакте (один из
+    // VkAutoPublishState.code или "" если ещё не устанавливался). Хранится в player_readiness_flags,
+    // не отдельной колонкой (паттерн specs/101-song-news-flag). Для типичного случая состояние
+    // выводится из Song.idVk через effectiveVkAutoPublishState; это поле — только для промежуточных
+    // состояний (RENDERING, PUBLISHING, SEND_FAILED).
+    var vkAutoPublishState: String
+        get() = readinessStringFlag("vkAutoPublishState")
+        set(value) = setReadinessStringFlag("vkAutoPublishState", value)
+
+    // ISO-8601 timestamp последней попытки публикации в ВК (для отладки в UI).
+    var vkAutoPublishLastAttemptAt: String
+        get() = readinessStringFlag("vkAutoPublishLastAttemptAt")
+        set(value) = setReadinessStringFlag("vkAutoPublishLastAttemptAt", value)
+
+    // Текст последней ошибки публикации в ВК (для отладки в UI).
+    var vkAutoPublishLastError: String
+        get() = readinessStringFlag("vkAutoPublishLastError")
+        set(value) = setReadinessStringFlag("vkAutoPublishLastError", value)
+
     var stemAccompanimentReady: Boolean
         get() = readinessFlag("stemAccompanimentReady")
         set(value) = setReadinessFlag("stemAccompanimentReady", value)
@@ -975,6 +1038,47 @@ class Song(
     var newsAvailableAnnounced: Boolean
         get() = readinessFlag("newsAvailableAnnounced")
         set(value) = setReadinessFlag("newsAvailableAnnounced", value)
+
+    // Флаг «нужно сделать автоматическую премиум-публикацию в Telegram+VK» (specs/122-premium-auto-publish).
+    // Выставляется в true в markNewsAvailableIfReady() при первом переходе newsAvailableAnnounced false→true,
+    // обрабатывается PremiumAutoPublishScheduler каждые 30 сек. После успешной отправки в ОБА канала
+    // (TG+VK), либо после исчерпания лимита попыток, сбрасывается в false. Никогда не выставляется
+    // обратно в true после первого сброса — повторных событий «доступна» для одной песни быть не может
+    // (newsAvailableAnnounced монотонно растёт).
+    var newsPremiumPublishPending: Boolean
+        get() = readinessFlag("newsPremiumPublishPending")
+        set(value) = setReadinessFlag("newsPremiumPublishPending", value)
+
+    // Премиум-публикация в Telegram успешно выполнена (для избежания дублей между тиками scheduler'a
+    // и ручными вызовами /api/telegram/publishPremium). Устанавливается после PUBLISHED, не сбрасывается.
+    var newsPremiumTelegramSent: Boolean
+        get() = readinessFlag("newsPremiumTelegramSent")
+        set(value) = setReadinessFlag("newsPremiumTelegramSent", value)
+
+    // Премиум-публикация в VK успешно выполнена. Устанавливается после PUBLISHED, не сбрасывается.
+    var newsPremiumVkSent: Boolean
+        get() = readinessFlag("newsPremiumVkSent")
+        set(value) = setReadinessFlag("newsPremiumVkSent", value)
+
+    // Счётчик попыток премиум-публикации (общий для TG+VK — каждая попытка любого канала
+    // инкрементирует). При достижении premiumAutoPublishMaxAttempts — newsPremiumPublishPending=false
+    // и premiumAutoPublishState="FAILED". Хранится как String (KV-JSON не поддерживает Int-примитивы
+    // в существующем readinessFlag-парсере), парсится через toIntOrNull с дефолтом 0.
+    var premiumAttemptCount: Int
+        get() = readinessStringFlag("premiumAttemptCount").toIntOrNull() ?: 0
+        set(value) = setReadinessStringFlag("premiumAttemptCount", value.toString())
+
+    // Состояние премиум-публикации (для UI): "" если ещё не начинали, "RUNNING" если в процессе
+    // (хотя бы один канал ещё не завершён), "COMPLETE" если оба канала опубликованы, "FAILED"
+    // если исчерпаны попытки без успеха в обоих каналах.
+    var premiumAutoPublishState: String
+        get() = readinessStringFlag("premiumAutoPublishState")
+        set(value) = setReadinessStringFlag("premiumAutoPublishState", value)
+
+    // Текст последней ошибки премиум-публикации (для UI / отладки).
+    var premiumAutoPublishLastError: String
+        get() = readinessStringFlag("premiumAutoPublishLastError")
+        set(value) = setReadinessStringFlag("premiumAutoPublishLastError", value)
 
     // Готовность КОНТЕНТА песни (без учёта даты эфира/премиума) — статус жизненного цикла (см.
     // specs/022-song-status-lifecycle) + персистентные флаги готовности стемов/обложек + непустые
@@ -1118,6 +1222,21 @@ class Song(
             return com.svoemesto.karaokeapp.services.TelegramAutoPublishState
                 .fromCode(telegramAutoPublishState)
                 ?: com.svoemesto.karaokeapp.services.TelegramAutoPublishState.SCHEDULED
+        }
+
+    // specs/121-vk-news-auto-publish: эффективное состояние автопубликации в ВК для UI/логики.
+    // PUBLISHED определяется по заполненному Song.idVk (FR-008), а не по vkAutoPublishState —
+    // чтобы любая попытка записи (бот или ручная) согласованно отражалась в UI. Идемпотентность
+    // общая для air и premium (один пост на песню, независимо от типа, FR-007/FR-016/FR-026).
+    @get:JsonIgnore
+    val effectiveVkAutoPublishState: com.svoemesto.karaokeapp.services.VkAutoPublishState
+        get() {
+            if (idVk.isNotEmpty()) {
+                return com.svoemesto.karaokeapp.services.VkAutoPublishState.PUBLISHED
+            }
+            return com.svoemesto.karaokeapp.services.VkAutoPublishState
+                .fromCode(vkAutoPublishState)
+                ?: com.svoemesto.karaokeapp.services.VkAutoPublishState.SCHEDULED
         }
 
     val idSponsr: String get() = fields[SongField.ID_SPONSR]?.nullIfEmpty() ?: ""
@@ -4512,7 +4631,7 @@ class Song(
         "\n\n" +
             "Официальный сайт проекта: https://sm-karaoke.ru\n" +
             "Поддержать проект на Sponsr: https://sponsr.ru/smkaraoke\n" +
-            "Группа ВКонтакте: https://vk.com/svoemestokaraoke\n" +
+            "Группа ВКонтакте: https://vk.ru/svoemestokaraoke\n" +
             "Канал Telegram: https://t.me/svoemestokaraoke\n" +
             "Канал Дзен: https://dzen.ru/svoemesto\n" +
             "Канал Макс: https://max.ru/join/hYGH-mbcExUtzP5o4zq38uwb0xL9iwL80uSeEBO7Bu0\n" +
@@ -4945,7 +5064,17 @@ class Song(
     // isContentReady/getter'е, чтобы попасть в ТОТ ЖЕ diff/UPDATE, что и остальные изменения этого
     // save() (иначе транзиция обнаружилась бы синхронизацией только через один save() позже). FR-002/
     // FR-003 spec.md: onAir намеренно не учитывается (это событие «доступна», не «в эфире»); once true,
-    // никогда не сбрасывается обратно.
+    // никогда не сбрасывается обратно в false.
+    //
+    // specs/122-premium-auto-publish: разбито на ДВА независимых блока:
+    //   1) newsAvailableAnnounced: ставится при первом переходе false→true (исходное условие).
+    //   2) newsPremiumPublishPending: ставится, если песня контент-ready И премиум-публикация ещё
+    //      не в процессе И песня ещё не в эфире. ВАЖНО — разнесено в отдельный блок потому что
+    //      `newsAvailableAnnounced` мог быть выставлен РАНЕЕ старого кода (premiumAutoPublish-* флагов
+    //      до 02.08.2026 не было), и тогда первый блок не сработает → второй блок подхватит такие
+    //      песни при первом же saveToDb() после развёртывания нового кода.
+    //      Если идём по этому пути на старой песне — это нормальная инициализация: для уже-опубликованных
+    //      в эфир (idTelegramDemo/idVk заполнены) флаг не выставляется вообще — для них премиум-лишний.
     private fun markNewsAvailableIfReady() {
         if (!newsAvailableAnnounced &&
             idStatus == 6L &&
@@ -4956,6 +5085,24 @@ class Song(
             sourceMarkersList.isNotEmpty()
         ) {
             newsAvailableAnnounced = true
+        }
+        // Блок 2 — выставление newsPremiumPublishPending. Идемпотентен: пока флаг уже true или премиум
+        // уже завершён (COMPLETE) или провален окончательно (FAILED) — не переустанавливаем.
+        if (!newsPremiumPublishPending &&
+            (premiumAutoPublishState.isBlank() || premiumAutoPublishState == "RUNNING") &&
+            idTelegramDemo.isEmpty() &&
+            idVk.isEmpty() &&
+            idStatus == 6L &&
+            stemAccompanimentReady &&
+            stemVocalReady &&
+            pictureAlbumReady &&
+            pictureAuthorReady &&
+            sourceMarkersList.isNotEmpty()
+        ) {
+            newsPremiumPublishPending = true
+            premiumAutoPublishState = "RUNNING"
+            premiumAttemptCount = 0
+            premiumAutoPublishLastError = ""
         }
     }
 

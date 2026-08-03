@@ -49,7 +49,7 @@ enum class KaraokePlatform(
         forAllVersions = true,
         haveVersionNumber = false,
         svg = SVG["icon_vk2"] ?: "",
-        prefixPlay = "https://vk.com/wall-",
+        prefixPlay = "https://vk.ru/wall-",
         settingsFieldPublicationId = mapOf("ALL" to SongField.ID_VK),
         settingsFieldVersionNumber = emptyMap(),
         onAirPublications = true,

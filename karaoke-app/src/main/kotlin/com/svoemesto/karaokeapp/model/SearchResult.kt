@@ -114,7 +114,7 @@ class SearchResult(
                         domain == "genius.com" -> listOf("Lyrics__Container")
                         domain == "tekst-pesni.online" -> listOf("entry-content", "clearfix")
                         domain == "www.shazam.com" -> listOf("AppleMusicLyrics_lyricsBlock")
-                        domain == "vk.com" -> listOf("vkitFeedShowMoreText")
+                        domain == "vk.ru" || domain == "vk.com" -> listOf("vkitFeedShowMoreText")
                         domain == "darktexts.ru" -> listOf("full-text")
                         domain == "www.beesona.pro" -> listOf("copys")
                         domain == "alllyr.ru" -> listOf("inline")

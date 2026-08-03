@@ -619,6 +619,28 @@
                 <button class="btn-round" @click="pasteFromClipboard('idVk')">
                   <img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg" />
                 </button>
+                <!-- specs/121-vk-news-auto-publish FR-016/FR-026: кнопки «Опубликовать во ВК (air)»
+                     и «Опубликовать во ВК (premium)» — видны только если idVk пуст (общая идемпотентность
+                     по Song.idVk, один пост на песню независимо от типа). Триггерят
+                     POST /api/song/publishToVkNow?type=air|premium. -->
+                <button
+                  v-if="!song.idVk"
+                  class="btn-round btn-publish-vk-now"
+                  :disabled="isPublishingVk"
+                  :title="isPublishingVk ? 'Публикация…' : 'Опубликовать во ВК (air)'"
+                  @click="publishToVkNow('air')"
+                >
+                  <span style="font-size: 11px; font-weight: bold">ВК</span>
+                </button>
+                <button
+                  v-if="!song.idVk"
+                  class="btn-round btn-publish-vk-premium"
+                  :disabled="isPublishingVk"
+                  :title="isPublishingVk ? 'Публикация…' : 'Опубликовать во ВК (premium)'"
+                  @click="publishToVkNow('premium')"
+                >
+                  <span style="font-size: 10px; font-weight: bold">ВК+</span>
+                </button>
               </div>
             </div>
           </div>
@@ -2552,6 +2574,7 @@ export default {
       // Фаза 2 автопубликации (specs/113-telegram-demo-publish): блокирует повторные клики
       // кнопки «Опубликовать сейчас» во время асинхронного sendVideo с retry (до 5+ минут).
       isPublishingTelegram: false,
+      isPublishingVk: false,
       allowUpdateRemote: false,
       allowUpdateLocal: false,
       allowAddSync: false,
@@ -2846,7 +2869,7 @@ export default {
       return 'https://sponsr.ru/smkaraoke/manage/post/new/'
     },
     prefixLinkVkGroup: () => {
-      return 'https://vk.com/wall-'
+      return 'https://vk.ru/wall-'
     },
     prefixLinkDzenPlay: () => {
       return 'https://dzen.ru/video/watch/'
@@ -2858,7 +2881,7 @@ export default {
       return 'https://vkvideo.ru/video'
     },
     prefixLinkVk2: () => {
-      return 'https://vk.com/video'
+      return 'https://vk.ru/video'
     },
     prefixLinkTelegram: () => {
       return 'https://t.me/svoemestokaraoke/'
@@ -4080,6 +4103,55 @@ export default {
             'toast-header-copytoclipboard',
             'toast-body-copytoclipboard',
           )
+        })
+    },
+
+    /**
+     * specs/121-vk-news-auto-publish FR-016/FR-026: принудительная публикация песни в группу ВК.
+     * type='air' — авто-шаблон (vkTemplateAir), type='premium' — премиум-шаблон (vkTemplatePremium).
+     * POST /api/song/publishToVkNow?id=<id>&type=<type>. По образцу publishToTelegramNow выше.
+     * Кнопка скрыта во фронте, если idVk уже заполнен (FR-008 — общая идемпотентность).
+     * @see docs/features/vk-news-auto-publish.md
+     */
+    publishToVkNow(type = 'air') {
+      if (this.isPublishingVk) return
+      this.isPublishingVk = true
+      const params = { id: this.$store.state.currentSongId, type }
+      const request = { method: 'POST', url: '/api/song/publishToVkNow', params }
+      this.$store
+        .dispatch('promisedXMLHttpRequest', request)
+        .then((response) => {
+          this.isPublishingVk = false
+          let data = {}
+          try {
+            data = typeof response === 'string' ? JSON.parse(response) : response
+          } catch (_e) {
+            data = {}
+          }
+          const state = data.state || 'unknown'
+          const error = data.error || ''
+          const success = data.success === true
+          if (success) {
+            const msg =
+              state === 'rendering'
+                ? `Поставлен рендер демо; публикация в ВК продолжится после рендера.`
+                : state === 'publishing'
+                  ? `Демо-MP4 отправляется в ВК.`
+                  : `Публикация в ВК выполнена.`
+            this.showTelegramToast(msg, 'ВК', 'toast-header-copytoclipboard', 'toast-body-copytoclipboard')
+            // Обновим idVk из ответа, если пришёл postId.
+            if (data.postId) {
+              this.$store.commit('setCurrentSongField', { name: 'idVk', value: data.postId })
+            }
+          } else {
+            const msg = error || `Публикация в ВК не выполнена (state=${state}).`
+            this.showTelegramToast(msg, 'ВК: ошибка', 'toast-header-copytoclipboard', 'toast-body-copytoclipboard')
+          }
+        })
+        .catch((error) => {
+          this.isPublishingVk = false
+          const msg = error && error.message ? error.message : 'Ошибка запроса публикации в ВК.'
+          this.showTelegramToast(msg, 'ВК: ошибка', 'toast-header-copytoclipboard', 'toast-body-copytoclipboard')
         })
     },
 

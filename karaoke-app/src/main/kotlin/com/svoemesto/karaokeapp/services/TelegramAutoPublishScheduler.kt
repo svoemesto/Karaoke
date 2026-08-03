@@ -202,7 +202,7 @@ class TelegramAutoPublishScheduler {
                         """
                         SELECT process_status, id
                         FROM tbl_processes
-                        WHERE settings_id = $songId AND process_type = 'RENDER_MP4_DEMO'
+                        WHERE song_id = $songId AND process_type = 'RENDER_MP4_DEMO'
                         ORDER BY id DESC LIMIT 1
                         """.trimIndent(),
                     )

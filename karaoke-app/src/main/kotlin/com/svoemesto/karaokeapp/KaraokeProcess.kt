@@ -84,7 +84,7 @@ class KaraokeProcess(
     @KaraokeDbTableField(name = "process_description")
     var description: String = "description"
 
-    @KaraokeDbTableField(name = "settings_id")
+    @KaraokeDbTableField(name = "song_id")
     var songId: Int = 0
 
     @KaraokeDbTableField(name = "process_type")
@@ -293,7 +293,7 @@ class KaraokeProcess(
                 "process_args = ?, " +
                 "process_envs = ?, " +
                 "process_description = ?, " +
-                "settings_id = ?, " +
+                "song_id = ?, " +
                 "process_type = ?, " +
                 "process_start = ?, " +
                 "process_end = ?, " +
@@ -681,7 +681,7 @@ class KaraokeProcess(
                     "process_args, " +
                     "process_envs, " +
                     "process_description, " +
-                    "settings_id, " +
+                    "song_id, " +
                     "process_type, " +
                     "process_start, " +
                     "process_end, " +
@@ -823,7 +823,7 @@ class KaraokeProcess(
                     process.args = convertJsonToArgs(rs.getString("process_args"))
                     process.envs = convertJsonToEnvs(rs.getString("process_envs"))
                     process.description = rs.getString("process_description")
-                    process.songId = rs.getInt("settings_id")
+                    process.songId = rs.getInt("song_id")
                     process.type = rs.getString("process_type")
                     process.start = rs.getTimestamp("process_start")
                     process.end = rs.getTimestamp("process_end")
@@ -874,7 +874,7 @@ class KaraokeProcess(
                 if (args.containsKey("process_command")) where += "process_command LIKE '%${args["process_command"]}%'"
                 if (args.containsKey("process_args")) where += "process_args LIKE '%${args["process_args"]}%'"
                 if (args.containsKey("process_description")) where += "process_description LIKE '%${args["process_description"]}%'"
-                if (args.containsKey("settings_id")) where += "settings_id=${args["settings_id"]}"
+                if (args.containsKey("song_id")) where += "song_id=${args["song_id"]}"
                 if (args.containsKey("process_type")) where += "process_type = '${args["process_type"]}'"
                 if (args.containsKey("process_prioritet")) where += "process_prioritet = '${args["process_prioritet"]}'"
                 if (args.containsKey("filter_notail")) where += "process_command <> 'tail'"
@@ -898,7 +898,7 @@ class KaraokeProcess(
                     process.args = convertJsonToArgs(rs.getString("process_args"))
                     process.envs = convertJsonToEnvs(rs.getString("process_envs"))
                     process.description = rs.getString("process_description")
-                    process.songId = rs.getInt("settings_id")
+                    process.songId = rs.getInt("song_id")
                     process.type = rs.getString("process_type")
                     process.start = rs.getTimestamp("process_start")
                     process.end = rs.getTimestamp("process_end")
@@ -978,7 +978,7 @@ class KaraokeProcess(
 
             val existedProcessesLookupArgs =
                 mutableMapOf(
-                    "settings_id" to song.id.toString(),
+                    "song_id" to song.id.toString(),
                     "process_type" to action.name,
                     "thread_id" to threadId.toString(),
                 )

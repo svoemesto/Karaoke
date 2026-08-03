@@ -1,0 +1,21 @@
+-- Доименование рефакторинга Settings→Song (PR #158, specs/102-rename-song-settings-vars):
+-- колонка tbl_processes.settings_id (FK на песню, к которой относится задание очереди)
+-- всё ещё называется по старому имени класса. Переименовывается только колонка —
+-- у неё нет ни индекса, ни внешнего ключа, ни constraint'а, ни recordhash-триггера
+-- (tbl_processes не участвует в SyncRegistry), поэтому миграция состоит из одной строки.
+--
+-- ВАЖНО (runbook, по аналогии с 28_rename_settings_to_songs.sql): применять на LOCAL и
+-- на PROD СТРОГО в этом порядке:
+--   1. Эта миграция -- на LOCAL.
+--   2. Обновить Kotlin-код (@KaraokeDbTableField(name = "song_id") в KaraokeProcess.kt +
+--      все raw-SQL литералы "settings_id" -> "song_id") и пересобрать/перезапустить
+--      karaoke-app (перезапуск -- только пользователь, см. constitution.md).
+--   3. Убедиться, что очередь заданий (создание/чтение/фильтрация по песне) работает
+--      как раньше.
+--   4. Только после этого -- та же миграция на PROD, по прямому согласию пользователя
+--      (karaoke-app на проде не разворачивается, karaoke-web к tbl_processes не
+--      обращается вовсе -- но PROD БД должна остаться в одной схеме с LOCAL).
+-- Если применить эту миграцию БЕЗ немедленного обновления кода -- karaoke-app сломается
+-- на первом же обращении к очереди ("column settings_id does not exist").
+
+ALTER TABLE public.tbl_processes RENAME COLUMN settings_id TO song_id;

@@ -1904,6 +1904,31 @@ val listKaraokeProperties =
                     "поэтому premium-публикация сейчас идёт без видео (только текст + ссылка). " +
                     "Для публикации с видео: добавить {demoVideo} и получить user-token с правом video через support VK.",
         ),
+        // Предварительная подготовка превью перед публикацией в ВК (specs/130-vk-preview-generation).
+        // Бот синхронно прогревает публичный URL изображения до создания поста, чтобы VK-бот получил
+        // готовый PNG без задержки первой генерации. Гипотеза: текущие публикации без превью связаны с
+        // тем, что бот ВК не дожидается ответа первой генерации `/api/public/song-vk-image/{id}`.
+        // @see docs/features/vk-news-auto-publish.md
+        KaraokeProperty(
+            key = "vkPreviewWarmupEnabled",
+            defaultValue = true,
+            description = "ВК: включить предварительный прогрев изображения перед wall.post. false = пропустить шаг (аварийный откат к старому flow)",
+        ),
+        KaraokeProperty(
+            key = "vkPreviewWarmupUrl",
+            defaultValue = "https://sm-karaoke.ru/api/public/song-vk-image/",
+            description = "ВК: базовый URL endpoint'а прогрева превью (без токенов). Запрос: GET {url}{songId}",
+        ),
+        KaraokeProperty(
+            key = "vkPreviewWarmupTimeoutMs",
+            defaultValue = 30000L,
+            description = "ВК: тайм-аут одного запроса прогрева (мс)",
+        ),
+        KaraokeProperty(
+            key = "vkPreviewWarmupMaxAttempts",
+            defaultValue = 2L,
+            description = "ВК: число попыток прогрева (ретрай только transient-ошибок и 5xx)",
+        ),
         KaraokeProperty(
             key = "telegramTemplateAir",
             defaultValue = "",

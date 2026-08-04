@@ -15,6 +15,7 @@ import java.sql.SQLException
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.TimeZone
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Выполняет полный цикл автопубликации песни в группу ВКонтакте (specs/121-vk-news-auto-publish).
@@ -34,6 +35,11 @@ import java.util.TimeZone
  */
 object VkAutoPublishService {
     private val client = VkApiClient()
+    private val warmupClient = VkPreviewWarmupClient()
+    private val songLocks = ConcurrentHashMap<Long, Any>()
+    private const val PREWARM_FAILURE_PREFIX = "preview prewarm failed:"
+
+    private fun lockFor(songId: Long): Any = songLocks.computeIfAbsent(songId) { Any() }
 
     /**
      * Выполняет полный цикл публикации [song] в группу ВК типа [type] (FR-001, FR-008,
@@ -231,30 +237,64 @@ object VkAutoPublishService {
             )
         }
 
-        // PUBLISHING — фиксируем начало отправки (для UI «Публикуется»).
-        song.vkAutoPublishState = VkAutoPublishState.PUBLISHING.code
-        song.vkAutoPublishLastAttemptAt = nowIso8601()
-        song.vkAutoPublishLastError = ""
-        song.saveToDb()
-
-        val result = client.sendPostWithVideo(groupId, message, demoFile, song.id)
-
-        if (result.state == VkAutoPublishState.PUBLISHED && result.postId != null) {
-            if (persistPostId) {
-                // FR-004 (AIR): запись id поста в Song.idVk через штатный saveToDb → SSE + sync.
-                song.fields[SongField.ID_VK] = result.postId
-            } else {
-                // PREMIUM: не сохраняем post_id — этот слот заполнится будущей AIR-публикацией.
-                song.newsPremiumVkSent = true
+        val lock = lockFor(song.id)
+        return synchronized(lock) {
+            // Идемпотентность под локом: если параллельный вызов уже опубликовал — выходим.
+            // song здесь может быть stale (загружен до того, как параллельный onRenderCompleted
+            // успел сделать wall.post), поэтому перечитываем idVk из БД под локом.
+            val persistedIdVk = Song.loadFromDbById(id = song.id, database = WORKING_DATABASE, storageService = KSS_APP, storageApiClient = SAC_APP)?.idVk ?: ""
+            if (persistedIdVk.isNotEmpty()) {
+                song.fields[SongField.ID_VK] = persistedIdVk
+                return@synchronized VkAutoPublishResult(
+                    state = VkAutoPublishState.PUBLISHED,
+                    postId = persistedIdVk,
+                )
             }
-            song.vkAutoPublishState = VkAutoPublishState.PUBLISHED.code
+            if (type == PublicationType.PREMIUM && song.newsPremiumVkSent) {
+                return@synchronized VkAutoPublishResult(
+                    state = VkAutoPublishState.PUBLISHED,
+                    postId = "",
+                )
+            }
+
+            // specs/130-vk-preview-generation: прогреваем PNG до публикации, чтобы VK-бот
+            // получил готовый файл без задержки первой генерации. Ошибка прогрева блокирует
+            // wall.post и записывается через SEND_FAILED с префиксом.
+            val warmup = warmupClient.warmup(song.id)
+            if (warmup.status == VkPreviewWarmupStatus.FAILED) {
+                val reason = "$PREWARM_FAILURE_PREFIX ${warmup.error ?: "unknown"} (http=${warmup.httpStatus}, attempts=${warmup.attempts})"
+                writeFailure(song, reason)
+                return@synchronized VkAutoPublishResult(
+                    state = VkAutoPublishState.SEND_FAILED,
+                    error = reason,
+                )
+            }
+
+            // PUBLISHING — фиксируем начало отправки (для UI «Публикуется»).
+            song.vkAutoPublishState = VkAutoPublishState.PUBLISHING.code
+            song.vkAutoPublishLastAttemptAt = nowIso8601()
             song.vkAutoPublishLastError = ""
             song.saveToDb()
-            return result
-        }
 
-        writeFailure(song, result.error ?: "sendPostWithVideo failed (no error description)")
-        return result
+            val result = client.sendPostWithVideo(groupId, message, demoFile, song.id)
+
+            if (result.state == VkAutoPublishState.PUBLISHED && result.postId != null) {
+                if (persistPostId) {
+                    // FR-004 (AIR): запись id поста в Song.idVk через штатный saveToDb → SSE + sync.
+                    song.fields[SongField.ID_VK] = result.postId
+                } else {
+                    // PREMIUM: не сохраняем post_id — этот слот заполнится будущей AIR-публикацией.
+                    song.newsPremiumVkSent = true
+                }
+                song.vkAutoPublishState = VkAutoPublishState.PUBLISHED.code
+                song.vkAutoPublishLastError = ""
+                song.saveToDb()
+                return@synchronized result
+            }
+
+            writeFailure(song, result.error ?: "sendPostWithVideo failed (no error description)")
+            result
+        }
     }
 
     /** Публикует только текст (без видео) — для шаблонов без маркера `{demoVideo}`. */
@@ -273,27 +313,57 @@ object VkAutoPublishService {
             )
         }
 
-        song.vkAutoPublishState = VkAutoPublishState.PUBLISHING.code
-        song.vkAutoPublishLastAttemptAt = nowIso8601()
-        song.vkAutoPublishLastError = ""
-        song.saveToDb()
-
-        val result = client.wallPost(groupId, message, attachments = null)
-
-        if (result.state == VkAutoPublishState.PUBLISHED && result.postId != null) {
-            if (persistPostId) {
-                song.fields[SongField.ID_VK] = result.postId
-            } else {
-                song.newsPremiumVkSent = true
+        val lock = lockFor(song.id)
+        return synchronized(lock) {
+            // Идемпотентность под локом: см. publishFile.
+            val persistedIdVk = Song.loadFromDbById(id = song.id, database = WORKING_DATABASE, storageService = KSS_APP, storageApiClient = SAC_APP)?.idVk ?: ""
+            if (persistedIdVk.isNotEmpty()) {
+                song.fields[SongField.ID_VK] = persistedIdVk
+                return@synchronized VkAutoPublishResult(
+                    state = VkAutoPublishState.PUBLISHED,
+                    postId = persistedIdVk,
+                )
             }
-            song.vkAutoPublishState = VkAutoPublishState.PUBLISHED.code
+            if (type == PublicationType.PREMIUM && song.newsPremiumVkSent) {
+                return@synchronized VkAutoPublishResult(
+                    state = VkAutoPublishState.PUBLISHED,
+                    postId = "",
+                )
+            }
+
+            // specs/130-vk-preview-generation: прогреваем PNG до публикации.
+            val warmup = warmupClient.warmup(song.id)
+            if (warmup.status == VkPreviewWarmupStatus.FAILED) {
+                val reason = "$PREWARM_FAILURE_PREFIX ${warmup.error ?: "unknown"} (http=${warmup.httpStatus}, attempts=${warmup.attempts})"
+                writeFailure(song, reason)
+                return@synchronized VkAutoPublishResult(
+                    state = VkAutoPublishState.SEND_FAILED,
+                    error = reason,
+                )
+            }
+
+            song.vkAutoPublishState = VkAutoPublishState.PUBLISHING.code
+            song.vkAutoPublishLastAttemptAt = nowIso8601()
             song.vkAutoPublishLastError = ""
             song.saveToDb()
-            return result
-        }
 
-        writeFailure(song, result.error ?: "wallPost (text-only) failed")
-        return result
+            val result = client.wallPost(groupId, message, attachments = null)
+
+            if (result.state == VkAutoPublishState.PUBLISHED && result.postId != null) {
+                if (persistPostId) {
+                    song.fields[SongField.ID_VK] = result.postId
+                } else {
+                    song.newsPremiumVkSent = true
+                }
+                song.vkAutoPublishState = VkAutoPublishState.PUBLISHED.code
+                song.vkAutoPublishLastError = ""
+                song.saveToDb()
+                return@synchronized result
+            }
+
+            writeFailure(song, result.error ?: "wallPost (text-only) failed")
+            result
+        }
     }
 
     /** Для AIR — ищет связанную опубликованную новость `air`; для PREMIUM — null (FR-026). */

@@ -1,8 +1,8 @@
 # Автопубликация новостей в группу ВКонтакте
 
-> **Status**: active (specs/121-vk-news-auto-publish)
+> **Status**: active (specs/121-vk-news-auto-publish, specs/130-vk-preview-generation)
 > **Feature Key**: vk-news-auto-publish
-> **Last Updated**: 2026-08-01
+> **Last Updated**: 2026-08-03
 
 ## Что делает
 
@@ -80,11 +80,16 @@
 4. FR-023: текст поста по шаблону (`vkTemplateAir` / `vkTemplatePremium`)
    через `VkTemplateService.render(template, song, news?)` с заменой
    плейсхолдеров.
-5. FR-019: `VkApiClient.sendPostWithVideo` — `video.save` → загрузка →
+5. **specs/130 — прогрев превью**: под локом по `song.id` синхронный GET
+   `{vkPreviewWarmupUrl}{songId}` → HTTP 200 + валидный PNG. Успех означает,
+   что `karaoke-web` уже записал `/tmp/vk_<id>.png` и VK-бот при первом
+   обращении получит готовый файл. При ошибке — `SEND_FAILED` с префиксом
+   `preview prewarm failed:`; `wall.post` НЕ вызывается.
+6. FR-019: `VkApiClient.sendPostWithVideo` — `video.save` → загрузка →
    `wall.post` с `attachments=video<owner_id>_<video_id>`.
-6. FR-004: при успехе — `song.fields[SongField.ID_VK] = postId`,
+7. FR-004: при успехе — `song.fields[SongField.ID_VK] = postId`,
    `song.saveToDb()` (с диффом, recordhash-триггером, SSE).
-7. FR-009: при сбое — 3 ретрая с backoff 30с→2мин→5мин; затем
+8. FR-009: при сбое — 3 ретрая с backoff 30с→2мин→5мин; затем
    `SEND_FAILED` в `vkAutoPublishState`.
 
 **Идемпотентность** — по `Song.idVk` (один пост на песню, независимо от
@@ -119,6 +124,57 @@
 - Готовность песни (FR-022) — статус ≥ 6 + флаги готовности плеера (то
   же условие, что `specs/113-telegram-demo-publish` FR-011,
   `specs/089-auto-news-song-release` FR-009).
+- **specs/130: прогрев превью — обязательный шаг перед `wall.post`**
+  (`vkPreviewWarmupEnabled=true` по умолчанию). Успех — HTTP 200 + ненулевой
+  валидный PNG. 3xx без follow, 4xx (кроме 429), 5xx после retry, пустое
+  тело, повреждённый PNG → `FAILED` → `SEND_FAILED` с префиксом
+  `preview prewarm failed:`. Retry только transient-сетевых и 5xx (настройка
+  `vkPreviewWarmupMaxAttempts`).
+- **specs/130: process-local lock по `song.id`** — сериализует публикацию
+  одной песни. Под локом перечитывается `Song.idVk` из БД (защита от
+  stale-instance race `publishToVk` ↔ `onRenderCompleted`). Lock не в БД.
+- **specs/130: атомарная запись web-кэша** — `PublicApiController.songVkImage`
+  пишет PNG во временный файл и затем `Files.move` с `ATOMIC_MOVE`
+  (fallback на `REPLACE_EXISTING`). Чтение проверяет PNG magic-signature
+  (8 байт) — частично записанный или повреждённый кэш удаляется и
+  перегенерируется.
+
+## Прогрев превью (specs/130)
+
+Гипотеза проверяется синхронным прогревом публичного изображения перед
+`wall.post`: VK-бот при первом обращении к `karaoke-web/api/public/song-vk-image/{id}`
+получает уже готовый PNG, без ожидания первой генерации (которая занимает
+секунды из-за MinIO + сборки PNG).
+
+### Поток прогрева
+
+1. `VkAutoPublishService` под локом по `song.id` синхронно вызывает
+   `VkPreviewWarmupClient.warmup(songId)`.
+2. `VkPreviewWarmupClient` строит URL `{vkPreviewWarmupUrl}{songId}` и
+   делает GET через `java.net.http.HttpClient` с `Redirect.NEVER`.
+3. Успех = HTTP 200 + ненулевое тело + декодируется как PNG через
+   `ImageIO.read`.
+4. Ошибка (3xx, 4xx (кроме 429), 5xx после retry, тайм-аут, пустое тело,
+   повреждённый PNG) → `SEND_FAILED` с `vkAutoPublishLastError`,
+   начинающимся с `preview prewarm failed: ...`. `wall.post` НЕ вызывается.
+5. Успех → текущий `VkApiClient.sendPostWithVideo` / `wallPost` (FR-019).
+   Ошибка VK API после успешного прогрева — отдельная ошибка VK, не маскируется
+   под ошибку превью.
+
+### Настройки (`KaraokeProperties`)
+
+| Ключ | Дефолт | Назначение |
+|---|---|---|
+| `vkPreviewWarmupEnabled` | `true` | Включатель нового шага. `false` — bypass, файл по-прежнему доступен VK-боту, но без синхронного ожидания готовности. |
+| `vkPreviewWarmupUrl` | `https://sm-karaoke.ru/api/public/song-vk-image/` | Базовый URL endpoint'а (без токенов, в git не секрет). |
+| `vkPreviewWarmupTimeoutMs` | `30000` | Тайм-аут одного запроса (мс). |
+| `vkPreviewWarmupMaxAttempts` | `2` | Число попыток (retry только transient-сетевых ошибок и 5xx). |
+
+### Ручная проверка (quickstart)
+
+См. [`specs/130-vk-preview-generation/quickstart.md`](../../specs/130-vk-preview-generation/quickstart.md)
+— 5 сценариев: отдельный прогрев, AIR/PREMIUM публикация, идемпотентность,
+отказ при ошибке prewarm, отделение ошибки VK от ошибки изображения.
 
 ## Известные ловушки
 
@@ -139,6 +195,19 @@
 - **Non-retryable VK API коды** (FR-010): `4`, `5`, `15`, `100` —
   немедленный выход без backoff (токен невалиден / нет прав / проблема
   запроса).
+- **specs/130: редирект НЕ считается готовностью превью** — если
+  `karaoke-web` отдаёт 3xx (например, fallback-логотип), prewarm возвращает
+  `FAILED`, пост НЕ создаётся. Это защищает от ситуации, когда VK-бот
+  сохраняет пост с чужим логотипом вместо превью песни.
+- **specs/130: эфемерный `/tmp`-кэш** — `/tmp/vk_<id>.png` живёт в контейнере
+  `karaoke-web` и пропадает при перезапуске. Следующий prewarm заново
+  сгенерирует файл.
+- **specs/130: `wall.post` после успешного prewarm** — если VK API вернул
+  ошибку (например, `error_code=5`), это отдельная ошибка VK и НЕ считается
+  ошибкой прогрева. Администратор видит обычное сообщение VK API в логах;
+  префикс `preview prewarm failed:` в `vkAutoPublishLastError` отсутствует.
+  Повторный запуск переиспользует уже готовый PNG, повторная генерация
+  не требуется.
 
 ## Ссылки
 
@@ -146,10 +215,16 @@
 - Plan: [`specs/121-vk-news-auto-publish/plan.md`](../../specs/121-vk-news-auto-publish/plan.md)
 - Tasks: [`specs/121-vk-news-auto-publish/tasks.md`](../../specs/121-vk-news-auto-publish/tasks.md)
 - Research: [`specs/121-vk-news-auto-publish/research.md`](../../specs/121-vk-news-auto-publish/research.md)
+- **specs/130 прогрев превью**:
+  - [`specs/130-vk-preview-generation/spec.md`](../../specs/130-vk-preview-generation/spec.md)
+  - [`specs/130-vk-preview-generation/research.md`](../../specs/130-vk-preview-generation/research.md)
+  - [`specs/130-vk-preview-generation/contracts/vk-preview-warmup.md`](../../specs/130-vk-preview-generation/contracts/vk-preview-warmup.md)
+  - [`specs/130-vk-preview-generation/quickstart.md`](../../specs/130-vk-preview-generation/quickstart.md)
 - Образец (Telegram-Фаза 2): [`telegram-auto-publish.md`](./telegram-auto-publish.md),
   `specs/113-telegram-demo-publish/`
 - Связанные фичи: `specs/089-auto-news-song-release` (авто-новости
-  сайта), `specs/101-song-news-flag` (паттерн `player_readiness_flags`)
+  сайта), `specs/101-song-news-flag` (паттерн `player_readiness_flags`),
+  `specs/123-vk-og-preview-fix` (альтернативный вариант с `photos.saveWallPhoto` — пока отложен)
 
 ## Премиум-публикация (одновременно с Telegram)
 

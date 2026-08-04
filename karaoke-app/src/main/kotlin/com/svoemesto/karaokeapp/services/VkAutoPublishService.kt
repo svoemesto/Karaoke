@@ -36,14 +36,43 @@ import java.util.concurrent.ConcurrentHashMap
 object VkAutoPublishService {
     private val client = VkApiClient()
     private val warmupClient = VkPreviewWarmupClient()
+    private val photoClient = VkPhotoUploadClient()
     private val songLocks = ConcurrentHashMap<Long, Any>()
     private const val PREWARM_FAILURE_PREFIX = "preview prewarm failed:"
+    private const val PHOTO_UPLOAD_FAILURE_PREFIX = "photo upload failed:"
+    private const val PHOTO_ATTACH_FAILURE_PREFIX = "photo attach failed:"
 
     private fun lockFor(songId: Long): Any = songLocks.computeIfAbsent(songId) { Any() }
 
-    /**
+/**
      * Выполняет полный цикл публикации [song] в группу ВК типа [type] (FR-001, FR-008,
      * FR-022, FR-020, FR-019, FR-004, FR-026).
+     *
+     * Инварианты идемпотентности (specs/121, US3 specs/138):
+     * - **FR-008 / T016**: проверка `song.idVk.isNotEmpty()` в самом начале — если уже
+     *   опубликовано, возвращаем `PUBLISHED` без каких-либо шагов (включая новый шаг
+     *   загрузки фото из specs/138).
+     * - **T017**: process-local lock по `song.id` (`songLocks`) берётся внутри
+     *   [publishFile] / [publishTextOnly] и покрывает весь диапазон: проверка
+     *   `idVk` → прогрев PNG → загрузка фото (NEW, specs/138) → `wall.post`. Под локом
+     *   дополнительно перечитываем `idVk` из БД — параллельный [onRenderCompleted]
+     *   может успеть опубликовать до того, как мы зашли в synchronized-блок.
+     * - **T018**: rate-limit (`vkAutoPublishRateLimitPerHour`, 3 поста/час) срабатывает
+     *   выше по стеку — в [VkAutoPublishScheduler] / [PremiumAutoPublishScheduler] / контроллере
+     *   (FR-006 specs/121). Здесь не дублируем — этот метод вызывается ровно один раз
+     *   на одну успешную публикацию.
+     * - **T019**: retry `wall.post` (3 попытки, backoff `30с→2мин→5мин`) реализован в
+     *   [VkApiClient.wallPost]. Фото уже в VK — повторять `photos.*` / `docs.*` на ретрае
+     *   `wall.post` НЕ нужно; переиспользуется то же `photoAttachment`, что было загружено
+     *   один раз перед `wall.post`.
+     *
+     * Поток (расширен specs/138): проверка `idVk` (FR-008) → проверка готовности
+     * `isContentReady` (FR-022) → проверка демо-MP4 (FR-020, рендер при необходимости) →
+     * формирование текста по шаблону (FR-023, через [VkTemplateService]) → прогрев PNG
+     * (FR-130) → **загрузка фото** (NEW, specs/138, через [VkPhotoUploadClient]:
+     * `photos.*` → fallback `docs.*` → деградация) → `video.save` + `wall.post`
+     * (FR-019, через [VkApiClient]) → запись `idVk` (FR-004). При сбое — 3 ретрая
+     * с backoff в [VkApiClient].
      *
      * @param song Песня для публикации.
      * @param type Тип публикации (AIR — авто, PREMIUM — ручной/при становлении доступной). Дефолт AIR (FR-027).
@@ -274,13 +303,61 @@ object VkAutoPublishService {
                 )
             }
 
+            // specs/138-vk-photo-preview-attachment: загружаем PNG-обложку в VK как фото (photos.*)
+            // с fallback на docs.*. VkBothAttachFailedException — деградация (пост без фото,
+            // продолжаем). Остальные ошибки — SEND_FAILED с префиксом `photo upload failed:`.
+            // FR-008: идемпотентность — если за время прогрева/загрузки фото песня была
+            // опубликована параллельно — продолжаем со старой логикой (photoAttachment=null).
+            val pngBytes =
+                warmup.pngBytes
+                    ?: return@synchronized VkAutoPublishResult(
+                        state = VkAutoPublishState.SEND_FAILED,
+                        error = "$PREWARM_FAILURE_PREFIX pngBytes is null after successful warmup (should not happen)",
+                    )
+            val photoAttachment: String? =
+                try {
+                    val photoResult = photoClient.uploadCover(song.id, pngBytes, groupId)
+                    println("VkAutoPublishService.publishFile: фото для песни ${song.id} загружено через ${photoResult.method}: ${photoResult.attachment}")
+                    photoResult.attachment
+                } catch (e: VkBothAttachFailedException) {
+                    // Деградация: оба метода (photos.* + docs.*) не сработали — пост без превью.
+                    val reason = "$PHOTO_ATTACH_FAILURE_PREFIX photos=${e.photosError.javaClass.simpleName} docs=${e.docsError.javaClass.simpleName}"
+                    println("VkAutoPublishService.publishFile: $reason — продолжаем без превью")
+                    // НЕ помечаем SEND_FAILED — деградация допустима (FR-007).
+                    null
+                } catch (e: VkPhotoInvalidParamsException) {
+                    // 100 — наша ошибка, без fallback
+                    val reason = "$PHOTO_UPLOAD_FAILURE_PREFIX invalid params (code ${e.errorCode}): ${e.errorMsg}"
+                    writeFailure(song, reason)
+                    return@synchronized VkAutoPublishResult(
+                        state = VkAutoPublishState.SEND_FAILED,
+                        error = reason,
+                    )
+                } catch (e: VkPhotoTransientException) {
+                    // 5xx/timeout после retry внутри VkPhotoUploadClient — VK недоступен
+                    val reason = "$PHOTO_UPLOAD_FAILURE_PREFIX transient (code ${e.errorCode}): ${e.errorMsg}"
+                    writeFailure(song, reason)
+                    return@synchronized VkAutoPublishResult(
+                        state = VkAutoPublishState.SEND_FAILED,
+                        error = reason,
+                    )
+                } catch (e: VkPhotoUploadException) {
+                    // прочие ошибки (empty response / invalid JSON и т.п.)
+                    val reason = "$PHOTO_UPLOAD_FAILURE_PREFIX ${e.javaClass.simpleName}: ${e.message}"
+                    writeFailure(song, reason)
+                    return@synchronized VkAutoPublishResult(
+                        state = VkAutoPublishState.SEND_FAILED,
+                        error = reason,
+                    )
+                }
+
             // PUBLISHING — фиксируем начало отправки (для UI «Публикуется»).
             song.vkAutoPublishState = VkAutoPublishState.PUBLISHING.code
             song.vkAutoPublishLastAttemptAt = nowIso8601()
             song.vkAutoPublishLastError = ""
             song.saveToDb()
 
-            val result = client.sendPostWithVideo(groupId, message, demoFile, song.id)
+            val result = client.sendPostWithVideo(groupId, message, demoFile, song.id, photoAttachment)
 
             if (result.state == VkAutoPublishState.PUBLISHED && result.postId != null) {
                 if (persistPostId) {
@@ -346,12 +423,51 @@ object VkAutoPublishService {
                 )
             }
 
+            // specs/138: загружаем PNG-обложку как фото (photos.* + fallback docs.*).
+            val pngBytes =
+                warmup.pngBytes
+                    ?: return@synchronized VkAutoPublishResult(
+                        state = VkAutoPublishState.SEND_FAILED,
+                        error = "$PREWARM_FAILURE_PREFIX pngBytes is null after successful warmup (should not happen)",
+                    )
+            val photoAttachment: String? =
+                try {
+                    val photoResult = photoClient.uploadCover(song.id, pngBytes, groupId)
+                    println("VkAutoPublishService.publishTextOnly: фото для песни ${song.id} загружено через ${photoResult.method}: ${photoResult.attachment}")
+                    photoResult.attachment
+                } catch (e: VkBothAttachFailedException) {
+                    val reason = "$PHOTO_ATTACH_FAILURE_PREFIX photos=${e.photosError.javaClass.simpleName} docs=${e.docsError.javaClass.simpleName}"
+                    println("VkAutoPublishService.publishTextOnly: $reason — продолжаем без превью")
+                    null
+                } catch (e: VkPhotoInvalidParamsException) {
+                    val reason = "$PHOTO_UPLOAD_FAILURE_PREFIX invalid params (code ${e.errorCode}): ${e.errorMsg}"
+                    writeFailure(song, reason)
+                    return@synchronized VkAutoPublishResult(
+                        state = VkAutoPublishState.SEND_FAILED,
+                        error = reason,
+                    )
+                } catch (e: VkPhotoTransientException) {
+                    val reason = "$PHOTO_UPLOAD_FAILURE_PREFIX transient (code ${e.errorCode}): ${e.errorMsg}"
+                    writeFailure(song, reason)
+                    return@synchronized VkAutoPublishResult(
+                        state = VkAutoPublishState.SEND_FAILED,
+                        error = reason,
+                    )
+                } catch (e: VkPhotoUploadException) {
+                    val reason = "$PHOTO_UPLOAD_FAILURE_PREFIX ${e.javaClass.simpleName}: ${e.message}"
+                    writeFailure(song, reason)
+                    return@synchronized VkAutoPublishResult(
+                        state = VkAutoPublishState.SEND_FAILED,
+                        error = reason,
+                    )
+                }
+
             song.vkAutoPublishState = VkAutoPublishState.PUBLISHING.code
             song.vkAutoPublishLastAttemptAt = nowIso8601()
             song.vkAutoPublishLastError = ""
             song.saveToDb()
 
-            val result = client.wallPost(groupId, message, attachments = null)
+            val result = client.wallPost(groupId, message, attachments = photoAttachment)
 
             if (result.state == VkAutoPublishState.PUBLISHED && result.postId != null) {
                 if (persistPostId) {

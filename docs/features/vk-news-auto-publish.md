@@ -1,6 +1,6 @@
 # Автопубликация новостей в группу ВКонтакте
 
-> **Status**: active (specs/121-vk-news-auto-publish, specs/130-vk-preview-generation)
+> **Status**: active (specs/121-vk-news-auto-publish, specs/130-vk-preview-generation, specs/138-vk-photo-preview-attachment)
 > **Feature Key**: vk-news-auto-publish
 > **Last Updated**: 2026-08-03
 
@@ -81,15 +81,22 @@
    через `VkTemplateService.render(template, song, news?)` с заменой
    плейсхолдеров.
 5. **specs/130 — прогрев превью**: под локом по `song.id` синхронный GET
-   `{vkPreviewWarmupUrl}{songId}` → HTTP 200 + валидный PNG. Успех означает,
-   что `karaoke-web` уже записал `/tmp/vk_<id>.png` и VK-бот при первом
-   обращении получит готовый файл. При ошибке — `SEND_FAILED` с префиксом
-   `preview prewarm failed:`; `wall.post` НЕ вызывается.
-6. FR-019: `VkApiClient.sendPostWithVideo` — `video.save` → загрузка →
-   `wall.post` с `attachments=video<owner_id>_<video_id>`.
-7. FR-004: при успехе — `song.fields[SongField.ID_VK] = postId`,
+   `{vkPreviewWarmupUrl}{songId}` → HTTP 200 + валидный PNG (1200×630, см.
+   [Превью через photos.saveWallPhoto](#превью-через-photossavewallphoto-specs138)).
+   Успех означает, что `karaoke-web` уже записал `/tmp/vk_<id>.png` и VK-бот
+   при первом обращении получит готовый файл. При ошибке — `SEND_FAILED` с
+   префиксом `preview prewarm failed:`; `wall.post` НЕ вызывается.
+6. **specs/138 — загрузка фото-превью**: `VkPhotoUploadClient.uploadCover`
+   (см. отдельную секцию ниже) — `photos.getWallUploadServer` → POST multipart →
+   `photos.saveWallPhoto` (user-token). При `error_code=27/15/5/29` — fallback
+   на `docs.*` (`docs.getWallUploadServer` → POST → `docs.save`,
+   community-token). При полном сбое обоих — деградация (пост без превью).
+7. FR-019: `VkApiClient.sendPostWithVideo` — `video.save` → загрузка →
+   `wall.post` с `attachments=photo<owner>_<id>,video<owner_id>_<video_id>`
+   (или только `video...` если фото не загрузилось).
+8. FR-004: при успехе — `song.fields[SongField.ID_VK] = postId`,
    `song.saveToDb()` (с диффом, recordhash-триггером, SSE).
-8. FR-009: при сбое — 3 ретрая с backoff 30с→2мин→5мин; затем
+9. FR-009: при сбое — 3 ретрая с backoff 30с→2мин→5мин; затем
    `SEND_FAILED` в `vkAutoPublishState`.
 
 **Идемпотентность** — по `Song.idVk` (один пост на песню, независимо от
@@ -176,6 +183,98 @@
 — 5 сценариев: отдельный прогрев, AIR/PREMIUM публикация, идемпотентность,
 отказ при ошибке prewarm, отделение ошибки VK от ошибки изображения.
 
+## Превью через photos.saveWallPhoto (specs/138)
+
+> **Полная спецификация**: [`specs/138-vk-photo-preview-attachment/spec.md`](../../specs/138-vk-photo-preview-attachment/spec.md).
+> **Контракты**: [`specs/138-vk-photo-preview-attachment/contracts/vk-photo-upload.md`](../../specs/138-vk-photo-preview-attachment/contracts/vk-photo-upload.md).
+> **Quickstart**: [`specs/138-vk-photo-preview-attachment/quickstart.md`](../../specs/138-vk-photo-preview-attachment/quickstart.md).
+
+### Проблема и решение
+
+VK API `wall.post` при бот-публикации **не парсит URL** в тексте для генерации
+сниппета (в отличие от ручной публикации через UI). Поэтому все ранее принятые
+меры с Open Graph (nginx rewrite, прогрев PNG-кэша `specs/130`) работают
+только для ручной публикации. Прикрепление фото через `attachments` —
+**надёжное** решение: VK берёт фото из API-параметра, не парся URL.
+
+`specs/138` добавляет новый шаг **между прогревом PNG и `video.save`+`wall.post`**:
+бот загружает PNG-обложку песни как фото группы через `photos.getWallUploadServer`
+→ POST multipart на `upload_url` → `photos.saveWallPhoto` (user-token со scope
+`photos`, **уже настроен** через Implicit Flow Standalone-приложения, см. секцию
+[User-token через Implicit Flow](#user-token-через-implicit-flow-для-air-публикации-с-видео)).
+Полученный `photo<owner>_<id>` передаётся в `wall.post` через параметр
+`attachments` **первым** — VK берёт первое прикрепление как превью поста.
+
+При сбое `photos.*` (например, `error_code=27` «Group authorization failed»,
+если user-token потерял scope) — fallback на `docs.*` через community-token
+(право `docs` доступно сообществам по умолчанию). Прикрепление идёт как
+`attachments=doc<owner>_<id>` — отображается как файл-документ, не сниппет.
+При полном сбое обоих методов — **деградация**: пост создаётся без превью,
+администратор видит предупреждение в `vkAutoPublishLastError` (префикс
+`photo attach failed:`). Пост **не** проваливается полностью.
+
+### Поток (полный)
+
+```
+[прогрев PNG из specs/130]  →  PNG 1200×630 в памяти (pngBytes)
+                                 │
+                                 ▼
+              VkPhotoUploadClient.uploadCover()
+                                 │
+            ┌────────────────────┼─────────────────────────┐
+            │                    │                         │
+   photos.getWallUploadServer  (fallback)        оба метода
+   POST <upload_url>           docs.*             не сработали
+   photos.saveWallPhoto                              │
+            │                    │                  ▼
+            ▼                    ▼           VkBothAttachFailedException
+  PhotoAttachment =         DocAttachment =    photoAttachment = null
+  "photo<o>_<id>"           "doc<o>_<id>"      (деградация)
+            └────────────────────┼────────────────────┘
+                                 ▼
+              VkApiClient.sendPostWithVideo(groupId, message, videoFile, songId, photoAttachment)
+                                 │
+                                 ▼
+              wall.post с attachments = "photo<o>_<id>,video<o>_<v>"
+                                 (или "video<o>_<v>" если photoAttachment=null)
+```
+
+### Настройки (`KaraokeProperties`)
+
+| Ключ | Default | Назначение |
+|------|---------|------------|
+| `vkPhotoAttachEnabled` | `true` | Включатель загрузки через `photos.*`. `false` — пропустить шаг, fallback сразу на `docs.*` (или деградация). |
+| `vkDocAttachEnabled` | `true` | Включатель fallback на `docs.*`. `false` — при сбое `photos.*` сразу деградация (пост без превью). |
+| `vkPreviewImageWidth` | `1200` | Ширина PNG-превью (px), стандарт Open Graph. Используется endpoint `/api/public/song-vk-image/{id}` (`karaoke-web`). |
+| `vkPreviewImageHeight` | `630` | Высота PNG-превью (px), стандарт Open Graph. |
+
+### Префиксы ошибок `vkAutoPublishLastError`
+
+| Префикс | Значение | Когда |
+|---------|----------|-------|
+| `preview prewarm failed:` | Сбой прогрева PNG (`specs/130`) | `karaoke-web` не вернул PNG или вернул мусор. Публикация блокируется. |
+| `photo upload failed: invalid params (code 100): ...` | `photos.saveWallPhoto` вернул `error_code=100` | Наша ошибка (повреждённый PNG?). Публикация блокируется. |
+| `photo upload failed: transient (code N): ...` | 5xx / timeout после retry | VK недоступен. Публикация блокируется. |
+| `photo upload failed: VkPhotoUploadException: ...` | Прочее (empty response / invalid JSON) | Внутренняя ошибка VK API. Публикация блокируется. |
+| `photo attach failed: photos=... docs=...` | Оба метода (`photos.*` + `docs.*`) не сработали | **Деградация** — пост создан без превью, администратор видит предупреждение. |
+
+### Известные ловушки (специфичные для specs/138)
+
+- **`photos.*` требует user-token** — community-token возвращает `error_code=27`
+  «Group authorization failed: method is unavailable with group auth». User-token
+  со scope `photos` уже настроен (`vkUserAccessToken`); если потребуется
+  переполучить — см. секцию [User-token через Implicit Flow](#user-token-через-implicit-flow-для-air-публикации-с-видео).
+- **Одна публикация = +1 фото в альбоме группы** — при 3 постах/день ~90 фото/мес,
+  ~1000/год. Очистка через `photos.delete` — отдельная задача (backlog).
+- **`vkPhotoAttachEnabled=false` + `vkDocAttachEnabled=false`** — обе цепочки
+  отключены, бот ведёт себя как до specs/138 (только текст + видео). Полезно
+  для аварийного отката.
+- **PNG-кэш в `/tmp/vk_<id>.png`** — эфемерный (живёт в контейнере `karaoke-web`).
+  После рестарта контейнера PNG перегенерируется при первом запросе.
+- **Размер PNG строго 1200×630** — VK рекомендует Open Graph стандарт; меньший
+  размер растягивается и выглядит менее качественно. Больший — обрезается
+  на превью в ленте.
+
 ## Известные ловушки
 
 - **`vkGroupId` без минуса** — бот добавляет `-` сам для `owner_id`
@@ -192,9 +291,10 @@
 - **Общая идемпотентность air/premium** — один пост на песню. Если
   администратор хочет переопубликовать другим типом — очистить `idVk`
   вручную; старый пост ВК не удаляется ботом (FR-010).
-- **Non-retryable VK API коды** (FR-010): `4`, `5`, `15`, `100` —
-  немедленный выход без backoff (токен невалиден / нет прав / проблема
-  запроса).
+- **Non-retryable VK API коды** (FR-010): `4`, `5`, `15`, `27`, `29`, `100` —
+  немедленный выход без backoff (токен невалиден / нет прав / group authorization
+  failed / rate limit / проблема запроса). Коды `27/29` дополнительно триггерят
+  fallback на `docs.*` в шаге загрузки фото (specs/138).
 - **specs/130: редирект НЕ считается готовностью превью** — если
   `karaoke-web` отдаёт 3xx (например, fallback-логотип), prewarm возвращает
   `FAILED`, пост НЕ создаётся. Это защищает от ситуации, когда VK-бот
@@ -220,11 +320,15 @@
   - [`specs/130-vk-preview-generation/research.md`](../../specs/130-vk-preview-generation/research.md)
   - [`specs/130-vk-preview-generation/contracts/vk-preview-warmup.md`](../../specs/130-vk-preview-generation/contracts/vk-preview-warmup.md)
   - [`specs/130-vk-preview-generation/quickstart.md`](../../specs/130-vk-preview-generation/quickstart.md)
+- **specs/138 надёжное превью через прикрепление фото**:
+  - [`specs/138-vk-photo-preview-attachment/spec.md`](../../specs/138-vk-photo-preview-attachment/spec.md)
+  - [`specs/138-vk-photo-preview-attachment/contracts/vk-photo-upload.md`](../../specs/138-vk-photo-preview-attachment/contracts/vk-photo-upload.md)
+  - [`specs/138-vk-photo-preview-attachment/quickstart.md`](../../specs/138-vk-photo-preview-attachment/quickstart.md)
 - Образец (Telegram-Фаза 2): [`telegram-auto-publish.md`](./telegram-auto-publish.md),
   `specs/113-telegram-demo-publish/`
 - Связанные фичи: `specs/089-auto-news-song-release` (авто-новости
   сайта), `specs/101-song-news-flag` (паттерн `player_readiness_flags`),
-  `specs/123-vk-og-preview-fix` (альтернативный вариант с `photos.saveWallPhoto` — пока отложен)
+  `specs/123-vk-og-preview-fix` (история попыток через Open Graph — заменена specs/138).
 
 ## Премиум-публикация (одновременно с Telegram)
 

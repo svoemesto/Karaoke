@@ -83,9 +83,9 @@ data class VkUserCheckEntry(
 )
 
 /**
- * Ответ POST https://oauth.vk.ru/access_token (Authorization Code Flow, обмен code → token).
- * Поля: `access_token`, `expires_in`, `user_id`, `error`.
- * Парсится в [ApiController.vkOAuthCallback].
+ *  * Ответ POST https://oauth.vk.ru/access_token (Authorization Code Flow, обмен code → token).
+ *  * Поля: `access_token`, `expires_in`, `user_id`, `error`.
+ *  * Парсится в [ApiController.vkOAuthCallback].
  */
 @Serializable
 data class VkCodeTokenResponse(
@@ -96,12 +96,135 @@ data class VkCodeTokenResponse(
     @SerialName("error_description") val errorDescription: String? = null,
 )
 
+// ====================== photos.* / docs.* (specs/138-vk-photo-preview-attachment) ======================
+
+/** Ответ `photos.getWallUploadServer`: `response.upload_url`. */
+@Serializable
+data class VkPhotosGetWallUploadServerResponse(
+    val response: VkPhotosGetWallUploadServerResult? = null,
+    val error: VkApiError? = null,
+)
+
+@Serializable
+data class VkPhotosGetWallUploadServerResult(
+    @SerialName("upload_url") val uploadUrl: String = "",
+    @SerialName("album_id") val albumId: Long = 0,
+    @SerialName("user_id") val userId: Long = 0,
+)
+
+/** Ответ загрузки фото на `upload_url` (поле `photo` — JSON-строка с сервера VK). */
+@Serializable
+data class VkPhotoUploadResponseRaw(
+    val server: Long = 0,
+    val photo: String = "",
+    val hash: String = "",
+)
+
+/** Ответ `photos.saveWallPhoto`: массив сохранённых фото (обычно один элемент). */
+@Serializable
+data class VkPhotosSaveWallPhotoResponse(
+    val response: List<VkPhotoSavedEntry>? = null,
+    val error: VkApiError? = null,
+)
+
+@Serializable
+data class VkPhotoSavedEntry(
+    val id: Long = 0,
+    @SerialName("owner_id") val ownerId: Long = 0,
+)
+
+/** Прикреплённое фото в VK (transient, не персистится в БД). */
+data class PhotoAttachment(
+    val id: Long,
+    val ownerId: Long,
+    val attachment: String,
+    val loadMethod: PhotoUploadMethod,
+)
+
+/** Ответ `docs.getWallUploadServer`: `response.upload_url`. */
+@Serializable
+data class VkDocsGetWallUploadServerResponse(
+    val response: VkDocsGetWallUploadServerResult? = null,
+    val error: VkApiError? = null,
+)
+
+@Serializable
+data class VkDocsGetWallUploadServerResult(
+    @SerialName("upload_url") val uploadUrl: String = "",
+)
+
+/** Ответ загрузки документа на `upload_url` (поле `file` — JSON-строка с сервера VK). */
+@Serializable
+data class VkDocUploadResponseRaw(
+    val file: String = "",
+)
+
+/** Ответ `docs.save`: `response` с одним сохранённым документом. */
+@Serializable
+data class VkDocsSaveResponse(
+    val response: VkDocSavedEntry? = null,
+    val error: VkApiError? = null,
+)
+
+@Serializable
+data class VkDocSavedEntry(
+    val id: Long = 0,
+    @SerialName("owner_id") val ownerId: Long = 0,
+    val title: String = "",
+    val url: String = "",
+)
+
+/** Прикреплённый документ-картинка в VK (transient, fallback-метод). */
+data class DocAttachment(
+    val id: Long,
+    val ownerId: Long,
+    val attachment: String,
+)
+
+/** Каким способом загружено превью: `photos.*` (основной), `docs.*` (fallback), `NONE` (деградация). */
+enum class PhotoUploadMethod { PHOTOS, DOCS, NONE }
+
+/** Базовое исключение при ошибке загрузки превью для ВК (specs/138). */
+sealed class VkPhotoUploadException(
+    message: String,
+) : RuntimeException(message)
+
+/** Авторизационная ошибка (`error_code in 27/15/5`) — триггер fallback на `docs.*`. */
+class VkPhotoAuthException(
+    val errorCode: Int,
+    val errorMsg: String,
+) : VkPhotoUploadException("photo auth error $errorCode: $errorMsg")
+
+/** Transient-ошибка (5xx, 429, тайм-аут) — retry внутри метода. */
+class VkPhotoTransientException(
+    val errorCode: Int = 0,
+    val errorMsg: String = "",
+) : VkPhotoUploadException("photo transient error $errorCode: $errorMsg")
+
+/** Invalid params (`error_code=100`) — non-retryable, без fallback. */
+class VkPhotoInvalidParamsException(
+    val errorCode: Int = 100,
+    val errorMsg: String,
+) : VkPhotoUploadException("photo invalid params $errorCode: $errorMsg")
+
+/** Оба метода (`photos.*` + `docs.*`) не сработали → деградация (пост без превью). */
+class VkBothAttachFailedException(
+    val photosError: VkPhotoUploadException,
+    val docsError: VkPhotoUploadException,
+) : VkPhotoUploadException("both photo+docs attach failed: photos=${photosError.message}; docs=${docsError.message}")
+
 /**
  * Тонкий клиент VK API поверх JDK HttpClient (specs/121-vk-news-auto-publish).
  *
- * Реализует методы `wall.post` (создание поста в группе) и `video.save` + загрузка
- * видеофайла (прикрепление демо-MP4). Аутентификация — Community access token
- * (`vkAccessToken`), версия API — `vkApiVersion` (дефолт `5.199`).
+ * Реализует методы:
+ * - `wall.post` (создание поста в группе, FR-001)
+ * - `video.save` + загрузка видеофайла (прикрепление демо-MP4, FR-019)
+ * - `photos.getWallUploadServer` + `photos.saveWallPhoto` (прикрепление превью-фото, specs/138)
+ * - `docs.getWallUploadServer` + `docs.save` (fallback для превью через документ-картинку, specs/138)
+ *
+ * Аутентификация — Community access token (`vkAccessToken`) для большинства методов,
+ * user-token (`vkUserAccessToken`) для `video.save` / `photos.*`. Версия API —
+ * `vkApiVersion` (дефолт `5.199`).
  *
  * Прокси-fallback — по образцу [TelegramApiClient]: каждый запрос сначала пробует
  * напрямую, при сетевой ошибке переключается на HTTP-прокси (`vkProxyUrl`) на
@@ -109,9 +232,10 @@ data class VkCodeTokenResponse(
  *
  * Retry/backoff (FR-009): 3 попытки с backoff `30с→2мин→5мин` (по образцу
  * [TelegramApiClient.sendVideo]). Non-retryable коды VK API: `4`, `5`, `15`,
- * `100` (см. research.md §5).
+ * `27`, `29`, `100` (см. research.md §5).
  *
  * @see docs/features/vk-news-auto-publish.md
+ * @see specs/138-vk-photo-preview-attachment/spec.md
  */
 class VkApiClient {
     private val json = Json { ignoreUnknownKeys = true }
@@ -195,7 +319,8 @@ class VkApiClient {
      *
      * @param groupId ID группы без минуса (бот добавляет `-` для `owner_id`).
      * @param message Текст поста (FR-003, FR-005 — лимит 10 000 символов).
-     * @param attachments Строка прикреплений через запятую (например, `video-123_456`) или null.
+     * @param attachments Строка прикреплений через запятую (например, `photo-123_456,video-123_789`)
+     *   или null. Первое прикрепление — превью поста (specs/138).
      * @return [VkAutoPublishResult] с `postId` в формате `-<groupId>_<postId>` при успехе.
      */
     fun wallPost(
@@ -238,7 +363,15 @@ class VkApiClient {
             val result = tryWallPost(params)
             if (result.response != null && result.response.postId > 0) {
                 val postId = "-${groupId}_${result.response.postId}"
-                println("VkApiClient.wallPost: success on attempt $attempt, post_id=$postId")
+                // specs/138: логируем сценарий attachments для диагностики превью.
+                val attachSummary =
+                    when {
+                        attachments.isNullOrBlank() -> "text-only"
+                        attachments.contains("photo") && attachments.contains("video") -> "photo+video"
+                        attachments.contains("photo") -> "photo-only"
+                        else -> "video-only"
+                    }
+                println("VkApiClient.wallPost: success on attempt $attempt, post_id=$postId, attachments=$attachSummary")
                 return VkAutoPublishResult(
                     state = VkAutoPublishState.PUBLISHED,
                     postId = postId,
@@ -287,10 +420,15 @@ class VkApiClient {
 
     /**
      * Комбинированный flow `video.save` → загрузка → `wall.post` с `attachments=video...` (FR-019).
+     * Опционально — прикрепление фото-превью через `photoAttachment` (specs/138). Порядок:
+     * сначала `photo`, потом `video` (VK берёт первое как превью).
      *
      * @param groupId ID группы без минуса.
      * @param message Текст поста.
      * @param videoFile Демо-MP4 файл (проверка размера перед отправкой, FR-020).
+     * @param songId id песни (для имени video).
+     * @param photoAttachment Опциональное прикрепление фото в формате `photo<owner>_<id>`
+     *   (для `wall.post attachments`). Если `null` — только видео.
      * @return [VkAutoPublishResult] с `postId` при успехе.
      */
     fun sendPostWithVideo(
@@ -298,6 +436,7 @@ class VkApiClient {
         message: String,
         videoFile: java.io.File,
         songId: Long,
+        photoAttachment: String? = null,
     ): VkAutoPublishResult {
         val maxVideoBytes =
             KaraokeProperties.getLong("vkAutoPublishMaxVideoSizeMb").let { if (it <= 0) 50L else it } * 1024 * 1024
@@ -328,9 +467,11 @@ class VkApiClient {
                 error = "video upload failed (upload_url=${save.uploadUrl.take(80)}...)",
             )
         }
-        // Шаг 3: wall.post с attachments=video<owner_id>_<video_id>
-        val attachment = "video${save.ownerId}_${save.videoId}"
-        return wallPost(groupId, message, attachments = attachment)
+        // Шаг 3: wall.post с attachments (photo первым, video вторым — VK берёт первое как превью)
+        val videoAttachment = "video${save.ownerId}_${save.videoId}"
+        val attachments =
+            if (!photoAttachment.isNullOrBlank()) "$photoAttachment,$videoAttachment" else videoAttachment
+        return wallPost(groupId, message, attachments = attachments)
     }
 
     /** Шаг 1: `video.save` — резервирование видео-записи (FR-019). Использует user-token. */
@@ -425,25 +566,341 @@ class VkApiClient {
         videoBytes: ByteArray,
         videoFileName: String,
         boundary: String,
+    ): ByteArray =
+        buildMultipartBody(
+            fieldName = "video_file",
+            fileName = videoFileName,
+            contentType = "video/mp4",
+            bytes = videoBytes,
+            boundary = boundary,
+        )
+
+    /**
+     * Общий helper для multipart/form-data с одним полем (используется для
+     * `photos.*`, `docs.*` и `video.save`). Формат — стандартный RFC 7578.
+     *
+     * @see docs/features/vk-news-auto-publish.md
+     */
+    private fun buildMultipartBody(
+        fieldName: String,
+        fileName: String,
+        contentType: String,
+        bytes: ByteArray,
+        boundary: String,
     ): ByteArray {
         val crlf = "\r\n"
         val out = ByteArrayOutputStream()
         out.write("--$boundary$crlf".toByteArray(Charsets.UTF_8))
         out.write(
-            "Content-Disposition: form-data; name=\"video_file\"; filename=\"$videoFileName\"$crlf".toByteArray(Charsets.UTF_8),
+            "Content-Disposition: form-data; name=\"$fieldName\"; filename=\"$fileName\"$crlf".toByteArray(Charsets.UTF_8),
         )
-        out.write("Content-Type: video/mp4$crlf$crlf".toByteArray(Charsets.UTF_8))
-        out.write(videoBytes)
+        out.write("Content-Type: $contentType$crlf$crlf".toByteArray(Charsets.UTF_8))
+        out.write(bytes)
         out.write(crlf.toByteArray(Charsets.UTF_8))
         out.write("--$boundary--$crlf".toByteArray(Charsets.UTF_8))
         return out.toByteArray()
     }
 
+    // ============== photos.* / docs.* методы (specs/138) ==============
+
+    /**
+     * Шаг 1 для `photos.*`: получить URL загрузки PNG-обложки.
+     * Требует user-token с scope `photos`. При `error_code in 27/15/5/29` —
+     * бросает [VkPhotoAuthException] (триггер fallback на `docs.*`).
+     *
+     * @see docs/features/vk-news-auto-publish.md
+     */
+    fun getWallUploadServer(
+        groupId: String,
+        userToken: String,
+    ): String {
+        if (userToken.isBlank()) {
+            throw VkPhotoAuthException(0, "vkUserAccessToken is empty — нужен user-token с правом photos")
+        }
+        val params =
+            buildString {
+                append("group_id=")
+                append(groupId)
+                append("&access_token=")
+                append(userToken)
+                append("&v=")
+                append(apiVersion())
+            }
+        val uri = URI("${baseUrl()}/photos.getWallUploadServer")
+        val request =
+            HttpRequest
+                .newBuilder()
+                .uri(uri)
+                .timeout(Duration.ofSeconds(30))
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .POST(HttpRequest.BodyPublishers.ofString(params))
+                .build()
+        val response = send(request)
+        val parsed = json.decodeFromString(VkPhotosGetWallUploadServerResponse.serializer(), response.body())
+        if (parsed.error != null) {
+            val code = parsed.error.errorCode
+            val msg = parsed.error.errorMsg
+            throw when (code) {
+                in setOf(27, 15, 5, 29) -> VkPhotoAuthException(code, msg)
+                100 -> VkPhotoInvalidParamsException(code, msg)
+                else -> VkPhotoTransientException(code, msg)
+            }
+        }
+        val uploadUrl = parsed.response?.uploadUrl ?: ""
+        if (uploadUrl.isBlank()) {
+            throw VkPhotoUploadException("photos.getWallUploadServer empty response.upload_url")
+        }
+        return uploadUrl
+    }
+
+    /**
+     * Шаг 2 для `photos.*`: POST multipart на `upload_url` с PNG (поле `photo`).
+     * Возвращает сырой JSON-ответ сервера (`server`, `photo`, `hash`) для
+     * следующего шага `photos.saveWallPhoto`.
+     */
+    fun uploadPhotoFile(
+        uploadUrl: String,
+        pngBytes: ByteArray,
+        fileName: String = "cover.png",
+    ): VkPhotoUploadResponseRaw {
+        val boundary = "karaoke-${System.currentTimeMillis()}"
+        val body =
+            buildMultipartBody(
+                fieldName = "photo",
+                fileName = fileName,
+                contentType = "image/png",
+                bytes = pngBytes,
+                boundary = boundary,
+            )
+        val uri = URI(uploadUrl)
+        val request =
+            HttpRequest
+                .newBuilder()
+                .uri(uri)
+                .timeout(Duration.ofSeconds(60))
+                .header("Content-Type", "multipart/form-data; boundary=$boundary")
+                .POST(HttpRequest.BodyPublishers.ofByteArray(body))
+                .build()
+        val response = send(request)
+        if (response.statusCode() !in 200..299) {
+            throw VkPhotoTransientException(response.statusCode(), "upload_url returned HTTP ${response.statusCode()}")
+        }
+        val bodyText = response.body()
+        if (bodyText.isBlank()) {
+            throw VkPhotoUploadException("upload_url returned empty body")
+        }
+        return try {
+            json.decodeFromString(VkPhotoUploadResponseRaw.serializer(), bodyText)
+        } catch (e: Exception) {
+            throw VkPhotoUploadException("upload_url returned invalid JSON: ${e.message}")
+        }
+    }
+
+    /**
+     * Шаг 3 для `photos.*`: сохранить загруженный файл как фото на стене группы.
+     * Требует user-token с scope `photos`. Возвращает [PhotoAttachment].
+     */
+    fun saveWallPhoto(
+        server: Long,
+        photoJson: String,
+        hash: String,
+        groupId: String,
+        userToken: String,
+    ): PhotoAttachment {
+        if (userToken.isBlank()) {
+            throw VkPhotoAuthException(0, "vkUserAccessToken is empty — нужен user-token с правом photos")
+        }
+        val params =
+            buildString {
+                append("server=")
+                append(server)
+                append("&photo=")
+                append(java.net.URLEncoder.encode(photoJson, "UTF-8"))
+                append("&hash=")
+                append(java.net.URLEncoder.encode(hash, "UTF-8"))
+                append("&group_id=")
+                append(groupId)
+                append("&access_token=")
+                append(userToken)
+                append("&v=")
+                append(apiVersion())
+            }
+        val uri = URI("${baseUrl()}/photos.saveWallPhoto")
+        val request =
+            HttpRequest
+                .newBuilder()
+                .uri(uri)
+                .timeout(Duration.ofSeconds(30))
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .POST(HttpRequest.BodyPublishers.ofString(params))
+                .build()
+        val response = send(request)
+        val parsed = json.decodeFromString(VkPhotosSaveWallPhotoResponse.serializer(), response.body())
+        if (parsed.error != null) {
+            val code = parsed.error.errorCode
+            val msg = parsed.error.errorMsg
+            throw when (code) {
+                in setOf(27, 15, 5, 29) -> VkPhotoAuthException(code, msg)
+                100 -> VkPhotoInvalidParamsException(code, msg)
+                else -> VkPhotoTransientException(code, msg)
+            }
+        }
+        val first =
+            parsed.response?.firstOrNull()
+                ?: throw VkPhotoUploadException("photos.saveWallPhoto empty response")
+        return PhotoAttachment(
+            id = first.id,
+            ownerId = first.ownerId,
+            attachment = "photo${first.ownerId}_${first.id}",
+            loadMethod = PhotoUploadMethod.PHOTOS,
+        )
+    }
+
+    /**
+     * Fallback Шаг 1: получить URL для загрузки документа-картинки через `docs.*`.
+     * Использует **community-token** (`vkAccessToken`), т.к. право `docs` доступно
+     * сообществам по умолчанию.
+     */
+    fun getDocWallUploadServer(communityToken: String): String {
+        if (communityToken.isBlank()) {
+            throw VkPhotoAuthException(0, "vkAccessToken (community) is empty")
+        }
+        val params =
+            buildString {
+                append("access_token=")
+                append(communityToken)
+                append("&v=")
+                append(apiVersion())
+            }
+        val uri = URI("${baseUrl()}/docs.getWallUploadServer")
+        val request =
+            HttpRequest
+                .newBuilder()
+                .uri(uri)
+                .timeout(Duration.ofSeconds(30))
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .POST(HttpRequest.BodyPublishers.ofString(params))
+                .build()
+        val response = send(request)
+        val parsed = json.decodeFromString(VkDocsGetWallUploadServerResponse.serializer(), response.body())
+        if (parsed.error != null) {
+            val code = parsed.error.errorCode
+            val msg = parsed.error.errorMsg
+            throw when (code) {
+                in setOf(27, 15, 5, 29) -> VkPhotoAuthException(code, msg)
+                100 -> VkPhotoInvalidParamsException(code, msg)
+                else -> VkPhotoTransientException(code, msg)
+            }
+        }
+        val uploadUrl = parsed.response?.uploadUrl ?: ""
+        if (uploadUrl.isBlank()) {
+            throw VkPhotoUploadException("docs.getWallUploadServer empty response.upload_url")
+        }
+        return uploadUrl
+    }
+
+    /**
+     * Fallback Шаг 2: POST multipart на `upload_url` с PNG (поле `file`).
+     * Возвращает сырой JSON-ответ (`file` — JSON-строка) для следующего шага.
+     */
+    fun uploadDocFile(
+        uploadUrl: String,
+        pngBytes: ByteArray,
+        fileName: String = "cover.png",
+    ): VkDocUploadResponseRaw {
+        val boundary = "karaoke-${System.currentTimeMillis()}"
+        val body =
+            buildMultipartBody(
+                fieldName = "file",
+                fileName = fileName,
+                contentType = "image/png",
+                bytes = pngBytes,
+                boundary = boundary,
+            )
+        val uri = URI(uploadUrl)
+        val request =
+            HttpRequest
+                .newBuilder()
+                .uri(uri)
+                .timeout(Duration.ofSeconds(60))
+                .header("Content-Type", "multipart/form-data; boundary=$boundary")
+                .POST(HttpRequest.BodyPublishers.ofByteArray(body))
+                .build()
+        val response = send(request)
+        if (response.statusCode() !in 200..299) {
+            throw VkPhotoTransientException(response.statusCode(), "docs upload_url returned HTTP ${response.statusCode()}")
+        }
+        val bodyText = response.body()
+        if (bodyText.isBlank()) {
+            throw VkPhotoUploadException("docs upload_url returned empty body")
+        }
+        return try {
+            json.decodeFromString(VkDocUploadResponseRaw.serializer(), bodyText)
+        } catch (e: Exception) {
+            throw VkPhotoUploadException("docs upload_url returned invalid JSON: ${e.message}")
+        }
+    }
+
+    /**
+     * Fallback Шаг 3: сохранить документ-картинку через `docs.save`.
+     * Возвращает [DocAttachment] для прикрепления через `attachments=doc<owner>_<id>`.
+     */
+    fun saveWallDoc(
+        fileJson: String,
+        title: String,
+        communityToken: String,
+    ): DocAttachment {
+        if (communityToken.isBlank()) {
+            throw VkPhotoAuthException(0, "vkAccessToken (community) is empty")
+        }
+        val params =
+            buildString {
+                append("file=")
+                append(java.net.URLEncoder.encode(fileJson, "UTF-8"))
+                append("&title=")
+                append(java.net.URLEncoder.encode(title, "UTF-8"))
+                append("&access_token=")
+                append(communityToken)
+                append("&v=")
+                append(apiVersion())
+            }
+        val uri = URI("${baseUrl()}/docs.save")
+        val request =
+            HttpRequest
+                .newBuilder()
+                .uri(uri)
+                .timeout(Duration.ofSeconds(30))
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .POST(HttpRequest.BodyPublishers.ofString(params))
+                .build()
+        val response = send(request)
+        val parsed = json.decodeFromString(VkDocsSaveResponse.serializer(), response.body())
+        if (parsed.error != null) {
+            val code = parsed.error.errorCode
+            val msg = parsed.error.errorMsg
+            throw when (code) {
+                in setOf(27, 15, 5, 29) -> VkPhotoAuthException(code, msg)
+                100 -> VkPhotoInvalidParamsException(code, msg)
+                else -> VkPhotoTransientException(code, msg)
+            }
+        }
+        val saved =
+            parsed.response
+                ?: throw VkPhotoUploadException("docs.save empty response")
+        return DocAttachment(
+            id = saved.id,
+            ownerId = saved.ownerId,
+            attachment = "doc${saved.ownerId}_${saved.id}",
+        )
+    }
+
     companion object {
         // VK API error_code, при которых retry бесполезен (FR-009 non-retryable).
         // 4 — Incorrect signature; 5 — User authorization failed; 15 — Access denied;
+        // 27 — Group authorization failed (для photos.* / docs.* — триггер fallback);
         // 100 — One of the parameters is missing or invalid.
-        private val NON_RETRYABLE_ERROR_CODES = setOf(4, 5, 15, 100)
+        // 29 — Rate limit (для photos.* — non-retryable внутри метода, fallback на docs.*).
+        private val NON_RETRYABLE_ERROR_CODES = setOf(4, 5, 15, 27, 100, 29)
 
         // Парсер JSON для дешифровки ответа users.get при проверке user-token в
         // ApiController.saveVkUserToken. ignoreUnknownKeys=true — VK может добавлять новые

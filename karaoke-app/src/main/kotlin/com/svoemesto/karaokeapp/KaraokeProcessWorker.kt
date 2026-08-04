@@ -394,12 +394,22 @@ class KaraokeProcessThread(
                 // Идемпотентность публикации обеспечивается внутри TelegramAutoPublishService.
                 // publishToTelegram по song.idTelegramDemo (ранний return PUBLISHED).
                 val renderKp = karaokeProcess
+                // Отладочный лог: только для задач типа RENDER_MP4_DEMO (чтобы не шуметь на остальных).
+                // Помогает понять, достигает ли условие срабатывания пост-хука.
+                if (renderKp.type == KaraokeProcessTypes.RENDER_MP4_DEMO.name) {
+                    println(
+                        "[render-demo/post-hook] CHECK: type=${renderKp.type} status=${renderKp.status} " +
+                            "songId=${renderKp.songId} forceStopped=$forceStopped",
+                    )
+                }
                 if (!forceStopped &&
                     renderKp.songId > 0 &&
                     renderKp.type == KaraokeProcessTypes.RENDER_MP4_DEMO.name &&
                     renderKp.status == KaraokeProcessStatuses.DONE.name
                 ) {
+                    println("[render-demo/post-hook] CONDITION MATCHED — firing thread for songId=${renderKp.songId}")
                     thread {
+                        println("[render-demo/post-hook] thread START for songId=${renderKp.songId}")
                         try {
                             val renderSong =
                                 Song.loadFromDbById(
@@ -412,12 +422,17 @@ class KaraokeProcessThread(
                                 println("[render-demo/post-hook] песня ${renderKp.songId} не найдена — публикация пропущена")
                                 return@thread
                             }
+                            println(
+                                "[render-demo/post-hook] song loaded for songId=${renderSong.id}, fileName=${renderSong.fileName}; " +
+                                    "calling publishToTelegram(allowPastDate=true, AIR, persistMessageId=true)",
+                            )
                             TelegramAutoPublishService.publishToTelegram(
                                 song = renderSong,
                                 allowPastDate = true,
                                 publicationType = com.svoemesto.karaokeapp.model.PublicationType.AIR,
                                 persistMessageId = true,
                             )
+                            println("[render-demo/post-hook] publishToTelegram returned for songId=${renderSong.id}")
                         } catch (e: Exception) {
                             println("[render-demo/post-hook] ошибка публикации: ${e.message}")
                         }

@@ -233,7 +233,7 @@ object TelegramAutoPublishService {
             KaraokeProcess.createProcess(
                 song = song,
                 action = KaraokeProcessTypes.RENDER_MP4_DEMO,
-                doWait = false,
+                doWait = true,
                 prior = 1,
                 threadId = KaraokeProcess.THREAD_LANE_HEAVY_RENDER,
                 context =

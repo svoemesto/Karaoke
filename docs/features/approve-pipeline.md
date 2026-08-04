@@ -143,6 +143,20 @@ if (!forceStopped &&
 убит → нечего публиковать; следующая попытка — через scheduler или ручной
 триггер).
 
+**Спека 144 (fix): гейт `trigger=approve`.** До этой правки условие срабатывания
+проверяло только `type == RENDER_MP4_DEMO && status == DONE` — то есть публикация
+в Telegram запускалась и после рендера DEMO, поставленного **вручную из
+интерфейса** (кнопка «Рендер MP4» в SongEdit/`ApiController`), что было
+нежелательным поведением. Исправлено добавлением маркера в `args` задания:
+`triggerRenderMp4DemoIfNeeded` (approve-flow) передаёт в `KaraokeProcess.createProcess`
+`context["trigger"] = "approve"`, который `KaraokeProcess.kt` (ветка
+`RENDER_MP4_LYRICS`/…/`RENDER_MP4_DEMO`) дописывает в персистентный `args[0]`
+как токен `"trigger=approve"` (переживает `WAITING→WORKING→DONE`, без новой
+колонки/миграции). Ручные render-эндпоинты в `ApiController.kt` этот ключ в
+`context` не передают. Пост-хук в `KaraokeProcessThread.run()` теперь дополнительно
+проверяет `karaokeProcess.args.firstOrNull()?.contains("trigger=approve") == true`
+и публикует в Telegram **только** если это true.
+
 ## Инварианты / правила
 
 1. **Никаких новых миграций, DTO, recordhash-триггеров, эндпоинтов.**

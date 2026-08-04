@@ -975,6 +975,10 @@ class SongEditorController(
                         "width" to 1280,
                         "height" to 720,
                         "fps" to 30,
+                        // Спека 144: маркер источника — читается пост-хуком в KaraokeProcessWorker,
+                        // чтобы публикация в Telegram шла ТОЛЬКО за рендером, запущенным апрувом
+                        // (сменой idStatus на 6), а не любым ручным рендером DEMO из интерфейса.
+                        "trigger" to "approve",
                     ),
             )
             println("[approve/render-demo] создан процесс RENDER_MP4_DEMO для песни ${song.id}")

@@ -1859,9 +1859,15 @@ class KaraokeProcess(
                         val width = context["width"] as? Int ?: if (isDemo) 1280 else 1920
                         val height = context["height"] as? Int ?: if (isDemo) 720 else 1080
                         val fps = context["fps"] as? Int ?: if (isDemo) 30 else 60
+                        // Спека 144: маркер "кем инициирован рендер" — persisted в args (переживает
+                        // WAITING->WORKING->DONE), читается в пост-хуке публикации Telegram
+                        // (KaraokeProcessWorker.run) без отдельной колонки/миграции. Только approve-flow
+                        // (SongEditorController.triggerRenderMp4DemoIfNeeded) передаёт "trigger" -> "approve";
+                        // ручной рендер из UI (ApiController) context не содержит, токен не добавляется.
+                        val trigger = context["trigger"] as? String
                         args =
                             listOf(
-                                listOf(
+                                listOfNotNull(
                                     "runFunctionWithArgs",
                                     "renderMp4",
                                     "songId=${song.id}",
@@ -1869,6 +1875,7 @@ class KaraokeProcess(
                                     "height=$height",
                                     "fps=$fps",
                                     "version=$version",
+                                    trigger?.let { "trigger=$it" },
                                 ),
                             )
                     }

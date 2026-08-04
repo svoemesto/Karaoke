@@ -389,23 +389,28 @@ class KaraokeProcessThread(
                 //   - тип задания — RENDER_MP4_DEMO;
                 //   - статус — DONE (ERROR — пропускаем, scheduler ретраит позже);
                 //   - задание не было форс-стопнуто;
-                //   - songId > 0 (защита от задач без привязки к песне).
+                //   - songId > 0 (защита от задач без привязки к песне);
+                //   - задание помечено trigger=approve (спека 144) — рендер был поставлен именно
+                //     сменой idStatus на 6 (SongEditorController.triggerRenderMp4DemoIfNeeded), а не
+                //     ручным рендером DEMO из интерфейса (ApiController) — там этого токена нет.
                 //
                 // Идемпотентность публикации обеспечивается внутри TelegramAutoPublishService.
                 // publishToTelegram по song.idTelegramDemo (ранний return PUBLISHED).
                 val renderKp = karaokeProcess
+                val isApproveTriggered = renderKp.args.firstOrNull()?.contains("trigger=approve") == true
                 // Отладочный лог: только для задач типа RENDER_MP4_DEMO (чтобы не шуметь на остальных).
                 // Помогает понять, достигает ли условие срабатывания пост-хука.
                 if (renderKp.type == KaraokeProcessTypes.RENDER_MP4_DEMO.name) {
                     println(
                         "[render-demo/post-hook] CHECK: type=${renderKp.type} status=${renderKp.status} " +
-                            "songId=${renderKp.songId} forceStopped=$forceStopped",
+                            "songId=${renderKp.songId} forceStopped=$forceStopped isApproveTriggered=$isApproveTriggered",
                     )
                 }
                 if (!forceStopped &&
                     renderKp.songId > 0 &&
                     renderKp.type == KaraokeProcessTypes.RENDER_MP4_DEMO.name &&
-                    renderKp.status == KaraokeProcessStatuses.DONE.name
+                    renderKp.status == KaraokeProcessStatuses.DONE.name &&
+                    isApproveTriggered
                 ) {
                     println("[render-demo/post-hook] CONDITION MATCHED — firing thread for songId=${renderKp.songId}")
                     thread {

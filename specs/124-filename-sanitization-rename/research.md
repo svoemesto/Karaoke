@@ -16,7 +16,7 @@
 ```kotlin
 fun String.rightFileNameSymbols(): String =
     this
-        .replace("'", "''")
+        .replace("'", "`")
         .replace("?", "")
         .replace(":", "-")
         .replace("!", "")

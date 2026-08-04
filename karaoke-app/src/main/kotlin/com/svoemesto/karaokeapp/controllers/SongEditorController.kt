@@ -4,6 +4,8 @@ import com.svoemesto.karaokeapp.Connection
 import com.svoemesto.karaokeapp.Karaoke
 import com.svoemesto.karaokeapp.KaraokeConnection
 import com.svoemesto.karaokeapp.KaraokeFileType
+import com.svoemesto.karaokeapp.KaraokeProcess
+import com.svoemesto.karaokeapp.KaraokeProcessTypes
 import com.svoemesto.karaokeapp.KaraokeProperties
 import com.svoemesto.karaokeapp.WORKING_DATABASE
 import com.svoemesto.karaokeapp.llm.TextCorrectorAgent
@@ -22,7 +24,9 @@ import com.svoemesto.karaokeapp.services.AlignmentServiceClient
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.StorageApiClient
 import com.svoemesto.karaokeapp.services.WhisperAsrService
+import com.svoemesto.karaokeapp.updateRemoteDatabaseFromLocalDatabase
 import com.svoemesto.karaokeapp.updateRemoteSongFromLocalDatabase
+import kotlin.concurrent.thread
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
@@ -54,6 +58,7 @@ import java.sql.Timestamp
  * Контроллер (HTTP/WebSocket endpoints) для song editor .
  *
  * @see AGENTS.md
+ * @see docs/features/approve-pipeline.md (фича 131: helper `triggerRenderMp4DemoIfNeeded` + sync-related thread block в `approve()`)
  */
 @Controller
 @RequestMapping("/api/songeditor")
@@ -410,6 +415,35 @@ class SongEditorController(
                             "[SongEditorController.approve] push на SERVER не удался " +
                                 "(${System.currentTimeMillis() - pushStart} ms): ${e.message}",
                         )
+                    }
+                }
+
+                // Спека 131 (US1): сразу после апрува идемпотентно создаём процесс рендера DEMO
+                // (1280x720@30fps). Пост-хук в KaraokeProcessThread.run() после успешного
+                // завершения RENDER_MP4_DEMO запустит Telegram-публикацию (D-1 в research.md).
+                // Сбой здесь НЕ откатывает уже совершённый апрув: изоляция в helper'е.
+                triggerRenderMp4DemoIfNeeded(song)
+
+                // Спека 131 (US2): после апрува и US1 fire-and-forget синхронизируем связанные
+                // таблицы (tbl_pictures, tbl_authors, tbl_albums) на SERVER (D-2 в research.md).
+                // updateSongs=false — tbl_songs уже засинкан выше (existing updateRemoteSongFromLocalDatabase).
+                // Сбой здесь НЕ блокирует HTTP-ответ approve (SC-003 — ≤5 с).
+                thread {
+                    try {
+                        val syncRelatedStart = System.currentTimeMillis()
+                        val syncRelatedResult =
+                            updateRemoteDatabaseFromLocalDatabase(
+                                updateSongs = false,
+                                updatePictures = true,
+                                updateAuthors = true,
+                            )
+                        println(
+                            "[approve/sync-related] push related на SERVER: " +
+                                "${System.currentTimeMillis() - syncRelatedStart} ms, " +
+                                "created=${syncRelatedResult.created.size} updated=${syncRelatedResult.updated.size}",
+                        )
+                    } catch (e: Exception) {
+                        println("[approve/sync-related] ошибка sync related: ${e.message}")
                     }
                 }
 
@@ -866,5 +900,55 @@ class SongEditorController(
             } ?: return mapOf("ok" to false, "error" to "lm_studio_unavailable")
 
         return mapOf("ok" to true, "text" to corrected)
+    }
+
+    // Спека 131 (US1): идемпотентно ставит задачу RENDER_MP4_DEMO в tbl_processes для только что
+    // одобренной песни. Гард «уже есть активный процесс (WAITING/WORKING)» — пропускаем, чтобы
+    // повторный approve (или параллельный ручной триггер «Рендер MP4 DEMO») не плодил дублей.
+    //
+    // Логика:
+    //   1. SELECT по tbl_processes — есть ли активный процесс для этой песни.
+    //   2. Если есть — пишем в лог skip и выходим.
+    //   3. Иначе — KaraokeProcess.createProcess(...) с параметрами DEMO (1280x720@30,
+    //      threadId=0 — HEAVY_RENDER lane, prior=5).
+    //   4. Любое исключение ловим здесь, чтобы сбой не откатил уже совершённый апрув
+    //      (см. contracts/pipeline.md §5 «Изоляция сбоев»).
+    //
+    // Пост-хук публикации в Telegram живёт в KaraokeProcessThread.run() — не здесь.
+    //
+    // @see docs/features/approve-pipeline.md
+    // @see specs/131-fix-approve-demo-render-telegram-sync/contracts/pipeline.md
+    // @see specs/131-fix-approve-demo-render-telegram-sync/research.md (D-1, D-3)
+    private fun triggerRenderMp4DemoIfNeeded(song: Song) {
+        val connection = WORKING_DATABASE.getConnection() ?: return
+        try {
+            connection.createStatement().use { st ->
+                val rs =
+                    st.executeQuery(
+                        """
+                        SELECT id FROM tbl_processes
+                        WHERE song_id = ${song.id}
+                          AND process_type = 'RENDER_MP4_DEMO'
+                          AND process_status IN ('WAITING','WORKING')
+                        """.trimIndent(),
+                    )
+                rs.use {
+                    if (it.next()) {
+                        println("[approve/render-demo] skip — уже есть активный процесс для песни ${song.id}")
+                        return
+                    }
+                }
+            }
+            KaraokeProcess.createProcess(
+                song = song,
+                action = KaraokeProcessTypes.RENDER_MP4_DEMO,
+                doWait = false,
+                prior = 5,
+                threadId = 0,
+            )
+            println("[approve/render-demo] создан процесс RENDER_MP4_DEMO для песни ${song.id}")
+        } catch (e: Exception) {
+            println("[approve/render-demo] ошибка: ${e.message}")
+        }
     }
 }

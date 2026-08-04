@@ -196,142 +196,6 @@
           </div>
         </div>
 
-        <!-- Ссылки на платформы: только для песен в эфире — иначе показывать нечего (нет ни ссылок,
-             ни смысла дублировать дату/статус, который уже есть в блоке ожидания/подписки ниже). -->
-        <div v-if="currentSong.onAir" class="km-links-card">
-          <div class="km-links-title">Ссылки на просмотр</div>
-          <div class="km-links-grid">
-            <!-- Sponsr (все версии) -->
-            <div class="km-link-group">
-              <span class="km-link-label">Все</span>
-              <div class="km-link-icons">
-                <PlatformLink
-                  link-name="sponsr"
-                  :link-value="currentSong.linkSponsrPlay"
-                  :song-id="currentSong.id"
-                  song-version="all"
-                />
-              </div>
-            </div>
-            <div class="km-link-group">
-              <span class="km-link-label">Karaoke</span>
-              <div class="km-link-icons">
-                <PlatformLink
-                  link-name="dzen"
-                  :link-value="currentSong.linkDzenKaraoke"
-                  :song-id="currentSong.id"
-                  song-version="karaoke"
-                />
-                <PlatformLink
-                  link-name="max"
-                  :link-value="currentSong.linkMaxKaraoke"
-                  :song-id="currentSong.id"
-                  song-version="karaoke"
-                />
-                <PlatformLink
-                  link-name="vk"
-                  :link-value="currentSong.linkVkKaraoke"
-                  :song-id="currentSong.id"
-                  song-version="karaoke"
-                />
-                <PlatformLink
-                  link-name="tg"
-                  :link-value="currentSong.linkTgKaraoke"
-                  :song-id="currentSong.id"
-                  song-version="karaoke"
-                />
-              </div>
-            </div>
-            <div class="km-link-group">
-              <span class="km-link-label">Lyrics</span>
-              <div class="km-link-icons">
-                <PlatformLink
-                  link-name="dzen"
-                  :link-value="currentSong.linkDzenLyrics"
-                  :song-id="currentSong.id"
-                  song-version="lyrics"
-                />
-                <PlatformLink
-                  link-name="max"
-                  :link-value="currentSong.linkMaxLyrics"
-                  :song-id="currentSong.id"
-                  song-version="lyrics"
-                />
-                <PlatformLink
-                  link-name="vk"
-                  :link-value="currentSong.linkVkLyrics"
-                  :song-id="currentSong.id"
-                  song-version="lyrics"
-                />
-                <PlatformLink
-                  link-name="tg"
-                  :link-value="currentSong.linkTgLyrics"
-                  :song-id="currentSong.id"
-                  song-version="lyrics"
-                />
-              </div>
-            </div>
-            <div class="km-link-group">
-              <span class="km-link-label">TABS</span>
-              <div class="km-link-icons">
-                <PlatformLink
-                  link-name="dzen"
-                  :link-value="currentSong.linkDzenTabs"
-                  :song-id="currentSong.id"
-                  song-version="tabs"
-                />
-                <PlatformLink
-                  link-name="max"
-                  :link-value="currentSong.linkMaxTabs"
-                  :song-id="currentSong.id"
-                  song-version="tabs"
-                />
-                <PlatformLink
-                  link-name="vk"
-                  :link-value="currentSong.linkVkTabs"
-                  :song-id="currentSong.id"
-                  song-version="tabs"
-                />
-                <PlatformLink
-                  link-name="tg"
-                  :link-value="currentSong.linkTgTabs"
-                  :song-id="currentSong.id"
-                  song-version="tabs"
-                />
-              </div>
-            </div>
-            <div class="km-link-group">
-              <span class="km-link-label">Chords</span>
-              <div class="km-link-icons">
-                <PlatformLink
-                  link-name="dzen"
-                  :link-value="currentSong.linkDzenChords"
-                  :song-id="currentSong.id"
-                  song-version="chords"
-                />
-                <PlatformLink
-                  link-name="max"
-                  :link-value="currentSong.linkMaxChords"
-                  :song-id="currentSong.id"
-                  song-version="chords"
-                />
-                <PlatformLink
-                  link-name="vk"
-                  :link-value="currentSong.linkVkChords"
-                  :song-id="currentSong.id"
-                  song-version="chords"
-                />
-                <PlatformLink
-                  link-name="tg"
-                  :link-value="currentSong.linkTgChords"
-                  :song-id="currentSong.id"
-                  song-version="chords"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
         <!-- Видео ВК — старое место, только когда онлайн-плеер сам не может отобразиться -->
         <div v-if="currentSong.onAir && !playerCanWatch && playerAccessLoaded" class="km-videos">
           <div v-if="currentSong.idVkKaraoke" class="km-video-block" @click="onPlay('karaoke')">
@@ -450,7 +314,6 @@
 <script>
 import { useRoute } from 'vue-router'
 import { mapGetters, mapActions } from 'vuex'
-import PlatformLink from '../components/PlatformLink.vue'
 import AuthStatusWidget from '../components/AuthStatusWidget.vue'
 import FavoriteIcon from '../components/FavoriteIcon.vue'
 import PlaylistIcon from '../components/PlaylistIcon.vue'
@@ -488,7 +351,6 @@ import { useCart } from '../composables/useCart'
 export default {
   name: 'SongView',
   components: {
-    PlatformLink,
     AuthStatusWidget,
     SongSubscriptionModal,
     FavoriteIcon,
@@ -923,43 +785,6 @@ export default {
   border-color: var(--km-accent);
 }
 
-/* Ссылки */
-.km-links-card {
-  background: var(--km-card);
-  border: 1px solid var(--km-border);
-  border-radius: 12px;
-  padding: 1rem 1.25rem;
-  margin-bottom: 1rem;
-}
-.km-links-title {
-  font-size: 0.8rem;
-  color: var(--km-text2);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  font-weight: 600;
-  margin-bottom: 0.75rem;
-}
-.km-links-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-}
-.km-link-group {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-.km-link-label {
-  font-size: 0.75rem;
-  color: var(--km-text2);
-  min-width: 40px;
-  font-weight: 600;
-}
-.km-link-icons {
-  display: flex;
-  gap: 2px;
-}
-
 /* Онлайн-плеер, встроенный вместо видео ВК */
 .km-player-card {
   margin-bottom: 1rem;
@@ -1173,9 +998,6 @@ export default {
   }
   .km-removed-card {
     padding: 2rem 1.5rem;
-  }
-  .km-links-grid {
-    gap: 0.5rem;
   }
 }
 </style>

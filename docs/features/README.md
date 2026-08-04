@@ -29,6 +29,7 @@
 | 16 | `premium-auto-publish` | Премиум-публикация (Telegram+VK) при становлении песни доступной | секция внутри [telegram-auto-publish.md](./telegram-auto-publish.md) |
 | 17 | `news-publish-backfill` | Backfill флагов публикации готовых песен + kill-switch на sync-окне | [news-publish-backfill.md](./news-publish-backfill.md) |
 | 18 | `news-templates` | Шаблоны авто-новостей сайта (title+body, вкладка в `PublishTemplatesView`) | [news-templates.md](./news-templates.md) |
+| 19 | `approve-pipeline` | Approve-пайплайн: рендер DEMO + Telegram + sync related → новость «в коллекции» | [approve-pipeline.md](./approve-pipeline.md) |
 
 ## Cross-cutting (инфраструктура)
 

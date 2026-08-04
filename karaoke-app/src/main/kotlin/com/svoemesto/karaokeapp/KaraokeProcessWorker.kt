@@ -8,6 +8,7 @@ import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.SAC_APP
 import com.svoemesto.karaokeapp.services.SNS
 import com.svoemesto.karaokeapp.services.StorageApiClient
+import com.svoemesto.karaokeapp.services.TelegramAutoPublishService
 import org.springframework.stereotype.Component
 import java.io.BufferedReader
 import java.io.File
@@ -16,6 +17,7 @@ import java.net.SocketException
 import java.net.SocketTimeoutException
 import java.net.URL
 import java.sql.Timestamp
+import kotlin.concurrent.thread
 import java.time.Instant
 import java.time.LocalDateTime
 import java.util.Base64
@@ -50,6 +52,7 @@ import javax.net.ssl.HttpsURLConnection
  *   завершение перевело задание в `WAITING` (а не в `DONE`/`ERROR`).
  * @property osProcess ссылка на OS-процесс для force-stop (`process.destroyForcibly()`).
  * @see docs/features/async-process-queue.md
+ * @see docs/features/approve-pipeline.md (фича 131: пост-хук публикации в Telegram сразу после DONE для RENDER_MP4_DEMO)
  * @see KaraokeProcessWorker главный воркер, создаёт и запускает потоки
  * @see KaraokeProcess модель задания
  */
@@ -374,6 +377,50 @@ class KaraokeProcessThread(
                                 Instant.now(),
                             )}] KaraokeProcessThread[${kp.threadId}]: ошибка пересчёта HealthReport после задания: ${e.message}",
                         )
+                    }
+                }
+
+                // Спека 131 (US1): пост-хук публикации в Telegram сразу после успешного завершения
+                // RENDER_MP4_DEMO. Запускается в отдельном thread, чтобы не задерживать освобождение
+                // ThreadLocal-соединения и не блокировать worker-поток (HTTP-вызов к TelegramBot
+                // занимает 5-30 с, см. research.md п.2.3 и contracts/pipeline.md §3).
+                //
+                // Условие срабатывания:
+                //   - тип задания — RENDER_MP4_DEMO;
+                //   - статус — DONE (ERROR — пропускаем, scheduler ретраит позже);
+                //   - задание не было форс-стопнуто;
+                //   - songId > 0 (защита от задач без привязки к песне).
+                //
+                // Идемпотентность публикации обеспечивается внутри TelegramAutoPublishService.
+                // publishToTelegram по song.idTelegramDemo (ранний return PUBLISHED).
+                val renderKp = karaokeProcess
+                if (!forceStopped &&
+                    renderKp.songId > 0 &&
+                    renderKp.type == KaraokeProcessTypes.RENDER_MP4_DEMO.name &&
+                    renderKp.status == KaraokeProcessStatuses.DONE.name
+                ) {
+                    thread {
+                        try {
+                            val renderSong =
+                                Song.loadFromDbById(
+                                    id = renderKp.songId.toLong(),
+                                    database = WORKING_DATABASE,
+                                    storageService = KSS_APP,
+                                    storageApiClient = SAC_APP,
+                                )
+                            if (renderSong == null) {
+                                println("[render-demo/post-hook] песня ${renderKp.songId} не найдена — публикация пропущена")
+                                return@thread
+                            }
+                            TelegramAutoPublishService.publishToTelegram(
+                                song = renderSong,
+                                allowPastDate = true,
+                                publicationType = com.svoemesto.karaokeapp.model.PublicationType.AIR,
+                                persistMessageId = true,
+                            )
+                        } catch (e: Exception) {
+                            println("[render-demo/post-hook] ошибка публикации: ${e.message}")
+                        }
                     }
                 }
             } finally {

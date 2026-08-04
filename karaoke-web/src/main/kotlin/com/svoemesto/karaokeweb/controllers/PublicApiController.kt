@@ -32,6 +32,9 @@ import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.net.URI
+import java.nio.file.AtomicMoveNotSupportedException
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 import javax.imageio.ImageIO
 
 /**
@@ -438,7 +441,16 @@ class PublicApiController(
         val authorFilePath = "${song.author}/${song.author}.author.png"
 
         if (cacheFile.exists()) {
-            return ResponseEntity.ok().contentType(MediaType.IMAGE_PNG).body(cacheFile.readBytes())
+            val cached = cacheFile.readBytes()
+            // specs/130-vk-preview-generation: защита от чтения частично записанного/повреждённого
+            // кэша. Проверяем PNG magic-signature (8 байт) — дешёвая и достаточная защита,
+            // поскольку генерация теперь атомарна (см. ниже) и валидный файл не может иметь
+            // мусор в первых 8 байтах.
+            if (cached.isNotEmpty() && isPngSignature(cached)) {
+                return ResponseEntity.ok().contentType(MediaType.IMAGE_PNG).body(cached)
+            }
+            // Повреждённый или пустой кэш — удаляем и регенерируем.
+            cacheFile.delete()
         }
 
         val albumBytes = fetchFromMinIO(albumFilePath)
@@ -501,9 +513,47 @@ class PublicApiController(
         val out = ByteArrayOutputStream()
         ImageIO.write(resultImage, "png", out)
         val bytes = out.toByteArray()
-        cacheFile.writeBytes(bytes)
+        writeAtomically(cacheFile, bytes)
 
         return ResponseEntity.ok().contentType(MediaType.IMAGE_PNG).body(bytes)
+    }
+
+    /**
+     * Атомарная запись PNG в [target]: пишем во временный файл в той же директории и затем
+     * [Files.move] с [StandardCopyOption.ATOMIC_MOVE]. На файловых системах без поддержки
+     * `ATOMIC_MOVE` (например, некоторые сетевые FS) — fallback на обычную замену
+     * `REPLACE_EXISTING`. Параллельный читатель увидит либо старый файл, либо новый,
+     * но не частично записанный (specs/130-vk-preview-generation).
+     */
+    private fun writeAtomically(
+        target: File,
+        bytes: ByteArray,
+    ) {
+        val tempFile = File(target.parentFile, "${target.name}.tmp.${System.nanoTime()}")
+        try {
+            tempFile.writeBytes(bytes)
+            try {
+                Files.move(tempFile.toPath(), target.toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
+            } catch (e: AtomicMoveNotSupportedException) {
+                Files.move(tempFile.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING)
+            }
+        } catch (e: Exception) {
+            tempFile.delete()
+            throw e
+        }
+    }
+
+    /** Проверяет PNG magic signature (8 байт: 89 50 4E 47 0D 0A 1A 0A). */
+    private fun isPngSignature(bytes: ByteArray): Boolean {
+        if (bytes.size < 8) return false
+        return bytes[0] == 0x89.toByte() &&
+            bytes[1] == 0x50.toByte() &&
+            bytes[2] == 0x4E.toByte() &&
+            bytes[3] == 0x47.toByte() &&
+            bytes[4] == 0x0D.toByte() &&
+            bytes[5] == 0x0A.toByte() &&
+            bytes[6] == 0x1A.toByte() &&
+            bytes[7] == 0x0A.toByte()
     }
 
     @GetMapping("/picture")

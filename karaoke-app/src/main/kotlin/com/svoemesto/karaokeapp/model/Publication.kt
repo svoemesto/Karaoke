@@ -88,7 +88,7 @@ class Publication(
         if (publish10 !=
             null
         ) {
-            "${if (publish10!!.firstSongInAlbum) "[${publish10!!.author}] ★ " else ""} ${publish10!!.songName.censored()}"
+            "${if (publish10!!.firstSongInAlbum) "[${publish10!!.author}] ★ " else ""} ${publish10!!.songName.censored(publish10!!.database)}"
         } else {
             ""
         }
@@ -96,7 +96,7 @@ class Publication(
         if (publish11 !=
             null
         ) {
-            "${if (publish11!!.firstSongInAlbum) "[${publish11!!.author}] ★ " else ""} ${publish11!!.songName.censored()}"
+            "${if (publish11!!.firstSongInAlbum) "[${publish11!!.author}] ★ " else ""} ${publish11!!.songName.censored(publish11!!.database)}"
         } else {
             ""
         }
@@ -104,7 +104,7 @@ class Publication(
         if (publish12 !=
             null
         ) {
-            "${if (publish12!!.firstSongInAlbum) "[${publish12!!.author}] ★ " else ""} ${publish12!!.songName.censored()}"
+            "${if (publish12!!.firstSongInAlbum) "[${publish12!!.author}] ★ " else ""} ${publish12!!.songName.censored(publish12!!.database)}"
         } else {
             ""
         }
@@ -112,7 +112,7 @@ class Publication(
         if (publish13 !=
             null
         ) {
-            "${if (publish13!!.firstSongInAlbum) "[${publish13!!.author}] ★ " else ""} ${publish13!!.songName.censored()}"
+            "${if (publish13!!.firstSongInAlbum) "[${publish13!!.author}] ★ " else ""} ${publish13!!.songName.censored(publish13!!.database)}"
         } else {
             ""
         }
@@ -120,7 +120,7 @@ class Publication(
         if (publish14 !=
             null
         ) {
-            "${if (publish14!!.firstSongInAlbum) "[${publish14!!.author}] ★ " else ""} ${publish14!!.songName.censored()}"
+            "${if (publish14!!.firstSongInAlbum) "[${publish14!!.author}] ★ " else ""} ${publish14!!.songName.censored(publish14!!.database)}"
         } else {
             ""
         }
@@ -128,7 +128,7 @@ class Publication(
         if (publish15 !=
             null
         ) {
-            "${if (publish15!!.firstSongInAlbum) "[${publish15!!.author}] ★ " else ""} ${publish15!!.songName.censored()}"
+            "${if (publish15!!.firstSongInAlbum) "[${publish15!!.author}] ★ " else ""} ${publish15!!.songName.censored(publish15!!.database)}"
         } else {
             ""
         }
@@ -136,7 +136,7 @@ class Publication(
         if (publish16 !=
             null
         ) {
-            "${if (publish16!!.firstSongInAlbum) "[${publish16!!.author}] ★ " else ""} ${publish16!!.songName.censored()}"
+            "${if (publish16!!.firstSongInAlbum) "[${publish16!!.author}] ★ " else ""} ${publish16!!.songName.censored(publish16!!.database)}"
         } else {
             ""
         }
@@ -144,7 +144,7 @@ class Publication(
         if (publish17 !=
             null
         ) {
-            "${if (publish17!!.firstSongInAlbum) "[${publish17!!.author}] ★ " else ""} ${publish17!!.songName.censored()}"
+            "${if (publish17!!.firstSongInAlbum) "[${publish17!!.author}] ★ " else ""} ${publish17!!.songName.censored(publish17!!.database)}"
         } else {
             ""
         }
@@ -152,7 +152,7 @@ class Publication(
         if (publish18 !=
             null
         ) {
-            "${if (publish18!!.firstSongInAlbum) "[${publish18!!.author}] ★ " else ""} ${publish18!!.songName.censored()}"
+            "${if (publish18!!.firstSongInAlbum) "[${publish18!!.author}] ★ " else ""} ${publish18!!.songName.censored(publish18!!.database)}"
         } else {
             ""
         }
@@ -160,7 +160,7 @@ class Publication(
         if (publish19 !=
             null
         ) {
-            "${if (publish19!!.firstSongInAlbum) "[${publish19!!.author}] ★ " else ""} ${publish19!!.songName.censored()}"
+            "${if (publish19!!.firstSongInAlbum) "[${publish19!!.author}] ★ " else ""} ${publish19!!.songName.censored(publish19!!.database)}"
         } else {
             ""
         }
@@ -168,7 +168,7 @@ class Publication(
         if (publish20 !=
             null
         ) {
-            "${if (publish20!!.firstSongInAlbum) "[${publish20!!.author}] ★ " else ""} ${publish20!!.songName.censored()}"
+            "${if (publish20!!.firstSongInAlbum) "[${publish20!!.author}] ★ " else ""} ${publish20!!.songName.censored(publish20!!.database)}"
         } else {
             ""
         }
@@ -176,7 +176,7 @@ class Publication(
         if (publish21 !=
             null
         ) {
-            "${if (publish21!!.firstSongInAlbum) "[${publish21!!.author}] ★ " else ""} ${publish21!!.songName.censored()}"
+            "${if (publish21!!.firstSongInAlbum) "[${publish21!!.author}] ★ " else ""} ${publish21!!.songName.censored(publish21!!.database)}"
         } else {
             ""
         }
@@ -184,7 +184,7 @@ class Publication(
         if (publish22 !=
             null
         ) {
-            "${if (publish22!!.firstSongInAlbum) "[${publish22!!.author}] ★ " else ""} ${publish22!!.songName.censored()}"
+            "${if (publish22!!.firstSongInAlbum) "[${publish22!!.author}] ★ " else ""} ${publish22!!.songName.censored(publish22!!.database)}"
         } else {
             ""
         }
@@ -192,7 +192,7 @@ class Publication(
         if (publish23 !=
             null
         ) {
-            "${if (publish23!!.firstSongInAlbum) "[${publish23!!.author}] ★ " else ""} ${publish23!!.songName.censored()}"
+            "${if (publish23!!.firstSongInAlbum) "[${publish23!!.author}] ★ " else ""} ${publish23!!.songName.censored(publish23!!.database)}"
         } else {
             ""
         }

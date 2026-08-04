@@ -200,7 +200,7 @@ class Zakroma(
                                         zakromaAlbumSong.datePublish = song.datePublish
                                         zakromaAlbumSong.songSubscriptionAvailable = song.idTariff >= 0
                                         zakromaAlbumSong.track = song.track
-                                        zakromaAlbumSong.songName = song.songName.censored()
+                                        zakromaAlbumSong.songName = song.songName.censored(database)
                                         zakromaAlbumSong.linkBoosty = song.linkBoostyTxt
                                         zakromaAlbumSong.linkSponsrPlay = song.linkSponsrPlay
                                         zakromaAlbumSong.linkDzenKaraoke = song.linkDzenKaraoke

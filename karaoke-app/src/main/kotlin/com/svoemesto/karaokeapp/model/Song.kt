@@ -605,7 +605,7 @@ class Song(
 
     val color: String get() = fields[SongField.COLOR] ?: ""
     val songName: String get() = fields[SongField.NAME] ?: ""
-    val songNameCensored: String get() = songName.censored()
+    val songNameCensored: String get() = songName.censored(database)
     val author: String get() = fields[SongField.AUTHOR] ?: ""
     val album: String get() = fields[SongField.ALBUM] ?: ""
     val date: String get() = fields[SongField.DATE] ?: ""
@@ -4625,7 +4625,7 @@ class Song(
         songVersion: SongVersion,
         maxSymbols: Int = 0,
     ): String =
-        "${songName.censored()} ★♫★ $author ★♫★ ${songVersion.text} ★♫★ ${songVersion.textForDescription}".cutByWords(
+        "${songName.censored(database)} ★♫★ $author ★♫★ ${songVersion.text} ★♫★ ${songVersion.textForDescription}".cutByWords(
             maxLength = maxSymbols,
         )
 
@@ -4637,9 +4637,9 @@ class Song(
         getDescriptionVkHeader(songVersion = songVersion) + "\n" +
             getDescriptionWOHeaderWithTimecodes(songVersion = songVersion)
 
-    fun getTextBoostyHead(): String = "${songName.censored()} ★♫★ $author"
+    fun getTextBoostyHead(): String = "${songName.censored(database)} ★♫★ $author"
 
-    fun getTextBoostyFilesHead(): String = "[ФАЙЛЫ] ${songName.censored()} ★♫★ $author"
+    fun getTextBoostyFilesHead(): String = "[ФАЙЛЫ] ${songName.censored(database)} ★♫★ $author"
 
     fun getTextForDescriptionHeader(songVersion: SongVersion? = null): String =
         "$linkSM\n ⇑ Страница песни на официальном сайте проекта ⇑\n\n" +
@@ -4681,7 +4681,7 @@ class Song(
         songVersion: SongVersion,
         maxSymbols: Int = 0,
     ): String =
-        "${songName.censored()} ★♫★ $author ★♫★ ${songVersion.text} ★♫★ ${songVersion.textForDescription}".cutByWords(
+        "${songName.censored(database)} ★♫★ $author ★♫★ ${songVersion.text} ★♫★ ${songVersion.textForDescription}".cutByWords(
             maxLength = maxSymbols,
         )
 
@@ -4689,7 +4689,7 @@ class Song(
         songVersion: SongVersion,
         maxSymbols: Int = 0,
     ): String =
-        "${songName.censored()} ★♫★ $author ★♫★ ${songVersion.text} ★♫★ ${songVersion.textForDescription}\n$linkSM\n⇑ Страница песни на официальном сайте проекта"
+        "${songName.censored(database)} ★♫★ $author ★♫★ ${songVersion.text} ★♫★ ${songVersion.textForDescription}\n$linkSM\n⇑ Страница песни на официальном сайте проекта"
             .cutByWords(
                 maxLength = maxSymbols,
             )
@@ -4698,7 +4698,7 @@ class Song(
         songVersion: SongVersion,
         maxSymbols: Int = 0,
     ): String =
-        "${songName.censored()} ★♫★ $author ★♫★ ${songVersion.text} ★♫★ ${songVersion.textForDescription}\n$linkSM\n⇑ Страница песни на официальном сайте проекта"
+        "${songName.censored(database)} ★♫★ $author ★♫★ ${songVersion.text} ★♫★ ${songVersion.textForDescription}\n$linkSM\n⇑ Страница песни на официальном сайте проекта"
             .cutByWords(
                 maxLength = maxSymbols,
             )
@@ -4752,18 +4752,18 @@ class Song(
     // (те же значения, что у RenderVersion.DEMO.label/comment в PlayerMp4RenderService.kt).
 
     fun getDescriptionDemoHeader(maxSymbols: Int = 0): String =
-        "${songName.censored()} ★♫★ $author ★♫★ Demo ★♫★ Karaoke (Demo)".cutByWords(maxLength = maxSymbols)
+        "${songName.censored(database)} ★♫★ $author ★♫★ Demo ★♫★ Karaoke (Demo)".cutByWords(maxLength = maxSymbols)
 
     fun getDescriptionVkDemoHeader(maxSymbols: Int = 0): String =
-        "${songName.censored()} ★♫★ $author ★♫★ Demo ★♫★ Karaoke (Demo)".cutByWords(maxLength = maxSymbols)
+        "${songName.censored(database)} ★♫★ $author ★♫★ Demo ★♫★ Karaoke (Demo)".cutByWords(maxLength = maxSymbols)
 
     fun getDescriptionTelegramDemoHeader(maxSymbols: Int = 0): String =
-        "${songName.censored()} ★♫★ $author ★♫★ Demo ★♫★ Karaoke (Demo)\n$linkSM\n⇑ Страница песни на официальном сайте проекта".cutByWords(
+        "${songName.censored(database)} ★♫★ $author ★♫★ Demo ★♫★ Karaoke (Demo)\n$linkSM\n⇑ Страница песни на официальном сайте проекта".cutByWords(
             maxLength = maxSymbols,
         )
 
     fun getDescriptionMaxDemoHeader(maxSymbols: Int = 0): String =
-        "${songName.censored()} ★♫★ $author ★♫★ Demo ★♫★ Karaoke (Demo)\n$linkSM\n⇑ Страница песни на официальном сайте проекта".cutByWords(
+        "${songName.censored(database)} ★♫★ $author ★♫★ Demo ★♫★ Karaoke (Demo)\n$linkSM\n⇑ Страница песни на официальном сайте проекта".cutByWords(
             maxLength = maxSymbols,
         )
 
@@ -4796,7 +4796,7 @@ class Song(
     fun getVKGroupDescription(
         @Suppress("unused") maxSymbols: Int = 0,
     ): String =
-        "${songName.censored()} ★♫★ $author" + "\n\n" +
+        "${songName.censored(database)} ★♫★ $author" + "\n\n" +
             getTextForDescriptionHeader() +
             getTextForDescription()
 

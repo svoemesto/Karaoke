@@ -10,7 +10,7 @@ echo "Starting do.sh"
 
 DEPLOY_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null && pwd)"
 BASE_DIR="$(cd "${DEPLOY_DIR}" && cd .. && pwd)"
-GRADLE="$BASE_DIR/gradlew --no-daemon"
+GRADLE="$BASE_DIR/gradlew"
 APP_VERSION="$(cd $BASE_DIR && $GRADLE | grep KaraokeVersion | awk '/':'/{print $2}')"
 DOCKER=$(which docker)
 COMPOSE=$(which docker-compose)
@@ -133,6 +133,9 @@ function do_build_app() {
    -f $DEPLOY_DIR/karaoke-app/Dockerfile
   bl_commit
   bl_release
+  # Бажное использование --no-daemon в GRADLE приводило к OOM (Kotlin 2.2 не компилируется
+  # с дефолтным heap ~512 МБ gradle wrapper'а — хватает только daemon'у, у которого heap=2G по gradle.properties).
+  # Фича 135: --no-daemon убран из GRADLE.
 }
 
 function do_build_app_nocache() {

@@ -9,7 +9,7 @@ import com.svoemesto.karaokeapp.model.Dictionary
  * Раньше словарь хранился в текстовом файле на диске (pathToFile()/save()/loadList() читали
  * и писали .txt). Теперь все значения живут в единой таблице БД tbl_dictionaries
  * (см. model/Dictionary.kt) — интерфейс сохранён как тонкий фасад над ней, чтобы не трогать
- * вызывающий код (Extentions.censored(), Utils.replaceSymbolsInSong, Song.getWhereList,
+ * вызывающий код (Extentions.censored(database), Utils.replaceSymbolsInSong, Song.getWhereList,
  * ApiController.doTextFileDictionary/getDict/addSyncForAll).
  */
 interface TextFileDictionary {

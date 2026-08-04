@@ -203,18 +203,27 @@ fun getCensoredPair(
 /**
  * Заменяет слова из словаря «Censored» на маскированную форму (см. [getCensoredPair]).
  *
- * @param database Соединение, из которого читать словарь «Censored» — вызывающий код с
- *   собственным [KaraokeConnection] (например, karaoke-web) ДОЛЖЕН передать его явно, иначе
- *   используется дефолтный `karaoke-app`-глобал [WORKING_DATABASE] (specs/139-fix-censored-dictionary).
+ * @param database Соединение, из которого читать словарь «Censored». Параметр обязателен —
+ *   в karaoke-web и karaoke-app определены разные `WORKING_DATABASE` (с разными credentials),
+ *   и обращение через karaoke-app-глобал из karaoke-web инициализирует `Connection` →
+ *   читает `APP_WORK_ON_SERVER` (инициализируется только в `KaraokeAppService` модуля
+ *   karaoke-app, в karaoke-web его нет) → падает с `IllegalStateException`. Дефолт
+ *   был убран в specs/140 после регрессии PR #139, чтобы компилятор ловил такие места.
+ *   @see specs/140-fix-zakroma-censored-database
  */
-fun String.censored(database: KaraokeConnection = WORKING_DATABASE): String {
+fun String.censored(database: KaraokeConnection): String {
     val censoredMap = CensoredWordsDictionary(database = database).dict.associate { getCensoredPair(it) }
 
     var result = this
     censoredMap.forEach { (uncensored, censored) ->
-        val patt1 = "\\b$uncensored\\b".toRegex()
+        // specs/141-fix-censored-web-storage-globals: \b в Java/Kotlin regex по умолчанию
+        // использует ASCII \w = [a-zA-Z_0-9] — НЕ работает с русскими буквами. Все слова
+        // словаря «Censored» русские, поэтому до этого фикса цензурирование в принципе
+        // не срабатывало на русских названиях. Заменяем \b на lookbehind/lookahead с
+        // Unicode property \p{L} (любая буква) + \p{N} (цифра) + _ (ASCII underscore).
+        val patt1 = "(?<![\\p{L}\\p{N}_])$uncensored(?![\\p{L}\\p{N}_])".toRegex()
         result = result.replace(patt1, censored)
-        val patt2 = "\\b${uncensored.uppercaseFirstLetter()}\\b".toRegex()
+        val patt2 = "(?<![\\p{L}\\p{N}_])${uncensored.uppercaseFirstLetter()}(?![\\p{L}\\p{N}_])".toRegex()
         result = result.replace(patt2, censored.uppercaseFirstLetter())
     }
     return result

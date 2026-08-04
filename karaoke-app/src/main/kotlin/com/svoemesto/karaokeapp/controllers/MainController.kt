@@ -85,7 +85,7 @@ class MainController(
     @ResponseBody
     fun doCensored(
         @RequestParam(required = true) source: String,
-    ): String = source.censored()
+    ): String = source.censored(WORKING_DATABASE)
 
     @PostMapping("/utils/createfromfolder")
     @ResponseBody

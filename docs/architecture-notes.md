@@ -687,4 +687,23 @@ bump и Sync Impact Report, а не просто правка текста.
 
 **Связанные документы:** [`specs/131-fix-approve-demo-render-telegram-sync/research.md`](../specs/131-fix-approve-demo-render-telegram-sync/research.md) — обновлены D-1 (правильная семантика `doWait`) и D-1-альтернатива (C) с обоснованием `onRenderCompleted`. [`docs/features/approve-pipeline.md`](./features/approve-pipeline.md) — добавлена ловушка P-9 про `doWait` zombie-процессы. [`services/PremiumAutoPublishScheduler.kt`](../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/PremiumAutoPublishScheduler.kt) — прецедент использования `onRenderCompleted` для `newsPremiumPublishPending=true` (его Фаза 1 resumeRenderingSong, строки 120-134). [`services/TelegramAutoPublishService.kt:169-172`](../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/TelegramAutoPublishService.kt) — логика динамического `effectivePublicationType`/`effectivePersistMessageId`. [`services/VkAutoPublishService.kt:134-138`](../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/VkAutoPublishService.kt) — VK-аналог (тоже динамически выбирает тип по `newsPremiumPublishPending`). Pass 33 (feat 122) — прецедент согласования ручной/автоматической фичи через `onRenderCompleted`. Pass 38 (feat 131) — оригинальная реализация, чей код мы правим (это Pass 39 = fixup).
 
+### 2026-08-04 — PR #182: `142-remove-watch-links-block` (`620bbfa6`)
+
+**Что.** На публичной странице песни (`karaoke-public/src/views/SongView.vue`) удалён UI-блок «Ссылки на просмотр» — карточка с иконками внешних платформ (Sponsr / Dzen / VK / Telegram / Max) для пяти вариантов (Все / Karaoke / Lyrics / TABS / Chords). Удалено 178 строк в одном `*.vue`-файле (DOM-блок 135 строк + CSS-правила 40 строк + import/регистрация `PlatformLink` 2 строки + пустые разделители). Полная поставка: 8 spec-kit артефактов в `specs/142-remove-watch-links-block/` + 1 модифицированный файл.
+
+**Зачем.** Прямой запрос пользователя: «На проде со страницы песни убрать блок „Ссылки на просмотр"». Блок не нёс критичной функциональности (онлайн-плеер уже встроен в страницу и перекрывает основной use-case); наличие внешних ссылок на сторонние платформы в публичном view признано избыточным.
+
+**Что НЕ изменилось.**
+- Источники данных: `Song.link*`-поля (Sponsr/Dzen/VK/Telegram/Max × Karaoke/Lyrics/Tabs/Chords) остаются в `tbl_settings` и в JSON `/api/public/song` — на случай возврата блока через `git revert` или использования в других view (`SearchView.vue` уже использует `PlatformLink`, Закрома и результаты поиска продолжают рендерить ссылки).
+- `karaoke-public/src/components/PlatformLink.vue` — без правок (компонент переиспользуется).
+- `SearchView.vue`, `ZakromaView.vue` — продолжают импортировать `PlatformLink` без изменений.
+- Backend (`karaoke-app`, `karaoke-web`), БД (`tbl_settings`), `SyncRegistry`, `recordhash`-триггеры — без изменений.
+- `webvue3` (админка) — блока «Ссылки на просмотр» там никогда не было.
+
+**Подход.** Чисто удаляющая правка, без флагов/toggle'ов/A/B-вариантов. Никаких визуальных заглушек на месте блока (NFR-001). Один Vue-файл, один атомарный коммит. Поля, DTO и API оставлены без изменений — чтобы возврат через `git revert` вернул DOM+CSS+import одним revert'ом.
+
+**Уроки / тонкости.** Минимальная фича-иллюстрация стандартного speckit-флоу: `/speckit.specify` → `/speckit.plan` → `/speckit.tasks` → `/speckit.implement`. Удаляющая UI-фича = простое удаление кода без новой архитектуры. Все 7 CI-проверок зелёные (ktlint / ESLint webvue3 / ESLint karaoke-public / Docs / Baseline / KDoc / JSDoc). Локально `npm run lint:check && npm run build` в `karaoke-public` — без новых нарушений baseline (baseline сократился, потому что код уменьшился). Pre-check `grep "km-link"` в `SongView.vue` — критичный шаг: убедиться, что удаляемые CSS-классы не используются вне блока (иначе удаление CSS ломает другие части страницы). В этом файле pre-check зелёный с первой проверки. Per Constitution §V ст. 2 деплой на прод делает пользователь (`do.sh build_start_public`), не агент — соблюдено.
+
+**Связанные документы:** [`specs/142-remove-watch-links-block/`](../specs/142-remove-watch-links-block/) — `spec.md`, `plan.md`, `research.md`, `data-model.md`, `contracts/README.md`, `quickstart.md`, `tasks.md`, `checklists/requirements.md`. Merge-commit PR #182: `e4804674` (`Merge pull request #182 from svoemesto/142-remove-watch-links-block`).
+
 

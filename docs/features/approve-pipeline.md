@@ -2,7 +2,7 @@
 
 > **Status**: active
 > **Feature Key**: approve-pipeline
-> **Last Updated**: 2026-08-04 (Pass 34 — фича 131, см. `specs/131-fix-approve-demo-render-telegram-sync/`)
+> **Last Updated**: 2026-08-04 (Pass 39 — фикс 131: zombie-процессы `doWait=false` → `true` + шаблон «В коллекции» через `onRenderCompleted`)
 
 ## Что делает
 
@@ -205,6 +205,8 @@ if (!forceStopped &&
 | P-6 | `WORKING_DATABASE` — глобал; `karaoke-db` ADmin-машина. На проде его нет; эта фича выполняется ТОЛЬКО на admin-машине в `karaoke-app`. Публичный flow (`karaoke-web`/`karaoke-public`) фичу не запускает — это и не требуется. | Если когда-нибудь понадобится «approve с прод-входом» — это уже отдельная спека. |
 | P-7 | Error-ветка `KaraokeProcessThread.run()` (после `catch (e: Exception)` в subprocess, статус=ERROR) **не** запускает публикацию. Это intentional: рендер упал — Telegram-пост не выйдет. Telegram-пост можно опубликовать позже через ручной триггер «Опубликовать в Telegram сейчас» после фикса стема и перерендера. | Не добавлять «аварийный» post-hook на ERROR. |
 | P-8 | Sync-related в `thread { ... }` может выполняться десятки секунд. Если процесс `karaoke-app` рестартует в этом окне — синк не возобновится автоматически (нет механизма retry). Админу достаточно нажать «Обновить на сервере» (`POST /utils/updateremotedatabasefromlocaldatabase`). | Документировать в PR-описании. |
+| P-9 | **`KaraokeProcess.createProcess(..., doWait=false, ...)` НЕ делает «неблокирующий вызов» — это «создать zombie-процесс с `process_status='CREATING'`, который НИКОГДА не будет подобран воркером**.** Параметр `doWait` управляет **начальным статусом** записи в `tbl_processes`: `WAITING` или `CREATING`. Воркер `KaraokeProcessWorker.getProcessesToStart` фильтрует SQL строго `WHERE process_status='WAITING'` (`KaraokeProcess.kt:806`); никакого scheduler'а/пост-хука, который флипал бы `CREATING → WAITING`, в кодовой базе нет (проверено). Поэтому `doWait=false` в любых render-задачах — это просто «вечная запись в БД, которую никто не подберёт». Безопасно **только** в сценариях, где кто-то по другому каналу (scheduler, пост-хук, ручной триггер) потом переводит процесс в `WAITING` — но таких мест сейчас нет. **Правило: все render-задачи должны создаваться с `doWait=true`.** В нашем хелпере `triggerRenderMp4DemoIfNeeded` это было исправлено в Pass 39 (ранее `doWait=false` — zombie). | Аудит всех 26 `KaraokeProcess.createProcess` в `karaoke-app`: 23 уже используют `doWait=true` (HealthReport.kt, Song.kt, ApiController.kt), 3 были `doWait=false` (наш хелпер, TelegramAutoPublishService.startRenderAndReturn, VkAutoPublishService.startRenderAndReturn) — все 3 поправлены в Pass 39. |
+| P-10 | Шаблон Telegram-публикации после approve должен быть «В коллекции» (PREMIUM), не «В эфире» (AIR). Approve выставляет `song.newsPremiumPublishPending=true` через `Song.markNewsAvailableIfReady` (см. `Song.kt:5113-5131`). Жёстко зашитый `publishToTelegram(..., PublicationType.AIR, persistMessageId=true)` публикует с AIR-шаблоном **И** заполняет `idTelegramDemo`, что ломает последующий AIR-цикл по `dateTimePublish`. Использовать `TelegramAutoPublishService.onRenderCompleted(success=true, error=null)` — он сам разруливает `effectivePublicationType`/`effectivePersistMessageId` по `song.newsPremiumPublishPending` (см. `TelegramAutoPublishService.kt:169-172`). Это канонический entry-point, уже используется в `PremiumAutoPublishScheduler.resumeRenderingSong`. | В нашем пост-хуке `KaraokeProcessWorker.KaraokeProcessThread.run()` была исправлено в Pass 39. |
 
 ## Ссылки
 

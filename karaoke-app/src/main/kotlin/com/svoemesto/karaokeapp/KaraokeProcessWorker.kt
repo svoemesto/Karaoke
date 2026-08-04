@@ -411,30 +411,32 @@ class KaraokeProcessThread(
                     thread {
                         println("[render-demo/post-hook] thread START for songId=${renderKp.songId}")
                         try {
-                            val renderSong =
-                                Song.loadFromDbById(
-                                    id = renderKp.songId.toLong(),
-                                    database = WORKING_DATABASE,
-                                    storageService = KSS_APP,
-                                    storageApiClient = SAC_APP,
+                            // Спека 131 (фича 134): заменили прямой publishToTelegram(AIR, persist=true)
+                            // на onRenderCompleted(), который сам разруливает шаблон и persistMessageId
+                            // по song.newsPremiumPublishPending (см. TelegramAutoPublishService.onRenderCompleted:169-172).
+                            // Логика:
+                            //   - newsPremiumPublishPending=true → PREMIUM + persist=false (не заполняем idTelegramDemo,
+                            //     оставляя слот для будущей AIR-публикации по расписанию).
+                            //   - newsPremiumPublishPending=false → AIR + persist=true (заполняем idTelegramDemo).
+                            // Это правильнее, чем жёстко зашитый AIR-шаблон: после approve ставится
+                            // newsPremiumPublishPending=true (см. Song.markNewsAvailableIfReady:5113-5131),
+                            // и approve-flow автоматически идёт по PREMIUM-шаблону ("В коллекции").
+                            val result =
+                                TelegramAutoPublishService.onRenderCompleted(
+                                    songId = renderKp.songId.toLong(),
+                                    success = true,
+                                    error = null,
                                 )
-                            if (renderSong == null) {
+                            if (result == null) {
                                 println("[render-demo/post-hook] песня ${renderKp.songId} не найдена — публикация пропущена")
-                                return@thread
+                            } else {
+                                println(
+                                    "[render-demo/post-hook] onRenderCompleted вернул state=${result.state.code} " +
+                                        "messageId=${result.messageId ?: "<нет>"} for songId=${renderKp.songId}",
+                                )
                             }
-                            println(
-                                "[render-demo/post-hook] song loaded for songId=${renderSong.id}, fileName=${renderSong.fileName}; " +
-                                    "calling publishToTelegram(allowPastDate=true, AIR, persistMessageId=true)",
-                            )
-                            TelegramAutoPublishService.publishToTelegram(
-                                song = renderSong,
-                                allowPastDate = true,
-                                publicationType = com.svoemesto.karaokeapp.model.PublicationType.AIR,
-                                persistMessageId = true,
-                            )
-                            println("[render-demo/post-hook] publishToTelegram returned for songId=${renderSong.id}")
                         } catch (e: Exception) {
-                            println("[render-demo/post-hook] ошибка публикации: ${e.message}")
+                            println("[render-demo/post-hook] ошибка onRenderCompleted: ${e.message}")
                         }
                     }
                 }

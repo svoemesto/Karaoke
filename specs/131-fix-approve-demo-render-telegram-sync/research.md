@@ -82,7 +82,7 @@
 | Где запускать `RENDER_MP4_DEMO` | Из нового блока в `SongEditorController.approve()`, **после** `updateRemoteSongFromLocalDatabase(song.id)`. | Существующий approve уже устоялся (094/095/096). Новая логика — добавление в конце, никаких перестановок шагов. |
 | Приоритет `RENDER_MP4_DEMO` | `prior=5` (средний). | Рендер не срочный для пользователя, но админ нажал кнопку — должно начаться быстро. `5` совместим с `KaraokeProperties.prioritet` (низкие числа — выше приоритет). |
 | `threadId` | `0` (`HEAVY_RENDER` lane). | То же значение, что у ручного `/song/renderMp4Preview`; рендеры DEMO живут в отдельном lane и не блокируют лёгкие задачи. |
-| `doWait` | `false` (без ожидания). | Approve не должен блокировать HTTP-ответ админа (см. A-006). |
+| `doWait` | `true` (со статусом `WAITING` в `tbl_processes`). | **Семантика `doWait`** (см. D-3 и Pass 38 «Уроки» фичи 134): параметр НЕ управляет блокировкой HTTP-вызова (функция возвращает `Long` синхронно в любом случае) — он задаёт начальный `process_status`: `WAITING` или `CREATING`. **Воркер `KaraokeProcessWorker.getProcessesToStart` подбирает ТОЛЬКО `status='WAITING'`** (см. `KaraokeProcess.kt:806`) — `CREATING` задачи никогда не подбираются, никем во всём проекте. Никакого флипа `CREATING → WAITING` в кодовой базе нет. Таким образом `doWait=false` означает «создать zombie-процесс, который навсегда зависнет в `tbl_processes`». **ВСЕ render-процессы должны создаваться с `doWait=true`.** Approve остаётся неблокирующим потому, что весь код после `createProcess` (включая Telegram-публикацию) уже сейчас обёрнут в `try/catch` + `thread { ... }`. |
 
 ### 2.2 Идемпотентность шага рендера (FR-007)
 
@@ -96,7 +96,7 @@
 | Аспект | Решение | Обоснование |
 |---|---|---|
 | Точка вызова | Из post-hook в `KaraokeProcessThread.run()` сразу после успешного завершения `RENDER_MP4_DEMO`. | `TelegramAutoPublishScheduler` тикает раз в 60 c — это нарушает SC-002 «в течение 60 с после рендера». Пост-хук даёт **немедленный** вызов. |
-| Параметры вызова | `allowPastDate=true, publicationType=AIR, persistMessageId=true`. | approve-песня имеет заполненную `dateTimePublish` (иначе бы её не апрувили — это часть гейта `isContentReady`). `allowPastDate=true` страхует от ложного срабатывания «опоздавшая». `publicationType=AIR` — это та публикация, ради которой approve и нужен. `persistMessageId=true` — сохранить `idTelegramDemo` после успешной отправки. |
+| Параметры вызова | Использовать **`TelegramAutoPublishService.onRenderCompleted(songId, success=true, error=null)`** вместо прямого `publishToTelegram(...)`. `onRenderCompleted` САМ разруливает `effectivePublicationType` и `effectivePersistMessageId` по `song.newsPremiumPublishPending` (см. `TelegramAutoPublishService.onRenderCompleted:169-172`): если флаг `true` — выберет PREMIUM-шаблон «В коллекции» с `persist=false` (не заполнит `idTelegramDemo`, оставит слот для будущей AIR-публикации по расписанию), иначе — AIR-шаблон с `persist=true`. `allowPastDate=true` для PREMIUM выставляется автоматически (`effectiveAllowPastDate = allowPastDate || type == PREMIUM`, `TelegramAutoPublishService:96`). |
 | Поток | В **том же** post-hook (синхронно с потоком задания) — отдельный `Thread` (через `thread { ... }`), чтобы не задерживать освобождение `ThreadLocal`-соединения. | Прямая публикация занимает 5-30 с (HTTP-вызов к Telegram). Блокировать `KaraokeProcessThread` плохо — это главный worker-thread. |
 | Передача `song` в поток | Загрузить заново `Song.loadFromDbById(id, ...)` внутри потока — после завершения `WORKING→DONE` в БД уже всё видно (стемы, флаги). | Не пробрасываем `Song`-объект через post-hook (там уже лежит только `karaokeProcess`). Стандартный паттерн (используется и в `TelegramAutoPublishScheduler.resumeRenderingSongs`). |
 
@@ -124,14 +124,19 @@
 
 ### D-1: Уведомление о завершении рендера — post-hook в `KaraokeProcessThread`
 
-- **Decision**: добавить вызов `TelegramAutoPublishService.publishToTelegram(...)` в
+- **Decision**: добавить вызов `TelegramAutoPublishService.onRenderCompleted(songId, success=true, error=null)` в
   пост-хук `KaraokeProcessThread.run()` после успешного завершения
   `RENDER_MP4_DEMO`. Вызов обёрнут в `thread { ... }` чтобы не блокировать worker.
-- **Rationale**: существующие потребители `publishToTelegram` (`TelegramAutoPublishScheduler`,
-  `PremiumAutoPublishScheduler`, `ApiController.dopublishToTelegram`) — все
-  используют сервис одинаково. Пост-хук `KaraokeProcessThread` уже есть для
-  HealthReport — добавляем параллельную ветку. Прямой вызов даёт
-  немедленную публикацию (SC-002).
+- **Rationale**: `onRenderCompleted` — это каноническая точка входа «рендер DONE →
+  публикация», уже используемая `PremiumAutoPublishScheduler.resumeRenderingSong`
+  (см. `PremiumAutoPublishScheduler.kt:120-134`). Она САМА разруливает выбор
+  шаблона (`PublicationType.AIR` vs `PublicationType.PREMIUM`) и persistMessageId
+  по флагу `song.newsPremiumPublishPending`, который автоматически выставляется в
+  `Song.markNewsAvailableIfReady` (см. `Song.kt:5113-5131`) на approve. Прямой вызов
+  `publishToTelegram(..., publicationType=AIR, persistMessageId=true)` (как было бы
+  без динамической проверки) публиковал бы с AIR-шаблоном и заполнял бы `idTelegramDemo`
+  премиум-публикации — это ломает последующий цикл AIR-публикации по расписанию.
+  Пост-хук `KaraokeProcessThread` уже есть для HealthReport — добавляем параллельную ветку.
 - **Alternatives considered**:
   - (A) Опираться только на `TelegramAutoPublishScheduler` (60 c tick). Отклонено:
     не удовлетворяет SC-002 «в течение 60 с после рендера» (фактически даёт только
@@ -139,6 +144,10 @@
     гарантировано).
   - (B) WebSocket между karaoke-app и Telegram-bot. Отклонено: переусложнение,
     нет бизнес-требования, существующий scheduler уже работает.
+  - (C) Прямой вызов `publishToTelegram(..., AIR, persist=true)`. Отклонено после
+    фичи 134: приводит к неверному шаблону «В эфире» (вместо «В коллекции»)
+    и заполняет `idTelegramDemo` слишком рано, ломая флоу между approve и
+    последующей AIR-публикацией по `dateTimePublish`.
 
 ### D-2: Sync связанных таблиц — bulk `updateRemoteDatabaseFromLocalDatabase`
 

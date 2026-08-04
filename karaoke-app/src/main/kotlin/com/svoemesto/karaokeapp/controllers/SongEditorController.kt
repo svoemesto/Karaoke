@@ -953,11 +953,11 @@ class SongEditorController(
                     }
                 }
             }
-            println("[approve/render-demo-helper] calling KaraokeProcess.createProcess(action=RENDER_MP4_DEMO, prior=5, threadId=0, doWait=false) for songId=${song.id}")
+            println("[approve/render-demo-helper] calling KaraokeProcess.createProcess(action=RENDER_MP4_DEMO, prior=5, threadId=0, doWait=true) for songId=${song.id}")
             KaraokeProcess.createProcess(
                 song = song,
                 action = KaraokeProcessTypes.RENDER_MP4_DEMO,
-                doWait = false,
+                doWait = true,
                 prior = 5,
                 threadId = 0,
             )

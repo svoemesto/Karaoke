@@ -195,7 +195,7 @@ object VkAutoPublishService {
             KaraokeProcess.createProcess(
                 song = song,
                 action = KaraokeProcessTypes.RENDER_MP4_DEMO,
-                doWait = false,
+                doWait = true,
                 prior = 1,
                 threadId = KaraokeProcess.THREAD_LANE_HEAVY_RENDER,
                 context =
@@ -204,6 +204,10 @@ object VkAutoPublishService {
                         "height" to 720,
                         "fps" to 30,
                         "version" to com.svoemesto.karaokeapp.services.RenderVersion.DEMO.name,
+                        // Фича 134: раньше тут было `publicationType.code` — не компилировалось
+                        // (правильное имя параметра — `type`), но из-за `doWait=false` (zombie-процесс)
+                        // этот код никогда не достигался в проде, и баг был незаметен. После нашего
+                        // фикса `doWait=true` ветка становится реальной — исправлено.
                         "vkType" to type.code,
                     ),
             )

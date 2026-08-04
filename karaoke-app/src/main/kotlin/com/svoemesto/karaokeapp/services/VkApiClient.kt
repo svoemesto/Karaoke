@@ -185,7 +185,9 @@ data class DocAttachment(
 enum class PhotoUploadMethod { PHOTOS, DOCS, NONE }
 
 /** Базовое исключение при ошибке загрузки превью для ВК (specs/138). */
-sealed class VkPhotoUploadException(message: String) : RuntimeException(message)
+sealed class VkPhotoUploadException(
+    message: String,
+) : RuntimeException(message)
 
 /** Авторизационная ошибка (`error_code in 27/15/5`) — триггер fallback на `docs.*`. */
 class VkPhotoAuthException(
@@ -564,13 +566,14 @@ class VkApiClient {
         videoBytes: ByteArray,
         videoFileName: String,
         boundary: String,
-    ): ByteArray = buildMultipartBody(
-        fieldName = "video_file",
-        fileName = videoFileName,
-        contentType = "video/mp4",
-        bytes = videoBytes,
-        boundary = boundary,
-    )
+    ): ByteArray =
+        buildMultipartBody(
+            fieldName = "video_file",
+            fileName = videoFileName,
+            contentType = "video/mp4",
+            bytes = videoBytes,
+            boundary = boundary,
+        )
 
     /**
      * Общий helper для multipart/form-data с одним полем (используется для
@@ -661,13 +664,14 @@ class VkApiClient {
         fileName: String = "cover.png",
     ): VkPhotoUploadResponseRaw {
         val boundary = "karaoke-${System.currentTimeMillis()}"
-        val body = buildMultipartBody(
-            fieldName = "photo",
-            fileName = fileName,
-            contentType = "image/png",
-            bytes = pngBytes,
-            boundary = boundary,
-        )
+        val body =
+            buildMultipartBody(
+                fieldName = "photo",
+                fileName = fileName,
+                contentType = "image/png",
+                bytes = pngBytes,
+                boundary = boundary,
+            )
         val uri = URI(uploadUrl)
         val request =
             HttpRequest
@@ -741,8 +745,9 @@ class VkApiClient {
                 else -> VkPhotoTransientException(code, msg)
             }
         }
-        val first = parsed.response?.firstOrNull()
-            ?: throw VkPhotoUploadException("photos.saveWallPhoto empty response")
+        val first =
+            parsed.response?.firstOrNull()
+                ?: throw VkPhotoUploadException("photos.saveWallPhoto empty response")
         return PhotoAttachment(
             id = first.id,
             ownerId = first.ownerId,
@@ -804,13 +809,14 @@ class VkApiClient {
         fileName: String = "cover.png",
     ): VkDocUploadResponseRaw {
         val boundary = "karaoke-${System.currentTimeMillis()}"
-        val body = buildMultipartBody(
-            fieldName = "file",
-            fileName = fileName,
-            contentType = "image/png",
-            bytes = pngBytes,
-            boundary = boundary,
-        )
+        val body =
+            buildMultipartBody(
+                fieldName = "file",
+                fileName = fileName,
+                contentType = "image/png",
+                bytes = pngBytes,
+                boundary = boundary,
+            )
         val uri = URI(uploadUrl)
         val request =
             HttpRequest
@@ -878,8 +884,9 @@ class VkApiClient {
                 else -> VkPhotoTransientException(code, msg)
             }
         }
-        val saved = parsed.response
-            ?: throw VkPhotoUploadException("docs.save empty response")
+        val saved =
+            parsed.response
+                ?: throw VkPhotoUploadException("docs.save empty response")
         return DocAttachment(
             id = saved.id,
             ownerId = saved.ownerId,

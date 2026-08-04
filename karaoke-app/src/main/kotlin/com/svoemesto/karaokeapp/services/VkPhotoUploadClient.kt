@@ -97,13 +97,16 @@ class VkPhotoUploadClient(
                     // прочее (например, upload_url empty / invalid JSON) — без fallback
                     throw e
                 }
-            } else null
+            }
+        } else null
 
         // Fallback на docs.* (если включён и был photosError)
         if (!docEnabled) {
             // doc отключён: если photosError есть — пробросить его (VkAutoPublishService поставит SEND_FAILED);
             // если photos был отключён И doc отключён — выше уже вернули NONE.
-            if (photosError != null) throw photosError
+            if (photosError != null) {
+                throw photosError
+            }
             return PhotoUploadResult(PhotoUploadMethod.NONE, null, "vkPhotoAttachEnabled=false, vkDocAttachEnabled=false (handled above)")
         }
 
@@ -153,8 +156,10 @@ class VkPhotoUploadClient(
                 return PhotoUploadResult(PhotoUploadMethod.PHOTOS, photo.attachment, null)
             } catch (e: VkPhotoTransientException) {
                 lastTransient = e
-                println("VkPhotoUploadClient.uploadCover: photos.* transient on attempt $attempt/${transientAttempts}: ${e.errorCode} ${e.errorMsg}")
-                if (attempt < transientAttempts) sleep(transientBackoffMs)
+                println("VkPhotoUploadClient.uploadCover: photos.* transient on attempt $attempt/$transientAttempts: ${e.errorCode} ${e.errorMsg}")
+                if (attempt < transientAttempts) {
+                    sleep(transientBackoffMs)
+                }
             }
         }
         throw lastTransient ?: VkPhotoTransientException(0, "unknown transient failure")
@@ -181,8 +186,10 @@ class VkPhotoUploadClient(
                 return PhotoUploadResult(PhotoUploadMethod.DOCS, doc.attachment, null)
             } catch (e: VkPhotoTransientException) {
                 lastTransient = e
-                println("VkPhotoUploadClient.uploadCover: docs.* transient on attempt $attempt/${transientAttempts}: ${e.errorCode} ${e.errorMsg}")
-                if (attempt < transientAttempts) sleep(transientBackoffMs)
+                println("VkPhotoUploadClient.uploadCover: docs.* transient on attempt $attempt/$transientAttempts: ${e.errorCode} ${e.errorMsg}")
+                if (attempt < transientAttempts) {
+                    sleep(transientBackoffMs)
+                }
             }
         }
         throw lastTransient ?: VkPhotoTransientException(0, "unknown transient failure")

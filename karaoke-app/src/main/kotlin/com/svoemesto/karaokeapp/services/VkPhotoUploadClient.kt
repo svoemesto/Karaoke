@@ -151,7 +151,7 @@ class VkPhotoUploadClient(
                 val uploadUrl = apiClient.getWallUploadServer(groupId, userToken)
                 val raw = apiClient.uploadPhotoFile(uploadUrl, pngBytes, "$songId.png")
                 if (raw.server <= 0 || raw.photo.isBlank() || raw.hash.isBlank()) {
-                    throw VkPhotoUploadException("upload_url returned invalid JSON: server=${raw.server}, photo.len=${raw.photo.length}, hash.len=${raw.hash.length}")
+                    throw VkPhotoTransientException(0, "upload_url returned invalid JSON: server=${raw.server}, photo.len=${raw.photo.length}, hash.len=${raw.hash.length}")
                 }
                 val photo = apiClient.saveWallPhoto(raw.server, raw.photo, raw.hash, groupId, userToken)
                 return PhotoUploadResult(PhotoUploadMethod.PHOTOS, photo.attachment, null)
@@ -181,7 +181,7 @@ class VkPhotoUploadClient(
                 val uploadUrl = apiClient.getDocWallUploadServer(communityToken)
                 val raw = apiClient.uploadDocFile(uploadUrl, pngBytes, "$songId.png")
                 if (raw.file.isBlank()) {
-                    throw VkPhotoUploadException("docs upload_url returned invalid JSON: file is blank")
+                    throw VkPhotoTransientException(0, "docs upload_url returned invalid JSON: file is blank")
                 }
                 val doc = apiClient.saveWallDoc(raw.file, "$songId.png", communityToken)
                 return PhotoUploadResult(PhotoUploadMethod.DOCS, doc.attachment, null)

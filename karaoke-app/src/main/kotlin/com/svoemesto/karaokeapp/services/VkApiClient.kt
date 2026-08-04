@@ -648,7 +648,7 @@ class VkApiClient {
         }
         val uploadUrl = parsed.response?.uploadUrl ?: ""
         if (uploadUrl.isBlank()) {
-            throw VkPhotoUploadException("photos.getWallUploadServer empty response.upload_url")
+            throw VkPhotoTransientException(0, "photos.getWallUploadServer empty response.upload_url")
         }
         return uploadUrl
     }
@@ -687,12 +687,12 @@ class VkApiClient {
         }
         val bodyText = response.body()
         if (bodyText.isBlank()) {
-            throw VkPhotoUploadException("upload_url returned empty body")
+            throw VkPhotoTransientException(0, "upload_url returned empty body")
         }
         return try {
             json.decodeFromString(VkPhotoUploadResponseRaw.serializer(), bodyText)
         } catch (e: Exception) {
-            throw VkPhotoUploadException("upload_url returned invalid JSON: ${e.message}")
+            throw VkPhotoTransientException(0, "upload_url returned invalid JSON: ${e.message}")
         }
     }
 
@@ -747,7 +747,7 @@ class VkApiClient {
         }
         val first =
             parsed.response?.firstOrNull()
-                ?: throw VkPhotoUploadException("photos.saveWallPhoto empty response")
+                ?: throw VkPhotoTransientException(0, "photos.saveWallPhoto empty response")
         return PhotoAttachment(
             id = first.id,
             ownerId = first.ownerId,
@@ -794,7 +794,7 @@ class VkApiClient {
         }
         val uploadUrl = parsed.response?.uploadUrl ?: ""
         if (uploadUrl.isBlank()) {
-            throw VkPhotoUploadException("docs.getWallUploadServer empty response.upload_url")
+            throw VkPhotoTransientException(0, "docs.getWallUploadServer empty response.upload_url")
         }
         return uploadUrl
     }
@@ -832,12 +832,12 @@ class VkApiClient {
         }
         val bodyText = response.body()
         if (bodyText.isBlank()) {
-            throw VkPhotoUploadException("docs upload_url returned empty body")
+            throw VkPhotoTransientException(0, "docs upload_url returned empty body")
         }
         return try {
             json.decodeFromString(VkDocUploadResponseRaw.serializer(), bodyText)
         } catch (e: Exception) {
-            throw VkPhotoUploadException("docs upload_url returned invalid JSON: ${e.message}")
+            throw VkPhotoTransientException(0, "docs upload_url returned invalid JSON: ${e.message}")
         }
     }
 
@@ -886,7 +886,7 @@ class VkApiClient {
         }
         val saved =
             parsed.response
-                ?: throw VkPhotoUploadException("docs.save empty response")
+                ?: throw VkPhotoTransientException(0, "docs.save empty response")
         return DocAttachment(
             id = saved.id,
             ownerId = saved.ownerId,

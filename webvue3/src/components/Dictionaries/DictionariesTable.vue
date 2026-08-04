@@ -13,8 +13,26 @@
         <option value="" disabled>(словарь)</option>
         <option v-for="name in dictNames" :key="name" :value="name" v-text="name" />
       </select>
-      <input v-model="newItem.dictValue" class="dct-field" placeholder="Значение" />
+      <input v-model="newItem.dictValue" class="dct-field" :placeholder="newValuePlaceholder" />
       <button class="dct-btn-round" :disabled="!canCreate" @click="create">Добавить</button>
+    </div>
+
+    <!-- specs/139-fix-censored-dictionary (FR-003, User Story 2): проверить, как строка будет
+         обработана словарём — той же логикой, что использует реальная автопубликация. -->
+    <div class="dictionaries-bv-table-add dictionaries-bv-table-test">
+      <div class="dictionaries-bv-table-add-title">Проверить строку:</div>
+      <select v-model="testItem.dictName" class="dct-field">
+        <option value="" disabled>(словарь)</option>
+        <option v-for="name in dictNames" :key="name" :value="name" v-text="name" />
+      </select>
+      <input v-model="testItem.text" class="dct-field" placeholder="Тестовая строка" />
+      <button class="dct-btn-round" :disabled="!canTest" @click="testDictionary">Проверить</button>
+      <span
+        v-if="testResult"
+        class="dictionaries-bv-table-test-result"
+        :class="{ 'dictionaries-bv-table-test-result--changed': testResult.changed }"
+        v-text="testResultText"
+      />
     </div>
 
     <div class="dictionaries-bv-table-header">
@@ -114,6 +132,10 @@ export default {
       customConfirmParams: undefined,
       isBusy: false,
       newItem: { dictName: '', dictValue: '' },
+      // specs/139-fix-censored-dictionary (FR-003): независимый ввод для проверки словаря —
+      // не смешивается с формой добавления (newItem).
+      testItem: { dictName: '', text: '' },
+      testResult: null,
     }
   },
   computed: {
@@ -131,6 +153,24 @@ export default {
     },
     canCreate() {
       return !!this.newItem.dictName && this.newItem.dictValue.trim() !== ''
+    },
+    canTest() {
+      return !!this.testItem.dictName && this.testItem.text.trim() !== ''
+    },
+    // specs/139-fix-censored-dictionary (FR-004, User Story 3): формат словаря «Censored» —
+    // квадратные скобки вокруг маскируемой части ([x]) — иначе значение не будет визуально
+    // маскироваться при цензурировании, хотя формально попадёт в словарь.
+    newValuePlaceholder() {
+      return this.newItem.dictName === 'Censored'
+        ? 'сл[о]во — [x] маскирует часть слова'
+        : 'Значение'
+    },
+    testResultText() {
+      if (!this.testResult) return ''
+      if (!this.testResult.success) return `Ошибка: ${this.testResult.error}`
+      return this.testResult.changed
+        ? `Результат: ${this.testResult.result}`
+        : `Результат: ${this.testResult.result} (не изменилось)`
     },
     dictionaryDigestFields() {
       return [
@@ -180,6 +220,19 @@ export default {
   methods: {
     create() {
       if (!this.canCreate) return
+      // specs/139-fix-censored-dictionary (FR-004, User Story 3): без [x]-разметки значение
+      // словаря «Censored» не будет визуально маскироваться (getCensoredPair вернёт исходную
+      // строку без изменений) — предупреждение не блокирует сохранение, только информирует.
+      if (
+        this.newItem.dictName === 'Censored' &&
+        !this.newItem.dictValue.includes('[') &&
+        !confirm(
+          `Значение «${this.newItem.dictValue}» без квадратных скобок ([x]) не будет визуально ` +
+            'замаскировано при цензурировании — сохранить как есть?',
+        )
+      ) {
+        return
+      }
       // Пара (dictName, dictValue) уникальна на уровне БД (uq_tbl_dictionaries_name_value);
       // бэкенд возвращает created:false, если такая пара уже существовала (createNewDictionaryItem
       // идемпотентен) — предупреждаем пользователя явно, а не просто молчим.
@@ -199,6 +252,24 @@ export default {
         })
         .catch((error) => {
           console.error('Ошибка при добавлении значения словаря:', error)
+        })
+    },
+
+    // specs/139-fix-censored-dictionary (FR-003, User Story 2): проверка результата словаря
+    // без необходимости ждать реальной публикации песни.
+    testDictionary() {
+      if (!this.canTest) return
+      this.testResult = null
+      this.$store
+        .dispatch('testDictionaryValuePromise', {
+          dictName: this.testItem.dictName,
+          text: this.testItem.text,
+        })
+        .then((result) => {
+          this.testResult = result
+        })
+        .catch((error) => {
+          console.error('Ошибка при проверке словаря:', error)
         })
     },
 
@@ -300,6 +371,15 @@ export default {
   font-size: small;
 }
 .dictionaries-bv-table-add-title {
+  font-weight: bold;
+}
+
+.dictionaries-bv-table-test-result {
+  font-size: small;
+  color: dimgray;
+}
+.dictionaries-bv-table-test-result--changed {
+  color: darkgreen;
   font-weight: bold;
 }
 

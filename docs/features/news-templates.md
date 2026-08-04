@@ -1,8 +1,8 @@
 # Шаблоны автоматических новостей сайта
 
-> **Status**: active (specs/128-news-publish-templates)
+> **Status**: active (specs/128-news-publish-templates, specs/139-fix-censored-dictionary)
 > **Feature Key**: news-templates
-> **Last Updated**: 2026-08-03
+> **Last Updated**: 2026-08-04
 
 ## Что делает
 
@@ -161,6 +161,21 @@ FR-008/SC-005 «без перезапуска»).
   Postgres TEXT и UTF-8 Spring HTTP. Прецедент — уже используется
   в ВК/Telegram-шаблонах.
 
+- **`{songNameCensored}` игнорировал переданный `database` до specs/139-fix-censored-dictionary**
+  (исправлено). `NewsTemplateService.render()` рендерит `songNameCensored` через
+  `song.songName.censored()`, а эта функция раньше не принимала параметр `database` вовсе — всегда
+  читала словарь «Censored» через глобал `com.svoemesto.karaokeapp.WORKING_DATABASE`, даже когда
+  вызывающий код (`SongReleaseAnnouncementScheduler`, единственная точка кода, создающая
+  auto-новость — см. диаграмму выше) явно передавал свой, правильный `com.svoemesto.karaokeweb.WORKING_DATABASE`
+  на уровень выше. На проде (внутри JVM `karaoke-web`) чужой `karaoke-app`-глобал резолвится в
+  постороннее соединение молча, без исключения (`docs/invariants.md`, «Ловушки karaoke-web») —
+  словарь читался пустым, `{songNameCensored}` не цензурировал ничего, без единого следа в логах.
+  Теперь `render()`/`buildReplacements()` принимают `database: KaraokeConnection` и прокидывают его
+  в `.censored(database)`; `SongReleaseAnnouncementService` передаёт уже имеющийся у себя `database`
+  на этот уровень. Тот же параметр добавлен в `VkTemplateService`/`TelegramTemplateService` для
+  консистентности (эти пути не были затронуты багом — рендерятся только внутри `karaoke-app` на
+  admin-машине, где глобал и так корректен). См. `specs/139-fix-censored-dictionary/research.md` R1/R2.
+
 ## Ссылки
 
 - Спецификация: [specs/128-news-publish-templates/spec.md](../../specs/128-news-publish-templates/spec.md)
@@ -173,3 +188,4 @@ FR-008/SC-005 «без перезапуска»).
 - Смежная фича Telegram: [telegram-auto-publish.md](./telegram-auto-publish.md)
 - Kill-switch (читается перед рендером): [News.kt:393](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/News.kt)
 - Двух-БД sync: [dual-db-sync.md](./dual-db-sync.md)
+- Фикс `{songNameCensored}`: [specs/139-fix-censored-dictionary/spec.md](../../specs/139-fix-censored-dictionary/spec.md)

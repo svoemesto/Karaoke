@@ -1,6 +1,8 @@
 package com.svoemesto.karaokeapp.services
 
+import com.svoemesto.karaokeapp.KaraokeConnection
 import com.svoemesto.karaokeapp.KaraokeProperties
+import com.svoemesto.karaokeapp.WORKING_DATABASE
 import com.svoemesto.karaokeapp.censored
 import com.svoemesto.karaokeapp.model.News
 import com.svoemesto.karaokeapp.model.PublicationType
@@ -114,7 +116,8 @@ object VkTemplateService {
         template: String,
         song: Song,
         news: News? = null,
-    ): String = renderWithFlags(template, song, news).message
+        database: KaraokeConnection = WORKING_DATABASE,
+    ): String = renderWithFlags(template, song, news, database).message
 
     /**
      * Рендерит [template] с заменой плейсхолдеров на значения из [song] и (опционально) [news]
@@ -124,18 +127,23 @@ object VkTemplateService {
      *   не в тексте).
      *
      * Возвращает [RenderResult] с `message` (отрендеренный текст) и `includeDemoVideo`.
+     *
+     * @param database Соединение для чтения словаря «Censored» при построении `songNameCensored`
+     *   (specs/139-fix-censored-dictionary) — ДОЛЖЕН совпадать с соединением, из которого
+     *   загружены [song]/[news], иначе используется дефолтный `karaoke-app`-глобал.
      */
     fun renderWithFlags(
         template: String,
         song: Song,
         news: News? = null,
+        database: KaraokeConnection = WORKING_DATABASE,
     ): RenderResult {
         val link = "https://sm-karaoke.ru/song?id=${song.id}"
         val replacements: Map<String, String> =
             mapOf(
                 "author" to song.author,
                 "songName" to song.songName,
-                "songNameCensored" to song.songName.censored(),
+                "songNameCensored" to song.songName.censored(database),
                 "year" to song.year.toString(),
                 "album" to song.album,
                 "link" to link,

@@ -23,6 +23,7 @@ import com.svoemesto.karaokeapp.runCommand
 import com.svoemesto.karaokeapp.services.AlignmentServiceClient
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.StorageApiClient
+import com.svoemesto.karaokeapp.services.RenderVersion
 import com.svoemesto.karaokeapp.services.WhisperAsrService
 import com.svoemesto.karaokeapp.updateRemoteDatabaseFromLocalDatabase
 import com.svoemesto.karaokeapp.updateRemoteSongFromLocalDatabase
@@ -960,6 +961,21 @@ class SongEditorController(
                 doWait = true,
                 prior = 5,
                 threadId = 0,
+                // Фича 136: БЕЗ ЭТОГО context'а KaraokeProcess.createProcess упадёт на
+                // defaults в KaraokeProcess.kt:1857 — version="KARAOKE", 1920x1080@60fps. То есть вместо
+                // DEMO-рендера запускался полноценный KARAOKE-рендер (медленно, 1920x1080@60fps), а сообщение
+                // «процесс создан» печаталось безобидно. С этим контекстом:
+                // - "version=DEMO" -> isDemo=true -> defaults становятся 1280/720/30 (если context
+                //   не указан, fallback на KARAOKE!). Раньше fallback'ы ловили «по умолчанию KARAOKE».
+                // - явные значения 1280/720/30 — перестраховка: если в будущем дефолты снова изменятся,
+                //   наш DEMO-рендер останется маленьким.
+                context =
+                    mapOf(
+                        "version" to RenderVersion.DEMO.name,
+                        "width" to 1280,
+                        "height" to 720,
+                        "fps" to 30,
+                    ),
             )
             println("[approve/render-demo] создан процесс RENDER_MP4_DEMO для песни ${song.id}")
             println("[approve/render-demo-helper] END OK for songId=${song.id}")

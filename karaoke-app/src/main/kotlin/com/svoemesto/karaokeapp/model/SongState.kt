@@ -24,7 +24,5 @@ enum class SongState(
     WO_DZEN_WITH_VK("#FF3399"), // Нет DZEN, есть VK
     WO_DZEN_WITH_VK_WITH_PL("#CC00CC"), // Нет DZEN, есть VK, есть PL
     WO_VKG("#FFC880"), // Нет VKG
-    EXCLUSIVE("#66CC00"), // Эксклюзивно на спонсоре
-    EXCLUSIVE_FREE("#4C9900"), // Эксклюзивно на спонсоре бесплатно
     IN_WORK(""), // В работе
 }

@@ -668,7 +668,7 @@
             </div>
           </div>
 
-          <div v-if="!song.exclusive" class="links-tabs-widget">
+          <div class="links-tabs-widget">
             <div class="links-tabs-header">
               <button
                 type="button"
@@ -2130,28 +2130,7 @@
             Изменить обложку альбома
           </button>
           <div class="label-and-input">
-            <div class="label-medium">Эксклюзивно на sponsr:</div>
-            <button
-              class="group-button-round-wide"
-              :class="exclusiveButtonClass(true)"
-              type="button"
-              value="true"
-              @click="setExclusive(true)"
-            >
-              ДА
-            </button>
-            <button
-              class="group-button-round-wide"
-              :class="exclusiveButtonClass(false)"
-              type="button"
-              value="false"
-              @click="setExclusive(false)"
-            >
-              НЕТ
-            </button>
-          </div>
-          <div class="label-and-input">
-            <div class="label-medium">Бесплатно на sponsr:</div>
+            <div class="label-medium">Всегда бесплатно (вечный эфир):</div>
             <button
               class="group-button-round-wide"
               :class="freeButtonClass(true)"
@@ -3992,9 +3971,6 @@ export default {
       }
       this.song.status = status
     },
-    setExclusive(exclusive) {
-      this.song.exclusive = exclusive
-    },
     setFree(free) {
       this.song.free = free
     },
@@ -4011,9 +3987,6 @@ export default {
     },
     statusButtonClass(status) {
       return status === this.song.idStatus ? 'group-button-active' : ''
-    },
-    exclusiveButtonClass(exclusive) {
-      return exclusive === this.song.exclusive ? 'group-button-round-wide-active' : ''
     },
     freeButtonClass(free) {
       return free === this.song.free ? 'group-button-round-wide-active' : ''

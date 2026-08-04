@@ -397,21 +397,6 @@
 
                 <div class="sfm-filter-row">
                   <div class="sfm-row-label">
-                    <div v-text="'Exclusive:'" />
-                  </div>
-                  <div class="sfm-row-input">
-                    <input v-model="songsFilterFlagExclusive" class="sfm-input-field" />
-                  </div>
-                  <button
-                    :disabled="!songsFilterFlagExclusive"
-                    class="sfm-button-clear-field"
-                    @click.left="songsFilterFlagExclusive = ''"
-                    v-text="'X'"
-                  />
-                </div>
-
-                <div class="sfm-filter-row">
-                  <div class="sfm-row-label">
                     <div v-text="'Free:'" />
                   </div>
                   <div class="sfm-row-input">
@@ -706,14 +691,6 @@ export default {
         this.$store.dispatch('setSongsFilterAudioParentId', { value: value })
       },
     },
-    songsFilterFlagExclusive: {
-      get() {
-        return this.$store.getters.getSongsFilterFlagExclusive
-      },
-      set(value) {
-        this.$store.dispatch('setSongsFilterFlagExclusive', { value: value })
-      },
-    },
     songsFilterFlagFree: {
       get() {
         return this.$store.getters.getSongsFilterFlagFree
@@ -848,9 +825,6 @@ export default {
     this.$store.dispatch('setSongsFilterAudioParentId', {
       value: await this.$store.getters.getWebvueProp('songsFilterAudioParentId', ''),
     })
-    this.$store.dispatch('setSongsFilterFlagExclusive', {
-      value: await this.$store.getters.getWebvueProp('songsFilterFlagExclusive', ''),
-    })
     this.$store.dispatch('setSongsFilterFlagFree', {
       value: await this.$store.getters.getWebvueProp('songsFilterFlagFree', ''),
     })
@@ -912,7 +886,6 @@ export default {
       })
       this.$store.dispatch('setSongsFilterRootId', { value: this.songsFilterRootId })
       this.$store.dispatch('setSongsFilterAudioParentId', { value: this.songsFilterAudioParentId })
-      this.$store.dispatch('setSongsFilterFlagExclusive', { value: this.songsFilterFlagExclusive })
       this.$store.dispatch('setSongsFilterFlagFree', { value: this.songsFilterFlagFree })
       this.$store.dispatch('setSongsFilterAssignmentStatus', {
         value: this.songsFilterAssignmentStatus,
@@ -958,7 +931,6 @@ export default {
       if (this.songsFilterRootId !== '') params.filterRootId = this.songsFilterRootId
       if (this.songsFilterAudioParentId !== '')
         params.filterAudioParentId = this.songsFilterAudioParentId
-      if (this.songsFilterFlagExclusive !== '') params.flagExclusive = this.songsFilterFlagExclusive
       if (this.songsFilterFlagFree !== '') params.flagFree = this.songsFilterFlagFree
       if (this.songsFilterSongType !== '') params.filterSongType = this.songsFilterSongType
       // Задание редактора — БД для проверки назначений (KaraokeProperty editorAssignmentDefaultTarget),
@@ -1025,7 +997,6 @@ export default {
         ? args['filter_status_process_demo']
         : ''
       this.songsFilterRootId = args['filter_root_id'] ? args['filter_root_id'] : ''
-      this.songsFilterFlagExclusive = args['flag_exclusive'] ? args['flag_exclusive'] : ''
       this.songsFilterSongType = args['song_type'] ? args['song_type'] : ''
       // Задание редактора не входит в historyArgs (отдельная от Song.loadListFromDb проверка) —
       // при восстановлении из истории сбрасываем, а не оставляем текущее значение.

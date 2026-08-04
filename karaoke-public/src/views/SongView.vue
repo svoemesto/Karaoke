@@ -163,8 +163,12 @@
         </div>
 
         <!-- Демо-режим: контент есть, но полного доступа нет — вместо карточки ожидания (та
-             рассчитана на "ещё не готово") сразу предлагаем подписку рядом с самим демо-плеером. -->
-        <div v-if="!currentSong.onAir && playerIsDemo" class="km-waiting-card">
+             рассчитана на "ещё не готово") сразу предлагаем подписку рядом с самим демо-плеером.
+             Раньше условие включало "!onAir" — избыточно (isDemo и так требует ready=true, а под
+             старыми правилами onAir+ready всегда означало canWatch=true, isDemo=false); под новыми
+             правилами окна (specs/143) isDemo достижим и при onAir=true (эфир был, окно истекло),
+             поэтому условие держится только на playerIsDemo. -->
+        <div v-if="playerIsDemo" class="km-waiting-card">
           <div class="km-waiting-title">Это демо-фрагмент</div>
           <div class="km-waiting-body">
             В демо-режиме доступен только небольшой фрагмент песни. Оформите подписку, чтобы слушать
@@ -196,8 +200,9 @@
           </div>
         </div>
 
-        <!-- Видео ВК — старое место, только когда онлайн-плеер сам не может отобразиться -->
-        <div v-if="currentSong.onAir && !playerCanWatch && playerAccessLoaded" class="km-videos">
+        <!-- Видео ВК — старое место, только когда контент физически не готов (не путать с "готов,
+             но окно бесплатного доступа истекло" — тот случай ниже, карточка ожидания). -->
+        <div v-if="currentSong.onAir && !playerReady && playerAccessLoaded" class="km-videos">
           <div v-if="currentSong.idVkKaraoke" class="km-video-block" @click="onPlay('karaoke')">
             <div class="km-video-label">Karaoke</div>
             <div class="km-video-wrap">
@@ -244,11 +249,17 @@
           </div>
         </div>
 
-        <!-- Не в эфире (или эксклюзив/не готово) и плеер недоступен даже в демо-режиме — сообщение
-             об ожидании/подписке. Тоже на старом месте видео-блока. Когда демо доступен
-             (playerIsDemo) — своя отдельная карточка сразу под демо-плеером, см. выше. -->
+        <!-- Ещё не в эфире, ЛИБО в эфире+контент готов, но окно бесплатного доступа истекло
+             (specs/143) — и плеер недоступен даже в демо-режиме. Сообщение об ожидании/подписке.
+             Тоже на старом месте видео-блока. Когда демо доступен (playerIsDemo) — своя отдельная
+             карточка сразу под демо-плеером, см. выше. -->
         <div
-          v-if="!currentSong.onAir && !playerCanWatch && !playerIsDemo && playerAccessLoaded"
+          v-if="
+            (!currentSong.onAir || playerReady) &&
+            !playerCanWatch &&
+            !playerIsDemo &&
+            playerAccessLoaded
+          "
           class="km-waiting-card"
         >
           <div class="km-waiting-title">{{ waitingTitle }}</div>
@@ -334,8 +345,10 @@ import { useCart } from '../composables/useCart'
  * Функционал:
  * - **Header**: автор, альбом, год, имя песни, тип (song/instrumental/poetry).
  * - **Player**: переключатель «embed» (встроенный) / «premium» (полный плеер).
- * - **Waiting screen**: показывается если песня ещё не вышла в эфир
- *   (использует `currentSong.airTimestamp` и `daysUntilAir`).
+ * - **Waiting screen**: показывается либо если песня ещё не вышла в эфир (использует
+ *   `currentSong.airTimestamp` и `daysUntilAir`), либо если эфир уже был, но окно бесплатного
+ *   доступа истекло (`currentSong.onAir` внутри уже суженного v-if — см. `playerReady`/
+ *   `waitingTitle`, specs/143-song-free-access-window).
  * - **Subscription modal**: если песня доступна только по подписке
  *   (`songSubscriptionAvailable`) — предлагает купить.
  * - **Metadata**: «сгенерировано Kdenlive + MLT», ссылка на Boosty.
@@ -347,6 +360,7 @@ import { useCart } from '../composables/useCart'
  *
  * @see docs/features/premium-stems.md
  * @see docs/features/mp4-render.md (Player)
+ * @see docs/features/song-free-access.md
  */
 export default {
   name: 'SongView',
@@ -388,6 +402,12 @@ export default {
     playerIsDemo() {
       return this.playerAccess.isDemo.value
     },
+    // Готовность контента (независимо от платного доступа) — отличает "контент физически не готов"
+    // (легаси VK-видео-фоллбек) от "готов, но окно бесплатного доступа истекло" (карточка
+    // ожидания с предложением подписки). specs/143-song-free-access-window.
+    playerReady() {
+      return this.playerAccess.ready.value
+    },
     daysUntilAir() {
       const ts = this.currentSong?.airTimestamp
       if (!ts) return null
@@ -396,7 +416,11 @@ export default {
     waitingTitle() {
       const s = this.currentSong
       if (!s) return ''
-      if (s.exclusive) return 'Эта песня доступна только по подписке'
+      // s.onAir здесь означает "эфир уже был, но окно бесплатного доступа истекло" — этот
+      // computed вычисляется только внутри v-if, который для !onAir уже отсеян (см. шаблон,
+      // "!currentSong.onAir || playerReady"). specs/143-song-free-access-window, FR-015: тот же
+      // текст, что раньше показывался для песен с флагом "эксклюзив".
+      if (s.onAir) return 'Эта песня доступна только по подписке'
       if (this.daysUntilAir === null) return 'Дата выхода в эфир пока не определена'
       if (this.daysUntilAir <= 0) return 'Песня скоро появится в эфире'
       return `Песня выйдет в эфир через ${this.daysUntilAir} ${pluralDays(this.daysUntilAir)}`
@@ -404,8 +428,8 @@ export default {
     waitingBody() {
       const s = this.currentSong
       if (!s) return ''
-      if (s.exclusive) {
-        return 'В бесплатном эфире она доступна не будет — посмотреть её можно, оформив подписку.'
+      if (s.onAir) {
+        return 'Оформите подписку, чтобы посмотреть эту песню.'
       }
       return 'Не хотите ждать эфир? Оформите подписку — и песня станет доступна сразу.'
     },

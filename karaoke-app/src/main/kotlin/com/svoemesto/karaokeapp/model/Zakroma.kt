@@ -196,9 +196,11 @@ class Zakroma(
                                         val zakromaAlbumSong = ZakromaAlbumSong()
                                         zakromaAlbumSong.id = song.id
                                         zakromaAlbumSong.onAir = song.onAir
-                                        zakromaAlbumSong.exclusive = song.exclusive
                                         zakromaAlbumSong.datePublish = song.datePublish
                                         zakromaAlbumSong.songSubscriptionAvailable = song.idTariff >= 0
+                                        zakromaAlbumSong.alwaysFree = song.free
+                                        zakromaAlbumSong.freelyAvailableNow = song.isFreelyAvailableNow
+                                        zakromaAlbumSong.freeAccessWindowEndText = song.freeAccessWindowEndText
                                         zakromaAlbumSong.track = song.track
                                         zakromaAlbumSong.songName = song.songName.censored(database)
                                         zakromaAlbumSong.linkBoosty = song.linkBoostyTxt
@@ -282,9 +284,16 @@ class ZakromaAlbumSong :
     var linkMaxTabs: String = ""
     var linkMaxChords: String = ""
     var onAir: Boolean = false
-    var exclusive: Boolean = false
     var datePublish: String = ""
     var songSubscriptionAvailable: Boolean = false
+
+    // specs/143-song-free-access-window: alwaysFree = флаг "всегда бесплатно" (song.free);
+    // freelyAvailableNow = доступна бесплатно прямо сейчас (song.isFreelyAvailableNow);
+    // freeAccessWindowEndText = отформатированный конец окна бесплатного доступа для "В эфире до …"
+    // (null, если alwaysFree или эфир ещё не наступил).
+    var alwaysFree: Boolean = false
+    var freelyAvailableNow: Boolean = false
+    var freeAccessWindowEndText: String? = null
 
     override fun compareTo(other: ZakromaAlbumSong): Int {
         val compTrack = track.compareTo(other.track)

@@ -78,7 +78,6 @@ enum class SongField : Serializable {
     INDEX_TABS_VARIANT,
     RATE,
     ROOT_ID,
-    EXCLUSIVE,
     FREE,
     ID_MAX_LYRICS,
     VERSION_MAX_LYRICS,

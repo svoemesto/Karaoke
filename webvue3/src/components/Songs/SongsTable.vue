@@ -489,16 +489,6 @@
             v-text="telegramPublishBadgeFor(data.item).symbol"
           />
         </template>
-        <template #cell(flagExclusive)="data">
-          <div
-            class="fld-flag-exclusive"
-            :style="{
-              backgroundColor: data.item.color,
-              color: currentSongId === data.item.id ? 'blue' : 'black',
-            }"
-            v-text="data.value ? data.value : '-'"
-          />
-        </template>
         <template #cell(flagFree)="data">
           <div
             class="fld-flag-free"
@@ -1309,17 +1299,6 @@ export default {
           key: 'flagMaxMelody',
           sortable: true,
           label: 'MM',
-          style: {
-            minWidth: '20px',
-            maxWidth: '20px',
-            textAlign: 'center',
-            fontSize: 'small',
-          },
-        },
-        {
-          key: 'flagExclusive',
-          sortable: true,
-          label: 'EX',
           style: {
             minWidth: '20px',
             maxWidth: '20px',
@@ -2641,14 +2620,6 @@ export default {
   overflow: hidden;
 }
 .fld-flag-max-melody {
-  min-width: 20px;
-  max-width: 20px;
-  text-align: center;
-  font-size: small;
-  white-space: nowrap;
-  overflow: hidden;
-}
-.fld-flag-exclusive {
   min-width: 20px;
   max-width: 20px;
   text-align: center;

@@ -2363,7 +2363,6 @@ class ApiController(
         @RequestParam(required = false) flagMaxKaraoke: String?,
         @RequestParam(required = false) flagMaxChords: String?,
         @RequestParam(required = false) flagMaxMelody: String?,
-        @RequestParam(required = false) flagExclusive: String?,
         @RequestParam(required = false) flagFree: String?,
         @RequestParam(required = false) filterResultVersion: String?,
         @RequestParam(required = false) filterCountVoices: String?,
@@ -2423,7 +2422,6 @@ class ApiController(
         flagMaxKaraoke?.let { if (flagMaxKaraoke != "") args["flag_max_karaoke"] = flagMaxKaraoke }
         flagMaxChords?.let { if (flagMaxChords != "") args["flag_max_chords"] = flagMaxChords }
         flagMaxMelody?.let { if (flagMaxMelody != "") args["flag_max_melody"] = flagMaxMelody }
-        flagExclusive?.let { if (flagExclusive != "") args["flag_exclusive"] = flagExclusive }
         flagFree?.let { if (flagFree != "") args["flag_free"] = flagFree }
         filterResultVersion?.let { if (filterResultVersion != "") args["filter_result_version"] = filterResultVersion }
         filterCountVoices?.let { if (filterCountVoices != "") args["filter_count_voices"] = filterCountVoices }
@@ -2550,7 +2548,6 @@ class ApiController(
         @RequestParam(required = false) flagMaxKaraoke: String?,
         @RequestParam(required = false) flagMaxChords: String?,
         @RequestParam(required = false) flagMaxMelody: String?,
-        @RequestParam(required = false) flagExclusive: String?,
         @RequestParam(required = false) flagFree: String?,
         @RequestParam(required = false) filterResultVersion: String?,
         @RequestParam(required = false) filterVersionBoosty: String?,
@@ -2603,7 +2600,6 @@ class ApiController(
         flagMaxKaraoke?.let { if (flagMaxKaraoke != "") args["flag_max_karaoke"] = flagMaxKaraoke }
         flagMaxChords?.let { if (flagMaxChords != "") args["flag_max_chords"] = flagMaxChords }
         flagMaxMelody?.let { if (flagMaxMelody != "") args["flag_max_melody"] = flagMaxMelody }
-        flagExclusive?.let { if (flagExclusive != "") args["flag_exclusive"] = flagExclusive }
         flagFree?.let { if (flagFree != "") args["flag_free"] = flagFree }
         filterResultVersion?.let { if (filterResultVersion != "") args["filter_result_version"] = filterResultVersion }
         filterVersionBoosty?.let { if (filterVersionBoosty != "") args["filter_version_boosty"] = filterVersionBoosty }
@@ -2966,7 +2962,6 @@ class ApiController(
         @RequestParam(required = false) audioParentId: String?,
         @RequestParam(required = false) audioSimilarityPercent: String?,
         @RequestParam(required = false) audioDeltaMs: String?,
-        @RequestParam(required = false) exclusive: String?,
         @RequestParam(required = false) free: String?,
         @RequestParam(required = false) idTariff: String?,
         @RequestParam(required = false) songType: String?,
@@ -3095,7 +3090,6 @@ class ApiController(
             audioParentId?.let { sett.fields[SongField.AUDIO_PARENT_ID] = it }
             audioSimilarityPercent?.let { sett.fields[SongField.AUDIO_SIMILARITY_PERCENT] = it }
             audioDeltaMs?.let { sett.fields[SongField.AUDIO_DELTA_MS] = it }
-            exclusive?.let { sett.fields[SongField.EXCLUSIVE] = it }
             free?.let { sett.fields[SongField.FREE] = it }
             idTariff?.let { sett.fields[SongField.ID_TARIFF] = it }
             songType?.let { sett.songType = SongType.entries.firstOrNull { st -> st.dbValue == it.lowercase() } ?: SongType.SONG }

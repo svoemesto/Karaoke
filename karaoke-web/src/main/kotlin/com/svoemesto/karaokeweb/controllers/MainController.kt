@@ -51,9 +51,13 @@ class MainController(
         model: Model,
         request: HttpServletRequest,
     ): String {
+        // Атрибуты "onAir"/"exclusive" — исторические имена Thymeleaf-переменных (main.html),
+        // содержимое теперь считается по новому правилу окна бесплатного доступа
+        // (specs/143-song-free-access-window) — переименовывать сами имена атрибутов не стали,
+        // это внутренние идентификаторы шаблона, не публичный контракт.
         model.addAttribute("onSponsr", StatBySong.getCountSongsInCollection(database = WORKING_DATABASE))
-        model.addAttribute("onAir", StatBySong.getCountSongsOnAir(database = WORKING_DATABASE))
-        model.addAttribute("exclusive", StatBySong.getCountSongsExclusive(database = WORKING_DATABASE))
+        model.addAttribute("onAir", StatBySong.getCountSongsFreeNow(database = WORKING_DATABASE))
+        model.addAttribute("exclusive", StatBySong.getCountSongsSubscriptionOnly(database = WORKING_DATABASE))
         model.addAttribute("inWork", StatBySong.getCountSongsInWork(database = WORKING_DATABASE))
         model.addAttribute("total", StatBySong.getCountSongsTotal(database = WORKING_DATABASE))
         doRegisterEvent(

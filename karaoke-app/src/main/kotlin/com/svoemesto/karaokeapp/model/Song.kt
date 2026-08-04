@@ -632,6 +632,41 @@ class Song(
         dateTimePublish != null &&
             dateTimePublish!! <= Calendar.getInstance(TimeZone.getTimeZone("Europe/Moscow")).time
     )
+
+    // Конец окна бесплатного доступа (specs/143-song-free-access-window) — момент эфира + 1
+    // календарный месяц (Calendar.MONTH, не фиксированные 30/31 сутки — согласовано с
+    // пользователем в /speckit-clarify, длина варьируется 28-31 день). null, если эфир ещё не
+    // наступил (onAir=false) — окно отсчитывается только от уже наступившего эфира.
+    val freeAccessWindowEnd: Date? get() {
+        if (!onAir) return null
+        val cal = Calendar.getInstance(TimeZone.getTimeZone("Europe/Moscow"))
+        cal.time = dateTimePublish!!
+        cal.add(Calendar.MONTH, FREE_ACCESS_WINDOW_MONTHS)
+        return cal.time
+    }
+
+    // Единственный источник истины для "бесплатно доступна прямо сейчас" (specs/143). НЕ путать с
+    // onAir/isPubliclyWatchable — те управляют одноразовым триггером авто-новости "вышла в эфир"
+    // (SongReleaseAnnouncementService, specs/089) и намеренно не должны меняться этой формулой.
+    // free=true ("всегда бесплатно") даёт доступ независимо от даты эфира/окна.
+    val isFreelyAvailableNow: Boolean get() = (
+        free ||
+            (
+                onAir &&
+                    Calendar.getInstance(TimeZone.getTimeZone("Europe/Moscow")).time < freeAccessWindowEnd
+            )
+    )
+
+    // Отформатированный конец окна бесплатного доступа для UI ("В эфире до …", закрома/поиск) —
+    // тем же паттерном, что date/time ("dd.MM.yy HH:mm"). null, если песня всегда бесплатна (нет
+    // смысла показывать окно) или эфир ещё не наступил.
+    val freeAccessWindowEndText: String? get() {
+        if (free) return null
+        val end = freeAccessWindowEnd ?: return null
+        return SimpleDateFormat("dd.MM.yy HH:mm")
+            .apply { timeZone = TimeZone.getTimeZone("Europe/Moscow") }
+            .format(end)
+    }
     val year: Long get() = fields[SongField.YEAR]?.toLongOrNull() ?: 0L
     val track: Long get() = fields[SongField.TRACK]?.toLongOrNull() ?: 0L
     val key: String get() = fields[SongField.KEY] ?: ""
@@ -849,15 +884,6 @@ class Song(
             Json.decodeFromString(ListSerializer(AudioCompareHistoryEntry.serializer()), audioCompareHistory)
         } catch (_: Exception) {
             emptyList()
-        }
-
-    var exclusive: Boolean
-        get() {
-            val txt = fields[SongField.EXCLUSIVE] ?: false.toString()
-            return txt == true.toString()
-        }
-        set(value) {
-            fields[SongField.EXCLUSIVE] = value.toString()
         }
 
     var free: Boolean
@@ -1692,7 +1718,6 @@ class Song(
             "✓"
         }
 
-    val flagExclusive: String get() = if (!exclusive) "-" else "✓"
     val flagFree: String get() = if (!free) "-" else "✓"
 
     val pathToResultedModel: String get() = "$rootFolder/$DEMUCS_MODEL_NAME"
@@ -1797,11 +1822,7 @@ class Song(
     val linkMaxChords: String get() = if (idMaxChords == "") "" else linkMaxChordsPlay!!
 
     val datePublish: String get() =
-        if (exclusive && free) {
-            "Эксклюзивно на SPONSR (в открытом доступе)"
-        } else if (exclusive) {
-            "Эксклюзивно на SPONSR"
-        } else if (date == "" || time == "") {
+        if (date == "" || time == "") {
             "Дата пока не определена"
         } else {
             "$date $time"
@@ -4831,7 +4852,7 @@ class Song(
                 "альбом «$album»"
             }
 
-        val text = "$author, $albumText $year-го года -${if (exclusive) " ЭКСКЛЮЗИВНО" else ""} на https://sm-karaoke.ru${if (!exclusive) "\nВ эфире - в $month." else ""}\nЧтобы всегда иметь доступ к самой полной коллекции и поддержать автора проекта - оформляйте премиум-доступ прямо на сайте hppt://sm-karaoke.ru"
+        val text = "$author, $albumText $year-го года на https://sm-karaoke.ru\nВ эфире - в $month.\nЧтобы всегда иметь доступ к самой полной коллекции и поддержать автора проекта - оформляйте премиум-доступ прямо на сайте hppt://sm-karaoke.ru"
 
         return text
     }
@@ -5954,8 +5975,6 @@ class Song(
         val formatter = SimpleDateFormat("dd/MM/yyyy")
         val currentDate = formatter.parse(formatter.format(currentDateTime))
         val datePublish = if (dateTimePublish == null) null else formatter.parse(formatter.format(dateTimePublish))
-        if (datePublish == null && idStatus >= 6 && haveSponsr && exclusive && free) return SongState.EXCLUSIVE_FREE
-        if (datePublish == null && idStatus >= 6 && haveSponsr && exclusive) return SongState.EXCLUSIVE
         if (datePublish == null || idStatus < 6) return SongState.IN_WORK
 
         if (datePublish == currentDate) {
@@ -6130,6 +6149,10 @@ class Song(
         const val DEMO_FRAGMENT_DEFAULT_SECONDS = 60.0
         const val DEMO_FRAGMENT_MIN_SECONDS = 8.0
         const val DEMO_FRAGMENT_LEAD_IN_SECONDS = 5.0
+
+        // Длительность окна бесплатного доступа после эфира (specs/143-song-free-access-window,
+        // FR-002 spec.md) — фиксированное системное значение, НЕ настраивается на уровне песни.
+        const val FREE_ACCESS_WINDOW_MONTHS = 1
 
         // Автоматизация публикации в Telegram (TelegramUpdatesConsumer): сопоставление вышедшего
         // channel_post с песней/версией по СОДЕРЖИМОМУ поста, без отдельного маркера. Каждый пост,
@@ -6919,7 +6942,6 @@ class Song(
                 ) {
                     result.add(RecordDiff("audio_compare_history", settA.audioCompareHistory, settB.audioCompareHistory))
                 }
-                if (settA.exclusive != settB.exclusive) result.add(RecordDiff("exclusive", settA.exclusive, settB.exclusive))
                 if (settA.free != settB.free) result.add(RecordDiff("free", settA.free, settB.free))
                 if (settA.playerReadinessFlags != settB.playerReadinessFlags) {
                     result.add(RecordDiff("player_readiness_flags", settA.playerReadinessFlags, settB.playerReadinessFlags))
@@ -7874,7 +7896,6 @@ class Song(
                     rs.getInt("audio_similarity_percent").let { value -> song.audioSimilarityPercent = value }
                     rs.getLong("audio_delta_ms").let { value -> song.audioDeltaMs = value }
                     rs.getString("audio_compare_history")?.let { value -> song.audioCompareHistory = value }
-                    rs.getBoolean("exclusive").let { value -> song.exclusive = value }
                     rs.getBoolean("free").let { value -> song.free = value }
                     rs.getString("player_readiness_flags")?.let { value -> song.playerReadinessFlags = value }
 
@@ -8353,7 +8374,6 @@ class Song(
             flagMaxKaraoke = flagMaxKaraoke,
             flagMaxChords = flagMaxChords,
             flagMaxMelody = flagMaxMelody,
-            flagExclusive = flagExclusive,
             flagFree = flagFree,
             processColorBoosty = processColorBoosty,
             processColorSponsr = processColorSponsr,
@@ -8461,7 +8481,6 @@ class Song(
             audioParentId = audioParentId,
             audioSimilarityPercent = audioSimilarityPercent,
             audioDeltaMs = audioDeltaMs,
-            exclusive = exclusive,
             free = free,
             idTariff = idTariff,
             songType = songType.dbValue,

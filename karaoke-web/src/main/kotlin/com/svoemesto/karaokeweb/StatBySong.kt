@@ -12,13 +12,17 @@ import java.util.concurrent.atomic.AtomicInteger
 // MainController.doStatBySong()/doWebEvents(). Здесь остались только счётчики для главной/закромов,
 // у которых нет аналога в karaoke-app.
 //
-// Формулы счётчиков (применяется ко всем — песни с тегом SKIP игнорируются):
-//   total       — все записи tbl_songs, кроме SKIP
-//   collection  — id_status >= 6 AND непустой source_markers (можно проиграть в онлайн-плеере
-//                 премиум-пользователю — тот же фильтр, что рисует зелёную монетку в закромах)
-//   onAir       — подмножество collection с истёкшим publish_date/publish_time
-//   subscription— collection − onAir (на бэкенде, одним SQL)
-//   inWork      — total − collection (сколько ещё не дошли до стадии "можно проиграть")
+// Формулы счётчиков (применяется ко всем — песни с тегом SKIP игнорируются). specs/143-song-free-
+// access-window: freeNow/subscriptionOnly заменяют бывшие onAir/exclusive — правило доступа теперь
+// учитывает окно в 1 календарный месяц после эфира и флаг free ("всегда бесплатно"), а не просто
+// факт наступления эфира.
+//   total            — все записи tbl_songs, кроме SKIP
+//   collection       — id_status >= 6 AND непустой source_markers (можно проиграть в онлайн-плеере
+//                      премиум-пользователю — тот же фильтр, что рисует зелёную монетку в закромах)
+//   freeNow          — подмножество collection, доступное бесплатно ПРЯМО СЕЙЧАС: free=true, либо
+//                      эфир наступил и ещё не прошёл 1 календарный месяц (Song.isFreelyAvailableNow)
+//   subscriptionOnly — collection − freeNow (на бэкенде, одним вычитанием)
+//   inWork           — total − collection (сколько ещё не дошли до стадии "можно проиграть")
 //
 // Все значения кешируются в AtomicInteger и обновляются по cron раз в час (@See StatsCacheScheduler
 // + метод refreshCache() ниже). Холодный старт инициирует синхронное обновление кеша при первом
@@ -29,12 +33,13 @@ import java.util.concurrent.atomic.AtomicInteger
  * Singleton-объект Stat By Song.
  *
  * @see docs/features/dual-db-sync.md
+ * @see docs/features/song-free-access.md
  */
 object StatBySong {
     private val cachedTotal = AtomicInteger(-1)
     private val cachedCollection = AtomicInteger(-1)
-    private val cachedOnAir = AtomicInteger(-1)
-    private val cachedExclusive = AtomicInteger(-1)
+    private val cachedFreeNow = AtomicInteger(-1)
+    private val cachedSubscriptionOnly = AtomicInteger(-1)
     private val cachedInWork = AtomicInteger(-1)
 
     // Фильтр «без SKIP» в SQL. В song.tags теги через пробел; сравнение по элементу массива
@@ -50,11 +55,11 @@ object StatBySong {
     private const val CONTENT_READY_FILTER =
         "id_status >= 6 AND btrim(coalesce(source_markers, '')) != ''"
 
-    fun getCountSongsExclusive(database: KaraokeConnection = WORKING_DATABASE): Int =
-        cachedExclusive.get().also { ensureCacheInitialized(database) }
+    fun getCountSongsSubscriptionOnly(database: KaraokeConnection = WORKING_DATABASE): Int =
+        cachedSubscriptionOnly.get().also { ensureCacheInitialized(database) }
 
-    fun getCountSongsOnAir(database: KaraokeConnection = WORKING_DATABASE): Int =
-        cachedOnAir.get().also { ensureCacheInitialized(database) }
+    fun getCountSongsFreeNow(database: KaraokeConnection = WORKING_DATABASE): Int =
+        cachedFreeNow.get().also { ensureCacheInitialized(database) }
 
     fun getCountSongsInCollection(database: KaraokeConnection = WORKING_DATABASE): Int =
         cachedCollection.get().also { ensureCacheInitialized(database) }
@@ -79,33 +84,40 @@ object StatBySong {
                 database,
                 """select count(DISTINCT id) as cnt from tbl_songs where $CONTENT_READY_FILTER AND $SKIP_FILTER;""",
             )
-        val onAir =
+        // free=true ⇒ "всегда бесплатно" (вечный эфир), независимо от даты. Иначе — бесплатно, если
+        // эфир наступил и ещё не прошёл 1 календарный месяц (Song.isFreelyAvailableNow, Song.kt).
+        val freeNow =
             runCountQuery(
                 database,
                 """select count(DISTINCT id) as cnt
                  from tbl_songs
                  where $CONTENT_READY_FILTER
                    AND $SKIP_FILTER
-                   and publish_date != ''
-                   and publish_date is not null
-                   and publish_time != ''
-                   and publish_time is not null
-                   and to_timestamp(CONCAT(publish_date, ' ', publish_time), 'DD.MM.YY HH24:MI') <= current_timestamp;""",
+                   AND (
+                     free = true
+                     OR (
+                       publish_date != '' AND publish_date is not null
+                       AND publish_time != '' AND publish_time is not null
+                       AND to_timestamp(CONCAT(publish_date, ' ', publish_time), 'DD.MM.YY HH24:MI') <= current_timestamp
+                       AND to_timestamp(CONCAT(publish_date, ' ', publish_time), 'DD.MM.YY HH24:MI') + INTERVAL '1 month' > current_timestamp
+                     )
+                   );""",
             )
-        // subscription = collection − onAir — на бэкенде одним SQL (точнее «два запроса + вычитание
-        // в Kotlin»: один обход БД дороже, чем оставить так, и кол-во запросов остаётся прежним).
-        val exclusive = (collection - onAir).coerceAtLeast(0)
+        // subscriptionOnly = collection − freeNow — на бэкенде одним вычитанием (точнее «два запроса
+        // + вычитание в Kotlin»: один обход БД дороже, чем оставить так, и кол-во запросов остаётся
+        // прежним).
+        val subscriptionOnly = (collection - freeNow).coerceAtLeast(0)
         val inWork = (total - collection).coerceAtLeast(0)
 
         cachedTotal.set(total)
         cachedCollection.set(collection)
-        cachedOnAir.set(onAir)
-        cachedExclusive.set(exclusive)
+        cachedFreeNow.set(freeNow)
+        cachedSubscriptionOnly.set(subscriptionOnly)
         cachedInWork.set(inWork)
         println(
             "[${Timestamp.from(Instant.now())}] StatBySong.refreshCache: " +
-                "total=$total, collection=$collection, onAir=$onAir, " +
-                "subscription=$exclusive, inWork=$inWork",
+                "total=$total, collection=$collection, freeNow=$freeNow, " +
+                "subscriptionOnly=$subscriptionOnly, inWork=$inWork",
         )
     }
 

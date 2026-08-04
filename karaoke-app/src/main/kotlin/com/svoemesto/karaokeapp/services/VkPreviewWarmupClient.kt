@@ -34,6 +34,12 @@ data class VkPreviewWarmupResult(
     val bytes: Int = 0,
     val durationMs: Long = 0,
     val error: String? = null,
+    /**
+     * PNG-байты успешно прогретого превью (только при [VkPreviewWarmupStatus.SUCCESS]).
+     * Используется [VkPhotoUploadClient.uploadCover] для загрузки в VK (specs/138).
+     * `null` при BYPASS/FAILED — загружать в VK нечего.
+     */
+    val pngBytes: ByteArray? = null,
 )
 
 /** Состояние одной попытки прогрева превью (specs/130-vk-preview-generation). */
@@ -50,7 +56,7 @@ enum class VkPreviewWarmupStatus {
 
 /**
  * HTTP-помощник синхронного прогрева публичного изображения песни
- * (specs/130-vk-preview-generation).
+ * (specs/130-vk-preview-generation, specs/138-vk-photo-preview-attachment).
  *
  * Вызывается из [VkAutoPublishService] непосредственно перед `wall.post` /
  * `sendPostWithVideo`. Успех (`VkPreviewWarmupStatus.SUCCESS`) подтверждает,
@@ -59,6 +65,13 @@ enum class VkPreviewWarmupStatus {
  * кэша. Неудача (`FAILED`) блокирует публикацию и записывается через
  * существующий [VkAutoPublishState.SEND_FAILED] с префиксом
  * `preview prewarm failed:`.
+ *
+ * Начиная со specs/138 результат содержит `pngBytes` — готовый PNG (1200×630,
+ * стандарт Open Graph) для немедленной загрузки в VK через [VkPhotoUploadClient]
+ * без повторного GET к `/api/public/song-vk-image/{id}`. Размер 1200×630
+ * контролируется на стороне `karaoke-web` через `vkPreviewImageWidth/Height`
+ * (см. `PublicApiController.songVkImage`); здесь выполняется только проверка
+ * PNG magic-signature через `ImageIO.read`.
  *
  * Конструктор принимает параметры напрямую — прод-значения по умолчанию
  * читаются из [KaraokeProperties] (для тестов удобно подменять).
@@ -254,6 +267,7 @@ class VkPreviewWarmupClient(
             contentType = contentType,
             bytes = bytes.size,
             durationMs = System.currentTimeMillis() - started,
+            pngBytes = bytes,
         )
     }
 }

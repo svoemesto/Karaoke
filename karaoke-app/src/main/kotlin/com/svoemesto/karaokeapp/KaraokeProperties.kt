@@ -1929,6 +1929,31 @@ val listKaraokeProperties =
             defaultValue = 2L,
             description = "ВК: число попыток прогрева (ретрай только transient-ошибок и 5xx)",
         ),
+        // Надёжное превью публикации ВК через прикрепление обложки фото (specs/138-vk-photo-preview-attachment).
+        // Бот загружает PNG-обложку песни через photos.getWallUploadServer + photos.saveWallPhoto
+        // (user-token, scope photos) и прикрепляет её к посту через attachments=photo<owner>_<id>.
+        // При сбое photos.* методов — fallback на docs.* (community-token). При полном сбое —
+        // деградация (пост без превью). См. docs/features/vk-news-auto-publish.md.
+        KaraokeProperty(
+            key = "vkPhotoAttachEnabled",
+            defaultValue = true,
+            description = "ВК: включить загрузку фото через photos.* методы. false = пропустить шаг, fallback сразу на docs.* (или деградация)",
+        ),
+        KaraokeProperty(
+            key = "vkDocAttachEnabled",
+            defaultValue = true,
+            description = "ВК: включить fallback на docs.* методы (community-token) при сбое photos.*. false = при сбое photos.* сразу деградация (пост без превью)",
+        ),
+        KaraokeProperty(
+            key = "vkPreviewImageWidth",
+            defaultValue = 1200,
+            description = "ВК: ширина PNG-превью песни (px), стандарт Open Graph. Используется endpoint /api/public/song-vk-image/{id} (karaoke-web)",
+        ),
+        KaraokeProperty(
+            key = "vkPreviewImageHeight",
+            defaultValue = 630,
+            description = "ВК: высота PNG-превью песни (px), стандарт Open Graph. Используется endpoint /api/public/song-vk-image/{id} (karaoke-web)",
+        ),
         KaraokeProperty(
             key = "telegramTemplateAir",
             defaultValue = "",

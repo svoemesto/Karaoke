@@ -422,15 +422,20 @@ class SongEditorController(
                 // (1280x720@30fps). Пост-хук в KaraokeProcessThread.run() после успешного
                 // завершения RENDER_MP4_DEMO запустит Telegram-публикацию (D-1 в research.md).
                 // Сбой здесь НЕ откатывает уже совершённый апрув: изоляция в helper'е.
+                println("[approve/feature-131] US1 — render-demo trigger START for songId=${song.id}")
                 triggerRenderMp4DemoIfNeeded(song)
+                println("[approve/feature-131] US1 — render-demo trigger END for songId=${song.id}")
 
                 // Спека 131 (US2): после апрува и US1 fire-and-forget синхронизируем связанные
                 // таблицы (tbl_pictures, tbl_authors, tbl_albums) на SERVER (D-2 в research.md).
                 // updateSongs=false — tbl_songs уже засинкан выше (existing updateRemoteSongFromLocalDatabase).
                 // Сбой здесь НЕ блокирует HTTP-ответ approve (SC-003 — ≤5 с).
+                println("[approve/feature-131] US2 — sync-related thread SCHEDULED for songId=${song.id}")
                 thread {
+                    println("[approve/sync-related] thread START for songId=${song.id}")
                     try {
                         val syncRelatedStart = System.currentTimeMillis()
+                        println("[approve/sync-related] calling updateRemoteDatabaseFromLocalDatabase(updateSongs=false, updatePictures=true, updateAuthors=true)")
                         val syncRelatedResult =
                             updateRemoteDatabaseFromLocalDatabase(
                                 updateSongs = false,
@@ -442,8 +447,10 @@ class SongEditorController(
                                 "${System.currentTimeMillis() - syncRelatedStart} ms, " +
                                 "created=${syncRelatedResult.created.size} updated=${syncRelatedResult.updated.size}",
                         )
+                        println("[approve/sync-related] thread END OK for songId=${song.id}")
                     } catch (e: Exception) {
                         println("[approve/sync-related] ошибка sync related: ${e.message}")
+                        println("[approve/sync-related] thread END EXCEPTION for songId=${song.id}")
                     }
                 }
 
@@ -920,7 +927,12 @@ class SongEditorController(
     // @see specs/131-fix-approve-demo-render-telegram-sync/contracts/pipeline.md
     // @see specs/131-fix-approve-demo-render-telegram-sync/research.md (D-1, D-3)
     private fun triggerRenderMp4DemoIfNeeded(song: Song) {
-        val connection = WORKING_DATABASE.getConnection() ?: return
+        println("[approve/render-demo-helper] START for songId=${song.id}")
+        val connection = WORKING_DATABASE.getConnection()
+        if (connection == null) {
+            println("[approve/render-demo-helper] WORKING_DATABASE.getConnection() == null — bail out (no LOCAL connection)")
+            return
+        }
         try {
             connection.createStatement().use { st ->
                 val rs =
@@ -933,12 +945,15 @@ class SongEditorController(
                         """.trimIndent(),
                     )
                 rs.use {
-                    if (it.next()) {
+                    val hasActive = it.next()
+                    println("[approve/render-demo-helper] SELECT guard done: hasActive=$hasActive for songId=${song.id}")
+                    if (hasActive) {
                         println("[approve/render-demo] skip — уже есть активный процесс для песни ${song.id}")
                         return
                     }
                 }
             }
+            println("[approve/render-demo-helper] calling KaraokeProcess.createProcess(action=RENDER_MP4_DEMO, prior=5, threadId=0, doWait=false) for songId=${song.id}")
             KaraokeProcess.createProcess(
                 song = song,
                 action = KaraokeProcessTypes.RENDER_MP4_DEMO,
@@ -947,7 +962,9 @@ class SongEditorController(
                 threadId = 0,
             )
             println("[approve/render-demo] создан процесс RENDER_MP4_DEMO для песни ${song.id}")
+            println("[approve/render-demo-helper] END OK for songId=${song.id}")
         } catch (e: Exception) {
+            println("[approve/render-demo-helper] EXCEPTION ${e.javaClass.name}: ${e.message}")
             println("[approve/render-demo] ошибка: ${e.message}")
         }
     }

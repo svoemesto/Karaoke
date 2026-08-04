@@ -5,6 +5,7 @@ import java.sql.SQLException
 import java.sql.Statement
 import java.sql.Timestamp
 import java.time.Instant
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 
 // getWebEvents()/getStatBySong() перенесены в com.svoemesto.karaokeapp.model.StatsByEvents (нужны
@@ -41,6 +42,22 @@ object StatBySong {
     private val cachedFreeNow = AtomicInteger(-1)
     private val cachedSubscriptionOnly = AtomicInteger(-1)
     private val cachedInWork = AtomicInteger(-1)
+
+    // Взводится karaoke-app (через InternalStatsController.markDirty) при сохранении/синхронизации
+    // песни, у которой мог измениться free-статус — свободно/по подписке (specs/143-song-free-
+    // access-window). Часовой cron (refreshHourly) остаётся единственным источником истины для
+    // перехода "наступил эфир" (для него ничего не "взводится" — время просто проходит), см.
+    // StatsCacheScheduler.refreshIfDirty() — лёгкий ежеминутный тик, который лишь проверяет флаг,
+    // не пересчитывает счётчики сам по себе.
+    private val dirty = AtomicBoolean(false)
+
+    fun markDirty() {
+        dirty.set(true)
+    }
+
+    // Атомарно читает и сбрасывает флаг — вызывающий (refreshIfDirty) обязан пересчитать кеш, если
+    // вернулось true, иначе взведённое состояние потеряется без пересчёта.
+    fun consumeDirty(): Boolean = dirty.getAndSet(false)
 
     // Фильтр «без SKIP» в SQL. В song.tags теги через пробел; сравнение по элементу массива
     // надёжнее 'tags LIKE %SKIP%' (не словит 'noSKIP' или подстроку внутри другого тега).

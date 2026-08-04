@@ -97,7 +97,9 @@ class VkPhotoUploadClient(
                     // прочее (например, upload_url empty / invalid JSON) — без fallback
                     throw e
                 }
-            } else null
+            } else {
+                null
+            }
 
         // Fallback на docs.* (если включён и был photosError)
         if (!docEnabled) {

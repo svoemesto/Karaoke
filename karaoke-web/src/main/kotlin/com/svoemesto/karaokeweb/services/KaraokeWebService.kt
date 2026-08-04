@@ -1,8 +1,14 @@
 package com.svoemesto.karaokeweb.services
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.svoemesto.karaokeapp.services.APP_WORK_IN_CONTAINER
+import com.svoemesto.karaokeapp.services.APP_WORK_ON_SERVER
+import com.svoemesto.karaokeapp.services.KSS_APP
+import com.svoemesto.karaokeapp.services.KaraokeStorageService
+import com.svoemesto.karaokeapp.services.SAC_APP
 import com.svoemesto.karaokeapp.services.SNS
 import com.svoemesto.karaokeapp.services.SseNotificationService
+import com.svoemesto.karaokeapp.services.StorageApiClient
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.messaging.simp.SimpMessagingTemplate
 import org.springframework.stereotype.Service
@@ -29,6 +35,8 @@ lateinit var DB_REMOTE_PORT: String
 class KaraokeWebService(
     val webSocket: SimpMessagingTemplate,
     val objectMapper: ObjectMapper,
+    karaokeStorageService: KaraokeStorageService,
+    storageApiClient: StorageApiClient,
     @Value($$"${work-in-container}") val wic: Long,
     @Value($$"${work-on-server}") val wos: Long,
     @Value($$"${db-local-postgres-user}") val dbLocalPostgresUser: String,
@@ -56,6 +64,21 @@ class KaraokeWebService(
         // уронил бы процесс karaoke-web с UninitializedPropertyAccessException. У karaoke-web нет /subscribe
         // эндпоинта, поэтому emitters всегда пуст и send() безопасно не делает ничего.
         SNS = SseNotificationService(objectMapper)
+        // specs/141-fix-censored-web-storage-globals: инициализируем karaoke-app-глобалы
+        // KSS_APP/SAC_APP заглушками karaoke-web. Без этого любое обращение к karaoke-app-модели
+        // с конструкторным дефолтом `storageService = KSS_APP` (например, Dictionary.loadValues в
+        // TextFileDictionary.dict — словарь «Censored» для цензурирования) упадёт с
+        // `lateinit property KSS_APP has not been initialized`. Реальные hot-path'ы karaoke-web не
+        // вызывают методы storage (см. WebKaraokeStorageServiceImpl.kt — заглушка бросает
+        // UnsupportedOperationException на все вызовы, и это безопасно, т.к. Dictionary не
+        // пользуется storage в runtime). Защитный слой: APP_WORK_* тоже инициализируются здесь,
+        // чтобы случайный будущий код karaoke-web, обращающийся к karaoke-app-глобалу WORKING_DATABASE
+        // (а через него к Connection.local() → APP_WORK_ON_SERVER), не упал с тем же
+        // IllegalStateException, что и в specs/140-fix-zakroma-censored-database.
+        KSS_APP = karaokeStorageService
+        SAC_APP = storageApiClient
+        APP_WORK_IN_CONTAINER = (wic != 0L)
+        APP_WORK_ON_SERVER = (wos != 0L)
         // Уборка пустых бакетов (deleteAllEmptyBuckets) намеренно НЕ вызывается: karaoke-web не обращается
         // к MinIO напрямую (см. DEVELOPMENT.md, MTU black-hole; бин KaraokeStorageService здесь — заглушка,
         // KaraokeStorageServiceImplWeb.kt). Прежний вызов ходил к недоступному karaoke-storage:9000 и ронял

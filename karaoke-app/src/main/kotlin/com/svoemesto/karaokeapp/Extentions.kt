@@ -216,9 +216,14 @@ fun String.censored(database: KaraokeConnection): String {
 
     var result = this
     censoredMap.forEach { (uncensored, censored) ->
-        val patt1 = "\\b$uncensored\\b".toRegex()
+        // specs/141-fix-censored-web-storage-globals: \b в Java/Kotlin regex по умолчанию
+        // использует ASCII \w = [a-zA-Z_0-9] — НЕ работает с русскими буквами. Все слова
+        // словаря «Censored» русские, поэтому до этого фикса цензурирование в принципе
+        // не срабатывало на русских названиях. Заменяем \b на lookbehind/lookahead с
+        // Unicode property \p{L} (любая буква) + \p{N} (цифра) + _ (ASCII underscore).
+        val patt1 = "(?<![\\p{L}\\p{N}_])$uncensored(?![\\p{L}\\p{N}_])".toRegex()
         result = result.replace(patt1, censored)
-        val patt2 = "\\b${uncensored.uppercaseFirstLetter()}\\b".toRegex()
+        val patt2 = "(?<![\\p{L}\\p{N}_])${uncensored.uppercaseFirstLetter()}(?![\\p{L}\\p{N}_])".toRegex()
         result = result.replace(patt2, censored.uppercaseFirstLetter())
     }
     return result

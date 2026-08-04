@@ -31,7 +31,7 @@ fun String.wrapInQuotes(): String {
  */
 fun String.rightFileNameSymbols(): String =
     this
-        .replace("'", "''")
+        .replace("'", "`")
         .replace("?", "")
         .replace(":", "-")
         .replace("!", "")

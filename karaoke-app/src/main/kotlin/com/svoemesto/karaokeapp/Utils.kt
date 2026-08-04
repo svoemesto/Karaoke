@@ -574,10 +574,17 @@ fun updateRemoteSongFromLocalDatabase(
     updateDatabases(
         fromDatabase = Connection.local(),
         toDatabase = toDatabase,
-        keys = setOf("song"),
+        // Фича 137: после миграции Settings→Songs (28_rename_settings_to_songs.sql) SyncTarget.key
+        // для песен переименован с "song" на "songs". Здесь "song" (singular) → "songs" (plural):
+        // иначе цикл `for (target in SyncRegistry.all) { if (target.key !in keys) continue }`
+        // пропускает песни и sync возвращает created=0 updated=0, хотя diff действительно есть.
+        // Тот же баг был в legacySyncKeys(updateSongs=true) ниже — add("song") вместо add("songs").
+        // Симптом, который ловится: после approve `[approve/timing] push на SERVER: ... ms,
+        // created=0 updated=0` несмотря на то, что LOCAL менялся (новые source_markers/id_status).
+        keys = setOf("songs"),
         idFilter =
             mapOf(
-                "song" to id,
+                "songs" to id,
             ),
     )
 
@@ -609,7 +616,8 @@ private fun legacySyncKeys(
     updateAuthors: Boolean,
 ): Set<String> =
     buildSet {
-        if (updateSongs) add("song")
+        // Фича 137: см. updateRemoteSongFromLocalDatabase — SyncTarget.key для песен теперь "songs".
+        if (updateSongs) add("songs")
         if (updatePictures) add("pictures")
         if (updateAuthors) add("authors")
     }

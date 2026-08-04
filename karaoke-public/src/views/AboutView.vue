@@ -103,11 +103,11 @@
             <div class="km-stat-label">Песен в коллекции</div>
           </div>
           <div class="km-stat-card">
-            <div class="km-stat-number">{{ formatNum(stats.onAir) }}</div>
+            <div class="km-stat-number">{{ formatNum(stats.freeNow) }}</div>
             <div class="km-stat-label">В открытом доступе</div>
           </div>
           <div class="km-stat-card">
-            <div class="km-stat-number">{{ formatNum(stats.exclusive) }}</div>
+            <div class="km-stat-number">{{ formatNum(stats.subscriptionOnly) }}</div>
             <div class="km-stat-label">По подписке</div>
           </div>
           <div class="km-stat-card">
@@ -115,6 +115,12 @@
             <div class="km-stat-label">В работе</div>
           </div>
         </div>
+        <p class="km-hint-text" style="margin-top: 1rem">
+          Как только песня выходит в эфир — она становится доступна всем бесплатно и остаётся в
+          открытом доступе месяц. После этого посмотреть её можно по подписке — на всю коллекцию или
+          отдельно эту песню. Часть песен мы делаем доступными всегда бесплатно — следите за
+          объявлениями. Доступ к караоке-плееру — только онлайн, на сайте.
+        </p>
       </section>
 
       <!-- Топ-15 -->

@@ -119,7 +119,7 @@
                 }}</RouterLink>
               </td>
               <td class="km-td km-td-date">
-                <span v-if="showDate(sett)" class="km-date-text">{{ sett.datePublish }}</span>
+                <span v-if="showDate(sett)" class="km-date-text">{{ dateLabel(sett) }}</span>
                 <PremiumIcon
                   v-if="showCoin(sett)"
                   :state="readiness.contentReadyFor(sett.id)"
@@ -190,7 +190,7 @@
             <PlaylistIcon :song-id="sett.id" />
           </div>
           <div v-if="showDate(sett) || showCoin(sett)" class="km-card-date">
-            <span v-if="showDate(sett)" class="km-date-text">{{ sett.datePublish }}</span>
+            <span v-if="showDate(sett)" class="km-date-text">{{ dateLabel(sett) }}</span>
             <PremiumIcon
               v-if="showCoin(sett)"
               :state="readiness.contentReadyFor(sett.id)"
@@ -306,10 +306,12 @@ export default {
   },
   methods: {
     ...mapActions('songs', ['loadAuthors', 'search']),
-    // Монетка «премиум-контент» — только не-премиум посетителю и только для контента, доступного
-    // лишь премиуму (эксклюзив или ещё не в эфире). Золотая/серебряная — по contentReadyFor().
+    // Монетка «премиум-контент» — только не-премиум посетителю и только для контента, недоступного
+    // бесплатно прямо сейчас (specs/143-song-free-access-window). Золотая/серебряная — по
+    // contentReadyFor(). Не гейтится личной покупкой — коин это категория контента, не персональный
+    // статус доступа (см. showCartIcon/showDate ниже, где покупка уже учитывается).
     showCoin(sett) {
-      return !this.isPremium && (sett.exclusive || !sett.onAir)
+      return !this.isPremium && !sett.freelyAvailableNow
     },
     // Иконка «в корзину» — в тех же условиях, что и золотая иконка плеера.
     showCartIcon(sett) {
@@ -318,6 +320,11 @@ export default {
         this.readiness.contentReadyFor(sett.id) === 'ready' &&
         this.readiness.stateFor(sett.id) !== 'active'
       )
+    },
+    // Личная подписка на эту песню уже даёт доступ ('active'), но песня не свободно доступна всем —
+    // используется, чтобы скрыть текст "Будет в эфире с…"/"В эфире до…" для уже купленных (FR-009).
+    isPurchased(sett) {
+      return !sett.freelyAvailableNow && this.readiness.stateFor(sett.id) === 'active'
     },
     // Клик по золотой иконке плеера (PlayerIcon сам решает, когда её показывать) — открываем модалку
     // оформления подписки на конкретную песню.
@@ -334,11 +341,23 @@ export default {
       this.readiness.load(ids)
       if (boughtId && this.cart.isInCart(boughtId)) this.cart.toggle(boughtId)
     },
-    // Реальную дату публикации (или «Дата пока не определена») показываем всем для ещё не вышедших
-    // НЕ-эксклюзивных песен; у не-премиума она соседствует с монеткой. Тексты «Эксклюзивно на SPONSR»
-    // не выводим никому — их заменяет монетка (не-премиуму) / пустая ячейка (премиуму). В эфире — пусто.
+    // FR-009/FR-010 spec.md (specs/143-song-free-access-window): текст о сроках эфира — только
+    // непремиум-пользователю, только для не-всегда-бесплатных и не-купленных песен, и только когда
+    // есть что показать (ещё не в эфире — дата эфира; в эфире и в окне — дата окончания окна).
     showDate(sett) {
-      return !sett.onAir && !sett.exclusive
+      return (
+        !this.isPremium &&
+        !sett.alwaysFree &&
+        !this.isPurchased(sett) &&
+        (!sett.onAir || sett.freelyAvailableNow)
+      )
+    },
+    // "Будет в эфире с {datePublish}" (ещё не в эфире) или "В эфире до {freeAccessWindowEndText}"
+    // (в эфире и в окне бесплатного доступа).
+    dateLabel(sett) {
+      return sett.onAir
+        ? `В эфире до ${sett.freeAccessWindowEndText}`
+        : `Будет в эфире с ${sett.datePublish}`
     },
     onSearch() {
       this.searched = true

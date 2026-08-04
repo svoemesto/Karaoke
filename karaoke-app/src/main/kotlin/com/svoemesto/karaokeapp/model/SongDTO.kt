@@ -63,7 +63,6 @@ data class SongDTO(
     val flagMaxKaraoke: String,
     val flagMaxChords: String,
     val flagMaxMelody: String,
-    val flagExclusive: String,
     val flagFree: String,
     val processColorBoosty: String,
     val processColorSponsr: String,
@@ -172,7 +171,6 @@ data class SongDTO(
     val audioParentId: Long,
     val audioSimilarityPercent: Int,
     val audioDeltaMs: Long,
-    val exclusive: Boolean,
     val free: Boolean,
     val idTariff: Int,
     // 0 = песня не привязана к альбому (сингл). Entity-уровень (Song.albumId) — Long? (null =
@@ -276,7 +274,6 @@ data class SongDTO(
         entity.audioParentId = audioParentId
         entity.audioSimilarityPercent = audioSimilarityPercent
         entity.audioDeltaMs = audioDeltaMs
-        entity.exclusive = exclusive
         entity.free = free
         entity.idTariff = idTariff
         entity.fields[SongField.SONG_TYPE] = songType
@@ -351,7 +348,6 @@ data class SongDTO(
             flagMaxKaraoke = flagMaxKaraoke,
             flagMaxChords = flagMaxChords,
             flagMaxMelody = flagMaxMelody,
-            flagExclusive = flagExclusive,
             flagFree = flagFree,
             processColorBoosty = processColorBoosty,
             processColorSponsr = processColorSponsr,
@@ -417,7 +413,6 @@ data class SongDTO(
             warning = warning,
             rootId = rootId,
             audioParentId = audioParentId,
-            exclusive = exclusive,
             free = free,
             songType = songType,
             haveSourceText = haveSourceText,

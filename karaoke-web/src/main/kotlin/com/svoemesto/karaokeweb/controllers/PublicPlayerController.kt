@@ -131,7 +131,7 @@ class PublicPlayerController(
         val ready = stemsReady(song)
         val premium = isPremiumUser(request)
         val subscribed = !premium && isSubscribedToSong(request, id)
-        val canWatch = ready && (song.onAir || premium || subscribed)
+        val canWatch = ready && (song.isFreelyAvailableNow || premium || subscribed)
         val canExport = canWatch && premium
         // Демо-режим: контент готов, но полного доступа нет — вместо отказа выдаём токен,
         // ограниченный диапазоном (фрагмент "куплет минус отступ под фейд-ин"), чтобы не-премиум
@@ -190,8 +190,12 @@ class PublicPlayerController(
      *    маркеры). Нужна фронту, чтобы отличить «золотую» монетку (контент готов, премиум смог бы
      *    открыть плеер прямо сейчас) от «серебряной» (ещё не готов).
      *  - watchable (= ready, для обратной совместимости) — может ли ПРЯМО СЕЙЧАС открыть плеер сам
-     *    запрашивающий: contentReady && (onAir || premium). Управляет активностью иконки плеера.
-     * Короткого замыкания по (onAir||premium) больше нет — [stemsReady] нужен и для не-onAir песен,
+     *    запрашивающий: contentReady && (isFreelyAvailableNow || premium) — см.
+     *    Song.isFreelyAvailableNow (specs/143-song-free-access-window: бесплатно доступна, если
+     *    помечена "всегда бесплатно" или эфир наступил и окно в 1 месяц ещё не истекло). Управляет
+     *    активностью иконки плеера.
+     * Короткого замыкания по (isFreelyAvailableNow||premium) больше нет — [stemsReady] нужен и для
+     * недоступных бесплатно песен,
      * чтобы вычислить contentReady для монетки. Батч больше не бьёт по MinIO (раньше — 2 HEAD на
      * песню, смягчённые чанками/параллелизмом на фронте, см. usePlayerReadiness.js), т.к. readiness
      * теперь строится только из уже загруженных полей Song.
@@ -215,7 +219,7 @@ class PublicPlayerController(
             songIds.associate { id ->
                 val song = loadSong(id)
                 val contentReady = song != null && stemsReady(song)
-                val watchable = contentReady && (song!!.onAir || premium || id in subscribedIds)
+                val watchable = contentReady && (song!!.isFreelyAvailableNow || premium || id in subscribedIds)
                 id.toString() to mapOf("ready" to watchable, "watchable" to watchable, "contentReady" to contentReady)
             }
         return ResponseEntity.ok(mapOf("items" to items))

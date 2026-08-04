@@ -47,11 +47,11 @@
           <div class="km-stat-label">Песен в коллекции</div>
         </div>
         <div class="km-stat-card">
-          <div class="km-stat-number">{{ formatNum(onAir) }}</div>
+          <div class="km-stat-number">{{ formatNum(freeNow) }}</div>
           <div class="km-stat-label">В открытом доступе</div>
         </div>
         <div class="km-stat-card">
-          <div class="km-stat-number">{{ formatNum(exclusive) }}</div>
+          <div class="km-stat-number">{{ formatNum(subscriptionOnly) }}</div>
           <div class="km-stat-label">По подписке</div>
         </div>
         <div class="km-stat-card">
@@ -184,7 +184,14 @@ export default {
     return { socialLinks }
   },
   computed: {
-    ...mapGetters('stats', ['onSponsr', 'onAir', 'exclusive', 'inWork', 'total', 'isLoading']),
+    ...mapGetters('stats', [
+      'onSponsr',
+      'freeNow',
+      'subscriptionOnly',
+      'inWork',
+      'total',
+      'isLoading',
+    ]),
   },
   mounted() {
     this.loadStats()

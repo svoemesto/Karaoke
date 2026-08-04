@@ -109,5 +109,11 @@ export default {
       let request = { method: 'POST', url: '/api/dictionaries/delete', params: { id } }
       return promisedXMLHttpRequest(request).then((data) => JSON.parse(data))
     },
+    // specs/139-fix-censored-dictionary (FR-003): проверить, как dictName обработает text —
+    // той же логикой, что использует реальная автопубликация.
+    testDictionaryValuePromise(ctx, payload) {
+      let request = { method: 'POST', url: '/api/dictionaries/test', params: payload }
+      return promisedXMLHttpRequest(request).then((data) => JSON.parse(data))
+    },
   },
 }

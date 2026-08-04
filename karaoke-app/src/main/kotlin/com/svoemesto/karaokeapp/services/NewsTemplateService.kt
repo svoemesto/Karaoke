@@ -1,6 +1,7 @@
 package com.svoemesto.karaokeapp.services
 
 import com.svoemesto.karaokeapp.KaraokeConnection
+import com.svoemesto.karaokeapp.WORKING_DATABASE
 import com.svoemesto.karaokeapp.censored
 import com.svoemesto.karaokeapp.model.News
 import com.svoemesto.karaokeapp.model.Song
@@ -140,15 +141,21 @@ object NewsTemplateService {
      * код может рендерить без усечения или с заведомо большим `NEWS_TITLE_MAX_LENGTH`-аналогом.
      *
      * Параметр [truncate] = `false` используется для рендера `body` (TEXT без лимита).
+     *
+     * @param database Соединение для чтения словаря «Censored» при построении `songNameCensored`
+     *   (specs/139-fix-censored-dictionary) — ДОЛЖЕН совпадать с соединением, из которого загружена
+     *   [song]/[news] (например, `karaoke-web`-вызов ДОЛЖЕН передать свой `WORKING_DATABASE`,
+     *   иначе используется дефолтный `karaoke-app`-глобал).
      */
     fun render(
         template: String,
         song: Song,
         news: News? = null,
         truncate: Boolean = true,
+        database: KaraokeConnection = WORKING_DATABASE,
     ): String {
         val replacements: Map<String, String> =
-            buildReplacements(song, news)
+            buildReplacements(song, news, database)
         val rendered =
             placeholderRegex.replace(template) { mr ->
                 val key = mr.groupValues[1]
@@ -237,11 +244,12 @@ object NewsTemplateService {
     private fun buildReplacements(
         song: Song,
         news: News?,
+        database: KaraokeConnection,
     ): Map<String, String> =
         mapOf(
             "author" to song.author,
             "songName" to song.songName,
-            "songNameCensored" to song.songName.censored(),
+            "songNameCensored" to song.songName.censored(database),
             "year" to song.year.toString(),
             "album" to song.album,
             "albumYearSuffix" to albumYearSuffix(song),

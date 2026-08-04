@@ -1,6 +1,8 @@
 package com.svoemesto.karaokeapp.services
 
+import com.svoemesto.karaokeapp.KaraokeConnection
 import com.svoemesto.karaokeapp.KaraokeProperties
+import com.svoemesto.karaokeapp.WORKING_DATABASE
 import com.svoemesto.karaokeapp.censored
 import com.svoemesto.karaokeapp.model.PublicationType
 import com.svoemesto.karaokeapp.model.Song
@@ -83,14 +85,22 @@ object TelegramTemplateService {
     /**
      * Рендерит [template] с заменой плейсхолдеров. Усекает до [TELEGRAM_CAPTION_MAX_LENGTH].
      * Неизвестные плейсхолдеры остаются literal-текстом.
+     *
+     * @param database Соединение для чтения словаря «Censored» при построении `songNameCensored`
+     *   (specs/139-fix-censored-dictionary) — ДОЛЖЕН совпадать с соединением, из которого
+     *   загружен [song], иначе используется дефолтный `karaoke-app`-глобал.
      */
-    fun render(template: String, song: Song): String {
+    fun render(
+        template: String,
+        song: Song,
+        database: KaraokeConnection = WORKING_DATABASE,
+    ): String {
         val link = "https://sm-karaoke.ru/song?id=${song.id}"
         val replacements: Map<String, String> =
             mapOf(
                 "author" to song.author,
                 "songName" to song.songName,
-                "songNameCensored" to song.songName.censored(),
+                "songNameCensored" to song.songName.censored(database),
                 "year" to song.year.toString(),
                 "album" to song.album,
                 "link" to link,

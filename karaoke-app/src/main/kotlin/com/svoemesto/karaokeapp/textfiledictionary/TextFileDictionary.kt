@@ -1,5 +1,6 @@
 package com.svoemesto.karaokeapp.textfiledictionary
 
+import com.svoemesto.karaokeapp.KaraokeConnection
 import com.svoemesto.karaokeapp.TEXT_FILE_DICTS
 import com.svoemesto.karaokeapp.WORKING_DATABASE
 import com.svoemesto.karaokeapp.model.Dictionary
@@ -38,14 +39,29 @@ interface TextFileDictionary {
     /** Имя словаря (колонка dict_name в tbl_dictionaries) — раньше был путь к текстовому файлу. */
     fun dictName(): String
 
-    // karaoke-web не имеет полноценной инициализации ConstantsKt/Connection (см. «karaoke-web Song
-    // trap» в DEVELOPMENT.md) — обращение к WORKING_DATABASE там может бросить NoClassDefFoundError (Error,
-    // не Exception), роняя весь запрос (Zakroma, страница песни и т.п.). Деградируем до пустого словаря,
-    // а не валим вызывающий эндпоинт.
+    /**
+     * Соединение, из которого читать/писать словарь. Дефолт сохраняет прежнее поведение (глобал
+     * `karaoke-app`) для мест, которые не передают своё соединение. Вызывающий код с собственным
+     * [KaraokeConnection] (например, karaoke-web — specs/139-fix-censored-dictionary) ДОЛЖЕН
+     * переопределять это свойство, а не полагаться на дефолт: обращение к чужому
+     * `com.svoemesto.karaokeapp.WORKING_DATABASE` из другого модуля резолвится в постороннее
+     * (обычно нерабочее) соединение молча, без исключения (см. docs/invariants.md, «Ловушки
+     * karaoke-web»).
+     */
+    val database: KaraokeConnection get() = WORKING_DATABASE
+
+    // catch(Throwable), не Exception — сбой чтения (в т.ч. NoClassDefFoundError/Error при
+    // некорректной инициализации соединения) не должен ронять вызывающий эндпоинт. Раньше
+    // деградация до пустого списка была тихой — теперь ошибка логируется отдельно от штатного
+    // «словарь пуст», чтобы не выглядеть неотличимо (specs/139-fix-censored-dictionary, FR-002).
     val dict: List<String> get() =
         try {
-            Dictionary.loadValues(dictName(), WORKING_DATABASE)
+            Dictionary.loadValues(dictName(), database)
         } catch (e: Throwable) {
+            println(
+                "[TextFileDictionary.dict] ОШИБКА чтения словаря '${dictName()}' " +
+                    "(database=${database.name}): ${e.message}",
+            )
             emptyList()
         }
 

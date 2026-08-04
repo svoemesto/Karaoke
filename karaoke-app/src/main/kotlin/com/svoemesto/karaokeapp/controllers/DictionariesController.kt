@@ -2,6 +2,8 @@ package com.svoemesto.karaokeapp.controllers
 
 import com.svoemesto.karaokeapp.Connection
 import com.svoemesto.karaokeapp.KaraokeConnection
+import com.svoemesto.karaokeapp.TEXT_FILE_DICTS
+import com.svoemesto.karaokeapp.censored
 import com.svoemesto.karaokeapp.model.Dictionary
 import com.svoemesto.karaokeapp.services.KSS_APP
 import com.svoemesto.karaokeapp.services.SAC_APP
@@ -136,4 +138,36 @@ class DictionariesController {
     fun delete(
         @RequestParam id: Long,
     ): Boolean = withDb { db -> Dictionary.delete(id, db) }
+
+    /**
+     * `POST /api/dictionaries/test` — проверка результата применения словаря [dictName] к
+     * произвольной строке [text] той же логикой, что использует реальная автопубликация (FR-003,
+     * specs/139-fix-censored-dictionary/contracts/dictionary-test-endpoint.md). Для словаря без
+     * своей функции замены (`"Слова с Ё"`, `"Sync Ids"`) возвращает `result == input`,
+     * `changed = false`.
+     */
+    @PostMapping("/test")
+    @ResponseBody
+    fun test(
+        @RequestParam dictName: String,
+        @RequestParam text: String,
+    ): Map<String, Any> {
+        if (dictName !in TEXT_FILE_DICTS) {
+            return mapOf("success" to false, "error" to "unknown dictName: $dictName")
+        }
+        return withDb { db ->
+            val result =
+                when (dictName) {
+                    "Censored" -> text.censored(database = db)
+                    else -> text
+                }
+            mapOf(
+                "success" to true,
+                "dictName" to dictName,
+                "input" to text,
+                "result" to result,
+                "changed" to (result != text),
+            )
+        }
+    }
 }

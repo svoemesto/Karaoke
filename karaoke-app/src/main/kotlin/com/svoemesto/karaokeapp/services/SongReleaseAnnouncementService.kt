@@ -91,6 +91,7 @@ object SongReleaseAnnouncementService {
                         song,
                         news = null,
                         truncate = true,
+                        database = database,
                     ),
                 body =
                     NewsTemplateService.render(
@@ -98,6 +99,7 @@ object SongReleaseAnnouncementService {
                         song,
                         news = null,
                         truncate = false,
+                        database = database,
                     ),
                 link = "/song?id=${song.id}",
                 category = "premium",
@@ -213,6 +215,7 @@ object SongReleaseAnnouncementService {
                                     song,
                                     news = null,
                                     truncate = true,
+                                    database = database,
                                 ),
                             body =
                                 NewsTemplateService.render(
@@ -220,6 +223,7 @@ object SongReleaseAnnouncementService {
                                     song,
                                     news = null,
                                     truncate = false,
+                                    database = database,
                                 ),
                             link = link,
                             category = "air",

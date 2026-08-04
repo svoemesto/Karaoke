@@ -200,8 +200,15 @@ fun getCensoredPair(
     return Pair(s1, s2)
 }
 
-fun String.censored(): String {
-    val censoredMap = CensoredWordsDictionary().dict.associate { getCensoredPair(it) }
+/**
+ * Заменяет слова из словаря «Censored» на маскированную форму (см. [getCensoredPair]).
+ *
+ * @param database Соединение, из которого читать словарь «Censored» — вызывающий код с
+ *   собственным [KaraokeConnection] (например, karaoke-web) ДОЛЖЕН передать его явно, иначе
+ *   используется дефолтный `karaoke-app`-глобал [WORKING_DATABASE] (specs/139-fix-censored-dictionary).
+ */
+fun String.censored(database: KaraokeConnection = WORKING_DATABASE): String {
+    val censoredMap = CensoredWordsDictionary(database = database).dict.associate { getCensoredPair(it) }
 
     var result = this
     censoredMap.forEach { (uncensored, censored) ->

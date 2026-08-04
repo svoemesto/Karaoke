@@ -36,6 +36,8 @@ import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.IOException
+import java.net.HttpURLConnection
+import java.net.URL
 import java.nio.charset.Charset
 import java.nio.file.Files
 import java.nio.file.InvalidPathException
@@ -2880,6 +2882,46 @@ class ApiController(
         val fileNameRenameError: String? = null,
     )
 
+    // Сообщает karaoke-web, что free-статус хотя бы одной песни мог измениться — счётчик "В открытом
+    // доступе"/"По подписке" (StatBySong, specs/143-song-free-access-window) кешируется на час,
+    // без этого сигнала админ увидел бы обновление только в начале следующего часа. НЕ пересчитывает
+    // ничего сама — только взводит dirty-флаг (InternalStatsController.markDirty), сам пересчёт —
+    // на стороне karaoke-web в течение минуты (StatsCacheScheduler.refreshIfDirty). Best-effort по
+    // образцу ackStemJobRawFileConsumed (StemJobProcessing.kt): если karaoke-web недоступен —
+    // счётчик просто обновится по обычному часовому крону, как раньше.
+    private fun notifyStatsDirty() {
+        val baseUrl = Karaoke.stemJobsWebInternalUrl.trim().trimEnd('/')
+        if (baseUrl.isBlank()) return
+        try {
+            val connection = URL("$baseUrl/api/internal/stats/mark-dirty").openConnection() as HttpURLConnection
+            connection.requestMethod = "POST"
+            connection.setRequestProperty("X-Internal-Secret", Karaoke.stemJobsInternalSecret)
+            connection.connectTimeout = 5_000
+            connection.readTimeout = 5_000
+            connection.doOutput = false
+            connection.responseCode // инициирует запрос
+            connection.disconnect()
+        } catch (e: Exception) {
+            println("[notifyStatsDirty] ${e.message}")
+        }
+    }
+
+    // Синхронизация не сообщает, какие именно поля изменились у затронутых записей (Principle II —
+    // recordhash-диф, не field-диф) — точное обнаружение "именно free изменился" при синхронизации
+    // потребовало бы отдельного построчного сравнения. Упрощение (по решению пользователя): любой
+    // push (LOCAL→SERVER — только это направление доставляет изменение туда, где его видит
+    // karaoke-web) с непустым списком created/updated по таблице "songs" считается потенциально
+    // затрагивающим free-статус — лишний пересчёт раз в синхронизацию дешевле точного диффа.
+    private fun notifyStatsDirtyIfSongsPushed(
+        targetKey: String,
+        direction: SyncDirection,
+        affectedCount: Int,
+    ) {
+        if (targetKey == "songs" && direction == SyncDirection.LOCAL_TO_SERVER && affectedCount > 0) {
+            notifyStatsDirty()
+        }
+    }
+
     // Обновление песни
     @PostMapping("/song/update")
     @ResponseBody
@@ -2981,6 +3023,10 @@ class ApiController(
         var albumLinkValid = true
         var fileNameRenameError: String? = null
         song?.let { sett ->
+            // specs/143-song-free-access-window: снимок ДО применения правок — сравнивается после
+            // saveToDb(), чтобы уведомить karaoke-web (StatBySong dirty-флаг) только если free
+            // реально изменился, а не на каждое сохранение песни.
+            val freeBefore = sett.free
             // specs/124-filename-sanitization-rename FR-006/FR-007/FR-008/FR-011/FR-013: смена
             // "Имя файла" санитайзируется теми же правилами, что и импорт, отклоняется при коллизии/
             // пустом имени/активной фоновой обработке песни, и (если применяется) каскадно
@@ -3115,6 +3161,7 @@ class ApiController(
             }
             sett.saveToDb()
             sett.saveToFile()
+            if (sett.free != freeBefore) notifyStatsDirty()
         }
 
         return SongUpdateResultDto(albumLinkValid = albumLinkValid, fileNameRenameError = fileNameRenameError)
@@ -5307,6 +5354,7 @@ class ApiController(
         if (created.size + updated.size + deleted.size + moved.size != 0) {
             SNS.send(SseNotification.crud(listOf(created, updated, deleted)))
         }
+        notifyStatsDirtyIfSongsPushed(target.key, syncDirection, created.size + updated.size)
         return ResponseEntity.ok(SyncRunResultDto(created, updated, deleted, moved))
     }
 
@@ -5331,6 +5379,7 @@ class ApiController(
                 if (created.size + updated.size + deleted.size + moved.size != 0) {
                     SNS.send(SseNotification.crud(listOf(created, updated, deleted)))
                 }
+                notifyStatsDirtyIfSongsPushed(target.key, direction, created.size + updated.size)
                 SyncOneClickResultDto(
                     key = target.key,
                     displayName = target.displayName,

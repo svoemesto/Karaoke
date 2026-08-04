@@ -2,7 +2,7 @@
 
 > **Status**: active
 > **Feature Key**: song-free-access
-> **Last Updated**: 2026-08-04 (specs/143-song-free-access-window)
+> **Last Updated**: 2026-08-04 (specs/143-song-free-access-window + dirty-flag пересчёт счётчиков)
 
 ## Что делает
 
@@ -34,7 +34,19 @@
   `canWatch`/`watchable`.
 - **Счётчики** — `StatBySong.kt` считает `freeNow` (SQL: `free=true OR
   окно ещё не истекло`) и `subscriptionOnly` (`collection − freeNow`)
-  вместо бывших `onAir`/`exclusive`.
+  вместо бывших `onAir`/`exclusive`. Кешируются в `AtomicInteger`,
+  пересчёт — по двум независимым триггерам: часовой cron (`refreshHourly`,
+  единственный источник для перехода «наступил эфир»/«окно истекло» — эти
+  события не сопровождаются явным сохранением) и dirty-флаг (`markDirty`/
+  `consumeDirty`, ежеминутный `refreshIfDirty`) — взводится
+  karaoke-app'ом через internal-эндпоинт `POST /api/internal/stats/
+  mark-dirty` при сохранении песни с изменённым `free`, либо после
+  one-click-синхронизации `songs` LOCAL→SERVER с непустым
+  created/updated (`notifyStatsDirty`/`notifyStatsDirtyIfSongsPushed` в
+  `ApiController.kt`). Канал переиспользует существующий shared-secret
+  `X-Internal-Secret` (`Karaoke.stemJobsInternalSecret`/
+  `stemjobs.internal-secret` — тот же, что и у StemJobs, единый внутренний
+  admin↔web канал, не отдельный секрет на каждый internal-эндпоинт).
 - **UI** — Закрома/Поиск (`ZakromaView.vue`/`SearchView.vue`) показывают
   непремиум-пользователю без личной подписки «Будет в эфире с …» (ещё не
   вышла) или «В эфире до …» (в окне); ничего — для всегда-бесплатных,
@@ -86,12 +98,36 @@
 - **`showDate`/`showCoin` продублированы** в `ZakromaView.vue` и
   `SearchView.vue` (независимые копии одного и того же алгоритма) — при
   следующих изменениях этой логики проверять ОБА файла.
+- **Dirty-флаг при синхронизации — не точечный**: sync (Principle II,
+  recordhash-диф) не сообщает, какие именно поля изменились у затронутых
+  записей — `notifyStatsDirtyIfSongsPushed` взводит флаг при ЛЮБОМ push
+  таблицы `songs` с непустым created/updated, не только при изменении
+  `free`. Осознанный компромисс: лишний (дешёвый) пересчёт раз в
+  синхронизацию дешевле построчного диффа. Путь по прямому сохранению
+  (`/api/song/update`) точнее — сравнивает `sett.free` до/после.
+- **Dirty-флаг через sync не проверен вживую** — в локальной песочнице
+  karaoke-app и karaoke-web используют одну и ту же LOCAL БД
+  (`Connection.local()` с обеих сторон), отдельного SERVER для реального
+  LOCAL→SERVER push здесь нет. Путь через прямое сохранение (`/api/song/
+  update`) проверен вживую end-to-end (счётчик обновился в течение
+  секунд после `free`-тумблера).
+- **`Karaoke.stemJobsWebInternalUrl`/`stemJobsInternalSecret` не
+  сконфигурированы по умолчанию** в новой локальной песочнице (пустая
+  строка → `notifyStatsDirty()` молча no-op, см. `ackStemJobRawFileConsumed`
+  паттерн) — для локальной проверки нужно выставить оба значения (через
+  `/api/properties/setproperty` на стороне karaoke-app и
+  `STEMJOBS_INTERNAL_SECRET` в `deploy/.env` на стороне karaoke-web,
+  одинаковое значение с обеих сторон) и пересобрать/перезапустить
+  `karaoke-web`.
 
 ## Ссылки на ключевые классы/файлы
 
 - [`karaoke-app/.../model/Song.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt) — `freeAccessWindowEnd`/`isFreelyAvailableNow`/`freeAccessWindowEndText` (рядом с `onAir`)
 - [`karaoke-web/.../controllers/PublicPlayerController.kt`](../../karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicPlayerController.kt) — `access()`/`readiness()`, платный гейт
-- [`karaoke-web/.../StatBySong.kt`](../../karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/StatBySong.kt) — счётчики `freeNow`/`subscriptionOnly`
+- [`karaoke-web/.../StatBySong.kt`](../../karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/StatBySong.kt) — счётчики `freeNow`/`subscriptionOnly`, dirty-флаг
+- [`karaoke-web/.../services/StatsCacheScheduler.kt`](../../karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/StatsCacheScheduler.kt) — часовой + ежеминутный dirty-тик
+- [`karaoke-web/.../controllers/InternalStatsController.kt`](../../karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/InternalStatsController.kt) — `POST /api/internal/stats/mark-dirty`
+- [`karaoke-app/.../controllers/ApiController.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt) — `notifyStatsDirty`/`notifyStatsDirtyIfSongsPushed` (вызовы из `songs2Update`/`postSyncRun`/`postSyncOneClick`)
 - [`karaoke-public/src/views/ZakromaView.vue`](../../karaoke-public/src/views/ZakromaView.vue) — `showCoin`/`showDate`/`dateLabel`
 - [`karaoke-public/src/views/SearchView.vue`](../../karaoke-public/src/views/SearchView.vue) — та же логика, независимая копия
 - [`karaoke-public/src/views/SongView.vue`](../../karaoke-public/src/views/SongView.vue) — `playerReady`/`waitingTitle`/`waitingBody`

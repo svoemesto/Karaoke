@@ -197,6 +197,7 @@ class Zakroma(
                                         zakromaAlbumSong.id = song.id
                                         zakromaAlbumSong.onAir = song.onAir
                                         zakromaAlbumSong.datePublish = song.datePublish
+                                        zakromaAlbumSong.airTimestamp = song.dateTimePublish?.time
                                         zakromaAlbumSong.songSubscriptionAvailable = song.idTariff >= 0
                                         zakromaAlbumSong.alwaysFree = song.free
                                         zakromaAlbumSong.freelyAvailableNow = song.isFreelyAvailableNow
@@ -285,6 +286,14 @@ class ZakromaAlbumSong :
     var linkMaxChords: String = ""
     var onAir: Boolean = false
     var datePublish: String = ""
+
+    // Момент эфира в epoch millis — null, если дата эфира вообще не назначена (в отличие от
+    // datePublish/"Дата пока не определена", которая тоже строка и для этого случая, и её нельзя
+    // отличить от реальной даты программно без парсинга; specs/143-song-free-access-window,
+    // симметрично SongPublicDto.airTimestamp). Используется фронтом, чтобы не показывать «Будет в
+    // эфире с …» для песен без назначенной даты (FR-009 spec.md подразумевал только случай «дата
+    // ещё не наступила», не «дата не назначена вовсе»).
+    var airTimestamp: Long? = null
     var songSubscriptionAvailable: Boolean = false
 
     // specs/143-song-free-access-window: alwaysFree = флаг "всегда бесплатно" (song.free);

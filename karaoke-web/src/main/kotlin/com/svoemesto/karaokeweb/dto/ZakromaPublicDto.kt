@@ -16,6 +16,8 @@ data class ZakromaAlbumSongPublicDto(
     val songName: String,
     val onAir: Boolean,
     val datePublish: String,
+    // null, если дата эфира вообще не назначена — см. Zakroma.kt ZakromaAlbumSong.airTimestamp
+    val airTimestamp: Long?,
     val songSubscriptionAvailable: Boolean,
     // specs/143-song-free-access-window
     val alwaysFree: Boolean,
@@ -149,6 +151,7 @@ data class ZakromaPublicDto(
                                             songName = s.songName,
                                             onAir = s.onAir,
                                             datePublish = s.datePublish,
+                                            airTimestamp = s.airTimestamp,
                                             songSubscriptionAvailable = s.songSubscriptionAvailable,
                                             alwaysFree = s.alwaysFree,
                                             freelyAvailableNow = s.freelyAvailableNow,

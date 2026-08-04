@@ -343,13 +343,15 @@ export default {
     },
     // FR-009/FR-010 spec.md (specs/143-song-free-access-window): текст о сроках эфира — только
     // непремиум-пользователю, только для не-всегда-бесплатных и не-купленных песен, и только когда
-    // есть что показать (ещё не в эфире — дата эфира; в эфире и в окне — дата окончания окна).
+    // есть что показать (ещё не в эфире, но дата НАЗНАЧЕНА — дата эфира; в эфире и в окне — дата
+    // окончания окна). Для "дата эфира вообще не назначена" — намеренно пусто (баг-репорт: без
+    // проверки airTimestamp здесь показывалось "Будет в эфире с Дата пока не определена").
     showDate(sett) {
       return (
         !this.isPremium &&
         !sett.alwaysFree &&
         !this.isPurchased(sett) &&
-        (!sett.onAir || sett.freelyAvailableNow)
+        ((!sett.onAir && sett.airTimestamp != null) || sett.freelyAvailableNow)
       )
     },
     // "Будет в эфире с {datePublish}" (ещё не в эфире) или "В эфире до {freeAccessWindowEndText}"

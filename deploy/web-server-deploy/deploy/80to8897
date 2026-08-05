@@ -33,12 +33,23 @@ server {
     proxy_set_header Host $host;
     proxy_set_header X-Nginx-Proxy true;
   }
+  # /song — раздвоение по User-Agent: боты VK/Telegram/etc → OG-endpoint
+  # (картинка для сниппета в мессенджере); обычные браузеры → SPA karaoke-public
+  # (Vue Router отрендерит SongView). Без этого фикса любой прямой URL
+  # `https://sm-karaoke.ru/song?id=NNN` (из мессенджера, поста VK, или просто
+  # правый клик «открыть в новой вкладке») показывал только картинку — критичный
+  # баг шеринга (Pass 35, 2026-08-05, см. docs/architecture-notes.md).
   location /song {
-    proxy_pass http://127.0.0.1:8897/api/public/og/song;
-    proxy_set_header Host $host;
+    if ($http_user_agent ~* "vkShare|TelegramBot|Twitterbot|facebookexternalhit|LinkedInBot|WhatsApp|Slackbot|ViberBot|SkypeUriPreview|Googlebot|bingbot|YandexBot|YandexImages") {
+      rewrite ^/song(\?.*)?$ /api/public/og/song$1 last;
+    }
+    proxy_pass http://127.0.0.1:7907;
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header X-Forwarded-Port $server_port;
+    proxy_set_header Host $host;
     proxy_set_header X-Nginx-Proxy true;
   }
   location / {

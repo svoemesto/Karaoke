@@ -626,5 +626,33 @@ interface KaraokeDbTable {
             }
             return false
         }
+
+        // Батч-удаление по списку id (используется «Удалить все одобренные» в ЛК и в админке —
+        // editor-tasks US-4/US-5). Один SQL round-trip вместо N; на PostgreSQL `id = ANY(?)` через
+        // createArrayOf("BIGINT", ...) — стандартный паттерн для batch DELETE, эквивалент
+        // `id IN (1,2,3)` без склейки-строк и без N+1. Возвращает количество ФАКТИЧЕСКИ удалённых строк
+        // (PostgreSQL `executeUpdate()`). Пустой список → 0 без SQL.
+        //
+        // @see docs/features/editor-tasks.md
+        fun deleteIn(
+            tableName: String,
+            ids: List<Long>,
+            database: KaraokeConnection,
+            sync: Boolean = false,
+        ): Int {
+            if (ids.isEmpty()) return 0
+            val connection = database.getConnection() ?: return 0
+            return try {
+                val sql = "DELETE FROM $tableName${if (sync) "_sync" else ""} WHERE id = ANY(?)"
+                val ps = connection.prepareStatement(sql)
+                ps.setArray(1, connection.createArrayOf("BIGINT", ids.toTypedArray()))
+                val n = ps.executeUpdate()
+                ps.close()
+                n
+            } catch (e: Exception) {
+                println(e.message)
+                0
+            }
+        }
     }
 }

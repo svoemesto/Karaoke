@@ -264,4 +264,80 @@ class PublicSongEditorController(
         draft.save()
         return ResponseEntity.ok(mapOf("ok" to true, "status" to SongAssignmentStatus.IN_PROGRESS.dbValue))
     }
+
+    // ---- Отказаться от активного задания (US-2) ---------------------------------------------
+
+    /**
+     * Отказаться от задания в активном статусе (`assigned`/`in_progress`/`submitted`/`rejected`).
+     * Удаляет запись задания И связанный черновик (orphan-cleanup, как `SongEditorController.revoke()`).
+     * Песня (`tbl_songs`) и разметка не трогаются. Идемпотентно — повторный клик возвращает
+     * `assignment_not_found`. Для одобренных используется `/tasks/{id}/delete`.
+     *
+     * @see docs/features/editor-tasks.md
+     */
+    @PostMapping("/tasks/{id}/refuse")
+    fun refuse(
+        @PathVariable id: Long,
+        request: HttpServletRequest,
+    ): ResponseEntity<Map<String, Any?>> {
+        val user = currentUser(request)
+        if (!user.isEditor) return notFound()
+        val a = loadOwnedAssignment(id, user.id) ?: return notFound()
+        // Чистим черновик ДО удаления задания (как в admin revoke()).
+        SongAssignmentDraft.deleteByAssignment(id, db)
+        val ok = SongAssignment.delete(id, db)
+        println("[editor-tasks/refuse] user=${user.id} id=$id deleted=$ok")
+        return ResponseEntity.ok(mapOf("ok" to ok, "deleted" to if (ok) 1 else 0))
+    }
+
+    // ---- Удалить одобренное задание (US-3) ---------------------------------------------------
+
+    /**
+     * Удалить одобренное задание (`approved`) из списка редактора. Удаляется ТОЛЬКО запись задания —
+     * `tbl_songs` не затрагивается (разметка, id_status, публикация остаются как есть). Идемпотентно.
+     *
+     * @see docs/features/editor-tasks.md
+     */
+    @PostMapping("/tasks/{id}/delete")
+    fun delete(
+        @PathVariable id: Long,
+        request: HttpServletRequest,
+    ): ResponseEntity<Map<String, Any?>> {
+        val user = currentUser(request)
+        if (!user.isEditor) return notFound()
+        val a = loadOwnedAssignment(id, user.id) ?: return notFound()
+        val draft = SongAssignmentDraft.getByAssignment(id, db, storageService, storageApiClient)
+        // Жёсткая серверная проверка: «Удалить» разрешено ТОЛЬКО для одобренных. Для активных —
+        // отдельный `/refuse`. Иначе фронт-баг или прямой POST могут удалить активное задание.
+        if (statusOf(a, draft) != SongAssignmentStatus.APPROVED) {
+            return ResponseEntity.ok(mapOf("ok" to false, "error" to "not_approved"))
+        }
+        // Черновик НЕ удаляем — он архив после апрува (FR-012, research.md п.5).
+        val ok = SongAssignment.delete(id, db)
+        println("[editor-tasks/delete] user=${user.id} id=$id deleted=$ok")
+        return ResponseEntity.ok(mapOf("ok" to ok, "deleted" to if (ok) 1 else 0))
+    }
+
+    // ---- Удалить все мои одобренные (US-4, батч) --------------------------------------------
+
+    /**
+     * Удалить все одобренные задания текущего редактора одним SQL (`KaraokeDbTable.deleteIn`).
+     * Активные (`assigned`/`in_progress`/`submitted`/`rejected`) не трогаются.
+     * Идемпотентно — повторный клик возвращает `ok: true, deleted: 0`. 0 одобренных — то же самое.
+     *
+     * @see docs/features/editor-tasks.md
+     */
+    @PostMapping("/tasks/delete-approved")
+    fun deleteApproved(request: HttpServletRequest): ResponseEntity<Map<String, Any?>> {
+        val user = currentUser(request)
+        if (!user.isEditor) return notFound()
+        val assignments = SongAssignment.loadByAssignee(user.id, db, storageService, storageApiClient)
+        if (assignments.isEmpty()) return ResponseEntity.ok(mapOf("ok" to true, "deleted" to 0))
+        val drafts = SongAssignmentDraft.loadByAssignments(assignments.map { it.id }, db, storageService, storageApiClient)
+        val approvedIds = assignments.filter { statusOf(it, drafts[it.id]) == SongAssignmentStatus.APPROVED }.map { it.id }
+        if (approvedIds.isEmpty()) return ResponseEntity.ok(mapOf("ok" to true, "deleted" to 0))
+        val deleted = KaraokeDbTable.deleteIn(SongAssignment.TABLE_NAME, approvedIds, db)
+        println("[editor-tasks/delete-approved] user=${user.id} requested=${approvedIds.size} deleted=$deleted")
+        return ResponseEntity.ok(mapOf("ok" to true, "deleted" to deleted))
+    }
 }

@@ -34,3 +34,34 @@ export function submitTask(id) {
 export function recallTask(id) {
   return authPost(`${BASE}/tasks/${id}/recall`, {}, token())
 }
+
+/**
+ * Отказаться от активного задания (`assigned`/`in_progress`/`submitted`/`rejected`).
+ * Удаляет запись задания + связанный черновик; песня и разметка не трогаются.
+ * Идемпотентно — повторный клик возвращает `{ok: false, error: 'assignment_not_found'}`.
+ *
+ * @see docs/features/editor-tasks.md
+ */
+export function refuseTask(id) {
+  return authPost(`${BASE}/tasks/${id}/refuse`, {}, token())
+}
+
+/**
+ * Удалить одобренное задание (`approved`) из моего списка. Удаляется ТОЛЬКО запись задания —
+ * песня (`tbl_songs`) и её разметка остаются нетронутыми.
+ *
+ * @see docs/features/editor-tasks.md
+ */
+export function deleteTask(id) {
+  return authPost(`${BASE}/tasks/${id}/delete`, {}, token())
+}
+
+/**
+ * Удалить все мои одобренные задания одним запросом (батч). Активные не трогаются.
+ * Идемпотентно — повторный клик возвращает `{ok: true, deleted: 0}`.
+ *
+ * @see docs/features/editor-tasks.md
+ */
+export function deleteApprovedTasks() {
+  return authPost(`${BASE}/tasks/delete-approved`, {}, token())
+}

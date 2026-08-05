@@ -541,10 +541,57 @@ class SongEditorController(
                 SongAssignment.getById(id, db, storageService, storageApiClient)
                     ?: return@withDb mapOf("ok" to false, "error" to "assignment_not_found")
             // Чистим черновик ДО удаления задания — на случай, если БД ловит FK наоборот
-            // (на нашей схеме FK нет, но порядок не повредит, и черновик точно не «осиротеет»).
+            // (на нашей схемы FK нет, но порядок не повредит, и черновик точно не «осиротеет»).
             SongAssignmentDraft.deleteByAssignment(id, db)
             val ok = SongAssignment.delete(id, db)
             mapOf("ok" to ok)
+        }
+
+    /**
+     * Массовое удаление одобренных заданий (US-5 в `editor-tasks`) с учётом активных фильтров
+     * (`filterStatus`/`filterAssigneeId`/`filterAuthor`) и `target` (local/remote). Один SQL
+     * `KaraokeDbTable.deleteIn`. Идемпотентно — повторный клик возвращает `ok: true, deleted: 0`.
+     * Песня (`tbl_songs`) и разметка не трогаются.
+     *
+     * @see docs/features/editor-tasks.md
+     */
+    @PostMapping("/delete-approved")
+    @ResponseBody
+    fun deleteApprovedAssignments(
+        @RequestParam(required = false) target: String?,
+        @RequestParam(required = false) filterAssigneeId: Long?,
+        @RequestParam(required = false) filterStatus: String?,
+        @RequestParam(required = false) filterAuthor: String?,
+    ): Map<String, Any?> =
+        withDb(target) { db ->
+            var assignments = SongAssignment.loadAll(db, storageService, storageApiClient)
+            if (filterAssigneeId != null) assignments = assignments.filter { it.assigneeId == filterAssigneeId }
+            if (assignments.isEmpty()) return@withDb mapOf("ok" to true, "deleted" to 0)
+            val drafts = SongAssignmentDraft.loadByAssignments(assignments.map { it.id }, db, storageService, storageApiClient)
+            val songs =
+                Song.loadListFromDbByIds(
+                    assignments.map { it.songId }.distinct(),
+                    database = db,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                )
+            val approvedIds =
+                assignments
+                    .filter { a ->
+                        val draft = drafts[a.id]
+                        val s = SongAssignmentStatus.resolve(a.adminStatus, draft?.userStatus, a.reviewedAt, draft?.submittedAt)
+                        val authorOk =
+                            filterAuthor.isNullOrBlank() ||
+                                (songs[a.songId]?.author?.contains(filterAuthor, ignoreCase = true) == true)
+                        val statusOk = filterStatus.isNullOrBlank() || s.dbValue == filterStatus
+                        s == SongAssignmentStatus.APPROVED && authorOk && statusOk
+                    }.map { it.id }
+            if (approvedIds.isEmpty()) return@withDb mapOf("ok" to true, "deleted" to 0)
+            val deleted = KaraokeDbTable.deleteIn(SongAssignment.TABLE_NAME, approvedIds, db)
+            println(
+                "[editor-tasks/admin-delete-approved] target=$target filters={status=$filterStatus, assignee=$filterAssigneeId, author=$filterAuthor} requested=${approvedIds.size} deleted=$deleted",
+            )
+            mapOf("ok" to true, "deleted" to deleted)
         }
 
     // Количество заданий "на проверке" — бейдж пункта меню «Задания редактора» в webvue3 (по образцу

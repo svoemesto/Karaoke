@@ -52,6 +52,14 @@
       <button class="set-toolbar-item set-btn set-btn-add" @click="isAssignVisible = true">
         + Назначить песню
       </button>
+      <button
+        class="set-toolbar-item set-btn set-btn-del-approved"
+        :disabled="approvedCount === 0 || isBusy"
+        :title="approvedCount === 0 ? 'Нет одобренных заданий' : ''"
+        @click="onDeleteApproved"
+      >
+        Удалить все одобренные ({{ approvedCount }})
+      </button>
     </div>
 
     <div v-if="isRemoteView" class="set-remote-note">
@@ -155,6 +163,9 @@ export default {
       return [...this.digest].sort(
         (a, b) => (STATUS_ORDER[a.status] ?? 99) - (STATUS_ORDER[b.status] ?? 99),
       )
+    },
+    approvedCount() {
+      return (this.digest || []).filter((t) => t.status === 'approved').length
     },
     editorSiteUsers() {
       return this.$store.getters.getEditorSiteUsers || []
@@ -299,6 +310,28 @@ export default {
       await this.$store.dispatch('revokeAssignment', item.id)
       this.reload()
     },
+    async onDeleteApproved() {
+      const n = this.approvedCount
+      if (n === 0) return
+      if (
+        !confirm(
+          `Удалить ${n} одобренных заданий (с учётом фильтров)? Это действие нельзя отменить.`,
+        )
+      ) {
+        return
+      }
+      this.isBusy = true
+      try {
+        await this.$store.dispatch('deleteApprovedAssignments', {
+          filterAssigneeId: this.filterAssigneeId,
+          filterStatus: this.filterStatus,
+          filterAuthor: this.filterAuthor,
+        })
+        await this.reload()
+      } finally {
+        this.isBusy = false
+      }
+    },
   },
 }
 </script>
@@ -335,6 +368,13 @@ export default {
 }
 .set-btn-add {
   background-color: #d1f5d8;
+}
+.set-btn-del-approved {
+  background-color: #ffe0cc;
+  color: #b8500f;
+}
+.set-btn-del-approved:hover:not(:disabled) {
+  background-color: #ffd0b8;
 }
 .set-btn:disabled,
 .set-mini-btn:disabled {

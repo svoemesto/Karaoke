@@ -229,6 +229,25 @@ export default {
         params: { id, target: ctx.state.assignmentsTarget },
       }).then((data) => JSON.parse(data))
     },
+    /**
+     * Массовое удаление всех одобренных заданий с учётом активных фильтров (`filterStatus` /
+     * `filterAssigneeId` / `filterAuthor`) и текущего `assignmentsTarget` (local/remote).
+     * Пустые фильтры → `undefined` (не отправляем пустые строки — иначе Spring свяжет как `""`).
+     *
+     * @see docs/features/editor-tasks.md
+     */
+    deleteApprovedAssignments(ctx, params) {
+      return promisedXMLHttpRequest({
+        method: 'POST',
+        url: '/api/songeditor/delete-approved',
+        params: {
+          target: ctx.state.assignmentsTarget,
+          filterAssigneeId: params.filterAssigneeId || undefined,
+          filterStatus: params.filterStatus || undefined,
+          filterAuthor: params.filterAuthor || undefined,
+        },
+      }).then((data) => JSON.parse(data))
+    },
     // Бейдж пункта меню «Задания редактора» (App.vue, по образцу loadChatUnreadCount) — target
     // берётся из defaultTarget ('remote' по умолчанию), т.к. реальный рабочий цикл чаще всего
     // идёт целиком на PROD.

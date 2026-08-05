@@ -1,21 +1,23 @@
 <template>
   <section class="km-latest-news" :class="themeClass">
-    <h2 class="km-latest-news-title">Последние новости</h2>
+    <div class="km-latest-news-header">
+      <h2 class="km-latest-news-title">Последние новости</h2>
+      <router-link to="/news" class="km-latest-news-all">Все новости</router-link>
+    </div>
     <table v-if="visibleItems.length" class="km-latest-news-table">
-      <thead>
-        <tr>
-          <th class="km-latest-news-col-date">Дата</th>
-          <th class="km-latest-news-col-title">Заголовок</th>
-        </tr>
-      </thead>
       <tbody>
-        <tr v-for="n in visibleItems" :key="n.id">
-          <td class="km-latest-news-col-date">{{ formatDate(n.publishAt) }}</td>
-          <td class="km-latest-news-col-title">
-            <a :href="n.link" class="km-latest-news-link" @click.prevent="goTo(n)">
-              {{ n.title }}
-            </a>
+        <tr
+          v-for="n in visibleItems"
+          :key="n.id"
+          class="km-latest-news-row"
+          :class="rowHoverClass(n)"
+          @click="goTo(n)"
+        >
+          <td class="km-latest-news-col-icon">
+            <SvgIcon :name="coinIconName(n)" :active="true" :size="20" />
           </td>
+          <td class="km-latest-news-col-date">{{ formatDate(n.publishAt) }}</td>
+          <td class="km-latest-news-col-title">{{ n.title }}</td>
         </tr>
       </tbody>
     </table>
@@ -23,6 +25,7 @@
 </template>
 
 <script>
+import SvgIcon from './SvgIcon.vue'
 import { trackUi } from '../services/tracking'
 
 const SIZE = 5
@@ -31,10 +34,17 @@ const SIZE = 5
  * Блок «Последние новости» на главной странице сайта.
  *
  * Делает fetch `GET /api/public/news?page=0&size=5` при монтировании, показывает
- * до 5 строк (дата/время + заголовок + ссылка). Строки с пустым `link` или
- * пустым/пробельным `title` отбрасываются на фронте. При любой ошибке запроса
- * (HTTP != 200, сетевая ошибка, таймаут, невалидный JSON) блок тихо не
- * рендерится — посетитель либо видит 5 строк данных, либо не видит блок вовсе.
+ * до 5 строк (иконка категории + дата/время + заголовок). Вся строка кликабельна
+ * (а не только текст заголовка), на ховере показывается `cursor: pointer`. Строки
+ * с пустым `link` или пустым/пробельным `title` отбрасываются на фронте. При
+ * любой ошибке запроса (HTTP != 200, сетевая ошибка, таймаут, невалидный JSON)
+ * блок тихо не рендерится — посетитель либо видит 5 строк данных, либо не
+ * видит блок вовсе.
+ *
+ * Иконка-монетка отображает тип новости по полю `News.category`:
+ * - `premium` → золотая монетка (новость «В коллекции»)
+ * - `air` → серебряная (новость «В эфире»)
+ * - `feature`, `general` и прочие → зелёная.
  *
  * Контракт бэкенда см. {@link /specs/144-homepage-latest-news/contracts/public-news-api.md}.
  *
@@ -42,6 +52,7 @@ const SIZE = 5
  */
 export default {
   name: 'LatestNewsSection',
+  components: { SvgIcon },
   data() {
     return {
       items: [],
@@ -108,14 +119,23 @@ export default {
         return ''
       }
     },
+    coinIconName(n) {
+      // News.category: "air" (эфир) | "premium" (коллекция) | "feature" (функционал) | "general".
+      // Согласно UX-запросу: premium → золотая, air → серебряная, остальные → зелёная.
+      const c = (n && n.category) || 'general'
+      if (c === 'premium') return 'coin-gold'
+      if (c === 'air') return 'coin-silver'
+      return 'coin-green'
+    },
+    rowHoverClass(n) {
+      return `km-latest-news-row-${this.coinIconName(n).replace('coin-', '')}`
+    },
     goTo(n) {
-      // Трекинг: для авто-новостей (link вида /song?id={id}) используем существующий
-      // trackLinkToSong; для ручных — trackUi('click', 'homeNews:{id}'). Если ни то,
-      // ни другое не применимо (например, внешний URL) — trackUi с маркером.
+      // Трекинг клика: для авто-новостей (link вида /song?id={id}) и ручных — единый
+      // trackUi('click', 'homeNewsSong:{id}|homeNews:{id}'). NewsDto сейчас не содержит
+      // songId, поэтому используем id новости как маркер.
       const songIdMatch = typeof n.link === 'string' && n.link.match(/^\/song\?id=(\d+)/)
       if (songIdMatch) {
-        // Передаём через trackUi, чтобы не зависеть от наличия songId в DTO
-        // (NewsDto сейчас не содержит songId, только News имеет его).
         trackUi('click', `homeNewsSong:${songIdMatch[1]}`)
       } else {
         trackUi('click', `homeNews:${n.id}`)
@@ -129,17 +149,32 @@ export default {
 <style scoped>
 .km-latest-news {
   margin: 1.5rem 0 0.5rem;
-  padding: 0.75rem 0.5rem;
+  padding: 0.75rem 0.75rem 0.4rem;
   border-radius: 14px;
   background: var(--km-card, rgba(255, 255, 255, 0.04));
   border: 1px solid var(--km-border, rgba(127, 127, 127, 0.2));
 }
+.km-latest-news-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 0.5rem;
+  gap: 1rem;
+}
 .km-latest-news-title {
   font-size: 1rem;
   font-weight: 700;
-  margin: 0 0 0.6rem;
+  margin: 0;
   color: var(--km-text, inherit);
-  text-align: left;
+}
+.km-latest-news-all {
+  font-size: 0.8rem;
+  color: var(--km-accent, #4a90e2);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.km-latest-news-all:hover {
+  text-decoration: underline;
 }
 .km-latest-news-table {
   width: 100%;
@@ -148,34 +183,37 @@ export default {
   font-size: 0.85rem;
   color: var(--km-text, inherit);
 }
-.km-latest-news-table thead th {
-  text-align: left;
-  font-weight: 600;
-  font-size: 0.75rem;
-  color: var(--km-text2, rgba(127, 127, 127, 0.8));
-  padding: 0.25rem 0.4rem;
-  border-bottom: 1px solid var(--km-border, rgba(127, 127, 127, 0.2));
-}
 .km-latest-news-table tbody td {
-  padding: 0.35rem 0.4rem;
+  padding: 0.5rem 0.4rem;
   border-bottom: 1px solid var(--km-border, rgba(127, 127, 127, 0.1));
   vertical-align: middle;
+}
+.km-latest-news-table tbody tr:last-child td {
+  border-bottom: none;
+}
+.km-latest-news-col-icon {
+  width: 28px;
+  padding-left: 0;
+  padding-right: 0.6rem;
+  text-align: center;
 }
 .km-latest-news-col-date {
   width: 110px;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
   color: var(--km-text2, rgba(127, 127, 127, 0.85));
+  padding-right: 0.8rem;
 }
 .km-latest-news-col-title {
   word-break: break-word;
 }
-.km-latest-news-link {
-  color: var(--km-accent, #4a90e2);
-  text-decoration: none;
+/* Вся строка кликабельна. На ховере показываем pointer + лёгкий фон */
+.km-latest-news-row {
+  cursor: pointer;
+  transition: background-color 0.15s;
 }
-.km-latest-news-link:hover {
-  text-decoration: underline;
+.km-latest-news-row:hover {
+  background-color: var(--km-hover, rgba(127, 127, 127, 0.08));
 }
 @media (max-width: 500px) {
   .km-latest-news-col-date {
@@ -184,6 +222,9 @@ export default {
   }
   .km-latest-news-table {
     font-size: 0.8rem;
+  }
+  .km-latest-news-col-icon {
+    width: 22px;
   }
 }
 </style>

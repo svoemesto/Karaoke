@@ -215,6 +215,24 @@
         stroke-width="1.4"
       />
     </template>
+
+    <!-- coin-gold (золотая монетка — News.category="premium", новость «В коллекции») -->
+    <template v-else-if="name === 'coin-gold'">
+      <circle cx="10" cy="10" r="9" fill="#F5C518" stroke="#B8860B" stroke-width="1" />
+      <circle cx="10" cy="10" r="4.5" fill="none" stroke="#B8860B" stroke-width="1" />
+    </template>
+
+    <!-- coin-silver (серебряная монетка — News.category="air", новость «В эфире») -->
+    <template v-else-if="name === 'coin-silver'">
+      <circle cx="10" cy="10" r="9" fill="#C0C0C0" stroke="#808080" stroke-width="1" />
+      <circle cx="10" cy="10" r="4.5" fill="none" stroke="#808080" stroke-width="1" />
+    </template>
+
+    <!-- coin-green (зелёная монетка — News.category="feature"/"general"/прочие) -->
+    <template v-else-if="name === 'coin-green'">
+      <circle cx="10" cy="10" r="9" fill="#4CAF50" stroke="#2E7D32" stroke-width="1" />
+      <circle cx="10" cy="10" r="4.5" fill="none" stroke="#2E7D32" stroke-width="1" />
+    </template>
   </svg>
 </template>
 
@@ -232,6 +250,9 @@ const viewBoxMap = {
   premium: '0 0 20 20',
   favorite: '0 0 20 20',
   playlist: '0 0 20 20',
+  'coin-gold': '0 0 20 20',
+  'coin-silver': '0 0 20 20',
+  'coin-green': '0 0 20 20',
 }
 
 /**

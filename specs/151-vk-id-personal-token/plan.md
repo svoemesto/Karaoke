@@ -122,7 +122,7 @@ docs/
      - Принимает `code`, `state` (от VK ID).
      - Проверяет, что `state` совпадает с сохранённым (CSRF).
      - Получает `code_verifier` из сессии.
-     - Обменивает `code → tokens` через `POST https://id.vk.ru/oauth2/token`:
+     - Обменивает `code → tokens` через `POST https://oauth.vk.ru/access_token`:
        ```
        grant_type=authorization_code
        &client_id=...
@@ -185,7 +185,7 @@ docs/
          if (clientId <= 0 || clientSecret.isBlank() || refreshToken.isBlank()) {
              throw VkIdRefreshFailedException("vkIdClientId/vkIdClientSecret/vkIdRefreshToken not configured")
          }
-         // POST https://id.vk.ru/oauth2/token
+         // POST https://oauth.vk.ru/access_token
          // ... парсинг response
          // Если error=invalid_grant → throw VkIdRefreshFailedException
      }

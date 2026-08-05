@@ -153,7 +153,8 @@ Karaoke.properties admin-машины» (если admin-машина досту�
 ### `GET /api/public/utils/vkIdOAuthCallback?code=XXX&state=YYY` (прод)
 
 Обрабатывает редирект от VK ID: проверяет `state` (CSRF), обменивает `code` на
-токены через `POST https://id.vk.ru/oauth2/token` с `code_verifier` (PKCE),
+токены через `POST https://oauth.vk.ru/access_token` с `code_verifier` (PKCE),
+(используется старый endpoint — VK ID не имеет отдельного `/oauth2/token`),
 отправляет токены POST-ом на admin-машину. Возвращает HTML с подтверждением или
 описанием ошибки.
 

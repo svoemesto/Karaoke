@@ -33,7 +33,8 @@ import java.util.concurrent.ConcurrentHashMap
  * 2. Открывает URL в браузере → VK ID показывает форму разрешений → пользователь подтверждает.
  * 3. VK ID редиректит на `https://sm-karaoke.ru/api/public/utils/vkIdOAuthCallback?code=XXX`.
  * 4. Этот endpoint проверяет `state` (CSRF), обменивает `code → tokens` через
- *    `POST https://id.vk.ru/oauth2/token` (с `client_secret` + `code_verifier` для PKCE).
+ *    `POST https://oauth.vk.ru/access_token` (с `client_secret` + `code_verifier` для PKCE).
+ *    VK ID использует старый endpoint для token-фазы (новый только для authorize).
  * 5. Отправляет токены POST-ом на admin-машину `POST $adminApiUrl/api/utils/vkIdSaveTokens`.
  * 6. Возвращает HTML-страницу с подтверждением (или curl-командой для ручного сохранения).
  *
@@ -212,7 +213,7 @@ class PublicVkIdAuthController {
             }
         val responseJson: String =
             try {
-                val conn = URL("https://id.vk.ru/oauth2/token").openConnection() as HttpURLConnection
+                val conn = URL("https://oauth.vk.ru/access_token").openConnection() as HttpURLConnection
                 conn.requestMethod = "POST"
                 conn.connectTimeout = 10_000
                 conn.readTimeout = 15_000

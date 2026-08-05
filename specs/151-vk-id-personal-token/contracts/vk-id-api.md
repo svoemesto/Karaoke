@@ -357,7 +357,7 @@ GET https://id.vk.ru/authorize
 
 **Authorization Code Flow:**
 ```
-POST https://id.vk.ru/oauth2/token
+POST https://oauth.vk.ru/access_token
 Content-Type: application/x-www-form-urlencoded
 
 grant_type=authorization_code
@@ -370,7 +370,7 @@ grant_type=authorization_code
 
 **Refresh Token Flow:**
 ```
-POST https://id.vk.ru/oauth2/token
+POST https://oauth.vk.ru/access_token
 Content-Type: application/x-www-form-urlencoded
 
 grant_type=refresh_token

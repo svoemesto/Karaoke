@@ -67,7 +67,7 @@
     - [ ] Приём `code`, `state`, `error?` через `@RequestParam`.
     - [ ] Проверка `state` (CSRF) — должно совпадать с `vkIdPendingState`.
     - [ ] Получение `code_verifier` из `vkIdPendingCodeVerifier`.
-    - [ ] POST `https://id.vk.ru/oauth2/token` с `grant_type=authorization_code`,
+    - [ ] POST `https://oauth.vk.ru/access_token` с `grant_type=authorization_code`,
       `client_id`, `client_secret`, `redirect_uri`, `code`, `code_verifier`.
     - [ ] Парсинг response: `access_token`, `refresh_token`, `expires_in`, `id_token?`.
     - [ ] Вычисление `expiresAt = now + expires_in`.
@@ -109,7 +109,7 @@
   - [ ] Добавить метод `refreshVkIdAccessToken(): VkIdTokenRefreshResult`:
     - [ ] Чтение `vkIdClientId`, `vkIdClientSecret`, `vkIdRefreshToken`.
     - [ ] Проверка, что все 3 настройки заполнены.
-    - [ ] POST `https://id.vk.ru/oauth2/token` с `grant_type=refresh_token`,
+    - [ ] POST `https://oauth.vk.ru/access_token` с `grant_type=refresh_token`,
       `client_id`, `client_secret`, `refresh_token`.
     - [ ] Парсинг response (та же логика, что и в PublicVkIdAuthController).
     - [ ] При `error=invalid_grant` — выбросить `VkIdRefreshFailedException`.

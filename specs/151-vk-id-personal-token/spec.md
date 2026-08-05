@@ -153,7 +153,7 @@ https://sm-karaoke.ru/api/public/utils/vkIdOAuthCallback
 **Прод-сервер `karaoke-web`** выступает как «прокси» для OAuth handshake:
 
 1. Принимает `code` от VK ID.
-2. Обменивает `code → токены` через `https://id.vk.ru/oauth2/token`
+2. Обменивает `code → токены` через `https://oauth.vk.ru/access_token`
    (использует `client_secret` — секрет не утекает в браузер).
 3. Отправляет токены POST-ом на admin-машину:
    `POST http://nsa-i9:8898/api/utils/vkIdSaveTokens`.
@@ -274,7 +274,7 @@ class PublicVkAuthController {
 | Параметр | oauth.vk.ru (старое) | id.vk.ru / VK ID (новое) |
 |----------|---------------------|--------------------------|
 | Authorization endpoint | `https://oauth.vk.ru/authorize` | `https://id.vk.ru/authorize` |
-| Token endpoint | `https://oauth.vk.ru/access_token` | `https://id.vk.ru/oauth2/token` |
+| Token endpoint | `https://oauth.vk.ru/access_token` | `https://oauth.vk.ru/access_token` |
 | `response_type` | `code` | `code` |
 | PKCE | Нет | **Да** (обязательно) |
 | `refresh_token` | Нет (или с `offline`) | **Да** (выдаётся всегда) |
@@ -372,7 +372,7 @@ job логирует ошибку и помечает `vkIdRefreshNeeded=true` �
 
 1. **Given** access_token истечёт через < 1 часа,
    **When** `VkIdTokenRefreshScheduler` срабатывает (раз в час),
-   **Then** он вызывает `POST https://id.vk.ru/oauth2/token` с
+   **Then** он вызывает `POST https://oauth.vk.ru/access_token` с
    `grant_type=refresh_token` и сохраняет новые токены.
 2. **Given** refresh_token валиден, **When** refresh успешен,
    **Then** `vkIdAccessToken` и `vkIdAccessTokenExpiresAt` обновлены,
@@ -475,7 +475,7 @@ VK ID — это только новый способ получения ток�
   `response_type=code`, `state`, `code_challenge`, `code_challenge_method=S256`.
 - **FR-002**: Реализовать endpoint `GET /api/public/utils/vkIdOAuthCallback`
   в `karaoke-web`, который обрабатывает редирект от VK ID: обменивает `code`
-  на `access_token` + `refresh_token` через `POST https://id.vk.ru/oauth2/token`
+  на `access_token` + `refresh_token` через `POST https://oauth.vk.ru/access_token`
   с `code_verifier` (PKCE), `client_id`, `client_secret`, `redirect_uri`,
   `grant_type=authorization_code`. Сохраняет токены через HTTP POST
   на admin-машину `http://nsa-i9:8898/api/utils/vkIdSaveTokens`.
@@ -490,7 +490,7 @@ VK ID — это только новый способ получения ток�
   и обновляет токен через `refresh_token` если до истечения осталось
   < 30 минут. Использует `@Scheduled(cron = "0 0 * * * *")` (каждый час).
 - **FR-005**: Реализовать метод `refreshVkIdAccessToken()` в `VkApiClient.kt`
-  который вызывает `POST https://id.vk.ru/oauth2/token` с
+  который вызывает `POST https://oauth.vk.ru/access_token` с
   `grant_type=refresh_token`, `refresh_token`, `client_id`, `client_secret`,
   и возвращает новые `access_token`, `refresh_token`, `expires_in`.
   При ошибке `invalid_grant` — выбрасывает исключение `VkIdRefreshFailedException`.

@@ -2,7 +2,7 @@
 
 > **Status**: active (specs/121-vk-news-auto-publish, specs/130-vk-preview-generation, specs/138-vk-photo-preview-attachment)
 > **Feature Key**: vk-news-auto-publish
-> **Last Updated**: 2026-08-03
+> **Last Updated**: 2026-08-05 (добавлена ссылка на vk-id-auth.md, секция Implicit Flow помечена как deprecated)
 
 ## Что делает
 
@@ -200,8 +200,10 @@ VK API `wall.post` при бот-публикации **не парсит URL** 
 `specs/138` добавляет новый шаг **между прогревом PNG и `video.save`+`wall.post`**:
 бот загружает PNG-обложку песни как фото группы через `photos.getWallUploadServer`
 → POST multipart на `upload_url` → `photos.saveWallPhoto` (user-token со scope
-`photos`, **уже настроен** через Implicit Flow Standalone-приложения, см. секцию
-[User-token через Implicit Flow](#user-token-через-implicit-flow-для-air-публикации-с-видео)).
+`photos`, настраивается через VK ID, см. секцию
+[Авторизация через VK ID](./vk-id-auth.md) и секцию
+[User-token через Implicit Flow](#user-token-через-implicit-flow-для-air-публикации-с-видео)
+для истории).
 Полученный `photo<owner>_<id>` передаётся в `wall.post` через параметр
 `attachments` **первым** — VK берёт первое прикрепление как превью поста.
 
@@ -262,8 +264,11 @@ VK API `wall.post` при бот-публикации **не парсит URL** 
 
 - **`photos.*` требует user-token** — community-token возвращает `error_code=27`
   «Group authorization failed: method is unavailable with group auth». User-token
-  со scope `photos` уже настроен (`vkUserAccessToken`); если потребуется
-  переполучить — см. секцию [User-token через Implicit Flow](#user-token-через-implicit-flow-для-air-публикации-с-видео).
+  со scope `photos` настраивается через VK ID (`vkIdAccessToken`); если
+  потребуется переполучить — см. [docs/features/vk-id-auth.md](./vk-id-auth.md)
+  (рекомендуемый путь) или секцию
+  [User-token через Implicit Flow](#user-token-через-implicit-flow-для-air-публикации-с-видео)
+  (deprecated — `oauth.vk.ru` заблокирован VK 05.08.2026, см. specs/151).
 - **Одна публикация = +1 фото в альбоме группы** — при 3 постах/день ~90 фото/мес,
   ~1000/год. Очистка через `photos.delete` — отдельная задача (backlog).
 - **`vkPhotoAttachEnabled=false` + `vkDocAttachEnabled=false`** — обе цепочки
@@ -342,6 +347,11 @@ AIR-выпуск — разные посты ВК с разным текстом
 `vkTemplatePremium` и `vkTemplateAir`).
 
 ## User-token через Implicit Flow (для AIR-публикации с видео)
+
+> **DEPRECATED (specs/151, 05.08.2026)**: `oauth.vk.ru` заблокирован VK —
+> все варианты `/oauth.vk.ru/authorize` возвращают `Security Error`. Используйте
+> **[docs/features/vk-id-auth.md](./vk-id-auth.md)** (VK ID, рекомендуемый путь).
+> Эта секция оставлена для истории.
 
 02.08.2026 выяснилось: VK API метод `video.save` (необходим для загрузки
 демо-видео в группу) требует **user-token с правом `video`**. С community-token

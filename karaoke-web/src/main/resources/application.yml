@@ -85,3 +85,12 @@ vk:
   redirect-uri: ${VK_REDIRECT_URI:https://sm-karaoke.ru/api/public/utils/vkOAuthCallback}
   client-secret: ${VK_CLIENT_SECRET:}
   admin-api-url: ${VK_ADMIN_API_URL:http://nsa-i9:8898}
+  # specs/151-vk-id-personal-token: VK ID (id.vk.ru) — новая система авторизации VK.
+  # Заменил oauth.vk.ru (заблокирован Security Error 05.08.2026).
+  # Настройки задаются при регистрации Web-приложения на https://id.vk.com/about/business/go/.
+  # Redirect URI ОБЯЗАН быть зарегистрирован в кабинете VK ID.
+  id:
+    client-id: ${VK_ID_CLIENT_ID:0}
+    client-secret: ${VK_ID_CLIENT_SECRET:}
+    redirect-uri: ${VK_ID_REDIRECT_URI:https://sm-karaoke.ru/api/public/utils/vkIdOAuthCallback}
+    admin-api-url: ${VK_ID_ADMIN_API_URL:http://nsa-i9:8898}

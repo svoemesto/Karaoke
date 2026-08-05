@@ -1864,6 +1864,83 @@ val listKaraokeProperties =
             defaultValue = "5.199",
             description = "ВК: версия VK API (стабильная, напр. 5.199)",
         ),
+        // specs/151-vk-id-personal-token: миграция с oauth.vk.ru (заблокирован Security Error
+        // 05.08.2026) на id.vk.ru. VK ID выдаёт refresh_token для автообновления access_token
+        // (~1 час). Конфигурация приложения задаётся админом при регистрации Web-приложения
+        // на https://id.vk.com/about/business/go/. Токены — после OAuth flow через
+        // /api/utils/vkIdSaveTokens (admin) или /api/public/utils/vkIdOAuthCallback (прод).
+        KaraokeProperty(
+            key = "vkIdClientId",
+            defaultValue = 0L,
+            description =
+                "VK ID (id.vk.ru): client_id Web-приложения (целое число, напр. 54704235). " +
+                    "Получается при регистрации Web-приложения на https://id.vk.com/about/business/go/. " +
+                    "Используется для Authorization Code Flow с PKCE. specs/151.",
+        ),
+        KaraokeProperty(
+            key = "vkIdClientSecret",
+            defaultValue = "",
+            description =
+                "VK ID (id.vk.ru): client_secret Web-приложения (секрет, в git НЕ попадает). " +
+                    "Получается при регистрации Web-приложения (показывается 1 раз). " +
+                    "Используется для обмена code → access_token через POST https://id.vk.ru/oauth2/token. specs/151.",
+        ),
+        KaraokeProperty(
+            key = "vkIdRedirectUri",
+            defaultValue = "",
+            description =
+                "VK ID (id.vk.ru): redirect URI (полный URL, должен ТОЧНО совпадать с " +
+                    "зарегистрированным в кабинете VK ID). " +
+                    "По умолчанию: https://sm-karaoke.ru/api/public/utils/vkIdOAuthCallback. specs/151.",
+        ),
+        KaraokeProperty(
+            key = "vkIdAccessToken",
+            defaultValue = "",
+            description =
+                "VK ID (id.vk.ru): access_token (секрет, в git НЕ попадает) с scopes " +
+                    "vkid.personal_info+photos+wall+video, живёт ~1 час. " +
+                    "Получается автоматически через /api/public/utils/vkIdOAuthUrl → " +
+                    "/api/public/utils/vkIdOAuthCallback. VkApiClient.userAccessToken() читает " +
+                    "этот ключ (или vkUserAccessToken как fallback). specs/151.",
+        ),
+        KaraokeProperty(
+            key = "vkIdRefreshToken",
+            defaultValue = "",
+            description =
+                "VK ID (id.vk.ru): refresh_token (секрет, в git НЕ попадает), живёт ~1 год. " +
+                    "Используется VkIdTokenRefreshScheduler (каждый час) для обновления access_token " +
+                    "через POST https://id.vk.ru/oauth2/token (grant_type=refresh_token). specs/151.",
+        ),
+        KaraokeProperty(
+            key = "vkIdAccessTokenExpiresAt",
+            defaultValue = "",
+            description =
+                "VK ID (id.vk.ru): ISO datetime истечения vkIdAccessToken (например, " +
+                    "\"2026-08-05T12:34:56Z\"). VkIdTokenRefreshScheduler проверяет это значение " +
+                    "и обновляет токен если до истечения < 30 минут. specs/151.",
+        ),
+        KaraokeProperty(
+            key = "vkIdIdToken",
+            defaultValue = "",
+            description =
+                "VK ID (id.vk.ru): id_token (JWT) с информацией о пользователе (OIDC). " +
+                    "Сохраняется, но не валидируется в первой версии. specs/151.",
+        ),
+        KaraokeProperty(
+            key = "vkIdRefreshNeeded",
+            defaultValue = false,
+            description =
+                "VK ID (id.vk.ru): флаг «требуется повторная авторизация» — true когда " +
+                    "refresh_token истёк или отозван. UI-индикатор для админа " +
+                    "(\"нужно снова открыть /api/public/utils/vkIdOAuthUrl\"). specs/151.",
+        ),
+        KaraokeProperty(
+            key = "vkIdRefreshLastError",
+            defaultValue = "",
+            description =
+                "VK ID (id.vk.ru): текст последней ошибки refresh (для UI-индикатора и логов). " +
+                    "Очищается при успешном refresh. specs/151.",
+        ),
         KaraokeProperty(
             key = "vkProxyUrl",
             defaultValue = "",

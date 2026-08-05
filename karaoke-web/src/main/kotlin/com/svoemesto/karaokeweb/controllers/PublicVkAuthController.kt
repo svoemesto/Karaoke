@@ -1,7 +1,5 @@
 package com.svoemesto.karaokeweb.controllers
 
-import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.ObjectMapper
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.MediaType
@@ -52,55 +50,26 @@ class PublicVkAuthController {
     @Value("\${vk.admin-api-url:http://nsa-i9:8898}")
     private var adminApiUrl: String = ""
 
-    /** Готовая ссылка для авторизации через Authorization Code Flow. */
+    /**
+     * DEPRECATED (specs/151-vk-id-personal-token). Используйте `/api/public/utils/vkIdOAuthUrl`.
+     *
+     * Старый `oauth.vk.ru` flow заблокирован VK (05.08.2026 — все варианты
+     * `/oauth.vk.ru/authorize` возвращают `Security Error`). Возвращаем HTTP 410 Gone.
+     */
     @GetMapping("/api/public/utils/vkOAuthCodeUrl", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun getVkOAuthCodeUrl(): Map<String, Any> {
-        if (appId <= 0) {
-            return mapOf(
-                "success" to false as Any,
-                "error" to "vk.app-id is empty in application.yml",
-            )
-        }
-        if (redirectUri.isBlank()) {
-            return mapOf(
-                "success" to false as Any,
-                "error" to "vk.redirect-uri is empty in application.yml",
-            )
-        }
-        if (clientSecret.isBlank()) {
-            return mapOf(
-                "success" to false as Any,
-                "error" to "vk.client-secret is empty in application.yml — для Code Flow (Web-приложение) он обязателен",
-            )
-        }
-        val state = (System.currentTimeMillis() / 1_000_000).toString()
-        val scopes = "video,photos,wall,offline"
-        val encodedRedirect = URLEncoder.encode(redirectUri, "UTF-8")
-        val url =
-            "https://oauth.vk.ru/authorize?client_id=$appId&redirect_uri=$encodedRedirect" +
-                "&scope=$scopes&response_type=code&state=$state"
-        val instructions =
-            listOf(
-                "1. Endpoint /api/public/utils/vkOAuthCallback доступен на проде (sm-karaoke.ru).",
-                "2. Откройте url в браузере от лица владельца группы svoemestokaraoke.",
-                "3. Подтвердите все scopes (video, photos, wall, offline).",
-                "4. VK редиректит на /api/public/utils/vkOAuthCallback?code=XXX — endpoint обменивает на токен и возвращает HTML-страницу с готовой curl-командой.",
-                "5. Скопируйте curl с HTML-страницы и выполните на admin-машине (nsa-i9) — токен сохранится в Karaoke.properties.",
-            )
+        log.warn("DEPRECATED endpoint /api/public/utils/vkOAuthCodeUrl — use /api/public/utils/vkIdOAuthUrl instead")
         return mapOf(
-            "success" to true as Any,
-            "url" to url as Any,
-            "redirectUri" to redirectUri as Any,
-            "instructions" to instructions,
+            "deprecated" to true as Any,
+            "use" to "/api/public/utils/vkIdOAuthUrl" as Any,
+            "message" to "Этот endpoint устарел (oauth.vk.ru заблокирован). Используйте /api/public/utils/vkIdOAuthUrl (VK ID)." as Any,
         )
     }
 
     /**
-     * Callback от VK — обменивает code на access_token и возвращает HTML с готовой curl-командой.
+     * DEPRECATED (specs/151-vk-id-personal-token). Используйте `/api/public/utils/vkIdOAuthCallback`.
      *
-     * Если admin-машина доступна через `vk.admin-api-url` (например, `http://nsa-i9:8898`),
-     * то автоматически POST-ит токен туда. Иначе возвращает HTML, чтобы пользователь
-     * скопировал команду и выполнил сам.
+     * Старый `oauth.vk.ru` callback заблокирован VK (05.08.2026). Возвращаем HTTP 410 Gone.
      */
     @GetMapping(
         "/api/public/utils/vkOAuthCallback",
@@ -110,124 +79,12 @@ class PublicVkAuthController {
         @RequestParam(required = false) code: String?,
         @RequestParam(required = false) error: String?,
     ): String {
-        val htmlPrefix = "<html><body style=\"font-family:sans-serif;padding:40px;max-width:900px\">"
-        if (!error.isNullOrBlank()) {
-            log.warn("VK OAuth callback error: {}", error)
-            return htmlPrefix +
-                "<h2>❌ Ошибка авторизации VK</h2>" +
-                "<p>VK вернул: <b>" + error.replace("<", "") + "</b></p>" +
-                "<p>Закройте вкладку и попробуйте снова.</p>" +
-                "</body></html>"
-        }
-        if (code.isNullOrBlank()) {
-            return htmlPrefix +
-                "<h2>❌ Не получен code от VK</h2>" +
-                "<p>Откройте эту страницу через /api/public/utils/vkOAuthCodeUrl, " +
-                "а не напрямую.</p>" +
-                "</body></html>"
-        }
-        if (appId <= 0 || redirectUri.isBlank() || clientSecret.isBlank()) {
-            return htmlPrefix +
-                "<h2>❌ Не настроены vk.app-id / vk.redirect-uri / vk.client-secret</h2>" +
-                "<p>Задайте их в application.yml `karaoke-web` и пересоберите.</p>" +
-                "</body></html>"
-        }
-        log.info("VK OAuth callback: exchanging code (length={}) for token...", code.length)
-        val params =
-            buildString {
-                append("client_id=").append(appId)
-                append("&client_secret=").append(URLEncoder.encode(clientSecret, "UTF-8"))
-                append("&redirect_uri=").append(URLEncoder.encode(redirectUri, "UTF-8"))
-                append("&code=").append(URLEncoder.encode(code, "UTF-8"))
-            }
-        val responseJson: String =
-            try {
-                val conn = URL("https://oauth.vk.ru/access_token").openConnection() as HttpURLConnection
-                conn.requestMethod = "POST"
-                conn.connectTimeout = 10_000
-                conn.readTimeout = 15_000
-                conn.doOutput = true
-                conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded")
-                conn.outputStream.use { it.write(params.toByteArray(Charsets.UTF_8)) }
-                conn.inputStream.bufferedReader().use { it.readText() }
-            } catch (e: Exception) {
-                log.error("VK access_token POST failed", e)
-                return htmlPrefix +
-                    "<h2>❌ Ошибка обмена code → token</h2>" +
-                    "<pre>" + (e.message ?: e.javaClass.simpleName) + "</pre>" +
-                    "</body></html>"
-            }
-        log.info("VK access_token response: {}...", responseJson.take(200))
-        val parsed: JsonNode =
-            try {
-                ObjectMapper().readTree(responseJson)
-            } catch (e: Exception) {
-                log.error("Cannot parse VK token response: {}", responseJson)
-                return htmlPrefix +
-                    "<h2>❌ Не удалось разобрать ответ VK</h2>" +
-                    "<pre>" + responseJson.take(800) + "</pre>" +
-                    "</body></html>"
-            }
-        val errorNode = parsed.get("error")?.asText()
-        if (!errorNode.isNullOrBlank()) {
-            val errorDescription = parsed.get("error_description")?.asText() ?: "?"
-            log.error("VK OAuth error: {} {}", errorNode, errorDescription)
-            return htmlPrefix +
-                "<h2>❌ VK отверг code</h2>" +
-                "<p>error: <b>" + errorNode + "</b></p>" +
-                "<p>error_description: <b>" + errorDescription + "</b></p>" +
-                "</body></html>"
-        }
-        val accessToken = parsed.get("access_token")?.asText()
-        if (accessToken.isNullOrBlank()) {
-            return htmlPrefix +
-                "<h2>❌ VK не вернул access_token</h2>" +
-                "<pre>" + responseJson.take(800) + "</pre>" +
-                "</body></html>"
-        }
-        val userId = parsed.get("user_id")?.asText() ?: "?"
-        val expiresIn = parsed.get("expires_in")?.asText() ?: "?"
-        log.info(
-            "VK OAuth SUCCESS: user_id={}, access_token length={}",
-            userId,
-            accessToken.length,
-        )
-        val adminSaveResult = saveTokenOnAdminMachine(accessToken)
-        val autoSaved = adminSaveResult.first
-        val autoSaveMessage = adminSaveResult.second
-        val manualCurl =
-            "# Скопируйте и выполните на admin-машине (nsa-i9):\n" +
-                "TOKEN='" + escapeHtml(accessToken) + "'\n" +
-                "curl -s -X POST \"$adminApiUrl/api/utils/vkSaveUserToken\" \\\n" +
-                "     --data-urlencode \"token=\$TOKEN\"\n"
-        val autoSavedBadge =
-            if (autoSaved) {
-                "<span style='background:#d4edda;padding:2px 8px;border-radius:4px'>" +
-                    "✅ авто-сохранено в Karaoke.properties admin-машины</span>"
-            } else {
-                "<span style='background:#fff3cd;padding:2px 8px;border-radius:4px'>" +
-                    "⚠️ admin-машина недоступна — сохраните вручную</span>"
-            }
-        val headingText = if (autoSaved) "Готово к публикации!" else "Шаг 2: сохраните токен на admin-машине"
-        val manualBlock =
-            if (!autoSaved) {
-                "<p>Скопируйте эту команду и выполните на admin-машине <code>" +
-                    escapeHtml(adminApiUrl) + "</code>:</p>" +
-                    "<pre style=\"background:#f4f4f4;padding:12px;border-radius:4px;overflow:auto\">" +
-                    escapeHtml(manualCurl) + "</pre>"
-            } else {
-                "<p>" + escapeHtml(autoSaveMessage) + " Можно закрыть эту вкладку.</p>"
-            }
-        return htmlPrefix +
-            "<h2 style=\"color:green\">✅ Токен VK получен</h2>" +
-            "<p><b>access_token</b> (первые 30 символов): <code>" +
-            escapeHtml(accessToken.take(30)) + "...</code></p>" +
-            "<p><b>user_id:</b> <code>" + escapeHtml(userId) + "</code></p>" +
-            "<p><b>expires_in:</b> <code>" + escapeHtml(expiresIn) + "</code> сек</p>" +
-            "<p>Состояние: " + autoSavedBadge + "</p>" +
-            "<hr>" +
-            "<h3>" + headingText + "</h3>" +
-            manualBlock +
+        log.warn("DEPRECATED endpoint /api/public/utils/vkOAuthCallback — use /api/public/utils/vkIdOAuthCallback instead")
+        return "<html><body style=\"font-family:sans-serif;padding:40px;max-width:900px\">" +
+            "<h2>DEPRECATED</h2>" +
+            "<p>Этот endpoint устарел (oauth.vk.ru заблокирован).</p>" +
+            "<p>Используйте <code>/api/public/utils/vkIdOAuthUrl</code> для получения нового токена через VK ID.</p>" +
+            "<p>Подробнее — <code>specs/151-vk-id-personal-token</code>.</p>" +
             "</body></html>"
     }
 

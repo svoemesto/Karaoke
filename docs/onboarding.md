@@ -217,7 +217,7 @@ bash tools/check-jsdoc-coverage.sh karaoke-public
 5. Создать PR: `gh pr create --title "..." --body "..."`
 6. Дождаться CI 7/7 PASS.
 7. Если есть ревью — поправить.
-8. Merge: `gh pr merge <N> --merge --delete-branch`.
+8. Merge **без** `--delete-branch` (ветка остаётся жить для последующих правок — см. `AGENTS.md` → «Жизненный цикл feature-ветки»): `gh pr merge <N> --merge`.
 
 ---
 

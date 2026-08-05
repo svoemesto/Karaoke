@@ -13,10 +13,10 @@
           :class="rowHoverClass(n)"
           @click="goTo(n)"
         >
+          <td class="km-latest-news-col-date">{{ formatDate(n.publishAt) }}</td>
           <td class="km-latest-news-col-icon">
             <SvgIcon :name="coinIconName(n)" :active="true" :size="20" />
           </td>
-          <td class="km-latest-news-col-date">{{ formatDate(n.publishAt) }}</td>
           <td class="km-latest-news-col-title">{{ n.title }}</td>
         </tr>
       </tbody>

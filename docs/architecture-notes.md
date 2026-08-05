@@ -764,9 +764,22 @@ bump и Sync Impact Report, а не просто правка текста.
 **Подход.** Только серверная правка `deploy/web-server-deploy/deploy/80to8897` (без правок кода приложения, без миграций). Nginx-паттерн: внутри `location /song { if ($http_user_agent ~* "vkShare|...") rewrite ^/song(\?.*)?$ /api/public/og/song$1 last; }`. После rewrite nginx переходит в `location /api/public/og/song` (точнее — в самый длинный prefix, это `location /api/ { proxy_pass http://127.0.0.1:8897/api/; }`, который и так был), и karaoke-web получает `/api/public/og/song?id=NNN` — текущее поведение бота сохраняется без изменений. Для обычных браузеров if не срабатывает, остаётся `proxy_pass http://127.0.0.1:7907` — SPA получает исходный `/song?id=NNN`, Vue Router рендерит `SongView`.
 
 **Деплой.** Серверная правка, делает пользователь вручную (см. AGENTS.md «Деплой»):
+
+**Точный путь к файлу на сервере:** `/root/Karaoke/deploy/web-server-deploy/deploy/80to8897`
+(НЕ `/root/Karaoke/deploy/80to8897` — плоского пути нет, файл лежит на глубине `web-server-deploy/deploy/` и попадает на сервер через rsync всей `deploy/`-папки).
+
 ```bash
-ssh root@188.119.64.111 "cp /root/Karaoke/deploy/80to8897 /etc/nginx/sites-enabled/80to8897 && nginx -t && systemctl reload nginx"
+# 1. Дождаться, что PR #191 смержен в master (rsync подхватит из origin).
+# 2. Зайти на сервер и применить конфиг:
+ssh root@188.119.64.111
+# 3. Скопировать обновлённый файл в sites-enabled (nginx читает оттуда):
+cp /root/Karaoke/deploy/web-server-deploy/deploy/80to8897 /etc/nginx/sites-enabled/80to8897
+# 4. Проверить синтаксис:
+nginx -t
+# 5. Применить:
+systemctl reload nginx
 ```
+
 Без перезапуска контейнеров (правим только nginx на хосте). Перед применением — проверить `nginx -t` (синтаксис валиден). После — ручная проверка в браузере: `https://sm-karaoke.ru/song?id=25513` должна рендерить страницу песни, а не картинку. Проверка User-Agent бота — через `curl -H "User-Agent: vkShare" https://sm-karaoke.ru/song?id=25513` (должен вернуть HTML с `<img>`).
 
 **Уроки / тонкости.**

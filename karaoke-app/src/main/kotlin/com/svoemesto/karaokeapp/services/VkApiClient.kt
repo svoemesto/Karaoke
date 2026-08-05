@@ -336,7 +336,8 @@ class VkApiClient {
      * Flow (RFC 6749, секция 6):
      * 1. Читает `vkIdClientId`, `vkIdClientSecret`, `vkIdRefreshToken` из KaraokeProperties.
      * 2. Проверяет, что все 3 настройки заполнены (иначе `VkIdRefreshFailedException`).
-     * 3. POST `https://id.vk.ru/oauth2/token` с `grant_type=refresh_token`,
+     * 3. POST `https://oauth.vk.ru/access_token` с `grant_type=refresh_token`
+     *    (VK ID использует старый endpoint для token-фазы; новый только для authorize),
      *    `client_id`, `client_secret`, `refresh_token`.
      * 4. Парсит response: `access_token`, `refresh_token`, `expires_in`, `id_token?`.
      * 5. При `error=invalid_grant` или другом non-recoverable — бросает
@@ -372,7 +373,7 @@ class VkApiClient {
                 append("&client_secret=").append(java.net.URLEncoder.encode(clientSecret, "UTF-8"))
                 append("&refresh_token=").append(java.net.URLEncoder.encode(refreshToken, "UTF-8"))
             }
-        val uri = URI("https://id.vk.ru/oauth2/token")
+        val uri = URI("https://oauth.vk.ru/access_token")
         val request =
             HttpRequest
                 .newBuilder()

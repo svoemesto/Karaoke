@@ -37,7 +37,7 @@
 - [ ] Принимает `code`, `state`, `error?` через `@RequestParam`.
 - [ ] Проверяет `state` (CSRF) — должно совпадать с `vkIdPendingState`.
 - [ ] Получает `code_verifier` из `vkIdPendingCodeVerifier`.
-- [ ] Отправляет POST `https://id.vk.ru/oauth2/token` с
+- [ ] Отправляет POST `https://oauth.vk.ru/access_token` с
       `grant_type=authorization_code`, `client_id`, `client_secret`,
       `redirect_uri`, `code`, `code_verifier`.
 - [ ] Парсит response: `access_token`, `refresh_token`, `expires_in`, `id_token?`.
@@ -85,7 +85,7 @@
 - [ ] Метод существует в `VkApiClient.kt`.
 - [ ] Читает `vkIdClientId`, `vkIdClientSecret`, `vkIdRefreshToken`.
 - [ ] Проверяет, что все 3 настройки заполнены.
-- [ ] Отправляет POST `https://id.vk.ru/oauth2/token` с
+- [ ] Отправляет POST `https://oauth.vk.ru/access_token` с
       `grant_type=refresh_token`, `client_id`, `client_secret`, `refresh_token`.
 - [ ] Парсит response: `access_token`, `refresh_token`, `expires_in`, `id_token?`.
 - [ ] При `error=invalid_grant` — выбрасывает `VkIdRefreshFailedException`.

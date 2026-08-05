@@ -71,7 +71,7 @@ VK ID (`id.vk.ru`) — это **новый OAuth 2.0 / OIDC провайдер**
 | Endpoint | URL | Назначение |
 |----------|-----|-----------|
 | Authorization | `https://id.vk.ru/authorize` | Получение authorization code |
-| Token | `https://id.vk.ru/oauth2/token` | Обмен code → token / refresh token |
+| Token | `https://oauth.vk.ru/access_token` | Обмен code → token / refresh token |
 | UserInfo | `https://id.vk.ru/oauth2/user_info` | Получение профиля пользователя |
 | Public Key | `https://id.vk.ru/oauth2/public_key` | JWK keys для проверки id_token |
 | Logout | `https://id.vk.ru/oauth2/logout` | Выход (отзыв токена) |

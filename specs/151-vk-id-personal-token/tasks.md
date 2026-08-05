@@ -259,11 +259,86 @@
   ssh root@188.119.64.111 "cd Karaoke/deploy && bash do.sh restart_web"
   ```
 
+- [x] **T-6.1**: В `deploy/web-server-deploy/deploy/docker-compose-web.yml` добавить переменные окружения для VK ID (`VK_ID_CLIENT_ID`, `VK_ID_CLIENT_SECRET`, `VK_ID_REDIRECT_URI`, `VK_ID_ADMIN_API_URL`) и обновить комментарий `CLAUDE.md` → `DEVELOPMENT.md`.
+- [x] **T-6.2**: Пользователь сгенерировал новые ключи в кабинете VK ID и обновил `deploy/do.env` на сервере 188.119.64.111.
+- [x] **T-6.3**: Контейнер `karaoke-web` перезапущен с новыми переменными окружения.
+- [x] **T-6.4**: `curl https://sm-karaoke.ru/api/public/utils/vkIdOAuthUrl` возвращает валидный URL.
+- [x] **T-6.5**: Открытие URL в браузере → VK показывает форму авторизации → callback приходит в `https://sm-karaoke.ru/api/public/utils/vkIdOAuthCallback`.
+- [x] **T-6.6**: В логах `karaoke-web` — `exchanging code (length=220) for token...` → `VK ID token POST failed` → `Server returned HTTP response code: 401 for URL: https://oauth.vk.ru/access_token`.
 - [ ] **T-6.7**: Проверка в проде:
-  - [ ] `curl https://sm-karaoke.ru/api/public/utils/vkIdOAuthUrl` → возвращает URL.
-  - [ ] Открыть URL в браузере, получить токен.
+  - [ ] `curl https://sm-karaoke.ru/api/public/utils/vkIdOAuthUrl` → возвращает URL. ✅ (сделано в T-6.4)
+  - [ ] Открыть URL в браузере, получить токен. ✅ (сделано в T-6.5)
+  - [ ] **ЗАБЛОКИРОВАНО**: VK возвращает `401 invalid_client` при обмене code → token на `https://oauth.vk.ru/access_token` (см. секцию «Известные проблемы» ниже).
   - [ ] Проверить `https://sm-karaoke.ru/api/utils/vkIdTokenStatus` (через admin API).
   - [ ] Запустить публикацию — превью работает.
+
+## Известные проблемы
+
+### I-1: VK возвращает 401 `invalid_client` при обмене code → token
+
+**Симптом**: после успешного callback (T-6.5) `PublicVkIdAuthController`
+получает `code` от VK и пытается обменять его на токен через
+`POST https://oauth.vk.ru/access_token`. VK возвращает:
+
+```json
+{"error":"invalid_client","error_description":"client_secret is incorrect"}
+```
+
+или
+
+```json
+{"error":"invalid_client","error_description":"client_secret is undefined"}
+```
+
+**Воспроизводимость**: 100%, с ЛЮБЫМ типом ключа (защищённый или
+сервисный) и с ЛЮБЫМ форматом запроса (с `client_secret` в теле,
+с HTTP Basic Auth, без `client_secret` — VK всё равно возвращает 401
+с разным `error_description`).
+
+**Главная гипотеза (НЕ подтверждена)**: VK ID Web OAuth 2.0 для
+приложения `54704234` (тип Web) требует **другой ключ**, который
+отсутствует в основных секциях кабинета «Защищённый ключ» /
+«Сервисный ключ доступа». Возможно, нужен отдельный «Клиентский
+ключ OAuth» из секции «Подключение авторизации» → «Ключи» (если
+такая секция есть в новом кабинете VK ID).
+
+**Эксперименты, которые были сделаны** (все возвращают 401):
+
+| Параметры | Ответ VK |
+|-----------|----------|
+| `oauth.vk.ru/access_token` + `client_id=54704234` + `client_secret=INVALID` + `code=INVALID` | `{"error":"invalid_client","error_description":"client_secret is incorrect"}` |
+| `oauth.vk.ru/access_token` + `client_id=54704234` + `client_secret=INVALID` + `code=INVALID` + `grant_type=authorization_code` (явно) | `{"error":"invalid_client","error_description":"client_secret is incorrect"}` |
+| `oauth.vk.ru/access_token` + `client_id=54704234` + code (без client_secret, только PKCE) | `{"error":"invalid_client","error_description":"client_secret is undefined"}` |
+| `oauth.vk.ru/access_token` + HTTP Basic Auth (`54704234:INVALID`) | `{"error":"invalid_client","error_description":"client_id is undefined"}` |
+| `oauth.vk.com/access_token` (вместо `.ru`) | `{"error":"invalid_client","error_description":"client_secret is incorrect"}` |
+
+**Вывод**: VK принимает запросы и валидирует параметры → проблема в
+**значении ключа**, не в формате запроса.
+
+**Направления расследования** (в порядке приоритета):
+
+1. **Проверить кабинет VK ID ещё раз** на наличие секции «Подключение
+   авторизации» → «Ключи OAuth». Возможно, после активации OAuth 2.0
+   для приложения в кабинете появляется новый тип ключа.
+2. **Проверить email от VK ID** после регистрации приложения — там мог
+   быть client_secret для OAuth (отдельный от Standalone Implicit Flow).
+3. **Создать новое приложение** через `https://id.vk.com/about/business/go/`
+   с типом «Web» и **включить OAuth 2.0** (есть отдельная галочка в
+   настройках), затем проверить, появляется ли новый тип ключа.
+4. **Спросить в поддержке VK ID** через `https://id.vk.com/support/`
+   с описанием проблемы: «Web OAuth 2.0 возвращает invalid_client для
+   client_secret из кабинета».
+5. **Попробовать `https://id.vk.ru/oauth2/auth`** (вместо
+   `id.vk.ru/authorize`) — может быть, нужен другой authorize endpoint
+   для VK ID v2 (текущий `id.vk.ru/authorize` для authorize-фазы
+   работает, но token-фаза ожидает «парный» endpoint).
+
+**Документация для продолжения работы**:
+[`docs/onboarding-handoff/012-vk-id-401-token-exchange.md`](../../../docs/onboarding-handoff/012-vk-id-401-token-exchange.md).
+
+**Workaround до решения I-1**: спека #138 (загрузка превью-фото)
+остаётся заблокированной; публикация AIR-постов ВК возможна только
+через старые `oauth.vk.ru`-endpoints (если они ещё работают).
 
 ## Фаза 7: Разблокировка спеки #138
 

@@ -6,6 +6,7 @@ import com.svoemesto.karaokeapp.Crypto
 import com.svoemesto.karaokeapp.model.EventType
 import com.svoemesto.karaokeapp.model.LinkType
 import com.svoemesto.karaokeapp.model.ListeningHistory
+import com.svoemesto.karaokeapp.model.News
 import com.svoemesto.karaokeapp.model.PlayerAction
 import com.svoemesto.karaokeapp.model.RestName
 import com.svoemesto.karaokeapp.model.Song
@@ -60,6 +61,20 @@ class MainController(
         model.addAttribute("exclusive", StatBySong.getCountSongsSubscriptionOnly(database = WORKING_DATABASE))
         model.addAttribute("inWork", StatBySong.getCountSongsInWork(database = WORKING_DATABASE))
         model.addAttribute("total", StatBySong.getCountSongsTotal(database = WORKING_DATABASE))
+        // Блок «Последние 5 новостей» на главной (specs/144-homepage-latest-news). Тот же источник,
+        // что и SPA + публичная лента /news (см. PublicNewsController.list). Намеренно используем
+        // News.loadPublished напрямую (а не отдельный эндпоинт /latest) — единый код-путь,
+        // исключает дрейф «опубликованности» между фичами. На сбое БД список остаётся пустым,
+        // шаблон рендерится без блока (или с пустой таблицей) — HTTP 200 OK, без падения.
+        model.addAttribute(
+            "latestNews",
+            try {
+                News.loadPublished(database = WORKING_DATABASE, limit = 5, offset = 0)
+            } catch (e: Exception) {
+                println("MainController.main loadPublished error: ${e.message}")
+                emptyList()
+            },
+        )
         doRegisterEvent(
             mapOf(
                 "eventType" to EventType.CALL_REST.dbValue,

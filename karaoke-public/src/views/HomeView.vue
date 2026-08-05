@@ -61,6 +61,9 @@
       </div>
       <div v-else class="km-stats-loading">Загрузка статистики...</div>
 
+      <!-- Последние новости (specs/144-homepage-latest-news) -->
+      <LatestNewsSection />
+
       <!-- Описание -->
       <p class="km-desc">
         Каждый день мы пополняем коллекцию новыми песнями — преимущественно русский рок. Вся
@@ -136,6 +139,7 @@
 import { mapGetters, mapActions } from 'vuex'
 import SvgIcon from '../components/SvgIcon.vue'
 import AuthStatusWidget from '../components/AuthStatusWidget.vue'
+import LatestNewsSection from '../components/LatestNewsSection.vue'
 import { useDesign } from '../composables/useDesign'
 import { useEngagementTracking } from '../composables/useEngagementTracking'
 import { trackLinkToSocialNetwork } from '../services/tracking'
@@ -170,7 +174,7 @@ const socialLinks = [
  */
 export default {
   name: 'HomeView',
-  components: { SvgIcon, AuthStatusWidget },
+  components: { SvgIcon, AuthStatusWidget, LatestNewsSection },
   setup() {
     useEngagementTracking('home')
     const { theme, applyTheme } = useDesign()

@@ -31,6 +31,7 @@
 | 18 | `news-templates` | Шаблоны авто-новостей сайта (title+body, вкладка в `PublishTemplatesView`) | [news-templates.md](./news-templates.md) |
 | 19 | `approve-pipeline` | Approve-пайплайн: рендер DEMO + Telegram + sync related → новость «в коллекции» | [approve-pipeline.md](./approve-pipeline.md) |
 | 20 | `song-free-access` | Временное окно бесплатного доступа к песням (1 месяц после эфира + «всегда бесплатно») | [song-free-access.md](./song-free-access.md) |
+| 21 | `homepage-latest-news` | Блок «Последние 5 новостей» на главной странице сайта (SPA + Thymeleaf) | [homepage-latest-news.md](./homepage-latest-news.md) |
 
 ## Cross-cutting (инфраструктура)
 

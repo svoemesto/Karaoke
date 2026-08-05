@@ -728,4 +728,29 @@ bump и Sync Impact Report, а не просто правка текста.
 
 **Связанные документы:** [`specs/143-song-free-access-window/`](../specs/143-song-free-access-window/) — `spec.md`, `plan.md`, `research.md` (7 решений), `data-model.md`, `contracts/public-api.md`, `quickstart.md`, `tasks.md`, `checklists/requirements.md`. [`docs/features/song-free-access.md`](./features/song-free-access.md) — новый per-feature документ. Merge-commit PR #183: `6cf299a0` (`Merge pull request #183 from svoemesto/143-song-free-access-window`). Связанные чужие PR (тот же класс бага `censored()`/`WORKING_DATABASE`): PR #180 `140-fix-zakroma-censored-database`, PR #181 `141-fix-censored-web-storage-globals`.
 
+### 2026-08-05 — PR `144-homepage-latest-news` (in progress)
+
+**Что.** На главной странице сайта (SPA `karaoke-public` + legacy Thymeleaf `karaoke-web`) добавлен компактный блок «последние 5 новостей» (дата/время, заголовок, ссылка на песню/новость). Данные берутся из существующего `News.loadPublished` через уже работающий `GET /api/public/news?page=0&size=5` — никакого нового бэкенда, никаких миграций, никаких изменений в `tbl_news`/SyncRegistry. Полная поставка: 7 spec-kit артефактов в `specs/144-homepage-latest-news/` (28 задач, 3 user stories) + 5 изменённых/новых файлов в `karaoke-public`/`karaoke-web` + новый per-feature документ [`homepage-latest-news.md`](./features/homepage-latest-news.md) (21-я подсистема).
+
+**Зачем.** Прямой запрос пользователя: на главной странице не было никакого сигнала о свежести контента, хотя в `tbl_news` уже 19000+ опубликованных записей (благодаря `specs/089-auto-news-song-release`). Цель — поддержать ключевую воронку роста visitor→registration ([docs/strategy/growth.md](./strategy/growth.md)): посетитель видит «проект развивается, новые песни выходят» → регистрируется → возвращается.
+
+**Что НЕ изменилось.**
+- `tbl_news` — ни схемы, ни индексов, ни триггеров.
+- `News.loadPublished` и `NewsDto` — без изменений.
+- `SyncRegistry` (sync-цель `news`) — без изменений.
+- Существующий эндпоинт `GET /api/public/news` (с пагинацией) — без изменений (мы передаём ему `size=5`).
+- Существующий эндпоинт `GET /api/public/news/since` (бейдж непрочитанных) — без изменений.
+- Бэкенд — никакого нового кода (в отличие от `specs/143-song-free-access-window` и большинства предыдущих PR, этот PR чисто презентационный).
+
+**Подход.** Полный speckit-флоу: `/speckit.specify` → `/speckit.clarify` (1 вопрос: поведение SPA-блока при ошибке запроса — выбрана «тихая деградация», A) → `/speckit.plan` (Constitution Check 8/8 PASS, 7 research-решений) → `/speckit.tasks` (28 задач по 3 user story) → `/speckit.implement`. Реализация — точечные правки в уже существующей структуре обоих фронтендов, без новых сервисов. Переиспользован существующий `fetch`-паттерн (как в `useEngagementTracking`), существующая JSDoc-конвенция (`@see docs/features/<slug>.md`), существующий механизм трекинга (`trackUi('click', ...)`).
+
+**Уроки / тонкости.**
+- **Инцидент с нумерацией**: `tools/reserve-branch-number.sh` зарезервировал `146` (следующий свободный), но мы хотели `144-homepage-latest-news` (так как директория спеки уже была создана под этим номером на предыдущем этапе). Переименовал ветку через `git branch -m 146-homepage-latest-news 144-homepage-latest-news` **сразу** после резервации — дешёвая операция, но если бы скрипт уже пушнул тег `seq/146` в origin, остался бы «фантомный» номер в тегах. Стоит подумать: либо передавать `slug` скрипту и сразу создавать ветку с правильным номером (когда номер уже зарезервирован вручную или по спеке), либо скрипт должен принимать явный `--number=NNN` флаг для случая «номер из спеки». TODO для Pass 16+.
+- **T011/T019 (ручная валидация в браузере)** пропущены локально — на dev-машине нет ни запущенного `karaoke-web`, ни Postgres. Это известное ограничение: визуальная проверка остаётся за пользователем на его стенде. Все «объективные» проверки (сборка `npm run build`, `npm run lint:check`, `./gradlew ktlintCheck`, JSDoc/KDoc coverage, feature-doc structure) выполнены и зелёные.
+- **Тихaя деградация в SPA**: явно сделано через `fetch().then().catch(() => {})` без сохранения состояния ошибки — `items` остаётся пустым массивом, шаблон через `v-if="items && items.length"` ничего не рендерит. Никакого `<div v-if="error">` для сообщения об ошибке (FR-013 спеки). Альтернатива `v-if="loading"` со спиннером была бы анти-паттерном при медленном/мёртвом API.
+- **Thymeleaf**: фильтр пустых `link`/`title` применён через `th:if="${!#strings.isEmpty(n.link) and !#strings.isEmpty(n.title)}"` — тот же контракт, что и Vue computed `visibleItems()`. Это критично для SC-004 (идентичность SPA и Thymeleaf): расхождение фильтров дало бы разный набор 5 строк на двух главных.
+- **JSDoc 100%** сохранён (`tools/check-jsdoc-coverage.sh karaoke-public`): новый `LatestNewsSection.vue` с JSDoc с `@see docs/features/homepage-latest-news.md` (FR-006 конституции).
+
+**Связанные документы:** [`specs/144-homepage-latest-news/`](../specs/144-homepage-latest-news/) — `spec.md`, `plan.md`, `research.md` (7 решений), `data-model.md`, `contracts/public-news-api.md`, `quickstart.md`, `tasks.md`, `checklists/requirements.md`. [`docs/features/homepage-latest-news.md`](./features/homepage-latest-news.md) — новый per-feature документ (21-я подсистема).
+
 

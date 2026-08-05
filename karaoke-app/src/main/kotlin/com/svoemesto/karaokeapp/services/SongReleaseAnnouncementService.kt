@@ -24,11 +24,15 @@ import java.util.TimeZone
  *   напрямую (FR-006/FR-007 spec.md).
  *
  * Ни один из двух механизмов не использует отдельную вспомогательную таблицу учёта
- * (`tbl_song_news_announced` удалена) — идемпотентность «доступна» строится на самом флаге песни,
- * идемпотентность «в эфире» — на узком скользящем окне проверки + существовании новости
- * ([News.existsAutoAnnouncement]).
+ * (`tbl_song_news_announced` удалена) — идемпотентность обоих видов строится на существовании
+ * новости в `tbl_news` ([News.existsAnnouncement], `category="premium"`/`category="air"`
+ * соответственно); «в эфире» дополнительно ограничена узким скользящим окном проверки
+ * (specs/152-fix-false-collection-news — до этой фичи «доступна» полагалась только на флаг
+ * [Song.newsAvailableAnnounced] целевой БД, что допускало ложные срабатывания при отложенном
+ * первом схождении флага между LOCAL и SERVER, см. research.md).
  *
  * @see docs/features/dual-db-sync.md
+ * @see docs/features/approve-pipeline.md
  */
 object SongReleaseAnnouncementService {
     // Тот же порядок величины, что SongSyncTarget.rowChunkSize (25) — тяжёлые текстовые поля/маркеры
@@ -62,12 +66,21 @@ object SongReleaseAnnouncementService {
      * Детекция перехода флага [Song.newsAvailableAnnounced] false→true при применении синхронизации
      * на сервере (FR-004 spec.md) — вызывается ПОСЛЕ того, как соответствующий `UPDATE`/`INSERT` в
      * `tbl_songs` уже применён. [wasAvailableBefore] — значение флага ДО применения этого конкретного
-     * изменения (читает вызывающий код заранее, см. `MainController.doChangeRecords`); `false` для
-     * совсем новой (только что вставленной) строки. Если сервер уже хранил `true`, переход не
-     * обнаруживается повторно — новость не дублируется (идемпотентно без отдельной таблицы учёта).
+     * изменения на ЭТОЙ базе (читает вызывающий код заранее, см. `MainController.doChangeRecords`) —
+     * используется только как дешёвый fast-path (пропустить загрузку полной песни, если локально
+     * нечего проверять), а не как единственный источник истины: копия БД может впервые узнавать уже
+     * давно истинное значение флага (например, после точечного backfill), что не является реальным
+     * новым событием (specs/152-fix-false-collection-news, root cause в research.md). Поэтому
+     * дополнительно проверяются два содержательных гейта против текущего состояния `tbl_news`:
+     * - уже существует новость `category="premium"` по этой песне — не дублировать (идемпотентность
+     *   не зависит от того, сколько раз/с какой стороны обнаруживается транзиция);
+     * - уже существует новость `category="air"` («в эфире») по этой песне — «в эфире» логически
+     *   подразумевает, что песня уже давно доступна, значит появление «в коллекции» после этого
+     *   момента заведомо не про новое событие.
      * Ошибки логируются и не пробрасываются — сбой детекции не должен ронять уже применённую
      * синхронизацию.
      *
+     * @see docs/features/approve-pipeline.md
      * @return true, если новость была создана в этом вызове.
      */
     fun detectAndAnnounceAvailability(
@@ -83,6 +96,9 @@ object SongReleaseAnnouncementService {
                 Song.loadFromDbById(songId, database = database, storageService = storageService, storageApiClient = storageApiClient)
                     ?: return false
             if (!song.newsAvailableAnnounced) return false
+            val link = "/song?id=${song.id}"
+            if (News.existsAnnouncement(songId = song.id, link = link, category = "premium", database = database)) return false
+            if (News.existsAnnouncement(songId = song.id, link = link, category = "air", database = database)) return false
             News.createAutoAnnouncement(
                 songId = song.id,
                 title =
@@ -101,7 +117,7 @@ object SongReleaseAnnouncementService {
                         truncate = false,
                         database = database,
                     ),
-                link = "/song?id=${song.id}",
+                link = link,
                 category = "premium",
                 database = database,
                 storageService = storageService,

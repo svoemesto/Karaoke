@@ -2,7 +2,7 @@
 
 > **Status**: active
 > **Feature Key**: approve-pipeline
-> **Last Updated**: 2026-08-04 (Pass 39 — фикс 131: zombie-процессы `doWait=false` → `true` + шаблон «В коллекции» через `onRenderCompleted`)
+> **Last Updated**: 2026-08-05 (Pass 40 — фикс 152: `detectAndAnnounceAvailability` больше не полагается только на `wasAvailableBefore` целевой БД — L3 переписан)
 
 ## Что делает
 
@@ -170,8 +170,19 @@ if (!forceStopped &&
      (например, после падения рендера + повторного ручного триггера).
    - L2 — `TelegramAutoPublishService.publishToTelegram` early-return
      `PUBLISHED` если `song.idTelegramDemo.isNotEmpty()`.
-   - L3 — `SongReleaseAnnouncementService.detectAndAnnounceAvailability`
-     early-return если `wasAvailableBefore=true` (серверная сторона).
+   - L3 — `SongReleaseAnnouncementService.detectAndAnnounceAvailability`:
+     `wasAvailableBefore=true` — дешёвый fast-path (не грузить `Song`), но
+     НЕ единственный гейт (**фикс specs/152-fix-false-collection-news**,
+     2026-08-05 — до этого целевая БД, впервые узнавшая давно истинный
+     флаг `newsAvailableAnnounced` через backfill/отложенный push, ложно
+     трактовала это как новое событие и создавала лишнюю новость «в
+     коллекции», в т.ч. уже после того как для той же песни вышла новость
+     «в эфире»). Содержательная идемпотентность теперь — два гейта против
+     `tbl_news` через `News.existsAnnouncement`: уже есть `category="premium"`
+     по этой песне ⇒ не дублировать; уже есть `category="air"` ⇒ песня
+     точно не новая (on-air подразумевает давнюю доступность), новость «в
+     коллекции» не создаётся. См.
+     [contracts/collection-news-trigger.md](../../specs/152-fix-false-collection-news/contracts/collection-news-trigger.md).
    - L4 — `updateDatabases` diff по `recordhash`-триггерам; неизменённые
      записи не пушатся.
 

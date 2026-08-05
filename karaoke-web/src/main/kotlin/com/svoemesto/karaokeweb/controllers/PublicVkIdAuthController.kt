@@ -67,8 +67,8 @@ class PublicVkIdAuthController {
     @Value("\${vk.id.admin-api-url:http://nsa-i9:8898}")
     private var adminApiUrl: String = ""
 
-    /** TTL для pending-значений PKCE (code_verifier + state), 10 минут. */
-    private val pendingTtlSeconds = 600L
+    /** TTL для pending-значений PKCE (code_verifier + state), 30 минут. */
+    private val pendingTtlSeconds = 1800L
 
     /** In-memory хранилище code_verifier + state между /authorize и /callback. */
     private val pendingAuths = ConcurrentHashMap<String, PendingAuth>()

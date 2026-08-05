@@ -23,8 +23,18 @@ import org.springframework.web.bind.annotation.RestController
  * видит первую картинку и формирует сниппет. Параметр `?id=NNN` — id песни.
  *
  * Endpoint проксируется nginx'ом на проде через правило `location /song { if
- * ($http_user_agent ~* "vkShare|...") rewrite ^/song(\?.*)?$ /api/public/og/song$1 last; }`.
- * Обычные пользователи идут на SPA Vue (port 7907) — nginx это не затрагивает.
+ * ($http_user_agent ~* "vkShare|...") rewrite ^/song(\?.*)?$ /api/public/og/song$1 last; }`
+ * (см. `deploy/web-server-deploy/deploy/80to8897`). Боты VK/Telegram/etc идут сюда
+ * (OG-картинка для сниппета в мессенджере/посте); обычные браузеры идут на SPA Vue
+ * (port 7907), Vue Router отрендерит `SongView`.
+ *
+ * **Критичный баг (Pass 35, 2026-08-05):** до фикса в `80to8897` (см. коммит и PR для
+ * `144-homepage-latest-news` follow-up) nginx проксировал **все** запросы `/song` на
+ * этот endpoint независимо от User-Agent. Поэтому прямой URL
+ * `https://sm-karaoke.ru/song?id=NNN` (из мессенджера, поста VK, или правого клика
+ * «открыть в новой вкладке») показывал только картинку — пользователь не мог попасть
+ * на полноценную страницу песни. После фикса nginx раздвоен по User-Agent:
+ * боты → сюда, браузеры → SPA.
  */
 @RestController
 class PublicOgSongController(

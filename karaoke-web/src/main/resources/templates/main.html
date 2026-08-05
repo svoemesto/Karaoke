@@ -178,6 +178,30 @@
                     </div>
                 </td>
             </tr>
+            <!-- Последние 5 новостей (specs/144-homepage-latest-news). Тот же набор данных, что и SPA-блок;
+                 правило FR-006 (только строки с непустым link и title) применяется единообразно. -->
+            <tr th:if="${latestNews != null and !#lists.isEmpty(latestNews)}">
+                <td colspan="6" style="width: 400px">
+                    <div style="text-align: center; padding-top: 16px">
+                        <span style="color: #9fcdff; font-size: medium">
+                            Последние новости:
+                        </span>
+                    </div>
+                </td>
+            </tr>
+            <tr th:each="n : ${latestNews}"
+                th:if="${!#strings.isEmpty(n.link) and !#strings.isEmpty(n.title)}">
+                <td colspan="1" style="width: 110px; padding-left: 8px; color: #cccccc; font-size: small; font-variant-numeric: tabular-nums">
+                    <span th:text="${#dates.format(n.publishAt, 'dd.MM.yyyy HH:mm')}">—</span>
+                </td>
+                <td colspan="5" style="width: 290px; padding-right: 8px; color: white; font-size: small">
+                    <a th:href="${n.link}"
+                       target="_blank"
+                       rel="noopener noreferrer"
+                       style="color: #9fcdff; text-decoration: none"
+                       th:text="${n.title}">title</a>
+                </td>
+            </tr>
             <tr>
                 <td colspan="6" style="width: 400px">
                     <div style="text-align: center">

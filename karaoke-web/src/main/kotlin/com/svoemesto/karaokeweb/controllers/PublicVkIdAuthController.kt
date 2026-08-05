@@ -48,8 +48,14 @@ import java.util.concurrent.ConcurrentHashMap
 class PublicVkIdAuthController {
     private val log = LoggerFactory.getLogger(PublicVkIdAuthController::class.java)
 
-    @Value("\${vk.id.client-id:0}")
-    private var clientId: Long = 0L
+    // String вместо Long, чтобы избежать NumberFormatException при пустой строке
+    // (если VK_ID_CLIENT_ID не задан в ENV). Конвертируем вручную через clientIdLong().
+    // См. specs/151 hotfix после #194 — прод не стартовал из-за пустой строки.
+    @Value("\${vk.id.client-id:}")
+    private var clientIdStr: String = ""
+
+    /** Безопасная конвертация client_id (String → Long). Пустая строка → 0L. */
+    private fun clientIdLong(): Long = clientIdStr.trim().toLongOrNull() ?: 0L
 
     @Value("\${vk.id.client-secret:}")
     private var clientSecret: String = ""
@@ -82,6 +88,7 @@ class PublicVkIdAuthController {
      */
     @GetMapping("/api/public/utils/vkIdOAuthUrl", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun getVkIdOAuthUrl(): Map<String, Any> {
+        val clientId = clientIdLong()
         if (clientId <= 0) {
             return mapOf(
                 "success" to false as Any,
@@ -187,6 +194,7 @@ class PublicVkIdAuthController {
                 "<p>Откройте эту страницу через /api/public/utils/vkIdOAuthUrl.</p>" +
                 "</body></html>"
         }
+        val clientId = clientIdLong()
         if (clientId <= 0 || redirectUri.isBlank() || clientSecret.isBlank()) {
             return htmlPrefix +
                 "<h2>❌ Не настроены vk.id.client-id / vk.id.redirect-uri / vk.id.client-secret</h2>" +

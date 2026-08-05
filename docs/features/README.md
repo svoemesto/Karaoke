@@ -32,6 +32,7 @@
 | 19 | `approve-pipeline` | Approve-пайплайн: рендер DEMO + Telegram + sync related → новость «в коллекции» | [approve-pipeline.md](./approve-pipeline.md) |
 | 20 | `song-free-access` | Временное окно бесплатного доступа к песням (1 месяц после эфира + «всегда бесплатно») | [song-free-access.md](./song-free-access.md) |
 | 21 | `homepage-latest-news` | Блок «Последние 5 новостей» на главной странице сайта (SPA + Thymeleaf) | [homepage-latest-news.md](./homepage-latest-news.md) |
+| 22 | `vk-id-auth` | Авторизация через VK ID (id.vk.ru) — получение и автообновление user-token для `photos.*` / `video.save` | [vk-id-auth.md](./vk-id-auth.md) |
 
 ## Cross-cutting (инфраструктура)
 

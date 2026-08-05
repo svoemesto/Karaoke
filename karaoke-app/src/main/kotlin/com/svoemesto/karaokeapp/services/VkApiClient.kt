@@ -214,6 +214,36 @@ class VkBothAttachFailedException(
 ) : VkPhotoUploadException("both photo+docs attach failed: photos=${photosError.message}; docs=${docsError.message}")
 
 /**
+ * Результат refresh VK ID access_token (specs/151-vk-id-personal-token, FR-005).
+ *
+ * @property accessToken новый access_token для VK API.
+ * @property refreshToken новый refresh_token (VK ID ротирует его при каждом refresh).
+ * @property expiresIn срок жизни нового access_token в секундах (обычно 3600).
+ * @property idToken новый id_token (JWT) — опционально, может отсутствовать.
+ */
+data class VkIdTokenRefreshResult(
+    val accessToken: String,
+    val refreshToken: String,
+    val expiresIn: Long,
+    val idToken: String? = null,
+)
+
+/**
+ * Ошибка при refresh VK ID access_token (specs/151-vk-id-personal-token, FR-005).
+ *
+ * Типичные причины:
+ * - `error=invalid_grant` — refresh_token истёк или отозван → нужен повторный OAuth flow.
+ * - VK ID недоступен (5xx, тайм-аут) — retry с backoff в [com.svoemesto.karaokeapp.services.VkIdTokenRefreshScheduler].
+ *
+ * @property errorCode код ошибки VK ID (`invalid_grant`, `5xx`, и т.п.).
+ * @property errorMsg человекочитаемое описание ошибки.
+ */
+class VkIdRefreshFailedException(
+    val errorCode: String,
+    val errorMsg: String,
+) : RuntimeException("VK ID refresh failed ($errorCode): $errorMsg")
+
+/**
  * Тонкий клиент VK API поверх JDK HttpClient (specs/121-vk-news-auto-publish).
  *
  * Реализует методы:
@@ -273,16 +303,134 @@ class VkApiClient {
     private fun accessToken(): String = KaraokeProperties.getString("vkAccessToken")
 
     /**
-     * User access token с scopes `video,photos,wall,offline` (`vkUserAccessToken`).
-     * Получается через Implicit Flow Standalone-приложения VK — см.
-     * `/api/utils/vkOAuthUrl` (формирование URL) + `/api/utils/vkSaveUserToken` (сохранение).
-     * Используется ТОЛЬКО для методов, требующих user scope:
-     * - `video.save` — загрузка видео в группу (право `video`)
-     * - `photos.getWallUploadServer` / `photos.saveWallPhoto` — загрузка фото на стену группы (право `photos`, FR-022 в новой редакции)
+     * User access token для VK API (specs/151).
+     *
+     * Приоритет:
+     * 1. `vkIdAccessToken` (новый, через VK ID Authorization Code Flow + PKCE, scopes
+     *    `vkid.personal_info+photos+wall+video`, живёт ~1 час, обновляется по
+     *    `refresh_token` через `VkIdTokenRefreshScheduler`).
+     * 2. `vkUserAccessToken` (старый, через Implicit Flow Standalone-приложения, scopes
+     *    `video,photos,wall,offline`) — fallback на переходный период.
+     *
+     * Используется для методов, требующих user scope:
+     * - `video.save` — загрузка видео в группу (право `video`).
+     * - `photos.getWallUploadServer` / `photos.saveWallPhoto` — загрузка фото на стену группы
+     *   (право `photos`, specs/138).
+     *
      * Возвращает пустую строку, если user-token не задан — в этом случае `video.save`
      * вернёт понятную ошибку.
+     *
+     * @see specs/151-vk-id-personal-token/spec.md (FR-007)
      */
-    private fun userAccessToken(): String = KaraokeProperties.getString("vkUserAccessToken")
+    private fun userAccessToken(): String {
+        val idToken = KaraokeProperties.getString("vkIdAccessToken")
+        return idToken.ifBlank { KaraokeProperties.getString("vkUserAccessToken") }
+    }
+
+    /**
+     * Обновляет VK ID access_token через refresh_token (specs/151-vk-id-personal-token, FR-005).
+     *
+     * Вызывается из [com.svoemesto.karaokeapp.services.VkIdTokenRefreshScheduler]
+     * (каждый час) и из `/api/utils/vkIdRefreshNow` (ручной refresh через admin API).
+     *
+     * Flow (RFC 6749, секция 6):
+     * 1. Читает `vkIdClientId`, `vkIdClientSecret`, `vkIdRefreshToken` из KaraokeProperties.
+     * 2. Проверяет, что все 3 настройки заполнены (иначе `VkIdRefreshFailedException`).
+     * 3. POST `https://id.vk.ru/oauth2/token` с `grant_type=refresh_token`,
+     *    `client_id`, `client_secret`, `refresh_token`.
+     * 4. Парсит response: `access_token`, `refresh_token`, `expires_in`, `id_token?`.
+     * 5. При `error=invalid_grant` или другом non-recoverable — бросает
+     *    [VkIdRefreshFailedException].
+     *
+     * **Не сохраняет** токены в KaraokeProperties — это делает вызывающий код
+     * (scheduler / endpoint).
+     *
+     * @return [VkIdTokenRefreshResult] с новыми токенами.
+     * @throws VkIdRefreshFailedException если refresh не удался.
+     * @throws IllegalStateException если настройки не заданы.
+     */
+    fun refreshVkIdAccessToken(): VkIdTokenRefreshResult {
+        val clientId = KaraokeProperties.getLong("vkIdClientId")
+        val clientSecret = KaraokeProperties.getString("vkIdClientSecret")
+        val refreshToken = KaraokeProperties.getString("vkIdRefreshToken")
+        if (clientId <= 0) {
+            throw IllegalStateException("vkIdClientId is empty — задайте в Karaoke.properties")
+        }
+        if (clientSecret.isBlank()) {
+            throw IllegalStateException("vkIdClientSecret is empty — задайте в Karaoke.properties")
+        }
+        if (refreshToken.isBlank()) {
+            throw VkIdRefreshFailedException(
+                errorCode = "missing_refresh_token",
+                errorMsg = "vkIdRefreshToken is empty — нужен повторный OAuth flow",
+            )
+        }
+        val params =
+            buildString {
+                append("grant_type=refresh_token")
+                append("&client_id=").append(clientId)
+                append("&client_secret=").append(java.net.URLEncoder.encode(clientSecret, "UTF-8"))
+                append("&refresh_token=").append(java.net.URLEncoder.encode(refreshToken, "UTF-8"))
+            }
+        val uri = URI("https://id.vk.ru/oauth2/token")
+        val request =
+            HttpRequest
+                .newBuilder()
+                .uri(uri)
+                .timeout(Duration.ofSeconds(30))
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .POST(HttpRequest.BodyPublishers.ofString(params))
+                .build()
+        val response = send(request)
+        val bodyText = response.body()
+        if (response.statusCode() !in 200..299) {
+            throw VkIdRefreshFailedException(
+                errorCode = "http_${response.statusCode()}",
+                errorMsg = "VK ID вернул HTTP ${response.statusCode()}: ${bodyText.take(300)}",
+            )
+        }
+        val parsed =
+            try {
+                json.decodeFromString(VkIdTokenRefreshResponse.serializer(), bodyText)
+            } catch (e: Exception) {
+                throw VkIdRefreshFailedException(
+                    errorCode = "invalid_response",
+                    errorMsg = "Не удалось разобрать ответ VK ID: ${e.message}",
+                )
+            }
+        if (parsed.error != null) {
+            throw VkIdRefreshFailedException(
+                errorCode = parsed.error,
+                errorMsg = parsed.errorDescription ?: "no description",
+            )
+        }
+        val newAccess = parsed.accessToken
+        val newRefresh = parsed.refreshToken
+        if (newAccess.isNullOrBlank() || newRefresh.isNullOrBlank()) {
+            throw VkIdRefreshFailedException(
+                errorCode = "missing_tokens_in_response",
+                errorMsg = "VK ID не вернул access_token или refresh_token",
+            )
+        }
+        return VkIdTokenRefreshResult(
+            accessToken = newAccess,
+            refreshToken = newRefresh,
+            expiresIn = parsed.expiresIn ?: 3600L,
+            idToken = parsed.idToken,
+        )
+    }
+
+    /** Ответ `/oauth2/token` для refresh (или auth-code) flow. */
+    @Serializable
+    private data class VkIdTokenRefreshResponse(
+        @SerialName("access_token") val accessToken: String? = null,
+        @SerialName("refresh_token") val refreshToken: String? = null,
+        @SerialName("expires_in") val expiresIn: Long? = null,
+        @SerialName("id_token") val idToken: String? = null,
+        @SerialName("user_id") val userId: String? = null,
+        val error: String? = null,
+        @SerialName("error_description") val errorDescription: String? = null,
+    )
 
     private fun apiVersion(): String = KaraokeProperties.getString("vkApiVersion").ifBlank { "5.199" }
 

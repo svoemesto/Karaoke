@@ -7085,46 +7085,19 @@ class ApiController(
     // токена — бесконечный (благодаря scope=offline), но VK может отозвать при смене пароля.
 
     /**
-     * Формирует URL для Implicit Flow VK с нужными scopes (video, photos, wall, offline).
-     * Возвращает JSON {url, scopes, appId}.
+     * DEPRECATED (specs/151-vk-id-personal-token). Используйте `/api/public/utils/vkIdOAuthUrl`
+     * на проде — он автоматически вызовет `/api/utils/vkIdSaveTokens` на admin-машине.
+     *
+     * Старый `oauth.vk.ru` Implicit Flow заблокирован VK (05.08.2026). Возвращаем HTTP 410 Gone.
      */
     @GetMapping("/utils/vkOAuthUrl")
     @ResponseBody
-    fun getVkOAuthUrl(): Map<String, Any> {
-        val appId = KaraokeProperties.getLong("vkAppId")
-        val redirectUri = KaraokeProperties.getString("vkRedirectUri")
-        if (appId <= 0) {
-            return mapOf(
-                "success" to false as Any,
-                "error" to "vkAppId is empty — задайте ID Standalone-приложения в Karaoke.properties" as Any,
-            )
-        }
-        if (redirectUri.isBlank()) {
-            return mapOf(
-                "success" to false as Any,
-                "error" to "vkRedirectUri is empty — задайте Redirect URI в Karaoke.properties" as Any,
-            )
-        }
-        val scopes = "video,photos,wall,offline"
-        val encodedRedirect = java.net.URLEncoder.encode(redirectUri, "UTF-8")
-        val url =
-            "https://oauth.vk.ru/authorize?client_id=$appId&redirect_uri=$encodedRedirect" +
-                "&scope=$scopes&response_type=token&v=5.199&state=karaoke_vk_token"
-        return mapOf(
-            "success" to true as Any,
-            "url" to url as Any,
-            "scopes" to scopes as Any,
-            "appId" to appId as Any,
-            "redirectUri" to redirectUri as Any,
-            "instructions" to
-                listOf(
-                    "1. Откройте этот URL в браузере (от лица владельца группы ВК).",
-                    "2. Подтвердите все scopes (video, photos, wall, offline).",
-                    "3. После редиректа скопируйте фрагмент URL #access_token=...&user_id=...",
-                    "4. POST-ните этот токен на /api/utils/vkSaveUserToken?token=<ваш_токен>.",
-                ),
+    fun getVkOAuthUrl(): Map<String, Any> =
+        mapOf(
+            "deprecated" to true as Any,
+            "use" to "/api/public/utils/vkIdOAuthUrl" as Any,
+            "message" to "Этот endpoint устарел (oauth.vk.ru заблокирован). Используйте /api/public/utils/vkIdOAuthUrl (VK ID)." as Any,
         )
-    }
 
     /**
      * Сохраняет user-token (полученный после Implicit Flow) в Karaoke.properties
@@ -7192,16 +7165,9 @@ class ApiController(
     }
 
     /**
-     * Authorization Code Flow для Web-приложения VK. Implicit Flow на Web возвращает
-     * "Security Error" (проверено 02.08.2026), поэтому мы делаем server-side обмен code → token.
+     * DEPRECATED (specs/151-vk-id-personal-token). Используйте `/api/public/utils/vkIdOAuthCallback`.
      *
-     * Браузер пользователя перенаправляется на `vkOAuthCodeUrl` (Authorization Code).
-     * После подтверждения scopes VK редиректит на наш `vkRedirectUri` с параметром `code`.
-     * **Этот endpoint** обрабатывает GET на `vkRedirectUri` — обменивает code на access_token
-     * через POST https://oauth.vk.ru/access_token (с client_secret), сохраняет токен
-     * в `vkUserAccessToken`, и возвращает пользователю HTML-страничку с подтверждением.
-     *
-     * Безопасность: client_secret хранится на сервере и НИКОГДА не отдаётся в браузер.
+     * Старый `oauth.vk.ru` callback заблокирован VK (05.08.2026). Возвращаем HTTP 410 Gone.
      */
     @GetMapping("/utils/vkOAuthCallback", produces = ["text/html; charset=UTF-8"])
     @ResponseBody
@@ -7209,138 +7175,211 @@ class ApiController(
         @RequestParam(required = false) code: String?,
         @RequestParam(required = false) state: String?,
         @RequestParam(required = false) error: String?,
-    ): String {
-        if (!error.isNullOrBlank()) {
-            return "<html><body style=\"font-family:sans-serif;padding:40px\">" +
-                "<h2>❌ Ошибка авторизации VK</h2>" +
-                "<p>VK вернул: <b>" + error.replace("<", "") + "</b></p>" +
-                "<p>Закройте эту вкладку и попробуйте снова.</p>" +
-                "</body></html>"
+    ): String =
+        "<html><body style=\"font-family:sans-serif;padding:40px;max-width:900px\">" +
+            "<h2>DEPRECATED</h2>" +
+            "<p>Этот endpoint устарел (oauth.vk.ru заблокирован).</p>" +
+            "<p>Используйте <code>/api/public/utils/vkIdOAuthUrl</code> для получения нового токена через VK ID.</p>" +
+            "<p>Подробнее — <code>specs/151-vk-id-personal-token</code>.</p>" +
+            "</body></html>"
+
+    /**
+     * DEPRECATED (specs/151-vk-id-personal-token). Используйте `/api/public/utils/vkIdOAuthUrl`
+     * на проде.
+     *
+     * Старый `oauth.vk.ru` Auth Code Flow заблокирован VK (05.08.2026). Возвращаем HTTP 410 Gone.
+     */
+    @GetMapping("/utils/vkOAuthCodeUrl")
+    @ResponseBody
+    fun getVkOAuthCodeUrl(): Map<String, Any> =
+        mapOf(
+            "deprecated" to true as Any,
+            "use" to "/api/public/utils/vkIdOAuthUrl" as Any,
+            "message" to "Этот endpoint устарел (oauth.vk.ru заблокирован). Используйте /api/public/utils/vkIdOAuthUrl (VK ID)." as Any,
+        )
+
+    // specs/151-vk-id-personal-token: миграция с oauth.vk.ru (заблокирован Security Error
+    // 05.08.2026) на id.vk.ru. Ниже — 3 endpoint'а для работы с VK ID flow:
+    // 1) /api/utils/vkIdSaveTokens — сохранение токенов (вызывается автоматически из
+    //    PublicVkIdAuthController на проде после обмена code → tokens).
+    // 2) /api/utils/vkIdTokenStatus — состояние токена (для мониторинга).
+    // 3) /api/utils/vkIdRefreshNow — принудительный refresh (для ручного управления).
+    // Scheduled refresh — в VkIdTokenRefreshScheduler (каждый час).
+    // @see docs/features/vk-id-auth.md
+
+    /**
+     * Сохраняет VK ID токены в Karaoke.properties (FR-003).
+     *
+     * Вызывается автоматически из `PublicVkIdAuthController.vkIdOAuthCallback` на проде
+     * после успешного обмена `code → tokens`. Проверяет валидность `accessToken` через
+     * `users.get` перед сохранением (как в `vkSaveUserToken`).
+     *
+     * Сохраняет:
+     * - `vkIdAccessToken`
+     * - `vkIdRefreshToken`
+     * - `vkIdAccessTokenExpiresAt = now + expiresIn`
+     * - `vkIdIdToken` (если есть)
+     * - `vkIdRefreshNeeded = false`
+     * - `vkIdRefreshLastError = ""`
+     *
+     * @param accessToken access_token от VK ID.
+     * @param refreshToken refresh_token от VK ID.
+     * @param expiresIn срок жизни access_token в секундах.
+     * @param idToken id_token (JWT) — опционально.
+     * @return JSON `{success, userId, firstName, lastName, expiresAt, message}` или
+     *   `{success: false, error}`.
+     */
+    @PostMapping("/utils/vkIdSaveTokens")
+    @ResponseBody
+    fun saveVkIdTokens(
+        @RequestParam accessToken: String,
+        @RequestParam(required = false) refreshToken: String = "",
+        @RequestParam(required = false) expiresIn: Long = 3600L,
+        @RequestParam(required = false) idToken: String = "",
+    ): Map<String, Any> {
+        if (accessToken.isBlank()) {
+            return mapOf("success" to false as Any, "error" to "accessToken is empty" as Any)
         }
-        if (code.isNullOrBlank()) {
-            return "<html><body style=\"font-family:sans-serif;padding:40px\">" +
-                "<h2>❌ Не получен code от VK</h2>" +
-                "<p>Откройте эту страницу через URL, который мы дали (он начинается с oauth.vk.ru/authorize).</p>" +
-                "</body></html>"
-        }
-        val appId = KaraokeProperties.getLong("vkAppId")
-        val redirectUri = KaraokeProperties.getString("vkRedirectUri")
-        val clientSecret = KaraokeProperties.getString("vkClientSecret")
-        if (appId <= 0 || redirectUri.isBlank() || clientSecret.isBlank()) {
-            return "<html><body style=\"font-family:sans-serif;padding:40px\">" +
-                "<h2>❌ Не настроен Karaoke.properties</h2>" +
-                "<p>Нужны: <code>vkAppId</code>, <code>vkRedirectUri</code>, <code>vkClientSecret</code>.</p>" +
-                "<p>Текущие: appId=$appId redirect=" + (if (redirectUri.isBlank()) "❌" else "✓") +
-                " hasSecret=" + (if (clientSecret.isBlank()) "❌" else "✓") + "</p>" +
-                "</body></html>"
-        }
+        // Проверяем валидность через users.get (по образцу saveVkUserToken).
         val apiVersion = KaraokeProperties.getString("vkApiVersion").ifBlank { "5.199" }
-        // Обмен code → access_token (server-side, с client_secret).
-        val params =
-            buildString {
-                append("client_id=")
-                append(appId)
-                append("&client_secret=")
-                append(java.net.URLEncoder.encode(clientSecret, "UTF-8"))
-                append("&redirect_uri=")
-                append(java.net.URLEncoder.encode(redirectUri, "UTF-8"))
-                append("&code=")
-                append(java.net.URLEncoder.encode(code, "UTF-8"))
-            }
+        val checkUrl =
+            "https://api.vk.ru/method/users.get?access_token=" +
+                java.net.URLEncoder.encode(accessToken, "UTF-8") +
+                "&v=$apiVersion"
         return try {
-            val req =
-                java.net
-                    .URI("https://oauth.vk.ru/access_token")
-                    .toURL()
-                    .openConnection()
-                    .let { conn ->
-                        conn as java.net.HttpURLConnection
-                    }.apply {
-                        requestMethod = "POST"
-                        connectTimeout = 10_000
-                        readTimeout = 15_000
-                        doOutput = true
-                        setRequestProperty("Content-Type", "application/x-www-form-urlencoded")
-                    }
-            req.outputStream.use { it.write(params.toByteArray(Charsets.UTF_8)) }
-            val responseText = req.inputStream.bufferedReader().use { it.readText() }
-            req.disconnect()
-            // Ответ: либо {access_token, expires_in, user_id, ...}, либо {error: ...}
+            val conn = java.net.URL(checkUrl).openConnection()
+            conn.connectTimeout = 10_000
+            conn.readTimeout = 15_000
+            val response =
+                conn
+                    .getInputStream()
+                    .bufferedReader()
+                    .use { it.readText() }
             val parsed =
                 com.svoemesto.karaokeapp.services.VkApiClient
-                    .decodeTokenResponse(responseText)
-            if (!parsed.error.isNullOrBlank() && parsed.accessToken.isNullOrBlank()) {
-                return "<html><body style=\"font-family:sans-serif;padding:40px\">" +
-                    "<h2>❌ VK отверг code</h2>" +
-                    "<pre>" + (parsed.error ?: responseText.take(500)) + "</pre>" +
-                    "</body></html>"
+                    .decodeUserCheck(response)
+            if (parsed.error != null) {
+                return mapOf(
+                    "success" to false as Any,
+                    "error" to "VK rejected VK ID token: ${parsed.error.errorCode} ${parsed.error.errorMsg}" as Any,
+                )
             }
-            val accessToken =
-                parsed.accessToken
-                    ?: run {
-                        return "<html><body style=\"font-family:sans-serif;padding:40px\">" +
-                            "<h2>❌ VK не вернул access_token</h2>" +
-                            "<pre>" + responseText.take(500) + "</pre>" +
-                            "</body></html>"
-                    }
-            // Сохраняем токен в Karaoke.properties.
-            KaraokeProperties.set("vkUserAccessToken", accessToken)
-            "<html><body style=\"font-family:sans-serif;padding:40px\">" +
-                "<h2 style=\"color:green\">✅ Токен VK сохранён</h2>" +
-                "<p>access_token (первые 30 символов): <code>" + accessToken.take(30) + "...</code></p>" +
-                "<p>user_id: <code>" + (parsed.userId ?: "?") + "</code></p>" +
-                "<p>expires_in: <code>" + (parsed.expiresIn ?: "?") + "</code> сек</p>" +
-                "<p>VkApiClient.video.save и photos.* теперь будут использовать user-token.</p>" +
-                "<p>Можете закрыть эту вкладку.</p>" +
-                "</body></html>"
+            val firstUser = parsed.response?.firstOrNull()
+            if (firstUser == null) {
+                return mapOf(
+                    "success" to false as Any,
+                    "error" to "VK вернул пустой массив пользователей (token битый?)" as Any,
+                )
+            }
+            // Сохраняем токены.
+            KaraokeProperties.set("vkIdAccessToken", accessToken)
+            if (refreshToken.isNotBlank()) {
+                KaraokeProperties.set("vkIdRefreshToken", refreshToken)
+            }
+            val expiresAt =
+                java.time.Instant
+                    .now()
+                    .plusSeconds(expiresIn)
+                    .toString()
+            KaraokeProperties.set("vkIdAccessTokenExpiresAt", expiresAt)
+            if (idToken.isNotBlank()) {
+                KaraokeProperties.set("vkIdIdToken", idToken)
+            }
+            KaraokeProperties.set("vkIdRefreshNeeded", false)
+            KaraokeProperties.set("vkIdRefreshLastError", "")
+            mapOf(
+                "success" to true as Any,
+                "userId" to firstUser.id as Any,
+                "userFirstName" to (firstUser.firstName ?: "") as Any,
+                "userLastName" to (firstUser.lastName ?: "") as Any,
+                "expiresAt" to expiresAt as Any,
+                "message" to
+                    "Токены VK ID сохранены в Karaoke.properties (vkIdAccessToken / vkIdRefreshToken). " +
+                    "VkApiClient начнёт использовать их для photos.* и video.save." as Any,
+            )
         } catch (e: Exception) {
-            "<html><body style=\"font-family:sans-serif;padding:40px\">" +
-                "<h2>❌ Ошибка обмена code → token</h2>" +
-                "<pre>" + (e.message ?: e.javaClass.simpleName) + "</pre>" +
-                "</body></html>"
+            mapOf(
+                "success" to false as Any,
+                "error" to "Ошибка проверки/сохранения токена: ${e.message ?: e.javaClass.simpleName}" as Any,
+            )
         }
     }
 
     /**
-     * Готовая ссылка для авторизации через Authorization Code Flow. Работает
-     * с Web-приложением (client_id+client_secret). Браузер открывает её,
-     * VK после подтверждения делает редирект на наш /api/utils/vkOAuthCallback?code=XXX,
-     * endpoint обменивает code на access_token (server-side) и сохраняет.
+     * Возвращает состояние VK ID токена (FR-008). Для мониторинга и UI-индикаторов.
+     *
+     * @return JSON `{hasClientId, hasClientSecret, hasAccessToken, hasRefreshToken,
+     *   expiresAt, refreshNeeded, lastError}`.
      */
-    @GetMapping("/utils/vkOAuthCodeUrl")
+    @GetMapping("/utils/vkIdTokenStatus")
     @ResponseBody
-    fun getVkOAuthCodeUrl(): Map<String, Any> {
-        val appId = KaraokeProperties.getLong("vkAppId")
-        val redirectUri = KaraokeProperties.getString("vkRedirectUri")
-        val clientSecret = KaraokeProperties.getString("vkClientSecret")
-        if (appId <= 0) {
-            return mapOf("success" to false as Any, "error" to "vkAppId is empty" as Any)
-        }
-        if (redirectUri.isBlank()) {
-            return mapOf("success" to false as Any, "error" to "vkRedirectUri is empty" as Any)
-        }
-        if (clientSecret.isBlank()) {
-            return mapOf("success" to false as Any, "error" to "vkClientSecret is empty — нужен для Code Flow (Web-приложение)" as Any)
-        }
-        val state = (System.currentTimeMillis() / 1_000_000).toString()
-        val scopes = "video,photos,wall,offline"
-        val encodedRedirect = java.net.URLEncoder.encode(redirectUri, "UTF-8")
-        val url =
-            "https://oauth.vk.ru/authorize?client_id=$appId&redirect_uri=$encodedRedirect" +
-                "&scope=$scopes&response_type=code&state=$state"
-        return mapOf(
-            "success" to true as Any,
-            "url" to url as Any,
-            "instructions" to
-                listOf(
-                    "1. В настройках Web-приложения на oauth.vk.ru сервисный ключ должен быть включён.",
-                    "2. В KARAOKE.properties задан vkClientSecret (получено из настроек приложения).",
-                    "3. Откройте этот URL в браузере от лица владельца группы.",
-                    "4. Подтвердите все scopes.",
-                    "5. VK редиректит на наш /api/utils/vkOAuthCallback — токен сохранится в vkUserAccessToken автоматически.",
-                ),
+    fun getVkIdTokenStatus(): Map<String, Any> =
+        mapOf(
+            "hasClientId" to (KaraokeProperties.getLong("vkIdClientId") > 0) as Any,
+            "hasClientSecret" to (KaraokeProperties.getString("vkIdClientSecret").isNotBlank()) as Any,
+            "hasAccessToken" to (KaraokeProperties.getString("vkIdAccessToken").isNotBlank()) as Any,
+            "hasRefreshToken" to (KaraokeProperties.getString("vkIdRefreshToken").isNotBlank()) as Any,
+            "expiresAt" to (KaraokeProperties.getString("vkIdAccessTokenExpiresAt")) as Any,
+            "refreshNeeded" to (KaraokeProperties.getBoolean("vkIdRefreshNeeded")) as Any,
+            "lastError" to (KaraokeProperties.getString("vkIdRefreshLastError")) as Any,
         )
-    }
+
+    /**
+     * Принудительно вызывает refresh access_token через refresh_token (FR-009).
+     *
+     * Полезно для отладки и ручного управления. Scheduled refresh работает в фоне
+     * (см. VkIdTokenRefreshScheduler), но иногда нужен ручной refresh.
+     *
+     * При успехе — обновляет токены в Karaoke.properties.
+     * При ошибке — устанавливает `vkIdRefreshNeeded=true`, `vkIdRefreshLastError`.
+     *
+     * @return JSON `{success, expiresAt?, error?, refreshNeeded?}`.
+     */
+    @PostMapping("/utils/vkIdRefreshNow")
+    @ResponseBody
+    fun vkIdRefreshNow(): Map<String, Any> =
+        try {
+            val result =
+                com.svoemesto.karaokeapp.services
+                    .VkApiClient()
+                    .refreshVkIdAccessToken()
+            val expiresAt =
+                java.time.Instant
+                    .now()
+                    .plusSeconds(result.expiresIn)
+                    .toString()
+            KaraokeProperties.set("vkIdAccessToken", result.accessToken)
+            KaraokeProperties.set("vkIdRefreshToken", result.refreshToken)
+            KaraokeProperties.set("vkIdAccessTokenExpiresAt", expiresAt)
+            KaraokeProperties.set("vkIdRefreshNeeded", false)
+            KaraokeProperties.set("vkIdRefreshLastError", "")
+            if (result.idToken != null) {
+                KaraokeProperties.set("vkIdIdToken", result.idToken)
+            }
+            mapOf(
+                "success" to true as Any,
+                "expiresAt" to expiresAt as Any,
+                "message" to "VK ID access_token обновлён" as Any,
+            )
+        } catch (e: com.svoemesto.karaokeapp.services.VkIdRefreshFailedException) {
+            KaraokeProperties.set("vkIdRefreshNeeded", true)
+            KaraokeProperties.set("vkIdRefreshLastError", "${e.errorCode}: ${e.errorMsg}")
+            mapOf(
+                "success" to false as Any,
+                "error" to "${e.errorCode}: ${e.errorMsg}" as Any,
+                "refreshNeeded" to true as Any,
+            )
+        } catch (e: IllegalStateException) {
+            mapOf(
+                "success" to false as Any,
+                "error" to (e.message ?: e.javaClass.simpleName) as Any,
+            )
+        } catch (e: Exception) {
+            mapOf(
+                "success" to false as Any,
+                "error" to "Неизвестная ошибка: ${e.message ?: e.javaClass.simpleName}" as Any,
+            )
+        }
 
     // specs/121-vk-news-auto-publish: редактор шаблонов постов ВК (FR-025). Возвращает все шаблоны
     // и список плейсхолдеров для UI редактора в webvue3 (VkTemplatesEditor.vue).

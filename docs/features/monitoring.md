@@ -2,14 +2,14 @@
 
 > **Status**: active
 > **Feature Key**: monitoring
-> **Last Updated**: 2026-07-29
+> **Last Updated**: 2026-08-06
 
 ## Что делает
 
 Обобщение подсистемы `HealthReport`, но НЕ привязанное к конкретной
 песне `Settings`. Системные проверки состояния проекта в целом.
 Снимок показывается в хедере webvue3 как «светофор» (красный/жёлтый/
-зелёный). Восемь проверок из коробки (см. `MonitorRegistry.checks`) +
+зелёный). Семь проверок из коробки (см. `MonitorRegistry.checks`) +
 легко добавить новую.
 
 ## Зачем
@@ -21,7 +21,6 @@
 ## Как работает (кратко)
 
 1. **`MonitorRegistry.checks`** — список `object : MonitorCheck`:
-   - Горизонт запланированных постов в Telegram (< N дней).
    - Доступность прод-сервера (HTTP HEAD на `https://sm-karaoke.ru`).
    - Остановленная очередь рендера целиком — `isWork == false`, хотя есть
      ждущие задания (`RenderQueueStalledCheck`).

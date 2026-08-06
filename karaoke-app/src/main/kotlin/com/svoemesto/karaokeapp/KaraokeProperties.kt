@@ -2045,11 +2045,6 @@ val listKaraokeProperties =
         // monitorDismissed - служебное поле (JSON key->contentHash прочитанных алертов), не редактировать вручную.
         KaraokeProperty(key = "monitorDismissed", defaultValue = "{}", description = "Мониторинг: прочитанные алерты (служебное, JSON)"),
         KaraokeProperty(
-            key = "monitorTelegramHorizonDays",
-            defaultValue = 2L,
-            description = "Мониторинг: минимальный горизонт (сутки) запланированных постов в Telegram, ниже которого - предупреждение",
-        ),
-        KaraokeProperty(
             key = "monitorProdDownCriticalMinutes",
             defaultValue = 5L,
             description = "Мониторинг: через сколько минут недоступности прод-сервера предупреждение становится критическим",

@@ -154,6 +154,8 @@
       <button type="button" class="ske-btn ske-btn-ghost" @click="clearMarkers">
         Очистить маркеры
       </button>
+      <button type="button" class="ske-btn ske-btn-ghost" @click="doTypograph">Типограф</button>
+      <span v-if="typographError" class="ske-typograph-error">{{ typographError }}</span>
     </div>
     <div v-if="canEdit && showKeyboard" class="ske-keyboard">
       <div class="ske-kb-grid">
@@ -301,6 +303,7 @@ import {
 } from '../../composables/useKaraokeEditor'
 import { STATUS_LABELS } from '../../composables/editorStatus'
 import KaraokePlayer from '../../player/KaraokePlayer.js'
+import { promisedXMLHttpRequest } from '../../lib/utils'
 
 // Хоткеи 1:1 с karaoke-public / SubsEdit.vue. Digit6/Digit0 не перенесены (нет нот/аккордов и
 // mute-регионов в упрощённом редакторе).
@@ -406,6 +409,7 @@ export default {
       showPlayer: false,
       playerLoading: false,
       redrawScheduled: false,
+      typographError: '',
     }
   },
   computed: {
@@ -812,6 +816,27 @@ export default {
       this.markers = []
       this.redrawRegions()
       this.$emit('change')
+    },
+    /**
+     * Применяет типографские правила замены символов (те же, что и кнопка «Типограф» в
+     * SubsEdit.vue) к тексту текущего голоса через существующий backend-эндпоинт, затем
+     * пересинхронизирует маркеры с новым текстом через onTextInput().
+     *
+     * @see docs/features/editor-tasks.md
+     */
+    async doTypograph() {
+      if (!this.canEdit) return
+      this.typographError = ''
+      try {
+        this.sourceText = await promisedXMLHttpRequest({
+          method: 'POST',
+          url: '/api/replacesymbolsinsong',
+          params: { txt: this.sourceText },
+        })
+        this.onTextInput()
+      } catch (e) {
+        this.typographError = 'Не удалось применить Типограф — попробуйте ещё раз.'
+      }
     },
     mark(type, notDelete = false, label = '') {
       if (!this.canEdit || !this.ws) return
@@ -1479,6 +1504,11 @@ export default {
   justify-content: center;
   gap: 0.75rem;
   flex-wrap: wrap;
+}
+.ske-typograph-error {
+  align-self: center;
+  color: #c0392b;
+  font-size: 0.85rem;
 }
 .ske-keyboard {
   display: flex;

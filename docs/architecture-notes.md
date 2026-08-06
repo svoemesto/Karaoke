@@ -1042,3 +1042,57 @@ Chords/Tabs/Demo`).
 - [research.md](../../specs/156-remove-songs-table-platform-flags/research.md) — 6 решений и отвергнутые альтернативы.
 - [data-model.md](../../specs/156-remove-songs-table-platform-flags/data-model.md) — таблица «что в БД / что в state / что в UI».
 - [`docs/features/songs-table.md`](../features/songs-table.md) — обновлённый per-feature документ.
+
+
+### 2026-08-06 — Pass 40: `160-publish-body-td-remove-six-columns`
+
+**Что.** Логическое продолжение #156 (Pass 39): после удаления 18 флагов из `SongsTable.vue`
+в #156 остались «хвосты» от использования `processColor*`:
+
+1. **`PublishTableBodyTd.vue`** — 6 узких цветовых блоков-колонок по 10 px удалены из шаблона;
+   ячейка `.publish-name` расширена со 150 px до 210 px (6 × 10 px). Удалены 20 computed-свойств
+   `processColor*`, 3 метода `dblClick*`, 3 CSS-правила `.publish-column*`. `.empty` также
+   расширен до 210 px. Файл сократился со 241 до 117 строк (−52%).
+
+2. **`SongEdit.vue`** — снята inline-раскраска 4 кнопок «PLAY LYRICS / KARAOKE / CHORDS / TABS»
+   (`:style="{ backgroundColor: song.processColorMelt* }"` удалён). Все 4 кнопки получают
+   одинаковый фон из CSS-класса `.group-button`.
+
+3. **Backend DTO чистка** — в `SongDTO` и `SongDTOdigest` удалены 27 из 28 полей `processColor*`
+   (осталось ровно одно — `processColorPlayerDemo`, единственный живой потребитель: бейдж `DE`
+   в `SongsTable.vue:329`). Соответствующие 27 присваиваний удалены в `Song.toDTO()` и
+   `SongDTO.toDtoDigest()`. **Геттеры `processColor*` в `Song.kt` (2454–2538) и diff-логика
+   LOCAL↔SERVER (6816+) сохранены** — нужны для `Publication.kt` и серверных Thymeleaf-шаблонов,
+   которые получают сырой `Song` через `MainController.getSong` и `${song.processColorX}`.
+   Принцип III NON-NEGOTIABLE constitution (двух-БД синхронизация через SyncRegistry).
+
+4. **JSON-контракт** — `/api/songs`, `/api/songsdigests`, `/api/songshistory`, `/api/publications`,
+   `/api/unpublications` перестают отдавать 27 полей `processColor*`. Payload `/api/songsdigests`
+   сокращается на ~5 МБ (18 858 песен × 27 полей × ~10 байт, оценка).
+
+**Скоуп строго ограничен** `PublishTableBodyTd.vue` + `SongEdit.vue` (4 кнопки) + двумя DTO.
+**Вне скоупа** (явно по решению пользователя): шапка `PublishTableHead.vue` (намеренное
+рассогласование 200 vs 210 px), закомментированные `<template #cell(flagPl*)>` в `SongsTable.vue`,
+мёртвый геттер `processColorBoostyFiles` в `Song.kt:2483`.
+
+**Метрики реализации.**
+- Файлов изменено: 7 (`PublishTableBodyTd.vue`, `SongEdit.vue`, `SongDTO.kt`, `SongDTOdigest.kt`,
+  `Song.kt`, `docs/features/songs-table.md`, `docs/architecture-notes.md`).
+- Строк: `PublishTableBodyTd.vue` 241 → 117 (−124); DTO-блоки processColor* 28 → 1.
+- Gradle compile: SUCCESSFUL in 30s (Kotlin 1.x, JDK 18 на dev-машине).
+- ktlintCheck: PASS (17 actionable tasks, 0 ошибок).
+- ESLint webvue3: PASS (max-warnings 0).
+- ESLint-baseline: 0 новых нарушений.
+- KDoc coverage: 97% (целевой ≥ 50% по FR-006).
+- JSDoc coverage webvue3: 100% (целевой ≥ 50% по FR-006).
+- pre-commit run (ktlint + eslint + prettier): PASS для всех 5 файлов.
+
+**Связанные документы:**
+- [spec.md](../../specs/160-publish-body-td-remove-six-columns/spec.md) — спецификация.
+- [plan.md](../../specs/160-publish-body-td-remove-six-columns/plan.md) — Implementation Plan.
+- [research.md](../../specs/160-publish-body-td-remove-six-columns/research.md) — карта файлов с точными строками + 5 закрытых NEEDS CLARIFICATION.
+- [data-model.md](../../specs/160-publish-body-td-remove-six-columns/data-model.md) — финальная форма сущностей.
+- [contracts/api-songsdigests.md](../../specs/160-publish-body-td-remove-six-columns/contracts/api-songsdigests.md) — контракт 7 эндпоинтов.
+- [quickstart.md](../../specs/160-publish-body-td-remove-six-columns/quickstart.md) — 5 шагов ручной валидации.
+- [tasks.md](../../specs/160-publish-body-td-remove-six-columns/tasks.md) — 31 задача по 7 фазам.
+- [`docs/features/songs-table.md`](../features/songs-table.md) — обновлённый per-feature документ.

@@ -35,8 +35,8 @@ export default {
 }
 
 .td-text {
-  min-width: 200px;
-  max-width: 200px;
+  min-width: 210px;
+  max-width: 210px;
   border: thin solid black;
   font-size: small;
 }

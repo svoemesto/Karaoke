@@ -98,8 +98,14 @@
 
 - **Что делает**: применяет к тексту ТЕКУЩЕГО голоса те же правила типографской замены символов,
   что и одноимённая кнопка в классическом редакторе (`SubsEdit.vue` → `doReplaceText()`) — тот же
-  backend-эндпоинт `POST /api/replacesymbolsinsong` (`ApiController.kt`, реализация не менялась,
-  `permitAll` в `SecurityConfig.kt`). Ответ — сырая строка, НЕ JSON.
+  backend-эндпоинт `POST /api/replacesymbolsinsong`. Ответ — сырая строка, НЕ JSON.
+- **Backend**: в `karaoke-app` endpoint не менялся (`ApiController.kt:5052` + `MainController.kt:970`,
+  вызывает `Utils.replaceSymbolsInSong()`, `permitAll` в `SecurityConfig.kt`). Для публичного
+  сайта добавлен **тонкий дубль** в `karaoke-web` (`PublicTypographController.kt`,
+  PR #205 / spec 156) — иначе nginx `karaoke-public` проксирует запрос на `karaoke-web`, а там
+  endpoint отсутствует и Spring возвращает 405. В `karaoke-web` дубль вызывает
+  `Utils.replaceSymbolsInSong()` напрямую через зависимость `karaoke-web → karaoke-app`
+  (top-level pure function, без БД/сессий/Spring-бинов).
 - **Без диалога подтверждения** — в отличие от соседней «Очистить маркеры» (действие обратимо
   через обычный undo текстового поля, правки правил не удаляют структуру).
 - **Пересинхронизация маркеров**: после замены вызывается уже существующий `onTextInput()` (тот
@@ -109,7 +115,6 @@
   `typographError` (инлайн рядом с кнопкой), а не через общий индикатор автосохранения
   (`saveState`/«Ошибка сохранения») — переиспользование `saveState` вводило бы в заблуждение,
   так как ничего не сохранялось.
-- Backend не менялся — эндпоинт уже существовал и использовался `SubsEdit.vue`.
 - Реализовано отдельно в каждом из двух фронтендов (Principle V Конституции — admin/public не
   делят код), но идентично по поведению.
 

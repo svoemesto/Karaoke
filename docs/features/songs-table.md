@@ -2,7 +2,11 @@
 
 > **Status**: active
 > **Feature Key**: `songs-table`
-> **Last Updated**: 2026-08-03
+> **Last Updated**: 2026-08-06
+
+> Цвета строк таблицы определяются производным состоянием песни — см.
+> [song-state-colors.md](./song-state-colors.md). Эта фича отвечает только за рендер;
+> классификация и приоритеты — в `song-state-colors.md`.
 
 ## Что делает
 

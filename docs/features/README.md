@@ -34,6 +34,7 @@
 | 21 | `homepage-latest-news` | Блок «Последние 5 новостей» на главной странице сайта (SPA + Thymeleaf) | [homepage-latest-news.md](./homepage-latest-news.md) |
 | 22 | `vk-id-auth` | Авторизация через VK ID (id.vk.ru) — получение и автообновление user-token для `photos.*` / `video.save` | [vk-id-auth.md](./vk-id-auth.md) |
 | 23 | `editor-tasks` | Управление заданиями онлайн-редактора караоке-разметки (сортировка, «Отказаться», «Удалить», массовое удаление одобренных в ЛК и админке) | [editor-tasks.md](./editor-tasks.md) |
+| 24 | `song-state-colors` | Производные состояния песен (DONE / TODAY / ON_AIR / EXCLUSIVE / IN_WORK) и их цвета в админке | [song-state-colors.md](./song-state-colors.md) |
 
 ## Cross-cutting (инфраструктура)
 

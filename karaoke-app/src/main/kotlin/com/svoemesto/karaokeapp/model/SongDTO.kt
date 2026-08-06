@@ -10,6 +10,7 @@ import kotlin.String
  * DTO для setting: сериализуемое представление для API/UI.
  *
  * @see docs/features/mlt-generator.md
+ * @see docs/features/song-state-colors.md — контракт поля `color` и канонических состояний.
  */
 data class SongDTO(
     val id: Long,

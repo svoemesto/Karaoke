@@ -30,87 +30,32 @@
     </div>
     <button
       class="color-button"
-      style="background-color: #7fffd4"
-      title="Полностью готово"
-      @click="clickColorButton('STATE_ALL_DONE')"
-    />
-    <button
-      class="color-button"
-      style="background-color: #bdb76b"
-      title="Просрочено"
-      @click="clickColorButton('STATE_OVERDUE')"
+      style="background-color: #ccffcc"
+      title="DONE — готово и расписание в прошлом / не сегодня"
+      @click="clickColorButton('STATE_DONE')"
     />
     <button
       class="color-button"
       style="background-color: #ffff00"
-      title="Сегодня"
+      title="TODAY — эфир сегодня в будущем"
       @click="clickColorButton('STATE_TODAY')"
     />
     <button
       class="color-button"
-      style="background-color: #dcdcdc"
-      title="Готово к публикации"
-      @click="clickColorButton('STATE_ALL_UPLOADED')"
+      style="background-color: #33ff33"
+      title="ON_AIR — постоянно бесплатна или внутри бесплатного окна"
+      @click="clickColorButton('STATE_ON_AIR')"
     />
     <button
       class="color-button"
-      style="background-color: #87cefa"
-      title="Нет TG"
-      @click="clickColorButton('STATE_WO_TG')"
+      style="background-color: #99ccff"
+      title="EXCLUSIVE — нет действительного расписания"
+      @click="clickColorButton('STATE_EXCLUSIVE')"
     />
     <button
       class="color-button"
-      style="background-color: #ffdab9"
-      title="Нет VK"
-      @click="clickColorButton('STATE_WO_VK')"
-    />
-    <button
-      class="color-button"
-      style="background-color: #ff8000"
-      title="Нет DZEN"
-      @click="clickColorButton('STATE_WO_DZEN')"
-    />
-    <button
-      class="color-button"
-      style="background-color: #ffc880"
-      title="Нет VKG"
-      @click="clickColorButton('STATE_WO_VKG')"
-    />
-    <button
-      class="color-button"
-      style="background-color: #ffffff"
-      title="Статус: NONE"
-      @click="clickColorButton('STATUS_0')"
-    />
-    <button
-      class="color-button"
-      style="background-color: #dda0dd"
-      title="Статус: Текст найден"
-      @click="clickColorButton('STATUS_1')"
-    />
-    <button
-      class="color-button"
-      style="background-color: #ee82ee"
-      title="Статус: Текст проверен"
-      @click="clickColorButton('STATUS_2')"
-    />
-    <button
-      class="color-button"
-      style="background-color: #98fb98"
-      title="Статус: Проект создан"
-      @click="clickColorButton('STATUS_3')"
-    />
-    <button
-      class="color-button"
-      style="background-color: #00ff7f"
-      title="Статус: Проект проверен"
-      @click="clickColorButton('STATUS_4')"
-    />
-    <button
-      class="color-button"
-      style="background-color: #00ff00"
-      title="Статус: Готово"
-      @click="clickColorButton('STATUS_6')"
+      title="IN_WORK — idStatus < 6"
+      @click="clickColorButton('STATE_IN_WORK')"
     />
     <button class="action-button" @click="clickActionButton('all')">С начала</button>
     <button class="action-button" @click="clickActionButton('fromtoday')">С сегодня</button>
@@ -130,8 +75,13 @@
 import { stringDDMMYYaddDays } from '../../../lib/utils'
 
 /**
- * Компонент «Publish Table Footer».
+ * Компонент «Publish Table Footer»: легенда из пяти состояний песни (DONE / TODAY / ON_AIR /
+ * EXCLUSIVE / IN_WORK), управление окном публикаций (дата/диапазон) и командные кнопки
+ * (С начала / С сегодня / … / UNPUBLISH / SKIPED). Цвета кнопок синхронизированы с backend —
+ * `Song.state.color`, см. `specs/155-song-state-colors/contracts/song-state-color.md` и
+ * `docs/features/song-state-colors.md`.
  *
+ * @see docs/features/song-state-colors.md
  * @see AGENTS.md
  */
 
@@ -176,7 +126,11 @@ export default {
   },
   methods: {
     async clickColorButton(param) {
-      this.publishDateFrom = await this.$store.dispatch('getPublicationsDateFrom', { param: param })
+      const date = await this.$store.dispatch('getPublicationsDateFrom', { param: param })
+      // Эндпоинт возвращает пустую строку для состояний без «живой» даты (EXCLUSIVE,
+      // IN_WORK) — сбрасываем фильтр в пустую дату вместо того, чтобы записывать "" в
+      // setDateTo() и ломать арифметику.
+      this.publishDateFrom = date || ''
       this.setDateTo()
       this.$store.dispatch('loadPublishDigest', {
         filterDateFrom: this.publishDateFrom,

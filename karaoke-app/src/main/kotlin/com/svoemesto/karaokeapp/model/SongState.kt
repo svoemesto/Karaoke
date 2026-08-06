@@ -1,28 +1,18 @@
 package com.svoemesto.karaokeapp.model
 
 /**
- * Перечисление возможных значений для состояния песни (song state).
+ * Перечисление пяти состояний песни, вычисляемых на базе готовности, бесплатности и расписания
+ * эфира. Заменяет устаревшую 16-значную палитру (ALL_DONE / OVERDUE / WO_TG / WO_VK и т.д.),
+ * привязанную к публикациям в социальных сетях. Цвет передаётся через DTO без отдельного поля.
  *
- * @see docs/features/dual-db-sync.md
+ * Приоритеты и инварианты — см. [docs/features/song-state-colors.md](../../../../../docs/features/song-state-colors.md).
  */
 enum class SongState(
     val color: String,
 ) {
-    ALL_DONE("#7FFFD4"), // Полностью готово
-    ALL_DONE_WO_SPONSR("#00CC00"), // Полностью готово, но без SPONSR
-    OVERDUE("#BDB76B"), // Публикация прошла, но не все ссылки заполнены
-    TODAY("#FFFF00"), // Сегодня
-    ALL_UPLOADED("#DCDCDC"), // Готово к публикации (всё загружено)
-    WO_TG("#87CEFA"), // Нет TG
-
-//    WO_TG_WITH_SPONSR("#60A2CE"),           // Нет TG
-    WO_PL("#66B2FF"), // Нет PL
-    WO_VK("#FFDAB9"), // Нет VK
-    WO_VK_WO_PL("#FFFEBA"), // Нет VK
-    WO_DZEN("#FF8000"), // Нет DZEN
-    BOOSTY_SPONSR("#FFAA55"), // Нет BOOSTY_SPONSR
-    WO_DZEN_WITH_VK("#FF3399"), // Нет DZEN, есть VK
-    WO_DZEN_WITH_VK_WITH_PL("#CC00CC"), // Нет DZEN, есть VK, есть PL
-    WO_VKG("#FFC880"), // Нет VKG
-    IN_WORK(""), // В работе
+    DONE("#CCFFCC"), // Готовая песня с действительным расписанием, не сегодня и не в эфире
+    TODAY("#FFFF00"), // Готовая не бесплатная песня, эфир сегодня в будущем
+    ON_AIR("#33FF33"), // Готовая песня, помеченная free=true или внутри бесплатного окна
+    EXCLUSIVE("#99CCFF"), // Готовая не бесплатная песня без действительного расписания
+    IN_WORK(""), // Песня в работе (idStatus < 6)
 }

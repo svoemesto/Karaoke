@@ -5968,170 +5968,32 @@ class Song(
         })"
     }
 
-    val state: SongState get() {
-        val currentCalendar = Calendar.getInstance()
-        val currentDateTime = currentCalendar.time
+    /**
+     * Производный цвет состояния песни — единый источник истины для всех представлений
+     * (SongDTO.color / SongDTOdigest.color / поле `color` в сетке публикаций).
+     *
+     * Инварианты и приоритеты — [SongState]; подробное описание и обоснование —
+     * [docs/features/song-state-colors.md](../../../../../docs/features/song-state-colors.md).
+     */
+    val state: SongState get() = resolveStateFor(moscowNow())
 
-        val formatter = SimpleDateFormat("dd/MM/yyyy")
-        val currentDate = formatter.parse(formatter.format(currentDateTime))
-        val datePublish = if (dateTimePublish == null) null else formatter.parse(formatter.format(dateTimePublish))
-        if (datePublish == null || idStatus < 6) return SongState.IN_WORK
+    /**
+     * Резолвинг состояния для фиксированного момента времени (для тестов и batch-пересчёта).
+     * Использует чистую top-level функцию [SongStateResolver.resolve] — контракт покрыт
+     * `SongStateTest` без создания экземпляра `Song` (и без Spring/БД/KSS_APP).
+     */
+    fun resolveStateFor(now: java.util.Date): SongState =
+        SongStateResolver.resolve(
+            idStatus = idStatus,
+            free = free,
+            dateTimePublish = dateTimePublish,
+            now = now,
+        )
 
-        if (datePublish == currentDate) {
-            if (
-                haveTelegram &&
-                haveVk &&
-                haveDzen &&
-//                havePl &&
-                haveVkGroup &&
-                haveSponsr
-            ) {
-                return SongState.ALL_DONE
-            } else if (
-                haveTelegram &&
-                haveVk &&
-                haveDzen &&
-//                havePl &&
-                haveVkGroup &&
-                !haveSponsr
-            ) {
-                return SongState.ALL_DONE_WO_SPONSR
-            } else {
-                return SongState.TODAY
-            }
-        }
-
-        if (datePublish < currentDate) {
-            if (
-                haveTelegram &&
-                haveVk &&
-                haveDzen &&
-//                havePl &&
-                haveVkGroup &&
-                haveSponsr
-            ) {
-                return SongState.ALL_DONE
-            } else if (
-                haveTelegram &&
-                haveVk &&
-                haveDzen &&
-//                havePl &&
-                haveVkGroup &&
-                !haveSponsr
-            ) {
-                return SongState.ALL_DONE_WO_SPONSR
-            } else {
-                return SongState.OVERDUE
-            }
-        }
-
-        if (
-            idTelegramKaraoke == "-" &&
-            haveVk &&
-            haveDzen &&
-//            havePl &&
-            haveVkGroup &&
-            haveSponsr
-        ) {
-            return SongState.ALL_UPLOADED
-        }
-
-        if (
-            !haveTelegram &&
-            haveVk &&
-            haveDzen &&
-//            havePl &&
-            haveVkGroup &&
-            haveSponsr
-        ) {
-            return SongState.WO_TG
-        }
-
-        if (
-            !haveTelegram &&
-            haveVk &&
-            haveDzen &&
-//            !havePl &&
-            haveVkGroup &&
-            haveSponsr
-        ) {
-            return SongState.WO_PL
-        }
-
-        if (
-            !haveTelegram &&
-            !haveVk &&
-            haveDzen &&
-//            !havePl &&
-            haveVkGroup &&
-            haveSponsr
-        ) {
-            return SongState.WO_VK_WO_PL
-        }
-
-        if (
-            !haveTelegram &&
-            !haveVk &&
-            haveDzen &&
-//            havePl &&
-            haveVkGroup &&
-            haveSponsr
-        ) {
-            return SongState.WO_VK
-        }
-
-        if (
-            !haveTelegram &&
-            haveVk &&
-            !haveDzen &&
-//            havePl &&
-            haveVkGroup &&
-            haveSponsr
-        ) {
-            return SongState.WO_DZEN_WITH_VK_WITH_PL
-        }
-
-        if (
-            !haveTelegram &&
-            haveVk &&
-            !haveDzen &&
-//            !havePl &&
-            haveVkGroup &&
-            haveSponsr
-        ) {
-            return SongState.WO_DZEN_WITH_VK
-        }
-
-        if (
-            !haveTelegram &&
-            !haveVk &&
-            !haveDzen &&
-//            havePl &&
-            haveVkGroup &&
-            haveSponsr
-        ) {
-            return SongState.WO_DZEN
-        }
-
-        if (
-            !haveTelegram &&
-            !haveVk &&
-            !haveDzen &&
-//            !havePl &&
-            haveVkGroup &&
-            haveSponsr
-        ) {
-            return SongState.BOOSTY_SPONSR
-        }
-
-        if (
-            !haveVkGroup
-        ) {
-            return SongState.WO_VKG
-        }
-
-        return SongState.IN_WORK
-    }
+    /** Текущий момент в московском часовом поясе; выделен для подмены в тестах. */
+    @Suppress("MemberVisibilityCanBePrivate")
+    fun moscowNow(): java.util.Date =
+        Calendar.getInstance(TimeZone.getTimeZone("Europe/Moscow")).time
 
     companion object {
         const val TABLE_NAME = "tbl_songs"
@@ -7913,19 +7775,11 @@ class Song(
 //                    val currentDate = formatter.parse(formatter.format(currentDateTime))
 //                    val datePublish = if (song.dateTimePublish == null) null else  formatter.parse(formatter.format(song.dateTimePublish))
 
-                    val color1 =
-                        when (song.idStatus) {
-                            0L -> "#FFFFFF"
-                            1L -> "#DDA0DD"
-                            2L -> "#EE82EE"
-                            3L -> "#98FB98"
-                            4L -> "#00FF7F"
-                            5L -> "#D2691E"
-                            6L -> "#00FF00"
-                            else -> "#FFFFFF"
-                        }
-
-                    song.fields[SongField.COLOR] = if (song.state.color == "") color1 else song.state.color
+                    // FR-006 spec.md: для IN_WORK цвет остаётся пустой строкой. Старый fallback
+                    // по idStatus удалён — ранее он подменял пустой цвет одной из палитровых констант,
+                    // что размывало разницу между жизненным циклом и доступностью. Подробнее —
+                    // docs/features/song-state-colors.md.
+                    song.fields[SongField.COLOR] = song.state.color
 
 //                    if (args.containsKey("text")) {
 //                        if (song.getWords().containsAll((args["text"]?:"").getWords())) result.add(song)

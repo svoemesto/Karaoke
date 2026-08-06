@@ -5,9 +5,10 @@ import java.io.Serializable
 import java.util.*
 
 /**
- * Класс Song DT Odigest.
+ * Класс Song DTOdigest.
  *
  * @see docs/features/mlt-generator.md
+ * @see docs/features/song-state-colors.md — контракт поля `color` и канонических состояний.
  */
 data class SongDTOdigest(
     val id: Long,

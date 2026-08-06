@@ -3414,12 +3414,16 @@ class ApiController(
         } ?: ""
     }
 
-    // Получаем дату начала для публикаций
+    // Получаем дату начала для публикаций — узкий контракт из пяти токенов
+    // (STATE_DONE / STATE_TODAY / STATE_ON_AIR / STATE_EXCLUSIVE / STATE_IN_WORK) см.
+    // specs/155-song-state-colors/contracts/publications-date-filter.md. Старые STATE_WO_* /
+    // STATUS_* токены больше не обслуживаются.
     @PostMapping("/publications/date")
     @ResponseBody
     fun getPublicationsDateFrom(
         @RequestParam param: String,
     ): String {
+        val target = paramToSongState(param) ?: return ""
         val currentCalendar = Calendar.getInstance()
         val currentDateTime = currentCalendar.time
 
@@ -3434,120 +3438,39 @@ class ApiController(
                 storageApiClient = storageApiClient,
                 withoutMarkersAndText = true,
             )
-        val sett =
-            when (param) {
-                "STATE_ALL_DONE" ->
-                    song.firstOrNull { it.state == SongState.ALL_DONE }
-                        ?: song.firstOrNull {
-                            it.dateTimePublish != null &&
-                                formatter.parse(
-                                    formatter.format(it.dateTimePublish),
-                                ) == currentDate
-                        }
-                "STATE_OVERDUE" ->
-                    song.firstOrNull { it.state == SongState.OVERDUE }
-                        ?: song.firstOrNull {
-                            it.dateTimePublish != null &&
-                                formatter.parse(
-                                    formatter.format(it.dateTimePublish),
-                                ) == currentDate
-                        }
-                "STATE_TODAY" ->
-                    song.firstOrNull {
+        val byExactState =
+            song.firstOrNull { it.state == target }
+        if (byExactState != null) return byExactState.date
+        // Для состояний без жёсткой привязки к дате (EXCLUSIVE, IN_WORK) актуальная дата может
+        // не существовать — возвращаем пустую строку, чтобы UI обработал «нет даты» без арифметики.
+        return when (target) {
+            SongState.EXCLUSIVE, SongState.IN_WORK -> ""
+            else -> {
+                song
+                    .firstOrNull {
                         it.dateTimePublish != null &&
                             formatter.parse(formatter.format(it.dateTimePublish)) == currentDate
-                    }
-                "STATE_ALL_UPLOADED" ->
-                    song.firstOrNull { it.state == SongState.ALL_UPLOADED }
-                        ?: song.firstOrNull {
-                            it.dateTimePublish != null &&
-                                formatter.parse(
-                                    formatter.format(it.dateTimePublish),
-                                ) == currentDate
-                        }
-                "STATE_WO_TG" ->
-                    song.firstOrNull { it.state == SongState.WO_TG }
-                        ?: song.firstOrNull {
-                            it.dateTimePublish != null &&
-                                formatter.parse(
-                                    formatter.format(it.dateTimePublish),
-                                ) == currentDate
-                        }
-                "STATE_WO_VK" ->
-                    song.firstOrNull { it.state == SongState.WO_VK }
-                        ?: song.firstOrNull {
-                            it.dateTimePublish != null &&
-                                formatter.parse(
-                                    formatter.format(it.dateTimePublish),
-                                ) == currentDate
-                        }
-                "STATE_WO_DZEN" ->
-                    song.firstOrNull { it.state == SongState.WO_DZEN }
-                        ?: song.firstOrNull {
-                            it.dateTimePublish != null &&
-                                formatter.parse(
-                                    formatter.format(it.dateTimePublish),
-                                ) == currentDate
-                        }
-                "STATE_WO_VKG" ->
-                    song.firstOrNull { it.state == SongState.WO_VKG }
-                        ?: song.firstOrNull {
-                            it.dateTimePublish != null &&
-                                formatter.parse(
-                                    formatter.format(it.dateTimePublish),
-                                ) == currentDate
-                        }
-                "STATUS_0" ->
-                    song.firstOrNull { it.state == SongState.IN_WORK && it.idStatus == 0L }
-                        ?: song.firstOrNull {
-                            it.dateTimePublish != null &&
-                                formatter.parse(
-                                    formatter.format(it.dateTimePublish),
-                                ) == currentDate
-                        }
-                "STATUS_1" ->
-                    song.firstOrNull { it.state == SongState.IN_WORK && it.idStatus == 1L }
-                        ?: song.firstOrNull {
-                            it.dateTimePublish != null &&
-                                formatter.parse(
-                                    formatter.format(it.dateTimePublish),
-                                ) == currentDate
-                        }
-                "STATUS_2" ->
-                    song.firstOrNull { it.state == SongState.IN_WORK && it.idStatus == 2L }
-                        ?: song.firstOrNull {
-                            it.dateTimePublish != null &&
-                                formatter.parse(
-                                    formatter.format(it.dateTimePublish),
-                                ) == currentDate
-                        }
-                "STATUS_3" ->
-                    song.firstOrNull { it.state == SongState.IN_WORK && it.idStatus == 3L }
-                        ?: song.firstOrNull {
-                            it.dateTimePublish != null &&
-                                formatter.parse(
-                                    formatter.format(it.dateTimePublish),
-                                ) == currentDate
-                        }
-                "STATUS_4" ->
-                    song.firstOrNull { it.state == SongState.IN_WORK && it.idStatus == 4L }
-                        ?: song.firstOrNull {
-                            it.dateTimePublish != null &&
-                                formatter.parse(
-                                    formatter.format(it.dateTimePublish),
-                                ) == currentDate
-                        }
-                "STATUS_6" ->
-                    song.firstOrNull { it.state == SongState.IN_WORK && it.idStatus == 6L }
-                        ?: song.firstOrNull {
-                            it.dateTimePublish != null &&
-                                formatter.parse(
-                                    formatter.format(it.dateTimePublish),
-                                ) == currentDate
-                        }
+                    }?.date ?: ""
+            }
+        }
+    }
+
+    companion object {
+        /**
+         * Маппинг токенов endpoint `/api/publications/date` → целевой [SongState]. Чистая
+         * функция (без БД), чтобы unit-тест [com.svoemesto.karaokeapp.controllers.PublicationsDateFilterTest]
+         * мог проверять контракт без поднятия Spring.
+         */
+        @JvmStatic
+        fun paramToSongState(param: String): SongState? =
+            when (param) {
+                "STATE_DONE" -> SongState.DONE
+                "STATE_TODAY" -> SongState.TODAY
+                "STATE_ON_AIR" -> SongState.ON_AIR
+                "STATE_EXCLUSIVE" -> SongState.EXCLUSIVE
+                "STATE_IN_WORK" -> SongState.IN_WORK
                 else -> null
-            } ?: return ""
-        return sett.date
+            }
     }
 
     // Сохраняем маркеры для войса

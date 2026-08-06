@@ -832,9 +832,119 @@ karaoke-app на проде не разворачивается». `replaceSymbo
   ничего не нашёл и поднял вопрос. Grep по файлам `karaoke-app/.../controllers/*.kt`
   даёт ложное ощущение покрытия.
 
+> ⚠ **Дополнение (2026-08-06, PR #206):** фикс выше **оказался неполным** — после деплоя
+> на локальной сборке `karaoke-web` начал отвечать 500 `Internal Server Error` вместо 405.
+> Причина: прямой вызов `com.svoemesto.karaokeapp.Utils.replaceSymbolsInSong(txt)` из
+> `karaoke-web` при первом обращении триггерит JVM-init класса
+> `com.svoemesto.karaokeapp.ConstantsKt`, который собирает карту
+> `mapOf(ProducerType.X to MkoY::class.java, ...)` — загружаются ВСЕ MLT-классы
+> (`com.svoemesto.karaokeapp.mlt.mko.*`), часть которых при class init обращается к
+> `APP_WORK_ON_SERVER`/`WORKING_DATABASE` для MLT, настроенным только в `karaoke-app`
+> (на проде `karaoke-app` не развёрнут — переменные не инициализированы). Результат —
+> `NoClassDefFoundError: Could not initialize class com.svoemesto.karaokeapp.ConstantsKt`.
+> Чистый «pure top-level» анализ в коде был верен, но неполон: JVM class loading тянет
+> зависимости по цепочке, а не только то, что явно вызвано. См. PR #206 ниже.
+
 **Связанные документы:** [`docs/features/editor-tasks.md`](./features/editor-tasks.md) —
 per-feature документ для редакторских задач (обновлён, убрано ложное «Backend не менялся»,
 добавлен явный пункт про дубль в `karaoke-web`). [`specs/155-editor-typograph-button/contracts/replacesymbolsinsong.md`](../specs/155-editor-typograph-button/contracts/replacesymbolsinsong.md) — контракт endpoint'а (без изменений, единый для обоих бэкендов). [`karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicTypographController.kt`](../../karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicTypographController.kt) — сам дубль. Эталон паттерна: [`karaoke-web/.../PublicSettingsWebController.kt`](../../karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicSettingsWebController.kt).
+
+---
+
+### 2026-08-06 — PR #206: `157-fix-typograph-public-endpoint`
+
+**Что.** Комплексный дофикс спеки 155 / PR #205 (типограф в паблике) — три проблемы
+одной строкой `POST /api/replacesymbolsinsong` от паблика, каждая снимает предыдущий симптом:
+
+1. **Nginx в `karaoke-public` не проксирует этот URL.** Конфиг `karaoke-public/
+   nginx_karaoke-public.conf` имеет только два `location`: `/api/public` и `/api/storage`.
+   Все остальные `/api/*` падают в `try_files $uri $uri/ /index.html;` — и для **POST**
+   nginx отдаёт **405 Method Not Allowed** (статика не принимает не-GET, в отличие от GET,
+   который через `try_files` отдаёт `index.html` со статусом 200). Добавлен
+   `location /api/replacesymbolsinsong` с `proxy_pass http://karaoke-web:7799` —
+   минимально-инвазивно, не сломает существующее поведение других `/api/*` путей.
+
+2. **`Utils.replaceSymbolsInSong` из `karaoke-app` не вызывается из `karaoke-web` без
+   побочного class loading.** После PR #205 первый POST отвечал **500 Internal Server
+   Error** (а не 200) с `NoClassDefFoundError: Could not initialize class
+   com.svoemesto.karaokeapp.ConstantsKt`. Функция в `karaoke-app` сама pure, но при
+   первом обращении JVM инициализирует `Constants.kt`, который собирает карту
+   `ProducerType → Mko*::class.java` — загружаются все MLT-классы, часть которых
+   при init лезет в `APP_WORK_ON_SERVER`/`WORKING_DATABASE`/`/sm-karaoke/system/...`,
+   настроенные только в `karaoke-app`. На проде `karaoke-app` не развёрнут — переменные
+   не инициализированы — JVM class init падает. Решение: **скопировать pure-логику
+   (`replaceSymbolsInSong` + 6 String-extensions + 2 константы) в
+   `karaoke-web/TypographUtils.kt`**, без зависимости от `com.svoemesto.karaokeapp.*`.
+   Чтение Ё-словаря — прямой SQL к `tbl_dictionaries` через локальный `WORKING_DATABASE`
+   (он уже инициализирован в `karaoke-web` через `Connection.local()`), без обращения
+   к karaoke-app-модели `Dictionary` (та тоже тянет class loading).
+
+3. **`PublicTypographController` переписан** — теперь вызывает локальный
+   `com.svoemesto.karaokeweb.replaceSymbolsInSong`, а не `com.svoemesto.karaokeapp.*`.
+
+**Зачем.** Без PR #205 кнопка в паблике возвращала 405 (nginx). Без этого PR #206 — после
+#205 начала бы возвращать 500 (Spring) и на локалке, и на проде. Спека 155 заявляла
+«та же кнопка, что и в админке» — это правильная цель, но «как в админке» не значит
+«прямой вызов той же функции через module dependency». Только в `karaoke-app` живут все
+нужные для MLT глобалы, и поднять их в `karaoke-web` нельзя без полной инициализации
+всего `karaoke-app` (что, по задумке, делает `KaraokeAppService`/`Karaoke.kt` —
+компонент, который **намеренно не поднимается** в `karaoke-web`, см.
+`KaraokeWebApplication.kt` и `WorkingDatabase.kt`).
+
+**Что НЕ делалось.**
+- Не ревертил PR #205 — он содержит рабочий код (контроллер с правильным URL/mаршрутизацией),
+  только меняется его тело (импорт). Реверт + rebase был бы лишним шумом, контроллер и так
+  короткий.
+- Не трогал фронт (`karaoke-public/src/views/EditorWorkView.vue` — URL/method не меняются,
+  бэк-контракт идентичный).
+- Не трогал эндпоинт в `karaoke-app` (`ApiController.kt:5052` + `MainController.kt:970`) — он
+  продолжает работать для `webvue3` (admin), там class init полностью валиден.
+
+**Проверка локально (на `nsa-i9`):**
+
+```bash
+docker exec karaoke-public nginx -t && docker exec karaoke-public nginx -s reload
+cd deploy && bash do.sh build_start_web
+curl -sG --data-urlencode 'txt=privet,mir' -X POST \
+  'http://localhost:7907/api/replacesymbolsinsong'
+# privet, mir                                         (200, запятая + пробел)
+
+curl -sG --data-urlencode 'txt=Он сказал "привет"' -X POST \
+  'http://localhost:7907/api/replacesymbolsinsong'
+# Он сказал «привет»                                  (200, «ёлочки»)
+
+curl -sG --data-urlencode 'txt=всё её еще' -X POST \
+  'http://localhost:7907/api/replacesymbolsinsong'
+# всё её ещё                                          (200, Ё-словарь: ещё→ещё? нет,
+#   оригинал в karaoke-app так же; «ещё» уже с ё, не трогается; «еще» в слове «еще» — не в
+#   словаре, как и в karaoke-app)
+```
+
+**Уроки / тонкости.**
+- **«Pure function» ≠ «безопасно вызывать из любого модуля».** Даже pure top-level
+  функция может при первом обращении дёрнуть class init зависимостей через `const val`/
+  `val mapOf` в файле, где она определена. **Перед тем как полагаться на
+  `implementation(project(":other"))` для доступа к utility-функциям, надо
+  верифицировать, что файл, в котором они определены, загружается без сайд-эффектов**
+  (в идеале — `grep -E '^(const val|val)\s' файл.kt | grep -v simple` + ручная проверка).
+  В нашем случае `Constants.kt:149-199` (`val TEXT_FILE_DICTS`, `val producerTypeClass`)
+  явно триггерит загрузку `Mko*` через `mapOf(... X::class.java, ...)`.
+- **«По образцу PublicSettingsWebController» ≠ «можно копировать буквально».** В том
+  контроллере обращение к `WORKING_DATABASE` безопасно, потому что БД-глобал
+  инициализируется рано (`KaraokeWebApplicationKt`). А в `karaoke-app` — помимо БД ещё
+  нужен MLT-глобал, и его в `karaoke-web` нет by design. Разница в **объёме глобального
+  состояния**, которое тянет за собой вызов.
+- **Nginx 405 на `try_files` POST** — частая ловушка, не описанная в CONTRIBUTING.md.
+  `try_files $uri $uri/ /index.html;` корректно отдаёт `index.html` (200) на GET,
+  но для POST/DELETE/PUT возвращает 405 (статика не поддерживает не-безопасные методы).
+  Лечится либо явно `proxy_pass` для не-безопасных методов, либо `error_page 405 = @fallback;`
+  с `location @fallback { try_files ... }`, либо отдельным `location` для каждого
+  не-безопасного URL.
+
+**Связанные документы:** [`karaoke-public/nginx_karaoke-public.conf`](../../karaoke-public/nginx_karaoke-public.conf) —
+nginx-конфиг с новым location. [`karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/TypographUtils.kt`](../../karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/TypographUtils.kt) — локальная копия правил.
+[`karaoke-web/.../PublicTypographController.kt`](../../karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicTypographController.kt) — обновлённый контроллер. Эталон логики, которая скопирована: [`karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:1460`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt) и [`karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Extentions.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Extentions.kt). PR #205 (предыдущая попытка, неполная): [см. выше](#2026-08-06--pr-205-156-typograph-public-endpoint).
+
 
 
 

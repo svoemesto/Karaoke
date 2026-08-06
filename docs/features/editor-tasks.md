@@ -101,11 +101,21 @@
   backend-эндпоинт `POST /api/replacesymbolsinsong`. Ответ — сырая строка, НЕ JSON.
 - **Backend**: в `karaoke-app` endpoint не менялся (`ApiController.kt:5052` + `MainController.kt:970`,
   вызывает `Utils.replaceSymbolsInSong()`, `permitAll` в `SecurityConfig.kt`). Для публичного
-  сайта добавлен **тонкий дубль** в `karaoke-web` (`PublicTypographController.kt`,
-  PR #205 / spec 156) — иначе nginx `karaoke-public` проксирует запрос на `karaoke-web`, а там
-  endpoint отсутствует и Spring возвращает 405. В `karaoke-web` дубль вызывает
-  `Utils.replaceSymbolsInSong()` напрямую через зависимость `karaoke-web → karaoke-app`
-  (top-level pure function, без БД/сессий/Spring-бинов).
+  сайта добавлен **тонкий дубль** в `karaoke-web`:
+  - `PublicTypographController.kt` (PR #205) — `@PostMapping("/api/replacesymbolsinsong")`.
+  - `TypographUtils.kt` (PR #206) — **локальная копия** `replaceSymbolsInSong` + 6
+    String-extensions + 2 константы (`RUSSIAN_LETTERS`, `CHORDS_LETTERS`). Скопирована
+    из `karaoke-app/Utils.kt:1460` и `Extentions.kt` потому, что прямой вызов
+    `com.svoemesto.karaokeapp.replaceSymbolsInSong` из `karaoke-web` тянет за собой
+    class init `Constants.kt` (карта `ProducerType → Mko*::class.java` → загрузка всех
+    MLT-классов, часть которых при init лезет в `APP_WORK_ON_SERVER`/`WORKING_DATABASE`,
+    настроенные только в `karaoke-app`) — `NoClassDefFoundError` в рантайме. Ё-словарь
+    читается прямым SQL к `tbl_dictionaries` через локальный `WORKING_DATABASE`.
+  - В nginx `karaoke-public/nginx_karaoke-public.conf` добавлен
+    `location /api/replacesymbolsinsong` (PR #206) — иначе nginx отдаёт 405
+    `Method Not Allowed` на POST (статика через `try_files` не принимает не-GET).
+  - Без обоих PR: nginx 405 → после PR #205: Spring 500 (class init упал) → после
+    PR #206: Spring 200 + корректный текст.
 - **Без диалога подтверждения** — в отличие от соседней «Очистить маркеры» (действие обратимо
   через обычный undo текстового поля, правки правил не удаляют структуру).
 - **Пересинхронизация маркеров**: после замены вызывается уже существующий `onTextInput()` (тот

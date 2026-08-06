@@ -1,6 +1,6 @@
 package com.svoemesto.karaokeweb.controllers
 
-import com.svoemesto.karaokeapp.replaceSymbolsInSong
+import com.svoemesto.karaokeweb.replaceSymbolsInSong
 import org.springframework.stereotype.Controller
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestParam
@@ -16,13 +16,20 @@ import org.springframework.web.bind.annotation.ResponseBody
  * `karaoke-public/src/views/EditorWorkView.vue` получает 405 (`Method Not Allowed`) от Spring,
  * потому что в `karaoke-web` нет соответствия для POST `/api/replacesymbolsinsong`.
  *
- * Реализация — прямой вызов `Utils.replaceSymbolsInSong(txt)` из `karaoke-app` (зависимость
- * `karaoke-web → karaoke-app` уже есть, см. `karaoke-web/build.gradle.kts:24`). Никаких БД,
- * сессий, Spring-бинов karaoke-app — функция чистая, детерминированная, без побочных эффектов.
+ * Реализация — прямой вызов локальной [`replaceSymbolsInSong`](../TypographUtils.kt.html), а не
+ * `com.svoemesto.karaokeapp.replaceSymbolsInSong`: последняя при первом обращении тянет за собой
+ * `Constants.kt` из `karaoke-app`, который при class init собирает карту `ProducerType → Mko*`
+ * (MLT) — JVM загружает все `Mko*`-классы, часть которых при инициализации обращается к
+ * `APP_WORK_ON_SERVER`/`WORKING_DATABASE` для MLT, настроенным только в `karaoke-app`. На проде
+ * `karaoke-app` не развёрнут — переменные не инициализированы — class init падает с
+ * `NoClassDefFoundError: Could not initialize class com.svoemesto.karaokeapp.ConstantsKt`,
+ * и POST возвращает 500 `Internal Server Error`. Локальная копия правил (в `TypographUtils.kt`)
+ * отрезает karaoke-web от этого class loading, поведение идентично.
  *
- * Контракт и поведение идентичны эталонам в `karaoke-app` (`specs/155-editor-typograph-button/
- * contracts/replacesymbolsinsong.md`). Этот же endpoint в `karaoke-app` остаётся рабочим для
- * админки (`webvue3` → nginx → `karaoke-app:8898`), дублирование намеренное.
+ * Контракт и поведение идентичны эталонам в `karaoke-app`
+ * (`specs/155-editor-typograph-button/contracts/replacesymbolsinsong.md`). Этот же endpoint в
+ * `karaoke-app` остаётся рабочим для админки (`webvue3` → nginx → `karaoke-app:8898`),
+ * дублирование намеренное.
  *
  * @see docs/features/editor-tasks.md
  */
@@ -41,5 +48,5 @@ class PublicTypographController {
     @ResponseBody
     fun replaceSymbolsInSong(
         @RequestParam(required = true) txt: String,
-    ): String = com.svoemesto.karaokeapp.replaceSymbolsInSong(txt)
+    ): String = replaceSymbolsInSong(txt)
 }

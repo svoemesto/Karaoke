@@ -945,6 +945,52 @@ curl -sG --data-urlencode 'txt=всё её еще' -X POST \
 nginx-конфиг с новым location. [`karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/TypographUtils.kt`](../../karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/TypographUtils.kt) — локальная копия правил.
 [`karaoke-web/.../PublicTypographController.kt`](../../karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicTypographController.kt) — обновлённый контроллер. Эталон логики, которая скопирована: [`karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt:1460`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt) и [`karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Extentions.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Extentions.kt). PR #205 (предыдущая попытка, неполная): [см. выше](#2026-08-06--pr-205-156-typograph-public-endpoint).
 
+---
+
+### 2026-08-06 — PR #207: `158-hotfix-typograph-recursion`
+
+**Что.** Hotfix регрессии в PR #206 — после упрощения `= com.svoemesto.karaokeweb.replaceSymbolsInSong(txt)`
+до `= replaceSymbolsInSong(txt)` в `PublicTypographController.kt:51` контроллер стал вызывать
+**сам себя** (бесконечная рекурсия → `StackOverflowError` → HTTP 500). Восстановлен fully-qualified
+вызов + комментарий-предупреждение рядом.
+
+**Зачем.** В Kotlin **локальная декларация метода имеет приоритет над одноимённым top-level
+import** в том же пакете. Импорт `import com.svoemesto.karaokeweb.replaceSymbolsInSong` + метод
+контроллера с тем же именем → в теле метода `replaceSymbolsInSong` резолвится в сам метод
+контроллера, а не в импортированную функцию. Рекурсия не сразу видна (компилируется без
+предупреждений), проявляется только в рантайме как `StackOverflowError`. Полностью убрать
+нельзя (имя метода контроллера диктуется контрактом, см. спеку 155 — URL endpoint'а
+содержит `replacesymbolsinsong`, имя метода в Spring-коде должно соответствовать).
+
+**Альтернатива, которая была отвергнута:** переименовать метод контроллера (например,
+`handleReplaceSymbolsInSong`) — отклонено: имя метода = часть URL привязки в Spring (если
+использовать `MvcUriComponentsBuilder` / `@RequestMapping` по имени), плюс ухудшает читаемость
+KDoc «вызывает локальную `replaceSymbolsInSong`» — имя функции в комментарии должно совпадать
+с именем вызываемой. Альтернативный путь: вынести `replaceSymbolsInSong` в другой пакет
+(`com.svoemesto.karaokeweb.typograph`) и импортировать — отклонено: переплетение
+с `WORKING_DATABASE` (тоже в `com.svoemesto.karaokeweb`) требует или `internal`, или
+публичного API, что в нашем проекте для top-level util-функций не принято (см. `Utils.kt`
+в `karaoke-app` — top-level без отдельного sub-пакета).
+
+**Уроки / тонкости.**
+- **«Упростил — стало чище»** — опасный инстинкт, когда есть импортированная функция с
+  тем же именем, что и метод. Перед упрощением надо проверять scope resolution — проще
+  через grep по проекту, чтобы убедиться, что в `controllers/PublicTypographController.kt`
+  нет `import com.svoemesto.karaokeweb.replaceSymbolsInSong` (или наоборот, проверить, что
+  `replaceSymbolsInSong` нигде не определён внутри класса).
+- **CI не ловит регрессию** — это runtime StackOverflow, а не compile error. Локальный
+  smoke-test (`curl POST /api/replacesymbolsinsong`) после **каждого** изменения
+  в коде контроллера обязателен. В этом случае я сделал curl **до** упрощения, не **после** —
+  отсюда регрессия.
+- **Канонический Kotlin-фикс** для таких коллизий: `@JvmName("invokeLocalReplaceSymbolsInSong")`
+  на top-level функции + явный импорт. Не использовал, потому что:
+  (а) `replaceSymbolsInSong` уже существует в `karaoke-app` с тем же именем — конфликт JVM;
+  (б) `@JvmName` нужно применять к обоим определениям (в `karaoke-app` и в `karaoke-web`),
+      что выходит за рамки hotfix'а.
+
+**Связанные документы:** [`karaoke-web/.../PublicTypographController.kt:51`](../../karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicTypographController.kt) — сам hotfix (fully-qualified + комментарий). PR #206 (сломанный): [см. выше](#2026-08-06--pr-206-157-fix-typograph-public-endpoint).
+
+
 
 
 

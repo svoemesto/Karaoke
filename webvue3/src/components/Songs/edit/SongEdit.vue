@@ -2294,38 +2294,16 @@
             <!--            <button class="group-button" @click="createDescriptionFileLyrics" title="Создать текст LYRICS">Создать текст LYRICS</button>-->
             <!--            <button class="group-button" @click="createDescriptionFileChords" title="Создать текст CHORDS">Создать текст CHORDS</button>-->
             <!--            <button class="group-button" @click="createDescriptionFileTabs" title="Создать текст TABS">Создать текст TABS</button>-->
-            <button
-              class="group-button"
-              title="PLAY KARAOKE"
-              :style="{ backgroundColor: song.processColorMeltKaraoke }"
-              @click="playKaraoke"
-            >
+            <button class="group-button" title="PLAY KARAOKE" @click="playKaraoke">
               PLAY KARAOKE
             </button>
-            <button
-              class="group-button"
-              title="PLAY LYRICS"
-              :style="{ backgroundColor: song.processColorMeltLyrics }"
-              @click="playLyrics"
-            >
+            <button class="group-button" title="PLAY LYRICS" @click="playLyrics">
               PLAY LYRICS
             </button>
-            <button
-              class="group-button"
-              title="PLAY CHORDS"
-              :style="{ backgroundColor: song.processColorMeltChords }"
-              @click="playChords"
-            >
+            <button class="group-button" title="PLAY CHORDS" @click="playChords">
               PLAY CHORDS
             </button>
-            <button
-              class="group-button"
-              title="PLAY TABS"
-              :style="{ backgroundColor: song.processColorMeltMelody }"
-              @click="playTabs"
-            >
-              PLAY TABS
-            </button>
+            <button class="group-button" title="PLAY TABS" @click="playTabs">PLAY TABS</button>
             <button class="group-button" title="PLAY DEMO" @click="playDemo">PLAY DEMO</button>
             <div class="group-button">
               <b-form-rating id="rate-inline-form" v-model="song.rate" inline />

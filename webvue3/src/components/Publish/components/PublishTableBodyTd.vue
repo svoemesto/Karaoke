@@ -14,38 +14,6 @@
         @click.left="editSong"
         v-text="publishText"
       />
-      <div class="publish-column">
-        <div
-          class="publish-column-cell-top"
-          :style="processColorMeltLyrics"
-          @dblclick="dblClickLyrics"
-        />
-        <div
-          class="publish-column-cell-bottom"
-          :style="processColorMeltKaraoke"
-          @dblclick="dblClickKaraoke"
-        />
-      </div>
-      <div class="publish-column">
-        <div class="publish-column-cell-top" :style="processColorSponsr" />
-        <div class="publish-column-cell-bottom" :style="processColorVk" />
-      </div>
-      <div class="publish-column">
-        <div class="publish-column-cell-top" :style="processColorDzenLyrics" />
-        <div class="publish-column-cell-bottom" :style="processColorDzenKaraoke" />
-      </div>
-      <div class="publish-column">
-        <div class="publish-column-cell-top" :style="processColorVkLyrics" />
-        <div class="publish-column-cell-bottom" :style="processColorVkKaraoke" />
-      </div>
-      <div class="publish-column">
-        <div class="publish-column-cell-top" :style="processColorPlLyrics" />
-        <div class="publish-column-cell-bottom" :style="processColorPlKaraoke" />
-      </div>
-      <div class="publish-column">
-        <div class="publish-column-cell-top" :style="processColorTelegramLyrics" />
-        <div class="publish-column-cell-bottom" :style="processColorTelegramKaraoke" />
-      </div>
     </div>
     <div v-else class="empty" />
   </div>
@@ -94,63 +62,6 @@ export default {
     styleSongName() {
       return { backgroundColor: this.publish.color }
     },
-    processColorBoosty() {
-      return { backgroundColor: this.publish.processColorBoosty }
-    },
-    processColorSponsr() {
-      return { backgroundColor: this.publish.processColorSponsr }
-    },
-    processColorVk() {
-      return { backgroundColor: this.publish.processColorVk }
-    },
-    processColorVkLyrics() {
-      return { backgroundColor: this.publish.processColorVkLyrics }
-    },
-    processColorVkKaraoke() {
-      return { backgroundColor: this.publish.processColorVkKaraoke }
-    },
-    processColorVkChords() {
-      return { backgroundColor: this.publish.processColorVkChords }
-    },
-    processColorDzenLyrics() {
-      return { backgroundColor: this.publish.processColorDzenLyrics }
-    },
-    processColorDzenKaraoke() {
-      return { backgroundColor: this.publish.processColorDzenKaraoke }
-    },
-    processColorDzenChords() {
-      return { backgroundColor: this.publish.processColorDzenChords }
-    },
-    processColorMeltLyrics() {
-      return { backgroundColor: this.publish.processColorMeltLyrics }
-    },
-    processColorMeltKaraoke() {
-      return { backgroundColor: this.publish.processColorMeltKaraoke }
-    },
-    processColorMeltChords() {
-      return { backgroundColor: this.publish.processColorMeltChords }
-    },
-    processColorMeltMelody() {
-      return { backgroundColor: this.publish.processColorMeltMelody }
-    },
-    processColorTelegramLyrics() {
-      return { backgroundColor: this.publish.processColorTelegramLyrics }
-    },
-    processColorTelegramKaraoke() {
-      return { backgroundColor: this.publish.processColorTelegramKaraoke }
-    },
-    processColorTelegramChords() {
-      return { backgroundColor: this.publish.processColorTelegramChords }
-    },
-    processColorPlLyrics() {
-      return { backgroundColor: this.publish.processColorPlLyrics }
-    },
-    processColorPlKaraoke() {
-      return { backgroundColor: this.publish.processColorPlKaraoke }
-    },
-    processColorPlChords() {
-      return { backgroundColor: this.publish.processColorPlChords }
-    },
   },
   methods: {
     editSong() {
@@ -159,15 +70,6 @@ export default {
     },
     closeSongEdit() {
       this.isSongEditVisible = false
-    },
-    dblClickKaraoke() {
-      return this.$store.getters.playKaraoke(this.publish.id)
-    },
-    dblClickLyrics() {
-      return this.$store.getters.playLyrics(this.publish.id)
-    },
-    dblClickChords() {
-      return this.$store.getters.playChords(this.publish.id)
     },
   },
 }
@@ -180,8 +82,8 @@ export default {
 .publish {
   display: flex;
   flex-direction: row;
-  min-width: 200px;
-  max-width: 200px;
+  min-width: 210px;
+  max-width: 210px;
   min-height: 20px;
   max-height: 20px;
   /*border: thin solid black;*/
@@ -189,7 +91,7 @@ export default {
 }
 .publish-name {
   display: block;
-  width: 150px;
+  width: 210px;
   text-align: left;
   border-color: black;
   border-width: thin thin 0 thin;
@@ -204,35 +106,9 @@ export default {
   color: red;
   cursor: pointer;
 }
-.publish-column {
-  font-size: 0;
-  display: flex;
-  flex-direction: column;
-  width: 10px;
-  height: 20px;
-  border-width: thin thin 0 0;
-  border-style: solid solid none none;
-  background-color: transparent;
-}
-.publish-column-cell-top {
-  font-size: 0;
-  display: block;
-  width: 10px;
-  height: 10px;
-  border-width: 0 thin thin 0;
-  border-style: none solid solid none;
-}
-.publish-column-cell-bottom {
-  font-size: 0;
-  display: block;
-  width: 10px;
-  height: 10px;
-  border-width: 0 thin 0 0;
-  border-style: none solid none none;
-}
 .empty {
   font-size: 0;
-  width: 200px;
+  width: 210px;
   height: 20px;
   background-color: grey;
   border: thin black;

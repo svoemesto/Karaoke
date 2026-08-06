@@ -790,4 +790,51 @@ systemctl reload nginx
 
 **Связанные документы:** [`specs/144-homepage-latest-news/`](../specs/144-homepage-latest-news/) — фича, которая обнажила баг (через PR #187/#188/#189). [`docs/features/homepage-latest-news.md`](./features/homepage-latest-news.md) — per-feature документ блока новостей (обновлён, добавлена ловушка про `window.open` и nginx-location `/song`). [`deploy/web-server-deploy/deploy/80to8897`](../../deploy/web-server-deploy/deploy/80to8897) — сам конфиг с фиксом.
 
+---
+
+## 2026-08 — Phase 003: `156-typograph-public-endpoint`
+
+### 2026-08-06 — PR #205: `156-typograph-public-endpoint`
+
+**Что.** Кнопка «Типограф» в `karaoke-public/src/views/EditorWorkView.vue` возвращала
+405 `Method Not Allowed` на проде (`api/replacesymbolsinsong`). Добавлен тонкий дубль
+endpoint'а в `karaoke-web` (`PublicTypographController.kt`), который напрямую вызывает
+`Utils.replaceSymbolsInSong()` из `karaoke-app` через зависимость `karaoke-web → karaoke-app`.
+
+**Зачем.** Спека 155 (PR #204) корректно переиспользовала backend-эндпоинт
+`POST /api/replacesymbolsinsong`, но исходила из посылки «backend не менялся — endpoint
+уже работал». Это верно для **admin** (`webvue3` → nginx → `karaoke-app:8898`), но
+**неверно для паблика**: nginx `karaoke-public` проксирует `/api/` на `karaoke-web:8897`,
+а там endpoint отсутствует (Spring сканирует только `com.svoemesto.karaokeweb.*`).
+Результат — `karaoke-public` шлёт POST, а Spring отвечает 405, потому что в `karaoke-web`
+нет соответствия. Контрактный URL `/api/replacesymbolsinsong` идентичен в обоих бэкендах,
+поэтому фронт не меняется.
+
+**Как сделано.** По образцу `PublicSettingsWebController.kt` — «тонкий дубль
+endpoint'а, который существует в karaoke-app, но нужен в karaoke-web, потому что
+karaoke-app на проде не разворачивается». `replaceSymbolsInSong()` — pure top-level
+функция из `Utils.kt`, без БД/сессий/Spring-бинов karaoke-app, поэтому прямой
+вызов безопасен и не зависит от того, что Spring karaoke-app не отсканировал эти бины.
+
+**Уроки / тонкости.**
+- **Спека 155 ошибочно утверждала «Backend не менялся»** — это пропустили ревью и CI.
+  Урок: когда фича добавляет одинаковый код в admin/public фронтенды, надо проверять
+  **каждый** бэкенд, на котором крутится endpoint, а не только тот, что доступен
+  разработчику. `karaoke-app` ≠ `karaoke-web` — последний развёрнут на проде, первый нет.
+  Соответствующая правка внесена в `docs/features/editor-tasks.md` — теперь явно сказано
+  про дубль в karaoke-web и причину (nginx-проксирование на 8897, а не 8898).
+- **Прямой вызов top-level Kotlin-функции через зависимость модулей** — простой и
+  безопасный способ избежать HTTP-проксирования. `karaoke-web → karaoke-app` уже
+  в `build.gradle.kts` (`implementation(project(":karaoke-app"))`), поэтому никаких
+  новых конфигов/HttpClient'ов не понадобилось.
+- **Проверка ловушки**: если бы ревьюер спеки 155 просто открыл `karaoke-web/src/main/
+  kotlin/com/svoemesto/karaokeweb/controllers/` и поискал `replacesymbolsinsong` — он бы
+  ничего не нашёл и поднял вопрос. Grep по файлам `karaoke-app/.../controllers/*.kt`
+  даёт ложное ощущение покрытия.
+
+**Связанные документы:** [`docs/features/editor-tasks.md`](./features/editor-tasks.md) —
+per-feature документ для редакторских задач (обновлён, убрано ложное «Backend не менялся»,
+добавлен явный пункт про дубль в `karaoke-web`). [`specs/155-editor-typograph-button/contracts/replacesymbolsinsong.md`](../specs/155-editor-typograph-button/contracts/replacesymbolsinsong.md) — контракт endpoint'а (без изменений, единый для обоих бэкендов). [`karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicTypographController.kt`](../../karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicTypographController.kt) — сам дубль. Эталон паттерна: [`karaoke-web/.../PublicSettingsWebController.kt`](../../karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicSettingsWebController.kt).
+
+
 

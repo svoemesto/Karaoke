@@ -2,7 +2,7 @@
 
 > **Status**: active
 > **Feature Key**: `songs-table`
-> **Last Updated**: 2026-08-06
+> **Last Updated**: 2026-08-06 (удалены 18 столбцов-флагов публикации, см. ниже)
 
 > Цвета строк таблицы определяются производным состоянием песни — см.
 > [song-state-colors.md](./song-state-colors.md). Эта фича отвечает только за рендер;
@@ -14,7 +14,20 @@
 
 ## Зачем
 
-Администратору нужен быстрый обзор всего каталога: статус песни, платформы публикации, связи с другими песнями (`root`, `audio_parent_id`) и массовые операции. Без таблицы управление 18k+ песен невозможно.
+Администратору нужен быстрый обзор всего каталога: статус песни, связи с другими песнями (`root`, `audio_parent_id`) и массовые операции. Без таблицы управление 18k+ песен невозможно.
+
+## Состав колонок (после фичи #156, 2026-08-06)
+
+Шапка таблицы содержит 18 видимых колонок в порядке:
+ID, Композиция, Исполнитель, Год, Альбом, №, Дата, Время, Tags, Status, V, BOO, Редактор, ▶ (player), ▶ (playerDemo), DE (`flagPlayerDemo`), TG (`telegramPublish` — badge автопубликации демо в Telegram), FR (`flagFree`).
+
+**Удалено в #156 (2026-08-06)**: 18 узких столбцов-флагов публикации по платформам/типам контента —
+`SP` (`flagSponsr`), `VG` (`flagVk`),
+`ZL`/`ZK`/`ZC`/`ZM` (`flagDzenLyrics/Karaoke/Chords/Melody`),
+`VL`/`VK`/`VC`/`VM` (`flagVkLyrics/Karaoke/Chords/Melody`),
+`TL`/`TK`/`TC`/`TM` (`flagTelegramLyrics/Karaoke/Chords/Melody`),
+`ML`/`MK`/`MC`/`MM` (`flagMaxLyrics/Karaoke/Chords/Melody`).
+Удалены: 18 объектов из `fields[]`, 18 ячеек-шаблонов `<template #cell(flagX)>`, 18 CSS-блоков `.fld-flag-*` и 4 метода `playLyrics/Karaoke/Chords/Tabs` в `SongsTable.vue`; 10 определений из `fieldSongParams[]` в `store.js`. **Бэкенд и БД не затронуты**: поля `flag_sponsr`, `flag_vk`, `flag_dzen_*`, `flag_vk_*`, `flag_telegram_*`, `flag_max_*` и `processColor*` продолжают вычисляться и сохраняться как прежде — удаление чисто визуальное (FR-006). Метод `playDemo` и ячейки `flagPlayerDemo`/`telegramPublish`/`flagFree` остаются. Таблица публикаций `PublishTableBodyTd.vue` и редактор `SongEdit.vue` не затронуты (FR-007).
 
 ## Как работает (кратко)
 

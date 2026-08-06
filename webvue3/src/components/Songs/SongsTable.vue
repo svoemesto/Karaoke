@@ -322,26 +322,6 @@
             </template>
           </div>
         </template>
-        <template #cell(flagSponsr)="data">
-          <div
-            class="fld-flag-sponsr"
-            :style="{
-              backgroundColor: data.item.processColorSponsr,
-              color: currentSongId === data.item.id ? 'blue' : 'black',
-            }"
-            v-text="data.value ? data.value : '-'"
-          />
-        </template>
-        <template #cell(flagVk)="data">
-          <div
-            class="fld-flag-vk"
-            :style="{
-              backgroundColor: data.item.processColorVk,
-              color: currentSongId === data.item.id ? 'blue' : 'black',
-            }"
-            v-text="data.value ? data.value : '-'"
-          />
-        </template>
         <template #cell(flagPlayerDemo)="data">
           <div
             class="fld-flag-player-demo"
@@ -350,130 +330,6 @@
               color: currentSongId === data.item.id ? 'blue' : 'black',
             }"
             @dblclick.left="playDemo(data.item.id)"
-            v-text="data.value ? data.value : '-'"
-          />
-        </template>
-        <template #cell(flagDzenLyrics)="data">
-          <div
-            class="fld-flag-dzen-lyrics"
-            :style="{
-              backgroundColor: data.item.processColorMeltLyrics,
-              color: currentSongId === data.item.id ? 'blue' : 'black',
-            }"
-            @dblclick.left="playLyrics(data.item.id)"
-            v-text="data.value ? data.value : '-'"
-          />
-        </template>
-        <template #cell(flagDzenKaraoke)="data">
-          <div
-            class="fld-flag-dzen-karaoke"
-            :style="{
-              backgroundColor: data.item.processColorMeltKaraoke,
-              color: currentSongId === data.item.id ? 'blue' : 'black',
-            }"
-            @dblclick.left="playKaraoke(data.item.id)"
-            v-text="data.value ? data.value : '-'"
-          />
-        </template>
-        <template #cell(flagDzenChords)="data">
-          <div
-            class="fld-flag-dzen-chords"
-            :style="{
-              backgroundColor: data.item.processColorMeltChords,
-              color: currentSongId === data.item.id ? 'blue' : 'black',
-            }"
-            @dblclick.left="playChords(data.item.id)"
-            v-text="data.value ? data.value : '-'"
-          />
-        </template>
-        <template #cell(flagDzenMelody)="data">
-          <div
-            class="fld-flag-dzen-melody"
-            :style="{
-              backgroundColor: data.item.processColorMeltMelody,
-              color: currentSongId === data.item.id ? 'blue' : 'black',
-            }"
-            @dblclick.left="playTabs(data.item.id)"
-            v-text="data.value ? data.value : '-'"
-          />
-        </template>
-        <template #cell(flagVkLyrics)="data">
-          <div
-            class="fld-flag-vk-lyrics"
-            :style="{
-              backgroundColor: data.item.processColorVkLyrics,
-              color: currentSongId === data.item.id ? 'blue' : 'black',
-            }"
-            v-text="data.value ? data.value : '-'"
-          />
-        </template>
-        <template #cell(flagVkKaraoke)="data">
-          <div
-            class="fld-flag-vk-karaoke"
-            :style="{
-              backgroundColor: data.item.processColorVkKaraoke,
-              color: currentSongId === data.item.id ? 'blue' : 'black',
-            }"
-            v-text="data.value ? data.value : '-'"
-          />
-        </template>
-        <template #cell(flagVkChords)="data">
-          <div
-            class="fld-flag-vk-chords"
-            :style="{
-              backgroundColor: data.item.processColorVkChords,
-              color: currentSongId === data.item.id ? 'blue' : 'black',
-            }"
-            v-text="data.value ? data.value : '-'"
-          />
-        </template>
-        <template #cell(flagVkMelody)="data">
-          <div
-            class="fld-flag-vk-melody"
-            :style="{
-              backgroundColor: data.item.processColorVkMelody,
-              color: currentSongId === data.item.id ? 'blue' : 'black',
-            }"
-            v-text="data.value ? data.value : '-'"
-          />
-        </template>
-        <template #cell(flagTelegramLyrics)="data">
-          <div
-            class="fld-flag-tg-lyrics"
-            :style="{
-              backgroundColor: data.item.processColorTelegramLyrics,
-              color: currentSongId === data.item.id ? 'blue' : 'black',
-            }"
-            v-text="data.value ? data.value : '-'"
-          />
-        </template>
-        <template #cell(flagTelegramKaraoke)="data">
-          <div
-            class="fld-flag-tg-karaoke"
-            :style="{
-              backgroundColor: data.item.processColorTelegramKaraoke,
-              color: currentSongId === data.item.id ? 'blue' : 'black',
-            }"
-            v-text="data.value ? data.value : '-'"
-          />
-        </template>
-        <template #cell(flagTelegramChords)="data">
-          <div
-            class="fld-flag-tg-chords"
-            :style="{
-              backgroundColor: data.item.processColorTelegramChords,
-              color: currentSongId === data.item.id ? 'blue' : 'black',
-            }"
-            v-text="data.value ? data.value : '-'"
-          />
-        </template>
-        <template #cell(flagTelegramMelody)="data">
-          <div
-            class="fld-flag-tg-melody"
-            :style="{
-              backgroundColor: data.item.processColorTelegramMelody,
-              color: currentSongId === data.item.id ? 'blue' : 'black',
-            }"
             v-text="data.value ? data.value : '-'"
           />
         </template>
@@ -497,46 +353,6 @@
               color: currentSongId === data.item.id ? 'blue' : 'black',
             }"
             v-text="data.value ? data.value : '-'"
-          />
-        </template>
-        <template #cell(flagMaxLyrics)="data">
-          <div
-            class="fld-flag-max-lyrics"
-            :style="{
-              backgroundColor: data.item.processColorMaxLyrics,
-              color: currentSongId === data.item.id ? 'blue' : 'black',
-            }"
-            v-text="data.value"
-          />
-        </template>
-        <template #cell(flagMaxKaraoke)="data">
-          <div
-            class="fld-flag-max-karaoke"
-            :style="{
-              backgroundColor: data.item.processColorMaxKaraoke,
-              color: currentSongId === data.item.id ? 'blue' : 'black',
-            }"
-            v-text="data.value"
-          />
-        </template>
-        <template #cell(flagMaxChords)="data">
-          <div
-            class="fld-flag-max-chords"
-            :style="{
-              backgroundColor: data.item.processColorMaxChords,
-              color: currentSongId === data.item.id ? 'blue' : 'black',
-            }"
-            v-text="data.value"
-          />
-        </template>
-        <template #cell(flagMaxMelody)="data">
-          <div
-            class="fld-flag-max-melody"
-            :style="{
-              backgroundColor: data.item.processColorMaxMelody,
-              color: currentSongId === data.item.id ? 'blue' : 'black',
-            }"
-            v-text="data.value"
           />
         </template>
         <!--        <template #cell(flagPlLyrics)="data">-->
@@ -1083,163 +899,9 @@ export default {
           },
         },
         {
-          key: 'flagSponsr',
-          sortable: true,
-          label: 'SP',
-          style: {
-            minWidth: '20px',
-            maxWidth: '20px',
-            textAlign: 'center',
-            fontSize: 'small',
-          },
-        },
-        {
-          key: 'flagVk',
-          sortable: true,
-          label: 'VG',
-          style: {
-            minWidth: '20px',
-            maxWidth: '20px',
-            textAlign: 'center',
-            fontSize: 'small',
-          },
-        },
-        {
           key: 'flagPlayerDemo',
           sortable: true,
           label: 'DE',
-          style: {
-            minWidth: '20px',
-            maxWidth: '20px',
-            textAlign: 'center',
-            fontSize: 'small',
-          },
-        },
-        {
-          key: 'flagDzenLyrics',
-          sortable: true,
-          label: 'ZL',
-          style: {
-            minWidth: '20px',
-            maxWidth: '20px',
-            textAlign: 'center',
-            fontSize: 'small',
-          },
-        },
-        {
-          key: 'flagDzenKaraoke',
-          sortable: true,
-          label: 'ZK',
-          style: {
-            minWidth: '20px',
-            maxWidth: '20px',
-            textAlign: 'center',
-            fontSize: 'small',
-          },
-        },
-        {
-          key: 'flagDzenChords',
-          sortable: true,
-          label: 'ZC',
-          style: {
-            minWidth: '20px',
-            maxWidth: '20px',
-            textAlign: 'center',
-            fontSize: 'small',
-          },
-        },
-        {
-          key: 'flagDzenMelody',
-          sortable: true,
-          label: 'ZM',
-          style: {
-            minWidth: '20px',
-            maxWidth: '20px',
-            textAlign: 'center',
-            fontSize: 'small',
-          },
-        },
-        {
-          key: 'flagVkLyrics',
-          sortable: true,
-          label: 'VL',
-          style: {
-            minWidth: '20px',
-            maxWidth: '20px',
-            textAlign: 'center',
-            fontSize: 'small',
-          },
-        },
-        {
-          key: 'flagVkKaraoke',
-          sortable: true,
-          label: 'VK',
-          style: {
-            minWidth: '20px',
-            maxWidth: '20px',
-            textAlign: 'center',
-            fontSize: 'small',
-          },
-        },
-        {
-          key: 'flagVkChords',
-          sortable: true,
-          label: 'VC',
-          style: {
-            minWidth: '20px',
-            maxWidth: '20px',
-            textAlign: 'center',
-            fontSize: 'small',
-          },
-        },
-        {
-          key: 'flagVkMelody',
-          sortable: true,
-          label: 'VM',
-          style: {
-            minWidth: '20px',
-            maxWidth: '20px',
-            textAlign: 'center',
-            fontSize: 'small',
-          },
-        },
-        {
-          key: 'flagTelegramLyrics',
-          sortable: true,
-          label: 'TL',
-          style: {
-            minWidth: '20px',
-            maxWidth: '20px',
-            textAlign: 'center',
-            fontSize: 'small',
-          },
-        },
-        {
-          key: 'flagTelegramKaraoke',
-          sortable: true,
-          label: 'TK',
-          style: {
-            minWidth: '20px',
-            maxWidth: '20px',
-            textAlign: 'center',
-            fontSize: 'small',
-          },
-        },
-        {
-          key: 'flagTelegramChords',
-          sortable: true,
-          label: 'TC',
-          style: {
-            minWidth: '20px',
-            maxWidth: '20px',
-            textAlign: 'center',
-            fontSize: 'small',
-          },
-        },
-        {
-          key: 'flagTelegramMelody',
-          sortable: true,
-          label: 'TM',
           style: {
             minWidth: '20px',
             maxWidth: '20px',
@@ -1255,50 +917,6 @@ export default {
           key: 'telegramPublish',
           sortable: true,
           label: 'TG',
-          style: {
-            minWidth: '20px',
-            maxWidth: '20px',
-            textAlign: 'center',
-            fontSize: 'small',
-          },
-        },
-        {
-          key: 'flagMaxLyrics',
-          sortable: true,
-          label: 'ML',
-          style: {
-            minWidth: '20px',
-            maxWidth: '20px',
-            textAlign: 'center',
-            fontSize: 'small',
-          },
-        },
-        {
-          key: 'flagMaxKaraoke',
-          sortable: true,
-          label: 'MK',
-          style: {
-            minWidth: '20px',
-            maxWidth: '20px',
-            textAlign: 'center',
-            fontSize: 'small',
-          },
-        },
-        {
-          key: 'flagMaxChords',
-          sortable: true,
-          label: 'MC',
-          style: {
-            minWidth: '20px',
-            maxWidth: '20px',
-            textAlign: 'center',
-            fontSize: 'small',
-          },
-        },
-        {
-          key: 'flagMaxMelody',
-          sortable: true,
-          label: 'MM',
           style: {
             minWidth: '20px',
             maxWidth: '20px',
@@ -2151,20 +1769,8 @@ export default {
       this.isSongEditVisible = true
       this.updateHealthReportForCurrentPage()
     },
-    playLyrics(id) {
-      this.$store.getters.playLyrics(id)
-    },
-    playKaraoke(id) {
-      this.$store.getters.playKaraoke(id)
-    },
     playDemo(id) {
       this.$store.getters.playRenderMp4Version('DEMO')(id)
-    },
-    playChords(id) {
-      this.$store.getters.playChords(id)
-    },
-    playTabs(id) {
-      this.$store.getters.playTabs(id)
     },
     closeSongEdit() {
       this.isSongEditVisible = false
@@ -2455,119 +2061,7 @@ export default {
   background: #ffe0cc;
   color: #b8500f;
 }
-.fld-flag-sponsr {
-  min-width: 20px;
-  max-width: 20px;
-  text-align: center;
-  font-size: small;
-  white-space: nowrap;
-  overflow: hidden;
-}
-.fld-flag-vk {
-  min-width: 20px;
-  max-width: 20px;
-  text-align: center;
-  font-size: small;
-  white-space: nowrap;
-  overflow: hidden;
-}
 .fld-flag-player-demo {
-  min-width: 20px;
-  max-width: 20px;
-  text-align: center;
-  font-size: small;
-  white-space: nowrap;
-  overflow: hidden;
-}
-.fld-flag-dzen-lyrics {
-  min-width: 20px;
-  max-width: 20px;
-  text-align: center;
-  font-size: small;
-  white-space: nowrap;
-  overflow: hidden;
-}
-.fld-flag-dzen-karaoke {
-  min-width: 20px;
-  max-width: 20px;
-  text-align: center;
-  font-size: small;
-  white-space: nowrap;
-  overflow: hidden;
-}
-.fld-flag-dzen-chords {
-  min-width: 20px;
-  max-width: 20px;
-  text-align: center;
-  font-size: small;
-  white-space: nowrap;
-  overflow: hidden;
-}
-.fld-flag-dzen-melody {
-  min-width: 20px;
-  max-width: 20px;
-  text-align: center;
-  font-size: small;
-  white-space: nowrap;
-  overflow: hidden;
-}
-.fld-flag-vk-lyrics {
-  min-width: 20px;
-  max-width: 20px;
-  text-align: center;
-  font-size: small;
-  white-space: nowrap;
-  overflow: hidden;
-}
-.fld-flag-vk-karaoke {
-  min-width: 20px;
-  max-width: 20px;
-  text-align: center;
-  font-size: small;
-  white-space: nowrap;
-  overflow: hidden;
-}
-.fld-flag-vk-chords {
-  min-width: 20px;
-  max-width: 20px;
-  text-align: center;
-  font-size: small;
-  white-space: nowrap;
-  overflow: hidden;
-}
-.fld-flag-vk-melody {
-  min-width: 20px;
-  max-width: 20px;
-  text-align: center;
-  font-size: small;
-  white-space: nowrap;
-  overflow: hidden;
-}
-.fld-flag-tg-lyrics {
-  min-width: 20px;
-  max-width: 20px;
-  text-align: center;
-  font-size: small;
-  white-space: nowrap;
-  overflow: hidden;
-}
-.fld-flag-tg-karaoke {
-  min-width: 20px;
-  max-width: 20px;
-  text-align: center;
-  font-size: small;
-  white-space: nowrap;
-  overflow: hidden;
-}
-.fld-flag-tg-chords {
-  min-width: 20px;
-  max-width: 20px;
-  text-align: center;
-  font-size: small;
-  white-space: nowrap;
-  overflow: hidden;
-}
-.fld-flag-tg-melody {
   min-width: 20px;
   max-width: 20px;
   text-align: center;
@@ -2594,38 +2088,6 @@ export default {
 }
 .fld-tg-publish-badge.tg-publish-late {
   color: #fd7e14;
-}
-.fld-flag-max-lyrics {
-  min-width: 20px;
-  max-width: 20px;
-  text-align: center;
-  font-size: small;
-  white-space: nowrap;
-  overflow: hidden;
-}
-.fld-flag-max-karaoke {
-  min-width: 20px;
-  max-width: 20px;
-  text-align: center;
-  font-size: small;
-  white-space: nowrap;
-  overflow: hidden;
-}
-.fld-flag-max-chords {
-  min-width: 20px;
-  max-width: 20px;
-  text-align: center;
-  font-size: small;
-  white-space: nowrap;
-  overflow: hidden;
-}
-.fld-flag-max-melody {
-  min-width: 20px;
-  max-width: 20px;
-  text-align: center;
-  font-size: small;
-  white-space: nowrap;
-  overflow: hidden;
 }
 .fld-flag-free {
   min-width: 20px;

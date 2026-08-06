@@ -6016,6 +6016,23 @@ class Song(
         // FR-002 spec.md) — фиксированное системное значение, НЕ настраивается на уровне песни.
         const val FREE_ACCESS_WINDOW_MONTHS = 1
 
+        // Палитра фона строки песни на стадии жизненного цикла (idStatus 0..5 — в работе, 6.. — готово).
+        // Применяется только когда `Song.state == IN_WORK` (idStatus < 6), для UI-презентации стадии;
+        // готовые песни (idStatus >= 6) используют цвет, возвращаемый `Song.state.color` (DONE/TODAY/
+        // ON_AIR/EXCLUSIVE). См. `docs/features/song-state-colors.md` и `contracts/song-state-color.md`.
+        @JvmStatic
+        fun colorByIdStatus(idStatus: Long): String =
+            when (idStatus) {
+                0L -> "#FFFFFF" // NONE — нет данных
+                1L -> "#DDA0DD" // Текст найден
+                2L -> "#EE82EE" // Текст проверен
+                3L -> "#98FB98" // Проект создан
+                4L -> "#00FF7F" // Проект проверен
+                5L -> "#D2691E" // Рендер готов
+                6L -> "#00FF00" // Готово (страховка — здесь не должно оказаться, state.color приоритетнее)
+                else -> "#FFFFFF"
+            }
+
         // Автоматизация публикации в Telegram (TelegramUpdatesConsumer): сопоставление вышедшего
         // channel_post с песней/версией по СОДЕРЖИМОМУ поста, без отдельного маркера. Каждый пост,
         // подготовленный через getDescriptionTelegramHeader(), уже содержит ссылку на страницу песни
@@ -7775,11 +7792,18 @@ class Song(
 //                    val currentDate = formatter.parse(formatter.format(currentDateTime))
 //                    val datePublish = if (song.dateTimePublish == null) null else  formatter.parse(formatter.format(song.dateTimePublish))
 
-                    // FR-006 spec.md: для IN_WORK цвет остаётся пустой строкой. Старый fallback
-                    // по idStatus удалён — ранее он подменял пустой цвет одной из палитровых констант,
-                    // что размывало разницу между жизненным циклом и доступностью. Подробнее —
-                    // docs/features/song-state-colors.md.
-                    song.fields[SongField.COLOR] = song.state.color
+                    // Готовые песни (idStatus >= 6) получают цвет канонического состояния
+                    // (DONE/TODAY/ON_AIR/EXCLUSIVE). Для песен в работе (idStatus < 6)
+                    // применяется палитра по `idStatus` через [colorByIdStatus], чтобы строка
+                    // оставалась различимой по стадии жизненного цикла (NONE / текст найден /
+                    // текст проверен / проект создан / проект проверен / рендер готов).
+                    // Подробнее — docs/features/song-state-colors.md.
+                    song.fields[SongField.COLOR] =
+                        if (song.idStatus < 6L) {
+                            Song.colorByIdStatus(song.idStatus)
+                        } else {
+                            song.state.color
+                        }
 
 //                    if (args.containsKey("text")) {
 //                        if (song.getWords().containsAll((args["text"]?:"").getWords())) result.add(song)

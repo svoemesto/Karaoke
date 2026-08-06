@@ -172,6 +172,8 @@
         <button type="button" class="ke-btn ke-btn-ghost" @click="clearMarkers">
           Очистить маркеры
         </button>
+        <button type="button" class="ke-btn ke-btn-ghost" @click="doTypograph">Типограф</button>
+        <span v-if="typographError" class="ke-typograph-error">{{ typographError }}</span>
       </div>
       <div v-if="canEdit && showKeyboard" class="ke-keyboard">
         <div class="ke-kb-grid">
@@ -318,6 +320,7 @@
 import { fetchTask, saveTask, submitTask, recallTask } from '../services/songEditorApi'
 import { useAuth } from '../composables/useAuth'
 import { STATUS_LABELS } from '../composables/editorStatus'
+import { promisedXMLHttpRequest } from '../lib/utils'
 import {
   splitSyllables,
   syncMarkersFromSpecTags,
@@ -439,6 +442,7 @@ export default {
       submitting: false,
       recalling: false,
       redrawScheduled: false,
+      typographError: '',
       // Превью в настоящем плеере (см. playerToken из fetchTask — привязан к этому заданию,
       // playerdata на бэкенде подставляет вместо опубликованных именно наши edited_markers).
       showPlayer: false,
@@ -924,6 +928,27 @@ export default {
       this.markers = []
       this.redrawRegions()
       this.scheduleAutosave()
+    },
+    /**
+     * Применяет типографские правила замены символов (те же, что и кнопка «Типограф» в
+     * SubsEdit.vue) к тексту текущего голоса через существующий backend-эндпоинт, затем
+     * пересинхронизирует маркеры с новым текстом через onTextInput().
+     *
+     * @see docs/features/editor-tasks.md
+     */
+    async doTypograph() {
+      if (!this.canEdit) return
+      this.typographError = ''
+      try {
+        this.sourceText = await promisedXMLHttpRequest({
+          method: 'POST',
+          url: '/api/replacesymbolsinsong',
+          params: { txt: this.sourceText },
+        })
+        this.onTextInput()
+      } catch (e) {
+        this.typographError = 'Не удалось применить Типограф — попробуйте ещё раз.'
+      }
     },
     // notDelete=true — для комбо-хоткеев (Digit3/5): не даёт последующему addMarker в той же точке
     // времени стереть маркер, добавленный предыдущим вызовом (см. комментарий в useKaraokeEditor.js).
@@ -1609,6 +1634,11 @@ export default {
   justify-content: center;
   gap: 0.75rem;
   flex-wrap: wrap;
+}
+.ke-typograph-error {
+  align-self: center;
+  color: #c0392b;
+  font-size: 0.85rem;
 }
 /* .ke-keyboard центрирует ВЕСЬ блок клавиатуры (.ke-kb-grid) как единое целое по ширине страницы.
    .ke-kb-grid — align-items: flex-start ОБЯЗАТЕЛЬНО (не center): при center каждый ряд (у них разная

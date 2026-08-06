@@ -193,4 +193,26 @@ class SongStateTest {
             SongStateResolver.resolve(6L, false, null, now(2026, 8, 6))
         assertEquals(SongState.EXCLUSIVE, state)
     }
+
+    @Test
+    fun `colorByIdStatus возвращает палитру по стадиям жизненного цикла для IN_WORK`() {
+        // FR-006 spec.md + docs/features/song-state-colors.md: enum SongState.IN_WORK.color == "",
+        // но UI получает конкретный цвет через [Song.colorByIdStatus], который применяется в
+        // `loadListFromDb` для песен с `idStatus < 6L`. Это было в старой логике — сохраняем,
+        // чтобы строки различались по стадии (NONE / текст найден / … / рендер готов).
+        assertEquals("#FFFFFF", Song.colorByIdStatus(0L)) // NONE
+        assertEquals("#DDA0DD", Song.colorByIdStatus(1L)) // Текст найден
+        assertEquals("#EE82EE", Song.colorByIdStatus(2L)) // Текст проверен
+        assertEquals("#98FB98", Song.colorByIdStatus(3L)) // Проект создан
+        assertEquals("#00FF7F", Song.colorByIdStatus(4L)) // Проект проверен
+        assertEquals("#D2691E", Song.colorByIdStatus(5L)) // Рендер готов
+    }
+
+    @Test
+    fun `colorByIdStatus для неподдерживаемых значений возвращает белый`() {
+        // 6 — страховка (здесь песня готова и используется state.color), но проверим, что функция
+        // возвращает значение без падения для любого idStatus.
+        assertEquals("#00FF00", Song.colorByIdStatus(6L))
+        assertEquals("#FFFFFF", Song.colorByIdStatus(999L))
+    }
 }

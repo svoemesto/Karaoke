@@ -48,5 +48,5 @@ class PublicTypographController {
     @ResponseBody
     fun replaceSymbolsInSong(
         @RequestParam(required = true) txt: String,
-    ): String = replaceSymbolsInSong(txt)
+    ): String = com.svoemesto.karaokeweb.replaceSymbolsInSong(txt) // fully-qualified: см. PR #207, иначе рекурсия
 }

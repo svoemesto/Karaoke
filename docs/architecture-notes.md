@@ -994,3 +994,51 @@ KDoc «вызывает локальную `replaceSymbolsInSong`» — имя �
 
 
 
+### 2026-08-06 — PR #NNN: `156-remove-songs-table-platform-flags`
+
+**Что.** Удалены 18 узких столбцов-флагов публикации из таблицы песен в admin SPA `webvue3` (`SongsTable.vue`):
+SP/VG/ZL/ZK/ZC/ZM/VL/VK/VC/VM/TL/TK/TC/TM/ML/MK/MC/MM (платформы Спонсор / ВКонтакте-группа /
+Дзен / ВКонтакте / Телеграм / OK-Max × типы контента lyrics/karaoke/chords/melody). Удалено:
+18 объектов из `fields[]`, 18 ячеек-шаблонов `<template #cell(flagX)>`, 18 CSS-блоков
+`.fld-flag-*`, 4 метода `playLyrics/Karaoke/Chords/Tabs` в `SongsTable.vue`; 10 определений
+из `fieldSongParams[]` в `store.js`. Ширина таблицы уменьшилась на ≈ 360px. Сборка webvue3:
+471 модулей, 7.55s, lint 0 ошибок.
+
+**Зачем.** Таблица песен — основная ежедневная точка входа администратора. 18 узких
+20-пиксельных столбцов визуально перегружали шапку и затрудняли сканирование списка на
+экранах ≤ 1440px. Данные о публикации (`flag_*` в БД, `processColor*` в DTO) по-прежнему
+вычисляются и сохраняются — удаление чисто визуальное. Флаги публикации по-прежнему
+доступны в таблице публикаций `PublishTableBodyTd.vue` (там показываются через свои
+компоненты) и в редакторе песни `SongEdit.vue` (через Vuex-геттеры `playLyrics/Karaoke/
+Chords/Tabs/Demo`).
+
+**Альтернативы, которые были отклонены.**
+- **Computed-срез `fields[]` через `v-if`**: лишний runtime-overhead, не решает проблему
+  «мёртвых» шаблонов и CSS.
+- **CSS hide через `.d-none`**: оставляет 20px-пустые ячейки в DOM, ломает `table-layout:
+  fixed` (per CONTRIBUTING.md).
+- **Перераспределить ширину на оставшиеся колонки**: out of scope, требует UX-исследования,
+  рискует сломать фиксированные пиксельные ширины в существующем UI.
+
+**Уроки / тонкости.**
+- **`processColor*` и `play*` НЕ удалять** — они используются в `PublishTableBodyTd.vue`
+  и `SongEdit.vue`. Удалять можно только методы-обёртки в `SongsTable.vue`
+  (`playLyrics(id) → this.$store.getters.playLyrics(id)` и т.п.), а не сами Vuex-геттеры.
+- **Шаблоны ячеек и объекты в `fields[]` должны быть согласованы** — `<b-table>`
+  Bootstrap-vue-next использует `fields[]` как декларативный контракт колонок, плюс
+  именованные слоты `#cell(key)` для кастомного контента. Удаление только `fields[]` без
+  шаблонов (или наоборот) оставляет «мёртвый» код.
+- **`fieldSongParams[]` в Vuex не имеет внешних потребителей** — был обнаружен через
+  `grep -rn getFieldSongParams` (нашлось только в самом `store.js`). Если в будущем
+  появится потребитель — вернуть удалённые 10 определений.
+- **`flagPlayerDemo` (DE) НЕ должна была попасть в список** — её легко спутать с
+  остальными, но она используется отдельно (двойной клик воспроизводит demo-видео).
+  Зафиксировано в spec FR-005 / FR-010.
+
+**Связанные документы:**
+- [spec.md](../../specs/156-remove-songs-table-platform-flags/spec.md) — спецификация фичи.
+- [plan.md](../../specs/156-remove-songs-table-platform-flags/plan.md) — Implementation Plan.
+- [quickstart.md](../../specs/156-remove-songs-table-platform-flags/quickstart.md) — 8 шагов ручной проверки.
+- [research.md](../../specs/156-remove-songs-table-platform-flags/research.md) — 6 решений и отвергнутые альтернативы.
+- [data-model.md](../../specs/156-remove-songs-table-platform-flags/data-model.md) — таблица «что в БД / что в state / что в UI».
+- [`docs/features/songs-table.md`](../features/songs-table.md) — обновлённый per-feature документ.

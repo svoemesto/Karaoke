@@ -56,6 +56,8 @@ import java.sql.Statement
 import java.sql.Timestamp
 import java.text.SimpleDateFormat
 import java.time.Instant
+import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.*
 import kotlin.concurrent.thread
@@ -4766,72 +4768,29 @@ fun findAudioParentByWaveform(
     )
 }
 
+/**
+ * Возвращает список свободных слотов публикации для подсказок в поле «Дата
+ * публикации» (`SongEdit.vue`): по одному варианту на каждый целый час с
+ * 10:00 до 22:00 включительно (13 слотов). Для каждого часа кандидат-дата —
+ * день, следующий за самой поздней уже занятой датой публикации в этот час
+ * (среди всех песен независимо от площадки публикации); если для часа ещё не
+ * было ни одной публикации, кандидат стартует от сегодняшней даты. Кандидат
+ * затем сдвигается вперёд по одному дню, пока не станет строго позже текущего
+ * момента на сервере — это гарантирует, что ни один предложенный слот никогда
+ * не оказывается в прошлом или уже наступившим сегодня часом.
+ * @see specs/156-publish-slots-range/spec.md
+ * @return список строк формата "dd.MM.yy HH:mm", по одной на каждый час 10:00-22:00
+ */
 fun getFreeTimeSlots(): List<String> {
-    val result = mutableListOf<String>()
+    val hours = (10..22).toList()
+    val hourLabels = hours.map { "%02d:00".format(it) }
+    val inClause = hourLabels.joinToString(",") { "'$it'" }
     val sql =
         """
-        SELECT PD
-        FROM (
-            SELECT TO_DATE(ts.publish_date, 'DD.MM.YY') + INTERVAL '1 day' + INTERVAL '11 hour' AS PD
-            FROM tbl_songs ts
-            WHERE ts.publish_time = '11:00'
-            ORDER BY PD DESC
-            LIMIT 1
-        ) AS subquery11
-        UNION ALL
-        SELECT PD
-        FROM (
-            SELECT TO_DATE(ts.publish_date, 'DD.MM.YY') + INTERVAL '1 day' + INTERVAL '12 hour' AS PD
-            FROM tbl_songs ts
-            WHERE ts.publish_time = '12:00'
-            ORDER BY PD DESC
-            LIMIT 1
-        ) AS subquery12
-        UNION ALL
-        SELECT PD
-        FROM (
-            SELECT TO_DATE(ts.publish_date, 'DD.MM.YY') + INTERVAL '1 day' + INTERVAL '13 hour' AS PD
-            FROM tbl_songs ts
-            WHERE ts.publish_time = '13:00'
-            ORDER BY PD DESC
-            LIMIT 1
-        ) AS subquery13
-        UNION ALL
-        SELECT PD
-        FROM (
-            SELECT TO_DATE(ts.publish_date, 'DD.MM.YY') + INTERVAL '1 day' + INTERVAL '14 hour' AS PD
-            FROM tbl_songs ts
-            WHERE ts.publish_time = '14:00'
-            ORDER BY PD DESC
-            LIMIT 1
-        ) AS subquery14
-        UNION all
-        SELECT PD
-        FROM (
-            SELECT TO_DATE(ts.publish_date, 'DD.MM.YY') + INTERVAL '1 day' + INTERVAL '15 hour' AS PD
-            FROM tbl_songs ts
-            WHERE ts.publish_time = '15:00'
-            ORDER BY PD DESC
-            LIMIT 1
-        ) AS subquery15
-        UNION all
-        SELECT PD
-        FROM (
-            SELECT TO_DATE(ts.publish_date, 'DD.MM.YY') + INTERVAL '1 day' + INTERVAL '16 hour' AS PD
-            FROM tbl_songs ts
-            WHERE ts.publish_time = '16:00'
-            ORDER BY PD DESC
-            LIMIT 1
-        ) AS subquery16
-        UNION ALL
-        SELECT PD
-        FROM (
-            SELECT TO_DATE(ts.publish_date, 'DD.MM.YY') + INTERVAL '1 day' + INTERVAL '17 hour' AS PD
-            FROM tbl_songs ts
-            WHERE ts.publish_time = '17:00'
-            ORDER BY PD DESC
-            LIMIT 1
-        ) AS subquery17;
+        SELECT ts.publish_time AS PT, MAX(TO_DATE(ts.publish_date, 'DD.MM.YY')) AS LAST_DATE
+        FROM tbl_songs ts
+        WHERE ts.publish_time IN ($inClause)
+        GROUP BY ts.publish_time
         """.trimIndent()
 
     val database = WORKING_DATABASE
@@ -4843,17 +4802,17 @@ fun getFreeTimeSlots(): List<String> {
     var statement: Statement? = null
     var rs: ResultSet? = null
 
+    val lastUsedDateByHour = mutableMapOf<Int, LocalDate>()
     try {
         statement = connection.createStatement()
         rs = statement.executeQuery(sql)
         while (rs.next()) {
-            val dateTime = rs.getTimestamp("PD")
-            val dateTimeString = dateTime.toLocalDateTime().format(DateTimeFormatter.ofPattern("dd.MM.yy HH:mm"))
-            result.add(dateTimeString)
+            val hour = rs.getString("PT").substringBefore(":").toInt()
+            lastUsedDateByHour[hour] = rs.getDate("LAST_DATE").toLocalDate()
         }
-        return result
     } catch (e: SQLException) {
         e.printStackTrace()
+        return emptyList()
     } finally {
         try {
             rs?.close() // close result set
@@ -4863,5 +4822,14 @@ fun getFreeTimeSlots(): List<String> {
         }
     }
 
+    val now = LocalDateTime.now()
+    val result = mutableListOf<String>()
+    for (hour in hours) {
+        var candidate = (lastUsedDateByHour[hour]?.plusDays(1) ?: LocalDate.now()).atTime(hour, 0)
+        while (candidate <= now) {
+            candidate = candidate.plusDays(1)
+        }
+        result.add(candidate.format(DateTimeFormatter.ofPattern("dd.MM.yy HH:mm")))
+    }
     return result
 }

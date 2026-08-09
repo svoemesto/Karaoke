@@ -54,10 +54,17 @@
   - JSDoc coverage karaoke-public: 100.0%
   - pre-commit ktlint: Passed (остальные hooks — no files to check)
 - [x] 4.3 `git push -u origin 161-fix-prod-runtime-errors-2026-08-09`. Успешно: ветка создана на origin.
-- [ ] 4.4 `gh pr create --base master --title "fix: 3 production runtime errors — ЮKassa logging, Thymeleaf publishAt, KaraokeProperties on prod" --body "..."`.
-- [ ] 4.5 `gh pr checks` — дождаться CI 7/7 SUCCESS.
-- [ ] 4.6 `gh pr merge --merge` (БЕЗ `--delete-branch` — см. AGENTS.md, секция «Жизненный цикл feature-ветки»).
-- [ ] 4.7 В `docs/architecture-notes.md` добавить запись о PR (Pass 35+).
+- [x] 4.4 `gh pr create --base master --title "fix: 3 production runtime errors — ЮKassa logging, Thymeleaf publishAt, KaraokeProperties on prod" --body "..."`. PR создан: https://github.com/svoemesto/Karaoke/pull/211
+- [x] 4.5 `gh pr checks` — дождаться CI 7/7 SUCCESS. ✅ Все 7 проверок PASS:
+  - Baseline stats: pass
+  - Docs: pass
+  - ESLint karaoke-public: pass
+  - ESLint webvue3: pass
+  - JSDoc coverage: pass
+  - KDoc coverage: pass
+  - ktlint: pass
+- [x] 4.6 `gh pr merge --merge` (БЕЗ `--delete-branch` — см. AGENTS.md, секция «Жизненный цикл feature-ветки»). ✅ Смержено 2026-08-09T07:37:07Z, mergeCommit `6adf340823d0c0f38a70cb7e1ace599b325b3b1b`. Ветка `161-fix-prod-runtime-errors-2026-08-09` НЕ удалена.
+- [x] 4.7 В `docs/architecture-notes.md` добавить запись о PR (Pass 35+). Добавлен «Pass 41: 3 production runtime-ошибки karaoke-web» — что/зачем/audit grep/архитектурный урок/связь с AGENTS.md/метрики/связанные документы.
 
 ## 5. Деплой (выполняется пользователем)
 

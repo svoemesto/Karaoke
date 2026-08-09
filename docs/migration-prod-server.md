@@ -187,7 +187,7 @@
 - [ ] Проверить `/smartcaptcha/` — Yandex SmartCaptcha должен отвечать
 - [ ] Проверить `/yookassa/` — ЮKassa API (можно `curl https://<NEW_IP>/yookassa/payments` — должен вернуть 401 от ЮKassa, не 502)
 - [ ] Проверить SSE `/changerecords` — должен держать connection
-- [ ] Проверить stream Postgres 5433: `psql -h <NEW_IP> -p 5433 -U NsAkArAoKeUsEr -d karaoke` (с admin-машины, если IP в allowlist)
+- [ ] Проверить stream Postgres 5433: `psql -h <NEW_IP> -p 5433 -U SvoeMestoKaraokeUser905 -d karaoke` (с admin-машины, если IP в allowlist)
 
 ## Этап 9: Переключение DNS (требует подтверждения пользователя)
 

@@ -98,7 +98,7 @@ function do_ps() {
 function do_create_clear_db() {
   do_start_db
   echo "Создание базы данных из бекапа в контейнере karaoke-db..."
-  ${DOCKER} exec -it karaoke-db bash -c 'psql -U NsAkArAoKeUsEr --file="/dumps/karaoke_clear_dump.sql" -d postgres'
+  ${DOCKER} exec -it karaoke-db bash -c 'psql -U ${DB_SERVER_POSTGRES_USER} --file="/dumps/karaoke_clear_dump.sql" -d postgres'
   command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga
   command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "Create clear DB!"
 }

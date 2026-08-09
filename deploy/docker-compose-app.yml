@@ -29,6 +29,7 @@ services:
       - OLLAMA_BASE_URL=http://host.docker.internal:11434
       - SEARXNG_BASE_URL=http://searxng:8080
       - LYRICS_SEARCH_BASE_URL=http://fourget:80
+      - DB_REMOTE_PORT=5433
     volumes:
       - ${APP_FOLDER_HOST}:${APP_FOLDER_IN_CONTAINER}
       - ${APP_FOLDER_K1}:${APP_FOLDER_K1}

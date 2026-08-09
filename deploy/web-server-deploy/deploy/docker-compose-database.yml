@@ -10,7 +10,7 @@ services:
       WORK_IN_CONTAINER: 1
     container_name: karaoke-db
     ports:
-      - ${DB_PORT_HOST}:${DB_PORT_INSIDE_CONTAINER} # порт хоста : порт внутри контейнера
+      - "127.0.0.1:${DB_PORT_HOST}:${DB_PORT_INSIDE_CONTAINER}" # порт хоста : порт внутри контейнера
     networks:
       - karaokenet
     volumes: # локальная папка : папка внутри контейнера

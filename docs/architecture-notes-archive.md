@@ -1600,7 +1600,7 @@ ipv6=off;` (docker embedded DNS), не литералом. Литерал рез
  `edited_source_text`** — иначе правки не идут в sync-diff.
 Модели `SongAssignment(Dto)`/`SongAssignmentDraft(Dto)` (по образцу `SitePlaylist`), 2 sync-target в
 `SyncRegistry.all` + 16 флагов в `KaraokeProperties.kt`. Миграция — вручную на LOCAL и PROD (роль прода —
-`NsAkArAoKeUsEr`, не `postgres`); recordhash-функции идентичны на обеих БД (проверено — один хэш на одну строку).
+`SvoeMestoKaraokeUser905`, не `postgres`); recordhash-функции идентичны на обеих БД (проверено — один хэш на одну строку).
 
 **Композитный статус — `SongAssignmentStatus.resolve(adminStatus, draftUserStatus, reviewedAt, submittedAt)`.**
 Временные метки ОБЯЗАТЕЛЬНЫ: пара `(rejected, submitted)` неоднозначна без сравнения `reviewedAt` (когда админ
@@ -1651,7 +1651,7 @@ read-only «плейлист по песням автора». «Избранн�
 частичный UNIQUE). Не-премиум: только «Избранное». Ветка `feature/favorites-playlists` (не смёржена в master).
 
 **БД (`deploy/karaoke-db/09_playlists.sql` + `12_site_user_limits.sql`, вручную на LOCAL+PROD; прод-роль
-`NsAkArAoKeUsEr`).** `tbl_site_playlists` (owner_id→tbl_site_users ON DELETE CASCADE, name, is_favorites,
+`SvoeMestoKaraokeUser905`).** `tbl_site_playlists` (owner_id→tbl_site_users ON DELETE CASCADE, name, is_favorites,
 sort_order, continuous/repeat_mode/shuffle) + `tbl_site_playlist_items` (playlist_id→плейлист CASCADE,
 song_id→tbl_settings БЕЗ FK, position, muted, UNIQUE(playlist,song)). Обе — recordhash-триггеры, модели
 `SitePlaylist(Item)` (KaraokeDbTable, `last_update useInDiff=false`), зарегистрированы в `SyncRegistry.all`

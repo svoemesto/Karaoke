@@ -1145,3 +1145,32 @@ karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/CaptchaConfigServi
 - nginx `minio-proxy` на проде: добавить `location /yookassa/` блок (см. design.md).
 - Сборка `karaoke-web.jar` и рестарт контейнера.
 - Верификация: `GET https://svoemesto.ru/`, `GET https://svoemesto.ru/api/song-vk-image/159`, `docker logs karaoke-web --since "24h" | grep -E "PaymentService.chargeRecurring"` (см. tasks.md, раздел 6).
+
+## Pass 42: устаревший премиум-статус в шапке `karaoke-public` после окончания подписки (2026-08-09, specs/162-fix-header-stale-premium-status)
+
+**Что.** Шапка публичного сайта (`AuthStatusWidget.vue`, значок 🪙) показывала пользователя премиумом ещё долго после того, как его подписка реально закончилась на сервере — до случайного захода на `/account`/`/account/editor/*` или до перелогина. Причина: `useAuth.js` кэширует объект пользователя в `localStorage` на момент логина и раньше обновлял его (`fetchMe()`) только из трёх конкретных view; `App.vue` при старте SPA `fetchMe()` не вызывал вовсе.
+
+**Фикс** (`karaoke-public/src/composables/useAuth.js`, единственный изменённый файл):
+1. `fetchMe()` обёрнут в `try/catch` — сетевой сбой (`authGet` реджектит промис на `xhr.onerror`) больше не роняет фоновый таймер и не трогает уже сохранённый `user`/`token`.
+2. Module-level guarded `startAutoRefresh()` — ставит `setInterval` на 5 минут, вызывающий `fetchMe()`, пока есть токен; гарантированно стартует один раз за жизнь вкладки, даже если `useAuth()` вызывается из нескольких компонентов (`AuthStatusWidget` монтируется на `HomeView`/`SearchView`/`ZakromaView`/`SongView`).
+3. `startAutoRefresh()` вызывается из самой `useAuth()` при каждом обращении — это даёт немедленный `fetchMe()` уже при обычной загрузке страницы, а не только по тику таймера.
+
+`AuthStatusWidget.vue` изменений не потребовал: `isPremium` уже вычисляется из того же реактивного module-level `user` ref, который теперь обновляется автоматически.
+
+**Зачем.** Прямой баг-репорт: премиум-пользователь после окончания подписки продолжает видеть себя премиумом в шапке, что вводит в заблуждение относительно реального доступа. Backend не менялся — `GET /api/public/auth/me` (`PublicAuthController.me`) и так уже отдаёт живой, не кэшируемый на сервере статус на каждый вызов (см. `SiteUserResolver`).
+
+**Live-верификация (dev-pc, локальный docker-стек).** Через Playwright (`playwright-core` + системный `google-chrome`, `page.clock` для перемотки виртуального времени без реального ожидания 5 минут) против `karaoke-public` (порт 7907) + `karaoke-web` (порт 8897):
+- Одноразовый тестовый `SiteUser` создан напрямую в LOCAL БД (`is_premium=true`, bcrypt-хэш пароля с префиксом `{bcrypt}` для `DelegatingPasswordEncoder`), после теста удалён вместе с токенами.
+- До: значок 🪙 виден. Через `docker exec karaoke-db psql ... UPDATE tbl_site_users SET is_premium=false` (без перезагрузки страницы) + перемотка виртуального времени на 5 мин 10 сек → значок 🪙 пропал сам. Зафиксировано 2 запроса `GET /api/public/auth/me` (немедленный + один фоновый тик), 0 ошибок в консоли браузера.
+- **Найденная попутно ловушка окружения**: headless `google-chrome`, запущенный без `--no-proxy-server`, зависал на `page.goto` к `localhost` — в окружении задан системный `HTTP_PROXY`/`HTTPS_PROXY`, который Chrome (в отличие от `curl`, уважающего `no_proxy`) пытался использовать даже для `localhost`.
+- **Обнаружена и исправлена попутная проблема LOCAL БД**: identity-последовательность `tbl_site_users.id` отставала от реальных данных (следующий `nextval` совпадал с уже существующим id) — вероятно, следствие синка строк с явными id без выравнивания sequence. Поправлено `setval(pg_get_serial_sequence(...), max(id))`; отдельная проверка/фикс для остальных синкаемых таблиц в рамках этой задачи не проводилась.
+
+**Метрики реализации.**
+- Файлов изменено: 1 код (`useAuth.js`, +25/−7 строк).
+- `cd karaoke-public && npm run lint:check`: 0 замечаний. `npx prettier --check`: чисто.
+- `./gradlew` не запускался — backend не менялся.
+- Не закоммичено (ветка не создана, PR не открыт) — ожидает решения пользователя по коммиту/PR.
+
+**Связанные документы:**
+- [`specs/162-fix-header-stale-premium-status/`](../specs/162-fix-header-stale-premium-status/) — spec.md, plan.md, research.md, data-model.md, quickstart.md, tasks.md.
+- **Занятость номера 161**: изначально фича была заведена как `161-fix-header-stale-premium-status`, но номер `161` уже занят веткой `161-fix-prod-runtime-errors-2026-08-09` (Pass 41 выше, PR #211, тег `seq/161`) — директория и все внутренние ссылки переименованы на `162-` до какого-либо коммита/PR, коллизии в истории не возникло.

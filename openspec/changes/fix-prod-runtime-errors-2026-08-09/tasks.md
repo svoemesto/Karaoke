@@ -82,6 +82,7 @@ location /yookassa/ {
     proxy_ssl_server_name on;
 }
 ```
+**Частично выполнено (локальная правка в репо):** блок `/yookassa/` в `deploy/web-server-deploy/deploy/80to8897:90-96` уже существовал (Pass 35), но без явного проксирования `Authorization`. Добавил `proxy_set_header Authorization $http_authorization;` и `proxy_pass_request_headers on;` (дефолт, для явности) — коммит `00bbdd97`. Auth-схема ЮKassa — HTTP Basic <base64(shop_id:secret_key)>, без него API возвращает 401/400. Деплой на прод остаётся за пользователем (см. 5.4 и AGENTS.md, секция «Nginx 80to8897»).
 - [ ] 5.4 `nginx -t && systemctl reload nginx`.
 - [ ] 5.5 Проверить через 24 часа: `docker logs karaoke-web --since "24h" | grep -E "PaymentService.chargeRecurring"` — должно быть детальное логирование.
 

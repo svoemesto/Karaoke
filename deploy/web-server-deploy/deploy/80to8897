@@ -87,10 +87,16 @@ server {
   # проверка статуса на вебхуке — PaymentService в karaoke-web). YOOKASSA_API_URL=http://minio-proxy/yookassa.
   # Реальный API ЮKassa живёт под /v3/ (https://api.yookassa.ru/v3/payments) — без этого суффикса
   # запросы 404-или (PaymentService.createPayment падал на POST /yookassa/payments -> 404).
+  # Authorization проксируется явно — Basic Auth <base64(shop_id:secret_key)>, без него ЮKassa
+  # отвечает 401/400. По умолчанию nginx уже прокидывает клиентские заголовки, но явное объявление
+  # страхует от изменений дефолта в новых версиях и делает намерение читаемым.
+  # proxy_pass_request_headers on — дефолт, оставлено для явности (Pass 41, PR #211).
   location /yookassa/ {
     proxy_ssl_server_name on;
     proxy_pass https://api.yookassa.ru/v3/;
     proxy_set_header Host api.yookassa.ru;
+    proxy_set_header Authorization $http_authorization;
+    proxy_pass_request_headers on;
     proxy_read_timeout 15;
     proxy_send_timeout 15;
   }

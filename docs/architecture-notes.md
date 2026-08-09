@@ -1096,3 +1096,52 @@ Chords/Tabs/Demo`).
 - [quickstart.md](../../specs/160-publish-body-td-remove-six-columns/quickstart.md) — 5 шагов ручной валидации.
 - [tasks.md](../../specs/160-publish-body-td-remove-six-columns/tasks.md) — 31 задача по 7 фазам.
 - [`docs/features/songs-table.md`](../features/songs-table.md) — обновлённый per-feature документ.
+
+## Pass 41: 3 production runtime-ошибки `karaoke-web` — ЮKassa logging, Thymeleaf `publishAt`, `KaraokeProperties` на проде (2026-08-09, PR #211, `6adf3408`)
+
+**Что.** Три стабильные runtime-ошибки в `karaoke-web` на проде (188.119.64.111), пойманные в логах `docker logs karaoke-web` за 2026-08-08 — 2026-08-09. Все три исправлены одним change через feature-ветку `161-fix-prod-runtime-errors-2026-08-09` (CI 7/7 PASS).
+
+1. **PaymentService.chargeRecurring** — добавлен отдельный `catch (e: WebClientResponseException)` перед общим `catch (Exception)`. Теперь логируем `statusCode` + `responseBodyAsString` (≤500 chars). Без этого причину `400 Bad Request from POST http://minio-proxy/yookassa/payments` диагностировать было невозможно — `e.message` показывал только `"400 Bad Request from POST ..."`, без тела ЮKassa. Реальная причина (nginx на `minio-proxy` не маршрутизирует `/yookassa/`) правится отдельным ручным деплоем на проде (см. PR #211, раздел «Требуется ручной deploy»).
+2. **templates/main.html:200** — `#dates.format(n.publishAt, 'dd.MM.yyyy HH:mm')` падал на главной с 500. `n.publishAt` приходит как `String` (`"2026-08-08 20:17:14.741"`), а Spring 6.2 + Java 22 не конвертируют через deprecated `Date.parse()`. Заменили на `T(java.sql.Timestamp).valueOf(...)` с `th:if` для пустых значений.
+3. **KaraokeProperties** — двухчастный фикс. (a) Убраны обращения `KaraokeProperties` из `karaoke-web/`: на проде файлов `Karaoke.properties` нет, и публичный веб не должен зависеть от admin-only state. Реальные вызовы (`vkPreviewImageWidth/Height` в `PublicApiController.songVkImage`) захардкожены в 1200/630 (это текущие fallback-значения), импорт `KaraokeProperties` удалён. (b) Try/catch вокруг всего `savePropertiesMap()` — defensive programming на случай будущих случайных использований в shared-коде. Покрывает оба вызова: из `loadPropertiesMap()` и из `set()`.
+
+**Зачем.** Прямой запрос пользователя по результатам анализа прод-логов. Три категории: 🔴 потеря денег (ЮKassa-recurring — каждый день +N пользователей без продления, потому что `400 Bad Request` без понятного лога), 🟠 5xx на главной (Thymeleaf), 🟠 5xx на `/api/song-vk-image/{id}` (KaraokeProperties).
+
+**Audit grep перед изменениями.**
+```
+$ grep -rn "KaraokeProperties\." karaoke-web/src/main/kotlin --include="*.kt"
+# 0 results
+$ grep -rn "KaraokeProperties" karaoke-web/src/main/kotlin --include="*.kt"
+karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/CaptchaConfigService.kt:7:
+  // Ключи Yandex SmartCaptcha живут в tbl_public_settings (Postgres), не в файловых KaraokeProperties
+```
+Только 1 комментарий — это KDoc-пояснение правильного паттерна. Реальные вызовы только в `PublicApiController.songVkImage:467-468`.
+
+**Архитектурный урок.** **Admin-only `KaraokeProperties` должен жить только в admin-only коде** (`karaoke-app`), а в публичном вебе (`karaoke-web`) конфиги хранятся в `tbl_public_settings` (Postgres) — паттерн уже зафиксирован в `CaptchaConfigService.kt:7` (ключи Yandex SmartCaptcha). До этого PR было 2 нарушения паттерна: `PublicApiController.kt:467-468` — обращались к `KaraokeProperties` за размерами VK-превью. После фикса обращений к `KaraokeProperties` из `karaoke-web/` нет вообще (grep — 0 результатов).
+
+**Связь с AGENTS.md / конституцией.** Принцип VII.4 (логирование для диагностики, не «ради логирования»): добавили `statusCode` + тело ответа ЮKassa, чтобы при следующем 4xx/5xx можно было сразу увидеть причину. Аналогия с Q&A «redirectErrorStream(false) блокирует процесс»: подавление stderr привело к дебагу вслепую; здесь — подавление тела ответа привело к невозможности диагностировать 400. Defensive programming: try/catch в `savePropertiesMap()` — не «глушить ошибки», а «обеспечить работу на проде, где файла нет, и оставить WARN для будущих инцидентов». Также `n.publishAt != null and n.publishAt != ''` в main.html — двухветочный рендеринг с защитой от null/пустой строки.
+
+**Метрики реализации.**
+- Файлов изменено: 4 кода (`PaymentService.kt`, `PublicApiController.kt`, `KaraokeProperties.kt`, `main.html`) + 4 OpenSpec артефакта (`proposal.md`, `specs/runtime-errors/spec.md`, `design.md`, `tasks.md`) + 1 docs (`architecture-notes.md`).
+- Строк: `PaymentService.kt` +6 (новый catch), `PublicApiController.kt` −3 (удалены 2 вызова + 1 import), `KaraokeProperties.kt` +6 (try/catch вокруг savePropertiesMap), `main.html` +2 (двухветочный `<span>` с `th:if`).
+- `grep -rn "KaraokeProperties\." karaoke-web` после фикса: **0 результатов**.
+- `./gradlew :karaoke-app:compileKotlin :karaoke-web:compileKotlin`: BUILD SUCCESSFUL in 25s.
+- `./gradlew ktlintCheck`: BUILD SUCCESSFUL.
+- ESLint webvue3, ESLint karaoke-public: 0 errors.
+- KDoc coverage: 97.0% (≥ 50%).
+- JSDoc coverage: 100.0% (≥ 50%).
+- pre-commit ktlint: Passed.
+- GitHub Actions: CI 7/7 PASS (ktlint, ESLint webvue3, ESLint karaoke-public, KDoc, JSDoc, Docs, Baseline).
+- PR: #211, mergeCommit `6adf340823d0c0f38a70cb7e1ace599b325b3b1b`.
+- Ветка `161-fix-prod-runtime-errors-2026-08-09` **НЕ удалена** после merge (AGENTS.md, секция «Жизненный цикл feature-ветки»).
+
+**Связанные документы:**
+- [`openspec/changes/fix-prod-runtime-errors-2026-08-09/`](../../openspec/changes/fix-prod-runtime-errors-2026-08-09/) — полный change: `proposal.md` (Why/What/Impact), `specs/runtime-errors/spec.md` (новое требование «На вебе нет обращений к KaraokeProperties» + 3 сценария), `design.md` (аудит обращений + риск-таблица), `tasks.md` (28 чекбоксов).
+- [AGENTS.md](../../AGENTS.md), Q&A «redirectErrorStream(false) блокирует процесс» — аналогичный кейс: не логируем то, что не помогает диагностике.
+- [AGENTS.md](../../AGENTS.md), секция «CI-gate для master» — feature-ветка + PR + CI 7/7 + merge без `--delete-branch` (соблюдено).
+- [AGENTS.md](../../AGENTS.md), Q&A «Jackson отбрасывает is в boolean-полях Kotlin DTO» — аналогичный паттерн «обратить внимание на конвенцию сериализации, которая ломает биндинг на фронте».
+
+**Требуется ручной deploy (не агентом).**
+- nginx `minio-proxy` на проде: добавить `location /yookassa/` блок (см. design.md).
+- Сборка `karaoke-web.jar` и рестарт контейнера.
+- Верификация: `GET https://svoemesto.ru/`, `GET https://svoemesto.ru/api/song-vk-image/159`, `docker logs karaoke-web --since "24h" | grep -E "PaymentService.chargeRecurring"` (см. tasks.md, раздел 6).

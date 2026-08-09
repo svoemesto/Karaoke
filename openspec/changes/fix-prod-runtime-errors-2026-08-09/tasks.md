@@ -44,7 +44,7 @@
 
 ## 4. CI-gate: PR + проверки
 
-- [ ] 4.1 Закоммитить: `git add karaoke-app/ karaoke-web/ openspec/changes/fix-prod-runtime-errors-2026-08-09/` и `git commit -m "fix: 3 production runtime errors — ЮKassa logging, Thymeleaf publishAt, KaraokeProperties on prod (#NNN)"`.
+- [x] 4.1 Закоммитить: `git add karaoke-app/ karaoke-web/ openspec/changes/fix-prod-runtime-errors-2026-08-09/` и `git commit -m "fix: 3 production runtime errors — ЮKassa logging, Thymeleaf publishAt, KaraokeProperties on prod (#NNN)"`. Commit `0c204113` на ветке `161-fix-prod-runtime-errors-2026-08-09` — 9 files changed, 432 insertions(+), 20 deletions(-).
 - [x] 4.2 Запустить локально все 7 проверок (см. AGENTS.md, Q&A «Как проверить, что CI пройдёт»): `./gradlew ktlintCheck`, `cd webvue3 && npm run lint:check && cd ..`, `cd karaoke-public && npm run lint:check && cd ..`, `bash tools/check-kdoc-coverage.sh`, `bash tools/check-jsdoc-coverage.sh webvue3`, `bash tools/check-jsdoc-coverage.sh karaoke-public`, `pre-commit run --all-files`. Все зелёные:
   - ktlintCheck: BUILD SUCCESSFUL
   - webvue3 lint:check: 0 errors
@@ -53,7 +53,7 @@
   - JSDoc coverage webvue3: 100.0%
   - JSDoc coverage karaoke-public: 100.0%
   - pre-commit ktlint: Passed (остальные hooks — no files to check)
-- [ ] 4.3 `git push -u origin 161-fix-prod-runtime-errors-2026-08-09`.
+- [x] 4.3 `git push -u origin 161-fix-prod-runtime-errors-2026-08-09`. Успешно: ветка создана на origin.
 - [ ] 4.4 `gh pr create --base master --title "fix: 3 production runtime errors — ЮKassa logging, Thymeleaf publishAt, KaraokeProperties on prod" --body "..."`.
 - [ ] 4.5 `gh pr checks` — дождаться CI 7/7 SUCCESS.
 - [ ] 4.6 `gh pr merge --merge` (БЕЗ `--delete-branch` — см. AGENTS.md, секция «Жизненный цикл feature-ветки»).

@@ -11,7 +11,6 @@ import com.svoemesto.karaokeapp.model.Zakroma
 import com.svoemesto.karaokeapp.resizeBufferedImage
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.StorageApiClient
-import com.svoemesto.karaokeapp.KaraokeProperties
 import com.svoemesto.karaokeweb.StatBySong
 import com.svoemesto.karaokeweb.dto.AuthorTilePublicDto
 import com.svoemesto.karaokeweb.dto.SongPublicDto
@@ -464,8 +463,8 @@ class PublicApiController(
                 .build()
         }
 
-        val frameW = KaraokeProperties.getInt("vkPreviewImageWidth").let { if (it <= 0) 1200 else it }
-        val frameH = KaraokeProperties.getInt("vkPreviewImageHeight").let { if (it <= 0) 630 else it }
+        val frameW = 1200
+        val frameH = 630
         val padding = 20
         val picAreaH = 176
         val albumW = ((frameW - 3 * padding) / 3.5).toInt()

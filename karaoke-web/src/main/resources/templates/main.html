@@ -197,7 +197,9 @@
                 onmouseout="this.style.backgroundColor='transparent'"
                 onclick="if (!event.target.closest('a')) window.open(this.getAttribute('data-link'), '_blank', 'noopener,noreferrer')">
                 <td colspan="1" style="width: 110px; padding-left: 8px; padding-right: 8px; color: #cccccc; font-size: small; font-variant-numeric: tabular-nums; vertical-align: middle">
-                    <span th:text="${#dates.format(n.publishAt, 'dd.MM.yyyy HH:mm')}">—</span>
+                    <span th:if="${n.publishAt != null and n.publishAt != ''}"
+                          th:text="${#dates.format(T(java.sql.Timestamp).valueOf(n.publishAt.toString().replace('T',' ')), 'dd.MM.yyyy HH:mm')}">—</span>
+                    <span th:if="${n.publishAt == null or n.publishAt == ''}">—</span>
                 </td>
                 <td colspan="1" style="width: 32px; padding-left: 6px; padding-right: 6px; vertical-align: middle">
                     <!-- Иконка-монетка по n.category (air/premium/feature/general). Те же SVG-пути,

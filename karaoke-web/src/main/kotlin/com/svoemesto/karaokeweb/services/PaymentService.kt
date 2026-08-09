@@ -262,6 +262,9 @@ class PaymentService(
                 .retrieve()
                 .bodyToMono<PaymentResponse>()
                 .block()
+        } catch (e: WebClientResponseException) {
+            println("PaymentService.chargeRecurring: ошибка автосписания для sub=${sub.id} (pm=${sub.yookassaPaymentMethodId}): statusCode=${e.statusCode} body=${e.responseBodyAsString?.take(500)}")
+            null
         } catch (e: Exception) {
             println("PaymentService.chargeRecurring: ошибка автосписания для sub=${sub.id}: ${e.message}")
             null

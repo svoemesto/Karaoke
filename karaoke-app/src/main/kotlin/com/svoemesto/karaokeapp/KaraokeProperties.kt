@@ -63,22 +63,26 @@ class KaraokeProperties {
         }
 
         fun savePropertiesMap() {
-            File(pathToFile()).writeText(
-                karaokePropertiesMap
-                    .map { (key, value) ->
-                        Base64.getEncoder().encodeToString(
-                            Json
-                                .encodeToString(
-                                    KaraokePropertySerializable.serializer(),
-                                    KaraokePropertySerializable.create(
-                                        key = key,
-                                        value = value,
-                                    ),
-                                ).toByteArray(),
-                        )
-                    }.joinToString("\n"),
-            )
-            runCommand(listOf("chmod", "666", pathToFile()))
+            try {
+                File(pathToFile()).writeText(
+                    karaokePropertiesMap
+                        .map { (key, value) ->
+                            Base64.getEncoder().encodeToString(
+                                Json
+                                    .encodeToString(
+                                        KaraokePropertySerializable.serializer(),
+                                        KaraokePropertySerializable.create(
+                                            key = key,
+                                            value = value,
+                                        ),
+                                    ).toByteArray(),
+                            )
+                        }.joinToString("\n"),
+                )
+                runCommand(listOf("chmod", "666", pathToFile()))
+            } catch (e: Exception) {
+                println("KaraokeProperties: не удалось сохранить файл ${pathToFile()}: ${e.message}")
+            }
         }
 
         fun getString(key: String): String = get(key)?.let { it as String } ?: ""

@@ -20,10 +20,21 @@ server {
     proxy_set_header Host $host;
     proxy_set_header X-Nginx-Proxy true;
     client_max_body_size 200m;
+    # Fail-fast при падении upstream (Pass 46, 2026-08-10): nginx-дефолты
+    # `proxy_connect_timeout 60s` и `proxy_next_upstream error timeout` приводят к
+    # 60-секундному зависанию страницы, когда karaoke-web (Spring Boot) падает
+    # или рестартуется (Connection refused 111 / reset 104). Коннект отдаём
+    # fail-fast 5s, дальше браузер сам увидит 502 и переподключится; SSE/long-poll
+    # исключения (proxy_read/send_timeout 300s) сохраняем для текущих открытых коннектов.
+    proxy_connect_timeout 5s;
+    proxy_next_upstream off;
     proxy_read_timeout 300;
     proxy_send_timeout 300;
   }
   location /changerecords {
+    # SSE-стрим: те же fail-fast таймауты на подключение, что у /api/ (Pass 46, 2026-08-10),
+    # чтобы при падении karaoke-web не держать клиента 60s в ожидании connect. Уже
+    # открытый стрим не рвём (read/send 300s) — события SSE идут непрерывно.
     proxy_pass http://127.0.0.1:8897/changerecords;
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -32,6 +43,10 @@ server {
     proxy_set_header X-Forwarded-Port $server_port;
     proxy_set_header Host $host;
     proxy_set_header X-Nginx-Proxy true;
+    proxy_connect_timeout 5s;
+    proxy_next_upstream off;
+    proxy_read_timeout 300;
+    proxy_send_timeout 300;
   }
   # /song — раздвоение по User-Agent: боты VK/Telegram/etc → OG-endpoint
   # (картинка для сниппета в мессенджере); обычные браузеры → SPA karaoke-public

@@ -1218,3 +1218,128 @@ karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/CaptchaConfigServi
   - Нагрузить `/api/public/news/since` 30 раз подряд при работающем karaoke-web — все 200.
   - Сэмулировать падение (`docker stop karaoke-web`) и дёрнуть `/api/public/auth/me` — должен прийти **502 Bad Gateway за ≤ 5 секунд**, а не 60. После `docker start karaoke-web` всё восстанавливается.
   - Открыть плеер и проверить, что SSE `/changerecords` не отвалился в момент рестарта (новый клиент не подключится 5 c, но уже подключённый не рвётся).
+
+## Pass 47: восстановление потерянных DDL share-link (2026-08-10)
+
+**Контекст инцидента.** 163 спека (PR #215, `163-add-song-share-link`, 2026-08-10)
+открыла фичу «Временный полный доступ к песне» — Kotlin-сервис, контроллеры,
+UI, миграции. На момент мержа в master в репо **не оказалось DDL** для
+`tbl_song_share_links` и `tbl_song_share_sessions` — миграция была
+написана локально (как `28_song_share_links.sql` + `28b_song_share_recordhash.sql`),
+но при сборке коммита не попала в `git add` (untracked). После `git checkout
+164-nginx-upstream-reset` неотслеженный файл был снесён как untracked artifact
+новой ветки.
+
+**Симптом на проде.** С момента выката share-link до расследования (менее суток):
+- Любой переход по `/share/{id}/{secret}` → 500 в `PublicShareController.claim`
+  (`catch (_: Exception) { status(500).body({"errorCode": "share.notFound"})}`)
+- Фронт `ShareView.vue` мапит 500+`share.notFound` в state "notfound" → UI
+  показывает «Ссылка недоступна» (вводит в заблуждение — на самом деле
+  server error).
+- Под капотом — `PSQLException: relation "tbl_song_share_links" does not exist`
+  в `SongShareLinkService.resolveForGuest:391` (запрос на `SELECT id, song_id`
+  до inner try-блока, SQLException утекает в catch-all контроллера).
+
+**Восстановление через `git fsck --lost-found` + `git reflog`.**
+
+```bash
+git reflog --all | grep -i share  # увидел: 0282a998 share-link: ...
+# но этого коммита не хватило — DDL был только в working tree до 163-fix-song-editor-regressions
+git fsck --no-reflogs --unreachable 2>&1 | grep blob
+# → 13 dangling blobs, среди них:
+#   c8cc7472af57616ed25d22650722f55a4ce444eb  (8914 b) — DDL 28_song_share_links.sql
+#   e6c7d1733b88588e71936dffd52fbc0c5e56718a  (3956 b) — DDL 28_song_share_recordhash.sql
+git cat-file -p c8cc7472a... > /tmp/share.sql
+```
+
+**Восстановлено в репо:**
+
+1. `deploy/karaoke-db/38_song_share_links.sql` — оригинал миграции 28
+   (CREATE TABLE, 7 индексов на `tbl_song_share_links` + 3 индекса на
+   `tbl_song_share_sessions`). Идемпотентен (CREATE TABLE IF NOT EXISTS +
+   DO-блоки для IDENTITY/PRIMARY KEY).
+2. `deploy/karaoke-db/39_song_share_recordhash.sql` — оригинал 28b
+   (recordhash + last_update триггеры, 4 функции). Идемпотентен
+   (CREATE OR REPLACE FUNCTION + DO-блоки для триггеров).
+3. `docs/features/guest-share-link.md` — per-feature документ (FR-009
+   конституции), точно потерянный вместе с директорией `specs/163-add-song-share-link/`.
+4. `docs/features/README.md` — строка 25 в таблице (feature key `guest-share-link`).
+5. `AGENTS.md` Q&A — две новые записи:
+   - «500 на `/api/public/share/claim` — где DDL для share-таблиц»
+   - «Потерянные при переключении веток артефакты — как восстановить»
+
+**Нумерация изменена 28 → 38/29 → 39** потому что:
+- 28 уже занят (`28_rename_settings_to_songs.sql`)
+- 29 занят (`29_albums.sql`)
+- последний по нумерации — `37_news_auto_publish_kill_switch.sql` (Pass 41)
+- 38/39 — следующие свободные по конвенции в `deploy/karaoke-db/`
+
+**Восстановленные артефакты, которые НЕ нужны немедленно** (но сохранены
+в object store, указаны для полноты):
+- `b9404ea4...` (10979 b) — `specs/add-song-share-link/tasks.md` (исходный
+  план с уже `[x]` отметками — большая часть работы сделана)
+- `c3542162...` (7043 b) — `specs/add-song-share-link/proposal.md`
+- `3a782a54...` (15133 b) — `specs/add-song-share-link/design.md`
+- `2302219f...` (16263 b) — `specs/add-song-share-link/spec.md`
+- `3d4f3dce...` (3134 b) — `webvue3/.../shareLinkStore.js` (Vuex)
+- `c7c3ec6e...` (3795 b) — `karaoke-public/.../songShareLink.js` (services)
+
+Они могут быть полезны, если пользователь захочет формально архивировать
+OpenSpec change `add-song-share-link` (по закрытию tasks.md). Текущий
+приоритет — применить восстановленные SQL миграции.
+
+**Почему не выкатываю автоматически.** AGENTS.md запрещает агенту
+подключаться к прод-серверу и применять миграции — это governance,
+не пользовательское разрешение. Локальная БД (`nsa@nsa-i9` ≠ `dev@dev-pc`)
+тоже не в зоне автоматических мутаций. Пользователь применяет сам.
+
+**Ловушка (повторять НЕ надо).** В оригинальной миграции 28 в `song_id`
+используется `bigint` (не `integer`) — потому что `tbl_songs.id`/`tbl_settings.id`
+тоже `bigint`. FK на `tbl_song_share_links.song_id` не ставится намеренно —
+таблица PROD-only, не должна зависеть от sync-состояния песен. Для
+`tbl_song_share_sessions.share_link_id` FK ставится на
+`tbl_song_share_links(id) ON DELETE CASCADE` — чтобы при отзыве ссылки
+все её сессии автоматически удалились.
+
+**Метрики восстановления.**
+- Файлов создано: 3 (`38_song_share_links.sql`, `39_song_share_recordhash.sql`,
+  `docs/features/guest-share-link.md`).
+- Файлов отредактировано: 2 (`docs/features/README.md`, `AGENTS.md`).
+- Строк добавлено: ~520 (DDL + per-feature doc + Q&A).
+- Никакого кода не менялось (Kotlin/Vue) — только восстановление утраченного
+  DDL и документации.
+- CI 7/7 задействован только `docs` check (новые/изменённые .md) +
+  сам проходит проверку структуры per-feature doc (`tools/check-feature-doc.sh`).
+- PR: TBD — пользователь делает сам по AGENTS.md.
+
+**Требуется ручной apply (не агентом).**
+```bash
+# Локально (после чего перезапустить karaoke-web через deploy/do.sh):
+docker exec -i karaoke-db psql -U postgres -d karaoke < deploy/karaoke-db/38_song_share_links.sql
+docker exec -i karaoke-db psql -U postgres -d karaoke < deploy/karaoke-db/39_song_share_recordhash.sql
+
+# На проде (только через пользователя):
+ssh root@188.119.64.111 "docker exec -i karaoke-db psql -U postgres -d karaoke" < deploy/karaoke-db/38_song_share_links.sql
+ssh root@188.119.64.111 "docker exec -i karaoke-db psql -U postgres -d karaoke" < deploy/karaoke-db/39_song_share_recordhash.sql
+# Затем пересобрать karaoke-web если контейнер ещё на старой схеме — но
+# karaoke-web сейчас не использует share_* — значит достаточно одной БД миграции.
+```
+
+**Верификация после apply (read-only, безопасно).**
+```bash
+docker exec karaoke-db psql -U postgres -d karaoke -c "\dt tbl_song_share*"
+# → tbl_song_share_links
+# → tbl_song_share_sessions
+docker exec karaoke-db psql -U postgres -d karaoke -c "\\d tbl_song_share_links"
+# → 17 колонок, в т.ч. owner_site_user_id, song_id, token_hash, active_session_*
+```
+
+**Связанные документы:**
+- `AGENTS.md` Q&A — две записи этого Pass 47.
+- `docs/features/guest-share-link.md` — новый per-feature документ.
+- `docs/features/README.md` — таблица 25 фич (вместо 24).
+- [Pass 46](#pass-46-fail-fast-nginx-для-upstream-karaoke-web-164-nginx-upstream-reset-2026-08-10) — этот же nginx-фейл-фейл, лечивший СИМПТОМ share-link 500 (60-секундные зависания страницы), но не причину (отсутствующие таблицы).
+- Коммит `0282a998` (reflog позиция HEAD@{18}) — оригинал share-link PR, без DDL.
+- Dangling blobs `c8cc7472a...` и `e6c7d1733...` — будущая ссылка для
+  будущих AI-агентов: "если что-то потерялось при переключении веток —
+  сначала `git fsck --lost-found`, не паникуй".

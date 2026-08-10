@@ -622,6 +622,72 @@ Phase 001 (PR #12-#26) + Phase 002 (PR #27-#32). Содержит метрики
 
 См. секцию «Документация и иерархия» выше.
 
+### Q: 500 на `/api/public/share/claim` — где DDL для share-таблиц?
+
+**Кратко**: живой DDL лежит в `deploy/karaoke-db/38_song_share_links.sql` +
+`39_song_share_recordhash.sql`. Восстановлен в Pass 47 (2026-08-10) из
+`git fsck --lost-found` (dangling blobs `c8cc7472a...`, `e6c7d1733...`),
+потерян при переключении веток — оригинал назывался `28_song_share_links.sql`
++ `28b_song_share_recordhash.sql`, перенумерован в свободные 38/39.
+
+**Симптом**: при переходе гостя по публичной share-ссылке
+(`/share/{id}/{secret}`) бэкенд выбрасывает `relation "tbl_song_share_links"
+does not exist`, контроллер ловит catch-all как 500 + `share.notFound`,
+фронт `ShareView.vue` показывает «Ссылка недоступна».
+
+**Диагностика** (для будущих аналогичных случаев):
+
+```bash
+# Проверить наличие таблиц (read-only, безопасно):
+docker exec karaoke-db psql -U postgres -d karaoke -c "\dt tbl_song_share*"
+
+# Если таблиц нет — посмотреть, не было ли их в локально-потерянных ветках:
+git fsck --lost-found 2>/dev/null | grep "blob\|commit\|tree"
+# После — найти blob с CREATE TABLE *share*:
+for b in $(git fsck --no-reflogs --unreachable 2>/dev/null | awk '/blob/{print $3}'); do
+  git cat-file -p "$b" 2>/dev/null | head -10 | grep -l "tbl_song_share" && echo "blob $b"
+done
+```
+
+**Применить миграцию**:
+
+```bash
+# Локально:
+docker exec -i karaoke-db psql -U postgres -d karaoke < deploy/karaoke-db/38_song_share_links.sql
+docker exec -i karaoke-db psql -U postgres -d karaoke < deploy/karaoke-db/39_song_share_recordhash.sql
+
+# На проде (только через пользователя, см. «Ограничения агента»).
+```
+
+**Ловушка** (повторять НЕ надо): в миграции имя `song_id` идёт через
+`bigint` (не `integer`), и `recordhash` колонка обязательна для
+контракта `KaraokeDbTable` (хотя sync и не активен — таблица PROD-only).
+
+### Q: Потерянные при переключении веток артефакты — как восстановить?
+
+**Кратко**: `git fsck --lost-found` + `git reflog` — оба инструмента всегда
+под рукой. Dangling commits/blobs/trees сохраняются, пока не сделан
+`git gc --prune=now` (по умолчанию `gc.auto=6700`, в проекте явно
+не настроено, поэтому 90+ дней артефакты живут).
+
+**Порядок действий**:
+
+1. `git reflog --all` — увидеть историю перемещений HEAD.
+2. `git fsck --no-reflogs --lost-found` — найти dangling объекты.
+3. `git cat-file -p <hash>` — прочитать содержимое.
+4. Если blob — искать grep по характерным признакам (CREATE TABLE, import
+   package, шапка комментария). Если commit — смотреть `git diff-tree`.
+5. Восстановить под новым именем/нумерацией через `git show <hash> > путь/файл`.
+
+**Пример** (Pass 47, share-link): мы потеряли `28_song_share_links.sql`
+при `git checkout 164-nginx-upstream-reset` (снёс untracked SQL из
+working tree), но blob остался в object store. Найден через
+`git fsck | grep blob`, востановлен в `38_song_share_links.sql`
+(номер изменился, т.к. 28+ уже занят `28_rename_settings_to_songs.sql`).
+
+**Ловушка**: НЕ делать `git gc --prune=now` до восстановления —
+удалит dangling объекты без предупреждения.
+
 ### Q: Почему `nginx:alpine` падает?
 
 `docker-compose` использует `/bin/bash -c ...`, а в `nginx:alpine` нет bash

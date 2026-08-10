@@ -8,10 +8,15 @@
          поведение у настоящих Bootstrap BModal в `SongEdit.vue` — клик по фону не закрывает. -->
     <div class="skm-overlay" @click.stop>
       <div class="skm-modal" @click.stop>
+        <custom-confirm
+          v-if="isCustomConfirmVisible"
+          :params="customConfirmParams"
+          @close="closeCustomConfirm"
+        />
         <div class="skm-header">
           <span class="skm-header-title">{{ headerTitle }}</span>
           <span class="skm-header-meta">{{ headerMeta }}</span>
-          <button class="skm-close-x" title="Закрыть" @click="$emit('close')">✕</button>
+          <button class="skm-close-x" title="Закрыть" @click="requestClose">✕</button>
         </div>
         <div class="skm-body">
           <div v-if="loading" class="skm-status">Загрузка песни…</div>
@@ -48,7 +53,7 @@
         <div class="skm-footer">
           <span class="skm-save-state" :class="`skm-save-${saveState}`">{{ saveStateLabel }}</span>
           <div class="skm-footer-btns">
-            <button class="skm-btn skm-btn-ghost" :disabled="saving" @click="$emit('close')">
+            <button class="skm-btn skm-btn-ghost" :disabled="saving" @click="requestClose">
               Отмена
             </button>
             <button
@@ -68,6 +73,7 @@
 <script>
 import { promisedXMLHttpRequest } from '../../lib/utils'
 import SongKaraokeEditorView from './SongKaraokeEditorView.vue'
+import CustomConfirm from '../Common/CustomConfirm.vue'
 
 // Модалка админского онлайн-редактора караоке-разметки (webvue3). Один и тот же режим редактора
 // работает в двух сценариях:
@@ -87,7 +93,7 @@ import SongKaraokeEditorView from './SongKaraokeEditorView.vue'
  */
 export default {
   name: 'SongKaraokeEditorModal',
-  components: { SongKaraokeEditorView },
+  components: { SongKaraokeEditorView, CustomConfirm },
   props: {
     mode: { type: String, required: true, validator: (v) => v === 'song' || v === 'assignment' },
     id: { type: Number, required: true },
@@ -120,6 +126,8 @@ export default {
       saveState: 'idle',
       saveTimer: null,
       saving: false,
+      isCustomConfirmVisible: false,
+      customConfirmParams: undefined,
     }
   },
   computed: {
@@ -244,13 +252,44 @@ export default {
           sourceTexts: JSON.stringify(sourceTexts),
           markersPerVoice: JSON.stringify(markersPerVoice),
         }
-        await promisedXMLHttpRequest({ method: 'POST', url: '/api/songeditor/edit/save', params })
-        this.saveState = 'saved'
+        const respText = await promisedXMLHttpRequest({
+          method: 'POST',
+          url: '/api/songeditor/edit/save',
+          params,
+        })
+        // FR-003 (spec 163): HTTP 200 сам по себе не значит "сохранено" - editSave() может
+        // легитимно вернуть `{ok: false, error: ...}` (например song_not_found) с обычным 200.
+        // Раньше это тело ответа не проверялось вовсе, и backend-отказ молча показывался
+        // пользователю как «Сохранено ✓» (см. research.md §1).
+        const body = respText ? JSON.parse(respText) : null
+        this.saveState = body && body.ok === true ? 'saved' : 'error'
       } catch (e) {
         this.saveState = 'error'
       } finally {
         this.saving = false
       }
+    },
+    // FR-004 (spec 163): если последнее сохранение завершилось ошибкой, закрытие редактора (крестик
+    // или «Отмена») блокируется явным предупреждением - пользователь либо подтверждает потерю
+    // несохранённых правок, либо дожидается успешного сохранения. Без автоматического повтора
+    // попытки сохранения (решение зафиксировано в spec.md, Clarifications).
+    requestClose() {
+      if (this.saveState === 'error') {
+        this.customConfirmParams = {
+          header: 'Есть несохранённые правки',
+          body:
+            'Последняя попытка сохранения завершилась ошибкой. Если закрыть редактор сейчас, ' +
+            'несохранённые правки будут потеряны. Закрыть без сохранения?',
+          alertType: 'error',
+          callback: () => this.$emit('close'),
+        }
+        this.isCustomConfirmVisible = true
+        return
+      }
+      this.$emit('close')
+    },
+    closeCustomConfirm() {
+      this.isCustomConfirmVisible = false
     },
   },
 }

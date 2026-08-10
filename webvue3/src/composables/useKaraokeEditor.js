@@ -194,14 +194,6 @@ export function syncMarkersFromSpecTags(markers, sourceText) {
       anchor.syllableIndex < syllablePositions.length
         ? syllablePositions[anchor.syllableIndex]
         : markers.length
-    const windowStart =
-      anchor.syllableIndex > 0 ? syllablePositions[anchor.syllableIndex - 1] + 1 : 0
-
-    const alreadyExists = markers
-      .slice(windowStart, insertPos)
-      .some((m) => m.markertype === anchor.markertype && m.label === anchor.label)
-    if (alreadyExists) return
-
     const prevMarker = insertPos > 0 ? markers[insertPos - 1] : null
     const nextMarker = insertPos < markers.length ? markers[insertPos] : null
     const prevEndTime = prevMarker ? prevMarker.time : 0
@@ -209,6 +201,26 @@ export function syncMarkersFromSpecTags(markers, sourceText) {
     const gap = Math.max(0, nextStartTime - prevEndTime)
     // Тот же приём, что backend newLineMarkerTime (лид-ин 1с перед следующим маркером).
     const time = gap >= 1.0 ? nextStartTime - 1.0 : prevEndTime + gap / 2
+
+    // Дедупликация по ВРЕМЕННОМУ диапазону между соседними слоговыми маркерами, а не по индексам
+    // массива (как было раньше) — индексный вариант ломался, когда вычисленное выше `time` точно
+    // совпадало с `prevEndTime` (gap === 0) либо с `prevEndTime` через `nextStartTime - 1.0`
+    // (gap === 1.0): `sortMarkers()` при равенстве времени сортирует по markertype
+    // ('setting' < 'syllables'), вытесняя уже вставленный тег-маркер ЗА пределы индексного окна —
+    // на следующий вызов маркер "не находился" и вставлялся заново, раздувая массив на каждое
+    // нажатие клавиши (см. contracts/sync-idempotency-invariant.md, воспроизведено в research.md
+    // §2). Временной диапазон устойчив к такому смещению индексов: `prevEndTime`/`nextStartTime` —
+    // это времена соседних СЛОГОВЫХ маркеров, которые сами по себе не двигаются и не удаляются
+    // (FR-007), поэтому окно остаётся одним и тем же независимо от того, куда сортировка поместила
+    // уже вставленный тег-маркер.
+    const alreadyExists = markers.some(
+      (m) =>
+        m.markertype === anchor.markertype &&
+        m.label === anchor.label &&
+        m.time >= prevEndTime &&
+        m.time <= nextStartTime,
+    )
+    if (alreadyExists) return
 
     markers.splice(insertPos, 0, {
       uid: nextUid(),

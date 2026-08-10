@@ -2155,17 +2155,6 @@ export default {
         this.ws.setPlaybackRate(this.playSpeed)
       },
     },
-    sourceSyllables: {
-      handler() {
-        this.updateMarkersBySyllables()
-        // FIX #019: updateMarkersBySyllables() вызывает marker.region.setContent(...) и
-        // setOptions({ color }) для syllables-маркеров. В wavesurfer regions-plugin это перерисовывает
-        // регион, и в зависимости от версии плагина `start` сбрасывается на 0 (визуально все
-        // маркеры «слипаются» в нулевой позиции, см. specs/019). Явный redrawMarkers() после —
-        // обходной путь: clearRegions + пересоздание из sourceMarkers с актуальным marker.time.
-        this.redrawMarkers()
-      },
-    },
     sourceMarkers: {
       handler() {
         this.currentSyllablesIndex = this.getCurrentSyllablesIndex
@@ -2177,13 +2166,25 @@ export default {
     },
     sourceText: {
       handler() {
+        // FIX (spec 163): раньше `sourceSyllables` имел свой ОТДЕЛЬНЫЙ watcher с тем же набором
+        // вызовов (updateMarkersBySyllables()+redrawMarkers()) — присваивание строкой ниже всегда
+        // создаёт новый массив (getSyllables), поэтому Vue считает значение изменившимся и триггерит
+        // тот watcher на КАЖДОЕ нажатие клавиши — то есть updateMarkersBySyllables()+redrawMarkers()
+        // выполнялись дважды за keystroke без какой-либо пользы (второй проход — чистый повтор
+        // первого на неизменных данных). Спецтеги добавили доп. работу в этот и так задвоенный
+        // путь (см. research.md §3), из-за чего торможение и вспышка «слипания в нуле» стали
+        // заметнее. `sourceSyllables` больше нигде не присваивается напрямую — отдельный watcher
+        // был объединён сюда (см. contracts/sync-idempotency-invariant.md).
         this.sourceSyllables = this.getSyllables
         this.updateMarkersBySyllables()
         this.syncMarkersFromSpecTags()
-        // FIX #019: см. комментарий в sourceSyllables watcher. Дополнительно: syncMarkersFromSpecTags
+        // FIX #019: updateMarkersBySyllables() вызывает marker.region.setContent(...) и
+        // setOptions({ color }) для syllables-маркеров. В wavesurfer regions-plugin это перерисовывает
+        // регион, и в зависимости от версии плагина `start` сбрасывается на 0 (визуально все
+        // маркеры «слипаются» в нулевой позиции, см. specs/019). Дополнительно: syncMarkersFromSpecTags
         // только что добавил spec tag-маркеры (через createRegionMarker), их регионы уже созданы
         // корректно. Но updateMarkersBySyllables() ДО syncMarkersFromSpecTags мог сбросить позиции
-        // ранее созданных маркеров — redrawMarkers ниже восстанавливает их все.
+        // ранее созданных маркеров — redrawMarkers ниже восстанавливает их все за ОДИН проход.
         this.redrawMarkers()
         this.tail = this.getTail
         this.textFormatted = this.getFormattedText
@@ -3505,16 +3506,6 @@ export default {
           anchor.syllableIndex < syllablePositions.length
             ? syllablePositions[anchor.syllableIndex]
             : this.sourceMarkers.length
-        const windowStart =
-          anchor.syllableIndex > 0 ? syllablePositions[anchor.syllableIndex - 1] + 1 : 0
-
-        const alreadyExists = this.sourceMarkers
-          .slice(windowStart, insertPos)
-          .some(
-            (marker) => marker.markertype === anchor.markertype && marker.label === anchor.label,
-          )
-        if (alreadyExists) return
-
         const prevMarker = insertPos > 0 ? this.sourceMarkers[insertPos - 1] : null
         const nextMarker =
           insertPos < this.sourceMarkers.length ? this.sourceMarkers[insertPos] : null
@@ -3533,6 +3524,25 @@ export default {
         if (time < 0.5) {
           time = prevEndTime + 0.5
         }
+
+        // Дедупликация по ВРЕМЕННОМУ диапазону [prevEndTime, max(nextStartTime, time)], а не по
+        // индексам массива (как было раньше) — индексный вариант не был идемпотентен, когда
+        // вычисленное выше `time` точно совпадало с временем соседнего маркера (`sortMarkers()`
+        // при равенстве времени сортирует по markertype и может вытеснить уже вставленный
+        // тег-маркер за пределы индексного окна). Верхняя граница явно включает сам `time` (а не
+        // только `nextStartTime`) — учитывает случай FIX #018 выше, где `time` может оказаться
+        // больше `nextStartTime` при маленьком зазоре между слогами. См.
+        // contracts/sync-idempotency-invariant.md, research.md §2-3 (spec 163) — тот же класс
+        // бага подтверждённо ломал сохранение в облегчённом редакторе (useKaraokeEditor.js).
+        const windowEnd = Math.max(nextStartTime, time)
+        const alreadyExists = this.sourceMarkers.some(
+          (marker) =>
+            marker.markertype === anchor.markertype &&
+            marker.label === anchor.label &&
+            marker.time >= prevEndTime &&
+            marker.time <= windowEnd,
+        )
+        if (alreadyExists) return
 
         const newMarker = {
           time: time,

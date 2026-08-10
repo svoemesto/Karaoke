@@ -1174,3 +1174,47 @@ karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/CaptchaConfigServi
 **Связанные документы:**
 - [`specs/162-fix-header-stale-premium-status/`](../specs/162-fix-header-stale-premium-status/) — spec.md, plan.md, research.md, data-model.md, quickstart.md, tasks.md.
 - **Занятость номера 161**: изначально фича была заведена как `161-fix-header-stale-premium-status`, но номер `161` уже занят веткой `161-fix-prod-runtime-errors-2026-08-09` (Pass 41 выше, PR #211, тег `seq/161`) — директория и все внутренние ссылки переименованы на `162-` до какого-либо коммита/PR, коллизии в истории не возникло.
+
+## Pass 46: fail-fast nginx для upstream karaoke-web (164-nginx-upstream-reset, 2026-08-10)
+
+**Контекст инцидента.** 10 августа 2026 на проде (`sm-karaoke.ru`) в течение дня происходили всплески 502 Bad Gateway для пользователей. Со стороны nginx-сервера (`188.119.64.111`, Ubuntu 24.04, nginx 1.24.0) было видно:
+- `/var/log/nginx/error.log` за сутки: **71 × `recv() failed (104: Connection reset by peer)`**, **8 × `connect() failed (111: Connection refused)`**, **7 × `upstream prematurely closed connection`** — все на `upstream: http://127.0.0.1:8897` (Spring Boot в `karaoke-web`).
+- 5xx в access.log: 10:15, 10:32–10:54, 11:20, 13:10–13:11, 13:34, 13:53–13:55, 14:26–14:29 (пик 321 req/min, 4–5 % из них 5xx).
+- Топ упавших URL: `/api/public/news/since` (52), `/api/public/account/chat/unreadcount` (23), `/api/public/share/claim` (8) — все три polling-эндпоинта.
+- `/actuator/health` — 404 (выключен в `karaoke-web`); `/dumps/` пусто (heap-dump не делался, OOM не было); `dmesg`/`journalctl` без OOM-killer событий; `docker stats` показывает `karaoke-web` 381 МБ RSS из Xmx 1048 м, load на хосте 0.03–0.07, ресурсов хватает.
+- Прямой `curl 127.0.0.1:8897/api/public/auth/me` в моменты всплесков отдавал быстро (90–210 мс), контейнер жив — **nginx видел upstream, который сбрасывал коннект в момент GC-pause или рестарта JVM**.
+- **Корень — Spring Boot в `karaoke-web`**, а не nginx: после каждого ручного `do.sh build_start_web` контейнер сразу же подвисал снова (юзер подтвердил). Правка nginx ниже лечит **видимый симптом** (60-секундные зависания страниц), но не лечит причину падений Java-процесса — её нужно копать отдельно (heap-dump при следующем зависании, thread-dump, проверить пагинацию `/news/since?id=0` который отдаёт 3.2 МБ JSON одним ответом).
+
+**Фикс** (`deploy/web-server-deploy/deploy/80to8897`, единственный изменённый файл, 11 строк):
+1. `location /api/` (Spring Boot upstream на `127.0.0.1:8897`): добавлены `proxy_connect_timeout 5s;` и `proxy_next_upstream off;`. Существующие `proxy_read_timeout 300;` / `proxy_send_timeout 300;` сохранены — для длинных polling-ответов и SSE.
+2. `location /changerecords` (SSE-стрим): те же `proxy_connect_timeout 5s;` и `proxy_next_upstream off;`. Уже открытое SSE-соединение не рвём (`proxy_read_timeout 300`), рвём только **попытку подключения** к упавшему upstream.
+
+**Зачем.**
+- nginx-дефолты для upstream'а: `proxy_connect_timeout 60s` и `proxy_next_upstream error timeout` — это означает, что при недоступности upstream nginx **60 секунд пытается открыть новое соединение** и/или **повторить через `proxy_next_upstream`**, прежде чем отдать клиенту 502. Браузер в это время «висит».
+- 5 секунд достаточно, чтобы отличить «upstream упал» от «upstream перегружен»: TCP connect на `127.0.0.1:8897` в норме занимает < 10 мс, 5 секунд — это 500× дефолта и **гарантированно провалится при любом crash/restart**.
+- `proxy_next_upstream off` — у нас один upstream (один `karaoke-web` контейнер), второго нет, повтор бессмысленен и только задерживает 502.
+- Длинные `read`/`send` таймауты (300 s) **не трогаем**: они нужны для текущих polling-ответов и SSE, которые могут жить минуты.
+
+**Почему НЕ `/minio/` и НЕ `/smartcaptcha/`** — там те же настройки применены ещё в Pass 45 (PR #212, `fix-prod-runtime-errors-2026-08-09`), но в `git diff HEAD` для этих блоков сейчас нулевой: правки Pass 45 пришли в прод через rsync, в git-коммит не вошли. Это отдельная техдолжная задача (синхронизировать серверный 80to8897 с git-репо), в Pass 46 она не затрагивается.
+
+**Метрики реализации.**
+- Файлов изменено: 1 конфиг (`deploy/web-server-deploy/deploy/80to8897`, +11 / −0).
+- Локально `nginx -t` не запускается (нет nginx в окружении агента); на проде проверяется `sudo nginx -t` перед reload (задача деплойера, не агента).
+- ktlintCheck, ESLint, KDoc/JSDoc coverage: не задействованы (конфиг nginx, не код).
+- GitHub Actions: CI 7/7 — `docs` (новый Pass 46 в `docs/architecture-notes.md`) + `lint` пройдут; `baseline` покажет 0; `ktlint`/`ESLint`/`KDoc`/`JSDoc` — без изменений в коде → чисто.
+- PR: TBD (см. `gh pr create --base master` в задачах ниже), mergeCommit — TBD.
+- Ветка `164-nginx-upstream-reset` **НЕ удалена** после merge (AGENTS.md, секция «Жизненный цикл feature-ветки»).
+
+**Связанные документы:**
+- [AGENTS.md](../../AGENTS.md), секция «Документация и иерархия» — этот Pass 46 входит в цепочку архитектурного changelog (Pass 41–Pass 45 в этом же файле).
+- [AGENTS.md](../../AGENTS.md), Q&A «Дефолты DEMO рендера…» и аналогичные — образец «как задаются и применяются дефолты в двух местах», здесь работает та же логика «read timeout = запас, connect timeout = fail-fast».
+- Pass 41/PR #211 (`fix-prod-runtime-errors-2026-08-09`) и Pass 45/PR #212 (тот же change, докатка) — на сервере применили те же fail-fast приёмы для `/minio/`, `/smartcaptcha/`, `/yookassa/`, но в git-репо эти блоки до сих пор не закоммичены — задокументировано как техдолг.
+
+**Требуется ручной deploy (не агентом).**
+- `rsync deploy/web-server-deploy/deploy/80to8897 root@188.119.64.111:/root/Karaoke/deploy/80to8897`.
+- На сервере: `sudo nginx -t && sudo systemctl reload nginx` (или как раньше делали через `cp /root/Karaoke/deploy/80to8897 /etc/nginx/sites-enabled/80to8897 && nginx -t && systemctl reload nginx`, см. AGENTS.md, секция «Nginx 80to8897»).
+- Верификация после reload:
+  - `tail -n 200 /var/log/nginx/error.log` — синтаксис без `[emerg]`.
+  - Нагрузить `/api/public/news/since` 30 раз подряд при работающем karaoke-web — все 200.
+  - Сэмулировать падение (`docker stop karaoke-web`) и дёрнуть `/api/public/auth/me` — должен прийти **502 Bad Gateway за ≤ 5 секунд**, а не 60. После `docker start karaoke-web` всё восстанавливается.
+  - Открыть плеер и проверить, что SSE `/changerecords` не отвалился в момент рестарта (новый клиент не подключится 5 c, но уже подключённый не рвётся).

@@ -134,6 +134,7 @@
               <FavoriteIcon :song-id="currentSong.id" label="В избранное" />
               <PlaylistIcon :song-id="currentSong.id" label="В плейлист" />
               <ShareButton />
+              <ShareLinkButton :song-id="currentSong.id" />
             </div>
           </div>
         </div>
@@ -329,6 +330,7 @@ import AuthStatusWidget from '../components/AuthStatusWidget.vue'
 import FavoriteIcon from '../components/FavoriteIcon.vue'
 import PlaylistIcon from '../components/PlaylistIcon.vue'
 import ShareButton from '../components/ShareButton.vue'
+import ShareLinkButton from '../components/ShareLinkButton.vue'
 import { useDesign } from '../composables/useDesign'
 import { useEngagementTracking } from '../composables/useEngagementTracking'
 import { useAuth } from '../composables/useAuth'
@@ -370,6 +372,7 @@ export default {
     FavoriteIcon,
     PlaylistIcon,
     ShareButton,
+    ShareLinkButton,
   },
   setup() {
     const route = useRoute()

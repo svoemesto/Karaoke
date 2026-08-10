@@ -23,6 +23,7 @@ import CartView from '../views/CartView.vue'
 import OfertaView from '../views/OfertaView.vue'
 import NewsView from '../views/NewsView.vue'
 import AboutView from '../views/AboutView.vue'
+import ShareView from '../views/ShareView.vue'
 
 // Быстрая синхронная проверка токена для защищённых маршрутов личного кабинета — сами страницы
 // перепроверяют через fetchMe(); здесь лишь чтобы не мигнуть защищённым контентом анониму.
@@ -44,6 +45,7 @@ const routes = [
   { path: '/news', name: 'news', component: NewsView },
   // Публично, без requireAuth — страница «О проекте» видна и анонимам.
   { path: '/about', name: 'about', component: AboutView },
+  { path: '/share/:id/:secret', name: 'share', component: ShareView },
   {
     path: '/account',
     name: 'account',

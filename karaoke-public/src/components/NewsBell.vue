@@ -53,8 +53,17 @@ export default {
   computed: {
     // Скрыт на самой странице новостей (там и так всё видно, см. ChatUnreadBadge) и на
     // полноэкранном плеере — плавающая кнопка поверх видео была бы отвлекающей.
+    // Дополнительно: на share-странице (`/share/:id/:secret`, `route.name === 'share'`) и
+    // на плеере в share-режиме (`route.query.share === '1'`) — гость, зашедший по
+    // временной ссылке, не должен видеть рекламных новостей проекта/эфиров, иначе UX
+    // share-ссылки ломается (всплывающие тосты отвлекают от лендинга).
     isHiddenRoute() {
-      return this.$route.name === 'news' || this.$route.name === 'player'
+      return (
+        this.$route.name === 'news' ||
+        this.$route.name === 'player' ||
+        this.$route.name === 'share' ||
+        this.$route.query.share === '1'
+      )
     },
     visible() {
       return (this.unread > 0 || !!this.toastItem) && !this.isHiddenRoute
@@ -64,10 +73,20 @@ export default {
     // При переходе на /news (в т.ч. кликом по самому колокольчику) счётчик неизбежно обнулится
     // на следующем опросе — NewsView.vue сама поднимает last-seen id при открытии ленты.
     '$route.name'() {
+      // На скрытых маршрутах (share, плеер в share-режиме, /news) опрос не нужен —
+      // колокольчик и тосты всё равно не видны. Не дёргаем /api/public/news вхолостую.
+      if (this.isHiddenRoute) {
+        if (this.pollTimer) {
+          clearInterval(this.pollTimer)
+          this.pollTimer = null
+        }
+        return
+      }
       this.poll()
     },
   },
   mounted() {
+    if (this.isHiddenRoute) return
     this.poll()
     this.pollTimer = setInterval(this.poll, POLL_INTERVAL_MS)
   },

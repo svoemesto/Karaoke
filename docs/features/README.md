@@ -35,6 +35,7 @@
 | 22 | `vk-id-auth` | Авторизация через VK ID (id.vk.ru) — получение и автообновление user-token для `photos.*` / `video.save` | [vk-id-auth.md](./vk-id-auth.md) |
 | 23 | `editor-tasks` | Управление заданиями онлайн-редактора караоке-разметки (сортировка, «Отказаться», «Удалить», массовое удаление одобренных в ЛК и админке) | [editor-tasks.md](./editor-tasks.md) |
 | 24 | `song-state-colors` | Производные состояния песен (DONE / TODAY / ON_AIR / EXCLUSIVE / IN_WORK) и их цвета в админке | [song-state-colors.md](./song-state-colors.md) |
+| 25 | `guest-share-link` | Временный полный доступ к песне по публичной ссылке (премиум-владелец → анонимный гость, ≤2 устройств, lease 90 сек) | [guest-share-link.md](./guest-share-link.md) |
 
 ## Cross-cutting (инфраструктура)
 

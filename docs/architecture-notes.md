@@ -1621,3 +1621,44 @@ async, `currentLink = null` стартовое значение → Vue ренд
   не вызывался из-за Pass 53 bug с watch)
 - Pass 54 (PR #224, fbc9a4c2) — добавил console.log (не сработал по той же причине)
 - Pass 55 (PR #225, b8ca9780) — root cause fix
+
+## Pass 56: feat(admin) — админ-таблицы «Подписки», «История прослушиваний», «Временные ссылки» (2026-08-11, branch `171-admin-subscriptions-history`)
+
+**Задача**: добавить в admin-SPA (`webvue3`) три read-only глобальных таблицы для
+сущностей, у которых уже есть per-user модалки: `tbl_subscriptions`, `tbl_listening_history`,
+`tbl_song_share_links`. До фичи админ не имел UI для глобального обзора всех подписок /
+истории / share-ссылок — только по одной карточке пользователя.
+
+**Что сделано**:
+- 3 новых контроллера в `karaoke-app`:
+  - `SubscriptionsController` (`POST /api/subscriptions/digest`) — JOIN к `tbl_site_users`/`tbl_songs`/`tbl_price_tariffs` батчем.
+  - `ListeningHistoryController` (`POST /api/listeninghistory/digest`) — ОБЯЗАТЕЛЬНО SKIP-фильтр на чтении.
+  - `ShareLinksAdminController` (`POST /api/sharelinks/digest`) — JOIN к `tbl_site_users`/`tbl_songs`, computed `has_active_session` через `active_session_token_hash IS NOT NULL AND active_session_lease_until > now()`.
+- 3 новых компонента в `webvue3/src/components/{Subscriptions,ListeningHistory,ShareLinks}/` по образцу `SitePlaylistsTable` + `SiteUsersFilterModal`.
+- 3 view-обёртки в `webvue3/src/views/`, 3 роута (`/subscriptions`, `/listeninghistory`, `/sharelinks`), 3 пункта меню в `App.vue` (после «Пользователи сайта»).
+- Действие «Отозвать» в `/sharelinks` — **переиспользует** существующий `revokeSiteUserShareLink` (НЕ дублирует логику). Подтверждение через кастомную модалку (НЕ `confirm()` — нужно показать email владельца + target).
+- Обновлён per-feature doc `docs/features/guest-share-link.md` — добавлена секция «Админ-таблица `/sharelinks`».
+
+**Решения** (из `specs/171-admin-subscriptions-history/research.md`, RQ-1…RQ-11):
+- Контроллеры в `karaoke-app` (как `SiteUsersController` / `SitePlaylistsController`), не в `karaoke-web`.
+- Сырой JDBC через `KaraokeDbTable.loadList` / `loadByIds` (конституция II NON-NEGOTIABLE).
+- Пагинация 25/500/25 для подписок/истории/share — разная плотность из-за разной «жирности» строк.
+- Без SSE для таблиц (Out of Scope, ручной F5).
+- Без новых DB-миграций — все три таблицы уже существуют.
+
+**Метрика**: 3 backend контроллера + 3 store.js + 3 FilterModal.vue + 3 Table.vue + 3 View.vue + 1 изменённый `router/index.js` + 1 `App.vue` + 1 `store/index.js` + 1 обновлённый `guest-share-link.md` ≈ 14 файлов, +~1800 строк.
+
+**Lessons learned**:
+- **`refresh in-place after action`** — паттерн для action-кнопок в таблицах. После успешного `revokeSiteUserShareLink` НЕ перезагружаем таблицу — патчим объект в массиве через mutation `updateShareLinksDigestItem`. UX быстрее, нет «мигания» таблицы.
+- **Кастомная confirm-модалка вместо `window.confirm()`** — для админских действий с потенциальными последствиями. Показываем контекст (id ссылки, email владельца, target) — критично, чтобы админ не отозвал прод-ссылку случайно при target=Remote.
+- **`currentPage` watcher + Vuex-persistence** — паттерн из AGENTS.md «Персистентность страницы пагинации». Watcher `countRows` ослабленный (сброс страницы только если вышла за пределы после обновления) — иначе при переключении target Local↔Remote сбрасывается позиция, что раздражает.
+- **`token_hash` ≠ `secret`** — в UI показываем первые 8 символов `token_hash` (SHA-256 от секрета). Реальный секрет не хранится — отдаётся владельцу только при создании.
+
+**Связанные документы**:
+- `specs/171-admin-subscriptions-history/spec.md` — функциональная спека (27 FRs, 8 SCs, 4 user stories).
+- `specs/171-admin-subscriptions-history/research.md` — 11 design decisions.
+- `specs/171-admin-subscriptions-history/data-model.md` — 3 сущности.
+- `specs/171-admin-subscriptions-history/contracts/{subscriptions,listeninghistory,sharelinks}-digest.md` — API-контракты.
+- `specs/171-admin-subscriptions-history/quickstart.md` — 5 manual scenarios.
+- `specs/171-admin-subscriptions-history/tasks.md` — 46 задач.
+- `docs/features/guest-share-link.md` — обновлён секцией «Админ-таблица /sharelinks».

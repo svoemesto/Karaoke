@@ -46,6 +46,17 @@
               <router-link class="nav-link" to="/siteusers">Пользователи сайта</router-link>
             </li>
             <li class="nav-item">
+              <router-link class="nav-link" to="/subscriptions">Подписки</router-link>
+            </li>
+            <li class="nav-item">
+              <router-link class="nav-link" to="/listeninghistory"
+                >История прослушиваний</router-link
+              >
+            </li>
+            <li class="nav-item">
+              <router-link class="nav-link" to="/sharelinks">Временные ссылки</router-link>
+            </li>
+            <li class="nav-item">
               <router-link class="nav-link" to="/stemjobs">Минусовки</router-link>
             </li>
             <li class="nav-item">

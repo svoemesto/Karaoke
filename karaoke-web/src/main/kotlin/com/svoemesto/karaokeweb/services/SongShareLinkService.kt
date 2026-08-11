@@ -977,15 +977,15 @@ class SongShareLinkService(
         val conn = database.getConnection() ?: throw NotFound()
         conn
             .prepareStatement(
-                "SELECT song_name, author, album, year, player_readiness_flags FROM tbl_songs WHERE id=?",
+                "SELECT song_name, song_author, song_album, song_year, player_readiness_flags FROM tbl_songs WHERE id=?",
             ).use { ps ->
                 ps.setLong(1, songId)
                 val rs = ps.executeQuery()
                 if (!rs.next()) throw NotFound()
                 val name = rs.getString("song_name") ?: "Песня"
-                val author = rs.getString("author") ?: ""
-                val album = rs.getString("album") ?: ""
-                val year = rs.getInt("year")
+                val author = rs.getString("song_author") ?: ""
+                val album = rs.getString("song_album") ?: ""
+                val year = rs.getInt("song_year")
                 val flags = rs.getString("player_readiness_flags") ?: "{}"
                 // Тот же storage-key, что в PublicPlayerController.pictureAlbumStorageKey /
                 // pictureAuthorStorageKey (KaraokeFileType.PICTURE_ALBUM/PICTURE_AUTHOR: extention=png,

@@ -360,8 +360,8 @@ export default {
       if (!item.songName) return 'песня удалена'
       if (!item.songAuthor) return item.songName
       const albumMeta = []
-      if (item.songAlbum) albumMeta.push(item.songAlbum)
       if (item.songYear && item.songYear > 0) albumMeta.push(String(item.songYear))
+      if (item.songAlbum) albumMeta.push(item.songAlbum)
       const meta = albumMeta.length > 0 ? ` (${albumMeta.join(', ')})` : ''
       return `${item.songAuthor}${meta} - ${item.songName}`
     },

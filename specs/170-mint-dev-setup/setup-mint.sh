@@ -125,17 +125,14 @@ install_if_missing() {
 sudo apt update
 for pkg in openjdk-17-jdk git curl wget ca-certificates apt-transport-https \
            software-properties-common gnupg lsb-release \
-           postgresql-client-16 ffmpeg python3 python3-pip jq; do
+           postgresql-client-16 ffmpeg python3 python3-pip jq \
+           pre-commit; do
   install_if_missing "$pkg"
 done
 
-# pre-commit ставится через pip, не apt
-if command -v pre-commit >/dev/null 2>&1; then
-  log "  pre-commit — уже установлен"
-else
-  log "  pre-commit — ставим через pip3..."
-  sudo pip3 install --break-system-packages pre-commit 2>/dev/null || pip3 install --user pre-commit
-fi
+# pre-commit уже поставлен через apt install в цикле выше.
+# pip-вариант ненадёжен на Ubuntu 24.04 / Mint 22.2 (PEP 668 блокирует
+# глобальный `pip install`; требовался бы --break-system-packages).
 
 # melt (MLT 7+) — через snap или сборка (на Mint 22.2 нет apt-пакета)
 # Пропускаем — не критично для smoke-test (нужен только для рендера видео)

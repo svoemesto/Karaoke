@@ -1573,3 +1573,51 @@ async, `currentLink = null` стартовое значение → Vue ренд
   TTL whitelist расширен до 604800 (7 дней) на бэкенде
 - Pass 52 (PR #222, 7c7f1ed7) — linkExpiresAt + aspect ratio + убрать копирование
 - Pass 53 (PR #222, 8a1f353c) — loading state + 7 дней в модалке
+- Pass 54 (PR #224, fbc9a4c2) — обёртка для aspect-ratio логотипа + console.log диагностика
+- Pass 55 (PR #225, b8ca9780) — фикс логотипа (полосы) + root cause модалки (watch initial)
+
+## Pass 55: fix(share-link) — фикс логотипа + root cause модалки (2026-08-11, PR #225, `b8ca9780`)
+
+**Симптом**: после Pass 54 deploy логотип вписан без обрезки, но появились полосы
+сверху/снизу (image 1000×400 в контейнере aspect-ratio 5:2 + object-fit: contain
+сохранял пропорции, но высота контейнера считалась от ширины ≈130, а у альбома 160).
+И модалка «Временный доступ» по-прежнему показывала «Создать новую», хотя у
+пользователя была активная ссылка. В DevTools console нет ничего при открытии
+модалки — даже `console.log` из Pass 54 не появляется.
+
+**Root cause**:
+- Bug #1 (полосы): aspect-ratio + object-fit: contain даёт правильный контейнер,
+  но его высота отличается от высоты альбома (160), что выглядит как полосы.
+- Bug #2 (root cause модалки!): `ShareLinkButton.vue` использует
+  `<ShareLinkModal v-if="modalVisible" :visible="modalVisible" />`. `v-if` создаёт
+  компонент УЖЕ с `props.visible=true`. `watch(() => props.visible, ...)` без
+  `immediate: true` срабатывает только на ИЗМЕНЕНИЯ, не на initial — `loadCurrent()`
+  не вызывался при первом открытии модалки. Pass 53 добавил `loading` ref, но
+  он не помог — `loadCurrent` не вызывался вообще.
+
+**Фикс**:
+- `ShareView.vue`: фиксированная `height: 160px` (= альбом) + `width: 400px`
+  (160 × 5/2), `flex-shrink: 0`, `object-fit: cover`. Mobile media query
+  (`max-width:720px`): 100% width + aspect-ratio 5/2.
+- `ShareLinkModal.vue`: добавить `onMounted()` с проверкой `props.visible` и
+  первым вызовом `loadCurrent()` + setup polling. Watch остаётся для cleanup
+  polling и повторных открытий (если компонент живёт через `v-show`).
+- `.km-card-share max-width`: 560 → 640 (теперь total = 32×2 padding + 160 +
+  12 gap + 400 = 636, плюс запаса).
+
+**Метрика**: 2 файла, +38/-16 строки.
+
+**Lessons learned**:
+- **`v-if` + `watch(props)` без `immediate: true`** — типичный баг Vue 3.
+  Компонент создаётся с уже-актуальным prop, watch пропускает initial value,
+  эффект на первый mount теряется. Решения: `onMounted`, `immediate: true`,
+  или `v-show` вместо `v-if`.
+- **`aspect-ratio` + `object-fit: contain`** при разной высоте сиблингов даёт
+  полосы. Для одинаковой высоты — `width/height: fixed` или явный `aspect-ratio`
+  на контейнере с `object-fit: cover`.
+
+**Связанные документы**:
+- Pass 53 (PR #222, 8a1f353c) — добавил loading ref (но не помог — loadCurrent
+  не вызывался из-за Pass 53 bug с watch)
+- Pass 54 (PR #224, fbc9a4c2) — добавил console.log (не сработал по той же причине)
+- Pass 55 (PR #225, b8ca9780) — root cause fix

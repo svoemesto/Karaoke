@@ -337,6 +337,19 @@ for dir in "${REQUIRED_DIRS[@]}"; do
 done
 ok "Bind-mount папки готовы"
 
+# Создаём external-сеть 'karaokenet', если её нет. docker-compose*.yml
+# ссылаются на networks.karaokenet.external: true, и 'docker compose up'
+# с несуществующей сетью ТИХО выходит с кодом 0, но контейнеры НЕ стартуют
+# (см. /tmp/setup-mint.log после 6-го запуска: 'network karaokenet declared
+# as external, but could not be found', 0 контейнеров в docker ps).
+if ! sg docker -c 'docker network ls --format "{{.Name}}"' 2>/dev/null | grep -qx karaokenet; then
+  log "  Создаём external-сеть karaokenet..."
+  sg docker -c 'docker network create karaokenet' || die "Не удалось создать сеть karaokenet"
+  ok "Сеть karaokenet создана"
+else
+  ok "Сеть karaokenet уже существует"
+fi
+
 # === СЕКЦИЯ 9: DO.SH PULL + START ALL ===
 log "Секция 9/12: загрузка образов и старт 7 контейнеров (app/web/db/searxng/fourget)..."
 

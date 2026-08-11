@@ -395,6 +395,19 @@ log "Секция 10/12: старт MinIO (отдельная команда)...
   die "MinIO не стартовал — проверь docker logs karaoke-storage"
 ok "MinIO запущен"
 
+# Дополнительно: поднимаем karaoke-public (отдельный compose-файл).
+# do.sh start all НЕ поднимает public — это требует отдельной команды
+# 'bash do.sh start_public' (см. AGENTS.md → Сборка и запуск).
+# Если контейнер уже есть, 'up -d' его просто пересоздаст.
+log "Секция 10.5/12: старт karaoke-public (отдельная команда)..."
+(cd "${DEPLOY_DIR}" && docker_cmd 'docker compose -f docker-compose-public.yml up -d' 2>&1 | tail -5) || \
+  warn "karaoke-public не стартовал — можно поднять вручную: cd deploy && bash do.sh start_public"
+if sg docker -c 'docker ps --format "{{.Names}}"' 2>/dev/null | grep -qx 'karaoke-public'; then
+  ok "karaoke-public запущен"
+else
+  warn "karaoke-public НЕ поднялся — проверь sg docker -c 'docker logs karaoke-public'"
+fi
+
 # === СЕКЦИЯ 11: OLLAMA (опционально) ===
 if [ "$WITH_OLLAMA" -eq 1 ]; then
   log "Секция 11/12: Ollama (LLM, опционально)..."

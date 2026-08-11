@@ -123,9 +123,9 @@ install_if_missing() {
 }
 
 sudo apt update
-for pkg in openjdk-18-jdk git curl wget ca-certificates apt-transport-https \
+for pkg in openjdk-17-jdk git curl wget ca-certificates apt-transport-https \
            software-properties-common gnupg lsb-release \
-           postgresql-client-15 ffmpeg python3 python3-pip jq; do
+           postgresql-client-16 ffmpeg python3 python3-pip jq; do
   install_if_missing "$pkg"
 done
 
@@ -217,21 +217,54 @@ ok "Репозиторий готов: ${KARAOKE_DIR}"
 
 # === СЕКЦИЯ 8: BIND-MOUNT ПАПКИ ===
 log "Секция 8/12: создание bind-mount папок..."
-if [ ! -f "${DEPLOY_DIR}/do.env" ]; then
-  die "Не найден ${DEPLOY_DIR}/do.env. Скопируйте из шаблона и заполните:
+
+# В Karaoke ДВА env-файла:
+#   - deploy/.env  — пути, порты, STORAGE_KEY/SECRET, DB_LOCAL_POSTGRES_PASSWORD
+#   - deploy/do.env — ТОЛЬКО секреты (DOCKER_PASSWORD, VK_*, YOOKASSA_*)
+# Скрипт source-ит оба. Если только один — работаем с тем, что есть, но
+# предупреждаем про второй.
+
+if [ ! -f "${DEPLOY_DIR}/.env" ] && [ ! -f "${DEPLOY_DIR}/do.env" ]; then
+  die "Не найдены ОБА env-файла:
+  - ${DEPLOY_DIR}/.env   (пути, порты, ключи MinIO, пароль Postgres)
+  - ${DEPLOY_DIR}/do.env (секреты: Docker PAT, VK/YOOKASSA/STEMJOBS_SECRET)
+Скопируйте из admin-машины или создайте из шаблона:
   cp ${DEPLOY_DIR}/do.env.template ${DEPLOY_DIR}/do.env
   chmod 600 ${DEPLOY_DIR}/do.env
   nano ${DEPLOY_DIR}/do.env"
 fi
+if [ ! -f "${DEPLOY_DIR}/.env" ]; then
+  warn "${DEPLOY_DIR}/.env ОТСУТСТВУЕТ — без него docker-compose не найдёт пути/порты/STORAGE_KEY/DB_LOCAL_POSTGRES_PASSWORD."
+  warn "  Скопируйте с admin-машины: scp admin:/path/to/deploy/.env ${DEPLOY_DIR}/.env"
+fi
+if [ ! -f "${DEPLOY_DIR}/do.env" ]; then
+  warn "${DEPLOY_DIR}/do.env ОТСУТСТВУЕТ — без него Docker push и VK/YOOKASSA вызовы не пройдут."
+  warn "  Скопируйте с admin-машины или создайте: cp ${DEPLOY_DIR}/do.env.template ${DEPLOY_DIR}/do.env"
+fi
 [ -f "${DEPLOY_DIR}/do.env" ] && [ "$(stat -c %a ${DEPLOY_DIR}/do.env)" != "600" ] && \
   warn "do.env имеет права $(stat -c %a ${DEPLOY_DIR}/do.env), рекомендуется 600" && \
   sudo chmod 600 "${DEPLOY_DIR}/do.env"
+[ -f "${DEPLOY_DIR}/.env" ] && [ "$(stat -c %a ${DEPLOY_DIR}/.env)" != "600" ] && \
+  warn ".env имеет права $(stat -c %a ${DEPLOY_DIR}/.env), рекомендуется 600" && \
+  sudo chmod 600 "${DEPLOY_DIR}/.env"
 
-# Читаем пути из do.env (с проверкой, что они заданы)
+# Читаем пути из env-файлов.
+# В Karaoke два env-файла:
+#   - deploy/.env  — пути, порты, STORAGE_KEY/SECRET, DB_LOCAL_POSTGRES_PASSWORD (полная конфигурация)
+#   - deploy/do.env — ТОЛЬКО секреты (DOCKER_PASSWORD, VK_*, YOOKASSA_*, STEMJOBS_INTERNAL_SECRET)
+# Оба source-ятся через `set -a; source; set +a` — порядок важен: сначала .env
+# (даёт дефолты), потом do.env (поверх, добавляет секреты; не перезаписывает
+# общие ключи типа STORAGE_KEY, т.к. их в do.env нет).
 load_env_paths() {
   set -a
   # shellcheck disable=SC1091
-  . "${DEPLOY_DIR}/do.env"
+  if [ -f "${DEPLOY_DIR}/.env" ]; then
+    . "${DEPLOY_DIR}/.env"
+  fi
+  # shellcheck disable=SC1091
+  if [ -f "${DEPLOY_DIR}/do.env" ]; then
+    . "${DEPLOY_DIR}/do.env"
+  fi
   set +a
 }
 

@@ -34,12 +34,9 @@
           alt="Обложка альбома"
           class="km-share-cover-album"
         />
-        <img
-          v-if="artistImageUrl"
-          :src="artistImageUrl"
-          alt="Логотип исполнителя"
-          class="km-share-cover-artist"
-        />
+        <div v-if="artistImageUrl" class="km-share-cover-artist-wrap">
+          <img :src="artistImageUrl" alt="Логотип исполнителя" class="km-share-cover-artist-img" />
+        </div>
       </div>
       <h2 class="km-share-title">{{ songName || 'Песня' }}</h2>
       <p v-if="author" class="km-share-author">{{ author }}</p>
@@ -258,17 +255,30 @@ onMounted(() => {
   background: #2a2a2a;
 }
 /* Логотип исполнителя — широкоформатный баннер 1000×400 (aspect-ratio 5:2, см.
-   KaraokeFileType.PICTURE_AUTHOR). Фиксируем пропорции через `aspect-ratio`,
-   чтобы картинка не обрезалась по вертикали на широких экранах (раньше был
-   height:160px при width:flex — текст логотипа резался, видно «МАШИНА ВРЕМЕН…»).
-   На мобильных (max-width:520px) ширина 100%, высота = 40% от ширины. */
-.km-share-cover-artist {
+   KaraokeFileType.PICTURE_AUTHOR). Pass 54: aspect-ratio применяем к ОБЁРТКЕ,
+   а img внутри абсолютно позиционируется — раньше aspect-ratio стоял на самом img
+   в комбинации с `flex: 1` + `align-items: stretch` от parent .km-share-cover, и
+   контейнер растягивался на высоту альбома (160px). При image 5:2 в container 324×160
+   (≈2:1) `object-fit: cover` обрезал картинку по бокам — видно «МАШИНА ВРЕМЕН…»
+   (обрезано справа, инцидент 2026-08-11). Теперь обёртка задаёт aspect-ratio
+   (height считается от width), а img заполняет wrapper через `inset: 0` + `object-fit:
+   contain` (не cover) — картинка помещается целиком без обрезки. На мобильных
+   (@media max-width:520px) wrapper 100% ширины, height = 40% от ширины. */
+.km-share-cover-artist-wrap {
   flex: 1;
   min-width: 0;
+  position: relative;
   aspect-ratio: 5 / 2;
-  object-fit: cover;
-  border-radius: 8px;
   background: #2a2a2a;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.km-share-cover-artist-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 .km-share-title {
   margin: 0 0 8px;
@@ -306,7 +316,7 @@ onMounted(() => {
   .km-share-cover {
     flex-direction: column;
   }
-  .km-share-cover-artist {
+  .km-share-cover-artist-wrap {
     width: 100%;
   }
 }

@@ -192,6 +192,28 @@ class SongShareLinkService(
 
     class TokenMissing : ShareException(ShareErrorCode.TOKEN_MISSING, 400)
 
+    /**
+     * Системная (не доменная) ошибка, пробрасывается из catch-all в [tryClaim],
+     * [heartbeat] и др. Контроллер не должен маскировать её как 404;
+     * FR-010, FR-014 (spec 167-fix-share-claim-500). Раньше любое неожиданное
+     * исключение из БД маскировалось под [NotFound] (404 `share.notFound`) — это
+     * ломало диагностику инцидентов уровня «БД недоступна» / «relation does not
+     * exist» / NPE в SQL-обёртке.
+     *
+     * Конструктор принимает [cause] для сохранения stacktrace через [addSuppressed].
+     * Родительский [ShareException] не принимает cause в primary constructor
+     * (его контракт заточен под код+httpStatus); чтобы не ломать существующие
+     * подклассы, причина пробрасывается через suppressed-механизм, который
+     * попадает в логи и stacktrace при `e.printStackTrace()` / `Throwable.stackTraceToString()`.
+     */
+    class InternalError(
+        cause: Throwable,
+    ) : ShareException(ShareErrorCode.INTERNAL, 500) {
+        init {
+            addSuppressed(cause)
+        }
+    }
+
     private val random = SecureRandom()
     private val claimRateBuckets = ConcurrentHashMap<String, AtomicInteger>()
 
@@ -598,7 +620,7 @@ class SongShareLinkService(
             println("[tryClaim] UNEXPECTED class=${e::class.simpleName} msg=${e.message}")
             e.printStackTrace()
             log.error("ShareLink tryClaim UNEXPECTED class=${e::class.simpleName} msg=${e.message}", e)
-            throw NotFound()
+            throw InternalError(e)
         }
     }
 

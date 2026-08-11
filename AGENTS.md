@@ -12,8 +12,8 @@
 > **Если вы ведёте разработку с другим AI-агентом** и он понимает
 > `AGENTS.md` — этого файла достаточно. Если нет — см. ссылки выше.
 
-> **Версия файла**: 1.6.0
-> **Last updated**: 2026-08-05 (Pass 34, правило «feature-ветка НЕ удаляется после мёрджа» — см. «Жизненный цикл feature-ветки»)
+> **Версия файла**: 1.6.1
+> **Last updated**: 2026-08-11 (Pass 50, hotfix `167-fix-share-claim-500` — Q&A «500 на /api/public/share/claim» обновлён: симптом Pass 50 `share.internal` + диагностика через `/debug`)
 > **Ответственный**: opencode-агент
 > **Как обновлять**: см. секцию «Как обновлять этот файл» в конце.
 
@@ -630,10 +630,17 @@ Phase 001 (PR #12-#26) + Phase 002 (PR #27-#32). Содержит метрики
 потерян при переключении веток — оригинал назывался `28_song_share_links.sql`
 + `28b_song_share_recordhash.sql`, перенумерован в свободные 38/39.
 
-**Симптом**: при переходе гостя по публичной share-ссылке
+**Симптом (Pass 47 — до hotfix)**: при переходе гостя по публичной share-ссылке
 (`/share/{id}/{secret}`) бэкенд выбрасывает `relation "tbl_song_share_links"
 does not exist`, контроллер ловит catch-all как 500 + `share.notFound`,
 фронт `ShareView.vue` показывает «Ссылка недоступна».
+
+**Симптом (Pass 50 — после hotfix `167-fix-share-claim-500`)**: 500 на этом
+эндпоинте = `errorCode: "share.internal"` (НЕ `share.notFound`). Это значит,
+что БД/share-таблицы всё-таки есть, но что-то сломалось на уровне SQL/сети/NPE.
+Диагностика: `POST /api/public/share/debug {secret:"<valid>"}` покажет, на
+каком именно шаге упало (`step1_resolve`, `step2_ownerId`, `step3_songId`,
+`step4_songIsShareable`) и реальный класс исключения.
 
 **Диагностика** (для будущих аналогичных случаев):
 
@@ -647,6 +654,12 @@ git fsck --lost-found 2>/dev/null | grep "blob\|commit\|tree"
 for b in $(git fsck --no-reflogs --unreachable 2>/dev/null | awk '/blob/{print $3}'); do
   git cat-file -p "$b" 2>/dev/null | head -10 | grep -l "tbl_song_share" && echo "blob $b"
 done
+
+# Если таблицы ЕСТЬ, но 500 не уходит — диагностический /debug endpoint:
+curl -s -X POST https://sm-karaoke.ru/api/public/share/debug \
+  -H 'Content-Type: application/json' \
+  -d '{"secret":"<полный-секрет-из-share-ссылки>"}' | jq .
+# Смотрим step1_resolve/step2_ownerId/step3_songId/step4_songIsShareable.
 ```
 
 **Применить миграцию**:
@@ -656,12 +669,27 @@ done
 docker exec -i karaoke-db psql -U postgres -d karaoke < deploy/karaoke-db/38_song_share_links.sql
 docker exec -i karaoke-db psql -U postgres -d karaoke < deploy/karaoke-db/39_song_share_recordhash.sql
 
-# На проде (только через пользователя, см. «Ограничения агента»).
+# На проде (только через пользователя, см. «Ограничения агента»):
+ssh root@${PROD_HOST:-188.119.64.111} \
+  'docker exec -i karaoke-db psql -U postgres -d karaoke \
+   < /root/Karaoke/deploy/karaoke-db/38_song_share_links.sql'
+ssh root@${PROD_HOST:-188.119.64.111} \
+  'docker exec -i karaoke-db psql -U postgres -d karaoke \
+   < /root/Karaoke/deploy/karaoke-db/39_song_share_recordhash.sql'
 ```
 
 **Ловушка** (повторять НЕ надо): в миграции имя `song_id` идёт через
 `bigint` (не `integer`), и `recordhash` колонка обязательна для
 контракта `KaraokeDbTable` (хотя sync и не активен — таблица PROD-only).
+
+**Hotfix Pass 50**: до этого фикса любой неожиданный Exception в `tryClaim`
+маскировался под `404 share.notFound` — невозможно было отличить «ссылка
+битая» от «у нас БД упала». Теперь catch-all в `/claim`, `/create`,
+`/heartbeat` возвращает `500 share.internal`. 4 других эндпоинта
+(`/release`, `/mine/{songId}`, `/mine/{songId}/revoke`, `/debug`) уже
+были корректны — нет catch-all, системные ошибки попадают в Spring
+default handler. Подробнее — `specs/167-fix-share-claim-500/plan.md`
+§ «FR-014 Audit Conclusion».
 
 ### Q: Потерянные при переключении веток артефакты — как восстановить?
 

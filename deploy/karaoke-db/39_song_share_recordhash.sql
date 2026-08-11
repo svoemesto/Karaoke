@@ -2,6 +2,20 @@
 -- (add-song-share-link). Применять ВМЕСТЕ с 38_song_share_links.sql — отдельной миграцией
 -- потому, что recordhash-функции зависят от финального набора колонок.
 --
+-- === ПОРЯДОК ДЕПЛОЯ НА PROD (Pass 50, spec 167-fix-share-claim-500, FR-002/FR-004) ===
+--   1. Сначала применить 38_song_share_links.sql (создаёт таблицы).
+--   2. Затем применить ЭТОТ файл на прод-БД:
+--        docker exec -i karaoke-db psql -U postgres -d karaoke \
+--          < /root/Karaoke/deploy/karaoke-db/39_song_share_recordhash.sql
+--   3. Проверить функции:
+--        docker exec karaoke-db psql -U postgres -d karaoke \
+--          -c "\df update_tbl_song_share*"  → 2 функции (recordhash)
+--   4. Проверить триггеры:
+--        docker exec karaoke-db psql -U postgres -d karaoke \
+--          -c "SELECT tgname FROM pg_trigger WHERE tgname LIKE '%song_share%'"
+--        → 4 триггера (recordhash + last_updated × 2 таблицы).
+--   5. ТОЛЬКО после успешного (3+4) — деплоить karaoke-web (пользователь).
+--
 -- Восстановлено из dangling git blob e6c7d1733b88588e71936dffd52fbc0c5e56718a (Pass 47,
 -- 2026-08-10) — DDL утерян при переключении веток. Идемпотентен (DROP IF EXISTS + CREATE
 -- для функций; DO-блоки для триггеров/индексов).

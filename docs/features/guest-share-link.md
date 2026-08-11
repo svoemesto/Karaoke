@@ -133,7 +133,7 @@ new Date(epochMs).toLocaleString('ru-RU', {
 
 1. Срок жизни ссылки — 1 час, 24 часа или 7 дней (радио в модалке, см. Clarifications Q5).
    По умолчанию 1 час. Бэкенд отвергает любой другой TTL 400 `share.tokenMissing`.
-2. ≤2 одновременных playback-устройств на ссылке; ≤5 живых ссылок на пользователя,
+2. ≤2 одновременных playback-устройств на ссылку; ≤5 живых ссылок на пользователя,
    ≤30 генераций/сутки, ≤3 перевыпуска одной песни в час
    (см. `WebShareProperties` в `karaoke-web`).
 3. Heartbeat каждые 25 сек, lease 90 сек, grace-pause 120 сек → автоtimeout.
@@ -141,8 +141,10 @@ new Date(epochMs).toLocaleString('ru-RU', {
    `pagehide` (результат доходит даже при уходе со страницы).
 4. Секрет ссылки — 32 байта SecureRandom (base64url), в БД только SHA-256.
    Исходный секрет отдаётся ровно один раз при создании.
-5. Унифицированный `404 share.notFound` для всех негативных кейсов (несуществующий
-   / отозванный / просроченный / SKIP-песня / неизвестный browserHash).
+5. Унифицированный `404 share.notFound` для **доменных** негативных кейсов
+   (несуществующий / отозванный / просроченный / SKIP-песня / неизвестный
+   browserHash). **Системные** ошибки (БД недоступна, relation does not exist,
+   NPE в SQL-обёртке) → `500 share.internal` (см. L10 и [Pass 50](#pass-50-fix-share-claim-500)).
 6. Rate-limit claim — 10 запросов в минуту с одного IP (`share.rateLimited`).
 7. Гость видит `canExport=false` независимо от реального premium-статуса.
 8. Транспонирование разрешено гостю (отдельный флаг `canTranspose`).
@@ -150,6 +152,21 @@ new Date(epochMs).toLocaleString('ru-RU', {
    «На главную», «Повторить», через 8 сек автопереход на `/song/{id}`.
 10. История (список ссылок + сессии) видна только админу через webvue3.
     Сам владелец ссылки свою историю НЕ видит.
+
+### Диагностика 500-ошибок claim (FR-020, FR-030, Pass 50)
+
+Если гость жалуется на «ссылка не работает / 500», диагностика в 4 шага:
+
+1. **Проверить таблицы на проде**: `ssh root@${PROD_HOST:-188.119.64.111} 'docker exec karaoke-db psql -U postgres -d karaoke -c "\\dt tbl_song_share*"'`. Должно быть 2 строки (`tbl_song_share_links`, `tbl_song_share_sessions`). Если нет → применить миграции `38_song_share_links.sql` + `39_song_share_recordhash.sql` (см. их header — идемпотентны).
+2. **Проверить функции**: `\\df update_tbl_song_share*` → 2 функции. **Триггеры**: `SELECT tgname FROM pg_trigger WHERE tgname LIKE '%song_share%'` → 4 триггера. Если меньше — применить `39_*.sql`.
+3. **Если таблицы и триггеры есть** — диагностировать через `/debug`: `curl -X POST https://sm-karaoke.ru/api/public/share/debug -H 'Content-Type: application/json' -d '{"secret":"<полный-секрет>"}'`. JSON покажет пошагово результаты каждого шага (`step1_resolve`, `step2_ownerId`, `step3_songId`, `step4_songIsShareable`) с реальным классом исключения на упавшем шаге.
+4. **В логах karaoke-web** искать строки:
+   - `[tryClaim] UNEXPECTED class=<FQN> msg=...` — системная ошибка, попадает в `share.internal`
+   - `[tryClaim] ShareException class=... msg=...` — доменная ошибка
+   - `ShareLink tryClaim UNEXPECTED class=<FQN>` — то же, на уровне slf4j
+   - `ShareException` — любая ShareException подтип (NotFound, ConcurrentLimit, и т.п.)
+
+Подробнее — `specs/167-fix-share-claim-500/quickstart.md` (7 manual scenarios).
 
 ## Известные ловушки
 
@@ -193,6 +210,16 @@ new Date(epochMs).toLocaleString('ru-RU', {
   Исправлено: единственное числовое поле = реальный момент (FR-013),
   форматирование в TZ устройства на фронте (FR-011). Подробнее —
   `specs/166-fix-share-link-timezone/`.
+- [L10] **`share.notFound` маскирует системные ошибки (Pass 50).** До
+  `spec 167-fix-share-claim-500` все 3 catch-all в `PublicShareController`
+  (`/claim`, `/create`, `/heartbeat`) ловили `Exception` и отдавали
+  500 `share.notFound` или 410 `share.leaseExpired` — невозможно было
+  отличить «ссылка битая» от «у нас БД упала». Сейчас catch-all в этих
+  3 эндпоинтах ловит только `SongShareLinkService.InternalError` → 500
+  `share.internal`. 4 остальных эндпоинта (`/release`, `/mine/{songId}`,
+  `/mine/{songId}/revoke`, `/debug`) уже были корректны (нет catch-all).
+  Подробнее — `specs/167-fix-share-claim-500/plan.md` § «FR-014 Audit
+  Conclusion».
 
 ## Файлы / точки расширения
 
@@ -242,3 +269,7 @@ new Date(epochMs).toLocaleString('ru-RU', {
 - [specs/guest-share-link-admin/spec.md](../../openspec/changes/add-song-share-link/specs/guest-share-link-admin/spec.md)
 - [design.md](../../openspec/changes/add-song-share-link/design.md)
 - [Pass 43 в architecture-notes.md](../architecture-notes.md) — запись об этом PR.
+- [Pass 50 в architecture-notes.md](../architecture-notes.md) — запись о hotfix `167-fix-share-claim-500` (разделение `share.internal` vs `share.notFound`).
+- [specs/167-fix-share-claim-500/spec.md](../../specs/167-fix-share-claim-500/spec.md) — спека hotfix.
+- [specs/167-fix-share-claim-500/plan.md](../../specs/167-fix-share-claim-500/plan.md) — план hotfix + FR-014 Audit Conclusion.
+- [specs/167-fix-share-claim-500/quickstart.md](../../specs/167-fix-share-claim-500/quickstart.md) — 7 manual scenarios + rollback.

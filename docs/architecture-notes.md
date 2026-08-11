@@ -1433,3 +1433,68 @@ endpoint'ов для webvue3 не было, фоновый sweeper отсутс�
 - `docs/features/guest-share-link.md` — обновлён (TTL 7д, sendBeacon release, Pass 48).
 - `AGENTS.md` — раздел «Счётчики главной страницы» не затронут (share-таблицы PROD-only,
   SyncRegistry НЕ расширяется — FR-060 spec).
+
+## Pass 50: hotfix — разделение `share.internal` vs `share.notFound` (2026-08-11, 167-fix-share-claim-500)
+
+**Симптом**: гостевые `/share/{id}/{secret}` возвращают `500 share.notFound`,
+хотя в логах karaoke-web видно `org.postgresql.util.PSQLException: ERROR:
+relation "tbl_song_share_links" does not exist` (т.е. таблиц нет, а не
+ссылка битая). Контроллер `/claim`, `/create`, `/heartbeat` ловили **catch-all**
+`(_: Exception)` и маскировали под `share.notFound` / `share.leaseExpired` —
+невозможно отличить «ссылка битая» от «у нас всё упало».
+
+**Что сделано**:
+
+1. Миграции применены на проде (вручную пользователем, см. AGENTS.md):
+   - `deploy/karaoke-db/38_song_share_links.sql` — `tbl_song_share_links`,
+     `tbl_song_share_sessions`, IDENTITY/PK, 7 индексов.
+   - `deploy/karaoke-db/39_song_share_recordhash.sql` — recordhash-функции +
+     триггеры `recordhash` + `last_updated` для обеих таблиц.
+
+2. Код karaoke-web (Pass 50 hotfix, FR-010..FR-014):
+   - `ShareErrorCode.kt:42-46` — добавлен `INTERNAL("share.internal")`.
+   - `SongShareLinkService.kt:193-216` — добавлен sealed-подтип
+     `ShareException.InternalError(cause: Throwable)`, пробрасывает
+     stacktrace через `addSuppressed`.
+   - `SongShareLinkService.kt:621` — `tryClaim` catch-all теперь
+     `throw InternalError(e)` вместо `throw NotFound()`.
+   - `PublicShareController.kt:174-179` — `/claim` catch-all
+     `(InternalError) → 500 share.internal` (было `(Exception) → 500 share.notFound`).
+   - `PublicShareController.kt:84-93` — `/create` catch-all `→ 500 share.internal`.
+   - `PublicShareController.kt:193-203` — `/heartbeat` catch-all
+     `→ 500 share.internal` (было `→ 410 share.leaseExpired` — особенно опасно).
+
+3. Audit 4 «уже корректных» эндпоинтов (T013a, FR-014):
+   - `/release` (line 197-210) — нет catch-all, audit PASS.
+   - `/mine/{songId}` (line 92-119) — нет catch-all, audit PASS.
+   - `/mine/{songId}/revoke` (line 121-130) — нет catch-all, audit PASS.
+   - `/debug` (line 218-225) — нет catch-all, audit PASS.
+
+   Полная таблица audit'а — `specs/167-fix-share-claim-500/plan.md`
+   § «FR-014 Audit Conclusion».
+
+**Метрики**:
+- Catch-all'ов, маскирующих системные ошибки, было: **3** (claim, create, heartbeat).
+- Catch-all'ов исправлено: **3**.
+- Catch-all'ов оставлено без изменений (audit PASS): **4**.
+- Новый errorCode: `INTERNAL = "share.internal"` (HTTP 500).
+
+**Инварианты**:
+- Доменные ошибки (`share.notFound`, `share.leaseExpired`, `share.concurrentLimit`,
+  `share.rateLimited` и др.) сохраняют свои HTTP-коды — **никаких breaking
+  changes для фронта**.
+- Системные ошибки (БД, relation does not exist, NPE в SQL) теперь
+  однозначно → `500 share.internal` — и сразу видны в логах karaoke-web
+  + на `/debug` endpoint'е (FR-020).
+
+**Что осталось сделать** (user-only):
+- T020 — CI-gate local check (ktlint + 6 других).
+- T021-T025 — явное одобрение + commit + push + PR + ожидание CI 7/7.
+- T026 — manual deploy `cd deploy && bash do.sh build_start_web` на проде.
+- T027 — post-deploy verify (quickstart.md scenarios 4, 5, 7, 8).
+
+**Связанные документы**:
+- `specs/167-fix-share-claim-500/{spec,plan,research,data-model,contracts,quickstart,tasks}.md`
+- `docs/features/guest-share-link.md` — L10 и §«Диагностика 500-ошибок claim».
+- `AGENTS.md` — Q&A «500 на /api/public/share/claim» обновлён с симптомом
+  Pass 50 + `/debug` диагностикой.

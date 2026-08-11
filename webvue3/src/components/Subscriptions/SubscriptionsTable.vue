@@ -339,17 +339,16 @@ export default {
       return item.userEmail || ''
     },
     formatTitle(item) {
-      // Унифицированное название: для scope=SONG — «Название — Исполнитель (Альбом, год)»,
+      // Унифицированное название: для scope=SONG — «Автор (Альбом, год) - Название»,
       // для scope=SITE — tariffName.
       if (item.scope === 'SONG') {
         if (!item.songName) return `#${item.idSong || ''} (удалена)`
-        let title = item.songName
-        if (item.songAuthor) title += ` — ${item.songAuthor}`
-        const albumPart = []
-        if (item.songAlbum) albumPart.push(item.songAlbum)
-        if (item.songYear && item.songYear > 0) albumPart.push(String(item.songYear))
-        if (albumPart.length > 0) title += ` (${albumPart.join(', ')})`
-        return title
+        if (!item.songAuthor) return item.songName
+        const albumMeta = []
+        if (item.songAlbum) albumMeta.push(item.songAlbum)
+        if (item.songYear && item.songYear > 0) albumMeta.push(String(item.songYear))
+        const meta = albumMeta.length > 0 ? ` (${albumMeta.join(', ')})` : ''
+        return `${item.songAuthor}${meta} - ${item.songName}`
       }
       return item.tariffName || '—'
     },
@@ -393,6 +392,12 @@ export default {
 }
 .subt-table-body :deep(th) {
   position: relative;
+}
+.subt-table-body :deep(th:nth-child(3)),
+.subt-table-body :deep(td:nth-child(3)),
+.subt-table-body :deep(th:nth-child(5)),
+.subt-table-body :deep(td:nth-child(5)) {
+  text-align: left !important;
 }
 .subt-table-body :deep(th svg.bi) {
   position: absolute;

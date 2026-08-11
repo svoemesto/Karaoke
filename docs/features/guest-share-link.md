@@ -2,7 +2,7 @@
 
 > **Status**: active
 > **Feature Key**: guest-share-link
-> **Last Updated**: 2026-08-10 (Pass 48 — добавили TTL 7 дней, heartbeat через sendBeacon, админ API, авто-отзыв sweeper'ом)
+> **Last Updated**: 2026-08-11 (Pass 49 — единая трактовка дат: хранимое в МСК, отображение в TZ устройства; спека `166-fix-share-link-timezone`)
 
 ## Что делает
 
@@ -81,6 +81,54 @@ SHA-256(`browser:<uuid>`). Разные вкладки одного браузе
 - Лимит одновременных устройств на ссылку: ≤2 (задаётся в
   `KaraokeProperties.share_maxConcurrentSessions`).
 
+## Трактовка дат (FR-011, FR-013)
+
+**Источник правды — naive timestamp в МСК** в `tbl_song_share_links.*_at`
+(`expires_at`, `created_at`, `revoked_at`, `first_used_at`, `last_used_at`,
+`active_session_lease_until`) и `tbl_song_share_sessions.*_at` (`opened_at`,
+`started_at`, `last_seen_at`, `finished_at`). DDL не меняется: всё остаётся
+`timestamp without time zone` в МСК. Миграция `38_song_share_links.sql` и
+`recordhash`-триггер `39_song_share_recordhash.sql` — не трогаем.
+
+**Сервер читает через `EXTRACT(EPOCH FROM ts AT TIME ZONE 'Europe/Moscow')*1000`**
+— это алгоритмический перевод, не зависит от TZ сессии Postgres. Получаем
+единственное числовое поле = реальный момент времени (epoch ms). На сервере
+используется явный `ZoneId.of("Europe/Moscow")` (а не `ZoneId.systemDefault()`),
+поэтому запись через `setObject(..., LocalDateTime, Types.TIMESTAMP)` даёт
+стабильную МСК-запись даже на машинах с JVM TZ ≠ Europe/Moscow (FR-014).
+
+**Во фронт уходит одно числовое поле `expiresAt: Long`** (а не пара
+`expiresAtMs` + `expiresAtLabel`). Никаких сдвигов −3ч / +3ч в JS-коде.
+Сравнение с `Date.now()` (`isExpired`) и форматирование в метку
+«Доступно до ДД.ММ.ГГГГ ЧЧ:ММ» (`formatDate`) делаются фронтом по
+**одному и тому же** epoch ms.
+
+**Отображение — в TZ устройства.** `karaoke-public/src/utils/dateFormat.js`
+и `webvue3/src/utils/dateFormat.js` (по сути одна функция, скопированная
+в оба SPA — общего пакета пока нет):
+
+```js
+new Date(epochMs).toLocaleString('ru-RU', {
+  day: '2-digit', month: '2-digit', year: 'numeric',
+  hour: '2-digit', minute: '2-digit',
+})
+```
+
+Без указания `timeZone` — V8 берёт TZ устройства. Гость во Владивостоке
+видит «11.08.2026 16:57», владелец в Москве — «11.08.2026 09:57» для
+одной и той же записи `expires_at = '2026-08-11 09:57:36'`.
+
+**Пустая дата → прочерк.** Админ-таблица показывает «—» для `revokedAt`,
+`firstUsedAt`, `finishedAt` (если значение null/0). Реализовано через
+`formatDate` (возвращает `''`) + тернарный оператор в `UserShareLinksModal.vue`.
+
+**Тесты:** `karaoke-web/src/test/.../SongShareLinkDateTimeTest.kt`
+(JUnit 5), `karaoke-public/src/utils/__tests__/dateFormat.test.js`
+(`node --test`), `webvue3/src/utils/__tests__/dateFormat.test.js`
+(`node --test`). Покрыты golden-числа (`1786431456000` →
+`11.08.2026 09:57` в МСК / `16:57` во Владивостоке) и инвариантность
+от TZ JVM (`-DTZ=Asia/Vladivostok ./gradlew :karaoke-web:test`).
+
 ## Инварианты / правила
 
 1. Срок жизни ссылки — 1 час, 24 часа или 7 дней (радио в модалке, см. Clarifications Q5).
@@ -137,6 +185,14 @@ SHA-256(`browser:<uuid>`). Разные вкладки одного браузе
   виде хэшей (`SHA-256(ip+share-salt)`, GDPR-совместимо). Админ видит
   только хэши, исходные IP/UA НЕ возвращаются (см. спеку
   `guest-share-link-admin.spec.md`).
+- [L9] **«−3 часа» в датах (Pass 47, исправлено в Pass 49).** В БД
+  `expires_at` лежит как naive МСК, но `EXTRACT(EPOCH FROM naive_ts)`
+  трактует naive как UTC. Старая логика отдавала фронту 2 поля: `expiresAt`
+  (сдвинутый) + `expiresAtMs` (реальный) + `expiresAtLabel` (МСК-строка от
+  бэка). Корень проблемы — два числа с одинаковым именем, разным смыслом.
+  Исправлено: единственное числовое поле = реальный момент (FR-013),
+  форматирование в TZ устройства на фронте (FR-011). Подробнее —
+  `specs/166-fix-share-link-timezone/`.
 
 ## Файлы / точки расширения
 

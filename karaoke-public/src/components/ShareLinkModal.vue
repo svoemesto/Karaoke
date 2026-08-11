@@ -85,6 +85,7 @@
 import { ref, computed, watch, onUnmounted } from 'vue'
 import { useAuth } from '../composables/useAuth'
 import { createShareLink, getCurrentShareLink, revokeShareLink } from '../composables/useShareLink'
+import { formatDate } from '../utils/dateFormat.js'
 
 const props = defineProps({
   visible: Boolean,
@@ -136,39 +137,19 @@ const currentLink = ref(null)
 
 const expiresLabel = computed(() => {
   const link = currentLink.value
-  if (!link) return ''
-  if (link.expiresAtLabel) return link.expiresAtLabel
-  if (link.expiresAt) {
-    try {
-      return new Date(link.expiresAt).toLocaleString('ru-RU', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      })
-    } catch (e) {
-      return new Date(link.expiresAt).toString()
-    }
-  }
-  return ''
+  if (!link || !link.expiresAt) return ''
+  return formatDate(link.expiresAt)
 })
 
 // Ссылка из БД приходит с active=true вплоть до прохода ShareLinkSweeper (раз в 60 сек),
-// но фактически она уже просрочена, если expires_at < now(). Сравниваем с реальным
-// epoch ms (expiresAtMs) — это поле вычисляется на бэке через
-// `EXTRACT(EPOCH FROM (expires_at AT TIME ZONE 'Europe/Moscow'))`, чтобы не получать
-// +3ч сдвиг «naive как UTC». См. SongShareLinkService.OwnerLinkView.expiresAtMs.
+// но фактически она уже просрочена, если expires_at < now(). `expiresAt` — реальный
+// момент в epoch ms (см. SongShareLinkService.OwnerLinkView.expiresAt: теперь
+// вычисляется через `EXTRACT(EPOCH FROM expires_at AT TIME ZONE 'Europe/Moscow')`),
+// поэтому сравнение с Date.now() корректно без каких-либо сдвигов.
 const isExpired = computed(() => {
   const link = currentLink.value
-  if (!link) return false
-  if (link.expiresAtMs && typeof link.expiresAtMs === 'number')
-    return link.expiresAtMs <= Date.now()
-  if (link.expiresAt && typeof link.expiresAt === 'number') {
-    // Fallback для версий бэка без expiresAtMs: сдвигаем на -3ч (МСК).
-    return link.expiresAt - 3 * 3600 * 1000 <= Date.now()
-  }
-  return false
+  if (!link || !link.expiresAt) return false
+  return link.expiresAt <= Date.now()
 })
 
 async function loadCurrent() {
@@ -200,8 +181,6 @@ async function createLink() {
         linkId: body.linkId,
         songId: props.songId,
         expiresAt: body.expiresAt,
-        expiresAtMs: body.expiresAtMs ?? body.expiresAt,
-        expiresAtLabel: body.expiresAtLabel,
         url: body.url,
         active: true,
       }

@@ -32,8 +32,8 @@
           <tbody>
             <tr v-for="link in visibleLinks" :key="link.id">
               <td>#{{ link.songId }}</td>
-              <td class="uslm-nowrap">{{ link.createdAtLabel || formatDate(link.createdAt) }}</td>
-              <td class="uslm-nowrap">{{ link.expiresAtLabel || formatDate(link.expiresAt) }}</td>
+              <td class="uslm-nowrap">{{ link.createdAt ? formatDate(link.createdAt) : '—' }}</td>
+              <td class="uslm-nowrap">{{ link.expiresAt ? formatDate(link.expiresAt) : '—' }}</td>
               <td>{{ link.sessionsTotal || 0 }}</td>
               <td>{{ link.rejectedConcurrent || 0 }}</td>
               <td>{{ link.revokeReason || '—' }}</td>
@@ -64,9 +64,9 @@
             </thead>
             <tbody>
               <tr v-for="s in sessions" :key="s.id">
-                <td class="uslm-nowrap">{{ s.openedAtLabel || formatDate(s.openedAt) }}</td>
+                <td class="uslm-nowrap">{{ s.openedAt ? formatDate(s.openedAt) : '—' }}</td>
                 <td class="uslm-nowrap">
-                  {{ s.finishedAtLabel || (s.finishedAt ? formatDate(s.finishedAt) : '—') }}
+                  {{ s.finishedAt ? formatDate(s.finishedAt) : '—' }}
                 </td>
                 <td>{{ s.result || '—' }}</td>
                 <td class="uslm-mono">{{ (s.browserHash || '').slice(0, 12) }}…</td>
@@ -81,6 +81,8 @@
 </template>
 
 <script>
+import formatDate from '../../utils/dateFormat.js'
+
 /**
  * Админская модалка просмотра и отзыва share-ссылок пользователя (add-song-share-link).
  * Аналогично UserSubscriptionsModal.vue: таблица ссылок, секции «Активные» / «Завершённые»,
@@ -131,14 +133,7 @@ export default {
     })
   },
   methods: {
-    formatDate(ts) {
-      if (!ts) return '—'
-      try {
-        return new Date(ts).toLocaleString('ru-RU')
-      } catch (e) {
-        return new Date(ts).toString()
-      }
-    },
+    formatDate,
     async onRevoke(link) {
       if (!window.confirm(`Отозвать ссылку #${link.id}? Все активные сессии будут завершены.`))
         return

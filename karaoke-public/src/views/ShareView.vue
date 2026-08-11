@@ -74,6 +74,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { claimShare } from '../services/songShareLink'
+import { formatDate } from '../utils/dateFormat.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -89,7 +90,7 @@ const year = ref(0)
 const albumImageUrl = ref('')
 const artistImageUrl = ref('')
 
-const expiresAtLabel = ref('')
+const expiresAtLabel = computed(() => formatDate(expiresAt.value))
 
 async function doClaim() {
   state.value = 'claiming'
@@ -107,9 +108,10 @@ async function doClaim() {
       year.value = Number(body.year) || 0
       albumImageUrl.value = body.albumImageUrl || ''
       artistImageUrl.value = body.artistImageUrl || ''
-      // expiresAtMs — реальный epoch ms (МСК); expiresAtLabel — ДД.ММ.ГГГГ ЧЧ:ММ от бэкенда.
-      expiresAt.value = Number(body.expiresAtMs ?? body.expiresAt ?? 0) || 0
-      expiresAtLabel.value = body.expiresAtLabel || ''
+      // expiresAt — реальный epoch ms (момент окончания lease). Бэк отдаёт как часть
+      // /claim response с T023. Метка «Доступно до …» форматируется на клиенте
+      // через dateFormat.formatDate в TZ устройства (FR-011).
+      expiresAt.value = Number(body.expiresAt) || 0
       state.value = 'ready'
       return
     }

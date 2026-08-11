@@ -68,8 +68,6 @@ class PublicShareController(
                     "secret" to result.secret,
                     "url" to result.url,
                     "expiresAt" to result.expiresAt,
-                    "expiresAtMs" to result.expiresAtMs,
-                    "expiresAtLabel" to result.expiresAtLabel,
                     "ttlSeconds" to ttlSeconds,
                 ),
             )
@@ -108,21 +106,11 @@ class PublicShareController(
                         "songId" to link.songId,
                         "active" to link.active,
                         "expiresAt" to link.expiresAt,
-                        "expiresAtMs" to link.expiresAtMs,
-                        "expiresAtLabel" to link.expiresAtLabel,
                         "createdAt" to link.createdAt,
-                        "createdAtMs" to link.createdAtMs,
-                        "createdAtLabel" to link.createdAtLabel,
                         "revokedAt" to link.revokedAt,
-                        "revokedAtMs" to link.revokedAtMs,
-                        "revokedAtLabel" to link.revokedAtLabel,
                         "revokeReason" to link.revokeReason,
                         "firstUsedAt" to link.firstUsedAt,
-                        "firstUsedAtMs" to link.firstUsedAtMs,
-                        "firstUsedAtLabel" to link.firstUsedAtLabel,
                         "lastUsedAt" to link.lastUsedAt,
-                        "lastUsedAtMs" to link.lastUsedAtMs,
-                        "lastUsedAtLabel" to link.lastUsedAtLabel,
                         "sessionsTotal" to link.sessionsTotal,
                         "rejectedConcurrent" to link.rejectedConcurrent,
                     ),
@@ -159,6 +147,10 @@ class PublicShareController(
                     "linkId" to result.linkId,
                     "songId" to result.songId,
                     "sessionTokenHash" to result.sessionTokenHash,
+                    // Реальный момент окончания lease (epoch ms). ShareView использует
+                    // его для отображения «Доступно до ДД.ММ.ГГГГ ЧЧ:ММ» в TZ устройства
+                    // (FR-011, US4).
+                    "expiresAt" to result.expiresAt,
                     "redirectTo" to "/player/${result.songId}?share=1&session=${result.sessionTokenHash}",
                     // Карточка песни для ShareView лендинга — фронт рисует превью с
                     // картинками альбома/автора и подписью «Название — Автор (Альбом, Год)»

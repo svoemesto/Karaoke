@@ -150,9 +150,17 @@ class PublicShareController(
                     "linkId" to result.linkId,
                     "songId" to result.songId,
                     "sessionTokenHash" to result.sessionTokenHash,
-                    // Реальный момент окончания lease (epoch ms). ShareView использует
-                    // его для отображения «Доступно до ДД.ММ.ГГГГ ЧЧ:ММ» в TZ устройства
-                    // (FR-011, US4).
+                    // Реальный момент истечения самой ССЫЛКИ (epoch ms, из tbl_song_share_links.expires_at,
+                    // фиксированный — не меняется при рефреше). ShareView использует его
+                    // для «Доступно до ДД.ММ.ГГГГ ЧЧ:ММ» в TZ устройства (FR-011, US4) —
+                    // пользователь видит, как долго ССЫЛКА живёт (1h/24h/7d), а не текущую
+                    // lease-сессию (90s). До Pass 51 был только `expiresAt` (= lease), и
+                    // пользователь видел «всего +2 минуты» (lease) вместо «+1 час» (link).
+                    "linkExpiresAt" to result.linkExpiresAt,
+                    // Реальный момент окончания текущего LEASE (epoch ms). Плеер использует
+                    // его для проверки «lease ещё жив» (heartbeat обновляет это значение;
+                    // если не обновлять 90 сек — lease истечёт, плеер стопать).
+                    // НЕ использовать для «Доступно до» — оно перезаписывается на каждом claim.
                     "expiresAt" to result.expiresAt,
                     "redirectTo" to "/player/${result.songId}?share=1&session=${result.sessionTokenHash}",
                     // Карточка песни для ShareView лендинга — фронт рисует превью с

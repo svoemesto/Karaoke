@@ -2,7 +2,7 @@
 
 > **Status**: active
 > **Feature Key**: guest-share-link
-> **Last Updated**: 2026-08-11 (Pass 49 — единая трактовка дат: хранимое в МСК, отображение в TZ устройства; спека `166-fix-share-link-timezone`)
+> **Last Updated**: 2026-08-11 (Pass 51 — админ-таблица `/sharelinks`: новый эндпоинт `POST /api/sharelinks/digest` + UI в webvue3 для глобального обзора всех share-ссылок с фильтрами и действием «Отозвать»; спека `171-admin-subscriptions-history`)
 
 ## Что делает
 
@@ -273,3 +273,46 @@ new Date(epochMs).toLocaleString('ru-RU', {
 - [specs/167-fix-share-claim-500/spec.md](../../specs/167-fix-share-claim-500/spec.md) — спека hotfix.
 - [specs/167-fix-share-claim-500/plan.md](../../specs/167-fix-share-claim-500/plan.md) — план hotfix + FR-014 Audit Conclusion.
 - [specs/167-fix-share-claim-500/quickstart.md](../../specs/167-fix-share-claim-500/quickstart.md) — 7 manual scenarios + rollback.
+
+## Админ-таблица «/sharelinks» (Pass 51+)
+
+> Per Convection FR-009 (см. [.specify/memory/constitution.md](../../.specify/memory/constitution.md) и [AGENTS.md](../../AGENTS.md) «Per-feature doc»), это per-feature-документ для подсистемы share-ссылок.
+> Поэтому **секция админ-таблицы** живёт здесь, а не в отдельном документе.
+
+### Что
+
+Глобальный read-only список **всех** share-ссылок (`tbl_song_share_links`) для админ-SPA — в отличие от per-user `UserShareLinksModal`, который показывает ссылки одного пользователя.
+
+### Эндпоинт
+
+- `POST /api/sharelinks/digest` — список с фильтрами (target, page, pageSize, `filterActiveOnly`, `filterOwnerId`, `filterSongId`, `filterCreatedFrom`, `filterCreatedTo`, sortBy, sortDir).
+- Контроллер: [`SubscriptionsController.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ShareLinksAdminController.kt) (в `karaoke-app`, как и `SiteUsersController` / `SitePlaylistsController`).
+- Контракт: [specs/171-admin-subscriptions-history/contracts/sharelinks-digest.md](../../specs/171-admin-subscriptions-history/contracts/sharelinks-digest.md).
+
+### Frontend
+
+- Роут: `/sharelinks` (`webvue3/src/router/index.js`).
+- Компонент: [`ShareLinksTable.vue`](../../webvue3/src/components/ShareLinks/ShareLinksTable.vue) (таблица 25/стр, BPagination, target-aware toolbar, фильтры, drill-down к `/siteusers` и `/songs`).
+- Filter modal: [`ShareLinksFilterModal.vue`](../../webvue3/src/components/ShareLinks/ShareLinksFilterModal.vue).
+- Store: [`store.js`](../../webvue3/src/components/ShareLinks/store.js).
+
+### Действие «Отозвать»
+
+**Переиспользует** существующий `POST /api/siteusers/share/links/revoke` из
+[`SiteShareLinksController.kt`](../../karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/SiteShareLinksController.kt)
+(см. action `revokeSiteUserShareLink` в [`shareLinkStore.js:64`](../../webvue3/src/components/SiteUsers/shareLinkStore.js))
+с `reason='admin'`. **НЕ создаём** новый эндпоинт — иначе будет дублирование логики и
+race-condition между двумя путями отзыва.
+
+После успешного revoke — строка обновляется **in-place** через mutation `updateShareLinksDigestItem`
+(без F5 и без полной перезагрузки таблицы). Подтверждение — кастомная модалка (НЕ `confirm()` —
+нужно показать email владельца, song, target).
+
+### Известные нюансы
+
+- **`active=true` но `expires_at < now()`** — формально «активна, но истекла» (sweep ещё не отозвал).
+  В UI показывается как «Истекла (sweep)» оранжевым.
+- **JOIN к удалённой песне** — `LEFT JOIN tbl_songs` → `songName = ''` → UI показывает «песня удалена».
+- **`token_hash`** (НЕ `secret`) — SHA-256 от секрета, который мы не храним в открытом виде.
+  В UI показываются первые 8 символов (как в `UserSubscriptionsModal` для `orderId`).
+- **target=Local vs Remote** — одинаково работает на обеих БД. По умолчанию Local (как везде).

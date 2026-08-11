@@ -22,6 +22,9 @@ import DictionariesView from '../views/DictionariesView.vue'
 import ChatView from '../views/ChatView.vue'
 import NewsView from '../views/NewsView.vue'
 import PublishTemplatesView from '../views/PublishTemplatesView.vue'
+import SubscriptionsView from '../views/SubscriptionsView.vue'
+import ListeningHistoryView from '../views/ListeningHistoryView.vue'
+import ShareLinksView from '../views/ShareLinksView.vue'
 
 const routes = [
   {
@@ -138,6 +141,21 @@ const routes = [
     path: '/player/:id',
     name: 'player',
     component: () => import('../views/PlayerView.vue'),
+  },
+  {
+    path: '/subscriptions',
+    name: 'subscriptions',
+    component: SubscriptionsView,
+  },
+  {
+    path: '/listeninghistory',
+    name: 'listeninghistory',
+    component: ListeningHistoryView,
+  },
+  {
+    path: '/sharelinks',
+    name: 'sharelinks',
+    component: ShareLinksView,
   },
 ]
 

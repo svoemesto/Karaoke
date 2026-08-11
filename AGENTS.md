@@ -757,6 +757,18 @@ pre-commit run --all-files               # 7 проверок
 
 **Кратко**: в `SubsEdit.vue:mounted()` `loadedMarkers` грузился ПОСЛЕ `sourceText`, а заполнение `sourceMarkers` жило в `ws.on('decode')` (отложенно). Watcher `sourceText` (Vue 2 async) срабатывал раньше, чем аудио декодировалось — `syncMarkersFromSpecTags()` с пустым `syllablePositions` втыкал spec tag-маркеры в позицию 0, и условие `sourceMarkers.length === 0` в `ws.on('decode')` блокировало загрузку реальных маркеров из БД. На Save уезжал мусор. Исправлено в PR #016: `loadedMarkers` + заполнение `sourceMarkers` теперь **синхронно** в `mounted()` ДО `sourceText`; цикл загрузки удалён из `ws.on('decode')`; тот же приём применён в watcher'е `currentVoice`. Подробности + 7 ручных сценариев проверки — [`specs/016-fix-spec-tags-marker-loss-on-reopen/`](./specs/016-fix-spec-tags-marker-loss-on-reopen/) (Pass 28, `docs/architecture-notes.md`).
 
+### Q: Как настроить Linux Mint 22.2 для Karaoke?
+
+**Кратко**: см. [`specs/170-mint-dev-setup/`](./specs/170-mint-dev-setup/) — идемпотентный bash-скрипт
+`setup-mint.sh` + env-шаблон `deploy/do.env.template`. Скрипт ставит Node 22 через
+NodeSource, Docker CE из `download.docker.com`, поднимает 8+ контейнеров и
+запускает smoke-test. Спека **воспроизводима**: `do.env.template` — единственный
+артефакт env-конфигурации, без реальных секретов (Principle VIII.1).
+
+**Альтернатива для других ОС**: см. `docs/onboarding.md` (общий setup macOS/Ubuntu/Arch)
++ `setup-mint.sh` (Mint-специфичный). На Mint 22.2 — `setup-mint.sh` (быстрее, идемпотентно,
+с smoke-test).
+
 ---
 
 ## Как обновлять этот файл

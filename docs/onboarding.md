@@ -43,6 +43,13 @@ pip3 install pre-commit
 sudo pacman -S jdk18-openjdk nodejs npm python git postgresql ffmpeg mlt pre-commit
 ```
 
+### Linux Mint 22.2 (Zara)
+> **Mint-специфичный setup** — см. [`specs/170-mint-dev-setup/`](../specs/170-mint-dev-setup/).
+> Артефакт: идемпотентный `setup-mint.sh` (ставит Node 22 через NodeSource,
+> Docker CE из `download.docker.com`, поднимает 8+ контейнеров) +
+> `deploy/do.env.template` (env-шаблон, копируется в `do.env` с заполнением).
+> Smoke-test автоматически проверяет 4 эндпоинта.
+
 ---
 
 ## Шаг 2. Клонировать репозиторий

@@ -31,6 +31,8 @@ __pycache__/
 .env
 .env.local
 *.env.*
+# Исключение: env-шаблон — коммитится, без реальных секретов (см. spec.md FR-005)
+!/deploy/do.env.template
 /deploy/.env
 /deploy/do.env
 /deploy/web-server-deploy/deploy/.env

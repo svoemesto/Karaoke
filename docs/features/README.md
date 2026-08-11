@@ -45,6 +45,7 @@
 | Slug | Название | Файл |
 |------|----------|------|
 | `ci-lint-enforcement` | GitHub Actions: ktlint + ESLint + Prettier + docs | [ci-lint-enforcement.md](./ci-lint-enforcement.md) |
+| `docker-deploy` | Локальный docker-стек Karaoke (8+ контейнеров: app/web/db/storage/searxng/fourget/ollama) + воспроизводимая настройка Linux Mint 22.2 через `setup-mint.sh` + `do.env.template` | [docker-deploy.md](./docker-deploy.md) |
 
 ## Как пользоваться
 

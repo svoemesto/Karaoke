@@ -219,11 +219,11 @@ fi
 # Делаем это через exec замену текущего скрипта на 'sg docker -c <тот же скрипт>'.
 # Но опасно: если пользователь передал --with-ollama, аргументы теряются.
 # Безопаснее: проверяем, можем ли уже ходить в docker без sudo.
-if ! docker ps >/dev/null 2>&1; then
+if ! sg docker -c 'docker ps' >/dev/null 2>&1; then
   if id -nG "${USER}" | tr ' ' '\n' | grep -qx docker; then
     warn "Группа docker есть, но не активна в текущей сессии."
-    warn "Скрипт продолжит работу; docker-команды могут требовать sudo."
-    warn "Для применения: 'exec newgrp docker' и перезапуск скрипта."
+    warn "Скрипт продолжит работу через 'sg docker -c <cmd>' (sub-shell с активной группой)."
+    warn "Для применения глобально: 'exec newgrp docker' и перезапуск скрипта."
   fi
 fi
 
@@ -339,20 +339,30 @@ ok "Bind-mount папки готовы"
 
 # === СЕКЦИЯ 9: DO.SH PULL + START ALL ===
 log "Секция 9/12: загрузка образов и старт 7 контейнеров (app/web/db/searxng/fourget)..."
-(cd "${DEPLOY_DIR}" && bash do.sh pull 2>&1 | tail -10) || warn "do.sh pull завершился с предупреждениями (часто OK)"
-(cd "${DEPLOY_DIR}" && bash do.sh start all 2>&1 | tail -15) || die "do.sh start all упал — смотри логи docker"
+
+# Все docker-команды оборачиваем в 'sg docker -c', чтобы гарантировать
+# активную группу docker даже если скрипт запущен в shell, где
+# 'usermod -aG docker' уже применился, но сессия не перезагружена.
+# 'sg' создаёт sub-shell с активной группой — overhead минимальный,
+# зато не зависит от того, перелогинился пользователь или нет.
+docker_cmd() {
+  sg docker -c "$*"
+}
+
+(cd "${DEPLOY_DIR}" && docker_cmd 'bash do.sh pull' 2>&1 | tail -10) || warn "do.sh pull завершился с предупреждениями (часто OK)"
+(cd "${DEPLOY_DIR}" && docker_cmd 'bash do.sh start all' 2>&1 | tail -15) || die "do.sh start all упал — смотри логи docker"
 ok "7 контейнеров запущены"
 
 # === СЕКЦИЯ 10: MINIO ===
 log "Секция 10/12: старт MinIO (отдельная команда)..."
-(cd "${DEPLOY_DIR}" && docker compose -f docker-compose-storage.yml up -d 2>&1 | tail -5) || \
+(cd "${DEPLOY_DIR}" && docker_cmd 'docker compose -f docker-compose-storage.yml up -d' 2>&1 | tail -5) || \
   die "MinIO не стартовал — проверь docker logs karaoke-storage"
 ok "MinIO запущен"
 
 # === СЕКЦИЯ 11: OLLAMA (опционально) ===
 if [ "$WITH_OLLAMA" -eq 1 ]; then
   log "Секция 11/12: Ollama (LLM, опционально)..."
-  (cd "${DEPLOY_DIR}" && docker compose -f docker-compose-ollama.yml up -d 2>&1 | tail -5) || \
+  (cd "${DEPLOY_DIR}" && docker_cmd 'docker compose -f docker-compose-ollama.yml up -d' 2>&1 | tail -5) || \
     warn "Ollama не стартовала — можно поднять позже: cd deploy && docker compose -f docker-compose-ollama.yml up -d"
   ok "Ollama запущена (порт 11434)"
 else
@@ -362,13 +372,14 @@ fi
 # === СЕКЦИЯ 12: SMOKE-TEST ===
 log "Секция 12/12: smoke-test (retry-loop)..."
 
-# Helper: retry N раз с задержкой
+# Helper: retry N раз с задержкой. Все docker-команды — через sg docker -c,
+# чтобы не падать на permission denied если группа docker не активна.
 check_container_up() {
   local name="$1"
   local attempt=1
   while [ "$attempt" -le "$SMOKE_RETRY_ATTEMPTS" ]; do
-    if docker ps --format "{{.Names}}" 2>/dev/null | grep -qx "$name"; then
-      STATUS=$(docker ps --format "{{.Names}}\t{{.Status}}" | grep -E "^${name}\b" | awk '{print $2}')
+    if sg docker -c "docker ps --format '{{.Names}}'" 2>/dev/null | grep -qx "$name"; then
+      STATUS=$(sg docker -c "docker ps --format '{{.Names}}\t{{.Status}}'" | grep -E "^${name}\b" | awk '{print $2}')
       if [ "$STATUS" = "Up" ] || echo "$STATUS" | grep -q "^Up "; then
         ok "  контейнер $name: $STATUS"
         return 0
@@ -379,7 +390,7 @@ check_container_up() {
     attempt=$((attempt + 1))
   done
   err "  контейнер $name: НЕ СТАРТОВАЛ после $((SMOKE_RETRY_ATTEMPTS * SMOKE_RETRY_DELAY)) сек"
-  err "  Диагностика: docker logs $name"
+  err "  Диагностика: sg docker -c 'docker logs $name'"
   return 1
 }
 

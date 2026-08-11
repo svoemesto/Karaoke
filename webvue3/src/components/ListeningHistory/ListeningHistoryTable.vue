@@ -27,6 +27,7 @@
 
     <div class="lht-table-body">
       <b-table
+        v-model:sort-by="sortBy"
         :items="digest"
         :busy="isBusy"
         :fields="fields"
@@ -117,6 +118,7 @@ export default {
     return {
       perPage: 500,
       currentPage: this.$store.getters.getListeningHistoryTableCurrentPage || 1,
+      sortBy: [],
       isBusy: false,
       isFilterVisible: false,
     }
@@ -144,31 +146,37 @@ export default {
         {
           key: 'lastPlayedAt',
           label: 'Когда',
+          sortable: true,
           style: { minWidth: '140px', maxWidth: '140px', textAlign: 'left', fontSize: 'small' },
         },
         {
           key: 'userEmail',
           label: 'Email',
+          sortable: true,
           style: { minWidth: '200px', maxWidth: '200px', textAlign: 'left', fontSize: 'small' },
         },
         {
           key: 'songName',
           label: 'Песня',
+          sortable: true,
           style: { minWidth: '220px', maxWidth: '220px', textAlign: 'left', fontSize: 'small' },
         },
         {
           key: 'songAuthor',
           label: 'Исполнитель',
+          sortable: true,
           style: { minWidth: '160px', maxWidth: '160px', textAlign: 'left', fontSize: 'small' },
         },
         {
           key: 'songAlbum',
           label: 'Альбом',
+          sortable: true,
           style: { minWidth: '160px', maxWidth: '160px', textAlign: 'left', fontSize: 'small' },
         },
         {
           key: 'playCount',
           label: 'Счётчик',
+          sortable: true,
           style: { minWidth: '80px', maxWidth: '80px', textAlign: 'center', fontSize: 'small' },
         },
       ]

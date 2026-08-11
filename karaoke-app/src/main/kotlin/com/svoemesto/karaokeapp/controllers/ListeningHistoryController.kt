@@ -16,8 +16,13 @@ import org.springframework.web.bind.annotation.ResponseBody
 
 // Админский read-only просмотр истории прослушиваний (`tbl_listening_history`). Тот же паттерн,
 // что и SitePlaylistsController / SubscriptionsController. ОБЯЗАТЕЛЬНО фильтруем SKIP-помеченные
-// песни на чтении — наследуем логику публичного `ListeningHistory.getForUser`. JOIN к tbl_songs /
-// tbl_site_users — батчем через associateBy. Сортировка по last_played_at DESC.
+// песни и удалённые песни на чтении — наследуем логику публичного `ListeningHistory.getForUser`.
+// JOIN к tbl_songs / tbl_site_users — батчем через associateBy. Сортировка по last_played_at DESC.
+//
+// NB: SKIP-фильтр НЕЛЬЗЯ добавить в `whereList` для `KaraokeDbTable.loadList` — он генерирует
+// однотабличный SQL без JOIN к `tbl_songs`, предикат `s.tags IS NULL ...` упадёт с
+// "missing FROM-clause entry for table s" (Pass 56 hotfix). Поэтому SKIP-фильтр идёт после
+// JOIN-обогащения в Kotlin — загружаем все песни по songIds и фильтруем на стороне JVM.
 
 /**
  * Контроллер (HTTP/WebSocket endpoints) для глобального списка истории прослушиваний
@@ -26,10 +31,10 @@ import org.springframework.web.bind.annotation.ResponseBody
  * Эндпоинты:
  * - `POST /api/listeninghistory/digest` — список истории (FR-008…FR-014).
  *
- * ОБЯЗАТЕЛЬНО фильтрует песни с тегом `SKIP` на чтении (та же логика, что и в публичном
- * `ListeningHistory.getForUser`, см. спеку 009-listening-history). JOIN к tbl_songs и
- * LEFT JOIN к tbl_site_users (для отображения email пользователя) делается на бэкенде одним
- * батчем через `KaraokeDbTable.loadByIds` (паттерн производительности — см. AGENTS.md).
+ * ОБЯЗАТЕЛЬНО фильтрует песни с тегом `SKIP` и удалённые песни на чтении (та же логика, что и в
+ * публичном `ListeningHistory.getForUser`, см. спеку 009-listening-history). JOIN к tbl_songs и
+ * tbl_site_users (для отображения email пользователя) делается на бэкенде одним батчем через
+ * `KaraokeDbTable.loadByIds` (паттерн производительности — см. AGENTS.md).
  *
  * @see specs/171-admin-subscriptions-history/contracts/listeninghistory-digest.md
  * @see AGENTS.md
@@ -68,22 +73,20 @@ class ListeningHistoryController {
         @RequestParam(required = false, defaultValue = "DESC") sortDir: String?,
     ): Map<String, Any> =
         withDb(target) { db ->
-            // 1. Собираем whereList из непустых фильтров. NB: tbl_listening_history — это h, songs — s.
-            //    WHERE-предикаты на h.*, кроме SKIP-фильтра (на s.tags).
+            // 1. Собираем whereList ТОЛЬКО на h.* (tbl_listening_history). SKIP-фильтр НЕ здесь —
+            //    см. комментарий в header файла.
             val whereList = mutableListOf<String>()
-            whereList.add("(s.tags IS NULL OR NOT ('SKIP' = ANY(string_to_array(upper(coalesce(s.tags,'')), ' '))))")
-            filterUserId?.let { whereList.add("h.site_user_id=$it") }
-            filterSongId?.let { whereList.add("h.song_id=$it") }
-            filterLastPlayedFrom?.takeIf { it.isNotBlank() }?.let { whereList.add("h.last_played_at >= '${it.replace("'", "''")}'") }
-            filterLastPlayedTo?.takeIf { it.isNotBlank() }?.let { whereList.add("h.last_played_at <= '${it.replace("'", "''")}'") }
+            filterUserId?.let { whereList.add("site_user_id=$it") }
+            filterSongId?.let { whereList.add("song_id=$it") }
+            filterLastPlayedFrom?.takeIf { it.isNotBlank() }?.let { whereList.add("last_played_at >= '${it.replace("'", "''")}'") }
+            filterLastPlayedTo?.takeIf { it.isNotBlank() }?.let { whereList.add("last_played_at <= '${it.replace("'", "''")}'") }
 
             // 2. Clamp пагинации (1..1000 для истории — большие страницы).
             val safePage = if (page < 1) 1 else page
             val safePageSize = pageSize.coerceIn(1, 1000)
             val offset = (safePage - 1) * safePageSize
 
-            // 3. Загружаем всю порцию (loadList уже применяет WHERE), фильтруем in-memory для
-            //    дополнительной защиты от SKIP-тегов и сортируем.
+            // 3. Загружаем всю порцию прослушиваний по WHERE (без SKIP-фильтра).
             val allLoaded =
                 KaraokeDbTable
                     .loadList(
@@ -95,7 +98,28 @@ class ListeningHistoryController {
                         storageApiClient = SAC_APP,
                     ).map { it as ListeningHistory }
 
-            // 4. Сортировка (whitelist + default).
+            // 4. Батч-JOIN к tbl_songs по всем songIds (включая не-SKIP, чтобы фильтрация работала).
+            //    Делаем это ДО сортировки и пагинации, чтобы SKIP-песни были исключены из totalCount.
+            val allSongIds = allLoaded.map { it.songId }.distinct()
+            val allSongsById =
+                if (allSongIds.isEmpty()) {
+                    emptyMap()
+                } else {
+                    KaraokeDbTable
+                        .loadByIds(Song::class, Song.TABLE_NAME, allSongIds, db, KSS_APP, SAC_APP)
+                        .map { it as Song }
+                        .associateBy { it.id }
+                }
+
+            // 5. Фильтруем: оставляем только строки, где песня СУЩЕСТВУЕТ и НЕ имеет тег SKIP
+            //    (та же логика, что и INNER JOIN + s.tags NOT SKIP в публичном `getForUser`).
+            val filtered =
+                allLoaded.filter { h ->
+                    val song = allSongsById[h.songId]
+                    song != null && !songHasSkipTag(song.tags)
+                }
+
+            // 6. Сортировка (whitelist + default).
             val sortColumn =
                 when (sortBy) {
                     "last_played_at", "play_count" -> sortBy
@@ -106,32 +130,22 @@ class ListeningHistoryController {
                 when (sortColumn) {
                     "play_count" ->
                         if (sortDirection == "ASC") {
-                            allLoaded.sortedBy { it.playCount }
+                            filtered.sortedBy { it.playCount }
                         } else {
-                            allLoaded.sortedByDescending { it.playCount }
+                            filtered.sortedByDescending { it.playCount }
                         }
                     else ->
                         if (sortDirection == "ASC") {
-                            allLoaded.sortedBy { it.lastPlayedAt?.time ?: 0L }
+                            filtered.sortedBy { it.lastPlayedAt?.time ?: 0L }
                         } else {
-                            allLoaded.sortedByDescending { it.lastPlayedAt?.time ?: 0L }
+                            filtered.sortedByDescending { it.lastPlayedAt?.time ?: 0L }
                         }
                 }
             val totalCount = sorted.size
             val pageItems = sorted.drop(offset).take(safePageSize)
 
-            // 5. Батч-JOIN к tbl_songs и tbl_site_users.
-            val songIds = pageItems.map { it.songId }.distinct()
+            // 7. Батч-JOIN к tbl_site_users для email пользователя (только по порции страницы).
             val userIds = pageItems.map { it.siteUserId }.distinct()
-            val songsById =
-                if (songIds.isEmpty()) {
-                    emptyMap()
-                } else {
-                    KaraokeDbTable
-                        .loadByIds(Song::class, Song.TABLE_NAME, songIds, db, KSS_APP, SAC_APP)
-                        .map { it as Song }
-                        .associateBy { it.id }
-                }
             val usersById =
                 if (userIds.isEmpty()) {
                     emptyMap()
@@ -142,9 +156,10 @@ class ListeningHistoryController {
                         .associateBy { it.id }
                 }
 
+            // 8. Достаём песни порции из уже загруженного allSongsById — второй запрос не нужен.
             val list =
                 pageItems.map { h ->
-                    val song = songsById[h.songId]
+                    val song = allSongsById[h.songId]!!
                     val user = usersById[h.siteUserId]
                     mapOf(
                         "id" to h.id,
@@ -152,9 +167,9 @@ class ListeningHistoryController {
                         "userEmail" to (user?.email ?: ""),
                         "userDisplayName" to (user?.displayName ?: ""),
                         "songId" to h.songId,
-                        "songName" to (song?.songName ?: ""),
-                        "songAuthor" to (song?.author ?: ""),
-                        "songAlbum" to (song?.album ?: ""),
+                        "songName" to song.songName,
+                        "songAuthor" to song.author,
+                        "songAlbum" to song.album,
                         "playCount" to h.playCount,
                         "lastPlayedAt" to h.lastPlayedAt?.toString(),
                     )
@@ -166,4 +181,10 @@ class ListeningHistoryController {
                 "pageSize" to safePageSize,
             )
         }
+
+    // Проверяет наличие слова-маркера SKIP в tags (через split по пробелам, case-insensitive).
+    // Копия логики из SongShareLinkService.songHasSkipTag — разные модули, чтобы не тянуть
+    // karaoke-web в karaoke-app через dependency.
+    private fun songHasSkipTag(tags: String?): Boolean =
+        (tags ?: "").split(" ").any { it.trim().equals("SKIP", ignoreCase = true) }
 }

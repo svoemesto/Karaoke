@@ -150,10 +150,11 @@ class SubscriptionsController {
                 if (songIds.isEmpty()) {
                     emptyMap()
                 } else {
-                    KaraokeDbTable
-                        .loadByIds(Song::class, Song.TABLE_NAME, songIds, db, KSS_APP, SAC_APP)
-                        .map { it as Song }
-                        .associateBy { it.id }
+                    // NB: Song НЕ использует @KaraokeDbTableField-рефлексию (поля в `fields`-map),
+                    // поэтому `KaraokeDbTable.loadByIds(Song::class, ...)` возвращает пустые сущности.
+                    // Используем Song.loadListFromDbByIds — он генерирует кастомный SQL,
+                    // который populate'ит `songName`/`author`/`album` через `fields[SongField.*]`.
+                    Song.loadListFromDbByIds(songIds, db, KSS_APP, SAC_APP)
                 }
             val tariffsById =
                 if (tariffIds.isEmpty()) {

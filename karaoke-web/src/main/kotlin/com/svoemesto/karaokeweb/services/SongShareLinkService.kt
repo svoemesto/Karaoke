@@ -8,21 +8,30 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.security.MessageDigest
 import java.security.SecureRandom
-import java.sql.Timestamp
+import java.sql.Types
+import java.time.Instant
 import java.time.LocalDateTime
-import java.time.ZoneOffset
-import java.time.format.DateTimeFormatter
+import java.time.ZoneId
 import java.util.Base64
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 
-// `EXTRACT(EPOCH FROM naive_ts)` в Postgres возвращает epoch ms, считая naive_ts как
-// UTC, а в БД мы храним naive timestamp в МСК. Поэтому epoch ms — это не «момент в
-// UTC», а «метка времени, как если бы naive_ts было в UTC». Чтобы показать то же
-// значение, что лежит в БД, интерпретируем epoch ms как наивное UTC и форматируем
-// DateTimeFormatter'ом без withZone.
-private val MSK_LABEL_FORMATTER: DateTimeFormatter =
-    DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm")
+// Note: импорты `java.time.ZoneOffset` и `java.time.format.DateTimeFormatter` удалены
+// вместе со старым серверным форматтером — теперь фронт форматирует epoch ms на
+// клиенте через dateFormat.formatDate (FR-011). См. spec.md §«Трактовка дат».
+
+// Источник правды — naive timestamp в МСК (`tbl_song_share_links.expires_at` и т.п.,
+// `timestamp without time zone`). Чтение и запись идут через явный Europe/Moscow,
+// а не через ZoneId.systemDefault() — это алгоритмический, не конфигурационный выбор
+// (FR-002, FR-014): тесты на машинах в любом TZ должны давать одинаковую строку.
+private val MOSCOW_ZONE: ZoneId = ZoneId.of("Europe/Moscow")
+
+// `internal` (а не `private`) — чтобы тест `SongShareLinkDateTimeTest` мог напрямую
+// проверить инвариант «epoch ms → момент в МСК» (FR-014). `private` на уровне файла
+// в Kotlin ограничивает видимость одним файлом, а тест в другом файле; `internal`
+// ограничивает модулем karaoke-web — это нормально и для тестов, и для прод-кода.
+internal fun toMskLocalDateTime(epochMs: Long): LocalDateTime =
+    LocalDateTime.ofInstant(Instant.ofEpochMilli(epochMs), MOSCOW_ZONE)
 
 /**
  * Персистентный (PostgreSQL) сервис «Временный полный доступ к песне»
@@ -50,6 +59,15 @@ private val MSK_LABEL_FORMATTER: DateTimeFormatter =
  * секунд завершает просроченные lease, отзывает ссылки при потере владельцем
  * `isEffectivePremium` и при появлении у песни тега SKIP / будущем `dateTimePublish`.
  *
+ * **Даты (FR-011, FR-013).** Все даты в DTO/JSON — реальный момент в epoch ms
+ * через `EXTRACT(EPOCH FROM ts AT TIME ZONE 'Europe/Moscow')*1000`. DDL не
+ * меняется: `tbl_song_share_links.*_at` и `tbl_song_share_sessions.*_at`
+ * остаются `timestamp without time zone` (naive, источник правды — МСК).
+ * Раньше рядом дублировались `*Ms`/`*Label` поля — это и был источник бага
+ * «−3 часа» (Pass 47). Теперь единственное числовое поле = реальный момент,
+ * одинаково пригодное и для отображения в TZ устройства (`formatDate`),
+ * и для сравнения с `Date.now()` (`isExpired`).
+ *
  * @see docs/features/guest-share-link.md
  */
 @Service
@@ -61,46 +79,38 @@ class SongShareLinkService(
     /**
      * Результат [createLink] — содержит исходный секрет для URL.
      * Секрет доступен только сразу после создания; хэш — в БД.
+     *
+     * `expiresAt` = реальный момент в epoch ms (System.currentTimeMillis() + ttlSeconds*1000),
+     * а не «naive as UTC» — это инвариант всей фичи (FR-011, FR-013). Раньше рядом
+     * дублировались `expiresAtMs` и `expiresAtLabel`, что и было источником бага
+     * «−3 часа» (см. research.md §1).
      */
     data class CreateResult(
         val linkId: Long,
         val secret: String,
         val expiresAt: Long,
-        val expiresAtMs: Long,
-        val expiresAtLabel: String,
         val url: String,
     )
 
     /**
      * Метаданные активной ссылки для UI владельца (без секрета).
      *
-     * Два «expiresAt» потому, что в БД `expires_at` хранится naive в МСК-таймзоне, а
-     * `EXTRACT(EPOCH FROM naive_ts)` трактует naive как UTC — это сдвигает результат
-     * на +3ч. `expiresAt` (тот же, что и раньше) нужен для [formatMskLabel]: при
-     * интерпретации epoch как UTC ровно та же строка, что в БД. `expiresAtMs` —
-     * реальный epoch ms (через `AT TIME ZONE 'Europe/Moscow'`), нужен на клиенте
-     * для корректного сравнения с `Date.now()` (проверка «истёк ли срок»).
+     * Все даты — реальный момент в epoch ms (через `EXTRACT(EPOCH FROM ts AT TIME ZONE 'Europe/Moscow')`),
+     * одинаково пригодный и для отображения на UI владельца (после `formatDate(...)`),
+     * и для сравнения с `Date.now()` (проверка «истёк ли срок»). Раньше рядом
+     * дублировались `*Ms`/`*Label` поля — это и был источник бага «−3 часа»
+     * (см. research.md §1).
      */
     data class OwnerLinkView(
         val linkId: Long,
         val songId: Long,
         val active: Boolean,
         val expiresAt: Long,
-        val expiresAtMs: Long,
-        val expiresAtLabel: String,
         val createdAt: Long,
-        val createdAtMs: Long,
-        val createdAtLabel: String,
         val revokedAt: Long?,
-        val revokedAtMs: Long?,
-        val revokedAtLabel: String?,
         val revokeReason: String,
         val firstUsedAt: Long?,
-        val firstUsedAtMs: Long?,
-        val firstUsedAtLabel: String?,
         val lastUsedAt: Long?,
-        val lastUsedAtMs: Long?,
-        val lastUsedAtLabel: String?,
         val sessionsTotal: Int,
         val rejectedConcurrent: Int,
     )
@@ -116,11 +126,18 @@ class SongShareLinkService(
      * SQL, что и в `PublicPlayerController.playerData` (статичная ключевая формула
      * storageKey, без обращения к song.pictureAlbum/pictureAuthor — защита от
      * rootFolder/APP_WORK_ON_SERVER).
+     *
+     * `expiresAt` — реальный момент окончания lease (epoch ms). Нужен ShareView,
+     * чтобы показать гостю «Доступно до ДД.ММ.ГГГГ ЧЧ:ММ» в его TZ (FR-011, US4).
+     * Источник — `System.currentTimeMillis() + leaseTtlSeconds*1000L` (для нового
+     * lease) или `leaseUntil.time` (для existing lease). Погрешность ≤ 1 сек
+     * при lease 25 сек — для отображения пользователю не критично.
      */
     data class TryClaimResult(
         val linkId: Long,
         val songId: Long,
         val sessionTokenHash: String,
+        val expiresAt: Long,
         val songName: String,
         val author: String,
         val album: String,
@@ -260,7 +277,13 @@ class SongShareLinkService(
                     ps.setLong(1, siteUserId)
                     ps.setLong(2, songId)
                     ps.setString(3, tokenHash)
-                    ps.setTimestamp(4, Timestamp(expiresAt))
+                    // Явное преобразование epoch ms → LocalDateTime в Europe/Moscow. Раньше
+                    // использовался setTimestamp(Timestamp(epochMs)), который читает JVM TZ
+                    // через Timestamp.toString() — на машинах с TZ != Europe/Moscow запись
+                    // попадает в БД со сдвигом. setObject(..., Types.TIMESTAMP) передаёт
+                    // значение как naive LocalDateTime, и Postgres хранит его 1:1 (FR-014,
+                    // Assumption #1 спеки).
+                    ps.setObject(4, toMskLocalDateTime(expiresAt), Types.TIMESTAMP)
                     val rs = ps.executeQuery()
                     rs.next()
                     newId = rs.getLong(1)
@@ -269,11 +292,6 @@ class SongShareLinkService(
                 linkId = newId,
                 secret = secret,
                 expiresAt = expiresAt,
-                // Для только что созданной ссылки expiresAt = now + ttlSeconds*1000 уже
-                // реальный epoch ms (System.currentTimeMillis()), в отличие от прочитанных
-                // из БД (где EXTRACT(EPOCH FROM naive_msk) даёт сдвинутое значение).
-                expiresAtMs = expiresAt,
-                expiresAtLabel = formatMskLabel(expiresAt),
                 url = "$baseUrl/share/$newId/$secret",
             )
         } finally {
@@ -358,17 +376,12 @@ class SongShareLinkService(
         conn
             .prepareStatement(
                 "SELECT id, song_id, active, " +
-                    "extract(epoch from expires_at)*1000 as expires_ms, " +
-                    "extract(epoch from expires_at AT TIME ZONE 'Europe/Moscow')*1000 as expires_ms_real, " +
-                    "extract(epoch from created_at)*1000 as created_ms, " +
-                    "extract(epoch from created_at AT TIME ZONE 'Europe/Moscow')*1000 as created_ms_real, " +
-                    "extract(epoch from revoked_at)*1000 as revoked_ms, " +
-                    "extract(epoch from revoked_at AT TIME ZONE 'Europe/Moscow')*1000 as revoked_ms_real, " +
+                    "extract(epoch from expires_at AT TIME ZONE 'Europe/Moscow')*1000 as expires_ms, " +
+                    "extract(epoch from created_at AT TIME ZONE 'Europe/Moscow')*1000 as created_ms, " +
+                    "extract(epoch from revoked_at AT TIME ZONE 'Europe/Moscow')*1000 as revoked_ms, " +
                     "revoke_reason, " +
-                    "extract(epoch from first_used_at)*1000 as first_used_ms, " +
-                    "extract(epoch from first_used_at AT TIME ZONE 'Europe/Moscow')*1000 as first_used_ms_real, " +
-                    "extract(epoch from last_used_at)*1000 as last_used_ms, " +
-                    "extract(epoch from last_used_at AT TIME ZONE 'Europe/Moscow')*1000 as last_used_ms_real, " +
+                    "extract(epoch from first_used_at AT TIME ZONE 'Europe/Moscow')*1000 as first_used_ms, " +
+                    "extract(epoch from last_used_at AT TIME ZONE 'Europe/Moscow')*1000 as last_used_ms, " +
                     "sessions_total, rejected_concurrent " +
                     "FROM tbl_song_share_links " +
                     "WHERE owner_site_user_id=? AND song_id=? AND active",
@@ -378,35 +391,20 @@ class SongShareLinkService(
                 val rs = ps.executeQuery()
                 if (!rs.next()) return null
                 val expiresAt = rs.getLong("expires_ms")
-                val expiresAtMs = rs.getLong("expires_ms_real")
                 val createdAt = rs.getLong("created_ms")
-                val createdAtMs = rs.getLong("created_ms_real")
                 val revokedAt = rs.getLong("revoked_ms").takeIf { !rs.wasNull() }
-                val revokedAtMs = rs.getLong("revoked_ms_real").takeIf { !rs.wasNull() }
                 val firstUsedAt = rs.getLong("first_used_ms").takeIf { !rs.wasNull() }
-                val firstUsedAtMs = rs.getLong("first_used_ms_real").takeIf { !rs.wasNull() }
                 val lastUsedAt = rs.getLong("last_used_ms").takeIf { !rs.wasNull() }
-                val lastUsedAtMs = rs.getLong("last_used_ms_real").takeIf { !rs.wasNull() }
                 return OwnerLinkView(
                     linkId = rs.getLong("id"),
                     songId = rs.getLong("song_id"),
                     active = rs.getBoolean("active"),
                     expiresAt = expiresAt,
-                    expiresAtMs = expiresAtMs,
-                    expiresAtLabel = formatMskLabel(expiresAt),
                     createdAt = createdAt,
-                    createdAtMs = createdAtMs,
-                    createdAtLabel = formatMskLabel(createdAt),
                     revokedAt = revokedAt,
-                    revokedAtMs = revokedAtMs,
-                    revokedAtLabel = revokedAt?.let { formatMskLabel(it) },
                     revokeReason = rs.getString("revoke_reason") ?: "",
                     firstUsedAt = firstUsedAt,
-                    firstUsedAtMs = firstUsedAtMs,
-                    firstUsedAtLabel = firstUsedAt?.let { formatMskLabel(it) },
                     lastUsedAt = lastUsedAt,
-                    lastUsedAtMs = lastUsedAtMs,
-                    lastUsedAtLabel = lastUsedAt?.let { formatMskLabel(it) },
                     sessionsTotal = rs.getInt("sessions_total"),
                     rejectedConcurrent = rs.getInt("rejected_concurrent"),
                 )
@@ -521,6 +519,7 @@ class SongShareLinkService(
                             linkId,
                             songId,
                             existingTokenHash,
+                            expiresAt = leaseUntil.time,
                             songName = songInfo.name,
                             author = songInfo.author,
                             album = songInfo.album,
@@ -582,6 +581,7 @@ class SongShareLinkService(
                 linkId,
                 songId,
                 sessionTokenHash,
+                expiresAt = now + props.leaseTtlSeconds * 1000L,
                 songName = songInfo.name,
                 author = songInfo.author,
                 album = songInfo.album,
@@ -767,17 +767,12 @@ class SongShareLinkService(
         conn
             .prepareStatement(
                 "SELECT id, song_id, active, " +
-                    "extract(epoch from expires_at)*1000 as expires_ms, " +
-                    "extract(epoch from expires_at AT TIME ZONE 'Europe/Moscow')*1000 as expires_ms_real, " +
-                    "extract(epoch from created_at)*1000 as created_ms, " +
-                    "extract(epoch from created_at AT TIME ZONE 'Europe/Moscow')*1000 as created_ms_real, " +
-                    "extract(epoch from revoked_at)*1000 as revoked_ms, " +
-                    "extract(epoch from revoked_at AT TIME ZONE 'Europe/Moscow')*1000 as revoked_ms_real, " +
+                    "extract(epoch from expires_at AT TIME ZONE 'Europe/Moscow')*1000 as expires_ms, " +
+                    "extract(epoch from created_at AT TIME ZONE 'Europe/Moscow')*1000 as created_ms, " +
+                    "extract(epoch from revoked_at AT TIME ZONE 'Europe/Moscow')*1000 as revoked_ms, " +
                     "revoke_reason, " +
-                    "extract(epoch from first_used_at)*1000 as first_used_ms, " +
-                    "extract(epoch from first_used_at AT TIME ZONE 'Europe/Moscow')*1000 as first_used_ms_real, " +
-                    "extract(epoch from last_used_at)*1000 as last_used_ms, " +
-                    "extract(epoch from last_used_at AT TIME ZONE 'Europe/Moscow')*1000 as last_used_ms_real, " +
+                    "extract(epoch from first_used_at AT TIME ZONE 'Europe/Moscow')*1000 as first_used_ms, " +
+                    "extract(epoch from last_used_at AT TIME ZONE 'Europe/Moscow')*1000 as last_used_ms, " +
                     "sessions_total, rejected_concurrent " +
                     "FROM tbl_song_share_links $where ORDER BY created_at DESC LIMIT ?",
             ).use { ps ->
@@ -787,36 +782,21 @@ class SongShareLinkService(
                 val out = mutableListOf<OwnerLinkView>()
                 while (rs.next()) {
                     val expiresAt = rs.getLong("expires_ms")
-                    val expiresAtMs = rs.getLong("expires_ms_real")
                     val createdAt = rs.getLong("created_ms")
-                    val createdAtMs = rs.getLong("created_ms_real")
                     val revokedAt = rs.getLong("revoked_ms").takeIf { !rs.wasNull() }
-                    val revokedAtMs = rs.getLong("revoked_ms_real").takeIf { !rs.wasNull() }
                     val firstUsedAt = rs.getLong("first_used_ms").takeIf { !rs.wasNull() }
-                    val firstUsedAtMs = rs.getLong("first_used_ms_real").takeIf { !rs.wasNull() }
                     val lastUsedAt = rs.getLong("last_used_ms").takeIf { !rs.wasNull() }
-                    val lastUsedAtMs = rs.getLong("last_used_ms_real").takeIf { !rs.wasNull() }
                     out.add(
                         OwnerLinkView(
                             linkId = rs.getLong("id"),
                             songId = rs.getLong("song_id"),
                             active = rs.getBoolean("active"),
                             expiresAt = expiresAt,
-                            expiresAtMs = expiresAtMs,
-                            expiresAtLabel = formatMskLabel(expiresAt),
                             createdAt = createdAt,
-                            createdAtMs = createdAtMs,
-                            createdAtLabel = formatMskLabel(createdAt),
                             revokedAt = revokedAt,
-                            revokedAtMs = revokedAtMs,
-                            revokedAtLabel = revokedAt?.let { formatMskLabel(it) },
                             revokeReason = rs.getString("revoke_reason") ?: "",
                             firstUsedAt = firstUsedAt,
-                            firstUsedAtMs = firstUsedAtMs,
-                            firstUsedAtLabel = firstUsedAt?.let { formatMskLabel(it) },
                             lastUsedAt = lastUsedAt,
-                            lastUsedAtMs = lastUsedAtMs,
-                            lastUsedAtLabel = lastUsedAt?.let { formatMskLabel(it) },
                             sessionsTotal = rs.getInt("sessions_total"),
                             rejectedConcurrent = rs.getInt("rejected_concurrent"),
                         ),
@@ -831,10 +811,10 @@ class SongShareLinkService(
         conn
             .prepareStatement(
                 "SELECT id, share_link_id, song_id, browser_hash, owner_site_user_id, anon_id, " +
-                    "extract(epoch from opened_at)*1000 as opened_ms, " +
-                    "extract(epoch from started_at)*1000 as started_ms, " +
-                    "extract(epoch from last_seen_at)*1000 as last_seen_ms, " +
-                    "extract(epoch from finished_at)*1000 as finished_ms, " +
+                    "extract(epoch from opened_at AT TIME ZONE 'Europe/Moscow')*1000 as opened_ms, " +
+                    "extract(epoch from started_at AT TIME ZONE 'Europe/Moscow')*1000 as started_ms, " +
+                    "extract(epoch from last_seen_at AT TIME ZONE 'Europe/Moscow')*1000 as last_seen_ms, " +
+                    "extract(epoch from finished_at AT TIME ZONE 'Europe/Moscow')*1000 as finished_ms, " +
                     "result FROM tbl_song_share_sessions WHERE share_link_id=? ORDER BY opened_at DESC",
             ).use { ps ->
                 ps.setLong(1, linkId)
@@ -863,23 +843,10 @@ class SongShareLinkService(
 
     // ---------- Helpers ----------
 
-    /**
-     * Форматирует epoch ms как "dd.MM.yyyy HH:mm" в Europe/Moscow.
-     * Используется на UI владельца (модалка «Временный доступ»), чтобы дата
-     * совпадала с тем, как она лежит в `tbl_song_share_links.expires_at` (naive
-     * timestamp в МСК). Без этого `new Date(epoch).toLocaleString()` в браузере
-     * добавляет смещение локальной TZ клиента и пользователь видит «+3 часа».
-     */
-    private fun formatMskLabel(epochMs: Long): String {
-        if (epochMs <= 0) return ""
-        // Postgres `EXTRACT(EPOCH FROM naive_ts)` возвращает epoch ms, считая naive_ts как
-        // UTC. А в БД мы храним naive timestamp в МСК-таймзоне. Поэтому epoch ms — это не
-        // момент в UTC, а «метка времени как если бы naive_ts было в UTC». Чтобы показать
-        // то же значение, что лежит в БД, интерпретируем epoch ms как наивное UTC и
-        // форматируем без таймзоны (DateTimeFormatter без withZone).
-        val ldt = LocalDateTime.ofEpochSecond(epochMs / 1000, 0, ZoneOffset.UTC)
-        return MSK_LABEL_FORMATTER.format(ldt)
-    }
+    // Старый серверный форматировщик меток (МСК-строка) удалён: фронт форматирует
+    // epoch ms в TZ устройства через dateFormat.formatDate (FR-011). Сервер больше
+    // не отдаёт строковые метки — только единственное числовое поле `expiresAt`
+    // (Long, реальный момент). См. spec.md §«Трактовка дат» (FR-013).
 
     private fun countActiveForUser(siteUserId: Long, database: KaraokeConnection): Long {
         val conn = database.getConnection() ?: return 0

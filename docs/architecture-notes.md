@@ -1498,3 +1498,44 @@ relation "tbl_song_share_links" does not exist` (т.е. таблиц нет, а 
 - `docs/features/guest-share-link.md` — L10 и §«Диагностика 500-ошибок claim».
 - `AGENTS.md` — Q&A «500 на /api/public/share/claim» обновлён с симптомом
   Pass 50 + `/debug` диагностикой.
+
+## Pass 51: hotfix — корректные column names в loadSongInfo (2026-08-11, follow-up к PR #220, PR #221, `fcbfbaf0`)
+
+**Симптом**: прод-инцидент 2026-08-11T15:17+03:00, в логах karaoke-web:
+
+```
+org.postgresql.util.PSQLException: ERROR: column "author" does not exist
+  at SongShareLinkService.loadSongInfo(SongShareLinkService.kt:983)
+  at SongShareLinkService.tryClaim(SongShareLinkService.kt:512)
+  at PublicShareController.claim(PublicShareController.kt:147)
+```
+
+**Причина**: Pass 49 (PR #219) переименовал `tbl_settings`→`tbl_songs` + колонки
+`author`→`song_author`, `album`→`song_album`, `year`→`song_year`, но
+`SongShareLinkService.loadSongInfo` (lines 977-988) забыли обновить. До
+Pass 50 это маскировалось контроллером `catch (_: Exception) { 500 share.notFound }`,
+после Pass 50 — пробивается к `dispatcherServlet` (видно реальный класс).
+
+**Фикс** (4 строки, root cause):
+- SQL: `SELECT song_name, author, album, year, player_readiness_flags` →
+  `SELECT song_name, song_author, song_album, song_year, player_readiness_flags`
+- rs.getString/getInt: `author`→`song_author`, `album`→`song_album`, `year`→`song_year`
+
+Kotlin-переменные внутри `SongInfo` (`author`/`album`/`year`) **не переименованы**
+— используются в формулах `albumKey`/`artistKey` для storage путей превью.
+
+**Метрика**: 1 файл, +4/-4 строки.
+
+**Lessons learned**:
+- Pass 49 rename миграция должна была также покрыть все SQL-литералы в
+  karaoke-app/karaoke-web, которые ссылаются на `tbl_settings.*` / `author` /
+  `album` / `year`. Сейчас есть grep'ом можно найти остальные места.
+- Принцип «не маскировать системные ошибки» (Pass 50) выявил латентный баг —
+  это хорошо: баг был там и раньше, просто был невидим. Теперь виден и
+  починен.
+- Per-feature docs должны включать раздел «Переименования колонок / схемы»
+  чтобы rename-миграции были audit-traсeable.
+
+**Связанные документы**:
+- Pass 49 (PR #219) — rename `tbl_settings`→`tbl_songs`
+- Pass 50 (PR #220, spec 167) — share.internal vs share.notFound (выявил Pass 51)

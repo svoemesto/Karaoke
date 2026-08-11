@@ -175,15 +175,32 @@ async function loadCurrent() {
   loading.value = true
   try {
     const { status, body } = await getCurrentShareLink(props.songId, token.value)
+    // Pass 54: логируем ответ бэкенда для диагностики — почему модалка не видит
+    // существующую активную ссылку (баг 2026-08-11). Можно убрать после починки.
+    console.log('[ShareLinkModal] getCurrentShareLink response:', {
+      songId: props.songId,
+      status,
+      body,
+    })
     if (status === 200 && body && body.link) {
       const linkId = body.link.linkId
       const savedUrl = readSavedUrl(linkId)
       currentLink.value = { ...body.link, url: savedUrl }
     } else {
       currentLink.value = null
+      // Pass 54: показываем пользователю ЧТО вернул бэкенд — раньше ошибка терялась.
+      // Типичные причины link: null:
+      //   - активной ссылки действительно нет (норма)
+      //   - ссылка принадлежит другому user_id (например, если админ смотрит чужую песню)
+      //   - expires_at < now() и sweeper ещё не отозвал
+      //   - 401 — token невалидный
+      if (status !== 200) {
+        errorMessage.value = `Бэкенд вернул ${status} — активная ссылка не найдена.`
+      }
     }
   } catch (e) {
-    errorMessage.value = 'Не удалось получить текущую ссылку'
+    console.error('[ShareLinkModal] getCurrentShareLink error:', e)
+    errorMessage.value = `Не удалось получить текущую ссылку: ${e?.message || e}`
   } finally {
     loading.value = false
   }

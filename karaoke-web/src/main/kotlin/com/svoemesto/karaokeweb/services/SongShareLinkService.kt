@@ -127,16 +127,29 @@ class SongShareLinkService(
      * storageKey, без обращения к song.pictureAlbum/pictureAuthor — защита от
      * rootFolder/APP_WORK_ON_SERVER).
      *
-     * `expiresAt` — реальный момент окончания lease (epoch ms). Нужен ShareView,
-     * чтобы показать гостю «Доступно до ДД.ММ.ГГГГ ЧЧ:ММ» в его TZ (FR-011, US4).
-     * Источник — `System.currentTimeMillis() + leaseTtlSeconds*1000L` (для нового
-     * lease) или `leaseUntil.time` (для existing lease). Погрешность ≤ 1 сек
-     * при lease 25 сек — для отображения пользователю не критично.
+     * Два разных expiration:
+     * - `linkExpiresAt` — момент истечения самой share-ссылки (`tbl_song_share_links.expires_at`,
+     *   обычно +1h/+24h/+7d от создания). Нужен ShareView для «Доступно до ДД.ММ.ГГГГ ЧЧ:ММ»
+     *   в TZ устройства (FR-011, US4) — пользователь должен видеть, как долго ССЫЛКА живёт.
+     *   Фиксированный, не меняется при обновлении lease.
+     * - `expiresAt` — момент истечения текущей playback-сессии (lease, обычно +90s от последнего
+     *   heartbeat). Нужен плееру, чтобы знать, когда lease закончится и нужно стопать плеер.
+     *   При рефреше ссылки ОБНОВЛЯЕТСЯ (новый lease от текущего момента). НЕ использовать для
+     *   «Доступно до» — пользователь увидит «+2 минуты от текущего времени» (см. Pass 51).
+     *
+     * До Pass 51 в API было только одно поле `expiresAt` (= lease), и ShareView его ошибочно
+     * использовал для «Доступно до» — пользователь видел lease expiration (90 сек) вместо
+     * link expiration (1 час). Исправлено: добавлено явное `linkExpiresAt`.
+     *
+     * Источник `linkExpiresAt` — `extract(epoch from expires_at AT TIME ZONE 'Europe/Moscow')*1000`
+     * (тот же формат, что в [OwnerLinkView]). Источник `expiresAt` — `leaseUntil.time`
+     * (existing lease) или `now + leaseTtlSeconds*1000L` (new lease).
      */
     data class TryClaimResult(
         val linkId: Long,
         val songId: Long,
         val sessionTokenHash: String,
+        val linkExpiresAt: Long,
         val expiresAt: Long,
         val songName: String,
         val author: String,
@@ -525,7 +538,8 @@ class SongShareLinkService(
             //    в tbl_song_share_links.active_session_*).
             conn
                 .prepareStatement(
-                    "SELECT active_session_token_hash, active_session_lease_until " +
+                    "SELECT active_session_token_hash, active_session_lease_until, " +
+                        "extract(epoch from expires_at AT TIME ZONE 'Europe/Moscow')*1000 as link_expires_ms " +
                         "FROM tbl_song_share_links WHERE id=?",
                 ).use { ps ->
                     ps.setLong(1, linkId)
@@ -533,6 +547,7 @@ class SongShareLinkService(
                     if (!rs.next()) throw NotFound()
                     val existingTokenHash = rs.getString("active_session_token_hash")
                     val leaseUntil = rs.getTimestamp("active_session_lease_until")
+                    val linkExpiresAt = rs.getLong("link_expires_ms")
                     if (existingTokenHash != null && leaseUntil != null && leaseUntil.time > now) {
                         // TODO check that existingTokenHash corresponds to the same browserHash. For now
                         // any existing active lease is returned (multiple browserHash tabs on the same
@@ -541,6 +556,7 @@ class SongShareLinkService(
                             linkId,
                             songId,
                             existingTokenHash,
+                            linkExpiresAt = linkExpiresAt,
                             expiresAt = leaseUntil.time,
                             songName = songInfo.name,
                             author = songInfo.author,
@@ -581,28 +597,34 @@ class SongShareLinkService(
                     if (newSessionId <= 0) throw NotFound()
                 }
 
-            // 4. Обновляем активный lease на ссылке и счётчики.
+            // 4. Обновляем активный lease на ссылке и счётчики. Возвращаем expires_at ссылки
+            //    в одном запросе (RETURNING) — не делать отдельный SELECT ради этого.
             val leaseTtlMs = props.leaseTtlSeconds * 1000L
-            conn
-                .prepareStatement(
-                    "UPDATE tbl_song_share_links SET " +
-                        "active_session_token_hash=?, active_session_browser_hash=?, " +
-                        "active_session_lease_until=now() + (? || ' milliseconds')::interval, " +
-                        "first_used_at = COALESCE(first_used_at, now()), last_used_at=now(), " +
-                        "sessions_total = sessions_total + 1 " +
-                        "WHERE id=?",
-                ).use { ps ->
-                    ps.setString(1, sessionTokenHash)
-                    ps.setString(2, browserHash)
-                    ps.setLong(3, leaseTtlMs)
-                    ps.setLong(4, linkId)
-                    ps.executeUpdate()
-                }
+            val newLinkExpiresAtMs =
+                conn
+                    .prepareStatement(
+                        "UPDATE tbl_song_share_links SET " +
+                            "active_session_token_hash=?, active_session_browser_hash=?, " +
+                            "active_session_lease_until=now() + (? || ' milliseconds')::interval, " +
+                            "first_used_at = COALESCE(first_used_at, now()), last_used_at=now(), " +
+                            "sessions_total = sessions_total + 1 " +
+                            "WHERE id=? " +
+                            "RETURNING extract(epoch from expires_at AT TIME ZONE 'Europe/Moscow')*1000",
+                    ).use { ps ->
+                        ps.setString(1, sessionTokenHash)
+                        ps.setString(2, browserHash)
+                        ps.setLong(3, leaseTtlMs)
+                        ps.setLong(4, linkId)
+                        val rs = ps.executeQuery()
+                        if (!rs.next()) throw NotFound()
+                        rs.getLong(1)
+                    }
 
             return TryClaimResult(
                 linkId,
                 songId,
                 sessionTokenHash,
+                linkExpiresAt = newLinkExpiresAtMs,
                 expiresAt = now + props.leaseTtlSeconds * 1000L,
                 songName = songInfo.name,
                 author = songInfo.author,

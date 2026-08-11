@@ -37,7 +37,7 @@
         <img
           v-if="artistImageUrl"
           :src="artistImageUrl"
-          alt="Фото исполнителя"
+          alt="Логотип исполнителя"
           class="km-share-cover-artist"
         />
       </div>
@@ -47,7 +47,7 @@
         <span>{{ album }}</span>
         <span v-if="year"> · {{ year }}</span>
       </p>
-      <p v-if="expiresAtLabel" class="km-share-badge">Доступно до {{ expiresAtLabel }}</p>
+      <p v-if="linkExpiresAtLabel" class="km-share-badge">Доступно до {{ linkExpiresAtLabel }}</p>
       <p v-if="isExpired" class="km-share-error">
         Срок действия этой ссылки истёк. Попросите владельца прислать новую.
       </p>
@@ -56,9 +56,6 @@
       </p>
       <button v-if="!isExpired" class="km-btn km-btn-primary" @click="openPlayer">
         Открыть плеер
-      </button>
-      <button v-if="!isExpired" class="km-btn km-btn-secondary" @click="copyLink">
-        Скопировать ссылку
       </button>
     </div>
 
@@ -82,6 +79,14 @@ const router = useRouter()
 const state = ref('claiming')
 const sessionTokenHash = ref('')
 const songId = ref(0)
+// linkExpiresAt — момент истечения самой ССЫЛКИ (epoch ms, фиксированный).
+// Используется для «Доступно до …» — пользователь видит, как долго ССЫЛКА живёт.
+// Не путать с `expiresAt` ниже — это LEASE (короткий, обновляется при рефреше).
+const linkExpiresAt = ref(0)
+// expiresAt — момент окончания текущего lease (epoch ms). Используется плеером
+// для проверки «lease ещё жив» (если не обновлять heartbeat'ом — плеер стопать).
+// До Pass 52 использовался и для «Доступно до» — баг (пользователь видел
+// «всего +2 минуты» от текущего времени, lease).
 const expiresAt = ref(0)
 const songName = ref('')
 const author = ref('')
@@ -90,7 +95,7 @@ const year = ref(0)
 const albumImageUrl = ref('')
 const artistImageUrl = ref('')
 
-const expiresAtLabel = computed(() => formatDate(expiresAt.value))
+const linkExpiresAtLabel = computed(() => formatDate(linkExpiresAt.value))
 
 async function doClaim() {
   state.value = 'claiming'
@@ -108,9 +113,11 @@ async function doClaim() {
       year.value = Number(body.year) || 0
       albumImageUrl.value = body.albumImageUrl || ''
       artistImageUrl.value = body.artistImageUrl || ''
-      // expiresAt — реальный epoch ms (момент окончания lease). Бэк отдаёт как часть
-      // /claim response с T023. Метка «Доступно до …» форматируется на клиенте
-      // через dateFormat.formatDate в TZ устройства (FR-011).
+      // linkExpiresAt — момент истечения самой ССЫЛКИ (фиксированный из
+      // tbl_song_share_links.expires_at). Метка «Доступно до …» форматируется на
+      // клиенте через dateFormat.formatDate в TZ устройства (FR-011, Pass 49).
+      // Не путать с `expiresAt` ниже — это LEASE (короткий, обновляется).
+      linkExpiresAt.value = Number(body.linkExpiresAt) || 0
       expiresAt.value = Number(body.expiresAt) || 0
       state.value = 'ready'
       return
@@ -124,13 +131,11 @@ async function doClaim() {
   }
 }
 
-const isExpired = computed(() => expiresAt.value > 0 && expiresAt.value <= Date.now())
-
-const shareUrl = computed(() => {
-  if (!songId.value || !sessionTokenHash.value) return ''
-  const base = window.location.origin
-  return `${base}/player/${songId.value}?share=1&session=${encodeURIComponent(sessionTokenHash.value)}`
-})
+// isExpired — по linkExpiresAt, не по expiresAt (lease). Lease обновляется при
+// каждом claim/heartbeat — если бы смотрели на lease, isExpired всегда был бы
+// false (только что claim прошёл). linkExpiresAt — фиксированный, от создания
+// ссылки, не меняется — это правильный индикатор «ссылка ещё жива».
+const isExpired = computed(() => linkExpiresAt.value > 0 && linkExpiresAt.value <= Date.now())
 
 function retry() {
   doClaim()
@@ -142,29 +147,6 @@ function openPlayer() {
     path: `/player/${songId.value}`,
     query: { share: '1', session: sessionTokenHash.value },
   })
-}
-
-async function copyLink() {
-  if (!shareUrl.value) return
-  try {
-    if (navigator.clipboard) {
-      await navigator.clipboard.writeText(shareUrl.value)
-      return
-    }
-  } catch (e) {
-    /* fall through */
-  }
-  // fallback
-  const ta = document.createElement('textarea')
-  ta.value = shareUrl.value
-  document.body.appendChild(ta)
-  ta.select()
-  try {
-    document.execCommand('copy')
-  } catch (e) {
-    /* ignore */
-  }
-  document.body.removeChild(ta)
 }
 
 onMounted(() => {
@@ -275,10 +257,15 @@ onMounted(() => {
   flex-shrink: 0;
   background: #2a2a2a;
 }
+/* Логотип исполнителя — широкоформатный баннер 1000×400 (aspect-ratio 5:2, см.
+   KaraokeFileType.PICTURE_AUTHOR). Фиксируем пропорции через `aspect-ratio`,
+   чтобы картинка не обрезалась по вертикали на широких экранах (раньше был
+   height:160px при width:flex — текст логотипа резался, видно «МАШИНА ВРЕМЕН…»).
+   На мобильных (max-width:520px) ширина 100%, высота = 40% от ширины. */
 .km-share-cover-artist {
   flex: 1;
   min-width: 0;
-  height: 160px;
+  aspect-ratio: 5 / 2;
   object-fit: cover;
   border-radius: 8px;
   background: #2a2a2a;

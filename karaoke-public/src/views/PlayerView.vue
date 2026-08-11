@@ -164,7 +164,16 @@ function onParentMessage(e) {
 onMounted(() => {
   const songId = route.params.id
   const token = sessionStorage.getItem(`kp_token_${songId}`)
-  if (!token) {
+  // Share-session: берём hash из query (?session=...) или из sessionStorage (после F5). См.
+  // spec.md FR-003 + FR-004 — без этого гостю по share-ссылке роутер закрыл бы вход.
+  const shareSessionTokenHash =
+    (typeof route.query.session === 'string' && route.query.session) ||
+    sessionStorage.getItem(`kp_share_session_${songId}`) ||
+    null
+  if (shareSessionTokenHash) {
+    sessionStorage.setItem(`kp_share_session_${songId}`, shareSessionTokenHash)
+  }
+  if (!token && !shareSessionTokenHash) {
     // Нет токена в этой сессии — ведём себя как несуществующий роут (не палим скрытый механизм).
     router.replace('/')
     return
@@ -196,6 +205,7 @@ onMounted(() => {
       '/api/public/player',
       token,
       authToken.value,
+      shareSessionTokenHash,
     )
     player.onTrackEnded = advanceAfterEnd
     player.init().then(() => {
@@ -210,7 +220,14 @@ onMounted(() => {
 
   // authToken (km_auth_token) шлётся, чтобы бэкенд определил живой премиум-статус для canExport
   // в playerdata — иначе пункт «Экспорт аудио...» не появится даже у залогиненного премиума.
-  player = new KaraokePlayer(container.value, songId, '/api/public/player', token, authToken.value)
+  player = new KaraokePlayer(
+    container.value,
+    songId,
+    '/api/public/player',
+    token,
+    authToken.value,
+    shareSessionTokenHash,
+  )
   player.init()
 })
 

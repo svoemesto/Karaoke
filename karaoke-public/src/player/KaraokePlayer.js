@@ -21,8 +21,12 @@ export default class KaraokePlayer {
   //     backend has no way to know who's asking and always answers canExport=false.)
   //   new KaraokePlayer(container, { smkaraoke: File|Blob }) — from local .smkaraoke file
   //   new KaraokePlayer(container, { smkaraokeUrl: string }) — download .smkaraoke from URL
-  constructor(container, songIdOrOptions, apiBase, token, authToken) {
+  constructor(container, songIdOrOptions, apiBase, token, authToken, shareSessionTokenHash) {
     this.container = container
+    // shareSessionTokenHash — SHA-256 сессии, выданной /api/public/share/claim. Если есть,
+    // прокидывается во все запросы плеера (?session=...) и используется для heartbeat/release
+    // (см. docs/features/guest-share-link.md, spec.md FR-005).
+    this.shareSessionTokenHash = shareSessionTokenHash || null
     if (songIdOrOptions !== null && typeof songIdOrOptions === 'object') {
       this._mode = songIdOrOptions.smkaraoke ? 'blob' : 'url-smkaraoke'
       this._smkaraokeSource = songIdOrOptions.smkaraoke ?? songIdOrOptions.smkaraokeUrl
@@ -158,17 +162,57 @@ export default class KaraokePlayer {
       })
       .catch(() => {})
 
+    // Share-session: запускаем heartbeat-таймер и ставим листенеры для release на закрытие вкладки.
+    // Heartbeat независим от play/pause (Clarifications Q2) — отправляется, пока вкладка открыта.
+    if (this.shareSessionTokenHash) {
+      this._shareReleased = false
+      this._shareRevoked = false
+      this._startShareHeartbeat()
+      this._shareBeforeUnloadHandler = () => this._sendShareRelease('closed')
+      this._sharePageHideHandler = () => this._sendShareRelease('closed')
+      this._shareVisibilityHandler = () => {
+        // visibilitychange hidden — вкладка свёрнута/закрывается; sendBeacon не всегда успевает
+        // на beforeunload, поэтому страхуемся на visibilitychange (best-effort).
+        if (document.visibilityState === 'hidden') this._sendShareRelease('closed')
+      }
+      window.addEventListener('beforeunload', this._shareBeforeUnloadHandler)
+      window.addEventListener('pagehide', this._sharePageHideHandler)
+      document.addEventListener('visibilitychange', this._shareVisibilityHandler)
+    }
+
     try {
       if (this._mode === 'api') {
         const headers = this.authToken ? { Authorization: `Bearer ${this.authToken}` } : undefined
+        // Прокидываем shareSessionTokenHash в /playerdata, чтобы бэкенд авторизовал гостя по share-сессии
+        // (PublicPlayerController.authorized принимает опц. session, см. spec.md FR-001).
+        const sessionParam = this.shareSessionTokenHash
+          ? `&session=${encodeURIComponent(this.shareSessionTokenHash)}`
+          : ''
         const resp = await fetch(
-          `${this.apiBase}/${this.songId}/playerdata?token=${encodeURIComponent(this.token || '')}`,
+          `${this.apiBase}/${this.songId}/playerdata?token=${encodeURIComponent(this.token || '')}${sessionParam}`,
           { headers },
         )
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
         this.data = await resp.json()
       } else {
         this.data = await this._loadSmkaraoke(this._smkaraokeSource)
+      }
+      // Для share-сессии прокидываем sessionTokenHash и в аудио-URL'ы (stem-эндпоинты karaoke-web
+      // тоже принимают ?session=, см. PublicPlayerController.fileAccompaniment).
+      if (this.shareSessionTokenHash && this.data) {
+        const sessionQ = `session=${encodeURIComponent(this.shareSessionTokenHash)}`
+        for (const key of [
+          'audioAccompanimentUrl',
+          'audioVocalsUrl',
+          'audioBassUrl',
+          'audioDrumsUrl',
+        ]) {
+          if (typeof this.data[key] === 'string' && !this.data[key].includes('session=')) {
+            this.data[key] = this.data[key].includes('?')
+              ? `${this.data[key]}&${sessionQ}`
+              : `${this.data[key]}?${sessionQ}`
+          }
+        }
       }
       if (!this.data?.audioAccompanimentUrl || !this.data?.audioVocalsUrl) {
         throw new PlayerUnavailableError('Missing required audio tracks')
@@ -1550,6 +1594,12 @@ export default class KaraokePlayer {
     if (this._mode === 'api') trackPlayerEnded(this.songId)
     this._progressFlags = { 25: false, 50: false, 75: false }
     if (this.data?.isDemo) this._showDemoEndOverlay()
+    // Share-сессия: песня доиграна → освобождаем lease через sendBeacon. sendBeacon гарантирует
+    // доставку даже если плеер уже закрывается. Result='ended' — нормальное завершение.
+    if (this.shareSessionTokenHash) {
+      this._sendShareRelease('ended')
+      this._stopShareHeartbeat()
+    }
     if (this.onTrackEnded) {
       try {
         this.onTrackEnded()
@@ -3594,9 +3644,130 @@ export default class KaraokePlayer {
     window.removeEventListener('resize', this._resizeHandler)
     document.removeEventListener('fullscreenchange', this._fsHandler)
     document.removeEventListener('click', this._menuOutsideClickHandler)
+    // Share-сессия: остановка heartbeat + release через sendBeacon (best-effort — браузер может
+    // уже не успеть отправить, тогда lease истечёт через leaseTtlSeconds и закроется sweeper'ом).
+    if (this.shareSessionTokenHash) {
+      this._sendShareRelease('closed')
+      this._stopShareHeartbeat()
+      window.removeEventListener('beforeunload', this._shareBeforeUnloadHandler)
+      window.removeEventListener('pagehide', this._sharePageHideHandler)
+      document.removeEventListener('visibilitychange', this._shareVisibilityHandler)
+    }
     for (const url of this._smkaraokeObjectUrls) URL.revokeObjectURL(url)
     this._smkaraokeObjectUrls = []
     this._bgCanvas = null
     this._ready = false
+  }
+
+  // ---------- Share-session helpers (US2 — heartbeat/release) ----------
+
+  // Heartbeat отправляется каждые 25 сек (значение по умолчанию; бэкенд дефолт — 25, см.
+  // WebShareProperties.heartbeatIntervalSeconds). Пока вкладка открыта — независимо от play/pause
+  // (Clarifications Q2).
+  _startShareHeartbeat() {
+    if (!this.shareSessionTokenHash) return
+    const intervalMs = (this._shareHeartbeatIntervalSeconds || 25) * 1000
+    this._shareHeartbeatTimer = setInterval(() => {
+      // Не отправляем, если плеер уже отозван/закрыт (защита от race с destroy())
+      if (this._shareRevoked) return
+      this._sendShareHeartbeat()
+    }, intervalMs)
+  }
+
+  _stopShareHeartbeat() {
+    if (this._shareHeartbeatTimer) {
+      clearInterval(this._shareHeartbeatTimer)
+      this._shareHeartbeatTimer = null
+    }
+  }
+
+  async _sendShareHeartbeat() {
+    if (!this.shareSessionTokenHash) return
+    try {
+      const resp = await fetch('/api/public/share/heartbeat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionTokenHash: this.shareSessionTokenHash }),
+        keepalive: true,
+      })
+      // 410 — lease истёк (следующий тик sweeper'а или потерянный heartbeat): останавливаем таймер
+      // и показываем overlay с кнопкой "Закрыть" (Clarifications Q4 — без auto-recovery).
+      if (resp.status === 410) {
+        this._shareRevoked = true
+        this._stopShareHeartbeat()
+        try {
+          await this._sendShareRelease('timeout')
+        } catch (e) {
+          /* ignore */
+        }
+        this.pause()
+        this._showShareRevokedOverlay(
+          'Время сеанса истекло. Попросите владельца прислать новую ссылку.',
+        )
+      }
+    } catch (e) {
+      // Сетевая ошибка — следующий heartbeat попробует снова. Если вкладка закрыта — sendBeacon
+      // для release сработает на beforeunload (ниже).
+    }
+  }
+
+  // sendBeacon — единственный надёжный способ отправить запрос при уходе со страницы.
+  // Content-Type: application/x-www-form-urlencoded обязателен для sendBeacon (JSON не поддерживается).
+  _sendShareRelease(result) {
+    if (!this.shareSessionTokenHash) return
+    if (this._shareReleased) return // idempotent: после первого release не повторяем
+    this._shareReleased = true
+    try {
+      const blob = new Blob(
+        [
+          `sessionTokenHash=${encodeURIComponent(this.shareSessionTokenHash)}&result=${encodeURIComponent(result)}`,
+        ],
+        { type: 'application/x-www-form-urlencoded' },
+      )
+      // sendBeacon возвращает false, если размер > 64 KB — для нашего крошечного запроса это нерелевантно.
+      navigator.sendBeacon('/api/public/share/release', blob)
+    } catch (e) {
+      // ignore — sweepер закроет сессию через leaseTtlSeconds (90 сек).
+    }
+  }
+
+  _showShareRevokedOverlay(message) {
+    // Универсальный overlay "сессия отозвана/истекла". Используем тот же подход, что _showPremiumUpsellOverlay
+    // (см. KDoc метода) — overlay + кнопка "Закрыть", без auto-recovery (Clarifications Q4).
+    if (!this.container) return
+    const existing = this.container.querySelector('#kp-share-revoked-overlay')
+    if (existing) existing.remove()
+    const overlay = document.createElement('div')
+    overlay.id = 'kp-share-revoked-overlay'
+    overlay.style.cssText = [
+      'position: absolute',
+      'inset: 0',
+      'background: rgba(0,0,0,0.85)',
+      'display: flex',
+      'flex-direction: column',
+      'align-items: center',
+      'justify-content: center',
+      'color: white',
+      'z-index: 9999',
+      'padding: 24px',
+      'text-align: center',
+    ].join(';')
+    const text = document.createElement('div')
+    text.textContent = message
+    text.style.cssText = 'font-size: 18px; margin-bottom: 16px; max-width: 480px;'
+    const btn = document.createElement('button')
+    btn.textContent = 'Закрыть'
+    btn.style.cssText = 'padding: 10px 24px; font-size: 16px; cursor: pointer;'
+    btn.onclick = () => {
+      try {
+        window.close()
+      } catch (e) {
+        /* ignore */
+      }
+      overlay.remove()
+    }
+    overlay.appendChild(text)
+    overlay.appendChild(btn)
+    this.container.appendChild(overlay)
   }
 }

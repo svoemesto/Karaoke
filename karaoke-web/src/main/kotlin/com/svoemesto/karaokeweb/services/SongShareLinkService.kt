@@ -302,6 +302,50 @@ class SongShareLinkService(
     }
 
     /**
+     * Admin-отзыв по linkId (не по паре owner+song). Используется [SiteShareLinksController]
+     * — админ видит ссылку конкретного пользователя и отзывает её по id, без знания songId.
+     * Завершает все активные lease-сессии (finished_at, result='revoked') и обнуляет active_session_*.
+     * Все три операции — в одной транзакции (атомарность).
+     */
+    fun revokeLinkById(linkId: Long, reason: String = "admin", database: KaraokeConnection = WORKING_DATABASE) {
+        val conn = database.getConnection() ?: return
+        conn.autoCommit = false
+        try {
+            conn
+                .prepareStatement(
+                    "UPDATE tbl_song_share_links SET active=false, revoked_at=now(), revoke_reason=? " +
+                        "WHERE id=? AND active",
+                ).use { ps ->
+                    ps.setString(1, reason)
+                    ps.setLong(2, linkId)
+                    ps.executeUpdate()
+                }
+            conn
+                .prepareStatement(
+                    "UPDATE tbl_song_share_sessions SET finished_at=now(), result='revoked' " +
+                        "WHERE share_link_id=? AND finished_at IS NULL",
+                ).use { ps ->
+                    ps.setLong(1, linkId)
+                    ps.executeUpdate()
+                }
+            conn
+                .prepareStatement(
+                    "UPDATE tbl_song_share_links SET active_session_token_hash=NULL, " +
+                        "active_session_browser_hash=NULL, active_session_lease_until=NULL WHERE id=?",
+                ).use { ps ->
+                    ps.setLong(1, linkId)
+                    ps.executeUpdate()
+                }
+            conn.commit()
+        } catch (e: Exception) {
+            conn.rollback()
+            throw e
+        } finally {
+            conn.autoCommit = true
+        }
+    }
+
+    /**
      * Возвращает текущую `active=true` ссылку пользователя на песню, либо `null`.
      * Секрет НЕ возвращается — он не сохраняется после создания.
      */
@@ -922,7 +966,7 @@ class SongShareLinkService(
         }
     }
 
-    private fun songHasSkipTag(tags: String?): Boolean =
+    internal fun songHasSkipTag(tags: String?): Boolean =
         (tags ?: "").split(" ").any { it.trim().equals("SKIP", ignoreCase = true) }
 
     /**
@@ -988,6 +1032,8 @@ class SongShareLinkService(
      * не мог отдать audioAccompanimentUrl/audioVocalsUrl и KaraokePlayer показывал
      * «Данная песня не может быть проиграна». Теперь проверка полная.
      */
+    internal fun songIsShareablePublic(songId: Long, database: KaraokeConnection): Boolean = songIsShareable(songId, database)
+
     private fun songIsShareable(songId: Long, database: KaraokeConnection): Boolean {
         val conn = database.getConnection() ?: return false
         conn

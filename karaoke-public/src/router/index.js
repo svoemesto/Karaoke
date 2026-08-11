@@ -100,9 +100,16 @@ const routes = [
     name: 'player',
     component: PlayerView,
     // Without a token for this song already in sessionStorage, this route should behave like
-    // it doesn't exist — no hint that a hidden unlock mechanism exists.
+    // it doesn't exist — no hint that a hidden unlock mechanism exists. Также пускаем гостей
+    // по share-сессии: либо через ?session= в query (первый переход с лендинга), либо через
+    // sessionStorage['kp_share_session_<id>'] (после F5). См. spec.md FR-003.
     beforeEnter: (to) => {
-      if (!sessionStorage.getItem(`kp_token_${to.params.id}`)) return '/'
+      const id = to.params.id
+      const hasToken = !!sessionStorage.getItem(`kp_token_${id}`)
+      const hasShareSession =
+        (typeof to.query.session === 'string' && to.query.session) ||
+        !!sessionStorage.getItem(`kp_share_session_${id}`)
+      if (!hasToken && !hasShareSession) return '/'
     },
   },
 ]

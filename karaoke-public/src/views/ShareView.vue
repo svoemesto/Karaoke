@@ -47,11 +47,19 @@
         <span>{{ album }}</span>
         <span v-if="year"> · {{ year }}</span>
       </p>
-      <p class="km-share-note">
-        Вам открыли временный доступ к этой песне в режиме онлайн-плеера. Срок действия ссылки — до
-        {{ expiresAtLabel }}.
+      <p v-if="expiresAtLabel" class="km-share-badge">Доступно до {{ expiresAtLabel }}</p>
+      <p v-if="isExpired" class="km-share-error">
+        Срок действия этой ссылки истёк. Попросите владельца прислать новую.
       </p>
-      <button class="km-btn km-btn-primary" @click="openPlayer">Открыть плеер</button>
+      <p v-else class="km-share-note">
+        Вам открыли временный доступ к этой песне в режиме онлайн-плеера.
+      </p>
+      <button v-if="!isExpired" class="km-btn km-btn-primary" @click="openPlayer">
+        Открыть плеер
+      </button>
+      <button v-if="!isExpired" class="km-btn km-btn-secondary" @click="copyLink">
+        Скопировать ссылку
+      </button>
     </div>
 
     <div v-else class="km-card km-card-error">
@@ -63,7 +71,7 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { claimShare } from '../services/songShareLink'
 
@@ -89,7 +97,7 @@ async function doClaim() {
     const { status, body } = await claimShare(route.params.secret)
     if (status === 200 && body && body.sessionTokenHash) {
       // Бэкенд возвращает оба id: linkId (id записи в tbl_song_share_links) и songId
-      // (id песни). Для /player/{id} используем songId — иначе попадаем на чужую
+      // (id песни). Для /player/{id} используем songId — иначе попадаем на чью-то
       // песню и playerdata отдаёт 404 (см. инцидент 2026-08-10).
       songId.value = body.songId ?? body.linkId
       sessionTokenHash.value = body.sessionTokenHash
@@ -99,8 +107,9 @@ async function doClaim() {
       year.value = Number(body.year) || 0
       albumImageUrl.value = body.albumImageUrl || ''
       artistImageUrl.value = body.artistImageUrl || ''
-      expiresAt.value = 0
-      expiresAtLabel.value = ''
+      // expiresAtMs — реальный epoch ms (МСК); expiresAtLabel — ДД.ММ.ГГГГ ЧЧ:ММ от бэкенда.
+      expiresAt.value = Number(body.expiresAtMs ?? body.expiresAt ?? 0) || 0
+      expiresAtLabel.value = body.expiresAtLabel || ''
       state.value = 'ready'
       return
     }
@@ -113,6 +122,14 @@ async function doClaim() {
   }
 }
 
+const isExpired = computed(() => expiresAt.value > 0 && expiresAt.value <= Date.now())
+
+const shareUrl = computed(() => {
+  if (!songId.value || !sessionTokenHash.value) return ''
+  const base = window.location.origin
+  return `${base}/player/${songId.value}?share=1&session=${encodeURIComponent(sessionTokenHash.value)}`
+})
+
 function retry() {
   doClaim()
 }
@@ -123,6 +140,29 @@ function openPlayer() {
     path: `/player/${songId.value}`,
     query: { share: '1', session: sessionTokenHash.value },
   })
+}
+
+async function copyLink() {
+  if (!shareUrl.value) return
+  try {
+    if (navigator.clipboard) {
+      await navigator.clipboard.writeText(shareUrl.value)
+      return
+    }
+  } catch (e) {
+    /* fall through */
+  }
+  // fallback
+  const ta = document.createElement('textarea')
+  ta.value = shareUrl.value
+  document.body.appendChild(ta)
+  ta.select()
+  try {
+    document.execCommand('copy')
+  } catch (e) {
+    /* ignore */
+  }
+  document.body.removeChild(ta)
 }
 
 onMounted(() => {
@@ -185,6 +225,30 @@ onMounted(() => {
   background: #f80;
   color: #1c1c1c;
   font-weight: 600;
+}
+.km-btn-secondary {
+  background: #444;
+  color: #fff;
+}
+.km-share-badge {
+  display: inline-block;
+  margin: 0 0 12px;
+  padding: 6px 12px;
+  background: rgba(255, 136, 0, 0.15);
+  border: 1px solid #f80;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #f80;
+}
+.km-share-error {
+  margin: 16px 0 0;
+  padding: 12px;
+  background: rgba(228, 68, 68, 0.1);
+  border-left: 3px solid #e44;
+  border-radius: 4px;
+  color: #faa;
+  font-size: 14px;
 }
 
 /* Лендинг share-ссылки — расширенный вариант с превью обложки/автора и подписью песни.

@@ -204,8 +204,21 @@ ok "git config blame.ignoreRevsFile настроен"
 # === СЕКЦИЯ 7: КЛОНИРОВАНИЕ РЕПОЗИТОРИЯ ===
 log "Секция 7/12: клонирование/обновление ${KARAOKE_DIR}..."
 if [ -d "${KARAOKE_DIR}/.git" ]; then
-  log "  Репозиторий уже склонирован — обновляем..."
-  (cd "${KARAOKE_DIR}" && git pull --ff-only 2>&1 | tail -3)
+  log "  Репозиторий уже склонирован — обновляем (git fetch, без pull)..."
+  # git pull требует upstream; для свежей локальной ветки (например,
+  # 170-mint-dev-setup ещё не запушенной) upstream нет, и git pull
+  # интерактивно спросит 'git branch --set-upstream-to=origin/<ветка>',
+  # что под `set -e` ломает скрипт. Используем fetch — обновляет refs,
+  # но не трогает локальные ветки. Это безопаснее для непushed-веток.
+  (cd "${KARAOKE_DIR}" && git fetch --tags --prune 2>&1 | tail -3)
+  # Если текущая ветка ИМЕЕТ upstream — fast-forward merge. Иначе — skip.
+  UPSTREAM=$(cd "${KARAOKE_DIR}" && git rev-parse --abbrev-ref '@{u}' 2>/dev/null || true)
+  if [ -n "${UPSTREAM}" ]; then
+    log "  Upstream есть (${UPSTREAM}) — fast-forward pull..."
+    (cd "${KARAOKE_DIR}" && git pull --ff-only 2>&1 | tail -3)
+  else
+    log "  У текущей ветки нет upstream (локальная фича-ветка ещё не запушена) — пропускаем pull"
+  fi
 else
   log "  Клонируем ${KARAOKE_REPO}..."
   git clone "${KARAOKE_REPO}" "${KARAOKE_DIR}"

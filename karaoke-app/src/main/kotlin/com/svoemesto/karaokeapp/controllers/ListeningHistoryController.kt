@@ -105,10 +105,11 @@ class ListeningHistoryController {
                 if (allSongIds.isEmpty()) {
                     emptyMap()
                 } else {
-                    KaraokeDbTable
-                        .loadByIds(Song::class, Song.TABLE_NAME, allSongIds, db, KSS_APP, SAC_APP)
-                        .map { it as Song }
-                        .associateBy { it.id }
+                    // NB: Song НЕ использует @KaraokeDbTableField-рефлексию (поля в `fields`-map),
+                    // поэтому `KaraokeDbTable.loadByIds(Song::class, ...)` возвращает пустые сущности
+                    // (songName = "", tags = "" — без `tags` мы ВСЕ записи фильтруем по SKIP).
+                    // Используем Song.loadListFromDbByIds — кастомный SQL, populate'ит `tags`/`songName`.
+                    Song.loadListFromDbByIds(allSongIds, db, KSS_APP, SAC_APP)
                 }
 
             // 5. Фильтруем: оставляем только строки, где песня СУЩЕСТВУЕТ и НЕ имеет тег SKIP

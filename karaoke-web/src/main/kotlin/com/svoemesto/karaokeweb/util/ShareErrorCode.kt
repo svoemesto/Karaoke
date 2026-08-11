@@ -38,6 +38,12 @@ enum class ShareErrorCode(
 
     // Запрос без обязательного параметра (token, shareSecret, songId).
     TOKEN_MISSING("share.tokenMissing"),
+
+    // Системная (не доменная) ошибка: БД недоступна, неожиданное исключение,
+    // программная ошибка. Используется как обёртка для catch-all в контроллере —
+    // гарантирует, что share.notFound не маскирует сбои инфраструктуры.
+    // См. spec 167-fix-share-claim-500 (FR-010, FR-014).
+    INTERNAL("share.internal"),
 }
 
 // Утилита маскирования секрета для логов и tbl_events.referer. Секрет

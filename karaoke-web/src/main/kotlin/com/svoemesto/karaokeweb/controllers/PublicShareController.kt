@@ -84,8 +84,11 @@ class PublicShareController(
                 )
         } catch (e: SongShareLinkService.SongUnavailable) {
             ResponseEntity.status(409).body(mapOf("errorCode" to e.code.dbValue))
-        } catch (_: Exception) {
-            ResponseEntity.status(500).body(mapOf("errorCode" to "share.notFound"))
+        } catch (_: SongShareLinkService.InternalError) {
+            // Системная (не доменная) ошибка при создании ссылки — БД недоступна,
+            // конфликт IDENTITY и т.п. Раньше маскировалось под 500 share.notFound
+            // (FR-010, FR-014, spec 167-fix-share-claim-500).
+            ResponseEntity.status(500).body(mapOf("errorCode" to "share.internal"))
         }
     }
 
@@ -171,8 +174,12 @@ class PublicShareController(
             ResponseEntity.status(429).body(mapOf("errorCode" to e.code.dbValue))
         } catch (_: SongShareLinkService.NotFound) {
             ResponseEntity.status(404).body(mapOf("errorCode" to "share.notFound"))
-        } catch (_: Exception) {
-            ResponseEntity.status(500).body(mapOf("errorCode" to "share.notFound"))
+        } catch (_: SongShareLinkService.InternalError) {
+            // Системная (не доменная) ошибка: БД недоступна, relation does not exist,
+            // NPE в SQL-обёртке и т.п. До Pass 50 это маскировалось под 404
+            // share.notFound — невозможно отличить «ссылка битая» от «у нас всё
+            // сломалось». Сейчас отдаём 500 share.internal (FR-010, FR-014).
+            ResponseEntity.status(500).body(mapOf("errorCode" to "share.internal"))
         }
     }
 
@@ -186,8 +193,12 @@ class PublicShareController(
             ResponseEntity.ok(mapOf("ok" to true))
         } catch (_: SongShareLinkService.LeaseExpired) {
             ResponseEntity.status(410).body(mapOf("errorCode" to "share.leaseExpired"))
-        } catch (_: Exception) {
-            ResponseEntity.status(410).body(mapOf("errorCode" to "share.leaseExpired"))
+        } catch (_: SongShareLinkService.InternalError) {
+            // Системная (не доменная) ошибка heartbeat — БД недоступна и т.п.
+            // Раньше маскировалось под 410 share.leaseExpired — невозможно отличить
+            // «lease действительно истёк» от «у нас БД упала» (FR-010, FR-014,
+            // spec 167-fix-share-claim-500).
+            ResponseEntity.status(500).body(mapOf("errorCode" to "share.internal"))
         }
     }
 

@@ -21,6 +21,21 @@
 -- 39_song_share_recordhash.sql, и в один деплой с новым karaoke-web/karaoke-app,
 -- иначе SongShareLinkService упадёт "relation does not exist".
 --
+-- === ПОРЯДОК ДЕПЛОЯ НА PROD (Pass 50, spec 167-fix-share-claim-500, FR-001/FR-004) ===
+--   1. Подключиться к прод-серверу: ssh root@${PROD_HOST:-188.119.64.111}
+--   2. Применить ЭТОТ файл на прод-БД:
+--        docker exec -i karaoke-db psql -U postgres -d karaoke \
+--          < /root/Karaoke/deploy/karaoke-db/38_song_share_links.sql
+--   3. Применить 39_song_share_recordhash.sql (после этого файла, иначе FK не резолвится).
+--   4. Проверить: docker exec karaoke-db psql -U postgres -d karaoke \
+--                  -c "\dt tbl_song_share*"  → 2 строки (tbl_song_share_links + tbl_song_share_sessions)
+--   5. ТОЛЬКО после успешного (4) — деплоить karaoke-web
+--      (cd deploy && bash do.sh build_start_web, делает пользователь).
+--
+-- Если применить karaoke-web БЕЗ этой миграции → 500 "share.internal"
+-- (post-fix поведение) или "share.notFound" (pre-fix, маскирует системную ошибку).
+-- Этот hotfix spec 167-fix-share-claim-500 разделяет эти два сценария.
+--
 -- Восстановлено из dangling git blob c8cc7472af57616ed25d22650722f55a4ce444eb (Pass 47,
 -- 2026-08-10): DDL утерян при переключении веток, восстановлен по reflog/fsck. Идемпотентен
 -- (CREATE TABLE IF NOT EXISTS + DO-блоки для IDENTITY и PRIMARY KEY) — безопасно применять

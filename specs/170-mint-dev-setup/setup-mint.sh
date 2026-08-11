@@ -185,6 +185,22 @@ else
   ok "Docker $(docker --version | grep -oE '[0-9]+\.[0-9.]+') установлен"
 fi
 
+# Создаём wrapper-скрипт /usr/local/bin/docker-compose → 'docker compose'.
+# Зачем: deploy/do.sh:16 делает 'COMPOSE=$(which docker-compose)' и дальше
+# вызывает '${COMPOSE} -f ... up -d'. На Ubuntu 24.04 docker-compose v1
+# не устанавливается через apt, есть только 'docker compose' v2 plugin.
+# Без wrapper-скрипта do.sh получает COMPOSE="" и падает с '-f: команда не
+# найдена'. С wrapper — 'which docker-compose' находит /usr/local/bin/docker-compose,
+# который exec-ит 'docker compose "$@"'. Совместимо и с v1-стилем ('docker-compose
+# up'), и с v2 ('docker compose up').
+if [ ! -f /usr/local/bin/docker-compose ]; then
+  log "  Создаём wrapper-скрипт /usr/local/bin/docker-compose → docker compose..."
+  echo '#!/bin/sh' | sudo tee /usr/local/bin/docker-compose > /dev/null
+  echo 'exec docker compose "$@"' | sudo tee -a /usr/local/bin/docker-compose > /dev/null
+  sudo chmod +x /usr/local/bin/docker-compose
+  ok "wrapper docker-compose установлен"
+fi
+
 # Добавляем пользователя в группу docker
 if id -nG "${USER}" | tr ' ' '\n' | grep -qx docker; then
   ok "Пользователь ${USER} уже в группе docker"
@@ -194,6 +210,21 @@ else
   warn "Группа docker добавлена, но применится только после перелогина."
   warn "  Workaround для текущей сессии: exec newgrp docker"
   warn "  Или откройте новый терминал и перезапустите этот скрипт."
+fi
+
+# Авто-применение группы docker в текущей сессии.
+# Если скрипт запущен из shell, где группа уже добавлена, но не активна —
+# 'sg docker' создаст sub-shell с активной группой; в нём выполняется всё,
+# что требует docker socket (docker ps, docker compose up, и т.д.).
+# Делаем это через exec замену текущего скрипта на 'sg docker -c <тот же скрипт>'.
+# Но опасно: если пользователь передал --with-ollama, аргументы теряются.
+# Безопаснее: проверяем, можем ли уже ходить в docker без sudo.
+if ! docker ps >/dev/null 2>&1; then
+  if id -nG "${USER}" | tr ' ' '\n' | grep -qx docker; then
+    warn "Группа docker есть, но не активна в текущей сессии."
+    warn "Скрипт продолжит работу; docker-команды могут требовать sudo."
+    warn "Для применения: 'exec newgrp docker' и перезапуск скрипта."
+  fi
 fi
 
 # === СЕКЦИЯ 6: GIT CONFIG ===

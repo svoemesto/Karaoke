@@ -5,15 +5,19 @@
 
       <h2>Временный доступ к песне</h2>
 
-      <div v-if="!currentLink && !creating && !created">
+      <div v-if="loading" class="km-share-loading">Получаем текущую ссылку…</div>
+
+      <div v-else-if="!currentLink && !creating && !created">
         <p class="km-share-lead">
           Создайте ссылку для друзей — по ней можно открыть эту песню в полном режиме онлайн-плеера
           без авторизации. Доступен одновременно максимум на двух устройствах.
         </p>
         <fieldset class="km-share-ttl">
           <legend>Срок</legend>
-          <label> <input v-model="ttl" type="radio" :value="3600" /> 1 час </label>
-          <label> <input v-model="ttl" type="radio" :value="86400" /> 24 часа </label>
+          <label v-for="opt in ttlOptions" :key="opt.value">
+            <input v-model="ttl" type="radio" :value="opt.value" />
+            {{ opt.label }}
+          </label>
         </fieldset>
         <button class="km-share-btn" @click="createLink">Создать и скопировать</button>
       </div>
@@ -84,7 +88,12 @@
 <script setup>
 import { ref, computed, watch, onUnmounted } from 'vue'
 import { useAuth } from '../composables/useAuth'
-import { createShareLink, getCurrentShareLink, revokeShareLink } from '../composables/useShareLink'
+import {
+  createShareLink,
+  getCurrentShareLink,
+  revokeShareLink,
+  SHARE_TTL_OPTIONS,
+} from '../composables/useShareLink'
 import { formatDate } from '../utils/dateFormat.js'
 
 const props = defineProps({
@@ -127,9 +136,17 @@ function clearSavedUrl(linkId) {
   }
 }
 
+const ttlOptions = SHARE_TTL_OPTIONS
 const ttl = ref(3600)
 const creating = ref(false)
 const created = ref(false)
+// loading — пока идёт запрос getCurrentShareLink при открытии модалки. Без этого флага
+// был race condition: при открытии модалки currentLink ещё null (стартовое значение),
+// loadCurrent() async — пользователь сначала видел блок «Создать новую», и только после
+// ответа бэкенда UI переключался на «Уже есть ссылка». Если ответ задерживался —
+// казалось, что модалка «не нашла» существующую ссылку. Теперь пока loading=true —
+// отдельный спиннер, блок создания/existing не показывается.
+const loading = ref(false)
 const copied = ref(false)
 const errorMessage = ref('')
 const shareUrl = ref('')
@@ -155,6 +172,7 @@ const isExpired = computed(() => {
 async function loadCurrent() {
   errorMessage.value = ''
   if (!token.value) return
+  loading.value = true
   try {
     const { status, body } = await getCurrentShareLink(props.songId, token.value)
     if (status === 200 && body && body.link) {
@@ -166,6 +184,8 @@ async function loadCurrent() {
     }
   } catch (e) {
     errorMessage.value = 'Не удалось получить текущую ссылку'
+  } finally {
+    loading.value = false
   }
 }
 
@@ -300,6 +320,7 @@ watch(
         if (props.visible) loadCurrent()
       }, 30000)
     } else {
+      loading.value = false
       if (pollTimer) {
         clearInterval(pollTimer)
         pollTimer = null

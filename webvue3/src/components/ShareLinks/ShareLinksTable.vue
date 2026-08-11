@@ -27,6 +27,7 @@
 
     <div class="slt-table-body">
       <b-table
+        v-model:sort-by="sortBy"
         :items="digest"
         :busy="isBusy"
         :fields="fields"
@@ -168,6 +169,7 @@ export default {
     return {
       perPage: 25,
       currentPage: this.$store.getters.getShareLinksTableCurrentPage || 1,
+      sortBy: [],
       isBusy: false,
       isFilterVisible: false,
       isRevokeModalVisible: false,
@@ -197,46 +199,55 @@ export default {
         {
           key: 'id',
           label: 'ID',
+          sortable: true,
           style: { minWidth: '60px', maxWidth: '60px', textAlign: 'center', fontSize: 'small' },
         },
         {
           key: 'createdAt',
           label: 'Создана',
+          sortable: true,
           style: { minWidth: '140px', maxWidth: '140px', textAlign: 'left', fontSize: 'small' },
         },
         {
           key: 'ownerEmail',
           label: 'Владелец',
+          sortable: true,
           style: { minWidth: '200px', maxWidth: '200px', textAlign: 'left', fontSize: 'small' },
         },
         {
           key: 'songName',
           label: 'Песня',
+          sortable: true,
           style: { minWidth: '220px', maxWidth: '220px', textAlign: 'left', fontSize: 'small' },
         },
         {
           key: 'expiresAt',
           label: 'Истекает',
+          sortable: true,
           style: { minWidth: '140px', maxWidth: '140px', textAlign: 'left', fontSize: 'small' },
         },
         {
           key: 'status',
           label: 'Статус',
+          sortable: true,
           style: { minWidth: '110px', maxWidth: '110px', textAlign: 'center', fontSize: 'small' },
         },
         {
           key: 'revokeReason',
           label: 'Причина',
+          sortable: true,
           style: { minWidth: '110px', maxWidth: '110px', textAlign: 'left', fontSize: 'small' },
         },
         {
           key: 'hasActiveSession',
           label: 'Сессия',
+          sortable: true,
           style: { minWidth: '70px', maxWidth: '70px', textAlign: 'center', fontSize: 'small' },
         },
         {
           key: 'secret',
           label: 'Secret',
+          sortable: true,
           style: { minWidth: '90px', maxWidth: '90px', textAlign: 'left', fontSize: 'small' },
         },
         {

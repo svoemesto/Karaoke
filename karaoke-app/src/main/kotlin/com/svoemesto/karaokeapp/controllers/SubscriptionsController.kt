@@ -170,12 +170,22 @@ class SubscriptionsController {
                     val user = usersById[sub.siteUserId]
                     val song = sub.idSong?.let { songsById[it] }
                     val tariff = sub.tariffId?.let { tariffsById[it] }
+                    // Унифицированное поле `name` для UI: имя песни для scope=SONG, имя тарифа для scope=SITE.
+                    // Удобно для клиентской сортировки по этому полю и для отображения без
+                    // условной логики во фронте.
+                    val name =
+                        when (sub.scope) {
+                            Subscription.SCOPE_SONG -> (song?.songName ?: "")
+                            Subscription.SCOPE_SITE -> (tariff?.name ?: "")
+                            else -> ""
+                        }
                     mapOf(
                         "id" to sub.id,
                         "siteUserId" to sub.siteUserId,
                         "userEmail" to (user?.email ?: ""),
                         "userDisplayName" to (user?.displayName ?: ""),
                         "scope" to sub.scope,
+                        "name" to name,
                         "idSong" to sub.idSong,
                         "songName" to (song?.songName ?: ""),
                         "tariffId" to sub.tariffId,

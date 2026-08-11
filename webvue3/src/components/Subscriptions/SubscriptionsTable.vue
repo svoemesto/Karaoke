@@ -27,6 +27,7 @@
 
     <div class="subt-table-body">
       <b-table
+        v-model:sort-by="sortBy"
         :items="digest"
         :busy="isBusy"
         :fields="fields"
@@ -123,6 +124,16 @@ import SubscriptionsFilterModal from './SubscriptionsFilterModal.vue'
  * JOIN к tbl_site_users / tbl_songs / tbl_price_tariffs делается на бэкенде одним батчем
  * (см. `SubscriptionsController.kt`).
  *
+ * Унифицированное поле `name` (отдаётся бэкендом): для `scope=SONG` — название песни,
+ * для `scope=SITE` — название тарифа. Это позволяет клиентской сортировке работать
+ * единообразно (один столбец — один ключ), а UI не делать условной логики.
+ *
+ * **Сортировка** (FR-026.1, паттерн из `SitePlaylistsTable` / `SiteUsersTable`):
+ * - Клиентская через `v-model:sort-by` на `<b-table>` — мгновенно, без перезагрузки.
+ * - `sortBy: []` в `data()` — пустой массив означает «использовать серверный порядок»
+ *   (по умолчанию `created_at DESC` на бэкенде). При клике пользователя по заголовку —
+ *   b-table сортирует текущую порцию на клиенте.
+ *
  * **Структура таблицы** (см. CONTRIBUTING.md#vue-table-layout-fixed):
  * - `table-layout: fixed` + явная `width` на колонках.
  * - Без `display: flex` на `<td>` — только `text-align: center; vertical-align: middle`.
@@ -133,7 +144,7 @@ import SubscriptionsFilterModal from './SubscriptionsFilterModal.vue'
  *   обновления данных (паттерн из `SongsTable.vue`, ослабленный вариант «вернуться на ту же страницу»).
  *
  * @see AGENTS.md
- * @see specs/171-admin-subscriptions-history/spec.md (FR-001…FR-007)
+ * @see specs/171-admin-subscriptions-history/spec.md (FR-001…FR-007, FR-026.1)
  */
 export default {
   name: 'SubscriptionsTable',
@@ -142,6 +153,7 @@ export default {
     return {
       perPage: 25,
       currentPage: this.$store.getters.getSubscriptionsTableCurrentPage || 1,
+      sortBy: [],
       isBusy: false,
       isFilterVisible: false,
     }
@@ -169,56 +181,67 @@ export default {
         {
           key: 'id',
           label: 'ID',
+          sortable: true,
           style: { minWidth: '60px', maxWidth: '60px', textAlign: 'center', fontSize: 'small' },
         },
         {
           key: 'createdAt',
           label: 'Создана',
+          sortable: true,
           style: { minWidth: '140px', maxWidth: '140px', textAlign: 'left', fontSize: 'small' },
         },
         {
           key: 'userEmail',
           label: 'Email',
+          sortable: true,
           style: { minWidth: '200px', maxWidth: '200px', textAlign: 'left', fontSize: 'small' },
         },
         {
           key: 'scope',
           label: 'Тип',
+          sortable: true,
           style: { minWidth: '70px', maxWidth: '70px', textAlign: 'center', fontSize: 'small' },
         },
         {
           key: 'name',
           label: 'Название',
+          sortable: true,
           style: { minWidth: '200px', maxWidth: '200px', textAlign: 'left', fontSize: 'small' },
         },
         {
           key: 'finalPrice',
           label: 'Сумма',
+          sortable: true,
           style: { minWidth: '90px', maxWidth: '90px', textAlign: 'right', fontSize: 'small' },
         },
         {
           key: 'discount',
           label: 'Скидка',
+          sortable: true,
           style: { minWidth: '80px', maxWidth: '80px', textAlign: 'right', fontSize: 'small' },
         },
         {
           key: 'status',
           label: 'Статус',
+          sortable: true,
           style: { minWidth: '100px', maxWidth: '100px', textAlign: 'center', fontSize: 'small' },
         },
         {
           key: 'autoRenew',
           label: 'Авто',
+          sortable: true,
           style: { minWidth: '60px', maxWidth: '60px', textAlign: 'center', fontSize: 'small' },
         },
         {
           key: 'paidAt',
           label: 'Оплачена',
+          sortable: true,
           style: { minWidth: '140px', maxWidth: '140px', textAlign: 'left', fontSize: 'small' },
         },
         {
           key: 'orderId',
           label: 'Order',
+          sortable: true,
           style: { minWidth: '80px', maxWidth: '80px', textAlign: 'left', fontSize: 'small' },
         },
       ]
@@ -230,7 +253,7 @@ export default {
     },
     countRows(newCount) {
       // Сбрасываем страницу только если она вышла за пределы после обновления данных
-      // (паттерн из SongsTable.vue — ослабленная версия, чтобы при переходе target Local↔Remote
+      // (паттерн из SongsTable.vue — ослабленная версия, чтобы при переключении target Local↔Remote
       // не сбрасывать позицию, если данные всё ещё влезают на текущую страницу).
       const totalPages = Math.max(1, Math.ceil(newCount / this.perPage))
       if (this.currentPage > totalPages) {

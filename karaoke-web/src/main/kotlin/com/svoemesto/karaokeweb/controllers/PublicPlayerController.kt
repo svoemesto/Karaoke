@@ -15,6 +15,7 @@ import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.StorageApiClient
 import com.svoemesto.karaokeweb.services.PlayerGestureUnlockService
 import com.svoemesto.karaokeweb.services.SiteUserResolver
+import com.svoemesto.karaokeweb.services.SongShareLinkService
 import com.svoemesto.karaokeweb.util.Mp3Trimmer
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
@@ -85,15 +86,35 @@ class PublicPlayerController(
     private val gestureUnlockService: PlayerGestureUnlockService,
     private val siteUserResolver: SiteUserResolver,
     private val mainController: MainController,
+    private val shareLinkService: SongShareLinkService,
     @Value("\${storage.proxy-url}") private val minioProxyUrl: String,
 ) {
     private val bucket = "karaoke"
     private val lenientJson = Json { ignoreUnknownKeys = true }
 
+    // Двойная авторизация: (1) gesture token — обычный путь для премиум-сессии; (2) share session —
+    // временная анонимная сессия для гостя по share-ссылке. Приоритет — gesture token: если он есть и
+    // валиден, share-session игнорируется (премиум может смотреть и как премиум с экспортом). См.
+    // spec.md FR-002 + research.md Decision 1.
     private fun authorized(
         id: Long,
         token: String?,
-    ): Boolean = token != null && gestureUnlockService.validateToken(token, id)
+        session: String? = null,
+    ): Boolean {
+        if (token != null && gestureUnlockService.validateToken(token, id)) return true
+        return shareLinkService.validateShareSession(session, id) != null
+    }
+
+    // Возвращает true, если текущий запрос — анонимный гость по share-session (НЕ gesture token).
+    // Используется для понижения canExport (гость не может скачать стемы — Clarifications Q1).
+    private fun isShareGuest(
+        id: Long,
+        token: String?,
+        session: String?,
+    ): Boolean {
+        if (token != null && gestureUnlockService.validateToken(token, id)) return false
+        return shareLinkService.validateShareSession(session, id) != null
+    }
 
     // Живая проверка премиум-статуса — намеренно не кэшируется в токене плеера, чтобы бан/снятие
     // премиума посреди 30-минутного TTL токена плеера подействовали немедленно.
@@ -125,14 +146,18 @@ class PublicPlayerController(
     @GetMapping("/{id}/access")
     fun access(
         @PathVariable id: Long,
+        @RequestParam(required = false) session: String?,
         request: HttpServletRequest,
     ): ResponseEntity<Map<String, Any?>> {
         val song = loadSong(id) ?: return ResponseEntity.notFound().build()
         val ready = stemsReady(song)
         val premium = isPremiumUser(request)
         val subscribed = !premium && isSubscribedToSong(request, id)
-        val canWatch = ready && (song.isFreelyAvailableNow || premium || subscribed)
-        val canExport = canWatch && premium
+        // Share-сессия: если есть валидный session и контент готов — гость смотрит плеер.
+        // canExport всегда false для гостя (Clarifications Q1: гость НЕ скачивает стемы).
+        val shareGuest = ready && session != null && shareLinkService.validateShareSession(session, id) != null
+        val canWatch = ready && (song.isFreelyAvailableNow || premium || subscribed || shareGuest)
+        val canExport = canWatch && premium && !shareGuest
         // Демо-режим: контент готов, но полного доступа нет — вместо отказа выдаём токен,
         // ограниченный диапазоном (фрагмент "куплет минус отступ под фейд-ин"), чтобы не-премиум
         // мог послушать и оценить разметку/качество перед подпиской.
@@ -306,8 +331,9 @@ class PublicPlayerController(
     fun fileAccompaniment(
         @PathVariable id: Long,
         @RequestParam token: String?,
+        @RequestParam(required = false) session: String?,
     ): ResponseEntity<ByteArray> {
-        if (!authorized(id, token)) return ResponseEntity.notFound().build()
+        if (!authorized(id, token, session)) return ResponseEntity.notFound().build()
         val song = loadSong(id) ?: return ResponseEntity.notFound().build()
         return stemResponse(song, KaraokeFileType.MP3_ACCOMPANIMENT, gestureUnlockService.demoRangeForToken(token, id))
     }
@@ -316,8 +342,9 @@ class PublicPlayerController(
     fun fileVocals(
         @PathVariable id: Long,
         @RequestParam token: String?,
+        @RequestParam(required = false) session: String?,
     ): ResponseEntity<ByteArray> {
-        if (!authorized(id, token)) return ResponseEntity.notFound().build()
+        if (!authorized(id, token, session)) return ResponseEntity.notFound().build()
         val song = loadSong(id) ?: return ResponseEntity.notFound().build()
         return stemResponse(song, KaraokeFileType.MP3_VOCAL, gestureUnlockService.demoRangeForToken(token, id))
     }
@@ -326,8 +353,9 @@ class PublicPlayerController(
     fun fileBass(
         @PathVariable id: Long,
         @RequestParam token: String?,
+        @RequestParam(required = false) session: String?,
     ): ResponseEntity<ByteArray> {
-        if (!authorized(id, token)) return ResponseEntity.notFound().build()
+        if (!authorized(id, token, session)) return ResponseEntity.notFound().build()
         val song = loadSong(id) ?: return ResponseEntity.notFound().build()
         return stemResponse(song, KaraokeFileType.MP3_BASS, gestureUnlockService.demoRangeForToken(token, id))
     }
@@ -336,8 +364,9 @@ class PublicPlayerController(
     fun fileDrums(
         @PathVariable id: Long,
         @RequestParam token: String?,
+        @RequestParam(required = false) session: String?,
     ): ResponseEntity<ByteArray> {
-        if (!authorized(id, token)) return ResponseEntity.notFound().build()
+        if (!authorized(id, token, session)) return ResponseEntity.notFound().build()
         val song = loadSong(id) ?: return ResponseEntity.notFound().build()
         return stemResponse(song, KaraokeFileType.MP3_DRUMS, gestureUnlockService.demoRangeForToken(token, id))
     }
@@ -346,9 +375,13 @@ class PublicPlayerController(
     fun playerData(
         @PathVariable id: Long,
         @RequestParam token: String?,
+        @RequestParam(required = false) session: String?,
         request: HttpServletRequest,
     ): ResponseEntity<Map<String, Any?>> {
-        if (!authorized(id, token)) return ResponseEntity.notFound().build()
+        if (!authorized(id, token, session)) return ResponseEntity.notFound().build()
+        // Гость по share-сессии не может экспортировать стемы (Clarifications Q1). Gesture token
+        // (в т.ч. для залогиненного премиума) — экспорт разрешён как обычно.
+        val shareGuest = isShareGuest(id, token, session)
         val song = loadSong(id) ?: return ResponseEntity.notFound().build()
 
         // Если токен был выдан онлайн-редактором для конкретного задания (issueDirectAccessTokenForAssignment),
@@ -428,7 +461,9 @@ class PublicPlayerController(
                 // "Экспорт аудио..." на фронте. Сама выдача байт стемов (fileminus.mp3 и т.п.) этим
                 // флагом не ограничена — эти же URL нужны и для обычного воспроизведения всем, у кого
                 // есть валидный token; canExport — только про предложение сохранить файл себе.
-                "canExport" to isPremiumUser(request),
+                // Гость по share-сессии получает canExport=false независимо от реального премиума
+                // (Clarifications Q1).
+                "canExport" to (isPremiumUser(request) && !shareGuest),
                 "isDemo" to (demoRange != null),
                 "demoFadeInSeconds" to demoFadeInSeconds,
             )
@@ -446,14 +481,17 @@ class PublicPlayerController(
     fun playerFile(
         @PathVariable id: Long,
         @RequestParam token: String?,
+        @RequestParam(required = false) session: String?,
         request: HttpServletRequest,
         response: HttpServletResponse,
     ) {
-        if (!authorized(id, token)) {
+        if (!authorized(id, token, session)) {
             response.status = 404
             return
         }
-        if (!isPremiumUser(request)) {
+        // Гость по share-сессии не может экспортировать .smkaraoke (Clarifications Q1) —
+        // даже если он формально премиум (например, открыл свой линк в инкогнито и залогинился).
+        if (isShareGuest(id, token, session) || !isPremiumUser(request)) {
             response.status = 403
             response.contentType = "application/json"
             response.writer.write("{\"error\":\"premium_required\"}")

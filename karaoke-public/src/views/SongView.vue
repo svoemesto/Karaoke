@@ -460,7 +460,15 @@ export default {
       handler(song) {
         if (song) document.title = `${song.songName} — ${song.author}`
         document.body.style.background = song?.contentRemoved ? 'var(--km-bg)' : ''
-        if (song?.id) this.playerAccess.checkAccess(song.id)
+        if (song?.id) {
+          // US6: если в sessionStorage есть активная share-сессия для этой песни — передаём её
+          // хеш в /access, чтобы бэкенд выдал canWatch=true (гость, не премиум, см. spec.md FR-050).
+          const shareSession =
+            typeof sessionStorage !== 'undefined'
+              ? sessionStorage.getItem(`kp_share_session_${song.id}`) || null
+              : null
+          this.playerAccess.checkAccess(song.id, shareSession)
+        }
         if (song?.id) this.playlistMembership.load([song.id])
         this.playerDisplayMode = 'embed'
       },

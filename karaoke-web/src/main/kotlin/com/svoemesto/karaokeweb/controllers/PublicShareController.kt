@@ -51,7 +51,7 @@ class PublicShareController(
                 .status(403)
                 .body(mapOf("errorCode" to "share.notOwner"))
         }
-        if (ttlSeconds != 3600L && ttlSeconds != 86_400L) {
+        if (ttlSeconds != 3600L && ttlSeconds != 86_400L && ttlSeconds != 604_800L) {
             return ResponseEntity.status(400).body(mapOf("errorCode" to "share.tokenMissing"))
         }
         return try {
@@ -200,12 +200,20 @@ class PublicShareController(
     }
 
     @PostMapping("/release")
-    fun release(@RequestBody body: Map<String, Any?>): ResponseEntity<Map<String, Any?>> {
-        val sessionTokenHash =
-            (body["sessionTokenHash"] as? String)?.takeIf { it.isNotBlank() }
+    // Поддерживает и JSON (@RequestBody), и form-urlencoded (@RequestParam) — последнее нужно для
+    // navigator.sendBeacon при уходе со страницы: sendBeacon не отправляет application/json, только
+    // text/plain или form-data. См. spec.md FR-012 + KaraokePlayer._sendShareRelease.
+    fun release(
+        @RequestParam(required = false) sessionTokenHash: String?,
+        @RequestParam(required = false) result: String?,
+        @RequestBody(required = false) body: Map<String, Any?>?,
+    ): ResponseEntity<Map<String, Any?>> {
+        val finalHash =
+            sessionTokenHash?.takeIf { it.isNotBlank() }
+                ?: (body?.get("sessionTokenHash") as? String)?.takeIf { it.isNotBlank() }
                 ?: return ResponseEntity.status(400).body(mapOf("errorCode" to "share.tokenMissing"))
-        val result = (body["result"] as? String) ?: "closed"
-        shareService.release(sessionTokenHash, result)
+        val finalResult = result ?: (body?.get("result") as? String) ?: "closed"
+        shareService.release(finalHash, finalResult)
         return ResponseEntity.ok(mapOf("ok" to true))
     }
 

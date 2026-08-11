@@ -16,7 +16,14 @@ class WebMvcConfig(
     override fun addInterceptors(registry: InterceptorRegistry) {
         registry
             .addInterceptor(siteAuthInterceptor)
-            .addPathPatterns("/api/public/account/**", "/api/public/auth/me", "/api/public/auth/logout")
+            .addPathPatterns(
+                "/api/public/account/**",
+                "/api/public/auth/me",
+                "/api/public/auth/logout",
+                // Админские endpoint'ы для управления share-ссылками (webvue3 admin):
+                // требуется залогиненный site-user. Проверка isEditor — внутри контроллера.
+                "/api/siteusers/**",
+            )
             // Список тарифов — витринные данные (цена/срок, без персональных данных), должен быть
             // виден анонимам на /premium и странице песни ДО регистрации — иначе цена не мотивирует
             // зарегистрироваться. Остальные подписочные эндпоинты (price/create/list/cancel) остаются

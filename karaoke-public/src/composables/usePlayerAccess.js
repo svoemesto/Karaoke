@@ -23,7 +23,7 @@ export function usePlayerAccess() {
   const demoFadeInSeconds = ref(null)
   const loaded = ref(false)
 
-  async function checkAccess(songId) {
+  async function checkAccess(songId, shareSessionTokenHash) {
     loaded.value = false
     ready.value = false
     canWatch.value = false
@@ -33,8 +33,13 @@ export function usePlayerAccess() {
     demoFadeInSeconds.value = null
     if (!songId) return
     try {
+      // Прокидываем shareSessionTokenHash в /access — если есть валидная share-сессия, бэкенд
+      // выдаёт canWatch=true, canExport=false. См. spec.md FR-050 + research.md Decision 2.
+      const sessionParam = shareSessionTokenHash
+        ? `&session=${encodeURIComponent(shareSessionTokenHash)}`
+        : ''
       const { status, body } = await authGet(
-        `/api/public/player/${songId}/access?anonId=${encodeURIComponent(getAnonId())}`,
+        `/api/public/player/${songId}/access?anonId=${encodeURIComponent(getAnonId())}${sessionParam}`,
         token.value,
       )
       if (status === 200 && body) {

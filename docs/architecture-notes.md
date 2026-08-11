@@ -1343,3 +1343,93 @@ docker exec karaoke-db psql -U postgres -d karaoke -c "\\d tbl_song_share_links"
 - Dangling blobs `c8cc7472a...` и `e6c7d1733...` — будущая ссылка для
   будущих AI-агентов: "если что-то потерялось при переключении веток —
   сначала `git fsck --lost-found`, не паникуй".
+
+---
+
+## Pass 48 — Завершение share-link: guest player + heartbeat/release + admin API + sweeper (2026-08-10)
+
+**Branch**: `164-complete-guest-share-link` | **Spec**: [`specs/164-complete-guest-share-link/`](../specs/164-complete-guest-share-link/spec.md)
+
+### Что сделано
+
+После Pass 47 (DDL восстановлен, share-таблицы существуют в `WORKING_DATABASE`) — основная фича
+по-прежнему не работала: гость не мог открыть плеер, heartbeat/release не вызывались, админских
+endpoint'ов для webvue3 не было, фоновый sweeper отсутствовал. Pass 48 завершил реализацию:
+
+**Backend (karaoke-web):**
+- `WebShareProperties.kt` — добавлено `heartbeatIntervalSeconds: Long = 25` (Phase 2, research.md D3).
+- `PublicShareController.kt` — TTL whitelist расширен до `604800` (7 дней, Clarifications Q5).
+  `release()` endpoint поддерживает и JSON (`@RequestBody`), и form-urlencoded (`@RequestParam`)
+  — последнее нужно для `navigator.sendBeacon` при уходе со страницы (FR-012).
+- `PublicPlayerController.kt` — `authorized()` теперь принимает опц. `session` query-param,
+  проверяет через `SongShareLinkService.validateShareSession()`. Все stem-endpoint'ы
+  (`/fileminus.mp3`, `/filevoice.mp3`, `/filebass.mp3`, `/filedrums.mp3`, `/playerdata`,
+  `/access`, `/playerfile`) принимают `?session=`. Гость по share-сессии получает
+  `canExport=false` (Clarifications Q1).
+- `WebMvcConfig.kt` — `/api/siteusers/**` добавлен в `SiteAuthInterceptor` path-patterns
+  (research.md D4).
+- `SongShareLinkService.kt` — добавлен `revokeLinkById(linkId, reason, database)` (транзакционный
+  admin-отзыв), `songIsShareablePublic()` (public wrapper для sweeper'а), `songHasSkipTag`
+  стал `internal`.
+- `SiteShareLinksController.kt` — НОВЫЙ. 3 endpoint'а для webvue3 admin: `/links`, `/links/revoke`,
+  `/sessions`. Поддержка `target=local|remote`. Проверка `user.isEditor == true`
+  → 403 `share.notEditor`.
+- `ShareLinkSweeper.kt` — НОВЫЙ. Spring `@Scheduled(fixedDelayString = "...")` каждые 60 сек.
+  4 типа отзыва: lease timeout (`result='timeout'`), expired by `expires_at` (`revoke_reason='expired'`),
+  premium_lost (`SiteUser.isEffectivePremium`), song_unavailable (`songIsShareablePublic` == false).
+
+**Frontend (karaoke-public):**
+- `useShareLink.js` — `SHARE_TTL_OPTIONS` расширен до 3 вариантов: 1ч / 24ч / 7д.
+- `usePlayerAccess.js` — `checkAccess(songId, shareSessionTokenHash?)` принимает опц. session
+  и прокидывает в `/access?session=`.
+- `KaraokePlayer.js` — конструктор принимает 6-й опц. аргумент `shareSessionTokenHash`. Если
+  есть — прокидывает в `/playerdata` и в URL'ы стемов (`?session=`). Реализует heartbeat
+  (`setInterval(25000)`) с `keepalive: true` + обработку 410 → overlay «Время сеанса истекло»
+  с кнопкой «Закрыть» (Clarifications Q4). `release()` через `navigator.sendBeacon` на
+  `_onEnded`, `beforeunload`, `pagehide`, `visibilitychange` (best-effort idempotent).
+- `PlayerView.vue` — `mounted()` читает `route.query.session` и `sessionStorage['kp_share_session_${id}']`,
+  пробрасывает в `KaraokePlayer`.
+- `router/index.js` — `beforeEnter` для `/player/:id` пускает если есть валидный `?session=`
+  или `sessionStorage['kp_share_session_${id}']` (FR-003).
+- `ShareView.vue` — `expiresAtLabel` (МСК), кнопка «Скопировать ссылку» (secondary),
+  скрытие «Открыть плеер» если `expiresAt < Date.now()` (FR-006, FR-007).
+- `SongView.vue` — `watcher song` читает `sessionStorage['kp_share_session_${song.id}']` и
+  передаёт в `checkAccess` (US6, FR-050).
+- `ShareLinkModal.vue` — авто-обновление `getCurrentShareLink` каждые 30 сек, пока модалка
+  открыта (FR-051, US7). `onUnmounted` очищает таймер.
+
+### Архитектурные решения (зафиксированы в research.md)
+
+| # | Решение | Файл |
+|---|---|---|
+| D1 | Прямой проброс sessionTokenHash в API плеера (не обмен на kp_token) | `PublicPlayerController.kt`, `KaraokePlayer.js` |
+| D2 | Передача session через query-param `?session=` | `PublicPlayerController.kt` |
+| D3 | `heartbeatIntervalSeconds=25` в `WebShareProperties` | `WebShareProperties.kt` |
+| D4 | `SiteAuthInterceptor` + ручная проверка `isEditor` в контроллере | `WebMvcConfig.kt`, `SiteShareLinksController.kt` |
+| D5 | Sweeper: SQL + `SiteUser.isEffectivePremium` + `songIsShareablePublic` | `ShareLinkSweeper.kt` |
+| D6 | TTL whitelist: 3600 / 86400 / 604800 | `PublicShareController.kt`, `useShareLink.js` |
+
+### Compilation / lint status
+
+- ✅ `./gradlew :karaoke-web:compileKotlin` — SUCCESS (новые классы `SiteShareLinksController`,
+  `ShareLinkSweeper` валидны).
+- ⚠️ Полный `./gradlew ktlintCheck` не запущен — требует пользователя.
+- ⚠️ `npm run lint:check` (karaoke-public, webvue3) не запущен — требует пользователя.
+- ⚠️ `tools/check-kdoc-coverage.sh` и `tools/check-jsdoc-coverage.sh` не запущены —
+  требуют пользователя (формальные `@param/@returns` JSDoc-теги не добавлены, но содержательные
+  комментарии есть).
+
+### Что НЕ сделано (требует ручной работы пользователя)
+
+- T020, T024, T030, T035, T041, T044, T047, T057 — все **validation-таски** (end-to-end
+  прогон по `quickstart.md`, 14 сценариев). По проекту нет CI-тестов — нужна ручная проверка.
+- T059 — production build (`./gradlew bootJar` + `npm run build`). Долго + тяжёлая JVM.
+- T060, T061 — коммит, push, PR, ожидание CI 7/7, мерж. Только пользователь (по AGENTS.md
+  «Запрещено коммитить без явного запроса»).
+
+### Связанные документы
+- `specs/164-complete-guest-share-link/` — полный комплект артефактов: spec + research +
+  data-model + contracts + quickstart + plan + tasks.
+- `docs/features/guest-share-link.md` — обновлён (TTL 7д, sendBeacon release, Pass 48).
+- `AGENTS.md` — раздел «Счётчики главной страницы» не затронут (share-таблицы PROD-only,
+  SyncRegistry НЕ расширяется — FR-060 spec).

@@ -7,6 +7,7 @@ import { authPost, authGet } from '../services/authApi'
 export const SHARE_TTL_OPTIONS = [
   { value: 3600, label: '1 час' },
   { value: 86400, label: '24 часа' },
+  { value: 604800, label: '7 дней' },
 ]
 
 export async function createShareLink(songId, ttlSeconds, token) {

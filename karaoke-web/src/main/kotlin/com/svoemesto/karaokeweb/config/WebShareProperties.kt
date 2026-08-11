@@ -39,4 +39,9 @@ class WebShareProperties {
 
     /** Интервал фонового sweep'а в секундах. Минимум — 10 секунд. */
     var sweepIntervalSeconds: Long = 60
+
+    /** Интервал heartbeat от плеера гостя в секундах. Должен быть меньше leaseTtlSeconds,
+     *  чтобы один пропущенный heartbeat не отзывал lease. Дефолт 25 при leaseTtlSeconds=90
+     *  даёт запас ~65 сек на джиттер/пропуски. См. docs/features/guest-share-link.md. */
+    var heartbeatIntervalSeconds: Long = 25
 }

@@ -82,7 +82,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onUnmounted } from 'vue'
 import { useAuth } from '../composables/useAuth'
 import { createShareLink, getCurrentShareLink, revokeShareLink } from '../composables/useShareLink'
 
@@ -304,6 +304,10 @@ function onBackdrop() {
   close()
 }
 
+// US7 (FR-051): автообновление статуса активной ссылки каждые 30 сек, пока модалка открыта.
+// Полезно, если владелец/админ параллельно отозвал ссылку — модалка покажет «Отозвана» без F5.
+let pollTimer = null
+
 watch(
   () => props.visible,
   (v) => {
@@ -312,9 +316,25 @@ watch(
       shareUrl.value = ''
       errorMessage.value = ''
       loadCurrent()
+      if (pollTimer) clearInterval(pollTimer)
+      pollTimer = setInterval(() => {
+        if (props.visible) loadCurrent()
+      }, 30000)
+    } else {
+      if (pollTimer) {
+        clearInterval(pollTimer)
+        pollTimer = null
+      }
     }
   },
 )
+
+onUnmounted(() => {
+  if (pollTimer) {
+    clearInterval(pollTimer)
+    pollTimer = null
+  }
+})
 </script>
 
 <style scoped>

@@ -40,12 +40,14 @@ class SiteShareLinksController(
         request: HttpServletRequest,
     ): ResponseEntity<Map<String, Any?>> {
         val caller = resolveEditorOrThrow(request)
-        val siteUserId = (body["siteUserId"] as? Number)?.toLong()
-            ?: return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(mapOf("errorCode" to "share.tokenMissing"))
+        val siteUserId =
+            (body["siteUserId"] as? Number)?.toLong()
+                ?: return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(mapOf("errorCode" to "share.tokenMissing"))
         val activeOnly = (body["activeOnly"] as? Boolean) ?: false
         val limit = (body["limit"] as? Number)?.toInt() ?: 50
-        val database = resolveDatabase(body["target"] as? String)
-            ?: return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(mapOf("errorCode" to "site.remote_unavailable"))
+        val database =
+            resolveDatabase(body["target"] as? String)
+                ?: return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(mapOf("errorCode" to "site.remote_unavailable"))
 
         val links = shareService.listLinksForUser(siteUserId, activeOnly, limit, database)
         return ResponseEntity.ok(mapOf("links" to links, "callerId" to caller.id))
@@ -61,11 +63,13 @@ class SiteShareLinksController(
         request: HttpServletRequest,
     ): ResponseEntity<Map<String, Any?>> {
         val caller = resolveEditorOrThrow(request)
-        val shareLinkId = (body["shareLinkId"] as? Number)?.toLong()
-            ?: return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(mapOf("errorCode" to "share.tokenMissing"))
+        val shareLinkId =
+            (body["shareLinkId"] as? Number)?.toLong()
+                ?: return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(mapOf("errorCode" to "share.tokenMissing"))
         val reason = (body["reason"] as? String) ?: "admin"
-        val database = resolveDatabase(body["target"] as? String)
-            ?: return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(mapOf("errorCode" to "site.remote_unavailable"))
+        val database =
+            resolveDatabase(body["target"] as? String)
+                ?: return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(mapOf("errorCode" to "site.remote_unavailable"))
 
         shareService.revokeLinkById(shareLinkId, reason, database)
         return ResponseEntity.ok(mapOf("revoked" to true, "callerId" to caller.id))
@@ -81,10 +85,12 @@ class SiteShareLinksController(
         request: HttpServletRequest,
     ): ResponseEntity<Map<String, Any?>> {
         resolveEditorOrThrow(request)
-        val shareLinkId = (body["shareLinkId"] as? Number)?.toLong()
-            ?: return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(mapOf("errorCode" to "share.tokenMissing"))
-        val database = resolveDatabase(body["target"] as? String)
-            ?: return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(mapOf("errorCode" to "site.remote_unavailable"))
+        val shareLinkId =
+            (body["shareLinkId"] as? Number)?.toLong()
+                ?: return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(mapOf("errorCode" to "share.tokenMissing"))
+        val database =
+            resolveDatabase(body["target"] as? String)
+                ?: return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(mapOf("errorCode" to "site.remote_unavailable"))
 
         val sessions = shareService.listSessionsForLink(shareLinkId, database)
         return ResponseEntity.ok(mapOf("sessions" to sessions))
@@ -95,8 +101,11 @@ class SiteShareLinksController(
      * `isEditor == true`. Если нет — 403 share.notEditor.
      */
     private fun resolveEditorOrThrow(request: HttpServletRequest): SiteUser {
-        val user = request.getAttribute(SiteAuthInterceptor.SITE_USER_ATTR) as? SiteUser
-            ?: return throw IllegalStateException("SiteAuthInterceptor не выставил SITE_USER_ATTR — должен быть в path-patterns")
+        val user =
+            request.getAttribute(SiteAuthInterceptor.SITE_USER_ATTR) as? SiteUser
+                ?: return throw IllegalStateException(
+                    "SiteAuthInterceptor не выставил SITE_USER_ATTR — должен быть в path-patterns",
+                )
         if (!user.isEditor) {
             throw ShareAccessDeniedException("Caller ${user.id} is not editor")
         }
@@ -107,18 +116,21 @@ class SiteShareLinksController(
      * Резолвит KaraokeConnection по target. `local`/`null` → [WORKING_DATABASE], `remote` →
      * [Connection.remote]. Возвращает null, если remote-БД недоступна.
      */
-    private fun resolveDatabase(target: String?): KaraokeConnection? = when (target) {
-        null, "local" -> WORKING_DATABASE
-        "remote" -> {
-            try {
-                Connection.remote()
-            } catch (e: Exception) {
-                null
+    private fun resolveDatabase(target: String?): KaraokeConnection? =
+        when (target) {
+            null, "local" -> WORKING_DATABASE
+            "remote" -> {
+                try {
+                    Connection.remote()
+                } catch (e: Exception) {
+                    null
+                }
             }
+            else -> WORKING_DATABASE
         }
-        else -> WORKING_DATABASE
-    }
 
     /** Внутреннее исключение для 403 share.notEditor (Spring-уровневый маппинг в JSON). */
-    private class ShareAccessDeniedException(message: String) : RuntimeException(message)
+    private class ShareAccessDeniedException(
+        message: String,
+    ) : RuntimeException(message)
 }

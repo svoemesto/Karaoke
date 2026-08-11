@@ -201,9 +201,16 @@ export default class KaraokePlayer {
       // тоже принимают ?session=, см. PublicPlayerController.fileAccompaniment).
       if (this.shareSessionTokenHash && this.data) {
         const sessionQ = `session=${encodeURIComponent(this.shareSessionTokenHash)}`
-        for (const key of ['audioAccompanimentUrl', 'audioVocalsUrl', 'audioBassUrl', 'audioDrumsUrl']) {
+        for (const key of [
+          'audioAccompanimentUrl',
+          'audioVocalsUrl',
+          'audioBassUrl',
+          'audioDrumsUrl',
+        ]) {
           if (typeof this.data[key] === 'string' && !this.data[key].includes('session=')) {
-            this.data[key] = this.data[key].includes('?') ? `${this.data[key]}&${sessionQ}` : `${this.data[key]}?${sessionQ}`
+            this.data[key] = this.data[key].includes('?')
+              ? `${this.data[key]}&${sessionQ}`
+              : `${this.data[key]}?${sessionQ}`
           }
         }
       }
@@ -3694,7 +3701,9 @@ export default class KaraokePlayer {
           /* ignore */
         }
         this.pause()
-        this._showShareRevokedOverlay('Время сеанса истекло. Попросите владельца прислать новую ссылку.')
+        this._showShareRevokedOverlay(
+          'Время сеанса истекло. Попросите владельца прислать новую ссылку.',
+        )
       }
     } catch (e) {
       // Сетевая ошибка — следующий heartbeat попробует снова. Если вкладка закрыта — sendBeacon
@@ -3710,7 +3719,9 @@ export default class KaraokePlayer {
     this._shareReleased = true
     try {
       const blob = new Blob(
-        [`sessionTokenHash=${encodeURIComponent(this.shareSessionTokenHash)}&result=${encodeURIComponent(result)}`],
+        [
+          `sessionTokenHash=${encodeURIComponent(this.shareSessionTokenHash)}&result=${encodeURIComponent(result)}`,
+        ],
         { type: 'application/x-www-form-urlencoded' },
       )
       // sendBeacon возвращает false, если размер > 64 KB — для нашего крошечного запроса это нерелевантно.

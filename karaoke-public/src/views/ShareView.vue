@@ -47,17 +47,19 @@
         <span>{{ album }}</span>
         <span v-if="year"> · {{ year }}</span>
       </p>
-      <p v-if="expiresAtLabel" class="km-share-badge">
-        Доступно до {{ expiresAtLabel }}
-      </p>
+      <p v-if="expiresAtLabel" class="km-share-badge">Доступно до {{ expiresAtLabel }}</p>
       <p v-if="isExpired" class="km-share-error">
         Срок действия этой ссылки истёк. Попросите владельца прислать новую.
       </p>
       <p v-else class="km-share-note">
         Вам открыли временный доступ к этой песне в режиме онлайн-плеера.
       </p>
-      <button v-if="!isExpired" class="km-btn km-btn-primary" @click="openPlayer">Открыть плеер</button>
-      <button v-if="!isExpired" class="km-btn km-btn-secondary" @click="copyLink">Скопировать ссылку</button>
+      <button v-if="!isExpired" class="km-btn km-btn-primary" @click="openPlayer">
+        Открыть плеер
+      </button>
+      <button v-if="!isExpired" class="km-btn km-btn-secondary" @click="copyLink">
+        Скопировать ссылку
+      </button>
     </div>
 
     <div v-else class="km-card km-card-error">

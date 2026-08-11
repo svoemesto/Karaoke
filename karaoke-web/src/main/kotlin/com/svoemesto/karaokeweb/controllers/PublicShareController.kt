@@ -199,10 +199,10 @@ class PublicShareController(
         }
     }
 
-    @PostMapping("/release")
     // Поддерживает и JSON (@RequestBody), и form-urlencoded (@RequestParam) — последнее нужно для
     // navigator.sendBeacon при уходе со страницы: sendBeacon не отправляет application/json, только
     // text/plain или form-data. См. spec.md FR-012 + KaraokePlayer._sendShareRelease.
+    @PostMapping("/release")
     fun release(
         @RequestParam(required = false) sessionTokenHash: String?,
         @RequestParam(required = false) result: String?,

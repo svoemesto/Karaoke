@@ -312,13 +312,16 @@ fi
   warn ".env имеет права $(stat -c %a ${DEPLOY_DIR}/.env), рекомендуется 600" && \
   sudo chmod 600 "${DEPLOY_DIR}/.env"
 
-# Читаем пути из env-файлов.
-# В Karaoke два env-файла:
+# Читаем пути из env-файлов. В Karaoke два env-файла:
 #   - deploy/.env  — пути, порты, STORAGE_KEY/SECRET, DB_LOCAL_POSTGRES_PASSWORD (полная конфигурация)
 #   - deploy/do.env — ТОЛЬКО секреты (DOCKER_PASSWORD, VK_*, YOOKASSA_*, STEMJOBS_INTERNAL_SECRET)
-# Оба source-ятся через `set -a; source; set +a` — порядок важен: сначала .env
-# (даёт дефолты), потом do.env (поверх, добавляет секреты; не перезаписывает
-# общие ключи типа STORAGE_KEY, т.к. их в do.env нет).
+# do.sh source'ит ТОЛЬКО do.env. Это значит, что для передачи всех
+# переменных (включая DB_LOCAL_POSTGRES_USER, STORAGE_KEY) в контейнеры,
+# все они должны быть в do.env, либо setup-mint.sh должен их туда добавить.
+# Делаем второе: собираем «полный do.env» из обоих файлов — .env копируется
+# в do.env, если переменных там нет. Это позволяет админской машине
+# работать как есть (с двумя файлами), а чистую установку — сразу с
+# полным do.env (см. также deploy/do.env.template).
 load_env_paths() {
   set -a
   # shellcheck disable=SC1091
@@ -332,6 +335,36 @@ load_env_paths() {
   set +a
 }
 
+# Дополняем do.env переменными из .env, если их там нет.
+# Критично для контейнеров Spring Boot (DB_LOCAL_POSTGRES_USER, STORAGE_KEY,
+# и т.д.) — без них 'placeholder ... could not be resolved'.
+# Идемпотентно: если переменная уже в do.env — не перезаписываем.
+merge_env_into_do_env() {
+  if [ ! -f "${DEPLOY_DIR}/.env" ] || [ ! -f "${DEPLOY_DIR}/do.env" ]; then
+    return 0
+  fi
+  local merged=0
+  # Берём все KEY=VALUE из .env; для каждой проверяем, есть ли KEY в do.env.
+  while IFS='=' read -r key value; do
+    # Пропускаем пустые ключи, комментарии (#...) и пустые строки.
+    [[ -z "$key" || "$key" =~ ^# ]] && continue
+    # В do.env уже задан? grep -qFx — точное совпадение ключа в начале строки.
+    if ! grep -qE "^${key}=" "${DEPLOY_DIR}/do.env"; then
+      echo "${key}=${value}" >> "${DEPLOY_DIR}/do.env"
+      merged=$((merged + 1))
+    fi
+  done < "${DEPLOY_DIR}/.env"
+  if [ "$merged" -gt 0 ]; then
+    log "  Дополнили ${DEPLOY_DIR}/do.env ${merged} переменными из .env (do.sh source'ит только do.env)"
+  fi
+}
+
+load_env_paths
+merge_env_into_do_env
+# После merge нужно пере-source'ить — но скрипт уже далеко пошёл, переменные
+# в текущем shell установлены через load_env_paths. Пере-source нужен только
+# если load_env_paths запускается позже (что не так). Под-функция безопасна
+# для повторного вызова.
 load_env_paths
 
 REQUIRED_DIRS=(
@@ -492,7 +525,9 @@ log "--- 2/3: HTTP-эндпоинты ---"
 # На admin-машине Karaoke часто использует нестандартные порты (8832/8890/8891)
 # чтобы не конфликтовать с локальными Postgres/MinIO.
 WEBVUE3_PORT="${WEBVUE3_PORT_HOST:-7906}"
-PUBLIC_PORT="${WEB_PORT_HOST:-8888}"
+# karaoke-public слушает на 7907 (захардкожено в docker-compose-public.yml,
+# не из .env). WEB_PORT_HOST относится к karaoke-web, не к public.
+PUBLIC_PORT="${PUBLIC_PORT_HOST:-7907}"
 MINIO_CONSOLE_PORT="${STORAGE_CONSOLE_PORT_HOST:-9001}"
 MINIO_S3_PORT="${STORAGE_PORT_HOST:-9000}"
 DB_PORT="${DB_PORT_HOST:-5432}"

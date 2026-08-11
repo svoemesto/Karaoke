@@ -201,6 +201,29 @@ if [ ! -f /usr/local/bin/docker-compose ]; then
   ok "wrapper docker-compose установлен"
 fi
 
+# Устанавливаем nvidia-container-toolkit, если есть /dev/nvidia* и toolkit
+# ещё не стоит. Без него docker не может использовать GPU, и при
+# ENABLE_APP_GPU=1 в .env контейнеры падают с
+# 'could not select device driver nvidia' (см. /tmp/setup-mint.log
+# после 7-го запуска, строка 'Error response from daemon: could not select
+# device driver nvidia'). Если /dev/nvidia* нет — пропускаем.
+if [ -e /dev/nvidia0 ] && ! command -v nvidia-container-cli >/dev/null 2>&1; then
+  log "  Устанавливаем nvidia-container-toolkit (GPU passthrough)..."
+  curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+  curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
+    sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
+    sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list > /dev/null
+  sudo apt update
+  sudo apt install -y nvidia-container-toolkit
+  sudo nvidia-ctk runtime configure --runtime=docker
+  sudo systemctl restart docker
+  ok "nvidia-container-toolkit установлен, Docker перезапущен"
+  warn "После перезапуска docker текущая группа docker в shell могла слететь."
+  warn "Если последующие 'docker ps' через sg docker -c падают — перелогиньтесь."
+elif [ -e /dev/nvidia0 ] && command -v nvidia-container-cli >/dev/null 2>&1; then
+  ok "nvidia-container-toolkit уже установлен"
+fi
+
 # Добавляем пользователя в группу docker
 if id -nG "${USER}" | tr ' ' '\n' | grep -qx docker; then
   ok "Пользователь ${USER} уже в группе docker"
@@ -427,17 +450,18 @@ check_http_200() {
 
 check_postgres_ready() {
   local attempt=1
+  local pg_port="${PG_PORT:-${DB_PORT_HOST:-5432}}"
   while [ "$attempt" -le "$SMOKE_RETRY_ATTEMPTS" ]; do
-    if PGPASSWORD="${DB_LOCAL_POSTGRES_PASSWORD}" psql -h localhost -U "${DB_LOCAL_POSTGRES_USER}" -d karaoke -c "SELECT 1" >/dev/null 2>&1; then
-      ok "  Postgres: подключение успешно"
+    if PGPASSWORD="${DB_LOCAL_POSTGRES_PASSWORD}" psql -h localhost -p "${pg_port}" -U "${DB_LOCAL_POSTGRES_USER}" -d karaoke -c "SELECT 1" >/dev/null 2>&1; then
+      ok "  Postgres: подключение успешно (порт ${pg_port})"
       return 0
     fi
-    log "  Postgres: попытка $attempt/$SMOKE_RETRY_ATTEMPTS (ещё инициализируется)..."
+    log "  Postgres: попытка $attempt/$SMOKE_RETRY_ATTEMPTS (порт ${pg_port}, ещё инициализируется)..."
     sleep "$SMOKE_RETRY_DELAY"
     attempt=$((attempt + 1))
   done
-  err "  Postgres: НЕ ГОТОВ после $((SMOKE_RETRY_ATTEMPTS * SMOKE_RETRY_DELAY)) сек"
-  err "  Диагностика: docker logs karaoke-db"
+  err "  Postgres: НЕ ГОТОВ после $((SMOKE_RETRY_ATTEMPTS * SMOKE_RETRY_DELAY)) сек (порт ${pg_port})"
+  err "  Диагностика: sg docker -c 'docker logs karaoke-db'"
   return 1
 }
 
@@ -451,23 +475,36 @@ if [ "$WITH_OLLAMA" -eq 1 ]; then
 fi
 
 log "--- 2/3: HTTP-эндпоинты ---"
-check_http_200 "http://localhost:7906" "webvue3 (admin)" || SMOKE_FAIL=1
-check_http_200 "http://localhost:8888" "karaoke-public (фронт)" || SMOKE_FAIL=1
-check_http_200 "http://localhost:9001/minio/health/live" "MinIO health" || SMOKE_FAIL=1
-check_http_200 "http://localhost:9000/minio/health/live" "MinIO S3 API" || SMOKE_FAIL=1
+# Используем порты из do.env/.env (с дефолтами для обратной совместимости).
+# На admin-машине Karaoke часто использует нестандартные порты (8832/8890/8891)
+# чтобы не конфликтовать с локальными Postgres/MinIO.
+WEBVUE3_PORT="${WEBVUE3_PORT_HOST:-7906}"
+PUBLIC_PORT="${WEB_PORT_HOST:-8888}"
+MINIO_CONSOLE_PORT="${STORAGE_CONSOLE_PORT_HOST:-9001}"
+MINIO_S3_PORT="${STORAGE_PORT_HOST:-9000}"
+DB_PORT="${DB_PORT_HOST:-5432}"
+
+check_http_200 "http://localhost:${WEBVUE3_PORT}" "webvue3 (admin)" || SMOKE_FAIL=1
+check_http_200 "http://localhost:${PUBLIC_PORT}" "karaoke-public (фронт)" || SMOKE_FAIL=1
+check_http_200 "http://localhost:${MINIO_CONSOLE_PORT}/minio/health/live" "MinIO health (console)" || SMOKE_FAIL=1
+check_http_200 "http://localhost:${MINIO_S3_PORT}/minio/health/live" "MinIO S3 API" || SMOKE_FAIL=1
 
 log "--- 3/3: Postgres ---"
+# Postgres smoke-test использует порт из .env (на admin-машине часто 8832 вместо 5432)
+# Передаём порт в check_postgres_ready через переменную окружения.
+export PG_PORT="${DB_PORT}"
 check_postgres_ready || SMOKE_FAIL=1
 
 echo
 if [ "$SMOKE_FAIL" -eq 0 ]; then
   ok "===== SMOKE-TEST PASSED ====="
   echo
-  log "Доступные эндпоинты:"
-  echo "  • webvue3 (админка):        http://localhost:7906"
-  echo "  • karaoke-public (сайт):     http://localhost:8888"
-  echo "  • MinIO Console:             http://localhost:9001"
-  echo "  • Postgres:                  localhost:5432 (psql -U postgres)"
+  log "Доступные эндпоинты (порты из .env):"
+  echo "  • webvue3 (админка):        http://localhost:${WEBVUE3_PORT}"
+  echo "  • karaoke-public (сайт):     http://localhost:${PUBLIC_PORT}"
+  echo "  • MinIO Console:             http://localhost:${MINIO_CONSOLE_PORT}"
+  echo "  • MinIO S3 API:              http://localhost:${MINIO_S3_PORT}"
+  echo "  • Postgres:                  localhost:${DB_PORT} (psql -U postgres)"
   echo
   log "Rollback (если нужно снести):"
   echo "  cd ${DEPLOY_DIR}"

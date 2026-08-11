@@ -171,6 +171,7 @@ class ListeningHistoryController {
                         "songName" to song.songName,
                         "songAuthor" to song.author,
                         "songAlbum" to song.album,
+                        "songYear" to song.year,
                         "playCount" to h.playCount,
                         "lastPlayedAt" to h.lastPlayedAt?.toString(),
                     )

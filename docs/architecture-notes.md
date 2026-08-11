@@ -1434,7 +1434,7 @@ endpoint'ов для webvue3 не было, фоновый sweeper отсутс�
 - `AGENTS.md` — раздел «Счётчики главной страницы» не затронут (share-таблицы PROD-only,
   SyncRegistry НЕ расширяется — FR-060 spec).
 
-## Pass 50: hotfix — разделение `share.internal` vs `share.notFound` (2026-08-11, 167-fix-share-claim-500)
+## Pass 50: hotfix — разделение `share.internal` vs `share.notFound` (2026-08-11, 167-fix-share-claim-500, PR #220, `1c0094b5`)
 
 **Симптом**: гостевые `/share/{id}/{secret}` возвращают `500 share.notFound`,
 хотя в логах karaoke-web видно `org.postgresql.util.PSQLException: ERROR:

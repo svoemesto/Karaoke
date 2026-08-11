@@ -1539,3 +1539,37 @@ Kotlin-переменные внутри `SongInfo` (`author`/`album`/`year`) **
 **Связанные документы**:
 - Pass 49 (PR #219) — rename `tbl_settings`→`tbl_songs`
 - Pass 50 (PR #220, spec 167) — share.internal vs share.notFound (выявил Pass 51)
+
+## Pass 53: fix(share-link) — loading state + 7 дней в модалке (2026-08-11, PR #222, `8a1f353c`)
+
+**Симптом 1**: при нажатии «Временный доступ» на карточке песни, если у пользователя
+уже есть активная share-ссылка — модалка показывает блок «Создать новую» вместо
+«У этой песни уже есть активная ссылка». Race condition при открытии: `loadCurrent()`
+async, `currentLink = null` стартовое значение → Vue рендерит блок «Создать» ДО
+ответа бэкенда. Если ответ задерживается — пользователь не замечает переключения.
+
+**Симптом 2**: в модалке выбора TTL только два варианта — «1 час» и «24 часа».
+В `SHARE_TTL_OPTIONS` уже есть 7 дней (Pass 48 ae6b63e6), бэкенд принимает — модалка
+просто забыла обновиться. TTL-радиокнопки были hardcoded в шаблоне.
+
+**Фикс**:
+- `ShareLinkModal.vue` — добавить `loading` ref. Пока `loadCurrent` не завершился —
+  спиннер «Получаем текущую ссылку…». После — existing/create/error. Watch
+  сбрасывает `loading.value = false` при скрытии модалки.
+- `ShareLinkModal.vue` — `<label v-for="opt in ttlOptions">` вместо hardcoded radios.
+  `SHARE_TTL_OPTIONS` импортирован из `useShareLink` (там уже живёт — Pass 48).
+
+**Метрика**: 1 файл, +25/-4 строки.
+
+**Lessons learned**:
+- Frontend race conditions легко пропустить — нужен `loading` state для всех
+  async-запросов при открытии модалок/табов. Без этого пользователь видит
+  «пустое» состояние до прихода данных.
+- Hardcoded значения в шаблонах — anti-pattern. `SHARE_TTL_OPTIONS` уже был
+  массивом, нужно использовать его через v-for.
+
+**Связанные документы**:
+- Pass 48 (PR #218, ae6b63e6) — SHARE_TTL_OPTIONS добавлен в `useShareLink`,
+  TTL whitelist расширен до 604800 (7 дней) на бэкенде
+- Pass 52 (PR #222, 7c7f1ed7) — linkExpiresAt + aspect ratio + убрать копирование
+- Pass 53 (PR #222, 8a1f353c) — loading state + 7 дней в модалке

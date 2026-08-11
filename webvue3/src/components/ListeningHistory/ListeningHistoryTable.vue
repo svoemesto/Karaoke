@@ -211,17 +211,16 @@ export default {
       return item.userEmail || ''
     },
     formatSongTitle(item) {
-      // «Название — Исполнитель (Альбом, год)» — стандартный шаблон для админ-таблиц.
+      // «Автор (Альбом, год) - Название» — единый шаблон для всех админ-таблиц с полем «Песня».
       // Если song удалена (songName='') — показываем «id удалён» (drill-down всё равно работает
       // по songId, может открыть карточку если она ещё доступна).
       if (!item.songName) return `#${item.songId} (удалена)`
-      let title = item.songName
-      if (item.songAuthor) title += ` — ${item.songAuthor}`
-      const albumPart = []
-      if (item.songAlbum) albumPart.push(item.songAlbum)
-      if (item.songYear && item.songYear > 0) albumPart.push(String(item.songYear))
-      if (albumPart.length > 0) title += ` (${albumPart.join(', ')})`
-      return title
+      if (!item.songAuthor) return item.songName
+      const albumMeta = []
+      if (item.songAlbum) albumMeta.push(item.songAlbum)
+      if (item.songYear && item.songYear > 0) albumMeta.push(String(item.songYear))
+      const meta = albumMeta.length > 0 ? ` (${albumMeta.join(', ')})` : ''
+      return `${item.songAuthor}${meta} - ${item.songName}`
     },
   },
 }
@@ -263,6 +262,12 @@ export default {
 }
 .lht-table-body :deep(th) {
   position: relative;
+}
+.lht-table-body :deep(th:nth-child(2)),
+.lht-table-body :deep(td:nth-child(2)),
+.lht-table-body :deep(th:nth-child(3)),
+.lht-table-body :deep(td:nth-child(3)) {
+  text-align: left !important;
 }
 .lht-table-body :deep(th svg.bi) {
   position: absolute;

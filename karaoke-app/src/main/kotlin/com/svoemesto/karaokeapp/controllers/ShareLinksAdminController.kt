@@ -103,7 +103,7 @@ class ShareLinksAdminController {
                     "l.created_at, l.expires_at, l.active, l.revoked_at, l.revoke_reason, " +
                     "(l.active_session_token_hash IS NOT NULL AND l.active_session_lease_until > now()) AS has_active_session, " +
                     "u.email, u.display_name, " +
-                    "s.song_name " +
+                    "s.song_name, s.song_author, s.song_album, s.song_year " +
                     "FROM tbl_song_share_links l " +
                     "LEFT JOIN tbl_site_users u ON u.id = l.owner_site_user_id " +
                     "LEFT JOIN tbl_songs s ON s.id = l.song_id " +
@@ -126,6 +126,9 @@ class ShareLinksAdminController {
                                 "id" to rs.getLong("id"),
                                 "songId" to rs.getLong("song_id"),
                                 "songName" to (rs.getString("song_name") ?: ""),
+                                "songAuthor" to (rs.getString("song_author") ?: ""),
+                                "songAlbum" to (rs.getString("song_album") ?: ""),
+                                "songYear" to (rs.getLong("song_year")),
                                 "ownerSiteUserId" to rs.getLong("owner_site_user_id"),
                                 "ownerEmail" to (rs.getString("email") ?: ""),
                                 "ownerDisplayName" to (rs.getString("display_name") ?: ""),

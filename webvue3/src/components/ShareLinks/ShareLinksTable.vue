@@ -56,7 +56,7 @@
         </template>
         <template #cell(songName)="data">
           <router-link :to="`/songs?focus=${data.item.songId}`" class="fld-link">{{
-            data.value || 'песня удалена'
+            formatSongTitle(data.item)
           }}</router-link>
         </template>
         <template #cell(status)="data">
@@ -355,6 +355,16 @@ export default {
       }
       return item.ownerEmail || ''
     },
+    formatSongTitle(item) {
+      // «Автор (Альбом, год) - Название» — единый шаблон для всех админ-таблиц с полем «Песня».
+      if (!item.songName) return 'песня удалена'
+      if (!item.songAuthor) return item.songName
+      const albumMeta = []
+      if (item.songAlbum) albumMeta.push(item.songAlbum)
+      if (item.songYear && item.songYear > 0) albumMeta.push(String(item.songYear))
+      const meta = albumMeta.length > 0 ? ` (${albumMeta.join(', ')})` : ''
+      return `${item.songAuthor}${meta} - ${item.songName}`
+    },
   },
 }
 </script>
@@ -408,6 +418,12 @@ export default {
 }
 .slt-table-body :deep(th) {
   position: relative;
+}
+.slt-table-body :deep(th:nth-child(3)),
+.slt-table-body :deep(td:nth-child(3)),
+.slt-table-body :deep(th:nth-child(4)),
+.slt-table-body :deep(td:nth-child(4)) {
+  text-align: left !important;
 }
 .slt-table-body :deep(th svg.bi) {
   position: absolute;

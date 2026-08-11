@@ -50,20 +50,14 @@
           <router-link
             :to="`/siteusers?focus=${data.item.siteUserId}`"
             class="fld-link"
-            :title="data.item.userDisplayName || ''"
-            >{{ data.value }}</router-link
+            :title="`user id: ${data.item.siteUserId}`"
+            >{{ formatUser(data.item) }}</router-link
           >
         </template>
-        <template #cell(songName)="data">
+        <template #cell(songTitle)="data">
           <router-link :to="`/songs?focus=${data.item.songId}`" class="fld-link">{{
-            data.value || 'песня удалена'
+            formatSongTitle(data.item)
           }}</router-link>
-        </template>
-        <template #cell(songAuthor)="data">
-          <div class="fld-ellipsis">{{ data.value || '—' }}</div>
-        </template>
-        <template #cell(songAlbum)="data">
-          <div class="fld-ellipsis">{{ data.value || '—' }}</div>
         </template>
         <template #cell(playCount)="data">
           <div style="text-align: center">{{ data.value }}</div>
@@ -95,11 +89,19 @@ import ListeningHistoryFilterModal from './ListeningHistoryFilterModal.vue'
 /**
  * Таблица глобального списка истории прослушиваний (`tbl_listening_history`) в админ-SPA.
  *
- * Read-only просмотр с фильтрами (userId/songId/lastPlayedFrom/lastPlayedTo), target-aware
- * (local/remote), пагинацией 500/стр, drill-down к `/siteusers?focus=ID` и `/songs?focus=ID`.
+ * Read-only просмотр с фильтрами (userId/songId/lastPlayedFrom/lastPlayedTo),
+ * target-aware (local/remote), пагинацией 500/стр, drill-down к `/siteusers?focus=ID` и `/songs?focus=ID`.
  *
  * ОБЯЗАТЕЛЬНО SKIP-фильтр на чтении — наследуется из публичного `ListeningHistory.getForUser`
  * (см. спек `ListeningHistoryController.kt`).
+ *
+ * **Колонки** (паттерн из `SiteUsers` / `Subscriptions` / `ShareLinks`):
+ * - «Пользователь» — формат «Имя (email)» (если displayName пуст — только email), drill-down к `/siteusers`.
+ * - «Песня» — формат «Название — Исполнитель (Альбом, год)» (drill-down к `/songs`). Поля
+ *   `Исполнитель` и `Альбом» объединены в одну колонку — стандартный шаблон для админ-таблиц.
+ *
+ * **Сортировка** (паттерн из `SitePlaylistsTable` / `SiteUsersTable`):
+ * - Клиентская через `v-model:sort-by` на `<b-table>` — мгновенно, без перезагрузки.
  *
  * **Структура таблицы** (см. CONTRIBUTING.md#vue-table-layout-fixed):
  * - `table-layout: fixed` + явная `width` на колонках.
@@ -151,27 +153,15 @@ export default {
         },
         {
           key: 'userEmail',
-          label: 'Email',
+          label: 'Пользователь',
           sortable: true,
-          style: { minWidth: '200px', maxWidth: '200px', textAlign: 'left', fontSize: 'small' },
+          style: { minWidth: '240px', maxWidth: '240px', textAlign: 'left', fontSize: 'small' },
         },
         {
-          key: 'songName',
+          key: 'songTitle',
           label: 'Песня',
           sortable: true,
-          style: { minWidth: '220px', maxWidth: '220px', textAlign: 'left', fontSize: 'small' },
-        },
-        {
-          key: 'songAuthor',
-          label: 'Исполнитель',
-          sortable: true,
-          style: { minWidth: '160px', maxWidth: '160px', textAlign: 'left', fontSize: 'small' },
-        },
-        {
-          key: 'songAlbum',
-          label: 'Альбом',
-          sortable: true,
-          style: { minWidth: '160px', maxWidth: '160px', textAlign: 'left', fontSize: 'small' },
+          style: { minWidth: '420px', maxWidth: '420px', textAlign: 'left', fontSize: 'small' },
         },
         {
           key: 'playCount',
@@ -211,6 +201,27 @@ export default {
       if (!m) return s
       const [, y, mo, d, h, mi] = m
       return `${d}.${mo}.${y} ${h}:${mi}`
+    },
+    formatUser(item) {
+      // «Имя (email)» — если displayName пуст, только email.
+      const name = (item.userDisplayName || '').trim()
+      if (name && name !== item.userEmail) {
+        return `${name} (${item.userEmail})`
+      }
+      return item.userEmail || ''
+    },
+    formatSongTitle(item) {
+      // «Название — Исполнитель (Альбом, год)» — стандартный шаблон для админ-таблиц.
+      // Если song удалена (songName='') — показываем «id удалён» (drill-down всё равно работает
+      // по songId, может открыть карточку если она ещё доступна).
+      if (!item.songName) return `#${item.songId} (удалена)`
+      let title = item.songName
+      if (item.songAuthor) title += ` — ${item.songAuthor}`
+      const albumPart = []
+      if (item.songAlbum) albumPart.push(item.songAlbum)
+      if (item.songYear && item.songYear > 0) albumPart.push(String(item.songYear))
+      if (albumPart.length > 0) title += ` (${albumPart.join(', ')})`
+      return title
     },
   },
 }

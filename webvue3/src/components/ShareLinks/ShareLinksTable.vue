@@ -50,8 +50,8 @@
           <router-link
             :to="`/siteusers?focus=${data.item.ownerSiteUserId}`"
             class="fld-link"
-            :title="data.item.ownerDisplayName || ''"
-            >{{ data.value }}</router-link
+            :title="`user id: ${data.item.ownerSiteUserId}`"
+            >{{ formatOwner(data.item) }}</router-link
           >
         </template>
         <template #cell(songName)="data">
@@ -212,7 +212,7 @@ export default {
           key: 'ownerEmail',
           label: 'Владелец',
           sortable: true,
-          style: { minWidth: '200px', maxWidth: '200px', textAlign: 'left', fontSize: 'small' },
+          style: { minWidth: '240px', maxWidth: '240px', textAlign: 'left', fontSize: 'small' },
         },
         {
           key: 'songName',
@@ -345,6 +345,15 @@ export default {
       if (!m) return s
       const [, y, mo, d, h, mi] = m
       return `${d}.${mo}.${y} ${h}:${mi}`
+    },
+    formatOwner(item) {
+      // «Имя (email)» — стандартный шаблон для админ-таблиц (паттерн из Subscriptions/ShareLinks).
+      // Если displayName пуст — только email.
+      const name = (item.ownerDisplayName || '').trim()
+      if (name && name !== item.ownerEmail) {
+        return `${name} (${item.ownerEmail})`
+      }
+      return item.ownerEmail || ''
     },
   },
 }

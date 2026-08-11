@@ -50,8 +50,8 @@
           <router-link
             :to="`/siteusers?focus=${data.item.siteUserId}`"
             class="fld-link"
-            :title="data.item.userDisplayName || ''"
-            >{{ data.value }}</router-link
+            :title="`user id: ${data.item.siteUserId}`"
+            >{{ formatUser(data.item) }}</router-link
           >
         </template>
         <template #cell(scope)="data">
@@ -60,7 +60,9 @@
           </div>
         </template>
         <template #cell(name)="data">
-          <div class="fld-ellipsis" :title="data.value || ''">{{ data.value || '—' }}</div>
+          <div class="fld-ellipsis" :title="formatTitle(data.item)">
+            {{ formatTitle(data.item) }}
+          </div>
         </template>
         <template #cell(finalPrice)="data">
           <div style="text-align: right">{{ formatMoney(data.value) }}</div>
@@ -192,9 +194,9 @@ export default {
         },
         {
           key: 'userEmail',
-          label: 'Email',
+          label: 'Пользователь',
           sortable: true,
-          style: { minWidth: '200px', maxWidth: '200px', textAlign: 'left', fontSize: 'small' },
+          style: { minWidth: '240px', maxWidth: '240px', textAlign: 'left', fontSize: 'small' },
         },
         {
           key: 'scope',
@@ -206,7 +208,7 @@ export default {
           key: 'name',
           label: 'Название',
           sortable: true,
-          style: { minWidth: '200px', maxWidth: '200px', textAlign: 'left', fontSize: 'small' },
+          style: { minWidth: '420px', maxWidth: '420px', textAlign: 'left', fontSize: 'small' },
         },
         {
           key: 'finalPrice',
@@ -327,6 +329,29 @@ export default {
       if (!m) return s
       const [, y, mo, d, h, mi] = m
       return `${d}.${mo}.${y} ${h}:${mi}`
+    },
+    formatUser(item) {
+      // «Имя (email)» — если displayName пуст, только email.
+      const name = (item.userDisplayName || '').trim()
+      if (name && name !== item.userEmail) {
+        return `${name} (${item.userEmail})`
+      }
+      return item.userEmail || ''
+    },
+    formatTitle(item) {
+      // Унифицированное название: для scope=SONG — «Название — Исполнитель (Альбом, год)»,
+      // для scope=SITE — tariffName.
+      if (item.scope === 'SONG') {
+        if (!item.songName) return `#${item.idSong || ''} (удалена)`
+        let title = item.songName
+        if (item.songAuthor) title += ` — ${item.songAuthor}`
+        const albumPart = []
+        if (item.songAlbum) albumPart.push(item.songAlbum)
+        if (item.songYear && item.songYear > 0) albumPart.push(String(item.songYear))
+        if (albumPart.length > 0) title += ` (${albumPart.join(', ')})`
+        return title
+      }
+      return item.tariffName || '—'
     },
   },
 }

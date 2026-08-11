@@ -237,7 +237,7 @@ onMounted(() => {
    название крупно, автор средне, альбом+год мельче. Общая ширина карточки 560px, чтобы
    картинки влезли без переноса на мобильных (на узких экранах схлопываются в столбик). */
 .km-card-share {
-  max-width: 560px;
+  max-width: 640px;
   text-align: left;
 }
 .km-share-cover {
@@ -255,20 +255,18 @@ onMounted(() => {
   background: #2a2a2a;
 }
 /* Логотип исполнителя — широкоформатный баннер 1000×400 (aspect-ratio 5:2, см.
-   KaraokeFileType.PICTURE_AUTHOR). Pass 54: aspect-ratio применяем к ОБЁРТКЕ,
-   а img внутри абсолютно позиционируется — раньше aspect-ratio стоял на самом img
-   в комбинации с `flex: 1` + `align-items: stretch` от parent .km-share-cover, и
-   контейнер растягивался на высоту альбома (160px). При image 5:2 в container 324×160
-   (≈2:1) `object-fit: cover` обрезал картинку по бокам — видно «МАШИНА ВРЕМЕН…»
-   (обрезано справа, инцидент 2026-08-11). Теперь обёртка задаёт aspect-ratio
-   (height считается от width), а img заполняет wrapper через `inset: 0` + `object-fit:
-   contain` (не cover) — картинка помещается целиком без обрезки. На мобильных
-   (@media max-width:520px) wrapper 100% ширины, height = 40% от ширины. */
+   KaraokeFileType.PICTURE_AUTHOR). Pass 55: фиксированная высота 160px (как у
+   альбома) + width 400px (160 × 5/2). flex-shrink: 0 — не сжимается.
+   Раньше использовали `aspect-ratio: 5/2` + `flex: 1` + `object-fit: contain` —
+   контейнер получался правильный, но изображение при contain оставляло полосы
+   сверху/снизу (image 5:2 в container, высота которого считается от width,
+   не совпадает с 160px альбома). Теперь image тоже 400×160 — нет полос.
+   На мобильных (@media max-width:720px) wrapper 100% ширины, height = 40% от
+   ширины (aspect-ratio для экономии места). */
 .km-share-cover-artist-wrap {
-  flex: 1;
-  min-width: 0;
+  flex: 0 0 400px;
+  height: 160px;
   position: relative;
-  aspect-ratio: 5 / 2;
   background: #2a2a2a;
   border-radius: 8px;
   overflow: hidden;
@@ -278,7 +276,7 @@ onMounted(() => {
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
 }
 .km-share-title {
   margin: 0 0 8px;
@@ -309,7 +307,7 @@ onMounted(() => {
   width: max-content;
   min-width: 200px;
 }
-@media (max-width: 520px) {
+@media (max-width: 720px) {
   .km-card-share {
     max-width: 100%;
   }
@@ -317,7 +315,13 @@ onMounted(() => {
     flex-direction: column;
   }
   .km-share-cover-artist-wrap {
+    flex: 0 0 auto;
     width: 100%;
+    height: auto;
+    aspect-ratio: 5 / 2;
+  }
+  .km-share-cover-artist-img {
+    object-fit: contain;
   }
 }
 </style>

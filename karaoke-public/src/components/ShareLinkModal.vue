@@ -86,7 +86,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useAuth } from '../composables/useAuth'
 import {
   createShareLink,
@@ -324,6 +324,22 @@ function onBackdrop() {
 // Полезно, если владелец/админ параллельно отозвал ссылку — модалка покажет «Отозвана» без F5.
 let pollTimer = null
 
+// Pass 55 FIX: onMounted + initial loadCurrent. Без этого watch не срабатывал при первом
+// открытии модалки — ShareLinkButton использует <ShareLinkModal v-if="modalVisible">,
+// компонент создаётся УЖЕ с visible=true, и watch с initial=true пропускал первый запуск.
+// В результате loadCurrent() не вызывался, currentLink оставался null, показывался блок
+// «Создать новую» даже при существующей активной ссылке (баг 2026-08-11).
+onMounted(() => {
+  if (props.visible) {
+    // При первом открытии — сразу грузим текущую ссылку.
+    loadCurrent()
+    if (pollTimer) clearInterval(pollTimer)
+    pollTimer = setInterval(() => {
+      if (props.visible) loadCurrent()
+    }, 30000)
+  }
+})
+
 watch(
   () => props.visible,
   (v) => {
@@ -331,6 +347,8 @@ watch(
       created.value = false
       shareUrl.value = ''
       errorMessage.value = ''
+      // При повторном открытии (если компонент остался жить через v-show) —
+      // тоже загружаем. При v-if компонент пересоздаётся, onMounted уже отработал.
       loadCurrent()
       if (pollTimer) clearInterval(pollTimer)
       pollTimer = setInterval(() => {

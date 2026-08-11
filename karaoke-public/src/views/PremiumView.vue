@@ -58,7 +58,8 @@
         <p class="km-card-body">
           Что вы получили: полный доступ к плееру (все песни), безлимитное избранное и до 50 своих
           плейлистов, непрерывное воспроизведение с повтором и случайным порядком, смену скорости и
-          тональности в плеере, создание минусовок и чат с автором проекта.
+          тональности в плеере, создание минусовок и чат с автором проекта, создание временной
+          ссылки на песню (1 ч / 24 ч / 7 д, до 2 устройств одновременно).
         </p>
         <RouterLink to="/account/subscriptions" class="km-btn km-btn-secondary">
           Управление подпиской →
@@ -201,6 +202,9 @@ import { trackUi } from '../services/tracking'
 // PR #146/#142). Числа 100/500/50 — точные константы FREE_FAVORITES_LIMIT/
 // PREMIUM_ITEMS_LIMIT/PREMIUM_PLAYLIST_LIMIT из PublicPlaylistController.kt; если
 // бэкенд-константы изменятся, эту таблицу нужно обновить вручную (см. data-model.md).
+// Строка 12 («Временная ссылка на песню») добавлена в PR #169 (169-share-link-in-premium-compare,
+// feature branch). TTL 1 ч/24 ч/7 д и лимит ≤2 устройств вынесены в premium-блок «Что вы получили»
+// (см. SPEC.md и research.md Decision 2) — здесь остаётся только логическое ✅/❌.
 const COMPARISON_ROWS = [
   { feature: 'Онлайн-плеер для песен «в эфире»', free: true, premium: true },
   { feature: 'Поиск и каталог', free: true, premium: true },
@@ -217,6 +221,7 @@ const COMPARISON_ROWS = [
   { feature: 'Смена тональности (транспонирование) в плеере', free: false, premium: true },
   { feature: 'Создание минусовок (Demucs)', free: false, premium: true },
   { feature: 'Чат с автором проекта', free: false, premium: true },
+  { feature: 'Временная ссылка на песню', free: false, premium: true },
 ]
 
 /**

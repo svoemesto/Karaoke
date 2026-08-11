@@ -38,11 +38,11 @@
 
 ## Артефакты спеки (должны быть созданы в /speckit.plan или /speckit.tasks)
 
-- [ ] **CHK021** `deploy/do.env.template` создан (задача плана)
-- [ ] **CHK022** `specs/170-mint-dev-setup/setup-mint.sh` создан (задача плана)
-- [ ] **CHK023** Связь с `docs/onboarding.md` обновлена (добавить ссылку на спек-папку, как Linux Mint-специфичный гайд)
-- [ ] **CHK024** `docs/features/docker-deploy.md` (per-feature документ) обновлён или создан (per FR-009 Constitution: правка docker-стека = обновление per-feature дока в том же PR)
-- [ ] **CHK025** `docs/architecture-notes.md` получит запись о PR (после merge)
+- [X] **CHK021** `deploy/do.env.template` создан (задача плана)
+- [X] **CHK022** `specs/170-mint-dev-setup/setup-mint.sh` создан (задача плана)
+- [X] **CHK023** Связь с `docs/onboarding.md` обновлена (добавить ссылку на спек-папку, как Linux Mint-специфичный гайд)
+- [X] **CHK024** `docs/features/docker-deploy.md` (per-feature документ) обновлён или создан (per FR-009 Constitution: правка docker-стека = обновление per-feature дока в том же PR)
+- [X] **CHK025** `docs/architecture-notes.md` получит запись о PR (после merge)
 
 ## Notes
 

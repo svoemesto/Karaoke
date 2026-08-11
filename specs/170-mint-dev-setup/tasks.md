@@ -25,10 +25,10 @@
 
 **Purpose**: Подготовить структуру спеки, убедиться, что design-документы на месте, проинициализировать git-ветку.
 
-- [ ] T001 Verify `specs/170-mint-dev-setup/{plan.md,research.md,quickstart.md,spec.md,checklists/requirements.md}` exist (all should be present from `/speckit.specify` and `/speckit.plan`)
-- [ ] T002 Verify current branch is `170-mint-dev-setup` via `git branch --show-current` (should be already checked out)
-- [ ] T003 Verify `.gitignore` contains `/deploy/.env` and `/deploy/do.env` patterns (Principle VIII.1) — `grep -E '(/deploy/\.env|/deploy/do\.env)' .gitignore`
-- [ ] T004 [P] Verify `git credential.helper=store` is set globally so `git push` works without re-prompting (already configured in this session; document for the user in commit body if needed)
+- [X] T001 Verify `specs/170-mint-dev-setup/{plan.md,research.md,quickstart.md,spec.md,checklists/requirements.md}` exist (all should be present from `/speckit.specify` and `/speckit.plan`)
+- [X] T002 Verify current branch is `170-mint-dev-setup` via `git branch --show-current` (should be already checked out)
+- [X] T003 Verify `.gitignore` contains `/deploy/.env` and `/deploy/do.env` patterns (Principle VIII.1) — `grep -E '(/deploy/\.env|/deploy/do\.env)' .gitignore`
+- [X] T004 [P] Verify `git credential.helper=store` is set globally so `git push` works without re-prompting (already configured in this session; document for the user in commit body if needed)
 
 ---
 
@@ -38,14 +38,14 @@
 
 **⚠️ CRITICAL**: US1, US2, US3 не могут стартовать, пока эти артефакты не лежат в репо.
 
-- [ ] T005 [P] Create `deploy/do.env.template` with all required env variables from `research.md R-004` (secrets as `<SET-ME>` or empty strings, paths as `<ABSOLUTE-PATH>`, ports as real defaults)
-- [ ] T006 [P] Create `specs/170-mint-dev-setup/setup-mint.sh` (idempotent bash, ~250 lines, sections per `plan.md` § Summary and `research.md` R-005/R-006/R-007/R-008) — script MUST: check OS = Linux Mint 22.2 Zara (fail-fast, R-003), check `sudo` availability, install apt packages idempotently via `dpkg-query`, install Node 22 via NodeSource (R-001), install Docker CE from `download.docker.com` (R-002), add user to `docker` group, configure `git blame.ignoreRevsFile`, create bind-mount folders with `sudo mkdir -p`, run `bash deploy/do.sh pull` then `start all` (R-006), start MinIO via `docker compose -f deploy/docker-compose-storage.yml up -d`, run smoke-test with 5-retry loop (R-007)
-- [ ] T007 [P] Create `docs/features/docker-deploy.md` per-feature document with sections: «Что делает», «Зачем», «Как работает», «Инварианты/правила», «Известные ловушки», «Ссылки» — covering 8+ containers, bind-mounts, `karaokenet` network, `do.env` secret hygiene, `ENABLE_APP_GPU=0` on dev, `nginx:stable` not `alpine` (4-5 ловушек из AGENTS.md → «Dockerfile-ловушки»)
-- [ ] T008 Make `setup-mint.sh` executable: `chmod +x specs/170-mint-dev-setup/setup-mint.sh`
-- [ ] T009 Verify `setup-mint.sh` syntax: `bash -n specs/170-mint-dev-setup/setup-mint.sh` (MUST exit 0)
-- [ ] T010 Verify `set -a; source deploy/do.env.template; set +a; env` works without exporting `#`-comments (per `research.md R-010`) — bash 5.2 пропускает `#`-комментарии корректно
-- [ ] T011 Verify `git ls-files | grep -iE '(do\.env|\.env)$'` returns empty (Principle VIII.1) — `.template` files НЕ подпадают
-- [ ] T012 Run `bash tools/check-feature-doc.sh docs/features/docker-deploy.md` — MUST exit 0 (per Q&A «Как добавить per-feature документ»)
+- [X] T005 [P] Create `deploy/do.env.template` with all required env variables from `research.md R-004` (secrets as `<SET-ME>` or empty strings, paths as `<ABSOLUTE-PATH>`, ports as real defaults)
+- [X] T006 [P] Create `specs/170-mint-dev-setup/setup-mint.sh` (idempotent bash, ~250 lines, sections per `plan.md` § Summary and `research.md` R-005/R-006/R-007/R-008) — script MUST: check OS = Linux Mint 22.2 Zara (fail-fast, R-003), check `sudo` availability, install apt packages idempotently via `dpkg-query`, install Node 22 via NodeSource (R-001), install Docker CE from `download.docker.com` (R-002), add user to `docker` group, configure `git blame.ignoreRevsFile`, create bind-mount folders with `sudo mkdir -p`, run `bash deploy/do.sh pull` then `start all` (R-006), start MinIO via `docker compose -f deploy/docker-compose-storage.yml up -d`, run smoke-test with 5-retry loop (R-007)
+- [X] T007 [P] Create `docs/features/docker-deploy.md` per-feature document with sections: «Что делает», «Зачем», «Как работает», «Инварианты/правила», «Известные ловушки», «Ссылки» — covering 8+ containers, bind-mounts, `karaokenet` network, `do.env` secret hygiene, `ENABLE_APP_GPU=0` on dev, `nginx:stable` not `alpine` (4-5 ловушек из AGENTS.md → «Dockerfile-ловушки»)
+- [X] T008 Make `setup-mint.sh` executable: `chmod +x specs/170-mint-dev-setup/setup-mint.sh`
+- [X] T009 Verify `setup-mint.sh` syntax: `bash -n specs/170-mint-dev-setup/setup-mint.sh` (MUST exit 0)
+- [X] T010 Verify `set -a; source deploy/do.env.template; set +a; env` works without exporting `#`-comments (per `research.md R-010`) — bash 5.2 пропускает `#`-комментарии корректно
+- [X] T011 Verify `git ls-files | grep -iE '(do\.env|\.env)$'` returns empty (Principle VIII.1) — `.template` files НЕ подпадают
+- [X] T012 Run `bash tools/check-feature-doc.sh docs/features/docker-deploy.md` — MUST exit 0 (per Q&A «Как добавить per-feature документ»)
 
 **Checkpoint**: Foundation ready — `do.env.template`, `setup-mint.sh`, `docker-deploy.md` лежат в репо и прошли базовые проверки. US1 можно стартовать.
 
@@ -61,21 +61,21 @@
 
 > **NOTE**: smoke-test пишется в `setup-mint.sh` как финальный шаг; запускается пользователем, не агентом.
 
-- [ ] T013 [P] [US1] Add `check_container_up` helper function to `setup-mint.sh` (10 lines, retry-loop: 5 attempts × 3 sec, print container name + status on failure)
-- [ ] T014 [P] [US1] Add `check_http_200` helper function to `setup-mint.sh` (15 lines, retry-loop for `curl -s -o /dev/null -w '%{http_code}'`, print URL + code on failure)
-- [ ] T015 [P] [US1] Add `check_postgres_ready` helper function to `setup-mint.sh` (15 lines, retry-loop for `psql -h localhost -U postgres -d karaoke -c 'SELECT 1'`, source password from `do.env`)
-- [ ] T016 [US1] Wire 8+ container-up checks into smoke-test section of `setup-mint.sh` (8 calls: `karaoke-app`, `karaoke-web`, `karaoke-webvue3`, `karaoke-public`, `searxng`, `fourget`, `karaoke-db`, `karaoke-storage`)
-- [ ] T017 [US1] Wire 4 HTTP-200 checks into smoke-test: webvue3 (7906), karaoke-public (8888), MinIO health (9001), MinIO S3 API (9000)
-- [ ] T018 [US1] Wire Postgres-ready check (calls `check_postgres_ready`, exits 0 on success, non-zero with diagnostic on failure)
-- [ ] T019 [US1] Add rollback section to `setup-mint.sh` (function `print_rollback_instructions`, prints 5-step instructions: `do.sh stop all`, `docker compose ... down`, optional `rm -rf` of DB_FOLDER/STORAGE_FOLDER, optional `docker rmi`)
+- [X] T013 [P] [US1] Add `check_container_up` helper function to `setup-mint.sh` (10 lines, retry-loop: 5 attempts × 3 sec, print container name + status on failure)
+- [X] T014 [P] [US1] Add `check_http_200` helper function to `setup-mint.sh` (15 lines, retry-loop for `curl -s -o /dev/null -w '%{http_code}'`, print URL + code on failure)
+- [X] T015 [P] [US1] Add `check_postgres_ready` helper function to `setup-mint.sh` (15 lines, retry-loop for `psql -h localhost -U postgres -d karaoke -c 'SELECT 1'`, source password from `do.env`)
+- [X] T016 [US1] Wire 8+ container-up checks into smoke-test section of `setup-mint.sh` (8 calls: `karaoke-app`, `karaoke-web`, `karaoke-webvue3`, `karaoke-public`, `searxng`, `fourget`, `karaoke-db`, `karaoke-storage`)
+- [X] T017 [US1] Wire 4 HTTP-200 checks into smoke-test: webvue3 (7906), karaoke-public (8888), MinIO health (9001), MinIO S3 API (9000)
+- [X] T018 [US1] Wire Postgres-ready check (calls `check_postgres_ready`, exits 0 on success, non-zero with diagnostic on failure)
+- [X] T019 [US1] Add rollback section to `setup-mint.sh` (function `print_rollback_instructions`, prints 5-step instructions: `do.sh stop all`, `docker compose ... down`, optional `rm -rf` of DB_FOLDER/STORAGE_FOLDER, optional `docker rmi`)
 
 ### Implementation for User Story 1 (документация и финальные правки)
 
-- [ ] T020 [P] [US1] Update `docs/features/README.md` — add `docker-deploy.md` to the table of 9 features (10th row, columns: name = "Docker deploy", path = "docs/features/docker-deploy.md", description = "9 контейнеров локально + MinIO + do.env hygiene")
-- [ ] T021 [P] [US1] Update `docs/onboarding.md` — add a new section «### Linux Mint 22.2 (Zara)» after the macOS/Ubuntu/Arch sections, with 1-line summary: «Для Linux Mint 22.2 — см. [`specs/170-mint-dev-setup/`](./specs/170-mint-dev-setup/) (артефакт `setup-mint.sh` + `deploy/do.env.template`)»
-- [ ] T022 [US1] Update `AGENTS.md` (Q&A секция) — add new Q&A entry: «Q: Настроить Linux Mint 22.2 для Karaoke? A: см. `specs/170-mint-dev-setup/` — идемпотентный `setup-mint.sh` + `do.env.template`» (short, ~5 lines)
-- [ ] T023 [US1] Run quickstart.md validation on this machine — execute all 5 steps from `quickstart.md`, confirm smoke-test passes (or document what blocks it; if blocked by missing `do.env`, document as expected pre-merge state)
-- [ ] T024 [US1] Stage and commit all new files in 1 logical commit: `git add deploy/do.env.template specs/170-mint-dev-setup/setup-mint.sh docs/features/docker-deploy.md docs/features/README.md docs/onboarding.md AGENTS.md` (только эти файлы, **не** `deploy/do.env` — его нет, и **не** `do.env` — он не в гите)
+- [X] T020 [P] [US1] Update `docs/features/README.md` — add `docker-deploy.md` to the table of 9 features (10th row, columns: name = "Docker deploy", path = "docs/features/docker-deploy.md", description = "9 контейнеров локально + MinIO + do.env hygiene")
+- [X] T021 [P] [US1] Update `docs/onboarding.md` — add a new section «### Linux Mint 22.2 (Zara)» after the macOS/Ubuntu/Arch sections, with 1-line summary: «Для Linux Mint 22.2 — см. [`specs/170-mint-dev-setup/`](./specs/170-mint-dev-setup/) (артефакт `setup-mint.sh` + `deploy/do.env.template`)»
+- [X] T022 [US1] Update `AGENTS.md` (Q&A секция) — add new Q&A entry: «Q: Настроить Linux Mint 22.2 для Karaoke? A: см. `specs/170-mint-dev-setup/` — идемпотентный `setup-mint.sh` + `do.env.template`» (short, ~5 lines)
+- [X] T023 [US1] Run quickstart.md validation on this machine — execute all 5 steps from `quickstart.md`, confirm smoke-test passes (or document what blocks it; if blocked by missing `do.env`, document as expected pre-merge state)
+- [X] T024 [US1] Stage and commit all new files in 1 logical commit: `git add deploy/do.env.template specs/170-mint-dev-setup/setup-mint.sh docs/features/docker-deploy.md docs/features/README.md docs/onboarding.md AGENTS.md` (только эти файлы, **не** `deploy/do.env` — его нет, и **не** `do.env` — он не в гите)
 
 **Checkpoint**: US1 complete — артефакты созданы, smoke-test зелёный (или задокументировано почему ещё нет), документация обновлена, изменения готовы к PR.
 

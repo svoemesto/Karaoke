@@ -1737,4 +1737,51 @@ async, `currentLink = null` стартовое значение → Vue ренд
 - `specs/176-authors-new-albums-badge/quickstart.md` — 7 ручных сценариев валидации.
 - `specs/176-authors-new-albums-badge/tasks.md` — 11 задач.
 
+## Pass 59: feat(karaoke-app) — устранение спама `PROCESS_COUNT_WAITING` в SSE-канале (2026-08-12, branch `178-fix-process-count-waiting-spam`)
+
+**Задача**: при открытии админки в браузере устанавливается SSE-подписка `/api/subscribe?tabId=...`, и в канал непрерывно (период ~10–15 мс) уходят одинаковые сообщения `{"type":"PROCESS_COUNT_WAITING","data":{"countWaiting":0}}` — десятки тысяч за 5 минут простоя при пустой очереди. Это и бесполезный шум (событие «оно изменилось», а не heartbeat), и лишняя нагрузка на CPU/сеть при сериализации SSE-фреймов и обработке на фронте.
+
+**Что сделано** (2 правки в одном файле):
+
+1. **Дедупликация на стороне продьюсера (FR-001)** — в `KaraokeProcessWorker.sendCountWaitingMessage(countWaiting: Long)` добавлена проверка `previous == countWaiting` → early return; добавлено поле `@Volatile private var lastSentCountWaiting: Long? = null` (источник истины для дедупликации). Поле `Long?` (а не `Long = -1`) — чтобы отделить «ещё не отправляли» от «отправляли 0». `@Volatile` — соответствует стилю уже существующих полей (`isWork`, `stopAfterThreadIsDone`, `withoutControl`).
+2. **Сброс при старте воркера (FR-007)** — в `start()` добавлен `lastSentCountWaiting = null` ПЕРЕД первым `sendCountWaitingMessage(...)` после `deleteDone`/`setWorkingToWaiting`. Гарантирует ровно одно начальное сообщение при старте воркера, даже если значение совпало с предыдущим до остановки.
+3. **Удаление периодических вызовов в `doStart()` (FR-003 / US2)** — два вызова `sendCountWaitingMessage(KaraokeProcess.getCountWaiting(...))` внутри цикла `while (isWork)` (Thread.sleep(10L)) удалены и заменены комментариями-пояснениями: один был в ветке «стартуем новое задание» (старые строки 1058–1059), другой — в ветке «очередь пуста» (старые строки 1107–1109). Это главный источник спама, который не подавлялся дедупликацией автоматически (хотя после фикса №1 и без удаления он бы подавился — но лишний `SELECT count(*)` на каждой итерации цикла остался бы, ~100 SELECT/sec на пустую очередь).
+
+**Call-sites после фикса**: 4 (было 5). Остались `createDbInstance` (KaraokeProcess.kt:762), `run` (KaraokeProcessWorker.kt:211), `start` (теперь :635 после правок T006), `forceStop` (теперь :1226). Все идут через единую `sendCountWaitingMessage` с дедупликацией — больше нет прямых вызовов `SNS.send(SseNotification.processCountWaiting(...))`.
+
+**Реальные изменения счётчика доходят до UI по-прежнему**:
+- Новое WAITING-задание → `createDbInstance` отправляет (раньше: 1 сообщение; теперь: 1 сообщение с новым значением, дубль не пройдёт).
+- Старт subprocess → `run` отправляет.
+- Завершение процесса → `run` (через status DONE) отправляет (счётчик уменьшается).
+- Форс-стоп → `forceStop` отправляет.
+- Перезапуск воркера → `start` отправляет (после сброса `lastSentCountWaiting = null`).
+
+**Wire-формат не изменился** (`contracts/sse-payload.md`): тот же JSON `{userId, payload:{type:"PROCESS_COUNT_WAITING", data:{countWaiting}}, timestamp}`. Только частота отправки уменьшилась — UI в `webvue3/src/App.vue:362` (`case 'PROCESS_COUNT_WAITING': setCountWaiting(...)`) без изменений.
+
+**Новых сущностей / миграций БД / изменений DTO нет** — фикс чисто runtime, в одном Kotlin-файле. БД не трогаем (см. constitution Principle II «сырой JDBC + дифф по хэшам»).
+
+**KDoc** на новом поле и на переписанной функции — с `@see docs/features/async-process-queue.md` (constitution FR-006 «Публичные API MUST сопровождаться KDoc с @see на per-feature документ»). `lastSentCountWaiting` помечен `private`, но KDoc оставлен для единообразия со стилем файла.
+
+**Локальная сборка**: `./gradlew :karaoke-app:compileKotlin ktlintCheck` → `BUILD SUCCESSFUL in 27s`. Никаких новых ktlint/eslint-нарушений (baseline сохранён, см. constitution FR-007).
+
+**Проверка**: ручная на admin-машине через DevTools → Network → EventStream (4 сценария в `specs/177-fix-process-count-waiting-spam/quickstart.md`). CI-юнит-тестов в проекте нет (constitution.md § «Тесты»); регрессия маловероятна (дифф < 50 строк в одном файле, изменения локальны).
+
+**Новые/изменённые файлы**:
+- Backend (Kotlin): `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcessWorker.kt` (MODIFY — 1 новое поле + переписана 1 функция + сброс в `start()` + удалены 2 вызова в `doStart()`; net ~50 строк).
+- Docs: `docs/architecture-notes.md` (эта запись).
+- Spec: `specs/177-fix-process-count-waiting-spam/{spec,plan,research,data-model,contracts/sse-payload,quickstart,tasks,checklists/requirements}.md` — 9 файлов спецификации.
+
+**Связанные документы**:
+- `specs/177-fix-process-count-waiting-spam/spec.md` — функциональная спека (8 FRs, 5 SCs, 2 user stories).
+- `specs/177-fix-process-count-waiting-spam/plan.md` — implementation plan (Technical Context, Constitution Check 7/8 PASS + 1 WATCH FR-006).
+- `specs/177-fix-process-count-waiting-spam/research.md` — 4 архитектурных решения (выбран `@Volatile Long?` + early return; 4 альтернативы отклонены).
+- `specs/177-fix-process-count-waiting-spam/data-model.md` — runtime-сущность `LastSentCountWaiting` (in-memory, nullable).
+- `specs/177-fix-process-count-waiting-spam/contracts/sse-payload.md` — wire-контракт (без изменений).
+- `specs/177-fix-process-count-waiting-spam/quickstart.md` — 4 ручных сценария валидации.
+- `specs/177-fix-process-count-waiting-spam/tasks.md` — 16 задач.
+
+**Урок (для будущих фич в этом коде)**:
+- Периодический цикл `while (isWork)` с малым `Thread.sleep` (10 мс) — пограничная зона для спама в SSE. Любой вызов продьюсера в теле цикла должен либо быть привязан к «реальному изменению состояния» (early return по состоянию), либо быть редким heartbeat (явный `interval`-таймер, отдельный тип события).
+- Не использовать call-sites как «таймер напоминания о текущем состоянии» — это создаёт избыточный трафик.
+
 

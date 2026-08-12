@@ -520,6 +520,25 @@ class KaraokeProcessWorker {
         @Volatile var stopAfterThreadIsDone: Boolean = false
 
         /**
+         * Последнее значение `countWaiting`, фактически отправленное в SSE-канал
+         * через [sendCountWaitingMessage]. Используется для подавления дублей:
+         * если новое значение совпадает с последним отправленным — сообщение
+         * не рассылается повторно. `null` — «ещё ни разу не отправляли»
+         * (после рестарта бэкенда или после [start], который сбрасывает в
+         * `null` для гарантии FR-007 — ровно одно начальное сообщение при
+         * старте воркера, даже если значение совпало с предыдущим).
+         *
+         * `@Volatile` — пишется минимум из [sendCountWaitingMessage] (поток
+         * [doStart] и HTTP-потоки call-sites), читается там же. Без
+         * `@Volatile` запись могла быть не видна другому потоку вовремя
+         * (JMM не гарантирует visibility для обычного `var`).
+         *
+         * @see sendCountWaitingMessage
+         * @see docs/features/async-process-queue.md
+         */
+        @Volatile private var lastSentCountWaiting: Long? = null
+
+        /**
          * Режим без UI-контроля (для batch-прогонов на admin-машине): пока хотя бы один ЖИВОЙ поток
          * в любом лейне обрабатывает задание с `karaokeProcess.withoutControl == true`, главный цикл
          * [doStart] не делает `Thread.sleep` между итерациями. Пересчитывается заново на каждой
@@ -609,6 +628,10 @@ class KaraokeProcessWorker {
             }
             KaraokeProcess.deleteDone(database)
             KaraokeProcess.setWorkingToWaiting(database)
+            // FR-007: сбрасываем «последнее отправленное значение», чтобы гарантировать
+            // ровно одно начальное сообщение `countWaiting` при старте воркера —
+            // даже если число совпало с предыдущим значением до остановки.
+            lastSentCountWaiting = null
             sendCountWaitingMessage(KaraokeProcess.getCountWaiting(database))
             Thread {
                 try {
@@ -707,7 +730,37 @@ class KaraokeProcessWorker {
             }
         }
 
+        /**
+         * Рассылает SSE-сообщение с текущим количеством `WAITING`-заданий
+         * (исключая `command = "tail"`). UI использует это для обновления
+         * бейджа счётчика в шапке админки.
+         *
+         * Подавляет дубли: если новое значение совпадает с последним
+         * отправленным ([lastSentCountWaiting]) — событие не отправляется.
+         * Это устраняет спам в SSE-канале из периодических вызовов внутри
+         * [doStart] (старый код слал `countWaiting` на каждой итерации
+         * `while (isWork)` с `Thread.sleep(10L)`, ~10–15 мс между событиями).
+         *
+         * Реальные изменения `countWaiting` (создание нового WAITING-задания,
+         * переход в WORKING, завершение, форс-стоп, перезапуск воркера)
+         * по-прежнему доходят до UI в течение 1–2 секунд — call-sites
+         * `createDbInstance`/`run`/`forceStop`/`start` идут через этот же
+         * метод, и при реальном изменении значения early-return не срабатывает.
+         *
+         * Безопасно вызывать в любом потоке — `SNS.send` ловит исключения
+         * и пишет в stdout (не пробрасывает). Фикс
+         * `178-fix-process-count-waiting-spam`.
+         *
+         * @param countWaiting актуальное число WAITING-заданий
+         * @see lastSentCountWaiting состояние «последнее отправленное»
+         * @see docs/features/async-process-queue.md
+         */
         fun sendCountWaitingMessage(countWaiting: Long) {
+            // Подавление дублей: если значение не изменилось с прошлой отправки —
+            // не рассылаем повторно (FR-001). `null` (старт/рестарт) — всегда шлём.
+            val previous = lastSentCountWaiting
+            if (previous != null && previous == countWaiting) return
+            lastSentCountWaiting = countWaiting
             val messageProcessCountWaiting =
                 SseNotification.processCountWaiting(
                     ProcessCountWaitingMessage(
@@ -1054,9 +1107,13 @@ class KaraokeProcessWorker {
                             (threadsIds.contains(threadId) && (threadsMap[threadId] == null || !threadsMap[threadId]!!.isAlive))
                         ) {
                             val karaokeProcess = karaokeProcessesToStart[threadId]
-                            // throwOnError=true - см. комментарий у getKaraokeProcessesToStart() выше.
-                            val countWaiting = KaraokeProcess.getCountWaiting(database, throwOnError = true)
-                            sendCountWaitingMessage(countWaiting)
+                            // FR-003 (US2): периодический вызов sendCountWaitingMessage
+                            // удалён — реальные изменения счётчика доходят до UI через
+                            // call-sites createDbInstance/run/forceStop/start, которые
+                            // проходят через sendCountWaitingMessage с дедупликацией.
+                            // Прежний код вызывал getCountWaiting + sendCountWaitingMessage
+                            // на каждой итерации цикла, создавая спам и лишнюю нагрузку
+                            // на БД (SELECT count(*) на tbl_processes каждые ~10 мс).
                             if (karaokeProcess != null && (!stopAfterThreadIsDone || karaokeProcess.command == "tail")) {
                                 val args = karaokeProcess.args[0]
                                 if (args.isNotEmpty()) {
@@ -1102,11 +1159,10 @@ class KaraokeProcessWorker {
                         }
                     }
 
-                    // Если очередь пуста — отправляем актуальный счётчик, чтобы бейдж сбросился в 0
-                    // throwOnError=true - см. комментарий у getKaraokeProcessesToStart() выше.
-                    if (karaokeProcessesToStartIds.isEmpty()) {
-                        sendCountWaitingMessage(KaraokeProcess.getCountWaiting(database, throwOnError = true))
-                    }
+                    // FR-003 (US2): периодический вызов sendCountWaitingMessage
+                    // для пустой очереди удалён — счётчик обновляется через call-sites
+                    // run() (завершение задания) и deleteDone() на следующей итерации
+                    // цикла, а периодический SELECT count(*) + send был источником спама.
 
                     // Периодическая отправка SSE для активных потоков, которые уже не WAITING
                     // (выпали из getProcessesToStart). Без этого прогресс long-running заданий

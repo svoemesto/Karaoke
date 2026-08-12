@@ -356,6 +356,30 @@ class KaraokeProcessThread(
                     }
                 }
 
+                // После завершения subprocess (DONE / ERROR / форс-стоп → WAITING) —
+                // отправляем актуальный countWaiting в SSE, чтобы UI-бейдж «start-stop»
+                // отражал текущий размер очереди. Дедупликация в sendCountWaitingMessage
+                // подавляет случай, когда countWaiting не изменился (например, force-stop
+                // вернул задание в WAITING — WAITING-число не изменилось).
+                //
+                // Регрессия после specs/177-fix-process-count-waiting-spam: устранение
+                // периодического вызова sendCountWaitingMessage в doStart() (старая
+                // строка 1107 «if (karaokeProcessesToStartIds.isEmpty()) ...») убрало
+                // этот сигнал вместе со спамом. Этот hook в run() восстанавливает
+                // доставку реальных изменений countWaiting после завершения subprocess.
+                try {
+                    KaraokeProcessWorker.sendCountWaitingMessage(
+                        KaraokeProcess.getCountWaiting(database = karaokeProcess.database),
+                    )
+                } catch (e: Exception) {
+                    println(
+                        "[${Timestamp.from(
+                            Instant.now(),
+                        )}] KaraokeProcessThread[${karaokeProcess.threadId}]: " +
+                            "ошибка отправки countWaiting после завершения subprocess: ${e.message}",
+                    )
+                }
+
                 // Пост-хук: после завершения репаир-задания пересчитать HealthReport песни и разослать SSE
                 // (иначе счётчик ошибок в таблице «застывает» на IN_PROGRESS). Для песен в каскаде
                 // «Исправить всё» — поставить следующий ставший решаемым шаг. Ограничение по типам исключает

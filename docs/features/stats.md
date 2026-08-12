@@ -2,7 +2,7 @@
 
 > **Status**: active
 > **Feature Key**: stats
-> **Last Updated**: 2026-07-29 (specs/022-song-status-lifecycle: порог «готова» `id_status>=3` → `>=6`)
+> **Last Updated**: 2026-08-12 (specs/174-fix-stats-connection-leak: lazy load табов + 60s TTL кеш + `503 stats.unavailable` banner)
 
 ## Что делает
 
@@ -77,6 +77,73 @@ Spring `@Cacheable` намеренно НЕ подключён (нет `@EnableC
 Проще держать инвариант «endpoint отвечает без обращения к БД» явно
 через `AtomicInteger + Scheduled`.
 
+### Кеш агрегатов на dashboard (StatsCache, Pass 51)
+
+Спека [174-fix-stats-connection-leak](../../specs/174-fix-stats-connection-leak/spec.md)
+добавляет **in-process TTL-кеш на 60 секунд** для 6 чистых агрегатов
+в `StatsController` (FR-004):
+
+| Endpoint | Response body | TTL |
+|----------|---------------|-----|
+| `/api/stats/summary` | `{summary: {...}}` | 60s |
+| `/api/stats/timeseries` | `{items: [...]}` (days=30, mode=all defaults) | 60s |
+| `/api/stats/channels` | `{items: [...]}` | 60s |
+| `/api/stats/countries` | `{items: [...]}` | 60s |
+| `/api/stats/referrers` | `{items: [...]}` | 60s |
+| `/api/stats/monetization` | `{summary: {...}}` | 60s |
+
+Реализация — `services/StatsCache.kt` (singleton, `ConcurrentHashMap<StatsCacheKey, StatsCacheEntry>`,
+SLF4J `log.debug` для cache hit/miss). Lazy expiration через проверку
+`expiresAt > Instant.now()` при чтении. Thread-safety — atomic `ConcurrentHashMap`.
+
+Параметризованные endpoint'ы (`/by-song`, `/top-users`, `/webevents`, `/by-detail`,
+`/top-listened`, `/monetization/top-songs`, `/user-events`, `/song-events`) — НЕ
+кешируются в этой спеке (cache key explosion не оправдан; см. FR-004).
+
+HikariCP не подключается в этой спеке (FR-007) — вынесено в отдельную
+задачу `XXX-fix-stats-connection-pool`, если метрики после фикса покажут
+недостаточность lazy load + кеша.
+
+### Lazy load табов в `StatsView.vue` (FR-001)
+
+До фикса `StatsView.vue:mounted() → reloadAll()` запускал **10-12 параллельных
+HTTP-запросов** к `/api/stats/*` при каждом открытии вкладки — каскадно
+исчерпывая `pg max_connections = 100` за несколько загрузок с логом
+`FATAL: sorry, too many clients already`.
+
+После фикса `mounted()` вызывает `loadDataForActiveTab()` — загружает данные
+только активной вкладки (дефолт `KPI` = 1-2 запроса вместо 10-12). Watch
+на `activeTab` подгружает данные при переключении. Метод `reloadAll()` удалён
+как footgun (10-12 параллельных HTTP).
+
+Параметр «Обновить» в toolbar вызывает `loadDataForActiveTab()` для текущей
+вкладки — тот же путь, что при первом открытии. Поддерживается 60s TTL
+на фронте (Vuex `lastLoadedAt`) — в течение окна повторный открыватель таба
+short-circuit'ит и не шлёт HTTP.
+
+Кнопка «Обновить всё» (10-12 параллельных HTTP) убрана из toolbar — см.
+`AGENTS.md` секцию «Известные ловушки».
+
+### Обработка сбоя БД — `503 stats.unavailable` (US3)
+
+При сбое `KaraokeConnection.getConnection()` (включая `too many clients already`)
+бэкенд возвращает `503 Service Unavailable` с заголовком `Retry-After: 10`
+и телом `{"errorCode":"stats.unavailable","retryAfterSeconds":10,"endpoint":"/api/stats/..."}` —
+по образцу спеки 167 (`share.internal`).
+
+Фронт (`webvue3`) показывает компонент `<DbOverloadBanner>` вместо пустых
+графиков — текст «БД перегружена. Retry через N секунд» + кнопка
+«Retry now» (FR-005). Кнопка disabled на `retryAfterSeconds` с обратным
+отсчётом; один авто-retry через `retryAfterSeconds` (FR-011).
+
+В кеше не сохраняется failed body — `StatsCache.put` вызывается только
+после успешного `compute()`, чтобы не засорить кеш 503-ответами.
+
+Debug-endpoint `POST /api/stats/debug` (FR-010) — для ручной диагностики:
+возвращает `cacheSize + cacheKeys (с age/expired) + pgActiveConnections +
+pgMaxConnections + timestamp`. `permitAll()` — admin-зона, доступ по
+сети. Без auth, без секретов.
+
 ### Потребители
 
 - `PublicApiController.kt` → `@GetMapping("/stats")` → JSON для Vuex-модуля
@@ -115,6 +182,15 @@ Spring `@Cacheable` намеренно НЕ подключён (нет `@EnableC
 
 ## Известные ловушки
 
+- **10+ параллельных HTTP при `mounted()` (StatsView)** — корневая причина
+  `FATAL: too many clients already` в `karaoke-app`. Исправлено в спеке 174
+  через lazy load табов + 60s TTL кеш на фронте + 6 кешируемых endpoint'ов
+  на бэке. **Не использовать `reloadAll()` / параллельные dispatch —
+  только `loadDataForActiveTab()`** (см. FR-001).
+- **Открытое окно `getConnection()` всё ещё даёт 1 соединение на запрос** —
+  на пике 70+ одновременных соединений в `pg_stat_activity` (SC-003). После
+  этой спеки HikariCP не включается (FR-007). Если метрики покажут
+  недостаточность — открыть задачу `XXX-fix-stats-connection-pool`.
 - **`StatsCacheScheduler` падает с ошибкой → счётчики застывают**.
   Мониторинг: `MonitorCheck.cachedStatsCheck` (если есть) или вручную
   через `/api/stats?debug=1` смотреть timestamp последнего обновления.
@@ -124,6 +200,10 @@ Spring `@Cacheable` намеренно НЕ подключён (нет `@EnableC
 - **GDPR**: события содержат IP и user-agent. Для соответствия GDPR
   нужна политика retention (например, удалять старше 90 дней) +
   анонимизация IP после 30 дней.
+- **Failed-response не кладётся в StatsCache** — `put()` вызывается только
+  на success. Если бы клали при 503, при откате БД пользователь продолжал
+  бы видеть баннер ещё 60 секунд (бэк отдаёт cached 503 на cache hit).
+  Это нарушает инвариант «503 = реальный сбой, retry решит».
 
 ## Ссылки
 
@@ -132,9 +212,14 @@ Spring `@Cacheable` намеренно НЕ подключён (нет `@EnableC
 - [`StatBySong.kt`](../../karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/StatBySong.kt) — кеш счётчиков главной страницы (`AtomicInteger`), см. «Как работает»
 - [`StatsCacheScheduler.kt`](../../karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/services/StatsCacheScheduler.kt) — `@PostConstruct`/`@Scheduled` обновление кеша
 - [`StatsByEvents`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/StatBySong.kt) — статистика по событиям (`tbl_web_event`), объявлен в `model/StatBySong.kt` (karaoke-app; не путать с `karaoke-web`'s `StatBySong.kt` выше)
-- [`StatsController.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/StatsController.kt) — REST-эндпоинты для админа (`webvue3`)
+- [`StatsController.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/StatsController.kt) — REST-эндпоинты для админа (`webvue3`); 6 кешируемых через `respondCached()` + обработка `503 stats.unavailable`
+- [`StatsCache.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/StatsCache.kt) — in-process TTL-кеш для 6 чистых агрегатов (60s, `ConcurrentHashMap`)
+- [`StatsCacheKey.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/StatsCacheKey.kt) — data classes `StatsCacheKey` + `StatsCacheEntry`
+- [`StatsDebugDto.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/StatsDebugDto.kt) — DTO для `POST /api/stats/debug` (FR-010)
+- [`StatsDebugController.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/StatsDebugController.kt) — debug endpoint с `pg_stat_activity` счётчиком
+- [`StatsResponseUtils.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/StatsResponseUtils.kt) — top-level `statsUnavailableResponse()` для `503 stats.unavailable`
 - [`PublicApiController.kt`](../../karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicApiController.kt) — JSON для главной `karaoke-public`
-- Vue: [`webvue3/src/components/Stats/`](../../webvue3/src/components/Stats/), [`karaoke-public/src/views/HomeView.vue`](../../karaoke-public/src/views/HomeView.vue)
+- Vue: [`webvue3/src/components/Stats/`](../../webvue3/src/components/Stats/), [`DbOverloadBanner.vue`](../../webvue3/src/components/Stats/DbOverloadBanner.vue), [`karaoke-public/src/views/HomeView.vue`](../../karaoke-public/src/views/HomeView.vue)
 
 ### Связанные документы
 
@@ -144,3 +229,5 @@ Spring `@Cacheable` намеренно НЕ подключён (нет `@EnableC
 - [special-orders.md](./special-orders.md) — `Zakroma.getZakroma`/`getZakromaBySpecialOrder` теперь тоже фильтруют по `id_status>=6`
 - [specs/013-song-status-filter/spec.md](../../specs/013-song-status-filter/spec.md) — согласование счётчика «в коллекции» с листингами
 - [specs/022-song-status-lifecycle/spec.md](../../specs/022-song-status-lifecycle/spec.md) — расширение жизненного цикла статуса до 7 значений, перенос порога готовности на `>=6`
+- [specs/174-fix-stats-connection-leak/spec.md](../../specs/174-fix-stats-connection-leak/spec.md) — lazy load табов + 60s TTL + 503 stats.unavailable + `<DbOverloadBanner>`. SC-001..SC-005. Соседняя задача для контекста: спеки [087-fix-shared-db-connection](../../specs/087-fix-shared-db-connection/spec.md), [091-fix-connection-leak](../../specs/091-fix-connection-leak/spec.md), [167-fix-share-claim-500](../../specs/167-fix-share-claim-500/spec.md) (паттерн `share.internal`).
+- [specs/174-fix-stats-connection-leak/quickstart.md](../../specs/174-fix-stats-connection-leak/quickstart.md) — 6 ручных сценариев валидации (SC-001..SC-005)

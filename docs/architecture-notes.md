@@ -1662,3 +1662,48 @@ async, `currentLink = null` стартовое значение → Vue ренд
 - `specs/171-admin-subscriptions-history/quickstart.md` — 5 manual scenarios.
 - `specs/171-admin-subscriptions-history/tasks.md` — 46 задач.
 - `docs/features/guest-share-link.md` — обновлён секцией «Админ-таблица /sharelinks».
+
+## Pass 57: fix(admin) — flood JDBC-соединений при открытии вкладки «Статистика» (2026-08-12, branch `174-fix-stats-connection-leak`)
+
+**Задача**: при `mounted()` компонента `StatsView.vue` в `webvue3` через несколько секунд в логе `karaoke-app` появлялся каскад сообщений `KaraokeConnection getConnection Exception: FATAL: sorry, too many clients already`. Корневая причина: `StatsView.vue:mounted() → reloadAll()` запускал 10–12 параллельных HTTP-запросов к `/api/stats/*` при каждом открытии вкладки, исчерпывая `pg max_connections = 100` за несколько загрузок.
+
+**Что сделано** (3 ортогональных механизма, без новых зависимостей):
+1. **Lazy load табов в `StatsView.vue` (US1)** — `mounted()` и watch на `activeTab` вызывают `loadDataForActiveTab()`, который шлёт HTTP только для активной вкладки (1–2 запроса вместо 10–12). Кнопка «Обновить всё» убрана как footgun, заменена на «Обновить» с тем же lazy load. Метод `reloadAll()` удалён.
+2. **In-process TTL-кеш на 60 секунд для 6 чистых агрегатов (US2)** — `services/StatsCache.kt` (singleton, `ConcurrentHashMap<StatsCacheKey, StatsCacheEntry>`, lazy expiration через `expiresAt > Instant.now()`). 6 endpoint'ов в `StatsController` (`/summary`, `/timeseries`, `/channels`, `/countries`, `/referrers`, `/monetization`) обёрнуты в `respondCached()` helper. На фронте — Vuex `lastLoadedAt[slice]` + `isFresh()` short-circuit в каждом action.
+3. **`503 stats.unavailable` + `<DbOverloadBanner>` (US3)** — при сбое `KaraokeConnection.getConnection()` бэкенд возвращает `503 Service Unavailable` с заголовком `Retry-After: 10` и телом `{"errorCode":"stats.unavailable","retryAfterSeconds":10,"endpoint":"/api/stats/..."}` (по образцу спеки 167 `share.internal`). Фронт показывает новый компонент `<DbOverloadBanner>` вместо пустых графиков: текст «БД перегружена. Retry через N секунд» + disabled-кнопка «Retry now» с обратным отсчётом и одним авто-retry через `retryAfterSeconds`. SLF4J `log.warn` для `stats.unavailable`, `log.debug` для cache hit/miss.
+
+**Debug-endpoint `POST /api/stats/debug`** (FR-010) — для ручной диагностики инцидентов. Возвращает `cacheSize + cacheKeys (с age/expired) + pgActiveConnections + pgMaxConnections + timestamp`. `permitAll()` — admin-зона, без auth, без секретов.
+
+**Новые/изменённые файлы**:
+- Backend (Kotlin): `model/StatsCacheKey.kt` (NEW), `model/StatsDebugDto.kt` (NEW), `services/StatsCache.kt` (NEW), `services/StatsDebugController.kt` (NEW), `controllers/StatsController.kt` (MODIFY — wrap 6 endpoints + 503 handler), `controllers/StatsResponseUtils.kt` (NEW — top-level `statsUnavailableResponse()` helper).
+- Frontend (Vue 3): `views/StatsView.vue` (MODIFY — lazy load), `components/Stats/store.js` (MODIFY — `lastLoadedAt` + `dbOverload` state + handleStatsError 503 path), `components/Stats/DbOverloadBanner.vue` (NEW — баннер с countdown).
+- Docs: `docs/features/stats.md` (MODIFY — секции «Кеш агрегатов», «Lazy load табов», «503 stats.unavailable»; новая ловушка «10+ параллельных HTTP при `mounted()`»).
+- Specs: `specs/174-fix-stats-connection-leak/{spec.md,plan.md,research.md,data-model.md,quickstart.md,contracts/,tasks.md}` (полная спецификация).
+
+**Решения** (из `specs/174-fix-stats-connection-leak/research.md`):
+- Размещение `StatsCache` в `services/` (рядом с `GeoIpService`, `SyncTarget`).
+- `ConcurrentHashMap` + ручной TTL check вместо Spring `@Cacheable` (6 ключей — overkill для `@EnableCaching`).
+- `ResponseEntity.status(503).header("Retry-After", "10").body(...)` вместо `ResponseStatusException` (нужно custom body).
+- BTab `v-show` вместо `v-if` (сохраняется state при переключении).
+- Debug endpoint `permitAll()` (admin-зона уже защищена сетевым уровнем).
+
+**HikariCP НЕ включается** в эту спеку (FR-007) — вынесено в отдельную задачу `XXX-fix-stats-connection-pool`. Решение: lazy load + кеш должны снизить нагрузку достаточно; если метрики покажут обратное — открыть задачу отдельно с обсуждением (повышение `pg max_connections` ≠ решение, это маскировка).
+
+**Метрика**: 4 backend файла (NEW) + 1 модификация (StatsController.kt) + 1 helper + 2 frontend файла (1 NEW + 1 модификация) + 1 docs + ~1400 строк Kotlin/JS/Vue + ~80 строк markdown.
+
+**Lessons learned**:
+- **Lazy load на уровне диспетчера, не только на уровне BTab** — BTab по умолчанию не монтирует неактивный контент, но `mounted()` родителя делал 10 параллельных dispatch. Исправление в `mounted()` + watcher `activeTab`, а не в template.
+- **Без SLF4J `log.warn` 503 не отличить от «БД лежит»** — при инциденте непонятно, реально ли `pg_stat_activity` близок к `max_connections` или БД полностью недоступна. Добавлен `log.warn("stats.unavailable endpoint={} cause={}", ...)` для post-hoc анализа + debug endpoint.
+- **Compose-endpoint per таб (FR-002)** — `Кеш front, на фронте `lastLoadedAt[slice]` per slice дал cache hit без HTTP в течение 60s. Решает FR-002 (composite) по дизайну — каждый таб шлёт 1-N запросов сразу, без отдельного «fetch by-type + by-detail + channels последовательно».
+- **Catch-all на `503` заменяет молчаливый `null` от `getConnection()`** — раньше фронт получал 200 + пустой массив и показывал «пустые графики как будто данных нет». После фикса — фронт явно понимает сценарий и показывает баннер с retry. UX улучшен, диагностика улучшена.
+
+**Связанные документы**:
+- `specs/174-fix-stats-connection-leak/spec.md` — функциональная спека (11 FRs, 6 SCs, 3 user stories).
+- `specs/174-fix-stats-connection-leak/plan.md` — implementation plan.
+- `specs/174-fix-stats-connection-leak/research.md` — 7 архитектурных решений.
+- `specs/174-fix-stats-connection-leak/data-model.md` — 5 сущностей.
+- `specs/174-fix-stats-connection-leak/contracts/{stats-debug.md,stats-unavailable.md}` — API контракты.
+- `specs/174-fix-stats-connection-leak/quickstart.md` — 6 ручных сценариев валидации.
+- `specs/174-fix-stats-connection-leak/tasks.md` — 15 задач.
+- `docs/features/stats.md` — обновлён.
+

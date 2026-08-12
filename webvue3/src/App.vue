@@ -15,7 +15,12 @@
               <router-link class="nav-link" to="/publish">Публикации</router-link>
             </li>
             <li class="nav-item">
-              <router-link class="nav-link" to="/authors">Авторы</router-link>
+              <router-link class="nav-link authors-nav-link" to="/authors">
+                Авторы
+                <span v-if="authorsWithNewAlbumCount > 0" class="authors-nav-badge">{{
+                  authorsWithNewAlbumCount
+                }}</span>
+              </router-link>
             </li>
             <li class="nav-item">
               <router-link class="nav-link" to="/albums">Альбомы</router-link>
@@ -136,6 +141,9 @@ const CHAT_UNREAD_POLL_INTERVAL_MS = 20000
 // Бейдж заданий редактора «на проверке» — тот же приём, что и у чата (отдельный опрос, не завязан на
 // SSE-канал MONITOR_ALERTS выше).
 const SONGEDITOR_SUBMITTED_POLL_INTERVAL_MS = 20000
+// Бейдж «новые альбомы» в пункте меню «Авторы» — тот же приём (отдельный опрос, 20 сек). По образцу
+// чата и заданий редактора; при падении сети предыдущее значение сохраняется (FR-010).
+const AUTHORS_NEW_ALBUMS_POLL_INTERVAL_MS = 20000
 
 /**
  * Корневой компонент админ-SPA (Vue 3 + Bootstrap-vue-next + Vuex).
@@ -167,6 +175,7 @@ export default {
       sseReconnectTimer: null,
       chatUnreadPollTimer: null,
       submittedAssignmentsPollTimer: null,
+      authorsWithNewAlbumPollTimer: null,
     }
   },
   computed: {
@@ -175,6 +184,12 @@ export default {
     },
     submittedAssignmentsCount() {
       return this.$store.getters.getSubmittedAssignmentsCount
+    },
+    // Бейдж «новые альбомы» в пункте меню «Авторы» — по образцу chatUnreadTotal/submittedAssignmentsCount.
+    // Источник: store/modules/Authors → getAuthorsWithNewAlbumCount, обновляется polling-ом
+    // каждые 20 сек через action loadAuthorsWithNewAlbumCount (см. mounted/beforeUnmount ниже).
+    authorsWithNewAlbumCount() {
+      return this.$store.getters.getAuthorsWithNewAlbumCount
     },
   },
   async mounted() {
@@ -233,6 +248,12 @@ export default {
       () => this.$store.dispatch('loadSubmittedAssignmentsCount'),
       SONGEDITOR_SUBMITTED_POLL_INTERVAL_MS,
     )
+
+    this.$store.dispatch('loadAuthorsWithNewAlbumCount')
+    this.authorsWithNewAlbumPollTimer = setInterval(
+      () => this.$store.dispatch('loadAuthorsWithNewAlbumCount'),
+      AUTHORS_NEW_ALBUMS_POLL_INTERVAL_MS,
+    )
   },
   beforeUnmount() {
     if (this.sseReconnectTimer) {
@@ -247,6 +268,10 @@ export default {
     if (this.submittedAssignmentsPollTimer) {
       clearInterval(this.submittedAssignmentsPollTimer)
       this.submittedAssignmentsPollTimer = null
+    }
+    if (this.authorsWithNewAlbumPollTimer) {
+      clearInterval(this.authorsWithNewAlbumPollTimer)
+      this.authorsWithNewAlbumPollTimer = null
     }
   },
   methods: {
@@ -753,6 +778,23 @@ export default {
   justify-content: space-between;
 }
 .songeditor-nav-badge {
+  background-color: #d02c3a;
+  color: #fff;
+  border-radius: 10px;
+  min-width: 18px;
+  height: 18px;
+  line-height: 18px;
+  text-align: center;
+  font-size: 11px;
+  padding: 0 5px;
+}
+
+.authors-nav-link {
+  display: flex !important;
+  align-items: center;
+  justify-content: space-between;
+}
+.authors-nav-badge {
   background-color: #d02c3a;
   color: #fff;
   border-radius: 10px;

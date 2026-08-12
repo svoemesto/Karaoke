@@ -6079,6 +6079,19 @@ class ApiController(
         )
     }
 
+    /**
+     * Количество авторов с `haveNewAlbum = true` — бейдж пункта меню «Авторы» в webvue3
+     * (App.vue → polling `loadAuthorsWithNewAlbumCount` каждые 20 сек).
+     *
+     * Использует `Author.countWithNewAlbum` (raw `SELECT COUNT(*)` по `tbl_authors`) — см. спеку.
+     * Возвращает plain `int` (как `/api/songeditor/submittedcount` и `/api/chat/unreadcount`).
+     *
+     * @see specs/176-authors-new-albums-badge/contracts/api-authors-withnewalbumcount.md
+     */
+    @PostMapping("/authors/withnewalbumcount")
+    @ResponseBody
+    fun apisAuthorsWithNewAlbumCount(): Int = Author.countWithNewAlbum(WORKING_DATABASE)
+
     @PostMapping("/albums/albumsdigests")
     @ResponseBody
     fun apisAlbumsDigest(

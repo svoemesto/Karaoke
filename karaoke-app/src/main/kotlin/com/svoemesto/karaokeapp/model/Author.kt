@@ -326,6 +326,39 @@ class Author(
             }
             return result
         }
+
+        /**
+         * Количество авторов с `haveNewAlbum = true` — бейдж пункта меню «Авторы» в webvue3
+         * (App.vue → `loadAuthorsWithNewAlbumCount`).
+         *
+         * SQL-условие — точная копия вычисляемого свойства `Author.haveNewAlbum` (строки 94-97)
+         * и серверного фильтра `Author.getWhereList["haveNewAlbum=+"]` (строки 170-178). При изменении
+         * семантики «нового альбома» синхронизировать все три места (getter / getWhereList / этот метод).
+         *
+         * Прямой `SELECT COUNT(*)` — без инстанцирования `Author` (как `loadList(...).count`), что на
+         * базе из ~18k+ авторов даёт ускорение на порядок. Шаблон — `SiteChatMessage.countUnreadFromUsers`.
+         *
+         * @see specs/176-authors-new-albums-badge/contracts/api-authors-withnewalbumcount.md
+         * @return число авторов с новым альбомом, или 0 при ошибке JDBC / отсутствии соединения.
+         */
+        fun countWithNewAlbum(database: KaraokeConnection): Int {
+            val connection = database.getConnection() ?: return 0
+            val sql =
+                """
+                SELECT COUNT(*) AS cnt FROM $TABLE_NAME
+                WHERE watched = true
+                  AND (ym_id <> '' OR vk_id <> '')
+                  AND (last_album_ym <> last_album_processed OR last_album_vk <> last_album_processed)
+                """.trimIndent()
+            return try {
+                connection.prepareStatement(sql).use { ps ->
+                    ps.executeQuery().use { rs -> if (rs.next()) rs.getInt("cnt") else 0 }
+                }
+            } catch (e: SQLException) {
+                println("[${Timestamp.from(Instant.now())}] Author.countWithNewAlbum SQLException: ${e.message}")
+                0
+            }
+        }
     }
 }
 

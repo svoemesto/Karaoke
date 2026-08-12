@@ -17,6 +17,7 @@ import com.svoemesto.karaokeapp.model.SiteChatMessage
 import com.svoemesto.karaokeapp.model.SitePlaylist
 import com.svoemesto.karaokeapp.model.SitePlaylistItem
 import com.svoemesto.karaokeapp.model.SiteUser
+import com.svoemesto.karaokeapp.model.SongShareLink
 import com.svoemesto.karaokeapp.model.SongAssignment
 import com.svoemesto.karaokeapp.model.SongAssignmentDraft
 import com.svoemesto.karaokeapp.model.SongCoAuthor
@@ -389,6 +390,17 @@ val SitePlaylistItemsSyncTarget =
         rowChunkSize = 500,
     )
 
+val ShareLinksSyncTarget =
+    GenericKaraokeDbTableSyncTarget(
+        key = "sharelinks",
+        tableName = SongShareLink.TABLE_NAME,
+        displayName = "Временные ссылки",
+        oneClickDirection = SyncDirection.SERVER_TO_LOCAL,
+        clazz = SongShareLink::class,
+        labelFn = { "id=${it.id} user=${it.ownerSiteUserId} song=${it.songId} active=${it.active}" },
+        rowChunkSize = 200,
+    )
+
 val EventsSyncTarget =
     GenericKaraokeDbTableSyncTarget(
         key = "events",
@@ -503,6 +515,7 @@ object SyncRegistry {
             ListeningHistorySyncTarget,
             SongAssignmentsSyncTarget,
             SongAssignmentDraftsSyncTarget,
+            ShareLinksSyncTarget,
             EventsSyncTarget,
             PriceTariffsSyncTarget,
             SubscriptionsSyncTarget,

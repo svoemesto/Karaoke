@@ -330,6 +330,46 @@ val listKaraokeProperties =
         // Дефолт всех — false (синхронизация выключена), КРОМЕ events/pull (перелив статистики с сервера
         // на LOCAL с очисткой сервера): insert/update/move = true, delete = false.
         KaraokeProperty(
+            key = "sync_sharelinks_push_insert_allowed",
+            defaultValue = false,
+            description = "Синхронизация: Временные ссылки — push, Добавление",
+        ),
+        KaraokeProperty(
+            key = "sync_sharelinks_push_update_allowed",
+            defaultValue = false,
+            description = "Синхронизация: Временные ссылки — push, Изменение",
+        ),
+        KaraokeProperty(
+            key = "sync_sharelinks_push_delete_allowed",
+            defaultValue = false,
+            description = "Синхронизация: Временные ссылки — push, Удаление",
+        ),
+        KaraokeProperty(
+            key = "sync_sharelinks_push_move_allowed",
+            defaultValue = false,
+            description = "Синхронизация: Временные ссылки — push, Перемещение",
+        ),
+        KaraokeProperty(
+            key = "sync_sharelinks_pull_insert_allowed",
+            defaultValue = false,
+            description = "Синхронизация: Временные ссылки — pull, Добавление",
+        ),
+        KaraokeProperty(
+            key = "sync_sharelinks_pull_update_allowed",
+            defaultValue = false,
+            description = "Синхронизация: Временные ссылки — pull, Изменение",
+        ),
+        KaraokeProperty(
+            key = "sync_sharelinks_pull_delete_allowed",
+            defaultValue = false,
+            description = "Синхронизация: Временные ссылки — pull, Удаление",
+        ),
+        KaraokeProperty(
+            key = "sync_sharelinks_pull_move_allowed",
+            defaultValue = false,
+            description = "Синхронизация: Временные ссылки — pull, Перемещение",
+        ),
+        KaraokeProperty(
             key = "sync_songs_push_insert_allowed",
             defaultValue = false,
             description = "Синхронизация: Песни — push, Добавление",

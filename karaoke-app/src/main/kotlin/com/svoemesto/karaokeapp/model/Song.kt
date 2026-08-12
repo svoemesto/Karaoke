@@ -4464,6 +4464,7 @@ class Song(
     }
 
     fun getTextBody(): String {
+        if (songType != SongType.SONG) return songType.caption
         val result = StringBuilder()
         for (voice in 0 until countVoices) {
             val spanStyleGroup0 = """<span style="color: #FFFFFF; font-size: smaller; font-style: normal; font-weight: bolder;">"""
@@ -4523,6 +4524,7 @@ class Song(
     }
 
     fun getTextBodyWithTimecodes(maxTimeCodes: Int? = null): String {
+        if (songType != SongType.SONG) return songType.caption
         val result = StringBuilder()
         var timecodeCounter = 0
         for (voice in 0 until countVoices) {

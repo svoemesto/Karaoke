@@ -16,8 +16,9 @@ import java.io.Serializable
 enum class SongType(
     val dbValue: String,
     val description: String,
+    val caption: String,
 ) : Serializable {
-    SONG(dbValue = "song", description = "Песня (вокал + музыка)"),
-    INSTRUMENTAL(dbValue = "instrumental", description = "Инструментал (только музыка)"),
-    POETRY(dbValue = "poetry", description = "Стихи (только вокал)"),
+    SONG(dbValue = "song", description = "Песня (вокал + музыка)", caption = "Песня"),
+    INSTRUMENTAL(dbValue = "instrumental", description = "Инструментал (только музыка)", caption = "Инструментальная композиция"),
+    POETRY(dbValue = "poetry", description = "Стихи (только вокал)", caption = "Поэзия (без музыки)"),
 }

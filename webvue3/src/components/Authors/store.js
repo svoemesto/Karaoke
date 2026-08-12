@@ -13,6 +13,10 @@ export default {
     // Текущая страница пагинации в AuthorsTable. Сохраняем в сторе, чтобы при уходе с компонента
     // и возврате — открывалась страница, на которой остановился пользователь.
     authorsTableCurrentPage: 1,
+    // Количество авторов с haveNewAlbum=true — бейдж пункта меню «Авторы» в App.vue (по образцу
+    // chatUnreadTotal/submittedAssignmentsCount). Источник: POST /api/authors/withnewalbumcount
+    // (см. specs/176-authors-new-albums-badge/contracts/api-authors-withnewalbumcount.md).
+    authorsWithNewAlbumCount: 0,
   },
   getters: {
     getAuthorsDigest(state) {
@@ -23,6 +27,9 @@ export default {
     },
     getAuthorsTableCurrentPage(state) {
       return state.authorsTableCurrentPage
+    },
+    getAuthorsWithNewAlbumCount(state) {
+      return state.authorsWithNewAlbumCount
     },
   },
   mutations: {
@@ -43,6 +50,9 @@ export default {
     },
     setAuthorsTableCurrentPage(state, page) {
       state.authorsTableCurrentPage = page
+    },
+    setAuthorsWithNewAlbumCount(state, count) {
+      state.authorsWithNewAlbumCount = count
     },
   },
   actions: {
@@ -74,6 +84,19 @@ export default {
     setAuthorValuePromise(ctx, payload) {
       let request = { method: 'POST', url: '/api/authors/updateauthor', params: payload }
       return promisedXMLHttpRequest(request)
+    },
+    // Бейдж пункта меню «Авторы» (App.vue, по образцу loadChatUnreadCount и
+    // loadSubmittedAssignmentsCount). Polling каждые 20 сек из App.vue; при ошибке сети
+    // предыдущее значение сохраняется (не сбрасывается в 0 — FR-010 спеки).
+    loadAuthorsWithNewAlbumCount(ctx) {
+      return promisedXMLHttpRequest({
+        method: 'POST',
+        url: '/api/authors/withnewalbumcount',
+      })
+        .then((data) => {
+          ctx.commit('setAuthorsWithNewAlbumCount', parseInt(data, 10) || 0)
+        })
+        .catch((error) => console.log(error))
     },
   },
 }

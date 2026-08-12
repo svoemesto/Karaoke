@@ -1707,3 +1707,34 @@ async, `currentLink = null` стартовое значение → Vue ренд
 - `specs/174-fix-stats-connection-leak/tasks.md` — 15 задач.
 - `docs/features/stats.md` — обновлён.
 
+## Pass 58: feat(admin) — красный бейдж «новые альбомы» в пункте меню «Авторы» (2026-08-12, branch `176-authors-new-albums-badge`)
+
+**Задача**: в левом сайдбаре админки `webvue3` у пункта «Авторы» не было визуального сигнала о наличии авторов с новыми альбомами, в отличие от «Чат» (бейдж непрочитанных) и «Задания редактора» (бейдж «на проверке»). Администратор не видел, что есть работа, пока не зайдёт в раздел и не применит фильтр «Новый альбом».
+
+**Что сделано**: добавлен третий бейдж по тому же паттерну (polling + Vuex + computed + CSS-зеркало `.chat-nav-*`/`.songeditor-nav-*`):
+
+1. **Backend (1 endpoint + 1 companion-метод)** — `POST /api/authors/withnewalbumcount` в `ApiController.kt` (рядом с `apisAuthorsDigest`); возвращает `Int` — результат `Author.countWithNewAlbum(WORKING_DATABASE)` (raw `SELECT COUNT(*) FROM tbl_authors WHERE watched = true AND (ym_id <> '' OR vk_id <> '') AND (last_album_ym <> last_album_processed OR last_album_vk <> last_album_processed)`). SQL-условие — точная копия `Author.haveNewAlbum` getter (`Author.kt:94-97`) и `Author.getWhereList["haveNewAlbum=+"]` (`Author.kt:170-178`). Без `target`-параметра (как `/api/authors/authorsdigests`).
+2. **Vuex (1 поле + 1 getter + 1 mutation + 1 action)** — `state.authorsWithNewAlbumCount`, `getAuthorsWithNewAlbumCount`, `setAuthorsWithNewAlbumCount`, `loadAuthorsWithNewAlbumCount` в `webvue3/src/components/Authors/store.js`. Шаблон — `loadSubmittedAssignmentsCount` (`SongEditor/store.js:254-265`).
+3. **App.vue (1 nav-link + 1 computed + polling + 2 CSS-класса)** — `<router-link class="nav-link authors-nav-link" to="/authors">` с `<span v-if="authorsWithNewAlbumCount > 0" class="authors-nav-badge">`; computed `authorsWithNewAlbumCount`; polling-константа `AUTHORS_NEW_ALBUMS_POLL_INTERVAL_MS = 20000` (та же, что `CHAT_UNREAD_POLL_INTERVAL_MS` и `SONGEDITOR_SUBMITTED_POLL_INTERVAL_MS`); `setInterval` в `mounted()` + `clearInterval` в `beforeUnmount()`. CSS `.authors-nav-link` + `.authors-nav-badge` — точная копия `.chat-nav-*` (`#d02c3a`, `border-radius: 10px`, и т.п.).
+
+**Новых сущностей / миграций БД нет** — `tbl_authors` уже содержит все нужные колонки. Endpoint читает только `WORKING_DATABASE = Connection.local()` (как существующий `/api/authors/authorsdigests`).
+
+**Resilience при ошибках сети** (FR-010) — `loadAuthorsWithNewAlbumCount` через `.catch((error) => console.log(error))` НЕ коммитит 0 при сбое, поэтому предыдущее значение бейджа сохраняется (как у других бейджей).
+
+**Производительность** — прямой `SELECT COUNT(*)` без инстанцирования `Author` (на базе из ~18k+ авторов — на порядок быстрее, чем `loadList(...).count`); endpoint отвечает за единицы миллисекунд.
+
+**Новые/изменённые файлы**:
+- Backend (Kotlin): `model/Author.kt` (MODIFY — `countWithNewAlbum`), `controllers/ApiController.kt` (MODIFY — `apisAuthorsWithNewAlbumCount`).
+- Frontend (Vue 3): `App.vue` (MODIFY — nav-link, computed, polling, CSS), `components/Authors/store.js` (MODIFY — state/getter/mutation/action).
+- Docs: `docs/architecture-notes.md` (эта запись).
+
+**Связанные документы**:
+- `specs/176-authors-new-albums-badge/spec.md` — функциональная спека (10 FRs, 7 SCs, 3 user stories).
+- `specs/176-authors-new-albums-badge/plan.md` — implementation plan.
+- `specs/176-authors-new-albums-badge/research.md` — 7 архитектурных решений.
+- `specs/176-authors-new-albums-badge/data-model.md` — описание сущности Author.
+- `specs/176-authors-new-albums-badge/contracts/api-authors-withnewalbumcount.md` — API контракт.
+- `specs/176-authors-new-albums-badge/quickstart.md` — 7 ручных сценариев валидации.
+- `specs/176-authors-new-albums-badge/tasks.md` — 11 задач.
+
+

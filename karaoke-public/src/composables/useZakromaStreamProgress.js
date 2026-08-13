@@ -98,9 +98,22 @@ export function useZakromaStreamProgress() {
       })
       startTs = performance.now()
       recordEvent('zakroma_stream_start')
+      // Composer.authHeader(): для залогиненного редактора shём
+      // `Authorization: Bearer <token>` — без этого backend резолвит
+      // SiteUser=null → `onlyPublishedFor(request)=true` → ответ как
+      // не-редактору (только `id_status >= 6`). Это критично для фичи
+      // specs/181 (FR-BE-007, SC-007 «editor sees all statuses»).
+      //
+      // Тот же приём, что в `services/api.js` → `apiGet()`: читаем
+      // `km_auth_token` из localStorage напрямую (тот же ключ, что и
+      // useAuth), чтобы composable не тянул useAuth и не рисковал
+      // цикл импортов.
+      const authToken = localStorage.getItem('km_auth_token')
+      const headers = { Accept: 'application/x-ndjson' }
+      if (authToken) headers.Authorization = `Bearer ${authToken}`
       const response = await fetch(`/api/public/zakroma/stream?${params.toString()}`, {
         signal: controller.signal,
-        headers: { Accept: 'application/x-ndjson' },
+        headers,
       })
 
       if (!response.ok) {

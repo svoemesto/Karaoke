@@ -5,7 +5,7 @@
 > **Branch**: `154-editor-tasks-manage`
 > **Spec**: [`specs/154-editor-tasks-manage/spec.md`](../../specs/154-editor-tasks-manage/spec.md)
 > **Plan**: [`specs/154-editor-tasks-manage/plan.md`](../../specs/154-editor-tasks-manage/plan.md)
-> **Last Updated**: 2026-08-06
+> **Last Updated**: 2026-08-13 (Pass 51-3 — фича 184: добавлен radio-выбор статуса песни 5/6 в `ReviewModal`; см. секцию «Дополнение: выбор статуса при апруве (spec 184)» ниже)
 
 ## Что делает
 
@@ -133,6 +133,58 @@
 - DTO `SongAssignmentBriefDto` (id/assigneeId/assignedAt/adminStatus) — это УЗНАВАЕМАЯ краткая форма, не полный `SongAssignmentDto`. Создание через reflection-loader для такой формы не нужно (нет CRUD-операций).
 - Поле `assignment` есть ТОЛЬКО в публичных DTO (`ZakromaAlbumSongPublicDto`). В админских (`SongAssignmentDigest`, `SiteUserDto`) оно НЕ нужно — админ видит всё через стандартный `digest()`.
 - Снятие флага НЕ само-отзывает задания, чтобы избежать «админ случайно снял флаг → у редактора пропали 5 недоделанных заданий». Это сделано сознательно (FR-002, clarification Q2 — ратифицировано).
+
+## Дополнение: Выбор статуса песни при апруве (spec 184)
+
+> **Status**: active
+> **Branch**: `184-approve-status-choice`
+> **Spec**: [`specs/184-approve-status-choice/spec.md`](../../specs/184-approve-status-choice/spec.md)
+
+### Что делает
+В `ReviewModal` (админская модалка ревью задания) появляется radio-group **«Финальный статус песни»** с двумя опциями: «5 — Маркеры проверены» и «6 — Готова» (default 6). При выборе 5 — `POST /api/songeditor/approve?idStatus=5`; бэкенд выставляет `tbl_songs.id_status=5` и **не запускает** рендер DEMO и sync related-таблиц (но пушит одобренную разметку на PROD как обычно).
+
+### Зачем
+Раньше, чтобы отложить релиз (правка обложки, ожидание альбома, пересмотр вокала), админу приходилось после апрува вручную понижать статус в `SongEdit` — с риском, что в промежутке успеют сработать автотриггеры (рендер DEMO, sync, новости). Ради одного параметра — двойная ручная работа + race-condition. Фича 184 убирает костыль.
+
+### Как работает
+
+**Изменённые/новые эндпоинты** (`SongEditorController.kt`, `karaoke-app`):
+
+| Endpoint | Изменение | Поведение |
+|---|---|---|
+| `POST /api/songeditor/approve` | +`@RequestParam idStatus: Int?` (5/6/null) | null → 6 (backward-compat). Невалидное → 400 `invalid_idstatus`. Downgrade-ignore — silently оставляет выше. |
+| `POST /api/songeditor/byId` | +поле `idStatus` (Long) в ответе | Текущий `id_status` ПЕСНИ (не задания). Источник для UI-гейта US2.1. |
+
+**UI-гейт (US2.1, исправлено в Pass 51-3.1)**: radio ВСЕГДА виден, когда `songIdStatus !== null` (бэкенд вернул поле `idStatus` в `/byId`). Pass 51-3 первой итерации скрывал radio для `idStatus >= 5` «чтобы админ случайно не downgrade'нул» — это убило фичу: при апруве задания с уже-готовой песнёй (после предыдущего одобрения в 6 или при workflow через авто-пайплайн) radio пропадал. Решение: показывать radio ВСЕГДА, безопасность downgrade — на бэкенде (`idStatus downgrade IGNORED`, см. Edge Cases). В `.se-meta` (шапка модалки) ВСЕГДА висит информационный бейдж «idStatus песни: N (...)» с текущим значением, независимо от radio.
+
+**Гейт рендера (backend, research D-2)**: `triggerRenderMp4DemoIfNeeded` и `thread { sync related }` обёрнуты в `if (song.idStatus >= 6L) { ... }` (по ФАКТИЧЕСКОМУ статусу, не по запрошенному). Push самой песни (`updateRemoteSongFromLocalDatabase`) — всегда.
+
+**Логирование (US3)**: префикс `[approve/feature-184]` — строки `idStatus=5 reason=manual_choice`, `idStatus=6 reason=default`, `idStatus downgrade IGNORED ...`, `render-demo SKIPPED ...`, `sync-related SKIPPED ...`, `news SKIPPED ...`, `INVALID idStatus=...`.
+
+**Идемпотентность**: повторный апрув возвращает `already_approved` (short-circuit ДО валидации `idStatus`, см. specs/094), никаких побочных эффектов и строк `feature-184`.
+
+**`ReviewModal` общий** для 3 точек входа: «Задания редактора» (`SongEditorTable`), таблица песен (`SongsTable`), карточка песни (`SongEdit`) — во всех трёх radio появляется без правок вызывающих компонентов.
+
+### Инварианты / правила (для feature 184)
+
+- **INV-1** (data-model): `id_status` при апруве никогда не понижается (`if (song.idStatus < targetIdStatus)`). Downgrade-ignore тихо — без 400.
+- **INV-2**: запрос с `idStatus=5` к УЖЕ одобренному заданию → `already_approved` (без `idStatus` в ответе, без новых строк лога `feature-184`).
+- **INV-3**: гейт `idStatus >= 6L` — по ФАКТИЧЕСКОМУ значению после применения, не по запрошенному (иначе регрессия в `requested=5, current=6` → downgrade-ignore).
+- **INV-4**: push самой песни (`updateRemoteSongFromLocalDatabase`) ВСЕГДА, независимо от статуса. Иначе одобренная разметка не попадёт на PROD.
+- **INV-5**: `notify/sync` related-таблиц, рендер DEMO, новости — все три гейтятся одинаково. Нельзя гейтить только одно.
+- **INV-6**: Vuex action `approveAssignment` принимает ОБА формата: `Number` (старые вызовы, backward-compat) и `{id, idStatus}` (новые). Параметр не отправляется, если не передан (`if (idStatus !== undefined) params.idStatus = idStatus`).
+- **INV-7**: `watch: a()` в `ReviewModal` сбрасывает `selectedIdStatus = 6` при смене `a.id` — иначе выбор «залипает» между разными заданиями (ловушка D-7).
+
+### Известные ловушки
+
+- **Гейт по запрошенному значению** (`if (requestedIdStatus == 6) { ... }`) — НЕПРАВИЛЬНО. Используем `if (song.idStatus >= 6L)` после применения, иначе `requested=5, current=6` (downgrade-ignore) сломает текущий авто-конвейер для финальной песни.
+- **Гейтить push песни** (`updateRemoteSongFromLocalDatabase`) — НЕЛЬЗЯ. Без push одобренная разметка редактора «зависнет» только в LOCAL, и admin увидит песню одобренной только в админке, а в проде — старую.
+- **Без `watch: a()`** в `ReviewModal` — выбор статуса сохраняется при переиспользовании модалки. Например, в `SongsTable` модалка может оставаться смонтированной при переходе от одной строки задания к другой.
+- **Поле `status` в `/byId` — это НЕ `idStatus`**. `status` — статус ЗАДАНИЯ (`SongAssignmentStatus`, e.g. `submitted`/`approved`); `idStatus` (новое) — статус ПЕСНИ (`tbl_songs.id_status`, 0..6). Не путать при чтении фронта.
+- **Нет `bootstrap-vue-next` в `ReviewModal.vue`** — модалка со своим `<style scoped>` и `se-*` дизайн-системой. Использование `BFormRadio` ломает стиль и конвенцию модалки. Нативные `<input type="radio">` + свои CSS-классы.
+- **Без `if (idStatus !== undefined) params.idStatus = idStatus`** в `store.js` — параметр отправится как пустая строка или `null`, бэкенд может спарсить как 0 (или пробросить исключение).
+- **Без `defaults` в `lastUpdated` поле** per-feature doc — `git blame` не подсветит автора правки, история теряется.
+
 
 ### Известные ловушки
 

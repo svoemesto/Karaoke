@@ -842,6 +842,26 @@ pre-commit run --all-files               # 7 проверок
 
 **Подробности + 10 ручных сценариев** проверки — [`specs/182-editor-self-assign-tasks/`](./specs/182-editor-self-assign-tasks/) (Pass 51, `docs/architecture-notes.md`, `docs/features/editor-tasks.md#дополнение-self-assign-заданий-spec-182`).
 
+### Q: Как правильно гейтить авто-конвейер (рендер/sync/новости) по выбору админа в UI?
+
+**Кратко** (на примере spec 184 — выбор `idStatus` 5/6 при апруве задания редактора): гейтить **по ФАКТИЧЕСКОМУ** состоянию записи **ПОСЛЕ** применения, а **НЕ** по запрошенному значению параметра. Push самой сущности (не её derived-эффектов) при этом НЕ гейтится.
+
+**Почему гейт по факту, а не по запросу**: пользователь выбирает `idStatus=5` для песни, которая УЖЕ была в 6 (downgrade-ignore — `if (song.idStatus < targetIdStatus)` сохраняет более высокий статус). По запрошенному значению (`requestedIdStatus == 6`) гейт НЕ сработал бы — конвейер для финальной песни бы не запустился. По фактическому (`song.idStatus >= 6L`) сработает — таблица из [research D-2](./specs/184-approve-status-choice/research.md) даёт все 4 кейса без исключений.
+
+**Почему push самой сущности НЕ гейтится**: «принять работу редактора» (apply draft markers/.srt) — primary intent операции. Если гейтнуть push вместе с render/sync — одобренная разметка останется в LOCAL, а на PROD уйдёт только после ручного `doUpdateRemoteSettingFromLocalDatabase`. Админ видит «одобренную» песню только в админке — UX-баг. Безопасность: `id_status=5` на сервере безвреден — `Song.isContentReady` требует `>= 6` (`Song.kt:1132-1139`), `markNewsAvailableIfReady` требует `== 6L` (`Song.kt:5128`), `detectAndAnnounceAvailability` первым делом проверяет `if (!song.newsAvailableAnnounced) return false` (`SongReleaseAnnouncementService.kt:98`).
+
+**Паттерн** (применим не только к approve, но и к любой фиче, где админ выбирает «уровень финализации»):
+1. Применить выбор админа к записи (`saveToDb` / аналог).
+2. Перечитать фактическое состояние записи (или взять из той же транзакции).
+3. Гейтить derived-эффекты (`triggerXxxIfNeeded`, `thread { syncYyy }`, новости) по факту.
+4. Push/notify **первичной** сущности — всегда.
+
+**Сверяй API-ответы с тем, что UI пытается рендерить** (нашёл при ревью spec 184). UI-гейт US2 требовал `a.idStatus`, но `POST /api/songeditor/byId` его не возвращал. Без codegraph-сверки с реальным кодом FR-007 был бы нереализуем как написано. Аддитивное поле в ответе бэкенда — стандартный фикс, не требует миграций.
+
+**`watch: a()` для переиспользуемых модалок** (ловушка D-7). Если модалка остаётся смонтированной между разными заданиями (как `ReviewModal` в `SongsTable`), пользовательский выбор «залипает» — апрув задания A со статусом 5, переход к B → radio уже показывает 5, пользователь может не заметить. Стандартный паттерн Vue 2 — `watch: { a: { handler(newA, oldA) { if (newA.id !== oldA.id) this.selectedIdStatus = defaultValue }, deep: false } }`.
+
+**Подробности + 8 решений D-1..D-8** — [`specs/184-approve-status-choice/research.md`](./specs/184-approve-status-choice/research.md) (Pass 51-3, `docs/architecture-notes.md`, `docs/features/approve-pipeline.md#условный-запуск-при-выборе-статуса-5-feature-184`).
+
 ---
 
 ## Как обновлять этот файл

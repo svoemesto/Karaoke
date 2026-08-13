@@ -263,6 +263,13 @@ class SongEditorController(
 
     // Одно задание + черновик (просмотр submitted в webvue3): текст/маркеры пользователя для ревью,
     // ПО ВСЕМ ГОЛОСАМ (draftSourceTexts/draftMarkersPerVoice — массивы, индекс = номер голоса).
+    //
+    // Feature 184: ответ дополнительно содержит поле `idStatus` — текущий id_status ПЕСНИ
+    // (не задания; `status` — это SongAssignmentStatus). Используется UI ReviewModal для гейта
+    // radio-group «Финальный статус песни» (US2). Песня уже загружена (Song.loadFromDbById),
+    // дополнительных SQL-запросов нет. Аддитивное изменение, обратно совместимо.
+    //
+    // @see specs/184-approve-status-choice/contracts/byid-endpoint.md
     @PostMapping("/byId")
     @ResponseBody
     fun byId(
@@ -291,6 +298,12 @@ class SongEditorController(
                 "assignedAt" to a.assignedAt,
                 "reviewedAt" to a.reviewedAt,
                 "submittedAt" to draft?.submittedAt,
+                // NEW (feature 184): текущий id_status ПЕСНИ (не задания — `status` выше это
+                // SongAssignmentStatus). Используется в ReviewModal для гейта radio-group (US2).
+                // Песня уже загружена (s = Song.loadFromDbById выше), +0 SQL. Аддитивное поле,
+                // обратно совместимо (existing потребители просто игнорируют).
+                // @see specs/184-approve-status-choice/contracts/byid-endpoint.md
+                "idStatus" to (s?.idStatus ?: 0L),
                 "draftSourceTexts" to (draft?.editedTextsPerVoice(json) ?: emptyList()),
                 "draftMarkersPerVoice" to (draft?.editedMarkersPerVoice(json) ?: emptyList()),
             )
@@ -312,11 +325,20 @@ class SongEditorController(
     // ИСКЛЮЧЕНИЕ — сама песня (`Song`): применение разметки (setSourceMarkers/.srt-файлы) и подъём
     // id_status ВСЕГДА идёт в LOCAL, независимо от target — karaoke-app умеет писать .srt и резолвить
     // rootFolder только на локальном диске админ-машины.
+    //
+    // Feature 184 (specs/184-approve-status-choice): необязательный параметр `idStatus` (5 или 6)
+    // позволяет админу выбрать финальный статус песни при апруве: 5 — «Маркеры проверены»
+    // (без рендера DEMO и без sync related-таблиц), 6 — «Готова» (текущее поведение). При null/отсутствии —
+    // дефолт 6 (backward-compatible). Невалидное значение → 400 invalid_idstatus.
+    // Контракт и гейты — specs/184-approve-status-choice/contracts/approve-endpoint.md.
+    //
+    // @see specs/184-approve-status-choice/contracts/approve-endpoint.md
     @PostMapping("/approve")
     @ResponseBody
     fun approve(
         @RequestParam id: Long,
         @RequestParam(required = false) target: String?,
+        @RequestParam(required = false) idStatus: Int?,
     ): Map<String, Any?> {
         val isRemoteRead = target == "remote"
         val readDb = if (isRemoteRead) Connection.remote() else null
@@ -377,9 +399,34 @@ class SongEditorController(
                     // разметки — явное ручное подтверждение (не автоматика, FR-011 не применяется),
                     // поэтому статус выставляется сразу в терминальное значение 6 (READY), а не на 1 шаг
                     // вперёд (specs/022-song-status-lifecycle).
-                    if (song.idStatus < 6) {
-                        song.fields[SongField.ID_STATUS] = "6"
+                    //
+                    // Feature 184: валидация `idStatus` — допустимы только 5 или 6 (либо null = дефолт 6).
+                    // Стоит ПОСЛЕ short-circuit already_approved и ДО записи в БД.
+                    if (idStatus != null && idStatus != 5 && idStatus != 6) {
+                        println("[approve/feature-184] INVALID idStatus=$idStatus for assignmentId=$id")
+                        return@withDb mapOf("ok" to false, "status" to "error", "error" to "invalid_idstatus: must be 5 or 6")
+                    }
+                    val requestedIdStatus = idStatus ?: 6
+
+                    // Фактический статус, до которого ПОДНИМАЕМ: max(current, requested).
+                    // Не понижаем (data-model INV-1): если песня уже в 6, а запросили 5 — остаётся 6
+                    // с явным логом `downgrade IGNORED` (US1 acceptance #4 + Edge Cases).
+                    val targetIdStatus = if (song.idStatus < requestedIdStatus) requestedIdStatus else song.idStatus
+
+                    if (targetIdStatus != song.idStatus) {
+                        song.fields[SongField.ID_STATUS] = targetIdStatus.toString()
                         song.saveToDb()
+                    }
+
+                    // Логирование выбора (US3 / observability) — строки должны быть ДО гейтов ниже,
+                    // чтобы разбор инцидентов по `feature-184` сразу давал полную картину.
+                    when {
+                        requestedIdStatus == 5 && song.idStatus == 5L ->
+                            println("[approve/feature-184] songId=${song.id} idStatus=5 reason=manual_choice")
+                        requestedIdStatus == 5 && song.idStatus == 6L ->
+                            println("[approve/feature-184] idStatus downgrade IGNORED songId=${song.id} current=6 requested=5")
+                        song.idStatus == 6L && idStatus == null ->
+                            println("[approve/feature-184] songId=${song.id} idStatus=6 reason=default")
                     }
                 } catch (e: Exception) {
                     println("[SongEditorController.approve] применение разметки к песне ${song.id} не удалось: ${e.message}")
@@ -423,36 +470,68 @@ class SongEditorController(
                 // (1280x720@30fps). Пост-хук в KaraokeProcessThread.run() после успешного
                 // завершения RENDER_MP4_DEMO запустит Telegram-публикацию (D-1 в research.md).
                 // Сбой здесь НЕ откатывает уже совершённый апрув: изоляция в helper'е.
+                //
+                // Feature 184: гейт по ФАКТИЧЕСКОМУ song.idStatus (не по запрошенному, см. research D-2):
+                // при idStatus=5 рендер не запускается, чтобы админ мог отложить релиз без костылей
+                // с ручным даунгрейдом в SongEdit. Push самой песни выше (if Karaoke.allowUpdateRemote)
+                // при этом НЕ гейтится — одобренная разметка должна попасть на PROD при любом статусе
+                // (research D-3).
                 println("[approve/feature-131] US1 — render-demo trigger START for songId=${song.id}")
-                triggerRenderMp4DemoIfNeeded(song)
+                if (song.idStatus >= 6L) {
+                    triggerRenderMp4DemoIfNeeded(song)
+                } else {
+                    println("[approve/feature-184] render-demo SKIPPED for songId=${song.id} reason=idStatus=5")
+                }
                 println("[approve/feature-131] US1 — render-demo trigger END for songId=${song.id}")
 
                 // Спека 131 (US2): после апрува и US1 fire-and-forget синхронизируем связанные
                 // таблицы (tbl_pictures, tbl_authors, tbl_albums) на SERVER (D-2 в research.md).
                 // updateSongs=false — tbl_songs уже засинкан выше (existing updateRemoteSongFromLocalDatabase).
                 // Сбой здесь НЕ блокирует HTTP-ответ approve (SC-003 — ≤5 с).
+                //
+                // Feature 184: тот же гейт, что и render-demo (research D-2) — sync related при
+                // idStatus=5 не имеет смысла (картинки/авторы на проде могли уже обновиться через
+                // предыдущие операции, дублирующий sync — лишний шум).
                 println("[approve/feature-131] US2 — sync-related thread SCHEDULED for songId=${song.id}")
-                thread {
-                    println("[approve/sync-related] thread START for songId=${song.id}")
-                    try {
-                        val syncRelatedStart = System.currentTimeMillis()
-                        println("[approve/sync-related] calling updateRemoteDatabaseFromLocalDatabase(updateSongs=false, updatePictures=true, updateAuthors=true)")
-                        val syncRelatedResult =
-                            updateRemoteDatabaseFromLocalDatabase(
-                                updateSongs = false,
-                                updatePictures = true,
-                                updateAuthors = true,
+                if (song.idStatus >= 6L) {
+                    thread {
+                        println("[approve/sync-related] thread START for songId=${song.id}")
+                        try {
+                            val syncRelatedStart = System.currentTimeMillis()
+                            println("[approve/sync-related] calling updateRemoteDatabaseFromLocalDatabase(updateSongs=false, updatePictures=true, updateAuthors=true)")
+                            val syncRelatedResult =
+                                updateRemoteDatabaseFromLocalDatabase(
+                                    updateSongs = false,
+                                    updatePictures = true,
+                                    updateAuthors = true,
+                                )
+                            println(
+                                "[approve/sync-related] push related на SERVER: " +
+                                    "${System.currentTimeMillis() - syncRelatedStart} ms, " +
+                                    "created=${syncRelatedResult.created.size} updated=${syncRelatedResult.updated.size}",
                             )
-                        println(
-                            "[approve/sync-related] push related на SERVER: " +
-                                "${System.currentTimeMillis() - syncRelatedStart} ms, " +
-                                "created=${syncRelatedResult.created.size} updated=${syncRelatedResult.updated.size}",
-                        )
-                        println("[approve/sync-related] thread END OK for songId=${song.id}")
-                    } catch (e: Exception) {
-                        println("[approve/sync-related] ошибка sync related: ${e.message}")
-                        println("[approve/sync-related] thread END EXCEPTION for songId=${song.id}")
+                            println("[approve/sync-related] thread END OK for songId=${song.id}")
+                        } catch (e: Exception) {
+                            println("[approve/sync-related] ошибка sync related: ${e.message}")
+                            println("[approve/sync-related] thread END EXCEPTION for songId=${song.id}")
+                        }
                     }
+                } else {
+                    println("[approve/feature-184] sync-related SKIPPED for songId=${song.id} reason=idStatus=5")
+                }
+
+                // Дополнительный лог news (research D-4) — news не выставится автоматически
+                // (markNewsAvailableIfReady гейтит по idStatus == 6L), но строка нужна для grep
+                // по инцидентам.
+                if (song.idStatus < 6L) {
+                    println("[approve/feature-184] news SKIPPED for songId=${song.id} reason=idStatus=5")
+                }
+
+                // Дополнительный лог news (research D-4) — news не выставится автоматически
+                // (markNewsAvailableIfReady гейтит по idStatus == 6L), но строка нужна для grep
+                // по инцидентам.
+                if (song.idStatus < 6L) {
+                    println("[approve/feature-184] news SKIPPED for songId=${song.id} reason=idStatus=5")
                 }
 
                 // Апрув пишется В ТУ ЖЕ БД, откуда прочитали задание (assignmentDb) — не всегда local.

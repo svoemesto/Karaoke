@@ -153,20 +153,24 @@ export default {
      * @returns {Promise<void>}
      */
     async loadZakromaStream({ commit, state }, { author, expectedCount }) {
+      // FR-FE-009: dedup — проверяем ДО очистки state.zakroma. Иначе при
+      // browser back из /song/{id} state очищается, dedup срабатывает,
+      // фетча нет → пустая страница. С новой логикой: dedup позволяет
+      // UI сохранить данные из state.zakroma (которые лежат в кэше
+      // Vuex-Pinia-style store), без нового запроса.
+      const lastTs = state.lastLoadedTimestampByAuthor[author]
+      if (lastTs && Date.now() - lastTs < 30_000) {
+        // No-op: state.zakroma уже содержит данные с предыдущей
+        // успешной загрузки (тот же автор, < 30с). UI продолжает
+        // работать с тем же zakroma[].
+        return
+      }
+
       // US1: очистка СИНХРОННО (FR-FE-004). UI сразу видит пустоту.
       commit('setZakroma', [])
       commit('setStreaming', true)
       commit('setStreamProgress', { receivedCount: 0, expectedCount: expectedCount || 0 })
       commit('setStreamError', null)
-
-      // FR-FE-009: dedup — если < 30с с последней успешной загрузки, no-op.
-      const lastTs = state.lastLoadedTimestampByAuthor[author]
-      if (lastTs && Date.now() - lastTs < 30_000) {
-        // UI-restoring из последнего стрима — для MVP просто выходим.
-        // T017 при необходимости закэширует albums в state для force refresh.
-        commit('setStreaming', false)
-        return
-      }
 
       // Создаём composable (FR-FE-001) и запускаем стрим.
       const composable = useZakromaStreamProgress()

@@ -164,7 +164,17 @@
         <div class="km-stream-bar">
           <div
             class="km-stream-bar-fill"
-            :style="{ width: Math.min(100, Math.round(((streamProgress.receivedCount || 0) / Math.max(streamProgress.expectedCount || 1, 1)) * 100)) + '%' }"
+            :style="{
+              width:
+                Math.min(
+                  100,
+                  Math.round(
+                    ((streamProgress.receivedCount || 0) /
+                      Math.max(streamProgress.expectedCount || 1, 1)) *
+                      100,
+                  ),
+                ) + '%',
+            }"
           />
         </div>
         <button
@@ -184,9 +194,7 @@
         role="alert"
       >
         <span>{{ streamError }}</span>
-        <button type="button" class="km-stream-retry" @click="retryLoadZakroma">
-          Повторить
-        </button>
+        <button type="button" class="km-stream-retry" @click="retryLoadZakroma">Повторить</button>
       </div>
 
       <div v-if="authorChosen && !displayedZakroma.length && songFilter" class="km-loading">
@@ -473,7 +481,14 @@ export default {
     }
   },
   computed: {
-    ...mapGetters('zakroma', ['authorTiles', 'zakroma', 'specialBucket', 'isStreaming', 'streamProgress', 'streamError']),
+    ...mapGetters('zakroma', [
+      'authorTiles',
+      'zakroma',
+      'specialBucket',
+      'isStreaming',
+      'streamProgress',
+      'streamError',
+    ]),
     isPremium() {
       return !!(this.user && this.user.effectivePremium)
     },

@@ -165,8 +165,11 @@ export function useZakromaStreamProgress() {
         expectedCount.value = msg.expectedCount || 0
         break
       case 'album':
-        // Добавляем "songs: []" — сюда будут складываться song-сообщения.
-        albums.value.push({ ...msg.album, songs: [] })
+        // Добавляем "albumSettings: []" — сюда будут складываться song-сообщения.
+        // Поле называется `albumSettings`, не `songs`, чтобы соответствовать
+        // существующему контракту `ZakromaAlbumPublicDto` (и view, который
+        // итерирует `v-for="sett in alb.albumSettings"`).
+        albums.value.push({ ...msg.album, albumSettings: [] })
         // T016: показываем индикатор только если стрим не закончился за 300 мс.
         if (!showTimeout) {
           showTimeout = setTimeout(() => {
@@ -178,7 +181,7 @@ export function useZakromaStreamProgress() {
         break
       case 'song':
         if (albums.value.length > 0) {
-          albums.value[albums.value.length - 1].songs.push(msg.song)
+          albums.value[albums.value.length - 1].albumSettings.push(msg.song)
           receivedCount.value += 1
           progress.value = expectedCount.value > 0 ? receivedCount.value / expectedCount.value : 0
           scheduleAriaLive()

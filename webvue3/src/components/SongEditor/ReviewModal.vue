@@ -21,6 +21,10 @@
             }}</span></span
           >
           <span>ID песни: {{ a.songId }}</span>
+          <span v-if="songIdStatus !== null && songIdStatus >= 5"
+            >idStatus песни:
+            <span class="se-badge se-badge-approved">{{ idStatusLabel(songIdStatus) }}</span></span
+          >
         </div>
 
         <div class="se-player-toggle">
@@ -96,6 +100,18 @@
 
         <p v-if="message" class="se-msg" :class="{ 'se-msg-err': isError }">{{ message }}</p>
 
+        <div v-if="canChooseIdStatus" class="se-idstatus-pick">
+          <p class="se-idstatus-banner">{{ bannerInfo }}</p>
+          <label class="se-idstatus-option">
+            <input v-model="selectedIdStatus" type="radio" :value="5" />
+            5 — Маркеры проверены
+          </label>
+          <label class="se-idstatus-option">
+            <input v-model="selectedIdStatus" type="radio" :value="6" />
+            6 — Готова
+          </label>
+        </div>
+
         <div class="se-modal-btns">
           <button class="se-btn" @click="$emit('close')">Закрыть</button>
           <button class="se-btn se-btn-warning" :disabled="busy" @click="doRevoke">Отозвать</button>
@@ -140,6 +156,12 @@ export default {
       showPlayer: false,
       currentVoiceIdx: 0,
       playerHeight: 0,
+      // Feature 184: выбор финального статуса песни при апруве. 6 — backward-compatible
+      // дефолт (текущее поведение), 5 — «Маркеры проверены» (без рендера DEMO / sync related).
+      // Имя «Маркеры проверены» — канон из specs/022-song-status-lifecycle/data-model.md и
+      // SongEdit.vue (title кнопки). Это шаг жизненного цикла СРАЗУ ПОСЛЕ проверки маркеров
+      // редактором и ДО рендера караоке-видео.
+      selectedIdStatus: 6,
     }
   },
   computed: {
@@ -195,6 +217,34 @@ export default {
       }
       return s
     },
+    // Feature 184: текущий id_status ПЕСНИ (не задания — `a.status` это SongAssignmentStatus).
+    // Источник — поле `idStatus` в ответе POST /api/songeditor/byId (FR-011). null, если поле
+    // отсутствует (старый бэкенд) — fallback на radio с дефолтом 6 (backward-compatible).
+    songIdStatus() {
+      return this.a && typeof this.a.idStatus === 'number' ? this.a.idStatus : null
+    },
+    // FR-007: радио «Финальный статус песни» (5 или 6) показываем ВСЕГДА, когда знаем
+    // текущий статус песни. Админу нужна возможность выбора при каждом апруве — иначе
+    // теряется смысл фичи 184 (выбор 5/6 при отложенном релизе).
+    //
+    // Скрытие radio для `songIdStatus >= 5` (Pass 51-3, US2 первой итерации) было ошибкой
+    // UX: админ открывает задание с уже-готовой песней (например, после одобрения в 6)
+    // и НЕ видит контрол выбора → воспринимает фичу как сломанную.
+    //
+    // Безопасность «случайного downgrade»: при `requestedIdStatus=5, current=6` бэкенд тихо
+    // оставляет более высокий статус (downgrade-ignore, см. contracts/approve-endpoint.md,
+    // Edge Cases spec.md) — никаких побочных эффектов, кроме информативного лога.
+    canChooseIdStatus() {
+      return this.songIdStatus !== null
+    },
+    // Текст баннера-подсказки FR-010.
+    bannerInfo() {
+      return (
+        '5 — Маркеры проверены: маркеры одобрены редактором, но рендер/публикация не запускаются автоматически. ' +
+        'Используйте, если нужно отложить релиз (правка обложки, ожидание альбома, пересмотр вокала) — потом переведите в 6 вручную через SongEdit.\n\n' +
+        '6 — Готова: финальный статус, караоке-видео рендерится, песня становится доступна подписчикам.'
+      )
+    },
   },
   watch: {
     // При открытии плеера: ловим момент после рендера wrap'а (его v-if), ставим ResizeObserver
@@ -207,6 +257,18 @@ export default {
         this._resizeObserver.disconnect()
         this._resizeObserver = null
       }
+    },
+    // Feature 184: сброс выбора статуса при смене задания. Без этого выбор «залипает» между
+    // разными заданиями, если модалка переиспользуется (например, в SongsTable компонент может
+    // оставаться смонтированным). Сравниваем по id, а не по ссылке — `a` всегда новый объект
+    // после `setAssignmentCurrent` (см. store.js:117-121).
+    a: {
+      handler(newA, oldA) {
+        if (newA && oldA && newA.id !== oldA.id) {
+          this.selectedIdStatus = 6
+        }
+      },
+      deep: false,
     },
   },
   async mounted() {
@@ -278,11 +340,28 @@ export default {
     statusLabel(s) {
       return STATUS_LABELS[s] || s
     },
+    // Лейбл статуса для read-only бейджа US2 (feature 184). Объявлен в methods:, а не в
+    // computed:, потому что computed-свойства в Vue 2 — это геттеры без параметров; шаблон
+    // вызывает idStatusLabel(songIdStatus) с аргументом, и в production-сборке `this.idStatusLabel`
+    // вернёт строку (результат геттера при вызове без аргумента), а не функцию → TypeError.
+    // Имена «Маркеры проверены» / «Готова» — канон из specs/022-song-status-lifecycle.
+    idStatusLabel(s) {
+      if (s === 5) return '5 (маркеры проверены)'
+      if (s === 6) return '6 (готова)'
+      return String(s)
+    },
     async doApprove() {
       this.busy = true
       this.message = ''
       try {
-        const res = await this.$store.dispatch('approveAssignment', this.a.id)
+        // Feature 184: передаём выбранный статус в виде объекта {id, idStatus} (FR-008). Бэкенд
+        // либо применит выбранное значение, либо проигнорирует downgrade (если песня уже выше).
+        // Возвращённый `idStatus` — ФАКТИЧЕСКИЙ после применения (FR-012), используем его в
+        // сообщении (FR-009), чтобы admin видел, в каком статусе песня реально осталась.
+        const res = await this.$store.dispatch('approveAssignment', {
+          id: this.a.id,
+          idStatus: this.selectedIdStatus,
+        })
         if (res && res.ok && res.status === 'already_approved') {
           // Повторный/двойной клик по уже одобренному заданию (specs/094-fix-approve-news-failure,
           // FR-002/FR-006) — явное сообщение вместо тихого закрытия окна без результата.
@@ -293,7 +372,7 @@ export default {
           // Явное сообщение об успехе (FR-001/FR-005) — раньше окно закрывалось молча, и
           // администратор не мог отличить реальный успех от «зависшего» запроса.
           this.isError = false
-          this.message = 'Одобрено'
+          this.message = 'Одобрено в статусе ' + (res.idStatus != null ? res.idStatus : '?')
           setTimeout(() => this.$emit('reviewed'), 900)
         } else {
           this.isError = true
@@ -595,5 +674,48 @@ export default {
 .se-badge-rejected {
   background: #ffe0cc;
   color: #b8500f;
+}
+/* Feature 184: блок выбора финального статуса песни. Дизайн — в той же палитре, что и
+   .se-prev-comment/.se-remote-note (antirquote-серый фон, чтобы не конкурировать визуально
+   с основными кнопками). Нативные radio — без bootstrap-vue-next (модалка самодостаточна,
+   свой <style scoped>, см. research D-7). */
+.se-idstatus-pick {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  background: #f5f5f5;
+  border-radius: 8px;
+  padding: 0.6rem 0.7rem;
+  font-size: 0.85rem;
+  font-weight: 400;
+}
+.se-idstatus-banner {
+  color: #555;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  margin: 0 0 0.2rem 0;
+  white-space: pre-line;
+}
+.se-idstatus-option {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 400;
+}
+.se-idstatus-option input[type='radio'] {
+  margin: 0;
+  cursor: pointer;
+}
+/* US2: read-only бейдж для песен в idStatus 5/6 — в той же палитре, что .se-prev-comment. */
+.se-idstatus-readonly {
+  background: #fff3e8;
+  color: #a9500f;
+  border-radius: 8px;
+  padding: 0.45rem 0.6rem;
+  font-size: 0.82rem;
+  margin: 0;
+  font-weight: 400;
 }
 </style>

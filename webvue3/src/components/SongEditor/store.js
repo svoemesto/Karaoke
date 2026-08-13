@@ -197,11 +197,27 @@ export default {
     },
     // target — откуда читать задание/черновик (по умолчанию local); Song и статус задания
     // бэкенд в любом случае пишет только в LOCAL (см. SongEditorController.approve).
-    approveAssignment(ctx, id) {
+    //
+    // Feature 184: опциональный idStatus (5 или 6) — финальный статус песни при апруве.
+    // 5 — «Маркеры проверены» (без рендера DEMO и sync related-таблиц), 6 — «Готова» (дефолт).
+    // Имена — канон из specs/022-song-status-lifecycle и SongEdit.vue (title кнопки).
+    // Параметр пробрасывается в POST /api/songeditor/approve ТОЛЬКО если явно передан —
+    // старый клиент без idStatus сохраняет полную backward-compat (бэкенд применяет 6).
+    //
+    // Принимает ОБА формата для совместимости с любыми существующими вызовами:
+    //   - число: approveAssignment(ctx, 42)         → { id: 42 } (без idStatus — дефолт 6)
+    //   - объект: approveAssignment(ctx, {id: 42, idStatus: 5}) → { id: 42, idStatus: 5 }
+    // Паттерн `isObj` — тот же, что в loadAssignmentById (см. выше).
+    approveAssignment(ctx, payload) {
+      const isObj = payload !== null && typeof payload === 'object'
+      const id = isObj ? payload.id : payload
+      const idStatus = isObj ? payload.idStatus : undefined
+      const params = { id, target: ctx.state.assignmentsTarget }
+      if (idStatus !== undefined) params.idStatus = idStatus
       return promisedXMLHttpRequest({
         method: 'POST',
         url: '/api/songeditor/approve',
-        params: { id, target: ctx.state.assignmentsTarget },
+        params,
       }).then((data) => JSON.parse(data))
     },
     rejectAssignment(ctx, { id, comment }) {

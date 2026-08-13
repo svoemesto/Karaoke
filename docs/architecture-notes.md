@@ -1922,3 +1922,43 @@ async, `currentLink = null` стартовое значение → Vue ренд
 - «Идемпотентность» и «race protection» — это не одно и то же. Self-assign нужен ОБА механизма: idempotency для повторного клика того же юзера (200 OK), race для одновременных кликов разных юзеров (409). Без правильного `SELECT FOR UPDATE` оба этих сценария превращаются либо в дубль-строки, либо в silent failure.
 - `RETURNING id` — лучший паттерн для INSERT в PostgreSQL, когда нужен новый id сразу. Избегаем round-trips `currval()`/`lastval()`/лишнего SELECT.
 
+---
+
+## Pass 51-3 — Approve Status Choice (spec 184), 2026-08-13
+
+**Что**: при апруве задания онлайн-редактора (`POST /api/songeditor/approve`) админ теперь выбирает финальный `id_status` песни: **5** (принять работу, но НЕ запускать рендер DEMO и sync related-таблиц) или **6** (готово — текущее поведение). Раньше статус был жёстко зашит в `= "6"` (`SongEditorController.kt:380-383`).
+
+**Почему**: чтобы отложить релиз (правка обложки, ожидание альбома, пересмотр вокала), админу приходилось после апрува вручную понижать статус в `SongEdit` — с риском, что в промежутке успеют сработать автотриггеры (рендер DEMO, sync, новости). Двойная ручная работа + race-condition ради одного параметра.
+
+**Технические решения** (D-1..D-8, [research.md](../../specs/184-approve-status-choice/research.md)):
+- **D-1**: `?idStatus=` как `@RequestParam(required = false) Int?` (не отдельный эндпоинт, не DTO) — по образцу остальных ручек контроллера.
+- **D-2**: гейт render-demo и sync-related по **фактическому** `song.idStatus >= 6L` (не по запрошенному) — иначе регрессия в `requested=5, current=6` (downgrade-ignore).
+- **D-3**: push самой песни (`updateRemoteSongFromLocalDatabase`) НЕ гейтится — одобренная разметка должна попасть на PROD при любом статусе.
+- **D-4**: новости дополнительной защиты не требуют — `markNewsAvailableIfReady` уже гейтит по `idStatus == 6L`.
+- **D-5**: аддитивное поле `idStatus` (Long) в ответе `/byId` — источник для UI-гейта US2. Песня уже загружена, +0 SQL.
+- **D-6**: Vuex action `approveAssignment` принимает ОБА формата: `Number` (старые вызовы) и `{id, idStatus}` (новые).
+- **D-7**: нативные radio в `se-*`-дизайне `ReviewModal.vue`, без `bootstrap-vue-next`. `watch: a()` сбрасывает выбор при смене задания.
+- **D-8**: миграций нет → `recordhash` не пересоздаётся. Нет новых boolean-полей DTO → ловушка Jackson `is`-префикса неприменима.
+
+**Edge cases** (все из реального ревью кода):
+- `idStatus=5` для песни в `idStatus=6` (downgrade-ignore) — silently keep higher, лог `idStatus downgrade IGNORED ... current=6 requested=5`.
+- `idStatus` невалидное (не 5/6) — 400 `invalid_idstatus`, лог `INVALID idStatus=...`.
+- `idStatus` отсутствует (старый клиент) — 6, поведение полностью backward-compatible (SC-003).
+- Повторный клик по одобренному — `already_approved` ДО валидации, никаких строк `feature-184`.
+- `ReviewModal` — общий компонент для 3 точек входа (`SongEditorTable` / `SongsTable` / `SongEdit`); radio появляется во всех трёх без правок вызывающих компонентов.
+
+**Метрики**: 2 backend-файла (Kotlin) + 2 frontend-файла (Vue/JS) + 6 docs-файлов; ~60 строк кода + 0 строк миграций. Логика целиком опирается на существующие паттерны контроллера.
+
+**Связанные документы**:
+- [specs/184-approve-status-choice/spec.md](../../specs/184-approve-status-choice/spec.md) — 12 FR, 3 US, 6 SC, 7 Edge Cases.
+- [specs/184-approve-status-choice/research.md](../../specs/184-approve-status-choice/research.md) — 8 решений D-1..D-8 с привязкой к строкам кода.
+- [specs/184-approve-status-choice/contracts/](../../specs/184-approve-status-choice/contracts/) — дельты `/approve` + `/byId`.
+- [docs/features/approve-pipeline.md](../features/approve-pipeline.md) — добавлена секция «Условный запуск при выборе статуса 5».
+- [docs/features/editor-tasks.md](../features/editor-tasks.md) — добавлена секция «Выбор статуса при апруве».
+
+**Урок (для будущих фич в этом коде)**:
+- **Гейтить по фактическому результату, а не по запрошенному значению.** Если бы мы гейтили render-demo/sync по `requestedIdStatus == 6`, получили бы регрессию в единственном не-5-кейсе (`requested=5, current=6`): downgrade-ignore оставил бы песню в 6, но конвейер бы не запустился — ровно та проблема, которую фича убирает. Сверяй «что мы хотим» с «что реально получилось после применения».
+- **Push самой сущности НЕ гейтится, даже если гейтим derived-эффекты.** Иначе смысл операции (одобрить работу редактора) теряется — разметка остаётся в LOCAL, а админ видит «одобренную» песню только в админке. Думай: «что такое primary intent этой операции, без чего она бессмысленна».
+- **Сверять, какие поля реально приходят в API-ответе, прежде чем писать UI-гейт.** `ReviewModal` нуждался в `idStatus` песни для US2, но `/byId` его не отдавал. Без сверки с реальным кодом (через codegraph) FR-007 был бы нереализуем как написан. Добавляй «[IF EXISTS] прочитай этот ответ» в plan.md для UI-фич, использующих backend-данные.
+- **`watch: a()` для переиспользуемых модалок.** В `SongsTable` `ReviewModal` может оставаться смонтированным при переходе от одной строки задания к другой. Без сброса `selectedIdStatus` выбор «залипает» — пользователь одобряет задание A со статусом 5, переходит к заданию B, видит radio со старым выбором 5 и может не заметить. Стандартный паттерн Vue 2 — `watch: { a: { handler(newA, oldA) { ... }, deep: false } }`.
+

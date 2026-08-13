@@ -2,7 +2,7 @@
 
 > **Status**: active
 > **Feature Key**: approve-pipeline
-> **Last Updated**: 2026-08-05 (Pass 40 — фикс 152: `detectAndAnnounceAvailability` больше не полагается только на `wasAvailableBefore` целевой БД — L3 переписан)
+> **Last Updated**: 2026-08-13 (Pass 51-3 — фича 184: условный запуск render-demo и sync-related по выбору статуса 5/6; см. секцию «Условный запуск при выборе статуса 5» ниже)
 
 ## Что делает
 
@@ -99,6 +99,8 @@ KaraokeProcessWorker.KaraokeProcessThread.run()            [karaoke-app/src/main
      doWait=false, prior=5, threadId=0)`.
    - Любое исключение — `println("[approve/render-demo] ошибка: ...")`,
      НЕ пробрасывается (изоляция сбоя см. ниже).
+   - **Feature 184**: вызов обёрнут в `if (song.idStatus >= 6L) { ... }` —
+     при `idStatus=5` вместо вызова логируется `render-demo SKIPPED reason=idStatus=5`.
 2. **`thread { updateRemoteDatabaseFromLocalDatabase(false, true, true) }`**:
    - Fire-and-forget, не блокирует HTTP-ответ approve (SC-003 ≤5 с).
    - Покрывает `tbl_pictures`, `tbl_authors`, `tbl_albums` одной
@@ -107,6 +109,45 @@ KaraokeProcessWorker.KaraokeProcessThread.run()            [karaoke-app/src/main
      не откатывает approve.
 3. **`aRead.save()`** (existing): статус задания = `ADMIN_APPROVED`,
    HTTP-ответ.
+
+### Условный запуск при выборе статуса 5 (feature 184)
+
+Спека [184-approve-status-choice](../../specs/184-approve-status-choice/spec.md) добавляет
+необязательный параметр `?idStatus=` в `POST /api/songeditor/approve`:
+
+- `5` — «Маркеры проверены» (каноническое имя из `specs/022-song-status-lifecycle`, label `MARKERS_VERIFIED`): маркеры одобрены редактором, но рендер DEMO и sync related-таблиц **не запускаются**.
+- `6` — «Готово» (или параметр не передан) — текущее поведение выше.
+
+**Гейт по ФАКТИЧЕСКОМУ `song.idStatus` после применения, не по запрошенному значению**
+([research D-2](../../specs/184-approve-status-choice/research.md)):
+
+| `requestedIdStatus` | `current idStatus` | `song.idStatus` после | render-demo | sync related | song push |
+|---|---|---|---|---|---|
+| 6 / null | 4 | 6 | ✅ | ✅ | ✅ |
+| 5 | 4 | 5 | ⛔ (SKIPPED) | ⛔ (SKIPPED) | ✅ |
+| 5 | 6 | 6 (downgrade-ignore) | ✅ | ✅ | ✅ |
+
+**Push самой песни (`updateRemoteSongFromLocalDatabase`) НЕ гейтится** (research D-3):
+одобренная разметка (маркеры/текст/`.srt`) должна попасть на PROD при любом выборе —
+иначе смысл апрува теряется. Безопасность: `id_status=5` на сервере не делает песню
+доступной в публичном плеере (`Song.isContentReady` требует `>= 6`, см.
+[`Song.kt:1132-1139`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt)),
+а `markNewsAvailableIfReady` не выставляет `newsAvailableAnnounced`/`newsPremiumPublishPending`
+(см. `Song.kt:5126-5136`).
+
+**Логирование**: при пропуске обоих шагов — строки с префиксом `[approve/feature-184]`
+(`render-demo SKIPPED ... reason=idStatus=5`, `sync-related SKIPPED ... reason=idStatus=5`,
+`news SKIPPED ... reason=idStatus=5`) для grep по инцидентам (US3 спеки 184).
+
+**Downgrade-ignore**: если админ выбрал `idStatus=5` для песни, которая УЖЕ в 6,
+бэкенд НЕ понижает (data-model INV-1) и пишет `idStatus downgrade IGNORED ... current=6 requested=5`.
+В UI этот кейс недостижим (US2 скрывает radio для `idStatus >= 5`), но защита нужна
+для прямых curl-вызовов и гонок.
+
+**Раньше** (до feature 184), чтобы отложить релиз, админу приходилось после апрува
+вручную понижать статус в `SongEdit` (с 6 на 4 или 5) — с риском, что в промежутке
+успеют сработать автотриггеры (рендер DEMO, sync, новости). Фича 184 убирает
+этот костыль.
 
 ### Пост-хук в `KaraokeProcessThread.run()`
 
@@ -237,6 +278,10 @@ if (!forceStopped &&
 
 ### Контракты и спецификации
 
+- [spec.md](../../specs/184-approve-status-choice/spec.md) — спецификация фичи 184 «Выбор статуса песни при апруве задания (5 или 6)» (12 FR, 3 US, 6 SC).
+- [plan.md](../../specs/184-approve-status-choice/plan.md) — Implementation Plan фичи 184 (Constitution Check 8/8 ✅).
+- [research.md](../../specs/184-approve-status-choice/research.md) — Phase 0 research фичи 184 (8 решений D-1..D-8).
+- [contracts/](../../specs/184-approve-status-choice/contracts/) — дельты контрактов `/approve` и `/byId` для feature 184.
 - [spec.md](../../specs/131-fix-approve-demo-render-telegram-sync/spec.md) — спецификация фичи 131 (14 FR, 3 US, 6 SC).
 - [plan.md](../../specs/131-fix-approve-demo-render-telegram-sync/plan.md) — Implementation Plan (Constitution Check passed, 10/10).
 - [research.md](../../specs/131-fix-approve-demo-render-telegram-sync/research.md) — Phase 0 research, решения D-1..D-6, риски R-1..R-5.

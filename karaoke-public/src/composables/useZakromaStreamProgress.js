@@ -96,6 +96,17 @@ export function useZakromaStreamProgress() {
         anonId: getAnonId(),
         referrer: consumeEntryReferrer() || '',
       })
+      // Передаём `expectedCount` с тайла автора (= `songCount` в
+      // `AuthorTilePublicDto`). Backend использует его напрямую в
+      // первом NDJSON-сообщении `meta` без отдельного DB-запроса
+      // `Song.loadAuthorSongCounts(...)` (~100-500мс). Фронт получает
+      // `meta` МГНОВЕННО + начинает показывать «0 из N» с правильным N.
+      // Backend всё равно отдаёт `done.actualCount` — sanity check
+      // (FR-BE-008) для гарантии, что tiles и реальный стрим
+      // согласованы.
+      if (expectedCountFromCaller && expectedCountFromCaller > 0) {
+        params.set('expectedCount', String(expectedCountFromCaller))
+      }
       startTs = performance.now()
       recordEvent('zakroma_stream_start')
       // Composer.authHeader(): для залогиненного редактора shём
@@ -150,6 +161,16 @@ export function useZakromaStreamProgress() {
             // Битый JSON — игнорируем одну строку, продолжаем.
             console.warn('NDJSON parse error:', e, 'line:', line)
           }
+          // Micro-yield: между сообщениями даём браузеру шанс
+          // отрендерить промежуточное состояние прогрессометра.
+          // Без этого весь чанк (с ~50+ сообщениями) обрабатывается
+          // за один synchronous tick — Vue рендерит только финальное
+          // состояние (receivedCount = N), пользователь видит
+          // «0 → N» скачком. С micro-yield каждый yield ждёт
+          // ~0-1мс (event loop tick), что достаточно для requestAnimationFrame
+          // внутри Vue reactive updates.
+          // eslint-disable-next-line no-await-in-loop -- yield между сообщениями принципиален
+          await new Promise((resolve) => setTimeout(resolve, 0))
         }
       }
       // Финальный остаток в буфере (если стрим оборвался без \n) — игнорируем.

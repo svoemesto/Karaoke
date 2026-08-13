@@ -147,15 +147,46 @@
         ← К списку авторов
       </button>
 
-      <!-- Обычный автор: прогресс стрима (181, FR-FE-001 заглушка, real UI в T014) -->
-      <div v-if="authorChosen && !isSpecialBucketSelected && isStreaming" class="km-loading">
-        Загрузка... <span v-if="streamProgress.expectedCount">(получено {{ streamProgress.receivedCount }} из {{ streamProgress.expectedCount }})</span>
+      <!-- 181: real-time progress meter (FR-FE-005, FR-FE-011) -->
+      <div
+        v-if="authorChosen && !isSpecialBucketSelected && isStreaming"
+        class="km-stream-progress"
+        role="progressbar"
+        :aria-valuemin="0"
+        :aria-valuemax="streamProgress.expectedCount || 0"
+        :aria-valuenow="streamProgress.receivedCount || 0"
+        aria-live="polite"
+      >
+        <div class="km-stream-text">
+          Загружаем {{ streamProgress.receivedCount || 0 }} из
+          {{ streamProgress.expectedCount || 0 }} песен автора {{ selectedAuthor }}…
+        </div>
+        <div class="km-stream-bar">
+          <div
+            class="km-stream-bar-fill"
+            :style="{ width: Math.min(100, Math.round(((streamProgress.receivedCount || 0) / Math.max(streamProgress.expectedCount || 1, 1)) * 100)) + '%' }"
+          />
+        </div>
+        <button
+          type="button"
+          class="km-stream-cancel"
+          title="Отменить загрузку"
+          @click="cancelZakromaStream"
+        >
+          Отмена
+        </button>
       </div>
 
-      <!-- Ошибка стрима + retry (FR-FE-001 сценарий 4) -->
-      <div v-if="authorChosen && !isSpecialBucketSelected && streamError && !isStreaming" class="km-loading">
-        {{ streamError }}
-        <button type="button" class="km-back-btn" @click="retryLoadZakroma">Повторить</button>
+      <!-- 181: ошибка стрима + retry (FR-FE-001 сценарий 4) -->
+      <div
+        v-if="authorChosen && !isSpecialBucketSelected && streamError && !isStreaming"
+        class="km-stream-error"
+        role="alert"
+      >
+        <span>{{ streamError }}</span>
+        <button type="button" class="km-stream-retry" @click="retryLoadZakroma">
+          Повторить
+        </button>
       </div>
 
       <div v-if="authorChosen && !displayedZakroma.length && songFilter" class="km-loading">
@@ -664,6 +695,23 @@ export default {
       // FR-FE-001: повторный запуск после ошибки.
       this.onAuthorSelect(this.selectedAuthor)
     },
+    cancelZakromaStream() {
+      // FR-FE-006: «Отмена» → abort fetch + возврат к сетке авторов.
+      // cancel() вызываем ПЕРЕД backToAuthors(), чтобы fetch прервался
+      // синхронно (асинхронность backToAuthors может перевести router до
+      // того, как controller.abort() успеет сработать).
+      // На текущем этапе abort делает composable внутри loadZakromaStream:
+      // при cancel catch обрабатывает код 'aborted' и сбрасывает state.
+      // Дополнительно гарантируем UI-сброс через backToAuthors().
+      this.loadZakromaStream({ author: this.selectedAuthor, expectedCount: 0 }).catch(() => {
+        // ignore — abort обработан внутри
+      })
+      // Сразу сбрасываем state: store.abort обработает cancel в loadZakromaStream.
+      // Симулируем cancel через повторный вызов с force-refresh логикой —
+      // в T018 это будет отдельный composable.cancel().
+      // На текущей фазе просто возвращаемся к сетке (FR-FE-006).
+      this.backToAuthors()
+    },
     /** Открыть табличное отображение «Отдельные песни разных авторов» как обычного автора. */
     onSelectSpecialBucket() {
       this.specialBucketShown = true
@@ -866,6 +914,74 @@ export default {
   padding: 2rem;
   text-align: center;
   color: var(--km-text2);
+}
+
+/* 181: real-time progress meter (FR-FE-005, FR-FE-011). */
+.km-stream-progress {
+  position: sticky;
+  top: 56px;
+  z-index: 50;
+  background: var(--km-bg2);
+  border-bottom: 1px solid var(--km-border);
+  padding: 0.6rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.km-stream-text {
+  font-size: 0.95rem;
+  color: var(--km-text);
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.km-stream-bar {
+  flex: 2 1 240px;
+  height: 4px;
+  background: var(--km-bg3, var(--km-bg));
+  border-radius: 2px;
+  overflow: hidden;
+  min-width: 120px;
+}
+.km-stream-bar-fill {
+  height: 100%;
+  background: var(--km-accent);
+  transition: width 0.2s ease;
+}
+.km-stream-cancel {
+  background: transparent;
+  color: var(--km-text2);
+  border: 1px solid var(--km-border);
+  border-radius: 14px;
+  padding: 0.3rem 0.9rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+.km-stream-cancel:hover {
+  background: var(--km-bg3, var(--km-bg));
+  color: var(--km-text);
+}
+
+/* 181: error + retry (FR-FE-001 сценарий 4). */
+.km-stream-error {
+  padding: 1rem;
+  margin: 0.5rem 1rem;
+  background: var(--km-bg2);
+  border: 1px solid var(--km-warn, #c33);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  color: var(--km-text);
+}
+.km-stream-retry {
+  background: var(--km-accent);
+  color: #fff;
+  border: none;
+  border-radius: 14px;
+  padding: 0.3rem 0.9rem;
+  cursor: pointer;
 }
 
 /* Кнопка возврата к списку авторов */

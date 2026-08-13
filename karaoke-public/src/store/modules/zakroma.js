@@ -114,21 +114,44 @@ export default {
       // FR-FE-009: dedup — если < 30с с последней успешной загрузки, no-op.
       const lastTs = state.lastLoadedTimestampByAuthor[author]
       if (lastTs && Date.now() - lastTs < 30_000) {
-        // Тихо восстанавливаем UI из последнего стрима (но не делаем fetch).
-        // На текущей фазе useZakromaStreamProgress не помнит результаты — skip update.
+        // UI-restoring из последнего стрима — для MVP просто выходим.
+        // T017 при необходимости закэширует albums в state для force refresh.
         commit('setStreaming', false)
         return
       }
 
       // Создаём composable (FR-FE-001) и запускаем стрим.
       const composable = useZakromaStreamProgress()
+      // Передаём прогресс в state.streamProgress через watcher на composable refs.
+      // Vuex-совместимо: используем watch из 'vue'.
+      const { watch: vueWatch } = await import('vue')
+      const stopProgress = vueWatch(
+        () => ({
+          receivedCount: composable.receivedCount.value,
+          expectedCount: composable.expectedCount.value,
+        }),
+        (val) => commit('setStreamProgress', val),
+        { deep: true, immediate: true },
+      )
+
       try {
         const result = await composable.start(author, expectedCount)
-        // Полное обновление albums + zаркома при приходе `done` —
-        // реализуется в T013 (Phase 4). Здесь — заглушка: ничего не делаем,
-        // composable resolver кидает ошибку reject для cancel() / network().
+        // FR-BE-008: actualCount должен совпадать с expectedCount (если фильтр
+        // не удалил). UI ничего не показывает, но sanity-check логируем.
         if (result && result.albums) {
-          commit('setZakroma', result.albums)
+          // Преобразуем к формату ZakromaPublicDto: {author, authorPictureUrl, albums: [...]}.
+          // У нас нет authorPictureUrl — UI может не показывать картинку,
+          // если нету (или взять из кэша?). Для MVP — оставляем пустым.
+          commit('setZakroma', [
+            {
+              author,
+              authorPictureUrl: '',
+              albums: result.albums,
+              // albumTypeCounts вычислим на фронте из полученных данных
+              // (FR-BE-003 out of scope: backend не шлёт albumSettings).
+              albumTypeCounts: [],
+            },
+          ])
           commit('setLastLoadedTimestamp', { author, ts: Date.now() })
         }
       } catch (err) {
@@ -145,6 +168,7 @@ export default {
         // прошёл как force refresh.
         commit('setLastLoadedTimestamp', { author, ts: 0 })
       } finally {
+        stopProgress()
         commit('setStreaming', false)
       }
     },

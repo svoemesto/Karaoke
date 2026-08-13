@@ -18,6 +18,7 @@ import com.svoemesto.karaokeweb.dto.ZakromaAlbumMetaPublicDto
 import com.svoemesto.karaokeweb.dto.ZakromaAlbumSongPublicDto
 import com.svoemesto.karaokeweb.dto.ZakromaPublicDto
 import com.svoemesto.karaokeweb.dto.ZakromaStreamMessageDto
+import com.svoemesto.karaokeweb.dto.ZakromaStreamMetricDto
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.svoemesto.karaokeweb.services.PlayerGestureUnlockService
 import com.svoemesto.karaokeweb.services.SiteUserResolver
@@ -387,6 +388,64 @@ class PublicApiController(
             .ok()
             .contentType(MediaType("application", "x-ndjson"))
             .body(body)
+    }
+
+    /**
+     * Принимает батч метрик NDJSON-стрима (FR-FE-010).
+     *
+     * Фронт при `pagehide` (через `navigator.sendBeacon`, fallback `fetch keepalive`)
+     * шлёт массив [ZakromaStreamMetricDto] со всеми событиями стрима
+     * (`zakroma_stream_start` / `_done` / `_error` / `_abort`). Каждое
+     * регистрируется в `tbl_events` для последующего анализа (SC-004).
+     *
+     * **Возврат 200 даже при ошибках БД** — метрики не должны ломать UX
+     * посетителя (страница уже закрывается через `pagehide`). Если БД
+     * недоступна — событие просто теряется, это нормально (sampling loss).
+     *
+     * **Совместимо с `sendBeacon`**: `Content-Type`=`application/json`,
+     * `Keep-Alive` через `keepalive: true` fallback.
+     *
+     * @see docs/features/zakroma-stream-progress.md
+     */
+    @PostMapping("/zakroma/stream/metrics")
+    fun zakromaStreamMetrics(
+        @RequestBody metrics: List<ZakromaStreamMetricDto>,
+        @RequestParam(required = false) anonId: String?,
+        @RequestParam(required = false) referrer: String?,
+        request: HttpServletRequest,
+    ): ResponseEntity<Unit> {
+        if (metrics.isEmpty()) return ResponseEntity.ok().build()
+        try {
+            for (m in metrics) {
+                // eventType берём из самого DTO (специализированный, НЕ CALL_REST),
+                // чтобы админ-фильтры в tbl_events могли выделять stream-события
+                // в отдельную категорию.
+                val parameters: MutableMap<String, Any?> = mutableMapOf(
+                    "author" to m.author,
+                    "firstChunkMs" to m.firstChunkMs,
+                    "durationMs" to m.durationMs,
+                    "expectedCount" to m.expectedCount,
+                    "receivedCount" to m.receivedCount,
+                    "streamAborted" to m.streamAborted,
+                    "errorCategory" to m.errorCategory,
+                )
+                mainController.doRegisterEvent(
+                    mapOf(
+                        "eventType" to m.eventType,
+                        "restName" to RestName.ZAKROMA.dbValue,
+                        "parameters" to parameters,
+                        "anonId" to (anonId ?: ""),
+                        "referrer" to (referrer ?: ""),
+                    ),
+                    request,
+                    siteUserResolver.resolve(request)?.id ?: 0,
+                )
+            }
+        } catch (e: Exception) {
+            // Не падаем — метрики best-effort.
+            println("zakromaStreamMetrics error: ${e.message}")
+        }
+        return ResponseEntity.ok().build()
     }
 
     @GetMapping("/songs")

@@ -62,26 +62,25 @@ commit-content.
 **Purpose**: Backend DTOs + nginx config — оба блокирующие для US1/US2,
 без них ничего не работает. Параллельная работа (разные файлы).
 
-- [ ] **T004** [P] Создать
+- [x] **T004** [P] ✅ Создан
   `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/dto/ZakromaAlbumMetaPublicDto.kt` —
-  то же что `ZakromaAlbumPublicDto` (albumName, year, albumPictureUrl,
-  albumType, albumTypeLabel, description, shortDescription, warning) БЕЗ
-  поля `albumSettings`. ~30 строк. KDoc с `@see docs/features/zakroma-stream-progress.md`
-  (FR-006 Constitution).
-- [ ] **T005** [P] Создать
+  лёгкий DTO метаданных альбома БЕЗ `albumSettings`. ~55 строк. KDoc +
+  `@see docs/features/zakroma-stream-progress.md`. `fromAlbum()` companion
+  для конверсии `ZakromaAlbum → ZakromaAlbumMetaPublicDto`.
+- [x] **T005** [P] ✅ Создан
   `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/dto/ZakromaStreamMessageDto.kt` —
-  wrapper для NDJSON. Поля:
-  - `type: String` (обязательное, `"meta"` / `"album"` / `"song"` / `"done"` / `"error"`).
-  - `author: String?` (только в `meta`).
-  - `expectedCount: Long?` (только в `meta`).
-  - `actualCount: Long?` (только в `done`).
-  - `album: ZakromaAlbumMetaPublicDto?` (только в `album`).
-  - `song: ZakromaAlbumSongPublicDto?` (только в `song`).
-  - `message: String?` (только в `error`).
-  Аннотация `@JsonInclude(JsonInclude.Include.NON_NULL)` чтобы null-поля
-  не попадали в JSON. ~25 строк. KDoc с `@see`.
-- [ ] **T006** [P] Добавить `location /api/public/zakroma/stream` блок
-      в `deploy/80to8897`. **Шаги**:
+  NDJSON-wrapper. `@JsonInclude(NON_NULL)`, 5 типов сообщений, companion
+  factories `meta()/album()/song()/done()/error()`. ~70 строк. KDoc + `@see`.
+- [x] **T006** [P] ✅ Создан фрагмент + деплой-скрипт (адаптация):
+  - `deploy/80to8897.stream-addition.frag` — готовый location-блок для
+    вставки в `/etc/nginx/sites-enabled/80to8897` на проде (с комментариями).
+  - `tools/deploy-nginx-stream.sh` — скрипт: rsync фрагмента → SSH →
+    prepend content в `80to8897` (если ещё не добавлен) → `nginx -t` →
+    `systemctl reload nginx`. С бэкапом и автоматическим откатом при
+    ошибке nginx -t.
+  - **Отклонение от T006**: полный `deploy/80to8897` не в репо (только на
+    сервере, см. AGENTS.md «nginx 80to8897»). Поэтому фрагмент-подход —
+    копируется на сервер и конкатенируется в существующий конфиг.
       1. Прочитать существующий `deploy/80to8897` — найти upstream name
          (например, `karaoke-web-upstream`) и существующий `/api/public/`
          location (он задаёт `proxy_set_header` директивы, которые надо
@@ -114,75 +113,59 @@ commit-content.
 **Independent Test**: scenario 1 из `quickstart.md` (только проверка очистки
 + появления индикатора). Backend compile + первый chunked-ответ через curl.
 
-- [ ] **T007** [US1] Добавить endpoint `zakromaStream` в
+- [x] **T007** ✅ [US1] Добавлен endpoint `zakromaStream` в
   `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicApiController.kt`:
   - Сигнатура: `fun zakromaStream(author: String?, anonId: String?, referrer: String?, request: HttpServletRequest): ResponseEntity<StreamingResponseBody>`.
   - `@GetMapping("/zakroma/stream", produces = ["application/x-ndjson"])`.
   - Внутри тела (`StreamingResponseBody` lambda):
-    1. Создать `BufferedWriter(OutputStreamWriter(out, StandardCharsets.UTF_8))`.
-    2. Перед загрузкой данных — зарегистрировать событие
-       `doRegisterEvent(mapOf("eventType" to EventType.CALL_REST.dbValue,
-       "restName" to RestName.ZAKROMA.dbValue,
-       "parameters" to mapOf("author" to author, "stream" to true), ...), request, ...)`.
-    3. Получить `onlyPublished = onlyPublishedFor(request)` и
-       `zakroma = Zakroma.getZakroma(author = author ?: "", ...)` (тот
-       же код что в существующем endpoint, lines 200-217).
-    4. Написать `{"type":"meta","author":"<name>","expectedCount":<N>}` +
-       `\n` + `flush()`. `expectedCount` = сумма `albums[*].albumSettings.size`
-       по всему zakroma (или `Song.loadAuthorSongCounts` для единой
-       семантики с тайлом — выбрать единый путь, см. план § FR-BE-003).
-    5. **Заглушка**: одна `done` строка `{"type":"done","actualCount":<N>}` +
-       close. Полный streaming loop — в Phase 4 (T012).
-  - KDoc endpoint: «NDJSON chunked-stream версия /zakroma для
-    real-time прогресса на фронте. @see docs/features/zakroma-stream-progress.md».
-  - Возврат: `ResponseEntity.ok().contentType(MediaType("application",
-    "x-ndjson")).body(body)`.
-  - ~60 строк с KDoc.
-- [ ] **T008** [US1] Создать
-  `karaoke-public/src/composables/useZakromaStreamProgress.js` —
-  composable-каркас:
+    1. `BufferedWriter(OutputStreamWriter(out, StandardCharsets.UTF_8))`.
+    2. Регистрация события `doRegisterEvent` (`CALL_REST` + `ZAKROMA` + `stream: true`).
+    3. `onlyPublished = onlyPublishedFor(request)` (тот же код что в существующем endpoint).
+    4. `meta` сообщение с `expectedCount = Song.loadAuthorSongCounts(author, onlyPublished)` — **MUST** быть идентичной формулой с тайлом (FR-BE-003).
+    5. **Заглушка отменена**: streaming loop по `zak.albums.sorted() → album → albumSongs` с
+       `flush()` после каждого NDJSON-сообщения. Полная реализация T012 уже включена.
+    6. `done` сообщение с `actualCount`.
+    7. `try/catch` вокруг всей стрим-логики → `{"type":"error",...}` + close, HTTP 200 (FR-BE-006).
+  - KDoc endpoint с `@see docs/features/zakroma-stream-progress.md`.
+  - Возврат: `ResponseEntity.ok().contentType(MediaType("application", "x-ndjson")).body(body)`.
+  - **Verified**: `./gradlew :karaoke-web:compileKotlin` ✅ BUILD SUCCESSFUL.
+- [x] **T008** ✅ [US1] Создан
+  `karaoke-public/src/composables/useZakromaStreamProgress.js` — composable-каркас:
   - `setup()` возвращает: refs `isVisible`, `progress` (=0),
     `receivedCount` (=0), `expectedCount` (=0), `errorMessage`
     (ref<string|null>); method `start(author, expectedCount)`,
     `cancel()`, `result` Promise.
-  - Внутри `setup()` — создать `let controller = null`,
-    `let cleanup = () => {}`.
-  - `start()`: **синхронно** очистить локальный буфер альбомов
-    (пустой массив) + сбросить refs. Затем создать `controller = new AbortController()`,
-    запустить fetch (ПОКА можно просто вызвать fetch и игнорировать
-    ответ — реальный NDJSON-парсер добавится в T013).
-  - `onBeforeUnmount(() => cleanup())` — `cleanup` зовёт
-    `controller.abort()` если активен.
-  - JSDoc: «Real-time NDJSON-stream parser для /api/public/zakroma/stream.
-    @see docs/features/zakroma-stream-progress.md».
-  - ~40 строк с JSDoc.
-- [ ] **T009** [US1] В `karaoke-public/src/store/modules/zakroma.js`:
-  - Заменить `loadZakroma` action на `loadZakromaStream` (вызов
-    composable + commit результата).
-  - State: `zakroma`, `isLoading` → переименовать в `isStreaming`
-    (новый ref). **NEW** `streamProgress: { receivedCount, expectedCount }`,
-    `streamError: string|null`, `lastLoadedTimestampByAuthor: Record<string, number>`.
-  - Mutations: `setZakroma`, `setStreaming`, `setStreamProgress`,
-    `setStreamError`, `setLastLoadedTimestamp`.
-  - ~60 строк правок.
-- [ ] **T010** [US1] В `karaoke-public/src/views/ZakromaView.vue`:
-  - В `setup()` подключить composable: `const streamProgress = useZakromaStreamProgress()`.
-  - В `onAuthorSelect(author)` — заменить вызов `loadZakroma(author)`
-    на `loadZakromaStream(author)`. Перед вызовом — очистить
-    `state.zakroma` через commit `setZakroma, []` (синхронно, до
-    fetch).
-  - В шаблоне — заменить `<div v-if="...isLoading" class="km-loading">Загрузка...</div>`
-    на placeholder `<div v-if="streamProgress.isVisible.value" class="km-stream-progress">Loading...</div>` (детали UI — в T014).
-  - ~20 строк правок.
-- [ ] **T011** [US1] **Manual Verification (Phase 3)**:
-  - Backend: `./gradlew :karaoke-web:compileKotlin` — должен быть зелёным.
+  - Внутри `setup()` — `let controller = null`, `let cleanup = () => {}`.
+  - `start()`: **синхронно** очищается локальный буфер + refs (FR-FE-004 ≤ 50 мс).
+    Создаётся `AbortController`, fetch запускается к `/api/public/zakroma/stream?author=...`.
+    Полный NDJSON-парсер добавляется в T013.
+  - `cancel()` — `controller.abort()`, очищает буфер, reject Promise.
+  - JSDoc + `@see docs/features/zakroma-stream-progress.md`.
+  - **Verified**: ESLint ✅ no warnings.
+- [x] **T009** ✅ [US1] `karaoke-public/src/store/modules/zakroma.js`:
+  - `loadZakroma` action заменена на `loadZakromaStream({ author, expectedCount })`.
+  - State: `isLoading` → `isStreaming` ✅. **NEW** `streamProgress`, `streamError`,
+    `lastLoadedTimestampByAuthor`.
+  - Mutations: `setZakroma`, `setStreaming`, `setStreamProgress`, `setStreamError`,
+    `setLastLoadedTimestamp`.
+  - FR-FE-009 dedup: `lastTs && Date.now() - lastTs < 30_000` → no-op.
+  - При error — сбрасывает `lastLoadedTimestamp[author] = 0` (force refresh на retry).
+  - **Verified**: ESLint ✅.
+- [x] **T010** ✅ [US1] `karaoke-public/src/views/ZakromaView.vue`:
+  - `mapGetters` обновлён: `isLoading` → `isStreaming`, добавлены `streamProgress`, `streamError`.
+  - `mapActions`: `loadZakroma` → `loadZakromaStream`.
+  - `onAuthorSelect`: берёт `expectedCount` из `authorTiles.find(t => t.author === author)?.songCount`.
+  - Placeholder: `<div v-if="...isStreaming">{receivedCount}/{expectedCount}</div>`.
+  - Retry button через `streamError` → `retryLoadZakroma()`.
+  - `isLoadingAny` обновлён на `isStreaming`.
+  - **Verified**: ESLint ✅.
+- [ ] **T011** [US1] **Manual Verification (Phase 3)** ⚠️ Требует пользователя:
+  - Backend: `./gradlew :karaoke-web:compileKotlin` ✅ DONE (8/8 elapsed).
   - Deploy: пользователь запускает `bash deploy/do.sh build_start_web`
-    + `bash tools/deploy-nginx-stream.sh` (после T006 будет готов).
+    + `bash tools/deploy-nginx-stream.sh`.
   - Localhost: `curl -N "http://localhost:8897/api/public/zakroma/stream?author=Test"` —
     должен вернуть как минимум 2 строки NDJSON (`meta` + `done`).
-  - Browser: открыть `/zakroma`, кликнуть по автору — должен сразу
-    появиться placeholder «Loading...», через ~500мс пропасть (после
-    прихода `done`).
+  - Browser: `/zakroma` → клик по автору → placeholder «Loading...» синхронно.
 
 **Checkpoint**: после Phase 3 очистка списка работает синхронно, endpoint
 отдаёт NDJSON, UI показывает placeholder. End-to-end пока без real
@@ -198,7 +181,13 @@ progress (он появится в Phase 4).
 **Independent Test**: scenarios 1, 2, 5 из `quickstart.md` (real progress,
 отмена, ошибка сети).
 
-- [ ] **T012** [US2] В `PublicApiController.zakromaStream(...)` (расширение T007):
+- [x] **T012** ✅ [US2] В `PublicApiController.zakromaStream(...)` (расширение T007 — **уже сделано в T007**, см. выше):
+  - Streaming loop по `zakroma` → `albums.sorted()` → для каждого альбома:
+    1. `album` сообщение с `ZakromaAlbumMetaPublicDto.fromAlbum(album)` + flush.
+    2. По `album.albumSongs` — `song` сообщение с `ZakromaAlbumSongPublicDto(...)` + flush + `actualCount++`.
+  - `done` сообщение с `actualCount` (FR-BE-003 + FR-BE-008).
+  - `try/catch` → `{"type":"error",...}` + close, HTTP 200 (FR-BE-006).
+  - **Verified**: `./gradlew :karaoke-web:compileKotlin` ✅.
   - В streaming loop: после `meta` сообщения итерировать по `zakroma`
     → `albums` → для каждого альбома:
     1. Написать `{"type":"album","album":<meta-dto>}` + `\n` + `flush()`.

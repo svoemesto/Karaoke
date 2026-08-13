@@ -147,9 +147,15 @@
         ← К списку авторов
       </button>
 
-      <!-- Обычный автор: таблица песен (как раньше) -->
-      <div v-if="authorChosen && !isSpecialBucketSelected && isLoading" class="km-loading">
-        Загрузка...
+      <!-- Обычный автор: прогресс стрима (181, FR-FE-001 заглушка, real UI в T014) -->
+      <div v-if="authorChosen && !isSpecialBucketSelected && isStreaming" class="km-loading">
+        Загрузка... <span v-if="streamProgress.expectedCount">(получено {{ streamProgress.receivedCount }} из {{ streamProgress.expectedCount }})</span>
+      </div>
+
+      <!-- Ошибка стрима + retry (FR-FE-001 сценарий 4) -->
+      <div v-if="authorChosen && !isSpecialBucketSelected && streamError && !isStreaming" class="km-loading">
+        {{ streamError }}
+        <button type="button" class="km-back-btn" @click="retryLoadZakroma">Повторить</button>
       </div>
 
       <div v-if="authorChosen && !displayedZakroma.length && songFilter" class="km-loading">
@@ -359,6 +365,9 @@ import { usePlayerReadiness } from '../composables/usePlayerReadiness'
 import { usePlaylistMembership } from '../composables/usePlaylistMembership'
 import { useCart } from '../composables/useCart'
 import { useAuth } from '../composables/useAuth'
+// useZakromaStreamProgress подключается в T014 (Phase 4) — полноценный UI прогрессометра.
+// На этой фазе (T010) стрим идёт через store action `loadZakromaStream`, который
+// сам инстанцирует composable и пишет в state.streamProgress/streamError.
 
 // Нормализация строки для быстрого фильтра по названию: регистронезависимо, без краевых
 // пробелов, Ё приравнивается к Е (чтобы «ёлка»/«елка» находили друг друга).
@@ -433,7 +442,7 @@ export default {
     }
   },
   computed: {
-    ...mapGetters('zakroma', ['authorTiles', 'zakroma', 'specialBucket', 'isLoading']),
+    ...mapGetters('zakroma', ['authorTiles', 'zakroma', 'specialBucket', 'isStreaming', 'streamProgress', 'streamError']),
     isPremium() {
       return !!(this.user && this.user.effectivePremium)
     },
@@ -489,10 +498,10 @@ export default {
     /** Сейчас идёт загрузка? Учитываем оба режима (обычный + спец). */
     isLoadingAny() {
       if (this.specialBucketShown) {
-        // Спец-режим загружает через loadSpecialBucket (без isLoading в сторе)
+        // Спец-режим загружает через loadSpecialBucket (без isStreaming в сторе)
         return false
       }
-      return this.isLoading
+      return this.isStreaming
     },
   },
   watch: {
@@ -527,10 +536,10 @@ export default {
     // Спец-каталог (виртуальный «автор» в конце) — нужен для тайла и плоской таблицы.
     this.loadSpecialBucket()
     // Таблицу грузим только если автор уже выбран (например, зашли по ссылке ?author=...).
-    if (this.authorChosen) this.loadZakroma(this.selectedAuthor)
+    if (this.authorChosen) this.loadZakromaStream({ author: this.selectedAuthor, expectedCount: 0 })
   },
   methods: {
-    ...mapActions('zakroma', ['loadAuthorTiles', 'loadZakroma', 'loadSpecialBucket']),
+    ...mapActions('zakroma', ['loadAuthorTiles', 'loadZakromaStream', 'loadSpecialBucket']),
     /** Переключатель "сквозной/по группам" (FR-023) — персистентно в localStorage. */
     setAlbumDisplayMode(mode) {
       this.albumDisplayMode = mode
@@ -644,7 +653,16 @@ export default {
       this.authorChosen = true
       this.songFilter = ''
       this.$router.replace({ path: '/zakroma', query: author ? { author } : {} })
-      this.loadZakroma(author)
+      // 181: stream loader (FR-FE-003). expectedCount берётся с тайла — ищем
+      // в authorTiles (имя автора → songCount). Если нет тайла (спецзаказной)
+      // — 0, фронт всё равно дождётся meta от backend (там будет реальное число).
+      const tile = (this.authorTiles || []).find((t) => t.author === author)
+      const expectedCount = tile ? tile.songCount : 0
+      this.loadZakromaStream({ author, expectedCount })
+    },
+    retryLoadZakroma() {
+      // FR-FE-001: повторный запуск после ошибки.
+      this.onAuthorSelect(this.selectedAuthor)
     },
     /** Открыть табличное отображение «Отдельные песни разных авторов» как обычного автора. */
     onSelectSpecialBucket() {

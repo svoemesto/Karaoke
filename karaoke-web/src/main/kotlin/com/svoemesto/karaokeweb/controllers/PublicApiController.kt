@@ -14,7 +14,11 @@ import com.svoemesto.karaokeapp.services.StorageApiClient
 import com.svoemesto.karaokeweb.StatBySong
 import com.svoemesto.karaokeweb.dto.AuthorTilePublicDto
 import com.svoemesto.karaokeweb.dto.SongPublicDto
+import com.svoemesto.karaokeweb.dto.ZakromaAlbumMetaPublicDto
+import com.svoemesto.karaokeweb.dto.ZakromaAlbumSongPublicDto
 import com.svoemesto.karaokeweb.dto.ZakromaPublicDto
+import com.svoemesto.karaokeweb.dto.ZakromaStreamMessageDto
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.svoemesto.karaokeweb.services.PlayerGestureUnlockService
 import com.svoemesto.karaokeweb.services.SiteUserResolver
 import jakarta.servlet.http.HttpServletRequest
@@ -28,14 +32,18 @@ import java.awt.Font
 import java.awt.Graphics2D
 import java.awt.RenderingHints
 import java.awt.image.BufferedImage
+import java.io.BufferedWriter
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.OutputStreamWriter
 import java.net.URI
+import java.nio.charset.StandardCharsets
 import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 import javax.imageio.ImageIO
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody
 
 /**
  * JSON API для нового публичного SPA (karaoke-public). Чисто аддитивный контроллер:
@@ -216,6 +224,169 @@ class PublicApiController(
                 )
             }
         return ZakromaPublicDto.fromZakroma(zakroma)
+    }
+
+    /**
+     * NDJSON chunked-stream версия /zakroma для real-time прогресса на фронте.
+     *
+     * Отдаёт 5 типов сообщений (FR-BE-003): `meta` (1 шт.) → `album` (N шт.) →
+     * `song` (M шт.) → `done` (1 шт.). Альбомы и песни итерируются в
+     * порядке их получения из [Zakroma.getZakroma], что совпадает с порядком
+     * отображения на странице (TOCTOU-консистентность).
+     *
+     * **Прогресс-контракт**: `expectedCount` в `meta` MUST совпадать с числом
+     * на тайле автора (`Song.loadAuthorSongCounts(author, onlyPublished)`) —
+     * иначе фронт покажет «дрейф» счётчика (получили X из 230, а на тайле 234).
+     *
+     * **Ошибки**: при SQLException шлём `{"type":"error",...}` + close,
+     * HTTP 200 (НЕ 500 — иначе fetch не сможет парсить тело, см. FR-BE-006).
+     *
+     * **Prod-конфиг**: файлу `/etc/nginx/sites-enabled/80to8897` MUST быть
+     * добавлен location-блок с `proxy_buffering off; gzip off; proxy_read_timeout 300s;`
+     * (см. `deploy/80to8897.stream-addition.frag` + `tools/deploy-nginx-stream.sh`).
+     * Без этой правки nginx буферизует chunked-ответ и фронт получит весь
+     * массив одним блоком — никакого «real-time» не будет.
+     *
+     * @see docs/features/zakroma-stream-progress.md
+     */
+    @GetMapping("/zakroma/stream", produces = ["application/x-ndjson"])
+    fun zakromaStream(
+        @RequestParam(required = false) author: String?,
+        @RequestParam(required = false) anonId: String?,
+        @RequestParam(required = false) referrer: String?,
+        request: HttpServletRequest,
+    ): ResponseEntity<StreamingResponseBody> {
+        val data: MutableMap<String, Any> = mutableMapOf()
+        author?.let { data["author"] = it }
+        data["stream"] = true
+        mainController.doRegisterEvent(
+            mapOf(
+                "eventType" to EventType.CALL_REST.dbValue,
+                "restName" to RestName.ZAKROMA.dbValue,
+                "parameters" to data,
+                "anonId" to (anonId ?: ""),
+                "referrer" to (referrer ?: ""),
+            ),
+            request,
+            siteUserResolver.resolve(request)?.id ?: 0,
+        )
+        val onlyPublished = onlyPublishedFor(request)
+        val auth = author ?: ""
+
+        val body = StreamingResponseBody { out ->
+            val writer = BufferedWriter(OutputStreamWriter(out, StandardCharsets.UTF_8))
+            val mapper = ObjectMapper()
+            try {
+                // 1. meta — отправляем ДО загрузки данных, чтобы фронт сразу
+                //    узнал expectedCount (= Song.loadAuthorSongCounts для автора,
+                //    та же формула, что на тайле; spec FR-BE-003).
+                val expectedCount: Long =
+                    Song.loadAuthorSongCounts(
+                        isSpecialOrder = null,
+                        onlyPublished = onlyPublished,
+                        database = WORKING_DATABASE,
+                    )[auth] ?: 0L
+                writer.write(mapper.writeValueAsString(ZakromaStreamMessageDto.meta(auth, expectedCount)))
+                writer.newLine()
+                writer.flush()
+
+                // 2. Загрузка данных (тот же код, что в обычном /zakroma).
+                val zakroma =
+                    Zakroma.getZakroma(
+                        author = auth,
+                        database = WORKING_DATABASE,
+                        storageService = storageService,
+                        storageApiClient = storageApiClient,
+                        onlyPublished = onlyPublished,
+                    )
+
+                // 3. Streaming loop по альбомам и песням (FR-BE-004).
+                //    Полная реализация добавляется в T012 — здесь
+                //    передаём по одному album + song с flush после каждого.
+                var actualCount = 0L
+                for (zak in zakroma) {
+                    for (album in zak.albums.sorted()) {
+                        // album message — метаданные (без albumSettings, FR-BE-003).
+                        writer.write(mapper.writeValueAsString(ZakromaStreamMessageDto.album(ZakromaAlbumMetaPublicDto.fromAlbum(album))))
+                        writer.newLine()
+                        writer.flush()
+                        for (song in album.albumSongs) {
+                            writer.write(
+                                mapper.writeValueAsString(
+                                    ZakromaStreamMessageDto.song(
+                                        ZakromaAlbumSongPublicDto(
+                                            id = song.id,
+                                            track = song.track,
+                                            songName = song.songName,
+                                            onAir = song.onAir,
+                                            datePublish = song.datePublish,
+                                            airTimestamp = song.airTimestamp,
+                                            songSubscriptionAvailable = song.songSubscriptionAvailable,
+                                            alwaysFree = song.alwaysFree,
+                                            freelyAvailableNow = song.freelyAvailableNow,
+                                            freeAccessWindowEndText = song.freeAccessWindowEndText,
+                                            linkBoosty = song.linkBoosty,
+                                            linkSponsrPlay = song.linkSponsrPlay,
+                                            linkDzenKaraoke = song.linkDzenKaraoke,
+                                            linkDzenLyrics = song.linkDzenLyrics,
+                                            linkDzenTabs = song.linkDzenTabs,
+                                            linkDzenChords = song.linkDzenChords,
+                                            linkVkKaraoke = song.linkVkKaraoke,
+                                            linkVkLyrics = song.linkVkLyrics,
+                                            linkVkTabs = song.linkVkTabs,
+                                            linkVkChords = song.linkVkChords,
+                                            linkTgKaraoke = song.linkTgKaraoke,
+                                            linkTgLyrics = song.linkTgLyrics,
+                                            linkTgTabs = song.linkTgTabs,
+                                            linkTgChords = song.linkTgChords,
+                                            linkPlKaraoke = song.linkPlKaraoke,
+                                            linkPlLyrics = song.linkPlLyrics,
+                                            linkPlTabs = song.linkPlTabs,
+                                            linkPlChords = song.linkPlChords,
+                                            linkMaxKaraoke = song.linkMaxKaraoke,
+                                            linkMaxLyrics = song.linkMaxLyrics,
+                                            linkMaxTabs = song.linkMaxTabs,
+                                            linkMaxChords = song.linkMaxChords,
+                                        ),
+                                    ),
+                                ),
+                            )
+                            writer.newLine()
+                            writer.flush()
+                            actualCount++
+                        }
+                    }
+                }
+
+                // 4. done — финал (FR-BE-003: actualCount = реально отправленных песен,
+                //    FR-BE-008: должен совпадать с expectedCount, если фильтр не удалил).
+                writer.write(mapper.writeValueAsString(ZakromaStreamMessageDto.done(actualCount)))
+                writer.newLine()
+                writer.flush()
+            } catch (e: Exception) {
+                // FR-BE-006: 200 + {"type":"error",...} при любой ошибке SQL/IO.
+                // НЕ отдаём 500 — иначе fetch не сможет прочитать тело.
+                try {
+                    writer.write(mapper.writeValueAsString(ZakromaStreamMessageDto.error("Не удалось загрузить песни автора")))
+                    writer.newLine()
+                    writer.flush()
+                } catch (_: Exception) {
+                    // Если даже error-сообщение не удалось записать — стрим уже
+                    // сломан, ничего не поделать. Tomcat закроет соединение.
+                }
+            } finally {
+                try {
+                    writer.flush()
+                } catch (_: Exception) {
+                    // ignore
+                }
+            }
+        }
+
+        return ResponseEntity
+            .ok()
+            .contentType(MediaType("application", "x-ndjson"))
+            .body(body)
     }
 
     @GetMapping("/songs")

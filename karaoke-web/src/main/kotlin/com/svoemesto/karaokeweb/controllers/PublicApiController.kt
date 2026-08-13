@@ -253,6 +253,7 @@ class PublicApiController(
     @GetMapping("/zakroma/stream", produces = ["application/x-ndjson"])
     fun zakromaStream(
         @RequestParam(required = false) author: String?,
+        @RequestParam(required = false) expectedCount: Long?,
         @RequestParam(required = false) anonId: String?,
         @RequestParam(required = false) referrer: String?,
         request: HttpServletRequest,
@@ -280,17 +281,32 @@ class PublicApiController(
                 val mapper = ObjectMapper()
                 try {
                     // 1. meta — отправляем ДО загрузки данных, чтобы фронт сразу
-                    //    узнал expectedCount (= Song.loadAuthorSongCounts для автора,
-                    //    та же формула, что на тайле; spec FR-BE-003).
-                    val expectedCount: Long =
-                        Song.loadAuthorSongCounts(
-                            isSpecialOrder = null,
-                            onlyPublished = onlyPublished,
-                            database = WORKING_DATABASE,
-                        )[auth] ?: 0L
-                    writer.write(mapper.writeValueAsString(ZakromaStreamMessageDto.meta(auth, expectedCount)))
+                    //    узнал expectedCount. Используем фронт-значение (count с тайла
+                    //    автора в `AuthorTilePublicDto.songCount`) — оно MIGHT be
+                    //    slightly stale (новые песни, добавленные между загрузкой
+                    //    тайлов и кликом), но это та же формула
+                    //    `Song.loadAuthorSongCounts(author, onlyPublished)` —
+                    //    UI sanity check против `done.actualCount` (FR-BE-008).
+                    //    **MUST** БЫТЬ > 0 ИНАЧЕ не шлём meta вообще (фронт
+                    //    тогда покажет «0 из 0» — бесполезно).
+                    //
+                    // Основная выгода: saves лишний DB-запрос
+                    // `Song.loadAuthorSongCounts(...)` (~100-500мс), после
+                    // которого шла `meta` и только потом начинался streaming. С
+                    // Этим fix'ом: `meta` уходит СРАЗУ, фронт сразу видит
+                    // «0 из N» (N — с тайла), а параллельно идёт `Zakroma.getZakroma()`
+                    // (1-3с с pictures DB+HTTP).
+                    val metaExpectedCount: Long = expectedCount ?: 0L
+                    writer.write(mapper.writeValueAsString(ZakromaStreamMessageDto.meta(auth, metaExpectedCount)))
                     writer.newLine()
                     writer.flush()
+                    // Явный out.flush() — гарантирует, что servlet-буфер
+                    // (Tomcat 8KB default) отправит байты клиенту СРАЗУ, а не
+                    // будет держать их до заполнения буфера. writer.flush() уже
+                    // должен вызвать out.flush() через OutputStreamWriter, но
+                    // Tomcat-уровневая буферизация делает явный вызов
+                    // безопаснее.
+                    out.flush()
 
                     // 2. Загрузка данных (тот же код, что в обычном /zakroma).
                     val zakroma =
@@ -312,6 +328,7 @@ class PublicApiController(
                             writer.write(mapper.writeValueAsString(ZakromaStreamMessageDto.album(ZakromaAlbumMetaPublicDto.fromAlbum(album))))
                             writer.newLine()
                             writer.flush()
+                            out.flush()
                             for (song in album.albumSongs) {
                                 writer.write(
                                     mapper.writeValueAsString(
@@ -355,6 +372,7 @@ class PublicApiController(
                                 )
                                 writer.newLine()
                                 writer.flush()
+                                out.flush()
                                 actualCount++
                             }
                         }
@@ -365,6 +383,7 @@ class PublicApiController(
                     writer.write(mapper.writeValueAsString(ZakromaStreamMessageDto.done(actualCount)))
                     writer.newLine()
                     writer.flush()
+                    out.flush()
                 } catch (e: Exception) {
                     // FR-BE-006: 200 + {"type":"error",...} при любой ошибке SQL/IO.
                     // НЕ отдаём 500 — иначе fetch не сможет прочитать тело.
@@ -372,6 +391,7 @@ class PublicApiController(
                         writer.write(mapper.writeValueAsString(ZakromaStreamMessageDto.error("Не удалось загрузить песни автора")))
                         writer.newLine()
                         writer.flush()
+                        out.flush()
                     } catch (_: Exception) {
                         // Если даже error-сообщение не удалось записать — стрим уже
                         // сломан, ничего не поделать. Tomcat закроет соединение.
@@ -379,6 +399,7 @@ class PublicApiController(
                 } finally {
                     try {
                         writer.flush()
+                        out.flush()
                     } catch (_: Exception) {
                         // ignore
                     }

@@ -582,7 +582,10 @@ export default {
     // Спец-каталог (виртуальный «автор» в конце) — нужен для тайла и плоской таблицы.
     this.loadSpecialBucket()
     // Таблицу грузим только если автор уже выбран (например, зашли по ссылке ?author=...).
-    if (this.authorChosen) this.loadZakromaStream({ author: this.selectedAuthor, expectedCount: 0 })
+    // expectedCount = undefined: тайлы ещё не загружены в этот момент,
+    // backend fallback'ит на DB-запрос. Передавать 0 нельзя — bug 181/243.
+    if (this.authorChosen)
+      this.loadZakromaStream({ author: this.selectedAuthor, expectedCount: undefined })
   },
   methods: {
     ...mapActions('zakroma', ['loadAuthorTiles', 'loadZakromaStream', 'loadSpecialBucket']),
@@ -700,10 +703,13 @@ export default {
       this.songFilter = ''
       this.$router.replace({ path: '/zakroma', query: author ? { author } : {} })
       // 181: stream loader (FR-FE-003). expectedCount берётся с тайла — ищем
-      // в authorTiles (имя автора → songCount). Если нет тайла (спецзаказной)
-      // — 0, фронт всё равно дождётся meta от backend (там будет реальное число).
+      // в authorTiles (имя автора → songCount). **MUST** be undefined если
+      // тайла нет (deep-link `?author=...` до загрузки тайлов, или автор
+      // не в основном списке) — backend fallback'ит на DB-запрос
+      // `Song.loadAuthorSongCounts(...)`. Иначе фронт пришлёт 0 и
+      // `meta` будет «0 из 0» (регрессия 181/243).
       const tile = (this.authorTiles || []).find((t) => t.author === author)
-      const expectedCount = tile ? tile.songCount : 0
+      const expectedCount = tile ? tile.songCount : undefined
       this.loadZakromaStream({ author, expectedCount })
     },
     retryLoadZakroma() {
@@ -726,9 +732,12 @@ export default {
       //
       // Это работает, но требует рефакторинга в Phase 6+: держать composable
       // в data(), expose cancel() через setup() return.
-      this.loadZakromaStream({ author: this.selectedAuthor, expectedCount: 0 }).catch(() => {
-        // ignore — abort обработан внутри
-      })
+      // expectedCount = undefined: backend fallback'ит на DB-запрос.
+      this.loadZakromaStream({ author: this.selectedAuthor, expectedCount: undefined }).catch(
+        () => {
+          // ignore — abort обработан внутри
+        },
+      )
       this.backToAuthors()
     },
     /** Открыть табличное отображение «Отдельные песни разных авторов» как обычного автора. */

@@ -281,22 +281,33 @@ class PublicApiController(
                 val mapper = ObjectMapper()
                 try {
                     // 1. meta — отправляем ДО загрузки данных, чтобы фронт сразу
-                    //    узнал expectedCount. Используем фронт-значение (count с тайла
-                    //    автора в `AuthorTilePublicDto.songCount`) — оно MIGHT be
-                    //    slightly stale (новые песни, добавленные между загрузкой
-                    //    тайлов и кликом), но это та же формула
-                    //    `Song.loadAuthorSongCounts(author, onlyPublished)` —
-                    //    UI sanity check против `done.actualCount` (FR-BE-008).
-                    //    **MUST** БЫТЬ > 0 ИНАЧЕ не шлём meta вообще (фронт
-                    //    тогда покажет «0 из 0» — бесполезно).
+                    //    узнал expectedCount.
                     //
-                    // Основная выгода: saves лишний DB-запрос
-                    // `Song.loadAuthorSongCounts(...)` (~100-500мс), после
-                    // которого шла `meta` и только потом начинался streaming. С
-                    // Этим fix'ом: `meta` уходит СРАЗУ, фронт сразу видит
-                    // «0 из N» (N — с тайла), а параллельно идёт `Zakroma.getZakroma()`
-                    // (1-3с с pictures DB+HTTP).
-                    val metaExpectedCount: Long = expectedCount ?: 0L
+                    // Стратегия выбора источника:
+                    // - Если фронт прислал `expectedCount > 0` (т.е. счётчик
+                    //   был на тайле `AuthorTilePublicDto.songCount` к моменту
+                    //   клика) — TRUST его (та же формула `Song.loadAuthorSongCounts`).
+                    //   Saves 100-500мс DB-запроса.
+                    // - Иначе (null/0/missing) — FALLBACK на `Song.loadAuthorSongCounts()`.
+                    //   Это MUST для deep-link URL `/zakroma?author=...` — тайлы
+                    //   могут быть НЕ загружены к моменту `mounted()`, фронт
+                    //   ещё в процессе fetching `authors-tiles`. Без fallback
+                    //   метрика «0 из 0» (user видит после моего предыдущего
+                    //   fix'а 181/243).
+                    //
+                    // FR-BE-008 (sanity check): backend всё равно отдаёт
+                    // `done.actualCount` — frontend может сверить с
+                    // мета.expectedCount (для drift detection).
+                    val metaExpectedCount: Long =
+                        if (expectedCount != null && expectedCount > 0) {
+                            expectedCount
+                        } else {
+                            Song.loadAuthorSongCounts(
+                                isSpecialOrder = null,
+                                onlyPublished = onlyPublished,
+                                database = WORKING_DATABASE,
+                            )[auth] ?: 0L
+                        }
                     writer.write(mapper.writeValueAsString(ZakromaStreamMessageDto.meta(auth, metaExpectedCount)))
                     writer.newLine()
                     writer.flush()

@@ -552,8 +552,16 @@ export default {
   },
   watch: {
     // Готовность плеера подгружаем асинхронно, как только пришли данные закромов (и при их смене).
+    // БЕЗ `immediate: true`: на browser back из /song/{id} state.zakroma не
+    // меняется (dedup в loadZakromaStream → early return), и если бы
+    // watcher's `immediate: true` стрелял — readiness.load(populated_ids)
+    // сбросил бы states в 'loading' и загрузил API заново. Если API
+    // зависает, иконки остаются в 'loading' навсегда (только что
+    // наблюдали в проде: 181/246). Без `immediate: true` watch fires
+    // ТОЛЬКО на реальные изменения state.zakroma (setZakroma([]) →
+    // setZakroma([...])), readiness загружается ОДИН раз при первом
+    // клике, потом состояние preserved через navigation back.
     zakroma: {
-      immediate: true,
       handler(list) {
         const ids = (list || []).flatMap((z) =>
           z.albums.flatMap((a) => a.albumSettings.map((s) => s.id)),
@@ -566,7 +574,6 @@ export default {
     // (PlayerIcon/PremiumIcon/CartIcon) в режиме specialBucket вечно висели в состоянии
     // "loading", т.к. readiness/membership для этих id никогда не запрашивались.
     specialBucket: {
-      immediate: true,
       handler(list) {
         const ids = (list || []).flatMap((z) =>
           z.albums.flatMap((a) => a.albumSettings.map((s) => s.id)),

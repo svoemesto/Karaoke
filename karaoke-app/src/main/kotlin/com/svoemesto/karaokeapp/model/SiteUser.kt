@@ -132,6 +132,13 @@ class SiteUser(
     @KaraokeDbTableField(name = "is_editor")
     var isEditor: Boolean = false
 
+    // Флаг "может сам назначать себе задания" (self-assign) в karaoke-public/ZakromaView.
+    // Имеет смысл только при isEditor=true; для не-редакторов UI скрывает кнопку. Снятие флага НЕ
+    // отзывает уже взятые задания (только запрещает брать новые) — иначе админ потерял бы работу
+    // без явного решения. См. docs/features/editor-tasks.md#self-assign.
+    @KaraokeDbTableField(name = "can_self_assign_tasks")
+    var canSelfAssignTasks: Boolean = false
+
     @KaraokeDbTableField(name = "is_banned")
     var isBanned: Boolean = false
 
@@ -171,6 +178,7 @@ class SiteUser(
             sitePremiumUntil = sitePremiumUntil?.toString(),
             personalDiscountPercent = personalDiscountPercent,
             isEditor = isEditor,
+            canSelfAssignTasks = canSelfAssignTasks,
             isBanned = isBanned,
             banReason = banReason,
             maxFavorites = maxFavorites,

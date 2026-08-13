@@ -1,5 +1,6 @@
 package com.svoemesto.karaokeapp.model
 
+import com.fasterxml.jackson.annotation.JsonProperty
 import com.svoemesto.karaokeapp.KaraokeConnection
 import java.io.Serializable
 
@@ -24,6 +25,12 @@ data class SiteUserDto(
     // расчёте цены (PriceService). Виден пользователю в личном кабинете, если > 0.
     val personalDiscountPercent: Double = 0.0,
     val isEditor: Boolean = false,
+    // Self-assign tasks: редактор с флагом может брать себе свободные песни в karaoke-public/ZakromaView.
+    // Явный @JsonProperty, потому что Kotlin data class Jackson отбрасывает is-префикс (AGENTS.md Q&A).
+    // Хотя имя поля и так без is — всё равно ставим аннотацию для единообразия с соседними
+    // boolean-полями и устойчивости при будущих рефакторингах имени.
+    @get:JsonProperty("canSelfAssignTasks")
+    val canSelfAssignTasks: Boolean = false,
     val isBanned: Boolean = false,
     val banReason: String = "",
     // Персональные лимиты (0 = дефолт). Без is-префикса — JSON-ключи maxFavorites/... как есть.
@@ -56,6 +63,7 @@ data class SiteUserDto(
         entity.displayName = displayName
         entity.sponsrUid = sponsrUid
         entity.isEditor = isEditor
+        entity.canSelfAssignTasks = canSelfAssignTasks
         entity.isBanned = isBanned
         entity.banReason = banReason
         entity.maxFavorites = maxFavorites

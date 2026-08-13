@@ -89,6 +89,66 @@
 - **`STATUS_ORDER` в ЛК** vs. **`STATUS_ORDER` в админке** — обе таблицы имеют свою константу, пересекающуюся по структуре, но с разным весом `rejected`/`approved`. Не объединять в общую утилиту — каждая таблица может развиваться независимо.
 - **`isBusy` при батче** — после клика и до ответа сервера `isBusy = true`, чтобы блокировать двойной клик. Реализовано через `try/finally` в `onDeleteApproved()` (admin) и `onDeleteAllApproved()` (ЛК).
 
+## Дополнение: Self-assign заданий (spec 182)
+
+> **Status**: active
+> **Branch**: `182-editor-self-assign-tasks`
+> **Spec**: [`specs/182-editor-self-assign-tasks/spec.md`](../../specs/182-editor-self-assign-tasks/spec.md)
+
+### Что делает
+Даёт активным редакторам возможность самостоятельно брать свободные песни в работу прямо из публичного каталога «Закрома» — без участия админа. Снижает нагрузку на админа и ускоряет реакцию редакторов.
+
+### Зачем
+Без фичи каждый wave заданий требует ручного действия админа: открыть SongsTable → назначить → редактор видит в ЛК. При батче из 30-50 песен это ≈5-10 минут на одно распределение. Self-assign даёт редактору самому выбрать интересную песню.
+
+### Как работает
+
+**Новые/изменённые эндпоинты**:
+
+| Endpoint | Где | Что делает |
+|---|---|---|
+| `POST /api/public/songeditor/assign-self?songId=N` | `PublicSongEditorController` (karaoke-web) | Атомарное создание `SongAssignment` для текущего редактора |
+| `POST /api/siteusers/update` (новый `@RequestParam canSelfAssignTasks`) | `SiteUsersController` (karaoke-app) | Админская простановка флага пользователю |
+| `GET /api/public/auth/me` (поле `canSelfAssignTasks`) | `PublicAuthController` | Текущий пользователь для UI-логики во Vue |
+| `GET /api/public/song/{id}` (новое поле `assignment`) | `PublicApiController` | Фронт узнаёт, свободна ли конкретная песня |
+
+**Схема работы** (Pass 51-2 — placement РАЗМЕЩЁН на странице песни, а не в Закромах):
+1. Админ в `webvue3 → SiteUsers → SiteUserEdit` включает флаг `canSelfAssignTasks`. Колонка `tbl_site_users.can_self_assign_tasks`, попадает в `recordhash` (sync LOCAL↔SERVER).
+2. Редактор заходит на `/song/{id}` (страница конкретной песни). Бэкенд вычисляет `isSelfAssignEditor = user.isEditor && user.canSelfAssignTasks`. Если да — делает ОДНУ `SongAssignment.loadBySongIds([id])` и возвращает поле `assignment` в `SongPublicDto`. Иначе — `null`.
+3. Во Vue-фронте `SongView.vue` под секцией `km-meta-actions` (где Favorite/Playlist/Share) появляется кнопка «Взять в работу» (если `assignment:null`) или «Открыть задание» (если `assignment.assigneeId === userId`). Кнопка видна только `canSelfAssignEditor`.
+4. Клик «Взять в работу» → POST `/api/public/songeditor/assign-self`:
+   - **Атомарная транзакция** `SELECT … FOR UPDATE` + INSERT через `RETURNING id` (FR-006 / US3).
+   - 200 + `{ok, id, idempotent:false}` на создание.
+   - 200 + `{ok, id, idempotent:true}` если уже наше задание (повторный клик после таймаута — норма).
+   - 409 + `song_already_taken` если чужое задание — UI тост + локальный сброс `assignment`.
+   - 403 + `forbidden_not_self_assign_editor` если флаг сняли, пока редактор был онлайн.
+
+**Снятие флага НЕ отзывает уже взятые задания**. Админу нужна явная команда — снятие флага только запрещает брать НОВЫЕ (см. контракт ` specs/182-editor-self-assign-tasks/contracts/C1`).
+
+### Инварианты / правила (для self-assign)
+
+- Флаг живёт ТОЛЬКО в `tbl_site_users.can_self_assign_tasks`, входит в `recordhash` (иначе sync LOCAL↔SERVER с разных машин рассинхронизирует). При добавлении колонки триггер ОБЯЗАН быть пересоздан (конституция III).
+- Idempotency: идемпотентно по `(song_id, assignee_id)` — повторный клик того же редактора на ту же песню возвращает 200 OK без новой строки. UNIQUE-индекс `idx_tbl_song_assignments_uniq (song_id, assignee_id)` подстраховывает на уровне БД.
+- Race protection: `SELECT FOR UPDATE` на ВСЕ строки `song_id` (а не `LIMIT 1`) — на одну песню теоретически может быть несколько `SongAssignment` от разных редакторов (если старое не отозвали); мы блокируем все.
+- DTO `SongAssignmentBriefDto` (id/assigneeId/assignedAt/adminStatus) — это УЗНАВАЕМАЯ краткая форма, не полный `SongAssignmentDto`. Создание через reflection-loader для такой формы не нужно (нет CRUD-операций).
+- Поле `assignment` есть ТОЛЬКО в публичных DTO (`ZakromaAlbumSongPublicDto`). В админских (`SongAssignmentDigest`, `SiteUserDto`) оно НЕ нужно — админ видит всё через стандартный `digest()`.
+- Снятие флага НЕ само-отзывает задания, чтобы избежать «админ случайно снял флаг → у редактора пропали 5 недоделанных заданий». Это сделано сознательно (FR-002, clarification Q2 — ратифицировано).
+
+### Известные ловушки
+
+- **UNIQUE не строгий по `song_id`** — индекс только по `(song_id, assignee_id)`. Без блокировки `SELECT FOR UPDATE` два редактора могут создать две строки на одну песню. По спеке US3 — это race, должна быть 409.
+- **`canSelfAssignTasks` живёт в `SiteUserDto`** — НЕ в `PublicAccountDto` или подобном. Если кто-то добавит отдельный Profile-DTO для фронта — он НЕ должен пробрасывать это поле (принцип наименьших привилегий для анонимов/обычных посетителей).
+- **`SET_AUTOCOMMIT FALSE` только в `assignSelf`** — глобальные подключения в `KaraokeConnection` имеют thread-local кеш. После commit/rollback ОБЯЗАТЕЛЬНО вернуть `autoCommit = previousAutoCommit` в `finally`. Без `finally` следующий запрос на этом потоке может неявно открыть транзакцию (см. T016 / phase 5 / US3 — lock навсегда).
+- **`RETURNING id`** в INSERT — нам нужен id СРАЗУ для ответа. Без `RETURNING` пришлось бы делать отдельный `SELECT currval()` или `lastval()` — лишний round-trip.
+- **Контракт `/api/public/zakroma` — стабильный JSON**. Добавление поля `assignment: null` для НЕ-self-assign-редакторов безопасно для всех существующих фронтов (Vue/JsPatches читают через опциональную цепочку `?.`, и не падают на `null`).
+
+### Ссылки
+- Спецификация: [`specs/182-editor-self-assign-tasks/spec.md`](../../specs/182-editor-self-assign-tasks/spec.md)
+- Контракты: [`specs/182-editor-self-assign-tasks/contracts/`](../../specs/182-editor-self-assign-tasks/contracts/)
+- Quickstart (10 сценариев ручной валидации): [`specs/182-editor-self-assign-tasks/quickstart.md`](../../specs/182-editor-self-assign-tasks/quickstart.md)
+- Существующая таблица редакторов (UI-паттерн): [`songs-table.md`](./songs-table.md)
+- Dual-DB Sync (sync-цель `songassignments`): [`dual-db-sync.md`](./dual-db-sync.md)
+
 ## Дополнение: кнопка «Типограф» в тулбаре редактора (spec 155)
 
 В самом онлайн-редакторе разметки (не в списке заданий, а в UI работы над конкретной песней —

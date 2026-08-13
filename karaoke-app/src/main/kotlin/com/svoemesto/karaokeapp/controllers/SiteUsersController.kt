@@ -111,6 +111,11 @@ class SiteUsersController {
         @RequestParam(required = false) isPermanentPremium: Boolean?,
         // Роль "редактор" — доступ к онлайн-редактору разметки (/account/editor) на публичном сайте.
         @RequestParam(required = false) isEditor: Boolean?,
+        // Self-assign: редактор с флагом может брать себе свободные песни через публичный "Закрома"
+        // UI без участия админа (см. specs/182-editor-self-assign-tasks/). Имеет смысл только при
+        // isEditor=true; фронт в SiteUserEdit дисейблит чекбокс, если редактор выключен. Снятие флага
+        // НЕ отзывает уже взятые задания — иначе админ потерял бы чужую работу без явного решения.
+        @RequestParam(required = false) canSelfAssignTasks: Boolean?,
         // Персональные лимиты (0 = дефолт). Перекрывают дефолты в PublicPlaylistController.
         @RequestParam(required = false) maxFavorites: Int?,
         @RequestParam(required = false) maxPlaylists: Int?,
@@ -137,6 +142,7 @@ class SiteUsersController {
                 isPremium?.let { user.isPremium = it }
                 isPermanentPremium?.let { user.isPermanentPremium = it }
                 isEditor?.let { user.isEditor = it }
+                canSelfAssignTasks?.let { user.canSelfAssignTasks = it }
                 maxFavorites?.let { user.maxFavorites = it }
                 maxPlaylists?.let { user.maxPlaylists = it }
                 maxPlaylistItems?.let { user.maxPlaylistItems = it }

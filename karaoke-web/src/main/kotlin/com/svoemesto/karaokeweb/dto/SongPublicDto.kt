@@ -1,6 +1,7 @@
 package com.svoemesto.karaokeweb.dto
 
 import com.svoemesto.karaokeapp.model.Song
+import com.svoemesto.karaokeapp.model.SongAssignmentBriefDto
 
 /**
  * DTO для song public: сериализуемое представление для API/UI.
@@ -74,6 +75,10 @@ data class SongPublicDto(
     // по умолчанию; -1 = автор запретил в карточке песни, webvue3). Без is-префикса — иначе Jackson
     // съел бы его в JSON-ключе (инвариант проекта).
     val songSubscriptionAvailable: Boolean,
+    // Self-assign (FR-008, specs/182-editor-self-assign-tasks): null = песня свободна,
+    // non-null = есть назначение (своё или чужое). Заполняется ТОЛЬКО для self-assign-редакторов
+    // в /api/public/song/{id} — для остальных всегда null (лишний JOIN/SQL не идёт).
+    val assignment: SongAssignmentBriefDto? = null,
 ) {
     companion object {
         /**

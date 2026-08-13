@@ -150,6 +150,8 @@ export default {
       if (diffs.premium !== undefined) params.isPremium = diffs.premium
       if (diffs.permanentPremium !== undefined) params.isPermanentPremium = diffs.permanentPremium
       if (diffs.editor !== undefined) params.isEditor = diffs.editor
+      if (diffs.canSelfAssignTasks !== undefined)
+        params.canSelfAssignTasks = diffs.canSelfAssignTasks
       if (diffs.maxFavorites !== undefined) params.maxFavorites = Number(diffs.maxFavorites) || 0
       if (diffs.maxPlaylists !== undefined) params.maxPlaylists = Number(diffs.maxPlaylists) || 0
       if (diffs.maxPlaylistItems !== undefined)

@@ -135,6 +135,25 @@
               <PlaylistIcon :song-id="currentSong.id" label="В плейлист" />
               <ShareButton />
               <ShareLinkButton :song-id="currentSong.id" />
+              <!-- Self-assign (FR-005/US2, specs/182-editor-self-assign-tasks): кнопка «Взять в
+                   работу» появляется ТОЛЬКО для self-assign-редакторов на странице конкретной песни
+                   (а не в Закромах), когда песня свободна. Если задание уже наше — показываем
+                   «Открыть задание» (variant A, см. clarification Q4). -->
+              <button
+                v-if="showSelfAssignButton"
+                class="km-self-assign-btn"
+                :disabled="assigningSongId === currentSong.id"
+                @click="onSelfAssignClick"
+              >
+                {{ assigningSongId === currentSong.id ? 'Берём…' : 'Взять в работу' }}
+              </button>
+              <button
+                v-else-if="showOpenAssignmentButton"
+                class="km-self-assign-open-btn"
+                @click="onOpenAssignmentClick"
+              >
+                Открыть задание
+              </button>
             </div>
           </div>
         </div>
@@ -340,6 +359,7 @@ import { trackPlay, trackMetaClick } from '../services/tracking'
 import { pluralDays } from '../utils/pluralRu'
 import SongSubscriptionModal from '../components/SongSubscriptionModal.vue'
 import { useCart } from '../composables/useCart'
+import { assignSelf as apiAssignSelf } from '../services/songEditorApi'
 
 /**
  * Публичная страница песни (`/song?id=...`).
@@ -382,14 +402,19 @@ export default {
       theme.value = val
       applyTheme(val)
     }
-    const { isLoggedIn } = useAuth()
+    const { isLoggedIn, user } = useAuth()
     const playerAccess = usePlayerAccess()
     const cart = useCart()
     const playlistMembership = usePlaylistMembership()
-    return { theme, setTheme, isLoggedIn, playerAccess, cart, playlistMembership }
+    return { theme, setTheme, isLoggedIn, user, playerAccess, cart, playlistMembership }
   },
   data() {
-    return { playerDisplayMode: 'embed', songSubscriptionModalVisible: false }
+    return {
+      playerDisplayMode: 'embed',
+      songSubscriptionModalVisible: false,
+      // FR-005 (self-assign): блокировка двойных кликов на кнопке "Взять в работу".
+      assigningSongId: null,
+    }
   },
   computed: {
     ...mapGetters('songs', ['currentSong', 'currentSongIsLoading']),
@@ -447,6 +472,28 @@ export default {
         this.playerAccessLoaded
       )
     },
+    // FR-007/US2 — self-assign редактор: залогинен + isEditor + canSelfAssignTasks. Фронт НЕ
+    // доверяет, а бэкенд перепроверяет в /api/public/songeditor/assign-self. showSelfAssignButton
+    // — обёртка: показывать ТОЛЬКО на свободной песне (для чужого/своего задания — другой шаблон).
+    // NOTE: useAuth().user использует JSON-ключи Jackson DTO (после отбрасывания is-префикса):
+    // поле `isEditor` Kotlin сериализуется как `editor`, `isBanned` → `banned`. См. AGENTS.md Q&A.
+    canSelfAssignEditor() {
+      return !!(this.user && this.user.editor && this.user.canSelfAssignTasks)
+    },
+    userId() {
+      return this.user && this.user.id ? Number(this.user.id) : 0
+    },
+    showSelfAssignButton() {
+      return !!(this.canSelfAssignEditor && this.currentSong && !this.currentSong.assignment)
+    },
+    showOpenAssignmentButton() {
+      return !!(
+        this.canSelfAssignEditor &&
+        this.currentSong &&
+        this.currentSong.assignment &&
+        this.currentSong.assignment.assigneeId === this.userId
+      )
+    },
   },
 
   watch: {
@@ -483,6 +530,67 @@ export default {
   },
   methods: {
     ...mapActions('songs', ['loadSong']),
+    // FR-005/US2: клик по "Взять в работу" на странице конкретной песни. Защита от двойных кликов
+    // через assigningSongId (UI) + атомарная транзакция на бэке (FR-006). На 409 — песня уже
+    // занята (другой редактор успел раньше) — перезагружаем данные песни. На таймаут — НЕ трогаем
+    // локальное состояние, можно повторить.
+    async onSelfAssignClick() {
+      if (!this.currentSong || this.assigningSongId === this.currentSong.id) return
+      this.assigningSongId = this.currentSong.id
+      try {
+        const { status, body } = await apiAssignSelf(this.currentSong.id)
+        if (status === 200 && body && body.ok) {
+          // Оптимистичная подмена — assignment = своё, бэкенд вернёт то же при следующей загрузке.
+          this.currentSong.assignment = {
+            id: body.id,
+            assigneeId: this.userId,
+            assignedAt: null,
+            adminStatus: 'open',
+          }
+          this.notify('Задание взято в работу — перейдите в «Мои задания»', 'success')
+        } else if (status === 409) {
+          this.currentSong.assignment = {
+            id: 0,
+            assigneeId: 0,
+            assignedAt: null,
+            adminStatus: 'taken',
+          }
+          this.notify('Эта песня уже занята другим редактором', 'warning')
+        } else if (status === 403) {
+          this.notify('У вас нет права брать песни — обратитесь к администратору', 'error')
+        } else {
+          this.notify(
+            'Не удалось взять песню: ' + (body && body.error ? body.error : 'ошибка сервера'),
+            'error',
+          )
+        }
+      } catch (e) {
+        this.notify('Не удалось взять песню — проверьте интернет и попробуйте снова', 'error')
+        console.warn('[song/self-assign] network error', e)
+      } finally {
+        this.assigningSongId = null
+      }
+    },
+    // FR-007/US2 var.A: своё задание — открываем редактор (онлайн-разметку для этой песни).
+    onOpenAssignmentClick() {
+      if (!this.currentSong || !this.currentSong.assignment || !this.currentSong.assignment.id)
+        return
+      this.$router.push(`/account/editor/${this.currentSong.assignment.id}`)
+    },
+    /** Общий нотификатор (тосты в углу). Простая лёгкая обёртка — без зависимости от bootstrap. */
+    notify(message, kind) {
+      if (!this.$bvToast) {
+        window.alert(message)
+        return
+      }
+      this.$bvToast.toast(message, {
+        title: kind === 'error' ? 'Ошибка' : kind === 'warning' ? 'Внимание' : 'Готово',
+        variant: kind === 'error' ? 'danger' : kind === 'warning' ? 'warning' : 'success',
+        solid: true,
+        noAutoHide: false,
+        autoHideDelay: 4000,
+      })
+    },
     // Player card starts embedded in the page; the player itself (running same-origin inside the
     // iframe) posts here when its "Широкий" button is toggled, asking us to resize the iframe's own
     // box between the small embedded card and a full-viewport overlay. Sourced-checked against our
@@ -818,6 +926,46 @@ export default {
 }
 .km-meta-actions :deep(.share-trigger:hover) {
   border-color: var(--km-accent);
+}
+
+/* Self-assign (FR-005/US2, specs/182-editor-self-assign-tasks): кнопка в карточке песни. */
+.km-self-assign-btn {
+  appearance: none;
+  background: var(--km-accent);
+  color: #fff;
+  border: 1px solid var(--km-accent);
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 0.95em;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.15s ease;
+  margin-left: 0.5rem;
+}
+.km-self-assign-btn:hover:not(:disabled) {
+  opacity: 0.85;
+}
+.km-self-assign-btn:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+.km-self-assign-open-btn {
+  appearance: none;
+  background: transparent;
+  color: var(--km-text);
+  border: 1px solid var(--km-accent);
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 0.95em;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.15s ease;
+  margin-left: 0.5rem;
+}
+.km-self-assign-open-btn:hover {
+  opacity: 0.7;
 }
 
 /* Онлайн-плеер, встроенный вместо видео ВК */

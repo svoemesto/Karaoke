@@ -65,3 +65,24 @@ export function deleteTask(id) {
 export function deleteApprovedTasks() {
   return authPost(`${BASE}/tasks/delete-approved`, {}, token())
 }
+
+// ---- Self-assign из «Закромов» (FR-005) ---------------------------------------------------
+// Self-assign ВЫНЕСЕН из /api/public/account/editor/* в отдельный контроллер
+// /api/public/songeditor/ (см. PublicSongEditorController.assignSelf) — потому что «Закрома»
+// НЕ защищены SiteAuthInterceptor (см. WebMvcConfig) и редактор может кликать «Взять в работу»
+// прямо из публичного каталога без логина в /account. Контракт: 200 {ok, id, idempotent} либо
+// 409 {ok:false, error:'song_already_taken'} при гонке. Бэкенд всегда возвращает тело на 4xx/5xx
+// через authApi, поэтому фронт может сразу показать toast.
+
+/**
+ * Self-assign: берёт свободную песню себе (FR-005). Только для редакторов с флагом canSelfAssignTasks.
+ *
+ * @param {number} songId
+ * @returns {Promise<{status: number, body: any}>} при status===200 — {ok:true, id, idempotent};
+ *          при status===409 — {ok:false, error:'song_already_taken'}; при 403 — нет прав.
+ *
+ * @see specs/182-editor-self-assign-tasks/
+ */
+export function assignSelf(songId) {
+  return authPost('/api/public/songeditor/assign-self', { songId }, token())
+}

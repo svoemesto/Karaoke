@@ -12,8 +12,8 @@
 > **Если вы ведёте разработку с другим AI-агентом** и он понимает
 > `AGENTS.md` — этого файла достаточно. Если нет — см. ссылки выше.
 
-> **Версия файла**: 1.6.1
-> **Last updated**: 2026-08-11 (Pass 50, hotfix `167-fix-share-claim-500` — Q&A «500 на /api/public/share/claim» обновлён: симптом Pass 50 `share.internal` + диагностика через `/debug`)
+> **Версия файла**: 1.7.1 (patch — Pass 51-2: placement self-assign кнопки ПЕРЕСМЕЩЁН с Закромов на страницу конкретной песни `/song/{id}` (SongView). Q&A обновлён, дизайн-решение задокументировано)
+> **Last updated**: 2026-08-13 (Pass 51-2 — Self-Assign Tasks spec 182: Pass 51-2 редизайн: кнопка живёт на `/song/{id}` (SongView), а НЕ в Закромах (Pass 51-1). Спека обновлена, Q&A в AGENTS.md обновлён)
 > **Ответственный**: opencode-агент
 > **Как обновлять**: см. секцию «Как обновлять этот файл» в конце.
 
@@ -549,7 +549,7 @@ ssh root@188.119.64.111 "cp /root/Karaoke/deploy/80to8897 /etc/nginx/sites-enabl
 
 ---
 
-## Q&A (Pass 24)
+## Q&A (Pass 24+51)
 
 ### Q: Главный фокус стратегии роста — что это?
 
@@ -817,6 +817,30 @@ pre-commit run --all-files               # 7 проверок
 ### Q: После «Точные маркеры → Apply → Save → reopen» в `SubsEdit.vue` пропадают маркеры на песне со спецтегами — почему?
 
 **Кратко**: в `SubsEdit.vue:mounted()` `loadedMarkers` грузился ПОСЛЕ `sourceText`, а заполнение `sourceMarkers` жило в `ws.on('decode')` (отложенно). Watcher `sourceText` (Vue 2 async) срабатывал раньше, чем аудио декодировалось — `syncMarkersFromSpecTags()` с пустым `syllablePositions` втыкал spec tag-маркеры в позицию 0, и условие `sourceMarkers.length === 0` в `ws.on('decode')` блокировало загрузку реальных маркеров из БД. На Save уезжал мусор. Исправлено в PR #016: `loadedMarkers` + заполнение `sourceMarkers` теперь **синхронно** в `mounted()` ДО `sourceText`; цикл загрузки удалён из `ws.on('decode')`; тот же приём применён в watcher'е `currentVoice`. Подробности + 7 ручных сценариев проверки — [`specs/016-fix-spec-tags-marker-loss-on-reopen/`](./specs/016-fix-spec-tags-marker-loss-on-reopen/) (Pass 28, `docs/architecture-notes.md`).
+
+### Q: Как self-assign задания защищается от гонок и обеспечивает идемпотентность?
+
+**Кратко**: через атомарную транзакцию `SELECT FOR UPDATE` + `INSERT … RETURNING id` в `PublicSongEditorController.assignSelf` (`/api/public/songeditor/assign-self`). Идемпотентность — по `(song_id, assignee_id)` (повторный клик того же редактора возвращает 200 OK без новой строки). Race-protection — `SELECT FOR UPDATE` блокирует ВСЕ строки этой песни (не `LIMIT 1`); если любая существует и `assignee_id != me` — 409 `song_already_taken`.
+
+**Идемпотентность** (FR-005 / Q&A clarification #2): если эта песня уже назначена **этому же** редактору, возвращаем 200 OK + `{ok:true, id:existing.id, idempotent:true}` без INSERT. Двойной клик после таймаута / F5 — нормальная UX-ситуация, не ошибка.
+
+**Race protection** (FR-006 / US3): при одновременных кликах двух редакторов на одну песню:
+- `conn.autoCommit = false` через прямое `db.getConnection()` (KaraokeConnection → thread-local, см. `KaraokeConnection.kt:30`).
+- `SELECT id, assignee_id FROM tbl_song_assignments WHERE song_id = ? FOR UPDATE` — лочка ВСЕХ строк по song_id (теоретически может быть >1: разные редакторы, если старое не отозвали).
+- Если среди них ЕСТЬ наш `assignee_id` — отдаём 200 idempotent, commit.
+- Если среди них ЕСТЬ чужой `assignee_id` (а нашего нет) — откат + 409 `song_already_taken`.
+- Иначе — `INSERT ... RETURNING id` + commit. UNIQUE-индекс `idx_tbl_song_assignments_uniq (song_id, assignee_id)` подстраховывает на уровне БД.
+- `finally` восстанавливает `conn.autoCommit = previousAutoCommit` — иначе следующий запрос на этом потоке Tomcat получит транзакцию из thread-local.
+
+**Почему НЕ отдельный `/api/public/zakroma/song-assignments/{id}`** (clarification Q1, **пересмотрено в Pass 51-2**): кнопка живёт на странице `/song/{id}` (SongView), а не в Закромах. В `SongPublicDto` добавлено поле `assignment: SongAssignmentBriefDto?` (default null), заполняется ТОЛЬКО для self-assign-редакторов через `SongAssignment.loadBySongIds([songId])` — ровно ОДНА строка в БД на один запрос. `ZakromaAlbumSongPublicDto` и `ZakromaPublicDto.fromZakroma` НЕ ИЗМЕНЕНЫ.
+
+**Почему НЕ optimistic locking / version column**: гонка тут не про обновление существующей строки, а про создание новой. `SELECT FOR UPDATE` — стандартный паттерн для этой задачи в Postgres, и он уже корректно работает с имеющимся UNIQUE(song_id, assignee_id).
+
+**Снятие флага НЕ отзывает уже взятые задания** (clarification #2 ратифицировано). Иначе админ потерял бы чужую работу без явного решения. Снятие флага только ЗАПРЕЩАЕТ брать НОВЫЕ.
+
+**Ловушка**: `KaraokeConnection` использует thread-local кеш для соединений (см. `KaraokeConnection.kt:30`). После `autoCommit=false` обязательно вернуть в `finally`. Иначе Tomcat переиспользует поток — следующий запрос получит неявную транзакцию.
+
+**Подробности + 10 ручных сценариев** проверки — [`specs/182-editor-self-assign-tasks/`](./specs/182-editor-self-assign-tasks/) (Pass 51, `docs/architecture-notes.md`, `docs/features/editor-tasks.md#дополнение-self-assign-заданий-spec-182`).
 
 ---
 

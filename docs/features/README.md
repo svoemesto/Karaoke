@@ -36,6 +36,7 @@
 | 23 | `editor-tasks` | Управление заданиями онлайн-редактора караоке-разметки (сортировка, «Отказаться», «Удалить», массовое удаление одобренных в ЛК и админке) | [editor-tasks.md](./editor-tasks.md) |
 | 24 | `song-state-colors` | Производные состояния песен (DONE / TODAY / ON_AIR / EXCLUSIVE / IN_WORK) и их цвета в админке | [song-state-colors.md](./song-state-colors.md) |
 | 25 | `guest-share-link` | Временный полный доступ к песне по публичной ссылке (премиум-владелец → анонимный гость, ≤2 устройств, lease 90 сек) | [guest-share-link.md](./guest-share-link.md) |
+| 26 | `zakroma-stream-progress` | Real-time прогресс через NDJSON chunked-stream (`/api/public/zakroma/stream`) — FR-BE-001..008, FR-FE-001..011, FR-NX-001..003 | [zakroma-stream-progress.md](./zakroma-stream-progress.md) |
 
 ## Cross-cutting (инфраструктура)
 

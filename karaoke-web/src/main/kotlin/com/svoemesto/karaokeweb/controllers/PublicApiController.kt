@@ -274,115 +274,116 @@ class PublicApiController(
         val onlyPublished = onlyPublishedFor(request)
         val auth = author ?: ""
 
-        val body = StreamingResponseBody { out ->
-            val writer = BufferedWriter(OutputStreamWriter(out, StandardCharsets.UTF_8))
-            val mapper = ObjectMapper()
-            try {
-                // 1. meta — отправляем ДО загрузки данных, чтобы фронт сразу
-                //    узнал expectedCount (= Song.loadAuthorSongCounts для автора,
-                //    та же формула, что на тайле; spec FR-BE-003).
-                val expectedCount: Long =
-                    Song.loadAuthorSongCounts(
-                        isSpecialOrder = null,
-                        onlyPublished = onlyPublished,
-                        database = WORKING_DATABASE,
-                    )[auth] ?: 0L
-                writer.write(mapper.writeValueAsString(ZakromaStreamMessageDto.meta(auth, expectedCount)))
-                writer.newLine()
-                writer.flush()
-
-                // 2. Загрузка данных (тот же код, что в обычном /zakroma).
-                val zakroma =
-                    Zakroma.getZakroma(
-                        author = auth,
-                        database = WORKING_DATABASE,
-                        storageService = storageService,
-                        storageApiClient = storageApiClient,
-                        onlyPublished = onlyPublished,
-                    )
-
-                // 3. Streaming loop по альбомам и песням (FR-BE-004).
-                //    Полная реализация добавляется в T012 — здесь
-                //    передаём по одному album + song с flush после каждого.
-                var actualCount = 0L
-                for (zak in zakroma) {
-                    for (album in zak.albums.sorted()) {
-                        // album message — метаданные (без albumSettings, FR-BE-003).
-                        writer.write(mapper.writeValueAsString(ZakromaStreamMessageDto.album(ZakromaAlbumMetaPublicDto.fromAlbum(album))))
-                        writer.newLine()
-                        writer.flush()
-                        for (song in album.albumSongs) {
-                            writer.write(
-                                mapper.writeValueAsString(
-                                    ZakromaStreamMessageDto.song(
-                                        ZakromaAlbumSongPublicDto(
-                                            id = song.id,
-                                            track = song.track,
-                                            songName = song.songName,
-                                            onAir = song.onAir,
-                                            datePublish = song.datePublish,
-                                            airTimestamp = song.airTimestamp,
-                                            songSubscriptionAvailable = song.songSubscriptionAvailable,
-                                            alwaysFree = song.alwaysFree,
-                                            freelyAvailableNow = song.freelyAvailableNow,
-                                            freeAccessWindowEndText = song.freeAccessWindowEndText,
-                                            linkBoosty = song.linkBoosty,
-                                            linkSponsrPlay = song.linkSponsrPlay,
-                                            linkDzenKaraoke = song.linkDzenKaraoke,
-                                            linkDzenLyrics = song.linkDzenLyrics,
-                                            linkDzenTabs = song.linkDzenTabs,
-                                            linkDzenChords = song.linkDzenChords,
-                                            linkVkKaraoke = song.linkVkKaraoke,
-                                            linkVkLyrics = song.linkVkLyrics,
-                                            linkVkTabs = song.linkVkTabs,
-                                            linkVkChords = song.linkVkChords,
-                                            linkTgKaraoke = song.linkTgKaraoke,
-                                            linkTgLyrics = song.linkTgLyrics,
-                                            linkTgTabs = song.linkTgTabs,
-                                            linkTgChords = song.linkTgChords,
-                                            linkPlKaraoke = song.linkPlKaraoke,
-                                            linkPlLyrics = song.linkPlLyrics,
-                                            linkPlTabs = song.linkPlTabs,
-                                            linkPlChords = song.linkPlChords,
-                                            linkMaxKaraoke = song.linkMaxKaraoke,
-                                            linkMaxLyrics = song.linkMaxLyrics,
-                                            linkMaxTabs = song.linkMaxTabs,
-                                            linkMaxChords = song.linkMaxChords,
-                                        ),
-                                    ),
-                                ),
-                            )
-                            writer.newLine()
-                            writer.flush()
-                            actualCount++
-                        }
-                    }
-                }
-
-                // 4. done — финал (FR-BE-003: actualCount = реально отправленных песен,
-                //    FR-BE-008: должен совпадать с expectedCount, если фильтр не удалил).
-                writer.write(mapper.writeValueAsString(ZakromaStreamMessageDto.done(actualCount)))
-                writer.newLine()
-                writer.flush()
-            } catch (e: Exception) {
-                // FR-BE-006: 200 + {"type":"error",...} при любой ошибке SQL/IO.
-                // НЕ отдаём 500 — иначе fetch не сможет прочитать тело.
+        val body =
+            StreamingResponseBody { out ->
+                val writer = BufferedWriter(OutputStreamWriter(out, StandardCharsets.UTF_8))
+                val mapper = ObjectMapper()
                 try {
-                    writer.write(mapper.writeValueAsString(ZakromaStreamMessageDto.error("Не удалось загрузить песни автора")))
+                    // 1. meta — отправляем ДО загрузки данных, чтобы фронт сразу
+                    //    узнал expectedCount (= Song.loadAuthorSongCounts для автора,
+                    //    та же формула, что на тайле; spec FR-BE-003).
+                    val expectedCount: Long =
+                        Song.loadAuthorSongCounts(
+                            isSpecialOrder = null,
+                            onlyPublished = onlyPublished,
+                            database = WORKING_DATABASE,
+                        )[auth] ?: 0L
+                    writer.write(mapper.writeValueAsString(ZakromaStreamMessageDto.meta(auth, expectedCount)))
                     writer.newLine()
                     writer.flush()
-                } catch (_: Exception) {
-                    // Если даже error-сообщение не удалось записать — стрим уже
-                    // сломан, ничего не поделать. Tomcat закроет соединение.
-                }
-            } finally {
-                try {
+
+                    // 2. Загрузка данных (тот же код, что в обычном /zakroma).
+                    val zakroma =
+                        Zakroma.getZakroma(
+                            author = auth,
+                            database = WORKING_DATABASE,
+                            storageService = storageService,
+                            storageApiClient = storageApiClient,
+                            onlyPublished = onlyPublished,
+                        )
+
+                    // 3. Streaming loop по альбомам и песням (FR-BE-004).
+                    //    Полная реализация добавляется в T012 — здесь
+                    //    передаём по одному album + song с flush после каждого.
+                    var actualCount = 0L
+                    for (zak in zakroma) {
+                        for (album in zak.albums.sorted()) {
+                            // album message — метаданные (без albumSettings, FR-BE-003).
+                            writer.write(mapper.writeValueAsString(ZakromaStreamMessageDto.album(ZakromaAlbumMetaPublicDto.fromAlbum(album))))
+                            writer.newLine()
+                            writer.flush()
+                            for (song in album.albumSongs) {
+                                writer.write(
+                                    mapper.writeValueAsString(
+                                        ZakromaStreamMessageDto.song(
+                                            ZakromaAlbumSongPublicDto(
+                                                id = song.id,
+                                                track = song.track,
+                                                songName = song.songName,
+                                                onAir = song.onAir,
+                                                datePublish = song.datePublish,
+                                                airTimestamp = song.airTimestamp,
+                                                songSubscriptionAvailable = song.songSubscriptionAvailable,
+                                                alwaysFree = song.alwaysFree,
+                                                freelyAvailableNow = song.freelyAvailableNow,
+                                                freeAccessWindowEndText = song.freeAccessWindowEndText,
+                                                linkBoosty = song.linkBoosty,
+                                                linkSponsrPlay = song.linkSponsrPlay,
+                                                linkDzenKaraoke = song.linkDzenKaraoke,
+                                                linkDzenLyrics = song.linkDzenLyrics,
+                                                linkDzenTabs = song.linkDzenTabs,
+                                                linkDzenChords = song.linkDzenChords,
+                                                linkVkKaraoke = song.linkVkKaraoke,
+                                                linkVkLyrics = song.linkVkLyrics,
+                                                linkVkTabs = song.linkVkTabs,
+                                                linkVkChords = song.linkVkChords,
+                                                linkTgKaraoke = song.linkTgKaraoke,
+                                                linkTgLyrics = song.linkTgLyrics,
+                                                linkTgTabs = song.linkTgTabs,
+                                                linkTgChords = song.linkTgChords,
+                                                linkPlKaraoke = song.linkPlKaraoke,
+                                                linkPlLyrics = song.linkPlLyrics,
+                                                linkPlTabs = song.linkPlTabs,
+                                                linkPlChords = song.linkPlChords,
+                                                linkMaxKaraoke = song.linkMaxKaraoke,
+                                                linkMaxLyrics = song.linkMaxLyrics,
+                                                linkMaxTabs = song.linkMaxTabs,
+                                                linkMaxChords = song.linkMaxChords,
+                                            ),
+                                        ),
+                                    ),
+                                )
+                                writer.newLine()
+                                writer.flush()
+                                actualCount++
+                            }
+                        }
+                    }
+
+                    // 4. done — финал (FR-BE-003: actualCount = реально отправленных песен,
+                    //    FR-BE-008: должен совпадать с expectedCount, если фильтр не удалил).
+                    writer.write(mapper.writeValueAsString(ZakromaStreamMessageDto.done(actualCount)))
+                    writer.newLine()
                     writer.flush()
-                } catch (_: Exception) {
-                    // ignore
+                } catch (e: Exception) {
+                    // FR-BE-006: 200 + {"type":"error",...} при любой ошибке SQL/IO.
+                    // НЕ отдаём 500 — иначе fetch не сможет прочитать тело.
+                    try {
+                        writer.write(mapper.writeValueAsString(ZakromaStreamMessageDto.error("Не удалось загрузить песни автора")))
+                        writer.newLine()
+                        writer.flush()
+                    } catch (_: Exception) {
+                        // Если даже error-сообщение не удалось записать — стрим уже
+                        // сломан, ничего не поделать. Tomcat закроет соединение.
+                    }
+                } finally {
+                    try {
+                        writer.flush()
+                    } catch (_: Exception) {
+                        // ignore
+                    }
                 }
             }
-        }
 
         return ResponseEntity
             .ok()
@@ -420,15 +421,16 @@ class PublicApiController(
                 // eventType берём из самого DTO (специализированный, НЕ CALL_REST),
                 // чтобы админ-фильтры в tbl_events могли выделять stream-события
                 // в отдельную категорию.
-                val parameters: MutableMap<String, Any?> = mutableMapOf(
-                    "author" to m.author,
-                    "firstChunkMs" to m.firstChunkMs,
-                    "durationMs" to m.durationMs,
-                    "expectedCount" to m.expectedCount,
-                    "receivedCount" to m.receivedCount,
-                    "streamAborted" to m.streamAborted,
-                    "errorCategory" to m.errorCategory,
-                )
+                val parameters: MutableMap<String, Any?> =
+                    mutableMapOf(
+                        "author" to m.author,
+                        "firstChunkMs" to m.firstChunkMs,
+                        "durationMs" to m.durationMs,
+                        "expectedCount" to m.expectedCount,
+                        "receivedCount" to m.receivedCount,
+                        "streamAborted" to m.streamAborted,
+                        "errorCategory" to m.errorCategory,
+                    )
                 mainController.doRegisterEvent(
                     mapOf(
                         "eventType" to m.eventType,

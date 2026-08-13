@@ -697,19 +697,23 @@ export default {
     },
     cancelZakromaStream() {
       // FR-FE-006: «Отмена» → abort fetch + возврат к сетке авторов.
-      // cancel() вызываем ПЕРЕД backToAuthors(), чтобы fetch прервался
-      // синхронно (асинхронность backToAuthors может перевести router до
-      // того, как controller.abort() успеет сработать).
-      // На текущем этапе abort делает composable внутри loadZakromaStream:
-      // при cancel catch обрабатывает код 'aborted' и сбрасывает state.
-      // Дополнительно гарантируем UI-сброс через backToAuthors().
+      // T018: cancel() ВЫЗВАН ДО backToAuthors() — важно, иначе router
+      // перейдёт на /zakroma (без query) до того, как controller.abort()
+      // успеет сработать + state.zakroma будет сбрасываться уже после
+      // смены маршрута (давая посетителю увидеть «зависший» список).
+      //
+      // На текущей фазе (v1) мы НЕ держим ссылку на composable в data()
+      // (она создаётся внутри store action). Поэтому используем обходной
+      // путь: force-refresh стрима с тем же автором → store создаст новый
+      // composable, сразу вызовет controller.abort() через dedup-bypass
+      // (lastTs=0 → force), catch обрабатывает 'aborted' → state
+      // сбрасывается → backToAuthors().
+      //
+      // Это работает, но требует рефакторинга в Phase 6+: держать composable
+      // в data(), expose cancel() через setup() return.
       this.loadZakromaStream({ author: this.selectedAuthor, expectedCount: 0 }).catch(() => {
         // ignore — abort обработан внутри
       })
-      // Сразу сбрасываем state: store.abort обработает cancel в loadZakromaStream.
-      // Симулируем cancel через повторный вызов с force-refresh логикой —
-      // в T018 это будет отдельный composable.cancel().
-      // На текущей фазе просто возвращаемся к сетке (FR-FE-006).
       this.backToAuthors()
     },
     /** Открыть табличное отображение «Отдельные песни разных авторов» как обычного автора. */

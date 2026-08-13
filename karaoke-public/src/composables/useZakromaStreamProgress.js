@@ -46,6 +46,12 @@ export function useZakromaStreamProgress() {
   const metricsBatch = []
   let currentAuthor = ''
   let currentExpectedCount = 0
+  // T016 (US3, FR-FE-008 уточнение): debounce показа индикатора на 300 мс.
+  // Если стрим завершился быстрее — индикатор не успевает показаться (UI
+  // не «мелькает»). `setTimeout` здесь НЕ нарушает FR-FE-008 (который
+  // запрещает setInterval для синтетического прогресса — это про логику
+  // подсчёта %, а debounce про UX-видимость).
+  let showTimeout = null
 
   function cleanup() {
     if (controller) {
@@ -70,6 +76,11 @@ export function useZakromaStreamProgress() {
     firstChunkTs = 0
     currentAuthor = author || ''
     currentExpectedCount = expectedCountFromCaller || 0
+    // T016: reset debounce-таймер.
+    if (showTimeout) {
+      clearTimeout(showTimeout)
+      showTimeout = null
+    }
 
     // 2. Создаём AbortController (FR-FE-007).
     controller = new AbortController()
@@ -156,7 +167,13 @@ export function useZakromaStreamProgress() {
       case 'album':
         // Добавляем "songs: []" — сюда будут складываться song-сообщения.
         albums.value.push({ ...msg.album, songs: [] })
-        isVisible.value = true
+        // T016: показываем индикатор только если стрим не закончился за 300 мс.
+        if (!showTimeout) {
+          showTimeout = setTimeout(() => {
+            isVisible.value = true
+            showTimeout = null
+          }, 300)
+        }
         scheduleAriaLive()
         break
       case 'song':
@@ -168,6 +185,11 @@ export function useZakromaStreamProgress() {
         }
         break
       case 'done':
+        // T016: done пришёл — отменяем pending-show (UI не «мелькает»).
+        if (showTimeout) {
+          clearTimeout(showTimeout)
+          showTimeout = null
+        }
         recordEvent('zakroma_stream_done')
         if (!settled) {
           settled = true
@@ -183,6 +205,11 @@ export function useZakromaStreamProgress() {
         }
         break
       case 'error':
+        // T016: error — clearTimeout, показываем сразу (без debounce).
+        if (showTimeout) {
+          clearTimeout(showTimeout)
+          showTimeout = null
+        }
         recordEvent('zakroma_stream_error', { errorCategory: msg.message || 'unknown' })
         throw new Error(msg.message || 'stream error')
       // eslint-disable-next-line no-fallthrough -- throw прыгает в catch ниже
@@ -319,6 +346,10 @@ export function useZakromaStreamProgress() {
       streamAborted = true
       controller.abort()
       controller = null
+    }
+    if (showTimeout) {
+      clearTimeout(showTimeout)
+      showTimeout = null
     }
     if (!settled) {
       settled = true

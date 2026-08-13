@@ -130,6 +130,28 @@
           </label>
         </div>
         <div class="label-and-input">
+          <div class="label">Может сам назначать себе задания:</div>
+          <label
+            class="sue-checkbox-label"
+            :title="
+              siteUserCurrent.editor
+                ? ''
+                : 'Сначала включите роль редактора'
+            "
+          >
+            <input
+              v-model="siteUserCurrent.canSelfAssignTasks"
+              type="checkbox"
+              :disabled="!siteUserCurrent.editor"
+            />
+            <span class="sue-hint">
+              (кнопка «Взять в работу» на свободных песнях в «Закромах»;
+              <span v-if="!siteUserCurrent.editor">доступно только редакторам</span>
+              <span v-else>снятие флага не отзывает ранее взятые задания</span>)
+            </span>
+          </label>
+        </div>
+        <div class="label-and-input">
           <div class="label">Лимит избранного:</div>
           <input
             v-model.number="siteUserCurrent.maxFavorites"

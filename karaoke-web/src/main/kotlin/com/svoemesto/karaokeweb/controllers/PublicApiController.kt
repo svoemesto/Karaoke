@@ -7,6 +7,7 @@ import com.svoemesto.karaokeapp.model.EventType
 import com.svoemesto.karaokeapp.model.Pictures
 import com.svoemesto.karaokeapp.model.RestName
 import com.svoemesto.karaokeapp.model.Song
+import com.svoemesto.karaokeapp.model.SongAssignment
 import com.svoemesto.karaokeapp.model.Zakroma
 import com.svoemesto.karaokeapp.resizeBufferedImage
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
@@ -578,7 +579,31 @@ class PublicApiController(
             request,
             siteUserResolver.resolve(request)?.id ?: 0,
         )
-        return sett?.let { SongPublicDto.fromSong(it) }
+        // FR-008 (self-assign): для self-assign-редакторов — батч-перетяжка активного задания
+        // ровно по ЭТОЙ песне. Если песни нет или user не self-assign-editor — assignment:null.
+        val me = siteUserResolver.resolve(request)
+        val isSelfAssignEditor = me?.isEditor == true && me.canSelfAssignTasks
+        val assignmentDto =
+            if (isSelfAssignEditor && sett != null) {
+                SongAssignment
+                    .loadBySongIds(
+                        listOf(sett.id),
+                        WORKING_DATABASE,
+                        storageService,
+                        storageApiClient,
+                    )[sett.id]
+                    ?.let { a ->
+                        com.svoemesto.karaokeapp.model.SongAssignmentBriefDto(
+                            id = a.id,
+                            assigneeId = a.assigneeId,
+                            assignedAt = a.assignedAt,
+                            adminStatus = a.adminStatus,
+                        )
+                    }
+            } else {
+                null
+            }
+        return sett?.let { SongPublicDto.fromSong(it).copy(assignment = assignmentDto) }
     }
 
     @PostMapping("/events")

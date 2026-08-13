@@ -1841,3 +1841,84 @@ async, `currentLink = null` стартовое значение → Vue ренд
 **Урок (для будущих фич в этом коде)**:
 - Endpoint, проектировавшийся под конкретную задачу (сниппеты VK), может стать узким местом для другой задачи (SEO ботов). Контракт endpoint'а — это не только «что он возвращает», но и «для кого он возвращает». При смене целевой аудитории — пересматривать контракт целиком, а не патчить отдельные куски.
 - Генерация PNG «на лету» в hot path — это почти всегда ошибка архитектуры для публичных endpoint'ов. Если нужно — кэшировать на диске/в MinIO, либо вообще убрать (как в этой фиче — og:image указывает на готовый PNG из MinIO через nginx-прокси, без участия Java).
+
+
+---
+
+## Pass 51: Self-Assign Tasks (spec 182)
+
+> **Дата**: 2026-08-13
+> **Спецификация**: [`specs/182-editor-self-assign-tasks/`](../../specs/182-editor-self-assign-tasks/)
+
+**Что изменилось.**
+- DB-миграция `deploy/karaoke-db/40_site_user_can_self_assign_tasks.sql`: новая колонка `tbl_site_users.can_self_assign_tasks` + пересоздан `recordhash`-триггер для синка LOCAL↔SERVER (конституция III).
+- Backend (`karaoke-app`):
+  - `SiteUser.kt`, `SiteUser.kt.toDTO()` — добавлено поле `canSelfAssignTasks` с аннотацией `@KaraokeDbTableField(name = "can_self_assign_tasks")`.
+  - `SiteUserDto.kt` — добавлено поле `canSelfAssignTasks` с `@get:JsonProperty("canSelfAssignTasks")` для устойчивости к Kotlin-Jackson is-префикс-багу (см. Q&A в AGENTS.md).
+  - `SiteUsersController.update` — новый `@RequestParam canSelfAssignTasks` для админского тумблера.
+  - Новый DTO `karaoke-app/.../dto/SongAssignmentBriefDto.kt` (id/assigneeId/assignedAt/adminStatus) для встраивания в публичные ответы «Закромов».
+- Backend (`karaoke-web`):
+  - **ПЕРЕСМОТРЕНО (Pass 51-2)**: после визуального теста решено показывать self-assign кнопку НЕ в Закромах (мешает таблице), а на странице конкретной песни `/song/{id}` (SongView). Поэтому:
+    - `PublicApiController.song` — для self-assign-редакторов добавлена тяжёлка `SongAssignment.loadBySongIds([songId])`, результат мапится в новое поле `assignment: SongAssignmentBriefDto?` в `SongPublicDto`.
+    - `SongPublicDto.fromSong` — добавлено поле `assignment` с default `null`.
+    - `ZakromaAlbumSongPublicDto` **НЕ ИЗМЕНЁН** — поле `assignment` здесь отсутствует (откат первоначальной идеи). `ZakromaPublicDto.fromZakroma` — оставлен в исходной форме (single overload).
+  - `PublicSongEditorController.assignSelf` — новый `@PostMapping("/assign-self")`. Атомарная транзакция `SELECT FOR UPDATE` + INSERT через `RETURNING id` (FR-006/US3). Ответы: 200 + idempotent, 200 + created, 409 + song_already_taken, 403 + forbidden_not_editor/forbidden_not_self_assign_editor.
+- Frontend (`webvue3`):
+  - `SiteUsers/store.js` — в `saveSiteUser` добавлена ветка `diffs.canSelfAssignTasks`.
+  - `SiteUserEdit.vue` — новый checkbox «Может сам назначать себе задания» с disabled если `!siteUserCurrent.editor`.
+  - `SiteUsersTable.vue` — новая колонка `canSelfAssignTasks` с `Да/Нет`. Полноценный фильтр (как у `isEditor`) отложен.
+- Frontend (`karaoke-public`):
+  - `services/songEditorApi.js` — новый `assignSelf(songId)` поверх `authPost`.
+  - `views/ZakromaView.vue` — **ОТКАТ ПЕРВОНАЧАЛЬНОГО ДИЗАЙНА**: убрана новая колонка «Self-assign» (и в десктопной таблице, и в мобильных карточках), убраны методы `onSelfAssignClick`/`onOpenAssignmentClick`/`notify`, computed `canSelfAssignEditor`/`userId`, data `assigningSongId`, CSS. `ZakromaView` ничего не знает про self-assign.
+  - `views/SongView.vue` — новое место для кнопки. Под useAuth (user.isEditor && user.canSelfAssignTasks) в `km-meta-actions` появляется кнопка «Взять в работу» (если `currentSong.assignment === null`) или «Открыть задание» (если `currentSong.assignment.assigneeId === userId`). Атомарная транзакция на бэке + UI-блокировка двойных кликов через `assigningSongId`. Обработка 409/timeout через `notify()` (тост).
+
+**Что НЕ изменилось.**
+- Sync-конфигурация: `tbl_song_assignments` уже в `SyncRegistry.all` (введён ранее), флаг `can_self_assign_tasks` — простой подсчёт через recordhash, никаких новых sync-целей.
+- Админский `/api/songeditor/assign` — НЕ трогаем, путь «админ назначает вручную» сохранён как fallback.
+- Существующая таблица песен (`webvue3/SongsTable`) — self-assign задания появляются в ней автоматически через `composeStatusesForSongIds`, никаких изменений в SongsTable.
+- `SongAssignmentDraft` — НЕ создаётся при self-assign (FR-009). Создание произойдёт естественным путём, когда редактор откроет задание и начнёт редактирование.
+
+**Ключевые решения** (research.md + Pass 51-2 redesign):
+- **FR-001**: флаг ТОЛЬКО в admin `SiteUserDto`, НЕ в публичном `ProfileDto` — анонимы не должны видеть список редакторов с правами.
+- **FR-002/FR-005**: идемпотентность по `(song_id, assignee_id)` — повторный клик возвращает 200 OK с пометкой `idempotent:true`, новой строки не создаётся. UNIQUE-индекс уже есть в БД с миграции 10.
+- **FR-005/US3**: race-protection через `SELECT FOR UPDATE` блокирует ВСЕ строки этой песни (а не `LIMIT 1`) — теоретически на одну песню может быть несколько назначений от разных редакторов, если старое отозвали.
+- **FR-008 placement (Pass 51-2)**: ПЕРЕСМОТРЕНО. Кнопка живёт на странице `/song/{id}` (SongView), НЕ в Закромах. Причина: колонка с кнопкой в таблице Закромов визуально перегружает компактные карточки песен (16+ треков × 4 иконки = перегруз). На странице песни места хватает, и это семантически правильнее — "смотрю на песню = решаю, беру ли её".
+  - ВАЖНО: `SongAssignment.loadBySongIds([songId])` здесь — ровно ОДИН row, по нему — id задания или null. Никакого лишнего JOIN.
+- **FR-007 placement**: кнопка НА странице песни (variant B) — НЕ отдельный «side panel» редактора.
+- **clarification Q4**: своя песня переключает кнопку на «Открыть задание» (variant A).
+
+**Edge cases**:
+- Снятие флага НЕ отзывает уже взятые задания (см. plan § «Edge cases» + clarification Q2) — иначе админ потерял бы чужую работу без явного решения.
+- Self-assign + admin re-assign same song to another editor → песня имеет 2+ строки в `tbl_song_assignments` (записи разных редакторов), моя логика `SELECT FOR UPDATE` корректно обрабатывает (вижу своё `idempotent` ИЛИ чужое `409`).
+- `RETURNING id` в INSERT — нужен id СРАЗУ для ответа (избегаем лишнего round-trip с `currval()`/`lastval()`).
+
+**Метрики** (SC-001, SC-002):
+- Время от клика на «Взять в работу» до обновления UI: <2 сек (1 round-trip + 1 транзакция).
+- Race-condition тест вручную (2 окна + 2 редактора): только 1 запись в `tbl_song_assignments`, второй получает 409.
+
+**Локальная сборка**: `./gradlew :karaoke-web:compileKotlin` → BUILD SUCCESSFUL. Линтинг/KDoc/JSDoc coverage — см. T027.
+
+**Проверка**: ручная через [`specs/182-editor-self-assign-tasks/quickstart.md`](../../specs/182-editor-self-assign-tasks/quickstart.md) (10 сценариев). CI-юнит-тестов в проекте нет (constitution.md § «Тесты»). Валидация: 2-3 редактора с флагом берут 5+ песен через UI, admin видит их в `webvue3/SongsTable`, sync LOCAL↔SERVER корректно проезжает (через `recordhash`).
+
+**Новые/изменённые файлы**:
+- Migration: `deploy/karaoke-db/40_site_user_can_self_assign_tasks.sql` (NEW).
+- Backend (Kotlin): `karaoke-app/.../SiteUser.kt`, `SiteUserDto.kt`, `SiteUsersController.kt`, новый `dto/SongAssignmentBriefDto.kt`; `karaoke-web/.../ZakromaPublicDto.kt` (+overload `fromZakroma`), `PublicApiController.kt` (zakroma + zakromaStream + overload-fromZakroma), новый `assignSelf` в `PublicSongEditorController.kt`.
+- Frontend (admin): `webvue3/.../SiteUsers/store.js`, `SiteUsers/edit/SiteUserEdit.vue`, `SiteUsers/SiteUsersTable.vue`.
+- Frontend (public): `karaoke-public/.../services/songEditorApi.js`, `karaoke-public/.../views/ZakromaView.vue`.
+- Docs: `docs/features/editor-tasks.md` (новая секция Self-assign); `docs/architecture-notes.md` (эта запись).
+- Spec: `specs/182-editor-self-assign-tasks/{spec,plan,research,data-model,contracts/*,quickstart,tasks,checklists/requirements}.md` — 9 файлов спецификации.
+
+**Связанные документы**:
+- `specs/182-editor-self-assign-tasks/spec.md` — функциональная спека (4 USs, 10 FRs, 6 SCs, 5 user stories).
+- `specs/182-editor-self-assign-tasks/research.md` — 10 технических решений + Implementation Order.
+- `specs/182-editor-self-assign-tasks/data-model.md` — маппинг полей.
+- `specs/182-editor-self-assign-tasks/contracts/` — 6 API контрактов (C1 обновлённый / C2 NEW / C3-C6).
+- `specs/182-editor-self-assign-tasks/quickstart.md` — 10 ручных сценариев.
+- `docs/features/editor-tasks.md#дополнение-self-assign-заданий-spec-182` — per-feature документ.
+- AGENTS.md — CI-gate для master, жизненный цикл feature-ветки.
+
+**Урок (для будущих фич в этом коде)**:
+- Когда новая фича добавляет поле в `SiteUserDto`, нужно чётко решить: живёт оно только в admin DTO или видно публичным пользователям. Self-assign — это admin-only-флаг, фронт использует его через `/api/public/auth/me` для UX (скрыть/показать кнопки), но данные по КОНКРЕТНОЙ ПЕСНЕ получает через Закрома с фильтром по `isSelfAssignEditor`.
+- «Идемпотентность» и «race protection» — это не одно и то же. Self-assign нужен ОБА механизма: idempotency для повторного клика того же юзера (200 OK), race для одновременных кликов разных юзеров (409). Без правильного `SELECT FOR UPDATE` оба этих сценария превращаются либо в дубль-строки, либо в silent failure.
+- `RETURNING id` — лучший паттерн для INSERT в PostgreSQL, когда нужен новый id сразу. Избегаем round-trips `currval()`/`lastval()`/лишнего SELECT.
+

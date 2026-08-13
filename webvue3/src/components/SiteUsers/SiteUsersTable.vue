@@ -102,6 +102,12 @@
           </div>
         </template>
 
+        <template #cell(canSelfAssignTasks)="data">
+          <div style="text-align: center">
+            {{ data.value ? 'Да' : '' }}
+          </div>
+        </template>
+
         <template #cell(sponsrPremiumUntil)="data">
           <div style="text-align: center">
             {{ formatDate(data.value) }}
@@ -328,6 +334,17 @@ export default {
           style: {
             minWidth: '80px',
             maxWidth: '80px',
+            textAlign: 'center',
+            fontSize: 'small',
+          },
+        },
+        {
+          key: 'canSelfAssignTasks',
+          label: 'Self-assign',
+          sortable: true,
+          style: {
+            minWidth: '100px',
+            maxWidth: '100px',
             textAlign: 'center',
             fontSize: 'small',
           },

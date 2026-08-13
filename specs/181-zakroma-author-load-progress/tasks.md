@@ -71,34 +71,40 @@ commit-content.
   `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/dto/ZakromaStreamMessageDto.kt` —
   NDJSON-wrapper. `@JsonInclude(NON_NULL)`, 5 типов сообщений, companion
   factories `meta()/album()/song()/done()/error()`. ~70 строк. KDoc + `@see`.
-- [x] **T006** [P] ✅ Создан фрагмент + деплой-скрипт (адаптация):
-  - `deploy/80to8897.stream-addition.frag` — готовый location-блок для
-    вставки в `/etc/nginx/sites-enabled/80to8897` на проде (с комментариями).
-  - `tools/deploy-nginx-stream.sh` — скрипт: rsync фрагмента → SSH →
-    prepend content в `80to8897` (если ещё не добавлен) → `nginx -t` →
-    `systemctl reload nginx`. С бэкапом и автоматическим откатом при
-    ошибке nginx -t.
-  - **Отклонение от T006**: полный `deploy/80to8897` не в репо (только на
-    сервере, см. AGENTS.md «nginx 80to8897»). Поэтому фрагмент-подход —
-    копируется на сервер и конкатенируется в существующий конфиг.
-      1. Прочитать существующий `deploy/80to8897` — найти upstream name
-         (например, `karaoke-web-upstream`) и существующий `/api/public/`
-         location (он задаёт `proxy_set_header` директивы, которые надо
-         скопировать).
-      2. Создать новый `location /api/public/zakroma/stream { ... }`:
-         - `proxy_buffering off;`
-         - `gzip off;`
-         - `proxy_cache off;`
-         - `proxy_read_timeout 300s;`
-         - `proxy_set_header Host $host;`
-         - `proxy_set_header X-Real-IP $remote_addr;`
-         - `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;`
-         - `proxy_set_header X-Forwarded-Proto $scheme;`
-         - `proxy_pass http://<upstream-name>;` (то же имя, что в существующем).
-      3. Сохранить файл (`/etc/nginx/sites-enabled/80to8897` — **отдельный
-         файл, не симлинк**, см. AGENTS.md «nginx 80to8897»).
-      4. ~10 строк. **НЕ** применяется автоматически — применяется
-         через `tools/deploy-nginx-stream.sh` (T026).
+- [x] **T006** [P] ✅ Location-блок для NDJSON-стрима добавлен
+  в `deploy/web-server-deploy/deploy/80to8897` напрямую (НЕ через
+  отдельный frag-файл + деплой-скрипт):
+  - `deploy/web-server-deploy/deploy/80to8897` — содержит оба server-блока
+    (HTTPS:443 + HTTP:80), внутри HTTPS-блока, рядом с `location /api/`,
+    добавлен новый `location /api/public/zakroma/stream { ... }`:
+    - `proxy_buffering off;`
+    - `gzip off;`
+    - `proxy_cache off;`
+    - `proxy_read_timeout 300s;`
+    - `proxy_send_timeout 300s;`
+    - `proxy_connect_timeout 5s; proxy_next_upstream off;` — те же fail-fast
+      таймауты, что и у `/api/` (Pass 46).
+    - `proxy_set_header X-Real-IP/X-Forwarded-For/X-Forwarded-Proto/
+      X-Forwarded-Host/X-Forwarded-Port/Host/X-Nginx-Proxy true;` —
+      полный набор заголовков как у соседнего `/api/`, иначе
+      `onlyPublishedFor(request)` в `PublicApiController` увидит
+      мусорные `rhost`/`remote_ip`.
+    - `proxy_pass http://127.0.0.1:8897;` (НЕ `…8897/api/` — здесь мы
+      задаём ПОЛНЫЙ путь до karaoke-web, чтобы nginx не дублировал
+      `/api/` в URL; см. строку 36 существующего `/api/` — там
+      `proxy_pass http://127.0.0.1:8897/api/` потому что location
+      префикс `/api/` ОТРЕЗАЕТСЯ и nginx дописывает остаток).
+  - **Применяется** через обычный цикл: правка `80to8897` в репо → rsync
+    на сервер → ручное `cp /root/Karaoke/deploy/80to8897 /etc/nginx/sites-enabled/80to8897
+    && nginx -t && systemctl reload nginx` (см. AGENTS.md «nginx 80to8897»).
+  - **Предыдущая попытка** (фрагмент-подход) была ошибочной — скрипт
+    `tools/deploy-nginx-stream.sh` (УДАЛЁН) делал `cat >>` в конец файла,
+    что вставляло location ВНЕ server-блока → `nginx -t` падал с
+    "location directive is not allowed here". Удалены:
+    `tools/deploy-nginx-stream.sh`, `deploy/80to8897.stream-addition.frag`.
+  - **Verified**: `nginx -t` на проде после применения должен проходить.
+    Проверка end-to-end: `curl -N "https://sm-karaoke.ru/api/public/zakroma/stream?author=Test"`
+    — должны идти NDJSON-сообщения сразу (без 4КБ-буферизации).
 
 **Checkpoint**: DTO и nginx шаблон готовы. Можно приступать к Phase 3 (backend endpoint).
 
@@ -162,7 +168,7 @@ commit-content.
 - [ ] **T011** [US1] **Manual Verification (Phase 3)** ⚠️ Требует пользователя:
   - Backend: `./gradlew :karaoke-web:compileKotlin` ✅ DONE (8/8 elapsed).
   - Deploy: пользователь запускает `bash deploy/do.sh build_start_web`
-    + `bash tools/deploy-nginx-stream.sh`.
+    + ручное копирование `80to8897` (см. AGENTS.md «nginx 80to8897»).
   - Localhost: `curl -N "http://localhost:8897/api/public/zakroma/stream?author=Test"` —
     должен вернуть как минимум 2 строки NDJSON (`meta` + `done`).
   - Browser: `/zakroma` → клик по автору → placeholder «Loading...» синхронно.

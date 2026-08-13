@@ -10,6 +10,28 @@ server {
     proxy_read_timeout 60;
     proxy_send_timeout 60;
   }
+  # Real-time NDJSON chunked-stream для Закромов (specs/181-zakroma-author-load-progress).
+  # Без proxy_buffering/gzip/proxy_cache OFF фронт получит весь ответ одним блоком после полной
+  # отдачи backend — никакого «real-time» не будет. Этот location ОБЯЗАН стоять ДО общего /api/
+  # (точнее, nginx выберет его по longest-prefix match: `/api/public/zakroma/stream` длиннее
+  # `/api/`, поэтому порядок не критичен, но для читаемости держим рядом).
+  location /api/public/zakroma/stream {
+    proxy_buffering off;
+    gzip off;
+    proxy_cache off;
+    proxy_read_timeout 300s;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header X-Forwarded-Port $server_port;
+    proxy_set_header Host $host;
+    proxy_set_header X-Nginx-Proxy true;
+    proxy_connect_timeout 5s;
+    proxy_next_upstream off;
+    proxy_send_timeout 300s;
+    proxy_pass http://127.0.0.1:8897;
+  }
   location /api/ {
     proxy_pass http://127.0.0.1:8897/api/;
     proxy_set_header X-Real-IP $remote_addr;

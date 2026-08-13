@@ -125,23 +125,39 @@ while (true) {
 Без правки nginx chunked-ответ буферизуется (~4 KB) и фронт получит
 **все** чанки разом после полной отдачи backend — никакого real-time не будет.
 
+Location-блок добавлен напрямую в [`deploy/web-server-deploy/deploy/80to8897`](../../deploy/web-server-deploy/deploy/80to8897),
+внутри HTTPS server-блока (port 443), рядом с существующим `location /api/`:
+
 ```nginx
 location /api/public/zakroma/stream {
     proxy_buffering off;
     gzip off;
     proxy_cache off;
     proxy_read_timeout 300s;
-    proxy_set_header Host $host;
+    proxy_send_timeout 300s;
+    proxy_connect_timeout 5s;
+    proxy_next_upstream off;
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto $scheme;
-    proxy_pass http://karaoke-web-upstream;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header X-Forwarded-Port $server_port;
+    proxy_set_header Host $host;
+    proxy_set_header X-Nginx-Proxy true;
+    proxy_pass http://127.0.0.1:8897;
 }
 ```
 
-Применяется через [`tools/deploy-nginx-stream.sh`](../../tools/deploy-nginx-stream.sh) —
-rsync фрагмента на сервер, prepend в `/etc/nginx/sites-enabled/80to8897`,
-`nginx -t` (с автоматическим откатом при ошибке), `systemctl reload nginx`.
+**Применяется** обычным циклом nginx-конфига: правка `80to8897` в репо → rsync →
+ручное `cp /root/Karaoke/deploy/80to8897 /etc/nginx/sites-enabled/80to8897
+&& nginx -t && systemctl reload nginx` (см. [AGENTS.md § nginx 80to8897](../../AGENTS.md#Деплой)).
+
+**Раньше** использовался отдельный фрагмент `deploy/80to8897.stream-addition.frag`
++ скрипт `tools/deploy-nginx-stream.sh` (УДАЛЕНЫ в Pass 51-3, 2026-08-13).
+Скрипт делал `cat >>` в конец файла — location оказывался ВНЕ server-блока,
+`nginx -t` падал с `"location" directive is not allowed here`. Прямое
+редактирование `80to8897` (который УЖЕ в репо, см.
+`deploy/web-server-deploy/deploy/80to8897`) — единственный надёжный путь.
 
 ## Инварианты / правила
 
@@ -173,7 +189,8 @@ rsync фрагмента на сервер, prepend в `/etc/nginx/sites-enabled
 ### 1. Nginx буферизует по умолчанию
 
 `proxy_buffering on` (default) — посетитель получит все чанки после
-полной отдачи backend. **Обязательно** применить `tools/deploy-nginx-stream.sh`
+полной отдачи backend. **Обязательно** обновить `deploy/web-server-deploy/deploy/80to8897`
+и применить на проде (правка → rsync → `cp + nginx -t + systemctl reload nginx`)
 после изменения кода endpoint'а.
 
 ### 2. Gzip ломает NDJSON

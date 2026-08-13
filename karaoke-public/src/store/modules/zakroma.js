@@ -1,6 +1,54 @@
 import { apiGet } from '../../services/api'
 import { useZakromaStreamProgress } from '../../composables/useZakromaStreamProgress'
 
+// Локальный кеш AlbumType-метаданных (mirror из
+// karaoke-app/src/main/kotlin/.../AlbumType.kt). Нужен для построения
+// albumTypeCounts на фронте после получения NDJSON-стрима (бэк не шлёт
+// готовый albumTypeCounts — FR-BE-003 out of scope).
+const ALBUM_TYPE_LABELS = {
+  studio: { dbValue: 'studio', groupLabel: 'Студийные альбомы', filterLabel: 'Студийные' },
+  single: { dbValue: 'single', groupLabel: 'Синглы', filterLabel: 'Синглы' },
+  live: { dbValue: 'live', groupLabel: 'Концертные альбомы', filterLabel: 'Концертные' },
+  compilation: { dbValue: 'compilation', groupLabel: 'Сборники', filterLabel: 'Сборники' },
+  bootleg: { dbValue: 'bootleg', groupLabel: 'Бутлеги', filterLabel: 'Бутлеги' },
+  archive: { dbValue: 'archive', groupLabel: 'Архивные записи', filterLabel: 'Архивные' },
+  tribute: { dbValue: 'tribute', groupLabel: 'Трибьют/Кавер', filterLabel: 'Трибьют/Кавер' },
+}
+const ALBUM_TYPE_ZAKROMA_ORDER = [
+  'studio',
+  'single',
+  'live',
+  'compilation',
+  'bootleg',
+  'archive',
+  'tribute',
+]
+
+/**
+ * Построить albumTypeCounts из списка альбомов (mirror
+ * `ZakromaPublicDto.fromZakroma()` в Karaoke-web). Только типы с count > 0,
+ * в порядке ZAKROMA_GROUP_ORDER.
+ */
+function buildAlbumTypeCounts(albums) {
+  const counts = {}
+  for (const alb of albums || []) {
+    const dbValue = alb.albumType || 'studio'
+    counts[dbValue] = (counts[dbValue] || 0) + 1
+  }
+  const out = []
+  for (const dbValue of ALBUM_TYPE_ZAKROMA_ORDER) {
+    if (counts[dbValue] > 0) {
+      out.push({
+        dbValue,
+        groupLabel: ALBUM_TYPE_LABELS[dbValue].groupLabel,
+        filterLabel: ALBUM_TYPE_LABELS[dbValue].filterLabel,
+        count: counts[dbValue],
+      })
+    }
+  }
+  return out
+}
+
 /**
  * Компонент «Zakroma».
  *
@@ -142,14 +190,14 @@ export default {
           // Преобразуем к формату ZakromaPublicDto: {author, authorPictureUrl, albums: [...]}.
           // У нас нет authorPictureUrl — UI может не показывать картинку,
           // если нету (или взять из кэша?). Для MVP — оставляем пустым.
+          // albumTypeCounts — собираем на фронте из полученных albums
+          // (mirror backend `ZakromaPublicDto.fromZakroma()`).
           commit('setZakroma', [
             {
               author,
               authorPictureUrl: '',
               albums: result.albums,
-              // albumTypeCounts вычислим на фронте из полученных данных
-              // (FR-BE-003 out of scope: backend не шлёт albumSettings).
-              albumTypeCounts: [],
+              albumTypeCounts: buildAlbumTypeCounts(result.albums),
             },
           ])
           commit('setLastLoadedTimestamp', { author, ts: Date.now() })

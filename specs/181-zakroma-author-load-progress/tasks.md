@@ -20,15 +20,18 @@ description: "Task list for 181-zakroma-author-load-progress (real-time NDJSON-s
 — обе P1, идут последовательно (backend endpoint строится сразу с стримом).
 US3 (debounce + 30s rule) — P2, идёт после US2.
 
-**Commit grouping**: задачи сгруппированы в 5-7 коммитов (см. конец
-`plan.md` § Implementation Strategy):
+**Commit grouping**: задачи сгруппированы в **6 коммитов** (зафиксировано
+в `spec.md` § Implementation Plan; обновлено в связи с I5):
 - ✅ #1: инфраструктура (T001).
 - ✅ #2: спека (T002).
-- ✅ #3 plan + quickstart (T003).
-- ⏳ #4: backend DTOs + endpoint + nginx config (T004, T005, T006, T007, T008, T009, T010, T011).
-- ⏳ #5: frontend stream + UI (T012, T013, T014, T015, T016, T017, T018).
-- ⏳ #6: документация + cleanup (T020, T021, T022, T023).
-- ⏳ #7: lint/CI/PR (T024, T025, T026, T027).
+- ✅ #3: plan + quickstart (T003).
+- ⏳ #4: backend DTOs + endpoint + nginx config (T004, T005, T006, T007, T008, T009, T010, T011 — backend spring endpoint + nginx).
+- ⏳ #5: frontend streaming layer (T012, T013, T014 — backend loop + frontend parser + UI прогресс; T015 manual verify).
+- ⏳ #6: docs + cleanup + lint + PR (T016-T023 docs/code, T024-T025 manual, T026-T027 git).
+
+**Примечание**: T011, T015, T019, T025 — это **manual verification**
+checkpoint'ы (без них PR нельзя мерджить). Все остальные T004-T027 — это
+commit-content.
 
 ## Format: `[ID] [P?] [Story] Description`
 
@@ -78,12 +81,25 @@ US3 (debounce + 30s rule) — P2, идёт после US2.
   Аннотация `@JsonInclude(JsonInclude.Include.NON_NULL)` чтобы null-поля
   не попадали в JSON. ~25 строк. KDoc с `@see`.
 - [ ] **T006** [P] Добавить `location /api/public/zakroma/stream` блок
-  в `deploy/80to8897`. Минимум: `proxy_buffering off; gzip off;
-  proxy_cache off; proxy_read_timeout 300s;` + `proxy_pass` к
-  upstream как в существующем `/api/public/*` (см. текущий
-  `location /api/public/` для шаблона). ~10 строк. **НЕ**
-  применяется автоматически — применяется через `tools/deploy-nginx-stream.sh`
-  (T034).
+      в `deploy/80to8897`. **Шаги**:
+      1. Прочитать существующий `deploy/80to8897` — найти upstream name
+         (например, `karaoke-web-upstream`) и существующий `/api/public/`
+         location (он задаёт `proxy_set_header` директивы, которые надо
+         скопировать).
+      2. Создать новый `location /api/public/zakroma/stream { ... }`:
+         - `proxy_buffering off;`
+         - `gzip off;`
+         - `proxy_cache off;`
+         - `proxy_read_timeout 300s;`
+         - `proxy_set_header Host $host;`
+         - `proxy_set_header X-Real-IP $remote_addr;`
+         - `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;`
+         - `proxy_set_header X-Forwarded-Proto $scheme;`
+         - `proxy_pass http://<upstream-name>;` (то же имя, что в существующем).
+      3. Сохранить файл (`/etc/nginx/sites-enabled/80to8897` — **отдельный
+         файл, не симлинк**, см. AGENTS.md «nginx 80to8897»).
+      4. ~10 строк. **НЕ** применяется автоматически — применяется
+         через `tools/deploy-nginx-stream.sh` (T026).
 
 **Checkpoint**: DTO и nginx шаблон готовы. Можно приступать к Phase 3 (backend endpoint).
 
@@ -200,6 +216,25 @@ progress (он появится в Phase 4).
     исключении — написать `{"type":"error","message":"<user-friendly>"}`
     + close, **НЕ** отдавать 500 (иначе fetch не сможет парсить тело).
   - ~80 строк (включая KDoc).
+- [ ] **T012-b** [US2] Добавить endpoint `POST /api/public/zakroma/stream/metrics`
+      в `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicApiController.kt`:
+  - Сигнатура: `@PostMapping("/zakroma/stream/metrics") fun zakromaStreamMetrics(@RequestBody metrics: List<ZakromaStreamMetricDto>): ResponseEntity<Unit>`.
+  - На каждый элемент списка — `doRegisterEvent(mapOf("eventType" to eventType, "parameters" to mapOf("author", "firstChunkMs", "durationMs", ...)))`.
+  - `eventType` = конкретный тип (`zakroma_stream_start` / `_done` / `_error` / `_abort`),
+    НЕ `CALL_REST`.
+  - Возврат `ResponseEntity.ok().build()` — даже если что-то упало в
+    БД (метрики не должны ломать UX).
+  - **Совместимо с `sendBeacon`** — endpoint принимает JSON
+    `Content-Type: application/json` (который шлёт `sendBeacon`).
+  - KDoc + `@see docs/features/zakroma-stream-progress.md`.
+  - ~50 строк.
+- [ ] **T012-c** [US2] Создать
+      `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/dto/ZakromaStreamMetricDto.kt`:
+  - Поля: `eventType: String`, `author: String`, `firstChunkMs: Long?`,
+    `durationMs: Long?`, `expectedCount: Long?`, `receivedCount: Long?`,
+    `streamAborted: Boolean` (= false default),
+    `errorCategory: String?`.
+  - KDoc + `@see`.
 - [ ] **T013** [US2] В `composables/useZakromaStreamProgress.js`
   (расширение T008):
   - В `start()` после создания `controller`:
@@ -215,11 +250,32 @@ progress (он появится в Phase 4).
          + `receivedCount.value++` + `progress.value = receivedCount.value / expectedCount.value`;
          `done` → cleanup, `isVisible.value = false`, resolve Promise;
          `error` → reject Promise, `errorMessage.value = msg.message`.
-    6. Каждые ~16мс (через `requestAnimationFrame`) обновлять
+     6. Каждые ~16мс (через `requestAnimationFrame`) обновлять
        `aria-live` элемента для screen reader (throttle — НЕ спамить
-       каждым чанком).
-  - `cancel()`: `controller.abort()`, очистить буфер, reject Promise.
-  - ~80 строк.
+       каждым чанком). Конкретно: держать ref `rafThrottleFlag`,
+       который ставится в `true` при обновлении `aria-valuenow`;
+       сбрасывается в `false` в `rAF` callback (если флаг не успевает
+       сброситься — обновление aria-live подавляется).
+  7. **Метрики (FR-FE-010)** — собирать в `sessionStorage.km_zakroma_stream_metrics`
+     (JSON-массив). Поля каждой записи:
+     - `eventType`: `zakroma_stream_start` / `zakroma_stream_done` /
+       `zakroma_stream_error` / `zakroma_stream_abort`.
+     - `author`, `firstChunkMs` (TTFB от `start()` до первого `meta`),
+       `durationMs`, `expectedCount`, `receivedCount`,
+       `streamAborted: boolean`, `errorCategory`.
+     Фиксировать `firstChunkMs` = `performance.now() - startTs` при
+     получении первого `meta` сообщения. При `done` / `error` / `abort`
+     — append запись в массив.
+  8. **BATCH POST (FR-FE-010)** — при `pagehide` (visibilitychange + flush)
+     отправить весь массив в `POST /api/public/zakroma/stream/metrics`
+     (новый endpoint, см. T012-b). Использовать `navigator.sendBeacon`
+     (он работает на `pagehide`, гарантированно). Если `sendBeacon`
+     не сработал (массив > 64 KB) — fallback `fetch` + `keepalive: true`.
+     Если endpoint /metrics недоступен (404) — silent fallback, не
+     ломать UI.
+  - `cancel()`: `controller.abort()`, очистить буфер, reject Promise,
+    append `zakroma_stream_abort` в metrics.
+  - ~100 строк (включая метрики).
 - [ ] **T014** [US2] В `ZakromaView.vue` (расширение T010) —
   реальный progress UI:
   - Заменить placeholder из T010 на полноценный прогрессометр:
@@ -278,6 +334,10 @@ progress (он появится в Phase 4).
     индикатор (`isVisible` остаётся false, UI не «мелькает»).
   - При приходе `error` — `clearTimeout(showTimeout)` + показать
     сразу (без debounce).
+  - **Уточнение (A2)**: `setTimeout(300)` для visibility-debounce НЕ
+    нарушает FR-FE-008 (который запрещает `setInterval` для
+    синтетического прогресса). Debounce — это ожидание UI visibility,
+    а не фейковое обновление прогресса.
   - ~10 строк.
 - [ ] **T017** [US3] В `zakroma.js` store (расширение T009):
   - При вызове `loadZakromaStream(author, expectedCount)` — проверить
@@ -291,11 +351,13 @@ progress (он появится в Phase 4).
     клик прошёл как force refresh.
   - ~25 строк.
 - [ ] **T018** [US3] В `ZakromaView.vue` — кнопка «Отмена» уже добавлена
-  в T014, дополнительно: `backToAuthors()` уже сбрасывает `selectedAuthor`
-  = '' (восстановлено из существующего кода, lines 656-662). Никаких новых
-  изменений кроме проверки что `streamProgress.cancel()` вызывается
-  **до** `backToAuthors()` чтобы fetch отменился синхронно.
-  - ~5 строк правок.
+  в T014, дополнительно: убедиться, что в handler'е кнопки
+  `streamProgress.cancel()` вызывается **до** `backToAuthors()`,
+  чтобы fetch отменился синхронно. Сначала проверить текущий код
+  `backToAuthors()` (через `grep -n backToAuthors karaoke-public/src/views/ZakromaView.vue`)
+  — если метод отсутствует, добавить его (сбросить `selectedAuthor = ''`,
+  переход на экран выбора автора).
+  - ~5 строк правок (если `backToAuthors()` есть) или ~15 (если надо создать).
 - [ ] **T019** [US3] **Manual Verification (Phase 5)**:
   - Сценарий 3 (quickstart): повторный клик по тому же автору в < 30с —
     нет нового fetch в Network.
@@ -329,21 +391,33 @@ progress (он появится в Phase 4).
 - [ ] **T022** [P] [US-all] Обновить `docs/features/README.md`:
   - Добавить строку в таблицу (12 фич): `12 | zakroma-stream-progress | Real-time прогресс через NDJSON-стрим | [zakroma-stream-progress.md](./zakroma-stream-progress.md)`.
 - [ ] **T023** [P] [US-all] Cleanup старого кода:
-  - В `ZakromaView.vue`: удалить текст «Загрузка...» (если ещё остался).
-  - В `zakroma.js`: удалить `latestRequestId` паттерн (lines 3, 59-69 в
-    старом коде) — заменён на AbortController в composable.
-  - Удалить `useZakromaLoadProgress` если был создан в промежуточных
-    коммитах (мы решили не делать синтетический прогресс).
-  - Проверить grep: в `karaoke-public/src/` НЕ должно быть упоминаний
-    `setInterval`, `setTimeout` связанных с прогрессом (кроме
-    debounce в T016).
+  - **Шаг 1**: проверить текущее состояние:
+    - `grep -n latestRequestId karaoke-public/src/store/modules/zakroma.js`
+      — если **0 совпадений**, skip этот step.
+    - `grep -n 'Загрузка' karaoke-public/src/views/ZakromaView.vue` —
+      если **0**, skip.
+    - `ls karaoke-public/src/composables/useZakromaLoadProgress.js` —
+      если файла нет, skip.
+  - **Шаг 2**: удалить найденное:
+    - В `ZakromaView.vue`: удалить `<div class="km-loading">Загрузка...</div>`
+      (если ещё остался — T010 уже должен был заменить, но проверить).
+    - В `zakroma.js`: удалить `latestRequestId` (если он есть) — заменён
+      на AbortController в composable (T008/T013).
+    - Удалить `useZakromaLoadProgress.js` (если файл существует).
+  - **Шаг 3**: финальный grep — `grep -rn 'setInterval\|setTimeout'
+    karaoke-public/src/composables/useZakromaStreamProgress.js` — убедиться,
+    что `setTimeout` используется ТОЛЬКО в debounce (T016), не для
+    синтетического прогресса.
 - [ ] **T024** [P] [US-all] Lint + coverage:
   - `./gradlew ktlintCheck` (Kotlin, karaoke-web + karaoke-app) — зелёный.
   - `cd karaoke-public && npm run lint:check` — зелёный.
-  - `bash tools/check-kdoc-coverage.sh` — 100% для новых публичных DTO +
-    endpoint.
+  - `bash tools/check-kdoc-coverage.sh` — 100% для новых публичных DTO
+    (`ZakromaAlbumMetaPublicDto`, `ZakromaStreamMessageDto`,
+    `ZakromaStreamMetricDto`) + endpoint.
   - `bash tools/check-jsdoc-coverage.sh karaoke-public` — 100% для нового
     composable + новых actions в store.
+  - `bash tools/check-feature-doc.sh docs/features/zakroma-stream-progress.md` —
+    6 обязательных разделов (per FR-009).
   - `pre-commit run --all-files` — 7 проверок зелёные.
 - [ ] **T025** [US-all] **Manual Verification (Phase 6)**:
   - Запустить все 10 сценариев `quickstart.md` на prod

@@ -97,19 +97,31 @@
 - **FR-BE-002**: Эндпоинт MUST возвращать `Content-Type: application/x-ndjson`
   с `Transfer-Encoding: chunked`, реализован через `StreamingResponseBody`.
 - **FR-BE-003**: Формат NDJSON — каждое сообщение на отдельной строке `\n`,
-  JSON без вложенных `\n`. **Три типа сообщений**:
+  JSON без вложенных `\n`. **Пять типов сообщений**:
   - `{"type":"meta","author":"<name>","expectedCount":234}\n` —
-    первое сообщение; `expectedCount` = `Song.loadAuthorSongCounts(...)`
-    для этого автора (тот же счётчик, что на тайле — НЕ пересчёт в
-    `getZakroma`, т.к. фильтр одинаков).
-  - `{"type":"album","album":{...AlbumPublicDto...}}\n` — для каждого
-    альбома с метаданными (год, имя, тип, описание), БЕЗ `albumSettings`
-    (они придут отдельными сообщениями).
-  - `{"type":"song","albumId":"<album-key>","song":{...SongPublicDto...}}\n` —
-    для каждой песни. `albumId` = ключ альбома (например, `"1995 — Альбом"`
-    или просто индекс), чтобы фронт положил песню в правильный альбом.
+    первое сообщение; `expectedCount` = `Song.loadAuthorSongCounts(author, onlyPublished)`
+    для этого автора. **Формула MUST быть идентичной той, что используется
+    на тайле** (тот же `loadAuthorSongCounts`, та же `onlyPublished` —
+    фронт ожидает тот же знаменатель, что на плитке). **Не** пересчитывать
+    через `zakroma.albums[*].albumSettings.size` после фильтрации — это
+    источник drift (разные фильтры → знаменатель «убегает»).
+  - `{"type":"album","album":{...ZakromaAlbumMetaPublicDto...}}\n` — для
+    каждого альбома с метаданными (год, имя, тип, описание). **БЕЗ**
+    `albumSettings` — они НЕ передаются в NDJSON (out of scope для этой
+    фичи; фронт собирает свою статистику альбомов из полученных данных).
+    Используется отдельный лёгкий DTO `ZakromaAlbumMetaPublicDto`
+    (только метаданные, без `albumSettings.size`).
+  - `{"type":"song","song":{...SongPublicDto...}}\n` — для каждой песни.
+    Альбом определяется **порядком**: песня принадлежит **последнему**
+    пришедшему `album` сообщению (sequential grouping). **`albumId` НЕ
+    используется** — протокол строго sequential. Это упрощает wire
+    protocol (на 1 поле меньше) и позволяет бэкенду стримит без
+    O(n) lookup по ключу.
   - `{"type":"done","actualCount":234}\n` — финальное сообщение, после
-    него стрим закрывается.
+    него стрим закрывается. `actualCount` — число **реально отправленных**
+    песен (для sanity check на фронте).
+  - `{"type":"error","message":"<user-friendly>"}\n` — при ошибке SQL/IO
+    (см. FR-BE-006). HTTP 200 (НЕ 500 — иначе fetch не сможет парсить тело).
 - **FR-BE-004**: Итерация MUST идти **по альбомам**: для каждого альбома
   сначала шлём `album` сообщение, потом для каждой песни — `song` сообщения.
   Альбомы перебираются **в порядке их следования в БД** (тот же порядок,
@@ -227,10 +239,12 @@
     `cancel()`, Promise с финальным результатом.
   - Внутри: `AbortController`, `fetch()` со stream reader, парсер NDJSON.
 
-- **NDJSON-сообщение** (формат wire protocol):
+- **NDJSON-сообщение** (формат wire protocol, sequential — **НЕ**
+  используется `albumId`, группировка по порядку сообщений):
   - `meta`: `{type: 'meta', author, expectedCount}`
-  - `album`: `{type: 'album', album: AlbumPublicDto}`
-  - `song`: `{type: 'song', albumId, song: SongPublicDto}`
+  - `album`: `{type: 'album', album: ZakromaAlbumMetaPublicDto}`
+  - `song`: `{type: 'song', song: SongPublicDto}` — добавляется в **последний**
+    `album`, пришедший до этой `song` (т.е. `albums[albums.length - 1]`)
   - `done`: `{type: 'done', actualCount}`
   - `error`: `{type: 'error', message}`
 
@@ -263,8 +277,8 @@
 - Используется **нативный** `fetch().body.getReader()` + `TextDecoder`
   (без полифиллов). Поддержка: все evergreen-браузеры + mobile Safari 10+
   (см. caniuse, 99%+ пользователей). На старых браузерах — graceful
-  fallback на обычный `loadZakroma` (без прогресса), но в этой фиче
-  не реализуем (примем как TODO если будут жалобы).
+  fallback на обычный `loadZakroma` (без прогресса) — **out of scope
+  для этого PR** (см. ниже `Out of Scope`); TODO на случай жалоб.
 - Nginx `proxy_buffering off` + `gzip off` для пути стрима — стандартная
   практика для chunked SSE/NDJSON-эндпоинтов; другого способа
   отдавать ответ «в реальном времени» через nginx нет.
@@ -286,29 +300,37 @@
 - Server-Sent Events (SSE) — overkill для нашего случая.
 - WebSocket — нет смысла (одноразовый запрос).
 - Поддержка старых браузеров без `ReadableStream` (IE11, etc.).
+- **Graceful fallback** на синхронный `loadZakroma` для браузеров без
+  `ReadableStream` — TODO на случай жалоб (< 1% пользователей).
 - Параллельная загрузка нескольких авторов одновременно.
 - Skeleton-плейсхолдеры строк таблицы (выводим реальные строки
   по мере прихода — это уже достаточно).
 - Persist стрима на бэке между запросами (fire-and-forget).
 - Аутентификация стрима (как и обычный `/zakroma`, эндпоинт публичный).
+- **`albumSettings` в NDJSON** — не передаются; фронт собирает свою
+  статистику альбомов из полученных данных (если потребуется — отдельная
+  фича).
 
 ## Implementation Plan (для /speckit.plan)
 
-Эта фича требует **5 коммитов** в ветке `181-zakroma-author-load-progress`:
+Эта фича требует **6 коммитов** в ветке `181-zakroma-author-load-progress`
+(зафиксировано в `tasks.md` Header — число коммитов не должно «плавать»):
 
-1. **Commit #1** (✅ уже сделан в этом PR): инфраструктура
-   (.specify/extensions.yml + tools/specify-bootstrap.sh + AGENTS.md
-   секция «Создание спецификации»).
-2. **Commit #2**: backend NDJSON endpoint
+1. **Commit #1** (✅ уже сделан): инфраструктура
+   — `.specify/extensions.yml` + `tools/specify-bootstrap.sh` +
+   AGENTS.md секция «Создание спецификации».
+2. **Commit #2**: спека (`specs/181-zakroma-author-load-progress/spec.md`
+   + `checklists/requirements.md`).
+3. **Commit #3**: backend NDJSON endpoint
    (`PublicApiController.zakromaStream(...)` + `StreamingResponseBody`,
-   итерация по `Zakroma.getZakroma` с flush + новый DTO для NDJSON
-   wrapper-сообщений).
-3. **Commit #3**: nginx config (правка `deploy/80to8897` +
+   итерация по `Zakroma.getZakroma` с flush + новые DTO
+   `ZakromaAlbumMetaPublicDto` + `ZakromaStreamMessageDto`).
+4. **Commit #4**: nginx config (правка `deploy/80to8897` +
    `tools/deploy-nginx-stream.sh` для ручного копирования на прод).
-4. **Commit #4**: frontend streaming layer
+5. **Commit #5**: frontend streaming layer
    (`useZakromaStreamProgress` composable + новый action
-   `loadZakromaStream` в сторе + интеграция в `ZakromaView.vue`).
-5. **Commit #5**: cleanup old synchronous code
-   (удаление `useZakromaLoadProgress`, старой `loadZakroma`, текста
-   «Загрузка...», debounce — не нужен, реальные события приходят
-   быстрее 300 мс; проверка CI/линт).
+   `loadZakromaStream` в сторе + `ZakromaView.vue` — UI + progress + debounce).
+6. **Commit #6**: документация + cleanup + проверки
+   (per-feature документ + `docs/features/README.md` + cleanup
+   `useZakromaLoadProgress`/«Загрузка...» + ktlint/ESLint/pre-commit
+   + git push + PR + CI 7/7 → merge).

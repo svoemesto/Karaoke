@@ -573,7 +573,8 @@ export default {
     },
     // FR-007/US2 var.A: своё задание — открываем редактор (онлайн-разметку для этой песни).
     onOpenAssignmentClick() {
-      if (!this.currentSong || !this.currentSong.assignment || !this.currentSong.assignment.id) return
+      if (!this.currentSong || !this.currentSong.assignment || !this.currentSong.assignment.id)
+        return
       this.$router.push(`/account/editor/${this.currentSong.assignment.id}`)
     },
     /** Общий нотификатор (тосты в углу). Простая лёгкая обёртка — без зависимости от bootstrap. */

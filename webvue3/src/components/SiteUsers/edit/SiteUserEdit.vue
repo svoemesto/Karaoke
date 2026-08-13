@@ -133,11 +133,7 @@
           <div class="label">Может сам назначать себе задания:</div>
           <label
             class="sue-checkbox-label"
-            :title="
-              siteUserCurrent.editor
-                ? ''
-                : 'Сначала включите роль редактора'
-            "
+            :title="siteUserCurrent.editor ? '' : 'Сначала включите роль редактора'"
           >
             <input
               v-model="siteUserCurrent.canSelfAssignTasks"

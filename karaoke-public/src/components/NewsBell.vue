@@ -66,16 +66,29 @@ export default {
       )
     },
     visible() {
-      return (this.unread > 0 || !!this.toastItem) && !this.isHiddenRoute
+      // Pass 52: бэкенд `/since` возвращает пустой массив анонимам → unread всегда 0 → visible
+      // автоматически false. Дополнительно скрываем весь колокольчик для анонимов: незачем
+      // показывать иконку, которая никогда не покажет уведомлений.
+      return (this.unread > 0 || !!this.toastItem) && !this.isHiddenRoute && this.isAuthenticated
+    },
+    isAuthenticated() {
+      // Минимальная проверка — точно такой же ключ пишет useAuth при login. На SSR/private
+      // window недоступен, тогда тоже false (news нам не нужен, мы и так на /news).
+      try {
+        return !!localStorage.getItem('km_auth_token')
+      } catch (_) {
+        return false
+      }
     },
   },
   watch: {
     // При переходе на /news (в т.ч. кликом по самому колокольчику) счётчик неизбежно обнулится
     // на следующем опросе — NewsView.vue сама поднимает last-seen id при открытии ленты.
     '$route.name'() {
-      // На скрытых маршрутах (share, плеер в share-режиме, /news) опрос не нужен —
-      // колокольчик и тосты всё равно не видны. Не дёргаем /api/public/news вхолостую.
-      if (this.isHiddenRoute) {
+      // На скрытых маршрутах (share, плеер в share-режиме, /news) или для анонимов (Pass 52)
+      // опрос не нужен — колокольчик и тосты всё равно не видны. Не дёргаем /api/public/news
+      // вхолостую.
+      if (this.isHiddenRoute || !this.isAuthenticated) {
         if (this.pollTimer) {
           clearInterval(this.pollTimer)
           this.pollTimer = null
@@ -87,6 +100,10 @@ export default {
   },
   mounted() {
     if (this.isHiddenRoute) return
+    // Pass 52 (2026-08-13): бэкенд `/api/public/news/since` отдаёт пустой массив для анонимов
+    // (защита от 3.5 MB ответа каждые 45 сек × N вкладок → exhaustion HikariCP pool → зависания
+    // сайта 7-10 мин). Здесь — defense in depth: не поллим вообще, экономим HTTP round-trip.
+    if (!this.isAuthenticated) return
     this.poll()
     this.pollTimer = setInterval(this.poll, POLL_INTERVAL_MS)
   },

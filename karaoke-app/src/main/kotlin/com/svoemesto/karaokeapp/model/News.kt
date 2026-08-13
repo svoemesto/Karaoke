@@ -269,19 +269,24 @@ class News(
         }
 
         // Только опубликованные с id больше lastSeenId — лёгкий запрос для бейджа/тоста
-        // (обычно 0-3 строки за один опрос).
+        // (обычно 0-3 строки за один опрос). `limit` — опциональный верх LIMIT для защиты от
+        // случайного полного дампа при очень старом/нулевом lastSeenId (Pass 52: анонимный
+        // опрос `/since?id=0` возвращал ~3.5 MB JSON при 19k+ строках в tbl_news и при пиках
+        // исчерпывал HikariCP pool — см. PublicNewsController.since()).
         fun loadPublishedSince(
             database: KaraokeConnection,
             lastSeenId: Long,
+            limit: Int? = null,
         ): List<NewsDto> {
             val result: MutableList<NewsDto> = mutableListOf()
             val connection = database.getConnection() ?: return result
+            val limitClause = if (limit != null && limit > 0) " LIMIT $limit" else ""
             val sql =
                 """
                 SELECT id, title, body, category, link, publish_at, created_at
                 FROM $TABLE_NAME
                 WHERE publish_at IS NOT NULL AND publish_at <= now() AND id > ?
-                ORDER BY publish_at DESC
+                ORDER BY publish_at DESC$limitClause
                 """.trimIndent()
             try {
                 connection.prepareStatement(sql).use { ps ->

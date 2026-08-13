@@ -1,0 +1,42 @@
+# .specify/extensions.yml
+#
+# Расширения Spec Kit для проекта Karaoke (см. AGENTS.md, раздел «Где правила
+# для разных AI-агентов»). Подхватываются командами `/speckit.*` если они
+# поддерживают hooks (opencode / Claude Code / Cursor).
+#
+# ВАЖНО: расширения объявляют ДЕКЛАРАТИВНЫЕ правила — фактическое выполнение
+# лежит на AI-агенте (см. `tools/specify-bootstrap.sh` для before_specify).
+# Файл существует, чтобы любой агент мог прочитать его и следовать контракту
+# (даже если его runtime не поддерживает автоматический запуск хуков).
+
+hooks:
+  # Хук, вызываемый ПЕРЕД созданием спецификации (`/speckit.specify`).
+  # Гарантирует, что новая спека будет жить в feature-ветке NNN-slug, а не в
+  # master (NON-NEGOTIABLE, см. AGENTS.md, секция «CI-gate для master»).
+  before_specify:
+    - extension: feature-branch-bootstrap
+      command: tools/specify-bootstrap.sh
+      enabled: true
+      optional: false
+      description: >-
+        Резервирует следующий свободный NNN через
+        tools/reserve-branch-number.sh, создаёт ветку ${NNN}-${slug} от
+        master и переключается на неё. Выводит JSON {BRANCH_NAME, FEATURE_NUM}
+        в stdout для downstream-команд (/speckit.plan, /speckit.tasks).
+      prompt: >-
+        Создать feature-ветку для новой спецификации: передай slug (kebab-case
+        из 2-4 слов) первым аргументом в tools/specify-bootstrap.sh.
+      # Условие: hook выполняется всегда (нет condition), чтобы не пропустить
+      # создание ветки по ошибке агента.
+
+  # Хук, вызываемый ПОСЛЕ создания спецификации. Пока пусто — спека создаётся
+  # без пост-обработки. Если в будущем потребуется автообновление
+  # architecture-notes.md или авто-PR-черновик — добавить сюда.
+  after_specify: []
+
+  # Хук перед /speckit.clarify. Пока пусто — clarification не требует отдельной
+  # ветки (работаем в той же, что создана before_specify).
+  before_clarify: []
+
+  # Хук после /speckit.clarify. Пока пусто.
+  after_clarify: []

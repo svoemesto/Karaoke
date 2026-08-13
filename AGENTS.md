@@ -348,6 +348,67 @@ PR, а не «догоняла» отдельным merge. Все остальн
 svoemesto/...`) от PR с зелёным CI, а НЕ одиночный коммит напрямую
 в master. Если это одиночный коммит — push не делать, создать PR.
 
+### Создание спецификации (NON-NEGOTIABLE)
+
+**Перед `/speckit.specify` агент MUST работать в feature-ветке `NNN-slug`,
+а НЕ в `master`.** Прямое создание спецификации в master ЗАПРЕЩЕНО —
+то же правило, что и для кода/документации (см. выше «CI-gate для
+master»). Все артефакты спеки (`specs/NNN-slug/spec.md`,
+`checklists/`, `contracts/`, `quickstart.md`, `.specify/feature.json` и
+т.п.) живут в feature-ветке до merge в master.
+
+**Автоматически** — при вызове `/speckit.specify` срабатывает хук
+`before_specify` из [`.specify/extensions.yml`](./.specify/extensions.yml)
+→ [`tools/specify-bootstrap.sh`](./tools/specify-bootstrap.sh), который сам:
+
+1. Резервирует следующий свободный NNN через
+   `tools/reserve-branch-number.sh ${slug}` (push lightweight-тега
+   `refs/tags/seq/NNN` в origin — distributed compare-and-swap).
+2. Создаёт ветку `${NNN}-${slug}` от `master` (или использует имя из env
+   `GIT_BRANCH_NAME`/`SPECIFY_FEATURE_DIRECTORY`, если заданы).
+3. Переключается на неё.
+4. Печатает JSON `{BRANCH_NAME, FEATURE_NUM}` в stdout — для downstream
+   команд (`/speckit.plan`, `/speckit.tasks`).
+
+**Ручной fallback** (для AI-агентов без поддержки Spec Kit-хyков или при
+отладке):
+
+```bash
+N=$(./tools/reserve-branch-number.sh my-feature-slug)
+# Скрипт сам резервирует NNN и делает git checkout -b "${N}-my-feature-slug".
+git branch --show-current   # самопроверка: должна быть ${N}-my-feature-slug
+```
+
+**Самопроверка перед `/speckit.specify`:**
+
+```bash
+git branch --show-current
+# Ожидаемый результат: NNN-my-feature-slug (НЕ master).
+# Если master — стоп, сначала переключиться:
+git checkout -b "$(./tools/reserve-branch-number.sh my-slug)" master
+```
+
+**Зачем.** Исторически AI-агенты регулярно создавали спецификации прямо
+в master, потому что «это же просто markdown, не код» (см. коммит-историю
+`docs/architecture-notes.md` Pass 47, 2026-08-10 — `28_song_share_links.sql`
+потерян при `git checkout 164-nginx-upstream-reset` именно потому, что
+работа шла в master). Автоматизация хуком устраняет целый класс ошибок
+и не зависит от внимательности конкретного агента.
+
+**Env-переменные для продвинутых сценариев:**
+
+- `GIT_BRANCH_NAME="my-branch"` — использовать именно это имя ветки
+  (вместо `NNN-slug`). Номер NNN при этом НЕ резервируется (предполагается,
+  что агент уже зарезервировал его вручную).
+- `SPECIFY_FEATURE_DIRECTORY="specs/NNN-my-slug"` — если имя
+  директории спеки уже зафиксировано (например, пользователь явно задал),
+  скрипт не резервирует новый NNN, а парсит NNN-slug из пути.
+
+**Если хук не сработал** (другой AI-агент без поддержки Spec Kit, или
+orchestrator не вызывает хуки автоматически) — **агент обязан** запустить
+`tools/specify-bootstrap.sh` вручную ДО создания спецификации. Это
+non-negotiable правило, не опциональная рекомендация.
+
 ### Жизненный цикл feature-ветки (NON-NEGOTIABLE)
 
 **Feature-ветка НЕ удаляется после мёрджа.** Команда `gh pr merge` —

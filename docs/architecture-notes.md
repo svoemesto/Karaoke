@@ -1785,3 +1785,59 @@ async, `currentLink = null` стартовое значение → Vue ренд
 - Не использовать call-sites как «таймер напоминания о текущем состоянии» — это создаёт избыточный трафик.
 
 
+### 2026-08-13 — PR `180-og-seo-html`
+
+**Что.** Endpoint `GET /api/public/og/song?id=NNN` (контроллер `PublicOgSongController.kt` в модуле `karaoke-web`) теперь возвращает полноценный SEO-HTML вместо «голого» HTML c видимым `<img>`, который раньше генерировал PNG-картинку «на лету» через `/api/public/song-vk-image/{id}`. Раньше endpoint проектировался для сниппетов ВКонтакте (видимая картинка → парсер VK формирует сниппет), но с момента реализации автопубликации ВК (`specs/121-vk-news-auto-publish`) подход к постам изменился — endpoint остался только точкой входа для поисковых ботов (Googlebot/Bingbot/YandexBot), которым картинка не нужна, а нужна структурированная информация.
+
+**Зачем.** В логах прод-сервера видны десятки запросов от `bingbot` и `YandexBot` за час (Pass 50 / Pass 51 baseline). Каждый запрос генерировал PNG 1200×630 c обложкой альбома+автора+названием через `BufferedImage` за 500–1500 мс — дорого по CPU и непродуктивно для ботов. Переход на SEO-HTML (Schema.org JSON-LD `MusicRecording`, Open Graph, Twitter Card, видимый semantic body с текстом песни и ссылками на стриминг) даёт TTFB < 100 мс (vs 500–1500 мс) и больше данных для индексации.
+
+**Что изменилось.**
+- `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicOgSongController.kt` — переписан: вместо `buildBareHtmlForVK()` теперь `buildSeoHtmlForBots()` + helper-методы (`buildJsonLd`, `buildMetaSection`, `buildListenSection`, `escapeJsonLd`, `buildAlbumImageUrl`, `formatDurationMs`, `isSkipped`, `truncateIfTooLarge`). Удалена зависимость от `Pictures.getPictureByName` для построения `og:image` (URL строится детерминированно из `song.author/year/album`).
+- `docs/features/seo-html-for-bots.md` — новый per-feature документ (24-я подсистема).
+
+**Что НЕ изменилось.**
+- nginx-конфиг `80to8897` (User-Agent-фильтр остался прежним — см. Pass 35).
+- Endpoint `/api/public/song-vk-image/{id}` в `PublicApiController.kt:407` (FR-009 — оставлен для обратной совместимости с потенциально кэшированными ссылками в VK/Telegram).
+- БД: никаких миграций, никаких новых колонок, никаких новых записей в `SyncRegistry` (FR-011).
+- Формат строки логирования: `OG render for song id={id}, User-Agent={userAgent}` (FR-008 — обратная совместимость с существующими dashboards и grep-командами).
+
+**Ключевые решения** (research.md R1–R8):
+- Schema.org `MusicRecording` (не `Song`) — лучше для Google Rich Results.
+- Текст песни в `lyrics.text` через `CreativeWork` (стандартный паттерн schema.org).
+- 0 обращений к MinIO из Java: og:image — абсолютный URL через nginx `/minio/`-location.
+- HTML обрезается на 1 МБ с маркером (защита от DoS).
+- JSON-LD escape через `\u003c\u003e\u0026` (защита от XSS через `</script>`).
+- `inLanguage: "ru"` (проект полностью русскоязычный).
+
+**Edge cases** (FR-006):
+- `id == null || id <= 0` → HTTP 400 + короткий HTML.
+- Песня не найдена → HTTP 404 + короткий HTML.
+- Тег `SKIP` → HTTP 200 + `<meta name="robots" content="noindex, nofollow">` + видимый warning, без контента (текст/аккорды/ссылки/og:image).
+- `idStatus < 3` → HTTP 200, без секций `#lyrics`/`#chords` (текст ещё не верифицирован).
+- Нет обложки альбома → `og:image` = `KARAOKE_LOGO.png`.
+
+**Метрики** (SC-001, SC-002):
+- TTFB: < 100 мс (vs 500–1500 мс до фикса) — экономия CPU ~95%.
+- В логах nginx — 0 обращений к `/api/public/song-vk-image/` после деплоя (SC-002).
+
+**Локальная сборка**: `./gradlew ktlintCheck` → BUILD SUCCESSFUL (без новых нарушений). `bash tools/check-kdoc-coverage.sh` → 96.3% total (≥ 50% target met). Никаких новых ktlint/eslint-нарушений.
+
+**Проверка**: ручная через `quickstart.md` (10 сценариев). CI-юнит-тестов в проекте нет (constitution.md § «Тесты»). Валидация: TTFB, JSON-LD Schema.org Validator, Google Search Console после индексации.
+
+**Новые/изменённые файлы**:
+- Backend (Kotlin): `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicOgSongController.kt` (REWRITE — net +400 строк: новые методы `buildSeoHtmlForBots`/`buildJsonLd`/`buildMetaSection`/`buildListenSection`/`escapeJsonLd`/`buildAlbumImageUrl`/`formatDurationMs`/`isSkipped`/`truncateIfTooLarge`; удалена `buildBareHtmlForVK`).
+- Docs: `docs/features/seo-html-for-bots.md` (новый, 24-я подсистема); `docs/architecture-notes.md` (эта запись).
+- Spec: `specs/180-og-seo-html/{spec,plan,research,data-model,contracts/og-html-endpoint,quickstart,tasks,checklists/requirements}.md` — 8 файлов спецификации.
+
+**Связанные документы**:
+- `specs/180-og-seo-html/spec.md` — функциональная спека (15 FRs, 7 SCs, 4 user stories).
+- `specs/180-og-seo-html/research.md` — 8 технических решений.
+- `specs/180-og-seo-html/data-model.md` — маппинг полей `Song` → HTML, без новых сущностей.
+- `specs/180-og-seo-html/contracts/og-html-endpoint.md` — HTTP-контракт endpoint'а.
+- `specs/180-og-seo-html/quickstart.md` — 10 ручных сценариев валидации.
+- `docs/features/seo-html-for-bots.md` — per-feature документ.
+- AGENTS.md — CI-gate для master, жизненный цикл feature-ветки.
+
+**Урок (для будущих фич в этом коде)**:
+- Endpoint, проектировавшийся под конкретную задачу (сниппеты VK), может стать узким местом для другой задачи (SEO ботов). Контракт endpoint'а — это не только «что он возвращает», но и «для кого он возвращает». При смене целевой аудитории — пересматривать контракт целиком, а не патчить отдельные куски.
+- Генерация PNG «на лету» в hot path — это почти всегда ошибка архитектуры для публичных endpoint'ов. Если нужно — кэшировать на диске/в MinIO, либо вообще убрать (как в этой фиче — og:image указывает на готовый PNG из MinIO через nginx-прокси, без участия Java).

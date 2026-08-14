@@ -31,6 +31,6 @@
 
 ## Notes
 
-- **Q1 разрешён** (B): убрать ссылки также из Thymeleaf-шаблонов. FR-009/010/011 конкретизированы: создаётся `SongOldSiteDto`, шаблоны очищаются от блоков ссылок.
-- В остальном спека готова к `/speckit.plan`.
+- **Q1 разрешён** (B): убрать ссылки также из Thymeleaf-шаблонов. FR-009/010/011 конкретизированы: шаблоны очищаются от блоков ссылок; `SongOldSiteDto` НЕ создаётся (Thymeleaf сам не рендерит неиспользуемые свойства `Song.kt`, см. research.md D-1).
+- В остальном спека готова к `/speckit.plan` (уже выполнен).
 - Items marked incomplete require spec updates before `/speckit.clarify` or `/speckit.plan`.

@@ -2,9 +2,10 @@
 
 > **Status**: active
 > **Feature Key**: zakroma-stream-progress
-> **Last Updated**: 2026-08-13
-> **Спека**: [specs/181-zakroma-author-load-progress/spec.md](../../specs/181-zakroma-author-load-progress/spec.md)
-> **PR**: `181-zakroma-author-load-progress`
+> **Last Updated**: 2026-08-14
+> **Спека**: [specs/181-zakroma-author-load-progress/spec.md](../../specs/181-zakroma-author-load-progress/spec.md) (real-time прогресс)
+> **Ускорение**: [specs/186-zakroma-songs-fast-load/spec.md](../../specs/186-zakroma-songs-fast-load/spec.md) (Pass 186)
+> **PR**: `181-zakroma-author-load-progress` (real-time) + `186-zakroma-songs-fast-load` (ускорение)
 
 ## Что делает
 
@@ -183,6 +184,102 @@ location /api/public/zakroma/stream {
    зачитывать 50+ раз/сек при активном стриме.
 10. **Старый `GET /api/public/zakroma` БЕЗ ИЗМЕНЕНИЙ** (FR-BE-007, SC-005).
     Другие потребители API (статистика, telegram-боты) не должны сломаться.
+
+## Pass 52 (186) — ускорение загрузки крупных авторов
+
+Спека 181 (real-time прогресс) оптимизировала фронт, но узкие места остались на backend'е
+и в стрим-парсере. Pass 186 устранил три:
+
+### R1. Backend N+1 SQL в `Zakroma.buildFromSongs`
+
+Раньше для каждого альбома делались **3 отдельных SQL** (`Pictures.getPictureByName × 2` +
+`Album.getAlbumById × 1`), для крупного автора с 30 альбомами — **93 SQL-запроса на одну
+загрузку страницы**. При RTT=5мс (внешняя БД) это **~470мс только на lookup'ы**, плюс
+5-секундная «пустая пауза», пока `Zakroma.getZakroma()` собирает данные до отправки
+первого `song`-сообщения (хотя `meta` уже ушёл на первом `out.flush`).
+
+**Решение (Pass 186):** предсбор всех имён/id → 5 batch-вызовов:
+
+1. `Pictures.getPicturesByNames(authorNames, ignoreUseInList=true)` — портреты авторов (full).
+2. `Pictures.getPicturesByNames(authorNames, ignoreUseInList=false)` — портреты авторов (preview).
+3. `Pictures.getPicturesByNames(albumPictureNames, ignoreUseInList=true)` — обложки альбомов (full).
+4. `Pictures.getPicturesByNames(albumPictureNames, ignoreUseInList=false)` — обложки альбомов (preview).
+5. `Album.getAlbumsByIds(albumIds)` — реальные Album-сущности.
+
+**Итого: 5 SQL** для автора с 30 альбомами (вместо 93). Ускорение ×18 на этом этапе.
+
+`Author.getAuthorByName` оставлен per-author (1 SQL) — для страницы Закромов всегда
+один автор, batch не даст выигрыша. При будущем переиспользовании `buildFromSongs`
+для нескольких авторов — добавить `Author.getAuthorsByNames(names=…)`.
+
+**Файлы:**
+- `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Pictures.kt` — расширена
+  сигнатура `getPicturesByNames` (добавлен параметр `ignoreUseInList`, KDoc).
+- `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Album.kt` — KDoc на
+  существующий `getAlbumsByIds`.
+- `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Zakroma.kt` —
+  `buildFromSongs` переписан на batch lookup'ы.
+
+### R2. Backend `flush()` после каждой NDJSON-строки
+
+`PublicApiController.zakromaStream()` раньше делал `writer.flush() + out.flush()` после
+**каждой** песни — на 2500 песен / 30 альбомов это **5064 flush на стрим** (по 2 syscall
+на песню).
+
+**Решение (Pass 186):** `StringBuilder`-буфер + flush раз в `flushEveryNSongs = 50` песен.
+Album-сообщения отправляются сразу (маркируют границу группы). Для 2500 песен / 30 альбомов
+теперь **~82 flush** (вместо 5064). Ускорение ×62 на этом этапе.
+
+**Файлы:**
+- `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicApiController.kt` —
+  `zakromaStream` использует batched flush.
+
+**Контракт NDJSON НЕ меняется** (5 типов сообщений без изменений), меняется только ритмика
+отправки. См. [`specs/186-zakroma-songs-fast-load/contracts/stream-chunking.md`](../../specs/186-zakroma-songs-fast-load/contracts/stream-chunking.md).
+
+### R3. Frontend `setTimeout(0)` × N тротлится в фоновой вкладке
+
+В `useZakromaStreamProgress.js` для плавности прогрессометра между обработкой NDJSON-строк
+был `await new Promise((resolve) => setTimeout(resolve, 0))`. В активной вкладке это ~0-1мс
+на yield, но в **фоновой вкладке Chrome/Edge/Firefox тротлит `setTimeout` до 1000мс
+минимум**. На 2500 чанков это **41 минута обработки в фоне** — фронт не успевал обработать
+данные, и при возврате пользователь видел прогрессометр, застрявший на 1-5% (на том
+значении, на котором ушёл со вкладки).
+
+**Решение (Pass 186):**
+
+1. **Batched yield по 50 сообщений:** `await Promise.resolve()` (microtask, **НЕ тротлится**)
+   каждые 50 чанков вместо каждого — в активной вкладке это 50 yield вместо 2500.
+2. **Пропуск yield'ов в фоновой вкладке:** `if (document.visibilityState === 'hidden') { skip yield }` —
+   данные копятся в `albums.value` синхронно, без тротлинга.
+3. **`visibilitychange` listener с `nextTick()`:** при возврате на вкладку — дёргаем
+   `nextTick()` из Vue, чтобы принудительно отрендерить накопленные изменения синхронно
+   с возвратом. Если стрим уже завершился — прогрессометр скроется (`isVisible = false`
+   через `case 'done'` в `handleMessage`).
+
+**Файлы:**
+- `karaoke-public/src/composables/useZakromaStreamProgress.js` —
+  batched yield + visibilitychange listener (см. `initVisibilityPush`).
+
+### Целевые метрики (SC-001..SC-006 из спеки 186)
+
+- SC-001: первая партия песен ≤ 2 сек. Достигается через R1 (backend быстрее) + R3
+ (фронт не тратит 41 мин в фоне).
+- SC-002: полная отрисовка ≤ 7 сек для автора с 2500 песен. Достигается через R1+R2+R3.
+- SC-003: прогрессометр real-time, появляется за ≤ 100 мс. Не сломано (было в спеке 181).
+- SC-004: при переключении вкладки прогрессометр показывает актуальное значение.
+ Достигается через R3 visibilitychange listener.
+- SC-005: улучшение минимум ×2 (типичное ×3). Достигается через R1+R2.
+- SC-006: для авторов ≤ 200 песен поведение не ухудшается. Не сломано (R1+R2
+ аддитивны — меньше альбомов = меньше выигрыша, но и регрессии нет).
+
+### Связанные документы
+
+- [specs/186-zakroma-songs-fast-load/spec.md](../../specs/186-zakroma-songs-fast-load/spec.md)
+- [specs/186-zakroma-songs-fast-load/research.md](../../specs/186-zakroma-songs-fast-load/research.md)
+- [specs/186-zakroma-songs-fast-load/contracts/stream-chunking.md](../../specs/186-zakroma-songs-fast-load/contracts/stream-chunking.md)
+- [specs/186-zakroma-songs-fast-load/quickstart.md](../../specs/186-zakroma-songs-fast-load/quickstart.md)
+- [docs/architecture-notes.md — Pass 52 запись](../architecture-notes.md)
 
 ## Известные ловушки
 

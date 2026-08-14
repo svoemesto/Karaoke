@@ -336,14 +336,33 @@ class Pictures(
                 ignoreUseInList = ignoreUseInList,
             ).firstOrNull()
 
-        // Пакетная версия getPictureByName — WHERE picture_name IN (...) одним запросом, не по
-        // одному имени в цикле (Constitution Principle II). Используется дайджест-эндпоинтами
-        // (Album.toDigestDTOs), где getPictureByName в цикле по N записям давал N+1 SQL-запросов.
+        /**
+         * Пакетная версия [getPictureByName] — `WHERE picture_name IN (...)` одним запросом,
+         * не по одному имени в цикле (Constitution Principle II).
+         *
+         * Используется в:
+         * - дайджест-эндпоинтах ([Album.toDigestDTOs]) — дефолт `ignoreUseInList = true`;
+         * - [Zakroma.buildFromSongs] (Pass 186, фича ускорения Закромов) — `ignoreUseInList = false`,
+         *   чтобы получить preview-картинки, которые иначе были бы отфильтрованы флагом `use_in_list`.
+         *
+         * @param names список имён картинок; пустые/blank-строки игнорируются; дубликаты
+         *              дедуплицируются (PostgreSQL `IN` с дубликатами не нужен).
+         * @param database соединение с БД (см. Constitution II: только [KaraokeConnection]).
+         * @param storageService сервис MinIO для заполнения picture-полей (lazy).
+         * @param storageApiClient клиент MinIO API для превью (lazy).
+         * @param ignoreUseInList если `true` — фильтрует записи с `use_in_list = false`;
+         *                        для preview-картинок Закромов нужен `false` (см. выку
+         *                        в [Zakroma.buildFromSongs] со вторым параметром).
+         * @return `Map<name, Pictures>` для O(1) lookup по имени; если картинки с таким именем
+         *         нет — отсутствует в Map. Порядок НЕ сохраняется.
+         * @see docs/features/zakroma-stream-progress.md
+         */
         fun getPicturesByNames(
             names: List<String>,
             database: KaraokeConnection,
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
+            ignoreUseInList: Boolean = true,
         ): Map<String, Pictures> {
             val distinctNames = names.filter { it.isNotBlank() }.distinct()
             if (distinctNames.isEmpty()) return emptyMap()
@@ -355,7 +374,7 @@ class Pictures(
                     database = database,
                     storageService = storageService,
                     storageApiClient = storageApiClient,
-                    ignoreUseInList = true,
+                    ignoreUseInList = ignoreUseInList,
                 ).filterIsInstance<Pictures>()
                 .associateBy { it.name }
         }

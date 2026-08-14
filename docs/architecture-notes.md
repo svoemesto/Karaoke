@@ -1981,3 +1981,74 @@ async, `currentLink = null` стартовое значение → Vue ренд
 
 **Метрики**: 1 frontend-файл (−10 строк), 5 docs-файлов, 0 backend-изменений.
 
+---
+
+## Pass 52 (spec 186) — ускорение загрузки песен в Закромах, 2026-08-14
+
+**Проблема**: У автора с 2500 песен загрузка Закромов занимала ~17 секунд (5 секунд «пустой паузы» + 12 секунд прогрессометра). Это раздражало редакторов/админов. Спека 181 уже оптимизировала прогрессометр до real-time, но backend всё ещё делал N+1 SQL и `flush()` после каждой NDJSON-строки, а фронт использовал `setTimeout(0)` × N, который тротлится в фоновой вкладке до 1000мс/вызов — отсюда и баг «прогрессометр не сдвигается, когда возвращаешься на вкладку».
+
+**Что сделано** (3 направления, ни одно не ломает NDJSON-контракт):
+
+1. **Backend N+1 → batch SQL (R1).** `Zakroma.buildFromSongs` переписан на `Pictures.getPicturesByNames` × 4 + `Album.getAlbumsByIds` × 1. Для автора с 30 альбомами: 93 SQL → 5 SQL. Ускорение ×18 на этом этапе. `Pictures.getPicturesByNames` расширен параметром `ignoreUseInList` (раньше было hard-coded `true` — ломало preview-картинки).
+
+3. **Backend `flush()` × N → batched flush по 50 песен (R2).** `PublicApiController.zakromaStream` теперь собирает песни в `StringBuilder` и делает flush раз в 50. Для 2500 песен: 5064 flush → ~82 flush. Ускорение ×62 на этом этапе. Album-сообщения отправляются сразу (маркируют границу группы).
+
+5. **Frontend `setTimeout(0)` × N → `Promise.resolve()` × N/50 + `visibilitychange` listener (R3).** Microtask'и НЕ тротлятся в фоне (в отличие от setTimeout). В фоновой вкладке yield'ы пропускаются (`if (visibilityState === 'hidden')`), данные копятся синхронно в `albums.value`, при возврате на вкладку `nextTick()` из Vue прошивает state. Баг с «прогрессометр замораживается на старом значении» устранён.
+
+**Файлы**:
+- `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Pictures.kt` — расширен `getPicturesByNames` (+ `ignoreUseInList` + KDoc).
+- `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Album.kt` — KDoc на `getAlbumsByIds`.
+- `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Zakroma.kt` — `buildFromSongs` переписан на batch lookup'ы.
+- `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicApiController.kt` — `zakromaStream` с batched flush (по 50 песен).
+- `karaoke-public/src/composables/useZakromaStreamProgress.js` — `Promise.resolve()` вместо `setTimeout(0)`, batched yield по 50, `visibilitychange` listener для прошивания при возврате.
+- `docs/features/zakroma-stream-progress.md` — секция «Pass 52 (186) — ускорение загрузки».
+
+**Метрики** (до → после для автора с 2500 песен / 30 альбомов):
+- Backend SQL на загрузку: 93 → 5 (×18.6).
+- Backend flush на стрим: 5064 → ~82 (×62).
+- Frontend yield на стрим: 2500 → 50 (×50).
+- Целевое время полной загрузки: 17 сек → ≤ 7 сек (×2.4).
+- TTFB: ~5 сек → ≤ 2 сек (×2.5).
+- Tab-switching баг: есть → нет.
+
+**Сборки** (на момент коммита, не задеплоены):
+- `./gradlew ktlintCheck` — SUCCESS, baseline не вырос (было 0 нарушений, осталось 0).
+- `./gradlew karaoke-app:bootJar karaoke-web:bootJar --parallel` — SUCCESS.
+- `cd karaoke-public && npm run lint:check` — SUCCESS, 0 violations.
+- `cd karaoke-public && npm run build` — SUCCESS, dist собран.
+
+**Runtime-валидация** (требует деплоя — пользователь):
+- Сценарий 1 (полное время ≤ 7 сек) — не выполнен.
+- Сценарий 2 (TTFB ≤ 2 сек) — не выполнен.
+- Сценарий 3 (прогрессометр real-time) — не выполнен.
+- Сценарий 4 (tab switching) — не выполнен (Chrome обязательно).
+- Сценарий 7 (SQL log: ≤2 к pictures, ≤1 к albums) — не выполнен.
+
+**Уроки** (для будущих фич):
+- **Frontend `setTimeout` тротлится в фоне до 1000мс/вызов** (Chrome/Edge/Firefox).
+  Для streaming-эндпоинтов с NDJSON/WebSocket: используй `Promise.resolve()` (microtask) или
+  `MessageChannel().port1.onmessage = resolve` (тоже НЕ тротлится). `setTimeout(fn, 4)` —
+  минимум для активной вкладки, но всё равно тротлится в фоне. Для batched UI updates:
+  пропускай yield в `visibilityState === 'hidden'`, прошивай через `visibilitychange → nextTick`.
+- **Батчинг — главный выигрыш для N+1 запросов.** Добавление метода `getXxxByIds(ids: List<Long>)`
+  с `WHERE id IN (...)` окупается моментально: 93 SQL → 5 SQL на одной странице. Используй
+  для всех паттернов «в цикле получаем сущность по ключу».
+- **NDJSON-стрим: batch flush по N сообщений**, не по одному. `writer.flush() + out.flush()`
+  после каждого сообщения = `O(N)` syscall'ов; `O(N/50)` — нормально. Но контракт
+  (1 сообщение = 1 NDJSON-строка) НЕ меняется — фронт продолжает парсить по `\n`.
+- **Иммутабельные batch-методы Pictures/Album** уже были в проекте (`getPicturesByNames`,
+  `getAlbumsByIds`), но не использовались в `Zakroma.buildFromSongs` — исторически код
+  рос без рефакторинга. Перед добавлением нового batch-метода проверь `grep "getXxxByIds"`.
+- **Обратная совместимость batch-методов**: `Pictures.getPicturesByNames` имел hard-coded
+  `ignoreUseInList = true`, что ломало preview-картинки. Добавил параметр с дефолтом `true`
+  (сохраняя обратную совместимость для других вызывающих). Общий принцип: расширяй сигнатуру
+  с дефолтом, не ломай существующие callers.
+
+**Связанные документы**:
+- [specs/186-zakroma-songs-fast-load/spec.md](../../specs/186-zakroma-songs-fast-load/spec.md) — спека с 10 FR, 3 US, 6 SC, 7 Edge Cases.
+- [specs/186-zakroma-songs-fast-load/research.md](../../specs/186-zakroma-songs-fast-load/research.md) — детальный анализ 5 узких мест R1-R5.
+- [specs/186-zakroma-songs-fast-load/data-model.md](../../specs/186-zakroma-songs-fast-load/data-model.md) — описание новых методов + границы изменений.
+- [specs/186-zakroma-songs-fast-load/contracts/stream-chunking.md](../../specs/186-zakroma-songs-fast-load/contracts/stream-chunking.md) — обратная совместимость NDJSON.
+- [specs/186-zakroma-songs-fast-load/quickstart.md](../../specs/186-zakroma-songs-fast-load/quickstart.md) — 6 ручных сценариев валидации.
+- [docs/features/zakroma-stream-progress.md](../features/zakroma-stream-progress.md) — добавлена секция «Pass 52 (186) — ускорение загрузки крупных авторов».
+

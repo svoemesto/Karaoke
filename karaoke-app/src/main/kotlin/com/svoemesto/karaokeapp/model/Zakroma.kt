@@ -91,7 +91,16 @@ class Zakroma(
          * годами (переиздание и т.п.) — их идентичность в БД это тройка
          * автор+год+название (`tbl_albums_author_year_name_key`). Группировка по одному
          * названию схлопывала бы такие альбомы в одну карточку.
+         *
+         * **Pass 186 (specs/186-zakroma-songs-fast-load)**: переписана на batch lookup'ы —
+         * [Pictures.getPicturesByNames] + [Album.getAlbumsByIds]. Раньше для каждого альбома
+         * делались 3 отдельных SQL (`Pictures × 2` + `Album.getAlbumById × 1`), для крупного
+         * автора с 30 альбомами это **93 SQL-запроса на одну загрузку страницы**. Теперь —
+         * **5 SQL** (4 batch на pictures + 1 batch на albums), плюс `Author.getAuthorByName`
+         * (1 SQL — вызывается ровно для одного автора при `Zakroma.getZakroma(author=…)`).
+         * Подробности + замеры: [research.md R1](../../specs/186-zakroma-songs-fast-load/research.md).
          * @see docs/features/special-orders.md
+         * @see docs/features/zakroma-stream-progress.md
          */
         private fun buildFromSongs(
             songList: List<Song>,
@@ -100,25 +109,83 @@ class Zakroma(
             storageApiClient: StorageApiClient,
         ): List<Zakroma> {
             val songsByAuthor = songList.groupBy { it.author }
+
+            // === Pass 186: предсбор данных для batch lookup'ов ===
+            // 1) Все имена портретов авторов (для `picture` + `picturePreviewFileName`).
+            val authorNames = songsByAuthor.keys.toList()
+            // 2) Все имена обложек альбомов в формате `"$authorName - $year - $albumName"`.
+            //    Дедуплицируем: один альбом может содержать много песен с одинаковым ключом.
+            val albumPictureNames: List<String> =
+                songsByAuthor
+                    .flatMap { (authorName, songs) ->
+                        songs.map { "$authorName - ${it.year} - ${it.album}" }
+                    }.distinct()
+            // 3) Все albumId песен (для батчевой загрузки реальных Album-сущностей).
+            val albumIds: List<Long> =
+                songsByAuthor.values
+                    .flatMap { songs -> songs.mapNotNull { it.albumId } }
+                    .distinct()
+
+            // Batch 1: портреты авторов (`ignoreUseInList = true` для `picture.full`).
+            val authorPicturesByName: Map<String, Pictures> =
+                Pictures.getPicturesByNames(
+                    names = authorNames,
+                    database = database,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                    ignoreUseInList = true,
+                )
+            // Batch 2: те же портреты авторов, но `ignoreUseInList = false` для preview.
+            // `getPicturesByNames` дедуплицирует `names`, так что повторный SQL по тем же
+            // именам с другим флагом — необходимость, а не дубликат (preview и main имеют
+            // разные значения `use_in_list`).
+            val authorPreviewPicturesByName: Map<String, Pictures> =
+                Pictures.getPicturesByNames(
+                    names = authorNames,
+                    database = database,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                    ignoreUseInList = false,
+                )
+            // Batch 3: обложки альбомов (`ignoreUseInList = true` для `picture.full`).
+            val albumPicturesByName: Map<String, Pictures> =
+                Pictures.getPicturesByNames(
+                    names = albumPictureNames,
+                    database = database,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                    ignoreUseInList = true,
+                )
+            // Batch 4: те же обложки альбомов для preview (`ignoreUseInList = false`).
+            val albumPreviewPicturesByName: Map<String, Pictures> =
+                Pictures.getPicturesByNames(
+                    names = albumPictureNames,
+                    database = database,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                    ignoreUseInList = false,
+                )
+            // Batch 5: реальные Album-сущности по всем albumId песен.
+            val albumsById: Map<Long, Album> =
+                if (albumIds.isEmpty()) {
+                    emptyMap()
+                } else {
+                    Album.getAlbumsByIds(
+                        ids = albumIds,
+                        database = database,
+                        storageService = storageService,
+                        storageApiClient = storageApiClient,
+                    )
+                }
+
             return songsByAuthor.map { (authorName, songsByAuthor) ->
                 val zakroma = Zakroma(database)
                 zakroma.author = authorName
-                zakroma.picture = Pictures
-                    .getPictureByName(
-                        name = authorName,
-                        database = database,
-                        storageService = storageService,
-                        storageApiClient = storageApiClient,
-                    )?.full ?: ""
-                val picForAuthorPreview =
-                    Pictures.getPictureByName(
-                        name = authorName,
-                        database = database,
-                        storageService = storageService,
-                        storageApiClient = storageApiClient,
-                        ignoreUseInList = false,
-                    )
-                zakroma.picturePreviewFileName = picForAuthorPreview?.storageFileNamePreview ?: ""
+                // Портрет автора (full) — O(1) lookup из batch-карты.
+                zakroma.picture = authorPicturesByName[authorName]?.full ?: ""
+                // Портрет автора (preview) — O(1) lookup из второй batch-карты.
+                zakroma.picturePreviewFileName =
+                    authorPreviewPicturesByName[authorName]?.storageFileNamePreview ?: ""
                 // specs/012-entity-description-fields FR-011/012/013: описание/короткое
                 // описание/предупреждение автора — из сущности Author по имени (пусто, если
                 // автор ещё не заведён как отдельная сущность, например спецзаказные).
@@ -146,23 +213,10 @@ class Zakroma(
                             val album = ZakromaAlbum()
                             album.albumName = albumName
                             album.year = albumYear
-                            album.picture = Pictures
-                                .getPictureByName(
-                                    name = "$authorName - ${album.year} - $albumName",
-                                    database = database,
-                                    storageService = storageService,
-                                    storageApiClient = storageApiClient,
-                                )?.full ?: ""
                             val pictureName = "$authorName - ${album.year} - $albumName"
-                            val picForPreview =
-                                Pictures.getPictureByName(
-                                    name = pictureName,
-                                    database = database,
-                                    storageService = storageService,
-                                    storageApiClient = storageApiClient,
-                                    ignoreUseInList = false,
-                                )
-                            album.picturePreviewFileName = picForPreview?.storageFileNamePreview ?: ""
+                            album.picture = albumPicturesByName[pictureName]?.full ?: ""
+                            album.picturePreviewFileName =
+                                albumPreviewPicturesByName[pictureName]?.storageFileNamePreview ?: ""
                             // specs/011-album-song-rename FR-007: если песни этого альбома уже
                             // привязаны к реальному Album (бэкфилл/ручная привязка), берём его
                             // albumType/sortOrder — иначе остаются дефолты (сортировка по алфавиту,
@@ -170,25 +224,20 @@ class Zakroma(
                             // specs/012-entity-description-fields FR-017: дополнительно берём
                             // description/shortDescription/warning и КАНОНИЧЕСКОЕ название альбома
                             // из сущности Album (не из свободнотекстовой группировки по песням).
+                            // Pass 186: O(1) lookup из batch-карты `albumsById` вместо SQL.
                             songsByAlbum
                                 .firstOrNull { it.albumId != null }
                                 ?.albumId
                                 ?.let { linkedAlbumId ->
-                                    Album
-                                        .getAlbumById(
-                                            id = linkedAlbumId,
-                                            database = database,
-                                            storageService = storageService,
-                                            storageApiClient = storageApiClient,
-                                        )?.let { linkedAlbum ->
-                                            album.albumName = linkedAlbum.name
-                                            album.albumType = linkedAlbum.albumType
-                                            album.sortOrder = linkedAlbum.sortOrder
-                                            album.description = linkedAlbum.description
-                                            album.shortDescription = linkedAlbum.shortDescription
-                                            album.warning = linkedAlbum.warning
-                                            album.albumTypeLabel = linkedAlbum.albumTypeEnum.description
-                                        }
+                                    albumsById[linkedAlbumId]?.let { linkedAlbum ->
+                                        album.albumName = linkedAlbum.name
+                                        album.albumType = linkedAlbum.albumType
+                                        album.sortOrder = linkedAlbum.sortOrder
+                                        album.description = linkedAlbum.description
+                                        album.shortDescription = linkedAlbum.shortDescription
+                                        album.warning = linkedAlbum.warning
+                                        album.albumTypeLabel = linkedAlbum.albumTypeEnum.description
+                                    }
                                 }
                             album.albumSongs =
                                 songsByAlbum

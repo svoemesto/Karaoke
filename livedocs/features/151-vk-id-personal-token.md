@@ -28,8 +28,8 @@ related:
 **Решение** — миграция на **VK ID** (новый OAuth-провайдер, ID.VK.RU, см.
 `https://id.vk.ru/`):
 - Новый client_id (через регистрацию приложения в VK ID Console).
-- `https://id.vk.ru/oauth2/auth` — authorize endpoint.
-- `https://id.vk.ru/oauth2/token` — обмен `code → token` (Authorization Code Flow).
+- `https://id.vk.ru/oauth2/auth` — authorize endpoint (см. [VK ID docs](https://id.vk.ru/about/business/go/docs)).
+- `https://id.vk.ru/oauth2/token` — обмен `code → token` (Authorization Code Flow; см. [VK API](https://dev.vk.com/api/vk-id/oauth)).
 - Token сохраняется в `KaraokeProperties.vkUserAccessToken` (то же поле —
   переиспользуется существующим кодом `vkUserAccessToken`).
 

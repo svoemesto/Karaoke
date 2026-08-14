@@ -236,3 +236,16 @@ jobs:
         # Проверяет что все относительные ссылки ../X.md и related: в LiveDocs — валидны.
         # Исключения: templates (плейсхолдеры), runbooks/decisions (без frontmatter).
         run: bash tools/check-livedocs-cross-links.sh
+
+      - name: Check LiveDocs external links (strict)
+        # Проверяет ВНЕШНИЕ ссылки (https://) в LiveDocs через lychee.
+        # Strict mode (exit ≠ 0 блокирует merge) — broken external = FAIL.
+        # Исключения для known-false-positives:
+        # - http://10.0.0.1:* — placeholder/example ("что НЕ делать" в ADR)
+        # - http://188.119.64.111:* — prod IP (не резолвится в CI sandbox)
+        # - http://karaoke-web* — docker-compose service name (internal)
+        # - http://localhost* — local ML endpoints (Ollama/SearXNG/Sheetsage)
+        # - https://id.vk.ru/oauth2/* — VK ID OAuth endpoints (404 на HEAD без params)
+        # - http://thinkrelevance.com/blog/* — редирект 301 → блог Nygard's ADR
+        # - http://oauth.vk.ru/blank.html — редирект (случай broken HEAD)
+        run: bash tools/check-livedocs-external-links.sh

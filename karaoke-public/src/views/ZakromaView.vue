@@ -273,8 +273,7 @@
                     <col />
                     <col style="width: 220px" />
                     <col style="width: 24px" />
-                    <col style="width: 24px" />
-                    <col style="width: 32px" />
+                    <col style="width: 48px" />
                     <col style="width: 26px" />
                     <col style="width: 26px" />
                   </colgroup>
@@ -282,7 +281,7 @@
                     <tr>
                       <th class="km-th km-th-center">№</th>
                       <th class="km-th">Композиция</th>
-                      <th class="km-th" colspan="6">&nbsp;</th>
+                      <th class="km-th" colspan="5">&nbsp;</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -310,19 +309,13 @@
                         <CartIcon v-if="showCartIcon(sett)" :song-id="sett.id" />
                       </td>
                       <td class="km-td km-td-center">
-                        <PlayerIcon
-                          :song-id="sett.id"
-                          :watch-state="readiness.stateFor(sett.id)"
-                          :content-ready-state="readiness.contentReadyFor(sett.id)"
-                        />
-                      </td>
-                      <td class="km-td km-td-center">
-                        <PlatformLink
-                          link-name="sponsr"
-                          :link-value="sett.linkSponsrPlay"
-                          :song-id="sett.id"
-                          song-version="all"
-                        />
+                        <span class="km-player-icon">
+                          <PlayerIcon
+                            :song-id="sett.id"
+                            :watch-state="readiness.stateFor(sett.id)"
+                            :content-ready-state="readiness.contentReadyFor(sett.id)"
+                          />
+                        </span>
                       </td>
                       <td class="km-td km-td-center">
                         <FavoriteIcon :song-id="sett.id" />
@@ -350,12 +343,6 @@
                       :song-id="sett.id"
                       :watch-state="readiness.stateFor(sett.id)"
                       :content-ready-state="readiness.contentReadyFor(sett.id)"
-                    />
-                    <PlatformLink
-                      link-name="sponsr"
-                      :link-value="sett.linkSponsrPlay"
-                      :song-id="sett.id"
-                      song-version="all"
                     />
                     <FavoriteIcon :song-id="sett.id" />
                     <PlaylistIcon :song-id="sett.id" />
@@ -389,7 +376,6 @@
 
 <script>
 import { mapGetters, mapActions } from 'vuex'
-import PlatformLink from '../components/PlatformLink.vue'
 import PlayerIcon from '../components/PlayerIcon.vue'
 import PremiumIcon from '../components/PremiumIcon.vue'
 import SongSubscriptionModal from '../components/SongSubscriptionModal.vue'
@@ -423,7 +409,6 @@ function normalize(s) {
 export default {
   name: 'ZakromaView',
   components: {
-    PlatformLink,
     PlayerIcon,
     PremiumIcon,
     SongSubscriptionModal,
@@ -1255,6 +1240,12 @@ export default {
 }
 .km-td-center {
   text-align: center;
+}
+/* Воздух справа от иконки плеера (после удаления PlatformLink[sponsr]):
+   расстояние между PlayerIcon и FavoriteIcon — как между FavoriteIcon и PlaylistIcon */
+.km-player-icon {
+  display: inline-block;
+  margin-right: -20px;
 }
 .km-td-name {
   text-align: left;

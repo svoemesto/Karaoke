@@ -153,23 +153,35 @@
 - **Updated**: `livedocs/architecture/README.md`, `livedocs/INDEX.md`.
 - PR #322.
 
+## 2026-08-14 — Follow-up #47 (INDEX update + postMessage bridge)
+
+- **Updated**: `livedocs/INDEX.md` — добавлены `rendering` и `stats`
+  в DDD-таблицу (были пропущены, в `livedocs/domain/` их 7, а в INDEX
+  было только 5). Также обновлён decision tree (список BC).
+  PR напрямую в master (1 файл).
+
+- **Updated**: `livedocs/architecture/webvue3-patterns.md` — добавлен
+  раздел `postMessage-мост между родителем и iframe-плеером`
+  (фильтрация по source, edge cases, ловушки). LiveDoc 190 (плейлисты)
+  ссылался на этот раздел, но его не было. PR #324.
+
 ## Состояние на сегодня
 
 | Метрика | Значение |
 |---------|----------|
 | **Фичи в `features/`** | 88 |
-| **Bounded contexts в `domain/`** | 7 |
+| **Bounded contexts в `domain/`** | 7 (catalog, processing, rendering, publishing, identity, editorial, stats) |
 | **C4 уровни** | 3 (L1, L2, L3) |
-| **Topic-документов в `architecture/`** | 14 |
+| **Topic-документов в `architecture/`** | 14 (incl. share-link, censoring, monetization, postMessage в webvue3-patterns) |
 | **ADR** | 13 |
 | **Runbooks** | 8 (README + 7 how-to) |
 | **Шаблонов в `templates/`** | 6 |
 | **`frontmatter`-файлов (с валидным frontmatter)** | 114 |
-| **`total .md` файлов** | ~127 |
-| **Cross-links valid** | 896 |
+| **`total .md` файлов** | ~128 |
+| **Cross-links valid** | 900 |
 | **Broken references** | 0 |
 | **AGENTS.md** | ≤ 100 строк ✓ |
-| **CI проверок LiveDocs** | 7/7 + cross-links 0/896 broken + lychee strict |
+| **CI проверок LiveDocs** | 7/7 + cross-links 0/900 broken + lychee strict |
 | **Миграция покрытия спек** | 100% (все 75+ уникальных) |
 
 ## Как использовать этот changelog

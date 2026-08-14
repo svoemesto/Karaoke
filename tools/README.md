@@ -18,6 +18,7 @@
 | [`check-md-structure.sh`](check-md-structure.sh) | Проверяет структуру Markdown: последовательность заголовков, висячие пробелы, закрытие Mermaid-блоков. 3 проверки. |
 | [`gen-livedocs-stats.sh`](gen-livedocs-stats.sh) | Генерирует Markdown-таблицу со статистикой LiveDocs: coverage, features, BC, ADR, runbooks, templates, commands, validation, size. Вывод в stdout или `> livedocs/STATS.md`. |
 | [`validate-mermaid.sh`](validate-mermaid.sh) | Валидирует синтаксис Mermaid-блоков (правильный diagram type, закрытые fences, direction для graph). |
+| [`suggest-broken-links.sh`](suggest-broken-links.sh) | Для broken cross-link предлагает возможные кандидаты (поиск по substring имени файла в LiveDocs). Advisory — не CI-gate. |
 
 ## Код и CI (прочие проекты)
 

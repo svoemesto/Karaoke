@@ -16,6 +16,7 @@
 | [`check-livedocs-coverage.sh`](check-livedocs-coverage.sh) | Проверяет покрытие: каждая спека в `specs/` имеет LiveDoc-сводку в `livedocs/features/`. Текущий baseline: 95.5%. |
 | [`gen-toc.sh`](gen-toc.sh) | Генерирует inline `## Содержание` для длинных LiveDocs. Использование: `bash gen-toc.sh <file.md>` или `--missing` (список файлов без TOC). |
 | [`check-md-structure.sh`](check-md-structure.sh) | Проверяет структуру Markdown: последовательность заголовков, висячие пробелы, закрытие Mermaid-блоков. 3 проверки. |
+| [`gen-livedocs-stats.sh`](gen-livedocs-stats.sh) | Генерирует Markdown-таблицу со статистикой LiveDocs: coverage, features, BC, ADR, runbooks, templates, commands, validation, size. Вывод в stdout или `> livedocs/STATS.md`. |
 
 ## Код и CI (прочие проекты)
 

@@ -4,6 +4,8 @@ slug: 022-song-status-lifecycle
 related:
   - ../domain/catalog.md
   - ../domain/editorial.md
+  - ../features/125-player-status-gate.md
+  - ../features/155-song-state-colors.md
   - ../features/184-approve-status-choice.md
   - ../architecture/L3-components.md
   - ../../specs/022-song-status-lifecycle/spec.md
@@ -51,12 +53,15 @@ related:
 ## Связанные LiveDocs
 
 - Domain: [catalog.md](../domain/catalog.md) (Song.status), [editorial.md](../domain/editorial.md) (editor flow)
-- Feature: [184-approve-status-choice.md](../features/184-approve-status-choice.md) (выбор 5/6)
+- Feature: [184-approve-status-choice.md](../features/184-approve-status-choice.md) (выбор 5/6),
+  [125-player-status-gate.md](../features/125-player-status-gate.md) (доступность плеера при ≥4),
+  [155-song-state-colors.md](../features/155-song-state-colors.md) (цвета статусов в UI)
 
 ## Код
 
 - SQL: `deploy/karaoke-db/<NNN>_migrate_idStatus_to_6.sql`
-- Backend: `karaoke-app/.../model/Song.kt` — `isReady = idStatus >= 6`
+- Backend: `karaoke-app/.../model/Song.kt` — `val status: String get() = when (idStatus) { ... }`,
+  `idStatus: Long get() = fields[SongField.ID_STATUS]?.toLongOrNull() ?: 0L`.
 
 ## История
 

@@ -173,6 +173,14 @@
   Обновлено описание кода (`Song.status` enum + `Song.idStatus` getter).
   PR #326.
 
+## 2026-08-14 — Follow-up #49 (ADR README — Local ADR table)
+
+- **Updated**: `livedocs/architecture/decisions/README.md` — добавлена
+  таблица для 6 Local ADR (conventions в коде) + пояснение разницы
+  между глобальными и local ADR. В директории было 12 ADR, но таблица
+  была только для глобальных.
+  PR #328.
+
 ## Состояние на сегодня
 
 | Метрика | Значение |
@@ -181,7 +189,7 @@
 | **Bounded contexts в `domain/`** | 7 (catalog, processing, rendering, publishing, identity, editorial, stats) |
 | **C4 уровни** | 3 (L1, L2, L3) |
 | **Topic-документов в `architecture/`** | 14 (incl. share-link, censoring, monetization, postMessage в webvue3-patterns) |
-| **ADR** | 13 |
+| **ADR** | 12 (6 global + 6 local) |
 | **Runbooks** | 8 (README + 7 how-to) |
 | **Шаблонов в `templates/`** | 6 |
 | **`frontmatter`-файлов (с валидным frontmatter)** | 114 |

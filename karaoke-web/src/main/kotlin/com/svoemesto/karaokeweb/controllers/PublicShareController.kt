@@ -1,5 +1,6 @@
 package com.svoemesto.karaokeweb.controllers
 
+import com.svoemesto.karaokeweb.services.PollingCache
 import com.svoemesto.karaokeweb.services.SongShareLinkService
 import com.svoemesto.karaokeweb.services.SiteUserResolver
 import jakarta.servlet.http.HttpServletRequest
@@ -39,6 +40,12 @@ class PublicShareController(
     private val siteUserResolver: SiteUserResolver,
     @Value("\${app.public-site-url}") private val publicSiteUrl: String,
 ) {
+    // Server-side polling cache для `/heartbeat` (FR-008, clarified 2026-08-14).
+    // TTL = 15 сек: heartbeat с клиента идёт каждые 25 сек → cache-hit каждый 2-й heartbeat,
+    // снижает нагрузку на `tbl_song_share_links`. Поведение lease-expired (410) ВАЖНО кэшировать
+    // корректно — если lease уже истёк, мы не хотим долбить БД каждым heartbeat'ом.
+    private val heartbeatPollingCache = PollingCache<ResponseEntity<Map<String, Any?>>>()
+
     @PostMapping("/{songId}/create")
     fun create(
         @PathVariable songId: Long,
@@ -196,17 +203,27 @@ class PublicShareController(
         val sessionTokenHash =
             (body["sessionTokenHash"] as? String)?.takeIf { it.isNotBlank() }
                 ?: return ResponseEntity.status(400).body(mapOf("errorCode" to "share.tokenMissing"))
-        return try {
-            shareService.heartbeat(sessionTokenHash)
-            ResponseEntity.ok(mapOf("ok" to true))
-        } catch (_: SongShareLinkService.LeaseExpired) {
-            ResponseEntity.status(410).body(mapOf("errorCode" to "share.leaseExpired"))
-        } catch (_: SongShareLinkService.InternalError) {
-            // Системная (не доменная) ошибка heartbeat — БД недоступна и т.п.
-            // Раньше маскировалось под 410 share.leaseExpired — невозможно отличить
-            // «lease действительно истёк» от «у нас БД упала» (FR-010, FR-014,
-            // spec 167-fix-share-claim-500).
-            ResponseEntity.status(500).body(mapOf("errorCode" to "share.internal"))
+        // Cache-key: per sessionTokenHash — разные share-link'и = разные ключи.
+        // НЕ кешируем share.tokenMissing (400) — это всегда no-op, и так не даёт DB-нагрузки.
+        // Кешируем и ok/leaseExpired (200/410) — они одинаковы для одного и того же token'а
+        // в течение 15 сек (TTL).
+        return heartbeatPollingCache.getOrCompute(
+            key = "share_heartbeat:$sessionTokenHash",
+            ttlSeconds = 15,
+        ) {
+            try {
+                shareService.heartbeat(sessionTokenHash)
+                ResponseEntity.ok(mapOf("ok" to true))
+            } catch (_: SongShareLinkService.LeaseExpired) {
+                ResponseEntity.status(410).body(mapOf("errorCode" to "share.leaseExpired"))
+            } catch (_: SongShareLinkService.InternalError) {
+                // Системная (не доменная) ошибка heartbeat — БД недоступна и т.п.
+                // Раньше маскировалось под 410 share.leaseExpired — невозможно было отличить
+                // «lease действительно истёк» от «у нас БД упала» (FR-010, FR-014,
+                // spec 167-fix-share-claim-500). Внутренние ошибки НЕ кешируем — нам важно
+                // быстро узнать о падении БД, а не закэшировать его на 15 сек.
+                ResponseEntity.status(500).body(mapOf("errorCode" to "share.internal"))
+            }
         }
     }
 

@@ -12,6 +12,7 @@
 | [`check-livedocs-external-links.sh`](check-livedocs-external-links.sh) | Проверяет ВНЕШНИЕ ссылки (https://) в LiveDocs через lychee (advisory) + curl (strict). **Запускается в GitHub Actions.** |
 | [`search-livedocs.sh`](search-livedocs.sh) | grep wrapper для AI-агентов и людей. Поиск query по LiveDocs с фильтром по типу/пути. **Интерактивный** (не CI). |
 | [`test-livedocs.sh`](test-livedocs.sh) | Self-test для всех LiveDocs-check скриптов. 12 тестовых сценариев: реальный LiveDocs, временный каталог, негативные сценарии, syntax-check. Запускать перед commit. |
+| [`gen-livedocs-index.sh`](gen-livedocs-index.sh) | Генерирует Mermaid-диаграмму всех LiveDocs (features/BC/C4/topics/ADR/runbooks/commands) для визуального overview. Вывод в stdout или `> livedocs/INDEX_CARD.md`. |
 
 ## Код и CI (прочие проекты)
 

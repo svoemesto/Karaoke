@@ -6,6 +6,11 @@
 
 | Файл | Что делает | Drill-down |
 |------|------------|------------|
+| [121-vk-news-auto-publish.md](121-vk-news-auto-publish.md) | Автопубликация новостей в группу ВКонтакте | [specs/121-.../spec.md](../../specs/121-vk-news-auto-publish/spec.md) |
+| [122-premium-auto-publish.md](122-premium-auto-publish.md) | Премиум-автопубликация Telegram + ВК | [specs/122-.../spec.md](../../specs/122-premium-auto-publish/spec.md) |
+| [123-vk-og-preview-fix.md](123-vk-og-preview-fix.md) | Премиум-публикация ВК: превью через attachments=photo | [specs/123-.../spec.md](../../specs/123-vk-og-preview-fix/spec.md) |
+| [124-filename-sanitization-rename.md](124-filename-sanitization-rename.md) | Санитайзинг имён файлов + переименование | [specs/124-.../spec.md](../../specs/124-filename-sanitization-rename/spec.md) |
+| [125-news-flags-backfix.md](125-news-flags-backfix.md) | Backfill флагов публикации (kill-switch tbl_public_settings) | [specs/125-.../spec.md](../../specs/125-news-flags-backfix/spec.md) |
 | [128-news-publish-templates.md](128-news-publish-templates.md) | Шаблоны автоматических новостей сайта | [specs/128-.../spec.md](../../specs/128-news-publish-templates/spec.md) |
 | [129-copy-family-audio.md](129-copy-family-audio.md) | Копирование аудиосвязи при выборе похожей версии | [specs/129-.../spec.md](../../specs/129-copy-family-audio/spec.md) |
 | [130-vk-preview-generation.md](130-vk-preview-generation.md) | Предварительная подготовка PNG-кэша перед ВК | [specs/130-.../spec.md](../../specs/130-vk-preview-generation/spec.md) |

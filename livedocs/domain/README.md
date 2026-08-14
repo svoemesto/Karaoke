@@ -8,7 +8,9 @@
 |------|-----------------|-----------------|------------------|
 | [catalog.md](catalog.md) | Каталог | Song, Album, Author, Genre | песня, альбом, исполнитель |
 | [processing.md](processing.md) | Обработка | KaraokeVideo, MLTProject, RenderMp4Params | MLT, Demucs, Sheetsage, stem |
+| [rendering.md](rendering.md) | Рендеринг видео (drill-down для processing) | KaraokeVideo file, MLTProject | MP4, mko, JPEG quality 95 |
 | [publishing.md](publishing.md) | Публикация | PublishWindow, Subscription | эфир, on-air, exclusive, premium |
+| [stats.md](stats.md) | Статистика и аналитика | StatBySong, SiteEvent | visitor, bot, funnel, воронка |
 | [identity.md](identity.md) | Идентификация | SiteUser, Session | JWT, cookie, principal |
 | [editorial.md](editorial.md) | Редакторы | EditorAssignment, ReviewTask | self-assign, idempotent, race |
 

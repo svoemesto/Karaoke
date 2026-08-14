@@ -6,6 +6,11 @@
 
 | Файл | Что делает | Drill-down |
 |------|------------|------------|
+| [100-audio-similarity-threshold.md](100-audio-similarity-threshold.md) | Повышение порога аудио-похожести (85→95) | [specs/100-.../spec.md](../../specs/100-audio-similarity-threshold/spec.md) |
+| [101-audio-transpose-player.md](101-audio-transpose-player.md) | Транспонирование аудио в онлайн-плеере (админка) | [specs/101-.../spec.md](../../specs/101-audio-transpose-player/spec.md) |
+| [101-song-news-flag.md](101-song-news-flag.md) | Флаг «песня доступна» + очистка ленты | [specs/101-.../spec.md](../../specs/101-song-news-flag/spec.md) |
+| [102-rename-song-settings-vars.md](102-rename-song-settings-vars.md) | Переименование settings → song (полный охват) | [specs/102-.../spec.md](../../specs/102-rename-song-settings-vars/spec.md) |
+| [113-telegram-demo-publish.md](113-telegram-demo-publish.md) | Автопубликация DEMO в Telegram по расписанию | [specs/113-.../spec.md](../../specs/113-telegram-demo-publish/spec.md) |
 | [121-vk-news-auto-publish.md](121-vk-news-auto-publish.md) | Автопубликация новостей в группу ВКонтакте | [specs/121-.../spec.md](../../specs/121-vk-news-auto-publish/spec.md) |
 | [122-premium-auto-publish.md](122-premium-auto-publish.md) | Премиум-автопубликация Telegram + ВК | [specs/122-.../spec.md](../../specs/122-premium-auto-publish/spec.md) |
 | [123-vk-og-preview-fix.md](123-vk-og-preview-fix.md) | Премиум-публикация ВК: превью через attachments=photo | [specs/123-.../spec.md](../../specs/123-vk-og-preview-fix/spec.md) |

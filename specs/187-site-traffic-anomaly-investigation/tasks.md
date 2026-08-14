@@ -183,7 +183,7 @@
 - [X] T034 [P] Pre-commit security check — `git ls-files | grep -iE '\.env$|do\.env$|\.key$|\.pem$|\.p12$|\.pfx$'` MUST быть пусто (Constitution VIII.3). Если есть — `git rm --cached <file>` для каждого.
 - [X] T035 Update `karaoke-web/.../services/KaraokeProperties.kt` docstring — добавить секцию «Новые переменные для site-traffic-resilience» с описанием всех env из T007.
 - [ ] T036 Run quickstart.md scenarios 1-10 — выполнить все сценарии из `quickstart.md`, заполнить таблицу «Сводка проверки» (PASS/FAIL). Все 10 должны быть PASS.
-- [ ] T037 Create PR + verify CI 7/7 SUCCESS — `gh pr create --base master`, `gh pr checks` показывает 7/7 PASS, затем `gh pr merge --merge --delete-branch=false` (Constitution: НЕ удалять ветку после merge, см. AGENTS.md «Жизненный цикл feature-ветки»).
+- [X] T037 Create PR + verify CI 7/7 SUCCESS — `gh pr create --base master`, `gh pr checks` показывает 7/7 PASS, затем `gh pr merge --merge --delete-branch=false` (Constitution: НЕ удалять ветку после merge, см. AGENTS.md «Жизненный цикл feature-ветки»).
 - [ ] T038 Update `docs/architecture-notes.md` если PR затриггерил дополнительный pass (например, hotfix после CI fail) — добавить запись о post-merge правках.
 
 **Checkpoint**: ФИЧА полностью завершена. PR смержен, CI зелёный, документация обновлена.

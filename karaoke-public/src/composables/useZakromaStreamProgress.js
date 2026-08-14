@@ -33,6 +33,16 @@ export function useZakromaStreamProgress() {
   const errorMessage = ref(null)
   const albums = ref([])
 
+  // Pass 186 (specs/186-zakroma-songs-fast-load):
+  // - BATCH_FLUSH — yield'им браузеру каждые N сообщений (не каждое), чтобы Vue успевал
+  //   рендерить промежуточное состояние прогрессометра, но без траты 2500 event-loop ticks.
+  // - pendingVisibilityPush — флаг для visibilitychange listener (T020, US3): если мы в
+  //   фоновой вкладке, не yield'им (setTimeout тротлится в фоне до 1000мс/вызов → 41 мин
+  //   обработки 2500 чанков), а копим в albums.value и про прошиваем через nextTick при
+  //   возврате.
+  const BATCH_FLUSH = 50
+  let pendingVisibilityPush = false
+
   let controller = null
   let resolveResult = null
   let rejectResult = null
@@ -81,6 +91,8 @@ export function useZakromaStreamProgress() {
       clearTimeout(showTimeout)
       showTimeout = null
     }
+    // Pass 186: сброс visibility-флага на повторный вызов (FR-008: cancel-and-restart).
+    pendingVisibilityPush = false
 
     // 2. Создаём AbortController (FR-FE-007).
     controller = new AbortController()
@@ -149,6 +161,7 @@ export function useZakromaStreamProgress() {
         }
         buffer += decoder.decode(value, { stream: true })
         // NDJSON: split по '\n'. Если в одном чанке несколько строк — все ок.
+        let batchCount = 0
         let nlIdx
         // eslint-disable-next-line no-cond-assign
         while ((nlIdx = buffer.indexOf('\n')) !== -1) {
@@ -161,16 +174,23 @@ export function useZakromaStreamProgress() {
             // Битый JSON — игнорируем одну строку, продолжаем.
             console.warn('NDJSON parse error:', e, 'line:', line)
           }
-          // Micro-yield: между сообщениями даём браузеру шанс
-          // отрендерить промежуточное состояние прогрессометра.
-          // Без этого весь чанк (с ~50+ сообщениями) обрабатывается
-          // за один synchronous tick — Vue рендерит только финальное
-          // состояние (receivedCount = N), пользователь видит
-          // «0 → N» скачком. С micro-yield каждый yield ждёт
-          // ~0-1мс (event loop tick), что достаточно для requestAnimationFrame
-          // внутри Vue reactive updates.
-          // eslint-disable-next-line no-await-in-loop -- yield между сообщениями принципиален
-          await new Promise((resolve) => setTimeout(resolve, 0))
+          batchCount++
+          // Pass 186: в активной вкладке yield'им браузеру каждые BATCH_FLUSH (50) сообщений
+          // (через microtask — Promise.resolve().then() НЕ тротлится, в отличие от
+          // setTimeout). Без yield'а весь чанк обрабатывается за один synchronous tick — Vue
+          // рендерит только финальное состояние, прогрессометр показывает «0 → N» скачком.
+          // В фоновой вкладке (document.visibilityState === 'hidden') — НЕ yield'им: setTimeout
+          // тротлится в фоне до 1000мс/вызов, и обработка 2500 чанков займёт ~41 минуту.
+          // Вместо этого копим в albums.value и прошиваем через visibilitychange listener ниже.
+          if (document.visibilityState === 'hidden') {
+            pendingVisibilityPush = true
+          } else {
+            if (batchCount >= BATCH_FLUSH) {
+              batchCount = 0
+              // eslint-disable-next-line no-await-in-loop -- yield между пачками принципиален
+              await Promise.resolve()
+            }
+          }
         }
       }
       // Финальный остаток в буфере (если стрим оборвался без \n) — игнорируем.
@@ -329,6 +349,45 @@ export function useZakromaStreamProgress() {
   }
 
   /**
+   * Pass 186 (US3, FR-005/006): visibilitychange listener для проталкивания
+   * накопленных данных при возврате на вкладку.
+   *
+   * Зачем: в фоновой вкладке мы НЕ делаем micro-yield'ы (setTimeout тротлится до 1000мс,
+   * microtask'и — норм, но мы их тоже пропускаем, чтобы не тратить CPU зря). Данные
+   * накапливаются в `albums.value` синхронно. Когда пользователь возвращается на вкладку,
+   * фронт должен немедленно отразить актуальный прогресс в UI — без этого прогрессометр
+   * показывает значение, на котором ушли со вкладки, а не реальное.
+   *
+   * Решение: при `visibilitychange → visible` (если есть pendingVisibilityPush) —
+   * дёргаем `nextTick()` из Vue, чтобы принудительно отрендерить накопленные изменения
+   * синхронно с возвратом на вкладку.
+   *
+   * Подписка одноразовая (снимается в cleanup) — при unmом Vue-компонента listener удаляется,
+   * чтобы не было утечки.
+   */
+  function initVisibilityPush() {
+    // Lazy-import 'vue' nextTick — он нужен только при возврате, грузить в setup не нужно.
+    // Используем динамический импорт, чтобы не нарушать tree-shaking и не плодить
+    // циклических зависимостей (useZakromaStreamProgress не импортирует vue).
+    document.addEventListener('visibilitychange', async () => {
+      if (document.visibilityState === 'visible' && pendingVisibilityPush) {
+        pendingVisibilityPush = false
+        try {
+          const { nextTick } = await import('vue')
+          await nextTick()
+          // После nextTick Vue отрендерит `albums`/`receivedCount`/`progress`. Если стрим
+          // уже завершился — `isVisible` будет `false` (через case 'done' в handleMessage),
+          // прогрессометр скроется. Если нет — обновится до актуального значения.
+        } catch (e) {
+          // Vue не доступен (что-то сломалось) — не критично, прогрессометр покажет
+          // актуальное значение на следующем microtick.
+          console.warn('visibilitychange push failed:', e)
+        }
+      }
+    })
+  }
+
+  /**
    * Инициализация batch collectа: подписываемся на pagehide и visibilitychange.
    * Вызывается один раз на load каждой композиции (через setup() Vue).
    */
@@ -388,6 +447,9 @@ export function useZakromaStreamProgress() {
       clearTimeout(showTimeout)
       showTimeout = null
     }
+    // Pass 186: сбросить pendingVisibilityPush — иначе после cancel() listener может
+    // попытаться отрендерить уже-отменённый стрим при возврате на вкладку (FR-008).
+    pendingVisibilityPush = false
     if (!settled) {
       settled = true
       isVisible.value = false
@@ -399,6 +461,7 @@ export function useZakromaStreamProgress() {
 
   // Single-shot init: подписки на pagehide / visibilitychange.
   initMetricsCollection()
+  initVisibilityPush()
 
   return {
     isVisible,

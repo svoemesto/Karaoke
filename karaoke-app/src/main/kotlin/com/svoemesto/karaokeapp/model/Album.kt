@@ -269,6 +269,23 @@ class Album(
                 storageApiClient = storageApiClient,
             ) as? Album?
 
+        /**
+         * Пакетная версия [getAlbumById] — `WHERE id IN (...)` одним запросом, не по одному
+         * id в цикле (Constitution Principle II).
+         *
+         * Используется в [Zakroma.buildFromSongs] (Pass 186, фича ускорения Закромов) — раньше
+         * для каждого альбома автора делался отдельный SQL, что давало N+1 запросов на странице
+         * крупного автора (например, 30 альбомов → 30 SQL).
+         *
+         * @param ids список ID альбомов из `tbl_songs.album_id`; null-элементы игнорируются;
+         *              дубликаты дедуплицируются.
+         * @param database соединение с БД (см. Constitution II: только [KaraokeConnection]).
+         * @param storageService сервис MinIO (lazy).
+         * @param storageApiClient клиент MinIO API (lazy).
+         * @return `Map<id, Album>` для O(1) lookup по id; если альбома с таким id нет —
+         *         отсутствует в Map. Порядок НЕ сохраняется.
+         * @see docs/features/zakroma-stream-progress.md
+         */
         fun getAlbumsByIds(
             ids: List<Long>,
             database: KaraokeConnection,

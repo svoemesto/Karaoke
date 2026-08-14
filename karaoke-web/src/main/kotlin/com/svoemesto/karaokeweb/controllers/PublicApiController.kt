@@ -331,18 +331,49 @@ class PublicApiController(
                         )
 
                     // 3. Streaming loop по альбомам и песням (FR-BE-004).
-                    //    Полная реализация добавляется в T012 — здесь
-                    //    передаём по одному album + song с flush после каждого.
+                    //    Pass 186 (specs/186-zakroma-songs-fast-load): батч-flush по 50 песен.
+                    //    Раньше `writer.flush() + out.flush()` после КАЖДОЙ песни — на 2500
+                    //    песен / 30 альбомов это 5064 flush (×2 лишних syscall на песню). Теперь —
+                    //    `StringBuilder`-буфер + flush раз в 50 песен: ~82 flush на стрим.
+                    //    Контракт NDJSON НЕ меняется (5 типов сообщений), меняется только ритмика.
+                    //    См. specs/186-zakroma-songs-fast-load/research.md R2 + contracts/stream-chunking.md.
+                    //
+                    //    ВАЖНО (Pass 186 hotfix): album-сообщение ОБЯЗАТЕЛЬНО flush'ится ДО
+                    //    своих песен (отдельным writer.flush() + out.flush() после writer.write(album)).
+                    //    Без этого album остаётся в BufferedWriter (8 KB) вместе с предыдущими
+                    //    album'ами, и при flush пачки песен BufferedWriter авто-флашит ВСЕ накопленные
+                    //    album'ы + 50 песен одним TCP-чанком. Фронт (NDJSON-парсер в
+                    //    useZakromaStreamProgress.js) обрабатывает сообщения последовательно:
+                    //    `song` всегда добавляется в `albums[albums.length - 1]` (последний
+                    //    полученный album). Если album'ы пришли одним пакетом ПЕРЕД всеми песнями —
+                    //    ВСЕ песни попадают в ПОСЛЕДНИЙ album, остальные альбомы остаются пустыми.
+                    //    Инкремент по flush: 30 album + 50 batch = 80 (вместо 82). Не критично.
+                    val flushEveryNSongs = 50
+                    val songBuffer = StringBuilder(64 * 1024)
+                    var bufferedSongCount = 0
                     var actualCount = 0L
                     for (zak in zakroma) {
                         for (album in zak.albums.sorted()) {
                             // album message — метаданные (без albumSettings, FR-BE-003).
+                            // Album маркирует границу группы: фронт ожидает его ДО своих
+                            // song-сообщений (sequential grouping, см.
+                            // docs/features/zakroma-stream-progress.md). Поэтому ПЕРЕД album
+                            // сбрасываем накопленные песни предыдущего альбома (если есть) —
+                            // иначе они придут в одном TCP-чанке с album'ом нового альбома и
+                            // фронт обработает их как песни нового альбома.
+                            if (bufferedSongCount > 0) {
+                                writer.write(songBuffer.toString())
+                                songBuffer.clear()
+                                bufferedSongCount = 0
+                                writer.flush()
+                                out.flush()
+                            }
                             writer.write(mapper.writeValueAsString(ZakromaStreamMessageDto.album(ZakromaAlbumMetaPublicDto.fromAlbum(album))))
                             writer.newLine()
                             writer.flush()
                             out.flush()
                             for (song in album.albumSongs) {
-                                writer.write(
+                                songBuffer.append(
                                     mapper.writeValueAsString(
                                         ZakromaStreamMessageDto.song(
                                             ZakromaAlbumSongPublicDto(
@@ -360,12 +391,26 @@ class PublicApiController(
                                         ),
                                     ),
                                 )
-                                writer.newLine()
-                                writer.flush()
-                                out.flush()
+                                songBuffer.append('\n')
+                                bufferedSongCount++
                                 actualCount++
+                                if (bufferedSongCount >= flushEveryNSongs) {
+                                    writer.write(songBuffer.toString())
+                                    songBuffer.clear()
+                                    bufferedSongCount = 0
+                                    writer.flush()
+                                    out.flush()
+                                }
                             }
                         }
+                    }
+                    // Финальный flush — остаток песен, не заполнивший пачку.
+                    if (bufferedSongCount > 0) {
+                        writer.write(songBuffer.toString())
+                        songBuffer.clear()
+                        bufferedSongCount = 0
+                        writer.flush()
+                        out.flush()
                     }
 
                     // 4. done — финал (FR-BE-003: actualCount = реально отправленных песен,

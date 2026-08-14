@@ -274,6 +274,7 @@
                     <col style="width: 220px" />
                     <col style="width: 24px" />
                     <col style="width: 24px" />
+                    <col style="width: 20px" />
                     <col style="width: 26px" />
                     <col style="width: 26px" />
                   </colgroup>
@@ -281,7 +282,7 @@
                     <tr>
                       <th class="km-th km-th-center">№</th>
                       <th class="km-th">Композиция</th>
-                      <th class="km-th" colspan="5">&nbsp;</th>
+                      <th class="km-th" colspan="6">&nbsp;</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -315,6 +316,7 @@
                           :content-ready-state="readiness.contentReadyFor(sett.id)"
                         />
                       </td>
+                      <td class="km-td km-td-spacer"></td>
                       <td class="km-td km-td-center">
                         <FavoriteIcon :song-id="sett.id" />
                       </td>
@@ -1238,8 +1240,6 @@ export default {
 }
 .km-td-center {
   text-align: center;
-  padding-left: 0.45rem;
-  padding-right: 0.45rem;
 }
 .km-td-name {
   text-align: left;
@@ -1260,6 +1260,7 @@ export default {
 }
 .km-group-end {
   border-right: 2px solid var(--km-border);
+  padding-right: 0.6rem;
 }
 .km-song-link {
   color: var(--km-accent);

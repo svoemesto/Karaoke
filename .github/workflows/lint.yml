@@ -189,6 +189,33 @@ jobs:
       - name: Check JSDoc coverage (strict, ≥50%)
         run: bash tools/check-jsdoc-coverage.sh --strict
 
+  # === LiveDocs external links (advisory) ===
+  # Проверяет ВНЕШНИЕ ссылки в LiveDocs (https://, ...) через lychee в --offline-режиме.
+  # --offline: HEAD-запросы НЕ делаются (блокировка IP-диапазонов GitHub Actions).
+  # --exclude-loopback: пропускает localhost.
+  # advisory: continue-on-error=true — broken external links НЕ блокируют merge,
+  #   только логируются (TODO: pass 17+ — вывести в strict).
+  livedocs-external-links:
+    name: LiveDocs external links (advisory)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: lychee (offline links check for livedocs/)
+        uses: lycheeverse/lychee-action@v1.9.0
+        with:
+          args: >-
+            --offline
+            --no-progress
+            --exclude-loopback
+            --exclude-mail
+            --accept 200,203,206,301,302,303,304,307,308,403,429
+            livedocs/
+            AGENTS.md
+
   # === LiveDocs structure ===
   # LiveDocs (livedocs/) — единый каталог знаний для AI-агентов (FR-011, FR-015).
   # Проверяет: структуру каталога, ≥5 фич в features/, ≥5 bounded contexts,

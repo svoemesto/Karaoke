@@ -6,6 +6,11 @@
 
 | Файл | Что делает | Drill-down |
 |------|------------|------------|
+| [156-remove-songs-table-platform-flags.md](156-remove-songs-table-platform-flags.md) | Удалить 18 столбцов-флагов публикации из «Песни» | [specs/156-.../spec.md](../../specs/156-remove-songs-table-platform-flags/spec.md) |
+| [160-publish-body-td-remove-six-columns.md](160-publish-body-td-remove-six-columns.md) | Чистка PublishTableBodyTd + удаление processColor* из DTO | [specs/160-.../spec.md](../../specs/160-publish-body-td-remove-six-columns/spec.md) |
+| [162-fix-header-stale-premium-status.md](162-fix-header-stale-premium-status.md) | Устаревший premium-статус в шапке | [specs/162-.../spec.md](../../specs/162-fix-header-stale-premium-status/spec.md) |
+| [163-fix-song-editor-regressions.md](163-fix-song-editor-regressions.md) | Регрессии редакторов после спецтегов | [specs/163-.../spec.md](../../specs/163-fix-song-editor-regressions/spec.md) |
+| [164-complete-guest-share-link.md](164-complete-guest-share-link.md) | Завершение share-link: плеер гостя + heartbeat + sweep | [specs/164-.../spec.md](../../specs/164-complete-guest-share-link/spec.md) |
 | [166-fix-share-link-timezone.md](166-fix-share-link-timezone.md) | Единая TZ share-ссылок: МСК в БД, deviceTZ на UI | [specs/166-.../spec.md](../../specs/166-fix-share-link-timezone/spec.md) |
 | [167-fix-share-claim-500.md](167-fix-share-claim-500.md) | Починить 500 на POST /api/public/share/claim | [specs/167-.../spec.md](../../specs/167-fix-share-claim-500/spec.md) |
 | [169-share-link-in-premium-compare.md](169-share-link-in-premium-compare.md) | Строка «Временная ссылка» в FREE vs PREMIUM | [specs/169-.../spec.md](../../specs/169-share-link-in-premium-compare/spec.md) |

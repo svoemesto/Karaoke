@@ -20,6 +20,7 @@
 | [`validate-mermaid.sh`](validate-mermaid.sh) | Валидирует синтаксис Mermaid-блоков (правильный diagram type, закрытые fences, direction для graph). |
 | [`suggest-broken-links.sh`](suggest-broken-links.sh) | Для broken cross-link предлагает возможные кандидаты (поиск по substring имени файла в LiveDocs). Advisory — не CI-gate. |
 | [`update-index.sh`](update-index.sh) | Перегенерирует INDEX.md на основе текущего состояния LiveDocs. Поддержка `--diff` и `--apply`. Использовать после структурных изменений. |
+| [`warn-coverage-gaps.sh`](warn-coverage-gaps.sh) | Показывает список спека-фич без LiveDoc-сводки. С `--github-issue` создаёт issue. Advisory (exit 0). |
 
 ## Код и CI (прочие проекты)
 

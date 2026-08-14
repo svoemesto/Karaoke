@@ -46,6 +46,13 @@ export default class KaraokePlayer {
     this.audioCtx = null
     this.accBuffer = null
     this.vocBuffer = null
+
+    // In-flight tracker для fetch-запросов текущего трека (T014, см. spec.md FR-007). Создаётся
+    // заново в начале init() после _buildUI(); прерывается в _abortActive() (вызывается из
+    // playSong() в начале и из destroy() — см. T022/T023). Гарантирует, что при быстром
+    // переключении трека (spam-click по ▶ / ⏭) fetch-ответы предыдущей песни не перезаписывают
+    // state нового трека (первопричина бага с задвоением вейвформ — research.md §R1).
+    this._activeAbortController = null
     this.accSource = null
     this.vocSource = null
     this.accGain = null
@@ -154,6 +161,10 @@ export default class KaraokePlayer {
   async init() {
     // Phase 1: show animated background immediately, before any network requests
     this._buildUI()
+    // In-flight tracker для fetch-запросов этого init() (T016, FR-007). Создаём ПОСЛЕ _buildUI()
+    // и ПОСЛЕ возможного _abortActive() в playSong() (T022) — гарантирует, что у каждой init()
+    // свой свежий controller, и старые fetch-ответы не перезапишут state нового трека.
+    this._activeAbortController = new AbortController()
     this._bgCanvas = this._generateStarfield()
     if (!this._offline) this._startRenderLoop()
     this._loadImage('/KARAOKE_LOGO.png')
@@ -190,13 +201,16 @@ export default class KaraokePlayer {
           : ''
         const resp = await fetch(
           `${this.apiBase}/${this.songId}/playerdata?token=${encodeURIComponent(this.token || '')}${sessionParam}`,
-          { headers },
+          { headers, signal: this._activeAbortController.signal },
         )
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
         this.data = await resp.json()
       } else {
         this.data = await this._loadSmkaraoke(this._smkaraokeSource)
       }
+      // Если уже aborted к этому моменту (playSong() был вызван во время загрузки) — выходим,
+      // чтобы не записывать state и не делать лишнюю работу. Иначе — продолжаем.
+      if (this._activeAbortController.signal.aborted) return
       // Для share-сессии прокидываем sessionTokenHash и в аудио-URL'ы (stem-эндпоинты karaoke-web
       // тоже принимают ?session=, см. PublicPlayerController.fileAccompaniment).
       if (this.shareSessionTokenHash && this.data) {
@@ -235,6 +249,10 @@ export default class KaraokePlayer {
           .load()
           .then((f) => document.fonts.add(f)),
       ])
+      // Картинки альбома/артиста: Image API не поддерживает AbortController, поэтому полагаемся на
+      // guard по signal.aborted ниже. Если уже aborted — пропускаем и НЕ пишем в this._albumImg/
+      // _artistImg, чтобы init() следующего трека не перетирал стейт уже отменённой загрузкой.
+      if (this._activeAbortController.signal.aborted) return
       this._albumImg = this.data.albumImageUrl
         ? await this._loadImage(this.data.albumImageUrl).catch(() => null)
         : null
@@ -1312,15 +1330,19 @@ export default class KaraokePlayer {
       this._loadProgress = total > 0 ? Math.min(1, received / total) : null
     }
 
+    // T019: пробрасываем signal текущего AbortController в _fetchAudio (T020). Если пользователь
+    // переключит трек посередине загрузки — оба fetch'а прервутся; _loadProgress не «фантомно»
+    // допишется от уже отменённого запроса (FR-011).
+    const signal = this._activeAbortController.signal
     const [accBuf, vocBuf] = await Promise.all([
       this._fetchAudio(this.data.audioAccompanimentUrl, (r, t) => {
         prog.acc = { received: r, total: t }
         updateProgress()
-      }),
+      }, signal),
       this._fetchAudio(this.data.audioVocalsUrl, (r, t) => {
         prog.voc = { received: r, total: t }
         updateProgress()
-      }),
+      }, signal),
     ])
     this.accBuffer = accBuf
     this.vocBuffer = vocBuf
@@ -1335,12 +1357,23 @@ export default class KaraokePlayer {
   // Скачивает и декодирует аудио. При наличии тела ответа и Content-Length читает поток по чанкам
   // и репортит реальный прогресс через onProgress(received, total); иначе (нет заголовка/тела)
   // читает целиком одним куском — прогресс остаётся неопределённым (спиннер).
-  async _fetchAudio(url, onProgress) {
-    const resp = await fetch(url)
+  //
+  // T020: принимает signal от текущего _activeAbortController (FR-007). AbortController прерывает
+  // fetch на стадии скачивания, но НЕ прерывает уже запущенный decodeAudioData (Web Audio API не
+  // поддерживает abort на decode). Поэтому после decode проверяем signal.aborted и возвращаем
+  // null вместо AudioBuffer — caller (_loadAudio) уже aborted-guard-нут через тот же signal, и не
+  // запишет null в state плеера. Это закрывает race-condition первопричины бага (research.md §R1):
+  // даже если decode предыдущей песни завершился ПОСЛЕ playSong() нового трека, его результат
+  // отбрасывается, и вейвформы не задваиваются.
+  async _fetchAudio(url, onProgress, signal) {
+    if (signal?.aborted) return null
+    const resp = await fetch(url, signal ? { signal } : undefined)
     if (!resp.ok) throw new PlayerUnavailableError(`Audio fetch failed: ${url}`)
     const total = Number(resp.headers.get('Content-Length')) || 0
     if (!resp.body || !total) {
-      return this.audioCtx.decodeAudioData(await resp.arrayBuffer())
+      const ab = await this.audioCtx.decodeAudioData(await resp.arrayBuffer())
+      if (signal?.aborted) return null
+      return ab
     }
     const reader = resp.body.getReader()
     const chunks = []
@@ -1358,7 +1391,12 @@ export default class KaraokePlayer {
       all.set(c, pos)
       pos += c.length
     }
-    return this.audioCtx.decodeAudioData(all.buffer)
+    const decoded = await this.audioCtx.decodeAudioData(all.buffer)
+    // Guard после decodeAudioData (FR-007, см. research.md §R1): Web Audio API не отменяется
+    // AbortController, поэтому если за время decode уже успели переключить трек — возвращаем
+    // null, и caller (_loadAudio) игнорирует результат (accBuffer/vocBuffer не перезаписываются).
+    if (signal?.aborted) return null
+    return decoded
   }
 
   // ─── .smkaraoke loader ────────────────────────────────────────────────────
@@ -1418,6 +1456,32 @@ export default class KaraokePlayer {
   }
 
   _buildWaveforms() {
+    // T021 (FR-008): страховка от race при быстром переключении трека. Если предыдущий init()
+    // успел создать WaveSurfer-инстансы, а новый трек уже стартует — старые wsAcc/wsVoc должны
+    // быть уничтожены ДО создания новых, иначе в #kp-ws-acc/#kp-ws-vc окажется два canvas.
+    // Также очищаем контейнеры innerHTML — на случай если destroy() WaveSurfer не успел вычистить
+    // свой shadow DOM.
+    if (this.wsAcc) {
+      try {
+        this.wsAcc.destroy()
+      } catch (_e) {
+        /* ignore */
+      }
+      this.wsAcc = null
+    }
+    if (this.wsVoc) {
+      try {
+        this.wsVoc.destroy()
+      } catch (_e) {
+        /* ignore */
+      }
+      this.wsVoc = null
+    }
+    const acEl = this.container.querySelector('#kp-ws-acc')
+    if (acEl) acEl.innerHTML = ''
+    const vcEl = this.container.querySelector('#kp-ws-voc')
+    if (vcEl) vcEl.innerHTML = ''
+
     const totalDuration = this._preroll + this.duration
     if (totalDuration <= 0 || !this.accBuffer || !this.vocBuffer) return
 
@@ -1653,6 +1717,18 @@ export default class KaraokePlayer {
   }
   togglePlay() {
     this._togglePlay()
+  }
+
+  // Прерывает все in-flight fetch-запросы текущей песни (T015, FR-007). Вызывается:
+  // 1) в начале playSong() (T022) — отменяет запросы предыдущей песни;
+  // 2) в destroy() (T023) — страховка от утечки на закрытие вкладки.
+  // После вызова старый AbortController обнуляется, новый создаётся в init() (T016).
+  // @see docs/features/playlist-play-button-and-stems-cancel.md
+  _abortActive() {
+    if (this._activeAbortController) {
+      this._activeAbortController.abort()
+      this._activeAbortController = null
+    }
   }
 
   // Меняет скорость воспроизведения. Если аудио уже играет (не в preroll) — перепривязывает
@@ -1898,6 +1974,11 @@ export default class KaraokePlayer {
   // teardown/сброс состояния из _loadNewFile, но остаётся в 'api' и заново дёргает init().
   // autoplay=true — начать воспроизведение сразу после готовности (авто-переход в плейлисте).
   async playSong(songId, token, authToken, autoplay = true) {
+    // T022 (FR-007, US3): ПЕРВАЯ строка — прерываем все in-flight fetch-запросы предыдущей песни.
+    // Если playSong() вызван повторно (next / playid / spam-click по ▶), старый _activeAbortController
+    // отменяется ДО того, как мы уничтожим wsAcc/wsVoc и стартуем новый init(). Это гарантирует,
+    // что ответы старых fetch'ов не запишут state нового трека (research.md §R1).
+    this._abortActive()
     if (this.animId) {
       cancelAnimationFrame(this.animId)
       this.animId = null
@@ -3633,6 +3714,9 @@ export default class KaraokePlayer {
   }
 
   destroy() {
+    // T023 (FR-007): страховка от утечки на закрытие вкладки — прерываем все in-flight fetch
+    // сразу, до любых других действий.
+    this._abortActive()
     if (this.animId) cancelAnimationFrame(this.animId)
     clearTimeout(this._prerollTimeout)
     this._endedHandled = true

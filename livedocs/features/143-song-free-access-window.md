@@ -4,6 +4,7 @@ slug: 143-song-free-access-window
 related:
   - ../domain/publishing.md
   - ../domain/catalog.md
+  - ../domain/stats.md
   - ../features/144-homepage-latest-news.md
   - ../../specs/143-song-free-access-window/spec.md
 ---

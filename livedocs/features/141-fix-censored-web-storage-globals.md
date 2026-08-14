@@ -5,6 +5,8 @@ related:
   - ../features/139-fix-censored-dictionary.md
   - ../features/140-fix-zakroma-censored-database.md
   - ../architecture/L3-components.md
+  - ../architecture/censoring.md
+  - ../domain/publishing.md
   - ../../specs/141-fix-censored-web-storage-globals/spec.md
 ---
 
@@ -52,7 +54,8 @@ initialized`) и цензурирование тихо деградировал�
 ## Связанные LiveDocs
 
 - Feature: [139-fix-censored-dictionary.md](../features/139-fix-censored-dictionary.md) (предыдущая), [140-fix-zakroma-censored-database.md](../features/140-fix-zakroma-censored-database.md)
-- Architecture: [L3-components.md](../architecture/L3-components.md) (storageService wiring)
+- Architecture: [L3-components.md](../architecture/L3-components.md) (storageService wiring), [censoring.md](../architecture/censoring.md) (общий паттерн)
+- Domain: [publishing.md](../domain/publishing.md) (публикации, где применяется цензурирование)
 
 ## Код
 

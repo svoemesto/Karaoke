@@ -140,9 +140,7 @@
                      Разделитель " - " показывается, только если есть хотя бы год или альбом. -->
                 <template v-if="item.author || item.album">
                   <span v-if="item.author">{{ item.author }}</span>
-                  <span
-                    v-if="(item.year && item.year > 0) || item.album"
-                  > - </span>
+                  <span v-if="(item.year && item.year > 0) || item.album"> - </span>
                   <span v-if="item.year && item.year > 0">{{ item.year }}</span>
                   <span v-if="item.year && item.year > 0 && item.album">, </span>
                   <span v-if="item.album">{{ item.album }}</span>
@@ -793,7 +791,9 @@ export default {
   background: var(--km-card);
   border: 1px solid var(--km-border);
   border-radius: 10px;
-  padding: 0.5rem 0.7rem;
+  /* Пользователь уточнил 2026-08-14: padding 5px сверху/снизу для более плотного списка.
+     Горизонтальный padding 0.7rem (~11px) оставлен — он не относится к высоте строки. */
+  padding: 5px 0.7rem;
 }
 .km-song-current {
   border-color: var(--km-accent);

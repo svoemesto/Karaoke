@@ -165,6 +165,14 @@
   (фильтрация по source, edge cases, ловушки). LiveDoc 190 (плейлисты)
   ссылался на этот раздел, но его не было. PR #324.
 
+## 2026-08-14 — Follow-up #48 (022 crosslinks + code update)
+
+- **Updated**: `livedocs/features/022-song-status-lifecycle.md` —
+  добавлены cross-references на `125-player-status-gate` (доступность
+  плеера при статусе ≥4) и `155-song-state-colors` (цвета статусов).
+  Обновлено описание кода (`Song.status` enum + `Song.idStatus` getter).
+  PR #326.
+
 ## Состояние на сегодня
 
 | Метрика | Значение |
@@ -178,10 +186,10 @@
 | **Шаблонов в `templates/`** | 6 |
 | **`frontmatter`-файлов (с валидным frontmatter)** | 114 |
 | **`total .md` файлов** | ~128 |
-| **Cross-links valid** | 900 |
+| **Cross-links valid** | 904 |
 | **Broken references** | 0 |
 | **AGENTS.md** | ≤ 100 строк ✓ |
-| **CI проверок LiveDocs** | 7/7 + cross-links 0/900 broken + lychee strict |
+| **CI проверок LiveDocs** | 7/7 + cross-links 0/904 broken + lychee strict |
 | **Миграция покрытия спек** | 100% (все 75+ уникальных) |
 
 ## Как использовать этот changelog

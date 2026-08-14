@@ -1,7 +1,7 @@
 # AGENTS.md — инструкции для агентов
 
-> **Версия**: 2.0.0 | **Last updated**: 2026-08-14 (Pass 62 — фича 189 + 17 follow-ups).
-> Правки governance — в feature-ветке `0XX-agents-md-update`. Детали — в LiveDocs.
+> **Версия**: 2.0.0 | **Last updated**: 2026-08-14 (Pass 62 — фича 189 + 17 follow-ups). Правки governance — в feature-ветке `0XX-agents-md-update`. Детали — в LiveDocs.
+
 ## АБСОЛЮТНОЕ ПРАВИЛО: язык общения
 
 **Всё общение с пользователем — ТОЛЬКО на русском языке.** Наивысший приоритет.
@@ -92,9 +92,9 @@ gh pr merge --merge                      # БЕЗ --delete-branch
 
 Команды — в `DEVELOPMENT.md`.
 
-## Q&A — где искать
+## Q&A — где искать актуальные знания о проекте?
 
-Детали (Jackson `is`-prefix, Dockerfile ловушки, KDoc backticks, пагинация, sync, queue lanes, тип песни, рендер MP4, StatBySong) — в LiveDocs. Q&A в этот файл **НЕ добавлять** — только governance.
+Детали (Jackson `is`-prefix, Dockerfile ловушки, KDoc backticks, пагинация, sync, queue lanes, тип песни, рендер MP4, StatBySong) — в [LiveDocs](livedocs/README.md). Q&A в этот файл **НЕ добавлять** — только governance.
 
 ## Как обновлять этот файл
 

@@ -89,7 +89,7 @@
             <col />
             <col style="width: 220px" />
             <col style="width: 24px" />
-            <col style="width: 48px" />
+            <col style="width: 26px" />
             <col style="width: 26px" />
             <col style="width: 26px" />
           </colgroup>
@@ -547,7 +547,7 @@ export default {
 /* Воздух справа от иконки плеера (после удаления PlatformLink[sponsr]):
    расстояние между PlayerIcon и FavoriteIcon — как между FavoriteIcon и PlaylistIcon */
 .km-player-cell {
-  padding-right: 1rem;
+  padding-right: 0.3rem;
 }
 .km-td-name {
   text-align: left;

@@ -25,6 +25,7 @@
 | [idempotency.md](idempotency.md) | Idempotency-Key + UNIQUE + lease — паттерны по эндпоинтам |
 | [data-sync.md](data-sync.md) | LOCAL ↔ SERVER синхронизация (SyncRegistry, recordhash) |
 | [queue-lanes.md](queue-lanes.md) | Async-очередь (threadId lanes, HEAVY_RENDER, LIGHT_BACKGROUND, REMOTE_STORE_UPLOAD, STEM_JOBS) |
+| [share-link.md](share-link.md) | Паттерн гостевого доступа: временные ссылки + claim + heartbeat + sweep |
 
 ### Паттерны / конвенции (мигрированы из `AGENTS.md` Q&A)
 

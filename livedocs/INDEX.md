@@ -69,6 +69,7 @@ Bounded contexts проекта Karaoke + ubiquitous language glossary.
 | [`L3-components.md`](architecture/L3-components.md) | C4 L3 | Model, MLT, Queue, LLM, SSE |
 | [`data-sync.md`](architecture/data-sync.md) | topic | LOCAL ↔ SERVER синхронизация |
 | [`queue-lanes.md`](architecture/queue-lanes.md) | topic | Async-очередь (threadId lanes, priority) |
+| [`share-link.md`](architecture/share-link.md) | topic | Гостевой доступ: временные ссылки + claim + heartbeat + sweep |
 
 ### Тематические — паттерны / ловушки / конвенции
 

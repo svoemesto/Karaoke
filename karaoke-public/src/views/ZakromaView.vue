@@ -308,7 +308,7 @@
                       <td class="km-td km-td-center">
                         <CartIcon v-if="showCartIcon(sett)" :song-id="sett.id" />
                       </td>
-                      <td class="km-td km-td-center">
+                      <td class="km-td km-td-center km-player-cell">
                         <PlayerIcon
                           :song-id="sett.id"
                           :watch-state="readiness.stateFor(sett.id)"
@@ -1239,11 +1239,10 @@ export default {
 .km-td-center {
   text-align: center;
 }
-/* Воздух между иконками в группе (после удаления PlatformLink[sponsr]):
-   каждой иконке добавляется margin-right 0.5rem, чтобы расстояние между
-   PlayerIcon ↔ FavoriteIcon, FavoriteIcon ↔ PlaylistIcon и PlaylistIcon ↔ правый край было одинаковым. */
-.km-td-center .platform-icon {
-  margin-right: 0.5rem;
+/* Воздух справа от иконки плеера (после удаления PlatformLink[sponsr]):
+   расстояние между PlayerIcon и FavoriteIcon — как между FavoriteIcon и PlaylistIcon */
+.km-player-cell {
+  padding-right: 1rem;
 }
 .km-td-name {
   text-align: left;

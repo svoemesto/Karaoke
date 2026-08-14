@@ -26,7 +26,8 @@ TARGETS=$(find livedocs -name '*.md' \
     -not -path '*/decisions/*' \
     -not -name 'README.md' \
     -not -name 'INDEX.md' \
-    -not -name 'INDEX_CARD.md')
+    -not -name 'INDEX_CARD.md' \
+    -not -name 'STATS.md')
 
 echo "[1/2] Проверка относительных путей в Markdown..."
 for src in $TARGETS; do

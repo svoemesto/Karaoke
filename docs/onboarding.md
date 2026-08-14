@@ -68,20 +68,27 @@ git config alias.co checkout
 
 | Документ | Зачем | Размер |
 |----------|-------|--------|
-| [`AGENTS.md`](../AGENTS.md) | Инструкции для opencode (наш primary AI-агент) | 230 строк |
+| [`AGENTS.md`](../AGENTS.md) | Инструкции для opencode (наш primary AI-агент) | 100 строк |
 | [`CLAUDE.md`](../CLAUDE.md) | Инструкции для Claude Code | 46 строк |
 | [`.specify/memory/constitution.md`](../.specify/memory/constitution.md) | **Непреложные принципы (NON-NEGOTIABLE)** | ~150 строк |
+| [`livedocs/README.md`](../livedocs/README.md) | **LiveDocs — корневой манифест** (Pass 62+) | 60 строк |
+| [`livedocs/INDEX.md`](../livedocs/INDEX.md) | **LiveDocs — карта слоёв + decision tree** | 100 строк |
+| [`livedocs/FAQ.md`](../livedocs/FAQ.md) | **LiveDocs — FAQ** (20 ответов) | 200 строк |
+| [`livedocs/CHANGELOG.md`](../livedocs/CHANGELOG.md) | **LiveDocs — semantic changelog** | 50 строк |
 | [`DEVELOPMENT.md`](../DEVELOPMENT.md) | Архитектура + команды сборки/деплоя | 164 строки |
 | [`CONTRIBUTING.md`](../CONTRIBUTING.md) | Правила оформления кода | 892 строки |
 | [`docs/architecture-notes.md`](./architecture-notes.md) | Changelog последних PR (Pass 1-8) | 268 строк |
-| [`docs/features/<slug>.md`](./features/) | Per-feature документы (11 + 1) | 50-180 строк каждый |
+| [`docs/features/<slug>.md`](./features/) | Per-feature документы (legacy, drill-down) | 50-180 строк каждый |
 
 **Приоритет при расхождении**:
 1. `constitution.md` (NON-NEGOTIABLE)
 2. `AGENTS.md` / `CLAUDE.md` (специфичные для AI-агента)
-3. `DEVELOPMENT.md` (durable-карта)
-4. `CONTRIBUTING.md` (стиль кода)
-5. `docs/features/<slug>.md` (детали фичи)
+3. **`livedocs/` (LiveDocs — ПЕРВЫЙ источник для технических вопросов)**
+4. `DEVELOPMENT.md` (durable-карта)
+5. `CONTRIBUTING.md` (стиль кода)
+6. `docs/features/<slug>.md` (legacy, drill-down)
+
+> **AI-агент: см. также `livedocs/FAQ.md` → "Какие правила для AI-агента?"** для полного списка правил и рекомендаций.
 
 ---
 
@@ -221,7 +228,7 @@ bash tools/check-jsdoc-coverage.sh karaoke-public
 
 ---
 
-## Ловушки (top-5)
+## Ловушки (top-7)
 
 1. **Backticks в KDoc** ломают парсер (`*` после `/` = новый комментарий).
    Заменять на «пакет mko», «файлы mko», «multitrack» без backticks.
@@ -238,6 +245,15 @@ bash tools/check-jsdoc-coverage.sh karaoke-public
 5. **Сидя на старом `master`**: Phase 001 (PR #12-#27) добавил 16 PR за
    2 дня. Перед серьёзной работой — `git pull` и просмотр
    [`docs/architecture-notes.md`](./architecture-notes.md).
+
+6. **LiveDocs устарел** — перед большой правкой кода запустите
+   `bash tools/warn-coverage-gaps.sh` и `bash tools/cross-link-density.sh`,
+   чтобы понять, какие спеки ещё не мигрированы. См.
+   [`livedocs/FAQ.md`](../livedocs/FAQ.md) → "Как понять, что LiveDocs устарели?".
+
+7. **Секреты в логах** — НЕ логировать `.env`, `*.key`, `*.pem`. См.
+   [Constitution § VIII.5](../.specify/memory/constitution.md) и
+   [LiveDocs local-0005](../livedocs/architecture/decisions/local-0005-structured-logging-karaoke-app.md).
 
 ---
 
@@ -266,9 +282,12 @@ bash tools/check-jsdoc-coverage.sh karaoke-public
 - [`AGENTS.md`](../AGENTS.md) — инструкции для opencode
 - [`CLAUDE.md`](../CLAUDE.md) — инструкции для Claude Code
 - [`.specify/memory/constitution.md`](../.specify/memory/constitution.md) — непреложные принципы
+- **[`livedocs/`](../livedocs/) — ПЕРВЫЙ источник для технических вопросов** (см. `README.md` + `INDEX.md` + `FAQ.md`)
+- [`livedocs-en/`](../livedocs-en/) — English mirror
 - [`DEVELOPMENT.md`](../DEVELOPMENT.md) — архитектура
 - [`CONTRIBUTING.md`](../CONTRIBUTING.md) — стиль кода
 - [`docs/architecture-notes.md`](./architecture-notes.md) — changelog
-- [`docs/features/`](./features/) — per-feature документы
+- [`docs/features/`](./features/) — per-feature документы (legacy, drill-down)
+- [`tools/README.md`](../tools/README.md) — operational scripts (22 шт.)
 - [`CONTRIBUTING.md#pre-commit-и-ci`](../CONTRIBUTING.md) — детали pre-commit
 - [`CONTRIBUTING.md#обновление-этого-документа`](../CONTRIBUTING.md) — как обновлять правила

@@ -122,6 +122,16 @@ repos:
         files: '^(specs/[0-9]+-|livedocs/features/).*'
         stages: [pre-commit]
 
+      # === LiveDocs: проверка Mermaid-блоков ===
+      # Срабатывает только при изменении файлов с mermaid-блоками в livedocs/.
+      - id: validate-livedocs-mermaid
+        name: LiveDocs Mermaid block validator
+        entry: bash -c 'bash tools/validate-mermaid.sh'
+        language: system
+        pass_filenames: false
+        files: '^livedocs/.*\.md$'
+        stages: [pre-commit]
+
 # Общие настройки
 fail_fast: false   # Прогоняем все хуки даже если один упал — даём полный отчёт
 default_install_hook_types: [pre-commit]

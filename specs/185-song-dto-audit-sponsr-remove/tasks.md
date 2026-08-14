@@ -88,7 +88,7 @@
 - [x] T020 [P] Запустить `bash tools/check-kdoc-coverage.sh` — должно оставаться 100%.
 - [ ] T021 Выполнить ручную проверку по `specs/185-song-dto-audit-sponsr-remove/quickstart.md` — все SC-001..SC-007 должны пройти (curl + jq, Vue SPA в браузере, Thymeleaf в браузере, webvue3 в браузере, боты-проверка, DevTools, линтеры). Запустить после деплоя на прод.
 - [x] T022 [P] Проверить `git status` (нет untracked `.env`/секретов/мусорных файлов); `git diff --stat` показывает только ожидаемые правки в 9 файлах: `SongPublicDto.kt`, `ZakromaPublicDto.kt`, `PublicApiController.kt`, `Zakroma.kt`, `ZakromaView.vue`, `SearchView.vue`, `filter.html`, `zakroma.html`, `testpage.html`.
-- [ ] T023 Создать коммит: `git add` ожидаемых файлов (БЕЗ `deploy/ollama_data/`, `dist/`, `node_modules/`, `deploy/.env`, `deploy/do.env`), `git commit -m "185-song-dto-audit-sponsr-remove: аудит DTO песни и удаление ссылок на соцсети из публичных шаблонов"`.
+- [x] T023 Создать коммит: `git add` ожидаемых файлов (БЕЗ `deploy/ollama_data/`, `dist/`, `node_modules/`, `deploy/.env`, `deploy/do.env`), `git commit -m "185-song-dto-audit-sponsr-remove: аудит DTO песни и удаление ссылок на соцсети из публичных шаблонов"`.
 - [ ] T024 Создать PR: `git push -u origin 185-song-dto-audit-sponsr-remove` → `gh pr create --base master --title "185: аудит DTO песни и удаление ссылок на соцсети из публичных шаблонов"`.
 - [ ] T025 Дождаться CI 7/7 SUCCESS (`gh pr checks` или `gh run watch`); выполнить `gh pr merge --merge` **БЕЗ** `--delete-branch` (см. AGENTS.md «Жизненный цикл feature-ветки»).
 

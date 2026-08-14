@@ -22,6 +22,7 @@
 | [`update-index.sh`](update-index.sh) | Перегенерирует INDEX.md на основе текущего состояния LiveDocs. Поддержка `--diff` и `--apply`. Использовать после структурных изменений. |
 | [`warn-coverage-gaps.sh`](warn-coverage-gaps.sh) | Показывает список спека-фич без LiveDoc-сводки. С `--github-issue` создаёт issue. Advisory (exit 0). |
 | [`cross-link-density.sh`](cross-link-density.sh) | Метрика качества LiveDocs: % файлов с `related:`, среднее кол-во cross-references, распределение по типам. С `--json` для automation. |
+| [`comment-broken.sh`](comment-broken.sh) | Генерирует markdown-комментарий для PR с broken cross-links. С `--post <PR>` автоматически через `gh pr comment`. |
 
 ## Код и CI (прочие проекты)
 

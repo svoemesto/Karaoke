@@ -11,6 +11,7 @@
 | [`check-livedocs-cross-links.sh`](check-livedocs-cross-links.sh) | Проверяет 814+ cross-links (`../X.md` и `related:`). **Запускается в GitHub Actions + pre-commit.** |
 | [`check-livedocs-external-links.sh`](check-livedocs-external-links.sh) | Проверяет ВНЕШНИЕ ссылки (https://) в LiveDocs через lychee (advisory) + curl (strict). **Запускается в GitHub Actions.** |
 | [`search-livedocs.sh`](search-livedocs.sh) | grep wrapper для AI-агентов и людей. Поиск query по LiveDocs с фильтром по типу/пути. **Интерактивный** (не CI). |
+| [`test-livedocs.sh`](test-livedocs.sh) | Self-test для всех LiveDocs-check скриптов. 12 тестовых сценариев: реальный LiveDocs, временный каталог, негативные сценарии, syntax-check. Запускать перед commit. |
 
 ## Код и CI (прочие проекты)
 

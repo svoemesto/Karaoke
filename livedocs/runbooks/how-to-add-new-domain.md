@@ -30,7 +30,7 @@ cp livedocs/templates/bounded-context.md livedocs/domain/<new-context>.md
 
 ### 2. Заполнить шаблон
 
-Используйте [`templates/bounded-context.md`](../../templates/bounded-context.md).
+Используйте [`templates/bounded-context.md`](../templates/bounded-context.md).
 
 **Обязательные секции**:
 - **Aggregate Roots**: список AR с инвариантами.
@@ -111,8 +111,8 @@ gh pr merge <PR> --merge
 
 ## Related
 
-- LiveDocs: [domain/README.md](../../domain/README.md),
-  [INDEX.md](../../INDEX.md).
+- LiveDocs: [domain/README.md](../domain/README.md),
+  [INDEX.md](../INDEX.md).
 - [ADR-0001](../architecture/decisions/0001-raw-jdbc.md) — почему SQL без ORM.
 - Eric Evans «Domain-Driven Design» (книга).
 - Vaughn Vernon «Implementing Domain-Driven Design».

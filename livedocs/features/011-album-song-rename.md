@@ -43,7 +43,7 @@ related:
 
 ## Связанные LiveDocs
 
-- Domain: [catalog.md](../catalog.md) (Album, Song как AR)
+- Domain: [catalog.md](../domain/catalog.md) (Album, Song как AR)
 - Architecture: [L3-components.md](../architecture/L3-components.md)
 - Feature: [102-rename-song-settings-vars.md](../features/102-rename-song-settings-vars.md) (полный рефакторинг названий)
 

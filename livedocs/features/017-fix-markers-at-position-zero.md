@@ -54,10 +54,10 @@ Pass 28 (`016-fix-spec-tags-marker-loss-on-reopen`) перенёс `loadedMarker
 
 ## Связанные LiveDocs
 
-- Domain: [catalog.md](../catalog.md) (lyrics), [editorial.md](../editorial.md) (SubsEdit)
-- Feature: [010-lyrics-spec-tags.md](../../features/010-lyrics-spec-tags.md),
-  [018-fix-spec-tag-markers-at-zero.md](../../features/018-fix-spec-tag-markers-at-zero.md),
-  [019-fix-setcontent-resets-position.md](../../features/019-fix-setcontent-resets-position.md)
+- Domain: [catalog.md](../domain/catalog.md) (lyrics), [editorial.md](../domain/editorial.md) (SubsEdit)
+- Feature: [010-lyrics-spec-tags.md](010-lyrics-spec-tags.md),
+  [018-fix-spec-tag-markers-at-zero.md](018-fix-spec-tag-markers-at-zero.md),
+  [019-fix-setcontent-resets-position.md](019-fix-setcontent-resets-position.md)
 
 ## Код
 

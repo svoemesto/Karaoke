@@ -39,7 +39,7 @@ related:
 
 ## Связанные LiveDocs
 
-- Domain: [publishing.md](../publishing.md), [editorial.md](../editorial.md)
+- Domain: [publishing.md](../domain/publishing.md), [editorial.md](../domain/editorial.md)
 - Feature: [131-fix-approve-demo-render-telegram-sync.md](../features/131-fix-approve-demo-render-telegram-sync.md)
 - Specs: `121-vk-news-auto-publish`, `101-song-news-flag`
 

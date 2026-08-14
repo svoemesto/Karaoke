@@ -44,7 +44,7 @@ related:
 
 ## Связанные LiveDocs
 
-- Domain: [publishing.md](../publishing.md), [catalog.md](../catalog.md)
+- Domain: [publishing.md](../domain/publishing.md), [catalog.md](../domain/catalog.md)
 - Feature: [092-fix-auto-news-triggers.md](../features/092-fix-auto-news-triggers.md), [101-song-news-flag.md](../features/101-song-news-flag.md)
 - Architecture: [L3-components.md](../architecture/L3-components.md)
 

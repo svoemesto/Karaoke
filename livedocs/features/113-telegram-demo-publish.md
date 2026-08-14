@@ -40,7 +40,7 @@ Telegram-бот, который **оформляет публикации DEMO-�
 
 ## Связанные LiveDocs
 
-- Domain: [publishing.md](../publishing.md)
+- Domain: [publishing.md](../domain/publishing.md)
 - Feature: [131-fix-approve-demo-render-telegram-sync.md](../features/131-fix-approve-demo-render-telegram-sync.md) (смежная)
 - Specs: `128-news-publish-templates` (шаблоны)
 

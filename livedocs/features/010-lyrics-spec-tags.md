@@ -47,7 +47,7 @@ related:
 
 ## Связанные LiveDocs
 
-- Domain: [catalog.md](../catalog.md) (lyrics), [editorial.md](../editorial.md) (SubsEdit)
+- Domain: [catalog.md](../domain/catalog.md) (lyrics), [editorial.md](../domain/editorial.md) (SubsEdit)
 - Feature: [018-fix-spec-tag-markers-at-zero.md](../features/018-fix-spec-tag-markers-at-zero.md) (связанная)
 
 ## Код

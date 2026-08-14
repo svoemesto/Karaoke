@@ -47,7 +47,7 @@ related:
 
 ## Связанные LiveDocs
 
-- Domain: [processing.md](../processing.md) (queue, ThreadId lanes)
+- Domain: [processing.md](../domain/processing.md) (queue, ThreadId lanes)
 - Feature: `specs/087-fix-shared-db-connection` (предыдущая регрессия)
 - Architecture: [L3-components.md](../architecture/L3-components.md) (Queue компонент)
 

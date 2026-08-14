@@ -52,7 +52,7 @@ related:
 
 ## Связанные LiveDocs
 
-- Domain: [publishing.md](../publishing.md), [catalog.md](../catalog.md)
+- Domain: [publishing.md](../domain/publishing.md), [catalog.md](../domain/catalog.md)
 - Feature: [094-fix-approve-news-failure.md](../features/094-fix-approve-news-failure.md), [089-auto-news-song-release.md](../architecture/L2-containers.md) (исходная логика), [101-song-news-flag.md](../features/101-song-news-flag.md) (флаг news)
 - Architecture: [L3-components.md](../architecture/L3-components.md) (save flow)
 

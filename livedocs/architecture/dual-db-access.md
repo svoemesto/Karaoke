@@ -4,10 +4,10 @@ slug: dual-db-access
 type: topic
 related:
   - ../domain/catalog.md
-  - ../L3-components.md
+  - L3-components.md
   - data-sync.md
-  - ../../features/087-fix-shared-db-connection.md
-  - ../../features/091-fix-connection-leak.md
+  - ../features/087-fix-shared-db-connection.md
+  - ../features/091-fix-connection-leak.md
   - decisions/0001-raw-jdbc.md
 ---
 
@@ -163,7 +163,7 @@ fun getConnection(target: Target): Connection {
 `SQLException` на любом из методов доступа (`save`, `getCountWaiting`,
 `getProcessesToStart`) → retry.
 
-См. [livedocs/features/088-fix-queue-swallowed-errors.md](../../features/088-fix-queue-swallowed-errors.md)
+См. [livedocs/features/088-fix-queue-swallowed-errors.md](../features/088-fix-queue-swallowed-errors.md)
 — единообразная обработка (раньше `getCountWaiting()` проглатывал исключение).
 
 ## Что НЕЛЬЗЯ делать
@@ -191,9 +191,9 @@ fun getConnection(target: Target): Connection {
 - [ADR-0001](decisions/0001-raw-jdbc.md) — почему raw JDBC.
 - [L3-components.md](L3-components.md) — где `KaraokeConnection` живёт.
 - [data-sync.md](data-sync.md) — как sync использует Connection для LOCAL↔REMOTE.
-- Feature: [087-fix-shared-db-connection.md](../../features/087-fix-shared-db-connection.md),
-  [091-fix-connection-leak.md](../../features/091-fix-connection-leak.md),
-  [088-fix-queue-swallowed-errors.md](../../features/088-fix-queue-swallowed-errors.md).
+- Feature: [087-fix-shared-db-connection.md](../features/087-fix-shared-db-connection.md),
+  [091-fix-connection-leak.md](../features/091-fix-connection-leak.md),
+  [088-fix-queue-swallowed-errors.md](../features/088-fix-queue-swallowed-errors.md).
 
 ## Код
 

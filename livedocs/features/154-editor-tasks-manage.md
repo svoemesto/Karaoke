@@ -53,7 +53,7 @@ related:
 
 ## Связанные LiveDocs
 
-- Domain: [editorial.md](../editorial.md) (assignment = AR), [identity.md](../identity.md) (SiteUser = editor)
+- Domain: [editorial.md](../domain/editorial.md) (assignment = AR), [identity.md](../domain/identity.md) (SiteUser = editor)
 - Feature: [182-editor-self-assign-tasks.md](../features/182-editor-self-assign-tasks.md) (предыдущая фича)
 - Architecture: [L3-components.md](../architecture/L3-components.md)
 

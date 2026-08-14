@@ -46,7 +46,7 @@ HTTP-потоков и потока очереди `KaraokeProcessWorker`. Postg
 
 ## Связанные LiveDocs
 
-- Domain: [processing.md](../processing.md)
+- Domain: [processing.md](../domain/processing.md)
 - Feature: [088-fix-queue-swallowed-errors.md](../features/088-fix-queue-swallowed-errors.md), [091-fix-connection-leak.md](../features/091-fix-connection-leak.md)
 - Architecture: [L3-components.md](../architecture/L3-components.md)
 

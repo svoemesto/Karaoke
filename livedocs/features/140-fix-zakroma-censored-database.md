@@ -49,7 +49,7 @@ Property APP_WORK_ON_SERVER should be initialized before get.`
 
 ## Связанные LiveDocs
 
-- Domain: [catalog.md](../catalog.md) (Song.songName → censored)
+- Domain: [catalog.md](../domain/catalog.md) (Song.songName → censored)
 - Feature: [139-fix-censored-dictionary.md](../features/139-fix-censored-dictionary.md) (общий root cause), [141-fix-censored-web-storage-globals.md](../features/141-fix-censored-web-storage-globals.md) (связанная фича)
 
 ## Код

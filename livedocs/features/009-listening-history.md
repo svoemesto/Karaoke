@@ -43,7 +43,7 @@ related:
 
 ## Связанные LiveDocs
 
-- Domain: [catalog.md](../catalog.md) (Song), [identity.md](../identity.md) (SiteUser)
+- Domain: [catalog.md](../domain/catalog.md) (Song), [identity.md](../domain/identity.md) (SiteUser)
 - Feature: [171-admin-subscriptions-history.md](../features/171-admin-subscriptions-history.md) (admin-вариант)
 
 ## Код

@@ -37,7 +37,7 @@ related:
 
 ## Связанные LiveDocs
 
-- Domain: [catalog.md](../catalog.md)
+- Domain: [catalog.md](../domain/catalog.md)
 - Feature: [012-entity-description-fields.md](../features/012-entity-description-fields.md) (UI Закромов — общий)
 
 ## Код

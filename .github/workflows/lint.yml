@@ -204,3 +204,8 @@ jobs:
 
       - name: Check LiveDocs structure
         run: bash tools/check-livedocs-structure.sh
+
+      - name: Check LiveDocs cross-links
+        # Проверяет что все относительные ссылки ../X.md и related: в LiveDocs — валидны.
+        # Исключения: templates (плейсхолдеры), runbooks/decisions (без frontmatter).
+        run: bash tools/check-livedocs-cross-links.sh

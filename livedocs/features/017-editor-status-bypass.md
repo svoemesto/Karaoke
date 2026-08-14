@@ -39,7 +39,7 @@ related:
 
 ## Связанные LiveDocs
 
-- Domain: [catalog.md](../catalog.md) (Song.status), [editorial.md](../editorial.md) (editor role)
+- Domain: [catalog.md](../domain/catalog.md) (Song.status), [editorial.md](../domain/editorial.md) (editor role)
 - Feature: [182-editor-self-assign-tasks.md](../features/182-editor-self-assign-tasks.md)
 
 ## Код

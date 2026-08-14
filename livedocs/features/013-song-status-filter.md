@@ -38,7 +38,7 @@ related:
 
 ## Связанные LiveDocs
 
-- Domain: [catalog.md](../catalog.md) (Song.status), [publishing.md](../publishing.md) (readiness)
+- Domain: [catalog.md](../domain/catalog.md) (Song.status), [publishing.md](../domain/publishing.md) (readiness)
 - Feature: [143-song-free-access-window.md](../features/143-song-free-access-window.md) (дополнительная семантика free/premium), [017-editor-status-bypass.md](../features/017-editor-status-bypass.md) (исключение для редакторов)
 
 ## Код

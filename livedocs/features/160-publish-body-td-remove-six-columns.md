@@ -48,7 +48,7 @@ related:
 
 ## Связанные LiveDocs
 
-- Domain: [publishing.md](../publishing.md) (publish-процесс), [catalog.md](../catalog.md) (Song)
+- Domain: [publishing.md](../domain/publishing.md) (publish-процесс), [catalog.md](../domain/catalog.md) (Song)
 - Architecture: [L3-components.md](../architecture/L3-components.md) (контроллеры + DTO)
 
 ## Код

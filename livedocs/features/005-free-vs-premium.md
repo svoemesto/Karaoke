@@ -43,7 +43,7 @@ related:
 
 ## Связанные LiveDocs
 
-- Domain: [publishing.md](../publishing.md) (premium)
+- Domain: [publishing.md](../domain/publishing.md) (premium)
 - Feature: [143-song-free-access-window.md](../features/143-song-free-access-window.md), [169-share-link-in-premium-compare.md](../features/169-share-link-in-premium-compare.md)
 - Specs: `docs/strategy/growth.md` (воронка `free→premium`)
 

@@ -41,7 +41,7 @@ related:
 
 ## Связанные LiveDocs
 
-- Domain: [publishing.md](../publishing.md) (стратегия)
+- Domain: [publishing.md](../domain/publishing.md) (стратегия)
 
 ## Код
 

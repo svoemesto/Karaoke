@@ -47,7 +47,7 @@ SubsEdit (классический редактор) делает «Произв
 
 ## Связанные LiveDocs
 
-- Domain: [catalog.md](../domain/catalog.md) (lyrics как Value Object), [editorial.md](../editorial.md)
+- Domain: [catalog.md](../domain/catalog.md) (lyrics как Value Object), [editorial.md](../domain/editorial.md)
 - Architecture: [L3-components.md](../architecture/L3-components.md)
 - Specs: `specs/010-lyrics-spec-tags` (базовые спецтеги)
 

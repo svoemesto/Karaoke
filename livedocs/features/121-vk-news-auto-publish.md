@@ -50,7 +50,7 @@ related:
 
 ## Связанные LiveDocs
 
-- Domain: [publishing.md](../publishing.md)
+- Domain: [publishing.md](../domain/publishing.md)
 - Feature: [130-vk-preview-generation.md](../features/130-vk-preview-generation.md) (прогрев), [138-vk-photo-preview-attachment.md](../features/138-vk-photo-preview-attachment.md) (превью), [151-vk-id-personal-token.md](../features/151-vk-id-personal-token.md) (token)
 
 ## Код

@@ -3,7 +3,7 @@ status: Active
 slug: observability
 type: topic
 related:
-  - ../L3-components.md
+  - L3-components.md
   - ../architecture/queue-lanes.md
   - ../architecture/data-sync.md
   - ../features/087-fix-shared-db-connection.md
@@ -60,7 +60,7 @@ SSE (Server-Sent Events) — основной механизм real-time update
 
 | Event | Описание | Когда срабатывает |
 |-------|----------|-------------------|
-| `PROCESS_COUNT_WAITING` | Кол-во заданий в очереди | Только при реальном изменении числа (после [177-fix-process-count-waiting-spam](../../features/177-fix-process-count-waiting-spam.md)) |
+| `PROCESS_COUNT_WAITING` | Кол-во заданий в очереди | Только при реальном изменении числа (после [177-fix-process-count-waiting-spam](../features/177-fix-process-count-waiting-spam.md)) |
 | `PROCESS_WORKER_STATE` | `isWork` воркера (вкл/выкл) | При старте/остановке воркера |
 | `PROCESS_LIST_CHANGED` | Список процессов (used в таблицах) | При изменении статуса процесса |
 | `SETTINGS_CHANGED` | Изменение `tbl_settings` | При save() через `KaraokeDbTable` |
@@ -69,13 +69,13 @@ SSE (Server-Sent Events) — основной механизм real-time update
 
 ### Anti-pattern: спам одинаковых событий
 
-До фикса [177](../../features/177-fix-process-count-waiting-spam.md) в SSE
+До фикса [177](../features/177-fix-process-count-waiting-spam.md) в SSE
 летели десятки дублей `PROCESS_COUNT_WAITING` (countWaiting=0) в секунду.
 Теперь — только при реальном изменении значения.
 
 ## RenderQueueStalledCheck (heartbeat)
 
-Scheduled job (см. [087-fix-shared-db-connection.md](../../features/087-fix-shared-db-connection.md))
+Scheduled job (см. [087-fix-shared-db-connection.md](../features/087-fix-shared-db-connection.md))
 проверяет, что воркер очереди **не завис**:
 
 ```
@@ -106,12 +106,12 @@ fun check() {
 ## Метрики web-events (Pass N+)
 
 Таблица `tbl_events` собирает события посетителей (для аналитики воронки
-`visitor → premium`, см. [features/187-site-traffic-anomaly-investigation.md](../../features/187-site-traffic-anomaly-investigation.md)).
+`visitor → premium`, см. [features/187-site-traffic-anomaly-investigation.md](../features/187-site-traffic-anomaly-investigation.md)).
 
 Поля:
 - `eventType` — тип (visit/registration/premium_purchase/...)
 - `visitor` — анонимный или авторизованный.
-- `botScore` (0..1) — сегментация ботов (см. [180-og-seo-html.md](../../features/180-og-seo-html.md)).
+- `botScore` (0..1) — сегментация ботов (см. [180-og-seo-html.md](../features/180-og-seo-html.md)).
 - `createdAt`, `durationMs`, `firstChunkMs` — тайминги.
 
 ## Self-healing rules
@@ -123,7 +123,7 @@ fun check() {
 | `countWaiting == 0` долгое время | Ничего (это нормально для простоя) | — |
 | `countWaiting == 0`, но RUNNING процесс есть | Restart HEAVY_RENDER lane | `RenderQueueStalledCheck` |
 | `PROCESS_WORKER_STATE.isWork=false` | Принудительный re-attach | `RenderQueueStalledCheck` |
-| `fatal error: too many clients already` | Ретрай + reseed | см. [087-fix-shared-db-connection.md](../../features/087-fix-shared-db-connection.md) |
+| `fatal error: too many clients already` | Ретрай + reseed | см. [087-fix-shared-db-connection.md](../features/087-fix-shared-db-connection.md) |
 | `docker pause karaoke-db` на 30s | Self-healing при unpause | — |
 | nginx timeout 60s на stream | Клиент ретраит | — |
 
@@ -141,21 +141,21 @@ fun check() {
 | Симптом | Где |
 |---------|-----|
 | Очередь не обрабатывает | `grep PROCESS_WORKER_STATE /var/log/karaoke-app.log` + `RenderQueueStalledCheck` |
-| PostgreSQL «too many clients» | [091-fix-connection-leak.md](../../features/091-fix-connection-leak.md) + `pg_stat_activity` |
+| PostgreSQL «too many clients» | [091-fix-connection-leak.md](../features/091-fix-connection-leak.md) + `pg_stat_activity` |
 | nginx возвращает 502 | `tail /var/log/nginx/error.log` + проверить `karaoke-web` жив |
 | SSE события не приходят | Проверить `/api/subscribe?tabId=...` в DevTools + логи `karaoke-web` |
 | Demucs падает | `/tmp/demucs.log` + `KaraokeProperties.kt` (`DEMUCS_QUALITY`) |
-| Telegram публикация не идёт | [113-telegram-demo-publish.md](../../features/113-telegram-demo-publish.md) + логи `TelegramBotService` |
+| Telegram публикация не идёт | [113-telegram-demo-publish.md](../features/113-telegram-demo-publish.md) + логи `TelegramBotService` |
 
 ## Связанные LiveDocs
 
 - [L3-components.md](L3-components.md) — где SSE Hub и Queue.
 - [queue-lanes.md](queue-lanes.md) — прогресс через stdout.
 - [data-sync.md](data-sync.md) — sync health.
-- [087-fix-shared-db-connection.md](../../features/087-fix-shared-db-connection.md),
-  [088-fix-queue-swallowed-errors.md](../../features/088-fix-queue-swallowed-errors.md),
-  [177-fix-process-count-waiting-spam.md](../../features/177-fix-process-count-waiting-spam.md),
-  [091-fix-connection-leak.md](../../features/091-fix-connection-leak.md).
+- [087-fix-shared-db-connection.md](../features/087-fix-shared-db-connection.md),
+  [088-fix-queue-swallowed-errors.md](../features/088-fix-queue-swallowed-errors.md),
+  [177-fix-process-count-waiting-spam.md](../features/177-fix-process-count-waiting-spam.md),
+  [091-fix-connection-leak.md](../features/091-fix-connection-leak.md).
 
 ## Код
 

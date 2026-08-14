@@ -48,7 +48,7 @@ VK API `wall.post`) **посты, опубликованные ботом, не 
 
 ## Связанные LiveDocs
 
-- Domain: [publishing.md](../publishing.md)
+- Domain: [publishing.md](../domain/publishing.md)
 - Feature: [130-vk-preview-generation.md](../features/130-vk-preview-generation.md) (предыдущая), [151-vk-id-personal-token.md](../features/151-vk-id-personal-token.md) (token VK ID)
 - Architecture: [L1-system-context.md](../architecture/L1-system-context.md)
 

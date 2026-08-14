@@ -38,7 +38,7 @@ related:
 
 ## Связанные LiveDocs
 
-- Domain: [publishing.md](../publishing.md) (publish date / slots)
+- Domain: [publishing.md](../domain/publishing.md) (publish date / slots)
 - Architecture: [L3-components.md](../architecture/L3-components.md)
 
 ## Код

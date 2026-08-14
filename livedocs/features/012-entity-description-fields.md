@@ -51,7 +51,7 @@ related:
 
 ## Связанные LiveDocs
 
-- Domain: [catalog.md](../catalog.md) (Author, Album, Song), [publishing.md](../publishing.md)
+- Domain: [catalog.md](../domain/catalog.md) (Author, Album, Song), [publishing.md](../domain/publishing.md)
 - Feature: [030-add-archive-album-type.md](../features/030-add-archive-album-type.md), [031-add-tribute-cover-album-type.md](../features/031-add-tribute-cover-album-type.md)
 
 ## Код

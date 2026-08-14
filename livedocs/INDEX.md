@@ -92,10 +92,10 @@ Bounded contexts проекта Karaoke + ubiquitous language glossary.
 ## Связь с другими документами
 
 - **Спеки фич (drill-down)**: [`../../specs/`](../../specs/) (полные SDD-документы).
-- **AGENTS.md (governance)**: [`../../AGENTS.md`](../../AGENTS.md) — общие правила для AI-агентов.
-- **Constitution (принципы)**: [`../../.specify/memory/constitution.md`](../../.specify/memory/constitution.md) — NON-NEGOTIABLE принципы.
-- **Per-feature документы (legacy)**: [`../../docs/features/`](../../docs/features/) — старые drill-down документы.
-- **Стратегия роста**: [`../../docs/strategy/growth.md`](../../docs/strategy/growth.md).
+- **AGENTS.md (governance)**: [`../AGENTS.md`](../AGENTS.md) — общие правила для AI-агентов.
+- **Constitution (принципы)**: [`../.specify/memory/constitution.md`](../.specify/memory/constitution.md) — NON-NEGOTIABLE принципы.
+- **Per-feature документы (legacy)**: [`../docs/features/`](../docs/features/) — старые drill-down документы.
+- **Стратегия роста**: [`../docs/strategy/growth.md`](../docs/strategy/growth.md).
 
 ## Когда обновлять INDEX
 

@@ -49,7 +49,7 @@ related:
 
 ## Связанные LiveDocs
 
-- Domain: [catalog.md](../catalog.md) (Song: `flag*` поля), [publishing.md](../publishing.md) (флаги публикации по платформам)
+- Domain: [catalog.md](../domain/catalog.md) (Song: `flag*` поля), [publishing.md](../domain/publishing.md) (флаги публикации по платформам)
 - Architecture: [L3-components.md](../architecture/L3-components.md) (контроллер + DTO)
 
 ## Код

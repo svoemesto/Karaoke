@@ -69,6 +69,6 @@ related:
 
 ## Связанные документы
 
-- [AGENTS.md](../../../../AGENTS.md) — иерархия документов.
+- [AGENTS.md](../../AGENTS.md) — иерархия документов.
 - [livedocs/README.md](../../README.md) — корневой манифест LiveDocs.
-- [livedocs/INDEX.md](../../INDEX.md) — карта слоёв.
+- [livedocs/INDEX.md](../INDEX.md) — карта слоёв.

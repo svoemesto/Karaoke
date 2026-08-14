@@ -68,7 +68,7 @@ grep -rn "KaraokeProcessThread(" karaoke-app/src/main/kotlin
 grep -rn "releaseForThisThread" karaoke-app/src/main/kotlin | wc -l  # должно совпадать
 ```
 
-**Корневая причина** (см. [features/091-fix-connection-leak.md](../../features/091-fix-connection-leak.md)):
+**Корневая причина** (см. [features/091-fix-connection-leak.md](../features/091-fix-connection-leak.md)):
 - Одноразовые потоки (`KaraokeProcessThread` per task) — должны вызывать
   `KaraokeConnection.releaseForThisThread()` в `finally`. Если не вызывают
   → утечка.
@@ -113,7 +113,7 @@ docker logs karaoke-app --tail 100 | grep "PROCESS_COUNT_WAITING" | tail -10
 
 - LiveDocs: [architecture/dual-db-access.md](../architecture/dual-db-access.md) —
   ThreadLocal + releaseForThisThread.
-- LiveDocs feature: [091-fix-connection-leak.md](../../features/091-fix-connection-leak.md) —
+- LiveDocs feature: [091-fix-connection-leak.md](../features/091-fix-connection-leak.md) —
   оригинальный баг-репорт.
 - [architecture/observability.md](../architecture/observability.md) — куда
   смотреть при сбое.

@@ -42,7 +42,7 @@ LOCAL↔REMOTE / переход на конкретную страницу.
 
 ## Связанные LiveDocs
 
-- Domain: [publishing.md](../publishing.md) (news lifecycle)
+- Domain: [publishing.md](../domain/publishing.md) (news lifecycle)
 - Feature: [090-news-pagination.md](../features/090-news-pagination.md) (базовая пагинация)
 
 ## Код

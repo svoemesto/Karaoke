@@ -43,7 +43,7 @@ related:
 
 ## Связанные LiveDocs
 
-- Domain: [publishing.md](../publishing.md)
+- Domain: [publishing.md](../domain/publishing.md)
 - Feature: [093-news-pagination-top-35.md](../features/093-news-pagination-top-35.md) (admin-вариант)
 
 ## Код

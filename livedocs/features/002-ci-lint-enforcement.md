@@ -3,7 +3,6 @@ status: Active
 slug: 002-ci-lint-enforcement
 related:
   - ../architecture/L1-system-context.md
-  - ../features/189-livedocs-ci-gate.md
   - ../../specs/002-ci-lint-enforcement/spec.md
 ---
 
@@ -41,7 +40,6 @@ PR + CI 7/7 (теперь 8/8 — добавлен `livedocs-structure`).
 ## Связанные LiveDocs
 
 - Architecture: [L1-system-context.md](../architecture/L1-system-context.md) (GitHub Actions)
-- Feature: `189-livedocs-ci-gate.md` (LiveDocs job добавлен)
 
 ## Код
 

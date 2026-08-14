@@ -50,7 +50,7 @@ related:
 
 ## Связанные LiveDocs
 
-- Domain: [catalog.md](../catalog.md), [editorial.md](../editorial.md), [processing.md](../processing.md)
+- Domain: [catalog.md](../domain/catalog.md), [editorial.md](../domain/editorial.md), [processing.md](../domain/processing.md)
 - Architecture: [L3-components.md](../architecture/L3-components.md) (Queue + Async)
 
 ## Код

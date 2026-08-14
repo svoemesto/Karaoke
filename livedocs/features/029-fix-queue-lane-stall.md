@@ -45,7 +45,7 @@ related:
 
 ## Связанные LiveDocs
 
-- Domain: [processing.md](../processing.md) (queue)
+- Domain: [processing.md](../domain/processing.md) (queue)
 - Feature: [087-fix-shared-db-connection.md](../features/087-fix-shared-db-connection.md)
 - Architecture: [queue-lanes.md](../architecture/queue-lanes.md)
 

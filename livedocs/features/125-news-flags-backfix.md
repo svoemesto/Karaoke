@@ -42,7 +42,7 @@ default `false` → kill-switch **всегда выключен** → лавин
 
 ## Связанные LiveDocs
 
-- Domain: [publishing.md](../publishing.md) (news lifecycle), [data-sync.md](../architecture/data-sync.md) (`tbl_public_settings` синхронизация)
+- Domain: [publishing.md](../domain/publishing.md) (news lifecycle), [data-sync.md](../architecture/data-sync.md) (`tbl_public_settings` синхронизация)
 - Feature: [124-filename-sanitization-rename.md](../features/124-filename-sanitization-rename.md)
 
 ## Код

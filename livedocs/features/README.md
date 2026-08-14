@@ -6,6 +6,11 @@
 
 | Файл | Что делает | Drill-down |
 |------|------------|------------|
+| [144-homepage-latest-news.md](144-homepage-latest-news.md) | Компактная таблица «последние 5 новостей» на главной | [specs/144-.../spec.md](../../specs/144-homepage-latest-news/spec.md) |
+| [151-vk-id-personal-token.md](151-vk-id-personal-token.md) | Миграция на VK ID для персонального токена | [specs/151-.../spec.md](../../specs/151-vk-id-personal-token/spec.md) |
+| [152-fix-false-collection-news.md](152-fix-false-collection-news.md) | Ложное срабатывание новости «в коллекции» после sync | [specs/152-.../spec.md](../../specs/152-fix-false-collection-news/spec.md) |
+| [154-editor-tasks-manage.md](154-editor-tasks-manage.md) | Управление заданиями в ЛК + админке | [specs/154-.../spec.md](../../specs/154-editor-tasks-manage/spec.md) |
+| [155-editor-typograph-button.md](155-editor-typograph-button.md) | Кнопка «Типограф» в онлайн-редакторе | [specs/155-.../spec.md](../../specs/155-editor-typograph-button/spec.md) |
 | [156-remove-songs-table-platform-flags.md](156-remove-songs-table-platform-flags.md) | Удалить 18 столбцов-флагов публикации из «Песни» | [specs/156-.../spec.md](../../specs/156-remove-songs-table-platform-flags/spec.md) |
 | [160-publish-body-td-remove-six-columns.md](160-publish-body-td-remove-six-columns.md) | Чистка PublishTableBodyTd + удаление processColor* из DTO | [specs/160-.../spec.md](../../specs/160-publish-body-td-remove-six-columns/spec.md) |
 | [162-fix-header-stale-premium-status.md](162-fix-header-stale-premium-status.md) | Устаревший premium-статус в шапке | [specs/162-.../spec.md](../../specs/162-fix-header-stale-premium-status/spec.md) |

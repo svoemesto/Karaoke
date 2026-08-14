@@ -6,6 +6,9 @@ related:
   - ../domain/catalog.md
   - ../features/094-fix-approve-news-failure.md
   - ../features/089-auto-news-song-release.md
+  - ../features/124-news-flags-backfill.md
+  - ../architecture/monetization.md
+  - ../architecture/censoring.md
   - ../../specs/092-fix-auto-news-triggers/spec.md
 ---
 

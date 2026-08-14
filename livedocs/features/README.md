@@ -6,6 +6,11 @@
 
 | Файл | Что делает | Drill-down |
 |------|------------|------------|
+| [017-editor-status-bypass.md](017-editor-status-bypass.md) | Редактор видит все песни независимо от статуса | [specs/017-.../spec.md](../../specs/017-editor-status-bypass/spec.md) |
+| [018-fix-album-name-year-grouping.md](018-fix-album-name-year-grouping.md) | Закрома: альбомы с одинаковым именем и разными годами | [specs/018-.../spec.md](../../specs/018-fix-album-name-year-grouping/spec.md) |
+| [019-fix-setcontent-resets-position.md](019-fix-setcontent-resets-position.md) | setContent/setOptions сбрасывают позиции маркеров | [specs/019-.../spec.md](../../specs/019-fix-setcontent-resets-position/spec.md) |
+| [020-fix-search-lyrics-autofill.md](020-fix-search-lyrics-autofill.md) | Автоподстановка найденного текста песни | [specs/020-.../spec.md](../../specs/020-fix-search-lyrics-autofill/spec.md) |
+| [021-dev-pc-agent-permissions.md](021-dev-pc-agent-permissions.md) | Unrestricted agent permissions on dev-pc | [specs/021-.../spec.md](../../specs/021-dev-pc-agent-permissions/spec.md) |
 | [022-song-status-lifecycle.md](022-song-status-lifecycle.md) | Расширенный жизненный цикл статусов готовности | [specs/022-.../spec.md](../../specs/022-song-status-lifecycle/spec.md) |
 | [023-songs-audio-root-column.md](023-songs-audio-root-column.md) | Колонка audio_parent_id в таблице песен | [specs/023-.../spec.md](../../specs/023-songs-audio-root-column/spec.md) |
 | [029-fix-queue-lane-stall.md](029-fix-queue-lane-stall.md) | Устранение зависания очереди по лейнам | [specs/029-.../spec.md](../../specs/029-fix-queue-lane-stall/spec.md) |

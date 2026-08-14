@@ -14,6 +14,8 @@ import jakarta.servlet.http.HttpServletRequest
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 
 /**
  * «Избранное» и «Плейлисты» пользователя публичного сайта. Весь класс под путём account,
@@ -46,6 +48,37 @@ class PublicPlaylistController(
         id: Long,
         ownerId: Long,
     ): SitePlaylist? = SitePlaylist.getById(id, db, storageService, storageApiClient)?.takeIf { it.ownerId == ownerId }
+
+    // ---- Превью картинок альбома/автора (FR-006, см. spec.md) -----------------------------------
+    //
+    // Прямой URL на MinIO через nginx-прокси `/minio/karaoke/<encoded>` — паттерн миграции Pass 50
+    // (см. AuthorTilePublicDto.fromAuthorName, PublicPlayerController.pictureAlbumStorageKey).
+    // Минует Spring-контроллер /api/public/picture?file=... (200+ редиректов), кэшируется nginx
+    // с `Cache-Control: public, max-age=86400`. Если файла в MinIO нет — фронт по `@error`
+    // показывает CSS-плейсхолдер (Acceptance US2.2/3), никаких HEAD-проверок на бэкенде.
+
+    /**
+     * Прямой URL на превью-картинку **автора** в MinIO.
+     * Ключ: `${author}/${author}.preview.author.png` (см. `Pictures.storageFileNamePreview`).
+     */
+    private fun authorPreviewUrl(author: String): String {
+        if (author.isBlank()) return ""
+        val key = "$author/$author.preview.author.png"
+        val encoded = URLEncoder.encode(key, StandardCharsets.UTF_8).replace("+", "%20")
+        return "/minio/karaoke/$encoded"
+    }
+
+    /**
+     * Прямой URL на превью-картинку **альбома** в MinIO.
+     * Ключ: `${author}/${year} - ${album}/${author} - ${year} - ${album}.preview.album.png`
+     * (см. `Song.pictureNameAlbum`, `PublicPlayerController.pictureAlbumStorageKey`).
+     */
+    private fun albumPreviewUrl(song: Song): String {
+        if (song.author.isBlank() || song.album.isBlank()) return ""
+        val key = "${song.author}/${song.year} - ${song.album}/${song.author} - ${song.year} - ${song.album}.preview.album.png"
+        val encoded = URLEncoder.encode(key, StandardCharsets.UTF_8).replace("+", "%20")
+        return "/minio/karaoke/$encoded"
+    }
 
     // Персональные лимиты (поля tbl_site_users, 0 = дефолт) перекрывают дефолты.
     private fun favoritesLimit(user: SiteUser): Int =
@@ -126,6 +159,8 @@ class PublicPlaylistController(
                     author = s?.author ?: "",
                     album = s?.album ?: "",
                     year = s?.year ?: 0,
+                    albumPictureUrl = if (s != null) albumPreviewUrl(s) else "",
+                    authorPictureUrl = if (s != null) authorPreviewUrl(s.author) else "",
                 )
             }
         return ResponseEntity.ok(

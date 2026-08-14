@@ -93,23 +93,59 @@
 - Проверяет ВНЕШНИЕ ссылки (https://, ...) в LiveDocs через lychee в `--offline`.
 - `advisory` (continue-on-error=true). Strict в Pass 17+.
 
+## 2026-08-14 — depth #42 (Final Phase спеки 189)
+
+- **Closed**: спека `189-live-documentation` — все 51 задача выполнены.
+- **Updated**: `AGENTS.md` сокращён со 101 до 100 строк (объединение 2 строк
+  header-блока в 1) — для соответствия SC-002 (≤100).
+- **Updated**: `AGENTS.md` Q&A секция переименована в «Q&A — где искать
+  актуальные знания о проекте?» с явной ссылкой на `[LiveDocs](livedocs/README.md)`.
+- **Updated**: `specs/189-live-documentation/tasks.md` — все 51 задача T001-T051
+  отмечены как `[x]` (выполнены).
+
+## 2026-08-14 — Follow-up #43 (gap-fill: 016/124/125)
+
+- **Added**: 3 SDD-сводки для фич master, которые не получили LiveDoc при
+  первой миграции:
+  - `livedocs/features/016-fix-spec-tags-marker-loss-on-reopen.md` —
+    спецтеги: сохранение маркеров после `Apply → Save → reopen`.
+  - `livedocs/features/124-news-flags-backfill.md` — backfill флагов
+    публикаций готовых песен без создания новостей.
+  - `livedocs/features/125-player-status-gate.md` — доступность плеера
+    в таблице «Песни» при статусе ≥4.
+- **Updated**: `livedocs/features/README.md` — добавлены 016/124/125/190
+  в таблицу-содержимое.
+- **Updated**: `livedocs/INDEX.md` — добавлены 016/124/125 в
+  selected-features-список.
+- PR #316.
+
+## 2026-08-14 — Follow-up #44 (topic share-link)
+
+- **Added**: `livedocs/architecture/share-link.md` — drill-down для всего
+  паттерна временных ссылок (фичи 164/166/167/169/171/172 ссылались на
+  разные аспекты, но не было единого места для архитектурного обзора).
+- **Updated**: `livedocs/architecture/README.md` — добавлен в таблицу
+  тематических topic-документов.
+- **Updated**: `livedocs/INDEX.md` — добавлен в selected-topic-список.
+- PR #318.
+
 ## Состояние на сегодня
 
 | Метрика | Значение |
 |---------|----------|
-| **Фичи в `features/`** | 84 |
+| **Фичи в `features/`** | 88 |
 | **Bounded contexts в `domain/`** | 7 |
 | **C4 уровни** | 3 (L1, L2, L3) |
-| **Topic-документов в `architecture/`** | 11 |
-| **ADR** | 6 |
-| **Runbooks** | 7 (README + 6 how-to) |
+| **Topic-документов в `architecture/`** | 12 |
+| **ADR** | 13 |
+| **Runbooks** | 8 (README + 7 how-to) |
 | **Шаблонов в `templates/`** | 6 |
-| **`frontmatter`-файлов (с валидным frontmatter)** | 107 |
-| **`total .md` файлов** | ~120 |
-| **Cross-links valid** | 814 |
+| **`frontmatter`-файлов (с валидным frontmatter)** | 112 |
+| **`total .md` файлов** | ~125 |
+| **Cross-links valid** | 861 |
 | **Broken references** | 0 |
 | **AGENTS.md** | ≤ 100 строк ✓ |
-| **CI проверок LiveDocs** | 7/7 + cross-links 0/814 broken + lychee advisory |
+| **CI проверок LiveDocs** | 7/7 + cross-links 0/861 broken + lychee strict |
 | **Миграция покрытия спек** | 100% (все 75+ уникальных) |
 
 ## Как использовать этот changelog

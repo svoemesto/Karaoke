@@ -3,7 +3,10 @@ status: Active
 slug: 090-news-pagination
 related:
   - ../domain/publishing.md
+  - ../domain/stats.md
   - ../features/093-news-pagination-top-35.md
+  - ../features/089-auto-news-song-release.md
+  - ../features/094-fix-approve-news-failure.md
   - ../architecture/L3-components.md
   - ../../specs/090-news-pagination/spec.md
 ---

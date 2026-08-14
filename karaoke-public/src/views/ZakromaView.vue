@@ -273,7 +273,7 @@
                     <col />
                     <col style="width: 220px" />
                     <col style="width: 24px" />
-                    <col style="width: 24px" />
+                    <col style="width: 48px" />
                     <col style="width: 26px" />
                     <col style="width: 26px" />
                   </colgroup>

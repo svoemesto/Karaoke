@@ -6,6 +6,11 @@
 
 | Файл | Что делает | Drill-down |
 |------|------------|------------|
+| [013-song-status-filter.md](013-song-status-filter.md) | Показ на проде только песен со статусом ≥3 | [specs/013-.../spec.md](../../specs/013-song-status-filter/spec.md) |
+| [014-album-cell-album-cover-modal.md](014-album-cell-album-cover-modal.md) | Альбомы: клик по ячейке открывает модалку обложки | [specs/014-.../spec.md](../../specs/014-album-cell-album-cover-modal/spec.md) |
+| [014-lyrics-search-replacement.md](014-lyrics-search-replacement.md) | Замена поискового движка SearXNG | [specs/014-.../spec.md](../../specs/014-lyrics-search-replacement/spec.md) |
+| [015-search-engine-selection.md](015-search-engine-selection.md) | Выбор поискового движка (тексты + обложки) | [specs/015-.../spec.md](../../specs/015-search-engine-selection/spec.md) |
+| [018-fix-spec-tag-markers-at-zero.md](018-fix-spec-tag-markers-at-zero.md) | Spec-tag маркеры в нулевой позиции | [specs/018-fix-spec-tag-markers-at-zero/spec.md) |
 | [017-editor-status-bypass.md](017-editor-status-bypass.md) | Редактор видит все песни независимо от статуса | [specs/017-.../spec.md](../../specs/017-editor-status-bypass/spec.md) |
 | [018-fix-album-name-year-grouping.md](018-fix-album-name-year-grouping.md) | Закрома: альбомы с одинаковым именем и разными годами | [specs/018-.../spec.md](../../specs/018-fix-album-name-year-grouping/spec.md) |
 | [019-fix-setcontent-resets-position.md](019-fix-setcontent-resets-position.md) | setContent/setOptions сбрасывают позиции маркеров | [specs/019-.../spec.md](../../specs/019-fix-setcontent-resets-position/spec.md) |

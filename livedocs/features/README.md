@@ -6,6 +6,11 @@
 
 | Файл | Что делает | Drill-down |
 |------|------------|------------|
+| [090-news-pagination.md](090-news-pagination.md) | Пагинация ленты новостей | [specs/090-.../spec.md](../../specs/090-news-pagination/spec.md) |
+| [091-fix-connection-leak.md](091-fix-connection-leak.md) | Устранить утечку JDBC от одноразовых потоков | [specs/091-.../spec.md](../../specs/091-fix-connection-leak/spec.md) |
+| [092-fix-auto-news-triggers.md](092-fix-auto-news-triggers.md) | Триггеры авто-новостей независимо от sync | [specs/092-.../spec.md](../../specs/092-fix-auto-news-triggers/spec.md) |
+| [093-news-pagination-top-35.md](093-news-pagination-top-35.md) | Пагинация НАД таблицей, ≤35 строк | [specs/093-.../spec.md](../../specs/093-news-pagination-top-35/spec.md) |
+| [094-fix-approve-news-failure.md](094-fix-approve-news-failure.md) | Approve: ошибка «Ошибка запроса», новость не появляется | [specs/094-.../spec.md](../../specs/094-fix-approve-news-failure/spec.md) |
 | [100-audio-similarity-threshold.md](100-audio-similarity-threshold.md) | Повышение порога аудио-похожести (85→95) | [specs/100-.../spec.md](../../specs/100-audio-similarity-threshold/spec.md) |
 | [101-audio-transpose-player.md](101-audio-transpose-player.md) | Транспонирование аудио в онлайн-плеере (админка) | [specs/101-.../spec.md](../../specs/101-audio-transpose-player/spec.md) |
 | [101-song-news-flag.md](101-song-news-flag.md) | Флаг «песня доступна» + очистка ленты | [specs/101-.../spec.md](../../specs/101-song-news-flag/spec.md) |

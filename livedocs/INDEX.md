@@ -39,6 +39,9 @@ SDD-сводки существующих фич (1-2 страницы кажд�
 | [`185-song-dto-audit-sponsr-remove.md`](features/185-song-dto-audit-sponsr-remove.md) | Аудит Song DTO, удаление спонсорских полей |
 | [`186-zakroma-songs-fast-load.md`](features/186-zakroma-songs-fast-load.md) | Оптимизация загрузки песен в Закромах |
 | [`187-site-traffic-anomaly-investigation.md`](features/187-site-traffic-anomaly-investigation.md) | Расследование аномалии трафика сайта |
+| [`016-fix-spec-tags-marker-loss-on-reopen.md`](features/016-fix-spec-tags-marker-loss-on-reopen.md) | Спецтеги: сохранение маркеров после `Apply → Save → reopen` |
+| [`124-news-flags-backfill.md`](features/124-news-flags-backfill.md) | Backfill флагов публикаций готовых песен без создания новостей |
+| [`125-player-status-gate.md`](features/125-player-status-gate.md) | Доступность плеера в таблице «Песни» при статусе ≥4 |
 | [`190-playlist-play-button-and-stems-cancel.md`](features/190-playlist-play-button-and-stems-cancel.md) | Плейлисты: запуск с любой песни + превью альбома/автора + фикс задвоения вейвформ |
 
 ### DDD — `livedocs/domain/`

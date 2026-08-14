@@ -93,6 +93,10 @@
 | [185-song-dto-audit-sponsr-remove.md](185-song-dto-audit-sponsr-remove.md) | Аудит Song DTO, удаление спонсорских полей | [specs/185-.../spec.md](../../specs/185-song-dto-audit-sponsr-remove/spec.md) |
 | [186-zakroma-songs-fast-load.md](186-zakroma-songs-fast-load.md) | Оптимизация загрузки песен в Закромах | [specs/186-.../spec.md](../../specs/186-zakroma-songs-fast-load/spec.md) |
 | [187-site-traffic-anomaly-investigation.md](187-site-traffic-anomaly-investigation.md) | Расследование аномалии трафика сайта | [specs/187-.../spec.md](../../specs/187-site-traffic-anomaly-investigation/spec.md) |
+| [016-fix-spec-tags-marker-loss-on-reopen.md](016-fix-spec-tags-marker-loss-on-reopen.md) | Спецтеги: сохранение маркеров после `Apply → Save → reopen` | [specs/016-.../spec.md](../../specs/016-fix-spec-tags-marker-loss-on-reopen/spec.md) |
+| [124-news-flags-backfill.md](124-news-flags-backfill.md) | Backfill флагов публикаций готовых песен без создания новостей | [specs/124-.../spec.md](../../specs/124-news-flags-backfill/spec.md) |
+| [125-player-status-gate.md](125-player-status-gate.md) | Доступность плеера в таблице «Песни» при статусе ≥4 | [specs/125-.../spec.md](../../specs/125-player-status-gate/spec.md) |
+| [190-playlist-play-button-and-stems-cancel.md](190-playlist-play-button-and-stems-cancel.md) | Плейлисты: запуск с любой песни + превью + фикс вейвформ | [specs/190-.../spec.md](../../specs/190-playlist-play-button-and-stems-cancel/spec.md) |
 
 ## Конвенции
 

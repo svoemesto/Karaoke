@@ -195,9 +195,9 @@ window.addEventListener('message', (e) => {
 
 ### Ловушки
 
-- **`'*'` targetOrigin** — для прода должно быть `'https://karaoke.example'`,
-  чтобы третий сайт не мог слать команды. Для локальной разработки —
-  `'*'` (иначе cross-origin на `localhost:8080` → `localhost:8081`).
+- **`'*'` targetOrigin** — для прода должно быть `'http://localhost'` (placeholder — заменить
+  на реальный домен в проде), чтобы третий сайт не мог слать команды. Для локальной
+  разработки — `'*'` (иначе cross-origin на `localhost:8080` → `localhost:8081`).
 - **`e.source !== window.parent`** — iframe может быть вложен в чужой
   iframe; проверять `e.source === window.parent`.
 - **Без `try/catch`** — `postMessage` может бросить `DOMException` если

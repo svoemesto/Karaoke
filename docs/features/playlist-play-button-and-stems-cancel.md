@@ -80,6 +80,10 @@ Handler `playid` уже существует в `PlayerView.vue:139-141` — о�
 горизонтальное с аспектом **5:2** (width 120px × height 48px, т.е. 5:2.5 ≈ 5:2 при округлении
 до 5px сетки). Превью **альбома** — квадрат 48×48.
 
+**Высота строки** (уточнено пользователем 2026-08-14): `.km-song-row` имеет
+`padding: 5px` сверху/снизу (10px суммарно) для более плотного списка плейлиста.
+Горизонтальный padding `0.7rem` (~11px) оставлен без изменений.
+
 Backend (`PublicPlaylistController.playlistDetail()`) теперь возвращает для каждого `items[i]`
 два дополнительных поля:
 
@@ -163,6 +167,61 @@ HTTP-запросы на каждый рендер плейлиста (premium �
 - Sync LOCAL ↔ SERVER: новые поля не аннотированы `@KaraokeDbTableField` → не пишутся в БД →
   не входят в `recordhash` → sync не затрагивается (Constitution III, data-model.md
   §Sync implications).
+
+## Инварианты
+
+- postMessage-канал между `PlaylistEditView` и `PlayerView` (iframe) открывается **только**
+  после `started.value === true` (реактивное условие рендера iframe). До этого `send()`
+  молча игнорирует сообщения (`playerIframe.value === null`). Клик ▶ в строке **до** запуска
+  плеера должен пройти через `startPlaylist(item.songId)` — он реактивно создаёт iframe.
+- `decodeAudioData` (Web Audio API) **не** поддерживает `AbortController`. Promise всё равно
+  зарезолвится; поэтому после decode явный guard `if (signal?.aborted) return null`,
+  и `_loadAudio` не перезаписывает `accBuffer`/`vocBuffer` отменённой загрузкой.
+- Формулы URL превью (`/minio/karaoke/<encoded>` по storage-ключу) — **предсказуемые строки**,
+  никаких SQL-lookup; если файла нет в MinIO — фронт по `@error` показывает CSS-плейсхолдер
+  (иконка ♪/👤). Тот же плейсхолдер при пустом URL от бэкенда (FR-005).
+- `_activeAbortController` создаётся в **каждом** `init()` (включая single-song) — но в
+  single-song режиме `playSong()` НЕ вызывается, поэтому abort фактически никогда не
+  срабатывает (кроме `destroy()`). Нет регрессии (FR-012).
+- Новые поля DTO (`albumPictureUrl`, `authorPictureUrl`) — **transient** (без
+  `@KaraokeDbTableField`), не пишутся в БД → не участвуют в `recordhash` sync (Constitution III).
+- Drag-drop сразу после клика ▶ использует `setTimeout(50ms)` для `setqueue`, чтобы не
+  перетереть свежую очередь, поставленную плеером в `playPos()` (FR-010).
+
+## Известные ловушки
+
+- **Не использовать `@KaraokeDbTableField` для новых полей** — иначе они попадут в
+  `recordhash` и сломают синхронизацию `tbl_site_playlist_items` (sync пойдёт по несуществующим
+  колонкам БД и провалится с SQL-ошибкой).
+- **Не проверять `existsInMinIO` на бэкенде** (HEAD через nginx-прокси) для превью —
+  удваивает HTTP-запросы на каждый рендер плейлиста (premium до 200 песен = до 400 лишних
+  HEAD). Полагаемся на `@error` fallback во фронте.
+- **Не использовать `songPictureUrl` из `SongPublicDto`** для превью альбома в плейлисте —
+  он ходит через Spring-контроллер (`/api/public/song-picture/{id}`) с лишним 302-redirect
+  и не использует предсказуемый storage-ключ альбома. Прямой URL на MinIO (Pass 50)
+  короче и кэшируется nginx.
+- **В `init()`** при обработке картинок (`_loadImage` через `new Image()`) — НЕ пробрасывать
+  `signal` (Image API его не поддерживает). Вместо этого — guard
+  `if (signal.aborted) return` **до** `_loadImage()`; результат `_loadImage` (Promise) сам
+  отменится при переходе на следующий трек (не критично).
+- **При spam-click по ▶** в `onSongPlay` — НЕ вызывать `pushQueue()` синхронно после `send('playid')`,
+  очередь формируется плеером внутри `playPos()`. Иначе старая `setqueue` перетрёт новую.
+- **`fetchPlayerToken`** вызывается в `startPlaylist` — только ОДИН раз (на стартовую песню).
+  Токены на остальные песни в очереди плеер запрашивает сам через `need-token` postMessage
+  (handler `PlaylistEditView.vue:onMessage`).
+
+## Ссылки
+
+- Спека: [`specs/190-playlist-play-button-and-stems-cancel/spec.md`](../../specs/190-playlist-play-button-and-stems-cancel/spec.md)
+- План: [`specs/190-playlist-play-button-and-stems-cancel/plan.md`](../../specs/190-playlist-play-button-and-stems-cancel/plan.md)
+- Research: [`specs/190-playlist-play-button-and-stems-cancel/research.md`](../../specs/190-playlist-play-button-and-stems-cancel/research.md)
+- Data model: [`specs/190-playlist-play-button-and-stems-cancel/data-model.md`](../../specs/190-playlist-play-button-and-stems-cancel/data-model.md)
+- API-контракт: [`specs/190-playlist-play-button-and-stems-cancel/contracts/api-public-playlist-detail.md`](../../specs/190-playlist-play-button-and-stems-cancel/contracts/api-public-playlist-detail.md)
+- Quickstart (ручные сценарии): [`specs/190-playlist-play-button-and-stems-cancel/quickstart.md`](../../specs/190-playlist-play-button-and-stems-cancel/quickstart.md)
+- LiveDoc: [`livedocs/features/190-playlist-play-button-and-stems-cancel.md`](../../livedocs/features/190-playlist-play-button-and-stems-cancel.md)
+- Domain: [`livedocs/domain/publishing.md`](../../livedocs/domain/publishing.md), [`livedocs/domain/rendering.md`](../../livedocs/domain/rendering.md)
+- Architecture: [`livedocs/architecture/webvue3-patterns.md`](../../livedocs/architecture/webvue3-patterns.md)
+- Связанный LiveDoc (тот же плеер): [`livedocs/features/101-audio-transpose-player.md`](../../livedocs/features/101-audio-transpose-player.md)
 
 ## Сценарии ручной проверки
 

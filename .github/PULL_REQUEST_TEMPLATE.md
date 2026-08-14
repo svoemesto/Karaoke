@@ -38,6 +38,21 @@
 - [ ] `./tools/verify-doc-links.sh docs/features/ CONTRIBUTING.md` — 0 errors.
 - [ ] `./tools/check-feature-doc.sh docs/features/*.md` — 0 errors.
 
+### LiveDocs (FR-014, см. [livedocs/README.md](./livedocs/README.md))
+
+- [ ] Если меняется bounded context (`Song`, `Album`, `KaraokeVideo`, и т.п.) —
+      `livedocs/domain/<context>.md` обновлён/создан в этом же PR.
+- [ ] Если меняется C4 уровень (новый контейнер/компонент) — `livedocs/architecture/L<n>.md` обновлён.
+- [ ] Если добавляется новая фича — `livedocs/features/<NNN-slug>.md` создан по
+      [livedocs/templates/feature-summary.md](./livedocs/templates/feature-summary.md).
+- [ ] `bash tools/check-livedocs-structure.sh` — **7/7 PASS**.
+- [ ] `bash tools/check-livedocs-cross-links.sh` — **0 broken** (818+ cross-links).
+- [ ] `bash tools/check-livedocs-external-links.sh` — **0 broken** (strict mode).
+- [ ] `bash tools/check-livedocs-coverage.sh` — coverage не уменьшилось.
+- [ ] `bash tools/check-md-structure.sh` — 0 issues.
+- [ ] `bash tools/validate-mermaid.sh` — 0 issues (если есть mermaid-блоки).
+- [ ] `bash tools/test-livedocs.sh` — все self-tests PASS.
+
 ### Constitution Check
 
 - [ ] Все 6 принципов в `.specify/memory/constitution.md` (I-VI) соблюдены.

@@ -1335,14 +1335,22 @@ export default class KaraokePlayer {
     // допишется от уже отменённого запроса (FR-011).
     const signal = this._activeAbortController.signal
     const [accBuf, vocBuf] = await Promise.all([
-      this._fetchAudio(this.data.audioAccompanimentUrl, (r, t) => {
-        prog.acc = { received: r, total: t }
-        updateProgress()
-      }, signal),
-      this._fetchAudio(this.data.audioVocalsUrl, (r, t) => {
-        prog.voc = { received: r, total: t }
-        updateProgress()
-      }, signal),
+      this._fetchAudio(
+        this.data.audioAccompanimentUrl,
+        (r, t) => {
+          prog.acc = { received: r, total: t }
+          updateProgress()
+        },
+        signal,
+      ),
+      this._fetchAudio(
+        this.data.audioVocalsUrl,
+        (r, t) => {
+          prog.voc = { received: r, total: t }
+          updateProgress()
+        },
+        signal,
+      ),
     ])
     this.accBuffer = accBuf
     this.vocBuffer = vocBuf

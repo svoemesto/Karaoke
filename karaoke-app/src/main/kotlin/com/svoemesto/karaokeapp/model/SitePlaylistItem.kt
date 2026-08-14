@@ -53,6 +53,14 @@ class SitePlaylistItem(
     @KaraokeDbTableField(name = "last_update", useInDiff = false)
     var lastUpdate: Timestamp? = null
 
+    // Transient-поля (НЕ аннотированы @KaraokeDbTableField ⇒ не пишутся в БД ⇒ не участвуют в
+    // recordhash-diff синхронизации). Заполняются контроллером PublicPlaylistController.playlistDetail()
+    // по предсказуемым storage-ключам MinIO (Pass 50, прямой nginx-прокси). Нужны фронту для превью
+    // картинки альбома/автора в строке плейлиста (FR-005/FR-006, см. spec.md и
+    // docs/features/playlist-play-button-and-stems-cancel.md).
+    var albumPictureUrl: String = ""
+    var authorPictureUrl: String = ""
+
     override fun compareTo(other: SitePlaylistItem): Int = compareValuesBy(this, other, { it.position }, { it.id })
 
     override fun toDTO(): SitePlaylistItemDto =
@@ -62,6 +70,8 @@ class SitePlaylistItem(
             songId = songId,
             position = position,
             muted = muted,
+            albumPictureUrl = albumPictureUrl,
+            authorPictureUrl = authorPictureUrl,
         )
 
     companion object {

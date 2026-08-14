@@ -2118,3 +2118,54 @@ async, `currentLink = null` стартовое значение → Vue ренд
 - [specs/187-site-traffic-anomaly-investigation/quickstart.md](../../specs/187-site-traffic-anomaly-investigation/quickstart.md) — 10 ручных сценариев валидации.
 - [docs/features/site-traffic-resilience.md](../features/site-traffic-resilience.md) — новый per-feature документ.
 
+
+---
+
+## 2026-08 — Pass 62: Live Documentation (LiveDocs)
+
+> **Цель фичи.** Внедрить единый актуальный каталог знаний о проекте для AI-агентов и разработчиков. Сократить стартовый контекст AI-агента с ~40K токенов до ≤ 5K, устранить дублирование между AGENTS.md / constitution.md / per-feature документами, дать разработчику быстрый (≤ 30 сек) поиск описания любого модуля.
+
+### 2026-08-14 — `189-live-documentation`
+
+**Что.** Внедрение `LiveDocs` — системы из 3 слоёв (SDD / DDD / C4) в общем каркасе `livedocs/`:
+
+- **Структура** (Phase 1+2): директории `livedocs/{features,domain,architecture,templates}/` + манифесты (`README.md`, `INDEX.md`, README-индексы для каждого слоя) + 5 шаблонов для новых записей.
+- **SDD слой** (Phase 4): 5 сводок фич (182, 184, 185, 186, 187) в `livedocs/features/` с drill-down на исходные спеки.
+- **DDD слой** (Phase 5): 5 bounded contexts (catalog, processing, publishing, identity, editorial) с Aggregate Roots и Ubiquitous Language glossary.
+- **C4 слой** (Phase 6): 5 архитектурных документов — 3 уровня C4 (L1 system context, L2 containers, L3 components) + 2 тематических (data-sync, queue-lanes) + 4 миграции Q&A из AGENTS.md (jackson, docker, documentation, webvue3).
+- **CI-валидация** (Phase 9): `tools/check-livedocs-structure.sh` — 7 проверок (структура, ≥5 фич, ≥5 contexts, L1+L2+L3, frontmatter, AGENTS.md ≤ 100 строк, CI integration). Запускается в GitHub Actions `lint.yml` как новый job `livedocs-structure`.
+- **AGENTS.md сокращён** (Phase 7): с ~230 до 100 строк за счёт миграции деталей в LiveDocs. Добавлено правило «AI-агент при старте сессии читает LiveDocs первым».
+
+**Метрики**:
+- **SC-001** (≤ 5K токенов на онбординг): ✅ достижимо (livedocs/README + INDEX ≈ 1.5K + AGENTS.md 100 строк ≈ 1K + constitution ≈ 3K).
+- **SC-002** (AGENTS.md ≤ 100 строк): ✅ 100 строк ровно (было 230).
+- **SC-006** (≥ 5 фич): ✅ 5 сводок в `livedocs/features/`.
+- **SC-007** (≥ 5 bounded contexts): ✅ 5 в `livedocs/domain/`.
+- **SC-008** (все 3 уровня C4): ✅ L1+L2+L3 + 2 topic (data-sync, queue-lanes).
+- **SC-009** (агент читает LiveDocs первым): ✅ правило в AGENTS.md зафиксировано.
+
+**Артефакты**:
+- `livedocs/` — каталог (25 .md файлов).
+- `docs/livedocs-conventions.md` — мета-документ о системе.
+- `tools/check-livedocs-structure.sh` — CI-валидация.
+- `.github/workflows/lint.yml` — новый job `livedocs-structure` (8-й после ktlint/ESLint/Prettier/lychee/per-feature structure/baseline-stats/kdoc-coverage/jsdoc-coverage).
+
+**Спека**:
+- [specs/189-live-documentation/spec.md](../../specs/189-live-documentation/spec.md) — 7 US, 18 FR, 10 SC, 4 clarifications Q1-Q4.
+- [specs/189-live-documentation/plan.md](../../specs/189-live-documentation/plan.md) — план.
+- [specs/189-live-documentation/research.md](../../specs/189-live-documentation/research.md) — 10 design decisions D-1..D-10.
+- [specs/189-live-documentation/data-model.md](../../specs/189-live-documentation/data-model.md) — 5 сущностей LiveDocs.
+- [specs/189-live-documentation/contracts/](../../specs/189-live-documentation/contracts/) — frontmatter-schema + 3 шаблона.
+- [specs/189-live-documentation/quickstart.md](../../specs/189-live-documentation/quickstart.md) — 8 сценариев валидации.
+
+**Уроки** (для будущих фич):
+- **`set -euo pipefail` ломает сборщики failures** — для валидационных скриптов лучше `set -uo pipefail` (без `-e`), чтобы скрипт собрал ВСЕ failures и вернул их в одном выводе. Иначе на первой же FAIL скрипт падает, и пользователь видит только первую проблему.
+- **README/INDEX-документы в каталогах не должны считаться LiveDocs** для frontmatter-валидации — фильтр `find -not -name 'README.md' -not -name 'INDEX.md'` обязателен.
+- **Первая итерация миграции — самая тяжёлая** (с 230 до 100 строк). Дальнейшие правки AGENTS.md — cosmetic. Делегировать большие порции миграции в LiveDocs **сразу**, не накапливать.
+- **CI-скрипт для документации** — POSIX bash, не Node/Python. Никаких новых зависимостей. `head/grep/wc/find/test/dirname` достаточно для 90% проверок структуры.
+- **Каноническое написание фиксируется явно**: `LiveDocs` (система) vs `LiveDoc` (документ) — единое написание предотвращает неоднозначность в grep-паттернах и тексте.
+
+**Связанные артефакты**:
+- [specs/189-live-documentation/](../../specs/189-live-documentation/) — полная папка спеки.
+- [livedocs/](../../livedocs/) — каталог LiveDocs.
+- [AGENTS.md](../../AGENTS.md) — обновлён до 100 строк с правилом «читать LiveDocs первым».

@@ -188,3 +188,19 @@ jobs:
 
       - name: Check JSDoc coverage (strict, ≥50%)
         run: bash tools/check-jsdoc-coverage.sh --strict
+
+  # === LiveDocs structure ===
+  # LiveDocs (livedocs/) — единый каталог знаний для AI-агентов (FR-011, FR-015).
+  # Проверяет: структуру каталога, ≥5 фич в features/, ≥5 bounded contexts,
+  # наличие L1/L2/L3 C4, frontmatter в каждом LiveDoc, длину AGENTS.md (≤100 строк).
+  # Подробности: specs/189-live-documentation/quickstart.md, tools/check-livedocs-structure.sh.
+  livedocs-structure:
+    name: LiveDocs structure
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check LiveDocs structure
+        run: bash tools/check-livedocs-structure.sh

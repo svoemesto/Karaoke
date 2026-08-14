@@ -791,9 +791,9 @@ export default {
   background: var(--km-card);
   border: 1px solid var(--km-border);
   border-radius: 10px;
-  /* Пользователь уточнил 2026-08-14: padding 5px сверху/снизу для более плотного списка.
-     Горизонтальный padding 0.7rem (~11px) оставлен — он не относится к высоте строки. */
-  padding: 5px 0.7rem;
+  /* Пользователь уточнил 2026-08-14: padding 0 сверху/снизу — самый плотный список плейлиста.
+     Горизонтальный padding 0.7rem (~11px) оставлен без изменений. */
+  padding: 0 0.7rem;
 }
 .km-song-current {
   border-color: var(--km-accent);

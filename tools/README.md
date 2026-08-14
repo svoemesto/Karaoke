@@ -7,8 +7,9 @@
 
 | Скрипт | Назначение |
 |--------|------------|
-| [`check-livedocs-structure.sh`](check-livedocs-structure.sh) | CI gate: 7 проверок структуры (директории, ≥5 фич, ≥5 BC, L1+L2+L3, frontmatter, AGENTS.md ≤ 100 строк, CI integration). **Запускается в GitHub Actions.** |
-| [`check-livedocs-cross-links.sh`](check-livedocs-cross-links.sh) | Проверяет 814+ cross-links (`../X.md` и `related:`). **Запускается в GitHub Actions.** |
+| [`check-livedocs-structure.sh`](check-livedocs-structure.sh) | CI gate: 7 проверок структуры (директории, ≥5 фич, ≥5 BC, L1+L2+L3, frontmatter, AGENTS.md ≤ 100 строк, CI integration). **Запускается в GitHub Actions + pre-commit.** |
+| [`check-livedocs-cross-links.sh`](check-livedocs-cross-links.sh) | Проверяет 814+ cross-links (`../X.md` и `related:`). **Запускается в GitHub Actions + pre-commit.** |
+| [`check-livedocs-external-links.sh`](check-livedocs-external-links.sh) | Проверяет ВНЕШНИЕ ссылки (https://) в LiveDocs через lychee (advisory) + curl (strict). **Запускается в GitHub Actions.** |
 | [`search-livedocs.sh`](search-livedocs.sh) | grep wrapper для AI-агентов и людей. Поиск query по LiveDocs с фильтром по типу/пути. **Интерактивный** (не CI). |
 
 ## Код и CI (прочие проекты)

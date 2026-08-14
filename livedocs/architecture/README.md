@@ -20,6 +20,9 @@
 | [mlt-pipeline.md](mlt-pipeline.md) | MLT-генератор: mko-объекты, Playwright рендер текста, ~150 параметров |
 | [concurrent-editing.md](concurrent-editing.md) | OptimisticConcurrency + `tbl_audits` + `VoteEnd` |
 | [nginx-conventions.md](nginx-conventions.md) | nginx-конфиг: User-Agent routing, NDJSON-стримы (proxy_buffering off) |
+| [observability.md](observability.md) | SSE + heartbeat + self-healing — observability patterns |
+| [cache-invalidation.md](cache-invalidation.md) | `setWebvueProp` + Vuex + SSE — кросс-клиентский кэш |
+| [idempotency.md](idempotency.md) | Idempotency-Key + UNIQUE + lease — паттерны по эндпоинтам |
 | [data-sync.md](data-sync.md) | LOCAL ↔ SERVER синхронизация (SyncRegistry, recordhash) |
 | [queue-lanes.md](queue-lanes.md) | Async-очередь (threadId lanes, HEAVY_RENDER, LIGHT_BACKGROUND, REMOTE_STORE_UPLOAD, STEM_JOBS) |
 

@@ -129,6 +129,30 @@
 - **Updated**: `livedocs/INDEX.md` — добавлен в selected-topic-список.
 - PR #318.
 
+## 2026-08-14 — Follow-up #45 (topic censoring)
+
+- **Added**: `livedocs/architecture/censoring.md` — drill-down для
+  паттерна цензурирования матерных слов в публикациях (Telegram/VK/
+  новости). Фичи 139/140/141 ссылались на разные аспекты, но не
+  было единого места для архитектурного обзора.
+- **Updated**: `livedocs/architecture/README.md` — добавлен в таблицу.
+- **Updated**: `livedocs/INDEX.md` — добавлен в selected-topic-список.
+- PR #320.
+
+## 2026-08-14 — Follow-up #46 (crosslinks tidy + topic monetization)
+
+- **Updated**: cross-references в `141-fix-censored-web-storage-globals.md`
+  (добавлены `../architecture/censoring.md` и `../domain/publishing.md`),
+  `143-song-free-access-window.md` (добавлен `../domain/stats.md`).
+  PR #321.
+
+- **Added**: `livedocs/architecture/monetization.md` — drill-down для
+  модели free-vs-premium + подписки + YOOKASSA платежи + авто-публикация
+  premium-песен + share-link для premium. Фичи 005/122/143/162/169/171
+  ссылались на разные аспекты, но не было единого места для обзора.
+- **Updated**: `livedocs/architecture/README.md`, `livedocs/INDEX.md`.
+- PR #322.
+
 ## Состояние на сегодня
 
 | Метрика | Значение |
@@ -136,16 +160,16 @@
 | **Фичи в `features/`** | 88 |
 | **Bounded contexts в `domain/`** | 7 |
 | **C4 уровни** | 3 (L1, L2, L3) |
-| **Topic-документов в `architecture/`** | 12 |
+| **Topic-документов в `architecture/`** | 14 |
 | **ADR** | 13 |
 | **Runbooks** | 8 (README + 7 how-to) |
 | **Шаблонов в `templates/`** | 6 |
-| **`frontmatter`-файлов (с валидным frontmatter)** | 112 |
-| **`total .md` файлов** | ~125 |
-| **Cross-links valid** | 861 |
+| **`frontmatter`-файлов (с валидным frontmatter)** | 114 |
+| **`total .md` файлов** | ~127 |
+| **Cross-links valid** | 896 |
 | **Broken references** | 0 |
 | **AGENTS.md** | ≤ 100 строк ✓ |
-| **CI проверок LiveDocs** | 7/7 + cross-links 0/861 broken + lychee strict |
+| **CI проверок LiveDocs** | 7/7 + cross-links 0/896 broken + lychee strict |
 | **Миграция покрытия спек** | 100% (все 75+ уникальных) |
 
 ## Как использовать этот changelog

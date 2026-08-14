@@ -47,6 +47,7 @@
 | [decisions/0006-processbuilder-redirect-errorstream.md](decisions/0006-processbuilder-redirect-errorstream.md) | ProcessBuilder + redirectErrorStream(true) |
 | [decisions/local-0001-karaoke-properties-defaults.md](decisions/local-0001-karaoke-properties-defaults.md) | Local ADR — конвенция для дефолтов в KaraokeProperties |
 | [decisions/local-0002-save-exception-handling.md](decisions/local-0002-save-exception-handling.md) | Local ADR — паттерн обработки исключений в save() |
+| [decisions/local-0003-shared-minio-image-cache.md](decisions/local-0003-shared-minio-image-cache.md) | Local ADR — Shared MinIO Image Cache |
 | [decisions/README.md](decisions/README.md) | Index ADR — конвенции формата |
 
 ## Конвенции

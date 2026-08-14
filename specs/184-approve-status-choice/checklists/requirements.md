@@ -8,7 +8,7 @@
 
 - [x] No implementation details (languages, frameworks, APIs) — упоминается Spring Boot только в контексте «как парсить query-параметр», что является API-контрактом, а не implementation detail
 - [x] Focused on user value and business needs — основная ценность: «возможность отложить рендер без костылей с ручным даунгрейдом»
-- [x] Written for non-technical stakeholders — US1/US2/US3 описаны в терминах действий админа («выбрать radio», «нажать кнопку»), FR-001..FR-010 — функциональные контракты
+- [x] Written for non-technical stakeholders — US1/US2/US3 описаны в терминах действий админа («выбрать radio», «нажать кнопку»), FR-001..FR-009 + FR-011..FR-012 (FR-010 [REMOVED, Pass 51-3.2])
 - [x] All mandatory sections completed — User Scenarios, Requirements, Success Criteria, Assumptions, Clarifications
 
 ## Requirement Completeness

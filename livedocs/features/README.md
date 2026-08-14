@@ -6,6 +6,11 @@
 
 | Файл | Что делает | Drill-down |
 |------|------------|------------|
+| [139-fix-censored-dictionary.md](139-fix-censored-dictionary.md) | Цензурирование {songNameCensored} на проде | [specs/139-.../spec.md](../../specs/139-fix-censored-dictionary/spec.md) |
+| [140-fix-zakroma-censored-database.md](140-fix-zakroma-censored-database.md) | Падение /api/public/zakroma (Property APP_WORK_ON_SERVER) | [specs/140-.../spec.md](../../specs/140-fix-zakroma-censored-database/spec.md) |
+| [141-fix-censored-web-storage-globals.md](141-fix-censored-web-storage-globals.md) | Цензурирование на karaoke-web: глобалы + Unicode regex | [specs/141-.../spec.md](../../specs/141-fix-censored-web-storage-globals/spec.md) |
+| [142-remove-watch-links-block.md](142-remove-watch-links-block.md) | Удалить блок «Ссылки на просмотр» со страницы песни | [specs/142-.../spec.md](../../specs/142-remove-watch-links-block/spec.md) |
+| [143-song-free-access-window.md](143-song-free-access-window.md) | Временное окно бесплатного доступа к песням | [specs/143-.../spec.md](../../specs/143-song-free-access-window/spec.md) |
 | [144-homepage-latest-news.md](144-homepage-latest-news.md) | Компактная таблица «последние 5 новостей» на главной | [specs/144-.../spec.md](../../specs/144-homepage-latest-news/spec.md) |
 | [151-vk-id-personal-token.md](151-vk-id-personal-token.md) | Миграция на VK ID для персонального токена | [specs/151-.../spec.md](../../specs/151-vk-id-personal-token/spec.md) |
 | [152-fix-false-collection-news.md](152-fix-false-collection-news.md) | Ложное срабатывание новости «в коллекции» после sync | [specs/152-.../spec.md](../../specs/152-fix-false-collection-news/spec.md) |

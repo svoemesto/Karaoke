@@ -27,6 +27,7 @@
 | [queue-lanes.md](queue-lanes.md) | Async-очередь (threadId lanes, HEAVY_RENDER, LIGHT_BACKGROUND, REMOTE_STORE_UPLOAD, STEM_JOBS) |
 | [share-link.md](share-link.md) | Паттерн гостевого доступа: временные ссылки + claim + heartbeat + sweep |
 | [censoring.md](censoring.md) | Паттерн цензурирования матерных слов в публикациях (Telegram/VK/новости) |
+| [monetization.md](monetization.md) | Модель free-vs-premium: подписки, YOOKASSA, авто-публикация, share-link |
 
 ### Паттерны / конвенции (мигрированы из `AGENTS.md` Q&A)
 

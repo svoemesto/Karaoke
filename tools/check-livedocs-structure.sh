@@ -53,7 +53,7 @@ done
 echo "[5/7] Проверка frontmatter..."
 frontmatter_total=0
 frontmatter_fail=0
-for f in $(find livedocs -name '*.md' -not -name 'README.md' -not -name 'INDEX.md' -not -path '*/templates/*' -not -path '*/decisions/*' -not -path '*/runbooks/*' -not -path '*/commands/*' -not -path '*/CHANGELOG.md'); do
+for f in $(find livedocs -name '*.md' -not -name 'README.md' -not -name 'INDEX.md' -not -name 'INDEX_CARD.md' -not -path '*/templates/*' -not -path '*/decisions/*' -not -path '*/runbooks/*' -not -path '*/commands/*' -not -path '*/CHANGELOG.md'); do
   frontmatter_total=$((frontmatter_total+1))
   if ! head -1 "$f" | grep -q '^---$'; then
     echo "NO FRONTMATTER: $f"

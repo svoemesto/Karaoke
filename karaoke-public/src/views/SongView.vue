@@ -475,6 +475,8 @@ export default {
     // FR-007/US2 — self-assign редактор: залогинен + isEditor + canSelfAssignTasks. Фронт НЕ
     // доверяет, а бэкенд перепроверяет в /api/public/songeditor/assign-self. showSelfAssignButton
     // — обёртка: показывать ТОЛЬКО на свободной песне (для чужого/своего задания — другой шаблон).
+    // Готовая песня (idStatus >= 6) self-assign-кнопку НЕ показывает: см. Song.kt:1132-1139 —
+    // isContentReady=true означает, что разметка уже сделана, задание на разметку делать нечего.
     // NOTE: useAuth().user использует JSON-ключи Jackson DTO (после отбрасывания is-префикса):
     // поле `isEditor` Kotlin сериализуется как `editor`, `isBanned` → `banned`. См. AGENTS.md Q&A.
     canSelfAssignEditor() {
@@ -484,7 +486,12 @@ export default {
       return this.user && this.user.id ? Number(this.user.id) : 0
     },
     showSelfAssignButton() {
-      return !!(this.canSelfAssignEditor && this.currentSong && !this.currentSong.assignment)
+      return !!(
+        this.canSelfAssignEditor &&
+        this.currentSong &&
+        !this.currentSong.assignment &&
+        Number(this.currentSong.idStatus) < 6
+      )
     },
     showOpenAssignmentButton() {
       return !!(

@@ -15,6 +15,8 @@ ADR фиксируют **значимые архитектурные решен�
 
 ## Index
 
+### Глобальные ADR (архитектурные решения)
+
 | ADR | Title | Status | Date |
 |-----|-------|--------|------|
 | [0001](0001-raw-jdbc.md) | Сырой JDBC без JPA/Hibernate для доступа к БД | Accepted | 2026-07-20 |
@@ -23,6 +25,17 @@ ADR фиксируют **значимые архитектурные решен�
 | [0004](0004-karaoke-app-admin-only.md) | KaraokeApp — только на admin-машине, не на проде | Accepted | 2026-07-20 |
 | [0005](0005-self-hosted-ml.md) | Self-hosted ML (Ollama + SearXNG + Sheetsage + Demucs) вместо SaaS | Accepted | 2026-07-20 |
 | [0006](0006-processbuilder-redirect-errorstream.md) | ProcessBuilder + redirectErrorStream(true) для async-задач | Accepted | 2026-08-13 |
+
+### Local ADR (конвенции в коде)
+
+| ADR | Title | Status | Date |
+|-----|-------|--------|------|
+| [local-0001](local-0001-karaoke-properties-defaults.md) | Конвенция для дефолтов в `KaraokeProperties` | Accepted | 2026-08-14 |
+| [local-0002](local-0002-save-exception-handling.md) | Паттерн обработки исключений в `KaraokeDbTable.save()` | Accepted | 2026-08-14 |
+| [local-0003](local-0003-shared-minio-image-cache.md) | Shared MinIO image cache | Accepted | 2026-08-14 |
+| [local-0004](local-0004-lazy-eager-load-webvue3-pagination.md) | Lazy vs eager load для пагинации в webvue3 | Accepted | 2026-08-14 |
+| [local-0005](local-0005-structured-logging-karaoke-app.md) | Структурированное логирование в `karaoke-app` (MDC + key=value) | Accepted | 2026-08-14 |
+| [local-0006](local-0006-logging-and-error-handling-karaoke-web.md) | Логирование и обработка ошибок в `karaoke-web` | Accepted | 2026-08-14 |
 
 ## Conventions
 

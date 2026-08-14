@@ -90,6 +90,27 @@ repos:
         files: '^docs/features/.*\.md$'
         stages: [pre-commit]
 
+      # === LiveDocs: проверка структуры (7 проверок) ===
+      # Срабатывает только когда меняются файлы в livedocs/ или livedocs-en/.
+      # Быстрая проверка (< 1 сек). Если что-то сломано — лучше узнать до push.
+      - id: check-livedocs-structure
+        name: LiveDocs structure (7 checks)
+        entry: bash -c 'bash tools/check-livedocs-structure.sh'
+        language: system
+        pass_filenames: false
+        files: '^(livedocs|livedocs-en)/.*\.md$'
+        stages: [pre-commit]
+
+      # === LiveDocs: проверка cross-links (814+ ссылок) ===
+      # Только при изменении Markdown в livedocs/ или livedocs-en/.
+      - id: check-livedocs-cross-links
+        name: LiveDocs cross-links (814+ checks)
+        entry: bash -c 'bash tools/check-livedocs-cross-links.sh'
+        language: system
+        pass_filenames: false
+        files: '^(livedocs|livedocs-en)/.*\.md$'
+        stages: [pre-commit]
+
 # Общие настройки
 fail_fast: false   # Прогоняем все хуки даже если один упал — даём полный отчёт
 default_install_hook_types: [pre-commit]

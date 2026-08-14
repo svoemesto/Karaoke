@@ -6,6 +6,11 @@
 
 | Файл | Что делает | Drill-down |
 |------|------------|------------|
+| [128-news-publish-templates.md](128-news-publish-templates.md) | Шаблоны автоматических новостей сайта | [specs/128-.../spec.md](../../specs/128-news-publish-templates/spec.md) |
+| [129-copy-family-audio.md](129-copy-family-audio.md) | Копирование аудиосвязи при выборе похожей версии | [specs/129-.../spec.md](../../specs/129-copy-family-audio/spec.md) |
+| [130-vk-preview-generation.md](130-vk-preview-generation.md) | Предварительная подготовка PNG-кэша перед ВК | [specs/130-.../spec.md](../../specs/130-vk-preview-generation/spec.md) |
+| [131-fix-approve-demo-render-telegram-sync.md](131-fix-approve-demo-render-telegram-sync.md) | Авто-пайплайн публикации после approve | [specs/131-.../spec.md](../../specs/131-fix-approve-demo-render-telegram-sync/spec.md) |
+| [138-vk-photo-preview-attachment.md](138-vk-photo-preview-attachment.md) | Превью ВК через прикрепление обложки фото | [specs/138-.../spec.md](../../specs/138-vk-photo-preview-attachment/spec.md) |
 | [139-fix-censored-dictionary.md](139-fix-censored-dictionary.md) | Цензурирование {songNameCensored} на проде | [specs/139-.../spec.md](../../specs/139-fix-censored-dictionary/spec.md) |
 | [140-fix-zakroma-censored-database.md](140-fix-zakroma-censored-database.md) | Падение /api/public/zakroma (Property APP_WORK_ON_SERVER) | [specs/140-.../spec.md](../../specs/140-fix-zakroma-censored-database/spec.md) |
 | [141-fix-censored-web-storage-globals.md](141-fix-censored-web-storage-globals.md) | Цензурирование на karaoke-web: глобалы + Unicode regex | [specs/141-.../spec.md](../../specs/141-fix-censored-web-storage-globals/spec.md) |

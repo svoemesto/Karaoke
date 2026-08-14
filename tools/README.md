@@ -14,6 +14,7 @@
 | [`test-livedocs.sh`](test-livedocs.sh) | Self-test для всех LiveDocs-check скриптов. 12 тестовых сценариев: реальный LiveDocs, временный каталог, негативные сценарии, syntax-check. Запускать перед commit. |
 | [`gen-livedocs-index.sh`](gen-livedocs-index.sh) | Генерирует Mermaid-диаграмму всех LiveDocs (features/BC/C4/topics/ADR/runbooks/commands) для визуального overview. Вывод в stdout или `> livedocs/INDEX_CARD.md`. |
 | [`check-livedocs-coverage.sh`](check-livedocs-coverage.sh) | Проверяет покрытие: каждая спека в `specs/` имеет LiveDoc-сводку в `livedocs/features/`. Текущий baseline: 95.5%. |
+| [`gen-toc.sh`](gen-toc.sh) | Генерирует inline `## Содержание` для длинных LiveDocs. Использование: `bash gen-toc.sh <file.md>` или `--missing` (список файлов без TOC). |
 
 ## Код и CI (прочие проекты)
 

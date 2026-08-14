@@ -5,7 +5,10 @@ related:
   - ../domain/publishing.md
   - ../domain/catalog.md
   - ../features/092-fix-auto-news-triggers.md
+  - ../features/124-news-flags-backfill.md
   - ../architecture/L3-components.md
+  - ../architecture/monetization.md
+  - ../architecture/censoring.md
   - ../../specs/089-auto-news-song-release/spec.md
 ---
 

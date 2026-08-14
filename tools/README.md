@@ -15,6 +15,7 @@
 | [`gen-livedocs-index.sh`](gen-livedocs-index.sh) | Генерирует Mermaid-диаграмму всех LiveDocs (features/BC/C4/topics/ADR/runbooks/commands) для визуального overview. Вывод в stdout или `> livedocs/INDEX_CARD.md`. |
 | [`check-livedocs-coverage.sh`](check-livedocs-coverage.sh) | Проверяет покрытие: каждая спека в `specs/` имеет LiveDoc-сводку в `livedocs/features/`. Текущий baseline: 95.5%. |
 | [`gen-toc.sh`](gen-toc.sh) | Генерирует inline `## Содержание` для длинных LiveDocs. Использование: `bash gen-toc.sh <file.md>` или `--missing` (список файлов без TOC). |
+| [`check-md-structure.sh`](check-md-structure.sh) | Проверяет структуру Markdown: последовательность заголовков, висячие пробелы, закрытие Mermaid-блоков. 3 проверки. |
 
 ## Код и CI (прочие проекты)
 

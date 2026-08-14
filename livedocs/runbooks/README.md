@@ -27,21 +27,21 @@
 - Структура:
   ```
   # How to: <задача>
-  
+
   ## Prerequisites
   - Что должно быть готовым до начала.
-  
+
   ## Steps
   ## 1. <шаг>
   ## 2. <шаг>
   ## ...
-  
+
   ## Verification
   - Как убедиться, что всё прошло.
-  
+
   ## Rollback
   - Как откатить.
-  
+
   ## Related
   - Ссылки на LiveDocs фичи / architecture / constitution.
   ```

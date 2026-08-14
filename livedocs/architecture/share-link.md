@@ -78,7 +78,7 @@ Content-Type: application/json
 → 200 OK { "id": ..., "linkToken": "...", "expiresAt": "..." }
 ```
 
-Ссылка для гостя: `https://karaoke.example/share/{linkToken}`.
+Ссылка для гостя: `http://localhost/share/{linkToken}` (placeholder — заменить на реальный домен).
 
 ### Claim (гость)
 

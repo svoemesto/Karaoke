@@ -6,6 +6,11 @@
 
 | Файл | Что делает | Drill-down |
 |------|------------|------------|
+| [001-code-standards-docs.md](001-code-standards-docs.md) | Приведение к стандартам + документирование (Phase 001) | [specs/001-.../spec.md](../../specs/001-code-standards-docs/spec.md) |
+| [002-ci-lint-enforcement.md](002-ci-lint-enforcement.md) | CI lint enforcement (GitHub Actions) | [specs/002-.../spec.md](../../specs/002-ci-lint-enforcement/spec.md) |
+| [003-about-page.md](003-about-page.md) | Страница «О проекте» | [specs/003-.../spec.md](../../specs/003-about-page/spec.md) |
+| [004-reasons-to-register.md](004-reasons-to-register.md) | «5 причин зарегистрироваться» на главной | [specs/004-.../spec.md](../../specs/004-reasons-to-register/spec.md) |
+| [005-free-vs-premium.md](005-free-vs-premium.md) | Таблица «FREE vs PREMIUM» на /premium | [specs/005-.../spec.md](../../specs/005-free-vs-premium/spec.md) |
 | [008-special-orders.md](008-special-orders.md) | «Отдельные песни разных авторов» — виртуальная плашка | [specs/008-.../spec.md](../../specs/008-special-orders/spec.md) |
 | [009-listening-history.md](009-listening-history.md) | История прослушиваний для пользователей | [specs/009-.../spec.md](../../specs/009-listening-history/spec.md) |
 | [010-lyrics-spec-tags.md](010-lyrics-spec-tags.md) | Спецтеги в тексте для авто-разметки маркеров | [specs/010-.../spec.md](../../specs/010-lyrics-spec-tags/spec.md) |

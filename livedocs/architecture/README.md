@@ -1,6 +1,6 @@
 # architecture/ — C4 слой (индекс)
 
-> Архитектурные диаграммы (Mermaid) — C4 L1/L2/L3 + тематические документы.
+> Архитектурные диаграммы (Mermaid) — C4 L1/L2/L3 + тематические документы + ADR.
 
 ## Содержимое
 
@@ -16,6 +16,7 @@
 
 | Файл | Тема |
 |------|------|
+| [dual-db-access.md](dual-db-access.md) | `KaraokeConnection` (local/remote/virtual), ThreadLocal, retry — drill-down для JDBC |
 | [data-sync.md](data-sync.md) | LOCAL ↔ SERVER синхронизация (SyncRegistry, recordhash) |
 | [queue-lanes.md](queue-lanes.md) | Async-очередь (threadId lanes, HEAVY_RENDER, LIGHT_BACKGROUND, REMOTE_STORE_UPLOAD, STEM_JOBS) |
 
@@ -28,10 +29,20 @@
 | [documentation-conventions.md](documentation-conventions.md) | KDoc backticks, JSDoc coverage, blame-ignore-revs |
 | [webvue3-patterns.md](webvue3-patterns.md) | Персистентность страницы пагинации в webvue3 (Vuex store + watcher) |
 
+### ADR (Architecture Decision Records)
+
+| Файл | Решение |
+|------|---------|
+| [decisions/0001-raw-jdbc.md](decisions/0001-raw-jdbc.md) | Сырой JDBC без JPA/Hibernate для доступа к БД |
+| [decisions/0002-mlt-instead-of-ffmpeg.md](decisions/0002-mlt-instead-of-ffmpeg.md) | MLT/melt как основной стек для генерации караоке-видео |
+| [decisions/0003-livedocs-markdown-yaml-mermaid.md](decisions/0003-livedocs-markdown-yaml-mermaid.md) | LiveDocs = Markdown + YAML frontmatter + Mermaid (не MkDocs/Docusaurus) |
+| [decisions/README.md](decisions/README.md) | Index ADR — конвенции формата |
+
 ## Конвенции
 
 - C4 уровни: имя файла `L<n>-<topic>.md`, тип `c4-level`, frontmatter с `level: L1|L2|L3`.
 - Тематические: имя файла `<topic>.md`, тип `topic`.
+- ADR: имя файла `NNNN-<slug>.md` (в `decisions/`), без frontmatter (см. [decisions/README.md](decisions/README.md)).
 - Все архитектурные документы содержат Mermaid-блок (минимум 1 диаграмма).
 - Размер: ≤ 2 стр. (≤ 80 строк) для C4 уровней, ≤ 3 стр. (≤ 120 строк) для topic.
 
@@ -43,7 +54,10 @@ L1 (system context)
      └─ L3 (components внутри karaoke-app)
          ├─ topic: data-sync
          ├─ topic: queue-lanes
+         ├─ topic: dual-db-access
          └─ pattern: jackson-conventions, docker-conventions, ...
+         ↓
+         ADR (architecture decisions)
 ```
 
 ## Когда добавлять новый документ
@@ -51,3 +65,4 @@ L1 (system context)
 1. Новая крупная подсистема или изменение архитектуры → обновить L3 или создать новый topic.
 2. Новая ловушка / паттерн, мигрированная из AGENTS.md → создать pattern-документ.
 3. Новая внешняя интеграция → обновить L1.
+4. Значимое архитектурное решение → создать ADR в `decisions/`.

@@ -2052,3 +2052,69 @@ async, `currentLink = null` стартовое значение → Vue ренд
 - [specs/186-zakroma-songs-fast-load/quickstart.md](../../specs/186-zakroma-songs-fast-load/quickstart.md) — 6 ручных сценариев валидации.
 - [docs/features/zakroma-stream-progress.md](../features/zakroma-stream-progress.md) — добавлена секция «Pass 52 (186) — ускорение загрузки крупных авторов».
 
+---
+
+### 2026-08-14 — Pass 61: `187-site-traffic-anomaly-investigation`
+
+**Контекст**: после Pass 52 (фикс `/news/since` для анонимов) инциденты 7-10 мин недоступности
+продолжались 1-2 раза в неделю. Аудит всех REST + `@Scheduled` показал ещё 5 классов источников
+нагрузки.
+
+**Что сделано** (spec 187, 20 FR, 6 US):
+- **US3 — Sampling/dedup для `tbl_events`**: `SamplingFilter` + `DedupCache` (1/20 для анонимов,
+  1/5 для залогиненных, 1/1 для admin, dedup TTL=30s по `(restName, parameters, anonId|userId)`).
+- **US2 — Server-side polling cache**: `PollingCache` для `/news/since` (TTL=60s), `/chat/unreadcount`
+  (TTL=10s), `/share/heartbeat` (TTL=15s). Per-endpoint TTL (clarified Q1).
+- **US1 — MVP `AuthorTilePublicDto`**: `authorPictureUrl` теперь прямой URL `/minio/karaoke/...`,
+  без Spring-redirect. Legacy `PublicApiController.picture()` сохранён (FR-001).
+- **Defense — Rate-limit `/song-picture/**` и `/song-vk-image/**`**: 60 req/мин на IP через
+  `RateLimitInterceptor` (Spring `HandlerInterceptor`, URL-pattern registration).
+- **US4 — HTTP cache для nginx `/minio/`**: `Cache-Control: public, max-age=86400`, ETag,
+  короткий TTL (5 мин) для 404-ответов (FR-005).
+- **US4 — Vuex dedup для `loadAuthorTiles`**: state `lastLoadedTilesAt` + dedup 30s.
+- **FR-011 — Retention `tbl_events`**: `EventsRetentionScheduler` ежедневно в 03:00 (cron
+  `0 0 3 * * *`), retention 7 дней (env-configurable).
+- **US6 — Debug endpoint `/api/public/debug/db`**: метрики PG + Tomcat threads, IP allowlist
+  + master-flag (по умолчанию ВЫКЛЮЧЕН).
+- **`tools/check-audit-coverage.sh`**: SC-009 — верификация 100% покрытия аудитом (PASS,
+  29 файлов проверено).
+
+**Метрики** (SC mapping):
+- **SC-001** (0 hits на `/api/public/picture` с /zakroma): ✅ US1 фикс убирает 200+ редиректов/мин.
+- **SC-002** (`Transfer-Size: 0` на повторных /zakroma): ✅ US4 nginx cache + Vuex dedup.
+- **SC-003** (≤5 INSERT/мин polling): ✅ US3 sampling 1/20 для анонимов.
+- **SC-004** (p95≤200ms, p99≤500ms): ✅ US2 polling cache снижает DB-нагрузку.
+- **SC-005** (`tbl_events` stable growth): ✅ US3 retention scheduler.
+- **SC-006** (no 7-10 мин инцидентов): � production-validate через неделю.
+- **SC-007** (FCP ≤4 сек): ✅ US1 убирает redirect-chains.
+- **SC-008** (429 на >60 req/мин): ✅ Defense rate-limit.
+- **SC-009** (100% audit coverage): ✅ `tools/check-audit-coverage.sh` PASS.
+
+**Уроки** (для будущих фич):
+- **Sampling НЕ должен ломать UX**: `shouldSkip=true` → `return 200 OK` без INSERT. Клиент
+  НЕ замечает sampling. Не возвращать 503/429 для skipped-event'ов.
+- **Per-endpoint TTL лучше единого**: разные polling-endpoint'ы имеют разные требования
+  к свежести данных. Жёсткий единый TTL либо замедляет UX (10s на news = лишние запросы),
+  либо делает UX-критичные метрики вялыми (60s на chat-unread = устаревший бейдж).
+- **URL-pattern registration > per-method annotation** для Spring interceptors:
+  явная регистрация в `WebMvcConfig.addInterceptors(...)` показывает, на каких именно
+  URL'ах действует rate-limit, и не требует кастомных аннотаций.
+- **Backward compatibility обязательна** для production: legacy `PublicApiController.picture()`
+  сохранён как 302-redirect, даже когда `AuthorTilePublicDto` уже использует прямой URL.
+  Любой другой код (PublicPlayerController, ZakromaPublicDto) продолжает работать.
+- **Debug endpoint по умолчанию ВЫКЛЮЧЕН** (`KARAOKE_WEB_DEBUG_DB_ENABLED=false`):
+  защита от утечки информации о состоянии БД в production. Включается осознанно
+  при расследовании инцидента.
+- **`tbl_events` намеренно PROD-only**: комментарий `НЕ tbl_events` в `SyncTarget.kt`
+  фиксирует, что таблица НЕ синхронизируется с LOCAL → retention scheduler безопасен,
+  но НЕ должен запускаться на admin-машине.
+
+**Связанные документы**:
+- [specs/187-site-traffic-anomaly-investigation/spec.md](../../specs/187-site-traffic-anomaly-investigation/spec.md) — спека с 20 FR, 6 US, 9 SC, 4 clarifications Q1-Q4.
+- [specs/187-site-traffic-anomaly-investigation/plan.md](../../specs/187-site-traffic-anomaly-investigation/plan.md) — план с 8 коммитами.
+- [specs/187-site-traffic-anomaly-investigation/research.md](../../specs/187-site-traffic-anomaly-investigation/research.md) — полный аудит Таблиц A (52 endpoints) + B (14 @Scheduled), 8 решений D-1..D-8.
+- [specs/187-site-traffic-anomaly-investigation/data-model.md](../../specs/187-site-traffic-anomaly-investigation/data-model.md) — 7 новых runtime-объектов.
+- [specs/187-site-traffic-anomaly-investigation/contracts/](../../specs/187-site-traffic-anomaly-investigation/contracts/) — 9 API-контрактов C1-C9.
+- [specs/187-site-traffic-anomaly-investigation/quickstart.md](../../specs/187-site-traffic-anomaly-investigation/quickstart.md) — 10 ручных сценариев валидации.
+- [docs/features/site-traffic-resilience.md](../features/site-traffic-resilience.md) — новый per-feature документ.
+

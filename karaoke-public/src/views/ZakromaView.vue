@@ -1238,6 +1238,8 @@ export default {
 }
 .km-td-center {
   text-align: center;
+  padding-left: 0.45rem;
+  padding-right: 0.45rem;
 }
 .km-td-name {
   text-align: left;

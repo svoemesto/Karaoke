@@ -6,6 +6,11 @@
 
 | Файл | Что делает | Drill-down |
 |------|------------|------------|
+| [082-fix-import-folder-oom.md](082-fix-import-folder-oom.md) | Устойчивый импорт из папки без OOM | [specs/082-.../spec.md](../../specs/082-fix-import-folder-oom/spec.md) |
+| [083-album-cover-square-cell.md](083-album-cover-square-cell.md) | Альбомы: квадратная ячейка обложки | [specs/083-.../spec.md](../../specs/083-album-cover-square-cell/spec.md) |
+| [087-fix-shared-db-connection.md](087-fix-shared-db-connection.md) | Изоляция JDBC + retry очереди при сетевом сбое | [specs/087-.../spec.md](../../specs/087-fix-shared-db-connection/spec.md) |
+| [088-fix-queue-swallowed-errors.md](088-fix-queue-swallowed-errors.md) | Единообразная обработка сбоев БД в очереди | [specs/088-.../spec.md](../../specs/088-fix-queue-swallowed-errors/spec.md) |
+| [089-auto-news-song-release.md](089-auto-news-song-release.md) | Авто-новости о выходе песни в эфир | [specs/089-.../spec.md](../../specs/089-auto-news-song-release/spec.md) |
 | [090-news-pagination.md](090-news-pagination.md) | Пагинация ленты новостей | [specs/090-.../spec.md](../../specs/090-news-pagination/spec.md) |
 | [091-fix-connection-leak.md](091-fix-connection-leak.md) | Устранить утечку JDBC от одноразовых потоков | [specs/091-.../spec.md](../../specs/091-fix-connection-leak/spec.md) |
 | [092-fix-auto-news-triggers.md](092-fix-auto-news-triggers.md) | Триггеры авто-новостей независимо от sync | [specs/092-.../spec.md](../../specs/092-fix-auto-news-triggers/spec.md) |

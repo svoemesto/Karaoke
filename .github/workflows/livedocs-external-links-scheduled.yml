@@ -1,0 +1,92 @@
+# LiveDocs external links — scheduled weekly check
+#
+# Запускается еженедельно (понедельник 03:00 UTC) и при ручном запуске.
+# Проверяет ВНЕШНИЕ ссылки в LiveDocs через tools/check-livedocs-external-links.sh.
+# Если обнаружены broken links — создаёт issue с деталями.
+#
+# Конвенции:
+# - Не блокирует PR (только уведомление).
+# - Issue создаётся только если broken > 0 (через gh CLI).
+
+name: LiveDocs external links (scheduled)
+
+on:
+  schedule:
+    # Каждый понедельник 03:00 UTC (не нагружает рабочие часы).
+    - cron: '0 3 * * 1'
+  workflow_dispatch: {}  # Ручной запуск
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check-external-links:
+    name: Check LiveDocs external links
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check LiveDocs external links
+        id: check
+        # continue-on-error: true — мы хотим собрать broken и создать issue,
+        # даже если check вернул non-zero (что ожидаемо при broken links).
+        continue-on-error: true
+        run: bash tools/check-livedocs-external-links.sh 2>&1 | tee /tmp/external-links-output.txt
+
+      - name: Find broken links
+        if: failure()
+        id: parse
+        run: |
+          # Извлечь строки "BROKEN ($code): $url"
+          grep "^BROKEN " /tmp/external-links-output.txt > /tmp/broken.txt || true
+          if [ -s /tmp/broken.txt ]; then
+            echo "broken_links<<EOF" >> "$GITHUB_OUTPUT"
+            cat /tmp/broken.txt >> "$GITHUB_OUTPUT"
+            echo "EOF" >> "$GITHUB_OUTPUT"
+            echo "Found $(wc -l < /tmp/broken.txt) broken link(s)"
+          else
+            echo "No broken links found in output (exit was non-zero for another reason)"
+          fi
+
+      - name: Create issue on broken links
+        if: steps.parse.outputs.broken_links
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const broken = `${{ steps.parse.outputs.broken_links }}`;
+            const lines = broken.split('\n').filter(l => l.trim());
+            const body = [
+              'LiveDocs external links check found broken URLs.',
+              '',
+              '## Broken links',
+              '',
+              '```',
+              ...lines,
+              '```',
+              '',
+              '## Run details',
+              `- Workflow: ${context.workflow}`,
+              `- Run: ${context.runNumber}`,
+              `- Commit: ${context.sha}`,
+              '',
+              '## How to fix',
+              '1. Check each URL — is it real, outdated, or moved?',
+              '2. Update the link in the corresponding LiveDoc file.',
+              '3. If URL is permanently dead, consider replacing with a stable archive (web.archive.org) or removing.',
+              '',
+              'See `livedocs/runbooks/how-to-update-livedocs.md` for general LiveDoc maintenance.',
+            ].join('\n');
+            
+            const title = `[livedocs] Broken external link${lines.length > 1 ? 's' : ''} (${lines.length})`;
+            
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title,
+              body,
+              labels: ['livedocs', 'documentation']
+            });
+            console.log(`Created issue: ${title}`);

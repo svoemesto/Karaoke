@@ -1,6 +1,7 @@
 package com.svoemesto.karaokeweb.controllers
 
 import com.svoemesto.karaokeweb.WORKING_DATABASE
+import com.svoemesto.karaokeweb.services.PollingCache
 import com.svoemesto.karaokeweb.services.SiteUserResolver
 
 import com.svoemesto.karaokeapp.model.News
@@ -25,13 +26,19 @@ import org.springframework.web.bind.annotation.RestController
 /**
  * Контроллер (HTTP/WebSocket endpoints) для public news .
  *
- * @see AGENTS.md
+ * @see docs/features/site-traffic-resilience.md (FR-008 — server-side polling cache для `/since`)
+ * @see docs/features/homepage-latest-news.md (контекст бейджа/тоста)
  */
 @RestController
 @RequestMapping("/api/public/news")
 class PublicNewsController(
     private val siteUserResolver: SiteUserResolver,
 ) {
+    // Server-side polling cache для `/since` (FR-008, clarified 2026-08-14).
+    // TTL = 60 сек: новости меняются нечасто (release-анонсы раз в несколько дней), polling 45 сек.
+    // При cache-hit DB не дёргается вообще (см. PollingCache KDoc).
+    private val sincePollingCache = PollingCache<Map<String, Any>>()
+
     // Только опубликованные (publish_at уже наступил), свежие сверху — публичная лента /news.
     // Постранично (specs/090-news-pagination) — при 19000+ строках в tbl_news (см.
     // specs/089-auto-news-song-release) полная выгрузка одним ответом деградирует ленту.
@@ -61,14 +68,26 @@ class PublicNewsController(
         @RequestParam(defaultValue = "0") id: Long,
         request: HttpServletRequest,
     ): Map<String, Any> {
-        if (siteUserResolver.resolve(request) == null) {
-            // Аноним — пустой ответ (бейдж не показывается, см. NewsBell.vue: unread=0, visible=false).
-            return mapOf("count" to 0, "items" to emptyList<Any>())
+        // Cache-key: для анонимов всегда один (count=0 не меняется), для залогиненных —
+        // привязан к `id` (lastSeenId из localStorage) — разные lastSeenId дают разные ключи.
+        val siteUser = siteUserResolver.resolve(request)
+        val cacheKey =
+            if (siteUser == null) {
+                "news_since:anon"
+            } else {
+                "news_since:user:${siteUser.id}:since:$id"
+            }
+        return sincePollingCache.getOrCompute(key = cacheKey, ttlSeconds = 60) {
+            if (siteUser == null) {
+                // Аноним — пустой ответ (бейдж не показывается, см. NewsBell.vue: unread=0, visible=false).
+                mapOf("count" to 0, "items" to emptyList<Any>())
+            } else {
+                // Залогиненный: ограничиваем верх LIMIT-ом как страховку (если кто-то залогинился
+                // впервые за 2 года, не отдадим весь архив разом — UI рассчитан на свежие уведомления,
+                // остальное подтянется через /news при необходимости).
+                val items = News.loadPublishedSince(WORKING_DATABASE, id, limit = 50)
+                mapOf("count" to items.size, "items" to items)
+            }
         }
-        // Залогиненный: ограничиваем верх LIMIT-ом как страховку (если кто-то залогинился
-        // впервые за 2 года, не отдадим весь архив разом — UI рассчитан на свежие уведомления,
-        // остальное подтянется через /news при необходимости).
-        val items = News.loadPublishedSince(WORKING_DATABASE, id, limit = 50)
-        return mapOf("count" to items.size, "items" to items)
     }
 }

@@ -16,15 +16,18 @@ import com.svoemesto.karaokeapp.rightFileName
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.SongReleaseAnnouncementService
 import com.svoemesto.karaokeapp.services.StorageApiClient
+import com.svoemesto.karaokeweb.services.SamplingFilter
 import com.svoemesto.karaokeweb.services.WEB_WORK_IN_CONTAINER
 import com.svoemesto.karaokeweb.util.ClientIpResolver
 // import com.svoemesto.karaokeweb.services.KSS_WEB
 import jakarta.servlet.http.HttpServletRequest
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Controller
 import org.springframework.messaging.simp.SimpMessagingTemplate
 import org.springframework.ui.Model
 import org.springframework.web.bind.annotation.*
+import java.sql.SQLException
 import java.sql.Timestamp
 import java.time.Instant
 
@@ -39,7 +42,10 @@ class MainController(
     @Value($$"${work-in-container}") val wic: Long,
     private val storageService: KaraokeStorageService,
     private val storageApiClient: StorageApiClient,
+    private val samplingFilter: SamplingFilter,
 ) {
+    private val log = LoggerFactory.getLogger(MainController::class.java)
+
     init {
         WEB_WORK_IN_CONTAINER = (wic != 0L)
         println("WEB_WORK_IN_CONTAINER = $WEB_WORK_IN_CONTAINER")
@@ -154,10 +160,16 @@ class MainController(
                     }
                 }
             })"
-            val ps = connection.prepareStatement(sqlToInsert)
-            ps.executeUpdate()
-            ps.close()
-            return true
+            try {
+                val ps = connection.prepareStatement(sqlToInsert)
+                ps.executeUpdate()
+                ps.close()
+                return true
+            } catch (e: SQLException) {
+                // FR-012: логируем SQL-ошибки через SLF4J, не println (чтобы они попадали в production-логи).
+                log.warn("SQL error при INSERT в tbl_events (eventType=$eventType, clientIp=$clientIp): ${e.message}", e)
+                return false
+            }
         }
 
         when (eventType) {
@@ -217,6 +229,11 @@ class MainController(
                 val restName = data["restName"] as String
                 val parameters = data["parameters"] as Map<*, *>
                 println("Вызван рест $restName с параметрами $parameters")
+                // US3: sampling/dedup (FR-006, FR-007) — пропустить INSERT, если фильтр решил.
+                // Endpoint всё равно возвращает 200 OK — клиент не замечает sampling.
+                if (samplingFilter.shouldSkip(restName, parameters, siteUserId, anonId)) {
+                    return true
+                }
                 val fieldsValues: MutableList<Pair<String, Any>> =
                     mutableListOf(
                         Pair("event_type", EventType.CALL_REST.dbValue),

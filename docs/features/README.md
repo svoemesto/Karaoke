@@ -46,6 +46,7 @@
 | Slug | Название | Файл |
 |------|----------|------|
 | `ci-lint-enforcement` | GitHub Actions: ktlint + ESLint + Prettier + docs | [ci-lint-enforcement.md](./ci-lint-enforcement.md) |
+| `site-traffic-resilience` | Анализ и устранение источников аномальной нагрузки на сайт (sampling/dedup/caches/rate-limit/retention/debug) | [site-traffic-resilience.md](./site-traffic-resilience.md) |
 
 ## Как пользоваться
 

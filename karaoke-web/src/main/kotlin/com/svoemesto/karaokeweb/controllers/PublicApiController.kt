@@ -653,6 +653,13 @@ class PublicApiController(
         return mapOf("ok" to ok, "meta" to meta)
     }
 
+    /**
+     * Картинка песни (альбом 400x400). Rate-limit 60 req/мин на IP применяется через
+     * [com.svoemesto.karaokeweb.services.RateLimitInterceptor], зарегистрированный в
+     * `WebMvcConfig` (см. `site-traffic-resilience.md` / FR-010 / SC-008).
+     *
+     * @see docs/features/site-traffic-resilience.md (FR-010)
+     */
     @GetMapping("/song-picture/{id}")
     fun songPicture(
         @PathVariable id: Long,
@@ -716,6 +723,13 @@ class PublicApiController(
         return ResponseEntity.ok().contentType(MediaType.IMAGE_PNG).body(bytes)
     }
 
+    /**
+     * VK-картинка песни (автор 1000x400). Rate-limit 60 req/мин на IP применяется через
+     * [com.svoemesto.karaokeweb.services.RateLimitInterceptor], зарегистрированный в
+     * `WebMvcConfig` (см. `site-traffic-resilience.md` / FR-010 / SC-008).
+     *
+     * @see docs/features/site-traffic-resilience.md (FR-010)
+     */
     @GetMapping("/song-vk-image/{id}")
     fun songVkImage(
         @PathVariable id: Long,

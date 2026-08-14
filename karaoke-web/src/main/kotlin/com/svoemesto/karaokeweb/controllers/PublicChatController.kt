@@ -7,6 +7,7 @@ import com.svoemesto.karaokeapp.model.SiteUser
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.StorageApiClient
 import com.svoemesto.karaokeweb.config.SiteAuthInterceptor
+import com.svoemesto.karaokeweb.services.PollingCache
 import jakarta.servlet.http.HttpServletRequest
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -26,7 +27,7 @@ import org.springframework.web.bind.annotation.*
 /**
  * Контроллер (HTTP/WebSocket endpoints) для public chat .
  *
- * @see AGENTS.md
+ * @see docs/features/site-traffic-resilience.md (FR-008 — polling cache для `/unreadcount`)
  */
 @RestController
 @RequestMapping("/api/public/account/chat")
@@ -34,6 +35,11 @@ class PublicChatController(
     private val storageService: KaraokeStorageService,
     private val storageApiClient: StorageApiClient,
 ) {
+    // Server-side polling cache для `/unreadcount` (FR-008, clarified 2026-08-14).
+    // TTL = 10 сек: бейдж должен обновляться быстро при появлении нового ответа автора,
+    // но фронт polling = 20 сек → cache-hit ~50% времени, что снижает нагрузку на `tbl_site_chat_messages`.
+    private val unreadCountPollingCache = PollingCache<Map<String, Int>>()
+
     private fun currentUser(request: HttpServletRequest): SiteUser = request.getAttribute(SiteAuthInterceptor.SITE_USER_ATTR) as SiteUser
 
     private fun premiumRequired(): ResponseEntity<Any> =
@@ -99,11 +105,15 @@ class PublicChatController(
     // Непрочитанные ответы автора текущему пользователю — бейдж на публичной стороне. Тоже за
     // премиум-гейтом: не-премиум пользователь не имеет доступа к чату вообще, значит и не должен
     // получать сигнал о «новых сообщениях» в нём (для него всегда 0, без похода в БД).
+    // Polling cache TTL=10s (FR-008, clarified) — снижает нагрузку на `tbl_site_chat_messages`.
     @GetMapping("/unreadcount")
     fun unreadCount(request: HttpServletRequest): Map<String, Int> {
         val user = currentUser(request)
         if (!user.isEffectivePremium) return mapOf("count" to 0)
-        val count = SiteChatMessage.countUnreadForUser(user.id, WORKING_DATABASE)
-        return mapOf("count" to count)
+        val cacheKey = "chat_unread:user:${user.id}"
+        return unreadCountPollingCache.getOrCompute(key = cacheKey, ttlSeconds = 10) {
+            val count = SiteChatMessage.countUnreadForUser(user.id, WORKING_DATABASE)
+            mapOf("count" to count)
+        }
     }
 }

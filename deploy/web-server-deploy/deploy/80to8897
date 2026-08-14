@@ -9,12 +9,27 @@ server {
     proxy_buffering off;
     proxy_read_timeout 60;
     proxy_send_timeout 60;
+    # US4 (FR-003/004/005): HTTP-кеш для превью/картинок автора/альбома.
+    # 24-часовой expires + ETag/Last-Modified для успешных ответов (FR-003/004).
+    # 404-кэшируется на 5 минут (FR-005) — чтобы частые запросы несуществующих картинок
+    # (например, анонимные /zakroma без превью) не возвращали 404 из MinIO каждый раз.
+    expires 24h;
+    add_header Cache-Control "public, max-age=86400";
+    add_header ETag $upstream_http_etag;
+    add_header Last-Modified $upstream_http_last_modified;
+    error_page 404 = @minio_404;
   }
   # Real-time NDJSON chunked-stream для Закромов (specs/181-zakroma-author-load-progress).
   # Без proxy_buffering/gzip/proxy_cache OFF фронт получит весь ответ одним блоком после полной
   # отдачи backend — никакого «real-time» не будет. Этот location ОБЯЗАН стоять ДО общего /api/
   # (точнее, nginx выберет его по longest-prefix match: `/api/public/zakroma/stream` длиннее
   # `/api/`, поэтому порядок не критичен, но для читаемости держим рядом).
+  # @minio_404 — короткий (5 мин) TTL для 404-ответов MinIO (FR-005): превью автора без картинки
+  # не должно долбить MinIO каждым запросом от анонимных /zakroma-вкладок.
+  location @minio_404 {
+    add_header Cache-Control "public, max-age=300";
+    return 404;
+  }
   location /api/public/zakroma/stream {
     proxy_buffering off;
     gzip off;
@@ -109,6 +124,12 @@ server {
     proxy_set_header Host 89.125.103.63;
     proxy_buffering off;
     proxy_read_timeout 60;
+    # US4 (FR-003/004/005) — см. аналогичный блок в server { listen 443 ... } выше.
+    expires 24h;
+    add_header Cache-Control "public, max-age=86400";
+    add_header ETag $upstream_http_etag;
+    add_header Last-Modified $upstream_http_last_modified;
+    error_page 404 = @minio_404;
   }
   # Обход той же MTU-проблемы (docker bridge=1500 vs физический ens3=1450), что и у /minio/ выше,
   # но для внешнего HTTPS API (Yandex SmartCaptcha /validate) — TLS handshake из контейнера напрямую

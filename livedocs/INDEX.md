@@ -71,6 +71,7 @@ Bounded contexts проекта Karaoke + ubiquitous language glossary.
 | [`queue-lanes.md`](architecture/queue-lanes.md) | topic | Async-очередь (threadId lanes, priority) |
 | [`share-link.md`](architecture/share-link.md) | topic | Гостевой доступ: временные ссылки + claim + heartbeat + sweep |
 | [`censoring.md`](architecture/censoring.md) | topic | Цензурирование: TextFileDictionary + String.censored() |
+| [`monetization.md`](architecture/monetization.md) | topic | Модель free-vs-premium: подписки, YOOKASSA, авто-публикация |
 
 ### Тематические — паттерны / ловушки / конвенции
 

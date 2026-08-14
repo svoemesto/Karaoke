@@ -550,7 +550,7 @@ export default {
    расстояние между PlayerIcon и FavoriteIcon — как между FavoriteIcon и PlaylistIcon */
 .km-player-icon {
   display: inline-block;
-  margin-right: 0.5rem;
+  margin-right: 4px;
 }
 .km-td-name {
   text-align: left;

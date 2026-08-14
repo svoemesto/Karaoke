@@ -89,6 +89,15 @@ export default {
      * Используется для правила «no-op, если < 30 с с последнего успеха».
      */
     lastLoadedTimestampByAuthor: {},
+    /**
+     * US4 (FR-014): время последней успешной загрузки `authorTiles`. Используется
+     * для правила «no-op, если < 30 с с последнего успеха И массив не пустой».
+     * Снижает нагрузку на `/api/public/authors-tiles` для SPA-навигации
+     * (вход на /zakroma → переход в /song/{id} → back → /zakroma).
+     *
+     * @see docs/features/site-traffic-resilience.md (FR-014)
+     */
+    lastLoadedTilesAt: 0,
   },
   getters: {
     authors: (state) => state.authors,
@@ -99,6 +108,7 @@ export default {
     streamProgress: (state) => state.streamProgress,
     streamError: (state) => state.streamError,
     lastLoadedTimestampByAuthor: (state) => state.lastLoadedTimestampByAuthor,
+    lastLoadedTilesAt: (state) => state.lastLoadedTilesAt,
   },
   mutations: {
     setAuthors(state, authors) {
@@ -106,6 +116,9 @@ export default {
     },
     setAuthorTiles(state, tiles) {
       state.authorTiles = tiles
+    },
+    setLastLoadedTilesAt(state, ts) {
+      state.lastLoadedTilesAt = ts
     },
     setZakroma(state, zakroma) {
       state.zakroma = zakroma
@@ -134,9 +147,33 @@ export default {
       const authors = await apiGet('/api/public/authors', { scope })
       commit('setAuthors', authors)
     },
-    async loadAuthorTiles({ commit }, scope = 'main') {
+    /**
+     * Загрузка тайлов авторов для сетки /zakroma (US4 / FR-014).
+     *
+     * Дедуп: если < 30 секунд с последней успешной загрузки И `state.authorTiles` не пустой —
+     * no-op (без HTTP-запроса). После успешной загрузки — фиксируем `lastLoadedTilesAt`.
+     *
+     * Это дополняет server-side защиты (FR-002: прямой URL на MinIO минует Spring-контроллер).
+     * Без дедупа SPA-навигация (вход → переход в song → back) дёргает `/authors-tiles`
+     * 2-3 раза за сессию.
+     *
+     * @see docs/features/site-traffic-resilience.md (FR-014)
+     */
+    async loadAuthorTiles({ commit, state }, scope = 'main') {
+      // FR-014: dedup — если последний успех был < 30с назад И массив не пустой,
+      // не делаем fetch. Пустой массив (например, после первой ошибки загрузки) —
+      // НЕ считается кэшированным состоянием, делаем fetch.
+      if (
+        state.lastLoadedTilesAt > 0 &&
+        Date.now() - state.lastLoadedTilesAt < 30_000 &&
+        Array.isArray(state.authorTiles) &&
+        state.authorTiles.length > 0
+      ) {
+        return
+      }
       const tiles = await apiGet('/api/public/authors-tiles', { scope })
       commit('setAuthorTiles', tiles)
+      commit('setLastLoadedTilesAt', Date.now())
     },
     /**
      * Real-time NDJSON chunked-stream loader (181, FR-FE-003, FR-FE-004, FR-FE-009).

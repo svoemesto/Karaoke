@@ -204,28 +204,6 @@ class Zakroma(
                                         zakromaAlbumSong.freeAccessWindowEndText = song.freeAccessWindowEndText
                                         zakromaAlbumSong.track = song.track
                                         zakromaAlbumSong.songName = song.songName.censored(database)
-                                        zakromaAlbumSong.linkBoosty = song.linkBoostyTxt
-                                        zakromaAlbumSong.linkSponsrPlay = song.linkSponsrPlay
-                                        zakromaAlbumSong.linkDzenKaraoke = song.linkDzenKaraoke
-                                        zakromaAlbumSong.linkDzenLyrics = song.linkDzenLyrics
-                                        zakromaAlbumSong.linkDzenTabs = song.linkDzenTabs
-                                        zakromaAlbumSong.linkDzenChords = song.linkDzenChords
-                                        zakromaAlbumSong.linkVkKaraoke = song.linkVkKaraoke
-                                        zakromaAlbumSong.linkVkLyrics = song.linkVkLyrics
-                                        zakromaAlbumSong.linkVkTabs = song.linkVkTabs
-                                        zakromaAlbumSong.linkVkChords = song.linkVkChords
-                                        zakromaAlbumSong.linkTgKaraoke = song.linkTgKaraoke
-                                        zakromaAlbumSong.linkTgLyrics = song.linkTgLyrics
-                                        zakromaAlbumSong.linkTgTabs = song.linkTgTabs
-                                        zakromaAlbumSong.linkTgChords = song.linkTgChords
-                                        zakromaAlbumSong.linkPlKaraoke = song.linkPlKaraoke
-                                        zakromaAlbumSong.linkPlLyrics = song.linkPlLyrics
-                                        zakromaAlbumSong.linkPlTabs = song.linkPlTabs
-                                        zakromaAlbumSong.linkPlChords = song.linkPlChords
-                                        zakromaAlbumSong.linkMaxKaraoke = song.linkMaxKaraoke
-                                        zakromaAlbumSong.linkMaxLyrics = song.linkMaxLyrics
-                                        zakromaAlbumSong.linkMaxTabs = song.linkMaxTabs
-                                        zakromaAlbumSong.linkMaxChords = song.linkMaxChords
                                         zakromaAlbumSong
                                     }.sorted()
                                     .toMutableList()
@@ -262,28 +240,6 @@ class ZakromaAlbumSong :
     var id: Long = 0
     var track: Long = 0
     var songName: String = ""
-    var linkBoosty: String = ""
-    var linkSponsrPlay: String = ""
-    var linkDzenKaraoke: String = ""
-    var linkDzenLyrics: String = ""
-    var linkDzenTabs: String = ""
-    var linkDzenChords: String = ""
-    var linkVkKaraoke: String = ""
-    var linkVkLyrics: String = ""
-    var linkVkTabs: String = ""
-    var linkVkChords: String = ""
-    var linkTgKaraoke: String = ""
-    var linkTgLyrics: String = ""
-    var linkTgTabs: String = ""
-    var linkTgChords: String = ""
-    var linkPlKaraoke: String = ""
-    var linkPlLyrics: String = ""
-    var linkPlTabs: String = ""
-    var linkPlChords: String = ""
-    var linkMaxKaraoke: String = ""
-    var linkMaxLyrics: String = ""
-    var linkMaxTabs: String = ""
-    var linkMaxChords: String = ""
     var onAir: Boolean = false
     var datePublish: String = ""
 

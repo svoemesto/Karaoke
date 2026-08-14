@@ -90,7 +90,6 @@
             <col style="width: 220px" />
             <col style="width: 24px" />
             <col style="width: 24px" />
-            <col style="width: 32px" />
             <col style="width: 26px" />
             <col style="width: 26px" />
           </colgroup>
@@ -101,7 +100,7 @@
               <th class="km-th">Альбом</th>
               <th class="km-th km-th-center">№</th>
               <th class="km-th">Композиция</th>
-              <th class="km-th" colspan="6">&nbsp;</th>
+              <th class="km-th" colspan="5">&nbsp;</th>
             </tr>
           </thead>
           <tbody>
@@ -135,14 +134,6 @@
                   :song-id="sett.id"
                   :watch-state="readiness.stateFor(sett.id)"
                   :content-ready-state="readiness.contentReadyFor(sett.id)"
-                />
-              </td>
-              <td class="km-td km-td-center">
-                <PlatformLink
-                  link-name="sponsr"
-                  :link-value="sett.linkSponsrPlay"
-                  :song-id="sett.id"
-                  song-version="all"
                 />
               </td>
               <td class="km-td km-td-center">
@@ -180,12 +171,6 @@
               :watch-state="readiness.stateFor(sett.id)"
               :content-ready-state="readiness.contentReadyFor(sett.id)"
             />
-            <PlatformLink
-              link-name="sponsr"
-              :link-value="sett.linkSponsrPlay"
-              :song-id="sett.id"
-              song-version="all"
-            />
             <FavoriteIcon :song-id="sett.id" />
             <PlaylistIcon :song-id="sett.id" />
           </div>
@@ -216,7 +201,6 @@
 
 <script>
 import { mapGetters, mapActions } from 'vuex'
-import PlatformLink from '../components/PlatformLink.vue'
 import PlayerIcon from '../components/PlayerIcon.vue'
 import PremiumIcon from '../components/PremiumIcon.vue'
 import SongSubscriptionModal from '../components/SongSubscriptionModal.vue'
@@ -240,7 +224,6 @@ import { useAuth } from '../composables/useAuth'
 export default {
   name: 'SearchView',
   components: {
-    PlatformLink,
     PlayerIcon,
     PremiumIcon,
     SongSubscriptionModal,

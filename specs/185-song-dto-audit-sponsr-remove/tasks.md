@@ -20,7 +20,7 @@
 
 **Purpose**: Подтвердить рабочее окружение перед правкой кода.
 
-- [ ] T001 Подтвердить branch = `185-song-dto-audit-sponsr-remove` через `git branch --show-current`; `git status` без untracked `.env`/секретов; рабочий каталог — `/home/nsa/Karaoke`.
+- [x] T001 Подтвердить branch = `185-song-dto-audit-sponsr-remove` через `git branch --show-current`; `git status` без untracked `.env`/секретов; рабочий каталог — `/home/nsa/Karaoke`.
 
 ---
 
@@ -32,11 +32,11 @@
 
 ### Implementation for User Story 1
 
-- [ ] T002 [P] [US1] Удалить 3 вхождения `<PlatformLink link-name="sponsr" :link-value="sett.linkSponsrPlay" :song-id="sett.id" song-version="all" />` (desktop `<td>` + mobile `<div>` в карточке) в `karaoke-public/src/views/ZakromaView.vue` (строки 319-326 и 354-360).
-- [ ] T003 [P] [US1] Удалить 3 вхождения того же блока в `karaoke-public/src/views/SearchView.vue` (строки 140-147 и 183-189).
-- [ ] T004 [US1] Пересчитать `<col style="width: Npx">` в `karaoke-public/src/views/ZakromaView.vue` после удаления колонки: явная ширина для каждой оставшейся колонки, `table-layout: fixed` требует явной `width` (см. AGENTS.md «Таблицы karaoke-public»).
-- [ ] T005 [US1] Пересчитать `<col style="width: Npx">` в `karaoke-public/src/views/SearchView.vue` аналогично.
-- [ ] T006 [US1] Собрать публичный SPA локально: `cd karaoke-public && npm run build` (должен завершиться без ошибок и предупреждений о неиспользуемых `<col>`).
+- [x] T002 [P] [US1] Удалить 3 вхождения `<PlatformLink link-name="sponsr" :link-value="sett.linkSponsrPlay" :song-id="sett.id" song-version="all" />` (desktop `<td>` + mobile `<div>` в карточке) в `karaoke-public/src/views/ZakromaView.vue` (строки 319-326 и 354-360).
+- [x] T003 [P] [US1] Удалить 3 вхождения того же блока в `karaoke-public/src/views/SearchView.vue` (строки 140-147 и 183-189).
+- [x] T004 [US1] Пересчитать `<col style="width: Npx">` в `karaoke-public/src/views/ZakromaView.vue` после удаления колонки: явная ширина для каждой оставшейся колонки, `table-layout: fixed` требует явной `width` (см. AGENTS.md «Таблицы karaoke-public»).
+- [x] T005 [US1] Пересчитать `<col style="width: Npx">` в `karaoke-public/src/views/SearchView.vue` аналогично.
+- [x] T006 [US1] Собрать публичный SPA локально: `cd karaoke-public && npm run build` (должен завершиться без ошибок и предупреждений о неиспользуемых `<col>`).
 
 **Checkpoint**: User Story 1 функционально завершён — иконка Sponsr не рендерится во Vue SPA. JSON от бэка пока ещё содержит `linkSponsrPlay` (это будет исправлено в US2).
 
@@ -50,13 +50,13 @@
 
 ### Implementation for User Story 2
 
-- [ ] T007 [P] [US2] Удалить 26 полей из `SongPublicDto` (21 ссылка + 5 служебных: `sponsrLinkGeneral`, `haveVkGroupLink`, `vkPictureBase64`, `idStatus`, `linkSponsrPlay`, `linkBoostyTxt`) в `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/dto/SongPublicDto.kt`.
-- [ ] T008 [P] [US2] Поправить `SongPublicDto.fromSong()`: удалить инициализацию удалённых полей в том же файле.
-- [ ] T009 [P] [US2] Удалить 21 поле ссылок (`linkBoosty`, `linkSponsrPlay`, `linkDzen*`, `linkVk*`, `linkTg*`, `linkPl*`, `linkMax*`) из `ZakromaAlbumSongPublicDto` в `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/dto/ZakromaPublicDto.kt`.
-- [ ] T010 [P] [US2] Поправить `ZakromaAlbumSongPublicDto.fromZakroma()`: убрать обращения к удалённым полям в том же файле.
-- [ ] T011 [P] [US2] Удалить 21 параметр из inline-конструктора `ZakromaAlbumSongPublicDto` в `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicApiController.kt` (метод `zakromaStream`, ~строки 344-389).
-- [ ] T012 [P] [US2] Удалить 21 `var`-поле из `ZakromaAlbumSong` (~строки 265-285) и 21 строку сборщика `zakromaAlbumSong.linkXxx = song.linkXxx` (~строки 207-225) в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Zakroma.kt`.
-- [ ] T013 [US2] Собрать backend локально: `./gradlew clean :karaoke-app:compileKotlin :karaoke-web:compileKotlin` (без ошибок компиляции).
+- [x] T007 [P] [US2] Удалить 26 полей из `SongPublicDto` (21 ссылка + 5 служебных: `sponsrLinkGeneral`, `haveVkGroupLink`, `vkPictureBase64`, `idStatus`, `linkSponsrPlay`, `linkBoostyTxt`) в `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/dto/SongPublicDto.kt`.
+- [x] T008 [P] [US2] Поправить `SongPublicDto.fromSong()`: удалить инициализацию удалённых полей в том же файле.
+- [x] T009 [P] [US2] Удалить 21 поле ссылок (`linkBoosty`, `linkSponsrPlay`, `linkDzen*`, `linkVk*`, `linkTg*`, `linkPl*`, `linkMax*`) из `ZakromaAlbumSongPublicDto` в `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/dto/ZakromaPublicDto.kt`.
+- [x] T010 [P] [US2] Поправить `ZakromaAlbumSongPublicDto.fromZakroma()`: убрать обращения к удалённым полям в том же файле.
+- [x] T011 [P] [US2] Удалить 21 параметр из inline-конструктора `ZakromaAlbumSongPublicDto` в `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/PublicApiController.kt` (метод `zakromaStream`, ~строки 344-389).
+- [x] T012 [P] [US2] Удалить 21 `var`-поле из `ZakromaAlbumSong` (~строки 265-285) и 21 строку сборщика `zakromaAlbumSong.linkXxx = song.linkXxx` (~строки 207-225) в `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Zakroma.kt`.
+- [x] T013 [US2] Собрать backend локально: `./gradlew clean :karaoke-app:compileKotlin :karaoke-web:compileKotlin` (без ошибок компиляции).
 
 **Checkpoint**: User Story 2 функционально завершён — backend-ответ содержит только нужные поля. Payload `/api/public/zakroma?author=КИНО` ≤ 8 KB (SC-001).
 
@@ -70,10 +70,10 @@
 
 ### Implementation for User Story 3
 
-- [ ] T014 [P] [US3] Удалить блоки ссылок `<a th:linkValue="${sett.linkSponsrPlay}">`, `<a th:linkValue="${sett.linkDzen*}">`, `<a th:linkValue="${sett.linkVk*}">`, `<a th:linkValue="${sett.linkTg*}">`, `<a th:linkValue="${sett.linkMax*}">`, `<a th:linkValue="${sett.linkPl*}">`, `<a th:linkValue="${sett.linkBoosty}">` + соответствующие `<col>`/`<th>` в `karaoke-web/src/main/resources/templates/filter.html`.
-- [ ] T015 [P] [US3] То же в `karaoke-web/src/main/resources/templates/zakroma.html`.
-- [ ] T016 [P] [US3] То же в `karaoke-web/src/main/resources/templates/testpage.html`. **ОСТАВИТЬ** `${sett.idStatus}` и `${sett.haveVkGroupLink}` на ~строке 300 (нужны для логики отображения картинки, см. plan.md «Constraints»).
-- [ ] T017 [US3] Пересобрать karaoke-web локально: `./gradlew :karaoke-web:bootJar` (должен пересобраться без ошибок Thymeleaf-шаблонов).
+- [x] T014 [P] [US3] Удалить блоки ссылок `<a th:linkValue="${sett.linkSponsrPlay}">`, `<a th:linkValue="${sett.linkDzen*}">`, `<a th:linkValue="${sett.linkVk*}">`, `<a th:linkValue="${sett.linkTg*}">`, `<a th:linkValue="${sett.linkMax*}">`, `<a th:linkValue="${sett.linkPl*}">`, `<a th:linkValue="${sett.linkBoosty}">` + соответствующие `<col>`/`<th>` в `karaoke-web/src/main/resources/templates/filter.html`.
+- [x] T015 [P] [US3] То же в `karaoke-web/src/main/resources/templates/zakroma.html`.
+- [x] T016 [P] [US3] То же в `karaoke-web/src/main/resources/templates/testpage.html`. **ОСТАВИТЬ** `${sett.idStatus}` и `${sett.haveVkGroupLink}` на ~строке 300 (нужны для логики отображения картинки, см. plan.md «Constraints»).
+- [x] T017 [US3] Пересобрать karaoke-web локально: `./gradlew :karaoke-web:bootJar` (должен пересобраться без ошибок Thymeleaf-шаблонов).
 
 **Checkpoint**: User Story 3 функционально завершён — legacy Thymeleaf-сайт консистентен с новым SPA.
 
@@ -83,11 +83,11 @@
 
 **Purpose**: Линтеры, регрессионная проверка, документация, PR.
 
-- [ ] T018 [P] Запустить `./gradlew ktlintCheck` — baseline не должен вырасти (FR-007).
-- [ ] T019 [P] Запустить `cd karaoke-public && npm run lint:check && bash ../../tools/check-eslint-baseline.sh` — baseline не должен вырасти.
-- [ ] T020 [P] Запустить `bash tools/check-kdoc-coverage.sh` — должно оставаться 100%.
-- [ ] T021 Выполнить ручную проверку по `specs/185-song-dto-audit-sponsr-remove/quickstart.md` — все SC-001..SC-007 должны пройти (curl + jq, Vue SPA в браузере, Thymeleaf в браузере, webvue3 в браузере, боты-проверка, DevTools, линтеры).
-- [ ] T022 [P] Проверить `git status` (нет untracked `.env`/секретов/мусорных файлов); `git diff --stat` показывает только ожидаемые правки в 9 файлах: `SongPublicDto.kt`, `ZakromaPublicDto.kt`, `PublicApiController.kt`, `Zakroma.kt`, `ZakromaView.vue`, `SearchView.vue`, `filter.html`, `zakroma.html`, `testpage.html`.
+- [x] T018 [P] Запустить `./gradlew ktlintCheck` — baseline не должен вырасти (FR-007).
+- [x] T019 [P] Запустить `cd karaoke-public && npm run lint:check && bash ../../tools/check-eslint-baseline.sh` — baseline не должен вырасти.
+- [x] T020 [P] Запустить `bash tools/check-kdoc-coverage.sh` — должно оставаться 100%.
+- [ ] T021 Выполнить ручную проверку по `specs/185-song-dto-audit-sponsr-remove/quickstart.md` — все SC-001..SC-007 должны пройти (curl + jq, Vue SPA в браузере, Thymeleaf в браузере, webvue3 в браузере, боты-проверка, DevTools, линтеры). Запустить после деплоя на прод.
+- [x] T022 [P] Проверить `git status` (нет untracked `.env`/секретов/мусорных файлов); `git diff --stat` показывает только ожидаемые правки в 9 файлах: `SongPublicDto.kt`, `ZakromaPublicDto.kt`, `PublicApiController.kt`, `Zakroma.kt`, `ZakromaView.vue`, `SearchView.vue`, `filter.html`, `zakroma.html`, `testpage.html`.
 - [ ] T023 Создать коммит: `git add` ожидаемых файлов (БЕЗ `deploy/ollama_data/`, `dist/`, `node_modules/`, `deploy/.env`, `deploy/do.env`), `git commit -m "185-song-dto-audit-sponsr-remove: аудит DTO песни и удаление ссылок на соцсети из публичных шаблонов"`.
 - [ ] T024 Создать PR: `git push -u origin 185-song-dto-audit-sponsr-remove` → `gh pr create --base master --title "185: аудит DTO песни и удаление ссылок на соцсети из публичных шаблонов"`.
 - [ ] T025 Дождаться CI 7/7 SUCCESS (`gh pr checks` или `gh run watch`); выполнить `gh pr merge --merge` **БЕЗ** `--delete-branch` (см. AGENTS.md «Жизненный цикл feature-ветки»).

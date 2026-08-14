@@ -42,6 +42,10 @@
 | [decisions/0001-raw-jdbc.md](decisions/0001-raw-jdbc.md) | Сырой JDBC без JPA/Hibernate для доступа к БД |
 | [decisions/0002-mlt-instead-of-ffmpeg.md](decisions/0002-mlt-instead-of-ffmpeg.md) | MLT/melt как основной стек для генерации караоке-видео |
 | [decisions/0003-livedocs-markdown-yaml-mermaid.md](decisions/0003-livedocs-markdown-yaml-mermaid.md) | LiveDocs = Markdown + YAML frontmatter + Mermaid (не MkDocs/Docusaurus) |
+| [decisions/0004-karaoke-app-admin-only.md](decisions/0004-karaoke-app-admin-only.md) | KaraokeApp только на admin-машине, не на проде |
+| [decisions/0005-self-hosted-ml.md](decisions/0005-self-hosted-ml.md) | Self-hosted ML вместо SaaS |
+| [decisions/0006-processbuilder-redirect-errorstream.md](decisions/0006-processbuilder-redirect-errorstream.md) | ProcessBuilder + redirectErrorStream(true) |
+| [decisions/local-0001-karaoke-properties-defaults.md](decisions/local-0001-karaoke-properties-defaults.md) | Local ADR — конвенция для дефолтов в KaraokeProperties |
 | [decisions/README.md](decisions/README.md) | Index ADR — конвенции формата |
 
 ## Конвенции

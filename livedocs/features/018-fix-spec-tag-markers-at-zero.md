@@ -45,7 +45,7 @@ related:
 
 ## Связанные LiveDocs
 
-- Domain: [catalog.md](../catalog.md) (lyrics/spec tags), [editorial.md](../editorial.md) (SubsEdit)
+- Domain: [catalog.md](../domain/catalog.md) (lyrics/spec tags), [editorial.md](../domain/editorial.md) (SubsEdit)
 - Feature: [017-editor-status-bypass.md](../features/017-editor-status-bypass.md), [019-fix-setcontent-resets-position.md](../features/019-fix-setcontent-resets-position.md)
 
 ## Код

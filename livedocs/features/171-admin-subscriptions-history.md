@@ -60,7 +60,7 @@ related:
 
 ## Связанные LiveDocs
 
-- Domain: [catalog.md](../domain/catalog.md) (Song), [publishing.md](../domain/publishing.md) (Subscription, On-Air), [identity.md](../identity.md) (SiteUser)
+- Domain: [catalog.md](../domain/catalog.md) (Song), [publishing.md](../domain/publishing.md) (Subscription, On-Air), [identity.md](../domain/identity.md) (SiteUser)
 - Architecture: [L3-components.md](../architecture/L3-components.md) (controllers + Vuex)
 - Architecture: [webvue3-patterns.md](../architecture/webvue3-patterns.md) (паттерн пагинации)
 

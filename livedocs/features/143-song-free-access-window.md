@@ -53,7 +53,7 @@ related:
 
 ## Связанные LiveDocs
 
-- Domain: [publishing.md](../publishing.md) (window logic), [catalog.md](../catalog.md) (Song)
+- Domain: [publishing.md](../domain/publishing.md) (window logic), [catalog.md](../domain/catalog.md) (Song)
 - Feature: [144-homepage-latest-news.md](../features/144-homepage-latest-news.md) (главная)
 - Specs: `005-free-vs-premium` (старая модель), `143` — новая модель
 

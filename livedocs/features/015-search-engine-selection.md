@@ -39,7 +39,7 @@ related:
 
 ## Связанные LiveDocs
 
-- Domain: [editorial.md](../editorial.md)
+- Domain: [editorial.md](../domain/editorial.md)
 - Architecture: [L1-system-context.md](../architecture/L1-system-context.md) (SearXNG)
 
 ## Код

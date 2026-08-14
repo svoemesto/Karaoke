@@ -48,7 +48,7 @@ related:
 
 ## Связанные LiveDocs
 
-- Domain: [publishing.md](../publishing.md) (news lifecycle), [catalog.md](../catalog.md) (Song.news)
+- Domain: [publishing.md](../domain/publishing.md) (news lifecycle), [catalog.md](../domain/catalog.md) (Song.news)
 - Architecture: [data-sync.md](../architecture/data-sync.md) (sync logic)
 
 ## Код

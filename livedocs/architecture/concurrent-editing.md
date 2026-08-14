@@ -168,8 +168,8 @@ sequenceDiagram
 
 ## Связанные LiveDocs
 
-- [features/182-editor-self-assign-tasks.md](../../features/182-editor-self-assign-tasks.md) — race protection через `SELECT FOR UPDATE`.
-- [features/094-fix-approve-news-failure.md](../../features/094-fix-approve-news-failure.md) — race в approve editor task.
+- [features/182-editor-self-assign-tasks.md](../features/182-editor-self-assign-tasks.md) — race protection через `SELECT FOR UPDATE`.
+- [features/094-fix-approve-news-failure.md](../features/094-fix-approve-news-failure.md) — race в approve editor task.
 - [architecture/data-sync.md](data-sync.md) — `tbl_audits` синхронизируется с sync LOCAL↔SERVER.
 
 ## Код

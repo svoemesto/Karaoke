@@ -48,7 +48,7 @@ related:
 
 ## Связанные LiveDocs
 
-- Domain: [catalog.md](../catalog.md) (Song), [publishing.md](../publishing.md) (эфир/EXCLUSIVE)
+- Domain: [catalog.md](../domain/catalog.md) (Song), [publishing.md](../domain/publishing.md) (эфир/EXCLUSIVE)
 - Architecture: [L3-components.md](../architecture/L3-components.md)
 
 ## Код

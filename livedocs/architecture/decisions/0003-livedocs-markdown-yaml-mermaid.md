@@ -96,7 +96,7 @@ livedocs/
 
 ## Ссылки
 
-- [Спека 189-live-documentation § research D-1](../../../../../specs/189-live-documentation/research.md) — подробное
+- [Спека 189-live-documentation § research D-1](../../../specs/189-live-documentation/research.md) — подробное
   обоснование (10 design decisions).
 - [livedocs/README.md](../../README.md) — корневой манифест LiveDocs.
 - [livedocs/INDEX.md](../../INDEX.md) — карта + decision tree.

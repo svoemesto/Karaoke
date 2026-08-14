@@ -35,7 +35,7 @@ SearXNG не справлялся с поиском текстов песен �
 
 ## Связанные LiveDocs
 
-- Domain: [editorial.md](../editorial.md) (тексты)
+- Domain: [editorial.md](../domain/editorial.md) (тексты)
 - Feature: [015-search-engine-selection.md](../features/015-search-engine-selection.md)
 
 ## Код

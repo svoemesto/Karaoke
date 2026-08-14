@@ -52,7 +52,7 @@ related:
 
 ## Связанные LiveDocs
 
-- Domain: [editorial.md](../editorial.md), [processing.md](../processing.md) (mp4 render), [publishing.md](../publishing.md) (Telegram)
+- Domain: [editorial.md](../domain/editorial.md), [processing.md](../domain/processing.md) (mp4 render), [publishing.md](../domain/publishing.md) (Telegram)
 - Feature: [184-approve-status-choice.md](../features/184-approve-status-choice.md) (choosing idStatus)
 - Architecture: [data-sync.md](../architecture/data-sync.md)
 

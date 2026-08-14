@@ -2,7 +2,6 @@
 status: Active
 slug: 021-dev-pc-agent-permissions
 related:
-  - ../features/189-governance.md
   - ../../specs/021-dev-pc-agent-permissions/spec.md
 ---
 

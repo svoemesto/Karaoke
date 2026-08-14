@@ -52,7 +52,7 @@ related:
 
 ## Связанные LiveDocs
 
-- Domain: [publishing.md](../publishing.md) (news lifecycle), [catalog.md](../catalog.md) (Song)
+- Domain: [publishing.md](../domain/publishing.md) (news lifecycle), [catalog.md](../domain/catalog.md) (Song)
 - Architecture: [L3-components.md](../architecture/L3-components.md)
 - Specs: `089-auto-news-song-release` (базовая логика авто-новостей), `144` — UI-расширение
 

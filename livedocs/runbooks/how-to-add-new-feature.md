@@ -2,9 +2,9 @@
 
 ## Prerequisites
 
-- Прочитать [AGENTS.md «С чего начать сессию»](../../../../AGENTS.md) —
+- Прочитать [AGENTS.md «С чего начать сессию»](../../AGENTS.md) —
   LiveDocs первым.
-- Понимание общей архитектуры (см. [livedocs/INDEX.md](../../INDEX.md)).
+- Понимание общей архитектуры (см. [livedocs/INDEX.md](../INDEX.md)).
 
 ## Steps
 
@@ -26,7 +26,7 @@ git checkout -b "${N}-my-feature" master
 Команда автоматически:
 - Создаст `specs/<NNN>-my-feature/spec.md` (через шаблон).
 - Вставит вопросы Clarifications (если нужны уточнения).
-- Обновит [AGENTS.md](../../../../AGENTS.md) Q&A (если появилось новое).
+- Обновит [AGENTS.md](../../AGENTS.md) Q&A (если появилось новое).
 
 ### 2. Спецификация
 
@@ -55,7 +55,7 @@ design decisions), data-model.md, contracts/, quickstart.md.
 ```
 
 Создаёт `tasks.md` с фазами: Setup → Foundational → US1 → US2 → ...
-Также есть [constitution.md](../../../../.specify/memory/constitution.md) —
+Также есть [constitution.md](../../.specify/memory/constitution.md) —
 проверка соответствия.
 
 ### 5. Реализация
@@ -74,7 +74,7 @@ design decisions), data-model.md, contracts/, quickstart.md.
 ### 6. LiveDoc-сводка
 
 **В ЭТОЙ ЖЕ ветке** `NNN-my-feature` создать `livedocs/features/<NNN>-my-feature.md` —
-сводку ≤ 2 страниц. Шаблон: [`livedocs/templates/feature-summary.md`](../../templates/feature-summary.md).
+сводку ≤ 2 страниц. Шаблон: [`livedocs/templates/feature-summary.md`](../templates/feature-summary.md).
 
 ```bash
 cp livedocs/templates/feature-summary.md livedocs/features/<NNN>-my-feature.md
@@ -122,7 +122,7 @@ git push origin master
 
 ## Related
 
-- LiveDocs: [AGENTS.md](../../../../AGENTS.md), [livedocs/INDEX.md](../../INDEX.md).
-- Templates: [templates/feature-summary.md](../../templates/feature-summary.md),
-  [templates/bounded-context.md](../../templates/bounded-context.md).
+- LiveDocs: [AGENTS.md](../../AGENTS.md), [livedocs/INDEX.md](../INDEX.md).
+- Templates: [templates/feature-summary.md](../templates/feature-summary.md),
+  [templates/bounded-context.md](../templates/bounded-context.md).
 - Constitution: § Governance «Внесение изменений».

@@ -3,9 +3,9 @@ status: Active
 slug: cache-invalidation
 type: topic
 related:
-  - ../L2-containers.md
-  - ../../architecture/webvue3-patterns.md
-  - ../../features/171-admin-subscriptions-history.md
+  - L2-containers.md
+  - webvue3-patterns.md
+  - ../features/171-admin-subscriptions-history.md
 ---
 
 # Cache-Invalidation Patterns
@@ -66,8 +66,8 @@ await webvuePropApi.set('songs.table.perPage', 50)
 
 ## Паттерн: «строгая персистентность» в admin-таблицах
 
-Стандартный паттерн (см. [AGENTS.md](../../../../AGENTS.md) Q&A и
-[webvue3-patterns.md](../../architecture/webvue3-patterns.md)):
+Стандартный паттерн (см. [AGENTS.md](../../AGENTS.md) Q&A и
+[webvue3-patterns.md](webvue3-patterns.md)):
 
 ```javascript
 // SongsTable.vue
@@ -131,7 +131,7 @@ setInterval(async () => {
 }, 20000)
 ```
 
-(например, [176-authors-new-albums-badge.md](../../features/176-authors-new-albums-badge.md)
+(например, [176-authors-new-albums-badge.md](../features/176-authors-new-albums-badge.md)
 использует polling для бейджа автора — потому что состояние зависит от
 других админов).
 
@@ -164,10 +164,10 @@ setInterval(async () => {
 ## Связанные LiveDocs
 
 - [L2-containers.md](L2-containers.md) — где Vuex state lives.
-- [webvue3-patterns.md](../../architecture/webvue3-patterns.md) — стандартный паттерн
+- [webvue3-patterns.md](webvue3-patterns.md) — стандартный паттерн
   персистентности страницы.
-- [features/171-admin-subscriptions-history.md](../../features/171-admin-subscriptions-history.md),
-  [176-authors-new-albums-badge.md](../../features/176-authors-new-albums-badge.md) —
+- [features/171-admin-subscriptions-history.md](../features/171-admin-subscriptions-history.md),
+  [176-authors-new-albums-badge.md](../features/176-authors-new-albums-badge.md) —
   примеры.
 
 ## Код

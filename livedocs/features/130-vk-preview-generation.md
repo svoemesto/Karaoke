@@ -44,7 +44,7 @@ related:
 
 ## Связанные LiveDocs
 
-- Domain: [publishing.md](../publishing.md)
+- Domain: [publishing.md](../domain/publishing.md)
 - Feature: [138-vk-photo-preview-attachment.md](../features/138-vk-photo-preview-attachment.md) (связанная)
 - Architecture: [L3-components.md](../architecture/L3-components.md)
 

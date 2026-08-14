@@ -3,10 +3,10 @@ status: Active
 slug: idempotency
 type: topic
 related:
-  - ../L3-components.md
-  - ../dual-db-access.md
-  - ../../features/182-editor-self-assign-tasks.md
-  - ../../features/164-complete-guest-share-link.md
+  - L3-components.md
+  - dual-db-access.md
+  - ../features/182-editor-self-assign-tasks.md
+  - ../features/164-complete-guest-share-link.md
 ---
 
 # Idempotency Patterns (API + Operation)
@@ -73,7 +73,7 @@ RETURNING id;
 
 Если `RETURNING id` — вернулся → создано. Если нет → idempotent (уже было).
 
-**Пример**: фича [182-editor-self-assign-tasks.md](../../features/182-editor-self-assign-tasks.md),
+**Пример**: фича [182-editor-self-assign-tasks.md](../features/182-editor-self-assign-tasks.md),
 end-point `POST /api/public/songeditor/assign-self` — UNIQUE по
 `(song_id, assignee_id)` + кнопка «Взять в работу» (UI идемпотентна: повторный
 клик = 200 OK + `idempotent: true`).
@@ -95,7 +95,7 @@ POST /api/share/claim { secret, browserHash }
 ```
 
 Один пользователь = одна активная сессия (лимит 2 устройств). Lease expired →
-авто-отзыв через sweeper (см. [164-complete-guest-share-link.md](../../features/164-complete-guest-share-link.md)).
+авто-отзыв через sweeper (см. [164-complete-guest-share-link.md](../features/164-complete-guest-share-link.md)).
 
 ### 5. Side-effect-free GET + state machine для POST (heavy operation)
 
@@ -109,12 +109,12 @@ POST /api/share/claim { secret, browserHash }
 
 | Endpoint | Стратегия | Где смотреть |
 |----------|-----------|--------------|
-| `POST /api/public/songeditor/assign-self` | #2 (UNIQUE + idempotent field) | [features/182](../../features/182-editor-self-assign-tasks.md) |
-| `POST /api/public/share/claim` | #4 (lease-based) | [features/164](../../features/164-complete-guest-share-link.md), [167](../../features/167-fix-share-claim-500.md) |
+| `POST /api/public/songeditor/assign-self` | #2 (UNIQUE + idempotent field) | [features/182](../features/182-editor-self-assign-tasks.md) |
+| `POST /api/public/share/claim` | #4 (lease-based) | [features/164](../features/164-complete-guest-share-link.md), [167](../features/167-fix-share-claim-500.md) |
 | `POST /api/public/share/{id}/create` | #2 (UNIQUE на link) | то же |
-| `POST /api/public/songeditor/approve` | Частично #3 (`@See` регрессии в [094](../../features/094-fix-approve-news-failure.md)) | — |
+| `POST /api/public/songeditor/approve` | Частично #3 (`@See` регрессии в [094](../features/094-fix-approve-news-failure.md)) | — |
 | `POST /songs_update` (legacy Thymeleaf) | **НЕТ идемпотентности** (legacy, override всё) | технический долг |
-| `POST /api/utils/backfillpublishflags` | #2 (бэкфилл идемпотентен по `news`) | [features/125](../../features/125-news-flags-backfix.md) |
+| `POST /api/utils/backfillpublishflags` | #2 (бэкфилл идемпотентен по `news`) | [features/125](../features/125-news-flags-backfix.md) |
 | Покупка подписки (будущее) | #1 (`Idempotency-Key`) | Pass N+ |
 
 ## Что должно идемпотентно
@@ -138,7 +138,7 @@ POST /api/share/claim { secret, browserHash }
 
 1. **Внедрить `Idempotency-Key` header** для платежей (Pass N+).
 2. **Добавить UNIQUE constraints** везде, где POST может дублировать
-   (аналогично [182](../../features/182-editor-self-assign-tasks.md)).
+   (аналогично [182](../features/182-editor-self-assign-tasks.md)).
 3. **Добавить `tbl_idempotency_keys`** сервис + middleware.
 
 ## Связанные LiveDocs
@@ -147,8 +147,8 @@ POST /api/share/claim { secret, browserHash }
   race condition (смежно, не strict idempotency).
 - [dual-db-access.md](dual-db-access.md) — JDBC retry (важно учитывать при
   idempotency).
-- [features/182-editor-self-assign-tasks.md](../../features/182-editor-self-assign-tasks.md) — пример #2.
-- [features/164-complete-guest-share-link.md](../../features/164-complete-guest-share-link.md) — пример #4.
+- [features/182-editor-self-assign-tasks.md](../features/182-editor-self-assign-tasks.md) — пример #2.
+- [features/164-complete-guest-share-link.md](../features/164-complete-guest-share-link.md) — пример #4.
 
 ## Код
 

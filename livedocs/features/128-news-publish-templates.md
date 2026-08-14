@@ -46,7 +46,7 @@ related:
 
 ## Связанные LiveDocs
 
-- Domain: [publishing.md](../publishing.md) (news lifecycle)
+- Domain: [publishing.md](../domain/publishing.md) (news lifecycle)
 - Feature: предыдущая — auto-news-song-release (см. `specs/089-auto-news-song-release`)
 - Architecture: [L3-components.md](../architecture/L3-components.md) (scheduler + template renderer)
 

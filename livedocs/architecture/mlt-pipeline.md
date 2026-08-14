@@ -4,15 +4,15 @@ slug: mlt-pipeline
 type: topic
 related:
   - ../domain/processing.md
-  - ../L3-components.md
-  - ../queue-lanes.md
-  - ../decisions/0002-mlt-instead-of-ffmpeg.md
+  - L3-components.md
+  - queue-lanes.md
+  - decisions/0002-mlt-instead-of-ffmpeg.md
 ---
 
 # MLT Pipeline (drill-down для L3)
 
 > Drill-down для [L3-components.md](L3-components.md) и
-> [decisions/0002-mlt-instead-of-ffmpeg.md](../decisions/0002-mlt-instead-of-ffmpeg.md).
+> [decisions/0002-mlt-instead-of-ffmpeg.md](decisions/0002-mlt-instead-of-ffmpeg.md).
 
 ## Что показывает
 
@@ -189,10 +189,10 @@ val pb = ProcessBuilder(cmd).redirectErrorStream(false)
 
 ## Связанные LiveDocs
 
-- [ADR-0002](../decisions/0002-mlt-instead-of-ffmpeg.md) — почему MLT.
+- [ADR-0002](decisions/0002-mlt-instead-of-ffmpeg.md) — почему MLT.
 - [L3-components.md](L3-components.md) — где живёт MLT Generator.
 - [queue-lanes.md](queue-lanes.md) — HEAVY_RENDER lane для тяжёлого рендера.
-- [domain/processing.md](../../domain/processing.md) — bounded context `processing`.
+- [domain/processing.md](../domain/processing.md) — bounded context `processing`.
 
 ## История
 

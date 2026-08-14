@@ -37,7 +37,7 @@ related:
 
 ## Связанные LiveDocs
 
-- Domain: [catalog.md](../catalog.md) (Album)
+- Domain: [catalog.md](../domain/catalog.md) (Album)
 - Architecture: [L3-components.md](../architecture/L3-components.md)
 
 ## Код

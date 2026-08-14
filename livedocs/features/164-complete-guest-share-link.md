@@ -63,7 +63,7 @@ heartbeat (lease истекал через 60 сек), и не было `release
 
 ## Связанные LiveDocs
 
-- Domain: [publishing.md](../publishing.md) (ShareLink = гость), [identity.md](../identity.md) (SiteUser — владелец)
+- Domain: [publishing.md](../domain/publishing.md) (ShareLink = гость), [identity.md](../domain/identity.md) (SiteUser — владелец)
 - Architecture: [L3-components.md](../architecture/L3-components.md) (controllers + scheduler)
 - Specs: `166-fix-share-link-timezone`, `167-fix-share-claim-500`, `169-share-link-in-premium-compare`, `172-db-sync-temporary-links` (смежные)
 

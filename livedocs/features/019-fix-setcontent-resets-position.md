@@ -45,7 +45,7 @@ related:
 
 ## Связанные LiveDocs
 
-- Domain: [catalog.md](../catalog.md) (lyrics), [editorial.md](../editorial.md) (editor)
+- Domain: [catalog.md](../domain/catalog.md) (lyrics), [editorial.md](../domain/editorial.md) (editor)
 - Feature: [017-editor-status-bypass.md](../features/017-editor-status-bypass.md), [163-fix-song-editor-regressions.md](../features/163-fix-song-editor-regressions.md)
 
 ## Код

@@ -41,7 +41,7 @@ TABS / Chords).
 
 ## Связанные LiveDocs
 
-- Domain: [catalog.md](../catalog.md) (Song: `linkSponsrPlay` и т.п.)
+- Domain: [catalog.md](../domain/catalog.md) (Song: `linkSponsrPlay` и т.п.)
 - Architecture: [L3-components.md](../architecture/L3-components.md)
 
 ## Код

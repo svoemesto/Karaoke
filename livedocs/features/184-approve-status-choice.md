@@ -45,7 +45,7 @@ related:
 
 ## Связанные LiveDocs
 
-- Domain: [catalog.md](../domain/catalog.md) (idStatus как VO) | [processing.md](../processing.md) (рендер-конвейер)
+- Domain: [catalog.md](../domain/catalog.md) (idStatus как VO) | [processing.md](../domain/processing.md) (рендер-конвейер)
 - Architecture: [L3-components.md](../architecture/L3-components.md) | [queue-lanes.md](../architecture/queue-lanes.md) (HEAVY_RENDER lane)
 
 ## Код

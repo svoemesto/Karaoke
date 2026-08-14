@@ -57,7 +57,7 @@ related:
 
 ## Связанные LiveDocs
 
-- Domain: [identity.md](../identity.md) (SiteUser), [publishing.md](../publishing.md) (ShareLink = guest access)
+- Domain: [identity.md](../domain/identity.md) (SiteUser), [publishing.md](../domain/publishing.md) (ShareLink = guest access)
 - Architecture: [data-sync.md](../architecture/data-sync.md) (recordhash для share-таблиц)
 - Docs: `AGENTS.md` Q&A (миграция share-таблиц — откуда DDL)
 

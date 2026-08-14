@@ -49,7 +49,7 @@ related:
 
 ## Связанные LiveDocs
 
-- Domain: [catalog.md](../domain/catalog.md) (песня как AR) | [identity.md](../identity.md) (редактор как SiteUser) | [editorial.md](../editorial.md) (assignment как AR)
+- Domain: [catalog.md](../domain/catalog.md) (песня как AR) | [identity.md](../domain/identity.md) (редактор как SiteUser) | [editorial.md](../domain/editorial.md) (assignment как AR)
 - Architecture: [L3-components.md](../architecture/L3-components.md) (где живёт контроллер)
 
 ## Код

@@ -53,7 +53,7 @@ sync-путь**, и при approve локального `Song.saveToDb()` → sy
 
 ## Связанные LiveDocs
 
-- Domain: [editorial.md](../editorial.md), [publishing.md](../publishing.md)
+- Domain: [editorial.md](../domain/editorial.md), [publishing.md](../domain/publishing.md)
 - Feature: [092-fix-auto-news-triggers.md](../features/092-fix-auto-news-triggers.md)
 - Architecture: [L3-components.md](../architecture/L3-components.md) (sync flow)
 

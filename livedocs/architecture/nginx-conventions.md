@@ -3,10 +3,10 @@ status: Active
 slug: nginx-conventions
 type: topic
 related:
-  - ../L1-system-context.md
-  - ../L2-containers.md
-  - ../../features/180-og-seo-html.md
-  - ../../features/181-zakroma-author-load-progress.md
+  - L1-system-context.md
+  - L2-containers.md
+  - ../features/180-og-seo-html.md
+  - ../features/181-zakroma-author-load-progress.md
 ---
 
 # nginx — конвенции и конфигурация для Karaoke
@@ -70,11 +70,11 @@ location /song {
 }
 ```
 
-См. [180-og-seo-html.md](../../features/180-og-seo-html.md).
+См. [180-og-seo-html.md](../features/180-og-seo-html.md).
 
 ### 2. NDJSON-стрим — ОТКЛЮЧИТЬ буферизацию + gzip
 
-**КРИТИЧНО** для [181-zakroma-author-load-progress.md](../../features/181-zakroma-author-load-progress.md):
+**КРИТИЧНО** для [181-zakroma-author-load-progress.md](../features/181-zakroma-author-load-progress.md):
 
 ```nginx
 location /api/public/zakroma/stream {
@@ -160,7 +160,7 @@ proxy_pass http://$prod_host:8090;
 - Логи nginx на проде: `/var/log/nginx/access.log` + `error.log`.
 - Логи пересматриваются при инцидентах.
 - Мониторинг: отдельный `RenderQueueStalledCheck` (см.
-  [087-fix-shared-db-connection.md](../../features/087-fix-shared-db-connection.md))
+  [087-fix-shared-db-connection.md](../features/087-fix-shared-db-connection.md))
   — не мониторит nginx, но реагирует на stalls очереди.
 
 ## Связанные LiveDocs
@@ -168,8 +168,8 @@ proxy_pass http://$prod_host:8090;
 - [L1-system-context.md](L1-system-context.md) — где живёт nginx.
 - [L2-containers.md](L2-containers.md) — куда nginx проксирует.
 - [docker-conventions.md](docker-conventions.md) — образ `nginx:stable`.
-- [180-og-seo-html.md](../../features/180-og-seo-html.md) — User-Agent routing.
-- [181-zakroma-author-load-progress.md](../../features/181-zakroma-author-load-progress.md) — NDJSON
+- [180-og-seo-html.md](../features/180-og-seo-html.md) — User-Agent routing.
+- [181-zakroma-author-load-progress.md](../features/181-zakroma-author-load-progress.md) — NDJSON
   (`proxy_buffering off`, `gzip off`).
 
 ## Код

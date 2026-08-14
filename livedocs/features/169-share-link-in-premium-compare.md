@@ -47,7 +47,7 @@ PREMIUM` на `/premium` (`PremiumView.vue:204-220`, блок «Что вы по
 
 ## Связанные LiveDocs
 
-- Domain: [publishing.md](../publishing.md) (share-link как премиум-фича), [identity.md](../identity.md) (SiteUser — владелец ссылки)
+- Domain: [publishing.md](../domain/publishing.md) (share-link как премиум-фича), [identity.md](../domain/identity.md) (SiteUser — владелец ссылки)
 - Specs: `specs/005-free-vs-premium` (исходная таблица FREE vs PREMIUM)
 - Docs: `docs/strategy/growth.md` § Top-3 (гипотеза), `docs/features/guest-share-link.md`
 

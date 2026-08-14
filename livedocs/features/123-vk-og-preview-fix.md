@@ -41,7 +41,7 @@ related:
 
 ## Связанные LiveDocs
 
-- Domain: [publishing.md](../publishing.md)
+- Domain: [publishing.md](../domain/publishing.md)
 - Feature: [138-vk-photo-preview-attachment.md](../features/138-vk-photo-preview-attachment.md) (полное решение), [130-vk-preview-generation.md](../features/130-vk-preview-generation.md) (прогрев)
 
 ## Код

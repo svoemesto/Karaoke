@@ -55,7 +55,7 @@ drums/прочее — когда воспроизводятся) синхрон
 
 ## Связанные LiveDocs
 
-- Domain: [catalog.md](../catalog.md) (Song.key), [identity.md](../identity.md) (editor role)
+- Domain: [catalog.md](../domain/catalog.md) (Song.key), [identity.md](../domain/identity.md) (editor role)
 - Architecture: [L3-components.md](../architecture/L3-components.md)
 
 ## Код

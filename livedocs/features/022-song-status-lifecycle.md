@@ -50,7 +50,7 @@ related:
 
 ## Связанные LiveDocs
 
-- Domain: [catalog.md](../domain/catalog.md) (Song.status), [editorial.md](../editorial.md) (editor flow)
+- Domain: [catalog.md](../domain/catalog.md) (Song.status), [editorial.md](../domain/editorial.md) (editor flow)
 - Feature: [184-approve-status-choice.md](../features/184-approve-status-choice.md) (выбор 5/6)
 
 ## Код

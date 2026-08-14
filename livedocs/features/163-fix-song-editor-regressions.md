@@ -58,7 +58,7 @@ related:
 
 ## Связанные LiveDocs
 
-- Domain: [catalog.md](../domain/catalog.md) (Song/lyrics), [editorial.md](../editorial.md) (SubsEdit = редактор)
+- Domain: [catalog.md](../domain/catalog.md) (Song/lyrics), [editorial.md](../domain/editorial.md) (SubsEdit = редактор)
 - Architecture: [L3-components.md](../architecture/L3-components.md) (контроллеры)
 - Specs: `specs/019-fix-setcontent-resets-position` (предыдущий fix от Pass N-1)
 

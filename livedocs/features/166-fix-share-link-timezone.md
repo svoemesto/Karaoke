@@ -60,7 +60,7 @@ related:
 
 ## Связанные LiveDocs
 
-- Domain: [publishing.md](../publishing.md) (ShareLink lifecycle), [identity.md](../identity.md) (владелец ссылки)
+- Domain: [publishing.md](../domain/publishing.md) (ShareLink lifecycle), [identity.md](../domain/identity.md) (владелец ссылки)
 - Specs: `specs/167-fix-share-claim-500` (смежная — там share-таблицы могут отсутствовать)
 - Docs: AGENTS.md Q&A (миграция share-таблиц)
 

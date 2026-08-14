@@ -57,7 +57,7 @@ related:
 
 ## Связанные LiveDocs
 
-- Domain: [publishing.md](../publishing.md) (VK публикация), [identity.md](../identity.md) (OAuth)
+- Domain: [publishing.md](../domain/publishing.md) (VK публикация), [identity.md](../domain/identity.md) (OAuth)
 - Architecture: [L1-system-context.md](../architecture/L1-system-context.md) (YOOKASSA / VK — внешние OAuth)
 - Specs: `138-vk-photo-preview-attachment`, `121-vk-news-auto-publish`, `122-premium-auto-publish`
 

@@ -49,7 +49,7 @@ related:
 
 ## Связанные LiveDocs
 
-- Domain: [identity.md](../identity.md) (SiteUser + premium-флаг), [publishing.md](../publishing.md) (Subscription)
+- Domain: [identity.md](../domain/identity.md) (SiteUser + premium-флаг), [publishing.md](../domain/publishing.md) (Subscription)
 - Architecture: [L3-components.md](../architecture/L3-components.md) (SSE Hub — `PROCESS_USER_EVENTS`)
 - Specs: `specs/171-admin-subscriptions-history` (admin-таблица подписок)
 

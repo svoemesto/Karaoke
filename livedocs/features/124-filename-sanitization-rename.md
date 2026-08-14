@@ -53,7 +53,7 @@ related:
 
 ## Связанные LiveDocs
 
-- Domain: [catalog.md](../catalog.md) (Song.songName), [processing.md](../processing.md) (Demucs), [editorial.md](../editorial.md) (editor)
+- Domain: [catalog.md](../domain/catalog.md) (Song.songName), [processing.md](../domain/processing.md) (Demucs), [editorial.md](../domain/editorial.md) (editor)
 - Architecture: [L3-components.md](../architecture/L3-components.md) (MinIO layer)
 
 ## Код

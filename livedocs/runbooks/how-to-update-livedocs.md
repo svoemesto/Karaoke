@@ -57,7 +57,7 @@ git checkout 189-my-feature
 git merge --no-ff 189-live-documentation
 ```
 
-Per [AGENTS.md](../../../../AGENTS.md) раздел «Lifecycle feature-ветки» —
+Per [AGENTS.md](../../AGENTS.md) раздел «Lifecycle feature-ветки» —
 ветка `189-live-documentation` живёт для follow-up. Используйте её.
 
 ### 4. PR описание
@@ -93,7 +93,7 @@ GitHub Actions: см. [CI 8/8 PASS на PR].
 
 ## Связь с Constitution § VI «Code Standards»
 
-Per [FR-009](../../../../.specify/memory/constitution.md):
+Per [FR-009](../../.specify/memory/constitution.md):
 - «При правке кода одной из 9 ключевых подсистем разработчик MUST в том же
   PR обновить соответствующий per-feature документ».
 
@@ -103,8 +103,8 @@ Per [FR-009](../../../../.specify/memory/constitution.md):
 
 ## Related
 
-- [AGENTS.md](../../../../AGENTS.md) — иерархия документов.
-- [constitution.md](../../../../.specify/memory/constitution.md) — FR-009, §Governance.
+- [AGENTS.md](../../AGENTS.md) — иерархия документов.
+- [constitution.md](../../.specify/memory/constitution.md) — FR-009, §Governance.
 - [how-to-add-new-feature.md](how-to-add-new-feature.md) — для новой фичи.
 - [how-to-add-new-domain.md](how-to-add-new-domain.md) — для нового BC.
 - [check-livedocs-structure.sh](../../../../tools/check-livedocs-structure.sh) — CI.

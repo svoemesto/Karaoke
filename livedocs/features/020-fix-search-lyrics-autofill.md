@@ -38,7 +38,7 @@ related:
 
 ## Связанные LiveDocs
 
-- Domain: [catalog.md](../domain/catalog.md) (Song.songText), [editorial.md](../editorial.md) (editor flow)
+- Domain: [catalog.md](../domain/catalog.md) (Song.songText), [editorial.md](../domain/editorial.md) (editor flow)
 - Feature: [089-auto-news-song-release.md](../features/089-auto-news-song-release.md) (смежная — news service)
 
 ## Код

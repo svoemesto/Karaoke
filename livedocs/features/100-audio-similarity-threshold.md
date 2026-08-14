@@ -41,7 +41,7 @@ related:
 
 ## Связанные LiveDocs
 
-- Domain: [catalog.md](../catalog.md) (Song status), [editorial.md](../editorial.md)
+- Domain: [catalog.md](../domain/catalog.md) (Song status), [editorial.md](../domain/editorial.md)
 - Architecture: [L3-components.md](../architecture/L3-components.md) (audio processing)
 
 ## Код

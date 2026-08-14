@@ -56,7 +56,7 @@ LOCAL↔SERVER между админкой и продом. **По умолча�
 
 ## Связанные LiveDocs
 
-- Domain: [identity.md](../identity.md) (ShareLink owner = SiteUser), [publishing.md](../publishing.md) (гостевой доступ)
+- Domain: [identity.md](../domain/identity.md) (ShareLink owner = SiteUser), [publishing.md](../domain/publishing.md) (гостевой доступ)
 - Architecture: [data-sync.md](../architecture/data-sync.md) (SyncRegistry, recordhash, O(n))
 
 ## Код

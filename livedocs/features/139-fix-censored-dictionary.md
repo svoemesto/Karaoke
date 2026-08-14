@@ -47,7 +47,7 @@ should be initialized` → ловилось как общее исключени
 
 ## Связанные LiveDocs
 
-- Domain: [publishing.md](../publishing.md) (news/auto-publish)
+- Domain: [publishing.md](../domain/publishing.md) (news/auto-publish)
 - Feature: [140-fix-zakroma-censored-database.md](../features/140-fix-zakroma-censored-database.md) (root cause), [141-fix-censored-web-storage-globals.md](../features/141-fix-censored-web-storage-globals.md) (DI)
 - Specs: `089-auto-news-song-release` (news templating)
 

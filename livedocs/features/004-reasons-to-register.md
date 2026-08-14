@@ -33,7 +33,7 @@ related:
 
 ## Связанные LiveDocs
 
-- Domain: [identity.md](../identity.md) (SiteUser — регистрация), [publishing.md](../publishing.md)
+- Domain: [identity.md](../domain/identity.md) (SiteUser — регистрация), [publishing.md](../domain/publishing.md)
 
 ## Код
 

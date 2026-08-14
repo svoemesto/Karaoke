@@ -41,7 +41,7 @@ related:
 ## Связанные LiveDocs
 
 - Domain: [publishing.md](../domain/publishing.md), [rendering.md](../domain/rendering.md)
-- Feature: [128-news-publish-templates.md](../../features/128-news-publish-templates.md), [113-telegram-demo-publish.md](../../features/113-telegram-demo-publish.md)
+- Feature: [128-news-publish-templates.md](128-news-publish-templates.md), [113-telegram-demo-publish.md](113-telegram-demo-publish.md)
 - Architecture: [observability.md](../architecture/observability.md) — где живут проверки мониторинга
 
 ## Код

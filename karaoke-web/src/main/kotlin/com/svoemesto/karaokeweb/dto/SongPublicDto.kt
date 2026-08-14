@@ -49,6 +49,10 @@ data class SongPublicDto(
     // по умолчанию; -1 = автор запретил в карточке песни, webvue3). Без is-префикса — иначе Jackson
     // съел бы его в JSON-ключе (инвариант проекта).
     val songSubscriptionAvailable: Boolean,
+    // Статус пайплайна песни (0..7). Нужен фронту, чтобы прятать self-assign-кнопку
+    // для готовых песен (idStatus >= 6 — финальная, задание на разметку неуместно).
+    // Без is-префикса: Kotlin-геттер уже без него, Jackson-ключ и так = idStatus.
+    val idStatus: Long,
     // Self-assign (FR-008, specs/182-editor-self-assign-tasks): null = песня свободна,
     // non-null = есть назначение (своё или чужое). Заполняется ТОЛЬКО для self-assign-редакторов
     // в /api/public/song/{id} — для остальных всегда null (лишний JOIN/SQL не идёт).
@@ -106,6 +110,7 @@ data class SongPublicDto(
                         .map { it.uppercase() }
                         .contains("SKIP"),
                 songSubscriptionAvailable = s.idTariff >= 0,
+                idStatus = s.idStatus,
             )
     }
 }

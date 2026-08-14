@@ -70,6 +70,7 @@ Bounded contexts проекта Karaoke + ubiquitous language glossary.
 | [`data-sync.md`](architecture/data-sync.md) | topic | LOCAL ↔ SERVER синхронизация |
 | [`queue-lanes.md`](architecture/queue-lanes.md) | topic | Async-очередь (threadId lanes, priority) |
 | [`share-link.md`](architecture/share-link.md) | topic | Гостевой доступ: временные ссылки + claim + heartbeat + sweep |
+| [`censoring.md`](architecture/censoring.md) | topic | Цензурирование: TextFileDictionary + String.censored() |
 
 ### Тематические — паттерны / ловушки / конвенции
 

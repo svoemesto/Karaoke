@@ -89,7 +89,7 @@
             <col />
             <col style="width: 220px" />
             <col style="width: 24px" />
-            <col style="width: 26px" />
+            <col style="width: 48px" />
             <col style="width: 26px" />
             <col style="width: 26px" />
           </colgroup>
@@ -129,12 +129,14 @@
               <td class="km-td km-td-center">
                 <CartIcon v-if="showCartIcon(sett)" :song-id="sett.id" />
               </td>
-              <td class="km-td km-td-center km-player-cell">
-                <PlayerIcon
-                  :song-id="sett.id"
-                  :watch-state="readiness.stateFor(sett.id)"
-                  :content-ready-state="readiness.contentReadyFor(sett.id)"
-                />
+              <td class="km-td km-td-center">
+                <span class="km-player-icon">
+                  <PlayerIcon
+                    :song-id="sett.id"
+                    :watch-state="readiness.stateFor(sett.id)"
+                    :content-ready-state="readiness.contentReadyFor(sett.id)"
+                  />
+                </span>
               </td>
               <td class="km-td km-td-center">
                 <FavoriteIcon :song-id="sett.id" />
@@ -546,8 +548,9 @@ export default {
 }
 /* Воздух справа от иконки плеера (после удаления PlatformLink[sponsr]):
    расстояние между PlayerIcon и FavoriteIcon — как между FavoriteIcon и PlaylistIcon */
-.km-player-cell {
-  padding-right: 0.3rem;
+.km-player-icon {
+  display: inline-block;
+  margin-right: 0.5rem;
 }
 .km-td-name {
   text-align: left;

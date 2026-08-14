@@ -50,6 +50,7 @@
 | [decisions/local-0003-shared-minio-image-cache.md](decisions/local-0003-shared-minio-image-cache.md) | Local ADR — Shared MinIO Image Cache |
 | [decisions/local-0004-lazy-eager-load-webvue3-pagination.md](decisions/local-0004-lazy-eager-load-webvue3-pagination.md) | Local ADR — lazy/eager-load в webvue3 |
 | [decisions/local-0005-structured-logging-karaoke-app.md](decisions/local-0005-structured-logging-karaoke-app.md) | Local ADR — структурированное логирование |
+| [decisions/local-0006-logging-and-error-handling-karaoke-web.md](decisions/local-0006-logging-and-error-handling-karaoke-web.md) | Local ADR — логирование + error handling в karaoke-web |
 | [decisions/README.md](decisions/README.md) | Index ADR — конвенции формата |
 
 ## Конвенции

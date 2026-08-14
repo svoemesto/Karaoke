@@ -181,6 +181,15 @@
   была только для глобальных.
   PR #328.
 
+## 2026-08-14 — Follow-up #50 (SESSION-SUMMARY)
+
+- **Added**: `livedocs/SESSION-SUMMARY.md` — компактный обзор 14 PR,
+  сделанных за автономную follow-up сессию (Pass 43–49). Покрывает
+  gap-fill, новые topics, cross-references, postMessage bridge,
+  INDEX + ADR README, CHANGELOG. Содержит «до → после» метрики и
+  список того, что осталось как ongoing work.
+  PR #330.
+
 ## Состояние на сегодня
 
 | Метрика | Значение |
@@ -192,8 +201,8 @@
 | **ADR** | 12 (6 global + 6 local) |
 | **Runbooks** | 8 (README + 7 how-to) |
 | **Шаблонов в `templates/`** | 6 |
-| **`frontmatter`-файлов (с валидным frontmatter)** | 114 |
-| **`total .md` файлов** | ~128 |
+| **`frontmatter`-файлов (с валидным frontmatter)** | 115 (incl. SESSION-SUMMARY) |
+| **`total .md` файлов** | ~129 |
 | **Cross-links valid** | 904 |
 | **Broken references** | 0 |
 | **AGENTS.md** | ≤ 100 строк ✓ |

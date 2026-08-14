@@ -13,7 +13,7 @@
 │
 ├─ модуль / домен (Song, Album, KaraokeVideo, ...)?
 │   └─ → livedocs/domain/<context>.md
-│       (catalog | processing | publishing | identity | editorial)
+│       (catalog | processing | rendering | publishing | identity | editorial | stats)
 │
 ├─ архитектуру (как устроена система)?
 │   ├─ общее (кто пользуется) → livedocs/architecture/L1-system-context.md
@@ -53,9 +53,11 @@ Bounded contexts проекта Karaoke + ubiquitous language glossary.
 | [`README.md`](domain/README.md) | Index + glossary корневых терминов |
 | [`catalog.md`](domain/catalog.md) | Каталог | Song, Album, Author, Genre |
 | [`processing.md`](domain/processing.md) | Обработка | KaraokeVideo, MLTProject, RenderMp4Params |
+| [`rendering.md`](domain/rendering.md) | Производство видео | KaraokeVideo (MP4 через MLT/melt) |
 | [`publishing.md`](domain/publishing.md) | Публикация | PublishWindow, Subscription |
 | [`identity.md`](domain/identity.md) | Идентификация | SiteUser, Session |
 | [`editorial.md`](domain/editorial.md) | Редакторы | EditorAssignment, ReviewTask |
+| [`stats.md`](domain/stats.md) | Аналитика | StatBySong, SiteEvent |
 
 ### C4 — `livedocs/architecture/`
 

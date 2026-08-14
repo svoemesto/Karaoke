@@ -88,21 +88,20 @@ description: "Task list for Approve Status Choice feature"
   - добавить `selectedIdStatus: 6` — дефолт 6 (backward-compatible)
 - [x] T009 [US1] В том же `ReviewModal.vue`, **в блоке `computed:`** (после `markerStats`, строка 188-198):
   - добавить `songIdStatus() { return this.a ? (typeof this.a.idStatus === 'number' ? this.a.idStatus : null) : null }` — `null` если поле не пришло (fallback, FR-007)
-  - добавить `canChooseIdStatus() { return this.songIdStatus === null || this.songIdStatus < 5 }` (US2 логика, но нужно уже для US1)
-  - добавить `idStatusLabel(s) { return s === 5 ? '5 (маркеры проверены)' : s === 6 ? '6 (готова)' : String(s) }` — для информационного бейджа в `.se-meta`
-  - добавить `bannerInfo() { return '5 — Маркеры проверены: маркеры одобрены редактором, но рендер/публикация не запускаются автоматически. Используйте, если нужно отложить релиз (правка обложки, ожидание альбома, пересмотр вокала) — потом переведите в 6 вручную через SongEdit.\n\n6 — Готова: финальный статус, караоке-видео рендерится, песня становится доступна подписчикам.' }` — текст баннера FR-010
+  - добавить `canChooseIdStatus() { return this.songIdStatus !== null }` (Pass 51-3.1: без `< 5`-гейта; Pass 51-3.2: текст FR-010 не используется; только факт «статус известен?»)
+  - добавить `idStatusLabel(s) { return s === 5 ? '5 (маркеры проверены)' : s === 6 ? '6 (готова)' : String(s) }` — для информационного бейджа в `.se-meta` (это `methods`, НЕ `computed` — Vue 2 не поддерживает параметризованные computed-геттеры, fixed в Pass 51-3.0)
+- ~~computed `bannerInfo()`~~ — **Pass 51-3.2 [REMOVED]**, FR-010 отменена; вместо баннера используется короткий текст радио + Q&A в спеке + JSDoc
 - [x] T010 [US1] В том же `ReviewModal.vue`, **в блоке `watch:`** (после `showPlayer`, строки 199-211):
   - добавить `a: { handler(newA, oldA) { if (newA && oldA && newA.id !== oldA.id) { this.selectedIdStatus = 6 } }, deep: false }` — сброс выбора при смене задания (research D-7, ловушка с переиспользованием модалки)
 - [x] T011 [US1] В `ReviewModal.vue` template, **в `.se-meta` блок** (строки 12-24) — после `<span>ID песни: {{ a.songId }}</span>`:
   - добавить `<span v-if="songIdStatus !== null" class="se-badge se-badge-approved">idStatus: {{ idStatusLabel(songIdStatus) }}</span>` (Pass 51-3.1: бейдж теперь ВСЕГДА виден, когда статус известен — это «правда о состоянии», не блокирующая выбор)
 - [x] T012 [US1] В `ReviewModal.vue` template, **перед `<div class="se-modal-btns">`** (строка 99) — после `<p v-if="message" class="se-msg" ...>`:
-  - добавить `<div v-if="canChooseIdStatus" class="se-idstatus-pick">` (Pass 51-3.1: без v-else — radio ВСЕГДА виден когда `songIdStatus !== null`):
-    - `<p class="se-idstatus-banner">{{ bannerInfo }}</p>`
+  - добавить `<div v-if="canChooseIdStatus" class="se-idstatus-pick">` (Pass 51-3.1: без v-else — radio ВСЕГДА виден когда `songIdStatus !== null`; Pass 51-3.2: без баннера — FR-010 [REMOVED]):
     - `<label class="se-idstatus-option"><input type="radio" v-model="selectedIdStatus" :value="5" /> 5 — Маркеры проверены</label>`
     - `<label class="se-idstatus-option"><input type="radio" v-model="selectedIdStatus" :value="6" /> 6 — Готова</label>`
 - [x] T013 [US1] В `ReviewModal.vue`, **в `<style scoped>`** (перед `}` в конце файла, ~строка 599):
   - `.se-idstatus-pick { display: flex; flex-direction: column; gap: 0.3rem; background: #f5f5f5; border-radius: 8px; padding: 0.6rem; font-size: 0.85rem; font-weight: 400; }`
-  - `.se-idstatus-banner { color: #555; font-size: 0.78rem; line-height: 1.35; margin: 0 0 0.3rem 0; white-space: pre-line; }`
+  - ~~`.se-idstatus-banner { ... }`~~ — **Pass 51-3.2 [REMOVED]**, FR-010 отменена
   - `.se-idstatus-option { display: flex; align-items: center; gap: 0.4rem; cursor: pointer; font-size: 0.85rem; }`
   - ~~`.se-idstatus-readonly { ... }`~~ — Pass 51-3.1: блок удалён, radio ВСЕГДА виден
 - [x] T014 [US1] В `ReviewModal.vue`, **метод `doApprove()`** (строки 281-308):

@@ -1962,3 +1962,22 @@ async, `currentLink = null` стартовое значение → Vue ренд
 - **Сверять, какие поля реально приходят в API-ответе, прежде чем писать UI-гейт.** `ReviewModal` нуждался в `idStatus` песни для US2, но `/byId` его не отдавал. Без сверки с реальным кодом (через codegraph) FR-007 был бы нереализуем как написан. Добавляй «[IF EXISTS] прочитай этот ответ» в plan.md для UI-фич, использующих backend-данные.
 - **`watch: a()` для переиспользуемых модалок.** В `SongsTable` `ReviewModal` может оставаться смонтированным при переходе от одной строки задания к другой. Без сброса `selectedIdStatus` выбор «залипает» — пользователь одобряет задание A со статусом 5, переходит к заданию B, видит radio со старым выбором 5 и может не заметить. Стандартный паттерн Vue 2 — `watch: { a: { handler(newA, oldA) { ... }, deep: false } }`.
 
+---
+
+## Pass 51-3.2 — FR-010 [REMOVED]: убран баннер-пояснение над radio, 2026-08-13
+
+**Что**: FR-010 спеки 184 («над radio-group MUST быть информационный баннер с пояснением») **отменён по фидбэку пользователя**: «информационный баннер только место занимает на экране».
+
+**Что изменилось**:
+- `webvue3/src/components/SongEditor/ReviewModal.vue`: удалены `<p class="se-idstatus-banner">{{ bannerInfo }}</p>` (template), computed `bannerInfo()` (computed:), CSS `.se-idstatus-banner { ... }` (style scoped). Радио-опции теперь идут сразу после `<div class="se-idstatus-pick">` без вложенного `<p>`.
+- `specs/184-approve-status-choice/spec.md`: FR-010 помечен `[REMOVED]`, добавлен новый Q&A поясняющий 5 vs 6 (текст бывшего баннера переехал сюда).
+- `specs/184-approve-status-choice/tasks.md`: T009, T012, T013, checklists/requirements.md — отметка об удалении.
+- `specs/184-approve-status-choice/plan.md`: Project Structure — сноска «баннер УДАЛЁН Pass 51-3.2».
+- `specs/184-approve-status-choice/quickstart.md`: сценарий 4 — удалён пункт «5. Над radio — серый баннер-подсказка с пояснением (FR-010)».
+
+**Что НЕ изменилось**: бэкенд (`SongEditorController.kt`, US1/US3), per-feature доки (`editor-tasks.md`, `approve-pipeline.md` — там баннер не упоминался), Q&A про «Маркеры проверены» (там остался).
+
+**Принцип**: если описание поведения умещается в label радио-кнопки (`«5 — Маркеры проверены»`) + Q&A в спеке + JSDoc к полю, отдельный баннер в UI не нужен. UI-текст «что произойдёт после клика» должен быть **рядом** с контролом, а не над ним.
+
+**Метрики**: 1 frontend-файл (−10 строк), 5 docs-файлов, 0 backend-изменений.
+

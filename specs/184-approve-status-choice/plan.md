@@ -137,7 +137,7 @@ webvue3/src/components/SongEditor/
 │   └── approveAssignment()    :200-206  # dual-format payload (FR-006, FR-008)
 └── ReviewModal.vue                    # ИЗМЕНЯЕТСЯ
     ├── template               :12-24    # информационный бейдж статуса песни в .se-meta (Pass 51-3.1: ВСЕГДА виден, не блокирует radio)
-    ├── template               :92-106   # radio-group + баннер перед кнопками (FR-007, FR-010)
+    ├── template               :92-106   # radio-group перед кнопками (FR-007); баннер УДАЛЁН Pass 51-3.2 (FR-010 [REMOVED])
     ├── data()                 :134-144  # +selectedIdStatus: 6
     ├── computed               :145-198  # +songIdStatus, +canChooseIdStatus, +idStatusLabel
     ├── watch                  :199-211  # +a() → сброс selectedIdStatus в 6 (ловушка D-7)

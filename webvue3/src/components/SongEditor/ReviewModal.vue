@@ -101,7 +101,6 @@
         <p v-if="message" class="se-msg" :class="{ 'se-msg-err': isError }">{{ message }}</p>
 
         <div v-if="canChooseIdStatus" class="se-idstatus-pick">
-          <p class="se-idstatus-banner">{{ bannerInfo }}</p>
           <label class="se-idstatus-option">
             <input v-model="selectedIdStatus" type="radio" :value="5" />
             5 — Маркеры проверены
@@ -236,14 +235,6 @@ export default {
     // Edge Cases spec.md) — никаких побочных эффектов, кроме информативного лога.
     canChooseIdStatus() {
       return this.songIdStatus !== null
-    },
-    // Текст баннера-подсказки FR-010.
-    bannerInfo() {
-      return (
-        '5 — Маркеры проверены: маркеры одобрены редактором, но рендер/публикация не запускаются автоматически. ' +
-        'Используйте, если нужно отложить релиз (правка обложки, ожидание альбома, пересмотр вокала) — потом переведите в 6 вручную через SongEdit.\n\n' +
-        '6 — Готова: финальный статус, караоке-видео рендерится, песня становится доступна подписчикам.'
-      )
     },
   },
   watch: {
@@ -688,13 +679,6 @@ export default {
   padding: 0.6rem 0.7rem;
   font-size: 0.85rem;
   font-weight: 400;
-}
-.se-idstatus-banner {
-  color: #555;
-  font-size: 0.78rem;
-  line-height: 1.35;
-  margin: 0 0 0.2rem 0;
-  white-space: pre-line;
 }
 .se-idstatus-option {
   display: flex;

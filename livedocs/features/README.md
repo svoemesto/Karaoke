@@ -6,6 +6,11 @@
 
 | Файл | Что делает | Drill-down |
 |------|------------|------------|
+| [008-special-orders.md](008-special-orders.md) | «Отдельные песни разных авторов» — виртуальная плашка | [specs/008-.../spec.md](../../specs/008-special-orders/spec.md) |
+| [009-listening-history.md](009-listening-history.md) | История прослушиваний для пользователей | [specs/009-.../spec.md](../../specs/009-listening-history/spec.md) |
+| [010-lyrics-spec-tags.md](010-lyrics-spec-tags.md) | Спецтеги в тексте для авто-разметки маркеров | [specs/010-.../spec.md](../../specs/010-lyrics-spec-tags/spec.md) |
+| [011-album-song-rename.md](011-album-song-rename.md) | Альбом как сущность + переименование Settings→Song | [specs/011-.../spec.md](../../specs/011-album-song-rename/spec.md) |
+| [012-entity-description-fields.md](012-entity-description-fields.md) | Доп. поля Author/Album/Song + UI Закромов | [specs/012-.../spec.md](../../specs/012-entity-description-fields/spec.md) |
 | [013-song-status-filter.md](013-song-status-filter.md) | Показ на проде только песен со статусом ≥3 | [specs/013-.../spec.md](../../specs/013-song-status-filter/spec.md) |
 | [014-album-cell-album-cover-modal.md](014-album-cell-album-cover-modal.md) | Альбомы: клик по ячейке открывает модалку обложки | [specs/014-.../spec.md](../../specs/014-album-cell-album-cover-modal/spec.md) |
 | [014-lyrics-search-replacement.md](014-lyrics-search-replacement.md) | Замена поискового движка SearXNG | [specs/014-.../spec.md](../../specs/014-lyrics-search-replacement/spec.md) |

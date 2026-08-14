@@ -90,7 +90,7 @@ idempotency, но защищает от случайной перезаписи.
 ```
 POST /api/share/claim { secret, browserHash }
 → server creates tbl_song_share_sessions, lease=60s
-→ POST /api/share/heartbeat (каждые 30s) → lease++ 
+→ POST /api/share/heartbeat (каждые 30s) → lease++
 → POST /api/share/release → finished_at=now()
 ```
 

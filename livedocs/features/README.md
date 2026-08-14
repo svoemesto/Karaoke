@@ -62,6 +62,13 @@
 | [142-remove-watch-links-block.md](142-remove-watch-links-block.md) | Удалить блок «Ссылки на просмотр» со страницы песни | [specs/142-.../spec.md](../../specs/142-remove-watch-links-block/spec.md) |
 | [143-song-free-access-window.md](143-song-free-access-window.md) | Временное окно бесплатного доступа к песням | [specs/143-.../spec.md](../../specs/143-song-free-access-window/spec.md) |
 | [144-homepage-latest-news.md](144-homepage-latest-news.md) | Компактная таблица «последние 5 новостей» на главной | [specs/144-.../spec.md](../../specs/144-homepage-latest-news/spec.md) |
+| [017-fix-markers-at-position-zero.md](017-fix-markers-at-position-zero.md) | Spec tags: «залипание» маркеров в нулевой позиции | [specs/017-.../spec.md](../../specs/017-fix-markers-at-position-zero/spec.md) |
+| [017-editor-status-bypass.md](017-editor-status-bypass.md) | Редактор видит все песни независимо от статуса | [specs/017-.../spec.md](../../specs/017-editor-status-bypass/spec.md) |
+| [154-remove-scheduled-publications-monitoring.md](154-remove-scheduled-publications-monitoring.md) | Убрать мониторинг запланированных публикаций | [specs/154-.../spec.md](../../specs/154-remove-scheduled-publications-monitoring/spec.md) |
+| [155-editor-typograph-button.md](155-editor-typograph-button.md) | Кнопка «Типограф» в онлайн-редакторе | [specs/155-.../spec.md](../../specs/155-editor-typograph-button/spec.md) |
+| [155-song-state-colors.md](155-song-state-colors.md) | Актуализация статусов и цветов песен | [specs/155-.../spec.md](../../specs/155-song-state-colors/spec.md) |
+| [156-remove-songs-table-platform-flags.md](156-remove-songs-table-platform-flags.md) | Удалить 18 столбцов-флагов публикации из «Песни» | [specs/156-.../spec.md](../../specs/156-remove-songs-table-platform-flags/spec.md) |
+| [156-publish-slots-range.md](156-publish-slots-range.md) | Расширение диапазона слотов публикации (10→22) | [specs/156-.../spec.md](../../specs/156-publish-slots-range/spec.md) |
 | [151-vk-id-personal-token.md](151-vk-id-personal-token.md) | Миграция на VK ID для персонального токена | [specs/151-.../spec.md](../../specs/151-vk-id-personal-token/spec.md) |
 | [152-fix-false-collection-news.md](152-fix-false-collection-news.md) | Ложное срабатывание новости «в коллекции» после sync | [specs/152-.../spec.md](../../specs/152-fix-false-collection-news/spec.md) |
 | [154-editor-tasks-manage.md](154-editor-tasks-manage.md) | Управление заданиями в ЛК + админке | [specs/154-.../spec.md](../../specs/154-editor-tasks-manage/spec.md) |

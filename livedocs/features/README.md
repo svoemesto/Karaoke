@@ -6,6 +6,11 @@
 
 | Файл | Что делает | Drill-down |
 |------|------------|------------|
+| [022-song-status-lifecycle.md](022-song-status-lifecycle.md) | Расширенный жизненный цикл статусов готовности | [specs/022-.../spec.md](../../specs/022-song-status-lifecycle/spec.md) |
+| [023-songs-audio-root-column.md](023-songs-audio-root-column.md) | Колонка audio_parent_id в таблице песен | [specs/023-.../spec.md](../../specs/023-songs-audio-root-column/spec.md) |
+| [029-fix-queue-lane-stall.md](029-fix-queue-lane-stall.md) | Устранение зависания очереди по лейнам | [specs/029-.../spec.md](../../specs/029-fix-queue-lane-stall/spec.md) |
+| [030-add-archive-album-type.md](030-add-archive-album-type.md) | Добавить тип альбома «Архивные записи» | [specs/030-.../spec.md](../../specs/030-add-archive-album-type/spec.md) |
+| [031-add-tribute-cover-album-type.md](031-add-tribute-cover-album-type.md) | Добавить тип альбома «Трибьют/Кавер» | [specs/031-.../spec.md](../../specs/031-add-tribute-cover-album-type/spec.md) |
 | [082-fix-import-folder-oom.md](082-fix-import-folder-oom.md) | Устойчивый импорт из папки без OOM | [specs/082-.../spec.md](../../specs/082-fix-import-folder-oom/spec.md) |
 | [083-album-cover-square-cell.md](083-album-cover-square-cell.md) | Альбомы: квадратная ячейка обложки | [specs/083-.../spec.md](../../specs/083-album-cover-square-cell/spec.md) |
 | [087-fix-shared-db-connection.md](087-fix-shared-db-connection.md) | Изоляция JDBC + retry очереди при сетевом сбое | [specs/087-.../spec.md](../../specs/087-fix-shared-db-connection/spec.md) |

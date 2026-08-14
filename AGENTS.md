@@ -1,8 +1,7 @@
 # AGENTS.md — инструкции для агентов
 
-> **Версия**: 2.0.0 | **Last updated**: 2026-08-14 (Pass 62 — фича 189).
+> **Версия**: 2.0.0 | **Last updated**: 2026-08-14 (Pass 62 — фича 189 + 17 follow-ups).
 > Правки governance — в feature-ветке `0XX-agents-md-update`. Детали — в LiveDocs.
-
 ## АБСОЛЮТНОЕ ПРАВИЛО: язык общения
 
 **Всё общение с пользователем — ТОЛЬКО на русском языке.** Наивысший приоритет.
@@ -14,7 +13,23 @@
 2. [`livedocs/INDEX.md`](livedocs/INDEX.md) — карта + decision tree.
 3. Перейди в нужный слой: `livedocs/features/`, `livedocs/domain/`, `livedocs/architecture/`.
 
-**Только если в LiveDocs нет** — лезь в `specs/<NNN>/spec.md`, `docs/features/*.md` (legacy), этот файл (governance).
+**Быстрый поиск**:
+- **Slash-command**: `/livedocs-find '<query>' [--type TYPE] [--path SUBPATH]` (canonical `livedocs/commands/livedocs-find.md`, runtime в `.opencode/commands/`).
+- **Shell-script**: `bash tools/search-livedocs.sh '<query>' [--type feature|domain|architecture|adr|runbook|all]`.
+
+**Актуальное состояние** — [`livedocs/CHANGELOG.md`](livedocs/CHANGELOG.md) (Pass 62+, semantic changelog).
+
+**Только если в LiveDocs нет** — лезь в `specs/<NNN>/spec.md`, `docs/features/*.md` (legacy), этот файл.
+
+## LiveDocs CI / pre-commit
+
+| Проверка | Что | Где |
+|----------|-----|-----|
+| `tools/check-livedocs-structure.sh` | 7 структурных проверок (`≥5 фич`, `≥5 BC`, `L1+L2+L3`, frontmatter, `AGENTS.md ≤100`, CI) | **CI** + **pre-commit** |
+| `tools/check-livedocs-cross-links.sh` | 818 cross-links (`../X.md` + `related:`) | **CI** + **pre-commit** |
+| `tools/check-livedocs-external-links.sh` | External `https://` URLs (strict) | **CI** (strict) |
+
+Локальные правки LiveDocs → запустить все три перед commit.
 
 ## Иерархия документации
 
@@ -50,10 +65,9 @@ Setup — [`docs/onboarding.md`](docs/onboarding.md, `docs/claude-code-setup.md`
 4. Коммитить секреты: `deploy/.env`, `*.key`, `*.pem` (проверка: `git ls-files | grep -iE '\.env$|\.key$|\.pem$'` пусто).
 5. Образы: `nginx:alpine`, `node:latest`, JDK вместо JRE — ЗАПРЕЩЕНЫ.
 
-**Разрешено:** править код, `gradle clean bootJar`, `npm run dev/build`,
-собирать локальные контейнеры через `deploy/do.sh`.
+**Разрешено:** править код, `gradle clean bootJar`, `npm run dev/build`, локальные контейнеры через `deploy/do.sh`.
 
-**Обновление LiveDocs (FR-014)**: при изменении bounded context в `livedocs/domain/` или C4 уровня в `livedocs/architecture/` — в том же PR обновить LiveDoc. CI (`tools/check-livedocs-structure.sh`) блокирует merge при failures.
+**Обновление LiveDocs (FR-014)**: при изменении bounded context в `livedocs/domain/` или C4 уровня в `livedocs/architecture/` — в том же PR обновить LiveDoc. CI блокирует merge при failures.
 
 Детали — Constitution § «Ограничения и доступы агента».
 
@@ -61,19 +75,18 @@ Setup — [`docs/onboarding.md`](docs/onboarding.md, `docs/claude-code-setup.md`
 
 ```bash
 N=$(./tools/reserve-branch-number.sh my-slug)
-git checkout -b "${N}-my-slug" master
-# ... правки ...
-git push -u origin "${N}-my-slug"
-gh pr create --base master         # → CI lint.yml (7/7)
-gh pr checks                       # дождаться PASS
-gh pr merge --merge                # БЕЗ --delete-branch
+git checkout -b "${N}-my-slug" master && # ... правки ...
+git push -u origin "${N}-my-slug" &&
+gh pr create --base master &&           # → CI lint.yml (8/8 — добавлен LiveDocs)
+gh pr checks &&                         # дождаться PASS
+gh pr merge --merge                      # БЕЗ --delete-branch
 ```
 
 **Прямые коммиты в `master` ЗАПРЕЩЕНЫ.** Lifecycle: ветка живёт после мёрджа.
 
 ## Сборка / деплой / тесты
 
-- **Сборка**: `./gradlew clean karaoke-app:bootJar karaoke-web:bootJar --parallel` (параллельные gradle-сборки запрещены).
+- **Сборка**: `./gradlew clean karaoke-app:bootJar karaoke-web:bootJar --parallel`.
 - **Деплой**: `deploy/deploy_web.sh`, `deploy/deploy_public.sh`, `cd deploy && bash do.sh build_start_public`.
 - **Тесты**: в CI нет; существующие (`karaoke-app/src/test`) — `@Disabled`. Проверка — пользователем.
 
@@ -81,21 +94,8 @@ gh pr merge --merge                # БЕЗ --delete-branch
 
 ## Q&A — где искать
 
-Детали (Jackson `is`-prefix, Dockerfile ловушки, KDoc backticks, пагинация,
-sync, queue lanes, тип песни, рендер MP4, StatBySong) мигрированы в LiveDocs:
-
-| Тема | LiveDoc |
-|------|---------|
-| Jackson `is`-prefix | `livedocs/architecture/jackson-conventions.md` |
-| Docker-образы | `livedocs/architecture/docker-conventions.md` |
-| KDoc / JSDoc | `livedocs/architecture/documentation-conventions.md` |
-| webvue3 пагинация, SKIP | `livedocs/architecture/webvue3-patterns.md` |
-| LOCAL ↔ SERVER sync | `livedocs/architecture/data-sync.md` |
-| Async-очередь | `livedocs/architecture/queue-lanes.md` |
-| Тип песни | `livedocs/domain/catalog.md` |
-| Рендер MP4 | `livedocs/domain/processing.md` |
-| Счётчики StatBySong | `livedocs/domain/publishing.md` |
+Детали (Jackson `is`-prefix, Dockerfile ловушки, KDoc backticks, пагинация, sync, queue lanes, тип песни, рендер MP4, StatBySong) — в LiveDocs. Q&A в этот файл **НЕ добавлять** — только governance.
 
 ## Как обновлять этот файл
 
-Правки governance (CI-gate, lifecycle, иерархия) — в ветке `0XX-agents-md-update`, semver bump. **НЕ дублировать** детали (→ LiveDocs). **НЕ добавлять** Q&A (→ LiveDocs).
+Правки governance — в ветке `0XX-agents-md-update`, semver bump. **НЕ дублировать** детали и **НЕ добавлять** Q&A.

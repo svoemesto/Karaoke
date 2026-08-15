@@ -8,6 +8,7 @@ related:
   - ../features/101-audio-transpose-player.md
   - ../../specs/190-playlist-play-button-and-stems-cancel/spec.md
   - ../../docs/features/playlist-play-button-and-stems-cancel.md
+  - ../../archive/docs/features/playlist-play-button-and-stems-cancel.md
 ---
 
 # 190 — Плейлисты: запуск с любой песни, превью альбома/автора и фикс задвоения вейвформ (LiveDoc)

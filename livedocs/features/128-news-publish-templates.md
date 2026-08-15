@@ -6,6 +6,7 @@ related:
   - ../features/089-auto-news-song-release.md
   - ../architecture/L3-components.md
   - ../../specs/128-news-publish-templates/spec.md
+  - ../../archive/docs/features/news-templates.md
 ---
 
 # 128 — Шаблоны автоматических новостей (LiveDoc)

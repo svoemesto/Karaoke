@@ -6,6 +6,7 @@ related:
   - ../domain/catalog.md
   - ../architecture/data-sync.md
   - ../../specs/124-news-flags-backfill/spec.md
+  - ../../archive/docs/features/news-publish-backfill.md
 ---
 
 # 124 — Backfill флагов публикаций готовых песен (LiveDoc)

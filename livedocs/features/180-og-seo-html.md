@@ -7,6 +7,7 @@ related:
   - ../domain/identity.md
   - ../architecture/L3-components.md
   - ../../specs/180-og-seo-html/spec.md
+  - ../../archive/docs/features/seo-html-for-bots.md
 ---
 
 # 180 — SEO-HTML вместо генерации PNG для ботов (LiveDoc)

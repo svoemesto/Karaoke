@@ -7,6 +7,7 @@ related:
   - ../features/182-editor-self-assign-tasks.md
   - ../architecture/L3-components.md
   - ../../specs/154-editor-tasks-manage/spec.md
+  - ../../archive/docs/features/editor-tasks.md
 ---
 
 # 154 — Управление заданиями редактора в личном кабинете и админке (LiveDoc)

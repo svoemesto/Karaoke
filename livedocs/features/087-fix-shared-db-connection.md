@@ -6,6 +6,7 @@ related:
   - ../architecture/L3-components.md
   - ../features/088-fix-queue-swallowed-errors.md
   - ../../specs/087-fix-shared-db-connection/spec.md
+  - ../../archive/docs/features/monitoring.md
 ---
 
 # 087 — Изоляция JDBC по потокам + retry очереди при сетевом сбое (LiveDoc)

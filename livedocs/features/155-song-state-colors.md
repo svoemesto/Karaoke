@@ -6,6 +6,7 @@ related:
   - ../domain/publishing.md
   - ../architecture/L3-components.md
   - ../../specs/155-song-state-colors/spec.md
+  - ../../archive/docs/features/song-state-colors.md
 ---
 
 # 155 — Актуализация статусов и цветов песен (LiveDoc)

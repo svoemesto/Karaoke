@@ -5975,7 +5975,7 @@ class Song(
      * (SongDTO.color / SongDTOdigest.color / поле `color` в сетке публикаций).
      *
      * Инварианты и приоритеты — [SongState]; подробное описание и обоснование —
-     * [archive/docs/features/song-state-colors.md](../../../../../archive/archive/docs/features/song-state-colors.md).
+     * [archive/docs/features/song-state-colors.md](../../../../../archive/docs/features/song-state-colors.md).
      */
     val state: SongState get() = resolveStateFor(moscowNow())
 
@@ -6021,7 +6021,7 @@ class Song(
         // Палитра фона строки песни на стадии жизненного цикла (idStatus 0..5 — в работе, 6.. — готово).
         // Применяется только когда `Song.state == IN_WORK` (idStatus < 6), для UI-презентации стадии;
         // готовые песни (idStatus >= 6) используют цвет, возвращаемый `Song.state.color` (DONE/TODAY/
-        // ON_AIR/EXCLUSIVE). См. `archive/archive/docs/features/song-state-colors.md` и `contracts/song-state-color.md`.
+        // ON_AIR/EXCLUSIVE). См. `archive/docs/features/song-state-colors.md` и `contracts/song-state-color.md`.
         @JvmStatic
         fun colorByIdStatus(idStatus: Long): String =
             when (idStatus) {
@@ -7799,7 +7799,7 @@ class Song(
                     // применяется палитра по `idStatus` через [colorByIdStatus], чтобы строка
                     // оставалась различимой по стадии жизненного цикла (NONE / текст найден /
                     // текст проверен / проект создан / проект проверен / рендер готов).
-                    // Подробнее — archive/archive/docs/features/song-state-colors.md.
+                    // Подробнее — archive/docs/features/song-state-colors.md.
                     song.fields[SongField.COLOR] =
                         if (song.idStatus < 6L) {
                             Song.colorByIdStatus(song.idStatus)

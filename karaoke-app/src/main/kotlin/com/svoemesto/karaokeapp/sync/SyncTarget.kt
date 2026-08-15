@@ -38,7 +38,7 @@ import kotlin.reflect.KClass
  * Используется в [SyncTarget.oneClickDirection] и в
  * `collectSyncOps` (см. `Utils.kt`).
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 enum class SyncDirection { LOCAL_TO_SERVER, SERVER_TO_LOCAL }
 
@@ -83,7 +83,7 @@ enum class SyncOperation(
  * @param rowChunkSize размер пачки для полнострочных операций (READ/INSERT/UPDATE).
  *   Подбирается под «вес» строки: тяжёлые таблицы (text/markers/base64) — малые
  *   пачки, лёгкие — большие. DELETE использует [SyncRegistry.DELETE_CHUNK_SIZE].
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  * @see SyncRegistry
  */
 abstract class SyncTarget<T : Any>(
@@ -490,7 +490,7 @@ val SiteChatMessagesSyncTarget =
 /**
  * Singleton-объект Sync Registry.
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 object SyncRegistry {
     // Размер пачки для операций УДАЛЕНИЯ на удалённом сервере (зеркальное удаление в цели + move-удаление

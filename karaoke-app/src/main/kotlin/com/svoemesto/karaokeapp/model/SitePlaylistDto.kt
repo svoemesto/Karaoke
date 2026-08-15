@@ -10,7 +10,7 @@ import java.io.Serializable
 /**
  * DTO плейлиста для API/UI.
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 data class SitePlaylistDto(
     val id: Long = 0,

@@ -79,9 +79,9 @@ import { stringDDMMYYaddDays } from '../../../lib/utils'
  * EXCLUSIVE / IN_WORK), управление окном публикаций (дата/диапазон) и командные кнопки
  * (С начала / С сегодня / … / UNPUBLISH / SKIPED). Цвета кнопок синхронизированы с backend —
  * `Song.state.color`, см. `specs/155-song-state-colors/contracts/song-state-color.md` и
- * `docs/features/song-state-colors.md`.
+ * `archive/docs/features/song-state-colors.md`.
  *
- * @see docs/features/song-state-colors.md
+ * @see archive/docs/features/song-state-colors.md
  * @see AGENTS.md
  */
 

@@ -26,7 +26,7 @@ import java.util.concurrent.ConcurrentHashMap
 /**
  * Singleton-объект Geo Ip Service.
  *
- * @see archive/archive/docs/features/async-process-queue.md
+ * @see archive/docs/features/async-process-queue.md
  */
 object GeoIpService {
     private val memCache = ConcurrentHashMap<String, String>()

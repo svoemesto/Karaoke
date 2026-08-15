@@ -89,7 +89,7 @@ import CustomConfirm from '../Common/CustomConfirm.vue'
 /**
  * Модальное окно для editor.
  *
- * @see docs/features/mlt-generator.md
+ * @see archive/docs/features/mlt-generator.md
  */
 export default {
   name: 'SongKaraokeEditorModal',

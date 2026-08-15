@@ -48,7 +48,7 @@ const SIZE = 5
  *
  * Контракт бэкенда см. {@link /specs/144-homepage-latest-news/contracts/public-news-api.md}.
  *
- * @see docs/features/homepage-latest-news.md
+ * @see archive/docs/features/homepage-latest-news.md
  */
 export default {
   name: 'LatestNewsSection',

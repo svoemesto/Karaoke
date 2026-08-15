@@ -7,7 +7,7 @@ package com.svoemesto.karaokeapp.model
 /**
  * Перечисление возможных значений для event type.
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 enum class EventType(
     val dbValue: String,
@@ -31,7 +31,7 @@ enum class EventType(
 /**
  * Перечисление возможных значений для ui action.
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 enum class UiAction(
     val dbValue: String,
@@ -49,7 +49,7 @@ enum class UiAction(
 /**
  * Перечисление возможных значений для rest name.
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 enum class RestName(
     val dbValue: String,
@@ -68,7 +68,7 @@ enum class RestName(
 /**
  * Перечисление возможных значений для link type.
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 enum class LinkType(
     val dbValue: String,
@@ -89,7 +89,7 @@ enum class LinkType(
 /**
  * Перечисление возможных значений для player action.
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 enum class PlayerAction(
     val dbValue: String,

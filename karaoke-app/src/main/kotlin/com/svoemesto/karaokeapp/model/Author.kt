@@ -25,7 +25,7 @@ import java.time.Instant
  *
  * Синхронизируется LOCAL↔SERVER через `SyncTarget<Author>`.
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  * @see archive/docs/features/llm-lyrics-search.md (использование `ymId` для парсинга)
  */
 @JsonIgnoreProperties(value = ["database", "sqlToInsert"])
@@ -365,7 +365,7 @@ class Author(
 /**
  * Класс Author Alias Match.
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 data class AuthorAliasMatch(
     val author: String,

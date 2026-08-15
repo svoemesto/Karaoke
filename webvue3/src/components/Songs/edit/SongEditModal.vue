@@ -25,7 +25,7 @@ import SongEdit from '../../../components/Songs/edit/SongEdit.vue'
 /**
  * Модальное окно для edit.
  *
- * @see docs/features/mlt-generator.md
+ * @see archive/docs/features/mlt-generator.md
  */
 
 export default {

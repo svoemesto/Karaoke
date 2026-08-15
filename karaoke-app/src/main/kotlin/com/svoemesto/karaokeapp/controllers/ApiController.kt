@@ -6158,7 +6158,7 @@ class ApiController(
      * загрузка полного [apisAlbumsDigest] (нужен таблице "Альбомы" — там реально нужны 2 картинки
      * на строку) для этого избыточна.
      *
-     * @see archive/archive/docs/features/dual-db-sync.md
+     * @see archive/docs/features/dual-db-sync.md
      */
     @PostMapping("/albums/albumsdigestslite")
     @ResponseBody

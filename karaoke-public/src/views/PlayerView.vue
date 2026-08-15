@@ -36,8 +36,8 @@
  * Аутентификация — через `useAuth()` (premium-доступ для стемов).
  *
  * @route /song/player/:id?version=...
- * @see docs/features/mp4-render.md
- * @see docs/features/premium-stems.md
+ * @see archive/docs/features/mp4-render.md
+ * @see archive/docs/features/premium-stems.md
  * @see KaraokePlayer основной движок плеера
  */
 import { onMounted, onBeforeUnmount, ref } from 'vue'

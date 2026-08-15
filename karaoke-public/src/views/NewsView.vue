@@ -59,7 +59,7 @@ const PAGE_SIZE = 20
 /**
  * View-страница «News» — основной layout и постраничный data-fetching (specs/090-news-pagination).
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 
 export default {

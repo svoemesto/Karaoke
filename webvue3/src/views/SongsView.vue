@@ -19,8 +19,8 @@ import SongsTable from '../components/Songs/SongsTable.vue'
  * Содержит также кнопки bulk-операций (sync, push, pull, delete) —
  * см. `SongsTable.vue` для деталей.
  *
- * @see docs/features/dual-db-sync.md
- * @see docs/features/mlt-generator.md (откуда берутся параметры рендера)
+ * @see archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/mlt-generator.md (откуда берутся параметры рендера)
  */
 export default {
   name: 'SongView',

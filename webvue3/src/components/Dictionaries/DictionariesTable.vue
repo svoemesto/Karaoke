@@ -108,7 +108,7 @@ import CustomConfirm from '../Common/CustomConfirm.vue'
 /**
  * Таблица со списком dictionaries с пагинацией, фильтрами и сортировкой.
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 
 export default {

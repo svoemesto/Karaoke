@@ -127,7 +127,7 @@ interface StorageApiClient {
 /**
  * Класс Storage Api Client Impl.
  *
- * @see archive/archive/docs/features/async-process-queue.md
+ * @see archive/docs/features/async-process-queue.md
  */
 @Service
 class StorageApiClientImpl(

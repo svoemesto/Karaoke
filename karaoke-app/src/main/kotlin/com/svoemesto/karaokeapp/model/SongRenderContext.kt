@@ -710,7 +710,7 @@ data class SongRenderContext(
 /**
  * Класс Song Voice.
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 data class SongRenderVoice(
     val srtFileBody: String = "",
@@ -814,7 +814,7 @@ data class SongRenderVoice(
 /**
  * Перечисление возможных значений для song voice line type.
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 enum class SongRenderVoiceLineType : Serializable {
     EMPTY,
@@ -826,7 +826,7 @@ enum class SongRenderVoiceLineType : Serializable {
 /**
  * Класс Song Voice Line.
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 data class SongRenderVoiceLine(
     var type: SongRenderVoiceLineType = SongRenderVoiceLineType.TEXT,
@@ -1107,7 +1107,7 @@ data class SongRenderVoiceLine(
 /**
  * Класс Song Voice Line Symbol.
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 data class SongRenderVoiceLineSymbol(
     var start: String,
@@ -1144,7 +1144,7 @@ data class SongRenderVoiceLineSymbol(
 /**
  * Класс Subtitle.
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 data class Subtitle(
     var startTimecode: String = "",
@@ -1180,7 +1180,7 @@ data class Subtitle(
 /**
  * Класс Chord.
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 data class Chord(
     val timecode: String = "",
@@ -1191,7 +1191,7 @@ data class Chord(
 /**
  * Класс Wave Surfer Marker.
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 @Suppress("unused")
 data class WaveSurferMarker(

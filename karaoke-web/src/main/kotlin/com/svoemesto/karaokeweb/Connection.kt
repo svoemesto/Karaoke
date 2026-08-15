@@ -13,7 +13,7 @@ import com.svoemesto.karaokeweb.services.WEB_WORK_ON_SERVER
 /**
  * Класс Connection.
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 class Connection(
     override val url: String,

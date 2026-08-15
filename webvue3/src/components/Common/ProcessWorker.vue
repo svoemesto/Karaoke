@@ -45,7 +45,7 @@ import CustomConfirm from './CustomConfirm.vue'
  * Подписывается на SSE `PROCESS_WORKER_STATE` и `PROCESS_COUNT_WAITING`
  * для live-обновления.
  *
- * @see docs/features/async-process-queue.md
+ * @see archive/docs/features/async-process-queue.md
  */
 export default {
   name: 'ProcessWorker',

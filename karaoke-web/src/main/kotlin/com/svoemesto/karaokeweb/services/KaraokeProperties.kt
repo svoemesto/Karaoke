@@ -23,7 +23,7 @@ import org.springframework.context.annotation.Configuration
  *  - `KARAOKE_WEB_RATE_LIMIT_SONG_PICTURE_PER_MINUTE` (int, default `60`) — для `/api/public/song-picture/{id}`.
  *  - `KARAOKE_WEB_RATE_LIMIT_SONG_VK_IMAGE_PER_MINUTE` (int, default `60`) — для `/api/public/song-vk-image/{id}`.
  *
- * @see archive/archive/docs/features/site-traffic-resilience.md
+ * @see archive/docs/features/site-traffic-resilience.md
  * @see SamplingConfig
  * @see SamplingFilter
  * @see DedupCache

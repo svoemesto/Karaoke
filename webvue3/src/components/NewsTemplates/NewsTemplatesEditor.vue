@@ -192,7 +192,7 @@ import { promisedXMLHttpRequest } from '../../lib/utils'
  * (title + body отдельно — отражает структуру tbl_news). Превью возвращает пару title+body,
  * сброс к дефолту — per-field (FR-003, FR-013).
  *
- * @see docs/features/news-templates.md
+ * @see archive/docs/features/news-templates.md
  */
 export default {
   name: 'NewsTemplatesEditor',

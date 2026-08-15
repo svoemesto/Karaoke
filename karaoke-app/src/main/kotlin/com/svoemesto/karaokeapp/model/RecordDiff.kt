@@ -3,7 +3,7 @@ package com.svoemesto.karaokeapp.model
 /**
  * Класс Record Diff.
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 data class RecordDiff(
     val recordDiffName: String,

@@ -159,7 +159,7 @@ import ShareLinksFilterModal from './ShareLinksFilterModal.vue'
  * - `currentPage` хранится в Vuex (`shareLinksTableCurrentPage`) — переживает F5.
  *
  * @see AGENTS.md
- * @see docs/features/guest-share-link.md
+ * @see archive/docs/features/guest-share-link.md
  * @see specs/171-admin-subscriptions-history/spec.md (FR-015…FR-022)
  */
 export default {

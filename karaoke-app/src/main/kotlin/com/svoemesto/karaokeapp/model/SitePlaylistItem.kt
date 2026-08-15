@@ -23,7 +23,7 @@ import java.sql.Timestamp
  * - `order` — позиция в плейлисте (0-based).
  * - `added` — дата добавления.
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 class SitePlaylistItem(
     override val database: KaraokeConnection = WORKING_DATABASE,

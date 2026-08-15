@@ -2517,8 +2517,8 @@ const SONG_TYPE_OPTIONS = [
  * Использует `SubsEdit` для inline-редактирования текста/аккордов,
  * `SearchText` для LLM-поиска текстов и аккордов.
  *
- * @see docs/features/mlt-generator.md
- * @see docs/features/llm-lyrics-search.md
+ * @see archive/docs/features/mlt-generator.md
+ * @see archive/docs/features/llm-lyrics-search.md
  */
 export default {
   name: 'SongEdit',
@@ -2604,7 +2604,7 @@ export default {
      * Состояние автопубликации демо в Telegram для карточки песни (Фаза 2,
      * specs/113-telegram-demo-publish, FR-012). Возвращает null, если badge не нужен
      * (date/time пусты и idTelegramDemo пуст). Лейблы: «Опубликована» / «Запланирована» /
-     * «Опоздавшая». @see docs/features/telegram-auto-publish.md
+     * «Опоздавшая». @see archive/docs/features/telegram-auto-publish.md
      * @returns {{label: string, class: string, title: string}|null}
      */
     telegramPublishState() {
@@ -2652,7 +2652,7 @@ export default {
      * FR-006/FR-009) — независимый цикл от AIR-статуса выше (`telegramPublishState`):
      * срабатывает при становлении песни доступной, id публикации не сохраняется
      * (`newsPremiumTelegramSent` вместо `idTelegramDemo`). Возвращает null, если песня
-     * никогда не входила в премиум-цикл. @see docs/features/telegram-auto-publish.md
+     * никогда не входила в премиум-цикл. @see archive/docs/features/telegram-auto-publish.md
      * @returns {{label: string, class: string, title: string}|null}
      */
     premiumTelegramPublishState() {
@@ -2694,7 +2694,7 @@ export default {
      * (`vkAutoPublishState`/`newsPremiumVkSent`/`premiumAttemptCountVk`). ВК-премиум сегодня
      * публикует только текст (без видео — community-токен без прав video.save), поэтому
      * обычно завершается мгновенно, без промежуточных «Рендерится».
-     * @see docs/features/vk-news-auto-publish.md
+     * @see archive/docs/features/vk-news-auto-publish.md
      * @returns {{label: string, class: string, title: string}|null}
      */
     premiumVkPublishState() {
@@ -4176,7 +4176,7 @@ export default {
      * `publishToTelegramNowPromise` → POST /api/song/publishToTelegramNow.
      * Показывает toast с результатом (success/error/state). Кнопка скрыта во фронте,
      * если idTelegramDemo уже заполнен (FR-016), но сервер всё равно проверяет.
-     * @see docs/features/telegram-auto-publish.md
+     * @see archive/docs/features/telegram-auto-publish.md
      */
     publishToTelegramNow() {
       if (this.isPublishingTelegram) return
@@ -4235,7 +4235,7 @@ export default {
      * type='air' — авто-шаблон (vkTemplateAir), type='premium' — премиум-шаблон (vkTemplatePremium).
      * POST /api/song/publishToVkNow?id=<id>&type=<type>. По образцу publishToTelegramNow выше.
      * Кнопка скрыта во фронте, если idVk уже заполнен (FR-008 — общая идемпотентность).
-     * @see docs/features/vk-news-auto-publish.md
+     * @see archive/docs/features/vk-news-auto-publish.md
      */
     publishToVkNow(type = 'air') {
       if (this.isPublishingVk) return
@@ -4301,7 +4301,7 @@ export default {
      * idTelegramDemo (сервер не сохраняет message_id для премиум-цикла) — вместо этого
      * обновляет флаги newsPremiumPublishPending/newsPremiumTelegramSent/premiumAutoPublishState
      * из ответа, чтобы бейдж статуса обновился без перезагрузки страницы.
-     * @see docs/features/telegram-auto-publish.md
+     * @see archive/docs/features/telegram-auto-publish.md
      */
     publishPremiumTelegramNow() {
       if (this.isPublishingPremiumTelegram) return
@@ -4356,7 +4356,7 @@ export default {
     /**
      * Ручной повтор премиум-публикации в ВК (specs/122-premium-auto-publish, FR-008) —
      * симметрично publishPremiumTelegramNow, но для ВК-канала (не пишет idVk).
-     * @see docs/features/vk-news-auto-publish.md
+     * @see archive/docs/features/vk-news-auto-publish.md
      */
     publishPremiumVkNow() {
       if (this.isPublishingPremiumVk) return

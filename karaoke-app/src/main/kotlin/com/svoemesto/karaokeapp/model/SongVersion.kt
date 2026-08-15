@@ -14,7 +14,7 @@ fun List<ProducerType>.sortedByLevelsDesc(): List<ProducerType> =
 /**
  * Перечисление возможных значений для song version.
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 enum class SongVersion(
     val text: String,

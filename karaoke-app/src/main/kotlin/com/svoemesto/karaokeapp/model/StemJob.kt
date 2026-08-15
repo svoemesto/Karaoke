@@ -13,7 +13,7 @@ import java.sql.Timestamp
 /**
  * Singleton-объект Stem Job Status.
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 object StemJobStatus {
     const val WAITING = "WAITING"
@@ -28,7 +28,7 @@ object StemJobStatus {
 /**
  * Singleton-объект Stem Job Mode.
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 object StemJobMode {
     const val DEMUCS2 = "DEMUCS2"
@@ -364,7 +364,7 @@ class StemJob(
 /**
  * DTO для stem job admin: сериализуемое представление для API/UI.
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 data class StemJobAdminDto(
     val id: Long,

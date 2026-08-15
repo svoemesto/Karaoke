@@ -7,7 +7,7 @@ import java.io.Serializable
 /**
  * Класс Karaoke Platform Publication.
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 data class KaraokePlatformPublication(
     val platform: KaraokePlatform,

@@ -29,8 +29,8 @@
  * - `render=1` (query) — headless-режим для MP4-рендера через Playwright
  *   (см. `mp4-render.md`).
  *
- * @see docs/features/mp4-render.md
- * @see docs/features/premium-stems.md (доступ по подписке)
+ * @see archive/docs/features/mp4-render.md
+ * @see archive/docs/features/premium-stems.md (доступ по подписке)
  */
 import { onMounted, onBeforeUnmount, ref } from 'vue'
 import { useRoute } from 'vue-router'

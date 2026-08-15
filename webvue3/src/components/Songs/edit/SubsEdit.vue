@@ -1336,7 +1336,7 @@ function insertSpecTagAtCursorImpl(text, selectionStart, selectionEnd, tagText) 
  *
  * Используется в `SongEdit.vue` (вкладка «Текст»).
  *
- * @see docs/features/mlt-generator.md
+ * @see archive/docs/features/mlt-generator.md
  */
 export default {
   name: 'SubsEdit',

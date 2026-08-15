@@ -107,7 +107,7 @@ import SearchTextResultsTable from './SearchTextResultsTable.vue'
  *
  * @emits apply-text - текст применён (`{ text: string }`)
  * @emits apply-chords - аккорды применены (`{ chords: string }`)
- * @see docs/features/llm-lyrics-search.md
+ * @see archive/docs/features/llm-lyrics-search.md
  */
 export default {
   name: 'SearchText',

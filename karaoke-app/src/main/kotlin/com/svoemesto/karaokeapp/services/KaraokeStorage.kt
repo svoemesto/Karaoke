@@ -6,7 +6,7 @@ import java.io.InputStream
 /**
  * Интерфейс для karaoke storage.
  *
- * @see archive/archive/docs/features/async-process-queue.md
+ * @see archive/docs/features/async-process-queue.md
  */
 interface KaraokeStorage {
     val storageService: KaraokeStorageService

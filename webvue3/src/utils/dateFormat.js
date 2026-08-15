@@ -1,5 +1,5 @@
 // Единое форматирование дат в админ-SPA. Источник — epoch ms (Long),
-// реальный момент времени (см. docs/features/guest-share-link.md). Пояс
+// реальный момент времени (см. archive/docs/features/guest-share-link.md). Пояс
 // отображения — таймзона устройства (FR-011), не серверная МСК.
 
 export default function formatDate(epochMs) {

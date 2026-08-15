@@ -20,7 +20,7 @@ import java.time.LocalDate
 /**
  * Класс Ollama Request.
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 @Serializable
 data class OllamaRequest(
@@ -33,7 +33,7 @@ data class OllamaRequest(
 /**
  * Класс Ollama Stream Response.
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 @Serializable
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -67,7 +67,7 @@ data class OllamaStreamResponse(
 /**
  * Класс AI Assistant.
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 class AIAssistant(
 //    private val model: String = "llama3",

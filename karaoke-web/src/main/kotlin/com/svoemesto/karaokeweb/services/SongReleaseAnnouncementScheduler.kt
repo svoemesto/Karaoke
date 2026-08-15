@@ -23,7 +23,7 @@ import org.springframework.stereotype.Component
  * времени эфира (см. spec.md, раздел Clarifications). По образцу `StatsCacheScheduler`/
  * `StemJobTempCleanupScheduler` из этого же пакета: ошибки логируются и не прерывают следующий тик.
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 @Component
 class SongReleaseAnnouncementScheduler(

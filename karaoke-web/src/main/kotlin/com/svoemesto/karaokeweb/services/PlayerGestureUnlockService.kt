@@ -17,7 +17,7 @@ import java.util.concurrent.ConcurrentHashMap
 /**
  * Сервис для player gesture unlock .
  *
- * @see archive/archive/docs/features/async-process-queue.md
+ * @see archive/docs/features/async-process-queue.md
  */
 @Service
 class PlayerGestureUnlockService {

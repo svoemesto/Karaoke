@@ -126,7 +126,7 @@
 /**
  * Модальное окно для filter.
  *
- * @see docs/features/async-process-queue.md
+ * @see archive/docs/features/async-process-queue.md
  */
 export default {
   name: 'ProcessesFilterModal',

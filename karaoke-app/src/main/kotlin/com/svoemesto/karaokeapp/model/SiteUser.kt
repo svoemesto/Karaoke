@@ -28,7 +28,7 @@ import java.sql.Timestamp
  * Триггер `update_tbl_site_users_recordhash` поддерживает recordhash
  * для dual-db-sync. Синхронизируется через `SyncTarget<SiteUser>`.
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  * @see archive/docs/features/telegram-auto-publish.md (рассылки по `SiteUser`)
  */
 @JsonIgnoreProperties(value = ["database", "sqlToInsert"])
@@ -135,7 +135,7 @@ class SiteUser(
     // Флаг "может сам назначать себе задания" (self-assign) в karaoke-public/ZakromaView.
     // Имеет смысл только при isEditor=true; для не-редакторов UI скрывает кнопку. Снятие флага НЕ
     // отзывает уже взятые задания (только запрещает брать новые) — иначе админ потерял бы работу
-    // без явного решения. См. archive/archive/docs/features/editor-tasks.md#self-assign.
+    // без явного решения. См. archive/docs/features/editor-tasks.md#self-assign.
     @KaraokeDbTableField(name = "can_self_assign_tasks")
     var canSelfAssignTasks: Boolean = false
 

@@ -13,7 +13,7 @@ import org.springframework.scheduling.annotation.EnableScheduling
 /**
  * Класс Karaoke Web Application.
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 @EnableScheduling
 @SpringBootApplication

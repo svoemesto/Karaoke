@@ -8,7 +8,7 @@ import java.io.Serializable
 /**
  * Класс Cross Song Row.
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 data class CrossSongRow(
     val csrId: Int,
@@ -32,7 +32,7 @@ data class CrossSongRow(
 /**
  * Класс Cross Song Cell.
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 data class CrossSongCell(
     val cscIs: Int,
@@ -66,7 +66,7 @@ data class CrossSongCell(
  *
  * Используется для UI-фильтров и отчётов.
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 class CrossSong {
     companion object {

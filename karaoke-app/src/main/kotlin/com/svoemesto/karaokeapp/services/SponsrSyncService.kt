@@ -14,7 +14,7 @@ import java.sql.Timestamp
 /**
  * Класс Sponsr Sync Result.
  *
- * @see archive/archive/docs/features/async-process-queue.md
+ * @see archive/docs/features/async-process-queue.md
  */
 data class SponsrSyncResult(
     val ok: Boolean,
@@ -44,7 +44,7 @@ data class SponsrSyncResult(
 /**
  * Singleton-объект Sponsr Sync Service.
  *
- * @see archive/archive/docs/features/async-process-queue.md
+ * @see archive/docs/features/async-process-queue.md
  */
 object SponsrSyncService {
     private val EMAIL_REGEX = Regex("""[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}""")

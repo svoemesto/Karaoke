@@ -28,7 +28,7 @@ import kotlin.random.Random
  *  4. Иначе: бросить `random.nextInt(samplingRate) == 0` — если нет, return `true` (пропустить).
  *  5. Иначе: return `false` (сохраняем).
  *
- * @see archive/archive/docs/features/site-traffic-resilience.md
+ * @see archive/docs/features/site-traffic-resilience.md
  * @see DedupCache
  * @see SamplingConfig
  * @see KaraokeProperties

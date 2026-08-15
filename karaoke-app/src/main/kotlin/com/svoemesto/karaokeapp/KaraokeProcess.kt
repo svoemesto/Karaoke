@@ -44,7 +44,7 @@ import kotlin.io.path.Path
  *
  * Все статусы — в `KaraokeProcessStatuses` enum.
  *
- * @see archive/archive/docs/features/async-process-queue.md
+ * @see archive/docs/features/async-process-queue.md
  */
 class KaraokeProcess(
     override val database: KaraokeConnection = WORKING_DATABASE,
@@ -486,7 +486,7 @@ class KaraokeProcess(
          *   тот же тип, что и `.save()`, чтобы retry-механизм `KaraokeProcessWorker.start()`
          *   (specs/087-fix-shared-db-connection) одинаково реагировал на любой сбой БД внутри
          *   главного цикла, а не только на сбой сохранения прогресса.
-         * @see archive/archive/docs/features/async-process-queue.md
+         * @see archive/docs/features/async-process-queue.md
          */
         fun getCountWaiting(
             database: KaraokeConnection,
@@ -635,7 +635,7 @@ class KaraokeProcess(
          * @param database подключение к БД (local/remote/virtual)
          * @param threadId thread-лейн, который нужно восстановить
          * @return число восстановленных записей (0, если восстанавливать было нечего)
-         * @see archive/archive/docs/features/async-process-queue.md
+         * @see archive/docs/features/async-process-queue.md
          * @see archive/docs/features/monitoring.md
          */
         fun setWorkingToWaitingForThread(
@@ -773,7 +773,7 @@ class KaraokeProcess(
          *   всех вызывающих мест, кроме главного цикла очереди). При `true` (используется
          *   только изнутри `KaraokeProcessWorker.doStart()`) сбой пробрасывается как
          *   [SQLException] — см. [getCountWaiting].
-         * @see archive/archive/docs/features/async-process-queue.md
+         * @see archive/docs/features/async-process-queue.md
          */
         fun getProcessesToStart(
             database: KaraokeConnection,
@@ -939,7 +939,7 @@ class KaraokeProcess(
          * каскадное переименование могло бы переименовать файл, который в этот момент читает/пишет
          * уже запущенный процесс (например, Demucs).
          *
-         * @see archive/archive/docs/features/async-process-queue.md
+         * @see archive/docs/features/async-process-queue.md
          */
         fun hasActiveProcess(
             songId: Long,

@@ -226,7 +226,7 @@ import UserSubscriptionsModal from '../UserSubscriptionsModal.vue'
 /**
  * Форма редактирования user.
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 
 export default {

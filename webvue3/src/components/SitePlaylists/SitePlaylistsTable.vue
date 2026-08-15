@@ -92,13 +92,13 @@ import SitePlaylistDetailModal from './SitePlaylistDetailModal.vue'
  * @prop {number} page - текущая страница (1-based)
  * @emits row-click - клик по строке
  * @emits row-edit - открыть SitePlaylistDetailModal
- * @see docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  * @see CONTRIBUTING.md#vue-table-layout-fixed
  */
 /**
  * Таблица со списком playlists с пагинацией, фильтрами и сортировкой.
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 export default {
   name: 'SitePlaylistsTable',

@@ -14,7 +14,7 @@ import HealthReportTableRow from './HealthReportTableRow.vue'
 /**
  * Компонент «Health Report Table Body».
  *
- * @see docs/features/monitoring.md
+ * @see archive/docs/features/monitoring.md
  */
 
 export default {

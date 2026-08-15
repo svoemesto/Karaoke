@@ -72,7 +72,7 @@ const ALBUM_TYPE_LABELS = {
  * Порядок — сквозной по автору (не по годам): при сохранении на сервер уходит id альбомов в
  * порядке строк таблицы, каждому присваивается sortOrder = его позиция (см. Album.reorderAlbums).
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 export default {
   name: 'AuthorAlbumsModal',

@@ -27,7 +27,7 @@ import java.sql.Timestamp
  * `PriceTariff`.
  *
  * @see archive/docs/features/telegram-auto-publish.md
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 class CartItem(
     override val database: KaraokeConnection = WORKING_DATABASE,

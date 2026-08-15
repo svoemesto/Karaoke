@@ -55,7 +55,7 @@
 /**
  * Модальное окно для monitor.
  *
- * @see docs/features/monitoring.md
+ * @see archive/docs/features/monitoring.md
  */
 export default {
   name: 'MonitorModal',

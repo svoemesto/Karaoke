@@ -17,7 +17,7 @@ import javax.imageio.ImageIO
  * - `picturePreviewUrl` / `pictureFullUrl` — публичные URLs
  *   (presigned MinIO, см. `KaraokeStorageService.upload`).
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 class Picture(
     val params: PictureParams,
@@ -514,7 +514,7 @@ class Picture(
 /**
  * Класс Picture Child.
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 data class PictureChild(
     val x: Int,
@@ -525,7 +525,7 @@ data class PictureChild(
 /**
  * Класс Area Params.
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 data class AreaParams(
     val w: Int,
@@ -537,7 +537,7 @@ data class AreaParams(
 /**
  * Класс Image Params.
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 data class ImageParams(
     val w: Int,
@@ -549,7 +549,7 @@ data class ImageParams(
 /**
  * Класс Text Params.
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 data class TextParams(
     val w: Int,
@@ -568,6 +568,6 @@ data class TextParams(
 /**
  * Интерфейс для picture params.
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 interface PictureParams

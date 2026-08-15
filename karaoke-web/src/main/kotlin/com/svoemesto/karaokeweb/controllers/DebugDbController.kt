@@ -30,7 +30,7 @@ import java.sql.SQLException
  *  - `currentTomcatMaxThreads`: максимальное число threads в Tomcat.
  *  - `sampledAt`: ISO-8601 timestamp момента снятия метрик.
  *
- * @see archive/archive/docs/features/site-traffic-resilience.md (FR-013)
+ * @see archive/docs/features/site-traffic-resilience.md (FR-013)
  * @see DebugDbAccessGuard
  * @see KaraokeProperties
  */

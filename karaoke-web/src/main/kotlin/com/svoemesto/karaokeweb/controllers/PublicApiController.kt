@@ -658,7 +658,7 @@ class PublicApiController(
      * [com.svoemesto.karaokeweb.services.RateLimitInterceptor], зарегистрированный в
      * `WebMvcConfig` (см. `site-traffic-resilience.md` / FR-010 / SC-008).
      *
-     * @see archive/archive/docs/features/site-traffic-resilience.md (FR-010)
+     * @see archive/docs/features/site-traffic-resilience.md (FR-010)
      */
     @GetMapping("/song-picture/{id}")
     fun songPicture(
@@ -728,7 +728,7 @@ class PublicApiController(
      * [com.svoemesto.karaokeweb.services.RateLimitInterceptor], зарегистрированный в
      * `WebMvcConfig` (см. `site-traffic-resilience.md` / FR-010 / SC-008).
      *
-     * @see archive/archive/docs/features/site-traffic-resilience.md (FR-010)
+     * @see archive/docs/features/site-traffic-resilience.md (FR-010)
      */
     @GetMapping("/song-vk-image/{id}")
     fun songVkImage(

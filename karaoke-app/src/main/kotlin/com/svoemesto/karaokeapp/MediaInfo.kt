@@ -16,7 +16,7 @@ fun mainMediaInfo() {
 /**
  * Класс Media Info.
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 class MediaInfo {
     companion object {

@@ -10,7 +10,7 @@ import java.io.Serializable
 /**
  * DTO для song assignment draft: сериализуемое представление для API/UI.
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 data class SongAssignmentDraftDto(
     val id: Long = 0,

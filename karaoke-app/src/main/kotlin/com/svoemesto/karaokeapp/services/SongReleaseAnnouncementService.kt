@@ -31,7 +31,7 @@ import java.util.TimeZone
  * [Song.newsAvailableAnnounced] целевой БД, что допускало ложные срабатывания при отложенном
  * первом схождении флага между LOCAL и SERVER, см. research.md).
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  * @see archive/docs/features/approve-pipeline.md
  */
 object SongReleaseAnnouncementService {

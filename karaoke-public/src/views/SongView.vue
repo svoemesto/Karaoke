@@ -380,9 +380,9 @@ import { assignSelf as apiAssignSelf } from '../services/songEditorApi'
  * - `cart` — добавление в корзину.
  * - `playlistMembership` — добавление в плейлисты.
  *
- * @see docs/features/premium-stems.md
- * @see docs/features/mp4-render.md (Player)
- * @see docs/features/song-free-access.md
+ * @see archive/docs/features/premium-stems.md
+ * @see archive/docs/features/mp4-render.md (Player)
+ * @see archive/docs/features/song-free-access.md
  */
 export default {
   name: 'SongView',

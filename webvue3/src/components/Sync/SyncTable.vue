@@ -99,7 +99,7 @@ import CustomConfirm from '../Common/CustomConfirm.vue'
  * @emits run-sync - запустить sync одной сущности
  * @emits one-click - запустить «1 клик» для всех
  * @emits set-flag - изменить флаг для сущности
- * @see docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  * @see SyncController REST-эндпоинты
  */
 /**
@@ -117,7 +117,7 @@ import CustomConfirm from '../Common/CustomConfirm.vue'
  * Подписывается на SSE `SYNC` для live-обновления прогресса
  * (текущая таблица, текущий ID, процент).
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 export default {
   name: 'SyncTable',

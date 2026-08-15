@@ -34,7 +34,7 @@ import java.sql.Timestamp
 /**
  * Класс Stem Job Poll Scheduler.
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 @Component
 class StemJobPollScheduler {

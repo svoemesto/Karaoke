@@ -17,7 +17,7 @@ import org.springframework.stereotype.Service
  *
  * @property searchTool HTTP-поисковик (Google/Bing через scraping).
  * @property scraperAgent LLM-агент для парсинга HTML.
- * @see docs/features/llm-lyrics-search.md
+ * @see archive/docs/features/llm-lyrics-search.md
  */
 @Service
 class LyricsFinderService(
@@ -82,7 +82,7 @@ class LyricsFinderService(
      * ([com.svoemesto.karaokeapp.LyricsSearchEngine], specs/015-search-engine-selection) —
      * прямой запрос к self-hosted SearXNG вместо fourget.
      *
-     * @see docs/features/llm-lyrics-search.md
+     * @see archive/docs/features/llm-lyrics-search.md
      */
     fun searchUrlsViaSearxng(
         author: String,

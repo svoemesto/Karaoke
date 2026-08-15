@@ -294,7 +294,7 @@ Anti-fraud нужен только если/когда добавим trial.
 - [growth-audit.md](./growth-audit.md) — полный аудит со всеми гипотезами и обоснованиями
 - [AGENTS.md](../../AGENTS.md) — runtime-инструкции (раздел «Стратегия роста»)
 - [constitution.md](../../.specify/memory/constitution.md) — непреложные принципы
-- [public-modules.md](../../docs/public-modules.md) — публичные модули
+- [public-modules.md](../architecture/public-modules.md) — публичные модули
 - [features/](../../docs/features/) — 11 ключевых подсистем
 - [specs/](../../specs/) — spec.md на конкретные фичи
 

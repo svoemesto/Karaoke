@@ -12,7 +12,7 @@ import com.svoemesto.karaokeapp.xmldata
 /**
  * Producer для фейд-эффекта на тексте (появление/исчезновение). Создаёт MLT-блоки с alpha-анимацией.
  *
- * @see docs/features/mlt-generator.md
+ * @see archive/docs/features/mlt-generator.md
  */
 data class MkoFaderText(
     val mltProp: MltProp,

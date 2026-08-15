@@ -14,7 +14,7 @@ import java.awt.Font
 /**
  * Класс Mko Scroller.
  *
- * @see docs/features/mlt-generator.md
+ * @see archive/docs/features/mlt-generator.md
  */
 data class MkoScroller(
     val mltProp: MltProp,

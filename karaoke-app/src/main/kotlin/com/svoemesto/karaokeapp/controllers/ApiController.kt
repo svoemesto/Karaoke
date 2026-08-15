@@ -89,7 +89,7 @@ data class FamilySongDto(
  * Поля аудио возвращаются как Long/Int после нормализации и перечитывания записи,
  * а не как эхо неподтверждённого запроса.
  *
- * @see docs/features/songs-table.md
+ * @see archive/docs/features/songs-table.md
  */
 data class SelectFamilySongResultDto(
     val rootId: Long,
@@ -719,7 +719,7 @@ class ApiController(
     // связанные с выбранным кандидатом. Параметр audioSimilarityPercent nullable: отсутствие обеих
     // метрик (audioSimilarityPercent и deltaMs) означает выбор без сверки и приводит к записи 0/0;
     // частичная пара (только одна из двух метрик) отклоняется 400 Bad Request до изменения записи.
-    // Подробнее — docs/features/songs-table.md (FR-009).
+    // Подробнее — archive/docs/features/songs-table.md (FR-009).
     @PostMapping("/song/selectfamilysong")
     @ResponseBody
     fun selectFamilySong(
@@ -2875,7 +2875,7 @@ class ApiController(
      * активная фоновая обработка песни). Остальные поля из запроса при этом всё равно применяются и
      * сохраняются как обычно — отклоняется только сама смена имени файла.
      *
-     * @see docs/features/premium-stems.md
+     * @see archive/docs/features/premium-stems.md
      */
     data class SongUpdateResultDto(
         val albumLinkValid: Boolean,
@@ -6158,7 +6158,7 @@ class ApiController(
      * загрузка полного [apisAlbumsDigest] (нужен таблице "Альбомы" — там реально нужны 2 картинки
      * на строку) для этого избыточна.
      *
-     * @see docs/features/dual-db-sync.md
+     * @see archive/archive/docs/features/dual-db-sync.md
      */
     @PostMapping("/albums/albumsdigestslite")
     @ResponseBody
@@ -7141,7 +7141,7 @@ class ApiController(
     // 2) /api/utils/vkIdTokenStatus — состояние токена (для мониторинга).
     // 3) /api/utils/vkIdRefreshNow — принудительный refresh (для ручного управления).
     // Scheduled refresh — в VkIdTokenRefreshScheduler (каждый час).
-    // @see docs/features/vk-id-auth.md
+    // @see archive/docs/features/vk-id-auth.md
 
     /**
      * Сохраняет VK ID токены в Karaoke.properties (FR-003).

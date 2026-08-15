@@ -28,7 +28,7 @@ import java.time.Instant
  * distributed lock (отдельная задача).
  *
  * @see specs/151-vk-id-personal-token/spec.md (FR-004)
- * @see docs/features/vk-id-auth.md
+ * @see archive/docs/features/vk-id-auth.md
  */
 @Component
 class VkIdTokenRefreshScheduler {

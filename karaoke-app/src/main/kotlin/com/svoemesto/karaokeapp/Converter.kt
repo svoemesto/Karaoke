@@ -10,7 +10,7 @@ import java.awt.Font
 /**
  * Класс Converter.
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  */
 class Converter {
     companion object {

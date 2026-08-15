@@ -12,7 +12,7 @@ import com.svoemesto.karaokeapp.KaraokeProperties
  *   `photo-123_456` или `doc-123_789`). `null` при деградации.
  * @property error Краткое описание ошибки (для логов), `null` при успехе.
  *
- * @see docs/features/vk-news-auto-publish.md
+ * @see archive/docs/features/vk-news-auto-publish.md
  */
 data class PhotoUploadResult(
     val method: PhotoUploadMethod,
@@ -43,7 +43,7 @@ data class PhotoUploadResult(
  * `VkPhotoTransientException`), которое [VkAutoPublishService] обрабатывает как
  * `SEND_FAILED` с префиксом `photo upload failed:`.
  *
- * @see docs/features/vk-news-auto-publish.md
+ * @see archive/docs/features/vk-news-auto-publish.md
  * @see specs/138-vk-photo-preview-attachment/spec.md
  */
 class VkPhotoUploadClient(

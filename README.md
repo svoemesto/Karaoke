@@ -23,9 +23,9 @@ Boot бэкенд.
 | [DEVELOPMENT.md](./DEVELOPMENT.md) | Архитектурный контекст, dated-история, ловушки |
 | [CONTRIBUTING.md](./CONTRIBUTING.md) | **Правила оформления кода** (Kotlin, Vue, SQL, Shell, Docker) |
 | [constitution.md](./.specify/memory/constitution.md) | Непреложные принципы проекта |
-| [docs/features/](./docs/features/) | **Per-feature документы** для 9 ключевых подсистем |
+| [livedocs/](./livedocs/) | **LiveDocs** — единый актуальный каталог знаний (SDD/DDD/C4) |
+| [livedocs/architecture-notes.md](./livedocs/architecture-notes.md) | Датированный changelog архитектуры |
 | [docs/api/](./docs/api/) | Инструкция по KDoc/JSDoc |
-| [docs/architecture-notes-archive.md](./docs/architecture-notes-archive.md) | История фич и баг-фиксов |
 
 ## Стандарты оформления кода
 
@@ -43,7 +43,7 @@ Boot бэкенд.
   ktlint (Kotlin/Java), ESLint (webvue3/karaoke-public), Prettier,
   lychee, проверка per-feature документов. Запускается на push
   в `master` и pull_request в `master`. Per-feature документ:
-  [`docs/features/ci-lint-enforcement.md`](./docs/features/ci-lint-enforcement.md).
+  [`livedocs/features/002-ci-lint-enforcement.md`](./livedocs/features/002-ci-lint-enforcement.md).
 - **Baseline**: текущие нарушения зафиксированы в
   `config/ktlint/baseline-*.xml`, `webvue3/.eslint-baseline.json`,
   `karaoke-public/.eslint-baseline.json`. Темп сокращения: ≥10%/мес.

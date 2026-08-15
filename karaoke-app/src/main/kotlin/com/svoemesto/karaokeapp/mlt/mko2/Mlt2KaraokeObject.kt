@@ -5,7 +5,7 @@ import com.svoemesto.karaokeapp.model.MltNode
 /**
  * Интерфейс для mlt2karaoke object.
  *
- * @see docs/features/mlt-generator.md
+ * @see archive/docs/features/mlt-generator.md
  */
 @Suppress("unused")
 interface Mlt2KaraokeObject {

@@ -12,7 +12,7 @@ package com.svoemesto.karaokeapp.services
  * самому полю state — чтобы любая попытка записи (Фаза 2 или ручная Фаза 1
  * через TelegramUpdatesConsumer) согласованно отражалась в UI.
  *
- * @see docs/features/telegram-auto-publish.md
+ * @see archive/docs/features/telegram-auto-publish.md
  */
 enum class TelegramAutoPublishState(
     val code: String,

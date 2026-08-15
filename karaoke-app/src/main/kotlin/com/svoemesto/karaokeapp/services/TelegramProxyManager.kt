@@ -32,7 +32,7 @@ import org.springframework.stereotype.Component
  * `http://karaoke-telegram-proxy:1082` остаётся прежним; меняется только
  * содержимое прокси (его outbound к Telegram).
  *
- * @see docs/features/telegram-auto-publish.md
+ * @see archive/docs/features/telegram-auto-publish.md
  */
 @Component
 class TelegramProxyManager {
@@ -101,7 +101,7 @@ class TelegramProxyManager {
     /**
      * Генерация xray-config из VLESS-свойств. Структура соответствует
      * xray-core inbound=HTTP (port 1082), outbound=VLESS с заданным transport.
-     * @see docs/features/telegram-auto-publish.md
+     * @see archive/docs/features/telegram-auto-publish.md
      */
     private fun buildXrayConfig(
         address: String,

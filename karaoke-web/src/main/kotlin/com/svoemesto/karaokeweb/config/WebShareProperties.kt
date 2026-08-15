@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component
  * что karaoke-web не должен зависеть от karaoke-app (см. AGENTS.md «KaraokeProperties
  * в karaoke-web не используется»).
  *
- * @see docs/features/guest-share-link.md
+ * @see archive/docs/features/guest-share-link.md
  */
 @Component
 @ConfigurationProperties(prefix = "karaoke.share")
@@ -42,6 +42,6 @@ class WebShareProperties {
 
     /** Интервал heartbeat от плеера гостя в секундах. Должен быть меньше leaseTtlSeconds,
      *  чтобы один пропущенный heartbeat не отзывал lease. Дефолт 25 при leaseTtlSeconds=90
-     *  даёт запас ~65 сек на джиттер/пропуски. См. docs/features/guest-share-link.md. */
+     *  даёт запас ~65 сек на джиттер/пропуски. См. archive/docs/features/guest-share-link.md. */
     var heartbeatIntervalSeconds: Long = 25
 }

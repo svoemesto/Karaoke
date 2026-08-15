@@ -10,7 +10,7 @@ import java.sql.Timestamp
 /**
  * DTO задания на стем-разделение для API/UI.
  *
- * @see docs/features/premium-stems.md
+ * @see archive/docs/features/premium-stems.md
  */
 data class StemJobDto(
     val id: Long = 0,

@@ -11,7 +11,7 @@ import com.svoemesto.karaokeapp.model.TransformProperty
 /**
  * Producer для вспышки при смене строки/куплета. Создаёт MLT-блоки с короткой белой вспышкой (50-100ms).
  *
- * @see docs/features/mlt-generator.md
+ * @see archive/docs/features/mlt-generator.md
  */
 data class MkoFlash(
     val mltProp: MltProp,

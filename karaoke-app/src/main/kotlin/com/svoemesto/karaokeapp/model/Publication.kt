@@ -12,7 +12,7 @@ import java.util.*
 /**
  * DTO для publication: сериализуемое представление для API/UI.
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  */
 data class PublicationDTO(
     val id: Int?,
@@ -61,7 +61,7 @@ data class PublicationDTO(
  * Создаётся при планировании публикации (`Song.idStatus` → 6).
  * Обновляется при факте публикации (см. `telegram-auto-publish.md`).
  *
- * @see docs/features/telegram-auto-publish.md
+ * @see archive/docs/features/telegram-auto-publish.md
  */
 class Publication(
     val database: KaraokeConnection = WORKING_DATABASE,

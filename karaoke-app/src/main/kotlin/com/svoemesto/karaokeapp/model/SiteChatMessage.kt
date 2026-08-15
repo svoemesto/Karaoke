@@ -28,7 +28,7 @@ import java.sql.Timestamp
  * Рассылается по SSE `MESSAGE` для live-обновления в `webvue3` (чат-виджет).
  * Непрочитанные счётчики — в Vuex-модуле `chat` (см. `App.vue`).
  *
- * @see docs/features/sse-notifications.md
+ * @see archive/docs/features/sse-notifications.md
  */
 class SiteChatMessage(
     override val database: KaraokeConnection = WORKING_DATABASE,
@@ -318,7 +318,7 @@ class SiteChatMessage(
 /**
  * DTO для chat thread: сериализуемое представление для API/UI.
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  */
 data class ChatThreadDto(
     val siteUserId: Long,

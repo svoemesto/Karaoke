@@ -6,7 +6,7 @@ import java.io.Serializable
 /**
  * DTO для search result: сериализуемое представление для API/UI.
  *
- * @see docs/features/llm-lyrics-search.md
+ * @see archive/docs/features/llm-lyrics-search.md
  */
 class SearchResultDTO(
     val id: Long,

@@ -10,7 +10,7 @@ import com.svoemesto.karaokeapp.model.ProducerType
 /**
  * Трек для отображения всех линий аккордной картинки. Создаёт MLT-`<tractor>` с несколькими MkoChordPictureLine.
  *
- * @see docs/features/mlt-generator.md
+ * @see archive/docs/features/mlt-generator.md
  */
 data class MkoChordPictureLineTrack(
     val mltProp: MltProp,

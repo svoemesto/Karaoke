@@ -35,7 +35,7 @@ import java.util.concurrent.atomic.AtomicLong
  * **Не thread-safe ли?** ConcurrentHashMap.compute сериализует доступ к ключу атомарно —
  * параллельные запросы с одного IP не потеряют инкремент.
  *
- * @see docs/features/site-traffic-resilience.md
+ * @see archive/archive/docs/features/site-traffic-resilience.md
  * @see KaraokeProperties
  */
 @Component

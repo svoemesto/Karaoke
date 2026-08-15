@@ -25,7 +25,7 @@ import java.io.Serializable
  *
  * Синхронизируется LOCAL↔SERVER через `GenericKaraokeDbTableSyncTarget<Album>` (`key = "albums"`).
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  * @see specs/011-album-song-rename/data-model.md
  */
 @JsonIgnoreProperties(value = ["database", "sqlToInsert"])
@@ -284,7 +284,7 @@ class Album(
          * @param storageApiClient клиент MinIO API (lazy).
          * @return `Map<id, Album>` для O(1) lookup по id; если альбома с таким id нет —
          *         отсутствует в Map. Порядок НЕ сохраняется.
-         * @see docs/features/zakroma-stream-progress.md
+         * @see archive/docs/features/zakroma-stream-progress.md
          */
         fun getAlbumsByIds(
             ids: List<Long>,

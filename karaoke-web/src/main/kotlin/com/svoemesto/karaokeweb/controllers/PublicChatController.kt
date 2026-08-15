@@ -27,7 +27,7 @@ import org.springframework.web.bind.annotation.*
 /**
  * Контроллер (HTTP/WebSocket endpoints) для public chat .
  *
- * @see docs/features/site-traffic-resilience.md (FR-008 — polling cache для `/unreadcount`)
+ * @see archive/archive/docs/features/site-traffic-resilience.md (FR-008 — polling cache для `/unreadcount`)
  */
 @RestController
 @RequestMapping("/api/public/account/chat")

@@ -7,7 +7,7 @@ import java.io.PrintStream
 /**
  * Класс Dual Stream.
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  */
 class DualStream(
     @Suppress("unused") private val out1: PrintStream,

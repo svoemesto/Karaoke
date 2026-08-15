@@ -68,7 +68,7 @@ internal fun toMskLocalDateTime(epochMs: Long): LocalDateTime =
  * одинаково пригодное и для отображения в TZ устройства (`formatDate`),
  * и для сравнения с `Date.now()` (`isExpired`).
  *
- * @see docs/features/guest-share-link.md
+ * @see archive/docs/features/guest-share-link.md
  */
 @Service
 class SongShareLinkService(

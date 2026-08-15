@@ -12,7 +12,7 @@ import java.sql.Timestamp
 /**
  * DTO для song assignment: сериализуемое представление для API/UI.
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  */
 data class SongAssignmentDto(
     val id: Long = 0,

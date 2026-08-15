@@ -21,7 +21,7 @@ elementId: Int - id элемента
 /**
  * Класс Mlt Initial Structure.
  *
- * @see docs/features/mlt-generator.md
+ * @see archive/docs/features/mlt-generator.md
  */
 data class MltInitialStructure(
     var mltProp: MltProp,

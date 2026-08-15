@@ -9,7 +9,7 @@ import java.sql.Statement
 /**
  * DTO для monetization summary: сериализуемое представление для API/UI.
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  */
 data class MonetizationSummaryDto(
     val revenueTotal: Double,
@@ -30,7 +30,7 @@ data class MonetizationSummaryDto(
 /**
  * DTO для top subscribed song: сериализуемое представление для API/UI.
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  */
 data class TopSubscribedSongDto(
     val songId: Long,
@@ -47,7 +47,7 @@ data class TopSubscribedSongDto(
 /**
  * Singleton-объект Monetization Stats.
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  */
 object MonetizationStats {
     private fun scalarInt(

@@ -19,7 +19,7 @@ import org.springframework.stereotype.Component
  * Endpoint `POST /api/song/publishToTelegramNow` (кнопка «Опубликовать сейчас»)
  * работает независимо от `telegramAutoPublishEnabled` — он всегда доступен.
  *
- * @see docs/features/telegram-auto-publish.md
+ * @see archive/docs/features/telegram-auto-publish.md
  */
 @Component
 class TelegramAutoPublishSchedulerStarter {

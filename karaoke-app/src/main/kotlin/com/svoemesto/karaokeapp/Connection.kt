@@ -35,13 +35,13 @@ import com.svoemesto.karaokeapp.services.DB_SERVER_POSTGRES_USER
  *
  * @see KaraokeConnection базовый интерфейс
  * @see WORKING_DATABASE глобальный singleton (обычно = `Connection.local()`)
- * @see docs/features/dual-db-sync.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  */
 
 /**
  * Класс Connection.
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  */
 class Connection(
     override val url: String,

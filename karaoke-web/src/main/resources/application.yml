@@ -71,7 +71,7 @@ storage:
 # specs/122-premium-auto-publish: VK OAuth (Authorization Code Flow) — endpoints
 # /api/public/utils/vkOAuthCodeUrl и /api/public/utils/vkOAuthCallback.
 # Используются для авторизации Standalone-приложения VK (видео.save, photos.* требуют
-# user-token, см. docs/features/vk-news-auto-publish.md, раздел "User-token через Implicit Flow").
+# user-token, см. archive/docs/features/vk-news-auto-publish.md, раздел "User-token через Implicit Flow").
 #
 # ВАЖНО:
 # - vk.app-id, vk.redirect-uri, vk.client-secret задаются через ENV-переменные или прямо в

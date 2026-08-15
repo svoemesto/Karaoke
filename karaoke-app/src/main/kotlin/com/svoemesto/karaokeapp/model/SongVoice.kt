@@ -7,7 +7,7 @@ import java.io.Serializable
 /**
  * Класс Setting Voice.
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  */
 data class SongVoice(
     val rootId: Long,

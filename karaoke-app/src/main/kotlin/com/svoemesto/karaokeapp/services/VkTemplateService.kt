@@ -36,7 +36,7 @@ import com.svoemesto.karaokeapp.model.Song
  *   оно прикрепляется к посту целиком). Сам маркер из итогового текста удаляется.
  *   Если `{demoVideo}` отсутствует — бот публикует только текст без видео.
  *
- * @see docs/features/vk-news-auto-publish.md
+ * @see archive/docs/features/vk-news-auto-publish.md
  */
 object VkTemplateService {
     /** Лимит длины текста поста ВК (FR-005). */
@@ -190,7 +190,7 @@ object VkTemplateService {
 /**
  * Описание одного плейсхолдера (для UI редактора и endpoint `/api/vk/templates`).
  *
- * @see docs/features/vk-news-auto-publish.md
+ * @see archive/docs/features/vk-news-auto-publish.md
  */
 data class PlaceholderInfo(
     val name: String,
@@ -204,7 +204,7 @@ data class PlaceholderInfo(
  * Результат рендеринга шаблона [VkTemplateService.renderWithFlags]:
  * отрендеренный текст поста + флаг прикрепления демо-MP4 (маркер `{demoVideo}`).
  *
- * @see docs/features/vk-news-auto-publish.md
+ * @see archive/docs/features/vk-news-auto-publish.md
  */
 data class RenderResult(
     val message: String,

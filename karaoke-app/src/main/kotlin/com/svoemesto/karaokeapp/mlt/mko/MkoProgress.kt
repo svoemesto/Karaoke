@@ -14,7 +14,7 @@ import com.svoemesto.karaokeapp.xmldata
 /**
  * Producer для прогресс-бара внизу видео. Создаёт MLT-блоки с динамической шириной progress-bar.
  *
- * @see docs/features/mlt-generator.md
+ * @see archive/docs/features/mlt-generator.md
  */
 data class MkoProgress(
     val mltProp: MltProp,

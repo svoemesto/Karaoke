@@ -9,7 +9,7 @@ import com.svoemesto.karaokeapp.model.ProducerType
 /**
  * Класс Mko Scrollers.
  *
- * @see docs/features/mlt-generator.md
+ * @see archive/docs/features/mlt-generator.md
  */
 data class MkoScrollers(
     val mltProp: MltProp,

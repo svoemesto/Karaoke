@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.ResponseBody
  * Чтение/запись — прямой JDBC к `WORKING_DATABASE` (на проде это прод-БД, на admin-машине —
  * локальная). Никаких внешних зависимостей от Spring-бинов karaoke-app.
  *
- * @see docs/features/news-publish-backfill.md
+ * @see archive/docs/features/news-publish-backfill.md
  */
 @Controller
 @RequestMapping("/api/properties")

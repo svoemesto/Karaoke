@@ -43,7 +43,7 @@ import java.util.TimeZone
  * в Spring `application.properties`. Ошибки логируются и не прерывают следующий тик
  * (тот же подход, что `SongReleaseAnnouncementScheduler.checkOnAir`).
  *
- * @see docs/features/telegram-auto-publish.md
+ * @see archive/docs/features/telegram-auto-publish.md
  */
 @Component
 class TelegramAutoPublishScheduler {

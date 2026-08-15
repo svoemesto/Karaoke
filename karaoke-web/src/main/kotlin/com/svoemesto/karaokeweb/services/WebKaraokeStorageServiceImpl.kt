@@ -29,7 +29,7 @@ import java.io.InputStream
 /**
  * Класс Web Karaoke Storage Service Impl.
  *
- * @see docs/features/premium-stems.md
+ * @see archive/docs/features/premium-stems.md
  */
 @Service
 class WebKaraokeStorageServiceImpl : KaraokeStorageService {

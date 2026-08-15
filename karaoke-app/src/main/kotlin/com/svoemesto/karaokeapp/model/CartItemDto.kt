@@ -9,7 +9,7 @@ import java.io.Serializable
  * Содержит только сериализуемые поля (id, idSiteUser, idSong,
  * idPriceTariff, idPromoRule, created).
  *
- * @see docs/features/telegram-auto-publish.md
+ * @see archive/docs/features/telegram-auto-publish.md
  */
 data class CartItemDto(
     val id: Long = 0,

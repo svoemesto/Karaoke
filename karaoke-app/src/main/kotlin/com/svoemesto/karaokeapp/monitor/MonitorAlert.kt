@@ -17,7 +17,7 @@ package com.svoemesto.karaokeapp.monitor
 /**
  * Класс Monitor Alert.
  *
- * @see docs/features/monitoring.md
+ * @see archive/docs/features/monitoring.md
  */
 data class MonitorAlert(
     val key: String,

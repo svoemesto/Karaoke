@@ -10,7 +10,7 @@ import com.svoemesto.karaokeapp.model.*
 /**
  * Элемент аккордной картинки (диаграмма грифа + название аккорда). Один аккорд в текущий момент времени.
  *
- * @see docs/features/mlt-generator.md
+ * @see archive/docs/features/mlt-generator.md
  */
 data class MkoChordPictureElement(
     val mltProp: MltProp,

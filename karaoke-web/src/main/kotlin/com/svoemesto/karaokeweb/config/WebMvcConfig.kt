@@ -14,7 +14,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer
  *  - Два экземпляра RateLimitInterceptor для эндпоинтов /api/public/song-picture/ и
  *    /api/public/song-vk-image/ (FR-010, SC-008). Лимиты берутся из KaraokeProperties.
  *
- * @see docs/features/site-traffic-resilience.md (FR-010)
+ * @see archive/archive/docs/features/site-traffic-resilience.md (FR-010)
  */
 @Configuration
 class WebMvcConfig(

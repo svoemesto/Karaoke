@@ -12,8 +12,8 @@ import java.io.Serializable
  * Используется в `MusicChord.baseNote` и в `NoteOctaveFret`
  * (data class) — нота с октавой и позицией на грифе.
  *
- * @see docs/features/mlt-generator.md
- * @see docs/features/llm-lyrics-search.md
+ * @see archive/docs/features/mlt-generator.md
+ * @see archive/docs/features/llm-lyrics-search.md
  */
 enum class MusicNote(
     val text: String,
@@ -111,7 +111,7 @@ enum class MusicNote(
 /**
  * Класс Note Octave Fret.
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  */
 data class NoteOctaveFret(
     val musicNote: MusicNote,

@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.ResponseBody
  * (`tbl_news.title`/`body`, FR-001..FR-016, specs/128-news-publish-templates).
  *
  * Зеркалирует паттерн `/api/vk/templates/...` и `/api/telegram/templates/...`
- * (`ApiController`), но с тремя отличиями (см. [docs/features/news-templates.md]
+ * (`ApiController`), но с тремя отличиями (см. [archive/docs/features/news-templates.md]
  * и `research.md` R1-R3):
  * - Хранилище — `tbl_public_settings` (Postgres), не `KaraokeProperties` — потому что
  *   `NewsTemplateService.template` вызывается на проде в `karaoke-web`, где файла
@@ -38,7 +38,7 @@ import org.springframework.web.bind.annotation.ResponseBody
  * Prod-рендеринг использует прямой JDBC к `tbl_public_settings` из
  * `NewsTemplateService.template` — НЕ через HTTP-endpoint.
  *
- * @see docs/features/news-templates.md
+ * @see archive/docs/features/news-templates.md
  */
 @Controller
 @RequestMapping("/api/news/templates")

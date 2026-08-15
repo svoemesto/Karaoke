@@ -7,14 +7,14 @@ related:
   - ../architecture/webvue3-patterns.md
   - ../features/101-audio-transpose-player.md
   - ../../specs/190-playlist-play-button-and-stems-cancel/spec.md
-  - ../../docs/features/playlist-play-button-and-stems-cancel.md
+  - ../../archive/docs/features/playlist-play-button-and-stems-cancel.md
   - ../../archive/docs/features/playlist-play-button-and-stems-cancel.md
 ---
 
 # 190 — Плейлисты: запуск с любой песни, превью альбома/автора и фикс задвоения вейвформ (LiveDoc)
 
 > Drill-down — [specs/190-playlist-play-button-and-stems-cancel/spec.md](../../specs/190-playlist-play-button-and-stems-cancel/spec.md)
-> и [docs/features/playlist-play-button-and-stems-cancel.md](../../docs/features/playlist-play-button-and-stems-cancel.md).
+> и [docs/features/playlist-play-button-and-stems-cancel.md](../../archive/docs/features/playlist-play-button-and-stems-cancel.md).
 
 ## Что делает
 

@@ -8,7 +8,7 @@ import com.svoemesto.karaokeapp.model.*
 /**
  * Producer для разделителя между строками текста (горизонтальная линия). Создаёт MLT-блоки для визуального отделения куплетов/припевов.
  *
- * @see docs/features/mlt-generator.md
+ * @see archive/docs/features/mlt-generator.md
  */
 data class MkoSepar(
     val mltProp: MltProp,

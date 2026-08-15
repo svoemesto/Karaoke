@@ -15,7 +15,7 @@ import com.svoemesto.karaokeapp.xmldata
 /**
  * Producer для водяного знака («ДЕМО», «ПОДПИСКА», и т.п.) в углу видео. Создаёт полупрозрачный текстовый overlay с настраиваемой позицией.
  *
- * @see docs/features/mlt-generator.md
+ * @see archive/docs/features/mlt-generator.md
  */
 data class MkoWatermark(
     val mltProp: MltProp,

@@ -12,7 +12,7 @@ import com.svoemesto.karaokeapp.model.ProducerType
 /**
  * Producer для одной строки текста песни. Содержит слоги с таймингами. Создаёт MLT-блоки для отображения текста с karaoke-подсветкой.
  *
- * @see docs/features/mlt-generator.md
+ * @see archive/docs/features/mlt-generator.md
  */
 data class MkoLine(
     val mltProp: MltProp,

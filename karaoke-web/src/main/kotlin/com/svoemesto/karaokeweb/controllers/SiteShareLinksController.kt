@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.RestController
  *   - `local` → [WORKING_DATABASE] (локальная БД разработчика)
  *   - `remote` → [Connection.remote] (прод-БД через siteusers-роуты)
  *
- * @see docs/features/guest-share-link.md
+ * @see archive/docs/features/guest-share-link.md
  */
 @RestController
 @RequestMapping("/api/siteusers/share")

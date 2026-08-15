@@ -26,8 +26,8 @@ import org.springframework.web.bind.annotation.RestController
 /**
  * Контроллер (HTTP/WebSocket endpoints) для public news .
  *
- * @see docs/features/site-traffic-resilience.md (FR-008 — server-side polling cache для `/since`)
- * @see docs/features/homepage-latest-news.md (контекст бейджа/тоста)
+ * @see archive/archive/docs/features/site-traffic-resilience.md (FR-008 — server-side polling cache для `/since`)
+ * @see archive/docs/features/homepage-latest-news.md (контекст бейджа/тоста)
  */
 @RestController
 @RequestMapping("/api/public/news")

@@ -13,7 +13,7 @@ import java.util.TimeZone
  * системных часов.
  *
  * Контракт цветов и приоритетов — `specs/155-song-state-colors/spec.md`,
- * `docs/features/song-state-colors.md`.
+ * `archive/docs/features/song-state-colors.md`.
  */
 class SongStateTest {
     private fun now(
@@ -196,7 +196,7 @@ class SongStateTest {
 
     @Test
     fun `colorByIdStatus возвращает палитру по стадиям жизненного цикла для IN_WORK`() {
-        // FR-006 spec.md + docs/features/song-state-colors.md: enum SongState.IN_WORK.color == "",
+        // FR-006 spec.md + archive/docs/features/song-state-colors.md: enum SongState.IN_WORK.color == "",
         // но UI получает конкретный цвет через [Song.colorByIdStatus], который применяется в
         // `loadListFromDb` для песен с `idStatus < 6L`. Это было в старой логике — сохраняем,
         // чтобы строки различались по стадии (NONE / текст найден / … / рендер готов).

@@ -19,7 +19,7 @@ import java.sql.DriverManager
  * соединение отсутствует/закрыто/невалидно — пересоздаётся прозрачно для
  * вызывающего кода (сигнатура [getConnection] не менялась).
  *
- * @see docs/features/async-process-queue.md
+ * @see archive/archive/docs/features/async-process-queue.md
  */
 abstract class KaraokeConnection(
     open val url: String,

@@ -16,7 +16,7 @@ import java.time.Instant
 /**
  * DTO для stat by song: сериализуемое представление для API/UI.
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  */
 data class StatBySongDto(
     val songId: Int,
@@ -52,7 +52,7 @@ data class StatBySongDto(
 /**
  * DTO для top listened song: сериализуемое представление для API/UI.
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  */
 data class TopListenedSongDto(
     val songId: Int,
@@ -79,7 +79,7 @@ data class TopListenedSongDto(
 /**
  * DTO для web event: сериализуемое представление для API/UI.
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  */
 data class WebEventDto(
     val id: Long = 0,
@@ -110,7 +110,7 @@ data class WebEventDto(
 /**
  * DTO для detail count: сериализуемое представление для API/UI.
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  */
 data class DetailCountDto(
     val eventType: String,
@@ -123,7 +123,7 @@ data class DetailCountDto(
 /**
  * DTO для stats summary: сериализуемое представление для API/UI.
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  */
 data class StatsSummaryDto(
     val totalEvents: Int,
@@ -145,7 +145,7 @@ data class StatsSummaryDto(
 /**
  * DTO для time point: сериализуемое представление для API/UI.
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  */
 data class TimePointDto(
     val date: String,
@@ -158,7 +158,7 @@ data class TimePointDto(
 /**
  * DTO для named count: сериализуемое представление для API/UI.
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  */
 data class NamedCountDto(
     val name: String,
@@ -171,7 +171,7 @@ data class NamedCountDto(
 /**
  * DTO для top user: сериализуемое представление для API/UI.
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  */
 data class TopUserDto(
     val siteUserId: Long,

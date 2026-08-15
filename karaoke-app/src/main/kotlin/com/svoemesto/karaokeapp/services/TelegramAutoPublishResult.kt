@@ -12,7 +12,7 @@ package com.svoemesto.karaokeapp.services
  * этот класс — лишь синхронный ответ вызывающему коду (scheduler'у или endpoint'у
  * «Опубликовать сейчас»).
  *
- * @see docs/features/telegram-auto-publish.md
+ * @see archive/docs/features/telegram-auto-publish.md
  */
 data class TelegramAutoPublishResult(
     val state: TelegramAutoPublishState,

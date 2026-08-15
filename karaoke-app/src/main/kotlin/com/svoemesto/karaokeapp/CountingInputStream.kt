@@ -6,7 +6,7 @@ import java.io.InputStream
 /**
  * Класс Counting Input Stream.
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  */
 class CountingInputStream(
     input: InputStream,

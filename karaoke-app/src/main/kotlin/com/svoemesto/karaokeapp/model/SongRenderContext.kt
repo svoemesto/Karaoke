@@ -11,7 +11,7 @@ import kotlin.math.absoluteValue
  * реальной сущности песни). Переименован из `Song` в рамках specs/011-album-song-rename, чтобы
  * освободить это имя для БД-сущности.
  *
- * @see docs/features/mlt-generator.md
+ * @see archive/docs/features/mlt-generator.md
  */
 data class SongRenderContext(
     val song: Song,
@@ -710,7 +710,7 @@ data class SongRenderContext(
 /**
  * Класс Song Voice.
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  */
 data class SongRenderVoice(
     val srtFileBody: String = "",
@@ -814,7 +814,7 @@ data class SongRenderVoice(
 /**
  * Перечисление возможных значений для song voice line type.
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  */
 enum class SongRenderVoiceLineType : Serializable {
     EMPTY,
@@ -826,7 +826,7 @@ enum class SongRenderVoiceLineType : Serializable {
 /**
  * Класс Song Voice Line.
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  */
 data class SongRenderVoiceLine(
     var type: SongRenderVoiceLineType = SongRenderVoiceLineType.TEXT,
@@ -1107,7 +1107,7 @@ data class SongRenderVoiceLine(
 /**
  * Класс Song Voice Line Symbol.
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  */
 data class SongRenderVoiceLineSymbol(
     var start: String,
@@ -1144,7 +1144,7 @@ data class SongRenderVoiceLineSymbol(
 /**
  * Класс Subtitle.
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  */
 data class Subtitle(
     var startTimecode: String = "",
@@ -1180,7 +1180,7 @@ data class Subtitle(
 /**
  * Класс Chord.
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  */
 data class Chord(
     val timecode: String = "",
@@ -1191,7 +1191,7 @@ data class Chord(
 /**
  * Класс Wave Surfer Marker.
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  */
 @Suppress("unused")
 data class WaveSurferMarker(

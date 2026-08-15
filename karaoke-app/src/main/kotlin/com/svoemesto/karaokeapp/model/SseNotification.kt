@@ -6,7 +6,7 @@ import com.svoemesto.karaokeapp.monitor.MonitorAlertDto
 /**
  * Класс Sse Notification.
  *
- * @see docs/features/sse-notifications.md
+ * @see archive/docs/features/sse-notifications.md
  */
 data class SseNotification(
     val type: SseNotificationType,

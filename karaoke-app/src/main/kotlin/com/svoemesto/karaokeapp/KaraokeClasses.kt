@@ -8,7 +8,7 @@ import java.io.Serializable
 /**
  * Класс Karaoke Voice.
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  */
 data class KaraokeVoice(
     val groups: MutableList<KaraokeVoiceGroup>,
@@ -25,7 +25,7 @@ data class KaraokeVoice(
 /**
  * Класс Karaoke Voice Group.
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  */
 data class KaraokeVoiceGroup(
     var mltText: MltText,
@@ -34,7 +34,7 @@ data class KaraokeVoiceGroup(
 /**
  * Класс Karaoke Voice Fill.
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  */
 data class KaraokeVoiceFill(
     val evenColor: Color,

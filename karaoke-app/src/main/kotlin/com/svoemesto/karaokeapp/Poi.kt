@@ -36,7 +36,7 @@ fun mainPoi() {
 /**
  * Класс Ods.
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  */
 class Ods {
     companion object {

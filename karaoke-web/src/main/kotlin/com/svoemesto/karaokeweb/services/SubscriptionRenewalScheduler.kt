@@ -34,7 +34,7 @@ import java.text.SimpleDateFormat
 /**
  * Класс Subscription Renewal Scheduler.
  *
- * @see docs/features/async-process-queue.md
+ * @see archive/archive/docs/features/async-process-queue.md
  */
 @Service
 class SubscriptionRenewalScheduler(

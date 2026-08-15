@@ -18,7 +18,7 @@ import java.time.Instant
  * `tbl_albums_author_year_name_key` защищает от дублей при гонках/повторных запусках).
  *
  * @see specs/011-album-song-rename/data-model.md
- * @see docs/features/dual-db-sync.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  */
 object AlbumBackfill {
     data class SongAlbumGroup(

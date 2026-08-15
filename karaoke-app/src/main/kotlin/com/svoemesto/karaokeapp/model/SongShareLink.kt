@@ -12,7 +12,7 @@ import java.sql.Timestamp
 /**
  * Временная ссылка на песню, синхронизируемая между LOCAL и SERVER.
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  */
 class SongShareLink(
     override val database: KaraokeConnection = WORKING_DATABASE,

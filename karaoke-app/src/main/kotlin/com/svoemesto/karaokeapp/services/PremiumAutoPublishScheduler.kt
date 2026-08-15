@@ -57,8 +57,8 @@ import java.sql.SQLException
  *   `premiumAutoPublishState` (string: "RUNNING"/"COMPLETE"/"FAILED"/""),
  *   `premiumAutoPublishLastError` (string).
  *
- * @see docs/features/telegram-auto-publish.md
- * @see docs/features/vk-news-auto-publish.md
+ * @see archive/docs/features/telegram-auto-publish.md
+ * @see archive/docs/features/vk-news-auto-publish.md
  */
 @Component
 class PremiumAutoPublishScheduler {

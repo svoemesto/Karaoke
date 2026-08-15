@@ -8,7 +8,7 @@ import java.io.Serializable
  * Используется для отображения автор/год/альбом/название при наведении
  * на ячейки `root` и `A-root` в таблице песен `webvue3`.
  *
- * @see docs/features/songs-table.md
+ * @see archive/docs/features/songs-table.md
  * @see specs/023-songs-audio-root-column/contracts/song-shortinfo.md
  */
 data class SongShortInfoDto(

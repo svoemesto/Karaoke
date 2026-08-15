@@ -33,7 +33,7 @@ import java.sql.Timestamp
  * `SubscriptionRenewalScheduler` раз в сутки проверяет истёкшие подписки
  * и отправляет уведомления.
  *
- * @see docs/features/telegram-auto-publish.md (доступ по подписке)
+ * @see archive/docs/features/telegram-auto-publish.md (доступ по подписке)
  */
 @JsonIgnoreProperties(value = ["database", "sqlToInsert"])
 class Subscription(

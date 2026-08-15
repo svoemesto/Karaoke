@@ -34,7 +34,7 @@ import java.sql.Timestamp
  *
  * Поля аналогичны `SongAssignment` плюс `payload` (JSON с diff'ом).
  *
- * @see docs/features/async-process-queue.md
+ * @see archive/archive/docs/features/async-process-queue.md
  */
 class SongAssignmentDraft(
     override val database: KaraokeConnection = WORKING_DATABASE,

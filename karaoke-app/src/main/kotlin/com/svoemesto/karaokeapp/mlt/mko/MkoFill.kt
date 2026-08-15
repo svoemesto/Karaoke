@@ -8,7 +8,7 @@ import com.svoemesto.karaokeapp.model.*
 /**
  * Класс Mko Fill.
  *
- * @see docs/features/mlt-generator.md
+ * @see archive/docs/features/mlt-generator.md
  */
 data class MkoFill(
     val mltProp: MltProp,

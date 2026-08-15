@@ -21,7 +21,7 @@ import com.svoemesto.karaokeapp.model.PropertiesMltNodeBuilder
  * @property voiceId ID голоса (0 для основного).
  * @property childId ID дочернего элемента (для составных Producer'ов).
  * @property elementId ID элемента (для диагностики и логирования).
- * @see docs/features/mlt-generator.md
+ * @see archive/docs/features/mlt-generator.md
  */
 data class MltGenerator(
     var mltProp: MltProp,

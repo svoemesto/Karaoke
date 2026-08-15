@@ -15,7 +15,7 @@ import java.io.Serializable
  * заголовок раздела ("Студийные альбомы"), `filterLabel` — подпись кнопки фильтра (короче,
  * без слова "альбомы"/"альбом", счётчик добавляется отдельно фронтом).
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  * @see specs/012-entity-description-fields/spec.md
  */
 @Suppress("unused")

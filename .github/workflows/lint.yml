@@ -6,7 +6,7 @@
 #
 # См. также:
 #   - CONTRIBUTING.md (раздел «Поток разработки»)
-#   - docs/features/ci-lint-enforcement.md (per-feature документ, FR-009)
+#   - archive/docs/features/ci-lint-enforcement.md (per-feature документ, FR-009)
 #   - .pre-commit-config.yaml (локальные хуки, идентичный набор правил)
 #
 # Кэширование:
@@ -133,13 +133,13 @@ jobs:
             --exclude-loopback
             --exclude-mail
             --accept 200,203,206,301,302,303,304,307,308,403,429
-            docs/features/
+            archive/docs/features/
             CONTRIBUTING.md
 
       - name: Check per-feature doc structure
         # 6 обязательных секций + slug == имя файла + Status ∈ {active, deprecated, experimental}.
         # Подробности: contracts/per-feature-doc.md, tools/check-feature-doc.sh.
-        run: bash tools/check-feature-doc.sh docs/features/*.md
+        run: bash tools/check-feature-doc.sh archive/docs/features/*.md
 
   # === Baseline stats (informational) ===
   # Не валит CI. Публикует текущие счётчики baseline как summary —

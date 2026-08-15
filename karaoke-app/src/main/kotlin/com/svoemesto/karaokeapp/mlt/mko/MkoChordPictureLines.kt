@@ -9,7 +9,7 @@ import com.svoemesto.karaokeapp.model.ProducerType
 /**
  * Набор строк аккордной картинки (вертикальные позиции грифа). Создаёт MLT-блоки с линиями-разделителями.
  *
- * @see docs/features/mlt-generator.md
+ * @see archive/docs/features/mlt-generator.md
  */
 data class MkoChordPictureLines(
     val mltProp: MltProp,

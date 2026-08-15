@@ -27,7 +27,7 @@ import java.sql.Timestamp
  *
  * Используется в `CartItem` и `Subscription`.
  *
- * @see docs/features/telegram-auto-publish.md (оплата через Boosty/Sponsr)
+ * @see archive/docs/features/telegram-auto-publish.md (оплата через Boosty/Sponsr)
  */
 class PriceTariff(
     override val database: KaraokeConnection = WORKING_DATABASE,

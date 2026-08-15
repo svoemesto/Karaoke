@@ -7,7 +7,7 @@ import java.sql.Timestamp
 /**
  * DTO для search async: сериализуемое представление для API/UI.
  *
- * @see docs/features/llm-lyrics-search.md
+ * @see archive/docs/features/llm-lyrics-search.md
  */
 class SearchAsyncDTO(
     val id: Long,

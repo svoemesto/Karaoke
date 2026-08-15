@@ -19,9 +19,9 @@ private const val EXTRACT_LYRICS_SYSTEM_PROMPT =
 /**
  * Извлекает текст песни из сырого текста веб-страницы через LLM (LM Studio, см.
  * [LmStudioService]). Раньше работал через LangChain4j + Ollama - Ollama-путь считается
- * устаревшим, см. docs/features/llm-lyrics-search.md.
+ * устаревшим, см. archive/docs/features/llm-lyrics-search.md.
  *
- * @see docs/features/llm-lyrics-search.md
+ * @see archive/docs/features/llm-lyrics-search.md
  */
 @Component
 class ScraperAgent {

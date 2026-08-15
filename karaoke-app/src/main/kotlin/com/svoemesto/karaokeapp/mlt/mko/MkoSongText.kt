@@ -12,7 +12,7 @@ import com.svoemesto.karaokeapp.xmldata
 /**
  * Producer для основного текста песни (все строки, синхронизированные по времени). Главный визуальный слой — отображает karaoke-текст с подсветкой текущего слога.
  *
- * @see docs/features/mlt-generator.md
+ * @see archive/docs/features/mlt-generator.md
  */
 data class MkoSongText(
     val mltProp: MltProp,

@@ -19,7 +19,7 @@ import java.util.concurrent.TimeUnit
 /**
  * HTTP-клиент для удалённого MinIO через karaoke-web (proxy). Используется в karaoke-web, где нет прямого доступа к MinIO. Поддерживает upload/download с прогрессом через `CountingInputStream`.
  *
- * @see docs/features/mlt-generator.md
+ * @see archive/docs/features/mlt-generator.md
  */
 interface StorageApiClient {
     fun uploadFile(
@@ -127,7 +127,7 @@ interface StorageApiClient {
 /**
  * Класс Storage Api Client Impl.
  *
- * @see docs/features/async-process-queue.md
+ * @see archive/archive/docs/features/async-process-queue.md
  */
 @Service
 class StorageApiClientImpl(

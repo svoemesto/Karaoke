@@ -19,7 +19,7 @@ import com.fasterxml.jackson.annotation.JsonInclude
  * Поля nullable, чтобы фронт мог слать разные срезы (`start` без
  * `receivedCount`/`durationMs`, `done` — со всем).
  *
- * @see docs/features/zakroma-stream-progress.md
+ * @see archive/docs/features/zakroma-stream-progress.md
  * @see specs/181-zakroma-author-load-progress/spec.md
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)

@@ -31,7 +31,7 @@ import org.springframework.web.bind.annotation.RestController
  * Ошибки share-флоу приходят с JSON-ключом `errorCode` (см. ShareErrorCode), для остальных
  * контроллеров используется `error`. Фронт ShareView различает их по `errorCode`.
  *
- * @see docs/features/guest-share-link.md
+ * @see archive/docs/features/guest-share-link.md
  */
 @RestController
 @RequestMapping("/api/public/share")

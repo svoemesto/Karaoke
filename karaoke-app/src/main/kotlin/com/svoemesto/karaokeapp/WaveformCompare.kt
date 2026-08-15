@@ -25,7 +25,7 @@ import kotlin.math.sqrt
 /**
  * DTO для waveform compare result: сериализуемое представление для API/UI.
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  */
 data class WaveformCompareResultDto(
     val idAnother: Long,
@@ -39,7 +39,7 @@ data class WaveformCompareResultDto(
 /**
  * Singleton-объект Waveform Compare.
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  */
 object WaveformCompare {
     private const val SAMPLE_RATE = 8000 // Гц, моно — декодируем сюда через ffmpeg

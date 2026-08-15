@@ -31,7 +31,7 @@ import java.util.concurrent.ConcurrentHashMap
  * (FR-023, через [VkTemplateService]) → `video.save` + `wall.post` (FR-019, через
  * [VkApiClient]) → запись `idVk` (FR-004). При сбое — 3 ретрая с backoff в [VkApiClient].
  *
- * @see docs/features/vk-news-auto-publish.md
+ * @see archive/docs/features/vk-news-auto-publish.md
  */
 object VkAutoPublishService {
     private val client = VkApiClient()

@@ -9,7 +9,7 @@ import com.svoemesto.karaokeapp.model.ProducerType
 /**
  * Один голос песни (vocal/accompaniment/mix). Содержит настройки рендера для конкретного голоса (цвет, шрифт, отступ).
  *
- * @see docs/features/mlt-generator.md
+ * @see archive/docs/features/mlt-generator.md
  */
 data class MkoVoice(
     val mltProp: MltProp,

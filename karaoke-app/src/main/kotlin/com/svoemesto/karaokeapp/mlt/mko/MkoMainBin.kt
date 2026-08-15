@@ -8,7 +8,7 @@ import com.svoemesto.karaokeapp.model.*
 /**
  * Класс Mko Main Bin.
  *
- * @see docs/features/mlt-generator.md
+ * @see archive/docs/features/mlt-generator.md
  */
 data class MkoMainBin(
     val mltProp: MltProp,

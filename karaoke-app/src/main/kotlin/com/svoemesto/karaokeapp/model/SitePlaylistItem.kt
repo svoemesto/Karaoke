@@ -23,7 +23,7 @@ import java.sql.Timestamp
  * - `order` — позиция в плейлисте (0-based).
  * - `added` — дата добавления.
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  */
 class SitePlaylistItem(
     override val database: KaraokeConnection = WORKING_DATABASE,
@@ -57,7 +57,7 @@ class SitePlaylistItem(
     // recordhash-diff синхронизации). Заполняются контроллером PublicPlaylistController.playlistDetail()
     // по предсказуемым storage-ключам MinIO (Pass 50, прямой nginx-прокси). Нужны фронту для превью
     // картинки альбома/автора в строке плейлиста (FR-005/FR-006, см. spec.md и
-    // docs/features/playlist-play-button-and-stems-cancel.md).
+    // archive/docs/features/playlist-play-button-and-stems-cancel.md).
     var albumPictureUrl: String = ""
     var authorPictureUrl: String = ""
 

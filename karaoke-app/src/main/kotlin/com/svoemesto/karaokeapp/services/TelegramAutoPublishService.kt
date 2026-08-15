@@ -32,7 +32,7 @@ import java.util.TimeZone
  * `telegramAutoPublishLastError`), не отдельной колонкой — паттерн
  * specs/101-song-news-flag.
  *
- * @see docs/features/telegram-auto-publish.md
+ * @see archive/docs/features/telegram-auto-publish.md
  */
 object TelegramAutoPublishService {
     private val client = TelegramApiClient()
@@ -61,7 +61,7 @@ object TelegramAutoPublishService {
      *   send или рендера), `SCHEDULED` (песня не готова или дата в прошлом при
      *   `allowPastDate=false`)
      *
-     * @see docs/features/telegram-auto-publish.md
+     * @see archive/docs/features/telegram-auto-publish.md
      */
     fun publishToTelegram(
         song: Song,
@@ -142,7 +142,7 @@ object TelegramAutoPublishService {
      * @return результат публикации (PUBLISHED/SEND_FAILED) или null, если песня не найдена /
      *   уже опубликована / не в состоянии RENDERING
      *
-     * @see docs/features/telegram-auto-publish.md
+     * @see archive/docs/features/telegram-auto-publish.md
      */
     fun onRenderCompleted(
         songId: Long,

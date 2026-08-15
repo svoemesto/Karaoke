@@ -3,7 +3,7 @@ package com.svoemesto.karaokeapp
 /**
  * Перечисление возможных значений для health report type.
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  */
 enum class HealthReportType {
     CONSISTENCY_VIOLATION,

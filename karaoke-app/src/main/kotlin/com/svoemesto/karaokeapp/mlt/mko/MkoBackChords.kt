@@ -10,7 +10,7 @@ import com.svoemesto.karaokeapp.xmldata
 /**
  * Класс Mko Back Chords.
  *
- * @see docs/features/mlt-generator.md
+ * @see archive/docs/features/mlt-generator.md
  */
 data class MkoBackChords(
     val mltProp: MltProp,

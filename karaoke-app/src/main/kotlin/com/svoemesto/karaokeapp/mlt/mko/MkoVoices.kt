@@ -12,7 +12,7 @@ import com.svoemesto.karaokeapp.model.TransformProperty
 /**
  * Обёртка для всех голосов песни (multitrack). Создаёт родительский `<multitrack>`-узел с голосами как вложенными `<playlist>`.
  *
- * @see docs/features/mlt-generator.md
+ * @see archive/docs/features/mlt-generator.md
  */
 data class MkoVoices(
     val mltProp: MltProp,

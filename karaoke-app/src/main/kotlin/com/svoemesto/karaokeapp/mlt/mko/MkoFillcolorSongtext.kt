@@ -11,7 +11,7 @@ import com.svoemesto.karaokeapp.model.ProducerType
 /**
  * Класс Mko Fillcolor Songtext.
  *
- * @see docs/features/mlt-generator.md
+ * @see archive/docs/features/mlt-generator.md
  */
 data class MkoFillcolorSongtext(
     val mltProp: MltProp,

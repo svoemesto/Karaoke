@@ -11,7 +11,7 @@ import java.awt.Font
 /**
  * Producer для заставки в начале видео (логотип, название, обложка). Создаёт MLT-блоки, видимые первые N секунд, затем исчезающие.
  *
- * @see docs/features/mlt-generator.md
+ * @see archive/docs/features/mlt-generator.md
  */
 data class MkoSplashStart(
     val mltProp: MltProp,

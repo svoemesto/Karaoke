@@ -26,8 +26,8 @@ import java.sql.Timestamp
  * При оформлении заказа → `Subscription` создаётся из `CartItem` +
  * `PriceTariff`.
  *
- * @see docs/features/telegram-auto-publish.md
- * @see docs/features/dual-db-sync.md
+ * @see archive/docs/features/telegram-auto-publish.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  */
 class CartItem(
     override val database: KaraokeConnection = WORKING_DATABASE,

@@ -9,7 +9,7 @@ import com.svoemesto.karaokeapp.model.*
 /**
  * Одна струна грифа гитары. Создаёт MLT-блоки для горизонтальной линии струны на грифе.
  *
- * @see docs/features/mlt-generator.md
+ * @see archive/docs/features/mlt-generator.md
  */
 data class MkoString(
     val mltProp: MltProp,

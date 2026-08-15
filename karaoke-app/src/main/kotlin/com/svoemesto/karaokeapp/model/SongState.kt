@@ -5,7 +5,7 @@ package com.svoemesto.karaokeapp.model
  * эфира. Заменяет устаревшую 16-значную палитру (ALL_DONE / OVERDUE / WO_TG / WO_VK и т.д.),
  * привязанную к публикациям в социальных сетях. Цвет передаётся через DTO без отдельного поля.
  *
- * Приоритеты и инварианты — см. [docs/features/song-state-colors.md](../../../../../docs/features/song-state-colors.md).
+ * Приоритеты и инварианты — см. [archive/docs/features/song-state-colors.md](../../../../../archive/archive/docs/features/song-state-colors.md).
  */
 enum class SongState(
     val color: String,

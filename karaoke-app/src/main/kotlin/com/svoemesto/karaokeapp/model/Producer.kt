@@ -5,7 +5,7 @@ import java.io.Serializable
 /**
  * Класс Producer.
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  */
 @Suppress("unused")
 data class Producer(

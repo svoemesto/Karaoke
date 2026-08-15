@@ -2457,7 +2457,7 @@ fun getRandomFile(
  * большом/глубоко вложенном дереве в памяти не накапливается ничего сверх уже отфильтрованного
  * результата. [Files.walk] закрывается через [use] независимо от исхода обхода.
  *
- * @see docs/features/async-process-queue.md
+ * @see archive/archive/docs/features/async-process-queue.md
  */
 fun getListFiles(
     pathToFolder: String,
@@ -2488,7 +2488,7 @@ fun getListFiles(
  * (что буферизовало бы в памяти все файлы дерева независимо от расширения, см. `research.md`,
  * Находка A этой фичи).
  *
- * @see docs/features/async-process-queue.md
+ * @see archive/archive/docs/features/async-process-queue.md
  */
 fun getListFiles(
     pathToFolder: String,
@@ -2738,7 +2738,7 @@ fun getSyllables(text: String): List<String> {
 /**
  * Класс Solution.
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  */
 @Suppress("unused")
 class Solution {
@@ -3106,7 +3106,7 @@ fun searchLastAlbumYm2(authorYmId: String): String {
 /**
  * Класс Album Search Result.
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  */
 sealed class AlbumSearchResult {
     data class Success(

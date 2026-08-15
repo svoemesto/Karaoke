@@ -9,7 +9,7 @@ import com.svoemesto.karaokeapp.model.ProducerType
 /**
  * Producer для счётчиков (1/2/3...) — показывает текущее слово/строку песни в углу кадра. Создаёт MLT-блоки для динамического текста со счётчиком.
  *
- * @see docs/features/mlt-generator.md
+ * @see archive/docs/features/mlt-generator.md
  */
 data class MkoCounters(
     val mltProp: MltProp,

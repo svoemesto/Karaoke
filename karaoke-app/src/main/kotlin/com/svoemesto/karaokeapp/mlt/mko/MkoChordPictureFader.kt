@@ -13,7 +13,7 @@ import com.svoemesto.karaokeapp.xmldata
 /**
  * Producer для фейд-эффекта на аккордной картинке. Создаёт MLT-блоки с alpha-анимацией появления/исчезновения.
  *
- * @see docs/features/mlt-generator.md
+ * @see archive/docs/features/mlt-generator.md
  */
 data class MkoChordPictureFader(
     val mltProp: MltProp,

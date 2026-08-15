@@ -10,7 +10,7 @@ import com.svoemesto.karaokeapp.model.ProducerType
 /**
  * Трек-скроллер для прокрутки текста/аккордов. Создаёт MLT-блоки с translate-анимацией для плавной прокрутки длинного контента.
  *
- * @see docs/features/mlt-generator.md
+ * @see archive/docs/features/mlt-generator.md
  */
 data class MkoScrollerTrack(
     val mltProp: MltProp,

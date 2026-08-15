@@ -19,7 +19,7 @@ import java.time.Duration
 /**
  * Ответ `wall.post` (VK API): `response.post_id` при успехе, `error` при неудаче.
  *
- * @see docs/features/vk-news-auto-publish.md
+ * @see archive/docs/features/vk-news-auto-publish.md
  */
 @Serializable
 data class VkWallPostResponse(
@@ -36,7 +36,7 @@ data class VkWallPostResult(
 /**
  * Ответ `video.save` (VK API): `response` с `owner_id`, `video_id`, `upload_url`.
  *
- * @see docs/features/vk-news-auto-publish.md
+ * @see archive/docs/features/vk-news-auto-publish.md
  */
 @Serializable
 data class VkVideoSaveResponse(
@@ -264,7 +264,7 @@ class VkIdRefreshFailedException(
  * [TelegramApiClient.sendVideo]). Non-retryable коды VK API: `4`, `5`, `15`,
  * `27`, `29`, `100` (см. research.md §5).
  *
- * @see docs/features/vk-news-auto-publish.md
+ * @see archive/docs/features/vk-news-auto-publish.md
  * @see specs/138-vk-photo-preview-attachment/spec.md
  */
 class VkApiClient {
@@ -728,7 +728,7 @@ class VkApiClient {
      * Общий helper для multipart/form-data с одним полем (используется для
      * `photos.*`, `docs.*` и `video.save`). Формат — стандартный RFC 7578.
      *
-     * @see docs/features/vk-news-auto-publish.md
+     * @see archive/docs/features/vk-news-auto-publish.md
      */
     private fun buildMultipartBody(
         fieldName: String,
@@ -757,7 +757,7 @@ class VkApiClient {
      * Требует user-token с scope `photos`. При `error_code in 27/15/5/29` —
      * бросает [VkPhotoAuthException] (триггер fallback на `docs.*`).
      *
-     * @see docs/features/vk-news-auto-publish.md
+     * @see archive/docs/features/vk-news-auto-publish.md
      */
     fun getWallUploadServer(
         groupId: String,

@@ -10,7 +10,7 @@ import com.svoemesto.karaokeapp.model.ProducerType
 /**
  * Трек для отображения всех строк текста песни. Создаёт MLT-`<tractor>` с несколькими `MkoLine` как вложенными элементами.
  *
- * @see docs/features/mlt-generator.md
+ * @see archive/docs/features/mlt-generator.md
  */
 data class MkoLineTrack(
     val mltProp: MltProp,

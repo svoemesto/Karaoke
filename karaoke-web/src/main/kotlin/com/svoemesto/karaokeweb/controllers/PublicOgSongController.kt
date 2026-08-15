@@ -26,7 +26,7 @@ import org.springframework.web.bind.annotation.RestController
  *
  * Endpoint **НЕ генерирует** PNG-картинку «на лету» (старый endpoint
  * `/api/public/song-vk-image/{id}` остался в коде для обратной совместимости, но из этого
- * контроллера не вызывается — см. FR-009 спеки и `docs/features/seo-html-for-bots.md`).
+ * контроллера не вызывается — см. FR-009 спеки и `archive/docs/features/seo-html-for-bots.md`).
  *
  * Endpoint проксируется nginx'ом на проде через правило `location /song { if
  * ($http_user_agent ~* "vkShare|TelegramBot|...") rewrite ^/song(\?.*)?$ /api/public/og/song$1 last; }`
@@ -59,7 +59,7 @@ import org.springframework.web.bind.annotation.RestController
  * Производительность (SC-001 спеки): TTFB < 100 мс. 0 обращений к MinIO (og:image URL —
  * абсолютный, отдаётся nginx'ом через `/minio/`-location).
  *
- * @see docs/features/seo-html-for-bots.md
+ * @see archive/docs/features/seo-html-for-bots.md
  * @see specs/180-og-seo-html/spec.md
  * @see specs/180-og-seo-html/research.md (обоснование технических решений)
  */

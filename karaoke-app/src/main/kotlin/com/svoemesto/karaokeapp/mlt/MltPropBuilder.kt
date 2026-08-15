@@ -3,7 +3,7 @@ package com.svoemesto.karaokeapp.mlt
 /**
  * Builder для mlt prop .
  *
- * @see docs/features/mlt-generator.md
+ * @see archive/docs/features/mlt-generator.md
  */
 @Suppress("unused")
 data class MltPropBuilder(

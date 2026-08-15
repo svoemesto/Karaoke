@@ -54,7 +54,7 @@ import kotlin.reflect.jvm.isAccessible
  * @property storageService MinIO-клиент — DI через конструктор.
  * @property storageApiClient HTTP-клиент для remote-операций — DI через конструктор.
  * @property id первичный ключ (`0L` означает «новая запись, ещё не в БД»).
- * @see docs/features/dual-db-sync.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  * @see docs/architecture-notes-archive.md «reflection-loader и nullable-колонки»
  */
 interface KaraokeDbTable {
@@ -88,7 +88,7 @@ interface KaraokeDbTable {
      *
      * @see getDiff
      * @see createDbInstance
-     * @see docs/features/dual-db-sync.md
+     * @see archive/archive/docs/features/dual-db-sync.md
      */
     fun save() {
         if (id == 0L) {
@@ -633,7 +633,7 @@ interface KaraokeDbTable {
         // `id IN (1,2,3)` без склейки-строк и без N+1. Возвращает количество ФАКТИЧЕСКИ удалённых строк
         // (PostgreSQL `executeUpdate()`). Пустой список → 0 без SQL.
         //
-        // @see docs/features/editor-tasks.md
+        // @see archive/archive/docs/features/editor-tasks.md
         fun deleteIn(
             tableName: String,
             ids: List<Long>,

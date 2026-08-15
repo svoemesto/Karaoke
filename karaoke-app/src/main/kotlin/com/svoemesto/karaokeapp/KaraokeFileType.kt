@@ -3,7 +3,7 @@ package com.svoemesto.karaokeapp
 /**
  * Перечисление возможных значений для karaoke file type.
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  */
 enum class KaraokeFileType(
     val description: String,

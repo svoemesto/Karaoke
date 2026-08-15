@@ -31,7 +31,7 @@ import kotlin.properties.Delegates
  *
  * Рассылается по SSE `HEALTH_REPORTS` для live-обновления в админке.
  *
- * @see docs/features/monitoring.md
+ * @see archive/docs/features/monitoring.md
  */
 data class HealthReport(
     val song: Song,
@@ -1102,7 +1102,7 @@ data class HealthReport(
         // Легаси MLT-конвейер (mlt/run/kdenlive/txt-проекты, картинки площадок, финальное видео) заморожен —
         // эти файлы больше не подразумеваются автоматически по статусу готовности (раньше idStatus>=3
         // гарантированно значило «MLT сформирован»; после specs/022-song-status-lifecycle idStatus не
-        // связан с MLT-конвейером вовсе, см. docs/features/mlt-generator.md), а создаются только вручную
+        // связан с MLT-конвейером вовсе, см. archive/docs/features/mlt-generator.md), а создаются только вручную
         // через Functions.createKaraoke. HealthReport их больше не отслеживает.
         private val LEGACY_MLT_FILE_TYPES: Set<KaraokeFileType> =
             setOf(
@@ -2231,7 +2231,7 @@ data class HealthReport(
          * (specs/015-search-engine-selection, кнопка «Удалить результаты поиска готовых песен»
          * на главной странице). Возвращает количество обработанных песен.
          *
-         * @see docs/features/llm-lyrics-search.md
+         * @see archive/docs/features/llm-lyrics-search.md
          */
         fun deleteSearchResultsForReadySongs(
             database: KaraokeConnection,

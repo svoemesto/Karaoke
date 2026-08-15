@@ -7,11 +7,13 @@ related:
   - CHANGELOG.md
 ---
 
-# LiveDocs — итоги follow-up сессии (Pass 43–49)
+# LiveDocs — итоги follow-up сессии (Pass 43–51)
 
 > Резюме недавних follow-up коммитов к спеке `189-live-documentation`.
 > Этот документ — компактный обзор для AI-агента, чтобы быстро понять,
 > что добавилось в LiveDocs в последнее время.
+>
+> **Pass 51** — большая миграция `docs/` → `livedocs/` (FR-017 спеки 189).
 
 ## Контекст
 
@@ -101,39 +103,41 @@ PR #319, #323, #325, #327.
 |---------|-----------|-------|---|
 | Фичи в `features/` | 84 | **88** | +4 (016, 124, 125 + INDEX-update для 190) |
 | Bounded contexts | 7 | 7 | 0 |
-| Topic-документов | 11 | **14** | +3 (share-link, censoring, monetization) |
+| Topic-документов | 11 | **16** | +5 (share-link, censoring, monetization, database, invariants, deployment, public-modules) |
 | ADR | 6 | **12** (6+6) | +6 local ADR (index only) |
 | Шаблонов | 6 | 6 | 0 |
-| Runbooks | 7 | 8 | +1 (count fix) |
-| Frontmatter-файлов | 107 | **114** | +7 |
-| Total .md | ~120 | **~128** | +8 |
-| Cross-links valid | 814 | **904** | **+90** |
+| Runbooks | 7 | **11** | +4 (migrate-prod-server, demo-publish-links, stemjobs, +1 count fix) |
+| Strategy-документы | 0 | **4** | +4 (growth, growth-audit, about-page-draft, models-comparison) |
+| Onboarding-документы | 0 | **3** | +3 (README, onboarding, claude-code-setup) |
+| Archive-документы | 0 | **32** | +32 (30 docs/features/ + 2 onboarding-handoff) |
+| Frontmatter-файлов | 107 | **130** | +23 |
+| Total .md | ~120 | **~140** | +20 |
+| Cross-links valid | 814 | **1069** | **+255** |
 | Broken references | 0 | 0 | 0 |
 | AGENTS.md (строк) | 100 | 100 | 0 (на границе) |
+| docs/ (legacy) | 49 .md | **2** | -47 (api/ + CLAUDE.md.template) |
 
 ## Состояние CI
 
 - **check-livedocs-structure.sh**: 7/7 PASS каждый раз.
-- **check-livedocs-cross-links.sh**: 0 broken references.
-- **check-livedocs-external-links.sh**: 8 URL valid, 10 placeholder
-  (pass через whitelist — `localhost`, `10.0.0.1`, `188.119.64.111`,
-  `karaoke-web`, `id.vk.ru/oauth2`).
-- **lychee advisory**: 2 false-positives на transient errors
-  (karaoke.example, logback.qos.ch) — оба исправлены заменой
-  placeholder на `localhost` или re-run CI.
+- **check-livedocs-cross-links.sh**: 1069/1069 valid, 0 broken.
+- **check-livedocs-external-links.sh**: 16/16 valid, 37 placeholder
+  (whitelist: localhost, 10.0.0.1, 188.119.64.111, karaoke-web, 127.0.0.1,
+  minio-proxy, nsa-i9, svoemesto.ru, sm-karaoke.ru, smartcaptcha.yandexcloud.net,
+  id.vk.ru/oauth2, id.vk.com).
+- **lychee advisory**: 2 false-positives (karaoke.example, logback.qos.ch)
+  — исправлены заменой placeholder на `localhost` или re-run CI.
 
 ## Что осталось как ongoing work
 
-1. **Больше gap-fill** — найти ещё спеки/фичи без LiveDoc (если такие есть).
-2. **Cross-link density** — увеличить плотность связей (сейчас ~904 links
-   на 128 файлов = 7 links/файл — хороший показатель).
-3. **Аудит устаревших LiveDoc** — проверить, что старые фичи не изменились.
-4. **Больше topics** — например, про SSE, про тестовое покрытие.
-5. **Per-feature docs миграция** — `docs/features/*.md` всё ещё живут
-   как legacy drill-down; можно мигрировать в `livedocs/features/<NNN>-<slug>.md`
-   более агрессивно.
+1. **Аудит устаревших LiveDoc** — проверить, что старые фичи не изменились.
+2. **Больше topics** — например, про SSE details, про тестовое покрытие.
+3. **Авто-генерация LiveDocs** из KDoc/JSDoc (отмечено в spec 189 как TODO Pass 2+).
+4. **Английский mirror** — `livedocs-en/` при необходимости.
 
 ## Файлы, изменённые за сессию
+
+### Pass 43–49 (follow-up сопровождение)
 
 ```
 AGENTS.md                                       (depth #42 — header consolidation)
@@ -154,6 +158,46 @@ livedocs/features/README.md                                    (4 записи)
 livedocs/INDEX.md                                              (BC + decision tree)
 livedocs/CHANGELOG.md                                          (5 follow-up entries)
 ```
+
+### Pass 51 (docs/ → livedocs/ миграция — FR-017 спеки 189)
+
+```
+livedocs/architecture-notes.md                       (new — 2171 строк)
+livedocs/architecture-notes-archive.md                 (new — 1718 строк)
+livedocs/architecture/database.md                     (new)
+livedocs/architecture/invariants.md                   (new)
+livedocs/architecture/deployment.md                  (new)
+livedocs/architecture/public-modules.md               (new)
+livedocs/strategy/models-comparison.md                (new)
+livedocs/strategy/growth.md                           (new)
+livedocs/strategy/growth-audit.md                     (new)
+livedocs/strategy/about-page-draft.md                 (new)
+livedocs/CONVENTIONS.md                               (new)
+livedocs/onboarding.md                                (new)
+livedocs/claude-code-setup.md                         (new)
+livedocs/runbooks/how-to-migrate-prod-server.md       (new)
+livedocs/runbooks/how-to-demo-publish-links.md         (new)
+livedocs/runbooks/how-to-stemjobs.md                  (new)
+livedocs/onboarding-handoff/011-m23-*.md              (new)
+livedocs/onboarding-handoff/012-vk-id-*.md            (new)
+livedocs/features/<17 LiveDoc>.md                     (crosslinks +archive)
+livedocs/features/<8 LiveDoc>.md                      (crosslinks +archive)
+livedocs/INDEX.md                                     (обновлены external links)
+livedocs/CHANGELOG.md                                 (Pass 51 запись)
+README.md, AGENTS.md, CONTRIBUTING.md                 (обновлены)
+.pre-commit-config.yaml, .github/workflows/lint.yml   (обновлены)
+karaoke-web/src/main/resources/application.yml         (обновлён)
+karaoke-app/src/**.kt, karaoke-web/src/**.kt          (250+ KDoc @see)
+archive/docs/features/*.md                            (30 legacy drill-down)
+archive/docs/strategy/*.md                            (3 legacy)
+archive/docs/onboarding-handoff/*.md                 (2 legacy)
+tools/check-livedocs-external-links.sh                (whitelist расширен)
+docs/architecture-notes*.md (и другие 47 .md)        (УДАЛЕНО)
+docs/strategy/*.md, docs/features/*.md, docs/onboarding-handoff/*.md (УДАЛЕНО)
+```
+
+**Итого**: 47 файлов `.md` в `docs/` → `livedocs/` + `archive/docs/`.
+**PR**: #334–#340 (7 PR за Pass 51).
 
 ## История
 

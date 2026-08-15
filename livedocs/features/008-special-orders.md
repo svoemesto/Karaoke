@@ -5,6 +5,7 @@ related:
   - ../domain/catalog.md
   - ../features/012-entity-description-fields.md
   - ../../specs/008-special-orders/spec.md
+  - ../../archive/docs/features/special-orders.md
 ---
 
 # 008 — «Отдельные песни разных авторов» — виртуальная плашка в Закромах (LiveDoc)

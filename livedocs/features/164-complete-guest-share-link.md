@@ -6,6 +6,7 @@ related:
   - ../domain/identity.md
   - ../architecture/L3-components.md
   - ../../specs/164-complete-guest-share-link/spec.md
+  - ../../archive/docs/features/guest-share-link.md
 ---
 
 # 164 — Завершение share-link: плеер гостя + heartbeat + sweep (LiveDoc)

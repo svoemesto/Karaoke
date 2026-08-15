@@ -6,6 +6,7 @@ related:
   - ../architecture/L3-components.md
   - ../architecture/data-sync.md
   - ../../specs/174-fix-stats-connection-leak/spec.md
+  - ../../archive/docs/features/stats.md
 ---
 
 # 174 — Починить flood JDBC-соединений в «Статистике» (LiveDoc)

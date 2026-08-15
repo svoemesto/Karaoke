@@ -4,6 +4,7 @@ slug: 002-ci-lint-enforcement
 related:
   - ../architecture/L1-system-context.md
   - ../../specs/002-ci-lint-enforcement/spec.md
+  - ../../archive/docs/features/ci-lint-enforcement.md
 ---
 
 # 002 — CI lint enforcement (GitHub Actions) (LiveDoc)

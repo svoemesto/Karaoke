@@ -6,6 +6,7 @@ related:
   - ../domain/identity.md
   - ../architecture/L1-system-context.md
   - ../../specs/151-vk-id-personal-token/spec.md
+  - ../../archive/docs/features/vk-id-auth.md
 ---
 
 # 151 — Миграция на VK ID для персонального токена (LiveDoc)

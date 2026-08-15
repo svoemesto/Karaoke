@@ -79,6 +79,7 @@ Bounded contexts проекта Karaoke + ubiquitous language glossary.
 | [`censoring.md`](architecture/censoring.md) | topic | Цензурирование: TextFileDictionary + String.censored() |
 | [`monetization.md`](architecture/monetization.md) | topic | Модель free-vs-premium: подписки, YOOKASSA, авто-публикация |
 | [`ci-cd-pipeline.md`](architecture/ci-cd-pipeline.md) | topic | GitHub Actions: 9 jobs, baseline-подход, troubleshooting |
+| [`db-migration-playbook.md`](architecture/db-migration-playbook.md) | topic | Production миграции: чеклист, типичные ошибки, recordhash |
 
 ### Тематические — паттерны / ловушки / конвенции
 

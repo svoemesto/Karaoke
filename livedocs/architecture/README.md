@@ -29,6 +29,7 @@
 | [censoring.md](censoring.md) | Паттерн цензурирования матерных слов в публикациях (Telegram/VK/новости) |
 | [monetization.md](monetization.md) | Модель free-vs-premium: подписки, YOOKASSA, авто-публикация, share-link |
 | [ci-cd-pipeline.md](ci-cd-pipeline.md) | GitHub Actions: 9 jobs, блокирующие merge, baseline-подход |
+| [db-migration-playbook.md](db-migration-playbook.md) | Production database migrations: когда, как, чеклист, типичные ошибки |
 
 ### Паттерны / конвенции (мигрированы из `AGENTS.md` Q&A)
 

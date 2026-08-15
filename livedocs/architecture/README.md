@@ -28,6 +28,7 @@
 | [share-link.md](share-link.md) | Паттерн гостевого доступа: временные ссылки + claim + heartbeat + sweep |
 | [censoring.md](censoring.md) | Паттерн цензурирования матерных слов в публикациях (Telegram/VK/новости) |
 | [monetization.md](monetization.md) | Модель free-vs-premium: подписки, YOOKASSA, авто-публикация, share-link |
+| [ci-cd-pipeline.md](ci-cd-pipeline.md) | GitHub Actions: 9 jobs, блокирующие merge, baseline-подход |
 
 ### Паттерны / конвенции (мигрированы из `AGENTS.md` Q&A)
 

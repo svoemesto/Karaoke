@@ -7,6 +7,7 @@ related:
   - ../features/091-fix-connection-leak.md
   - ../architecture/L3-components.md
   - ../../specs/088-fix-queue-swallowed-errors/spec.md
+  - ../../archive/docs/features/async-process-queue.md
 ---
 
 # 088 — Единообразная обработка сбоев БД в очереди задач (LiveDoc)

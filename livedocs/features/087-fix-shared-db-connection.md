@@ -7,6 +7,7 @@ related:
   - ../features/088-fix-queue-swallowed-errors.md
   - ../../specs/087-fix-shared-db-connection/spec.md
   - ../../archive/docs/features/monitoring.md
+  - ../../archive/docs/features/dual-db-sync.md
 ---
 
 # 087 — Изоляция JDBC по потокам + retry очереди при сетевом сбое (LiveDoc)

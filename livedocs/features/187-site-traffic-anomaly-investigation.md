@@ -6,6 +6,7 @@ related:
   - ../architecture/data-sync.md
   - ../../specs/187-site-traffic-anomaly-investigation/spec.md
   - ../../archive/docs/features/site-traffic-resilience.md
+  - ../../archive/docs/features/sse-notifications.md
 ---
 
 # 187 — Расследование аномалии трафика сайта (LiveDoc)

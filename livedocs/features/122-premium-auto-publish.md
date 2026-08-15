@@ -6,6 +6,7 @@ related:
   - ../domain/editorial.md
   - ../features/131-fix-approve-demo-render-telegram-sync.md
   - ../../specs/122-premium-auto-publish/spec.md
+  - ../../archive/docs/features/premium-stems.md
 ---
 
 # 122 — Премиум-автопубликация в Telegram + ВК при появлении в коллекции (LiveDoc)

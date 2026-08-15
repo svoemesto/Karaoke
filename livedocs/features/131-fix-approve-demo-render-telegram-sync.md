@@ -8,6 +8,7 @@ related:
   - ../features/184-approve-status-choice.md
   - ../architecture/data-sync.md
   - ../../specs/131-fix-approve-demo-render-telegram-sync/spec.md
+  - ../../archive/docs/features/mp4-render.md
 ---
 
 # 131 — Авто-пайплайн публикации после approve (LiveDoc)

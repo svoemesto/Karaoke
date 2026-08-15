@@ -6,6 +6,7 @@ related:
   - ../domain/publishing.md
   - ../architecture/L3-components.md
   - ../../specs/156-remove-songs-table-platform-flags/spec.md
+  - ../../archive/docs/features/songs-table.md
 ---
 
 # 156 — Удалить 18 столбцов-флагов публикации из таблицы «Песни» (LiveDoc)

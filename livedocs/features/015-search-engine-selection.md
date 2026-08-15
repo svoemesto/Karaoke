@@ -5,6 +5,7 @@ related:
   - ../domain/editorial.md
   - ../architecture/L1-system-context.md
   - ../../specs/015-search-engine-selection/spec.md
+  - ../../archive/docs/features/llm-lyrics-search.md
 ---
 
 # 015 — Выбор поискового движка для текстов и обложек (LiveDoc)

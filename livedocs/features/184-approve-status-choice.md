@@ -6,6 +6,7 @@ related:
   - ../domain/processing.md
   - ../architecture/L3-components.md
   - ../../specs/184-approve-status-choice/spec.md
+  - ../../archive/docs/features/approve-pipeline.md
 ---
 
 # 184 — Approve Status Choice (выбор idStatus 5/6) (LiveDoc)

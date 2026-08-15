@@ -6,6 +6,7 @@ related:
   - ../features/139-fix-censored-dictionary.md
   - ../features/141-fix-censored-web-storage-globals.md
   - ../../specs/140-fix-zakroma-censored-database/spec.md
+  - ../architecture/censoring.md
 ---
 
 # 140 — Падение /api/public/zakroma (Property APP_WORK_ON_SERVER не инициализирована) (LiveDoc)

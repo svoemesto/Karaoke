@@ -7,6 +7,7 @@ related:
   - ../architecture/L3-components.md
   - ../../specs/144-homepage-latest-news/spec.md
   - ../../archive/docs/features/homepage-latest-news.md
+  - ../architecture/conversion-funnel.md
 ---
 
 # 144 — Компактная таблица «последние 5 новостей» на главной (LiveDoc)

@@ -8,6 +8,8 @@ related:
   - ../features/151-vk-id-personal-token.md
   - ../../specs/121-vk-news-auto-publish/spec.md
   - ../../archive/docs/features/vk-news-auto-publish.md
+  - ../architecture/monetization.md
+  - ../architecture/censoring.md
 ---
 
 # 121 — Автопубликация новостей в группу ВКонтакте (LiveDoc)

@@ -7,6 +7,7 @@ related:
   - ../architecture/L3-components.md
   - ../../specs/155-song-state-colors/spec.md
   - ../../archive/docs/features/song-state-colors.md
+  - ../architecture/conversion-funnel.md
 ---
 
 # 155 — Актуализация статусов и цветов песен (LiveDoc)

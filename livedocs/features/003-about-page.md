@@ -4,6 +4,8 @@ slug: 003-about-page
 related:
   - ../domain/publishing.md
   - ../../specs/003-about-page/spec.md
+  - ../strategy/about-page-draft.md
+  - ../architecture/conversion-funnel.md
 ---
 
 # 003 — Страница «О проекте» (LiveDoc)

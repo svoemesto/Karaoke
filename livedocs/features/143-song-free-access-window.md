@@ -8,6 +8,8 @@ related:
   - ../features/144-homepage-latest-news.md
   - ../../specs/143-song-free-access-window/spec.md
   - ../../archive/docs/features/song-free-access.md
+  - ../architecture/conversion-funnel.md
+  - ../architecture/monetization.md
 ---
 
 # 143 — Временное окно бесплатного доступа к песням (LiveDoc)

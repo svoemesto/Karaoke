@@ -6,6 +6,7 @@ related:
   - ../features/138-vk-photo-preview-attachment.md
   - ../features/130-vk-preview-generation.md
   - ../../specs/123-vk-og-preview-fix/spec.md
+  - ../features/180-og-seo-html.md
 ---
 
 # 123 — Премиум-публикация ВК: превью через attachments=photo (LiveDoc)

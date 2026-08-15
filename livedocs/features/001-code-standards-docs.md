@@ -5,6 +5,8 @@ related:
   - ../features/002-ci-lint-enforcement.md
   - ../architecture/L1-system-context.md
   - ../../specs/001-code-standards-docs/spec.md
+  - ../architecture/documentation-conventions.md
+  - ../architecture/ci-cd-pipeline.md
 ---
 
 # 001 — Приведение кода к стандартам + документирование фич (Phase 001) (LiveDoc)

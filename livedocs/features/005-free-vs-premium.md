@@ -6,6 +6,8 @@ related:
   - ../features/143-song-free-access-window.md
   - ../features/169-share-link-in-premium-compare.md
   - ../../specs/005-free-vs-premium/spec.md
+  - ../architecture/monetization.md
+  - ../architecture/conversion-funnel.md
 ---
 
 # 005 — Таблица «FREE vs PREMIUM» на /premium (LiveDoc)

@@ -7,6 +7,8 @@ related:
   - ../features/141-fix-censored-web-storage-globals.md
   - ../../specs/139-fix-censored-dictionary/spec.md
   - ../../archive/docs/features/dictionaries.md
+  - ../architecture/censoring.md
+  - ../domain/processing.md
 ---
 
 # 139 — Цензурирование {songNameCensored} на проде (LiveDoc)

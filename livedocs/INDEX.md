@@ -103,8 +103,13 @@ Bounded contexts проекта Karaoke + ubiquitous language glossary.
 - **Спеки фич (drill-down)**: [`../../specs/`](../../specs/) (полные SDD-документы).
 - **AGENTS.md (governance)**: [`../AGENTS.md`](../AGENTS.md) — общие правила для AI-агентов.
 - **Constitution (принципы)**: [`../.specify/memory/constitution.md`](../.specify/memory/constitution.md) — NON-NEGOTIABLE принципы.
-- **Per-feature документы (legacy)**: [`../docs/features/`](../docs/features/) — старые drill-down документы.
-- **Стратегия роста**: [`../docs/strategy/growth.md`](../docs/strategy/growth.md).
+- **Per-feature документы (legacy)**: [`../../archive/docs/features/`](../../archive/docs/features/) — drill-down (бывший docs/features/).
+- **Стратегия роста**: [`strategy/growth.md`](strategy/growth.md).
+- **Архитектурный changelog**: [`architecture-notes.md`](architecture-notes.md) (бывший docs/architecture-notes.md).
+- **Архивный changelog**: [`architecture-notes-archive.md`](architecture-notes-archive.md) (бывший docs/architecture-notes-archive.md).
+- **Onboarding**: [`onboarding.md`](onboarding.md) (бывший docs/onboarding.md).
+- **Claude Code setup**: [`claude-code-setup.md`](claude-code-setup.md) (бывший docs/claude-code-setup.md).
+- **LiveDocs-конвенции**: [`CONVENTIONS.md`](CONVENTIONS.md) (бывший docs/livedocs-conventions.md).
 
 ## Когда обновлять INDEX
 

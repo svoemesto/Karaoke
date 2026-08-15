@@ -190,6 +190,46 @@
   список того, что осталось как ongoing work.
   PR #330.
 
+## 2026-08-14–15 — Pass 51 (docs/ → livedocs/ миграция — FR-017 спеки 189)
+
+Спека 189 (FR-017) требовала интеграцию `docs/features/*.md` в LiveDocs.
+Полная миграция выполнена в 5 PR (#334–#338):
+
+- **Phase 2.1/2.2 (PR #334, #335)**: перенесены корневые файлы из docs/ в LiveDocs:
+  - `livedocs/architecture-notes.md` (2171 строк) — большой changelog
+  - `livedocs/architecture-notes-archive.md` (1718 строк) — старый changelog
+  - `livedocs/architecture/database.md` (tbl_public_settings + recordhash-триггеры)
+  - `livedocs/architecture/invariants.md` (ловушки karaoke-web, MTU, Jackson is*, и т.п.)
+  - `livedocs/architecture/deployment.md` (серверы)
+  - `livedocs/architecture/public-modules.md` (карта karaoke-public)
+  - `livedocs/strategy/models-comparison.md` (сравнение LLM-моделей)
+  - `livedocs/CONVENTIONS.md` (конвенции LiveDocs)
+  - `livedocs/onboarding.md` (настройка новой машины)
+  - `livedocs/claude-code-setup.md` (настройка Claude Code)
+  - `livedocs/runbooks/how-to-migrate-prod-server.md` (миграция прода)
+  - `livedocs/runbooks/how-to-demo-publish-links.md` (DEMO-публикация)
+  - `livedocs/runbooks/how-to-stemjobs.md` (стемы premium)
+- **Phase 3.1/3.2 (PR #336)**: cross-references на archive/docs/features/ для 25 LiveDoc (17+8).
+- **Phase 4 (PR #337)**: перенесены strategy/ + onboarding-handoff/:
+  - `livedocs/strategy/growth.md`, `growth-audit.md`, `about-page-draft.md`
+  - `livedocs/onboarding-handoff/011-m23-*.md`, `012-vk-id-*.md`
+- **Phase 5 (PR #338)**: удаление docs/ (47 .md файлов). Оставлены:
+  - `docs/api/` (build artifacts — НЕ трогаем)
+  - `docs/CLAUDE.md.template` (template)
+- **Phase 6 (PR #339)**: INDEX.md обновлён.
+
+Обновлены ссылки в:
+- `README.md`, `AGENTS.md`, `CONTRIBUTING.md`
+- `.pre-commit-config.yaml`, `.github/workflows/lint.yml`
+- `karaoke-web/src/main/resources/application.yml`
+- 250+ KDoc `@see` в `karaoke-app/` и `karaoke-web/`
+
+СКРИПТЫ: `tools/check-livedocs-external-links.sh` — расширен whitelist
+для internal URLs (nsa-i9, id.vk.com, svoemesto.ru, sm-karaoke.ru,
+smartcaptcha.yandexcloud.net, 127.0.0.1, minio-proxy).
+
+**Миграция docs/ → LiveDocs полностью завершена.** FR-017 спеки 189 выполнен.
+
 ## Состояние на сегодня
 
 | Метрика | Значение |
@@ -197,17 +237,21 @@
 | **Фичи в `features/`** | 88 |
 | **Bounded contexts в `domain/`** | 7 (catalog, processing, rendering, publishing, identity, editorial, stats) |
 | **C4 уровни** | 3 (L1, L2, L3) |
-| **Topic-документов в `architecture/`** | 14 (incl. share-link, censoring, monetization, postMessage в webvue3-patterns) |
+| **Topic-документов в `architecture/`** | 16 (incl. database, invariants, deployment, public-modules + share-link, censoring, monetization, postMessage в webvue3-patterns) |
 | **ADR** | 12 (6 global + 6 local) |
-| **Runbooks** | 8 (README + 7 how-to) |
+| **Runbooks** | 11 (README + 10 how-to, incl. how-to-migrate-prod-server, how-to-demo-publish-links, how-to-stemjobs) |
 | **Шаблонов в `templates/`** | 6 |
-| **`frontmatter`-файлов (с валидным frontmatter)** | 115 (incl. SESSION-SUMMARY) |
-| **`total .md` файлов** | ~129 |
-| **Cross-links valid** | 904 |
+| **Strategy-документы** | 4 (growth, growth-audit, about-page-draft, models-comparison) |
+| **Onboarding-документы** | 3 (README, onboarding, claude-code-setup + 2 onboarding-handoff) |
+| **Archive-документы** | 32 (30 docs/features/ + 2 onboarding-handoff) |
+| **`frontmatter`-файлов (с валидным frontmatter)** | 130 |
+| **`total .md` файлов** | ~140 |
+| **Cross-links valid** | 1069 |
 | **Broken references** | 0 |
 | **AGENTS.md** | ≤ 100 строк ✓ |
-| **CI проверок LiveDocs** | 7/7 + cross-links 0/904 broken + lychee strict |
+| **CI проверок LiveDocs** | 7/7 + cross-links 0/1069 broken + lychee strict |
 | **Миграция покрытия спек** | 100% (все 75+ уникальных) |
+| **docs/ (legacy)** | 2 файла (api/ + CLAUDE.md.template) |
 
 ## Как использовать этот changelog
 

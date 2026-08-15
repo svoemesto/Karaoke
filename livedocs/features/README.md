@@ -97,6 +97,7 @@
 | [124-news-flags-backfill.md](124-news-flags-backfill.md) | Backfill флагов публикаций готовых песен без создания новостей | [specs/124-.../spec.md](../../specs/124-news-flags-backfill/spec.md) |
 | [125-player-status-gate.md](125-player-status-gate.md) | Доступность плеера в таблице «Песни» при статусе ≥4 | [specs/125-.../spec.md](../../specs/125-player-status-gate/spec.md) |
 | [190-playlist-play-button-and-stems-cancel.md](190-playlist-play-button-and-stems-cancel.md) | Плейлисты: запуск с любой песни + превью + фикс вейвформ | [specs/190-.../spec.md](../../specs/190-playlist-play-button-and-stems-cancel/spec.md) |
+| [232-admin-song-editor-local-db.md](232-admin-song-editor-local-db.md) | Облегчённый редактор песен в админке пишет в локальную БД admin-машины (mode='song' в SongEditorController всегда Connection.local()) | [specs/232-.../spec.md](../../specs/232-admin-song-editor-local-db/spec.md) |
 
 ## Конвенции
 

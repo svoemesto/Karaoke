@@ -32,150 +32,220 @@
         Разметка одобрена и применена. Спасибо! Песня доступна в онлайн-плеере.
       </div>
 
-      <!-- Превью в настоящем плеере -->
-      <div class="ke-player-toggle">
-        <button class="ke-btn ke-btn-ghost" :disabled="playerLoading" @click="togglePlayer">
-          {{ playerLoading ? 'Сохраняем…' : showPlayer ? 'Скрыть плеер' : '▶ Прослушать в плеере' }}
-        </button>
-      </div>
-      <div v-if="showPlayer" ref="playerWrap" class="ke-player-wrap">
-        <iframe :src="playerSrc" :height="playerHeight" class="ke-player-frame" allow="autoplay" />
-      </div>
-
-      <!-- Голоса: задание покрывает всю песню — переключение/добавление/удаление голоса. -->
-      <div class="ke-voice-tabs">
-        <button
-          v-for="(v, i) in voices"
-          :key="i"
-          type="button"
-          class="ke-voice-tab"
-          :class="{ 'ke-voice-tab-active': currentVoiceIdx === i }"
-          @click="setCurrentVoice(i)"
-        >
-          Голос {{ i + 1 }}
-        </button>
-        <button
-          v-if="canEdit"
-          type="button"
-          class="ke-voice-tab ke-voice-tab-add"
-          @click="addVoice"
-        >
-          + Голос
-        </button>
-        <button
-          v-if="canEdit && voices.length > 1"
-          type="button"
-          class="ke-voice-tab ke-voice-tab-remove"
-          @click="removeLastVoice"
-        >
-          ✕ Удалить голос {{ voices.length }}
-        </button>
-      </div>
-
-      <!-- Волновая форма -->
-      <div class="ke-wave-card">
-        <div ref="waveform" class="ke-waveform" />
-        <div class="ke-time">{{ fmtTime(currentTime) }} / {{ fmtTime(duration) }}</div>
-      </div>
-
-      <!-- Бегущая строка -->
-      <div class="ke-tail-card">
-        <div class="ke-tail-line">
-          <span class="ke-tail-begin">{{ tail.begin }}</span>
-          <span class="ke-tail-curr">{{ tail.curr }}</span>
-          <span class="ke-tail-next">{{ tail.next }}</span>
-          <span class="ke-tail-end">{{ tail.end }}</span>
-        </div>
-      </div>
-
-      <!-- Транспорт -->
-      <div class="ke-transport">
-        <button class="ke-tbtn" title="Назад 1с (←)" @click="step(-1)">⏮</button>
-        <button
-          class="ke-tbtn ke-tbtn-play"
-          :title="isPlaying ? 'Пауза (Space/X)' : 'Играть (Space/X)'"
-          @click="playPause"
-        >
-          {{ isPlaying ? '⏸' : '▶' }}
-        </button>
-        <button class="ke-tbtn" title="Вперёд 1с (→)" @click="step(1)">⏭</button>
-
-        <div class="ke-sliders">
-          <label class="ke-slider">
-            <span>Скорость {{ playbackRate.toFixed(2) }}×</span>
-            <input
-              v-model.number="playbackRate"
-              type="range"
-              min="0.3"
-              max="1"
-              step="0.05"
-              @input="applyRate"
-            />
-          </label>
-          <label class="ke-slider">
-            <span>Масштаб</span>
-            <input
-              v-model.number="zoom"
-              type="range"
-              min="20"
-              max="400"
-              step="10"
-              @input="applyZoom"
-            />
-          </label>
-          <div class="ke-slider ke-sound-toggle">
-            <span>Стем</span>
-            <div class="ke-sound-btns">
-              <button
-                type="button"
-                class="ke-sound-btn"
-                :class="{ 'ke-sound-btn-active': activeSound === 'voice' }"
-                @click="setActiveSound('voice')"
-              >
-                Голос
-              </button>
-              <button
-                type="button"
-                class="ke-sound-btn"
-                :class="{ 'ke-sound-btn-active': activeSound === 'music' }"
-                @click="setActiveSound('music')"
-              >
-                Музыка
-              </button>
-            </div>
+      <!-- Редизайн 233 (Pass 2): логическая группа «плеер + голоса + волна + бегущая строка +
+           транспорт» в одной обёртке. В karaoke-public НЕ задаём общую обводку/фон, чтобы не
+           конфликтовать с дизайн-системой public (CSS-переменные --km-card / --km-border). -->
+      <div class="ke-pv-stack">
+        <!-- Pass 2: верхняя строка — голоса слева, кнопка «Прослушать в плеере» справа. -->
+        <div class="ke-pv-header">
+          <!-- Голоса: задание покрывает всю песню — переключение/добавление/удаление голоса. -->
+          <div class="ke-voice-tabs">
+            <button
+              v-for="(v, i) in voices"
+              :key="i"
+              type="button"
+              class="ke-voice-tab"
+              :class="{ 'ke-voice-tab-active': currentVoiceIdx === i }"
+              @click="setCurrentVoice(i)"
+            >
+              Голос {{ i + 1 }}
+            </button>
+            <button
+              v-if="canEdit"
+              type="button"
+              class="ke-voice-tab ke-voice-tab-add"
+              @click="addVoice"
+            >
+              + Голос
+            </button>
+            <button
+              v-if="canEdit && voices.length > 1"
+              type="button"
+              class="ke-voice-tab ke-voice-tab-remove"
+              @click="removeLastVoice"
+            >
+              ✕ Удалить голос {{ voices.length }}
+            </button>
           </div>
-          <label class="ke-slider">
-            <span>Громкость {{ Math.round(volume * 100) }}%</span>
-            <input
-              v-model.number="volume"
-              type="range"
-              min="0"
-              max="1"
-              step="0.05"
-              @input="applyVolume"
-            />
-          </label>
+
+          <!-- Превью в настоящем плеере -->
+          <div class="ke-player-toggle">
+            <button class="ke-btn ke-btn-ghost" :disabled="playerLoading" @click="togglePlayer">
+              {{ playerLoading ? 'Сохраняем…' : showPlayer ? 'Скрыть плеер' : '▶ Прослушать в плеере' }}
+            </button>
+          </div>
+        </div>
+
+        <div v-if="showPlayer" ref="playerWrap" class="ke-player-wrap">
+          <iframe :src="playerSrc" :height="playerHeight" class="ke-player-frame" allow="autoplay" />
+        </div>
+
+        <!-- Волновая форма -->
+        <div class="ke-wave-card">
+          <div ref="waveform" class="ke-waveform" />
+          <div class="ke-time">{{ fmtTime(currentTime) }} / {{ fmtTime(duration) }}</div>
+        </div>
+
+        <!-- Бегущая строка -->
+        <div class="ke-tail-card">
+          <div class="ke-tail-line">
+            <span class="ke-tail-begin">{{ tail.begin }}</span>
+            <span class="ke-tail-curr">{{ tail.curr }}</span>
+            <span class="ke-tail-next">{{ tail.next }}</span>
+            <span class="ke-tail-end">{{ tail.end }}</span>
+          </div>
+        </div>
+
+        <!-- Транспорт -->
+        <div class="ke-transport">
+          <button class="ke-tbtn" title="Назад 1с (←)" @click="step(-1)">⏮</button>
+          <button
+            class="ke-tbtn ke-tbtn-play"
+            :title="isPlaying ? 'Пауза (Space/X)' : 'Играть (Space/X)'"
+            @click="playPause"
+          >
+            {{ isPlaying ? '⏸' : '▶' }}
+          </button>
+          <button class="ke-tbtn" title="Вперёд 1с (→)" @click="step(1)">⏭</button>
+
+          <div class="ke-sliders">
+            <label class="ke-slider">
+              <span>Скорость {{ playbackRate.toFixed(2) }}×</span>
+              <input
+                v-model.number="playbackRate"
+                type="range"
+                min="0.3"
+                max="1"
+                step="0.05"
+                @input="applyRate"
+              />
+            </label>
+            <label class="ke-slider">
+              <span>Масштаб</span>
+              <input
+                v-model.number="zoom"
+                type="range"
+                min="20"
+                max="400"
+                step="10"
+                @input="applyZoom"
+              />
+            </label>
+            <div class="ke-slider ke-sound-toggle">
+              <span>Стем</span>
+              <div class="ke-sound-btns">
+                <button
+                  type="button"
+                  class="ke-sound-btn"
+                  :class="{ 'ke-sound-btn-active': activeSound === 'voice' }"
+                  @click="setActiveSound('voice')"
+                >
+                  Голос
+                </button>
+                <button
+                  type="button"
+                  class="ke-sound-btn"
+                  :class="{ 'ke-sound-btn-active': activeSound === 'music' }"
+                  @click="setActiveSound('music')"
+                >
+                  Музыка
+                </button>
+              </div>
+            </div>
+            <label class="ke-slider">
+              <span>Громкость {{ Math.round(volume * 100) }}%</span>
+              <input
+                v-model.number="volume"
+                type="range"
+                min="0"
+                max="1"
+                step="0.05"
+                @input="applyVolume"
+              />
+            </label>
+          </div>
+
+          <!-- Pass 2: панель маркер-действий перенесена сюда, после ползунка «Громкость». -->
+          <div v-if="canEdit" class="ke-kb-toolbar">
+            <button
+              type="button"
+              class="ke-btn ke-btn-ghost ke-kb-toggle"
+              @click="showKeyboard = !showKeyboard"
+            >
+              {{ showKeyboard ? 'Скрыть клавиатуру' : '⌨ Показать клавиатуру' }}
+            </button>
+            <button type="button" class="ke-btn ke-btn-ghost" @click="clearMarkers">
+              Очистить маркеры
+            </button>
+            <button type="button" class="ke-btn ke-btn-ghost" @click="doTypograph">Типограф</button>
+            <span v-if="typographError" class="ke-typograph-error">{{ typographError }}</span>
+          </div>
         </div>
       </div>
 
-      <!-- Нарисованная клавиатура: подсветка нажатой клавиши + подсказки действий (как в
-           полновесном редакторе SubsEdit.vue, но в виде клавиатуры, а не ряда кнопок). Хоткеи
-           работают независимо от того, показана ли клавиатура — сворачивается только подсказка. -->
-      <div v-if="canEdit" class="ke-kb-toolbar">
-        <button
-          type="button"
-          class="ke-btn ke-btn-ghost ke-kb-toggle"
-          @click="showKeyboard = !showKeyboard"
-        >
-          {{ showKeyboard ? 'Скрыть клавиатуру' : '⌨ Показать клавиатуру' }}
-        </button>
-        <button type="button" class="ke-btn ke-btn-ghost" @click="clearMarkers">
-          Очистить маркеры
-        </button>
-        <button type="button" class="ke-btn ke-btn-ghost" @click="doTypograph">Типограф</button>
-        <span v-if="typographError" class="ke-typograph-error">{{ typographError }}</span>
-      </div>
+      <!-- Редизайн 233 (Pass 2): тулбар клавиатуры-подсказки (.ke-kb-toolbar) перенесён в
+           .ke-transport (см. выше — после ползунка «Громкость»). -->
       <div v-if="canEdit && showKeyboard" class="ke-keyboard">
+        <!-- Редизайн 233 (Pass 2): блок кнопок спецтегов перенесён сюда из левой колонки.
+             Видимость управляется единым toggle «Показать клавиатуру». -->
+        <div v-if="canEdit" class="ke-spectag-toolbar">
+          <button
+            type="button"
+            class="ke-spectag-btn"
+            title="Вставить тег новой строки (~newline~) - явный аналог пустой строки"
+            @click="onInsertSpecTag('newline')"
+          >
+            ¶ Новая строка
+          </button>
+          <button
+            type="button"
+            class="ke-spectag-btn"
+            title="Вставить алиас группы «Куплет» (~Куплет~ = ~group:0~)"
+            @click="onInsertSpecTag('куплет')"
+          >
+            Куплет
+          </button>
+          <button
+            type="button"
+            class="ke-spectag-btn"
+            title="Вставить алиас группы «Припев» (~Припев~ = ~group:1~)"
+            @click="onInsertSpecTag('припев')"
+          >
+            Припев
+          </button>
+          <button
+            type="button"
+            class="ke-spectag-btn"
+            title="Вставить алиас группы «Бридж» (~Бридж~ = ~group:2~)"
+            @click="onInsertSpecTag('бридж')"
+          >
+            Бридж
+          </button>
+          <button
+            type="button"
+            class="ke-spectag-btn"
+            title="Вставить алиас группы «Приговор» (~Приговор~ = ~group:3~)"
+            @click="onInsertSpecTag('приговор')"
+          >
+            Приговор
+          </button>
+          <button
+            type="button"
+            class="ke-spectag-btn"
+            title="Вставить тег группы №4 (~group:4~) - у этой группы нет человекочитаемого алиаса"
+            @click="onInsertSpecTag('group:4')"
+          >
+            Группа 4
+          </button>
+          <button
+            type="button"
+            class="ke-spectag-btn"
+            title="Вставить тег комментария (~comment:текст~)"
+            @click="onInsertSpecTagComment"
+          >
+            Комментарий…
+          </button>
+        </div>
         <div class="ke-kb-grid">
           <div v-for="(row, ri) in keyboardRows" :key="ri" class="ke-kb-row">
             <button
@@ -210,66 +280,8 @@
               <input v-model.number="textFontSize" type="range" min="6" max="36" step="1" />
             </label>
           </div>
-          <!-- Быстрая вставка спецтегов (specs/010-lyrics-spec-tags/contracts/tag-registry.md) в
-               текст на месте курсора - альтернатива печатанию тега руками. -->
-          <div v-if="canEdit" class="ke-spectag-toolbar">
-            <button
-              type="button"
-              class="ke-spectag-btn"
-              title="Вставить тег новой строки (~newline~) - явный аналог пустой строки"
-              @click="onInsertSpecTag('newline')"
-            >
-              ¶ Новая строка
-            </button>
-            <button
-              type="button"
-              class="ke-spectag-btn"
-              title="Вставить алиас группы «Куплет» (~Куплет~ = ~group:0~)"
-              @click="onInsertSpecTag('куплет')"
-            >
-              Куплет
-            </button>
-            <button
-              type="button"
-              class="ke-spectag-btn"
-              title="Вставить алиас группы «Припев» (~Припев~ = ~group:1~)"
-              @click="onInsertSpecTag('припев')"
-            >
-              Припев
-            </button>
-            <button
-              type="button"
-              class="ke-spectag-btn"
-              title="Вставить алиас группы «Бридж» (~Бридж~ = ~group:2~)"
-              @click="onInsertSpecTag('бридж')"
-            >
-              Бридж
-            </button>
-            <button
-              type="button"
-              class="ke-spectag-btn"
-              title="Вставить алиас группы «Приговор» (~Приговор~ = ~group:3~)"
-              @click="onInsertSpecTag('приговор')"
-            >
-              Приговор
-            </button>
-            <button
-              type="button"
-              class="ke-spectag-btn"
-              title="Вставить тег группы №4 (~group:4~) - у этой группы нет человекочитаемого алиаса"
-              @click="onInsertSpecTag('group:4')"
-            >
-              Группа 4
-            </button>
-            <button
-              type="button"
-              class="ke-spectag-btn"
-              title="Вставить тег комментария (~comment:текст~)"
-              @click="onInsertSpecTagComment"
-            >
-              Комментарий…
-            </button>
-          </div>
+          <!-- Редизайн 233 (Pass 2 + Pass 6 fix): блок .ke-spectag-toolbar перенесён внутрь
+               .ke-keyboard (см. выше), виден только при showKeyboard === true. -->
           <textarea
             ref="sourceTextarea"
             v-model="sourceText"
@@ -711,26 +723,45 @@ export default {
       const { default: WaveSurfer } = await import('wavesurfer.js')
       const { default: RegionsPlugin } = await import('wavesurfer.js/dist/plugins/regions.esm.js')
       const { default: Minimap } = await import('wavesurfer.js/dist/plugins/minimap.esm.js')
-      const styles = getComputedStyle(document.documentElement)
-      const accent = (styles.getPropertyValue('--km-accent') || '#3b82f6').trim()
+      const { default: Hover } = await import('wavesurfer.js/dist/plugins/hover.esm.js')
 
       this.ws = WaveSurfer.create({
         container: this.$refs.waveform,
-        height: 140,
-        waveColor: '#9db4d6',
-        progressColor: accent,
-        cursorColor: '#ff5252',
-        cursorWidth: 2,
+        // Редизайн 233 (Pass 4): паритет с SubsEdit — цвета, геометрия, Hover plugin.
+        height: 200,
+        waveColor: 'rgb(200, 0, 200)',
+        progressColor: 'rgb(100, 0, 100)',
+        cursorColor: 'rgb(255, 0, 0)',
+        cursorWidth: 3,
+        barWidth: 4,
+        barRadius: 2,
+        barHeight: 1,
         minPxPerSec: this.zoom,
         autoScroll: true,
         autoCenter: true,
+        autoCenterImmediately: true,
         normalize: true,
-        // Маленькая превьюшка всей дорожки под основной вейвформой (как в SubsEdit.vue).
+        // Маленькая превьюшка всей дорожки под основной вейвформой (как в SubsEdit.vue) +
+        // Hover plugin — таймкоды сверху и тёмная всплывашка с текущим временем.
         plugins: [
           Minimap.create({
             height: 20,
             waveColor: 'rgb(255, 0, 0)',
             progressColor: 'rgb(100, 0, 100)',
+          }),
+          Hover.create({
+            lineColor: '#000000',
+            lineWidth: 2,
+            labelBackground: '#555',
+            labelColor: '#fff',
+            labelSize: '11px',
+            formatTimeCallback: (seconds) => {
+              // mm:ss.mmm — как на скриншоте SubsEdit («00:29.742»).
+              const mm = Math.floor(seconds / 60)
+              const ss = Math.floor(seconds % 60)
+              const ms = Math.floor((seconds - Math.floor(seconds)) * 1000)
+              return `${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}.${String(ms).padStart(3, '0')}`
+            },
           }),
         ],
       })
@@ -770,18 +801,21 @@ export default {
     // задаём ТОЛЬКО инлайново через el.style — единственное, что реально применяется.
     regionContentEl(marker) {
       const el = document.createElement('div')
-      el.style.fontSize = '9px'
-      el.style.fontWeight = '700'
-      el.style.padding = '1px 3px'
+      // Редизайн 233 (Pass 5): бейдж слога — паритет с SubsEdit. Убран мелкий font-size (9px),
+      // font-weight 700 → normal. Бейдж по ширине текста (`width: fit-content`).
+      el.style.fontWeight = 'normal'
       el.style.color = '#222'
+      el.style.lineHeight = '1.1'
       if (marker.markertype === 'syllables') {
         // Тот же стиль, что в SubsEdit.vue: подпись слога на своей подложке (background-color:
-        // beige), а не голым текстом поверх региона.
+        // beige). Бейдж узкий, по ширине текста.
         const label = document.createElement('span')
         label.style.backgroundColor = 'beige'
-        label.style.display = 'inline-block'
-        label.style.padding = '0 2px'
+        label.style.display = 'block'
+        label.style.width = 'fit-content'
+        label.style.padding = '2px 4px'
         label.style.whiteSpace = 'nowrap'
+        label.style.fontSize = '15px'
         label.textContent = (marker.label || '').replaceAll('_', ' ').trim() || '·'
         el.appendChild(label)
       } else if (marker.markertype === 'endofline') {
@@ -820,7 +854,8 @@ export default {
           id: m.uid,
           start: m.time,
           content: this.regionContentEl(m),
-          color: this.hexToRgba(m.color, 0.35),
+          // Редизайн 233 (Pass 4): маркеры плотнее (0.7 вместо 0.35) — ближе к SubsEdit.
+          color: this.hexToRgba(m.color, 0.7),
           drag: this.canEdit,
           resize: false,
         })
@@ -1435,8 +1470,43 @@ export default {
 .ke-voice-tabs {
   display: flex;
   gap: 0.5rem;
+  /* Редизайн 233 (Pass 2): >4 голосов — горизонтальный скролл без переноса. */
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  justify-content: flex-start;
+}
+.ke-voice-tabs::-webkit-scrollbar {
+  height: 6px;
+}
+.ke-voice-tabs::-webkit-scrollbar-thumb {
+  background: var(--km-border);
+  border-radius: 3px;
+}
+.ke-voice-tabs::-webkit-scrollbar-track {
+  background: transparent;
+}
+/* Редизайн 233 (Pass 2): логическая обёртка группы «плеер + голоса + волна + бегущая + транспорт».
+   В karaoke-public НЕ задаём общий фон/обводку (чтобы не конфликтовать с --km-card/--km-border). */
+.ke-pv-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+/* Редизайн 233 (Pass 2): верхняя строка — голоса слева, кнопка «Прослушать в плеере» справа. */
+.ke-pv-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
   flex-wrap: wrap;
-  justify-content: center;
+}
+.ke-pv-header .ke-voice-tabs {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.ke-pv-header .ke-player-toggle {
+  flex: 0 0 auto;
 }
 .ke-voice-tab {
   border: 1px solid var(--km-border);
@@ -1499,11 +1569,14 @@ export default {
   background: var(--km-card);
   border: 1px solid var(--km-border);
   border-radius: 16px;
-  min-height: 96px;
+  /* Редизайн 233 (Pass 3): убрана лишняя высота — min-height и padding давали пустоту вокруг
+     одной строки текста бегущей строки. Фон/обводка/скругление оставлены (в karaoke-public
+     они задаются CSS-переменными дизайн-системы, а не родительской карточкой как в admin). */
+  min-height: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1rem;
+  padding: 0.35rem 0.5rem;
   overflow: hidden;
 }
 .ke-tail-line {
@@ -1628,12 +1701,20 @@ export default {
   border-color: var(--km-accent);
 }
 
-/* Нарисованная клавиатура */
+/* Редизайн 233 (Pass 2): панель маркер-действий перенесена в .ke-transport, после
+   ползунка «Громкость». Три кнопки в одной строке без переноса. */
 .ke-kb-toolbar {
   display: flex;
   justify-content: center;
-  gap: 0.75rem;
-  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+.ke-kb-toolbar .ke-btn {
+  padding: 0.35rem 0.6rem;
+  font-size: 0.85rem;
+  white-space: nowrap;
 }
 .ke-typograph-error {
   align-self: center;
@@ -1761,6 +1842,8 @@ export default {
   border-radius: 12px;
   padding: 0.75rem;
   font-size: 0.95rem;
+  /* Pass 7 fix3: возвращено исходное поведение — автоподсчёт высоты. Убраны max-height,
+     flex: 1 1 auto. Только min-height: 520px и resize: vertical. */
   min-height: 520px;
   resize: vertical;
   line-height: 1.5;
@@ -1777,6 +1860,8 @@ export default {
   border: 1px solid var(--km-border);
   border-radius: 12px;
   padding: 0.75rem;
+  /* Pass 7 fix3: возвращено исходное поведение — автоподсчёт высоты. Убраны flex: 1 1 auto,
+     column-fill: balance. Оставлены min-height: 520px, max-height: 620px, column-fill: auto. */
   min-height: 520px;
   max-height: 620px;
   line-height: 1.6;

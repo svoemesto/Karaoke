@@ -1,7 +1,10 @@
 <template>
   <div class="ske-page">
-    <!-- Заголовок -->
-    <div class="ske-header">
+    <!-- Заголовок (редизайн 233: скрыт через v-if="false" — название и исполнитель уже
+         есть в шапке страницы/модалки «Машина Времени · редактирование песни».
+         DOM-блок сохранён, чтобы OQ-7 («что показывать в шапке?») можно было решить
+         в следующей итерации без восстановления шаблона.) -->
+    <div v-if="false" class="ske-header">
       <div class="ske-header-inner">
         <span class="ske-h-song" :title="songName">{{ songName }}</span>
         <span class="ske-h-author">{{ author }}</span>
@@ -16,148 +19,243 @@
       <strong>Возвращено на доработку:</strong> {{ reviewComment }}
     </div>
 
-    <!-- Превью в настоящем плеере (через KaraokePlayer — наш webvue3-плеер с inline-данными) -->
-    <div class="ske-player-toggle">
-      <button class="ske-btn ske-btn-ghost" :disabled="playerLoading" @click="togglePlayer">
-        {{ playerLoading ? 'Подготовка…' : showPlayer ? 'Скрыть плеер' : '▶ Прослушать в плеере' }}
-      </button>
-    </div>
-    <div v-if="showPlayer" class="ske-player-wrap">
-      <div ref="playerContainer" class="ske-player-container" />
-    </div>
-
-    <!-- Голоса: задание покрывает всю песню — переключение/добавление/удаление голосов -->
-    <div class="ske-voice-tabs">
-      <button
-        v-for="(v, i) in voices"
-        :key="i"
-        type="button"
-        class="ske-voice-tab"
-        :class="{ 'ske-voice-tab-active': currentVoiceIdx === i }"
-        @click="setCurrentVoice(i)"
-      >
-        Голос {{ i + 1 }}
-      </button>
-      <button
-        v-if="canEdit"
-        type="button"
-        class="ske-voice-tab ske-voice-tab-add"
-        @click="addVoice"
-      >
-        + Голос
-      </button>
-      <button
-        v-if="canEdit && voices.length > 1"
-        type="button"
-        class="ske-voice-tab ske-voice-tab-remove"
-        @click="removeLastVoice"
-      >
-        ✕ Удалить голос {{ voices.length }}
-      </button>
-    </div>
-
-    <!-- Вейвформа -->
-    <div class="ske-wave-card">
-      <div ref="waveform" class="ske-waveform" />
-      <div class="ske-time">{{ fmtTime(currentTime) }} / {{ fmtTime(duration) }}</div>
-    </div>
-
-    <!-- Бегущая строка -->
-    <div class="ske-tail-card">
-      <div class="ske-tail-line">
-        <span class="ske-tail-begin">{{ tail.begin }}</span>
-        <span class="ske-tail-curr">{{ tail.curr }}</span>
-        <span class="ske-tail-next">{{ tail.next }}</span>
-        <span class="ske-tail-end">{{ tail.end }}</span>
-      </div>
-    </div>
-
-    <!-- Транспорт -->
-    <div class="ske-transport">
-      <button class="ske-tbtn" title="Назад 1с (←)" @click="step(-1)">⏮</button>
-      <button
-        class="ske-tbtn ske-tbtn-play"
-        :title="isPlaying ? 'Пауза (Space/X)' : 'Играть (Space/X)'"
-        @click="playPause"
-      >
-        {{ isPlaying ? '⏸' : '▶' }}
-      </button>
-      <button class="ske-tbtn" title="Вперёд 1с (→)" @click="step(1)">⏭</button>
-
-      <div class="ske-sliders">
-        <label class="ske-slider">
-          <span>Скорость {{ playbackRate.toFixed(2) }}×</span>
-          <input
-            v-model.number="playbackRate"
-            type="range"
-            min="0.3"
-            max="1"
-            step="0.05"
-            @input="applyRate"
-          />
-        </label>
-        <label class="ske-slider">
-          <span>Масштаб</span>
-          <input
-            v-model.number="zoom"
-            type="range"
-            min="20"
-            max="400"
-            step="10"
-            @input="applyZoom"
-          />
-        </label>
-        <div class="ske-slider ske-sound-toggle">
-          <span>Стем</span>
-          <div class="ske-sound-btns">
-            <button
-              type="button"
-              class="ske-sound-btn"
-              :class="{ 'ske-sound-btn-active': activeSound === 'voice' }"
-              @click="setActiveSound('voice')"
-            >
-              Голос
-            </button>
-            <button
-              type="button"
-              class="ske-sound-btn"
-              :class="{ 'ske-sound-btn-active': activeSound === 'music' }"
-              @click="setActiveSound('music')"
-            >
-              Музыка
-            </button>
-          </div>
+    <!-- Редизайн 233: единая карточка «плеер + голоса + волна». Объединяет в одном визуальном
+         блоке: кнопку «Прослушать в плеере» (ske-player-toggle), плеер (ske-player-wrap),
+         переключатель голосов (ske-voice-tabs), вейвформу (ske-wave-card), бегущую строку
+         (ske-tail-card) и транспорт (ske-transport). Лёгкие border-top разделители между
+         дочерними блоками задаются в CSS через sibling-combinator. -->
+    <div class="ske-player-voice-wave-card">
+      <!-- Pass 2 (2026-08-15): верхняя строка карточки — голоса слева, кнопка «Прослушать в
+           плеере» справа, через flex space-between. -->
+      <div class="ske-pv-header">
+        <!-- Голоса: задание покрывает всю песню — переключение/добавление/удаление голосов -->
+        <div class="ske-voice-tabs">
+          <button
+            v-for="(v, i) in voices"
+            :key="i"
+            type="button"
+            class="ske-voice-tab"
+            :class="{ 'ske-voice-tab-active': currentVoiceIdx === i }"
+            @click="setCurrentVoice(i)"
+          >
+            Голос {{ i + 1 }}
+          </button>
+          <button
+            v-if="canEdit"
+            type="button"
+            class="ske-voice-tab ske-voice-tab-add"
+            @click="addVoice"
+          >
+            + Голос
+          </button>
+          <button
+            v-if="canEdit && voices.length > 1"
+            type="button"
+            class="ske-voice-tab ske-voice-tab-remove"
+            @click="removeLastVoice"
+          >
+            ✕ Удалить голос {{ voices.length }}
+          </button>
         </div>
-        <label class="ske-slider">
-          <span>Громкость {{ Math.round(volume * 100) }}%</span>
-          <input
-            v-model.number="volume"
-            type="range"
-            min="0"
-            max="1"
-            step="0.05"
-            @input="applyVolume"
-          />
-        </label>
+
+        <!-- Превью в настоящем плеере (через KaraokePlayer — наш webvue3-плеер с inline-данными) -->
+        <div class="ske-player-toggle">
+          <button class="ske-btn ske-btn-ghost" :disabled="playerLoading" @click="togglePlayer">
+            {{ playerLoading ? 'Подготовка…' : showPlayer ? 'Скрыть плеер' : '▶ Прослушать в плеере' }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Плеер-обёртка (опционально, по клику «Прослушать в плеере»). -->
+      <div v-if="showPlayer" class="ske-player-wrap">
+        <div ref="playerContainer" class="ske-player-container" />
+      </div>
+
+      <!-- Вейвформа -->
+      <div class="ske-wave-card">
+        <div ref="waveform" class="ske-waveform" />
+        <div class="ske-time">{{ fmtTime(currentTime) }} / {{ fmtTime(duration) }}</div>
+      </div>
+
+      <!-- Бегущая строка -->
+      <div class="ske-tail-card">
+        <div class="ske-tail-line">
+          <span class="ske-tail-begin">{{ tail.begin }}</span>
+          <span class="ske-tail-curr">{{ tail.curr }}</span>
+          <span class="ske-tail-next">{{ tail.next }}</span>
+          <span class="ske-tail-end">{{ tail.end }}</span>
+        </div>
+      </div>
+
+      <!-- Транспорт -->
+      <div class="ske-transport">
+        <button class="ske-tbtn" title="Назад 1с (←)" @click="step(-1)">⏮</button>
+        <button
+          class="ske-tbtn ske-tbtn-play"
+          :title="isPlaying ? 'Пауза (Space/X)' : 'Играть (Space/X)'"
+          @click="playPause"
+        >
+          {{ isPlaying ? '⏸' : '▶' }}
+        </button>
+        <button class="ske-tbtn" title="Вперёд 1с (→)" @click="step(1)">⏭</button>
+
+        <div class="ske-sliders">
+          <label class="ske-slider">
+            <span>Скорость {{ playbackRate.toFixed(2) }}×</span>
+            <input
+              v-model.number="playbackRate"
+              type="range"
+              min="0.3"
+              max="1"
+              step="0.05"
+              @input="applyRate"
+            />
+          </label>
+          <label class="ske-slider">
+            <span>Масштаб</span>
+            <input
+              v-model.number="zoom"
+              type="range"
+              min="20"
+              max="400"
+              step="10"
+              @input="applyZoom"
+            />
+          </label>
+          <div class="ske-slider ske-sound-toggle">
+            <span>Стем</span>
+            <div class="ske-sound-btns">
+              <button
+                type="button"
+                class="ske-sound-btn"
+                :class="{ 'ske-sound-btn-active': activeSound === 'voice' }"
+                @click="setActiveSound('voice')"
+              >
+                Голос
+              </button>
+              <button
+                type="button"
+                class="ske-sound-btn"
+                :class="{ 'ske-sound-btn-active': activeSound === 'music' }"
+                @click="setActiveSound('music')"
+              >
+                Музыка
+              </button>
+            </div>
+          </div>
+          <label class="ske-slider">
+            <span>Громкость {{ Math.round(volume * 100) }}%</span>
+            <input
+              v-model.number="volume"
+              type="range"
+              min="0"
+              max="1"
+              step="0.05"
+              @input="applyVolume"
+            />
+          </label>
+        </div>
+        <!-- Pass 2 (2026-08-15): панель маркер-действий перенесена в .ske-transport,
+             после ползунка «Громкость». Три кнопки в одном горизонтальном ряду без переноса. -->
+        <div v-if="canEdit" class="ske-kb-toolbar">
+          <button
+            type="button"
+            class="ske-btn ske-btn-ghost ske-kb-toggle"
+            @click="showKeyboard = !showKeyboard"
+          >
+            {{ showKeyboard ? 'Скрыть клавиатуру' : '⌨ Показать клавиатуру' }}
+          </button>
+          <button type="button" class="ske-btn ske-btn-ghost" @click="clearMarkers">
+            Очистить маркеры
+          </button>
+          <button type="button" class="ske-btn ske-btn-ghost" @click="doTypograph">Типограф</button>
+          <span v-if="typographError" class="ske-typograph-error">{{ typographError }}</span>
+        </div>
       </div>
     </div>
 
-    <!-- Тулбар клавиатуры-подсказки -->
-    <div v-if="canEdit" class="ske-kb-toolbar">
-      <button
-        type="button"
-        class="ske-btn ske-btn-ghost ske-kb-toggle"
-        @click="showKeyboard = !showKeyboard"
-      >
-        {{ showKeyboard ? 'Скрыть клавиатуру' : '⌨ Показать клавиатуру' }}
-      </button>
-      <button type="button" class="ske-btn ske-btn-ghost" @click="clearMarkers">
-        Очистить маркеры
-      </button>
-      <button type="button" class="ske-btn ske-btn-ghost" @click="doTypograph">Типограф</button>
-      <span v-if="typographError" class="ske-typograph-error">{{ typographError }}</span>
-    </div>
+    <!-- Редизайн 233 (FR-009): backdrop + кнопка-«бургер» для drawer'а правой колонки при
+         ширине окна <1024px. Toggle виден только в media-query (CSS), backdrop показывается
+         при rightDrawerOpen === true. Клик на backdrop закрывает drawer. -->
+    <div
+      v-if="rightDrawerOpen"
+      class="ske-drawer-backdrop"
+      @click="rightDrawerOpen = false"
+    />
+    <button
+      type="button"
+      class="ske-drawer-toggle ske-btn ske-btn-ghost"
+      aria-label="Открыть панель разметки"
+      @click="toggleRightDrawer"
+    >
+      ☰ Разметка
+    </button>
+
+    <!-- Редизайн 233: тулбар клавиатуры-подсказки (.ske-kb-toolbar) перенесён в .ske-transport
+         (см. выше — после ползунка «Громкость», Pass 2, 2026-08-15). -->
     <div v-if="canEdit && showKeyboard" class="ske-keyboard">
+      <!-- Редизайн 233: блок кнопок спецтегов перенесён сюда из левой колонки. Видимость
+           управляется единым toggle «Показать клавиатуру» (см. .ske-kb-toolbar в .ske-transport).
+           Быстрая вставка спецтегов (specs/010-lyrics-spec-tags/contracts/tag-registry.md) в
+           текст на месте курсора - альтернатива печатанию тега руками. -->
+      <div v-if="canEdit" class="ske-spectag-toolbar">
+        <button
+          type="button"
+          class="ske-spectag-btn"
+          title="Вставить тег новой строки (~newline~) - явный аналог пустой строки"
+          @click="onInsertSpecTag('newline')"
+        >
+          ¶ Новая строка
+        </button>
+        <button
+          type="button"
+          class="ske-spectag-btn"
+          title="Вставить алиас группы «Куплет» (~Куплет~ = ~group:0~)"
+          @click="onInsertSpecTag('куплет')"
+        >
+          Куплет
+        </button>
+        <button
+          type="button"
+          class="ske-spectag-btn"
+          title="Вставить алиас группы «Припев» (~Припев~ = ~group:1~)"
+          @click="onInsertSpecTag('припев')"
+        >
+          Припев
+        </button>
+        <button
+          type="button"
+          class="ske-spectag-btn"
+          title="Вставить алиас группы «Бридж» (~Бридж~ = ~group:2~)"
+          @click="onInsertSpecTag('бридж')"
+        >
+          Бридж
+        </button>
+        <button
+          type="button"
+          class="ske-spectag-btn"
+          title="Вставить алиас группы «Приговор» (~Приговор~ = ~group:3~)"
+          @click="onInsertSpecTag('приговор')"
+        >
+          Приговор
+        </button>
+        <button
+          type="button"
+          class="ske-spectag-btn"
+          title="Вставить тег группы №4 (~group:4~) - у этой группы нет человекочитаемого алиаса"
+          @click="onInsertSpecTag('group:4')"
+        >
+          Группа 4
+        </button>
+        <button
+          type="button"
+          class="ske-spectag-btn"
+          title="Вставить тег комментария (~comment:текст~)"
+          @click="onInsertSpecTagComment"
+        >
+          Комментарий…
+        </button>
+      </div>
       <div class="ske-kb-grid">
         <div v-for="(row, ri) in keyboardRows" :key="ri" class="ske-kb-row">
           <button
@@ -192,66 +290,8 @@
             <input v-model.number="textFontSize" type="range" min="6" max="36" step="1" />
           </label>
         </div>
-        <!-- Быстрая вставка спецтегов (specs/010-lyrics-spec-tags/contracts/tag-registry.md) в
-             текст на месте курсора - альтернатива печатанию тега руками. -->
-        <div v-if="canEdit" class="ske-spectag-toolbar">
-          <button
-            type="button"
-            class="ske-spectag-btn"
-            title="Вставить тег новой строки (~newline~) - явный аналог пустой строки"
-            @click="onInsertSpecTag('newline')"
-          >
-            ¶ Новая строка
-          </button>
-          <button
-            type="button"
-            class="ske-spectag-btn"
-            title="Вставить алиас группы «Куплет» (~Куплет~ = ~group:0~)"
-            @click="onInsertSpecTag('куплет')"
-          >
-            Куплет
-          </button>
-          <button
-            type="button"
-            class="ske-spectag-btn"
-            title="Вставить алиас группы «Припев» (~Припев~ = ~group:1~)"
-            @click="onInsertSpecTag('припев')"
-          >
-            Припев
-          </button>
-          <button
-            type="button"
-            class="ske-spectag-btn"
-            title="Вставить алиас группы «Бридж» (~Бридж~ = ~group:2~)"
-            @click="onInsertSpecTag('бридж')"
-          >
-            Бридж
-          </button>
-          <button
-            type="button"
-            class="ske-spectag-btn"
-            title="Вставить алиас группы «Приговор» (~Приговор~ = ~group:3~)"
-            @click="onInsertSpecTag('приговор')"
-          >
-            Приговор
-          </button>
-          <button
-            type="button"
-            class="ske-spectag-btn"
-            title="Вставить тег группы №4 (~group:4~) - у этой группы нет человекочитаемого алиаса"
-            @click="onInsertSpecTag('group:4')"
-          >
-            Группа 4
-          </button>
-          <button
-            type="button"
-            class="ske-spectag-btn"
-            title="Вставить тег комментария (~comment:текст~)"
-            @click="onInsertSpecTagComment"
-          >
-            Комментарий…
-          </button>
-        </div>
+        <!-- Редизайн 233: блок .ske-spectag-toolbar перенесён внутрь .ske-keyboard (см. ниже)
+             и виден только при showKeyboard === true. -->
         <textarea
           ref="sourceTextarea"
           v-model="sourceText"
@@ -263,7 +303,12 @@
           @input="onTextInput"
         />
       </div>
-      <div class="ske-text-col">
+      <div
+        class="ske-text-col"
+        :class="{ 'ske-drawer-open': rightDrawerOpen }"
+      >
+        <!-- Pass 2 (2026-08-15): панель маркер-действий перенесена в .ske-transport, после
+             ползунка «Громкость» (см. выше). Правая колонка теперь содержит только preview. -->
         <div class="ske-col-header">
           <div class="ske-col-title">Разметка</div>
           <label class="ske-font-slider">
@@ -352,7 +397,16 @@ const ALWAYS_ALLOWED_KEYS = new Set([
 /**
  * View-страница «Song Karaoke Editor» — основной layout и data-fetching.
  *
- * @see archive/docs/features/mlt-generator.md
+ * Редизайн (фича 233): три визуальные карточки (плеер+голоса+волна, текст,
+ * preview + панель маркер-действий), скрытие спецтегов за toggle «Показать
+ * клавиатуру», drawer при ширине окна <1024px, горизонтальный скролл
+ * переключателя голосов при >4 голосах. Функциональность и логика
+ * автосохранения (спека 232, LOCAL-БД) и регрессий спецтегов (спека 163)
+ * сохранены.
+ *
+ * @see livedocs/features/233-mini-editor-redesign.md
+ * @see livedocs/features/232-admin-song-editor-local-db.md
+ * @see livedocs/features/163-fix-song-editor-regressions.md
  */
 
 export default {
@@ -410,6 +464,9 @@ export default {
       playerLoading: false,
       redrawScheduled: false,
       typographError: '',
+      // Редизайн 233: drawer для правой колонки при ширине окна <1024px.
+      // Не персистится — только runtime-состояние UI.
+      rightDrawerOpen: false,
     }
   },
   computed: {
@@ -615,29 +672,43 @@ export default {
       const { default: WaveSurfer } = await import('wavesurfer.js')
       const { default: RegionsPlugin } = await import('wavesurfer.js/dist/plugins/regions.esm.js')
       const { default: Minimap } = await import('wavesurfer.js/dist/plugins/minimap.esm.js')
-      const styles = getComputedStyle(document.documentElement)
-      const accent = (
-        styles.getPropertyValue('--bs-primary') ||
-        styles.getPropertyValue('--km-accent') ||
-        '#3b82f6'
-      ).trim()
+      const { default: Hover } = await import('wavesurfer.js/dist/plugins/hover.esm.js')
 
       this.ws = WaveSurfer.create({
         container: this.$refs.waveform,
-        height: 140,
-        waveColor: '#9db4d6',
-        progressColor: accent,
-        cursorColor: '#ff5252',
-        cursorWidth: 2,
+        // Pass 4 (2026-08-15): паритет с SubsEdit — цвета, геометрия, Hover plugin.
+        height: 200,
+        waveColor: 'rgb(200, 0, 200)',
+        progressColor: 'rgb(100, 0, 100)',
+        cursorColor: 'rgb(255, 0, 0)',
+        cursorWidth: 3,
+        barWidth: 4,
+        barRadius: 2,
+        barHeight: 1,
         minPxPerSec: this.zoom,
         autoScroll: true,
         autoCenter: true,
+        autoCenterImmediately: true,
         normalize: true,
         plugins: [
           Minimap.create({
             height: 20,
             waveColor: 'rgb(255, 0, 0)',
             progressColor: 'rgb(100, 0, 100)',
+          }),
+          Hover.create({
+            lineColor: '#000000',
+            lineWidth: 2,
+            labelBackground: '#555',
+            labelColor: '#fff',
+            labelSize: '11px',
+            formatTimeCallback: (seconds) => {
+              // mm:ss.mmm — как на скриншоте SubsEdit («00:29.742»).
+              const mm = Math.floor(seconds / 60)
+              const ss = Math.floor(seconds % 60)
+              const ms = Math.floor((seconds - Math.floor(seconds)) * 1000)
+              return `${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}.${String(ms).padStart(3, '0')}`
+            },
           }),
         ],
       })
@@ -672,16 +743,21 @@ export default {
     },
     regionContentEl(marker) {
       const el = document.createElement('div')
-      el.style.fontSize = '9px'
-      el.style.fontWeight = '700'
-      el.style.padding = '1px 3px'
+      // Pass 5 (2026-08-15): бейджи слогов — паритет с SubsEdit.
+      // Pass 5 v2: бейдж по ширине слога (`width: fit-content`), не на всю ширину региона.
+      // SubsEdit использует display: block; width: fit-content — текст занимает ровно столько,
+      // сколько ему нужно.
+      el.style.fontWeight = 'normal'
       el.style.color = '#222'
+      el.style.lineHeight = '1.1'
       if (marker.markertype === 'syllables') {
         const label = document.createElement('span')
         label.style.backgroundColor = 'beige'
-        label.style.display = 'inline-block'
-        label.style.padding = '0 2px'
+        label.style.display = 'block'
+        label.style.width = 'fit-content'
+        label.style.padding = '2px 4px'
         label.style.whiteSpace = 'nowrap'
+        label.style.fontSize = '15px'
         label.textContent = (marker.label || '').replaceAll('_', ' ').trim() || '·'
         el.appendChild(label)
       } else if (marker.markertype === 'endofline') {
@@ -720,7 +796,8 @@ export default {
           id: m.uid,
           start: m.time,
           content: this.regionContentEl(m),
-          color: this.hexToRgba(m.color, 0.35),
+          // Pass 4 (2026-08-15): маркеры плотнее (0.7 вместо 0.35) — ближе к SubsEdit.
+          color: this.hexToRgba(m.color, 0.7),
           drag: this.canEdit,
           resize: false,
         })
@@ -998,6 +1075,11 @@ export default {
         this.playerLoading = false
       }
     },
+    // Редизайн 233: drawer правой колонки (preview + панель маркер-действий) при ширине окна
+    // <1024px. Состояние не персистится — только runtime-UI.
+    toggleRightDrawer() {
+      this.rightDrawerOpen = !this.rightDrawerOpen
+    },
     // Желаемая высота плеера = желаемая высота canvas (16:9) + фактическая высота controls.
     // Конкретный случай — handle window.resize: clientWidth wrap'а изменился, надо сохранить
     // пропорцию canvas 16:9 и при этом сохранить текущую высоту controls (она зависит от layout,
@@ -1220,6 +1302,50 @@ export default {
   padding: 0 0 0 0;
 }
 
+/* Редизайн 233: единая карточка «плеер + голоса + волна». Объединяет .ske-player-toggle,
+   .ske-voice-tabs, .ske-wave-card, .ske-tail-card, .ske-transport в один визуальный блок
+   с общим фоном/обводкой. Лёгкие border-top разделители между дочерними блоками. */
+.ske-player-voice-wave-card {
+  background: #ffffff;
+  border: 1px solid #e0e3eb;
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.5rem;
+  overflow: hidden;
+}
+.ske-player-voice-wave-card > * + * {
+  border-top: 1px solid #eef0f5;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+}
+/* Pass 3 (2026-08-15): бегущая строка (.ske-tail-card) — одна строка текста, ей не нужен
+   большой отступ сверху. Сжимаем разделитель, чтобы не было пустоты вокруг текста. */
+.ske-player-voice-wave-card > .ske-tail-card {
+  margin-top: 0.25rem;
+  padding-top: 0.25rem;
+}
+.ske-player-voice-wave-card > :first-child {
+  border-top: none;
+  margin-top: 0;
+  padding-top: 0;
+}
+/* Pass 2 (2026-08-15): верхняя строка карточки — голоса слева, кнопка «Прослушать в плеере»
+   справа, через flex space-between. Внутри: .ske-voice-tabs и .ske-player-toggle. */
+.ske-pv-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.ske-pv-header .ske-voice-tabs {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.ske-pv-header .ske-player-toggle {
+  flex: 0 0 auto;
+}
+
 /* Заголовок внутри редактора. Sticky-вариант из public не применяется — обёртка модальная. */
 .ske-header {
   background: #ffffff;
@@ -1325,8 +1451,21 @@ export default {
 .ske-voice-tabs {
   display: flex;
   gap: 0.5rem;
-  flex-wrap: wrap;
+  /* Редизайн 233 (FR-010, Q5): >4 голосов — горизонтальный скролл без переноса и без скрытия. */
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: thin;
   justify-content: center;
+}
+.ske-voice-tabs::-webkit-scrollbar {
+  height: 6px;
+}
+.ske-voice-tabs::-webkit-scrollbar-thumb {
+  background: #c8cadb;
+  border-radius: 3px;
+}
+.ske-voice-tabs::-webkit-scrollbar-track {
+  background: transparent;
 }
 .ske-voice-tab {
   border: 1px solid #c8cadb;
@@ -1365,14 +1504,14 @@ export default {
 
 /* Бегущая строка. */
 .ske-tail-card {
-  background: #ffffff;
-  border: 1px solid #c8cadb;
-  border-radius: 16px;
-  min-height: 96px;
+  /* Редизайн 233: фон/обводка/скругление теперь у родительской .ske-player-voice-wave-card.
+     Pass 3 (2026-08-15): убрана лишняя высота — min-height и padding давали пустоту вокруг
+     одной строки текста бегущей строки. */
+  min-height: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1rem;
+  padding: 0.35rem 0.5rem;
   overflow: hidden;
 }
 .ske-tail-line {
@@ -1403,9 +1542,7 @@ export default {
 
 /* Вейвформа. */
 .ske-wave-card {
-  background: #ffffff;
-  border: 1px solid #c8cadb;
-  border-radius: 16px;
+  /* Редизайн 233: фон/обводка/скругление теперь у родительской .ske-player-voice-wave-card. */
   padding: 0.75rem;
 }
 .ske-waveform {
@@ -1497,13 +1634,20 @@ export default {
   border-color: #5c4de0;
 }
 
-/* Нарисованная клавиатура-подсказка. Центрируется вся сетка, ряды прижаты к общему левому
-   краю относительно друг друга (align-items: flex-start), иначе сдвиги между рядами развалятся. */
+/* Pass 2 (2026-08-15): панель маркер-действий перенесена в .ske-transport, после ползунка
+   «Громкость». Три кнопки должны быть в одной строке без переноса. */
 .ske-kb-toolbar {
   display: flex;
   justify-content: center;
-  gap: 0.75rem;
-  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+.ske-kb-toolbar .ske-btn {
+  padding: 0.35rem 0.6rem;
+  font-size: 0.85rem;
+  white-space: nowrap;
 }
 .ske-typograph-error {
   align-self: center;
@@ -1674,6 +1818,8 @@ export default {
   border-radius: 12px;
   padding: 0.75rem;
   font-size: 0.95rem;
+  /* Pass 7 fix3: возвращено исходное поведение — автоподсчёт высоты. Убраны max-height,
+     flex: 1 1 auto, min-height: 0. Только min-height: 520px и resize: vertical. */
   min-height: 520px;
   resize: vertical;
   line-height: 1.5;
@@ -1694,6 +1840,8 @@ export default {
   border: 1px solid #c8cadb;
   border-radius: 12px;
   padding: 0.75rem;
+  /* Pass 7 fix3: возвращено исходное поведение — автоподсчёт высоты. Убраны max-height,
+     flex: 1 1 auto. Только min-height: 520px, column-fill: auto, overflow-y: auto. */
   min-height: 520px;
   max-height: 620px;
   line-height: 1.6;
@@ -1726,6 +1874,52 @@ export default {
   color: #d2691e;
   font-size: 0.78em;
   font-style: italic;
+}
+
+/* Редизайн 233 (FR-009, Q4): drawer для правой колонки при ширине окна <1024px. По умолчанию
+   toggle и backdrop скрыты, на десктопе колонка ведёт себя как обычный grid-child. */
+.ske-drawer-toggle {
+  display: none;
+}
+.ske-drawer-backdrop {
+  display: none;
+}
+
+@media (max-width: 1023.98px) {
+  .ske-drawer-toggle {
+    display: inline-flex;
+  }
+  .ske-texts {
+    /* На узком окне скрываем правую колонку из grid-flow; она всплывёт как fixed-drawer
+       при rightDrawerOpen === true. */
+    grid-template-columns: 1fr;
+  }
+  .ske-text-col:last-child {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 90vw;
+    max-width: 480px;
+    transform: translateX(100%);
+    transition: transform 0.2s ease-out;
+    z-index: 10;
+    background: #ffffff;
+    padding: 1rem;
+    overflow-y: auto;
+    box-shadow: -4px 0 16px rgba(0, 0, 0, 0.12);
+    border-left: 1px solid #e0e3eb;
+  }
+  .ske-text-col:last-child.ske-drawer-open {
+    transform: translateX(0);
+  }
+  .ske-drawer-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 9;
+  }
 }
 
 @media (max-width: 720px) {

@@ -237,6 +237,11 @@ jobs:
         # Исключения: templates (плейсхолдеры), runbooks/decisions (без frontmatter).
         run: bash tools/check-livedocs-cross-links.sh
 
+      - name: Check LiveDocs coverage
+        # tools/check-livedocs-coverage.sh — расширенная проверка покрытия LiveDocs
+        # (7 проверок: specs→LiveDoc, orphan LiveDoc, frontmatter, BC, cross-links, size, archive).
+        run: bash tools/check-livedocs-coverage.sh
+
       - name: Check LiveDocs external links (strict)
         # Проверяет ВНЕШНИЕ ссылки (https://) в LiveDocs через lychee.
         # Strict mode (exit ≠ 0 блокирует merge) — broken external = FAIL.

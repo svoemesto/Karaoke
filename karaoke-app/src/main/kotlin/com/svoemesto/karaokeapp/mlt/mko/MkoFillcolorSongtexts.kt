@@ -9,7 +9,7 @@ import com.svoemesto.karaokeapp.model.ProducerType
 /**
  * Producer для заливки цветом фона за текстом песни. Создаёт MLT-блоки с прямоугольником заданного цвета под текстом.
  *
- * @see docs/features/mlt-generator.md
+ * @see archive/docs/features/mlt-generator.md
  */
 data class MkoFillcolorSongtexts(
     val mltProp: MltProp,

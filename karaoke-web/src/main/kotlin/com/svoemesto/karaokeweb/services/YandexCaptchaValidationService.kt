@@ -10,7 +10,7 @@ import org.springframework.web.reactive.function.client.bodyToMono
 /**
  * Сервис для yandex captcha validation .
  *
- * @see docs/features/async-process-queue.md
+ * @see archive/archive/docs/features/async-process-queue.md
  */
 @Service
 class YandexCaptchaValidationService(

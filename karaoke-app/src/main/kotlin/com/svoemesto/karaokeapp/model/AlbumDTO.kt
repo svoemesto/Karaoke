@@ -6,7 +6,7 @@ import java.io.Serializable
 /**
  * DTO для album: сериализуемое представление для API/UI.
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  * @see specs/011-album-song-rename/contracts/api.md
  */
 data class AlbumDTO(

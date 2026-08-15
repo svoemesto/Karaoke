@@ -12,7 +12,7 @@ import java.time.Instant
 /**
  * Класс Uuids.
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  */
 class Uuids(
     var id: Int,

@@ -10,7 +10,7 @@ import com.svoemesto.karaokeapp.model.PropertiesMltNodeBuilder
 /**
  * Producer для аудио-слоя (vocals/accompaniment/mix/source) в karaoke-видео. Создаёт MLT-блоки для загрузки FLAC-стемов и их синхронизации с таймлайном.
  *
- * @see docs/features/mlt-generator.md
+ * @see archive/docs/features/mlt-generator.md
  */
 data class MkoAudio(
     val mltProp: MltProp,

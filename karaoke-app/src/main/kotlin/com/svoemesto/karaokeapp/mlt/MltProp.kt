@@ -21,7 +21,7 @@ import com.svoemesto.karaokeapp.model.*
  * Используется всеми `MltGenerator` (см. пакет `mko`). Создаётся из
  * `Song` + `SongVersion` в `MltProp.getMltProp(...)`.
  *
- * @see docs/features/mlt-generator.md
+ * @see archive/docs/features/mlt-generator.md
  * @see `KaraokeProperties.kt` — дефолтные значения параметров.
  */
 data class MltProp(

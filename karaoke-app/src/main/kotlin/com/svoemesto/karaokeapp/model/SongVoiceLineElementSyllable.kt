@@ -7,7 +7,7 @@ import java.io.Serializable
 /**
  * Класс Setting Voice Line Element Syllable.
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  */
 data class SongVoiceLineElementSyllable(
     val rootId: Long,

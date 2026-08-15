@@ -13,7 +13,7 @@ import com.svoemesto.karaokeapp.model.childs
 /**
  * Базовый элемент визуального слоя (родитель для текста, аккордов, нот). Содержит общие параметры: позиция, цвет, шрифт, transform-properties.
  *
- * @see docs/features/mlt-generator.md
+ * @see archive/docs/features/mlt-generator.md
  */
 data class MkoElement(
     val mltProp: MltProp,

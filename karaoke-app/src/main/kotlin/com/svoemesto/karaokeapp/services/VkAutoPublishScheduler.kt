@@ -30,7 +30,7 @@ import java.util.concurrent.ConcurrentHashMap
  * FR-006 rate limit: бот считает свои посты за последний час и переносит остаток
  * на следующий тик (`vkAutoPublishRateLimitPerHour`).
  *
- * @see docs/features/vk-news-auto-publish.md
+ * @see archive/docs/features/vk-news-auto-publish.md
  */
 @Component
 class VkAutoPublishScheduler {

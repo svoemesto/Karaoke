@@ -20,7 +20,7 @@ import org.springframework.stereotype.Component
  * «Опубликовать во ВК (premium)») работает независимо от `vkAutoPublishEnabled` —
  * он всегда доступен.
  *
- * @see docs/features/vk-news-auto-publish.md
+ * @see archive/docs/features/vk-news-auto-publish.md
  */
 @Component
 class VkAutoPublishSchedulerStarter {

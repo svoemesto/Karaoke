@@ -19,7 +19,7 @@ import java.io.Serializable
  * Синхронизируется LOCAL↔SERVER через `GenericKaraokeDbTableSyncTarget<SongCoAuthor>`
  * (`key = "songcoauthors"`).
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  * @see specs/011-album-song-rename/data-model.md
  */
 @JsonIgnoreProperties(value = ["database", "sqlToInsert"])

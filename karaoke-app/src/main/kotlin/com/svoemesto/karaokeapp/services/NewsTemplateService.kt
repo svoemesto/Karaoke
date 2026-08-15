@@ -48,7 +48,7 @@ import com.svoemesto.karaokeapp.model.Song
  * **НЕ включено**: `{demoVideo}` — маркер для прикрепления медиа к посту
  * ВК/Telegram; для `tbl_news` не имеет смысла.
  *
- * @see docs/features/news-templates.md
+ * @see archive/docs/features/news-templates.md
  */
 object NewsTemplateService {
     /** Лимит длины `tbl_news.title` (VARCHAR(500)). Превышение → усечение с `…` (FR-010a, Edge Cases). */

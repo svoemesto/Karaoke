@@ -29,7 +29,7 @@ import org.springframework.web.bind.annotation.RestController
  * Контроллер (HTTP endpoints) для internal stats .
  *
  * @see AGENTS.md
- * @see docs/features/song-free-access.md
+ * @see archive/docs/features/song-free-access.md
  */
 @RestController
 @RequestMapping("/api/internal/stats")

@@ -84,10 +84,10 @@ repos:
       # === Markdown: проверка per-feature документов (6 секций, slug, status) ===
       - id: check-feature-doc
         name: check per-feature document structure
-        entry: bash -c './tools/check-feature-doc.sh docs/features/*.md'
+        entry: bash -c './tools/check-feature-doc.sh archive/docs/features/*.md'
         language: system
         pass_filenames: false
-        files: '^docs/features/.*\.md$'
+        files: '^archive/docs/features/.*\.md$'
         stages: [pre-commit]
 
       # === LiveDocs: проверка структуры (7 проверок) ===
@@ -112,14 +112,14 @@ repos:
         stages: [pre-commit]
 
       # === LiveDocs: проверка coverage (specs ↔ livedocs) ===
-      # Запускается ТОЛЬКО при изменении specs/ или livedocs/features/.
+      # Запускается ТОЛЬКО при изменении specs/ или livearchive/docs/features/.
       # Проверяет, что для каждой спеки есть соответствующая LiveDoc-сводка.
       - id: check-livedocs-coverage
         name: LiveDocs coverage (specs ↔ features)
         entry: bash -c 'bash tools/check-livedocs-coverage.sh'
         language: system
         pass_filenames: false
-        files: '^(specs/[0-9]+-|livedocs/features/).*'
+        files: '^(specs/[0-9]+-|livearchive/docs/features/).*'
         stages: [pre-commit]
 
       # === LiveDocs: проверка Mermaid-блоков ===

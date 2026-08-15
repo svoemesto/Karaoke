@@ -33,8 +33,8 @@ import java.util.concurrent.atomic.AtomicInteger
 /**
  * Singleton-объект Stat By Song.
  *
- * @see docs/features/dual-db-sync.md
- * @see docs/features/song-free-access.md
+ * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/song-free-access.md
  */
 object StatBySong {
     private val cachedTotal = AtomicInteger(-1)

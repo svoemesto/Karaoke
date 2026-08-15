@@ -11,7 +11,7 @@ import javax.imageio.ImageIO
 /**
  * Изображение аккордной диаграммы (PNG/JPG из MinIO). Создаёт MLT-блоки с producer для рендера картинки аккорда.
  *
- * @see docs/features/mlt-generator.md
+ * @see archive/docs/features/mlt-generator.md
  */
 data class MkoChordPictureImage(
     val mltProp: MltProp,

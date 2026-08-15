@@ -30,8 +30,8 @@ import java.time.Instant
  *  - SQL-ошибки логируются через SLF4J `log.warn(...)` с указанием Exception.
  *  - Scheduler НЕ бросает исключение — иначе Spring может выключить задачу.
  *
- * @see docs/features/site-traffic-resilience.md
- * @see docs/features/dual-db-sync.md (контекст почему tbl_events НЕ синхронизируется)
+ * @see archive/archive/docs/features/site-traffic-resilience.md
+ * @see archive/archive/docs/features/dual-db-sync.md (контекст почему tbl_events НЕ синхронизируется)
  */
 @Component
 class EventsRetentionScheduler(

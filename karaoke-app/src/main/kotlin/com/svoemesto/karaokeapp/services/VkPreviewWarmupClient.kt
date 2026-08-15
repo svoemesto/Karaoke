@@ -23,7 +23,7 @@ import javax.imageio.ImageIO
  * @property bytes Размер тела ответа (0 при ошибке).
  * @property durationMs Длительность прогрева для диагностики гипотезы.
  * @error Краткая причина без токенов и путей к файлам.
- * @see docs/features/vk-news-auto-publish.md
+ * @see archive/docs/features/vk-news-auto-publish.md
  */
 data class VkPreviewWarmupResult(
     val status: VkPreviewWarmupStatus,
@@ -84,7 +84,7 @@ enum class VkPreviewWarmupStatus {
  * - PNG валидируется по `Content-Type: image/png` И `ImageIO.read`.
  * - Тело ответа и тела ошибок НЕ логируются (только метаданные).
  *
- * @see docs/features/vk-news-auto-publish.md
+ * @see archive/docs/features/vk-news-auto-publish.md
  */
 class VkPreviewWarmupClient(
     private val baseUrl: String = KaraokeProperties.getString("vkPreviewWarmupUrl").trim().trimEnd('/'),

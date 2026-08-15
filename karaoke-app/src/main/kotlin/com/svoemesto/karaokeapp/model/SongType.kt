@@ -10,7 +10,7 @@ import java.io.Serializable
 /**
  * Перечисление возможных значений для song type.
  *
- * @see docs/features/mlt-generator.md
+ * @see archive/docs/features/mlt-generator.md
  */
 @Suppress("unused")
 enum class SongType(

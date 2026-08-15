@@ -4,7 +4,7 @@ package com.svoemesto.karaokeweb.util
 // Используются в JSON-ответах эндпоинтов `/api/public/share/*` и
 // `/api/siteusers/share/*` под ключом `errorCode`. На фронте модалки владельца
 // и ShareView.vue показывают пользовательские тексты по этим кодам.
-// См. docs/features/guest-share-link.md.
+// См. archive/docs/features/guest-share-link.md.
 
 enum class ShareErrorCode(
     val dbValue: String,

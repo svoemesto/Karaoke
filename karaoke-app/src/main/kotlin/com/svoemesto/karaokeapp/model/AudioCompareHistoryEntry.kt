@@ -4,7 +4,7 @@ package com.svoemesto.karaokeapp.model
 /**
  * Класс Audio Compare History Entry.
  *
- * @see docs/features/monitoring.md
+ * @see archive/docs/features/monitoring.md
  */
 data class AudioCompareHistoryEntry(
     val id: Long,

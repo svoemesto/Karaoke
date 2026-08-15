@@ -5,7 +5,7 @@ import java.io.Serializable
 /**
  * Класс Transform Property.
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  */
 data class TransformProperty(
     val time: String = "",

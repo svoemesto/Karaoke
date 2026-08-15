@@ -13,7 +13,7 @@ import java.sql.Timestamp
 /**
  * Brief DTO задания для встраивания в публичные ответы (Закрома, статус-чек и т.п.).
  *
- * @see docs/features/editor-tasks.md#self-assign
+ * @see archive/archive/docs/features/editor-tasks.md#self-assign
  */
 data class SongAssignmentBriefDto(
     @get:com.fasterxml.jackson.annotation.JsonProperty("id")

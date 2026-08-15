@@ -204,7 +204,7 @@ class PublicApiController(
         )
         // specialBucket=true — виртуальная плашка «Отдельные песни разных авторов»: все
         // is_special_order=true авторы одним запросом, вместо N+1 по каждому автору отдельно.
-        // @see docs/features/special-orders.md
+        // @see archive/docs/features/special-orders.md
         // Публичная поверхность прода — показываем только готовые песни (specs/013-song-status-filter),
         // кроме "редактора" — для него фильтр по статусу снят (specs/017-editor-status-bypass).
         val onlyPublished = onlyPublishedFor(request)
@@ -249,7 +249,7 @@ class PublicApiController(
      * Без этой правки nginx буферизует chunked-ответ и фронт получит весь
      * массив одним блоком — никакого «real-time» не будет.
      *
-     * @see docs/features/zakroma-stream-progress.md
+     * @see archive/docs/features/zakroma-stream-progress.md
      */
     @GetMapping("/zakroma/stream", produces = ["application/x-ndjson"])
     fun zakromaStream(
@@ -357,7 +357,7 @@ class PublicApiController(
                             // album message — метаданные (без albumSettings, FR-BE-003).
                             // Album маркирует границу группы: фронт ожидает его ДО своих
                             // song-сообщений (sequential grouping, см.
-                            // docs/features/zakroma-stream-progress.md). Поэтому ПЕРЕД album
+                            // archive/docs/features/zakroma-stream-progress.md). Поэтому ПЕРЕД album
                             // сбрасываем накопленные песни предыдущего альбома (если есть) —
                             // иначе они придут в одном TCP-чанке с album'ом нового альбома и
                             // фронт обработает их как песни нового альбома.
@@ -462,7 +462,7 @@ class PublicApiController(
      * **Совместимо с `sendBeacon`**: `Content-Type`=`application/json`,
      * `Keep-Alive` через `keepalive: true` fallback.
      *
-     * @see docs/features/zakroma-stream-progress.md
+     * @see archive/docs/features/zakroma-stream-progress.md
      */
     @PostMapping("/zakroma/stream/metrics")
     fun zakromaStreamMetrics(
@@ -658,7 +658,7 @@ class PublicApiController(
      * [com.svoemesto.karaokeweb.services.RateLimitInterceptor], зарегистрированный в
      * `WebMvcConfig` (см. `site-traffic-resilience.md` / FR-010 / SC-008).
      *
-     * @see docs/features/site-traffic-resilience.md (FR-010)
+     * @see archive/archive/docs/features/site-traffic-resilience.md (FR-010)
      */
     @GetMapping("/song-picture/{id}")
     fun songPicture(
@@ -728,7 +728,7 @@ class PublicApiController(
      * [com.svoemesto.karaokeweb.services.RateLimitInterceptor], зарегистрированный в
      * `WebMvcConfig` (см. `site-traffic-resilience.md` / FR-010 / SC-008).
      *
-     * @see docs/features/site-traffic-resilience.md (FR-010)
+     * @see archive/archive/docs/features/site-traffic-resilience.md (FR-010)
      */
     @GetMapping("/song-vk-image/{id}")
     fun songVkImage(

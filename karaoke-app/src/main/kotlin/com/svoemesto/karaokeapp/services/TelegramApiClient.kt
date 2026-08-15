@@ -19,7 +19,7 @@ import java.time.Duration
 /**
  * Класс Telegram Chat.
  *
- * @see docs/features/async-process-queue.md
+ * @see archive/archive/docs/features/async-process-queue.md
  */
 @Serializable
 data class TelegramChat(
@@ -31,7 +31,7 @@ data class TelegramChat(
 /**
  * Класс Telegram Message.
  *
- * @see docs/features/async-process-queue.md
+ * @see archive/archive/docs/features/async-process-queue.md
  */
 @Serializable
 data class TelegramMessage(
@@ -45,7 +45,7 @@ data class TelegramMessage(
 /**
  * Класс Telegram Update.
  *
- * @see docs/features/async-process-queue.md
+ * @see archive/archive/docs/features/async-process-queue.md
  */
 @Serializable
 data class TelegramUpdate(
@@ -56,7 +56,7 @@ data class TelegramUpdate(
 /**
  * Класс Telegram Updates Response.
  *
- * @see docs/features/async-process-queue.md
+ * @see archive/archive/docs/features/async-process-queue.md
  */
 @Serializable
 data class TelegramUpdatesResponse(
@@ -73,7 +73,7 @@ data class TelegramUpdatesResponse(
  * retryable (429/5xx) vs non-retryable (400/403/404) — см. retry-цикл в
  * [TelegramApiClient.sendVideo].
  *
- * @see docs/features/telegram-auto-publish.md
+ * @see archive/docs/features/telegram-auto-publish.md
  */
 @Serializable
 data class TelegramSendVideoResponse(
@@ -86,7 +86,7 @@ data class TelegramSendVideoResponse(
 /**
  * Внутренний `result` sendVideo — нужен только `message_id`.
  *
- * @see docs/features/telegram-auto-publish.md
+ * @see archive/docs/features/telegram-auto-publish.md
  */
 @Serializable
 data class TelegramSendVideoResult(
@@ -106,7 +106,7 @@ data class TelegramSendVideoResult(
 /**
  * Класс Telegram Api Client.
  *
- * @see docs/features/async-process-queue.md
+ * @see archive/archive/docs/features/async-process-queue.md
  */
 class TelegramApiClient {
     private val json = Json { ignoreUnknownKeys = true }
@@ -226,7 +226,7 @@ class TelegramApiClient {
      * @return `PUBLISHED` с `messageId` при успехе; `SEND_FAILED` с `error` при исчерпании ретраев
      *   или превышении размера файла
      *
-     * @see docs/features/telegram-auto-publish.md
+     * @see archive/docs/features/telegram-auto-publish.md
      */
     fun sendVideo(
         channelId: String,

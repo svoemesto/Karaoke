@@ -26,7 +26,7 @@ import java.time.Instant
 /**
  * Singleton-объект Prod Container Check.
  *
- * @see docs/features/monitoring.md
+ * @see archive/docs/features/monitoring.md
  */
 object ProdContainerCheck : MonitorCheck {
     private const val PING_URL = "https://sm-karaoke.ru/"

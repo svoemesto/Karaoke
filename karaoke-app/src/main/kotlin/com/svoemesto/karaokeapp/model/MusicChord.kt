@@ -16,8 +16,8 @@ import kotlin.math.absoluteValue
  *
  * Также `Fingerboard` (data class) — позиция на грифе.
  *
- * @see docs/features/mlt-generator.md
- * @see docs/features/llm-lyrics-search.md (парсинг аккордов)
+ * @see archive/docs/features/mlt-generator.md
+ * @see archive/docs/features/llm-lyrics-search.md (парсинг аккордов)
  */
 enum class MusicChord(
     val text: String,
@@ -817,7 +817,7 @@ enum class MusicChord(
 /**
  * Класс Fingerboard.
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  */
 data class Fingerboard(
     val guitarString: GuitarString,

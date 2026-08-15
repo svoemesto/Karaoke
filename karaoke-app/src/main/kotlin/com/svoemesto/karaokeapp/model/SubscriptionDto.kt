@@ -6,7 +6,7 @@ import java.io.Serializable
 /**
  * DTO для subscription: сериализуемое представление для API/UI.
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  */
 data class SubscriptionDto(
     val id: Long = 0,

@@ -16,7 +16,7 @@ import java.nio.charset.StandardCharsets
  * FR-BE-003: out of scope — `albumSettings` в NDJSON-стриме **не передаются**;
  * фронт собирает свою статистику альбома из полученных `song`-сообщений.
  *
- * @see docs/features/zakroma-stream-progress.md
+ * @see archive/docs/features/zakroma-stream-progress.md
  */
 data class ZakromaAlbumMetaPublicDto(
     val albumName: String,

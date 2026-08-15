@@ -8,7 +8,7 @@ import java.io.Serializable
 /**
  * Класс Setting Voice Line Element.
  *
- * @see docs/features/mlt-generator.md
+ * @see archive/docs/features/mlt-generator.md
  */
 data class SongVoiceLineElement(
     val rootId: Long,

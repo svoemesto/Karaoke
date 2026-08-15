@@ -12,7 +12,7 @@ package com.svoemesto.karaokeapp.services
  * синхронный ответ вызывающему коду (scheduler'у или endpoint'у
  * «Опубликовать во ВК (air/premium)»).
  *
- * @see docs/features/vk-news-auto-publish.md
+ * @see archive/docs/features/vk-news-auto-publish.md
  */
 data class VkAutoPublishResult(
     val state: VkAutoPublishState,

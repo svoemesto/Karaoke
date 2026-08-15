@@ -14,7 +14,7 @@ package com.svoemesto.karaokeapp.model
  * значениями enum + новыми ключами `vkTemplate<Name>` в KaraokeProperties,
  * без структурных изменений.
  *
- * @see docs/features/vk-news-auto-publish.md
+ * @see archive/docs/features/vk-news-auto-publish.md
  */
 enum class PublicationType(
     val code: String,

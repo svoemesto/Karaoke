@@ -27,7 +27,7 @@ fun String.wrapInQuotes(): String {
  * именно "голого" фрагмента имени файла песни (без пути) — см.
  * [sanitizeSongFileName].
  *
- * @see docs/features/async-process-queue.md
+ * @see archive/archive/docs/features/async-process-queue.md
  */
 fun String.rightFileNameSymbols(): String =
     this
@@ -49,7 +49,7 @@ fun String.rightFileNameSymbols(): String =
  * и т.п.) НЕ трогаются — они либо структурно значимы для парсинга шаблона
  * имени файла (FR-003), либо не являются проблемными символами (FR-012).
  *
- * @see docs/features/async-process-queue.md
+ * @see archive/archive/docs/features/async-process-queue.md
  */
 fun String.sanitizeSongFileName(): String =
     this

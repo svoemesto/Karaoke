@@ -33,7 +33,7 @@ suspend fun main000() {
  * (`KaraokeProperties.lyricsSearchEngine`) или явно для конкретного запуска
  * (specs/015-search-engine-selection).
  *
- * @see docs/features/llm-lyrics-search.md
+ * @see archive/docs/features/llm-lyrics-search.md
  */
 enum class LyricsSearchEngine {
     YANDEX_SYNC,
@@ -47,7 +47,7 @@ enum class LyricsSearchEngine {
  * `KaraokeProperties.lyricsSearchEngine`; некорректное/отсутствующее значение (в обоих
  * источниках) — фолбэк на [LyricsSearchEngine.FOURGET] (specs/015-search-engine-selection).
  *
- * @see docs/features/llm-lyrics-search.md
+ * @see archive/docs/features/llm-lyrics-search.md
  */
 fun resolveLyricsSearchEngine(engine: String? = null): LyricsSearchEngine =
     (engine ?: KaraokeProperties.getString("lyricsSearchEngine")).let {
@@ -87,7 +87,7 @@ fun parseHtmlUrls(xmlText: String): List<String> {
 /**
  * Класс Find Song Result.
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  */
 @Serializable
 data class FindSongResult(
@@ -123,7 +123,7 @@ fun getIamToken(): String {
  * "текста ещё нет" — пустую строку `""` и значение-заглушку `["\"\"]"`) — НЕ дублировать эту
  * проверку через `sourceText.isBlank()` в новом коде.
  *
- * @see docs/features/llm-lyrics-search.md
+ * @see archive/docs/features/llm-lyrics-search.md
  */
 fun applyFoundLyricsIfMissing(
     song: Song,
@@ -148,7 +148,7 @@ fun applyFoundLyricsIfMissing(
  * обойти кэширующую проверку «уже есть запрос — вернуть его», которая иначе сработала бы
  * и в [getYandexSearch], и в [getLyricsSearchViaSearchTool].
  *
- * @see docs/features/llm-lyrics-search.md
+ * @see archive/docs/features/llm-lyrics-search.md
  */
 fun getLyricsSearch(
     song: Song,
@@ -173,7 +173,7 @@ fun getLyricsSearch(
  * см. [getLyricsSearch]) — прежнее тело `getSearXNGSearch`, параметризованное выбором
  * между [LyricsFinderService.searchUrlsViaSearxng] и [LyricsFinderService.searchUrls] (fourget).
  *
- * @see docs/features/llm-lyrics-search.md
+ * @see archive/docs/features/llm-lyrics-search.md
  */
 private fun getLyricsSearchViaSearchTool(
     song: Song,
@@ -518,7 +518,7 @@ fun findSongText(
 /**
  * Класс Api Response Sync.
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  */
 @Serializable
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -530,7 +530,7 @@ data class ApiResponseSync(
 /**
  * Класс Api Response Async.
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  */
 @Serializable
 @JsonIgnoreProperties(ignoreUnknown = true)

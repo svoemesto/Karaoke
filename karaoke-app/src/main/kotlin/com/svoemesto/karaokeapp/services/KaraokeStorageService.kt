@@ -29,7 +29,7 @@ import java.util.concurrent.TimeUnit
  * Все операции логируют через `logger` (stdout) — это помогает
  * диагностировать проблемы с правами доступа на проде.
  *
- * @see docs/features/premium-stems.md
+ * @see archive/docs/features/premium-stems.md
  */
 interface KaraokeStorageService {
     fun uploadFile(
@@ -119,7 +119,7 @@ interface KaraokeStorageService {
 /**
  * Класс Storage File Info.
  *
- * @see docs/features/async-process-queue.md
+ * @see archive/archive/docs/features/async-process-queue.md
  */
 data class StorageFileInfo(
     val bucketName: String,
@@ -146,7 +146,7 @@ data class StorageFileInfo(
  * @property storagePortInsideContainer порт MinIO внутри Docker-сети.
  * @property storagePortHost порт MinIO на host (для presigned URL).
  * @property storagePublicHost публичный hostname для presigned URL.
- * @see docs/features/premium-stems.md
+ * @see archive/docs/features/premium-stems.md
  */
 @Service
 class KaraokeStorageServiceImpl(

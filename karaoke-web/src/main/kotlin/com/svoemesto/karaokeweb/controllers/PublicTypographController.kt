@@ -31,7 +31,7 @@ import org.springframework.web.bind.annotation.ResponseBody
  * `karaoke-app` остаётся рабочим для админки (`webvue3` → nginx → `karaoke-app:8898`),
  * дублирование намеренное.
  *
- * @see docs/features/editor-tasks.md
+ * @see archive/archive/docs/features/editor-tasks.md
  */
 @Controller
 class PublicTypographController {

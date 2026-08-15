@@ -9,7 +9,7 @@ import com.svoemesto.karaokeapp.model.*
 /**
  * Producer для одной ноты мелодии (знак ноты на грифе + лейбл). Создаёт MLT-блоки для отображения позиции ноты в текущий момент времени.
  *
- * @see docs/features/mlt-generator.md
+ * @see archive/docs/features/mlt-generator.md
  */
 data class MkoMelodyNote(
     val mltProp: MltProp,

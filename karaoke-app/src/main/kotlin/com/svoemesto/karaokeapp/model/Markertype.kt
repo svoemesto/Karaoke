@@ -3,7 +3,7 @@ package com.svoemesto.karaokeapp.model
 /**
  * Перечисление возможных значений для markertype.
  *
- * @see docs/features/mlt-generator.md
+ * @see archive/docs/features/mlt-generator.md
  */
 enum class Markertype(
     val value: String,

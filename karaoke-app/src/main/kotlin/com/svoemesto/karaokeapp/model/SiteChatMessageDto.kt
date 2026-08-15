@@ -9,7 +9,7 @@ import java.io.Serializable
 /**
  * DTO сообщения чата для API/UI.
  *
- * @see docs/features/sse-notifications.md
+ * @see archive/docs/features/sse-notifications.md
  */
 data class SiteChatMessageDto(
     val id: Long = 0,

@@ -6,7 +6,7 @@ import java.io.Serializable
 /**
  * DTO тарифа подписки для API/UI.
  *
- * @see docs/features/telegram-auto-publish.md
+ * @see archive/docs/features/telegram-auto-publish.md
  */
 data class PriceTariffDto(
     val id: Long = 0,

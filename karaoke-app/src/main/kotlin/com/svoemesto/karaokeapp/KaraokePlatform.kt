@@ -7,7 +7,7 @@ import com.svoemesto.karaokeapp.model.SongVersion
 /**
  * Перечисление возможных значений для karaoke platform.
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  */
 enum class KaraokePlatform(
     val id: Long,

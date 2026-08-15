@@ -12,7 +12,7 @@ import java.io.Serializable
  *
  * @property halfTones количество полутонов (0..12)
  * @property text русское название
- * @see docs/features/mlt-generator.md
+ * @see archive/docs/features/mlt-generator.md
  */
 enum class MusicInterval(
     val halfTones: Int,

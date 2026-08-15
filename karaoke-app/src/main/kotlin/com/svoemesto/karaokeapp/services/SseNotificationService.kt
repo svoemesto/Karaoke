@@ -15,7 +15,7 @@ import java.util.concurrent.ConcurrentHashMap
 /**
  * Класс Notification.
  *
- * @see docs/features/async-process-queue.md
+ * @see archive/archive/docs/features/async-process-queue.md
  */
 class Notification<out T>(
     @Suppress("unused") val userId: Long,
@@ -26,7 +26,7 @@ class Notification<out T>(
 /**
  * Класс User Key.
  *
- * @see docs/features/async-process-queue.md
+ * @see archive/archive/docs/features/async-process-queue.md
  */
 data class UserKey(
     val userId: Long,
@@ -40,7 +40,7 @@ data class UserKey(
 /**
  * Singleton-объект Tab Id Context.
  *
- * @see docs/features/async-process-queue.md
+ * @see archive/archive/docs/features/async-process-queue.md
  */
 object TabIdContext {
     private val tl = ThreadLocal<String?>()
@@ -75,13 +75,13 @@ object TabIdContext {
  *   прокси/клиент рвёт соединение по таймауту простоя (особенно когда
  *   [com.svoemesto.karaokeapp.KaraokeProcessWorker] остановлен).
  *
- * **Ловушки** (см. [docs/features/sse-notifications.md]):
+ * **Ловушки** (см. [archive/docs/features/sse-notifications.md]):
  * - `TabIdContext` живёт в `ThreadLocal` — должен очищаться после
  *   HTTP-запроса через `TabIdFilter` (OncePerRequestFilter).
  * - Длинные payload'ы (recordChange с большим `SongDTO`) могут
  *   рвать соединение — дробите на части.
  *
- * @see docs/features/sse-notifications.md
+ * @see archive/docs/features/sse-notifications.md
  * @see TabIdContext ThreadLocal с tabId текущего запроса
  * @see SseController REST-эндпоинт `/api/subscribe`
  */

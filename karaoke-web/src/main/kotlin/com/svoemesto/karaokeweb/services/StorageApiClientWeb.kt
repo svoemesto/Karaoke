@@ -23,7 +23,7 @@ import java.nio.file.Paths
 /**
  * Класс Storage Api Client Web.
  *
- * @see docs/features/async-process-queue.md
+ * @see archive/archive/docs/features/async-process-queue.md
  */
 @Service
 class StorageApiClientWeb(

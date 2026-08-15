@@ -20,7 +20,7 @@ const val PATH_TO_KARAOKE_PROPERTIES_FILE = "/sm-karaoke/system/Karaoke.properti
 /**
  * Класс Karaoke Properties.
  *
- * @see docs/features/async-process-queue.md
+ * @see archive/archive/docs/features/async-process-queue.md
  */
 class KaraokeProperties {
     companion object {
@@ -1845,7 +1845,7 @@ val listKaraokeProperties =
         // в группу ВК через wall.post + video.save (демо-MP4). Идемпотентность по Song.idVk (tbl_songs.id_vk).
         // Два типа публикаций: air (авто) и premium (ручной, кнопка в карточке песни). Каждый тип — свой
         // шаблон (vkTemplateAir / vkTemplatePremium) с плейсхолдерами {author}, {songName}, {songNameCensored}, {year}, {album}, {link}, {id}, {newsBody}, {descriptionHeader}, {descriptionFooter}, {description}, {descriptionWithTimecodes}.
-        // @see docs/features/vk-news-auto-publish.md
+        // @see archive/docs/features/vk-news-auto-publish.md
         KaraokeProperty(
             key = "vkAutoPublishEnabled",
             defaultValue = false,
@@ -1872,7 +1872,7 @@ val listKaraokeProperties =
             defaultValue = "",
             description =
                 "ВК: User access token (секрет, в git НЕ попадает) с scopes `video,photos,wall,offline`. " +
-                    "Получается через Implicit Flow Standalone-приложения VK (инструкция: `docs/features/vk-news-auto-publish.md`, " +
+                    "Получается через Implicit Flow Standalone-приложения VK (инструкция: `archive/docs/features/vk-news-auto-publish.md`, " +
                     "раздел \"User-token через Implicit Flow\"). Используется для: video.save и photos.*. " +
                     "Пусто = Vk-публикация работает только для премиум-выпусков (только текст через community-token).",
         ),
@@ -2029,7 +2029,7 @@ val listKaraokeProperties =
         // Бот синхронно прогревает публичный URL изображения до создания поста, чтобы VK-бот получил
         // готовый PNG без задержки первой генерации. Гипотеза: текущие публикации без превью связаны с
         // тем, что бот ВК не дожидается ответа первой генерации `/api/public/song-vk-image/{id}`.
-        // @see docs/features/vk-news-auto-publish.md
+        // @see archive/docs/features/vk-news-auto-publish.md
         KaraokeProperty(
             key = "vkPreviewWarmupEnabled",
             defaultValue = true,
@@ -2054,7 +2054,7 @@ val listKaraokeProperties =
         // Бот загружает PNG-обложку песни через photos.getWallUploadServer + photos.saveWallPhoto
         // (user-token, scope photos) и прикрепляет её к посту через attachments=photo<owner>_<id>.
         // При сбое photos.* методов — fallback на docs.* (community-token). При полном сбое —
-        // деградация (пост без превью). См. docs/features/vk-news-auto-publish.md.
+        // деградация (пост без превью). См. archive/docs/features/vk-news-auto-publish.md.
         KaraokeProperty(
             key = "vkPhotoAttachEnabled",
             defaultValue = true,

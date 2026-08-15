@@ -19,7 +19,7 @@
 
 **Актуальное состояние** — [`livedocs/CHANGELOG.md`](livedocs/CHANGELOG.md) (Pass 62+, semantic changelog).
 
-**Только если в LiveDocs нет** — лезь в `specs/<NNN>/spec.md`, `docs/features/*.md` (legacy), этот файл.
+**Только если в LiveDocs нет** — лезть в `specs/<NNN>/spec.md`, `archive/docs/features/*.md` (legacy drill-down), этот файл.
 
 ## LiveDocs CI / pre-commit
 
@@ -41,9 +41,9 @@
 | 3 | `CONTRIBUTING.md` | стиль кода |
 | 4 | `DEVELOPMENT.md` | архитектура + команды |
 | 5 | `specs/<NNN>-*/spec.md` | полные спеки (drill-down) |
-| 6 | `docs/features/*.md` | per-feature legacy drill-down |
-| 7 | `docs/architecture-notes.md` | датированный changelog |
-| 8 | `docs/strategy/growth.md` | стратегия роста |
+| 6 | `archive/docs/features/*.md` | per-feature legacy drill-down (после миграции Pass 51) |
+| 7 | `livedocs/architecture-notes.md` | датированный changelog (бывший docs/) |
+| 8 | `livedocs/strategy/growth.md` | стратегия роста (бывший docs/strategy/) |
 
 **При расхождении** — приоритет у файла с меньшим номером.
 
@@ -54,7 +54,7 @@
 | opencode (primary) | `AGENTS.md` | ✅ |
 | Claude Code, Cursor, Cody, Aider | локальные конфиги | ❌ |
 
-Setup — [`docs/onboarding.md`](docs/onboarding.md, `docs/claude-code-setup.md`).
+Setup — [`livedocs/onboarding.md`](livedocs/onboarding.md, [`livedocs/claude-code-setup.md`](livedocs/claude-code-setup.md)).
 
 ## Ограничения агента
 

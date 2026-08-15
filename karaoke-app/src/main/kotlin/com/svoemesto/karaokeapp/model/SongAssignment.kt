@@ -27,7 +27,7 @@ import java.sql.Timestamp
  *
  * При `APPROVED` → создаётся `KaraokeProcess` для финальной обработки.
  *
- * @see docs/features/async-process-queue.md
+ * @see archive/archive/docs/features/async-process-queue.md
  */
 class SongAssignment(
     override val database: KaraokeConnection = WORKING_DATABASE,

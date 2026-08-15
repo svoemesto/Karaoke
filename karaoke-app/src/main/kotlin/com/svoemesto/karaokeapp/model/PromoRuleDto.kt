@@ -6,7 +6,7 @@ import java.io.Serializable
 /**
  * DTO промо-правила для API/UI.
  *
- * @see docs/features/telegram-auto-publish.md
+ * @see archive/docs/features/telegram-auto-publish.md
  */
 data class PromoRuleDto(
     val id: Long = 0,

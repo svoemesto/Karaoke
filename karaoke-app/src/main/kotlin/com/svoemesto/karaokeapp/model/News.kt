@@ -35,9 +35,9 @@ import java.sql.Timestamp
  * in-memory Set в `VkAutoPublishScheduler` (News не имеет JSON-блоба для хранения
  * состояния, и добавлять его — избыточная миграция).
  *
- * @see docs/features/dual-db-sync.md
- * @see docs/features/telegram-auto-publish.md
- * @see docs/features/vk-news-auto-publish.md
+ * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/telegram-auto-publish.md
+ * @see archive/docs/features/vk-news-auto-publish.md
  */
 @JsonIgnoreProperties(value = ["database", "sqlToInsert"])
 class News(

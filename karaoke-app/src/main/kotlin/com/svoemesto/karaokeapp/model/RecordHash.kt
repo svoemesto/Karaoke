@@ -3,7 +3,7 @@ package com.svoemesto.karaokeapp.model
 /**
  * Класс Record Hash.
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  */
 data class RecordHash(
     val id: Long,

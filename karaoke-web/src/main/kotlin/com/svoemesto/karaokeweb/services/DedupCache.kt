@@ -15,7 +15,7 @@ import java.util.concurrent.atomic.AtomicLong
  * чтобы не раздувать карту при низкой активности. Это даёт O(1) среднюю стоимость и
  * O(1) amortized cleanup.
  *
- * Per-US3 dedup (см. `docs/features/site-traffic-resilience.md`):
+ * Per-US3 dedup (см. `archive/archive/docs/features/site-traffic-resilience.md`):
  *  - Ключ формируется в [SamplingFilter.shouldSkip] как `(restName, canonical(parameters), anonId-or-userId)`.
  *  - TTL управляется через [com.svoemesto.karaokeweb.services.KaraokeProperties.eventsDedupTtlSeconds].
  *  - Используется ТОЛЬКО для анонимных/логин-юзеров (для admin — пропуск через sampling rate 1/1).
@@ -24,7 +24,7 @@ import java.util.concurrent.atomic.AtomicLong
  * намеренный минимум зависимостей. Для текущей нагрузки (~30 req/min в пике) ConcurrentHashMap
  * с lazy cleanup достаточен — N записей при N=10k = ~500 KB heap.
  *
- * @see docs/features/site-traffic-resilience.md
+ * @see archive/archive/docs/features/site-traffic-resilience.md
  * @see SamplingFilter
  * @see KaraokeProperties
  */

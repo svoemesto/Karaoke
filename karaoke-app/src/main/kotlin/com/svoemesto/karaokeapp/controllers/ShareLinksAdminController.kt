@@ -34,7 +34,7 @@ import java.sql.Statement
  *
  * @see specs/171-admin-subscriptions-history/contracts/sharelinks-digest.md
  * @see AGENTS.md
- * @see docs/features/guest-share-link.md
+ * @see archive/docs/features/guest-share-link.md
  */
 @Controller
 @RequestMapping("/api/sharelinks")

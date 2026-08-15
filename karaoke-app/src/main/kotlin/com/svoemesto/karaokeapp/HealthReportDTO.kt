@@ -5,7 +5,7 @@ import java.io.Serializable
 /**
  * DTO для health report: сериализуемое представление для API/UI.
  *
- * @see docs/features/monitoring.md
+ * @see archive/docs/features/monitoring.md
  */
 data class HealthReportDTO(
     val songId: Long,

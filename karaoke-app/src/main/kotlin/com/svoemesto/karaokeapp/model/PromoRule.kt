@@ -25,7 +25,7 @@ import java.sql.Timestamp
  *
  * Применяется в `CartItem` → пересчёт цены через `applyPromoRule()`.
  *
- * @see docs/features/telegram-auto-publish.md
+ * @see archive/docs/features/telegram-auto-publish.md
  */
 class PromoRule(
     override val database: KaraokeConnection = WORKING_DATABASE,

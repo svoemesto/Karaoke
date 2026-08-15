@@ -5,7 +5,7 @@ import java.io.Serializable
 /**
  * Перечисление возможных значений для setting field.
  *
- * @see docs/features/mlt-generator.md
+ * @see archive/docs/features/mlt-generator.md
  */
 enum class SongField : Serializable {
     ID,

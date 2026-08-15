@@ -51,8 +51,8 @@ import javax.net.ssl.HttpsURLConnection
  * @property forceStopped взводится извне ДО убийства subprocess, чтобы
  *   завершение перевело задание в `WAITING` (а не в `DONE`/`ERROR`).
  * @property osProcess ссылка на OS-процесс для force-stop (`process.destroyForcibly()`).
- * @see docs/features/async-process-queue.md
- * @see docs/features/approve-pipeline.md (фича 131: пост-хук публикации в Telegram сразу после DONE для RENDER_MP4_DEMO)
+ * @see archive/archive/docs/features/async-process-queue.md
+ * @see archive/docs/features/approve-pipeline.md (фича 131: пост-хук публикации в Telegram сразу после DONE для RENDER_MP4_DEMO)
  * @see KaraokeProcessWorker главный воркер, создаёт и запускает потоки
  * @see KaraokeProcess модель задания
  */
@@ -60,7 +60,7 @@ import javax.net.ssl.HttpsURLConnection
 /**
  * Класс Karaoke Process Thread.
  *
- * @see docs/features/async-process-queue.md
+ * @see archive/archive/docs/features/async-process-queue.md
  */
 class KaraokeProcessThread(
     val karaokeProcess: KaraokeProcess? = null,
@@ -487,7 +487,7 @@ class KaraokeProcessThread(
  * `runningThreadsCheckCounter`, `threadsMap`) живут в `companion object`
  * и доступны из разных потоков (web-запросы, периодические scheduler'ы).
  *
- * Архитектура (см. [docs/features/async-process-queue.md]):
+ * Архитектура (см. [archive/archive/docs/features/async-process-queue.md]):
  * - `KaraokeProcessTypes` — enum типов заданий (ffmpeg, melt, Demucs, Sheetsage,
  *   UPLOAD_TO_REMOTE_STORE, KEY_BPM_FROM_FILE, STEM_JOB_DEMUCS2/5, RENDER_MP4_*).
  * - `THREAD_LANE_HEAVY_RENDER=0` — тяжёлые CPU-задачи (рендер MLT, MP4).
@@ -505,7 +505,7 @@ class KaraokeProcessThread(
  * - `runningThreadsCheckCounter` (каждые 50 итераций × 10мс = 500мс) — рассылает
  *   SSE `processWorkerState` для UI-прогресса.
  *
- * @see docs/features/async-process-queue.md
+ * @see archive/archive/docs/features/async-process-queue.md
  * @see KaraokeProcessThread обёртка subprocess
  * @see KaraokeProcess модель задания
  * @see KaraokeProcessTypes типы заданий
@@ -514,7 +514,7 @@ class KaraokeProcessThread(
 /**
  * Класс Karaoke Process Worker.
  *
- * @see docs/features/async-process-queue.md
+ * @see archive/archive/docs/features/async-process-queue.md
  */
 @Component
 class KaraokeProcessWorker {
@@ -558,7 +558,7 @@ class KaraokeProcessWorker {
          * (JMM не гарантирует visibility для обычного `var`).
          *
          * @see sendCountWaitingMessage
-         * @see docs/features/async-process-queue.md
+         * @see archive/archive/docs/features/async-process-queue.md
          */
         @Volatile private var lastSentCountWaiting: Long? = null
 
@@ -777,7 +777,7 @@ class KaraokeProcessWorker {
          *
          * @param countWaiting актуальное число WAITING-заданий
          * @see lastSentCountWaiting состояние «последнее отправленное»
-         * @see docs/features/async-process-queue.md
+         * @see archive/archive/docs/features/async-process-queue.md
          */
         fun sendCountWaitingMessage(countWaiting: Long) {
             // Подавление дублей: если значение не изменилось с прошлой отправки —

@@ -6,7 +6,7 @@ import java.io.Serializable
 /**
  * Класс Marker.
  *
- * @see docs/features/mlt-generator.md
+ * @see archive/docs/features/mlt-generator.md
  */
 data class Marker(
     val comment: String = "",

@@ -4,7 +4,7 @@ package com.svoemesto.karaokeapp.model
 /**
  * Класс Audio Analysis Result.
  *
- * @see docs/features/llm-lyrics-search.md
+ * @see archive/docs/features/llm-lyrics-search.md
  */
 data class AudioAnalysisResult(
     val bpm: Int? = null, // Используем Int, так как в скрипте bpm округляется до целого

@@ -30,8 +30,8 @@ import org.springframework.stereotype.Service
 /**
  * Класс Stats Cache Scheduler.
  *
- * @see docs/features/async-process-queue.md
- * @see docs/features/song-free-access.md
+ * @see archive/archive/docs/features/async-process-queue.md
+ * @see archive/docs/features/song-free-access.md
  */
 @Service
 class StatsCacheScheduler {

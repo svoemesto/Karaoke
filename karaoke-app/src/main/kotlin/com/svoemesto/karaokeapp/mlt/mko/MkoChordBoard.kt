@@ -9,7 +9,7 @@ import com.svoemesto.karaokeapp.model.*
 /**
  * Класс Mko Chord Board.
  *
- * @see docs/features/mlt-generator.md
+ * @see archive/docs/features/mlt-generator.md
  */
 data class MkoChordBoard(
     val mltProp: MltProp,

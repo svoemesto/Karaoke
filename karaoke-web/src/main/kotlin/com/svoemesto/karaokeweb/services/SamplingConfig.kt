@@ -15,7 +15,7 @@ package com.svoemesto.karaokeweb.services
  * **Dedup TTL** (FR-007): сколько секунд считать повторный запрос "тем же" — пропускать INSERT.
  * Per-(anonId/userId) scope (clarified Q2).
  *
- * @see docs/features/site-traffic-resilience.md
+ * @see archive/archive/docs/features/site-traffic-resilience.md
  * @see SamplingFilter
  * @see KaraokeProperties
  */

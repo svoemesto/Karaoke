@@ -12,7 +12,7 @@ import java.awt.Font
 /**
  * Класс Mko Header.
  *
- * @see docs/features/mlt-generator.md
+ * @see archive/docs/features/mlt-generator.md
  */
 data class MkoHeader(
     val mltProp: MltProp,

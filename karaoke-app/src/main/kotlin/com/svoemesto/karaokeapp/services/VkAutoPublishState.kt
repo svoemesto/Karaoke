@@ -17,7 +17,7 @@ package com.svoemesto.karaokeapp.services
  * хранится в `News.playerReadinessFlags` (аналогичный JSON-блоб), т.к. нет
  * песни для записи `idVk`.
  *
- * @see docs/features/vk-news-auto-publish.md
+ * @see archive/docs/features/vk-news-auto-publish.md
  */
 enum class VkAutoPublishState(
     val code: String,

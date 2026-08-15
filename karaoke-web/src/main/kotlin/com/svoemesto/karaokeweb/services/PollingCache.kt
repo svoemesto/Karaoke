@@ -24,7 +24,7 @@ import java.util.concurrent.atomic.AtomicLong
  *    с per-name CacheManager (overkill для нашего случая).
  *  - Явный `loader: () -> V` блок в коде контроллера делает cache-miss path очевидным.
  *
- * @see docs/features/site-traffic-resilience.md
+ * @see archive/archive/docs/features/site-traffic-resilience.md
  * @see KaraokeProperties
  */
 class PollingCache<V> {

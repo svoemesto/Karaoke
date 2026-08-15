@@ -23,7 +23,7 @@ import com.fasterxml.jackson.annotation.JsonInclude
  * - `error` — `{type, message}`. Отправляется при ошибке SQL/IO, HTTP 200
  *   (НЕ 500 — иначе fetch не сможет парсить тело).
  *
- * @see docs/features/zakroma-stream-progress.md
+ * @see archive/docs/features/zakroma-stream-progress.md
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 data class ZakromaStreamMessageDto(

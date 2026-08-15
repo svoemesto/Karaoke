@@ -59,7 +59,7 @@ import java.sql.Timestamp
  * Контроллер (HTTP/WebSocket endpoints) для song editor .
  *
  * @see AGENTS.md
- * @see docs/features/approve-pipeline.md (фича 131: helper `triggerRenderMp4DemoIfNeeded` + sync-related thread block в `approve()`)
+ * @see archive/docs/features/approve-pipeline.md (фича 131: helper `triggerRenderMp4DemoIfNeeded` + sync-related thread block в `approve()`)
  */
 @Controller
 @RequestMapping("/api/songeditor")
@@ -632,7 +632,7 @@ class SongEditorController(
      * `KaraokeDbTable.deleteIn`. Идемпотентно — повторный клик возвращает `ok: true, deleted: 0`.
      * Песня (`tbl_songs`) и разметка не трогаются.
      *
-     * @see docs/features/editor-tasks.md
+     * @see archive/archive/docs/features/editor-tasks.md
      */
     @PostMapping("/delete-approved")
     @ResponseBody
@@ -1015,7 +1015,7 @@ class SongEditorController(
 
     // AI-редактор текста (кнопка в SubsEdit.vue): исправление орфографии/пунктуации через LLM -
     // LM Studio, тот же клиент (LmStudioService), что и ScraperAgent для поиска текстов песен
-    // (см. docs/features/llm-lyrics-search.md). Ничего не сохраняет - фронт показывает результат
+    // (см. archive/docs/features/llm-lyrics-search.md). Ничего не сохраняет - фронт показывает результат
     // с подсветкой правок, применяет обычным Apply, сохраняет обычным Save.
     @PostMapping("/edit/correctText")
     @ResponseBody
@@ -1050,7 +1050,7 @@ class SongEditorController(
     //
     // Пост-хук публикации в Telegram живёт в KaraokeProcessThread.run() — не здесь.
     //
-    // @see docs/features/approve-pipeline.md
+    // @see archive/docs/features/approve-pipeline.md
     // @see specs/131-fix-approve-demo-render-telegram-sync/contracts/pipeline.md
     // @see specs/131-fix-approve-demo-render-telegram-sync/research.md (D-1, D-3)
     private fun triggerRenderMp4DemoIfNeeded(song: Song) {

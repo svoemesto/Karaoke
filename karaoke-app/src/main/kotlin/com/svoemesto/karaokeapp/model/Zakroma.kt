@@ -9,7 +9,7 @@ import java.io.Serializable
 /**
  * Класс Zakroma.
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  */
 class Zakroma(
     val database: KaraokeConnection,
@@ -23,7 +23,7 @@ class Zakroma(
          * определение «песня в коллекции», что уже используется для публичных счётчиков в
          * [StatBySong]). Публичные (проде) call-site'ы обязаны передавать true; admin-путь
          * оставляет значение по умолчанию (false), чтобы редакторы видели все песни.
-         * @see docs/features/special-orders.md
+         * @see archive/docs/features/special-orders.md
          */
         fun getZakroma(
             author: String,
@@ -49,13 +49,13 @@ class Zakroma(
          * Спецзаказные авторы («Отдельные песни разных авторов») одним SQL-запросом.
          *
          * Вместо N последовательных вызовов [getZakroma] на каждого спецзаказного автора
-         * (N+1, см. историю бага в docs/features/special-orders.md) грузит имена авторов
+         * (N+1, см. историю бага в archive/docs/features/special-orders.md) грузит имена авторов
          * с `is_special_order=true` один раз, затем все их песни одним запросом через
          * уже существующий `author_in`-фильтр [Song.getWhereList].
          *
          * @param onlyPublished при true — только песни со статусом готовности >= 6, см.
          * [getZakroma].
-         * @see docs/features/special-orders.md
+         * @see archive/docs/features/special-orders.md
          */
         fun getZakromaBySpecialOrder(
             database: KaraokeConnection,
@@ -99,8 +99,8 @@ class Zakroma(
          * **5 SQL** (4 batch на pictures + 1 batch на albums), плюс `Author.getAuthorByName`
          * (1 SQL — вызывается ровно для одного автора при `Zakroma.getZakroma(author=…)`).
          * Подробности + замеры: [research.md R1](../../specs/186-zakroma-songs-fast-load/research.md).
-         * @see docs/features/special-orders.md
-         * @see docs/features/zakroma-stream-progress.md
+         * @see archive/docs/features/special-orders.md
+         * @see archive/docs/features/zakroma-stream-progress.md
          */
         private fun buildFromSongs(
             songList: List<Song>,
@@ -281,7 +281,7 @@ class Zakroma(
 /**
  * Класс Zakroma Album Song.
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  */
 class ZakromaAlbumSong :
     Serializable,
@@ -321,7 +321,7 @@ class ZakromaAlbumSong :
 /**
  * Класс Zakroma Album.
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  */
 class ZakromaAlbum :
     Serializable,

@@ -23,7 +23,7 @@ import javax.imageio.ImageIO
  * в Яндекс.Музыке (переиспользует Playwright-профиль из [UtilsPlaywright]), фолбэк — поиск
  * картинок через SearXNG, скачивание кандидата и defensive center-crop + resize до 400×400.
  *
- * @see docs/features/llm-lyrics-search.md (аналогичная инфраструктура поиска)
+ * @see archive/docs/features/llm-lyrics-search.md (аналогичная инфраструктура поиска)
  */
 enum class AlbumCoverSource { YANDEX_MUSIC, SEARXNG, FOURGET }
 
@@ -34,7 +34,7 @@ enum class AlbumCoverSource { YANDEX_MUSIC, SEARXNG, FOURGET }
  * (specs/015-search-engine-selection). Яндекс-варианты не предлагаются — Yandex
  * Cloud Search API возвращает только текстовые веб-результаты, не картинки.
  *
- * @see docs/features/llm-lyrics-search.md
+ * @see archive/docs/features/llm-lyrics-search.md
  */
 enum class AlbumCoverSearchEngine {
     SEARXNG,
@@ -47,7 +47,7 @@ enum class AlbumCoverSearchEngine {
  * источниках) — фолбэк на [AlbumCoverSearchEngine.SEARXNG] (сегодняшнее поведение,
  * specs/015-search-engine-selection).
  *
- * @see docs/features/llm-lyrics-search.md
+ * @see archive/docs/features/llm-lyrics-search.md
  */
 fun resolveAlbumCoverSearchEngine(engine: String? = null): AlbumCoverSearchEngine =
     (engine ?: KaraokeProperties.getString("albumCoverSearchEngine")).let {
@@ -390,7 +390,7 @@ class AlbumCoverService(
      * (первый — как правило оригинал/наибольшее качество); верхнеуровневый `url` —
      * это страница-источник, НЕ сама картинка.
      *
-     * @see docs/features/llm-lyrics-search.md
+     * @see archive/docs/features/llm-lyrics-search.md
      */
     fun searchFourgetImages(query: String): List<AlbumCoverCandidate> =
         try {
@@ -434,7 +434,7 @@ class AlbumCoverService(
 /**
  * Класс Fourget Image Search Response — ответ fourget (`/api/v1/images`).
  *
- * @see docs/features/llm-lyrics-search.md
+ * @see archive/docs/features/llm-lyrics-search.md
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class FourgetImageSearchResponse(
@@ -446,7 +446,7 @@ data class FourgetImageSearchResponse(
  * Класс Fourget Image Result — один результат картиночного поиска fourget. `url` —
  * страница-источник (не сама картинка), `source` — сама картинка в разных размерах.
  *
- * @see docs/features/llm-lyrics-search.md
+ * @see archive/docs/features/llm-lyrics-search.md
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class FourgetImageResult(
@@ -458,7 +458,7 @@ data class FourgetImageResult(
 /**
  * Класс Fourget Image Source — сама картинка (один из размеров) в результате fourget.
  *
- * @see docs/features/llm-lyrics-search.md
+ * @see archive/docs/features/llm-lyrics-search.md
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class FourgetImageSource(

@@ -16,7 +16,7 @@ import java.sql.Timestamp
 /**
  * Класс Web Event.
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  */
 @JsonIgnoreProperties(value = ["database", "sqlToInsert"])
 class WebEvent(

@@ -7,7 +7,7 @@ import java.io.Serializable
 /**
  * DTO для author: сериализуемое представление для API/UI.
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  */
 data class AuthorDTO(
     val id: Long,

@@ -3,7 +3,7 @@ package com.svoemesto.karaokeapp.model
 /**
  * Перечисление возможных значений для sse notification type.
  *
- * @see docs/features/sse-notifications.md
+ * @see archive/docs/features/sse-notifications.md
  */
 enum class SseNotificationType(
     val value: String,

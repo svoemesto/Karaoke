@@ -27,8 +27,8 @@ import javax.imageio.ImageIO
  * в `@KaraokeDbTableField` — НЕ загружаются в `loadList` (OutOfMemory
  * на 18k+ записей). Доступны только через `loadFromDbById` (lazy).
  *
- * @see docs/features/dual-db-sync.md
- * @see docs/features/telegram-auto-publish.md (картинки для постинга)
+ * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/telegram-auto-publish.md (картинки для постинга)
  */
 class Pictures(
     override val database: KaraokeConnection = WORKING_DATABASE,
@@ -355,7 +355,7 @@ class Pictures(
          *                        в [Zakroma.buildFromSongs] со вторым параметром).
          * @return `Map<name, Pictures>` для O(1) lookup по имени; если картинки с таким именем
          *         нет — отсутствует в Map. Порядок НЕ сохраняется.
-         * @see docs/features/zakroma-stream-progress.md
+         * @see archive/docs/features/zakroma-stream-progress.md
          */
         fun getPicturesByNames(
             names: List<String>,

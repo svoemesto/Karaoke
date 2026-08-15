@@ -18,7 +18,7 @@ import java.io.Serializable
 /**
  * Класс Search Result.
  *
- * @see docs/features/llm-lyrics-search.md
+ * @see archive/docs/features/llm-lyrics-search.md
  */
 @JsonIgnoreProperties(value = ["database", "sqlToInsert"])
 class SearchResult(
@@ -329,7 +329,7 @@ class SearchResult(
          * Должен вызываться ДО [SearchAsync.deleteBySongId] (дочерние записи ссылаются на
          * `search_async_id`).
          *
-         * @see docs/features/llm-lyrics-search.md
+         * @see archive/docs/features/llm-lyrics-search.md
          */
         fun deleteBySongId(
             songId: Long,

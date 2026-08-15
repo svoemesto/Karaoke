@@ -20,8 +20,8 @@ import java.util.concurrent.ConcurrentHashMap
  * (`KaraokeProcess.setWorkingToWaitingForThread`), не трогая другие лейны и не требуя перезапуска
  * всего воркера.
  *
- * @see docs/features/async-process-queue.md
- * @see docs/features/monitoring.md
+ * @see archive/archive/docs/features/async-process-queue.md
+ * @see archive/docs/features/monitoring.md
  */
 object LaneStalledCheck : MonitorCheck {
     private const val STALL_THRESHOLD_MS = 2 * 60 * 1000L

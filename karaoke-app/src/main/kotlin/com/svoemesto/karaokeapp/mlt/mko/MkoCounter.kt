@@ -13,7 +13,7 @@ import com.svoemesto.karaokeapp.xmldata
 /**
  * Класс Mko Counter.
  *
- * @see docs/features/mlt-generator.md
+ * @see archive/docs/features/mlt-generator.md
  */
 data class MkoCounter(
     val mltProp: MltProp,

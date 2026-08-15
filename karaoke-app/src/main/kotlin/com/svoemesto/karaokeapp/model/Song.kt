@@ -62,9 +62,9 @@ import kotlin.math.abs
  * @property database подключение к БД (local/remote/virtual) — DI через конструктор.
  * @property storageService MinIO-клиент — DI через конструктор.
  * @property storageApiClient HTTP-клиент для remote-операций — DI через конструктор.
- * @see docs/features/async-process-queue.md (Song создаёт процессы)
- * @see docs/features/dual-db-sync.md (Song — основная syncable-сущность)
- * @see docs/features/mlt-generator.md (Song — входные данные для MLT)
+ * @see archive/docs/features/async-process-queue.md (Song создаёт процессы)
+ * @see archive/docs/features/dual-db-sync.md (Song — основная syncable-сущность)
+ * @see archive/docs/features/mlt-generator.md (Song — входные данные для MLT)
  */
 @JsonIgnoreProperties(value = ["database", "storageService", "pictureAuthor", "pictureAlbum"])
 class Song(
@@ -5106,7 +5106,7 @@ class Song(
      * `executeUpdate`). Для сущностей с UNIQUE-индексом, редактируемых через UI,
      * проверяйте конфликт ДО [saveToDb] в контроллере.
      *
-     * @see docs/features/dual-db-sync.md
+     * @see archive/docs/features/dual-db-sync.md
      */
     // Флаг «доступна для новости» (specs/101-song-news-flag) — выставляется здесь, а не в самом
     // isContentReady/getter'е, чтобы попасть в ТОТ ЖЕ diff/UPDATE, что и остальные изменения этого
@@ -5673,7 +5673,7 @@ class Song(
      * живой проверкой конкретно этого пути записи в удалённый MinIO и должно быть подтверждено
      * пользователем перед тем, как полагаться на него в проде.
      *
-     * @see docs/features/premium-stems.md
+     * @see archive/docs/features/premium-stems.md
      */
     fun renameCascadeExtraArtifacts(oldFileName: String) {
         if (oldFileName == fileName) return
@@ -5975,7 +5975,7 @@ class Song(
      * (SongDTO.color / SongDTOdigest.color / поле `color` в сетке публикаций).
      *
      * Инварианты и приоритеты — [SongState]; подробное описание и обоснование —
-     * [docs/features/song-state-colors.md](../../../../../docs/features/song-state-colors.md).
+     * [archive/docs/features/song-state-colors.md](../../../../../archive/archive/docs/features/song-state-colors.md).
      */
     val state: SongState get() = resolveStateFor(moscowNow())
 
@@ -6021,7 +6021,7 @@ class Song(
         // Палитра фона строки песни на стадии жизненного цикла (idStatus 0..5 — в работе, 6.. — готово).
         // Применяется только когда `Song.state == IN_WORK` (idStatus < 6), для UI-презентации стадии;
         // готовые песни (idStatus >= 6) используют цвет, возвращаемый `Song.state.color` (DONE/TODAY/
-        // ON_AIR/EXCLUSIVE). См. `docs/features/song-state-colors.md` и `contracts/song-state-color.md`.
+        // ON_AIR/EXCLUSIVE). См. `archive/archive/docs/features/song-state-colors.md` и `contracts/song-state-color.md`.
         @JvmStatic
         fun colorByIdStatus(idStatus: Long): String =
             when (idStatus) {
@@ -7624,7 +7624,7 @@ class Song(
          * @param withoutMarkersAndText `true` — пропустить тяжёлые поля
          *   (markers, text) для быстрого отображения в таблицах.
          * @return список песен, удовлетворяющих фильтрам.
-         * @see docs/features/dual-db-sync.md
+         * @see archive/docs/features/dual-db-sync.md
          */
         fun loadListFromDb(
             args: Map<String, String> = emptyMap(),
@@ -7799,7 +7799,7 @@ class Song(
                     // применяется палитра по `idStatus` через [colorByIdStatus], чтобы строка
                     // оставалась различимой по стадии жизненного цикла (NONE / текст найден /
                     // текст проверен / проект создан / проект проверен / рендер готов).
-                    // Подробнее — docs/features/song-state-colors.md.
+                    // Подробнее — archive/archive/docs/features/song-state-colors.md.
                     song.fields[SongField.COLOR] =
                         if (song.idStatus < 6L) {
                             Song.colorByIdStatus(song.idStatus)
@@ -7962,7 +7962,7 @@ class Song(
          * автоматическим числовым суффиксом (FR-005) — не влияет на повторный импорт уже существующих
          * в БД песен (эта проверка не меняется).
          *
-         * @see docs/features/async-process-queue.md
+         * @see archive/docs/features/async-process-queue.md
          */
         fun createFromPath(
             startFolder: String,
@@ -8086,7 +8086,7 @@ class Song(
                                 threadId = 2,
                             )
 
-                            // Первый шаг кортежа демукс→mp3→загрузка (см. docs/features/async-process-queue.md):
+                            // Первый шаг кортежа демукс→mp3→загрузка (см. archive/docs/features/async-process-queue.md):
                             // threadId=1 (THREAD_LANE_HEALTH_REPORT) - тот же лейн, в котором HealthReport.actions()
                             // по умолчанию ставит все дальнейшие шаги каскада (FF_MP3_*/UPLOAD_*), иначе кортеж
                             // расползётся по разным лейнам.

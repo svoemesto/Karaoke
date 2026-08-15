@@ -9,7 +9,7 @@ import javax.crypto.spec.SecretKeySpec
 /**
  * Класс Crypto.
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  */
 class Crypto {
     companion object {

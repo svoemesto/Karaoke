@@ -11,7 +11,7 @@ import javax.imageio.ImageIO
 /**
  * Producer для грифа гитары внизу кадра. Создаёт MLT-блоки для отображения позиций аккордов на грифе в текущий момент времени.
  *
- * @see docs/features/mlt-generator.md
+ * @see archive/docs/features/mlt-generator.md
  */
 data class MkoFingerboard(
     val mltProp: MltProp,

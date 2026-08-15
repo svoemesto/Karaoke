@@ -15,7 +15,7 @@ import java.sql.Timestamp
 /**
  * Сервис для site user token .
  *
- * @see docs/features/async-process-queue.md
+ * @see archive/archive/docs/features/async-process-queue.md
  */
 @Service
 class SiteUserTokenService(

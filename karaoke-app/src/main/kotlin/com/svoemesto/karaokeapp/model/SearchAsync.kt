@@ -16,7 +16,7 @@ import java.time.LocalDateTime
 /**
  * Класс Search Async.
  *
- * @see docs/features/llm-lyrics-search.md
+ * @see archive/docs/features/llm-lyrics-search.md
  */
 @JsonIgnoreProperties(value = ["database", "sqlToInsert"])
 class SearchAsync(
@@ -192,7 +192,7 @@ class SearchAsync(
          * «удалить результаты поиска» (specs/015-search-engine-selection) и для автоочистки
          * при достижении песней статуса готовности. По образцу [com.svoemesto.karaokeapp.model.CartItem.deleteByUserAndSongs].
          *
-         * @see docs/features/llm-lyrics-search.md
+         * @see archive/docs/features/llm-lyrics-search.md
          */
         fun deleteBySongId(
             songId: Long,

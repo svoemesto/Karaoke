@@ -9,7 +9,7 @@ import com.svoemesto.karaokeapp.model.ProducerType
 /**
  * Набор строк текста с общей позицией/стилем. Содержит все MkoLine текущего голоса как вложенные элементы.
  *
- * @see docs/features/mlt-generator.md
+ * @see archive/docs/features/mlt-generator.md
  */
 data class MkoLines(
     val mltProp: MltProp,

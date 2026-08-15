@@ -19,7 +19,7 @@ package com.svoemesto.karaokeweb
  * При изменении правил в `karaoke-app` — синхронизировать вручную (см. tasks.md
  * спецификации, `update karaoke-web TypographUtils.kt`).
  *
- * @see docs/features/editor-tasks.md
+ * @see archive/archive/docs/features/editor-tasks.md
  */
 
 const val RUSSIAN_LETTERS_WEB =

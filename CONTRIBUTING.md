@@ -8,7 +8,7 @@
 > - `AGENTS.md` — инструкции для AI-агента (приоритет у человека).
 > - `DEVELOPMENT.md` — архитектурный контекст и dated-история.
 > - `.specify/memory/constitution.md` — непреложные принципы.
-> - `docs/features/<slug>.md` — per-feature документы.
+> - `livedocs/features/<NNN-slug>.md` — LiveDoc-сводки фич (SDD).
 
 ## TL;DR
 
@@ -22,7 +22,7 @@
   см. ниже).
 - **Pre-commit**: `pip install pre-commit && pre-commit install`. Обход:
   `git commit --no-verify`.
-- **PR с новой фичей** = PR с per-feature документом в `docs/features/`.
+- **PR с новой фичей** = PR с LiveDoc-сводкой в `livedocs/features/<NNN-slug>.md` (per FR-013 спеки 189).
 - **Документация на русском**. Комментарии в коде — на русском, когда это
   не нарушает читаемость для иноязычного контрибьютора.
 
@@ -297,7 +297,7 @@ import com.svoemesto.karaokeapp.model.Settings
 
 Каждый публичный класс и публичная функция **обязаны** иметь KDoc-блок
 с описанием, `@param`, `@return` (если не `Unit`), `@throws` (если бросает
-исключения). KDoc-блок **должен** содержать `@see docs/features/<slug>.md`
+исключения). KDoc-блок **должен** содержать `@see livedocs/features/<NNN-slug>.md`
 для архитектурного контекста (где применимо).
 
 **Правильно**:
@@ -307,7 +307,7 @@ import com.svoemesto.karaokeapp.model.Settings
  *
  * @param process запущенный [Process] (см. [KaraokeProcessThread])
  * @param onProgress callback для обновления прогресса (0..100)
- * @see docs/features/async-process-queue.md
+ * @see livedocs/features/029-fix-queue-lane-stall.md (бывший async-process-queue)
  */
 fun parseFfmpegProgress(process: Process, onProgress: (Int) -> Unit) { ... }
 ```
@@ -488,7 +488,7 @@ SSE (`recordDelete`/`recordChange`), не локальным рендеринг�
 
 Каждый экспортируемый Vue-компонент, store, composable **обязан** иметь
 JSDoc-блок с описанием props, emits, slots. JSDoc-блок **должен** содержать
-`@see docs/features/<slug>.md` для архитектурного контекста.
+`@see livedocs/features/<NNN-slug>.md` для архитектурного контекста.
 
 **Правильно**:
 ```ts
@@ -498,7 +498,7 @@ JSDoc-блок с описанием props, emits, slots. JSDoc-блок **до�
  * @prop {Song[]} songs - список песен
  * @prop {number} page - текущая страница (1-based)
  * @emits row-click - клик по строке
- * @see docs/features/songs-table.md
+ * @see livedocs/features/156-remove-songs-table-platform-flags.md (бывший songs-table)
  */
 export default defineComponent({ ... })
 ```
@@ -590,9 +590,9 @@ $$ LANGUAGE plpgsql;
 
 **Severity**: MUST
 **Section**: markdown
-**Enforced by**: `tools/check-feature-doc.sh`
+**Enforced by**: `tools/check-livedocs-coverage.sh`
 
-Каждый файл в `docs/features/` имеет 6 обязательных секций (см.
+Каждый файл в `archive/docs/features/` имеет 6 обязательных секций (см.
 `contracts/per-feature-doc.md`):
 1. Что делает
 2. Зачем
@@ -627,7 +627,7 @@ PR с новой ключевой фичей (из FR-004 spec.md) **обяза�
 **Section**: markdown, kotlin comments
 **Enforced by**: code-review-only
 
-`CONTRIBUTING.md`, `docs/features/*.md`, комментарии в коде — на русском.
+`CONTRIBUTING.md`, `livedocs/features/<NNN-slug>.md`, комментарии в коде — на русском.
 Исключения: имена файлов, идентификаторы, KDoc-блоки, ссылки на
 англоязычные инструменты (ktlint, eslint) — оставляются в оригинале.
 
@@ -775,12 +775,12 @@ CI **обязательно** запускает (см. [`.github/workflows/lint
 - `frontend-lint` (matrix `webvue3` + `karaoke-public`) —
   `tools/check-eslint-baseline.sh <spa>` (baseline-aware)
   + `npx prettier --check` (strict).
-- `docs-lint` — `lychee --offline` + `tools/check-feature-doc.sh docs/features/*.md`.
+- `lychee` — `lychee --offline` + `tools/check-livedocs-coverage.sh`.
 
 Любое увеличение baseline-метрик (новые нарушения сверх baseline) — блокер.
 Workflow запускается на push в `master` и pull_request в `master`.
 
-**Связанные инварианты**: [`specs/001-code-standards-docs/spec.md#sc-002`](specs/001-code-standards-docs/spec.md), [`.github/workflows/lint.yml`](.github/workflows/lint.yml), [`docs/features/ci-lint-enforcement.md`](docs/features/ci-lint-enforcement.md)
+**Связанные инварианты**: [`specs/001-code-standards-docs/spec.md#sc-002`](specs/001-code-standards-docs/spec.md), [`.github/workflows/lint.yml`](.github/workflows/lint.yml), [`livedocs/features/002-ci-lint-enforcement.md`](livedocs/features/002-ci-lint-enforcement.md)
 
 ---
 

@@ -21,7 +21,7 @@ import java.time.Duration
  * — используются реально рабочие на этом хостинге `brave` (основной) с
  * фолбэком на `yep`, если `brave` не дал результатов.
  *
- * @see docs/features/llm-lyrics-search.md
+ * @see archive/docs/features/llm-lyrics-search.md
  */
 @Component
 class SearchTool(
@@ -55,7 +55,7 @@ class SearchTool(
      * 014-lyrics-search-replacement, но как отдельный, явно называемый метод — теперь
      * `searchUrls` (fourget) не единственная реализация.
      *
-     * @see docs/features/llm-lyrics-search.md
+     * @see archive/docs/features/llm-lyrics-search.md
      */
     fun searchUrlsViaSearxng(query: String): List<String> =
         try {
@@ -145,7 +145,7 @@ class SearchTool(
 /**
  * Класс Lyrics Search Response — ответ fourget (`/api/v1/web`).
  *
- * @see docs/features/llm-lyrics-search.md
+ * @see archive/docs/features/llm-lyrics-search.md
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class LyricsSearchResponse(
@@ -156,7 +156,7 @@ data class LyricsSearchResponse(
 /**
  * Класс Lyrics Search Result — один результат веб-поиска fourget.
  *
- * @see docs/features/llm-lyrics-search.md
+ * @see archive/docs/features/llm-lyrics-search.md
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class LyricsSearchResult(
@@ -169,7 +169,7 @@ data class LyricsSearchResult(
  * Класс Searxng Text Search Response — ответ SearXNG (`/search?format=json`) для
  * прямого текстового поиска (движок `SEARXNG`, см. [SearchTool.searchUrlsViaSearxng]).
  *
- * @see docs/features/llm-lyrics-search.md
+ * @see archive/docs/features/llm-lyrics-search.md
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class SearxngTextSearchResponse(
@@ -179,7 +179,7 @@ data class SearxngTextSearchResponse(
 /**
  * Класс Searxng Text Search Result — один результат текстового поиска SearXNG.
  *
- * @see docs/features/llm-lyrics-search.md
+ * @see archive/docs/features/llm-lyrics-search.md
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class SearxngTextSearchResult(

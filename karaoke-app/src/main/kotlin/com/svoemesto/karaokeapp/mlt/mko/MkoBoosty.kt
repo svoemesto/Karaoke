@@ -8,7 +8,7 @@ import com.svoemesto.karaokeapp.xmldata
 /**
  * Класс Mko Boosty.
  *
- * @see docs/features/mlt-generator.md
+ * @see archive/docs/features/mlt-generator.md
  */
 data class MkoBoosty(
     val mltProp: MltProp,

@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component
  * Фоновый sweeper share-ссылок (Spring `@Scheduled`). Каждые `karaoke.share.sweep-interval-seconds`
  * секунд (по умолчанию 60) проходит по активным ссылкам и отзывает те, которые должны быть
  * отозваны: истёк lease / истёк expires_at / владелец потерял премиум / у песни SKIP или будущий
- * publish_date. Подробности — см. docs/features/guest-share-link.md, spec.md FR-040…FR-042.
+ * publish_date. Подробности — см. archive/docs/features/guest-share-link.md, spec.md FR-040…FR-042.
  */
 @Component
 class ShareLinkSweeper(

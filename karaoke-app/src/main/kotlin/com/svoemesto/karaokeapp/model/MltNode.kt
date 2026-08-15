@@ -23,7 +23,7 @@ import java.io.Serializable
  * @property body содержимое (String / Number / MltNode / List / null).
  * @property type тип Producer'а (для Producer-узлов).
  * @property comment комментарий (выходит как `<!-- ... -->`).
- * @see docs/features/mlt-generator.md
+ * @see archive/docs/features/mlt-generator.md
  */
 data class MltNode(
     var name: String = "",
@@ -60,7 +60,7 @@ data class MltNode(
  * MLT-файл.
  *
  * @property nodes накопительный список узлов.
- * @see docs/features/mlt-generator.md
+ * @see archive/docs/features/mlt-generator.md
  */
 data class MltNodeBuilder(
     val nodes: MutableList<MltNode> = mutableListOf(),
@@ -455,7 +455,7 @@ data class MltNodeBuilder(
  * в Producer-узел. Применяется как `properties { id("..."); name("...") }`.
  *
  * @property properties накопительная map атрибутов.
- * @see docs/features/mlt-generator.md
+ * @see archive/docs/features/mlt-generator.md
  */
 data class PropertiesMltNodeBuilder(
     val properties: MutableMap<String, String> = mutableMapOf(),

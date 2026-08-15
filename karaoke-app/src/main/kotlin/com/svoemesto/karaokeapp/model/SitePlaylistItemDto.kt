@@ -10,11 +10,11 @@ import java.io.Serializable
  * DTO для site playlist item: сериализуемое представление для API/UI.
  *
  * Поля `albumPictureUrl` и `authorPictureUrl` (FR-006, см. spec.md и
- * docs/features/playlist-play-button-and-stems-cancel.md) — прямые URL на MinIO через nginx-прокси,
+ * archive/docs/features/playlist-play-button-and-stems-cancel.md) — прямые URL на MinIO через nginx-прокси,
  * формируются контроллером PublicPlaylistController по предсказуемым storage-ключам. Пустая строка
  * означает «файла нет в MinIO» — фронт по `@error` показывает CSS-плейсхолдер (см. Acceptance US2.2/3).
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/archive/docs/features/dual-db-sync.md
  */
 data class SitePlaylistItemDto(
     val id: Long = 0,

@@ -43,7 +43,7 @@ import java.util.concurrent.ConcurrentHashMap
  * для нескольких инстансов потребуется distributed cache (отдельная задача).
  *
  * @see specs/151-vk-id-personal-token/spec.md
- * @see docs/features/vk-id-auth.md (FR-001, FR-002, FR-005)
+ * @see archive/docs/features/vk-id-auth.md (FR-001, FR-002, FR-005)
  */
 @RestController
 class PublicVkIdAuthController {

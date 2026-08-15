@@ -6,7 +6,7 @@ import java.io.Serializable
 /**
  * Класс Setting Voice Line.
  *
- * @see docs/features/mlt-generator.md
+ * @see archive/docs/features/mlt-generator.md
  */
 data class SongVoiceLine(
     val rootId: Long,

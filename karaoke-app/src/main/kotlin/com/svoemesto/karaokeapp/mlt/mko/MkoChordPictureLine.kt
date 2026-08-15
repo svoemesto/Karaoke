@@ -12,7 +12,7 @@ import com.svoemesto.karaokeapp.model.ProducerType
 /**
  * Одна линия аккордной картинки (горизонтальная позиция грифа). Часть аккордной диаграммы.
  *
- * @see docs/features/mlt-generator.md
+ * @see archive/docs/features/mlt-generator.md
  */
 data class MkoChordPictureLine(
     val mltProp: MltProp,

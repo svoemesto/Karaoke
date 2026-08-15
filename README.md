@@ -19,13 +19,21 @@ Boot бэкенд.
 | Документ | Назначение |
 |----------|------------|
 | [CLAUDE.md](./CLAUDE.md) | Краткая шпаргалка для AI-агентов |
-| [AGENTS.md](./AGENTS.md) | Полные инструкции для AI-агента (русский) |
+| [AGENTS.md](./AGENTS.md) | Полные инструкции для AI-агента (русский, ≤ 100 строк) |
 | [DEVELOPMENT.md](./DEVELOPMENT.md) | Архитектурный контекст, dated-история, ловушки |
 | [CONTRIBUTING.md](./CONTRIBUTING.md) | **Правила оформления кода** (Kotlin, Vue, SQL, Shell, Docker) |
 | [constitution.md](./.specify/memory/constitution.md) | Непреложные принципы проекта |
-| [livedocs/](./livedocs/) | **LiveDocs** — единый актуальный каталог знаний (SDD/DDD/C4) |
+| [**LiveDocs**](./livedocs/README.md) | **ПЕРВЫЙ источник знаний** — SDD/DDD/C4 (88 фич, 7 BC, 16 архитектурных topic) |
+| [livedocs/INDEX.md](./livedocs/INDEX.md) | Карта LiveDocs с decision tree |
 | [livedocs/architecture-notes.md](./livedocs/architecture-notes.md) | Датированный changelog архитектуры |
-| [docs/api/](./docs/api/) | Инструкция по KDoc/JSDoc |
+| [livedocs/CHANGELOG.md](./livedocs/CHANGELOG.md) | История изменений LiveDocs |
+| [livedocs/strategy/growth.md](./livedocs/strategy/growth.md) | Стратегия роста (воронка: visitor → registration → premium) |
+| [livedocs/onboarding.md](./livedocs/onboarding.md) | Настройка новой машины разработчика |
+| [livedocs/runbooks/](./livedocs/runbooks/) | Операционные how-to (деплой, миграции, CI) |
+| [archive/docs/features/](./archive/docs/features/) | Legacy per-feature документы (FR-017 спеки 189) |
+| [docs/api/](./docs/api/) | Build artifacts: KDoc/JSDoc |
+
+**AI-агент: начни с [livedocs/README.md](./livedocs/README.md) → [livedocs/INDEX.md](./livedocs/INDEX.md).**
 
 ## Стандарты оформления кода
 
@@ -50,13 +58,23 @@ Boot бэкенд.
 
 Скрипты в `tools/`:
 
+**Backend / фронтенд / baseline**:
 - `tools/baseline-stats.sh` — статистика по baseline.
 - `tools/generate-eslint-baseline.sh` — генерация baseline для ESLint.
 - `tools/check-eslint-baseline.sh` — проверка, что новых нарушений нет.
 - `tools/check-enforcement.sh` — проверка, что MUST-правила покрыты baseline.
-- `tools/verify-doc-links.sh` — линк-чекер документации (lychee).
-- `tools/check-feature-doc.sh` — структура per-feature документов.
-- `tools/verify-kotlin-refs.sh` — валидация Kotlin-ссылок в документах.
+- `tools/check-kdoc-coverage.sh` — KDoc coverage ≥ 100%.
+- `tools/check-jsdoc-coverage.sh` — JSDoc coverage ≥ 100%.
+- `tools/check-audit-coverage.sh` — аудит кода.
+
+**LiveDocs** (FR-015 спеки 189):
+- `tools/check-livedocs-structure.sh` — 7 проверок структуры (≥5 фич, ≥5 BC, L1+L2+L3, frontmatter, AGENTS.md ≤100, CI).
+- `tools/check-livedocs-cross-links.sh` — валидация 1069 cross-links.
+- `tools/check-livedocs-external-links.sh` — проверка ВНЕШНИХ https:// ссылок (lychee).
+- `tools/check-livedocs-coverage.sh` — покрытие спек (specs → LiveDocs).
+- `tools/gen-livedocs-index.sh` — генерация INDEX_CARD.md (Mermaid).
+- `tools/gen-livedocs-stats.sh` — генерация STATS.md.
+- `tools/search-livedocs.sh` — grep wrapper для AI-агентов.
 
 ## Сборка и запуск
 

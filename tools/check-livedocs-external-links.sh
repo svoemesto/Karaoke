@@ -48,7 +48,12 @@ URLS=$(grep -ohE 'https?://[a-zA-Z0-9._/:%?=&@#-]+' livedocs/ livedocs-en/ -r 2>
 
 for url in $URLS; do
     # Skip placeholders/internal
-    if echo "$url" | grep -qE '^(http://10\.0\.0\.1|http://188\.119\.64\.111|http://karaoke-web|http://localhost)'; then
+    if echo "$url" | grep -qE '^(http://10\.0\.0\.1|http://188\.119\.64\.111|http://karaoke-web|http://localhost|http://127\.0\.0\.1|http://minio-proxy)'; then
+        PLACEHOLDERS=$((PLACEHOLDERS+1))
+        continue
+    fi
+    # Production URLs — зависят от конфигурации (private/internal), не проверяем
+    if echo "$url" | grep -qE '^(https://svoemesto\.ru|https://sm-karaoke\.ru|https://smartcaptcha\.yandexcloud\.net/)'; then
         PLACEHOLDERS=$((PLACEHOLDERS+1))
         continue
     fi

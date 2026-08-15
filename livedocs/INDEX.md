@@ -69,6 +69,10 @@ Bounded contexts проекта Karaoke + ubiquitous language glossary.
 | [`L1-system-context.md`](architecture/L1-system-context.md) | C4 L1 | Karaoke ↔ внешние системы |
 | [`L2-containers.md`](architecture/L2-containers.md) | C4 L2 | karaoke-app, karaoke-web, SPA, БД, MinIO |
 | [`L3-components.md`](architecture/L3-components.md) | C4 L3 | Model, MLT, Queue, LLM, SSE |
+| [`database.md`](architecture/database.md) | topic | `tbl_public_settings` + recordhash-триггеры |
+| [`invariants.md`](architecture/invariants.md) | topic | Ключевые инварианты (ловушки karaoke-web, MTU, Jackson is*) |
+| [`deployment.md`](architecture/deployment.md) | topic | Серверы (Local dev, prod) |
+| [`public-modules.md`](architecture/public-modules.md) | topic | Карта karaoke-public / плеер / аккаунт |
 | [`data-sync.md`](architecture/data-sync.md) | topic | LOCAL ↔ SERVER синхронизация |
 | [`queue-lanes.md`](architecture/queue-lanes.md) | topic | Async-очередь (threadId lanes, priority) |
 | [`share-link.md`](architecture/share-link.md) | topic | Гостевой доступ: временные ссылки + claim + heartbeat + sweep |
@@ -84,7 +88,69 @@ Bounded contexts проекта Karaoke + ubiquitous language glossary.
 | [`jackson-conventions.md`](architecture/jackson-conventions.md) | Jackson `is`-prefix в Kotlin DTO |
 | [`docker-conventions.md`](architecture/docker-conventions.md) | Образы Docker (nginx:stable, node:22-alpine, JRE) |
 | [`documentation-conventions.md`](architecture/documentation-conventions.md) | KDoc backticks, JSDoc coverage, blame-ignore-revs |
-| [`webvue3-patterns.md`](architecture/webvue3-patterns.md) | Персистентность страницы пагинации в webvue3 |
+| [`webvue3-patterns.md`](architecture/webvue3-patterns.md) | Персистентность страницы пагинации в webvue3 + postMessage-мост |
+
+### Runbooks — `livedocs/runbooks/`
+
+Операционные how-to (пошаговые инструкции).
+
+| Файл | Описание |
+|------|----------|
+| [`README.md`](runbooks/README.md) | Index runbooks |
+| [`how-to-deploy.md`](runbooks/how-to-deploy.md) | Деплой web/public на прод |
+| [`how-to-migrate-db.md`](runbooks/how-to-migrate-db.md) | SQL-миграция (SyncRegistry + recordhash) |
+| [`how-to-migrate-prod-server.md`](runbooks/how-to-migrate-prod-server.md) | Чек-лист миграции прода на новый сервер |
+| [`how-to-demo-publish-links.md`](runbooks/how-to-demo-publish-links.md) | Публикация DEMO на VK/Dzen/Telegram/Max |
+| [`how-to-stemjobs.md`](runbooks/how-to-stemjobs.md) | Руководство по stemjobs (demucs) |
+| [`how-to-debug-connection-leak.md`](runbooks/how-to-debug-connection-leak.md) | Диагностика connection leak |
+| [`how-to-add-new-feature.md`](runbooks/how-to-add-new-feature.md) | SDD workflow (/speckit.specify → plan → tasks → implement) |
+| [`how-to-add-new-domain.md`](runbooks/how-to-add-new-domain.md) | Новый bounded context |
+| [`how-to-add-new-topic.md`](runbooks/how-to-add-new-topic.md) | Новый topic в architecture/ |
+| [`how-to-add-new-adr.md`](runbooks/how-to-add-new-adr.md) | Новый ADR |
+| [`how-to-update-livedocs.md`](runbooks/how-to-update-livedocs.md) | Sync кода с LiveDocs |
+
+### Strategy — `livedocs/strategy/`
+
+Стратегические документы (рост, AI-выбор, audit).
+
+| Файл | Описание |
+|------|----------|
+| [`growth.md`](strategy/growth.md) | Стратегия роста: аноним → регистрация → premium |
+| [`growth-audit.md`](strategy/growth-audit.md) | Аудит гипотез роста (567 строк) |
+| [`about-page-draft.md`](strategy/about-page-draft.md) | Draft страницы «О проекте» |
+| [`models-comparison.md`](strategy/models-comparison.md) | Сравнение LLM-моделей для speckit |
+
+### Onboarding — `livedocs/`
+
+Документы для новых сотрудников / машин.
+
+| Файл | Описание |
+|------|----------|
+| [`onboarding.md`](onboarding.md) | Настройка новой машины разработчика (30-60 мин) |
+| [`claude-code-setup.md`](claude-code-setup.md) | Настройка Claude Code (если не opencode) |
+
+### Onboarding handoff — `livedocs/onboarding-handoff/`
+
+Конкретные инструкции для новых сотрудников.
+
+| Файл | Описание |
+|------|----------|
+| [`011-m23-special-orders-pickup.md`](onboarding-handoff/011-m23-special-orders-pickup.md) | m23: специальные заказы |
+| [`012-vk-id-401-token-exchange.md`](onboarding-handoff/012-vk-id-401-token-exchange.md) | VK ID 401 token exchange |
+
+### Meta — `livedocs/`
+
+Мета-документы о LiveDocs (не проект).
+
+| Файл | Описание |
+|------|----------|
+| [`README.md`](README.md) | Корневой манифест |
+| [`INDEX.md`](INDEX.md) | Этот файл — карта слоёв |
+| [`CONVENTIONS.md`](CONVENTIONS.md) | Конвенции LiveDocs |
+| [`CHANGELOG.md`](CHANGELOG.md) | История изменений (Pass 43+) |
+| [`SESSION-SUMMARY.md`](SESSION-SUMMARY.md) | Итоги follow-up сессии |
+| [`architecture-notes.md`](architecture-notes.md) | Датированный changelog архитектуры |
+| [`architecture-notes-archive.md`](architecture-notes-archive.md) | Старый changelog |
 
 ### Шаблоны — `livedocs/templates/`
 

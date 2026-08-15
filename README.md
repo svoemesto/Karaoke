@@ -35,6 +35,20 @@ Boot бэкенд.
 
 **AI-агент: начни с [livedocs/README.md](./livedocs/README.md) → [livedocs/INDEX.md](./livedocs/INDEX.md).**
 
+### Gen-скрипты (Pass 2 спеки 189)
+
+Автогенераторы LiveDoc:
+
+| Скрипт | Что делает |
+|--------|-----------|
+| `bash tools/gen-related-suggest.sh <file>` | Предлагает `related:` ссылки для одного LiveDoc (backlinks, related-backlinks, BC candidates, same-directory) |
+| `bash tools/gen-related-suggest.sh --all` | Обновляет `related:` во всех LiveDoc |
+| `bash tools/gen-related-suggest.sh --missing-related` | Список LiveDoc без `related:` |
+| `bash tools/extract-kdoc-refs.sh <file>` | Извлекает @see из KDoc/JSDoc и предлагает `related:` |
+| `bash tools/extract-kdoc-refs.sh --missing-refs` | @see которые не резолвятся |
+| `bash tools/gen-spec-skeleton.sh <NNN>` | Создаёт LiveDoc-skeleton по `specs/<NNN>-*/spec.md` |
+| `bash tools/gen-spec-skeleton.sh --missing` | Список спек без LiveDoc |
+
 ## Стандарты оформления кода
 
 Проект использует **AGENTS.md + автоматические линтеры** с baseline-подходом.

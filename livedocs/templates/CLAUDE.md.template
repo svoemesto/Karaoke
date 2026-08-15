@@ -1,3 +1,13 @@
+---
+status: Active
+slug: claude-code-template
+type: template
+related:
+  - ../claude-code-setup.md
+  - ../AGENTS.md
+  - ../CONTRIBUTING.md
+---
+
 # CLAUDE.md — шаблон для Claude Code
 
 > **Скопируйте содержимое этого файла в свой `CLAUDE.md`** (в корне проекта,
@@ -102,7 +112,7 @@ pre-commit run --all-files
 # Перед серьёзной работой
 git pull && git status
 
-# Перед правкой кода фичи — обновить docs/features/<slug>.md (FR-009)
+# Перед правкой кода фичи — обновить `livedocs/features/<NNN-slug>.md` (FR-009)
 # Перед commit — 7 проверок (см. выше)
 
 # НЕ делать:
@@ -132,12 +142,12 @@ git pull && git status
 | `AGENTS.md` | Правила opencode-стиля (читай обязательно) |
 | `DEVELOPMENT.md` | Архитектура + команды |
 | `CONTRIBUTING.md` | Стиль кода (Kotlin/Vue/SQL/MD/Sh/Docker) |
-| `docs/onboarding.md` | Setup новой машины |
-| `docs/claude-code-setup.md` | Эта инструкция + детали для Claude Code |
-| `docs/architecture-notes.md` | Changelog последних PR |
-| `docs/features/<slug>.md` | Per-feature (11 + 1 документ) |
-| `docs/strategy/growth.md` | Стратегия роста (воронка, гипотезы, roadmap) |
-| `docs/strategy/growth-audit.md` | Полный аудит (37+ гипотез) |
+| `livedocs/onboarding.md` | Setup новой машины |
+| `livedocs/claude-code-setup.md` | Эта инструкция + детали для Claude Code |
+| `livedocs/architecture-notes.md` | Changelog последних PR |
+| `livedocs/features/<NNN-slug>.md` | LiveDoc-сводка (88 фич) |
+| `livedocs/strategy/growth.md` | Стратегия роста (воронка, гипотезы, roadmap) |
+| `livedocs/strategy/growth-audit.md` | Полный аудит (37+ гипотез) |
 | `docs/api/` | API-эндпоинты (сгенерировано из кода) |
 | `.specify/memory/constitution.md` | NON-NEGOTIABLE принципы |
 
@@ -165,6 +175,6 @@ git pull && git status
 
 **Версия**: 1.0 (2026-07-24)
 **Связанные документы**:
-- `docs/claude-code-setup.md` — детальная инструкция
+- `livedocs/claude-code-setup.md` — детальная инструкция
 - `AGENTS.md` — runtime-правила
-- `docs/strategy/growth.md` — стратегия
+- `livedocs/strategy/growth.md` — стратегия

@@ -130,7 +130,7 @@ store/modules/zakroma.js и composables/usePlayerReadiness.js — там вся 
 
 - Если новый агент — Claude Code, ему нужен локальный `CLAUDE.md` (см.
   `docs/claude-code-setup.md`). Скопировать шаблон
-  `docs/CLAUDE.md.template` в `CLAUDE.md` (локально) и подставить своё имя/пути.
+  `livedocs/templates/CLAUDE.md.template` в `CLAUDE.md` (локально) и подставить своё имя/пути.
 - Если Cursor — настроить `.cursorrules` (см. `docs/onboarding.md`).
 - Если Aider/Cody — у них свои форматы конфигов.
 - Если новый opencode на той же машине, но без истории сессии — этот же

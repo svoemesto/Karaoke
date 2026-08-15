@@ -115,7 +115,7 @@ PR #319, #323, #325, #327.
 | Cross-links valid | 814 | **1069** | **+255** |
 | Broken references | 0 | 0 | 0 |
 | AGENTS.md (строк) | 100 | 100 | 0 (на границе) |
-| docs/ (legacy) | 49 .md | **2** | -47 (api/ + CLAUDE.md.template) |
+| docs/ (legacy) | 49 .md | **1** | -48 (api/ only — CLAUDE.md.template перенесён в livedocs/templates/) |
 
 ## Состояние CI
 

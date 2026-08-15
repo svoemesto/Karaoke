@@ -256,7 +256,7 @@ S256 (`code_challenge` = base64url(SHA256(verifier))).
 
 - Если новый агент — Claude Code, ему нужен локальный `CLAUDE.md`
   (см. `docs/claude-code-setup.md`). Скопировать шаблон
-  `docs/CLAUDE.md.template` в `CLAUDE.md` (локально).
+  `livedocs/templates/CLAUDE.md.template` в `CLAUDE.md` (локально).
 - Если Cursor — настроить `.cursorrules` (см. `docs/onboarding.md`).
 - Если Aider/Cody — у них свои форматы конфигов.
 - Если новый opencode на той же машине, но без истории сессии — этот же

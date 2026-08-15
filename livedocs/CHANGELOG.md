@@ -228,7 +228,34 @@
 для internal URLs (nsa-i9, id.vk.com, svoemesto.ru, sm-karaoke.ru,
 smartcaptcha.yandexcloud.net, 127.0.0.1, minio-proxy).
 
-**Миграция docs/ → LiveDocs полностью завершена.** FR-017 спеки 189 выполнен.
+## 2026-08-15 — Pass 51+ (Phase 8/9: 3 новых topic + gen-скрипты)
+
+### Phase 8 — расширение architecture/
+
+- **PR #343**: новый topic `ci-cd-pipeline.md` (7 шагов lint.yml, baselines, deploy gates).
+- **PR #344**: новый topic `db-migration-playbook.md` (5-step playbook для prod-migrations).
+- **PR #345**: новый topic `conversion-funnel.md` (visitor → registration → premium,
+  5-step воронка + метрики).
+
+### Phase 9 — Pass 2 (автогенерация LiveDoc)
+
+- **PR #351** (`tools/gen-related-suggest.sh`): предложение `related:` из 4 источников
+  (backlinks, related-backlinks, same-directory, BC candidates). Обновлено 100+ `related:`.
+- **PR #352** (`tools/extract-kdoc-refs.sh` + 200 file fix): извлечение `@see` из
+  KDoc/JSDoc для suggestion. Slug-based substring matching.
+- **PR #353** (`tools/gen-spec-skeleton.sh`): создание LiveDoc-skeleton по `spec.md`
+  (Pass 2).
+- **PR #354** (CI): добавлен `bash tools/check-livedocs-coverage.sh` в `lint.yml`
+  (5-й шаг LiveDocs structure job). 7 проверок, 0 FAIL.
+- **PR #355** (README): таблица Gen-скриптов (6 скриптов, режимы).
+
+### Метрики после Phase 8+9
+
+- **Топики в `architecture/`**: 16 → 19 (+3 новых: ci-cd-pipeline, db-migration-playbook, conversion-funnel)
+- **CI-скриптов LiveDocs**: 7 (check-livedocs-structure/cross-links/external-links/coverage + 3 baselines)
+- **Gen-скриптов LiveDocs**: 3 (gen-related-suggest, extract-kdoc-refs, gen-spec-skeleton)
+- **CI шагов в LiveDocs structure job**: 5 (check-structure, check-cross-links, check-coverage, check-external-links)
+- **Public-репо gen-скрипты + шаги CI** для FR-018 спеки 189 (Pass 2).
 
 ## Состояние на сегодня
 
@@ -249,7 +276,7 @@ smartcaptcha.yandexcloud.net, 127.0.0.1, minio-proxy).
 | **Cross-links valid** | 1069 |
 | **Broken references** | 0 |
 | **AGENTS.md** | ≤ 100 строк ✓ |
-| **CI проверок LiveDocs** | 7/7 + cross-links 0/1069 broken + lychee strict |
+| **CI проверок LiveDocs** | 7/7 + cross-links 0/1069 broken + lychee strict + check-coverage в CI |
 | **Миграция покрытия спек** | 100% (все 75+ уникальных) |
 | **docs/ (legacy)** | 2 файла (api/ + CLAUDE.md.template) |
 

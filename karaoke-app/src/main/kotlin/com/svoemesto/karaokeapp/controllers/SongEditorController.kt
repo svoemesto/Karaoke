@@ -722,9 +722,17 @@ class SongEditorController(
     // мешают) и без кнопок submit/recall. Поддерживает два режима, по параметру mode:
     //   - "song"        — id это songId; читаем/пишем Song (tbl_songs) для ВСЕХ голосов.
     //   - "assignment"  — id это assignmentId; читаем/пишем черновик задания (tbl_song_assignment_drafts).
-    // target (local|remote) — куда писать и откуда читать (по умолчанию local). Для режима "song"
-    // target определяет, ГДЕ будут жить правки; в "assignment" — где лежит само задание (status
-    // и draft). Идентично по духу остальным target-aware эндпоинтам контроллера.
+    // target (local|remote) — куда писать и откуда читать (по умолчанию local). Для режима
+    // "assignment" target определяет, ГДЕ лежит само задание (status и draft) — поведение
+    // target-aware остаётся по-прежнему. Для режима "song" (фича 232) target игнорируется
+    // серверной стороной: Song ВСЕГДА читается/пишется в Connection.local() (LOCAL-БД
+    // admin-машины). Это устраняет расхождение «что вижу — что сохраняю», которое возникало
+    // при editorAssignmentDefaultTarget='remote': правки уезжали на SERVER, а пользователь
+    // видел LOCAL-версию. Sync LOCAL → SERVER — отдельная, явная операция пользователя.
+    //
+    // @see archive/docs/features/232-admin-song-editor-local-db.md (после merge)
+    // @see specs/232-admin-song-editor-local-db/spec.md
+    // @see specs/232-admin-song-editor-local-db/contracts/api-contracts.md
 
     // Открыть задание/песню в редакторе. Возвращает sourceTexts[]/markersPerVoice[] ВСЕХ голосов,
     // URLs стемов (используются для waveform и превью-плеера) и метаданные для шапки редактора.
@@ -749,15 +757,30 @@ class SongEditorController(
                         ?: return@withDb mapOf("found" to false, "id" to id)
                 }
 
-            // Song читаем ВСЕГДА из WORKING_DATABASE: только там есть локальный диск с FLAC и .srt
-            // (см. комментарий getSongPlayerData в ApiController). target не влияет на выбор Song.
+            // Song читаем ВСЕГДА из Connection.local() — локальная БД admin-машины.
+            // В mode='song' параметр target игнорируется для выбора БД (см. FR-007 спеки
+            // specs/232-admin-song-editor-local-db и контракт в contracts/api-contracts.md):
+            // правки должны жить в LOCAL до явного sync LOCAL → SERVER, а не уезжать на
+            // сервер сразу при сохранении. WORKING_DATABASE на admin-машине = Connection.local()
+            // (см. Constants.kt:204), но используем явный Connection.local() чтобы контракт
+            // не зависел от глобального синглтона (который может быть перенаправлен на REMOTE
+            // через закомментированную строку в Constants.kt:206).
             val song =
                 Song.loadFromDbById(
                     songId,
-                    WORKING_DATABASE,
+                    Connection.local(),
                     storageService = storageService,
                     storageApiClient = storageApiClient,
-                ) ?: return@withDb mapOf("found" to false, "id" to id, "songId" to songId)
+                ) ?: return@withDb mapOf(
+                    "found" to false,
+                    "id" to id,
+                    "songId" to songId,
+                    // FR-005 спеки specs/232-admin-song-editor-local-db: отличимый код ошибки,
+                    // чтобы UI мог показать пользователю понятное сообщение вместо общего
+                    // «Не удалось загрузить данные». Возникает, если песня есть в SERVER-БД,
+                    // но ещё не стянута в LOCAL-БД (sync LOCAL ← SERVER не запускался).
+                    "error" to "song_not_found_in_local_db",
+                )
 
             val sourceTexts: List<String>
             val markersPerVoice: List<List<SourceMarker>>
@@ -857,25 +880,25 @@ class SongEditorController(
         }
 
         if (mode == "song") {
-            // Пишем в Song в ту же БД, что и assignmentsTarget — единообразно с логикой
-            // остальных target-aware методов. Song.setSourceMarkers/setSourceText делают saveToDb()
-            // внутри (пересчитывают resultText/formattedTextSong/formattedTextTabs/formattedTextChords).
-            return withDb(target) { db ->
-                val song =
-                    Song.loadFromDbById(id, db, storageService = storageService, storageApiClient = storageApiClient)
-                        ?: return@withDb mapOf("ok" to false, "error" to "song_not_found")
-                val voiceCount = maxOf(song.countVoices, parsedMarkers.size)
-                for (v in 0 until voiceCount) {
-                    val markers = parsedMarkers.getOrNull(v) ?: emptyList()
-                    song.setSourceMarkers(v, markers)
-                    val text = parsedTexts.getOrNull(v) ?: ""
-                    song.setSourceText(v, text)
-                }
-                if (parsedMarkers.size < song.countVoices) {
-                    song.truncateVoicesTo(parsedMarkers.size)
-                }
-                mapOf("ok" to true, "voiceCount" to song.countVoices, "idStatus" to song.idStatus)
+            // Пишем Song ВСЕГДА в Connection.local() (локальная БД admin-машины), независимо от
+            // значения параметра target (FR-002 спеки specs/232-admin-song-editor-local-db).
+            // Sync LOCAL → SERVER — отдельная, явная операция пользователя, а не побочный эффект
+            // редактирования. Song.setSourceMarkers/setSourceText делают saveToDb() внутри
+            // (пересчитывают resultText/formattedTextSong/formattedTextTabs/formattedTextChords).
+            val song =
+                Song.loadFromDbById(id, Connection.local(), storageService = storageService, storageApiClient = storageApiClient)
+                    ?: return mapOf("ok" to false, "error" to "song_not_found")
+            val voiceCount = maxOf(song.countVoices, parsedMarkers.size)
+            for (v in 0 until voiceCount) {
+                val markers = parsedMarkers.getOrNull(v) ?: emptyList()
+                song.setSourceMarkers(v, markers)
+                val text = parsedTexts.getOrNull(v) ?: ""
+                song.setSourceText(v, text)
             }
+            if (parsedMarkers.size < song.countVoices) {
+                song.truncateVoicesTo(parsedMarkers.size)
+            }
+            return mapOf("ok" to true, "voiceCount" to song.countVoices, "idStatus" to song.idStatus)
         } else {
             return withDb(target) { db ->
                 val a =

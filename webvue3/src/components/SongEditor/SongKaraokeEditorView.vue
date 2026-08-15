@@ -352,7 +352,7 @@ const ALWAYS_ALLOWED_KEYS = new Set([
 /**
  * View-страница «Song Karaoke Editor» — основной layout и data-fetching.
  *
- * @see docs/features/mlt-generator.md
+ * @see archive/docs/features/mlt-generator.md
  */
 
 export default {
@@ -822,7 +822,7 @@ export default {
      * SubsEdit.vue) к тексту текущего голоса через существующий backend-эндпоинт, затем
      * пересинхронизирует маркеры с новым текстом через onTextInput().
      *
-     * @see docs/features/editor-tasks.md
+     * @see archive/docs/features/editor-tasks.md
      */
     async doTypograph() {
       if (!this.canEdit) return

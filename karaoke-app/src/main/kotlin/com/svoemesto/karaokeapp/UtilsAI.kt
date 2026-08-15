@@ -87,7 +87,7 @@ fun parseHtmlUrls(xmlText: String): List<String> {
 /**
  * Класс Find Song Result.
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 @Serializable
 data class FindSongResult(
@@ -518,7 +518,7 @@ fun findSongText(
 /**
  * Класс Api Response Sync.
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 @Serializable
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -530,7 +530,7 @@ data class ApiResponseSync(
 /**
  * Класс Api Response Async.
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 @Serializable
 @JsonIgnoreProperties(ignoreUnknown = true)

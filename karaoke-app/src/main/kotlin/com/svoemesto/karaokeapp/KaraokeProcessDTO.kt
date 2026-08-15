@@ -8,7 +8,7 @@ import java.sql.Timestamp
 /**
  * DTO для karaoke proces: сериализуемое представление для API/UI.
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 data class KaraokeProcessDTO(
     val id: Long,

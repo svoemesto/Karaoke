@@ -25,8 +25,8 @@ import { promisedXMLHttpRequest } from '../../lib/utils'
  * - Фильтры — в отдельном `Songs/filter/store.js` + `setWebvueProp`/`getWebvueProp`.
  *
  * @see SongsTable.vue UI-компонент
- * @see docs/features/sse-notifications.md
- * @see docs/features/dual-db-sync.md
+ * @see archive/docs/features/sse-notifications.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 /**
  * Компонент «id».
@@ -2252,7 +2252,7 @@ export default {
      * specs/113-telegram-demo-publish, FR-015). Вызывает
      * POST /api/song/publishToTelegramNow?songId=<id> — тот же путь, что scheduler,
      * но с allowPastDate=true (публикует даже с прошедшей date/time).
-     * @see docs/features/telegram-auto-publish.md
+     * @see archive/docs/features/telegram-auto-publish.md
      */
     publishToTelegramNowPromise(ctx) {
       let params = { id: ctx.state.currentSongId }

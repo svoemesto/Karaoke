@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component
 /**
  * Класс Site User Resolver.
  *
- * @see archive/archive/docs/features/async-process-queue.md
+ * @see archive/docs/features/async-process-queue.md
  */
 @Component
 class SiteUserResolver(

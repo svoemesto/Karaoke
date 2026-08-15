@@ -19,7 +19,7 @@ import java.time.Duration
 /**
  * Класс Telegram Chat.
  *
- * @see archive/archive/docs/features/async-process-queue.md
+ * @see archive/docs/features/async-process-queue.md
  */
 @Serializable
 data class TelegramChat(
@@ -31,7 +31,7 @@ data class TelegramChat(
 /**
  * Класс Telegram Message.
  *
- * @see archive/archive/docs/features/async-process-queue.md
+ * @see archive/docs/features/async-process-queue.md
  */
 @Serializable
 data class TelegramMessage(
@@ -45,7 +45,7 @@ data class TelegramMessage(
 /**
  * Класс Telegram Update.
  *
- * @see archive/archive/docs/features/async-process-queue.md
+ * @see archive/docs/features/async-process-queue.md
  */
 @Serializable
 data class TelegramUpdate(
@@ -56,7 +56,7 @@ data class TelegramUpdate(
 /**
  * Класс Telegram Updates Response.
  *
- * @see archive/archive/docs/features/async-process-queue.md
+ * @see archive/docs/features/async-process-queue.md
  */
 @Serializable
 data class TelegramUpdatesResponse(
@@ -106,7 +106,7 @@ data class TelegramSendVideoResult(
 /**
  * Класс Telegram Api Client.
  *
- * @see archive/archive/docs/features/async-process-queue.md
+ * @see archive/docs/features/async-process-queue.md
  */
 class TelegramApiClient {
     private val json = Json { ignoreUnknownKeys = true }

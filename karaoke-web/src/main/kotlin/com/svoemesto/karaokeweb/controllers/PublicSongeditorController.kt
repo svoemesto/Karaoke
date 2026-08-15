@@ -28,7 +28,7 @@ private val selfAssignLog = LoggerFactory.getLogger("PublicSongeditorController"
  * залогиненным редакторам с флагом canSelfAssignTasks=true), а эндпоинт перепроверяет права
  * через `siteUserResolver`.
  *
- * @see archive/archive/docs/features/editor-tasks.md#self-assign
+ * @see archive/docs/features/editor-tasks.md#self-assign
  */
 @RestController
 @RequestMapping("/api/public/songeditor")

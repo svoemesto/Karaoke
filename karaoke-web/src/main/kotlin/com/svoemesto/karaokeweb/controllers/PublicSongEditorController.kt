@@ -273,7 +273,7 @@ class PublicSongEditorController(
      * Песня (`tbl_songs`) и разметка не трогаются. Идемпотентно — повторный клик возвращает
      * `assignment_not_found`. Для одобренных используется `/tasks/{id}/delete`.
      *
-     * @see archive/archive/docs/features/editor-tasks.md
+     * @see archive/docs/features/editor-tasks.md
      */
     @PostMapping("/tasks/{id}/refuse")
     fun refuse(
@@ -296,7 +296,7 @@ class PublicSongEditorController(
      * Удалить одобренное задание (`approved`) из списка редактора. Удаляется ТОЛЬКО запись задания —
      * `tbl_songs` не затрагивается (разметка, id_status, публикация остаются как есть). Идемпотентно.
      *
-     * @see archive/archive/docs/features/editor-tasks.md
+     * @see archive/docs/features/editor-tasks.md
      */
     @PostMapping("/tasks/{id}/delete")
     fun delete(
@@ -325,7 +325,7 @@ class PublicSongEditorController(
      * Активные (`assigned`/`in_progress`/`submitted`/`rejected`) не трогаются.
      * Идемпотентно — повторный клик возвращает `ok: true, deleted: 0`. 0 одобренных — то же самое.
      *
-     * @see archive/archive/docs/features/editor-tasks.md
+     * @see archive/docs/features/editor-tasks.md
      */
     @PostMapping("/tasks/delete-approved")
     fun deleteApproved(request: HttpServletRequest): ResponseEntity<Map<String, Any?>> {

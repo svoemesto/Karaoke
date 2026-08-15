@@ -6,7 +6,7 @@ import java.io.Serializable
 /**
  * DTO для dictionary: сериализуемое представление для API/UI.
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 data class DictionaryDto(
     val id: Long,

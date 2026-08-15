@@ -77,7 +77,7 @@ export default {
      * Прогресс текущего стрима (181, FR-FE-001). Заполняется composable
      * useZakromaStreamProgress во время fetch.
      *
-     * @see docs/features/zakroma-stream-progress.md
+     * @see archive/docs/features/zakroma-stream-progress.md
      */
     streamProgress: { receivedCount: 0, expectedCount: 0 },
     /**
@@ -95,7 +95,7 @@ export default {
      * Снижает нагрузку на `/api/public/authors-tiles` для SPA-навигации
      * (вход на /zakroma → переход в /song/{id} → back → /zakroma).
      *
-     * @see docs/features/site-traffic-resilience.md (FR-014)
+     * @see archive/docs/features/site-traffic-resilience.md (FR-014)
      */
     lastLoadedTilesAt: 0,
   },
@@ -157,7 +157,7 @@ export default {
      * Без дедупа SPA-навигация (вход → переход в song → back) дёргает `/authors-tiles`
      * 2-3 раза за сессию.
      *
-     * @see docs/features/site-traffic-resilience.md (FR-014)
+     * @see archive/docs/features/site-traffic-resilience.md (FR-014)
      */
     async loadAuthorTiles({ commit, state }, scope = 'main') {
       // FR-014: dedup — если последний успех был < 30с назад И массив не пустой,
@@ -268,7 +268,7 @@ export default {
      * список ZakromaPublicDto (та же форма, что и для обычного автора, Автор→Альбом→Песни).
      *
      * @see specs/008-special-orders/spec.md
-     * @see docs/features/special-orders.md
+     * @see archive/docs/features/special-orders.md
      */
     async loadSpecialBucket({ commit }) {
       const data = await apiGet('/api/public/zakroma', { specialBucket: true })

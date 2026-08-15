@@ -14,7 +14,7 @@ import java.io.Serializable
  * формируются контроллером PublicPlaylistController по предсказуемым storage-ключам. Пустая строка
  * означает «файла нет в MinIO» — фронт по `@error` показывает CSS-плейсхолдер (см. Acceptance US2.2/3).
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 data class SitePlaylistItemDto(
     val id: Long = 0,

@@ -22,7 +22,7 @@ const STREAM_METRICS_KEY = 'km_zakroma_stream_metrics'
  * - **FR-FE-011**: aria-live throttle через `requestAnimationFrame` (флаг
  *   `rafThrottleFlag`).
  *
- * @see docs/features/zakroma-stream-progress.md
+ * @see archive/docs/features/zakroma-stream-progress.md
  * @see specs/181-zakroma-author-load-progress/spec.md
  */
 export function useZakromaStreamProgress() {

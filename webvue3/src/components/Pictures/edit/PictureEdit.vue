@@ -98,7 +98,7 @@ import { h } from 'vue'
 /**
  * Форма редактирования picture.
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 export default {
   name: 'PictureEdit',

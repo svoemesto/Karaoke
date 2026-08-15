@@ -25,7 +25,7 @@ import java.sql.Timestamp
  *
  * Содержит `SitePlaylistItem` (порядок, песни).
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 class SitePlaylist(
     override val database: KaraokeConnection = WORKING_DATABASE,

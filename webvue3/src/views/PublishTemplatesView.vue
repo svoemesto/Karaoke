@@ -187,7 +187,7 @@ import NewsTemplatesEditor from '../components/NewsTemplates/NewsTemplatesEditor
  * шаблонов авто-новостей сайта (title+body). Третья вкладка «Новости сайта»
  * делегирует работу дочернему компоненту [NewsTemplatesEditor].
  *
- * @see docs/features/news-templates.md
+ * @see archive/docs/features/news-templates.md
  */
 export default {
   name: 'PublishTemplatesView',

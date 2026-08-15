@@ -250,7 +250,7 @@ export default {
      * `filterAssigneeId` / `filterAuthor`) и текущего `assignmentsTarget` (local/remote).
      * Пустые фильтры → `undefined` (не отправляем пустые строки — иначе Spring свяжет как `""`).
      *
-     * @see docs/features/editor-tasks.md
+     * @see archive/docs/features/editor-tasks.md
      */
     deleteApprovedAssignments(ctx, params) {
       return promisedXMLHttpRequest({

@@ -98,7 +98,7 @@ const STATUS_ORDER = {
  * View-страница «Editor Tasks» — основной layout и data-fetching.
  *
  * @see AGENTS.md
- * @see docs/features/editor-tasks.md
+ * @see archive/docs/features/editor-tasks.md
  */
 
 export default {

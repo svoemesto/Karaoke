@@ -9,7 +9,7 @@ import java.io.Serializable
 /**
  * Класс Zakroma.
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 class Zakroma(
     val database: KaraokeConnection,
@@ -281,7 +281,7 @@ class Zakroma(
 /**
  * Класс Zakroma Album Song.
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 class ZakromaAlbumSong :
     Serializable,
@@ -321,7 +321,7 @@ class ZakromaAlbumSong :
 /**
  * Класс Zakroma Album.
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 class ZakromaAlbum :
     Serializable,

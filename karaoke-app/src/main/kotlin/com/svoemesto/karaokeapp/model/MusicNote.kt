@@ -111,7 +111,7 @@ enum class MusicNote(
 /**
  * Класс Note Octave Fret.
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 data class NoteOctaveFret(
     val musicNote: MusicNote,

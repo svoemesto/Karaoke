@@ -17,7 +17,7 @@ import jakarta.servlet.http.HttpServletRequest
  * необходимости добавляется в будущем — для прод-конфигурации с VPN-сетью
  * `KARAOKE_WEB_DEBUG_DB_ALLOWED_IPS=10.8.0.0/24` нужен CIDR-парсер.
  *
- * @see archive/archive/docs/features/site-traffic-resilience.md (FR-013)
+ * @see archive/docs/features/site-traffic-resilience.md (FR-013)
  * @see KaraokeProperties
  * @see DebugDbController
  */

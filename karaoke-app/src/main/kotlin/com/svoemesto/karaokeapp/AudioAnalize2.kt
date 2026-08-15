@@ -10,7 +10,7 @@ import javax.sound.sampled.AudioSystem
 /**
  * Класс My Onset Handler.
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 class MyOnsetHandler : OnsetHandler {
     private var lastOnsetTime = 0.0

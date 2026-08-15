@@ -25,7 +25,7 @@ export default class KaraokePlayer {
     this.container = container
     // shareSessionTokenHash — SHA-256 сессии, выданной /api/public/share/claim. Если есть,
     // прокидывается во все запросы плеера (?session=...) и используется для heartbeat/release
-    // (см. docs/features/guest-share-link.md, spec.md FR-005).
+    // (см. archive/docs/features/guest-share-link.md, spec.md FR-005).
     this.shareSessionTokenHash = shareSessionTokenHash || null
     if (songIdOrOptions !== null && typeof songIdOrOptions === 'object') {
       this._mode = songIdOrOptions.smkaraoke ? 'blob' : 'url-smkaraoke'
@@ -80,7 +80,7 @@ export default class KaraokePlayer {
     // офлайн-предобработка буферов через SoundTouch.js (time-stretch). ПРЕМИУМ-фича: доступна
     // только если data.canExport === true (живая проверка бэкендом, как для «Экспорт аудио»).
     // Не-премиум при попытке сменить тональность → оверлей «Оформите подписку».
-    // @see docs/features/player-transpose.md
+    // @see archive/docs/features/player-transpose.md
     this._transpose = 0
     this._accBufferOriginal = null
     this._vocBufferOriginal = null
@@ -277,14 +277,14 @@ export default class KaraokePlayer {
       this._updateExportMenuAvailability()
       // Премиум-гейт скорости: не-премиум в api-режиме не наследует сохранённую не-базовую
       // скорость — сброс к 1x (как и для тональности). blob/inlineData — без гейта.
-      // @see docs/features/player-transpose.md
+      // @see archive/docs/features/player-transpose.md
       if (this._mode === 'api' && this.data?.canExport !== true && this._playbackRate !== 1) {
         this._playbackRate = 1
         this._updateSpeedMenu()
       }
       // Восстановить per-song сдвиг тональности (FR-011) и пересчитать подписи подменю от
       // загруженного data.key. Премиум-гейт: не-премиум в api-режиме не восстанавливает.
-      // @see docs/features/player-transpose.md
+      // @see archive/docs/features/player-transpose.md
       this._restoreTranspose()
       this._updateTransposeMenu()
     } catch (e) {
@@ -947,12 +947,12 @@ export default class KaraokePlayer {
   // Доступные сдвиги тональности в полутонах от базовой (data.key): −12 … +12 с шагом 1 (25
   // вариантов). 0 = базовая. FR-002. Хроматическая шкала для расчёта результирующей подписи —
   // _transposeLabel. Премиум-фича в публичном плеере (data.canExport).
-  // @see docs/features/player-transpose.md
+  // @see archive/docs/features/player-transpose.md
   static TRANSPOSE_OPTIONS = Array.from({ length: 25 }, (_, i) => i - 12) // [-12, -11, ..., 0, ..., 11, 12]
 
   // Хроматическая шкала (по полутонам, индекс 0 = C). _transposeLabel для расчёта результирующей
   // ноты сдвигом от базовой. Диезь-обозначения (C#, D# ...) — соответствует формату поля key.
-  // @see docs/features/player-transpose.md
+  // @see archive/docs/features/player-transpose.md
   static CHROMATIC = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
 
   // Разбор строки базовой тональности (data.key) в { index, suffix }. index — позиция в
@@ -960,7 +960,7 @@ export default class KaraokePlayer {
   // не "A minor", "C major"). Принимает полные формы ("A minor", "C major") и краткие ("Am", "C").
   // Возвращает null если нота не распознана — тогда _transposeLabel падает на подпись «только
   // сдвиг» (FR-013 расширенно, Assumption).
-  // @see docs/features/player-transpose.md
+  // @see archive/docs/features/player-transpose.md
   static _parseKey(key) {
     if (!key || typeof key !== 'string') return null
     const m = key.trim().match(/^([A-G])([#b]?)(.*)$/)
@@ -997,7 +997,7 @@ export default class KaraokePlayer {
   // (тональность первой — для бейджа). При пустом data.key или нераспознанном — только сдвиг
   // "(+3)" (FR-013). Сдвиг 0 → "(0)" (без знака). Результирующая нота =
   // CHROMATIC[(baseIndex + n) mod 12] + suffix базовой (FR-004).
-  // @see docs/features/player-transpose.md
+  // @see archive/docs/features/player-transpose.md
   _transposeLabel(n, forMenu) {
     const sign = n > 0 ? '+' : ''
     const shift = `(${sign}${n})`
@@ -1052,7 +1052,7 @@ export default class KaraokePlayer {
     // Транспонирование: wiring подменю «Тональность» (параллельно speed). ПРЕМИУМ-фича: при попытке
     // сменить тональность не-премиумом (data.canExport !== true) → оверлей «Оформите подписку»
     // вместо применения. При отсутствии поддержки браузером (FR-018) пункты заблокированы.
-    // @see docs/features/player-transpose.md
+    // @see archive/docs/features/player-transpose.md
     const transposeItem = this.container.querySelector('#kp-menu-transpose')
     const transposeSubmenu = this.container.querySelector('#kp-submenu-transpose')
     transposeItem.addEventListener('click', (e) => {
@@ -1076,7 +1076,7 @@ export default class KaraokePlayer {
     //   родителя ИЛИ подменю раньше 1с — отменяет закрытие. Подменю позиционировано абсолютно
     //   за пределами родителя (right:100%), поэтому mouseleave родителя срабатывает при уходе
     //   в подменю — таймер запускается, но немедленно отменяется mouseenter на подменю.
-    // @see docs/features/player-transpose.md
+    // @see archive/docs/features/player-transpose.md
     this._submenuCloseTimers = new Map()
     const parents = this.container.querySelectorAll('.kp-menu-parent')
     const closeOtherSubmenus = (except) => {
@@ -1209,7 +1209,7 @@ export default class KaraokePlayer {
   // Подсвечивает текущий выбранный сдвиг в подменю «Тональность» + обновляет лейбл родительского
   // пункта. Пересчитывает подписи пунктов от текущего data.key. При _transposeSupported=false —
   // блокирует пункты и показывает подсказку (FR-018).
-  // @see docs/features/player-transpose.md
+  // @see archive/docs/features/player-transpose.md
   _updateTransposeMenu() {
     const label = this.container?.querySelector('#kp-transpose-label')
     if (label) label.textContent = this._transposeLabel(this._transpose, false)
@@ -1356,7 +1356,7 @@ export default class KaraokePlayer {
     this.vocBuffer = vocBuf
     // Сохранить оригинальные буферы для офлайн-транспонирования (всегда от оригинала, не от уже
     // транспонированного — без накопления артефактов при повторной смене тональности).
-    // @see docs/features/player-transpose.md
+    // @see archive/docs/features/player-transpose.md
     this._accBufferOriginal = accBuf
     this._vocBufferOriginal = vocBuf
     this.duration = Math.max(accBuf.duration, vocBuf.duration)
@@ -1731,7 +1731,7 @@ export default class KaraokePlayer {
   // 1) в начале playSong() (T022) — отменяет запросы предыдущей песни;
   // 2) в destroy() (T023) — страховка от утечки на закрытие вкладки.
   // После вызова старый AbortController обнуляется, новый создаётся в init() (T016).
-  // @see docs/features/playlist-play-button-and-stems-cancel.md
+  // @see archive/docs/features/playlist-play-button-and-stems-cancel.md
   _abortActive() {
     if (this._activeAbortController) {
       this._activeAbortController.abort()
@@ -1751,7 +1751,7 @@ export default class KaraokePlayer {
     // попытке сменить скорость → оверлей «Оформите подписку» (аналогично транспонированию).
     // Возврат к 1x (rate === 1) — доступен всем (это «отключить», базовая скорость).
     // blob/inlineData (локальный файл) — без гейта.
-    // @see docs/features/player-transpose.md
+    // @see archive/docs/features/player-transpose.md
     if (this._mode === 'api' && rate !== 1 && this.data?.canExport !== true) {
       this._showPremiumUpsellOverlay('speed')
       return
@@ -1770,7 +1770,7 @@ export default class KaraokePlayer {
   // Офлайн-транспонирование AudioBuffer через SoundTouch.js (time-stretch pitch-shift). Возвращает
   // НОВЫЙ AudioBuffer с изменённой высотой при сохранении темпа/длительности. tempo=1 сохраняет
   // длительность → караоке-маркеры остаются синхронными (FR-006). Работает во всех браузерах с
-  // Web Audio API. @see docs/features/player-transpose.md
+  // Web Audio API. @see archive/docs/features/player-transpose.md
   _transposeBuffer(buffer, semitones) {
     if (!this.audioCtx || semitones === 0) return buffer
     const soundTouch = new SoundTouch()
@@ -1806,7 +1806,7 @@ export default class KaraokePlayer {
   // Применить текущий _transpose к accBuffer/vocBuffer от оригиналов. Офлайн, с паузой и
   // индикатором «Транспонирование…». После — продолжить с позиции. _transposing=true во время
   // обработки. FR-005 (все стемы), FR-006 (time-stretch, темп сохранён).
-  // @see docs/features/player-transpose.md
+  // @see archive/docs/features/player-transpose.md
   async _applyTranspose() {
     if (this._transposing) return
     if (!this._accBufferOriginal || !this._vocBufferOriginal) return
@@ -1863,7 +1863,7 @@ export default class KaraokePlayer {
   // Установить сдвиг тональности. ПРЕМИУМ-фича: если data.canExport !== true (не-премиум в api-
   // режиме) — показывает оверлей «Оформите подписку» вместо применения. В blob-режиме
   // (локальный файл) — применяется без гейта (файл уже у пользователя).
-  // @see docs/features/player-transpose.md
+  // @see archive/docs/features/player-transpose.md
   setTranspose(n) {
     n = Number(n)
     if (!Number.isInteger(n) || n < -12 || n > 12 || n === this._transpose) return
@@ -1881,7 +1881,7 @@ export default class KaraokePlayer {
 
   /**
    * Текущий сдвиг тональности для активной песни (полутоны, −12..+12; 0 = базовая).
-   * @see docs/features/player-transpose.md
+   * @see archive/docs/features/player-transpose.md
    */
   get transpose() {
     return this._transpose
@@ -1890,7 +1890,7 @@ export default class KaraokePlayer {
   // Восстановить per-song сдвиг из localStorage. Применяет офлайн-транспонирование к буферам
   // (синхронно, до первого _play). FR-011. Премиум-гейт: не-премиум в api-режиме не
   // восстанавливает сохранённый сдвиг (фича недоступна) — оставляет 0/оригиналы.
-  // @see docs/features/player-transpose.md
+  // @see archive/docs/features/player-transpose.md
   _restoreTranspose() {
     if (!this.data || this.data.id == null) {
       this._transpose = 0
@@ -1920,7 +1920,7 @@ export default class KaraokePlayer {
   }
 
   // Сохранить per-song сдвиг в localStorage. ТОЛЬКО из setTranspose (явный выбор).
-  // @see docs/features/player-transpose.md
+  // @see archive/docs/features/player-transpose.md
   _saveTranspose() {
     if (!this.data || this.data.id == null) return
     try {
@@ -1933,7 +1933,7 @@ export default class KaraokePlayer {
   // Оверлей «... — премиум-функция» — по образцу _showDemoEndOverlay. Показывается при попытке
   // сменить тональность/скорость не-премиумом в api-режиме. feature: 'transpose' | 'speed'.
   // Текст заголовка и подписи зависит от фичи. Кнопка ведёт на /premium.
-  // @see docs/features/player-transpose.md
+  // @see archive/docs/features/player-transpose.md
   _showPremiumUpsellOverlay(feature = 'transpose') {
     this._hidePremiumUpsellOverlay()
     const wrap = this.container.querySelector('#kp-canvas-wrap')
@@ -2046,7 +2046,7 @@ export default class KaraokePlayer {
     this._endFadeStartedAt = null
     // Транспонирование: сброс к базовой ПЕРЕД init() (FR-012). init() вызовет _restoreTranspose()
     // и восстановит сохранённый для НОВОЙ песни сдвиг (или 0). Оригиналы пересоздадутся в _loadAudio.
-    // @see docs/features/player-transpose.md
+    // @see archive/docs/features/player-transpose.md
     this._transpose = 0
     this._accBufferOriginal = null
     this._vocBufferOriginal = null
@@ -2666,7 +2666,7 @@ export default class KaraokePlayer {
   // Синий бейдж тональности в правом верхнем углу, пока сдвиг ≠ 0 — под бейджем скорости (FR-008/
   // FR-009/FR-010). Цвет #08f, подпись = _transposeLabel(n, false) ("Cm (+3)" / "(+3)" при пустом
   // key). Y: если _playbackRate !== 1 — отступить высоту speed-бейджа + gap, иначе margin.
-  // @see docs/features/player-transpose.md
+  // @see archive/docs/features/player-transpose.md
   _renderTransposeBadge(ctx, W, H) {
     if (this._transpose === 0) return
     const scale = H / 1080
@@ -3709,7 +3709,7 @@ export default class KaraokePlayer {
     this._endFadeStartedAt = null
     this._volumeAnchored = false
     // Транспонирование: сброс к базовой перед init() (загрузка нового файла = новые данные).
-    // @see docs/features/player-transpose.md
+    // @see archive/docs/features/player-transpose.md
     this._transpose = 0
     this._accBufferOriginal = null
     this._vocBufferOriginal = null

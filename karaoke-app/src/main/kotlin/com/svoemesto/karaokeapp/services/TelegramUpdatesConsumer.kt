@@ -16,7 +16,7 @@ import java.time.Instant
 /**
  * Класс Telegram Updates Consumer Starter.
  *
- * @see archive/archive/docs/features/async-process-queue.md
+ * @see archive/docs/features/async-process-queue.md
  */
 @Component
 class TelegramUpdatesConsumerStarter {
@@ -41,7 +41,7 @@ class TelegramUpdatesConsumerStarter {
 /**
  * Singleton-объект Telegram Updates Consumer.
  *
- * @see archive/archive/docs/features/async-process-queue.md
+ * @see archive/docs/features/async-process-queue.md
  */
 object TelegramUpdatesConsumer {
     @Volatile var isWork: Boolean = false

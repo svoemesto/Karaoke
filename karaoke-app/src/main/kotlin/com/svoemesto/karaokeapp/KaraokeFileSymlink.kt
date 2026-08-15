@@ -10,7 +10,7 @@ import kotlin.io.path.Path
 /**
  * Класс Karaoke File Symlink.
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 data class KaraokeFileSymlink(
     val folder: String, // имя папки внутри root_folder-а

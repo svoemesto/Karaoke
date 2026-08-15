@@ -20,7 +20,7 @@ import SiteUserEdit from './SiteUserEdit.vue'
 /**
  * Модальное окно для edit.
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 
 export default {

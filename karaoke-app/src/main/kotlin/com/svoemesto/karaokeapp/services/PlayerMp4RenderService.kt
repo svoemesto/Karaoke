@@ -14,7 +14,7 @@ import kotlin.math.ceil
 /**
  * Перечисление возможных значений для render version.
  *
- * @see archive/archive/docs/features/async-process-queue.md
+ * @see archive/docs/features/async-process-queue.md
  */
 enum class RenderVersion(
     val label: String,
@@ -31,7 +31,7 @@ enum class RenderVersion(
 /**
  * Класс Render Mp4Params.
  *
- * @see archive/archive/docs/features/async-process-queue.md
+ * @see archive/docs/features/async-process-queue.md
  */
 data class RenderMp4Params(
     val songId: Long,
@@ -46,7 +46,7 @@ data class RenderMp4Params(
 /**
  * Класс Render Mp4Frames Result.
  *
- * @see archive/archive/docs/features/async-process-queue.md
+ * @see archive/docs/features/async-process-queue.md
  */
 data class RenderMp4FramesResult(
     val framesDir: File,
@@ -77,7 +77,7 @@ data class RenderMp4FramesResult(
 /**
  * Singleton-объект Player Mp4Render Service.
  *
- * @see archive/archive/docs/features/async-process-queue.md
+ * @see archive/docs/features/async-process-queue.md
  */
 object PlayerMp4RenderService {
     // webvue3-контейнер в docker-сети (nginx слушает 7906, проксирует /api → karaoke-app:8899 — тот

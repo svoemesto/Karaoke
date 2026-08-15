@@ -20,7 +20,7 @@ import java.time.Instant
 /**
  * Singleton-объект Player Mp4Mux Service.
  *
- * @see archive/archive/docs/features/async-process-queue.md
+ * @see archive/docs/features/async-process-queue.md
  */
 object PlayerMp4MuxService {
     // Путь к flac-стему + линейный множитель громкости (0 = тишина, 1 = как есть в исходнике).

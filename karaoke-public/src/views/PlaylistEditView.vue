@@ -307,7 +307,7 @@ export default {
      * формирует очередь. Drag-drop/mute (T032) шлют `setqueue` отложенно через `setTimeout(50)`,
      * чтобы не перетереть свежую очередь от плеера (race-condition FR-010).
      *
-     * @see docs/features/playlist-play-button-and-stems-cancel.md
+     * @see archive/docs/features/playlist-play-button-and-stems-cancel.md
      */
     function onSongPlay(item) {
       if (isPlayDisabled(item)) return

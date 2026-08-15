@@ -14,7 +14,7 @@ import org.springframework.stereotype.Service
 /**
  * Сервис для captcha config .
  *
- * @see archive/archive/docs/features/async-process-queue.md
+ * @see archive/docs/features/async-process-queue.md
  */
 @Service
 class CaptchaConfigService {

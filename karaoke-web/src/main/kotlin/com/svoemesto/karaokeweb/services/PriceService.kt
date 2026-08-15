@@ -24,7 +24,7 @@ import java.time.LocalDateTime
 /**
  * Сервис для price .
  *
- * @see archive/archive/docs/features/async-process-queue.md
+ * @see archive/docs/features/async-process-queue.md
  */
 @Service
 class PriceService {

@@ -105,7 +105,7 @@
 /**
  * Модальное окно для songs.
  *
- * @see docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 export default {
   name: 'FamilySongsModal',

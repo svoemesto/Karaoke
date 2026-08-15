@@ -12,7 +12,7 @@ import org.springframework.scheduling.concurrent.ConcurrentTaskScheduler
 /**
  * Класс Karaoke App Application.
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 @SpringBootApplication
 @EnableScheduling

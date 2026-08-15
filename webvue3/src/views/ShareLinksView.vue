@@ -13,7 +13,7 @@ import ShareLinksTable from '../components/ShareLinks/ShareLinksTable.vue'
  * через переиспользуемый `revokeSiteUserShareLink`.
  *
  * @see AGENTS.md
- * @see docs/features/guest-share-link.md
+ * @see archive/docs/features/guest-share-link.md
  * @see specs/171-admin-subscriptions-history/spec.md
  */
 export default {

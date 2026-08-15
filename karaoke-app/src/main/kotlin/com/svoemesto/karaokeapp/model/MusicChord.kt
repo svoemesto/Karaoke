@@ -817,7 +817,7 @@ enum class MusicChord(
 /**
  * Класс Fingerboard.
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 data class Fingerboard(
     val guitarString: GuitarString,

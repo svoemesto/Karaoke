@@ -198,7 +198,7 @@ import CustomConfirm from '../Common/CustomConfirm.vue'
 /**
  * Таблица со списком processes с пагинацией, фильтрами и сортировкой.
  *
- * @see docs/features/async-process-queue.md
+ * @see archive/docs/features/async-process-queue.md
  */
 
 export default {

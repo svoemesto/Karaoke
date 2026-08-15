@@ -27,7 +27,7 @@ import javax.imageio.ImageIO
  * в `@KaraokeDbTableField` — НЕ загружаются в `loadList` (OutOfMemory
  * на 18k+ записей). Доступны только через `loadFromDbById` (lazy).
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  * @see archive/docs/features/telegram-auto-publish.md (картинки для постинга)
  */
 class Pictures(

@@ -564,8 +564,8 @@ const ASSIGN_STATUS_LABELS = {
  * @emits row-click - клик по строке (payload: SongDTO)
  * @emits row-edit - открыть SongEditModal
  * @emits row-delete - удалить песню
- * @see docs/features/sse-notifications.md
- * @see docs/features/dual-db-sync.md (Song — основная syncable-сущность)
+ * @see archive/docs/features/sse-notifications.md
+ * @see archive/docs/features/dual-db-sync.md (Song — основная syncable-сущность)
  * @see CONTRIBUTING.md#vue-table-layout-fixed
  * @see Songs/store.js Vuex-модуль с actions/mutations
  */
@@ -590,7 +590,7 @@ const ASSIGN_STATUS_LABELS = {
  *
  * @emits row-click - клик по строке (открывает `SongEdit`)
  * @emits selection-change - изменился набор выбранных ID
- * @see docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 export default {
   name: 'SongsTable',
@@ -1044,7 +1044,7 @@ export default {
      * null, если badge не нужен.
      * @param {Object} item — строка songsDigest (поля date, time, idTelegramDemo)
      * @returns {{symbol: string, title: string, class: string}|null}
-     * @see docs/features/telegram-auto-publish.md
+     * @see archive/docs/features/telegram-auto-publish.md
      */
     telegramPublishBadgeFor(item) {
       if (!item) return null

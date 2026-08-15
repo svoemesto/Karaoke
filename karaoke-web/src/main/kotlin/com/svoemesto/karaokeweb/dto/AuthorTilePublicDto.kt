@@ -22,7 +22,7 @@ import java.nio.charset.StandardCharsets
  * а фронтенд по `@error` спрячет `<img>` — плитка останется с одним именем.
  *
  * @see specs/187-site-traffic-anomaly-investigation (spec 187)
- * @see archive/archive/docs/features/site-traffic-resilience.md (FR-001/002/003)
+ * @see archive/docs/features/site-traffic-resilience.md (FR-001/002/003)
  */
 data class AuthorTilePublicDto(
     val author: String,

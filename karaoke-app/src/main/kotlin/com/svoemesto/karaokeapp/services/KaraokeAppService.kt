@@ -25,7 +25,7 @@ lateinit var DB_REMOTE_PORT: String
 /**
  * Сервис для karaoke app .
  *
- * @see archive/archive/docs/features/async-process-queue.md
+ * @see archive/docs/features/async-process-queue.md
  */
 @Service
 class KaraokeAppService(

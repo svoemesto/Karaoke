@@ -20,7 +20,7 @@ import java.util.concurrent.ConcurrentHashMap
  * (`KaraokeProcess.setWorkingToWaitingForThread`), не трогая другие лейны и не требуя перезапуска
  * всего воркера.
  *
- * @see archive/archive/docs/features/async-process-queue.md
+ * @see archive/docs/features/async-process-queue.md
  * @see archive/docs/features/monitoring.md
  */
 object LaneStalledCheck : MonitorCheck {

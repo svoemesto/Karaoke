@@ -27,7 +27,7 @@ import java.util.UUID
 /**
  * Сервис для payment .
  *
- * @see archive/archive/docs/features/async-process-queue.md
+ * @see archive/docs/features/async-process-queue.md
  */
 @Service
 class PaymentService(

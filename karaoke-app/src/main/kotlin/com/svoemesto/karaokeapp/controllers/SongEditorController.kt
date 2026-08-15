@@ -632,7 +632,7 @@ class SongEditorController(
      * `KaraokeDbTable.deleteIn`. Идемпотентно — повторный клик возвращает `ok: true, deleted: 0`.
      * Песня (`tbl_songs`) и разметка не трогаются.
      *
-     * @see archive/archive/docs/features/editor-tasks.md
+     * @see archive/docs/features/editor-tasks.md
      */
     @PostMapping("/delete-approved")
     @ResponseBody

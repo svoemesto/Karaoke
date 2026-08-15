@@ -15,7 +15,7 @@ import java.util.concurrent.ConcurrentHashMap
 /**
  * Класс Notification.
  *
- * @see archive/archive/docs/features/async-process-queue.md
+ * @see archive/docs/features/async-process-queue.md
  */
 class Notification<out T>(
     @Suppress("unused") val userId: Long,
@@ -26,7 +26,7 @@ class Notification<out T>(
 /**
  * Класс User Key.
  *
- * @see archive/archive/docs/features/async-process-queue.md
+ * @see archive/docs/features/async-process-queue.md
  */
 data class UserKey(
     val userId: Long,
@@ -40,7 +40,7 @@ data class UserKey(
 /**
  * Singleton-объект Tab Id Context.
  *
- * @see archive/archive/docs/features/async-process-queue.md
+ * @see archive/docs/features/async-process-queue.md
  */
 object TabIdContext {
     private val tl = ThreadLocal<String?>()

@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component
 /**
  * Класс Application Context Provider.
  *
- * @see archive/archive/docs/features/async-process-queue.md
+ * @see archive/docs/features/async-process-queue.md
  */
 @Component
 class ApplicationContextProvider : ApplicationContextAware {

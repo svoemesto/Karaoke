@@ -335,7 +335,7 @@ import SongEventsModal from '../components/Stats/SongEventsModal.vue'
 /**
  * View-страница «Stats» — основной layout и data-fetching.
  *
- * @see docs/features/monitoring.md
+ * @see archive/docs/features/monitoring.md
  */
 
 export default {

@@ -170,7 +170,7 @@ const socialLinks = [
  * `/api/public/stats` (кеш в `StatsCacheScheduler`, см. `monitoring.md`).
  *
  * @see AGENTS.md
- * @see docs/features/monitoring.md (счётчики)
+ * @see archive/docs/features/monitoring.md (счётчики)
  */
 export default {
   name: 'HomeView',

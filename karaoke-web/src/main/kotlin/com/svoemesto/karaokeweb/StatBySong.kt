@@ -33,7 +33,7 @@ import java.util.concurrent.atomic.AtomicInteger
 /**
  * Singleton-объект Stat By Song.
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  * @see archive/docs/features/song-free-access.md
  */
 object StatBySong {

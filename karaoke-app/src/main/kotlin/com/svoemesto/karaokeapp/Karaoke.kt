@@ -24,7 +24,7 @@ import java.util.*
 /**
  * Класс Karaoke Property Serializable.
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 data class KaraokePropertySerializable(
     val key: String,
@@ -127,7 +127,7 @@ data class KaraokePropertySerializable(
 /**
  * Класс Karaoke Property.
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 data class KaraokeProperty(
     val key: String,
@@ -138,7 +138,7 @@ data class KaraokeProperty(
 /**
  * DTO для karaoke property: сериализуемое представление для API/UI.
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 data class KaraokePropertyDTO(
     val key: String = "",
@@ -151,7 +151,7 @@ data class KaraokePropertyDTO(
 /**
  * Класс Karaoke.
  *
- * @see archive/archive/docs/features/dual-db-sync.md
+ * @see archive/docs/features/dual-db-sync.md
  */
 class Karaoke : Serializable {
     companion object {

@@ -20,7 +20,7 @@ const val PATH_TO_KARAOKE_PROPERTIES_FILE = "/sm-karaoke/system/Karaoke.properti
 /**
  * Класс Karaoke Properties.
  *
- * @see archive/archive/docs/features/async-process-queue.md
+ * @see archive/docs/features/async-process-queue.md
  */
 class KaraokeProperties {
     companion object {

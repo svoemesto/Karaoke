@@ -71,13 +71,20 @@
           <!-- Превью в настоящем плеере -->
           <div class="ke-player-toggle">
             <button class="ke-btn ke-btn-ghost" :disabled="playerLoading" @click="togglePlayer">
-              {{ playerLoading ? 'Сохраняем…' : showPlayer ? 'Скрыть плеер' : '▶ Прослушать в плеере' }}
+              {{
+                playerLoading ? 'Сохраняем…' : showPlayer ? 'Скрыть плеер' : '▶ Прослушать в плеере'
+              }}
             </button>
           </div>
         </div>
 
         <div v-if="showPlayer" ref="playerWrap" class="ke-player-wrap">
-          <iframe :src="playerSrc" :height="playerHeight" class="ke-player-frame" allow="autoplay" />
+          <iframe
+            :src="playerSrc"
+            :height="playerHeight"
+            class="ke-player-frame"
+            allow="autoplay"
+          />
         </div>
 
         <!-- Волновая форма -->

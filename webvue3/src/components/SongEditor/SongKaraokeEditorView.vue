@@ -61,7 +61,9 @@
         <!-- Превью в настоящем плеере (через KaraokePlayer — наш webvue3-плеер с inline-данными) -->
         <div class="ske-player-toggle">
           <button class="ske-btn ske-btn-ghost" :disabled="playerLoading" @click="togglePlayer">
-            {{ playerLoading ? 'Подготовка…' : showPlayer ? 'Скрыть плеер' : '▶ Прослушать в плеере' }}
+            {{
+              playerLoading ? 'Подготовка…' : showPlayer ? 'Скрыть плеер' : '▶ Прослушать в плеере'
+            }}
           </button>
         </div>
       </div>
@@ -177,11 +179,7 @@
     <!-- Редизайн 233 (FR-009): backdrop + кнопка-«бургер» для drawer'а правой колонки при
          ширине окна <1024px. Toggle виден только в media-query (CSS), backdrop показывается
          при rightDrawerOpen === true. Клик на backdrop закрывает drawer. -->
-    <div
-      v-if="rightDrawerOpen"
-      class="ske-drawer-backdrop"
-      @click="rightDrawerOpen = false"
-    />
+    <div v-if="rightDrawerOpen" class="ske-drawer-backdrop" @click="rightDrawerOpen = false" />
     <button
       type="button"
       class="ske-drawer-toggle ske-btn ske-btn-ghost"
@@ -303,10 +301,7 @@
           @input="onTextInput"
         />
       </div>
-      <div
-        class="ske-text-col"
-        :class="{ 'ske-drawer-open': rightDrawerOpen }"
-      >
+      <div class="ske-text-col" :class="{ 'ske-drawer-open': rightDrawerOpen }">
         <!-- Pass 2 (2026-08-15): панель маркер-действий перенесена в .ske-transport, после
              ползунка «Громкость» (см. выше). Правая колонка теперь содержит только preview. -->
         <div class="ske-col-header">

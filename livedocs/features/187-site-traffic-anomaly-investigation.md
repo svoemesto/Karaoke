@@ -7,6 +7,8 @@ related:
   - ../../specs/187-site-traffic-anomaly-investigation/spec.md
   - ../../archive/docs/features/site-traffic-resilience.md
   - ../../archive/docs/features/sse-notifications.md
+  - ../architecture/observability.md
+  - ../domain/stats.md
 ---
 
 # 187 — Расследование аномалии трафика сайта (LiveDoc)

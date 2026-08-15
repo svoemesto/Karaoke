@@ -6,6 +6,7 @@ related:
   - ../domain/publishing.md
   - ../architecture/data-sync.md
   - ../../specs/172-db-sync-temporary-links/spec.md
+  - ../architecture/share-link.md
 ---
 
 # 172 — Временные ссылки в sync LOCAL↔SERVER (LiveDoc)

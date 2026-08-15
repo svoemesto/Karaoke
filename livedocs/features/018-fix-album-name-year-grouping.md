@@ -5,6 +5,7 @@ related:
   - ../domain/catalog.md
   - ../features/181-zakroma-author-load-progress.md
   - ../../specs/018-fix-album-name-year-grouping/spec.md
+  - ../architecture/conversion-funnel.md
 ---
 
 # 018 — Закрома: альбомы с одинаковым именем, но разными годами — не сливаются (LiveDoc)

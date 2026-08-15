@@ -5,6 +5,8 @@ related:
   - ../domain/editorial.md
   - ../features/015-search-engine-selection.md
   - ../../specs/014-lyrics-search-replacement/spec.md
+  - ../domain/catalog.md
+  - ../architecture/queue-lanes.md
 ---
 
 # 014 (lyrics) — Замена поискового движка для текстов песен (LiveDoc)

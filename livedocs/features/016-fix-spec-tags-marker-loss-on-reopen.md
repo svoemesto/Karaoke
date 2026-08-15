@@ -5,6 +5,7 @@ related:
   - ../domain/editorial.md
   - ../features/010-lyrics-spec-tags.md
   - ../../specs/016-fix-spec-tags-marker-loss-on-reopen/spec.md
+  - ../architecture/queue-lanes.md
 ---
 
 # 016 — Спецтеги: сохранение маркеров после «Apply → Save → reopen» (LiveDoc)

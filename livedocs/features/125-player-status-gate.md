@@ -5,6 +5,7 @@ related:
   - ../domain/catalog.md
   - ../features/022-song-status-lifecycle.md
   - ../../specs/125-player-status-gate/spec.md
+  - ../architecture/webvue3-patterns.md
 ---
 
 # 125 — Доступность плеера в таблице «Песни» при статусе ≥4 (LiveDoc)

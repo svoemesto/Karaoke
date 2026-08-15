@@ -9,6 +9,7 @@ related:
   - ../../specs/190-playlist-play-button-and-stems-cancel/spec.md
   - ../../archive/docs/features/playlist-play-button-and-stems-cancel.md
   - ../../archive/docs/features/playlist-play-button-and-stems-cancel.md
+  - ../architecture/ci-cd-pipeline.md
 ---
 
 # 190 — Плейлисты: запуск с любой песни, превью альбома/автора и фикс задвоения вейвформ (LiveDoc)

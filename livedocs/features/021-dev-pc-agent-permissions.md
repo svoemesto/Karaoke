@@ -3,6 +3,9 @@ status: Active
 slug: 021-dev-pc-agent-permissions
 related:
   - ../../specs/021-dev-pc-agent-permissions/spec.md
+  - ../../AGENTS.md
+  - ../architecture/ci-cd-pipeline.md
+  - ../runbooks/how-to-deploy.md
 ---
 
 # 021 — Unrestricted agent permissions on dev-pc (LiveDoc)

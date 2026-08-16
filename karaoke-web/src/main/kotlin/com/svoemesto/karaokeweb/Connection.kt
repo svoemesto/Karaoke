@@ -13,7 +13,14 @@ import com.svoemesto.karaokeweb.services.WEB_WORK_ON_SERVER
 /**
  * Класс Connection.
  *
+ * **Singleton-семантика фабрик (specs/234-db-sync-connection-leak):** начиная с этой спеки,
+ * `local()`/`remote()`/`virtual()` возвращают **тот же самый инстанс** `Connection` на повторные
+ * вызовы (Kotlin `by lazy(SYNCHRONIZED)`), а не `new Connection(...)` каждый раз — симметричный
+ * фикс `karaoke-app/.../Connection.kt`. Решает ту же утечку JDBC-соединений в `webvue3`-эндпоинтах
+ * (новости, шаблоны, словари через `withDb { ... }`).
+ *
  * @see archive/docs/features/dual-db-sync.md
+ * @see specs/234-db-sync-connection-leak фикс утечки JDBC-соединений
  */
 class Connection(
     override val url: String,
@@ -34,20 +41,35 @@ class Connection(
         private val USERNAME = if (WEB_WORK_ON_SERVER) DB_SERVER_POSTGRES_USER else DB_LOCAL_POSTGRES_USER
         private val PASSWORD = if (WEB_WORK_ON_SERVER) DB_SERVER_POSTGRES_PASSWORD else DB_LOCAL_POSTGRES_PASSWORD
 
-        fun local(): KaraokeConnection = Connection(name = "LOCAL", url = connectionLocalUrl(), username = USERNAME, password = PASSWORD)
+        // Singleton-фабрики (specs/234-db-sync-connection-leak) — симметрично karaoke-app/.../Connection.kt.
+        // Один инстанс Connection на процесс karaoke-web, ленивая инициализация, thread-safe.
+        private val LOCAL_INSTANCE: Connection by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
+            Connection(name = "LOCAL", url = connectionLocalUrl(), username = USERNAME, password = PASSWORD)
+        }
 
         @Suppress("unused")
-        fun remote(): KaraokeConnection =
+        private val REMOTE_INSTANCE: Connection by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
             Connection(
                 name = "SERVER",
                 url = connectionRemoteUrl(),
                 username = DB_SERVER_POSTGRES_USER,
                 password = DB_SERVER_POSTGRES_PASSWORD,
             )
+        }
 
         @Suppress("unused")
-        fun virtual(): KaraokeConnection =
+        private val VIRTUAL_INSTANCE: Connection by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
             Connection(name = "VIRTUAL", url = connectionVirtualUrl(), username = USERNAME, password = PASSWORD)
+        }
+
+        /** Singleton-фабрика (specs/234-db-sync-connection-leak) — возвращает тот же инстанс на повторные вызовы. */
+        fun local(): KaraokeConnection = LOCAL_INSTANCE
+
+        @Suppress("unused")
+        fun remote(): KaraokeConnection = REMOTE_INSTANCE
+
+        @Suppress("unused")
+        fun virtual(): KaraokeConnection = VIRTUAL_INSTANCE
 
         private fun connectionLocalUrl(): String =
             if (WEB_WORK_IN_CONTAINER) {

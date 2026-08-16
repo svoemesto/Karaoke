@@ -10,6 +10,20 @@
 >
 > **См. также**: `git log livedocs/` — для построчной истории.
 
+## 2026-08-16 — 236-fix-karaoke-connection-self-healing
+
+- **Added** `livedocs/features/236-fix-karaoke-connection-self-healing.md` — LiveDoc для
+  фикса self-healing `KaraokeConnection.getConnection()` после неудачной попытки
+  `DriverManager.getConnection(...)`. Сброс `ThreadLocal` до попытки + `urlHost` в SLF4J warn.
+- **Related**: [234-db-sync-connection-leak.md](features/234-db-sync-connection-leak.md)
+  (singleton Connection-фабрики, SLF4J warn — предшественник),
+  [087-fix-shared-db-connection.md](features/087-fix-shared-db-connection.md)
+  (ThreadLocal-per-поток — контракт, который эта спека усиливает).
+- **Spec**: `specs/236-fix-karaoke-connection-self-healing/spec.md`.
+- **Code**: `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeConnection.kt:49` —
+  сброс `threadLocalConnection.set(null)` при входе в ветку пересоздания;
+  добавлено поле `urlHost` в SLF4J `log.warn`.
+
 ## 2026-08-16 — 234-db-sync-connection-leak (singleton Connection-фабрики)
 
 - **Added** `livedocs/features/234-db-sync-connection-leak.md` — LiveDoc для новой фичи:

@@ -1,5 +1,6 @@
 package com.svoemesto.karaokeapp
 
+import org.slf4j.LoggerFactory
 import java.sql.DriverManager
 
 /**
@@ -19,7 +20,15 @@ import java.sql.DriverManager
  * соединение отсутствует/закрыто/невалидно — пересоздаётся прозрачно для
  * вызывающего кода (сигнатура [getConnection] не менялась).
  *
+ * **Логирование сбоев подключения/закрытия (specs/234-db-sync-connection-leak):**
+ * в дополнение к существующему `println` (для stdout контейнера и обратной
+ * совместимости) добавлен SLF4J `log.warn(...)` с placeholder'ами
+ * `target={} thread={} cause={}` — для структурированного парсинга в Kibana/Loki
+ * и пост-инцидентной диагностики. Существующие 174+ вызывающих мест
+ * `getConnection()` НЕ затронуты (контракт `Connection?` сохранён).
+ *
  * @see archive/docs/features/async-process-queue.md
+ * @see specs/234-db-sync-connection-leak фикс утечки JDBC-соединений + структурированный warn
  */
 abstract class KaraokeConnection(
     open val url: String,
@@ -27,6 +36,10 @@ abstract class KaraokeConnection(
     open val password: String,
     open val name: String,
 ) {
+    // SLF4J logger (specs/234-db-sync-connection-leak). Категория = полное имя класса.
+    // Spring Boot по умолчанию использует Logback (уже в classpath), без новых зависимостей.
+    private val log = LoggerFactory.getLogger(KaraokeConnection::class.java)
+
     private val threadLocalConnection = ThreadLocal<java.sql.Connection?>()
 
     /**
@@ -40,7 +53,15 @@ abstract class KaraokeConnection(
             try {
                 threadLocalConnection.set(DriverManager.getConnection(url, username, password))
             } catch (e: Exception) {
+                // Сохраняем println для обратной совместимости (docker logs читают stdout).
                 println("KaraokeConnection getConnection Exception: ${e.message}")
+                // FR-004 spec.md: структурированный SLF4J warn для диагностики.
+                log.warn(
+                    "KaraokeConnection connect failure target={} thread={} cause={}",
+                    name,
+                    Thread.currentThread().name,
+                    e.message ?: "unknown",
+                )
             }
         }
         return threadLocalConnection.get()
@@ -66,7 +87,15 @@ abstract class KaraokeConnection(
         try {
             conn.close()
         } catch (e: Exception) {
+            // Сохраняем println для обратной совместимости (docker logs читают stdout).
             println("KaraokeConnection closeThreadConnection Exception: ${e.message}")
+            // Симметричный SLF4J warn для диагностики сбоев закрытия.
+            log.warn(
+                "KaraokeConnection closeThreadConnection failure target={} thread={} cause={}",
+                name,
+                Thread.currentThread().name,
+                e.message ?: "unknown",
+            )
         } finally {
             threadLocalConnection.remove()
         }

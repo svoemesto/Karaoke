@@ -17,25 +17,42 @@ import com.svoemesto.karaokeapp.services.DB_SERVER_POSTGRES_USER
  * [Companion.virtual]. Прямое создание `Connection(...)` — не рекомендуется
  * (нет валидации параметров).
  *
+ * **Singleton-семантика фабрик (specs/234-db-sync-connection-leak):** начиная с
+ * этой спеки, `local()`/`remote()`/`virtual()` возвращают **тот же самый
+ * инстанс** `Connection` на повторные вызовы (Kotlin `by lazy(SYNCHRONIZED)`),
+ * а не `new Connection(...)` каждый раз. До этого фабрики создавали новый
+ * инстанс на каждый вызов — каждый со своим `ThreadLocal<java.sql.Connection?>`
+ * в [KaraokeConnection], что приводило к утечке JDBC-соединений на каждом
+ * клике «Синхронизация БД в 1 клик» (36 новых инстансов Connection × N
+ * вызовов = 100+ физических каналов → `FATAL: sorry, too many clients
+ * already` при `max_connections=100`).
+ *
  * Потокобезопасность: `getConnection()` (см. [KaraokeConnection]) кеширует
  * по одному физическому JDBC-соединению **на поток выполнения**
  * (`ThreadLocal`, specs/087-fix-shared-db-connection) — не на весь инстанс
  * и тем более не «новое соединение на каждый вызов». Для долгоживущего
- * инстанса, на который ссылаются многие потоки (типично для
- * [WORKING_DATABASE]), это означает одно устойчивое соединение на поток,
- * переиспользуемое между вызовами без явного `close()`.
+ * singleton-инстанса `Connection`, на который ссылаются многие потоки
+ * (типично для [WORKING_DATABASE]), это означает одно устойчивое соединение
+ * на поток, переиспользуемое между вызовами без явного `close()`.
+ *
+ * Контракт `closeThreadConnection()` (specs/091-fix-connection-leak)
+ * сохраняется: для одноразовых потоков вызывать явно, для долгоживущих
+ * (Tomcat worker pool, главный цикл `KaraokeProcessWorker.doStart()`) —
+ * НЕ вызывать (см. KDoc [KaraokeConnection.closeThreadConnection]).
  *
  * Отдельный, дополнительный паттерн — короткоживущий `Connection`,
  * создаваемый заново на каждый HTTP-запрос через приватный `withDb { ... }`
  * в части контроллеров (`SponsrSyncController`, `SiteUsersController`):
  * там именно НОВЫЙ инстанс `Connection` на вызов, закрываемый явно в
  * `finally`, чтобы не плодить лишние физические соединения при работе с
- * `target`-параметром (LOCAL/SERVER на выбор). Это выбор конкретных
- * контроллеров, а не общее свойство класса `Connection`.
+ * `target`-параметром (LOCAL/SERVER на выбор). После singleton-фикса этот
+ * паттерн становится избыточным (закрытие закрытого соединения = no-op), но
+ * не ломает контракт; опциональная чистка — отдельная задача.
  *
  * @see KaraokeConnection базовый интерфейс
  * @see WORKING_DATABASE глобальный singleton (обычно = `Connection.local()`)
  * @see archive/docs/features/dual-db-sync.md
+ * @see specs/234-db-sync-connection-leak фикс утечки JDBC-соединений
  */
 
 /**
@@ -61,6 +78,30 @@ class Connection(
         private val USERNAME = if (APP_WORK_ON_SERVER) DB_SERVER_POSTGRES_USER else DB_LOCAL_POSTGRES_USER
         private val PASSWORD = if (APP_WORK_ON_SERVER) DB_SERVER_POSTGRES_PASSWORD else DB_LOCAL_POSTGRES_PASSWORD
 
+        // Singleton-фабрики (specs/234-db-sync-connection-leak): один инстанс Connection на процесс,
+        // ленивая инициализация при первом обращении, thread-safe через LazyThreadSafetyMode.SYNCHRONIZED.
+        // Решает утечку: раньше каждый вызов local()/remote() создавал НОВЫЙ Connection, у которого свой
+        // ThreadLocal<java.sql.Connection?> → новый физический JDBC-канал, который никогда не закрывался.
+        // Теперь: один Connection.local() на весь процесс karaoke-app, его ThreadLocal кеширует соединение
+        // по потоку (контракт спеки 087-fix-shared-db-connection сохранён).
+        private val LOCAL_INSTANCE: Connection by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
+            Connection(name = "LOCAL", url = connectionLocalUrl(), username = USERNAME, password = PASSWORD)
+        }
+
+        private val REMOTE_INSTANCE: Connection by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
+            Connection(
+                name = "SERVER",
+                url = connectionRemoteUrl(),
+                username = DB_SERVER_POSTGRES_USER,
+                password = DB_SERVER_POSTGRES_PASSWORD,
+            )
+        }
+
+        @Suppress("unused")
+        private val VIRTUAL_INSTANCE: Connection by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
+            Connection(name = "VIRTUAL", url = connectionVirtualUrl(), username = USERNAME, password = PASSWORD)
+        }
+
         /**
          * Подключение к LOCAL-БД (admin-машина, dev).
          *
@@ -72,11 +113,14 @@ class Connection(
          * - На admin-машине ([APP_WORK_ON_SERVER]=false) — `DB_LOCAL_*`.
          * - На прод-сервере ([APP_WORK_ON_SERVER]=true) — `DB_SERVER_*` (для тестирования).
          *
-         * @return новое подключение с `name = "LOCAL"`.
+         * **Singleton** (specs/234-db-sync-connection-leak): возвращает **тот же инстанс** `Connection`
+         * на повторные вызовы, не новый объект. См. KDoc класса.
+         *
+         * @return singleton-инстанс `Connection` с `name = "LOCAL"`.
          * @see remote
          * @see virtual
          */
-        fun local(): KaraokeConnection = Connection(name = "LOCAL", url = connectionLocalUrl(), username = USERNAME, password = PASSWORD)
+        fun local(): KaraokeConnection = LOCAL_INSTANCE
 
         /**
          * Подключение к REMOTE-БД (прод-сервер, хост/порт из env `DB_REMOTE_HOST`/`DB_REMOTE_PORT`,
@@ -86,32 +130,26 @@ class Connection(
          * В [KaraokeProcessWorker] и других runtime-сервисах используется
          * редко (только для sync).
          *
-         * @return новое подключение с `name = "SERVER"`.
+         * **Singleton** (specs/234-db-sync-connection-leak): возвращает **тот же инстанс** `Connection`
+         * на повторные вызовы. См. KDoc класса.
+         *
+         * @return singleton-инстанс `Connection` с `name = "SERVER"`.
          * @see local
          */
-        fun remote(): KaraokeConnection =
-            Connection(
-                name = "SERVER",
-                url = connectionRemoteUrl(),
-                username = DB_SERVER_POSTGRES_USER,
-                password = DB_SERVER_POSTGRES_PASSWORD,
-            )
+        fun remote(): KaraokeConnection = REMOTE_INSTANCE
 
         /**
          * Виртуальное подключение (in-memory) для тестов.
          * В текущей кодовой базе НЕ используется в проде (помечено `@Suppress("unused")`).
          * Оставлено для будущих интеграционных тестов, которым нужна изолированная БД.
          *
-         * @return новое подключение с `name = "VIRTUAL"`.
+         * **Singleton** (specs/234-db-sync-connection-leak): возвращает **тот же инстанс** `Connection`
+         * на повторные вызовы. См. KDoc класса.
+         *
+         * @return singleton-инстанс `Connection` с `name = "VIRTUAL"`.
          */
         @Suppress("unused")
-        fun virtual(): KaraokeConnection =
-            Connection(
-                name = "VIRTUAL",
-                url = connectionVirtualUrl(),
-                username = USERNAME,
-                password = PASSWORD,
-            )
+        fun virtual(): KaraokeConnection = VIRTUAL_INSTANCE
 
         private fun connectionLocalUrl(): String =
             if (APP_WORK_IN_CONTAINER) {

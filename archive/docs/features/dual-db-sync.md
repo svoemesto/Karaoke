@@ -2,7 +2,7 @@
 
 > **Status**: active
 > **Feature Key**: dual-db-sync
-> **Last Updated**: 2026-08-05 (фикс 152: устранено ложное срабатывание новости «в коллекции» после отложенной синхронизации)
+> **Last Updated**: 2026-08-16 (фикс 234: singleton Connection-фабрики — устранена утечка JDBC при «Синхронизации БД в 1 клик» + SLF4J warn)
 
 ## Что делает
 
@@ -248,6 +248,68 @@ summary или пользовательские логи. `tbl_song_share_sessio
   заведомо не новое событие). Схема БД не изменилась. См.
   [contracts/collection-news-trigger.md](../../specs/152-fix-false-collection-news/contracts/collection-news-trigger.md)
   (заменяет описание шага 2 в `contracts/news-lifecycle.md` в части гарантий идемпотентности).
+- **Устранена утечка JDBC-соединений при «Синхронизации БД в 1 клик» (2026-08-16,
+  specs/234-db-sync-connection-leak)**: фабрики `Connection.Companion.local()`/`remote()`/`virtual()`
+  в `karaoke-app/.../Connection.kt` и `karaoke-web/.../Connection.kt` до этой фичи возвращали
+  **новый инстанс** `Connection` на каждый вызов (`new Connection(...)`). У каждого инстанса — свой
+  `ThreadLocal<java.sql.Connection?>`, который при первом `getConnection()` открывал **отдельное
+  физическое JDBC-соединение** к Postgres. Один HTTP-запрос `POST /api/sync/oneclick` =
+  18 `SyncTarget` × 2 БД (`local` + `remote`) = **36 свежих инстансов Connection** = 36 новых
+  физических каналов на одном Tomcat-потоке, которые никогда не закрывались
+  (`KaraokeConnection.closeThreadConnection()` явно запрещён к вызову из долгоживущих потоков).
+  При `max_connections=100` (Postgres дефолт) пул быстро упирался — каскад
+  `FATAL: sorry, too many clients already` на каждом клике. Исправлено: фабрики теперь
+  **singleton** через Kotlin `by lazy(LazyThreadSafetyMode.SYNCHRONIZED)` — один инстанс `Connection`
+  на процесс, его `ThreadLocal` кеширует по одному каналу **на поток** (контракт спеки
+  `087-fix-shared-db-connection` сохранён — без общего канала, без `SocketTimeoutException`).
+  Дополнительно: `KaraokeConnection.getConnection()` и `closeThreadConnection()` теперь логируют
+  сбои через SLF4J `log.warn(...)` с placeholder'ами `target={} thread={} cause={}` в дополнение к
+  существующему `println` — для структурированной диагностики инцидентов в Kibana/Loki.
+  Симметричный фикс применён в `karaoke-web/.../Connection.kt` (та же утечка была в `webvue3`-
+  эндпоинтах через `withDb { ... }`). HikariCP/connection pool отложен в отдельную задачу
+  (см. спеку `174-fix-stats-connection-leak`/FR-007).
+
+## Singleton Connection-фабрики (2026-08-16, specs/234-db-sync-connection-leak)
+
+Начиная со спеки `234-db-sync-connection-leak`, фабрики
+`Connection.Companion.local()` / `remote()` / `virtual()` возвращают **тот же
+самый инстанс** `Connection` на повторные вызовы (Kotlin
+`by lazy(LazyThreadSafetyMode.SYNCHRONIZED)`), а не `new Connection(...)` каждый раз.
+
+**Что это значит для sync:**
+
+- Раньше каждый клик «Синхронизация БД в 1 клик» создавал 36 свежих инстансов
+  `Connection` (18 `SyncTarget` × 2 БД) — каждый со своим `ThreadLocal` и
+  физическим JDBC-каналом, который утекал в пул Postgres при `max_connections=100`.
+- Теперь: один singleton `LOCAL_INSTANCE` + один `REMOTE_INSTANCE` на весь процесс
+  `karaoke-app`. Их `ThreadLocal` кеширует по одному каналу на поток, как и раньше
+  (см. спеку `087-fix-shared-db-connection`) — но без лишнего churn новых инстансов.
+- Симметрично в `karaoke-web`: один `LOCAL_INSTANCE` на процесс для `webvue3`-
+  эндпоинтов (новости, шаблоны, словари через `withDb { ... }`).
+
+**Что это значит для разработчика:**
+
+- Никаких изменений в вызывающем коде: `Connection.local()`/`remote()` — та же
+  сигнатура, тот же контракт `getConnection(): java.sql.Connection?`. 174+ вызывающих
+  мест в `karaoke-app` не затронуты.
+- `WORKING_DATABASE` (глобальный singleton = `Connection.local()`) теперь указывает
+  на тот же singleton-инстанс, что и все остальные вызовы `Connection.local()` —
+  никакой регрессии.
+- `KaraokeConnection.closeThreadConnection()` — контракт сохранён: для
+  одноразовых потоков вызывать явно, для долгоживущих (Tomcat) — НЕ вызывать
+  (см. KDoc).
+- HikariCP / connection pool — **НЕ** подключается в этой спеке (отложен в
+  отдельную задачу, если метрики после фикса покажут недостаточность singleton).
+
+**Где смотреть код:**
+
+- `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Connection.kt:60-115`
+  — singleton-фабрики (`LOCAL_INSTANCE`/`REMOTE_INSTANCE`/`VIRTUAL_INSTANCE` через
+  `by lazy(SYNCHRONIZED)`).
+- `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeConnection.kt`
+  — `ThreadLocal`-кеш + SLF4J `log.warn` при сбоях подключения/закрытия.
+- `karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/Connection.kt` —
+  симметричный singleton для `webvue3`-эндпоинтов.
 
 ## Ссылки на ключевые классы/файлы
 

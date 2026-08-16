@@ -10,6 +10,18 @@
 >
 > **См. также**: `git log livedocs/` — для построчной истории.
 
+## 2026-08-16 — 234-db-sync-connection-leak (singleton Connection-фабрики)
+
+- **Added** `livedocs/features/234-db-sync-connection-leak.md` — LiveDoc для новой фичи:
+  Singleton `Connection.Companion.local()/remote()/virtual()` через `by lazy(SYNCHRONIZED)`
+  + SLF4J `log.warn` при сбоях подключения/закрытия.
+- **Related**: [087-fix-shared-db-connection.md](features/087-fix-shared-db-connection.md)
+  (предшественник — ThreadLocal-per-поток),
+  [091-fix-connection-leak.md](features/091-fix-connection-leak.md)
+  (`closeThreadConnection()` для одноразовых потоков),
+  [174-fix-stats-connection-leak.md](features/174-fix-stats-connection-leak.md)
+  (аналогичная проблема для дашборда, решённая через lazy load + TTL-кеш).
+
 ## 2026-08-14 — bootstrap + 80 features
 
 - **Создан** каталог `livedocs/` со всеми слоями (`features/`, `domain/`,

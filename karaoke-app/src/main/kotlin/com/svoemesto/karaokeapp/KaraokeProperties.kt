@@ -321,6 +321,21 @@ val listKaraokeProperties =
             defaultValue = "remote",
             description = "БД по умолчанию для заданий онлайн-редактора и списка редакторов: 'local' или 'remote' (сервер)",
         ),
+        KaraokeProperty(
+            key = "autoOneClickSyncEnabled",
+            defaultValue = true,
+            description = "Автозапуск «Синхронизации в 1 клик» каждые autoOneClickSyncIntervalMs мс (spec 235). true = автозапуск включён, false = выключен (ручной клик продолжает работать)",
+        ),
+        KaraokeProperty(
+            key = "autoOneClickSyncIntervalMs",
+            defaultValue = 10_800_000L,
+            description = "Интервал автозапуска «Синхронизации в 1 клик» в миллисекундах (spec 235, по умолчанию 3 часа = 10800000). Минимум 60000 (1 минута) — принудительно в коде scheduler'а",
+        ),
+        KaraokeProperty(
+            key = "autoOneClickSyncInitialDelayMs",
+            defaultValue = 300_000L,
+            description = "Задержка перед первым автозапуском «Синхронизации в 1 клик» после старта karaoke-app в миллисекундах (spec 235, по умолчанию 5 минут = 300000)",
+        ),
         KaraokeProperty(key = "allowAddSync", defaultValue = false, description = "Разрешить добавлять SYNC"),
         // Разрешения универсальной синхронизации (webvue3 "Синхронизация", /api/sync/*) — по одному
         // флагу на (сущность SyncRegistry × направление push/pull × операция insert/update/delete/move).

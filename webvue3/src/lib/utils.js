@@ -28,10 +28,20 @@ export function promisedXMLHttpRequest(obj) {
       if (xhr.status >= 200 && xhr.status < 300) {
         resolve(xhr.response)
       } else {
-        reject(xhr.statusText)
+        // spec 235: пробросить и status, и response body — нужно для обработки 409 Conflict
+        // в /api/sync/oneclick (UI должен показать "Автосинхронизация уже выполняется в фоне").
+        const err = new Error(xhr.statusText || `HTTP ${xhr.status}`)
+        err.status = xhr.status
+        err.responseBody = xhr.response
+        reject(err)
       }
     }
-    xhr.onerror = () => reject(xhr.statusText)
+    xhr.onerror = () => {
+      const err = new Error(xhr.statusText || 'Network error')
+      err.status = xhr.status
+      err.responseBody = xhr.response
+      reject(err)
+    }
     xhr.send(getParamStringToSend(obj.params))
   })
 }

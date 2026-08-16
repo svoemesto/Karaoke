@@ -8,6 +8,53 @@
     <button class="btn btn-success sync-oneclick-button" @click="confirmOneClick">
       🔄 Синхронизация в 1 клик
     </button>
+    <!-- spec 235: блок «Автозапуск» — отображает статус автозапуска «Синхронизации в 1 клик».
+         Данные через Vuex getter getSyncAutoStatus; обновляются в mounted() через
+         loadSyncAutoStatusPromise. Без SSE-push (по дизайну, см. spec 235, Q2). -->
+    <div class="sync-auto-block">
+      <h4>Автозапуск</h4>
+      <div v-if="autoStatus === null" class="sync-auto-empty">
+        Статус автозапуска ещё не загружен. Проверьте, что karaoke-app запущен.
+      </div>
+      <div v-else class="sync-auto-content">
+        <div>
+          <strong>Статус:</strong>
+          <span v-if="autoStatus.enabled" class="sync-auto-enabled">✅ включён</span>
+          <span v-else class="sync-auto-disabled">❌ выключен</span>
+        </div>
+        <div>
+          <strong>Интервал:</strong>
+          {{ (autoStatus.intervalMs / 3600000).toFixed(1) }} ч ({{ autoStatus.intervalMs }} мс)
+        </div>
+        <div>
+          <strong>Начальная задержка:</strong>
+          {{ (autoStatus.initialDelayMs / 60000).toFixed(1) }} мин ({{ autoStatus.initialDelayMs }}
+          мс)
+        </div>
+        <div>
+          <strong>Последний запуск:</strong>
+          <span v-if="autoStatus.lastRun === null">ещё не было</span>
+          <span v-else>
+            {{ formatDate(autoStatus.lastRun.startedAt) }} —
+            <span :class="statusClass(autoStatus.lastRun.status)">{{
+              autoStatus.lastRun.status
+            }}</span>
+            <span v-if="autoStatus.lastRun.status === 'SUCCESS'">
+              (добавлено {{ autoStatus.lastRun.totals.created }}, изменено
+              {{ autoStatus.lastRun.totals.updated }}, удалено
+              {{ autoStatus.lastRun.totals.deleted }})
+            </span>
+            <span v-if="autoStatus.lastRun.status === 'FAILED'" class="sync-auto-failed">
+              — {{ autoStatus.lastRun.reason }}
+            </span>
+          </span>
+        </div>
+        <div v-if="autoStatus.nextRunEstimate !== null">
+          <strong>Следующий (оценка):</strong>
+          {{ formatDate(autoStatus.nextRunEstimate) }}
+        </div>
+      </div>
+    </div>
     <table class="sync-table">
       <thead>
         <tr>
@@ -138,9 +185,16 @@ export default {
     entities() {
       return this.$store.getters.getSyncEntities
     },
+    // spec 235: getter для UI-блока «Автозапуск». null пока не загружен.
+    autoStatus() {
+      return this.$store.getters.getSyncAutoStatus
+    },
   },
   mounted() {
     this.$store.dispatch('loadSyncEntitiesPromise')
+    // spec 235: загрузка статуса автозапуска для UI-блока. Без auto-refresh —
+    // данные обновляются при F5 (см. Q2 в Clarifications, REST-only by design).
+    this.$store.dispatch('loadSyncAutoStatusPromise')
   },
   methods: {
     directionLabel(direction) {
@@ -211,7 +265,27 @@ export default {
         .then((results) => {
           this.showResultAlert('Синхронизация в 1 клик', results)
         })
-        .catch(() => {
+        .catch((error) => {
+          // spec 235: 409 Conflict → автозапуск уже идёт (FR-015). responseBody
+          // содержит { error: 'sync_in_progress', message: '...' }.
+          if (error && error.status === 409) {
+            let body = 'Автосинхронизация уже выполняется в фоне, дождитесь завершения'
+            try {
+              const parsed = JSON.parse(error.responseBody)
+              if (parsed && parsed.message) body = parsed.message
+            } catch (_e) {
+              // ignore — используем дефолтный текст
+            }
+            this.customConfirmParams = {
+              isAlert: true,
+              alertType: 'error',
+              header: 'Синхронизация в 1 клик',
+              body: body,
+              timeout: 15,
+            }
+            this.isCustomConfirmVisible = true
+            return
+          }
           this.customConfirmParams = {
             isAlert: true,
             alertType: 'error',
@@ -245,6 +319,21 @@ export default {
     },
     closeCustomConfirm() {
       this.isCustomConfirmVisible = false
+    },
+    // spec 235: форматирование ISO-8601 → 'ru-RU' для UI-блока «Автозапуск».
+    formatDate(iso) {
+      if (!iso) return ''
+      try {
+        return new Date(iso).toLocaleString('ru-RU')
+      } catch (_e) {
+        return iso
+      }
+    },
+    // spec 235: CSS-класс для статуса тика (зелёный SUCCESS, красный FAILED).
+    statusClass(status) {
+      if (status === 'SUCCESS') return 'sync-auto-status-success'
+      if (status === 'FAILED') return 'sync-auto-status-failed'
+      return 'sync-auto-status-running'
     },
   },
 }
@@ -293,5 +382,49 @@ export default {
 }
 .sync-group-pull {
   background: #eefaf0;
+}
+/* spec 235: стили для UI-блока «Автозапуск». */
+.sync-auto-block {
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 10px 14px;
+  margin: 0 0 10px 0;
+  background: #fafafa;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.sync-auto-block h4 {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+}
+.sync-auto-empty {
+  color: #888;
+  font-style: italic;
+}
+.sync-auto-content > div {
+  margin-bottom: 2px;
+}
+.sync-auto-enabled {
+  color: #1a7f37;
+  font-weight: 600;
+}
+.sync-auto-disabled {
+  color: #b00;
+  font-weight: 600;
+}
+.sync-auto-failed {
+  color: #b00;
+}
+.sync-auto-status-success {
+  color: #1a7f37;
+  font-weight: 600;
+}
+.sync-auto-status-failed {
+  color: #b00;
+  font-weight: 600;
+}
+.sync-auto-status-running {
+  color: #888;
+  font-style: italic;
 }
 </style>

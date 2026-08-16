@@ -10,6 +10,12 @@ export default {
   state: {
     entities: [],
     entitiesIsLoading: false,
+    // spec 235: статус автозапуска «Синхронизации в 1 клик» для UI-блока «Автозапуск»
+    // в SyncTable.vue. Загружается через loadSyncAutoStatusPromise в mounted().
+    // Структура: { enabled: bool, intervalMs: long, initialDelayMs: long,
+    //              lastRun: AutoOneClickSyncRunDto|null, last10: AutoOneClickSyncRunDto[],
+    //              nextRunEstimate: ISO-8601|null }.
+    autoStatus: null,
   },
   getters: {
     getSyncEntities(state) {
@@ -18,6 +24,10 @@ export default {
     getSyncEntitiesIsLoading(state) {
       return state.entitiesIsLoading
     },
+    // spec 235: getter для UI-блока «Автозапуск» в SyncTable.vue
+    getSyncAutoStatus(state) {
+      return state.autoStatus
+    },
   },
   mutations: {
     setSyncEntities(state, entities) {
@@ -25,6 +35,10 @@ export default {
     },
     setSyncEntitiesIsLoading(state, isLoading) {
       state.entitiesIsLoading = isLoading
+    },
+    // spec 235: кладёт DTO в state. Вызывается из loadSyncAutoStatusPromise.
+    setSyncAutoStatus(state, autoStatus) {
+      state.autoStatus = autoStatus
     },
   },
   actions: {
@@ -40,6 +54,20 @@ export default {
           ctx.commit('setSyncEntitiesIsLoading', false)
           throw error
         })
+    },
+    // spec 235: загрузка статуса автозапуска для UI-блока «Автозапуск». Вызывается
+    // в mounted() SyncTable.vue. Не делает auto-refresh — UI обновляет по F5 (по дизайну,
+    // см. spec 235, FR-009, Q2 в Clarifications: SSE-push НЕ используется).
+    loadSyncAutoStatusPromise(ctx) {
+      return promisedXMLHttpRequest({ method: 'GET', url: '/api/sync/auto-status' }).then(
+        (data) => {
+          const autoStatus = JSON.parse(data)
+          ctx.commit('setSyncAutoStatus', autoStatus)
+          return autoStatus
+        },
+      )
+      // Не throw — failure не должен ломать монтирование SyncTable.vue.
+      // UI покажет fallback «не удалось получить статус» если autoStatus === null.
     },
     runEntitySyncPromise(ctx, { key, direction }) {
       let request = { method: 'POST', url: '/api/sync/run', params: { key, direction } }

@@ -298,3 +298,21 @@ smartcaptcha.yandexcloud.net, 127.0.0.1, minio-proxy).
   → читать этот файл (после `livedocs/README.md` + `INDEX.md`).
 - Разработчик (человек): «Что нового в LiveDocs?» → верх этого файла.
 - Git / code review: новая секция changelog **в том же PR**, что и изменение.
+## 2026-08-16 — 235-auto-sync-3h (автозапуск «Синхронизации в 1 клик»)
+
+- **Added** `livedocs/features/235-auto-sync-3h.md` — LiveDoc для фичи 235:
+  периодический автозапуск `POST /api/sync/oneclick` каждые 3 ч
+  (`KaraokeProperties.autoOneClickSyncIntervalMs`, default 10_800_000 мс).
+- **Added** `livedocs/architecture-notes.md §Pass 63+` — запись о фиче
+  (dynamic interval через internal polling `@Volatile var`, `AtomicBoolean running`
+  для lock «ручной + авто не одновременно», `try/catch(Throwable)` на двух уровнях,
+  `ConcurrentLinkedDeque<AutoOneClickSyncRun>` ≤10 записей).
+- **Related**: [232-admin-song-editor-local-db.md](features/232-admin-song-editor-local-db.md)
+  (sync как явная операция пользователя), [research.md в спеке 235](../specs/235-auto-sync-3h/research.md)
+  (5 design-decisions по Spring `@Scheduled` + KaraokeProperties).
+- **API change**: `POST /api/sync/oneclick` теперь может вернуть HTTP `409 Conflict`
+  с телом `{"error":"sync_in_progress","message":"..."}`, если автозапуск или
+  другой ручной клик уже идёт. UI `webvue3/.../Sync/SyncTable.vue` обрабатывает 409
+  в `doOneClick` через `error.status`/`error.responseBody` (`promisedXMLHttpRequest` обновлён).
+- **New REST endpoint**: `GET /api/sync/auto-status` →
+  `AutoOneClickSyncStatusDto` для UI-блока «Автозапуск» на странице `/sync`.

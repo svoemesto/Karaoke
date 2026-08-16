@@ -5,6 +5,7 @@ import com.svoemesto.karaokeapp.*
 import com.svoemesto.karaokeapp.llm.LyricsFinderService
 import com.svoemesto.karaokeapp.model.*
 import com.svoemesto.karaokeapp.services.APP_WORK_IN_CONTAINER
+import com.svoemesto.karaokeapp.services.AutoOneClickSyncScheduler
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.SNS
 import com.svoemesto.karaokeapp.services.SongReleaseAnnouncementService
@@ -198,6 +199,7 @@ class ApiController(
     private val storageApiClient: StorageApiClient,
     private val lyricsFinderService: LyricsFinderService,
     private val albumCoverService: AlbumCoverService,
+    private val autoOneClickSyncScheduler: AutoOneClickSyncScheduler,
 ) {
     private val lenientJson = Json { ignoreUnknownKeys = true }
 
@@ -5283,38 +5285,59 @@ class ApiController(
 
     @PostMapping("/sync/oneclick")
     @ResponseBody
-    fun postSyncOneClick(): List<SyncOneClickResultDto> =
-        SyncRegistry.all.map { target ->
-            val direction = target.oneClickDirection
-            if (!target.isAllowed(direction)) {
-                SyncOneClickResultDto(
-                    key = target.key,
-                    displayName = target.displayName,
-                    direction = direction.name,
-                    skipped = true,
-                    created = emptyList(),
-                    updated = emptyList(),
-                    deleted = emptyList(),
-                    moved = emptyList(),
+    fun postSyncOneClick(): ResponseEntity<Any> {
+        // spec 235: FR-007 + FR-015. Ручной клик и автозапуск не должны
+        // выполняться одновременно — общий AtomicBoolean running в
+        // AutoOneClickSyncScheduler. CAS(false, true) — non-blocking
+        // (см. research.md §3). При неудаче — 409 Conflict.
+        if (!autoOneClickSyncScheduler.running.compareAndSet(false, true)) {
+            return ResponseEntity
+                .status(409)
+                .body(
+                    mapOf(
+                        "error" to "sync_in_progress",
+                        "message" to "Автосинхронизация уже выполняется в фоне, дождитесь завершения",
+                    ),
                 )
-            } else {
-                val (created, updated, deleted, moved) = runEntitySync(key = target.key, direction = direction)
-                if (created.size + updated.size + deleted.size + moved.size != 0) {
-                    SNS.send(SseNotification.crud(listOf(created, updated, deleted)))
-                }
-                notifyStatsDirtyIfSongsPushed(target.key, direction, created.size + updated.size)
-                SyncOneClickResultDto(
-                    key = target.key,
-                    displayName = target.displayName,
-                    direction = direction.name,
-                    skipped = false,
-                    created = created,
-                    updated = updated,
-                    deleted = deleted,
-                    moved = moved,
-                )
-            }
         }
+        try {
+            val results =
+                SyncRegistry.all.map { target ->
+                    val direction = target.oneClickDirection
+                    if (!target.isAllowed(direction)) {
+                        SyncOneClickResultDto(
+                            key = target.key,
+                            displayName = target.displayName,
+                            direction = direction.name,
+                            skipped = true,
+                            created = emptyList(),
+                            updated = emptyList(),
+                            deleted = emptyList(),
+                            moved = emptyList(),
+                        )
+                    } else {
+                        val (created, updated, deleted, moved) = runEntitySync(key = target.key, direction = direction)
+                        if (created.size + updated.size + deleted.size + moved.size != 0) {
+                            SNS.send(SseNotification.crud(listOf(created, updated, deleted)))
+                        }
+                        notifyStatsDirtyIfSongsPushed(target.key, direction, created.size + updated.size)
+                        SyncOneClickResultDto(
+                            key = target.key,
+                            displayName = target.displayName,
+                            direction = direction.name,
+                            skipped = false,
+                            created = created,
+                            updated = updated,
+                            deleted = deleted,
+                            moved = moved,
+                        )
+                    }
+                }
+            return ResponseEntity.ok(results)
+        } finally {
+            autoOneClickSyncScheduler.running.set(false)
+        }
+    }
 
     // Добавление файлов из папки
     @PostMapping("/utils/createfromfolder")

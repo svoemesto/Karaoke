@@ -2178,3 +2178,62 @@ async, `currentLink = null` стартовое значение → Vue ренд
 - [specs/189-live-documentation/](../specs/189-live-documentation/) — полная папка спеки.
 - [livedocs/](./) — каталог LiveDocs.
 - [AGENTS.md](../AGENTS.md) — обновлён до 100 строк с правилом «читать LiveDocs первым».
+
+## 2026-08 — Pass 63+: 235 — Автозапуск «Синхронизации в 1 клик» каждые 3 часа
+
+**Что.** Точечная фича: периодический автозапуск существующей бизнес-логики
+`POST /api/sync/oneclick` (`SyncRegistry.all.map { runEntitySync(...) }`)
+каждые 3 часа, пока запущен `karaoke-app`. По умолчанию **включён**;
+отключается через `KaraokeProperties.autoOneClickSyncEnabled = false`.
+Ручная кнопка «🔄 Синхронизация в 1 клик» в админке продолжает работать;
+при попытке ручного клика во время автозапуска эндпоинт возвращает
+HTTP `409 Conflict` (`{"error":"sync_in_progress", "message":"..."}`).
+
+**Зачем.** До фичи админ нажимал «Синхронизация в 1 клик» вручную при
+каждом заходе на admin-машину. За время отсутствия (ночь, выходные,
+поездка) данные LOCAL↔SERVER расходились. Фича автоматизирует это.
+
+**Архитектура** (см. `specs/235-auto-sync-3h/research.md`):
+- **Dynamic interval** через внутренний опрос `KaraokeProperties.getLong("autoOneClickSyncIntervalMs")`
+  + `@Scheduled(fixedDelay = 60_000L)` (1 мин), не через `${...}` в `@Scheduled`
+  (SpEL/`${}` не работает с `KaraokeProperties` — base64-файл, не Spring `Environment`).
+- **`AtomicBoolean running`** — общий singleton-бин, lock для «ручной + авто
+  не одновременно». `compareAndSet(false, true)` — non-blocking.
+- **`try/catch(Throwable)`** (НЕ `Exception`) на двух уровнях:
+  per-target (одна упавшая сущность не ломает остальные) + внешний
+  (scheduler не останавливается при сбое БД).
+- **`ConcurrentLinkedDeque<AutoOneClickSyncRun>` ≤10 записей** — in-memory
+  история для UI-блока «Автозапуск». Не персистится (by design, A-007).
+
+**LiveDoc**: [livedocs/features/235-auto-sync-3h.md](./features/235-auto-sync-3h.md).
+
+**Спека**: [specs/235-auto-sync-3h/](../specs/235-auto-sync-3h/) — 3 user story,
+16 FR, 9 SC, 3 Clarifications (Q1: 409 Conflict, Q2: REST-only, Q3: fail-fast).
+
+**Изменённые/новые файлы**:
+- `karaoke-app/.../services/AutoOneClickSyncScheduler.kt` (NEW) — `@Component` + `@Scheduled`.
+- `karaoke-app/.../services/AutoOneClickSyncRun.kt` (NEW) — value-класс.
+- `karaoke-app/.../controllers/AutoOneClickSyncStatusController.kt` (NEW) — `GET /api/sync/auto-status`.
+- `karaoke-app/.../controllers/dto/AutoOneClickSyncDtos.kt` (NEW) — 3 DTO + конвертеры.
+- `karaoke-app/.../KaraokeProperties.kt` (MODIFIED) — +3 `KaraokeProperty`.
+- `karaoke-app/.../controllers/ApiController.kt` (MODIFIED) — `postSyncOneClick` обёрнут в lock.
+- `webvue3/src/lib/utils.js` (MODIFIED) — `promisedXMLHttpRequest` пробрасывает `error.status`.
+- `webvue3/src/components/Sync/store.js` (MODIFIED) — + `loadSyncAutoStatusPromise`.
+- `webvue3/src/components/Sync/SyncTable.vue` (MODIFIED) — + блок «Автозапуск», обработка 409 в `doOneClick`.
+
+**Уроки** (для будущих фич):
+- **`KaraokeProperties` ≠ Spring `Environment`** — никакого `${...}`/SpEL в
+  `@Scheduled`/`@Value` (см. research.md §1). Внутренний опрос + `@Volatile`
+  var — единственный безопасный путь для dynamic intervals.
+- **`try/catch(Exception)` в scheduler'ах — антипаттерн** (см. текущий
+  `VkAutoPublishScheduler.kt:60` — проглатывает исключения молча, ловит
+  `Error` через `TaskUtils` дефолт, но не наш случай). Явный
+  `try/catch(Throwable) { log + record }` + `finally { release lock }` —
+  обязательный паттерн для scheduler'ов, которые «не должны падать».
+- **`AtomicBoolean.compareAndSet`** проще и быстрее `ReentrantLock.tryLock`
+  для однопроцессного desktop-приложения (karaoke-app — не кластер).
+- **Q2 (REST-only вместо SSE-push)** — при малых объёмах данных (≤10 записей
+  истории, обновление раз в 3 часа) live-push избыточен. REST + F5 + Vuex
+  `mounted()` — простой и достаточный контракт. SSE — только если UI
+  **обязан** реагировать в течение секунды.
+

@@ -16,9 +16,13 @@ import java.sql.DriverManager
  * очереди. Теперь у каждого потока — своя запись в [ThreadLocal], поэтому
  * потоки не мешают друг другу.
  *
- * Self-healing не меняется: если закешированное для текущего потока
- * соединение отсутствует/закрыто/невалидно — пересоздаётся прозрачно для
- * вызывающего кода (сигнатура [getConnection] не менялась).
+ * Self-healing (specs/236-fix-karaoke-connection-self-healing): если закешированное
+ * для текущего потока соединение отсутствует/закрыто/невалидно — пересоздаётся
+ * прозрачно для вызывающего кода (сигнатура [getConnection] не менялась). Начиная с
+ * этой спеки, при входе в ветку пересоздания ThreadLocal **сбрасывается** до попытки
+ * `DriverManager.getConnection(...)` — иначе при исключении в ThreadLocal оставалось
+ * закрытое соединение от предыдущего успешного открытия и следующий вызов в этом же
+ * потоке пропускал ветку пересоздания, возвращая мёртвый объект (см. KDoc метода).
  *
  * **Логирование сбоев подключения/закрытия (specs/234-db-sync-connection-leak):**
  * в дополнение к существующему `println` (для stdout контейнера и обратной
@@ -29,6 +33,7 @@ import java.sql.DriverManager
  *
  * @see archive/docs/features/async-process-queue.md
  * @see specs/234-db-sync-connection-leak фикс утечки JDBC-соединений + структурированный warn
+ * @see specs/236-fix-karaoke-connection-self-healing сброс ThreadLocal при неудачной попытке + urlHost в warn
  */
 abstract class KaraokeConnection(
     open val url: String,
@@ -49,6 +54,13 @@ abstract class KaraokeConnection(
     fun getConnection(): java.sql.Connection? {
         val conn = threadLocalConnection.get()
         if (conn == null || conn.isClosed || !conn.isValid(3)) {
+            // specs/236-fix-karaoke-connection-self-healing: при входе в ветку пересоздания
+            // обязательно сбрасываем ThreadLocal. Без этого, если DriverManager.getConnection
+            // бросит исключение, в ThreadLocal останется закрытое/протухшее соединение от
+            // предыдущего успешного открытия — следующий вызов в этом же потоке пропустит
+            // ветку пересоздания (conn != null && !conn.isClosed) и вернёт мёртвый объект →
+            // PSQLException: Соединение уже было закрыто на loadList/createStatement.
+            threadLocalConnection.set(null)
             Class.forName("org.postgresql.Driver")
             try {
                 threadLocalConnection.set(DriverManager.getConnection(url, username, password))
@@ -56,10 +68,13 @@ abstract class KaraokeConnection(
                 // Сохраняем println для обратной совместимости (docker logs читают stdout).
                 println("KaraokeConnection getConnection Exception: ${e.message}")
                 // FR-004 spec.md: структурированный SLF4J warn для диагностики.
+                // specs/236: добавляем urlHost (без credentials) — сразу видно, к какому
+                // хосту/порту шла попытка (полезно при пустом DB_REMOTE_HOST в env).
                 log.warn(
-                    "KaraokeConnection connect failure target={} thread={} cause={}",
+                    "KaraokeConnection connect failure target={} thread={} urlHost={} cause={}",
                     name,
                     Thread.currentThread().name,
+                    url.substringAfter("://").substringBefore("/"),
                     e.message ?: "unknown",
                 )
             }

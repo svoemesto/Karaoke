@@ -35,7 +35,7 @@ db-local-postgres-password: ${DB_LOCAL_POSTGRES_PASSWORD}
 db-remote-postgres-user: ${DB_SERVER_POSTGRES_USER}
 db-remote-postgres-password: ${DB_SERVER_POSTGRES_PASSWORD}
 db-remote-host: ${DB_REMOTE_HOST:188.119.64.111}
-db-remote-port: ${DB_REMOTE_PORT:8832}
+db-remote-port: ${DB_REMOTE_PORT:5433}
 
 app:
   max-file-size: 100MB

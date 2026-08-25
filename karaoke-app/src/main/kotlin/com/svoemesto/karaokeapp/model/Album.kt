@@ -3,12 +3,17 @@ package com.svoemesto.karaokeapp.model
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.svoemesto.karaokeapp.KaraokeConnection
 import com.svoemesto.karaokeapp.WORKING_DATABASE
+import com.svoemesto.karaokeapp.cropCenterSquareAndResize
 import com.svoemesto.karaokeapp.model.KaraokeDbTable.Companion.getListHashes
+import com.svoemesto.karaokeapp.runCommand
 import com.svoemesto.karaokeapp.services.KSS_APP
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.SAC_APP
 import com.svoemesto.karaokeapp.services.StorageApiClient
+import java.awt.image.BufferedImage
+import java.io.File
 import java.io.Serializable
+import javax.imageio.ImageIO
 
 /**
  * Сущность «Альбом» — отдельная таблица `tbl_albums` (один автор — много альбомов,
@@ -529,6 +534,201 @@ class Album(
                     },
                 database = database,
             )
+        }
+
+        /**
+         * Внутренний helper для [findOrCreateForSongImportWithAutoCover]. Делает то же, что и
+         * [findOrCreateForSongImport], но возвращает пару `(album, isJustCreated)` — флаг `isJustCreated`
+         * позволяет вызывающему коду понять, нужно ли запускать побочную логику (автообложку) только
+         * для **вновь созданных** альбомов (FR-009). Существующая [findOrCreateForSongImport] остаётся
+         * **без изменений** — её использует [AlbumBackfill] и другие пути без автообложки.
+         *
+         * @see specs/238-import-folder-author-album-cover/spec.md (FR-009, US2)
+         */
+        fun findOrCreateForSongImportRaw(
+            authorName: String,
+            year: Int,
+            albumName: String,
+            database: KaraokeConnection,
+            storageService: KaraokeStorageService,
+            storageApiClient: StorageApiClient,
+        ): Pair<Album?, Boolean> {
+            if (albumName.isBlank()) return Pair(null, false)
+            val author =
+                Author.getAuthorByName(
+                    author = authorName,
+                    database = database,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                ) ?: Author
+                    .createNewAuthor(
+                        newAuthor =
+                            Author(database = database, storageService = storageService, storageApiClient = storageApiClient).apply {
+                                this.author = authorName
+                            },
+                        database = database,
+                    ) ?: return Pair(null, false)
+
+            getAlbumByAuthorYearName(
+                authorId = author.id,
+                year = year,
+                name = albumName,
+                database = database,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )?.let { return Pair(it, false) }
+
+            val nextSortOrder =
+                getAlbumsByAuthorId(author.id, database, storageService, storageApiClient)
+                    .maxOfOrNull { it.sortOrder }
+                    ?.plus(1) ?: 0
+
+            val created =
+                createNewAlbum(
+                    newAlbum =
+                        Album(database = database, storageService = storageService, storageApiClient = storageApiClient).apply {
+                            this.authorId = author.id
+                            this.year = year
+                            this.name = albumName
+                            this.sortOrder = nextSortOrder
+                        },
+                    database = database,
+                )
+            return Pair(created, true)
+        }
+
+        /**
+         * Применить автообложку альбома из графического файла в [rootFolder]: плоский обход
+         * (не рекурсивный — каждый диск много-дискового альбома имеет свою обложку, см. Q1),
+         * фильтр по расширению (`jpg`, `jpeg`, `png`, `webp`, `bmp`, `tiff` без учёта регистра),
+         * исключая скрытые файлы (`.DS_Store` и т. п.) и `LogoAlbum.png` / `LogoAlbum.preview.png`
+         * (это результаты предыдущей генерации — считаются обычными графическими файлами и НЕ
+         * исключаются из подсчёта, см. Q3).
+         *
+         * При **ровно одном** кандидате — обрезать по короткой стороне до 1:1, масштабировать до
+         * 400×400 пикселей, сохранить как `$rootFolder/LogoAlbum.png` (`chmod 666`), затем
+         * создать/обновить запись `Pictures` через [song.pictureAlbum] — тот же путь, что и
+         * ручная обложка через `ApiController.saveAlbumCover` (FR-006, FR-007).
+         *
+         * При 0 или ≥2 кандидатах — обложка не создаётся (FR-008). При любой ошибке внутри
+         * (битый файл, ошибка `ImageIO`, ошибка записи) — `false` без проброса исключения (FR-010).
+         *
+         * @return `true` если обложка была создана или обновлена; `false` если не создана ни по
+         * какой причине (см. выше). Возвращаемое значение вызывающим кодом игнорируется
+         * (автообложка — опциональная фича; альбом создаётся независимо).
+         *
+         * @see specs/238-import-folder-author-album-cover/spec.md (FR-005..FR-010, US2)
+         */
+        fun applyAutoAlbumCoverFromFolder(
+            rootFolder: String,
+            authorName: String,
+            year: Int,
+            albumName: String,
+            song: Song,
+            database: KaraokeConnection,
+            storageService: KaraokeStorageService,
+            storageApiClient: StorageApiClient,
+        ): Boolean {
+            if (rootFolder.isBlank()) return false
+            val rootDir = File(rootFolder)
+            if (!rootDir.isDirectory) return false
+
+            val allowedExtensions = setOf("jpg", "jpeg", "png", "webp", "bmp", "tiff")
+            val candidates =
+                rootDir.listFiles { f ->
+                    f.isFile &&
+                        !f.name.startsWith(".") &&
+                        f.extension.lowercase() in allowedExtensions
+                } ?: return false
+
+            // FR-008: ровно один кандидат (включая LogoAlbum.png / LogoAlbum.preview.png как обычные
+            // графические файлы — см. Clarifications Q3).
+            if (candidates.size != 1) return false
+
+            val sourceFile = candidates.first()
+            val targetPath = "$rootFolder/LogoAlbum.png"
+
+            val sourceBytes =
+                try {
+                    sourceFile.readBytes()
+                } catch (_: Exception) {
+                    return false
+                }
+
+            val cropped: BufferedImage =
+                try {
+                    cropCenterSquareAndResize(sourceBytes, targetSize = 400) ?: return false
+                } catch (_: Exception) {
+                    return false
+                }
+
+            try {
+                ImageIO.write(cropped, "png", File(targetPath))
+                runCommand(listOf("chmod", "666", targetPath))
+            } catch (_: Exception) {
+                return false
+            }
+
+            // Создать/обновить запись Pictures через song.pictureAlbum (тот же путь, что и
+            // saveAlbumCover) — никакого прямого SQL или MinIO из этого кода.
+            try {
+                val pic = song.pictureAlbum
+                return pic != null
+            } catch (_: Exception) {
+                return false
+            }
+        }
+
+        /**
+         * Оркестратор для пути импорта из папки: находит/создаёт альбом через [findOrCreateForSongImportRaw],
+         * и если альбом **только что создан** (`isJustCreated = true`) — запускает автообложку через
+         * [applyAutoAlbumCoverFromFolder]. Для **уже существующих** альбомов автообложка НЕ вызывается
+         * (FR-009 — никаких «перезатираний» уже оформленных обложек).
+         *
+         * Существующая [findOrCreateForSongImport] остаётся без изменений для обратной совместимости
+         * с [AlbumBackfill] (намеренно без автообложки — backfill-операция для уже существующих
+         * песен, не для новых альбомов).
+         *
+         * @return созданный или переиспользованный [Album] (или `null` если `albumName.isBlank()` —
+         * валидный случай «сингл без альбома»).
+         *
+         * @see specs/238-import-folder-author-album-cover/spec.md (FR-005..FR-011, US2)
+         */
+        fun findOrCreateForSongImportWithAutoCover(
+            authorName: String,
+            year: Int,
+            albumName: String,
+            rootFolder: String,
+            song: Song,
+            database: KaraokeConnection,
+            storageService: KaraokeStorageService,
+            storageApiClient: StorageApiClient,
+        ): Album? {
+            val (album, isJustCreated) =
+                findOrCreateForSongImportRaw(
+                    authorName = authorName,
+                    year = year,
+                    albumName = albumName,
+                    database = database,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                )
+
+            if (album != null && isJustCreated) {
+                // Возвращаемое значение игнорируется: автообложка — опциональная фича.
+                applyAutoAlbumCoverFromFolder(
+                    rootFolder = rootFolder,
+                    authorName = authorName,
+                    year = year,
+                    albumName = albumName,
+                    song = song,
+                    database = database,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                )
+            }
+
+            return album
         }
     }
 }

@@ -4259,11 +4259,14 @@ fun findDuplicateOriginal(
     storageService: KaraokeStorageService,
     storageApiClient: StorageApiClient,
 ): Song? {
-    /*
-    Для новой песни (обычно только что импортированной из папки) ищет "оригинал" - уже существующую в базе
-    песню с тем же названием без учёта содержимого в скобках, знаков препинания и различия "е"/"ё"
-    (регистронезависимо), у которой уже есть текст. Сначала ищет у того же автора, если не найдено -
-    среди всех авторов. При нескольких совпадениях берёт запись с наименьшим id.
+    /**
+     * Для новой песни (обычно только что импортированной из папки) ищет "оригинал" - уже существующую в базе
+     * песню с тем же названием без учёта содержимого в скобках, знаков препинания и различия "е"/"ё"
+     * (регистронезависимо), у которой уже есть текст. Ищет **только** у того же автора; если не найдено —
+     * возвращает `null` (никакого fallback'а на других авторов). При нескольких совпадениях берёт запись
+     * с наименьшим id.
+     *
+     * @see specs/238-import-folder-author-album-cover/spec.md (FR-001..FR-003, US1)
      */
     val cleanedName = normalizeSongNameForSearch(newSong.songName)
     if (cleanedName.isBlank()) return null
@@ -4293,7 +4296,7 @@ fun findDuplicateOriginal(
         return foundId
     }
 
-    val id = findId(sameAuthorOnly = true) ?: findId(sameAuthorOnly = false) ?: return null
+    val id = findId(sameAuthorOnly = true) ?: return null
     return Song.loadFromDbById(id = id, database = database, storageService = storageService, storageApiClient = storageApiClient)
 }
 

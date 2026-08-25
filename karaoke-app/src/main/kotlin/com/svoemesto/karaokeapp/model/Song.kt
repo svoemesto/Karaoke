@@ -8063,10 +8063,12 @@ class Song(
                             // запуска бэкфилла (см. AlbumBackfill).
                             song.albumId =
                                 Album
-                                    .findOrCreateForSongImport(
+                                    .findOrCreateForSongImportWithAutoCover(
                                         authorName = authorStr,
                                         year = yearStr.toIntOrNull() ?: 0,
                                         albumName = albumStr,
+                                        rootFolder = rootFolder,
+                                        song = song,
                                         database = database,
                                         storageService = storageService,
                                         storageApiClient = storageApiClient,

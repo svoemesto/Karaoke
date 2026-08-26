@@ -5,12 +5,14 @@ import com.svoemesto.karaokeapp.KaraokeConnection
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.SNS
 import com.svoemesto.karaokeapp.services.StorageApiClient
+import com.svoemesto.karaokeapp.KaraokeProperties
 import org.postgresql.util.PSQLException
 import java.sql.ResultSet
 import java.sql.SQLException
 import java.sql.Statement
 import java.sql.Timestamp
 import java.time.Instant
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KClass
 import kotlin.reflect.KMutableProperty
 import kotlin.reflect.full.findAnnotation
@@ -221,7 +223,80 @@ interface KaraokeDbTable {
     }
 
     companion object {
-        private fun columns(
+        /**
+         * Запись in-memory кеша для результата SQL к `information_schema.columns`.
+         * Неизменяемая (`val`-only) — после создания не мутируется, что позволяет безопасно
+         * делиться ссылкой между потоками через [ConcurrentHashMap].
+         *
+         * @property columnNames список имён колонок таблицы (порядок — как вернул PostgreSQL).
+         * @property expiresAtMs абсолютный момент истечения записи в миллисекундах
+         *   (`System.currentTimeMillis() + TTL`). После этого момента запись считается
+         *   просроченной и при следующем обращении будет заменена свежим SQL.
+         *
+         * @see specs/243-db-table-schema-cache
+         */
+        private data class SchemaCacheEntry(
+            val columnNames: List<String>,
+            val expiresAtMs: Long,
+        )
+
+        /**
+         * Потокобезопасный in-memory кеш результатов SQL к `information_schema.columns`.
+         * Ключ — пара `(tableName, databaseName)`, value — [SchemaCacheEntry].
+         *
+         * Жизненный цикл — процесс-локальный: при перезапуске `karaoke-app` кеш пуст,
+         * что соответствует FR-004. Управляется через [columns] (cache miss → SQL → put)
+         * и [invalidateSchemaCache] (принудительный сброс). Фоновой очистки просроченных
+         * записей нет — записи удаляются по факту обращения или через явный `invalidate`.
+         *
+         * @see specs/243-db-table-schema-cache
+         */
+        private val schemaCache = ConcurrentHashMap<Pair<String, String>, SchemaCacheEntry>()
+
+        /**
+         * TTL записей [schemaCache] в миллисекундах (1 час). Единственная точка тюнинга —
+         * при изменении здесь меняется поведение для всех вызовов [columns].
+         */
+        private const val SCHEMA_CACHE_TTL_MS = 3_600_000L
+
+        /**
+         * Проверяет, разрешён ли schema-cache свойством `karaoke.db.schema_cache.enabled`
+         * в [KaraokeProperties]. Дефолт свойства — `true` (зарегистрировано в `KaraokeProperties.kt`).
+         *
+         * Если `KaraokeProperties` по какой-то причине недоступен (ранняя инициализация,
+         * проблемы с файлом) — функция возвращает `true` через `try/catch`. Безопасный
+         * дефолт = кеш работает (минимизируем SQL round-trip'ы в типовом сценарии).
+         *
+         * @return `true` если кеш разрешён; `false` если явно отключён в свойствах.
+         *
+         * @see specs/243-db-table-schema-cache FR-007
+         */
+        private fun isSchemaCacheEnabled(): Boolean =
+            try {
+                KaraokeProperties.getBoolean("karaoke.db.schema_cache.enabled")
+            } catch (_: Throwable) {
+                true
+            }
+
+        /**
+         * Выполняет SQL к `information_schema.columns` для таблицы [tableName] в БД [database]
+         * и возвращает список имён колонок. **Без кеша** — используется только из [columns]
+         * при cache miss или при отключённом кеше.
+         *
+         * Выделено в отдельный метод (FR-006) для тестируемости и читаемости: основная логика
+         * кеширования живёт в [columns], эта функция отвечает только за SQL и обработку ошибок.
+         *
+         * Возвращает `emptyList()` если соединение с БД отсутствует или SQL бросил
+         * `SQLException` (с `printStackTrace` для диагностики). Пустой результат НЕ
+         * считается валидным для кеширования (FR-003 — этим занимается вызывающий код).
+         *
+         * @param tableName имя таблицы в `public`-схеме (например, `"tbl_songs"`).
+         * @param database подключение к БД (`local`/`remote`/`virtual`).
+         * @return список имён колонок или пустой список при ошибке.
+         *
+         * @see specs/243-db-table-schema-cache
+         */
+        private fun columnsFromDb(
             tableName: String,
             database: KaraokeConnection,
         ): List<String> {
@@ -254,6 +329,113 @@ interface KaraokeDbTable {
                 }
             }
             return emptyList()
+        }
+
+        /**
+         * Возвращает список имён колонок таблицы [tableName] в БД [database].
+         *
+         * Перед SQL к `information_schema.columns` проверяет [schemaCache] (FR-001):
+         * - Если запись для пары `(tableName, database.name)` есть и `expiresAtMs > now` —
+         *   возвращает её без сетевого round-trip (cache hit).
+         * - Если записи нет или она просрочена — идёт в БД через [columnsFromDb],
+         *   и (если результат не пустой) сохраняет в кеш (FR-002, FR-003).
+         *
+         * Если свойство `karaoke.db.schema_cache.enabled = false` в [KaraokeProperties]
+         * (FR-007) — кеш не используется, каждый вызов идёт в БД (старое поведение для отладки).
+         *
+         * Используется из [loadList] при `ignoreUseInList = false` для построения SELECT-проекции
+         * с фильтрацией колонок по `@KaraokeDbTableField(useInList = false)`.
+         *
+         * @param tableName имя таблицы в `public`-схеме.
+         * @param database подключение к БД.
+         * @return список имён колонок; пустой список при ошибке БД.
+         *
+         * @see specs/243-db-table-schema-cache
+         * @see loadList
+         */
+        private fun columns(
+            tableName: String,
+            database: KaraokeConnection,
+        ): List<String> {
+            if (!isSchemaCacheEnabled()) {
+                return columnsFromDb(tableName, database)
+            }
+
+            val key = tableName to database.name
+            val now = System.currentTimeMillis()
+
+            schemaCache[key]?.let { entry ->
+                if (entry.expiresAtMs > now) {
+                    return entry.columnNames
+                }
+                schemaCache.remove(key, entry)
+            }
+
+            val fresh = columnsFromDb(tableName, database)
+            if (fresh.isNotEmpty()) {
+                schemaCache[key] =
+                    SchemaCacheEntry(
+                        columnNames = fresh,
+                        expiresAtMs = now + SCHEMA_CACHE_TTL_MS,
+                    )
+            }
+            return fresh
+        }
+
+        /**
+         * Сбрасывает [schemaCache] (US2). Полезно после миграций схемы
+         * (`ALTER TABLE ADD/DROP COLUMN`), когда закэшированный список колонок
+         * устарел, а TTL ещё не истёк.
+         *
+         * Четыре режима вызова (FR-005):
+         * - `invalidateSchemaCache()` — полная очистка (все таблицы, все БД).
+         * - `invalidateSchemaCache(tableName = "tbl_songs")` — все записи для таблицы
+         *   `tbl_songs` во всех БД.
+         * - `invalidateSchemaCache(database = someDb)` — все записи для БД `someDb`
+         *   по всем таблицам.
+         * - `invalidateSchemaCache("tbl_songs", someDb)` — ровно одна запись для пары
+         *   `(tbl_songs, someDb.name)`.
+         *
+         * **NB**: режимы с фильтрацией по одному критерию используют
+         * `ConcurrentHashMap.keys.removeAll { ... }` — это работает через iterator'а
+         * view и при параллельной модификации кеша может бросить
+         * `ConcurrentModificationException`. Типичный вызов — в пост-миграционном хуке
+         * или тесте, без параллельных `loadList`. При сомнениях используйте полную
+         * очистку `invalidateSchemaCache()`.
+         *
+         * Примеры:
+         * ```kotlin
+         * // После миграции схемы — сбросить кеш по конкретной таблице
+         * KaraokeDbTable.invalidateSchemaCache(tableName = "tbl_songs")
+         *
+         * // Сбросить кеш для конкретной БД (например, после sync)
+         * KaraokeDbTable.invalidateSchemaCache(database = LOCAL_DATABASE)
+         *
+         * // В тесте — полная очистка
+         * KaraokeDbTable.invalidateSchemaCache()
+         * ```
+         *
+         * @param tableName имя таблицы для фильтрации; `null` = все таблицы.
+         * @param database подключение к БД для фильтрации; `null` = все БД.
+         *
+         * @see specs/243-db-table-schema-cache
+         * @see columns
+         */
+        @Suppress("unused")
+        fun invalidateSchemaCache(
+            tableName: String? = null,
+            database: KaraokeConnection? = null,
+        ) {
+            when {
+                tableName != null && database != null ->
+                    schemaCache.remove(tableName to database.name)
+                tableName != null ->
+                    schemaCache.keys.removeAll { it.first == tableName }
+                database != null ->
+                    schemaCache.keys.removeAll { it.second == database.name }
+                else ->
+                    schemaCache.clear()
+            }
         }
 
         fun loadList(

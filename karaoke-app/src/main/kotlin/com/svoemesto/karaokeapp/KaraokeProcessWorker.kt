@@ -527,6 +527,21 @@ class KaraokeProcessWorker {
         val argsIgnoredToLog = listOf("ln", "rm", "chmod", "mkdir", "cp", "mv")
 
         /**
+         * Размер чанка SELECT LOCAL в sync-цикле `doStart()` (push LOCAL→SERVER).
+         * Равен `SongSyncTarget.rowChunkSize = 25` — валидировано под `socketTimeout=30`
+         * на тяжёлых строках Song (Song — самая «толстая» сущность с текстовыми полями
+         * и маркерами). См. parent спека 241, A.4.
+         */
+        private const val SYNC_SELECT_CHUNK_SIZE = 25
+
+        /**
+         * Размер чанка DELETE sync-записей в sync-цикле `doStart()`. Равен
+         * `SyncRegistry.DELETE_CHUNK_SIZE = 200` — DELETE лёгкий (`DELETE FROM ... WHERE id=?`),
+         * можно крупные пачки без риска упереться в таймаут.
+         */
+        private const val SYNC_DELETE_CHUNK_SIZE = 200
+
+        /**
          * Флаг работы воркера. Управляется через [start] / [stop]. Цикл
          * `while (isWork)` в [doStart] прерывается при `false`.
          *
@@ -993,115 +1008,18 @@ class KaraokeProcessWorker {
 
                     if (counter % (intervalCheckFiles / timeout) == 0L) {
                         if (Karaoke.monitoringRemoteSettingsSync) {
-//                            println("ProcessWorker: Проверка sync-записей по таймеру...")
-                            // Получаем список sync-записей из REMOTE DATABASE
-                            val listSongsSync =
-                                Song.loadListFromDb(
-                                    database = Connection.remote(),
-                                    sync = true,
-                                    storageService = KSS_APP,
-                                    storageApiClient = SAC_APP,
+                            val syncResult =
+                                processRemoteSongsSyncBatch(
+                                    database = database,
+                                    storageService = storageService,
+                                    storageApiClient = storageApiClient,
                                 )
-                            listSongsSync.forEach { songSync ->
-                                val songLocal =
-                                    Song.loadFromDbById(
-                                        id = songSync.id,
-                                        database = Connection.local(),
-                                        storageService = KSS_APP,
-                                        storageApiClient = SAC_APP,
-                                    )
-                                if (songLocal != null) {
-                                    // Запись в локальной БД есть, надо обновить
-                                    val diff = Song.getDiff(songSync, songLocal)
-                                    val setStr =
-                                        diff
-                                            .filter { it.recordDiffRealField }
-                                            .joinToString(", ") { "${it.recordDiffName} = ?" }
-                                    if (setStr != "") {
-                                        val sql = "UPDATE tbl_songs SET $setStr WHERE id = ?"
-
-                                        val connection = Connection.local().getConnection()
-                                        if (connection == null) {
-                                            println(
-                                                "[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных LOCAL",
-                                            )
-                                        } else {
-                                            val ps = connection.prepareStatement(sql)
-
-                                            var index = 1
-                                            diff.filter { it.recordDiffRealField }.forEach {
-                                                when (it.recordDiffValueNew) {
-                                                    is Long -> ps.setLong(index, it.recordDiffValueNew)
-                                                    is Int -> ps.setInt(index, it.recordDiffValueNew)
-                                                    else -> ps.setString(index, it.recordDiffValueNew.toString())
-                                                }
-                                                index++
-                                            }
-                                            ps.setLong(index, songLocal.id)
-                                            ps.executeUpdate()
-                                            ps.close()
-                                            if (Karaoke.autoUpdateRemoteSettings && Karaoke.allowUpdateRemote) {
-                                                val (listCreate, listUpdate, listDelete) =
-                                                    updateRemoteSongFromLocalDatabase(
-                                                        songLocal.id,
-                                                    )
-                                                if (listCreate.size + listUpdate.size + listDelete.size != 0) {
-                                                    SNS.send(SseNotification.crud(listOf(listCreate, listUpdate, listDelete)))
-                                                }
-                                            }
-                                        }
-                                    }
-                                } else {
-                                    // Записи в локальной БД нет, надо создать
-                                    val sqlToInsert = songSync.getSqlToInsert()
-                                    val connection = Connection.local().getConnection()
-                                    if (connection == null) {
-                                        println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных LOCAL")
-                                    } else {
-                                        val ps = connection.prepareStatement(sqlToInsert)
-                                        ps.executeUpdate()
-                                        ps.close()
-                                    }
-                                }
-
-                                if (songSync.tags == "RENDER") {
-                                    val songLocal =
-                                        Song.loadFromDbById(
-                                            id = songSync.id,
-                                            database = Connection.local(),
-                                            storageService = KSS_APP,
-                                            storageApiClient = SAC_APP,
-                                        )
-                                    if (songLocal != null) {
-                                        songLocal.sourceMarkersList.forEachIndexed { voice, _ ->
-                                            val strText = songLocal.convertMarkersToSrt(voice)
-                                            val fileName = "${songLocal.rootFolder}/${songLocal.fileName}.voice${voice + 1}.srt"
-                                            File(fileName).writeText(strText)
-                                            runCommand(listOf("chmod", "666", fileName))
-                                        }
-
-                                        songLocal.createKaraoke(createLyrics = true, createKaraoke = true)
-
-                                        KaraokeProcess.createProcess(
-                                            song = songLocal,
-                                            action = KaraokeProcessTypes.MELT_LYRICS,
-                                            doWait = true,
-                                            prior = 0,
-                                            threadId = 0,
-                                        )
-                                        KaraokeProcess.createProcess(
-                                            song = songLocal,
-                                            action = KaraokeProcessTypes.MELT_KARAOKE,
-                                            doWait = true,
-                                            prior = 1,
-                                            threadId = 0,
-                                        )
-                                    }
-                                }
-                            }
-                            // Удаляем записи из sync-таблицы
-                            listSongsSync.map { it.id }.forEach { idToDel ->
-                                Song.deleteFromDb(id = idToDel, database = Connection.remote(), sync = true)
+                            if (syncResult.localUpdates + syncResult.localInserts > 0 || syncResult.renderSideEffects > 0) {
+                                println(
+                                    "[${Timestamp.from(Instant.now())}] ProcessWorker: Sync-batch обработан: " +
+                                        "updates=${syncResult.localUpdates}, inserts=${syncResult.localInserts}, " +
+                                        "renderSideEffects=${syncResult.renderSideEffects}, sql=${syncResult.sqlQueryCount}",
+                                )
                             }
                         }
                     }
@@ -1211,7 +1129,180 @@ class KaraokeProcessWorker {
             stopAfterThreadIsDone = true
         }
 
-        // Принудительная (жёсткая) остановка очереди: в отличие от doStop() (мягкое ожидание завершения
+        /**
+         * Результат одной итерации sync-цикла `doStart()` (push LOCAL→SERVER). Используется
+         * для логирования и подсчёта SQL-запросов в целях верификации эффекта (см. SC-001/SC-002
+         * в [specs/242-db-sync-batch-worker/spec.md]).
+         */
+        private data class SyncBatchResult(
+            val localUpdates: Int,
+            val localInserts: Int,
+            val renderSideEffects: Int,
+            val sqlQueryCount: Int,
+        )
+
+        /**
+         * Батч-обработка sync-записей из REMOTE-БД. Заменяет N+1 (1 + 2N SQL) на пакетные
+         * операции: `loadListFromDbByIds` для SELECT LOCAL чанками по [SYNC_SELECT_CHUNK_SIZE]
+         * (= `SongSyncTarget.rowChunkSize`, 25 — валидировано под `socketTimeout=30` на тяжёлых
+         * строках Song) и `KaraokeDbTable.deleteIn` для DELETE sync чанками по
+         * [SYNC_DELETE_CHUNK_SIZE] (= `SyncRegistry.DELETE_CHUNK_SIZE`, 200 — DELETE лёгкий,
+         * можно крупные пачки). На 100 sync-записях: 201 → ≤ 11 SQL.
+         *
+         * Per-record side-effects сохранены 1-в-1: UPDATE/INSERT через существующую diff-логику,
+         * а RENDER-логика (генерация `.srt` + `KaraokeProcess.createProcess(MELT_*)`) выполняется
+         * per-song без объединения — это тяжёлая операция, специфичная для конкретной песни
+         * (см. Edge Cases в spec.md).
+         *
+         * @return [SyncBatchResult] со счётчиками и общим числом SQL.
+         * @see archive/docs/features/dual-db-sync.md
+         * @see specs/242-db-sync-batch-worker/spec.md (FR-101 из parent FR-A spec 241)
+         */
+        private fun processRemoteSongsSyncBatch(
+            database: KaraokeConnection,
+            storageService: KaraokeStorageService,
+            storageApiClient: StorageApiClient,
+        ): SyncBatchResult {
+            // 1 SQL: получаем все sync-записи из REMOTE-БД
+            val listSongsSync =
+                Song.loadListFromDb(
+                    database = Connection.remote(),
+                    sync = true,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                )
+            if (listSongsSync.isEmpty()) return SyncBatchResult(0, 0, 0, 1)
+
+            // Чанкованный SELECT LOCAL по всем id разом (N SELECT → ceil(N / SYNC_SELECT_CHUNK_SIZE))
+            val localIds = listSongsSync.map { it.id }
+            val localSongsMap = mutableMapOf<Long, Song>()
+            for (chunk in localIds.chunked(SYNC_SELECT_CHUNK_SIZE)) {
+                val songsForChunk =
+                    Song.loadListFromDbByIds(
+                        ids = chunk,
+                        database = database,
+                        storageService = storageService,
+                        storageApiClient = storageApiClient,
+                    )
+                for (song in songsForChunk.values) {
+                    localSongsMap[song.id] = song
+                }
+            }
+
+            var updates = 0
+            var inserts = 0
+            var renderSideEffects = 0
+
+            // Per-record логика (UPDATE/INSERT + RENDER-side-effect) — без изменений, кроме того
+            // что songLocal берётся из pre-loaded map вместо отдельного SELECT на каждой итерации.
+            listSongsSync.forEach { songSync ->
+                val songLocal = localSongsMap[songSync.id]
+                if (songLocal != null) {
+                    val diff = Song.getDiff(songSync, songLocal)
+                    val setStr =
+                        diff
+                            .filter { it.recordDiffRealField }
+                            .joinToString(", ") { "${it.recordDiffName} = ?" }
+                    if (setStr != "") {
+                        val sql = "UPDATE tbl_songs SET $setStr WHERE id = ?"
+                        val connection = Connection.local().getConnection()
+                        if (connection == null) {
+                            println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных LOCAL")
+                        } else {
+                            val ps = connection.prepareStatement(sql)
+                            var index = 1
+                            diff.filter { it.recordDiffRealField }.forEach {
+                                when (it.recordDiffValueNew) {
+                                    is Long -> ps.setLong(index, it.recordDiffValueNew)
+                                    is Int -> ps.setInt(index, it.recordDiffValueNew)
+                                    else -> ps.setString(index, it.recordDiffValueNew.toString())
+                                }
+                                index++
+                            }
+                            ps.setLong(index, songLocal.id)
+                            ps.executeUpdate()
+                            ps.close()
+                            if (Karaoke.autoUpdateRemoteSettings && Karaoke.allowUpdateRemote) {
+                                val (listCreate, listUpdate, listDelete) =
+                                    updateRemoteSongFromLocalDatabase(songLocal.id)
+                                if (listCreate.size + listUpdate.size + listDelete.size != 0) {
+                                    SNS.send(SseNotification.crud(listOf(listCreate, listUpdate, listDelete)))
+                                }
+                            }
+                        }
+                        updates++
+                    }
+                } else {
+                    val sqlToInsert = songSync.getSqlToInsert()
+                    val connection = Connection.local().getConnection()
+                    if (connection == null) {
+                        println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных LOCAL")
+                    } else {
+                        val ps = connection.prepareStatement(sqlToInsert)
+                        ps.executeUpdate()
+                        ps.close()
+                    }
+                    inserts++
+                }
+
+                // RENDER-side-effect: per-song операция (генерация .srt + создание karaoke-процессов),
+                // объединение в батч невозможно — каждая песня обрабатывается индивидуально.
+                if (songSync.tags == "RENDER" && songLocal != null) {
+                    applyRenderSideEffect(songLocal)
+                    renderSideEffects++
+                }
+            }
+
+            // Чанкованный DELETE sync-записей из REMOTE (N DELETE → ceil(N / SYNC_DELETE_CHUNK_SIZE))
+            val deleteChunks = localIds.chunked(SYNC_DELETE_CHUNK_SIZE)
+            deleteChunks.forEach { chunk ->
+                KaraokeDbTable.deleteIn(
+                    tableName = Song.TABLE_NAME,
+                    ids = chunk,
+                    database = Connection.remote(),
+                    sync = true,
+                )
+            }
+
+            val selectChunkCount = localIds.chunked(SYNC_SELECT_CHUNK_SIZE).size
+            val totalSql = 1 + selectChunkCount + deleteChunks.size
+            return SyncBatchResult(updates, inserts, renderSideEffects, totalSql)
+        }
+
+        /**
+         * Side-effect для sync-записи с `tags == "RENDER"`: генерирует `.srt`-файлы по голосам,
+         * запускает `createKaraoke(lyrics, karaoke)` и создаёт два `KaraokeProcess`
+         * (MELT_LYRICS + MELT_KARAOKE). Вынесено из основного цикла для читаемости
+         * (`processRemoteSongsSyncBatch` ≤ 60 строк, см. SC-004). Per-song операция — не
+         * батчится.
+         *
+         * @see archive/docs/features/dual-db-sync.md
+         */
+        private fun applyRenderSideEffect(songLocal: Song) {
+            songLocal.sourceMarkersList.forEachIndexed { voice, _ ->
+                val strText = songLocal.convertMarkersToSrt(voice)
+                val fileName = "${songLocal.rootFolder}/${songLocal.fileName}.voice${voice + 1}.srt"
+                File(fileName).writeText(strText)
+                runCommand(listOf("chmod", "666", fileName))
+            }
+            songLocal.createKaraoke(createLyrics = true, createKaraoke = true)
+            KaraokeProcess.createProcess(
+                song = songLocal,
+                action = KaraokeProcessTypes.MELT_LYRICS,
+                doWait = true,
+                prior = 0,
+                threadId = 0,
+            )
+            KaraokeProcess.createProcess(
+                song = songLocal,
+                action = KaraokeProcessTypes.MELT_KARAOKE,
+                doWait = true,
+                prior = 1,
+                threadId = 0,
+            )
+        }
+
+        // Принудительная (жёсткая) остановка очереди: в отличие от doStop() (мягкое ожидание
         // текущей цепочки) — немедленно убивает docker-контейнеры выполняющихся заданий, возвращает
         // незавершённые процессы в WAITING (чтобы переиграли заново) и выходит из главного цикла.
         // Вызывается по двойному клику на задизейбленную кнопку старт/стоп во время мягкого ожидания.

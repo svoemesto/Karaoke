@@ -9,6 +9,7 @@ import com.svoemesto.karaokeapp.model.RestName
 import com.svoemesto.karaokeapp.model.Song
 import com.svoemesto.karaokeapp.model.SongAssignment
 import com.svoemesto.karaokeapp.model.Zakroma
+import com.svoemesto.karaokeapp.KaraokeProperties
 import com.svoemesto.karaokeapp.resizeBufferedImage
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.StorageApiClient
@@ -44,6 +45,7 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
+import java.util.concurrent.ConcurrentHashMap
 import javax.imageio.ImageIO
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody
 
@@ -61,6 +63,116 @@ class PublicApiController(
     private val siteUserResolver: SiteUserResolver,
     @org.springframework.beans.factory.annotation.Value("\${storage.proxy-url}") private val minioProxyUrl: String,
 ) {
+    /**
+     * In-memory cache для /api/public/authors-tiles (FR-001, FR-105 parent спеки 241).
+     *
+     * Hot endpoint на главной странице «Закромов» — без кеша делает 2 full-scan
+     * к tbl_songs (DISTINCT + GROUP BY) на каждый запрос. С этим кешем — 1 cold
+     * start + cache hits в течение TTL=30 мин (FR-005).
+     *
+     * Инвалидация — через [StatBySong.consumeDirty]: если кто-то (save/sync песни)
+     * взвёл dirty-флаг через [StatBySong.markDirty], следующий вызов сбрасывает
+     * cache и пересчитывает данные (FR-004).
+     *
+     * Не сохраняет пустые результаты (FR-007) — cache miss повторит попытку.
+     *
+     * Thread-safe через [ConcurrentHashMap] — два одновременных запроса в момент
+     * cache miss могут сделать двойной loadFn, это допустимо (UI не блокируется).
+     *
+     * @see specs/248-authors-tiles-cache FR-001..FR-009
+     * @see specs/241-db-storage-perf-audit FR-105
+     * @see StatBySong.consumeDirty
+     */
+    companion object {
+        /** TTL кеша — 30 минут (FR-005 spec.md / plan.md). */
+        private const val CACHE_TTL_MS = 30 * 60 * 1000L
+
+        /** Ключ свойства в [KaraokeProperties] (FR-003). */
+        private const val KARAOKE_PROPERTY_CACHE_ENABLED = "karaoke.public.authors-tiles-cache.enabled"
+
+        /**
+         * Запись кеша — пара (value, expiresAtMs). Immutable, чтобы не было гонок
+         * при чтении в одном потоке и записи в другом.
+         */
+        private data class CachedAuthorsTiles(
+            val value: List<AuthorTilePublicDto>,
+            val expiresAtMs: Long,
+        )
+
+        /** Thread-safe хранилище кеша (FR-002). */
+        private val authorsTilesCache = ConcurrentHashMap<String, CachedAuthorsTiles>()
+
+        /**
+         * Возвращает кешированный список `AuthorTilePublicDto` для ключа
+         * `scope:onlyPublished` или выполняет `loadFn` и кладёт результат в кеш.
+         *
+         * Алгоритм (FR-001):
+         * 1. Если кеш отключён через [KARAOKE_PROPERTY_CACHE_ENABLED] → `loadFn()`.
+         * 2. Если [StatBySong.consumeDirty] вернул `true` → cache очищается
+         *    (dirty-инвалидация имеет приоритет над TTL).
+         * 3. Cache hit (ключ есть + `expiresAtMs > now`) → возврат из кеша.
+         * 4. Cache miss → `loadFn()`. Если результат непустой (FR-007) — cache put.
+         * 5. Если `loadFn()` бросил — cache не меняется, исключение пробрасывается.
+         *
+         * @param scope "main" / "special" / "all" / etc. — используется в cache key.
+         * @param onlyPublished `true` для анонимов/обычных, `false` для редактора.
+         * @param loadFn функция загрузки (выполняет 2 SQL: counts + authors).
+         * @return список `AuthorTilePublicDto` (из кеша или свежий).
+         *
+         * @see specs/248-authors-tiles-cache FR-001..FR-009
+         */
+        private fun getCachedAuthorsTiles(
+            scope: String,
+            onlyPublished: Boolean,
+            loadFn: () -> List<AuthorTilePublicDto>,
+        ): List<AuthorTilePublicDto> {
+            if (!isCacheEnabled()) {
+                return loadFn()
+            }
+            try {
+                if (StatBySong.consumeDirty()) {
+                    authorsTilesCache.clear()
+                    println("[authorsTilesCache] cache cleared by consumeDirty()")
+                }
+            } catch (_: Throwable) {
+                // ignore — consumeDirty shouldn't throw, but defensive
+            }
+
+            val now = System.currentTimeMillis()
+            val key = "$scope:$onlyPublished"
+            val cached = authorsTilesCache[key]
+            if (cached != null && cached.expiresAtMs > now) {
+                return cached.value
+            }
+            println("[authorsTilesCache] cache miss scope=$scope onlyPublished=$onlyPublished")
+            val fresh = loadFn()
+            if (fresh.isNotEmpty()) {
+                authorsTilesCache[key] = CachedAuthorsTiles(fresh, now + CACHE_TTL_MS)
+            }
+            return fresh
+        }
+
+        /**
+         * Проверяет, разрешён ли cache свойством `karaoke.public.authors-tiles-cache.enabled`
+         * в [KaraokeProperties] (дефолт `true`, зарегистрировано в `KaraokeProperties.kt`).
+         *
+         * Если `KaraokeProperties` по какой-то причине недоступен (ранняя инициализация,
+         * проблемы с файлом) — функция возвращает `true` через `try/catch`. Безопасный
+         * дефолт = кеш работает (минимизируем SQL round-trip'ы в типовом сценарии).
+         *
+         * @return `true` если кеш разрешён; `false` если явно отключён в свойствах.
+         *
+         * @see specs/248-authors-tiles-cache FR-003
+         * @see KaraokeProperties.getBoolean
+         */
+        private fun isCacheEnabled(): Boolean =
+            try {
+                KaraokeProperties.getBoolean(KARAOKE_PROPERTY_CACHE_ENABLED)
+            } catch (_: Throwable) {
+                true
+            }
+    }
+
     // Fetches a PNG from MinIO via the nginx /minio/ proxy on the host.
     // The proxy runs on the host (MTU=1450), avoiding the Docker MTU=1500 mismatch
     // that causes silent packet drops when Java contacts the remote MinIO directly.
@@ -150,33 +262,38 @@ class PublicApiController(
                 "all" -> null
                 else -> false
             }
-        // Публичная поверхность прода — считаем и показываем только готовые песни
-        // (specs/013-song-status-filter): плашка автора без готовых песен не отображается,
-        // подпись плашки считает только их. Кроме "редактора" — для него фильтр по статусу снят,
-        // подпись отражает полное количество песен автора (specs/017-editor-status-bypass).
-        val counts =
-            Song.loadAuthorSongCounts(
-                isSpecialOrder = isSpecialOrderFilter,
-                onlyPublished = onlyPublishedFor(request),
-                database = WORKING_DATABASE,
-            )
-        val loadedAuthors: List<String> =
-            Song
-                .loadListAuthors(
-                    withSkiped = false,
+        val onlyPublished = onlyPublishedFor(request)
+        // Оборачиваем существующую логику в cache-helper (FR-001, FR-105 parent спеки 241).
+        // Cache key = "$scope:$onlyPublished" (FR-008), TTL=30 мин (FR-005).
+        return getCachedAuthorsTiles(scope ?: "main", onlyPublished) {
+            // Публичная поверхность прода — считаем и показываем только готовые песни
+            // (specs/013-song-status-filter): плашка автора без готовых песен не отображается,
+            // подпись плашки считает только их. Кроме "редактора" — для него фильтр по статусу снят,
+            // подпись отражает полное количество песен автора (specs/017-editor-status-bypass).
+            val counts =
+                Song.loadAuthorSongCounts(
                     isSpecialOrder = isSpecialOrderFilter,
+                    onlyPublished = onlyPublished,
                     database = WORKING_DATABASE,
-                ).filter { (counts[it] ?: 0L) > 0L }
-        val specialFlags: Map<String, Boolean> =
-            loadedAuthors.associateWith {
-                it in counts.keys && (isSpecialOrderFilter ?: false)
+                )
+            val loadedAuthors: List<String> =
+                Song
+                    .loadListAuthors(
+                        withSkiped = false,
+                        isSpecialOrder = isSpecialOrderFilter,
+                        database = WORKING_DATABASE,
+                    ).filter { (counts[it] ?: 0L) > 0L }
+            val specialFlags: Map<String, Boolean> =
+                loadedAuthors.associateWith {
+                    it in counts.keys && (isSpecialOrderFilter ?: false)
+                }
+            loadedAuthors.map {
+                AuthorTilePublicDto.fromAuthorName(
+                    author = it,
+                    songCount = counts[it] ?: 0L,
+                    isSpecialOrder = it in specialFlags && specialFlags[it] == true,
+                )
             }
-        return loadedAuthors.map {
-            AuthorTilePublicDto.fromAuthorName(
-                author = it,
-                songCount = counts[it] ?: 0L,
-                isSpecialOrder = it in specialFlags && specialFlags[it] == true,
-            )
         }
     }
 

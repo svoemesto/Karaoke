@@ -1,6 +1,6 @@
 # AGENTS.md — инструкции для агентов
 
-> **Версия**: 2.0.0 | **Last updated**: 2026-08-14 (Pass 62 — фича 189 + 17 follow-ups). Правки governance — в feature-ветке `0XX-agents-md-update`. Детали — в LiveDocs.
+> **Версия**: 2.0.0 | **Last updated**: 2026-08-26 (Pass 241 — fix AGENTS.md ≤100 строк). Правки governance — в ветке `0XX-agents-md-update`. Детали — в LiveDocs.
 
 ## АБСОЛЮТНОЕ ПРАВИЛО: язык общения
 
@@ -8,66 +8,39 @@
 
 ## С чего начать сессию (AI-агент)
 
-Прочитай **LiveDocs первым**:
-1. [`livedocs/README.md`](livedocs/README.md) — манифест.
-2. [`livedocs/INDEX.md`](livedocs/INDEX.md) — карта + decision tree.
-3. Перейди в нужный слой: `livedocs/features/`, `livedocs/domain/`, `livedocs/architecture/`.
+Прочитай **LiveDocs первым**: [`livedocs/README.md`](livedocs/README.md) → [`livedocs/INDEX.md`](livedocs/INDEX.md) → нужный слой (`features/`, `domain/`, `architecture/`).
 
-**Быстрый поиск**:
-- **Slash-command**: `/livedocs-find '<query>' [--type TYPE] [--path SUBPATH]` (canonical `livedocs/commands/livedocs-find.md`, runtime в `.opencode/commands/`).
-- **Shell-script**: `bash tools/search-livedocs.sh '<query>' [--type feature|domain|architecture|adr|runbook|all]`.
+**Быстрый поиск**: `bash tools/search-livedocs.sh '<query>'` или `/livedocs-find '<query>'`.
 
-**Актуальное состояние** — [`livedocs/CHANGELOG.md`](livedocs/CHANGELOG.md) (Pass 62+, semantic changelog).
-
-**Только если в LiveDocs нет** — лезть в `specs/<NNN>/spec.md`, `archive/docs/features/*.md` (legacy drill-down), этот файл.
+**Только если в LiveDocs нет** — `specs/<NNN>/spec.md`, `archive/docs/features/*.md`, этот файл.
 
 ## LiveDocs CI / pre-commit
 
 | Проверка | Что | Где |
 |----------|-----|-----|
 | `tools/check-livedocs-structure.sh` | 7 структурных проверок (`≥5 фич`, `≥5 BC`, `L1+L2+L3`, frontmatter, `AGENTS.md ≤100`, CI) | **CI** + **pre-commit** |
-| `tools/check-livedocs-cross-links.sh` | 818 cross-links (`../X.md` + `related:`) | **CI** + **pre-commit** |
+| `tools/check-livedocs-cross-links.sh` | cross-links (`../X.md` + `related:`) | **CI** + **pre-commit** |
 | `tools/check-livedocs-external-links.sh` | External `https://` URLs (strict) | **CI** (strict) |
 
 Локальные правки LiveDocs → запустить все три перед commit.
 
-## Иерархия документации
+## Иерархия документации (краткая)
 
-| Приоритет | Файл | Зачем |
-|-----------|------|-------|
-| **0** | **`livedocs/`** | ПЕРВЫЙ источник для технических вопросов |
-| 1 | `.specify/memory/constitution.md` | NON-NEGOTIABLE принципы |
-| 2 | **AGENTS.md** (этот файл) | governance, workflow, ≤ 100 строк |
-| 3 | `CONTRIBUTING.md` | стиль кода |
-| 4 | `DEVELOPMENT.md` | архитектура + команды |
-| 5 | `specs/<NNN>-*/spec.md` | полные спеки (drill-down) |
-| 6 | `archive/docs/features/*.md` | per-feature legacy drill-down (после миграции Pass 51) |
-| 7 | `livedocs/architecture-notes.md` | датированный changelog (бывший docs/) |
-| 8 | `livedocs/strategy/growth.md` | стратегия роста (бывший docs/strategy/) |
-
-**При расхождении** — приоритет у файла с меньшим номером.
+`livedocs/` → `.specify/memory/constitution.md` → `AGENTS.md` → `CONTRIBUTING.md` → `DEVELOPMENT.md` → `specs/<NNN>-*/spec.md` → `archive/docs/features/*.md`. **При расхождении** — приоритет у файла с меньшим номером. Полная таблица — в [`livedocs/architecture-notes.md`](livedocs/architecture-notes.md).
 
 ## Где правила для разных AI-агентов
 
-| Агент | Файл | В гите? |
-|-------|------|---------|
-| opencode (primary) | `AGENTS.md` | ✅ |
-| Claude Code, Cursor, Cody, Aider | локальные конфиги | ❌ |
+- opencode (primary) → `AGENTS.md` (✅ в гите)
+- Claude Code, Cursor, Cody, Aider → локальные конфиги (❌)
+- Setup — [`livedocs/onboarding.md`](livedocs/onboarding.md).
 
-Setup — [`livedocs/onboarding.md`](livedocs/onboarding.md, [`livedocs/claude-code-setup.md`](livedocs/claude-code-setup.md)).
+## Ограничения агента (NON-NEGOTIABLE)
 
-## Ограничения агента
-
-**Категорически запрещено:**
-1. Пересобирать `karaoke-app` (исключение: `dev-pc` под `dev`).
-2. Деплой без явного согласия.
-3. Редактировать файлы на сервере.
-4. Коммитить секреты: `deploy/.env`, `*.key`, `*.pem` (проверка: `git ls-files | grep -iE '\.env$|\.key$|\.pem$'` пусто).
-5. Образы: `nginx:alpine`, `node:latest`, JDK вместо JRE — ЗАПРЕЩЕНЫ.
+**Категорически запрещено:** пересобирать `karaoke-app` (исключение: `dev-pc`/`dev`), деплой без согласия, редактировать файлы на сервере, коммитить секреты (`deploy/.env`, `*.key`, `*.pem` — проверка `git ls-files | grep -iE '\.env$|\.key$|\.pem$'` пусто), образы `nginx:alpine`/`node:latest`/JDK вместо JRE.
 
 **Разрешено:** править код, `gradle clean bootJar`, `npm run dev/build`, локальные контейнеры через `deploy/do.sh`.
 
-**Обновление LiveDocs (FR-014)**: при изменении bounded context в `livedocs/domain/` или C4 уровня в `livedocs/architecture/` — в том же PR обновить LiveDoc. CI блокирует merge при failures.
+**Обновление LiveDocs (FR-014)**: при изменении bounded context или C4 уровня — обновить LiveDoc в том же PR.
 
 Детали — Constitution § «Ограничения и доступы агента».
 
@@ -77,7 +50,7 @@ Setup — [`livedocs/onboarding.md`](livedocs/onboarding.md, [`livedocs/claude-c
 N=$(./tools/reserve-branch-number.sh my-slug)
 git checkout -b "${N}-my-slug" master && # ... правки ...
 git push -u origin "${N}-my-slug" &&
-gh pr create --base master &&           # → CI lint.yml (8/8 — добавлен LiveDocs)
+gh pr create --base master &&           # → CI lint.yml
 gh pr checks &&                         # дождаться PASS
 gh pr merge --merge                      # БЕЗ --delete-branch
 ```
@@ -92,38 +65,25 @@ gh pr merge --merge                      # БЕЗ --delete-branch
 
 ### Обязательная проверка после ЛЮБОГО изменения кода (NON-NEGOTIABLE)
 
-> **Контекст.** Инцидент 2026-08-26 (Pass 239): агент внёс правки в `Zakroma.kt`,
-> но **не пересобрал** проект — компилятор Kotlin обнаружил несоответствие типов
-> уже на стороне пользователя (`Int` vs `Long`), freeze-баг цензурирования
-> (2500 SQL-запросов per-load) тоже был пропущен без проверки. Правило ниже
-> фиксирует порядок действий.
+> **Контекст.** Инцидент Pass 239: агент внёс правки в `Zakroma.kt`, но **не пересобрал**
+> проект — компилятор Kotlin обнаружил несоответствие типов уже на стороне пользователя
+> (`Int` vs `Long`), freeze-баг цензурирования (2500 SQL-запросов per-load) тоже был
+> пропущен без проверки. Правило ниже фиксирует порядок действий.
 
-**После ЛЮБОГО изменения в коде ОБЯЗАТЕЛЬНО** (в этом порядке, перед тем
-как сообщать «готово»):
+**После ЛЮБОГО изменения в коде ОБЯЗАТЕЛЬНО** (в этом порядке):
 
-1. **Компиляция backend**: `./gradlew :karaoke-app:compileKotlin :karaoke-web:compileKotlin --parallel`
-   — должна пройти без ошибок. **Тип-ошибки видны ТОЛЬКО при компиляции**
-   (линтер их не ловит), поэтому этот шаг обязателен после правок моделей/DTO.
+1. **Backend compile**: `./gradlew :karaoke-app:compileKotlin :karaoke-web:compileKotlin --parallel`
 2. **Линтеры**: `./gradlew :karaoke-web:ktlintCheck` + `tools/check-eslint-baseline.sh karaoke-public`
-   — никаких НОВЫХ нарушений. Существующие baseline-нарушения OK.
-3. **Сборка артефактов**: `./gradlew :karaoke-web:bootJar --parallel` — jar собирается.
-4. **Frontend сборка**: `cd karaoke-public && npm run build` + `npm run lint`
-   — vite собирает bundle, eslint без новых ошибок/warning'ов.
-5. **Только после всех 4 шагов OK** — сообщать пользователю «готово к деплою».
+   — никаких НОВЫХ нарушений (baseline OK).
+3. **Backend bootJar**: `./gradlew :karaoke-web:bootJar --parallel`
+4. **Frontend**: `cd karaoke-public && npm run build && npm run lint`
+5. **Только после всех 4 шагов OK** — сообщать «готово к деплою».
 
-**НЕ ПРОПУСКАТЬ** шаги даже для «очевидных» правок (1 строка, hotfix, переименование).
-Ошибка компиляции может быть неочевидной (например, `Long` vs `Int` в Kotlin
-бросает только в момент использования значения, не в момент присваивания default'а).
-
-**Только после подтверждения всех 4 шагов** можно сообщать «готово» и предлагать
-пользователю команду для деплоя (`deploy/deploy_web.sh` или `deploy/do.sh build_start_public`).
-
-Команды — в `DEVELOPMENT.md`.
-
-## Q&A — где искать актуальные знания о проекте?
-
-Детали (Jackson `is`-prefix, Dockerfile ловушки, KDoc backticks, пагинация, sync, queue lanes, тип песни, рендер MP4, StatBySong) — в [LiveDocs](livedocs/README.md). Q&A в этот файл **НЕ добавлять** — только governance.
+**НЕ ПРОПУСКАТЬ** шаги даже для «очевидных» правок. Детали — в
+[livedocs/architecture-notes.md](livedocs/architecture-notes.md).
 
 ## Как обновлять этот файл
 
-Правки governance — в ветке `0XX-agents-md-update`, semver bump. **НЕ дублировать** детали и **НЕ добавлять** Q&A.
+Правки governance — в ветке `0XX-agents-md-update`, semver bump. **НЕ дублировать** детали.
+Детали проекта (Jackson `is`-prefix, Dockerfile, sync, MP4, StatBySong и т.д.) — в
+[LiveDocs](livedocs/README.md) (не в этом файле).

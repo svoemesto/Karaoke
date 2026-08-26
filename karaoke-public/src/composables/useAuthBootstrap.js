@@ -23,35 +23,35 @@ import { useSongSubscriptions } from './useSongSubscriptions'
 let started = false
 
 export function useAuthBootstrap() {
-    if (started) return
-    started = true
+  if (started) return
+  started = true
 
-    const { token } = useAuth()
-    const { loadFavoritesIds, loadPlaylists, reset: resetPlaylists } = usePlaylistMembership()
-    const { loadOnce, reset: resetSubscriptions } = useSongSubscriptions()
+  const { token } = useAuth()
+  const { loadFavoritesIds, loadPlaylists, reset: resetPlaylists } = usePlaylistMembership()
+  const { loadOnce, reset: resetSubscriptions } = useSongSubscriptions()
 
-    function onLogin() {
-        // Параллельно: избранное + подписки + список плейлистов. membership per-song —
-        // отдельный вызов на странице автора.
-        Promise.all([loadFavoritesIds(), loadOnce(true), loadPlaylists(true)])
+  function onLogin() {
+    // Параллельно: избранное + подписки + список плейлистов. membership per-song —
+    // отдельный вызов на странице автора.
+    Promise.all([loadFavoritesIds(), loadOnce(true), loadPlaylists(true)])
+  }
+
+  function onLogout() {
+    resetPlaylists()
+    resetSubscriptions()
+  }
+
+  // Стартуем сразу (если уже залогинен при загрузке страницы — token может быть в localStorage)
+  if (token.value) onLogin()
+
+  // Watcher: реагируем на смену токена (login/logout из LoginView и т.п.)
+  watch(token, (newToken, oldToken) => {
+    if (newToken && !oldToken) onLogin()
+    else if (!newToken && oldToken) onLogout()
+    // Токен сменился на другой (повторный логин другим юзером): перезагрузить всё
+    else if (newToken && oldToken && newToken !== oldToken) {
+      onLogout()
+      onLogin()
     }
-
-    function onLogout() {
-        resetPlaylists()
-        resetSubscriptions()
-    }
-
-    // Стартуем сразу (если уже залогинен при загрузке страницы — token может быть в localStorage)
-    if (token.value) onLogin()
-
-    // Watcher: реагируем на смену токена (login/logout из LoginView и т.п.)
-    watch(token, (newToken, oldToken) => {
-        if (newToken && !oldToken) onLogin()
-        else if (!newToken && oldToken) onLogout()
-        // Токен сменился на другой (повторный логин другим юзером): перезагрузить всё
-        else if (newToken && oldToken && newToken !== oldToken) {
-            onLogout()
-            onLogin()
-        }
-    })
+  })
 }

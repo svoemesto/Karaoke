@@ -28,30 +28,30 @@ let favoritesLoaded = false
 let favoritesLatest = 0
 
 async function loadFavoritesIds(force = false) {
-    const { token } = useAuth()
-    const requestId = ++favoritesLatest
-    if (!token.value) {
-        favoriteIds.clear()
-        favoritesLoaded = false
-        return
+  const { token } = useAuth()
+  const requestId = ++favoritesLatest
+  if (!token.value) {
+    favoriteIds.clear()
+    favoritesLoaded = false
+    return
+  }
+  if (favoritesLoaded && !force) return
+  try {
+    const { status, body } = await fetchFavoritesIds()
+    if (requestId !== favoritesLatest) return // устаревший запрос
+    if (status === 200 && Array.isArray(body)) {
+      favoriteIds.clear()
+      body.forEach((id) => favoriteIds.add(Number(id)))
+      favoritesLoaded = true
     }
-    if (favoritesLoaded && !force) return
-    try {
-        const { status, body } = await fetchFavoritesIds()
-        if (requestId !== favoritesLatest) return // устаревший запрос
-        if (status === 200 && Array.isArray(body)) {
-            favoriteIds.clear()
-            body.forEach((id) => favoriteIds.add(Number(id)))
-            favoritesLoaded = true
-        }
-    } catch (e) {
-        if (requestId !== favoritesLatest) return
-        // Clarification Q3 (2026-08-25): «off» фиксируется до logout/login/reload, без retry.
-    }
+  } catch (e) {
+    if (requestId !== favoritesLatest) return
+    // Clarification Q3 (2026-08-25): «off» фиксируется до logout/login/reload, без retry.
+  }
 }
 
 function isFavorited(id) {
-    return favoriteIds.has(Number(id))
+  return favoriteIds.has(Number(id))
 }
 
 // ---- Плейлисты (НЕ-избранные): Map<id, {favorited, playlistIds}> ---------------------------
@@ -100,48 +100,48 @@ async function load(ids) {
 }
 
 function favStateFor(id) {
-    // Без спиннеров: если id нет в membership и membership ещё не грузился — сразу 'off'
-    // (одно приложение-wide membership, не per-row).
-    const entry = membership[String(id)]
-    if (entry && entry.favorited) return 'on'
-    return isFavorited(id) ? 'on' : 'off'
+  // Без спиннеров: если id нет в membership и membership ещё не грузился — сразу 'off'
+  // (одно приложение-wide membership, не per-row).
+  const entry = membership[String(id)]
+  if (entry && entry.favorited) return 'on'
+  return isFavorited(id) ? 'on' : 'off'
 }
 
 // В скольких обычных (не «Избранное») плейлистах песня — для синей иконки.
 function plStateFor(id) {
-    const pls = (membership[String(id)] && membership[String(id)].playlistIds) || []
-    return pls.length ? 'on' : 'off'
+  const pls = (membership[String(id)] && membership[String(id)].playlistIds) || []
+  return pls.length ? 'on' : 'off'
 }
 
 // Локальное обновление после toggle/add/remove (без перезагрузки).
 function setFavorited(id, val) {
-    ensureEntry(id).favorited = val
-    if (val) {
-        favoriteIds.add(Number(id))
-    } else {
-        favoriteIds.delete(Number(id))
-    }
+  ensureEntry(id).favorited = val
+  if (val) {
+    favoriteIds.add(Number(id))
+  } else {
+    favoriteIds.delete(Number(id))
+  }
 }
 function setPlaylistIds(id, ids) {
-    ensureEntry(id).playlistIds = ids
+  ensureEntry(id).playlistIds = ids
 }
 
 // ---- Список плейлистов пользователя -------------------------------------------------------
 const playlists = ref([])
 let playlistsLoaded = false
 async function loadPlaylists(force = false) {
-    const { token } = useAuth()
-    if (!token.value) {
-        playlists.value = []
-        return []
-    }
-    if (playlistsLoaded && !force) return playlists.value
-    const { status, body } = await fetchPlaylists()
-    if (status === 200 && Array.isArray(body)) {
-        playlists.value = body
-        playlistsLoaded = true
-    }
-    return playlists.value
+  const { token } = useAuth()
+  if (!token.value) {
+    playlists.value = []
+    return []
+  }
+  if (playlistsLoaded && !force) return playlists.value
+  const { status, body } = await fetchPlaylists()
+  if (status === 200 && Array.isArray(body)) {
+    playlists.value = body
+    playlistsLoaded = true
+  }
+  return playlists.value
 }
 
 // ---- BroadcastChannel (Pass 239: расширен дискриминатором type) ---------------------------
@@ -150,61 +150,61 @@ async function loadPlaylists(force = false) {
 // (и в будущем — {songId, subscribed} для подписок, когда появится UI-управление).
 // Один канал с дискриминатором — проще, чем 3 отдельных канала.
 const favoritesChannel =
-    typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('km-favorites') : null
+  typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('km-favorites') : null
 if (favoritesChannel) {
-    favoritesChannel.onmessage = (e) => {
-        const { type, songId } = e.data || {}
-        if (songId == null) return
-        switch (type) {
-            case 'favorited':
-                setFavorited(songId, !!e.data.favorited)
-                break
-            case 'playlist':
-                setPlaylistIds(songId, e.data.playlistIds || [])
-                break
-            // 'subscription' будет обрабатываться в useSongSubscriptions.js (отдельный composable).
-        }
+  favoritesChannel.onmessage = (e) => {
+    const { type, songId } = e.data || {}
+    if (songId == null) return
+    switch (type) {
+      case 'favorited':
+        setFavorited(songId, !!e.data.favorited)
+        break
+      case 'playlist':
+        setPlaylistIds(songId, e.data.playlistIds || [])
+        break
+      // 'subscription' будет обрабатываться в useSongSubscriptions.js (отдельный composable).
     }
+  }
 }
 
 // То же, что setFavorited(), но дополнительно рассылает изменение в другие вкладки/iframe.
 // Вызывать из места, где толчок к изменению — реальное действие пользователя (клик по иконке).
 function broadcastFavorited(id, val) {
-    setFavorited(id, val)
-    favoritesChannel?.postMessage({ type: 'favorited', songId: String(id), favorited: val })
+  setFavorited(id, val)
+  favoritesChannel?.postMessage({ type: 'favorited', songId: String(id), favorited: val })
 }
 function broadcastPlaylistIds(id, ids) {
-    setPlaylistIds(id, ids)
-    favoritesChannel?.postMessage({ type: 'playlist', songId: String(id), playlistIds: ids })
+  setPlaylistIds(id, ids)
+  favoritesChannel?.postMessage({ type: 'playlist', songId: String(id), playlistIds: ids })
 }
 
 // ---- Reset при logout ----------------------------------------------------------------------
 function reset() {
-    favoriteIds.clear()
-    favoritesLoaded = false
-    for (const key in membership) delete membership[key]
-    playlists.value = []
-    playlistsLoaded = false
+  favoriteIds.clear()
+  favoritesLoaded = false
+  for (const key in membership) delete membership[key]
+  playlists.value = []
+  playlistsLoaded = false
 }
 
 export function usePlaylistMembership() {
-    return {
-        // Избранное (Pass 239)
-        favoriteIds,
-        loadFavoritesIds,
-        isFavorited,
-        // Плейлисты (НЕ-избранные)
-        membership,
-        playlists,
-        favStateFor,
-        plStateFor,
-        load,
-        loadPlaylists,
-        setFavorited,
-        broadcastFavorited,
-        setPlaylistIds,
-        broadcastPlaylistIds,
-        // Logout
-        reset,
-    }
+  return {
+    // Избранное (Pass 239)
+    favoriteIds,
+    loadFavoritesIds,
+    isFavorited,
+    // Плейлисты (НЕ-избранные)
+    membership,
+    playlists,
+    favStateFor,
+    plStateFor,
+    load,
+    loadPlaylists,
+    setFavorited,
+    broadcastFavorited,
+    setPlaylistIds,
+    broadcastPlaylistIds,
+    // Logout
+    reset,
+  }
 }

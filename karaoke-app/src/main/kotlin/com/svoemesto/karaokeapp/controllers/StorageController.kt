@@ -8,11 +8,14 @@ import jakarta.servlet.http.HttpServletRequest
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.core.io.InputStreamResource
+import org.springframework.core.io.Resource
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.multipart.MultipartFile
+import java.io.InputStream
 
 /**
  * Контроллер (HTTP/WebSocket endpoints) для storage .
@@ -117,8 +120,9 @@ class StorageController(
     fun downloadFile(
         @RequestParam("bucketName") bucketName: String,
         @RequestParam("fileName") fileName: String,
+        @RequestHeader(value = "Range", required = false) rangeHeader: String?,
         request: HttpServletRequest,
-    ): ResponseEntity<ByteArray> {
+    ): ResponseEntity<Resource> {
         if (!isValidFileName(fileName)) {
             logger.warn("Invalid file name: $fileName from IP: ${request.remoteAddr}")
             return ResponseEntity.badRequest().build()
@@ -130,15 +134,31 @@ class StorageController(
         }
 
         try {
+            // FR-002 (specs/245-storage-download-streaming/spec.md): Content-Length из fileStat.
+            val fileStat = karaokeStorageService.getFileStat(bucketName, fileName)
+            val contentLength = fileStat?.size() ?: -1L
+
+            // FR-001: streaming через Resource (НЕ readAllBytes!) — устраняет OOM для MP4 100+ MB.
             val inputStream = karaokeStorageService.downloadFile(bucketName, fileName)
-            val bytes = inputStream.readAllBytes()
+            val resource: Resource = LengthAwareInputStreamResource(inputStream, contentLength)
 
-            logger.info("File downloaded: $fileName from bucket: $bucketName")
+            // FR-003: Content-Disposition (backward-compat с прежним API).
+            val headers =
+                HttpHeaders().apply {
+                    add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"$fileName\"")
+                    if (contentLength > 0) {
+                        setContentLength(contentLength)
+                    }
+                }
 
+            logger.info("File streamed: $fileName from bucket: $bucketName, size=$contentLength, range=$rangeHeader")
+
+            // FR-004: Spring `ResourceHttpMessageConverter` автоматически разберёт
+            // Range header и вернёт `ResourceRegion` с HTTP 206 (для Resource return type).
             return ResponseEntity
                 .ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"$fileName\"")
-                .body(bytes)
+                .headers(headers)
+                .body(resource)
         } catch (e: Exception) {
             logger.error("Download failed for file: $fileName in bucket: $bucketName", e)
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build()
@@ -305,5 +325,23 @@ class StorageController(
             return null
         }
         return karaokeStorageService.listFilesInfo(bucketName)
+    }
+
+    /**
+     * InputStreamResource с явным Content-Length. Spring требует переопределить
+     * `contentLength()` (Spring 5.x/6.x интерфейс `Resource`) — без этого
+     * `ResourceHttpMessageConverter` НЕ сможет корректно выставить `Content-Length`
+     * HTTP-ответа и НЕ сможет обработать Range-запросы (HTTP 206 + `Content-Range`).
+     *
+     * Дефолтная реализация в `InputStreamResource` бросает `FileNotFoundException`,
+     * потому что у неё нет информации о размере. Мы передаём `contentLength` явно.
+     *
+     * @see specs/245-storage-download-streaming/spec.md FR-002
+     */
+    private class LengthAwareInputStreamResource(
+        private val delegate: InputStream,
+        private val contentLength: Long,
+    ) : InputStreamResource(delegate) {
+        override fun contentLength(): Long = contentLength
     }
 }

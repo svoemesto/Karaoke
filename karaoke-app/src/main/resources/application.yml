@@ -2,6 +2,9 @@ server:
   port: 8899
   tomcat:
     connection-timeout: 300000 # 300000 миллисекунд = 5 минут. Установите нужное значение.
+    # specs/245-storage-download-streaming: -1 снимает дефолтное ограничение Tomcat (2 MB)
+    # на размер swallow'а тела ответа, чтобы streaming download MP4 100+ MB не резался.
+    max-swallow-size: -1
     threads:
       # specs/087-fix-shared-db-connection: с переходом KaraokeConnection на ThreadLocal-кеш
       # соединений каждый поток Tomcat, обратившийся к WORKING_DATABASE, держит своё

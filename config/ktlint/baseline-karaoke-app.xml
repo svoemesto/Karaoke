@@ -1,3 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <baseline version="1.0">
+	<file name="karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Zakroma.kt">
+		<error column="60" line="192" message="Expected newline before &apos;.&apos;" source="standard:chain-method-continuation" />
+	</file>
 </baseline>

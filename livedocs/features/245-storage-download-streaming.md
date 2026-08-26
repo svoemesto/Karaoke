@@ -2,7 +2,7 @@
 status: Active
 slug: 245-storage-download-streaming
 related:
-  - ../domain/media-storage.md
+  - ../domain/publishing.md
   - ../architecture/L3-components.md
   - ../../specs/245-storage-download-streaming/spec.md
   - 241-db-storage-perf-audit

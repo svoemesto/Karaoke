@@ -324,6 +324,14 @@ val listKaraokeProperties =
             defaultValue = true,
             description = "Кешировать список колонок information_schema в KaraokeDbTable.loadList (TTL=1ч). false = каждый loadList идёт в БД (отладка schema-related багов).",
         ),
+        // Кеш для /api/public/authors-tiles (spec 248). Дефолт true — кеш прозрачен
+        // для всех вызовов endpoint'а, TTL=30 мин, инвалидация через StatBySong.consumeDirty().
+        // false — отключает кеш (полезно при отладке данных плашек авторов).
+        KaraokeProperty(
+            key = "karaoke.public.authors-tiles-cache.enabled",
+            defaultValue = true,
+            description = "Кеш для /api/public/authors-tiles (TTL=30 мин). false = каждый запрос идёт в БД (отладка данных плашек).",
+        ),
         KaraokeProperty(
             key = "editorAssignmentDefaultTarget",
             defaultValue = "remote",

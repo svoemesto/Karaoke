@@ -316,6 +316,14 @@ val listKaraokeProperties =
         ),
         KaraokeProperty(key = "allowUpdateRemote", defaultValue = false, description = "Разрешить обновлять REMOTE"),
         KaraokeProperty(key = "allowUpdateLocal", defaultValue = false, description = "Разрешить обновлять LOCAL"),
+        // Кеш списка колонок information_schema в KaraokeDbTable.loadList (spec 243). Дефолт true —
+        // кеш прозрачен для всех 41 caller'а loadList, TTL=1ч, отключается явно при отладке
+        // schema-related багов. См. KaraokeDbTable.invalidateSchemaCache(...) для принудительного сброса.
+        KaraokeProperty(
+            key = "karaoke.db.schema_cache.enabled",
+            defaultValue = true,
+            description = "Кешировать список колонок information_schema в KaraokeDbTable.loadList (TTL=1ч). false = каждый loadList идёт в БД (отладка schema-related багов).",
+        ),
         KaraokeProperty(
             key = "editorAssignmentDefaultTarget",
             defaultValue = "remote",

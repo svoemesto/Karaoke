@@ -1,10 +1,17 @@
 <template>
-  <span v-if="state === 'loading'" class="pl-spinner" title="Загрузка…" />
+  <!-- Pass 239 (specs/239-zakroma-author-songs-batch-render):
+       - Аноним → "гостевая" серая иконка (прозрачная) с tooltip.
+       - Залогин, но membership ещё не загружен → НЕ спиннер, а "off" (нейтральная).
+       - Optimistic update: при добавлении/удалении из плейлиста состояние меняется ДО запроса. -->
+  <span v-if="isGuest" class="pl-icon pl-guest" title="Войдите, чтобы добавить в плейлист">
+    <SvgIcon name="playlist" :active="false" :size="18" />
+  </span>
   <a
     v-else
     href="#"
     class="pl-icon"
     :class="{ 'pl-on': state === 'on', 'has-label': label }"
+    :aria-label="'Плейлисты'"
     title="Плейлисты"
     @click.prevent="openMenu"
   >
@@ -101,6 +108,7 @@ export default {
 
     const isPremium = computed(() => !!(user.value && user.value.effectivePremium))
     const state = computed(() => membership.plStateFor(props.songId))
+    const isGuest = computed(() => !token.value)
 
     // Плейлисты (без «Избранного») из кэша, разделённые на «где песня есть» / «куда добавить».
     const myPlaylists = computed(() => membership.playlists.value.filter((p) => !p.favorites))
@@ -207,6 +215,7 @@ export default {
       showAdd,
       busy,
       state,
+      isGuest,
       inPlaylists,
       notInPlaylists,
       openMenu,
@@ -246,6 +255,12 @@ const PREMIUM_BENEFITS = [
 }
 .pl-icon.has-label:hover {
   transform: none;
+}
+/* Pass 239: "гостевая" иконка плейлистов для анонима — серая, прозрачная, не кликабельна
+   (клик ведёт в openMenu → router.push('/login')). */
+.pl-guest {
+  cursor: default;
+  opacity: 0.5;
 }
 .pl-label {
   font-size: 0.9rem;

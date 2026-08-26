@@ -9,6 +9,16 @@ import java.nio.charset.StandardCharsets
  * DTO для zakroma album settings public: сериализуемое представление для API/UI.
  *
  * @see AGENTS.md
+ *
+ * Поля `idStatus` и `contentReady` (Pass 239, specs/239-zakroma-author-songs-batch-render) добавлены,
+ * чтобы фронт мог отрисовать иконку плеера без per-row readiness-запроса (см. ранее
+ * `usePlayerReadiness.load(ids)` — он валил сайт на крупных авторах, ~2500 песен).
+ *
+ * @property idStatus статус по lifecycle (0..6, specs/022-song-status-lifecycle). ≥6 для публичного
+ *   плеера.
+ * @property contentReady `song.isContentReady` — персистентные флаги из tbl_settings (Pass 100,
+ *   deploy/karaoke-db/26_player_readiness_flags.sql). true = можно открыть плеер (stem +
+ *   picture + markers, idStatus >= 6). Используется иконкой плеера как «contentReadyState === 'ready'».
  */
 data class ZakromaAlbumSongPublicDto(
     val id: Long,
@@ -23,6 +33,10 @@ data class ZakromaAlbumSongPublicDto(
     val alwaysFree: Boolean,
     val freelyAvailableNow: Boolean,
     val freeAccessWindowEndText: String?,
+    // Pass 239 (specs/239-zakroma-author-songs-batch-render): иконка плеера без per-row readiness.
+    // `idStatus` — Long для совместимости с `Song.idStatus` (см. Song.kt).
+    val idStatus: Long = 0L,
+    val contentReady: Boolean = false,
 )
 
 /**
@@ -134,6 +148,10 @@ data class ZakromaPublicDto(
                                             alwaysFree = s.alwaysFree,
                                             freelyAvailableNow = s.freelyAvailableNow,
                                             freeAccessWindowEndText = s.freeAccessWindowEndText,
+                                            // Pass 239 (specs/239-zakroma-author-songs-batch-render):
+                                            // иконка плеера без per-row readiness.
+                                            idStatus = s.idStatus,
+                                            contentReady = s.contentReady,
                                         )
                                     },
                                 albumType = alb.albumType,

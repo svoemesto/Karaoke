@@ -1,33 +1,63 @@
 import { reactive, ref } from 'vue'
-import { fetchMembership, fetchPlaylists } from '../services/playlistApi'
+import { fetchFavoritesIds, fetchMembership, fetchPlaylists } from '../services/playlistApi'
 import { useAuth } from './useAuth'
 
-// Синглтон членства песен в «Избранном»/плейлистах для иконок в таблицах «Закрома»/«Поиск».
-// Таблица рисуется сразу; членство докачивается фоном чанками (как usePlayerReadiness). Состояние
-// общее на всё приложение — toggle в одном месте виден везде. Для анонимов запросов нет (всё 'off').
-const CHUNK_SIZE = 40
-const MAX_CONCURRENT = 3
+/**
+ * Module-level singleton для иконок «Избранное»/«Плейлисты» в страницах списка песен
+ * (Закрома/Поиск/Плейлист автора). Pass 239 (specs/239-zakroma-author-songs-batch-render):
+ * единый bulk-fetch вместо per-row chunked-вызовов, которые валили сайт на крупных авторах.
+ *
+ * Три параллельных source'а (module-level reactive):
+ * - `favoriteIds: Set<number>` — id песен в «Избранном» (bulk-fetch `/favorites/ids`).
+ * - `membership: Map<id, {favorited, playlistIds}>` — НЕ-избранные плейлисты для синей иконки
+ *   (bulk-fetch `/playlists/membership`).
+ * - `playlists: ref<Array>` — список плейлистов пользователя (для меню синей иконки).
+ *
+ * Для анонимов все запросы skip'нуты — favoriteIds пустой, membership пустой, иконки на фронте
+ * показывают «гостевой» вид с редиректом на /login (Clarification Q2, 2026-08-25).
+ *
+ * Состояние общее на всё приложение — toggle в одном месте виден везде (через BroadcastChannel).
+ * Browser back сохраняет singleton — Pass 246 fix #1, тот же паттерн что в usePlayerReadiness.
+ *
+ * @see specs/239-zakroma-author-songs-batch-render
+ */
 
+// ---- Избранное: плоский Set<number> (Pass 239) --------------------------------------------
+const favoriteIds = reactive(new Set())
+let favoritesLoaded = false
+let favoritesLatest = 0
+
+async function loadFavoritesIds(force = false) {
+    const { token } = useAuth()
+    const requestId = ++favoritesLatest
+    if (!token.value) {
+        favoriteIds.clear()
+        favoritesLoaded = false
+        return
+    }
+    if (favoritesLoaded && !force) return
+    try {
+        const { status, body } = await fetchFavoritesIds()
+        if (requestId !== favoritesLatest) return // устаревший запрос
+        if (status === 200 && Array.isArray(body)) {
+            favoriteIds.clear()
+            body.forEach((id) => favoriteIds.add(Number(id)))
+            favoritesLoaded = true
+        }
+    } catch (e) {
+        if (requestId !== favoritesLatest) return
+        // Clarification Q3 (2026-08-25): «off» фиксируется до logout/login/reload, без retry.
+    }
+}
+
+function isFavorited(id) {
+    return favoriteIds.has(Number(id))
+}
+
+// ---- Плейлисты (НЕ-избранные): Map<id, {favorited, playlistIds}> ---------------------------
 // id -> { favorited: bool, playlistIds: number[] }
 const membership = reactive({})
-// id -> bool (ещё грузится)
-const loading = reactive({})
-// Кэш списка плейлистов пользователя (для меню синей иконки — этап 2).
-const playlists = ref([])
-let playlistsLoaded = false
-let latest = 0
-
-function favStateFor(id) {
-  if (loading[id]) return 'loading'
-  return membership[id] && membership[id].favorited ? 'on' : 'off'
-}
-
-// В скольких обычных (не «Избранное») плейлистах песня — для синей иконки.
-function plStateFor(id) {
-  if (loading[id]) return 'loading'
-  const pls = (membership[id] && membership[id].playlistIds) || []
-  return pls.length ? 'on' : 'off'
-}
+let membershipLatest = 0
 
 function ensureEntry(id) {
   const key = String(id)
@@ -37,13 +67,8 @@ function ensureEntry(id) {
 
 async function load(ids) {
   const { token } = useAuth()
-  const requestId = ++latest
+  const requestId = ++membershipLatest
   const unique = [...new Set(ids.map(String))]
-  // Не сбрасываем всю карту (toggle мог обновить строки других страниц) — только помечаем новые
-  // как loading и обновляем их из ответа.
-  unique.forEach((id) => {
-    loading[id] = true
-  })
   if (!unique.length) return
 
   // Аноним — членства нет, ничего не грузим.
@@ -52,100 +77,134 @@ async function load(ids) {
       ensureEntry(id)
       membership[id].favorited = false
       membership[id].playlistIds = []
-      loading[id] = false
     })
     return
   }
 
-  const chunks = []
-  for (let i = 0; i < unique.length; i += CHUNK_SIZE) chunks.push(unique.slice(i, i + CHUNK_SIZE))
-  let cursor = 0
-
-  async function worker() {
-    while (cursor < chunks.length) {
-      const chunk = chunks[cursor++]
-      try {
-        const { status, body } = await fetchMembership(chunk)
-        if (requestId !== latest) return
-        const items = (status === 200 && body && body.items) || {}
-        chunk.forEach((id) => {
-          const it = items[id]
-          const entry = ensureEntry(id)
-          entry.favorited = !!(it && it.favorited)
-          entry.playlistIds = (it && it.playlistIds) || []
-          loading[id] = false
-        })
-      } catch (e) {
-        if (requestId !== latest) return
-        chunk.forEach((id) => {
-          loading[id] = false
-        })
-      }
-    }
+  try {
+    // Pass 239: один bulk-fetch со всем CSV (до ~2500 id = ~7 KB URL-encoded, укладывается
+    // в HTTP-лимиты). Раньше был chunked-load 40×3 параллельных — теперь не нужен.
+    const { status, body } = await fetchMembership(unique)
+    if (requestId !== membershipLatest) return
+    const items = (status === 200 && body && body.items) || {}
+    unique.forEach((id) => {
+      const it = items[id]
+      const entry = ensureEntry(id)
+      entry.favorited = !!(it && it.favorited)
+      entry.playlistIds = (it && it.playlistIds) || []
+    })
+  } catch (e) {
+    if (requestId !== membershipLatest) return
+    // Clarification Q3: «off» фиксируется до logout/login/reload.
   }
+}
 
-  await Promise.all(Array.from({ length: Math.min(MAX_CONCURRENT, chunks.length) }, worker))
+function favStateFor(id) {
+    // Без спиннеров: если id нет в membership и membership ещё не грузился — сразу 'off'
+    // (одно приложение-wide membership, не per-row).
+    const entry = membership[String(id)]
+    if (entry && entry.favorited) return 'on'
+    return isFavorited(id) ? 'on' : 'off'
+}
+
+// В скольких обычных (не «Избранное») плейлистах песня — для синей иконки.
+function plStateFor(id) {
+    const pls = (membership[String(id)] && membership[String(id)].playlistIds) || []
+    return pls.length ? 'on' : 'off'
 }
 
 // Локальное обновление после toggle/add/remove (без перезагрузки).
 function setFavorited(id, val) {
-  ensureEntry(id).favorited = val
+    ensureEntry(id).favorited = val
+    if (val) {
+        favoriteIds.add(Number(id))
+    } else {
+        favoriteIds.delete(Number(id))
+    }
 }
 function setPlaylistIds(id, ids) {
-  ensureEntry(id).playlistIds = ids
+    ensureEntry(id).playlistIds = ids
 }
 
-// Синхронизация «Избранного» между вкладками/окнами/iframe одного origin: плеер открывается
-// window.open()'ом в новой вкладке (playerLauncher.js) либо встроен iframe'ом (SongView.vue,
-// PlaylistEditView.vue) — в каждом случае это отдельный JS-контекст со своим синглтоном
-// usePlaylistMembership, sessionStorage/reactive-состояние между ними не расшарено. BroadcastChannel
-// рассылает изменение всем ДРУГИМ same-origin контекстам (по спеке — не возвращается отправителю,
-// зацикливания нет); localStorage 'storage'-событие сюда не подходит так же просто, т.к. не
-// добавляет ничего сверх BroadcastChannel и требует ручной сериализации. Старые браузеры без
-// BroadcastChannel — тихий no-op (страница просто ведёт себя как раньше, до этого фикса).
+// ---- Список плейлистов пользователя -------------------------------------------------------
+const playlists = ref([])
+let playlistsLoaded = false
+async function loadPlaylists(force = false) {
+    const { token } = useAuth()
+    if (!token.value) {
+        playlists.value = []
+        return []
+    }
+    if (playlistsLoaded && !force) return playlists.value
+    const { status, body } = await fetchPlaylists()
+    if (status === 200 && Array.isArray(body)) {
+        playlists.value = body
+        playlistsLoaded = true
+    }
+    return playlists.value
+}
+
+// ---- BroadcastChannel (Pass 239: расширен дискриминатором type) ---------------------------
+// Синхронизация «Избранного» между вкладками/окнами/iframe одного origin. Раньше шло только
+// {songId, favorited}; Pass 239 добавляет {songId, playlistIds} для НЕ-избранных плейлистов
+// (и в будущем — {songId, subscribed} для подписок, когда появится UI-управление).
+// Один канал с дискриминатором — проще, чем 3 отдельных канала.
 const favoritesChannel =
-  typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('km-favorites') : null
+    typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('km-favorites') : null
 if (favoritesChannel) {
-  favoritesChannel.onmessage = (e) => {
-    const { songId, favorited } = e.data || {}
-    if (songId != null) setFavorited(songId, !!favorited)
-  }
+    favoritesChannel.onmessage = (e) => {
+        const { type, songId } = e.data || {}
+        if (songId == null) return
+        switch (type) {
+            case 'favorited':
+                setFavorited(songId, !!e.data.favorited)
+                break
+            case 'playlist':
+                setPlaylistIds(songId, e.data.playlistIds || [])
+                break
+            // 'subscription' будет обрабатываться в useSongSubscriptions.js (отдельный composable).
+        }
+    }
 }
 
 // То же, что setFavorited(), но дополнительно рассылает изменение в другие вкладки/iframe.
-// Вызывать из места, где толчок к изменению — реальное действие пользователя (клик по иконке),
-// а не применение уже пришедшего откуда-то состояния (load(), входящий broadcast) — иначе будет
-// эхо между контекстами (не бесконечный цикл, BroadcastChannel не шлёт себе, но лишний трафик).
+// Вызывать из места, где толчок к изменению — реальное действие пользователя (клик по иконке).
 function broadcastFavorited(id, val) {
-  setFavorited(id, val)
-  favoritesChannel?.postMessage({ songId: String(id), favorited: val })
+    setFavorited(id, val)
+    favoritesChannel?.postMessage({ type: 'favorited', songId: String(id), favorited: val })
+}
+function broadcastPlaylistIds(id, ids) {
+    setPlaylistIds(id, ids)
+    favoritesChannel?.postMessage({ type: 'playlist', songId: String(id), playlistIds: ids })
 }
 
-async function loadPlaylists(force = false) {
-  const { token } = useAuth()
-  if (!token.value) {
+// ---- Reset при logout ----------------------------------------------------------------------
+function reset() {
+    favoriteIds.clear()
+    favoritesLoaded = false
+    for (const key in membership) delete membership[key]
     playlists.value = []
-    return []
-  }
-  if (playlistsLoaded && !force) return playlists.value
-  const { status, body } = await fetchPlaylists()
-  if (status === 200 && Array.isArray(body)) {
-    playlists.value = body
-    playlistsLoaded = true
-  }
-  return playlists.value
+    playlistsLoaded = false
 }
 
 export function usePlaylistMembership() {
-  return {
-    membership,
-    playlists,
-    favStateFor,
-    plStateFor,
-    load,
-    loadPlaylists,
-    setFavorited,
-    broadcastFavorited,
-    setPlaylistIds,
-  }
+    return {
+        // Избранное (Pass 239)
+        favoriteIds,
+        loadFavoritesIds,
+        isFavorited,
+        // Плейлисты (НЕ-избранные)
+        membership,
+        playlists,
+        favStateFor,
+        plStateFor,
+        load,
+        loadPlaylists,
+        setFavorited,
+        broadcastFavorited,
+        setPlaylistIds,
+        broadcastPlaylistIds,
+        // Logout
+        reset,
+    }
 }

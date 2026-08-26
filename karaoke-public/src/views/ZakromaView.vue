@@ -300,7 +300,7 @@
                         }}</span>
                         <PremiumIcon
                           v-if="showCoin(sett)"
-                          :state="readiness.contentReadyFor(sett.id)"
+                          :state="sett.contentReady ? 'ready' : 'notready'"
                           :clickable="showCartIcon(sett)"
                           @subscribe="onSubscribeClick(sett, zak.author)"
                         />
@@ -312,8 +312,11 @@
                         <span class="km-player-icon">
                           <PlayerIcon
                             :song-id="sett.id"
-                            :watch-state="readiness.stateFor(sett.id)"
-                            :content-ready-state="readiness.contentReadyFor(sett.id)"
+                            :content-ready-state="sett.contentReady ? 'ready' : 'notready'"
+                            :in-air="sett.freelyAvailableNow"
+                            :flag-free="sett.alwaysFree"
+                            :premium="isPremium"
+                            :has-subscription="subscriptions.subscriptionIds.has(Number(sett.id))"
                           />
                         </span>
                       </td>
@@ -341,8 +344,11 @@
                     <CartIcon v-if="showCartIcon(sett)" :song-id="sett.id" />
                     <PlayerIcon
                       :song-id="sett.id"
-                      :watch-state="readiness.stateFor(sett.id)"
-                      :content-ready-state="readiness.contentReadyFor(sett.id)"
+                      :content-ready-state="sett.contentReady ? 'ready' : 'notready'"
+                      :in-air="sett.freelyAvailableNow"
+                      :flag-free="sett.alwaysFree"
+                      :premium="isPremium"
+                      :has-subscription="subscriptions.subscriptionIds.has(Number(sett.id))"
                     />
                     <FavoriteIcon :song-id="sett.id" />
                     <PlaylistIcon :song-id="sett.id" />
@@ -351,7 +357,7 @@
                     <span v-if="showDate(sett)" class="km-date-text">{{ dateLabel(sett) }}</span>
                     <PremiumIcon
                       v-if="showCoin(sett)"
-                      :state="readiness.contentReadyFor(sett.id)"
+                      :state="sett.contentReady ? 'ready' : 'notready'"
                       :clickable="showCartIcon(sett)"
                       @subscribe="onSubscribeClick(sett, zak.author)"
                     />
@@ -386,8 +392,8 @@ import AuthStatusWidget from '../components/AuthStatusWidget.vue'
 import AuthorTiles from '../components/AuthorTiles.vue'
 import { useDesign } from '../composables/useDesign'
 import { useEngagementTracking } from '../composables/useEngagementTracking'
-import { usePlayerReadiness } from '../composables/usePlayerReadiness'
 import { usePlaylistMembership } from '../composables/usePlaylistMembership'
+import { useSongSubscriptions } from '../composables/useSongSubscriptions'
 import { useCart } from '../composables/useCart'
 import { useAuth } from '../composables/useAuth'
 // useZakromaStreamProgress подключается в T014 (Phase 4) — полноценный UI прогрессометра.
@@ -431,8 +437,10 @@ export default {
     return {
       theme,
       setTheme,
-      readiness: usePlayerReadiness(),
+      // Pass 239 (specs/239-zakroma-author-songs-batch-render): readiness больше НЕ догружается
+      // per-row (это валило сайт на крупных авторах). PlayerIcon получает все данные через props.
       membership: usePlaylistMembership(),
+      subscriptions: useSongSubscriptions(),
       cart,
       user,
     }
@@ -537,21 +545,16 @@ export default {
   },
   watch: {
     // Готовность плеера подгружаем асинхронно, как только пришли данные закромов (и при их смене).
-    // БЕЗ `immediate: true`: на browser back из /song/{id} state.zakroma не
-    // меняется (dedup в loadZakromaStream → early return), и если бы
-    // watcher's `immediate: true` стрелял — readiness.load(populated_ids)
-    // сбросил бы states в 'loading' и загрузил API заново. Если API
-    // зависает, иконки остаются в 'loading' навсегда (только что
-    // наблюдали в проде: 181/246). Без `immediate: true` watch fires
-    // ТОЛЬКО на реальные изменения state.zakroma (setZakroma([]) →
-    // setZakroma([...])), readiness загружается ОДИН раз при первом
-    // клике, потом состояние preserved через navigation back.
+    // Pass 239: убраны readiness.load() и membership.load() (были источником зависания).
+    // PlayerIcon получает все данные через props из стрима; membership/избранное/подписки
+    // bulk-fetch'аются на уровне приложения (см. useAuthBootstrap в main.js).
     zakroma: {
       handler(list) {
         const ids = (list || []).flatMap((z) =>
           z.albums.flatMap((a) => a.albumSettings.map((s) => s.id)),
         )
-        this.readiness.load(ids)
+        // membership.load остался: для не-избранных плейлистов фронту нужна карта по песням.
+        // Один вызов с полным CSV (Pass 239: убран chunking).
         this.membership.load(ids)
       },
     },
@@ -563,7 +566,6 @@ export default {
         const ids = (list || []).flatMap((z) =>
           z.albums.flatMap((a) => a.albumSettings.map((s) => s.id)),
         )
-        this.readiness.load(ids)
         this.membership.load(ids)
       },
     },
@@ -624,10 +626,25 @@ export default {
       }
       return items
     },
+    // Pass 239 (specs/239-zakroma-author-songs-batch-render): readiness больше не догружается
+    // per-row. Иконка плеера (зелёный/золотой/серый) и вспомогательные computed'ы считаются
+    // чисто из флагов песни + модульных stores. Эквивалент readiness.stateFor(id) === 'active':
+    isSongActiveForUser(sett) {
+      return (
+        !!sett.contentReady &&
+        (sett.freelyAvailableNow ||
+          this.isPremium ||
+          (this.subscriptions && this.subscriptions.subscriptionIds.has(Number(sett.id))))
+      )
+    },
+    // Эквивалент readiness.contentReadyFor(id) === 'ready' — теперь это просто contentReady:
+    isSongContentReady(sett) {
+      return !!sett.contentReady
+    },
     // Монетка «премиум-контент» — только не-премиум посетителю и только для контента, недоступного
     // бесплатно прямо сейчас (specs/143-song-free-access-window: вне эфира ИЛИ окно истекло, и не
     // помечено «всегда бесплатно» неявно учтено внутри freelyAvailableNow). Золотая/серебряная — по
-    // contentReadyFor(). Не гейтится личной покупкой — коин это категория контента, не персональный
+    // isSongContentReady(). Не гейтится личной покупкой — коин это категория контента, не персональный
     // статус доступа (см. showCartIcon/showDate ниже, где покупка уже учитывается).
     showCoin(sett) {
       return !this.isPremium && !sett.freelyAvailableNow
@@ -637,16 +654,16 @@ export default {
     showCartIcon(sett) {
       return (
         sett.songSubscriptionAvailable &&
-        this.readiness.contentReadyFor(sett.id) === 'ready' &&
-        this.readiness.stateFor(sett.id) !== 'active'
+        this.isSongContentReady(sett) &&
+        !this.isSongActiveForUser(sett)
       )
     },
-    // Личная подписка на эту конкретную песню уже даёт доступ ('active' в readiness), но песня
+    // Личная подписка на эту конкретную песню уже даёт доступ (active в старом readiness), но песня
     // при этом не свободно доступна всем (иначе доступ дало бы окно/alwaysFree, не покупка) —
     // используется, чтобы скрыть текст "Будет в эфире с…"/"В эфире до…" для уже купленных песен
     // (FR-009 spec.md).
     isPurchased(sett) {
-      return !sett.freelyAvailableNow && this.readiness.stateFor(sett.id) === 'active'
+      return !sett.freelyAvailableNow && this.isSongActiveForUser(sett)
     },
     // Клик по золотой иконке плеера (PlayerIcon сам решает, когда её показывать) — открываем модалку
     // оформления подписки на конкретную песню.
@@ -654,15 +671,14 @@ export default {
       this.subscribingSongId = sett.id
       this.subscribingSongName = `${sett.songName} — ${author}`
     },
-    // После активации (в т.ч. бесплатной по акции) — закрыть модалку и перепроверить доступность,
-    // чтобы иконка сразу стала зелёной.
+    // После активации (в т.ч. бесплатной по акции) — закрыть модалку и перезагрузить
+    // подписки (Pass 239: иконка плеера использует subscriptionIds из useSongSubscriptions).
     onSongSubscriptionActivated() {
       const boughtId = this.subscribingSongId
       this.subscribingSongId = null
-      const ids = (this.zakroma || []).flatMap((z) =>
-        z.albums.flatMap((a) => a.albumSettings.map((s) => s.id)),
-      )
-      this.readiness.load(ids)
+      // Подписка появилась — refresh singleton'а избранного/подписок (без полного readiness.load,
+      // т.к. readiness больше не используется per-row, см. Pass 239).
+      if (this.subscriptions) this.subscriptions.loadOnce(true)
       // Купили напрямую песню, которая уже лежала в корзине — убираем её оттуда, чтобы не предлагать
       // оплатить то, что уже куплено.
       if (boughtId && this.cart.isInCart(boughtId)) this.cart.toggle(boughtId)

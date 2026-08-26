@@ -1,10 +1,18 @@
 <template>
-  <span v-if="state === 'loading'" class="fav-spinner" title="Загрузка…" />
+  <!-- Pass 239 (specs/239-zakroma-author-songs-batch-render):
+       - Аноним (нет токена) → "гостевая" серая звезда с tooltip + редирект на /login.
+       - Залогин, но membership ещё не загружен → НЕ спиннер, а нейтральная "off" (Clarification Q3:
+         "off" фиксируется до logout/login/reload, без retry). Это устраняет 2500 вечных спиннеров.
+       - Optimistic update: при клике ДО запроса состояние меняется мгновенно, откат при ошибке. -->
+  <span v-if="isGuest" class="fav-icon fav-guest" title="Войдите, чтобы добавить в избранное">
+    <SvgIcon name="favorite" :active="false" :size="18" />
+  </span>
   <a
     v-else
     href="#"
     class="fav-icon"
     :class="{ 'fav-on': state === 'on', 'has-label': label }"
+    :aria-label="state === 'on' ? 'Убрать из избранного' : 'В избранное'"
     :title="state === 'on' ? 'Убрать из избранного' : 'В избранное'"
     @click.prevent="onClick"
   >
@@ -26,6 +34,11 @@ import { toggleFavorite } from '../services/playlistApi'
  * Компонент «Favorite Icon».
  *
  * @see AGENTS.md
+ *
+ * Pass 239 (specs/239-zakroma-author-songs-batch-render): иконка избранного в страницах списка песен
+ * больше НЕ показывает спиннер «Загрузка…». Состояние читается из module-level singleton
+ * (`usePlaylistMembership.favoriteIds`), который bulk-fetch'ится при логине одним запросом.
+ * Аноним → гостевая иконка с редиректом на /login (Clarification Q2, 2026-08-25).
  */
 
 export default {
@@ -44,6 +57,7 @@ export default {
     const busy = ref(false)
 
     const state = computed(() => favStateFor(props.songId))
+    const isGuest = computed(() => !token.value)
 
     async function onClick() {
       // Аноним — предлагаем войти (после входа вернём на текущую страницу).
@@ -53,24 +67,46 @@ export default {
       }
       if (busy.value) return
       busy.value = true
+
+      // Pass 239: optimistic update — ДО сетевого запроса обновляем локальный store,
+      // откатываем при ошибке или при limitReached=true.
+      const prev = state.value
+      const next = prev === 'on' ? 'off' : 'on'
+      broadcastFavorited(props.songId, next === 'on')
+
       try {
         const { status, body } = await toggleFavorite(props.songId)
         if (status === 200 && body) {
           if (body.limitReached) {
+            // Откатываем optimistic update, открываем premium-модалку.
+            broadcastFavorited(props.songId, prev === 'on')
             openLimit({ limit: body.limit, benefits: body.benefits })
-          } else {
-            broadcastFavorited(props.songId, !!body.favorited)
           }
+          // Иначе: optimistic уже верный, broadcast'ать ещё раз НЕ нужно (иначе эхо между вкладками).
+        } else {
+          // Не 200, откат.
+          broadcastFavorited(props.songId, prev === 'on')
         }
+      } catch (e) {
+        broadcastFavorited(props.songId, prev === 'on')
       } finally {
         busy.value = false
       }
     }
 
-    return { state, onClick }
+    return { state, isGuest, onClick }
   },
 }
 </script>
+
+<style scoped>
+/* Pass 239: "гостевая" иконка избранного для анонима — серая, не кликабельна напрямую
+   (но клик по label родителя/контейнера тоже может вести на /login). */
+.fav-guest {
+  cursor: default;
+  opacity: 0.5;
+}
+</style>
 
 <style scoped>
 .fav-icon {

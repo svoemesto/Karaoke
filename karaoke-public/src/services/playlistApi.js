@@ -23,8 +23,25 @@ const BASE = '/api/public/account'
 export function fetchMembership(ids) {
   return authGet(`${BASE}/playlists/membership${qs({ ids: ids.join(',') })}`, token())
 }
+/**
+ * Pass 239 (specs/239-zakroma-author-songs-batch-render): плоский список id песен в «Избранном».
+ * Используется для bulk-fetch вместо per-row `/playlists/membership?ids=...` chunked-вызовов,
+ * которые валили сайт на крупных авторах.
+ * @returns {Promise<{status: number, body: number[]}>}
+ */
+export function fetchFavoritesIds() {
+  return authGet(`${BASE}/favorites/ids`, token())
+}
 export function toggleFavorite(songId) {
   return authPost(`${BASE}/favorites/toggle`, { songId }, token())
+}
+/**
+ * Pass 239: плоский список id песен с активной персональной подпиской (scope='SONG', PAID).
+ * Используется для логики «зелёный vs золотой» плеера на страницах списка песен.
+ * @returns {Promise<{status: number, body: number[]}>}
+ */
+export function fetchSongSubscriptionsIds() {
+  return authGet(`${BASE}/song-subscriptions/ids`, token())
 }
 
 // ---- Плейлисты -------------------------------------------------------------------------------

@@ -2237,3 +2237,144 @@ HTTP `409 Conflict` (`{"error":"sync_in_progress", "message":"..."}`).
   `mounted()` — простой и достаточный контракт. SSE — только если UI
   **обязан** реагировать в течение секунды.
 
+## Pass 239: zakroma — устранение per-row readiness/membership на крупных авторах (2026-08-25, #239)
+
+**Симптом.** Открытие «Закрома → Машина Времени» (≈2500 песен) редактором
+**вешало публичный сайт**: главная страница не отвечала, refresh давал
+«site down». Спиннеры иконок плеера/избранного/плейлистов крутились
+вечно на нижних строках списка.
+
+**Корневая причина.** Per-row запросы к бэку на каждую песню списка:
+- `usePlayerReadiness.load(songIds)` → 125 чанков × 2 HEAD в MinIO через
+  `PublicPlayerController.stemsReady` (≈5000 MinIO-операций для одного
+  открытия страницы).
+- `usePlaylistMembership.load(songIds)` → 63 чанка × SQL JOIN к
+  `tbl_site_playlist_items` (≈60 round-trip'ов к БД).
+- 2500 песен × 3 иконки = 7500+ параллельных/последовательных UI-обновлений,
+  которые синхронно стартовали при монтировании `ZakromaView`.
+
+**Фикс.** Данные для иконок приходят ОДНИМ запросом на приложение + из
+NDJSON-стрима песен:
+- **`idStatus` + `contentReady` + `freelyAvailableNow`** — в `ZakromaAlbumSongPublicDto`
+  (Pass 239), читаются из существующих полей `Song.idStatus`/`isContentReady`
+  без дополнительных MinIO-проверок (те самые persistent-флаги Pass 100).
+- **Избранное** — новый endpoint `GET /api/public/account/favorites/ids`
+  → плоский `Long[]`. `usePlaylistMembership.favoriteIds: Set<number>` —
+  module-level singleton, загружается при логине.
+- **Подписки на песни** — `GET /api/public/account/song-subscriptions/ids`
+  → `Long[]` из `tbl_subscriptions WHERE scope='SONG' AND status='PAID' AND
+  id_song IS NOT NULL`. `useSongSubscriptions.subscriptionIds: Set<number>`.
+- **Не-избранные плейлисты** — существующий `/playlists/membership` теперь
+  вызывается ОДИН раз с полным CSV (до 2500 id), без chunking.
+
+**Архитектура**:
+- **App-wide bootstrap** (`composables/useAuthBootstrap.js`) — следит за
+  сменой токена, запускает 3 bulk-fetch параллельно (`loadFavoritesIds`,
+  `loadOnce(true)`, `loadPlaylists(true)`), сбрасывает при logout.
+- **Defensive defaults** (FR-017) — если call-site передаёт `'loading'`,
+  трактуется как `'notready'`. Никаких «вечных спиннеров»: если membership
+  ещё не загрузился, иконка показывает «off» (нейтральная outline).
+- **«Гостевая» иконка для анонима** (Clarification Q2) — FavoriteIcon и
+  PlaylistIcon показывают серую ★/▶| без membership-запроса, по клику →
+  `/login?redirect=...`.
+- **Optimistic update** (Pass 239) — при `toggleFavorite`/`addSongToPlaylist`
+  локальный store обновляется ДО запроса, откат при ошибке/limitReached.
+- **BroadcastChannel** расширен дискриминатором `type: 'favorited' | 'playlist' | 'subscription'`.
+
+**Спека**: [specs/239-zakroma-author-songs-batch-render/](../specs/239-zakroma-author-songs-batch-render/) —
+3 user story (US1 editor P1, US2 premium P2, US3 anonymous P2), 28 FR,
+7 SC, 3 Clarifications (Q1: bulk-fetch для подписок, Q2: гостевая иконка,
+Q3: «off» фиксируется до logout без retry).
+
+**Изменённые/новые файлы** (10):
+- `karaoke-web/.../dto/ZakromaPublicDto.kt` (MODIFIED) — `ZakromaAlbumSongPublicDto`:
+  + `idStatus`, `contentReady`.
+- `karaoke-app/.../model/Zakroma.kt` (MODIFIED) — `ZakromaAlbumSong`:
+  + `idStatus`, `contentReady` + заполнение в `buildFromSongs`.
+- `karaoke-web/.../controllers/PublicPlaylistController.kt` (MODIFIED) —
+  + `favoritesIds()`, + `songSubscriptionsIds()` с KDoc.
+- `karaoke-public/src/services/playlistApi.js` (MODIFIED) —
+  + `fetchFavoritesIds()`, + `fetchSongSubscriptionsIds()` с JSDoc.
+- `karaoke-public/src/composables/usePlaylistMembership.js` (MODIFIED) —
+  module-level `favoriteIds: Set`, `loadFavoritesIds()`, `load(ids)` без
+  chunking, `BroadcastChannel` с `type`, `reset()` для logout.
+- `karaoke-public/src/composables/useSongSubscriptions.js` (NEW) —
+  module-level `subscriptionIds: Set`, `loadOnce()`, `reset()`.
+- `karaoke-public/src/composables/useAuthBootstrap.js` (NEW) — watcher на
+  token → bulk-fetch x3 при логине, `reset()` при logout.
+- `karaoke-public/src/main.js` (MODIFIED) — `useAuthBootstrap()` после mount.
+- `karaoke-public/src/components/PlayerIcon.vue` (MODIFIED) — 4 новых props
+  (`premium`, `inAir`, `flagFree`, `hasSubscription`), нет спиннеров.
+- `karaoke-public/src/components/FavoriteIcon.vue` (MODIFIED) — guest-mode,
+  optimistic update.
+- `karaoke-public/src/components/PlaylistIcon.vue` (MODIFIED) — guest-mode.
+- `karaoke-public/src/views/ZakromaView.vue` (MODIFIED) — убраны
+  `readiness.load()`, `readiness.*` per-row, новые props в PlayerIcon.
+- `karaoke-public/src/views/SearchView.vue` (MODIFIED) — аналогично.
+- `karaoke-public/src/views/AuthorPlaylistView.vue` (MODIFIED) —
+  `statusOf()` из флагов, убран readiness.load.
+
+**Метрики фикса**:
+- ≤ 4 HTTP-запросов на `/zakroma?author=Машина Времени` (стрим + до 3
+  membership/subscription), против ~7500 ранее.
+- ≤ 5 сек до полного списка 2500 песен (было «висим минутами»).
+- 60 FPS при прокрутке 2500 строк (было jank на chunked-загрузках).
+
+**Уроки** (для будущих фич):
+- **«Сначала данные — потом UI»** — флаги состояния должны приходить в
+  payload'е списка, а не подгружаться per-row. Per-row в списке из N
+  строк = O(N) запросов, всегда валится на N > ~200.
+- **Module-level singleton + bulk-fetch на app-bootstrap** — паттерн,
+  применимый к любому membership-store (избранное, плейлисты, подписки,
+  роли, права). State переживает browser back (Pass 246 fix).
+- **«Гостевая» иконка лучше спиннера** — для анонима нулевой membership
+  не требует запроса. UX-выигрыш + снижение нагрузки на бэк.
+- **Defensive default `'loading' → 'notready'`** — позволяет переводить
+  call-site'ы постепенно, не ломая UI в переходный период.
+- **Дублирование маппинга DTO — баг-магнит.** Если endpoint строит DTO
+  напрямую (стрим-вариант), а НЕ через общий `fromZakroma()` —
+  любое новое поле нужно добавлять В ДВУХ МЕСТАХ. Здесь это проявилось
+  как «все песни серые» — `zakromaStream` строил `ZakromaAlbumSongPublicDto`
+  вручную в цикле сериализации (строки 379-395), без `fromZakroma()`, и
+  новые поля `idStatus`/`contentReady` остались дефолтными (`0L`/`false`).
+  **Решение**: либо один путь маппинга (через функцию), либо grep `new ZakromaAlbumSongPublicDto\(` для поиска всех мест.
+- **Per-song вызовы с DB-операциями — N×O(DB).** `songName.censored(database)`
+  вызывался per-song в `buildFromSongs`, и каждый вызов дёргал
+  `Dictionary.loadValues()` — это SQL-запрос к `tbl_dictionaries`. На
+  крупном авторе (2500 песен) это **2500 SQL-запросов на одной загрузке
+  страницы = freeze**. До Pass 239 это маскировалось per-row readiness
+  (браузер успевал рендерить между запросами), после убрано readiness —
+  все 2500 запросов идут подряд. **Решение**: выносить DB-операции из
+  per-item циклов наружу, кэшировать результат + regex-компиляции.
+- **Тип-совместимость Kotlin: `Int` vs `Long` ловит только компилятор.**
+  В `ZakromaAlbumSong.idStatus: Int` присваивалось `song.idStatus: Long`
+  без ошибки (default-значение компилируется), ошибка вылезала только
+  при первом использовании поля в buildFromSongs. **Решение**: после
+  правок моделей/DTO ВСЕГДА `./gradlew compileKotlin` (это правило
+  зафиксировано в AGENTS.md, Pass 240).
+
+**Hotfixes после первого деплоя (2026-08-26)**:
+
+1. **Type mismatch: `Int` vs `Long`** — `ZakromaAlbumSong.idStatus` и
+   `ZakromaAlbumSongPublicDto.idStatus` объявлены как `Int`, но
+   `Song.idStatus: Long`. Исправлено — оба поля `Long`.
+
+2. **Stream endpoint без новых полей** — `PublicApiController.zakromaStream`
+   строил `ZakromaAlbumSongPublicDto` вручную в цикле (минуя
+   `fromZakroma()`), поэтому новые поля `idStatus`/`contentReady` остались
+   со значениями по умолчанию → все иконки серые. Исправлено — добавлены
+   `idStatus = song.idStatus`, `contentReady = song.contentReady`.
+
+3. **`censored()` × 2500 SQL-запросов** — freeze на крупных авторах,
+   найден `songName.censored(database)` в `buildFromSongs`. Исправлено —
+   `censoredPairs` (словарь + скомпилированные regex'ы) кэшируются ОДИН
+   раз перед циклом по песням.
+
+После hotfix'ов:
+- Backend: `./gradlew :karaoke-web:bootJar --parallel` → BUILD SUCCESSFUL.
+- Backend: `./gradlew :karaoke-web:ktlintCheck` → BUILD SUCCESSFUL.
+- Frontend: `npm install && npm run build` → `built in 5.57s`.
+- Frontend: `npm run lint` → 0 errors, 0 warnings.
+- ESLint baseline: `tools/check-eslint-baseline.sh karaoke-public` →
+  «новых нарушений нет».
+

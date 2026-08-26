@@ -144,7 +144,7 @@ import { useRoute } from 'vue-router'
 import { apiGet } from '../services/api'
 import LoginRequired from '../components/LoginRequired.vue'
 import { useAuth } from '../composables/useAuth'
-import { usePlayerReadiness } from '../composables/usePlayerReadiness'
+import { useSongSubscriptions } from '../composables/useSongSubscriptions'
 import { usePlaylistPlayer } from '../composables/usePlaylistPlayer'
 import { usePremiumModal } from '../composables/usePremiumModal'
 
@@ -166,8 +166,8 @@ export default {
   components: { LoginRequired },
   setup() {
     const route = useRoute()
-    const { isLoggedIn } = useAuth()
-    const readiness = usePlayerReadiness()
+    const { isLoggedIn, user } = useAuth()
+    const subscriptions = useSongSubscriptions()
     const { openPremiumRequired } = usePremiumModal()
 
     const playerIframe = ref(null)
@@ -194,12 +194,22 @@ export default {
           : 'Повтор выключен',
     )
 
-    // available | premium (готова, но нужен премиум) | notready (ещё не готова) | loading
+    const isPremium = computed(() => !!(user.value && user.value.effectivePremium))
+
+    // Pass 239 (specs/239-zakroma-author-songs-batch-render): статус песни из флагов, не per-row readiness.
+    // available | premium (готова, но нужен премиум) | notready (ещё не готова)
     function statusOf(songId) {
-      const st = readiness.stateFor(songId)
-      if (st === 'loading') return 'loading'
-      if (st === 'active') return 'available'
-      return readiness.contentReadyFor(songId) === 'ready' ? 'premium' : 'notready'
+      const s = songs.value.find((x) => x.songId === songId)
+      if (!s) return 'loading'
+      if (!s.contentReady) return 'notready'
+      // contentReady=true AND (freelyAvailableNow OR premium OR hasSubscription) → available
+      if (
+        s.freelyAvailableNow ||
+        isPremium.value ||
+        (subscriptions && subscriptions.subscriptionIds.has(Number(songId)))
+      )
+        return 'available'
+      return 'premium'
     }
     function lockIcon(songId) {
       const s = statusOf(songId)
@@ -276,12 +286,17 @@ export default {
               album: alb.albumName,
               year: alb.year,
               track: s.track,
+              // Pass 239: статусные флаги из zakroma DTO для иконки/плеера без per-row readiness.
+              contentReady: !!s.contentReady,
+              freelyAvailableNow: !!s.freelyAvailableNow,
+              alwaysFree: !!s.alwaysFree,
             })
         }
       }
       songs.value = flat
       loading.value = false
-      readiness.load(flat.map((s) => s.songId))
+      // Pass 239: readiness.load убран (per-row readiness валил сайт на крупных авторах).
+      // Статус песни вычисляется из флагов в statusOf() выше.
     }
 
     function onStart() {

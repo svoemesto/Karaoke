@@ -2,8 +2,10 @@ package com.svoemesto.karaokeapp.model
 
 import com.svoemesto.karaokeapp.KaraokeConnection
 import com.svoemesto.karaokeapp.censored
+import com.svoemesto.karaokeapp.getCensoredPair
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.StorageApiClient
+import com.svoemesto.karaokeapp.uppercaseFirstLetter
 import java.io.Serializable
 
 /**
@@ -178,6 +180,25 @@ class Zakroma(
                     )
                 }
 
+            // Batch 6 (Pass 239 hotfix 2026-08-26): словарь цензурирования загружается ОДИН раз
+            // для всех 2500 песен. До этого fix'а `songName.censored(database)` вызывался
+            // per-song, и каждый вызов дёргал `Dictionary.loadValues()` — это SQL-запрос к
+            // tbl_dictionaries. На крупных авторах (~2500 песен) это давало 2500 SQL-запросов
+            // на одной загрузке страницы = freeze сайта. До Pass 239 это маскировалось per-row
+            // readiness-эндпоинтом (между запросами браузер успевал рендерить), после фикса
+            // readiness убран — все 2500 цензурирований шли подряд и блокировали бэкенд.
+            // Кэшируем оба regex'а (lowercase + capitalized) и оба replacement'а.
+            val censoredPairs: List<Triple<Regex, Regex, Pair<String, String>>> =
+                com.svoemesto.karaokeapp.textfiledictionary.CensoredWordsDictionary(database = database)
+                    .dict
+                    .map { raw ->
+                        val (uncensored, censored) = getCensoredPair(raw)
+                        // Pass 239 hotfix: компилируем regex'ы ОДИН раз (не на каждую песню).
+                        val patt1 = Regex("(?<![\\p{L}\\p{N}_])$uncensored(?![\\p{L}\\p{N}_])")
+                        val patt2 = Regex("(?<![\\p{L}\\p{N}_])${uncensored.uppercaseFirstLetter()}(?![\\p{L}\\p{N}_])")
+                        Triple(patt1, patt2, Pair(censored, censored.uppercaseFirstLetter()))
+                    }
+
             return songsByAuthor.map { (authorName, songsByAuthor) ->
                 val zakroma = Zakroma(database)
                 zakroma.author = authorName
@@ -251,8 +272,25 @@ class Zakroma(
                                         zakromaAlbumSong.alwaysFree = song.free
                                         zakromaAlbumSong.freelyAvailableNow = song.isFreelyAvailableNow
                                         zakromaAlbumSong.freeAccessWindowEndText = song.freeAccessWindowEndText
+                                        // Pass 239: иконка плеера без per-row readiness — используем
+                                        // строгую проверку через persistent-флаги Pass 100
+                                        // (см. Song.isContentReady). На проде все песни имеют
+                                        // проставленные флаги (idStatus>=6 И стемы И картинки И
+                                        // маркеры), бэкенд backfill'ит их автоматически при заливке
+                                        // файла и через HealthReport.recalculatePlayerReadiness.
+                                        zakromaAlbumSong.idStatus = song.idStatus
+                                        zakromaAlbumSong.contentReady = song.isContentReady
                                         zakromaAlbumSong.track = song.track
-                                        zakromaAlbumSong.songName = song.songName.censored(database)
+                                        // Pass 239 hotfix 2026-08-26: используем кэшированный
+                                        // censoredPairs вместо song.songName.censored(database) —
+                                        // последний вызывал Dictionary.loadValues() per-song,
+                                        // что для 2500 песен давало 2500 SQL-запросов.
+                                        var censoredName = song.songName
+                                        censoredPairs.forEach { (patt1, patt2, repl) ->
+                                            censoredName = patt1.replace(censoredName, repl.first)
+                                            censoredName = patt2.replace(censoredName, repl.second)
+                                        }
+                                        zakromaAlbumSong.songName = censoredName
                                         zakromaAlbumSong
                                     }.sorted()
                                     .toMutableList()
@@ -308,6 +346,11 @@ class ZakromaAlbumSong :
     var alwaysFree: Boolean = false
     var freelyAvailableNow: Boolean = false
     var freeAccessWindowEndText: String? = null
+
+    // Pass 239 (specs/239-zakroma-author-songs-batch-render): проброс статуса и готовности контента
+    // в NDJSON/DTO — фронт иконку плеера рисует без per-row readiness-запроса.
+    var idStatus: Long = 0L
+    var contentReady: Boolean = false
 
     override fun compareTo(other: ZakromaAlbumSong): Int {
         val compTrack = track.compareTo(other.track)

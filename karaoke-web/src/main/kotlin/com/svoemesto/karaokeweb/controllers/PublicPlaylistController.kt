@@ -423,6 +423,88 @@ class PublicPlaylistController(
         return ResponseEntity.ok(mapOf("items" to items))
     }
 
+    // ---- Pass 239 (specs/239-zakroma-author-songs-batch-render) -------------------------------
+    // Плоские bulk-эндпоинты для иконок в страницах списка песен. Заменяют per-row readiness/membership
+    // вызовы, которые валили сайт на крупных авторах (~2500 песен).
+    // Аноним (без токена) → пустой массив (фронт показывает «гостевые» иконки).
+
+    /**
+     * GET /api/public/account/favorites/ids
+     *
+     * Возвращает плоский список id песен в «Избранном» у текущего пользователя.
+     * Используется фронтом для bulk-fetch membership на страницах списка песен
+     * (Закрома/Поиск/Плейлист автора) — без per-row запросов.
+     *
+     * Endpoint приватный (требует токен), но для анонима возвращает [] —
+     * иконки на фронте показывают «гостевой» вид с редиректом на /login.
+     *
+     * @see specs/239-zakroma-author-songs-batch-render/contracts/api-public-account-favorites-ids.md
+     */
+    @GetMapping("/favorites/ids")
+    fun favoritesIds(request: HttpServletRequest): ResponseEntity<List<Long>> {
+        val user =
+            request.getAttribute(SiteAuthInterceptor.SITE_USER_ATTR) as? SiteUser
+                ?: return ResponseEntity.ok(emptyList())
+        val connection = db.getConnection() ?: return ResponseEntity.ok(emptyList())
+        val ids = mutableListOf<Long>()
+        val sql =
+            """
+            SELECT i.song_id AS song_id
+            FROM tbl_site_playlist_items i
+            JOIN tbl_site_playlists p ON p.id = i.playlist_id
+            WHERE p.owner_id = ? AND p.is_favorites = true
+            ORDER BY i.song_id
+            """.trimIndent()
+        connection.prepareStatement(sql).use { ps ->
+            ps.setLong(1, user.id)
+            ps.executeQuery().use { rs ->
+                while (rs.next()) {
+                    rs.getLong("song_id").takeIf { it > 0 }?.let { ids.add(it) }
+                }
+            }
+        }
+        return ResponseEntity.ok(ids)
+    }
+
+    /**
+     * GET /api/public/account/song-subscriptions/ids
+     *
+     * Возвращает плоский список id песен, на которые у текущего пользователя
+     * активная персональная подписка (scope='SONG', status='PAID'). Используется
+     * фронтом для логики «зелёный vs золотой» плеера в страницах списка песен —
+     * без per-row запросов (см. PublicPlayerController.stemsReady для серверной
+     * проверки на странице одиночной песни).
+     *
+     * Endpoint приватный (требует токен), но для анонима возвращает [] — иконки
+     * плеера показывают золотую (демо) по умолчанию.
+     *
+     * @see specs/239-zakroma-author-songs-batch-render/contracts/api-public-account-song-subscriptions-ids.md
+     */
+    @GetMapping("/song-subscriptions/ids")
+    fun songSubscriptionsIds(request: HttpServletRequest): ResponseEntity<List<Long>> {
+        val user =
+            request.getAttribute(SiteAuthInterceptor.SITE_USER_ATTR) as? SiteUser
+                ?: return ResponseEntity.ok(emptyList())
+        val connection = db.getConnection() ?: return ResponseEntity.ok(emptyList())
+        val ids = mutableListOf<Long>()
+        val sql =
+            """
+            SELECT id_song AS id_song
+            FROM tbl_subscriptions
+            WHERE site_user_id = ? AND status = 'PAID' AND id_song IS NOT NULL
+            ORDER BY id_song
+            """.trimIndent()
+        connection.prepareStatement(sql).use { ps ->
+            ps.setLong(1, user.id)
+            ps.executeQuery().use { rs ->
+                while (rs.next()) {
+                    rs.getLong("id_song").takeIf { it > 0 }?.let { ids.add(it) }
+                }
+            }
+        }
+        return ResponseEntity.ok(ids)
+    }
+
     companion object {
         const val FREE_FAVORITES_LIMIT = 100
         const val PREMIUM_PLAYLIST_LIMIT = 50

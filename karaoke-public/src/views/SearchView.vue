@@ -121,7 +121,7 @@
                 <span v-if="showDate(sett)" class="km-date-text">{{ dateLabel(sett) }}</span>
                 <PremiumIcon
                   v-if="showCoin(sett)"
-                  :state="readiness.contentReadyFor(sett.id)"
+                  :state="sett.contentReady ? 'ready' : 'notready'"
                   :clickable="showCartIcon(sett)"
                   @subscribe="onSubscribeClick(sett)"
                 />
@@ -133,8 +133,11 @@
                 <span class="km-player-icon">
                   <PlayerIcon
                     :song-id="sett.id"
-                    :watch-state="readiness.stateFor(sett.id)"
-                    :content-ready-state="readiness.contentReadyFor(sett.id)"
+                    :content-ready-state="sett.contentReady ? 'ready' : 'notready'"
+                    :in-air="sett.freelyAvailableNow"
+                    :flag-free="sett.alwaysFree"
+                    :premium="isPremium"
+                    :has-subscription="subscriptions.subscriptionIds.has(Number(sett.id))"
                   />
                 </span>
               </td>
@@ -170,8 +173,11 @@
             <CartIcon v-if="showCartIcon(sett)" :song-id="sett.id" />
             <PlayerIcon
               :song-id="sett.id"
-              :watch-state="readiness.stateFor(sett.id)"
-              :content-ready-state="readiness.contentReadyFor(sett.id)"
+              :content-ready-state="sett.contentReady ? 'ready' : 'notready'"
+              :in-air="sett.freelyAvailableNow"
+              :flag-free="sett.alwaysFree"
+              :premium="isPremium"
+              :has-subscription="subscriptions.subscriptionIds.has(Number(sett.id))"
             />
             <FavoriteIcon :song-id="sett.id" />
             <PlaylistIcon :song-id="sett.id" />
@@ -180,7 +186,7 @@
             <span v-if="showDate(sett)" class="km-date-text">{{ dateLabel(sett) }}</span>
             <PremiumIcon
               v-if="showCoin(sett)"
-              :state="readiness.contentReadyFor(sett.id)"
+              :state="sett.contentReady ? 'ready' : 'notready'"
               :clickable="showCartIcon(sett)"
               @subscribe="onSubscribeClick(sett)"
             />
@@ -212,8 +218,8 @@ import CartIcon from '../components/CartIcon.vue'
 import AuthStatusWidget from '../components/AuthStatusWidget.vue'
 import { useDesign } from '../composables/useDesign'
 import { useEngagementTracking } from '../composables/useEngagementTracking'
-import { usePlayerReadiness } from '../composables/usePlayerReadiness'
 import { usePlaylistMembership } from '../composables/usePlaylistMembership'
+import { useSongSubscriptions } from '../composables/useSongSubscriptions'
 import { useCart } from '../composables/useCart'
 import { useAuth } from '../composables/useAuth'
 
@@ -247,8 +253,10 @@ export default {
     return {
       theme,
       setTheme,
-      readiness: usePlayerReadiness(),
+      // Pass 239 (specs/239-zakroma-author-songs-batch-render): readiness больше НЕ догружается
+      // per-row (это валило сайт на крупных авторах). PlayerIcon получает все данные через props.
       membership: usePlaylistMembership(),
+      subscriptions: useSongSubscriptions(),
       cart,
       user,
     }
@@ -269,12 +277,13 @@ export default {
     },
   },
   watch: {
-    // Готовность плеера подгружаем асинхронно, как только пришли результаты поиска (и при их смене).
+    // Pass 239 (specs/239-zakroma-author-songs-batch-render): readiness.load() убран (источник
+    // зависания). membership.load() оставлен — для не-избранных плейлистов (bulk-fetch одним
+    // запросом, см. usePlaylistMembership.load() — убран chunking).
     searchResults: {
       immediate: true,
       handler(list) {
         const ids = (list || []).map((s) => s.id)
-        this.readiness.load(ids)
         this.membership.load(ids)
       },
     },
@@ -298,18 +307,31 @@ export default {
     showCoin(sett) {
       return !this.isPremium && !sett.freelyAvailableNow
     },
+    // Pass 239: isSongActiveForUser/isSongContentReady — эквиваленты readiness.stateFor/contentReadyFor
+    // из флагов песни + singleton'ов (без per-row readiness).
+    isSongActiveForUser(sett) {
+      return (
+        !!sett.contentReady &&
+        (sett.freelyAvailableNow ||
+          this.isPremium ||
+          (this.subscriptions && this.subscriptions.subscriptionIds.has(Number(sett.id))))
+      )
+    },
+    isSongContentReady(sett) {
+      return !!sett.contentReady
+    },
     // Иконка «в корзину» — в тех же условиях, что и золотая иконка плеера.
     showCartIcon(sett) {
       return (
         sett.songSubscriptionAvailable &&
-        this.readiness.contentReadyFor(sett.id) === 'ready' &&
-        this.readiness.stateFor(sett.id) !== 'active'
+        this.isSongContentReady(sett) &&
+        !this.isSongActiveForUser(sett)
       )
     },
     // Личная подписка на эту песню уже даёт доступ ('active'), но песня не свободно доступна всем —
     // используется, чтобы скрыть текст "Будет в эфире с…"/"В эфире до…" для уже купленных (FR-009).
     isPurchased(sett) {
-      return !sett.freelyAvailableNow && this.readiness.stateFor(sett.id) === 'active'
+      return !sett.freelyAvailableNow && this.isSongActiveForUser(sett)
     },
     // Клик по золотой иконке плеера (PlayerIcon сам решает, когда её показывать) — открываем модалку
     // оформления подписки на конкретную песню.
@@ -317,13 +339,12 @@ export default {
       this.subscribingSongId = sett.id
       this.subscribingSongName = `${sett.songName} — ${sett.author}`
     },
-    // После активации (в т.ч. бесплатной по акции) — закрыть модалку и перепроверить доступность,
-    // чтобы иконка сразу стала зелёной.
+    // После активации (в т.ч. бесплатной по акции) — закрыть модалку и перезагрузить
+    // подписки (Pass 239: иконка плеера использует subscriptionIds из useSongSubscriptions).
     onSongSubscriptionActivated() {
       const boughtId = this.subscribingSongId
       this.subscribingSongId = null
-      const ids = (this.searchResults || []).map((s) => s.id)
-      this.readiness.load(ids)
+      if (this.subscriptions) this.subscriptions.loadOnce(true)
       if (boughtId && this.cart.isInCart(boughtId)) this.cart.toggle(boughtId)
     },
     // FR-009/FR-010 spec.md (specs/143-song-free-access-window): текст о сроках эфира — только

@@ -387,6 +387,15 @@ class PublicApiController(
                                                 alwaysFree = song.alwaysFree,
                                                 freelyAvailableNow = song.freelyAvailableNow,
                                                 freeAccessWindowEndText = song.freeAccessWindowEndText,
+                                                // Pass 239: иконка плеера без per-row readiness —
+                                                // persistent-флаги Pass 100 (см. Song.isContentReady).
+                                                // Стрим строит DTO напрямую, минуя fromZakroma(),
+                                                // поэтому пробрасываем явно (без этого иконки
+                                                // были серые). `song` здесь — ZakromaAlbumSong,
+                                                // у которого `contentReady` уже заполнен в
+                                                // buildFromSongs из song.isContentReady.
+                                                idStatus = song.idStatus,
+                                                contentReady = song.contentReady,
                                             ),
                                         ),
                                     ),

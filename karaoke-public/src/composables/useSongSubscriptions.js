@@ -20,34 +20,34 @@ let loaded = false
 let latest = 0
 
 async function loadOnce(force = false) {
-    const { token } = useAuth()
-    const requestId = ++latest
-    if (!token.value) {
-        subscriptionIds.clear()
-        loaded = false
-        return
+  const { token } = useAuth()
+  const requestId = ++latest
+  if (!token.value) {
+    subscriptionIds.clear()
+    loaded = false
+    return
+  }
+  if (loaded && !force) return
+  try {
+    const { status, body } = await fetchSongSubscriptionsIds()
+    if (requestId !== latest) return // устаревший запрос
+    if (status === 200 && Array.isArray(body)) {
+      subscriptionIds.clear()
+      body.forEach((id) => subscriptionIds.add(Number(id)))
+      loaded = true
     }
-    if (loaded && !force) return
-    try {
-        const { status, body } = await fetchSongSubscriptionsIds()
-        if (requestId !== latest) return // устаревший запрос
-        if (status === 200 && Array.isArray(body)) {
-            subscriptionIds.clear()
-            body.forEach((id) => subscriptionIds.add(Number(id)))
-            loaded = true
-        }
-    } catch (e) {
-        if (requestId !== latest) return
-        // Падение fetch — оставляем текущий Set как есть (Clarification Q3 2026-08-25:
-        // «off» фиксируется до logout/login/reload, без retry/таймеров).
-    }
+  } catch (e) {
+    if (requestId !== latest) return
+    // Падение fetch — оставляем текущий Set как есть (Clarification Q3 2026-08-25:
+    // «off» фиксируется до logout/login/reload, без retry/таймеров).
+  }
 }
 
 function reset() {
-    subscriptionIds.clear()
-    loaded = false
+  subscriptionIds.clear()
+  loaded = false
 }
 
 export function useSongSubscriptions() {
-    return { subscriptionIds, loadOnce, reset }
+  return { subscriptionIds, loadOnce, reset }
 }

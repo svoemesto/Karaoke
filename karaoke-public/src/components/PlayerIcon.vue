@@ -84,8 +84,7 @@ export default {
     },
     isActive() {
       return (
-        this.contentReady &&
-        (this.inAir || this.flagFree || this.premium || this.hasSubscription)
+        this.contentReady && (this.inAir || this.flagFree || this.premium || this.hasSubscription)
       )
     },
     isDemo() {

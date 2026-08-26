@@ -3459,6 +3459,15 @@ class ApiController(
 
     companion object {
         /**
+         * Размер пачки для батч-загрузки песен через `WHERE id IN (...)` — тот же порядок величины,
+         * что `SongSyncTarget.rowChunkSize` (25). Строки `tbl_songs` тяжёлые (source_text,
+         * result_text, source_markers), поэтому больший чанк рискует упереться в heap/socketTimeout.
+         *
+         * @see specs/244-songs-createkaraokeall-batch/spec.md FR-002
+         */
+        private const val SELECT_CHUNK_SIZE = 25
+
+        /**
          * Маппинг токенов endpoint `/api/publications/date` → целевой [SongState]. Чистая
          * функция (без БД), чтобы unit-тест [com.svoemesto.karaokeapp.controllers.PublicationsDateFilterTest]
          * мог проверять контракт без поднятия Spring.
@@ -3660,7 +3669,43 @@ class ApiController(
         return result
     }
 
-    // Создаём караоке для всех
+    /**
+     * Батч-загрузка песен по списку ID пачками по [SELECT_CHUNK_SIZE] — `WHERE id IN (...)` вместо
+     * N отдельных `SELECT ... WHERE id=?`. Возвращает `Map<id, Song>` для O(1) lookup по ID;
+     * отсутствующие в БД ID просто не попадают в результат (вызывающий код обрабатывает null).
+     *
+     * @see specs/244-songs-createkaraokeall-batch/spec.md FR-001, FR-003
+     */
+    private fun loadSongsBatch(
+        ids: List<Long>,
+        database: KaraokeConnection,
+        storageService: KaraokeStorageService,
+        storageApiClient: StorageApiClient,
+    ): Map<Long, Song> {
+        if (ids.isEmpty()) return emptyMap()
+        return ids
+            .chunked(SELECT_CHUNK_SIZE)
+            .flatMap { chunk ->
+                Song
+                    .loadListFromDbByIds(
+                        ids = chunk,
+                        database = database,
+                        storageService = storageService,
+                        storageApiClient = storageApiClient,
+                    ).values
+            }.associateBy { it.id }
+    }
+
+    /**
+     * Массовое создание процессов рендера караоке для списка песен (admin-only, вызывается из
+     * webvue3-таблицы Songs). Песни грузятся ОДНИМ батчем ([loadSongsBatch], `ceil(N/25)` SQL
+     * вместо N per-id `SELECT` — Constitution § II «пакетно WHERE id IN»), дубликаты ID
+     * отсекаются `distinct()`, чтобы не плодить дублирующие INSERT в `tbl_processes`.
+     * Side-effect [KaraokeProcess.createProcess] остаётся per-song (1..5 процессов на песню
+     * в зависимости от `prior*`), SSE-уведомление — одно на весь вызов.
+     *
+     * @see specs/244-songs-createkaraokeall-batch/spec.md FR-001..FR-007
+     */
     @PostMapping("/songs/createkaraokeall")
     @ResponseBody
     fun getSongsCreateKaraokeAll(
@@ -3680,14 +3725,16 @@ class ApiController(
                     .map { it }
                     .filter { it != "" }
                     .map { it.toLong() }
+                    .distinct()
+            val songsById =
+                loadSongsBatch(
+                    ids = ids,
+                    database = WORKING_DATABASE,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                )
             ids.forEach { id ->
-                val song =
-                    Song.loadFromDbById(
-                        id = id,
-                        database = WORKING_DATABASE,
-                        storageService = storageService,
-                        storageApiClient = storageApiClient,
-                    )
+                val song = songsById[id]
                 song?.let {
                     val createLyrics = priorLyrics != "" && priorLyrics != null
                     val createKaraoke = priorKaraoke != "" && priorKaraoke != null
@@ -3751,8 +3798,8 @@ class ApiController(
                         )
                     }
                 }
-                result = true
             }
+            result = ids.isNotEmpty()
         }
         if (result) {
             SNS.send(

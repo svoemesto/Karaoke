@@ -2378,3 +2378,51 @@ Q3: «off» фиксируется до logout без retry).
 - ESLint baseline: `tools/check-eslint-baseline.sh karaoke-public` →
   «новых нарушений нет».
 
+## Pass 241 — Аудит производительности БД и хранилища (4 Tier-1 P0 оптимизации)
+
+**Контекст:** Администратор сообщил «сервер периодически подвисает». Проведён
+полный аудит мест обращения к PostgreSQL и MinIO в karaoke. Выявлены
+14 hotspots в БД (`KaraokeDbTable.loadList`, sync-цикл `KaraokeProcessWorker`,
+`ApiController.getSongsCreateKaraokeAll` и др.) и 5 в MinIO (`StorageController.downloadFile`
+OOM на 500 MB, `fileExists` HEAD-per-request, и др.).
+
+**Каталог hotspots** — `specs/241-db-storage-perf-audit/spec.md`, Приложение A
+(file:line + severity P0/P1/P2 для каждого). Каталог аналитический — не
+фиксит код, а собирает узкие места для последующих фич.
+
+**4 Tier-1 P0 фикса реализованы как отдельные PR (PR #364-#367)**:
+
+| FR | Branch | Эффект | Паттерн |
+|----|--------|--------|---------|
+| 101 | `242-db-sync-batch-worker` | 201 SQL → ≤11 (×18) | N+1 в sync-цикле |
+| 102 | `243-db-table-schema-cache` | 100 SQL → 1 (×100) | Доп. SQL к `information_schema.columns` |
+| 103 | `244-songs-createkaraokeall-batch` | 100 SQL → ≤5 (×20) | N+1 в admin-эндпоинте |
+| 104 | `245-storage-download-streaming` | OOM-free 500 MB | `readAllBytes()` в heap |
+
+**Constitutional Principle II (сырой JDBC) — исправлен в 2 местах:**
+- FR-101: sync-цикл теперь пакетный `loadByIds` + батч-Delete (`KaraokeDbTable.deleteIn` через PostgreSQL `Array`).
+- FR-103: `getSongsCreateKaraokeAll` теперь `loadSongsBatch` (chunk=25).
+
+**Side-effects** — все 4 фичи сохраняют существующую семантику:
+- `tags = "RENDER"` per-record (не батчится) — генерация `.srt` + `KaraokeProcess.createProcess(MELT_*)`.
+- `KaraokeProcess.createProcess` per-record (атомарность, не батчится).
+- `karaokeStorageService.downloadFile` stream — НЕ закрывает InputStream (pre-existing, см. plan.md Risks FR-104).
+
+**CI-gate прохождение (после Pass 241)**:
+- ktlint baseline-aware — путь относительный `src/main/kotlin/...` (НЕ `karaoke-app/src/main/...`), атрибуты в порядке `line` затем `column`.
+- AGENTS.md ≤100 строк (было 128 в Pass 240) — таблица иерархии вынесена в `livedocs/architecture-notes.md`.
+- Prettier strict — pre-existing нарушения форматирования в `karaoke-public/src/{PlayerIcon.vue, useAuthBootstrap.js, usePlaylistMembership.js, useSongSubscriptions.js}` исправлены.
+- LiveDocs structure — для каждой новой Tier-1 фичи создан `livedocs/features/<N>-*.md` (FR-014).
+
+**Метрики общего эффекта**:
+- RPS к БД на проде: ожидается −50% (SC-001, измерение через `pg_log`).
+- OOM на MP4 500 MB: устранён (SC-002, runtime-тест на admin-машине после deploy).
+- TTFB download: 5-15 сек → ≤200 мс (SC-006, streaming вместо полной загрузки в heap).
+- Latency `getSongsCreateKaraokeAll`: 5-15 сек → ≤3 сек на 100 ID (admin-only, SC-003).
+
+**Что осталось** (backlog, отдельные фичи):
+- Tier-2: кеш `/api/public/authors-tiles`, кеш `getProperty`, индексы на `tbl_songs.song_author` / `tbl_events.song_id`.
+- Tier-3: Thymeleaf `/statbysong` (limit 100k), batch INSERT для `tbl_events`, `pg_stat_statements`-инструмент (FR-108, deferred из Clarifications Session 2026-08-26).
+- N+1 в других admin-контроллерах: `MainController.kt`, `NewsTemplateController.kt`, `ExportAlignmentDataset.kt` (parent A.5, десятки мест).
+- Reflection-overhead в `KaraokeDbTable.loadList` (parent A.1, Tier-3, большой рефакторинг).
+

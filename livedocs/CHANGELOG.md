@@ -10,6 +10,23 @@
 >
 > **См. также**: `git log livedocs/` — для построчной истории.
 
+## 2026-08-26 — Pass 241 (Tier-1 P0 оптимизации производительности)
+
+- **Added** `livedocs/features/241-db-storage-perf-audit.md` — parent LiveDoc для
+  каталога hotspots (14 БД + 5 MinIO, file:line + severity P0/P1/P2).
+- **Added** `livedocs/features/242-db-sync-batch-worker.md` — N+1 в sync-цикле `KaraokeProcessWorker`.
+- **Added** `livedocs/features/243-db-table-schema-cache.md` — кеш `information_schema.columns`.
+- **Added** `livedocs/features/244-songs-createkaraokeall-batch.md` — N+1 в admin-эндпоинте.
+- **Added** `livedocs/features/245-storage-download-streaming.md` — OOM-free streaming.
+- **Added** `livedocs/features/239-zakroma-author-songs-batch-render.md` — заполнил gap (Pass 239 не создал LiveDoc).
+- **Updated** `livedocs/architecture-notes.md §Pass 241` — запись об аудите и 4 Tier-1 фиксах.
+- **Updated** `AGENTS.md` — сокращено 128→88 строк (LiveDocs CI gate `≤100`).
+- **Updated** `config/ktlint/baseline-karaoke-app.xml` — путь `src/main/...` (относительный, как требует ktlint plugin 12.x).
+- **Updated** `karaoke-public/src/{PlayerIcon.vue, useAuthBootstrap.js, usePlaylistMembership.js, useSongSubscriptions.js}` — `prettier --write` (CI strict, без baseline).
+- **Spec**: `specs/{241,242,243,244,245}-*/spec.md` — все 5 спек + планы + tasks + checklists (16/16 ✅).
+- **PR**: #368 (parent), #364-#367 (Tier-1).
+- **Backlog (отложено)**: Tier-2/Tier-3 hotspots — отдельные будущие фичи (parent A.5).
+
 ## 2026-08-16 — 236-fix-karaoke-connection-self-healing
 
 - **Added** `livedocs/features/236-fix-karaoke-connection-self-healing.md` — LiveDoc для

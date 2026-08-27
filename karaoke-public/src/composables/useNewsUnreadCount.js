@@ -231,8 +231,14 @@ function init(route) {
   }
 
   if (currentRoute) {
-    watch(() => currentRoute.name, () => applyRouteState(currentRoute))
-    watch(() => (currentRoute.query && currentRoute.query.share) || null, () => applyRouteState(currentRoute))
+    watch(
+      () => currentRoute.name,
+      () => applyRouteState(currentRoute),
+    )
+    watch(
+      () => (currentRoute.query && currentRoute.query.share) || null,
+      () => applyRouteState(currentRoute),
+    )
   }
 
   // US4 / FR-016: watch на count для триггера auto-read при появлении новых новостей.

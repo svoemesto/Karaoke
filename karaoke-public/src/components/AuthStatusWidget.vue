@@ -1,12 +1,9 @@
 <template>
   <div class="km-auth-widget">
     <RouterLink to="/news" class="km-auth-link km-auth-link-news"
-      >Новости<span
-        v-if="showBadge"
-        class="km-news-badge"
-        :aria-label="ariaLabel"
-        >{{ badgeText }}</span
-      ></RouterLink
+      >Новости<span v-if="showBadge" class="km-news-badge" :aria-label="ariaLabel">{{
+        badgeText
+      }}</span></RouterLink
     >
     <template v-if="isLoggedIn">
       <RouterLink to="/account" class="km-auth-link">

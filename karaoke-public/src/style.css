@@ -28,6 +28,27 @@
   --km-scrollbar: #c8cadb;
 }
 
+/* Высота AppHeader для responsive-sticky-offset (specs/253-fix-header-sticky-offset-responsive).
+   Синхронизировано с AppHeader.vue (:padding, :logo-height, :border-bottom).
+   При изменении высоты AppHeader обязательно обновить эти значения и проверить спек 253.
+   Значения по breakpoint'ам:
+     default (> 700 px): padding 0.5rem*2 + логотип 36 px + border 1 px = 53 px
+     ≤ 700 px:          padding 0.5rem*2 + логотип 32 px + border 1 px = 49 px
+     ≤ 500 px:          padding 0.4rem*2 + логотип 28 px + border 1 px = 46 px */
+:root {
+  --km-header-height: 53px;
+}
+@media (max-width: 700px) {
+  :root {
+    --km-header-height: 49px;
+  }
+}
+@media (max-width: 500px) {
+  :root {
+    --km-header-height: 46px;
+  }
+}
+
 *, *::before, *::after {
   box-sizing: border-box;
 }

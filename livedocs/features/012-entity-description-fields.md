@@ -53,6 +53,7 @@ related:
 
 - Domain: [catalog.md](../domain/catalog.md) (Author, Album, Song), [publishing.md](../domain/publishing.md)
 - Feature: [030-add-archive-album-type.md](../features/030-add-archive-album-type.md), [031-add-tribute-cover-album-type.md](../features/031-add-tribute-cover-album-type.md)
+- Bug-fix на этом же коде: [252-fix-author-album-types-hide.md](252-fix-author-album-types-hide.md) — `position: sticky` overlap между блоком быстрого фильтра и блоком типов альбомов; LiveDoc 252 поднял sticky на общую обёртку `.km-author-header-sticky` (`ZakromaView.vue:6-75`, scoped CSS `:741-752`). Контракт спеки 012 (sticky фильтр/тумблер по FR-025/027) сохранён.
 
 ## Код
 

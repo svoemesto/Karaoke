@@ -2426,3 +2426,81 @@ OOM на 500 MB, `fileExists` HEAD-per-request, и др.).
 - N+1 в других admin-контроллерах: `MainController.kt`, `NewsTemplateController.kt`, `ExportAlignmentDataset.kt` (parent A.5, десятки мест).
 - Reflection-overhead в `KaraokeDbTable.loadList` (parent A.1, Tier-3, большой рефакторинг).
 
+
+## Pass 252 — Закрома: корректное скрытие блока типов альбомов при скролле (2026-08-27)
+
+**Что.** Фикс CSS-overlap'а двух sticky-блоков в `ZakromaView.vue`:
+`.km-filter-bar` и `.km-album-controls-bar` висели на одинаковом `position: sticky; top: 53px`
+(`z-index: 90` vs `89`); блок альбомов оказывался «под» фильтром, и хвост блока выглядывал
+из-под фильтра при скролле вниз по списку песен автора.
+
+**Решение (FR-004).** Оба блока обёрнуты в общий `<div class="km-author-header-sticky">`
+с `position: sticky; top: 53px; z-index: 90`; внутренние блоки стали обычными flex-children.
+Pure CSS/template change, 1 файл (`karaoke-public/src/views/ZakromaView.vue`).
+
+**Side-effects:** бэкенд не задет (`:karaoke-web:bootJar UP-TO-DATE`), DTO не меняются,
+Vuex store не меняется. CSS bundle +40 байт. Контракт спеки 012 (sticky filter по FR-025/027)
+сохранён — wrap уезжает/прилипает целиком.
+
+**Связанные документы:**
+- `specs/252-fix-author-album-types-hide/{spec,plan,research,data-model,contracts,quickstart,tasks}.md`
+- `livedocs/features/252-fix-author-album-types-hide.md` (новый LiveDoc)
+
+## Pass 253 — Закрома: sticky-блок приклеивается к AppHeader на узких экранах (2026-08-27)
+
+**Что.** Follow-up bug-fix для спек 252: устраняет responsive-зазор 4/7 px
+между AppHeader и `.km-author-header-sticky` на viewport'ах ≤ 700 px / ≤ 500 px
+(шапка становится короче, а `top: 53px` обёртки — нет).
+
+**Решение.** Глобальная CSS-переменная `:root --km-header-height` в
+`karaoke-public/src/style.css` (53 / 49 / 46 px на breakpoints), плюс
+`top: var(--km-header-height, 53px)` в `.km-author-header-sticky`. 2 файла,
+~20 строк правок. AppHeader.vue **не модифицируется**.
+
+**Side-effects:** бэкенд не задет (`:karaoke-web:bootJar UP-TO-DATE`), DTO
+не меняются, Vuex не меняется. CSS bundle +170 байт.
+
+**Связанные документы:**
+- `specs/253-fix-header-sticky-offset-responsive/{spec,plan,research,data-model,contracts,quickstart,tasks}.md`
+- `livedocs/features/253-fix-header-sticky-offset-responsive.md` (новый LiveDoc)
+
+## Pass 254 — Закрома: header-back-link «К списку авторов» + удаление in-page дубля (2026-08-27)
+
+**Что.** UI-фикс в `ZakromaView.vue`: статический `AppHeader :back` заменён на
+динамический computed `zakromaHeaderBack` (null при `!/zakroma`, label «← К списку
+авторов» при `?author=X` или `?specialBucket=true`). Удалены in-page
+`<button class="km-back-btn">` × 2 и их CSS (4 правила).
+
+**Решение.** 1 файл, ~20 строк правок (template -15 / +5, computed +6, scoped CSS -22).
+AppHeader.vue API **не модифицируется** — уже поддерживает `back: null` для скрытия.
+
+**Side-effects:** бэкенд не задет (`:karaoke-web:bootJar UP-TO-DATE`), DTO не меняются,
+Vuex не меняется. CSS bundle -22 строки (`.km-back-btn` removal).
+
+**Связанные документы:**
+- `specs/254-fix-zakroma-header-back-link/{spec,plan,data-model,contracts,quickstart,tasks}.md`
+- `livedocs/features/254-fix-zakroma-header-back-link.md` (новый LiveDoc)
+
+## Pass 255 — Закрома: watcher `$route.query.author` для сброса state (2026-08-27)
+
+**Что.** Bug-fix спек 254. Header-back-link навигирует на `/zakroma`, но
+`data`-properties (init'нутые `!!this.$route.query.author` при создании
+компонента) НЕ пересчитываются при изменении query — Vue-router не пересоздаёт
+инстанс компонента. Результат: `v-if="authorChosen"` остаётся `true`, тайлы не
+отрисовываются.
+
+**Решение.** Watcher `'$route.query.author'(newAuthor)` в `ZakromaView.vue:watch:`
+реагирует на ЛЮБОЕ изменение query (header-back-link, browser back, programmatic
+push). Двухветвевая логика: пустой newAuthor → сброс state; новый автор →
+перезагрузка стрима. 1 файл, ~10 строк.
+
+**Edge case (out of scope):** спец-корзина `?specialBucket=true` без
+`?author=` — watcher сбрасывает только `authorChosen`, но `specialBucketShown`
+остаётся `true`. Частичное покрытие, отдельный watcher на `query.specialBucket`
+для полного решения — будущая фича.
+
+**Side-effects:** бэкенд не задет (`:karaoke-web:bootJar UP-TO-DATE`).
+
+**Связанные документы:**
+- `specs/255-fix-zakroma-state-reset-on-back-nav/{spec,plan,tasks}.md`
+- `livedocs/features/255-fix-zakroma-state-reset-on-back-nav.md` (новый LiveDoc)

@@ -1,12 +1,7 @@
 <template>
   <div class="km-page">
-    <header class="km-header">
-      <div class="km-header-inner">
-        <div class="km-header-left">
-          <RouterLink to="/account" class="km-back">← Личный кабинет</RouterLink>
-        </div>
-      </div>
-    </header>
+    <!-- Хедер единый (spec 250) -->
+    <AppHeader :back="{ to: '/account', label: '← Личный кабинет' }" />
 
     <div class="km-content">
       <h1 class="km-title">Мои подписки</h1>
@@ -49,6 +44,7 @@
 <script>
 import { authGet, authPost } from '../services/authApi'
 import { useAuth } from '../composables/useAuth'
+import AppHeader from '../components/AppHeader.vue'
 
 /**
  * View-страница «Subscriptions» — основной layout и data-fetching.
@@ -58,6 +54,7 @@ import { useAuth } from '../composables/useAuth'
 
 export default {
   name: 'SubscriptionsView',
+  components: { AppHeader },
   setup() {
     const { token } = useAuth()
     return { token }
@@ -122,22 +119,8 @@ export default {
   background: var(--km-bg);
   color: var(--km-text);
 }
-.km-header {
-  background: var(--km-header);
-  border-bottom: 1px solid var(--km-border);
-  padding: 0.5rem 1rem;
-}
-.km-header-inner {
-  max-width: 700px;
-  margin: 0 auto;
-}
-.km-back {
-  color: var(--km-accent);
-  text-decoration: none;
-  font-size: 0.85rem;
-}
 .km-content {
-  max-width: 600px;
+  max-width: 900px;
   margin: 0 auto;
   padding: 2rem 1rem;
 }

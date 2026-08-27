@@ -1,13 +1,13 @@
 <template>
   <div class="km-page">
-    <header class="km-header">
-      <div class="km-header-inner">
-        <RouterLink :to="{ path: '/zakroma', query: author ? { author } : {} }" class="km-back"
-          >← Закрома</RouterLink
-        >
-        <a href="/"><img src="/KARAOKE_LOGO.png" class="km-logo" alt="Karaoke logo" /></a>
-      </div>
-    </header>
+    <!-- Хедер единый (spec 250) -->
+    <AppHeader
+      :back="
+        author
+          ? { to: '/zakroma', label: '← Закрома', query: { author } }
+          : { to: '/zakroma', label: '← Закрома' }
+      "
+    />
 
     <LoginRequired
       v-if="!isLoggedIn"
@@ -147,6 +147,7 @@ import { useAuth } from '../composables/useAuth'
 import { useSongSubscriptions } from '../composables/useSongSubscriptions'
 import { usePlaylistPlayer } from '../composables/usePlaylistPlayer'
 import { usePremiumModal } from '../composables/usePremiumModal'
+import AppHeader from '../components/AppHeader.vue'
 
 const PREMIUM_BENEFITS = [
   'Онлайн-плеер для всех песен, а не только «в эфире»',
@@ -163,7 +164,7 @@ const PREMIUM_BENEFITS = [
 
 export default {
   name: 'AuthorPlaylistView',
-  components: { LoginRequired },
+  components: { LoginRequired, AppHeader },
   setup() {
     const route = useRoute()
     const { isLoggedIn, user } = useAuth()
@@ -363,31 +364,6 @@ export default {
   min-height: 100vh;
   background: var(--km-bg);
   color: var(--km-text);
-}
-.km-header {
-  background: var(--km-header);
-  border-bottom: 1px solid var(--km-border);
-  padding: 0.5rem 1rem;
-}
-.km-header-inner {
-  max-width: 900px;
-  margin: 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.km-back {
-  color: var(--km-accent);
-  text-decoration: none;
-  font-size: 0.85rem;
-  white-space: nowrap;
-}
-.km-back:hover {
-  text-decoration: underline;
-}
-.km-logo {
-  height: 36px;
-  width: auto;
 }
 .km-loading {
   padding: 2rem;

@@ -1,20 +1,15 @@
 <template>
   <div class="km-page">
-    <header class="km-header">
-      <div class="km-header-inner">
-        <div class="km-header-left">
-          <RouterLink to="/" class="km-back">← Главная</RouterLink>
-          <a href="/"><img src="/KARAOKE_LOGO.png" class="km-logo" alt="Karaoke logo" /></a>
-        </div>
-        <button class="km-logout-btn" @click="onLogout">Выйти</button>
-      </div>
-    </header>
+    <!-- Хедер единый (spec 250). Logout перенесён в личный кабинет. -->
+    <AppHeader :back="{ to: '/', label: '← Главная' }" />
 
     <div class="km-content">
       <h1 class="km-title">
         Личный кабинет
         <span v-if="isPremium" class="km-premium-badge" title="Премиум-подписчик">🪙 Премиум</span>
       </h1>
+
+      <button class="km-logout-btn" @click="onLogout">Выйти</button>
 
       <div class="km-tabs">
         <button
@@ -159,6 +154,7 @@
 
 <script>
 import { authPost } from '../services/authApi'
+import AppHeader from '../components/AppHeader.vue'
 import { useAuth } from '../composables/useAuth'
 import { useCart } from '../composables/useCart'
 
@@ -170,6 +166,7 @@ import { useCart } from '../composables/useCart'
 
 export default {
   name: 'AccountView',
+  components: { AppHeader },
   setup() {
     const { token, user, setSession, clearSession, fetchMe } = useAuth()
     const cart = useCart()
@@ -333,52 +330,9 @@ export default {
   background: var(--km-bg);
   color: var(--km-text);
 }
-.km-header {
-  background: var(--km-header);
-  border-bottom: 1px solid var(--km-border);
-  padding: 0.5rem 1rem;
-}
-.km-header-inner {
-  max-width: 700px;
-  margin: 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.km-header-left {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-.km-back {
-  color: var(--km-accent);
-  text-decoration: none;
-  font-size: 0.85rem;
-  white-space: nowrap;
-}
-.km-back:hover {
-  text-decoration: underline;
-}
-.km-logo {
-  height: 36px;
-  width: auto;
-}
-.km-logout-btn {
-  background: transparent;
-  border: 1px solid var(--km-border);
-  color: var(--km-text2);
-  border-radius: 8px;
-  padding: 0.35rem 0.8rem;
-  font-size: 0.85rem;
-  cursor: pointer;
-}
-.km-logout-btn:hover {
-  background: var(--km-hover);
-  color: var(--km-text);
-}
 
 .km-content {
-  max-width: 500px;
+  max-width: 900px;
   margin: 0 auto;
   padding: 2rem 1rem;
 }
@@ -388,6 +342,26 @@ export default {
   display: flex;
   align-items: center;
   gap: 0.6rem;
+}
+.km-logout-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: transparent;
+  border: 1px solid var(--km-border);
+  color: var(--km-text2);
+  border-radius: 8px;
+  padding: 0.4rem 0.9rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  margin-bottom: 1.25rem;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+.km-logout-btn:hover {
+  background: var(--km-hover);
+  color: var(--km-text);
 }
 .km-premium-badge {
   font-size: 0.75rem;

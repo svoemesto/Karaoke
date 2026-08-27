@@ -1,13 +1,7 @@
 <template>
   <div class="km-page">
-    <header class="km-header">
-      <div class="km-header-inner">
-        <div class="km-header-left">
-          <RouterLink to="/account/playlists" class="km-back">← Мои плейлисты</RouterLink>
-        </div>
-        <a href="/"><img src="/KARAOKE_LOGO.png" class="km-logo" alt="Karaoke logo" /></a>
-      </div>
-    </header>
+    <!-- Хедер единый (spec 250) -->
+    <AppHeader :back="{ to: '/account/playlists', label: '← Мои плейлисты' }" />
 
     <LoginRequired v-if="!isLoggedIn" />
     <div v-else-if="loading" class="km-loading">Загрузка...</div>
@@ -204,6 +198,7 @@ import {
 import { usePlayerReadiness } from '../composables/usePlayerReadiness'
 import { useAuth } from '../composables/useAuth'
 import LoginRequired from '../components/LoginRequired.vue'
+import AppHeader from '../components/AppHeader.vue'
 
 /**
  * View-страница «Playlist Edit» — основной layout и data-fetching.
@@ -213,7 +208,7 @@ import LoginRequired from '../components/LoginRequired.vue'
 
 export default {
   name: 'PlaylistEditView',
-  components: { draggable, LoginRequired },
+  components: { draggable, LoginRequired, AppHeader },
   setup() {
     const route = useRoute()
     const readiness = usePlayerReadiness()
@@ -586,36 +581,6 @@ export default {
   min-height: 100vh;
   background: var(--km-bg);
   color: var(--km-text);
-}
-.km-header {
-  background: var(--km-header);
-  border-bottom: 1px solid var(--km-border);
-  padding: 0.5rem 1rem;
-}
-.km-header-inner {
-  max-width: 900px;
-  margin: 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.km-header-left {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-.km-back {
-  color: var(--km-accent);
-  text-decoration: none;
-  font-size: 0.85rem;
-  white-space: nowrap;
-}
-.km-back:hover {
-  text-decoration: underline;
-}
-.km-logo {
-  height: 36px;
-  width: auto;
 }
 .km-loading {
   padding: 2rem;

@@ -1,13 +1,7 @@
 <template>
   <div class="km-page">
-    <header class="km-header">
-      <div class="km-header-inner">
-        <div class="km-header-left">
-          <RouterLink to="/" class="km-back">← Главная</RouterLink>
-          <a href="/"><img src="/KARAOKE_LOGO.png" class="km-logo" alt="Karaoke logo" /></a>
-        </div>
-      </div>
-    </header>
+    <!-- Хедер единый (spec 250) -->
+    <AppHeader :back="{ to: '/', label: '← Главная' }" />
 
     <div class="km-content">
       <!-- Hero-блок: главный акцент -->
@@ -185,6 +179,7 @@ import { useEngagementTracking } from '../composables/useEngagementTracking'
 import { trackUi } from '../services/tracking'
 import SocialLinks from '../components/SocialLinks.vue'
 import ShareButton from '../components/ShareButton.vue'
+import AppHeader from '../components/AppHeader.vue'
 
 // Топ-15 авторов с полной дискографией — список согласован с владельцем проекта.
 // Эти 15 исполнителей представлены в коллекции максимально полно: официальные релизы +
@@ -217,7 +212,7 @@ const TOP_AUTHORS = [
  */
 export default {
   name: 'AboutView',
-  components: { SocialLinks, ShareButton },
+  components: { SocialLinks, ShareButton, AppHeader },
   setup() {
     const { isLoggedIn } = useAuth()
     // Трекинг времени на странице + scroll-вехи 25/50/75/100% в tbl_events.
@@ -279,33 +274,8 @@ export default {
   background: var(--km-bg);
   color: var(--km-text);
 }
-.km-header {
-  background: var(--km-header);
-  border-bottom: 1px solid var(--km-border);
-  padding: 0.5rem 1rem;
-}
-.km-header-inner {
-  max-width: 800px;
-  margin: 0 auto;
-  display: flex;
-  align-items: center;
-}
-.km-header-left {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-.km-back {
-  color: var(--km-accent);
-  text-decoration: none;
-  font-size: 0.85rem;
-}
-.km-logo {
-  height: 36px;
-  width: auto;
-}
 .km-content {
-  max-width: 800px;
+  max-width: 900px;
   margin: 0 auto;
   padding: 2rem 1rem 4rem;
 }

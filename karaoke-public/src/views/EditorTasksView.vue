@@ -1,13 +1,11 @@
 <template>
   <div class="km-page">
-    <header class="km-header">
-      <div class="km-header-inner">
-        <div class="km-header-left">
-          <RouterLink to="/account" class="km-back">← Личный кабинет</RouterLink>
-          <a href="/"><img src="/KARAOKE_LOGO.png" class="km-logo" alt="Karaoke logo" /></a>
-        </div>
-      </div>
-    </header>
+    <!-- Хедер единый (spec 250) -->
+    <AppHeader
+      :back="{ to: '/account', label: '← Личный кабинет' }"
+      :show-auth-widget="false"
+      :show-theme-toggle="false"
+    />
 
     <div class="km-content">
       <h1 class="km-title">🎤 Редактор караоке</h1>
@@ -83,6 +81,7 @@
 import { fetchTasks, refuseTask, deleteTask, deleteApprovedTasks } from '../services/songEditorApi'
 import { useAuth } from '../composables/useAuth'
 import { STATUS_LABELS } from '../composables/editorStatus'
+import AppHeader from '../components/AppHeader.vue'
 
 // Одобренные карточки идут строго после активных (паттерн STATUS_ORDER в
 // SongEditorTable.vue webvue3, но с approved последним — по FR-001/US-1).
@@ -103,6 +102,7 @@ const STATUS_ORDER = {
 
 export default {
   name: 'EditorTasksView',
+  components: { AppHeader },
   setup() {
     const { token, user, fetchMe } = useAuth()
     return { token, user, fetchMe }
@@ -235,38 +235,8 @@ export default {
   background: var(--km-bg);
   color: var(--km-text);
 }
-.km-header {
-  background: var(--km-header);
-  border-bottom: 1px solid var(--km-border);
-  padding: 0.5rem 1rem;
-}
-.km-header-inner {
-  max-width: 700px;
-  margin: 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.km-header-left {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-.km-back {
-  color: var(--km-accent);
-  text-decoration: none;
-  font-size: 0.85rem;
-  white-space: nowrap;
-}
-.km-back:hover {
-  text-decoration: underline;
-}
-.km-logo {
-  height: 36px;
-  width: auto;
-}
 .km-content {
-  max-width: 640px;
+  max-width: 900px;
   margin: 0 auto;
   padding: 2rem 1rem;
 }

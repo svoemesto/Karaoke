@@ -43,6 +43,9 @@ SDD-сводки существующих фич (1-2 страницы кажд�
 | [`124-news-flags-backfill.md`](features/124-news-flags-backfill.md) | Backfill флагов публикаций готовых песен без создания новостей |
 | [`125-player-status-gate.md`](features/125-player-status-gate.md) | Доступность плеера в таблице «Песни» при статусе ≥4 |
 | [`190-playlist-play-button-and-stems-cancel.md`](features/190-playlist-play-button-and-stems-cancel.md) | Плейлисты: запуск с любой песни + превью альбома/автора + фикс задвоения вейвформ |
+| [`232-admin-song-editor-local-db.md`](features/232-admin-song-editor-local-db.md) | Облегчённый редактор в админке пишет в локальную БД (Connection.local()) |
+| [`238-import-folder-author-album-cover.md`](features/238-import-folder-author-album-cover.md) | Импорт из папки: поиск «родителя» у того же автора + автообложка |
+| [`250-unify-site-header.md`](features/250-unify-site-header.md) | Единый `<AppHeader>` в karaoke-public: логотип справа, 20 view-миграций, slot-based `EditorWorkView` |
 
 ### DDD — `livedocs/domain/`
 

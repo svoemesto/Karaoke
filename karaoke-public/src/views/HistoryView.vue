@@ -1,14 +1,10 @@
 <template>
   <div class="km-page">
-    <header class="km-header">
-      <div class="km-header-inner">
-        <div class="km-header-left">
-          <RouterLink to="/" class="km-back">← Главная</RouterLink>
-          <a href="/"><img src="/KARAOKE_LOGO.png" class="km-logo" alt="Karaoke logo" /></a>
-        </div>
-        <RouterLink to="/account" class="km-back">Профиль →</RouterLink>
-      </div>
-    </header>
+    <!-- Хедер единый (spec 250) -->
+    <AppHeader
+      :back="{ to: '/', label: '← Главная' }"
+      :profile-link="{ to: '/account', label: 'Профиль →' }"
+    />
 
     <LoginRequired v-if="!isLoggedIn" />
 
@@ -42,6 +38,7 @@
 import LoginRequired from '../components/LoginRequired.vue'
 import { useAuth } from '../composables/useAuth'
 import { fetchHistory } from '../services/historyApi'
+import AppHeader from '../components/AppHeader.vue'
 
 /**
  * View-страница «История прослушиваний» (QW-13) — список недавно прослушанных песен
@@ -51,7 +48,7 @@ import { fetchHistory } from '../services/historyApi'
  */
 export default {
   name: 'HistoryView',
-  components: { LoginRequired },
+  components: { LoginRequired, AppHeader },
   setup() {
     const { isLoggedIn } = useAuth()
     return { isLoggedIn }
@@ -87,39 +84,9 @@ export default {
   background: var(--km-bg);
   color: var(--km-text);
 }
-.km-header {
-  background: var(--km-header);
-  border-bottom: 1px solid var(--km-border);
-  padding: 0.5rem 1rem;
-}
-.km-header-inner {
-  max-width: 700px;
-  margin: 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.km-header-left {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-.km-back {
-  color: var(--km-accent);
-  text-decoration: none;
-  font-size: 0.85rem;
-  white-space: nowrap;
-}
-.km-back:hover {
-  text-decoration: underline;
-}
-.km-logo {
-  height: 36px;
-  width: auto;
-}
 
 .km-content {
-  max-width: 600px;
+  max-width: 900px;
   margin: 0 auto;
   padding: 2rem 1rem;
 }

@@ -99,7 +99,8 @@ export default {
       this.loadingMore = false
     },
     // Открытие ленты = все текущие опубликованные новости увидены — поднимаем last-seen id, по
-    // которому NewsBell.vue (глобальный колокольчик) решает, есть ли что-то непрочитанное.
+    // которому useNewsUnreadCount (inline-бейдж в шапке) решает, есть ли что-то непрочитанное.
+    // Раньше эту роль играл NewsBell.vue, удалённый в spec 257 (заменён на inline-бейдж).
     markAllSeen() {
       if (!this.news.length) return
       const maxId = Math.max(...this.news.map((n) => n.id))

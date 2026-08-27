@@ -212,7 +212,7 @@ const TOP_AUTHORS = [
  */
 export default {
   name: 'AboutView',
-  components: { SocialLinks, ShareButton , AppHeader },
+  components: { SocialLinks, ShareButton, AppHeader },
   setup() {
     const { isLoggedIn } = useAuth()
     // Трекинг времени на странице + scroll-вехи 25/50/75/100% в tbl_events.

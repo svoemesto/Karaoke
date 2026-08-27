@@ -68,7 +68,7 @@ import AppHeader from '../components/AppHeader.vue'
 
 export default {
   name: 'PlaylistsView',
-  components: { SvgIcon, LoginRequired , AppHeader },
+  components: { SvgIcon, LoginRequired, AppHeader },
   setup() {
     const { user, isLoggedIn } = useAuth()
     const { openPremiumRequired, openLimit } = usePremiumModal()

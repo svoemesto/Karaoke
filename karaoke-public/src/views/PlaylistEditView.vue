@@ -208,7 +208,7 @@ import AppHeader from '../components/AppHeader.vue'
 
 export default {
   name: 'PlaylistEditView',
-  components: { draggable, LoginRequired , AppHeader },
+  components: { draggable, LoginRequired, AppHeader },
   setup() {
     const route = useRoute()
     const readiness = usePlayerReadiness()

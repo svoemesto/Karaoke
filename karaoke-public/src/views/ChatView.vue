@@ -105,7 +105,7 @@ const POLL_BATCH_LIMIT = 500 // защита от аномального зал�
 
 export default {
   name: 'ChatView',
-  components: { LoginRequired , AppHeader },
+  components: { LoginRequired, AppHeader },
   setup() {
     const { user, isLoggedIn } = useAuth()
     return { user, isLoggedIn }

@@ -6,7 +6,9 @@
         <span v-if="isPremium" class="km-premium-badge" title="Премиум-подписчик">🪙</span
         >{{ displayName }}
       </RouterLink>
-      <RouterLink to="/account/playlists" class="km-auth-link km-auth-link-playlists">Плейлисты</RouterLink>
+      <RouterLink to="/account/playlists" class="km-auth-link km-auth-link-playlists"
+        >Плейлисты</RouterLink
+      >
       <!-- Корзино показываем только если в ней что-то есть (spec 250). -->
       <RouterLink v-if="cartCount > 0" to="/account/cart" class="km-auth-link"
         >🛒<span class="km-cart-count">{{ cartCount }}</span></RouterLink

@@ -331,7 +331,6 @@ export default {
   color: var(--km-text);
 }
 
-
 .km-content {
   max-width: 900px;
   margin: 0 auto;

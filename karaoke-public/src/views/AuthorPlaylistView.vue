@@ -2,7 +2,11 @@
   <div class="km-page">
     <!-- Хедер единый (spec 250) -->
     <AppHeader
-      :back="author ? { to: '/zakroma', label: '← Закрома', query: { author } } : { to: '/zakroma', label: '← Закрома' }"
+      :back="
+        author
+          ? { to: '/zakroma', label: '← Закрома', query: { author } }
+          : { to: '/zakroma', label: '← Закрома' }
+      "
     />
 
     <LoginRequired
@@ -160,7 +164,7 @@ const PREMIUM_BENEFITS = [
 
 export default {
   name: 'AuthorPlaylistView',
-  components: { LoginRequired , AppHeader },
+  components: { LoginRequired, AppHeader },
   setup() {
     const route = useRoute()
     const { isLoggedIn, user } = useAuth()

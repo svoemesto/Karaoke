@@ -48,7 +48,7 @@ import AppHeader from '../components/AppHeader.vue'
  */
 export default {
   name: 'HistoryView',
-  components: { LoginRequired , AppHeader },
+  components: { LoginRequired, AppHeader },
   setup() {
     const { isLoggedIn } = useAuth()
     return { isLoggedIn }

@@ -1,6 +1,10 @@
 <template>
   <div class="km-auth-widget">
-    <RouterLink to="/news" class="km-auth-link km-auth-link-news">Новости</RouterLink>
+    <RouterLink to="/news" class="km-auth-link km-auth-link-news"
+      >Новости<span v-if="showBadge" class="km-news-badge" :aria-label="ariaLabel">{{
+        badgeText
+      }}</span></RouterLink
+    >
     <template v-if="isLoggedIn">
       <RouterLink to="/account" class="km-auth-link">
         <span v-if="isPremium" class="km-premium-badge" title="Премиум-подписчик">🪙</span
@@ -25,13 +29,14 @@
 <script>
 import { useAuth } from '../composables/useAuth'
 import { useCart } from '../composables/useCart'
+import { useNewsUnreadCount } from '../composables/useNewsUnreadCount'
 
 /**
  * Компонент «Auth Status Widget» — набор ссылок для авторизованного/анонимного
  * пользователя в правом слоте `<AppHeader>` (spec 250).
  *
  * Состав:
- * - Ссылка «Новости» (всегда).
+ * - Ссылка «Новости» (всегда) + inline-бейдж непрочитанных (spec 257, US1).
  * - Для залогиненного: имя (с 🪙-бейджем если премиум), «Плейлисты»,
  *   🛒 (только если в корзине что-то есть).
  * - Для анонима: «Войти», «Регистрация».
@@ -43,8 +48,10 @@ import { useCart } from '../composables/useCart'
  * — реактивность на `auth.isPremium` через `usePremiumLiveSync`.
  *
  * @see specs/250-unify-site-header FR-001..FR-016
+ * @see specs/257-header-news-unread-badge FR-001..FR-014, US1
  * @see livedocs/features/250-unify-site-header
  * @see livedocs/features/162-fix-header-stale-premium-status
+ * @see livedocs/features/257-header-news-unread-badge
  */
 
 export default {
@@ -52,8 +59,9 @@ export default {
   setup() {
     const { user, isLoggedIn } = useAuth()
     const { count: cartCount, load: loadCart } = useCart()
+    const { badgeText, ariaLabel, showBadge } = useNewsUnreadCount()
     if (isLoggedIn.value) loadCart()
-    return { user, isLoggedIn, cartCount }
+    return { user, isLoggedIn, cartCount, badgeText, ariaLabel, showBadge }
   },
   computed: {
     displayName() {
@@ -106,5 +114,22 @@ export default {
   padding: 0 0.35em;
   margin-left: 0.2em;
   vertical-align: top;
+}
+/* Inline-бейдж непрочитанных новостей (spec 257, FR-009) — визуально согласован с .km-cart-count:
+   тот же автор, та же палитра. Находится внутри .km-auth-link-news, поэтому автоматически
+   наследует display: none на ≤ 700px (FR-011). */
+.km-news-badge {
+  display: inline-block;
+  background: #e05555;
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  border-radius: 10px;
+  padding: 0 0.4em;
+  margin-left: 0.3em;
+  vertical-align: top;
+  min-width: 1.2em;
+  text-align: center;
+  line-height: 1.4;
 }
 </style>

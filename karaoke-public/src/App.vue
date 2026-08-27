@@ -13,13 +13,11 @@
   </template>
   <PremiumUpsellModal />
   <ChatUnreadBadge />
-  <NewsBell />
 </template>
 
 <script>
 import PremiumUpsellModal from './components/PremiumUpsellModal.vue'
 import ChatUnreadBadge from './components/ChatUnreadBadge.vue'
-import NewsBell from './components/NewsBell.vue'
 
 /**
  * Корневой компонент приложения.
@@ -29,7 +27,7 @@ import NewsBell from './components/NewsBell.vue'
 
 export default {
   name: 'App',
-  components: { PremiumUpsellModal, ChatUnreadBadge, NewsBell },
+  components: { PremiumUpsellModal, ChatUnreadBadge },
   computed: {
     isHomePage() {
       return this.$route.path === '/'

@@ -12,6 +12,12 @@ data class SongPublicDto(
     val id: Long,
     val songName: String,
     val author: String,
+    // Числовой ID автора из tbl_authors (FK по имени song.author). Заполняется в
+    // PublicApiController.song() через Author.loadIdsByNames([author], db) — нужно SongView для
+    // динамического back-link: при открытии /song?id=X шапка ведёт на /zakroma/<authorId>
+    // (страница песен этого автора), см. specs/259-playlist-clickable-links.
+    // null если автор удалён из tbl_authors (запись была, но name больше не матчится).
+    val authorId: Long? = null,
     val authorAlias: String = "",
     val album: String,
     val year: Long,

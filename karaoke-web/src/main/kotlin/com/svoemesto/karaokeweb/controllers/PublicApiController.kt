@@ -766,7 +766,16 @@ class PublicApiController(
             } else {
                 null
             }
-        return sett?.let { SongPublicDto.fromSong(it).copy(assignment = assignmentDto) }
+        return sett?.let { s ->
+            // specs/259-playlist-clickable-links: фронту нужен authorId для back-link из SongView
+            // на /zakroma/<authorId>. Song.author — свободный текст (не FK), резолвим по имени
+            // одним batch-запросом (Author.loadIdsByNames) — никаких лишних SQL при пустой БД,
+            // при наличии записи в tbl_authors возвращается её id (null если автор удалён).
+            val authorIds = Author.loadIdsByNames(listOf(s.author), WORKING_DATABASE)
+            SongPublicDto
+                .fromSong(s)
+                .copy(assignment = assignmentDto, authorId = authorIds[s.author])
+        }
     }
 
     @PostMapping("/events")

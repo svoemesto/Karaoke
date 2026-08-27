@@ -90,19 +90,6 @@ export default {
      */
     lastLoadedTimestampByAuthor: {},
     /**
-     * specs/258-zakroma-routing-refactor US2: контекст последнего открытого автора/спец-режима,
-     * из которого пользователь перешёл на страницу песни. Нужен для построения back-link в
-     * `SongView` БЕЗ передачи `authorId` через URL `/song?id=X` (пользователь явно требует,
-     * чтобы URL песни содержал только `id`, без `authorId`).
-     *
-     * Формат: `{ type: 'zakroma-author' | 'zakroma-special', id?: string, name?: string } | null`.
-     * Устанавливается в `ZakromaView.mounted()`, читается в `SongView.songHeaderBack()`.
-     * Не персистится (только в памяти SPA — при F5 сбрасывается в `null`, fallback на `/zakroma`).
-     *
-     * @see specs/258-zakroma-routing-refactor/contracts/index.md (C-7.1)
-     */
-    lastSongReferrer: null,
-    /**
      * US4 (FR-014): время последней успешной загрузки `authorTiles`. Используется
      * для правила «no-op, если < 30 с с последнего успеха И массив не пустой».
      * Снижает нагрузку на `/api/public/authors-tiles` для SPA-навигации
@@ -111,6 +98,7 @@ export default {
      * @see archive/docs/features/site-traffic-resilience.md (FR-014)
      */
     lastLoadedTilesAt: 0,
+    // (Спека 259: lastSongReferrer удалён — SongView читает authorId из SongPublicDto.authorId.)
   },
   getters: {
     authors: (state) => state.authors,
@@ -122,7 +110,6 @@ export default {
     streamError: (state) => state.streamError,
     lastLoadedTimestampByAuthor: (state) => state.lastLoadedTimestampByAuthor,
     lastLoadedTilesAt: (state) => state.lastLoadedTilesAt,
-    lastSongReferrer: (state) => state.lastSongReferrer,
   },
   mutations: {
     setAuthors(state, authors) {
@@ -154,13 +141,6 @@ export default {
         ...state.lastLoadedTimestampByAuthor,
         [author]: ts,
       }
-    },
-    /**
-     * specs/258: установка referrer-контекста для SongView back-link.
-     * @param {object|null} referrer — `{ type, id?, name? }` или `null` для сброса.
-     */
-    setLastSongReferrer(state, referrer) {
-      state.lastSongReferrer = referrer
     },
   },
   actions: {

@@ -447,24 +447,20 @@ export default {
     userId() {
       return this.user && this.user.id ? Number(this.user.id) : 0
     },
-    // specs/258-zakroma-routing-refactor US2: динамический back-link в шапке.
-    // Referrer берётся из Vuex store (`zakroma.lastSongReferrer`), а НЕ из URL —
-    // пользователь явно требует, чтобы URL /song?id=X НЕ содержал authorId.
-    // Referrer устанавливается в ZakromaView.mounted() при входе на /zakroma/:authorId
-    // или /zakroma/special-bucket.
+    // specs/259-playlist-clickable-links: динамический back-link в шапке.
+    // authorId приходит прямо в DTO песни (`SongPublicDto.authorId`, заполняется на бэке через
+    // Author.loadIdsByNames в PublicApiController.song()) — никаких referrer-костылей через
+    // Vuex store, никаких race в mounted. URL /song?id=X НЕ содержит authorId (контракт спеки 258).
     songHeaderBack() {
-      const referrer = this.$store?.state?.zakroma?.lastSongReferrer
-      if (referrer && referrer.type === 'zakroma-author' && referrer.id) {
+      const song = this.currentSong
+      if (song && song.authorId) {
         return {
           name: 'zakroma-author',
-          params: { authorId: String(referrer.id) },
-          label: referrer.name ? `← К песням «${referrer.name}»` : '← К песням автора',
+          params: { authorId: String(song.authorId) },
+          label: song.author ? `← К песням «${song.author}»` : '← К песням автора',
         }
       }
-      if (referrer && referrer.type === 'zakroma-special') {
-        return { to: '/zakroma/special-bucket', label: '← Отдельные песни' }
-      }
-      // Fallback: прямой переход на /song (без контекста из zakroma).
+      // Fallback: песня без authorId (автор удалён из tbl_authors или прямая ссылка без DTO).
       return { to: '/zakroma', label: '← В Закрома' }
     },
     showSelfAssignButton() {

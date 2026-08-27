@@ -288,6 +288,46 @@ class Author(
             ).firstOrNull()
 
         /**
+         * Загружает `Map<authorName, id>` для списка имён одним raw-SELECT'ом (с chunking по 100).
+         * Используется фронтом для резолвинга `name → id` в legacy redirect `/zakroma?author=X` → `/zakroma/:id`
+         * (specs/258-zakroma-routing-refactor, RT-1) и в `/api/public/authors-tiles` для обогащения DTO `id`.
+         *
+         * Без `loadList` overhead — нет создания объектов `Author`, нет storage вызовов. Только PK + author.
+         *
+         * @param names список имён авторов
+         * @param database подключение к БД
+         * @return `Map<author, id>` — только для найденных; авторы без записи в `tbl_authors` пропускаются
+         * @see specs/258-zakroma-routing-refactor/research.md (RT-1.A1)
+         */
+        fun loadIdsByNames(
+            names: List<String>,
+            database: KaraokeConnection,
+        ): Map<String, Long> {
+            if (names.isEmpty()) return emptyMap()
+            val result = mutableMapOf<String, Long>()
+            val connection = database.getConnection() ?: return result
+            names.chunked(100).forEach { chunk ->
+                val placeholders = chunk.joinToString(",") { "?" }
+                val sql = "SELECT id, author FROM $TABLE_NAME WHERE author IN ($placeholders)"
+                try {
+                    connection.prepareStatement(sql).use { ps ->
+                        chunk.forEachIndexed { i, name -> ps.setString(i + 1, name) }
+                        ps.executeQuery().use { rs ->
+                            while (rs.next()) {
+                                val id = rs.getLong("id")
+                                val author = rs.getString("author") ?: continue
+                                result[author] = id
+                            }
+                        }
+                    }
+                } catch (e: SQLException) {
+                    println("[${Timestamp.from(Instant.now())}] Author.loadIdsByNames SQLException: ${e.message}")
+                }
+            }
+            return result
+        }
+
+        /**
          * Ищет авторов, у которых term совпадает с реальным именем ЛИБО с одним из алиасов
          * (солист/участник группы). Лёгкий raw-SELECT только по tbl_authors — безопасно
          * вызывать и из karaoke-web (не создаёт полноценных сущностей Author, не трогает storage).

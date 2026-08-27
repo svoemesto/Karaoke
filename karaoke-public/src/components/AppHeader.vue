@@ -111,8 +111,18 @@ export default {
     return { theme, setTheme }
   },
   computed: {
+    // Поддерживает три формы `back`:
+    // 1. { to: '/path' }                  — простой path
+    // 2. { to: '/path', query: {...} }    — path + query
+    // 3. { name: 'route-name', params: {...}, query?: {...} }  — named route (specs/258-zakroma-routing-refactor US2)
     backRouteTo() {
       if (!this.back) return '/'
+      if (this.back.name) {
+        const target = { name: this.back.name }
+        if (this.back.params) target.params = this.back.params
+        if (this.back.query) target.query = this.back.query
+        return target
+      }
       if (this.back.query) {
         return { path: this.back.to, query: this.back.query }
       }
@@ -120,6 +130,12 @@ export default {
     },
     profileLinkRouteTo() {
       if (!this.profileLink) return '/'
+      if (this.profileLink.name) {
+        const target = { name: this.profileLink.name }
+        if (this.profileLink.params) target.params = this.profileLink.params
+        if (this.profileLink.query) target.query = this.profileLink.query
+        return target
+      }
       if (this.profileLink.query) {
         return { path: this.profileLink.to, query: this.profileLink.query }
       }

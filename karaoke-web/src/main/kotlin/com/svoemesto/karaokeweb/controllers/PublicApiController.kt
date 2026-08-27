@@ -43,6 +43,8 @@ import java.io.OutputStreamWriter
 import java.net.URI
 import java.nio.charset.StandardCharsets
 import java.nio.file.AtomicMoveNotSupportedException
+import java.sql.Timestamp
+import java.time.Instant
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 import java.util.concurrent.ConcurrentHashMap
@@ -287,12 +289,24 @@ class PublicApiController(
                 loadedAuthors.associateWith {
                     it in counts.keys && (isSpecialOrderFilter ?: false)
                 }
-            loadedAuthors.map {
-                AuthorTilePublicDto.fromAuthorName(
-                    author = it,
-                    songCount = counts[it] ?: 0L,
-                    isSpecialOrder = it in specialFlags && specialFlags[it] == true,
-                )
+            // specs/258-zakroma-routing-refactor (RT-1.A1): резолвим name → id одним запросом,
+            // чтобы фронт мог строить URL `/zakroma/:authorId(\\d+)` без дополнительных lookup-вызовов.
+            val authorIdsByName: Map<String, Long> = Author.loadIdsByNames(loadedAuthors, WORKING_DATABASE)
+            loadedAuthors.mapNotNull { authorName ->
+                val id = authorIdsByName[authorName]
+                if (id == null || id == 0L) {
+                    // Автор есть в Song.loadListAuthors, но не нашли запись в tbl_authors —
+                    // не отдаём `id=0` во фронт (мог бы вызвать 404 на `/zakroma/0`).
+                    println("[${Timestamp.from(Instant.now())}] PublicApiController.authorsTiles: автор '$authorName' без записи в tbl_authors, пропускаем")
+                    null
+                } else {
+                    AuthorTilePublicDto.fromAuthorName(
+                        id = id,
+                        author = authorName,
+                        songCount = counts[authorName] ?: 0L,
+                        isSpecialOrder = authorName in specialFlags && specialFlags[authorName] == true,
+                    )
+                }
             }
         }
     }

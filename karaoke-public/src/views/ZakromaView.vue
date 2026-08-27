@@ -554,9 +554,7 @@ export default {
     // specs/258-zakroma-routing-refactor: после рефакторинга URL автор идентифицируется
     // по :authorId в path. Резолвим ID → name через authorTiles (Vuex) и стартуем стрим.
     if (this.authorChosen && this.selectedAuthorId) {
-      const tile = this.authorTiles.find(
-        (t) => String(t.id) === String(this.selectedAuthorId),
-      )
+      const tile = this.authorTiles.find((t) => String(t.id) === String(this.selectedAuthorId))
       if (tile) {
         this.selectedAuthor = tile.author
         // Регистрируем referrer для SongView back-link (БЕЗ authorId в URL /song).

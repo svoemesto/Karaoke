@@ -145,9 +145,7 @@ router.beforeEach(async (to) => {
     const authorName = String(to.query.author)
     // Дедуп 30 сек внутри loadAuthorTiles — лишних HTTP-запросов не будет.
     await store.dispatch('zakroma/loadAuthorTiles', 'main')
-    const tile = store.state.zakroma?.authorTiles?.find(
-      (t) => t.author === authorName,
-    )
+    const tile = store.state.zakroma?.authorTiles?.find((t) => t.author === authorName)
     if (tile && tile.id) {
       return { path: `/zakroma/${tile.id}`, replace: true }
     }

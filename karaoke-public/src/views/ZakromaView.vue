@@ -1,66 +1,75 @@
 <template>
   <div class="km-page">
-    <!-- Хедер единый (spec 250) -->
-    <AppHeader :back="{ to: '/', label: '← Главная' }" />
+    <!-- Хедер единый (spec 250). Back-link — динамический (spec 254): при выбранном авторе
+         или специальной корзине → «← К списку авторов» → /zakroma; на странице выбора автора
+         → null (скрыт, шапка остаётся только с логотипом справа). -->
+    <AppHeader :back="zakromaHeaderBack" />
 
-    <!-- Быстрый фильтр по названию песни (только когда автор выбран) -->
-    <div v-if="authorChosen" class="km-filter-bar">
-      <div class="km-filter-inner">
-        <span class="km-filter-icon">🔎</span>
-        <input
-          v-model="songFilter"
-          type="text"
-          class="km-input km-filter-input"
-          placeholder="Быстрый фильтр по названию песни..."
-          @keydown.esc="songFilter = ''"
-        />
-        <button
-          v-if="songFilter"
-          type="button"
-          class="km-filter-clear"
-          title="Очистить"
-          @click="songFilter = ''"
-        >
-          ×
-        </button>
-      </div>
-    </div>
-
-    <!-- Переключатель сквозной/групповой + быстрые фильтры по типу альбома
-         (specs/012-entity-description-fields FR-023/024/025/026/027). Показывается только для
-         одного выбранного реального автора — у "спецзаказных"/множественных наборов эта шапка
-         не показывается (нет единого набора счётчиков типов). -->
-    <div v-if="authorChosen && zakromaAlbumTypeCounts.length > 0" class="km-album-controls-bar">
-      <div class="km-album-controls-inner">
-        <div class="km-theme-toggle km-album-mode-toggle">
+    <!-- Общая sticky-обёртка для быстрого фильтра и блока типов альбомов.
+         specs/252-fix-author-album-types-hide (FR-004): оба блока заключены в один контейнер
+         с position: sticky; top: 53px; z-index: 90, чтобы избежать overlap'а при одинаковом
+         `top` (см. tasks.md T007). Без обёртки блок `.km-album-controls-bar` выглядывал
+         из-под `.km-filter-bar` при скролле вниз. -->
+    <div v-if="authorChosen" class="km-author-header-sticky">
+      <!-- Быстрый фильтр по названию песни (только когда автор выбран) -->
+      <div class="km-filter-bar">
+        <div class="km-filter-inner">
+          <span class="km-filter-icon">🔎</span>
+          <input
+            v-model="songFilter"
+            type="text"
+            class="km-input km-filter-input"
+            placeholder="Быстрый фильтр по названию песни..."
+            @keydown.esc="songFilter = ''"
+          />
           <button
-            :class="['km-tb', albumDisplayMode === 'continuous' ? 'active' : '']"
-            title="Сквозной список"
-            @click="setAlbumDisplayMode('continuous')"
+            v-if="songFilter"
+            type="button"
+            class="km-filter-clear"
+            title="Очистить"
+            @click="songFilter = ''"
           >
-            Сквозной
-          </button>
-          <button
-            :class="['km-tb', albumDisplayMode === 'grouped' ? 'active' : '']"
-            title="По типам альбомов"
-            @click="setAlbumDisplayMode('grouped')"
-          >
-            По типам альбомов
+            ×
           </button>
         </div>
-        <div class="km-album-type-filters">
-          <button
-            v-for="summary in zakromaAlbumTypeCounts"
-            :key="summary.dbValue"
-            type="button"
-            :class="[
-              'km-album-type-filter-btn',
-              hiddenAlbumTypes.has(summary.dbValue) ? 'off' : '',
-            ]"
-            @click="toggleAlbumType(summary.dbValue)"
-          >
-            {{ summary.filterLabel }} ({{ summary.count }})
-          </button>
+      </div>
+
+      <!-- Переключатель сквозной/групповой + быстрые фильтры по типу альбома
+           (specs/012-entity-description-fields FR-023/024/025/026/027). Показывается только для
+           одного выбранного реального автора — у "спецзаказных"/множественных наборов эта шапка
+           не показывается (нет единого набора счётчиков типов). -->
+      <div v-if="zakromaAlbumTypeCounts.length > 0" class="km-album-controls-bar">
+        <div class="km-album-controls-inner">
+          <div class="km-theme-toggle km-album-mode-toggle">
+            <button
+              :class="['km-tb', albumDisplayMode === 'continuous' ? 'active' : '']"
+              title="Сквозной список"
+              @click="setAlbumDisplayMode('continuous')"
+            >
+              Сквозной
+            </button>
+            <button
+              :class="['km-tb', albumDisplayMode === 'grouped' ? 'active' : '']"
+              title="По типам альбомов"
+              @click="setAlbumDisplayMode('grouped')"
+            >
+              По типам альбомов
+            </button>
+          </div>
+          <div class="km-album-type-filters">
+            <button
+              v-for="summary in zakromaAlbumTypeCounts"
+              :key="summary.dbValue"
+              type="button"
+              :class="[
+                'km-album-type-filter-btn',
+                hiddenAlbumTypes.has(summary.dbValue) ? 'off' : '',
+              ]"
+              @click="toggleAlbumType(summary.dbValue)"
+            >
+              {{ summary.filterLabel }} ({{ summary.count }})
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -97,22 +106,8 @@
         </AuthorTiles>
       </div>
 
-      <button
-        v-if="authorChosen && !isSpecialBucketSelected"
-        type="button"
-        class="km-back-btn"
-        @click="backToAuthors"
-      >
-        ← К списку авторов
-      </button>
-      <button
-        v-if="isSpecialBucketSelected"
-        type="button"
-        class="km-back-btn"
-        @click="backToAuthors"
-      >
-        ← К списку авторов
-      </button>
+      <!-- In-page кнопки «← К списку авторов» удалены в spec 254 —
+           их функцию выполняет header-back-link в AppHeader (см. zakromaHeaderBack выше). -->
 
       <!-- 181: real-time progress meter (FR-FE-005, FR-FE-011) -->
       <div
@@ -501,6 +496,16 @@ export default {
       }
       return this.isStreaming
     },
+    /** Back-link для AppHeader (spec 254):
+     *  - null на странице выбора автора → header-back-link скрыт;
+     *  - { to: '/zakroma', label: '← К списку авторов' } при выбранном авторе или
+     *    специальной корзине → клик сбрасывает выбор через vue-router. */
+    zakromaHeaderBack() {
+      if (this.authorChosen || this.specialBucketShown) {
+        return { to: '/zakroma', label: '← К списку авторов' }
+      }
+      return null
+    },
   },
   watch: {
     // Готовность плеера подгружаем асинхронно, как только пришли данные закромов (и при их смене).
@@ -527,6 +532,25 @@ export default {
         )
         this.membership.load(ids)
       },
+    },
+    // Спек 255: vue-router при навигации /zakroma?author=X → /zakroma (тот же path,
+    // другой query) НЕ пересоздаёт инстанс компонента — `data()`-properties остаются
+    // со старыми значениями, и `v-if="authorChosen"` продолжает рендерить старое.
+    // Watcher синхронизирует data-state с URL:
+    //   - query.author стал пуст → снять выбор (header-back-link, browser back);
+    //   - query.author изменился на другой → перезагрузить стрим для нового автора.
+    '$route.query.author'(newAuthor) {
+      if (!newAuthor && this.authorChosen) {
+        this.selectedAuthor = ''
+        this.authorChosen = false
+        this.specialBucketShown = false
+        this.songFilter = ''
+      } else if (newAuthor && newAuthor !== this.selectedAuthor) {
+        this.selectedAuthor = newAuthor
+        this.authorChosen = true
+        this.songFilter = ''
+        this.loadZakromaStream({ author: newAuthor, expectedCount: undefined })
+      }
     },
   },
   mounted() {
@@ -734,11 +758,41 @@ export default {
 
 /* Хедер */
 
-/* Быстрый фильтр по названию песни — sticky-панель сразу под хедером */
-.km-filter-bar {
+/* Общая sticky-обёртка для быстрого фильтра и блока типов альбомов (FR-004, tasks.md T008).
+   Без неё два блока висели на одинаковом `top: 53px` и перекрывались по вертикали при скролле:
+   `.km-filter-bar` (z:90) рисовался поверх `.km-album-controls-bar` (z:89), и хвост блока
+   типов выглядывал из-под фильтра. Сейчас обёртка едет/прилипает единой полосой
+   (height = sum of inner), внутренние блоки — обычные flex-children без своего sticky. */
+.km-author-header-sticky {
   position: sticky;
-  top: 53px; /* высота .km-header: padding 0.5rem*2 + логотип 36px + border 1px */
+  /* Спека 253 (rev 2): top рассчитывается через breakpoints прямо здесь,
+     а не через var(--km-header-height), чтобы избежать edge-case'ов
+     cascade CSS-переменной через scoped CSS / границу между Vue-компонентами.
+     Глобальная `--km-header-height` в style.css оставлена для переиспользования
+     в других view (SearchView / AccountView и т.п.), но в этом правиле
+     мы её НЕ используем. Значения по breakpoint'ам:
+       default (> 700 px): 53 px
+       ≤ 700 px:           49 px
+       ≤ 500 px:           46 px
+     Sync с AppHeader.vue (padding + logo-height + 1 px border). */
+  top: 53px;
   z-index: 90;
+  background: var(--km-header);
+}
+@media (max-width: 700px) {
+  .km-author-header-sticky {
+    top: 49px;
+  }
+}
+@media (max-width: 500px) {
+  .km-author-header-sticky {
+    top: 46px;
+  }
+}
+
+/* Быстрый фильтр по названию песни. Sticky-обёртка в `.km-author-header-sticky` —
+   здесь только визуальные свойства (фон, рамка, padding). */
+.km-filter-bar {
   background: var(--km-header);
   border-bottom: 1px solid var(--km-border);
   padding: 0.5rem 1rem;
@@ -774,11 +828,9 @@ export default {
    (specs/012-entity-description-fields FR-023/024/025/026/027). Стили
    `.km-theme-toggle`/`.km-tb` (та же "таблетка", что в AppHeader) перенесены
    в scoped CSS, потому что album-mode-toggle переиспользует эти классы.
-   Sticky-панель — как `.km-filter-bar`. */
+   Sticky-поведение поднято на обёртку `.km-author-header-sticky` (см. tasks.md T008,
+   specs/252). */
 .km-album-controls-bar {
-  position: sticky;
-  top: 53px;
-  z-index: 89;
   background: var(--km-header);
   border-bottom: 1px solid var(--km-border);
   padding: 0.5rem 1rem;
@@ -954,29 +1006,6 @@ export default {
   border-radius: 14px;
   padding: 0.3rem 0.9rem;
   cursor: pointer;
-}
-
-/* Кнопка возврата к списку авторов */
-.km-back-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  margin-bottom: 1.25rem;
-  padding: 0.4rem 0.9rem;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--km-accent);
-  background: var(--km-card);
-  border: 1px solid var(--km-border);
-  border-radius: 8px;
-  cursor: pointer;
-  transition:
-    background 0.15s,
-    box-shadow 0.15s;
-}
-.km-back-btn:hover {
-  background: var(--km-hover);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 /* Блок автора */

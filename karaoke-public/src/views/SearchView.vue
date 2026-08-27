@@ -1,40 +1,7 @@
 <template>
   <div class="km-page">
-    <!-- Хедер -->
-    <header class="km-header">
-      <div class="km-header-inner">
-        <div class="km-header-left">
-          <RouterLink to="/" class="km-back">← Главная</RouterLink>
-          <a href="/"><img src="/KARAOKE_LOGO.png" class="km-logo" alt="Karaoke logo" /></a>
-        </div>
-        <div class="km-header-right">
-          <AuthStatusWidget />
-          <div class="km-theme-toggle">
-            <button
-              :class="['km-tb', theme === 'light' ? 'active' : '']"
-              title="Светлая"
-              @click="setTheme('light')"
-            >
-              ☀
-            </button>
-            <button
-              :class="['km-tb', theme === 'system' ? 'active' : '']"
-              title="Авто"
-              @click="setTheme('system')"
-            >
-              ⬡
-            </button>
-            <button
-              :class="['km-tb', theme === 'dark' ? 'active' : '']"
-              title="Тёмная"
-              @click="setTheme('dark')"
-            >
-              🌙
-            </button>
-          </div>
-        </div>
-      </div>
-    </header>
+    <!-- Хедер единый (spec 250) -->
+    <AppHeader :back="{ to: '/', label: '← Главная' }" />
 
     <div class="km-content">
       <!-- Форма поиска -->
@@ -215,8 +182,7 @@ import SongSubscriptionModal from '../components/SongSubscriptionModal.vue'
 import FavoriteIcon from '../components/FavoriteIcon.vue'
 import PlaylistIcon from '../components/PlaylistIcon.vue'
 import CartIcon from '../components/CartIcon.vue'
-import AuthStatusWidget from '../components/AuthStatusWidget.vue'
-import { useDesign } from '../composables/useDesign'
+import AppHeader from '../components/AppHeader.vue'
 import { useEngagementTracking } from '../composables/useEngagementTracking'
 import { usePlaylistMembership } from '../composables/usePlaylistMembership'
 import { useSongSubscriptions } from '../composables/useSongSubscriptions'
@@ -238,21 +204,14 @@ export default {
     FavoriteIcon,
     PlaylistIcon,
     CartIcon,
-    AuthStatusWidget,
+    AppHeader,
   },
   setup() {
     useEngagementTracking('search')
-    const { theme, applyTheme } = useDesign()
     const { user } = useAuth()
     const cart = useCart()
     cart.load()
-    function setTheme(val) {
-      theme.value = val
-      applyTheme(val)
-    }
     return {
-      theme,
-      setTheme,
       // Pass 239 (specs/239-zakroma-author-songs-batch-render): readiness больше НЕ догружается
       // per-row (это валило сайт на крупных авторах). PlayerIcon получает все данные через props.
       membership: usePlaylistMembership(),
@@ -382,74 +341,9 @@ export default {
   color: var(--km-text);
 }
 
-/* Хедер */
-.km-header {
-  background: var(--km-header);
-  border-bottom: 1px solid var(--km-border);
-  padding: 0.5rem 1rem;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
-.km-header-inner {
-  max-width: 1000px;
-  margin: 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.km-header-left {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-.km-back {
-  color: var(--km-accent);
-  text-decoration: none;
-  font-size: 0.85rem;
-  white-space: nowrap;
-}
-.km-back:hover {
-  text-decoration: underline;
-}
-.km-logo {
-  height: 36px;
-  width: auto;
-}
-.km-header-right {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-.km-theme-toggle {
-  display: flex;
-  border: 1px solid var(--km-border);
-  border-radius: 20px;
-  overflow: hidden;
-}
-.km-tb {
-  background: transparent;
-  color: var(--km-text2);
-  border: none;
-  padding: 0.2rem 0.55rem;
-  font-size: 0.95rem;
-  cursor: pointer;
-  transition:
-    background 0.15s,
-    color 0.15s;
-}
-.km-tb:hover {
-  background: var(--km-hover);
-  color: var(--km-text);
-}
-.km-tb.active {
-  background: var(--km-accent);
-  color: #fff;
-}
-
 /* Контент */
 .km-content {
-  max-width: 1000px;
+  max-width: 900px;
   margin: 0 auto;
   padding: 1.5rem 1rem;
 }

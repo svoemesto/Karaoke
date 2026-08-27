@@ -1,18 +1,22 @@
 <template>
   <div class="km-page ke-page">
-    <!-- Шапка -->
-    <header class="km-header ke-sticky-top">
-      <div class="ke-header-inner">
+    <!-- Шапка единая (spec 250) с кастомным центром/правым слотом для задания -->
+    <AppHeader>
+      <template #left>
         <RouterLink to="/account/editor" class="km-back">← Мои задания</RouterLink>
+      </template>
+      <template #center>
         <div class="ke-header-title">
           <template v-if="task">
             <span class="ke-h-song">{{ task.songName }}</span>
             <span class="ke-h-author">{{ task.author }}</span>
           </template>
         </div>
+      </template>
+      <template #right>
         <span v-if="task" class="ke-badge" :class="`ke-badge-${status}`">{{ statusLabel }}</span>
-      </div>
-    </header>
+      </template>
+    </AppHeader>
 
     <div v-if="loading" class="ke-empty">Загрузка задания…</div>
     <div v-else-if="loadError" class="ke-empty">{{ loadError }}</div>
@@ -337,6 +341,7 @@
 
 <script>
 import { fetchTask, saveTask, submitTask, recallTask } from '../services/songEditorApi'
+import AppHeader from '../components/AppHeader.vue'
 import { useAuth } from '../composables/useAuth'
 import { STATUS_LABELS } from '../composables/editorStatus'
 import { promisedXMLHttpRequest } from '../lib/utils'
@@ -415,6 +420,7 @@ const ALWAYS_ALLOWED_KEYS = new Set([
 
 export default {
   name: 'EditorWorkView',
+  components: { AppHeader },
   setup() {
     const { token, user, fetchMe } = useAuth()
     return { token, user, fetchMe }
@@ -1350,32 +1356,6 @@ export default {
   background: var(--km-bg);
   color: var(--km-text);
   padding-bottom: 5rem;
-}
-.km-header {
-  background: var(--km-header);
-  border-bottom: 1px solid var(--km-border);
-  padding: 0.5rem 1rem;
-}
-.ke-sticky-top {
-  position: sticky;
-  top: 0;
-  z-index: 20;
-}
-.ke-header-inner {
-  max-width: 900px;
-  margin: 0 auto;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-.km-back {
-  color: var(--km-accent);
-  text-decoration: none;
-  font-size: 0.85rem;
-  white-space: nowrap;
-}
-.km-back:hover {
-  text-decoration: underline;
 }
 .ke-header-title {
   flex: 1;

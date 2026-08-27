@@ -1,13 +1,7 @@
 <template>
   <div class="km-page">
-    <header class="km-header">
-      <div class="km-header-inner">
-        <div class="km-header-left">
-          <RouterLink to="/" class="km-back">← Главная</RouterLink>
-          <a href="/"><img src="/KARAOKE_LOGO.png" class="km-logo" alt="Karaoke logo" /></a>
-        </div>
-      </div>
-    </header>
+    <!-- Хедер единый (spec 250) -->
+    <AppHeader :back="{ to: '/', label: '← Главная' }" />
 
     <div class="km-content">
       <h1 class="km-title">Подписка</h1>
@@ -194,6 +188,7 @@ import { useAuth } from '../composables/useAuth'
 import { useSiteSubscription } from '../composables/useSiteSubscription'
 import { authGet } from '../services/authApi'
 import { trackUi } from '../services/tracking'
+import AppHeader from '../components/AppHeader.vue'
 
 // Таблица «FREE vs PREMIUM» (QW-1). Список согласован построчно с реальным кодом —
 // см. specs/005-free-vs-premium/research.md Decision 1 (12 предложенных строк → 9
@@ -232,6 +227,7 @@ const COMPARISON_ROWS = [
 
 export default {
   name: 'PremiumView',
+  components: { AppHeader },
   setup() {
     const { isLoggedIn, user } = useAuth()
     const {
@@ -339,33 +335,8 @@ export default {
   background: var(--km-bg);
   color: var(--km-text);
 }
-.km-header {
-  background: var(--km-header);
-  border-bottom: 1px solid var(--km-border);
-  padding: 0.5rem 1rem;
-}
-.km-header-inner {
-  max-width: 700px;
-  margin: 0 auto;
-  display: flex;
-  align-items: center;
-}
-.km-header-left {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-.km-back {
-  color: var(--km-accent);
-  text-decoration: none;
-  font-size: 0.85rem;
-}
-.km-logo {
-  height: 36px;
-  width: auto;
-}
 .km-content {
-  max-width: 600px;
+  max-width: 900px;
   margin: 0 auto;
   padding: 2rem 1rem;
 }

@@ -1,37 +1,7 @@
 <template>
   <div class="km-home">
-    <!-- Хедер с переключателями -->
-    <header class="km-header">
-      <div class="km-header-inner">
-        <img src="/KARAOKE_LOGO.png" class="km-brand-logo" alt="Своё Место" />
-        <div class="km-controls">
-          <AuthStatusWidget />
-          <div class="km-toggle-group km-theme-toggle" title="Тема">
-            <button
-              :class="['km-toggle-btn', theme === 'light' ? 'active' : '']"
-              title="Светлая"
-              @click="setTheme('light')"
-            >
-              ☀
-            </button>
-            <button
-              :class="['km-toggle-btn', theme === 'system' ? 'active' : '']"
-              title="Авто"
-              @click="setTheme('system')"
-            >
-              ⬡
-            </button>
-            <button
-              :class="['km-toggle-btn', theme === 'dark' ? 'active' : '']"
-              title="Тёмная"
-              @click="setTheme('dark')"
-            >
-              🌙
-            </button>
-          </div>
-        </div>
-      </div>
-    </header>
+    <!-- Хедер единый (spec 250) — тема только на главной -->
+    <AppHeader :show-theme-toggle="true" />
 
     <!-- Hero -->
     <main class="km-main">
@@ -138,9 +108,8 @@
  */
 import { mapGetters, mapActions } from 'vuex'
 import SvgIcon from '../components/SvgIcon.vue'
-import AuthStatusWidget from '../components/AuthStatusWidget.vue'
+import AppHeader from '../components/AppHeader.vue'
 import LatestNewsSection from '../components/LatestNewsSection.vue'
-import { useDesign } from '../composables/useDesign'
 import { useEngagementTracking } from '../composables/useEngagementTracking'
 import { trackLinkToSocialNetwork } from '../services/tracking'
 
@@ -174,15 +143,9 @@ const socialLinks = [
  */
 export default {
   name: 'HomeView',
-  components: { SvgIcon, AuthStatusWidget, LatestNewsSection },
+  components: { SvgIcon, AppHeader, LatestNewsSection },
   setup() {
     useEngagementTracking('home')
-    const { theme, applyTheme } = useDesign()
-    function setTheme(val) {
-      theme.value = val
-      applyTheme(val)
-    }
-    return { theme, setTheme }
   },
   data() {
     return { socialLinks }
@@ -222,69 +185,10 @@ export default {
   flex-direction: column;
 }
 
-/* Хедер */
-.km-header {
-  background: var(--km-header);
-  border-bottom: 1px solid var(--km-border);
-  padding: 0.6rem 1rem;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
-.km-header-inner {
-  max-width: 700px;
-  margin: 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-.km-brand-logo {
-  height: 32px;
-  width: auto;
-}
-.km-controls {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-/* Pill-toggle */
-.km-toggle-group {
-  display: flex;
-  border: 1px solid var(--km-border);
-  border-radius: 20px;
-  overflow: hidden;
-}
-.km-toggle-btn {
-  background: transparent;
-  color: var(--km-text2);
-  border: none;
-  padding: 0.25rem 0.75rem;
-  font-size: 0.8rem;
-  cursor: pointer;
-  transition:
-    background 0.15s,
-    color 0.15s;
-}
-.km-toggle-btn:hover {
-  background: var(--km-hover);
-  color: var(--km-text);
-}
-.km-toggle-btn.active {
-  background: var(--km-accent);
-  color: #fff;
-}
-.km-theme-toggle .km-toggle-btn {
-  padding: 0.25rem 0.6rem;
-  font-size: 1rem;
-}
-
 /* Основной контент */
 .km-main {
   flex: 1;
-  max-width: 700px;
+  max-width: 900px;
   margin: 0 auto;
   padding: 2rem 1rem 3rem;
   width: 100%;
@@ -352,10 +256,17 @@ export default {
 /* Навигационные карточки */
 .km-nav-cards {
   display: grid;
-  /* auto-fit + minmax: 5 карточек адаптивно: 3+2 на десктопе, 2+2+1 на планшете, 1 столбец на мобильном. */
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  /* Спека 250: 3 карточки в первой строке (Закрома, Поиск песен, Избранное и плейлисты),
+     2 карточки во второй (Премиум-подписка, О проекте). На узких экранах — по 1 в строке. */
+  grid-template-columns: repeat(3, 1fr);
   gap: 1rem;
   margin-bottom: 2.5rem;
+}
+.km-nav-cards > :nth-child(4) {
+  grid-column: 1 / 2;
+}
+.km-nav-cards > :nth-child(5) {
+  grid-column: 2 / 3;
 }
 .km-nav-card {
   display: block;
@@ -434,11 +345,12 @@ export default {
   .km-nav-cards {
     grid-template-columns: 1fr;
   }
+  .km-nav-cards > :nth-child(4),
+  .km-nav-cards > :nth-child(5) {
+    grid-column: auto;
+  }
   .km-stat-number {
     font-size: 1.5rem;
-  }
-  .km-controls {
-    gap: 0.4rem;
   }
 }
 </style>

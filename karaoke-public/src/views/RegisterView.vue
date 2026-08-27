@@ -1,13 +1,7 @@
 <template>
   <div class="km-page">
-    <header class="km-header">
-      <div class="km-header-inner">
-        <div class="km-header-left">
-          <RouterLink to="/" class="km-back">← Главная</RouterLink>
-          <a href="/"><img src="/KARAOKE_LOGO.png" class="km-logo" alt="Karaoke logo" /></a>
-        </div>
-      </div>
-    </header>
+    <!-- Хедер единый (spec 250) -->
+    <AppHeader :back="{ to: '/', label: '← Главная' }" />
 
     <div class="km-content">
       <div class="km-form-card">
@@ -53,6 +47,7 @@
 <script>
 import { authGet, authPost } from '../services/authApi'
 import { useAuth } from '../composables/useAuth'
+import AppHeader from '../components/AppHeader.vue'
 
 const CAPTCHA_SCRIPT_SRC = 'https://smartcaptcha.yandexcloud.net/captcha.js'
 
@@ -64,6 +59,7 @@ const CAPTCHA_SCRIPT_SRC = 'https://smartcaptcha.yandexcloud.net/captcha.js'
 
 export default {
   name: 'RegisterView',
+  components: { AppHeader },
   setup() {
     const { setSession } = useAuth()
     return { setSession }
@@ -197,36 +193,6 @@ export default {
   min-height: 100vh;
   background: var(--km-bg);
   color: var(--km-text);
-}
-.km-header {
-  background: var(--km-header);
-  border-bottom: 1px solid var(--km-border);
-  padding: 0.5rem 1rem;
-}
-.km-header-inner {
-  max-width: 1000px;
-  margin: 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.km-header-left {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-.km-back {
-  color: var(--km-accent);
-  text-decoration: none;
-  font-size: 0.85rem;
-  white-space: nowrap;
-}
-.km-back:hover {
-  text-decoration: underline;
-}
-.km-logo {
-  height: 36px;
-  width: auto;
 }
 
 .km-content {

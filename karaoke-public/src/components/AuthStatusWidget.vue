@@ -1,16 +1,17 @@
 <template>
   <div class="km-auth-widget">
-    <RouterLink to="/news" class="km-auth-link">Новости</RouterLink>
+    <RouterLink to="/news" class="km-auth-link km-auth-link-news">Новости</RouterLink>
     <template v-if="isLoggedIn">
       <RouterLink to="/account" class="km-auth-link">
         <span v-if="isPremium" class="km-premium-badge" title="Премиум-подписчик">🪙</span
         >{{ displayName }}
       </RouterLink>
-      <RouterLink to="/account/playlists" class="km-auth-link">Плейлисты</RouterLink>
-      <RouterLink to="/account/cart" class="km-auth-link"
-        >🛒<span v-if="cartCount > 0" class="km-cart-count">{{ cartCount }}</span></RouterLink
+      <RouterLink to="/account/playlists" class="km-auth-link km-auth-link-playlists">Плейлисты</RouterLink>
+      <!-- Корзино показываем только если в ней что-то есть (spec 250). -->
+      <RouterLink v-if="cartCount > 0" to="/account/cart" class="km-auth-link"
+        >🛒<span class="km-cart-count">{{ cartCount }}</span></RouterLink
       >
-      <button class="km-auth-btn" @click="onLogout">Выйти</button>
+      <!-- Выйти — перенесён в личный кабинет (spec 250, /account). -->
     </template>
     <template v-else>
       <RouterLink to="/login" class="km-auth-link">Войти</RouterLink>
@@ -22,21 +23,35 @@
 <script>
 import { useAuth } from '../composables/useAuth'
 import { useCart } from '../composables/useCart'
-import { authPost } from '../services/authApi'
 
 /**
- * Компонент «Auth Status Widget».
+ * Компонент «Auth Status Widget» — набор ссылок для авторизованного/анонимного
+ * пользователя в правом слоте `<AppHeader>` (spec 250).
  *
- * @see AGENTS.md
+ * Состав:
+ * - Ссылка «Новости» (всегда).
+ * - Для залогиненного: имя (с 🪙-бейджем если премиум), «Плейлисты»,
+ *   🛒 (только если в корзине что-то есть).
+ * - Для анонима: «Войти», «Регистрация».
+ *
+ * Кнопка «Выйти» намеренно отсутствует — перенесена в личный кабинет
+ * (`AccountView.onLogout`) по запросу (spec 250, шапка).
+ *
+ * Live-логика premium (LiveDoc `162-fix-header-stale-premium-status`)
+ * — реактивность на `auth.isPremium` через `usePremiumLiveSync`.
+ *
+ * @see specs/250-unify-site-header FR-001..FR-016
+ * @see livedocs/features/250-unify-site-header
+ * @see livedocs/features/162-fix-header-stale-premium-status
  */
 
 export default {
   name: 'AuthStatusWidget',
   setup() {
-    const { user, token, isLoggedIn, clearSession } = useAuth()
+    const { user, isLoggedIn } = useAuth()
     const { count: cartCount, load: loadCart } = useCart()
     if (isLoggedIn.value) loadCart()
-    return { user, token, isLoggedIn, clearSession, cartCount }
+    return { user, isLoggedIn, cartCount }
   },
   computed: {
     displayName() {
@@ -44,19 +59,6 @@ export default {
     },
     isPremium() {
       return !!(this.user && this.user.effectivePremium)
-    },
-  },
-  methods: {
-    async onLogout() {
-      const currentToken = this.token
-      this.clearSession()
-      if (currentToken) {
-        try {
-          await authPost('/api/public/auth/logout', {}, currentToken)
-        } catch (e) {
-          /* сессия уже очищена локально */
-        }
-      }
     },
   },
 }
@@ -78,6 +80,13 @@ export default {
   color: var(--km-text);
   text-decoration: underline;
 }
+/* Узкие экраны (≤ 700px): «Новости» и «Плейлисты» прячем — не помещаются. */
+@media (max-width: 700px) {
+  .km-auth-link-news,
+  .km-auth-link-playlists {
+    display: none;
+  }
+}
 .km-auth-accent {
   color: var(--km-accent);
   font-weight: 600;
@@ -95,18 +104,5 @@ export default {
   padding: 0 0.35em;
   margin-left: 0.2em;
   vertical-align: top;
-}
-.km-auth-btn {
-  background: transparent;
-  border: 1px solid var(--km-border);
-  color: var(--km-text2);
-  border-radius: 8px;
-  padding: 0.25rem 0.6rem;
-  font-size: 0.8rem;
-  cursor: pointer;
-}
-.km-auth-btn:hover {
-  background: var(--km-hover);
-  color: var(--km-text);
 }
 </style>

@@ -1,14 +1,10 @@
 <template>
   <div class="km-page">
-    <header class="km-header">
-      <div class="km-header-inner">
-        <div class="km-header-left">
-          <RouterLink to="/" class="km-back">← Главная</RouterLink>
-          <a href="/"><img src="/KARAOKE_LOGO.png" class="km-logo" alt="Karaoke logo" /></a>
-        </div>
-        <RouterLink to="/account" class="km-back">Профиль →</RouterLink>
-      </div>
-    </header>
+    <!-- Хедер единый (spec 250) -->
+    <AppHeader
+      :back="{ to: '/', label: '← Главная' }"
+      :profile-link="{ to: '/account', label: 'Профиль →' }"
+    />
 
     <div class="km-body">
       <LoginRequired
@@ -95,6 +91,7 @@
 import LoginRequired from '../components/LoginRequired.vue'
 import { useAuth } from '../composables/useAuth'
 import { fetchMessages, sendMessage } from '../services/chatApi'
+import AppHeader from '../components/AppHeader.vue'
 
 const POLL_INTERVAL_MS = 7000
 const PAGE_SIZE = 10
@@ -108,7 +105,7 @@ const POLL_BATCH_LIMIT = 500 // защита от аномального зал�
 
 export default {
   name: 'ChatView',
-  components: { LoginRequired },
+  components: { LoginRequired , AppHeader },
   setup() {
     const { user, isLoggedIn } = useAuth()
     return { user, isLoggedIn }
@@ -268,37 +265,6 @@ export default {
   background: var(--km-bg);
   color: var(--km-text);
 }
-.km-header {
-  flex-shrink: 0;
-  background: var(--km-header);
-  border-bottom: 1px solid var(--km-border);
-  padding: 0.5rem 1rem;
-}
-.km-header-inner {
-  max-width: 700px;
-  margin: 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.km-header-left {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-.km-back {
-  color: var(--km-accent);
-  text-decoration: none;
-  font-size: 0.85rem;
-  white-space: nowrap;
-}
-.km-back:hover {
-  text-decoration: underline;
-}
-.km-logo {
-  height: 36px;
-  width: auto;
-}
 
 .km-body {
   flex: 1;
@@ -312,7 +278,7 @@ export default {
   flex: 1;
   min-height: 0;
   width: 100%;
-  max-width: 700px;
+  max-width: 900px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;

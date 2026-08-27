@@ -1,40 +1,7 @@
 <template>
   <div class="km-page">
-    <!-- Хедер -->
-    <header class="km-header">
-      <div class="km-header-inner">
-        <div class="km-header-left">
-          <RouterLink to="/zakroma" class="km-back">← Назад</RouterLink>
-          <a href="/"><img src="/KARAOKE_LOGO.png" class="km-logo" alt="Karaoke logo" /></a>
-        </div>
-        <div class="km-header-right">
-          <AuthStatusWidget />
-          <div class="km-theme-toggle">
-            <button
-              :class="['km-tb', theme === 'light' ? 'active' : '']"
-              title="Светлая"
-              @click="setTheme('light')"
-            >
-              ☀
-            </button>
-            <button
-              :class="['km-tb', theme === 'system' ? 'active' : '']"
-              title="Авто"
-              @click="setTheme('system')"
-            >
-              ⬡
-            </button>
-            <button
-              :class="['km-tb', theme === 'dark' ? 'active' : '']"
-              title="Тёмная"
-              @click="setTheme('dark')"
-            >
-              🌙
-            </button>
-          </div>
-        </div>
-      </div>
-    </header>
+    <!-- Хедер единый (spec 250) -->
+    <AppHeader :back="{ to: '/zakroma', label: '← Назад' }" />
 
     <!-- Загрузка -->
     <div v-if="currentSongIsLoading" class="km-loading">Загрузка...</div>
@@ -345,12 +312,10 @@
 <script>
 import { useRoute } from 'vue-router'
 import { mapGetters, mapActions } from 'vuex'
-import AuthStatusWidget from '../components/AuthStatusWidget.vue'
 import FavoriteIcon from '../components/FavoriteIcon.vue'
 import PlaylistIcon from '../components/PlaylistIcon.vue'
 import ShareButton from '../components/ShareButton.vue'
 import ShareLinkButton from '../components/ShareLinkButton.vue'
-import { useDesign } from '../composables/useDesign'
 import { useEngagementTracking } from '../composables/useEngagementTracking'
 import { useAuth } from '../composables/useAuth'
 import { usePlayerAccess } from '../composables/usePlayerAccess'
@@ -360,6 +325,7 @@ import { pluralDays } from '../utils/pluralRu'
 import SongSubscriptionModal from '../components/SongSubscriptionModal.vue'
 import { useCart } from '../composables/useCart'
 import { assignSelf as apiAssignSelf } from '../services/songEditorApi'
+import AppHeader from '../components/AppHeader.vue'
 
 /**
  * Публичная страница песни (`/song?id=...`).
@@ -387,26 +353,22 @@ import { assignSelf as apiAssignSelf } from '../services/songEditorApi'
 export default {
   name: 'SongView',
   components: {
-    AuthStatusWidget,
     SongSubscriptionModal,
     FavoriteIcon,
     PlaylistIcon,
     ShareButton,
     ShareLinkButton,
+    AppHeader,
   },
   setup() {
     const route = useRoute()
     useEngagementTracking('song', () => route.query.id)
-    const { theme, applyTheme } = useDesign()
-    function setTheme(val) {
-      theme.value = val
-      applyTheme(val)
-    }
     const { isLoggedIn, user } = useAuth()
     const playerAccess = usePlayerAccess()
     const cart = useCart()
     const playlistMembership = usePlaylistMembership()
-    return { theme, setTheme, isLoggedIn, user, playerAccess, cart, playlistMembership }
+    cart.load()
+    return { isLoggedIn, user, playerAccess, cart, playlistMembership }
   },
   data() {
     return {
@@ -646,69 +608,6 @@ export default {
 }
 
 /* Хедер */
-.km-header {
-  background: var(--km-header);
-  border-bottom: 1px solid var(--km-border);
-  padding: 0.5rem 1rem;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
-.km-header-inner {
-  max-width: 900px;
-  margin: 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.km-header-left {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-.km-back {
-  color: var(--km-accent);
-  text-decoration: none;
-  font-size: 0.85rem;
-  white-space: nowrap;
-}
-.km-back:hover {
-  text-decoration: underline;
-}
-.km-logo {
-  height: 36px;
-  width: auto;
-}
-.km-header-right {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-.km-theme-toggle {
-  display: flex;
-  border: 1px solid var(--km-border);
-  border-radius: 20px;
-  overflow: hidden;
-}
-.km-tb {
-  background: transparent;
-  color: var(--km-text2);
-  border: none;
-  padding: 0.2rem 0.55rem;
-  font-size: 0.95rem;
-  cursor: pointer;
-  transition:
-    background 0.15s,
-    color 0.15s;
-}
-.km-tb:hover {
-  background: var(--km-hover);
-  color: var(--km-text);
-}
-.km-tb.active {
-  background: var(--km-accent);
-  color: #fff;
-}
 
 /* Loading / not found */
 .km-loading,

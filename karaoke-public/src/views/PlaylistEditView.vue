@@ -148,7 +148,8 @@
                     v-if="item.author && authorIdFor(item.author)"
                     :to="{ name: 'zakroma-author', params: { authorId: authorIdFor(item.author) } }"
                     class="km-song-author-link"
-                  >{{ item.author }}</router-link>
+                    >{{ item.author }}</router-link
+                  >
                   <span v-else-if="item.author">{{ item.author }}</span>
                   <span v-if="(item.year && item.year > 0) || item.album"> - </span>
                   <span v-if="item.year && item.year > 0">{{ item.year }}</span>

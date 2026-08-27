@@ -448,10 +448,10 @@ export default {
       return this.user && this.user.id ? Number(this.user.id) : 0
     },
     // specs/259-playlist-clickable-links: динамический back-link в шапке.
-// authorId приходит прямо в DTO песни (`SongPublicDto.authorId`, заполняется на бэке через
-// Author.loadIdsByNames в PublicApiController.song()) — никаких referrer-костылей через
-// Vuex store, никаких race в mounted. URL /song?id=X НЕ содержит authorId (контракт спеки 258).
-songHeaderBack() {
+    // authorId приходит прямо в DTO песни (`SongPublicDto.authorId`, заполняется на бэке через
+    // Author.loadIdsByNames в PublicApiController.song()) — никаких referrer-костылей через
+    // Vuex store, никаких race в mounted. URL /song?id=X НЕ содержит authorId (контракт спеки 258).
+    songHeaderBack() {
       const song = this.currentSong
       if (song && song.authorId) {
         return {

@@ -545,6 +545,10 @@ export default {
     // После рефакторинга URL состояние определяется path, а не query — vue-router пересоздаёт
     // инстанс компонента при смене path (в т.ч. /zakroma → /zakroma/123 → /zakroma), data()
     // вызывается заново, authorChosen/songFilter инициализируются корректно. Watcher больше не нужен.
+    //
+    // (Спека 259 ранее добавляла watcher на $route.fullPath для страховки lastSongReferrer, но
+    // после введения SongPublicDto.authorId на бэке этот referrer больше никем не читается —
+    // SongView.songHeaderBack() берёт authorId прямо из currentSong. См. PublicApiController.song().)
   },
   mounted() {
     // Основной каталог: scope='main' — авторы БЕЗ is_special_order=true.
@@ -557,12 +561,9 @@ export default {
       const tile = this.authorTiles.find((t) => String(t.id) === String(this.selectedAuthorId))
       if (tile) {
         this.selectedAuthor = tile.author
-        // Регистрируем referrer для SongView back-link (БЕЗ authorId в URL /song).
-        this.$store.commit('zakroma/setLastSongReferrer', {
-          type: 'zakroma-author',
-          id: String(tile.id),
-          name: tile.author,
-        })
+        // Спека 258 (ранее): регистрация referrer для SongView back-link. Спека 259 убрала —
+        // SongView.songHeaderBack() теперь читает authorId прямо из SongPublicDto.authorId,
+        // который заполняется на бэке через Author.loadIdsByNames, см. PublicApiController.song().
         this.loadZakromaStream({
           author: tile.author,
           expectedCount: tile.songCount || undefined,
@@ -571,19 +572,10 @@ export default {
         // Автор с таким ID не найден в authorTiles (удалён?) — сбрасываем на тайты.
         this.authorChosen = false
         this.selectedAuthorId = ''
-        this.$store.commit('zakroma/setLastSongReferrer', null)
         if (typeof this.notify === 'function') {
           this.notify(`Автор с ID=${this.selectedAuthorId} не найден`, 'warning')
         }
       }
-    } else if (this.specialBucketShown) {
-      // Спец-корзина — тоже валидный referrer для back-link в SongView.
-      this.$store.commit('zakroma/setLastSongReferrer', {
-        type: 'zakroma-special',
-      })
-    } else {
-      // Тайтлы (без выбранного автора) — сбрасываем referrer.
-      this.$store.commit('zakroma/setLastSongReferrer', null)
     }
     // specs/258 — обновляем заголовок вкладки после async-резолвинга ID → имя.
     this.updateDocumentTitle()
@@ -741,6 +733,9 @@ export default {
       const tile = (this.authorTiles || []).find((t) => t.author === author)
       const expectedCount = tile ? tile.songCount : undefined
       this.loadZakromaStream({ author, expectedCount })
+      // Спека 259: ранее здесь ставился lastSongReferrer — но SongView.songHeaderBack() теперь
+      // берёт authorId прямо из SongPublicDto.authorId (заполняется в PublicApiController.song()),
+      // lastSongReferrer больше никем не читается.
     },
     retryLoadZakroma() {
       // FR-FE-001: повторный запуск после ошибки.

@@ -127,13 +127,29 @@
               <div v-else class="km-song-author km-song-author-fallback" aria-hidden="true">👤</div>
             </div>
             <div class="km-song-info">
-              <div class="km-song-title">{{ item.songName || 'Песня #' + item.songId }}</div>
+              <!-- Спека 259 (FR-001): название песни — кликабельная ссылка на /song?id=<id>.
+                   <router-link> рендерит <a href>, нативная поддержка Ctrl+клик / средней кнопки
+                   (FR-005). НЕ запускает встроенный плеер — это просто SPA-навигация (FR-004). -->
+              <router-link
+                :to="{ name: 'song', query: { id: item.songId } }"
+                class="km-song-title-link"
+              >
+                {{ item.songName || 'Песня #' + item.songId }}
+              </router-link>
               <div class="km-song-sub">
                 <!-- Шаблон подписи: "Автор - год, альбом" (пользователь уточнил 2026-08-14).
                      Год подставляется только если > 0; альбом — только если непустой.
                      Разделитель " - " показывается, только если есть хотя бы год или альбом. -->
                 <template v-if="item.author || item.album">
-                  <span v-if="item.author">{{ item.author }}</span>
+                  <!-- Спека 259 (FR-002, FR-006): имя автора — ссылка на /zakroma/<authorId>.
+                       Резолв через кэш `authorTiles`; если автора нет в кэше (Edge Case:
+                       удалён из БД) — fallback на обычный <span>, без ссылки и без ошибки. -->
+                  <router-link
+                    v-if="item.author && authorIdFor(item.author)"
+                    :to="{ name: 'zakroma-author', params: { authorId: authorIdFor(item.author) } }"
+                    class="km-song-author-link"
+                  >{{ item.author }}</router-link>
+                  <span v-else-if="item.author">{{ item.author }}</span>
                   <span v-if="(item.year && item.year > 0) || item.album"> - </span>
                   <span v-if="item.year && item.year > 0">{{ item.year }}</span>
                   <span v-if="item.year && item.year > 0 && item.album">, </span>
@@ -185,6 +201,7 @@
 <script>
 import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute } from 'vue-router'
+import { useStore } from 'vuex'
 import draggable from 'vuedraggable'
 import { fetchPlayerToken } from '../services/playerLauncher'
 import {
@@ -213,6 +230,26 @@ export default {
     const route = useRoute()
     const readiness = usePlayerReadiness()
     const { isLoggedIn } = useAuth()
+    const store = useStore()
+    /**
+     * Спека 259 (FR-006): плоский список тайлов авторов из Vuex-стора `zakroma`.
+     * Используется для резолва `item.author` (имя) → `authorId` (числовой ID) для
+     * построения ссылки на «Закрома автора». Никаких новых HTTP-запросов — кэш уже
+     * заполняется на роутинге /zakroma/* (см. router/index.js:147).
+     */
+    const authorTiles = computed(() => store.state.zakroma?.authorTiles || [])
+    /**
+     * Резолв имени автора в числовой authorId (строка — для path-параметра роута).
+     * Возвращает `null` если автор отсутствует в кэше (Edge Case: удалён из БД) —
+     * в этом случае имя рендерится как обычный текст без ссылки (FR-006 + Edge Case).
+     * @param {string} name имя автора (`item.author`)
+     * @returns {string|null} authorId как строка или null
+     */
+    function authorIdFor(name) {
+      if (!name) return null
+      const tile = authorTiles.value.find((t) => t && t.author === name)
+      return tile && tile.id != null ? String(tile.id) : null
+    }
 
     const id = Number(route.params.id)
     const loading = ref(true)
@@ -529,6 +566,19 @@ export default {
         return
       }
       window.addEventListener('message', onMessage)
+      // Спека 259 (FR-006): гарантируем наличие кэша `authorTiles` к моменту рендера строк —
+      // иначе имя автора в первой отрисовке будет обычным текстом (Edge Case). Дедуп 30 с
+      // внутри action не плодит лишних запросов (см. store/modules/zakroma.js:183).
+      // back-link из SongView больше отсюда НЕ обслуживается — SongPublicDto.authorId приходит
+      // прямо из бэка, см. PublicApiController.song().
+      if (authorTiles.value.length === 0) {
+        try {
+          await store.dispatch('zakroma/loadAuthorTiles', 'main')
+        } catch (e) {
+          // Тихо: если tiles не загрузились, имя автора просто не станет ссылкой —
+          // страница всё равно работает. Не валим основной сценарий.
+        }
+      }
       await load()
     })
     onBeforeUnmount(() => {
@@ -571,6 +621,9 @@ export default {
       onReorder,
       toggleMute,
       removeItem,
+      // Спека 259: кликабельные название песни (FR-001) и автор (FR-002).
+      authorTiles,
+      authorIdFor,
     }
   },
 }
@@ -868,6 +921,35 @@ export default {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+/* Спека 259 (FR-001, FR-002, FR-007, FR-011): кликабельные название песни и автор
+   в строке плейлиста. display:block — чтобы overflow-обрезка текста работала
+   в <router-link> (он рендерит <a>, у которого по умолчанию display:inline).
+   Цвет — из существующей CSS-переменной (--km-accent), работает в обоих дизайнах
+   (classic/modern). Underline только по hover/focus — не агрессивный
+   визуальный шум в покое. */
+.km-song-title-link,
+.km-song-author-link {
+  display: block;
+  color: var(--km-accent, #0077ff);
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.km-song-title-link {
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+.km-song-author-link {
+  font-size: 0.76rem;
+}
+.km-song-title-link:hover,
+.km-song-title-link:focus-visible,
+.km-song-author-link:hover,
+.km-song-author-link:focus-visible {
+  text-decoration: underline;
+  outline: none;
 }
 .km-song-sub {
   font-size: 0.76rem;

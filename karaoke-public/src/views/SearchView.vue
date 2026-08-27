@@ -134,7 +134,7 @@
           </div>
           <div class="km-card-top">
             <span class="km-card-track">{{ sett.track }}</span>
-            <RouterLink :to="{ path: '/song', query: { id: sett.id } }" class="km-card-title">{{
+<RouterLink :to="{ path: '/song', query: { id: sett.id } }" class="km-card-title">{{
               sett.songName
             }}</RouterLink>
             <CartIcon v-if="showCartIcon(sett)" :song-id="sett.id" />

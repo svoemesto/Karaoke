@@ -400,12 +400,20 @@ export default {
     }
   },
   data() {
+    // specs/258-zakroma-routing-refactor: после рефакторинга URL состояние view определяется
+    // path, а не query — vue-router пересоздаёт компонент при смене path, data() вызывается заново.
+    const isSpecialBucketRoute = this.$route.path === '/zakroma/special-bucket'
+    const authorIdParam = this.$route.params.authorId
+    const hasAuthor = !!authorIdParam && /^\d+$/.test(authorIdParam)
     return {
-      selectedAuthor: this.$route.query.author || '',
+      // ID автора из path-segment (или '' если тайты/спец-корзина).
+      selectedAuthorId: hasAuthor ? authorIdParam : '',
+      // Имя — резолвится в mounted() через authorTiles по selectedAuthorId.
+      selectedAuthor: '',
       // Плитки-пикер видны, пока автор не выбран. После выбора (в т.ч. «Все авторы») скрываются.
-      authorChosen: !!this.$route.query.author,
-      // Режим «Отдельные песни разных авторов» (открывается кликом по спец-плашке в сетке).
-      specialBucketShown: this.$route.query.specialBucket === 'true',
+      authorChosen: hasAuthor,
+      // Режим «Отдельные песни разных авторов» — отдельный route /zakroma/special-bucket (FR-A6).
+      specialBucketShown: isSpecialBucketRoute,
       // Модалка подписки на конкретную песню — открывается кликом по золотой иконке плеера.
       subscribingSongId: null,
       subscribingSongName: '',
@@ -533,39 +541,70 @@ export default {
         this.membership.load(ids)
       },
     },
-    // Спек 255: vue-router при навигации /zakroma?author=X → /zakroma (тот же path,
-    // другой query) НЕ пересоздаёт инстанс компонента — `data()`-properties остаются
-    // со старыми значениями, и `v-if="authorChosen"` продолжает рендерить старое.
-    // Watcher синхронизирует data-state с URL:
-    //   - query.author стал пуст → снять выбор (header-back-link, browser back);
-    //   - query.author изменился на другой → перезагрузить стрим для нового автора.
-    '$route.query.author'(newAuthor) {
-      if (!newAuthor && this.authorChosen) {
-        this.selectedAuthor = ''
-        this.authorChosen = false
-        this.specialBucketShown = false
-        this.songFilter = ''
-      } else if (newAuthor && newAuthor !== this.selectedAuthor) {
-        this.selectedAuthor = newAuthor
-        this.authorChosen = true
-        this.songFilter = ''
-        this.loadZakromaStream({ author: newAuthor, expectedCount: undefined })
-      }
-    },
+    // specs/258-zakroma-routing-refactor (FR-A4): watcher из спеки 255 УДАЛЁН.
+    // После рефакторинга URL состояние определяется path, а не query — vue-router пересоздаёт
+    // инстанс компонента при смене path (в т.ч. /zakroma → /zakroma/123 → /zakroma), data()
+    // вызывается заново, authorChosen/songFilter инициализируются корректно. Watcher больше не нужен.
   },
   mounted() {
     // Основной каталог: scope='main' — авторы БЕЗ is_special_order=true.
     this.loadAuthorTiles('main')
     // Спец-каталог (виртуальный «автор» в конце) — нужен для тайла и плоской таблицы.
     this.loadSpecialBucket()
-    // Таблицу грузим только если автор уже выбран (например, зашли по ссылке ?author=...).
-    // expectedCount = undefined: тайлы ещё не загружены в этот момент,
-    // backend fallback'ит на DB-запрос. Передавать 0 нельзя — bug 181/243.
-    if (this.authorChosen)
-      this.loadZakromaStream({ author: this.selectedAuthor, expectedCount: undefined })
+    // specs/258-zakroma-routing-refactor: после рефакторинга URL автор идентифицируется
+    // по :authorId в path. Резолвим ID → name через authorTiles (Vuex) и стартуем стрим.
+    if (this.authorChosen && this.selectedAuthorId) {
+      const tile = this.authorTiles.find((t) => String(t.id) === String(this.selectedAuthorId))
+      if (tile) {
+        this.selectedAuthor = tile.author
+        // Регистрируем referrer для SongView back-link (БЕЗ authorId в URL /song).
+        this.$store.commit('zakroma/setLastSongReferrer', {
+          type: 'zakroma-author',
+          id: String(tile.id),
+          name: tile.author,
+        })
+        this.loadZakromaStream({
+          author: tile.author,
+          expectedCount: tile.songCount || undefined,
+        })
+      } else {
+        // Автор с таким ID не найден в authorTiles (удалён?) — сбрасываем на тайты.
+        this.authorChosen = false
+        this.selectedAuthorId = ''
+        this.$store.commit('zakroma/setLastSongReferrer', null)
+        if (typeof this.notify === 'function') {
+          this.notify(`Автор с ID=${this.selectedAuthorId} не найден`, 'warning')
+        }
+      }
+    } else if (this.specialBucketShown) {
+      // Спец-корзина — тоже валидный referrer для back-link в SongView.
+      this.$store.commit('zakroma/setLastSongReferrer', {
+        type: 'zakroma-special',
+      })
+    } else {
+      // Тайтлы (без выбранного автора) — сбрасываем referrer.
+      this.$store.commit('zakroma/setLastSongReferrer', null)
+    }
+    // specs/258 — обновляем заголовок вкладки после async-резолвинга ID → имя.
+    this.updateDocumentTitle()
   },
   methods: {
     ...mapActions('zakroma', ['loadAuthorTiles', 'loadZakromaStream', 'loadSpecialBucket']),
+    /**
+     * specs/258 — динамический заголовок вкладки браузера по текущему режиму ZakromaView:
+     * - /zakroma                              → «Закрома — Караоке на «Своём Месте»»
+     * - /zakroma/:authorId (после резолва)    → «Песни автора «X» — Караоке на «Своём Месте»»
+     * - /zakroma/special-bucket               → «Отдельные песни разных авторов — Караоке на «Своём Месте»»
+     */
+    updateDocumentTitle() {
+      if (this.specialBucketShown) {
+        document.title = 'Отдельные песни разных авторов — Караоке на «Своём Месте»'
+      } else if (this.authorChosen && this.selectedAuthor) {
+        document.title = `Песни автора «${this.selectedAuthor}» — Караоке на «Своём Месте»`
+      } else {
+        document.title = 'Закрома — Караоке на «Своём Месте»'
+      }
+    },
     /** Переключатель "сквозной/по группам" (FR-023) — персистентно в localStorage. */
     setAlbumDisplayMode(mode) {
       this.albumDisplayMode = mode

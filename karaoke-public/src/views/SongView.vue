@@ -1,7 +1,7 @@
 <template>
   <div class="km-page">
-    <!-- Хедер единый (spec 250) -->
-    <AppHeader :back="{ to: '/zakroma', label: '← Назад' }" />
+    <!-- Хедер единый (spec 250) — back-link динамический (specs/258-zakroma-routing-refactor US2). -->
+    <AppHeader :back="songHeaderBack" />
 
     <!-- Загрузка -->
     <div v-if="currentSongIsLoading" class="km-loading">Загрузка...</div>
@@ -446,6 +446,26 @@ export default {
     },
     userId() {
       return this.user && this.user.id ? Number(this.user.id) : 0
+    },
+    // specs/258-zakroma-routing-refactor US2: динамический back-link в шапке.
+    // Referrer берётся из Vuex store (`zakroma.lastSongReferrer`), а НЕ из URL —
+    // пользователь явно требует, чтобы URL /song?id=X НЕ содержал authorId.
+    // Referrer устанавливается в ZakromaView.mounted() при входе на /zakroma/:authorId
+    // или /zakroma/special-bucket.
+    songHeaderBack() {
+      const referrer = this.$store?.state?.zakroma?.lastSongReferrer
+      if (referrer && referrer.type === 'zakroma-author' && referrer.id) {
+        return {
+          name: 'zakroma-author',
+          params: { authorId: String(referrer.id) },
+          label: referrer.name ? `← К песням «${referrer.name}»` : '← К песням автора',
+        }
+      }
+      if (referrer && referrer.type === 'zakroma-special') {
+        return { to: '/zakroma/special-bucket', label: '← Отдельные песни' }
+      }
+      // Fallback: прямой переход на /song (без контекста из zakroma).
+      return { to: '/zakroma', label: '← В Закрома' }
     },
     showSelfAssignButton() {
       return !!(

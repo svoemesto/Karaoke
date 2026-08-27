@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { trackUi } from '../services/tracking'
+import store from '../store'
 import HomeView from '../views/HomeView.vue'
 import SearchView from '../views/SearchView.vue'
 import ZakromaView from '../views/ZakromaView.vue'
@@ -35,7 +36,12 @@ const requireAuth = (to) => {
 const routes = [
   { path: '/', name: 'home', component: HomeView },
   { path: '/filter', name: 'filter', component: SearchView },
+  // specs/258-zakroma-routing-refactor: «закрома» разнесены на 3 URL — тайтлы, песни автора по ID, спец-корзина.
   { path: '/zakroma', name: 'zakroma', component: ZakromaView },
+  // \\d+ — только цифры, иначе vue-router отдаёт 404 (RT-6.A).
+  { path: '/zakroma/:authorId(\\d+)', name: 'zakroma-author', component: ZakromaView },
+  // Спец-корзина «Отдельные песни разных авторов» — самостоятельный route (FR-A6).
+  { path: '/zakroma/special-bucket', name: 'zakroma-special-bucket', component: ZakromaView },
   { path: '/song', name: 'song', component: SongView },
   { path: '/login', name: 'login', component: LoginView },
   { path: '/register', name: 'register', component: RegisterView },
@@ -123,6 +129,36 @@ const router = createRouter({
     if (savedPosition) return savedPosition
     return { top: 0 }
   },
+})
+
+// specs/258-zakroma-routing-refactor (FR-A2, FR-A7, US4): legacy redirect
+//   /zakroma?author=X               → /zakroma/:authorId (резолвинг имени в ID через Vuex authorTiles)
+//   /zakroma?specialBucket=true      → /zakroma/special-bucket
+// replace: true — не плодим промежуточный URL в истории браузера.
+// Также: для прямого перехода на /zakroma/:authorId догружаем authorTiles до mounted(),
+// чтобы ZakromaView мог резолвить ID → имя сразу (без ложного «Автор не найден»).
+router.beforeEach(async (to) => {
+  if (to.path === '/zakroma' && to.query.specialBucket === 'true') {
+    return { path: '/zakroma/special-bucket', replace: true }
+  }
+  if (to.path === '/zakroma' && to.query.author) {
+    const authorName = String(to.query.author)
+    // Дедуп 30 сек внутри loadAuthorTiles — лишних HTTP-запросов не будет.
+    await store.dispatch('zakroma/loadAuthorTiles', 'main')
+    const tile = store.state.zakroma?.authorTiles?.find((t) => t.author === authorName)
+    if (tile && tile.id) {
+      return { path: `/zakroma/${tile.id}`, replace: true }
+    }
+    // Автор не найден → тайты + уведомление (App.vue может не иметь showNotify —
+    // используем window.alert как fallback, чтобы не падать молча).
+    if (typeof window !== 'undefined' && window.alert) {
+      window.alert(`Автор «${authorName}» не найден`)
+    }
+    return { path: '/zakroma', replace: true }
+  }
+  if (/^\/zakroma\/\d+$/.test(to.path)) {
+    await store.dispatch('zakroma/loadAuthorTiles', 'main')
+  }
 })
 
 // Трекинг навигации по SPA-маршрутам (кроме скрытого плеера — его существование не палим в лог).

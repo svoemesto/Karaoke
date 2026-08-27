@@ -25,6 +25,7 @@ import java.nio.charset.StandardCharsets
  * @see archive/docs/features/site-traffic-resilience.md (FR-001/002/003)
  */
 data class AuthorTilePublicDto(
+    val id: Long,
     val author: String,
     val authorPictureUrl: String,
     val songCount: Long,
@@ -45,6 +46,7 @@ data class AuthorTilePublicDto(
         private const val BUCKET = "karaoke"
 
         fun fromAuthorName(
+            id: Long,
             author: String,
             songCount: Long,
             isSpecialOrder: Boolean = false,
@@ -52,8 +54,8 @@ data class AuthorTilePublicDto(
             val previewFileName = "$author/$author.preview.author.png"
             val encoded = URLEncoder.encode(previewFileName, StandardCharsets.UTF_8).replace("+", "%20")
             return AuthorTilePublicDto(
+                id = id,
                 author = author,
-                // FR-002: прямой URL на MinIO через nginx — без Spring-контроллера.
                 authorPictureUrl = "/minio/$BUCKET/$encoded",
                 songCount = songCount,
                 isSpecialOrder = isSpecialOrder,

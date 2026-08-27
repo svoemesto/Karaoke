@@ -883,31 +883,44 @@ export default {
   background: var(--km-bg2);
   border-bottom: 1px solid var(--km-border);
   padding: 0.6rem 1rem;
-  display: flex;
+  /* specs/251: 2-row grid — text + «Отмена» на первой строке, bar на ВСЮ ширину
+     на второй. На предыдущем flex-row bar забирал только свободное место после
+     длинного text (max-content ~620px), и 98% fill выглядели как ~30% от
+     контейнера. С grid bar занимает 100% ширины — визуальное заполнение
+     совпадает с математическим received/expected. */
+  display: grid;
+  grid-template-columns: 1fr auto;
+  column-gap: 1rem;
+  row-gap: 0.4rem;
   align-items: center;
-  gap: 1rem;
-  flex-wrap: wrap;
 }
 .km-stream-text {
+  grid-column: 1;
+  grid-row: 1;
   font-size: 0.95rem;
   color: var(--km-text);
-  flex: 1 1 auto;
   min-width: 0;
 }
 .km-stream-bar {
-  flex: 2 1 240px;
+  grid-column: 1 / -1;
+  grid-row: 2;
   height: 4px;
   background: var(--km-bg3, var(--km-bg));
   border-radius: 2px;
   overflow: hidden;
-  min-width: 120px;
+  min-width: 0;
 }
 .km-stream-bar-fill {
   height: 100%;
   background: var(--km-accent);
-  transition: width 0.2s ease;
+  /* specs/251: transition убран — раньше fill визуально отставал от чисел на 100-300 ms,
+     потому что target width скакал на каждом batch (50 песен) и meta/drift correction,
+     а transition 0.2s успевал показать только промежуточное состояние.
+     Теперь fill обновляется мгновенно синхронно с `streamProgress.receivedCount`. */
 }
 .km-stream-cancel {
+  grid-column: 2;
+  grid-row: 1;
   background: transparent;
   color: var(--km-text2);
   border: 1px solid var(--km-border);

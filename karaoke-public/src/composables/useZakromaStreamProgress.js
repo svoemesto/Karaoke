@@ -247,6 +247,17 @@ export function useZakromaStreamProgress() {
           clearTimeout(showTimeout)
           showTimeout = null
         }
+        // specs/251: drift detection — если actualCount сильно расходится с expectedCount
+        // (например, в БД добавились/удалились песни между загрузкой тайла и стримом),
+        // обновляем expectedCount на фактическое число, чтобы полоска доехала до 100%.
+        if (typeof msg.actualCount === 'number' && msg.actualCount >= 0) {
+          const baseline = Math.max(expectedCount.value, 1)
+          const drift = Math.abs(msg.actualCount - expectedCount.value) / baseline
+          if (drift > 0.05) {
+            expectedCount.value = msg.actualCount
+            currentExpectedCount = msg.actualCount
+          }
+        }
         recordEvent('zakroma_stream_done')
         if (!settled) {
           settled = true

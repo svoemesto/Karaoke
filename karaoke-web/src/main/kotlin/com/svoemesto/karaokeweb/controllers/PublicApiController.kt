@@ -41,6 +41,7 @@ import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.OutputStreamWriter
 import java.net.URI
+import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.nio.file.AtomicMoveNotSupportedException
 import java.sql.Timestamp
@@ -712,9 +713,44 @@ class PublicApiController(
         )
 
         return song.map {
-            val dto = SongPublicDto.fromSong(it, includeDetails = false)
+            // Spec 261 (FR-006): URL превью обложки альбома и автора (поля `albumPictureUrl` /
+            // `authorPictureUrl` в `SongPublicDto`) — фолбэк "" если картинки нет или данных
+            // недостаточно (фронт показывает плейсхолдер «♪»/«👤»). Шаблон ключа — точно как
+            // в `Pictures.storageFileNamePreview` и как использует `PublicPlaylistController`
+            // для строк плейлиста (единый визуал с эталонной страницей).
+            val albumUrl = albumPreviewUrlForSong(it)
+            val authorUrl = authorPreviewUrlForName(it.author)
+            val dto =
+                SongPublicDto.fromSong(
+                    it,
+                    includeDetails = false,
+                    albumPictureUrl = albumUrl,
+                    authorPictureUrl = authorUrl,
+                )
             dto.copy(authorAlias = aliasByAuthor[dto.author.lowercase()] ?: "")
         }
+    }
+
+    // Spec 261 (FR-006): превью автора — `${author}/${author}.preview.author.png`. Дубль
+    // PublicPlaylistController.authorPreviewUrl — намеренный (разные контроллеры, минимизируем
+    // coupling; принцип тот же, что в FR-015 «минимальный diff бэка» — никаких общих helper'ов
+    // вне PublicApiController). При пустом/некоректном имени — "" → плейсхолдер «👤» на фронте.
+    private fun authorPreviewUrlForName(author: String): String {
+        if (author.isBlank()) return ""
+        val key = "$author/$author.preview.author.png"
+        val encoded = URLEncoder.encode(key, StandardCharsets.UTF_8).replace("+", "%20")
+        return "/minio/karaoke/$encoded"
+    }
+
+    // Spec 261 (FR-006): превью обложки альбома —
+    // `${author}/${year} - ${album}/${author} - ${year} - ${album}.preview.album.png`.
+    // Шаблон совпадает с `Pictures.storageFileNamePreview` и `PublicPlaylistController.albumPreviewUrl`.
+    // Пустой/неполный набор полей → "" → плейсхолдер «♪» на фронте.
+    private fun albumPreviewUrlForSong(song: Song): String {
+        if (song.author.isBlank() || song.album.isBlank()) return ""
+        val key = "${song.author}/${song.year} - ${song.album}/${song.author} - ${song.year} - ${song.album}.preview.album.png"
+        val encoded = URLEncoder.encode(key, StandardCharsets.UTF_8).replace("+", "%20")
+        return "/minio/karaoke/$encoded"
     }
 
     @GetMapping("/song/{id}")

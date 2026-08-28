@@ -59,6 +59,22 @@ data class SongPublicDto(
     // для готовых песен (idStatus >= 6 — финальная, задание на разметку неуместно).
     // Без is-префикса: Kotlin-геттер уже без него, Jackson-ключ и так = idStatus.
     val idStatus: Long,
+    // Spec 261 (FR-001..FR-002): зеркало флага `Song.isContentReady` — Pass 239, иконка плеера
+    // в результатах поиска получает фактический статус доступа (зелёная/золотая/серая), а не
+    // всегда-серую как раньше (bug: DTO не содержал это поле, иконка трактовала результаты как
+    // «не готово»). Источник истины — `Song.isContentReady` (см. PublicPlayerController.stemsReady).
+    // Без is-префикса — инвариант Jackson проекта.
+    val contentReady: Boolean = false,
+    // Spec 261 (FR-006, Clarification Q2 → A): URL превью обложки альбома в MinIO.
+    // Шаблон ключа: `${author}/${year} - ${album}/${author} - ${year} - ${album}.preview.album.png`
+    // (см. PublicPlaylistController.albumPreviewUrl). `""` если автора/альбома/year-нет или
+    // превью не залито — фронт показывает плейсхолдер «♪».
+    val albumPictureUrl: String = "",
+    // Spec 261 (FR-006, Clarification Q2 → A): URL превью автора в MinIO.
+    // Шаблон ключа: `${author}/${author}.preview.author.png`
+    // (см. PublicPlaylistController.authorPreviewUrl). `""` если автора нет или превью
+    // не залито — фронт показывает плейсхолдер «👤».
+    val authorPictureUrl: String = "",
     // Self-assign (FR-008, specs/182-editor-self-assign-tasks): null = песня свободна,
     // non-null = есть назначение (своё или чужое). Заполняется ТОЛЬКО для self-assign-редакторов
     // в /api/public/song/{id} — для остальных всегда null (лишний JOIN/SQL не идёт).
@@ -75,6 +91,11 @@ data class SongPublicDto(
         fun fromSong(
             s: Song,
             includeDetails: Boolean = true,
+            // Spec 261: URL превью из контроллера (там же делается batch-lookup по карте picture-ов).
+            // Defaults "" — для call-site'ов, которые пока эти URL'ы не передают (например,
+            // /api/public/song/{id} через includeDetails=false на странице конкретной песни).
+            albumPictureUrl: String = "",
+            authorPictureUrl: String = "",
         ): SongPublicDto =
             SongPublicDto(
                 id = s.id,
@@ -117,6 +138,11 @@ data class SongPublicDto(
                         .contains("SKIP"),
                 songSubscriptionAvailable = s.idTariff >= 0,
                 idStatus = s.idStatus,
+                // Spec 261 (FR-001): зеркало Song.isContentReady для иконки плеера в поиске.
+                contentReady = s.isContentReady,
+                // Spec 261 (FR-006): URL превью из контроллера / по умолчанию "".
+                albumPictureUrl = albumPictureUrl,
+                authorPictureUrl = authorPictureUrl,
             )
     }
 }

@@ -100,6 +100,7 @@
 | [232-admin-song-editor-local-db.md](232-admin-song-editor-local-db.md) | Облегчённый редактор песен в админке пишет в локальную БД admin-машины (mode='song' в SongEditorController всегда Connection.local()) | [specs/232-.../spec.md](../../specs/232-admin-song-editor-local-db/spec.md) |
 | [238-import-folder-author-album-cover.md](238-import-folder-author-album-cover.md) | Импорт из папки: поиск «родителя» только у того же автора + автообложка нового альбома из графического файла в `rootFolder` | [specs/238-.../spec.md](../../specs/238-import-folder-author-album-cover/spec.md) |
 | [250-unify-site-header.md](250-unify-site-header.md) | Унификация шапки karaoke-public: единый `<AppHeader>`-компонент (логотип справа + кликабельный), 20 view-миграций, slot-based `EditorWorkView` | [specs/250-.../spec.md](../../specs/250-unify-site-header/spec.md) |
+| [261-search-results-ui.md](261-search-results-ui.md) | Иконка плеера в `/search` показывает реальный статус (был баг — всегда серая) + редизайн строки поиска под `PlaylistEditView` (чёрная плашка превью, единый row-паттерн для десктопа и мобилы) | [specs/261-.../spec.md](../../specs/261-search-results-ui/spec.md) |
 
 ## Конвенции
 

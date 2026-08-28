@@ -10,6 +10,21 @@
 >
 > **См. также**: `git log livedocs/` — для построчной истории.
 
+## 2026-08-28 — Pass 244 (governance: prettier при работе, не только при merge)
+
+- **Updated** `AGENTS.md` — добавлен шаг `npm run format:check` в «Обязательную проверку
+  после ЛЮБОГО изменения кода» (Pass 244 fix). Раньше prettier запускался только в
+  pre-commit hook и CI lint.yml, но агент мог править код без локального pre-commit —
+  и неотформатированные файлы попадали в PR (Pass 244 после PR без prettier-фикса
+  для 262-search-pagination). Теперь шаг 4 проверки: `npm run build && npm run lint && npm run format:check`.
+- **Updated** `livedocs/features/002-ci-lint-enforcement.md` — добавлена ссылка на
+  Pass 244 правило в `AGENTS.md` («prettier при работе, не только в CI»).
+- **Context**: GitHub workflow `lint.yml` уже включает prettier-чек (Pass 241), но
+  workaround «проверить только в CI» опасен — баг попадает в PR раньше,
+  чем агент/ревьюер видит его. Pass 244 делает обязательный шаг 4 в цикле работы.
+- **Related**: см. спеку `specs/262-search-pagination/` (Pass 244 — багфикс для
+  неё после LiveDocs-записи).
+
 ## 2026-08-26 — Pass 241 (Tier-1 P0 оптимизации производительности)
 
 - **Added** `livedocs/features/241-db-storage-perf-audit.md` — parent LiveDoc для

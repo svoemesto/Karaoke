@@ -1,6 +1,6 @@
 # AGENTS.md — инструкции для агентов
 
-> **Версия**: 2.0.0 | **Last updated**: 2026-08-26 (Pass 241 — fix AGENTS.md ≤100 строк). Правки governance — в ветке `0XX-agents-md-update`. Детали — в LiveDocs.
+> **Версия**: 2.0.1 | **Last updated**: 2026-08-28 (Pass 244 — добавил prettier в обязательную проверку кода, не только в pre-commit). Правки governance — в ветке `0XX-agents-md-update`. Детали — в LiveDocs.
 
 ## АБСОЛЮТНОЕ ПРАВИЛО: язык общения
 
@@ -76,8 +76,14 @@ gh pr merge --merge                      # БЕЗ --delete-branch
 2. **Линтеры**: `./gradlew :karaoke-web:ktlintCheck` + `tools/check-eslint-baseline.sh karaoke-public`
    — никаких НОВЫХ нарушений (baseline OK).
 3. **Backend bootJar**: `./gradlew :karaoke-web:bootJar --parallel`
-4. **Frontend**: `cd karaoke-public && npm run build && npm run lint`
+4. **Frontend**: `cd karaoke-public && npm run build && npm run lint && npm run format:check`
 5. **Только после всех 4 шагов OK** — сообщать «готово к деплою».
+
+> **Pass 244 fix**: prettier добавлен в шаг 4 (а не только в `.pre-commit-config.yaml`).
+> Причина: prettier запускался только в pre-commit и CI, но агент мог править код
+> без локального pre-commit — и неотформатированные файлы попадали в PR. Теперь prettier
+> проверяется **при работе** (`npm run format:check`) вместе с ESLint. Если нужно
+> автоисправление — `npm run format` (записывает в файлы, перепроверить шаги 4-5 после).
 
 **НЕ ПРОПУСКАТЬ** шаги даже для «очевидных» правок. Детали — в
 [livedocs/architecture-notes.md](livedocs/architecture-notes.md).

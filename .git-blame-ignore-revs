@@ -44,3 +44,9 @@ ddea921
 
 # 2026-08-03 — PR #158 follow-up: Prettier-формат, унаследованный из master (3 файла)
 d4e5784
+
+# 260: переименование sett/settings → song в Kotlin, Thymeleaf, Vue, SQL, KDoc + LiveDoc
+# Merged 2026-08-28 via PR #377
+a36fc06c # 260: переименование sett/settings → song
+2df57ef8 # 260: добавить LiveDoc для фичи 260-rename-sett-vars
+

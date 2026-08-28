@@ -51,11 +51,7 @@
         удалены полностью. Структура строки и CSS — копия эталонной PlaylistEditView (FR-004).
       -->
       <div v-else-if="searchResults.length" class="km-song-list">
-        <div
-          v-for="song in searchResults"
-          :key="song.id"
-          class="km-song-row"
-        >
+        <div v-for="song in searchResults" :key="song.id" class="km-song-row">
           <!--
             Spec 261 (FR-005/FR-006): чёрная плашка с двумя превью. Альбом — квадрат 48×48,
             автор — горизонтальная карточка 120×48 (аспект 5:2). Если URL пуст или картинка
@@ -94,11 +90,8 @@
             Ctrl/Cmd-клик открывает в новой вкладке.
           -->
           <div class="km-song-info">
-            <router-link
-              :to="{ name: 'song', query: { id: song.id } }"
-              class="km-song-title-link"
-            >
-              {{ song.songName || ('Песня #' + song.id) }}
+            <router-link :to="{ name: 'song', query: { id: song.id } }" class="km-song-title-link">
+              {{ song.songName || 'Песня #' + song.id }}
             </router-link>
             <div class="km-song-sub">
               <template v-if="song.author || song.album">
@@ -106,8 +99,17 @@
                   v-if="song.author && authorIdFor(song.author)"
                   :to="{ name: 'zakroma-author', params: { authorId: authorIdFor(song.author) } }"
                   class="km-song-author-link"
-                  >{{ song.author }}<span v-if="song.authorAlias" class="km-alias"> ({{ song.authorAlias }})</span></router-link>
-                <span v-else-if="song.author">{{ song.author }}<span v-if="song.authorAlias" class="km-alias"> ({{ song.authorAlias }})</span></span>
+                  >{{ song.author
+                  }}<span v-if="song.authorAlias" class="km-alias">
+                    ({{ song.authorAlias }})</span
+                  ></router-link
+                >
+                <span v-else-if="song.author"
+                  >{{ song.author
+                  }}<span v-if="song.authorAlias" class="km-alias">
+                    ({{ song.authorAlias }})</span
+                  ></span
+                >
                 <span v-if="(song.year && song.year > 0) || song.album"> - </span>
                 <span v-if="song.year && song.year > 0">{{ song.year }}</span>
                 <span v-if="song.year && song.year > 0 && song.album">, </span>
@@ -297,12 +299,10 @@ export default {
     // иначе имя автора в первой отрисовке будет обычным текстом (Edge Case). Дедуп 30 с
     // внутри action не плодит лишних запросов (см. store/modules/zakroma.js).
     if (this.authorTiles.length === 0) {
-      this.$store
-        .dispatch('zakroma/loadAuthorTiles', 'main')
-        .catch(() => {
-          // Тихо: если tiles не загрузились, имя автора просто не станет ссылкой —
-          // страница всё равно работает, без падения.
-        })
+      this.$store.dispatch('zakroma/loadAuthorTiles', 'main').catch(() => {
+        // Тихо: если tiles не загрузились, имя автора просто не станет ссылкой —
+        // страница всё равно работает, без падения.
+      })
     }
   },
   methods: {

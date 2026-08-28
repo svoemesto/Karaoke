@@ -112,7 +112,7 @@
     <div id="areaLeftTable">
         <table class="table table-sm table-hover" id="leftTable" style="font-size: small; width: 100%; height: 100%;">
             <tbody>
-            <tr th:each="song:${sett}" onClick="mouseClickRow(this)" th:id="'row' + ${song.id}" th:recordId="${song.id}">
+            <tr th:each="song:${song}" onClick="mouseClickRow(this)" th:id="'row' + ${song.id}" th:recordId="${song.id}">
                 <td style="padding: 0; font-size: 0; min-width: 50px; max-width: 50px; border-style: solid; border-width: thin;">
                     <div
                             th:id="'fld_'+${song.id}+'_id'"

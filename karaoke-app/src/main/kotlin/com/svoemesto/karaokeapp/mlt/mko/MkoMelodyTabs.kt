@@ -39,10 +39,10 @@ data class MkoMelodyTabs(
         var widthAreaPx = frameWidthPx
         var heightAreaPx = frameHeightPx
 
-        val sett = song
-        if (sett != null) {
+        val targetSong = song
+        if (targetSong != null) {
             try {
-                val element = sett.voicesForMlt[voiceId].getLines()[lineId].getElements(songVersion)[elementId]
+                val element = targetSong.voicesForMlt[voiceId].getLines()[lineId].getElements(songVersion)[elementId]
                 widthAreaPx = element.w()
                 heightAreaPx = element.h()
             } catch (_: Exception) {
@@ -89,10 +89,10 @@ data class MkoMelodyTabs(
     override fun tractor(): MltNode = mltGenerator.tractor(timecodeOut = lineEndTimecode)
 
     override fun template(): MltNode {
-        val sett = song ?: return MltNode()
+        val targetSong = song ?: return MltNode()
         val element =
             try {
-                sett.voicesForMlt[voiceId]
+                targetSong.voicesForMlt[voiceId]
                     .getLines()[lineId]
                     .getElements(songVersion)
                     .first { it.type == SongVoiceLineElementTypes.TEXT }

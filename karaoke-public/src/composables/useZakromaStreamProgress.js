@@ -222,7 +222,7 @@ export function useZakromaStreamProgress() {
         // Добавляем "albumSettings: []" — сюда будут складываться song-сообщения.
         // Поле называется `albumSettings`, не `songs`, чтобы соответствовать
         // существующему контракту `ZakromaAlbumPublicDto` (и view, который
-        // итерирует `v-for="sett in alb.albumSettings"`).
+        // итерирует `v-for="song in alb.albumSettings"`).
         albums.value.push({ ...msg.album, albumSettings: [] })
         // T016: показываем индикатор только если стрим не закончился за 300 мс.
         if (!showTimeout) {

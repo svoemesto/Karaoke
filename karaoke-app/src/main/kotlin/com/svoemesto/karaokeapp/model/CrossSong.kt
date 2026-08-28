@@ -77,10 +77,10 @@ class CrossSong {
         ): List<CrossSongRow> {
             val columns =
                 listOfSongs
-                    .map { sett ->
-                        val fields = sett.javaClass.getDeclaredField("fields")
+                    .map { songItem ->
+                        val fields = songItem.javaClass.getDeclaredField("fields")
                         fields.isAccessible = true
-                        (fields.get(sett) as Map<*, *>)[columnField] as String
+                        (fields.get(songItem) as Map<*, *>)[columnField] as String
                     }.distinct()
                     .sortedBy {
                         if (columnField == SongField.DATE) {
@@ -92,10 +92,10 @@ class CrossSong {
 
             val rows =
                 listOfSongs
-                    .map { sett ->
-                        val fields = sett.javaClass.getDeclaredField("fields")
+                    .map { songItem ->
+                        val fields = songItem.javaClass.getDeclaredField("fields")
                         fields.isAccessible = true
-                        (fields.get(sett) as Map<*, *>)[rowField] as String
+                        (fields.get(songItem) as Map<*, *>)[rowField] as String
                     }.distinct()
 
             val listCSR =
@@ -110,16 +110,16 @@ class CrossSong {
                     )
                 }
 
-            listOfSongs.forEach { sett ->
-                val fields = sett.javaClass.getDeclaredField("fields")
+            listOfSongs.forEach { songItem ->
+                val fields = songItem.javaClass.getDeclaredField("fields")
                 fields.isAccessible = true
-                val fldRow = (fields.get(sett) as Map<*, *>)[rowField] as String
-                val fldCol = (fields.get(sett) as Map<*, *>)[columnField] as String
+                val fldRow = (fields.get(songItem) as Map<*, *>)[rowField] as String
+                val fldCol = (fields.get(songItem) as Map<*, *>)[columnField] as String
                 listCSR
                     .first { it.csrName == fldRow }
                     .csrCells
                     .first { it.cscName == fldCol }
-                    .songDTO = sett.toDTO()
+                    .songDTO = songItem.toDTO()
             }
 
 //            println(listCSR)
@@ -143,10 +143,10 @@ class CrossSong {
             val columns =
                 listOfSongs
                     .filter { it.author !in skipedAuthors }
-                    .map { sett ->
-                        val fields = sett.javaClass.getDeclaredField("fields")
+                    .map { songItem ->
+                        val fields = songItem.javaClass.getDeclaredField("fields")
                         fields.isAccessible = true
-                        (fields.get(sett) as Map<*, *>)[columnField] as String
+                        (fields.get(songItem) as Map<*, *>)[columnField] as String
                     }.distinct()
                     .sortedBy {
                         if (columnField == SongField.DATE) {
@@ -181,10 +181,10 @@ class CrossSong {
 
             columns.forEach { col ->
                 listOfSongs
-                    .filter { sett ->
-                        val fields = sett.javaClass.getDeclaredField("fields")
+                    .filter { songItem ->
+                        val fields = songItem.javaClass.getDeclaredField("fields")
                         fields.isAccessible = true
-                        val fldCol = (fields.get(sett) as Map<*, *>)[columnField] as String
+                        val fldCol = (fields.get(songItem) as Map<*, *>)[columnField] as String
                         fldCol == col
                     }.forEachIndexed { index, song ->
                         listCSR
@@ -216,10 +216,10 @@ class CrossSong {
             val columns =
                 listOfSongs
                     .filter { it.author in skipedAuthors }
-                    .map { sett ->
-                        val fields = sett.javaClass.getDeclaredField("fields")
+                    .map { songItem ->
+                        val fields = songItem.javaClass.getDeclaredField("fields")
                         fields.isAccessible = true
-                        (fields.get(sett) as Map<*, *>)[columnField] as String
+                        (fields.get(songItem) as Map<*, *>)[columnField] as String
                     }.distinct()
                     .sortedBy {
                         if (columnField == SongField.DATE) {
@@ -254,10 +254,10 @@ class CrossSong {
 
             columns.forEach { col ->
                 listOfSongs
-                    .filter { sett ->
-                        val fields = sett.javaClass.getDeclaredField("fields")
+                    .filter { songItem ->
+                        val fields = songItem.javaClass.getDeclaredField("fields")
                         fields.isAccessible = true
-                        val fldCol = (fields.get(sett) as Map<*, *>)[columnField] as String
+                        val fldCol = (fields.get(songItem) as Map<*, *>)[columnField] as String
                         fldCol == col
                     }.forEachIndexed { index, song ->
                         listCSR

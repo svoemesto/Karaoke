@@ -277,10 +277,10 @@ export default {
       for (const block of data || []) {
         const albums = [...(block.albums || [])].sort((a, b) => (a.year || 0) - (b.year || 0))
         for (const alb of albums) {
-          const setts = [...(alb.albumSettings || [])].sort(
+          const albumSongs = [...(alb.albumSettings || [])].sort(
             (a, b) => (a.track || 0) - (b.track || 0),
           )
-          for (const s of setts)
+          for (const s of albumSongs)
             flat.push({
               songId: s.id,
               songName: s.songName,

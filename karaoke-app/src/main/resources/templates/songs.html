@@ -2283,7 +2283,7 @@
             <div id="areaLeftTable">
                 <table class="table table-sm table-hover" id="leftTable" style="font-size: small">
                     <tbody>
-                        <tr th:each="song:${sett}" onClick="mouseClickRow(this)" th:style="'background-color: ' + ${song.color}" th:id="'row' + ${song.id}">
+                        <tr th:each="song:${song}" onClick="mouseClickRow(this)" th:style="'background-color: ' + ${song.color}" th:id="'row' + ${song.id}">
                             <td th:text="${song.id}" style="min-width: 50px; max-width: 50px; border-style: solid; border-width: thin; text-align: center"></td>
                             <td th:text="${song.songName}" style="min-width: 250px; max-width: 250px; border-style: solid; border-width: thin"></td>
                             <td th:text="${song.author}" style="min-width: 150px; max-width: 150px; border-style: solid; border-width: thin"></td>

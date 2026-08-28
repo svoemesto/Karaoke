@@ -127,7 +127,7 @@ class ShareLinkSweeper(
     }
 
     /**
-     * У песни появился SKIP-тег или будущий `publish_date` (`tbl_settings`) — отзываем активные
+     * У песни появился SKIP-тег или будущий `publish_date` (`tbl_songs`) — отзываем активные
      * ссылки на эту песню (`revoke_reason='song_unavailable'`).
      */
     private fun sweepSongUnavailable(database: KaraokeConnection) {

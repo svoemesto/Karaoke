@@ -6,7 +6,7 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-Piv4xVNRyMGpqkS2by6br4gNJ7DXjqk09RmUpJ8jgGtD7zP9yug3goQfGII0yAns" crossorigin="anonymous"></script>
 
-    <title th:text="${sett.songName} + ' ★♫★ ' + ${sett.author}">Закрома</title>
+    <title th:text="${song.songName} + ' ★♫★ ' + ${song.author}">Закрома</title>
     <style>
         * {
             box-sizing: border-box;
@@ -285,7 +285,7 @@
 
 </div>
 
-<div hidden="hidden" style="width: 0; height: 0" id="text_formatted_html" th:text="${sett.getTextFormatted()}">
+<div hidden="hidden" style="width: 0; height: 0" id="text_formatted_html" th:text="${song.getTextFormatted()}">
 
 </div>
 
@@ -297,16 +297,16 @@
             <div id="areaLeftTable">
 <!--/*                <img src="/tmp/test.png" style="width: 1px; height: 1px;">*/-->
                 <a href="/">
-                    <img th:if="${!sett.haveVkGroupLink && sett.idStatus >= 3}" th:src="'/tmp/' + ${sett.id}+ '.png'" style="width: 537px; display: block; margin: auto">
-                    <img th:unless="${!sett.haveVkGroupLink && sett.idStatus >= 3}" src="../KARAOKE_LOGO.png" style="width: 300px; display: block; margin: auto">
+                    <img th:if="${!song.haveVkGroupLink && song.idStatus >= 3}" th:src="'/tmp/' + ${song.id}+ '.png'" style="width: 537px; display: block; margin: auto">
+                    <img th:unless="${!song.haveVkGroupLink && song.idStatus >= 3}" src="../KARAOKE_LOGO.png" style="width: 300px; display: block; margin: auto">
 <!--                    <img src="../KARAOKE_LOGO.png" style="width: 300px; display: block; margin: auto">-->
 <!--                    <img src="/tmp/test.png" style="width: 300px; display: block; margin: auto">-->
                 </a>
                 <table style="width: 100%">
                     <tr>
                         <td colspan="2">
-                            <img th:src="'data:image/jpg;base64,' + ${sett.getVKPictureBase64()}" style="alignment: center">
-                            <div th:text="'«'+${sett.songName}+'»'" style="padding: 10px; max-width: 600px; font-weight: bold; font-size: 32pt; text-align: center; color: #ffff88; background-color: black"></div>
+                            <img th:src="'data:image/jpg;base64,' + ${song.getVKPictureBase64()}" style="alignment: center">
+                            <div th:text="'«'+${song.songName}+'»'" style="padding: 10px; max-width: 600px; font-weight: bold; font-size: 32pt; text-align: center; color: #ffff88; background-color: black"></div>
                         </td>
                     </tr>
                     <tr>
@@ -331,7 +331,7 @@
                                 <tr>
                                     <td class="td_cell" style="padding: 0">
                                         <div class="boosty">
-                                            <span th:if="${sett.linkBoostyTxt == ''}">
+                                            <span th:if="${song.linkBoostyTxt == ''}">
                                                 <div>
                                                     <svg style="margin-left: 100%; height: 20px; width: 20px;"><use xlink:href="#svg-icon-boosty-none"></use></svg>
                                                 </div>
@@ -339,10 +339,10 @@
                                             
                                         </div>
                                     </td>
-                                    <span th:if="${sett.onAir == true}">
+                                    <span th:if="${song.onAir == true}">
                                         <td class="td_cell" style="padding: 0; border-right-width: 0">
                                             <div class="dzen">
-                                                <span th:if="${sett.linkDzenKaraoke == ''}">
+                                                <span th:if="${song.linkDzenKaraoke == ''}">
                                                     <svg style="margin-left: 100%; height: 20px; width: 20px;"><use xlink:href="#svg-icon-dzen-none"></use></svg>
                                                 </span>
                                                 
@@ -350,7 +350,7 @@
                                         </td>
                                         <td class="td_cell" style="padding: 0; border-right-width: 0; border-left-width: 0">
                                             <div class="pl">
-                                                <span th:if="${sett.linkPlKaraoke == ''}">
+                                                <span th:if="${song.linkPlKaraoke == ''}">
                                                     <svg style="margin-left: 100%; height: 20px; width: 20px;"><use xlink:href="#svg-icon-pl-none"></use></svg>
                                                 </span>
                                                 
@@ -358,7 +358,7 @@
                                         </td>
                                         <td class="td_cell" style="padding: 0; border-right-width: 0; border-left-width: 0">
                                             <div class="vk">
-                                                <span th:if="${sett.linkVkKaraoke == ''}">
+                                                <span th:if="${song.linkVkKaraoke == ''}">
                                                     <svg style="margin-left: 100%; height: 20px; width: 20px;"><use xlink:href="#svg-icon-vk-none"></use></svg>
                                                 </span>
                                                 
@@ -366,7 +366,7 @@
                                         </td>
                                         <td class="td_cell" style="padding: 0; border-left-width: 0">
                                             <div class="tg">
-                                                <span th:if="${sett.linkTgKaraoke == ''}">
+                                                <span th:if="${song.linkTgKaraoke == ''}">
                                                     <svg style="margin-left: 100%; height: 20px; width: 20px;"><use xlink:href="#svg-icon-tg-none"></use></svg>
                                                 </span>
                                                 
@@ -375,7 +375,7 @@
 
                                         <td class="td_cell" style="padding: 0; border-right-width: 0">
                                             <div class="dzen">
-                                                <span th:if="${sett.linkDzenLyrics == ''}">
+                                                <span th:if="${song.linkDzenLyrics == ''}">
                                                     <svg style="margin-left: 100%; height: 20px; width: 20px;"><use xlink:href="#svg-icon-dzen-none"></use></svg>
                                                 </span>
                                                 
@@ -383,7 +383,7 @@
                                         </td>
                                         <td class="td_cell" style="padding: 0; border-right-width: 0; border-left-width: 0">
                                             <div class="pl">
-                                                <span th:if="${sett.linkPlLyrics == ''}">
+                                                <span th:if="${song.linkPlLyrics == ''}">
                                                     <svg style="margin-left: 100%; height: 20px; width: 20px;"><use xlink:href="#svg-icon-pl-none"></use></svg>
                                                 </span>
                                                 
@@ -391,7 +391,7 @@
                                         </td>
                                         <td class="td_cell" style="padding: 0; border-right-width: 0; border-left-width: 0">
                                             <div class="vk">
-                                                <span th:if="${sett.linkVkLyrics == ''}">
+                                                <span th:if="${song.linkVkLyrics == ''}">
                                                     <svg style="margin-left: 100%; height: 20px; width: 20px;"><use xlink:href="#svg-icon-vk-none"></use></svg>
                                                 </span>
                                                 
@@ -399,7 +399,7 @@
                                         </td>
                                         <td class="td_cell" style="padding: 0; border-left-width: 0">
                                             <div class="tg">
-                                                <span th:if="${sett.linkTgLyrics == ''}">
+                                                <span th:if="${song.linkTgLyrics == ''}">
                                                     <div title="Скоро...">
                                                         <svg style="margin-left: 100%; height: 20px; width: 20px;"><use xlink:href="#svg-icon-tg-none"></use></svg>
                                                     </div>
@@ -409,14 +409,14 @@
                                         </td>
                                     </span>
 
-                                    <span th:unless="${sett.onAir == true}">
+                                    <span th:unless="${song.onAir == true}">
                                         <td class="td_cell" style="padding: 0" colspan="8">
-                                            <div th:text="${sett.datePublish}" class="date_publish"></div>
+                                            <div th:text="${song.datePublish}" class="date_publish"></div>
                                         </td>
                                     </span>
                                 </tr>
 
-                                <tr th:unless="${sett.linkBoostyFilesTxt == ''}">
+                                <tr th:unless="${song.linkBoostyFilesTxt == ''}">
                                     <!-- 185-song-dto-audit-sponsr-remove: ссылка на скачивание файлов удалена (FR-011). -->
                                 </tr>
 
@@ -428,7 +428,7 @@
                             <div style="text-align: right; padding-right: 5px">Исполнитель:</div>
                         </td>
                         <td>
-                            <div th:text="${sett.author}" style="font-weight: bolder"></div>
+                            <div th:text="${song.author}" style="font-weight: bolder"></div>
                         </td>
                     </tr>
                     <tr>
@@ -436,7 +436,7 @@
                             <div style="text-align: right; padding-right: 5px">Год:</div>
                         </td>
                         <td>
-                            <div th:text="${sett.year}" style="font-weight: bolder"></div>
+                            <div th:text="${song.year}" style="font-weight: bolder"></div>
                         </td>
                     </tr>
                     <tr>
@@ -444,7 +444,7 @@
                             <div style="text-align: right; padding-right: 5px">Альбом:</div>
                         </td>
                         <td>
-                            <div th:text="${sett.album}" style="font-weight: bolder"></div>
+                            <div th:text="${song.album}" style="font-weight: bolder"></div>
                         </td>
                     </tr>
                     <tr>
@@ -452,7 +452,7 @@
                             <div style="text-align: right; padding-right: 5px">Трек:</div>
                         </td>
                         <td>
-                            <div th:text="${sett.track}" style="font-weight: bolder"></div>
+                            <div th:text="${song.track}" style="font-weight: bolder"></div>
                         </td>
                     </tr>
                     <tr>
@@ -460,7 +460,7 @@
                             <div style="text-align: right; padding-right: 5px">Композиция:</div>
                         </td>
                         <td>
-                            <div th:text="${sett.songName}" style="font-weight: bolder"></div>
+                            <div th:text="${song.songName}" style="font-weight: bolder"></div>
                         </td>
                     </tr>
                     <tr>
@@ -468,7 +468,7 @@
                             <div style="text-align: right; padding-right: 5px">Тональность:</div>
                         </td>
                         <td>
-                            <div th:text="${sett.key}" style="font-weight: bolder"></div>
+                            <div th:text="${song.key}" style="font-weight: bolder"></div>
                         </td>
                     </tr>
                     <tr>
@@ -476,15 +476,15 @@
                             <div style="text-align: right; padding-right: 5px">Темп (уд/м):</div>
                         </td>
                         <td>
-                            <div th:text="${sett.bpm}" style="font-weight: bolder"></div>
+                            <div th:text="${song.bpm}" style="font-weight: bolder"></div>
                         </td>
                     </tr>
-                    <span th:if="${sett.onAir == true && sett.idVkKaraoke != ''}">
+                    <span th:if="${song.onAir == true && song.idVkKaraoke != ''}">
                         <tr>
                             <td colspan="2">
-                                <div name="play" th:songId="${sett.id}" songVersion="karaoke">
+                                <div name="play" th:songId="${song.id}" songVersion="karaoke">
                                     <iframe
-                                            th:src="'https://vkvideo.ru/video_ext.php?hd=3&oid=' + ${sett.idVkKaraokeOID} + '&id=' + ${sett.idVkKaraokeID}"
+                                            th:src="'https://vkvideo.ru/video_ext.php?hd=3&oid=' + ${song.idVkKaraokeOID} + '&id=' + ${song.idVkKaraokeID}"
                                             width="600"
                                             height="338"
                                             allow="autoplay; encrypted-media; fullscreen; picture-in-picture;"
@@ -496,12 +496,12 @@
                             </td>
                         </tr>
                     </span>
-                    <span th:if="${sett.onAir == true && sett.idVkLyrics != ''}">
+                    <span th:if="${song.onAir == true && song.idVkLyrics != ''}">
                         <tr>
                             <td colspan="2">
-                                <div name="play" th:songId="${sett.id}" songVersion="lyrics">
+                                <div name="play" th:songId="${song.id}" songVersion="lyrics">
                                     <iframe
-                                            th:src="'https://vkvideo.ru/video_ext.php?hd=3&oid=' + ${sett.idVkLyricsOID} + '&id=' + ${sett.idVkLyricsID}"
+                                            th:src="'https://vkvideo.ru/video_ext.php?hd=3&oid=' + ${song.idVkLyricsOID} + '&id=' + ${song.idVkLyricsID}"
                                             width="600"
                                             height="338"
                                             allow="autoplay; encrypted-media; fullscreen; picture-in-picture;"
@@ -512,12 +512,12 @@
                             </td>
                         </tr>
                     </span>
-                    <span th:if="${sett.onAir == true && sett.idVkChords != ''}">
+                    <span th:if="${song.onAir == true && song.idVkChords != ''}">
                         <tr>
                             <td colspan="2">
-                                <div name="play" th:songId="${sett.id}" songVersion="chords">
+                                <div name="play" th:songId="${song.id}" songVersion="chords">
                                      <iframe
-                                             th:src="'https://vkvideo.ru/video_ext.php?hd=3&oid=' + ${sett.idVkChordsOID} + '&id=' + ${sett.idVkChordsID}"
+                                             th:src="'https://vkvideo.ru/video_ext.php?hd=3&oid=' + ${song.idVkChordsOID} + '&id=' + ${song.idVkChordsID}"
                                              width="600"
                                              height="338"
                                              allow="autoplay; encrypted-media; fullscreen; picture-in-picture;"

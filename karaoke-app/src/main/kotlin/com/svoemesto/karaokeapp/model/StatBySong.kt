@@ -459,9 +459,9 @@ object StatsByEvents {
             """
             select
                 e.song_id,
-                sett.song_author,
-                sett.song_album,
-                sett.song_name,
+                song.song_author,
+                song.song_album,
+                song.song_name,
                 count(*) as total,
                 count(*) filter (where e.rest_name = 'song') as song,
                 count(*) filter (where e.event_type = 'player') as player,
@@ -482,9 +482,9 @@ object StatsByEvents {
                 count(*) filter (where e.link_name = 'max') as max_clicks,
                 count(*) filter (where e.link_name = 'sponsr') as sponsr_clicks
             from tbl_events e
-            left join tbl_songs sett on e.song_id = sett.id
+            left join tbl_songs song on e.song_id = song.id
             where e.song_id is not null and e.song_id > 0
-            group by e.song_id, sett.song_author, sett.song_album, sett.song_name
+            group by e.song_id, song.song_author, song.song_album, song.song_name
             order by total desc, e.song_id asc
             limit $limit offset $offset
             ;
@@ -588,9 +588,9 @@ object StatsByEvents {
             """
             select
                 s.song_id,
-                sett.song_author,
-                sett.song_album,
-                sett.song_name,
+                song.song_author,
+                song.song_album,
+                song.song_name,
                 count(*) as p_listened,
                 count(*) filter (where e.link_type = 'ended') as p_ended,
                 -- Уникальные залогиненные дослушали до 75%+ (на site_user_id — потом повторный
@@ -608,7 +608,7 @@ object StatsByEvents {
                 (select count(*) from tbl_events where song_id = s.song_id
                     and event_type = 'clickToLink' and link_type = 'linkToSong' and link_name = 'sponsr') as cnt_sponsr
             from tbl_events e
-            left join tbl_songs sett on sett.id = e.song_id
+            left join tbl_songs song on song.id = e.song_id
             -- Один срез событий «дослушали ≥75%» по конкретному song_id. Внутренний подзапрос
             -- фильтрует до агрегации, чтобы count(*) считался только по нужным строкам. Затем
             -- GROUP BY по song_id даёт одну строку на песню.
@@ -618,7 +618,7 @@ object StatsByEvents {
                   and event_type = 'player'
                   and ((link_type = 'progress' and link_name = '75') or link_type = 'ended')
             ) s on s.id = e.id
-            group by s.song_id, sett.song_author, sett.song_album, sett.song_name
+            group by s.song_id, song.song_author, song.song_album, song.song_name
             order by p_listened desc, s.song_id asc
             limit $limit offset $offset
             """.trimIndent()

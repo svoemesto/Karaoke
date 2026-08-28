@@ -336,16 +336,16 @@
                             </td>
                             </thead>
                             <tbody>
-                            <tr th:each="sett:${alb.albumSettings}">
+                            <tr th:each="song:${alb.albumSettings}">
                                 <td class="td_cell" style="padding: 0; width: 25px;">
-                                    <div th:text="${sett.track}" class="songtrack" style="text-align: center; width: 25px"></div>
+                                    <div th:text="${song.track}" class="songtrack" style="text-align: center; width: 25px"></div>
                                 </td>
                                 <td class="td_cell" style="padding: 0; border-right-width: 0; width: 435px;">
-                                    <a th:text="${sett.songName}" class="songname" th:href="'/song?id='+${sett.id}" target="_blank"></a>
+                                    <a th:text="${song.songName}" class="songname" th:href="'/song?id='+${song.id}" target="_blank"></a>
                                 </td>
                                 <td class="td_cell" style="padding: 0; border-left-width: 0; border-bottom-width: 0; border-right-width: 0; width: 50px; display: flex">
                                     <div class="sponsr">
-                                            <span th:if="${sett.linkSponsrPlay == ''}">
+                                            <span th:if="${song.linkSponsrPlay == ''}">
                                                 <div>
                                                     <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-sponsr-none"></use></svg>
                                                 </div>
@@ -354,10 +354,10 @@
                                     </div>
                                 </td>
 
-                                <span th:if="${sett.onAir == true}">
+                                <span th:if="${song.onAir == true}">
                                         <td class="td_cell" style="padding: 0; border-right-width: 0; width: 20px;">
                                             <div class="dzen">
-                                                <span th:if="${sett.linkDzenKaraoke == ''}">
+                                                <span th:if="${song.linkDzenKaraoke == ''}">
                                                     <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-dzen-none"></use></svg>
                                                 </span>
                                                 
@@ -365,7 +365,7 @@
                                         </td>
                                         <td class="td_cell" style="padding: 0; border-right-width: 0; border-left-width: 0; width: 20px;">
                                             <div class="max">
-                                                <span th:if="${sett.linkMaxKaraoke == ''}">
+                                                <span th:if="${song.linkMaxKaraoke == ''}">
                                                     <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-max-none"></use></svg>
                                                 </span>
                                                 
@@ -373,7 +373,7 @@
                                         </td>
                                         <td class="td_cell" style="padding: 0; border-right-width: 0; border-left-width: 0; width: 20px;">
                                             <div class="vk">
-                                                <span th:if="${sett.linkVkKaraoke == ''}">
+                                                <span th:if="${song.linkVkKaraoke == ''}">
                                                     <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-vk-none"></use></svg>
                                                 </span>
                                                 
@@ -381,7 +381,7 @@
                                         </td>
                                         <td class="td_cell" style="padding: 0; border-left-width: 0; width: 20px;">
                                             <div class="tg">
-                                                <span th:if="${sett.linkTgKaraoke == ''}">
+                                                <span th:if="${song.linkTgKaraoke == ''}">
                                                     <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-tg-none"></use></svg>
                                                 </span>
                                                 
@@ -390,7 +390,7 @@
 
                                         <td class="td_cell" style="padding: 0; border-right-width: 0; width: 20px;">
                                             <div class="dzen">
-                                                <span th:if="${sett.linkDzenLyrics == ''}">
+                                                <span th:if="${song.linkDzenLyrics == ''}">
                                                     <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-dzen-none"></use></svg>
                                                 </span>
                                                 
@@ -398,7 +398,7 @@
                                         </td>
                                         <td class="td_cell" style="padding: 0; border-right-width: 0; border-left-width: 0; width: 20px;">
                                             <div class="max">
-                                                <span th:if="${sett.linkMaxLyrics == ''}">
+                                                <span th:if="${song.linkMaxLyrics == ''}">
                                                     <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-max-none"></use></svg>
                                                 </span>
                                                 
@@ -406,7 +406,7 @@
                                         </td>
                                         <td class="td_cell" style="padding: 0; border-right-width: 0; border-left-width: 0; width: 20px;">
                                             <div class="vk">
-                                                <span th:if="${sett.linkVkLyrics == ''}">
+                                                <span th:if="${song.linkVkLyrics == ''}">
                                                     <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-vk-none"></use></svg>
                                                 </span>
                                                 
@@ -414,7 +414,7 @@
                                         </td>
                                         <td class="td_cell" style="padding: 0; border-left-width: 0; width: 20px;">
                                             <div class="tg">
-                                                <span th:if="${sett.linkTgLyrics == ''}">
+                                                <span th:if="${song.linkTgLyrics == ''}">
                                                     <div title="Скоро...">
                                                         <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-tg-none"></use></svg>
                                                     </div>
@@ -425,7 +425,7 @@
 
                                         <td class="td_cell" style="padding: 0; border-right-width: 0; width: 20px;">
                                             <div class="dzen">
-                                                <span th:if="${sett.linkDzenTabs == ''}">
+                                                <span th:if="${song.linkDzenTabs == ''}">
                                                     <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-dzen-none"></use></svg>
                                                 </span>
                                                 
@@ -433,7 +433,7 @@
                                         </td>
                                         <td class="td_cell" style="padding: 0; border-right-width: 0; border-left-width: 0; width: 20px;">
                                             <div class="max">
-                                                <span th:if="${sett.linkMaxTabs == ''}">
+                                                <span th:if="${song.linkMaxTabs == ''}">
                                                     <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-max-none"></use></svg>
                                                 </span>
                                                 
@@ -441,7 +441,7 @@
                                         </td>
                                         <td class="td_cell" style="padding: 0; border-right-width: 0; border-left-width: 0; width: 20px;">
                                             <div class="vk">
-                                                <span th:if="${sett.linkVkTabs == ''}">
+                                                <span th:if="${song.linkVkTabs == ''}">
                                                     <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-vk-none"></use></svg>
                                                 </span>
                                                 
@@ -449,7 +449,7 @@
                                         </td>
                                         <td class="td_cell" style="padding: 0; border-left-width: 0; width: 20px;">
                                             <div class="tg">
-                                                <span th:if="${sett.linkTgTabs == ''}">
+                                                <span th:if="${song.linkTgTabs == ''}">
                                                     <div title="Скоро...">
                                                         <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-tg-none"></use></svg>
                                                     </div>
@@ -460,7 +460,7 @@
 
                                         <td class="td_cell" style="padding: 0; border-right-width: 0; width: 20px;">
                                             <div class="dzen">
-                                                <span th:if="${sett.linkDzenChords == ''}">
+                                                <span th:if="${song.linkDzenChords == ''}">
                                                     <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-dzen-none"></use></svg>
                                                 </span>
                                                 
@@ -468,7 +468,7 @@
                                         </td>
                                         <td class="td_cell" style="padding: 0; border-right-width: 0; border-left-width: 0; width: 20px;">
                                             <div class="max">
-                                                <span th:if="${sett.linkMaxChords == ''}">
+                                                <span th:if="${song.linkMaxChords == ''}">
                                                     <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-max-none"></use></svg>
                                                 </span>
                                                 
@@ -476,7 +476,7 @@
                                         </td>
                                         <td class="td_cell" style="padding: 0; border-right-width: 0; border-left-width: 0; width: 20px;">
                                             <div class="vk">
-                                                <span th:if="${sett.linkVkChords == ''}">
+                                                <span th:if="${song.linkVkChords == ''}">
                                                     <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-vk-none"></use></svg>
                                                 </span>
                                                 
@@ -484,7 +484,7 @@
                                         </td>
                                         <td class="td_cell" style="padding: 0; border-left-width: 0; width: 20px;">
                                             <div class="tg">
-                                                <span th:if="${sett.linkTgChords == ''}">
+                                                <span th:if="${song.linkTgChords == ''}">
                                                     <div title="Скоро...">
                                                         <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-tg-none"></use></svg>
                                                     </div>
@@ -495,9 +495,9 @@
 
                                     </span>
 
-                                <span th:unless="${sett.onAir == true}">
+                                <span th:unless="${song.onAir == true}">
                                         <td class="td_cell" style="padding: 0" colspan="16">
-                                            <div th:text="${sett.datePublish}" class="date_publish"></div>
+                                            <div th:text="${song.datePublish}" class="date_publish"></div>
                                         </td>
                                     </span>
 

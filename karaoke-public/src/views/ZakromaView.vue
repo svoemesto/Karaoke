@@ -247,46 +247,46 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="sett in item.alb.albumSettings" :key="sett.id" class="km-tr">
-                      <td class="km-td km-td-center km-track">{{ sett.track }}</td>
+                    <tr v-for="song in item.alb.albumSettings" :key="song.id" class="km-tr">
+                      <td class="km-td km-td-center km-track">{{ song.track }}</td>
                       <td class="km-td km-td-name">
                         <RouterLink
-                          :to="{ path: '/song', query: { id: sett.id } }"
+                          :to="{ path: '/song', query: { id: song.id } }"
                           class="km-song-link"
-                          >{{ sett.songName }}</RouterLink
+                          >{{ song.songName }}</RouterLink
                         >
                       </td>
                       <td class="km-td km-td-date">
-                        <span v-if="showDate(sett)" class="km-date-text">{{
-                          dateLabel(sett)
+                        <span v-if="showDate(song)" class="km-date-text">{{
+                          dateLabel(song)
                         }}</span>
                         <PremiumIcon
-                          v-if="showCoin(sett)"
-                          :state="sett.contentReady ? 'ready' : 'notready'"
-                          :clickable="showCartIcon(sett)"
-                          @subscribe="onSubscribeClick(sett, zak.author)"
+                          v-if="showCoin(song)"
+                          :state="song.contentReady ? 'ready' : 'notready'"
+                          :clickable="showCartIcon(song)"
+                          @subscribe="onSubscribeClick(song, zak.author)"
                         />
                       </td>
                       <td class="km-td km-td-center">
-                        <CartIcon v-if="showCartIcon(sett)" :song-id="sett.id" />
+                        <CartIcon v-if="showCartIcon(song)" :song-id="song.id" />
                       </td>
                       <td class="km-td km-td-center">
                         <span class="km-player-icon">
                           <PlayerIcon
-                            :song-id="sett.id"
-                            :content-ready-state="sett.contentReady ? 'ready' : 'notready'"
-                            :in-air="sett.freelyAvailableNow"
-                            :flag-free="sett.alwaysFree"
+                            :song-id="song.id"
+                            :content-ready-state="song.contentReady ? 'ready' : 'notready'"
+                            :in-air="song.freelyAvailableNow"
+                            :flag-free="song.alwaysFree"
                             :premium="isPremium"
-                            :has-subscription="subscriptions.subscriptionIds.has(Number(sett.id))"
+                            :has-subscription="subscriptions.subscriptionIds.has(Number(song.id))"
                           />
                         </span>
                       </td>
                       <td class="km-td km-td-center">
-                        <FavoriteIcon :song-id="sett.id" />
+                        <FavoriteIcon :song-id="song.id" />
                       </td>
                       <td class="km-td km-td-center km-group-end">
-                        <PlaylistIcon :song-id="sett.id" />
+                        <PlaylistIcon :song-id="song.id" />
                       </td>
                     </tr>
                   </tbody>
@@ -295,33 +295,33 @@
 
               <!-- Мобильные карточки -->
               <div class="km-cards">
-                <div v-for="sett in item.alb.albumSettings" :key="sett.id" class="km-card">
+                <div v-for="song in item.alb.albumSettings" :key="song.id" class="km-card">
                   <div class="km-card-top">
-                    <span class="km-card-track">{{ sett.track }}</span>
+                    <span class="km-card-track">{{ song.track }}</span>
                     <RouterLink
-                      :to="{ path: '/song', query: { id: sett.id } }"
+                      :to="{ path: '/song', query: { id: song.id } }"
                       class="km-card-title"
-                      >{{ sett.songName }}</RouterLink
+                      >{{ song.songName }}</RouterLink
                     >
-                    <CartIcon v-if="showCartIcon(sett)" :song-id="sett.id" />
+                    <CartIcon v-if="showCartIcon(song)" :song-id="song.id" />
                     <PlayerIcon
-                      :song-id="sett.id"
-                      :content-ready-state="sett.contentReady ? 'ready' : 'notready'"
-                      :in-air="sett.freelyAvailableNow"
-                      :flag-free="sett.alwaysFree"
+                      :song-id="song.id"
+                      :content-ready-state="song.contentReady ? 'ready' : 'notready'"
+                      :in-air="song.freelyAvailableNow"
+                      :flag-free="song.alwaysFree"
                       :premium="isPremium"
-                      :has-subscription="subscriptions.subscriptionIds.has(Number(sett.id))"
+                      :has-subscription="subscriptions.subscriptionIds.has(Number(song.id))"
                     />
-                    <FavoriteIcon :song-id="sett.id" />
-                    <PlaylistIcon :song-id="sett.id" />
+                    <FavoriteIcon :song-id="song.id" />
+                    <PlaylistIcon :song-id="song.id" />
                   </div>
-                  <div v-if="showDate(sett) || showCoin(sett)" class="km-card-date">
-                    <span v-if="showDate(sett)" class="km-date-text">{{ dateLabel(sett) }}</span>
+                  <div v-if="showDate(song) || showCoin(song)" class="km-card-date">
+                    <span v-if="showDate(song)" class="km-date-text">{{ dateLabel(song) }}</span>
                     <PremiumIcon
-                      v-if="showCoin(sett)"
-                      :state="sett.contentReady ? 'ready' : 'notready'"
-                      :clickable="showCartIcon(sett)"
-                      @subscribe="onSubscribeClick(sett, zak.author)"
+                      v-if="showCoin(song)"
+                      :state="song.contentReady ? 'ready' : 'notready'"
+                      :clickable="showCartIcon(song)"
+                      @subscribe="onSubscribeClick(song, zak.author)"
                     />
                   </div>
                 </div>
@@ -643,47 +643,47 @@ export default {
     // Pass 239 (specs/239-zakroma-author-songs-batch-render): readiness больше не догружается
     // per-row. Иконка плеера (зелёный/золотой/серый) и вспомогательные computed'ы считаются
     // чисто из флагов песни + модульных stores. Эквивалент readiness.stateFor(id) === 'active':
-    isSongActiveForUser(sett) {
+    isSongActiveForUser(song) {
       return (
-        !!sett.contentReady &&
-        (sett.freelyAvailableNow ||
+        !!song.contentReady &&
+        (song.freelyAvailableNow ||
           this.isPremium ||
-          (this.subscriptions && this.subscriptions.subscriptionIds.has(Number(sett.id))))
+          (this.subscriptions && this.subscriptions.subscriptionIds.has(Number(song.id))))
       )
     },
     // Эквивалент readiness.contentReadyFor(id) === 'ready' — теперь это просто contentReady:
-    isSongContentReady(sett) {
-      return !!sett.contentReady
+    isSongContentReady(song) {
+      return !!song.contentReady
     },
     // Монетка «премиум-контент» — только не-премиум посетителю и только для контента, недоступного
     // бесплатно прямо сейчас (specs/143-song-free-access-window: вне эфира ИЛИ окно истекло, и не
     // помечено «всегда бесплатно» неявно учтено внутри freelyAvailableNow). Золотая/серебряная — по
     // isSongContentReady(). Не гейтится личной покупкой — коин это категория контента, не персональный
     // статус доступа (см. showCartIcon/showDate ниже, где покупка уже учитывается).
-    showCoin(sett) {
-      return !this.isPremium && !sett.freelyAvailableNow
+    showCoin(song) {
+      return !this.isPremium && !song.freelyAvailableNow
     },
     // Иконка «в корзину» — в тех же условиях, что и золотая иконка плеера (контент готов, зрителю
     // сейчас недоступен, но подписка на песню разрешена автором).
-    showCartIcon(sett) {
+    showCartIcon(song) {
       return (
-        sett.songSubscriptionAvailable &&
-        this.isSongContentReady(sett) &&
-        !this.isSongActiveForUser(sett)
+        song.songSubscriptionAvailable &&
+        this.isSongContentReady(song) &&
+        !this.isSongActiveForUser(song)
       )
     },
     // Личная подписка на эту конкретную песню уже даёт доступ (active в старом readiness), но песня
     // при этом не свободно доступна всем (иначе доступ дало бы окно/alwaysFree, не покупка) —
     // используется, чтобы скрыть текст "Будет в эфире с…"/"В эфире до…" для уже купленных песен
     // (FR-009 spec.md).
-    isPurchased(sett) {
-      return !sett.freelyAvailableNow && this.isSongActiveForUser(sett)
+    isPurchased(song) {
+      return !song.freelyAvailableNow && this.isSongActiveForUser(song)
     },
     // Клик по золотой иконке плеера (PlayerIcon сам решает, когда её показывать) — открываем модалку
     // оформления подписки на конкретную песню.
-    onSubscribeClick(sett, author) {
-      this.subscribingSongId = sett.id
-      this.subscribingSongName = `${sett.songName} — ${author}`
+    onSubscribeClick(song, author) {
+      this.subscribingSongId = song.id
+      this.subscribingSongName = `${song.songName} — ${author}`
     },
     // После активации (в т.ч. бесплатной по акции) — закрыть модалку и перезагрузить
     // подписки (Pass 239: иконка плеера использует subscriptionIds из useSongSubscriptions).
@@ -704,20 +704,20 @@ export default {
     // назначена" (готова, но ждёт публикации — не "будет в эфире", а просто пока недоступна) —
     // намеренно пусто (см. data-model.md, роль иконки-монетки; баг-репорт: без проверки
     // airTimestamp здесь показывалось нелепое "Будет в эфире с Дата пока не определена").
-    showDate(sett) {
+    showDate(song) {
       return (
         !this.isPremium &&
-        !sett.alwaysFree &&
-        !this.isPurchased(sett) &&
-        ((!sett.onAir && sett.airTimestamp != null) || sett.freelyAvailableNow)
+        !song.alwaysFree &&
+        !this.isPurchased(song) &&
+        ((!song.onAir && song.airTimestamp != null) || song.freelyAvailableNow)
       )
     },
     // "Будет в эфире с {datePublish}" (ещё не в эфире) или "В эфире до {freeAccessWindowEndText}"
     // (в эфире и в окне бесплатного доступа).
-    dateLabel(sett) {
-      return sett.onAir
-        ? `В эфире до ${sett.freeAccessWindowEndText}`
-        : `Будет в эфире с ${sett.datePublish}`
+    dateLabel(song) {
+      return song.onAir
+        ? `В эфире до ${song.freeAccessWindowEndText}`
+        : `Будет в эфире с ${song.datePublish}`
     },
     onAuthorSelect(author) {
       this.selectedAuthor = author

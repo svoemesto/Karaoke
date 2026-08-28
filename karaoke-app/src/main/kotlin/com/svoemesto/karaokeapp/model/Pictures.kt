@@ -142,8 +142,8 @@ class Pictures(
                     storageApiClient = storageApiClient,
                     withoutMarkersAndText = true,
                 ).firstOrNull()
-                ?.let { sett ->
-                    File(sett.rootFolder).parent
+                ?.let { song ->
+                    File(song.rootFolder).parent
                 } ?: ""
         } else {
             ""

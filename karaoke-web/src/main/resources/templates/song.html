@@ -1,8 +1,8 @@
 <!doctype html>
 <head>
     <meta charset="UTF-8">
-    <title th:text="${sett.songName} + ' ★♫★ ' + ${sett.author}">Karaoke</title>
+    <title th:text="${song.songName} + ' ★♫★ ' + ${song.author}">Karaoke</title>
 </head>
 <body>
-    <img th:src="'/api/public/song-vk-image/' + ${sett.id}" style="width: 537px; display: block; margin: auto" />
+    <img th:src="'/api/public/song-vk-image/' + ${song.id}" style="width: 537px; display: block; margin: auto" />
 </body>

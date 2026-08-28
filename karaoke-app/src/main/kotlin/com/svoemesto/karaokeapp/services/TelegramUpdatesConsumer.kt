@@ -121,23 +121,23 @@ object TelegramUpdatesConsumer {
             return
         }
 
-        val sett = Song.loadFromDbById(id = songId, database = WORKING_DATABASE, storageService = KSS_APP, storageApiClient = SAC_APP)
-        if (sett == null) {
+        val song = Song.loadFromDbById(id = songId, database = WORKING_DATABASE, storageService = KSS_APP, storageApiClient = SAC_APP)
+        if (song == null) {
             notifyManualAttention(
                 "Вышедший пост Telegram (message_id=${post.messageId}) ссылается на песню id=$songId, которая не найдена в LOCAL БД.",
             )
             return
         }
 
-        val currentId = sett.idTelegramFor(songVersion)
+        val currentId = song.idTelegramFor(songVersion)
         if (currentId.isNotBlank() && currentId != "-") {
             // Уже проставлено (повторный апдейт при рестарте long-poll, либо уже вписано вручную) -
             // идемпотентно ничего не делаем, чтобы не затирать реальный id.
             return
         }
 
-        sett.fields[sett.telegramIdSettingField(songVersion)] = post.messageId.toString()
-        sett.saveToDb()
+        song.fields[song.telegramIdSettingField(songVersion)] = post.messageId.toString()
+        song.saveToDb()
         println(
             "[${Instant.now()}] TelegramUpdatesConsumer: записана ссылка Telegram (${songVersion.text}) для песни id=$songId, message_id=${post.messageId}",
         )

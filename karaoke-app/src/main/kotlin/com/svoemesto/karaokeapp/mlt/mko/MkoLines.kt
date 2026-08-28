@@ -78,8 +78,8 @@ data class MkoLines(
     override fun tractor(): MltNode = mltGenerator.tractor()
 
     override fun tractorSequence(): MltNode {
-        val sett = song ?: return MltNode()
-        val voice = sett.voicesForMlt[voiceId]
+        val targetSong = song ?: return MltNode()
+        val voice = targetSong.voicesForMlt[voiceId]
         val countLineTracks = voice.countLineTracks
 
         val subTrackNodes =

@@ -447,23 +447,23 @@ class MainController(
         model: Model,
         request: HttpServletRequest,
     ): String {
-        val sett =
+        val song =
             Song.loadFromDbById(
                 id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
                 storageApiClient = storageApiClient,
             )
-//        sett?.let {
-//            if (!sett.haveVkGroupLink) {
-//                val pathToPictureVkGroupLink = "/home/Karaoke/webpictures/${sett.id}.png"
+//        song?.let {
+//            if (!song.haveVkGroupLink) {
+//                val pathToPictureVkGroupLink = "/home/Karaoke/webpictures/${song.id}.png"
 //                val filePictureVkGroupLink = File(pathToPictureVkGroupLink)
 //                if (!filePictureVkGroupLink.exists()) {
-//                    createVKLinkPicture(sett, pathToPictureVkGroupLink)
+//                    createVKLinkPicture(song, pathToPictureVkGroupLink)
 //                }
 //            }
 //        }
-        model.addAttribute("sett", sett)
+        model.addAttribute("song", song)
         doRegisterEvent(
             mapOf(
                 "eventType" to EventType.CALL_REST.dbValue,
@@ -472,7 +472,7 @@ class MainController(
             ),
             request,
         )
-        if (sett
+        if (song
                 ?.tags
                 ?.split(" ")
                 ?.map { it.uppercase() }
@@ -513,14 +513,14 @@ class MainController(
         @PathVariable id: Long,
         model: Model,
     ): String {
-        val sett =
+        val song =
             Song.loadFromDbById(
                 id,
                 database = WORKING_DATABASE,
                 storageService = storageService,
                 storageApiClient = storageApiClient,
             )
-        model.addAttribute("sett", sett)
+        model.addAttribute("song", song)
         return "testpage"
     }
 

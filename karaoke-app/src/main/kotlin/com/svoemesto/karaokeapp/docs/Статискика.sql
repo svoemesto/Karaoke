@@ -1,8 +1,8 @@
 select
     tbl_events.song_id,
-    sett.song_author,
-    sett.song_album,
-    sett.song_name,
+    song.song_author,
+    song.song_album,
+    song.song_name,
     (CASE WHEN selSong.song is null THEN 0 ELSE selSong.song END +
      CASE WHEN selBoosty.boosty is null THEN 0 ELSE selBoosty.boosty END +
      CASE WHEN selVKKaraoke.vk_karaoke is null THEN 0 ELSE selVKKaraoke.vk_karaoke END +
@@ -20,7 +20,7 @@ select
     CASE WHEN selTgKaraoke.tg_karaoke is null THEN 0 ELSE selTgKaraoke.tg_karaoke END as tg_kar,
     CASE WHEN selTgLyrics.tg_lyrics is null THEN 0 ELSE selTgLyrics.tg_lyrics END as tg_lyr
 from tbl_events
-left join tbl_settings sett on tbl_events.song_id = sett.id
+left join tbl_settings song on tbl_events.song_id = song.id
 left join
      (
          select song_id, count(*) as song
@@ -80,9 +80,9 @@ left join
 where tbl_events.song_id is not null
 group by
     tbl_events.song_id,
-    sett.song_author,
-    sett.song_album,
-    sett.song_name,
+    song.song_author,
+    song.song_album,
+    song.song_name,
     selSong.song,
     selBoosty.boosty,
     selVKKaraoke.vk_karaoke,

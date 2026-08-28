@@ -1709,7 +1709,7 @@ class MainController(
         filter_result_version?.let { if (filter_result_version != "") args["filter_result_version"] = filter_result_version }
         model.addAttribute("workInContainer", APP_WORK_IN_CONTAINER)
         model.addAttribute(
-            "sett",
+            "song",
             Song.loadListFromDb(
                 args,
                 database = WORKING_DATABASE,
@@ -1762,39 +1762,39 @@ class MainController(
                 storageService = storageService,
                 storageApiClient = storageApiClient,
             )
-        song?.let { sett ->
-            sett.fileName = song_fileName
-            sett.rootFolder = song_rootFolder
-            sett.tags = song_tags
-            sett.fields[SongField.ID] = song_id
-            sett.fields[SongField.NAME] = song_songName
-            sett.fields[SongField.AUTHOR] = song_author
-            sett.fields[SongField.YEAR] = song_year
-            sett.fields[SongField.ALBUM] = song_album
-            sett.fields[SongField.TRACK] = song_track
-            sett.fields[SongField.DATE] = song_date
-            sett.fields[SongField.TIME] = song_time
-            sett.fields[SongField.KEY] = song_key
-            sett.fields[SongField.BPM] = song_bpm
-            sett.fields[SongField.MS] = song_ms
-            sett.fields[SongField.ID_BOOSTY] = song_idBoosty
-            sett.fields[SongField.ID_BOOSTY_FILES] = song_idBoostyFiles
-            sett.fields[SongField.ID_VK] = song_idVk
-            sett.fields[SongField.ID_DZEN_LYRICS] = song_idDzenLyrics
-            sett.fields[SongField.ID_DZEN_KARAOKE] = song_idDzenKaraoke
-            sett.fields[SongField.ID_DZEN_CHORDS] = song_idDzenChords
-            sett.fields[SongField.ID_VK_LYRICS] = song_idVkLyrics
-            sett.fields[SongField.ID_VK_KARAOKE] = song_idVkKaraoke
-            sett.fields[SongField.ID_VK_CHORDS] = song_idVkChords
-            sett.fields[SongField.ID_TELEGRAM_LYRICS] = song_idTelegramLyrics
-            sett.fields[SongField.ID_TELEGRAM_KARAOKE] = song_idTelegramKaraoke
-            sett.fields[SongField.ID_TELEGRAM_CHORDS] = song_idTelegramChords
-            sett.fields[SongField.RESULT_VERSION] = song_resultVersion
-            sett.fields[SongField.ID_STATUS] = select_status
-            sett.saveToDb()
-            sett.saveToFile()
+        song?.let { songValue ->
+            songValue.fileName = song_fileName
+            songValue.rootFolder = song_rootFolder
+            songValue.tags = song_tags
+            songValue.fields[SongField.ID] = song_id
+            songValue.fields[SongField.NAME] = song_songName
+            songValue.fields[SongField.AUTHOR] = song_author
+            songValue.fields[SongField.YEAR] = song_year
+            songValue.fields[SongField.ALBUM] = song_album
+            songValue.fields[SongField.TRACK] = song_track
+            songValue.fields[SongField.DATE] = song_date
+            songValue.fields[SongField.TIME] = song_time
+            songValue.fields[SongField.KEY] = song_key
+            songValue.fields[SongField.BPM] = song_bpm
+            songValue.fields[SongField.MS] = song_ms
+            songValue.fields[SongField.ID_BOOSTY] = song_idBoosty
+            songValue.fields[SongField.ID_BOOSTY_FILES] = song_idBoostyFiles
+            songValue.fields[SongField.ID_VK] = song_idVk
+            songValue.fields[SongField.ID_DZEN_LYRICS] = song_idDzenLyrics
+            songValue.fields[SongField.ID_DZEN_KARAOKE] = song_idDzenKaraoke
+            songValue.fields[SongField.ID_DZEN_CHORDS] = song_idDzenChords
+            songValue.fields[SongField.ID_VK_LYRICS] = song_idVkLyrics
+            songValue.fields[SongField.ID_VK_KARAOKE] = song_idVkKaraoke
+            songValue.fields[SongField.ID_VK_CHORDS] = song_idVkChords
+            songValue.fields[SongField.ID_TELEGRAM_LYRICS] = song_idTelegramLyrics
+            songValue.fields[SongField.ID_TELEGRAM_KARAOKE] = song_idTelegramKaraoke
+            songValue.fields[SongField.ID_TELEGRAM_CHORDS] = song_idTelegramChords
+            songValue.fields[SongField.RESULT_VERSION] = song_resultVersion
+            songValue.fields[SongField.ID_STATUS] = select_status
+            songValue.saveToDb()
+            songValue.saveToFile()
 //            if (song_idBoosty != "") {
-//                sett.createVKDescription()
+//                songValue.createVKDescription()
 //            }
         }
         return "redirect:/songs"
@@ -1898,7 +1898,7 @@ class MainController(
         filter_result_version?.let { if (filter_result_version != "") args["filter_result_version"] = filter_result_version }
         model.addAttribute("workInContainer", APP_WORK_IN_CONTAINER)
         model.addAttribute(
-            "sett",
+            "song",
             Song.loadListFromDb(
                 args,
                 database = WORKING_DATABASE,
@@ -1951,39 +1951,39 @@ class MainController(
                 storageService = storageService,
                 storageApiClient = storageApiClient,
             )
-        song?.let { sett ->
-            sett.fileName = song_fileName
-            sett.rootFolder = song_rootFolder
-            sett.tags = song_tags
-            sett.fields[SongField.ID] = song_id
-            sett.fields[SongField.NAME] = song_songName
-            sett.fields[SongField.AUTHOR] = song_author
-            sett.fields[SongField.YEAR] = song_year
-            sett.fields[SongField.ALBUM] = song_album
-            sett.fields[SongField.TRACK] = song_track
-            sett.fields[SongField.DATE] = song_date
-            sett.fields[SongField.TIME] = song_time
-            sett.fields[SongField.KEY] = song_key
-            sett.fields[SongField.BPM] = song_bpm
-            sett.fields[SongField.MS] = song_ms
-            sett.fields[SongField.ID_BOOSTY] = song_idBoosty
-            sett.fields[SongField.ID_BOOSTY_FILES] = song_idBoostyFiles
-            sett.fields[SongField.ID_VK] = song_idVk
-            sett.fields[SongField.ID_DZEN_LYRICS] = song_idDzenLyrics
-            sett.fields[SongField.ID_DZEN_KARAOKE] = song_idDzenKaraoke
-            sett.fields[SongField.ID_DZEN_CHORDS] = song_idDzenChords
-            sett.fields[SongField.ID_VK_LYRICS] = song_idVkLyrics
-            sett.fields[SongField.ID_VK_KARAOKE] = song_idVkKaraoke
-            sett.fields[SongField.ID_VK_CHORDS] = song_idVkChords
-            sett.fields[SongField.ID_TELEGRAM_LYRICS] = song_idTelegramLyrics
-            sett.fields[SongField.ID_TELEGRAM_KARAOKE] = song_idTelegramKaraoke
-            sett.fields[SongField.ID_TELEGRAM_CHORDS] = song_idTelegramChords
-            sett.fields[SongField.RESULT_VERSION] = song_resultVersion
-            sett.fields[SongField.ID_STATUS] = select_status
-            sett.saveToDb()
-            sett.saveToFile()
+        song?.let { songValue ->
+            songValue.fileName = song_fileName
+            songValue.rootFolder = song_rootFolder
+            songValue.tags = song_tags
+            songValue.fields[SongField.ID] = song_id
+            songValue.fields[SongField.NAME] = song_songName
+            songValue.fields[SongField.AUTHOR] = song_author
+            songValue.fields[SongField.YEAR] = song_year
+            songValue.fields[SongField.ALBUM] = song_album
+            songValue.fields[SongField.TRACK] = song_track
+            songValue.fields[SongField.DATE] = song_date
+            songValue.fields[SongField.TIME] = song_time
+            songValue.fields[SongField.KEY] = song_key
+            songValue.fields[SongField.BPM] = song_bpm
+            songValue.fields[SongField.MS] = song_ms
+            songValue.fields[SongField.ID_BOOSTY] = song_idBoosty
+            songValue.fields[SongField.ID_BOOSTY_FILES] = song_idBoostyFiles
+            songValue.fields[SongField.ID_VK] = song_idVk
+            songValue.fields[SongField.ID_DZEN_LYRICS] = song_idDzenLyrics
+            songValue.fields[SongField.ID_DZEN_KARAOKE] = song_idDzenKaraoke
+            songValue.fields[SongField.ID_DZEN_CHORDS] = song_idDzenChords
+            songValue.fields[SongField.ID_VK_LYRICS] = song_idVkLyrics
+            songValue.fields[SongField.ID_VK_KARAOKE] = song_idVkKaraoke
+            songValue.fields[SongField.ID_VK_CHORDS] = song_idVkChords
+            songValue.fields[SongField.ID_TELEGRAM_LYRICS] = song_idTelegramLyrics
+            songValue.fields[SongField.ID_TELEGRAM_KARAOKE] = song_idTelegramKaraoke
+            songValue.fields[SongField.ID_TELEGRAM_CHORDS] = song_idTelegramChords
+            songValue.fields[SongField.RESULT_VERSION] = song_resultVersion
+            songValue.fields[SongField.ID_STATUS] = select_status
+            songValue.saveToDb()
+            songValue.saveToFile()
 //            if (song_idBoosty != "") {
-//                sett.createVKDescription()
+//                songValue.createVKDescription()
 //            }
         }
         return "redirect:/songs2"

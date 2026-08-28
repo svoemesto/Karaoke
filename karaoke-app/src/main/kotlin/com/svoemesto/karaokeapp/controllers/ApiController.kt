@@ -3024,11 +3024,11 @@ class ApiController(
             )
         var albumLinkValid = true
         var fileNameRenameError: String? = null
-        song?.let { sett ->
+        song?.let { songValue ->
             // specs/143-song-free-access-window: снимок ДО применения правок — сравнивается после
             // saveToDb(), чтобы уведомить karaoke-web (StatBySong dirty-флаг) только если free
             // реально изменился, а не на каждое сохранение песни.
-            val freeBefore = sett.free
+            val freeBefore = songValue.free
             // specs/124-filename-sanitization-rename FR-006/FR-007/FR-008/FR-011/FR-013: смена
             // "Имя файла" санитайзируется теми же правилами, что и импорт, отклоняется при коллизии/
             // пустом имени/активной фоновой обработке песни, и (если применяется) каскадно
@@ -3036,10 +3036,10 @@ class ApiController(
             // запроса (ниже) применяются независимо от результата этой проверки.
             fileName?.let { requestedFileName ->
                 val sanitized = requestedFileName.sanitizeSongFileName()
-                val effectiveRootFolder = rootFolder ?: sett.rootFolder
+                val effectiveRootFolder = rootFolder ?: songValue.rootFolder
                 if (sanitized.isEmpty()) {
                     fileNameRenameError = "Имя файла после удаления недопустимых символов оказалось пустым — введите другое значение."
-                } else if (sanitized != sett.fileName) {
+                } else if (sanitized != songValue.fileName) {
                     val collision =
                         Song
                             .loadListFromDb(
@@ -3048,122 +3048,122 @@ class ApiController(
                                 storageService = storageService,
                                 storageApiClient = storageApiClient,
                                 withoutMarkersAndText = true,
-                            ).any { it.id != sett.id }
+                            ).any { it.id != songValue.id }
                     if (collision) {
                         fileNameRenameError = "Песня с именем файла «$sanitized» уже существует в этой папке."
-                    } else if (KaraokeProcess.hasActiveProcess(songId = sett.id, database = WORKING_DATABASE)) {
+                    } else if (KaraokeProcess.hasActiveProcess(songId = songValue.id, database = WORKING_DATABASE)) {
                         fileNameRenameError =
                             "Над песней сейчас выполняется фоновая обработка — дождитесь её завершения и повторите переименование."
                     } else {
-                        val oldFileName = sett.fileName
-                        sett.fileName = sanitized
-                        sett.renameCascadeExtraArtifacts(oldFileName)
+                        val oldFileName = songValue.fileName
+                        songValue.fileName = sanitized
+                        songValue.renameCascadeExtraArtifacts(oldFileName)
                     }
                 }
             }
-            rootFolder?.let { sett.rootFolder = it }
-            tags?.let { sett.tags = it }
-            id.let { sett.fields[SongField.ID] = it }
-            songName?.let { sett.fields[SongField.NAME] = it }
-            author?.let { sett.fields[SongField.AUTHOR] = it }
-            year?.let { sett.fields[SongField.YEAR] = it }
-            album?.let { sett.fields[SongField.ALBUM] = it }
-            track?.let { sett.fields[SongField.TRACK] = it }
-            date?.let { sett.fields[SongField.DATE] = it }
-            time?.let { sett.fields[SongField.TIME] = it }
-            key?.let { sett.fields[SongField.KEY] = it }
-            bpm?.let { sett.fields[SongField.BPM] = it }
-            ms?.let { sett.fields[SongField.MS] = it }
-            idBoosty?.let { sett.fields[SongField.ID_BOOSTY] = it }
-            idBoostyFiles?.let { sett.fields[SongField.ID_BOOSTY_FILES] = it }
-            idSponsr?.let { sett.fields[SongField.ID_SPONSR] = it }
-            versionBoosty?.let { sett.fields[SongField.VERSION_BOOSTY] = it }
-            versionBoostyFiles?.let { sett.fields[SongField.VERSION_BOOSTY_FILES] = it }
-            versionSponsr?.let { sett.fields[SongField.VERSION_SPONSR] = it }
-            indexTabsVariant?.let { sett.fields[SongField.INDEX_TABS_VARIANT] = it }
-            idVk?.let { sett.fields[SongField.ID_VK] = it }
-            idDzenLyrics?.let { sett.fields[SongField.ID_DZEN_LYRICS] = it }
-            idDzenKaraoke?.let { sett.fields[SongField.ID_DZEN_KARAOKE] = it }
-            idDzenChords?.let { sett.fields[SongField.ID_DZEN_CHORDS] = it }
-            idDzenMelody?.let { sett.fields[SongField.ID_DZEN_MELODY] = it }
-            idVkLyrics?.let { sett.fields[SongField.ID_VK_LYRICS] = it }
-            idVkKaraoke?.let { sett.fields[SongField.ID_VK_KARAOKE] = it }
-            idVkChords?.let { sett.fields[SongField.ID_VK_CHORDS] = it }
-            idVkMelody?.let { sett.fields[SongField.ID_VK_MELODY] = it }
-            idTelegramLyrics?.let { sett.fields[SongField.ID_TELEGRAM_LYRICS] = it }
-            idTelegramKaraoke?.let { sett.fields[SongField.ID_TELEGRAM_KARAOKE] = it }
-            idTelegramChords?.let { sett.fields[SongField.ID_TELEGRAM_CHORDS] = it }
-            idTelegramMelody?.let { sett.fields[SongField.ID_TELEGRAM_MELODY] = it }
-            idPlLyrics?.let { sett.fields[SongField.ID_PL_LYRICS] = it }
-            idPlKaraoke?.let { sett.fields[SongField.ID_PL_KARAOKE] = it }
-            idPlChords?.let { sett.fields[SongField.ID_PL_CHORDS] = it }
-            idPlMelody?.let { sett.fields[SongField.ID_PL_MELODY] = it }
-            idMaxLyrics?.let { sett.fields[SongField.ID_MAX_LYRICS] = it }
-            idMaxKaraoke?.let { sett.fields[SongField.ID_MAX_KARAOKE] = it }
-            idMaxChords?.let { sett.fields[SongField.ID_MAX_CHORDS] = it }
-            idMaxMelody?.let { sett.fields[SongField.ID_MAX_MELODY] = it }
-            idDzenDemo?.let { sett.fields[SongField.ID_DZEN_DEMO] = it }
-            idVkDemo?.let { sett.fields[SongField.ID_VK_DEMO] = it }
-            idTelegramDemo?.let { sett.fields[SongField.ID_TELEGRAM_DEMO] = it }
-            idMaxDemo?.let { sett.fields[SongField.ID_MAX_DEMO] = it }
-            versionDzenLyrics?.let { sett.fields[SongField.VERSION_DZEN_LYRICS] = it }
-            versionDzenKaraoke?.let { sett.fields[SongField.VERSION_DZEN_KARAOKE] = it }
-            versionDzenChords?.let { sett.fields[SongField.VERSION_DZEN_CHORDS] = it }
-            versionDzenMelody?.let { sett.fields[SongField.VERSION_DZEN_MELODY] = it }
-            versionVkLyrics?.let { sett.fields[SongField.VERSION_VK_LYRICS] = it }
-            versionVkKaraoke?.let { sett.fields[SongField.VERSION_VK_KARAOKE] = it }
-            versionVkChords?.let { sett.fields[SongField.VERSION_VK_CHORDS] = it }
-            versionVkMelody?.let { sett.fields[SongField.VERSION_VK_MELODY] = it }
-            versionTelegramLyrics?.let { sett.fields[SongField.VERSION_TELEGRAM_LYRICS] = it }
-            versionTelegramKaraoke?.let { sett.fields[SongField.VERSION_TELEGRAM_KARAOKE] = it }
-            versionTelegramChords?.let { sett.fields[SongField.VERSION_TELEGRAM_CHORDS] = it }
-            versionTelegramMelody?.let { sett.fields[SongField.VERSION_TELEGRAM_MELODY] = it }
-            versionPlLyrics?.let { sett.fields[SongField.VERSION_PL_LYRICS] = it }
-            versionPlKaraoke?.let { sett.fields[SongField.VERSION_PL_KARAOKE] = it }
-            versionPlChords?.let { sett.fields[SongField.VERSION_PL_CHORDS] = it }
-            versionPlMelody?.let { sett.fields[SongField.VERSION_PL_MELODY] = it }
-            versionMaxLyrics?.let { sett.fields[SongField.VERSION_MAX_LYRICS] = it }
-            versionMaxKaraoke?.let { sett.fields[SongField.VERSION_MAX_KARAOKE] = it }
-            versionMaxChords?.let { sett.fields[SongField.VERSION_MAX_CHORDS] = it }
-            versionMaxMelody?.let { sett.fields[SongField.VERSION_MAX_MELODY] = it }
-            versionDzenDemo?.let { sett.fields[SongField.VERSION_DZEN_DEMO] = it }
-            versionVkDemo?.let { sett.fields[SongField.VERSION_VK_DEMO] = it }
-            versionTelegramDemo?.let { sett.fields[SongField.VERSION_TELEGRAM_DEMO] = it }
-            versionMaxDemo?.let { sett.fields[SongField.VERSION_MAX_DEMO] = it }
-            resultVersion?.let { sett.fields[SongField.RESULT_VERSION] = it }
-            diffBeats?.let { sett.fields[SongField.DIFFBEATS] = it }
-            idStatus?.let { sett.fields[SongField.ID_STATUS] = it }
-            rate?.let { sett.fields[SongField.RATE] = it }
-            rootId?.let { sett.fields[SongField.ROOT_ID] = it }
-            audioParentId?.let { sett.fields[SongField.AUDIO_PARENT_ID] = it }
-            audioSimilarityPercent?.let { sett.fields[SongField.AUDIO_SIMILARITY_PERCENT] = it }
-            audioDeltaMs?.let { sett.fields[SongField.AUDIO_DELTA_MS] = it }
-            free?.let { sett.fields[SongField.FREE] = it }
-            idTariff?.let { sett.fields[SongField.ID_TARIFF] = it }
-            songType?.let { sett.songType = SongType.entries.firstOrNull { st -> st.dbValue == it.lowercase() } ?: SongType.SONG }
-            description?.let { sett.description = it }
-            shortDescription?.let { sett.shortDescription = it }
-            warning?.let { sett.warning = it }
+            rootFolder?.let { songValue.rootFolder = it }
+            tags?.let { songValue.tags = it }
+            id.let { songValue.fields[SongField.ID] = it }
+            songName?.let { songValue.fields[SongField.NAME] = it }
+            author?.let { songValue.fields[SongField.AUTHOR] = it }
+            year?.let { songValue.fields[SongField.YEAR] = it }
+            album?.let { songValue.fields[SongField.ALBUM] = it }
+            track?.let { songValue.fields[SongField.TRACK] = it }
+            date?.let { songValue.fields[SongField.DATE] = it }
+            time?.let { songValue.fields[SongField.TIME] = it }
+            key?.let { songValue.fields[SongField.KEY] = it }
+            bpm?.let { songValue.fields[SongField.BPM] = it }
+            ms?.let { songValue.fields[SongField.MS] = it }
+            idBoosty?.let { songValue.fields[SongField.ID_BOOSTY] = it }
+            idBoostyFiles?.let { songValue.fields[SongField.ID_BOOSTY_FILES] = it }
+            idSponsr?.let { songValue.fields[SongField.ID_SPONSR] = it }
+            versionBoosty?.let { songValue.fields[SongField.VERSION_BOOSTY] = it }
+            versionBoostyFiles?.let { songValue.fields[SongField.VERSION_BOOSTY_FILES] = it }
+            versionSponsr?.let { songValue.fields[SongField.VERSION_SPONSR] = it }
+            indexTabsVariant?.let { songValue.fields[SongField.INDEX_TABS_VARIANT] = it }
+            idVk?.let { songValue.fields[SongField.ID_VK] = it }
+            idDzenLyrics?.let { songValue.fields[SongField.ID_DZEN_LYRICS] = it }
+            idDzenKaraoke?.let { songValue.fields[SongField.ID_DZEN_KARAOKE] = it }
+            idDzenChords?.let { songValue.fields[SongField.ID_DZEN_CHORDS] = it }
+            idDzenMelody?.let { songValue.fields[SongField.ID_DZEN_MELODY] = it }
+            idVkLyrics?.let { songValue.fields[SongField.ID_VK_LYRICS] = it }
+            idVkKaraoke?.let { songValue.fields[SongField.ID_VK_KARAOKE] = it }
+            idVkChords?.let { songValue.fields[SongField.ID_VK_CHORDS] = it }
+            idVkMelody?.let { songValue.fields[SongField.ID_VK_MELODY] = it }
+            idTelegramLyrics?.let { songValue.fields[SongField.ID_TELEGRAM_LYRICS] = it }
+            idTelegramKaraoke?.let { songValue.fields[SongField.ID_TELEGRAM_KARAOKE] = it }
+            idTelegramChords?.let { songValue.fields[SongField.ID_TELEGRAM_CHORDS] = it }
+            idTelegramMelody?.let { songValue.fields[SongField.ID_TELEGRAM_MELODY] = it }
+            idPlLyrics?.let { songValue.fields[SongField.ID_PL_LYRICS] = it }
+            idPlKaraoke?.let { songValue.fields[SongField.ID_PL_KARAOKE] = it }
+            idPlChords?.let { songValue.fields[SongField.ID_PL_CHORDS] = it }
+            idPlMelody?.let { songValue.fields[SongField.ID_PL_MELODY] = it }
+            idMaxLyrics?.let { songValue.fields[SongField.ID_MAX_LYRICS] = it }
+            idMaxKaraoke?.let { songValue.fields[SongField.ID_MAX_KARAOKE] = it }
+            idMaxChords?.let { songValue.fields[SongField.ID_MAX_CHORDS] = it }
+            idMaxMelody?.let { songValue.fields[SongField.ID_MAX_MELODY] = it }
+            idDzenDemo?.let { songValue.fields[SongField.ID_DZEN_DEMO] = it }
+            idVkDemo?.let { songValue.fields[SongField.ID_VK_DEMO] = it }
+            idTelegramDemo?.let { songValue.fields[SongField.ID_TELEGRAM_DEMO] = it }
+            idMaxDemo?.let { songValue.fields[SongField.ID_MAX_DEMO] = it }
+            versionDzenLyrics?.let { songValue.fields[SongField.VERSION_DZEN_LYRICS] = it }
+            versionDzenKaraoke?.let { songValue.fields[SongField.VERSION_DZEN_KARAOKE] = it }
+            versionDzenChords?.let { songValue.fields[SongField.VERSION_DZEN_CHORDS] = it }
+            versionDzenMelody?.let { songValue.fields[SongField.VERSION_DZEN_MELODY] = it }
+            versionVkLyrics?.let { songValue.fields[SongField.VERSION_VK_LYRICS] = it }
+            versionVkKaraoke?.let { songValue.fields[SongField.VERSION_VK_KARAOKE] = it }
+            versionVkChords?.let { songValue.fields[SongField.VERSION_VK_CHORDS] = it }
+            versionVkMelody?.let { songValue.fields[SongField.VERSION_VK_MELODY] = it }
+            versionTelegramLyrics?.let { songValue.fields[SongField.VERSION_TELEGRAM_LYRICS] = it }
+            versionTelegramKaraoke?.let { songValue.fields[SongField.VERSION_TELEGRAM_KARAOKE] = it }
+            versionTelegramChords?.let { songValue.fields[SongField.VERSION_TELEGRAM_CHORDS] = it }
+            versionTelegramMelody?.let { songValue.fields[SongField.VERSION_TELEGRAM_MELODY] = it }
+            versionPlLyrics?.let { songValue.fields[SongField.VERSION_PL_LYRICS] = it }
+            versionPlKaraoke?.let { songValue.fields[SongField.VERSION_PL_KARAOKE] = it }
+            versionPlChords?.let { songValue.fields[SongField.VERSION_PL_CHORDS] = it }
+            versionPlMelody?.let { songValue.fields[SongField.VERSION_PL_MELODY] = it }
+            versionMaxLyrics?.let { songValue.fields[SongField.VERSION_MAX_LYRICS] = it }
+            versionMaxKaraoke?.let { songValue.fields[SongField.VERSION_MAX_KARAOKE] = it }
+            versionMaxChords?.let { songValue.fields[SongField.VERSION_MAX_CHORDS] = it }
+            versionMaxMelody?.let { songValue.fields[SongField.VERSION_MAX_MELODY] = it }
+            versionDzenDemo?.let { songValue.fields[SongField.VERSION_DZEN_DEMO] = it }
+            versionVkDemo?.let { songValue.fields[SongField.VERSION_VK_DEMO] = it }
+            versionTelegramDemo?.let { songValue.fields[SongField.VERSION_TELEGRAM_DEMO] = it }
+            versionMaxDemo?.let { songValue.fields[SongField.VERSION_MAX_DEMO] = it }
+            resultVersion?.let { songValue.fields[SongField.RESULT_VERSION] = it }
+            diffBeats?.let { songValue.fields[SongField.DIFFBEATS] = it }
+            idStatus?.let { songValue.fields[SongField.ID_STATUS] = it }
+            rate?.let { songValue.fields[SongField.RATE] = it }
+            rootId?.let { songValue.fields[SongField.ROOT_ID] = it }
+            audioParentId?.let { songValue.fields[SongField.AUDIO_PARENT_ID] = it }
+            audioSimilarityPercent?.let { songValue.fields[SongField.AUDIO_SIMILARITY_PERCENT] = it }
+            audioDeltaMs?.let { songValue.fields[SongField.AUDIO_DELTA_MS] = it }
+            free?.let { songValue.fields[SongField.FREE] = it }
+            idTariff?.let { songValue.fields[SongField.ID_TARIFF] = it }
+            songType?.let { songValue.songType = SongType.entries.firstOrNull { st -> st.dbValue == it.lowercase() } ?: SongType.SONG }
+            description?.let { songValue.description = it }
+            shortDescription?.let { songValue.shortDescription = it }
+            warning?.let { songValue.warning = it }
             // FR-008 (specs/011-album-song-rename): альбом песни обязан принадлежать тому же автору,
             // что и главный автор песни — иначе противоречивое состояние "автор песни" != "автор альбома".
             albumId?.let { rawAlbumId ->
                 val newAlbumId = rawAlbumId.toLongOrNull()
                 if (newAlbumId == null || newAlbumId <= 0L) {
-                    sett.albumId = null
+                    songValue.albumId = null
                 } else {
                     val album = Album.getAlbumById(newAlbumId, WORKING_DATABASE, storageService, storageApiClient)
                     val albumAuthor =
                         album?.let { Author.getAuthorById(it.authorId, WORKING_DATABASE, storageService, storageApiClient) }
-                    if (album != null && albumAuthor != null && albumAuthor.author.equals(sett.author, ignoreCase = true)) {
-                        sett.albumId = newAlbumId
+                    if (album != null && albumAuthor != null && albumAuthor.author.equals(songValue.author, ignoreCase = true)) {
+                        songValue.albumId = newAlbumId
                     } else {
                         albumLinkValid = false
                     }
                 }
             }
-            sett.saveToDb()
-            sett.saveToFile()
-            if (sett.free != freeBefore) notifyStatsDirty()
+            songValue.saveToDb()
+            songValue.saveToFile()
+            if (songValue.free != freeBefore) notifyStatsDirty()
         }
 
         return SongUpdateResultDto(albumLinkValid = albumLinkValid, fileNameRenameError = fileNameRenameError)
@@ -6848,7 +6848,7 @@ class ApiController(
         @RequestParam id: Long,
         @RequestParam(required = false, defaultValue = "air") type: String,
     ): Map<String, Any> {
-        val settings =
+        val song =
             Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
@@ -6862,12 +6862,12 @@ class ApiController(
             )
 
         // FR-008/FR-016: общая идемпотентность по idVk (один пост на песню, независимо от типа).
-        if (settings.idVk.isNotEmpty()) {
+        if (song.idVk.isNotEmpty()) {
             return mapOf(
                 "success" to false as Any,
                 "state" to "published" as Any,
-                "postId" to settings.idVk as Any,
-                "error" to "Song $id is already published (idVk=${settings.idVk}); clear idVk first to re-publish" as Any,
+                "postId" to song.idVk as Any,
+                "error" to "Song $id is already published (idVk=${song.idVk}); clear idVk first to re-publish" as Any,
             )
         }
 
@@ -6876,7 +6876,7 @@ class ApiController(
                 .fromCode(type) ?: com.svoemesto.karaokeapp.model.PublicationType.AIR
         val result =
             com.svoemesto.karaokeapp.services.VkAutoPublishService
-                .publishToVk(settings, pubType)
+                .publishToVk(song, pubType)
         val response: MutableMap<String, Any> = mutableMapOf()
         response["success"] = result.state == com.svoemesto.karaokeapp.services.VkAutoPublishState.PUBLISHED ||
             result.state == com.svoemesto.karaokeapp.services.VkAutoPublishState.RENDERING ||
@@ -6897,7 +6897,7 @@ class ApiController(
     fun publishPremiumTelegram(
         @RequestParam id: Long,
     ): Map<String, Any> {
-        val settings =
+        val song =
             Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
@@ -6911,12 +6911,12 @@ class ApiController(
             )
 
         // Идемпотентность: если air-публикация уже произошла — skip (премиум-период заведомо позади).
-        if (settings.idTelegramDemo.isNotEmpty()) {
+        if (song.idTelegramDemo.isNotEmpty()) {
             return mapOf(
                 "success" to false as Any,
                 "state" to "published" as Any,
-                "messageId" to settings.idTelegramDemo as Any,
-                "error" to "Song $id already has air-publication (idTelegramDemo=${settings.idTelegramDemo}); premium is no-op" as Any,
+                "messageId" to song.idTelegramDemo as Any,
+                "error" to "Song $id already has air-publication (idTelegramDemo=${song.idTelegramDemo}); premium is no-op" as Any,
             )
         }
 
@@ -6927,19 +6927,19 @@ class ApiController(
         // и СЛОМАЛ идею — записал бы id в idTelegramDemo, не оставив слот для будущей AIR-публикации
         // при выходе песни в эфир. PremiumAutoPublishScheduler тоже смотрит на эти флаги для skip'а
         // и для закрытия задачи после успеха обоих каналов.
-        if (!settings.newsPremiumPublishPending &&
-            (settings.premiumAutoPublishState.isBlank() || settings.premiumAutoPublishState == "RUNNING")
+        if (!song.newsPremiumPublishPending &&
+            (song.premiumAutoPublishState.isBlank() || song.premiumAutoPublishState == "RUNNING")
         ) {
-            settings.newsPremiumPublishPending = true
-            settings.premiumAutoPublishState = "RUNNING"
-            settings.premiumAttemptCount = 0
-            settings.premiumAutoPublishLastError = ""
-            settings.saveToDb()
+            song.newsPremiumPublishPending = true
+            song.premiumAutoPublishState = "RUNNING"
+            song.premiumAttemptCount = 0
+            song.premiumAutoPublishLastError = ""
+            song.saveToDb()
         }
 
         val result =
             com.svoemesto.karaokeapp.services.TelegramAutoPublishService.publishToTelegram(
-                song = settings,
+                song = song,
                 allowPastDate = true,
                 publicationType = com.svoemesto.karaokeapp.model.PublicationType.PREMIUM,
                 persistMessageId = false,
@@ -6951,19 +6951,19 @@ class ApiController(
             result.state == com.svoemesto.karaokeapp.services.TelegramAutoPublishState.RENDERING ||
             result.state == com.svoemesto.karaokeapp.services.TelegramAutoPublishState.SEND_FAILED
         ) {
-            settings.newsPremiumTelegramSent = settings.newsPremiumTelegramSent ||
+            song.newsPremiumTelegramSent = song.newsPremiumTelegramSent ||
                 result.state == com.svoemesto.karaokeapp.services.TelegramAutoPublishState.PUBLISHED
-            if (settings.idTelegramDemo.isEmpty() &&
-                settings.idVk.isEmpty() &&
-                settings.newsPremiumTelegramSent &&
-                settings.newsPremiumVkSent
+            if (song.idTelegramDemo.isEmpty() &&
+                song.idVk.isEmpty() &&
+                song.newsPremiumTelegramSent &&
+                song.newsPremiumVkSent
             ) {
-                settings.newsPremiumPublishPending = false
-                if (settings.premiumAutoPublishState != "FAILED") {
-                    settings.premiumAutoPublishState = "COMPLETE"
+                song.newsPremiumPublishPending = false
+                if (song.premiumAutoPublishState != "FAILED") {
+                    song.premiumAutoPublishState = "COMPLETE"
                 }
             }
-            settings.saveToDb()
+            song.saveToDb()
         }
 
         val response: MutableMap<String, Any> = mutableMapOf()
@@ -6973,10 +6973,10 @@ class ApiController(
         response["state"] = result.state.code
         response["messageId"] = result.messageId ?: ""
         response["error"] = result.error ?: ""
-        response["newsPremiumPublishPending"] = settings.newsPremiumPublishPending as Any
-        response["newsPremiumTelegramSent"] = settings.newsPremiumTelegramSent as Any
-        response["newsPremiumVkSent"] = settings.newsPremiumVkSent as Any
-        response["premiumAutoPublishState"] = settings.premiumAutoPublishState as Any
+        response["newsPremiumPublishPending"] = song.newsPremiumPublishPending as Any
+        response["newsPremiumTelegramSent"] = song.newsPremiumTelegramSent as Any
+        response["newsPremiumVkSent"] = song.newsPremiumVkSent as Any
+        response["premiumAutoPublishState"] = song.premiumAutoPublishState as Any
         return response
     }
 
@@ -6987,7 +6987,7 @@ class ApiController(
     fun publishPremiumVk(
         @RequestParam id: Long,
     ): Map<String, Any> {
-        val settings =
+        val song =
             Song.loadFromDbById(
                 id = id,
                 database = WORKING_DATABASE,
@@ -7000,31 +7000,31 @@ class ApiController(
                 "error" to "Песня не найдена: id=$id" as Any,
             )
 
-        if (settings.idVk.isNotEmpty()) {
+        if (song.idVk.isNotEmpty()) {
             return mapOf(
                 "success" to false as Any,
                 "state" to "published" as Any,
-                "postId" to settings.idVk as Any,
-                "error" to "Song $id already has air-publication (idVk=${settings.idVk}); premium is no-op" as Any,
+                "postId" to song.idVk as Any,
+                "error" to "Song $id already has air-publication (idVk=${song.idVk}); premium is no-op" as Any,
             )
         }
 
         // specs/122 fix: выставить newsPremiumPublishPending=true ДО публикации — чтобы
         // VkAutoPublishScheduler.resumeRenderingSongs знал, что этот рендер для PREMIUM
         // и не вызвал onRenderCompleted с дефолтным AIR+persistPostId=true.
-        if (!settings.newsPremiumPublishPending &&
-            (settings.premiumAutoPublishState.isBlank() || settings.premiumAutoPublishState == "RUNNING")
+        if (!song.newsPremiumPublishPending &&
+            (song.premiumAutoPublishState.isBlank() || song.premiumAutoPublishState == "RUNNING")
         ) {
-            settings.newsPremiumPublishPending = true
-            settings.premiumAutoPublishState = "RUNNING"
-            settings.premiumAttemptCount = 0
-            settings.premiumAutoPublishLastError = ""
-            settings.saveToDb()
+            song.newsPremiumPublishPending = true
+            song.premiumAutoPublishState = "RUNNING"
+            song.premiumAttemptCount = 0
+            song.premiumAutoPublishLastError = ""
+            song.saveToDb()
         }
 
         val result =
             com.svoemesto.karaokeapp.services.VkAutoPublishService.publishToVk(
-                song = settings,
+                song = song,
                 type = com.svoemesto.karaokeapp.model.PublicationType.PREMIUM,
                 persistPostId = false,
             )
@@ -7033,19 +7033,19 @@ class ApiController(
             result.state == com.svoemesto.karaokeapp.services.VkAutoPublishState.RENDERING ||
             result.state == com.svoemesto.karaokeapp.services.VkAutoPublishState.SEND_FAILED
         ) {
-            settings.newsPremiumVkSent = settings.newsPremiumVkSent ||
+            song.newsPremiumVkSent = song.newsPremiumVkSent ||
                 result.state == com.svoemesto.karaokeapp.services.VkAutoPublishState.PUBLISHED
-            if (settings.idTelegramDemo.isEmpty() &&
-                settings.idVk.isEmpty() &&
-                settings.newsPremiumTelegramSent &&
-                settings.newsPremiumVkSent
+            if (song.idTelegramDemo.isEmpty() &&
+                song.idVk.isEmpty() &&
+                song.newsPremiumTelegramSent &&
+                song.newsPremiumVkSent
             ) {
-                settings.newsPremiumPublishPending = false
-                if (settings.premiumAutoPublishState != "FAILED") {
-                    settings.premiumAutoPublishState = "COMPLETE"
+                song.newsPremiumPublishPending = false
+                if (song.premiumAutoPublishState != "FAILED") {
+                    song.premiumAutoPublishState = "COMPLETE"
                 }
             }
-            settings.saveToDb()
+            song.saveToDb()
         }
 
         val response: MutableMap<String, Any> = mutableMapOf()
@@ -7055,10 +7055,10 @@ class ApiController(
         response["state"] = result.state.code
         response["postId"] = result.postId ?: ""
         response["error"] = result.error ?: ""
-        response["newsPremiumPublishPending"] = settings.newsPremiumPublishPending as Any
-        response["newsPremiumTelegramSent"] = settings.newsPremiumTelegramSent as Any
-        response["newsPremiumVkSent"] = settings.newsPremiumVkSent as Any
-        response["premiumAutoPublishState"] = settings.premiumAutoPublishState as Any
+        response["newsPremiumPublishPending"] = song.newsPremiumPublishPending as Any
+        response["newsPremiumTelegramSent"] = song.newsPremiumTelegramSent as Any
+        response["newsPremiumVkSent"] = song.newsPremiumVkSent as Any
+        response["premiumAutoPublishState"] = song.premiumAutoPublishState as Any
         return response
     }
 

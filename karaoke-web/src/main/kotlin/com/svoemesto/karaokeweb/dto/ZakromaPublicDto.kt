@@ -6,7 +6,7 @@ import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
 /**
- * DTO для zakroma album settings public: сериализуемое представление для API/UI.
+ * DTO для zakroma album songs public: сериализуемое представление для API/UI.
  *
  * @see AGENTS.md
  *
@@ -16,7 +16,7 @@ import java.nio.charset.StandardCharsets
  *
  * @property idStatus статус по lifecycle (0..6, specs/022-song-status-lifecycle). ≥6 для публичного
  *   плеера.
- * @property contentReady `song.isContentReady` — персистентные флаги из tbl_settings (Pass 100,
+ * @property contentReady `song.isContentReady` — персистентные флаги из tbl_songs (Pass 100,
  *   deploy/karaoke-db/26_player_readiness_flags.sql). true = можно открыть плеер (stem +
  *   picture + markers, idStatus >= 6). Используется иконкой плеера как «contentReadyState === 'ready'».
  */

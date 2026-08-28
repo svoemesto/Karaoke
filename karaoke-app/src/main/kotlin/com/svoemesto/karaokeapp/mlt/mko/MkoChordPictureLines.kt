@@ -80,8 +80,8 @@ data class MkoChordPictureLines(
     override fun tractor(): MltNode = mltGenerator.tractor()
 
     override fun tractorSequence(): MltNode {
-        val sett = song ?: return MltNode()
-        val voice = sett.voicesForMlt[0]
+        val targetSong = song ?: return MltNode()
+        val voice = targetSong.voicesForMlt[0]
         val countChordPictureTracks = voice.countChordPictureTracks
 
         val subTrackNodes =

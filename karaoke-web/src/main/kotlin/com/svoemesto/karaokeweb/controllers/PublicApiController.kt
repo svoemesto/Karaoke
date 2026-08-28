@@ -724,7 +724,7 @@ class PublicApiController(
         @RequestParam(required = false) referrer: String?,
         request: HttpServletRequest,
     ): SongPublicDto? {
-        val sett =
+        val song =
             Song.loadFromDbById(
                 id,
                 database = WORKING_DATABASE,
@@ -747,14 +747,14 @@ class PublicApiController(
         val me = siteUserResolver.resolve(request)
         val isSelfAssignEditor = me?.isEditor == true && me.canSelfAssignTasks
         val assignmentDto =
-            if (isSelfAssignEditor && sett != null) {
+            if (isSelfAssignEditor && song != null) {
                 SongAssignment
                     .loadBySongIds(
-                        listOf(sett.id),
+                        listOf(song.id),
                         WORKING_DATABASE,
                         storageService,
                         storageApiClient,
-                    )[sett.id]
+                    )[song.id]
                     ?.let { a ->
                         com.svoemesto.karaokeapp.model.SongAssignmentBriefDto(
                             id = a.id,
@@ -766,7 +766,7 @@ class PublicApiController(
             } else {
                 null
             }
-        return sett?.let { s ->
+        return song?.let { s ->
             // specs/259-playlist-clickable-links: фронту нужен authorId для back-link из SongView
             // на /zakroma/<authorId>. Song.author — свободный текст (не FK), резолвим по имени
             // одним batch-запросом (Author.loadIdsByNames) — никаких лишних SQL при пустой БД,

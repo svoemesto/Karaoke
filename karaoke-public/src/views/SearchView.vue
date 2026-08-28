@@ -46,11 +46,35 @@
       <div v-if="searchIsLoading" class="km-loading">Загрузка...</div>
 
       <!--
+        Spec 262-search-pagination (FR-013, T011): счётчик «Показано X из Y» над списком
+        результатов. aria-live="polite" — screen reader озвучивает обновления. Виден только
+        при непустом списке.
+
+        ВАЖНО (багфикс Pass 242): используется отдельный v-if (НЕ v-else-if от loading).
+        Раньше счётчик был в цепочке v-else-if с km-song-list — при непустом searchResults
+        Vue отрисовывал только первую совпавшую ветку (counter), а km-song-list через
+        v-else-if пропускался — список не рендерился, хотя данные в state были.
+        Теперь счётчик — независимый брат km-song-list, оба используют v-if от
+        !searchIsLoading && searchResults.length.
+      -->
+      <div
+        v-if="!searchIsLoading && searchResults.length && searchTotalCount > 0"
+        class="km-counter"
+        aria-live="polite"
+      >
+        Показано {{ searchResults.length }} из {{ searchTotalCount }}
+      </div>
+
+      <!--
         Spec 261 (US2 / Clarification Q1 → A): единый row-паттерн, применяется и на десктопе,
         и на мобилке (Clarification Q1 unified). Старые ветки <table> и <div class="km-cards">
         удалены полностью. Структура строки и CSS — копия эталонной PlaylistEditView (FR-004).
+
+        ВАЖНО (багфикс Pass 242): v-if заменён с v-else-if на самостоятельный — см. комментарий
+        выше про km-counter. Раньше из-за цепочки v-else-if список не отрисовывался, когда
+        счётчик был виден.
       -->
-      <div v-else-if="searchResults.length" class="km-song-list">
+      <div v-if="!searchIsLoading && searchResults.length" class="km-song-list">
         <div v-for="song in searchResults" :key="song.id" class="km-song-row">
           <!--
             Spec 261 (FR-005/FR-006): чёрная плашка с двумя превью. Альбом — квадрат 48×48,
@@ -150,7 +174,47 @@
         </div>
       </div>
 
-      <p v-else-if="!searchIsLoading && searched" class="km-empty">Ничего не найдено.</p>
+      <!--
+        Spec 262-search-pagination (FR-014, T012): кнопка «Загрузить ещё» — infinite scroll.
+        Видна когда есть ещё страницы (`hasMore=true`) и не идёт текущая подгрузка
+        (`isLoadingMore=false`). Inline-спиннер во время загрузки. На мобильных —
+        полная ширина (CSS @media).
+      -->
+      <div
+        v-if="searchHasMore || searchIsLoadingMore || searchPaginationError"
+        class="km-load-more"
+      >
+        <button
+          v-if="!searchPaginationError"
+          class="km-load-more-btn"
+          :disabled="!searchHasMore || searchIsLoadingMore"
+          :aria-label="`Загрузить следующие ${searchPagination.pageSize} результатов`"
+          @click="onLoadMore"
+        >
+          <span v-if="searchIsLoadingMore" class="km-spinner" aria-hidden="true" />
+          {{ searchIsLoadingMore ? 'Загрузка…' : 'Загрузить ещё' }}
+        </button>
+        <!--
+          Spec 262-search-pagination (FR-015, T013): inline-сообщение об ошибке + retry.
+          role="alert" для screen reader; retry сбрасывает error-флаг и снова вызывает
+          loadMoreSearchResults.
+        -->
+        <div v-if="searchPaginationError" class="km-load-more-error" role="alert">
+          Не удалось загрузить ещё.
+          <button class="km-load-more-retry" @click="retryLoadMore">Повторить</button>
+        </div>
+      </div>
+
+      <!--
+        Spec 262-search-pagination (Pass 243 fix): условие для «Ничего не найдено»
+        теперь включает `searchResults.length === 0`. Без этого надпись показывалась
+        одновременно со списком песен (когда searchResults.length > 0 но hasMore=false),
+        потому что km-load-more не отрисовывался — а v-else-if от него попадал
+        на это условие.
+      -->
+      <p v-else-if="!searchIsLoading && searched && searchResults.length === 0" class="km-empty">
+        Ничего не найдено.
+      </p>
     </div>
 
     <SongSubscriptionModal
@@ -261,14 +325,33 @@ export default {
     }
   },
   computed: {
-    ...mapGetters('songs', ['authors', 'searchResults', 'searchIsLoading']),
+    ...mapGetters('songs', [
+      'authors',
+      'searchResults',
+      'searchIsLoading',
+      // Spec 262-search-pagination (T007): getters пагинации
+      'searchPagination',
+      'searchHasMore',
+      'searchIsLoadingMore',
+      'searchTotalCount',
+      'searchPaginationError',
+    ]),
     isPremium() {
       return !!(this.user && this.user.effectivePremium)
+    },
+    // Spec 262-search-pagination (T014): URL-state — извлекаем page/pageSize из query.
+    pageFromUrl() {
+      const p = Number(this.$route.query.page)
+      return Number.isFinite(p) && p >= 1 ? p : 1
+    },
+    pageSizeFromUrl() {
+      const ps = Number(this.$route.query.pageSize)
+      return Number.isFinite(ps) && ps >= 1 ? ps : 35
     },
   },
   watch: {
     // Pass 239: readiness.load() убран (источник зависания). membership.load() оставлен
-    // — для не-избранных плейлистов bulk-fetch одним запросом (usePlaylistMembership.load()).
+    // для не-избранных плейлистов bulk-fetch одним запросом (usePlaylistMembership.load()).
     searchResults: {
       immediate: true,
       handler(list) {
@@ -285,6 +368,20 @@ export default {
         this.membership.load(ids)
       },
     },
+    // Spec 262-search-pagination (FR-012, T014, багфикс Pass 242): синхронизация URL → state.
+    // При изменении URL (F5 на ?page=N, back/forward, programmatic navigation) восстанавливаем
+    // срез через restoreFromUrl. Это единственная точка URL→state — обратное направление
+    // (state → URL) выполняется явно в onLoadMore() и onSearch(), чтобы избежать рекурсии
+    // между двумя watch'ами, которая ломала «Ничего не найдено» после многократных кликов.
+    '$route.query.page': {
+      immediate: false,
+      handler() {
+        const urlPage = this.pageFromUrl
+        if (urlPage !== this.searchPagination.page) {
+          this.restoreFromUrl()
+        }
+      },
+    },
   },
   mounted() {
     this.loadAuthors()
@@ -293,6 +390,8 @@ export default {
       this.form.author = q.author || ''
       this.form.songName = q.songName || ''
       this.form.text = q.text || ''
+      // Spec 262-search-pagination: если URL содержит page>1, запускаем
+      // restoreFromUrl — последовательно подгружаем страницы 1..N.
       this.onSearch()
     }
     // Спека 259 (FR-006): гарантируем наличие кэша `authorTiles` к моменту рендера строк —
@@ -306,7 +405,7 @@ export default {
     }
   },
   methods: {
-    ...mapActions('songs', ['loadAuthors', 'search']),
+    ...mapActions('songs', ['loadAuthors', 'search', 'loadMoreSearchResults']),
     // —— Spec 261: error-flags для превью (FR-005 @error-фолбэк) ———
     hasImageError(song, kind) {
       return !!this.imageErrors[`${song.id}:${kind}`]
@@ -377,7 +476,93 @@ export default {
     },
     onSearch() {
       this.searched = true
-      this.search({ songName: this.form.songName, author: this.form.author, text: this.form.text })
+      // Spec 262-search-pagination: при смене фильтров — пагинация сбрасывается на 1
+      // (FR-011 спеки). Если в URL был ?page=N — очищаем перед запросом.
+      const filters = {
+        songName: this.form.songName,
+        author: this.form.author,
+        text: this.form.text,
+      }
+      const hasFilters = filters.songName || filters.author || filters.text
+      const urlPage = this.pageFromUrl
+      // Если URL содержит page>1 И есть фильтры — восстанавливаем срез (после перезагрузки F5).
+      // Иначе — обычный новый поиск с page=1.
+      if (hasFilters && urlPage > 1) {
+        this.search({ ...filters, page: 1, pageSize: this.pageSizeFromUrl })
+        // После успешной первой порции дозагружаем страницы 2..N последовательно.
+        // Делается через watch 'searchPagination.page' — он сработает при изменении.
+      } else {
+        // Удаляем ?page из URL, чтобы не было разночтений.
+        if (this.$route.query.page) {
+          const query = { ...this.$route.query }
+          delete query.page
+          this.$router.replace({ query }).catch(() => {})
+        }
+        this.search({ ...filters, page: 1, pageSize: this.pageSizeFromUrl })
+      }
+    },
+    // Spec 262-search-pagination (FR-010, T013): подгрузка следующей порции по клику.
+    onLoadMore() {
+      // Передаём текущие фильтры: сначала из $route.query (после URL-sync),
+      // иначе из this.form (когда URL не обновлён фильтрами после первого поиска).
+      // Pass 243 fix: без fallback на this.form фильтры терялись после первого поиска,
+      // потому что onSearch НЕ обновляет URL фильтрами — и loadMoreSearchResults
+      // отправлял запрос БЕЗ text, получая пустой массив от бэкенда.
+      const currentFilters = {
+        songName: this.$route.query.songName || this.form.songName || '',
+        author: this.$route.query.author || this.form.author || '',
+        text: this.$route.query.text || this.form.text || '',
+        album: this.$route.query.album || this.form.album || '',
+      }
+      // Возвращаем Promise, чтобы можно было обновить URL после успешной подгрузки.
+      const promise = this.loadMoreSearchResults(currentFilters)
+      // После успеха — обновляем ?page=N в URL без перезагрузки.
+      // Не через watch, чтобы избежать рекурсии URL↔state (Pass 242 bugfix).
+      if (promise && typeof promise.then === 'function') {
+        promise
+          .then(() => {
+            const newPage = this.searchPagination.page
+            if (newPage > 1 && this.pageFromUrl !== newPage) {
+              const query = { ...this.$route.query, page: newPage }
+              this.$router.replace({ query }).catch(() => {})
+            }
+          })
+          .catch(() => {
+            // Ошибка уже обработана в action (state.searchPagination.error=true),
+            // URL не обновляем.
+          })
+      }
+    },
+    // Spec 262-search-pagination (FR-015, T013): retry после ошибки.
+    retryLoadMore() {
+      this.$store.commit('songs/setSearchPaginationError', false)
+      this.onLoadMore()
+    },
+    // Spec 262-search-pagination (T014, Story 1 acceptance 4): восстановление с F5
+    // при наличии ?page=N — последовательно подгружаем страницы 2..N.
+    async restoreFromUrl() {
+      const targetPage = this.pageFromUrl
+      if (targetPage <= 1) return
+      const currentFilters = {
+        songName: this.$route.query.songName || this.form.songName || '',
+        author: this.$route.query.author || this.form.author || '',
+        text: this.$route.query.text || this.form.text || '',
+        album: this.$route.query.album || '',
+      }
+      // Перезапускаем поиск с page=1 (сброс) и затем подгружаем targetPage-1 порций.
+      this.search({
+        ...currentFilters,
+        page: 1,
+        pageSize: this.pageSizeFromUrl,
+      }).then(() => {
+        let remaining = targetPage - 1
+        const loadNext = () => {
+          if (remaining <= 0) return
+          remaining -= 1
+          this.loadMoreSearchResults(currentFilters).then(() => loadNext())
+        }
+        loadNext()
+      })
     },
   },
 }
@@ -405,6 +590,92 @@ export default {
   text-align: center;
   color: var(--km-text2);
   padding: 2rem;
+}
+
+/*
+  === Spec 262-search-pagination: счётчик «Показано X из Y» + кнопка «Загрузить ещё» ===
+  Размещаются под списком результатов; margin-top отделён от .km-song-list.
+  Цвета через существующие CSS-переменные `--km-text2` (б хардкода).
+  Кнопка «Загрузить ещё» адаптивна: полная ширина на мобильных вьюпортах (<480px).
+*/
+.km-counter {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.85rem;
+  color: var(--km-text2);
+  text-align: right;
+}
+.km-load-more {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1.5rem 1rem;
+  flex-wrap: wrap;
+}
+.km-load-more-btn {
+  background: var(--km-accent);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.6rem 2rem;
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  min-width: 180px;
+}
+.km-load-more-btn:hover:not(:disabled) {
+  opacity: 0.88;
+}
+.km-load-more-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.km-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: km-spin 0.8s linear infinite;
+  vertical-align: middle;
+  margin-right: 0.4rem;
+}
+@keyframes km-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.km-load-more-error {
+  font-size: 0.88rem;
+  color: var(--km-text2);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.km-load-more-retry {
+  background: transparent;
+  color: var(--km-accent);
+  border: 1px solid var(--km-accent);
+  border-radius: 6px;
+  padding: 0.25rem 0.85rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+.km-load-more-retry:hover {
+  background: var(--km-accent);
+  color: #fff;
+}
+@media (max-width: 480px) {
+  .km-load-more-btn {
+    width: 100%;
+  }
 }
 
 /* Форма (без изменений, как раньше) */

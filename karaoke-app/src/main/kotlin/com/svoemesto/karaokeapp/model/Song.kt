@@ -7596,6 +7596,47 @@ class Song(
         }
 
         /**
+         * Подсчитать число песен, удовлетворяющих фильтру `args`
+         * (без загрузки самих записей). Используется для totalCount
+         * в `PagedSongsDto` (спека 262-search-pagination).
+         *
+         * Использует **тот же** helper `getWhereList(...)`, что и
+         * `loadListFromDb(...)`, — WHERE-логика не дублируется.
+         * Применяется на той же таблице (`tbl_songs` или `tbl_songs_sync`
+         * если `sync = true`).
+         *
+         * Паттерн взят из `Author.countWithNewAlbum`:
+         * то же `KaraokeConnection.getConnection()` + `try/catch` +
+         * защита `?: return 0` при отсутствии соединения.
+         *
+         * @param args карта фильтров (те же ключи, что и в [loadListFromDb]).
+         * @param database подключение к БД.
+         * @param sync `true` — считать по `tbl_songs_sync` (remote).
+         * @return число строк или `0` при отсутствии соединения / SQLException.
+         * @see specs/262-search-pagination/contracts/api-songs.md
+         */
+        fun countMatchingAttr(
+            args: Map<String, String> = emptyMap(),
+            database: KaraokeConnection,
+            sync: Boolean = false,
+        ): Int {
+            val connection = database.getConnection() ?: return 0
+            val where = getWhereList(tableName = TABLE_NAME, args = args, sync = sync)
+            val tableNameResolved = TABLE_NAME + if (sync) "_sync" else ""
+            val sql =
+                "SELECT COUNT(*) AS cnt FROM $tableNameResolved" +
+                    if (where.isNotEmpty()) " WHERE ${where.joinToString(" AND ")}" else ""
+            return try {
+                connection.prepareStatement(sql).use { ps ->
+                    ps.executeQuery().use { rs -> if (rs.next()) rs.getInt("cnt") else 0 }
+                }
+            } catch (e: SQLException) {
+                println("[${Timestamp.from(Instant.now())}] Song.countMatchingAttr SQLException: ${e.message}")
+                0
+            }
+        }
+
+        /**
          * Загрузить список песен из БД с фильтрацией.
          *
          * Алгоритм:

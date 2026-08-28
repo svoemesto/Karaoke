@@ -15,6 +15,7 @@ import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.StorageApiClient
 import com.svoemesto.karaokeweb.StatBySong
 import com.svoemesto.karaokeweb.dto.AuthorTilePublicDto
+import com.svoemesto.karaokeweb.dto.PagedSongsDto
 import com.svoemesto.karaokeweb.dto.SongPublicDto
 import com.svoemesto.karaokeweb.dto.ZakromaAlbumMetaPublicDto
 import com.svoemesto.karaokeweb.dto.ZakromaAlbumSongPublicDto
@@ -655,8 +656,15 @@ class PublicApiController(
         @RequestParam(required = false) album: String?,
         @RequestParam(required = false) anonId: String?,
         @RequestParam(required = false) referrer: String?,
+        // Spec 262-search-pagination: опциональные параметры пагинации.
+        // Если хотя бы один из них передан в запросе — возвращается PagedSongsDto
+        // (с `totalCount`, `hasMore`); иначе — обратная совместимость со старым
+        // форматом `List<SongPublicDto>` (FR-003 спеки). Допустимые `pageSize`:
+        // 10 / 25 / 35 / 50 / 100; не из списка → 35. `page < 1` → 1.
+        @RequestParam(required = false) page: Int?,
+        @RequestParam(required = false) pageSize: Int?,
         request: HttpServletRequest,
-    ): List<SongPublicDto> {
+    ): Any {
         val attr: MutableMap<String, String> = mutableMapOf()
         if (!songName.isNullOrEmpty()) attr["song_name"] = songName
         // Поиск по автору: сначала резолвим term (может быть и реальным именем, и алиасом —
@@ -682,12 +690,32 @@ class PublicApiController(
         // кроме "редактора" — для него фильтр по статусу снят (specs/017-editor-status-bypass).
         if (onlyPublishedFor(request)) attr["id_status"] = ">=6"
 
+        // Spec 262-search-pagination: нормализация параметров пагинации.
+        // pageSize — whitelist [10, 25, 35, 50, 100]; не из списка → 35.
+        // page — минимум 1; null → 1.
+        val pageNormalized: Int = if (page == null || page < 1) 1 else page
+        val pageSizeNormalized: Int =
+            if (pageSize != null && pageSize in listOf(10, 25, 35, 50, 100)) pageSize else 35
+        // Триггер обёртки: если клиент явно передал хотя бы один параметр пагинации.
+        val usePagedResponse: Boolean = page != null || pageSize != null
+
+        // Базовый фильтр без limit/offset для totalCount — иначе count(*) с
+        // LIMIT/OFFSET семантически некорректен (вернёт размер страницы).
+        // Для items — добавляем limit/offset, чтобы получить нужную порцию.
+        val attrForItems: Map<String, String> =
+            if (usePagedResponse) {
+                attr + ("limit" to pageSizeNormalized.toString()) +
+                    ("offset" to ((pageNormalized - 1) * pageSizeNormalized).toString())
+            } else {
+                attr
+            }
+
         val song: List<Song> =
             if ("${songName ?: ""}${author ?: ""}${album ?: ""}${text ?: ""}".length < 3) {
                 emptyList()
             } else {
                 Song.loadListFromDb(
-                    attr,
+                    attrForItems,
                     database = WORKING_DATABASE,
                     storageService = storageService,
                     storageApiClient = storageApiClient,
@@ -700,6 +728,8 @@ class PublicApiController(
         if (!author.isNullOrEmpty()) data["author"] = author
         if (!text.isNullOrEmpty()) data["text"] = text
         if (!album.isNullOrEmpty()) data["album"] = album
+        // Spec 262-search-pagination: page/pageSize НЕ логируются в tbl_events
+        // (избыточный шум для аналитики; не нужны для отчётов).
         mainController.doRegisterEvent(
             mapOf(
                 "eventType" to EventType.CALL_REST.dbValue,
@@ -712,22 +742,45 @@ class PublicApiController(
             siteUserResolver.resolve(request)?.id ?: 0,
         )
 
-        return song.map {
-            // Spec 261 (FR-006): URL превью обложки альбома и автора (поля `albumPictureUrl` /
-            // `authorPictureUrl` в `SongPublicDto`) — фолбэк "" если картинки нет или данных
-            // недостаточно (фронт показывает плейсхолдер «♪»/«👤»). Шаблон ключа — точно как
-            // в `Pictures.storageFileNamePreview` и как использует `PublicPlaylistController`
-            // для строк плейлиста (единый визуал с эталонной страницей).
-            val albumUrl = albumPreviewUrlForSong(it)
-            val authorUrl = authorPreviewUrlForName(it.author)
-            val dto =
-                SongPublicDto.fromSong(
-                    it,
-                    includeDetails = false,
-                    albumPictureUrl = albumUrl,
-                    authorPictureUrl = authorUrl,
-                )
-            dto.copy(authorAlias = aliasByAuthor[dto.author.lowercase()] ?: "")
+        val items =
+            song.map {
+                // Spec 261 (FR-006): URL превью обложки альбома и автора (поля `albumPictureUrl` /
+                // `authorPictureUrl` в `SongPublicDto`) — фолбэк "" если картинки нет или данных
+                // недостаточно (фронт показывает плейсхолдер «♪»/«👤»). Шаблон ключа — точно как
+                // в `Pictures.storageFileNamePreview` и как использует `PublicPlaylistController`
+                // для строк плейлиста (единый визуал с эталонной страницей).
+                val albumUrl = albumPreviewUrlForSong(it)
+                val authorUrl = authorPreviewUrlForName(it.author)
+                val dto =
+                    SongPublicDto.fromSong(
+                        it,
+                        includeDetails = false,
+                        albumPictureUrl = albumUrl,
+                        authorPictureUrl = authorUrl,
+                    )
+                dto.copy(authorAlias = aliasByAuthor[dto.author.lowercase()] ?: "")
+            }
+
+        // Spec 262-search-pagination: возврат обёртки `PagedSongsDto` только если
+        // клиент явно передал page/pageSize. Без параметров — старый формат
+        // `List<SongPublicDto>` (FR-003, обратная совместимость).
+        return if (usePagedResponse) {
+            val totalCount =
+                if ("${songName ?: ""}${author ?: ""}${album ?: ""}${text ?: ""}".length < 3) {
+                    0
+                } else {
+                    Song.countMatchingAttr(attr, database = WORKING_DATABASE)
+                }
+            val hasMore = (pageNormalized.toLong() * pageSizeNormalized) < totalCount
+            PagedSongsDto(
+                items = items,
+                totalCount = totalCount.toLong(),
+                page = pageNormalized,
+                pageSize = pageSizeNormalized,
+                hasMore = hasMore,
+            )
+        } else {
+            items
         }
     }
 

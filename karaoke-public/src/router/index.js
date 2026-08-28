@@ -125,8 +125,13 @@ const router = createRouter({
   routes,
   // Без этого SPA-навигация сохраняет текущий scrollY страницы — переход на новый маршрут (например,
   // с промотанных Закромов на страницу песни) открывался бы там же, где прокручен был список.
+  // Spec 262-search-pagination (Pass 243): для query-only изменений внутри одной страницы
+  // (например, при клике «Загрузить ещё» — $router.replace({ query: { ..., page: N } }))
+  // возвращаем false (не скроллить) — иначе страница прыгает в начало при подгрузке
+  // новых элементов в конец списка, и пользователь вынужден снова скроллить к новым записям.
   scrollBehavior(to, from, savedPosition) {
     if (savedPosition) return savedPosition
+    if (to.path === from.path) return false
     return { top: 0 }
   },
 })

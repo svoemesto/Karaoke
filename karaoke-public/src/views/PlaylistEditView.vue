@@ -924,19 +924,30 @@ export default {
   white-space: nowrap;
 }
 /* Спека 259 (FR-001, FR-002, FR-007, FR-011): кликабельные название песни и автор
-   в строке плейлиста. display:block — чтобы overflow-обрезка текста работала
-   в <router-link> (он рендерит <a>, у которого по умолчанию display:inline).
-   Цвет — из существующей CSS-переменной (--km-accent), работает в обоих дизайнах
-   (classic/modern). Underline только по hover/focus — не агрессивный
-   визуальный шум в покое. */
-.km-song-title-link,
-.km-song-author-link {
+   в строке плейлиста. Название песни — блочное (display:block), чтобы overflow-обрезка
+   текста работала в <router-link> (рендерит <a>, у которого по умолчанию display:inline).
+   Имя автора — inline-block: должно оставаться в одной строке с разделителями " - "
+   и годом/альбомом (FR-007: «без сдвига строк»), но при этом уметь обрезаться
+   через overflow ellipsis. Цвет — из существующей CSS-переменной (--km-accent),
+   работает в обоих дизайнах (classic/modern). Underline только по hover/focus —
+   не агрессивный визуальный шум в покое. */
+.km-song-title-link {
   display: block;
   color: var(--km-accent, #0077ff);
   text-decoration: none;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.km-song-author-link {
+  display: inline-block;
+  max-width: 100%;
+  color: var(--km-accent, #0077ff);
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
 }
 .km-song-title-link {
   font-size: 0.92rem;

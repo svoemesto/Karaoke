@@ -5459,9 +5459,23 @@ class ApiController(
                             null
                         }
                     if (yandexLyricsResult is YandexLyricsSearchOutcome.Found && yandexLyricsResult.text.isNotBlank()) {
-                        newSong.sourceText = yandexLyricsResult.text
-                        if (newSong.idStatus == 0L) newSong.fields[SongField.ID_STATUS] = "1"
-                        newSong.saveToDb()
+                        // specs/278-fix-key-loss-on-lyrics-search: между Song.createFromPath()
+                        // (ставит в очередь KEY_BPM_FROM_FILE / DEMUCS2 сразу после создания песни)
+                        // и этим saveToDb() проходит 10-60 сек Playwright-поиска текста. За это время
+                        // параллельный процесс может успеть обновить song_tone/song_bpm/url'ы стемов
+                        // через свой собственный экземпляр Song.saveToDb(). Перезагружаем объект из БД,
+                        // чтобы getDiff() увидел актуальное состояние и НЕ включил эти поля в UPDATE
+                        // (иначе — перезатирание пустыми значениями из stale in-memory объекта).
+                        val songToSave =
+                            Song.loadFromDbById(
+                                id = newSong.id,
+                                database = WORKING_DATABASE,
+                                storageService = storageService,
+                                storageApiClient = storageApiClient,
+                            ) ?: newSong
+                        songToSave.sourceText = yandexLyricsResult.text
+                        if (songToSave.idStatus == 0L) songToSave.fields[SongField.ID_STATUS] = "1"
+                        songToSave.saveToDb()
                         textResolved = true
                     }
                 }

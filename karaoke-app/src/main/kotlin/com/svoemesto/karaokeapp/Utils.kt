@@ -4529,15 +4529,27 @@ fun applyDuplicateOriginal(
     newSong: Song,
     original: Song,
 ) {
-    newSong.rootId = original.id
-    newSong.sourceText = original.sourceText
-    newSong.resultText = original.resultText
-    newSong.sourceMarkers = original.sourceMarkers
-    newSong.formattedTextSong = original.formattedTextSong
-    newSong.formattedTextTabs = original.formattedTextTabs
-    newSong.formattedTextChords = original.formattedTextChords
-    newSong.fields[SongField.ID_STATUS] = "1"
-    newSong.saveToDb()
+    // specs/278-fix-key-loss-on-lyrics-search: между Song.createFromPath() (запускает
+    // KEY_BPM_FROM_FILE сразу после создания) и этим saveToDb() может пройти достаточно времени
+    // (поиск дубликата через сравнение имён), чтобы параллельный процесс успел обновить
+    // song_tone/song_bpm/url'ы стемов в БД через свой экземпляр Song.saveToDb(). Перезагружаем
+    // объект из БД, чтобы getDiff() не включил эти поля в UPDATE (иначе — перезатирание).
+    val songToSave =
+        Song.loadFromDbById(
+            id = newSong.id,
+            database = newSong.database,
+            storageService = newSong.storageService,
+            storageApiClient = newSong.storageApiClient,
+        ) ?: newSong
+    songToSave.rootId = original.id
+    songToSave.sourceText = original.sourceText
+    songToSave.resultText = original.resultText
+    songToSave.sourceMarkers = original.sourceMarkers
+    songToSave.formattedTextSong = original.formattedTextSong
+    songToSave.formattedTextTabs = original.formattedTextTabs
+    songToSave.formattedTextChords = original.formattedTextChords
+    songToSave.fields[SongField.ID_STATUS] = "1"
+    songToSave.saveToDb()
 }
 
 /**
@@ -4558,14 +4570,28 @@ fun applyAudioParentMarkers(
     audioParent: Song,
     deltaMs: Long,
 ) {
-    song.sourceText = audioParent.sourceText
-    song.resultText = audioParent.resultText
-    song.sourceMarkers = shiftMarkersAndFixEnd(audioParent.sourceMarkers, deltaMs, song.ms)
-    song.formattedTextSong = audioParent.formattedTextSong
-    song.formattedTextTabs = audioParent.formattedTextTabs
-    song.formattedTextChords = audioParent.formattedTextChords
-    song.fields[SongField.ID_STATUS] = "5"
-    song.saveToDb()
+    // specs/278-fix-key-loss-on-lyrics-search: applyAudioParentMarkers — самый долгий шаг в цепочке
+    // doCreateFromFolder (поиск по waveform через акустическое сходство). KEY_BPM_FROM_FILE и
+    // DEMUCS2, поставленные в очередь из Song.createFromPath(), почти наверняка уже отработали к
+    // этому моменту и обновили song_tone/song_bpm/url'ы стемов в БД через свой экземпляр
+    // Song.saveToDb(). Перезагружаем объект из БД, чтобы getDiff() не включил эти поля в UPDATE.
+    // deltaMs рассчитывается от song.ms — после reload используем reloaded.ms (длительность
+    // песни уже не изменится за время reload'а, но это единообразно с applyDuplicateOriginal).
+    val songToSave =
+        Song.loadFromDbById(
+            id = song.id,
+            database = song.database,
+            storageService = song.storageService,
+            storageApiClient = song.storageApiClient,
+        ) ?: song
+    songToSave.sourceText = audioParent.sourceText
+    songToSave.resultText = audioParent.resultText
+    songToSave.sourceMarkers = shiftMarkersAndFixEnd(audioParent.sourceMarkers, deltaMs, songToSave.ms)
+    songToSave.formattedTextSong = audioParent.formattedTextSong
+    songToSave.formattedTextTabs = audioParent.formattedTextTabs
+    songToSave.formattedTextChords = audioParent.formattedTextChords
+    songToSave.fields[SongField.ID_STATUS] = "5"
+    songToSave.saveToDb()
 }
 
 fun applyFamilySongSelection(

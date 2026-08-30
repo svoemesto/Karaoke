@@ -339,7 +339,17 @@
           </div>
           <div class="label-and-input">
             <div class="label">Дата:</div>
-            <input v-model="song.date" class="input-field" list="list_free_time_slots" />
+            <!-- specs/268-song-edit-date-datalist (FR-003/FR-004): уникальный `name` +
+                 `autocomplete="off"` отвязывают поле от браузерного автозаполнения, иначе
+                 Chrome/Edge/Firefox маскируют <datalist id="list_free_time_slots"> своим
+                 списком «Предлагать заполнение поля». -->
+            <input
+              v-model="song.date"
+              class="input-field"
+              list="list_free_time_slots"
+              name="song_date_field"
+              autocomplete="off"
+            />
             <button class="btn-round" :disabled="notChanged('date')" @click="undoField('date')">
               <img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg" />
             </button>
@@ -356,7 +366,16 @@
           </div>
           <div class="label-and-input">
             <div class="label">Время:</div>
-            <input v-model="song.time" class="input-field" list="list_hours" />
+            <!-- specs/268-song-edit-date-datalist (FR-005): то же, что для поля «Дата» —
+                 `name` + `autocomplete="off"` против браузерного автокомплита,
+                 иначе <datalist id="list_hours"> маскируется. -->
+            <input
+              v-model="song.time"
+              class="input-field"
+              list="list_hours"
+              name="song_time_field"
+              autocomplete="off"
+            />
             <button class="btn-round" :disabled="notChanged('time')" @click="undoField('time')">
               <img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg" />
             </button>

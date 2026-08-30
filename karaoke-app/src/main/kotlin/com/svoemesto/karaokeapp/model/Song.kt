@@ -605,21 +605,19 @@ class Song(
 
     val color: String get() = fields[SongField.COLOR] ?: ""
     val songName: String get() = fields[SongField.NAME] ?: ""
-    /**
-     * Цензурированное название песни, предвычисленное по словарю «Censored»
-     * ([com.svoemesto.karaokeapp.textfiledictionary.CensoredWordsDictionary])
-     * или введённое вручную в SongEdit. Читается из БД-колонки
-     * `tbl_songs.song_name_censored` без обращения к `tbl_dictionaries` на
-     * горячем пути.
-     *
-     * `var`, не `val` — сеттер нужен для SongEdit через существующий механизм
-     * `setCurrentSongField` в `webvue3-store` (`store.js:1610`).
-     *
-     * @see specs/277-song-name-censored/spec.md
-     */
+
+    // specs/277-song-name-censored: цензурированное название песни, предвычисленное по словарю
+    // «Censored» ([com.svoemesto.karaokeapp.textfiledictionary.CensoredWordsDictionary])
+    // или введённое вручную в SongEdit. Читается из БД-колонки
+    // `tbl_songs.song_name_censored` без обращения к `tbl_dictionaries` на горячем пути.
+    // `var`, не `val` — сеттер нужен для SongEdit через существующий механизм
+    // `setCurrentSongField` в `webvue3-store` (store.js:1610).
+    // @see specs/277-song-name-censored/spec.md
     var songNameCensored: String
         get() = fields[SongField.NAME_CENSORED] ?: ""
-        set(value) { fields[SongField.NAME_CENSORED] = value }
+        set(value) {
+            fields[SongField.NAME_CENSORED] = value
+        }
     val author: String get() = fields[SongField.AUTHOR] ?: ""
     val album: String get() = fields[SongField.ALBUM] ?: ""
     val date: String get() = fields[SongField.DATE] ?: ""

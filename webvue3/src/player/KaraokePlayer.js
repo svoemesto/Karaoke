@@ -1118,6 +1118,17 @@ export default class KaraokePlayer {
     return { index: idx, suffix }
   }
 
+  // Краткое представление тональности: «G minor» → «Gm», «A major» → «A», «Bb minor» → «A#m»
+  // (flat→sharp нормализация, как в _parseKey). Используется в сплэше и header.metadata вместо
+  // «голого» this.data.key. Идемпотентен: на входе «Gm» → на выходе «Gm». При нераспознанном
+  // формате или пустом входе возвращает исходную строку (fallback) или пустую строку.
+  // @see archive/docs/features/player-transpose.md
+  static _shortKey(key) {
+    const parsed = KaraokePlayer._parseKey(key)
+    if (!parsed) return key || ''
+    return KaraokePlayer.CHROMATIC[parsed.index] + parsed.suffix
+  }
+
   // Подпись сдвига тональности. Краткое обозначение тональности (Cm, G, F#m — не "C minor"/
   // "G major"). forMenu=true → "(+3) Cm" (сдвиг в скобках первым — для пункта меню); false →
   // "Cm (+3)" (тональность первой — для бейджа). При пустом data.key или нераспознанном — только
@@ -3127,8 +3138,9 @@ export default class KaraokePlayer {
       const chordSz = Math.round(40 * sc)
       const chordFrameY = 1080 - BORDER * 0.5 - 40 * 1.2
       const chordY = oy + chordFrameY * sc
-      const keyStr = this.data.key
-        ? `Key: «${this.data.key}», bpm: ${this.data.bpm}`
+      const shortKey = KaraokePlayer._shortKey(this.data.key)
+      const keyStr = shortKey
+        ? `Key: «${shortKey}», bpm: ${this.data.bpm}`
         : `bpm: ${this.data.bpm}`
       ctx.font = `400 ${chordSz}px FiraSansExtraCondensed, sans-serif`
       ctx.fillStyle = 'rgb(255,127,127)'
@@ -3251,8 +3263,9 @@ export default class KaraokePlayer {
 
       // Block 2: Chord description — tonality/tempo (salmon, bottom)
       const chordFontFamily = 'FiraSansExtraCondensed, sans-serif'
-      const keyStr2 = this.data.key
-        ? `Key: «${this.data.key}», bpm: ${this.data.bpm}`
+      const shortKey2 = KaraokePlayer._shortKey(this.data.key)
+      const keyStr2 = shortKey2
+        ? `Key: «${shortKey2}», bpm: ${this.data.bpm}`
         : `bpm: ${this.data.bpm}`
       {
         let lo = 8,
@@ -3861,7 +3874,8 @@ export default class KaraokePlayer {
         value: (this.data.album || '') + (this.data.year ? ` (${this.data.year})` : ''),
       },
     ]
-    if (this.data.key) rows.push({ label: 'Тональность: ', value: this.data.key })
+    const shortKey = KaraokePlayer._shortKey(this.data.key)
+    if (shortKey) rows.push({ label: 'Тональность: ', value: shortKey })
     if (this.data.bpm) rows.push({ label: 'Темп: ', value: `${this.data.bpm} bpm` })
 
     ctx.font = `900 ${rowSize}px Roboto, sans-serif`

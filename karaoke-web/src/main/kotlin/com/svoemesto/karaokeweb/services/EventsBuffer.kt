@@ -145,7 +145,8 @@ class EventsBuffer {
      */
     @Scheduled(fixedDelayString = "\${karaoke.web.events.batch-flush-interval-ms:5000}")
     fun flush() {
-        if (!flushing.compareAndSet(false, true)) return  // уже идёт flush в другом потоке
+        // Уже идёт flush в другом потоке — выходим.
+        if (!flushing.compareAndSet(false, true)) return
         val started = System.currentTimeMillis()
         try {
             val batch = mutableListOf<EventRecord>()
@@ -182,8 +183,9 @@ class EventsBuffer {
      * @throws SQLException если ошибка БД (вызывающий код ловит и делает fail-open).
      */
     private fun executeBatch(batch: List<EventRecord>) {
-        val connection = WORKING_DATABASE.getConnection()
-            ?: throw SQLException("Не удалось получить соединение с ${WORKING_DATABASE.name}")
+        val connection = requireNotNull(WORKING_DATABASE.getConnection()) {
+            "Нет соединения с БД (${WORKING_DATABASE.name})"
+        }
         try {
             for (record in batch) {
                 val fields = buildFieldsList(record)

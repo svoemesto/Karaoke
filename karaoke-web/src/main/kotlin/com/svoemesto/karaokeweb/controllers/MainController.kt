@@ -12,7 +12,6 @@ import com.svoemesto.karaokeapp.model.RestName
 import com.svoemesto.karaokeapp.model.Song
 import com.svoemesto.karaokeweb.StatBySong
 import com.svoemesto.karaokeapp.model.Zakroma
-import com.svoemesto.karaokeapp.rightFileName
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.SongReleaseAnnouncementService
 import com.svoemesto.karaokeapp.services.StorageApiClient
@@ -27,7 +26,6 @@ import org.springframework.stereotype.Controller
 import org.springframework.messaging.simp.SimpMessagingTemplate
 import org.springframework.ui.Model
 import org.springframework.web.bind.annotation.*
-import java.sql.SQLException
 import java.sql.Timestamp
 import java.time.Instant
 

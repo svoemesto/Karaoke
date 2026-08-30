@@ -2,12 +2,18 @@
   "version": "0.13.0",
   "integration_state_schema": 1,
   "installed_integrations": [
-    "opencode"
+    "opencode",
+    "dsh"
   ],
   "integration_settings": {
     "opencode": {
       "script": "sh",
       "invoke_separator": "."
+    },
+    "dsh": {
+      "script": "sh",
+      "invoke_separator": ".",
+      "notes": "Parallel integration for DeepSeek Harness (DSH) sessions. DSH is not in the specify CLI catalog; manifest was authored manually to mirror opencode so the spec-kit workflow runner can dispatch steps to either agent. Default integration remains opencode."
     }
   },
   "integration": "opencode",

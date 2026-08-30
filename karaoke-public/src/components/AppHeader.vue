@@ -3,7 +3,7 @@
     <div class="km-header-inner" :style="{ maxWidth }">
       <div class="km-header-left">
         <slot name="left">
-          <RouterLink v-if="back" :to="backRouteTo" class="km-back">{{ back.label }}</RouterLink>
+          <RouterLink v-if="back" :to="backRouteTo" replace class="km-back">{{ back.label }}</RouterLink>
         </slot>
       </div>
       <div class="km-header-center">

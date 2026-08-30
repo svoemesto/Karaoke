@@ -541,14 +541,32 @@ export default {
         this.membership.load(ids)
       },
     },
-    // specs/258-zakroma-routing-refactor (FR-A4): watcher из спеки 255 УДАЛЁН.
-    // После рефакторинга URL состояние определяется path, а не query — vue-router пересоздаёт
-    // инстанс компонента при смене path (в т.ч. /zakroma → /zakroma/123 → /zakroma), data()
-    // вызывается заново, authorChosen/songFilter инициализируются корректно. Watcher больше не нужен.
+    // specs/276-fix-zakroma-authors-link: исправление бага с навигацией «← К списку авторов».
     //
-    // (Спека 259 ранее добавляла watcher на $route.fullPath для страховки lastSongReferrer, но
-    // после введения SongPublicDto.authorId на бэке этот referrer больше никем не читается —
-    // SongView.songHeaderBack() берёт authorId прямо из currentSong. См. PublicApiController.song().)
+    // Корень бага: спека 258 ошибочно полагала, что vue-router пересоздаёт инстанс
+    // ZakromaView при смене path между маршрутами `/zakroma`, `/zakroma/:authorId`,
+    // `/zakroma/special-bucket` — на самом деле он переиспользует тот же экземпляр
+    // (все 3 маршрута используют `component: ZakromaView`, см. router/index.js:40-44).
+    // Поэтому data() не вызывается заново, и `authorChosen = true` остаётся прежним
+    // после клика на ссылку «← К списку авторов» в шапке.
+    //
+    // Решение: watcher на `$route.path`, который при переходе НА `/zakroma` (сетка тайлов)
+    // вызывает `backToAuthors()` для сброса локального state. Условие `newPath === '/zakroma'
+    // && oldPath !== '/zakroma'` исключает ложные срабатывания на:
+    //   - переход `/zakroma` → `/zakroma/:authorId` (обратное направление — выбор автора
+    //     из тайла обрабатывается в onAuthorSelect, state и так пустой);
+    //   - переход между `/zakroma/:authorId` (например, deep-link с другого маршрута —
+    //     state не должен сбрасываться, нужен полный mounted-flow).
+    //
+    // backToAuthors() внутри уже делает `router.replace({ path: '/zakroma', query: {} })`,
+    // но path уже `/zakroma` — replace no-op, watcher не рекурсирует.
+    //
+    // См. specs/276-fix-zakroma-authors-link/{spec.md FR-003, contracts/zakroma-view-state.md}.
+    '$route.path'(newPath, oldPath) {
+      if (newPath === '/zakroma' && oldPath !== '/zakroma') {
+        this.backToAuthors()
+      }
+    },
   },
   mounted() {
     // Основной каталог: scope='main' — авторы БЕЗ is_special_order=true.

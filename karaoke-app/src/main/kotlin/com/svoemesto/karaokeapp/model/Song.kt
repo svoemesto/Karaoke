@@ -605,7 +605,19 @@ class Song(
 
     val color: String get() = fields[SongField.COLOR] ?: ""
     val songName: String get() = fields[SongField.NAME] ?: ""
-    val songNameCensored: String get() = songName.censored(database)
+
+    // specs/277-song-name-censored: цензурированное название песни, предвычисленное по словарю
+    // «Censored» ([com.svoemesto.karaokeapp.textfiledictionary.CensoredWordsDictionary])
+    // или введённое вручную в SongEdit. Читается из БД-колонки
+    // `tbl_songs.song_name_censored` без обращения к `tbl_dictionaries` на горячем пути.
+    // `var`, не `val` — сеттер нужен для SongEdit через существующий механизм
+    // `setCurrentSongField` в `webvue3-store` (store.js:1610).
+    // @see specs/277-song-name-censored/spec.md
+    var songNameCensored: String
+        get() = fields[SongField.NAME_CENSORED] ?: ""
+        set(value) {
+            fields[SongField.NAME_CENSORED] = value
+        }
     val author: String get() = fields[SongField.AUTHOR] ?: ""
     val album: String get() = fields[SongField.ALBUM] ?: ""
     val date: String get() = fields[SongField.DATE] ?: ""
@@ -4648,7 +4660,7 @@ class Song(
         songVersion: SongVersion,
         maxSymbols: Int = 0,
     ): String =
-        "${songName.censored(database)} ★♫★ $author ★♫★ ${songVersion.text} ★♫★ ${songVersion.textForDescription}".cutByWords(
+        "$songNameCensored ★♫★ $author ★♫★ ${songVersion.text} ★♫★ ${songVersion.textForDescription}".cutByWords(
             maxLength = maxSymbols,
         )
 
@@ -4660,9 +4672,9 @@ class Song(
         getDescriptionVkHeader(songVersion = songVersion) + "\n" +
             getDescriptionWOHeaderWithTimecodes(songVersion = songVersion)
 
-    fun getTextBoostyHead(): String = "${songName.censored(database)} ★♫★ $author"
+    fun getTextBoostyHead(): String = "$songNameCensored ★♫★ $author"
 
-    fun getTextBoostyFilesHead(): String = "[ФАЙЛЫ] ${songName.censored(database)} ★♫★ $author"
+    fun getTextBoostyFilesHead(): String = "[ФАЙЛЫ] $songNameCensored ★♫★ $author"
 
     fun getTextForDescriptionHeader(songVersion: SongVersion? = null): String =
         "$linkSM\n ⇑ Страница песни на официальном сайте проекта ⇑\n\n" +
@@ -4704,7 +4716,7 @@ class Song(
         songVersion: SongVersion,
         maxSymbols: Int = 0,
     ): String =
-        "${songName.censored(database)} ★♫★ $author ★♫★ ${songVersion.text} ★♫★ ${songVersion.textForDescription}".cutByWords(
+        "$songNameCensored ★♫★ $author ★♫★ ${songVersion.text} ★♫★ ${songVersion.textForDescription}".cutByWords(
             maxLength = maxSymbols,
         )
 
@@ -4712,7 +4724,7 @@ class Song(
         songVersion: SongVersion,
         maxSymbols: Int = 0,
     ): String =
-        "${songName.censored(database)} ★♫★ $author ★♫★ ${songVersion.text} ★♫★ ${songVersion.textForDescription}\n$linkSM\n⇑ Страница песни на официальном сайте проекта"
+        "$songNameCensored ★♫★ $author ★♫★ ${songVersion.text} ★♫★ ${songVersion.textForDescription}\n$linkSM\n⇑ Страница песни на официальном сайте проекта"
             .cutByWords(
                 maxLength = maxSymbols,
             )
@@ -4721,7 +4733,7 @@ class Song(
         songVersion: SongVersion,
         maxSymbols: Int = 0,
     ): String =
-        "${songName.censored(database)} ★♫★ $author ★♫★ ${songVersion.text} ★♫★ ${songVersion.textForDescription}\n$linkSM\n⇑ Страница песни на официальном сайте проекта"
+        "$songNameCensored ★♫★ $author ★♫★ ${songVersion.text} ★♫★ ${songVersion.textForDescription}\n$linkSM\n⇑ Страница песни на официальном сайте проекта"
             .cutByWords(
                 maxLength = maxSymbols,
             )
@@ -4775,18 +4787,18 @@ class Song(
     // (те же значения, что у RenderVersion.DEMO.label/comment в PlayerMp4RenderService.kt).
 
     fun getDescriptionDemoHeader(maxSymbols: Int = 0): String =
-        "${songName.censored(database)} ★♫★ $author ★♫★ Demo ★♫★ Karaoke (Demo)".cutByWords(maxLength = maxSymbols)
+        "$songNameCensored ★♫★ $author ★♫★ Demo ★♫★ Karaoke (Demo)".cutByWords(maxLength = maxSymbols)
 
     fun getDescriptionVkDemoHeader(maxSymbols: Int = 0): String =
-        "${songName.censored(database)} ★♫★ $author ★♫★ Demo ★♫★ Karaoke (Demo)".cutByWords(maxLength = maxSymbols)
+        "$songNameCensored ★♫★ $author ★♫★ Demo ★♫★ Karaoke (Demo)".cutByWords(maxLength = maxSymbols)
 
     fun getDescriptionTelegramDemoHeader(maxSymbols: Int = 0): String =
-        "${songName.censored(database)} ★♫★ $author ★♫★ Demo ★♫★ Karaoke (Demo)\n$linkSM\n⇑ Страница песни на официальном сайте проекта".cutByWords(
+        "$songNameCensored ★♫★ $author ★♫★ Demo ★♫★ Karaoke (Demo)\n$linkSM\n⇑ Страница песни на официальном сайте проекта".cutByWords(
             maxLength = maxSymbols,
         )
 
     fun getDescriptionMaxDemoHeader(maxSymbols: Int = 0): String =
-        "${songName.censored(database)} ★♫★ $author ★♫★ Demo ★♫★ Karaoke (Demo)\n$linkSM\n⇑ Страница песни на официальном сайте проекта".cutByWords(
+        "$songNameCensored ★♫★ $author ★♫★ Demo ★♫★ Karaoke (Demo)\n$linkSM\n⇑ Страница песни на официальном сайте проекта".cutByWords(
             maxLength = maxSymbols,
         )
 
@@ -4819,7 +4831,7 @@ class Song(
     fun getVKGroupDescription(
         @Suppress("unused") maxSymbols: Int = 0,
     ): String =
-        "${songName.censored(database)} ★♫★ $author" + "\n\n" +
+        "$songNameCensored ★♫★ $author" + "\n\n" +
             getTextForDescriptionHeader() +
             getTextForDescription()
 
@@ -5318,6 +5330,14 @@ class Song(
             val diff = getDiff(this, savedSong)
 //            println("diff = $diff")
             if (diff.isEmpty()) return
+
+            // specs/277-song-name-censored: baseline-автозаполнение song_name_censored, если поле
+            // пустое (после миграции DEFAULT '' у существующих строк и для новых песен без явной
+            // ручной правки). НЕ перезатираем ручное значение из БД/SongEdit — сохраняем его
+            // (FR-003 спеки, политика "доверие редактору").
+            if (fields[SongField.NAME_CENSORED].isNullOrEmpty() && songName.isNotEmpty()) {
+                fields[SongField.NAME_CENSORED] = songName.censored(database)
+            }
 
             // Порог показа песни в публичном плеере (см. PublicPlayerController.stemsReady: idStatus>=6
             // + флаги готовности, specs/022-song-status-lifecycle). Если статус меняют напрямую (правка
@@ -5870,6 +5890,7 @@ class Song(
 
         if (song.id > 0) fieldsValues.add(Pair("id", song.id))
         fieldsValues.add(Pair("song_name", song.songName))
+        fieldsValues.add(Pair("song_name_censored", song.songNameCensored))
         fieldsValues.add(Pair("song_author", song.author))
         fieldsValues.add(Pair("song_album", song.album))
         fieldsValues.add(Pair("publish_date", song.date))
@@ -6801,6 +6822,12 @@ class Song(
                     result.add(RecordDiff("short_description", settA.shortDescription, settB.shortDescription))
                 }
                 if (settA.warning != settB.warning) result.add(RecordDiff("warning", settA.warning, settB.warning))
+                // specs/277-song-name-censored: цензурированное название — отдельное поле, не вычисляется
+                // из song_name (может быть ручная правка в SongEdit). ВАЖНО для sync: без этого
+                // UPDATE SET не включает song_name_censored, и изменения не доходят до REMOTE.
+                if (settA.songNameCensored != settB.songNameCensored) {
+                    result.add(RecordDiff("song_name_censored", settA.songNameCensored, settB.songNameCensored))
+                }
                 if (settA.rootId != settB.rootId) result.add(RecordDiff("root_id", settA.rootId, settB.rootId))
                 if (settA.audioParentId !=
                     settB.audioParentId
@@ -7707,6 +7734,7 @@ class Song(
                     rs.getInt("id").let { value -> song.fields[SongField.ID] = value.toString() }
                     rs.getInt("id_status").let { value -> song.fields[SongField.ID_STATUS] = value.toString() }
                     rs.getString("song_name")?.let { value -> song.fields[SongField.NAME] = value }
+                    rs.getString("song_name_censored")?.let { value -> song.fields[SongField.NAME_CENSORED] = value }
                     rs.getString("song_author")?.let { value -> song.fields[SongField.AUTHOR] = value }
                     rs.getString("song_album")?.let { value ->
                         song.fields[SongField.ALBUM] = value

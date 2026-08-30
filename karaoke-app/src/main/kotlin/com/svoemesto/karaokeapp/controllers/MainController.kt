@@ -157,6 +157,16 @@ class MainController(
     fun doCustomFunction(): String =
         customFunction(storageService = storageService, storageApiClient = storageApiClient, lyricsFinderService = lyricsFinderService)
 
+    // specs/277-song-name-censored: зеркало POST /api/utils/rescanallcensorednames для Thymeleaf-страниц.
+    @GetMapping("/utils/rescanallcensorednames")
+    @ResponseBody
+    fun doRescanAllCensoredNames(): String =
+        rescanAllCensoredNames(
+            storageService = storageService,
+            storageApiClient = storageApiClient,
+            lyricsFinderService = lyricsFinderService,
+        )
+
     @PostMapping("/changesettingsstatus")
     @ResponseBody
     fun doCreateFromFolder(

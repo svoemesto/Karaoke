@@ -2431,6 +2431,12 @@ export default {
       let request = { method: 'POST', url: '/api/utils/customfunction' }
       return promisedXMLHttpRequest(request)
     },
+    // specs/277-song-name-censored: фоновый реckan tbl_songs.song_name_censored по словарю «Censored».
+    // Возвращает "OK" если запущено в фоне, "ALREADY_RUNNING" если уже идёт.
+    rescanAllCensoredNamesPromise() {
+      let request = { method: 'POST', url: '/api/utils/rescanallcensorednames' }
+      return promisedXMLHttpRequest(request)
+    },
     exportAlignmentDatasetPromise() {
       let request = { method: 'POST', url: '/api/utils/exportalignmentdataset' }
       return promisedXMLHttpRequest(request)

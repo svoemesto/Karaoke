@@ -124,6 +124,40 @@
               <img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg" />
             </button>
           </div>
+          <!-- specs/277-song-name-censored: цензурированное название песни — предвычисленное по
+               словарю «Censored» (из БД) или введённое вручную. Политика "доверие редактору":
+               ручное значение уходит в шаблоны VK/Telegram/News и публичный API БЕЗ
+               повторной фильтрации (см. spec.md Clarifications Session 2026-08-30 Q1/A). -->
+          <div class="label-and-input">
+            <div
+              class="label"
+              title="Ручное значение используется в публикациях (VK/Telegram/News) и публичном API БЕЗ повторной фильтрации. Редактируйте на свой страх и риск."
+            >
+              Композиция (цензурированная):
+            </div>
+            <input
+              v-model="song.songNameCensored"
+              class="input-field"
+              title="Ручное значение используется в публикациях (VK/Telegram/News) и публичном API БЕЗ повторной фильтрации. Редактируйте на свой страх и риск."
+            />
+            <button
+              class="btn-round"
+              :disabled="notChanged('songNameCensored')"
+              @click="undoField('songNameCensored')"
+            >
+              <img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg" />
+            </button>
+            <button
+              class="btn-round"
+              :disabled="!song.songNameCensored"
+              @click="copyToClipboard(song.songNameCensored, 'songNameCensored')"
+            >
+              <img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg" />
+            </button>
+            <button class="btn-round" @click="pasteFromClipboard('songNameCensored')">
+              <img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg" />
+            </button>
+          </div>
           <div class="label-and-input">
             <div class="label">Исполнитель:</div>
             <input v-model="song.author" class="input-field" />

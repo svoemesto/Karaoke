@@ -216,6 +216,152 @@ fun customFunction(
     return "Поиск родителей и аудио-родителей запущен в фоне"
 }
 
+/**
+ * Флаг защиты от гонок для [rescanAllCensoredNames] (см. research.md §4). JVM-single-instance,
+ * in-memory достаточно — `karaoke-app` запускается в одном контейнере на admin-машине.
+ */
+@Volatile
+private var isCensoredRescanInProgress: Boolean = false
+
+/**
+ specs/277-song-name-censored: фоновая функция — реckan всех `tbl_songs.song_name_censored`
+ * по актуальному словарю «Censored». По образцу [customFunction] (см. выше, строки 96-217).
+ *
+ * Алгоритм (research.md §5):
+ *  1. Сначала собрать ВСЕ `id` через `SELECT id FROM tbl_songs ORDER BY id` (один запрос);
+ *  2. Для каждого `id` — лёгкий `SELECT id, song_name, song_name_censored FROM tbl_songs
+ *     WHERE id = ?` (НЕ `loadFromDbById` — без FK-джойнов ради скорости);
+ *  3. Сравнить `songName.censored(database)` с текущим `song_name_censored`;
+ *  4. Если отличается — `UPDATE tbl_songs SET song_name_censored = ? WHERE id = ?`;
+ *  5. По завершении — SSE-тост с числом обработанных/обновлённых строк и длительностью.
+ *
+ * Защита от гонок — in-memory флаг [isCensoredRescanInProgress] (single-instance JVM),
+ * сбрасывается в `finally`.
+ *
+ * Идемпотентный повторный запуск после завершения.
+ *
+ * @return `"OK"` если запущено в фоне; `"ALREADY_RUNNING"` если уже идёт.
+ * @see specs/277-song-name-censored/spec.md
+ */
+fun rescanAllCensoredNames(
+    storageService: KaraokeStorageService,
+    lyricsFinderService: LyricsFinderService,
+    storageApiClient: StorageApiClient,
+): String {
+    if (isCensoredRescanInProgress) return "ALREADY_RUNNING"
+    isCensoredRescanInProgress = true
+
+    thread {
+        val startMs = System.currentTimeMillis()
+        var processed = 0
+        var updated = 0
+        var errors = 0
+        try {
+            // Шаг 1: собрать все id (одним запросом, чтобы не тянуть JOIN'ы и result_text).
+            val ids = mutableListOf<Long>()
+            try {
+                val connection = WORKING_DATABASE.getConnection() ?: return@thread
+                val ps = connection.prepareStatement("SELECT id FROM tbl_songs ORDER BY id")
+                val rs = ps.executeQuery()
+                while (rs.next()) ids.add(rs.getLong("id"))
+                rs.close()
+                ps.close()
+            } catch (e: Exception) {
+                println("rescanAllCensoredNames: ошибка выборки id — ${e.message}")
+                SNS.send(
+                    SseNotification.message(
+                        Message(
+                            type = "error",
+                            head = "Пересканирование цензурированных названий",
+                            body = "Ошибка выборки id из tbl_songs: ${e.message}",
+                        ),
+                    ),
+                )
+                return@thread
+            }
+
+            println("rescanAllCensoredNames: найдено песен: ${ids.size}")
+
+            // Шаги 2-4: для каждой песни — лёгкий SELECT, сравнить, UPDATE при отличии.
+            val connection = WORKING_DATABASE.getConnection() ?: return@thread
+            ids.forEachIndexed { index, id ->
+                try {
+                    val psSel =
+                        connection.prepareStatement(
+                            "SELECT song_name, song_name_censored FROM tbl_songs WHERE id = ?",
+                        )
+                    psSel.setLong(1, id)
+                    val rs = psSel.executeQuery()
+                    if (!rs.next()) {
+                        rs.close()
+                        psSel.close()
+                        return@forEachIndexed
+                    }
+                    val songName = rs.getString("song_name") ?: ""
+                    val current = rs.getString("song_name_censored") ?: ""
+                    rs.close()
+                    psSel.close()
+
+                    processed++
+                    val censoredValue = songName.censored(WORKING_DATABASE)
+                    if (censoredValue != current) {
+                        val psUpd =
+                            connection.prepareStatement(
+                                "UPDATE tbl_songs SET song_name_censored = ? WHERE id = ?",
+                            )
+                        psUpd.setString(1, censoredValue)
+                        psUpd.setLong(2, id)
+                        psUpd.executeUpdate()
+                        psUpd.close()
+                        updated++
+                    }
+
+                    if ((index + 1) % 1000 == 0) {
+                        println(
+                            "rescanAllCensoredNames: прогресс ${index + 1}/${ids.size} " +
+                                "(обновлено $updated)",
+                        )
+                    }
+                } catch (e: Exception) {
+                    errors++
+                    println("rescanAllCensoredNames: ошибка на id=$id — ${e.message}")
+                }
+            }
+
+            val durationSec = (System.currentTimeMillis() - startMs) / 1000
+            val summary =
+                "Обработано $processed песен за $durationSec сек, обновлено $updated" +
+                    if (errors > 0) ", ошибок: $errors" else ""
+            println("rescanAllCensoredNames: завершено. $summary")
+
+            SNS.send(
+                SseNotification.message(
+                    Message(
+                        type = "info",
+                        head = "Пересканирование цензурированных названий",
+                        body = summary,
+                    ),
+                ),
+            )
+        } catch (e: Exception) {
+            println("rescanAllCensoredNames: непредвиденная ошибка — ${e.message}")
+            SNS.send(
+                SseNotification.message(
+                    Message(
+                        type = "error",
+                        head = "Пересканирование цензурированных названий",
+                        body = "Ошибка: ${e.message}",
+                    ),
+                ),
+            )
+        } finally {
+            isCensoredRescanInProgress = false
+        }
+    }
+
+    return "OK"
+}
+
 fun fillFormattedFields(
     storageService: KaraokeStorageService,
     storageApiClient: StorageApiClient,

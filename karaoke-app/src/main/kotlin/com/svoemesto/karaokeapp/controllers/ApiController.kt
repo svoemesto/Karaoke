@@ -5889,6 +5889,17 @@ class ApiController(
         )
     }
 
+    // specs/277-song-name-censored: фоновый реckan tbl_songs.song_name_censored по словарю «Censored».
+    // Возвращает "OK" если запущено в фоне, "ALREADY_RUNNING" если уже идёт (см. Utils.rescanAllCensoredNames).
+    @PostMapping("/utils/rescanallcensorednames")
+    @ResponseBody
+    fun doRescanAllCensoredNames(): String =
+        rescanAllCensoredNames(
+            storageService = storageService,
+            storageApiClient = storageApiClient,
+            lyricsFinderService = lyricsFinderService,
+        )
+
     // Экспорт манифеста для дообучения forced-alignment модели (см. alignment-ml/, ExportAlignmentDataset.kt)
     @PostMapping("/utils/exportalignmentdataset")
     @ResponseBody

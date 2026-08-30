@@ -2403,6 +2403,10 @@ OOM на 500 MB, `fileExists` HEAD-per-request, и др.).
 - FR-101: sync-цикл теперь пакетный `loadByIds` + батч-Delete (`KaraokeDbTable.deleteIn` через PostgreSQL `Array`).
 - FR-103: `getSongsCreateKaraokeAll` теперь `loadSongsBatch` (chunk=25).
 
+**Tier-2 фиксы (Pass 241+)** — реализованы как отдельные фичи после Tier-1:
+- ✅ FR-105/H-4: TTL-кеш `/api/public/authors-tiles` (PR #370, спека `248-authors-tiles-cache`)
+- ✅ FR-106/H-7: TTL-кеш `PublicSettingsWebController.getProperty` (PR #386, спека `249-public-settings-cache`)
+
 **Side-effects** — все 4 фичи сохраняют существующую семантику:
 - `tags = "RENDER"` per-record (не батчится) — генерация `.srt` + `KaraokeProcess.createProcess(MELT_*)`.
 - `KaraokeProcess.createProcess` per-record (атомарность, не батчится).
@@ -2421,7 +2425,9 @@ OOM на 500 MB, `fileExists` HEAD-per-request, и др.).
 - Latency `getSongsCreateKaraokeAll`: 5-15 сек → ≤3 сек на 100 ID (admin-only, SC-003).
 
 **Что осталось** (backlog, отдельные фичи):
-- Tier-2: кеш `/api/public/authors-tiles`, кеш `getProperty`, индексы на `tbl_songs.song_author` / `tbl_events.song_id`.
+- Tier-2: индексы на `tbl_songs.song_author` / `tbl_events.song_id`.
+  - ✅ `karaoke.public.authors-tiles-cache` (PR #370 — спека `248-authors-tiles-cache`)
+  - ✅ `karaoke.public.public-settings-cache` (PR #386 — спека `249-public-settings-cache`)
 - Tier-3: Thymeleaf `/statbysong` (limit 100k), batch INSERT для `tbl_events`, `pg_stat_statements`-инструмент (FR-108, deferred из Clarifications Session 2026-08-26).
 - N+1 в других admin-контроллерах: `MainController.kt`, `NewsTemplateController.kt`, `ExportAlignmentDataset.kt` (parent A.5, десятки мест).
 - Reflection-overhead в `KaraokeDbTable.loadList` (parent A.1, Tier-3, большой рефакторинг).

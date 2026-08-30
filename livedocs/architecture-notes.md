@@ -2419,6 +2419,13 @@ OOM на 500 MB, `fileExists` HEAD-per-request, и др.).
   `coerceIn(1, 1000)` — единая точка clamp'а, защищает и Thymeleaf, и REST `/api/stats/by-song`.
   В UI — баннер `alert-info` с totalCount и ссылкой на REST API для полной выгрузки.
   Время загрузки `/statbysong`: минуты → секунды.
+- ✅ FR-109/H-12: EventsBuffer для batch INSERT в `tbl_events` (PR #389, спека
+  `274-events-batch-insert`). Новый `@Service EventsBuffer` буферизует события через
+  `ConcurrentLinkedQueue<EventRecord>` + `@Scheduled flush` (дефолт 5 сек) + JDBC
+  `addBatch`/`executeBatch`. Kill-switch `karaoke.web.events.batch-enabled` (default **false**
+  — opt-in для безопасного rollout). Backpressure при переполнении (>500) — flush немедленно.
+  Fail-open при ошибке (буфер очищается, потеря допустима для логирования). MainController.insertEvent
+  → eventsBuffer.add(EventRecord(...)). Эффект: ≥80% снижение RPS INSERT при включении.
 
 **Side-effects** — все 4 фичи сохраняют существующую семантику:
 - `tags = "RENDER"` per-record (не батчится) — генерация `.srt` + `KaraokeProcess.createProcess(MELT_*)`.
@@ -2438,7 +2445,7 @@ OOM на 500 MB, `fileExists` HEAD-per-request, и др.).
 - Latency `getSongsCreateKaraokeAll`: 5-15 сек → ≤3 сек на 100 ID (admin-only, SC-003).
 
 **Что осталось** (backlog, отдельные фичи):
-- Tier-3: batch INSERT для `tbl_events`, `pg_stat_statements`-инструмент (FR-108, deferred из Clarifications Session 2026-08-26).
+- Tier-3: `pg_stat_statements`-инструмент (FR-108, deferred из Clarifications Session 2026-08-26).
 - N+1 в других admin-контроллерах: `MainController.kt`, `NewsTemplateController.kt`, `ExportAlignmentDataset.kt` (parent A.5, десятки мест).
 - Reflection-overhead в `KaraokeDbTable.loadList` (parent A.1, Tier-3, большой рефакторинг).
 

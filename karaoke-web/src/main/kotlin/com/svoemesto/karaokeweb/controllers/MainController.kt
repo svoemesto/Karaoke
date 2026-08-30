@@ -146,14 +146,15 @@ class MainController(
             // `karaoke.web.events.batch-enabled` (дефолт false — sync INSERT как раньше).
             // SQL-формирование идентично прежнему (escape через rightFileName/referer)
             // и инкапсулировано в EventsBuffer.buildInsertSql для единой точки контроля.
-            val record = com.svoemesto.karaokeweb.services.EventsBuffer.EventRecord(
-                fieldsValues = fieldsValues.toList(),
-                eventType = eventType,
-                clientIp = clientIp,
-                userAgent = userAgent,
-                anonId = anonId,
-                siteUserId = siteUserId,
-            )
+            val record =
+                com.svoemesto.karaokeweb.services.EventsBuffer.EventRecord(
+                    fieldsValues = fieldsValues.toList(),
+                    eventType = eventType,
+                    clientIp = clientIp,
+                    userAgent = userAgent,
+                    anonId = anonId,
+                    siteUserId = siteUserId,
+                )
             return eventsBuffer.add(record)
         }
 

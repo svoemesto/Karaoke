@@ -183,9 +183,10 @@ class EventsBuffer {
      * @throws SQLException если ошибка БД (вызывающий код ловит и делает fail-open).
      */
     private fun executeBatch(batch: List<EventRecord>) {
-        val connection = requireNotNull(WORKING_DATABASE.getConnection()) {
-            "Нет соединения с БД (${WORKING_DATABASE.name})"
-        }
+        val connection =
+            requireNotNull(WORKING_DATABASE.getConnection()) {
+                "Нет соединения с БД (${WORKING_DATABASE.name})"
+            }
         try {
             for (record in batch) {
                 val fields = buildFieldsList(record)

@@ -37,7 +37,9 @@ description: "Task list для parent спеки 241 — каталог hotspots
 - [x] T012 Tier-2/Tier-3 hotspots — отдельные фичи (backlog)
   - [x] T012.1 **FR-105** — кеш `/api/public/authors-tiles` (PR #370 — MERGED, спека `248-*.md`)
   - [x] T012.2 **FR-106** — кеш `PublicSettingsWebController.getProperty` (PR #386 — MERGED, спека `249-*.md`)
-  - [ ] T012.3 **FR-107** — ограничить `limit=100_000` в Thymeleaf `/statbysong`
+  - [x] T012.3 **FR-107** — ограничить `limit` в Thymeleaf `/statbysong` (PR #388 — MERGED, спека `272-*.md`).
+        MainController: `limit 100_000 → 1000`. StatsByEvents.getStatBySong: safety-guard
+        `coerceIn(1, 1000)`. Баннер `alert-info` с totalCount. Время загрузки: минуты → секунды.
   - [ ] T012.4 **FR-108** — `pg_stat_statements` (в backlog, deferred из Clarifications 2026-08-26)
   - [ ] T012.5 **FR-109** — batch INSERT для `tbl_events`
   - [x] T012.6 **FR-110** — индексы `tbl_songs_song_author_index`, `tbl_songs_id_status_index`,

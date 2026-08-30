@@ -69,16 +69,55 @@
 
         <div class="se-cols">
           <div class="se-col">
+            <!-- Feature 263 Pass 247: слайдер font-size в модалке (по образцу
+                 SongKaraokeEditorView.vue:287-289). Админ меняет шрифт прямо здесь —
+                 watcher на textFontSize сохраняет в localStorage через saveEditorSettings(). -->
             <div class="se-col-title">Текст пользователя</div>
-            <pre class="se-text">{{ currentSourceText || '(пусто)' }}</pre>
+            <label class="se-font-slider">
+              <span class="se-font-slider-label">Шрифт {{ textFontSize }}px</span>
+              <input v-model.number="textFontSize" type="range" min="6" max="36" step="1" />
+            </label>
+            <!-- Feature 263 FR-004: font-size берётся из настроек редактора (textFontSize).
+                 Стиль применяется через :style, чтобы не привязываться к классу .se-text -->
+            <pre class="se-text" :style="{ fontSize: textFontSize + 'px' }">{{
+              currentSourceText || '(пусто)'
+            }}</pre>
+          </div>
+          <!-- Feature 263 FR-002: новый блок «Разметка» — HTML из formatText(parsedMarkers, -1).
+               Палитра .ke-fx-* на чёрном фоне (см. стили .se-markup ниже) идентична
+               правой колонке онлайн-редактора в karaoke-public (EditorWorkView.vue:1845). -->
+          <div class="se-col">
+            <div class="se-col-title">Разметка</div>
+            <label class="se-font-slider">
+              <span class="se-font-slider-label">Шрифт {{ previewFontSize }}px</span>
+              <input v-model.number="previewFontSize" type="range" min="6" max="36" step="1" />
+            </label>
+            <div
+              class="se-markup"
+              :style="{ fontSize: previewFontSize + 'px' }"
+              v-html="parsedMarkupHtml || '(пусто)'"
+            />
           </div>
           <div class="se-col">
             <div class="se-col-title">Маркеры: {{ markerCount }}</div>
+            <!-- Feature 263 FR-007: счётчики в одну строку через span + разделитель ·.
+                 Логика markerStats не меняется, переформатирован ТОЛЬКО markup. -->
             <div class="se-marker-summary">
-              <div>Слоги: {{ markerStats.syllables }}</div>
-              <div>Концы строк: {{ markerStats.endofline }}</div>
-              <div>Новые строки: {{ markerStats.newline }}</div>
-              <div>END: {{ markerStats.end ? 'есть' : 'нет' }}</div>
+              <span
+                >Слоги: <strong>{{ markerStats.syllables }}</strong></span
+              >
+              <span class="se-marker-sep">·</span>
+              <span
+                >Концы строк: <strong>{{ markerStats.endofline }}</strong></span
+              >
+              <span class="se-marker-sep">·</span>
+              <span
+                >Новые строки: <strong>{{ markerStats.newline }}</strong></span
+              >
+              <span class="se-marker-sep">·</span>
+              <span
+                >END: <strong>{{ markerStats.end ? 'есть' : 'нет' }}</strong></span
+              >
             </div>
           </div>
         </div>
@@ -126,6 +165,18 @@
 </template>
 
 <script>
+// Feature 263: formatText + loadEditorSettings импортируются из локального fallback-файла,
+// а не из karaoke-public/src/composables/useKaraokeEditor. Причина: Docker-сборка webvue3
+// (deploy/karaoke-webvue3/Dockerfile) копирует ТОЛЬКО ./webvue3/ в /app/ — прямой импорт
+// '../../../../karaoke-public/...' выходит за пределы контекста, и Rollup не может
+// его разрешить (fail на `npm run build` внутри Docker-контейнера). Локальный fallback:
+//  (а) идентичная логика (минимальная копия из karaoke-public, помечена @see);
+//  (б) генерирует классы ke-fx-* (НЕ ske-fx-*), как требует Clarifications Q1 (2026-08-30);
+//  (в) EDITOR_DEFAULTS с clamp'ом [6, 36] для совместимости с настройками редактора.
+// @see ./useReviewModalFormat.js
+// @see karaoke-public/src/composables/useKaraokeEditor.js (источник)
+import { formatText, loadEditorSettings, saveEditorSettings } from './useReviewModalFormat'
+
 const STATUS_LABELS = {
   assigned: 'Назначено',
   in_progress: 'В работе',
@@ -161,6 +212,13 @@ export default {
       // SongEdit.vue (title кнопки). Это шаг жизненного цикла СРАЗУ ПОСЛЕ проверки маркеров
       // редактором и ДО рендера караоке-видео.
       selectedIdStatus: 6,
+      // Feature 263: размеры шрифта для блоков «Текст пользователя» и «Разметка» берутся из
+      // loadEditorSettings() в mounted() — соответствуют настройкам онлайн-редактора
+      // (EDITOR_DEFAULTS.textFontSize = 16, previewFontSize = 18, диапазон 6..36).
+      // Fallback на дефолты нужен для корректного первого рендера до mounted() (Vue SSR-safe).
+      // @see karaoke-public/src/composables/useKaraokeEditor.js:29-30
+      textFontSize: 16,
+      previewFontSize: 18,
     }
   },
   computed: {
@@ -202,6 +260,18 @@ export default {
           this.a.draftMarkersPerVoice[this.currentVoiceIdx]) ||
         []
       )
+    },
+    /**
+     * HTML-представление разметки текущего голоса (для блока «Разметка»).
+     * Идентично тому, что админ видит в правой колонке онлайн-редактора в karaoke-public —
+     * использует ту же `formatText()` (HTML-классы `ke-fx-*`).
+     * `curMarkerIndex = -1` означает «никакой слог не подсвечивать как текущий» — в модалке
+     * ревью плеер не запущен, текущего времени нет.
+     * @see https://github.com/svoemesto/Karaoke/blob/master/karaoke-public/src/views/EditorWorkView.vue#L1845-L1888 (стили `.ke-fx-*` на чёрном фоне)
+     * @see https://github.com/svoemesto/Karaoke/blob/master/karaoke-public/src/composables/useKaraokeEditor.js#L447 (formatText)
+     */
+    parsedMarkupHtml() {
+      return formatText(this.parsedMarkers, -1)
     },
     markerCount() {
       return this.parsedMarkers.length
@@ -249,6 +319,24 @@ export default {
         this._resizeObserver = null
       }
     },
+    // Feature 263 Pass 247: watcher на размер шрифта — сохраняет изменение в localStorage,
+    // чтобы оно пережило закрытие модалки и подхватывалось в редакторе (и наоборот).
+    // Шаблон взят из SongKaraokeEditorView.vue:590-592 (там — тот же приём для слайдера).
+    // try/catch — на случай если localStorage недоступен (приватный режим / квота).
+    textFontSize(v) {
+      try {
+        saveEditorSettings({ textFontSize: v })
+      } catch (e) {
+        /* no-op */
+      }
+    },
+    previewFontSize(v) {
+      try {
+        saveEditorSettings({ previewFontSize: v })
+      } catch (e) {
+        /* no-op */
+      }
+    },
     // Feature 184: сброс выбора статуса при смене задания. Без этого выбор «залипает» между
     // разными заданиями, если модалка переиспользуется (например, в SongsTable компонент может
     // оставаться смонтированным). Сравниваем по id, а не по ссылке — `a` всегда новый объект
@@ -263,6 +351,19 @@ export default {
     },
   },
   async mounted() {
+    // Feature 263: подхватываем размеры шрифта из localStorage админа (настройки онлайн-редактора),
+    // чтобы блоки «Текст пользователя» и «Разметка» выглядели так же, как в онлайн-редакторе.
+    // loadEditorSettings() безопасен при недоступном localStorage (приватный режим / квота) — возвращает
+    // EDITOR_DEFAULTS. data-поля textFontSize/previewFontSize уже инициализированы дефолтами (16/18) для
+    // SSR-safe первого рендера. Без live-watcher'a на storage — смена настроек в редакторе подхватывается
+    // при следующем открытии модалки (достаточно).
+    try {
+      const s = loadEditorSettings()
+      if (typeof s.textFontSize === 'number') this.textFontSize = s.textFontSize
+      if (typeof s.previewFontSize === 'number') this.previewFontSize = s.previewFontSize
+    } catch (e) {
+      /* no-op: дефолты уже применены */
+    }
     // Если плеер уже открыт на момент mounted (например, v-if стал true до lifecycle),
     // сразу ставим ResizeObserver и пересчитываем высоту.
     window.addEventListener('resize', this.fitPlayerTo16x9)
@@ -441,6 +542,14 @@ export default {
   padding: 1.5rem;
   width: 420px;
   max-width: 92vw;
+  /* Feature 263 Pass 246 UX fix (2026-08-30): при развёрнутом плеере (iframe 16:9 + ~110px
+     controls) высота модалки увеличивается и на коротких экранах хедер (`.se-modal-title`)
+     и футер (`.se-modal-btns`) уходят за границы viewport. Решение: `max-height: 90vh`
+     + `overflow-y: auto` — модалка центрируется overlay-flex пока помещается, иначе
+     обрезается до 90vh и появляется вертикальная прокрутка. Хедер/футер остаются в потоке
+     документа, достижимы через скролл. */
+  max-height: 90vh;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 0.8rem;
@@ -449,7 +558,9 @@ export default {
   box-sizing: border-box;
 }
 .se-modal-wide {
-  width: 760px;
+  /* Feature 263 FR-008: расширено с 760px до min(96vw, 1100px), чтобы комфортно разместить
+     три колонки на десктопе (≥1024px). На мобиле (<96vw) занимает почти всю ширину окна. */
+  width: min(96vw, 1100px);
 }
 .se-player-toggle {
   display: flex;
@@ -512,9 +623,29 @@ export default {
   border-color: #24803a;
 }
 .se-cols {
+  /* Feature 263 FR-008: адаптивная сетка 1/2/3 колонки.
+       mobile-first: 1fr (всё вертикально);
+       @media (min-width: 768px): 2 колонки, Маркеры — на всю ширину под Текст+Разметка;
+       @media (min-width: 1024px): 3 колонки в одной строке. */
   display: grid;
-  grid-template-columns: 1fr 1fr;
   gap: 1rem;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 768px) {
+  .se-cols {
+    grid-template-columns: 1fr 1fr;
+  }
+  .se-cols .se-col:last-child {
+    grid-column: 1 / -1;
+  }
+}
+@media (min-width: 1024px) {
+  .se-cols {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+  .se-cols .se-col:last-child {
+    grid-column: auto;
+  }
 }
 .se-col-title {
   font-size: 0.72rem;
@@ -523,25 +654,108 @@ export default {
   font-weight: 400;
   margin-bottom: 0.3rem;
 }
+/* Feature 263 Pass 247: слайдер font-size в модалке (по образцу
+   SongKaraokeEditorView.vue:1853-1862 — .ske-font-slider). label обёртка для кликабельности,
+   внутри — подпись «Шрифт Npx» и <input type="range">. v-model.number в template синхронизирует
+   data-поля textFontSize/previewFontSize (см. watcher'ы в <script> — сохраняют в localStorage). */
+.se-font-slider {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.72rem;
+  color: #888;
+  font-weight: 400;
+  margin-bottom: 0.3rem;
+  cursor: pointer;
+}
+.se-font-slider-label {
+  white-space: nowrap;
+}
+.se-font-slider input[type='range'] {
+  flex: 1;
+  margin: 0;
+  cursor: pointer;
+  accent-color: #24803a;
+}
 .se-text {
   background: #f5f5f5;
   border-radius: 8px;
   padding: 0.6rem;
-  font-size: 0.82rem;
+  /* Feature 263: font-size управляется через inline-style на <pre class="se-text"> (FR-004),
+     значения берутся из textFontSize (= data.loadEditorSettings().textFontSize). Дефолт 16px. */
   max-height: 220px;
   overflow: auto;
   white-space: pre-wrap;
   margin: 0;
   font-weight: 400;
+  /* Feature 263 FR-001: явное выравнивание по левому краю, чтобы текст не «прыгал» в
+     зависимости от контекста (light/dark theme, ширина, родительские flex/grid). */
+  text-align: left;
 }
+/* Feature 263 FR-002/FR-006: блок «Разметка» — HTML-представление разметки текущего голоса
+   в формате karaoke-public (чёрный фон, моно-строчный с <br>, цветные span'ы групп голоса).
+   По решению Clarifications 2026-08-30: используем ту же палитру `.ke-fx-*`, что и в
+   karaoke-public (EditorWorkView.vue:1861-1888), с чёрным фоном — пиксель-в-пиксель
+   идентично правой колонке онлайн-редактора.
+   font-size — через :style (previewFontSize из настроек редактора). */
+.se-markup {
+  background: #000;
+  border-radius: 8px;
+  padding: 0.6rem;
+  max-height: 220px;
+  overflow: auto;
+  white-space: pre-wrap;
+  font-weight: 400;
+  text-align: left;
+}
+/* Палитра `.ke-fx-*` — копия из karaoke-public/src/views/EditorWorkView.vue:1861-1888.
+   Поскольку `.se-markup` рендерится через v-html (HTML генерируется formatText из
+   karaoke-public), классы внутри — именно `ke-fx-*`. Через :deep() «пробрасываем» стили
+   в дочерние элементы (Vue 3 SFC scoped CSS). */
+.se-markup :deep(.ke-fx-cur) {
+  color: #ff0000;
+  font-weight: bolder;
+}
+.se-markup :deep(.ke-fx-group0) {
+  color: #ffffff;
+  font-weight: bolder;
+}
+.se-markup :deep(.ke-fx-group1) {
+  color: #ffff00;
+  font-style: italic;
+  font-weight: bolder;
+}
+.se-markup :deep(.ke-fx-group2) {
+  color: #00bfff;
+  font-weight: bolder;
+}
+.se-markup :deep(.ke-fx-group3) {
+  color: #00ff00;
+  font-style: italic;
+  font-weight: bolder;
+}
+.se-markup :deep(.ke-fx-comment) {
+  color: #d2691e;
+  font-size: 0.78em;
+  font-style: italic;
+  font-weight: bolder;
+}
+/* Feature 263 FR-007: блок «Маркеры» одной строкой — горизонтальный flex с переносом.
+   Счётчики обёрнуты в <span>, между ними — разделитель `.se-marker-sep`. */
 .se-marker-summary {
   background: #f5f5f5;
   border-radius: 8px;
   padding: 0.6rem;
   font-size: 0.85rem;
   display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.8rem;
+  align-items: baseline;
+  font-weight: 400;
+}
+.se-marker-sep {
+  color: #aaa;
   font-weight: 400;
 }
 .se-prev-comment {

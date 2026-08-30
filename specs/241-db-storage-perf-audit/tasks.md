@@ -41,7 +41,12 @@ description: "Task list для parent спеки 241 — каталог hotspots
         MainController: `limit 100_000 → 1000`. StatsByEvents.getStatBySong: safety-guard
         `coerceIn(1, 1000)`. Баннер `alert-info` с totalCount. Время загрузки: минуты → секунды.
   - [ ] T012.4 **FR-108** — `pg_stat_statements` (в backlog, deferred из Clarifications 2026-08-26)
-  - [ ] T012.5 **FR-109** — batch INSERT для `tbl_events`
+  - [x] T012.5 **FR-109** — batch INSERT для `tbl_events` (PR #389 — MERGED, спека `274-*.md`).
+        Новый `@Service EventsBuffer` с `ConcurrentLinkedQueue` + `@Scheduled flush` (5 сек) +
+        JDBC `addBatch`/`executeBatch`. Kill-switch `karaoke.web.events.batch-enabled`
+        (default false — opt-in). Backpressure при переполнении (>500) → flush немедленно.
+        Fail-open при ошибке. MainController.insertEvent → eventsBuffer.add(EventRecord).
+        Эффект: ≥80% снижение RPS INSERT при включении.
   - [x] T012.6 **FR-110** — индексы `tbl_songs_song_author_index`, `tbl_songs_id_status_index`,
         `tbl_events_song_id_index` (PR #387 — MERGED, спека `270-*.md`). Контекстная находка:
         индексы уже созданы в `01_initdb.sql:148,173` — миграция no-op на текущем проде,

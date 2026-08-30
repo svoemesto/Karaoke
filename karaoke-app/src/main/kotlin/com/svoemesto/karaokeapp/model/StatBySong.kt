@@ -446,12 +446,43 @@ object StatsByEvents {
         }
     }
 
+    // FR-002 (спека 272-statbysong-pagination): safety-guard для limit в [getStatBySong].
+    // Защищает от copy-paste ошибок (hardcoded 100_000) и DoS через REST query params
+    // (`StatsController?pageSize=100000`). Любой limit > 1000 нормализуется до 1000.
+    private const val MAX_STAT_BY_SONG_LIMIT = 1000
+    private const val MIN_STAT_BY_SONG_LIMIT = 1
+
+    /**
+     * Топ песен по числу событий в `tbl_events` с 17 условными счётчиками по типам событий
+     * (player shown/opened/play/pause/seek/export/progress/ended, vk/dzen/tg karaoke+lyrics,
+     * max/sponsr клики). Одна группировка по song_id + условные `count(*) filter (...)` вместо
+     * 8 LEFT JOIN-подзапросов (см. SQL).
+     *
+     * **Safety-guard** (FR-002 спека [272-statbysong-pagination](../../specs/272-statbysong-pagination/spec.md)):
+     * параметр `limit` нормализуется через `coerceIn(1, 1000)` перед подстановкой в SQL.
+     * Защищает от: (1) copy-paste ошибок (раньше был hardcoded `limit=100_000` в
+     * `MainController.doStatBySong` — теперь автоматически clamp'ится); (2) DoS через REST
+     * query params (`StatsController?pageSize=100000` — теперь безопасно).
+     *
+     * @param database подключение к БД (по умолчанию `WORKING_DATABASE`).
+     * @param limit максимальное число строк (по умолчанию 50, после coerceIn — диапазон [1, 1000]).
+     * @param offset смещение для пагинации (по умолчанию 0).
+     * @return список [StatBySongDto], отсортированный по `total DESC, song_id ASC`.
+     *
+     * @see specs/272-statbysong-pagination FR-002
+     * @see specs/241-db-storage-perf-audit FR-007 (Tier-3 / H-10)
+     */
     fun getStatBySong(
         database: KaraokeConnection = WORKING_DATABASE,
         limit: Int = 50,
         offset: Int = 0,
     ): List<StatBySongDto> {
         val result: MutableList<StatBySongDto> = mutableListOf()
+        // FR-002 (спека 272-statbysong-pagination): safety-guard — нормализуем limit до
+        // безопасного диапазона [MIN_STAT_BY_SONG_LIMIT, MAX_STAT_BY_SONG_LIMIT] = [1, 1000].
+        // Защищает от copy-paste ошибок (был hardcoded 100_000, теперь автоматически clamp'ится)
+        // и DoS через REST query params (`StatsController?pageSize=100000`).
+        val safeLimit = limit.coerceIn(MIN_STAT_BY_SONG_LIMIT, MAX_STAT_BY_SONG_LIMIT)
         // Одна группировка по song_id + условные count(*) filter вместо 8 LEFT JOIN-подзапросов.
         // total = ВСЕ события песни (не только показанные каналы). Boosty убран как неактуальный,
         // добавлена колонка «Плеер» (event_type='player') — новый значимый сигнал вовлечённости.
@@ -486,7 +517,7 @@ object StatsByEvents {
             where e.song_id is not null and e.song_id > 0
             group by e.song_id, song.song_author, song.song_album, song.song_name
             order by total desc, e.song_id asc
-            limit $limit offset $offset
+            limit $safeLimit offset $offset
             ;
             """.trimIndent()
 

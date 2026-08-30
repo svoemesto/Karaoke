@@ -2,7 +2,7 @@
 
 > **Status**: active
 > **Feature Key**: async-process-queue
-> **Last Updated**: 2026-07-30
+> **Last Updated**: 2026-08-30
 
 ## Что делает
 
@@ -253,9 +253,38 @@
   `HealthReport` для этой песни при следующем обращении (не через отдельное
   персистентное поле). **Не верифицировано живой проверкой**: шаблон ключа
   удалённого хранилища для mp3-стемов предполагается идентичным локальному
-  (тот же `${storageFileName}${suffix}.${extention}`), но реальный триггер
+  (тот же `${storageFileName}${suffix}.${extention}`), но   реальный триггер
   заливки в удалённый MinIO для этих типов не был прослежен до конца в рамках
   этой сессии — см. `specs/124-filename-sanitization-rename/tasks.md` (T013).
+- **Race condition: тональность/стемы теряются при сохранении найденного текста**
+  (устранено в specs/278-fix-key-loss-on-lyrics-search, 2026-08-30):
+  `Song.createFromPath()` сразу после создания песни ставит в очередь
+  `KaraokeProcessTypes.KEY_BPM_FROM_FILE` (threadId=2) и `KaraokeProcessTypes.DEMUCS2`
+  (threadId=1) — оба работают в фоне через `KaraokeProcessWorker` и по завершении
+  обновляют `tbl_songs.song_tone`/`song_bpm`/url'ы стемов через свой экземпляр
+  `Song.saveToDb()`. В том же HTTP-запросе `ApiController.doCreateFromFolder`
+  синхронно вызывает `findYandexSongLyrics` (Playwright, 10-60 сек), потом
+  `findDuplicateOriginal` и `findAudioParentByWaveform` (тоже секунды-минуты), и
+  каждое из этих мест в итоге зовёт `saveToDb()` на том же объекте `newSong`,
+  который был создан с пустыми `key`/`bpm`/`audio_*`. `Song.saveToDb()` для
+  существующей записи делает `getDiff(this, savedSong)` и пишет UPDATE только по
+  diff-полям — но `this.key=""` ≠ `savedSong.key="Am"` означает, что `song_tone`
+  попадает в diff и перезатирается пустым значением. Аналогично для `song_bpm`
+  и url'ов стемов. Итог: KEY_BPM_FROM_FILE отработал, нашёл тональность, записал
+  в БД — а через несколько секунд `newSong.saveToDb()` после Яндекс-поиска
+  стирает её обратно в `""`. Оператору приходилось повторно запускать определение
+  тональности вручную для каждой импортированной песни.
+  Защита — **reload-from-db-before-save**: перед каждой из трёх точек `saveToDb()`
+  в `doCreateFromFolder` (после `findYandexSongLyrics`, в `applyDuplicateOriginal`
+  и в `applyAudioParentMarkers`) объект перезагружается через
+  `Song.loadFromDbById(id, WORKING_DATABASE, ...)` с fallback на старый объект при
+  `null`. Перезагруженный объект содержит актуальное состояние БД (включая
+  параллельно записанные `key`/`bpm`/url'ы стемов), `getDiff()` видит только
+  реальные изменения, и UPDATE ничего лишнего не перезатирает. Подход локальный
+  (3 точки вызова), сам `Song.saveToDb()` НЕ модифицируется — он используется в
+  46+ других местах (KaraokeProcessThread.run, HealthReport, автопубликация и т.п.),
+  которые корректно работают и без reload, потому что их `this` и есть актуальное
+  состояние из БД.
 
 ## Ссылки на ключевые классы/файлы
 

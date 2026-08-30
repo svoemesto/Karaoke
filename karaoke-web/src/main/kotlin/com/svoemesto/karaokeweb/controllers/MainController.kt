@@ -43,6 +43,10 @@ class MainController(
     private val storageService: KaraokeStorageService,
     private val storageApiClient: StorageApiClient,
     private val samplingFilter: SamplingFilter,
+    // FR-109 (спека 274-events-batch-insert): EventsBuffer для batch INSERT в tbl_events.
+    // Kill-switch `karaoke.web.events.batch-enabled` (дефолт false — sync INSERT как раньше).
+    // При включении — снижает RPS INSERT на ≥80% (50 INSERT/5 сек → 1 batch).
+    private val eventsBuffer: com.svoemesto.karaokeweb.services.EventsBuffer,
 ) {
     private val log = LoggerFactory.getLogger(MainController::class.java)
 
@@ -139,37 +143,20 @@ class MainController(
         val anonId = (data["anonId"] as? String)?.takeIf { it.isNotBlank() }
 
         fun insertEvent(fieldsValues: MutableList<Pair<String, Any>>): Boolean {
-            fieldsValues.add(Pair("client_ip", clientIp))
-            userAgent?.let { fieldsValues.add(Pair("user_agent", it)) }
-            anonId?.let { fieldsValues.add(Pair("anon_id", it)) }
-            if (siteUserId > 0) fieldsValues.add(Pair("site_user_id", siteUserId))
-            val connection = WORKING_DATABASE.getConnection()
-            if (connection == null) {
-                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${WORKING_DATABASE.name}")
-                return false
-            }
-            val sqlToInsert = "INSERT INTO tbl_events (${fieldsValues.joinToString(", ") { it.first }}) OVERRIDING SYSTEM VALUE VALUES(${
-                fieldsValues.joinToString(", ") { (field, value) ->
-                    when {
-                        value is Long -> "$value"
-                        // referer — это URL (document.referrer). rightFileName() искажает его (заменяет
-                        // ':' на '-' → 'https-//...'), ломая ссылку и агрегацию источников. Санируем только
-                        // SQL-кавычку (значение недоверенное — приходит с клиента), не искажая содержимое.
-                        field == "referer" -> "'${value.toString().replace("'", "''")}'"
-                        else -> "'${value.toString().rightFileName()}'"
-                    }
-                }
-            })"
-            try {
-                val ps = connection.prepareStatement(sqlToInsert)
-                ps.executeUpdate()
-                ps.close()
-                return true
-            } catch (e: SQLException) {
-                // FR-012: логируем SQL-ошибки через SLF4J, не println (чтобы они попадали в production-логи).
-                log.warn("SQL error при INSERT в tbl_events (eventType=$eventType, clientIp=$clientIp): ${e.message}", e)
-                return false
-            }
+            // FR-006 (спека 274-events-batch-insert): формируем EventRecord и передаём
+            // в EventsBuffer для batch INSERT. Kill-switch через
+            // `karaoke.web.events.batch-enabled` (дефолт false — sync INSERT как раньше).
+            // SQL-формирование идентично прежнему (escape через rightFileName/referer)
+            // и инкапсулировано в EventsBuffer.buildInsertSql для единой точки контроля.
+            val record = com.svoemesto.karaokeweb.services.EventsBuffer.EventRecord(
+                fieldsValues = fieldsValues.toList(),
+                eventType = eventType,
+                clientIp = clientIp,
+                userAgent = userAgent,
+                anonId = anonId,
+                siteUserId = siteUserId,
+            )
+            return eventsBuffer.add(record)
         }
 
         when (eventType) {

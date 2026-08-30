@@ -3,7 +3,6 @@ package com.svoemesto.karaokeapp.services
 import com.svoemesto.karaokeapp.KaraokeConnection
 import com.svoemesto.karaokeapp.KaraokeProperties
 import com.svoemesto.karaokeapp.WORKING_DATABASE
-import com.svoemesto.karaokeapp.censored
 import com.svoemesto.karaokeapp.model.News
 import com.svoemesto.karaokeapp.model.PublicationType
 import com.svoemesto.karaokeapp.model.Song

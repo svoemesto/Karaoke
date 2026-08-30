@@ -10,9 +10,8 @@ import java.io.Serializable
 enum class SongField : Serializable {
     ID,
     NAME,
-    // Цензурированное название песни (предвычисленное по словарю «Censored» или
-    // введённое вручную в SongEdit). Замена song.songName.censored(database) на
-    // горячем пути. См. specs/277-song-name-censored.
+    // specs/277-song-name-censored: предвычисленное цензурированное название песни.
+    // Замена song.songName.censored(database) на горячем пути чтения.
     NAME_CENSORED,
     AUTHOR,
     ALBUM,

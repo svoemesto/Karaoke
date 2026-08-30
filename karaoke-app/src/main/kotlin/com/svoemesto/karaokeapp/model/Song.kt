@@ -4662,7 +4662,7 @@ class Song(
         songVersion: SongVersion,
         maxSymbols: Int = 0,
     ): String =
-        "${songNameCensored} ★♫★ $author ★♫★ ${songVersion.text} ★♫★ ${songVersion.textForDescription}".cutByWords(
+        "$songNameCensored ★♫★ $author ★♫★ ${songVersion.text} ★♫★ ${songVersion.textForDescription}".cutByWords(
             maxLength = maxSymbols,
         )
 
@@ -4674,9 +4674,9 @@ class Song(
         getDescriptionVkHeader(songVersion = songVersion) + "\n" +
             getDescriptionWOHeaderWithTimecodes(songVersion = songVersion)
 
-    fun getTextBoostyHead(): String = "${songNameCensored} ★♫★ $author"
+    fun getTextBoostyHead(): String = "$songNameCensored ★♫★ $author"
 
-    fun getTextBoostyFilesHead(): String = "[ФАЙЛЫ] ${songNameCensored} ★♫★ $author"
+    fun getTextBoostyFilesHead(): String = "[ФАЙЛЫ] $songNameCensored ★♫★ $author"
 
     fun getTextForDescriptionHeader(songVersion: SongVersion? = null): String =
         "$linkSM\n ⇑ Страница песни на официальном сайте проекта ⇑\n\n" +
@@ -4718,7 +4718,7 @@ class Song(
         songVersion: SongVersion,
         maxSymbols: Int = 0,
     ): String =
-        "${songNameCensored} ★♫★ $author ★♫★ ${songVersion.text} ★♫★ ${songVersion.textForDescription}".cutByWords(
+        "$songNameCensored ★♫★ $author ★♫★ ${songVersion.text} ★♫★ ${songVersion.textForDescription}".cutByWords(
             maxLength = maxSymbols,
         )
 
@@ -4726,7 +4726,7 @@ class Song(
         songVersion: SongVersion,
         maxSymbols: Int = 0,
     ): String =
-        "${songNameCensored} ★♫★ $author ★♫★ ${songVersion.text} ★♫★ ${songVersion.textForDescription}\n$linkSM\n⇑ Страница песни на официальном сайте проекта"
+        "$songNameCensored ★♫★ $author ★♫★ ${songVersion.text} ★♫★ ${songVersion.textForDescription}\n$linkSM\n⇑ Страница песни на официальном сайте проекта"
             .cutByWords(
                 maxLength = maxSymbols,
             )
@@ -4735,7 +4735,7 @@ class Song(
         songVersion: SongVersion,
         maxSymbols: Int = 0,
     ): String =
-        "${songNameCensored} ★♫★ $author ★♫★ ${songVersion.text} ★♫★ ${songVersion.textForDescription}\n$linkSM\n⇑ Страница песни на официальном сайте проекта"
+        "$songNameCensored ★♫★ $author ★♫★ ${songVersion.text} ★♫★ ${songVersion.textForDescription}\n$linkSM\n⇑ Страница песни на официальном сайте проекта"
             .cutByWords(
                 maxLength = maxSymbols,
             )
@@ -4789,18 +4789,18 @@ class Song(
     // (те же значения, что у RenderVersion.DEMO.label/comment в PlayerMp4RenderService.kt).
 
     fun getDescriptionDemoHeader(maxSymbols: Int = 0): String =
-        "${songNameCensored} ★♫★ $author ★♫★ Demo ★♫★ Karaoke (Demo)".cutByWords(maxLength = maxSymbols)
+        "$songNameCensored ★♫★ $author ★♫★ Demo ★♫★ Karaoke (Demo)".cutByWords(maxLength = maxSymbols)
 
     fun getDescriptionVkDemoHeader(maxSymbols: Int = 0): String =
-        "${songNameCensored} ★♫★ $author ★♫★ Demo ★♫★ Karaoke (Demo)".cutByWords(maxLength = maxSymbols)
+        "$songNameCensored ★♫★ $author ★♫★ Demo ★♫★ Karaoke (Demo)".cutByWords(maxLength = maxSymbols)
 
     fun getDescriptionTelegramDemoHeader(maxSymbols: Int = 0): String =
-        "${songNameCensored} ★♫★ $author ★♫★ Demo ★♫★ Karaoke (Demo)\n$linkSM\n⇑ Страница песни на официальном сайте проекта".cutByWords(
+        "$songNameCensored ★♫★ $author ★♫★ Demo ★♫★ Karaoke (Demo)\n$linkSM\n⇑ Страница песни на официальном сайте проекта".cutByWords(
             maxLength = maxSymbols,
         )
 
     fun getDescriptionMaxDemoHeader(maxSymbols: Int = 0): String =
-        "${songNameCensored} ★♫★ $author ★♫★ Demo ★♫★ Karaoke (Demo)\n$linkSM\n⇑ Страница песни на официальном сайте проекта".cutByWords(
+        "$songNameCensored ★♫★ $author ★♫★ Demo ★♫★ Karaoke (Demo)\n$linkSM\n⇑ Страница песни на официальном сайте проекта".cutByWords(
             maxLength = maxSymbols,
         )
 
@@ -4833,7 +4833,7 @@ class Song(
     fun getVKGroupDescription(
         @Suppress("unused") maxSymbols: Int = 0,
     ): String =
-        "${songNameCensored} ★♫★ $author" + "\n\n" +
+        "$songNameCensored ★♫★ $author" + "\n\n" +
             getTextForDescriptionHeader() +
             getTextForDescription()
 

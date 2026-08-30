@@ -286,9 +286,10 @@ fun rescanAllCensoredNames(
             val connection = WORKING_DATABASE.getConnection() ?: return@thread
             ids.forEachIndexed { index, id ->
                 try {
-                    val psSel = connection.prepareStatement(
-                        "SELECT song_name, song_name_censored FROM tbl_songs WHERE id = ?",
-                    )
+                    val psSel =
+                        connection.prepareStatement(
+                            "SELECT song_name, song_name_censored FROM tbl_songs WHERE id = ?",
+                        )
                     psSel.setLong(1, id)
                     val rs = psSel.executeQuery()
                     if (!rs.next()) {
@@ -304,9 +305,10 @@ fun rescanAllCensoredNames(
                     processed++
                     val censoredValue = songName.censored(WORKING_DATABASE)
                     if (censoredValue != current) {
-                        val psUpd = connection.prepareStatement(
-                            "UPDATE tbl_songs SET song_name_censored = ? WHERE id = ?",
-                        )
+                        val psUpd =
+                            connection.prepareStatement(
+                                "UPDATE tbl_songs SET song_name_censored = ? WHERE id = ?",
+                            )
                         psUpd.setString(1, censoredValue)
                         psUpd.setLong(2, id)
                         psUpd.executeUpdate()

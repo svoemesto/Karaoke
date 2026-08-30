@@ -145,6 +145,14 @@
 
         <div id="areaCenterColumn" style="width: 1200px; alignment: center">
 
+            <!-- FR-003/FR-004 (спека 272-statbysong-pagination): баннер об ограничении top-1000. -->
+            <div class="alert alert-info" role="alert" style="margin-bottom: 12px;">
+                Показано топ-1000 из ~<span th:text="${totalCount}">0</span> доступных.
+                Для полной выгрузки используйте
+                <a href="/api/stats/by-song?page=1&amp;pageSize=50" target="_blank">/api/stats/by-song</a>
+                с пагинацией.
+            </div>
+
             <div id="areaLeftTable">
                 <table class="table-sm table-hover" id="songsTable" style="width: 1180px; height: 100%;">
                     <thead>

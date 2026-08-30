@@ -483,14 +483,35 @@ class MainController(
         return "song"
     }
 
+    /**
+     * Thymeleaf-страница `/statbysong` — топ песен по числу событий в `tbl_events`.
+     *
+     * До FR-007 (Pass 241) использовался `limit = 100_000` — минутный запрос на полную таблицу
+     * с 17 условными `count(*) filter (...)`. После FR-007 — `limit = 1000` (FR-001 спеки
+     * [specs/272-statbysong-pagination](../../specs/272-statbysong-pagination/spec.md)),
+     * SQL сам clamp'ит через safety-guard `coerceIn(MIN_STAT_BY_SONG_LIMIT=1,
+     * MAX_STAT_BY_SONG_LIMIT=1000)` в `StatsByEvents.getStatBySong` (FR-002).
+     *
+     * Полная выгрузка (>1000 песен) — через REST API `/api/stats/by-song?page=N&pageSize=50`
+     * с пагинацией. В UI под заголовком — баннер с totalCount и ссылкой на REST API
+     * (FR-003, FR-004).
+     *
+     * @see specs/272-statbysong-pagination FR-001..FR-005
+     * @see specs/241-db-storage-perf-audit FR-007 (Tier-3 / H-10)
+     */
     @GetMapping("/statbysong")
     fun doStatBySong(model: Model): String {
-        // limit великий: старая версия этой Thymeleaf-страницы (в отличие от постранично
-        // грузящей webvue3-таблицы) всегда показывала все песни разом, без limit/offset вовсе.
+        // FR-001: limit 1000 вместо 100_000 — UI top-1000, полные данные через /api/stats/by-song.
         model.addAttribute(
             "stats",
             com.svoemesto.karaokeapp.model.StatsByEvents
-                .getStatBySong(database = WORKING_DATABASE, limit = 100_000),
+                .getStatBySong(database = WORKING_DATABASE, limit = 1000),
+        )
+        // FR-004: totalCount для баннера «Показано топ-1000 из ~N доступных».
+        model.addAttribute(
+            "totalCount",
+            com.svoemesto.karaokeapp.model.StatsByEvents
+                .getStatBySongCount(database = WORKING_DATABASE),
         )
         return "statbysong"
     }

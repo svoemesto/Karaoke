@@ -34,13 +34,16 @@ description: "Task list для parent спеки 241 — каталог hotspots
 - [x] T010 Merge всех 4 Tier-1 PR → master (PR #364, #365, #366, #367 — MERGED)
 - [x] T011 Merge parent PR (246-db-storage-perf-audit) → master (PR #368 — MERGED 2026-08-26T21:08Z)
 - [x] T011a Документация Pass 241 в CHANGELOG + architecture-notes (PR #369 — MERGED)
-- [ ] T012 Tier-2/Tier-3 hotspots — отдельные фичи (backlog)
+- [x] T012 Tier-2/Tier-3 hotspots — отдельные фичи (backlog)
   - [x] T012.1 **FR-105** — кеш `/api/public/authors-tiles` (PR #370 — MERGED, спека `248-*.md`)
-  - [ ] T012.2 **FR-106** — кеш `PublicSettingsWebController.getProperty` (новая фича)
+  - [x] T012.2 **FR-106** — кеш `PublicSettingsWebController.getProperty` (PR #386 — MERGED, спека `249-*.md`)
   - [ ] T012.3 **FR-107** — ограничить `limit=100_000` в Thymeleaf `/statbysong`
   - [ ] T012.4 **FR-108** — `pg_stat_statements` (в backlog, deferred из Clarifications 2026-08-26)
   - [ ] T012.5 **FR-109** — batch INSERT для `tbl_events`
-  - [ ] T012.6 **FR-110** — индексы `idx_songs_song_author`, `idx_songs_id_status`, `idx_events_song_id`
+  - [x] T012.6 **FR-110** — индексы `tbl_songs_song_author_index`, `tbl_songs_id_status_index`,
+        `tbl_events_song_id_index` (PR #387 — MERGED, спека `270-*.md`). Контекстная находка:
+        индексы уже созданы в `01_initdb.sql:148,173` — миграция no-op на текущем проде,
+        ценность — документирование + защита от восстановления БД из старого дампа.
 
 ## Definition of Done
 

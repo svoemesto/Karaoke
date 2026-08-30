@@ -138,6 +138,16 @@
         >
           Поиск родителей и аудио-родителей (Custom Function)
         </button>
+        <!-- specs/277-song-name-censored: фоновый реckan tbl_songs.song_name_censored по словарю «Censored».
+             Операция тяжёлая (≈18k строк), перезаписывает ВСЕ цензурированные названия — включая
+             ручные правки в SongEdit. Идёт в фоне, итог приходит SSE-уведомлением. -->
+        <button
+          class="button-action"
+          title="Пересканировать цензурированные названия ВСЕХ песен по актуальному словарю «Censored»"
+          @click="rescanAllCensoredNames"
+        >
+          Пересканировать цензурированные названия песен
+        </button>
         <button
           class="button-action"
           title="Экспорт манифеста (текст + тайминг слогов + путь к вокальному стему) по всем песням с готовой разметкой — для дообучения forced-alignment модели (alignment-ml/)"
@@ -758,6 +768,35 @@ export default {
           alertType: 'info',
           header: 'Поиск родителей и аудио-родителей',
           body: `Операция запущена в фоне.<br>Итог придёт уведомлением по завершении.`,
+          timeout: 10,
+        }
+        this.isCustomConfirmVisible = true
+      })
+    },
+    // specs/277-song-name-censored: подтверждение + запуск фонового реckana
+    // tbl_songs.song_name_censored по словарю «Censored».
+    rescanAllCensoredNames() {
+      this.customConfirmParams = {
+        header: 'Подтвердите действие',
+        body:
+          `Пересканировать цензурированные названия ВСЕХ песен (≈18k строк) по актуальному словарю «Censored»?<br>` +
+          `<strong>Операция перезапишет ВСЕ цензурированные названия, включая ручные правки в SongEdit.</strong><br>` +
+          `Идёт в фоне, итог придёт SSE-уведомлением по завершении.`,
+        timeout: 15,
+        callback: this.doRescanAllCensoredNames,
+      }
+      this.isCustomConfirmVisible = true
+    },
+    doRescanAllCensoredNames() {
+      this.$store.dispatch('rescanAllCensoredNamesPromise').then((response) => {
+        this.customConfirmParams = {
+          isAlert: true,
+          alertType: response === 'ALREADY_RUNNING' ? 'warning' : 'info',
+          header: 'Пересканирование цензурированных названий',
+          body:
+            response === 'ALREADY_RUNNING'
+              ? `Уже запущено — дождитесь завершения текущего прогона.`
+              : `Операция запущена в фоне.<br>Итог придёт уведомлением по завершении.`,
           timeout: 10,
         }
         this.isCustomConfirmVisible = true

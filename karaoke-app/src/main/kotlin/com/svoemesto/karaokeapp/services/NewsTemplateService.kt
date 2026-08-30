@@ -30,7 +30,7 @@ import com.svoemesto.karaokeapp.model.Song
  * Доступные плейсхолдеры (см. [PLACEHOLDERS]):
  * - `{author}` — Song.author
  * - `{songName}` — Song.songName (сырое)
- * - `{songNameCensored}` — Song.songName.censored(database) (цензурированное)
+ * - `{songNameCensored}` — Song.songNameCensored (цензурированное название из БД, specs/277-song-name-censored)
  * - `{year}` — Song.year (год)
  * - `{album}` — Song.album (название альбома)
  * - `{albumYearSuffix}` — суффикс `" (альбом «X», Y)"`, пустой, если альбом и год
@@ -84,7 +84,7 @@ object NewsTemplateService {
         listOf(
             PlaceholderInfo("author", "Song.author — автор песни"),
             PlaceholderInfo("songName", "Song.songName — название песни (сырое)"),
-            PlaceholderInfo("songNameCensored", "Song.songName.censored(database) — цензурированное название"),
+            PlaceholderInfo("songNameCensored", "Song.songNameCensored — цензурированное название (из БД, без запроса к tbl_dictionaries)"),
             PlaceholderInfo("year", "Song.year — год"),
             PlaceholderInfo("album", "Song.album — название альбома"),
             PlaceholderInfo("albumYearSuffix", "суффикс \" (альбом «X», Y)\" — пустой, если альбом и год не заполнены (byte-идентичен хардкод)"),
@@ -249,7 +249,7 @@ object NewsTemplateService {
         mapOf(
             "author" to song.author,
             "songName" to song.songName,
-            "songNameCensored" to song.songName.censored(database),
+            "songNameCensored" to song.songNameCensored,
             "year" to song.year.toString(),
             "album" to song.album,
             "albumYearSuffix" to albumYearSuffix(song),

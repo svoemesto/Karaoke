@@ -27,7 +27,7 @@ import com.svoemesto.karaokeapp.model.Song
  * Доступные плейсхолдеры (см. [PLACEHOLDERS]):
  * - `{author}` — Song.author
  * - `{songName}` — Song.songName (сырое)
- * - `{songNameCensored}` — Song.songName.censored(database) (цензурированное)
+ * - `{songNameCensored}` — Song.songNameCensored (цензурированное название из БД, specs/277-song-name-censored)
  * - `{year}` — Song.year
  * - `{album}` — Song.album
  * - `{link}` — https://sm-karaoke.ru/song?id={id}
@@ -56,7 +56,7 @@ object TelegramTemplateService {
         listOf(
             PlaceholderInfo("author", "Song.author — автор песни"),
             PlaceholderInfo("songName", "Song.songName — название песни (сырое)"),
-            PlaceholderInfo("songNameCensored", "Song.songName.censored(database) — цензурированное название"),
+            PlaceholderInfo("songNameCensored", "Song.songNameCensored — цензурированное название (из БД, без запроса к tbl_dictionaries)"),
             PlaceholderInfo("year", "Song.year — год"),
             PlaceholderInfo("album", "Song.album — название альбома"),
             PlaceholderInfo("link", "https://sm-karaoke.ru/song?id={id} — ссылка на страницу песни"),
@@ -100,7 +100,7 @@ object TelegramTemplateService {
             mapOf(
                 "author" to song.author,
                 "songName" to song.songName,
-                "songNameCensored" to song.songName.censored(database),
+                "songNameCensored" to song.songNameCensored,
                 "year" to song.year.toString(),
                 "album" to song.album,
                 "link" to link,

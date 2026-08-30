@@ -2,10 +2,8 @@ package com.svoemesto.karaokeapp.model
 
 import com.svoemesto.karaokeapp.KaraokeConnection
 import com.svoemesto.karaokeapp.censored
-import com.svoemesto.karaokeapp.getCensoredPair
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.StorageApiClient
-import com.svoemesto.karaokeapp.uppercaseFirstLetter
 import java.io.Serializable
 
 /**
@@ -180,24 +178,16 @@ class Zakroma(
                     )
                 }
 
-            // Batch 6 (Pass 239 hotfix 2026-08-26): словарь цензурирования загружается ОДИН раз
-            // для всех 2500 песен. До этого fix'а `songName.censored(database)` вызывался
-            // per-song, и каждый вызов дёргал `Dictionary.loadValues()` — это SQL-запрос к
-            // tbl_dictionaries. На крупных авторах (~2500 песен) это давало 2500 SQL-запросов
-            // на одной загрузке страницы = freeze сайта. До Pass 239 это маскировалось per-row
-            // readiness-эндпоинтом (между запросами браузер успевал рендерить), после фикса
-            // readiness убран — все 2500 цензурирований шли подряд и блокировали бэкенд.
-            // Кэшируем оба regex'а (lowercase + capitalized) и оба replacement'а.
-            val censoredPairs: List<Triple<Regex, Regex, Pair<String, String>>> =
-                com.svoemesto.karaokeapp.textfiledictionary.CensoredWordsDictionary(database = database)
-                    .dict
-                    .map { raw ->
-                        val (uncensored, censored) = getCensoredPair(raw)
-                        // Pass 239 hotfix: компилируем regex'ы ОДИН раз (не на каждую песню).
-                        val patt1 = Regex("(?<![\\p{L}\\p{N}_])$uncensored(?![\\p{L}\\p{N}_])")
-                        val patt2 = Regex("(?<![\\p{L}\\p{N}_])${uncensored.uppercaseFirstLetter()}(?![\\p{L}\\p{N}_])")
-                        Triple(patt1, patt2, Pair(censored, censored.uppercaseFirstLetter()))
-                    }
+            // specs/277-song-name-censored: цензурированные названия читаются из БД-колонки
+            // `tbl_songs.song_name_censored` через `song.songNameCensored` — никаких inline-вызовов
+            // `songName.censored(database)` и загрузки `CensoredWordsDictionary` на странице закро́ма
+            // (Pass 239 hotfix 2026-08-26 был вынужденным workaround для per-row цензурирования,
+            // сейчас же колонка уже предвычислена — миграция 42 + CustomFunction реckan, и
+            // 0 SQL-запросов к tbl_dictionaries на загрузку страницы).
+            //
+            // Fallback на inline-censoring оставлен ТОЛЬКО на случай рассинхрона (старая песня
+            // с непустым songName но пустым songNameCensored — крайне редкий случай после
+            // backfill миграции 42) — иначе пользователь увидел бы raw-нецензурированное название.
 
             return songsByAuthor.map { (authorName, songsByAuthor) ->
                 val zakroma = Zakroma(database)
@@ -281,16 +271,16 @@ class Zakroma(
                                         zakromaAlbumSong.idStatus = song.idStatus
                                         zakromaAlbumSong.contentReady = song.isContentReady
                                         zakromaAlbumSong.track = song.track
-                                        // Pass 239 hotfix 2026-08-26: используем кэшированный
-                                        // censoredPairs вместо song.songName.censored(database) —
-                                        // последний вызывал Dictionary.loadValues() per-song,
-                                        // что для 2500 песен давало 2500 SQL-запросов.
-                                        var censoredName = song.songName
-                                        censoredPairs.forEach { (patt1, patt2, repl) ->
-                                            censoredName = patt1.replace(censoredName, repl.first)
-                                            censoredName = patt2.replace(censoredName, repl.second)
-                                        }
-                                        zakromaAlbumSong.songName = censoredName
+                                        // specs/277-song-name-censored: предвычисленное значение из
+                                        // tbl_songs.song_name_censored (см. comment выше про Pass 239 +
+                                        // миграцию 42). Fallback на inline-censoring — defensive,
+                                        // на случай старой записи без backfill колонки.
+                                        zakromaAlbumSong.songName =
+                                            if (song.songNameCensored.isNotEmpty() || song.songName.isEmpty()) {
+                                                song.songNameCensored
+                                            } else {
+                                                song.songName.censored(database)
+                                            }
                                         zakromaAlbumSong
                                     }.sorted()
                                     .toMutableList()

@@ -1,6 +1,6 @@
 # AGENTS.md — инструкции для агентов
 
-> **Версия**: 2.0.1 | **Last updated**: 2026-08-28 (Pass 244 — добавил prettier в обязательную проверку кода, не только в pre-commit). Правки governance — в ветке `0XX-agents-md-update`. Детали — в LiveDocs.
+> **Версия**: 2.1.0 | **Last updated**: 2026-08-30 (Pass 245 — добавил обязательную Docker-сборку образов webvue3 и public; ранее агент мог пропустить, считая локальный `npm run build` достаточным). Правки governance — в ветке `0XX-agents-md-update`. Детали — в LiveDocs.
 
 ## АБСОЛЮТНОЕ ПРАВИЛО: язык общения
 
@@ -65,25 +65,22 @@ gh pr merge --merge                      # БЕЗ --delete-branch
 
 ### Обязательная проверка после ЛЮБОГО изменения кода (NON-NEGOTIABLE)
 
-> **Контекст.** Инцидент Pass 239: агент внёс правки в `Zakroma.kt`, но **не пересобрал**
-> проект — компилятор Kotlin обнаружил несоответствие типов уже на стороне пользователя
-> (`Int` vs `Long`), freeze-баг цензурирования (2500 SQL-запросов per-load) тоже был
-> пропущен без проверки. Правило ниже фиксирует порядок действий.
+> **Контекст.** Pass 239: агент внёс правки в `Zakroma.kt`, но не пересобрал — Kotlin mismatch
+> (`Int` vs `Long`) пойман только на стороне пользователя. **Pass 245 (2026-08-30)**: агент добавил
+> импорт `formatText` из `karaoke-public/src/composables/useKaraokeEditor` в `webvue3/src/components/
+> SongEditor/ReviewModal.vue`; локальный `npm run build` прошёл, но `bash do.sh build_webvue3` упал —
+> `Rollup failed to resolve "../../../../karaoke-public/..."`. Причина: multi-stage Dockerfile
+> (`deploy/karaoke-webvue3/Dockerfile`) делает `COPY ./webvue3/ .` — в `/app/` попадает ТОЛЬКО
+> webvue3, кросс-импорты выходят за пределы контекста. **Vite-build ≠ Docker-образ.**
 
 **После ЛЮБОГО изменения в коде ОБЯЗАТЕЛЬНО** (в этом порядке):
 
 1. **Backend compile**: `./gradlew :karaoke-app:compileKotlin :karaoke-web:compileKotlin --parallel`
-2. **Линтеры**: `./gradlew :karaoke-web:ktlintCheck` + `tools/check-eslint-baseline.sh karaoke-public`
-   — никаких НОВЫХ нарушений (baseline OK).
+2. **Линтеры**: `./gradlew :karaoke-web:ktlintCheck` + `cd webvue3 && npm run lint` + `cd karaoke-public && npm run lint` (`tools/check-eslint-baseline.sh <pkg>`) — никаких НОВЫХ нарушений (baseline OK).
 3. **Backend bootJar**: `./gradlew :karaoke-web:bootJar --parallel`
-4. **Frontend**: `cd karaoke-public && npm run build && npm run lint && npm run format:check`
-5. **Только после всех 4 шагов OK** — сообщать «готово к деплою».
-
-> **Pass 244 fix**: prettier добавлен в шаг 4 (а не только в `.pre-commit-config.yaml`).
-> Причина: prettier запускался только в pre-commit и CI, но агент мог править код
-> без локального pre-commit — и неотформатированные файлы попадали в PR. Теперь prettier
-> проверяется **при работе** (`npm run format:check`) вместе с ESLint. Если нужно
-> автоисправление — `npm run format` (записывает в файлы, перепроверить шаги 4-5 после).
+4. **Frontend Vite (оба)**: `cd webvue3 && npm run build && npm run format:check`, затем `cd karaoke-public && npm run build && npm run format:check` (Pass 244: prettier — всегда, не только в pre-commit).
+5. **Docker-образы (оба, NON-NEGOTIABLE)**: `cd deploy && bash do.sh build_webvue3`; если менялся `karaoke-public` (или есть кросс-импорты) — `bash do.sh build_public`. Vite-build на хосте ≠ multi-stage Docker: `COPY ./webvue3/ .` / `COPY ./karaoke-public/ .` копируют ТОЛЬКО свой каталог; кросс-импорты `../../karaoke-public/...` или `../../webvue3/...` падают внутри контейнера.
+6. **Только после всех 5 шагов OK** — сообщать «готово к деплою».
 
 **НЕ ПРОПУСКАТЬ** шаги даже для «очевидных» правок. Детали — в
 [livedocs/architecture-notes.md](livedocs/architecture-notes.md).

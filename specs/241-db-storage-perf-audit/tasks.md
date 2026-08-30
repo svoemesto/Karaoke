@@ -30,16 +30,26 @@ description: "Task list для parent спеки 241 — каталог hotspots
 
 - [x] T007 LiveDoc для parent спеки — `livedocs/features/241-db-storage-perf-audit.md`
 - [x] T008 LiveDoc для каждой Tier-1 фичи (242/243/244/245)
-- [ ] T009 Дождаться CI PASS на всех 4 PR + этом parent PR
-- [ ] T010 Merge всех 4 Tier-1 PR → master
-- [ ] T011 Merge parent PR (246-db-storage-perf-audit) → master
+- [x] T009 CI PASS на всех 4 PR + этом parent PR (PR #364-#368 — все MERGED 2026-08-26)
+- [x] T010 Merge всех 4 Tier-1 PR → master (PR #364, #365, #366, #367 — MERGED)
+- [x] T011 Merge parent PR (246-db-storage-perf-audit) → master (PR #368 — MERGED 2026-08-26T21:08Z)
+- [x] T011a Документация Pass 241 в CHANGELOG + architecture-notes (PR #369 — MERGED)
 - [ ] T012 Tier-2/Tier-3 hotspots — отдельные фичи (backlog)
+  - [x] T012.1 **FR-105** — кеш `/api/public/authors-tiles` (PR #370 — MERGED, спека `248-*.md`)
+  - [ ] T012.2 **FR-106** — кеш `PublicSettingsWebController.getProperty` (новая фича)
+  - [ ] T012.3 **FR-107** — ограничить `limit=100_000` в Thymeleaf `/statbysong`
+  - [ ] T012.4 **FR-108** — `pg_stat_statements` (в backlog, deferred из Clarifications 2026-08-26)
+  - [ ] T012.5 **FR-109** — batch INSERT для `tbl_events`
+  - [ ] T012.6 **FR-110** — индексы `idx_songs_song_author`, `idx_songs_id_status`, `idx_events_song_id`
 
 ## Definition of Done
 
 - [x] Спека содержит каталог hotspots с file:line + severity
 - [x] Все 4 Tier-1 P0 фичи реализованы + закоммичены + запушены
-- [x] 4 PR созданы
-- [ ] 4 PR (и этот parent) → CI 8/8 PASS
-- [ ] Merge в master
+- [x] 4 PR созданы и замержены (PR #364, #365, #366, #367)
+- [x] Parent PR замержен (PR #368)
+- [x] LiveDocs созданы для всех 5 спек (241, 242, 243, 244, 245)
+- [x] CHANGELOG + architecture-notes обновлены (PR #369)
+- [x] Tier-2 фича FR-105 реализована и замержена (PR #370)
 - [ ] Runtime-валидация (OOM-test для 245, sync-batch для 242, pg_log для 243, webvue3 для 244)
+- [ ] Остальные Tier-2/Tier-3 hotspots — backlog

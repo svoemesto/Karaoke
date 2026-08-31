@@ -69,4 +69,6 @@ related:
 ## История
 
 - Создан: 2026-08-25 (Pass 63+)
-- Последнее обновление: 2026-08-25
+- 2026-08-25: доработка фич 238 (Pass 63+).
+- 2026-08-31: bugfix (спека 279) — после спеки 278 `applyDuplicateOriginal`/`applyAudioParentMarkers` пишут в БД через `songToSave` (новый объект, перезагруженный из БД), но `newSong`/`song` в памяти оставался «грязным» (`newSong.rootId = 0` и т.п.). Последующий вызов `findAudioParentByWaveform` → `song.saveToDb()` в `Utils.kt:4879/4898/4919/4933` видел расхождение `this.rootId = 0` (в памяти) ≠ `savedSong.rootId = original.id` (из БД) → diff включал `root_id = 0` → UPDATE перезатирал только что записанный `root_id` обратно в 0. Добавлена явная синхронизация `newSong`/`song` с записанным состоянием сразу после `songToSave.saveToDb()`.
+- Последнее обновление: 2026-08-31.

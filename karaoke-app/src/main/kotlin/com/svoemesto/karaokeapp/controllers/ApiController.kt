@@ -5903,6 +5903,48 @@ class ApiController(
         )
     }
 
+    // specs/283-admin-find-parent: фоновый поиск ТОЛЬКО текстового родителя для песен одного автора
+    // с root_id=0. Аналог doCustomFunction, но с фильтром по автору и без аудио-фазы.
+    // Параметр crossAuthor управляет допустимостью подбора кандидата среди других авторов (default false).
+    // Возвращает "OK" если запущено в фоне, "ALREADY_RUNNING" если уже идёт.
+    @PostMapping("/utils/findparentforauthor")
+    @ResponseBody
+    fun doFindParentForAuthor(
+        @RequestParam(required = true) author: String,
+        @RequestParam(required = false, defaultValue = "false") crossAuthor: Boolean,
+    ): String {
+        val authorTrimmed = author.trim()
+        if (authorTrimmed.isEmpty()) {
+            throw IllegalArgumentException("author must not be blank")
+        }
+        return findParentForAuthor(
+            author = authorTrimmed,
+            crossAuthor = crossAuthor,
+            storageService = storageService,
+            storageApiClient = storageApiClient,
+        )
+    }
+
+    // specs/283-admin-find-parent: фоновый поиск аудио-родителя (только в семье, по root_id транзитивно)
+    // для песен одного автора с root_id <> 0. Аналог фазы 2 customFunction, но пакетно по одному автору
+    // и без подмешивания кандидатов из searchSongsByNormalizedName.
+    // Возвращает "OK" если запущено в фоне, "ALREADY_RUNNING" если уже идёт.
+    @PostMapping("/utils/findaudioparentforauthor")
+    @ResponseBody
+    fun doFindAudioParentForAuthor(
+        @RequestParam(required = true) author: String,
+    ): String {
+        val authorTrimmed = author.trim()
+        if (authorTrimmed.isEmpty()) {
+            throw IllegalArgumentException("author must not be blank")
+        }
+        return findAudioParentForAuthor(
+            author = authorTrimmed,
+            storageService = storageService,
+            storageApiClient = storageApiClient,
+        )
+    }
+
     // specs/277-song-name-censored: фоновый реckan tbl_songs.song_name_censored по словарю «Censored».
     // Возвращает "OK" если запущено в фоне, "ALREADY_RUNNING" если уже идёт (см. Utils.rescanAllCensoredNames).
     @PostMapping("/utils/rescanallcensorednames")

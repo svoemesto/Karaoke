@@ -229,11 +229,277 @@ fun customFunction(
 }
 
 /**
+ * specs/283-admin-find-parent: фоновый поиск **только текстового родителя** (`root_id`) для песен
+ * одного автора с `root_id = 0`. Аналог фазы 1 [customFunction], но:
+ * - фильтр по автору обязателен (`LOWER(song_author) = LOWER(?)`);
+ * - обрабатываются ВСЕ песни автора с `root_id = 0` (без статусного фильтра, по требованию пользователя);
+ * - **только** фаза 1 (текстовый родитель по нормализованному названию); фаза 2 (акустический
+ *   аудио-родитель через `findAudioParentByWaveform`) намеренно НЕ запускается;
+ * - флаг [crossAuthor] управляет допустимостью подбора кандидата среди других авторов
+ *   (передаётся в [findParentCandidateId]).
+ *
+ * Тяжёлая операция (для тысяч песен автора может идти долго) — уходит в фоновый поток; функция
+ * возвращает управление сразу же. Итоговая сводка приходит отдельным SSE-тостом по завершении
+ * (тот же паттерн, что у [customFunction] и [autoAssignOriginalAll]).
+ *
+ * Защита от гонок — in-memory флаг [isFindParentInProgress] (single-instance JVM), сбрасывается в `finally`.
+ *
+ * Идемпотентность обеспечивается SQL-фильтром `root_id = 0` на старте — песни, получившие
+ * родителя в предыдущем запуске, в новую выборку не попадают.
+ *
+ * @param author имя автора; case-insensitive сравнение в SQL, должен быть непустым (контроллер
+ *               делает `author.trim()` и проверку `isBlank()`).
+ * @param crossAuthor `false` (по умолчанию) — искать родителя только среди песен того же автора;
+ *                    `true` — разрешён подбор среди других авторов.
+ * @return `"OK"` если запущено в фоне; `"ALREADY_RUNNING"` если уже идёт.
+ * @see specs/283-admin-find-parent/spec.md
+ */
+fun findParentForAuthor(
+    author: String,
+    crossAuthor: Boolean,
+    storageService: KaraokeStorageService,
+    storageApiClient: StorageApiClient,
+): String {
+    if (isFindParentInProgress) return "ALREADY_RUNNING"
+    isFindParentInProgress = true
+
+    thread {
+        val ids = mutableListOf<Long>()
+        try {
+            val connection = WORKING_DATABASE.getConnection()
+            if (connection != null) {
+                val ps =
+                    connection.prepareStatement(
+                        "SELECT id FROM tbl_songs WHERE root_id = 0 AND LOWER(song_author) = LOWER(?) ORDER BY id",
+                    )
+                ps.setString(1, author)
+                val rs = ps.executeQuery()
+                while (rs.next()) ids.add(rs.getLong("id"))
+                rs.close()
+                ps.close()
+            }
+        } catch (e: Exception) {
+            println("Поиск родителя (автор «$author»): ошибка выборки песен — ${e.message}")
+        }
+
+        println("Поиск родителя (автор «$author»): найдено песен: ${ids.size}")
+
+        // Фаза 1 (только текстовый родитель; аудио-фаза намеренно НЕ запускается).
+        var parentMatched = 0
+        var parentSkippedHasText = 0
+        ids.forEachIndexed { index, id ->
+            try {
+                val song =
+                    Song.loadFromDbById(
+                        id = id,
+                        database = WORKING_DATABASE,
+                        storageService = storageService,
+                        storageApiClient = storageApiClient,
+                    )
+                if (song == null) {
+                    println("  [родитель ${index + 1}/${ids.size}] id=$id — пропущено (не найдено)")
+                    return@forEachIndexed
+                }
+                val candidateId = findParentCandidateId(song, WORKING_DATABASE, crossAuthor)
+                when {
+                    candidateId == null -> {
+                        println("  [родитель ${index + 1}/${ids.size}] ${songLogLabel(song)} — родитель не найден")
+                    }
+                    song.sourceText.isNotBlank() && song.idStatus >= 2 -> {
+                        parentSkippedHasText++
+                        println(
+                            "  [родитель ${index + 1}/${ids.size}] ${songLogLabel(song)} — " +
+                                "родитель найден (id=$candidateId), но текст уже проверен (id_status=${song.idStatus}) — пропущено",
+                        )
+                    }
+                    else -> {
+                        val original =
+                            Song.loadFromDbById(
+                                id = candidateId,
+                                database = WORKING_DATABASE,
+                                storageService = storageService,
+                                storageApiClient = storageApiClient,
+                            )
+                        if (original == null) {
+                            println("  [родитель ${index + 1}/${ids.size}] ${songLogLabel(song)} — кандидат id=$candidateId не найден при загрузке")
+                        } else {
+                            if (original.sourceText.isNotBlank()) {
+                                applyDuplicateOriginal(song, original)
+                            } else {
+                                // specs/281-find-lyrics-overwrites-key-bpm (FR-010): reload-from-db-before-save.
+                                // Между loadFromDbById(song) выше и этим saveToDb проходит несколько секунд
+                                // (findParentCandidateId + loadFromDbById(original)). Параллельный KEY_BPM_FROM_FILE
+                                // мог успеть записать key/bpm — без reload они попадут в diff и перезатрутся.
+                                val songToSave =
+                                    Song.loadFromDbById(
+                                        id = song.id,
+                                        database = WORKING_DATABASE,
+                                        storageService = storageService,
+                                        storageApiClient = storageApiClient,
+                                    ) ?: song
+                                songToSave.rootId = original.id
+                                songToSave.saveToDb()
+                                song.rootId = original.id
+                            }
+                            parentMatched++
+                            println("  [родитель ${index + 1}/${ids.size}] ${songLogLabel(song)} — привязан родитель [${songLogLabel(original)}]")
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                println("  [родитель ${index + 1}/${ids.size}] id=$id — ошибка: ${e.message}")
+            }
+        }
+        println("Поиск родителя (автор «$author»): завершено. Обработано ${ids.size}, родитель назначен $parentMatched (найдено, но пропущено из-за текста: $parentSkippedHasText)")
+
+        val summary =
+            "Обработано ${ids.size}, родитель назначен $parentMatched " +
+                "(найдено, но пропущено из-за текста: $parentSkippedHasText)"
+        SNS.send(
+            SseNotification.message(
+                Message(
+                    type = "info",
+                    head = "Поиск родителя (автор «$author»)",
+                    body = summary,
+                ),
+            ),
+        )
+
+        isFindParentInProgress = false
+    }
+    return "OK"
+}
+
+/**
+ * specs/283-admin-find-parent: фоновый поиск **аудио-родителя** для песен одного автора, которые
+ * уже находятся в семье (`root_id <> 0`) и у которых **ещё не найден** аудио-родитель
+ * (`audio_parent_id = 0`). По сути — пакетный вызов [findAudioParentByWaveform] для всех таких
+ * песен автора. Отличия от фазы 2 [customFunction]:
+ *
+ * - **фильтр по автору обязателен** (`LOWER(song_author) = LOWER(?)`);
+ * - **только семья** (транзитивно по `root_id` через [findFamilySongIds]) — НЕ ищем среди песен
+ *   других авторов по `searchSongsByNormalizedName`. Это намеренное ограничение: кнопка «Найти
+ *   аудио-родителя» работает в предположении, что семья уже сформирована текстовым поиском
+ *   (кнопка «Поиск родителя») и нужно только подтвердить/опровергнуть аудио-схожесть внутри неё.
+ * - **идемпотентность по `audio_parent_id`**: песни, у которых уже есть `audio_parent_id <> 0`
+ *   (т.е. для которых `findAudioParentByWaveform` уже отработал ранее и записал результат),
+ *   в выборку НЕ попадают — повторно гонять тяжёлую сверку для них не нужно. Фильтр
+ *   `audio_parent_id = 0` стоит на уровне SQL, до загрузки песни.
+ * - **только запись** [findAudioParentByWaveform] пишет `audio_parent_id` + `audio_similarity_percent`
+ *   + `audio_delta_ms` — текст/маркеры/статус не меняются, `.srt` не переписываются.
+ *
+ * Тяжёлая операция (ffmpeg-декод + кросс-корреляция на каждого кандидата; для тысяч песен может
+ * идти часами) — уходит в фоновый поток; функция возвращает управление сразу же. Итоговая сводка
+ * приходит отдельным SSE-тостом по завершении. Прогресс логируется per-song в stdout (как в
+ * [customFunction]).
+ *
+ * Защита от гонок — in-memory флаг [isFindAudioParentInProgress] (single-instance JVM),
+ * сбрасывается в `finally`. **Отдельный** флаг от [isFindParentInProgress] — аудио-фаза и
+ * текстовая фаза могут идти параллельно.
+ *
+ * @param author имя автора; case-insensitive сравнение в SQL, должен быть непустым (контроллер
+ *               делает `author.trim()` и проверку `isBlank()`).
+ * @return `"OK"` если запущено в фоне; `"ALREADY_RUNNING"` если уже идёт.
+ * @see specs/283-admin-find-parent/spec.md
+ */
+fun findAudioParentForAuthor(
+    author: String,
+    storageService: KaraokeStorageService,
+    storageApiClient: StorageApiClient,
+): String {
+    if (isFindAudioParentInProgress) return "ALREADY_RUNNING"
+    isFindAudioParentInProgress = true
+
+    thread {
+        val ids = mutableListOf<Long>()
+        try {
+            val connection = WORKING_DATABASE.getConnection()
+            if (connection != null) {
+                // Фильтр audio_parent_id = 0 обеспечивает идемпотентность: песни, для которых
+                // findAudioParentByWaveform уже отработал ранее (audio_parent_id <> 0), повторно
+                // не обрабатываются. Тяжёлая ffmpeg-сверка для них не нужна.
+                val ps =
+                    connection.prepareStatement(
+                        "SELECT id FROM tbl_songs WHERE root_id <> 0 AND audio_parent_id = 0 AND LOWER(song_author) = LOWER(?) ORDER BY id",
+                    )
+                ps.setString(1, author)
+                val rs = ps.executeQuery()
+                while (rs.next()) ids.add(rs.getLong("id"))
+                rs.close()
+                ps.close()
+            }
+        } catch (e: Exception) {
+            println("Поиск аудио-родителя (автор «$author»): ошибка выборки песен — ${e.message}")
+        }
+
+        println("Поиск аудио-родителя (автор «$author»): найдено песен в семье без audio_parent_id: ${ids.size}")
+
+        var audioMatched = 0
+        var audioSkipped = 0
+        ids.forEachIndexed { index, id ->
+            try {
+                val song =
+                    Song.loadFromDbById(
+                        id = id,
+                        database = WORKING_DATABASE,
+                        storageService = storageService,
+                        storageApiClient = storageApiClient,
+                    )
+                if (song == null) {
+                    println("  [аудио-родитель ${index + 1}/${ids.size}] id=$id — пропущено (не найдено)")
+                    return@forEachIndexed
+                }
+                // searchOtherAuthors=false: ищем только в семье (по root_id транзитивно),
+                // не подмешиваем кандидатов из searchSongsByNormalizedName.
+                val result = findAudioParentByWaveform(song, WORKING_DATABASE, storageService, storageApiClient, searchOtherAuthors = false)
+                if (result.matched) audioMatched++ else audioSkipped++
+                println("  [аудио-родитель ${index + 1}/${ids.size}] ${songLogLabel(song)} — ${result.reason}")
+            } catch (e: Exception) {
+                audioSkipped++
+                println("  [аудио-родитель ${index + 1}/${ids.size}] id=$id — ошибка: ${e.message}")
+            }
+        }
+        println("Поиск аудио-родителя (автор «$author»): завершено. Обработано ${ids.size}, аудио-родитель назначен $audioMatched, пропущено $audioSkipped")
+
+        val summary =
+            "Обработано ${ids.size}, аудио-родитель назначен $audioMatched, пропущено $audioSkipped"
+        SNS.send(
+            SseNotification.message(
+                Message(
+                    type = "info",
+                    head = "Поиск аудио-родителя (автор «$author»)",
+                    body = summary,
+                ),
+            ),
+        )
+
+        isFindAudioParentInProgress = false
+    }
+    return "OK"
+}
+
+/**
  * Флаг защиты от гонок для [rescanAllCensoredNames] (см. research.md §4). JVM-single-instance,
  * in-memory достаточно — `karaoke-app` запускается в одном контейнере на admin-машине.
  */
 @Volatile
 private var isCensoredRescanInProgress: Boolean = false
+
+/**
+ * specs/283-admin-find-parent: флаг защиты от гонок для [findParentForAuthor] (по образцу
+ * [isCensoredRescanInProgress] выше). Если фоновая задача уже запущена — повторный вызов
+ * возвращает `"ALREADY_RUNNING"` без запуска нового потока.
+ */
+@Volatile
+private var isFindParentInProgress: Boolean = false
+
+/**
+ * specs/283-admin-find-parent: флаг защиты от гонок для [findAudioParentForAuthor] (по образцу
+ * [isFindParentInProgress] выше). Отдельный флаг — чтобы можно было запустить аудио-фазу
+ * параллельно с текстовой.
+ */
+@Volatile
+private var isFindAudioParentInProgress: Boolean = false
 
 /**
  specs/277-song-name-censored: фоновая функция — реckan всех `tbl_songs.song_name_censored`
@@ -4461,27 +4727,39 @@ fun findDuplicateOriginal(
 private data class ParentCandidate(
     val id: Long,
     val author: String,
-    val hasText: Boolean
 )
 
 /**
- * Подбор кандидата в "родители" для пакетного повторного поиска (см. customFunction), в отличие
- * от findDuplicateOriginal ищет среди ВСЕХ песен с точным совпадением нормализованного названия
- * (normalizeSongNameForSearch), не только среди тех, у кого уже есть текст. При нескольких
- * совпадениях выбор идёт по цепочке приоритетов: сначала кандидаты с непустым source_text (если
- * такие есть), затем внутри этого пула - того же автора (регистронезависимо), затем - с
- * наименьшим id.
+ * Подбор кандидата в "родители" для пакетного повторного поиска (см. [customFunction], а также
+ * [findParentForAuthor] в specs/283-admin-find-parent). В отличие от `findDuplicateOriginal` ищет
+ * среди ВСЕХ песен с точным совпадением нормализованного названия ([normalizeSongNameForSearch]),
+ * **без фильтра по наличию текста** — родителем может быть и песня без `source_text` (например,
+ * заглушка/сирота с тем же нормализованным названием). При нескольких совпадениях выбор идёт по
+ * цепочке приоритетов: сначала того же автора (регистронезависимо), затем — с наименьшим `id`.
+ *
+ * Параметр [crossAuthor] управляет фоллбэком на других авторов:
+ * - `true` (по умолчанию): если среди того же автора кандидатов нет — берём любого с минимальным
+ *   `id` (используется в `customFunction` и в `findParentForAuthor` при `crossAuthor=true`).
+ * - `false` (режим для кнопки «Поиск родителя», specs/283-admin-find-parent): если среди того же
+ *   автора кандидатов нет — возвращаем `null`, фоллбэка на других авторов нет.
+ *
+ * @param song песня, для которой ищется родитель
+ * @param database соединение с БД
+ * @param crossAuthor разрешён ли подбор среди песен других авторов (default `true`)
+ * @return `id` кандидата-родителя или `null`, если подходящего нет
+ * @see specs/283-admin-find-parent/spec.md
  */
 fun findParentCandidateId(
     song: Song,
     database: KaraokeConnection,
+    crossAuthor: Boolean = true,
 ): Long? {
     val cleanedName = normalizeSongNameForSearch(song.songName)
     if (cleanedName.isBlank()) return null
     val connection = database.getConnection() ?: return null
     val ps =
         connection.prepareStatement(
-            "SELECT id, song_name, song_author, source_text FROM tbl_songs WHERE id <> ?",
+            "SELECT id, song_name, song_author FROM tbl_songs WHERE id <> ?",
         )
     ps.setLong(1, song.id)
     val rs = ps.executeQuery()
@@ -4492,7 +4770,6 @@ fun findParentCandidateId(
                 ParentCandidate(
                     id = rs.getLong("id"),
                     author = rs.getString("song_author") ?: "",
-                    hasText = !rs.getString("source_text").isNullOrBlank(),
                 ),
             )
         }
@@ -4501,10 +4778,13 @@ fun findParentCandidateId(
     ps.close()
     if (candidates.isEmpty()) return null
 
-    val withText = candidates.filter { it.hasText }
-    val pool = withText.ifEmpty { candidates }
-    val sameAuthor = pool.filter { it.author.equals(song.author, ignoreCase = true) }
-    val finalPool = sameAuthor.ifEmpty { pool }
+    // specs/283-admin-find-parent: родитель ищется среди ВСЕХ песен с тем же нормализованным
+    // названием (без фильтра по наличию текста — раньше приоритизировались кандидаты с
+    // source_text, что ошибочно отсеивало «сирот»-родителей без текста).
+    val sameAuthor = candidates.filter { it.author.equals(song.author, ignoreCase = true) }
+    // При crossAuthor=false фоллбэка на других авторов нет — если sameAuthor пуст, родитель
+    // не найден (вернётся null ниже).
+    val finalPool = if (crossAuthor) sameAuthor.ifEmpty { candidates } else sameAuthor
     return finalPool.minByOrNull { it.id }?.id
 }
 
@@ -4939,9 +5219,18 @@ data class AudioParentResult(
  * audio_similarity_percent, audio_delta_ms) плюс служебная история сравнений (audio_compare_history),
  * которая не даёт повторно гонять WaveformCompare для уже сравненных пар при последующих запусках.
  *
- * Кандидаты - объединение findFamilySongIds (курируемая семья, если уже есть) и
- * searchSongsByNormalizedName по названию текущей песни (across all authors) - тот же набор
- * источников, что уже видит пользователь в модалке "Похожие версии песни".
+ * Кандидаты по умолчанию ([searchOtherAuthors]=true) - объединение [findFamilySongIds] (курируемая
+ * семья, если уже есть) и [searchSongsByNormalizedName] по названию текущей песни (across all
+ * authors) - тот же набор источников, что уже видит пользователь в модалке "Похожие версии песни"
+ * и что использует фаза 2 [customFunction].
+ *
+ * Параметр [searchOtherAuthors] сужает набор кандидатов:
+ * - `true` (по умолчанию): семья + песни других авторов с тем же нормализованным названием
+ *   (обратная совместимость с `customFunction`).
+ * - `false` (режим для кнопки «Найти аудио-родителя» в specs/283-admin-find-parent): только
+ *   курируемая семья (по `root_id` транзитивно). Используется для песен, у которых уже есть
+ *   `root_id <> 0` — в этом случае семья заведомо непуста, и искать среди чужих авторов
+ *   не нужно.
  *
  * Порог отбора - AUDIO_PARENT_THRESHOLD (95%). Дерево audio_parent_id, как и root_id, должно
  * оставаться плоским (глубина 1) и без петель: если у лучшего кандидата уже есть свой
@@ -4949,18 +5238,41 @@ data class AudioParentResult(
  * Если у кандидата ещё нет аудио-родителя ("первичный анализ"), корнем считается песня с меньшим id;
  * если корнем оказывается сама текущая песня (в т.ч. когда кандидат уже указывает на неё) -
  * audio_parent_id не трогаем, песня остаётся корнем.
+ *
+ * @param song песня, для которой ищется аудио-родитель
+ * @param database соединение с БД
+ * @param storageService / storageApiClient — для batch-загрузки кандидатов
+ * @param searchOtherAuthors разрешён ли поиск среди песен других авторов (default `true`)
+ * @see specs/283-admin-find-parent/spec.md
  */
 fun findAudioParentByWaveform(
     song: Song,
     database: KaraokeConnection,
     storageService: KaraokeStorageService,
     storageApiClient: StorageApiClient,
+    searchOtherAuthors: Boolean = true,
 ): AudioParentResult {
-    val candidateIds =
-        (findFamilySongIds(song, database) + searchSongsByNormalizedName(song, song.songName, database))
-            .toSet() - song.id
+    val familyIds = findFamilySongIds(song, database)
+    val candidates: Set<Long> =
+        if (searchOtherAuthors) {
+            (familyIds + searchSongsByNormalizedName(song, song.songName, database)).toSet()
+        } else {
+            familyIds.toSet()
+        }
+    val candidateIds = candidates - song.id
     if (candidateIds.isEmpty()) {
-        return AudioParentResult(song.id, false, null, null, null, "Нет кандидатов (ни в семье, ни по названию)")
+        return AudioParentResult(
+            song.id,
+            false,
+            null,
+            null,
+            null,
+            if (searchOtherAuthors) {
+                "Нет кандидатов (ни в семье, ни по названию)"
+            } else {
+                "Нет кандидатов в семье (root_id транзитивно)"
+            },
+        )
     }
 
     val historyById = song.audioCompareHistoryList.associateBy { it.id }.toMutableMap()

@@ -2419,6 +2419,37 @@ export default {
       let request = { method: 'POST', url: '/api/songs/autoassignoriginalall', params: params }
       return promisedXMLHttpRequest(request)
     },
+    /**
+     * specs/283-admin-find-parent: кнопка «Поиск родителя» на главной странице админки.
+     * Фоновый поиск ТОЛЬКО текстового родителя для песен одного автора с root_id=0.
+     * Возвращает "OK" если запущено в фоне, "ALREADY_RUNNING" если уже идёт.
+     * @param {object} ctx - Vuex action context
+     * @param {object} payload - { author: string, crossAuthor: boolean }
+     * @returns {Promise<string>}
+     * @see specs/283-admin-find-parent/spec.md
+     */
+    findParentForAuthorPromise(ctx, payload) {
+      let params = {
+        author: payload.author,
+        crossAuthor: !!payload.crossAuthor,
+      }
+      let request = { method: 'POST', url: '/api/utils/findparentforauthor', params: params }
+      return promisedXMLHttpRequest(request)
+    },
+    /**
+     * specs/283-admin-find-parent: кнопка «Найти аудио-родителя» на главной странице админки.
+     * Фоновый поиск аудио-родителя (только в семье, по root_id транзитивно) для песен одного
+     * автора с root_id <> 0. Возвращает "OK" если запущено в фоне, "ALREADY_RUNNING" если уже идёт.
+     * @param {object} ctx - Vuex action context
+     * @param {object} payload - { author: string }
+     * @returns {Promise<string>}
+     * @see specs/283-admin-find-parent/spec.md
+     */
+    findAudioParentForAuthorPromise(ctx, payload) {
+      let params = { author: payload.author }
+      let request = { method: 'POST', url: '/api/utils/findaudioparentforauthor', params: params }
+      return promisedXMLHttpRequest(request)
+    },
     deleteDublicatesPromise() {
       let request = { method: 'POST', url: '/api/utils/deldublicates' }
       return promisedXMLHttpRequest(request)

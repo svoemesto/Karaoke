@@ -63,7 +63,10 @@ export default {
   },
   actions: {
     loadListeningHistoryDigest(ctx, params = {}) {
-      const fullParams = Object.assign({}, params, { target: ctx.state.listeningHistoryTarget })
+      const fullParams = Object.assign({}, params, {
+        target: ctx.state.listeningHistoryTarget,
+        page: params.page || 1,
+      })
       const request = { method: 'POST', url: '/api/listeninghistory/digest', params: fullParams }
       ctx.commit('setListeningHistoryDigestIsLoading', true)
       return promisedXMLHttpRequest(request)

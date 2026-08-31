@@ -133,7 +133,7 @@
               class="label"
               title="Ручное значение используется в публикациях (VK/Telegram/News) и публичном API БЕЗ повторной фильтрации. Редактируйте на свой страх и риск."
             >
-              Композиция (цензурированная):
+              Censored:
             </div>
             <input
               v-model="song.songNameCensored"
@@ -323,7 +323,7 @@
           </div>
           <div class="label-and-input">
             <div class="label">Описание:</div>
-            <textarea v-model="song.description" class="input-field" rows="4" />
+            <textarea v-model="song.description" class="input-field" rows="2" />
             <button
               class="btn-round"
               :disabled="notChanged('description')"

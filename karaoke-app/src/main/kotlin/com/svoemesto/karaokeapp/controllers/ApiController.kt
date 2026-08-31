@@ -3029,6 +3029,11 @@ class ApiController(
             // saveToDb(), чтобы уведомить karaoke-web (StatBySong dirty-флаг) только если free
             // реально изменился, а не на каждое сохранение песни.
             val freeBefore = songValue.free
+            // specs/286-author-song-counts-cache: снимок id_status ДО применения правок — сравнивается
+            // после saveToDb(), чтобы уведомить karaoke-web только если id_status реально изменился
+            // (переход через границу id_status >= 6 влияет на счётчики готовых песен в tbl_authors,
+            // и на /api/public/authors-tiles нужна инвалидация L2-кеша authorsTilesCache).
+            val idStatusBefore = songValue.idStatus
             // specs/124-filename-sanitization-rename FR-006/FR-007/FR-008/FR-011/FR-013: смена
             // "Имя файла" санитайзируется теми же правилами, что и импорт, отклоняется при коллизии/
             // пустом имени/активной фоновой обработке песни, и (если применяется) каскадно
@@ -3164,6 +3169,11 @@ class ApiController(
             songValue.saveToDb()
             songValue.saveToFile()
             if (songValue.free != freeBefore) notifyStatsDirty()
+            // specs/286-author-song-counts-cache: изменение id_status (готово/не готово) требует
+            // сброса authorsTilesCache на karaoke-web — иначе на /zakroma будут старые числа
+            // до истечения TTL=30 мин. Атомарно с saveToDb (триггер уже обновил счётчики в
+            // tbl_authors на LOCAL-БД; markDirty триггерит sync + сброс кэша на проде).
+            if (songValue.idStatus != idStatusBefore) notifyStatsDirty()
         }
 
         return SongUpdateResultDto(albumLinkValid = albumLinkValid, fileNameRenameError = fileNameRenameError)

@@ -19,12 +19,12 @@
 
 ## R-002. Порядок шагов кортежа через приоритеты в одном lane
 
-**Decision**: Использовать `threadId = 1` (`KaraokeProcess.THREAD_LANE_HEALTH_REPORT`) для всех 6 новых заданий + `prior = -1` для `FF_MP3_*` и `prior = -2` для `UPLOAD_*`. Существующий `DEMUCS2` в этом же кортеже использует `prior = -1`.
+**Decision**: Использовать `threadId = 1` (`KaraokeProcess.THREAD_LANE_HEALTH_REPORT`) для всех 6 новых заданий + `prior = -1` для `DEMUCS2`/`FF_MP3_*` и `prior = 0` для `UPLOAD_*`.
 
 **Rationale**:
-- В `KaraokeProcessWorker` (`KaraokeProcessWorker.kt:806` — `WHERE process_status = 'WAITING' ORDER BY process_priority, process_order, id LIMIT 1`) задания с более низким `priority` (включая отрицательные) выбираются первыми внутри lane; `process_priority` — это `prior` в `createProcess`.
-- Все задания с `prior = -1` (`DEMUCS2`, `FF_MP3_ACCOMPANIMENT`, `FF_MP3_VOCAL`) идут **в любом порядке друг относительно друга** в одном lane (при равенстве `priority` сортировка по `process_order`, затем `id`). Это соответствует Q2 из Clarifications: «сначала все `FF_MP3_*`» — гарантируется, что они все будут в очереди до того, как первое `UPLOAD_*` (`prior = -2`) начнёт обрабатываться.
-- Соответствует паттерну `HealthReport.actionsLocalStorage` и `actionsRemoteStorage` (`HealthReport.kt:622, 681, 728, 911, 973, 1021` — все используют `prior = -2`).
+- В `KaraokeProcessWorker` (`KaraokeProcess.kt:803` — `ORDER BY process_priority, process_order, id` внутри `ROW_NUMBER() OVER (PARTITION BY thread_id ORDER BY process_priority, process_order, id)`) задания сортируются по `process_priority` **по возрастанию** (ASC по умолчанию), то есть **меньше** `priority` = **раньше** в очереди.
+- Все задания с `prior = -1` (`DEMUCS2`, `FF_MP3_ACCOMPANIMENT`, `FF_MP3_VOCAL`) идут **в порядке создания** друг относительно друга в одном lane (при равенстве `priority` сортировка по `process_order`, затем `id`). Это соответствует Q2 из Clarifications: «сначала все `FF_MP3_*`» — гарантируется, что они все будут в очереди до того, как первое `UPLOAD_*` (`prior = 0`) начнёт обрабатываться.
+- **Pass 285 (корректировка)**: исходно планировалось `prior = -2` для `UPLOAD_*` — это была ошибка (см. также Pass 278/278-фикс в master и пост-merge репорт пользователя 2026-08-31). При `prior = -2` UPLOAD_* имели бы **меньший** `priority`, чем `DEMUCS2`/`FF_MP3_*` (`-1`), и стартовали бы **раньше** создания mp3 → падали бы на отсутствии файла на диске. В существующем коде `HealthReport.kt:622, 681, 728, 911, 973, 1021` `UPLOAD_*` действительно имеют `prior = -2`, но там порядок обеспечивается через **каскад** (UPLOAD_* создаются только при наличии файла на диске, через `onRepairProcessFinished`); в явном кортеже `Song.createFromPath` этот каскад не работает — все 7 заданий ставятся сразу, и порядок определяется **только** приоритетами.
 - Сохраняет совместимость с комментарием `// threadId=1 (THREAD_LANE_HEALTH_REPORT) - тот же лейн, в котором HealthReport.actions() по умолчанию ставит все дальнейшие шаги каскада (FF_MP3_*/UPLOAD_*), иначе кортеж расползётся по разным лейнам` (`Song.kt:8196-8200`) — кортеж не «расползается».
 
 **Alternatives considered**:

@@ -8196,10 +8196,14 @@ class Song(
                             // Первый шаг кортежа демукс→mp3→загрузка (см. archive/docs/features/async-process-queue.md):
                             // threadId=1 (THREAD_LANE_HEALTH_REPORT) - тот же лейн, в котором HealthReport.actions()
                             // по умолчанию ставит все дальнейшие шаги каскада (FF_MP3_*/UPLOAD_*), иначе кортеж
-                            // расползётся по разным лейнам. specs/282-import-folder-mp3-uploads-tuple: после DEMUCS2
-                            // явно добавляются 6 шагов кортежа — 2 × FF_MP3_* (prior=-1) и 4 × UPLOAD_* (prior=-2,
-                            // в одном lane), чтобы mp3 голоса/аккомпанимента автоматически попадали в локальный
-                            // и удалённый MinIO без отдельного HealthReport.startRepairAll.
+                            // расползётся по разным лейнам. specs/282-import-folder-mp3-uploads-tuple + Pass 285:
+                            // после DEMUCS2 явно добавляются 6 шагов кортежа — 2 × FF_MP3_* (prior=-1) и 4 ×
+                            // UPLOAD_* (prior=0, в одном lane), чтобы mp3 голоса/аккомпанимента автоматически
+                            // попадали в локальный и удалённый MinIO без отдельного HealthReport.startRepairAll.
+                            // ВАЖНО про приоритеты (Pass 285): KaraokeProcessWorker выбирает задания по
+                            // ORDER BY process_priority ASC (см. KaraokeProcess.kt:803), то есть МЕНЬШЕ priority
+                            // = РАНЬШЕ в очереди. UPLOAD_* должны идти ПОСЛЕ FF_MP3_* (иначе пытаются
+                            // загрузить mp3, которого ещё нет) → UPLOAD_* получают priority=0 > -1 у FF_MP3_*/DEMUCS2.
                             KaraokeProcess.createProcess(
                                 song = song,
                                 action = KaraokeProcessTypes.DEMUCS2,
@@ -8228,7 +8232,7 @@ class Song(
                                 song = song,
                                 action = KaraokeProcessTypes.UPLOAD_TO_LOCAL_STORE,
                                 doWait = true,
-                                prior = -2,
+                                prior = 0,
                                 threadId = 1,
                                 context =
                                     mapOf(
@@ -8243,7 +8247,7 @@ class Song(
                                 song = song,
                                 action = KaraokeProcessTypes.UPLOAD_TO_LOCAL_STORE,
                                 doWait = true,
-                                prior = -2,
+                                prior = 0,
                                 threadId = 1,
                                 context =
                                     mapOf(
@@ -8258,7 +8262,7 @@ class Song(
                                 song = song,
                                 action = KaraokeProcessTypes.UPLOAD_TO_REMOTE_STORE,
                                 doWait = true,
-                                prior = -2,
+                                prior = 0,
                                 threadId = 1,
                                 context =
                                     mapOf(
@@ -8273,7 +8277,7 @@ class Song(
                                 song = song,
                                 action = KaraokeProcessTypes.UPLOAD_TO_REMOTE_STORE,
                                 doWait = true,
-                                prior = -2,
+                                prior = 0,
                                 threadId = 1,
                                 context =
                                     mapOf(

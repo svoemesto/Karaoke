@@ -21,7 +21,7 @@ related:
 3-4. `UPLOAD_TO_LOCAL_STORE` × 2 (acc + vocals) — загрузка mp3 в локальный MinIO.
 5-6. `UPLOAD_TO_REMOTE_STORE` × 2 — загрузка mp3 в удалённый MinIO.
 
-Все 7 шагов кортежа — в одном lane `THREAD_LANE_HEALTH_REPORT` (= 1); создание mp3 с `prior=-1`, загрузка с `prior=-2` (порядок «сначала всё готовим, потом всё загружаем»). Дедупликация через `KaraokeProcess.createProcess` (ключ включает `karaokeFileType` для `UPLOAD_*`).
+Все 7 шагов кортежа — в одном lane `THREAD_LANE_HEALTH_REPORT` (= 1); создание mp3 с `prior=-1`, загрузка с `prior=0` (порядок «сначала всё готовим, потом всё загружаем»; см. Pass 285: в `KaraokeProcessWorker` сортировка `ORDER BY process_priority ASC` — меньше `priority` = раньше). Дедупликация через `KaraokeProcess.createProcess` (ключ включает `karaokeFileType` для `UPLOAD_*`).
 
 Раньше `FF_MP3_*` и `UPLOAD_*` для mp3 голоса/аккомпанимента добавлялись через `HealthReport.startRepairAll()` в `ApiController.doCreateFromFolder` (вне явного кортежа), что приводило к ситуации, когда mp3 не попадали в MinIO при сбое/гонке с HealthReport. Теперь кортеж явный, mp3 всегда оказываются в хранилищах после завершения обработки.
 

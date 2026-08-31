@@ -123,6 +123,20 @@ fun getIamToken(): String {
  * "текста ещё нет" — пустую строку `""` и значение-заглушку `["\"\"]"`) — НЕ дублировать эту
  * проверку через `sourceText.isBlank()` в новом коде.
  *
+ * **Race condition защита (specs/281-find-lyrics-overwrites-key-bpm)**: объект `song` мог быть
+ * загружен из БД задолго до того, как мы сюда дошли (например, в `ApiController.searchsongtextall`
+ * он приходит из `Song.loadFromDbById`, потом идёт Playwright/HTTP-парсинг десятки секунд). За это
+ * время параллельные процессы (`KEY_BPM_FROM_FILE`, `DEMUCS2`, `Sheetsage` и т.п.) могут успеть
+ * обновить `song_tone`/`song_bpm`/URL'ы стемов через свой собственный экземпляр `Song.saveToDb()`.
+ * Если бы мы вызывали `song.saveToDb()` напрямую — `Song.getDiff(this, savedSong)` увидел бы
+ * `this.key == ""` против `savedSong.key == "Am"` и включил бы `song_tone` в UPDATE → перезатирание
+ * параллельно найденных значений пустыми. Поэтому ПЕРЕД `saveToDb()` объект перезагружается из БД;
+ * паттерн fallback на исходный объект при `null` (на случай удаления песни) — точно как в Pass 278
+ * (`specs/278-fix-key-loss-on-lyrics-search/spec.md`). Глобальный фикс покрывает все 4 движка +
+ * фоновый `KaraokeProcessWorker` одной правкой.
+ *
+ * @see specs/281-find-lyrics-overwrites-key-bpm/spec.md
+ * @see specs/278-fix-key-loss-on-lyrics-search/spec.md
  * @see archive/docs/features/llm-lyrics-search.md
  */
 fun applyFoundLyricsIfMissing(
@@ -132,9 +146,19 @@ fun applyFoundLyricsIfMissing(
     val firstNonEmpty = candidateTexts.firstOrNull { it.isNotBlank() } ?: return
     if (!song.haveSourceText && song.idStatus == 0L) {
         println("Первое из найденных не пустых значений применяем для текста песни ${song.fileName}")
-        song.sourceText = firstNonEmpty
-        song.fields[SongField.ID_STATUS] = "1"
-        song.saveToDb()
+        // specs/281-find-lyrics-overwrites-key-bpm: reload-from-db-before-save — иначе параллельно
+        // записанные key/bpm/url'ы стемов попадут в getDiff и перезатрутся пустыми значениями из
+        // stale in-memory объекта (объект загружен в начале searchsongtextall десятки секунд назад).
+        val songToSave =
+            Song.loadFromDbById(
+                id = song.id,
+                database = song.database,
+                storageService = song.storageService,
+                storageApiClient = song.storageApiClient,
+            ) ?: song
+        songToSave.sourceText = firstNonEmpty
+        songToSave.fields[SongField.ID_STATUS] = "1"
+        songToSave.saveToDb()
     }
 }
 

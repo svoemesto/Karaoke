@@ -158,8 +158,20 @@ fun customFunction(
                             if (original.sourceText.isNotBlank()) {
                                 applyDuplicateOriginal(song, original)
                             } else {
+                                // specs/281-find-lyrics-overwrites-key-bpm (FR-010): reload-from-db-before-save.
+                                // Между loadFromDbById(song) выше и этим saveToDb проходит несколько секунд
+                                // (findParentCandidateId + loadFromDbById(original)). Параллельный KEY_BPM_FROM_FILE
+                                // мог успеть записать key/bpm — без reload они попадут в diff и перезатрутся.
+                                val songToSave =
+                                    Song.loadFromDbById(
+                                        id = song.id,
+                                        database = WORKING_DATABASE,
+                                        storageService = storageService,
+                                        storageApiClient = storageApiClient,
+                                    ) ?: song
+                                songToSave.rootId = original.id
+                                songToSave.saveToDb()
                                 song.rootId = original.id
-                                song.saveToDb()
                             }
                             parentMatched++
                             matchedParentIds.add(id)
@@ -4671,26 +4683,56 @@ fun applyFamilySongSelection(
     который трогать нельзя — см. specs/129-copy-family-audio/research.md Decision 3). Если заданы,
     helper устанавливает их до единственного saveToDb(), чтобы текст/маркеры/root/status и три
     аудиополя попали в один SQL UPDATE и один recordhash-diff.
+
+    Race condition защита (specs/281-find-lyrics-overwrites-key-bpm, FR-011): паттерн
+    reload-from-db-before-save, как в applyDuplicateOriginal и applyAudioParentMarkers. Объект
+    song мог жить в памяти долго (ручной клик из модалки — несколько секунд между load и save,
+    autoAssignOriginalByWaveform — десятки секунд ffmpeg-сверки). Параллельные процессы могли
+    обновить key/bpm/URL'ы стемов. Без reload Song.getDiff() увидел бы пустые поля в stale
+    song против заполненных в БД и включил бы их в UPDATE → перезатирание.
      */
-    song.sourceText = another.sourceText
-    song.resultText = another.resultText
-    song.sourceMarkers =
+    val songToSave =
+        Song.loadFromDbById(
+            id = song.id,
+            database = song.database,
+            storageService = song.storageService,
+            storageApiClient = song.storageApiClient,
+        ) ?: song
+    songToSave.sourceText = another.sourceText
+    songToSave.resultText = another.resultText
+    songToSave.sourceMarkers =
         if (deltaMs != null) {
-            shiftMarkersAndFixEnd(another.sourceMarkers, deltaMs, song.ms)
+            shiftMarkersAndFixEnd(another.sourceMarkers, deltaMs, songToSave.ms)
         } else {
             another.sourceMarkers
         }
-    song.formattedTextSong = another.formattedTextSong
-    song.formattedTextTabs = another.formattedTextTabs
-    song.formattedTextChords = another.formattedTextChords
-    song.rootId = if (another.rootId != 0L) another.rootId else another.id
-    if (song.idStatus == 0L) song.fields[SongField.ID_STATUS] = "1"
+    songToSave.formattedTextSong = another.formattedTextSong
+    songToSave.formattedTextTabs = another.formattedTextTabs
+    songToSave.formattedTextChords = another.formattedTextChords
+    songToSave.rootId = if (another.rootId != 0L) another.rootId else another.id
+    if (songToSave.idStatus == 0L) songToSave.fields[SongField.ID_STATUS] = "1"
     // Аудиополя — opt-in. Передаются только из ручного endpoint'а; autoAssignOriginalByWaveform
     // вызывает helper с дефолтами (без аудиопараметров) и не трогает audioParentId/percent/delta.
+    if (audioParentId != null) songToSave.audioParentId = audioParentId
+    if (audioSimilarityPercent != null) songToSave.audioSimilarityPercent = audioSimilarityPercent
+    if (audioDeltaMs != null) songToSave.audioDeltaMs = audioDeltaMs
+    songToSave.saveToDb()
+
+    // specs/281-find-lyrics-overwrites-key-bpm (FR-011): синхронизировать `song` в памяти с только что
+    // записанным состоянием, чтобы любой последующий `song.saveToDb()` в caller-е (например,
+    // autoAssignOriginalByWaveform финальный saveToDb на строке 4850) видел актуальные поля и НЕ
+    // включил их в diff. Тот же паттерн, что и в applyDuplicateOriginal/applyAudioParentMarkers.
+    song.sourceText = songToSave.sourceText
+    song.resultText = songToSave.resultText
+    song.sourceMarkers = songToSave.sourceMarkers
+    song.formattedTextSong = songToSave.formattedTextSong
+    song.formattedTextTabs = songToSave.formattedTextTabs
+    song.formattedTextChords = songToSave.formattedTextChords
+    song.rootId = songToSave.rootId
+    song.fields[SongField.ID_STATUS] = songToSave.fields[SongField.ID_STATUS] ?: "1"
     if (audioParentId != null) song.audioParentId = audioParentId
     if (audioSimilarityPercent != null) song.audioSimilarityPercent = audioSimilarityPercent
     if (audioDeltaMs != null) song.audioDeltaMs = audioDeltaMs
-    song.saveToDb()
 }
 
 /**
@@ -4846,8 +4888,26 @@ fun autoAssignOriginalByWaveform(
     }
 
     // 3) Переводим песню в статус 2 (TEXT_CHECK) и сохраняем всё одним saveToDb().
+    // specs/281-find-lyrics-overwrites-key-bpm (FR-012): reload-from-db-before-save — между
+    // applyFamilySongSelection (где уже есть reload+sync по FR-011) и этим saveToDb проходит
+    // ~несколько секунд на запись N файлов .srt. Параллельный процесс мог обновить поля —
+    // без reload diff перезатрёт их. Делаем reload на финал, чтобы гарантировать атомарность
+    // обновления (status + resultText + formatted* без потери key/bpm/url'ов стемов).
+    val finalSongToSave =
+        Song.loadFromDbById(
+            id = song.id,
+            database = song.database,
+            storageService = song.storageService,
+            storageApiClient = song.storageApiClient,
+        ) ?: song
+    finalSongToSave.resultText = song.resultText
+    finalSongToSave.formattedTextSong = song.formattedTextSong
+    finalSongToSave.formattedTextTabs = song.formattedTextTabs
+    finalSongToSave.formattedTextChords = song.formattedTextChords
+    finalSongToSave.fields[SongField.ID_STATUS] = "2"
+    finalSongToSave.saveToDb()
+    // Синхронизировать song в памяти, чтобы внешний код (если он ещё держит ссылку) видел актуальное состояние.
     song.fields[SongField.ID_STATUS] = "2"
-    song.saveToDb()
 
     return AutoOriginalResult(
         song.id,
@@ -4915,9 +4975,21 @@ fun findAudioParentByWaveform(
             val cmp = WaveformCompare.compareWaveforms(song, candidate)
             historyById[id] = AudioCompareHistoryEntry(id, cmp.similarityPercent, cmp.deltaMs, cmp.ok, now)
         }
-        song.audioCompareHistory =
-            Json.encodeToString(ListSerializer(AudioCompareHistoryEntry.serializer()), historyById.values.toList())
     }
+
+    // specs/281-find-lyrics-overwrites-key-bpm (FR-013): reload-from-db-before-save — между
+    // loadFromDbById в caller-е и saveToDb ниже проходят десятки секунд (ffmpeg-декод через
+    // WaveformCompare.compareWaveforms). Параллельные процессы могли обновить поля песни —
+    // применяем историю сверок к reloaded объекту, чтобы diff в saveToDb не перезатёр ничего лишнего.
+    val songToSave =
+        Song.loadFromDbById(
+            id = song.id,
+            database = song.database,
+            storageService = song.storageService,
+            storageApiClient = song.storageApiClient,
+        ) ?: song
+    songToSave.audioCompareHistory =
+        Json.encodeToString(ListSerializer(AudioCompareHistoryEntry.serializer()), historyById.values.toList())
 
     val best =
         candidateIds
@@ -4926,7 +4998,8 @@ fun findAudioParentByWaveform(
             .maxByOrNull { it.similarityPercent }
 
     if (best == null || best.similarityPercent < AUDIO_PARENT_THRESHOLD) {
-        song.saveToDb()
+        songToSave.saveToDb()
+        song.audioCompareHistory = songToSave.audioCompareHistory
         return AudioParentResult(
             song.id,
             false,
@@ -4945,7 +5018,8 @@ fun findAudioParentByWaveform(
         loadedCandidates[best.id]
             ?: Song.loadFromDbById(best.id, database = database, storageService = storageService, storageApiClient = storageApiClient)
             ?: run {
-                song.saveToDb()
+                songToSave.saveToDb()
+                song.audioCompareHistory = songToSave.audioCompareHistory
                 return AudioParentResult(
                     song.id,
                     false,
@@ -4966,7 +5040,8 @@ fun findAudioParentByWaveform(
         }
 
     if (resolvedRoot == song.id) {
-        song.saveToDb()
+        songToSave.saveToDb()
+        song.audioCompareHistory = songToSave.audioCompareHistory
         return AudioParentResult(
             song.id,
             false,
@@ -4977,10 +5052,16 @@ fun findAudioParentByWaveform(
         )
     }
 
-    song.audioParentId = resolvedRoot
-    song.audioSimilarityPercent = best.similarityPercent
-    song.audioDeltaMs = best.deltaMs
-    song.saveToDb()
+    songToSave.audioParentId = resolvedRoot
+    songToSave.audioSimilarityPercent = best.similarityPercent
+    songToSave.audioDeltaMs = best.deltaMs
+    songToSave.saveToDb()
+    // Синхронизировать song в памяти — caller (ApiController.findaudioparent, Utils.findParentAndAudioParentForAll)
+    // читает song.audioParentId после возврата.
+    song.audioParentId = songToSave.audioParentId
+    song.audioSimilarityPercent = songToSave.audioSimilarityPercent
+    song.audioDeltaMs = songToSave.audioDeltaMs
+    song.audioCompareHistory = songToSave.audioCompareHistory
 
     return AudioParentResult(
         song.id,

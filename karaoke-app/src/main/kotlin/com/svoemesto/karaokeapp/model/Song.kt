@@ -3636,7 +3636,23 @@ class Song(
             formattedTextSong = getTextFormatted()
             formattedTextTabs = getFormattedNotes()
             formattedTextChords = getFormattedChords()
-            saveToDb()
+            // specs/281-find-lyrics-overwrites-key-bpm (FR-014): reload-from-db-before-save.
+            // `this` мог жить в памяти долго (например, цикл апрува задания редактора с записью
+            // .srt файлов между голосами). Параллельный KEY_BPM_FROM_FILE / DEMUCS2 мог успеть
+            // обновить key/bpm/URL'ы стемов — без reload diff включит их в UPDATE и перезатрёт.
+            val reloaded = Song.loadFromDbById(id = this.id, database = this.database, storageService = this.storageService, storageApiClient = this.storageApiClient) ?: this
+            reloaded.sourceMarkers = sourceMarkers
+            reloaded.resultText = resultText
+            reloaded.formattedTextSong = formattedTextSong
+            reloaded.formattedTextTabs = formattedTextTabs
+            reloaded.formattedTextChords = formattedTextChords
+            reloaded.saveToDb()
+            // Синхронизировать this с записанным состоянием — caller может продолжить работу с this.
+            this.sourceMarkers = reloaded.sourceMarkers
+            this.resultText = reloaded.resultText
+            this.formattedTextSong = reloaded.formattedTextSong
+            this.formattedTextTabs = reloaded.formattedTextTabs
+            this.formattedTextChords = reloaded.formattedTextChords
             return
         }
         if (voice >= 0 && voice < sourceMarkersList.size) {
@@ -3647,7 +3663,19 @@ class Song(
             formattedTextSong = getTextFormatted()
             formattedTextTabs = getFormattedNotes()
             formattedTextChords = getFormattedChords()
-            saveToDb()
+            // specs/281-find-lyrics-overwrites-key-bpm (FR-014): см. комментарий выше.
+            val reloaded = Song.loadFromDbById(id = this.id, database = this.database, storageService = this.storageService, storageApiClient = this.storageApiClient) ?: this
+            reloaded.sourceMarkers = sourceMarkers
+            reloaded.resultText = resultText
+            reloaded.formattedTextSong = formattedTextSong
+            reloaded.formattedTextTabs = formattedTextTabs
+            reloaded.formattedTextChords = formattedTextChords
+            reloaded.saveToDb()
+            this.sourceMarkers = reloaded.sourceMarkers
+            this.resultText = reloaded.resultText
+            this.formattedTextSong = reloaded.formattedTextSong
+            this.formattedTextTabs = reloaded.formattedTextTabs
+            this.formattedTextChords = reloaded.formattedTextChords
             return
         }
     }
@@ -3668,14 +3696,22 @@ class Song(
             val lst = sourceTextList.toMutableList()
             lst.add(text)
             sourceText = Json.encodeToString(lst)
-            saveToDb()
+            // specs/281-find-lyrics-overwrites-key-bpm (FR-014): reload-from-db-before-save (см. setSourceMarkers).
+            val reloaded = Song.loadFromDbById(id = this.id, database = this.database, storageService = this.storageService, storageApiClient = this.storageApiClient) ?: this
+            reloaded.sourceText = sourceText
+            reloaded.saveToDb()
+            this.sourceText = reloaded.sourceText
             return
         }
         if (voice >= 0 && voice < sourceTextList.size) {
             val lst = sourceTextList.toMutableList()
             lst[voice] = text
             sourceText = Json.encodeToString(lst)
-            saveToDb()
+            // specs/281-find-lyrics-overwrites-key-bpm (FR-014): reload-from-db-before-save (см. setSourceMarkers).
+            val reloaded = Song.loadFromDbById(id = this.id, database = this.database, storageService = this.storageService, storageApiClient = this.storageApiClient) ?: this
+            reloaded.sourceText = sourceText
+            reloaded.saveToDb()
+            this.sourceText = reloaded.sourceText
             return
         }
     }

@@ -169,13 +169,30 @@ export default {
           return {}
         })
     },
-    // Быстрый поиск песен-кандидатов для AssignModal (по умолчанию только id_status=1 — TEXT_CREATE).
-    searchCandidateSongs(ctx, { query, author, album, onlyStatus1 }) {
+    /**
+     * Поиск песен-кандидатов для назначения на разметку (AssignModal).
+     *
+     * @param {object} ctx - Vuex context
+     * @param {object} payload
+     * @param {string} [payload.query] - фильтр по song_name (LIKE)
+     * @param {string} [payload.author] - фильтр по song_author (LIKE)
+     * @param {string} [payload.album] - фильтр по song_album (LIKE)
+     * @param {boolean} [payload.onlyStatus1=true] - только кандидаты на разметку (id_status=1)
+     * @param {string} [payload.rootId] - точное совпадение по song.root_id
+     * @param {string} [payload.audioRootId] - точное совпадение по song.audio_parent_id
+     * @returns {Promise<Array<SongDTOdigest>>} массив песен-кандидатов
+     *
+     * @see specs/280-assign-modal-root-audio-id/spec.md FR-005, FR-007 — проброс filterRootId/filterAudioParentId
+     * @see specs/280-assign-modal-root-audio-id/research.md D-1 — audioRootId в payload маппится в filterAudioParentId
+     */
+    searchCandidateSongs(ctx, { query, author, album, onlyStatus1, rootId, audioRootId }) {
       const params = {}
       if (query) params.filterSongName = query
       if (author) params.filterAuthor = author
       if (album) params.filterAlbum = album
       if (onlyStatus1) params.filterStatus = '1'
+      if (rootId) params.filterRootId = rootId
+      if (audioRootId) params.filterAudioParentId = audioRootId
       return promisedXMLHttpRequest({ method: 'POST', url: '/api/songsdigests', params }).then(
         (data) => {
           const result = JSON.parse(data)

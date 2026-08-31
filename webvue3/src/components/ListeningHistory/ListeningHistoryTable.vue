@@ -31,8 +31,6 @@
         :items="digest"
         :busy="isBusy"
         :fields="fields"
-        :per-page="perPage"
-        :current-page="currentPage"
         small
         bordered
         hover
@@ -75,7 +73,7 @@
 
     <div class="lht-table-footer">
       <span v-if="countRows > perPage"
-        >Показано {{ Math.min(countRows, currentPage * perPage) }} из {{ countRows }}</span
+        >Показано {{ itemsShownOnCurrentPage }} из {{ countRows }}</span
       >
       <span v-else>Всего: {{ countRows }}</span>
     </div>
@@ -135,6 +133,16 @@ export default {
     countRows() {
       return this.$store.getters.getListeningHistoryDigestTotalCount
     },
+    itemsShownOnCurrentPage() {
+      // Размер текущей серверной страницы: для последней страницы меньше perPage, для остальных = perPage.
+      // Формула: items between (currentPage-1)*perPage и min(countRows, currentPage*perPage), exclusive end.
+      // Упрощённо: min(perPage, countRows - (currentPage-1)*perPage), но если currentPage уже за пределами
+      // существующих страниц — возвращаем 0.
+      if (this.countRows === 0) return 0
+      const from = (this.currentPage - 1) * this.perPage
+      if (from >= this.countRows) return 0
+      return Math.min(this.perPage, this.countRows - from)
+    },
     target: {
       get() {
         return this.$store.getters.getListeningHistoryTarget
@@ -176,9 +184,15 @@ export default {
     digestIsLoading() {
       this.isBusy = this.digestIsLoading
     },
-    currentPage(newPage) {
+    currentPage(newPage, oldPage) {
       // Сохраняем страницу в store, чтобы она восстановилась после переключения на другой компонент.
       this.$store.commit('setListeningHistoryTableCurrentPage', newPage)
+      // Триггер загрузки данных при смене страницы пагинатора. Защита `newPage !== oldPage`
+      // отсекает первый вызов watcher после mount, когда currentPage уже равно значению
+      // из Vuex — там первичную загрузку делает mounted() { this.reload() }.
+      if (newPage !== oldPage) {
+        this.$store.dispatch('loadListeningHistoryDigest', { page: newPage })
+      }
     },
   },
   mounted() {
@@ -186,7 +200,7 @@ export default {
   },
   methods: {
     reload() {
-      this.$store.dispatch('loadListeningHistoryDigest', {})
+      this.$store.dispatch('loadListeningHistoryDigest', { page: this.currentPage })
     },
     onTargetChange() {
       this.currentPage = 1

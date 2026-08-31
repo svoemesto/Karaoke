@@ -8196,7 +8196,10 @@ class Song(
                             // Первый шаг кортежа демукс→mp3→загрузка (см. archive/docs/features/async-process-queue.md):
                             // threadId=1 (THREAD_LANE_HEALTH_REPORT) - тот же лейн, в котором HealthReport.actions()
                             // по умолчанию ставит все дальнейшие шаги каскада (FF_MP3_*/UPLOAD_*), иначе кортеж
-                            // расползётся по разным лейнам.
+                            // расползётся по разным лейнам. specs/282-import-folder-mp3-uploads-tuple: после DEMUCS2
+                            // явно добавляются 6 шагов кортежа — 2 × FF_MP3_* (prior=-1) и 4 × UPLOAD_* (prior=-2,
+                            // в одном lane), чтобы mp3 голоса/аккомпанимента автоматически попадали в локальный
+                            // и удалённый MinIO без отдельного HealthReport.startRepairAll.
                             KaraokeProcess.createProcess(
                                 song = song,
                                 action = KaraokeProcessTypes.DEMUCS2,
@@ -8205,21 +8208,81 @@ class Song(
                                 threadId = 1,
                             )
 
-//                            KaraokeProcess.createProcess(
-//                                song = song,
-//                                action = KaraokeProcessTypes.FF_MP3_KAR,
-//                                doWait = true,
-//                                prior = -1,
-//                                threadId = 1
-//                            )
-//
-//                            KaraokeProcess.createProcess(
-//                                song = song,
-//                                action = KaraokeProcessTypes.FF_MP3_LYR,
-//                                doWait = true,
-//                                prior = -1,
-//                                threadId = 1
-//                            )
+                            KaraokeProcess.createProcess(
+                                song = song,
+                                action = KaraokeProcessTypes.FF_MP3_ACCOMPANIMENT,
+                                doWait = true,
+                                prior = -1,
+                                threadId = 1,
+                            )
+
+                            KaraokeProcess.createProcess(
+                                song = song,
+                                action = KaraokeProcessTypes.FF_MP3_VOCAL,
+                                doWait = true,
+                                prior = -1,
+                                threadId = 1,
+                            )
+
+                            KaraokeProcess.createProcess(
+                                song = song,
+                                action = KaraokeProcessTypes.UPLOAD_TO_LOCAL_STORE,
+                                doWait = true,
+                                prior = -2,
+                                threadId = 1,
+                                context =
+                                    mapOf(
+                                        "pathToFile" to song.accompanimentNameMp3,
+                                        "karaokeFileType" to "MP3_ACCOMPANIMENT",
+                                        "storageFileName" to "${song.storageFileName}.accompaniment.mp3",
+                                        "bucketName" to song.storageBucketName,
+                                    ),
+                            )
+
+                            KaraokeProcess.createProcess(
+                                song = song,
+                                action = KaraokeProcessTypes.UPLOAD_TO_LOCAL_STORE,
+                                doWait = true,
+                                prior = -2,
+                                threadId = 1,
+                                context =
+                                    mapOf(
+                                        "pathToFile" to song.vocalsNameMp3,
+                                        "karaokeFileType" to "MP3_VOCAL",
+                                        "storageFileName" to "${song.storageFileName}.vocals.mp3",
+                                        "bucketName" to song.storageBucketName,
+                                    ),
+                            )
+
+                            KaraokeProcess.createProcess(
+                                song = song,
+                                action = KaraokeProcessTypes.UPLOAD_TO_REMOTE_STORE,
+                                doWait = true,
+                                prior = -2,
+                                threadId = 1,
+                                context =
+                                    mapOf(
+                                        "pathToFile" to song.accompanimentNameMp3,
+                                        "karaokeFileType" to "MP3_ACCOMPANIMENT",
+                                        "storageFileName" to "${song.storageFileName}.accompaniment.mp3",
+                                        "bucketName" to song.storageBucketName,
+                                    ),
+                            )
+
+                            KaraokeProcess.createProcess(
+                                song = song,
+                                action = KaraokeProcessTypes.UPLOAD_TO_REMOTE_STORE,
+                                doWait = true,
+                                prior = -2,
+                                threadId = 1,
+                                context =
+                                    mapOf(
+                                        "pathToFile" to song.vocalsNameMp3,
+                                        "karaokeFileType" to "MP3_VOCAL",
+                                        "storageFileName" to "${song.storageFileName}.vocals.mp3",
+                                        "bucketName" to song.storageBucketName,
+                                    ),
+                            )
                         }
                     }
                 }

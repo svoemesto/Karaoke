@@ -31,9 +31,11 @@ related:
   3. Загрузка MP3 в локальное хранилище — `UPLOAD_TO_LOCAL_STORE` × 2 (acc + vocals).
   4. Загрузка MP3 в удалённое хранилище — `UPLOAD_TO_REMOTE_STORE` × 2 (acc + vocals).
 - Все 7 шагов кортежа — в **одном lane** (`THREAD_LANE_HEALTH_REPORT` = 1). Создание
-  MP3 (шаг 2) выполняется с `prior = -1` (раньше), загрузка (шаги 3-4) — с
-  `prior = -2` (позже), что обеспечивает порядок «сначала всё готовим, потом
-  всё загружаем». Расширение кортежа (шаги 2-4) — спека
+  MP3 (шаг 2) выполняется с `prior = -1`, загрузка (шаги 3-4) — с `prior = 0`
+  (см. Pass 285: в `KaraokeProcessWorker` сортировка `ORDER BY process_priority ASC` —
+  меньше `priority` = раньше; поэтому `UPLOAD_*` получают `prior = 0 > -1` для
+  запуска **после** создания mp3). Порядок «сначала всё готовим, потом всё
+  загружаем». Расширение кортежа (шаги 2-4) — спека
   [282-import-folder-mp3-uploads-tuple](../../specs/282-import-folder-mp3-uploads-tuple/spec.md).
 
 ## User Stories (краткий список)

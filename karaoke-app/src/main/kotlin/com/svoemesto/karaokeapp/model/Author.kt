@@ -328,6 +328,83 @@ class Author(
         }
 
         /**
+         * Загружает плитки авторов с предрассчитанными счётчиками песен из
+         * `tbl_authors.ready_songs_count` / `tbl_authors.total_songs_count`
+         * (заполняются триггером `trg_tbl_songs_update_author_counts`, см.
+         * миграцию `deploy/karaoke-db/44_author_song_counts.sql`). Один
+         * SQL-запрос — заменяет связку `Song.loadAuthorSongCounts` +
+         * `Song.loadListAuthors` + `Author.loadIdsByNames` в
+         * `PublicApiController.authorsTiles()` (3 запроса → 1).
+         *
+         * Авторы с `tbl_authors.skip = true` всегда исключаются (UI-фильтр,
+         * зеркалит текущее поведение `Song.loadListAuthors(withSkiped = false)`).
+         * Skip-авторы НЕ возвращаются, даже если у них есть песни.
+         *
+         * Дополнительный фильтр по счётчикам зависит от `onlyPublished`:
+         * - `true` (анонимы/обычные) — `ready_songs_count > 0` (плашка без
+         *   готовых песен скрывается, как в `loadAuthorSongCounts`).
+         * - `false` (редактор) — `total_songs_count > 0` (полное число, см.
+         *   спеку 017 `editor-status-bypass`).
+         *
+         * @param onlyPublished `true` для анонимов/обычных (показываем только
+         *   готовые), `false` для редактора (полное количество).
+         * @param isSpecialOrder `null` = все авторы, `true` = только спецзаказные,
+         *   `false` = только не-спецзаказные. Соответствует логике
+         *   `Song.loadListAuthors` и `Song.loadAuthorSongCounts`.
+         * @param database KaraokeConnection.
+         * @return список [AuthorTileRow], отсортированный по `author ASC`.
+         *   Пустой список — допустимый ответ (нет подходящих в БД).
+         *
+         * @see specs/286-author-song-counts-cache FR-006
+         * @see docs/features/author-song-counts-cache.md
+         */
+        fun loadAuthorTilesWithCounts(
+            onlyPublished: Boolean,
+            isSpecialOrder: Boolean?,
+            database: KaraokeConnection,
+        ): List<AuthorTileRow> {
+            val connection = database.getConnection()
+                ?: run {
+                    println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
+                    return emptyList()
+                }
+            val result = mutableListOf<AuthorTileRow>()
+            val sql = buildString {
+                append("SELECT id, author, ready_songs_count, total_songs_count, is_special_order ")
+                append("FROM $TABLE_NAME ")
+                append("WHERE skip = false ")
+                when (isSpecialOrder) {
+                    true -> append("AND is_special_order = true ")
+                    false -> append("AND is_special_order = false ")
+                    null -> { /* all */ }
+                }
+                append("AND ")
+                append(if (onlyPublished) "ready_songs_count > 0 " else "total_songs_count > 0 ")
+                append("ORDER BY author")
+            }
+            try {
+                connection.prepareStatement(sql).use { ps ->
+                    ps.executeQuery().use { rs ->
+                        while (rs.next()) {
+                            result.add(
+                                AuthorTileRow(
+                                    id = rs.getLong("id"),
+                                    author = rs.getString("author") ?: continue,
+                                    readySongsCount = rs.getLong("ready_songs_count"),
+                                    totalSongsCount = rs.getLong("total_songs_count"),
+                                    isSpecialOrder = rs.getBoolean("is_special_order"),
+                                ),
+                            )
+                        }
+                    }
+                }
+            } catch (e: SQLException) {
+                e.printStackTrace()
+            }
+            return result
+        }
+
+        /**
          * Ищет авторов, у которых term совпадает с реальным именем ЛИБО с одним из алиасов
          * (солист/участник группы). Лёгкий raw-SELECT только по tbl_authors — безопасно
          * вызывать и из karaoke-web (не создаёт полноценных сущностей Author, не трогает storage).
@@ -410,4 +487,32 @@ class Author(
 data class AuthorAliasMatch(
     val author: String,
     val matchedAliases: List<String>,
+)
+
+/**
+ * Строка для плитки автора в /zakroma: id + счётчики готовых/общих песен +
+ * флаг спецзаказа. Возвращается из [Author.loadAuthorTilesWithCounts] для
+ * прямого формирования [AuthorTilePublicDto] без дополнительных lookup-вызовов
+ * (раньше требовались Song.loadAuthorSongCounts + Song.loadListAuthors +
+ * Author.loadIdsByNames).
+ *
+ * Счётчики `readySongsCount` / `totalSongsCount` поддерживаются актуальными
+ * DB-триггером `trg_tbl_songs_update_author_counts` (см. миграцию
+ * `deploy/karaoke-db/44_author_song_counts.sql`).
+ *
+ * @property id первичный ключ в `tbl_authors` — используется для URL `/zakroma/:id(\d+)`.
+ * @property author имя автора.
+ * @property readySongsCount количество песен автора с `id_status >= 6`.
+ * @property totalSongsCount общее количество песен автора в `tbl_songs`.
+ * @property isSpecialOrder флаг "по спецзаказу" (1-2 песни, не вся дискография).
+ *
+ * @see specs/286-author-song-counts-cache FR-006
+ * @see docs/features/author-song-counts-cache.md
+ */
+data class AuthorTileRow(
+    val id: Long,
+    val author: String,
+    val readySongsCount: Long,
+    val totalSongsCount: Long,
+    val isSpecialOrder: Boolean,
 )

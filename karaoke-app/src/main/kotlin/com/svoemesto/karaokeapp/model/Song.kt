@@ -8230,12 +8230,13 @@ class Song(
                                 doWait = true,
                                 prior = -2,
                                 threadId = 1,
-                                context = mapOf(
-                                    "pathToFile" to song.accompanimentNameMp3,
-                                    "karaokeFileType" to "MP3_ACCOMPANIMENT",
-                                    "storageFileName" to "${song.storageFileName}.accompaniment.mp3",
-                                    "bucketName" to song.storageBucketName,
-                                ),
+                                context =
+                                    mapOf(
+                                        "pathToFile" to song.accompanimentNameMp3,
+                                        "karaokeFileType" to "MP3_ACCOMPANIMENT",
+                                        "storageFileName" to "${song.storageFileName}.accompaniment.mp3",
+                                        "bucketName" to song.storageBucketName,
+                                    ),
                             )
 
                             KaraokeProcess.createProcess(
@@ -8244,12 +8245,13 @@ class Song(
                                 doWait = true,
                                 prior = -2,
                                 threadId = 1,
-                                context = mapOf(
-                                    "pathToFile" to song.vocalsNameMp3,
-                                    "karaokeFileType" to "MP3_VOCAL",
-                                    "storageFileName" to "${song.storageFileName}.vocals.mp3",
-                                    "bucketName" to song.storageBucketName,
-                                ),
+                                context =
+                                    mapOf(
+                                        "pathToFile" to song.vocalsNameMp3,
+                                        "karaokeFileType" to "MP3_VOCAL",
+                                        "storageFileName" to "${song.storageFileName}.vocals.mp3",
+                                        "bucketName" to song.storageBucketName,
+                                    ),
                             )
 
                             KaraokeProcess.createProcess(
@@ -8258,12 +8260,13 @@ class Song(
                                 doWait = true,
                                 prior = -2,
                                 threadId = 1,
-                                context = mapOf(
-                                    "pathToFile" to song.accompanimentNameMp3,
-                                    "karaokeFileType" to "MP3_ACCOMPANIMENT",
-                                    "storageFileName" to "${song.storageFileName}.accompaniment.mp3",
-                                    "bucketName" to song.storageBucketName,
-                                ),
+                                context =
+                                    mapOf(
+                                        "pathToFile" to song.accompanimentNameMp3,
+                                        "karaokeFileType" to "MP3_ACCOMPANIMENT",
+                                        "storageFileName" to "${song.storageFileName}.accompaniment.mp3",
+                                        "bucketName" to song.storageBucketName,
+                                    ),
                             )
 
                             KaraokeProcess.createProcess(
@@ -8272,12 +8275,13 @@ class Song(
                                 doWait = true,
                                 prior = -2,
                                 threadId = 1,
-                                context = mapOf(
-                                    "pathToFile" to song.vocalsNameMp3,
-                                    "karaokeFileType" to "MP3_VOCAL",
-                                    "storageFileName" to "${song.storageFileName}.vocals.mp3",
-                                    "bucketName" to song.storageBucketName,
-                                ),
+                                context =
+                                    mapOf(
+                                        "pathToFile" to song.vocalsNameMp3,
+                                        "karaokeFileType" to "MP3_VOCAL",
+                                        "storageFileName" to "${song.storageFileName}.vocals.mp3",
+                                        "bucketName" to song.storageBucketName,
+                                    ),
                             )
                         }
                     }

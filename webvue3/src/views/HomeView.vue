@@ -57,6 +57,12 @@
             placeholder="Автор"
           />
           <!-- <button class="button-action" @click="markDublicates" :disabled="!author">Найти и обработать дубликаты песен автора</button> -->
+          <button class="button-action" :disabled="!author" @click="findParentForAuthor">
+            Поиск родителя
+          </button>
+          <button class="button-action" :disabled="!author" @click="findAudioParentForAuthor">
+            Найти аудио-родителя
+          </button>
           <button class="button-action" :disabled="!author" @click="autoAssignOriginalAll">
             Автопривязать оригинал по аудио (статус 1 → 2)
           </button>
@@ -489,6 +495,83 @@ export default {
         }
         this.isCustomConfirmVisible = true
       })
+    },
+    // specs/283-admin-find-parent: точечный поиск только текстового родителя (без аудио-фазы)
+    // для всех песен выбранного автора с root_id=0. По умолчанию (crossAuthor=false) подбор
+    // родителя идёт только среди песен того же автора; при crossAuthor=true — среди всех.
+    findParentForAuthor() {
+      this.customConfirmParams = {
+        header: 'Подтвердите действие',
+        body:
+          `Запустить поиск родителя для всех песен автора «<strong>${this.author}</strong>» с root_id=0?<br>` +
+          `Для каждой такой песни будет выполнен поиск родителя по точному совпадению нормализованного названия.<br>` +
+          `Если родитель найден и у песни ещё нет проверенного текста — root_id будет проставлен.<br>` +
+          `<strong>Операция тяжёлая и идёт в фоне — итог придёт уведомлением.</strong>`,
+        fields: [
+          {
+            fldName: 'crossAuthor',
+            fldLabel: 'Искать среди песен других авторов:',
+            fldValue: false,
+            fldIsBoolean: true,
+            fldLabelStyle: { width: '320px', textAlign: 'right', paddingRight: '5px' },
+            fldValueStyle: { flex: '1' },
+          },
+        ],
+        timeout: 15,
+        callback: this.doFindParentForAuthor,
+      }
+      this.isCustomConfirmVisible = true
+    },
+    doFindParentForAuthor(result) {
+      const crossAuthor = result.crossAuthor === 'true' || result.crossAuthor === true
+      this.$store
+        .dispatch('findParentForAuthorPromise', { author: this.author, crossAuthor: crossAuthor })
+        .then((response) => {
+          this.customConfirmParams = {
+            isAlert: true,
+            alertType: response === 'ALREADY_RUNNING' ? 'warning' : 'info',
+            header: 'Поиск родителя',
+            body:
+              response === 'ALREADY_RUNNING'
+                ? `Уже запущено — дождитесь завершения текущего прогона.`
+                : `Операция запущена в фоне.<br>Итог придёт уведомлением по завершении.`,
+            timeout: 10,
+          }
+          this.isCustomConfirmVisible = true
+        })
+    },
+    // specs/283-admin-find-parent: фоновый поиск аудио-родителя (только в семье, по root_id
+    // транзитивно) для всех песен выбранного автора с root_id <> 0 И у которых ещё НЕ найден
+    // audio_parent_id (=0). Не меняет текст/маркеры/статус — только пишет audio_parent_id.
+    findAudioParentForAuthor() {
+      this.customConfirmParams = {
+        header: 'Подтвердите действие',
+        body:
+          `Запустить поиск аудио-родителя среди всех претендентов в семье для песен автора «<strong>${this.author}</strong>» с root_id ≠ 0, у которых ещё не найден audio_parent_id?<br>` +
+          `Для каждой такой песни будет выполнена акустическая сверка (WaveformCompare) с другими песнями в её семье — и при совпадении ≥ 95% будет записан audio_parent_id.<br>` +
+          `Текст/маркеры/статус песни НЕ изменяются.<br>` +
+          `<strong>Операция очень тяжёлая (ffmpeg-декод на каждого кандидата) и идёт в фоне — итог придёт уведомлением.</strong>`,
+        timeout: 15,
+        callback: this.doFindAudioParentForAuthor,
+      }
+      this.isCustomConfirmVisible = true
+    },
+    doFindAudioParentForAuthor() {
+      this.$store
+        .dispatch('findAudioParentForAuthorPromise', { author: this.author })
+        .then((response) => {
+          this.customConfirmParams = {
+            isAlert: true,
+            alertType: response === 'ALREADY_RUNNING' ? 'warning' : 'info',
+            header: 'Поиск аудио-родителя',
+            body:
+              response === 'ALREADY_RUNNING'
+                ? `Уже запущено — дождитесь завершения текущего прогона.`
+                : `Операция запущена в фоне.<br>Итог придёт уведомлением по завершении.`,
+            timeout: 10,
+          }
+          this.isCustomConfirmVisible = true
+        })
     },
     recalcPlayerReadiness() {
       const scope = this.author

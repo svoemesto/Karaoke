@@ -64,6 +64,46 @@
             class="se-search-name"
             @keyup.enter="doSearch"
           />
+          <div class="se-search-root-id-wrap">
+            <input
+              v-model="rootIdQuery"
+              type="text"
+              inputmode="numeric"
+              pattern="[0-9]*"
+              placeholder="root ID…"
+              class="se-search-root-id"
+              @keyup.enter="doSearch"
+            />
+            <button
+              type="button"
+              class="se-btn-clear"
+              :disabled="!rootIdQuery"
+              title="Очистить"
+              @click="rootIdQuery = ''"
+            >
+              ✕
+            </button>
+          </div>
+          <div class="se-search-audio-root-id-wrap">
+            <input
+              v-model="audioRootIdQuery"
+              type="text"
+              inputmode="numeric"
+              pattern="[0-9]*"
+              placeholder="A-root ID…"
+              class="se-search-audio-root-id"
+              @keyup.enter="doSearch"
+            />
+            <button
+              type="button"
+              class="se-btn-clear"
+              :disabled="!audioRootIdQuery"
+              title="Очистить"
+              @click="audioRootIdQuery = ''"
+            >
+              ✕
+            </button>
+          </div>
           <button type="button" class="se-btn" @click="doSearch">Найти</button>
         </div>
         <label class="se-checkbox">
@@ -152,6 +192,8 @@ export default {
       searchQuery: '',
       authorQuery: '',
       albumQuery: '',
+      rootIdQuery: '',
+      audioRootIdQuery: '',
       dictAuthors: [],
       results: [],
       searching: false,
@@ -186,6 +228,8 @@ export default {
           query: this.searchQuery.trim(),
           author: this.authorQuery.trim(),
           album: this.albumQuery.trim(),
+          rootId: this.normalizeNumericFilter(this.rootIdQuery),
+          audioRootId: this.normalizeNumericFilter(this.audioRootIdQuery),
           onlyStatus1: this.onlyStatus1,
         })
       } catch (e) {
@@ -193,6 +237,14 @@ export default {
       } finally {
         this.searching = false
       }
+    },
+    // Числовой фильтр по root_id / audio_parent_id: пустое значение или нечисловой ввод
+    // (включая пробелы) → '' (action searchCandidateSongs игнорирует пустые параметры и не
+    // добавляет их в HTTP-параметры). Иначе — только цифры, как ожидает бэкенд.
+    normalizeNumericFilter(value) {
+      const trimmed = (value || '').trim()
+      if (trimmed === '' || !/^\d+$/.test(trimmed)) return ''
+      return trimmed
     },
     isSelected(id) {
       return this.selectedSongs.some((s) => s.id === id)
@@ -363,15 +415,58 @@ export default {
 .se-search-row {
   display: flex;
   gap: 0.4rem;
+  flex-wrap: wrap;
 }
 .se-search-author {
-  flex: 0 0 28%;
+  flex: 0 0 22%;
+  min-width: 130px;
 }
 .se-search-album {
-  flex: 0 0 28%;
+  flex: 0 0 22%;
+  min-width: 130px;
 }
 .se-search-name {
-  flex: 1;
+  flex: 1 1 160px;
+  min-width: 140px;
+}
+.se-search-root-id-wrap {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: stretch;
+  gap: 0.2rem;
+}
+.se-search-audio-root-id-wrap {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: stretch;
+  gap: 0.2rem;
+}
+.se-search-root-id,
+.se-search-audio-root-id {
+  width: 90px;
+  padding: 0.45rem 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+.se-btn-clear {
+  border: 1px solid #ccc;
+  background: #fff;
+  color: #888;
+  border-radius: 8px;
+  padding: 0 0.4rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  line-height: 1;
+  width: 22px;
+}
+.se-btn-clear:hover:not(:disabled) {
+  color: #c0392b;
+  border-color: #c0392b;
+}
+.se-btn-clear:disabled {
+  opacity: 0.4;
+  cursor: default;
 }
 .se-checkbox {
   display: flex;

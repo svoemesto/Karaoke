@@ -4525,15 +4525,38 @@ fun searchSongsByNormalizedName(
     return ids
 }
 
+/**
+ * Применяет данные «родителя» ([original], найденного через [findDuplicateOriginal]) к новой песне
+ * ([newSong]): копирует [Song.rootId], [Song.sourceText], [Song.resultText], [Song.sourceMarkers],
+ * [Song.formattedTextSong], [Song.formattedTextTabs], [Song.formattedTextChords] и выставляет
+ * `id_status = 1` (TEXT_CREATE). Сохранение — через [Song.saveToDb].
+ *
+ * **Защита от race condition (спека 278)**: между [Song.createFromPath] и этим `saveToDb()` может
+ * пройти время (поиск дубликата через сравнение имён), за которое параллельный процесс
+ * (`KEY_BPM_FROM_FILE`) успевает обновить `song_tone`/`song_bpm` через свой экземпляр
+ * `Song.saveToDb()`. Перезагружаем объект из БД в [songToSave], чтобы `getDiff()` НЕ включил
+ * эти поля в UPDATE (иначе — перезатирание пустыми значениями из stale in-memory объекта).
+ *
+ * **Защита от расхождения память↔БД (спека 279)**: после `songToSave.saveToDb()` в БД записываются
+ * новые значения (включая `root_id = original.id`), но `newSong` в памяти остался бы со старым
+ * `rootId = 0`. Следующий шаг `doCreateFromFolder` ([findAudioParentByWaveform]) вызывает
+ * `newSong.saveToDb()` (см. `Utils.kt:4879/4898/4919/4933`), внутри которого `savedSong = loadFromDbById(id)`
+ * возвращает объект с актуальным `root_id = original.id` из БД. `getDiff(this, savedSong)` видит
+ * `this.rootId = 0` (в памяти) ≠ `savedSong.rootId = original.id` (из БД) → diff включает
+ * `root_id = 0` → UPDATE перезатирает только что записанный `root_id` обратно в 0. Регресс после
+ * спеки 278: до неё присваивание шло напрямую в `newSong` (newSong.rootId = original.id), и
+ * память с БД были согласованы сразу. Без явной синхронизации ниже `findAudioParentByWaveform`
+ * перезаписывал `root_id` обратно в 0, и `findYandexSongLyrics` НЕ запускался (т.к. `textResolved`
+ * уже `true` от этой функции).
+ *
+ * @see specs/279-fix-parent-search-folder-add/spec.md
+ * @see specs/278-fix-key-loss-on-lyrics-search
+ */
 fun applyDuplicateOriginal(
     newSong: Song,
     original: Song,
 ) {
-    // specs/278-fix-key-loss-on-lyrics-search: между Song.createFromPath() (запускает
-    // KEY_BPM_FROM_FILE сразу после создания) и этим saveToDb() может пройти достаточно времени
-    // (поиск дубликата через сравнение имён), чтобы параллельный процесс успел обновить
-    // song_tone/song_bpm/url'ы стемов в БД через свой экземпляр Song.saveToDb(). Перезагружаем
-    // объект из БД, чтобы getDiff() не включил эти поля в UPDATE (иначе — перезатирание).
+    // specs/278-fix-key-loss-on-lyrics-search: reload-from-db-before-save (см. KDoc).
     val songToSave =
         Song.loadFromDbById(
             id = newSong.id,
@@ -4550,6 +4573,20 @@ fun applyDuplicateOriginal(
     songToSave.formattedTextChords = original.formattedTextChords
     songToSave.fields[SongField.ID_STATUS] = "1"
     songToSave.saveToDb()
+
+    // specs/279-fix-parent-search-folder-add: синхронизировать newSong в памяти с только что
+    // записанным состоянием. Без этого следующий шаг doCreateFromFolder (findAudioParentByWaveform
+    // → song.saveToDb в Utils.kt:4879/4898/4919/4933) увидит this.rootId=0 (в памяти) ≠
+    // savedSong.rootId=original.id (из БД) → diff включит root_id=0 → UPDATE перезатрёт только что
+    // записанный root_id обратно в 0.
+    newSong.rootId = original.id
+    newSong.sourceText = original.sourceText
+    newSong.resultText = original.resultText
+    newSong.sourceMarkers = original.sourceMarkers
+    newSong.formattedTextSong = original.formattedTextSong
+    newSong.formattedTextTabs = original.formattedTextTabs
+    newSong.formattedTextChords = original.formattedTextChords
+    newSong.fields[SongField.ID_STATUS] = "1"
 }
 
 /**
@@ -4592,6 +4629,19 @@ fun applyAudioParentMarkers(
     songToSave.formattedTextChords = audioParent.formattedTextChords
     songToSave.fields[SongField.ID_STATUS] = "5"
     songToSave.saveToDb()
+
+    // specs/279-fix-parent-search-folder-add: синхронизировать song в памяти с только что записанным
+    // состоянием. Тот же паттерн, что и в applyDuplicateOriginal — без явной синхронизации любой
+    // последующий song.saveToDb() (например, если другой код-путь сразу после этой функции сохраняет
+    // песню через тот же объект) увидит расхождение между памятью и БД и перезапишет только что
+    // записанные поля (audio_* через diff).
+    song.sourceText = songToSave.sourceText
+    song.resultText = songToSave.resultText
+    song.sourceMarkers = songToSave.sourceMarkers
+    song.formattedTextSong = songToSave.formattedTextSong
+    song.formattedTextTabs = songToSave.formattedTextTabs
+    song.formattedTextChords = songToSave.formattedTextChords
+    song.fields[SongField.ID_STATUS] = songToSave.fields[SongField.ID_STATUS] ?: "5"
 }
 
 fun applyFamilySongSelection(

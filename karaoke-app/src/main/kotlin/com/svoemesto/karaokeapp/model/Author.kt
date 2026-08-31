@@ -363,25 +363,27 @@ class Author(
             isSpecialOrder: Boolean?,
             database: KaraokeConnection,
         ): List<AuthorTileRow> {
-            val connection = database.getConnection()
-                ?: run {
-                    println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
-                    return emptyList()
-                }
+            val connection =
+                database.getConnection()
+                    ?: run {
+                        println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
+                        return emptyList()
+                    }
             val result = mutableListOf<AuthorTileRow>()
-            val sql = buildString {
-                append("SELECT id, author, ready_songs_count, total_songs_count, is_special_order ")
-                append("FROM $TABLE_NAME ")
-                append("WHERE skip = false ")
-                when (isSpecialOrder) {
-                    true -> append("AND is_special_order = true ")
-                    false -> append("AND is_special_order = false ")
-                    null -> { /* all */ }
+            val sql =
+                buildString {
+                    append("SELECT id, author, ready_songs_count, total_songs_count, is_special_order ")
+                    append("FROM $TABLE_NAME ")
+                    append("WHERE skip = false ")
+                    when (isSpecialOrder) {
+                        true -> append("AND is_special_order = true ")
+                        false -> append("AND is_special_order = false ")
+                        null -> { /* all */ }
+                    }
+                    append("AND ")
+                    append(if (onlyPublished) "ready_songs_count > 0 " else "total_songs_count > 0 ")
+                    append("ORDER BY author")
                 }
-                append("AND ")
-                append(if (onlyPublished) "ready_songs_count > 0 " else "total_songs_count > 0 ")
-                append("ORDER BY author")
-            }
             try {
                 connection.prepareStatement(sql).use { ps ->
                     ps.executeQuery().use { rs ->

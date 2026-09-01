@@ -5363,17 +5363,36 @@ class Song(
                 }
             }
 
-            val diff = getDiff(this, savedSong)
+            val diff = getDiff(this, savedSong).toMutableList()
 //            println("diff = $diff")
-            if (diff.isEmpty()) return
 
             // specs/277-song-name-censored: baseline-автозаполнение song_name_censored, если поле
             // пустое (после миграции DEFAULT '' у существующих строк и для новых песен без явной
             // ручной правки). НЕ перезатираем ручное значение из БД/SongEdit — сохраняем его
             // (FR-003 спеки, политика "доверие редактору").
+            //
+            // BUGFIX (2026-09-01): baseline-логика заполняет локальный `fields` Map, но UPDATE-логика
+            // ниже формирует `setStr` ИЗ `diff` (который вычислен ВЫШЕ baseline-логики и не содержит
+            // `song_name_censored`, т.к. оно не изменилось в savedSong). Поэтому UPDATE не пишет
+            // `song_name_censored` в БД, и новости типа «{songNameCensored}» имеют пустое название.
+            // Исправление: добавляем заполненное значение в `diff` ПОСЛЕ baseline-логики, чтобы
+            // UPDATE ниже включил его в SET.
             if (fields[SongField.NAME_CENSORED].isNullOrEmpty() && songName.isNotEmpty()) {
                 fields[SongField.NAME_CENSORED] = songName.censored(database)
+                // Добавляем RecordDiff вручную, чтобы попало в setStr и UPDATE SET ниже.
+                diff.add(
+                    RecordDiff(
+                        "song_name_censored",
+                        this.songNameCensored,
+                        savedSong?.songNameCensored ?: "",
+                    ),
+                )
             }
+
+            // specs/288-prod-diagnostics-logging: фикс — см. выше. setStr и bindValues формируются
+            // ПОСЛЕ baseline-логики, чтобы включить все изменённые поля (включая явно добавленный
+            // `song_name_censored`).
+            if (diff.isEmpty()) return
 
             // Порог показа песни в публичном плеере (см. PublicPlayerController.stemsReady: idStatus>=6
             // + флаги готовности, specs/022-song-status-lifecycle). Если статус меняют напрямую (правка

@@ -24,6 +24,11 @@
 
 Локальные правки LiveDocs → запустить все три перед commit.
 
+## Где смотреть логи прода
+
+- **`docs/ops/log-correlation.md`** — карта логов прода, команды `docker logs`/`ssh`, grep-маркеры (`infra.prod.ping`/`infra.prod.db`/`LOG:  duration:`), сценарии диагностики. Создан в [specs/288-prod-diagnostics-logging](../specs/288-prod-diagnostics-logging/spec.md) (FR-019).
+- Контракт WARN/INFO для `infra.prod.*`: [contracts/log-format.md](../specs/288-prod-diagnostics-logging/contracts/log-format.md).
+
 ## Иерархия документации (краткая)
 
 `livedocs/` → `.specify/memory/constitution.md` → `AGENTS.md` → `CONTRIBUTING.md` → `DEVELOPMENT.md` → `specs/<NNN>-*/spec.md` → `archive/docs/features/*.md`. **При расхождении** — приоритет у файла с меньшим номером. Полная таблица — в [`livedocs/architecture-notes.md`](livedocs/architecture-notes.md).
@@ -74,28 +79,19 @@ gh pr merge --merge                      # БЕЗ --delete-branch
 
 ### Обязательная проверка после ЛЮБОГО изменения кода (NON-NEGOTIABLE)
 
-> **Контекст.** Pass 239: агент внёс правки в `Zakroma.kt`, но не пересобрал — Kotlin mismatch
-> (`Int` vs `Long`) пойман только на стороне пользователя. **Pass 245 (2026-08-30)**: агент добавил
-> импорт `formatText` из `karaoke-public/src/composables/useKaraokeEditor` в `webvue3/src/components/
-> SongEditor/ReviewModal.vue`; локальный `npm run build` прошёл, но `bash do.sh build_webvue3` упал —
-> `Rollup failed to resolve "../../../../karaoke-public/..."`. Причина: multi-stage Dockerfile
-> (`deploy/karaoke-webvue3/Dockerfile`) делает `COPY ./webvue3/ .` — в `/app/` попадает ТОЛЬКО
-> webvue3, кросс-импорты выходят за пределы контекста. **Vite-build ≠ Docker-образ.**
+> **Контекст.** Pass 239 + 245: правки без локальной пересборки ломали прод (`Int` vs `Long` mismatch, Rollup кросс-импорты). **Vite-build ≠ Docker-образ** — multi-stage Dockerfile копирует только свой каталог.
 
 **После ЛЮБОГО изменения в коде ОБЯЗАТЕЛЬНО** (в этом порядке):
 
 1. **Backend compile**: `./gradlew :karaoke-app:compileKotlin :karaoke-web:compileKotlin --parallel`
 2. **Линтеры**: `./gradlew :karaoke-web:ktlintCheck` + `cd webvue3 && npm run lint` + `cd karaoke-public && npm run lint` (`tools/check-eslint-baseline.sh <pkg>`) — никаких НОВЫХ нарушений (baseline OK).
-3. **Backend bootJar**: `./gradlew :karaoke-web:bootJar --parallel` (на `nsa-i9`/`nsa` — также `:karaoke-app:bootJar` согласно машинно-специфичному исключению выше; на остальных машинах только `karaoke-web`).
-4. **Frontend Vite (оба)**: `cd webvue3 && npm run build && npm run format:check`, затем `cd karaoke-public && npm run build && npm run format:check` (Pass 244: prettier — всегда, не только в pre-commit).
-5. **Docker-образы (оба, NON-NEGOTIABLE)**: `cd deploy && bash do.sh build_webvue3`; если менялся `karaoke-public` (или есть кросс-импорты) — `bash do.sh build_public`. Vite-build на хосте ≠ multi-stage Docker: `COPY ./webvue3/ .` / `COPY ./karaoke-public/ .` копируют ТОЛЬКО свой каталог; кросс-импорты `../../karaoke-public/...` или `../../webvue3/...` падают внутри контейнера.
+3. **Backend bootJar**: `./gradlew :karaoke-web:bootJar --parallel` (на `nsa-i9`/`nsa` — также `:karaoke-app:bootJar`; на остальных машинах только `karaoke-web`).
+4. **Frontend Vite (оба)**: `cd webvue3 && npm run build && npm run format:check`, затем `cd karaoke-public && npm run build && npm run format:check`.
+5. **Docker-образы (оба, NON-NEGOTIABLE)**: `cd deploy && bash do.sh build_webvue3`; если менялся `karaoke-public` — `bash do.sh build_public`.
 6. **Только после всех 5 шагов OK** — сообщать «готово к деплою».
 
-**НЕ ПРОПУСКАТЬ** шаги даже для «очевидных» правок. Детали — в
-[livedocs/architecture-notes.md](livedocs/architecture-notes.md).
+**НЕ ПРОПУСКАТЬ** шаги даже для «очевидных» правок.
 
 ## Как обновлять этот файл
 
 Правки governance — в ветке `0XX-agents-md-update`, semver bump. **НЕ дублировать** детали.
-Детали проекта (Jackson `is`-prefix, Dockerfile, sync, MP4, StatBySong и т.д.) — в
-[LiveDocs](livedocs/README.md) (не в этом файле).

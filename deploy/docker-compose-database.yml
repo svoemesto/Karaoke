@@ -8,6 +8,12 @@ services:
       POSTGRES_DB: "karaoke"
       PGDATA: "/var/lib/postgresql/data/16"
       WORK_IN_CONTAINER: 1
+      # specs/288-prod-diagnostics-logging: TZ для контейнера karaoke-db. Без этого PostgreSQL
+      # пишет в лог UTC (дефолт Docker), что усложняет корреляцию с логами nginx (MSK) и
+      # Spring Boot (UTC → MSK после FR-010). Применяется при следующем `docker-compose up --force-recreate`;
+      # для уже работающего контейнера — `ALTER SYSTEM SET log_timezone = 'Europe/Moscow'` (FR-007)
+      # работает без рестарта на SQL-уровне.
+      TZ: Europe/Moscow
     container_name: karaoke-db
     ports:
       - "127.0.0.1:${DB_PORT_HOST}:${DB_PORT_INSIDE_CONTAINER}" # порт хоста : порт внутри контейнера

@@ -7817,6 +7817,36 @@ class ApiController(
         return true
     }
 
+    /**
+     * Ручная попытка извлечения текста песни для конкретной записи результата поиска
+     * (FR-020..FR-024, спека specs/287-stop-lyrics-after-first). Используется кнопкой
+     * «Получить текст по ссылке» в модалке «Поиск текста песни в интернете».
+     *
+     * Контракт (см. contracts/api-endpoints.md):
+     * - request: `searchResultId: Long` (required)
+     * - response 200 OK: обновлённый SearchResultDTO (с text/html/lastError)
+     * - response 404 Not Found: если запись не найдена
+     * - идемпотентность: если text уже непустой, HTTP-запрос НЕ делается (FR-022)
+     *
+     * @see specs/287-stop-lyrics-after-first/spec.md
+     * @see specs/287-stop-lyrics-after-first/contracts/api-endpoints.md
+     */
+    @PostMapping("/song/extractlyricsbysearchresultid")
+    @ResponseBody
+    fun extractLyricsBySearchResultId(
+        @RequestParam searchResultId: Long,
+    ): SearchResultDTO? {
+        val updated =
+            com.svoemesto.karaokeapp.extractLyricsBySearchResultId(
+                searchResultId = searchResultId,
+                lyricsFinderService = lyricsFinderService,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
+        return updated?.toDTO()
+    }
+
     @PostMapping("/authymstart")
     @ResponseBody
     fun authYMstart() {

@@ -62,6 +62,7 @@ class SearchResult(
             html = "",
             text = text,
             wrongResult = wrongResult,
+            lastError = null,
         )
 
     companion object {
@@ -94,20 +95,37 @@ class SearchResult(
                 }
             println("Ссылок в документе: ${links.size}")
 
-            var id = 0
-            var skipedLinks = 0
-            var cnt = 0
-            links.forEach { link ->
-
-                val domain = extractDomain(link)
-
-                cnt++
-                println("Обрабатываем ссылку ($cnt из ${links.size}) в домене $domain [ $link ]")
-
+            // specs/287-stop-lyrics-after-first (FR-001, FR-002, FR-003):
+            // ШАГ 1: создаём запись в tbl_search_results для КАЖДОЙ ссылки из searchAsync (с пустым
+            // text/html) — это нужно, чтобы ВСЕ ссылки попали в список модалки «Поиск текста песни
+            // в интернете» (даже те, до которых мы не дойдём из-за остановки после первого успеха).
+            val records = mutableListOf<SearchResult>()
+            for (link in links) {
                 val searchResult = SearchResult()
                 searchResult.searchAsyncId = searchAsync.id
                 searchResult.songId = searchAsync.songId
                 searchResult.url = link
+                val savedSearchResult =
+                    SearchResult.createNewSearchResult(
+                        newSearchResult = searchResult,
+                        database = database,
+                    )
+                if (savedSearchResult != null) {
+                    records.add(searchResult)
+                } else {
+                    println("Не удалось создать SearchResult для $link, пропускаем.")
+                }
+            }
+            println("Создано ${records.size} записей SearchResult для обработки (из ${links.size} ссылок)")
+
+            // ШАГ 2: обходим записи и пытаемся извлечь текст; после первого успеха — прекращаем
+            // обработку остальных (HTTP-запрос НЕ делается, парсер НЕ запускается).
+            var id = 0
+            var skipedLinks = 0
+            for ((idx, searchResult) in records.withIndex()) {
+                val link = searchResult.url
+                val domain = extractDomain(link)
+                println("Обрабатываем ссылку (${idx + 1} из ${records.size}) в домене $domain [ $link ]")
 
                 val classNamePrefixes =
                     when {
@@ -192,9 +210,17 @@ class SearchResult(
                             id++
                             searchResult.text = text
                             println("Обработка ссылки в домене $domain вернула текст длиной ${text.length} символов")
+                            // specs/287-stop-lyrics-after-first: обновить запись с непустым text и html.
+                            searchResult.save()
+                            result.add(searchResult)
+                            // FR-001: первый успех — прекращаем обработку остальных ссылок.
+                            println("Прекращаем обработку остальных ${records.size - result.size} ссылок после первой успешной.")
+                            return result
                         } else {
                             println("Обработка ссылки в домене $domain вернула пустой результат, пропускаем.")
                             skipedLinks++
+                            // Сохраняем html даже если текст пустой — для последующего ручного извлечения.
+                            searchResult.save()
                         }
                     } else {
                         println("Не удалось получить html")
@@ -203,17 +229,9 @@ class SearchResult(
                     println("Пропускаем ссылку в домене $domain")
                     skipedLinks++
                 }
-                val savedSearchResult =
-                    SearchResult.createNewSearchResult(
-                        newSearchResult = searchResult,
-                        database = database,
-                    )
-
-                if (savedSearchResult != null) {
-                    result.add(searchResult)
-                }
+                result.add(searchResult)
             }
-            println("Из ${links.size} ссылок пропущено $skipedLinks")
+            println("Из ${records.size} ссылок пропущено $skipedLinks")
 
             return result
         }

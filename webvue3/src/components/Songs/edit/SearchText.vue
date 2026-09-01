@@ -37,6 +37,16 @@
               <button class="group-button" title="Открыть на сайте" @click="openResultLink">
                 Открыть на сайте
               </button>
+              <!-- specs/287-stop-lyrics-after-first: ручная попытка извлечения текста по выбранной ссылке -->
+              <button
+                v-if="canExtractLyrics || isExtractingLyrics"
+                class="group-button"
+                :title="canExtractLyrics ? 'Получить текст по ссылке' : 'Текст уже получен'"
+                :disabled="!canExtractLyrics || isExtractingLyrics"
+                @click="extractLyricsFromSelectedResult"
+              >
+                {{ isExtractingLyrics ? 'Получаю текст...' : 'Получить текст по ссылке' }}
+              </button>
             </div>
           </div>
 
@@ -129,6 +139,8 @@ export default {
       currentSearchAsync: undefined,
       currentResult: undefined,
       searchIsDone: false,
+      // specs/287-stop-lyrics-after-first: флаг «идёт HTTP-запрос за текстом»
+      isExtractingLyrics: false,
     }
   },
 
@@ -144,6 +156,14 @@ export default {
     },
     searchAsyncQuery() {
       return this.currentSearchAsync ? this.currentSearchAsync.query : ''
+    },
+    // specs/287-stop-lyrics-after-first: можно ли попробовать извлечь текст по выбранной ссылке
+    // (true только для «серой» ссылки с пустым text)
+    canExtractLyrics() {
+      return (
+        Boolean(this.currentResult) &&
+        (this.currentResult.text === '' || this.currentResult.text == null)
+      )
     },
   },
 
@@ -204,6 +224,38 @@ export default {
     },
     selectedResult(selectedResult) {
       this.currentResult = selectedResult
+    },
+    /**
+     * Ручная попытка извлечения текста по выбранной «серой» ссылке
+     * (specs/287-stop-lyrics-after-first). Вызывает backend endpoint
+     * /api/song/extractlyricsbysearchresultid, обновляет запись в searchResultsList
+     * и currentResult, показывает уведомление при ошибке.
+     *
+     * @see specs/287-stop-lyrics-after-first/contracts/ui-modal.md
+     */
+    async extractLyricsFromSelectedResult() {
+      if (!this.currentResult || this.isExtractingLyrics) return
+      if (this.currentResult.text && this.currentResult.text !== '') return
+      this.isExtractingLyrics = true
+      try {
+        const updated = await this.$store.dispatch('extractLyricsBySearchResultId', {
+          searchResultId: this.currentResult.id,
+        })
+        const idx = this.searchResultsList.findIndex((r) => r.id === updated.id)
+        if (idx !== -1) {
+          this.$set(this.searchResultsList, idx, updated)
+        }
+        this.currentResult = updated
+        if (updated.lastError && (updated.text === '' || updated.text == null)) {
+          console.warn('Не удалось получить текст:', updated.lastError)
+          window.alert('Не удалось получить текст: ' + updated.lastError)
+        }
+      } catch (e) {
+        console.error('Ошибка запроса на извлечение:', e)
+        window.alert('Ошибка соединения при извлечении текста: ' + (e && e.message ? e.message : e))
+      } finally {
+        this.isExtractingLyrics = false
+      }
     },
     doSearchTextForSong() {
       this.$store.dispatch('searchTextForSong')

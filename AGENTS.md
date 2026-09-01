@@ -96,11 +96,8 @@ gh pr merge --merge                      # БЕЗ --delete-branch
 5. **Docker-образы (оба, NON-NEGOTIABLE)**: `cd deploy && bash do.sh build_webvue3`; если менялся `karaoke-public` (или есть кросс-импорты) — `bash do.sh build_public`. Vite-build на хосте ≠ multi-stage Docker: `COPY ./webvue3/ .` / `COPY ./karaoke-public/ .` копируют ТОЛЬКО свой каталог; кросс-импорты `../../karaoke-public/...` или `../../webvue3/...` падают внутри контейнера.
 6. **Только после всех 5 шагов OK** — сообщать «готово к деплою».
 
-**НЕ ПРОПУСКАТЬ** шаги даже для «очевидных» правок. Детали — в
-[livedocs/architecture-notes.md](livedocs/architecture-notes.md).
+**НЕ ПРОПУСКАТЬ** шаги даже для «очевидных» правок.
 
 ## Как обновлять этот файл
 
 Правки governance — в ветке `0XX-agents-md-update`, semver bump. **НЕ дублировать** детали.
-Детали проекта (Jackson `is`-prefix, Dockerfile, sync, MP4, StatBySong и т.д.) — в
-[LiveDocs](livedocs/README.md) (не в этом файле).

@@ -16,6 +16,7 @@ class SearchResultDTO(
     val html: String,
     val text: String,
     val wrongResult: Boolean,
+    val lastError: String? = null,
 ) : Serializable,
     Comparable<SearchResultDTO>,
     KaraokeDbTableDto {

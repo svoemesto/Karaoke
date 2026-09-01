@@ -2645,6 +2645,25 @@ export default {
       }
       return promisedXMLHttpRequest(request)
     },
+    /**
+     * Ручная попытка извлечения текста по конкретной записи результата поиска
+     * (specs/287-stop-lyrics-after-first). Используется кнопкой «Получить текст по ссылке»
+     * в модалке «Поиск текста песни в интернете».
+     *
+     * @param {object} ctx - Vuex context
+     * @param {object} payload - { searchResultId: Long } — id записи в tbl_search_results
+     * @returns {Promise<SearchResultDTO>} — обновлённая запись (с text/html/lastError)
+     * @see specs/287-stop-lyrics-after-first/contracts/api-endpoints.md
+     */
+    extractLyricsBySearchResultId(ctx, payload) {
+      let params = { searchResultId: payload && payload.searchResultId }
+      let request = {
+        method: 'POST',
+        url: '/api/song/extractlyricsbysearchresultid',
+        params: params,
+      }
+      return promisedXMLHttpRequest(request)
+    },
     findOriginalForSong(ctx) {
       let params = { id: ctx.state.currentSongId }
       let request = { method: 'POST', url: '/api/song/findoriginal', params: params }

@@ -10,6 +10,8 @@ import com.svoemesto.karaokeapp.model.SearchResponseFormat
 import com.svoemesto.karaokeapp.model.SearchResult
 import com.svoemesto.karaokeapp.model.SongField
 import com.svoemesto.karaokeapp.model.Song
+import com.svoemesto.karaokeapp.services.KaraokeStorageService
+import com.svoemesto.karaokeapp.services.StorageApiClient
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.jsoup.Jsoup
@@ -247,26 +249,42 @@ private fun getLyricsSearchViaSearchTool(
     }
     savedResult ?: throw RuntimeException("Не удалось создать SearchAsync (синхронный) в базе данных. $result")
 
-    val variants = mutableListOf<Pair<String, String>>()
-    // Проходим по каждому URL и получаем текст песни
-    for (url in urls) {
-        val lyrics = lyricsFinderService.extractLyricsFromUrl(url)
-        variants.add(Pair(url, lyrics ?: ""))
-    }
-
+    // specs/287-stop-lyrics-after-first (FR-001, FR-002, FR-003):
+    // ШАГ 1: создаём запись SearchResult для КАЖДОГО URL из urls (с пустым text/html) — это нужно,
+    // чтобы ВСЕ ссылки попали в список модалки (даже те, до которых мы не дойдём из-за остановки).
     val searchedRightResults = mutableListOf<SearchResult>()
-    for ((url, lyrics) in variants) {
+    for (url in urls) {
         val searchResult = SearchResult()
         searchResult.searchAsyncId = savedResult.id
         searchResult.songId = savedResult.songId
         searchResult.url = url
-        searchResult.text = lyrics
         val savedSearchResult =
             SearchResult.createNewSearchResult(
                 newSearchResult = searchResult,
                 database = song.database,
             )
-        savedSearchResult?.let { searchedRightResults.add(it) }
+        if (savedSearchResult != null) {
+            searchedRightResults.add(searchResult)
+        } else {
+            println("Не удалось создать SearchResult для $url, пропускаем.")
+        }
+    }
+    println("Создано ${searchedRightResults.size} записей SearchResult для обработки (из ${urls.size} URL)")
+
+    // ШАГ 2: обходим записи и пытаемся извлечь текст через LLM-парсер; после первого успеха —
+    // прекращаем обработку остальных URL (HTTP-запрос НЕ делается).
+    for (searchResult in searchedRightResults) {
+        val url = searchResult.url
+        val lyrics = lyricsFinderService.extractLyricsFromUrl(url)
+        if (!lyrics.isNullOrBlank()) {
+            println("Успешное извлечение текста по ссылке $url, символов: ${lyrics.length}")
+            searchResult.text = lyrics
+            searchResult.save() // UPDATE
+            // FR-001: первый успех — прекращаем обработку остальных URL.
+            break
+        } else {
+            println("Не удалось извлечь текст по ссылке $url (пустой результат LLM-парсера).")
+        }
     }
 
     val searchedRightResultsNotEmpty = searchedRightResults.filter { it.text != "" }
@@ -436,6 +454,157 @@ fun getYandexSearch(
         throw RuntimeException("HTTP request failed: ${e.message}", e)
     } finally {
         connection.disconnect()
+    }
+}
+
+/**
+ * Возвращает CSS-селекторы классов для извлечения текста песни по домену URL
+ * (Yandex-путь поиска, спека specs/015-search-engine-selection). Используется
+ * ручной попыткой «Получить текст по ссылке» (specs/287-stop-lyrics-after-first)
+ * — дублирует словарь из `SearchResult.getSearchResultsForSearchAsync`, чтобы
+ * избежать рефакторинга чужой зоны ответственности.
+ *
+ * @see specs/287-stop-lyrics-after-first/spec.md (FR-020)
+ * @see specs/015-search-engine-selection/spec.md
+ */
+private fun getClassNamePrefixesForDomain(domain: String): List<String> =
+    when {
+        domain == "genius.com" -> listOf("Lyrics__Container")
+        domain == "tekst-pesni.online" -> listOf("entry-content", "clearfix")
+        domain == "www.shazam.com" -> listOf("AppleMusicLyrics_lyricsBlock")
+        domain == "vk.ru" || domain == "vk.com" -> listOf("vkitFeedShowMoreText")
+        domain == "darktexts.ru" -> listOf("full-text")
+        domain == "www.beesona.pro" -> listOf("copys")
+        domain == "alllyr.ru" -> listOf("inline")
+        domain == "lyricsworld.ru" -> listOf("songLyrics")
+        domain == "www.5lad.net" -> listOf("textofsong")
+        domain == "blatata.com" -> listOf("value")
+        domain == "lyrhub.com" -> listOf("lyric")
+        domain == "ru.ilyrics.net" -> listOf("space-y-4", "text-gray-700", "leading-relaxed")
+        domain == "singme.ru" -> listOf("song-text")
+        domain == "rush-sound.ru" -> listOf("chords")
+        domain in listOf("muzbank.net") -> listOf("song")
+        domain == "rus-songs.com" -> listOf("post-content", "entry-content")
+        domain == "www.ukulele-akkordy.ru" -> listOf("textofsong")
+        domain == "teksty-pesenok.pro" -> listOf("tab-pane", "fade", "active", "in", "text_song")
+        domain == "texta-pesni.ru" -> listOf("mid_cont_left")
+        domain == "tekstmuz.ru" -> listOf("articles")
+        domain == "www.anekdotov-mnogo.ru" -> listOf("tmpLineUnderContent")
+        domain == "stihi.ru" -> listOf("diarytext")
+        domain in listOf("maximum.ru", "rusradio.ru") -> listOf("relative")
+        domain == "www.az-lyrics.ru" -> listOf("article-song-text")
+        domain == "txt-pesen.ru" -> listOf("articleBody")
+        domain == "lyricshare.net" -> listOf("textpesnidiv")
+        domain == "www.pesni.net" -> listOf("song-block-text")
+        domain == "guitarchords.ru" -> listOf("song_container")
+        domain == "mp3folderx.com" -> listOf("text")
+        domain == "akkordbard.ru" -> listOf("song")
+        domain == "alloflyrics.cc" -> listOf("container")
+        domain == "reproduktor.net" -> listOf("content-wrap")
+        domain == "rerura.com" -> listOf("block-content")
+
+        domain.endsWith(".amdm.ru") -> listOf("b-podbor__text")
+
+        else -> emptyList()
+    }
+
+/**
+ * Возвращает CSS-селекторы id-шников для извлечения текста песни по домену URL.
+ * Дублирует словарь из `SearchResult.getSearchResultsForSearchAsync`.
+ *
+ * @see getClassNamePrefixesForDomain
+ */
+private fun getIdNamePrefixesForDomain(domain: String): List<String> =
+    when {
+        domain == "musictxt.ru" -> listOf("layer2")
+        domain == "akkordus.ru" -> listOf("chord_prev")
+        domain == "mysongs.pro" -> listOf("text")
+        domain == "ukula.ru" -> listOf("del_prob")
+
+        else -> emptyList()
+    }
+
+/**
+ * Ручная попытка извлечения текста песни для одной конкретной записи `tbl_search_results`.
+ * Используется кнопкой «Получить текст по ссылке» в модалке «Поиск текста песни в интернете»
+ * (FR-020..FR-024, спека specs/287-stop-lyrics-after-first). Вызывается ТОЛЬКО для одной
+ * записи — никакого перебора остальных URL-ов.
+ *
+ * Алгоритм:
+ * 1. Загрузить `SearchResult` по `searchResultId` через [SearchResult.getSearchResultById].
+ *    Если не найден — вернуть null (caller получит 404).
+ * 2. Если `searchResult.text.isNotBlank()` — вернуть запись как есть (FR-022, идемпотентность:
+ *    повторный HTTP-запрос НЕ делается).
+ * 3. Выбрать парсер по домену URL:
+ *    - если домен есть в словаре CSS-селекторов (Yandex-путь) — `getHtml(link)` + `findElementByText`;
+ *    - иначе (Search-tool-путь) — `lyricsFinderService.extractLyricsFromUrl(url)` через LLM-парсер.
+ * 4. Сохранить результат в БД (`searchResult.text` / `searchResult.html` / `searchResult.wrongResult`).
+ *    `lastError` в DTO (выставляется вызывающим кодом, см. ApiController) отражает ошибку
+ *    HTTP-запроса или парсинга.
+ *
+ * Возвращает обновлённый [SearchResult] или null если запись не найдена.
+ *
+ * @see specs/287-stop-lyrics-after-first/spec.md
+ * @see specs/287-stop-lyrics-after-first/contracts/api-endpoints.md
+ */
+fun extractLyricsBySearchResultId(
+    searchResultId: Long,
+    lyricsFinderService: LyricsFinderService,
+    database: KaraokeConnection,
+    storageService: KaraokeStorageService,
+    storageApiClient: StorageApiClient,
+): SearchResult? {
+    val searchResult =
+        SearchResult.getSearchResultById(
+            id = searchResultId,
+            database = database,
+            storageService = storageService,
+            storageApiClient = storageApiClient,
+        ) ?: return null
+
+    if (searchResult.text.isNotBlank()) {
+        println("extractLyricsBySearchResultId: для записи $searchResultId текст уже есть, возвращаем как есть.")
+        return searchResult
+    }
+
+    val link = searchResult.url
+    val domain = extractDomain(link)
+    val classNamePrefixes = getClassNamePrefixesForDomain(domain)
+    val idNamePrefixes = getIdNamePrefixesForDomain(domain)
+
+    return try {
+        if (classNamePrefixes.isNotEmpty() || idNamePrefixes.isNotEmpty()) {
+            // Yandex-путь: парсинг по CSS-селекторам.
+            val html = getHtml(link)
+            if (html.isNotEmpty()) {
+                searchResult.html = html
+                val text = (findElementByText(html, classNamePrefixes, idNamePrefixes) ?: "").trim()
+                if (text.isNotBlank()) {
+                    println("extractLyricsBySearchResultId: успешное извлечение по $link, символов: ${text.length}")
+                    searchResult.text = text
+                } else {
+                    println("extractLyricsBySearchResultId: парсер вернул пустой результат для $link")
+                }
+            } else {
+                println("extractLyricsBySearchResultId: не удалось получить html по $link")
+            }
+        } else {
+            // Search-tool-путь: LLM-парсер.
+            val lyrics = lyricsFinderService.extractLyricsFromUrl(link)
+            if (!lyrics.isNullOrBlank()) {
+                println("extractLyricsBySearchResultId: успешное LLM-извлечение по $link, символов: ${lyrics.length}")
+                searchResult.text = lyrics
+            } else {
+                println("extractLyricsBySearchResultId: LLM-парсер вернул пустой результат для $link")
+            }
+        }
+        searchResult.save()
+        searchResult
+    } catch (e: Exception) {
+        println("extractLyricsBySearchResultId: ошибка при извлечении по $link: ${e.message}")
+        e.printStackTrace()
+        searchResult.save()
+        searchResult
     }
 }
 

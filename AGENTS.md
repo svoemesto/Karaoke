@@ -24,6 +24,11 @@
 
 Локальные правки LiveDocs → запустить все три перед commit.
 
+## Где смотреть логи прода
+
+- **`docs/ops/log-correlation.md`** — карта источников логов прода (PostgreSQL, karaoke-web, karaoke-app, nginx, MinIO), команды `docker logs`/`ssh`, grep-маркеры (`infra.prod.ping`/`infra.prod.db`/`LOG:  duration:`/`$request_time`), типичные сценарии диагностики инцидентов. Создан в [specs/288-prod-diagnostics-logging](../specs/288-prod-diagnostics-logging/spec.md) (FR-019). Обновлять при добавлении новых grep-категорий или источников логов.
+- **Контракт формата WARN/INFO** для `infra.prod.*` категорий: [specs/288-prod-diagnostics-logging/contracts/log-format.md](../specs/288-prod-diagnostics-logging/contracts/log-format.md).
+
 ## Иерархия документации (краткая)
 
 `livedocs/` → `.specify/memory/constitution.md` → `AGENTS.md` → `CONTRIBUTING.md` → `DEVELOPMENT.md` → `specs/<NNN>-*/spec.md` → `archive/docs/features/*.md`. **При расхождении** — приоритет у файла с меньшим номером. Полная таблица — в [`livedocs/architecture-notes.md`](livedocs/architecture-notes.md).

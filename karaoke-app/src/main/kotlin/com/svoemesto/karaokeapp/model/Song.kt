@@ -5377,16 +5377,23 @@ class Song(
             // `song_name_censored` в БД, и новости типа «{songNameCensored}» имеют пустое название.
             // Исправление: добавляем заполненное значение в `diff` ПОСЛЕ baseline-логики, чтобы
             // UPDATE ниже включил его в SET.
+            //
+            // BUGFIX (2026-09-01 #2): `getDiff()` (строка 6864) УЖЕ добавляет RecordDiff для
+            // `song_name_censored`, если значение изменилось. Без проверки это приводит к дублю
+            // `song_name_censored = ?` в UPDATE SET → PostgreSQL error "multiple assignments to same
+            // column song_name_censored". Проверяем `none { it.recordDiffName == "song_name_censored" }`.
             if (fields[SongField.NAME_CENSORED].isNullOrEmpty() && songName.isNotEmpty()) {
                 fields[SongField.NAME_CENSORED] = songName.censored(database)
-                // Добавляем RecordDiff вручную, чтобы попало в setStr и UPDATE SET ниже.
-                diff.add(
-                    RecordDiff(
-                        "song_name_censored",
-                        this.songNameCensored,
-                        savedSong?.songNameCensored ?: "",
-                    ),
-                )
+                // Добавляем RecordDiff вручную, только если его ещё нет в diff (избегаем дубля).
+                if (diff.none { it.recordDiffName == "song_name_censored" }) {
+                    diff.add(
+                        RecordDiff(
+                            "song_name_censored",
+                            this.songNameCensored,
+                            savedSong?.songNameCensored ?: "",
+                        ),
+                    )
+                }
             }
 
             // specs/288-prod-diagnostics-logging: фикс — см. выше. setStr и bindValues формируются

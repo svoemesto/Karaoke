@@ -279,7 +279,7 @@ private fun getLyricsSearchViaSearchTool(
         if (!lyrics.isNullOrBlank()) {
             println("Успешное извлечение текста по ссылке $url, символов: ${lyrics.length}")
             searchResult.text = lyrics
-            searchResult.save()  // UPDATE
+            searchResult.save() // UPDATE
             // FR-001: первый успех — прекращаем обработку остальных URL.
             break
         } else {

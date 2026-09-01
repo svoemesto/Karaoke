@@ -55,10 +55,12 @@ object ProdContainerCheck : MonitorCheck {
     // имел проблемы с TLS handshake на длинных certificate chains (MTU black-hole на маршруте
     // admin-машина → прод) — браузер от той же машины работал, Java — нет.
     // java.net.http.HttpClient (Java 11+) — современный TLS stack, поддержка HTTP/2.
-    private val httpClient: HttpClient = HttpClient.newBuilder()
-        .connectTimeout(Duration.ofSeconds(5))
-        .followRedirects(HttpClient.Redirect.NORMAL)
-        .build()
+    private val httpClient: HttpClient =
+        HttpClient
+            .newBuilder()
+            .connectTimeout(Duration.ofSeconds(5))
+            .followRedirects(HttpClient.Redirect.NORMAL)
+            .build()
 
     @Volatile private var firstFailureAt: Instant? = null
 
@@ -126,12 +128,14 @@ object ProdContainerCheck : MonitorCheck {
     private fun pingSite(): Pair<Boolean, Long> {
         val startMs = System.currentTimeMillis()
         return try {
-            val request = HttpRequest.newBuilder()
-                .uri(URI(PING_URL))
-                .timeout(Duration.ofSeconds(5))
-                .header("User-Agent", "Mozilla/5.0 (ProdContainerCheck)")
-                .GET()
-                .build()
+            val request =
+                HttpRequest
+                    .newBuilder()
+                    .uri(URI(PING_URL))
+                    .timeout(Duration.ofSeconds(5))
+                    .header("User-Agent", "Mozilla/5.0 (ProdContainerCheck)")
+                    .GET()
+                    .build()
             val response = httpClient.send(request, HttpResponse.BodyHandlers.ofString())
             val durationMs = System.currentTimeMillis() - startMs
             Pair(response.statusCode() in 200..399, durationMs)
@@ -160,10 +164,18 @@ object ProdContainerCheck : MonitorCheck {
     private fun runCurlDiagnostic(javaDurationMs: Long) {
         try {
             val startMs = System.currentTimeMillis()
-            val process = ProcessBuilder("curl", "-sS", "-o", "/dev/null",
-                "-w", "%{http_code}", "--max-time", "5", PING_URL)
-                .redirectErrorStream(true)
-                .start()
+            val process =
+                ProcessBuilder(
+                    "curl",
+                    "-sS",
+                    "-o",
+                    "/dev/null",
+                    "-w",
+                    "%{http_code}",
+                    "--max-time",
+                    "5",
+                    PING_URL,
+                ).redirectErrorStream(true).start()
             val finished = process.waitFor(8, java.util.concurrent.TimeUnit.SECONDS)
             if (!finished) {
                 process.destroyForcibly()

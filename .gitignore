@@ -38,6 +38,10 @@ __pycache__/
 /deploy/new_comp/sm-karaoke-system/deploy/.env
 /deploy/new_comp/sm-karaoke-system/deploy/do.env
 
+# Tracker local integration secrets (Constitution § VIII, spec 295)
+# Реальный файл .env.local-tracker содержит API-токены и пароли БД трекера.
+.env.local-tracker
+
 # Secrets — SSL-сертификаты и приватные ключи (Constitution Principle VIII.2)
 *.key
 *.pem

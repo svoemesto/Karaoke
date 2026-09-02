@@ -1,0 +1,14 @@
+[Unit]
+Description=OpenProject tracker: ежедневный бэкап Postgres БД (oneshot)
+Documentation=https://github.com/svoemesto/Karaoke/tree/295-jira-local-integration/docs/tracker-setup.md
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/nsa/Karaoke
+ExecStart=/home/nsa/Karaoke/deploy/tracker-db-backup.sh
+StandardOutput=journal
+StandardError=journal
+ExecStartPre=/bin/bash -c 'flock -n /tmp/tracker-db-backup.lock || { echo "Another backup is running, exiting"; exit 0; }'
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,12 @@
+[Unit]
+Description=OpenProject tracker: ежедневный бэкап Postgres БД (таймер)
+Documentation=https://github.com/svoemesto/Karaoke/tree/295-jira-local-integration/docs/tracker-setup.md
+
+[Timer]
+OnCalendar=*-*-* 03:00:00
+Persistent=true
+RandomizedDelaySec=300
+Unit=tracker-db-backup.service
+
+[Install]
+WantedBy=timers.target

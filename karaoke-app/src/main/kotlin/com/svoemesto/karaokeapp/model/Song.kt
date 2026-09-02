@@ -7084,37 +7084,6 @@ class Song(
             return result
         }
 
-        @Suppress("unused")
-        fun totalCount(database: KaraokeConnection): Int {
-            val sql = "SELECT COUNT(*) AS total_count FROM tbl_songs;"
-            val result = -1
-            val connection = database.getConnection()
-            if (connection == null) {
-                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
-                return result
-            }
-            var statement: Statement? = null
-            var rs: ResultSet? = null
-
-            try {
-                statement = connection.createStatement()
-                rs = statement.executeQuery(sql)
-                while (rs.next()) {
-                    return rs.getInt("total_count")
-                }
-            } catch (e: SQLException) {
-                e.printStackTrace()
-            } finally {
-                try {
-                    rs?.close() // close result set
-                    statement?.close() // close statement
-                } catch (e: SQLException) {
-                    e.printStackTrace()
-                }
-            }
-            return result
-        }
-
         fun getLastUpdated(
             lastTime: Long? = null,
             database: KaraokeConnection,
@@ -7264,6 +7233,9 @@ class Song(
         // @param onlyPublished при true считает только песни со статусом готовности >= 6 (то же
         // определение «в коллекции», что и в [Zakroma.getZakroma]) — используется для подписи
         // плашки автора в закромах на проде, чтобы счётчик не включал ещё не готовые песни.
+        //
+        // Pass 297: помечена как legacy — используется в PublicApiController:443 (metaExpectedCount).
+        // TODO: перевести на Author.loadAuthorTilesWithCounts() (Pass 286) как follow-up.
         fun loadAuthorSongCounts(
             isSpecialOrder: Boolean? = null,
             onlyPublished: Boolean = false,

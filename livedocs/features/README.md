@@ -102,6 +102,7 @@
 | [250-unify-site-header.md](250-unify-site-header.md) | Унификация шапки karaoke-public: единый `<AppHeader>`-компонент (логотип справа + кликабельный), 20 view-миграций, slot-based `EditorWorkView` | [specs/250-.../spec.md](../../specs/250-unify-site-header/spec.md) |
 | [261-search-results-ui.md](261-search-results-ui.md) | Иконка плеера в `/search` показывает реальный статус (был баг — всегда серая) + редизайн строки поиска под `PlaylistEditView` (чёрная плашка превью, единый row-паттерн для десктопа и мобилы) | [specs/261-.../spec.md](../../specs/261-search-results-ui/spec.md) |
 | [294-fourget-scraper-order.md](294-fourget-scraper-order.md) | Новый порядок scrapers fourget (yep→brave) + post-filter «мусорных» URL через `filterUselessLyricsUrls` + 3 настройки в `KaraokeProperties` (hot-fix без передеплоя) | [specs/294-.../spec.md](../../specs/294-fourget-scraper-order/spec.md) |
+| [295-jira-local-integration.md](295-jira-local-integration.md) | Локальный issue-tracker (OpenProject CE 13 + Postgres 13) для двусторонней интеграции пользователь↔AI-агент через REST API v3 (миграция с Jira DC из-за блокировки Atlassian для РФ/РБ) | [specs/295-.../spec.md](../../specs/295-jira-local-integration/spec.md) |
 
 ## Конвенции
 

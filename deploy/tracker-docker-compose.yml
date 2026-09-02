@@ -1,0 +1,102 @@
+# =====================================================================
+# deploy/tracker-docker-compose.yml — локальный issue-tracker (spec 295)
+# =====================================================================
+# OpenProject — open-source альтернатива Jira Data Center (полностью
+# бесплатный self-hosted, без лицензионных ограничений).
+#
+# Используется как внешний task-tracker для AI-агента: пользователь
+# заводит work packages (задачи) в OpenProject UI, агент забирает их
+# через tools/tracker.sh, выполняет и публикует отчёт.
+#
+# Запуск:   docker compose -f deploy/tracker-docker-compose.yml up -d
+# Остановка: docker compose -f deploy/tracker-docker-compose.yml down
+# Логи:      docker logs openproject  /  docker logs openproject-db
+#
+# Это ОТДЕЛЬНЫй compose-файл (НЕ часть deploy/do.sh) — трекер работает
+# изолированно от основного стека Karaoke (аналог FR-011 в старой спеке).
+#
+# Порты (network_mode: host — порты публикуются прямо на хост):
+#   - openproject  — 8080 (дефолт OpenProject Community; изнутри контейнера
+#     nginx уже слушает :8080). Снаружи хоста — также :8080. Если занят —
+#     install-tracker.sh автоматически переключит на 7082/7083/7084 (см.
+#     tools/install-tracker.sh:ATTEMPT_PORTS).
+#   - openproject-db — 5435 (Postgres, нестандартный чтобы не конфликтовать
+#     с jira-db и основной Postgres).
+#
+# network_mode: host для обхода docker-proxy проблем на некоторых хостах
+# (аналогично deploy/jira-docker-compose.yml из архива).
+# =====================================================================
+
+services:
+  # -------------------------------------------------------------------
+  # openproject-db — Postgres 13 для OpenProject
+  # -------------------------------------------------------------------
+  openproject-db:
+    image: postgres:13-alpine
+    container_name: openproject-db
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      POSTGRES_DB: openproject
+      POSTGRES_USER: openproject
+      POSTGRES_PASSWORD: ${TRACKER_DB_PASSWORD:?TRACKER_DB_PASSWORD is required (set in .env.local-tracker)}
+      PGDATA: /var/lib/postgresql/data/pgdata
+      PGPORT: 5435
+    volumes:
+      # Основное хранилище БД (персистентность между перезапусками)
+      - tracker-postgres-data:/var/lib/postgresql/data
+      # Дампы для бэкапа через pg_dump
+      - tracker-backups:/backups
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U openproject -d openproject -p 5435"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # -------------------------------------------------------------------
+  # openproject — OpenProject Community Edition
+  # -------------------------------------------------------------------
+  openproject:
+    image: openproject/community:13
+    container_name: openproject
+    restart: unless-stopped
+    network_mode: host
+    depends_on:
+      openproject-db:
+        condition: service_healthy
+    environment:
+      # Database connection — openproject-db на localhost:5435 (host network)
+      DATABASE_URL: postgresql://openproject:${TRACKER_DB_PASSWORD}@localhost:5435/openproject
+      # Rails secret
+      SECRET_KEY_BASE: ${TRACKER_SECRET_KEY_BASE:?TRACKER_SECRET_KEY_BASE is required}
+      # Host config (внешний URL, по которому браузер пользователя
+      # будет ходить к OpenProject). Дефолт localhost:8080 совпадает
+      # с дефолтом OpenProject Community и с настройкой install-tracker.sh.
+      OPENPROJECT_HOST: ${TRACKER_HOST:-localhost:8080}
+      OPENPROJECT_HTTPS: "false"
+      # Attachments storage
+      OPENPROJECT_ATTACHMENTS_STORAGE_PATH: /var/openproject/assets
+    volumes:
+      # OpenProject data (attachments, plugins)
+      - openproject-data:/var/openproject/assets
+      # Logs
+      - openproject-logs:/var/log/supervisor
+    healthcheck:
+      # OpenProject /health_check (no auth required)
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/health_check || exit 1"]
+      interval: 30s
+      timeout: 10s
+      # start_period: OpenProject стартует 3-5 минут при первом запуске
+      start_period: 300s
+      retries: 10
+
+volumes:
+  tracker-postgres-data:
+    name: tracker-postgres-data
+  tracker-backups:
+    name: tracker-backups
+  openproject-data:
+    name: openproject-data
+  openproject-logs:
+    name: openproject-logs

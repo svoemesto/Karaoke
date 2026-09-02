@@ -152,17 +152,19 @@ object StatBySong {
                 database,
                 """SELECT COALESCE(SUM(ready_songs_count), 0) AS cnt FROM tbl_authors WHERE skip = false;""",
             )
-        // freeNow остаётся через tbl_songs (зависит от publish_date — runtime, нельзя денормализовать).
-        // JOIN с tbl_authors ускоряет за счёт hash на 119 авторах.
+        // freeNow — Pass 297: читать из MATERIALIZED VIEW mv_songs_free_now
+        // (обновляется через cron refresh_mv_songs_free_now() каждые 5 минут).
+        // В MV уже применены JOIN + фильтры по skip/id_status/source_markers.
+        // Здесь остаётся только runtime-фильтр по free/publish_date/publish_time.
+        // До оптимизации: 2-5 сек (JOIN tbl_songs+tbl_authors с seq_scan).
+        // После: ~5 мс (Index Only Scan на mv_songs_free_now_song_author_idx).
+        // См. specs/297-fix-tbl-songs-perf/spec.md (FR-009) и
+        // deploy/karaoke-db/44_optimize_tbl_songs.sql.
         val freeNow =
             runCountQuery(
                 database,
-                """SELECT count(*) AS cnt FROM tbl_songs s
-                   JOIN tbl_authors a ON a.author = s.song_author
-                   WHERE a.skip = false
-                     AND (s.tags IS NULL OR NOT ('SKIP' = ANY(string_to_array(upper(coalesce(s.tags,'')), ' '))))
-                     AND s.id_status >= 6
-                     AND btrim(coalesce(s.source_markers, '')) != ''
+                """SELECT count(*) AS cnt FROM mv_songs_free_now s
+                   WHERE (s.tags IS NULL OR NOT ('SKIP' = ANY(string_to_array(upper(coalesce(s.tags,'')), ' '))))
                      AND (
                        s.free = true
                        OR (

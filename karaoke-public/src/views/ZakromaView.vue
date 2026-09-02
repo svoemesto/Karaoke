@@ -181,6 +181,14 @@
                 <span class="km-author-name" :title="zak.authorDescription || null">{{
                   zak.author
                 }}</span>
+                <!-- specs/293-skip-author-toggle: бейдж «SKIP» для автора с tbl_authors.skip=true.
+                     Показывается только залогиненным пользователям с canWorkWithSkipped=true. -->
+                <span
+                  v-if="zak.authorSkip && canSeeSkipped"
+                  class="badge text-bg-warning ms-2"
+                  title="Автор скрыт от публики (SKIP)"
+                  >SKIP</span
+                >
                 <span v-if="zak.authorShortDescription" class="km-short-description-text">{{
                   zak.authorShortDescription
                 }}</span>
@@ -255,6 +263,13 @@
                           class="km-song-link"
                           >{{ song.songName }}</RouterLink
                         >
+                        <!-- specs/293-skip-author-toggle: бейдж «SKIP» в таблице песен. -->
+                        <span
+                          v-if="song.contentRemoved && canSeeSkipped"
+                          class="badge text-bg-warning ms-2"
+                          title="Удалено по требованию правообладателя"
+                          >SKIP</span
+                        >
                       </td>
                       <td class="km-td km-td-date">
                         <span v-if="showDate(song)" class="km-date-text">{{
@@ -302,6 +317,13 @@
                       :to="{ path: '/song', query: { id: song.id } }"
                       class="km-card-title"
                       >{{ song.songName }}</RouterLink
+                    >
+                    <!-- specs/293-skip-author-toggle: бейдж «SKIP» в карточке песни. -->
+                    <span
+                      v-if="song.contentRemoved && canSeeSkipped"
+                      class="badge text-bg-warning ms-2"
+                      title="Удалено по требованию правообладателя"
+                      >SKIP</span
                     >
                     <CartIcon v-if="showCartIcon(song)" :song-id="song.id" />
                     <PlayerIcon
@@ -446,6 +468,11 @@ export default {
     ]),
     isPremium() {
       return !!(this.user && this.user.effectivePremium)
+    },
+    // specs/293-skip-author-toggle: залогиненный пользователь с правом работать с SKIP-контентом.
+    // Используется для условного рендера бейджей «SKIP» в карточках авторов/песен.
+    canSeeSkipped() {
+      return !!(this.user && this.user.canWorkWithSkipped)
     },
     /** True, когда открыт режим «Отдельные песни разных авторов».
      * Используется для скрытия обычных тайлов и рендера плоской таблицы спецзаказных. */

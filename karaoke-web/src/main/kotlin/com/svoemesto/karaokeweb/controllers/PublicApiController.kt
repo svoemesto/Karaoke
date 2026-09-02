@@ -126,6 +126,10 @@ class PublicApiController(
         private fun getCachedAuthorsTiles(
             scope: String,
             onlyPublished: Boolean,
+            // specs/293-skip-author-toggle: новый параметр — включать ли SKIP-авторов в тайлы.
+            // Используется как часть cache key, чтобы редактор с галочкой получал свежие данные
+            // (а не кэшированный список анонима, в котором SKIP-авторов нет).
+            includeSkipped: Boolean = false,
             loadFn: () -> List<AuthorTilePublicDto>,
         ): List<AuthorTilePublicDto> {
             if (!isCacheEnabled()) {
@@ -141,12 +145,13 @@ class PublicApiController(
             }
 
             val now = System.currentTimeMillis()
-            val key = "$scope:$onlyPublished"
+            // specs/293-skip-author-toggle: cache key расширен до "$scope:$onlyPublished:$includeSkipped".
+            val key = "$scope:$onlyPublished:$includeSkipped"
             val cached = authorsTilesCache[key]
             if (cached != null && cached.expiresAtMs > now) {
                 return cached.value
             }
-            println("[authorsTilesCache] cache miss scope=$scope onlyPublished=$onlyPublished")
+            println("[authorsTilesCache] cache miss scope=$scope onlyPublished=$onlyPublished includeSkipped=$includeSkipped")
             val fresh = loadFn()
             if (fresh.isNotEmpty()) {
                 authorsTilesCache[key] = CachedAuthorsTiles(fresh, now + CACHE_TTL_MS)
@@ -237,6 +242,7 @@ class PublicApiController(
     @GetMapping("/authors")
     fun authors(
         @RequestParam(required = false, defaultValue = "main") scope: String?,
+        request: HttpServletRequest,
     ): List<String> {
         val isSpecialOrderFilter: Boolean? =
             when (scope) {
@@ -245,8 +251,11 @@ class PublicApiController(
                 "all" -> null
                 else -> false
             }
+        // specs/293-skip-author-toggle: для залогиненного пользователя с правом — включаем
+        // SKIP-авторов в список. Анонимный пользователь — null → false (прежнее поведение).
+        val canSeeSkipped = siteUserResolver.resolve(request)?.canWorkWithSkipped ?: false
         return Song.loadListAuthors(
-            withSkiped = false,
+            withSkiped = canSeeSkipped,
             isSpecialOrder = isSpecialOrderFilter,
             database = WORKING_DATABASE,
         )
@@ -265,9 +274,14 @@ class PublicApiController(
                 else -> false
             }
         val onlyPublished = onlyPublishedFor(request)
+        // specs/293-skip-author-toggle: для залогиненного пользователя с правом — включаем
+        // SKIP-авторов в тайлы. Анонимный пользователь — null → false (прежнее поведение).
+        val canSeeSkipped = siteUserResolver.resolve(request)?.canWorkWithSkipped ?: false
         // Оборачиваем существующую логику в cache-helper (FR-001, FR-105 parent спеки 241).
-        // Cache key = "$scope:$onlyPublished" (FR-008), TTL=30 мин (FR-005).
-        return getCachedAuthorsTiles(scope ?: "main", onlyPublished) {
+        // specs/293-skip-author-toggle: cache key расширен до "$scope:$onlyPublished:$canSeeSkipped"
+        // — иначе аноним и редактор с галочкой делили бы один кэш (редактор видел бы только
+        // не-skip-авторов из кэша, загруженного до этого анонимом).
+        return getCachedAuthorsTiles(scope ?: "main", onlyPublished, canSeeSkipped) {
             // specs/286-author-song-counts-cache: счётчики песен читаются напрямую
             // из tbl_authors.ready_songs_count / total_songs_count (один SQL) вместо
             // GROUP BY по tbl_songs. Счётчики поддерживаются актуальными DB-триггером
@@ -281,6 +295,7 @@ class PublicApiController(
                 Author.loadAuthorTilesWithCounts(
                     onlyPublished = onlyPublished,
                     isSpecialOrder = isSpecialOrderFilter,
+                    includeSkipped = canSeeSkipped,
                     database = WORKING_DATABASE,
                 )
             rows.map { row ->
@@ -322,6 +337,9 @@ class PublicApiController(
         // Публичная поверхность прода — показываем только готовые песни (specs/013-song-status-filter),
         // кроме "редактора" — для него фильтр по статусу снят (specs/017-editor-status-bypass).
         val onlyPublished = onlyPublishedFor(request)
+        // specs/293-skip-author-toggle: флаг canWorkWithSkipped для залогиненного пользователя
+        // с правом работать с SKIP-контентом. Анонимный пользователь — null → false.
+        val canSeeSkipped = siteUserResolver.resolve(request)?.canWorkWithSkipped ?: false
         val zakroma =
             if (specialBucket) {
                 Zakroma.getZakromaBySpecialOrder(
@@ -329,6 +347,7 @@ class PublicApiController(
                     storageService = storageService,
                     storageApiClient = storageApiClient,
                     onlyPublished = onlyPublished,
+                    canSeeSkipped = canSeeSkipped,
                 )
             } else {
                 Zakroma.getZakroma(
@@ -337,6 +356,7 @@ class PublicApiController(
                     storageService = storageService,
                     storageApiClient = storageApiClient,
                     onlyPublished = onlyPublished,
+                    canSeeSkipped = canSeeSkipped,
                 )
             }
         return ZakromaPublicDto.fromZakroma(zakroma)
@@ -388,6 +408,9 @@ class PublicApiController(
             siteUserResolver.resolve(request)?.id ?: 0,
         )
         val onlyPublished = onlyPublishedFor(request)
+        // specs/293-skip-author-toggle: флаг canWorkWithSkipped для залогиненного пользователя
+        // с правом работать с SKIP-контентом. Анонимный пользователь — null → false.
+        val canSeeSkipped = siteUserResolver.resolve(request)?.canWorkWithSkipped ?: false
         val auth = author ?: ""
 
         val body =
@@ -442,6 +465,8 @@ class PublicApiController(
                             storageService = storageService,
                             storageApiClient = storageApiClient,
                             onlyPublished = onlyPublished,
+                            // specs/293-skip-author-toggle: для редакторов с галочкой — не фильтровать SKIP-песни.
+                            canSeeSkipped = canSeeSkipped,
                         )
 
                     // 3. Streaming loop по альбомам и песням (FR-BE-004).
@@ -510,6 +535,8 @@ class PublicApiController(
                                                 // buildFromSongs из song.isContentReady.
                                                 idStatus = song.idStatus,
                                                 contentReady = song.contentReady,
+                                                // specs/293-skip-author-toggle: прокидываем флаг SKIP для UI бейджа.
+                                                contentRemoved = song.contentRemoved,
                                             ),
                                         ),
                                     ),

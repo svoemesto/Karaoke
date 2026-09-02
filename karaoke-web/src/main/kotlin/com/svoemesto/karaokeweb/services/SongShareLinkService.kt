@@ -189,6 +189,10 @@ class SongShareLinkService(
 
     class SongUnavailable : ShareException(ShareErrorCode.SONG_UNAVAILABLE, 409)
 
+    // specs/293-skip-author-toggle: SKIP-песни запрещены для share-link (compliance).
+    // Отдельный exception, чтобы UI мог отличить «песня не готова» от «SKIP».
+    class SongSkipped : ShareException(ShareErrorCode.SONG_SKIPPED, 409)
+
     class ConcurrentLimit : ShareException(ShareErrorCode.CONCURRENT_LIMIT, 409)
 
     class LeaseExpired : ShareException(ShareErrorCode.LEASE_EXPIRED, 410)
@@ -247,6 +251,13 @@ class SongShareLinkService(
         baseUrl: String,
         database: KaraokeConnection = WORKING_DATABASE,
     ): CreateResult {
+        // specs/293-skip-author-toggle: SKIP-проверка ДО общей songIsShareable, чтобы кинуть
+        // более специфичный SongSkipped (UI покажет корректное сообщение). Compliance:
+        // SKIP-контент не должен распространяться через share-link независимо от canWorkWithSkipped.
+        if (songIsSkipped(songId, database)) {
+            log.warn("share rejected: song $songId has SKIP tag (specs/293-skip-author-toggle)")
+            throw SongSkipped()
+        }
         if (!songIsShareable(songId, database)) {
             throw SongUnavailable()
         }
@@ -1044,6 +1055,20 @@ class SongShareLinkService(
      * «Данная песня не может быть проиграна». Теперь проверка полная.
      */
     internal fun songIsShareablePublic(songId: Long, database: KaraokeConnection): Boolean = songIsShareable(songId, database)
+
+    // specs/293-skip-author-toggle: отдельная быстрая проверка только тега SKIP (используется
+    // ДО songIsShareable в createLink, чтобы вернуть специфичный SongSkipped exception).
+    private fun songIsSkipped(songId: Long, database: KaraokeConnection): Boolean {
+        val conn = database.getConnection() ?: return false
+        conn
+            .prepareStatement("SELECT tags FROM tbl_songs WHERE id=?")
+            .use { ps ->
+                ps.setLong(1, songId)
+                val rs = ps.executeQuery()
+                if (!rs.next()) return false
+                return songHasSkipTag(rs.getString("tags"))
+            }
+    }
 
     private fun songIsShareable(songId: Long, database: KaraokeConnection): Boolean {
         val conn = database.getConnection() ?: return false

@@ -433,6 +433,17 @@ class PublicOgSongController(
     /**
      * Проверяет наличие тега `SKIP` в `song.tags` (паттерн из `SongPublicDto.kt:152`).
      * Используется для US3 — контент удалён по требованию правообладателя.
+     *
+     * specs/293-skip-author-toggle: сигнатура НЕ расширена параметром canSeeSkipped намеренно —
+     * этот метод используется ТОЛЬКО в `buildSeoHtmlForBots` (endpoint `/api/public/og/song`),
+     * который вызывается ТОЛЬКО ботами VK/Telegram/Yandex/Google/etc через nginx-rewrite
+     * (см. KDoc класса, строки 31-35, и `deploy/web-server-deploy/deploy/80to8897`). У ботов
+     * нет `Authorization`-заголовка, и `canSeeSkipped` для них всегда false. Расширение
+     * сигнатуры было бы мёртвым кодом; SKIP-песни остаются скрытыми от индексации —
+     * compliance с требованиями правообладателя. Для авторизованных пользователей SKIP
+     * снимается в других endpoint'ах (Закрома, история прослушиваний, share-link) —
+     * см. `MainController.zakroma`, `PublicApiController.zakroma`,
+     * `ListeningHistoryController.getForUser`.
      */
     private fun isSkipped(song: Song): Boolean =
         song.tags

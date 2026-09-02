@@ -21,6 +21,12 @@ enum class ShareErrorCode(
     // Песня помечена тегом SKIP или ещё не опубликована.
     SONG_UNAVAILABLE("share.songUnavailable"),
 
+    // specs/293-skip-author-toggle: песня помечена тегом SKIP — share-link запрещён
+    // независимо от canWorkWithSkipped инициатора (compliance: SKIP-контент скрыт по
+    // требованию правообладателя). Отдельный errorCode, чтобы UI мог показать
+    // специфичное сообщение «Невозможно создать share-link для SKIP-контента».
+    SONG_SKIPPED("share.songSkipped"),
+
     // Уже 2 активных playback-сессии на эту ссылку.
     CONCURRENT_LIMIT("share.concurrentLimit"),
 

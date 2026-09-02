@@ -361,6 +361,10 @@ class Author(
         fun loadAuthorTilesWithCounts(
             onlyPublished: Boolean,
             isSpecialOrder: Boolean?,
+            // specs/293-skip-author-toggle: для залогиненного пользователя с canWorkWithSkipped=true
+            // включаем SKIP-авторов (где tbl_authors.skip = TRUE) в тайлы. По умолчанию false —
+            // прежнее поведение (UI скрывает skip-авторов).
+            includeSkipped: Boolean = false,
             database: KaraokeConnection,
         ): List<AuthorTileRow> {
             val connection =
@@ -374,7 +378,12 @@ class Author(
                 buildString {
                     append("SELECT id, author, ready_songs_count, total_songs_count, is_special_order ")
                     append("FROM $TABLE_NAME ")
-                    append("WHERE skip = false ")
+                    // specs/293-skip-author-toggle: фильтр по skip снимается для редакторов с галочкой.
+                    if (!includeSkipped) {
+                        append("WHERE skip = false ")
+                    } else {
+                        append("WHERE TRUE ")
+                    }
                     when (isSpecialOrder) {
                         true -> append("AND is_special_order = true ")
                         false -> append("AND is_special_order = false ")

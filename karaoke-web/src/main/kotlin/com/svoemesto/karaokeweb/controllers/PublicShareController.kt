@@ -91,6 +91,15 @@ class PublicShareController(
                 )
         } catch (e: SongShareLinkService.SongUnavailable) {
             ResponseEntity.status(409).body(mapOf("errorCode" to e.code.dbValue))
+        } catch (e: SongShareLinkService.SongSkipped) {
+            // specs/293-skip-author-toggle (FR-012): SKIP-песни запрещены для share-link.
+            // Возвращаем 409 с message, чтобы админ/редактор увидел причину.
+            ResponseEntity.status(409).body(
+                mapOf(
+                    "errorCode" to e.code.dbValue,
+                    "message" to "Невозможно создать share-link для SKIP-контента",
+                ),
+            )
         } catch (_: SongShareLinkService.InternalError) {
             // Системная (не доменная) ошибка при создании ссылки — БД недоступна,
             // конфликт IDENTITY и т.п. Раньше маскировалось под 500 share.notFound

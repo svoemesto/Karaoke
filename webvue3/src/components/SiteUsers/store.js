@@ -152,6 +152,9 @@ export default {
       if (diffs.editor !== undefined) params.isEditor = diffs.editor
       if (diffs.canSelfAssignTasks !== undefined)
         params.canSelfAssignTasks = diffs.canSelfAssignTasks
+      // specs/293-skip-author-toggle: передаём новое право как часть diff-payload.
+      if (diffs.canWorkWithSkipped !== undefined)
+        params.canWorkWithSkipped = diffs.canWorkWithSkipped
       if (diffs.maxFavorites !== undefined) params.maxFavorites = Number(diffs.maxFavorites) || 0
       if (diffs.maxPlaylists !== undefined) params.maxPlaylists = Number(diffs.maxPlaylists) || 0
       if (diffs.maxPlaylistItems !== undefined)

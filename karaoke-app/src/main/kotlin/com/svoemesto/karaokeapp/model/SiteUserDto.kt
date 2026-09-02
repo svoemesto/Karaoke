@@ -31,6 +31,13 @@ data class SiteUserDto(
     // boolean-полями и устойчивости при будущих рефакторингах имени.
     @get:JsonProperty("canSelfAssignTasks")
     val canSelfAssignTasks: Boolean = false,
+    // specs/293-skip-author-toggle: разрешение на работу с SKIP-авторами/песнями.
+    // Залогиненный пользователь с флагом видит SKIP-контент в публичных списках (Закрома,
+    // история прослушиваний), бейдж «SKIP» в UI. Share-link для SKIP-песен ВСЕ РАВНО
+    // запрещён (FR-012). Выставляется ТОЛЬКО админом в webvue3 (не в karaoke-public/AccountView,
+    // см. /speckit.specify 2026-09-02).
+    @get:JsonProperty("canWorkWithSkipped")
+    val canWorkWithSkipped: Boolean = false,
     val isBanned: Boolean = false,
     val banReason: String = "",
     // Персональные лимиты (0 = дефолт). Без is-префикса — JSON-ключи maxFavorites/... как есть.
@@ -64,6 +71,7 @@ data class SiteUserDto(
         entity.sponsrUid = sponsrUid
         entity.isEditor = isEditor
         entity.canSelfAssignTasks = canSelfAssignTasks
+        entity.canWorkWithSkipped = canWorkWithSkipped
         entity.isBanned = isBanned
         entity.banReason = banReason
         entity.maxFavorites = maxFavorites

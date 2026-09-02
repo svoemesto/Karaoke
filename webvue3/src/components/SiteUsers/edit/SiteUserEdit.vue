@@ -148,6 +148,18 @@
           </label>
         </div>
         <div class="label-and-input">
+          <div class="label">Может работать со SKIP-авторами и песнями:</div>
+          <label class="sue-checkbox-label">
+            <input v-model="siteUserCurrent.canWorkWithSkipped" type="checkbox" />
+            <span class="sue-hint">
+              (снимает фильтр SKIP в «Закромах», истории прослушиваний, share-link и OG-SEO:
+              пользователь видит песни/авторов с тегом
+              <code>SKIP</code> или <code>tbl_authors.skip = true</code>; бейдж «SKIP» отображается
+              в UI; share-link для SKIP-песен всё равно запрещён — см. specs/293-skip-author-toggle)
+            </span>
+          </label>
+        </div>
+        <div class="label-and-input">
           <div class="label">Лимит избранного:</div>
           <input
             v-model.number="siteUserCurrent.maxFavorites"

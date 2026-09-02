@@ -74,6 +74,13 @@ tracker_load_env() {
     TRACKER_LOG_LEVEL="${TRACKER_LOG_LEVEL:-info}"
     TRACKER_HTTP_TIMEOUT="${TRACKER_HTTP_TIMEOUT:-30}"
     LOG_FILE="${LOG_FILE:-${TRACKER_LOG_FILE_DEFAULT}}"
+
+    # IMPORTANT: OpenProject Basic Auth принимает только username='apikey' и
+    # password=TRACKER_API_TOKEN. См. OpenProject::Authentication::Strategies::Warden::UserBasicAuth.
+    # TRACKER_USER используется ТОЛЬКО для фильтра и отображения (whoami),
+    # а в Authorization header передаётся 'apikey'/'*' как username.
+    TRACKER_BASIC_USERNAME="apikey"
+    TRACKER_BASIC_PASSWORD="$TRACKER_API_TOKEN"
 }
 
 # =====================================================================
@@ -148,9 +155,11 @@ tracker_http_request() {
     response_file=$(mktemp)
     trap "rm -f '$response_file'" RETURN
 
-    # OpenProject использует Basic Auth с username:api_token
+    # OpenProject Basic Auth принимает username='apikey' и password=API-токен
+    # (см. UserBasicAuth warden-strategy). TRACKER_USER используется только
+    # для whoami/log; в Authorization header всегда идёт 'apikey'.
     local auth_header
-    auth_header=$(printf '%s:%s' "$TRACKER_USER" "$TRACKER_API_TOKEN" | base64 -w 0)
+    auth_header=$(printf '%s:%s' "$TRACKER_BASIC_USERNAME" "$TRACKER_BASIC_PASSWORD" | base64 -w 0)
 
     for attempt in $(seq 1 $((TRACKER_HTTP_RETRIES + 1))); do
         start_ts=$(date +%s%N)
@@ -276,7 +285,7 @@ tracker_list_projects() {
 
     echo "$response" | jq -r '
         ["ID", "IDENTIFIER", "NAME", "CREATED"] as $headers |
-        ($headers, (.embedded.elements[]? | [
+        ($headers, (._embedded.elements[]? | [
             (.id | tostring),
             .identifier,
             .name,
@@ -327,8 +336,8 @@ tracker_create_issue() {
             subject: $subj,
             description: {raw: $desc, format: "markdown"},
             _links: {
-                project: {href: "/api/v3/projects/" + ($pid | tostring)},
-                type: {href: "/api/v3/types/" + ($tid | tostring)}
+                project: {href: ("/api/v3/projects/" + ($pid | tostring))},
+                type: {href: ("/api/v3/types/" + ($tid | tostring))}
             }
         }')
 
@@ -356,8 +365,19 @@ tracker_list_issues() {
     # Строим массив фильтров
     local filters_array="[]"
     if [ -n "$assignee" ]; then
-        # assignee filter
-        filters_array=$(echo "$filters_array" | jq --arg a "$assignee" \
+        # assignee: OpenProject API принимает только ID пользователя (число).
+        # Если передан login, делаем resolve через /api/v3/users?search=<login>.
+        local assignee_id="$assignee"
+        if ! [[ "$assignee" =~ ^[0-9]+$ ]]; then
+            local user_resp
+            user_resp=$(tracker_http_request GET "/api/v3/users?search=${assignee}&pageSize=1" "" "list-issues-resolve-user")
+            assignee_id=$(echo "$user_resp" | jq -r '._embedded.elements[0].id // empty')
+            if [ -z "$assignee_id" ]; then
+                echo "${C_RED}ERROR${C_RESET}: пользователь '${assignee}' не найден (для assignee нужен login существующего юзера)" >&2
+                return 5
+            fi
+        fi
+        filters_array=$(echo "$filters_array" | jq --argjson a "$assignee_id" \
             '. + [{"assignee":{"operator":"=","values":[$a]}}]')
     fi
     if [ -n "$project_id" ]; then
@@ -376,9 +396,10 @@ tracker_list_issues() {
             '. + [{"status":{"operator":$op,"values":[]}}]')
     fi
 
-    # URL-encode filters
+    # URL-encode: JSON → compact → percent-encode (фильтр содержит
+    # [ ] { } " которые curl иначе парсит как glob-range).
     local filters_encoded
-    filters_encoded=$(printf '%s' "$filters_array" | jq -c '.')
+    filters_encoded=$(printf '%s' "$filters_array" | jq -c '.' | jq -sRr @uri)
 
     local response
     response=$(tracker_http_request GET "/api/v3/work_packages?filters=${filters_encoded}&pageSize=${limit}" "" "list-issues")
@@ -386,7 +407,7 @@ tracker_list_issues() {
     # Парсим и выводим
     echo "$response" | jq -r '
         ["ID", "SUBJECT", "STATUS", "ASSIGNEE", "TYPE"] as $headers |
-        ($headers, (.embedded.elements[]? | [
+        ($headers, (._embedded.elements[]? | [
             (.id | tostring),
             (.subject // "-"),
             (.status.title // .status.name // "-"),
@@ -424,7 +445,7 @@ tracker_claim_issue() {
     # Находим статус "In progress"
     local in_progress_status_id
     in_progress_status_id=$(tracker_http_request GET "/api/v3/statuses" "" "claim-issue-statuses" \
-        | jq -r '.embedded.elements[] | select(.name == "In progress" or .title == "In progress") | .id' | head -1)
+        | jq -r '._embedded.elements[] | select(.name == "In progress" or .title == "In progress") | .id' | head -1)
 
     if [ -z "$in_progress_status_id" ]; then
         echo "${C_RED}ERROR${C_RESET}: статус 'In progress' не найден в проекте" >&2
@@ -439,8 +460,8 @@ tracker_claim_issue() {
         '{
             lockVersion: 0,
             _links: {
-                assignee: {href: "/api/v3/users/" + ($agent_id | tostring)},
-                status: {href: "/api/v3/statuses/" + ($status_id | tostring)}
+                assignee: {href: ("/api/v3/users/" + ($agent_id | tostring))},
+                status: {href: ("/api/v3/statuses/" + ($status_id | tostring))}
             }
         }')
 
@@ -505,7 +526,7 @@ tracker_close_issue() {
     # Находим ID статуса "Closed"
     local closed_status_id
     closed_status_id=$(tracker_http_request GET "/api/v3/statuses" "" "close-issue-statuses" \
-        | jq -r '.embedded.elements[] | select(.name == "Closed" or .title == "Closed") | .id' | head -1)
+        | jq -r '._embedded.elements[] | select(.name == "Closed" or .title == "Closed") | .id' | head -1)
 
     if [ -z "$closed_status_id" ]; then
         echo "${C_RED}ERROR${C_RESET}: статус 'Closed' не найден в проекте" >&2
@@ -519,7 +540,7 @@ tracker_close_issue() {
         '{
             lockVersion: $lv,
             _links: {
-                status: {href: "/api/v3/statuses/" + ($sid | tostring)}
+                status: {href: ("/api/v3/statuses/" + ($sid | tostring))}
             }
         }')
 
@@ -541,12 +562,12 @@ tracker_reopen_issue() {
     # Находим ID статуса "In progress" (приоритет) или "New"
     local status_id
     status_id=$(tracker_http_request GET "/api/v3/statuses" "" "reopen-issue-statuses" \
-        | jq -r '.embedded.elements[] | select(.name == "In progress" or .title == "In progress") | .id' | head -1)
+        | jq -r '._embedded.elements[] | select(.name == "In progress" or .title == "In progress") | .id' | head -1)
 
     if [ -z "$status_id" ]; then
         # Fallback на "New"
         status_id=$(tracker_http_request GET "/api/v3/statuses" "" "reopen-issue-statuses-2" \
-            | jq -r '.embedded.elements[] | select(.name == "New" or .title == "New") | .id' | head -1)
+            | jq -r '._embedded.elements[] | select(.name == "New" or .title == "New") | .id' | head -1)
     fi
 
     if [ -z "$status_id" ]; then
@@ -561,7 +582,7 @@ tracker_reopen_issue() {
         '{
             lockVersion: $lv,
             _links: {
-                status: {href: "/api/v3/statuses/" + ($sid | tostring)}
+                status: {href: ("/api/v3/statuses/" + ($sid | tostring))}
             }
         }')
 

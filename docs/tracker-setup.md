@@ -1,7 +1,7 @@
 # Tracker Setup — пошаговое руководство (OpenProject)
 
-**Версия**: 1.0 (Pass 295)
-**Связанные документы**: [`specs/295-jira-local-integration/spec.md`](../specs/295-jira-local-integration/spec.md)
+**Версия**: 1.1 (Pass 295, rev. — auto-bootstrap + apikey)
+**Связанные документы**: [`specs/295-jira-local-integration/spec.md`](../specs/295-jira-local-integration/spec.md), [`docs/features/tracker-local-integration.md`](features/tracker-local-integration.md)
 
 ## Что это
 
@@ -15,12 +15,12 @@ open-source альтернатива Jira (полностью бесплатна
 
 ## Почему OpenProject, а не Jira
 
-Из спецификации 295 (.jira-archived/) сначала планировалось использовать Jira
-Data Center, но:
+Из спецификации 295 (`.jira-archived/`) сначала планировалось использовать
+Jira Data Center, но:
 - Atlassian блокирует регистрацию evaluation-license для пользователей из РФ/РБ.
 - Jira DC без license работает в read-only mode через 30 дней.
 
-OpenProject — это drop-in замена:
+OpenProject — drop-in замена:
 - Полностью бесплатный (MIT-лицензия).
 - REST API v3 с теми же операциями (CRUD для work packages).
 - Поддерживает agile-доски, workflow, custom fields, attachments.
@@ -31,150 +31,87 @@ OpenProject — это drop-in замена:
 - Linux x86_64 (Ubuntu 22.04+, Debian 11+, RHEL 9+).
 - Docker 20.10+ с Docker Compose v2.
 - Bash 4.4+, `curl`, `jq` 1.6+, `openssl`.
-- ≥8 GB свободной RAM, ≥5 GB диска (OpenProject образ ~2 GB).
+- ≥8 GB свободной RAM, ≥5 GB диска (образ OpenProject ~2 GB).
 
-## Этап 1: Установка
+## Этап 1: Установка (одной командой)
 
-### 1.1 Создать `.env.local-tracker`
-
-```bash
-cd /home/nsa/Karaoke
-cp .env.local-tracker.example .env.local-tracker
-# Скрипт ниже создаст с авто-секретами, либо отредактируйте вручную
-vim .env.local-tracker  # заменить TRACKER_DB_PASSWORD и TRACKER_SECRET_KEY_BASE
-```
-
-**Важно**: файл `.env.local-tracker` уже в `.gitignore`. Не коммитить.
-
-### 1.2 Запустить OpenProject
+### 1.1 Запустить install-tracker.sh
 
 ```bash
 cd /home/nsa/Karaoke
-bash tools/install-tracker.sh
+bash tools/install-tracker.sh            # bootstrap + запустить (без smoke)
+# либо
+bash tools/install-tracker.sh --smoke    # bootstrap + end-to-end smoke-test
 ```
 
 Скрипт автоматически:
-- Создаст `.env.local-tracker` с секретами (если нет).
-- Найдёт свободный порт (8080 → 7082 → ...).
-- Сделает `docker compose up -d`.
-- Дождётся healthcheck (`/api/v3/health_check`).
-- Выведет инструкции для first-run UI.
 
-### 1.3 First-run setup в UI
+1. Создаёт `.env.local-tracker` (если нет) с авто-сгенерированными секретами
+   `TRACKER_DB_PASSWORD` (32 base64 символа) и `TRACKER_SECRET_KEY_BASE`
+   (openssl rand -hex 64).
+2. Находит свободный порт для OpenProject UI (8080 → 7082 → 7083 → 7084 → 8082)
+   и обновляет `TRACKER_URL` / `TRACKER_HOST` в `.env.local-tracker`.
+3. Запускает `docker compose -f deploy/tracker-docker-compose.yml up -d`,
+   передавая `.env.local-tracker` через `--env-file`.
+4. Ждёт healthcheck OpenProject (`/health_check`) до 10 минут.
+5. Через `rails runner` создаёт (или обновляет) пользователя `ai-agent` с
+   правами admin и генерирует для него новый API-токен; **записывает plain
+   токен в `.env.local-tracker`**.
+6. (опционально, по флагу `--smoke`) прогоняет `tracker-smoke-test.sh`.
 
-Открыть `http://localhost:8080` (или какой порт выбрал скрипт).
+> **Ключевой момент**: CLI использует Basic Auth с username=`apikey`
+> и password=`TRACKER_API_TOKEN` (см. OpenProject warden-стратегию
+> `UserBasicAuth`). `TRACKER_USER` используется только как login для
+> фильтров и логов whoami.
 
-**Шаги**:
-1. Язык: English.
-2. Создать **admin-аккаунт**:
-   - Username: `admin`
-   - Password: придумать сильный пароль (записать!)
-   - Email: `admin@localhost`.
-3. Название организации: любое (например, "Karaoke Dev").
-4. OpenProject предложит создать первый проект:
-   - Name: `Karaoke`
-   - Identifier: `karaoke`
-   - Type: `Scrum project` или `Classic project` — на ваш выбор.
+### 1.2 Проверка
 
-### 1.4 Создать API token для admin
-
-1. В OpenProject UI: **My Account** (правый верхний угол) → **Access Tokens** → **+ Generate**.
-2. Название: `karaoke-cli`.
-3. **Скопировать токен** (показывается ОДИН раз).
-
-```bash
-# Обновить TRACKER_API_TOKEN в .env.local-tracker
-vim /home/nsa/Karaoke/.env.local-tracker
-# Изменить:
-#   TRACKER_USER=admin
-#   TRACKER_API_TOKEN=<скопированный токен>
-```
-
-**Проверка**:
 ```bash
 cd /home/nsa/Karaoke
-source .env.local-tracker
-./tools/tracker.sh healthcheck
-# Ожидаемый вывод: "OK: OpenProject UP at http://localhost:8080"
-
-./tools/tracker.sh list-projects
-# Ожидаемый вывод: таблица с созданным проектом Karaoke
+source .env.local-tracker            # подгрузить TRACKER_URL и токен
+./tools/tracker.sh healthcheck       # OK: OpenProject UP at http://localhost:8080
+./tools/tracker.sh list-projects     # таблица проектов (id, identifier, name)
+./tools/tracker.sh list-issues --assignee ai-agent --status open
 ```
 
-### 1.5 Создать пользователя `ai-agent`
+### 1.3 (опционально) Создать проект karaoke
 
-1. UI → **Administration** → **Users** → **+ New user**.
-2. Заполнить:
-   - Username: `ai-agent`
-   - Email: `ai-agent@localhost`
-   - Password: придумать сильный (можно использовать тот же, что в Jira-старой спеке).
-   - **Status**: Active.
-3. Назначить в группу: **Project members** (или конкретный проект через Memberships).
-4. Save.
+Если ещё нет — через UI:
+1. Projects → **+ Create project** → Name: `Karaoke`, Identifier: `karaoke`.
+2. В Members добавить `ai-agent` с ролью **Member** (и **Administrator**, если
+   хотите делегировать админство).
 
-### 1.6 Создать API token для `ai-agent`
-
-1. Залогиниться как `ai-agent` (Logout в правом верхнем углу → Login).
-2. **My Account → Access Tokens → + Generate**.
-3. Name: `karaoke-cli-agent`.
-4. Скопировать токен.
-
+Либо через rails-runner (по аналогии с install-tracker.sh):
 ```bash
-# Обновить .env.local-tracker (финальная версия — теперь от имени ai-agent)
-vim /home/nsa/Karaoke/.env.local-tracker
-# Изменить:
-#   TRACKER_USER=ai-agent
-#   TRACKER_API_TOKEN=<новый токен для ai-agent>
+docker exec openproject bash -c "cd /app && bundle exec rails runner '
+Project.where(identifier: \"karaoke\").first_or_initialize.tap do |p|
+  p.name = \"Karaoke\"
+  p.identifier = \"karaoke\"
+  p.templated = false
+  p.public = true
+  p.enabled_module_names = Project.default_enabled_modules
+  p.save!
+end
+'"
 ```
 
-### 1.7 Узнать project_id и type_id
-
-CLI нужен **числовой ID** проекта и типа задачи. Получить через REST:
+### 1.4 (опционально) Настроить backup systemd-timer
 
 ```bash
-source /home/nsa/Karaoke/.env.local-tracker
-
-# Project ID
-./tools/tracker.sh list-projects
-# Первая колонка "ID" — это и есть project_id
-
-# Type ID
-curl -fsS -u "${TRACKER_USER}:${TRACKER_API_TOKEN}" \
-    "${TRACKER_URL}/api/v3/types?pageSize=100" \
-    | jq -r '.embedded.elements[] | "\(.id)\t\(.name)"'
-# Найти строку "Task" — это и есть type_id
-```
-
-Запомните эти два числа — они нужны для `create-issue`.
-
-### 1.8 Настроить backup (systemd-timer)
-
-```bash
-# Скопировать unit-файлы
 mkdir -p ~/.config/systemd/user
 cp /home/nsa/Karaoke/deploy/tracker-db-backup.{service,timer} ~/.config/systemd/user/
 
-# Активировать
 systemctl --user daemon-reload
-systemctl --user enable tracker-db-backup.timer
-systemctl --user start tracker-db-backup.timer
+systemctl --user enable --now tracker-db-backup.timer
 
-# Проверить
 systemctl --user list-timers | grep tracker
 # Должен показать next run завтра в 03:00
 ```
 
-### 1.9 End-to-end smoke-test
-
+Cron-вариант для систем без systemd-user:
 ```bash
-cd /home/nsa/Karaoke
-./tools/tracker-smoke-test.sh
-# Ожидаемый вывод:
-#   [1/8] healthcheck: OK
-#   [2/8] list-projects (найдено проектов: N): OK
-#   [3/8] create-issue: OK
-#   ...
-#   ALL PASS — OpenProject полностью функционален
+# crontab -e
+0 3 * * * /home/nsa/Karaoke/deploy/tracker-db-backup.sh >> ~/.local/share/tracker-backup.log 2>&1
 ```
 
 ## Этап 2: Использование
@@ -184,9 +121,9 @@ cd /home/nsa/Karaoke
 1. Открыть `http://localhost:8080/projects/karaoke` (или ваш проект).
 2. **+ Create new work package** → Type `Task`.
 3. Subject: `<краткое название>`.
-4. Description: `<детали, желательно ссылка на spec.md>`.
+4. Description: `<детали, желательно ссылка на specs/<NNN>-*/spec.md>`.
 5. Assignee: `ai-agent`.
-6. Save → получить ID (например, `42`).
+6. Save → получить числовой ID (например, `42`).
 
 ### Агент берёт задачу
 
@@ -194,69 +131,108 @@ cd /home/nsa/Karaoke
 cd /home/nsa/Karaoke
 source .env.local-tracker
 
-# Список задач агента
+# Список открытых задач, где assignee = ai-agent
 ./tools/tracker.sh list-issues --assignee ai-agent --status open
 
-# Взять задачу
+# Взять задачу (assignee = ai-agent + status = In progress)
 ./tools/tracker.sh claim-issue 42
 
-# После выполнения работы — добавить отчёт
+# После выполнения работы — добавить markdown-отчёт
 cat > /tmp/report.md <<'EOF'
 ## Что сделано
+
 Реализована фича X.
 
 ## Изменённые файлы
+
 - src/foo/Bar.kt
 - docs/foo.md
 
 ## Прогон проверок
-- ./gradlew ktlintCheck — OK
-- ./gradlew :karaoke-web:bootJar — OK
+
+- `./gradlew :karaoke-web:ktlintCheck` — OK
+- `./gradlew :karaoke-web:bootJar` — OK
+- `./tools/check-livedocs-structure.sh` — OK
 
 ## Известные ограничения
+
 Нет.
 EOF
+
 ./tools/tracker.sh add-comment 42 --file /tmp/report.md
 
-# Закрыть задачу
+# Закрыть задачу (status = Closed)
 ./tools/tracker.sh close-issue 42
+```
+
+### Полный pipeline (пример)
+
+```bash
+# 1. Найти задачу
+ID=$(./tools/tracker.sh list-issues --assignee ai-agent --status open \
+        | tail -n +2 | head -1 | awk '{print $1}')
+
+# 2. Взять в работу
+./tools/tracker.sh claim-issue "$ID"
+
+# 3. ... выполнить работу ...
+
+# 4. Опубликовать отчёт
+./tools/tracker.sh add-comment "$ID" --file ./REPORT.md
+
+# 5. Закрыть
+./tools/tracker.sh close-issue "$ID"
 ```
 
 ## Troubleshooting
 
 | Проблема | Решение |
 |----------|---------|
-| OpenProject не стартует 5+ минут | `docker logs openproject --tail 100` — смотреть ошибки. Часто: Postgres ещё не healthy. |
-| Порт 8080 занят | `install-tracker.sh` автоматически выберет 7082/7083/7084. |
-| `401 Unauthorized` | Токен в `.env.local-tracker` истёк или отозван. Создать новый в UI → My Account → Access Tokens. |
-| `429 Too Many Requests` | CLI автоматически retry с backoff. Если постоянно — уменьшить частоту polling. |
+| OpenProject не стартует 10+ минут | `docker logs openproject --tail 100` — смотреть ошибки. Обычно: Postgres ещё не healthy или `TRACKER_SECRET_KEY_BASE` короче требуемого (должен быть 128 hex). |
+| Порт 8080 занят | `install-tracker.sh` автоматически выберет 7082/7083/7084 (см. `ATTEMPT_PORTS` в скрипте). |
+| `401 Unauthorized` | `TRACKER_API_TOKEN` в `.env.local-tracker` отозван или устарел. Пересоздайте: удалите токен в БД или запустите `install-tracker.sh` (он переустановит токен через rails-runner). |
+| `429 Too Many Requests` | CLI автоматически retry с backoff 2s/4s/8s. Если постоянно — уменьшить частоту polling. |
+| Пустой `list-issues --assignee ai-agent` | assignee — это **login**, CLI сам резолвит в id; проверьте что пользователь существует: `docker exec openproject-db psql -U openproject -d openproject -c "SELECT id, login FROM users"` |
+| `lock_version conflict` при PATCH | OpenProject требует актуальный `lockVersion`; CLI сам делает re-GET и retry (до 3 попыток). Если стабильно — кто-то активно правит задачу параллельно. |
+| HTTP 400 `bad range specification in URL` | Баг curl: фильтры должны быть URL-encoded (CLI делает это автоматически); если вы запускаете curl вручную — используйте `jq -sRr @uri` или `--data-urlencode`. |
 | Postgres не подключается | `docker logs openproject-db` — проверить пароль в `.env.local-tracker` совпадает с compose. |
-| Бэкап не работает | `journalctl --user -u tracker-db-backup.service` — смотреть ошибки systemd. |
-| `lock_version conflict` при PATCH | OpenProject требует актуальный lockVersion. Повторите операцию через 5 секунд (новая версия будет подтянута через GET). |
+| Бэкап не работает | `journalctl --user -u tracker-db-backup.service` (systemd) или `cat ~/.local/share/tracker-backup.log` (cron). |
+| `tracker-postgres-data` volume заполнился | Проверьте `docker system df`; OpenProject создаёт attachments в `openproject-data` — посмотрите размер через `du -sh /var/lib/docker/volumes/openproject-data/`. |
 
 ## Управление
 
 ```bash
-# Остановить OpenProject
+# Остановить
 cd /home/nsa/Karaoke/deploy
 docker compose -f tracker-docker-compose.yml stop
 
 # Запустить снова
 docker compose -f tracker-docker-compose.yml start
 
-# Полностью удалить (ОСТОРОЖНО — данные сохранятся в volumes, но контейнеры исчезнут)
+# Полностью удалить контейнеры (данные СОХРАНЯЮТСЯ в volumes)
 docker compose -f tracker-docker-compose.yml down
 
-# Удалить ВСЁ включая данные
+# Удалить ВСЁ включая данные (ОСТОРОЖНО!)
 docker compose -f tracker-docker-compose.yml down -v
 
 # Логи
 docker logs openproject --tail 100 -f
 docker logs openproject-db --tail 100 -f
+
+# Восстановление из pg_dump
+docker compose -f tracker-docker-compose.yml stop openproject
+docker compose -f tracker-docker-compose.yml exec openproject-db \
+    pg_restore -U openproject -d openproject --clean --if-exists \
+    /backups/tracker-YYYY-MM-DD.dump
+docker compose -f tracker-docker-compose.yml start openproject
 ```
 
 ## Что дальше
 
-- ✅ Прочитать [`specs/295-jira-local-integration/spec.md`](../specs/295-jira-local-integration/spec.md) для контекста.
-- ✅ Настроить polling (cron / systemd-timer для автоматического `list-issues` + `claim-issue`).
-- ✅ Изучить OpenProject REST API v3: https://www.openproject.org/docs/api/introduction/
+- Прочитать [`specs/295-jira-local-integration/spec.md`](../specs/295-jira-local-integration/spec.md)
+  для общего контекста и Success Criteria.
+- Прочитать [`docs/features/tracker-local-integration.md`](features/tracker-local-integration.md) —
+  архитектурная сводка, компоненты, workflow.
+- Настроить polling (cron / systemd-timer для автоматического
+  `list-issues` + `claim-issue`).
+- Изучить OpenProject REST API v3: <https://www.openproject.org/docs/api/introduction/>.

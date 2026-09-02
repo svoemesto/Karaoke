@@ -125,20 +125,24 @@ info "  ✓ OpenProject будет доступен на http://localhost:${SELE
 info "Шаг 4/6: запуск OpenProject + Postgres..."
 
 cd "${REPO_ROOT}/deploy"
-docker compose -f tracker-docker-compose.yml up -d 2>&1 | grep -vE "^\s*$|level=warning msg=\"Found orphan" | tail -10 || true
+# CRITICAL: при network_mode: host переменные окружения из shell НЕ
+# пробрасываются в compose — нужно явно передать --env-file.
+docker compose \
+    --env-file "${ENV_FILE}" \
+    -f tracker-docker-compose.yml \
+    up -d 2>&1 | grep -vE "^\s*$|level=warning msg=\"Found orphan" | tail -10 || true
 
 info "  ✓ Контейнеры запущены"
 
 # --- Шаг 5: ожидание healthcheck ---
-info "Шаг 5/6: ожидание готовности OpenProject (≤10 минут)..."
+info "Шаг 5/7: ожидание готовности OpenProject (≤10 минут)..."
 
 TIMEOUT=600
 ELAPSED=0
 SLEEP_INTERVAL=15
 
 while [ $ELAPSED -lt $TIMEOUT ]; do
-    if curl -fsS --max-time 5 "${TRACKER_URL}/api/v3/health_check" 2>/dev/null | grep -q '"db"' 2>/dev/null || \
-       curl -fsS --max-time 5 "${TRACKER_URL}/api/v3/health_check" 2>/dev/null | grep -q '"openproject"'; then
+    if curl -fsS --max-time 5 "${TRACKER_URL}/health_check" 2>/dev/null | grep -qE '"openproject"|"db"' >/dev/null 2>&1; then
         info "  ✓ OpenProject готова (за ${ELAPSED} сек)"
         break
     fi
@@ -156,37 +160,79 @@ if [ $ELAPSED -ge $TIMEOUT ]; then
     exit 1
 fi
 
-# --- Шаг 6: вывод инструкций ---
-info "Шаг 6/6: установка завершена!"
+# --- Шаг 6: bootstrap пользователя ai-agent + API-токен ---
+info "Шаг 6/7: bootstrap пользователя 'ai-agent' + API-токен..."
+
+RUBY_SCRIPT='
+require "json"
+login = ENV["AI_AGENT_LOGIN"]
+email = ENV["AI_AGENT_EMAIL"]
+status = 0
+begin
+  User.where(login: login).first_or_initialize.tap do |u|
+    u.login = login
+    u.firstname = "ai"
+    u.lastname = "agent"
+    u.mail = email
+    u.admin = true
+    u.status = User.statuses[:active]
+    u.password = SecureRandom.hex(32)
+    u.save!
+  end
+  # Сгенерировать новый API token, если ещё не было
+  token = Token::API.where(user_id: User.find_by(login: login).id).first
+  plain = Token::API.create(user: User.find_by(login: login)).plain_value
+  puts JSON.dump({status: :ok, token: plain})
+rescue => e
+  puts JSON.dump({status: :error, message: e.message, backtrace: e.backtrace.first(5)})
+end
+'
+
+BOOTSTRAP_OUT=$(docker exec -e AI_AGENT_LOGIN="$TRACKER_AGENT_USER" -e AI_AGENT_EMAIL="ai-agent@karaoke.local" \
+    openproject bash -c "cd /app && bundle exec rails runner -e production \"$RUBY_SCRIPT\"" 2>/dev/null | tail -1)
+TOKEN_NEW=$(echo "$BOOTSTRAP_OUT" | jq -r '.token // empty' 2>/dev/null)
+
+if [ -z "$TOKEN_NEW" ]; then
+    err "Не удалось создать пользователя и токен. Проверьте: docker logs openproject --tail 50"
+    err "  ${BOOTSTRAP_OUT}"
+    exit 1
+fi
+
+sed -i "s|^TRACKER_USER=.*|TRACKER_USER=${TRACKER_AGENT_USER}|" "$ENV_FILE"
+sed -i "s|^TRACKER_API_TOKEN=.*|TRACKER_API_TOKEN=${TOKEN_NEW}|" "$ENV_FILE"
+
+info "  ✓ Пользователь '${TRACKER_AGENT_USER}' создан (admin), токен записан в ${ENV_FILE}"
+
+# --- Шаг 7: финальный smoke-test (опционально, по флагу --smoke) ---
+info "Шаг 7/7: установка завершена!"
 echo ""
 echo "${C_GREEN}═══════════════════════════════════════════════════════════════════${C_RESET}"
 echo "${C_GREEN}  OpenProject запущен: ${TRACKER_URL}${C_RESET}"
+echo "${C_GREEN}  Пользователь: ${TRACKER_AGENT_USER} (admin)${C_RESET}"
+echo "${C_GREEN}  Токен записан в ${ENV_FILE}${C_RESET}"
 echo "${C_GREEN}═══════════════════════════════════════════════════════════════════${C_RESET}"
 echo ""
-echo "Следующие шаги (выполните в браузере):"
+
+if [ "${1:-}" = "--smoke" ]; then
+    info "Запускаю smoke-test (--smoke)..."
+    cd "${REPO_ROOT}"
+    ./tools/tracker-smoke-test.sh
+    exit $?
+fi
+
+echo "Следующие шаги:"
 echo ""
-echo "1. Откройте ${TRACKER_URL} в браузере."
+echo "1. (опционально) Откройте ${TRACKER_URL} в браузере — войдите как admin/admin (если создавали)"
 echo ""
-echo "2. Пройдите first-run setup:"
-echo "   • Создайте admin-аккаунт (username, password, email)"
-echo "   • Название организации, язык, часовой пояс"
-echo "   • OpenProject предложит создать первый проект (например, 'karaoke')"
+echo "2. (опционально) Создайте проект 'karaoke' в UI, если ещё нет:"
+echo "   • Projects → + Create project → Name 'Karaoke', Identifier 'karaoke'"
+echo "   • Добавьте ${TRACKER_AGENT_USER} в Project members с ролью 'Member'"
 echo ""
-echo "3. После входа в UI создайте API token:"
-echo "   • My Account (правый верхний угол) → Access Tokens → Generate"
-echo "   • Скопируйте токен"
-echo "   • Обновите ${ENV_FILE}:"
-echo "       TRACKER_API_TOKEN=<скопированный токен>"
-echo ""
-echo "4. Узнайте ID проекта и ID типа задачи (Task):"
-echo "   • ID проекта: UI → Project → Settings → скопируйте число из URL"
-echo "   • ID типа: UI → Administration → Types → скопируйте ID 'Task'"
-echo ""
-echo "5. Создайте пользователя ai-agent:"
-echo "   • UI → Administration → Users → New user"
-echo "   • Назначьте в группу 'Project members'"
-echo ""
-echo "6. Запустите end-to-end smoke-test:"
+echo "3. Запустите end-to-end smoke-test:"
 echo "       ./tools/tracker-smoke-test.sh"
+echo ""
+echo "4. (опционально) Установите systemd-таймер для ежедневного бэкапа Postgres:"
+echo "       sudo cp deploy/tracker-db-backup.{service,timer} /etc/systemd/system/"
+echo "       sudo systemctl enable --now tracker-db-backup.timer"
 echo ""
 echo "Подробная документация: docs/tracker-setup.md"

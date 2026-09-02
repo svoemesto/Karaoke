@@ -96,7 +96,7 @@ CLI (`tools/tracker.sh`) забирает их, выполняет и публи
 
 ### Создание work package (пользователь)
 
-1. Пользователь открывает OpenProject UI: `http://localhost:7081`.
+1. Пользователь открывает OpenProject UI: `http://localhost:8080` (или `:7082/7083/7084`, если `install-tracker.sh` нашёл дефолт занятым).
 2. Projects → Karaoke → + Create new work package → Type `Task`.
 3. Заполняет subject, description (markdown с ссылкой на `specs/<NNN>-*/spec.md`), assignee = `ai-agent`.
 4. Save → получает числовой ID (например, `42`).
@@ -137,7 +137,7 @@ CLI (`tools/tracker.sh`) забирает их, выполняет и публи
 | Identifier | `KARAOKE-N` (текстовый) | `42` (числовой ID) |
 | Workflow | Через transitions API | Через PATCH с `_links.status.href` |
 | Комментарии | `POST /issue/{key}/comment` + ADF | `POST /work_packages/{id}/activities` + markdown |
-| Web UI | `localhost:8080` (через host network) | `localhost:7081` |
+| Web UI | `localhost:8080` (через host network) | `localhost:8080` (fallback 7082-7084) |
 
 ## Связь с другими фичами
 

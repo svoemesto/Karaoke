@@ -85,13 +85,14 @@ fi
 
 # --- Получаем type ID для "Task" ---
 echo "  ... получаем type ID для 'Task'..."
-TYPES_RESPONSE=$(curl -fsS -u "${TRACKER_USER}:${TRACKER_API_TOKEN}" \
+# ВАЖНО: OpenProject Basic Auth требует username='apikey' (см. UserBasicAuth warden-strategy)
+TYPES_RESPONSE=$(curl -fsS -u "apikey:${TRACKER_API_TOKEN}" \
     "${TRACKER_URL}/api/v3/types?pageSize=100" 2>/dev/null || echo "{}")
-TASK_TYPE_ID=$(echo "$TYPES_RESPONSE" | jq -r '.embedded.elements[]? | select(.name == "Task" or .title == "Task") | .id' | head -1)
+TASK_TYPE_ID=$(echo "$TYPES_RESPONSE" | jq -r '._embedded.elements[]? | select(.name == "Task" or .title == "Task") | .id' | head -1)
 
 if [ -z "$TASK_TYPE_ID" ]; then
     # Берём первый доступный тип
-    TASK_TYPE_ID=$(echo "$TYPES_RESPONSE" | jq -r '.embedded.elements[0]?.id // empty')
+    TASK_TYPE_ID=$(echo "$TYPES_RESPONSE" | jq -r '._embedded.elements[0]?.id // empty')
 fi
 
 if [ -z "$TASK_TYPE_ID" ]; then

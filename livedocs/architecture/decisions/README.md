@@ -25,6 +25,7 @@ ADR фиксируют **значимые архитектурные решен�
 | [0004](0004-karaoke-app-admin-only.md) | KaraokeApp — только на admin-машине, не на проде | Accepted | 2026-07-20 |
 | [0005](0005-self-hosted-ml.md) | Self-hosted ML (Ollama + SearXNG + Sheetsage + Demucs) вместо SaaS | Accepted | 2026-07-20 |
 | [0006](0006-processbuilder-redirect-errorstream.md) | ProcessBuilder + redirectErrorStream(true) для async-задач | Accepted | 2026-08-13 |
+| [0008](0008-tracker-openproject-migration.md) | Миграция локального issue-tracker с Jira DC на OpenProject CE | Accepted | 2026-09-02 |
 
 ### Local ADR (конвенции в коде)
 

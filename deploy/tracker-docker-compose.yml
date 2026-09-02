@@ -15,9 +15,13 @@
 # Это ОТДЕЛЬНЫй compose-файл (НЕ часть deploy/do.sh) — трекер работает
 # изолированно от основного стека Karaoke (аналог FR-011 в старой спеке).
 #
-# Порты:
-#   - openproject  — 7081 (web UI + REST API v3)
-#   - openproject-db — 5435 (Postgres, нестандартный чтобы не конфликтовать с jira-db)
+# Порты (network_mode: host — порты публикуются прямо на хост):
+#   - openproject  — 8080 (дефолт OpenProject Community; изнутри контейнера
+#     nginx уже слушает :8080). Снаружи хоста — также :8080. Если занят —
+#     install-tracker.sh автоматически переключит на 7082/7083/7084 (см.
+#     tools/install-tracker.sh:ATTEMPT_PORTS).
+#   - openproject-db — 5435 (Postgres, нестандартный чтобы не конфликтовать
+#     с jira-db и основной Postgres).
 #
 # network_mode: host для обхода docker-proxy проблем на некоторых хостах
 # (аналогично deploy/jira-docker-compose.yml из архива).
@@ -66,8 +70,10 @@ services:
       DATABASE_URL: postgresql://openproject:${TRACKER_DB_PASSWORD}@localhost:5435/openproject
       # Rails secret
       SECRET_KEY_BASE: ${TRACKER_SECRET_KEY_BASE:?TRACKER_SECRET_KEY_BASE is required}
-      # Host config
-      OPENPROJECT_HOST: ${TRACKER_HOST:-localhost:7081}
+      # Host config (внешний URL, по которому браузер пользователя
+      # будет ходить к OpenProject). Дефолт localhost:8080 совпадает
+      # с дефолтом OpenProject Community и с настройкой install-tracker.sh.
+      OPENPROJECT_HOST: ${TRACKER_HOST:-localhost:8080}
       OPENPROJECT_HTTPS: "false"
       # Attachments storage
       OPENPROJECT_ATTACHMENTS_STORAGE_PATH: /var/openproject/assets

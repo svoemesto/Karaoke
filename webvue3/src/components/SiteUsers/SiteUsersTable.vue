@@ -108,6 +108,12 @@
           </div>
         </template>
 
+        <template #cell(canWorkWithSkipped)="data">
+          <div style="text-align: center">
+            {{ data.value ? 'Да' : '' }}
+          </div>
+        </template>
+
         <template #cell(sponsrPremiumUntil)="data">
           <div style="text-align: center">
             {{ formatDate(data.value) }}
@@ -341,6 +347,18 @@ export default {
         {
           key: 'canSelfAssignTasks',
           label: 'Self-assign',
+          sortable: true,
+          style: {
+            minWidth: '100px',
+            maxWidth: '100px',
+            textAlign: 'center',
+            fontSize: 'small',
+          },
+        },
+        // specs/293-skip-author-toggle: новая колонка с правом работать с SKIP-контентом.
+        {
+          key: 'canWorkWithSkipped',
+          label: 'SKIP-доступ',
           sortable: true,
           style: {
             minWidth: '100px',

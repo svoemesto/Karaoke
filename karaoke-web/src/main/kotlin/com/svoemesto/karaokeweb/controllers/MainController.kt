@@ -16,6 +16,7 @@ import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.SongReleaseAnnouncementService
 import com.svoemesto.karaokeapp.services.StorageApiClient
 import com.svoemesto.karaokeweb.services.SamplingFilter
+import com.svoemesto.karaokeweb.services.SiteUserResolver
 import com.svoemesto.karaokeweb.services.WEB_WORK_IN_CONTAINER
 import com.svoemesto.karaokeweb.util.ClientIpResolver
 // import com.svoemesto.karaokeweb.services.KSS_WEB
@@ -45,6 +46,9 @@ class MainController(
     // Kill-switch `karaoke.web.events.batch-enabled` (дефолт false — sync INSERT как раньше).
     // При включении — снижает RPS INSERT на ≥80% (50 INSERT/5 сек → 1 batch).
     private val eventsBuffer: com.svoemesto.karaokeweb.services.EventsBuffer,
+    // specs/293-skip-author-toggle: резолвер текущего пользователя для прокидывания canWorkWithSkipped
+    // в фильтры SKIP (см. /zakroma).
+    private val siteUserResolver: SiteUserResolver,
 ) {
     private val log = LoggerFactory.getLogger(MainController::class.java)
 
@@ -104,8 +108,18 @@ class MainController(
         author?.let {
             data["author"] = it
         }
+        // specs/293-skip-author-toggle: флаг canWorkWithSkipped определяет, видит ли залогиненный
+        // пользователь SKIP-авторов и SKIP-песни. Анонимный пользователь — null → false (прежнее поведение).
+        val canSeeSkipped = siteUserResolver.resolve(request)?.canWorkWithSkipped ?: false
         model.addAttribute("author_init", author ?: "")
-        model.addAttribute("authors", Song.loadListAuthors(withSkiped = false, database = WORKING_DATABASE))
+        model.addAttribute(
+            "authors",
+            Song.loadListAuthors(
+                withSkiped = canSeeSkipped,
+                isSpecialOrder = null,
+                database = WORKING_DATABASE,
+            ),
+        )
         // Публичная поверхность прода — показываем только готовые песни (specs/013-song-status-filter).
         model.addAttribute(
             "zakroma",
@@ -115,6 +129,7 @@ class MainController(
                 storageService = storageService,
                 storageApiClient = storageApiClient,
                 onlyPublished = true,
+                canSeeSkipped = canSeeSkipped,
             ),
         )
         doRegisterEvent(
@@ -411,7 +426,9 @@ class MainController(
                 )
             }
 
-        model.addAttribute("authors", Song.loadListAuthors(withSkiped = false, database = WORKING_DATABASE))
+        // specs/293-skip-author-toggle: на странице /filter (полнотекстовый поиск) тоже прокидываем флаг.
+        val canSeeSkipped = siteUserResolver.resolve(request)?.canWorkWithSkipped ?: false
+        model.addAttribute("authors", Song.loadListAuthors(withSkiped = canSeeSkipped, database = WORKING_DATABASE))
         model.addAttribute("song", song)
 
         val data: MutableMap<String, Any> = mutableMapOf()

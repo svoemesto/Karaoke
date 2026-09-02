@@ -37,6 +37,10 @@ data class ZakromaAlbumSongPublicDto(
     // `idStatus` — Long для совместимости с `Song.idStatus` (см. Song.kt).
     val idStatus: Long = 0L,
     val contentReady: Boolean = false,
+    // specs/293-skip-author-toggle: true, если песня имеет тег SKIP в `tbl_songs.tags`.
+    // Используется UI karaoke-public для условного рендера бейджа «SKIP» в карточке песни
+    // (только для пользователей с canWorkWithSkipped=true).
+    val contentRemoved: Boolean = false,
 )
 
 /**
@@ -90,6 +94,10 @@ data class ZakromaPublicDto(
     // Счётчики альбомов по типу для группировки/быстрых фильтров (FR-023/024/025/026), в порядке
     // AlbumType.ZAKROMA_GROUP_ORDER, только типы с count > 0.
     val albumTypeCounts: List<AlbumTypeSummaryDto> = emptyList(),
+    // specs/293-skip-author-toggle: true, если автор имеет `tbl_authors.skip = TRUE`.
+    // Используется UI karaoke-public для условного рендера бейджа «SKIP» рядом с именем автора
+    // (только для пользователей с canWorkWithSkipped=true).
+    val authorSkip: Boolean = false,
 ) {
     companion object {
         fun fromZakroma(list: List<Zakroma>): List<ZakromaPublicDto> =
@@ -105,6 +113,8 @@ data class ZakromaPublicDto(
                     authorDescription = zak.authorDescription,
                     authorShortDescription = zak.authorShortDescription,
                     authorWarning = zak.authorWarning,
+                    // specs/293-skip-author-toggle: прокидываем флаг `tbl_authors.skip` для UI-бейджа.
+                    authorSkip = zak.authorSkip,
                     albumTypeCounts =
                         zak.albums
                             .groupingBy { it.albumType }
@@ -152,6 +162,8 @@ data class ZakromaPublicDto(
                                             // иконка плеера без per-row readiness.
                                             idStatus = s.idStatus,
                                             contentReady = s.contentReady,
+                                            // specs/293-skip-author-toggle: бейдж SKIP в UI.
+                                            contentRemoved = s.contentRemoved,
                                         )
                                     },
                                 albumType = alb.albumType,

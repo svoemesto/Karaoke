@@ -31,10 +31,15 @@ class Zakroma(
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
             onlyPublished: Boolean = false,
+            // specs/293-skip-author-toggle: если true — пользователь имеет право видеть SKIP-песни
+            // (тег `SKIP` в `tbl_songs.tags`); если false — фильтруем их на уровне Kotlin
+            // (SQL-фильтр уже применяется на уровне `tbl_authors.skip` через `withSkiped` в
+            // вызывающем контроллере, см. MainController/PublicApiController).
+            canSeeSkipped: Boolean = false,
         ): List<Zakroma> {
             val args = mutableMapOf("author" to author)
             if (onlyPublished) args["id_status"] = ">=6"
-            val songList =
+            val loaded =
                 Song.loadListFromDb(
                     args = args,
                     database = database,
@@ -42,6 +47,7 @@ class Zakroma(
                     storageApiClient = storageApiClient,
                     withoutMarkersAndText = true,
                 )
+            val songList = if (canSeeSkipped) loaded else loaded.filterNot(::songHasSkipTag)
             return buildFromSongs(songList, database, storageService, storageApiClient)
         }
 
@@ -55,6 +61,7 @@ class Zakroma(
          *
          * @param onlyPublished при true — только песни со статусом готовности >= 6, см.
          * [getZakroma].
+         * @param canSeeSkipped — см. [getZakroma].
          * @see archive/docs/features/special-orders.md
          */
         fun getZakromaBySpecialOrder(
@@ -62,17 +69,18 @@ class Zakroma(
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
             onlyPublished: Boolean = false,
+            canSeeSkipped: Boolean = false,
         ): List<Zakroma> {
             val names =
                 Song.loadListAuthors(
-                    withSkiped = false,
+                    withSkiped = canSeeSkipped,
                     isSpecialOrder = true,
                     database = database,
                 )
             if (names.isEmpty()) return emptyList()
             val args = mutableMapOf("author_in" to names.joinToString(Song.AUTHOR_IN_DELIMITER))
             if (onlyPublished) args["id_status"] = ">=6"
-            val songList =
+            val loaded =
                 Song.loadListFromDb(
                     args = args,
                     database = database,
@@ -80,8 +88,16 @@ class Zakroma(
                     storageApiClient = storageApiClient,
                     withoutMarkersAndText = true,
                 )
+            val songList = if (canSeeSkipped) loaded else loaded.filterNot(::songHasSkipTag)
             return buildFromSongs(songList, database, storageService, storageApiClient)
         }
+
+        // specs/293-skip-author-toggle: проверка тега `SKIP` в `tbl_songs.tags`. Та же логика,
+        // что в ListeningHistoryController.songHasSkipTag и PublicOgSongController.isSkipped —
+        // split по пробелам, case-insensitive. Скопирована сюда локально, чтобы не тянуть
+        // зависимость между модулями (karaoke-app используется и в web, и в app).
+        private fun songHasSkipTag(song: Song): Boolean =
+            (song.tags ?: "").split(" ").any { it.trim().equals("SKIP", ignoreCase = true) }
 
         /**
          * Группирует плоский список песен в структуру Автор→Альбом→Песни для закромов.
@@ -210,6 +226,9 @@ class Zakroma(
                         zakroma.authorDescription = linkedAuthor.description
                         zakroma.authorShortDescription = linkedAuthor.shortDescription
                         zakroma.authorWarning = linkedAuthor.warning
+                        // specs/293-skip-author-toggle: прокидываем флаг tbl_authors.skip
+                        // для бейджа «SKIP» в UI karaoke-public.
+                        zakroma.authorSkip = linkedAuthor.skip
                     }
                 // Ключ группировки — (год, название), а не только название: у автора могут быть
                 // два РАЗНЫХ альбома с одинаковым названием, но разными годами (см. уникальный
@@ -270,6 +289,9 @@ class Zakroma(
                                         // файла и через HealthReport.recalculatePlayerReadiness.
                                         zakromaAlbumSong.idStatus = song.idStatus
                                         zakromaAlbumSong.contentReady = song.isContentReady
+                                        // specs/293-skip-author-toggle: прокидываем флаг тега SKIP
+                                        // в tbl_songs.tags для бейджа «SKIP» в UI karaoke-public.
+                                        zakromaAlbumSong.contentRemoved = songHasSkipTag(song)
                                         zakromaAlbumSong.track = song.track
                                         // specs/277-song-name-censored: предвычисленное значение из
                                         // tbl_songs.song_name_censored (см. comment выше про Pass 239 +
@@ -302,6 +324,11 @@ class Zakroma(
     var authorDescription: String = ""
     var authorShortDescription: String = ""
     var authorWarning: String = ""
+
+    // specs/293-skip-author-toggle: флаг `tbl_authors.skip = TRUE` копируется из сущности Author
+    // в buildFromSongs(). Используется UI karaoke-public для условного рендера бейджа «SKIP»
+    // рядом с именем автора (только для пользователей с canWorkWithSkipped=true).
+    var authorSkip: Boolean = false
 
     override fun compareTo(other: Zakroma): Int = author.compareTo(other.author)
 }
@@ -341,6 +368,11 @@ class ZakromaAlbumSong :
     // в NDJSON/DTO — фронт иконку плеера рисует без per-row readiness-запроса.
     var idStatus: Long = 0L
     var contentReady: Boolean = false
+
+    // specs/293-skip-author-toggle: флаг «контент удалён по требованию правообладателя» (тег SKIP
+    // в `tbl_songs.tags`). Используется UI karaoke-public для условного рендера бейджа «SKIP»
+    // в карточке песни (только для пользователей с canWorkWithSkipped=true).
+    var contentRemoved: Boolean = false
 
     override fun compareTo(other: ZakromaAlbumSong): Int {
         val compTrack = track.compareTo(other.track)

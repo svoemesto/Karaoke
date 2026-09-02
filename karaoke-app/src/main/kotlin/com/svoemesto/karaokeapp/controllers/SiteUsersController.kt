@@ -116,6 +116,12 @@ class SiteUsersController {
         // isEditor=true; фронт в SiteUserEdit дисейблит чекбокс, если редактор выключен. Снятие флага
         // НЕ отзывает уже взятые задания — иначе админ потерял бы чужую работу без явного решения.
         @RequestParam(required = false) canSelfAssignTasks: Boolean?,
+        // specs/293-skip-author-toggle: разрешение на работу со SKIP-авторами/песнями.
+        // Залогиненный пользователь с флагом видит SKIP-контент в публичных списках
+        // (Закрома, история прослушиваний), бейдж «SKIP» в UI karaoke-public. Share-link
+        // для SKIP-песен ВСЕ РАВНО запрещён (compliance). Выставляется ТОЛЬКО админом
+        // в webvue3. Не привязан жёстко к isEditor=true. Авто-выдачи админам нет (clarify Q3).
+        @RequestParam(required = false) canWorkWithSkipped: Boolean?,
         // Персональные лимиты (0 = дефолт). Перекрывают дефолты в PublicPlaylistController.
         @RequestParam(required = false) maxFavorites: Int?,
         @RequestParam(required = false) maxPlaylists: Int?,
@@ -143,6 +149,7 @@ class SiteUsersController {
                 isPermanentPremium?.let { user.isPermanentPremium = it }
                 isEditor?.let { user.isEditor = it }
                 canSelfAssignTasks?.let { user.canSelfAssignTasks = it }
+                canWorkWithSkipped?.let { user.canWorkWithSkipped = it }
                 maxFavorites?.let { user.maxFavorites = it }
                 maxPlaylists?.let { user.maxPlaylists = it }
                 maxPlaylistItems?.let { user.maxPlaylistItems = it }

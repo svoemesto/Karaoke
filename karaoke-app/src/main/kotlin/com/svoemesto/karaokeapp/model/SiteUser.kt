@@ -139,6 +139,17 @@ class SiteUser(
     @KaraokeDbTableField(name = "can_self_assign_tasks")
     var canSelfAssignTasks: Boolean = false
 
+    // specs/293-skip-author-toggle: разрешение на работу с SKIP-авторами/песнями.
+    // Снимает фильтр `tbl_authors.skip = TRUE` и тег `SKIP` в `tbl_songs.tags` для залогиненного
+    // пользователя во всех публичных списках (Закрома, история прослушиваний, share-link).
+    // Выставляется ТОЛЬКО админом в webvue3 (аналогия с canSelfAssignTasks). Не привязан жёстко
+    // к isEditor=true — админ может выдать любому пользователю. Галочка НЕ выдаётся автоматически
+    // админам — унифицированная логика без OR с isAdmin (clarify 2026-09-02, Q3).
+    // Share-link для SKIP-песен ВСЕ РАВНО запрещён (FR-012) — compliance с требованиями
+    // правообладателя. См. также livedocs/features/293-skip-author-toggle.md.
+    @KaraokeDbTableField(name = "can_work_with_skipped")
+    var canWorkWithSkipped: Boolean = false
+
     @KaraokeDbTableField(name = "is_banned")
     var isBanned: Boolean = false
 
@@ -179,6 +190,7 @@ class SiteUser(
             personalDiscountPercent = personalDiscountPercent,
             isEditor = isEditor,
             canSelfAssignTasks = canSelfAssignTasks,
+            canWorkWithSkipped = canWorkWithSkipped,
             isBanned = isBanned,
             banReason = banReason,
             maxFavorites = maxFavorites,

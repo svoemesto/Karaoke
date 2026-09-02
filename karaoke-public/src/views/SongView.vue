@@ -6,8 +6,12 @@
     <!-- Загрузка -->
     <div v-if="currentSongIsLoading" class="km-loading">Загрузка...</div>
 
-    <!-- Удалено -->
-    <div v-else-if="currentSong && currentSong.contentRemoved" class="km-removed-wrapper">
+    <!-- Удалено (только для пользователей БЕЗ canWorkWithSkipped — редактор с галочкой
+         видит обычный контент песни с бейджем SKIP) -->
+    <div
+      v-else-if="currentSong && currentSong.contentRemoved && !canSeeSkipped"
+      class="km-removed-wrapper"
+    >
       <div class="km-removed-card">
         <div class="km-removed-icon">🔒</div>
         <div class="km-removed-title">Информация о произведении удалена</div>
@@ -100,8 +104,18 @@
             <div class="km-meta-actions">
               <FavoriteIcon :song-id="currentSong.id" label="В избранное" />
               <PlaylistIcon :song-id="currentSong.id" label="В плейлист" />
-              <ShareButton />
-              <ShareLinkButton :song-id="currentSong.id" />
+              <!-- specs/293-skip-author-toggle (FR-012): кнопки шаринга скрыты для SKIP-песен
+                   независимо от canWorkWithSkipped — compliance с требованиями правообладателя.
+                   Share-link запрещён для всех (бэкенд уже возвращает 409, см. FR-012). -->
+              <ShareButton v-if="!isCurrentSongSkipped" />
+              <ShareLinkButton v-if="!isCurrentSongSkipped" :song-id="currentSong.id" />
+              <!-- specs/293-skip-author-toggle (FR-011): бейдж SKIP для редакторов с галочкой. -->
+              <span
+                v-if="isCurrentSongSkipped && canSeeSkipped"
+                class="badge text-bg-warning ms-2"
+                title="Удалено по требованию правообладателя"
+                >SKIP</span
+              >
               <!-- Self-assign (FR-005/US2, specs/182-editor-self-assign-tasks): кнопка «Взять в
                    работу» появляется ТОЛЬКО для self-assign-редакторов на странице конкретной песни
                    (а не в Закромах), когда песня свободна. Если задание уже наше — показываем
@@ -443,6 +457,18 @@ export default {
     // поле `isEditor` Kotlin сериализуется как `editor`, `isBanned` → `banned`. См. AGENTS.md Q&A.
     canSelfAssignEditor() {
       return !!(this.user && this.user.editor && this.user.canSelfAssignTasks)
+    },
+    // specs/293-skip-author-toggle: залогиненный пользователь с правом работать с SKIP-контентом.
+    canSeeSkipped() {
+      return !!(this.user && this.user.canWorkWithSkipped)
+    },
+    // specs/293-skip-author-toggle: текущая песня имеет тег SKIP (контент удалён).
+    isCurrentSongSkipped() {
+      return !!(
+        this.currentSong &&
+        this.currentSong.tags &&
+        this.currentSong.tags.toUpperCase().includes('SKIP')
+      )
     },
     userId() {
       return this.user && this.user.id ? Number(this.user.id) : 0

@@ -112,12 +112,17 @@ class ListeningHistoryController {
                     Song.loadListFromDbByIds(allSongIds, db, KSS_APP, SAC_APP)
                 }
 
-            // 5. Фильтруем: оставляем только строки, где песня СУЩЕСТВУЕТ и НЕ имеет тег SKIP
-            //    (та же логика, что и INNER JOIN + s.tags NOT SKIP в публичном `getForUser`).
+            // 5. Фильтруем: оставляем только строки, где песня СУЩЕСТВУЕТ.
+            //    specs/293-skip-author-toggle: SKIP-фильтр снят — это admin endpoint
+            //    `/api/listeninghistory/digest` для диагностики, а не публичная поверхность.
+            //    Раньше SKIP-песни исключались (см. `archive/docs/features/listening-history.md`),
+            //    теперь показываются всем админам. Публичный `ListeningHistory.getForUser` (для
+            //    пользователей karaoke-public) продолжает фильтровать SKIP — это уже отдельный
+            //    класс и SQL-фильтр в `tbl_listening_history.getForUser` (см. ListeningHistory.kt:133).
             val filtered =
                 allLoaded.filter { h ->
                     val song = allSongsById[h.songId]
-                    song != null && !songHasSkipTag(song.tags)
+                    song != null
                 }
 
             // 6. Сортировка (whitelist + default).

@@ -114,75 +114,188 @@ Cron-вариант для систем без systemd-user:
 0 3 * * * /home/nsa/Karaoke/deploy/tracker-db-backup.sh >> ~/.local/share/tracker-backup.log 2>&1
 ```
 
+### 1.5 Kanban-доска «AI Pipeline» + workflow status «In review»
+
+`install-tracker.sh` автоматически (если проект `karaoke` уже существует) вызывает
+`tools/tracker-bootstrap-board.sh`, который:
+
+1. **Переименовывает** стандартный статус «In testing» (id=9) → «In review» —
+   пауза между окончанием работы агента и проверкой пользователем.
+2. **Создаёт Kanban-доску** «AI Pipeline» в проекте Karaoke с 6 колонками:
+
+| Колонка | Фильтр OpenProject |
+|---------|---------------------|
+| New | `status_id=1, assigned_to_id=<ai-agent>` |
+| In specification | `status_id=2, assigned_to_id=<ai-agent>` |
+| Specified | `status_id=3, assigned_to_id=<ai-agent>` |
+| In progress | `status_id=7, assigned_to_id=<ai-agent>` |
+| **In review** | `status_id=9, assigned_to_id=<ai-agent>` |
+| Closed | `status_id=12, assigned_to_id=<ai-agent>` |
+
+3. **Добавляет workflow-transitions** для статуса «In review» (для всех типов × ролей):
+   - `New → In review`
+   - `In progress → In review`
+   - `Specified → In review`
+   - `In review → In progress` (вернуть на доработку)
+   - `In review → Closed` (финал после ревью)
+   - `Closed → In review` (опциональный возврат)
+
+Если нужно пересоздать доску позже:
+
+```bash
+bash tools/tracker-bootstrap-board.sh
+```
+
+Открыть доску: <http://localhost:8080/projects/karaoke/boards/10>
+
 ## Этап 2: Использование
 
 ### Создать задачу в UI
 
-1. Открыть `http://localhost:8080/projects/karaoke` (или ваш проект).
+1. Открыть <http://localhost:8080/projects/karaoke>.
 2. **+ Create new work package** → Type `Task`.
 3. Subject: `<краткое название>`.
-4. Description: `<детали, желательно ссылка на specs/<NNN>-*/spec.md>`.
+4. Description: `<детали>`. Если задача сложная и требует спецификации —
+   пользователь не пишет спеку сразу, а агент создаёт её автоматически
+   (см. `tracker-spec-for-issue.sh` ниже).
 5. Assignee: `ai-agent`.
 6. Save → получить числовой ID (например, `42`).
 
-### Агент берёт задачу
+### Polling при старте сессии opencode
+
+В начале каждой сессии агент **обязан** выполнить `tools/tracker-poll.sh`,
+чтобы увидеть:
 
 ```bash
 cd /home/nsa/Karaoke
 source .env.local-tracker
 
-# Список открытых задач, где assignee = ai-agent
-./tools/tracker.sh list-issues --assignee ai-agent --status open
-
-# Взять задачу (assignee = ai-agent + status = In progress)
-./tools/tracker.sh claim-issue 42
-
-# После выполнения работы — добавить markdown-отчёт
-cat > /tmp/report.md <<'EOF'
-## Что сделано
-
-Реализована фича X.
-
-## Изменённые файлы
-
-- src/foo/Bar.kt
-- docs/foo.md
-
-## Прогон проверок
-
-- `./gradlew :karaoke-web:ktlintCheck` — OK
-- `./gradlew :karaoke-web:bootJar` — OK
-- `./tools/check-livedocs-structure.sh` — OK
-
-## Известные ограничения
-
-Нет.
-EOF
-
-./tools/tracker.sh add-comment 42 --file /tmp/report.md
-
-# Закрыть задачу (status = Closed)
-./tools/tracker.sh close-issue 42
+bash tools/tracker-poll.sh
 ```
 
-### Полный pipeline (пример)
+Пример вывода:
+
+```
+═══ Tracker poll ═══
+Время:     2026-09-02 15:35:50 +0300
+Tracker:   http://localhost:8080
+Assignee:  ai-agent
+
+📋 Открытые задачи (2)
+42  test-mark-review-183444  -      unassigned  -
+47  Fix memory leak in cache  New    ai-agent    -
+
+🔍 В ревью (0)
+
+✅ Недавно закрытые (3)
+43  test-flow-183542          Closed   ai-agent  -
+46  Refactor admin panel      Closed   ai-agent  -
+
+Kanban-доска: http://localhost:8080/projects/karaoke/boards/10
+```
+
+Опции:
+
+- `--json` — JSON для парсинга в другие скрипты.
+- `--quiet` — только статистика для cron / системных служб.
+- `--limit N` — ограничить количество задач.
+- `--assignee USER` — изменить фильтр (default = `$TRACKER_AGENT_USER`).
+
+Exit codes:
+- `0` — есть открытые задачи.
+- `1` — открытых нет (всё сделано).
+- `2` — OpenProject недоступен.
+- `3` — токен истёк.
+
+### Polling через cron / systemd-timer (опционально)
+
+Если нужны регулярные опросы, можно настроить таймер каждые 5 минут:
 
 ```bash
-# 1. Найти задачу
-ID=$(./tools/tracker.sh list-issues --assignee ai-agent --status open \
-        | tail -n +2 | head -1 | awk '{print $1}')
-
-# 2. Взять в работу
-./tools/tracker.sh claim-issue "$ID"
-
-# 3. ... выполнить работу ...
-
-# 4. Опубликовать отчёт
-./tools/tracker.sh add-comment "$ID" --file ./REPORT.md
-
-# 5. Закрыть
-./tools/tracker.sh close-issue "$ID"
+# ~/.local/bin/tracker-poll-cron.sh
+#!/usr/bin/env bash
+cd /home/nsa/Karaoke
+set -a; source .env.local-tracker; set +a
+echo "[$(date -Iseconds)] $(bash tools/tracker-poll.sh --quiet 2>&1)" \
+  >> ~/.local/share/tracker-poll.log
 ```
+
+```bash
+# crontab -e
+*/5 * * * * bash ~/.local/bin/tracker-poll-cron.sh
+```
+
+### Полный workflow (user → agent → user → closed)
+
+```
+┌──────────────────────────────────────────────────────────────────────┐
+│ 1. user  http://localhost:8080/projects/karaoke → +Task          │
+│           assignee = ai-agent, save → work package #42 created      │
+└──────────────────────────────────────────────────────────────────────┘
+                                ↓
+┌──────────────────────────────────────────────────────────────────────┐
+│ 2. agent  bash tools/tracker-poll.sh  видит #42                    │
+│           • bash tools/tracker-spec-for-issue.sh 42                 │
+│             → создаёт specs/045-foo/spec.md + tasks.md             │
+│             → добавляет комментарий в #42 со ссылкой                │
+│           • cd specs/045-foo && заполняет User Stories / FR / AC   │
+│           • bash tools/tracker.sh claim-issue 42                    │
+│             → assignee=ai-agent, status = "In progress"            │
+└──────────────────────────────────────────────────────────────────────┘
+                                ↓
+┌──────────────────────────────────────────────────────────────────────┐
+│ 3. agent  ... реализация по tasks.md (commit/PR)                  │
+│           • bash tools/tracker.sh add-comment 42 --file REPORT.md   │
+│             → публикует markdown-отчёт (Что сделано/Файлы/...)    │
+│           • bash tools/tracker.sh mark-review 42                   │
+│             → status = "In review" (готов к проверке)             │
+└──────────────────────────────────────────────────────────────────────┘
+                                ↓
+┌──────────────────────────────────────────────────────────────────────┐
+│ 4. user   Открывает доску / work package #42 / PR                  │
+│           • Проверяет работу                                         │
+│           • Если всё ОК:                                            │
+│             bash tools/tracker.sh close-issue 42                    │
+│             → status = "Closed"                                     │
+│           • Если нужна доработка:                                   │
+│             bash tools/tracker.sh reopen-issue 42                   │
+│             → status = "In progress" → agent видит в poll           │
+└──────────────────────────────────────────────────────────────────────┘
+```
+
+### Создание спеки из work package
+
+Если задача в OpenProject нетривиальная и требует полноценной спецификации
+(для архивации, для git-PR, для повторного использования в будущем),
+агент вызывает:
+
+```bash
+bash tools/tracker-spec-for-issue.sh <WORK_PACKAGE_ID>
+```
+
+Что произойдёт:
+
+1. Скрипт прочитает `subject` + `description` work package через
+   `tracker.sh get-issue`.
+2. Сгенерирует slug в kebab-case: `Fix memory leak in cache` → `fix-memory-leak-in-cache`.
+3. Найдёт следующий свободный номер спек (`045` на 2026-09-02, например).
+4. Создаст каталог `specs/045-fix-memory-leak-in-cache/` с:
+   - `spec.md` — frontmatter (work_package, created, source) + исходное
+     описание + чек-лист «что нужно сделать».
+   - `tasks.md` — заготовка чек-листа (Research / Design / Implementation /
+     Verification / Close).
+5. Добавит markdown-комментарий в work package со ссылкой на спеку.
+
+После этого агент работает по обычному workflow (см. выше).
+
+Опции:
+- `--force` — перезаписать существующий каталог спеки (осторожно).
+
+Exit codes:
+- `0` — спека создана.
+- `1` — work package не найден.
+- `2` — каталог уже существует (use `--force`).
+- `3` — ошибка tracker.sh.
 
 ## Troubleshooting
 

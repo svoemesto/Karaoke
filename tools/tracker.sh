@@ -4,13 +4,14 @@
 # =====================================================================
 # Подкоманды:
 #   list-projects                                  — список проектов
-#   list-issues [--project-id ID] [--assignee USER] [--status open|closed]
+#   list-issues [--project-id ID] [--assignee USER] [--status open|closed|in-review]
 #                  [--limit N]                     — список задач (work packages)
 #   get-issue ID                                   — детали задачи (JSON)
 #   claim-issue ID                                 — назначить на агента + In progress
+#   mark-review ID                                 — перевести в In review (работа готова)
 #   add-comment ID --file FILE                     — добавить markdown-комментарий
 #   close-issue ID                                 — перевести в Closed
-#   reopen-issue ID                                — перевести обратно
+#   reopen-issue ID                                — перевести обратно в In progress
 #   create-issue --project-id ID --type-id ID --subject S
 #                 [--description D]                — создать задачу
 #   healthcheck                                    — проверить доступность OpenProject
@@ -18,6 +19,16 @@
 # Использование:
 #   source .env.local-tracker
 #   ./tools/tracker.sh <subcommand> [args...]
+#
+# Workflow:
+#   1. user:    $ tracker create-issue --...          → статус New
+#   2. agent:   $ tracker claim-issue 42              → статус In progress, assignee=ai-agent
+#   3. agent:   # ... работа ...
+#   4. agent:   $ tracker add-comment 42 --file report.md
+#   5. agent:   $ tracker mark-review 42              → статус In review
+#   6. user:    проверяет работу
+#   7. user:    $ tracker close-issue 42              → статус Closed
+#   или 5'.    $ tracker reopen-issue 42             → вернуть в In progress
 # =====================================================================
 
 set -euo pipefail
@@ -42,7 +53,7 @@ SUBCOMMANDS:
     list-projects
         Список всех проектов в OpenProject.
 
-    list-issues [--project-id ID] [--assignee USER] [--status open|closed] [--limit N]
+    list-issues [--project-id ID] [--assignee USER] [--status open|closed|in-review] [--limit N]
         Список задач (work packages) с фильтрацией.
         Пример: ./tools/tracker.sh list-issues --assignee ai-agent --status open
 
@@ -54,15 +65,19 @@ SUBCOMMANDS:
     claim-issue ID
         Назначить задачу на агента (TRACKER_AGENT_USER) и перевести в In progress.
 
+    mark-review ID
+        Перевести задачу в In review (после публикации отчёта).
+        Это сигнал пользователю, что работа завершена и готова к проверке.
+
     add-comment ID --file FILE
         Добавить markdown-комментарий (OpenProject принимает markdown нативно).
         Пример: ./tools/tracker.sh add-comment 42 --file report.md
 
     close-issue ID
-        Перевести задачу в Closed.
+        Перевести задачу в Closed (финал; обычно делает пользователь после ревью).
 
     reopen-issue ID
-        Перевести задачу обратно (Closed → In progress или New).
+        Перевести задачу обратно в In progress (например, если нужно доработать).
 
     create-issue --project-id ID --type-id ID --subject S [--description D]
         Создать задачу.
@@ -73,12 +88,20 @@ SUBCOMMANDS:
         Проверить доступность OpenProject (без аутентификации, через /api/v3/health_check).
 
 ENVIRONMENT (source .env.local-tracker):
-    TRACKER_URL          — базовый URL OpenProject (например, http://localhost:7081)
+    TRACKER_URL          — базовый URL OpenProject (например, http://localhost:8080)
     TRACKER_USER         — username для Basic Auth
     TRACKER_API_TOKEN    — API token (UI → My Account → Access Tokens → Generate)
     TRACKER_AGENT_USER   — username агента (default = TRACKER_USER)
     TRACKER_LOG_LEVEL    — info/debug/error (default info)
     TRACKER_HTTP_TIMEOUT — curl timeout в секундах (default 30)
+
+WORKFLOW:
+    user  : create-issue → New
+    agent : claim-issue  → In progress (assignee=ai-agent)
+    agent : ... work + report.md ...
+    agent : add-comment + mark-review → In review
+    user  : review report
+    user  : close-issue → Closed  (или agent: reopen-issue → In progress)
 
 EXIT CODES:
     0 — успех
@@ -148,6 +171,14 @@ case "$SUBCOMMAND" in
             exit 1
         fi
         tracker_claim_issue "$1"
+        ;;
+
+    mark-review)
+        if [ $# -ne 1 ]; then
+            echo "${C_RED}ERROR${C_RESET}: usage: tracker.sh mark-review ID" >&2
+            exit 1
+        fi
+        tracker_mark_review "$1"
         ;;
 
     add-comment)

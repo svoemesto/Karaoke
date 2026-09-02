@@ -53,9 +53,9 @@ Atlassian для пользователей из РФ/РБ. OpenProject — drop
 - **FR-003**: Пользователь создаёт work packages типов Task / Bug / Feature
   через UI.
 - **FR-004 / FR-005**: CLI `tools/tracker.sh` через env
-  (`TRACKER_URL`, `TRACKER_USER`, `TRACKER_API_TOKEN`) поддерживает 8
+  (`TRACKER_URL`, `TRACKER_USER`, `TRACKER_API_TOKEN`) поддерживает **9**
   подкоманд: `list-projects`, `list-issues`, `get-issue`, `claim-issue`,
-  `add-comment`, `close-issue`, `reopen-issue`, `create-issue`,
+  `mark-review`, `add-comment`, `close-issue`, `reopen-issue`, `create-issue`,
   `healthcheck`.
 - **FR-006**: Авто-создание пользователя `ai-agent` через `install-tracker.sh`
   → `rails runner` (с admin-правами для поиска пользователей).
@@ -69,11 +69,24 @@ Atlassian для пользователей из РФ/РБ. OpenProject — drop
   (JSON, 1 запись на вызов).
 - **FR-018**: При `lockVersion` conflict CLI автоматически повторяет
   GET и retry PATCH (≤3 попытки).
+- **Расширение Pass 282**:
+  - **Доска «AI Pipeline»** создаётся через `tools/tracker-bootstrap-board.sh`
+    с 6 колонками (New / In specification / Specified / In progress /
+    **In review** / Closed) и фильтром `assignee=ai-agent`.
+  - **Workflow extensions** для статуса «In review» (id=9, переименован
+    из «In testing»): `In progress → In review`, `In review → Closed`,
+    `In review → In progress` (вернуть на доработку), и т.д.
+  - `tools/tracker-poll.sh` — polling-сводка задач для агента (вызывать
+    в начале каждой сессии opencode).
+  - `tools/tracker-spec-for-issue.sh ID` — создать Karaoke-спеку
+    `specs/<NN>-<slug>/spec.md` + tasks.md из work package + добавить
+    комментарий со ссылкой.
 
 ## Acceptance Criteria
 
 - [x] **AC1**: Установка одной командой `bash tools/install-tracker.sh [--smoke]`
-  поднимает OpenProject + Postgres, создаёт `ai-agent` (admin) и API-токен.
+  поднимает OpenProject + Postgres, создаёт `ai-agent` (admin), API-токен,
+  Kanban-доску + workflow transitions.
 - [x] **AC2**: `./tools/tracker-smoke-test.sh` проходит **8/8** шагов
   (healthcheck, list-projects, create-issue, get-issue, claim-issue,
   add-comment, close-issue, final-healthcheck).

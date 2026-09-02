@@ -388,12 +388,29 @@ tracker_list_issues() {
     if [ -n "$status" ]; then
         local op
         case "$status" in
-            open|to_do|"To Do"|"In Progress") op="o" ;;
-            closed|done|"Done"|"Closed") op="c" ;;
-            *) op="o" ;;  # default open
+            open|to_do|"To Do"|"In Progress") op="o"; filter_values="[]" ;;
+            closed|done|"Done"|"Closed") op="c"; filter_values="[]" ;;
+            in-review|in_review|"In review")
+                # Явный фильтр по статусу "In review" (status_id="9")
+                op="="
+                local status_id
+                status_id=$(tracker_http_request GET "/api/v3/statuses" "" "list-issues-resolve-status" \
+                    | jq -r '._embedded.elements[] | select(.name == "In review") | .id' | head -1)
+                filter_values="[\"$status_id\"]"
+                ;;
+            "In specification"|"Specified"|"Scheduled")
+                op="="
+                local status_id
+                status_id=$(tracker_http_request GET "/api/v3/statuses" "" "list-issues-resolve-status" \
+                    | jq -r "._embedded.elements[] | select(.name == \"$status\") | .id" | head -1)
+                filter_values="[\"$status_id\"]"
+                ;;
+            *) op="o"; filter_values="[]" ;;  # default open
         esac
-        filters_array=$(echo "$filters_array" | jq --arg op "$op" \
-            '. + [{"status":{"operator":$op,"values":[]}}]')
+        filters_array=$(echo "$filters_array" | jq \
+            --arg op "$op" \
+            --argjson values "$filter_values" \
+            '. + [{"status":{"operator":$op,"values":$values}}]')
     fi
 
     # URL-encode: JSON → compact → percent-encode (фильтр содержит
@@ -410,9 +427,9 @@ tracker_list_issues() {
         ($headers, (._embedded.elements[]? | [
             (.id | tostring),
             (.subject // "-"),
-            (.status.title // .status.name // "-"),
-            (.assignee.name // "unassigned"),
-            (.type.title // .type.name // "-")
+            (._links.status.title // .status.title // .status.name // "-"),
+            (._links.assignee.title // .assignee.name // "unassigned"),
+            (._links.type.title // .type.title // .type.name // "-")
         ])) | @tsv
     ' | column -t -s $'\t'
 }
@@ -547,6 +564,52 @@ tracker_close_issue() {
     tracker_http_request PATCH "/api/v3/work_packages/${id}" "$payload" "close-issue-patch" >/dev/null
 
     echo "${C_GREEN}OK${C_RESET}: #${id} closed"
+}
+
+# =====================================================================
+# tracker_mark_review — PATCH status → "In review"
+# =====================================================================
+# Используется агентом после публикации отчёта: сигнал пользователю, что
+# работа завершена и готова к проверке. Если пользователь согласен — он
+# вызывает close-issue; если нет — reopen-issue.
+# =====================================================================
+tracker_mark_review() {
+    local id="$1"
+
+    local response current_status lock_version
+    response=$(tracker_http_request GET "/api/v3/work_packages/${id}" "" "mark-review-get")
+    current_status=$(echo "$response" | jq -r '.status.title // .status.name // "unknown"')
+    lock_version=$(echo "$response" | jq -r '.lockVersion // 0')
+
+    if [ "$current_status" = "In review" ]; then
+        echo "${C_YELLOW}WARN${C_RESET}: #${id} уже в статусе In review" >&2
+        return 0
+    fi
+
+    # Находим ID статуса "In review"
+    local review_status_id
+    review_status_id=$(tracker_http_request GET "/api/v3/statuses" "" "mark-review-statuses" \
+        | jq -r '._embedded.elements[] | select(.name == "In review" or .title == "In review") | .id' | head -1)
+
+    if [ -z "$review_status_id" ]; then
+        echo "${C_RED}ERROR${C_RESET}: статус 'In review' не найден (выполните: tools/tracker-install.sh bootstrap-board)" >&2
+        return 5
+    fi
+
+    local payload
+    payload=$(jq -n \
+        --argjson lv "$lock_version" \
+        --argjson sid "$review_status_id" \
+        '{
+            lockVersion: $lv,
+            _links: {
+                status: {href: ("/api/v3/statuses/" + ($sid | tostring))}
+            }
+        }')
+
+    tracker_http_request PATCH "/api/v3/work_packages/${id}" "$payload" "mark-review-patch" >/dev/null
+
+    echo "${C_GREEN}OK${C_RESET}: #${id} → In review (готов к проверке пользователем)"
 }
 
 # =====================================================================

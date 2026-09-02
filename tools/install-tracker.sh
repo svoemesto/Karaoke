@@ -220,18 +220,34 @@ if [ "${1:-}" = "--smoke" ]; then
     exit $?
 fi
 
+# --- Шаг 8 (опционально): bootstrap Kanban-доску + workflow-transitions ---
+# Делается только если в OpenProject уже есть проект 'karaoke' и пользователь 'ai-agent'.
+if docker exec openproject bash -lc "cd /app && bundle exec rails runner -e production 'puts Project.find_by(identifier: \"karaoke\")&.id.to_s' 2>/dev/null" | grep -qE '^[0-9]+$'; then
+    info "Шаг 8/8: bootstrap Kanban-доски «AI Pipeline» + workflow-transitions..."
+    bash "${REPO_ROOT}/tools/tracker-bootstrap-board.sh" || warn "Не удалось настроить доску — выполните позже вручную: bash tools/tracker-bootstrap-board.sh"
+    echo ""
+else
+    warn "Шаг 8/8 пропущен: проект 'karaoke' в OpenProject ещё не создан (создайте через UI, потом запустите tools/tracker-bootstrap-board.sh)"
+fi
+
 echo "Следующие шаги:"
 echo ""
-echo "1. (опционально) Откройте ${TRACKER_URL} в браузере — войдите как admin/admin (если создавали)"
+echo "1. Откройте в браузере ${TRACKER_URL}/projects/karaoke/boards/10 (доска 'AI Pipeline')."
+echo "   Убедитесь, что видите 6 колонок: New / In specification / Specified /"
+echo "   In progress / In review / Closed."
 echo ""
-echo "2. (опционально) Создайте проект 'karaoke' в UI, если ещё нет:"
-echo "   • Projects → + Create project → Name 'Karaoke', Identifier 'karaoke'"
-echo "   • Добавьте ${TRACKER_AGENT_USER} в Project members с ролью 'Member'"
+echo "2. При старте opencode-сессии выполните:"
+echo "       bash tools/tracker-poll.sh"
+echo "   Это покажет все открытые задачи, назначенные на ai-agent."
 echo ""
-echo "3. Запустите end-to-end smoke-test:"
-echo "       ./tools/tracker-smoke-test.sh"
+echo "3. Чтобы создать Karaoke-спеку из существующего work package:"
+echo "       bash tools/tracker-spec-for-issue.sh <WORK_PACKAGE_ID>"
+echo "   Скрипт создаст specs/<NN>-<slug>/spec.md + tasks.md и добавит комментарий-ссылку в work package."
 echo ""
-echo "4. (опционально) Установите systemd-таймер для ежедневного бэкапа Postgres:"
+echo "4. Полный workflow: create-issue → claim-issue → mark-review → close-issue"
+echo "       ./tools/tracker.sh --help"
+echo ""
+echo "5. (опционально) Установите systemd-таймер для ежедневного бэкапа Postgres:"
 echo "       sudo cp deploy/tracker-db-backup.{service,timer} /etc/systemd/system/"
 echo "       sudo systemctl enable --now tracker-db-backup.timer"
 echo ""

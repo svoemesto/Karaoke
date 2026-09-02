@@ -36,8 +36,9 @@
 - [ ] Проверить `grep "fun totalCount\|fun loadAuthorSongCounts"` = 0
 
 ### Шаг 3: cron для refresh MATERIALIZED VIEW
-- [ ] Добавить `cron` или systemd-timer для вызова `refresh_mv_songs_free_now()` каждые 5 минут
-- [ ] Логирование в `logs/mv-refresh.log`
+- [x] Создать `/etc/cron.d/refresh-mv-songs-free-now` на проде (Pass 297 шаг 4)
+- [x] Создать `/root/.pgpass` (chmod 600) — пароль для `SvoeMestoKaraokeUser905`
+- [x] Первый авто-запуск подтверждён в логе `/var/log/karaoke/mv-refresh.log`
 
 ## Phase 4: Verification
 

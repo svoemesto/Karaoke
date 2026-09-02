@@ -2,7 +2,7 @@
 
 > **Status**: active
 > **Feature Key**: llm-lyrics-search
-> **Last Updated**: 2026-07-29 (specs/022-song-status-lifecycle: порог готовности `id_status>=3` → `>=6`, forced-align гейт `>=3` → `>=4`)
+> **Last Updated**: 2026-09-02 (specs/294-fourget-scraper-order: новый порядок scrapers `yep → brave` + post-filter «мусорных» URL через `filterUselessLyricsUrls`; настройки `lyricsSearchScrapers`, `lyricsSearchMinResults`, `lyricsSearchUselessUrlPatterns` в `KaraokeProperties`)
 
 ## Что делает
 
@@ -27,7 +27,9 @@ web-поиск (fourget) + скрейпинг сайтов + LLM-анализ (L
    `YANDEX_ASYNC` (Yandex Cloud Search API, IAM-токен — `getYandexSearch`),
    `SEARXNG` (прямой запрос к self-hosted SearXNG — `SearchTool.searchUrlsViaSearxng`),
    `FOURGET` (self-hosted мета-поисковик fourget, `/api/v1/web?s=...&scraper=...`,
-   brave→yep, см. `specs/014-lyrics-search-replacement/research.md` — `SearchTool.searchUrls`).
+   **с 2026-09-02: yep→brave** (было brave→yep), плюс post-filter «мусорных» URL
+   `filterUselessLyricsUrls` в `Tools.kt`, см. `specs/294-fourget-scraper-order/spec.md` —
+   `SearchTool.searchUrls`).
    Диспетчер — `getLyricsSearch(settings, lyricsFinderService, engine, forceResearch)`
    в `UtilsAI.kt` (заменил собой прежний `getSearXNGSearch`, имя которого стало
    вводящим в заблуждение после фичи 014). Движок по умолчанию —
@@ -176,9 +178,76 @@ web-поиск (fourget) + скрейпинг сайтов + LLM-анализ (L
 - [`ScraperAgent.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/llm/ScraperAgent.kt) — извлечение текста песни из HTML через LLM
 - [`TextCorrectorAgent.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/llm/TextCorrectorAgent.kt) — AI-редактор текста (SubsEdit.vue)
 - [`LmStudioService.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/LmStudioService.kt) — тонкий клиент LM Studio
-- [`Tools.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/llm/Tools.kt) — инструменты для LLM (`SearchTool`)
+- [`Tools.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/llm/Tools.kt) — инструменты для LLM (`SearchTool`), `filterUselessLyricsUrls` (post-filter, см. specs/294)
 - [`UtilsAI.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/UtilsAI.kt) — `getLyricsSearch` (диспетчер движков), `getYandexSearch`, `LyricsSearchEngine`, `applyFoundLyricsIfMissing` (единая автоподстановка, см. пункт 3)
 - [`AlbumCoverFinder.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/AlbumCoverFinder.kt) — `AlbumCoverService`, `AlbumCoverSearchEngine`
 - [`HealthReport.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/HealthReport.kt) — `deleteSearchResultsForReadySongs` (массовая очистка)
 - [`UtilsPlaywright.kt`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/UtilsPlaywright.kt) — Playwright/Selenium
 - [`Utils.searchLastAlbumYm3`](../../karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt) — Яндекс.Музыка
+
+## Post-filter «мусорных» URL (specs/294-fourget-scraper-order)
+
+**Контекст.** В логах прод регулярно появлялось
+`status='Brave did not return a result object'`, и даже когда scraper
+возвращал `status=ok` с непустым списком `web[]`, там часто оказывался
+мусор (homepage сайта, sitemap.xml, login-страницы). LLM-парсер
+(`ScraperAgent`) тратил токены/время на попытки извлечь текст песни
+из этих URL.
+
+**Решение** (2026-09-02). В `Tools.kt#SearchTool.searchUrlsViaScraper`
+между парсингом JSON fourget и возвратом результата добавлен этап
+**post-filter** — чистая функция `filterUselessLyricsUrls(urls, patterns)`:
+
+1. **Невалидный URL** (`URI.create` throws) → отбрасывается.
+2. **Схема ≠ `http`/`https`** (ftp/mailto/javascript/data/file) → отбрасывается.
+3. **Homepage без path** (`https://example.com` или `/`) → отбрасывается.
+4. **Служебный path** (substring match, case-insensitive):
+   `/login`, `/signup`, `/register`, `/auth`, `/wp-login.php`,
+   `/wp-admin`, `/administrator`, `/sitemap.xml`, `/sitemap`,
+   `/sitemap_index.xml`, `/robots.txt`, `/feed`, `/rss`,
+   `/rss.xml`, `/atom.xml`, `/search` → отбрасываются.
+5. **Расширения файлов** (не HTML-страницы):
+   `.pdf`, `.doc`, `.docx`, `.xls`, `.xlsx`, `.zip`, `.rar`,
+   `.7z`, `.tar`, `.gz`, `.mp3`, `.mp4`, `.wav`, `.avi`,
+   `.mov`, `.jpg`, `.jpeg`, `.png`, `.gif`, `.webp`, `.svg`
+   → отбрасываются.
+6. **Tracking-маркеры в query**:
+   `utm_source=`, `utm_medium=`, `utm_campaign=`, `utm_term=`,
+   `utm_content=`, `fbclid=`, `gclid=`, `yclid=`, `msclkid=`,
+   `_ga=`, `ref=` → отбрасываются.
+   Легитимные `?id=...`, `?page=...` и подобные query-параметры **НЕ**
+   отбрасываются.
+7. **Дедупликация** через `LinkedHashSet` — сохраняет порядок первого
+   появления, убирает идентичные дубли.
+
+**Сложность**: O(N) на размер списка URL, без regex, без HTTP.
+На 50 URL укладывается в ≤1 мс (NFR-005).
+
+**Настройки в `KaraokeProperties`** (hot-fix без передеплоя):
+
+| Ключ | Тип | Дефолт | Что делает |
+|---|---|---|---|
+| `lyricsSearchScrapers` | String | `"yep;brave"` | Порядок scrapers через `;`. Был `"brave;yep"` до 2026-09-02. |
+| `lyricsSearchMinResults` | Int | `2` | Порог «качества» — если scraper вернул меньше URL после post-filter, пробуем следующий. |
+| `lyricsSearchUselessUrlPatterns` | String | (см. FR-004 спеки 294) | Паттерны для post-filter через `;`. |
+
+**Логирование**: новая строка `🔧 [SearchTool] post-filter: было N,
+осталось M (отброшено K)` на уровне INFO — для мониторинга
+эффективности filter'а в проде (SC-005: доля поисков с `K > 0` —
+5-30%).
+
+**Тесты**: 10 unit-тестов в
+`karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/llm/ToolsTest.kt`
+(по одному на каждое правило + happy path + edge cases). Активные,
+не `@Disabled` — по образцу `AlbumCoverFinderParsingTest`.
+
+**Принципы и контекст**:
+- Только `SearchTool.searchUrls` (lyrics). `AlbumCoverFinder.kt`
+  (поиск обложек) **не трогаем** — обложки работают как раньше
+  через жёстко зашитый `scraper=brave` без fallback (NFR-006).
+- Семантическая фильтрация URL (страница про текст песни vs альбом
+  vs артиста) — НЕ наша задача; это работа LLM-парсинга
+  (`ScraperAgent`).
+- При добавлении новых scrapers (mojeek/startpage/qwant/wikipedia) —
+  curl-перебор по процедуре в `specs/014-lyrics-search-replacement/research.md`
+  → Production finding.

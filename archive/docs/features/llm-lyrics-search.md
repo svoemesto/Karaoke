@@ -2,7 +2,7 @@
 
 > **Status**: active
 > **Feature Key**: llm-lyrics-search
-> **Last Updated**: 2026-09-02 (specs/294-fourget-scraper-order: новый порядок scrapers `yep → brave` + post-filter «мусорных» URL через `filterUselessLyricsUrls`; настройки `lyricsSearchScrapers`, `lyricsSearchMinResults`, `lyricsSearchUselessUrlPatterns` в `KaraokeProperties`)
+> **Last Updated**: 2026-09-02 (specs/294-fourget-scraper-order: новый порядок scrapers `yep → brave` + post-filter «мусорных» URL через `filterUselessLyricsUrls`; настройки `lyricsSearchScrapers`, `lyricsSearchMinResults`, `lyricsSearchUselessUrlPatterns` в `KaraokeProperties`. **Актуальный curl-перебор 2026-09-02**: `yep` деградировал (`status=ok`, `web=[]` тихо), `brave` работает стабильно — fallback сработает автоматически, см. `specs/294-fourget-scraper-order/research.md`.)
 
 ## Что делает
 

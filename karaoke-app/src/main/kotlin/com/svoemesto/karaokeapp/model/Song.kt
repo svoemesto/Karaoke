@@ -5205,6 +5205,13 @@ class Song(
     fun saveToDb() {
         if (readonly) return
         if (id == 0L) {
+            // specs/277-song-name-censored: baseline-автозаполнение song_name_censored для НОВЫХ
+            // песен (INSERT-ветка). Раньше baseline срабатывал только в UPDATE-ветке ниже, и песни,
+            // созданные через `Song.createFromPath()` (импорт из папки), попадали в БД с
+            // song_name_censored='' — что ломало шаблоны новостей типа {songNameCensored}.
+            if (fields[SongField.NAME_CENSORED].isNullOrEmpty() && songName.isNotEmpty()) {
+                fields[SongField.NAME_CENSORED] = songName.censored(database)
+            }
             markNewsAvailableIfReady()
             val newSett = createDbInstance(this, database)
             newSett?.let {

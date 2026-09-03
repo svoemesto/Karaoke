@@ -399,6 +399,20 @@ export default {
         this.isBusy = this.authorsDigestIsLoading
       },
     },
+    // Сбрасываем currentPage на 1, если текущая страница вышла за пределы новой выборки
+    // (например, после применения фильтра, сужающего число страниц). Без этого watcher
+    // <b-table :current-page> остаётся прежним и показывает пустую страницу, хотя
+    // <b-pagination :total-rows> уже отображает «Page 1 of N» — типичный баг admin SPA
+    // (см. OpenProject #50). Эталон правильной реализации — Songs/SongsTable.vue:998-1009.
+    // @see docs/features/pagination-filter-admin-tables.md (FR-006)
+    countRows: {
+      handler(newCount) {
+        const totalPages = Math.max(1, Math.ceil(newCount / this.perPage))
+        if (this.currentPage > totalPages) {
+          this.currentPage = 1
+        }
+      },
+    },
     currentPage: {
       handler(newPage) {
         // Сохраняем страницу в store, чтобы она восстановилась после переключения на другой компонент.

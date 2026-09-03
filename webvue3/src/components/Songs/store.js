@@ -2662,7 +2662,15 @@ export default {
         url: '/api/song/extractlyricsbysearchresultid',
         params: params,
       }
-      return promisedXMLHttpRequest(request)
+      // specs/301-search-text-extract-btn: парсим JSON здесь, чтобы
+      // вызывающий код (SearchText.vue:extractLyricsFromSelectedResult)
+      // получил готовый объект SearchResult, а не строку. Без этого
+      // updated.id === undefined → $set(searchResultsList, idx, updated)
+      // не находит элемент, currentResult становится строкой, и UI не
+      // обновляется (пункт остаётся серым, textarea пустая). Админ видит
+      // изменения только после перезагрузки модалки.
+      // @see docs/features/search-text-extract-btn.md (OP#51)
+      return promisedXMLHttpRequest(request).then((data) => JSON.parse(data))
     },
     findOriginalForSong(ctx) {
       let params = { id: ctx.state.currentSongId }

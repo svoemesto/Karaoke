@@ -33,7 +33,16 @@
             <!-- Второй столбец тела -->
             <div class="st-body-column-2">
               <!-- Текст результата поиска -->
-              <textarea class="result-text" v-text="resultText" />
+              <!--
+                v-text в Vue2 устанавливает DOM-свойство textContent, которое игнорируется
+                для <textarea> (textarea хранит значение в .value, не в textContent).
+                Заменено на :value для реактивного обновления .value.
+                @see docs/features/search-text-extract-btn.md (OP#51)
+                vue/html-self-closing отключён: <textarea> не может быть void-элементом
+                по спецификации HTML5 (парсер может неправильно определить границы).
+              -->
+              <!-- eslint-disable-next-line vue/html-self-closing -->
+              <textarea class="result-text" :value="resultText"></textarea>
               <button class="group-button" title="Открыть на сайте" @click="openResultLink">
                 Открыть на сайте
               </button>
@@ -243,7 +252,11 @@ export default {
         })
         const idx = this.searchResultsList.findIndex((r) => r.id === updated.id)
         if (idx !== -1) {
-          this.$set(this.searchResultsList, idx, updated)
+          // specs/301-search-text-extract-btn: Vue3 использует Proxy для реактивности,
+          // this.$set не существует (TypeError). Используем Array.prototype.splice,
+          // как Authors/Albums/Pictures/SiteUsers stores: state.X.splice(idx, 1, updated).
+          // @see docs/features/search-text-extract-btn.md (OP#51)
+          this.searchResultsList.splice(idx, 1, updated)
         }
         this.currentResult = updated
         if (updated.lastError && (updated.text === '' || updated.text == null)) {
@@ -422,6 +435,14 @@ export default {
   width: max-content;
   height: calc(100vh - 300px);
   margin: 5px 0;
+  /*
+    Flex-column чтобы textarea (.result-text) занимала всё доступное
+    пространство, а кнопки «Открыть на сайте» / «Получить текст по ссылке»
+    получали свою естественную высоту и НЕ уползали за пределы контейнера.
+    @see docs/features/search-text-extract-btn.md (OP#51)
+  */
+  display: flex;
+  flex-direction: column;
 }
 
 .st-body-column-3 {
@@ -469,7 +490,15 @@ export default {
   display: block;
   text-align: left;
   width: 500px;
-  height: calc(100vh - 327px);
+  /*
+    flex:1 + min-height:0 — textarea занимает всё оставшееся пространство
+    в .st-body-column-2 (после кнопок), а не растягивается на всю высоту.
+    Без min-height:0 браузер не даст textarea сжаться меньше её
+    контента, и кнопки снова уплывут за пределы контейнера.
+    @see docs/features/search-text-extract-btn.md (OP#51)
+  */
+  flex: 1 1 auto;
+  min-height: 0;
   font-family: 'Courier New', Courier, monospace;
   font-size: small;
 }
@@ -497,10 +526,17 @@ export default {
   height: 40px;
 }
 
+/*
+  Гарантирует вертикальное расположение кнопок в .st-body-column-2
+  (одна под другой). Без этого <button> как inline-block может
+  вести себя неожиданно при width: 500px.
+  @see docs/features/search-text-extract-btn.md (FR-001, OP#51)
+*/
 .group-button {
   border: solid black thin;
   border-radius: 5px;
   background-color: white;
   width: 500px;
+  display: block;
 }
 </style>

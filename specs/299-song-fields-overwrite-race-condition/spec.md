@@ -7,6 +7,16 @@
 
 > **Контекст.** Pass 281 (закрыт в PR #395) уже защитил от этой гонки 5 горячих путей (`applyFoundLyricsIfMissing`, `applyDuplicateOriginal`, `applyAudioParentMarkers`, `applyFamilySongSelection`, `autoAssignOriginalByWaveform`, `findAudioParentByWaveform`, `setSourceMarkers`, `setSourceText`) паттерном **reload-from-db-before-save**: перед `saveToDb()` объект `song` перезагружается из БД, чтобы `Song.getDiff()` НЕ включил в `UPDATE` поля, которые параллельная транзакция успела записать между первоначальной загрузкой и сохранением. Однако задача #49 фиксирует, что баг **по-прежнему проявляется** в продакшене — значит, либо (a) защита покрыта не для всех путей, либо (b) сам паттерн «reload + save» фундаментально не атомарен и между `loadFromDbById(...)` и `ps.executeUpdate()` другая транзакция успевает закоммитить изменение, которое diff увидит как «stale в памяти против нового в БД» и перезатрёт обратно в БД.
 
+## Clarifications
+
+### Session 2026-09-03
+
+- Q: Какой подход использовать для защиты от race condition в `Song.saveToDb()` — pessimistic (`SELECT FOR UPDATE`) или optimistic (колонка `version`)? → A: **Pessimistic `SELECT FOR UPDATE` через JDBC-транзакцию** (`Connection.setAutoCommit(false)` + `SELECT ... FOR NO KEY UPDATE` + `ps.executeUpdate()` + `commit()`). Без миграции БД. Обоснование: соответствует Constitution §II (сырой JDBC), покрывает все горячие пути одним механизмом, нет обработки `OptimisticLockException` в вызывающем коде. FR-030 (альтернативный optimistic-блок) удаляется из спеки; FR-001..FR-003 конкретизируются под выбранный подход.
+- Q: Что делать при `null` от `loadFromDbByIdForUpdate` (песня удалена между загрузкой и сохранением) в горячих путях FR-010..FR-016? → A: **Fallback `?: song` + `saveToDb()` без блокировки + WARN в `infra.prod.ping` лог** — тот же паттерн, что в Pass 281 (`applyFoundLyricsIfMissing`, `applyDuplicateOriginal` и т.д.). Лучше сохранить найденный текст (с риском теоретической race condition в редком случае), чем молча потерять данные. WARN покажет оператору инцидент через `docs/ops/log-correlation.md`.
+- Q: Какой scope покрытия для FR-020 (25+ потенциально горячих мест)? → A: **Все 25+ мест в этом PR** — единоразово, как требует задача #49 «найти ВСЕ места и исправить их». Каждое место получает либо `saveToDbLocked()`, либо явное KDoc-обоснование «объект живёт < 100мс, race не воспроизводится в сценарии US1» (FR-021).
+- Q: Какой lock-wait timeout для `FOR NO KEY UPDATE` в проде? → A: **`SET LOCAL lock_timeout = '5s'`** через `SET LOCAL` внутри транзакции в `saveToDbLocked` + **WARN в `infra.prod.ping` лог** при таймауте (`PSQLException: canceling statement due to lock timeout`). 5 секунд — оптимальный баланс: достаточно для типичной транзакции (миллисекунды), но не позволяет зависнуть на час при deadlock. Настройка — через `KaraokeProperties.songSaveLockedTimeoutMs = 5000` (default), админ может override через настройки.
+- Q: Какой минимальный manual-test чек-лист требуется перед merge? → A: **`contracts/manual-test-checklist.md`** — новый файл в спеце 299, 5 шагов: (1) компиляция, (2) unit-проверка через `applyFoundLyricsIfMissing` с моком, (3) dev-машина: импорт папки + мгновенная правка `songName` через SongEdit + дождаться завершения поиска текстов, (4) SQL-проверка финального состояния, (5) откат в случае проблем. Выполняется разработчиком перед merge и проверяющим в PR review.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 — Название песни из SongEdit не теряется при поиске текстов (Priority: P1)
@@ -86,31 +96,57 @@
 
 #### Часть 1 — Базовый механизм защиты от race в `Song.saveToDb()`
 
-- **FR-001**: В `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt` метод `saveToDb()` (строка 5205, UPDATE-ветка) ДОЛЖЕН загружать `savedSong` блокирующей операцией: новая функция `Song.loadFromDbByIdForUpdate(id, database, ...)` использует SQL `SELECT ... FOR UPDATE` (или `SELECT ... FOR SHARE`, если блокировка чтения допустима) в транзакции, в которой будет выполнен `UPDATE`. **Решает** root cause: между `loadFromDbById` (старым) и `ps.executeUpdate()` другая транзакция физически не сможет закоммитить UPDATE на эту же строку — она будет ждать снятия блокировки.
+- **FR-001**: В `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt` метод `saveToDb()` (строка 5205, UPDATE-ветка) ДОЛЖЕН загружать `savedSong` блокирующей операцией: новая функция `Song.loadFromDbByIdForUpdate(id, database, ...)` использует SQL `SELECT ... FOR NO KEY UPDATE` (компромисс — разрешает параллельные `FOR SHARE` / `FOR NO KEY UPDATE` чтения, блокирует только `FOR UPDATE` / `DELETE`) в явной транзакции, в которой будет выполнен `UPDATE`. **`FOR NO KEY UPDATE`** выбран потому, что `tbl_songs.id` (первичный ключ) никогда не меняется — нам не нужна полная блокировка `FOR UPDATE`, достаточно блокировать изменение любых других колонок. **Решает** root cause: между `loadFromDbByIdForUpdate` и `ps.executeUpdate()` другая транзакция физически не сможет закоммитить UPDATE на эту же строку — она будет ждать снятия блокировки.
 
-- **FR-002**: `loadFromDbByIdForUpdate` ДОЛЖЕН открывать явную транзакцию (`connection.setAutoCommit(false)` или эквивалент через `KaraokeConnection`), держать её открытой до явного `commit`/`rollback` после `UPDATE`. `Song.saveToDb()` сам управляет жизненным циклом транзакции — `loadFromDbByIdForUpdate` лишь открывает/возвращает транзакционный контекст, а `saveToDb()` коммитит его в самом конце. **Альтернатива** (если менеджер транзакций уже есть): использовать `TransactionTemplate.execute { ... }` / `@Transactional`-стиль через DI — но в текущей кодовой базе нет Spring-Tx, поэтому ручной `connection.setAutoCommit(false)` + явный `commit` + `finally { rollback if not committed }`.
+- **FR-002**: `loadFromDbByIdForUpdate` ДОЛЖЕН открывать явную транзакцию (`connection.setAutoCommit(false)`) и возвращать пару `(Song, Connection)` — где `Song` загружен под блокировкой, а `Connection` — та же транзакция, на которой затем будет выполнен `UPDATE`. `Song.saveToDbLocked()` сам управляет жизненным циклом транзакции — открывает её перед UPDATE, коммитит после успешного `ps.executeUpdate()`, откатывает в `finally` при исключении. **Fallback на `?: song` (см. Clarifications Session 2026-09-03, Q2)**: если `loadFromDbByIdForUpdate` вернул `null` (песня удалена), `saveToDbLocked` ДОЛЖЕН (a) откатить транзакцию, (b) записать `WARN` в `infra.prod.ping` лог с `songId` и причиной, (c) fallback на `this.saveToDb()` без блокировки (Pass 281 паттерн — лучше сохранить текст, чем потерять). Шаблон:
+  ```kotlin
+  fun saveToDbLocked(): Boolean {
+      val connection = database.getConnection() ?: return saveToDb().let { true }
+      return try {
+          connection.autoCommit = false
+          val savedSong = Song.loadFromDbByIdForUpdate(id, connection, ...)
+          if (savedSong == null) {
+              // Песня удалена — fallback на исходный объект + WARN
+              connection.rollback()
+              println("[${Timestamp.from(Instant.now())}] WARN song.locked_save_fallback: songId=$id deleted between load and save; falling back to unlocked saveToDb()")
+              return saveToDb().let { true }
+          }
+          val diff = getDiff(this, savedSong)
+          if (diff.isEmpty()) { connection.commit(); return true }
+          // ... ps.executeUpdate на том же connection ...
+          connection.commit()
+          true
+      } catch (e: Exception) {
+          connection.rollback()
+          println("[${Timestamp.from(Instant.now())}] WARN song.locked_save_failed: songId=$id error=${e.message}")
+          false
+      } finally {
+          connection.autoCommit = true
+      }
+  }
+  ```
 
-- **FR-003**: `Song.saveToDb()` ДОЛЖЕН быть обратно совместим: семантика для существующих 80+ вызывающих мест НЕ меняется (если они не передают транзакционный контекст — работают в автокоммите, как сейчас). Поведение под блокировкой включается **только когда** вызывающий код явно открыл транзакцию или явно запросил «lockable save» (например, через новый флаг `useLock = true` или выделенный метод `saveToDbWithLock()`).
+- **FR-003**: `Song.saveToDb()` ДОЛЖЕН быть обратно совместим: семантика для существующих 80+ вызывающих мест НЕ меняется — они продолжают работать в автокоммите, как сейчас (без `FOR NO KEY UPDATE`). Новый метод `Song.saveToDbLocked()` (или флаг `useLock = true`) добавляется **параллельно** для горячих путей из FR-010..FR-016, FR-020. Поведение под блокировкой включается **только когда** вызывающий код явно вызывает `saveToDbLocked()`. Допустимо также в `saveToDbLocked` сначала делать `loadFromDbByIdForUpdate`, а если он не поддерживается KaraokeConnection — fallback на `loadFromDbById` (Pass 281 паттерн) + WARN в лог.
 
 #### Часть 2 — Применение защиты ко всем горячим путям
 
 > **Контекст**: спека 281 уже применила паттерн `reload-from-db-before-save` к 5+ местам, но этот паттерн **не атомарен** — между `loadFromDbById` и `ps.executeUpdate` гонка всё ещё возможна (см. анализ в разделе «Key Entities»). Требуется либо (a) заменить паттерн на `loadFromDbByIdForUpdate + UPDATE в той же транзакции`, либо (b) добавить оптимистичный lock через колонку `version`/`updated_at` + `WHERE version = oldVersion` в UPDATE.
 
-- **FR-010**: `applyFoundLyricsIfMissing` (`UtilsAI.kt:144`) ДОЛЖЕН использовать `loadFromDbByIdForUpdate` вместо `loadFromDbById`. Существующий fallback `?: song` сохраняется.
+- **FR-010**: `applyFoundLyricsIfMissing` (`UtilsAI.kt:144`) ДОЛЖЕН использовать `loadFromDbByIdForUpdate` вместо `loadFromDbById`. Существующий fallback `?: song` (Pass 281) заменяется на новый fallback через `saveToDbLocked` (FR-002), который сам обрабатывает `null` (Clarifications Q2).
 
-- **FR-011**: `applyDuplicateOriginal` (`Utils.kt:4847`) — заменить `loadFromDbById` на `loadFromDbByIdForUpdate`.
+- **FR-011**: `applyDuplicateOriginal` (`Utils.kt:4847`) — заменить `loadFromDbById` на `loadFromDbByIdForUpdate` через `saveToDbLocked`. Fallback `?: newSong` в FR-011 удаляется (заменяется на WARN внутри `saveToDbLocked`).
 
-- **FR-012**: `applyAudioParentMarkers` (`Utils.kt:4897`) — заменить `loadFromDbById` на `loadFromDbByIdForUpdate`.
+- **FR-012**: `applyAudioParentMarkers` (`Utils.kt:4897`) — заменить `loadFromDbById` на `loadFromDbByIdForUpdate` через `saveToDbLocked`. Fallback `?: song` в FR-012 удаляется.
 
-- **FR-013**: `applyFamilySongSelection` (`Utils.kt:4939`) — заменить `loadFromDbById` на `loadFromDbByIdForUpdate`.
+- **FR-013**: `applyFamilySongSelection` (`Utils.kt:4939`) — заменить `loadFromDbById` на `loadFromDbByIdForUpdate` через `saveToDbLocked`. Fallback `?: song` в FR-013 удаляется.
 
-- **FR-014**: `autoAssignOriginalByWaveform` (`Utils.kt:5104`) — оба reload'а (`finalSongToSave` и тот, что внутри `applyFamilySongSelection`) использовать `loadFromDbByIdForUpdate`.
+- **FR-014**: `autoAssignOriginalByWaveform` (`Utils.kt:5104`) — оба reload'а (`finalSongToSave` и тот, что внутри `applyFamilySongSelection`) использовать `loadFromDbByIdForUpdate` через `saveToDbLocked`. Fallback `?: song` удаляется.
 
-- **FR-015**: `findAudioParentByWaveform` (`Utils.kt:5248`) — все 4 reload'а (`songToSave` перед каждым `saveToDb`) использовать `loadFromDbByIdForUpdate`.
+- **FR-015**: `findAudioParentByWaveform` (`Utils.kt:5248`) — все 4 reload'а (`songToSave` перед каждым `saveToDb`) использовать `loadFromDbByIdForUpdate` через `saveToDbLocked`. Fallback `?: song` удаляется.
 
-- **FR-016**: `Song.setSourceMarkers` (`Song.kt:3626`) и `Song.setSourceText` (`Song.kt:3690`) — оба `loadFromDbById` заменить на `loadFromDbByIdForUpdate`.
+- **FR-016**: `Song.setSourceMarkers` (`Song.kt:3626`) и `Song.setSourceText` (`Song.kt:3690`) — оба `loadFromDbById` заменить на `loadFromDbByIdForUpdate` через `saveToDbLocked`. Fallback `?: this` удаляется.
 
-- **FR-020**: Должны быть **найдены и аналогично защищены** все **остальные** места, где объект `song` живёт в памяти долго (секунды и более) между `loadFromDbById` (или конструктором `Song.createFromPath`) и `saveToDb()`. Минимальный список для проверки (по результатам ресёрча задачи #49):
+- **FR-020**: Должны быть **найдены и аналогично защищены** все **остальные** места, где объект `song` живёт в памяти долго (секунды и более) между `loadFromDbById` (или конструктором `Song.createFromPath`) и `saveToDb()` — **в этом PR целиком** (см. Clarifications Session 2026-09-03, Q3). Минимальный список для проверки (по результатам ресёрча задачи #49):
   - `Utils.kt:666` — `song.saveToDb()` (контекст требует уточнения).
   - `Utils.kt:1594, 1624, 1705, 1734, 1737` — внутри `doCreateFromFolder` или `findParentAndAudioParentForAll`.
   - `Utils.kt:4141, 4201` — внутри других функций поиска родителей.
@@ -124,19 +160,19 @@
 
 - **FR-021**: Для каждого найденного места в FR-020 — явно зафиксировать в KDoc: (a) «между загрузкой объекта и сохранением проходит N секунд/минут», (b) «параллельно работает процесс X, который может обновить поле Y», (c) «без `loadFromDbByIdForUpdate` гонка воспроизводится в сценарии US1». Если место признано **не** горячим (объект живёт < 100 мс) — обосновать и оставить как есть.
 
-#### Часть 3 — Альтернативный подход (опционально): optimistic locking
+#### Часть 3 — Существующие паттерны Pass 281
 
-> **Контекст.** Если пессимистичный подход (FOR UPDATE) окажется слишком инвазивным (например, будет блокировать чтение других песен при глобальной синхронизации), альтернатива — optimistic locking через `updated_at` или `version` колонку в `tbl_songs` (миграция БД + новая колонка + изменение `saveToDb` на `WHERE id = X AND updated_at = oldSnapshot.updated_at`).
+- **FR-040**: Pass 281 фиксы (FR-001 спеки 281 в `applyFoundLyricsIfMissing`, FR-011 в `applyFamilySongSelection`, FR-012 в `autoAssignOriginalByWaveform`, FR-013 в `findAudioParentByWaveform`, FR-014 в `setSourceMarkers/setSourceText`) **остаются на месте**. Паттерн `reload-from-db-before-save` — это страховка поверх `FOR UPDATE`: даже после снятия блокировки в `loadFromDbByIdForUpdate` мы всё равно применяем изменения к reloaded-объекту, а не к stale `song` в памяти. Совместимость: `loadFromDbByIdForUpdate` можно вызывать поверх существующего `loadFromDbById` без побочных эффектов — оба читают одни и те же данные; блокировка только добавляет гарантию атомарности записи.
 
-- **FR-030**: [NEEDS CLARIFICATION: выбор между pessimistic (FR-001..FR-021) и optimistic (эта часть) — решается на этапе `/speckit.plan` по результатам бенчмарка на проде] Реализовать ОДИН из двух подходов, не оба. По умолчанию — pessimistic (FR-001..FR-021), он покрывает задачу без миграции БД.
+- **FR-041**: KDoc-комментарии ко всем затронутым функциям ДОЛЖНЫ быть обновлены — `@see specs/299-song-fields-overwrite-race-condition/spec.md` + краткое объяснение «почему `SELECT FOR NO KEY UPDATE`».
 
-#### Часть 4 — Существующие паттерны Pass 281
+> **Примечание.** Альтернативный optimistic-подход (через колонку `version`) **не применяется** — выбран pessimistic FR-001..FR-021 (см. Clarifications Session 2026-09-03, Q1). Может быть рассмотрен позже, если бенчмарк на проде покажет lock-wait > 100мс на горячих песнях (см. SC-007).
 
-- **FR-040**: Pass 281 фиксы (FR-001 спеки 281 в `applyFoundLyricsIfMissing`, FR-011 в `applyFamilySongSelection`, FR-012 в `autoAssignOriginalByWaveform`, FR-013 в `findAudioParentByWaveform`, FR-014 в `setSourceMarkers/setSourceText`) **остаются на месте**. Паттерн `reload-from-db-before-save` — это страховка, даже если будет добавлен `FOR UPDATE`. Совместимость: `loadFromDbByIdForUpdate` можно вызывать поверх существующего `loadFromDbById` без побочных эффектов — оба читают одни и те же данные; блокировка только добавляет гарантию атомарности записи.
+#### Часть 5 — Lock timeout конфигурация
 
-- **FR-041**: KDoc-комментарии ко всем затронутым функциям ДОЛЖНЫ быть обновлены — `@see specs/299-song-fields-overwrite-race-condition/spec.md` + краткое объяснение «почему FOR UPDATE (или optimistic lock)».
+- **FR-060**: `saveToDbLocked` ДОЛЖЕН перед `SELECT ... FOR NO KEY UPDATE` выполнить `SET LOCAL lock_timeout = '5s'` (см. Clarifications Session 2026-09-03, Q4). Значение читается из `KaraokeProperties.songSaveLockedTimeoutMs` (default 5000). При `PSQLException` с SQL state `55P03` (lock timeout) или `40P01` (deadlock detected) — записать WARN в `infra.prod.ping` лог с `songId` и причиной, откатить транзакцию, вернуть `false` (вызывающий код решает, повторять ли).
 
-#### Часть 5 — Диагностика (опционально)
+#### Часть 6 — Диагностика (опционально)
 
 - **FR-050**: В `Song.saveToDb()` при обнаружении diff-поля, которое в `savedSong` (после `loadFromDbByIdForUpdate`) отличается от `this` И в БД было обновлено **после** момента, когда объект `song` был загружен в вызывающем коде (например, по `recordhash`-метке времени или новой колонке `updated_at`) — записать WARN в `infra.prod.ping` лог с `songId`, именем поля, старым/новым значениями. Реализация — на усмотрение плана (через пост-дифф-чек или через отдельный фоновый репортер).
 
@@ -157,15 +193,15 @@
 
 - **SC-002**: Все 5+ мест Pass 281 (`applyFoundLyricsIfMissing`, `applyDuplicateOriginal`, `applyAudioParentMarkers`, `applyFamilySongSelection`, `autoAssignOriginalByWaveform`, `findAudioParentByWaveform`, `Song.setSourceMarkers`, `Song.setSourceText`) используют `loadFromDbByIdForUpdate` (или эквивалентный optimistic-lock подход). Code review: каждое место содержит `Song.loadFromDbByIdForUpdate(...)` (или новый механизм) ПЕРЕД `saveToDb()`.
 
-- **SC-003**: Дополнительные горячие пути, найденные в FR-020, либо (a) защищены аналогично, либо (b) явно обоснованы в KDoc почему они НЕ горячие (объект живёт < 100 мс).
+- **SC-003**: Все 25+ мест из FR-020 либо (a) защищены через `saveToDbLocked()`, либо (b) явно обоснованы в KDoc почему они НЕ горячие (объект живёт < 100 мс, race не воспроизводится в US1). Все обоснования проверяются code review.
 
 - **SC-004**: Регрессий в Pass 281 acceptance scenarios нет — Pass 281 закрыт и в проде; фикс должен быть совместим (FR-040).
 
 - **SC-005**: `Song.saveToDb()` остаётся обратно совместимым для 70+ других мест вызова, где объект `song` живёт < 100 мс (типичный случай `SongEditorController` и коротких endpoint'ов) — там продолжает работать старый путь без транзакции.
 
-- **SC-006**: Тесты проекта (если есть) не сломаны. В проекте нет автотестов на `Song.saveToDb` (см. `karaoke-app/src/test` — `@Disabled`), проверка — пользователем после деплоя.
+- **SC-006**: Manual test checklist [`contracts/manual-test-checklist.md`](contracts/manual-test-checklist.md) выполнен полностью (шаги 1, 3, 4 обязательны; шаги 2 и 5 опциональны). Результат фиксируется в Sign-off таблице чек-листа; PR merge разрешён только при `pass` на всех обязательных шагах.
 
-- **SC-007**: Производительность не деградирует значимо. Блокировка `FOR UPDATE` действует только на конкретную строку `tbl_songs` (на время одной транзакции, ~миллисекунды) — глобальные операции (поиск текстов для 100 песен подряд) не блокируют другие песни.
+- **SC-007**: Производительность не деградирует значимо. Блокировка `FOR NO KEY UPDATE` действует только на конкретную строку `tbl_songs` (на время одной транзакции, ~миллисекунды) — глобальные операции (поиск текстов для 100 песен подряд) не блокируют другие песни. `lock_timeout = 5s` (FR-060) защищает от deadlock-зависаний. Метрика мониторинга: WARN `song.locked_save_fallback` / `song.locked_save_failed` / `lock_timeout` в `infra.prod.ping` логе должны появляться **< 1 раза в час** на проде (см. `docs/ops/log-correlation.md`).
 
 - **SC-008**: KDoc coverage ≥ 50% (CI gate). Все новые/изменённые публичные функции имеют KDoc с `@see specs/299`.
 
@@ -173,20 +209,20 @@
 
 - **A-1**: `Song.saveToDb()` вызывается преимущественно в фоне или из коротких endpoint'ов — там, где объект `song` живёт < 100 мс, риск гонки минимален. Защищать имеет смысл только пути с долгим жизненным циклом (HTTP-парсинг, ML-вызовы, ffmpeg).
 
-- **A-2**: PostgreSQL поддерживает `SELECT ... FOR UPDATE` (да, с 6.0+; в проде 15+). Блокировка снимается при `commit`/`rollback`.
+- **A-2**: PostgreSQL поддерживает `SELECT ... FOR NO KEY UPDATE` (да, с 9.3+; в проде 15+). Блокировка снимается при `commit`/`rollback`. `FOR NO KEY UPDATE` выбран потому, что `tbl_songs.id` (PK) никогда не меняется — нам достаточно блокировать изменения других колонок, что совместимо с параллельным `FOR SHARE` чтением других транзакций (например, репорты/health-check).
 
 - **A-3**: `KaraokeConnection` (см. Constitution §II «сырой JDBC») уже предоставляет `getConnection()`. Управление транзакциями через `Connection.setAutoCommit(false)` + `commit()` + `rollback()` — стандартный JDBC API.
 
-- **A-4**: Существующий `loadFromDbById` остаётся без изменений (FR-001/FR-002 не трогают его). Новый метод `loadFromDbByIdForUpdate` — отдельный API для горячих путей.
+- **A-4**: Существующий `loadFromDbById` остаётся без изменений (FR-001/FR-002 не трогают его). Новый метод `loadFromDbByIdForUpdate` — отдельный API для горячих путей, принимает уже открытую транзакцию (`Connection`) и НЕ открывает свою.
 
-- **A-5**: Альтернативный подход (optimistic locking) требует миграции БД (новая колонка `version BIGINT` или использование существующего `record_update_date`-подобного поля, если есть) + изменение схемы UPDATE на `WHERE id = ? AND version = ?`. Это больший объём работы и больше риска регрессий — дефолт pessimistic.
+- **A-5**: [Удалено — optimistic-подход не применяется; см. Clarifications Session 2026-09-03, Q1]
 
 - **A-6**: Задача #49 — про гонку между **ручной правкой через SongEdit** и **фоновым сохранением**. Гонки между двумя фоновыми процессами (например, `KEY_BPM_FROM_FILE` и `DEMUCS2` одновременно на одной песне) — отдельная проблема, фикс FR-001 защищает и её (блокировка на уровне строки сериализует все записи).
 
-- **A-7**: SPEC 281 фиксы (reload-from-db-before-save) уже в проде (PR #395 смержен 2026-08-31). Они не ломаются от добавления `FOR UPDATE` сверху — оба подхода совместимы (FR-040).
+- **A-7**: SPEC 281 фиксы (reload-from-db-before-save) уже в проде (PR #395 смержен 2026-08-31). Они не ломаются от добавления `FOR NO KEY UPDATE` сверху — оба подхода совместимы (FR-040).
 
 ## Open Questions
 
-- **Q1**: Pessimistic (`FOR UPDATE`) vs optimistic (`version` колонка)? Дефолт — pessimistic. Если в `/speckit.plan` выяснится, что `FOR UPDATE` деградирует конкурентность (например, частые lock-wait на популярных песнях) — переключиться на optimistic.
-- **Q2**: Достаточно ли блокировать `FOR UPDATE` на уровне `Song.saveToDb`, или нужна блокировка также на чтение (`FOR SHARE` / `FOR NO KEY UPDATE`)? `FOR NO KEY UPDATE` — компромисс (разрешает другим FOR SHARE/FOR NO KEY UPDATE, но блокирует FOR UPDATE/DELETE) — подходит, если UPDATE не меняет ключи (что верно для `tbl_songs.id` — он никогда не меняется).
-- **Q3**: Нужно ли в KDoc FR-021 для каждого места явно описывать race-сценарий, или достаточно `@see specs/299`? Дефолт — да, явно описывать, для образовательной ценности.
+- **Q1 (Resolved 2026-09-03)**: Pessimistic (`FOR UPDATE`) vs optimistic (`version` колонка)? → **Pessimistic `SELECT FOR NO KEY UPDATE`** (см. Clarifications Session 2026-09-03). Если бенчмарк на проде покажет lock-wait > 100мс на горячих песнях — рассматривать переход на optimistic как `FR-030-bis`.
+- **Q2 (Resolved 2026-09-03, см. FR-001)**: `FOR UPDATE` vs `FOR SHARE` vs `FOR NO KEY UPDATE`? → **`FOR NO KEY UPDATE`** — компромисс (разрешает параллельные `FOR SHARE`/`FOR NO KEY UPDATE` чтения, блокирует `FOR UPDATE`/`DELETE`). Подходит потому, что `tbl_songs.id` (первичный ключ) никогда не меняется.
+- **Q3 (Pending)**: Нужно ли в KDoc FR-021 для каждого места явно описывать race-сценарий, или достаточно `@see specs/299`? Дефолт — да, явно описывать, для образовательной ценности.

@@ -405,35 +405,40 @@ class KaraokeProcess(
                     KaraokeProcessTypes.MELT_LYRICS.name -> {
                         if (song.statusProcessLyrics != status) {
                             song.statusProcessLyrics = status
-                            song.saveToDb()
+                            // specs/299: race с SongEdit / KEY_BPM_FROM_FILE — saveToDbLocked обеспечивает атомарность.
+                            song.saveToDbLocked()
                         }
                     }
 
                     KaraokeProcessTypes.MELT_KARAOKE.name -> {
                         if (song.statusProcessKaraoke != status) {
                             song.statusProcessKaraoke = status
-                            song.saveToDb()
+                            // specs/299: см. комментарий выше.
+                            song.saveToDbLocked()
                         }
                     }
 
                     KaraokeProcessTypes.MELT_CHORDS.name -> {
                         if (song.statusProcessChords != status) {
                             song.statusProcessChords = status
-                            song.saveToDb()
+                            // specs/299: см. комментарий выше.
+                            song.saveToDbLocked()
                         }
                     }
 
                     KaraokeProcessTypes.MELT_TABS.name -> {
                         if (song.statusProcessMelody != status) {
                             song.statusProcessMelody = status
-                            song.saveToDb()
+                            // specs/299: см. комментарий выше.
+                            song.saveToDbLocked()
                         }
                     }
 
                     KaraokeProcessTypes.RENDER_MP4_DEMO.name -> {
                         if (song.statusProcessDemo != status) {
                             song.statusProcessDemo = status
-                            song.saveToDb()
+                            // specs/299: см. комментарий выше.
+                            song.saveToDbLocked()
                         }
                     }
 

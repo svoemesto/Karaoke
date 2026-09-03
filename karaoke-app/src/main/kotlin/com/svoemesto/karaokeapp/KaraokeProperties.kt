@@ -2224,4 +2224,11 @@ val listKaraokeProperties =
             defaultValue = 3L,
             description = "Премиум-публикация: максимум попыток на канал перед тем как пометить задачу FAILED (premiumAutoPublishState=FAILED, newsPremiumPublishPending=false). 0/отрицательное = 3",
         ),
+        KaraokeProperty(
+            key = "songSaveLockedTimeoutMs",
+            defaultValue = 5000L,
+            description = "Таймаут (мс) для SELECT FOR NO KEY UPDATE в Song.saveToDbLocked() (specs/299). " +
+                "При превышении — PSQLException с SQL state 55P03 (lock timeout), saveToDbLocked возвращает false. " +
+                "Default 5000 (5 сек) — оптимальный баланс между deadlock-устойчивостью и пользовательским опытом.",
+        ),
     )

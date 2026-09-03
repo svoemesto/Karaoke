@@ -287,7 +287,8 @@ object SongReleaseAnnouncementService {
                     )
                 loaded.filter { it.isContentReady && !it.newsAvailableAnnounced }.forEach { song ->
                     song.newsAvailableAnnounced = true
-                    song.saveToDb()
+                    // specs/299: race с SongEdit — saveToDbLocked.
+                    song.saveToDbLocked()
                     count++
                 }
             }

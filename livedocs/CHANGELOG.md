@@ -10,6 +10,20 @@
 >
 > **См. также**: `git log livedocs/` — для построчной истории.
 
+## 2026-09-03 — spec 299 (race condition: песни перезатираются при фоновой обработке, OpenProject WP #49)
+
+- **Created** `livedocs/features/299-song-fields-overwrite-race-condition.md` — LiveDoc-сводка
+  по новой фиче. Описывает: новые методы (`Song.saveToDbLocked`, `Song.loadFromDbByIdForUpdate`),
+  31+ защищённых hot path'ов (Pass 281 + FR-020), архитектурную сводку по `FOR NO KEY UPDATE`,
+  WARN-маркеры для мониторинга прода. Drill-down в `specs/299-song-fields-overwrite-race-condition/`.
+- **Updated** `livedocs/INDEX.md` — добавлена строка для `299-song-fields-overwrite-race-condition.md`
+  в таблицу SDD-слоя (`features/`).
+- **Updated** `docs/ops/log-correlation.md` — добавлены 4 новых WARN-маркера:
+  `song.locked_save_fallback` (песня удалена между lock-load и save),
+  `song.locked_save_failed` (SQL-ошибка, не lock timeout),
+  `song.lock_timeout` (PSQLException 55P03 или 40P01 deadlock),
+  `song.locked_save_skipped` (readonly-песня).
+
 ## 2026-08-28 — Pass 244 (governance: prettier при работе, не только при merge)
 
 - **Updated** `AGENTS.md` — добавлен шаг `npm run format:check` в «Обязательную проверку

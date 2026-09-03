@@ -286,7 +286,8 @@ class PremiumAutoPublishScheduler {
         }
         song.premiumAutoPublishLastError = error
         if (!closeIfBothChannelsDone(song)) {
-            song.saveToDb()
+            // specs/299: race с SongEdit — saveToDbLocked.
+            song.saveToDbLocked()
         }
     }
 

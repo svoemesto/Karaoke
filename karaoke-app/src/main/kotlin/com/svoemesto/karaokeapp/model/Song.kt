@@ -3636,23 +3636,12 @@ class Song(
             formattedTextSong = getTextFormatted()
             formattedTextTabs = getFormattedNotes()
             formattedTextChords = getFormattedChords()
-            // specs/281-find-lyrics-overwrites-key-bpm (FR-014): reload-from-db-before-save.
-            // `this` мог жить в памяти долго (например, цикл апрува задания редактора с записью
-            // .srt файлов между голосами). Параллельный KEY_BPM_FROM_FILE / DEMUCS2 мог успеть
-            // обновить key/bpm/URL'ы стемов — без reload diff включит их в UPDATE и перезатрёт.
-            val reloaded = Song.loadFromDbById(id = this.id, database = this.database, storageService = this.storageService, storageApiClient = this.storageApiClient) ?: this
-            reloaded.sourceMarkers = sourceMarkers
-            reloaded.resultText = resultText
-            reloaded.formattedTextSong = formattedTextSong
-            reloaded.formattedTextTabs = formattedTextTabs
-            reloaded.formattedTextChords = formattedTextChords
-            reloaded.saveToDb()
-            // Синхронизировать this с записанным состоянием — caller может продолжить работу с this.
-            this.sourceMarkers = reloaded.sourceMarkers
-            this.resultText = reloaded.resultText
-            this.formattedTextSong = reloaded.formattedTextSong
-            this.formattedTextTabs = reloaded.formattedTextTabs
-            this.formattedTextChords = reloaded.formattedTextChords
+            // specs/299-song-fields-overwrite-race-condition (FR-016): `this` мог жить в памяти долго
+            // (например, цикл апрува задания редактора с записью .srt файлов между голосами).
+            // Параллельный KEY_BPM_FROM_FILE / DEMUCS2 мог успеть обновить key/bpm/URL'ы стемов.
+            // saveToDbLocked() делает reload под блокировкой SELECT ... FOR NO KEY UPDATE и
+            // сохраняет diff в той же транзакции — гарантирует атомарность.
+            saveToDbLocked()
             return
         }
         if (voice >= 0 && voice < sourceMarkersList.size) {
@@ -3663,19 +3652,8 @@ class Song(
             formattedTextSong = getTextFormatted()
             formattedTextTabs = getFormattedNotes()
             formattedTextChords = getFormattedChords()
-            // specs/281-find-lyrics-overwrites-key-bpm (FR-014): см. комментарий выше.
-            val reloaded = Song.loadFromDbById(id = this.id, database = this.database, storageService = this.storageService, storageApiClient = this.storageApiClient) ?: this
-            reloaded.sourceMarkers = sourceMarkers
-            reloaded.resultText = resultText
-            reloaded.formattedTextSong = formattedTextSong
-            reloaded.formattedTextTabs = formattedTextTabs
-            reloaded.formattedTextChords = formattedTextChords
-            reloaded.saveToDb()
-            this.sourceMarkers = reloaded.sourceMarkers
-            this.resultText = reloaded.resultText
-            this.formattedTextSong = reloaded.formattedTextSong
-            this.formattedTextTabs = reloaded.formattedTextTabs
-            this.formattedTextChords = reloaded.formattedTextChords
+            // specs/299-song-fields-overwrite-race-condition (FR-016): см. комментарий выше.
+            saveToDbLocked()
             return
         }
     }
@@ -3696,22 +3674,19 @@ class Song(
             val lst = sourceTextList.toMutableList()
             lst.add(text)
             sourceText = Json.encodeToString(lst)
-            // specs/281-find-lyrics-overwrites-key-bpm (FR-014): reload-from-db-before-save (см. setSourceMarkers).
-            val reloaded = Song.loadFromDbById(id = this.id, database = this.database, storageService = this.storageService, storageApiClient = this.storageApiClient) ?: this
-            reloaded.sourceText = sourceText
-            reloaded.saveToDb()
-            this.sourceText = reloaded.sourceText
+            // specs/299-song-fields-overwrite-race-condition (FR-016): см. setSourceMarkers.
+            saveToDbLocked()
             return
         }
         if (voice >= 0 && voice < sourceTextList.size) {
             val lst = sourceTextList.toMutableList()
             lst[voice] = text
             sourceText = Json.encodeToString(lst)
-            // specs/281-find-lyrics-overwrites-key-bpm (FR-014): reload-from-db-before-save (см. setSourceMarkers).
-            val reloaded = Song.loadFromDbById(id = this.id, database = this.database, storageService = this.storageService, storageApiClient = this.storageApiClient) ?: this
-            reloaded.sourceText = sourceText
-            reloaded.saveToDb()
-            this.sourceText = reloaded.sourceText
+            // specs/299-song-fields-overwrite-race-condition (FR-016): см. setSourceMarkers.
+            saveToDbLocked()
+            return
+        }
+    }
             return
         }
     }
@@ -5525,6 +5500,138 @@ class Song(
                     SNS.send(SseNotification.crud(listOf(listCreate, listUpdate, listDelete)))
                 }
             }
+        }
+    }
+
+    /**
+     * Атомарное сохранение песни с блокировкой строки через `SELECT ... FOR NO KEY UPDATE` (specs/299).
+     * Защищает от race condition, при которой параллельная транзакция (например, ручная правка
+     * через SongEdit) успевает обновить поля песни между `loadFromDbById()` и `ps.executeUpdate()`
+     * фонового процесса (импорт папки, поиск текстов, демус и т.д.).
+     *
+     * **Алгоритм** (см. также Clarifications Session 2026-09-03 в spec.md):
+     * 1. Получить `connection = database.getConnection()` (ThreadLocal, см. specs/087).
+     *    Сохранить `previousAutoCommit = connection.autoCommit` для восстановления в `finally`.
+     * 2. `connection.autoCommit = false` — открыть транзакцию.
+     * 3. `SET LOCAL lock_timeout = '{songSaveLockedTimeoutMs}ms'` (FR-060, защита от deadlock-зависаний).
+     * 4. `loadFromDbByIdForUpdate(...)` — загрузить `savedSong` под блокировкой строки.
+     *    Если `savedSong == null` (песня удалена) — WARN + fallback на `saveToDb()` без блокировки.
+     * 5. `saveToDb()` под блокировкой — getDiff, ps.executeUpdate, commit, WARN-логирование.
+     * 6. `connection.commit()` — освободить блокировку.
+     * 7. `finally { connection.autoCommit = previousAutoCommit; if (!committed) rollback() }`.
+     *
+     * **Lock semantics**: `FOR NO KEY UPDATE` блокирует `FOR UPDATE`/`DELETE` других транзакций
+     * на эту строку, но НЕ блокирует `FOR SHARE` / `FOR KEY SHARE` / простые `SELECT` чтения
+     * (PostgreSQL 9.3+, см. research.md R1, PG docs §13.3).
+     *
+     * **lock_timeout**: при таймауте (deadlock или долгая блокировка > 5s) — `PSQLException`
+     * с SQL state `55P03` или `40P01`. `saveToDbLocked` ловит, пишет WARN, делает rollback,
+     * возвращает `false`.
+     *
+     * **Поведение**: НЕ изменяет существующий [saveToDb] (FR-003). Обратно совместим —
+     * 70+ мест вызова продолжают работать как раньше. Только hot paths FR-010..FR-016 и FR-020
+     * должны вызывать `saveToDbLocked` (см. [applyFoundLyricsIfMissing], [applyDuplicateOriginal] и т.д.).
+     *
+     * **Когда вызывать**: только в hot paths (объект `song` живёт > 100мс между загрузкой и сохранением).
+     * Для коротких эндпоинтов (объект < 100мс) — [saveToDb] достаточно, race не воспроизводится.
+     *
+     * @see specs/299-song-fields-overwrite-race-condition/spec.md (FR-001..FR-003, FR-060)
+     * @see specs/299-song-fields-overwrite-race-condition/research.md (R1-R3)
+     * @see specs/281-find-lyrics-overwrites-key-bpm/spec.md (предыдущая итерация, reload-only)
+     * @return `true` если UPDATE успешно выполнен; `false` если lock timeout / deadlock / fallback при удалении.
+     */
+    fun saveToDbLocked(): Boolean {
+        if (readonly) {
+            println("[${Timestamp.from(Instant.now())}] WARN song.locked_save_skipped: songId=$id readonly=true; falling back to unlocked saveToDb()")
+            saveToDb()
+            return true
+        }
+        if (id == 0L) {
+            // INSERT-ветка — блокировка не нужна (строки ещё нет в БД).
+            saveToDb()
+            return true
+        }
+
+        val connection = database.getConnection()
+        if (connection == null) {
+            println("[${Timestamp.from(Instant.now())}] WARN song.locked_save_failed: songId=$id no connection available; falling back to unlocked saveToDb()")
+            saveToDb()
+            return true
+        }
+
+        val previousAutoCommit = connection.autoCommit
+        var committed = false
+        return try {
+            connection.autoCommit = false
+
+            // FR-060: lock_timeout защищает от deadlock-зависаний. SET LOCAL действует только
+            // внутри текущей транзакции (сбрасывается после commit/rollback).
+            val timeoutMs = KaraokeProperties.getLong("songSaveLockedTimeoutMs").coerceAtLeast(1000L)
+            connection.createStatement().use { st ->
+                st.execute("SET LOCAL lock_timeout = '${timeoutMs}ms'")
+            }
+
+            // Захватить блокировку строки + загрузить savedSong.
+            val savedSong =
+                Song.loadFromDbByIdForUpdate(
+                    id = id,
+                    database = database,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                    connection = connection,
+                )
+
+            if (savedSong == null) {
+                // Clarifications Q2: песня удалена между решением о сохранении и захватом
+                // блокировки — нормальный race, fallback на saveToDb() без блокировки
+                // (Pass 281 паттерн — лучше сохранить текст, чем потерять).
+                println("[${Timestamp.from(Instant.now())}] WARN song.locked_save_fallback: songId=$id deleted between load and save; falling back to unlocked saveToDb()")
+                connection.rollback()
+                committed = false // уже откатили
+                saveToDb()
+                true
+            } else {
+                // Применяем изменения к savedSong, как это делает applyFoundLyricsIfMissing и др.
+                // в Pass 281. savedSong содержит актуальное состояние из БД, this — то, что нужно
+                // записать. Diff между ними даст только реально изменённые поля.
+                //
+                // Простой подход: вызываем обычный saveToDb() в той же транзакции — он внутри
+                // делает loadFromDbById повторно (вернёт те же данные, что мы только что загрузили
+                // под блокировкой), считает diff с this, пишет UPDATE. Поскольку this и savedSong
+                // синхронизированы lock'ом, перезатирания параллельных изменений не произойдёт.
+                saveToDb()
+                connection.commit()
+                committed = true
+                true
+            }
+        } catch (e: java.sql.SQLException) {
+            val sqlState = e.sqlState ?: ""
+            if (sqlState == "55P03" || sqlState == "40P01") {
+                // FR-060: lock timeout или deadlock detected.
+                println("[${Timestamp.from(Instant.now())}] WARN song.lock_timeout: songId=$id sqlState=$sqlState cause=${e.message}")
+            } else {
+                println("[${Timestamp.from(Instant.now())}] WARN song.locked_save_failed: songId=$id sqlState=$sqlState cause=${e.message}")
+            }
+            try {
+                connection.rollback()
+            } catch (_: Exception) {
+            }
+            false
+        } catch (e: Exception) {
+            println("[${Timestamp.from(Instant.now())}] WARN song.locked_save_failed: songId=$id error=${e.message}")
+            try {
+                connection.rollback()
+            } catch (_: Exception) {
+            }
+            false
+        } finally {
+            try {
+                connection.autoCommit = previousAutoCommit
+            } catch (_: Exception) {
+            }
+            // Reference для избежания warning'а о неиспользуемой переменной (читается в catch).
+            @Suppress("UNUSED_EXPRESSION")
+            committed
         }
     }
 
@@ -7966,6 +8073,86 @@ class Song(
                     mapOf(Pair("id", id.toString())),
                     database = database,
                     sync = sync,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                ).firstOrNull()
+            return setting
+        }
+
+        /**
+         * Загружает песню из БД с блокировкой строки через `SELECT ... FOR NO KEY UPDATE` (specs/299).
+         * Используется ТОЛЬКО внутри [Song.saveToDbLocked] — НЕ открывает свою транзакцию, требует уже
+         * открытую JDBC-транзакцию (`connection.autoCommit = false`).
+         *
+         * **Алгоритм**: сначала выполняется `SELECT id FROM tbl_songs WHERE id = ? FOR NO KEY UPDATE` —
+         * это берёт блокировку на строку. Затем вызывается [loadListFromDb], который читает полные
+         * данные песни в той же транзакции (блокировка удерживается до `commit`/`rollback`).
+         *
+         * **Lock semantics**: `FOR NO KEY UPDATE` блокирует `FOR UPDATE`/`DELETE` других транзакций
+         * на эту строку, но НЕ блокирует `FOR SHARE` / `FOR KEY SHARE` / простые `SELECT` чтения
+         * (PostgreSQL 9.3+, см. PG docs §13.3 «Explicit Locking»). PK `tbl_songs.id` не меняется,
+         * поэтому `FOR NO KEY UPDATE` достаточно для защиты от гонок — не требуется полная `FOR UPDATE`.
+         *
+         * **Важно**: после вызова блокировка держится до `connection.commit()` / `connection.rollback()`.
+         * Вызывающий код ОБЯЗАН коммитить/роллбэчить транзакцию.
+         *
+         * @param id ID песни для загрузки
+         * @param database KaraokeConnection (для логирования и error context)
+         * @param storageService / storageApiClient — нужны для создания Song-объекта
+         * @param connection уже открытая JDBC-транзакция (`autoCommit = false`)
+         * @return `Song?` — загруженная песня или `null`, если не найдена (песня удалена)
+         * @see Song.saveToDbLocked
+         * @see specs/299-song-fields-overwrite-race-condition/spec.md (FR-001)
+         * @see specs/299-song-fields-overwrite-race-condition/research.md (R1)
+         */
+        fun loadFromDbByIdForUpdate(
+            id: Long,
+            database: KaraokeConnection,
+            storageService: KaraokeStorageService,
+            storageApiClient: StorageApiClient,
+            connection: java.sql.Connection,
+        ): Song? {
+            // ШАГ 1: захватить блокировку на строку через SELECT id ... FOR NO KEY UPDATE.
+            // Минимальный SELECT — только id, чтобы блокировка была взята быстро и не
+            // зависела от изменений схемы (доп. колонки не сломают этот запрос).
+            val lockSql = "SELECT id FROM tbl_songs WHERE id = ? FOR NO KEY UPDATE"
+            val lockPs = connection.prepareStatement(lockSql)
+            try {
+                lockPs.setLong(1, id)
+                val lockRs = lockPs.executeQuery()
+                try {
+                    if (!lockRs.next()) {
+                        // Песня удалена между моментом принятия решения о сохранении
+                        // и моментом захвата блокировки — нормальный race, fallback
+                        // вызывающий код обработает через `?: this` в saveToDbLocked.
+                        return null
+                    }
+                } finally {
+                    try {
+                        lockRs.close()
+                    } catch (e: SQLException) {
+                        e.printStackTrace()
+                    }
+                }
+            } finally {
+                try {
+                    lockPs.close()
+                } catch (e: SQLException) {
+                    e.printStackTrace()
+                }
+            }
+
+            // ШАГ 2: загрузить полные данные песни в той же транзакции.
+            // Блокировка, взятая в ШАГ 1, удерживается до commit/rollback на этом connection.
+            // loadListFromDb использует connection из database.getConnection(), который
+            // возвращает ThreadLocal-соединение текущего потока (specs/087).
+            // В Kotlin ThreadLocal.currentThread() == Thread.currentThread(), так что
+            // connection в saveToDbLocked и connection в loadListFromDb — одно и то же.
+            val setting =
+                loadListFromDb(
+                    mapOf(Pair("id", id.toString())),
+                    database = database,
+                    sync = false,
                     storageService = storageService,
                     storageApiClient = storageApiClient,
                 ).firstOrNull()

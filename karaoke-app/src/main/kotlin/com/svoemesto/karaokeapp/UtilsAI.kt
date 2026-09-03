@@ -148,19 +148,16 @@ fun applyFoundLyricsIfMissing(
     val firstNonEmpty = candidateTexts.firstOrNull { it.isNotBlank() } ?: return
     if (!song.haveSourceText && song.idStatus == 0L) {
         println("Первое из найденных не пустых значений применяем для текста песни ${song.fileName}")
-        // specs/281-find-lyrics-overwrites-key-bpm: reload-from-db-before-save — иначе параллельно
-        // записанные key/bpm/url'ы стемов попадут в getDiff и перезатрутся пустыми значениями из
-        // stale in-memory объекта (объект загружен в начале searchsongtextall десятки секунд назад).
-        val songToSave =
-            Song.loadFromDbById(
-                id = song.id,
-                database = song.database,
-                storageService = song.storageService,
-                storageApiClient = song.storageApiClient,
-            ) ?: song
-        songToSave.sourceText = firstNonEmpty
-        songToSave.fields[SongField.ID_STATUS] = "1"
-        songToSave.saveToDb()
+        // specs/299-song-fields-overwrite-race-condition (FR-010): применяем изменения к `song`
+        // напрямую и сохраняем через `saveToDbLocked()` — это обеспечивает атомарность записи
+        // (SELECT ... FOR NO KEY UPDATE + UPDATE в одной транзакции, см. research.md R1).
+        // Заменяет Pass 281 паттерн `reload-from-db-before-save`, который НЕ был атомарен —
+        // между reload и save другая транзакция успевала закоммитить изменение.
+        // Clarifications Q2: если песня удалена между моментом решения о сохранении и
+        // захватом блокировки, saveToDbLocked сам делает fallback на saveToDb() + WARN.
+        song.sourceText = firstNonEmpty
+        song.fields[SongField.ID_STATUS] = "1"
+        song.saveToDbLocked()
     }
 }
 

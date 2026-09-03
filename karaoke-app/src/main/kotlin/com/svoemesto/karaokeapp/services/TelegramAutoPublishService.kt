@@ -254,7 +254,8 @@ object TelegramAutoPublishService {
         }
         song.telegramAutoPublishState = TelegramAutoPublishState.RENDERING.code
         song.telegramAutoPublishLastError = ""
-        song.saveToDb()
+        // specs/299: race с ручной правкой через SongEdit — saveToDbLocked обеспечивает атомарность записи
+        song.saveToDbLocked()
         return TelegramAutoPublishResult(state = TelegramAutoPublishState.RENDERING)
     }
 
@@ -290,7 +291,8 @@ object TelegramAutoPublishService {
         song.telegramAutoPublishState = TelegramAutoPublishState.PUBLISHING.code
         song.telegramAutoPublishLastAttemptAt = nowIso8601()
         song.telegramAutoPublishLastError = ""
-        song.saveToDb()
+        // specs/299: см. комментарий выше
+        song.saveToDbLocked()
 
         val maxFileSizeBytes =
             KaraokeProperties.getLong("telegramAutoPublishMaxFileSizeMb").let { if (it <= 0) 50L else it } * 1024 * 1024
@@ -307,7 +309,8 @@ object TelegramAutoPublishService {
             }
             song.telegramAutoPublishState = TelegramAutoPublishState.PUBLISHED.code
             song.telegramAutoPublishLastError = ""
-            song.saveToDb()
+            // specs/299: см. комментарий выше
+            song.saveToDbLocked()
             return result
         }
 
@@ -324,7 +327,8 @@ object TelegramAutoPublishService {
         song.telegramAutoPublishState = TelegramAutoPublishState.SEND_FAILED.code
         song.telegramAutoPublishLastAttemptAt = nowIso8601()
         song.telegramAutoPublishLastError = error
-        song.saveToDb()
+        // specs/299: см. комментарий выше
+        song.saveToDbLocked()
     }
 
     private fun nowMoscow(): Date = Calendar.getInstance(TimeZone.getTimeZone("Europe/Moscow")).time

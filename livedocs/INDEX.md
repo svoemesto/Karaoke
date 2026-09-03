@@ -47,6 +47,7 @@ SDD-сводки существующих фич (1-2 страницы кажд�
 | [`238-import-folder-author-album-cover.md`](features/238-import-folder-author-album-cover.md) | Импорт из папки: поиск «родителя» у того же автора + автообложка |
 | [`250-unify-site-header.md`](features/250-unify-site-header.md) | Единый `<AppHeader>` в karaoke-public: логотип справа, 20 view-миграций, slot-based `EditorWorkView` |
 | [`257-header-news-unread-badge.md`](features/257-header-news-unread-badge.md) | Бейдж непрочитанных новостей в шапке (замена `NewsBell.vue` → inline-бейдж в `AuthStatusWidget`, `useNewsUnreadCount` composable, FR-013 silent reset + FR-014 a11y) |
+| [`299-song-fields-overwrite-race-condition.md`](features/299-song-fields-overwrite-race-condition.md) | Защита 31+ hot paths `Song.saveToDb()` от race через `SELECT FOR NO KEY UPDATE` (замена Pass 281 reload-from-db-before-save, OpenProject WP #49) |
 
 ### DDD — `livedocs/domain/`
 

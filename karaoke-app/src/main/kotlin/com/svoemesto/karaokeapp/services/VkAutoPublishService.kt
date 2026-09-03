@@ -249,7 +249,8 @@ object VkAutoPublishService {
         }
         song.vkAutoPublishState = VkAutoPublishState.RENDERING.code
         song.vkAutoPublishLastError = ""
-        song.saveToDb()
+        // specs/299: race с SongEdit — saveToDbLocked обеспечивает атомарность
+        song.saveToDbLocked()
         return VkAutoPublishResult(state = VkAutoPublishState.RENDERING)
     }
 
@@ -355,7 +356,8 @@ object VkAutoPublishService {
             song.vkAutoPublishState = VkAutoPublishState.PUBLISHING.code
             song.vkAutoPublishLastAttemptAt = nowIso8601()
             song.vkAutoPublishLastError = ""
-            song.saveToDb()
+            // specs/299: race с SongEdit — saveToDbLocked обеспечивает атомарность
+            song.saveToDbLocked()
 
             val result = client.sendPostWithVideo(groupId, message, demoFile, song.id, photoAttachment)
 
@@ -369,7 +371,8 @@ object VkAutoPublishService {
                 }
                 song.vkAutoPublishState = VkAutoPublishState.PUBLISHED.code
                 song.vkAutoPublishLastError = ""
-                song.saveToDb()
+                // specs/299: см. комментарий выше
+                song.saveToDbLocked()
                 return@synchronized result
             }
 
@@ -465,7 +468,8 @@ object VkAutoPublishService {
             song.vkAutoPublishState = VkAutoPublishState.PUBLISHING.code
             song.vkAutoPublishLastAttemptAt = nowIso8601()
             song.vkAutoPublishLastError = ""
-            song.saveToDb()
+            // specs/299: race с SongEdit — saveToDbLocked обеспечивает атомарность
+            song.saveToDbLocked()
 
             val result = client.wallPost(groupId, message, attachments = photoAttachment)
 

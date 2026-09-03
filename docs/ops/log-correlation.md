@@ -129,6 +129,10 @@ ssh root@188.119.64.111 'grep "/minio/karaoke/" /var/log/nginx/access.log | tail
 | `infra.prod.ping - ping:recovered` | Восстановление прода после сбоя |
 | `infra.prod.db` | Пинги прод-БД |
 | `WARN` / `ERROR` | Уровни логирования (Spring Boot дефолт) |
+| `song.locked_save_fallback` | (specs/299) Песня удалена между `loadFromDbByIdForUpdate` и `saveToDbLocked` — fallback на `saveToDb()` без блокировки. Ожидаемая частота: < 1/час. |
+| `song.locked_save_failed` | (specs/299) SQL-ошибка внутри `saveToDbLocked` (не lock timeout). Должно быть 0. Если есть — проверить логи БД. |
+| `song.lock_timeout` | (specs/299) `PSQLException` SQL state `55P03` (lock timeout) или `40P01` (deadlock detected) в `saveToDbLocked`. Ожидаемая частота: < 1/час. |
+| `song.locked_save_skipped` | (specs/299) `saveToDbLocked` вызван для readonly-песни — fallback на `saveToDb()`. Безопасно, но редко должно встречаться. |
 
 ### 3.3. nginx (`access.log`)
 

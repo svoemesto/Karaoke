@@ -2,12 +2,12 @@ package com.svoemesto.karaokeapp.controllers
 
 import com.svoemesto.karaokeapp.censored
 import com.svoemesto.karaokeapp.KaraokeConnection
+import com.svoemesto.karaokeapp.KaraokeProcess
 import com.svoemesto.karaokeapp.model.Album
 import com.svoemesto.karaokeapp.model.Author
 import com.svoemesto.karaokeapp.model.Song
 import com.svoemesto.karaokeapp.model.SongField
 import com.svoemesto.karaokeapp.model.SongType
-import com.svoemesto.karaokeapp.services.KaraokeProcess
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.StorageApiClient
 import com.svoemesto.karaokeapp.sanitizeSongFileName
@@ -72,10 +72,8 @@ data class SongUpdateApplyResult(
  * Семантика 1:1 с текущим телом [ApiController.songs2Update] (см. spec 302 FR-014).
  *
  * @see docs.features.song-edit-and-censored.md
- * @see specs.302-fix-censored-name-loss
  */
 object SongUpdateMapper {
-
     private val log = LoggerFactory.getLogger(SongUpdateMapper::class.java)
 
     /**
@@ -86,112 +84,115 @@ object SongUpdateMapper {
      * (б) явно перечислить поддерживаемые поля (легко читается);
      * (в) легко добавить новое поле — одна строка.
      */
-    private val fieldLookup: Map<String, SongField> = mapOf(
-        "id" to SongField.ID,
-        "songName" to SongField.NAME,
-        "songNameCensored" to SongField.NAME_CENSORED,
-        "author" to SongField.AUTHOR,
-        "album" to SongField.ALBUM,
-        "year" to SongField.YEAR,
-        "track" to SongField.TRACK,
-        "key" to SongField.KEY,
-        "bpm" to SongField.BPM,
-        "ms" to SongField.MS,
-        "format" to SongField.FORMAT,
-        "date" to SongField.DATE,
-        "time" to SongField.TIME,
-        "boostyOnly" to SongField.BOOSTY_ONLY,
-        "idBoosty" to SongField.ID_BOOSTY,
-        "versionBoosty" to SongField.VERSION_BOOSTY,
-        "idBoostyFiles" to SongField.ID_BOOSTY_FILES,
-        "versionBoostyFiles" to SongField.VERSION_BOOSTY_FILES,
-        "idVk" to SongField.ID_VK,
-        "idDzenLyrics" to SongField.ID_DZEN_LYRICS,
-        "versionDzenLyrics" to SongField.VERSION_DZEN_LYRICS,
-        "idDzenKaraoke" to SongField.ID_DZEN_KARAOKE,
-        "versionDzenKaraoke" to SongField.VERSION_DZEN_KARAOKE,
-        "idDzenChords" to SongField.ID_DZEN_CHORDS,
-        "versionDzenChords" to SongField.VERSION_DZEN_CHORDS,
-        "idDzenMelody" to SongField.ID_DZEN_MELODY,
-        "versionDzenMelody" to SongField.VERSION_DZEN_MELODY,
-        "idVkLyrics" to SongField.ID_VK_LYRICS,
-        "versionVkLyrics" to SongField.VERSION_VK_LYRICS,
-        "idVkKaraoke" to SongField.ID_VK_KARAOKE,
-        "versionVkKaraoke" to SongField.VERSION_VK_KARAOKE,
-        "idVkChords" to SongField.ID_VK_CHORDS,
-        "versionVkChords" to SongField.VERSION_VK_CHORDS,
-        "idVkMelody" to SongField.ID_VK_MELODY,
-        "versionVkMelody" to SongField.VERSION_VK_MELODY,
-        "idStatus" to SongField.ID_STATUS,
-        "color" to SongField.COLOR,
-        "idTelegramLyrics" to SongField.ID_TELEGRAM_LYRICS,
-        "versionTelegramLyrics" to SongField.VERSION_TELEGRAM_LYRICS,
-        "idTelegramKaraoke" to SongField.ID_TELEGRAM_KARAOKE,
-        "versionTelegramKaraoke" to SongField.VERSION_TELEGRAM_KARAOKE,
-        "idTelegramChords" to SongField.ID_TELEGRAM_CHORDS,
-        "versionTelegramChords" to SongField.VERSION_TELEGRAM_CHORDS,
-        "idTelegramMelody" to SongField.ID_TELEGRAM_MELODY,
-        "versionTelegramMelody" to SongField.VERSION_TELEGRAM_MELODY,
-        "idPlLyrics" to SongField.ID_PL_LYRICS,
-        "versionPlLyrics" to SongField.VERSION_PL_LYRICS,
-        "idPlKaraoke" to SongField.ID_PL_KARAOKE,
-        "versionPlKaraoke" to SongField.VERSION_PL_KARAOKE,
-        "idPlChords" to SongField.ID_PL_CHORDS,
-        "versionPlChords" to SongField.VERSION_PL_CHORDS,
-        "idPlMelody" to SongField.ID_PL_MELODY,
-        "versionPlMelody" to SongField.VERSION_PL_MELODY,
-        "idMaxLyrics" to SongField.ID_MAX_LYRICS,
-        "versionMaxLyrics" to SongField.VERSION_MAX_LYRICS,
-        "idMaxKaraoke" to SongField.ID_MAX_KARAOKE,
-        "versionMaxKaraoke" to SongField.VERSION_MAX_KARAOKE,
-        "idMaxChords" to SongField.ID_MAX_CHORDS,
-        "versionMaxChords" to SongField.VERSION_MAX_CHORDS,
-        "idMaxMelody" to SongField.ID_MAX_MELODY,
-        "versionMaxMelody" to SongField.VERSION_MAX_MELODY,
-        "idDzenDemo" to SongField.ID_DZEN_DEMO,
-        "idVkDemo" to SongField.ID_VK_DEMO,
-        "idTelegramDemo" to SongField.ID_TELEGRAM_DEMO,
-        "idMaxDemo" to SongField.ID_MAX_DEMO,
-        "versionDzenDemo" to SongField.VERSION_DZEN_DEMO,
-        "versionVkDemo" to SongField.VERSION_VK_DEMO,
-        "versionTelegramDemo" to SongField.VERSION_TELEGRAM_DEMO,
-        "versionMaxDemo" to SongField.VERSION_MAX_DEMO,
-        "resultVersion" to SongField.RESULT_VERSION,
-        "diffBeats" to SongField.DIFFBEATS,
-        "rate" to SongField.RATE,
-        "rootId" to SongField.ROOT_ID,
-        "audioParentId" to SongField.AUDIO_PARENT_ID,
-        "audioSimilarityPercent" to SongField.AUDIO_SIMILARITY_PERCENT,
-        "audioDeltaMs" to SongField.AUDIO_DELTA_MS,
-        "free" to SongField.FREE,
-        "idTariff" to SongField.ID_TARIFF,
-        "indexTabsVariant" to SongField.INDEX_TABS_VARIANT,
-        "idSponsr" to SongField.ID_SPONSR,
-        "versionSponsr" to SongField.VERSION_SPONSR,
-    )
+    private val fieldLookup: Map<String, SongField> =
+        mapOf(
+            "id" to SongField.ID,
+            "songName" to SongField.NAME,
+            "songNameCensored" to SongField.NAME_CENSORED,
+            "author" to SongField.AUTHOR,
+            "album" to SongField.ALBUM,
+            "year" to SongField.YEAR,
+            "track" to SongField.TRACK,
+            "key" to SongField.KEY,
+            "bpm" to SongField.BPM,
+            "ms" to SongField.MS,
+            "format" to SongField.FORMAT,
+            "date" to SongField.DATE,
+            "time" to SongField.TIME,
+            "boostyOnly" to SongField.BOOSTY_ONLY,
+            "idBoosty" to SongField.ID_BOOSTY,
+            "versionBoosty" to SongField.VERSION_BOOSTY,
+            "idBoostyFiles" to SongField.ID_BOOSTY_FILES,
+            "versionBoostyFiles" to SongField.VERSION_BOOSTY_FILES,
+            "idVk" to SongField.ID_VK,
+            "idDzenLyrics" to SongField.ID_DZEN_LYRICS,
+            "versionDzenLyrics" to SongField.VERSION_DZEN_LYRICS,
+            "idDzenKaraoke" to SongField.ID_DZEN_KARAOKE,
+            "versionDzenKaraoke" to SongField.VERSION_DZEN_KARAOKE,
+            "idDzenChords" to SongField.ID_DZEN_CHORDS,
+            "versionDzenChords" to SongField.VERSION_DZEN_CHORDS,
+            "idDzenMelody" to SongField.ID_DZEN_MELODY,
+            "versionDzenMelody" to SongField.VERSION_DZEN_MELODY,
+            "idVkLyrics" to SongField.ID_VK_LYRICS,
+            "versionVkLyrics" to SongField.VERSION_VK_LYRICS,
+            "idVkKaraoke" to SongField.ID_VK_KARAOKE,
+            "versionVkKaraoke" to SongField.VERSION_VK_KARAOKE,
+            "idVkChords" to SongField.ID_VK_CHORDS,
+            "versionVkChords" to SongField.VERSION_VK_CHORDS,
+            "idVkMelody" to SongField.ID_VK_MELODY,
+            "versionVkMelody" to SongField.VERSION_VK_MELODY,
+            "idStatus" to SongField.ID_STATUS,
+            "color" to SongField.COLOR,
+            "idTelegramLyrics" to SongField.ID_TELEGRAM_LYRICS,
+            "versionTelegramLyrics" to SongField.VERSION_TELEGRAM_LYRICS,
+            "idTelegramKaraoke" to SongField.ID_TELEGRAM_KARAOKE,
+            "versionTelegramKaraoke" to SongField.VERSION_TELEGRAM_KARAOKE,
+            "idTelegramChords" to SongField.ID_TELEGRAM_CHORDS,
+            "versionTelegramChords" to SongField.VERSION_TELEGRAM_CHORDS,
+            "idTelegramMelody" to SongField.ID_TELEGRAM_MELODY,
+            "versionTelegramMelody" to SongField.VERSION_TELEGRAM_MELODY,
+            "idPlLyrics" to SongField.ID_PL_LYRICS,
+            "versionPlLyrics" to SongField.VERSION_PL_LYRICS,
+            "idPlKaraoke" to SongField.ID_PL_KARAOKE,
+            "versionPlKaraoke" to SongField.VERSION_PL_KARAOKE,
+            "idPlChords" to SongField.ID_PL_CHORDS,
+            "versionPlChords" to SongField.VERSION_PL_CHORDS,
+            "idPlMelody" to SongField.ID_PL_MELODY,
+            "versionPlMelody" to SongField.VERSION_PL_MELODY,
+            "idMaxLyrics" to SongField.ID_MAX_LYRICS,
+            "versionMaxLyrics" to SongField.VERSION_MAX_LYRICS,
+            "idMaxKaraoke" to SongField.ID_MAX_KARAOKE,
+            "versionMaxKaraoke" to SongField.VERSION_MAX_KARAOKE,
+            "idMaxChords" to SongField.ID_MAX_CHORDS,
+            "versionMaxChords" to SongField.VERSION_MAX_CHORDS,
+            "idMaxMelody" to SongField.ID_MAX_MELODY,
+            "versionMaxMelody" to SongField.VERSION_MAX_MELODY,
+            "idDzenDemo" to SongField.ID_DZEN_DEMO,
+            "idVkDemo" to SongField.ID_VK_DEMO,
+            "idTelegramDemo" to SongField.ID_TELEGRAM_DEMO,
+            "idMaxDemo" to SongField.ID_MAX_DEMO,
+            "versionDzenDemo" to SongField.VERSION_DZEN_DEMO,
+            "versionVkDemo" to SongField.VERSION_VK_DEMO,
+            "versionTelegramDemo" to SongField.VERSION_TELEGRAM_DEMO,
+            "versionMaxDemo" to SongField.VERSION_MAX_DEMO,
+            "resultVersion" to SongField.RESULT_VERSION,
+            "diffBeats" to SongField.DIFFBEATS,
+            "rate" to SongField.RATE,
+            "rootId" to SongField.ROOT_ID,
+            "audioParentId" to SongField.AUDIO_PARENT_ID,
+            "audioSimilarityPercent" to SongField.AUDIO_SIMILARITY_PERCENT,
+            "audioDeltaMs" to SongField.AUDIO_DELTA_MS,
+            "free" to SongField.FREE,
+            "idTariff" to SongField.ID_TARIFF,
+            "indexTabsVariant" to SongField.INDEX_TABS_VARIANT,
+            "idSponsr" to SongField.ID_SPONSR,
+            "versionSponsr" to SongField.VERSION_SPONSR,
+        )
 
     /**
      * Множество direct-setter ключей (поля, которые НЕ в [SongField]).
      * Обрабатываются в Phase C — пишутся напрямую в свойства [Song].
      */
-    private val directSetters: Set<String> = setOf(
-        "tags",
-        "rootFolder",
-        "description",
-        "shortDescription",
-        "warning",
-    )
+    private val directSetters: Set<String> =
+        setOf(
+            "tags",
+            "rootFolder",
+            "description",
+            "shortDescription",
+            "warning",
+        )
 
     /**
      * Множество special-case ключей (поля с бизнес-логикой).
      * Обрабатываются в Phase A — до Phase B/C, чтобы их результат
      * был доступен для финального return.
      */
-    private val specialCaseKeys: Set<String> = setOf(
-        "fileName",
-        "albumId",
-        "songType",
-    )
+    private val specialCaseKeys: Set<String> =
+        setOf(
+            "fileName",
+            "albumId",
+            "songType",
+        )
 
     /**
      * Применяет параметры из [params] к [song].
@@ -226,15 +227,22 @@ object SongUpdateMapper {
             val sanitized = requestedFileName.sanitizeSongFileName()
             val effectiveRootFolder = params["rootFolder"] ?: song.rootFolder
             if (sanitized.isEmpty()) {
-                fileNameRenameError = "Имя файла после удаления недопустимых символов оказалось пустым — введите другое значение."
+                fileNameRenameError =
+                    "Имя файла после удаления недопустимых символов оказалось пустым — введите другое значение."
             } else if (sanitized != song.fileName) {
-                val collision = Song.loadListFromDb(
-                    args = mapOf(Pair("file_name", sanitized), Pair("root_folder", effectiveRootFolder)),
-                    database = database,
-                    storageService = storageService,
-                    storageApiClient = storageApiClient,
-                    withoutMarkersAndText = true,
-                ).any { it.id != song.id }
+                val collision =
+                    Song
+                        .loadListFromDb(
+                            args =
+                                mapOf(
+                                    Pair("file_name", sanitized),
+                                    Pair("root_folder", effectiveRootFolder),
+                                ),
+                            database = database,
+                            storageService = storageService,
+                            storageApiClient = storageApiClient,
+                            withoutMarkersAndText = true,
+                        ).any { it.id != song.id }
                 if (collision) {
                     fileNameRenameError = "Песня с именем файла «$sanitized» уже существует в этой папке."
                 } else if (KaraokeProcess.hasActiveProcess(songId = song.id, database = database)) {

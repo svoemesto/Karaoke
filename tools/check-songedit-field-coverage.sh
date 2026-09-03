@@ -50,23 +50,32 @@ if [ -f "${MAPPER}" ]; then
 fi
 
 # Источник 2: прямые setter'ы в SongUpdateMapper (tags, rootFolder, и т.д.).
+# Robust парсинг: находим "private val directSetters:" и собираем строки до ближайшей ")".
 if [ -f "${MAPPER}" ]; then
-  awk '/private val directSetters: Set<String> = setOf\(/,/\) *$/ {
-    if (match($0, /"[^"]+"/)) {
-      key = substr($0, RSTART+1, RLENGTH-2)
-      print key
+  awk '
+    /private val directSetters:/ { in_section=1; next }
+    in_section && /^[[:space:]]*\)/ { in_section=0; next }
+    in_section {
+      if (match($0, /"[^"]+"/)) {
+        key = substr($0, RSTART+1, RLENGTH-2)
+        print key
+      }
     }
-  }' "${MAPPER}" >> "${SUPPORTED_FILE}"
+  ' "${MAPPER}" >> "${SUPPORTED_FILE}"
 fi
 
 # Источник 2b: special-case ключи (fileName, albumId, songType — обрабатываются в Phase A).
 if [ -f "${MAPPER}" ]; then
-  awk '/private val specialCaseKeys: Set<String> = setOf\(/,/\) *$/ {
-    if (match($0, /"[^"]+"/)) {
-      key = substr($0, RSTART+1, RLENGTH-2)
-      print key
+  awk '
+    /private val specialCaseKeys:/ { in_section=1; next }
+    in_section && /^[[:space:]]*\)/ { in_section=0; next }
+    in_section {
+      if (match($0, /"[^"]+"/)) {
+        key = substr($0, RSTART+1, RLENGTH-2)
+        print key
+      }
     }
-  }' "${MAPPER}" >> "${SUPPORTED_FILE}"
+  ' "${MAPPER}" >> "${SUPPORTED_FILE}"
 fi
 
 # Источник 3 (fallback): @RequestParam в ApiController.songs2Update.

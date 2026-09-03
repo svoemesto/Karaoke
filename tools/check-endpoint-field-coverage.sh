@@ -97,12 +97,21 @@ while IFS='|' read -r component endpoint method controller controller_method; do
   if [ -f "${MAPPER}" ]; then
     grep -oE '"[a-zA-Z]+"\s+to\s+SongField\.' "${MAPPER}" \
       | sed -E 's/"([a-zA-Z]+)".*/\1/' >> "${SUPPORTED_FILE}"
-    awk '/private val directSetters: Set<String> = setOf\(/,/\) *$/ {
-      if (match($0, /"[^"]+"/)) { print substr($0, RSTART+1, RLENGTH-2) }
-    }' "${MAPPER}" >> "${SUPPORTED_FILE}"
-    awk '/private val specialCaseKeys: Set<String> = setOf\(/,/\) *$/ {
-      if (match($0, /"[^"]+"/)) { print substr($0, RSTART+1, RLENGTH-2) }
-    }' "${MAPPER}" >> "${SUPPORTED_FILE}"
+    # Robust парсинг directSetters и specialCaseKeys (после ktlintFormat многострочные).
+    awk '
+      /private val directSetters:/ { in_section=1; next }
+      in_section && /^[[:space:]]*\)/ { in_section=0; next }
+      in_section {
+        if (match($0, /"[^"]+"/)) print substr($0, RSTART+1, RLENGTH-2)
+      }
+    ' "${MAPPER}" >> "${SUPPORTED_FILE}"
+    awk '
+      /private val specialCaseKeys:/ { in_section=1; next }
+      in_section && /^[[:space:]]*\)/ { in_section=0; next }
+      in_section {
+        if (match($0, /"[^"]+"/)) print substr($0, RSTART+1, RLENGTH-2)
+      }
+    ' "${MAPPER}" >> "${SUPPORTED_FILE}"
   fi
 
   # Fallback: @RequestParam.

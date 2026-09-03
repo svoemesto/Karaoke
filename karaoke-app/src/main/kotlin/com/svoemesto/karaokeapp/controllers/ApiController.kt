@@ -2938,11 +2938,12 @@ class ApiController(
         @RequestParam all: Map<String, String>,
     ): SongUpdateResultDto {
         // id обязателен (без него не знаем какую песню обновлять).
-        val songId: Long = all["id"]?.toLongOrNull()
-            ?: throw org.springframework.web.server.ResponseStatusException(
-                org.springframework.http.HttpStatus.BAD_REQUEST,
-                "Missing required param 'id'"
-            )
+        val songId: Long =
+            all["id"]?.toLongOrNull()
+                ?: throw org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST,
+                    "Missing required param 'id'"
+                )
         val song =
             Song.loadFromDbById(
                 songId,
@@ -2958,13 +2959,14 @@ class ApiController(
         }
 
         // Делегируем применение параметров мапперу (Phase A-E внутри).
-        val applyResult = SongUpdateMapper.apply(
-            song = song,
-            params = all,
-            database = WORKING_DATABASE,
-            storageService = storageService,
-            storageApiClient = storageApiClient,
-        )
+        val applyResult =
+            SongUpdateMapper.apply(
+                song = song,
+                params = all,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
 
         song.saveToDb()
         song.saveToFile()

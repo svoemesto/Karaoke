@@ -3687,9 +3687,6 @@ class Song(
             return
         }
     }
-            return
-        }
-    }
 
     // Обрезает список голосов (sourceMarkersList/sourceTextList) до count элементов — единственный
     // способ УДАЛИТЬ голос(а): setSourceMarkers/setSourceText умеют только обновить существующий

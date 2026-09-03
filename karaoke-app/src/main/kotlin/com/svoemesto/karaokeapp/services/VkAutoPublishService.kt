@@ -469,7 +469,7 @@ object VkAutoPublishService {
             song.vkAutoPublishLastAttemptAt = nowIso8601()
             song.vkAutoPublishLastError = ""
             // specs/299: race с SongEdit — saveToDbLocked обеспечивает атомарность
-        song.saveToDbLocked()
+            song.saveToDbLocked()
 
             val result = client.wallPost(groupId, message, attachments = photoAttachment)
 

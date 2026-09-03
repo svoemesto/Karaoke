@@ -2227,8 +2227,9 @@ val listKaraokeProperties =
         KaraokeProperty(
             key = "songSaveLockedTimeoutMs",
             defaultValue = 5000L,
-            description = "Таймаут (мс) для SELECT FOR NO KEY UPDATE в Song.saveToDbLocked() (specs/299). " +
-                "При превышении — PSQLException с SQL state 55P03 (lock timeout), saveToDbLocked возвращает false. " +
-                "Default 5000 (5 сек) — оптимальный баланс между deadlock-устойчивостью и пользовательским опытом.",
+            description =
+                "Таймаут (мс) для SELECT FOR NO KEY UPDATE в Song.saveToDbLocked() (specs/299). " +
+                    "При превышении — PSQLException с SQL state 55P03 (lock timeout), saveToDbLocked возвращает false. " +
+                    "Default 5000 (5 сек) — оптимальный баланс между deadlock-устойчивостью и пользовательским опытом.",
         ),
     )

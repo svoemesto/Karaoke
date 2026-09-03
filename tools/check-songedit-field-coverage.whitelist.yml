@@ -1,0 +1,19 @@
+# tools/check-songedit-field-coverage.whitelist.yml
+#
+# Whitelist для check-songedit-field-coverage.sh.
+# Каждое поле = одно исключение из чека покрытия SongEdit.vue ↔ /api/song/update.
+#
+# Формат: "<имя_поля>": "<обоснование, почему не покрыто автоматически>"
+#
+# Предзаполнен при создании (Session 2026-09-03 Q4→B) нестандартными
+# setter'ами, которые чек не может распознать автоматически.
+
+whitelist:
+  # path-param (идентификатор песни, не редактируется через v-model)
+  "id": "path-param, не v-model поле Song"
+
+  # специальная обработка через ?.let { rawAlbumId -> ... } + cross-author check
+  "albumId": "обработка через rawAlbumId.toLongOrNull() + Album.getAlbumById cross-author check"
+
+  # enum, setter через SongType.entries.firstOrNull { ... }
+  "songType": "enum SongType, нестандартный setter"

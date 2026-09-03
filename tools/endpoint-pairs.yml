@@ -1,0 +1,26 @@
+# tools/endpoint-pairs.yml
+#
+# Формат: каждая запись — пара UI-компонент + backend-эндпоинт,
+# которые должны быть покрыты check-endpoint-field-coverage.sh (FR-007).
+#
+# Поля:
+#   - component: путь к Vue-компоненту (относительно корня репо).
+#   - endpoint: HTTP-эндпоинт (path).
+#   - method: HTTP метод (POST/PUT/PATCH — обычно POST).
+#   - controller: путь к Kotlin-файлу контроллера.
+#   - controller_method: имя метода контроллера.
+
+pairs:
+  # === MVP (specs/302-fix-censored-name-loss) ===
+  - component: webvue3/src/components/Songs/edit/SongEdit.vue
+    endpoint: /api/song/update
+    method: POST
+    controller: karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt
+    controller_method: songs2Update
+
+  # === Следующие раунды (out of scope этой спеки) ===
+  # Добавляются инкрементально после MVP-merge:
+  # - AlbumEdit (если есть отдельный) ↔ /albums/updatealbum
+  # - AuthorEdit (если есть отдельный) ↔ /authors/updateauthor
+  # - SiteUserEdit.vue ↔ /api/siteuser/update (если есть)
+  # - DictionariesTable.vue ↔ /api/dictionaries/update (если есть)

@@ -1,0 +1,69 @@
+# .dockerignore — Karaoke
+#
+# Исключает файлы/папки из Docker build context для всех образов проекта
+# (karaoke-app, karaoke-web, webvue3, karaoke-public, openproject).
+# Уменьшает размер context → быстрее build + меньше шанс leak секретов.
+
+# VCS
+.git/
+.gitignore
+.gitattributes
+.git-blame-ignore-revs
+
+# Secrets (Constitution § VIII) — must NOT enter any Docker image
+.env
+.env.local
+*.env.*
+/deploy/.env
+/deploy/do.env
+/deploy/web-server-deploy/deploy/.env
+/deploy/web-server-deploy/deploy/do.env
+/deploy/new_comp/sm-karaoke-system/deploy/.env
+/deploy/new_comp/sm-karaoke-system/deploy/do.env
+.env.local-tracker
+*.key
+*.pem
+*.p12
+*.pfx
+
+# Build artifacts
+build/
+target/
+dist/
+node_modules/
+.gradle/
+out/
+
+# IDE / editor
+.vscode/
+.idea/
+*.iml
+.DS_Store
+Thumbs.db
+
+# Test artifacts
+coverage/
+htmlcov/
+.nyc_output/
+
+# Tool indexes (per-machine, not needed in images)
+.codegraph/
+.opencode/
+.dsh/
+
+# Spec-kit integration cache
+.specify/integrations/.cache/
+.specify/feature.json
+
+# Documentation build artifacts
+docs/api/dokka/
+docs/api/typedoc-*/
+
+# Logs
+*.log
+*.tmp
+*.swp
+
+# Local docker-compose overrides (если есть)
+docker-compose.override.yml
+docker-compose.local.yml

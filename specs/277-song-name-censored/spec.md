@@ -87,6 +87,14 @@ WHERE song_name_censored = ''` и убедиться, что счётчик ра
    **When** карточка переоткрывается, **Then** поле «Композиция
    (цензурированная)» сохраняет прежнее ручное значение — переименование
    основного названия не перетирает ручную правку.
+4. **Given** фронт отправляет `POST /api/song/update` с параметром
+   `songNameCensored=<X>`, **When** бэкенд обрабатывает запрос, **Then**
+   параметр принимается (через `@RequestParam Map<String, String> all`
+   и `SongUpdateMapper.fieldLookup`, см. [specs/302-fix-censored-name-loss
+   FR-011](../302-fix-censored-name-loss/spec.md#fr-011-основной-подход-c-рефактор-endpoint))
+   ИЛИ явный `@RequestParam songNameCensored`. Если ни то, ни другое — баг
+   (теряется значение, см. OpenProject issue #52). Защитный чек
+   `tools/check-songedit-field-coverage.sh` ловит такое автоматически.
 
 ---
 

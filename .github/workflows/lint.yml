@@ -232,6 +232,16 @@ jobs:
       - name: Check LiveDocs structure
         run: bash tools/check-livedocs-structure.sh
 
+      # specs/302-fix-censored-name-loss FR-005/006: ловит рассинхроны UI↔backend
+      # для пары SongEdit.vue ↔ /api/song/update (баг #52).
+      - name: SongEdit field coverage
+        run: bash tools/check-songedit-field-coverage.sh
+
+      # specs/302-fix-censored-name-loss FR-007/008: общий аудит всех пар
+      # UI↔backend из endpoint-pairs.yml.
+      - name: Endpoint field coverage
+        run: bash tools/check-endpoint-field-coverage.sh
+
       - name: Check LiveDocs cross-links
         # Проверяет что все относительные ссылки ../X.md и related: в LiveDocs — валидны.
         # Исключения: templates (плейсхолдеры), runbooks/decisions (без frontmatter).

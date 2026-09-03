@@ -411,8 +411,11 @@ export default {
       return !!this.imageErrors[`${song.id}:${kind}`]
     },
     markImageError(song, kind) {
-      // Vue.set для реактивности добавляемого ключа (Vue 2).
-      this.$set(this.imageErrors, `${song.id}:${kind}`, true)
+      // Vue 3 использует Proxy-реактивность: прямое присваивание нового ключа
+      // в реактивный объект триггерит обновление. this.$set не существует
+      // в Vue 3 (TypeError: this.$set is not a function).
+      // @see docs/features/search-text-extract-btn.md (OP#51)
+      this.imageErrors[`${song.id}:${kind}`] = true
     },
     // —— Бизнес-логика показа иконок (как в прежней реализации, FR-011/FR-012/FR-013) ———
     // Монетка «премиум-контент» — только не-премиум посетителю и только для контента,

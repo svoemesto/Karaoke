@@ -132,6 +132,26 @@ repos:
         files: '^livedocs/.*\.md$'
         stages: [pre-commit]
 
+      # === Field coverage: SongEdit ↔ /song/update ===
+      # specs/302-fix-censored-name-loss FR-005/006 — ловит баг "UI шлёт X, бэкенд не принимает".
+      - id: songedit-field-coverage
+        name: SongEdit field coverage (SongEdit.vue ↔ /api/song/update)
+        entry: bash tools/check-songedit-field-coverage.sh
+        language: system
+        pass_filenames: false
+        files: '^webvue3/src/components/Songs/edit/SongEdit\.vue$|^karaoke-app/src/main/kotlin/.*ApiController\.kt$|^karaoke-app/src/main/kotlin/.*SongUpdateMapper\.kt$|^tools/check-songedit-field-coverage\.'
+        stages: [pre-commit]
+
+      # === Field coverage: все пары UI↔backend ===
+      # specs/302-fix-censored-name-loss FR-007/008 — общий аудит всех пар из endpoint-pairs.yml.
+      - id: endpoint-field-coverage
+        name: Endpoint field coverage (все пары UI↔backend)
+        entry: bash tools/check-endpoint-field-coverage.sh
+        language: system
+        pass_filenames: false
+        files: '^(webvue3|karaoke-public)/.*\.(vue|js|ts)$|^karaoke-app/src/main/kotlin/.*\.kt$|^tools/check-endpoint-field-coverage\.|^tools/endpoint-pairs\.yml$'
+        stages: [pre-commit]
+
 # Общие настройки
 fail_fast: false   # Прогоняем все хуки даже если один упал — даём полный отчёт
 default_install_hook_types: [pre-commit]

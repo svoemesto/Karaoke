@@ -1,0 +1,16 @@
+# tools/check-endpoint-field-coverage.whitelist.yml
+#
+# Глобальный whitelist для check-endpoint-field-coverage.sh.
+# Применяется ПОСЛЕ специфичных whitelist'ов каждой пары.
+#
+# Формат: "<component>/<endpoint>/<field>": "<обоснование>"
+# Пример: "SongEdit.vue//api/song/update/id": "path-param, не v-model поле"
+#
+# На старте MVP (specs/302-fix-censored-name-loss) whitelist пустой —
+# проверка покрытия ограничена одной парой SongEdit ↔ /song/update,
+# для которой используется отдельный whitelist (check-songedit-field-coverage.whitelist.yml).
+
+whitelist:
+  # Пары будут добавляться по мере расширения endpoint-pairs.yml:
+  # "AlbumEdit.vue//albums/updatealbum/foo": "причина"
+  # "AuthorEdit.vue//authors/updateauthor/bar": "причина"

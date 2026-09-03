@@ -2925,96 +2925,24 @@ class ApiController(
     }
 
     // Обновление песни
+    //
+    // specs/302-fix-censored-name-loss: рефактор через SongUpdateMapper (FR-011).
+    // Сигнатура принимает ВСЕ параметры через единый `Map<String, String>` — это
+    // устраняет корневую причину бага #52 (Spring Web молча отбрасывал неизвестные
+    // query-параметры, поэтому добавление `songNameCensored` в SongEdit.vue не
+    // доходило до бэкенда). Все спец-случаи (fileName, albumId, songType)
+    // и baseline-логика инкапсулированы в SongUpdateMapper.apply.
     @PostMapping("/song/update")
     @ResponseBody
     fun songs2Update(
-        @RequestParam(required = false) id: String,
-        @RequestParam(required = false) rootFolder: String?,
-        @RequestParam(required = false) fileName: String?,
-        @RequestParam(required = false) idStatus: String?,
-        @RequestParam(required = false) songName: String?,
-        @RequestParam(required = false) author: String?,
-        @RequestParam(required = false) album: String?,
-        @RequestParam(required = false) date: String?,
-        @RequestParam(required = false) time: String?,
-        @RequestParam(required = false) year: String?,
-        @RequestParam(required = false) track: String?,
-        @RequestParam(required = false) key: String?,
-        @RequestParam(required = false) bpm: String?,
-        @RequestParam(required = false) ms: String?,
-        @RequestParam(required = false) tags: String?,
-        @RequestParam(required = false) idBoosty: String?,
-        @RequestParam(required = false) versionBoosty: String?,
-        @RequestParam(required = false) idBoostyFiles: String?,
-        @RequestParam(required = false) versionBoostyFiles: String?,
-        @RequestParam(required = false) idSponsr: String?,
-        @RequestParam(required = false) versionSponsr: String?,
-        @RequestParam(required = false) indexTabsVariant: String?,
-        @RequestParam(required = false) idVk: String?,
-        @RequestParam(required = false) idDzenLyrics: String?,
-        @RequestParam(required = false) idDzenKaraoke: String?,
-        @RequestParam(required = false) idDzenChords: String?,
-        @RequestParam(required = false) idDzenMelody: String?,
-        @RequestParam(required = false) idVkLyrics: String?,
-        @RequestParam(required = false) idVkKaraoke: String?,
-        @RequestParam(required = false) idVkChords: String?,
-        @RequestParam(required = false) idVkMelody: String?,
-        @RequestParam(required = false) idTelegramLyrics: String?,
-        @RequestParam(required = false) idTelegramKaraoke: String?,
-        @RequestParam(required = false) idTelegramChords: String?,
-        @RequestParam(required = false) idTelegramMelody: String?,
-        @RequestParam(required = false) idPlLyrics: String?,
-        @RequestParam(required = false) idPlKaraoke: String?,
-        @RequestParam(required = false) idPlChords: String?,
-        @RequestParam(required = false) idPlMelody: String?,
-        @RequestParam(required = false) idMaxLyrics: String?,
-        @RequestParam(required = false) idMaxKaraoke: String?,
-        @RequestParam(required = false) idMaxChords: String?,
-        @RequestParam(required = false) idMaxMelody: String?,
-        @RequestParam(required = false) idDzenDemo: String?,
-        @RequestParam(required = false) idVkDemo: String?,
-        @RequestParam(required = false) idTelegramDemo: String?,
-        @RequestParam(required = false) idMaxDemo: String?,
-        @RequestParam(required = false) versionDzenLyrics: String?,
-        @RequestParam(required = false) versionDzenKaraoke: String?,
-        @RequestParam(required = false) versionDzenChords: String?,
-        @RequestParam(required = false) versionDzenMelody: String?,
-        @RequestParam(required = false) versionVkLyrics: String?,
-        @RequestParam(required = false) versionVkKaraoke: String?,
-        @RequestParam(required = false) versionVkChords: String?,
-        @RequestParam(required = false) versionVkMelody: String?,
-        @RequestParam(required = false) versionTelegramLyrics: String?,
-        @RequestParam(required = false) versionTelegramKaraoke: String?,
-        @RequestParam(required = false) versionTelegramChords: String?,
-        @RequestParam(required = false) versionTelegramMelody: String?,
-        @RequestParam(required = false) versionPlLyrics: String?,
-        @RequestParam(required = false) versionPlKaraoke: String?,
-        @RequestParam(required = false) versionPlChords: String?,
-        @RequestParam(required = false) versionPlMelody: String?,
-        @RequestParam(required = false) versionMaxLyrics: String?,
-        @RequestParam(required = false) versionMaxKaraoke: String?,
-        @RequestParam(required = false) versionMaxChords: String?,
-        @RequestParam(required = false) versionMaxMelody: String?,
-        @RequestParam(required = false) versionDzenDemo: String?,
-        @RequestParam(required = false) versionVkDemo: String?,
-        @RequestParam(required = false) versionTelegramDemo: String?,
-        @RequestParam(required = false) versionMaxDemo: String?,
-        @RequestParam(required = false) resultVersion: String?,
-        @RequestParam(required = false) diffBeats: String?,
-        @RequestParam(required = false) rate: String?,
-        @RequestParam(required = false) rootId: String?,
-        @RequestParam(required = false) audioParentId: String?,
-        @RequestParam(required = false) audioSimilarityPercent: String?,
-        @RequestParam(required = false) audioDeltaMs: String?,
-        @RequestParam(required = false) free: String?,
-        @RequestParam(required = false) idTariff: String?,
-        @RequestParam(required = false) songType: String?,
-        @RequestParam(required = false) albumId: String?,
-        @RequestParam(required = false) description: String?,
-        @RequestParam(required = false) shortDescription: String?,
-        @RequestParam(required = false) warning: String?,
+        @RequestParam all: Map<String, String>,
     ): SongUpdateResultDto {
-        val songId: Long = id.toLong()
+        // id обязателен (без него не знаем какую песню обновлять).
+        val songId: Long = all["id"]?.toLongOrNull()
+            ?: throw org.springframework.web.server.ResponseStatusException(
+                org.springframework.http.HttpStatus.BAD_REQUEST,
+                "Missing required param 'id'"
+            )
         val song =
             Song.loadFromDbById(
                 songId,
@@ -3022,161 +2950,35 @@ class ApiController(
                 storageService = storageService,
                 storageApiClient = storageApiClient,
             )
-        var albumLinkValid = true
-        var fileNameRenameError: String? = null
-        song?.let { songValue ->
-            // specs/143-song-free-access-window: снимок ДО применения правок — сравнивается после
-            // saveToDb(), чтобы уведомить karaoke-web (StatBySong dirty-флаг) только если free
-            // реально изменился, а не на каждое сохранение песни.
-            val freeBefore = songValue.free
-            // specs/286-author-song-counts-cache: снимок id_status ДО применения правок — сравнивается
-            // после saveToDb(), чтобы уведомить karaoke-web только если id_status реально изменился
-            // (переход через границу id_status >= 6 влияет на счётчики готовых песен в tbl_authors,
-            // и на /api/public/authors-tiles нужна инвалидация L2-кеша authorsTilesCache).
-            val idStatusBefore = songValue.idStatus
-            // specs/124-filename-sanitization-rename FR-006/FR-007/FR-008/FR-011/FR-013: смена
-            // "Имя файла" санитайзируется теми же правилами, что и импорт, отклоняется при коллизии/
-            // пустом имени/активной фоновой обработке песни, и (если применяется) каскадно
-            // переименовывает связанные артефакты на диске и в обоих хранилищах. Остальные поля этого
-            // запроса (ниже) применяются независимо от результата этой проверки.
-            fileName?.let { requestedFileName ->
-                val sanitized = requestedFileName.sanitizeSongFileName()
-                val effectiveRootFolder = rootFolder ?: songValue.rootFolder
-                if (sanitized.isEmpty()) {
-                    fileNameRenameError = "Имя файла после удаления недопустимых символов оказалось пустым — введите другое значение."
-                } else if (sanitized != songValue.fileName) {
-                    val collision =
-                        Song
-                            .loadListFromDb(
-                                args = mapOf(Pair("file_name", sanitized), Pair("root_folder", effectiveRootFolder)),
-                                database = WORKING_DATABASE,
-                                storageService = storageService,
-                                storageApiClient = storageApiClient,
-                                withoutMarkersAndText = true,
-                            ).any { it.id != songValue.id }
-                    if (collision) {
-                        fileNameRenameError = "Песня с именем файла «$sanitized» уже существует в этой папке."
-                    } else if (KaraokeProcess.hasActiveProcess(songId = songValue.id, database = WORKING_DATABASE)) {
-                        fileNameRenameError =
-                            "Над песней сейчас выполняется фоновая обработка — дождитесь её завершения и повторите переименование."
-                    } else {
-                        val oldFileName = songValue.fileName
-                        songValue.fileName = sanitized
-                        songValue.renameCascadeExtraArtifacts(oldFileName)
-                    }
-                }
-            }
-            rootFolder?.let { songValue.rootFolder = it }
-            tags?.let { songValue.tags = it }
-            id.let { songValue.fields[SongField.ID] = it }
-            songName?.let { songValue.fields[SongField.NAME] = it }
-            author?.let { songValue.fields[SongField.AUTHOR] = it }
-            year?.let { songValue.fields[SongField.YEAR] = it }
-            album?.let { songValue.fields[SongField.ALBUM] = it }
-            track?.let { songValue.fields[SongField.TRACK] = it }
-            date?.let { songValue.fields[SongField.DATE] = it }
-            time?.let { songValue.fields[SongField.TIME] = it }
-            key?.let { songValue.fields[SongField.KEY] = it }
-            bpm?.let { songValue.fields[SongField.BPM] = it }
-            ms?.let { songValue.fields[SongField.MS] = it }
-            idBoosty?.let { songValue.fields[SongField.ID_BOOSTY] = it }
-            idBoostyFiles?.let { songValue.fields[SongField.ID_BOOSTY_FILES] = it }
-            idSponsr?.let { songValue.fields[SongField.ID_SPONSR] = it }
-            versionBoosty?.let { songValue.fields[SongField.VERSION_BOOSTY] = it }
-            versionBoostyFiles?.let { songValue.fields[SongField.VERSION_BOOSTY_FILES] = it }
-            versionSponsr?.let { songValue.fields[SongField.VERSION_SPONSR] = it }
-            indexTabsVariant?.let { songValue.fields[SongField.INDEX_TABS_VARIANT] = it }
-            idVk?.let { songValue.fields[SongField.ID_VK] = it }
-            idDzenLyrics?.let { songValue.fields[SongField.ID_DZEN_LYRICS] = it }
-            idDzenKaraoke?.let { songValue.fields[SongField.ID_DZEN_KARAOKE] = it }
-            idDzenChords?.let { songValue.fields[SongField.ID_DZEN_CHORDS] = it }
-            idDzenMelody?.let { songValue.fields[SongField.ID_DZEN_MELODY] = it }
-            idVkLyrics?.let { songValue.fields[SongField.ID_VK_LYRICS] = it }
-            idVkKaraoke?.let { songValue.fields[SongField.ID_VK_KARAOKE] = it }
-            idVkChords?.let { songValue.fields[SongField.ID_VK_CHORDS] = it }
-            idVkMelody?.let { songValue.fields[SongField.ID_VK_MELODY] = it }
-            idTelegramLyrics?.let { songValue.fields[SongField.ID_TELEGRAM_LYRICS] = it }
-            idTelegramKaraoke?.let { songValue.fields[SongField.ID_TELEGRAM_KARAOKE] = it }
-            idTelegramChords?.let { songValue.fields[SongField.ID_TELEGRAM_CHORDS] = it }
-            idTelegramMelody?.let { songValue.fields[SongField.ID_TELEGRAM_MELODY] = it }
-            idPlLyrics?.let { songValue.fields[SongField.ID_PL_LYRICS] = it }
-            idPlKaraoke?.let { songValue.fields[SongField.ID_PL_KARAOKE] = it }
-            idPlChords?.let { songValue.fields[SongField.ID_PL_CHORDS] = it }
-            idPlMelody?.let { songValue.fields[SongField.ID_PL_MELODY] = it }
-            idMaxLyrics?.let { songValue.fields[SongField.ID_MAX_LYRICS] = it }
-            idMaxKaraoke?.let { songValue.fields[SongField.ID_MAX_KARAOKE] = it }
-            idMaxChords?.let { songValue.fields[SongField.ID_MAX_CHORDS] = it }
-            idMaxMelody?.let { songValue.fields[SongField.ID_MAX_MELODY] = it }
-            idDzenDemo?.let { songValue.fields[SongField.ID_DZEN_DEMO] = it }
-            idVkDemo?.let { songValue.fields[SongField.ID_VK_DEMO] = it }
-            idTelegramDemo?.let { songValue.fields[SongField.ID_TELEGRAM_DEMO] = it }
-            idMaxDemo?.let { songValue.fields[SongField.ID_MAX_DEMO] = it }
-            versionDzenLyrics?.let { songValue.fields[SongField.VERSION_DZEN_LYRICS] = it }
-            versionDzenKaraoke?.let { songValue.fields[SongField.VERSION_DZEN_KARAOKE] = it }
-            versionDzenChords?.let { songValue.fields[SongField.VERSION_DZEN_CHORDS] = it }
-            versionDzenMelody?.let { songValue.fields[SongField.VERSION_DZEN_MELODY] = it }
-            versionVkLyrics?.let { songValue.fields[SongField.VERSION_VK_LYRICS] = it }
-            versionVkKaraoke?.let { songValue.fields[SongField.VERSION_VK_KARAOKE] = it }
-            versionVkChords?.let { songValue.fields[SongField.VERSION_VK_CHORDS] = it }
-            versionVkMelody?.let { songValue.fields[SongField.VERSION_VK_MELODY] = it }
-            versionTelegramLyrics?.let { songValue.fields[SongField.VERSION_TELEGRAM_LYRICS] = it }
-            versionTelegramKaraoke?.let { songValue.fields[SongField.VERSION_TELEGRAM_KARAOKE] = it }
-            versionTelegramChords?.let { songValue.fields[SongField.VERSION_TELEGRAM_CHORDS] = it }
-            versionTelegramMelody?.let { songValue.fields[SongField.VERSION_TELEGRAM_MELODY] = it }
-            versionPlLyrics?.let { songValue.fields[SongField.VERSION_PL_LYRICS] = it }
-            versionPlKaraoke?.let { songValue.fields[SongField.VERSION_PL_KARAOKE] = it }
-            versionPlChords?.let { songValue.fields[SongField.VERSION_PL_CHORDS] = it }
-            versionPlMelody?.let { songValue.fields[SongField.VERSION_PL_MELODY] = it }
-            versionMaxLyrics?.let { songValue.fields[SongField.VERSION_MAX_LYRICS] = it }
-            versionMaxKaraoke?.let { songValue.fields[SongField.VERSION_MAX_KARAOKE] = it }
-            versionMaxChords?.let { songValue.fields[SongField.VERSION_MAX_CHORDS] = it }
-            versionMaxMelody?.let { songValue.fields[SongField.VERSION_MAX_MELODY] = it }
-            versionDzenDemo?.let { songValue.fields[SongField.VERSION_DZEN_DEMO] = it }
-            versionVkDemo?.let { songValue.fields[SongField.VERSION_VK_DEMO] = it }
-            versionTelegramDemo?.let { songValue.fields[SongField.VERSION_TELEGRAM_DEMO] = it }
-            versionMaxDemo?.let { songValue.fields[SongField.VERSION_MAX_DEMO] = it }
-            resultVersion?.let { songValue.fields[SongField.RESULT_VERSION] = it }
-            diffBeats?.let { songValue.fields[SongField.DIFFBEATS] = it }
-            idStatus?.let { songValue.fields[SongField.ID_STATUS] = it }
-            rate?.let { songValue.fields[SongField.RATE] = it }
-            rootId?.let { songValue.fields[SongField.ROOT_ID] = it }
-            audioParentId?.let { songValue.fields[SongField.AUDIO_PARENT_ID] = it }
-            audioSimilarityPercent?.let { songValue.fields[SongField.AUDIO_SIMILARITY_PERCENT] = it }
-            audioDeltaMs?.let { songValue.fields[SongField.AUDIO_DELTA_MS] = it }
-            free?.let { songValue.fields[SongField.FREE] = it }
-            idTariff?.let { songValue.fields[SongField.ID_TARIFF] = it }
-            songType?.let { songValue.songType = SongType.entries.firstOrNull { st -> st.dbValue == it.lowercase() } ?: SongType.SONG }
-            description?.let { songValue.description = it }
-            shortDescription?.let { songValue.shortDescription = it }
-            warning?.let { songValue.warning = it }
-            // FR-008 (specs/011-album-song-rename): альбом песни обязан принадлежать тому же автору,
-            // что и главный автор песни — иначе противоречивое состояние "автор песни" != "автор альбома".
-            albumId?.let { rawAlbumId ->
-                val newAlbumId = rawAlbumId.toLongOrNull()
-                if (newAlbumId == null || newAlbumId <= 0L) {
-                    songValue.albumId = null
-                } else {
-                    val album = Album.getAlbumById(newAlbumId, WORKING_DATABASE, storageService, storageApiClient)
-                    val albumAuthor =
-                        album?.let { Author.getAuthorById(it.authorId, WORKING_DATABASE, storageService, storageApiClient) }
-                    if (album != null && albumAuthor != null && albumAuthor.author.equals(songValue.author, ignoreCase = true)) {
-                        songValue.albumId = newAlbumId
-                    } else {
-                        albumLinkValid = false
-                    }
-                }
-            }
-            songValue.saveToDb()
-            songValue.saveToFile()
-            if (songValue.free != freeBefore) notifyStatsDirty()
-            // specs/286-author-song-counts-cache: изменение id_status (готово/не готово) требует
-            // сброса authorsTilesCache на karaoke-web — иначе на /zakroma будут старые числа
-            // до истечения TTL=30 мин. Атомарно с saveToDb (триггер уже обновил счётчики в
-            // tbl_authors на LOCAL-БД; markDirty триггерит sync + сброс кэша на проде).
-            if (songValue.idStatus != idStatusBefore) notifyStatsDirty()
+        if (song == null) {
+            throw org.springframework.web.server.ResponseStatusException(
+                org.springframework.http.HttpStatus.NOT_FOUND,
+                "Song $songId not found"
+            )
         }
 
-        return SongUpdateResultDto(albumLinkValid = albumLinkValid, fileNameRenameError = fileNameRenameError)
+        // Делегируем применение параметров мапперу (Phase A-E внутри).
+        val applyResult = SongUpdateMapper.apply(
+            song = song,
+            params = all,
+            database = WORKING_DATABASE,
+            storageService = storageService,
+            storageApiClient = storageApiClient,
+        )
+
+        song.saveToDb()
+        song.saveToFile()
+
+        // specs/143-song-free-access-window + specs/286-author-song-counts-cache:
+        // уведомляем karaoke-web только если free/idStatus реально изменились.
+        if (applyResult.freeChanged || applyResult.idStatusChanged) {
+            notifyStatsDirty()
+        }
+
+        return SongUpdateResultDto(
+            albumLinkValid = applyResult.albumLinkValid,
+            fileNameRenameError = applyResult.fileNameRenameError,
+        )
     }
 
     // Получение процесса

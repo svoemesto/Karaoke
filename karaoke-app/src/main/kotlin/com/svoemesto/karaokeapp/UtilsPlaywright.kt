@@ -7,6 +7,9 @@ import com.microsoft.playwright.Playwright
 import java.nio.file.Path
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.atomic.AtomicBoolean
+import org.slf4j.LoggerFactory
+
+private val log = LoggerFactory.getLogger("UtilsPlaywright")
 
 @Suppress("unused")
 fun main1() {
@@ -74,8 +77,7 @@ private fun runAuthFlow(
 
                 onAuthorized(context)
             } catch (e: Exception) {
-                System.err.println("Ошибка при работе с браузером: ${e.message}")
-                e.printStackTrace()
+                log.error("Ошибка при работе с браузером: ${e.message}", e)
             } finally {
                 closeContext()
             }

@@ -29,14 +29,7 @@ fun String.wrapInQuotes(): String {
  *
  * @see archive/docs/features/async-process-queue.md
  */
-fun String.rightFileNameSymbols(): String =
-    this
-        .replace("'", "`")
-        .replace("?", "")
-        .replace(":", "-")
-        .replace("!", "")
-        .replace("$", "s")
-        .replace("*", "x")
+fun String.rightFileNameSymbols(): String = SanitizePath.run { sanitizePathSegment() }
 
 /**
  * Санитайзирует "голый" фрагмент имени файла песни (без пути, до объединения
@@ -51,41 +44,9 @@ fun String.rightFileNameSymbols(): String =
  *
  * @see archive/docs/features/async-process-queue.md
  */
-fun String.sanitizeSongFileName(): String =
-    this
-        .replace("/", "")
-        .replace("\\", "")
-        .replace("\"", "")
-        .rightFileNameSymbols()
+fun String.sanitizeSongFileName(): String = SanitizePath.run { sanitizePathSegment() }
 
-fun String.rightFileName(): String {
-    return this.rightFileNameSymbols()
-    // Если имя у файла очень длинное - его надо обрезать до размера 200 байт
-    // Имя может быть в формате /путь/до/файла/2024 (14) [Автор] - Длинное название трека может с точками в конце... [кое-что в квадратных скобках].расширение
-//    var result = this.rightFileNameSymbols()
-//    val file = File(result)
-//    val filePath = file.parent // путь - /путь/до/файла
-//    var fileName: String   // Имя - 2024 (14) [Автор] - Длинное название трека может с точками в конце... [кое-что в квадратных скобках].расширение
-//    var fileNameWithoutExtension = file.nameWithoutExtension // Имя без расширения - 2024 (14) [Автор] - Длинное название трека может с точками в конце... [кое-что в квадратных скобках]
-//    val fileNameExtension = file.extension // расширение - расширение
-//    if (fileNameWithoutExtension.endsWith("]")) {
-//        while ("$fileNameWithoutExtension${if (fileNameExtension == "") "" else ".$fileNameExtension"}".toByteArray(Charsets.UTF_8).size > 200) {
-//            val parts = fileNameWithoutExtension.split("[")
-//
-//            val partsReversed = parts.asReversed().toMutableList()
-//            val index = 1.coerceAtMost((parts.size - 1))
-//            partsReversed[index] = partsReversed[index].substring(0, partsReversed[index].length-1)
-//            fileNameWithoutExtension = partsReversed.asReversed().joinToString("[")
-//        }
-//    } else {
-//        while ("$fileNameWithoutExtension${if (fileNameExtension == "") "" else ".$fileNameExtension"}".toByteArray(Charsets.UTF_8).size > 200) {
-//            fileNameWithoutExtension = fileNameWithoutExtension.substring(0, fileNameWithoutExtension.length-1)
-//        }
-//    }
-//    fileName = "$fileNameWithoutExtension${if (fileNameExtension == "") "" else ".$fileNameExtension"}"
-//    result = "${if (filePath == null) "" else "$filePath/" }$fileName"
-//    return result
-}
+fun String.rightFileName(): String = SanitizePath.run { sanitizePath() }
 
 fun String.getWords(): List<String> {
     val result: MutableList<String> = mutableListOf()

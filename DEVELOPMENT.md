@@ -162,3 +162,64 @@ MinIO-совместимом объектном хранилище (`services/St
 - [docs/features/](./docs/features/README.md) — 9 ключевых подсистем
 - [docs/architecture-notes-archive.md](./docs/architecture-notes-archive.md) — dated-история
 - [.specify/memory/constitution.md](./.specify/memory/constitution.md) — принципы
+
+## Инварианты санитайзера (FR-012 спеки `304-idempotent-path-sanitize`)
+
+> Контракт «санитайзер идемпотентен» зафиксирован как **обязательный governance-инвариант**
+> для всех path/name sanitizer'ов в проекте.
+
+### Формальное определение
+
+Алгоритм санитиризации `sanitize` называется **идемпотентным** для множества
+входных строк `S`, если для **любого** `s ∈ S`:
+
+```
+sanitize(sanitize(s)) == sanitize(s)
+```
+
+### Side-effect идемпотентность
+
+Если санитайзер имеет побочные эффекты (например, логирование через slf4j),
+то дополнительно требуется:
+
+```
+count_logs(sanitize(s)) == count_logs(sanitize(sanitize(s)))
+```
+
+То есть повторный прогон не плодит новых лог-записей.
+
+### Применяется к
+
+- `SanitizePath.sanitizePathSegment()` — для «голых» фрагментов имён файлов/папок
+  (без разделителей пути).
+- `SanitizePath.sanitizePath()` — для полных путей (сохраняет `/` и `\` как разделители).
+- Любые будущие аналогичные функции.
+
+### Что запрещено
+
+- **Удаление (drop)** символа вместо замены (replace). Это нарушает идемпотентность
+  и ведёт к потере данных при импорте (issue #53: `!`/`?` молча удалялись → файлы
+  не находились).
+- Любые операции, которые не повторяются идемпотентно при повторном прогоне
+  (например, добавление числового суффикса `(N)` — это ответственность дедупликатора,
+  а НЕ санитайзера).
+
+### Реализация
+
+См. `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/SanitizePath.kt`.
+
+### Тесты
+
+См. `karaoke-app/src/test/kotlin/com/svoemesto/karaokeapp/SanitizePathTest.kt` —
+40 unit-тестов покрывают таблицу замен, идемпотентность результата,
+side-effect идемпотентность через Logback `ListAppender`, обратную совместимость
+с прод-данными.
+
+### Per-feature документ
+
+`docs/features/idempotent-path-sanitize.md`.
+
+### Контракт в спецификации
+
+`specs/304-idempotent-path-sanitize/spec.md`, секции FR-001 (идемпотентность),
+FR-014 (side-effect идемпотентность), FR-007 (граница с дедупликатором).

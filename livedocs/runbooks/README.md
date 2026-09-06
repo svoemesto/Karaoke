@@ -17,6 +17,7 @@
 | [how-to-deploy.md](how-to-deploy.md) | Перед `deploy_web.sh` или `deploy_public.sh` |
 | [how-to-migrate-db.md](how-to-migrate-db.md) | Перед SQL-миграцией (новая колонка / таблица) |
 | [how-to-add-new-feature.md](how-to-add-new-feature.md) | При создании новой фичи через `/speckit.specify → .plan.md → .tasks.md → implement` |
+| [how-to-add-orm-field.md](how-to-add-orm-field.md) | При добавлении нового поля в ORM-модель (`@KaraokeDbTableField`) — урок из спеки 307 про 4 пути записи |
 | [how-to-debug-connection-leak.md](how-to-debug-connection-leak.md) | При `FATAL: too many clients already` |
 | [how-to-add-new-domain.md](how-to-add-new-domain.md) | При выделении нового bounded context в `livedocs/domain/` |
 | [how-to-update-livedocs.md](how-to-update-livedocs.md) | При изменении кода/архитектуры (sync с LiveDocs) |

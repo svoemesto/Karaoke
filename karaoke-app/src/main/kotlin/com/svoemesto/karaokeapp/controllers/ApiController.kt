@@ -5961,6 +5961,10 @@ class ApiController(
         @RequestParam(required = false) description: String?,
         @RequestParam(required = false) shortDescription: String?,
         @RequestParam(required = false) warning: String?,
+        // specs/307-special-authors-zakroma-order: sortOrder (явный порядок в сетке Закромов).
+        // По аналогии с другими optional-полями: nullable, чтобы фронт мог не передавать
+        // параметр при редактировании других полей (обратная совместимость со старыми клиентами).
+        @RequestParam(required = false) sortOrder: Int?,
     ): Long {
         Author
             .getAuthorById(
@@ -5982,6 +5986,9 @@ class ApiController(
                 description?.let { v -> it.description = v }
                 shortDescription?.let { v -> it.shortDescription = v }
                 warning?.let { v -> it.warning = v }
+                // specs/307-special-authors-zakroma-order: sortOrder — целое число, опционально
+                // отрицательное. Если фронт не передал параметр — оставляем прежнее значение.
+                sortOrder?.let { v -> it.sortOrder = v }
                 it.save()
                 return id
             }

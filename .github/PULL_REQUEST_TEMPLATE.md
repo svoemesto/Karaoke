@@ -38,6 +38,14 @@
 - [ ] `./tools/verify-doc-links.sh docs/features/ CONTRIBUTING.md` — 0 errors.
 - [ ] `./tools/check-feature-doc.sh docs/features/*.md` — 0 errors.
 
+### Миграции БД (FR-013, см. `.specify/memory/constitution.md` §III)
+
+- [ ] Если PR вводит новые миграции в `deploy/karaoke-db/` — миграция применена
+      **на LOCAL и на PROD** (обе БД имеют новые колонки/таблицы).
+      Проверка: `\\d tbl_<name>` на обеих сторонах показывает одинаковую схему.
+      (Sync-механизм оперирует записями, не DDL — рассинхрон схемы не
+      восстанавливается автоматически.)
+
 ### LiveDocs (FR-014, см. [livedocs/README.md](./livedocs/README.md))
 
 - [ ] Если меняется bounded context (`Song`, `Album`, `KaraokeVideo`, и т.п.) —

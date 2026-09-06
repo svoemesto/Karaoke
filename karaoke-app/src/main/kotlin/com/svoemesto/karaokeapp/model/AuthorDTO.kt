@@ -31,6 +31,17 @@ data class AuthorDTO(
      */
     @get:JsonProperty("isSpecialOrder")
     val isSpecialOrder: Boolean = false,
+    /**
+     * Явный порядок автора в публичной сетке «Закромов». Значение из `tbl_authors.sort_order`.
+     *
+     * Используется админкой для сортировки плашек (`/authors` webvue3) и публичным API
+     * `/api/public/authors-tiles` для дебага/консистентности. Бэкенд уже сортирует по
+     * `ORDER BY sort_order ASC, author ASC`, поэтому UI получает правильный порядок массива
+     * «бесплатно».
+     *
+     * @see specs/307-special-authors-zakroma-order/spec.md
+     */
+    val sortOrder: Int = 0,
     val description: String = "",
     val shortDescription: String = "",
     val warning: String = "",
@@ -56,6 +67,7 @@ data class AuthorDTO(
         entity.skip = skip
         entity.aliases = aliases
         entity.isSpecialOrder = isSpecialOrder
+        entity.sortOrder = sortOrder
         entity.description = description
         entity.shortDescription = shortDescription
         entity.warning = warning

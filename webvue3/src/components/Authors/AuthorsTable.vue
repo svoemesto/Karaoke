@@ -158,6 +158,21 @@
           />
         </template>
 
+        <template #cell(sortOrder)="data">
+          <!-- specs/307-special-authors-zakroma-order: редактируемая ячейка sort_order.
+               input type=number, валидация на отрицательные значения (см. US3 acceptance 3).
+               Подсветка: blue если редактируется сейчас, black если просто отображается. -->
+          <input
+            type="number"
+            class="fld-sortOrder"
+            :class="{ 'fld-sortOrder-editing': currentAuthorId === data.item.id }"
+            :value="data.value"
+            :style="{ color: currentAuthorId === data.item.id ? 'blue' : 'black' }"
+            @click.left="editSortOrder(data.item)"
+            @change="onSortOrderChange(data.item, $event)"
+          />
+        </template>
+
         <template #cell(aliases)="data">
           <div
             class="fld-aliases"
@@ -370,6 +385,20 @@ export default {
           },
         },
         {
+          // specs/307-special-authors-zakroma-order: редактируемая колонка `sort_order`.
+          // Значение 0 — дефолт (алфавитный порядок). Ненулевые значения — принудительный
+          // порядок плашки автора в публичной сетке Закромов.
+          key: 'sortOrder',
+          sortable: true,
+          label: 'Sort',
+          style: {
+            minWidth: '70px',
+            maxWidth: '70px',
+            textAlign: 'left',
+            fontSize: 'small',
+          },
+        },
+        {
           key: 'aliases',
           sortable: true,
           label: 'Алиасы',
@@ -533,6 +562,16 @@ export default {
             fldValueStyle: { width: '300px', textAlign: 'center', borderRadius: '5px' },
           },
           {
+            // specs/307-special-authors-zakroma-order: редактируемое поле sortOrder.
+            // Целое число, опционально отрицательное. По аналогии с другими текстовыми полями —
+            // используется существующий generic-saver.
+            fldName: 'sortOrder',
+            fldLabel: 'Порядок в Закромах (sort_order):',
+            fldValue: item.sortOrder != null ? item.sortOrder : 0,
+            fldLabelStyle: { width: '300px', textAlign: 'right', paddingRight: '5px' },
+            fldValueStyle: { width: '300px', textAlign: 'left', borderRadius: '5px' },
+          },
+          {
             fldName: 'shortDescription',
             fldLabel: 'Короткое описание:',
             fldValue: item.shortDescription || '',
@@ -605,6 +644,62 @@ export default {
 
     closeAuthorAlbums() {
       this.isAuthorAlbumsVisible = false
+    },
+
+    /**
+     * specs/307-special-authors-zakroma-order: inline-редактирование sort_order.
+     * Вызывается при клике на input — подсвечивает ячейку как редактируемую.
+     */
+    editSortOrder(item) {
+      this.currentAuthorId = item.id
+    },
+
+    /**
+     * specs/307-special-authors-zakroma-order: сохранение нового sort_order.
+     *
+     * Валидация (US3 acceptance 3):
+     *  - пустое значение → трактуется как 0 (дефолт);
+     *  - нечисловое → откат к предыдущему значению (браузер сам блокирует type=number, но
+     *    защищаемся на всякий случай);
+     *  - дробное → округление к ближайшему целому (Math.round);
+     *  - вне диапазона INTEGER → clamp в [-2147483648, 2147483647].
+     *
+     * @param {Object} item — элемент строки таблицы (Author DTO).
+     * @param {Event} event — change-event на input.
+     */
+    onSortOrderChange(item, event) {
+      const raw = event.target.value
+      let value = Number.parseInt(raw, 10)
+      if (Number.isNaN(value)) {
+        value = item.sortOrder != null ? item.sortOrder : 0
+      } else {
+        value = Math.round(value)
+        const MIN_INT = -2147483648
+        const MAX_INT = 2147483647
+        if (value < MIN_INT) value = MIN_INT
+        if (value > MAX_INT) value = MAX_INT
+      }
+      if (value === item.sortOrder) {
+        // Ничего не изменилось — не дёргаем backend.
+        event.target.value = String(value)
+        return
+      }
+      this.$store
+        .dispatch('setAuthorValuePromise', {
+          fldName: 'sortOrder',
+          fldValue: value,
+          id: item.id,
+        })
+        .then(() => {
+          // Оптимистично обновляем локальное значение в строке (без полного refetch).
+          item.sortOrder = value
+          event.target.value = String(value)
+        })
+        .catch((error) => {
+          console.error('Ошибка при сохранении sortOrder:', error)
+          // Откатываем UI к серверному значению.
+          event.target.value = String(item.sortOrder != null ? item.sortOrder : 0)
+        })
     },
 
     editAuthor(key) {
@@ -793,6 +888,28 @@ export default {
 .fld-aliases:hover {
   text-decoration: underline;
   cursor: pointer;
+}
+
+/* specs/307-special-authors-zakroma-order: input для редактирования sort_order. */
+.fld-sortOrder {
+  min-width: 60px;
+  max-width: 65px;
+  text-align: center;
+  font-size: small;
+  padding: 2px 4px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background-color: transparent;
+  cursor: text;
+}
+.fld-sortOrder:hover {
+  border-color: var(--bs-border-color, #ced4da);
+}
+.fld-sortOrder:focus,
+.fld-sortOrder-editing {
+  border-color: var(--bs-primary, #0d6efd);
+  background-color: var(--bs-white, #fff);
+  outline: none;
 }
 
 .fld-albums-btn {

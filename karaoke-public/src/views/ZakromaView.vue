@@ -76,15 +76,17 @@
 
     <!-- Фильтр автора -->
     <div class="km-content">
-      <!-- Обычный режим: сетка тайлов + одна спец-плашка в конце.
+      <!-- Обычный режим: сетка тайлов + одна спец-плашка в начале (spec 307).
            Режим specialBucket: сетка скрыта, рендерится таблица спецзаказных ниже.
-           @see specs/008-special-orders/spec.md -->
+           @see specs/008-special-orders/spec.md
+           @see specs/307-special-authors-zakroma-order/spec.md (перенос плашки в начало) -->
       <div v-if="!authorChosen">
         <AuthorTiles :tiles="authorTiles" :selected="selectedAuthor" @select="onAuthorSelect">
-          <!-- Спец-плашка «Отдельные песни разных авторов» — последний элемент ТОЙ ЖЕ сетки
-               тайлов (слот trailing в AuthorTiles.vue), поэтому по размеру/раскладке не
-               отличается от обычных тайлов авторов. Клик → табличное отображение. -->
-          <template v-if="specialBucket.length > 0" #trailing>
+          <!-- Спец-плашка «Отдельные песни разных авторов» — ПЕРВЫЙ элемент той же сетки
+               тайлов (слот #leading в AuthorTiles.vue), поэтому по размеру/раскладке не
+               отличается от обычных тайлов авторов. Клик → табличное отображение.
+               @see specs/307-special-authors-zakroma-order/Clarification Q6 (визуал не меняем) -->
+          <template v-if="specialBucket.length > 0" #leading>
             <button
               type="button"
               class="at-tile km-special-tile"

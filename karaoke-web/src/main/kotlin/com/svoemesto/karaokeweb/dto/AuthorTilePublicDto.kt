@@ -36,6 +36,15 @@ data class AuthorTilePublicDto(
      */
     @get:JsonProperty("isSpecialOrder")
     val isSpecialOrder: Boolean = false,
+    /**
+     * Явный порядок автора в сетке «Закромов» (`tbl_authors.sort_order`). Бэкенд сортирует
+     * `ORDER BY sort_order ASC, author ASC` — UI получает правильный порядок массива
+     * «бесплатно». Поле отдаётся в JSON для дебага и консистентности payload; старые клиенты,
+     * не знающие про `sortOrder`, получают дефолт `0` (см. spec 307, FR-007).
+     *
+     * @see specs/307-special-authors-zakroma-order/spec.md
+     */
+    val sortOrder: Int = 0,
 ) {
     companion object {
         /**
@@ -50,6 +59,7 @@ data class AuthorTilePublicDto(
             author: String,
             songCount: Long,
             isSpecialOrder: Boolean = false,
+            sortOrder: Int = 0,
         ): AuthorTilePublicDto {
             val previewFileName = "$author/$author.preview.author.png"
             val encoded = URLEncoder.encode(previewFileName, StandardCharsets.UTF_8).replace("+", "%20")
@@ -59,6 +69,7 @@ data class AuthorTilePublicDto(
                 authorPictureUrl = "/minio/$BUCKET/$encoded",
                 songCount = songCount,
                 isSpecialOrder = isSpecialOrder,
+                sortOrder = sortOrder,
             )
         }
     }

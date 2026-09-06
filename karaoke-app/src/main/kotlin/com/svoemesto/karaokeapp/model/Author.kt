@@ -91,6 +91,23 @@ class Author(
     @KaraokeDbTableField(name = "is_special_order")
     var isSpecialOrder: Boolean = false
 
+    /**
+     * Явный порядок автора в публичной сетке «Закромов» (/zakroma).
+     *
+     * Логика сортировки в SQL (`Author.loadAuthorTilesWithCounts`):
+     *  - `ORDER BY sort_order ASC, author ASC`.
+     *  - При `sort_order = 0` — алфавитная сортировка (как раньше).
+     *  - При `sort_order != 0` — принудительный порядок (выше нулевых).
+     *
+     * Отрицательные значения допустимы и идут раньше нуля (см. Clarification Q1 спеки).
+     * Значение по умолчанию `0` устанавливается в `tbl_authors.sort_order DEFAULT 0` (миграция
+     * `deploy/karaoke-db/46_author_sort_order.sql`).
+     *
+     * @see specs/307-special-authors-zakroma-order/spec.md
+     */
+    @KaraokeDbTableField(name = "sort_order")
+    var sortOrder: Int = 0
+
     val haveNewAlbum: Boolean get() =
         watched &&
             (ymId != "" || vkId != "") &&
@@ -131,6 +148,7 @@ class Author(
             skip = skip,
             aliases = aliases,
             isSpecialOrder = isSpecialOrder,
+            sortOrder = sortOrder,
             description = description,
             shortDescription = shortDescription,
             warning = warning,
@@ -376,7 +394,7 @@ class Author(
             val result = mutableListOf<AuthorTileRow>()
             val sql =
                 buildString {
-                    append("SELECT id, author, ready_songs_count, total_songs_count, is_special_order ")
+                    append("SELECT id, author, ready_songs_count, total_songs_count, is_special_order, sort_order ")
                     append("FROM $TABLE_NAME ")
                     // specs/293-skip-author-toggle: фильтр по skip снимается для редакторов с галочкой.
                     if (!includeSkipped) {
@@ -390,8 +408,27 @@ class Author(
                         null -> { /* all */ }
                     }
                     append("AND ")
-                    append(if (onlyPublished) "ready_songs_count > 0 " else "total_songs_count > 0 ")
-                    append("ORDER BY author")
+                    // specs/307-special-authors-zakroma-order + Pass 310: для публичной
+                    // поверхности (onlyPublished=true) показываем автора, если:
+                    //  - у него есть готовая песня (как раньше), ИЛИ
+                    //  - редактор явно задал sort_order != 0 (принудительная видимость —
+                    //    например, «Саундтреки» вверху списка ещё до того, как первая песня
+                    //    прошла пайплайн).
+                    // Для редакторов (onlyPublished=false) — старая логика по total_songs_count
+                    // без sort_order-исключения (редактор видит всех, кто вообще имеет песни).
+                    if (onlyPublished) {
+                        append("(ready_songs_count > 0 OR sort_order != 0) ")
+                    } else {
+                        append("total_songs_count > 0 ")
+                    }
+                    // specs/307-special-authors-zakroma-order: сортируем сначала по sort_order,
+                    // потом по алфавиту. Ненулевые sort_order идут перед нулевыми (отрицательные —
+                    // раньше всех). Тай-брейкер для одинаковых sort_order — алфавит по имени.
+                    // specs/307-special-authors-zakroma-order + Pass 311: ненулевые sort_order
+                    // идут **перед** нулевыми (требование спеки). В Postgres `false < true`,
+                    // поэтому `(sort_order = 0)` для нулевых возвращает `true` → они уезжают
+                    // в конец. Внутри обеих групп — `sort_order ASC`, тай-брейкер — `author ASC`.
+                    append("ORDER BY (sort_order = 0), sort_order ASC, author ASC")
                 }
             try {
                 connection.prepareStatement(sql).use { ps ->
@@ -404,6 +441,7 @@ class Author(
                                     readySongsCount = rs.getLong("ready_songs_count"),
                                     totalSongsCount = rs.getLong("total_songs_count"),
                                     isSpecialOrder = rs.getBoolean("is_special_order"),
+                                    sortOrder = rs.getInt("sort_order"),
                                 ),
                             )
                         }
@@ -526,4 +564,8 @@ data class AuthorTileRow(
     val readySongsCount: Long,
     val totalSongsCount: Long,
     val isSpecialOrder: Boolean,
+    /**
+     * Явный порядок автора в сетке «Закромов» (`tbl_authors.sort_order`). См. spec 307.
+     */
+    val sortOrder: Int = 0,
 )

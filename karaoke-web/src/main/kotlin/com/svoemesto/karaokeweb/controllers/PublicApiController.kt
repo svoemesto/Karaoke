@@ -304,6 +304,7 @@ class PublicApiController(
                     author = row.author,
                     songCount = if (onlyPublished) row.readySongsCount else row.totalSongsCount,
                     isSpecialOrder = row.isSpecialOrder,
+                    sortOrder = row.sortOrder,
                 )
             }
         }

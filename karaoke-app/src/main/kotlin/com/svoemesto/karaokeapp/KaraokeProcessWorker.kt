@@ -22,6 +22,11 @@ import java.time.Instant
 import java.time.LocalDateTime
 import java.util.Base64
 import javax.net.ssl.HttpsURLConnection
+import java.io.IOException
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.Paths
+import java.time.temporal.ChronoUnit
 
 /**
  * Поток-обёртка вокруг OS-процесса (`ProcessBuilder`) для одного задания
@@ -279,6 +284,7 @@ class KaraokeProcessThread(
                             try {
                                 File(logFileName).writeText(log, Charsets.UTF_8)
                                 runCommand(listOf("chmod", "666", logFileName))
+                                KaraokeProcessWorker.cleanupOldLogs()
                             } catch (e: Exception) {
                                 println(e.message)
                             }
@@ -1350,6 +1356,67 @@ class KaraokeProcessWorker {
                     .toList()
                     .firstOrNull()
             return workThread?.percentage ?: "---"
+        }
+
+        /**
+         * Удаляет регулярные файлы из [PATH_TO_LOGS], чей mtime старше [LOG_RETENTION_DAYS] дней.
+         * Fail-open (FR-4): все исключения логируются через println и НЕ пробрасываются.
+         * Вызывается после успешного [File.writeText] лога в [KaraokeProcessThread.run] (FR-3).
+         *
+         * @see specs/310-ochistka-papki-logov/spec.md
+         */
+        fun cleanupOldLogs() {
+            cleanupOldLogsIn(Paths.get(PATH_TO_LOGS), LOG_RETENTION_DAYS)
+        }
+
+        /**
+         * Internal-видимая имплементация cleanup. Выделена отдельно, потому что:
+         * - [PATH_TO_LOGS] — `const val` (top-level), не подменяется в unit-тестах;
+         * - [LOG_RETENTION_DAYS] — `const val` (top-level), порог в днях для retention.
+         *
+         * Тесты вызывают эту функцию напрямую с [Path] из @TempDir и явным retentionDays.
+         *
+         * Граница (AC-2): файл с mtime == threshold удаляется. KEEP-условие —
+         * `mtime.isAfter(threshold)` (strict `>`), иначе delete. Защита от clock skew
+         * (FR-6): файлы с `mtime.isAfter(now)` пропускаются.
+         *
+         * Per-file [IOException] (FR-4): пропустить файл, продолжить; счётчик
+         * `removed` отражает только успешные удаления.
+         *
+         * @see specs/310-ochistka-papki-logov/spec.md
+         */
+        internal fun cleanupOldLogsIn(dir: Path, retentionDays: Int) {
+            try {
+                val now = Instant.now()
+                val threshold =
+                    now.minus(
+                        retentionDays.toLong() * 24L * 60L * 60L * 1000L,
+                        ChronoUnit.MILLIS,
+                    )
+                var removed = 0
+                Files.list(dir).use { stream ->
+                    stream.forEach { p ->
+                        try {
+                            if (Files.isRegularFile(p)) {
+                                val mtime = Files.getLastModifiedTime(p).toInstant()
+                                val isFuture = mtime.isAfter(now)
+                                val olderThanThreshold = !mtime.isAfter(threshold)
+                                if (olderThanThreshold && !isFuture) {
+                                    Files.delete(p)
+                                    removed++
+                                }
+                            }
+                        } catch (e: IOException) {
+                            println("cleanup: failed to process ${p.fileName}: ${e.message}")
+                        }
+                    }
+                }
+                if (removed > 0) {
+                    println("cleanup: removed $removed files older than $retentionDays days from $dir")
+                }
+            } catch (e: Exception) {
+                println("cleanup: unexpected error in cleanupOldLogsIn($dir, $retentionDays): ${e.message}")
+            }
         }
     }
 }

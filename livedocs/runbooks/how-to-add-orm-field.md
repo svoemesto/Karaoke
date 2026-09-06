@@ -1,8 +1,12 @@
 # How to: добавить новое ORM-поле в Karaoke
 
-> **Lesson source**: см. [livedocs/features/307-orm-field-save-paths.md](../features/307-orm-field-save-paths.md).
-> Урок из спеки 307: добавление `@KaraokeDbTableField` в Kotlin-модели
-> **недостаточно** — есть ещё 3 пути записи, которые надо проверить.
+> **Lesson source**: урок из спеки 307 зафиксирован в per-feature документе
+> [docs/features/zakroma-tiles-sort-order.md](../../../docs/features/zakroma-tiles-sort-order.md)
+> и в LiveDoc [features/307-special-authors-zakroma-order.md](../features/307-special-authors-zakroma-order.md).
+>
+> Добавление `@KaraokeDbTableField` в Kotlin-модели **недостаточно** — есть
+> ещё 4 пути записи, которые надо проверить (см. секцию «4 пути записи
+> ORM-поля» ниже).
 
 ## Prerequisites
 
@@ -102,7 +106,8 @@
 
 ## Связанные документы
 
-- [livedocs/features/307-orm-field-save-paths.md](../features/307-orm-field-save-paths.md) — урок и 4 пути записи.
+- [livedocs/features/307-special-authors-zakroma-order.md](../features/307-special-authors-zakroma-order.md) — LiveDoc сводка по фиче 307.
+- [docs/features/zakroma-tiles-sort-order.md](../../../docs/features/zakroma-tiles-sort-order.md) — per-feature документ с уроком и 4+1 путями записи.
 - [livedocs/runbooks/how-to-migrate-db.md](how-to-migrate-db.md) — детали по миграциям БД.
 - [livedocs/runbooks/how-to-add-new-feature.md](how-to-add-new-feature.md) — общий процесс добавления фичи.
 - Constitution Principle II/III — sync через recordhash, NON-NEGOTIABLE.

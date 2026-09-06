@@ -4,7 +4,6 @@ slug: 307-special-authors-zakroma-order
 related:
   - ../../specs/307-special-authors-zakroma-order/spec.md
   - ../../docs/features/zakroma-tiles-sort-order.md
-  - ../features/307-orm-field-save-paths.md
   - ../runbooks/how-to-add-orm-field.md
 ---
 
@@ -12,7 +11,7 @@ related:
 
 > Drill-down — [specs/307-special-authors-zakroma-order/spec.md](../../specs/307-special-authors-zakroma-order/spec.md).
 > Per-feature документ — [docs/features/zakroma-tiles-sort-order.md](../../docs/features/zakroma-tiles-sort-order.md).
-> Урок и 4+1 пути записи ORM-поля — [livedocs/features/307-orm-field-save-paths.md](307-orm-field-save-paths.md).
+> Урок и 4+1 пути записи ORM-поля — см. секцию «Урок: пути записи ORM-поля» ниже.
 
 ## Что делает
 
@@ -56,9 +55,8 @@ related:
 ## Связанные LiveDocs
 
 - Domain: [catalog.md](../domain/catalog.md) — bounded context «Каталог авторов».
-- Feature: [307-orm-field-save-paths.md](307-orm-field-save-paths.md) — урок про 4+1 путей записи ORM-поля.
 - Architecture: [L3-components.md](../architecture/L3-components.md).
-- Runbook: [how-to-add-orm-field.md](../runbooks/how-to-add-orm-field.md) — процесс добавления ORM-поля.
+- Runbook: [how-to-add-orm-field.md](../runbooks/how-to-add-orm-field.md) — процесс добавления ORM-поля + 4+1 пути записи.
 
 ## Код
 
@@ -72,6 +70,29 @@ related:
 - Frontend (публичный): `karaoke-public/src/components/AuthorTiles.vue`,
   `karaoke-public/src/views/ZakromaView.vue`.
 - Frontend (админка): `webvue3/src/components/Authors/AuthorsTable.vue`.
+
+## Урок: пути записи ORM-поля
+
+Эта фича выявила **5 путей записи ORM-поля** в Karaoke, которые надо
+проверять при каждом изменении. Если обновить только один — поле «работает
+в одних сценариях, но молча игнорируется в других». Полный runbook — см.
+[how-to-add-orm-field.md](../runbooks/how-to-add-orm-field.md). Кратко:
+
+1. **Reflection-write через `KaraokeDbTable.toSqlToInsert()`** —
+   автоматический, если поле аннотировано `@KaraokeDbTableField`.
+2. **REST-эндпоинты с `@RequestParam` whitelist** — Spring **молча
+   отбрасывает** параметры, которых нет в сигнатуре (Pass 310: поле
+   `sortOrder` не сохранялось через админку, потому что `apisUpdateAuthor`
+   не объявлял этот параметр).
+3. **Прямые `UPDATE tbl_...` SQL-блоки** в `*Service`/`*Repository`.
+4. **Sync через `recordhash`** — если поле добавлено в таблицу, но
+   забыли пересоздать `update_tbl_<table>_recordhash()` (Constitution
+   Principle II/III, NON-NEGOTIABLE).
+5. **SQL WHERE/ORDER BY** — бизнес-логика фильтрации и сортировки
+   должна учитывать новое поле (Pass 311: `WHERE ready_songs_count > 0`
+   исключал авторов с `sort_order != 0` без готовых песен; `ORDER BY
+   sort_order ASC` ставил нулевые раньше ненулевых вместо «ненулевые
+   ПЕРЕД нулевыми»).
 
 ## История
 

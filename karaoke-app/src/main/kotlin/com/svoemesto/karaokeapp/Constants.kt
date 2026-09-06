@@ -81,6 +81,10 @@ const val PATH_TO_MEDIAINFO = "/bin/mediainfo"
 const val PATH_TO_ODS = "/sm-karaoke/system/Караоке.ods"
 const val PATH_TO_LOGS = "/sm-karaoke/system/logs"
 
+// Спека 310: порог возраста логов в днях для автоочистки (см. KaraokeProcessWorker.cleanupOldLogs()).
+// Жёсткий порог (NON-NEGOTIABLE per AGENTS.md; урок спеки #309 v1).
+const val LOG_RETENTION_DAYS = 30
+
 const val ODS_COLUMN_DATE = "Дата"
 const val ODS_COLUMN_TIME = "Время"
 

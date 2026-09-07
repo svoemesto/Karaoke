@@ -6,6 +6,36 @@ import { promisedXMLHttpRequest } from '../../lib/utils'
  * @see AGENTS.md
  */
 
+// Хелпер GET → JSON. promisedXMLHttpRequest не сериализует params в query-string для GET
+// (устоявшийся квирк проекта), поэтому все параметры собираем в URL вручную (как Stats/store.js).
+function getJson(url) {
+  return promisedXMLHttpRequest({ method: 'GET', url, params: {} }).then((data) => JSON.parse(data))
+}
+
+// Строит query-string для GET /api/admin/processes из фильтров. Локальная функция
+// (НЕ Vuex action — dispatch возвращает Promise, что ломает синхронную сборку URL).
+function buildProcessQuery(filters) {
+  const q = []
+  if (filters.status && filters.status.length) {
+    filters.status.forEach((s) => q.push(`status=${encodeURIComponent(s)}`))
+  }
+  if (filters.type && filters.type.length) {
+    filters.type.forEach((t) => q.push(`type=${encodeURIComponent(t)}`))
+  }
+  if (filters.threadId) q.push(`threadId=${encodeURIComponent(filters.threadId)}`)
+  if (filters.chainId) q.push(`chainId=${encodeURIComponent(filters.chainId)}`)
+  if (filters.includeDeleted) q.push('includeDeleted=true')
+  if (filters.name) q.push(`name=${encodeURIComponent(filters.name)}`)
+  // R-006 (Lesson #10 iter #2 / RC iter #3): topLevelOnly = !filterChainId (не безусловно true).
+  const topLevelOnly =
+    filters.topLevelOnly !== undefined ? filters.topLevelOnly : !filters.chainId
+  if (topLevelOnly) q.push('topLevelOnly=true')
+  if (filters.parentId) q.push(`parentId=${encodeURIComponent(filters.parentId)}`)
+  if (filters.limit) q.push(`limit=${encodeURIComponent(filters.limit)}`)
+  if (filters.offset) q.push(`offset=${encodeURIComponent(filters.offset)}`)
+  return q.join('&')
+}
+
 export default {
   state: {
     processesDigest: [],
@@ -17,6 +47,16 @@ export default {
     // Текущая страница пагинации в ProcessesTable. Сохраняем в сторе, чтобы при уходе с компонента
     // и возврате — открывалась страница, на которой остановился пользователь.
     processesTableCurrentPage: 1,
+    // specs/315-admin-ui-karaoke-process-v5 (US1..US5): админ-состояние.
+    items: [],
+    total: 0,
+    processesLoading: false,
+    processesError: null,
+    expanded: {},
+    childrenByParent: {},
+    childrenLoading: {},
+    currentProcessForEdit: null,
+    currentProcessAudit: [],
   },
   getters: {
     getWorkingProcessForThreads: (state) => (includedThreadId, excludedThreadId) => {
@@ -49,6 +89,28 @@ export default {
     },
     getProcessesTableCurrentPage(state) {
       return state.processesTableCurrentPage
+    },
+    // --- admin (US1..US5) ---
+    getProcessesItems(state) {
+      return state.items
+    },
+    getProcessesTotal(state) {
+      return state.total
+    },
+    getProcessesLoading(state) {
+      return state.processesLoading
+    },
+    getProcessesError(state) {
+      return state.processesError
+    },
+    isProcessExpanded: (state) => (id) => !!state.expanded[id],
+    getProcessChildren: (state) => (parentId) => state.childrenByParent[parentId] || [],
+    isChildrenLoading: (state) => (parentId) => !!state.childrenLoading[parentId],
+    getCurrentProcessForEdit(state) {
+      return state.currentProcessForEdit
+    },
+    getCurrentProcessAudit(state) {
+      return state.currentProcessAudit
     },
   },
   mutations: {
@@ -135,6 +197,34 @@ export default {
     setProcessesTableCurrentPage(state, page) {
       state.processesTableCurrentPage = page
     },
+    // --- admin (US1..US5) ---
+    setProcessesItems(state, items) {
+      state.items = items
+    },
+    setProcessesTotal(state, total) {
+      state.total = total
+    },
+    setProcessesLoading(state, loading) {
+      state.processesLoading = loading
+    },
+    setProcessesError(state, error) {
+      state.processesError = error
+    },
+    setProcessChildren(state, { parentId, children }) {
+      state.childrenByParent[parentId] = children
+    },
+    toggleProcessExpanded(state, id) {
+      state.expanded[id] = !state.expanded[id]
+    },
+    setChildrenLoading(state, { parentId, loading }) {
+      state.childrenLoading[parentId] = loading
+    },
+    setCurrentProcessForEdit(state, process) {
+      state.currentProcessForEdit = process
+    },
+    setCurrentProcessAudit(state, items) {
+      state.currentProcessAudit = items
+    },
   },
   actions: {
     updateProcessesDigestByIds(ctx, payload) {
@@ -194,6 +284,115 @@ export default {
     },
     updateProcessWorkerStateByUserEvent(ctx, userEventData) {
       ctx.commit('updateProcessWorkerStateByUserEvent', userEventData)
+    },
+    // GET /api/admin/processes — список с фильтрами (US1, T013).
+    loadProcesses(ctx, filters = {}) {
+      ctx.commit('setProcessesLoading', true)
+      ctx.commit('setProcessesError', null)
+      const query = buildProcessQuery(filters)
+      const url = `/api/admin/processes${query ? `?${query}` : ''}`
+      return getJson(url)
+        .then((result) => {
+          ctx.commit('setProcessesItems', result.items || [])
+          ctx.commit('setProcessesTotal', result.total || 0)
+          ctx.commit('setProcessesLoading', false)
+          return result
+        })
+        .catch((error) => {
+          ctx.commit('setProcessesError', error.message || 'Ошибка загрузки процессов')
+          ctx.commit('setProcessesLoading', false)
+          throw error
+        })
+    },
+    // GET /api/admin/processes?topLevelOnly=false&parentId=... — lazy load детей (US1, T014).
+    loadChildren(ctx, parentId) {
+      ctx.commit('setChildrenLoading', { parentId, loading: true })
+      const url = `/api/admin/processes?topLevelOnly=false&parentId=${encodeURIComponent(parentId)}`
+      return getJson(url)
+        .then((result) => {
+          ctx.commit('setProcessChildren', { parentId, children: result.items || [] })
+          ctx.commit('setChildrenLoading', { parentId, loading: false })
+          return result
+        })
+        .catch((error) => {
+          ctx.commit('setChildrenLoading', { parentId, loading: false })
+          throw error
+        })
+    },
+    toggleProcessExpanded(ctx, id) {
+      ctx.commit('toggleProcessExpanded', id)
+    },
+    // GET /api/admin/processes/{id} — один процесс для edit (US2).
+    loadProcessForEdit(ctx, id) {
+      return getJson(`/api/admin/processes/${id}`)
+        .then((process) => {
+          ctx.commit('setCurrentProcessForEdit', process)
+          return process
+        })
+        .catch((error) => {
+          throw error
+        })
+    },
+    // POST /api/admin/processes/{id}/edit — редактирование (US2, T020).
+    editProcess(ctx, { id, changes }) {
+      return promisedXMLHttpRequest({
+        method: 'POST',
+        url: `/api/admin/processes/${id}/edit`,
+        body: changes,
+      })
+        .then((data) => {
+          const updated = JSON.parse(data)
+          const items = ctx.state.items.map((item) => (item.id === id ? updated : item))
+          ctx.commit('setProcessesItems', items)
+          return updated
+        })
+        .catch((error) => {
+          throw error
+        })
+    },
+    // POST /api/admin/processes/{id}/delete — soft-delete (US3, T027).
+    deleteProcess(ctx, id) {
+      return promisedXMLHttpRequest({
+        method: 'POST',
+        url: `/api/admin/processes/${id}/delete`,
+        body: {},
+      })
+        .then((data) => {
+          const items = ctx.state.items.filter((item) => item.id !== id)
+          ctx.commit('setProcessesItems', items)
+          return JSON.parse(data)
+        })
+        .catch((error) => {
+          throw error
+        })
+    },
+    // POST /api/admin/processes/{id}/retry — retry ERROR (US4, T032).
+    retryProcess(ctx, id) {
+      return promisedXMLHttpRequest({
+        method: 'POST',
+        url: `/api/admin/processes/${id}/retry`,
+        body: {},
+      })
+        .then((data) => {
+          const updated = JSON.parse(data)
+          const items = ctx.state.items.map((item) => (item.id === id ? updated : item))
+          ctx.commit('setProcessesItems', items)
+          return updated
+        })
+        .catch((error) => {
+          throw error
+        })
+    },
+    // GET /api/admin/processes/{id}/audit?days=30 — audit-лог (US5, T037).
+    loadAudit(ctx, { id, days = 30 }) {
+      return getJson(`/api/admin/processes/${id}/audit?days=${days}`)
+        .then((result) => {
+          ctx.commit('setCurrentProcessAudit', result.items || [])
+          return result
+        })
+        .catch((error) => {
+          throw error
+        })
     },
   },
 }

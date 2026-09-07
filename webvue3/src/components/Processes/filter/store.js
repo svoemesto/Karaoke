@@ -1,95 +1,84 @@
 import { setWebvueProp } from '../../../lib/utils'
 
 /**
- * Компонент «Store».
+ * Компонент «Store» (фильтр процессов).
  *
  * @see AGENTS.md
  */
 
 export default {
   state: {
-    processesFilterId: '',
+    processesFilterStatus: [],
+    processesFilterType: [],
     processesFilterThreadId: '',
+    processesFilterChainId: '',
+    processesFilterIncludeDeleted: false,
     processesFilterName: '',
-    processesFilterStatus: '',
-    processesFilterPriority: '',
-    processesFilterDescription: '',
-    processesFilterType: '',
   },
   getters: {
-    getProcessesFilterId(state) {
-      return state.processesFilterId
-    },
-    getProcessesFilterThreadId(state) {
-      return state.processesFilterThreadId
-    },
-    getProcessesFilterName(state) {
-      return state.processesFilterName
-    },
     getProcessesFilterStatus(state) {
       return state.processesFilterStatus
-    },
-    getProcessesFilterPriority(state) {
-      return state.processesFilterPriority
-    },
-    getProcessesFilterDescription(state) {
-      return state.processesFilterDescription
     },
     getProcessesFilterType(state) {
       return state.processesFilterType
     },
+    getProcessesFilterThreadId(state) {
+      return state.processesFilterThreadId
+    },
+    getProcessesFilterChainId(state) {
+      return state.processesFilterChainId
+    },
+    getProcessesFilterIncludeDeleted(state) {
+      return state.processesFilterIncludeDeleted
+    },
+    getProcessesFilterName(state) {
+      return state.processesFilterName
+    },
   },
   mutations: {
-    setProcessesFilterId(state, value) {
-      setWebvueProp(state.processesFilterId, 'processesFilterId', value)
-      state.processesFilterId = value
+    setProcessesFilterStatus(state, value) {
+      setWebvueProp(state.processesFilterStatus, 'processesFilterStatus', JSON.stringify(value))
+      state.processesFilterStatus = value
+    },
+    setProcessesFilterType(state, value) {
+      setWebvueProp(state.processesFilterType, 'processesFilterType', JSON.stringify(value))
+      state.processesFilterType = value
     },
     setProcessesFilterThreadId(state, value) {
       setWebvueProp(state.processesFilterThreadId, 'processesFilterThreadId', value)
       state.processesFilterThreadId = value
     },
+    setProcessesFilterChainId(state, value) {
+      setWebvueProp(state.processesFilterChainId, 'processesFilterChainId', value)
+      state.processesFilterChainId = value
+    },
+    setProcessesFilterIncludeDeleted(state, value) {
+      setWebvueProp(state.processesFilterIncludeDeleted, 'processesFilterIncludeDeleted', value)
+      state.processesFilterIncludeDeleted = value
+    },
     setProcessesFilterName(state, value) {
       setWebvueProp(state.processesFilterName, 'processesFilterName', value)
       state.processesFilterName = value
     },
-    setProcessesFilterStatus(state, value) {
-      setWebvueProp(state.processesFilterStatus, 'processesFilterStatus', value)
-      state.processesFilterStatus = value
-    },
-    setProcessesFilterPriority(state, value) {
-      setWebvueProp(state.processesFilterPriority, 'processesFilterPriority', value)
-      state.processesFilterPriority = value
-    },
-    setProcessesFilterDescription(state, value) {
-      setWebvueProp(state.processesFilterDescription, 'processesFilterDescription', value)
-      state.processesFilterDescription = value
-    },
-    setProcessesFilterType(state, value) {
-      setWebvueProp(state.processesFilterType, 'processesFilterType', value)
-      state.processesFilterType = value
-    },
   },
   actions: {
-    setProcessesFilterId(ctx, payload) {
-      ctx.commit('setProcessesFilterId', payload.value)
+    setProcessesFilterStatus(ctx, payload) {
+      ctx.commit('setProcessesFilterStatus', payload.value)
+    },
+    setProcessesFilterType(ctx, payload) {
+      ctx.commit('setProcessesFilterType', payload.value)
     },
     setProcessesFilterThreadId(ctx, payload) {
       ctx.commit('setProcessesFilterThreadId', payload.value)
     },
+    setProcessesFilterChainId(ctx, payload) {
+      ctx.commit('setProcessesFilterChainId', payload.value)
+    },
+    setProcessesFilterIncludeDeleted(ctx, payload) {
+      ctx.commit('setProcessesFilterIncludeDeleted', payload.value)
+    },
     setProcessesFilterName(ctx, payload) {
       ctx.commit('setProcessesFilterName', payload.value)
-    },
-    setProcessesFilterStatus(ctx, payload) {
-      ctx.commit('setProcessesFilterStatus', payload.value)
-    },
-    setProcessesFilterPriority(ctx, payload) {
-      ctx.commit('setProcessesFilterPriority', payload.value)
-    },
-    setProcessesFilterDescription(ctx, payload) {
-      ctx.commit('setProcessesFilterDescription', payload.value)
-    },
-    setProcessesFilterType(ctx, payload) {
-      ctx.commit('setProcessesFilterType', payload.value)
     },
   },
 }

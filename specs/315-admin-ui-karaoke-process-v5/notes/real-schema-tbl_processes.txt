@@ -1,0 +1,32 @@
+       column_name       |          data_type          | is_nullable 
+-------------------------+-----------------------------+-------------
+ id                      | integer                     | NO
+ process_name            | character varying           | YES
+ process_status          | character varying           | YES
+ process_order           | integer                     | YES
+ process_priority        | integer                     | YES
+ process_command         | character varying           | YES
+ process_args            | text                        | YES
+ process_description     | text                        | YES
+ song_id                 | integer                     | YES
+ process_type            | character varying           | YES
+ process_start           | timestamp without time zone | YES
+ process_end             | timestamp without time zone | YES
+ last_update             | timestamp without time zone | YES
+ process_prioritet       | integer                     | YES
+ process_start_str       | character varying           | YES
+ process_end_str         | character varying           | YES
+ process_percentage      | integer                     | YES
+ process_percentage_str  | character varying           | YES
+ process_time_passed_ms  | integer                     | YES
+ process_time_passed_str | character varying           | YES
+ process_time_left_ms    | integer                     | YES
+ process_time_left_str   | character varying           | YES
+ without_control         | boolean                     | YES
+ thread_id               | integer                     | NO
+ recordhash              | character varying           | YES
+ process_envs            | text                        | NO
+ process_chain_id        | bigint                      | YES
+ process_deleted_at      | timestamp without time zone | YES
+(28 rows)
+

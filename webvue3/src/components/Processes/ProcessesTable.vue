@@ -1,16 +1,25 @@
 <template>
   <div class="processes-bv-table">
-    <!--    <ProcessEditModal v-if="isProcessEditVisible" @close="closeProcessEdit"/>-->
-    <ProcessesFilter v-if="isProcessesFilterVisible" @close="closeProcessesFilter" />
-    <custom-confirm
-      v-if="isCustomConfirmVisible"
-      :params="customConfirmParams"
-      @close="closeCustomConfirm"
+    <ProcessesFilterModal v-if="isProcessesFilterVisible" @close="closeProcessesFilter" />
+    <ProcessEditModal
+      v-if="isProcessEditVisible"
+      :process-id="currentProcessForEditId"
+      @close="closeProcessEdit"
+    />
+    <ProcessDeleteModal
+      v-if="isProcessDeleteVisible"
+      :process-id="currentProcessForDeleteId"
+      @close="closeProcessDelete"
+    />
+    <ProcessAuditModal
+      v-if="isProcessAuditVisible"
+      :process-id="currentProcessForAuditId"
+      @close="closeProcessAudit"
     />
     <div class="processes-bv-table-header">
       <b-pagination
         v-model="currentPage"
-        :total-rows="countRows"
+        :total-rows="total"
         :per-page="perPage"
         :limit="30"
         size="sm"
@@ -19,16 +28,13 @@
     </div>
     <div class="processes-bv-table-body">
       <b-table
-        v-model:sort-by="sortBy"
-        :items="processesDigests"
-        :busy="isBusy"
-        :fields="processDigestFields"
-        :per-page="perPage"
-        :current-page="currentPage"
+        :items="displayItems"
+        :busy="processesLoading"
+        :fields="processFields"
+        :per-page="100000"
         small
         bordered
         hover
-        @row-clicked="onRowClicked"
       >
         <template #table-busy>
           <div class="text-center text-danger my-2">
@@ -41,136 +47,91 @@
         </template>
 
         <template #cell(id)="data">
-          <div
-            class="fld-id"
-            :style="{
-              backgroundColor: data.item.color,
-              color: currentProcessId === data.item.id ? 'blue' : 'black',
-            }"
-            v-text="data.value"
-          />
+          <div class="fld-id" v-text="data.value" />
         </template>
 
         <template #cell(threadId)="data">
-          <div
-            class="fld-thread-id"
-            :style="{
-              backgroundColor: data.item.color,
-              color: currentProcessId === data.item.id ? 'blue' : 'black',
-            }"
-            v-text="data.value"
-          />
+          <div class="fld-thread-id" v-text="data.value" />
         </template>
 
         <template #cell(name)="data">
           <div
             class="fld-process-name"
-            :style="{
-              backgroundColor: data.item.color,
-              color: currentProcessId === data.item.id ? 'blue' : 'black',
-            }"
-            @click.left="editProcess(data.item.id)"
-            v-text="data.value"
-          />
+            :style="{ paddingLeft: (data.item._depth || 0) * 20 + 'px' }"
+          >
+            <button
+              v-if="data.item._isHead"
+              class="btn-expand"
+              :title="isExpanded(data.item.id) ? 'Свернуть' : 'Развернуть'"
+              @click="toggleExpand(data.item.id)"
+              v-text="isExpanded(data.item.id) ? '▼' : '▶'"
+            />
+            <span
+              v-if="data.item.processDeletedAt"
+              class="fld-deleted-badge"
+              title="Процесс удалён (soft-delete)"
+              v-text="'🗑️'"
+            />
+            <span :class="{ 'fld-deleted-text': data.item.processDeletedAt }" v-text="data.value" />
+          </div>
         </template>
 
         <template #cell(status)="data">
-          <div
-            class="fld-status"
-            :style="{
-              backgroundColor: data.item.color,
-              color: currentProcessId === data.item.id ? 'blue' : 'black',
-            }"
-            v-text="data.value"
-          />
+          <div class="fld-status" v-text="data.value" />
         </template>
 
         <template #cell(priority)="data">
-          <div
-            class="fld-priority"
-            :style="{
-              backgroundColor: data.item.color,
-              color: currentProcessId === data.item.id ? 'blue' : 'black',
-            }"
-            v-text="data.value"
-          />
+          <div class="fld-priority" v-text="data.value" />
         </template>
 
         <template #cell(description)="data">
-          <div
-            class="fld-description"
-            :style="{
-              backgroundColor: data.item.color,
-              color: currentProcessId === data.item.id ? 'blue' : 'black',
-            }"
-            v-text="data.value"
-          />
+          <div class="fld-description" v-text="data.value" />
         </template>
 
         <template #cell(type)="data">
-          <div
-            class="fld-type"
-            :style="{
-              backgroundColor: data.item.color,
-              color: currentProcessId === data.item.id ? 'blue' : 'black',
-            }"
-            v-text="data.value"
-          />
+          <div class="fld-type" v-text="data.value" />
         </template>
 
-        <template #cell(startStr)="data">
-          <div
-            class="fld-start"
-            :style="{
-              backgroundColor: data.item.color,
-              color: currentProcessId === data.item.id ? 'blue' : 'black',
-            }"
-            v-text="data.value"
-          />
+        <template #cell(startedAt)="data">
+          <div class="fld-start" v-text="formatTimestamp(data.value)" />
         </template>
 
-        <template #cell(endStr)="data">
-          <div
-            class="fld-end"
-            :style="{
-              backgroundColor: data.item.color,
-              color: currentProcessId === data.item.id ? 'blue' : 'black',
-            }"
-            v-text="data.value"
-          />
+        <template #cell(endedAt)="data">
+          <div class="fld-end" v-text="formatTimestamp(data.value)" />
         </template>
 
-        <template #cell(percentageStr)="data">
-          <div
-            class="fld-percentage"
-            :style="{
-              backgroundColor: data.item.color,
-              color: currentProcessId === data.item.id ? 'blue' : 'black',
-            }"
-            v-text="data.value"
-          />
+        <template #cell(updatedAt)="data">
+          <div class="fld-updated" v-text="formatTimestamp(data.value)" />
         </template>
 
-        <template #cell(timePassedStr)="data">
-          <div
-            class="fld-passed"
-            :style="{
-              backgroundColor: data.item.color,
-              color: currentProcessId === data.item.id ? 'blue' : 'black',
-            }"
-            v-text="data.value"
-          />
-        </template>
-
-        <template #cell(timeLeftStr)="data">
-          <div
-            class="fld-left"
-            :style="{
-              backgroundColor: data.item.color,
-              color: currentProcessId === data.item.id ? 'blue' : 'black',
-            }"
-            v-text="data.value"
-          />
+        <template #cell(actions)="data">
+          <div class="fld-actions">
+            <button
+              class="btn-action"
+              title="Редактировать"
+              @click="openEdit(data.item.id)"
+              v-text="'✏️'"
+            />
+            <button
+              class="btn-action"
+              title="Удалить"
+              @click="openDelete(data.item.id)"
+              v-text="'🗑️'"
+            />
+            <button
+              v-if="canRetry(data.item)"
+              class="btn-action"
+              title="Retry (ERROR → WAITING)"
+              @click="openRetry(data.item.id)"
+              v-text="'🔄'"
+            />
+            <button
+              class="btn-action"
+              title="Audit"
+              @click="openAudit(data.item.id)"
+              v-text="'📋'"
+            />
+          </div>
         </template>
       </b-table>
     </div>
@@ -183,30 +144,28 @@
 </template>
 
 <script>
-// import Vue from "vue";
-// import { TablePlugin } from 'bootstrap-vue'
-// import { PaginationPlugin } from 'bootstrap-vue'
-// import { SpinnerPlugin } from 'bootstrap-vue'
-
-// import ProcessEditModal from "@/components/Processes/edit/ProcessEditModal.vue";
 import { BPagination, BSpinner, BTable } from 'bootstrap-vue-next'
-import ProcessesFilter from '../../components/Processes/filter/ProcessesFilterModal.vue'
-import CustomConfirm from '../Common/CustomConfirm.vue'
-// Vue.use(TablePlugin)
-// Vue.use(PaginationPlugin)
-// Vue.use(SpinnerPlugin)
-/**
- * Таблица со списком processes с пагинацией, фильтрами и сортировкой.
- *
- * @see archive/docs/features/async-process-queue.md
- */
+import ProcessesFilterModal from '../../components/Processes/filter/ProcessesFilterModal.vue'
+import ProcessEditModal from '../../components/Processes/edit/ProcessEditModal.vue'
+import ProcessDeleteModal from '../../components/Processes/delete/ProcessDeleteModal.vue'
+import ProcessAuditModal from '../../components/Processes/audit/ProcessAuditModal.vue'
 
+/**
+ * Таблица процессов (specs/315-admin-ui-karaoke-process-v5, US1).
+ *
+ * Показывает top-level head-процессы (process_chain_id IS NULL), фильтрует по
+ * статусу/типу/threadId/chainId/name/includeDeleted, разворачивает head → lazy load
+ * tail-детей (FR-004). Soft-deleted процессы — зачёркнутый текст + 🗑️ (FR-002).
+ *
+ * @see specs/315-admin-ui-karaoke-process-v5/spec.md
+ */
 export default {
   name: 'ProcessesTable',
   components: {
-    // ProcessEditModal,
-    ProcessesFilter,
-    CustomConfirm,
+    ProcessesFilterModal,
+    ProcessEditModal,
+    ProcessDeleteModal,
+    ProcessAuditModal,
     BPagination,
     BSpinner,
     BTable,
@@ -214,29 +173,41 @@ export default {
   data() {
     return {
       perPage: 50,
-      // Восстанавливаем последнюю страницу из store, чтобы при уходе с компонента и возврате таблица
-      // открывалась на той же странице.
-      currentPage: this.$store.getters.getProcessesTableCurrentPage || 1,
-      sortBy: [],
-      isProcessEditVisible: false,
+      currentPage: 1,
       isProcessesFilterVisible: false,
-      isCustomConfirmVisible: false,
-      customConfirmParams: undefined,
-      isBusy: false,
-      currentProcessId: 0,
+      isProcessEditVisible: false,
+      currentProcessForEditId: null,
+      isProcessDeleteVisible: false,
+      currentProcessForDeleteId: null,
+      isProcessAuditVisible: false,
+      currentProcessForAuditId: null,
     }
   },
   computed: {
-    processesDigestIsLoading() {
-      return this.$store.getters.getProcessesDigestIsLoading
+    processesLoading() {
+      return this.$store.getters.getProcessesLoading
     },
-    processesDigests() {
-      return this.$store.getters.getProcessesDigest
+    items() {
+      return this.$store.getters.getProcessesItems
     },
-    countRows() {
-      return this.processesDigests ? this.processesDigests.length : 0
+    total() {
+      return this.$store.getters.getProcessesTotal
     },
-    processDigestFields() {
+    // Плоский список: top-level head-процессы + развёрнутые дети (lazy load).
+    displayItems() {
+      const result = []
+      for (const item of this.items) {
+        result.push(Object.assign({}, item, { _depth: 0, _isHead: true }))
+        if (this.isExpanded(item.id)) {
+          const children = this.getChildren(item.id)
+          for (const child of children) {
+            result.push(Object.assign({}, child, { _depth: 1, _isHead: false }))
+          }
+        }
+      }
+      return result
+    },
+    processFields() {
       return [
         {
           key: 'id',
@@ -316,7 +287,7 @@ export default {
           },
         },
         {
-          key: 'startStr',
+          key: 'startedAt',
           sortable: true,
           label: 'Начало',
           style: {
@@ -327,7 +298,7 @@ export default {
           },
         },
         {
-          key: 'endStr',
+          key: 'endedAt',
           sortable: true,
           label: 'Конец',
           style: {
@@ -338,35 +309,23 @@ export default {
           },
         },
         {
-          key: 'percentageStr',
+          key: 'updatedAt',
           sortable: true,
-          label: '%',
+          label: 'Обновлено',
           style: {
-            minWidth: '70px',
-            maxWidth: '70px',
+            minWidth: '120px',
+            maxWidth: '120px',
             textAlign: 'left',
             fontSize: 'small',
           },
         },
         {
-          key: 'timePassedStr',
-          sortable: true,
-          label: 'Pass',
+          key: 'actions',
+          label: 'Действия',
           style: {
-            minWidth: '50px',
-            maxWidth: '50px',
-            textAlign: 'left',
-            fontSize: 'small',
-          },
-        },
-        {
-          key: 'timeLeftStr',
-          sortable: true,
-          label: 'Left',
-          style: {
-            minWidth: '50px',
-            maxWidth: '50px',
-            textAlign: 'left',
+            minWidth: '120px',
+            maxWidth: '120px',
+            textAlign: 'center',
             fontSize: 'small',
           },
         },
@@ -374,44 +333,104 @@ export default {
     },
   },
   watch: {
-    processesDigestIsLoading: {
-      handler() {
-        this.isBusy = this.processesDigestIsLoading
-      },
-    },
     currentPage: {
-      handler(newPage) {
-        // Сохраняем страницу в store, чтобы она восстановилась после переключения на другой компонент.
-        this.$store.commit('setProcessesTableCurrentPage', newPage)
+      handler() {
+        this.loadPage()
       },
     },
   },
   mounted() {
-    // this.$store.dispatch('loadProcessesDigests', { filterAuthor: 'Павел Кашин'} )
+    this.loadPage()
   },
   methods: {
-    closeCustomConfirm() {
-      this.isCustomConfirmVisible = false
+    buildFilters() {
+      return {
+        status: this.$store.getters.getProcessesFilterStatus,
+        type: this.$store.getters.getProcessesFilterType,
+        threadId: this.$store.getters.getProcessesFilterThreadId || null,
+        chainId: this.$store.getters.getProcessesFilterChainId || null,
+        includeDeleted: this.$store.getters.getProcessesFilterIncludeDeleted,
+        name: this.$store.getters.getProcessesFilterName || null,
+        limit: this.perPage,
+        offset: (this.currentPage - 1) * this.perPage,
+      }
     },
-
-    editProcess(id) {
-      this.$store.commit('setCurrentProcessId', id)
-      this.isProcessEditVisible = true
+    loadPage() {
+      this.$store.dispatch('loadProcesses', this.buildFilters())
     },
-    closeProcessEdit() {
-      this.isProcessEditVisible = false
+    isExpanded(id) {
+      return this.$store.getters.isProcessExpanded(id)
+    },
+    getChildren(parentId) {
+      return this.$store.getters.getProcessChildren(parentId)
+    },
+    toggleExpand(id) {
+      const wasExpanded = this.isExpanded(id)
+      this.$store.dispatch('toggleProcessExpanded', id)
+      if (!wasExpanded) {
+        this.$store.dispatch('loadChildren', id)
+      }
+    },
+    formatTimestamp(value) {
+      if (!value) return ''
+      const d = new Date(value)
+      if (isNaN(d.getTime())) return String(value)
+      const pad = (n) => String(n).padStart(2, '0')
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
     },
     closeProcessesFilter() {
       this.isProcessesFilterVisible = false
     },
-    onRowClicked(item, index) {
-      this.currentProcessId = item.id
-      console.log(`Row '${index}' clicked: `, item.processName)
+    openEdit(id) {
+      this.currentProcessForEditId = id
+      this.isProcessEditVisible = true
     },
-    getCellStyle(data) {
-      return {
-        backgroundColor: data.item.color,
+    closeProcessEdit() {
+      this.isProcessEditVisible = false
+      this.currentProcessForEditId = null
+    },
+    openDelete(id) {
+      this.currentProcessForDeleteId = id
+      this.isProcessDeleteVisible = true
+    },
+    closeProcessDelete() {
+      this.isProcessDeleteVisible = false
+      this.currentProcessForDeleteId = null
+    },
+    openAudit(id) {
+      this.currentProcessForAuditId = id
+      this.isProcessAuditVisible = true
+    },
+    closeProcessAudit() {
+      this.isProcessAuditVisible = false
+      this.currentProcessForAuditId = null
+    },
+    // Retry виден только для ERROR + не удалённых (FR-014, T048 iter #3).
+    canRetry(item) {
+      return item.status === 'ERROR' && !item.processDeletedAt
+    },
+    openRetry(id) {
+      this.$store
+        .dispatch('retryProcess', id)
+        .then(() => {
+          this.loadPage()
+        })
+        .catch((e) => {
+          this.showError(e)
+        })
+    },
+    showError(e) {
+      let message = e.message || 'Ошибка'
+      if (e.responseBody) {
+        try {
+          const parsed = JSON.parse(e.responseBody)
+          if (parsed.message) message = parsed.message
+        } catch (_) {
+          /* ignore */
+        }
       }
+      // eslint-disable-next-line no-alert
+      alert(message)
     },
   },
 }
@@ -480,14 +499,33 @@ export default {
   max-width: 400px;
   text-align: left;
   font-size: small;
-  cursor: default;
-  text-decoration: none;
   white-space: nowrap;
   overflow: hidden;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
 }
-.fld-process-name:hover {
-  text-decoration: underline;
+.fld-deleted-text {
+  text-decoration: line-through;
+  color: #999;
+}
+.fld-deleted-badge {
+  font-size: small;
+}
+.btn-expand {
+  border: thin solid black;
+  border-radius: 4px;
+  background: transparent;
   cursor: pointer;
+  font-size: x-small;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  line-height: 1;
+}
+.btn-expand:hover {
+  background-color: lightyellow;
 }
 .fld-status {
   min-width: 90px;
@@ -543,31 +581,39 @@ export default {
   overflow: hidden;
 }
 
-.fld-percentage {
-  min-width: 70px;
-  max-width: 70px;
+.fld-updated {
+  min-width: 120px;
+  max-width: 120px;
   text-align: center;
   font-size: small;
   white-space: nowrap;
   overflow: hidden;
 }
 
-.fld-passed {
-  min-width: 50px;
-  max-width: 50px;
-  text-align: center;
-  font-size: small;
-  white-space: nowrap;
-  overflow: hidden;
+.fld-actions {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
 }
-
-.fld-left {
-  min-width: 50px;
-  max-width: 50px;
-  text-align: center;
+.btn-action {
+  border: thin solid black;
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
   font-size: small;
-  white-space: nowrap;
-  overflow: hidden;
+  width: 28px;
+  height: 24px;
+  padding: 0;
+  line-height: 1;
+}
+.btn-action:hover {
+  background-color: lightyellow;
+}
+.btn-action:disabled {
+  opacity: 0.3;
+  cursor: default;
 }
 
 .btn-round-double {

@@ -105,6 +105,15 @@ class KaraokeProcess(
     @KaraokeDbTableField(name = "thread_id")
     var threadId: Int = 0
 
+    // specs/315-admin-ui-karaoke-process-v5 (T005): поля для parent-child визуализации и
+    // soft-delete. Декларации допустимы (для load/DTO), но save() их НЕ пишет (FR-019 race
+    // protection, Lesson #5 iter #1) — см. save() ниже.
+    @KaraokeDbTableField(name = "process_chain_id")
+    var processChainId: Long? = null
+
+    @KaraokeDbTableField(name = "process_deleted_at")
+    var processDeletedAt: Timestamp? = null
+
     override fun toDTO(): KaraokeProcessDTO =
         KaraokeProcessDTO(
             id = id,
@@ -809,6 +818,7 @@ class KaraokeProcess(
                            ) AS rn
                     FROM tbl_processes
                     WHERE process_status = 'WAITING'
+                      AND process_deleted_at IS NULL
                 ) ranked
                 WHERE rn = 1;
                 """.trimIndent()
@@ -835,6 +845,8 @@ class KaraokeProcess(
                     process.prioritet = rs.getInt("process_prioritet")
                     process.withoutControl = rs.getBoolean("without_control")
                     process.threadId = rs.getInt("thread_id")
+                    process.processChainId = rs.getLong("process_chain_id").takeIf { !rs.wasNull() }
+                    process.processDeletedAt = rs.getTimestamp("process_deleted_at")
 
                     result.put(process.threadId, process)
                 }
@@ -910,6 +922,8 @@ class KaraokeProcess(
                     process.prioritet = rs.getInt("process_prioritet")
                     process.withoutControl = rs.getBoolean("without_control")
                     process.threadId = rs.getInt("thread_id")
+                    process.processChainId = rs.getLong("process_chain_id").takeIf { !rs.wasNull() }
+                    process.processDeletedAt = rs.getTimestamp("process_deleted_at")
                     result.add(process)
                 }
                 result.sort()

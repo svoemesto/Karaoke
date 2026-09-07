@@ -2,23 +2,32 @@
   <transition name="modal-fade">
     <div class="prfm-modal-backdrop">
       <div class="prfm-area">
-        <div class="prfm-area-modal-header">Фильтр для песен</div>
+        <div class="prfm-area-modal-header">Фильтр процессов</div>
 
         <div class="prfm-area-modal-body">
           <div class="prfm-root-wrapper">
             <div class="prfm-filter-row">
               <div class="prfm-row-label">
-                <div v-text="'ID:'" />
+                <div v-text="'Статус:'" />
               </div>
-              <div class="prfm-row-input">
-                <input v-model="processesFilterId" class="prfm-input-field" />
+              <div class="prfm-row-checkboxes">
+                <label v-for="opt in STATUS_OPTIONS" :key="opt.value" class="prfm-checkbox">
+                  <input v-model="processesFilterStatus" type="checkbox" :value="opt.value" />
+                  <span v-text="opt.label" />
+                </label>
               </div>
-              <button
-                :disabled="!processesFilterId"
-                class="prfm-button-clear-field"
-                @click.left="processesFilterId = ''"
-                v-text="'X'"
-              />
+            </div>
+
+            <div class="prfm-filter-row">
+              <div class="prfm-row-label">
+                <div v-text="'Тип:'" />
+              </div>
+              <div class="prfm-row-checkboxes">
+                <label v-for="opt in TYPE_OPTIONS" :key="opt.value" class="prfm-checkbox">
+                  <input v-model="processesFilterType" type="checkbox" :value="opt.value" />
+                  <span v-text="opt.label" />
+                </label>
+              </div>
             </div>
 
             <div class="prfm-filter-row">
@@ -32,6 +41,21 @@
                 :disabled="!processesFilterThreadId"
                 class="prfm-button-clear-field"
                 @click.left="processesFilterThreadId = ''"
+                v-text="'X'"
+              />
+            </div>
+
+            <div class="prfm-filter-row">
+              <div class="prfm-row-label">
+                <div v-text="'chainId:'" />
+              </div>
+              <div class="prfm-row-input">
+                <input v-model="processesFilterChainId" class="prfm-input-field" />
+              </div>
+              <button
+                :disabled="!processesFilterChainId"
+                class="prfm-button-clear-field"
+                @click.left="processesFilterChainId = ''"
                 v-text="'X'"
               />
             </div>
@@ -53,62 +77,15 @@
 
             <div class="prfm-filter-row">
               <div class="prfm-row-label">
-                <div v-text="'Статус:'" />
+                <div v-text="'Включая удалённые:'" />
               </div>
               <div class="prfm-row-input">
-                <input v-model="processesFilterStatus" class="prfm-input-field" />
+                <input
+                  v-model="processesFilterIncludeDeleted"
+                  type="checkbox"
+                  class="prfm-checkbox-single"
+                />
               </div>
-              <button
-                :disabled="!processesFilterStatus"
-                class="prfm-button-clear-field"
-                @click.left="processesFilterStatus = ''"
-                v-text="'X'"
-              />
-            </div>
-
-            <div class="prfm-filter-row">
-              <div class="prfm-row-label">
-                <div v-text="'Приоритет:'" />
-              </div>
-              <div class="prfm-row-input">
-                <input v-model="processesFilterPriority" class="prfm-input-field" />
-              </div>
-              <button
-                :disabled="!processesFilterPriority"
-                class="prfm-button-clear-field"
-                @click.left="processesFilterPriority = ''"
-                v-text="'X'"
-              />
-            </div>
-
-            <div class="prfm-filter-row">
-              <div class="prfm-row-label">
-                <div v-text="'Описание:'" />
-              </div>
-              <div class="prfm-row-input">
-                <input v-model="processesFilterDescription" class="prfm-input-field" />
-              </div>
-              <button
-                :disabled="!processesFilterDescription"
-                class="prfm-button-clear-field"
-                @click.left="processesFilterDescription = ''"
-                v-text="'X'"
-              />
-            </div>
-
-            <div class="prfm-filter-row">
-              <div class="prfm-row-label">
-                <div v-text="'Тип:'" />
-              </div>
-              <div class="prfm-row-input">
-                <input v-model="processesFilterType" class="prfm-input-field" />
-              </div>
-              <button
-                :disabled="!processesFilterType"
-                class="prfm-button-clear-field"
-                @click.left="processesFilterType = ''"
-                v-text="'X'"
-              />
             </div>
           </div>
         </div>
@@ -124,59 +101,67 @@
 
 <script>
 /**
- * Модальное окно для filter.
+ * Модальное окно для filter процессов (specs/315-admin-ui-karaoke-process-v5, US1).
  *
- * @see archive/docs/features/async-process-queue.md
+ * @see specs/315-admin-ui-karaoke-process-v5/spec.md
  */
+const STATUS_OPTIONS = [
+  { value: 'CREATING', label: 'CREATING' },
+  { value: 'WAITING', label: 'WAITING' },
+  { value: 'WORKING', label: 'WORKING' },
+  { value: 'DONE', label: 'DONE' },
+  { value: 'ERROR', label: 'ERROR' },
+]
+
+const TYPE_OPTIONS = [
+  { value: 'NONE', label: 'NONE' },
+  { value: 'MELT_LYRICS', label: 'MELT_LYRICS' },
+  { value: 'MELT_KARAOKE', label: 'MELT_KARAOKE' },
+  { value: 'MELT_CHORDS', label: 'MELT_CHORDS' },
+  { value: 'MELT_TABS', label: 'MELT_TABS' },
+  { value: 'DEMUCS2', label: 'DEMUCS2' },
+  { value: 'DEMUCS5', label: 'DEMUCS5' },
+  { value: 'SHEETSAGE', label: 'SHEETSAGE' },
+  { value: 'SHEETSAGE2', label: 'SHEETSAGE2' },
+  { value: 'FF_720_KAR', label: 'FF_720_KAR' },
+  { value: 'FF_720_LYR', label: 'FF_720_LYR' },
+  { value: 'SYMLINK', label: 'SYMLINK' },
+  { value: 'SMARTCOPY', label: 'SMARTCOPY' },
+  { value: 'COPY_TO_STORE_LYRICS', label: 'COPY_TO_STORE_LYRICS' },
+  { value: 'COPY_TO_STORE_KARAOKE', label: 'COPY_TO_STORE_KARAOKE' },
+  { value: 'FF_MP3_ACCOMPANIMENT', label: 'FF_MP3_ACCOMPANIMENT' },
+  { value: 'FF_MP3_VOCAL', label: 'FF_MP3_VOCAL' },
+  { value: 'FF_MP3_DRUMS', label: 'FF_MP3_DRUMS' },
+  { value: 'FF_MP3_BASS', label: 'FF_MP3_BASS' },
+  { value: 'FF_MP3_OTHER', label: 'FF_MP3_OTHER' },
+  { value: 'KEY_BPM_FROM_FILE', label: 'KEY_BPM_FROM_FILE' },
+  { value: 'UPLOAD_TO_LOCAL_STORE', label: 'UPLOAD_TO_LOCAL_STORE' },
+  { value: 'UPLOAD_TO_REMOTE_STORE', label: 'UPLOAD_TO_REMOTE_STORE' },
+  { value: 'RENDER_MP4_LYRICS', label: 'RENDER_MP4_LYRICS' },
+  { value: 'RENDER_MP4_KARAOKE', label: 'RENDER_MP4_KARAOKE' },
+  { value: 'RENDER_MP4_CHORDS', label: 'RENDER_MP4_CHORDS' },
+  { value: 'RENDER_MP4_TABS', label: 'RENDER_MP4_TABS' },
+  { value: 'RENDER_MP4_DEMO', label: 'RENDER_MP4_DEMO' },
+  { value: 'FORCED_ALIGN_MARKERS', label: 'FORCED_ALIGN_MARKERS' },
+  { value: 'STEM_JOB_DEMUCS2', label: 'STEM_JOB_DEMUCS2' },
+  { value: 'STEM_JOB_DEMUCS5', label: 'STEM_JOB_DEMUCS5' },
+]
+
 export default {
   name: 'ProcessesFilterModal',
+  data() {
+    return {
+      STATUS_OPTIONS,
+      TYPE_OPTIONS,
+    }
+  },
   computed: {
-    processesFilterId: {
-      get() {
-        return this.$store.getters.getProcessesFilterId
-      },
-      set(value) {
-        this.$store.dispatch('setProcessesFilterId', { value: value })
-      },
-    },
-    processesFilterThreadId: {
-      get() {
-        return this.$store.getters.getProcessesFilterThreadId
-      },
-      set(value) {
-        this.$store.dispatch('setProcessesFilterThreadId', { value: value })
-      },
-    },
-    processesFilterName: {
-      get() {
-        return this.$store.getters.getProcessesFilterName
-      },
-      set(value) {
-        this.$store.dispatch('setProcessesFilterName', { value: value })
-      },
-    },
     processesFilterStatus: {
       get() {
         return this.$store.getters.getProcessesFilterStatus
       },
       set(value) {
         this.$store.dispatch('setProcessesFilterStatus', { value: value })
-      },
-    },
-    processesFilterPriority: {
-      get() {
-        return this.$store.getters.getProcessesFilterPriority
-      },
-      set(value) {
-        this.$store.dispatch('setProcessesFilterPriority', { value: value })
-      },
-    },
-    processesFilterDescription: {
-      get() {
-        return this.$store.getters.getProcessesFilterDescription
-      },
-      set(value) {
-        this.$store.dispatch('setProcessesFilterDescription', { value: value })
       },
     },
     processesFilterType: {
@@ -187,54 +172,85 @@ export default {
         this.$store.dispatch('setProcessesFilterType', { value: value })
       },
     },
+    processesFilterThreadId: {
+      get() {
+        return this.$store.getters.getProcessesFilterThreadId
+      },
+      set(value) {
+        this.$store.dispatch('setProcessesFilterThreadId', { value: value })
+      },
+    },
+    processesFilterChainId: {
+      get() {
+        return this.$store.getters.getProcessesFilterChainId
+      },
+      set(value) {
+        this.$store.dispatch('setProcessesFilterChainId', { value: value })
+      },
+    },
+    processesFilterIncludeDeleted: {
+      get() {
+        return this.$store.getters.getProcessesFilterIncludeDeleted
+      },
+      set(value) {
+        this.$store.dispatch('setProcessesFilterIncludeDeleted', { value: value })
+      },
+    },
+    processesFilterName: {
+      get() {
+        return this.$store.getters.getProcessesFilterName
+      },
+      set(value) {
+        this.$store.dispatch('setProcessesFilterName', { value: value })
+      },
+    },
   },
   async beforeMount() {
-    this.$store.dispatch('setProcessesFilterId', {
-      value: await this.$store.getters.getWebvueProp('processesFilterId', ''),
+    this.$store.dispatch('setProcessesFilterStatus', {
+      value: JSON.parse(
+        (await this.$store.getters.getWebvueProp('processesFilterStatus', '[]')) || '[]',
+      ),
+    })
+    this.$store.dispatch('setProcessesFilterType', {
+      value: JSON.parse(
+        (await this.$store.getters.getWebvueProp('processesFilterType', '[]')) || '[]',
+      ),
     })
     this.$store.dispatch('setProcessesFilterThreadId', {
       value: await this.$store.getters.getWebvueProp('processesFilterThreadId', ''),
     })
+    this.$store.dispatch('setProcessesFilterChainId', {
+      value: await this.$store.getters.getWebvueProp('processesFilterChainId', ''),
+    })
+    this.$store.dispatch('setProcessesFilterIncludeDeleted', {
+      value: await this.$store.getters.getWebvueProp('processesFilterIncludeDeleted', false),
+    })
     this.$store.dispatch('setProcessesFilterName', {
       value: await this.$store.getters.getWebvueProp('processesFilterName', ''),
     })
-    this.$store.dispatch('setProcessesFilterStatus', {
-      value: await this.$store.getters.getWebvueProp('processesFilterStatus', ''),
-    })
-    this.$store.dispatch('setProcessesFilterPriority', {
-      value: await this.$store.getters.getWebvueProp('processesFilterPriority', ''),
-    })
-    this.$store.dispatch('setProcessesFilterDescription', {
-      value: await this.$store.getters.getWebvueProp('processesFilterDescription', ''),
-    })
-    this.$store.dispatch('setProcessesFilterType', {
-      value: await this.$store.getters.getWebvueProp('processesFilterType', ''),
-    })
   },
   methods: {
+    buildFilters() {
+      return {
+        status: this.processesFilterStatus,
+        type: this.processesFilterType,
+        threadId: this.processesFilterThreadId || null,
+        chainId: this.processesFilterChainId || null,
+        includeDeleted: this.processesFilterIncludeDeleted,
+        name: this.processesFilterName || null,
+      }
+    },
     ok() {
-      this.$store.dispatch('setProcessesFilterId', { value: this.processesFilterId })
-      this.$store.dispatch('setProcessesFilterThreadId', { value: this.processesFilterThreadId })
-      this.$store.dispatch('setProcessesFilterName', { value: this.processesFilterName })
       this.$store.dispatch('setProcessesFilterStatus', { value: this.processesFilterStatus })
-      this.$store.dispatch('setProcessesFilterPriority', { value: this.processesFilterPriority })
-      this.$store.dispatch('setProcessesFilterDescription', {
-        value: this.processesFilterDescription,
-      })
       this.$store.dispatch('setProcessesFilterType', { value: this.processesFilterType })
+      this.$store.dispatch('setProcessesFilterThreadId', { value: this.processesFilterThreadId })
+      this.$store.dispatch('setProcessesFilterChainId', { value: this.processesFilterChainId })
+      this.$store.dispatch('setProcessesFilterIncludeDeleted', {
+        value: this.processesFilterIncludeDeleted,
+      })
+      this.$store.dispatch('setProcessesFilterName', { value: this.processesFilterName })
 
-      let params = {}
-      if (this.processesFilterId) params.filterId = this.processesFilterId
-      if (this.processesFilterThreadId) params.filterThreadId = this.processesFilterThreadId
-      if (this.processesFilterName) params.filterName = this.processesFilterName
-      if (this.processesFilterStatus) params.filterStatus = this.processesFilterStatus
-      if (this.processesFilterPriority) params.filterPriority = this.processesFilterPriority
-      if (this.processesFilterDescription)
-        params.filterDescription = this.processesFilterDescription
-      if (this.processesFilterType) params.filterType = this.processesFilterType
-      params.filterNotail = 'true'
-      this.$store.dispatch('loadProcessesDigests', params)
-
+      this.$store.dispatch('loadProcesses', this.buildFilters())
       this.$emit('close')
     },
     cancel() {
@@ -353,6 +369,24 @@ export default {
   border-radius: 5px;
   border-color: black;
   border-width: thin;
+}
+.prfm-row-checkboxes {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  padding-bottom: 3px;
+  font-size: small;
+}
+.prfm-checkbox {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+}
+.prfm-checkbox-single {
+  margin-top: 4px;
 }
 
 /* Рамка/паддинг/фон/ШИРИНА заданы ЯВНО — поле сужено на 18px (10px под сдвиг кнопки

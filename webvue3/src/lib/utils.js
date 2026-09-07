@@ -42,7 +42,15 @@ export function promisedXMLHttpRequest(obj) {
       err.responseBody = xhr.response
       reject(err)
     }
-    xhr.send(getParamStringToSend(obj.params))
+    // specs/315-admin-ui-karaoke-process-v5 (RC-1 iter #3): если передан obj.body — шлём JSON
+    // (Content-Type application/json), иначе form-urlencoded (getParamStringToSend). Без этого
+    // POST edit/delete/retry с JSON-телом получает Spring 415 Unsupported Media Type.
+    if (obj.body !== undefined) {
+      xhr.setRequestHeader('Content-Type', 'application/json')
+      xhr.send(JSON.stringify(obj.body))
+    } else {
+      xhr.send(getParamStringToSend(obj.params))
+    }
   })
 }
 

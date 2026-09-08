@@ -27,6 +27,8 @@ Karaoke. Описывает **текущее состояние** системы
 - [`identity`](domains/identity/domain.md) — пользователи, авторизация, сессии.
 - [`catalog`](domains/catalog/domain.md) — песни, альбомы, исполнители, жанры (18k+ записей).
 - [`rendering`](domains/rendering/domain.md) — рендеринг караоке-видео через MLT/melt.
+- [`processing`](domains/processing/domain.md) — производство: Demucs, Sheetsage, генерация MP4 через Playwright + ffmpeg.
+- [`publishing`](domains/publishing/domain.md) — публичный доступ: эфир, подписка, статистика.
 
 ## Жизненный цикл документации
 

@@ -161,7 +161,7 @@ Spring 6 / Boot 3.x в этом случае возвращает 415 (даже 
 
 - Domain: [identity.md](../domain/identity.md) (SiteUser с boolean-полями)
 - Feature: [185-song-dto-audit-sponsr-remove.md](../features/185-song-dto-audit-sponsr-remove.md)
-- Feature: [319-process-bulk-actions.md](../features/319-process-bulk-actions.md) (где это впервые проявилось)
+- Feature: [319-process-bulk-actions-v2.md](../features/319-process-bulk-actions-v2.md) (где это впервые проявилось)
 
 ## Связанные LiveDocs
 

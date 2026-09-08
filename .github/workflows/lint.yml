@@ -189,6 +189,40 @@ jobs:
       - name: Check JSDoc coverage (strict, ≥50%)
         run: bash tools/check-jsdoc-coverage.sh --strict
 
+  # === Knowledge SSoT impact (Living Documentation v2) ===
+  # Knowledge (knowledge/) — Single Source of Truth (SSoT).
+  # Этот job проверяет, что изменения в коде (karaoke-app, karaoke-web,
+  # webvue3, karaoke-public), требующие обновления SSoT (по .ssot-map.yml),
+  # сопровождаются синхронным изменением соответствующих файлов в
+  # knowledge/. Реализует принцип "Living Documentation" из AGENTS.md.
+  # Конвенция: tools/check-ssot-impact.py + .ssot-map.yml.
+  # Если .ssot-map.yml не содержит правил для изменённого файла —
+  # check проходит (advisory); если содержит — требуется соответствующее
+  # изменение в knowledge/.
+  ssot-impact:
+    name: Knowledge SSoT impact
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Нужна история для git diff master...HEAD.
+          fetch-depth: 50
+
+      - name: Setup Python (для YAML парсинга)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install PyYAML
+        run: pip install pyyaml
+
+      - name: Check SSoT impact
+        # SSOT_BASE=master — база для git diff (см. AGENTS.md).
+        # Если файла .ssot-map.yml нет — check проходит (no-op).
+        run: SSOT_BASE=master python3 tools/check-ssot-impact.py
+
   # === Knowledge SSoT structure (Living Documentation v2) ===
   # Knowledge (knowledge/) — Single Source of Truth (SSoT) проекта Karaoke.
   # Спецификации 322, 326-333 мигрировали с livedocs/ на knowledge/.

@@ -18,11 +18,38 @@
 
 | Проверка | Что | Где |
 |----------|-----|-----|
+| `tools/check-ssot-impact.py` | SSoT impact surface: изменения в коде (по `.ssot-map.yml`) требуют синхронного обновления `knowledge/`. Если правил нет в маппинге — no-op. | **CI** (strict) |
 | `tools/check-knowledge-structure.sh` | 9 структурных проверок (директории, шаблоны, 9 доменов, ≥1 ADR, cross-link в README, frontmatter) | **CI** |
 | `tools/check-knowledge-cross-links.sh` | cross-links (`../X.md` + `related:`), 243+ проверок | **CI** |
 | `tools/lint-knowledge.py` | Эмодзи (запрещены), mandatory headers, structural integrity L2 → L1 | **CI** |
 
-Локальные правки Knowledge → запустить все три перед commit.
+Локальные правки Knowledge → запустить все четыре перед commit.
+
+### `.ssot-map.yml` — карта обязательных обновлений
+
+Файл `.ssot-map.yml` в корне проекта определяет, какие изменения в коде
+требуют синхронного обновления `knowledge/`. Используется
+`tools/check-ssot-impact.py` как CI-gate.
+
+**Формат**:
+
+```yaml
+- code: "karaoke-app/**/model/SiteUser.kt"   # glob паттерн кода
+  requires: "knowledge/domains/identity/components/dictionaries.md"  # путь в knowledge/
+  reason: "SiteUser AR — UserRole, canSelfAssign и другие поля должны быть отражены в dictionaries.md"
+```
+
+**Правила**:
+
+- Если `.ssot-map.yml` пуст или не существует — check no-op (всё OK).
+- Если для изменённого файла в коде есть правило — должно быть
+  соответствующее изменение в `knowledge/<requires>`.
+- Если правила нет — файл пропускается (advisory).
+
+**Когда добавлять новое правило**: при создании нового AR, изменении
+бизнес-инварианта, изменении API-контракта. **Не** добавлять для каждой
+правки — маппинг должен быть **стабильным** и описывать только SSoT-critical
+изменения.
 
 ## Где смотреть логи прода
 

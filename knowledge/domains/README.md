@@ -23,9 +23,9 @@ knowledge/domains/<name>/
 | Домен | Источник | Текущий статус |
 | --- | --- | --- |
 | [`identity`](identity/domain.md) | `livedocs/domain/identity.md` | Migrated (spec 326) |
-| `catalog` | `livedocs/domain/catalog.md` | запланировано |
+| [`catalog`](catalog/domain.md) | `livedocs/domain/catalog.md` | Migrated (spec 327) |
+| [`rendering`](rendering/domain.md) | `livedocs/domain/rendering.md` | Migrated (spec 327) |
 | `processing` | `livedocs/domain/processing.md` | запланировано |
-| `rendering` | `livedocs/domain/rendering.md` | запланировано |
 | `publishing` | `livedocs/domain/publishing.md` | запланировано |
 | `editorial` | `livedocs/domain/editorial.md` | запланировано |
 | `stats` | `livedocs/domain/stats.md` | запланировано |

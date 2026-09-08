@@ -19,6 +19,7 @@ import java.sql.PreparedStatement
 import java.sql.ResultSet
 import java.sql.Timestamp
 import java.time.Instant
+import java.util.UUID
 
 /**
  * Админ-сервис процессов (specs/315-admin-ui-karaoke-process-v5).
@@ -35,7 +36,9 @@ import java.time.Instant
  */
 @Service
 @DependsOn("karaokeAppService")
-class KaraokeProcessAdminService {
+class KaraokeProcessAdminService(
+    private val adminTaskService: AdminTaskService,
+) {
     private val mapper = ObjectMapper()
 
     /** Фильтры списка процессов (GET /api/admin/processes). */
@@ -132,6 +135,38 @@ class KaraokeProcessAdminService {
                     HttpStatus.INTERNAL_SERVER_ERROR,
                     "Cannot connect to database ${database.name}",
                 )
+        val (whereSql, params) = buildWhere(filters)
+        val limit = filters.limit.coerceIn(1, 1000)
+        val offset = filters.offset.coerceAtLeast(0)
+
+        val total = countProcesses(connection, whereSql, params)
+        val items = mutableListOf<KaraokeProcessAdminDTO>()
+
+        val sql =
+            baseSelect +
+                whereSql +
+                " ORDER BY process_priority, process_order, id" +
+                " LIMIT $limit OFFSET $offset"
+        connection.prepareStatement(sql).use { ps ->
+            setParams(ps, params)
+            ps.executeQuery().use { rs ->
+                while (rs.next()) {
+                    items += toAdminDto(rs)
+                }
+            }
+        }
+        return ProcessListResult(total = total, items = items)
+    }
+
+    /**
+     * Build WHERE-clause + params по фильтрам.
+     *
+     * Используется в `loadProcesses` (полный SELECT с DTO) и `loadProcessIds`
+     * (только id) — чтобы WHERE-логика не дрифтовала между ними.
+     *
+     * @return Pair(whereSql, params) — `whereSql` уже с префиксом " WHERE ..." или пустая строка
+     */
+    private fun buildWhere(filters: ProcessFilters): Pair<String, List<Any>> {
         val where = mutableListOf<String>()
         val params = mutableListOf<Any>()
 
@@ -168,26 +203,7 @@ class KaraokeProcessAdminService {
         }
 
         val whereSql = if (where.isEmpty()) "" else " WHERE ${where.joinToString(" AND ")}"
-        val limit = filters.limit.coerceIn(1, 1000)
-        val offset = filters.offset.coerceAtLeast(0)
-
-        val total = countProcesses(connection, whereSql, params)
-        val items = mutableListOf<KaraokeProcessAdminDTO>()
-
-        val sql =
-            baseSelect +
-                whereSql +
-                " ORDER BY process_priority, process_order, id" +
-                " LIMIT $limit OFFSET $offset"
-        connection.prepareStatement(sql).use { ps ->
-            setParams(ps, params)
-            ps.executeQuery().use { rs ->
-                while (rs.next()) {
-                    items += toAdminDto(rs)
-                }
-            }
-        }
-        return ProcessListResult(total = total, items = items)
+        return whereSql to params
     }
 
     private fun countProcesses(
@@ -203,6 +219,55 @@ class KaraokeProcessAdminService {
             }
         }
         return 0
+    }
+
+    /**
+     * Snapshot id по текущему фильтру (FR-002, FR-004, EP-5 контракта).
+     *
+     * Возвращает массив id, удовлетворяющих фильтру (≤ `filters.limit` элементов,
+     * обычно 10 000 — cap выставлен в контроллере), + полный total.
+     *
+     * Используется UI bulk-actions bar для подсчёта «отобрано N» без загрузки
+     * 1000+ строк таблицы. Переиспользует ту же логику WHERE, что `loadProcesses`,
+     * но SELECT только `id` (без 20 полей DTO).
+     *
+     * @see specs/319-process-bulk-actions-v2/spec.md (FR-002, FR-004)
+     * @see specs/319-process-bulk-actions-v2/contracts/admin-process-bulk-rest-api.md (EP-5)
+     */
+    fun loadProcessIds(
+        database: KaraokeConnection,
+        filters: ProcessFilters,
+    ): com.svoemesto.karaokeapp.dto.admin.IdsByFilterResponse {
+        val connection =
+            database.getConnection()
+                ?: throw ResponseStatusException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Cannot connect to database ${database.name}",
+                )
+        // Reuse WHERE-логику из loadProcesses через общий хелпер (минимизация дрифта).
+        val (whereSql, params) = buildWhere(filters)
+
+        val total = countProcesses(connection, whereSql, params)
+
+        val ids = mutableListOf<Int>()
+        val limit = filters.limit.coerceIn(1, 10_000)
+        val sql =
+            "SELECT id FROM tbl_processes$whereSql" +
+                " ORDER BY process_priority, process_order, id" +
+                " LIMIT $limit OFFSET 0"
+        connection.prepareStatement(sql).use { ps ->
+            setParams(ps, params)
+            ps.executeQuery().use { rs ->
+                while (rs.next()) {
+                    ids += rs.getInt(1)
+                }
+            }
+        }
+        return com.svoemesto.karaokeapp.dto.admin.IdsByFilterResponse(
+            total = total,
+            ids = ids,
+            limitApplied = limit,
+        )
     }
 
     /**
@@ -487,6 +552,360 @@ class KaraokeProcessAdminService {
         }
     }
 
+    // --- bulk operations (specs/319-process-bulk-actions-v2) ---
+
+    /**
+     * Bulk-edit одного поля у набора процессов (FR-003, FR-004, FR-005, FR-006, FR-009, FR-010).
+     *
+     * Best-effort: один невалидный переход статуса не откатывает всю операцию
+     * (SC-005). Возвращает отчёт с per-id результатами.
+     *
+     * Backend принимает **любое** поле из `editableColumns` (15 полей) — UI v1
+     * ограничивает 3 поля (priority/status/threadId, FR-009). Это сделано для
+     * расширяемости: добавление нового UI-поля не требует backend-изменений.
+     *
+     * Audit: per-row INSERT с `batch_id` (см. миграцию 48).
+     *
+     * @see specs/319-process-bulk-actions-v2/spec.md (FR-003..FR-006, FR-009, FR-010)
+     * @see specs/319-process-bulk-actions-v2/contracts/admin-process-bulk-rest-api.md (EP-1)
+     */
+    fun bulkUpdateProcesses(
+        ids: List<Int>,
+        field: String,
+        value: Any?,
+        actor: String,
+        batchId: UUID?,
+        database: KaraokeConnection,
+    ): com.svoemesto.karaokeapp.dto.admin.BulkOperationReport {
+        val startedAt = System.currentTimeMillis()
+        val effectiveBatchId = batchId ?: UUID.randomUUID()
+
+        // Whitelist field (FR-003, FR-009). UI v1 ограничивает до 3, backend принимает все 15.
+        val column =
+            editableColumns[field]
+                ?: throw ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Field '$field' is not editable. Allowed: ${editableColumns.keys.sorted()}",
+                )
+        val coercedValue = coerceValue(field, value)
+
+        if (ids.isEmpty()) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "ids must be non-empty")
+        }
+
+        val connection =
+            database.getConnection()
+                ?: throw ResponseStatusException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Cannot connect to database ${database.name}",
+                )
+
+        // Загружаем текущие значения для diff (per-row audit) и transition-валидации.
+        val currentById: Map<Int, KaraokeProcessAdminDTO> =
+            ids.mapNotNull { id -> loadProcess(id, database)?.let { id to it } }.toMap()
+
+        val errors = mutableListOf<com.svoemesto.karaokeapp.dto.admin.BulkError>()
+        val succeeded = mutableListOf<Int>()
+
+        for (id in ids) {
+            val current = currentById[id]
+            if (current == null) {
+                errors +=
+                    com.svoemesto.karaokeapp.dto.admin.BulkError(
+                        processId = id.toLong(),
+                        reason = "Process not found or already deleted",
+                        errorCode = "NOT_FOUND",
+                    )
+                continue
+            }
+            // Валидация перехода статуса (FR-010, FR-017 спеки #315).
+            if (field == "status" && coercedValue != current.status) {
+                try {
+                    validateTransition(current.status, coercedValue as String)
+                } catch (e: InvalidStatusTransitionException) {
+                    errors +=
+                        com.svoemesto.karaokeapp.dto.admin.BulkError(
+                            processId = id.toLong(),
+                            reason = e.message ?: "Invalid transition",
+                            errorCode = "INVALID_STATUS_TRANSITION",
+                        )
+                    continue
+                }
+            }
+            succeeded += id
+        }
+
+        // Один UPDATE на все валидные id (Constitution II: batch, не N+1).
+        if (succeeded.isNotEmpty()) {
+            val sql =
+                "UPDATE tbl_processes SET $column = ? WHERE id IN (${succeeded.joinToString(",")})"
+            connection.prepareStatement(sql).use { ps ->
+                setParam(ps, 1, coercedValue)
+                ps.executeUpdate()
+            }
+            // Per-row audit с одинаковым batch_id (FR-005, FR-006).
+            for (id in succeeded) {
+                val current = currentById.getValue(id)
+                val oldMap = mapOf(field to currentValue(current)[field])
+                val newMap = mapOf(field to coercedValue)
+                insertAudit(connection, id, actor, "bulk_update_field", oldMap, newMap, effectiveBatchId)
+            }
+        }
+
+        val durationMs = System.currentTimeMillis() - startedAt
+        return com.svoemesto.karaokeapp.dto.admin.BulkOperationReport(
+            batchId = effectiveBatchId,
+            action = "bulk_update_field",
+            requested = ids.size,
+            succeeded = succeeded.size,
+            failed = errors.size,
+            errors = errors,
+            durationMs = durationMs,
+        )
+    }
+
+    /**
+     * Bulk hard-delete набора процессов (FR-005, FR-008).
+     *
+     * Hard-delete (Clarifications Q1): `DELETE FROM tbl_processes WHERE id IN (..)`.
+     * Audit удаляется каскадно (FK ON DELETE CASCADE), см. A-001 / D-6.
+     * Runtime-потоки WORKING/WAITING/CREATING прерываются (D-4).
+     *
+     * Best-effort: ошибка на одном id не блокирует остальные.
+     *
+     * @see specs/319-process-bulk-actions-v2/spec.md (FR-005, FR-008, A-001, D-4, D-6)
+     * @see specs/319-process-bulk-actions-v2/contracts/admin-process-bulk-rest-api.md (EP-2)
+     */
+    fun bulkDeleteProcesses(
+        ids: List<Int>,
+        actor: String,
+        batchId: UUID?,
+        database: KaraokeConnection,
+    ): com.svoemesto.karaokeapp.dto.admin.BulkOperationReport {
+        val startedAt = System.currentTimeMillis()
+        val effectiveBatchId = batchId ?: UUID.randomUUID()
+
+        if (ids.isEmpty()) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "ids must be non-empty")
+        }
+
+        val connection =
+            database.getConnection()
+                ?: throw ResponseStatusException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Cannot connect to database ${database.name}",
+                )
+
+        val errors = mutableListOf<com.svoemesto.karaokeapp.dto.admin.BulkError>()
+        val succeeded = mutableListOf<Int>()
+
+        // Загружаем текущие состояния (для interrupt WORKING/WAITING/CREATING).
+        val currentById: Map<Int, KaraokeProcessAdminDTO> =
+            ids.mapNotNull { id -> loadProcess(id, database)?.let { id to it } }.toMap()
+
+        for (id in ids) {
+            val current = currentById[id]
+            if (current == null) {
+                errors +=
+                    com.svoemesto.karaokeapp.dto.admin.BulkError(
+                        processId = id.toLong(),
+                        reason = "Process not found or already deleted",
+                        errorCode = "NOT_FOUND",
+                    )
+                continue
+            }
+            // Прерываем runtime-потоки (D-4 — повторяет single-record паттерн).
+            try {
+                when (current.status) {
+                    KaraokeProcessStatuses.WORKING.name -> {
+                        val thread = findThread(id)
+                        thread?.interrupt()
+                        val deadline = System.currentTimeMillis() + GRACE_PERIOD_MS
+                        while (System.currentTimeMillis() < deadline && thread != null && thread.isAlive) {
+                            Thread.sleep(100)
+                        }
+                        if (thread != null && thread.isAlive) {
+                            runCatching { thread.osProcess?.destroyForcibly() }
+                        }
+                    }
+                    KaraokeProcessStatuses.WAITING.name,
+                    KaraokeProcessStatuses.CREATING.name,
+                    -> {
+                        findThread(id)?.interrupt()
+                    }
+                    else -> {
+                        // DONE/ERROR — ничего
+                    }
+                }
+            } catch (e: Exception) {
+                errors +=
+                    com.svoemesto.karaokeapp.dto.admin.BulkError(
+                        processId = id.toLong(),
+                        reason = "Failed to interrupt runtime thread: ${e.message}",
+                        errorCode = "INTERRUPT_ERROR",
+                    )
+                continue
+            }
+            // Hard-delete (FK CASCADE уберёт audit).
+            val sql = "DELETE FROM tbl_processes WHERE id = ?"
+            connection.prepareStatement(sql).use { ps ->
+                ps.setInt(1, id)
+                val affected = ps.executeUpdate()
+                if (affected == 0) {
+                    errors +=
+                        com.svoemesto.karaokeapp.dto.admin.BulkError(
+                            processId = id.toLong(),
+                            reason = "Process not found or already deleted",
+                            errorCode = "NOT_FOUND",
+                        )
+                } else {
+                    succeeded += id
+                }
+            }
+        }
+
+        val durationMs = System.currentTimeMillis() - startedAt
+        return com.svoemesto.karaokeapp.dto.admin.BulkOperationReport(
+            batchId = effectiveBatchId,
+            action = "bulk_delete",
+            requested = ids.size,
+            succeeded = succeeded.size,
+            failed = errors.size,
+            errors = errors,
+            durationMs = durationMs,
+        )
+    }
+
+    /**
+     * Async-вариант bulk-edit для > 1000 процессов (FR-007).
+     *
+     * Делегирует в `AdminTaskService.startTask`. Возвращает `taskId` для polling.
+     *
+     * @see specs/319-process-bulk-actions-v2/spec.md (FR-007, US4)
+     * @see specs/319-process-bulk-actions-v2/contracts/admin-process-bulk-rest-api.md (EP-3)
+     */
+    fun bulkUpdateProcessesAsync(
+        ids: List<Int>,
+        field: String,
+        value: Any?,
+        actor: String,
+        database: KaraokeConnection,
+    ): UUID {
+        if (ids.isEmpty()) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "ids must be non-empty")
+        }
+        val column =
+            editableColumns[field]
+                ?: throw ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Field '$field' is not editable. Allowed: ${editableColumns.keys.sorted()}",
+                )
+        val coercedValue = coerceValue(field, value)
+
+        return adminTaskService.startTask("bulk_update_field", ids.size) { progress ->
+            // Для простоты v1 — переиспользуем sync-логику, но обновляем progress.
+            // NOTE: оптимизация — вынести bulk UPDATE в chunks по 500, чтобы
+            // progress был виден админу. В v1 не критично.
+            val effectiveBatchId = UUID.randomUUID()
+            val connection = database.getConnection() ?: return@startTask
+            val currentById: Map<Int, KaraokeProcessAdminDTO> =
+                ids.mapNotNull { id -> loadProcess(id, database)?.let { id to it } }.toMap()
+            val succeeded = mutableListOf<Int>()
+            for (id in ids) {
+                val current = currentById[id]
+                if (current == null) {
+                    progress.reportFailed(id.toLong(), "Process not found or already deleted", "NOT_FOUND")
+                    continue
+                }
+                if (field == "status" && coercedValue != current.status) {
+                    try {
+                        validateTransition(current.status, coercedValue as String)
+                    } catch (e: InvalidStatusTransitionException) {
+                        progress.reportFailed(id.toLong(), e.message ?: "Invalid transition", "INVALID_STATUS_TRANSITION")
+                        continue
+                    }
+                }
+                succeeded += id
+            }
+            if (succeeded.isNotEmpty()) {
+                connection
+                    .prepareStatement(
+                        "UPDATE tbl_processes SET $column = ? WHERE id IN (${succeeded.joinToString(",")})",
+                    ).use { ps ->
+                        setParam(ps, 1, coercedValue)
+                        ps.executeUpdate()
+                    }
+                for (id in succeeded) {
+                    val current = currentById.getValue(id)
+                    val oldMap = mapOf(field to currentValue(current)[field])
+                    val newMap = mapOf(field to coercedValue)
+                    insertAudit(connection, id, actor, "bulk_update_field", oldMap, newMap, effectiveBatchId)
+                    progress.reportSucceeded()
+                }
+            }
+        }
+    }
+
+    /**
+     * Async-вариант bulk-delete для > 1000 процессов (FR-007).
+     *
+     * @see specs/319-process-bulk-actions-v2/spec.md (FR-007, US4)
+     * @see specs/319-process-bulk-actions-v2/contracts/admin-process-bulk-rest-api.md (EP-4)
+     */
+    fun bulkDeleteProcessesAsync(
+        ids: List<Int>,
+        actor: String,
+        database: KaraokeConnection,
+    ): UUID {
+        if (ids.isEmpty()) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "ids must be non-empty")
+        }
+        return adminTaskService.startTask("bulk_delete", ids.size) { progress ->
+            val effectiveBatchId = UUID.randomUUID()
+            val connection = database.getConnection() ?: return@startTask
+            val currentById: Map<Int, KaraokeProcessAdminDTO> =
+                ids.mapNotNull { id -> loadProcess(id, database)?.let { id to it } }.toMap()
+            for (id in ids) {
+                val current = currentById[id]
+                if (current == null) {
+                    progress.reportFailed(id.toLong(), "Process not found or already deleted", "NOT_FOUND")
+                    continue
+                }
+                try {
+                    when (current.status) {
+                        KaraokeProcessStatuses.WORKING.name -> {
+                            val thread = findThread(id)
+                            thread?.interrupt()
+                            val deadline = System.currentTimeMillis() + GRACE_PERIOD_MS
+                            while (System.currentTimeMillis() < deadline && thread != null && thread.isAlive) {
+                                Thread.sleep(100)
+                            }
+                            if (thread != null && thread.isAlive) {
+                                runCatching { thread.osProcess?.destroyForcibly() }
+                            }
+                        }
+                        KaraokeProcessStatuses.WAITING.name,
+                        KaraokeProcessStatuses.CREATING.name,
+                        -> findThread(id)?.interrupt()
+                        else -> {}
+                    }
+                } catch (e: Exception) {
+                    progress.reportFailed(id.toLong(), "Failed to interrupt: ${e.message}", "INTERRUPT_ERROR")
+                    continue
+                }
+                connection.prepareStatement("DELETE FROM tbl_processes WHERE id = ?").use { ps ->
+                    ps.setInt(1, id)
+                    val affected = ps.executeUpdate()
+                    if (affected == 0) {
+                        progress.reportFailed(id.toLong(), "Process not found or already deleted", "NOT_FOUND")
+                    } else {
+                        progress.reportSucceeded()
+                    }
+                }
+            }
+        }
+    }
+
     // --- helpers ---
 
     private fun findThread(id: Int): KaraokeProcessThread? =
@@ -524,7 +943,11 @@ class KaraokeProcessAdminService {
     ): Any? =
         when (field) {
             "order", "priority", "prioritet", "songId", "threadId" ->
-                (value as? Number)?.toInt() ?: value
+                // Accept both Number (legacy in-memory callers) and String (params-based
+                // POST endpoints, see specs/319-process-bulk-actions-v2 contract EP-1).
+                (value as? Number)?.toInt()
+                    ?: value?.toString()?.toIntOrNull()
+                    ?: value
             "withoutControl" -> value as? Boolean ?: value
             "startedAt", "endedAt" -> parseTimestamp(value)
             else -> value
@@ -631,6 +1054,10 @@ class KaraokeProcessAdminService {
         return result
     }
 
+    /**
+     * Вставить audit-запись. Опционально `batchId` для группировки bulk-операций
+     * (specs/319-process-bulk-actions-v2, миграция 48).
+     */
     private fun insertAudit(
         connection: Connection,
         processId: Int,
@@ -638,15 +1065,21 @@ class KaraokeProcessAdminService {
         action: String,
         oldValue: Map<String, Any?>,
         newValue: Map<String, Any?>,
+        batchId: UUID? = null,
     ) {
         val sql =
-            "INSERT INTO tbl_processes_audit (process_id, actor, action, old_value, new_value) VALUES (?, ?, ?, ?::jsonb, ?::jsonb)"
+            "INSERT INTO tbl_processes_audit (process_id, actor, action, old_value, new_value, batch_id) VALUES (?, ?, ?, ?::jsonb, ?::jsonb, ?)"
         connection.prepareStatement(sql).use { ps ->
             ps.setInt(1, processId)
             ps.setString(2, actor)
             ps.setString(3, action)
             ps.setString(4, mapper.writeValueAsString(oldValue))
             ps.setString(5, mapper.writeValueAsString(newValue))
+            if (batchId != null) {
+                ps.setObject(6, batchId)
+            } else {
+                ps.setNull(6, java.sql.Types.OTHER)
+            }
             ps.executeUpdate()
         }
     }

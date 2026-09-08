@@ -234,6 +234,121 @@ window.addEventListener('message', (e) => {
 - `karaoke-public/src/composables/usePlaylistPlayer.js` — postMessage-мост (родитель)
 - `karaoke-public/src/player/KaraokePlayer.js` — postMessage-мост (iframe)
 
+## Паттерны модалок (Vue 3)
+
+### Single-file inline-форма для bulk-операций
+
+**Проблема**: для простых модалок (2-3 поля + кнопка подтверждения) хочется разделить
+на `XxxModal.vue` (chrome) + `Xxx.vue` (form), как для `ProcessEditModal.vue` + `ProcessEdit.vue`.
+Но при этом child-component может не рендериться из-за scoped CSS scope-id mismatch или
+v-model deep-path через computed setter в Vue 2.
+
+**Решение**: для bulk-action модалок с простой формой использовать single-file inline-form
+по конвенции `SmartCopyModal.vue`. Разделение на Modal+Edit оправдано только для сложных
+форм с логикой (как `ProcessEdit.vue` с множеством полей).
+
+**Структура single-file модалки**:
+```vue
+<template>
+  <transition name="modal-fade">
+    <div class="{prefix}-modal-backdrop">
+      <div class="{prefix}-area">
+        <div class="{prefix}-area-modal-header">{{ title }}</div>
+        <div class="{prefix}-area-modal-body">
+          <custom-confirm v-if="confirmVisible" :params="confirmParams" @close="closeConfirm" />
+          <template v-else>
+            <div class="{prefix}-field-row">
+              <label>Поле:</label>
+              <select v-model="form.field" class="form-select">…</select>
+            </div>
+            <div class="{prefix}-field-row">
+              <label>Значение:</label>
+              <input v-model.number="form.value" type="number" class="form-control" />
+            </div>
+            <div class="{prefix}-preview">Будет изменено: {{ form }}</div>
+          </template>
+        </div>
+        <div class="{prefix}-area-modal-footer">
+          <button :disabled="!canApply" @click="apply">Применить</button>
+          <button @click="cancel">Отмена</button>
+        </div>
+      </div>
+    </div>
+  </transition>
+</template>
+```
+
+Стилистика (точная копия `ProcessEditModal`/`SmartCopyModal`):
+- `font-weight: 300`, `font-size: larger`, `darkslategray` header/footer, white body.
+- CSS prefix = `{entity}-{action}` (e.g. `pem-`, `scm-`, `pbum-`, `pam-`).
+- Transition: `modal-fade` 0.5s opacity.
+
+### Контракт `<CustomConfirm>` — обязательно проверять исходник
+
+**Проблема**: при первом использовании я передал `{ title, message, onConfirm, onCancel }`.
+Диалог показывался, но тело было пустым, и `onConfirm` НЕ вызывался.
+
+**Контракт** (см. `webvue3/src/components/Common/CustomConfirm.vue`):
+```js
+customConfirmParams = {
+  isAlert: false,           // true = только кнопка закрытия, false = Да + Нет
+  header: 'Заголовок',       // рендерится v-html в верхней части
+  body: 'Текст <b>с HTML</b>', // рендерится v-html в основной части
+  fields: [...],            // опционально, интерактивные поля
+  callback: (result) => {}  // вызывается на «Да», result = объект значений fields
+}
+```
+
+**Эталонный пример**: `webvue3/src/components/Common/SmartCopy/SmartCopyModal.vue`
+(использует `header`/`body`/`callback`/`fields`).
+
+**Правило**: при использовании `<CustomConfirm>` ВСЕГДА сверяться с исходником компонента
+или эталонным `SmartCopyModal.vue`. Не угадывать имена полей.
+
+## Отправка JSON через `promisedXMLHttpRequest`
+
+**НЕ передавать `headers: { 'Content-type': 'application/json' }` явно** —
+это создаёт ДУБЛЬ заголовка (`Content-type` lowercase + `Content-Type` capital →
+`Content-Type: application/json, application/json` → 415 Invalid mime type).
+
+Хелпер `promisedXMLHttpRequest` в `webvue3/src/lib/utils.js` УЖЕ ставит
+`Content-Type: application/json` автоматически для body-bearing запросов:
+```js
+if (obj.body !== undefined) {
+  xhr.setRequestHeader('Content-Type', 'application/json')
+  xhr.send(JSON.stringify(obj.body))
+}
+```
+
+**Правильный вызов** (для JSON body):
+```js
+promisedXMLHttpRequest({
+  method: 'POST',
+  url: '/api/admin/processes/bulk-update',
+  body: { ids, field, value },
+  // headers НЕ указываем — хелпер сам поставит Content-Type
+})
+```
+
+**Когда передавать `headers` явно нужно**: для кастомных заголовков, например
+`headers: { 'X-My-Custom-Header': 'value' }`. Но НЕ для Content-Type при наличии body.
+
+**Прецедент WP #68** (comment 330): я добавил `headers: { 'Content-type': 'application/json' }`
+(lowercase 't') для «надёжности», не зная что хелпер уже ставит `Content-Type` (capital 'T').
+Chrome XHR не нормализует case → два разных заголовка → конкатенированное
+`application/json, application/json` → Spring HttpMediaTypeNotSupportedException → 415.
+
+**Lesson**: если что-то «по идее должно сработать» — сначала посмотри в helper source,
+а не добавляй свои headers «на всякий случай».
+
+## Код
+
+- `webvue3/src/components/Common/SmartCopy/SmartCopyModal.vue` — эталон inline-form модалки
+- `webvue3/src/components/Processes/ProcessesBulkUpdateModal.vue` — применение паттерна (319)
+- `webvue3/src/components/Processes/edit/ProcessEditModal.vue` + `ProcessEdit.vue` —
+  образец split-паттерна для сложных форм
+- `webvue3/src/components/Common/CustomConfirm.vue` — компонент подтверждения, контракт выше
+
 ## История
 
 - Создан: 2026-08-14 (мигрировано из `AGENTS.md` v1.7.1)

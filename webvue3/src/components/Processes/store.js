@@ -27,8 +27,7 @@ function buildProcessQuery(filters) {
   if (filters.includeDeleted) q.push('includeDeleted=true')
   if (filters.name) q.push(`name=${encodeURIComponent(filters.name)}`)
   // R-006 (Lesson #10 iter #2 / RC iter #3): topLevelOnly = !filterChainId (не безусловно true).
-  const topLevelOnly =
-    filters.topLevelOnly !== undefined ? filters.topLevelOnly : !filters.chainId
+  const topLevelOnly = filters.topLevelOnly !== undefined ? filters.topLevelOnly : !filters.chainId
   if (topLevelOnly) q.push('topLevelOnly=true')
   if (filters.parentId) q.push(`parentId=${encodeURIComponent(filters.parentId)}`)
   if (filters.limit) q.push(`limit=${encodeURIComponent(filters.limit)}`)
@@ -57,6 +56,13 @@ export default {
     childrenLoading: {},
     currentProcessForEdit: null,
     currentProcessAudit: [],
+    // --- specs/319-process-bulk-actions-v2: bulk state (FR-002, FR-007, US3) ---
+    bulkSelectionIds: [], // Array<Number> — snapshot id по текущему фильтру (≤ 10000)
+    bulkSelectionTotal: 0, // Number — total в БД по фильтру (может > ids.length из-за cap)
+    bulkSelectionTimestamp: null, // ISO String — когда сделан snapshot
+    bulkOperationInProgress: false, // Boolean — флаг «операция идёт»
+    bulkOperationReport: null, // Object | null — последний BulkOperationReport
+    bulkTaskStatus: null, // Object | null — для async: { taskId, status, processedCount, ... }
   },
   getters: {
     getWorkingProcessForThreads: (state) => (includedThreadId, excludedThreadId) => {
@@ -112,6 +118,15 @@ export default {
     getCurrentProcessAudit(state) {
       return state.currentProcessAudit
     },
+    // --- specs/319-process-bulk-actions-v2: bulk getters (FR-001, FR-002) ---
+    getBulkSelectionIds: (state) => state.bulkSelectionIds,
+    getBulkSelectionTotal: (state) => state.bulkSelectionTotal,
+    getBulkSelectionTimestamp: (state) => state.bulkSelectionTimestamp,
+    getBulkSelectionCount: (state) => state.bulkSelectionIds.length,
+    getCanBulk: (state) => state.bulkSelectionIds.length >= 1,
+    getBulkOperationInProgress: (state) => state.bulkOperationInProgress,
+    getBulkOperationReport: (state) => state.bulkOperationReport,
+    getBulkTaskStatus: (state) => state.bulkTaskStatus,
   },
   mutations: {
     updateProcessesDigests(state, result) {
@@ -224,6 +239,29 @@ export default {
     },
     setCurrentProcessAudit(state, items) {
       state.currentProcessAudit = items
+    },
+    // --- specs/319-process-bulk-actions-v2: bulk mutations (T008) ---
+    setBulkSelection(state, { ids, total, timestamp }) {
+      state.bulkSelectionIds = ids || []
+      state.bulkSelectionTotal = total || 0
+      state.bulkSelectionTimestamp = timestamp || new Date().toISOString()
+    },
+    clearBulkSelection(state) {
+      state.bulkSelectionIds = []
+      state.bulkSelectionTotal = 0
+      state.bulkSelectionTimestamp = null
+    },
+    setBulkOperationInProgress(state, val) {
+      state.bulkOperationInProgress = !!val
+    },
+    setBulkOperationReport(state, report) {
+      state.bulkOperationReport = report
+    },
+    clearBulkOperationReport(state) {
+      state.bulkOperationReport = null
+    },
+    setBulkTaskStatus(state, taskStatus) {
+      state.bulkTaskStatus = taskStatus
     },
   },
   actions: {
@@ -393,6 +431,229 @@ export default {
         .catch((error) => {
           throw error
         })
+    },
+    // --- specs/319-process-bulk-actions-v2: bulk actions ---
+
+    /**
+     * GET /api/admin/processes/bulk/snapshot — snapshot id по текущему фильтру.
+     *
+     * @param {Object} filters - {status[], type[], threadId, chainId, includeDeleted, name, topLevelOnly, parentId}
+     * @see specs/319-process-bulk-actions-v2/contracts/admin-process-bulk-rest-api.md (EP-5)
+     */
+    fetchBulkSelectionIds(ctx, filters = {}) {
+      const query = buildProcessQuery(filters)
+      // Путь /bulk/snapshot вместо /ids-by-filter — чтобы избежать routing-конфликта
+      // с GET /{id} в Spring Boot 3.x (см. WP #68 comment 320).
+      const url = `/api/admin/processes/bulk/snapshot${query ? `?${query}` : ''}`
+      // eslint-disable-next-line no-console
+      console.debug('[bulk] fetchBulkSelectionIds', { url, filters })
+      return getJson(url)
+        .then((result) => {
+          // eslint-disable-next-line no-console
+          console.debug('[bulk] fetchBulkSelectionIds result', result)
+          ctx.commit('setBulkSelection', {
+            ids: result.ids || [],
+            total: result.total || 0,
+            timestamp: new Date().toISOString(),
+          })
+          return result
+        })
+        .catch((error) => {
+          // eslint-disable-next-line no-console
+          console.error('[bulk] fetchBulkSelectionIds failed', url, error)
+          throw error
+        })
+    },
+
+    /**
+     * POST /api/admin/processes/bulk-update — sync bulk-edit (≤ 1000 процессов).
+     *
+     * @param {Object} payload - {ids: Number[], field: String, value: Any, batchId?: UUID}
+     * @returns {Promise<BulkOperationReport>}
+     * @see specs/319-process-bulk-actions-v2/contracts/admin-process-bulk-rest-api.md (EP-1)
+     */
+    bulkUpdateProcesses(ctx, { ids, field, value, batchId = null }) {
+      ctx.commit('setBulkOperationInProgress', true)
+      // По аналогии с createMP3KaraokeForAllPromise (см. webvue3/src/components/Songs/store.js:2802):
+      // массив ids передаётся через `.join(';')`, всё тело — через `params:` (form-urlencoded).
+      // Это обходит баг хелпера `promisedXMLHttpRequest` с дублем Content-Type
+      // (default lowercase + body override capital — разные ключи в XHR → 415).
+      return promisedXMLHttpRequest({
+        method: 'POST',
+        url: '/api/admin/processes/bulk-update',
+        params: {
+          ids: ids.join(';'),
+          field,
+          value: String(value),
+          batchId: batchId || '',
+        },
+      })
+        .then((data) => {
+          const report = JSON.parse(data)
+          ctx.commit('setBulkOperationReport', report)
+          return report
+        })
+        .catch((error) => {
+          throw error
+        })
+        .finally(() => {
+          ctx.commit('setBulkOperationInProgress', false)
+        })
+    },
+
+    /**
+     * POST /api/admin/processes/bulk-delete — sync hard-delete (≤ 1000 процессов).
+     *
+     * @param {Object} payload - {ids: Number[], batchId?: UUID}
+     * @returns {Promise<BulkOperationReport>}
+     * @see specs/319-process-bulk-actions-v2/contracts/admin-process-bulk-rest-api.md (EP-2)
+     */
+    bulkDeleteProcesses(ctx, { ids, batchId = null }) {
+      ctx.commit('setBulkOperationInProgress', true)
+      return promisedXMLHttpRequest({
+        method: 'POST',
+        url: '/api/admin/processes/bulk-delete',
+        params: {
+          ids: ids.join(';'),
+          batchId: batchId || '',
+        },
+      })
+        .then((data) => {
+          const report = JSON.parse(data)
+          ctx.commit('setBulkOperationReport', report)
+          // Удалить удалённые id из items (если они были видны в таблице).
+          const failedIds = new Set((report.errors || []).map((e) => e.processId))
+          const deletedIds = ids.filter((id) => !failedIds.has(id))
+          const items = ctx.state.items.filter((item) => !deletedIds.includes(item.id))
+          ctx.commit('setProcessesItems', items)
+          return report
+        })
+        .catch((error) => {
+          throw error
+        })
+        .finally(() => {
+          ctx.commit('setBulkOperationInProgress', false)
+        })
+    },
+
+    /**
+     * Сброс отчёта после показа админу (US3, T025).
+     */
+    clearBulkOperationReport(ctx) {
+      ctx.commit('clearBulkOperationReport')
+    },
+
+    /**
+     * POST /api/admin/processes/bulk-update-async — async bulk-edit (US4, T031).
+     *
+     * Returns `{ taskId, statusUrl }`. Стартует polling через `pollBulkTask`.
+     */
+    bulkUpdateProcessesAsync(ctx, { ids, field, value, batchId = null }) {
+      ctx.commit('setBulkOperationInProgress', true)
+      return promisedXMLHttpRequest({
+        method: 'POST',
+        url: '/api/admin/processes/bulk-update-async',
+        params: {
+          ids: ids.join(';'),
+          field,
+          value: String(value),
+          batchId: batchId || '',
+        },
+      })
+        .then((data) => {
+          const { taskId, statusUrl } = JSON.parse(data)
+          ctx.commit('setBulkTaskStatus', {
+            taskId,
+            statusUrl,
+            status: 'RUNNING',
+            action: 'bulk_update_field',
+            totalCount: ids.length,
+            processedCount: 0,
+          })
+          ctx.dispatch('pollBulkTask', { taskId, statusUrl })
+          return { taskId, statusUrl }
+        })
+        .catch((error) => {
+          ctx.commit('setBulkOperationInProgress', false)
+          throw error
+        })
+    },
+
+    /**
+     * POST /api/admin/processes/bulk-delete-async — async bulk-delete (US4, T031).
+     */
+    bulkDeleteProcessesAsync(ctx, { ids, batchId = null }) {
+      ctx.commit('setBulkOperationInProgress', true)
+      return promisedXMLHttpRequest({
+        method: 'POST',
+        url: '/api/admin/processes/bulk-delete-async',
+        params: {
+          ids: ids.join(';'),
+          batchId: batchId || '',
+        },
+      })
+        .then((data) => {
+          const { taskId, statusUrl } = JSON.parse(data)
+          ctx.commit('setBulkTaskStatus', {
+            taskId,
+            statusUrl,
+            status: 'RUNNING',
+            action: 'bulk_delete',
+            totalCount: ids.length,
+            processedCount: 0,
+          })
+          ctx.dispatch('pollBulkTask', { taskId, statusUrl })
+          return { taskId, statusUrl }
+        })
+        .catch((error) => {
+          ctx.commit('setBulkOperationInProgress', false)
+          throw error
+        })
+    },
+
+    /**
+     * Polling helper для async-операций (US4, T031).
+     *
+     * Опрос каждые 2 сек через `setTimeout` (не setInterval — переживает ручную отмену).
+     * На terminal status — коммитит `SET_BULK_OPERATION_REPORT` для показа в UI.
+     */
+    pollBulkTask(ctx, { taskId, statusUrl }) {
+      const poll = () => {
+        return getJson(statusUrl || `/api/admin/tasks/${taskId}`)
+          .then((status) => {
+            ctx.commit('setBulkTaskStatus', status)
+            if (status.status === 'RUNNING') {
+              setTimeout(poll, 2000)
+            } else {
+              // Terminal: строим BulkOperationReport для UI
+              ctx.commit('setBulkOperationReport', {
+                batchId: taskId,
+                action: status.action,
+                requested: status.totalCount,
+                succeeded: status.succeededCount,
+                failed: status.failedCount,
+                errors: status.errors || [],
+                durationMs:
+                  status.finishedAt && status.startedAt ? status.finishedAt - status.startedAt : 0,
+              })
+              ctx.commit('setBulkOperationInProgress', false)
+              // Удалить удалённые id из items (bulk_delete terminal).
+              if (status.action === 'bulk_delete') {
+                const failedIds = new Set((status.errors || []).map((e) => e.processId))
+                const deletedIds = (ctx.state.bulkSelectionIds || []).filter(
+                  (id) => !failedIds.has(id),
+                )
+                const items = ctx.state.items.filter((item) => !deletedIds.includes(item.id))
+                ctx.commit('setProcessesItems', items)
+              }
+            }
+          })
+          .catch((error) => {
+            ctx.commit('setBulkOperationInProgress', false)
+            throw error
+          })
+      }
+      poll()
     },
   },
 }

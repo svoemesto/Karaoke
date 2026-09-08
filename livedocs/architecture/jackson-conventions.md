@@ -83,6 +83,86 @@ boolean-полях `AuthorDTO`.
 - ✅ `SiteUserDTO.isActive`, `canSelfAssign` — аналогичный паттерн
 - ✅ Все boolean-поля в `SongDTO` / `AlbumDTO` — проверка в фиче 185
 
+## `@RequestBody` без `jackson-module-kotlin` — НЕ использовать Kotlin data class
+
+**Проблема**: Spring Boot 3.x в проекте Karaoke **НЕ включает** `jackson-module-kotlin` в
+classpath (`build.gradle.kts` имеет `kotlin-reflect`, `kotlin-stdlib`, но НЕ
+`jackson-module-kotlin`). Без модуля Jackson не может десериализовать Kotlin data class
+через `@RequestBody` (primary constructor с `val`-параметрами), даже если Content-Type
+правильный (`application/json`) — Spring не находит подходящий `HttpMessageConverter` →
+**HTTP 415 Unsupported Media Type**.
+
+**Симптом**: `POST /api/.../endpoint` с `Content-Type: application/json` и валидным JSON →
+backend отдаёт 415. Frontend видит «HTTP 415». Content-Type заголовок правильный,
+body валидный — но Spring не может распарсить body в Kotlin data class без Jackson
+модуля.
+
+**Решение** (выбрать одно):
+
+### Вариант A: использовать `Map<String, Any?>` (максимально совместимо)
+
+Соответствует существующему паттерну в проекте (см. `KaraokeProcessAdminController.edit` —
+`@RequestBody changes: Map<String, Any?>`):
+
+```kotlin
+@PostMapping("/api/admin/processes/bulk-update")
+fun bulkUpdate(
+    @RequestBody changes: Map<String, Any?>,
+    @RequestHeader("X-Admin-Username") username: String?,
+): BulkOperationReport {
+    val ids = changes["ids"] as? List<Int>
+        ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST, "ids required")
+    val field = changes["field"] as? String
+        ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST, "field required")
+    // ...
+}
+```
+
+Плюсы: ноль зависимостей, работает «из коробки».
+Минусы: нет type-safety в IDE, runtime-ошибки при неправильном типе.
+
+### Вариант B: plain class с сеттерами (Jackson setter-based)
+
+Если нужен type-safety в контроллере, но не хочется добавлять зависимость:
+
+```kotlin
+class BulkUpdateRequest {
+    var ids: List<Int>? = null
+    var field: String? = null
+    var value: Any? = null
+    var batchId: UUID? = null
+}
+```
+
+Jackson по умолчанию использует setter-based deserialization — работает без Kotlin module.
+В контроллере использовать `req.field ?: throw ResponseStatusException(...)` для nullable.
+
+### ❌ НЕ делать: Kotlin data class без модуля
+
+```kotlin
+data class BulkUpdateRequest(
+    val ids: List<Int>,
+    val field: String,
+    val value: Any?,
+    val batchId: UUID? = null,
+)
+```
+
+Без `jackson-module-kotlin` Jackson **не может десериализовать** в primary constructor.
+Spring 6 / Boot 3.x в этом случае возвращает 415 (даже при правильном Content-Type).
+
+**Правило для Karaoke**:
+- `@RequestBody` принимает `Map<String, Any?>` — паттерн проекта (см. `editProcess`)
+- `@RequestBody` принимает plain class с сеттерами — допустимо, но менее распространено
+- `@RequestBody` принимает Kotlin data class — **ТОЛЬКО** если добавить
+  `jackson-module-kotlin` в `build.gradle.kts` (сейчас не добавлено)
+
+## Связанные LiveDocs
+
+- Domain: [identity.md](../domain/identity.md) (SiteUser с boolean-полями)
+- Feature: [185-song-dto-audit-sponsr-remove.md](../features/185-song-dto-audit-sponsr-remove.md)
+- Feature: [319-process-bulk-actions.md](../features/319-process-bulk-actions.md) (где это впервые проявилось)
+
 ## Связанные LiveDocs
 
 - Domain: [identity.md](../domain/identity.md) (SiteUser с boolean-полями)

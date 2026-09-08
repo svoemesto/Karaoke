@@ -76,19 +76,30 @@ gh pr checks && gh pr merge --merge   # БЕЗ --delete-branch
 
 ## Сборка / деплой / тесты
 
-- **Сборка**: `./gradlew clean karaoke-app:bootJar karaoke-web:bootJar --parallel`.
+- **Сборка**: `GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle ./gradlew clean karaoke-app:bootJar karaoke-web:bootJar --parallel`.
 - **Деплой**: `deploy/deploy_web.sh`, `deploy/deploy_public.sh`, `cd deploy && bash do.sh build_start_public`.
 - **Тесты**: в CI нет; `karaoke-app/src/test` — `@Disabled`. Проверка — пользователем.
+
+### Gradle: запуск с GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle (Pass 282+)
+
+> **NON-NEGOTIABLE**: все `./gradlew ...` команды в этом проекте ДОЛЖНЫ идти с `GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle` (папка `.gradle` ВНУТРИ проекта, writable). Без этого wrapper пытается писать в `/home/nsa/.gradle/wrapper/dists/...` — read-only для sandbox DSH, билд падает с `FileNotFoundException ... .lck (Файловая система доступна только для чтения)`.
+
+Канонический паттерн (см. `specs/304-idempotent-path-sanitize/tasks.md`):
+```bash
+JAVA_HOME=/usr/lib/jvm/jdk-18 GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle ./gradlew :karaoke-app:compileKotlin --parallel
+```
+
+**Не использовать** `GRADLE_USER_HOME=/home/nsa/.gradle` (read-only) или `/tmp/gradle-home` (теряются кеши между сессиями).
 
 ### Обязательная проверка после ЛЮБОГО изменения кода (NON-NEGOTIABLE)
 
 > Pass 239 + 245: правки без локальной пересборки ломали прод. **Vite-build ≠ Docker-образ**.
 
-**После ЛЮБОГО изменения ОБЯЗАТЕЛЬНО** (в этом порядке):
+**После ЛЮБОГО изменения ОБЯЗАТЕЛЬНО** (в этом порядке, **все gradle-команды с `GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle`**):
 
-1. Backend compile: `./gradlew :karaoke-app:compileKotlin :karaoke-web:compileKotlin --parallel`
-2. Линтеры: `./gradlew :karaoke-web:ktlintCheck` + `cd webvue3 && npm run lint` + `cd karaoke-public && npm run lint`
-3. Backend bootJar: `./gradlew :karaoke-web:bootJar --parallel` (на `nsa-i9` — также `:karaoke-app:bootJar`)
+1. Backend compile: `GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle ./gradlew :karaoke-app:compileKotlin :karaoke-web:compileKotlin --parallel`
+2. Линтеры: `GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle ./gradlew :karaoke-web:ktlintCheck` + `cd webvue3 && npm run lint` + `cd karaoke-public && npm run lint`
+3. Backend bootJar: `GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle ./gradlew :karaoke-web:bootJar --parallel` (на `nsa-i9` — также `:karaoke-app:bootJar`)
 4. Frontend Vite: `npm run build && npm run format:check` в `webvue3/` и `karaoke-public/`
 5. Docker-образы: `cd deploy && bash do.sh build_webvue3`; если менялся `karaoke-public` — `bash do.sh build_public`
 

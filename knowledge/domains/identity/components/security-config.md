@@ -69,11 +69,11 @@
 - → [SiteUser AR](../domain.md#aggregate-roots) — для заполнения `principal`.
 - → [dictionaries](dictionaries.md) — `UserRole` enum используется в
   `Authentication.roles`.
-- → [0001-raw-jdbc](../../adr/0001-raw-jdbc.md) — БД для хранения сессий.
+- → [0001-raw-jdbc](../../../adr/0001-raw-jdbc.md) — БД для хранения сессий.
 
 ## Связанные ADR | Related ADRs
 
-- [0001-raw-jdbc](../../adr/0001-raw-jdbc.md) — БД для хранения сессий.
+- [0001-raw-jdbc](../../../adr/0001-raw-jdbc.md) — БД для хранения сессий.
 
 ## Ловушки и предупреждения
 

@@ -98,16 +98,16 @@ fun Song.isContentReady(): Boolean =
 ```
 
 Проверка вызывается на каждом публичном запросе; для производительности
-кешируется через [caching context](../../adr/0001-raw-jdbc.md)
+кешируется через [caching context](../../../adr/0001-raw-jdbc.md)
 (см. `StatBySong` AtomicInteger-кеш).
 
 ## Зависимости | Dependencies
 
 - → [song-lifecycle](song-lifecycle.md) — жизненный цикл `IdStatus`.
 - → [domain](../domain.md) — AR `Song` хранит `IdStatus`, `SongType`, `tags`.
-- → [rendering](../rendering/domain.md) — `IdStatus=6` означает, что
+- → [rendering](../../rendering/domain.md) — `IdStatus=6` означает, что
   рендер завершён.
-- → [processing](../processing/domain.md) — `IdStatus=3` означает, что
+- → [processing](../../processing/domain.md) — `IdStatus=3` означает, что
   стемы готовы.
 
 ## Связанные ADR | Related ADRs

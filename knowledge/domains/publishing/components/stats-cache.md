@@ -100,8 +100,8 @@ fun stats(): StatsDto = StatsDto(
 
 - → [domain](../domain.md) — AR `SiteStats`, `SiteEvent`.
 - → [dictionaries](dictionaries.md) — `BotScore` thresholds для фильтрации.
-- → [catalog](../catalog/domain.md) — `Song.isExclusive`, `Song.publishDate`.
-- → [caching context](../caching/domain.md) (TODO) — другие кеши проекта.
+- → [catalog](../../catalog/domain.md) — `Song.isExclusive`, `Song.publishDate`.
+- → [caching context](../../caching/domain.md) (TODO) — другие кеши проекта.
 
 ## Ловушки и предупреждения
 
@@ -124,4 +124,4 @@ VisitorLast24h учитывает ВСЕ визиты (включая ботов
 
 ## Связанные ADR | Related ADRs
 
-- ADR по caching (TODO, [caching domain](../caching/domain.md)).
+- ADR по caching (TODO, [caching domain](../../caching/domain.md)).

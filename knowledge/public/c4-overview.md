@@ -31,7 +31,7 @@ flowchart TB
 **Внешние актёры**:
 
 - **Посетитель сайта** — читает каталог, слушает песни.
-- **Редактор** — обрабатывает песни (Pass 51+, см. [identity](../../domains/identity/domain.md)).
+- **Редактор** — обрабатывает песни (Pass 51+, см. [identity](../domains/identity/domain.md)).
 - **Админ** — управляет каталогом, настраивает рендер.
 - **Telegram** — авто-новости о новых песнях.
 - **VK ID** — OAuth для регистрации.
@@ -76,7 +76,7 @@ flowchart TB
 - **MinIO** — S3-compatible storage для стемов, MP4, картинок.
 - **MLT/melt** — внешний видеоредактор (см. [ADR-0002](../adr/0002-mlt-instead-of-ffmpeg.md)).
 - **Demucs, Sheetsage** — внешние ML-модели (см. [ADR-0005](../adr/0005-self-hosted-ml.md)).
-- **Nginx** — reverse proxy (см. [nginx-conventions](../../../livedocs/architecture/nginx-conventions.md)).
+- **Nginx** — reverse proxy (см. [nginx-conventions](../../livedocs/architecture/nginx-conventions.md)).
 
 ## L3 — Components (краткий обзор)
 
@@ -95,7 +95,7 @@ flowchart TB
 
 - **Controllers** (`PublicSongEditorController` для редакторов).
 - **Security** (`SecurityConfig` — Spring Security, см.
-  [security-config](../../domains/identity/components/security-config.md)).
+  [security-config](../domains/identity/components/security-config.md)).
 - **Templates** (Thymeleaf для admin UI).
 
 ### `webvue3`
@@ -129,7 +129,7 @@ flowchart TB
 
 ## Связанные документы
 
-- [knowledge/domains/](../../domains/) — полные определения доменов.
-- [livedocs/architecture/L1-system-context.md](../../../livedocs/architecture/L1-system-context.md) — детальный L1.
-- [livedocs/architecture/L2-containers.md](../../../livedocs/architecture/L2-containers.md) — детальный L2.
-- [livedocs/architecture/L3-components.md](../../../livedocs/architecture/L3-components.md) — детальный L3.
+- [knowledge/domains/](../domains/) — полные определения доменов.
+- [livedocs/architecture/L1-system-context.md](../../livedocs/architecture/L1-system-context.md) — детальный L1.
+- [livedocs/architecture/L2-containers.md](../../livedocs/architecture/L2-containers.md) — детальный L2.
+- [livedocs/architecture/L3-components.md](../../livedocs/architecture/L3-components.md) — детальный L3.

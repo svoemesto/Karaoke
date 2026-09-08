@@ -91,8 +91,8 @@ Grandfathered песни (см. domain invariants) — отдельная лог
 ## Зависимости | Dependencies
 
 - → [domain](../domain.md) — AR `PublishWindow`, `Subscription`, `SiteStats`.
-- → [identity](../identity/domain.md) — `SiteUser` для проверки подписки.
-- → [catalog](../catalog/domain.md) — `Song.isExclusive`, `Song.publishDate`.
+- → [identity](../../identity/domain.md) — `SiteUser` для проверки подписки.
+- → [catalog](../../catalog/domain.md) — `Song.isExclusive`, `Song.publishDate`.
 - → [stats-cache](stats-cache.md) — счётчики используют `VisitorType`.
 
 ## Ловушки и предупреждения
@@ -108,4 +108,4 @@ Grandfathered песни (см. domain invariants) — отдельная лог
 
 ## Связанные ADR | Related ADRs
 
-- ADR по [caching context](../caching/domain.md) для `StatBySong` — TODO.
+- ADR по [caching context](../../caching/domain.md) для `StatBySong` — TODO.

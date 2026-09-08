@@ -44,7 +44,7 @@
 
 ### `BotScore` — пороги
 
-**[WARN] Дублирование с [publishing dictionaries](../../publishing/components/dictionaries.md)**.
+**[WARN] Дублирование с [publishing dictionaries](../publishing/components/dictionaries.md**.
 
 | Диапазон | VisitorType (stats legacy) | VisitorType (publishing new) |
 | --- | --- | --- |
@@ -119,9 +119,9 @@ fun computeFunnel(): FunnelStats {
 ## Зависимости | Dependencies
 
 - → [domain](../domain.md) — AR `SiteEvent`.
-- → [publishing dictionaries](../../publishing/components/dictionaries.md) —
+- → [publishing dictionaries](../publishing/components/dictionaries.md —
   `BotScore` пороги (см. [WARN] выше).
-- → [publishing stats-cache](../../publishing/components/stats-cache.md) —
+- → [publishing stats-cache](../publishing/components/stats-cache.md —
   `realUsersLast24h` использует `BotScore`.
 - → [caching domain](../../caching/domain.md) — `StatsCache` singleton.
 

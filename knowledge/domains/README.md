@@ -27,10 +27,10 @@ knowledge/domains/<name>/
 | [`rendering`](rendering/domain.md) | `livedocs/domain/rendering.md` | Migrated (spec 327) |
 | [`processing`](processing/domain.md) | `livedocs/domain/processing.md` | Migrated (spec 328) |
 | [`publishing`](publishing/domain.md) | `livedocs/domain/publishing.md` | Migrated (spec 328) |
-| `editorial` | `livedocs/domain/editorial.md` | запланировано |
-| `stats` | `livedocs/domain/stats.md` | запланировано |
-| `caching` | `livedocs/domain/caching.md` | запланировано |
-| `monitoring` | `livedocs/domain/monitoring.md` | запланировано |
+| [`editorial`](editorial/domain.md) | `livedocs/domain/editorial.md` | Migrated (spec 329) |
+| [`monitoring`](monitoring/domain.md) | `livedocs/domain/monitoring.md` | Migrated (spec 329) |
+| `stats` | `livedocs/domain/stats.md` | запланировано (spec 330) |
+| `caching` | `livedocs/domain/caching.md` | запланировано (spec 330) |
 
 ## Linking Protocol
 

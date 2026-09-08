@@ -24,7 +24,7 @@ Karaoke. Описывает **текущее состояние** системы
 Список Bounded Contexts Karaoke (C4 L3). Полный реестр — в
 [`domains/README.md`](domains/README.md).
 
-- Заполняется по мере миграции из `livedocs/domain/`.
+- [`identity`](domains/identity/domain.md) — пользователи, авторизация, сессии.
 
 ## Жизненный цикл документации
 

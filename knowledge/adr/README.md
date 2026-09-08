@@ -28,7 +28,7 @@ Append-only: нельзя редактировать или удалять ADR �
 
 ## Миграция из `livedocs/architecture/decisions/`
 
-14 файлов будут перенесены с сохранением ID и slug-имени:
+13 файлов перенесены в спецификации 331 с сохранением ID и slug-имени:
 
 ```
 0001-raw-jdbc.md
@@ -36,11 +36,20 @@ Append-only: нельзя редактировать или удалять ADR �
 0003-livedocs-markdown-yaml-mermaid.md
 0004-karaoke-app-admin-only.md
 0005-self-hosted-ml.md
-0006-processbuilder-redirecterrorstream.md
+0006-processbuilder-redirect-errorstream.md
 0008-tracker-openproject-migration.md
 local-0001-karaoke-properties-defaults.md
-… (всего 14)
+local-0002-save-exception-handling.md
+local-0003-shared-minio-image-cache.md
+local-0004-lazy-eager-load-webvue3-pagination.md
+local-0005-structured-logging-karaoke-app.md
+local-0006-logging-and-error-handling-karaoke-web.md
 ```
+
+Дополнительный ADR в `knowledge/adr/`:
+- `0007-adopt-knowledge-as-ssot.md` — ADR о принятии knowledge/ как
+  SSoT (создан в спеке 322). Получил номер 0007, чтобы не конфликтовать
+  с существующим `0001-raw-jdbc.md`.
 
 Текущий формат — `* Status:` / `* Date:` / etc. — сохраняется как есть;
 полный переход на YAML frontmatter (как в шаблоне) — опционален и

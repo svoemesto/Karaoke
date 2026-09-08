@@ -265,7 +265,7 @@ bash tools/check-jsdoc-coverage.sh karaoke-public
 
 7. **Секреты в логах** — НЕ логировать `.env`, `*.key`, `*.pem`. См.
    [Constitution § VIII.5](../.specify/memory/constitution.md) и
-   [LiveDocs local-0005](../livedocs/architecture/decisions/local-0005-structured-logging-karaoke-app.md).
+   [LiveDocs local-0005](../knowledge/adr/local-0005-structured-logging-karaoke-app.md).
 
 ---
 

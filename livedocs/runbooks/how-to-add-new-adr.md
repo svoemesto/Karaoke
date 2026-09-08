@@ -131,7 +131,7 @@ gh pr merge <PR> --merge  # БЕЗ --delete-branch (ветка живёт)
 
 ## Related
 
-- LiveDocs: [`decisions/README.md`](../../architecture/decisions/README.md),
+- LiveDocs: [`decisions/README.md`](../../../knowledge/adr/README.md),
   [`architecture/README.md`](../../architecture/README.md).
 - Michael Nygard «Documenting Architecture Decisions» — оригинальный паттерн.
 - MADR (Markdown ADR) — современный шаблон.

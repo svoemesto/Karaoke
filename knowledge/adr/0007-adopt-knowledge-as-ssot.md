@@ -1,5 +1,5 @@
 ---
-id: 0001-adopt-knowledge-as-ssot
+id: 0007-adopt-knowledge-as-ssot
 title: "Принять knowledge/ как Single Source of Truth (Living Documentation v2)"
 status: Accepted
 supersedes: null

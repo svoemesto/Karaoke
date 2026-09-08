@@ -8,7 +8,7 @@ related:
   - ../architecture/invariants.md
   - ../runbooks/how-to-migrate-db.md
   - ../runbooks/how-to-migrate-prod-server.md
-  - ../architecture/decisions/0001-raw-jdbc.md
+  - ../../knowledge/adr/0001-raw-jdbc.md
 ---
 
 # Database migration playbook — production

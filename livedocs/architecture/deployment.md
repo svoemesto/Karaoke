@@ -5,7 +5,7 @@ type: topic
 related:
   - ../runbooks/how-to-deploy.md
   - ../architecture/database.md
-  - ../architecture/decisions/0004-karaoke-app-admin-only.md
+  - ../../knowledge/adr/0004-karaoke-app-admin-only.md
 ---
 
 t-md-rewrite)

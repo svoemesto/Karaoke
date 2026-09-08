@@ -5,7 +5,7 @@ type: runbook
 related:
   - ../domain/processing.md
   - ../domain/rendering.md
-  - ../architecture/decisions/0005-self-hosted-ml.md
+  - ../../knowledge/adr/0005-self-hosted-ml.md
 ---
 
 g.kt`, `StemJobCleanup.kt` (`karaoke-app`) и `PublicStemJobController.kt`,

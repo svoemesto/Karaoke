@@ -7,7 +7,7 @@ related:
   - ../architecture/L3-components.md
   - ../architecture/mlt-pipeline.md
   - ../architecture/queue-lanes.md
-  - ../architecture/decisions/0002-mlt-instead-of-ffmpeg.md
+  - ../../knowledge/adr/0002-mlt-instead-of-ffmpeg.md
   - ../features/184-approve-status-choice.md
   - ../features/131-fix-approve-demo-render-telegram-sync.md
 ---
@@ -82,7 +82,7 @@ concern (музыкальная обработка входных файлов).
 | **Выход** | 5 стемов в MinIO | 1 MP4 (одна из версий) в MinIO |
 | **Compute** | Heavy GPU/CPU (Demucs — самый тяжёлый) | Medium CPU (melt — менее тяжёлый) |
 | **Lane** | STEM_JOBS | HEAVY_RENDER |
-| **ADR** | общий принцип (см. 0001) | [ADR-0002](../architecture/decisions/0002-mlt-instead-of-ffmpeg.md) |
+| **ADR** | общий принцип (см. 0001) | [ADR-0002](../../knowledge/adr/0002-mlt-instead-of-ffmpeg.md) |
 
 ## Архитектура
 
@@ -106,7 +106,7 @@ lane `HEAVY_RENDER`.
   Generator живёт в Karaoke-app.
 - [architecture/mlt-pipeline.md](../architecture/mlt-pipeline.md) — drill-down.
 - [architecture/queue-lanes.md](../architecture/queue-lanes.md) — HEAVY_RENDER lane.
-- [ADR-0002](../architecture/decisions/0002-mlt-instead-of-ffmpeg.md) — почему MLT.
+- [ADR-0002](../../knowledge/adr/0002-mlt-instead-of-ffmpeg.md) — почему MLT.
 - [features/184-approve-status-choice.md](../features/184-approve-status-choice.md),
   [features/131-fix-approve-demo-render-telegram-sync.md](../features/131-fix-approve-demo-render-telegram-sync.md) — пайплайн после approve.
 

@@ -29,23 +29,16 @@
 - **`docs/ops/log-correlation.md`** — карта логов прода, команды `docker logs`/`ssh`, grep-маркеры (`infra.prod.ping`/`infra.prod.db`/`LOG:  duration:`), сценарии диагностики. Создан в [specs/288-prod-diagnostics-logging](../specs/288-prod-diagnostics-logging/spec.md) (FR-019).
 - Контракт WARN/INFO для `infra.prod.*`: [contracts/log-format.md](../specs/288-prod-diagnostics-logging/contracts/log-format.md).
 
-## Иерархия документации (краткая)
+## Иерархия документации и AI-агенты
 
-`livedocs/` → `.specify/memory/constitution.md` → `AGENTS.md` → `CONTRIBUTING.md` → `DEVELOPMENT.md` → `specs/<NNN>-*/spec.md` → `archive/docs/features/*.md`. **При расхождении** — приоритет у файла с меньшим номером. Полная таблица — в [`livedocs/architecture-notes.md`](livedocs/architecture-notes.md).
-
-## Где правила для разных AI-агентов
-
-- opencode (primary) → `AGENTS.md` (✅ в гите)
-- Claude Code, Cursor, Cody, Aider → локальные конфиги (❌)
-- Setup — [`livedocs/onboarding.md`](livedocs/onboarding.md).
+Иерархия: `livedocs/` → `constitution.md` → `AGENTS.md` → `CONTRIBUTING.md` → `DEVELOPMENT.md` → `specs/NNN-*/spec.md` → `archive/`.
+При расхождении приоритет у файла с меньшим номером (полная таблица в `livedocs/architecture-notes.md`).
+opencode (primary) → этот файл (✅ в гите). Claude Code / Cursor / Cody / Aider — локальные конфиги.
+Setup новых AI: `livedocs/onboarding.md`.
 
 ## Issue-tracker OpenProject (spec 295) — ВАЖНО
 
-В начале **каждой сессии** (после чтения LiveDocs):
-
-```bash
-cd /home/nsa/Karaoke && source .env.local-tracker && bash tools/tracker-poll.sh
-```
+В начале **каждой сессии** (после чтения LiveDocs): `cd /home/nsa/Karaoke && source .env.local-tracker && bash tools/tracker-poll.sh`.
 
 Если есть открытые задачи (`assignee=ai-agent, status=open`):
 `spec-for-issue → claim → работа → add-comment + mark-review → close`.
@@ -80,16 +73,11 @@ gh pr checks && gh pr merge --merge   # БЕЗ --delete-branch
 - **Деплой**: `deploy/deploy_web.sh`, `deploy/deploy_public.sh`, `cd deploy && bash do.sh build_start_public`.
 - **Тесты**: в CI нет; `karaoke-app/src/test` — `@Disabled`. Проверка — пользователем.
 
-### Gradle: запуск с GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle (Pass 282+)
+### Gradle: запуск с `GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle`
 
-> **NON-NEGOTIABLE**: все `./gradlew ...` команды в этом проекте ДОЛЖНЫ идти с `GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle` (папка `.gradle` ВНУТРИ проекта, writable). Без этого wrapper пытается писать в `/home/nsa/.gradle/wrapper/dists/...` — read-only для sandbox DSH, билд падает с `FileNotFoundException ... .lck (Файловая система доступна только для чтения)`.
-
-Канонический паттерн (см. `specs/304-idempotent-path-sanitize/tasks.md`):
-```bash
-JAVA_HOME=/usr/lib/jvm/jdk-18 GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle ./gradlew :karaoke-app:compileKotlin --parallel
-```
-
-**Не использовать** `GRADLE_USER_HOME=/home/nsa/.gradle` (read-only) или `/tmp/gradle-home` (теряются кеши между сессиями).
+> **NON-NEGOTIABLE** (см. полную версию в `livedocs/architecture/dsh-sandbox-conventions.md`):
+> все `./gradlew ...` команды должны идти с `GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle`
+> (папка `.gradle` ВНУТРИ проекта). Без этого wrapper пишет в read-only `/home/nsa/.gradle/wrapper/dists/...`.
 
 ### Обязательная проверка после ЛЮБОГО изменения кода (NON-NEGOTIABLE)
 

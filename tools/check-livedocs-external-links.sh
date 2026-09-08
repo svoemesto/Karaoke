@@ -31,6 +31,8 @@ else
         --exclude 'https://id\.vk\.ru/oauth2.*' \
         --exclude 'http://oauth\.vk\.ru/blank\.html' \
         --exclude 'http://thinkrelevance\.com/blog/.*' \
+        --exclude 'https://vkvideo\.ru/.*' \
+        --exclude 'https://vkvideo\.ru' \
         --accept 200,201,203,206,301,302,303,304,307,308,403,418,429 \
         livedocs/ \
         livedocs-en/ 2>&1)
@@ -54,6 +56,12 @@ for url in $URLS; do
     fi
     # Production URLs — зависят от конфигурации (private/internal), не проверяем
     if echo "$url" | grep -qE '^(https://svoemesto\.ru|https://sm-karaoke\.ru|https://smartcaptcha\.yandexcloud\.net/|https://id\.vk\.com/)'; then
+        PLACEHOLDERS=$((PLACEHOLDERS+1))
+        continue
+    fi
+    # VK Video — flaky: curl без User-Agent получает 404 (bot-protection),
+    # тогда как с UA — 302. Не блокируем; см. livedocs/runbooks/how-to-demo-publish-links.md:122.
+    if echo "$url" | grep -qE '^https://vkvideo\.ru'; then
         PLACEHOLDERS=$((PLACEHOLDERS+1))
         continue
     fi

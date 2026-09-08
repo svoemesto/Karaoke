@@ -29,8 +29,8 @@ knowledge/domains/<name>/
 | [`publishing`](publishing/domain.md) | `livedocs/domain/publishing.md` | Migrated (spec 328) |
 | [`editorial`](editorial/domain.md) | `livedocs/domain/editorial.md` | Migrated (spec 329) |
 | [`monitoring`](monitoring/domain.md) | `livedocs/domain/monitoring.md` | Migrated (spec 329) |
-| `stats` | `livedocs/domain/stats.md` | запланировано (spec 330) |
-| `caching` | `livedocs/domain/caching.md` | запланировано (spec 330) |
+| [`stats`](stats/domain.md) | `livedocs/domain/stats.md` | Migrated (spec 330) |
+| [`caching`](caching/domain.md) | `livedocs/domain/caching.md` | Migrated (spec 330) |
 
 ## Linking Protocol
 

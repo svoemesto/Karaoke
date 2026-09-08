@@ -45,8 +45,10 @@ EXCLUDE_PATTERNS = [
     r".*\.test\.js$",
     r".*\.spec\.js$",
     r"\.md$",                # README, CHANGELOG, и т.п.
-    r"^tools/",              # CI-скрипты, линтеры.
-    r"^\.github/",           # Workflows.
+    # NOTE: tools/ НЕ исключается — изменения в линтерах/скриптах
+    # могут менять SSoT-проверки (например, добавить новый rule в
+    # .ssot-map.yml → обновить tools/check-ssot-impact.py).
+    r"^\.github/",           # Workflows (CI-конфигурация, не код).
     r"^\.pre-commit-config\.yaml$",
     r"^package(-lock)?\.json$",
     r"^yarn\.lock$",
@@ -69,17 +71,31 @@ def is_excluded(filepath):
     return False
 
 
-def get_changed_files(base="master"):
-    """Возвращает список изменённых файлов относительно base."""
-    try:
-        result = subprocess.run(
-            ["git", "diff", f"{base}...HEAD", "--name-only"],
-            capture_output=True, text=True, cwd=REPO_ROOT, check=True,
-        )
-    except subprocess.CalledProcessError as e:
-        print(f"ERROR: git diff failed: {e.stderr}", file=sys.stderr)
-        sys.exit(1)
-    return [line.strip() for line in result.stdout.splitlines() if line.strip()]
+def get_changed_files(base="origin/master"):
+    """Возвращает список изменённых файлов относительно base.
+    Пробует base как есть, потом fallback на 'master' (если origin/master
+    нет, например в первом push после создания репо).
+    """
+    # Список кандидатов для base — от более специфичного к менее.
+    candidates = [base]
+    if base != "master":
+        candidates.append("master")
+    if base != "origin/master":
+        candidates.append("origin/master")
+
+    for candidate in candidates:
+        try:
+            result = subprocess.run(
+                ["git", "diff", f"{candidate}...HEAD", "--name-only"],
+                capture_output=True, text=True, cwd=REPO_ROOT, check=True,
+            )
+            return [line.strip() for line in result.stdout.splitlines() if line.strip()]
+        except subprocess.CalledProcessError:
+            continue
+
+    # Если ни один не сработал — пустой список (no-op).
+    print(f"WARN: cannot resolve any of {candidates}; treating as no-op.")
+    return []
 
 
 def load_ssot_map():
@@ -141,7 +157,9 @@ def check_rule_satisfied(rule, changed_files):
 
 
 def main():
-    base = os.environ.get("SSOT_BASE", "master")
+    # Default base — origin/master (для CI). Локально можно переопределить
+    # через SSOT_BASE=master.
+    base = os.environ.get("SSOT_BASE", "origin/master")
     print(f"[SSoT] Checking impact surface against base '{base}'")
     print()
 

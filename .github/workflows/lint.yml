@@ -219,9 +219,9 @@ jobs:
         run: pip install pyyaml
 
       - name: Check SSoT impact
-        # SSOT_BASE=master — база для git diff (см. AGENTS.md).
+        # Default base — origin/master (см. tools/check-ssot-impact.py).
         # Если файла .ssot-map.yml нет — check проходит (no-op).
-        run: SSOT_BASE=master python3 tools/check-ssot-impact.py
+        run: python3 tools/check-ssot-impact.py
 
   # === Knowledge SSoT structure (Living Documentation v2) ===
   # Knowledge (knowledge/) — Single Source of Truth (SSoT) проекта Karaoke.

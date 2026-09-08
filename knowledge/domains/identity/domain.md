@@ -14,7 +14,6 @@ related:
 
 > Пользователи, авторизация, сессии.
 >
-> Drill-down (legacy): [livedocs/domain/identity.md](../../../livedocs/domain/identity.md).
 
 ## Обзор контекста (Bounded Context)
 

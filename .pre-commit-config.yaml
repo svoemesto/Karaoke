@@ -90,48 +90,6 @@ repos:
         files: '^archive/docs/features/.*\.md$'
         stages: [pre-commit]
 
-      # === LiveDocs: проверка структуры (7 проверок) ===
-      # Срабатывает только когда меняются файлы в livedocs/ или livedocs-en/.
-      # Быстрая проверка (< 1 сек). Если что-то сломано — лучше узнать до push.
-      - id: check-livedocs-structure
-        name: LiveDocs structure (7 checks)
-        entry: bash -c 'bash tools/check-livedocs-structure.sh'
-        language: system
-        pass_filenames: false
-        files: '^(livedocs|livedocs-en)/.*\.md$'
-        stages: [pre-commit]
-
-      # === LiveDocs: проверка cross-links (814+ ссылок) ===
-      # Только при изменении Markdown в livedocs/ или livedocs-en/.
-      - id: check-livedocs-cross-links
-        name: LiveDocs cross-links (814+ checks)
-        entry: bash -c 'bash tools/check-livedocs-cross-links.sh'
-        language: system
-        pass_filenames: false
-        files: '^(livedocs|livedocs-en)/.*\.md$'
-        stages: [pre-commit]
-
-      # === LiveDocs: проверка coverage (specs ↔ livedocs) ===
-      # Запускается ТОЛЬКО при изменении specs/ или livearchive/docs/features/.
-      # Проверяет, что для каждой спеки есть соответствующая LiveDoc-сводка.
-      - id: check-livedocs-coverage
-        name: LiveDocs coverage (specs ↔ features)
-        entry: bash -c 'bash tools/check-livedocs-coverage.sh'
-        language: system
-        pass_filenames: false
-        files: '^(specs/[0-9]+-|livearchive/docs/features/).*'
-        stages: [pre-commit]
-
-      # === LiveDocs: проверка Mermaid-блоков ===
-      # Срабатывает только при изменении файлов с mermaid-блоками в livedocs/.
-      - id: validate-livedocs-mermaid
-        name: LiveDocs Mermaid block validator
-        entry: bash -c 'bash tools/validate-mermaid.sh'
-        language: system
-        pass_filenames: false
-        files: '^livedocs/.*\.md$'
-        stages: [pre-commit]
-
       # === Field coverage: SongEdit ↔ /song/update ===
       # specs/302-fix-censored-name-loss FR-005/006 — ловит баг "UI шлёт X, бэкенд не принимает".
       - id: songedit-field-coverage

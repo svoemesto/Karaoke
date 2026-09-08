@@ -14,7 +14,6 @@ related:
 
 > Задания редакторам, self-assign, авто-конвейер при апруве.
 >
-> Drill-down (legacy): [livedocs/domain/editorial.md](../../../livedocs/domain/editorial.md).
 
 ## Обзор контекста (Bounded Context)
 

@@ -2,7 +2,8 @@
 
 > **Домен**: `knowledge/public/`
 > **Назначение**: краткая C4-диаграмма Karaoke для неинженеров и
-> быстрого обзора. Полная версия — в `livedocs/architecture/`.
+> быстрого обзора. Детальные диаграммы — в `knowledge/system/` и
+> `knowledge/domains/<name>/components/`.
 
 ## L1 — System Context
 
@@ -76,11 +77,11 @@ flowchart TB
 - **MinIO** — S3-compatible storage для стемов, MP4, картинок.
 - **MLT/melt** — внешний видеоредактор (см. [ADR-0002](../adr/0002-mlt-instead-of-ffmpeg.md)).
 - **Demucs, Sheetsage** — внешние ML-модели (см. [ADR-0005](../adr/0005-self-hosted-ml.md)).
-- **Nginx** — reverse proxy (см. [nginx-conventions](../../livedocs/architecture/nginx-conventions.md)).
+- **Nginx** — reverse proxy (конвенции конфигурации — см. `knowledge/guidelines/architecture-conventions.md`).
 
 ## L3 — Components (краткий обзор)
 
-Каждый контейнер содержит компоненты, описанные в `livedocs/architecture/L3-components.md`.
+Каждый контейнер содержит компоненты, описанные в `knowledge/domains/<name>/components/*.md`.
 Полная версия — там. Здесь — **карта компонентов по контейнерам**:
 
 ### `karaoke-app`
@@ -130,6 +131,6 @@ flowchart TB
 ## Связанные документы
 
 - [knowledge/domains/](../domains/) — полные определения доменов.
-- [livedocs/architecture/L1-system-context.md](../../livedocs/architecture/L1-system-context.md) — детальный L1.
-- [livedocs/architecture/L2-containers.md](../../livedocs/architecture/L2-containers.md) — детальный L2.
-- [livedocs/architecture/L3-components.md](../../livedocs/architecture/L3-components.md) — детальный L3.
+- [knowledge/system/](../system/) — детальные C4-диаграммы (L1, L2).
+- [knowledge/adr/](../adr/) — архитектурные решения.
+- [knowledge/glossary.md](glossary.md) — глоссарий терминов.

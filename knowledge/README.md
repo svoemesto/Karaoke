@@ -86,34 +86,24 @@ Karaoke. Описывает **текущее состояние** системы
    `NNN-slug`, открывает PR и мержит через CI. Запрет на коммиты
    из generic-bootstrap к Karaoke не применяется — см. AGENTS.md
    «Git — CI-gate для master».
-3. **ADR-нумерация.** Существующие ADR в `livedocs/architecture/decisions/`
+3. **ADR-нумерация.** ADR хранятся в `knowledge/adr/`. Существующие ID
    (`0001-raw-jdbc.md` … `0008-…`, `local-0001-…` … `local-0006-…`)
-   сохраняют свои ID и при переносе в `knowledge/adr/` **не переименовываются**.
+   сохраняются без переименования.
 4. **Эпики и спецификации.** Karaoke уже использует `specs/NNN-<slug>/`
    как полный жизненный цикл фичи (spec → plan → tasks → implementation).
    `knowledge/epics/` заводится только для **стратегических** переходов,
    затрагивающих несколько specs; связь `EPIC-XXX → specs/N, M, K`
    указывается явно в секции «Roadmap & Steps».
-5. **`livedocs/` и `knowledge/` сосуществуют** до полной миграции.
-   Старая структура `livedocs/` обслуживается существующими
-   `tools/check-livedocs-*.sh` и CI; `knowledge/` — SSoT по этому README.
-   Архивирование старой структуры произойдёт отдельным PR после того,
-   как новые `knowledge/domains/`, `knowledge/adr/`, `knowledge/guidelines/`
-   будут полностью наполнены и пройдут audit.
-6. **Старый `docs/` не трогаем.** В корне проекта `docs/` исторически
+5. **`docs/` не трогаем.** В корне проекта `docs/` исторически
    содержит `api/`, `features/`, `ops/`, `architecture-notes.md`,
    `tracker-setup.md`. Они остаются на своих местах и **не мигрируют**
-   в `knowledge/` в рамках этой спецификации. Их судьба — отдельная
-   спецификация (например, `archive-legacy-docs`).
+   в `knowledge/`.
 
-## Историческая преемственность
+## Связанные документы
 
-| Что | Где сейчас | Куда мигрирует |
-| --- | --- | --- |
-| Bounded Contexts | `livedocs/domain/<name>.md` (1 файл → 1 домен) | `knowledge/domains/<name>/domain.md` + `components/*.md` |
-| C4 L1/L2/L3 | `livedocs/architecture/L{1,2,3}-*.md` | `knowledge/system/01-context.md` (L1), `knowledge/system/02-containers.md` (L2), `knowledge/domains/<name>/components/*.md` (L3) |
-| ADR | `livedocs/architecture/decisions/NNNN-*.md` | `knowledge/adr/NNNN-*.md` (ID сохраняется) |
-| Features | `livedocs/features/<spec-id>-*.md` | источник остаётся `specs/<NNN>/spec.md`; в `knowledge/` — влияние на домен |
-| Templates | `livedocs/templates/` | `knowledge/templates/` (уже здесь) |
-| Runbooks | `livedocs/runbooks/` | переезжают в `knowledge/guidelines/runbooks/` в отдельной спецификации |
-| Architecture notes | `docs/architecture-notes.md` (дневник) | остаётся в `docs/` как append-only changelog |
+- [domains/README.md](domains/README.md) — реестр всех Bounded Contexts.
+- [adr/README.md](adr/README.md) — архитектурные решения.
+- [templates/README.md](templates/README.md) — шаблоны для новых документов.
+- [guidelines/README.md](guidelines/README.md) — руководства и конвенции.
+- [public/README.md](public/README.md) — публичные проекции (glossary, onboarding).
+- [epics/README.md](epics/README.md) — стратегические эпики.

@@ -1,8 +1,7 @@
 # Onboarding — Новый разработчик Karaoke
 
 > **Домен**: `knowledge/public/`
-> **Назначение**: 30-минутный вход в проект.
-> **Полная версия**: [livedocs/onboarding.md](../../livedocs/onboarding.md) (историческая).
+> **Назначение**: 15-минутный вход в проект.
 
 Это **сжатая** версия onboarding для новых разработчиков. Чтение
 занимает ~15 минут, после чего вы знаете, где что искать.
@@ -17,14 +16,13 @@ karaoke/                          ← корень проекта
 ├── karaoke-public/               ← Vue 3 публичный сайт
 ├── deploy/                       ← Docker, scripts
 ├── specs/                        ← спецификации (NNN-<slug>/)
-├── livedocs/                     ← Living Documentation v1 (legacy, 243 файла)
 ├── knowledge/                    ← Living Documentation v2 (SSoT)
 ├── docs/                         ← прочая техническая документация
 └── tools/                        ← скрипты (линтеры, проверки)
 ```
 
 **Главное правило**: код-факты живут в `knowledge/domains/<name>/`,
-спецификации — в `specs/NNN-*/`, livedocs v1 — архивная коллекция.
+спецификации — в `specs/NNN-*/`, knowledge/ — Single Source of Truth.
 
 ## 2. Что прочитать в первую очередь (10 минут)
 
@@ -38,15 +36,13 @@ karaoke/                          ← корень проекта
 
 ## 3. C4-модель (5 минут)
 
-Проект Karaoke описан в C4-нотации:
+Проект Karaoke описан в C4-нотации (см. [c4-overview.md](c4-overview.md)):
 
-- **L1 — System Context** ([livedocs/architecture/L1-system-context.md](../../livedocs/architecture/L1-system-context.md))
-  Место Karaoke в мире: посетители, Telegram, VK ID OAuth.
-- **L2 — Containers** ([livedocs/architecture/L2-containers.md](../../livedocs/architecture/L2-containers.md))
-  Технические контейнеры: `karaoke-app`, `karaoke-web`, `webvue3`,
+- **L1 — System Context** — место Karaoke в мире: посетители, Telegram, VK ID OAuth.
+- **L2 — Containers** — технические контейнеры: `karaoke-app`, `karaoke-web`, `webvue3`,
   `karaoke-public`, PostgreSQL, MinIO.
-- **L3 — Components** ([livedocs/architecture/L3-components.md](../../livedocs/architecture/L3-components.md))
-  Технические компоненты внутри контейнеров.
+- **L3 — Components** — технические компоненты внутри контейнеров (раскрыты
+  в `knowledge/domains/<name>/components/*.md`).
 
 ## 4. Bounded Contexts (5 минут)
 
@@ -104,12 +100,12 @@ Karaoke разбит на **9 доменов** (Bounded Contexts). Каждый 
 2. Создать feature-ветку `NNN-<slug>` от master (через
    `./tools/reserve-branch-number.sh <slug>`).
 3. Создать спецификацию в `specs/NNN-<slug>/` (через
-   [livedocs/templates/](../../livedocs/templates/) или spec-template).
+   spec-template из `.specify/templates/`).
 4. Реализовать фичу в коде.
 5. Обновить соответствующий **домен** в `knowledge/domains/`
    ([соответствующий файл](../domains/)).
 6. Запустить линтеры (`./gradlew ktlintCheck`, `npm run lint`,
-   `bash tools/check-livedocs-structure.sh`, `python3 tools/lint-knowledge.py`).
+   `bash tools/check-knowledge-structure.sh`, `python3 tools/lint-knowledge.py`).
 7. Push и PR через `gh pr create --base master`.
 8. Дождаться CI (7 проверок), при зелёном — `gh pr merge --merge`.
 
@@ -143,7 +139,8 @@ git checkout -b "${N}-my-slug" master
 
 # Линтеры
 GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle ./gradlew ktlintCheck
-bash tools/check-livedocs-structure.sh
+bash tools/check-knowledge-structure.sh
+bash tools/check-knowledge-cross-links.sh
 python3 tools/lint-knowledge.py
 
 # Сборка
@@ -157,8 +154,8 @@ pre-commit run --all-files
 
 - **Гайдлайны**: AGENTS.md, CONTRIBUTING.md, CLAUDE.md.
 - **Архитектура**: knowledge/domains/, knowledge/adr/, knowledge/system/.
-- **Оперативные playbook'и**: [knowledge/guidelines/runbooks/](../../guidelines/runbooks/),
-  [livedocs/runbooks/](../../livedocs/runbooks/).
-- **Стратегия роста**: [livedocs/strategy/](../../livedocs/strategy/).
+- **Оперативные playbook'и**: [knowledge/guidelines/runbooks/](../../guidelines/runbooks/).
+- **Стратегия роста**: см. ADR-0005-self-hosted-ml и раздел «Стратегия» в
+  knowledge/public/glossary.md.
 
 Добро пожаловать в Karaoke!

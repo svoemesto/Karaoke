@@ -16,7 +16,6 @@ related:
 
 > Доступ пользователей к каталогу: эфир, подписка, premium.
 >
-> Drill-down (legacy): [livedocs/domain/publishing.md](../../../livedocs/domain/publishing.md).
 
 ## Обзор контекста (Bounded Context)
 

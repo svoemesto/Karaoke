@@ -14,7 +14,6 @@ related:
 
 > Bounded context для мониторинга инфраструктуры и продуктовых метрик.
 >
-> Drill-down (legacy): [livedocs/domain/monitoring.md](../../../livedocs/domain/monitoring.md).
 
 ## Обзор контекста (Bounded Context)
 

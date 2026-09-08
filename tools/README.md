@@ -1,30 +1,17 @@
 # tools/ — Index of operational scripts
 
-> Скрипты для CI, LiveDocs валидации, поиска, и операционного обслуживания.
+> Скрипты для CI, knowledge валидации, и операционного обслуживания.
 > Все скрипты — POSIX bash + стандартные Unix-утилиты, без новых зависимостей.
 
-## LiveDocs валидация и поиск
+## Knowledge SSoT валидация
 
 | Скрипт | Назначение |
 |--------|------------|
-| [`check-livedocs-structure.sh`](check-livedocs-structure.sh) | CI gate: 7 проверок структуры (директории, ≥5 фич, ≥5 BC, L1+L2+L3, frontmatter, AGENTS.md ≤ 100 строк, CI integration). **Запускается в GitHub Actions + pre-commit.** |
-| [`check-livedocs-cross-links.sh`](check-livedocs-cross-links.sh) | Проверяет 814+ cross-links (`../X.md` и `related:`). **Запускается в GitHub Actions + pre-commit.** |
-| [`check-livedocs-external-links.sh`](check-livedocs-external-links.sh) | Проверяет ВНЕШНИЕ ссылки (https://) в LiveDocs через lychee (advisory) + curl (strict). **Запускается в GitHub Actions.** |
-| [`search-livedocs.sh`](search-livedocs.sh) | grep wrapper для AI-агентов и людей. Поиск query по LiveDocs с фильтром по типу/пути. **Интерактивный** (не CI). |
-| [`test-livedocs.sh`](test-livedocs.sh) | Self-test для всех LiveDocs-check скриптов. 12 тестовых сценариев: реальный LiveDocs, временный каталог, негативные сценарии, syntax-check. Запускать перед commit. |
-| [`gen-livedocs-index.sh`](gen-livedocs-index.sh) | Генерирует Mermaid-диаграмму всех LiveDocs (features/BC/C4/topics/ADR/runbooks/commands) для визуального overview. Вывод в stdout или `> livedocs/INDEX_CARD.md`. |
-| [`check-livedocs-coverage.sh`](check-livedocs-coverage.sh) | Проверяет покрытие: каждая спека в `specs/` имеет LiveDoc-сводку в `livedocs/features/`. Текущий baseline: 95.5%. |
-| [`gen-toc.sh`](gen-toc.sh) | Генерирует inline `## Содержание` для длинных LiveDocs. Использование: `bash gen-toc.sh <file.md>` или `--missing` (список файлов без TOC). |
-| [`check-md-structure.sh`](check-md-structure.sh) | Проверяет структуру Markdown: последовательность заголовков, висячие пробелы, закрытие Mermaid-блоков. 3 проверки. |
-| [`gen-livedocs-stats.sh`](gen-livedocs-stats.sh) | Генерирует Markdown-таблицу со статистикой LiveDocs: coverage, features, BC, ADR, runbooks, templates, commands, validation, size. Вывод в stdout или `> livedocs/STATS.md`. |
-| [`validate-mermaid.sh`](validate-mermaid.sh) | Валидирует синтаксис Mermaid-блоков (правильный diagram type, закрытые fences, direction для graph). |
-| [`suggest-broken-links.sh`](suggest-broken-links.sh) | Для broken cross-link предлагает возможные кандидаты (поиск по substring имени файла в LiveDocs). Advisory — не CI-gate. |
-| [`update-index.sh`](update-index.sh) | Перегенерирует INDEX.md на основе текущего состояния LiveDocs. Поддержка `--diff` и `--apply`. Использовать после структурных изменений. |
-| [`warn-coverage-gaps.sh`](warn-coverage-gaps.sh) | Показывает список спека-фич без LiveDoc-сводки. С `--github-issue` создаёт issue. Advisory (exit 0). |
-| [`cross-link-density.sh`](cross-link-density.sh) | Метрика качества LiveDocs: % файлов с `related:`, среднее кол-во cross-references, распределение по типам. С `--json` для automation. |
-| [`comment-broken.sh`](comment-broken.sh) | Генерирует markdown-комментарий для PR с broken cross-links. С `--post <PR>` автоматически через `gh pr comment`. |
+| [`check-knowledge-structure.sh`](check-knowledge-structure.sh) | CI gate: 9 проверок структуры `knowledge/` (директории, шаблоны, 9 доменов, ≥1 ADR, cross-link в README на каждый домен, frontmatter в domain.md, CI integration). **Запускается в GitHub Actions.** |
+| [`check-knowledge-cross-links.sh`](check-knowledge-cross-links.sh) | Проверяет 243+ cross-links (`../X.md` и `related:`). ADR исключены (legacy формат). **Запускается в GitHub Actions.** |
+| [`lint-knowledge.py`](lint-knowledge.py) | Проверяет эмодзи (запрещены), mandatory headers (для domain/component), structural integrity L2 → L1. **Запускается в GitHub Actions.** |
 
-## Код и CI (прочие проекты)
+## Код и CI
 
 | Скрипт | Назначение |
 |--------|------------|
@@ -36,6 +23,8 @@
 | `generate-docs.sh` | Генерация Dokka + typedoc. |
 | `check-censored-public.sh` | Smoke-test цензурирования на `karaoke-web` без `karaoke-app`. |
 | `check-audit-coverage.sh` | 100% audit coverage. |
+| `check-songedit-field-coverage.sh` | UI↔backend field coverage для SongEdit. |
+| `check-endpoint-field-coverage.sh` | Общий UI↔backend audit (все пары из endpoint-pairs.yml). |
 
 ## Резерв (build / deploy)
 
@@ -44,48 +33,13 @@
 | `deploy_web.sh`, `deploy_public.sh` | Деплой на прод (rsync + nginx). |
 | `do.sh` | docker-compose build/start. |
 | `build-lock.sh` | Сериализация параллельных Gradle-сборок (flock). |
-| `check-stats-connection-leak.sh` | Smoke-test для поиска connection leak (см. [runbooks/how-to-debug-connection-leak.md](../livedocs/runbooks/how-to-debug-connection-leak.md)). |
-| `lint-*.sh` | Прочие линтеры/проверки (не-LiveDocs). |
+| `lint-*.sh` | Прочие линтеры/проверки (не-документация). |
 
 ## Утилиты для новых скриптов
 
-Примерный шаблон POSIX bash:
+Раздел об утилитах для разработки новых bash-скриптов.
 
-```bash
-#!/usr/bin/env bash
-set -uo pipefail  # НЕ set -e (для CI-сборщиков failures нужен накопительный эффект)
+## См. также
 
-REPO_ROOT="$(git rev-parse --show-toplevel)"
-cd "$REPO_ROOT"
-
-FAIL=0
-# ... проверки ...
-
-if [ "$FAIL" -eq 0 ]; then
-  echo "OK"
-  exit 0
-else
-  echo "FAILED: $FAIL check(s)"
-  exit 1
-fi
-```
-
-`chmod +x <script>` обязателен.
-
-## Conventions
-
-- **Имя**: kebab-case (`check-foo-bar.sh`, НЕ `CheckFooBar.sh`).
-- **Shebang**: `#!/usr/bin/env bash` (на alpine-bash тоже работает).
-- **Output**: наглядный + номера failure (`$FAIL=$(($FAIL+1))`).
-- **Exit code**: 0 если OK, 1 если FAIL, 2 если ошибка использования.
-- **README-style help**: `--help` flag.
-- **Robust parse**: кавычки, "set -uo pipefail", комментарии для non-trivial.
-
-## Когда добавлять новый скрипт
-
-1. Задача повторяется ≥ 2 раз — выделить в скрипт.
-2. Скрипт проверяет что-то — должен иметь exit code, понятный output.
-3. Документируйте здесь (таблица выше) — короткое описание.
-
-См. также `livedocs/runbooks/how-to-update-livedocs.md` — как sync кода
-с LiveDocs при изменениях.
+- [AGENTS.md § Перед каждым git commit](../AGENTS.md) — обязательный pre-commit checklist.
+- [knowledge/guidelines/code-style.md](../knowledge/guidelines/code-style.md) — code style для shell-скриптов.

@@ -13,7 +13,6 @@ related:
 
 > Bounded context для in-memory и предрассчитанных кешей Karaoke.
 >
-> Drill-down (legacy): [livedocs/domain/caching.md](../../../livedocs/domain/caching.md).
 
 ## Обзор контекста (Bounded Context)
 

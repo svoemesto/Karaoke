@@ -118,12 +118,12 @@
 
 | Термин | Определение | Источник |
 | --- | --- | --- |
-| **karaoke-app** | Kotlin/Spring backend (админ-API, ML-пайплайн) | [L2-containers](../../livedocs/architecture/L2-containers.md) |
-| **karaoke-web** | Kotlin/Spring backend (админский web, security) | [L2-containers](../../livedocs/architecture/L2-containers.md) |
-| **webvue3** | Vue 3 admin SPA | [L2-containers](../../livedocs/architecture/L2-containers.md) |
-| **karaoke-public** | Vue 3 публичный сайт | [L2-containers](../../livedocs/architecture/L2-containers.md) |
+| **karaoke-app** | Kotlin/Spring backend (админ-API, ML-пайплайн) | [L2-containers](../system/02-containers.md) |
+| **karaoke-web** | Kotlin/Spring backend (админский web, security) | [L2-containers](../system/02-containers.md) |
+| **webvue3** | Vue 3 admin SPA | [L2-containers](../system/02-containers.md) |
+| **karaoke-public** | Vue 3 публичный сайт | [L2-containers](../system/02-containers.md) |
 | **PostgreSQL** | Основная БД (raw JDBC, без JPA) | [ADR-0001](../adr/0001-raw-jdbc.md) |
-| **MinIO** | S3-compatible storage для стемов, MP4 | [L2-containers](../../livedocs/architecture/L2-containers.md) |
+| **MinIO** | S3-compatible storage для стемов, MP4 | [L2-containers](../system/02-containers.md) |
 | **MLT/melt** | Видеоредактор для караоке-видео | [ADR-0002](../adr/0002-mlt-instead-of-ffmpeg.md) |
 | **Demucs** | ML-модель стем-сепарации | [processing](../domains/processing/domain.md) |
 | **Sheetsage** | ML-модель key/BPM/chords | [processing](../domains/processing/domain.md) |

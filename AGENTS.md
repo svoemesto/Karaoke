@@ -8,21 +8,21 @@
 
 ## С чего начать сессию (AI-агент)
 
-Прочитай **LiveDocs первым**: [`livedocs/README.md`](livedocs/README.md) → [`livedocs/INDEX.md`](livedocs/INDEX.md) → нужный слой (`features/`, `domain/`, `architecture/`).
+Прочитай **Knowledge первым**: [`knowledge/README.md`](knowledge/README.md) → [`knowledge/domains/README.md`](knowledge/domains/README.md) → нужный домен → его `domain.md` + `components/*.md`.
 
-**Быстрый поиск**: `bash tools/search-livedocs.sh '<query>'` или `/livedocs-find '<query>'`.
+**Быстрый поиск**: `grep -r '<query>' knowledge/` или `find knowledge -name '*.md' | xargs grep -l '<query>'`.
 
-**Только если в LiveDocs нет** — `specs/<NNN>/spec.md`, `archive/docs/features/*.md`, этот файл.
+**Только если в Knowledge нет** — `specs/<NNN>/spec.md`, `archive/docs/features/*.md`, этот файл.
 
-## LiveDocs CI / pre-commit
+## Knowledge SSoT CI / pre-commit
 
 | Проверка | Что | Где |
 |----------|-----|-----|
-| `tools/check-livedocs-structure.sh` | 7 структурных проверок (`≥5 фич`, `≥5 BC`, `L1+L2+L3`, frontmatter, `AGENTS.md ≤100`, CI) | **CI** + **pre-commit** |
-| `tools/check-livedocs-cross-links.sh` | cross-links (`../X.md` + `related:`) | **CI** + **pre-commit** |
-| `tools/check-livedocs-external-links.sh` | External `https://` URLs (strict) | **CI** (strict) |
+| `tools/check-knowledge-structure.sh` | 9 структурных проверок (директории, шаблоны, 9 доменов, ≥1 ADR, cross-link в README, frontmatter) | **CI** |
+| `tools/check-knowledge-cross-links.sh` | cross-links (`../X.md` + `related:`), 243+ проверок | **CI** |
+| `tools/lint-knowledge.py` | Эмодзи (запрещены), mandatory headers, structural integrity L2 → L1 | **CI** |
 
-Локальные правки LiveDocs → запустить все три перед commit.
+Локальные правки Knowledge → запустить все три перед commit.
 
 ## Где смотреть логи прода
 
@@ -31,22 +31,22 @@
 
 ## Иерархия документации и AI-агенты
 
-Иерархия: `livedocs/` → `constitution.md` → `AGENTS.md` → `CONTRIBUTING.md` → `DEVELOPMENT.md` → `specs/NNN-*/spec.md` → `archive/`.
-При расхождении приоритет у файла с меньшим номером (полная таблица в `livedocs/architecture-notes.md`).
+Иерархия: `knowledge/` → `constitution.md` → `AGENTS.md` → `CONTRIBUTING.md` → `DEVELOPMENT.md` → `specs/NNN-*/spec.md` → `archive/`.
+При расхождении приоритет у файла с меньшим номером (полная таблица в `docs/architecture-notes.md`).
 opencode (primary) → этот файл (✅ в гите). Claude Code / Cursor / Cody / Aider — локальные конфиги.
-Setup новых AI: `livedocs/onboarding.md`.
+Setup новых AI: [`knowledge/public/onboarding.md`](knowledge/public/onboarding.md).
 
 ## Issue-tracker OpenProject (spec 295) — ВАЖНО
 
-В начале **каждой сессии** (после чтения LiveDocs): `cd /home/nsa/Karaoke && source .env.local-tracker && bash tools/tracker-poll.sh`.
+В начале **каждой сессии** (после чтения Knowledge): `cd /home/nsa/Karaoke && source .env.local-tracker && bash tools/tracker-poll.sh`.
 
 Если есть открытые задачи (`assignee=ai-agent, status=open`):
 `spec-for-issue → claim → работа → add-comment + mark-review → close`.
-Docs: [`docs/tracker-setup.md`](docs/tracker-setup.md), [`livedocs/features/295-jira-local-integration.md`](livedocs/features/295-jira-local-integration.md).
+Docs: [`docs/tracker-setup.md`](docs/tracker-setup.md), [`knowledge/adr/0008-tracker-openproject-migration.md`](knowledge/adr/0008-tracker-openproject-migration.md).
 
 ## Ограничения агента (NON-NEGOTIABLE)
 
-**Запрещено:** пересобирать `karaoke-app` (исключения см. ниже), деплой без согласия, редактировать файлы на сервере, коммитить секреты (`deploy/.env`, `*.key`, `*.pem` — `git ls-files | grep -iE '\.env$|\.key$|\.pem$'` пусто), образы `nginx:alpine`/`node:latest`/JDK вместо JRE. **Разрешено:** править код, `gradle clean bootJar`, `npm run dev/build`, локальные контейнеры через `deploy/do.sh`. **Обновление LiveDocs (FR-014)**: при изменении bounded context или C4 уровня — обновить LiveDoc в том же PR.
+**Запрещено:** пересобирать `karaoke-app` (исключения см. ниже), деплой без согласия, редактировать файлы на сервере, коммитить секреты (`deploy/.env`, `*.key`, `*.pem` — `git ls-files | grep -iE '\.env$|\.key$|\.pem$'` пусто), образы `nginx:alpine`/`node:latest`/JDK вместо JRE. **Разрешено:** править код, `gradle clean bootJar`, `npm run dev/build`, локальные контейнеры через `deploy/do.sh`. **Обновление Knowledge (FR-014)**: при изменении bounded context или C4 уровня — обновить соответствующий файл в `knowledge/` в том же PR.
 
 ### Машинно-специфичные исключения (Pass 282)
 
@@ -54,7 +54,7 @@ Docs: [`docs/tracker-setup.md`](docs/tracker-setup.md), [`livedocs/features/295-
 - ✅ `karaoke-app` пересобирать без явного согласия. ❌ Контейнер `karaoke-app` перезапускать только по согласию.
 - ✅ Править любой код, пересобирать `karaoke-web`/`webvue3`/`karaoke-public`.
 - ❌ Деплой на прод, правка файлов на сервере, `deploy/do.env` — только по согласию.
-- **Новое исключение** → подсекция + semver bump `AGENTS.md` + `livedocs/architecture-notes.md`.
+- **Новое исключение** → подсекция + semver bump `AGENTS.md` + `docs/architecture-notes.md`.
 
 ## Git — CI-gate для master (NON-NEGOTIABLE)
 
@@ -75,7 +75,7 @@ gh pr checks && gh pr merge --merge   # БЕЗ --delete-branch
 
 ### Gradle: запуск с `GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle`
 
-> **NON-NEGOTIABLE** (см. полную версию в `livedocs/architecture/dsh-sandbox-conventions.md`):
+> **NON-NEGOTIABLE** (см. полную версию в `docs/architecture-notes.md` или в git history `livedocs/architecture/dsh-sandbox-conventions.md`):
 > все `./gradlew ...` команды должны идти с `GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle`
 > (папка `.gradle` ВНУТРИ проекта). Без этого wrapper пишет в read-only `/home/nsa/.gradle/wrapper/dists/...`.
 

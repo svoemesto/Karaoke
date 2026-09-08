@@ -2,44 +2,15 @@
 
 > **Домен**: `knowledge/guidelines/runbooks/`
 > **Назначение**: операционные playbook'и для типовых задач.
-> **Источник**: [livedocs/runbooks/](../../../../livedocs/runbooks/) (полная коллекция, 12 шт).
 
-Этот индекс перечисляет **ключевые** runbook'и (перенесённые или
-созданные в `knowledge/`), остальные остаются в `livedocs/runbooks/`
-(архивная коллекция v1).
+Runbook'и создаются по мере необходимости в этой директории.
+Исторические playbook'и из `livedocs/runbooks/` (архивная коллекция v1)
+больше недоступны — их содержимое нужно переносить сюда при
+необходимости.
 
-## Перенесённые в `knowledge/`
+## Текущий каталог
 
-- *(в процессе миграции; полный список появится в следующих спецификациях)*
-
-## В `livedocs/runbooks/` (полная коллекция)
-
-### Базовые workflow
-
-| Runbook | Когда использовать |
-| --- | --- |
-| [how-to-add-new-feature.md](../../../../livedocs/runbooks/how-to-add-new-feature.md) | Создание новой спецификации фичи. |
-| [how-to-add-new-topic.md](../../../../livedocs/runbooks/how-to-add-new-topic.md) | Добавление новой темы в LiveDocs. |
-| [how-to-update-livedocs.md](../../../../livedocs/runbooks/how-to-update-livedocs.md) | Обновление существующего LiveDoc. |
-| [how-to-add-new-adr.md](../../../../livedocs/runbooks/how-to-add-new-adr.md) | Создание нового ADR (теперь в `knowledge/adr/`). |
-| [how-to-add-new-domain.md](../../../../livedocs/runbooks/how-to-add-new-domain.md) | Создание нового домена в `knowledge/domains/`. |
-
-### Разработка
-
-| Runbook | Когда использовать |
-| --- | --- |
-| [how-to-add-orm-field.md](../../../../livedocs/runbooks/how-to-add-orm-field.md) | Добавление поля в ORM/SQL. |
-| [how-to-stemjobs.md](../../../../livedocs/runbooks/how-to-stemjobs.md) | Задачи стем-сепарации Demucs. |
-| [how-to-debug-connection-leak.md](../../../../livedocs/runbooks/how-to-debug-connection-leak.md) | Диагностика connection leak. |
-
-### Deploy / Operations
-
-| Runbook | Когда использовать |
-| --- | --- |
-| [how-to-deploy.md](../../../../livedocs/runbooks/how-to-deploy.md) | Деплой через `deploy/do.sh`. |
-| [how-to-migrate-db.md](../../../../livedocs/runbooks/how-to-migrate-db.md) | Миграция БД на прод. |
-| [how-to-migrate-prod-server.md](../../../../livedocs/runbooks/how-to-migrate-prod-server.md) | Миграция прод-сервера. |
-| [how-to-demo-publish-links.md](../../../../livedocs/runbooks/how-to-demo-publish-links.md) | Демо publish-links. |
+*(пока пусто; добавляйте runbook'и по мере надобности)*
 
 ## Структура runbook'а
 
@@ -55,6 +26,6 @@
 
 Runbook'и должны ссылаться на:
 
-- Соответствующий **ADR** (почему так, а не иначе).
-- Соответствующий **домен** (`knowledge/domains/<name>/`) (где живёт код).
-- Соответствующую **спецификацию** (`specs/NNN-<slug>/`) (если есть).
+- Соответствующий **ADR** в `knowledge/adr/` (почему так, а не иначе).
+- Соответствующий **домен** в `knowledge/domains/<name>/` (где живёт код).
+- Соответствующую **спецификацию** в `specs/NNN-<slug>/` (если есть).

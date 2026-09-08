@@ -16,7 +16,6 @@ related:
 > Детальный drill-down для [processing.md](../processing/domain.md) —
 > подмножество про рендеринг видео через MLT/melt + Playwright + ffmpeg.
 >
-> Drill-down (legacy): [livedocs/domain/rendering.md](../../../livedocs/domain/rendering.md).
 
 ## Обзор контекста (Bounded Context)
 

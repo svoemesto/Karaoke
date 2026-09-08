@@ -15,7 +15,6 @@ related:
 > Аналитический bounded context — `tbl_events` (сегментация посетителей),
 > visitor → registration → premium воронка.
 >
-> Drill-down (legacy): [livedocs/domain/stats.md](../../../livedocs/domain/stats.md).
 
 ## Обзор контекста (Bounded Context)
 

@@ -15,7 +15,6 @@ related:
 
 > Главный домен проекта — каталог песен, альбомов, исполнителей, жанров.
 >
-> Drill-down (legacy): [livedocs/domain/catalog.md](../../../livedocs/domain/catalog.md).
 
 ## Обзор контекста (Bounded Context)
 

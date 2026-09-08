@@ -1,18 +1,16 @@
 # Guidelines
 
-> **Статус**: наполнено в спеке 332. См.
-> [livedocs/architecture/](../../livedocs/architecture/) и
-> [livedocs/runbooks/](../../livedocs/runbooks/) как полные источники.
+> **Статус**: наполнено в спеке 332.
 
 Стандартные паттерны и ограничения, действующие на весь проект.
 
 ## Структура
 
-| Документ | Назначение | Источник |
-| --- | --- | --- |
-| [architecture-conventions.md](architecture-conventions.md) | Сводный индекс архитектурных конвенций | `livedocs/architecture/` (26 файлов) |
-| [code-style.md](code-style.md) | Kotlin / Vue / SQL / Markdown / Shell / Docker style | `CONTRIBUTING.md` |
-| [runbooks/README.md](runbooks/README.md) | Индекс операционных playbook'ов | `livedocs/runbooks/` (12 файлов) |
+| Документ | Назначение |
+| --- | --- |
+| [architecture-conventions.md](architecture-conventions.md) | Сводный справочник архитектурных конвенций |
+| [code-style.md](code-style.md) | Kotlin / Vue / SQL / Markdown / Shell / Docker style |
+| [runbooks/README.md](runbooks/README.md) | Индекс операционных playbook'ов |
 
 ## Планируемое наполнение
 

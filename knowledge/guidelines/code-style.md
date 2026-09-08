@@ -17,7 +17,7 @@
 
 - **Использовать nullable types** для колонок БД, которые могут быть NULL.
 - **Избегать `is*` prefix для boolean** в DTOs (Jackson issue, см.
-  [jackson-conventions](../../livedocs/architecture/jackson-conventions.md)).
+  [identity dictionaries](../domains/identity/components/dictionaries.md)).
 - **Always URL-encode** query parameters with special characters.
 - **`ProcessBuilder.redirectErrorStream(true)`** обязательно для всех
   внешних процессов (см. [ADR-0006](../adr/0006-processbuilder-redirect-errorstream.md)).
@@ -78,8 +78,7 @@
 ## Markdown / docs
 
 - **Frontmatter** обязателен для каждого LiveDoc (`status`, `slug`).
-- **Templates**: использовать [livedocs/templates/](../../livedocs/templates/) или
-  [knowledge/templates/](../../templates/).
+- **Templates**: использовать [knowledge/templates/](../../templates/).
 - **C4 mermaid** для архитектурных диаграмм (L1, L2, L3).
 - **State-based**, не changelog-style.
 - **Эмодзи запрещены** в markdown (линтер падает, см. `tools/lint-knowledge.py`).

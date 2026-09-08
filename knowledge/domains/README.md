@@ -18,19 +18,19 @@ knowledge/domains/<name>/
     └── dictionaries.md  # обязательно, если есть «магические коды»
 ```
 
-## Домены Karaoke (миграция из `livedocs/domain/`)
+## Домены Karaoke (Bounded Contexts)
 
-| Домен | Источник | Текущий статус |
-| --- | --- | --- |
-| [`identity`](identity/domain.md) | `livedocs/domain/identity.md` | Migrated (spec 326) |
-| [`catalog`](catalog/domain.md) | `livedocs/domain/catalog.md` | Migrated (spec 327) |
-| [`rendering`](rendering/domain.md) | `livedocs/domain/rendering.md` | Migrated (spec 327) |
-| [`processing`](processing/domain.md) | `livedocs/domain/processing.md` | Migrated (spec 328) |
-| [`publishing`](publishing/domain.md) | `livedocs/domain/publishing.md` | Migrated (spec 328) |
-| [`editorial`](editorial/domain.md) | `livedocs/domain/editorial.md` | Migrated (spec 329) |
-| [`monitoring`](monitoring/domain.md) | `livedocs/domain/monitoring.md` | Migrated (spec 329) |
-| [`stats`](stats/domain.md) | `livedocs/domain/stats.md` | Migrated (spec 330) |
-| [`caching`](caching/domain.md) | `livedocs/domain/caching.md` | Migrated (spec 330) |
+| Домен | Текущий статус |
+| --- | --- |
+| [`identity`](identity/domain.md) | Migrated (spec 326) |
+| [`catalog`](catalog/domain.md) | Migrated (spec 327) |
+| [`rendering`](rendering/domain.md) | Migrated (spec 327) |
+| [`processing`](processing/domain.md) | Migrated (spec 328) |
+| [`publishing`](publishing/domain.md) | Migrated (spec 328) |
+| [`editorial`](editorial/domain.md) | Migrated (spec 329) |
+| [`monitoring`](monitoring/domain.md) | Migrated (spec 329) |
+| [`stats`](stats/domain.md) | Migrated (spec 330) |
+| [`caching`](caching/domain.md) | Migrated (spec 330) |
 
 ## Linking Protocol
 

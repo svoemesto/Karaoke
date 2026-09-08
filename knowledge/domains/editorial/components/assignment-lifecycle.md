@@ -146,10 +146,10 @@ POST /api/public/songeditor/revoke { songId }
 
 - → [domain](../domain.md) — AR `EditorAssignment`, `ReviewTask`.
 - → [dictionaries](dictionaries.md) — `ApprovalStatus`, error codes.
-- → [identity](../identity/domain.md) — `SiteUser.canSelfAssign`.
-- → [rendering dictionaries](../../rendering/components/dictionaries.md) —
+- → [identity](../../identity/domain.md) — `SiteUser.canSelfAssign`.
+- → [rendering dictionaries](../rendering/components/dictionaries.md —
   `RenderVersion`.
-- → [monitoring](../monitoring/domain.md) — `SubmittedAssignmentsCheck`
+- → [monitoring](../../monitoring/domain.md) — `SubmittedAssignmentsCheck`
   отслеживает задания в `submitted` без review > 24ч.
 
 ## Ловушки и предупреждения
@@ -161,7 +161,7 @@ POST /api/public/songeditor/revoke { songId }
 
 **[WARN] `idStatus` после approve** — НЕ устанавливается напрямую.
 Pipeline сам выставит 5/6 после успешного рендера. См.
-[song-lifecycle](../../catalog/components/song-lifecycle.md).
+[song-lifecycle](../catalog/components/song-lifecycle.md.
 
 **[WARN] Reassign после revoke** — после `status='revoked'` можно
 снова взять ту же песню (UNIQUE по `(song_id, assignee_id)` не
@@ -175,4 +175,4 @@ Pipeline сам выставит 5/6 после успешного рендер�
 
 ## Связанные ADR | Related ADRs
 
-- [0001-raw-jdbc](../../adr/0001-raw-jdbc.md) — БД для хранения.
+- [0001-raw-jdbc](../../../adr/0001-raw-jdbc.md) — БД для хранения.

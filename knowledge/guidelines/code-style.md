@@ -2,10 +2,10 @@
 
 > **Домен**: `knowledge/guidelines/`
 > **Назначение**: краткий справочник по code style Karaoke.
-> **Источник**: [CONTRIBUTING.md](../../../CONTRIBUTING.md) (полная версия, 892 строки).
+> **Источник**: [CONTRIBUTING.md](../../CONTRIBUTING.md) (полная версия, 892 строки).
 
 Этот документ — **выжимка ключевых правил**. Для глубоких вопросов —
-читать [CONTRIBUTING.md](../../../CONTRIBUTING.md). Style enforced by:
+читать [CONTRIBUTING.md](../../CONTRIBUTING.md). Style enforced by:
 
 - **ktlint** для Kotlin (CI-блокер).
 - **ESLint + Prettier** для Vue/TS (CI-блокер).
@@ -17,7 +17,7 @@
 
 - **Использовать nullable types** для колонок БД, которые могут быть NULL.
 - **Избегать `is*` prefix для boolean** в DTOs (Jackson issue, см.
-  [jackson-conventions](../../../livedocs/architecture/jackson-conventions.md)).
+  [jackson-conventions](../../livedocs/architecture/jackson-conventions.md)).
 - **Always URL-encode** query parameters with special characters.
 - **`ProcessBuilder.redirectErrorStream(true)`** обязательно для всех
   внешних процессов (см. [ADR-0006](../adr/0006-processbuilder-redirect-errorstream.md)).
@@ -78,7 +78,7 @@
 ## Markdown / docs
 
 - **Frontmatter** обязателен для каждого LiveDoc (`status`, `slug`).
-- **Templates**: использовать [livedocs/templates/](../../../livedocs/templates/) или
+- **Templates**: использовать [livedocs/templates/](../../livedocs/templates/) или
   [knowledge/templates/](../../templates/).
 - **C4 mermaid** для архитектурных диаграмм (L1, L2, L3).
 - **State-based**, не changelog-style.
@@ -95,7 +95,7 @@
 
 ## Линтеры и форматирование
 
-Перед каждым коммитом запускать (см. [AGENTS.md § Перед каждым git commit](../../../AGENTS.md)):
+Перед каждым коммитом запускать (см. [AGENTS.md § Перед каждым git commit](../../AGENTS.md)):
 
 ```bash
 # Линтеры

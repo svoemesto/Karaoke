@@ -91,8 +91,8 @@ Song (idStatus=4: MARKED)
 
 - → [domain](../domain.md) — AR `Song` с `idStatus=4`.
 - → [dictionaries](dictionaries.md) — `RenderVersion` enum.
-- → [catalog domain](../catalog/domain.md) — `sourceMarkers` из catalog.
-- → [identity domain](../identity/domain.md) — `Identity` editor
+- → [catalog domain](../../catalog/domain.md) — `sourceMarkers` из catalog.
+- → [identity domain](../../identity/domain.md) — `Identity` editor
   инициирует Approve.
 - → ADR-0002 — выбор MLT, обоснование архитектуры.
 - → External: `melt` (MLT framework), `ffmpeg` (для финального mux).

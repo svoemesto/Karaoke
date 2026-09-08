@@ -77,7 +77,7 @@ in-memory snapshot, захваченный в начале. Чтобы изме�
 - → [domain](../domain.md) — используется во всех mko-классах.
 - → [playwright-rendering](playwright-rendering.md) — читает параметры
   для каждого кадра.
-- → [rendering domain](../rendering/domain.md) — `MLTProject` строится
+- → [rendering domain](../../rendering/domain.md) — `MLTProject` строится
   на основе параметров.
 
 ## Ловушки и предупреждения

@@ -98,7 +98,7 @@ fun refreshCache() {
 
 ## Runbook
 
-[`docs/ops/log-correlation.md`](../../../docs/ops/log-correlation.md) —
+[`docs/ops/log-correlation.md`](../../../../docs/ops/log-correlation.md) —
 полная карта логов с примерами grep-маркеров.
 
 ## Ловушки и предупреждения

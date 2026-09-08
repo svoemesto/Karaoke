@@ -20,10 +20,10 @@
 | Из | В | Доменное событие | Триггер | Участник |
 | --- | --- | --- | --- | --- |
 | — | `NEW (1)` | `SongAdded` | mp3 появился в папке импорта | `SongService` (catalog) |
-| `NEW (1)` | `PROCESSING (2)` | `SongStatusChanged` | редактор взял задание | `Identity` editor + [processing](../processing/domain.md) |
-| `PROCESSING (2)` | `STEMS_READY (3)` | `SongStatusChanged` | Demucs+Sheetsage завершили работу | [processing](../processing/domain.md) (Demucs worker) |
+| `NEW (1)` | `PROCESSING (2)` | `SongStatusChanged` | редактор взял задание | `Identity` editor + [processing](../../processing/domain.md) |
+| `PROCESSING (2)` | `STEMS_READY (3)` | `SongStatusChanged` | Demucs+Sheetsage завершили работу | [processing](../../processing/domain.md) (Demucs worker) |
 | `STEMS_READY (3)` | `MARKED (4)` | `SongStatusChanged` | редактор расставил маркеры | `Identity` editor |
-| `MARKED (4)` | `RENDERED (5)` | `SongStatusChanged` | MP4 готов, лежит в MinIO | [rendering](../rendering/domain.md) (melt worker) |
+| `MARKED (4)` | `RENDERED (5)` | `SongStatusChanged` | MP4 готов, лежит в MinIO | [rendering](../../rendering/domain.md) (melt worker) |
 | `RENDERED (5)` | `APPROVED (6)` | `SongStatusChanged` | редактор одобрил | `Identity` editor |
 | любой | `SongPublished` | — | `publishDate` истёк | `SongService.isContentReady()` |
 | любой | `SongSkipped` | — | добавлен тег `SKIP` | `Identity` admin |
@@ -48,7 +48,7 @@
 1. Редактор (через админку) берёт задание на обработку (`canSelfAssign`).
 2. `Song.idStatus = 2`.
 3. `processing` workers (Demucs+Sheetsage) стартуют в фоне через
-   [processing domain](../processing/domain.md).
+   [processing domain](../../processing/domain.md).
 4. Доменное событие `SongStatusChanged(1→2)`.
 
 ### Шаг 3. Стемы готовы (`STEMS_READY`)
@@ -75,7 +75,7 @@
    MinIO `done_files/<songId>/`.
 3. `Song.idStatus = 5`.
 4. Доменное событие `SongStatusChanged(4→5)`.
-5. См. [rendering domain](../rendering/domain.md) для деталей.
+5. См. [rendering domain](../../rendering/domain.md) для деталей.
 
 ### Шаг 6. Approve (`APPROVED`)
 
@@ -94,17 +94,17 @@
 
 - → [dictionaries](dictionaries.md) — `IdStatus` коды 1..6.
 - → [domain](../domain.md) — AR `Song` хранит `idStatus`.
-- → [identity](../identity/domain.md) — `Identity` editor с
+- → [identity](../../identity/domain.md) — `Identity` editor с
   `canSelfAssign=true` берёт задания.
-- → [processing](../processing/domain.md) — Demucs+Sheetsage workers.
-- → [rendering](../rendering/domain.md) — melt workers.
-- → [publishing](../publishing/domain.md) — `publishDate` управляется
+- → [processing](../../processing/domain.md) — Demucs+Sheetsage workers.
+- → [rendering](../../rendering/domain.md) — melt workers.
+- → [publishing](../../publishing/domain.md) — `publishDate` управляется
   в publishing-контексте.
 
 ## Связанные ADR | Related ADRs
 
 - ADR-0002 (MLT вместо ffmpeg) — про шаг 5.
-- ADR по [processing workers](../processing/domain.md) (TODO).
+- ADR по [processing workers](../../processing/domain.md) (TODO).
 
 ## Связанные фичи
 

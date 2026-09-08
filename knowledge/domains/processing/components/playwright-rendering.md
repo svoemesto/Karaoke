@@ -108,7 +108,7 @@ process.inputStream.bufferedReader().forEachLine { line ->
 ## Зависимости | Dependencies
 
 - → [domain](../domain.md) — AR `KaraokeVideo`, `MLTProject`.
-- → [rendering dictionaries](../rendering/components/dictionaries.md) —
+- → [rendering dictionaries](../../rendering/components/dictionaries.md —
   `RenderVersion`.
 - → [karaoke-properties](karaoke-properties.md) — параметры рендера.
 - → ADR-0006 — `redirectErrorStream(true)` обязателен для всех
@@ -134,4 +134,4 @@ ADR-0006). Без этого ffmpeg заполнит stderr и процесс з
 
 ## Связанные ADR | Related ADRs
 
-- [0006-processbuilder-redirecterrorstream](../../adr/0006-processbuilder-redirecterrorstream.md)
+- [0006-processbuilder-redirect-errorstream](../../../adr/0006-processbuilder-redirect-errorstream.md)

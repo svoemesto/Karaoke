@@ -11,8 +11,8 @@
 | Документ | Назначение | Источник |
 | --- | --- | --- |
 | [glossary.md](glossary.md) | Ubiquitous Language Karaoke (сводный глоссарий) | Все домены `knowledge/domains/` |
-| [onboarding.md](onboarding.md) | Onboarding нового разработчика (10-минутный) | [AGENTS.md](../../../AGENTS.md), [CONTRIBUTING.md](../../../CONTRIBUTING.md), [livedocs/onboarding.md](../../../livedocs/onboarding.md) |
-| [c4-overview.md](c4-overview.md) | Упрощённый обзор архитектуры для неинженеров | [livedocs/architecture/](../../../livedocs/architecture/) |
+| [onboarding.md](onboarding.md) | Onboarding нового разработчика (10-минутный) | [AGENTS.md](../../AGENTS.md), [CONTRIBUTING.md](../../CONTRIBUTING.md), [livedocs/onboarding.md](../../livedocs/onboarding.md) |
+| [c4-overview.md](c4-overview.md) | Упрощённый обзор архитектуры для неинженеров | [livedocs/architecture/](../../livedocs/architecture/) |
 
 ## Как использовать
 

@@ -8,14 +8,13 @@ related:
   - ../rendering/domain.md
   - ../identity/domain.md
   - ../../adr/0001-raw-jdbc.md
-  - ../../adr/0006-processbuilder-redirecterrorstream.md
+  - ../../adr/0006-processbuilder-redirect-errorstream.md
 ---
 
 # Domain: Processing (Обработка)
 
 > Подсистема производства караоке-видео — MLT, Demucs, Sheetsage, async-очередь.
 >
-> Drill-down (legacy): [livedocs/domain/processing.md](../../../livedocs/domain/processing.md).
 
 ## Обзор контекста (Bounded Context)
 
@@ -103,7 +102,7 @@ rendering — это **конечный** рендер MP4 из маркеров
 
 1. **`ProcessBuilder` всегда с `redirectErrorStream(true)`**: stdout и
    stderr должны быть объединены, иначе процесс блокируется (см.
-   [ADR-0006](../../adr/0006-processbuilder-redirecterrorstream.md)).
+   [ADR-0006](../../adr/0006-processbuilder-redirect-errorstream.md)).
 2. **Demucs → Sheetsage → MLT → render строго последовательны**: каждый
    следующий шаг ждёт события от предыдущего (`StemsSeparated`,
    `KeyBpMDetected`, `MltGenerated`).
@@ -142,7 +141,7 @@ rendering — это **конечный** рендер MP4 из маркеров
 ## Связанные ADR
 
 - [0001-raw-jdbc](../../adr/0001-raw-jdbc.md) — БД для хранения `MLTProject`.
-- [0006-processbuilder-redirecterrorstream](../../adr/0006-processbuilder-redirecterrorstream.md) —
+- [0006-processbuilder-redirect-errorstream](../../adr/0006-processbuilder-redirect-errorstream.md) —
   правило `redirectErrorStream(true)`.
 
 ## Код (физическая реализация)

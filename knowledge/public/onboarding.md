@@ -2,7 +2,7 @@
 
 > **Домен**: `knowledge/public/`
 > **Назначение**: 30-минутный вход в проект.
-> **Полная версия**: [livedocs/onboarding.md](../../../livedocs/onboarding.md) (историческая).
+> **Полная версия**: [livedocs/onboarding.md](../../livedocs/onboarding.md) (историческая).
 
 Это **сжатая** версия onboarding для новых разработчиков. Чтение
 занимает ~15 минут, после чего вы знаете, где что искать.
@@ -30,22 +30,22 @@ karaoke/                          ← корень проекта
 
 | Документ | Зачем |
 | --- | --- |
-| [AGENTS.md](../../../AGENTS.md) | Runtime-инструкции, governance, git workflow |
-| [CONTRIBUTING.md](../../../CONTRIBUTING.md) | Code style (Kotlin, Vue, SQL, MD, Sh, Docker) |
-| [CLAUDE.md](../../../CLAUDE.md) | Гайдлайны для Claude Code |
-| [DEVELOPMENT.md](../../../DEVELOPMENT.md) | Архитектура + команды сборки/деплоя |
+| [AGENTS.md](../../AGENTS.md) | Runtime-инструкции, governance, git workflow |
+| [CONTRIBUTING.md](../../CONTRIBUTING.md) | Code style (Kotlin, Vue, SQL, MD, Sh, Docker) |
+| [CLAUDE.md](../../CLAUDE.md) | Гайдлайны для Claude Code |
+| [DEVELOPMENT.md](../../DEVELOPMENT.md) | Архитектура + команды сборки/деплоя |
 | [knowledge/README.md](../README.md) | Карта LivingDocs v2 |
 
 ## 3. C4-модель (5 минут)
 
 Проект Karaoke описан в C4-нотации:
 
-- **L1 — System Context** ([livedocs/architecture/L1-system-context.md](../../../livedocs/architecture/L1-system-context.md))
+- **L1 — System Context** ([livedocs/architecture/L1-system-context.md](../../livedocs/architecture/L1-system-context.md))
   Место Karaoke в мире: посетители, Telegram, VK ID OAuth.
-- **L2 — Containers** ([livedocs/architecture/L2-containers.md](../../../livedocs/architecture/L2-containers.md))
+- **L2 — Containers** ([livedocs/architecture/L2-containers.md](../../livedocs/architecture/L2-containers.md))
   Технические контейнеры: `karaoke-app`, `karaoke-web`, `webvue3`,
   `karaoke-public`, PostgreSQL, MinIO.
-- **L3 — Components** ([livedocs/architecture/L3-components.md](../../../livedocs/architecture/L3-components.md))
+- **L3 — Components** ([livedocs/architecture/L3-components.md](../../livedocs/architecture/L3-components.md))
   Технические компоненты внутри контейнеров.
 
 ## 4. Bounded Contexts (5 минут)
@@ -55,15 +55,15 @@ Karaoke разбит на **9 доменов** (Bounded Contexts). Каждый 
 
 | Домен | Что делает |
 | --- | --- |
-| [identity](../../domains/identity/domain.md) | Пользователи, авторизация, сессии. |
-| [catalog](../../domains/catalog/domain.md) | Каталог песен (18k+ записей). |
-| [rendering](../../domains/rendering/domain.md) | Рендеринг MP4 через MLT/melt. |
-| [processing](../../domains/processing/domain.md) | Demucs, Sheetsage, Playwright. |
-| [publishing](../../domains/publishing/domain.md) | Эфир, подписка, статистика главной. |
-| [editorial](../../domains/editorial/domain.md) | Задания редакторов, self-assign. |
-| [stats](../../domains/stats/domain.md) | Аналитика трафика, воронка. |
-| [caching](../../domains/caching/domain.md) | Паттерны кеширования. |
-| [monitoring](../../domains/monitoring/domain.md) | Мониторинг, SLF4J-категории. |
+| [identity](../domains/identity/domain.md) | Пользователи, авторизация, сессии. |
+| [catalog](../domains/catalog/domain.md) | Каталог песен (18k+ записей). |
+| [rendering](../domains/rendering/domain.md) | Рендеринг MP4 через MLT/melt. |
+| [processing](../domains/processing/domain.md) | Demucs, Sheetsage, Playwright. |
+| [publishing](../domains/publishing/domain.md) | Эфир, подписка, статистика главной. |
+| [editorial](../domains/editorial/domain.md) | Задания редакторов, self-assign. |
+| [stats](../domains/stats/domain.md) | Аналитика трафика, воронка. |
+| [caching](../domains/caching/domain.md) | Паттерны кеширования. |
+| [monitoring](../domains/monitoring/domain.md) | Мониторинг, SLF4J-категории. |
 
 Полный глоссарий — [glossary.md](glossary.md).
 
@@ -81,7 +81,7 @@ Karaoke разбит на **9 доменов** (Bounded Contexts). Каждый 
 
 ## 6. Главные конвенции (5 минут)
 
-Из [AGENTS.md](../../../AGENTS.md) и [CONTRIBUTING.md](../../../CONTRIBUTING.md):
+Из [AGENTS.md](../../AGENTS.md) и [CONTRIBUTING.md](../../CONTRIBUTING.md):
 
 1. **Сырой JDBC + recordhash** (никакого JPA/Hibernate).
 2. **`nginx:stable`** (НЕ `nginx:alpine`).
@@ -100,14 +100,14 @@ Karaoke разбит на **9 доменов** (Bounded Contexts). Каждый 
 
 ### Типичный цикл фичи
 
-1. Прочитать [AGENTS.md](../../../AGENTS.md) § «Git — CI-gate для master».
+1. Прочитать [AGENTS.md](../../AGENTS.md) § «Git — CI-gate для master».
 2. Создать feature-ветку `NNN-<slug>` от master (через
    `./tools/reserve-branch-number.sh <slug>`).
 3. Создать спецификацию в `specs/NNN-<slug>/` (через
-   [livedocs/templates/](../../../livedocs/templates/) или spec-template).
+   [livedocs/templates/](../../livedocs/templates/) или spec-template).
 4. Реализовать фичу в коде.
 5. Обновить соответствующий **домен** в `knowledge/domains/`
-   ([соответствующий файл](../../domains/)).
+   ([соответствующий файл](../domains/)).
 6. Запустить линтеры (`./gradlew ktlintCheck`, `npm run lint`,
    `bash tools/check-livedocs-structure.sh`, `python3 tools/lint-knowledge.py`).
 7. Push и PR через `gh pr create --base master`.
@@ -117,7 +117,7 @@ Karaoke разбит на **9 доменов** (Bounded Contexts). Каждый 
 
 - [Knowledge state mutation lifecycle](../README.md#жизненный-цикл-документации):
   обновить домен + ADR + guideline при изменении кода.
-- [Pre-commit checklist](../../../AGENTS.md): 7 проверок, lint, prettier.
+- [Pre-commit checklist](../../AGENTS.md): 7 проверок, lint, prettier.
 
 ## 8. Типичные ошибки (TOP-10)
 
@@ -158,7 +158,7 @@ pre-commit run --all-files
 - **Гайдлайны**: AGENTS.md, CONTRIBUTING.md, CLAUDE.md.
 - **Архитектура**: knowledge/domains/, knowledge/adr/, knowledge/system/.
 - **Оперативные playbook'и**: [knowledge/guidelines/runbooks/](../../guidelines/runbooks/),
-  [livedocs/runbooks/](../../../livedocs/runbooks/).
-- **Стратегия роста**: [livedocs/strategy/](../../../livedocs/strategy/).
+  [livedocs/runbooks/](../../livedocs/runbooks/).
+- **Стратегия роста**: [livedocs/strategy/](../../livedocs/strategy/).
 
 Добро пожаловать в Karaoke!

@@ -264,3 +264,37 @@ jobs:
         # - http://thinkrelevance.com/blog/* — редирект 301 → блог Nygard's ADR
         # - http://oauth.vk.ru/blank.html — редирект (случай broken HEAD)
         run: bash tools/check-livedocs-external-links.sh
+
+  # === Knowledge SSoT structure (Living Documentation v2) ===
+  # Knowledge (knowledge/) — Single Source of Truth (SSoT) проекта Karaoke.
+  # Спецификации 322, 326-333 мигрировали с livedocs/ на knowledge/.
+  # Этот job гарантирует, что любое изменение кода, требующее обновления
+  # документации, сопровождается синхронным обновлением knowledge/.
+  # Подробности: knowledge/README.md, ADR-0007-adopt-knowledge-as-ssot.
+  knowledge-structure:
+    name: Knowledge SSoT structure
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check Knowledge structure
+        # Проверяет: обязательные директории (system/domains/adr/epics/
+        # guidelines/public/templates), README каждого слоя, наличие 9
+        # доменов, ≥1 ADR, cross-link в knowledge/README.md на каждый
+        # домен (Linking Protocol L3 → L2 → L1), frontmatter в
+        # domain.md файлах.
+        run: bash tools/check-knowledge-structure.sh
+
+      - name: Check Knowledge cross-links
+        # Проверяет относительные пути ../X.md и related: в knowledge/
+        # (исключая adr/, который может содержать legacy ссылки на
+        # архивную livedocs/, и templates/ с плейсхолдерами).
+        run: bash tools/check-knowledge-cross-links.sh
+
+      - name: Lint knowledge (markdown style)
+        # tools/lint-knowledge.py — проверка эмодзи, обязательных
+        # секций шаблона (для domain/component), structural integrity
+        # (L2 → L1 linking для каждого домена).
+        run: python3 tools/lint-knowledge.py

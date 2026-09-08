@@ -1,8 +1,8 @@
 # Guidelines
 
 > **Статус**: наполнено в спеке 332. См.
-> [livedocs/architecture/](../../../livedocs/architecture/) и
-> [livedocs/runbooks/](../../../livedocs/runbooks/) как полные источники.
+> [livedocs/architecture/](../../livedocs/architecture/) и
+> [livedocs/runbooks/](../../livedocs/runbooks/) как полные источники.
 
 Стандартные паттерны и ограничения, действующие на весь проект.
 

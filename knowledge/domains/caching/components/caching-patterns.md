@@ -172,7 +172,7 @@ withTimeout(60_000) { ... }`.
 ## Зависимости | Dependencies
 
 - → [domain](../domain.md) — все кеши.
-- → [monitoring log-categories](../../monitoring/components/log-categories.md) —
+- → [monitoring log-categories](../monitoring/components/log-categories.md —
   SLF4J-категории для логирования.
 - → [stats domain](../../stats/domain.md) — `StatsCacheScheduler`
   обслуживает stats.

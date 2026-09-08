@@ -29,6 +29,8 @@ Karaoke. Описывает **текущее состояние** системы
 - [`rendering`](domains/rendering/domain.md) — рендеринг караоке-видео через MLT/melt.
 - [`processing`](domains/processing/domain.md) — производство: Demucs, Sheetsage, генерация MP4 через Playwright + ffmpeg.
 - [`publishing`](domains/publishing/domain.md) — публичный доступ: эфир, подписка, статистика.
+- [`editorial`](domains/editorial/domain.md) — задания редакторов, self-assign, авто-pipeline при апруве.
+- [`monitoring`](domains/monitoring/domain.md) — проверки здоровья инфраструктуры и SLF4J-категории.
 
 ## Жизненный цикл документации
 

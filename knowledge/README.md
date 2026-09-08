@@ -31,6 +31,8 @@ Karaoke. Описывает **текущее состояние** системы
 - [`publishing`](domains/publishing/domain.md) — публичный доступ: эфир, подписка, статистика.
 - [`editorial`](domains/editorial/domain.md) — задания редакторов, self-assign, авто-pipeline при апруве.
 - [`monitoring`](domains/monitoring/domain.md) — проверки здоровья инфраструктуры и SLF4J-категории.
+- [`stats`](domains/stats/domain.md) — аналитика трафика, воронка visitor→registration→premium.
+- [`caching`](domains/caching/domain.md) — паттерны кеширования (AtomicInteger, dirty-флаг, денормализация, async cold-start).
 
 ## Жизненный цикл документации
 

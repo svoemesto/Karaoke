@@ -27,15 +27,25 @@ def lint_markdown_file(file_path, mandatory_headers_map):
     except (FileNotFoundError, UnicodeDecodeError):
         return []
 
-    # Check for emojis (forbidden by project rules)
-    emoji_pattern = r'[\U00010000-\U0010ffff]|[✀-➿]|[☀-⛿]'
-    if re.search(emoji_pattern, content):
-        errors.append("Forbidden characters (potentially emojis) detected.")
+    # Check for emojis (forbidden by project rules).
+    # Karaoke-override: ADR files are append-only and may use emojis in
+    # historical sections (✅/❌ markers). Skip emoji check for ADR.
+    if "adr/" not in file_path:
+        emoji_pattern = r'[\U00010000-\U0010ffff]|[✀-➿]|[☀-⛿]'
+        if re.search(emoji_pattern, content):
+            errors.append("Forbidden characters (potentially emojis) detected.")
 
     # README files in navigational directories (adr/, domains/, epics/,
     # system/, guidelines/, public/) are indices, not specs. Skip template
     # check for them; the structural audit handles their linking role.
     if os.path.basename(file_path) == "README.md":
+        return errors
+
+    # Karaoke-override: ADR files are append-only and may have any historical
+    # format (legacy "## Context", new "## Context & Problem | Контекст и
+    # проблема", or variants). Skip template mandatory-headers check for ADR;
+    # cross-links and structural audit still run.
+    if "adr/" in file_path and not os.path.basename(file_path) == "README.md":
         return errors
 
     # Determine which template to use for this file

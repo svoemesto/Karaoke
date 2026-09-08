@@ -2,7 +2,7 @@
 status: Active
 slug: 295-jira-local-integration
 related:
-  - ../architecture/decisions/0008-tracker-openproject-migration.md
+  - ../../knowledge/adr/0008-tracker-openproject-migration.md
   - ../../specs/295-jira-local-integration/spec.md
   - ../../docs/tracker-setup.md
 ---
@@ -10,7 +10,7 @@ related:
 # 295 — Локальный issue-tracker для AI-агента (LiveDoc)
 
 > Drill-down — [specs/295-jira-local-integration/spec.md](../../specs/295-jira-local-integration/spec.md).
-> ADR об использовании OpenProject (вместо Jira DC) — [0008-tracker-openproject-migration.md](../architecture/decisions/0008-tracker-openproject-migration.md).
+> ADR об использовании OpenProject (вместо Jira DC) — [0008-tracker-openproject-migration.md](../../knowledge/adr/0008-tracker-openproject-migration.md).
 > Setup-руководство: [docs/tracker-setup.md](../../docs/tracker-setup.md).
 > Архитектурная сводка: [docs/features/tracker-local-integration.md](../../docs/features/tracker-local-integration.md).
 
@@ -102,7 +102,7 @@ Atlassian для пользователей из РФ/РБ. OpenProject — drop
 
 ## Связанные LiveDocs
 
-- Architecture ADR: [0008-tracker-openproject-migration.md](../architecture/decisions/0008-tracker-openproject-migration.md) —
+- Architecture ADR: [0008-tracker-openproject-migration.md](../../knowledge/adr/0008-tracker-openproject-migration.md) —
   переход с Jira DC на OpenProject CE (Pass 295).
 - Domain: [monitoring.md](../domain/monitoring.md) (audit-логи CLI); cross-link
   через `tools/check-livedocs-cross-links.sh`.

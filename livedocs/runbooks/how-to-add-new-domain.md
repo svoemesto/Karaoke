@@ -113,6 +113,6 @@ gh pr merge <PR> --merge
 
 - LiveDocs: [domain/README.md](../domain/README.md),
   [INDEX.md](../INDEX.md).
-- [ADR-0001](../architecture/decisions/0001-raw-jdbc.md) — почему SQL без ORM.
+- [ADR-0001](../../knowledge/adr/0001-raw-jdbc.md) — почему SQL без ORM.
 - Eric Evans «Domain-Driven Design» (книга).
 - Vaughn Vernon «Implementing Domain-Driven Design».

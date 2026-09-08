@@ -107,6 +107,6 @@ DROP TABLE IF EXISTS tbl_foo;
 
 - LiveDocs: [architecture/dual-db-access.md](../architecture/dual-db-access.md),
   [architecture/data-sync.md](../architecture/data-sync.md),
-  [ADR-0001](../architecture/decisions/0001-raw-jdbc.md).
+  [ADR-0001](../../knowledge/adr/0001-raw-jdbc.md).
 - Constitution: § VIII «Секреты и git-гигиена» (не коммитить SQL в обход
   миграций).

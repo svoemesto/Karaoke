@@ -85,9 +85,14 @@ htmlcov/
 *.tar.xz
 *.tar.zst
 
-# Generated API documentation (run ./tools/generate-docs.sh to rebuild)
+# Generated API documentation (run ./tools/generate-docs.sh to rebuild).
+# After the v2 migration (spec 320) the docs/ root hosts Living Documentation;
+# docs/api/ still exists as a technical projection. docs-old/ holds the
+# archived contents of the pre-migration docs/ tree.
 docs/api/dokka/
 docs/api/typedoc-*/
+docs-old/api/dokka/
+docs-old/api/typedoc-*/
 
 # Local tool indexes / config (per-machine, not part of repo)
 .codegraph/

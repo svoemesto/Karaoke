@@ -25,6 +25,8 @@ Karaoke. Описывает **текущее состояние** системы
 [`domains/README.md`](domains/README.md).
 
 - [`identity`](domains/identity/domain.md) — пользователи, авторизация, сессии.
+- [`catalog`](domains/catalog/domain.md) — песни, альбомы, исполнители, жанры (18k+ записей).
+- [`rendering`](domains/rendering/domain.md) — рендеринг караоке-видео через MLT/melt.
 
 ## Жизненный цикл документации
 

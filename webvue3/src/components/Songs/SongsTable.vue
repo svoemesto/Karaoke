@@ -1256,13 +1256,20 @@ export default {
       return propValue === 'true'
     },
     /**
+     * specs/316-search-timeout-configurable (FR-001/FR-002): шаг 1 — читаем default таймаута
+     * из backend (KaraokeProperties) и показываем диалог перед массовым поиском текста.
+     */
+    /**
      * Открывает диалог подтверждения поиска текста с выбором движка
-     * (specs/015-search-engine-selection). Ранее сохранённые результаты поиска
-     * для песен без текста (если есть) удаляются перед поиском. Значение по
-     * умолчанию для селектора — текущая настройка `lyricsSearchEngine`.
+     * (specs/015-search-engine-selection) и полем таймаута
+     * (specs/316-search-timeout-configurable, FR-006/FR-007). Ранее сохранённые
+     * результаты поиска для песен без текста (если есть) удаляются перед поиском.
+     * Значение по умолчанию для селектора — текущая настройка `lyricsSearchEngine`,
+     * для таймаута — сохранённое значение из KaraokeProperties (backend).
      */
     async searchTextForAll() {
       const defaultEngine = await this.$store.getters.getPropValue('lyricsSearchEngine')
+      const defaultTimeout = await this.$store.dispatch('getLyricsSearchTimeout')
       this.customConfirmParams = {
         header: 'Подтвердите поиск текста',
         body: `Выбрано песен: <strong>${this.countRows}.</strong><br>Найти в Интернете тексты для всех песен, для которых ещё нет текстов? Ранее сохранённые результаты поиска (если есть) будут удалены.`,
@@ -1274,13 +1281,35 @@ export default {
             fldOptions: ['YANDEX_SYNC', 'YANDEX_ASYNC', 'SEARXNG', 'FOURGET'],
             fldValue: defaultEngine || 'FOURGET',
           },
+          {
+            fldName: 'timeout',
+            fldLabel: 'Таймаут (сек)',
+            // БЕЗ fldIsSelect/fldIsBoolean/fldIsTextarea → default `<input>` (FR-006 validation на стороне callback).
+            fldValue: defaultTimeout || 10,
+          },
         ],
-        callback: (ret) => this.doSearchTextForAll(ret.engine),
+        callback: (ret) => {
+          const timeout = Number(ret.timeout)
+          if (!Number.isInteger(timeout) || timeout < 1) {
+            // FR-006: ошибка валидации → alert вместо dispatch.
+            this.customConfirmParams = {
+              isAlert: true,
+              alertType: 'warning',
+              header: 'Ошибка ввода',
+              body: 'Таймаут должен быть положительным целым числом ≥ 1.',
+              timeout: 10,
+            }
+            this.isCustomConfirmVisible = true
+            return
+          }
+          this.$store.dispatch('setLyricsSearchTimeout', timeout)
+          this.doSearchTextForAll(ret.engine, timeout)
+        },
       }
       this.isCustomConfirmVisible = true
     },
-    doSearchTextForAll(engine) {
-      this.$store.dispatch('searchTextForAll', { engine: engine })
+    doSearchTextForAll(engine, timeout) {
+      this.$store.dispatch('searchTextForAll', { engine: engine, timeout: timeout })
     },
     addSyncForAll() {
       this.customConfirmParams = {

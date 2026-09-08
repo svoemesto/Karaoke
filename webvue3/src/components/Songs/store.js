@@ -2323,7 +2323,10 @@ export default {
       return promisedXMLHttpRequest(request)
     },
     createFromFolderPromise(ctx, payload) {
+      // payload: { folder, timeout } — timeout опционален (specs/316-search-timeout-configurable,
+      // R-002a: rate-limit submit'ов фонового поиска при импорте папки).
       let params = { folder: payload.folder }
+      if (payload && payload.timeout) params.timeout = payload.timeout
       let request = { method: 'POST', url: '/api/utils/createfromfolder', params: params }
       return promisedXMLHttpRequest(request)
     },
@@ -2617,16 +2620,35 @@ export default {
       return promisedXMLHttpRequest(request)
     },
     searchTextForAll(ctx, payload) {
-      // payload: { engine } — опционально (specs/015-search-engine-selection).
-      // Всегда forceResearch: true — старые результаты поиска для песен без
-      // текста удаляются перед повторным поиском выбранным движком.
+      // payload: { engine, timeout } — оба опциональны (specs/015-search-engine-selection,
+      // specs/316-search-timeout-configurable). Всегда forceResearch: true — старые результаты
+      // поиска для песен без текста удаляются перед повторным поиском выбранным движком.
       let params = {
         songsIds: ctx.getters.getSongsDigestIds.join(';'),
         forceResearch: true,
       }
       if (payload && payload.engine) params.engine = payload.engine
+      if (payload && payload.timeout) params.timeout = payload.timeout
       let request = { method: 'POST', url: '/api/songs/searchsongtextall', params: params }
       return promisedXMLHttpRequest(request)
+    },
+    // specs/316-search-timeout-configurable (R-008, FR-002/FR-004): read/write таймаута
+    // через backend-API. НЕ setWebvueProp — значение живёт в KaraokeProperties.
+    getLyricsSearchTimeout(_ctx) {
+      return promisedXMLHttpRequest({ method: 'GET', url: '/api/lyrics-search-timeout' })
+        .then((r) => {
+          const parsed = JSON.parse(r) // promisedXMLHttpRequest возвращает raw string
+          const n = parseInt(parsed.value, 10)
+          return Number.isInteger(n) && n >= 1 ? n : 10
+        })
+        .catch(() => 10) // fallback на 10 при ошибке (FR-002)
+    },
+    setLyricsSearchTimeout(_ctx, value) {
+      return promisedXMLHttpRequest({
+        method: 'POST',
+        url: '/api/lyrics-search-timeout',
+        params: { value: value },
+      })
     },
     searchTextForSong(ctx, payload) {
       // payload: { engine, forceResearch } — оба опциональны (specs/015-search-engine-selection).

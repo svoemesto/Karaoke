@@ -1,0 +1,13 @@
+# Sanitization patterns for karaoke-db log analysis (research.md R-3).
+# Каждая строка: <name>|<ERE pattern>
+# Применяется в scripts/_lib.sh::sanitize_inline() и scripts/04-sanitize-for-commit.sh.
+# При срабатывании — текст матча заменяется на [REDACTED:<name>].
+
+password|(password|passwd)[[:space:]]*[:=][[:space:]]*[^[:space:]]+
+pgpass|(postgres(ql)?://[^:]+:)[^@]+(@)
+bearer|(Bearer)[[:space:]]+[A-Za-z0-9._-]+
+pat|(pat_)[A-Za-z0-9_-]+
+token|(token|secret)[[:space:]]*[:=][[:space:]]*[A-Za-z0-9._-]+
+pgkey|-----BEGIN [A-Z ]*PRIVATE KEY-----
+md5hash|\b[a-f0-9]{32}\b
+email|[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}

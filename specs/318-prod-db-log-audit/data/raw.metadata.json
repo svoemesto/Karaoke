@@ -1,0 +1,17 @@
+{
+  "collected_at_utc": "2026-09-08T10:07:34Z",
+  "log_driver": "json-file",
+  "log_driver_config": "default ({} — без max-size/max-file override)",
+  "container_name": "karaoke-db",
+  "container_pid": 1348,
+  "container_status": "running",
+  "container_started_at": "2026-08-17T04:53:54.356334833Z",
+  "image": "postgres:16",
+  "requested_hours": 168,
+  "line_count": 273959,
+  "byte_count": 54839698,
+  "first_timestamp_in_data": "2026-09-01T10:08:19.783325640Z",
+  "last_timestamp_in_data": "2026-09-08T08:45:10.270879247Z",
+  "truncation_warning": "json-file ring buffer — НЕ полные 168 ч; данные покрывают 2026-09-01 … 2026-09-08 (≈7 дней). Merged from --since=168h + --tail=100000.",
+  "fetch_method": "docker logs --since=168h --timestamps + docker logs --tail=100000 --timestamps, merged + deduped"
+}

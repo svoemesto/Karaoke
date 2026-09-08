@@ -1,0 +1,20 @@
+
+)
+--     использует seq_scan, потому что tags — text без индекса.
+-- 2. tbl_songs.tags — для фильтра SKIP-тегов (Pass 293)
+-- 3. tbl_songs.free — partial index для фильтра free = true
+-- =====================================================================
+-- До: WHERE free = true (или свободный фильтр) делает seq_scan.
+-- До: filter 'SKIP' = ANY(string_to_array(upper(coalesce(tags,'')), ' '))
+-- Заполняем MV начальными данными (если только что создана, без WITH NO DATA)
+-- После: btree partial (только true-строки — обычно ~30% от всех).
+-- После: btree на upper(tags), partial WHERE tags IS NOT NULL AND tags <> ''.
+2026-09-01 16:21:23.400 UTC [1] LOG:  received SIGHUP, reloading configuration files
+2026-09-01 16:21:23.404 UTC [1] LOG:  parameter "log_autovacuum_min_duration" changed to "0"
+2026-09-01 16:21:23.404 UTC [1] LOG:  parameter "log_line_prefix" changed to "%m [%p] %q%u@%d from %h "
+2026-09-01 16:21:23.404 UTC [1] LOG:  parameter "log_min_duration_statement" changed to "1000"
+2026-09-01 16:21:23.404 UTC [1] LOG:  parameter "log_temp_files" changed to "0"
+2026-09-01 19:21:23.404 MSK [1] LOG:  parameter "log_timezone" changed to "Europe/Moscow"
+2026-09-01 19:21:23.404 MSK [1] LOG:  parameter "timezone" changed to "Europe/Moscow"
+2026-09-01 19:25:23.598 MSK [285145] LOG:  automatic analyze of table "karaoke.public.tbl_site_user_tokens"
+2026-09-01 19:30:23.879 MSK [285206] LOG:  automatic analyze of table "karaoke.public.tbl_site_user_tokens"

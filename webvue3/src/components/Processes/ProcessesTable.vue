@@ -16,6 +16,12 @@
       :process-id="currentProcessForAuditId"
       @close="closeProcessAudit"
     />
+    <ProcessesBulkUpdateModal
+      v-if="isBulkUpdateModalVisible"
+      :ids="effectiveBulkIds"
+      @close="closeBulkUpdate"
+    />
+    <ProcessBulkReportModal v-if="hasBulkReport" @close="closeBulkReport" />
     <div class="processes-bv-table-header">
       <b-pagination
         v-model="currentPage"
@@ -139,6 +145,25 @@
       <button class="btn-round-double" title="Фильтр" @click="isProcessesFilterVisible = true">
         <img alt="filter" class="icon-40" src="../../assets/svg/icon_filter.svg" />
       </button>
+      <button
+        id="bulk-update-btn"
+        class="btn-round-double"
+        title="Массовое изменение поля для всех процессов из текущей выборки"
+        :disabled="!canBulk || bulkOperationInProgress"
+        @click="openBulkUpdate"
+      >
+        <img alt="bulk update field" class="icon-40" src="../../assets/svg/icon_edit.svg" />
+      </button>
+      <button
+        id="bulk-delete-btn"
+        class="btn-round-double"
+        title="Массовое удаление всех процессов из текущей выборки"
+        :disabled="!canBulk || bulkOperationInProgress"
+        @click="confirmBulkDelete"
+      >
+        <img alt="bulk delete" class="icon-40" src="../../assets/svg/icon_delete.svg" />
+      </button>
+      <b-spinner v-if="bulkOperationInProgress" small class="ml-2" />
     </div>
   </div>
 </template>
@@ -149,6 +174,8 @@ import ProcessesFilterModal from '../../components/Processes/filter/ProcessesFil
 import ProcessEditModal from '../../components/Processes/edit/ProcessEditModal.vue'
 import ProcessDeleteModal from '../../components/Processes/delete/ProcessDeleteModal.vue'
 import ProcessAuditModal from '../../components/Processes/audit/ProcessAuditModal.vue'
+import ProcessesBulkUpdateModal from '../../components/Processes/ProcessesBulkUpdateModal.vue'
+import ProcessBulkReportModal from '../../components/Processes/ProcessBulkReportModal.vue'
 
 /**
  * Таблица процессов (specs/315-admin-ui-karaoke-process-v5, US1).
@@ -166,6 +193,8 @@ export default {
     ProcessEditModal,
     ProcessDeleteModal,
     ProcessAuditModal,
+    ProcessesBulkUpdateModal,
+    ProcessBulkReportModal,
     BPagination,
     BSpinner,
     BTable,
@@ -181,6 +210,8 @@ export default {
       currentProcessForDeleteId: null,
       isProcessAuditVisible: false,
       currentProcessForAuditId: null,
+      // specs/319-process-bulk-actions-v2 (US1, US2): bulk-actions UI state.
+      isBulkUpdateModalVisible: false,
     }
   },
   computed: {
@@ -331,6 +362,35 @@ export default {
         },
       ]
     },
+    // specs/319-process-bulk-actions-v2: bulk-action UI bindings (FR-001, FR-002).
+    bulkSelectionIds() {
+      return this.$store.getters.getBulkSelectionIds
+    },
+    bulkSelectionCount() {
+      return this.$store.getters.getBulkSelectionCount
+    },
+    bulkOperationInProgress() {
+      return this.$store.getters.getBulkOperationInProgress
+    },
+    /**
+     * Ids для отправки в bulk-endpoint. Snapshot из server, fallback — items на текущей странице.
+     */
+    effectiveBulkIds() {
+      return this.bulkSelectionIds.length > 0 ? this.bulkSelectionIds : this.items.map((i) => i.id)
+    },
+    hasBulkReport() {
+      return !!this.$store.getters.getBulkOperationReport
+    },
+    /**
+     * Кнопка bulk-action активна, когда есть процессы в фильтре.
+     * Источник: snapshot ids (если загружен), иначе — fallback на текущий `total` фильтра.
+     * Fallback гарантирует активность кнопок даже если endpoint /bulk/snapshot
+     * не отработал (например, на самой первой загрузке до ответа бэка).
+     */
+    canBulk() {
+      if (this.bulkSelectionCount > 0) return true
+      return this.total > 0
+    },
   },
   watch: {
     currentPage: {
@@ -356,7 +416,10 @@ export default {
       }
     },
     loadPage() {
-      this.$store.dispatch('loadProcesses', this.buildFilters())
+      const filters = this.buildFilters()
+      this.$store.dispatch('loadProcesses', filters)
+      // specs/319-process-bulk-actions-v2 (FR-002, FR-004): обновить snapshot для bulk-операций.
+      this.$store.dispatch('fetchBulkSelectionIds', filters)
     },
     isExpanded(id) {
       return this.$store.getters.isProcessExpanded(id)
@@ -380,6 +443,33 @@ export default {
     },
     closeProcessesFilter() {
       this.isProcessesFilterVisible = false
+    },
+    // specs/319-process-bulk-actions-v2: bulk handlers (T014, T016, T021).
+    openBulkUpdate() {
+      if (!this.canBulk || this.bulkOperationInProgress) return
+      this.isBulkUpdateModalVisible = true
+    },
+    closeBulkUpdate() {
+      this.isBulkUpdateModalVisible = false
+      // После завершения операции отчёт уже в сторе; пользователь закроет
+      // его отдельной кнопкой в ProcessBulkReportModal (T025).
+    },
+    confirmBulkDelete() {
+      if (!this.canBulk || this.bulkOperationInProgress) return
+      const ids = this.effectiveBulkIds
+      const total = ids.length
+      // eslint-disable-next-line no-alert
+      const ok = window.confirm(`Будет удалено ${total} процессов. Действие необратимо.`)
+      if (!ok) return
+      this.$store
+        .dispatch(total > 1000 ? 'bulkDeleteProcessesAsync' : 'bulkDeleteProcesses', { ids })
+        .catch((err) => {
+          // eslint-disable-next-line no-console
+          console.error('Bulk delete failed:', err)
+        })
+    },
+    closeBulkReport() {
+      // Report modal сам вызывает clearBulkOperationReport при закрытии.
     },
     openEdit(id) {
       this.currentProcessForEditId = id

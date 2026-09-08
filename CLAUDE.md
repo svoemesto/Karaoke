@@ -65,9 +65,14 @@ When you need to understand:
 
 ## 🚦 ОБЯЗАТЕЛЬНО перед каждым `git commit`
 
+> ⚠️ **NON-NEGOTIABLE**: все `./gradlew ...` команды ДОЛЖНЫ идти с
+> `GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle` (папка `.gradle` ВНУТРИ проекта,
+> writable). Без этого wrapper пытается писать в `/home/nsa/.gradle/wrapper/dists/...` —
+> read-only для sandbox'а DSH, билд падает. См. `AGENTS.md` § «Gradle: запуск с GRADLE_USER_HOME».
+
 ```bash
-# 1. Линтеры
-./gradlew ktlintCheck                                      # Kotlin
+# 1. Линтеры (все gradle — с GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle)
+GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle ./gradlew ktlintCheck                                      # Kotlin
 cd webvue3       && npm run lint:check && cd ..            # webvue3
 cd karaoke-public && npm run lint:check && cd ..          # karaoke-public
 
@@ -92,7 +97,7 @@ pre-commit run --all-files
 
 | Проверка | Команда для локальной проверки |
 |----------|------------------------------|
-| ktlint (Kotlin/Java) | `./gradlew ktlintCheck` |
+| ktlint (Kotlin/Java) | `GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle ./gradlew ktlintCheck` |
 | ESLint + Prettier (webvue3) | `cd webvue3 && npm run lint:check && npx prettier --check "src/**/*.{vue,js,ts,json}" && cd ..` |
 | ESLint + Prettier (karaoke-public) | `cd karaoke-public && npm run lint:check && npx prettier --check "src/**/*.{vue,js,ts,json}" && cd ..` |
 | Docs (structure + offline links) | автоматически в CI |

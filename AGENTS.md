@@ -29,23 +29,16 @@
 - **`docs/ops/log-correlation.md`** — карта логов прода, команды `docker logs`/`ssh`, grep-маркеры (`infra.prod.ping`/`infra.prod.db`/`LOG:  duration:`), сценарии диагностики. Создан в [specs/288-prod-diagnostics-logging](../specs/288-prod-diagnostics-logging/spec.md) (FR-019).
 - Контракт WARN/INFO для `infra.prod.*`: [contracts/log-format.md](../specs/288-prod-diagnostics-logging/contracts/log-format.md).
 
-## Иерархия документации (краткая)
+## Иерархия документации и AI-агенты
 
-`livedocs/` → `.specify/memory/constitution.md` → `AGENTS.md` → `CONTRIBUTING.md` → `DEVELOPMENT.md` → `specs/<NNN>-*/spec.md` → `archive/docs/features/*.md`. **При расхождении** — приоритет у файла с меньшим номером. Полная таблица — в [`livedocs/architecture-notes.md`](livedocs/architecture-notes.md).
-
-## Где правила для разных AI-агентов
-
-- opencode (primary) → `AGENTS.md` (✅ в гите)
-- Claude Code, Cursor, Cody, Aider → локальные конфиги (❌)
-- Setup — [`livedocs/onboarding.md`](livedocs/onboarding.md).
+Иерархия: `livedocs/` → `constitution.md` → `AGENTS.md` → `CONTRIBUTING.md` → `DEVELOPMENT.md` → `specs/NNN-*/spec.md` → `archive/`.
+При расхождении приоритет у файла с меньшим номером (полная таблица в `livedocs/architecture-notes.md`).
+opencode (primary) → этот файл (✅ в гите). Claude Code / Cursor / Cody / Aider — локальные конфиги.
+Setup новых AI: `livedocs/onboarding.md`.
 
 ## Issue-tracker OpenProject (spec 295) — ВАЖНО
 
-В начале **каждой сессии** (после чтения LiveDocs):
-
-```bash
-cd /home/nsa/Karaoke && source .env.local-tracker && bash tools/tracker-poll.sh
-```
+В начале **каждой сессии** (после чтения LiveDocs): `cd /home/nsa/Karaoke && source .env.local-tracker && bash tools/tracker-poll.sh`.
 
 Если есть открытые задачи (`assignee=ai-agent, status=open`):
 `spec-for-issue → claim → работа → add-comment + mark-review → close`.
@@ -76,19 +69,25 @@ gh pr checks && gh pr merge --merge   # БЕЗ --delete-branch
 
 ## Сборка / деплой / тесты
 
-- **Сборка**: `./gradlew clean karaoke-app:bootJar karaoke-web:bootJar --parallel`.
+- **Сборка**: `GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle ./gradlew clean karaoke-app:bootJar karaoke-web:bootJar --parallel`.
 - **Деплой**: `deploy/deploy_web.sh`, `deploy/deploy_public.sh`, `cd deploy && bash do.sh build_start_public`.
 - **Тесты**: в CI нет; `karaoke-app/src/test` — `@Disabled`. Проверка — пользователем.
+
+### Gradle: запуск с `GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle`
+
+> **NON-NEGOTIABLE** (см. полную версию в `livedocs/architecture/dsh-sandbox-conventions.md`):
+> все `./gradlew ...` команды должны идти с `GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle`
+> (папка `.gradle` ВНУТРИ проекта). Без этого wrapper пишет в read-only `/home/nsa/.gradle/wrapper/dists/...`.
 
 ### Обязательная проверка после ЛЮБОГО изменения кода (NON-NEGOTIABLE)
 
 > Pass 239 + 245: правки без локальной пересборки ломали прод. **Vite-build ≠ Docker-образ**.
 
-**После ЛЮБОГО изменения ОБЯЗАТЕЛЬНО** (в этом порядке):
+**После ЛЮБОГО изменения ОБЯЗАТЕЛЬНО** (в этом порядке, **все gradle-команды с `GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle`**):
 
-1. Backend compile: `./gradlew :karaoke-app:compileKotlin :karaoke-web:compileKotlin --parallel`
-2. Линтеры: `./gradlew :karaoke-web:ktlintCheck` + `cd webvue3 && npm run lint` + `cd karaoke-public && npm run lint`
-3. Backend bootJar: `./gradlew :karaoke-web:bootJar --parallel` (на `nsa-i9` — также `:karaoke-app:bootJar`)
+1. Backend compile: `GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle ./gradlew :karaoke-app:compileKotlin :karaoke-web:compileKotlin --parallel`
+2. Линтеры: `GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle ./gradlew :karaoke-web:ktlintCheck` + `cd webvue3 && npm run lint` + `cd karaoke-public && npm run lint`
+3. Backend bootJar: `GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle ./gradlew :karaoke-web:bootJar --parallel` (на `nsa-i9` — также `:karaoke-app:bootJar`)
 4. Frontend Vite: `npm run build && npm run format:check` в `webvue3/` и `karaoke-public/`
 5. Docker-образы: `cd deploy && bash do.sh build_webvue3`; если менялся `karaoke-public` — `bash do.sh build_public`
 

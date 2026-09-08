@@ -250,7 +250,10 @@ export default {
       })
       this.$store.dispatch('setProcessesFilterName', { value: this.processesFilterName })
 
-      this.$store.dispatch('loadProcesses', this.buildFilters())
+      const filters = this.buildFilters()
+      this.$store.dispatch('loadProcesses', filters)
+      // specs/319-process-bulk-actions-v2 (FR-002, FR-004): обновить snapshot id для bulk-операций.
+      this.$store.dispatch('fetchBulkSelectionIds', filters)
       this.$emit('close')
     },
     cancel() {

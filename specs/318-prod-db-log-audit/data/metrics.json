@@ -1,0 +1,125 @@
+{
+  "window_start": "2026-09-01T00:00:00Z",
+  "window_end": "2026-09-08T08:45:10.270879247Z",
+  "actual_window_start": "2026-09-01T10:08:19.783325640Z",
+  "actual_window_end": "2026-09-08T08:45:10.270879247Z",
+  "source_log_driver": "json-file",
+  "truncation_warning": "json-file ring buffer — НЕ полные 168 ч; данные покрывают 2026-09-01 … 2026-09-08 (≈7 дней). Merged from --since=168h + --tail=100000.",
+  "totals": {
+    "total_lines": 273959,
+    "total_bytes": 97059262,
+    "bytes_per_day_median": 8295025,
+    "bytes_per_day_max": 8302390,
+    "error_count": 9,
+    "error_share_pct": 0.0033,
+    "unparseable_count": 0
+  },
+  "by_category": [
+    {
+      "category": "__unclassified__",
+      "lines": 217194,
+      "unique_messages": 109332,
+      "share_pct": 79.2797
+    },
+    {
+      "category": "log_temp_files",
+      "lines": 50854,
+      "unique_messages": 50854,
+      "share_pct": 18.5626
+    },
+    {
+      "category": "log_checkpoints_wal",
+      "lines": 3738,
+      "unique_messages": 3738,
+      "share_pct": 1.3644
+    },
+    {
+      "category": "log_min_duration_statement",
+      "lines": 1597,
+      "unique_messages": 1597,
+      "share_pct": 0.5829
+    },
+    {
+      "category": "__other__",
+      "lines": 528,
+      "unique_messages": 528,
+      "share_pct": 0.1927
+    },
+    {
+      "category": "log_statement",
+      "lines": 38,
+      "unique_messages": 38,
+      "share_pct": 0.0139
+    },
+    {
+      "category": "__errors__",
+      "lines": 9,
+      "unique_messages": 9,
+      "share_pct": 0.0033
+    },
+    {
+      "category": "log_lock_waits",
+      "lines": 1,
+      "unique_messages": 1,
+      "share_pct": 0.0004
+    }
+  ],
+  "by_category_top10": [
+    {
+      "category": "__unclassified__",
+      "lines": 217194,
+      "unique_messages": 109332,
+      "share_pct": 79.2797,
+      "example": "2026-09-01 16:21:23.400 UTC [1] LOG:  received SIGHUP, reloading configuration files"
+    },
+    {
+      "category": "log_temp_files",
+      "lines": 50854,
+      "unique_messages": 50854,
+      "share_pct": 18.5626,
+      "example": "2026-09-02 23:22:00.565 MSK [303617] SvoeMestoKaraokeUser905@karaoke from 172.18.0.1 LOG:  temporary file: path \"base/pg"
+    },
+    {
+      "category": "log_checkpoints_wal",
+      "lines": 3738,
+      "unique_messages": 3738,
+      "share_pct": 1.3644,
+      "example": "2026-09-01 10:08:19.782 UTC [27] LOG:  checkpoint starting: time"
+    },
+    {
+      "category": "log_min_duration_statement",
+      "lines": 1597,
+      "unique_messages": 1597,
+      "share_pct": 0.5829,
+      "example": "2026-09-01 19:21:37.244 MSK [285107] SvoeMestoKaraokeUser905@karaoke from 172.18.0.1 LOG:  duration: 2003.110 ms  statem"
+    },
+    {
+      "category": "__other__",
+      "lines": 528,
+      "unique_messages": 528,
+      "share_pct": 0.1927,
+      "example": "2026-09-01 19:26:23.662 MSK [285155] LOG:  automatic vacuum of table \"karaoke.pg_toast.pg_toast_2619\": index scans: 1"
+    },
+    {
+      "category": "log_statement",
+      "lines": 38,
+      "unique_messages": 38,
+      "share_pct": 0.0139,
+      "example": "2026-09-01 19:27:30.548 MSK [285158] SvoeMestoKaraokeUser905@karaoke from 172.18.0.2 LOG:  duration: 4385.267 ms  execut"
+    },
+    {
+      "category": "__errors__",
+      "lines": 9,
+      "unique_messages": 9,
+      "share_pct": 0.0033,
+      "example": "2026-09-01 23:11:22.311 MSK [287620] SvoeMestoKaraokeUser905@karaoke from 172.18.0.1 ERROR:  column n.published_at does "
+    },
+    {
+      "category": "log_lock_waits",
+      "lines": 1,
+      "unique_messages": 1,
+      "share_pct": 0.0004,
+      "example": "2026-09-01 16:21:23.404 UTC [1] LOG:  parameter \"log_lock_waits\" changed to \"on\""
+    }
+  ]
+}

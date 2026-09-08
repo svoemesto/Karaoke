@@ -1,0 +1,77 @@
+{
+  "version": "1.1.0",
+  "description": "Правила категоризации логов karaoke-db (Postgres 16). Чем меньше priority — тем раньше применяется.",
+  "rules": [
+    {
+      "id": "R01",
+      "pattern": "\\b(ERROR|FATAL|PANIC)\\b",
+      "category": "__errors__",
+      "priority": 1,
+      "description": "ERROR/FATAL/PANIC как отдельные слова. [NNN] ERROR: и ERROR: оба ловятся."
+    },
+    {
+      "id": "R02",
+      "pattern": "auto_explain|EXPLAIN \\(analyze",
+      "category": "auto_explain",
+      "priority": 10,
+      "description": "auto_explain verbose (EXPLAIN ANALYZE каждого запроса)"
+    },
+    {
+      "id": "R03",
+      "pattern": "duration: [0-9.]+\\s*m?s\\s*statement:",
+      "category": "log_min_duration_statement",
+      "priority": 11,
+      "description": "log_min_duration_statement=0 — каждая SQL с duration"
+    },
+    {
+      "id": "R04",
+      "pattern": "log_lock_waits|process [0-9]+ (acquired|waited for)|deadlock detected",
+      "category": "log_lock_waits",
+      "priority": 12,
+      "description": "log_lock_waits=on / deadlock detection"
+    },
+    {
+      "id": "R05",
+      "pattern": "pg_stat_statements|dealloc.*pg_stat|pg_stat_statements_reset",
+      "category": "pg_stat_statements",
+      "priority": 13,
+      "description": "pg_stat_statements extension dumps / reset"
+    },
+    {
+      "id": "R06",
+      "pattern": "checkpoint (complete|starting|too frequent)|WAL level|wal level",
+      "category": "log_checkpoints_wal",
+      "priority": 20,
+      "description": "log_checkpoints=on / WAL messages"
+    },
+    {
+      "id": "R07",
+      "pattern": "connection received:|connection authorized:|disconnection:|new connection to|connection to host",
+      "category": "log_connections",
+      "priority": 21,
+      "description": "log_connections / log_disconnections"
+    },
+    {
+      "id": "R08",
+      "pattern": "temporary file:|temp file:",
+      "category": "log_temp_files",
+      "priority": 22,
+      "description": "log_temp_files=0"
+    },
+    {
+      "id": "R09",
+      "pattern": "statement:|execute fetch|execute <unnamed>",
+      "category": "log_statement",
+      "priority": 30,
+      "description": "log_statement='all' — каждый SQL-текст"
+    },
+    {
+      "id": "R10",
+      "pattern": "database system is (ready|shutting)|recovery in progress|autovacuum launcher|automatic (statistic|vacuum)|checkpoint complete:",
+      "category": "__other__",
+      "priority": 90,
+      "description": "Postgres lifecycle messages — попадают в лог при любых настройках"
+    }
+  ],
+  "default_category": "__unclassified__"
+}

@@ -1,0 +1,12 @@
+2026-09-01T00:00:00.000Z 2026-09-01 00:00:00.000 UTC [12345] LOG:  database system is ready to accept connections
+2026-09-01T00:00:01.000Z 2026-09-01 00:00:01.000 UTC [12345] LOG:  duration: 12.34 ms statement: SELECT 1
+2026-09-01T00:00:02.000Z 2026-09-01 00:00:02.000 UTC [12345] LOG:  connection received: host=10.0.0.5 port=54321
+2026-09-01T00:00:03.000Z 2026-09-01 00:00:03.000 UTC [12345] LOG:  checkpoint complete: wrote 5 buffers (0.0%); 0 transaction log block added
+2026-09-01T00:00:04.000Z 2026-09-01 00:00:04.000 UTC [12345] auto_explain: duration: 50.0 ms plan: Seq Scan on foo
+2026-09-01T00:00:05.000Z 2026-09-01 00:00:05.000 UTC [12345] ERROR:  duplicate key violates unique constraint "foo_pkey"
+2026-09-01T00:00:06.000Z 2026-09-01 00:00:06.000 UTC [12345] LOG:  duration: 8.45 ms statement: INSERT INTO foo VALUES (1)
+2026-09-01T00:00:07.000Z 2026-09-01 00:00:07.000 UTC [12345] LOG:  process 67890 acquired ShareLock on transaction 12345
+2026-09-01T00:00:08.000Z 2026-09-01 00:00:08.000 UTC [12345] LOG:  temporary file: path "base/pgsql_tmp/pgsql_tmp1234.0" size=1048576
+2026-09-01T00:00:09.000Z 2026-09-01 00:00:09.000 UTC HikariPool-1 - Starting...
+2026-09-01T00:00:10.000Z 2026-09-01 00:00:10.000 UTC FATAL:  could not connect to server: Connection refused
+2026-09-01T00:00:11.000Z 2026-09-01 00:00:11.000 UTC [12345] LOG:  pg_stat_statements_reset() called

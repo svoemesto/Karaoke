@@ -1,0 +1,12 @@
+# Local-only artifacts — НЕ коммитятся в git
+# (см. spec.md FR-007, Constitution Principle VIII)
+
+# Скачанный docker logs — может содержать inline-пароли/токены,
+# даже после санитизации риск неприемлем.
+raw.log
+
+# Пре-sanitization fixture (используется только при отладке)
+test-fixture-raw.log
+
+# Временные файлы парсинга
+*.tmp

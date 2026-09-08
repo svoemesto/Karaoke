@@ -21,4 +21,8 @@ enum class SseNotificationType(
     SYNC("sync"),
     HEALTH_REPORTS("healthReports"),
     MONITOR_ALERTS("monitorAlerts"),
+
+    // specs/316-search-timeout-configurable (FR-010, rev 3): сводка массового поиска текста
+    // (minIntervalMs между успешными запросами). Broadcast (не addressed) — доставляется всем вкладкам.
+    MASS_SEARCH_SUMMARY("massSearchSummary"),
 }

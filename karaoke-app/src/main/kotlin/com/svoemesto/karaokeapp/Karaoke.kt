@@ -162,6 +162,14 @@ class Karaoke : Serializable {
                 KaraokeProperties.set("checkSearchAsync", value)
             }
 
+        // specs/316-search-timeout-configurable (FR-007): таймаут между поисковыми запросами, секунды.
+        // Хранится в KaraokeProperties (backend, /sm-karaoke/system/Karaoke.properties), default 10.
+        var lyricsSearchTimeoutSeconds: Int
+            get() = KaraokeProperties.getInt("lyricsSearchTimeoutSeconds").takeIf { it >= 1 } ?: 10
+            set(value) {
+                KaraokeProperties.set("lyricsSearchTimeoutSeconds", value.coerceAtLeast(1))
+            }
+
         // URL асинхронного запроса поиска
         var requestAsyncUrl: String
             get() = KaraokeProperties.getString("requestAsyncUrl")

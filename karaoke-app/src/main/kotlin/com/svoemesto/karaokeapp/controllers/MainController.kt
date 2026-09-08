@@ -1599,12 +1599,21 @@ class MainController(
         return "text"
     }
 
+    // specs/316-search-timeout-configurable (R-002, FR-007): deprecated endpoint, симметрично
+    // ApiController.getSearchSongTextAll. timeout — query-param (секунды), иначе сохранённое
+    // значение из KaraokeProperties.lyricsSearchTimeoutSeconds (default 10).
     @PostMapping("/songs/searchsongtextall")
     fun getSearchSongTextAll(
         @RequestParam(required = false) txt: String?,
+        @RequestParam(required = false) timeout: Int? = null,
         model: Model,
     ): String {
         var result = "Error"
+        // specs/316-search-timeout-configurable (R-002): effective timeout =
+        // query-param, иначе сохранённое значение из KaraokeProperties (default 10).
+        val effectiveTimeout =
+            timeout?.coerceAtLeast(1)
+                ?: KaraokeProperties.getInt("lyricsSearchTimeoutSeconds").takeIf { it >= 1 } ?: 10
         txt?.let {
             val ids =
                 txt
@@ -1623,7 +1632,7 @@ class MainController(
                     if (song.sourceText.isBlank()) {
                         val text = searchSongText(song)
 
-                        Thread.sleep(2000)
+                        Thread.sleep(effectiveTimeout * 1000L)
 
                         if (text.isNotBlank()) {
                             song.sourceText = text

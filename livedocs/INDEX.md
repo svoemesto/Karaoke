@@ -49,6 +49,7 @@ SDD-сводки существующих фич (1-2 страницы кажд�
 | [`257-header-news-unread-badge.md`](features/257-header-news-unread-badge.md) | Бейдж непрочитанных новостей в шапке (замена `NewsBell.vue` → inline-бейдж в `AuthStatusWidget`, `useNewsUnreadCount` composable, FR-013 silent reset + FR-014 a11y) |
 | [`299-song-fields-overwrite-race-condition.md`](features/299-song-fields-overwrite-race-condition.md) | Защита 31+ hot paths `Song.saveToDb()` от race через `SELECT FOR NO KEY UPDATE` (замена Pass 281 reload-from-db-before-save, OpenProject WP #49) |
 | [`315-admin-ui-karaoke-process-v5.md`](features/315-admin-ui-karaoke-process-v5.md) | Admin UI для KaraokeProcess (v5): просмотр с фильтрами + parent-child, edit, delete, retry, audit (OpenProject WP #64) |
+| [`316-search-timeout-configurable.md`](features/316-search-timeout-configurable.md) | Настраиваемый таймаут между поисковыми запросами (KaraokeProperties, searchsongtextall + createfromfolder, OpenProject WP #61) |
 
 ### DDD — `livedocs/domain/`
 

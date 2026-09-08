@@ -58,6 +58,7 @@ import java.time.format.DateTimeFormatter
 import java.util.*
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import java.util.concurrent.Future
 import java.util.zip.CRC32
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
@@ -207,6 +208,11 @@ class ApiController(
     // (SearXNG) при массовом импорте из папки — без лимита doCreateFromFolder создавал бы
     // отдельный OS-поток на каждую новую песню без найденного текста одновременно.
     private val lyricsSearchExecutor: ExecutorService = Executors.newFixedThreadPool(4)
+
+    // specs/316-search-timeout-configurable (FR-009, rev 3.1/RC-2): отдельный объект-блокировка для
+    // счётчиков minIntervalMs в Пут и B (не синхронизируемся на whole controller, чтобы не блокировать
+    // другие endpoints).
+    private val lyricsSearchTimeoutLock = Any()
 
     @GetMapping("/diagnostics") // GET запрос на /api/diagnostics
     @ResponseBody
@@ -4766,45 +4772,98 @@ class ApiController(
     }
 
     // Ищем тексты для всех
+    // specs/316-search-timeout-configurable (R-002, FR-007): между последовательными
+    // getLyricsSearch вызовами вставляется пауза Thread.sleep(timeout * 1000L), кроме
+    // последней итерации. timeout — query-param (секунды), иначе сохранённое значение
+    // из KaraokeProperties.lyricsSearchTimeoutSeconds (default 10).
     @PostMapping("/songs/searchsongtextall")
     @ResponseBody
     fun getSearchSongTextAll(
         @RequestParam songsIds: String,
         @RequestParam(required = false) engine: String?,
         @RequestParam(required = false) forceResearch: Boolean = false,
+        @RequestParam(required = false) timeout: Int? = null,
     ): Boolean {
         val resolvedEngine = resolveLyricsSearchEngine(engine)
+        // specs/316-search-timeout-configurable (R-002, FR-007): effective timeout =
+        // query-param, иначе сохранённое значение из KaraokeProperties (default 10).
+        val effectiveTimeout =
+            timeout?.coerceAtLeast(1)
+                ?: KaraokeProperties.getInt("lyricsSearchTimeoutSeconds").takeIf { it >= 1 } ?: 10
+
+        // specs/316-search-timeout-configurable (FR-009, rev 3): замер minIntervalMs
+        // между двумя подряд успешными getLyricsSearch (упавшие запросы не учитываются).
+        val cycleStart = System.currentTimeMillis()
+        var lastSuccessTime: Long? = null
+        var minIntervalMs: Long? = null
+        var successfulCount = 0
 
         var result = false
-        songsIds.let {
-            val ids =
-                songsIds
-                    .split(";")
-                    .map { it }
-                    .filter { it != "" }
-                    .map { it.toLong() }
-            ids.forEach { id ->
-                val song =
-                    Song.loadFromDbById(
-                        id = id,
-                        database = WORKING_DATABASE,
-                        storageService = storageService,
-                        storageApiClient = storageApiClient,
-                    )
-                song?.let {
-                    println("song.haveSourceText = ${song.haveSourceText}")
-                    if (!song.haveSourceText || ids.size == 1) {
+        val ids =
+            songsIds
+                .split(";")
+                .map { it }
+                .filter { it != "" }
+                .map { it.toLong() }
+        ids.forEachIndexed { index, id ->
+            val song =
+                Song.loadFromDbById(
+                    id = id,
+                    database = WORKING_DATABASE,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                )
+            var songSearchSucceeded = false
+            val requestStart = System.currentTimeMillis()
+            song?.let {
+                println("song.haveSourceText = ${song.haveSourceText}")
+                if (!song.haveSourceText || ids.size == 1) {
+                    try {
                         getLyricsSearch(
                             song = song,
                             lyricsFinderService = lyricsFinderService,
                             engine = resolvedEngine,
                             forceResearch = forceResearch,
                         )
+                        songSearchSucceeded = true
+                    } catch (e: Exception) {
+                        // FR-009 (rev 3): упавший запрос — НЕ учитывается в minIntervalMs.
                     }
                 }
-                result = true
+            }
+            result = true
+
+            // FR-009 (rev 3): обновить minIntervalMs при успехе.
+            if (songSearchSucceeded) {
+                if (lastSuccessTime != null) {
+                    val delta = requestStart - lastSuccessTime!!
+                    if (minIntervalMs == null || delta < minIntervalMs!!) minIntervalMs = delta
+                }
+                lastSuccessTime = requestStart
+                successfulCount++
+            }
+
+            // specs/316-search-timeout-configurable (R-002): пауза между запросами, кроме последнего.
+            if (index < ids.size - 1 && effectiveTimeout > 0) {
+                Thread.sleep(effectiveTimeout * 1000L)
             }
         }
+
+        // specs/316-search-timeout-configurable (FR-010, rev 3): backend-лог + SSE notification.
+        val totalDurationMs = System.currentTimeMillis() - cycleStart
+        println("[lyrics-search-summary] path=A count=${ids.size} successful=$successfulCount minIntervalMs=${minIntervalMs ?: "null"} totalDurationMs=$totalDurationMs")
+        sseNotificationService.send(
+            SseNotification(
+                SseNotificationType.MASS_SEARCH_SUMMARY,
+                mapOf(
+                    "path" to "A",
+                    "count" to ids.size,
+                    "successfulCount" to successfulCount,
+                    "minIntervalMs" to minIntervalMs,
+                    "totalDurationMs" to totalDurationMs,
+                ),
+            ),
+        )
         return result
     }
 
@@ -5201,10 +5260,14 @@ class ApiController(
     }
 
     // Добавление файлов из папки
+    // specs/316-search-timeout-configurable (R-002a, FR-007 путь B): rate-limit submit'ов
+    // фонового поиска текста (пул lyricsSearchExecutor, 4 потока). timeout — query-param
+    // (секунды), иначе сохранённое значение из KaraokeProperties.lyricsSearchTimeoutSeconds.
     @PostMapping("/utils/createfromfolder")
     @ResponseBody
     fun doCreateFromFolder(
         @RequestParam(required = true) folder: String,
+        @RequestParam(required = false) timeout: Int? = null,
     ) {
         val importResult =
             Song.createFromPath(
@@ -5214,7 +5277,22 @@ class ApiController(
                 storageApiClient = storageApiClient,
             )
         val createdList = importResult.addedSongs
-        createdList.forEach { newSong ->
+        // specs/316-search-timeout-configurable (R-002a, FR-007 путь B): effective timeout =
+        // query-param (Р-3) или сохранённое значение из KaraokeProperties (default 10).
+        val searchTimeout =
+            timeout?.coerceAtLeast(1)
+                ?: KaraokeProperties.getInt("lyricsSearchTimeoutSeconds").takeIf { it >= 1 } ?: 10
+
+        // specs/316-search-timeout-configurable (FR-009, rev 3.1/RC-1,RC-2): замер minIntervalMs для пути B
+        // (упавшие запросы не учитываются). Счётчики обновляются из потоков executor'а (4 потока) —
+        // synchronized на lyricsSearchTimeoutLock (отдельный объект, не whole controller). Futures собираются,
+        // чтобы дождаться завершения всех поисков ДО summary (RC-1: summary печатался до завершения).
+        val cycleStart = System.currentTimeMillis()
+        var lastSuccessTime: Long? = null
+        var minIntervalMs: Long? = null
+        var successfulCount = 0
+        val futures = mutableListOf<Future<*>>()
+        createdList.forEachIndexed { songIndex, newSong ->
             try {
                 var textResolved = false
 
@@ -5299,21 +5377,45 @@ class ApiController(
                 // Через ограниченный по конкурентности lyricsSearchExecutor (не kotlin.concurrent.thread) -
                 // на массовом импорте не должно запускаться по одному потоку на каждую песню без текста.
                 if (!textResolved) {
-                    lyricsSearchExecutor.submit {
-                        try {
-                            getLyricsSearch(
-                                song = newSong,
-                                lyricsFinderService = lyricsFinderService,
-                                engine = resolveLyricsSearchEngine(),
-                            )
-                        } catch (e: Exception) {
-                            println(
-                                "[${Timestamp.from(
-                                    Instant.now(),
-                                )}] doCreateFromFolder - ошибка фонового поиска текста для песни id=${newSong.id}: ${e.message}",
-                            )
-                        }
+                    // specs/316-search-timeout-configurable (R-002a): пауза ПЕРЕД submit (кроме последнего).
+                    if (songIndex < createdList.size - 1 && searchTimeout > 0) {
+                        Thread.sleep(searchTimeout * 1000L)
                     }
+                    var songSearchSucceeded = false
+                    val future =
+                        lyricsSearchExecutor.submit {
+                            try {
+                                getLyricsSearch(
+                                    song = newSong,
+                                    lyricsFinderService = lyricsFinderService,
+                                    engine = resolveLyricsSearchEngine(),
+                                )
+                                songSearchSucceeded = true
+                            } catch (e: Exception) {
+                                println(
+                                    "[${Timestamp.from(
+                                        Instant.now(),
+                                    )}] doCreateFromFolder - ошибка фонового поиска текста для песни id=${newSong.id}: ${e.message}",
+                                )
+                            } finally {
+                                // FR-009 (rev 3.1/RC-2): обновить minIntervalMs при успехе (после завершения).
+                                // Завершения в 4-поточном пуле идут НЕ по порядку submit'ов — метку берём
+                                // ВНУТРИ synchronized: completedAt монотонен по построению (один поток за раз).
+                                // Thread-safe: synchronized на отдельном lyricsSearchTimeoutLock (не whole controller).
+                                if (songSearchSucceeded) {
+                                    synchronized(lyricsSearchTimeoutLock) {
+                                        val completedAt = System.currentTimeMillis()
+                                        if (lastSuccessTime != null) {
+                                            val delta = completedAt - lastSuccessTime!!
+                                            if (minIntervalMs == null || delta < minIntervalMs!!) minIntervalMs = delta
+                                        }
+                                        lastSuccessTime = completedAt
+                                        successfulCount++
+                                    }
+                                }
+                            }
+                        }
+                    futures.add(future)
                 }
 
                 // Repair-All-эквивалент для только что созданной песни: записи tbl_pictures для автора/альбома
@@ -5329,6 +5431,25 @@ class ApiController(
                 )
             }
         }
+        // specs/316-search-timeout-configurable (FR-010, rev 3.1/RC-1): дожидаемся завершения ВСЕХ
+        // фоновых поисков (futures) ПОСЛЕ цикла сабмитов — иначе summary (successful/minIntervalMs)
+        // печатался бы до того, как executor завершил работу.
+        futures.forEach { it.get() }
+        // specs/316-search-timeout-configurable (FR-010, rev 3): backend-лог + SSE notification.
+        val totalDurationMs = System.currentTimeMillis() - cycleStart
+        println("[lyrics-search-summary] path=B count=${createdList.size} successful=$successfulCount minIntervalMs=${minIntervalMs ?: "null"} totalDurationMs=$totalDurationMs")
+        sseNotificationService.send(
+            SseNotification(
+                SseNotificationType.MASS_SEARCH_SUMMARY,
+                mapOf(
+                    "path" to "B",
+                    "count" to createdList.size,
+                    "successfulCount" to successfulCount,
+                    "minIntervalMs" to minIntervalMs,
+                    "totalDurationMs" to totalDurationMs,
+                ),
+            ),
+        )
         val result = createdList.size
         val skipped = importResult.skippedFilesCount
         SNS.send(
@@ -5872,6 +5993,23 @@ class ApiController(
     @PostMapping("/properties/getproperties")
     @ResponseBody
     fun getProperties(): Map<String, Any> = mapOf("properties" to KaraokeProperties.getDTOs())
+
+    // specs/316-search-timeout-configurable (R-008, FR-002/FR-004): read/write таймаута
+    // для UI-диалога. Значение живёт в KaraokeProperties (backend), НЕ в web-storage.
+    @GetMapping("/lyrics-search-timeout")
+    @ResponseBody
+    fun getLyricsSearchTimeout(): Map<String, Int> {
+        val value = KaraokeProperties.getInt("lyricsSearchTimeoutSeconds").takeIf { it >= 1 } ?: 10
+        return mapOf("value" to value)
+    }
+
+    @PostMapping("/lyrics-search-timeout")
+    @ResponseBody
+    fun setLyricsSearchTimeout(@RequestParam("value") value: Int): Map<String, Any> {
+        val validated = if (value >= 1) value else 10
+        KaraokeProperties.set("lyricsSearchTimeoutSeconds", validated)
+        return mapOf("status" to "ok", "value" to validated)
+    }
 
     // Получаем property
     @PostMapping("/properties/getproperty")

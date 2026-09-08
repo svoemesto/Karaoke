@@ -211,6 +211,11 @@ val listKaraokeProperties =
             description = "Минимальное количество URL от scraper'а (после post-filter), чтобы считать его ответ успешным. Меньше — пробуем следующий scraper. По умолчанию 2.",
         ),
         KaraokeProperty(
+            key = "lyricsSearchTimeoutSeconds",
+            defaultValue = 10,
+            description = "Таймаут между поисковыми запросами текста, сек (specs/316-search-timeout-configurable)",
+        ),
+        KaraokeProperty(
             key = "lyricsSearchUselessUrlPatterns",
             defaultValue = "/login;/signup;/register;/auth;/wp-login.php;/wp-admin;/administrator;/sitemap.xml;/sitemap;/sitemap_index.xml;/robots.txt;/feed;/rss;/rss.xml;/atom.xml;/search;.pdf;.doc;.docx;.xls;.xlsx;.zip;.rar;.7z;.tar;.gz;.mp3;.mp4;.wav;.avi;.mov;.jpg;.jpeg;.png;.gif;.webp;.svg;?utm_source=;?utm_medium=;?utm_campaign=;?utm_term=;?utm_content=;fbclid=;gclid=;yclid=;msclkid=;_ga=;ref=",
             description = "Паттерны для post-filter «мусорных» URL (служебные path, расширения файлов, tracking-маркеры) через ';'. Каждый паттерн — substring, проверяется case-insensitive в URL. По умолчанию — стартовый набор из FR-004 спеки 294.",

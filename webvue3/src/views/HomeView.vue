@@ -222,21 +222,51 @@ export default {
     closeCustomConfirm() {
       this.isCustomConfirmVisible = false
     },
-    addFilesFromFolder() {
+    /**
+     * Открывает диалог подтверждения добавления файлов из папки с полем таймаута
+     * (specs/316-search-timeout-configurable, FR-006/FR-007). Значение по умолчанию
+     * для таймаута — сохранённое из KaraokeProperties (backend).
+     */
+    async addFilesFromFolder() {
+      const defaultTimeout = await this.$store.dispatch('getLyricsSearchTimeout')
       this.customConfirmParams = {
         header: 'Добавление файлов из папки',
         body: `Добавить файлы из папки?<br>
                Файлы будут добавлены, если их ещё нет в базе данных<br>
                И имеют формат: <strong>YYYY (NN) [Автор] - Песня.flac</strong>
         `,
+        fields: [
+          {
+            fldName: 'timeout',
+            fldLabel: 'Таймаут (сек)',
+            // БЕЗ fldIsSelect/fldIsBoolean/fldIsTextarea → default `<input>` (FR-006 validation на стороне callback).
+            fldValue: defaultTimeout || 10,
+          },
+        ],
         timeout: 10,
-        callback: this.doAddFilesFromFolder,
+        callback: (ret) => {
+          const timeout = Number(ret.timeout)
+          if (!Number.isInteger(timeout) || timeout < 1) {
+            // FR-006: ошибка валидации → alert вместо dispatch.
+            this.customConfirmParams = {
+              isAlert: true,
+              alertType: 'warning',
+              header: 'Ошибка ввода',
+              body: 'Таймаут должен быть положительным целым числом ≥ 1.',
+              timeout: 10,
+            }
+            this.isCustomConfirmVisible = true
+            return
+          }
+          this.$store.dispatch('setLyricsSearchTimeout', timeout)
+          this.doAddFilesFromFolder(timeout)
+        },
       }
       this.isCustomConfirmVisible = true
     },
-    doAddFilesFromFolder() {
+    doAddFilesFromFolder(timeout) {
       this.$store
-        .dispatch('createFromFolderPromise', { folder: this.pathToFolder })
+        .dispatch('createFromFolderPromise', { folder: this.pathToFolder, timeout: timeout })
         .then((data) => {
           this.customConfirmParams = {
             isAlert: true,

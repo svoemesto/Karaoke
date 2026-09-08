@@ -395,10 +395,29 @@ export default {
           this.$store.dispatch('monitorAlertsByUserEvent', userEvent.data)
           break
         }
+        case 'MASS_SEARCH_SUMMARY': {
+          // specs/316-search-timeout-configurable (FR-010, rev 3): сводка массового поиска текста.
+          // create — toast-callback (прецедент case 'MESSAGE'); НЕ литерал (RC-3).
+          this.massSearchSummaryByUserEvent(userEvent.data, create)
+          break
+        }
         default: {
           console.log('Неизвестный тип события: ', userEvent.type)
         }
       }
+    },
+
+    massSearchSummaryByUserEvent(data, create) {
+      // specs/316-search-timeout-configurable (FR-010, rev 3): нотификация в веб после массового поиска.
+      const minInterval = data.minIntervalMs != null ? `${data.minIntervalMs} мс` : '—'
+      this.showMessageByUserEvent(
+        {
+          type: 'info',
+          head: 'Массовый поиск текста завершён',
+          body: `Путь ${data.path}: обработано ${data.count}, успешно ${data.successfulCount}, мин. интервал между запросами ${minInterval}.`,
+        },
+        create,
+      )
     },
 
     healthReportMessageByUserEvent(userEventData) {

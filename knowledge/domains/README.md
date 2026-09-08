@@ -22,7 +22,7 @@ knowledge/domains/<name>/
 
 | Домен | Источник | Текущий статус |
 | --- | --- | --- |
-| `identity` | `livedocs/domain/identity.md` | запланировано (spec 323) |
+| [`identity`](identity/domain.md) | `livedocs/domain/identity.md` | Migrated (spec 326) |
 | `catalog` | `livedocs/domain/catalog.md` | запланировано |
 | `processing` | `livedocs/domain/processing.md` | запланировано |
 | `rendering` | `livedocs/domain/rendering.md` | запланировано |

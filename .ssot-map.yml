@@ -1,0 +1,78 @@
+# .ssot-map.yml
+#
+# Living Documentation v2 (knowledge/) impact surface map.
+#
+# Определяет, какие изменения в коде требуют синхронного обновления
+# knowledge/ (SSoT). Используется tools/check-ssot-impact.py как
+# CI-gate: если правило ниже указывает, что изменённый код требует
+# обновления knowledge/<X>, а соответствующего изменения в knowledge/
+# нет — CI падает.
+#
+# Конвенция:
+# - code: glob-паттерн относительно корня репозитория (** = рекурсивно).
+# - requires: путь в knowledge/, который должен измениться. Может быть
+#   файлом или директорией (тогда достаточно одного файла внутри).
+# - reason: краткое объяснение правила (для отчёта).
+#
+# Как добавить новое правило:
+# 1. Убедиться, что изменение в коде ДЕЙСТВИТЕЛЬНО меняет SSoT.
+# 2. Указать путь в knowledge/, который должен обновиться.
+# 3. Описать причину — это поможет будущим агентам.
+#
+# Когда правило НЕ нужно:
+# - Рефакторинг без изменения поведения (комментарии, форматирование).
+# - Тесты (исключены паттерном test/*Test*.kt).
+# - Документация (исключена паттерном *.md).
+
+# === Identity domain ===
+- code: "karaoke-app/**/model/SiteUser.kt"
+  requires: "knowledge/domains/identity/components/dictionaries.md"
+  reason: "SiteUser AR — UserRole, canSelfAssign и другие поля должны быть отражены в dictionaries.md"
+
+- code: "karaoke-app/**/SiteUserService.kt"
+  requires: "knowledge/domains/identity/domain.md"
+  reason: "SiteUserService меняет AR SiteUser или Domain Events — обновить domain.md"
+
+- code: "karaoke-app/**/AuthService.kt"
+  requires: "knowledge/domains/identity/components/security-config.md"
+  reason: "AuthService — Spring Security, двух-flow авторизация — отразить в security-config.md"
+
+# === Catalog domain ===
+- code: "karaoke-app/**/model/Song.kt"
+  requires: "knowledge/domains/catalog/components/dictionaries.md"
+  reason: "Song AR — IdStatus 1..6, SongType — отразить в dictionaries.md"
+
+- code: "karaoke-app/**/SongService.kt"
+  requires: "knowledge/domains/catalog/components/song-lifecycle.md"
+  reason: "SongService меняет жизненный цикл Song (IdStatus переходы) — обновить song-lifecycle.md"
+
+# === Publishing domain ===
+- code: "karaoke-app/**/model/Subscription.kt"
+  requires: "knowledge/domains/publishing/components/dictionaries.md"
+  reason: "Subscription AR — AccessMode, статус подписки — отразить в dictionaries.md"
+
+- code: "karaoke-app/**/StatsService.kt"
+  requires: "knowledge/domains/publishing/components/stats-cache.md"
+  reason: "StatsService — AtomicInteger-кеш, scheduler — обновить stats-cache.md"
+
+# === Rendering / MLT ===
+- code: "karaoke-app/**/mlt/**"
+  requires: "knowledge/domains/rendering/components/mlt-pipeline.md"
+  reason: "MLT/melt pipeline — JPEG quality 95, CPU limit, lane — обновить mlt-pipeline.md"
+
+- code: "karaoke-app/**/PlayerMp4RenderService.kt"
+  requires: "knowledge/domains/processing/components/playwright-rendering.md"
+  reason: "Playwright рендеринг кадров — обновить playwright-rendering.md"
+
+# === Editorial ===
+- code: "karaoke-app/**/PublicSongEditorController.kt"
+  requires: "knowledge/domains/editorial/components/assignment-lifecycle.md"
+  reason: "Self-assign flow, race protection — обновить assignment-lifecycle.md"
+
+# === ADR (Architecture Decision Records) ===
+# Новые ADR создаются через `knowledge/templates/adr.md`. ID берётся
+# из существующих (см. knowledge/adr/README.md). Это правило проверяет,
+# что новый ADR имеет правильную нумерацию.
+- code: "knowledge/adr/000[7-9]-*.md"
+  requires: "knowledge/adr/README.md"
+  reason: "Новый ADR — обновить README.md (таблица миграции)"

@@ -590,7 +590,7 @@ $$ LANGUAGE plpgsql;
 
 **Severity**: MUST
 **Section**: markdown
-**Enforced by**: `tools/check-knowledge-structure.sh` + `tools/check-knowledge-cross-links.sh` + `tools/lint-knowledge.py`
+**Enforced by**: `tools/check-knowledge-structure.sh` + `tools/check-knowledge-cross-links.sh` + `tools/lint-knowledge.py` + `tools/check-ssot-impact.py`
 
 Каждый файл в `archive/docs/features/` имеет 6 обязательных секций (см.
 `contracts/per-feature-doc.md`):

@@ -25,8 +25,8 @@ knowledge/domains/<name>/
 | [`identity`](identity/domain.md) | `livedocs/domain/identity.md` | Migrated (spec 326) |
 | [`catalog`](catalog/domain.md) | `livedocs/domain/catalog.md` | Migrated (spec 327) |
 | [`rendering`](rendering/domain.md) | `livedocs/domain/rendering.md` | Migrated (spec 327) |
-| `processing` | `livedocs/domain/processing.md` | запланировано |
-| `publishing` | `livedocs/domain/publishing.md` | запланировано |
+| [`processing`](processing/domain.md) | `livedocs/domain/processing.md` | Migrated (spec 328) |
+| [`publishing`](publishing/domain.md) | `livedocs/domain/publishing.md` | Migrated (spec 328) |
 | `editorial` | `livedocs/domain/editorial.md` | запланировано |
 | `stats` | `livedocs/domain/stats.md` | запланировано |
 | `caching` | `livedocs/domain/caching.md` | запланировано |

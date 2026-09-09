@@ -58,16 +58,11 @@ storage:
   console:
     port-host: ${STORAGE_CONSOLE_PORT_HOST:9001}
     port-inside-container: ${STORAGE_CONSOLE_PORT_INSIDE_CONTAINER:9001}
-  # In-memory TTL-кеш метаданных (спека #344, OpenProject #69).
-  # HealthReport.getHealthReportList дёргает StorageApiClient.fileExists ~72k раз на странице
-  # Songs. Кеш убирает эти round-trip (TTL=300s default = 5 минут).
-  metadata:
-    cache:
-      local:
-        ttlSeconds: 300
-      remote:
-        ttlSeconds: 300
-      maxEntries: 50000
+  # Persistent metadata cache (Pass 345, спека #348). TTL=∞. Переживает рестарт
+  # karaoke-app и webvue3 (через backend). Хранение — Postgres (миграция
+  # 48_storage_metadata_cache.sql). Инвалидация: write-through hooks в
+  # uploadFile/deleteFile + manual через DELETE /api/health/cache/refresh.
+  # Настраивать нечего — TTL = бесконечность.
 
 searxng:
   base-url: http://searxng:8080

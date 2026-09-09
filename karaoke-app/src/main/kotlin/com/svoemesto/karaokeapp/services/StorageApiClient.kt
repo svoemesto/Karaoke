@@ -134,6 +134,7 @@ class StorageApiClientImpl(
     @Value($$"${storage.remote-endpoint:http://89.125.103.63:9000}") val remoteEndpoint: String,
     @Value($$"${storage.key}") val storageKey: String,
     @Value($$"${storage.secret}") val storageSecret: String,
+    private val storageMetadataCache: StorageMetadataCache,
 ) : StorageApiClient {
     private val storageClient: MinioClient =
         run {
@@ -204,13 +205,22 @@ class StorageApiClientImpl(
                 } else {
                     base
                 }
-            storageClient.putObject(
-                PutObjectArgs
-                    .builder()
-                    .bucket(bucketName)
-                    .`object`(decodedFileName)
-                    .stream(stream, fileContent.size.toLong(), -1)
-                    .build(),
+            val response =
+                storageClient.putObject(
+                    PutObjectArgs
+                        .builder()
+                        .bucket(bucketName)
+                        .`object`(decodedFileName)
+                        .stream(stream, fileContent.size.toLong(), -1)
+                        .build(),
+                )
+            // Pass 345: write-through hook — invalidates/updates persistent metadata cache.
+            storageMetadataCache.recordUpload(
+                source = "REMOTE",
+                bucket = bucketName,
+                fileName = decodedFileName,
+                etag = response.etag(),
+                sizeBytes = fileContent.size.toLong(),
             )
             decodedFileName
         }
@@ -295,6 +305,8 @@ class StorageApiClientImpl(
                         .build(),
                 )
             }
+            // Pass 345: write-through hook — DELETE row from persistent cache.
+            storageMetadataCache.recordDelete("REMOTE", bucketName, decodedFileName)
             "OK"
         }
 

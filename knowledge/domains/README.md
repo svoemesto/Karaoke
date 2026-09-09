@@ -126,6 +126,6 @@ knowledge/domains/<name>/
   - **Dead code removal**: `searchSongText2` удалена.
   - **getDiff field order fix**: сортировка по column name для
     детерминированного UPDATE.
-  - **Race #65 hypothesis**: документирована (не применена —
-    требует review).
+  - **Race #65 fix** (Pass 343, ветка `343-race-65-fix`): perSong
+    single-flight guard через AtomicBoolean + 4 unit-теста. **FIXED**.
   PR #441.

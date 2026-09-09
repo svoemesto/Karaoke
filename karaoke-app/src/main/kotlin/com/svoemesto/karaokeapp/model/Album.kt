@@ -514,9 +514,8 @@ class Album(
          * в одной группе года — алфавитный тай-брейкер. Альбомы с `year = 0` или `NULL` уходят в конец
          * (Clarification Q1 спеки 356, A-009).
          *
-         * Skip-фильтр: `tbl_albums.skip = false` всегда (FR-016 — без утечки данных о существовании).
-         * `includeSkipped` зарезервирован для будущего использования редакторами (аналогично
-         * `Author.loadAuthorTilesWithCounts(includeSkipped=true)`).
+         * Skip-фильтр: в `tbl_albums` сейчас нет колонки `skip` (Pass 357), фильтрация
+         * не выполняется. `includeSkipped` зарезервирован на будущее.
          *
          * Не использует `GROUP BY tbl_songs.album_id` — счётчики денормализованы
          * (`trg_tbl_songs_update_album_counts` миграции `49_albums_song_counts.sql`, FR-015).
@@ -548,12 +547,7 @@ class Album(
                     append("SELECT id, author_id, year, name, album_type, sort_order, description, short_description, warning, ")
                     append("total_song_count, ready_song_count ")
                     append("FROM $TABLE_NAME ")
-                    if (!includeSkipped) {
-                        append("WHERE skip = false ")
-                    } else {
-                        append("WHERE TRUE ")
-                    }
-                    append("AND author_id = ? ")
+                    append("WHERE author_id = ? ")
                     // specs/356-zakroma-albums-by-author FR-011: редактор видит ВСЕ альбомы автора
                     // «в любом случае» (issue #70: «Для обычных редакторов альбом показывается в
                     // любом случае и кол-во песен это общее количество»). Для гостя — только с

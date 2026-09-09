@@ -101,7 +101,11 @@ export default {
   background: var(--km-card, #1a1a1a);
   border: 1px solid var(--km-border, #333);
   border-radius: 6px;
-  margin: 8px 16px;
+  /* Pass 359: panel вне .km-content (между хедером и контентом) — добавляем
+     max-width и margin: auto напрямую, чтобы панель центрировалась как контент.
+     Раньше margin: 8px 16px прижимал панель к левому краю. */
+  margin: 8px auto;
+  max-width: 1368px; /* 1400 - 16*2 padding из .km-content */
 }
 .km-zakroma-settings-row {
   display: flex;

@@ -102,9 +102,14 @@ Health отвечает за проверку: «эти три представ�
   (2026, in progress): первопричина — race condition в HTTP-вызовах
   к `StorageApiClient.fileExists`. Детальный анализ — в
   [health-report.md#known-issues](components/health-report.md).
-- **#69** «Кеширование информации из хранилища» (2026-09): попытка
-  спеки 2026-09-09 провалилась из-за пропуска Knowledge-first
-  (см. Pass 340, спека 339 удалена). Перезапуск — после Pass 341.
+- **#69** «Кеширование информации из хранилища» (2026-09, спека #344):
+  **FIXED в Pass 344**. In-memory TTL-кеш через готовый `PollingCache<V>`
+  (см. `knowledge/domains/caching/components/web-caches.md`). Спека #339
+  (провалившаяся попытка 2026-09-09) удалена, после Pass 341 Knowledge
+  достаточно для перезапуска — спека #344 успешно реализована и слита.
+  Метрики через `infra.cache.storage` SLF4J-категорию и
+  `/api/health/cacheStats` endpoint. `race-#65` остаётся открытым
+  (кеш смягчает, root cause не починен).
 
 ## Код (физическая реализация)
 

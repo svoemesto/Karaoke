@@ -770,9 +770,10 @@ interface KaraokeDbTable {
                 // порядка UPDATE-колонок. Без сортировки порядок зависел от reflection
                 // (kClassEntityA.members) — JVM НЕ гарантирует порядок. Это могло приводить к
                 // нестабильному recordhash и race-condition в two-DB sync.
-                val sortedMembers = kClassEntityA.members
-                    .filterIsInstance<kotlin.reflect.KProperty<*>>()
-                    .sortedBy { it.findAnnotation<KaraokeDbTableField>()?.name ?: "" }
+                val sortedMembers =
+                    kClassEntityA.members
+                        .filterIsInstance<kotlin.reflect.KProperty<*>>()
+                        .sortedBy { it.findAnnotation<KaraokeDbTableField>()?.name ?: "" }
                 for (property in sortedMembers) {
                     val karaokeDbTableFieldAnnotation = property.findAnnotation<KaraokeDbTableField>()
                     if (karaokeDbTableFieldAnnotation != null) {

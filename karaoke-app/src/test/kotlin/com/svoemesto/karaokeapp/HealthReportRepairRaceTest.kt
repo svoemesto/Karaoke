@@ -65,7 +65,7 @@ class HealthReportRepairRaceTest {
 
         repeat(threadCount) {
             pool.submit {
-                startGate.await()  // синхронизация старта
+                startGate.await() // синхронизация старта
                 try {
                     if (attemptEnterRepair(testSongId)) {
                         winnerCount.incrementAndGet()
@@ -75,7 +75,7 @@ class HealthReportRepairRaceTest {
                 }
             }
         }
-        startGate.countDown()  // поехали
+        startGate.countDown() // поехали
         check(finishGate.await(5, TimeUnit.SECONDS)) { "Concurrent test timed out" }
         pool.shutdown()
 
@@ -91,7 +91,7 @@ class HealthReportRepairRaceTest {
         val songA = 100L
         val songB = 200L
         assertTrue(attemptEnterRepair(songA))
-        assertTrue(attemptEnterRepair(songB))  // разные ключи — оба true
+        assertTrue(attemptEnterRepair(songB)) // разные ключи — оба true
         exitRepair(songA)
         exitRepair(songB)
     }

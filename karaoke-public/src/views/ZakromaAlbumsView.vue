@@ -130,13 +130,16 @@ export default {
     },
     /**
      * Клик по плашке альбома → переход на страницу песен с фильтром по альбому.
-     * @param {number} albumId
+     * Используем `albumName` (а не `albumId`) в URL — name это группирующий ключ в потоке
+     * песен ZakromaView, всегда заполнен. `tbl_songs.album_id` может быть NULL у
+     * некоторых песен → `ZakromaAlbum.albumId` тогда = 0 и фильтр по id не работает.
+     * @param {object} album полный объект альбома (с id, name, year).
      */
-    onAlbumSelect(albumId) {
+    onAlbumSelect(album) {
       this.$router.push({
         name: 'zakroma-author',
         params: { authorId: this.authorId },
-        query: { album: albumId },
+        query: { albumName: album.name, albumYear: album.year, albumId: album.id },
       })
     },
     /**

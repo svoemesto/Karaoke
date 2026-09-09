@@ -158,6 +158,27 @@ connection-pool).
   **НЕ** настраивается через `KaraokeProperties`. Если нужен
   тюнинг — править хардкод (Pass 343+).
 
+## Pass 351: graceful degradation (Spec #352, OpenProject #71)
+
+В Pass 351 добавлен `StorageCircuitBreaker` (NEW `@Component` в
+`karaoke-app/.../services/StorageCircuitBreaker.kt`), который оборачивает
+`fileExists`, `fileIsActual`, `getFileInfo` через `circuit.decorate(...)`:
+
+- **Per-call timeout**: `storage.file-exists-timeout-seconds` (default 5s, override `STORAGE_FILE_EXISTS_TIMEOUT_SECONDS`).
+- **Circuit breaker FSM**: CLOSED → (N consecutive failures) → OPEN → (cooldown elapsed) → HALF_OPEN → (probe success) → CLOSED. (N = `storage.circuit-breaker-threshold`, default 5; cooldown = `storage.circuit-breaker-cooldown-seconds`, default 30).
+- **In-memory only** (AtomicReference): state сбрасывается при рестарте `karaoke-app`.
+- **Half-open probe pattern** (per Q3): первый call после cooldown — single probe. Success → CLOSED, failure → OPEN (reset openedAtMs).
+
+При OPEN state — `fileExists`/`fileIsActual` возвращают `false` мгновенно (без MinIO call). При timeout — `false` после `timeoutSeconds`. При успехе — нормальный результат.
+
+Новые SLF4J events (Pass 351, `infra.cache.storage`):
+- `cache:network:failure` (WARN) — per-call network failure.
+- `cache:circuit:state` (INFO) — state transition (CLOSED↔OPEN↔HALF_OPEN).
+
+Это **root-cause fix** для OpenProject #65 «Ошибка при проверке наличия
+файла в удаленном хранилище». См. `specs/352-storage-graceful-degradation/spec.md`,
+`docs/features/storage-metadata-cache.md`, `specs/349-tracker-must-link/report-65.md`.
+
 ## Связь с другими компонентами
 
 - **HealthReport** (`actionsRemoteStorage`): `fileExists`,

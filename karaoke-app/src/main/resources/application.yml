@@ -63,6 +63,14 @@ storage:
   # 48_storage_metadata_cache.sql). Инвалидация: write-through hooks в
   # uploadFile/deleteFile + manual через DELETE /api/health/cache/refresh.
   # Настраивать нечего — TTL = бесконечность.
+  # NEW (Pass 351, спека #352): graceful degradation через circuit breaker
+  # для file-* методов (fileExists, fileIsActual, getFileInfo) в
+  # StorageApiClientImpl. In-memory circuit + per-call timeout.
+  # Override через env: STORAGE_FILE_EXISTS_TIMEOUT_SECONDS,
+  # STORAGE_CIRCUIT_BREAKER_THRESHOLD, STORAGE_CIRCUIT_BREAKER_COOLDOWN_SECONDS.
+  file-exists-timeout-seconds: 5
+  circuit-breaker-threshold: 5
+  circuit-breaker-cooldown-seconds: 30
 
 searxng:
   base-url: http://searxng:8080

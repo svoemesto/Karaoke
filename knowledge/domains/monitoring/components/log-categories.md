@@ -23,7 +23,7 @@
 | `infra.prod.ping` | `ProdContainerCheck` | HTTP-пинг `sm-karaoke.ru/` | WARN при ошибке, INFO при recovery |
 | `infra.prod.db` | `ProdContainerCheck` | JDBC-пинг прод-БД | WARN при ошибке, INFO при recovery |
 | `infra.cache.statbysong` | `karaoke-web/StatBySong.kt` (cacheLog) | Cold-start, refresh, ошибки | WARN при cold-start, INFO при success, WARN при failure |
-| `infra.cache.storage` | `karaoke-app/.../services/StorageMetadataCache.kt` (cacheLog, спека #344, OpenProject #69) | cache:hit / cache:miss / cache:evicted — in-memory TTL-кеш метаданных MinIO | INFO hit/miss, INFO evicted |
+| `infra.cache.storage` | `karaoke-app/.../services/StorageMetadataCache.kt` (cacheLog, спека #344, OpenProject #69) + `StorageCircuitBreaker.kt` (Pass 351, спека #352, OpenProject #71) | cache:hit / cache:miss / cache:evicted (Pass 344) + **cache:network:failure** (Pass 351, WARN per fail) + **cache:circuit:state** (Pass 351, INFO per state transition CLOSED↔OPEN↔HALF_OPEN) | INFO hit/miss/circuit, WARN network |
 | `infra.queue.render` | **не реализована** | Render queue stalled/lane stalled | (Pass 343+) |
 | `infra.telegram.polling` | **не реализована** | Telegram polling state | (Pass 343+) |
 

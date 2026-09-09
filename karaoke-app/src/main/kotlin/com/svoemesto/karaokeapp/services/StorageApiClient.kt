@@ -135,6 +135,7 @@ class StorageApiClientImpl(
     @Value($$"${storage.key}") val storageKey: String,
     @Value($$"${storage.secret}") val storageSecret: String,
     private val storageMetadataCache: StorageMetadataCache,
+    private val storageCircuitBreaker: StorageCircuitBreaker,
 ) : StorageApiClient {
     private val storageClient: MinioClient =
         run {
@@ -340,14 +341,18 @@ class StorageApiClientImpl(
         bucketName: String,
         fileName: String,
     ): Boolean {
-        val result =
-            try {
-                checkIfExists(bucketName = bucketName, fileName = fileName).block()
-            } catch (e: Exception) {
-                println("Ошибка при проверке наличия файла в удаленном хранилище: ${e.message}")
-                null
-            }
-        return result?.get("exists") ?: false
+        // Pass 351: fileExists обёрнут в StorageCircuitBreaker.decorate.
+        // - При OPEN circuit: fast-fail (return false за <1ms, без MinIO-call).
+        // - При per-call timeout (default 5s): return false.
+        // - При network exception: return false + log + increment failureCount.
+        return storageCircuitBreaker
+            .decorate(
+                operation = "fileExists",
+                loader = { checkIfExists(bucketName = bucketName, fileName = fileName) },
+                emptyValue = emptyMap<String, Boolean>(),
+            ).block()
+            ?.get("exists")
+            ?: false
     }
 
     override fun fileIsActual(
@@ -358,13 +363,13 @@ class StorageApiClientImpl(
         var result = true
         val file = File(pathToFileOnDisk)
         if (file.exists()) {
-            val fileInfo =
-                try {
-                    getFileInfo(bucketName = bucketName, fileName = fileName).block()
-                } catch (e: Exception) {
-                    println("Ошибка при проверке информации о файле в удаленном хранилище: ${e.message}")
-                    null
-                }
+            // Pass 351: getFileInfo обёрнут в StorageCircuitBreaker.decorateOrNull.
+            val fileInfo: StorageFileInfo? =
+                storageCircuitBreaker
+                    .decorateOrEmpty<StorageFileInfo>(
+                        operation = "getFileInfo",
+                        loader = { getFileInfo(bucketName = bucketName, fileName = fileName) },
+                    ).block()
             if (fileInfo != null) {
                 result = (file.length() == fileInfo.size)
             }

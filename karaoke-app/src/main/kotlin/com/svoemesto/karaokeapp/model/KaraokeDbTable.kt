@@ -766,17 +766,21 @@ interface KaraokeDbTable {
             val result: MutableList<RecordDiff> = mutableListOf()
             if (entityA != null && entityB != null) {
                 val kClassEntityA: KClass<out KaraokeDbTable> = entityA::class
-                for (member in kClassEntityA.members) {
-                    if (member is kotlin.reflect.KProperty<*>) {
-                        val property = member
-                        val karaokeDbTableFieldAnnotation = property.findAnnotation<KaraokeDbTableField>()
-                        if (karaokeDbTableFieldAnnotation != null) {
-                            if (karaokeDbTableFieldAnnotation.useInDiff) {
-                                val fieldValueA = property.getter.call(entityA)
-                                val fieldValueB = property.getter.call(entityB)
-                                if (fieldValueA != fieldValueB) {
-                                    result.add(RecordDiff(karaokeDbTableFieldAnnotation.name, fieldValueA, fieldValueB))
-                                }
+                // Pass 451: сортируем по имени колонки (annotation.name) для детерминированного
+                // порядка UPDATE-колонок. Без сортировки порядок зависел от reflection
+                // (kClassEntityA.members) — JVM НЕ гарантирует порядок. Это могло приводить к
+                // нестабильному recordhash и race-condition в two-DB sync.
+                val sortedMembers = kClassEntityA.members
+                    .filterIsInstance<kotlin.reflect.KProperty<*>>()
+                    .sortedBy { it.findAnnotation<KaraokeDbTableField>()?.name ?: "" }
+                for (property in sortedMembers) {
+                    val karaokeDbTableFieldAnnotation = property.findAnnotation<KaraokeDbTableField>()
+                    if (karaokeDbTableFieldAnnotation != null) {
+                        if (karaokeDbTableFieldAnnotation.useInDiff) {
+                            val fieldValueA = property.getter.call(entityA)
+                            val fieldValueB = property.getter.call(entityB)
+                            if (fieldValueA != fieldValueB) {
+                                result.add(RecordDiff(karaokeDbTableFieldAnnotation.name, fieldValueA, fieldValueB))
                             }
                         }
                     }

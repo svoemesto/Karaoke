@@ -170,12 +170,12 @@ UI обновляется без polling → экономия трафика и 
    в Kotlin → NPE при чтении. **Решение**: nullable-поля.
 2. **`save()` проглатывает UNIQUE-конфликты**: проверяйте конфликт
    ДО save в контроллере (см. CONSTITUTION_PATTERN).
-4. **`getDiff` field order**: `KaraokeDbTable.kt:769` использует
-   `kClassEntityA.members` — порядок **НЕ гарантирован** JVM (может
-   различаться между запусками). `List<RecordDiff>` **НЕ сортируется**
-   в `getDiff`. Это может приводить к недетерминированному порядку
-   UPDATE-колонок и нестабильному `recordhash`. (TODO Pass 343+:
-   сортировать по `fieldName`.)
+4. **`getDiff` field order** — **FIXED in Pass 451** ✅:
+   `KaraokeDbTable.getDiff` теперь сортирует по
+   `KaraokeDbTableField.name` для детерминированного UPDATE column
+   order. Без сортировки порядок зависел от reflection
+   (`kClassEntityA.members`) — JVM НЕ гарантирует порядок, что
+   приводило к нестабильному `recordhash` и race в two-DB sync.
 
 ## Связь с другими компонентами
 

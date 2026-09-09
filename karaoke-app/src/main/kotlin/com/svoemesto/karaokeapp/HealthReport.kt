@@ -13,6 +13,7 @@ import com.svoemesto.karaokeapp.services.SNS
 import com.svoemesto.karaokeapp.services.StorageApiClient
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.properties.Delegates
 
 /**
@@ -2104,6 +2105,29 @@ data class HealthReport(
         // (startRepairAll) и из потоков воркера (onRepairProcessFinished) — нужен потокобезопасный набор.
         val autoRepairSongIds: MutableSet<Long> = ConcurrentHashMap.newKeySet()
 
+        // Per-song single-flight guard (Pass 343+ fix, OpenProject #65):
+        // предотвращает параллельное выполнение repair-loop для одной песни из разных потоков
+        // (HTTP startRepairAll + worker onRepairProcessFinished). Реализация — perSong map
+        // AtomicBoolean; compareAndSet(false, true) гарантирует, что только один поток получит `true`.
+        // При успехе — repair-loop выполняет recomputeAndBroadcast + executeResolvable.
+        // При неуспехе (false) — вызывающий поток пропускает этот вызов (другой поток уже чинит).
+        // После exit — следующий attemptEnterRepair снова true.
+        private val repairInFlight: ConcurrentHashMap<Long, AtomicBoolean> = ConcurrentHashMap()
+
+        fun attemptEnterRepair(songId: Long): Boolean =
+            repairInFlight.computeIfAbsent(songId) { AtomicBoolean(false) }
+                .compareAndSet(false, true)
+
+        fun exitRepair(songId: Long) {
+            repairInFlight[songId]?.set(false)
+            // NB: не удаляем ключ из map, чтобы избежать memory churn.
+            // Если песня больше не нужна в repair — можно вызвать cleanupRepair(songId).
+        }
+
+        fun cleanupRepair(songId: Long) {
+            repairInFlight.remove(songId)
+        }
+
         // Сверка персистентных флагов готовности плеера (см. deploy/karaoke-db/26_player_readiness_flags.sql)
         // с фактическим состоянием файлов в LOCAL_STORAGE (тот же бакет "karaoke", который в итоге видит
         // публичный плеер — не REMOTE_STORAGE, это отдельный сервер для другого назначения). Ловит
@@ -2256,17 +2280,25 @@ data class HealthReport(
         }
 
         // Старт каскадного «Исправить всё» по песне: пометить песню и выполнить всё решаемое сейчас.
+        // Pass 343+ (OpenProject #65): single-flight guard через attemptEnterRepair/exitRepair —
+        // если для этой песни уже идёт repair (например, из worker-потока после завершения
+        // предыдущего задания каскада), этот вызов пропускается (не double-execute).
         fun startRepairAll(
             song: Song,
             database: KaraokeConnection,
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
         ) {
-            autoRepairSongIds.add(song.id)
-            val reports = recomputeAndBroadcast(song.id, database, storageService, storageApiClient)
-            executeResolvable(reports)
-            // повторный пересчёт — отразить в UI перевод отчётов в IN_PROGRESS
-            recomputeAndBroadcast(song.id, database, storageService, storageApiClient)
+            if (!attemptEnterRepair(song.id)) return  // другой поток уже чинит — skip
+            try {
+                autoRepairSongIds.add(song.id)
+                val reports = recomputeAndBroadcast(song.id, database, storageService, storageApiClient)
+                executeResolvable(reports)
+                // повторный пересчёт — отразить в UI перевод отчётов в IN_PROGRESS
+                recomputeAndBroadcast(song.id, database, storageService, storageApiClient)
+            } finally {
+                exitRepair(song.id)
+            }
         }
 
         // Хук завершения репаир-задания (вызывается из KaraokeProcessThread.run()). Всегда пересчитывает
@@ -2274,6 +2306,8 @@ data class HealthReport(
         // когда решать больше нечего и ничего не в работе — выводит песню из каскада.
         // success=false (задание упало с ERROR) обрывает каскад: иначе тот же упавший отчёт снова
         // окажется решаемым и хук вечно перезапускал бы падающую задачу.
+        // Pass 343+ (OpenProject #65): single-flight guard — если уже идёт репарация этой песни
+        // (например, из startRepairAll на UI-клике), этот вызов пропускается.
         fun onRepairProcessFinished(
             songId: Long,
             success: Boolean,
@@ -2281,21 +2315,26 @@ data class HealthReport(
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
         ) {
-            val reports = recomputeAndBroadcast(songId, database, storageService, storageApiClient)
-            if (songId !in autoRepairSongIds) return
+            if (!attemptEnterRepair(songId)) return  // skip — другой поток чинит
+            try {
+                val reports = recomputeAndBroadcast(songId, database, storageService, storageApiClient)
+                if (songId !in autoRepairSongIds) return
 
-            if (!success) {
-                autoRepairSongIds.remove(songId)
-                return
-            }
+                if (!success) {
+                    autoRepairSongIds.remove(songId)
+                    return
+                }
 
-            val resolvable = reports.filter { it.canResolve && it.healthReportStatus == ERROR }
-            val inProgress = reports.any { it.healthReportStatus == IN_PROGRESS }
-            if (resolvable.isNotEmpty()) {
-                executeResolvable(resolvable)
-                recomputeAndBroadcast(songId, database, storageService, storageApiClient)
-            } else if (!inProgress) {
-                autoRepairSongIds.remove(songId)
+                val resolvable = reports.filter { it.canResolve && it.healthReportStatus == ERROR }
+                val inProgress = reports.any { it.healthReportStatus == IN_PROGRESS }
+                if (resolvable.isNotEmpty()) {
+                    executeResolvable(resolvable)
+                    recomputeAndBroadcast(songId, database, storageService, storageApiClient)
+                } else if (!inProgress) {
+                    autoRepairSongIds.remove(songId)
+                }
+            } finally {
+                exitRepair(songId)
             }
         }
     }

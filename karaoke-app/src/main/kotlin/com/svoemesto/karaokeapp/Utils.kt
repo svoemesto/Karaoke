@@ -2138,23 +2138,6 @@ fun getAuthorDigest(
     return result to listDigest.size
 }
 
-@Suppress("unused")
-fun searchSongText2(song: Song) {
-    val searchQuery = "${song.author} ${song.songName}"
-    val searchUrl = "https://www.google.com/search?q=${searchQuery.replace(" ", "+")}+текст+песни"
-
-    // Загрузка страницы результатов поиска
-    val document = Jsoup.connect(searchUrl).get()
-
-    val links: List<Element> = document.select("a")
-
-    // Пройтись по найденным ссылкам и вывести их href (URL)
-    for (link in links) {
-        val href = link.attr("href")
-        println(href)
-    }
-}
-
 fun searchSongText(song: Song): String {
     val searchQuery = "${song.author} ${song.songName}".replace("&", "")
     val searchUrl = "https://www.google.com/search?q=${searchQuery.replace(" ", "+")}+текст+песни"

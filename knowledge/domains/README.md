@@ -115,3 +115,17 @@ knowledge/domains/<name>/
 - **Pass 340-385** (2026-09-09): Полное наполнение Knowledge. 15
   доменов, ~30 компонентов, ~25 system файлов. Всего ~120+ файлов,
   ~16 000+ строк, ~440+ cross-links.
+- **Pass 386-425** (2026-09-09, ветка `340-governance-knowledge-first`):
+  детализация Vuex stores, composables, Mko, monitor-checks, SQL
+  migrations. +60 файлов, +1 600 строк. PR #440.
+- **Pass 426-451** (2026-09-09, ветка `342-knowledge-detail-2`):
+  detail Album/Author/SiteUser + karaoke-web controllers +
+  Thymeleaf + SongPublicDto + **3 РЕАЛЬНЫХ code fix'а**:
+  - **Crypto security**: ключ/IV из env (`CRYPTO_AES_KEY`/`CRYPTO_AES_IV`)
+    с hardcoded fallback.
+  - **Dead code removal**: `searchSongText2` удалена.
+  - **getDiff field order fix**: сортировка по column name для
+    детерминированного UPDATE.
+  - **Race #65 fix** (Pass 343, ветка `343-race-65-fix`): perSong
+    single-flight guard через AtomicBoolean + 4 unit-теста. **FIXED**.
+  PR #441.

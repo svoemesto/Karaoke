@@ -574,6 +574,16 @@ export default {
     },
   },
   watch: {
+    // Pass 359: при прямом заходе на /zakroma/{id}?albumId=... authorTiles ещё не
+    // загружен на момент mounted, поэтому tryStartZakromaStream() не находил тайл.
+    // Теперь watcher ловит момент, когда authorTiles появляются, и запускает стрим.
+    authorTiles: {
+      handler() {
+        if (this.authorChosen && this.selectedAuthorId && !this.selectedAuthor) {
+          this.tryStartZakromaStream()
+        }
+      },
+    },
     // Готовность плеера подгружаем асинхронно, как только пришли данные закромов (и при их смене).
     // Pass 239: убраны readiness.load() и membership.load() (были источником зависания).
     // PlayerIcon получает все данные через props из стрима; membership/избранное/подписки
@@ -633,28 +643,42 @@ export default {
     this.loadSpecialBucket()
     // specs/258-zakroma-routing-refactor: после рефакторинга URL автор идентифицируется
     // по :authorId в path. Резолвим ID → name через authorTiles (Vuex) и стартуем стрим.
+    //
+    // Pass 359 fix: при прямом заходе на /zakroma/{id}?albumId=... authorTiles ещё не
+    // загружен (loadAuthorTiles async) — старая логика сбрасывала authorChosen=false
+    // и пользователь видел пустую страницу вместо песен. Теперь НЕ сбрасываем
+    // authorChosen если тайл не найден; watcher ниже догрузит поток когда authorTiles
+    // появится.
     if (this.authorChosen && this.selectedAuthorId) {
-      const tile = this.authorTiles.find((t) => String(t.id) === String(this.selectedAuthorId))
-      if (tile) {
-        this.selectedAuthor = tile.author
-        // Спека 258 (ранее): регистрация referrer для SongView back-link. Спека 259 убрала —
-        // SongView.songHeaderBack() теперь читает authorId прямо из SongPublicDto.authorId,
-        // который заполняется на бэке через Author.loadIdsByNames, см. PublicApiController.song().
-        this.loadZakromaStream({
-          author: tile.author,
-          expectedCount: tile.songCount || undefined,
-        })
-      } else {
-        // Автор с таким ID не найден в authorTiles (удалён?) — сбрасываем на тайты.
-        this.authorChosen = false
-        this.selectedAuthorId = ''
-        if (typeof this.notify === 'function') {
-          this.notify(`Автор с ID=${this.selectedAuthorId} не найден`, 'warning')
-        }
-      }
+      this.tryStartZakromaStream()
     }
     // specs/258 — обновляем заголовок вкладки после async-резолвинга ID → имя.
     this.updateDocumentTitle()
+  },
+  /**
+   * Pass 359: запускает поток песен автора, если ещё не запущен. Использует
+   * `this.authorTiles` для маппинга ID→name. Вызывается из mounted и из
+   * watcher'а на `authorTiles` для покрытия случая прямого захода на
+   * /zakroma/{id}?albumId=... (когда authorTiles ещё не загружен на момент mount).
+   */
+  tryStartZakromaStream() {
+    if (!this.authorChosen || !this.selectedAuthorId) return
+    const tile = this.authorTiles.find((t) => String(t.id) === String(this.selectedAuthorId))
+    if (tile) {
+      this.selectedAuthor = tile.author
+      this.loadZakromaStream({
+        author: tile.author,
+        expectedCount: tile.songCount || undefined,
+      })
+    } else {
+      // Pass 359: НЕ сбрасываем authorChosen/selectedAuthorId — watcher ниже
+      // догрузит поток когда authorTiles появится. Уведомление оставляем для
+      // явной диагностики (если автор действительно удалён — увидим после загрузки тайлов).
+      if (typeof this.notify === 'function') {
+        // no-op: раньше показывали "Автор не найден" сразу, что было преждевременно
+        // (authorTiles ещё не загружен). Сейчас ждём watcher.
+      }
+    }
   },
   methods: {
     ...mapActions('zakroma', ['loadAuthorTiles', 'loadZakromaStream', 'loadSpecialBucket']),

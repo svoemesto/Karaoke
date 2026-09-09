@@ -172,6 +172,12 @@ export default {
   padding: 24px;
   text-align: center;
   color: var(--km-text2, #aaa);
+  /* Используем flex для надёжного центрирования на обеих темах (classic + modern),
+     где у родительского .km-content может быть разная ширина контейнера. */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 60px;
 }
 .km-error {
   padding: 16px;

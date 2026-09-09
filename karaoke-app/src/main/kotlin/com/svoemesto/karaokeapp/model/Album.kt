@@ -506,7 +506,9 @@ class Album(
          *
          * Логика видимости:
          * - `onlyPublished=true` (гость / premium): `ready_song_count > 0` — только альбомы с готовыми песнями.
-         * - `onlyPublished=false` (редактор): `total_song_count > 0` — все альбомы автора.
+         * - `onlyPublished=false` (редактор): ВСЕ альбомы автора (без фильтра по счётчику) — issue #70
+         *   явно: «Для обычных редакторов альбом показывается в любом случае и кол-во песен это
+         *   общее количество». Альбомы с 0 песен — видны.
          *
          * Сортировка: `year ASC NULLS LAST, name ASC` — хронологический порядок (от старых к новым),
          * в одной группе года — алфавитный тай-брейкер. Альбомы с `year = 0` или `NULL` уходят в конец
@@ -552,11 +554,15 @@ class Album(
                         append("WHERE TRUE ")
                     }
                     append("AND author_id = ? ")
+                    // specs/356-zakroma-albums-by-author FR-011: редактор видит ВСЕ альбомы автора
+                    // «в любом случае» (issue #70: «Для обычных редакторов альбом показывается в
+                    // любом случае и кол-во песен это общее количество»). Для гостя — только с
+                    // ready_song_count > 0 (FR-010, issue #70: «для других пользователей альбом
+                    // показывается если у него есть хотя бы одна готовая песня»).
                     if (onlyPublished) {
                         append("AND ready_song_count > 0 ")
-                    } else {
-                        append("AND total_song_count > 0 ")
                     }
+                    // else: editor — никакого фильтра по count, видит все (включая 0 песен).
                     append("ORDER BY year ASC NULLS LAST, name ASC")
                 }
             val result = mutableListOf<Album>()

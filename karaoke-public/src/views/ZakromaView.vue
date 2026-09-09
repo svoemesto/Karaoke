@@ -859,22 +859,32 @@ export default {
         : `Будет в эфире с ${song.datePublish}`
     },
     onAuthorSelect(author) {
-      this.selectedAuthor = author
-      this.authorChosen = true
-      this.songFilter = ''
-      this.$router.replace({ path: '/zakroma', query: author ? { author } : {} })
-      // 181: stream loader (FR-FE-003). expectedCount берётся с тайла — ищем
-      // в authorTiles (имя автора → songCount). **MUST** be undefined если
-      // тайла нет (deep-link `?author=...` до загрузки тайлов, или автор
-      // не в основном списке) — backend fallback'ит на DB-запрос
-      // `Song.loadAuthorSongCounts(...)`. Иначе фронт пришлёт 0 и
-      // `meta` будет «0 из 0» (регрессия 181/243).
+      // specs/356-zakroma-albums-by-author: клик по плашке автора теперь ведёт на
+      // /zakroma/{authorId}/albums (НОВАЯ страница альбомов), а не на
+      // /zakroma/{authorId} (старая страница песен). Это разрыв с прежним поведением
+      // (Pass 70 / issue #70): вместо плоского списка песен — сначала альбомы.
       const tile = (this.authorTiles || []).find((t) => t.author === author)
-      const expectedCount = tile ? tile.songCount : undefined
-      this.loadZakromaStream({ author, expectedCount })
-      // Спека 259: ранее здесь ставился lastSongReferrer — но SongView.songHeaderBack() теперь
-      // берёт authorId прямо из SongPublicDto.authorId (заполняется в PublicApiController.song()),
-      // lastSongReferrer больше никем не читается.
+      const authorId = tile?.id
+      if (!authorId) {
+        // Fallback для deep-link или автора не в основного списка: загружаем по имени
+        // (старое поведение через `?author=` для совместимости с share-линками).
+        this.selectedAuthor = author
+        this.authorChosen = true
+        this.songFilter = ''
+        this.$router.replace({ path: '/zakroma', query: author ? { author } : {} })
+        const expectedCount = tile ? tile.songCount : undefined
+        this.loadZakromaStream({ author, expectedCount })
+        return
+      }
+      // Основной путь: navigate на /zakroma/{authorId}/albums.
+      this.$router.push({
+        name: 'zakroma-author-albums',
+        params: { authorId },
+      })
+      // Сбрасываем локальный state, чтобы при возврате на /zakroma страница показала тайлы.
+      this.selectedAuthor = ''
+      this.authorChosen = false
+      this.songFilter = ''
     },
     retryLoadZakroma() {
       // FR-FE-001: повторный запуск после ошибки.

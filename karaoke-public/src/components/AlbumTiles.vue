@@ -11,6 +11,14 @@
       :data-album-id="a.id"
       @click="$emit('select', a.id)"
     >
+      <!-- Тип альбома (studio/single/live/compilation/bootleg/archive/tribute) — бейдж НАД обложкой. -->
+      <div
+        v-if="albumTypeLabel(a.albumType)"
+        class="alt-type-badge"
+        :class="`alt-type-${a.albumType}`"
+      >
+        {{ albumTypeLabel(a.albumType) }}
+      </div>
       <div class="alt-pic">
         <img
           v-if="a.pictureUrl"
@@ -28,14 +36,6 @@
           {{ a.name }}
         </span>
         <span class="alt-count" :title="captionTitle(a)">{{ caption(a) }}</span>
-      </div>
-      <!-- Тип альбома (studio/single/live/compilation/bootleg/archive/tribute) — бейдж под обложкой. -->
-      <div
-        v-if="albumTypeLabel(a.albumType)"
-        class="alt-type-badge"
-        :class="`alt-type-${a.albumType}`"
-      >
-        {{ albumTypeLabel(a.albumType) }}
       </div>
     </button>
   </div>
@@ -215,18 +215,19 @@ export default {
   white-space: nowrap;
 }
 
-/* Pass 360: бейдж типа альбома (студийный, сингл и т.п.) под обложкой. */
+/* Pass 360: бейдж типа альбома (студийный, сингл и т.п.) НАД обложкой. */
 .alt-type-badge {
   display: block;
   text-align: center;
-  padding: 2px 6px;
+  padding: 3px 6px;
   font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.3px;
   color: var(--km-text2, #aaa);
   background: var(--km-bg2, #2a2a2a);
-  border-top: 1px solid var(--km-border, #333);
+  border-bottom: 1px solid var(--km-border, #333);
+  border-radius: 6px 6px 0 0;
 }
 /* Цветовые акценты для разных типов. */
 .alt-type-studio {

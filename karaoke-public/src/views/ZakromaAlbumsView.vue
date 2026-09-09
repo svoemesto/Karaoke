@@ -3,9 +3,6 @@
     <!-- Хедер единый (spec 250). Back-link → /zakroma (список авторов). -->
     <AppHeader :back="{ to: '/zakroma', label: '← К списку авторов' }" />
 
-    <!-- specs/356-zakroma-albums-by-author (US4+US5): панель настроек (слайдер размера + плашки/таблица). -->
-    <ZakromaSettings />
-
     <div class="km-content">
       <!-- Заголовок страницы -->
       <h1 class="km-page-title">
@@ -48,7 +45,6 @@
 <script>
 import AppHeader from '../components/AppHeader.vue'
 import AlbumTiles from '../components/AlbumTiles.vue'
-import ZakromaSettings from '../components/ZakromaSettings.vue'
 
 /**
  * Страница «Альбомы автора» (`/zakroma/:authorId/albums`, спека 356).
@@ -63,7 +59,7 @@ import ZakromaSettings from '../components/ZakromaSettings.vue'
  */
 export default {
   name: 'ZakromaAlbumsView',
-  components: { AppHeader, AlbumTiles, ZakromaSettings },
+  components: { AppHeader, AlbumTiles },
   data() {
     return {
       albums: [],

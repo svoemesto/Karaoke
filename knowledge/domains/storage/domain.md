@@ -144,13 +144,13 @@ black-hole, ломает SigV4-подпись). Поэтому — nginx-про�
 
 ## Hot paths (связанные с задачами #65, #69)
 
-| Путь | Частота | Где болит |
-|---|---|---|
-| `HealthReport.getHealthReportList` → `actionsLocalStorage` / `actionsRemoteStorage` → `fileExists` | ~72k раз на страницу Songs в webvue3 | OpenProject #69 (кеш) |
-| `Song.loadFromDbById` → `KaraokeStorageService.fileExists` / `fileIsActual` | 1 раз на каждую песню при загрузке Songs | то же |
-| `SongEdit.vue` (webvue3) → `getHealthReportList` для одной песни | 1 раз на открытие редактирования | то же |
-| `StorageApiClient.fileExists` HTTP round-trip | 50-100ms каждый (через nginx-proxy на проде) | OpenProject #65 (race) |
-| `MinioClient.statObject` (внутри `fileExists`) | 10-30ms (прямой SDK на admin) | локальная задержка |
+| Путь | Частота | Где болит | Status |
+|---|---|---|---|
+| `HealthReport.getHealthReportList` → `actionsLocalStorage` / `actionsRemoteStorage` → `cachedFileExists` (Pass 344+ через `StorageMetadataCache`) | ~72k раз на страницу Songs в webvue3 → после кеша ~144/страница (уникальные ключи) | OpenProject #69 | **FIXED (Pass 344, спека #344)** |
+| `Song.loadFromDbById` → `KaraokeStorageService.fileExists` / `fileIsActual` | 1 раз на каждую песню при загрузке Songs | то же | **FIXED** (через `cachedFileExists`) |
+| `SongEdit.vue` (webvue3) → `getHealthReportList` для одной песни | 1 раз на открытие редактирования | то же | **FIXED** |
+| `StorageApiClient.fileExists` HTTP round-trip | 50-100ms каждый (через nginx-proxy на проде) | OpenProject #65 (race) | in progress — кеш смягчает, root cause не починен |
+| `MinioClient.statObject` (внутри `fileExists`) | 10-30ms (прямой SDK на admin) | локальная задержка | OK (минимальная) |
 
 ## Связь с OpenProject и задачами
 

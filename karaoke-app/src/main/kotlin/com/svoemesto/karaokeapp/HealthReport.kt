@@ -11,6 +11,7 @@ import com.svoemesto.karaokeapp.model.SseNotification
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.SNS
 import com.svoemesto.karaokeapp.services.StorageApiClient
+import com.svoemesto.karaokeapp.services.StorageMetadataCache
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
@@ -60,6 +61,23 @@ data class HealthReport(
     fun executeSolutionActions() = solutionActions.forEach { action -> action() }
 
     companion object {
+        /**
+         * Static reference to [StorageMetadataCache], wired by
+         * `StorageMetadataCacheWiring.@PostConstruct`. Спека #344 (OP #69).
+         */
+        @JvmStatic
+        @Volatile
+        var storageMetadataCache: StorageMetadataCache? = null
+
+        @JvmStatic
+        fun attachStorageMetadataCache(cache: StorageMetadataCache) {
+            storageMetadataCache = cache
+        }
+
+        @JvmStatic
+        fun cachedFileExists(source: String, bucket: String, fileName: String, loader: () -> Boolean): Boolean =
+            storageMetadataCache?.getFileExists(source, bucket, fileName, loader) ?: loader()
+
         private fun actions(
             karaokeFileType: KaraokeFileType,
             karaokePlatform: KaraokePlatform?,
@@ -397,7 +415,10 @@ data class HealthReport(
                     }
 
                     if (tryRestoreFromStorage) {
-                        if (storageService.fileExists(bucketName = storageBucketName, fileName = storageFileName)) { // Файл есть в локальном хранилище
+                        val localFileExistsLoader418: () -> Boolean = {
+                            storageService.fileExists(bucketName = storageBucketName, fileName = storageFileName)
+                        }
+                        if (cachedFileExists("LOCAL", storageBucketName, storageFileName, localFileExistsLoader418)) { // Файл есть в локальном хранилище
                             healthReportStatus = ERROR
                             canBeResolved = true
                             problemText = "Файл отсутствует на диске"
@@ -412,7 +433,10 @@ data class HealthReport(
                             }
                             actions.add { println("actionsLocalFileSystem [$solutionText] <<<") }
                         } else { // Файла нет в локальном хранилище
-                            if (storageApiClient.fileExists(bucketName = storageBucketName, fileName = storageFileName)) { // Файл есть в удалённом хранилище
+                            val remoteFileExistsLoader433: () -> Boolean = {
+                                storageApiClient.fileExists(bucketName = storageBucketName, fileName = storageFileName)
+                            }
+                            if (cachedFileExists("REMOTE", storageBucketName, storageFileName, remoteFileExistsLoader433)) { // Файл есть в удалённом хранилище
                                 healthReportStatus = ERROR
                                 canBeResolved = true
                                 problemText = "Файл отсутствует на диске"
@@ -566,7 +590,10 @@ data class HealthReport(
 
             canBeResolved = canResolve
 
-            val existsInLocalStore = storageService.fileExists(bucketName = storageBucketName, fileName = storageFileName)
+            val localFileExistsLoader: () -> Boolean = {
+                storageService.fileExists(bucketName = storageBucketName, fileName = storageFileName)
+            }
+            val existsInLocalStore = cachedFileExists("LOCAL", storageBucketName, storageFileName, localFileExistsLoader)
             val uploadInProgress =
                 KaraokeProcess
                     .loadList(
@@ -635,7 +662,10 @@ data class HealthReport(
                         }
                     } else { // Файла реально нет на диске (existsInLocalFileSystem)
 
-                        val existsInRemoteStore = storageApiClient.fileExists(bucketName = storageBucketName, fileName = storageFileName)
+                        val remoteFileExistsLoader: () -> Boolean = {
+                            storageApiClient.fileExists(bucketName = storageBucketName, fileName = storageFileName)
+                        }
+                        val existsInRemoteStore = cachedFileExists("REMOTE", storageBucketName, storageFileName, remoteFileExistsLoader)
                         if (existsInRemoteStore) {
                             val storageFileInfo = storageService.getFileInfo(bucketName = storageBucketName, fileName = storageFileName)
                             val fileIsActual =
@@ -696,7 +726,10 @@ data class HealthReport(
                         }
                     } else { // Файла реально нет на диске (existsInLocalFileSystem)
 
-                        val existsInRemoteStore = storageApiClient.fileExists(bucketName = storageBucketName, fileName = storageFileName)
+                        val remoteFileExistsLoader1: () -> Boolean = {
+                            storageApiClient.fileExists(bucketName = storageBucketName, fileName = storageFileName)
+                        }
+                        val existsInRemoteStore = cachedFileExists("REMOTE", storageBucketName, storageFileName, remoteFileExistsLoader1)
                         if (existsInRemoteStore) { // Файл есть в удалённом хранилище
 
                             canBeResolved = true
@@ -854,7 +887,10 @@ data class HealthReport(
 
             canBeResolved = canResolve
 
-            val existsInRemoteStore = storageApiClient.fileExists(bucketName = storageBucketName, fileName = storageFileName)
+            val remoteFileExistsLoader0: () -> Boolean = {
+                storageApiClient.fileExists(bucketName = storageBucketName, fileName = storageFileName)
+            }
+            val existsInRemoteStore = cachedFileExists("REMOTE", storageBucketName, storageFileName, remoteFileExistsLoader0)
             val uploadInProgress =
                 KaraokeProcess
                     .loadList(
@@ -927,7 +963,10 @@ data class HealthReport(
                         }
                     } else { // Файла реально нет на диске (existsInLocalFileSystem)
 
-                        val existsInLocalStore = storageService.fileExists(bucketName = storageBucketName, fileName = storageFileName)
+                        val localFileExistsLoaderAlt1: () -> Boolean = {
+                            storageService.fileExists(bucketName = storageBucketName, fileName = storageFileName)
+                        }
+                        val existsInLocalStore = cachedFileExists("LOCAL", storageBucketName, storageFileName, localFileExistsLoaderAlt1)
                         if (existsInLocalStore) {
                             val storageFileInfo = storageService.getFileInfo(bucketName = storageBucketName, fileName = storageFileName)
                             val fileIsActual =
@@ -988,7 +1027,10 @@ data class HealthReport(
                         }
                     } else { // Файла реально нет на диске (existsInLocalFileSystem)
 
-                        val existsInLocalStore = storageService.fileExists(bucketName = storageBucketName, fileName = storageFileName)
+                        val localFileExistsLoaderAlt0: () -> Boolean = {
+                            storageService.fileExists(bucketName = storageBucketName, fileName = storageFileName)
+                        }
+                        val existsInLocalStore = cachedFileExists("LOCAL", storageBucketName, storageFileName, localFileExistsLoaderAlt0)
                         if (existsInLocalStore) { // Файл есть в удалённом хранилище
 
                             canBeResolved = false
@@ -2115,7 +2157,8 @@ data class HealthReport(
         private val repairInFlight: ConcurrentHashMap<Long, AtomicBoolean> = ConcurrentHashMap()
 
         fun attemptEnterRepair(songId: Long): Boolean =
-            repairInFlight.computeIfAbsent(songId) { AtomicBoolean(false) }
+            repairInFlight
+                .computeIfAbsent(songId) { AtomicBoolean(false) }
                 .compareAndSet(false, true)
 
         fun exitRepair(songId: Long) {
@@ -2289,7 +2332,7 @@ data class HealthReport(
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
         ) {
-            if (!attemptEnterRepair(song.id)) return  // другой поток уже чинит — skip
+            if (!attemptEnterRepair(song.id)) return // другой поток уже чинит — skip
             try {
                 autoRepairSongIds.add(song.id)
                 val reports = recomputeAndBroadcast(song.id, database, storageService, storageApiClient)
@@ -2315,7 +2358,7 @@ data class HealthReport(
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
         ) {
-            if (!attemptEnterRepair(songId)) return  // skip — другой поток чинит
+            if (!attemptEnterRepair(songId)) return // skip — другой поток чинит
             try {
                 val reports = recomputeAndBroadcast(songId, database, storageService, storageApiClient)
                 if (songId !in autoRepairSongIds) return

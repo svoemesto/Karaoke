@@ -87,3 +87,33 @@
 > SC-002 PASS), `data/{logs.jsonl,incidents.jsonl,metrics.json,categories.json}`
 > (в git; `raw.log` санитизирован и gitignored). Скрипты в `scripts/`
 > воспроизводимы end-to-end за ≤30 секунд на 270k строк (см. quickstart.md).
+
+> **Pass 344** (2026-09-09): Задача OpenProject **#69** «Кеширование
+> информации из хранилища». Главный hot path —
+> `HealthReport.getHealthReportList(song)` — для каждой песни дёргает
+> `StorageApiClient.fileExists` через nginx path-proxy (50-100ms).
+> На странице Songs (18k+ песен) — 72k+ HTTP round-trip, страница грузится
+> минуты.
+>
+> Решение: in-memory TTL-cache через готовый паттерн `PollingCache<V>`
+> (см. `knowledge/domains/caching/components/web-caches.md`). Копия
+> `PollingCache.kt` из `karaoke-web/.../services/` в `karaoke-app` (KDoc
+> ссылка на оригинал). Новый бин `StorageMetadataCache` (@Component)
+> с двумя `PollingCache` (local + remote) + `LongAdder` счётчики +
+> SLF4J-категория `infra.cache.storage` (новая, зарегистрирована в
+> `knowledge/domains/monitoring/components/log-categories.md`). TTL=300s
+> настраивается через `application.yml`. Endpoint
+> `GET /api/health/cacheStats` для метрик.
+>
+> **Прецедент**: 2026-09-09 (Pass 340) спека #339 провалилась потому,
+> что агент изобрёл форму кеша (БД-таблица `storage_file_cache`) вместо
+> готового `PollingCache`. Данная спека явно использует Knowledge-first
+> подход (см. spec.md § Knowledge References, Constitution Principle IX).
+>
+> **Артефакты**: `specs/344-storage-metadata-cache/{spec,plan,research,data-model,
+> quickstart,tasks,checklists/requirements}.md`,
+> `contracts/cache-stats-api.md`. Реализация:
+> `karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/PollingCache.kt`
+> (copy), `services/StorageMetadataCache.kt` (новый), `controllers/CacheStatsController.kt`
+> (новый), модификация `HealthReport.kt` (autowire + wrap в actions*).
+> Per-feature документ: `docs/features/storage-metadata-cache.md` (FR-009).

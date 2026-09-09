@@ -50,7 +50,7 @@ class Crypto {
             if (!legacyWarned) {
                 log.warn(
                     "CRYPTO_AES_KEY env not set — falling back to LEGACY hardcoded key. " +
-                    "Migrate to env ASAP (see Crypto.kt KDoc)."
+                        "Migrate to env ASAP (see Crypto.kt KDoc)."
                 )
                 legacyWarned = true
             }
@@ -65,7 +65,7 @@ class Crypto {
             if (!legacyWarned) {
                 log.warn(
                     "CRYPTO_AES_IV env not set — falling back to LEGACY hardcoded IV. " +
-                    "Migrate to env ASAP (see Crypto.kt KDoc)."
+                        "Migrate to env ASAP (see Crypto.kt KDoc)."
                 )
                 legacyWarned = true
             }

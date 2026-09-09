@@ -37,6 +37,7 @@ related:
 | **`StatsCacheScheduler`** | Cron-обновление кешей | `@Scheduled(cron = "0 0 * * * *")` |
 | **`AuthorsCache`** | Денормализованные счётчики `tbl_authors.total_songs_count` | specs 286 |
 | **`AuthorTilesCache`** | Кеш тайлов авторов для главной страницы | specs 248 |
+| **`StorageMetadataCache`** | In-memory TTL-кеш `fileExists` / `fileIsActual` / `getFileInfo` в `karaoke-app` (2 инстанса: local + remote MinIO) | spec 344, OpenProject #69 |
 | **Cold-start** | HTTP-тред возвращает fallback (0) за <100 мс | specs 289 |
 | **Single-flight guard** | `AtomicBoolean refreshing` — только один поток запускает refresh | specs 289 |
 | **Dirty-флаг** | Инвалидация при изменении сущности | `markDirty()` |

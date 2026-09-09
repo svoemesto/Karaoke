@@ -58,6 +58,16 @@ storage:
   console:
     port-host: ${STORAGE_CONSOLE_PORT_HOST:9001}
     port-inside-container: ${STORAGE_CONSOLE_PORT_INSIDE_CONTAINER:9001}
+  # In-memory TTL-кеш метаданных (спека #344, OpenProject #69).
+  # HealthReport.getHealthReportList дёргает StorageApiClient.fileExists ~72k раз на странице
+  # Songs. Кеш убирает эти round-trip (TTL=300s default = 5 минут).
+  metadata:
+    cache:
+      local:
+        ttlSeconds: 300
+      remote:
+        ttlSeconds: 300
+      maxEntries: 50000
 
 searxng:
   base-url: http://searxng:8080

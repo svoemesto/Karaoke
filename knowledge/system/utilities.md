@@ -79,7 +79,7 @@ Line 2012: createDigestForAllAuthors — дайджест всех авторо�
 Line 2035: createDigestForAllAuthorsForOper — то же, для оператора
 Line 2066: getAuthorsForDigest   — список авторов для дайджеста
 Line 2106: getAuthorDigest       — дайджест одного автора
-Line 2142: searchSongText2       — поиск текста песни (v2 — новая)
+Line 2142: ~~searchSongText2~~ — поиск текста песни (v2) — **УДАЛЁН в Pass 431** (dead code)
 Line 2158: searchSongText        — поиск текста песни (v1 — старая)
 Line 2408: getNewTone            — получить новый тон (transpose)
 Line 2421: generateChordLayout   — сгенерировать chord layout (одна перегрузка)
@@ -94,29 +94,22 @@ Line ... (ещё много)
    с [two-db-sync компонентой](../domains/processing/components/two-db-sync.md)).
 2. **BPM/Key извлечение**: `updateBpmAndKey`, `getBpmAndKeyFromCsv`
    (через `AudioAnalize` или логи).
-3. **Поиск текста**: `searchSongText` + `searchSongText2` — **drift**:
-   две версии одного и того же.
+3. **Поиск текста**: только `searchSongText` (v2 `searchSongText2` — **УДАЛЁН** в Pass 431, dead code).
 4. **Дубликаты**: `delDublicates`, `markDublicates`,
    `clearPreDublicates` — пайплайн пометки дублей.
 5. **MLT-генерация**: `generateChordLayout`, `getFontSizeByHeight`.
 6. **Image sync**: `syncRemotePicturesInStorage`,
    `uploadPicturesToStorage`.
 
-### Drift: `searchSongText` vs `searchSongText2`
+### ~~Drift: `searchSongText` vs `searchSongText2`~~ — **FIXED in Pass 431** ✅
 
-В `Utils.kt` есть **две функции** для поиска текста:
+**Было** (до Pass 431): в `Utils.kt` было **две функции** для поиска
+текста (`searchSongText` + `searchSongText2`); `searchSongText2`
+**никем не вызывалась** (dead code).
 
-- `searchSongText(song: Song): String` (line 2158, ~250 строк)
-- `searchSongText2(song: Song)` (line 2142)
-
-**Факт** (по grep):
-
-- `searchSongText` — вызывается из `MainController.kt:1423, 1633`.
-- `searchSongText2` — **НИКОМ НЕ ВЫЗЫВАЕТСЯ** (dead code).
-
-**TODO** (Pass 343): удалить `searchSongText2` или переключить
-MainController на неё (если это улучшенная версия). До решения —
-`searchSongText2` остаётся в репо как technical debt.
+**Исправлено** (Pass 431): `searchSongText2` **удалена** из `Utils.kt`.
+Остался только `searchSongText` (вызывается из
+`MainController.kt:1423, 1633`).
 
 ### Ловушки `Utils.kt`
 
@@ -323,20 +316,37 @@ class Crypto {
 - `Utils.kt:923, 950, 1147` — `Crypto.WORDS_TO_CHECK` (тестовая
   строка для проверки крипты).
 
-### ⚠️ SECURITY ISSUE (NON-NEGOTIABLE violation)
+### ⚠️ SECURITY ISSUE — **FIXED in Pass 430** ✅
 
-**Ключ `KEY = "aesEncryptionKey"` и `INIT_VECTOR` HARDCODED в
-исходниках** — нарушает Constitution VIII («секреты НЕ ДОЛЖНЫ быть
-захардкожены»). Файл `Crypto.kt` в публичном git-репо, ключ доступен
-кому угодно.
+**Было** (до Pass 430): ключ `KEY = "aesEncryptionKey"` и `INIT_VECTOR`
+**HARDCODED** в исходниках — нарушало Constitution VIII.
 
-Что делать:
-1. **Немедленно**: вынести ключ в env (`CRYPTO_AES_KEY`,
-   `CRYPTO_AES_IV`).
-2. **Pass 343+**: миграция существующих зашифрованных SQL — обратное
-   шифрование с новым ключом.
-3. **Логировать в `docs/migration-prod-server.md`**: инцидент
-   аналогично #inc-2023-08-03 (deploy/.env leak).
+**Исправлено** (Pass 430, ветка `342-knowledge-detail-2`):
+
+- Ключ и IV теперь читаются из env-переменных `CRYPTO_AES_KEY` /
+  `CRYPTO_AES_IV` через `System.getenv()`.
+- Если env не заданы — **fallback** на hardcoded + однократный
+  WARN-лог (чтобы существующие зашифрованные SQL не сломались
+  сразу при обновлении).
+- `legacyWarned` флаг — чтобы не спамить лог при каждом вызове.
+
+```kotlin
+private fun key(): String {
+    val envKey = System.getenv(ENV_KEY)
+    if (!envKey.isNullOrBlank()) return envKey
+    if (!legacyWarned) {
+        log.warn("CRYPTO_AES_KEY env not set — falling back to LEGACY hardcoded key. ...")
+        legacyWarned = true
+    }
+    return LEGACY_KEY
+}
+```
+
+**TODO для полного исправления** (Pass 343+):
+1. Задать `CRYPTO_AES_KEY` и `CRYPTO_AES_IV` в `do.env` на проде.
+2. Миграция: расшифровать все существующие зашифрованные SQL
+   через legacy fallback, зашифровать заново через env-ключ.
+3. После полной миграции — удалить `LEGACY_KEY` / `LEGACY_INIT_VECTOR`.
 
 ### Ловушка
 
@@ -391,7 +401,8 @@ UUID-генерация. Используется для:
    - `UtilsDuplicates.kt` (dubl-пайплайн).
    - `UtilsMLT.kt` (chord/font).
 
-2. **Drift: `searchSongText` vs `searchSongText2`**: какая актуальна?
+2. **Drift: `searchSongText` vs `searchSongText2`** — **FIXED in Pass 431** ✅
+      (v2 удалена как dead code).
    TODO Pass 343.
 
 3. **`UtilsPictures.kt` + `SVG.kt` + `UtilsPlaywright.kt`**: 2190 строк
@@ -439,11 +450,12 @@ issue #53.
 ## Известные TODO (Pass 343+)
 
 - [ ] **Каждая функция в `Utils.kt`** заслуживает отдельной страницы.
-- [ ] **Drift `searchSongText` vs `searchSongText2`**: определить,
-      какая используется, объединить.
+- [x] **Drift `searchSongText` vs `searchSongText2`** — **FIXED in Pass 431** ✅
+      (v2 удалена как dead code).
 - [ ] **`redirectErrorStream(true)` enforcement**: где, как.
 - [ ] **`SanitizePath` контракт**: подробнее, unit-тесты.
-- [ ] **`Crypto.kt`**: какие алгоритмы, откуда ключи.
+- [x] **`Crypto.kt` — fix в Pass 430** ✅: ключ и IV из env
+      (`CRYPTO_AES_KEY`/`CRYPTO_AES_IV`), legacy fallback + WARN-лог.
 - [ ] **`Functions.kt`** и **`Converter.kt`** — какие именно helpers.
 - [ ] **`UtilsPictures.kt`**: какие форматы, лимиты размера.
 - [ ] **`UtilsAI.kt`**: список AI-сервисов, таймауты.

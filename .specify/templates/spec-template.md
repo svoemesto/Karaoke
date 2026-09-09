@@ -8,6 +8,51 @@
 
 **Input**: User description: "$ARGUMENTS"
 
+## OpenProject Tracking *(MANDATORY — see AGENTS.md § Issue-tracker OpenProject)*
+
+> Эта секция REQUIRED для каждой спецификации. Без неё спека НЕ ДОЛЖНА
+> переходить в `/speckit.plan`. CI gate `tools/check-spec-issue-link.py`
+> валидирует наличие всех полей. Workflow `claim → report → mark-review →
+> close` — обязателен (см. tools/tracker.sh и AGENTS.md).
+
+### Идентификация
+
+- **Issue ID**: `#<NNN>` (OpenProject work package id, например `#69`).
+  - Если спека пришла из OpenProject: указать конкретный ID.
+  - Если спонтанная (без issue): указать `none`, workflow tracking не применяется.
+- **Title**: `<Title of work package>`.
+- **Created in OpenProject**: `<YYYY-MM-DD>` (если есть).
+
+### Workflow (NON-NEGOTIABLE при наличии Issue ID)
+
+| Шаг | Команда | Когда | Кто |
+|---|---|---|---|
+| 1. **Claim** | `source .env.local-tracker && bash tools/tracker.sh claim-issue <NNN>` | ПЕРЕД первой строкой кода спеки. Переводит `New` → `In progress`, assignee=ai-agent. | Agent |
+| 2. **Pre-flight Knowledge** | `spec.md § Knowledge References` | Согласно Constitution Principle IX (см. ниже). | Agent |
+| 3. **Work** | код, tests, knowledge updates | `/speckit.implement` | Agent |
+| 4. **Add comment с отчётом** | `bash tools/tracker.sh add-comment <NNN> --file specs/<NNN>-<slug>/report.md` | После merge. Файл `report.md` — REQUIRED. | Agent |
+| 5. **Mark review** | `bash tools/tracker.sh mark-review <NNN>` | После публикации комментария. Переводит `In progress` → `In review`. | Agent |
+| 6. **Close** | `bash tools/tracker.sh close-issue <NNN>` | После ревью владельцем. (Может пропустить, если владелец закрывает сам.) | Agent или Owner |
+
+### Проверки (validation)
+
+- `tools/check-spec-issue-link.py` (NEW, Pass 349) проверяет в CI:
+  - Наличие секции `## OpenProject Tracking` в `spec.md`.
+  - Наличие полей `Issue ID`, `Title`, `Workflow` (с пунктами claim/report/mark-review).
+  - **Не валидирует** сам факт claim/mark-review в OpenProject (требует API),
+    но через `git log` проверяет что коммиты в этой spec dir содержат
+    маркеры `[tracker-claim-NNN]` / `[tracker-review-NNN]` (см. workflow ниже).
+
+- ВАЖНО: если Issue ID = `none`, секция остаётся, но проверка Issue-link
+  скипа (нет issue → нет claim). Остальные поля — опциональные.
+
+### Прецедент
+
+2026-09-09, issue #69 (Pass 344/345): work выполнен через `/speckit-full 69` БЕЗ
+claim. Отчёт опубликован задним числом после merge PR #448.
+Governance failure, исправлен в спеке #349 (Pass 349).
+
+
 ## Knowledge References *(MANDATORY — see Constitution Principle IX)*
 
 > **Прецедент**: 2026-09-09, spec #339 — агент пропустил Knowledge-first

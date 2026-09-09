@@ -18,6 +18,51 @@
    - Manual refresh endpoint для admin UI.
    - (сознательно НЕТ auto-invalidation по TTL — это и есть "вечный" режим).
 
+## OpenProject Tracking *(MANDATORY — see AGENTS.md § Issue-tracker OpenProject)*
+
+> Эта секция REQUIRED для каждой спецификации. Без неё спека НЕ ДОЛЖНА
+> переходить в `/speckit.plan`. CI gate `tools/check-spec-issue-link.py`
+> валидирует наличие всех полей. Workflow `claim → report → mark-review →
+> close` — обязателен (см. tools/tracker.sh и AGENTS.md).
+>
+> **Governance note (Pass 349)**: данная спека изначально была создана БЕЗ
+> этой секции (pre-Amendment). Section добавлена при governance amendment
+> задним числом, после того как owner указал на governance failure для #69
+> (отчёт записан после merge, а не до). См. `specs/344-storage-metadata-cache/report.md`.
+
+### Идентификация
+
+- **Issue ID**: `#69` (OpenProject work package id).
+- **Title**: Persistent storage metadata cache (supersede #344).
+- **Created in OpenProject**: открыта (см. `bash tools/tracker.sh get-issue 69`).
+
+### Workflow (NON-NEGOTIABLE)
+
+| Шаг | Команда | Когда | Кто |
+|---|---|---|---|
+| 1. **Claim** | `source .env.local-tracker && bash tools/tracker.sh claim-issue 69` | ПЕРЕД первой строкой кода спеки. Переводит `New` → `In progress`, assignee=ai-agent. | Agent |
+| 2. **Pre-flight Knowledge** | `spec.md § Knowledge References` | Согласно Constitution Principle IX. | Agent |
+| 3. **Work** | код, tests, knowledge updates | `/speckit.implement` | Agent |
+| 4. **Add comment с отчётом** | `bash tools/tracker.sh add-comment 69 --file specs/348-storage-cache-eternal/report.md` | После merge. Файл `report.md` — REQUIRED. | Agent |
+| 5. **Mark review** | `bash tools/tracker.sh mark-review 69` | После публикации комментария. Переводит `In progress` → `In review`. | Agent |
+| 6. **Close** | `bash tools/tracker.sh close-issue 69` | После ревью владельцем. | Agent или Owner |
+
+### Фактический статус (для этой спецификации)
+
+| Шаг | Фактическое состояние |
+|---|---|
+| Claim | ПЕРЕД merge PR #448 (задним числом): выполнен `tracker.sh claim-issue 69` |
+| Add comment | Задним числом, после слияния PR #448: добавлен `report.md` (10133 chars) |
+| Mark review | Задним числом, после `add-comment`: `tracker.sh mark-review 69` → status `In review` |
+| Close | НЕ выполнено — ждёт ревью владельца |
+
+### Прецедент
+
+2026-09-09, issue #69 (Pass 344/345): work выполнен через `/speckit-full 69` БЕЗ
+governance enforcement данной секции. Отчёт опубликован задним числом после merge.
+Governance failure исправлен в спеке #349 (Pass 349).
+
+
 ## Knowledge References
 
 > Без Knowledge-first pre-flight спека не была бы возможна. Использовано из спеки #344:

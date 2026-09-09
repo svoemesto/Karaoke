@@ -25,12 +25,14 @@ knowledge/domains/<name>/
 | [`identity`](identity/domain.md) | Migrated (spec 326) |
 | [`catalog`](catalog/domain.md) | Migrated (spec 327) |
 | [`rendering`](rendering/domain.md) | Migrated (spec 327) |
-| [`processing`](processing/domain.md) | Migrated (spec 328) |
+| [`processing`](processing/domain.md) | Migrated (spec 328), обновлён Pass 341 (drift fix) |
 | [`publishing`](publishing/domain.md) | Migrated (spec 328) |
 | [`editorial`](editorial/domain.md) | Migrated (spec 329) |
 | [`monitoring`](monitoring/domain.md) | Migrated (spec 329) |
 | [`stats`](stats/domain.md) | Migrated (spec 330) |
-| [`caching`](caching/domain.md) | Migrated (spec 330) |
+| [`caching`](caching/domain.md) | Migrated (spec 330), дополнен Pass 341 (web-caches) |
+| [`health`](health/domain.md) | **New in Pass 341** — HealthReport и auto-repair (прецедент: #65, #69) |
+| [`storage`](storage/domain.md) | **New in Pass 341** — MinIO + локальные файлы (прецедент: #65, #69) |
 
 ## Linking Protocol
 

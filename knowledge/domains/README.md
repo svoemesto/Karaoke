@@ -34,6 +34,8 @@ knowledge/domains/<name>/
 | [`health`](health/domain.md) | **New in Pass 341** — HealthReport и auto-repair (прецедент: #65, #69) |
 | [`storage`](storage/domain.md) | **New in Pass 341** — MinIO + локальные файлы (прецедент: #65, #69) |
 | [`monetization`](monetization/domain.md) | **New in Pass 341** — тарифы, промо, корзина, подписки (прецедент: стратегия visitor→premium) |
+| [`sse`](sse/domain.md) | **New in Pass 341 P2** — real-time SSE-уведомления (recordChange, processWorkerState, healthReports, ...) |
+| [`persistence`](persistence/domain.md) | **New in Pass 341 P2** — `KaraokeDbTable`, reflection-based save, `recordDiff` | |
 
 ## Linking Protocol
 

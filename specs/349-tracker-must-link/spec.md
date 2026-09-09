@@ -5,6 +5,17 @@
 **Status**: Draft
 **Input**: Owner feedback "в #69 ничего не зафиксировано; внести необходимые изменения в правила работы с openproject в рамках speckit, чтобы описание проделанной работы было MUST, его наличие проверялось и валидировалось (CI, линтеры и т.п.)"
 
+## OpenProject Tracking *(MANDATORY — see AGENTS.md § Issue-tracker OpenProject)*
+
+- **Issue ID**: `none` (governance amendment в рамках реализации, не работа по конкретной задаче OpenProject).
+- **Title**: OpenProject Tracker MUST-link gate (Pass 349).
+- **Created in OpenProject**: N/A.
+
+**Workflow**:
+1. **Add comment** (после merge PR #449): `bash tools/tracker.sh add-comment <69> --file specs/344-storage-metadata-cache/report.md` — кросс-ссылка на основной task.
+2. **Mark review** (после merge PR #449): `bash tools/tracker.sh mark-review 69` (повторно, для прозрачности).
+3. **Close** (owner): не наша зона — владелец reviewает PR и закрывает #69.
+
 ## Knowledge References *(MANDATORY — see Constitution Principle IX)*
 
 ### Pre-flight log

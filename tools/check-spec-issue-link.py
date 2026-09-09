@@ -74,11 +74,12 @@ def check_spec(spec_path: Path) -> list[str]:
             errors.append(f"missing required field: '{field}' (use `**{field}**` or `### {field}`)")
 
     # 3. Issue ID — extract value. If `none`, skip command validation.
-    issue_match = re.search(r"\*\*Issue ID\*\*:\s*[`']?#?(\S+?)[`']?", section)
-    issue_id = None
-    if issue_match:
-        candidate = issue_match.group(1).strip().rstrip("`").rstrip(".")
-        issue_id = candidate.lstrip("#")
+    #    Robust against various markup formats (`#NN`, `#NN.`, `**NN**:`).
+    issue_match = re.search(
+        r"\*\*Issue ID\*\*\s*:\s*[`']?(?:#?)([A-Za-z0-9_-]+)\b",
+        section,
+    )
+    issue_id = issue_match.group(1) if issue_match else None
 
     has_issue = bool(issue_id) and issue_id.lower() != "none"
 

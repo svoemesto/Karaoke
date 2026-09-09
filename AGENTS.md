@@ -121,6 +121,68 @@
 - **`docs/ops/log-correlation.md`** — карта логов прода, команды `docker logs`/`ssh`, grep-маркеры (`infra.prod.ping`/`infra.prod.db`/`LOG:  duration:`), сценарии диагностики. Создан в [specs/288-prod-diagnostics-logging](../specs/288-prod-diagnostics-logging/spec.md) (FR-019).
 - Контракт WARN/INFO для `infra.prod.*`: [contracts/log-format.md](../specs/288-prod-diagnostics-logging/contracts/log-format.md).
 
+## Диагностика на локальной машине (NON-NEGOTIABLE, Pass 358)
+
+> **Прецедент** (Pass 358, issue #70 follow-up): при тестировании фичи в локальных
+> контейнерах я рассуждал о данных в БД, не заглянув в логи `karaoke-web`.
+> Ошибка `PSQLException: column "skip" does not exist` была видна в логах сразу —
+> я потерял несколько итераций на гипотезы про данные, которые вообще не нужны
+> были, потому что лог прямо указывал на причину.
+
+### Правило
+
+**При отладке/тестировании фичи на этой машине (nsa-i9) агент MUST самостоятельно
+смотреть логи запущенных контейнеров**, особенно:
+
+1. **При первом сообщении пользователя об ошибке** (HTTP 5xx, пустой ответ,
+   « не работает », « странное поведение ») — **до** любых гипотез про данные
+   или код, агент MUST первым делом запустить `docker logs` соответствующего
+   контейнера и прочитать stack trace / SQL exception / WARN.
+2. **После каждой пересборки и перезапуска контейнера** — MUST проверить, что
+   новый контейнер стартовал без ошибок (`docker logs --tail 50 <container>`),
+   прежде чем сообщать «готово к тестированию».
+3. **Перед сообщением «минимальный фикс запушен»** — MUST запустить логи
+   контейнера, в который был сделан фикс, и убедиться, что новая ошибка
+   не появляется.
+
+### Команды
+
+Контейнеры на этой машине (см. `deploy/do.sh`):
+- `karaoke-web` — backend для публичного сайта и админки
+- `karaoke-public` — публичный SPA (Vue 3)
+- `karaoke-app` — engine (admin-only)
+- `webvue3` — админка (Vue 3)
+- `nginx` — reverse proxy
+- `postgres` / `karaoke-db` — БД
+- `minio` — объектное хранилище
+
+Базовые команды:
+
+```bash
+# Список запущенных контейнеров
+docker ps --format '{{.Names}}\t{{.Status}}'
+
+# Последние N строк логов (без -f)
+docker logs --tail 100 <container_name>
+
+# Логи в реальном времени (осторожно — большой поток)
+docker logs -f --tail 50 <container_name>
+
+# С момента старта контейнера
+docker logs --since 5m <container_name>
+
+# Только ошибки и WARN (фильтр)
+docker logs --tail 200 <container_name> 2>&1 | grep -iE 'error|exception|warn|fatal'
+```
+
+Для более глубокой диагностики см. также `docs/ops/log-correlation.md`.
+
+### Failure-stop
+
+Если при проверке логов агент видит ошибку, которую раньше не видел — MUST
+немедленно остановиться и сообщить пользователю, а не «пройти мимо» в надежде,
+что это не связано с текущей задачей.
+
 ## Иерархия документации и AI-агенты
 
 Иерархия: `knowledge/` → `constitution.md` → `AGENTS.md` → `CONTRIBUTING.md` → `DEVELOPMENT.md` → `specs/NNN-*/spec.md` → `archive/`.

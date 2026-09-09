@@ -26,7 +26,7 @@
 - [`News`](#news) — новости (посты в соцсети)
 - [`Dictionary`](#dictionary) — словари (жанры, языки, и т.д.)
 - [`SongCoAuthor`](#songcoauthor) — со-автор песни
-- [`CrossSong`](#crosssong) — связь между песнями (cover/remake)
+- [`CrossSong`](#crosssong-cross-tab-helper-reporting) — НЕ entity, reporting helper (cross-table для UI)
 - [`Producer`](#producer) — продюсер песни
 - [`SongShareLink`](#songsharelink) — share-ссылка на песню
 - [`SiteChatMessage`](#sitechatmessage) — сообщение в чате поддержки
@@ -203,22 +203,75 @@ Sync.
 **Sync**: `SongCoAuthorsSyncTarget` (`SyncRegistry.all:507`).
 **CRUD**: через SongEditorController (предположительно, нужно
 подтверждение — Pass 343+).
-## `CrossSong`
+## `CrossSong` (НЕ entity! это reporting helper)
 
-**Файл**: `karaoke-app/.../model/CrossSong.kt`. **Таблица**:
-`tbl_cross_songs` (нужно подтвердить grep'ом — Pass 343+).
+**Файл**: `karaoke-app/.../model/CrossSong.kt`.
 
-**Поля**: точные названия колонок не изучены (Pass 343+). Предположительно
-`(id, song_id, related_song_id, relation_type)`.
+**ВАЖНО**: CrossSong — это **НЕ DB-entity**. Это **reporting/cross-tab helper**,
+возвращающий данные в виде «строка × колонка × песня» (cross-table)
+для UI-отчётов.
 
-**Sync**: НЕ участвует. Только LOCAL.
-## `Producer`
+```kotlin
+class CrossSong {
+    companion object {
+        fun publications(listOfSongs: List<Song>, rowField: SongField, columnField: SongField): List<CrossSongRow>
+        fun unpublications(listOfSongs: List<Song>, columnField: SongField): List<CrossSongRow>
+        fun skiped(listOfSongs: List<Song>, columnField: SongField): List<CrossSongRow>
+    }
+}
+```
+
+**Используется в** `ApiController.kt:2231, 2249, 2279, 2282, 2285`
+для admin UI (страницы отчётов).
+
+Связанные DTO:
+- `CrossSongRow(csrId, csrName, csrCells)` — строка cross-table.
+  `compareTo` использует `sortString` (если имя содержит `.`,
+  сортирует по reversed parts; иначе — по `%015d` из id).
+- `CrossSongCell(cscIs, cscName, songDTO?)` — ячейка.
+  `compareTo` по `cscIs`.
+
+**Нет таблицы**, **нет sync**. Зачем нужна эта структура — см.
+`archive/docs/features/dual-db-sync.md` (исторически).
+## `Producer` (НЕ entity!)
 
 **Файл**: `karaoke-app/.../model/Producer.kt`.
 
-Продюсер песни. Отдельный от `Author` (ProducerType?).
+**ВАЖНО**: Producer — это **НЕ DB-entity**. Это простой DTO, используемый
+MLT-генератором:
 
-**Известные TODO**: не изучено.
+```kotlin
+@Suppress("unused")
+data class Producer(
+    val producerType: ProducerType,
+    val groupId: Int,
+    val param: MutableMap<String, Any?>,
+) : Serializable
+```
+
+Поле `@Suppress("unused")` указывает, что класс сейчас не используется
+(возможно, был частью старой MLT-логики, см. архив). Нет таблицы,
+нет sync.
+
+### `ProducerType` (enum, иерархия MLT-слоёв)
+
+**Файл**: `karaoke-app/.../model/ProducerType.kt`.
+
+**НЕ** entity — это enum иерархии слоёв MLT-проекта (~50 значений) для
+построения караоке-видео. Поля: parent, text, onlyOne, ids, isAudio,
+isVideo, coeffStatic, coeffVoice, isSequence, level, isCalculatedCount.
+
+Иерархия: `MAINBIN` (level 0) → audio слои (`AUDIOVOCAL`,
+`AUDIOMUSIC`, `AUDIOSONG`, `AUDIOBASS`, `AUDIODRUMS`, level 1) +
+video слои (`BACKGROUND`, `HORIZON`, `FLASH`, и т.д., level 1) +
+`VOICES` → `VOICE` → `COUNTERS`/`SCROLLERS`/`LINES`, и
+`MAINBIN` → `CHORDSBOARD` → ... → `CHORDPICTUREIMAGE`
+(глубокая иерархия до level 9).
+
+Функция `ProducerType.childs()` возвращает прямых детей.
+
+**Используется** в MLT-генерации (`mlt/` директория, `MltNode.kt`).
+Детали — Pass 343+ в rendering domain.
 
 ---
 

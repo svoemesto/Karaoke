@@ -152,8 +152,7 @@ NB: `recordhash` — md5 от канонизированной строки та
 
 - [ ] **recordhash-триггеры** — где определены, как пересоздаются
       при миграциях.
-- [ ] **`runEntitySync`** в `Utils.kt` — точная реализация, какие
-      edge-cases.
+- [x] **`runEntitySync`** в `Utils.kt` — описан в [run-entity-sync.md](run-entity-sync.md).
 - [ ] **`/api/sync/changerecords`** на web-стороне — endpoint для
       приёма операций.
 - [ ] **Why NOT cluster lock**: karaoke-app — desktop, однопроцессный.

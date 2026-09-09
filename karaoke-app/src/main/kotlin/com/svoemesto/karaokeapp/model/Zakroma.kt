@@ -260,6 +260,7 @@ class Zakroma(
                                 ?.albumId
                                 ?.let { linkedAlbumId ->
                                     albumsById[linkedAlbumId]?.let { linkedAlbum ->
+                                        album.albumId = linkedAlbum.id
                                         album.albumName = linkedAlbum.name
                                         album.albumType = linkedAlbum.albumType
                                         album.sortOrder = linkedAlbum.sortOrder
@@ -391,6 +392,10 @@ class ZakromaAlbumSong :
 class ZakromaAlbum :
     Serializable,
     Comparable<ZakromaAlbum> {
+    // specs/356-zakroma-albums-by-author: ID реального альбома из tbl_albums.id (если песни
+    // альбома привязаны к Album). 0 = «виртуальный» альбом (legacy `song_album` без FK),
+    // фильтрация по `?album=` работает только для реальных альбомов с albumId > 0.
+    var albumId: Long = 0
     var albumName: String = ""
     var year: Long = 0
     var picture: String = ""

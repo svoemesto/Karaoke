@@ -165,6 +165,32 @@
         Ничего не найдено по запросу «{{ songFilter }}»
       </div>
 
+      <!-- specs/356-zakroma-albums-by-author (FR-001): секция «Альбомы автора» на /zakroma/{authorId}.
+           Показывается над списком песен, только для обычных авторов (не спец-корзина).
+           Ссылка «Все альбомы автора» ведёт на /zakroma/{authorId}/albums (полный список). -->
+      <div
+        v-if="
+          authorChosen && !specialBucketShown && (authorAlbums.length > 0 || authorAlbumsLoading)
+        "
+        class="km-albums-section"
+      >
+        <div class="km-albums-section-header">
+          <h2 class="km-albums-section-title">Альбомы автора</h2>
+          <router-link :to="`/zakroma/${selectedAuthorId}/albums`" class="km-albums-section-more">
+            Все альбомы →
+          </router-link>
+        </div>
+        <AlbumTiles
+          :albums="authorAlbums.slice(0, 6)"
+          :count-mode="$root.$data?.isEditor ? 'total' : 'ready'"
+          @select="onAlbumTileSelect"
+        />
+        <div v-if="authorAlbums.length > 6" class="km-albums-section-overflow">
+          Показано 6 из {{ authorAlbums.length }} альбомов.
+          <router-link :to="`/zakroma/${selectedAuthorId}/albums`">Все альбомы →</router-link>
+        </div>
+      </div>
+
       <!-- Таблица: либо обычный автор, либо виртуальный спец-автор. -->
       <template v-if="authorChosen">
         <div v-for="zak in displayedZakroma" :key="zak.author" class="km-author-block">
@@ -375,6 +401,7 @@ import FavoriteIcon from '../components/FavoriteIcon.vue'
 import PlaylistIcon from '../components/PlaylistIcon.vue'
 import CartIcon from '../components/CartIcon.vue'
 import AuthorTiles from '../components/AuthorTiles.vue'
+import AlbumTiles from '../components/AlbumTiles.vue'
 import AppHeader from '../components/AppHeader.vue'
 import { useEngagementTracking } from '../composables/useEngagementTracking'
 import { usePlaylistMembership } from '../composables/usePlaylistMembership'
@@ -407,6 +434,7 @@ export default {
     PlaylistIcon,
     CartIcon,
     AuthorTiles,
+    AlbumTiles,
     AppHeader,
   },
   setup() {
@@ -457,6 +485,10 @@ export default {
           }
         })(),
       ),
+      // specs/356-zakroma-albums-by-author (FR-001): секция «Альбомы автора» на /zakroma/{authorId}.
+      // Плашки альбомов загружаются при выборе автора; кликабельны → /zakroma/{authorId}?album=...
+      authorAlbums: [],
+      authorAlbumsLoading: false,
     }
   },
   computed: {
@@ -494,11 +526,15 @@ export default {
     // а не на этот computed — иначе каждое нажатие клавиши будет дёргать сетевые запросы готовности.
     filteredZakroma() {
       const q = normalize(this.songFilter)
-      if (!q) return this.zakroma
+      const albumId = this.selectedAlbumId
+      // Без фильтров — возвращаем как есть.
+      if (!q && albumId == null) return this.zakroma
       return (this.zakroma || [])
         .map((zak) => ({
           ...zak,
           albums: (zak.albums || [])
+            // specs/356-zakroma-albums-by-author (FR-003): фильтр по альбому через ?album=
+            .filter((alb) => albumId == null || String(alb.albumId) === String(albumId))
             .map((alb) => ({
               ...alb,
               albumSettings: (alb.albumSettings || []).filter((s) =>
@@ -536,12 +572,30 @@ export default {
     /** Back-link для AppHeader (spec 254):
      *  - null на странице выбора автора → header-back-link скрыт;
      *  - { to: '/zakroma', label: '← К списку авторов' } при выбранном авторе или
-     *    специальной корзине → клик сбрасывает выбор через vue-router. */
+     *    специальной корзине → клик сбрасывает выбор через vue-router.
+     *  - specs/356-zakroma-albums-by-author (FR-004): при активном фильтре ?album=
+     *    → back-link ведёт на /zakroma/{authorId}/albums (список альбомов автора),
+     *    а не на /zakroma. */
     zakromaHeaderBack() {
+      if (this.selectedAlbumId != null) {
+        return {
+          to: `/zakroma/${this.selectedAuthorId}/albums`,
+          label: '← К альбомам автора',
+        }
+      }
       if (this.authorChosen || this.specialBucketShown) {
         return { to: '/zakroma', label: '← К списку авторов' }
       }
       return null
+    },
+    /**
+     * specs/356-zakroma-albums-by-author (FR-003): ID альбома из query-параметра `?album=`.
+     * Используется для фильтрации списка песен и для модификации back-link.
+     */
+    selectedAlbumId() {
+      const q = this.$route?.query?.album
+      const id = q ? parseInt(q, 10) : NaN
+      return Number.isFinite(id) && id > 0 ? id : null
     },
   },
   watch: {
@@ -626,6 +680,11 @@ export default {
     }
     // specs/258 — обновляем заголовок вкладки после async-резолвинга ID → имя.
     this.updateDocumentTitle()
+    // specs/356-zakroma-albums-by-author (FR-001): загрузка секции «Альбомы автора»
+    // при выборе конкретного автора. Плашки загружаются независимо от стрима песен.
+    if (this.authorChosen && this.selectedAuthorId) {
+      this.loadAuthorAlbums(this.selectedAuthorId)
+    }
   },
   methods: {
     ...mapActions('zakroma', ['loadAuthorTiles', 'loadZakromaStream', 'loadSpecialBucket']),
@@ -643,6 +702,39 @@ export default {
       } else {
         document.title = 'Закрома — Караоке на «Своём Месте»'
       }
+    },
+    /**
+     * specs/356-zakroma-albums-by-author (FR-001): загружает плашки альбомов выбранного автора
+     * для секции «Альбомы автора» на странице /zakroma/{authorId}.
+     * Не блокирует основной стрим песен (независимая подгрузка).
+     */
+    async loadAuthorAlbums(authorId) {
+      this.authorAlbumsLoading = true
+      try {
+        const response = await fetch(`/api/public/authors/${authorId}/albums?scope=main`, {
+          credentials: 'include',
+        })
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`)
+        }
+        const data = await response.json()
+        this.authorAlbums = Array.isArray(data) ? data : []
+      } catch (e) {
+        console.warn('[ZakromaView] loadAuthorAlbums failed:', e)
+        this.authorAlbums = []
+      } finally {
+        this.authorAlbumsLoading = false
+      }
+    },
+    /**
+     * specs/356-zakroma-albums-by-author (FR-003): клик по плашке альбома → переход
+     * на /zakroma/{authorId}?album={albumId} (страница песен с фильтром).
+     */
+    onAlbumTileSelect(albumId) {
+      this.$router.push({
+        path: `/zakroma/${this.selectedAuthorId}`,
+        query: { album: albumId },
+      })
     },
     /** Переключатель "сквозной/по группам" (FR-023) — персистентно в localStorage. */
     setAlbumDisplayMode(mode) {
@@ -1387,5 +1479,44 @@ export default {
   .km-cards {
     display: block;
   }
+}
+
+/* specs/356-zakroma-albums-by-author: секция «Альбомы автора» на /zakroma/{authorId}. */
+.km-albums-section {
+  margin: 12px 0 16px;
+  padding: 12px;
+  background: var(--km-card, #1a1a1a);
+  border: 1px solid var(--km-border, #333);
+  border-radius: 8px;
+}
+.km-albums-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.km-albums-section-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+}
+.km-albums-section-more {
+  font-size: 12px;
+  color: var(--km-accent, #4a90e2);
+  text-decoration: none;
+}
+.km-albums-section-more:hover {
+  text-decoration: underline;
+}
+.km-albums-section-overflow {
+  font-size: 11px;
+  color: var(--km-text2, #aaa);
+  text-align: center;
+  margin-top: 8px;
+}
+.km-albums-section-overflow a {
+  color: var(--km-accent, #4a90e2);
+  text-decoration: none;
+  margin-left: 6px;
 }
 </style>

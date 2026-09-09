@@ -13,6 +13,7 @@ import com.svoemesto.karaokeapp.services.StorageApiClient
 import java.awt.image.BufferedImage
 import java.io.File
 import java.io.Serializable
+import java.sql.SQLException
 import javax.imageio.ImageIO
 
 /**
@@ -72,6 +73,26 @@ class Album(
     /** Предупреждение, показываемое красным над названием альбома на Закромах. */
     @KaraokeDbTableField(name = "warning")
     var warning: String = ""
+
+    /**
+     * Общее кол-во песен альбома. Поддерживается SQL-триггером
+     * `trg_tbl_songs_update_album_counts` (миграция `49_albums_song_counts.sql`)
+     * атомарно при INSERT/UPDATE/DELETE в `tbl_songs`. Не редактировать вручную.
+     * @see specs/286-author-song-counts-cache (прецедент для tbl_authors)
+     * @see specs/356-zakroma-albums-by-author (FR-006, FR-007)
+     */
+    @KaraokeDbTableField(name = "total_song_count")
+    var totalSongCount: Long = 0
+
+    /**
+     * Кол-во песен альбома с `id_status >= 6` (APPROVED, см.
+     * `knowledge/domains/catalog/components/dictionaries.md`). Поддерживается
+     * SQL-триггером `trg_tbl_songs_update_album_counts` атомарно.
+     * @see specs/286-author-song-counts-cache
+     * @see specs/356-zakroma-albums-by-author
+     */
+    @KaraokeDbTableField(name = "ready_song_count")
+    var readySongCount: Long = 0
 
     var albumTypeEnum: AlbumType
         get() = AlbumType.fromDb(albumType)
@@ -475,6 +496,101 @@ class Album(
                 storageService = storageService,
                 storageApiClient = storageApiClient,
             )
+
+        /**
+         * Загружает список альбомов автора с денормализованными счётчиками песен для публичного
+         * эндпоинта `GET /api/public/authors/{authorId}/albums?scope=main` (spec 356, FR-014).
+         *
+         * Возвращает сырые `Album` (raw model) — маппинг в `AlbumTilePublicDto` делает
+         * `PublicApiController` (паттерн `Author.loadAuthorTilesWithCounts` + `AuthorTilePublicDto.fromAuthorName`).
+         *
+         * Логика видимости:
+         * - `onlyPublished=true` (гость / premium): `ready_song_count > 0` — только альбомы с готовыми песнями.
+         * - `onlyPublished=false` (редактор): `total_song_count > 0` — все альбомы автора.
+         *
+         * Сортировка: `year ASC NULLS LAST, name ASC` — хронологический порядок (от старых к новым),
+         * в одной группе года — алфавитный тай-брейкер. Альбомы с `year = 0` или `NULL` уходят в конец
+         * (Clarification Q1 спеки 356, A-009).
+         *
+         * Skip-фильтр: `tbl_albums.skip = false` всегда (FR-016 — без утечки данных о существовании).
+         * `includeSkipped` зарезервирован для будущего использования редакторами (аналогично
+         * `Author.loadAuthorTilesWithCounts(includeSkipped=true)`).
+         *
+         * Не использует `GROUP BY tbl_songs.album_id` — счётчики денормализованы
+         * (`trg_tbl_songs_update_album_counts` миграции `49_albums_song_counts.sql`, FR-015).
+         *
+         * @param authorId ID автора (`tbl_authors.id`).
+         * @param onlyPublished см. выше.
+         * @param includeSkipped зарезервировано для редакторов с правами `canWorkWithSkipped=true`
+         *   (спека 293); по умолчанию `false` — текущее поведение UI скрывает skip-альбомы.
+         * @param database KaraokeConnection.
+         * @return список `Album`, отсортированный `year ASC NULLS LAST, name ASC`.
+         *
+         * @see specs/356-zakroma-albums-by-author/spec.md FR-010, FR-011, FR-014, FR-016
+         * @see specs/286-author-song-counts-cache (прецедент для tbl_authors)
+         */
+        fun loadAlbumTilesWithCounts(
+            authorId: Long,
+            onlyPublished: Boolean,
+            includeSkipped: Boolean = false,
+            database: KaraokeConnection,
+        ): List<Album> {
+            val connection =
+                database.getConnection()
+                    ?: run {
+                        println("[${java.sql.Timestamp.from(java.time.Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
+                        return emptyList()
+                    }
+            val sql =
+                buildString {
+                    append("SELECT id, author_id, year, name, album_type, sort_order, description, short_description, warning, ")
+                    append("total_song_count, ready_song_count ")
+                    append("FROM $TABLE_NAME ")
+                    if (!includeSkipped) {
+                        append("WHERE skip = false ")
+                    } else {
+                        append("WHERE TRUE ")
+                    }
+                    append("AND author_id = ? ")
+                    if (onlyPublished) {
+                        append("AND ready_song_count > 0 ")
+                    } else {
+                        append("AND total_song_count > 0 ")
+                    }
+                    append("ORDER BY year ASC NULLS LAST, name ASC")
+                }
+            val result = mutableListOf<Album>()
+            try {
+                connection.prepareStatement(sql).use { ps ->
+                    ps.setLong(1, authorId)
+                    ps.executeQuery().use { rs ->
+                        while (rs.next()) {
+                            val album =
+                                Album(
+                                    database = database,
+                                    storageService = KSS_APP,
+                                    storageApiClient = SAC_APP,
+                                )
+                            album.id = rs.getLong("id")
+                            album.authorId = rs.getLong("author_id")
+                            album.year = rs.getInt("year")
+                            album.name = rs.getString("name") ?: ""
+                            album.albumType = rs.getString("album_type") ?: "studio"
+                            album.sortOrder = rs.getInt("sort_order")
+                            album.description = rs.getString("description") ?: ""
+                            album.shortDescription = rs.getString("short_description") ?: ""
+                            album.warning = rs.getString("warning") ?: ""
+                            album.totalSongCount = rs.getLong("total_song_count")
+                            album.readySongCount = rs.getLong("ready_song_count")
+                            result.add(album)
+                        }
+                    }
+                }
+            } catch (e: SQLException) {
+                e.printStackTrace()
+            }
+            return result
+        }
 
         /**
          * Найти или создать альбом по свободнотекстовым автору/году/названию — используется как

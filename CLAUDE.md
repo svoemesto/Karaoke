@@ -47,16 +47,26 @@ When you need to understand:
 
 ---
 
-## 🚦 ОБЯЗАТЕЛЬНО при старте сессии
+## 🚦 MUST-CHECKLIST при старте сессии (NON-NEGOTIABLE)
 
-Перед **любыми** правками прочитай эти файлы **в этом порядке**:
+> Этот список **дублирует** MUST #0 из `AGENTS.md` и **обязательный
+> failure-stop**: если шаг пропущен — СТОП, дальше не продолжать.
+> Полная нормативная база — [`AGENTS.md`](AGENTS.md), MUST #0.
 
-1. **`AGENTS.md`** (общие правила, 280+ строк) — runtime-инструкции, иерархия документов, ловушки
-2. **`.specify/memory/constitution.md`** (NON-NEGOTIABLE принципы) — если нарушаешь, должен явно обосновать
-3. **`CONTRIBUTING.md`** (стиль кода, 892 строки) — Kotlin/Vue/SQL/MD/Sh/Docker
-4. **`DEVELOPMENT.md`** (архитектура, 164 строки) — как устроен проект
-5. **`docs/features/<slug>.md`** — per-feature документ, **если правлю код этой фичи** (FR-009)
-6. **`docs/strategy/growth.md`** — если правлю публичный модуль или монетизацию
+Перед **любыми** правками агент MUST выполнить эти шаги **именно в этом порядке**:
+
+1. **MUST прочитать** `AGENTS.md` — runtime-инструкции, иерархия документов, ловушки.
+2. **MUST прочитать** `.specify/memory/constitution.md` (NON-NEGOTIABLE) — если нарушаешь принцип, должен явно обосновать **в спеке/PR**.
+3. **MUST прочитать** `CONTRIBUTING.md` (стиль кода, Kotlin/Vue/SQL/MD/Sh/Docker).
+4. **MUST прочитать** `DEVELOPMENT.md` (архитектура, как устроен проект).
+5. **MUST прочитать** `knowledge/README.md` + `knowledge/domains/README.md` — **полностью** (Knowledge-first pre-flight, см. AGENTS.md MUST #0).
+6. **MUST определить релевантные домены** через `grep -r '<keyword>' knowledge/` — минимум **3 попытки**.
+7. **MUST прочитать** `domain.md` + **все** `components/*.md` для каждого релевантного домена.
+8. **MUST прочитать** все `local-*.md` ADR из `knowledge/adr/` (принятые решения, запрещено переизобретать).
+9. **MUST прочитать** `docs/features/<slug>.md` — per-feature документ, **если правлю код этой фичи** (Constitution FR-009).
+10. **MUST прочитать** `docs/strategy/growth.md` — если правлю публичный модуль или монетизацию.
+
+**Failure-stop**: если grep по `knowledge/` ничего не дал — зафиксировать в `spec.md` явно («Searched: ... → no relevant docs»). Если релевантное содержимое найдено, но проигнорировано — спека MUST быть возвращена на `/speckit.clarify`.
 
 > ⚠️ **Не игнорируй этот список.** Без `AGENTS.md` ты не знаешь про ktlint-ловушки,
 > KDoc coverage 100%, pre-commit хуки, `redirectErrorStream(true)` и кучу другого.
@@ -191,25 +201,36 @@ git pull && git status
 
 ## 🚦 MCP-серверы (если доступны)
 
-- **`codegraph`** — read-only индекс символов. **Использовать ПЕРЕД `grep`/`Read`**
-  для понимания кода (быстрее + точнее, ловит dynamic dispatch).
+- **`codegraph`** — read-only индекс символов. **Использовать ТОЛЬКО ПОСЛЕ Knowledge-first pre-flight** (см. MUST #0 в `AGENTS.md` и MUST-CHECKLIST выше). Понимание кода — это **шаг после** Knowledge, а не вместо. (Прецедент 2026-09-09: spec #339 — агент полез в `codegraph_explore` ДО Knowledge и изобрёл форму кеша вместо паттернов из `caching-patterns.md`.)
 
 ---
 
 ## 🚦 НЕ делать
 
 - ❌ Коммитить в master (только в feature-ветке)
-- ❌ Менять `AGENTS.md`, `constitution.md`, `.gitignore` без согласования
+- ❌ Менять `AGENTS.md`, `constitution.md`, `.gitignore` без согласования — **исключение**: governance-PR с явной формулировкой «governance-knowledge-first» / «agents-md-update» / «constitution-amendment» в slug допустим, **но PR всё равно проходит через обязательное ревью** (см. ниже).
 - ❌ Менять конфигурацию линтеров (`.pre-commit-config.yaml`, baseline-файлы) без согласования
 - ❌ Использовать `nginx:alpine`, `node:latest` (см. ловушки)
 - ❌ Импортировать JPA/Hibernate (только raw JDBC)
 - ❌ Обещать в коде/рекламе MP4/скачивание (см. оферту)
 - ❌ Упоминать площадки в рекламных материалах (сайт-центричная модель)
 - ❌ Добавлять «trial»-механику (отложено до следующего раунда)
+- ❌ Полезть в `codegraph_explore` / `grep` по `src/` **до** Knowledge-first pre-flight (см. MUST #0 в `AGENTS.md`)
+
+**Governance-review требования** (для PR, меняющих `AGENTS.md` / `constitution.md` / `.gitignore`):
+
+1. PR MUST содержать секцию «Governance Impact» с перечислением **всех** правил, которые меняются/добавляются/удаляются.
+2. PR MUST иметь версионный bump (semver) в header изменяемого файла.
+3. PR MUST получить одобрение владельца перед merge (CODEOWNERS для `AGENTS.md` / `constitution.md`).
+4. В changelog (`docs/architecture-notes.md`) MUST быть запись «Pass N: governance amendment — <summary>».
 
 ---
 
-**Версия**: 1.0 (2026-07-24)
+**Версия**: 1.1.0 (2026-09-09, Pass 340 — governance-knowledge-first)
+**Изменения 1.1.0**:
+- MUST-CHECKLIST приведён в соответствие с MUST #0 (Knowledge-first pre-flight).
+- Правило про `codegraph` переписано: ТОЛЬКО ПОСЛЕ Knowledge-first (раньше было «ПЕРЕД grep/Read», что прямо противоречило MUST #0).
+- Добавлены governance-review требования для правок `AGENTS.md` / `constitution.md` / `.gitignore`.
 **Связанные документы**:
 - `docs/claude-code-setup.md` — детальная инструкция
 - `AGENTS.md` — runtime-правила

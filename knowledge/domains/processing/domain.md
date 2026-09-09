@@ -13,21 +13,26 @@ related:
 
 # Domain: Processing (Обработка)
 
-> Подсистема производства караоке-видео — MLT, Demucs, Sheetsage, async-очередь.
+> Подсистема производства караоке-видео — MLT, AudioAnalize (локальный CLI), async-очередь.
+>
+> **Drift note** (Pass 341): предыдущая версия упоминала Demucs/Sheetsage
+> как «ML-модели стем-сепарации/key/BPM». В текущей кодовой базе
+> эти сервисы НЕ существуют — есть локальный CLI `AudioAnalize` +
+> `AudioAnalize2`. См. [Known gaps](#known-gaps).
 >
 
 ## Обзор контекста (Bounded Context)
 
 Processing — контекст, отвечающий за превращение песни ([catalog](../catalog/domain.md))
 в готовое караоке-видео. Это **уникальная для проекта Karaoke** подсистема,
-которая запускает ffmpeg / MLT / Demucs / Sheetsage как OS-подпроцессы
+которая запускает ffmpeg / MLT / AudioAnalize как OS-подпроцессы
 через `ProcessBuilder` с парсингом stdout.
 
 Контекст **write-light / compute-heavy** — записи в БД редки (смена
 статуса), но вычисления тяжёлые (стем-сепарация, генерация MLT, рендер видео).
 
 **Не путать** с [rendering](../rendering/domain.md): processing — это
-**производство** (Demucs + Sheetsage + генерация MP4 через melt), а
+**производство** (AudioAnalize + генерация MP4 через melt), а
 rendering — это **конечный** рендер MP4 из маркеров. В текущей
 архитектуре они частично перекрываются (MLT/melt живёт в обоих);
 деление — логическое, не физическое.
@@ -44,8 +49,7 @@ rendering — это **конечный** рендер MP4 из маркеров
 | --- | --- | --- |
 | **MLT (melt)** | Формат проекта видеоредактора melt | `mlt/mko/*.kt`, `MLTProject.kt` |
 | **Стем (Stem)** | Разделённая аудио-дорожка (vocals / acc) | `Stems.kt`, `vocals.flac` |
-| **Demucs** | ML-модель стем-сепарации | `DemucsService.kt` |
-| **Sheetsage** | ML-модель key/BPM/chords | `SheetsageService.kt` |
+| **AudioAnalize** | Локальный CLI для аудио-анализа (заменяет Demucs/Sheetsage в текущей кодовой базе) | `AudioAnalize.kt`, `AudioAnalize2.kt` |
 | **LYRICS** | Версия рендера: acc(1.0)+voc(1.0), 1920×1080@60fps | `RenderVersion.LYRICS` |
 | **KARAOKE** | Версия рендера: acc(1.0)+voc(0.0), 1920×1080@60fps | `RenderVersion.KARAOKE` |
 | **DEMO** | Версия рендера: acc(1.0)+voc(0.0), 1280×720@30fps, фрагмент | `RenderVersion.DEMO` |
@@ -77,8 +81,9 @@ rendering — это **конечный** рендер MP4 из маркеров
 
 ## Entities
 
-- **StemsJob (Задача стем-сепарации)**: задача Demucs для разделения вокала.
-- **SheetsageJob**: задача распознавания аккордов/BPM/key.
+- **AudioAnalizeJob (Задача аудио-анализа)**: задача локального CLI
+  `AudioAnalize` для распознавания BPM/key/длительности (см.
+  [Known gaps](#known-gaps) — Drift note).
 - **MltJob**: задача генерации MLT-проекта.
 - **RenderJob**: задача рендера MP4.
 
@@ -86,14 +91,13 @@ rendering — это **конечный** рендер MP4 из маркеров
 
 - **RenderVersion (LYRICS | KARAOKE | DEMO)**: какую версию рендерить
   (см. [rendering dictionaries](../rendering/components/dictionaries.md)).
-- **Stems (vocals, accompaniment, drums, bass, other)**: 5 дорожек от Demucs.
+- **AudioResult**: результат `AudioAnalize` — BPM, key, duration.
 - **VideoFragment (startSeconds, endSeconds, fadeIn, fadeOut)**: фрагмент для DEMO.
 - **MltProp (~150 параметров)**: MLT-свойства (размер шрифта, цвет, позиция, ...).
 
 ## Domain Events
 
-- **StemsSeparated**: Demucs закончил, готовы вокал + аккомпанемент.
-- **KeyBpMDetected**: Sheetsage закончил, известны key/BPM/chords.
+- **AudioAnalizeCompleted**: `AudioAnalize` закончил, известны BPM/key/duration.
 - **MltGenerated**: MLT-проект создан.
 - **VideoRendered**: MP4 готов, лежит в `done_files/`.
 - **RenderStarted**: рендер поставлен в очередь.
@@ -103,11 +107,13 @@ rendering — это **конечный** рендер MP4 из маркеров
 1. **`ProcessBuilder` всегда с `redirectErrorStream(true)`**: stdout и
    stderr должны быть объединены, иначе процесс блокируется (см.
    [ADR-0006](../../adr/0006-processbuilder-redirect-errorstream.md)).
-2. **Demucs → Sheetsage → MLT → render строго последовательны**: каждый
-   следующий шаг ждёт события от предыдущего (`StemsSeparated`,
-   `KeyBpMDetected`, `MltGenerated`).
-3. **MinIO — единственное место хранения стемов и MP4**: после обработки
-   локальные файлы удаляются, MinIO хранит версии (`stems/`, `done_files/`).
+2. **AudioAnalize → MLT → render строго последовательны**: каждый
+   следующий шаг ждёт события от предыдущего (`AudioAnalizeCompleted`,
+   `MltGenerated`).
+3. **MinIO — единственное место хранения MP4**: после обработки
+   локальные файлы удаляются, MinIO хранит версии (`done_files/`).
+   (NB: предыдущая версия упоминала `stems/<songId>/`, но в текущей
+   кодовой базе стемов нет — см. [Known gaps](#known-gaps).)
 4. **`KaraokeProperties` редактируется через admin UI, не напрямую в коде**:
    изменения должны проходить через UI чтобы UI-state был синхронизирован.
 5. **Одна песня = одна MLTProject**: `MLTProject.id == Song.id` (1-к-1).
@@ -118,12 +124,10 @@ rendering — это **конечный** рендер MP4 из маркеров
 
 - `KaraokeProcess.submit(...)` — постановка задачи в очередь (lane, threadId).
 - `MLTProject.saveToDb()` — сохранение проекта после успешного рендера.
-- `DemucsService.process(songId)` — запуск стем-сепарации.
-- `SheetsageService.process(songId)` — запуск распознавания.
+- `AudioAnalize.run(songId)` — запуск локального CLI аудио-анализа.
 
 ### Внешний артефакт
 
-- Стемы в MinIO `stems/<songId>/{vocals,accompaniment,drums,bass,other}.flac`.
 - MP4 в MinIO `done_files/<songId>/<version>.mp4`.
 
 ## Структура компонентов (C4 L3)
@@ -149,6 +153,24 @@ rendering — это **конечный** рендер MP4 из маркеров
 - MLT-генератор: `karaoke-app/src/main/kotlin/.../mlt/`
 - Очередь: `karaoke-app/src/main/kotlin/.../KaraokeProcess.kt`, `KaraokeProcessRenderMp4*.kt`
 - Рендер: `PlayerMp4RenderService.kt`, `PlayerMp4MuxService.kt`
-- Demucs: `DemucsService.kt`
-- Sheetsage: `SheetsageService.kt`
+- Аудио-анализ: `AudioAnalize.kt`, `AudioAnalize2.kt`
 - Свойства: `KaraokeProperties.kt` (~150 параметров), `/sm-karaoke/system/Karaoke.properties`
+
+## Known gaps
+
+- [ ] **Drift**: `DemucsService.kt` и `SheetsageService.kt` упоминались
+      в предыдущей версии этого документа, но в текущей кодовой базе
+      не существуют. Заменены на `AudioAnalize.kt` (Pass 341).
+      Следует проверить:
+      - Что именно делает `AudioAnalize` (где запускается, какие
+        аргументы принимает).
+      - Где находится «управляющий код» бывших Demucs/Sheetsage —
+        может, переименован.
+      - Какая часть `StemJob` (premium фича «Создать минусовку»)
+        использует Demucs напрямую, а какая — `AudioAnalize`.
+- [ ] **MLT-генератор internals** (50 файлов в `karaoke-app/.../mlt/`):
+      требует отдельной документации (P3).
+- [ ] **ProcessBuilder + `redirectErrorStream(true)`** — все ли
+      вызовы следуют правилу. (TODO: grep.)
+- [ ] **Thread-lanes в `KaraokeProcess`** — детальное описание
+      (Pass 342).

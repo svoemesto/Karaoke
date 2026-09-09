@@ -38,3 +38,18 @@
 - Add comments or findings inline
 - Link to relevant resources or documentation
 - Items are numbered sequentially for easy reference
+
+## Knowledge Compliance *(MANDATORY — see Constitution Principle IX)*
+
+> Без `[x]` по всем пунктам этой секции спека **НЕ ДОЛЖНА**
+> переходить в `/speckit.plan`. Это failure-stop, добавленный
+> после прецедента 2026-09-09 (spec #339).
+
+- [ ] Knowledge pre-flight выполнен ДО `codegraph_explore` / grep по `src/`
+- [ ] `knowledge/README.md` + `knowledge/domains/README.md` прочитаны **полностью**
+- [ ] Релевантные домены определены через `grep -r '<keyword>' knowledge/` (минимум 3 запроса)
+- [ ] Все `domain.md` + `components/*.md` релевантных доменов прочитаны
+- [ ] Все `local-*.md` ADR в `knowledge/adr/` прочитаны (принятые решения, запрещено переизобретать)
+- [ ] В `spec.md` заполнена секция «Knowledge References» с конкретными путями
+- [ ] Если Knowledge противоречит реквесту — это явно зафиксировано в «Open Questions» (NEEDS CLARIFICATION)
+- [ ] Если grep по `knowledge/` ничего не дал — зафиксировано явное «no relevant docs» (с перечислением запросов и файлов)

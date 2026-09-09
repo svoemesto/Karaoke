@@ -8,6 +8,41 @@
 
 **Input**: User description: "$ARGUMENTS"
 
+## Knowledge References *(MANDATORY — see Constitution Principle IX)*
+
+> **Прецедент**: 2026-09-09, spec #339 — агент пропустил Knowledge-first
+> pre-flight и изобрёл форму кеша вместо паттернов из
+> `knowledge/domains/caching/components/caching-patterns.md`.
+> Без заполненной секции спека **НЕ ДОЛЖНА** переходить в
+> `/speckit.plan`. См. `AGENTS.md` MUST #0, Constitution Principle IX.
+
+Перечислите **ВСЕ** документы `knowledge/`, прочитанные перед написанием
+этой спеки. Если релевантных не нашлось — перечислите grep-запросы и
+файлы, по которым искали (явное «nothing found» — это валидный ответ).
+
+### Pre-flight log
+
+- **Дата pre-flight**: [YYYY-MM-DD]
+- **Grep-запросы** (минимум 3, по релевантным ключевым словам задачи):
+  1. `<query 1>` → файлы: `<results>`
+  2. `<query 2>` → файлы: `<results>`
+  3. `<query 3>` → файлы: `<results>`
+
+### Knowledge files consulted
+
+- [`knowledge/domains/<X>/domain.md`](../../knowledge/domains/<X>/domain.md)
+  — зачем прочитан: <1 фраза>
+- [`knowledge/domains/<X>/components/<Y>.md`](../../knowledge/domains/<X>/components/<Y>.md)
+  — зачем прочитан: <1 фраза>
+- [`knowledge/adr/local-NNNN-<slug>.md`](../../knowledge/adr/local-NNNN-<slug>.md)
+  — принятое решение, влияющее на фичу: <1 фраза>
+
+### Если ничего не нашлось (явный no-op)
+
+> «Searched: `<queries>` (3+ попытки с разными ключевыми словами) →
+> `<files checked>` → no relevant docs. Continuing with code-first
+> exploration only after exhaustive search.»
+
 ## User Scenarios & Testing *(mandatory)*
 
 <!--

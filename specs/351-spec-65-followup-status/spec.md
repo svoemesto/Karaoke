@@ -14,11 +14,13 @@
 - **Status до**: New (после этого PR: In progress, assignee=ai-agent).
 - **Status после**: остаётся In progress, **НЕ закрыта** (см. ниже).
 
-**Workflow выполнено**:
+**Workflow**:
 1. **Claim**: `bash tools/tracker.sh claim-issue 65` (Pass 350 auto-claim сработал).
 2. **Add comment**: `bash tools/tracker.sh add-comment 65 --file specs/349-tracker-must-link/report-65.md` (comment id=344, 5330 chars).
-3. **Mark review**: НЕ выполнено — следующий шаг after implementation, не status update.
-4. **Close**: НЕ выполнено — owner решает по результатам (#65 root cause НЕ починен).
+3. **Mark review** (next: after Pass 351 implementation): `bash tools/tracker.sh mark-review 65`.
+4. **Close** (owner decision after Pass 351 merge): `bash tools/tracker.sh close-issue 65`.
+
+## Knowledge References *(MANDATORY — see Constitution Principle IX)*
 
 ## Knowledge References *(MANDATORY — see Constitution Principle IX)*
 

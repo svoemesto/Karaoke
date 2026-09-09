@@ -9,7 +9,7 @@
 |--------|------------|
 | [`check-knowledge-structure.sh`](check-knowledge-structure.sh) | CI gate: 9 проверок структуры `knowledge/` (директории, шаблоны, 9 доменов, ≥1 ADR, cross-link в README на каждый домен, frontmatter в domain.md, CI integration). **Запускается в GitHub Actions.** |
 | [`check-knowledge-cross-links.sh`](check-knowledge-cross-links.sh) | Проверяет 243+ cross-links (`../X.md` и `related:`). ADR исключены (legacy формат). **Запускается в GitHub Actions.** |
-| [`lint-knowledge.py`](lint-knowledge.py) | Проверяет эмодзи (запрещены), mandatory headers (для domain/component), structural integrity L2 → L1. **Запускается в GitHub Actions.** |
+| [`lint-knowledge.py`](lint-knowledge.py) | Проверяет эмодзи (запрещены), mandatory headers (для domain/component), structural integrity L2 → L1. **Запускается в GitHub Actions** в baseline-режиме (Pass 347+): `--baseline config/knowledge/baseline-knowledge-lint.txt` — ранее известные violations игнорируются, новые блокируют merge. Локально без флага — для прогона всех правил. Чтобы уменьшить baseline: фиксить violations и `python3 tools/lint-knowledge.py --generate-baseline FILE`. |
 
 ## Код и CI
 

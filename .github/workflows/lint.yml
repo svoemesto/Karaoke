@@ -255,4 +255,10 @@ jobs:
         # tools/lint-knowledge.py — проверка эмодзи, обязательных
         # секций шаблона (для domain/component), structural integrity
         # (L2 → L1 linking для каждого домена).
-        run: python3 tools/lint-knowledge.py
+        # Pass 347: baseline режим — ранее известные violations
+        # (накопившийся tech debt Phase 002, ~309 fingerprint(s))
+        # suppress'ятся через config/knowledge/baseline-knowledge-lint.txt.
+        # Локально: запускать напрямую (без baseline) для прогона всех
+        # правил. Чтобы уменьшить baseline: фиксить violations и
+        # регенерировать через --generate-baseline.
+        run: python3 tools/lint-knowledge.py --baseline config/knowledge/baseline-knowledge-lint.txt

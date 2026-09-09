@@ -175,3 +175,18 @@ else
 fi
 
 echo "OK: создана и активна feature-ветка '$BRANCH' (NNN=${FEATURE_NUM:-?})" >&2
+
+# -----------------------------------------------------------------------------
+# Pass 350 governance (OpenProject Tracker MUST-link): автоклейм Issue ID,
+# если в $SLUG или переданном нами $DESC содержится паттерн OpenProject #NN.
+# Слабая интеграция: hook idempotent, падение не блокирует bootstrap. Если hook
+# обнаружит Issue ID — он будет помечен assigned to ai-agent + In progress.
+# Это автоматизирует шаг claim workflow (см. AGENTS.md § Issue-tracker OpenProject).
+# -----------------------------------------------------------------------------
+DESC="${DESC:-}"
+SOURCE_DESC="$SLUG $DESC $@"
+if [ -x "${REPO_ROOT:-.}/tools/tracker-bootstrap.sh" ]; then
+    # shellcheck disable=SC1091
+    bash "${REPO_ROOT:-.}/tools/tracker-bootstrap.sh" $SOURCE_DESC >&2 || true
+fi
+true

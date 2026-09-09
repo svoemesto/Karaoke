@@ -132,3 +132,36 @@
 > `controllers/CacheAdminController.kt` (новый),
 > `services/StorageMetadataCache.kt` (полностью переписан, V2 — Postgres DAO),
 > `services/PollingCache.kt` + `PollingCacheTest.kt` (УДАЛЕНЫ — V1 superseded).
+
+> **Pass 349** (2026-09-09, ветка `349-tracker-must-link`): owner
+> обнаружил, что OpenProject #69 был обработан через `/speckit-full 69`
+> БЕЗ выполнения workflow `claim → add-comment → mark-review`. #69
+> был открыт без `tracker.sh claim-issue`, отчёт опубликован задним
+> числом. Это governance failure. Amendment ввёл:
+> * `tools/check-spec-issue-link.py` — NEW. Валидирует наличие
+>   `## OpenProject Tracking` секции в modern-спеках. CI gate в
+>   `.github/workflows/lint.yml`.
+> * `.specify/templates/spec-template.md` — добавлена MANDATORY секция.
+> * `AGENTS.md` 2.1.0 → 2.2.0. Section «Issue-tracker OpenProject» дополнен.
+> * `specs/344` и `specs/348` обновлены под новый формат.
+> * Report `specs/344-storage-metadata-cache/report.md` (10 133 chars)
+>   опубликован в OpenProject #69. Issue сейчас: assignee=ai-agent,
+>   status=In review.
+>
+> **Артефакты**: PR #449.
+
+> **Pass 350** (2026-09-09, ветка `350-spec-hooks-auto-tracker`):
+> автоматизация OpenProject Tracker workflow (Pass 349 amendment).
+> * `tools/tracker-bootstrap.sh` — NEW (~100 lines). Хук before_specify:
+>   detect OpenProject ID в `$ARGUMENTS` (regex `#NN` / `№NN` /
+>   `задача NN` / `task NN` / `OP #NN` / `OpenProject NN`); вызывает
+>   `tracker.sh claim-issue` (idempotent). No-op если не найден.
+> * `tools/tracker-implement-done.sh` — NEW (~140 lines). Хук
+>   after_implement: detect Issue ID; использует `report.md` или
+>   auto-generates stub; вызывает `tracker.sh add-comment + mark-review`.
+> * `tools/specify-bootstrap.sh` — интегрирован auto-claim hook.
+> * `.specify/extensions.yml` — оба хука зарегистрированы как optional.
+> * `AGENTS.md` 2.2.0 → 2.3.0 (semver MINOR). Подсекция «Auto-hooks (Pass 350)».
+> * `tools/README.md` — добавлено описание новых scripts.
+>
+> Хуки OPTIONAL — manual workflow остаётся fallback.

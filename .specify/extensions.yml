@@ -29,14 +29,69 @@ hooks:
       # Условие: hook выполняется всегда (нет condition), чтобы не пропустить
       # создание ветки по ошибке агента.
 
+    - extension: tracker-issue-claim
+      command: tools/tracker-bootstrap.sh
+      enabled: true
+      optional: true
+      description: >-
+        Автоматический call `tracker.sh claim-issue <NN>` если в $ARGUMENTS
+        обнаружен OpenProject issue ID (паттерны: `#69`, `№69`, `задача 69`,
+        `task 69`, `OP #69`, `OpenProject 69`). Pass 350 — supersede ручного
+        шага `claim` в workflow (см. AGENTS.md § Issue-tracker OpenProject).
+        Idempotent и no-op если ID не обнаружен.
+      prompt: >-
+        После feature-branch-bootstrap запусти tracker-bootstrap с теми же
+        аргументами, что были переданы в /speckit.specify. Если в логе
+        выведен issue ID — это значит claim выполнен автоматически.
+
   # Хук, вызываемый ПОСЛЕ создания спецификации. Пока пусто — спека создаётся
   # без пост-обработки. Если в будущем потребуется автообновление
   # architecture-notes.md или авто-PR-черновик — добавить сюда.
   after_specify: []
 
-  # Хук перед /speckit.clarify. Пока пусто — clarification не требует отдельной
+  # Хук ПЕРЕД /speckit.plan — пока пусто.
+  before_plan: []
+
+  # Хук ПОСЛЕ /speckit.plan — пока пусто.
+  after_plan: []
+
+  # Хук ПЕРЕД /speckit.tasks — пока пусто.
+  before_tasks: []
+
+  # Хук ПОСЛЕ /speckit.tasks — пока пусто.
+  after_tasks: []
+
+  # Хук ПЕРЕД /speckit.implement — пока пусто.
+  before_implement: []
+
+  # Хук ПОСЛЕ /speckit.implement (Pass 350) — auto comment + mark-review.
+  after_implement:
+    - extension: tracker-implement-done
+      command: tools/tracker-implement-done.sh
+      enabled: true
+      optional: true
+      description: >-
+        Pass 350: автоматизирует шаги `add-comment + mark-review` workflow
+        (см. AGENTS.md § Issue-tracker OpenProject). Запускать агентом
+        ПОСЛЕ merge PR (или владельцем вручную). Передавать Issue ID явно
+        или положиться на detection через ветку + git log.
+        Idempotent — повторные вызовы no-op (comment может дублироваться,
+        но mark-review повторно «In review»).
+      prompt: >-
+        После merge PR с фичей, от имени которой была создана спека:
+        1. Убедиться что specs/<NN>-<slug>/report.md существует
+           (если нет — запустить tools/tracker-implement-done.sh — он
+           auto-generates stub из git log).
+        2. Запустить tools/tracker-implement-done.sh [ISSUE_ID].
+        3. Если есть ошибка — записать в stderr и продолжить (не блокирует
+           merge, т.к. hook optional).
+
+  # Хук ПЕРЕД /speckit.clarify. Пока пусто — clarification не требует отдельной
   # ветки (работаем в той же, что создана before_specify).
   before_clarify: []
 
-  # Хук после /speckit.clarify. Пока пусто.
+  # Хук ПОСЛЕ /speckit.clarify. Пока пусто.
   after_clarify: []
+
+  # Хук, вызываемый ПОСЛЕ analysis (`/speckit.analyze`) — пока пусто.
+  after_analyze: []

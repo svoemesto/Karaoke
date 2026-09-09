@@ -21,7 +21,7 @@
 | --- | --- | --- | --- | --- |
 | — | `NEW (1)` | `SongAdded` | mp3 появился в папке импорта | `SongService` (catalog) |
 | `NEW (1)` | `PROCESSING (2)` | `SongStatusChanged` | редактор взял задание | `Identity` editor + [processing](../../processing/domain.md) |
-| `PROCESSING (2)` | `STEMS_READY (3)` | `SongStatusChanged` | Demucs+Sheetsage завершили работу | [processing](../../processing/domain.md) (Demucs worker) |
+| `PROCESSING (2)` | `STEMS_READY (3)` | `SongStatusChanged` | обработка завершена (см. drift note) | [processing](../../processing/domain.md) |
 | `STEMS_READY (3)` | `MARKED (4)` | `SongStatusChanged` | редактор расставил маркеры | `Identity` editor |
 | `MARKED (4)` | `RENDERED (5)` | `SongStatusChanged` | MP4 готов, лежит в MinIO | [rendering](../../rendering/domain.md) (melt worker) |
 | `RENDERED (5)` | `APPROVED (6)` | `SongStatusChanged` | редактор одобрил | `Identity` editor |
@@ -47,17 +47,21 @@
 
 1. Редактор (через админку) берёт задание на обработку (`canSelfAssign`).
 2. `Song.idStatus = 2`.
-3. `processing` workers (Demucs+Sheetsage) стартуют в фоне через
-   [processing domain](../../processing/domain.md).
+3. `processing` workers стартуют в фоне через [processing domain](../../processing/domain.md).
 4. Доменное событие `SongStatusChanged(1→2)`.
 
 ### Шаг 3. Стемы готовы (`STEMS_READY`)
 
-1. Demucs завершил разделение на 5 стемов.
-2. Sheetsage завершил распознавание нот.
-3. Результаты складываются в MinIO `stems/<songId>/`.
-4. `Song.idStatus = 3`.
-5. Доменное событие `SongStatusChanged(2→3)`.
+> **Drift note** (Pass 341): в текущей кодовой базе отдельного
+> Demucs-степа нет. `AudioAnalize` (локальный CLI) делает аудио-анализ,
+> после чего `idStatus=3` (см. gaps в processing/domain.md). Название
+> `STEMS_READY` сохраняется для обратной совместимости с JS-фильтрами
+> webvue3.
+
+1. Обработка (`AudioAnalize` + смежные workers) завершена.
+2. Результаты складываются в MinIO (для стемов — `stems/<songId>/`).
+3. `Song.idStatus = 3`.
+4. Доменное событие `SongStatusChanged(2→3)`.
 
 ### Шаг 4. Разметка (`MARKED`)
 
@@ -96,7 +100,7 @@
 - → [domain](../domain.md) — AR `Song` хранит `idStatus`.
 - → [identity](../../identity/domain.md) — `Identity` editor с
   `canSelfAssign=true` берёт задания.
-- → [processing](../../processing/domain.md) — Demucs+Sheetsage workers.
+- → [processing](../../processing/domain.md) — workers (`AudioAnalize`, melt, render).
 - → [rendering](../../rendering/domain.md) — melt workers.
 - → [publishing](../../publishing/domain.md) — `publishDate` управляется
   в publishing-контексте.

@@ -1,7 +1,7 @@
 # Domains (C4 L3 — Bounded Contexts)
 
 > **Статус**: Active. C4 L3 — bounded contexts Karaoke. Наполнялись
-> в Pass 340-361 как часть Knowledge-аудита.
+> в Pass 340-385 как часть Knowledge-аудита.
 
 Каждый домен — это Bounded Context в смысле DDD: явная граница
 ответственности, единый язык (Ubiquitous Language), инварианты.
@@ -38,42 +38,50 @@ knowledge/domains/<name>/
 | [`integration`](integration/domain.md) | **New in Pass 345** | Внешние HTTP API (VK, TG, LM Studio, Whisper, Alignment, GeoIp, Yandex Captcha) |
 | [`karaoke-web`](karaoke-web/domain.md) | **New in Pass 362-365** | Прод-сервер, public API, YooKassa, share-линки, защита от DDoS |
 
-## Компоненты по доменам (сводка Pass 340-361)
+## Компоненты по доменам (финальная сводка Pass 340-385)
 
 | Домен | Компоненты |
 |---|---|
-| **catalog** | dictionaries, song-lifecycle, entities-catalog (Pass 341+), pictures, remaining-models (Pass 348) |
-| **processing** | async-process-queue, two-db-sync, run-entity-sync (Pass 343), schedulers (Pass 344), process-admin (Pass 347) |
+| **catalog** | dictionaries, song-lifecycle, song-entity, entities-catalog, pictures, remaining-models |
+| **processing** | async-process-queue, two-db-sync, run-entity-sync, schedulers, process-admin, karaoke-properties, playwright-rendering |
 | **storage** | karaoke-storage-service, storage-api-client, storage-flow |
 | **health** | health-report |
-| **sse** | (singleton, без components) |
-| **persistence** | (singleton, без components) |
+| **sse** | (singleton) |
+| **persistence** | (singleton) |
+| **monetization** | (singleton) |
 | **integration** | external-api-clients, alignment-ml, dtos |
-| **caching** | author-cache, caching-patterns, web-caches (Pass 341) |
-| **monitoring** | log-categories, monitor-checks |
-| **identity** | dictionaries, security-config |
-| **publishing** | dictionaries, stats-cache |
-| **rendering** | dictionaries, mlt-pipeline |
-| **stats** | dictionaries, event-funnel |
-| **editorial** | dictionaries, assignment-lifecycle |
-| **monetization** | (singleton, без components) |
+| **karaoke-web** | public-controllers, internal-controllers, services-overview, song-share-link-service, config |
+| **rendering** | dictionaries, mlt-pipeline, mlt-generator |
+| **publishing** | dictionaries, stats-cache, publishing-services |
 
-## System (C4 L1 + L2)
+## System (C4 L1 + L2 + infra)
 
 См. [`system/`](../system/):
 
 - `01-context.md` — C4 L1 (Pass 356).
 - `02-containers.md` — C4 L2 (Pass 356).
 - `utilities.md` — утилиты (Pass 341 P3c детальный, с security issue).
-- `frontend/vuex-patterns.md` — webvue3 stores (Pass 349).
-- `frontend/karaoke-public-composables.md` — public composables (Pass 350).
-- `frontend/webvue3-views.md` — admin views (Pass 351).
-- `infra/ci-tools.md` — tools/ (Pass 353).
-- `infra/deploy-overview.md` — deploy/ (Pass 354).
-- `infra/do-sh.md` — главный entry point (Pass 355).
-- `infra/specs-catalog.md` — specs/ (Pass 358).
-- `infra/pre-commit-config.md` — pre-commit хуки (Pass 359).
-- `infra/dev-pc-exception.md` — Pass 282 dev-pc (Pass 360).
+- `frontend/`:
+  - `vuex-patterns.md` — webvue3 stores (Pass 349).
+  - `karaoke-public-composables.md` — public composables (Pass 350).
+  - `webvue3-views.md` — admin views (Pass 351).
+  - `store-songs.md`, `store-song-editor.md`, `store-sync.md`,
+    `store-properties.md`, `store-site-users.md` — отдельные
+    детальные store docs (Pass 371, 382).
+  - `composable-karaoke-editor.md`, `composable-player-readiness.md`,
+    `composable-use-auth.md`, `composable-use-player-access.md`,
+    `composable-use-share-link.md` — отдельные детальные composable
+    docs (Pass 372, 383).
+- `infra/`:
+  - `ci-tools.md` — tools/ (Pass 353).
+  - `deploy-overview.md` — deploy/ (Pass 354).
+  - `do-sh.md` — главный entry point (Pass 355).
+  - `specs-catalog.md`, `specs-catalog-detailed.md` — specs/ (Pass 358, 374).
+  - `pre-commit-config.md` — pre-commit хуки (Pass 359).
+  - `dev-pc-exception.md` — Pass 282 dev-pc (Pass 360).
+  - `governance-docs.md` — CONTRIBUTING, DEVELOPMENT, constitution (Pass 376).
+  - `per-feature-docs.md` — docs/features/ (Pass 380).
+  - `sql-migrations.md` — deploy/karaoke-db/*.sql (Pass 381).
 
 ## Linking Protocol
 
@@ -92,7 +100,18 @@ knowledge/domains/<name>/
 кодов» в L3-спецификациях — критический дефект (см. `audit-living-docs`
 «Magic Codes»).
 
+## Статистика (Pass 340-385)
+
+- **15 доменов** покрыто.
+- **~30 компонентов** в `domains/*/components/`.
+- **~25 system файлов** (frontend, infra, C4 L1/L2).
+- **~120+ файлов** Knowledge в целом.
+- **~440+ cross-links** все валидны.
+- **9/9 структурных** проверок OK.
+- **~16 000+ строк** Knowledge.
+
 ## Changelog
 
-- **Pass 340-361** (2026-09-09): Полное наполнение доменов. 14 доменов,
-  23 компонента, 11 system файлов. Всего 329 cross-links.
+- **Pass 340-385** (2026-09-09): Полное наполнение Knowledge. 15
+  доменов, ~30 компонентов, ~25 system файлов. Всего ~120+ файлов,
+  ~16 000+ строк, ~440+ cross-links.

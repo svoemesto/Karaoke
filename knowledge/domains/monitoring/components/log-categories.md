@@ -22,9 +22,9 @@
 | --- | --- | --- | --- |
 | `infra.prod.ping` | `ProdContainerCheck` | HTTP-пинг `sm-karaoke.ru/` | WARN при ошибке, INFO при recovery |
 | `infra.prod.db` | `ProdContainerCheck` | JDBC-пинг прод-БД | WARN при ошибке, INFO при recovery |
-| `infra.cache.statbysong` | `StatBySong.refreshCache()` | Cold-start, refresh, ошибки | WARN при cold-start, INFO при success, WARN при failure |
-| `infra.queue.render` | TODO | Render queue stalled/lane stalled | WARN при stall |
-| `infra.telegram.polling` | TODO | Telegram polling state | WARN при disabled |
+| `infra.cache.statbysong` | `karaoke-web/StatBySong.kt` (cacheLog) | Cold-start, refresh, ошибки | WARN при cold-start, INFO при success, WARN при failure |
+| `infra.queue.render` | **не реализована** | Render queue stalled/lane stalled | (Pass 343+) |
+| `infra.telegram.polling` | **не реализована** | Telegram polling state | (Pass 343+) |
 
 ### Конвенция имён
 

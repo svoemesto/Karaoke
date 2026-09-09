@@ -100,7 +100,8 @@ NB: каждое обновление `percentage` пишется в БД. На 
 `KaraokeProcess` участвует в **two-DB sync** через `SyncRegistry`:
 
 - 8 флагов `sync_process_*_<push|pull>_<insert|update|delete|move>_allowed`.
-- См. [two-db-sync компоненту P1] (TODO Pass 342).
+- См. [two-db-sync](two-db-sync.md) (в том же
+  домене — sibling component, не отдельный P1).
 
 Поскольку `tbl_processes` синхронизируется, статус задания в karaoke-web
 **виден** через sync — webvue3 показывает прогресс (через SSE).

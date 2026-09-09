@@ -154,17 +154,30 @@ karaoke-public (Player)
 это выявляет и чинит.
 
 **Следствие**: если webvue3 и karaoke-app стартуют одновременно и
-оба начинают чинить одну песню — возможен конфликт. Текущая защита:
-`recomputeAndBroadcast` синхронизирует через SSE, но **не
-предотвращает race на repair**.
+оба начинают чинить одну песню — возможен конфликт. **Single-flight
+guard ОТСУТСТВУЕТ** (проверено: `grep -nE "AtomicBoolean.*refreshing"
+HealthReport.kt KaraokeProcessWorker.kt` — нет вхождений).
+Текущая защита — только `recomputeAndBroadcast` через SSE,
+которая **не** предотвращает race на repair.
 
-**TODO**: проверить, есть ли single-flight guard на repair-loop.
-(Предположительно нет — это и может быть причиной #65 race.)
+Это **может быть причиной #65** (race в `StorageApiClient.fileExists`)
+— задача для Pass 343+.
 
 ## Known gaps
 
-- [ ] **StorageController** — admin REST API для просмотра/управления
-      MinIO. Где именно, какие эндпоинты. (TODO: прочитать.)
+- [x] **StorageController** — admin REST API для просмотра/управления
+      MinIO (`karaoke-app/.../controllers/StorageController.kt`):
+      - `POST /api/storage/upload` — multipart upload
+      - `GET /api/storage/url` — file URL
+      - `GET /api/storage/presigned-url` — presigned URL (expiry настраивается)
+      - `GET /api/storage/download` — download файла
+      - `DELETE /api/storage/delete` — delete файла
+      - `GET /api/storage/list` — list bucket
+      - `GET /api/storage/exists` — check exists (использует `checkIfExists`)
+      - `PUT /api/storage/bucket/public` / `/private` — bucket policies
+      - `GET /api/storage/bucket/public-status` — `isBucketPublic`
+      - `POST /api/storage/fileStat` / `/fileInfo` / `/listInfo` — metadata
+      Все endpoints используют `KaraokeStorageService` (НЕ `StorageApiClient` — этот для remote).
 - [ ] **nginx-proxy конфиг** (`deploy/nginx/minio-proxy.conf`) —
       какие методы, есть ли auth, лимиты.
 - [ ] **StemJobPollScheduler ↔ InternalStemJobController** —

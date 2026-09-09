@@ -134,14 +134,78 @@ startRepairAll →
 
 ### `reconcilePlayerReadinessFlags`
 
-`HealthReport.kt:2113`. Решает, может ли плеер играть песню:
+`HealthReport.kt:2113-2148`. Решает, может ли плеер играть песню,
+обновляя **4 персистентных флага** на `Song`:
 
-- Все обязательные `KaraokeFileType` (playerdata + audio stems + ...) должны
-  быть в правильных местах.
-- Результат → поле `Song.status` (READY / NOT_READY) и публикуется в
-  `playerData` (читается webvue3 плеером).
+- `song.stemAccompanimentReady` ← `MP3_ACCOMPANIMENT` OK в `LOCAL_STORAGE`.
+- `song.stemVocalReady` ← `MP3_VOCAL` OK в `LOCAL_STORAGE`.
+- `song.pictureAlbumReady` ← `PICTURE_ALBUM` OK в `LOCAL_STORAGE`.
+- `song.pictureAuthorReady` ← `PICTURE_AUTHOR` OK в `LOCAL_STORAGE`.
 
-Эта функция **НЕ описана** в Knowledge (см. Known gaps).
+Внутренний helper `isOkInLocalStorage(karaokeFileType)`:
+
+```kotlin
+fun isOkInLocalStorage(karaokeFileType: KaraokeFileType): Boolean =
+    reports.any {
+        it.description == "${karaokeFileType.name}/${LOCAL_STORAGE.name}" &&
+            it.healthReportStatus == OK
+    }
+```
+
+Если хотя бы один флаг изменился — `song.saveToDb()` (см. [persistence domain](../../persistence/domain.md)).
+
+**NB**: колонки `*Ready` создаются с `DEFAULT false` (см.
+`deploy/karaoke-db/26_player_readiness_flags.sql`), поэтому для ранее
+существовавших песен нужен разовый backfill — это делает
+`recalculatePlayerReadiness`.
+
+### `recomputeAndBroadcast`
+
+`HealthReport.kt:2153-2171`. Единая точка «пересчитать HealthReport
+песни и разослать SSE healthReports» (та же логика, что в эндпоинте
+`/song/healthReportList`).
+
+```kotlin
+fun recomputeAndBroadcast(songId, database, storageService, storageApiClient):
+    List<HealthReport> {
+    val song = Song.loadFromDbById(...) ?: return emptyList()
+    val reports = song.healthReportList()
+    reconcilePlayerReadinessFlags(song, reports)
+    val dtoErrors = reports.errorsOnly().map { it.toDTO() }
+    SNS.send(SseNotification.healthReports(songId, dtoErrors))
+    return reports
+}
+```
+
+Возвращает **полный список отчётов (с canResolve)** — нужен каскаду для
+выбора следующего решаемого шага (`startRepairAll`).
+
+### `executeResolvable`
+
+`HealthReport.kt:2252-2256`. Простой helper:
+
+```kotlin
+private fun executeResolvable(reports: List<HealthReport>) {
+    reports
+        .filter { it.canResolve && it.healthReportStatus == ERROR }
+        .forEach { it.executeSolutionActions() }
+}
+```
+
+Фильтрует отчёты, которые система **может** решить сама (`canResolve`)
+и которые сейчас в `ERROR`, и выполняет их `solutionActions`.
+
+### `startRepairAll` / `recalculatePlayerReadiness`
+
+`HealthReport.kt:2259` — точка входа каскадного «Исправить всё»:
+пометить песню и выполнить всё решаемое сейчас.
+
+`HealthReport.kt:2188` — разовый backfill персистентных флагов
+готовности плеера для уже существующих песен (после миграции
+`26_player_readiness_flags.sql`). Параметр `author` (null/пусто →
+**все** песни). Логирует прогресс каждые `PROGRESS_LOG_EVERY = 200`
+песен. **Должен вызываться в фоне** — полный скан тысяч песен
+небыстрый (I/O на файл).
 
 ## Связь с подсистемами
 
@@ -160,9 +224,11 @@ startRepairAll →
 ## Known issues
 
 - **#65** (in progress) «Ошибка при проверке наличия файла в
-  удаленном хранилище»: race condition в `StorageApiClient.fileExists`
-  HTTP-вызовах (вероятно, в `WebKaraokeStorageServiceImpl`). **TODO
-  для Pass 342+**: детальный анализ с repro-сценарием.
+  удаленном хранилище»: race condition в `StorageApiClient.fileExists`.
+  `WebKaraokeStorageServiceImpl` — заглушка (см. storage), реальный
+  HTTP-клиент — `StorageApiClientWeb`, который использует
+  WebClient+reactor. **TODO Pass 342+**: подробный анализ (repro,
+  race window, фикс).
 
 ## Код (физическая реализация)
 
@@ -181,8 +247,14 @@ startRepairAll →
 - [ ] **UI-сторона**: `webvue3/src/views/HealthReportView.vue`,
       Vuex `healthReport/store.js`, API-эндпоинт
       `/api/health/getHealthReportList`.
-- [ ] **`reconcilePlayerReadinessFlags`** (строк 50): детальный
-      алгоритм, что делает `isOkInLocalStorage`.
+- [ ] **webvue3 `HealthReportView.vue`** + Vuex-модуль + endpoint
+      `/api/health/getHealthReportList`.
+- [ ] **`KaraokeProcess.THREAD_LANE_HEALTH_REPORT`** — отдельная
+      thread lane; см. [async-process-queue](../../processing/components/async-process-queue.md).
+- [ ] **`LEGACY_MLT_FILE_TYPES`** (строка 1107) — set из 4 типов,
+      помечен как legacy; нужно понять, планируется ли удаление.
+- [ ] **`StatsCache` / `StatsDebugController`** — связь
+      HealthReport с admin-метриками.
 - [ ] **`executeResolvable`** (строка 2252): точка входа repair-loop,
       7 строк, но не описана.
 - [ ] **`recomputeAndBroadcast`** (строка 2153): связь с SSE.

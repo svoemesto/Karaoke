@@ -181,10 +181,12 @@ ThreadLocal `TabIdContext` сохраняет `tabId` на время HTTP-за�
 - `karaoke-app/.../services/SseNotificationService.kt` (~250 строк)
 - `karaoke-app/.../model/SseNotification.kt`
 - `karaoke-app/.../model/SseNotificationType.kt`
-- `karaoke-app/.../model/SseNotificationDto.kt` (предположительно,
-  см. gaps)
-- `karaoke-app/.../model/...` (конкретные сообщения: `RecordChangeMessage`,
-  `ProcessWorkerStateMessage`, `ProcessCountWaitingMessage`, `Message`)
+- `karaoke-app/.../model/RecordChangeMessage.kt`
+- `karaoke-app/.../model/RecordAddMessage.kt`
+- `karaoke-app/.../model/RecordDeleteMessage.kt`
+- `karaoke-app/.../model/ProcessWorkerStateMessage.kt`
+- `karaoke-app/.../model/ProcessCountWaitingMessage.kt`
+- `karaoke-app/.../model/Message.kt`
 
 ## Changelog
 

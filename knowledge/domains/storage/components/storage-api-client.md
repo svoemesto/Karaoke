@@ -83,13 +83,25 @@ interface StorageApiClient {
 - `StemJobPollScheduler` (premium фича «Создать минусовку»: загрузка
   результатов стем-сепарации; см. `archive/docs/features/premium-stems.md`).
 
-### `checkIfExists` — bulk-проверка (НЕ ИСПОЛЬЗУЕТСЯ)
+### `checkIfExists` — bulk-проверка
 
-`Mono<Map<String, Boolean>>` — батч-проверка для нескольких файлов
-за раз. **Не используется в коде** (предположительно для будущей
-оптимизации HealthReport — пересекается с #69).
+`Mono<Map<String, Boolean>>` — возвращает map с одним ключом `exists`
+(см. реализацию `StorageApiClient.kt:319-336`: возвращает
+`mapOf("exists" to (statObject != null))`).
 
-`grep -rn 'checkIfExists' karaoke-app/src/ karaoke-web/src/` → нет вызовов.
+**Где используется**:
+
+- `karaoke-app/.../controllers/StorageController.kt:213` — admin
+  endpoint для проверки наличия файла.
+- `karaoke-app/.../Utils.kt:732` — `storageApiClient.checkIfExists(...)`,
+  затем `checkIfExists?.get("exists") ?: false`.
+- Реализация: `StorageApiClient.kt:319`, `StorageApiClientWeb.kt:242`.
+
+NB: несмотря на название ("bulk"), в текущей реализации
+`checkIfExists` принимает ОДИН `(bucketName, fileName)` и
+возвращает map из одного элемента. Имя унаследовано от API
+YooKassa/Amazon S3 (multi-object check). Для реального bulk —
+нужно расширить сигнатуру.
 
 ### URL-encoded имена файлов
 
@@ -114,10 +126,18 @@ nginx-прокси иногда кодирует имена файлов.
 
 `WebClient` (reactor) к nginx-прокси. Используется в:
 
-- `PublicStemJobController` — скачивание результатов стемов.
-- Где ещё? (TODO: grep).
+**DI-параметр** в нескольких сервисах karaoke-web (без прямого вызова,
+т.к. реальный доступ идёт через nginx-proxy):
 
-Конфигурация `WebClient` — в `WebClientConfig.kt` (см. gaps).
+- `KaraokeWebService.kt:39` — DI-параметр.
+- `PriceService.kt:48` — DI-параметр для расчёта скидок.
+- `SiteUserTokenService`, `ShareLinkSweeper`, `SubscriptionRenewalScheduler`.
+
+**Прямой вызов** — `PublicStemJobController` (стрим stemjobs через
+WebClient).
+
+Конфигурация `WebClient` — `WebClientConfig.kt` (базовый URL, retry,
+connection-pool).
 
 ## Зависимости
 
@@ -130,9 +150,13 @@ nginx-прокси иногда кодирует имена файлов.
 - **URL-encoded имена**: см. `decodeFileNameIfEncoded`.
 - **`NoSuchKey` vs `NoSuchBucket`**: различать, чтобы не маскировать
   ошибки конфигурации.
-- **Timeout на upload**: `OkHttpClient` — стандартные 30 сек. Для
-  больших файлов может быть мало. (TODO: проверить, есть ли в
-  `KaraokeProperties` настройка.)
+- **Timeout на upload**: hardcoded в `StorageApiClient.kt:144-146`:
+  - `connectTimeout = 15s`
+  - `readTimeout = 60s`
+  - `writeTimeout = 300s` (5 минут — для больших файлов).
+
+  **НЕ** настраивается через `KaraokeProperties`. Если нужен
+  тюнинг — править хардкод (Pass 343+).
 
 ## Связь с другими компонентами
 

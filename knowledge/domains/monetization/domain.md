@@ -120,8 +120,14 @@ CRUD: `PublicCartController` в karaoke-web.
 - `idTariff` — ID тарифа.
 - `startDate`, `endDate` — период действия.
 - `isActive` — автопродление/ручное.
-- `status` — PAID / REFUNDED / EXPIRED / CANCELLED (предположительно,
-  см. gaps).
+- `status` — `CREATED` / `PENDING` / `PAID` / `FAILED` /
+  `REFUNDED` / `CANCELED` (константы в `Subscription.kt:135-140`):
+  - `STATUS_CREATED = "CREATED"` — запись создана в БД.
+  - `STATUS_PENDING = "PENDING"` — ожидание webhook'а YooKassa.
+  - `STATUS_PAID = "PAID"` — успешная оплата, подписка активна.
+  - `STATUS_FAILED = "FAILED"` — ошибка оплаты (YooKassa declined).
+  - `STATUS_REFUNDED = "REFUNDED"` — возврат.
+  - `STATUS_CANCELED = "CANCELED"` — отмена.
 - `yookassaPaymentId` — ID платежа в YooKassa.
 - `autoRenew` — флаг автопродления.
 
@@ -190,8 +196,17 @@ Target-aware контроллеры (`target=remote` по умолчанию д�
 
 ## Известные TODO
 
-- [ ] **PaymentService** (karaoke-web/services/PaymentService.kt) —
-      YooKassa wrapper, не описан.
+- [x] **PaymentService** (`karaoke-web/.../services/PaymentService.kt`)
+      — YooKassa wrapper:
+  - Использует `WebClient` через nginx-proxy `yookassa.proxy-url`
+    (обход MTU black-hole, тот же паттерн что CAPTCHA/STORAGE proxy).
+  - `hasCredentials()` — защита от вызов без `YOOKASSA_SHOP_ID` /
+    `YOOKASSA_SECRET_KEY` (магазин ещё не зарегистрирован).
+  - Credentials из env: `YOOKASSA_SHOP_ID`, `YOOKASSA_SECRET_KEY`.
+  - Создаёт платежи для `scope=SONG` (бессрочно) и `scope=SITE`
+    (с автопродлением через сохранённый `payment_method`).
+  - Данные DTO: `Amount`, `Confirmation`, и др. (см. `PaymentService.kt`).
+  - Для самозанятого — авто-чеки в «Мой налог» по 422-ФЗ.
 - [ ] **YooKassa integration** — какие API используются, какой
       flow.
 - [ ] **YookassaPaymentMethodId, AutoRenew** — детали автопродления.

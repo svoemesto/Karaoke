@@ -156,8 +156,11 @@ class StorageMetadataCache {
       Если только в web, нужно переиспользовать или скопировать.
 - [ ] **Caffeine/Guava как замена** — если нагрузка вырастет, может
       быть нужно. Решение — пересмотр через год.
-- [ ] **Метрики cache hit/miss rate** — есть ли где-то счётчики?
-      (TODO: grep по логированию.)
+- [ ] **Метрики cache hit/miss rate** — **отсутствуют** (проверено:
+      `grep -nE "log|Logger|println" DedupCache.kt PollingCache.kt`
+      — нет вхождений). Если нужны — добавить SLF4J-категорию
+      `infra.cache.dedup` / `infra.cache.polling` (по образцу
+      [log-categories](../../monitoring/components/log-categories.md)).
 - [ ] **Persistence для metadata cache** — нужно ли, как реализовать.
       Связано с #69.
 

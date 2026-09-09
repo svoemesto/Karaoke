@@ -71,17 +71,35 @@ data class StorageFileInfo(
 2. `storageClient.statObject(...)` — MinioClient SDK.
 3. Возвращает `true` если объект есть, `false` если `NoSuchKey`.
 
-**`fileIsActual(bucketName, fileName, pathToFileOnDisk)`** — проверяет,
+**`fileIsActual(bucketName, fileName, pathToFileOnDisk)`** (`KaraokeStorageService.kt:475-486`) — проверяет,
 совпадает ли локальный файл с тем, что в MinIO:
 
-1. Если локальный файл не существует → `false`.
-2. `getFileInfo(bucketName, fileName)` → `StorageFileInfo`.
-3. Возвращает `localFile.length() == storageFileInfo.size`.
+```kotlin
+override fun fileIsActual(
+    bucketName: String,
+    fileName: String,
+    pathToFileOnDisk: String,
+): Boolean {
+    var result = true
+    val file = File(pathToFileOnDisk)
+    if (file.exists()) {
+        val fileInfo = getFileInfo(bucketName = bucketName, fileName = fileName)
+        result = (file.length() == fileInfo.size)
+    }
+    return result
+}
+```
 
-**NB**: `fileIsActual` **не проверяет etag** — только размер. Это
-упрощение: если размер совпадает, считаем актуальным. Если файл
-изменён через внешний инструмент, изменение размера — единственный
-детектор. См. tasks #69 для возможного улучшения через etag.
+**NB**: `fileIsActual` сравнивает **только размер**, не etag
+(`KaraokeStorageService.kt:484` и `:495`). Это упрощение: если
+размер совпадает, считаем актуальным. Если файл изменён через
+внешний инструмент без изменения размера — change пройдёт
+незамеченным.
+
+Для задачи #69 это потенциально проблема: `fileIsActual` после
+первого же cache hit не сможет обнаружить изменение размера
+(etag даже не используется). Возможное улучшение — добавить
+etag в сравнение. (TODO Pass 343+.)
 
 ### `uploadFile` — 3 overloads
 
@@ -110,14 +128,17 @@ data class StorageFileInfo(
 ## Зависимости
 
 - **MinioClient SDK** (`io.minio.*`) — стандартный SDK.
-- **OkHttpClient** — для HTTP-транспорта, специальные timeouts:
-  - `connectTimeout` = 10 сек
-  - `readTimeout` = 30 сек
-  - `writeTimeout` = 30 сек
+- **OkHttpClient** (`KaraokeStorageService.kt:175-181`):
+  - `connectTimeout = 10s`
+  - `readTimeout = 30s`
+  - `writeTimeout = 30s`
   - `connectionPool(0, 1, NANOSECONDS)` — **no connection reuse**.
-    Каждый вызов — новое соединение. Это **намеренно**: защита от
-    устаревших keep-alive на nginx-прокси. (TODO: проверить, есть
-    ли аналогичное решение в `StorageApiClient`.)
+    Каждый вызов — новое соединение. Намеренно: защита от
+    устаревших keep-alive на nginx-прокси (см. ADR `local-0003`).
+
+**Аналогичное в `StorageApiClient`** (`StorageApiClient.kt:142-147`):
+те же timeouts (15s/60s/300s), тот же `connectionPool(0, 1,
+NANOSECONDS)`. Решение применено одинаково в обоих клиентах.
 
 ## Edge cases
 

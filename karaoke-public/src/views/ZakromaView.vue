@@ -636,19 +636,14 @@ export default {
       }
     },
   },
-  mounted() {
-    // Основной каталог: scope='main' — авторы БЕЗ is_special_order=true.
-    this.loadAuthorTiles('main')
-    // Спец-каталог (виртуальный «автор» в конце) — нужен для тайла и плоской таблицы.
+  async mounted() {
+    // Pass 359: явное ожидание загрузки authorTiles ПЕРЕД попыткой запуска стрима.
+    // Watcher на `authorTiles` не срабатывает надёжно при прямом заходе на
+    // /zakroma/{id}?albumId=... (видимо, race condition между mounted и
+    // обновлением сторы). Поэтому await'им loadAuthorTiles() прямо здесь —
+    // после этого `this.authorTiles` гарантированно содержит данные.
     this.loadSpecialBucket()
-    // specs/258-zakroma-routing-refactor: после рефакторинга URL автор идентифицируется
-    // по :authorId в path. Резолвим ID → name через authorTiles (Vuex) и стартуем стрим.
-    //
-    // Pass 359 fix: при прямом заходе на /zakroma/{id}?albumId=... authorTiles ещё не
-    // загружен (loadAuthorTiles async) — старая логика сбрасывала authorChosen=false
-    // и пользователь видел пустую страницу вместо песен. Теперь НЕ сбрасываем
-    // authorChosen если тайл не найден; watcher ниже догрузит поток когда authorTiles
-    // появится.
+    await this.loadAuthorTiles('main')
     if (this.authorChosen && this.selectedAuthorId) {
       this.tryStartZakromaStream()
     }

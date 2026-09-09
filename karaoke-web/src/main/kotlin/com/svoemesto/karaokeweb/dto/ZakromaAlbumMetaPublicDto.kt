@@ -19,6 +19,11 @@ import java.nio.charset.StandardCharsets
  * @see archive/docs/features/zakroma-stream-progress.md
  */
 data class ZakromaAlbumMetaPublicDto(
+    // specs/356-zakroma-albums-by-author (FR-003): ID альбома (`tbl_albums.id`).
+    // Передаётся в NDJSON-сообщении `album` чтобы фронт мог фильтровать стрим
+    // по `?albumId=N` (Pass 359). 0 для legacy `song_album`-виртуальных альбомов
+    // без FK — для них фильтр по id не сработает.
+    val albumId: Long = 0,
     val albumName: String,
     val year: Long,
     val albumPictureUrl: String,
@@ -36,6 +41,7 @@ data class ZakromaAlbumMetaPublicDto(
     companion object {
         fun fromAlbum(album: ZakromaAlbum): ZakromaAlbumMetaPublicDto =
             ZakromaAlbumMetaPublicDto(
+                albumId = album.albumId,
                 albumName = album.albumName,
                 year = album.year,
                 albumPictureUrl =

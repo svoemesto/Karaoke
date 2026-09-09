@@ -7561,9 +7561,11 @@ class Song(
             // при переходе на /zakroma/{id}?albumId=N чтобы не гонять ВСЕ песни автора,
             // а только песни нужного альбома. Для legacy `song_album`-виртуальных альбомов
             // (album_id=NULL) этот фильтр не сработает — там останется fallback на song_album.
+            // БЕЗ префикса 'AND' — where это List<String>, элементы joinятся через
+            // " AND " в getWhereList, так что каждый элемент должен быть сам по себе.
             if (args.containsKey("album_id")) {
                 val aid = args["album_id"]!!
-                where += " AND album_id = $aid"
+                where += "album_id = $aid"
             }
 
             if (args.containsKey("publish_date")) {

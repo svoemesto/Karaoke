@@ -656,32 +656,35 @@ export default {
    * watcher'а на `authorTiles` для покрытия случая прямого захода на
    * /zakroma/{id}?albumId=... (когда authorTiles ещё не загружен на момент mount).
    */
-  tryStartZakromaStream() {
-    if (!this.authorChosen || !this.selectedAuthorId) return
-    const tile = this.authorTiles.find((t) => String(t.id) === String(this.selectedAuthorId))
-    if (tile) {
-      this.selectedAuthor = tile.author
-      // Pass 359: force=true обходит 30-секундный dedup в loadZakromaStream.
-      // Без force: если пользователь только что открыл новую вкладку или
-      // сделал hard-refresh на /zakroma/{id}?albumId=... — lastLoadedTimestamp
-      // ещё не установлен (или > 30с), но кэш state.zakroma пуст; dedup бы
-      // вернул no-op, страница оставалась пустой.
-      this.loadZakromaStream({
-        author: tile.author,
-        expectedCount: tile.songCount || undefined,
-        force: true,
-      })
-    } else {
-      // Pass 359: НЕ сбрасываем authorChosen/selectedAuthorId — watcher ниже
-      // догрузит поток когда authorTiles появится. Уведомление оставляем для
-      // явной диагностики (если автор действительно удалён — увидим после загрузки тайлов).
-      if (typeof this.notify === 'function') {
-        // no-op: раньше показывали "Автор не найден" сразу, что было преждевременно
-        // (authorTiles ещё не загружен). Сейчас ждём watcher.
-      }
-    }
-  },
   methods: {
+    /**
+     * Pass 359: запускает поток песен автора (внутри methods — ранее был снаружи,
+     * что приводило к тому, что Vue не видел метод и `this.tryStartZakromaStream()`
+     * уходил в undefined).
+     */
+    tryStartZakromaStream() {
+      if (!this.authorChosen || !this.selectedAuthorId) return
+      const tile = this.authorTiles.find((t) => String(t.id) === String(this.selectedAuthorId))
+      if (tile) {
+        this.selectedAuthor = tile.author
+        // Pass 359: force=true обходит 30-секундный dedup в loadZakromaStream.
+        // Без force: если пользователь только что открыл новую вкладку или
+        // сделал hard-refresh на /zakroma/{id}?albumId=... — lastLoadedTimestamp
+        // ещё не установлен (или > 30с), но кэш state.zakroma пуст; dedup бы
+        // вернул no-op, страница оставалась пустой.
+        this.loadZakromaStream({
+          author: tile.author,
+          expectedCount: tile.songCount || undefined,
+          force: true,
+        })
+      } else {
+        // Pass 359: НЕ сбрасываем authorChosen/selectedAuthorId — watcher ниже
+        // догрузит поток когда authorTiles появится.
+        if (typeof this.notify === 'function') {
+          // no-op: раньше показывали "Автор не найден" сразу, что было преждевременно.
+        }
+      }
+    },
     ...mapActions('zakroma', ['loadAuthorTiles', 'loadZakromaStream', 'loadSpecialBucket']),
     /**
      * specs/258 — динамический заголовок вкладки браузера по текущему режиму ZakromaView:

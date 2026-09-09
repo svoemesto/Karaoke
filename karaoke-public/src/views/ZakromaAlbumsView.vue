@@ -158,11 +158,16 @@ export default {
 
 <style scoped>
 .zakroma-albums-page {
-  padding: 0 16px;
-  /* Pass 358 fix: центрирование содержимого на широких экранах,
-     как на остальных страницах (HomeView.km-main и др.). */
+  /* Pass 359: НЕ ограничиваем root контейнер по ширине — это обрезало
+     AppHeader (он внутри этого div). Центрирование теперь на .km-content
+     ниже. Шапка во всю ширину, контент — по центру с max-width. */
+}
+.km-content {
+  /* Pass 359 fix: Pass 358 ставил max-width на root, что обрезало шапку.
+     Теперь центрируем только контент, а хедер занимает всю ширину. */
   max-width: 1400px;
   margin: 0 auto;
+  padding: 0 16px;
 }
 .km-page-title {
   font-size: 18px;

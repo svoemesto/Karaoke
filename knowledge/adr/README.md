@@ -44,6 +44,7 @@ local-0003-shared-minio-image-cache.md
 local-0004-lazy-eager-load-webvue3-pagination.md
 local-0005-structured-logging-karaoke-app.md
 local-0006-logging-and-error-handling-karaoke-web.md
+local-0007-zakroma-album-id-in-stream-dto.md
 ```
 
 Дополнительный ADR в `knowledge/adr/`:

@@ -39,7 +39,7 @@ MLT-конвейером).
 | Термин | Определение | Пример в коде |
 | --- | --- | --- |
 | **Песня (Song)** | Единица каталога, AR | `Song.kt`, `tbl_settings` (legacy name) |
-| **Альбом (Album)** | Коллекция песен одного исполнителя | `Album.kt`, `tbl_albums` |
+| **Альбом (Album)** | Коллекция песен одного исполнителя. Денормализованные счётчики `total_song_count` / `ready_song_count` поддерживаются DB-триггером `trg_tbl_songs_update_album_counts` (Pass 357, миграция 49) — зеркалит паттерн spec 286 для `tbl_authors` | `Album.kt`, `tbl_albums` |
 | **Исполнитель (Author)** | Музыкальный исполнитель (НЕ автор текста) | `Author.kt`, `tbl_authors` |
 | **Жанр (Genre)** | Музыкальный жанр, справочник | `Genre.kt`, `tbl_genres` |
 | **Картинка (Picture)** | Обложка альбома / фото исполнителя | `Picture.kt`, `tbl_pictures` |

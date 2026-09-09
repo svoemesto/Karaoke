@@ -1,18 +1,72 @@
 # AGENTS.md — инструкции для агентов
 
-> **Версия**: 2.1.2 | **Last updated**: 2026-09-02 (Pass 295).
+> **Версия**: 2.2.0 | **Last updated**: 2026-09-09 (Pass 340).
+>
+> **Изменения 2.2.0** (см. PR #340 — governance-knowledge-first):
+> - Добавлен MUST #0 «Knowledge-first pre-flight (NON-NEGOTIABLE)».
+>   Прецедент: spec #339 (2026-09-09) — агент пропустил Knowledge,
+>   изобрёл форму кеша вместо использования паттернов из
+>   `knowledge/domains/caching/components/caching-patterns.md`.
+> - Введён failure-stop: при обнаружении релевантного содержимого
+>   в Knowledge, которое проигнорировано, спека MUST быть возвращена
+>   на `/speckit.clarify`.
+> - Введён `tools/spec-knowledge-preflight.sh` (пре-хуковый скрипт
+>   для `tools/specify-bootstrap.sh`).
+> - Синхронизировано с Constitution Principle IX (Knowledge-first)
+>   и обязательной секцией «Knowledge References» в `spec.md`.
 
 ## АБСОЛЮТНОЕ ПРАВИЛО: язык общения
 
 **Всё общение с пользователем — ТОЛЬКО на русском языке.** Наивысший приоритет.
 
-## С чего начать сессию (AI-агент)
+## MUST #0 — Knowledge-first pre-flight (NON-NEGOTIABLE)
 
-Прочитай **Knowledge первым**: [`knowledge/README.md`](knowledge/README.md) → [`knowledge/domains/README.md`](knowledge/domains/README.md) → нужный домен → его `domain.md` + `components/*.md`.
+> **Цель**: НИ ОДНА новая спека / серьёзная правка кода НЕ ДОЛЖНА
+> появляться без предварительной проверки Knowledge на релевантные
+> bounded contexts, паттерны и ADR.
+>
+> **Прецедент (NON-NEGOTIABLE)** — Spec #339, 2026-09-09: агент
+> пропустил Knowledge-first, пошёл сразу в `codegraph_explore` по
+> `HealthReport` и `fileExists`, и **изобрёл форму кеша** вместо
+> использования устоявшихся паттернов из
+> `knowledge/domains/caching/components/caching-patterns.md`.
+> Результат: спека приведена в негодность, ветка удалена, NNN 339
+> освобождён.
 
-**Быстрый поиск**: `grep -r '<query>' knowledge/` или `find knowledge -name '*.md' | xargs grep -l '<query>'`.
+### Шаги MUST (выполнять ВСЕ до любых codegraph_explore / grep по src/)
 
-**Только если в Knowledge нет** — `specs/<NNN>/spec.md`, `archive/docs/features/*.md`, этот файл.
+1. **MUST прочитать** [`knowledge/README.md`](knowledge/README.md) +
+   [`knowledge/domains/README.md`](knowledge/domains/README.md) —
+   **полностью**.
+2. **MUST определить релевантные домены** через
+   `grep -r '<keyword>' knowledge/` — минимум **3 попытки** с разными
+   ключевыми словами задачи (имена сущностей, технологии, действия).
+3. **MUST прочитать** `domain.md` + **все** `components/*.md` для каждого
+   релевантного домена — **до** обращения к коду.
+4. **MUST прочитать** **все** `local-*.md` ADR из [`knowledge/adr/`](knowledge/adr/) —
+   они фиксируют **принятые** решения, которые ЗАПРЕЩЕНО переизобретать.
+5. **Только после шагов 1-4** — идти в `codegraph_explore` / `grep`
+   по коду.
+
+### Failure-stop правила
+
+- Если grep по `knowledge/` **не дал результата** — зафиксировать
+  в `spec.md` явно: «Searched: `<queries>` → `<files checked>` →
+  no relevant docs».
+- Если релевантное содержимое найдено, но проигнорировано —
+  спека считается сломанной и **MUST быть возвращена на
+  `/speckit.clarify`** для переработки.
+- Любой инструмент, предлагающий альтернативу (Sonar/CodeQL/etc.)
+  **НЕ ЗАМЕНЯЕТ** Knowledge-first; это дополнительный слой.
+
+### Синхронизация с другими правилами
+
+- Это MUST-предшественник для Constitution Principle VI (FR-009 —
+  per-feature документ).
+- Это MUST-предшественник для `tools/spec-knowledge-preflight.sh`,
+  который enforce'ит шаги 1-4 перед `tools/specify-bootstrap.sh`.
+- В шаблоне `spec.md` (см. `.specify/templates/spec-template.md`)
+  секция «Knowledge References» — **MANDATORY**.
 
 ## Knowledge SSoT CI / pre-commit
 

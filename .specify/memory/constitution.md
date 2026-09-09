@@ -1,5 +1,39 @@
 <!--
   Sync Impact Report
+  - Version change: 2.1.0 → 2.2.0 (MINOR: добавление Principle IX — Knowledge-first,
+    усиление существующего п. 5 «Категорически запрещено» формулировкой про
+    codegraph_explore до Knowledge-first как явный failure-stop).
+  - Modified principles: п. 5 «Категорически запрещено» — добавлен пункт про
+    codegraph_explore / grep по src/ ДО Knowledge-first.
+  - Added sections: Principle IX «Knowledge-first при разработке фич
+    (NON-NEGOTIABLE)» — прецедент 2026-09-09, spec #339 (агент изобрёл форму
+    кеша вместо паттернов из caching-patterns.md).
+  - Removed sections: none
+  - Templates requiring updates:
+      .specify/templates/plan-template.md   ✅ aligned (Constitution Check gate
+        теперь включает Principle IX)
+      .specify/templates/spec-template.md   🔄 ТРЕБУЕТ ОБНОВЛЕНИЯ — добавить
+        секцию «Knowledge References (MANDATORY)»
+      .specify/templates/tasks-template.md  ✅ aligned (no change needed)
+      .specify/templates/checklist-template.md 🔄 ТРЕБУЕТ ОБНОВЛЕНИЯ — добавить
+        секцию «Knowledge Compliance»
+  - New artifacts to reference:
+      - tools/spec-knowledge-preflight.sh — пре-хуковый скрипт для bootstrap
+      - docs/governance/knowledge-first.md — операционная памятка (Pass 340)
+  - Follow-up TODOs:
+      - detekt (после выхода версии с поддержкой Kotlin 2.2) — см. T049
+      - typedoc-plugin-vue (для парсинга .vue single-file components) — backlog
+      - рефакторинг WORKING_DATABASE/KSS_APP в DI (Pass 15+)
+      - ADR (Architecture Decision Records) в docs/adr/ (Pass 16+)
+      - переписывание истории git (git filter-repo / BFG) для удаления
+        утёкших секретов из старых коммитов — отдельная задача после смены
+        всех утёкших секретов (см. docs/migration-prod-server.md)
+      - CODEOWNERS для AGENTS.md / constitution.md (Pass 340 follow-up)
+      - enforcement проверки непустой секции Knowledge References в spec.md
+        (Pass 340 follow-up — добавить в tools/check-knowledge-structure.sh)
+-->
+<!--
+  Sync Impact Report (предыдущая версия)
   - Version change: 2.0.0 → 2.1.0 (MINOR: добавление Principle VIII — секреты
     и git-гигиена, усиление существующего п. 5 «Категорически запрещено»).
   - Modified principles: п. 5 «Категорически запрещено» переформулирован
@@ -220,6 +254,59 @@ Sheetsage) и локальный SearXNG. Любая новая фича, тре
   защиты. Смена секрета после утечки — единственный надёжный путь;
   переписывание истории — косметика (секрет уже мог быть скопирован).
 
+### IX. Knowledge-first при разработке фич (NON-NEGOTIABLE)
+
+> **Прецедент**: 2026-09-09, spec #339 («Кеширование информации из
+> хранилища», задача OpenProject #69). Агент пропустил Knowledge-first
+> pre-flight, пошёл сразу в `codegraph_explore` по `HealthReport` и
+> `fileExists`, и **изобрёл форму кеша** вместо использования устоявшихся
+> паттернов из `knowledge/domains/caching/components/caching-patterns.md`.
+> Результат: спека приведена в негодность, ветка удалена, NNN 339 освобождён.
+
+**IX.1. Перед ЛЮБОЙ новой фичей / спекой / серьёзной правкой кода агент MUST:**
+
+1. Прочитать `knowledge/README.md` + `knowledge/domains/README.md` —
+   полностью.
+2. Определить релевантные домены через `grep -r '<keyword>' knowledge/` —
+   минимум 3 попытки с разными ключевыми словами.
+3. Прочитать `domain.md` + **все** `components/*.md` для каждого
+   релевантного домена — до обращения к коду.
+4. Прочитать **все** `local-*.md` ADR из `knowledge/adr/` — они
+   фиксируют принятые решения, которые запрещено переизобретать.
+5. Только после шагов 1-4 — идти в `codegraph_explore` / `grep` по
+   `src/`.
+
+**IX.2. Failure-stop правила:**
+
+- Если grep по `knowledge/` не дал результата — зафиксировать в `spec.md`
+  явно: «Searched: `<queries>` → `<files checked>` → no relevant docs».
+- Если релевантное содержимое найдено, но проигнорировано — спека
+  считается сломанной и MUST быть возвращена на `/speckit.clarify` для
+  переработки.
+- `codegraph_explore` / `grep` по `src/`, выполненные ДО Knowledge-first
+  pre-flight, считаются нарушением Constitution (см. также п. 5
+  «Категорически запрещено» — добавлен явный пункт).
+
+**IX.3. Синхронизация с другими правилами:**
+
+- Дублируется в `AGENTS.md` MUST #0 (Pass 340).
+- Enforcement: `tools/spec-knowledge-preflight.sh` (Pass 340) —
+  пре-хуковый скрипт, который enforce'ит шаги 1-4 перед
+  `tools/specify-bootstrap.sh`.
+- В `spec.md` (`.specify/templates/spec-template.md`) секция
+  «Knowledge References» — MANDATORY (Pass 340).
+- В `checklists/requirements.md` секция «Knowledge Compliance» —
+  MANDATORY (Pass 340).
+- В `AGENTS.md` MUST #0 — failure-stop формулировки с прецедентом #339.
+
+**Рациональ**: Knowledge-first — это **первый** уровень защиты от
+повторения инцидента #339. Каждый раз, когда агент обходит Knowledge,
+он рискует либо изобрести форму того, что уже решено (как #339), либо
+нарушить принятое решение (как локальный ADR `local-0003-shared-minio-image-cache.md`
+уже зафиксировал MinIO+TTL для image-cache). Знание паттернов и ADR —
+это не «полезное дополнение», а обязательный baseline для любого
+проектирования.
+
 ## Технологический стек
 
 - **Backend**: Kotlin 1.x, Spring Boot 2.x/3.x, JDK 17, Gradle multi-module.
@@ -269,6 +356,10 @@ Sheetsage) и локальный SearXNG. Любая новая фича, тре
 6. Печатать секреты (`DOCKER_PASSWORD`, токены, пароли БД) в вывод `do.sh` или
    в логи — секреты живут только в `do.env`/`.env` (в `.gitignore`).
 7. Использовать `nginx:alpine`, `node:latest`, JDK вместо JRE в прод-образах.
+8. **Полезть в `codegraph_explore` / `grep` по `src/` ДО Knowledge-first
+   pre-flight** (см. Principle IX и `AGENTS.md` MUST #0). Это
+   failure-stop: если шаги 1-4 Knowledge-first не выполнены — СТОП,
+   не продолжать. Прецедент 2026-09-09 (spec #339).
 
 **Разрешено агенту:**
 1. Редактировать любой код во всех модулях.

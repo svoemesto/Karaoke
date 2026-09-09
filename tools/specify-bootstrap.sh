@@ -11,6 +11,19 @@
 #   ветки, чтобы агент не забыл (см. коммит-историю — повторяющиеся
 #   «устал напоминать» от пользователя).
 #
+# Knowledge-first pre-flight (Pass 340, см. AGENTS.md MUST #0 и
+# Constitution Principle IX):
+#   Если задан env SPECIFY_KNOWLEDGE_PREFLIGHT=1, bootstrap ТРЕБУЕТ
+#   файл-маяк `.specify/.preflight-${slug}.ok`, который создаётся
+#   через:
+#     bash tools/spec-knowledge-preflight.sh <<'KNOWLEDGE' \
+#       && touch ".specify/.preflight-${slug}.ok"
+#     knowledge/...
+#     KNOWLEDGE
+#   Без файла-маяка bootstrap падает с exit 3 и понятным сообщением.
+#   По умолчанию (SPECIFY_KNOWLEDGE_PREFLIGHT не задан) — backward
+#   compat: pre-flight опционален (governance-PR может его пропустить).
+#
 # Использование:
 #   tools/specify-bootstrap.sh my-feature-slug
 #     → резервирует NNN, создаёт ветку ${NNN}-my-feature-slug от master,
@@ -24,6 +37,8 @@
 #     (номер уже в имени директории спеки; иначе резервируем новый NNN).
 #   GIT_BRANCH_NAME — если задан, используется как имя ветки без префикса
 #     NNN- (для случая «хочу именно это имя»).
+#   SPECIFY_KNOWLEDGE_PREFLIGHT — если "1", enforce'ит pre-flight
+#     через файл-маяк `.specify/.preflight-${slug}.ok`.
 #
 # Output (stdout):
 #   {"BRANCH_NAME": "${NNN}-${slug}", "FEATURE_NUM": "${NNN}"}
@@ -67,6 +82,31 @@ fi
 if ! [[ "$SLUG" =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]]; then
   echo "ERROR: slug '$SLUG' должен быть kebab-case (буквы/цифры/дефисы)" >&2
   exit 2
+fi
+
+# Knowledge-first pre-flight (Pass 340).
+# Если SPECIFY_KNOWLEDGE_PREFLIGHT=1 — enforce'им через файл-маяк.
+if [ "${SPECIFY_KNOWLEDGE_PREFLIGHT:-0}" = "1" ]; then
+  PREFLIGHT_MARKER=".specify/.preflight-${SLUG}.ok"
+  if [ ! -f "$PREFLIGHT_MARKER" ]; then
+    cat >&2 <<EOF
+ERROR: Knowledge-first pre-flight не выполнен (Pass 340, см. AGENTS.md MUST #0,
+       Constitution Principle IX, прецедент 2026-09-09 — spec #339).
+
+Перед tools/specify-bootstrap.sh MUST выполнить:
+
+  bash tools/spec-knowledge-preflight.sh <<'KNOWLEDGE'
+  knowledge/domains/<X>/domain.md — зачем прочитан
+  knowledge/domains/<X>/components/<Y>.md — зачем прочитан
+  knowledge/adr/local-NNNN-<slug>.md — принятое решение
+  KNOWLEDGE
+  touch ${PREFLIGHT_MARKER}
+
+После этого повторить запуск bootstrap.
+EOF
+    exit 3
+  fi
+  echo "OK: Knowledge-first pre-flight подтверждён (${PREFLIGHT_MARKER})" >&2
 fi
 
 # Определяем имя ветки.

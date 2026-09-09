@@ -7557,6 +7557,14 @@ class Song(
             }
             if (args.containsKey("song_album")) where += "LOWER(song_album) LIKE '%${args["song_album"]?.rightFileName()?.lowercase()}%'"
             if (args.containsKey("album")) where += "LOWER(song_album) = '${args["album"]?.rightFileName()?.lowercase()}'"
+            // Pass 359 (spec 356): фильтр по FK album_id (tbl_songs.album_id). Используется
+            // при переходе на /zakroma/{id}?albumId=N чтобы не гонять ВСЕ песни автора,
+            // а только песни нужного альбома. Для legacy `song_album`-виртуальных альбомов
+            // (album_id=NULL) этот фильтр не сработает — там останется fallback на song_album.
+            if (args.containsKey("album_id")) {
+                val aid = args["album_id"]!!
+                where += " AND album_id = $aid"
+            }
 
             if (args.containsKey("publish_date")) {
                 var pd = args["publish_date"]!!

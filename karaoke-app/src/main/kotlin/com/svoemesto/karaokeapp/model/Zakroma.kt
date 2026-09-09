@@ -36,9 +36,15 @@ class Zakroma(
             // (SQL-фильтр уже применяется на уровне `tbl_authors.skip` через `withSkiped` в
             // вызывающем контроллере, см. MainController/PublicApiController).
             canSeeSkipped: Boolean = false,
+            // Pass 359 (spec 356): фильтр по альбому (FK). Если задан — с бэка
+            // прилетают ТОЛЬКО песни этого альбома, а не все 388 песен автора. Это
+            // и было целью разделения на альбомы — не гонять с сервера лишнее.
+            albumId: Long? = null,
         ): List<Zakroma> {
             val args = mutableMapOf("author" to author)
             if (onlyPublished) args["id_status"] = ">=6"
+            // Pass 359: SQL-фильтр по FK album_id (см. Song.loadList).
+            if (albumId != null) args["album_id"] = albumId.toString()
             val loaded =
                 Song.loadListFromDb(
                     args = args,
@@ -70,6 +76,8 @@ class Zakroma(
             storageApiClient: StorageApiClient,
             onlyPublished: Boolean = false,
             canSeeSkipped: Boolean = false,
+            // Pass 359 (spec 356): специальная корзина не фильтруется по альбому.
+            albumId: Long? = null,
         ): List<Zakroma> {
             val names =
                 Song.loadListAuthors(

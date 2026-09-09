@@ -429,6 +429,10 @@ class PublicApiController(
     fun zakroma(
         @RequestParam(required = false) author: String?,
         @RequestParam(required = false, defaultValue = "false") specialBucket: Boolean,
+        // Pass 359 (spec 356): фильтр по FK album_id. Если задан — с бэка
+        // прилетают ТОЛЬКО песни этого альбома, а не все песни автора.
+        // Для legacy `song_album`-виртуальных альбомов (album_id=NULL) — no-op.
+        @RequestParam(required = false) albumId: Long?,
         @RequestParam(required = false) anonId: String?,
         @RequestParam(required = false) referrer: String?,
         request: HttpServletRequest,
@@ -436,6 +440,7 @@ class PublicApiController(
         val data: MutableMap<String, Any> = mutableMapOf()
         author?.let { data["author"] = it }
         if (specialBucket) data["specialBucket"] = true
+        albumId?.let { data["albumId"] = it }
         mainController.doRegisterEvent(
             mapOf(
                 "eventType" to EventType.CALL_REST.dbValue,
@@ -473,6 +478,7 @@ class PublicApiController(
                     storageApiClient = storageApiClient,
                     onlyPublished = onlyPublished,
                     canSeeSkipped = canSeeSkipped,
+                    albumId = albumId,
                 )
             }
         return ZakromaPublicDto.fromZakroma(zakroma)
@@ -505,6 +511,9 @@ class PublicApiController(
     fun zakromaStream(
         @RequestParam(required = false) author: String?,
         @RequestParam(required = false) expectedCount: Long?,
+        // Pass 359 (spec 356): фильтр по альбому. Если задан — стрим отдаёт
+        // ТОЛЬКО песни этого альбома, а не все песни автора. Без него — всё.
+        @RequestParam(required = false) albumId: Long?,
         @RequestParam(required = false) anonId: String?,
         @RequestParam(required = false) referrer: String?,
         request: HttpServletRequest,
@@ -583,6 +592,9 @@ class PublicApiController(
                             onlyPublished = onlyPublished,
                             // specs/293-skip-author-toggle: для редакторов с галочкой — не фильтровать SKIP-песни.
                             canSeeSkipped = canSeeSkipped,
+                            // Pass 359: фильтр по альбому. Если в URL `?albumId=N`, стрим
+                            // отдаст только песни этого альбома (а не все песни автора).
+                            albumId = albumId,
                         )
 
                     // 3. Streaming loop по альбомам и песням (FR-BE-004).

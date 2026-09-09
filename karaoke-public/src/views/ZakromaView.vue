@@ -681,6 +681,9 @@ export default {
           author: tile.author,
           expectedCount: tile.songCount || undefined,
           force: true,
+          // Pass 359: бэк фильтрует по `tbl_songs.album_id` чтобы не гонять
+          // все 388 песен автора когда нужны только 10 из альбома.
+          albumId: this.selectedAlbumId,
         })
       } else {
         // Pass 359: НЕ сбрасываем authorChosen/selectedAuthorId — watcher ниже

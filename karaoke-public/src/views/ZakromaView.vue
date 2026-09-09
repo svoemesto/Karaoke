@@ -494,31 +494,17 @@ export default {
     // а не на этот computed — иначе каждое нажатие клавиши будет дёргать сетевые запросы готовности.
     filteredZakroma() {
       const q = normalize(this.songFilter)
-      const filter = this.selectedAlbumFilter
+      const albumId = this.selectedAlbumId
       // Без фильтров — возвращаем как есть.
-      if (!q && filter == null) return this.zakroma
+      if (!q && albumId == null) return this.zakroma
       return (this.zakroma || [])
         .map((zak) => ({
           ...zak,
           albums: (zak.albums || [])
             // specs/356-zakroma-albums-by-author (FR-003): фильтр по альбому через
-            // ?albumName=...&albumYear=...&albumId=... Сначала ищем по имени (это
-            // группирующий ключ в потоке песен ZakromaAlbum.albumName, всегда заполнен),
-            // плюс сравниваем год если указан (для disambiguation между одноимёнными
-            // альбомами разных лет), плюс fallback по id.
-            .filter((alb) => {
-              if (filter == null) return true
-              if (filter.name && alb.albumName === filter.name) {
-                if (filter.year != null) {
-                  return String(alb.year) === String(filter.year)
-                }
-                return true
-              }
-              if (filter.id != null && String(alb.albumId) === String(filter.id)) {
-                return true
-              }
-              return false
-            })
+            // ?albumId={id} (tbl_albums.id). Бэкенд пробрасывает albumId из
+            // tbl_songs.album_id → ZakromaAlbum.albumId (Pass 357).
+            .filter((alb) => albumId == null || String(alb.albumId) === String(albumId))
             .map((alb) => ({
               ...alb,
               albumSettings: (alb.albumSettings || []).filter((s) =>
@@ -561,7 +547,7 @@ export default {
      *    → back-link ведёт на /zakroma/{authorId}/albums (список альбомов автора),
      *    а не на /zakroma. */
     zakromaHeaderBack() {
-      if (this.selectedAlbumFilter != null) {
+      if (this.selectedAlbumId != null) {
         return {
           to: `/zakroma/${this.selectedAuthorId}/albums`,
           label: '← К альбомам автора',
@@ -573,28 +559,18 @@ export default {
       return null
     },
     /**
-     * specs/356-zakroma-albums-by-author (FR-003): фильтр альбома через query-параметры.
-     * Используем `albumName` (основной ключ), `albumYear` (для disambiguation между
-     * одноимёнными альбомами разных лет) и `albumId` (для бэк-совместимости и
-     * fallback-сравнения). `albumName` обязателен — это группирующий ключ в потоке
-     * песен ZakromaAlbum.albumName, всегда заполнен.
+     * specs/356-zakroma-albums-by-author (FR-003): фильтр альбома через query-параметр.
+     * Используем `?albumId={id}` (`tbl_albums.id`). У нужных песен в `tbl_songs.album_id`
+     * проставлен соответствующий FK, бэкенд (`Zakroma.buildFromSongs`) пробрасывает
+     * albumId в `ZakromaAlbum.albumId`. Также принимаем алиас `?album=` для обратной
+     * совместимости с share-линками старого формата.
      *
-     * Pass 358: ранее фильтр был только по `?album={id}`, что ломалось когда
-     * `tbl_songs.album_id` = NULL (legacy `song_album` строка без FK) —
-     * тогда `ZakromaAlbum.albumId = 0` и фильтр ничего не находил.
+     * Pass 358: фильтрация по названию/году убрана — пользователь явно хочет id в URL.
      */
-    selectedAlbumFilter() {
-      const name = this.$route?.query?.albumName
-      const yearStr = this.$route?.query?.albumYear
-      const idStr = this.$route?.query?.albumId || this.$route?.query?.album
-      const year = yearStr ? parseInt(yearStr, 10) : NaN
-      const id = idStr ? parseInt(idStr, 10) : NaN
-      if (!name || typeof name !== 'string') return null
-      return {
-        name,
-        year: Number.isFinite(year) && year > 0 ? year : null,
-        id: Number.isFinite(id) && id > 0 ? id : null,
-      }
+    selectedAlbumId() {
+      const q = this.$route?.query?.albumId || this.$route?.query?.album
+      const id = q ? parseInt(q, 10) : NaN
+      return Number.isFinite(id) && id > 0 ? id : null
     },
   },
   watch: {

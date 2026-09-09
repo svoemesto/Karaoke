@@ -9,7 +9,7 @@
       type="button"
       class="alt-tile"
       :data-album-id="a.id"
-      @click="$emit('select', a)"
+      @click="$emit('select', a.id)"
     >
       <div class="alt-pic">
         <img

@@ -140,12 +140,11 @@ MLT-конвейером).
 - `184-approve-status-choice` — выбор `idStatus` 5/6.
 - `185-song-dto-audit-sponsr-remove` — очистка DTO.
 - `186-zakroma-songs-fast-load` — оптимизация загрузки.
-- [`356-zakroma-albums-by-author`](../../../../docs/features/zakroma-albums-by-author.md) — промежуточный этап «Альбомы автора» в навигации `/zakroma`; песни привязаны к альбому через FK `tbl_songs.album_id` (Pass 357); бэкенд фильтрует стрим по `?albumId=N`.
+- [`356-zakroma-albums-by-author`](../../../docs/features/zakroma-albums-by-author.md) — промежуточный этап «Альбомы автора» в навигации `/zakroma`; песни привязаны к альбому через FK `tbl_songs.album_id` (Pass 357); бэкенд фильтрует стрим по `?albumId=N`.
 
 ## Связанные ADR
 
 - [0001-raw-jdbc](../../adr/0001-raw-jdbc.md) — сырой JDBC, без JPA/Hibernate.
-- [local-0007-album-tile-sort-order](../../adr/local-0007-album-tile-sort-order.md) — выбор year+name сортировки альбомов.
 - [local-0007-zakroma-album-id-in-stream-dto](../../adr/local-0007-zakroma-album-id-in-stream-dto.md) — обязательность `albumId` в `ZakromaAlbumMetaPublicDto` (Pass 359).
 
 ## Код (физическая реализация)

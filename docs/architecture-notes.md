@@ -165,3 +165,19 @@
 > * `tools/README.md` — добавлено описание новых scripts.
 >
 > Хуки OPTIONAL — manual workflow остаётся fallback.
+
+> **Pass 351 (planned, 2026-09-09)**: follow-up на task OpenProject #65
+> «Ошибка при проверке наличия файла в удаленном хранилище». Root-cause
+> (network timeout блокирует caller thread ~60s) НЕ починен — смягчено только
+> через кеш Pass 344/345. Создана задача OpenProject #71 «Graceful
+> degradation для remote StorageApiClient» с плановым scope:
+> configurable `fileExistsTimeoutSeconds` + circuit breaker +
+> `infra.cache.storage.network.failure` метрика. После реализации
+> pass-351 — закрыть #65. См. `specs/349-tracker-must-link/report-65.md`.
+
+> **Pass 351 — статус #65 / #71 (2026-09-09)**:
+> * Task #65 auto-claim (Pass 350 hook), затем add-comment с
+>   `specs/349-tracker-must-link/report-65.md` (5330 chars, comment id=344).
+> * Status #65 = In progress (per OpenProject workflow), assignee=ai-agent.
+> * Создана task #71 «Graceful degradation для remote StorageApiClient
+>   (#65 follow-up)». assignee пока не назначен.

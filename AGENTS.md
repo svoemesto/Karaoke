@@ -191,7 +191,26 @@ Docs: [`docs/tracker-setup.md`](docs/tracker-setup.md), [`knowledge/adr/0008-tra
 - ❌ Деплой на прод, правка файлов на сервере, `deploy/do.env` — только по согласию.
 - **Новое исключение** → подсекция + semver bump `AGENTS.md` + `docs/architecture-notes.md`.
 
-## Git — CI-gate для master (NON-NEGOTIABLE)
+## Git — CI-gate для master (NON-NEGOTIABLE) ⛔
+
+> **⛔ ЗАПРЕЩЕНО** делать `git commit` напрямую на `master` или пушить в
+> `master` через `git push`. ТОЛЬКО через feature-ветку + PR + CI.
+>
+> **Прецедент**: 2026-09-09, спека #354 (Pass 353) — agent закоммитил
+> отчёты напрямую в `master` после мержа PR #452, owner поймал.
+> Чтобы **100% заблокировать** подобное в будущем, добавлены 3 уровня защиты.
+>
+> **Enforcement layers (in order)**:
+> 1. **GitHub branch protection** (server-side, primary defense) —
+>    `master` requires pull request + status checks + **admin-enforced**
+>    (no bypass). `git push origin master` → 403 rejected.
+> 2. **Pre-commit hook** (client-side) — `tools/git-hooks/pre-commit-block-master.sh`
+>    blocks `git commit` on `master` locally. Регистрируется через
+>    `.pre-commit-config.yaml` (`block-master-commit` hook).
+> 3. **CI lint step** (server-side, final safety net) —
+>    `.github/workflows/lint.yml` step "No direct commits to master"
+>    detects any direct commit in last 24h and fails. Защита от bypass
+>    до того, как branch protection была включена, или любого future bypass.
 
 ```bash
 N=$(./tools/reserve-branch-number.sh my-slug)
@@ -200,7 +219,7 @@ git push -u origin "${N}-my-slug" && gh pr create --base master
 gh pr checks && gh pr merge --merge   # БЕЗ --delete-branch
 ```
 
-Прямые коммиты в `master` ЗАПРЕЩЕНЫ. Lifecycle: ветка живёт после мёрджа.
+Прямые коммиты в `master` ЗАПРЕЩЕНЫ (см. enforcement layers выше). Lifecycle: ветка живёт после мёрджа.
 
 ## Сборка / деплой / тесты
 

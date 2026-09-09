@@ -110,6 +110,17 @@ repos:
         files: '^(webvue3|karaoke-public)/.*\.(vue|js|ts)$|^karaoke-app/src/main/kotlin/.*\.kt$|^tools/check-endpoint-field-coverage\.|^tools/endpoint-pairs\.yml$'
         stages: [pre-commit]
 
+      # === Git workflow: блокировать commit в master/main (Pass 353) ===
+      # Client-side layer защиты. Главная — GitHub branch protection (server-side, admin-enforced).
+      # Этот hook ловит ошибку ДО push.
+      - id: block-master-commit
+        name: Block direct commits to master/main (AGENTS.md § Git — CI-gate для master)
+        entry: bash tools/git-hooks/pre-commit-block-master.sh
+        language: system
+        pass_filenames: false
+        always_run: true   # Всегда, не только при изменениях файлов
+        stages: [pre-commit]
+
 # Общие настройки
 fail_fast: false   # Прогоняем все хуки даже если один упал — даём полный отчёт
 default_install_hook_types: [pre-commit]

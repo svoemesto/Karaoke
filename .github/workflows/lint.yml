@@ -273,3 +273,27 @@ jobs:
         # отчёта (governance failure — work выполнен, claim/mark-review пропущены).
         # Полный workflow: см. AGENTS.md § Issue-tracker OpenProject.
         run: python3 tools/check-spec-issue-link.py
+
+      - name: No direct commits to master (Pass 353, final safety net)
+        # GitHub branch protection (server-side, admin-enforced) — primary defense.
+        # Этот CI step — final safety net: detect any direct commit that somehow
+        # slipped through (e.g., admin bypass before protection was enabled, force-push,
+        # or any future bypass). Если в последних 24h на master есть НЕ merge-commit —
+        # CI fail. Это "скрипт-проверка для тех, кто обошёл branch protection".
+        # Прецедент: 2026-09-09, спека #354 — agent закоммитил напрямую в master
+        # после мержа PR #452, owner поймал.
+        run: |
+          DIRECT_COMMITS=$(git log --first-parent origin/master --since=24.hours --no-merges --pretty=format:"%H %s" | wc -l | tr -d ' ')
+          if [ "$DIRECT_COMMITS" -gt 0 ]; then
+            echo "❌ FAIL: $DIRECT_COMMITS direct commit(s) on master (must be merge commits only)"
+            echo ""
+            git log --first-parent origin/master --since=24.hours --no-merges --pretty=format:"  %H %s"
+            echo ""
+            echo "AGENTS.md § Git — CI-gate для master (NON-NEGOTIABLE) requires merge commits only."
+            echo "Defensive layers (Pass 353):"
+            echo "  1. GitHub branch protection (server-side, primary defense)"
+            echo "  2. Pre-commit hook tools/git-hooks/pre-commit-block-master.sh (client-side)"
+            echo "  3. This CI lint step (server-side, final safety net)"
+            exit 1
+          fi
+          echo "✅ No direct commits to master in last 24h"

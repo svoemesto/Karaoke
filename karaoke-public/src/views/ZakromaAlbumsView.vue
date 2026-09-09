@@ -156,6 +156,10 @@ export default {
 <style scoped>
 .zakroma-albums-page {
   padding: 0 16px;
+  /* Pass 358 fix: центрирование содержимого на широких экранах,
+     как на остальных страницах (HomeView.km-main и др.). */
+  max-width: 1400px;
+  margin: 0 auto;
 }
 .km-page-title {
   font-size: 18px;

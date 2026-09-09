@@ -44,8 +44,11 @@ data class AlbumTilePublicDto(
 
         /**
          * Строит URL обложки альбома в MinIO.
-         * Шаблон: `<author>/<year> - <name>/<author> - <year> - <name>.preview.album.png`.
-         * Пустая строка если поля пустые.
+         * Шаблон: `<author>/<year> - <album>/<author> - <year> - <album>.album.png`
+         * (полноразмерный файл, паттерн из `Pictures.storageFileName` для `isAlbumPicture`).
+         * Pass 358 fix: ранее использовался preview (`*.preview.album.png`) — картинки
+         * выглядели размыто. MinIO вернёт 404 если файла нет — `<img onerror>` в
+         * AlbumTiles.vue скроет плитку.
          */
         fun albumPictureUrl(
             authorName: String,
@@ -53,8 +56,8 @@ data class AlbumTilePublicDto(
             albumName: String,
         ): String {
             if (authorName.isEmpty() || year <= 0 || albumName.isEmpty()) return ""
-            val previewFileName = "$authorName/$year - $albumName/$authorName - $year - $albumName.preview.album.png"
-            val encoded = URLEncoder.encode(previewFileName, StandardCharsets.UTF_8).replace("+", "%20")
+            val fullFileName = "$authorName/$year - $albumName/$authorName - $year - $albumName.album.png"
+            val encoded = URLEncoder.encode(fullFileName, StandardCharsets.UTF_8).replace("+", "%20")
             return "/minio/$BUCKET/$encoded"
         }
 

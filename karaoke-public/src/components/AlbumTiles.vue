@@ -167,11 +167,11 @@ export default {
   text-align: left;
   font-size: 12px;
   font-weight: 600;
-  line-height: 1.2;
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  line-height: 1.3;
+  /* Pass 358 fix: убираем -webkit-line-clamp, чтобы длинные названия альбомов
+     не обрезались. Текст переносится по словам. */
+  word-break: break-word;
+  white-space: normal;
 }
 .alt-year {
   font-weight: 700;

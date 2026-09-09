@@ -190,16 +190,27 @@ export default {
      * @param {number} expectedCount число песен с тайла (= `selectedAuthor.songCount`)
      * @returns {Promise<void>}
      */
-    async loadZakromaStream({ commit, state }, { author, expectedCount }) {
+    async loadZakromaStream(
+      { commit, state },
+      { author, expectedCount, force = false, albumId = null },
+    ) {
       // FR-FE-009: dedup — проверяем ДО очистки state.zakroma. Иначе при
       // browser back из /song/{id} state очищается, dedup срабатывает,
       // фетча нет → пустая страница. С новой логикой: dedup позволяет
       // UI сохранить данные из state.zakroma (которые лежат в кэше
       // Vuex-Pinia-style store), без нового запроса.
-      const lastTs = state.lastLoadedTimestampByAuthor[author]
-      if (lastTs && Date.now() - lastTs < 30_000) {
+      //
+      // Pass 359 fix: при `force=true` (прямой заход на /zakroma/{id}?albumId=...
+      // когда state.zakroma пуст) пропускаем dedup — иначе страница остаётся
+      // пустой потому что dedup возвращает no-op, а state.zakroma пустой.
+      // Pass 359 (albumId): dedup-ключ — `author + albumId`. Кэш автора (без
+      // фильтра по альбому) не должен использоваться для запроса с albumId=N
+      // (там совсем другие песни).
+      const cacheKey = albumId ? `${author}:${albumId}` : author
+      const lastTs = state.lastLoadedTimestampByAuthor[cacheKey]
+      if (!force && lastTs && Date.now() - lastTs < 30_000) {
         // No-op: state.zakroma уже содержит данные с предыдущей
-        // успешной загрузки (тот же автор, < 30с). UI продолжает
+        // успешной загрузки (тот же автор + albumId, < 30с). UI продолжает
         // работать с тем же zakroma[].
         return
       }
@@ -225,7 +236,9 @@ export default {
       )
 
       try {
-        const result = await composable.start(author, expectedCount)
+        // Pass 359: передаём albumId в стрим-эндпоинт, чтобы бэк фильтровал
+        // песни по `tbl_songs.album_id` и не гонял все 388 песен автора.
+        const result = await composable.start(author, expectedCount, albumId)
         // FR-BE-008: actualCount должен совпадать с expectedCount (если фильтр
         // не удалил). UI ничего не показывает, но sanity-check логируем.
         if (result && result.albums) {
@@ -242,7 +255,8 @@ export default {
               albumTypeCounts: buildAlbumTypeCounts(result.albums),
             },
           ])
-          commit('setLastLoadedTimestamp', { author, ts: Date.now() })
+          // Pass 359: ключ дедупа — `author + albumId` (см. cacheKey выше).
+          commit('setLastLoadedTimestamp', { author: cacheKey, ts: Date.now() })
         }
       } catch (err) {
         // Любая ошибка стрима (network/error/abort) — фиксируем в state.

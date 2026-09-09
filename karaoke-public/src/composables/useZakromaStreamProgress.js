@@ -72,8 +72,13 @@ export function useZakromaStreamProgress() {
 
   /**
    * Запуск нового стрима. Возвращает Promise<{albums: Array, author: string}>.
+   *
+   * Pass 359 (spec 356): если `albumIdFromCaller` задан — бэк отдаёт ТОЛЬКО
+   * песни этого альбома (а не все песни автора). На странице
+   * `/zakroma/{id}?albumId=N` бэк фильтрует на SQL-уровне, фронт не
+   * получает лишние 388 песен когда нужны 10.
    */
-  async function start(author, expectedCountFromCaller) {
+  async function start(author, expectedCountFromCaller, albumIdFromCaller) {
     // 1. Синхронно очищаем state (FR-FE-004, SC-001 ≤ 50 мс).
     albums.value = []
     receivedCount.value = 0
@@ -108,6 +113,11 @@ export function useZakromaStreamProgress() {
         anonId: getAnonId(),
         referrer: consumeEntryReferrer() || '',
       })
+      // Pass 359 (spec 356): если выбран конкретный альбом, бэк отдаёт
+      // ТОЛЬКО его песни (а не все 388 песен автора). SQL-фильтр на album_id.
+      if (albumIdFromCaller != null && albumIdFromCaller > 0) {
+        params.set('albumId', String(albumIdFromCaller))
+      }
       // Передаём `expectedCount` с тайла автора (= `songCount` в
       // `AuthorTilePublicDto`). Backend использует его напрямую в
       // первом NDJSON-сообщении `meta` без отдельного DB-запроса

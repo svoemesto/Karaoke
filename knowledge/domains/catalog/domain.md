@@ -39,7 +39,7 @@ MLT-конвейером).
 | Термин | Определение | Пример в коде |
 | --- | --- | --- |
 | **Песня (Song)** | Единица каталога, AR | `Song.kt`, `tbl_settings` (legacy name) |
-| **Альбом (Album)** | Коллекция песен одного исполнителя | `Album.kt`, `tbl_albums` |
+| **Альбом (Album)** | Коллекция песен одного исполнителя. Денормализованные счётчики `total_song_count` / `ready_song_count` поддерживаются DB-триггером `trg_tbl_songs_update_album_counts` (Pass 357, миграция 49) — зеркалит паттерн spec 286 для `tbl_authors` | `Album.kt`, `tbl_albums` |
 | **Исполнитель (Author)** | Музыкальный исполнитель (НЕ автор текста) | `Author.kt`, `tbl_authors` |
 | **Жанр (Genre)** | Музыкальный жанр, справочник | `Genre.kt`, `tbl_genres` |
 | **Картинка (Picture)** | Обложка альбома / фото исполнителя | `Picture.kt`, `tbl_pictures` |
@@ -140,10 +140,12 @@ MLT-конвейером).
 - `184-approve-status-choice` — выбор `idStatus` 5/6.
 - `185-song-dto-audit-sponsr-remove` — очистка DTO.
 - `186-zakroma-songs-fast-load` — оптимизация загрузки.
+- [`356-zakroma-albums-by-author`](../../../docs/features/zakroma-albums-by-author.md) — промежуточный этап «Альбомы автора» в навигации `/zakroma`; песни привязаны к альбому через FK `tbl_songs.album_id` (Pass 357); бэкенд фильтрует стрим по `?albumId=N`.
 
 ## Связанные ADR
 
 - [0001-raw-jdbc](../../adr/0001-raw-jdbc.md) — сырой JDBC, без JPA/Hibernate.
+- [local-0007-zakroma-album-id-in-stream-dto](../../adr/local-0007-zakroma-album-id-in-stream-dto.md) — обязательность `albumId` в `ZakromaAlbumMetaPublicDto` (Pass 359).
 
 ## Код (физическая реализация)
 

@@ -494,11 +494,17 @@ export default {
     // а не на этот computed — иначе каждое нажатие клавиши будет дёргать сетевые запросы готовности.
     filteredZakroma() {
       const q = normalize(this.songFilter)
-      if (!q) return this.zakroma
+      const albumId = this.selectedAlbumId
+      // Без фильтров — возвращаем как есть.
+      if (!q && albumId == null) return this.zakroma
       return (this.zakroma || [])
         .map((zak) => ({
           ...zak,
           albums: (zak.albums || [])
+            // specs/356-zakroma-albums-by-author (FR-003): фильтр по альбому через
+            // ?albumId={id} (tbl_albums.id). Бэкенд пробрасывает albumId из
+            // tbl_songs.album_id → ZakromaAlbum.albumId (Pass 357).
+            .filter((alb) => albumId == null || String(alb.albumId) === String(albumId))
             .map((alb) => ({
               ...alb,
               albumSettings: (alb.albumSettings || []).filter((s) =>
@@ -536,15 +542,53 @@ export default {
     /** Back-link для AppHeader (spec 254):
      *  - null на странице выбора автора → header-back-link скрыт;
      *  - { to: '/zakroma', label: '← К списку авторов' } при выбранном авторе или
-     *    специальной корзине → клик сбрасывает выбор через vue-router. */
+     *    специальной корзине → клик сбрасывает выбор через vue-router.
+     *  - specs/356-zakroma-albums-by-author (FR-004): при активном фильтре ?album=
+     *    → back-link ведёт на /zakroma/{authorId}/albums (список альбомов автора),
+     *    а не на /zakroma. */
     zakromaHeaderBack() {
-      if (this.authorChosen || this.specialBucketShown) {
+      // Pass 359: левая ссылка в шапке ВСЕГДА ведёт на альбомы автора, если автор
+      // выбран (на songs-странице — независимо от того, фильтруется ли по альбому
+      // или показываются все песни). Это новая логика цепочки навигации
+      // (Pass 70 / issue #70): /zakroma (авторы) → /zakroma/{id}/albums (НОВАЯ) →
+      // /zakroma/{id}?albumId={id} или все песни.
+      if (this.authorChosen || this.selectedAlbumId != null) {
+        return {
+          to: `/zakroma/${this.selectedAuthorId}/albums`,
+          label: '← К альбомам автора',
+        }
+      }
+      if (this.specialBucketShown) {
         return { to: '/zakroma', label: '← К списку авторов' }
       }
       return null
     },
+    /**
+     * specs/356-zakroma-albums-by-author (FR-003): фильтр альбома через query-параметр.
+     * Используем `?albumId={id}` (`tbl_albums.id`). У нужных песен в `tbl_songs.album_id`
+     * проставлен соответствующий FK, бэкенд (`Zakroma.buildFromSongs`) пробрасывает
+     * albumId в `ZakromaAlbum.albumId`. Также принимаем алиас `?album=` для обратной
+     * совместимости с share-линками старого формата.
+     *
+     * Pass 358: фильтрация по названию/году убрана — пользователь явно хочет id в URL.
+     */
+    selectedAlbumId() {
+      const q = this.$route?.query?.albumId || this.$route?.query?.album
+      const id = q ? parseInt(q, 10) : NaN
+      return Number.isFinite(id) && id > 0 ? id : null
+    },
   },
   watch: {
+    // Pass 359: при прямом заходе на /zakroma/{id}?albumId=... authorTiles ещё не
+    // загружен на момент mounted, поэтому tryStartZakromaStream() не находил тайл.
+    // Теперь watcher ловит момент, когда authorTiles появляются, и запускает стрим.
+    authorTiles: {
+      handler() {
+        if (this.authorChosen && this.selectedAuthorId && !this.selectedAuthor) {
+          this.tryStartZakromaStream()
+        }
+      },
+    },
     // Готовность плеера подгружаем асинхронно, как только пришли данные закромов (и при их смене).
     // Pass 239: убраны readiness.load() и membership.load() (были источником зависания).
     // PlayerIcon получает все данные через props из стрима; membership/избранное/подписки
@@ -597,37 +641,58 @@ export default {
       }
     },
   },
-  mounted() {
-    // Основной каталог: scope='main' — авторы БЕЗ is_special_order=true.
-    this.loadAuthorTiles('main')
-    // Спец-каталог (виртуальный «автор» в конце) — нужен для тайла и плоской таблицы.
+  async mounted() {
+    // Pass 359: явное ожидание загрузки authorTiles ПЕРЕД попыткой запуска стрима.
+    // Watcher на `authorTiles` не срабатывает надёжно при прямом заходе на
+    // /zakroma/{id}?albumId=... (видимо, race condition между mounted и
+    // обновлением сторы). Поэтому await'им loadAuthorTiles() прямо здесь —
+    // после этого `this.authorTiles` гарантированно содержит данные.
     this.loadSpecialBucket()
-    // specs/258-zakroma-routing-refactor: после рефакторинга URL автор идентифицируется
-    // по :authorId в path. Резолвим ID → name через authorTiles (Vuex) и стартуем стрим.
+    await this.loadAuthorTiles('main')
     if (this.authorChosen && this.selectedAuthorId) {
-      const tile = this.authorTiles.find((t) => String(t.id) === String(this.selectedAuthorId))
-      if (tile) {
-        this.selectedAuthor = tile.author
-        // Спека 258 (ранее): регистрация referrer для SongView back-link. Спека 259 убрала —
-        // SongView.songHeaderBack() теперь читает authorId прямо из SongPublicDto.authorId,
-        // который заполняется на бэке через Author.loadIdsByNames, см. PublicApiController.song().
-        this.loadZakromaStream({
-          author: tile.author,
-          expectedCount: tile.songCount || undefined,
-        })
-      } else {
-        // Автор с таким ID не найден в authorTiles (удалён?) — сбрасываем на тайты.
-        this.authorChosen = false
-        this.selectedAuthorId = ''
-        if (typeof this.notify === 'function') {
-          this.notify(`Автор с ID=${this.selectedAuthorId} не найден`, 'warning')
-        }
-      }
+      this.tryStartZakromaStream()
     }
     // specs/258 — обновляем заголовок вкладки после async-резолвинга ID → имя.
     this.updateDocumentTitle()
   },
+  /**
+   * Pass 359: запускает поток песен автора, если ещё не запущен. Использует
+   * `this.authorTiles` для маппинга ID→name. Вызывается из mounted и из
+   * watcher'а на `authorTiles` для покрытия случая прямого захода на
+   * /zakroma/{id}?albumId=... (когда authorTiles ещё не загружен на момент mount).
+   */
   methods: {
+    /**
+     * Pass 359: запускает поток песен автора (внутри methods — ранее был снаружи,
+     * что приводило к тому, что Vue не видел метод и `this.tryStartZakromaStream()`
+     * уходил в undefined).
+     */
+    tryStartZakromaStream() {
+      if (!this.authorChosen || !this.selectedAuthorId) return
+      const tile = this.authorTiles.find((t) => String(t.id) === String(this.selectedAuthorId))
+      if (tile) {
+        this.selectedAuthor = tile.author
+        // Pass 359: force=true обходит 30-секундный dedup в loadZakromaStream.
+        // Без force: если пользователь только что открыл новую вкладку или
+        // сделал hard-refresh на /zakroma/{id}?albumId=... — lastLoadedTimestamp
+        // ещё не установлен (или > 30с), но кэш state.zakroma пуст; dedup бы
+        // вернул no-op, страница оставалась пустой.
+        this.loadZakromaStream({
+          author: tile.author,
+          expectedCount: tile.songCount || undefined,
+          force: true,
+          // Pass 359: бэк фильтрует по `tbl_songs.album_id` чтобы не гонять
+          // все 388 песен автора когда нужны только 10 из альбома.
+          albumId: this.selectedAlbumId,
+        })
+      } else {
+        // Pass 359: НЕ сбрасываем authorChosen/selectedAuthorId — watcher ниже
+        // догрузит поток когда authorTiles появится.
+        if (typeof this.notify === 'function') {
+          // no-op: раньше показывали "Автор не найден" сразу, что было преждевременно.
+        }
+      }
+    },
     ...mapActions('zakroma', ['loadAuthorTiles', 'loadZakromaStream', 'loadSpecialBucket']),
     /**
      * specs/258 — динамический заголовок вкладки браузера по текущему режиму ZakromaView:
@@ -767,22 +832,32 @@ export default {
         : `Будет в эфире с ${song.datePublish}`
     },
     onAuthorSelect(author) {
-      this.selectedAuthor = author
-      this.authorChosen = true
-      this.songFilter = ''
-      this.$router.replace({ path: '/zakroma', query: author ? { author } : {} })
-      // 181: stream loader (FR-FE-003). expectedCount берётся с тайла — ищем
-      // в authorTiles (имя автора → songCount). **MUST** be undefined если
-      // тайла нет (deep-link `?author=...` до загрузки тайлов, или автор
-      // не в основном списке) — backend fallback'ит на DB-запрос
-      // `Song.loadAuthorSongCounts(...)`. Иначе фронт пришлёт 0 и
-      // `meta` будет «0 из 0» (регрессия 181/243).
+      // specs/356-zakroma-albums-by-author: клик по плашке автора теперь ведёт на
+      // /zakroma/{authorId}/albums (НОВАЯ страница альбомов), а не на
+      // /zakroma/{authorId} (старая страница песен). Это разрыв с прежним поведением
+      // (Pass 70 / issue #70): вместо плоского списка песен — сначала альбомы.
       const tile = (this.authorTiles || []).find((t) => t.author === author)
-      const expectedCount = tile ? tile.songCount : undefined
-      this.loadZakromaStream({ author, expectedCount })
-      // Спека 259: ранее здесь ставился lastSongReferrer — но SongView.songHeaderBack() теперь
-      // берёт authorId прямо из SongPublicDto.authorId (заполняется в PublicApiController.song()),
-      // lastSongReferrer больше никем не читается.
+      const authorId = tile?.id
+      if (!authorId) {
+        // Fallback для deep-link или автора не в основного списка: загружаем по имени
+        // (старое поведение через `?author=` для совместимости с share-линками).
+        this.selectedAuthor = author
+        this.authorChosen = true
+        this.songFilter = ''
+        this.$router.replace({ path: '/zakroma', query: author ? { author } : {} })
+        const expectedCount = tile ? tile.songCount : undefined
+        this.loadZakromaStream({ author, expectedCount })
+        return
+      }
+      // Основной путь: navigate на /zakroma/{authorId}/albums.
+      this.$router.push({
+        name: 'zakroma-author-albums',
+        params: { authorId },
+      })
+      // Сбрасываем локальный state, чтобы при возврате на /zakroma страница показала тайлы.
+      this.selectedAuthor = ''
+      this.authorChosen = false
+      this.songFilter = ''
     },
     retryLoadZakroma() {
       // FR-FE-001: повторный запуск после ошибки.

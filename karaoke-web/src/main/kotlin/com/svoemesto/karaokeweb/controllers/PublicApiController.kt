@@ -3,6 +3,7 @@ package com.svoemesto.karaokeweb.controllers
 import com.svoemesto.karaokeweb.WORKING_DATABASE
 
 import com.svoemesto.karaokeapp.model.Author
+import com.svoemesto.karaokeapp.model.Album
 import com.svoemesto.karaokeapp.model.EventType
 import com.svoemesto.karaokeapp.model.Pictures
 import com.svoemesto.karaokeapp.model.RestName
@@ -13,8 +14,11 @@ import com.svoemesto.karaokeapp.KaraokeProperties
 import com.svoemesto.karaokeapp.resizeBufferedImage
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.StorageApiClient
+import com.svoemesto.karaokeapp.services.KSS_APP
+import com.svoemesto.karaokeapp.services.SAC_APP
 import com.svoemesto.karaokeweb.StatBySong
 import com.svoemesto.karaokeweb.dto.AuthorTilePublicDto
+import com.svoemesto.karaokeweb.dto.AlbumTilePublicDto
 import com.svoemesto.karaokeweb.dto.PagedSongsDto
 import com.svoemesto.karaokeweb.dto.SongPublicDto
 import com.svoemesto.karaokeweb.dto.ZakromaAlbumMetaPublicDto
@@ -103,6 +107,71 @@ class PublicApiController(
 
         /** Thread-safe хранилище кеша (FR-002). */
         private val authorsTilesCache = ConcurrentHashMap<String, CachedAuthorsTiles>()
+
+        /**
+         * Запись кеша `albumsTilesCache` (spec 356) — пара (value, expiresAtMs).
+         * Паттерн `CachedAuthorsTiles`, TTL короче (≤60с) — числа в альбомах меняются реже,
+         * но при импорте новой песни редактор видит обновление быстро.
+         */
+        private data class CachedAlbumsTiles(
+            val value: List<AlbumTilePublicDto>,
+            val expiresAtMs: Long,
+        )
+
+        /** Thread-safe хранилище кеша для `/authors/{authorId}/albums` (FR-002 спеки 356). */
+        private val albumsTilesCache = ConcurrentHashMap<String, CachedAlbumsTiles>()
+
+        /** TTL кеша альбомов: 60 секунд (быстрее, чем у `authorsTilesCache` = 30 мин). */
+        private const val ALBUMS_CACHE_TTL_MS = 60 * 1000L
+
+        /**
+         * Возвращает кешированный список `AlbumTilePublicDto` для ключа
+         * `scope:authorId:onlyPublished:includeSkipped` или выполняет `loadFn` и кладёт
+         * результат в кеш.
+         *
+         * Алгоритм (паттерн `getCachedAuthorsTiles`, спека 248):
+         * 1. Если [StatBySong.consumeDirty] вернул `true` → cache очищается.
+         * 2. Cache hit → возврат из кеша.
+         * 3. Cache miss → `loadFn()`. Если результат непустой — cache put.
+         *
+         * @param scope "main" / "all" / etc. — часть cache key (зарезервировано для будущего).
+         * @param authorId ID автора (часть cache key — каждая выборка кешируется отдельно).
+         * @param onlyPublished `true` для гостя / premium, `false` для редактора.
+         * @param includeSkipped `true` для редактора с правом `canWorkWithSkipped`.
+         * @param loadFn функция загрузки (выполняет SQL).
+         * @return список `AlbumTilePublicDto` (из кеша или свежий).
+         *
+         * @see specs/356-zakroma-albums-by-author/spec.md FR-014
+         */
+        private fun getCachedAlbumsTiles(
+            scope: String,
+            authorId: Long,
+            onlyPublished: Boolean,
+            includeSkipped: Boolean,
+            loadFn: () -> List<AlbumTilePublicDto>,
+        ): List<AlbumTilePublicDto> {
+            try {
+                if (StatBySong.consumeDirty()) {
+                    albumsTilesCache.clear()
+                    println("[albumsTilesCache] cache cleared by consumeDirty()")
+                }
+            } catch (_: Throwable) {
+                // ignore — consumeDirty shouldn't throw, but defensive
+            }
+
+            val now = System.currentTimeMillis()
+            val key = "$scope:$authorId:$onlyPublished:$includeSkipped"
+            val cached = albumsTilesCache[key]
+            if (cached != null && cached.expiresAtMs > now) {
+                return cached.value
+            }
+            println("[albumsTilesCache] cache miss scope=$scope authorId=$authorId onlyPublished=$onlyPublished includeSkipped=$includeSkipped")
+            val fresh = loadFn()
+            if (fresh.isNotEmpty()) {
+                albumsTilesCache[key] = CachedAlbumsTiles(fresh, now + ALBUMS_CACHE_TTL_MS)
+            }
+            return fresh
+        }
 
         /**
          * Возвращает кешированный список `AuthorTilePublicDto` для ключа
@@ -310,10 +379,60 @@ class PublicApiController(
         }
     }
 
+    /**
+     * Возвращает список плашек альбомов конкретного автора для публичного сайта
+     * (`/zakroma/{authorId}/albums`, спека 356).
+     *
+     * Логика видимости (как у `/authors-tiles`):
+     * - Гость / premium: только альбомы с `ready_song_count > 0` (FR-010).
+     * - Редактор: ВСЕ альбомы автора (FR-011) с подписью `total_song_count`.
+     * - Skip-альбомы (`tbl_albums.skip = true`) скрыты для всех ролей (FR-016).
+     *
+     * Сортировка: `year ASC NULLS LAST, name ASC` (см. data-model.md, Clarification Q1).
+     *
+     * Денормализованные счётчики читаются напрямую из `tbl_albums.total_song_count` /
+     * `ready_song_count` (без `GROUP BY` по `tbl_songs`, FR-015) — поддерживаются триггером
+     * `trg_tbl_songs_update_album_counts` миграции `49_albums_song_counts.sql`.
+     *
+     * Кеш `albumsTilesCache` (TTL ≤60с) — паттерн `authorsTilesCache` (спека 248/286),
+     * инвалидация через `StatBySong.consumeDirty()`.
+     *
+     * @see specs/356-zakroma-albums-by-author/spec.md FR-014
+     * @see specs/356-zakroma-albums-by-author/contracts/albums-tiles-api.md
+     */
+    @GetMapping("/authors/{authorId}/albums")
+    fun authorAlbums(
+        @PathVariable authorId: Long,
+        @RequestParam(required = false, defaultValue = "main") scope: String?,
+        request: HttpServletRequest,
+    ): List<AlbumTilePublicDto> {
+        val onlyPublished = onlyPublishedFor(request)
+        val canSeeSkipped = siteUserResolver.resolve(request)?.canWorkWithSkipped ?: false
+        return getCachedAlbumsTiles(scope ?: "main", authorId, onlyPublished, canSeeSkipped) {
+            // Загружаем сырые Album (raw model) + имя автора (для URL обложки).
+            // Паттерн: Author.loadAuthorTilesWithCounts + AuthorTilePublicDto.fromAuthorName.
+            val authorEntity =
+                Author.getAuthorById(authorId, WORKING_DATABASE, KSS_APP, SAC_APP)
+            val authorName = authorEntity?.author ?: ""
+            val albums =
+                Album.loadAlbumTilesWithCounts(
+                    authorId = authorId,
+                    onlyPublished = onlyPublished,
+                    includeSkipped = canSeeSkipped,
+                    database = WORKING_DATABASE,
+                )
+            albums.map { album -> AlbumTilePublicDto.fromAlbum(album, authorName) }
+        }
+    }
+
     @GetMapping("/zakroma")
     fun zakroma(
         @RequestParam(required = false) author: String?,
         @RequestParam(required = false, defaultValue = "false") specialBucket: Boolean,
+        // Pass 359 (spec 356): фильтр по FK album_id. Если задан — с бэка
+        // прилетают ТОЛЬКО песни этого альбома, а не все песни автора.
+        // Для legacy `song_album`-виртуальных альбомов (album_id=NULL) — no-op.
+        @RequestParam(required = false) albumId: Long?,
         @RequestParam(required = false) anonId: String?,
         @RequestParam(required = false) referrer: String?,
         request: HttpServletRequest,
@@ -321,6 +440,7 @@ class PublicApiController(
         val data: MutableMap<String, Any> = mutableMapOf()
         author?.let { data["author"] = it }
         if (specialBucket) data["specialBucket"] = true
+        albumId?.let { data["albumId"] = it }
         mainController.doRegisterEvent(
             mapOf(
                 "eventType" to EventType.CALL_REST.dbValue,
@@ -358,6 +478,7 @@ class PublicApiController(
                     storageApiClient = storageApiClient,
                     onlyPublished = onlyPublished,
                     canSeeSkipped = canSeeSkipped,
+                    albumId = albumId,
                 )
             }
         return ZakromaPublicDto.fromZakroma(zakroma)
@@ -390,6 +511,9 @@ class PublicApiController(
     fun zakromaStream(
         @RequestParam(required = false) author: String?,
         @RequestParam(required = false) expectedCount: Long?,
+        // Pass 359 (spec 356): фильтр по альбому. Если задан — стрим отдаёт
+        // ТОЛЬКО песни этого альбома, а не все песни автора. Без него — всё.
+        @RequestParam(required = false) albumId: Long?,
         @RequestParam(required = false) anonId: String?,
         @RequestParam(required = false) referrer: String?,
         request: HttpServletRequest,
@@ -468,6 +592,9 @@ class PublicApiController(
                             onlyPublished = onlyPublished,
                             // specs/293-skip-author-toggle: для редакторов с галочкой — не фильтровать SKIP-песни.
                             canSeeSkipped = canSeeSkipped,
+                            // Pass 359: фильтр по альбому. Если в URL `?albumId=N`, стрим
+                            // отдаст только песни этого альбома (а не все песни автора).
+                            albumId = albumId,
                         )
 
                     // 3. Streaming loop по альбомам и песням (FR-BE-004).

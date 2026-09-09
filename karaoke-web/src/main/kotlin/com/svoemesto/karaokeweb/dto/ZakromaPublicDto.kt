@@ -49,6 +49,10 @@ data class ZakromaAlbumSongPublicDto(
  * @see AGENTS.md
  */
 data class ZakromaAlbumPublicDto(
+    // specs/356-zakroma-albums-by-author (FR-003): ID реального альбома (`tbl_albums.id`).
+    // Используется для query-параметра `?album=` на /zakroma/{authorId}. 0 для legacy
+    // `song_album`-виртуальных альбомов (без FK); для них фильтр по ?album= не работает.
+    val albumId: Long = 0,
     val albumName: String,
     val year: Long,
     val albumPictureUrl: String,
@@ -137,6 +141,7 @@ data class ZakromaPublicDto(
                     albums =
                         zak.albums.map { alb ->
                             ZakromaAlbumPublicDto(
+                                albumId = alb.albumId,
                                 albumName = alb.albumName,
                                 year = alb.year,
                                 albumPictureUrl =

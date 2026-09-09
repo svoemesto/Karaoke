@@ -4,6 +4,7 @@ import store from '../store'
 import HomeView from '../views/HomeView.vue'
 import SearchView from '../views/SearchView.vue'
 import ZakromaView from '../views/ZakromaView.vue'
+import ZakromaAlbumsView from '../views/ZakromaAlbumsView.vue'
 import SongView from '../views/SongView.vue'
 import PlayerView from '../views/PlayerView.vue'
 import LoginView from '../views/LoginView.vue'
@@ -40,6 +41,13 @@ const routes = [
   { path: '/zakroma', name: 'zakroma', component: ZakromaView },
   // \\d+ — только цифры, иначе vue-router отдаёт 404 (RT-6.A).
   { path: '/zakroma/:authorId(\\d+)', name: 'zakroma-author', component: ZakromaView },
+  // specs/356-zakroma-albums-by-author: страница альбомов автора (промежуточный этап между
+  // /zakroma/{authorId} и страницей песен с фильтром по альбому).
+  {
+    path: '/zakroma/:authorId(\\d+)/albums',
+    name: 'zakroma-author-albums',
+    component: ZakromaAlbumsView,
+  },
   // Спец-корзина «Отдельные песни разных авторов» — самостоятельный route (FR-A6).
   { path: '/zakroma/special-bucket', name: 'zakroma-special-bucket', component: ZakromaView },
   { path: '/song', name: 'song', component: SongView },

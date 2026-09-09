@@ -1,6 +1,6 @@
 # AGENTS.md — инструкции для агентов
 
-> **Версия**: 2.2.0 | **Last updated**: 2026-09-09 (Pass 340).
+> **Версия**: 2.3.0 | **Last updated**: 2026-09-09 (Pass 350).
 >
 > **Изменения 2.2.0** (см. PR #340 — governance-knowledge-first):
 > - Добавлен MUST #0 «Knowledge-first pre-flight (NON-NEGOTIABLE)».
@@ -14,6 +14,17 @@
 >   для `tools/specify-bootstrap.sh`).
 > - Синхронизировано с Constitution Principle IX (Knowledge-first)
 >   и обязательной секцией «Knowledge References» в `spec.md`.
+>
+> **Изменения 2.3.0** (Pass 350, см. PR #350 — spec-hooks-auto-tracker):
+> - Добавлены auto-hooks (Pass 350) для OpenProject Tracker workflow:
+>   `tools/tracker-bootstrap.sh` (auto-claim в before_specify) +
+>   `tools/tracker-implement-done.sh` (auto-comment + mark-review
+>   в after_implement). Зарегистрированы в `.specify/extensions.yml`
+>   как optional hooks (см. AGENTS.md § Auto-hooks).
+> - Section «Issue-tracker OpenProject» дополнена подсекцией
+>   «Auto-hooks (Pass 350)» с описанием hooks.
+> - Снижает риск повторения Pass 349 failure (OpenProject #69
+>   обработан без claim/add-comment/mark-review).
 
 ## АБСОЛЮТНОЕ ПРАВИЛО: язык общения
 
@@ -130,6 +141,26 @@ Setup новых AI: [`knowledge/public/onboarding.md`](knowledge/public/onboard
 | 3. **Mark review** | `bash tools/tracker.sh mark-review <NNN>` | После публикации `add-comment`. Переводит `In progress` → `In review`. | Agent |
 | 4. **Close** | `bash tools/tracker.sh close-issue <NNN>` | После ревью владельцем. (Опционально: владелец закрывает сам.) | Agent или Owner |
 
+### Auto-hooks (Pass 350)
+
+**`before_specify` → `tools/tracker-bootstrap.sh`** (опциональный, см. `.specify/extensions.yml`):
+- Запускается как часть `tools/specify-bootstrap.sh` ПОСЛЕ резервирования NNN.
+- Сканирует все аргументы (`$ARGUMENTS`, slug, description) на OpenProject ID
+  (regex: `#NN`, `№NN`, `задача NN`, `task NN`, `OP #NN`, `OpenProject NN`).
+- Если найден — вызывает `tracker.sh claim-issue <NN>` (idempotent).
+- Если не найден — no-op (просто пропускает claim).
+
+**`after_implement` → `tools/tracker-implement-done.sh`** (опциональный):
+- Запускается агентом ПОСЛЕ merge PR (или владельцем вручную).
+- Определяет Issue ID через: явный аргумент → автодетект через branch →
+  auto-generates stub `report.md` из git log.
+- Вызывает `add-comment + mark-review` (idempotent — повторные вызовы
+  безопасны, comment может дублироваться).
+
+Эти хуки ПОЛНОСТЬЮ OPTIONAL — агент может сделать шаги вручную если hook
+не сработал (например, runtime не поддерживает extensions.yml). Главное —
+workflow выполнен ДО merge и ДО `mark-review`.
+
 ### Compliance
 
 - Спека НЕ ДОЛЖНА переходить в `/speckit.plan` без заполненной секции
@@ -140,6 +171,11 @@ Setup новых AI: [`knowledge/public/onboarding.md`](knowledge/public/onboard
 - **Governance failure (Pass 349)**: OpenProject #69 был обработан через
   `/speckit-full 69` БЕЗ выполнения workflow — отчёт опубликован задним
   числом. Это привело к amendment в спеке #349.
+- **Автоматизация (Pass 350)**: добавлены хуки `tracker-bootstrap.sh`
+  (auto-claim в before_specify) и `tracker-implement-done.sh` (auto-comment
+  + mark-review в after_implement). Заявлено в `.specify/extensions.yml`
+  как optional — не блокирует workflow при failure, но снижает риск
+  повторения Pass 349 failure.
 
 Docs: [`docs/tracker-setup.md`](docs/tracker-setup.md), [`knowledge/adr/0008-tracker-openproject-migration.md`](knowledge/adr/0008-tracker-openproject-migration.md).
 

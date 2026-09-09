@@ -49,6 +49,15 @@
 | `tracker-smoke-test.sh` | Smoke-test OpenProject подключения. |
 | `tracker-spec-for-issue.sh` | Создать specs/NNN-slug/spec.md из OpenProject work package (`claim → bootstrap → spec` workflow). |
 
+## Git Workflow Enforcement (Pass 353)
+
+| Скрипт / файл | Назначение |
+|---------------|------------|
+| [`tools/git-hooks/pre-commit-block-master.sh`](git-hooks/pre-commit-block-master.sh) | **NEW (Pass 353)** — client-side pre-commit hook, блокирует `git commit` на `master`/`main`. Регистрируется через `.pre-commit-config.yaml` (id `block-master-commit`). Первая линия защиты после GitHub branch protection. |
+| `.pre-commit-config.yaml` (existing, modified) | Регистрация `block-master-commit` hook (`always_run: true`). |
+| `.github/workflows/lint.yml` (existing, modified) | Step "No direct commits to master" — `git log --first-parent origin/master --since=24.hours --no-merges` fail при > 0. Final safety net для bypass. |
+| `AGENTS.md` § "Git — CI-gate для master" (v2.3.0) | Документация: 3 enforcement layers (GitHub branch protection + pre-commit + CI lint) + explicit прецедент Pass 353. |
+
 ## Утилиты для новых скриптов
 
 Раздел об утилитах для разработки новых bash-скриптов.

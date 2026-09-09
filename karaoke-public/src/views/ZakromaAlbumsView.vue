@@ -1,7 +1,7 @@
 <template>
   <div class="km-page zakroma-albums-page">
     <!-- Хедер единый (spec 250). Back-link → /zakroma (список авторов). -->
-    <AppHeader :back="'/zakroma'" />
+    <AppHeader :back="{ to: '/zakroma', label: '← К списку авторов' }" />
 
     <!-- specs/356-zakroma-albums-by-author (US4+US5): панель настроек (слайдер размера + плашки/таблица). -->
     <ZakromaSettings />

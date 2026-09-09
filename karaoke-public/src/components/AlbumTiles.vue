@@ -29,6 +29,14 @@
         </span>
         <span class="alt-count" :title="captionTitle(a)">{{ caption(a) }}</span>
       </div>
+      <!-- Тип альбома (studio/single/live/compilation/bootleg/archive/tribute) — бейдж под обложкой. -->
+      <div
+        v-if="albumTypeLabel(a.albumType)"
+        class="alt-type-badge"
+        :class="`alt-type-${a.albumType}`"
+      >
+        {{ albumTypeLabel(a.albumType) }}
+      </div>
     </button>
   </div>
 </template>
@@ -104,6 +112,25 @@ export default {
       return this.countMode === 'total'
         ? `Всего песен в альбоме: ${a.totalSongCount}`
         : `Готовых песен (id_status >= 6): ${a.readySongCount}`
+    },
+    /**
+     * Pass 360: маппинг AlbumType.dbValue → русская подпись для бейджа типа
+     * (студийный, сингл, концертный, сборник, бутлег, архив, трибьют).
+     * Соответствует AlbumType.description в karaoke-app (single source of truth).
+     * Возвращает '' если тип неизвестен — бейдж тогда не рендерится.
+     */
+    albumTypeLabel(t) {
+      if (!t) return ''
+      const map = {
+        studio: 'Студийный',
+        single: 'Сингл',
+        live: 'Концертный',
+        compilation: 'Сборник',
+        bootleg: 'Бутлег',
+        archive: 'Архив',
+        tribute: 'Трибьют',
+      }
+      return map[t] || ''
     },
   },
 }
@@ -186,6 +213,42 @@ export default {
   line-height: 1.5;
   border-radius: 10px;
   white-space: nowrap;
+}
+
+/* Pass 360: бейдж типа альбома (студийный, сингл и т.п.) под обложкой. */
+.alt-type-badge {
+  display: block;
+  text-align: center;
+  padding: 2px 6px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: var(--km-text2, #aaa);
+  background: var(--km-bg2, #2a2a2a);
+  border-top: 1px solid var(--km-border, #333);
+}
+/* Цветовые акценты для разных типов. */
+.alt-type-studio {
+  color: #4a90e2;
+}
+.alt-type-single {
+  color: #9b59b6;
+}
+.alt-type-live {
+  color: #e67e22;
+}
+.alt-type-compilation {
+  color: #16a085;
+}
+.alt-type-bootleg {
+  color: #c0392b;
+}
+.alt-type-archive {
+  color: #7f8c8d;
+}
+.alt-type-tribute {
+  color: #f1c40f;
 }
 
 .alt-modern .alt-tile {

@@ -156,6 +156,7 @@ class KaraokeStorageServiceImpl(
     @Value($$"${storage.port-inside-container}") val storagePortInsideContainer: String,
     @Value($$"${storage.port-host}") val storagePortHost: String,
     @Value($$"${work-in-container}") val wic: Long,
+    private val storageMetadataCache: StorageMetadataCache,
 ) : KaraokeStorageService {
     private val endpoint: String =
         if (wic !=
@@ -340,13 +341,22 @@ class KaraokeStorageServiceImpl(
         createBucketIfNotExists(bucketName)
         val sizeToUse = size ?: file.available().toLong()
         try {
-            storageClient.putObject(
-                PutObjectArgs
-                    .builder()
-                    .bucket(bucketName)
-                    .`object`(decodedFileName)
-                    .stream(file, sizeToUse, -1)
-                    .build(),
+            val response =
+                storageClient.putObject(
+                    PutObjectArgs
+                        .builder()
+                        .bucket(bucketName)
+                        .`object`(decodedFileName)
+                        .stream(file, sizeToUse, -1)
+                        .build(),
+                )
+            // Pass 345: write-through hook — invalidates/updates persistent metadata cache.
+            storageMetadataCache.recordUpload(
+                source = "LOCAL",
+                bucket = bucketName,
+                fileName = decodedFileName,
+                etag = response.etag(),
+                sizeBytes = sizeToUse,
             )
         } catch (e: MinioException) {
             throw RuntimeException("Failed to upload file: ${e.message}", e)
@@ -434,6 +444,8 @@ class KaraokeStorageServiceImpl(
                         .`object`(decodedFileName)
                         .build(),
                 )
+                // Pass 345: write-through hook — DELETE row from persistent cache.
+                storageMetadataCache.recordDelete("LOCAL", bucketName, decodedFileName)
             } catch (e: MinioException) {
                 throw RuntimeException("Failed to delete file: ${e.message}", e)
             }

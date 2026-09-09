@@ -117,3 +117,18 @@
 > (copy), `services/StorageMetadataCache.kt` (новый), `controllers/CacheStatsController.kt`
 > (новый), модификация `HealthReport.kt` (autowire + wrap в actions*).
 > Per-feature документ: `docs/features/storage-metadata-cache.md` (FR-009).
+
+> **Pass 345** (2026-09-09, ветка `348-storage-cache-eternal`): owner попросил
+> «вечный кеш» вместо TTL=300s. Существующая реализация #344 (in-memory
+> PollingCache) **superseded** спецификацией #348. Persistent storage через
+> Postgres (`tbl_storage_metadata_cache`, миграция
+> `deploy/karaoke-db/48_storage_metadata_cache.sql`). TTL = ∞. Write-through
+> hooks в `KaraokeStorageService.uploadFile/deleteFile` и
+> `StorageApiClient.uploadFile/deleteFile`. Manual refresh через
+> `DELETE /api/health/cache/refresh`.
+>
+> **Артефакты**: `specs/348-storage-cache-eternal/spec.md`,
+> `deploy/karaoke-db/48_storage_metadata_cache.sql`,
+> `controllers/CacheAdminController.kt` (новый),
+> `services/StorageMetadataCache.kt` (полностью переписан, V2 — Postgres DAO),
+> `services/PollingCache.kt` + `PollingCacheTest.kt` (УДАЛЕНЫ — V1 superseded).

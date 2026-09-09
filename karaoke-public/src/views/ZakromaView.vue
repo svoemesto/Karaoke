@@ -547,13 +547,18 @@ export default {
      *    → back-link ведёт на /zakroma/{authorId}/albums (список альбомов автора),
      *    а не на /zakroma. */
     zakromaHeaderBack() {
-      if (this.selectedAlbumId != null) {
+      // Pass 359: левая ссылка в шапке ВСЕГДА ведёт на альбомы автора, если автор
+      // выбран (на songs-странице — независимо от того, фильтруется ли по альбому
+      // или показываются все песни). Это новая логика цепочки навигации
+      // (Pass 70 / issue #70): /zakroma (авторы) → /zakroma/{id}/albums (НОВАЯ) →
+      // /zakroma/{id}?albumId={id} или все песни.
+      if (this.authorChosen || this.selectedAlbumId != null) {
         return {
           to: `/zakroma/${this.selectedAuthorId}/albums`,
           label: '← К альбомам автора',
         }
       }
-      if (this.authorChosen || this.specialBucketShown) {
+      if (this.specialBucketShown) {
         return { to: '/zakroma', label: '← К списку авторов' }
       }
       return null

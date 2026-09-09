@@ -661,9 +661,15 @@ export default {
     const tile = this.authorTiles.find((t) => String(t.id) === String(this.selectedAuthorId))
     if (tile) {
       this.selectedAuthor = tile.author
+      // Pass 359: force=true обходит 30-секундный dedup в loadZakromaStream.
+      // Без force: если пользователь только что открыл новую вкладку или
+      // сделал hard-refresh на /zakroma/{id}?albumId=... — lastLoadedTimestamp
+      // ещё не установлен (или > 30с), но кэш state.zakroma пуст; dedup бы
+      // вернул no-op, страница оставалась пустой.
       this.loadZakromaStream({
         author: tile.author,
         expectedCount: tile.songCount || undefined,
+        force: true,
       })
     } else {
       // Pass 359: НЕ сбрасываем authorChosen/selectedAuthorId — watcher ниже

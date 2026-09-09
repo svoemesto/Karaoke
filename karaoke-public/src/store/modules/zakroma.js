@@ -190,14 +190,18 @@ export default {
      * @param {number} expectedCount число песен с тайла (= `selectedAuthor.songCount`)
      * @returns {Promise<void>}
      */
-    async loadZakromaStream({ commit, state }, { author, expectedCount }) {
+    async loadZakromaStream({ commit, state }, { author, expectedCount, force = false }) {
       // FR-FE-009: dedup — проверяем ДО очистки state.zakroma. Иначе при
       // browser back из /song/{id} state очищается, dedup срабатывает,
       // фетча нет → пустая страница. С новой логикой: dedup позволяет
       // UI сохранить данные из state.zakroma (которые лежат в кэше
       // Vuex-Pinia-style store), без нового запроса.
+      //
+      // Pass 359 fix: при `force=true` (прямой заход на /zakroma/{id}?albumId=...
+      // когда state.zakroma пуст) пропускаем dedup — иначе страница остаётся
+      // пустой потому что dedup возвращает no-op, а state.zakroma пустой.
       const lastTs = state.lastLoadedTimestampByAuthor[author]
-      if (lastTs && Date.now() - lastTs < 30_000) {
+      if (!force && lastTs && Date.now() - lastTs < 30_000) {
         // No-op: state.zakroma уже содержит данные с предыдущей
         // успешной загрузки (тот же автор, < 30с). UI продолжает
         // работать с тем же zakroma[].

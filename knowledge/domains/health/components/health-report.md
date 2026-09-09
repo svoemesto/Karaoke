@@ -227,8 +227,10 @@ private fun executeResolvable(reports: List<HealthReport>) {
   удаленном хранилище»: race condition в `StorageApiClient.fileExists`.
   `WebKaraokeStorageServiceImpl` — заглушка (см. storage), реальный
   HTTP-клиент — `StorageApiClientWeb`, который использует
-  WebClient+reactor. **TODO Pass 342+**: подробный анализ (repro,
-  race window, фикс).
+  WebClient+reactor.
+- **Repair-loop race fix (Pass 343)**: perSong single-flight guard
+  (см. [race-fixed-65.md](race-fixed-65.md)) — `attemptEnterRepair` /
+  `exitRepair` через `AtomicBoolean`. **FIXED**. 4/4 unit-тестов.
 
 ## Код (физическая реализация)
 

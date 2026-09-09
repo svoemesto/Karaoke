@@ -35,7 +35,8 @@ knowledge/domains/<name>/
 | [`storage`](storage/domain.md) | **New in Pass 341** — MinIO + локальные файлы (прецедент: #65, #69) |
 | [`monetization`](monetization/domain.md) | **New in Pass 341** — тарифы, промо, корзина, подписки (прецедент: стратегия visitor→premium) |
 | [`sse`](sse/domain.md) | **New in Pass 341 P2** — real-time SSE-уведомления (recordChange, processWorkerState, healthReports, ...) |
-| [`persistence`](persistence/domain.md) | **New in Pass 341 P2** — `KaraokeDbTable`, reflection-based save, `recordDiff` | |
+| [`persistence`](persistence/domain.md) | **New in Pass 341 P2** — `KaraokeDbTable`, reflection-based save, `recordDiff` |
+| [`integration`](integration/domain.md) | **New in Pass 345** — внешние HTTP API (VK, TG, LM Studio, Whisper, Alignment, GeoIp, Yandex Captcha) |
 
 ## Linking Protocol
 

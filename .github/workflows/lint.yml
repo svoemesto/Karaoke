@@ -262,3 +262,14 @@ jobs:
         # правил. Чтобы уменьшить baseline: фиксить violations и
         # регенерировать через --generate-baseline.
         run: python3 tools/lint-knowledge.py --baseline config/knowledge/baseline-knowledge-lint.txt
+
+      - name: Lint spec ↔ OpenProject link (Pass 349)
+        # tools/check-spec-issue-link.py — проверяет, что каждая "modern" спека
+        # (Phase-002+, с секцией "## Knowledge References") содержит обязательную
+        # секцию "## OpenProject Tracking" с Issue ID + Workflow команды
+        # (`tracker.sh claim-issue`, `add-comment`, `mark-review`).
+        # Старые спеки без "## Knowledge References" — grandfathered (Pass 349 amendment).
+        # Это governance gate, введённый потому, что OpenProject #69 был закрыт без
+        # отчёта (governance failure — work выполнен, claim/mark-review пропущены).
+        # Полный workflow: см. AGENTS.md § Issue-tracker OpenProject.
+        run: python3 tools/check-spec-issue-link.py

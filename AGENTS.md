@@ -117,12 +117,30 @@
 opencode (primary) → этот файл (✅ в гите). Claude Code / Cursor / Cody / Aider — локальные конфиги.
 Setup новых AI: [`knowledge/public/onboarding.md`](knowledge/public/onboarding.md).
 
-## Issue-tracker OpenProject (spec 295) — ВАЖНО
+## Issue-tracker OpenProject (spec 295) — ВАЖНО (NON-NEGOTIABLE)
 
 В начале **каждой сессии** (после чтения Knowledge): `cd /home/nsa/Karaoke && source .env.local-tracker && bash tools/tracker-poll.sh`.
 
-Если есть открытые задачи (`assignee=ai-agent, status=open`):
-`spec-for-issue → claim → работа → add-comment + mark-review → close`.
+### WORKFLOW (NON-NEGOTIABLE при наличии Issue ID)
+
+| Шаг | Команда | Когда | Кто |
+|---|---|---|---|
+| 1. **Claim** | `bash tools/tracker.sh claim-issue <NNN>` | **ПЕРЕД первой строкой кода спеки**. Переводит `New` → `In progress`, assignee=ai-agent. | Agent |
+| 2. **Add comment с отчётом** | `bash tools/tracker.sh add-comment <NNN> --file specs/<NNN>-<slug>/report.md` | **После merge, ПЕРЕД `mark-review`**. Файл `report.md` — REQUIRED артефакт governance'а. | Agent |
+| 3. **Mark review** | `bash tools/tracker.sh mark-review <NNN>` | После публикации `add-comment`. Переводит `In progress` → `In review`. | Agent |
+| 4. **Close** | `bash tools/tracker.sh close-issue <NNN>` | После ревью владельцем. (Опционально: владелец закрывает сам.) | Agent или Owner |
+
+### Compliance
+
+- Спека НЕ ДОЛЖНА переходить в `/speckit.plan` без заполненной секции
+  `## OpenProject Tracking` (см. `.specify/templates/spec-template.md`).
+- CI gate `tools/check-spec-issue-link.py` валидирует наличие секции и
+  обязательных полей для каждой modern-спеки (с `## Knowledge References`).
+  Pre-Phase-002 спеки — grandfathered.
+- **Governance failure (Pass 349)**: OpenProject #69 был обработан через
+  `/speckit-full 69` БЕЗ выполнения workflow — отчёт опубликован задним
+  числом. Это привело к amendment в спеке #349.
+
 Docs: [`docs/tracker-setup.md`](docs/tracker-setup.md), [`knowledge/adr/0008-tracker-openproject-migration.md`](knowledge/adr/0008-tracker-openproject-migration.md).
 
 ## Ограничения агента (NON-NEGOTIABLE)

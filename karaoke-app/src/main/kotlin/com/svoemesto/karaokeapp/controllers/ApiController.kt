@@ -5367,7 +5367,10 @@ class ApiController(
                             ) ?: newSong
                         songToSave.sourceText = yandexLyricsResult.text
                         if (songToSave.idStatus == 0L) songToSave.fields[SongField.ID_STATUS] = "1"
-                        songToSave.saveToDb()
+                        // specs/357-folder-import-overwrite (FR-140): HTTP-путь applyFoundLyricsIfMissing —
+                        // Yandex.Sync HTTP-вызов, десятки секунд между load и save. Параллельный
+                        // SongEdit мог обновить поля. saveToDbLocked() защищает.
+                        songToSave.saveToDbLocked()
                         textResolved = true
                     }
                 }
@@ -7853,12 +7856,16 @@ class ApiController(
             KaraokeFileType.MP3_ACCOMPANIMENT ->
                 if (!song.stemAccompanimentReady) {
                     song.stemAccompanimentReady = true
-                    song.saveToDb()
+                    // specs/357-folder-import-overwrite (FR-140): MP3 upload — между load и save
+                    // file IO (uploadFile), секунды. Параллельный SongEdit мог обновить флаги.
+                    // saveToDbLocked() защищает.
+                    song.saveToDbLocked()
                 }
             KaraokeFileType.MP3_VOCAL ->
                 if (!song.stemVocalReady) {
                     song.stemVocalReady = true
-                    song.saveToDb()
+                    // specs/357-folder-import-overwrite (FR-140): см. выше.
+                    song.saveToDbLocked()
                 }
             else -> {}
         }

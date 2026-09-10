@@ -435,7 +435,8 @@ object SongReleaseAnnouncementService {
                     song.premiumAutoPublishLastError = ""
                     song.premiumAttemptCount = 0
                     if (!dryRun) {
-                        song.saveToDb()
+                        // specs/357-folder-import-overwrite (FR-140): SongReleaseAnnouncementService — отложенный announce (Telegram/VK), секунды.
+                        song.saveToDbLocked()
                     }
                     if (willFlipNewsAvailable) fixedNewsAvailableAnnounced++
                     if (willFixPremiumComplete) fixedPremiumComplete++

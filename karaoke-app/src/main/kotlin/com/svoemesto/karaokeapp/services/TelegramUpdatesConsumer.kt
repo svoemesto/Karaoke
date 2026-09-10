@@ -137,7 +137,8 @@ object TelegramUpdatesConsumer {
         }
 
         song.fields[song.telegramIdSettingField(songVersion)] = post.messageId.toString()
-        song.saveToDb()
+        // specs/357-folder-import-overwrite (FR-140): TelegramUpdatesConsumer — обработка апдейтов от Telegram между load и save.
+        song.saveToDbLocked()
         println(
             "[${Instant.now()}] TelegramUpdatesConsumer: записана ссылка Telegram (${songVersion.text}) для песни id=$songId, message_id=${post.messageId}",
         )

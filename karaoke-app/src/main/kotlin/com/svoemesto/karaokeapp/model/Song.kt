@@ -3707,7 +3707,12 @@ class Song(
         if (textsLst.size > count) {
             sourceText = Json.encodeToString(textsLst.take(count))
         }
-        if (markersLst.size > count || textsLst.size > count) saveToDb()
+        if (markersLst.size > count || textsLst.size > count) {
+            // specs/357-folder-import-overwrite (FR-140): объект `song` мог жить долго в цикле
+            // setSourceMarkers/setSourceText (вызывается после цикла по голосам). Параллельный
+            // SongEdit мог успеть обновить поля. saveToDbLocked() защищает от перезатирания.
+            saveToDbLocked()
+        }
     }
 
     fun setIndexTabsVariant(ind: Int) {
@@ -5532,9 +5537,17 @@ class Song(
      * **Когда вызывать**: только в hot paths (объект `song` живёт > 100мс между загрузкой и сохранением).
      * Для коротких эндпоинтов (объект < 100мс) — [saveToDb] достаточно, race не воспроизводится.
      *
+     * **Диагностика race overlap (FR-160 спеки 357)**: после reload под блокировкой проверяем,
+     * есть ли поля, где значение `this.fields[field]` отличается от `savedSong.fields[field]`
+     * (то есть параллельная транзакция успела обновить поле в БД между начальной загрузкой `this`
+     * и нашим reload'ом). Если такие поля есть — пишем WARN `song.locked_save_diff_overlap` в
+     * `infra.prod.ping` лог для операционной видимости. Сам lock защищает от перезатирания
+     * (UPDATE перезапишет параллельное изменение, но это будет видно в логах).
+     *
      * @see specs/299-song-fields-overwrite-race-condition/spec.md (FR-001..FR-003, FR-060)
      * @see specs/299-song-fields-overwrite-race-condition/research.md (R1-R3)
      * @see specs/281-find-lyrics-overwrites-key-bpm/spec.md (предыдущая итерация, reload-only)
+     * @see specs/357-folder-import-overwrite/contracts/log-format.md (формат WARN song.locked_save_diff_overlap)
      * @return `true` если UPDATE успешно выполнен; `false` если lock timeout / deadlock / fallback при удалении.
      */
     fun saveToDbLocked(): Boolean {
@@ -5588,6 +5601,20 @@ class Song(
                 saveToDb()
                 true
             } else {
+                // FR-160 (спека 357): детектируем race overlap — поля, где `this` пытается
+                // записать значение, отличное от того, что в БД (то есть параллельная транзакция
+                // успела обновить). Lock защищает от перезатирания, но сигнал должен идти в лог.
+                val overlapFields = mutableListOf<String>()
+                this.fields.forEach { (field, thisValue) ->
+                    val savedValue = savedSong.fields[field]
+                    if (savedValue != null && thisValue != savedValue) {
+                        overlapFields.add("${field.name}=${thisValue.take(50)}->${savedValue.take(50)}")
+                    }
+                }
+                if (overlapFields.isNotEmpty()) {
+                    println("[${Timestamp.from(Instant.now())}] WARN infra.prod.ping song.locked_save_diff_overlap: songId=$id fields=${overlapFields.joinToString(",")}")
+                }
+
                 // Применяем изменения к savedSong, как это делает applyFoundLyricsIfMissing и др.
                 // в Pass 281. savedSong содержит актуальное состояние из БД, this — то, что нужно
                 // записать. Diff между ними даст только реально изменённые поля.
@@ -6678,7 +6705,10 @@ class Song(
                         ).toFile()
                         .renameTo(Paths.get(settNewVersion.otherNameFlac).toFile())
                 }
-                settNewVersion.saveToDb()
+                // specs/357-folder-import-overwrite (FR-140): цикл по версиям может жить секунды
+                // (несколько переименований файлов между load и save). Параллельный SongEdit мог
+                // успеть обновить поля. saveToDbLocked() защищает от перезатирания.
+                settNewVersion.saveToDbLocked()
                 was2 = true
             }
             return Pair(was1, was2)
@@ -8548,7 +8578,10 @@ class Song(
                     if (skipPublished && song.onAir) return@forEach
                     song.fields[SongField.DATE] = ""
                     song.fields[SongField.TIME] = ""
-                    song.saveToDb()
+                    // specs/357-folder-import-overwrite (FR-140): цикл по listOfSongs — может жить
+                    // секунды (большая выборка автора). Параллельный SongEdit мог обновить поля.
+                    // saveToDbLocked() защищает от перезатирания.
+                    song.saveToDbLocked()
                 }
             } else {
                 var publishDate = SimpleDateFormat("dd.MM.yy").parse(startSong.date)
@@ -8565,7 +8598,8 @@ class Song(
                     song.fields[SongField.DATE] = SimpleDateFormat("dd.MM.yy").format(publishDate)
                     song.fields[SongField.TIME] = publishTime
 
-                    song.saveToDb()
+                    // specs/357-folder-import-overwrite (FR-140): см. комментарий выше.
+                    song.saveToDbLocked()
                 }
             }
         }
@@ -8735,7 +8769,11 @@ class Song(
                     wasChange = true
                 }
             }
-            if (wasChange) this.saveToDb()
+            // specs/357-folder-import-overwrite (FR-140): copyFieldsFromAnother может жить
+            // долго (между loadFromDbById и saveToDb — десятки полей + IO на переименование файлов
+            // через copyFile/renameTo). Параллельный SongEdit мог обновить поля. saveToDbLocked()
+            // защищает от перезатирания.
+            if (wasChange) this.saveToDbLocked()
         }
     }
 }

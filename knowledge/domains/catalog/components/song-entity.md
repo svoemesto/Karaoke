@@ -82,6 +82,19 @@ two-DB sync, поиск lyrics, авто-публикация.
 - `createProcessUploadToRemoteStore` — загрузить в remote MinIO.
 - И ещё ~10 типов (см. async-process-queue.md).
 
+### `saveToDb()` vs `saveToDbLocked()` (Pass 357)
+
+- **`saveToDb()`** — обычный путь сохранения через reflection-diff. Подходит для
+  коротких эндпоинтов (объект `song` живёт < 100 мс).
+- **`saveToDbLocked()`** — атомарная защита от race condition через
+  `SELECT ... FOR NO KEY UPDATE` + UPDATE в одной транзакции. Используется для
+  долгих процессов (KEY_BPM_FROM_FILE, DEMUCS2, Sheetsage, поиск текстов,
+  импорт файлов из папки), где параллельная ручная правка через `SongEdit.vue`
+  может перезатереть данные. Добавлен в [Pass 299](../../specs/299-song-fields-overwrite-race-condition/spec.md),
+  расширен в [Pass 357](../../specs/357-folder-import-overwrite/spec.md) — 30+ мест
+  переведены. Внутри пишет WARN `song.locked_save_diff_overlap` в `infra.prod.ping`
+  лог при обнаружении расхождения между in-memory и БД (операционная диагностика).
+
 ## Связь с другими компонентами
 
 - **HealthReport** ([health-report.md](../../health/components/health-report.md)) —

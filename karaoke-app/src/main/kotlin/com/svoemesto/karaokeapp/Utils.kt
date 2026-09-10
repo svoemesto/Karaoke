@@ -170,7 +170,10 @@ fun customFunction(
                                         storageApiClient = storageApiClient,
                                     ) ?: song
                                 songToSave.rootId = original.id
-                                songToSave.saveToDb()
+                                // specs/357-folder-import-overwrite (FR-140): findDuplicateOriginal —
+                                // цикл по songList может жить минуты (большая author-выборка).
+                                // Параллельный SongEdit мог обновить поля. saveToDbLocked() защищает.
+                                songToSave.saveToDbLocked()
                                 song.rootId = original.id
                             }
                             parentMatched++
@@ -338,7 +341,10 @@ fun findParentForAuthor(
                                         storageApiClient = storageApiClient,
                                     ) ?: song
                                 songToSave.rootId = original.id
-                                songToSave.saveToDb()
+                                // specs/357-folder-import-overwrite (FR-140): autoAssignOriginalByWaveform —
+                                // ffmpeg-сверка между load и save, десятки секунд. Параллельный SongEdit
+                                // мог обновить поля. saveToDbLocked() защищает.
+                                songToSave.saveToDbLocked()
                                 song.rootId = original.id
                             }
                             parentMatched++
@@ -1593,7 +1599,10 @@ fun updateBpmAndKey(
             println("${song.fileName} : bpm = $bpm, tone = $key")
             song.fields[SongField.BPM] = bpm.toString()
             song.fields[SongField.KEY] = key
-            song.saveToDb()
+            // specs/357-folder-import-overwrite (FR-140): applyBpmKeyFromCsv — CSV-парсинг + цикл
+            // по songList, может жить секунды. Параллельный SongEdit мог обновить поля.
+            // saveToDbLocked() защищает.
+            song.saveToDbLocked()
             counter++
         }
     }
@@ -1623,7 +1632,9 @@ fun updateBpmAndKeyLV(
                 println("${song.fileName} : bpm = $bpm, tone = $key")
                 song.fields[SongField.BPM] = bpm
                 song.fields[SongField.KEY] = key
-                song.saveToDb()
+                // specs/357-folder-import-overwrite (FR-140): sheetsage ML-вызов — десятки секунд
+                // между load и save. Параллельный SongEdit мог обновить поля. saveToDbLocked() защищает.
+                song.saveToDbLocked()
                 counterSuccess++
             } else {
                 counterFailed++
@@ -1704,7 +1715,9 @@ fun clearPreDublicates(
     songList.forEach { song ->
         if (song.tags == "D") {
             song.tags = ""
-            song.saveToDb()
+            // specs/357-folder-import-overwrite (FR-140): markAudio — цикл по songList, может жить
+            // секунды. Параллельный SongEdit мог обновить поля. saveToDbLocked() защищает.
+            song.saveToDbLocked()
             counter++
         }
     }
@@ -1733,10 +1746,13 @@ fun markDublicates(
                 }
             if (listDoubles.isNotEmpty()) {
                 song.tags = "D"
-                song.saveToDb()
+                // specs/357-folder-import-overwrite (FR-140): markDublicates — цикл по songList с
+                // двойным forEach. Объект song может жить секунды. saveToDbLocked() защищает.
+                song.saveToDbLocked()
                 listDoubles.forEach {
                     it.tags = "DD"
-                    it.saveToDb()
+                    // specs/357-folder-import-overwrite (FR-140): см. выше.
+                    it.saveToDbLocked()
                     counter++
                 }
             }
@@ -4123,7 +4139,9 @@ fun executeGetKeyBpmFromFile(params: Map<String, String>): Boolean {
     val (key, bpm) = song.getKeyBpmFromFile(reFind = false)
     song.fields[SongField.KEY] = key
     song.fields[SongField.BPM] = bpm.toString()
-    song.saveToDb()
+    // specs/357-folder-import-overwrite (FR-140): KEY_BPM_FROM_FILE — ffmpeg-декод + ML между
+    // load и save, десятки секунд. Параллельный SongEdit мог обновить поля. saveToDbLocked() защищает.
+    song.saveToDbLocked()
     return true
 }
 
@@ -4183,7 +4201,9 @@ fun executeForcedAlignMarkers(params: Map<String, String>): Boolean {
 
     if (song.idStatus == 3L) {
         song.fields[SongField.ID_STATUS] = "4"
-        song.saveToDb()
+        // specs/357-folder-import-overwrite (FR-140): whisper-транскрипция — десятки секунд
+        // между load и save. Параллельный SongEdit мог обновить id_status. saveToDbLocked() защищает.
+        song.saveToDbLocked()
     }
     return true
 }
@@ -4636,7 +4656,10 @@ fun findAndFillDublicates(
             newSong.formattedTextTabs = findedSong.formattedTextTabs
             newSong.formattedTextChords = findedSong.formattedTextChords
             newSong.fields[SongField.ID_STATUS] = "1"
-            newSong.saveToDb()
+            // specs/357-folder-import-overwrite (FR-140): autoAssignOriginalByWaveform — цикл по
+            // songList может жить минуты. Параллельный SongEdit мог обновить поля.
+            // saveToDbLocked() защищает.
+            newSong.saveToDbLocked()
             result++
         }
     }

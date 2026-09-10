@@ -481,7 +481,8 @@ object VkAutoPublishService {
                 }
                 song.vkAutoPublishState = VkAutoPublishState.PUBLISHED.code
                 song.vkAutoPublishLastError = ""
-                song.saveToDb()
+                // specs/357-folder-import-overwrite (FR-140): VkAutoPublishService publish — VK API call между load и save, секунды/десятки.
+                song.saveToDbLocked()
                 return@synchronized result
             }
 
@@ -536,7 +537,9 @@ object VkAutoPublishService {
         song.vkAutoPublishState = VkAutoPublishState.SEND_FAILED.code
         song.vkAutoPublishLastAttemptAt = nowIso8601()
         song.vkAutoPublishLastError = error
-        song.saveToDb()
+        // specs/357-folder-import-overwrite (FR-140): VkAutoPublishService error handler — VK API
+        // между load и save. Параллельный SongEdit мог обновить поля. saveToDbLocked() защищает.
+        song.saveToDbLocked()
     }
 
     private fun nowMoscow(): java.util.Date = Calendar.getInstance(TimeZone.getTimeZone("Europe/Moscow")).time

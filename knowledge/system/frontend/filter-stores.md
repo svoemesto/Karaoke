@@ -87,6 +87,27 @@ setWebvueProp('songsFilterId', value)  // на сервер через nginx-pro
 Основной store (`Songs/store.js`) — для `digest`, `current`, etc.
 Filter store — **отдельно**, чтобы не загрязнять основной кеш.
 
+### Решение 3: Публичный модуль (`karaoke-public`) — localStorage + transient auto-reset
+
+В **публичном модуле** (`karaoke-public/src/views/ZakromaView.vue`)
+паттерн другой: быстрый фильтр категорий альбомов хранится в
+`localStorage` (`km-zakroma-hidden-album-types`), потому что это
+**per-visitor** настройка, а не per-user (анонимные посетители не
+имеют server-side key/value).
+
+При открытии конкретного альбома через `?albumId=` (Pass 362, ADR
+[local-0008](../../adr/local-0008-effective-hidden-album-types.md)):
+- `effectiveHiddenAlbumTypes(zak)` (transient computed) исключает тип
+  открытого альбома из фильтра для текущего рендера.
+- `hiddenAlbumTypes` Set и `localStorage` НЕ мутируются.
+- Вся панель `.km-album-controls-bar` (переключатель «Сквозной/По
+  типам» + фильтр категорий) скрывается через `v-if` при
+  `selectedAlbumId != null`.
+
+Это «transient auto-reset»: пользователь явно кликнул на альбом —
+фильтр временно не блокирует его просмотр; после возврата фильтр в
+исходном состоянии.
+
 ## Связь
 
 - [vuex-patterns.md](vuex-patterns.md) — общий паттерн.

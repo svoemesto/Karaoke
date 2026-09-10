@@ -38,7 +38,15 @@
            (specs/012-entity-description-fields FR-023/024/025/026/027). Показывается только для
            одного выбранного реального автора — у "спецзаказных"/множественных наборов эта шапка
            не показывается (нет единого набора счётчиков типов). -->
-      <div v-if="zakromaAlbumTypeCounts.length > 0" class="km-album-controls-bar">
+      <!-- specs/363-album-type-filter-reset-on-album-open (issue #78, Clarifications Q1 + Pass 362 follow-up):
+               при открытии конкретного альбома через `?albumId=` панель «Сквозной/по типам +
+               фильтр категорий» теряет смысл (один альбом не требует ни режима отображения,
+               ни фильтра по типу) — скрываем её целиком. effectiveHiddenAlbumTypes делает
+               transient auto-reset, чтобы песни альбома показывались. -->
+      <div
+        v-if="zakromaAlbumTypeCounts.length > 0 && !selectedAlbumId"
+        class="km-album-controls-bar"
+      >
         <div class="km-album-controls-inner">
           <div class="km-theme-toggle km-album-mode-toggle">
             <button
@@ -726,11 +734,41 @@ export default {
       this.hiddenAlbumTypes = next
       localStorage.setItem('km-zakroma-hidden-album-types', JSON.stringify(Array.from(next)))
     },
+    /**
+     * specs/363-album-type-filter-reset-on-album-open (issue #78): когда открыт конкретный альбом
+     * (`?albumId=` в URL), его `albumType` авто-исключается из фильтра, чтобы песни альбома
+     * показывались, даже если посетитель ранее скрыл этот тип в `hiddenAlbumTypes`.
+     *
+     * Возвращает `Set<string>` для использования в `visibleAlbums(zak)` — чисто вычисляемое
+     * свойство, без побочных эффектов: `hiddenAlbumTypes` Set не мутируется, `localStorage` не
+     * пишется. После возврата на `/zakroma/{id}` без `?albumId=` фильтр автоматически возвращается
+     * к исходному (transient-state подход).
+     *
+     * Реактивен по `hiddenAlbumTypes` (data), `selectedAlbumId` (computed) и `zakroma` (Vuex getter).
+     *
+     * @param {Object} zak - автора-блок из стора `zakroma` (см. Vuex mapGetters)
+     * @returns {Set<string>} множество `albumType`-dbValue, которые считаются «скрытыми» для текущего рендера
+     */
+    effectiveHiddenAlbumTypes(zak) {
+      const albumId = this.selectedAlbumId
+      if (albumId == null) return this.hiddenAlbumTypes
+      const opened = (zak?.albums || []).find((alb) => Number(alb.albumId) === Number(albumId))
+      if (!opened || !this.hiddenAlbumTypes.has(opened.albumType)) {
+        return this.hiddenAlbumTypes
+      }
+      const next = new Set(this.hiddenAlbumTypes)
+      next.delete(opened.albumType)
+      return next
+    },
     /** Альбомы автора без скрытых по быстрому фильтру типов — общая точка для обоих режимов
      * отображения (визуальный порядок внутри — как пришло с бэка, уже отсортировано по sortOrder,
-     * см. US4). */
+     * см. US4).
+     *
+     * specs/363: при `?albumId=` использует `effectiveHiddenAlbumTypes` (см.) — auto-reset для
+     * открытого альбома. Без `?albumId=` — `hiddenAlbumTypes` напрямую (исходное поведение). */
     visibleAlbums(zak) {
-      return (zak.albums || []).filter((alb) => !this.hiddenAlbumTypes.has(alb.albumType))
+      const hidden = this.effectiveHiddenAlbumTypes(zak)
+      return (zak.albums || []).filter((alb) => !hidden.has(alb.albumType))
     },
     /** Единый плоский список элементов для рендера альбомного блока автора: в сквозном режиме —
      * только альбомы (уже отфильтрованные быстрым фильтром), в групповом — заголовок группы перед

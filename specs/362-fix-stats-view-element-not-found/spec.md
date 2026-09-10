@@ -323,12 +323,16 @@ endpoint'ы с фильтром `target`/`days`. Не должно быть 11 �
   переключении табов. Это решает race: «переключился на «Динамику»,
   потом на «КПИ» → «Динамика» загружается дольше всех → spinner
   «Динамики» блокирует UI при возврате».
-- **FR-006**: Хранилище `lastLoadedAt[tabIndex]` (Map в data() или
-  store) MUST использоваться для 60-секундного TTL-кеша на фронте.
-  При попытке загрузки таба проверяется `Date.now() - lastLoadedAt[tab]`
-  — если < `STATS_FRONT_TTL_MS` (= 60_000), HTTP НЕ отправляется,
-  данные берутся из store. Это и есть защита от race при
-  быстром переключении (см. спеку 174, US2).
+- **FR-006**: Хранилище `lastLoadedAt[tabIndex]` (Object<Number, Number>
+  в **Vuex store**, в state модуля `Stats`) MUST использоваться для
+  60-секундного TTL-кеша на фронте. Singleton-store обеспечивает
+  сохранение timestamps между mount/unmount компонента `StatsView` —
+  это критично для US3 acceptance scenario 2 (возврат на страницу
+  «Статистика» в течение 60 сек → 0 новых HTTP). При попытке
+  загрузки таба проверяется `Date.now() - lastLoadedAt[tab]` — если
+  < `STATS_FRONT_TTL_MS` (= 60_000), HTTP НЕ отправляется, данные
+  берутся из store. Это и есть защита от race при быстром
+  переключении (см. спеку 174, US2).
 - **FR-007**: При вызове `onTargetChange()` (переключение БД
   `local`/`remote`) MUST обновляться только **данные активной
   вкладки + данные с фильтром `days`** (на момент открытия
@@ -384,9 +388,12 @@ endpoint'ы с фильтром `target`/`days`. Не должно быть 11 �
 
 - **`activeTab` (Number, 0-7)**: индекс текущей вкладки в `BTabs`.
   Хранится в `data()`. По умолчанию `0` (KPI).
-- **`lastLoadedAt` (Map<Number, Number>)**: timestamp последней
-  успешной загрузки каждой вкладки. Хранится в `data()` или
-  в Vuex store (для persistence между mount/unmount).
+- **`lastLoadedAt` (Object<Number, Number>)**: timestamp последней
+  успешной загрузки каждой вкладки. Хранится в **Vuex store**
+  (`webvue3/src/components/Stats/store.js`, поле `state.lastLoadedAt`).
+  Singleton-store обеспечивает persistence между mount/unmount —
+  критично для US3 acceptance scenario 2 (возврат на страницу
+  в течение 60 сек).
 - **`STATS_FRONT_TTL_MS` (Number, default 60_000)**: TTL фронтового
   кеша в миллисекундах. Если `Date.now() - lastLoadedAt[tab] <
   STATS_FRONT_TTL_MS` → повторная загрузка НЕ выполняется.
@@ -436,10 +443,12 @@ endpoint'ы с фильтром `target`/`days`. Не должно быть 11 �
   `reloadAll()` (FR-003). Сохранение двух методов = footgun:
   разработчик может случайно вызвать старый. Спека 174 обещала
   удаление, но не сделала — мы выполняем это обещание.
-- Q: Хранить `lastLoadedAt` в `data()` или в Vuex store? → A:
-  **В `data()`** компонента `StatsView.vue` — `lastLoadedAt`
-  это UI-state, привязанный к жизненному циклу view. Vuex
-  store не нужен (нет persistence между сессиями).
+- Q: Хранить `lastLoadedAt` в `data()` или в Vuex store?
+  → A: **В Vuex store** (singleton, поле `state.lastLoadedAt`,
+  Object<Number, Number>). Singleton-store обеспечивает
+  persistence между mount/unmount компонента `StatsView.vue` —
+  это критично для US3 acceptance scenario 2 (возврат на
+  страницу «Статистика» в течение 60 сек → 0 новых HTTP-запросов).
 - Q: Что делать с уже закэшированными данными в store при
   переключении БД? → A: **Очищать** данные активной вкладки
   (`setStatsXxx(null/[]/0)`) при `onTargetChange()` — чтобы

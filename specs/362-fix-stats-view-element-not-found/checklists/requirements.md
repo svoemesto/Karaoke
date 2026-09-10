@@ -19,7 +19,8 @@
     «Администратор открывает / переключает / возвращается».
 - [x] All mandatory sections completed
   - OpenProject Tracking, Knowledge References, User Scenarios &
-    Testing, Requirements, Success Criteria, Clarifications,
+    Testing, Requirements, Success Criteria, Clarifications
+    (5 вопросов, все разрешены после Pass 362 clarify),
     Assumptions — все заполнены.
 
 ## Requirement Completeness

@@ -57,12 +57,32 @@ enum class AlbumType {
 - **`/api/albums/update`** — редактирование.
 - **`/api/albums/sort`** — drag-drop в модалке «Альбомы автора»
   (webvue3, компонент Authors) — переупорядочивает `sort_order`.
+- **`/api/public/authors/{id}/albums`** — публичный список альбомов
+  автора (Pass 359, spec 356) для страницы `/zakroma/{id}/albums`.
+
+## Frontend (karaoke-public)
+
+В публичном модуле `albumType` используется для:
+
+1. **Группировки альбомов** в режиме `grouped` (FR-024 спеки #012) —
+   `albumRenderItems(zak)` сортирует по `albumTypeCounts` (порядок
+   `AlbumType.ZAKROMA_GROUP_ORDER`: studio→single→live→compilation→
+   bootleg→archive→tribute).
+2. **Быстрого фильтра** — `hiddenAlbumTypes: Set<dbValue>` в
+   `localStorage.km-zakroma-hidden-album-types`, пользователь
+   вкл/выкл через UI-кнопки в шапке.
+3. **Transient auto-reset при `?albumId=`** (Pass 362, spec 363, ADR
+   [local-0008](../../../adr/local-0008-effective-hidden-album-types.md)):
+   `effectiveHiddenAlbumTypes(zak)` исключает тип открытого альбома
+   из фильтра на время просмотра — без побочных эффектов, `localStorage`
+   не пишется.
 
 ## Связь
 
 - [dictionaries.md#albumtype](dictionaries.md) — AlbumType enum.
 - [Song entity](song-entity.md) — `Song.albumId`.
 - [store-albums.md](../../../system/frontend/store-albums.md) — UI.
+- [local-0008-effective-hidden-album-types.md](../../../adr/local-0008-effective-hidden-album-types.md) — transient auto-reset паттерн.
 
 ## Известные TODO
 
@@ -72,3 +92,5 @@ enum class AlbumType {
 ## Changelog
 
 - **Pass 426** (2026-09-09): Initial. Автор: agent (Karaoke).
+- **Pass 362** (2026-09-10): Frontend-секция + ссылка на ADR local-0008
+  про transient auto-reset. Автор: agent (Karaoke).

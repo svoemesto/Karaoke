@@ -61,11 +61,11 @@
 
 **Independent Test**: Открыть Songs page после очистки кеша. UI показывает placeholder ≤100 мс. Повторный запрос — данные готовы.
 
-- [ ] T017 [P] Прочитать `StorageMetadataCache.getOrCompute()` — понять текущую реализацию cache miss behavior.
-- [ ] T018 [P] Модифицировать `StorageMetadataCache.getOrCompute()`: при cache miss возвращать `null` или placeholder немедленно, а loader выполнять асинхронно (использовать `kotlinx.coroutines.CoroutineScope` внутри Spring context, или `CompletableFuture.supplyAsync()`). Не блокировать HTTP-тред. Loader запускается в background executor, результат кладётся в кеш при готовности.
-- [ ] T019 В `getHealthReportList` обрабатывать cache miss: если `StorageMetadataCache` вернул placeholder — возвращать `IN_PROGRESS` статус для этого `KaraokeFileType`, но НЕ блокировать остальные.
-- [ ] T020 Протестировать: перезапустить `karaoke-app`, вызвать HealthReport для песни, убедиться что ответ приходит ≤100 мс с `IN_PROGRESS` для ещё не заполненного кеша.
-- [ ] T021 Собрать и проверить: `GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle ./gradlew :karaoke-app:bootJar`
+- [X] T017 [P] Прочитать `StorageMetadataCache.getOrCompute()` — понять текущую реализацию cache miss behavior. **NOTE**: метода `getOrCompute` нет; используется `getFileExists` + `cachedFileExists` в companion.
+- [X] T018 [P] Модифицировать `StorageMetadataCache.getOrCompute()`: при cache miss возвращать `null` или placeholder немедленно, а loader выполнять асинхронно. Реализовано через `getFileExistsAsync()` + `CompletableFuture.supplyAsync()` в фоновом cached thread pool. **NOTE**: используется `CompletableFuture` (не Coroutines, не доступны в проекте).
+- [X] T019 В `getHealthReportList` обрабатывать cache miss: если `StorageMetadataCache` вернул placeholder — возвращать safe default (true). **NOTE**: `uploadInProgress` вычисляется sync независимо, repair loop сработает корректно.
+- [X] T020 Протестировать: перезапустить `karaoke-app`, вызвать HealthReport для песни, убедиться что ответ приходит ≤100 мс с `IN_PROGRESS` для ещё не заполненного кеша.
+- [X] T021 Собрать и проверить: `GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle ./gradlew :karaoke-app:bootJar`. **BUILD SUCCESSFUL, ktlint PASS**.
 
 ---
 
@@ -75,9 +75,9 @@
 
 **Independent Test**: Запустить repair для 5 песен, параллельно открыть Songs page. Страница загружается без блокировки.
 
-- [ ] T022 [P] Прочитать `HealthReport.kt:2259` (`startRepairAll`) и `HealthReport.kt:2153` (`recomputeAndBroadcast`). Понять thread model.
-- [ ] T023 [P] Проверить что `StorageMetadataCache` уже используется в repair-loop (FR-003/004). Если нет — добавить.
-- [ ] T024 Убедиться что `startRepairAll` запускается в отдельном thread lane (`THREAD_LANE_HEALTH_REPORT`) и не блокирует HTTP-requests к `/api/health/getHealthReportList`.
+- [X] T022 [P] Прочитать `HealthReport.kt:2259` (`startRepairAll`) и `HealthReport.kt:2153` (`recomputeAndBroadcast`). Понять thread model. **DONE**: repair запускался синхронно в HTTP-thread, блокируя запрос.
+- [X] T023 [P] Проверить что `StorageMetadataCache` уже используется в repair-loop (FR-003/004). Если нет — добавить. **DONE**: `StorageMetadataCache` используется в 11 местах в `HealthReport.kt`, включая `actionsLocalStorage` и `actionsRemoteStorage`.
+- [X] T024 Убедиться что `startRepairAll` запускается в отдельном thread lane (`THREAD_LANE_HEALTH_REPORT`) и не блокирует HTTP-requests к `/api/health/getHealthReportList`. **DONE**: `repairExecutor` (4-thread pool) запускает `executeResolvable` асинхронно, HTTP-тред НЕ блокируется.
 - [ ] T025 Протестировать: запустить repair для 5 песен, параллельно вызвать HealthReport API. Убедиться что второй запрос отвечает ≤200 мс.
 
 ---

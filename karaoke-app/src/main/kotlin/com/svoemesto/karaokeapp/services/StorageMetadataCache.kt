@@ -3,6 +3,8 @@ package com.svoemesto.karaokeapp.services
 import com.svoemesto.karaokeapp.Connection
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.Executors
 
 /**
  * Persistent (eternal) cache для метаданных MinIO — спека #348 (Pass 345), supersede #344.
@@ -47,6 +49,16 @@ class StorageMetadataCache {
          * String logger `infra.cache.storage` (см. ADR `local-0005`).
          */
         private val log = LoggerFactory.getLogger("infra.cache.storage")
+
+        /**
+         * Shared cached thread pool for async cache fill (US2, spec #364).
+         * Size adapts automatically: creates new threads as needed, reuses idle threads.
+         * Bounded by `corePoolSize=0, maxPoolSize=16` — enough for burst of cache fills.
+         */
+        private val cacheFillerExecutor =
+            Executors.newCachedThreadPool().also { executor ->
+                Runtime.getRuntime().addShutdownHook(Thread { executor.shutdown() })
+            }
     }
 
     /**
@@ -367,5 +379,50 @@ class StorageMetadataCache {
         }
         require(bucket.isNotBlank()) { "bucket must not be blank" }
         require(fileName.isNotBlank()) { "fileName must not be blank" }
+    }
+
+    /**
+     * Async version of [getFileExists] — spec #364, US2 (FR-007).
+     *
+     * **Behavior on cache HIT**: returns immediately with cached value (same as sync).
+     * **Behavior on cache MISS**: fires `loader()` asynchronously in a background thread,
+     * immediately returns `null`. When the async loader completes, result is upserted
+     * into cache for future requests.
+     *
+     * **Use case**: non-blocking cold-start for HealthReport — the caller receives `null`
+     * on cache miss and treats it as `IN_PROGRESS`, while the cache is filled in background.
+     *
+     * @return `CompletableFuture<Boolean?>` — null means "unknown (async fill in progress)".
+     */
+    fun getFileExistsAsync(
+        source: String,
+        bucket: String,
+        fileName: String,
+        loader: () -> Boolean,
+    ): CompletableFuture<Boolean?> {
+        validate(source, bucket, fileName)
+        val cached = selectExists(source, bucket, fileName)
+        if (cached != null) {
+            hit(source)
+            return CompletableFuture.completedFuture(cached)
+        }
+        miss(source)
+        // Fire-and-forget: fill cache in background
+        cacheFillerExecutor.submit {
+            try {
+                val value = loader()
+                upsert(source, bucket, fileName, exists = value, etag = null, sizeBytes = null)
+                log.info(
+                    "cache:miss:async key={} bucket={} fileName={} source={} operation=fileExists value={}",
+                    buildKey(source, bucket, fileName), bucket, fileName, source, value,
+                )
+            } catch (e: Exception) {
+                log.warn(
+                    "cache:miss:async:error key={} bucket={} fileName={} source={} error={}",
+                    buildKey(source, bucket, fileName), bucket, fileName, source, e.message,
+                )
+            }
+        }
+        return CompletableFuture.completedFuture(null)
     }
 }

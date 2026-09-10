@@ -61,7 +61,7 @@ description: "Task list for Issue #79 — fix Element not found in StatsView"
 - [ ] T008 [P] [US1] Add module-level const `tabEndpoints` (Object<Number, Array<String>>) at top of `<script>` block in `webvue3/src/views/StatsView.vue` (mapping from FR-004)
 - [ ] T009 [US1] Replace `mounted()` in `webvue3/src/views/StatsView.vue` to call `loadDataForActiveTab(0)` instead of `reloadAll()` (FR-001)
 - [ ] T010 [US1] Add `watch: { activeTab(newTab) { this.loadDataForActiveTab(newTab) } }` to `StatsView.vue` (FR-002)
-- [ ] T011 [US1] Add `methods.loadDataForActiveTab(activeTabIndex)` method to `StatsView.vue` — iterates `tabEndpoints[activeTabIndex]` and dispatches corresponding `loadXxx` actions, with TTL check via `this.$store.getters.getLastLoadedAt(activeTabIndex)` (FR-004, FR-006)
+- [ ] T011 [US1] Add `methods.loadDataForActiveTab(activeTabIndex)` method to `StatsView.vue` — iterates `tabEndpoints[activeTabIndex]` and dispatches corresponding `loadXxx` actions. **БЕЗ TTL check на этом этапе** — TTL guard добавляется в T023 (Phase 5, US3). На этом этапе метод просто: 1) итерация по `tabEndpoints[activeTabIndex]`, 2) dispatch нужных `loadXxx` actions, 3) commit `setLastLoadedAt({ tab, ts: Date.now() })` после каждого успешного dispatch (FR-004, FR-006 частично)
 - [ ] T012 [US1] After each successful dispatch in `loadDataForActiveTab`, commit `setLastLoadedAt({ tab: activeTabIndex, ts: Date.now() })` (FR-006)
 - [ ] T013 [US1] Delete `reloadAll()` method (lines 572-583) from `StatsView.vue` (FR-003)
 - [ ] T014 [US1] Replace toolbar button text «Обновить всё» with «Обновить» and call `loadDataForActiveTab(this.activeTab)` on click (FR-003, SC-005)
@@ -84,7 +84,7 @@ HTTP. Только активная вкладка + endpoint'ы с фильтр
 ### Implementation for User Story 2
 
 - [ ] T018 [P] [US2] Add module-level const `dayDependentEndpoints = new Set(['summary', 'timeseries', 'by-type', 'by-detail'])` in `StatsView.vue`
-- [ ] T019 [P] [US2] Add module-level const `targetDependentEndpoints = new Set([...all 11 endpoints...])` in `StatsView.vue` (or use tabEndpoints' union)
+- [ ] T019 [P] [US2] Add module-level const `targetDependentEndpoints` в `StatsView.vue`. **Реализация**: derive через `Array.from(new Set(Object.values(tabEndpoints).flat()))` — взять union всех endpoint'ов из `tabEndpoints` (const уже есть после T008, Phase 3). Не дублировать литералы. Результат: `Set` из 11 endpoint'ов: `summary`, `monetization`, `timeseries`, `by-type`, `channels`, `by-detail`, `countries`, `referrers`, `top-users`, `top-listened`, `by-song`, `webevents`, `monetization-top-songs` (13 если считать монетизацию отдельно).
 - [ ] T020 [US2] Modify `onTargetChange()` in `StatsView.vue` — first clear active tab data via `clearActiveTabData(this.activeTab)`, then call `loadDataForActiveTab(this.activeTab)` (FR-007)
 - [ ] T021 [US2] Add `methods.clearActiveTabData(activeTabIndex)` — dispatches `setStatsXxx(null/[]/0)` for endpoints of this tab (FR-007)
 - [ ] T022 [US2] Modify `onDaysChange()` in `StatsView.vue` — only dispatch `loadStatsSummary`, `loadStatsTimeSeries`, `loadStatsBreakdown` if `activeTab` is in `{0, 2, 3}` (i.e. endpoint of this tab is in `dayDependentEndpoints`) (FR-008)
@@ -103,7 +103,7 @@ HTTP. Только активная вкладка + endpoint'ы с фильтр
 
 ### Implementation for User Story 3
 
-- [ ] T023 [US3] In `loadDataForActiveTab(activeTabIndex)`, add early-return guard: `const age = Date.now() - this.$store.getters.getLastLoadedAt(activeTabIndex); if (age < STATS_FRONT_TTL_MS) return;` (FR-006, US3)
+- [ ] T023 [US3] Modify `loadDataForActiveTab(activeTabIndex)` (added in T011) — add early-return guard в самое начало метода: `const age = Date.now() - this.$store.getters.getLastLoadedAt(activeTabIndex); if (age < STATS_FRONT_TTL_MS) { console.debug('[Stats] TTL hit, skipping load', { tab: activeTabIndex, age }); return; }`. Это и есть реализация FR-006 (TTL check) — без этого изменения метод T011 всегда отправляет HTTP, даже если данные свежие (FR-006, US3)
 - [ ] T024 [US3] Verify that `Date.now() - lastLoadedAt[tab] < 60_000` short-circuits HTTP for already-loaded tabs (manual test)
 - [ ] T025 [US3] Verify that returning to «Stats» page after 60+ seconds triggers fresh HTTP load (TTL expired)
 
@@ -143,7 +143,7 @@ HTTP. Только активная вкладка + endpoint'ы с фильтр
 
 - **User Story 1 (P1)**: Can start after Phase 2 — no dependencies on other stories. **MVP**.
 - **User Story 2 (P2)**: Can start after Phase 3 (US1) — reuses `loadDataForActiveTab` method.
-- **User Story 3 (P2)**: Can start after Phase 3 (US1) — extends `loadDataForActiveTab` with TTL guard.
+- **User Story 3 (P2)**: Can start after Phase 3 (US1) — extends `loadDataForActiveTab` (T011) with TTL guard в начало метода.
 
 ### Within Each User Story
 

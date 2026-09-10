@@ -66,6 +66,10 @@ export default {
     statsBySongPage: 1,
     webEventsPage: 1,
     topListenedPage: 1,
+    // Timestamp последней загрузки каждой вкладки (ms). Используется для 60s TTL на фронте
+    // (см. spec 362 — fix Element not found в StatsView). Хранится в store (singleton),
+    // чтобы timestamps сохранялись между mount/unmount компонента StatsView.
+    lastLoadedAt: {},
   },
   getters: {
     getStatsTarget(state) {
@@ -185,6 +189,13 @@ export default {
     getTopListenedPage(state) {
       return state.topListenedPage
     },
+    /**
+     * Возвращает timestamp последней загрузки вкладки `tab` (ms).
+     * 0 — вкладка ещё не загружалась в этой сессии.
+     * @param {Number} tab — индекс вкладки (0..7)
+     * @returns {Number}
+     */
+    getLastLoadedAt: (state) => (tab) => state.lastLoadedAt[tab] || 0,
   },
   mutations: {
     setStatsTarget(state, target) {
@@ -303,6 +314,14 @@ export default {
     },
     setTopListenedPage(state, v) {
       state.topListenedPage = v
+    },
+    /**
+     * Записать timestamp последней загрузки вкладки.
+     * @param {Object} state
+     * @param {Object} payload — { tab: Number, ts: Number }
+     */
+    setLastLoadedAt(state, { tab, ts }) {
+      state.lastLoadedAt = { ...state.lastLoadedAt, [tab]: ts }
     },
   },
   actions: {

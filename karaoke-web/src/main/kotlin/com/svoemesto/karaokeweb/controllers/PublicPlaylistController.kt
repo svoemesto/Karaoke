@@ -393,13 +393,26 @@ class PublicPlaylistController(
 
     // На каждую запрошенную песню: favorited (в «Избранном») + playlistIds (все плейлисты с этой
     // песней, включая «Избранное»). Фронт сам решает, что показывать для красной/синей иконки.
-    @GetMapping("/playlists/membership")
-    fun membership(
-        @RequestParam ids: String,
-        request: HttpServletRequest,
-    ): ResponseEntity<Any> {
-        val user = currentUser(request)
-        val songIds = ids.split(",").mapNotNull { it.trim().toLongOrNull() }.distinct()
+    //
+    // Pass 361 (specs/361-playlists-membership-uri-length, OpenProject #77):
+    // добавлен POST-эндпоинт с JSON-body — обход 414 Request-URI Too Large на крупных
+    // авторах (~2500+ песен, URL > 8 КБ). Старый GET сохранён для backward-compat (US3
+    // в спеке). Оба метода возвращают идентичный JSON через общий private helper.
+
+    /**
+     * Общий helper для membership-ответа. Дедуплицирует ids, фильтрует невалидные
+     * (≤ 0), и возвращает карту `Map<songId, {favorited, playlistIds}>`.
+     *
+     * @param user — текущий пользователь (уже авторизованный, SiteAuthInterceptor).
+     * @param songIds — список ID песен; дедупликация и фильтрация внутри.
+     * @return `Map<String, Any>` с единственным ключом `"items"` для JSON-ответа.
+     * @see specs/361-playlists-membership-uri-length/contracts/api-public-account-playlists-membership.md
+     */
+    private fun buildMembershipResponse(
+        user: SiteUser,
+        songIds: List<Long>,
+    ): Map<String, Any> {
+        val cleanedIds = songIds.distinct().filter { it > 0 }
         val playlists = loadPlaylists(user.id)
         val favId = playlists.firstOrNull { it.isFavorites }?.id
         // Не-избранные плейлисты в membership отдаём только премиуму — иначе синяя иконка «зажглась»
@@ -412,7 +425,7 @@ class PublicPlaylistController(
             }
         val songToPlaylists = SitePlaylistItem.songIdsInPlaylists(playlists.map { it.id }, db)
         val items =
-            songIds.associate { songId ->
+            cleanedIds.associate { songId ->
                 val pls = songToPlaylists[songId] ?: emptyList()
                 songId.toString() to
                     mapOf(
@@ -420,7 +433,45 @@ class PublicPlaylistController(
                         "playlistIds" to pls.filter { it in visibleNonFav },
                     )
             }
-        return ResponseEntity.ok(mapOf("items" to items))
+        return mapOf("items" to items)
+    }
+
+    /**
+     * GET-эндпоинт (DEPRECATED, сохранён для backward-compat, см. spec US3).
+     * CSV `ids` в query-string. На ~1350+ id превышает 8 КБ → 414. Клиенты
+     * должны переключиться на [membershipPost] (POST с JSON-body).
+     *
+     * @param ids — CSV songId (например, `22982,22983,22984`).
+     * @see docs/features/playlist-membership.md
+     */
+    @GetMapping("/playlists/membership")
+    fun membership(
+        @RequestParam ids: String,
+        request: HttpServletRequest,
+    ): ResponseEntity<Any> {
+        val user = currentUser(request)
+        val songIds = ids.split(",").mapNotNull { it.trim().toLongOrNull() }
+        return ResponseEntity.ok(buildMembershipResponse(user, songIds))
+    }
+
+    /**
+     * POST-эндпоинт (рекомендуемый, Pass 361). JSON-body `{"ids": [22982, 22983, ...]}`.
+     * Без лимита на размер (ограничен `nginx client_max_body_size`, default = 1m).
+     *
+     * Заменяет GET на крупных авторах — решает OpenProject #77
+     * (414 Request-URI Too Large при ~2500 песен у автора «Машина Времени»).
+     *
+     * @param request — DTO с полем `ids: List<Long>`.
+     * @see docs/features/playlist-membership.md
+     * @see specs/361-playlists-membership-uri-length/contracts/api-public-account-playlists-membership.md
+     */
+    @PostMapping("/playlists/membership")
+    fun membershipPost(
+        @RequestBody request: com.svoemesto.karaokeweb.dto.MembershipRequest,
+        httpRequest: HttpServletRequest,
+    ): ResponseEntity<Any> {
+        val user = currentUser(httpRequest)
+        return ResponseEntity.ok(buildMembershipResponse(user, request.ids))
     }
 
     // ---- Pass 239 (specs/239-zakroma-author-songs-batch-render) -------------------------------

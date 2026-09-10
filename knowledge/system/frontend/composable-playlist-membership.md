@@ -30,8 +30,14 @@ const loading = reactive({})
 
 ## Hot paths
 
-- **`/api/public/playlist/membership`** — какие плейлисты содержат
-  песню.
+- **`POST /api/public/account/playlists/membership`** (рекомендуемый,
+  Pass 361) — какие плейлисты содержат песню. JSON body `{"ids":[...]}`.
+  Используется `usePlaylistMembership.load()` через `authPostJson()`
+  (см. `services/authApi.js`).
+- **`GET /api/public/account/playlists/membership`** (DEPRECATED,
+  backward-compat) — старый CSV-эндпоинт, ломается на ~1350+ id (414).
+  См. [ADR-0009](../../adr/0009-get-vs-post-large-payload.md) и
+  [specs/361](../../../specs/361-playlists-membership-uri-length/spec.md).
 - **`/api/public/playlist/{id}/add`** — добавить.
 - **`/api/public/playlist/{id}/remove`** — удалить.
 
@@ -43,4 +49,9 @@ const loading = reactive({})
 
 ## Changelog
 
+- **Pass 361** (2026-09-10): Hot paths обновлены — `playlists/membership`
+  теперь использует POST (`authPostJson`) вместо GET. См.
+  [ADR-0009](../../adr/0009-get-vs-post-large-payload.md) +
+  [specs/361](../../../specs/361-playlists-membership-uri-length/spec.md)
+  (Issue OpenProject #77).
 - **Pass 387** (2026-09-09): Initial. Автор: agent (Karaoke).

@@ -66,6 +66,10 @@
 - `POST /{id}/remove/{songId}` — убрать.
 - `POST /{id}/reorder` — переставить.
 - ... ещё 8 endpoints.
+- `GET /playlists/membership` — DEPRECATED (Pass 361, см. [ADR-0009](../../../adr/0009-get-vs-post-large-payload.md)).
+- `POST /playlists/membership` — рекомендуемый (Pass 361, обход
+  HTTP 414 на крупных авторах, см. [specs/361](../../../../specs/361-playlists-membership-uri-length/spec.md)).
+  Оба делегируют в общий `buildMembershipResponse(user, songIds)`.
 
 ## 6. `PublicSettingsWebController` (3 endpoints, 328 строк)
 

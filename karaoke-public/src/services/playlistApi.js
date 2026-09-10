@@ -1,27 +1,27 @@
 // Клиент «Избранное»/«Плейлисты». Поверх authApi (тело ответа доступно и на 4xx — нужно для
 // limit_reached/premium_required). Токен читаем из localStorage напрямую (как usePlayerReadiness),
-// чтобы не тянуть useAuth в низкоуровневый сервис. GET-параметры собираем в query-string вручную —
-// authGet отправляет только path (см. authApi.js / promisedXMLHttpRequest quirk).
-import { authGet, authPost } from './authApi'
+// чтобы не тянуть useAuth в низкоуровневый сервис.
+import { authGet, authPost, authPostJson } from './authApi'
 
 function token() {
   return localStorage.getItem('km_auth_token') || ''
 }
 
-function qs(params) {
-  const pairs = []
-  for (const k in params) {
-    if (params[k] === undefined || params[k] === null) continue
-    pairs.push(encodeURIComponent(k) + '=' + encodeURIComponent(params[k]))
-  }
-  return pairs.length ? '?' + pairs.join('&') : ''
-}
-
 const BASE = '/api/public/account'
 
 // ---- Избранное / членство --------------------------------------------------------------------
+/**
+ * Pass 361 (specs/361-playlists-membership-uri-length, OpenProject #77):
+ * переход с GET на POST — обход 414 Request-URI Too Large на крупных авторах
+ * (~2500+ песен, URL > 8 КБ). Старый GET-эндпоинт оставлен на бэке для backward-compat,
+ * фронт использует POST с JSON-body `{"ids": [...]}`.
+ *
+ * @param {number[]} ids — список id песен.
+ * @returns {Promise<{status: number, body: {items: {[songId]: {favorited: boolean, playlistIds: number[]}}}}>}
+ * @see specs/361-playlists-membership-uri-length/contracts/api-public-account-playlists-membership.md
+ */
 export function fetchMembership(ids) {
-  return authGet(`${BASE}/playlists/membership${qs({ ids: ids.join(',') })}`, token())
+  return authPostJson(`${BASE}/playlists/membership`, { ids }, token())
 }
 /**
  * Pass 239 (specs/239-zakroma-author-songs-batch-render): плоский список id песен в «Избранном».

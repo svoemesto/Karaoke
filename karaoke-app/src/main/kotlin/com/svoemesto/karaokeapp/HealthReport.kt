@@ -82,10 +82,6 @@ data class HealthReport(
         @Volatile
         var storageCircuitBreaker: StorageCircuitBreaker? = null
 
-        /** SLF4J logger для замера latency: infra.health.report.duration */
-        @JvmStatic
-        val durationLog: Logger = LoggerFactory.getLogger("infra.health.report.duration")
-
         /** SLF4J logger для circuit breaker events: infra.health.circuit */
         @JvmStatic
         val circuitLog: Logger = LoggerFactory.getLogger("infra.health.circuit")
@@ -1386,7 +1382,6 @@ data class HealthReport(
                         description = karaokeFileType.name
 
                         karaokeFileType.locations.forEach { location ->
-                            val startNanos = System.nanoTime()
                             val actions =
                                 actions(
                                     karaokeFileType = karaokeFileType,
@@ -1410,13 +1405,6 @@ data class HealthReport(
                                     storageService = storageService,
                                     storageApiClient = storageApiClient,
                                 )
-                            val durationMs = (System.nanoTime() - startNanos) / 1_000_000
-                            durationLog.info(
-                                "type={} location={} operation=actions durationMs={}",
-                                karaokeFileType.name,
-                                location.name,
-                                durationMs,
-                            )
                             result.addAll(actions)
                         }
                     }
@@ -1501,7 +1489,6 @@ data class HealthReport(
                         }
 
                         karaokeFileType.locations.forEach { location ->
-                            val startNanos = System.nanoTime()
                             val actions =
                                 actions(
                                     karaokeFileType = karaokeFileType,
@@ -1525,13 +1512,6 @@ data class HealthReport(
                                     storageService = storageService,
                                     storageApiClient = storageApiClient,
                                 )
-                            val durationMs = (System.nanoTime() - startNanos) / 1_000_000
-                            durationLog.info(
-                                "type={} location={} operation=actions durationMs={}",
-                                karaokeFileType.name,
-                                location.name,
-                                durationMs,
-                            )
                             result.addAll(actions)
                         }
                     }
@@ -1611,7 +1591,6 @@ data class HealthReport(
                         }
 
                         karaokeFileType.locations.forEach { location ->
-                            val startNanos = System.nanoTime()
                             val actions =
                                 actions(
                                     karaokeFileType = karaokeFileType,
@@ -1635,13 +1614,6 @@ data class HealthReport(
                                     storageService = storageService,
                                     storageApiClient = storageApiClient,
                                 )
-                            val durationMs = (System.nanoTime() - startNanos) / 1_000_000
-                            durationLog.info(
-                                "type={} location={} operation=actions durationMs={}",
-                                karaokeFileType.name,
-                                location.name,
-                                durationMs,
-                            )
                             result.addAll(actions)
                         }
                     }
@@ -1671,7 +1643,6 @@ data class HealthReport(
                         }
 
                         karaokeFileType.locations.forEach { location ->
-                            val startNanos = System.nanoTime()
                             val actions =
                                 actions(
                                     karaokeFileType = karaokeFileType,
@@ -1695,13 +1666,6 @@ data class HealthReport(
                                     storageService = storageService,
                                     storageApiClient = storageApiClient,
                                 )
-                            val durationMs = (System.nanoTime() - startNanos) / 1_000_000
-                            durationLog.info(
-                                "type={} location={} operation=actions durationMs={}",
-                                karaokeFileType.name,
-                                location.name,
-                                durationMs,
-                            )
                             result.addAll(actions)
                         }
                     }
@@ -1731,7 +1695,6 @@ data class HealthReport(
                         }
 
                         karaokeFileType.locations.forEach { location ->
-                            val startNanos = System.nanoTime()
                             val actions =
                                 actions(
                                     karaokeFileType = karaokeFileType,
@@ -1755,13 +1718,6 @@ data class HealthReport(
                                     storageService = storageService,
                                     storageApiClient = storageApiClient,
                                 )
-                            val durationMs = (System.nanoTime() - startNanos) / 1_000_000
-                            durationLog.info(
-                                "type={} location={} operation=actions durationMs={}",
-                                karaokeFileType.name,
-                                location.name,
-                                durationMs,
-                            )
                             result.addAll(actions)
                         }
                     }
@@ -1791,7 +1747,6 @@ data class HealthReport(
                         }
 
                         karaokeFileType.locations.forEach { location ->
-                            val startNanos = System.nanoTime()
                             val actions =
                                 actions(
                                     karaokeFileType = karaokeFileType,
@@ -1815,13 +1770,6 @@ data class HealthReport(
                                     storageService = storageService,
                                     storageApiClient = storageApiClient,
                                 )
-                            val durationMs = (System.nanoTime() - startNanos) / 1_000_000
-                            durationLog.info(
-                                "type={} location={} operation=actions durationMs={}",
-                                karaokeFileType.name,
-                                location.name,
-                                durationMs,
-                            )
                             result.addAll(actions)
                         }
                     }
@@ -1851,7 +1799,6 @@ data class HealthReport(
                         }
 
                         karaokeFileType.locations.forEach { location ->
-                            val startNanos = System.nanoTime()
                             val actions =
                                 actions(
                                     karaokeFileType = karaokeFileType,
@@ -1875,13 +1822,6 @@ data class HealthReport(
                                     storageService = storageService,
                                     storageApiClient = storageApiClient,
                                 )
-                            val durationMs = (System.nanoTime() - startNanos) / 1_000_000
-                            durationLog.info(
-                                "type={} location={} operation=actions durationMs={}",
-                                karaokeFileType.name,
-                                location.name,
-                                durationMs,
-                            )
                             result.addAll(actions)
                         }
                     }
@@ -1911,7 +1851,6 @@ data class HealthReport(
                         }
 
                         karaokeFileType.locations.forEach { location ->
-                            val startNanos = System.nanoTime()
                             val actions =
                                 actions(
                                     karaokeFileType = karaokeFileType,
@@ -1935,13 +1874,6 @@ data class HealthReport(
                                     storageService = storageService,
                                     storageApiClient = storageApiClient,
                                 )
-                            val durationMs = (System.nanoTime() - startNanos) / 1_000_000
-                            durationLog.info(
-                                "type={} location={} operation=actions durationMs={}",
-                                karaokeFileType.name,
-                                location.name,
-                                durationMs,
-                            )
                             result.addAll(actions)
                         }
                     }
@@ -1971,7 +1903,6 @@ data class HealthReport(
                         }
 
                         karaokeFileType.locations.forEach { location ->
-                            val startNanos = System.nanoTime()
                             val actions =
                                 actions(
                                     karaokeFileType = karaokeFileType,
@@ -1995,13 +1926,6 @@ data class HealthReport(
                                     storageService = storageService,
                                     storageApiClient = storageApiClient,
                                 )
-                            val durationMs = (System.nanoTime() - startNanos) / 1_000_000
-                            durationLog.info(
-                                "type={} location={} operation=actions durationMs={}",
-                                karaokeFileType.name,
-                                location.name,
-                                durationMs,
-                            )
                             result.addAll(actions)
                         }
                     }
@@ -2031,7 +1955,6 @@ data class HealthReport(
                         }
 
                         karaokeFileType.locations.forEach { location ->
-                            val startNanos = System.nanoTime()
                             val actions =
                                 actions(
                                     karaokeFileType = karaokeFileType,
@@ -2055,13 +1978,6 @@ data class HealthReport(
                                     storageService = storageService,
                                     storageApiClient = storageApiClient,
                                 )
-                            val durationMs = (System.nanoTime() - startNanos) / 1_000_000
-                            durationLog.info(
-                                "type={} location={} operation=actions durationMs={}",
-                                karaokeFileType.name,
-                                location.name,
-                                durationMs,
-                            )
                             result.addAll(actions)
                         }
                     }
@@ -2091,7 +2007,6 @@ data class HealthReport(
                         }
 
                         karaokeFileType.locations.forEach { location ->
-                            val startNanos = System.nanoTime()
                             val actions =
                                 actions(
                                     karaokeFileType = karaokeFileType,
@@ -2115,13 +2030,6 @@ data class HealthReport(
                                     storageService = storageService,
                                     storageApiClient = storageApiClient,
                                 )
-                            val durationMs = (System.nanoTime() - startNanos) / 1_000_000
-                            durationLog.info(
-                                "type={} location={} operation=actions durationMs={}",
-                                karaokeFileType.name,
-                                location.name,
-                                durationMs,
-                            )
                             result.addAll(actions)
                         }
                     }
@@ -2137,7 +2045,6 @@ data class HealthReport(
                         canCreate = false // файл невозможно создать автоматически
 
                         karaokeFileType.locations.forEach { location ->
-                            val startNanos = System.nanoTime()
                             val actions =
                                 actions(
                                     karaokeFileType = karaokeFileType,
@@ -2161,13 +2068,6 @@ data class HealthReport(
                                     storageService = storageService,
                                     storageApiClient = storageApiClient,
                                 )
-                            val durationMs = (System.nanoTime() - startNanos) / 1_000_000
-                            durationLog.info(
-                                "type={} location={} operation=actions durationMs={}",
-                                karaokeFileType.name,
-                                location.name,
-                                durationMs,
-                            )
                             result.addAll(actions)
                         }
                     }
@@ -2190,7 +2090,6 @@ data class HealthReport(
                         actionToCreate = { createAlbumPreview(song = song) }
 
                         karaokeFileType.locations.forEach { location ->
-                            val startNanos = System.nanoTime()
                             val actions =
                                 actions(
                                     karaokeFileType = karaokeFileType,
@@ -2214,13 +2113,6 @@ data class HealthReport(
                                     storageService = storageService,
                                     storageApiClient = storageApiClient,
                                 )
-                            val durationMs = (System.nanoTime() - startNanos) / 1_000_000
-                            durationLog.info(
-                                "type={} location={} operation=actions durationMs={}",
-                                karaokeFileType.name,
-                                location.name,
-                                durationMs,
-                            )
                             result.addAll(actions)
                         }
                     }
@@ -2235,7 +2127,6 @@ data class HealthReport(
                         canCreate = false // файл невозможно создать автоматически
 
                         karaokeFileType.locations.forEach { location ->
-                            val startNanos = System.nanoTime()
                             val actions =
                                 actions(
                                     karaokeFileType = karaokeFileType,
@@ -2259,13 +2150,6 @@ data class HealthReport(
                                     storageService = storageService,
                                     storageApiClient = storageApiClient,
                                 )
-                            val durationMs = (System.nanoTime() - startNanos) / 1_000_000
-                            durationLog.info(
-                                "type={} location={} operation=actions durationMs={}",
-                                karaokeFileType.name,
-                                location.name,
-                                durationMs,
-                            )
                             result.addAll(actions)
                         }
                     }
@@ -2287,7 +2171,6 @@ data class HealthReport(
                         actionToCreate = { createAuthorPreview(song = song) }
 
                         karaokeFileType.locations.forEach { location ->
-                            val startNanos = System.nanoTime()
                             val actions =
                                 actions(
                                     karaokeFileType = karaokeFileType,
@@ -2311,13 +2194,6 @@ data class HealthReport(
                                     storageService = storageService,
                                     storageApiClient = storageApiClient,
                                 )
-                            val durationMs = (System.nanoTime() - startNanos) / 1_000_000
-                            durationLog.info(
-                                "type={} location={} operation=actions durationMs={}",
-                                karaokeFileType.name,
-                                location.name,
-                                durationMs,
-                            )
                             result.addAll(actions)
                         }
                     }

@@ -130,6 +130,74 @@ export default {
     getSongsFilterSongType(state) {
       return state.songsFilterSongType
     },
+    /**
+     * specs/358-rows-per-page: агрегирующий геттер, возвращает объект `params`
+     * в формате, который принимает `loadSongsDigests`. Используется в
+     * `SongsTable.onPerPageChange` чтобы сохранить текущие фильтры при
+     * изменении количества строк.
+     */
+    getSongsFilter(state) {
+      const params = {}
+      if (state.songsFilterId) params.filterId = state.songsFilterId
+      if (state.songsFilterSongName) params.filterSongName = state.songsFilterSongName
+      if (state.songsFilterSongAuthor) params.filterAuthor = state.songsFilterSongAuthor
+      if (state.songsFilterSongAlbum) params.filterAlbum = state.songsFilterSongAlbum
+      if (state.songsFilterPublishDate) params.filterDate = state.songsFilterPublishDate
+      if (state.songsFilterPublishTime) params.filterTime = state.songsFilterPublishTime
+      if (state.songsFilterIdStatus) params.filterStatus = state.songsFilterIdStatus
+      if (state.songsFilterCountVoices) params.filterCountVoices = state.songsFilterCountVoices
+      if (state.songsFilterTags) params.filterTags = state.songsFilterTags
+      if (state.songsFilterResultVersion !== '')
+        params.filterResultVersion = state.songsFilterResultVersion
+      if (state.songsFilterVersionBoosty !== '')
+        params.filterVersionBoosty = state.songsFilterVersionBoosty
+      if (state.songsFilterVersionBoostyFiles !== '')
+        params.filterVersionBoostyFiles = state.songsFilterVersionBoostyFiles
+      if (state.songsFilterVersionSponsr !== '')
+        params.filterVersionSponsr = state.songsFilterVersionSponsr
+      if (state.songsFilterVersionDzenKaraoke !== '')
+        params.filterVersionDzenKaraoke = state.songsFilterVersionDzenKaraoke
+      if (state.songsFilterVersionVkKaraoke !== '')
+        params.filterVersionVkKaraoke = state.songsFilterVersionVkKaraoke
+      if (state.songsFilterVersionTelegramKaraoke !== '')
+        params.filterVersionTelegramKaraoke = state.songsFilterVersionTelegramKaraoke
+      if (state.songsFilterVersionPlKaraoke !== '')
+        params.filterVersionPlKaraoke = state.songsFilterVersionPlKaraoke
+      if (state.songsFilterVersionMaxKaraoke !== '')
+        params.filterVersionMaxKaraoke = state.songsFilterVersionMaxKaraoke
+      if (state.songsFilterRate !== undefined && state.songsFilterRate !== '')
+        params.filterRate = state.songsFilterRate
+      if (state.songsFilterIsSync !== undefined && state.songsFilterIsSync !== '')
+        params.filterIsSync = state.songsFilterIsSync
+      if (
+        state.songsFilterStatusProcessLyrics !== undefined &&
+        state.songsFilterStatusProcessLyrics !== ''
+      )
+        params.filterStatusProcessLyrics = state.songsFilterStatusProcessLyrics
+      if (
+        state.songsFilterStatusProcessKaraoke !== undefined &&
+        state.songsFilterStatusProcessKaraoke !== ''
+      )
+        params.filterStatusProcessKaraoke = state.songsFilterStatusProcessKaraoke
+      if (
+        state.songsFilterStatusProcessDemo !== undefined &&
+        state.songsFilterStatusProcessDemo !== ''
+      )
+        params.filterStatusProcessDemo = state.songsFilterStatusProcessDemo
+      if (state.songsFilterRootId) params.filterRootId = state.songsFilterRootId
+      if (state.songsFilterAudioParentId)
+        params.filterAudioParentId = state.songsFilterAudioParentId
+      if (state.songsFilterFlagFree !== undefined && state.songsFilterFlagFree !== '')
+        params.filterFlagFree = state.songsFilterFlagFree
+      if (
+        state.songsFilterAssignmentStatus !== undefined &&
+        state.songsFilterAssignmentStatus !== ''
+      )
+        params.filterAssignmentStatus = state.songsFilterAssignmentStatus
+      if (state.songsFilterSongType !== undefined && state.songsFilterSongType !== '')
+        params.filterSongType = state.songsFilterSongType
+      return params
+    },
   },
   mutations: {
     updateSongsHistory(state, result) {

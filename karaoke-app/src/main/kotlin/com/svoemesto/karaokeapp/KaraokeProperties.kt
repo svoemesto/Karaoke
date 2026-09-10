@@ -2237,4 +2237,19 @@ val listKaraokeProperties =
                     "При превышении — PSQLException с SQL state 55P03 (lock timeout), saveToDbLocked возвращает false. " +
                     "Default 5000 (5 сек) — оптимальный баланс между deadlock-устойчивостью и пользовательским опытом.",
         ),
+        // specs/358-rows-per-page: количество строк на странице для admin-таблиц.
+        // Глобально per-table (НЕ per-user) — все админы видят одно значение.
+        KaraokeProperty(key = "ui.songs.rows_per_page", defaultValue = 50, description = "Количество строк на странице в таблице «Песни»"),
+        KaraokeProperty(key = "ui.authors.rows_per_page", defaultValue = 30, description = "Количество строк на странице в таблице «Авторы»"),
+        KaraokeProperty(key = "ui.albums.rows_per_page", defaultValue = 30, description = "Количество строк на странице в таблице «Альбомы»"),
+        KaraokeProperty(key = "ui.pictures.rows_per_page", defaultValue = 30, description = "Количество строк на странице в таблице «Картинки»"),
+        KaraokeProperty(key = "ui.site_users.rows_per_page", defaultValue = 30, description = "Количество строк на странице в таблице «Пользователи сайта»"),
+        KaraokeProperty(key = "ui.subscriptions.rows_per_page", defaultValue = 25, description = "Количество строк на странице в таблице «Подписки»"),
+        KaraokeProperty(key = "ui.share_links.rows_per_page", defaultValue = 25, description = "Количество строк на странице в таблице «Шаринг-ссылки»"),
+        KaraokeProperty(key = "ui.dictionaries.rows_per_page", defaultValue = 30, description = "Количество строк на странице в таблице «Справочники»"),
+        KaraokeProperty(key = "ui.properties.rows_per_page", defaultValue = 50, description = "Количество строк на странице в таблице «Свойства»"),
+        KaraokeProperty(key = "ui.site_playlists.rows_per_page", defaultValue = 30, description = "Количество строк на странице в таблице «Плейлисты сайта»"),
+        KaraokeProperty(key = "ui.listening_history.rows_per_page", defaultValue = 500, description = "Количество строк на странице в таблице «История прослушиваний» (передаётся как pageSize в /api/listeninghistory/digest)"),
+        KaraokeProperty(key = "ui.processes.rows_per_page", defaultValue = 50, description = "Количество строк на странице в таблице «Процессы» (передаётся как limit в /api/admin/processes)"),
+        KaraokeProperty(key = "ui.news.rows_per_page", defaultValue = 30, description = "Количество строк на странице в таблице «Новости»"),
     )

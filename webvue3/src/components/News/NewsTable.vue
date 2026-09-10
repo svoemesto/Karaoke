@@ -53,6 +53,18 @@
     </div>
 
     <div class="news-table-body">
+      <b-form-input
+        :id="`rows-per-page-news`"
+        type="number"
+        min="1"
+        max="1000"
+        size="sm"
+        style="width: 65px"
+        :model-value="perPage"
+        :disabled="isSavingRowsPerPage"
+        @change="onPerPageChange($event)"
+      />
+      <b-spinner v-if="isSavingRowsPerPage" small />
       <b-pagination
         v-model="currentPageModel"
         :total-rows="totalCount"
@@ -133,7 +145,7 @@
 </template>
 
 <script>
-import { BPagination, BSpinner, BTable } from 'bootstrap-vue-next'
+import { BPagination, BSpinner, BTable, BFormInput } from 'bootstrap-vue-next'
 
 const CATEGORY_OPTIONS = [
   { value: 'air', label: 'Эфир', icon: '📻' },
@@ -152,7 +164,7 @@ const emptyForm = () => ({ title: '', body: '', category: 'general', link: '', p
 
 export default {
   name: 'NewsTable',
-  components: { BPagination, BSpinner, BTable },
+  components: { BPagination, BSpinner, BTable, BFormInput },
   data() {
     return {
       form: emptyForm(),
@@ -161,6 +173,10 @@ export default {
     }
   },
   computed: {
+    // specs/358-rows-per-page: состояние saving для индикатора loading.
+    isSavingRowsPerPage() {
+      return this.$store.getters.isSavingRowsPerPage('news')
+    },
     newsList() {
       return this.$store.getters.getNewsList
     },
@@ -235,10 +251,47 @@ export default {
       ]
     },
   },
-  mounted() {
+  async mounted() {
+    // specs/358-rows-per-page: загрузить настройки таблиц (один раз при старте SPA,
+    // защищён флагом  в store ).
+    await this.$store.dispatch('loadTableSettings')
+    this.perPage = this.$store.getters.getRowsPerPage('news')
+
     this.$store.dispatch('loadNews')
   },
   methods: {
+    /**
+     * specs/358-rows-per-page: обработчик изменения поля «Строк на странице».
+     * Парсит значение, валидирует диапазон, отправляет в backend, обновляет UI
+     * только после успешного ответа (без оптимистичного обновления — см.
+     * Clarifications Q3 spec.md).
+     *
+     * @param {string|number} newValue
+     */
+    async onPerPageChange(e) {
+      // Bootstrap-vue-next `<b-form-input>` в нативном режиме передаёт в @change Event,
+      // а не значение. Извлекаем value из target.
+      const rawValue = e && e.target ? e.target.value : e
+      const parsed = parseInt(rawValue, 10)
+      if (isNaN(parsed) || parsed < 1 || parsed > 1000) {
+        // eslint-disable-next-line no-console
+        console.warn('[News.onPerPageChange] invalid value', rawValue)
+        return
+      }
+      if (parsed === this.perPage) return
+      this.currentPage = 1 // ADR-0004: page reset
+      const ok = await this.$store.dispatch('setRowsPerPage', {
+        tableKey: 'news',
+        value: parsed,
+      })
+      if (ok) {
+        this.perPage = this.$store.getters.getRowsPerPage('news')
+        await this.$store.dispatch('loadNews', {
+          page: this.currentPage,
+          perPage: this.perPage,
+        })
+      }
+    },
     categoryLabel(value) {
       const opt = this.categoryOptions.find((o) => o.value === value)
       return opt ? `${opt.icon} ${opt.label}` : value
@@ -367,6 +420,9 @@ export default {
 .news-table-body {
   width: fit-content;
   max-width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 /* Инвариант DEVELOPMENT.md: select/input/textarea в одном ряду — общий явный width, appearance:none
@@ -497,5 +553,25 @@ export default {
   min-width: 50px;
   max-width: 50px;
   text-align: center;
+}
+
+/* specs/358-rows-per-page: поле ввода «Строк на странице» — выровнено по центру
+   с кнопками пагинации. Bootstrap .form-control имеет min-height через padding
+   + font-size, что смещает baseline относительно .btn-sm кнопок. */
+#rows-per-page-news {
+  padding: 0.25rem 0.5rem !important;
+  line-height: 1.5 !important;
+  height: 31px !important;
+  font-size: 0.875rem !important;
+  text-align: center;
+  align-self: center;
+}
+
+/* specs/358-rows-per-page: убрать дефолтный margin-bottom у <b-pagination>
+   внутри header-div, чтобы pagination был выровнен по центральной оси
+   с input (без смещения baseline вниз). */
+.news-table-body .pagination,
+.news-table-body ul.pagination {
+  margin-bottom: 0 !important;
 }
 </style>

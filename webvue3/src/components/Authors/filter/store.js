@@ -49,7 +49,77 @@ export default {
     getAuthorsFilterHaveNewAlbum(state) {
       return state.authorsFilterHaveNewAlbum
     },
+    /**
+     * specs/358-rows-per-page: агрегирующий геттер, возвращает объект `params`
+     * в формате, который принимает `loadAuthorsDigests`. Используется в
+     * `AuthorsTable.onPerPageChange` чтобы сохранить текущие фильтры.
+     */
+    getAuthorsFilter(state) {
+      const params = {}
+      if (
+        state.authorsFilterId !== undefined &&
+        state.authorsFilterId !== '' &&
+        state.authorsFilterId !== null
+      )
+        params.filterId = state.authorsFilterId
+      if (
+        state.authorsFilterAuthor !== undefined &&
+        state.authorsFilterAuthor !== '' &&
+        state.authorsFilterAuthor !== null
+      )
+        params.filterAuthor = state.authorsFilterAuthor
+      if (
+        state.authorsFilterYmId !== undefined &&
+        state.authorsFilterYmId !== '' &&
+        state.authorsFilterYmId !== null
+      )
+        params.filterYmId = state.authorsFilterYmId
+      if (
+        state.authorsFilterVkId !== undefined &&
+        state.authorsFilterVkId !== '' &&
+        state.authorsFilterVkId !== null
+      )
+        params.filterVkId = state.authorsFilterVkId
+      if (
+        state.authorsFilterLastAlbumYm !== undefined &&
+        state.authorsFilterLastAlbumYm !== '' &&
+        state.authorsFilterLastAlbumYm !== null
+      )
+        params.filterLastAlbumYm = state.authorsFilterLastAlbumYm
+      if (
+        state.authorsFilterLastAlbumVk !== undefined &&
+        state.authorsFilterLastAlbumVk !== '' &&
+        state.authorsFilterLastAlbumVk !== null
+      )
+        params.filterLastAlbumVk = state.authorsFilterLastAlbumVk
+      if (
+        state.authorsFilterLastAlbumProcessed !== undefined &&
+        state.authorsFilterLastAlbumProcessed !== '' &&
+        state.authorsFilterLastAlbumProcessed !== null
+      )
+        params.filterLastAlbumProcessed = state.authorsFilterLastAlbumProcessed
+      if (
+        state.authorsFilterWatched !== undefined &&
+        state.authorsFilterWatched !== '' &&
+        state.authorsFilterWatched !== null
+      )
+        params.filterWatched = state.authorsFilterWatched
+      if (
+        state.authorsFilterSkip !== undefined &&
+        state.authorsFilterSkip !== '' &&
+        state.authorsFilterSkip !== null
+      )
+        params.filterSkip = state.authorsFilterSkip
+      if (
+        state.authorsFilterHaveNewAlbum !== undefined &&
+        state.authorsFilterHaveNewAlbum !== '' &&
+        state.authorsFilterHaveNewAlbum !== null
+      )
+        params.filterHaveNewAlbum = state.authorsFilterHaveNewAlbum
+      return params
+    },
   },
+
   mutations: {
     setAuthorsFilterId(state, value) {
       setWebvueProp(state.authorsFilterId, 'authorsFilterId', value)

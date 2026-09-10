@@ -45,7 +45,71 @@ export default {
     getSiteUsersFilterIsBanned(state) {
       return state.siteUsersFilterIsBanned
     },
+    /**
+     * specs/358-rows-per-page: агрегирующий геттер, возвращает объект `params`
+     * в формате, который принимает `loadSiteUsersDigests`. Используется в
+     * `SiteUsersTable.onPerPageChange` чтобы сохранить текущие фильтры.
+     */
+    getSiteUsersFilter(state) {
+      const params = {}
+      if (
+        state.siteUsersFilterId !== undefined &&
+        state.siteUsersFilterId !== '' &&
+        state.siteUsersFilterId !== null
+      )
+        params.filterId = state.siteUsersFilterId
+      if (
+        state.siteUsersFilterEmail !== undefined &&
+        state.siteUsersFilterEmail !== '' &&
+        state.siteUsersFilterEmail !== null
+      )
+        params.filterEmail = state.siteUsersFilterEmail
+      if (
+        state.siteUsersFilterDisplayName !== undefined &&
+        state.siteUsersFilterDisplayName !== '' &&
+        state.siteUsersFilterDisplayName !== null
+      )
+        params.filterDisplayName = state.siteUsersFilterDisplayName
+      if (
+        state.siteUsersFilterSponsrUid !== undefined &&
+        state.siteUsersFilterSponsrUid !== '' &&
+        state.siteUsersFilterSponsrUid !== null
+      )
+        params.filterSponsrUid = state.siteUsersFilterSponsrUid
+      if (
+        state.siteUsersFilterIsPremium !== undefined &&
+        state.siteUsersFilterIsPremium !== '' &&
+        state.siteUsersFilterIsPremium !== null
+      )
+        params.filterIsPremium = state.siteUsersFilterIsPremium
+      if (
+        state.siteUsersFilterIsPermanentPremium !== undefined &&
+        state.siteUsersFilterIsPermanentPremium !== '' &&
+        state.siteUsersFilterIsPermanentPremium !== null
+      )
+        params.filterIsPermanentPremium = state.siteUsersFilterIsPermanentPremium
+      if (
+        state.siteUsersFilterIsEffectivePremium !== undefined &&
+        state.siteUsersFilterIsEffectivePremium !== '' &&
+        state.siteUsersFilterIsEffectivePremium !== null
+      )
+        params.filterIsEffectivePremium = state.siteUsersFilterIsEffectivePremium
+      if (
+        state.siteUsersFilterIsEditor !== undefined &&
+        state.siteUsersFilterIsEditor !== '' &&
+        state.siteUsersFilterIsEditor !== null
+      )
+        params.filterIsEditor = state.siteUsersFilterIsEditor
+      if (
+        state.siteUsersFilterIsBanned !== undefined &&
+        state.siteUsersFilterIsBanned !== '' &&
+        state.siteUsersFilterIsBanned !== null
+      )
+        params.filterIsBanned = state.siteUsersFilterIsBanned
+      return params
+    },
   },
+
   mutations: {
     setSiteUsersFilterId(state, value) {
       setWebvueProp(state.siteUsersFilterId, 'siteUsersFilterId', value)

@@ -6027,7 +6027,18 @@ class ApiController(
     fun setProperty(
         @RequestParam key: String,
         @RequestParam stringValue: String,
-    ): Map<String, Any> {
+    ): ResponseEntity<Map<String, Any>> {
+        // specs/358-rows-per-page FR-006: серверная валидация диапазона 1..1000
+        // для ключей с шаблоном `ui.*.rows_per_page` (UI-настройка количества строк
+        // в admin-таблицах webvue3).
+        if (key.startsWith("ui.") && key.endsWith(".rows_per_page")) {
+            val parsed = stringValue.toIntOrNull()
+            if (parsed == null || parsed < 1 || parsed > 1000) {
+                return ResponseEntity
+                    .status(400)
+                    .body(mapOf("error" to "value must be integer in 1..1000"))
+            }
+        }
         KaraokeProperties.setFromString(key, stringValue)
         if (key == "resourceLimitsEnabled" || key.startsWith("cpuLimitPercent")) {
             applyLiveCpuLimitToRunningProcesses()
@@ -6041,7 +6052,7 @@ class ApiController(
                 ),
             ),
         )
-        return getProperty(key)
+        return ResponseEntity.ok(getProperty(key))
     }
 
     // Изменяем property к значению по умолчанию

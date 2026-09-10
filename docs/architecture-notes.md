@@ -191,3 +191,25 @@
 > `knowledge/domains/catalog/components/song-entity.md` (раздел «Методы» —
 > добавлено сравнение `saveToDb()` vs `saveToDbLocked()`).
 > OpenProject #73: claim → in progress (Pass 350 hook).
+
+> **Pass 358** (2026-09-10): Задача #74 (OP) — настраиваемое количество
+> строк на странице в admin-таблицах webvue3. Добавлено 14 параметров
+> `ui.<table>.rows_per_page` (тип INT, дефолты 25/30/50/500) в
+> `listKaraokeProperties` (`karaoke-app/.../KaraokeProperties.kt`). Серверная
+> валидация `1..1000` в эндпоинте `/api/properties/setproperty` (FR-006).
+> Новый Vuex-модуль `webvue3/src/store/modules/tableSettings.js` —
+> кеш per-table значений с геттерами `getRowsPerPage(tableKey)`,
+> `isSavingRowsPerPage(tableKey)` и action `setRowsPerPage({tableKey, value})`.
+> UI-поле `<b-form-input type="number">` в верхнем блоке пагинации
+> 14 таблиц (Songs, Authors, Albums, Pictures, SiteUsers, Subscriptions,
+> ShareLinks, Dictionaries, Properties, SitePlaylists, ListeningHistory,
+> Processes, News, Stats). Решение владельца: хранить в `KaraokeProperties`
+> (глобально per-table, НЕ per-user — см. Clarifications § spec.md/358).
+> Без оптимистичного обновления (UI применяет значение только после успешного
+> ответа backend — см. Clarifications Q3). Никаких новых REST-эндпоинтов:
+> используется существующее `/api/propertiesdigests` (POST, для чтения
+> разом) и `/api/properties/setproperty` (POST, для записи).
+> См. `specs/358-rows-per-page/`, `docs/features/rows-per-page.md`.
+> ADR-нарушение: фича использует `KaraokeProperties` для UI-настроек
+> (не только render-config), что переопределяет первоначальную интерпретацию
+> ADR `local-0001`. Решение владельца зафиксировано в spec.md § Clarifications.

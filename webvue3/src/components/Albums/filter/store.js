@@ -33,7 +33,53 @@ export default {
     getAlbumsFilterSongsCountMin(state) {
       return state.albumsFilterSongsCountMin
     },
+    /**
+     * specs/358-rows-per-page: агрегирующий геттер, возвращает объект `params`
+     * в формате, который принимает `loadAlbumsDigests`. Используется в
+     * `AlbumsTable.onPerPageChange` чтобы сохранить текущие фильтры.
+     */
+    getAlbumsFilter(state) {
+      const params = {}
+      if (
+        state.albumsFilterId !== undefined &&
+        state.albumsFilterId !== '' &&
+        state.albumsFilterId !== null
+      )
+        params.filterId = state.albumsFilterId
+      if (
+        state.albumsFilterAuthorName !== undefined &&
+        state.albumsFilterAuthorName !== '' &&
+        state.albumsFilterAuthorName !== null
+      )
+        params.filterAuthorName = state.albumsFilterAuthorName
+      if (
+        state.albumsFilterYear !== undefined &&
+        state.albumsFilterYear !== '' &&
+        state.albumsFilterYear !== null
+      )
+        params.filterYear = state.albumsFilterYear
+      if (
+        state.albumsFilterName !== undefined &&
+        state.albumsFilterName !== '' &&
+        state.albumsFilterName !== null
+      )
+        params.filterName = state.albumsFilterName
+      if (
+        state.albumsFilterAlbumType !== undefined &&
+        state.albumsFilterAlbumType !== '' &&
+        state.albumsFilterAlbumType !== null
+      )
+        params.filterAlbumType = state.albumsFilterAlbumType
+      if (
+        state.albumsFilterSongsCountMin !== undefined &&
+        state.albumsFilterSongsCountMin !== '' &&
+        state.albumsFilterSongsCountMin !== null
+      )
+        params.filterSongsCountMin = state.albumsFilterSongsCountMin
+      return params
+    },
   },
+
   mutations: {
     setAlbumsFilterId(state, value) {
       setWebvueProp(state.albumsFilterId, 'albumsFilterId', value)

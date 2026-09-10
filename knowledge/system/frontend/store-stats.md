@@ -85,4 +85,10 @@ event-ам).
 
 ## Changelog
 
+- **Pass 362** (2026-09-10): `state.lastLoadedAt` (Object<Number, Number>)
+  добавлен для 60s TTL-кеша на фронте. Singleton (Vuex) — timestamps
+  сохраняются между mount/unmount компонента `StatsView`. Используется
+  в `loadDataForActiveTab` (см. спеку 362 — fix `Element not found` в
+  apexcharts). Геттер `getLastLoadedAt: (state) => (tab) => state.lastLoadedAt[tab] || 0`,
+  мутация `setLastLoadedAt(state, { tab, ts })`. Issue #79 (OpenProject).
 - **Pass 386** (2026-09-09): Initial. Автор: agent (Karaoke).

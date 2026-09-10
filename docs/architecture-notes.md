@@ -256,3 +256,30 @@
 > См. `specs/361-playlists-membership-uri-length/`,
 > `docs/features/playlist-membership.md`,
 > `knowledge/adr/0009-get-vs-post-large-payload.md`.
+
+> **Pass 362** (2026-09-10): Исправлен баг OpenProject #79 — в админ-компоненте
+> «Статистика» (`webvue3/src/views/StatsView.vue`) при переходе на вкладку
+> в браузерной консоли появлялась ошибка `Uncaught (in promise) Error:
+> Element not found` (стек указывал на apexcharts `render()`). Корневая
+> причина: `mounted() → reloadAll()` запускал **11 параллельных HTTP-запросов**
+> к `/api/stats/*` при каждом открытии вкладки. Vue успевал отдать 11 новых
+> mutation'ов в store, apexcharts (vue3-apexcharts) внутри `<apexchart>`
+> компонентов (TimeSeriesChart, DetailBreakdown, TypeChannelBreakdown,
+> GeoReferrers) получал props update → пытался перерендерить SVG в
+> DOM-элемент, который в этот момент удалялся/перемещался Vue из-за
+> `v-if`/`v-else` гардов → `elementExists(this.el) === false` → reject
+> с `Element not found`. Это **выполняет обещание спеки 174** (FR-001,
+> lazy load табов), которая не была реализована в коде. Решение:
+> - `loadDataForActiveTab(activeTabIndex)` вместо `reloadAll()` —
+>   загружаются только endpoint'ы активной вкладки (1-3 HTTP вместо 11).
+> - 60s TTL через Vuex `state.lastLoadedAt` (singleton) — повторные
+>   клики по табу в течение 60 сек не шлют HTTP.
+> - `reloadAll()` удалён (footgun). Кнопка «Обновить всё» → «Обновить».
+> - 6 SC валидации через DevTools Console/Network. Линтеры PASS
+>   (ESLint 0 warnings, Prettier clean, Vite build OK). Изменения
+>   только в 2 файлах: `webvue3/src/views/StatsView.vue` и
+>   `webvue3/src/components/Stats/store.js`. Никаких изменений в
+>   backend'е, SQL, БД. См. `specs/362-fix-stats-view-element-not-found/`,
+>   `archive/docs/features/stats.md` (обновлён), `knowledge/system/frontend/store-stats.md`
+>   (добавлен `lastLoadedAt` в Changelog), `knowledge/adr/local-0004-lazy-eager-load-webvue3-pagination.md`
+>   (StatsView как пример lazy load для графиков).

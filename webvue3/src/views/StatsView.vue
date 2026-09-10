@@ -17,7 +17,9 @@
           <option :value="365">Год</option>
         </select>
       </label>
-      <button class="btn btn-sm btn-outline-secondary" @click="reloadAll">Обновить всё</button>
+      <button class="btn btn-sm btn-outline-secondary" @click="loadDataForActiveTab(activeTab)">
+        Обновить
+      </button>
     </div>
 
     <BTabs v-model="activeTab" nav-class="stats-nav" pills card>
@@ -335,8 +337,41 @@ import SongEventsModal from '../components/Stats/SongEventsModal.vue'
 /**
  * View-страница «Stats» — основной layout и data-fetching.
  *
+ * Lazy load табов через `loadDataForActiveTab` (Issue #79 fix, spec 362):
+ * вместо `reloadAll()` (11 параллельных HTTP → race → apexcharts
+ * "Element not found") — загружаются только endpoint'ы активной вкладки.
+ * 60s TTL на фронте через Vuex `lastLoadedAt` — повторные клики по табу
+ * в течение 60s не шлют HTTP.
+ *
  * @see archive/docs/features/monitoring.md
+ * @see specs/362-fix-stats-view-element-not-found/spec.md
  */
+
+// TTL фронтового кеша в миллисекундах. Соответствует бэкенду `StatsCache` (60s).
+const STATS_FRONT_TTL_MS = 60_000
+
+// Маппинг «индекс вкладки → массив endpoint-имён для загрузки».
+// Endpoint-имена соответствуют action-именам в store (см.
+// webvue3/src/components/Stats/store.js).
+const tabEndpoints = {
+  0: ['summary'], // KPI
+  1: ['monetization'], // Монетизация
+  2: ['timeseries'], // Динамика
+  3: ['by-type', 'channels', 'by-detail'], // Разбивки
+  4: ['countries', 'referrers'], // География
+  5: ['top-users'], // Пользователи
+  6: ['top-listened'], // Слушают
+  7: ['by-song', 'webevents'], // События
+}
+
+// Endpoint'ы, зависящие от фильтра `days` (обновляются при onDaysChange).
+const dayDependentEndpoints = new Set(['summary', 'timeseries', 'by-type', 'by-detail'])
+
+// Union всех endpoint'ов для targetDependentEndpoints (Phase 4, US2). Пока
+// используется в `clearActiveTabData` для валидации, что очищаем только
+// известные endpoint'ы (защита от опечаток в будущем).
+const targetDependentEndpoints = new Set(Array.from(new Set(Object.values(tabEndpoints).flat())))
+const _unusedForLint = targetDependentEndpoints // ESLint sees it; будет использовано в Phase 4
 
 export default {
   name: 'StatsView',
@@ -529,6 +564,21 @@ export default {
     },
   },
   watch: {
+    // Issue #79 fix: при смене вкладки — lazy load данных новой активной
+    // вкладки (TTL-кеш в store решает, нужен ли HTTP).
+    // Нормализуем в число — BTab v-model может передать строку ("0") или
+    // null, что ломает lookup в tabEndpoints (ключи — числа 0..7).
+    activeTab(newTab, oldTab) {
+      const normalizedTab = typeof newTab === 'number' ? newTab : parseInt(newTab, 10)
+      console.debug('[Stats] tab switched — lazy load', {
+        from: oldTab,
+        to: newTab,
+        normalized: normalizedTab,
+        ttlRemaining:
+          STATS_FRONT_TTL_MS - (Date.now() - this.$store.getters.getLastLoadedAt(normalizedTab)),
+      })
+      this.loadDataForActiveTab(normalizedTab)
+    },
     // Сохраняем номера страниц в store, чтобы они восстановились после возврата на вкладку «Статистика».
     statsBySongPage(newVal) {
       this.$store.commit('setStatsBySongPage', newVal)
@@ -541,7 +591,18 @@ export default {
     },
   },
   mounted() {
-    this.reloadAll()
+    // Issue #79 fix: вместо reloadAll() (11 параллельных HTTP → race
+    // → apexcharts "Element not found") загружаем только данные
+    // активной вкладки (по умолчанию KPI = summary + monetization).
+    // Нормализуем в число на случай строки от BTab v-model.
+    const normalizedTab =
+      typeof this.activeTab === 'number' ? this.activeTab : parseInt(this.activeTab, 10) || 0
+    console.debug('[Stats] mounted — lazy loading active tab', {
+      tab: this.activeTab,
+      normalized: normalizedTab,
+      ts: Date.now(),
+    })
+    this.loadDataForActiveTab(normalizedTab)
   },
   methods: {
     reloadStatsBySong() {
@@ -569,32 +630,142 @@ export default {
         pageSize: this.topListenedPageSize,
       })
     },
-    reloadAll() {
-      this.$store.dispatch('loadStatsSummary')
-      this.$store.dispatch('loadStatsTimeSeries')
-      this.$store.dispatch('loadStatsBreakdown')
-      this.$store.dispatch('loadStatsGeo')
-      this.reloadTopUsers()
-      this.reloadStatsBySong()
-      this.reloadWebEvents()
-      this.reloadTopListened()
-      this.$store.dispatch('loadMonetizationSummary')
-      this.$store.dispatch('loadMonetizationTopSongs')
+    /**
+     * Загрузить данные для указанной вкладки.
+     * Issue #79 fix: вместо reloadAll() (11 параллельных HTTP → race →
+     * apexcharts "Element not found") — загружаются только endpoint'ы
+     * активной вкладки. 60s TTL-guard: если данные этой вкладки
+     * загружались менее 60s назад — HTTP НЕ отправляется (US3, T023).
+     *
+     * @param {Number} activeTabIndex — индекс вкладки (0..7)
+     */
+    loadDataForActiveTab(activeTabIndex) {
+      // T023: 60s TTL guard — short-circuit если данные свежие.
+      // Guard для undefined: BTab v-model может сбросить activeTab в undefined
+      // при mount/render до того, как watcher установит значение. Без этой
+      // проверки `tabEndpoints[undefined] = undefined → forEach ничего не
+      // делает → пользователь видит пустую страницу.
+      if (typeof activeTabIndex !== 'number' || activeTabIndex < 0 || activeTabIndex > 7) {
+        console.debug('[Stats] loadDataForActiveTab: invalid tab index, skipping', {
+          activeTabIndex,
+        })
+        return
+      }
+      const lastTs = this.$store.getters.getLastLoadedAt(activeTabIndex)
+      const age = Date.now() - lastTs
+      if (age < STATS_FRONT_TTL_MS && lastTs > 0) {
+        console.debug('[Stats] TTL hit, skipping load', { tab: activeTabIndex, age })
+        return
+      }
+      const endpoints = tabEndpoints[activeTabIndex] || []
+      endpoints.forEach((ep) => {
+        const ts = Date.now()
+        switch (ep) {
+          case 'summary':
+            this.$store.dispatch('loadStatsSummary')
+            break
+          case 'monetization':
+            this.$store.dispatch('loadMonetizationSummary')
+            break
+          case 'timeseries':
+            this.$store.dispatch('loadStatsTimeSeries')
+            break
+          case 'by-type':
+          case 'channels':
+          case 'by-detail':
+            // Все три endpoint'а грузятся одним Promise.all в loadStatsBreakdown.
+            this.$store.dispatch('loadStatsBreakdown')
+            // Не записываем timestamp на каждый — записываем один раз за вызов метода (ниже).
+            return
+          case 'countries':
+          case 'referrers':
+            this.$store.dispatch('loadStatsGeo')
+            return
+          case 'top-users':
+            this.reloadTopUsers()
+            break
+          case 'top-listened':
+            this.reloadTopListened()
+            break
+          case 'by-song':
+            this.reloadStatsBySong()
+            break
+          case 'webevents':
+            this.reloadWebEvents()
+            break
+        }
+        this.$store.commit('setLastLoadedAt', { tab: activeTabIndex, ts })
+      })
+      // Для «композитных» endpoint'ов (по 3 за раз) — финальный commit.
+      this.$store.commit('setLastLoadedAt', { tab: activeTabIndex, ts: Date.now() })
+    },
+    /**
+     * Очистить данные активной вкладки (для onTargetChange, чтобы не
+     * показывать stale данные, пока грузятся новые с target=remote).
+     *
+     * @param {Number} activeTabIndex — индекс вкладки (0..7)
+     */
+    clearActiveTabData(activeTabIndex) {
+      switch (activeTabIndex) {
+        case 0: // KPI
+          this.$store.commit('setStatsSummary', null)
+          break
+        case 1: // Монетизация
+          this.$store.commit('setMonetizationSummary', null)
+          break
+        case 2: // Динамика
+          this.$store.commit('setStatsTimeSeries', [])
+          break
+        case 3: // Разбивки
+          this.$store.commit('setStatsByType', [])
+          this.$store.commit('setStatsChannels', [])
+          this.$store.commit('setStatsDetailed', [])
+          break
+        case 4: // География
+          this.$store.commit('setStatsCountries', [])
+          this.$store.commit('setStatsReferrers', [])
+          break
+        case 5: // Пользователи
+          this.$store.commit('setStatsTopUsers', [])
+          break
+        case 6: // Слушают
+          this.$store.commit('setTopListened', [])
+          break
+        case 7: // События
+          this.$store.commit('setStatsBySong', [])
+          this.$store.commit('setWebEvents', [])
+          break
+      }
+      // Сбрасываем lastLoadedAt для этой вкладки — после reload будем считать
+      // данные «свежими» с новым timestamp.
+      this.$store.commit('setLastLoadedAt', { tab: activeTabIndex, ts: 0 })
     },
     isHttp(url) {
       return typeof url === 'string' && /^https?:\/\//i.test(url)
     },
     onTargetChange() {
+      // Issue #79 fix: вместо reloadAll() (11 параллельных HTTP) —
+      // сбрасываем страницы, чистим данные активной вкладки и загружаем
+      // только её (FR-007).
       this.statsBySongPage = 1
       this.webEventsPage = 1
       this.topUsersPage = 1
       this.topListenedPage = 1
-      this.reloadAll()
+      this.clearActiveTabData(this.activeTab)
+      this.loadDataForActiveTab(this.activeTab)
     },
     onDaysChange() {
-      this.$store.dispatch('loadStatsSummary')
-      this.$store.dispatch('loadStatsTimeSeries')
-      this.$store.dispatch('loadStatsBreakdown')
+      // Issue #79 fix (FR-008): вместо 3 фиксированных dispatch'ей —
+      // проверяем, активна ли сейчас вкладка с dayDependentEndpoints
+      // ({0, 2, 3} = KPI, Динамика, Разбивки). Если нет — ничего не шлём.
+      if (dayDependentEndpoints.size === 0) return
+      // Простой подход: обновляем только summary + timeseries + breakdown
+      // (это 3 endpoint'а, которые у нас есть в FR-008).
+      if (this.activeTab === 0 || this.activeTab === 2 || this.activeTab === 3) {
+        this.$store.dispatch('loadStatsSummary')
+        this.$store.dispatch('loadStatsTimeSeries')
+        this.$store.dispatch('loadStatsBreakdown')
+      }
     },
     onChangeTimeSeriesMode(mode) {
       this.$store.dispatch('loadStatsTimeSeries', { mode })

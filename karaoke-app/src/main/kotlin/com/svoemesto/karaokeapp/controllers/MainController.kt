@@ -1637,7 +1637,10 @@ class MainController(
                         if (text.isNotBlank()) {
                             song.sourceText = text
                             song.fields[SongField.ID_STATUS] = "1"
-                            song.saveToDb()
+                            // specs/357-folder-import-overwrite (FR-140): HTTP whisper — Thread.sleep +
+                            // ML между load и save, секунды/десятки секунд. Параллельный SongEdit мог
+                            // обновить поля. saveToDbLocked() защищает.
+                            song.saveToDbLocked()
                         }
                     }
                 }

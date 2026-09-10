@@ -2211,7 +2211,8 @@ data class HealthReport(
                     changed = true
                 }
             }
-            if (changed) song.saveToDb()
+            // specs/357-folder-import-overwrite (FR-140): HealthReport reconcilePlayerReadinessFlags — фоновый repair loop, минуты.
+            if (changed) song.saveToDbLocked()
         }
 
         // Единая точка «пересчитать HealthReport песни и разослать SSE healthReports» — та же логика,

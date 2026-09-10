@@ -181,3 +181,13 @@
 > * Status #65 = In progress (per OpenProject workflow), assignee=ai-agent.
 > * Создана task #71 «Graceful degradation для remote StorageApiClient
 >   (#65 follow-up)». assignee пока не назначен.
+
+> **Pass 357 (2026-09-10)**: спека 357 — Folder Import Overwrite (Audit #73).
+> Расширение спеки 299 (`saveToDbLocked`). Аудит всех 49 мест `Song.saveToDb()`
+> в `karaoke-app/src/main/kotlin/`: 30 мест категории B1 (долгие процессы с IO/ML/
+> ffmpeg между load и save) переведены на `saveToDbLocked()`. Добавлен WARN-лог
+> `song.locked_save_diff_overlap` в `saveToDbLocked()` для операционной
+> диагностики race overlap (FR-160..FR-180). Обновлена документация
+> `knowledge/domains/catalog/components/song-entity.md` (раздел «Методы» —
+> добавлено сравнение `saveToDb()` vs `saveToDbLocked()`).
+> OpenProject #73: claim → in progress (Pass 350 hook).

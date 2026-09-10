@@ -309,7 +309,8 @@ class PremiumAutoPublishScheduler {
         if (tgClosed && vkClosed) {
             song.newsPremiumPublishPending = false
             song.premiumAutoPublishState = if (!tgSuccess || !vkSuccess) "FAILED" else "COMPLETE"
-            song.saveToDb()
+            // specs/357-folder-import-overwrite (FR-140): PremiumAutoPublishScheduler — scheduled task, объект song может жить минуты.
+            song.saveToDbLocked()
             return true
         }
         return false

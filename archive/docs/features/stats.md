@@ -116,6 +116,14 @@ HTTP-запросов** к `/api/stats/*` при каждом открытии �
 на `activeTab` подгружает данные при переключении. Метод `reloadAll()` удалён
 как footgun (10-12 параллельных HTTP).
 
+**Применено в спеке #362** (Pass 362, Issue #79, OpenProject #79): см.
+[`specs/362-fix-stats-view-element-not-found/spec.md`](../../specs/362-fix-stats-view-element-not-found/spec.md).
+Корневая причина бага #79 — race между apexcharts (vue3-apexcharts) и 11
+параллельными HTTP от `reloadAll()`: apexcharts `render()` не находил
+DOM-элемент → `Element not found` в консоли. Lazy load устраняет race,
+60s TTL-кеш в Vuex `state.lastLoadedAt` предотвращает повторные HTTP
+при возврате на страницу.
+
 Параметр «Обновить» в toolbar вызывает `loadDataForActiveTab()` для текущей
 вкладки — тот же путь, что при первом открытии. Поддерживается 60s TTL
 на фронте (Vuex `lastLoadedAt`) — в течение окна повторный открыватель таба

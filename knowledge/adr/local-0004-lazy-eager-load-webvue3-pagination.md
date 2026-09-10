@@ -147,8 +147,14 @@ export default {
 - `webvue3/src/components/Songs/SongsTable.vue` — образец.
 - `webvue3/src/components/Authors/AuthorsTable.vue` — образец.
 - `webvue3/src/store/modules/Songs/store.js` — `fetchSongs`, `subscribeToTable`.
+- `webvue3/src/views/StatsView.vue` — пример применения lazy load паттерна
+  к **графикам** (apexcharts), не только к таблицам. Pass 362, Issue #79
+  (OpenProject) — `loadDataForActiveTab(activeTabIndex)` + 60s TTL
+  через `state.lastLoadedAt` в Vuex store. Спека:
+  [`specs/362-fix-stats-view-element-not-found/spec.md`](../../specs/362-fix-stats-view-element-not-found/spec.md).
 
 ## История
 
 - Создан: 2026-08-14
-- Последнее обновление: 2026-08-14
+- 2026-09-10 (Pass 362): добавлена ссылка на `StatsView.vue` как пример
+  применения lazy load к графикам.

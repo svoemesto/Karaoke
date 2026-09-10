@@ -103,13 +103,36 @@ export default {
   methods: {
     /**
      * Загружает список альбомов из публичного API.
+     *
+     * Issue #76 (spec 360): для залогиненного редактора (`SiteUser.isEditor == true`)
+     * сервер должен отдавать все альбомы автора, а не только с готовыми песнями.
+     * Бэкенд (`Album.loadAlbumTilesWithCounts(authorId, onlyPublished, ...)` +
+     * `PublicApiController.onlyPublishedFor(request) = !isEditor`) уже умеет
+     * делать bypass — он резолвит `SiteUser` через
+     * `SiteUserResolver.resolve(request)`, который читает токен ИЗ
+     * `Authorization: Bearer <token>` (`SiteUserResolver.kt:25`).
+     *
+     * Без этого заголовка сервер всегда видит `SiteUser=null` →
+     * `onlyPublished=true` → ответ как гостю (только `ready_song_count > 0`),
+     * и редактор не видит альбомы в работе.
+     *
+     * Паттерн — точно как в `useZakromaStreamProgress.js:144-146` и
+     * `services/api.js:15-18` (`authHeader()`). Ключ `km_auth_token` —
+     * общий с `useAuth.js:7`.
+     *
+     * @see specs/360-editor-sees-all-albums/spec.md (issue #76)
+     * @see specs/017-editor-status-bypass/contracts/public-api-editor-visibility.md
      */
     async loadAlbums() {
       this.loading = true
       this.error = null
       try {
+        const authToken = localStorage.getItem('km_auth_token')
+        const headers = {}
+        if (authToken) headers.Authorization = `Bearer ${authToken}`
         const response = await fetch(`/api/public/authors/${this.authorId}/albums?scope=main`, {
           credentials: 'include',
+          headers,
         })
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`)

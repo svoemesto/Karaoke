@@ -18,6 +18,18 @@
     </div>
 
     <div class="sut-table-header">
+      <b-form-input
+        :id="`rows-per-page-site_users`"
+        type="number"
+        min="1"
+        max="1000"
+        size="sm"
+        style="width: 65px"
+        :model-value="perPage"
+        :disabled="isSavingRowsPerPage"
+        @change="onPerPageChange($event)"
+      />
+      <b-spinner v-if="isSavingRowsPerPage" small />
       <b-pagination
         v-model="currentPage"
         :total-rows="countRows"
@@ -159,7 +171,7 @@
 </template>
 
 <script>
-import { BPagination, BSpinner, BTable } from 'bootstrap-vue-next'
+import { BPagination, BSpinner, BTable, BFormInput } from 'bootstrap-vue-next'
 import SiteUserEditModal from './edit/SiteUserEditModal.vue'
 import SiteUsersFilterModal from './filter/SiteUsersFilterModal.vue'
 
@@ -177,6 +189,7 @@ export default {
     BPagination,
     BSpinner,
     BTable,
+    BFormInput,
   },
   data() {
     return {
@@ -191,6 +204,10 @@ export default {
     }
   },
   computed: {
+    // specs/358-rows-per-page: состояние saving для индикатора loading.
+    isSavingRowsPerPage() {
+      return this.$store.getters.isSavingRowsPerPage('site_users')
+    },
     siteUsersDigestIsLoading() {
       return this.$store.getters.getSiteUsersDigestIsLoading
     },
@@ -475,10 +492,52 @@ export default {
     },
   },
   async mounted() {
+    // specs/358-rows-per-page: загрузить настройки таблиц (один раз при старте SPA,
+    // защищён флагом `loaded` в store `tableSettings`). Важно: ждём завершения
+    // ДО reload(), чтобы perPage был установлен.
+    await this.$store.dispatch('loadTableSettings')
+    this.perPage = this.$store.getters.getRowsPerPage('site_users')
+
     await this.$store.dispatch('hydrateSiteUsersFilter')
     this.reload()
   },
   methods: {
+    /**
+     * specs/358-rows-per-page: обработчик изменения поля «Строк на странице».
+     * Парсит значение, валидирует диапазон, отправляет в backend, обновляет UI
+     * только после успешного ответа (без оптимистичного обновления — см.
+     * Clarifications Q3 spec.md).
+     *
+     * @param {string|number} newValue
+     */
+    async onPerPageChange(e) {
+      // Bootstrap-vue-next `<b-form-input>` в нативном режиме передаёт в @change Event,
+      // а не значение. Извлекаем value из target.
+      const rawValue = e && e.target ? e.target.value : e
+      const parsed = parseInt(rawValue, 10)
+      if (isNaN(parsed) || parsed < 1 || parsed > 1000) {
+        // eslint-disable-next-line no-console
+        console.warn('[SiteUsers.onPerPageChange] invalid value', rawValue)
+        return
+      }
+      if (parsed === this.perPage) return
+      this.currentPage = 1 // ADR-0004: page reset
+      if (this.$store.getters.getSiteUsersTableCurrentPage !== undefined) {
+        this.$store.commit('setSiteUsersTableCurrentPage', 1)
+      }
+      const ok = await this.$store.dispatch('setRowsPerPage', {
+        tableKey: 'site_users',
+        value: parsed,
+      })
+      if (ok) {
+        this.perPage = this.$store.getters.getRowsPerPage('site_users')
+        await this.$store.dispatch('loadSiteUsersDigest', {
+          page: this.currentPage,
+          perPage: this.perPage,
+          ...this.$store.getters.getSiteUsersFilter,
+        })
+      }
+    },
     reload() {
       const params = {}
       if (this.$store.getters.getSiteUsersFilterId)
@@ -567,6 +626,9 @@ export default {
 }
 .sut-table-header {
   width: fit-content;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 .sut-table-body {
   width: fit-content;
@@ -608,5 +670,25 @@ export default {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* specs/358-rows-per-page: поле ввода «Строк на странице» — выровнено по центру
+   с кнопками пагинации. Bootstrap .form-control имеет min-height через padding
+   + font-size, что смещает baseline относительно .btn-sm кнопок. */
+#rows-per-page-site_users {
+  padding: 0.25rem 0.5rem !important;
+  line-height: 1.5 !important;
+  height: 31px !important;
+  font-size: 0.875rem !important;
+  text-align: center;
+  align-self: center;
+}
+
+/* specs/358-rows-per-page: убрать дефолтный margin-bottom у <b-pagination>
+   внутри header-div, чтобы pagination был выровнен по центральной оси
+   с input (без смещения baseline вниз). */
+.sut-table-header .pagination,
+.sut-table-header ul.pagination {
+  margin-bottom: 0 !important;
 }
 </style>

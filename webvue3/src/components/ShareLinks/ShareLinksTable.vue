@@ -15,6 +15,18 @@
     </div>
 
     <div class="slt-table-header">
+      <b-form-input
+        :id="`rows-per-page-share_links`"
+        type="number"
+        min="1"
+        max="1000"
+        size="sm"
+        style="width: 65px"
+        :model-value="perPage"
+        :disabled="isSavingRowsPerPage"
+        @change="onPerPageChange($event)"
+      />
+      <b-spinner v-if="isSavingRowsPerPage" small />
       <b-pagination
         v-model="currentPage"
         :total-rows="countRows"
@@ -137,7 +149,7 @@
 </template>
 
 <script>
-import { BPagination, BSpinner, BTable } from 'bootstrap-vue-next'
+import { BPagination, BSpinner, BTable, BFormInput } from 'bootstrap-vue-next'
 import ShareLinksFilterModal from './ShareLinksFilterModal.vue'
 
 /**
@@ -164,7 +176,7 @@ import ShareLinksFilterModal from './ShareLinksFilterModal.vue'
  */
 export default {
   name: 'ShareLinksTable',
-  components: { ShareLinksFilterModal, BPagination, BSpinner, BTable },
+  components: { ShareLinksFilterModal, BPagination, BSpinner, BTable, BFormInput },
   data() {
     return {
       perPage: 25,
@@ -177,6 +189,10 @@ export default {
     }
   },
   computed: {
+    // specs/358-rows-per-page: состояние saving для индикатора loading.
+    isSavingRowsPerPage() {
+      return this.$store.getters.isSavingRowsPerPage('share_links')
+    },
     digestIsLoading() {
       return this.$store.getters.getShareLinksDigestIsLoading
     },
@@ -272,10 +288,50 @@ export default {
       this.$store.commit('setShareLinksTableCurrentPage', newPage)
     },
   },
-  mounted() {
+  async mounted() {
+    // specs/358-rows-per-page: загрузить настройки таблиц (один раз при старте SPA,
+    // защищён флагом  в store ).
+    await this.$store.dispatch('loadTableSettings')
+    this.perPage = this.$store.getters.getRowsPerPage('share_links')
+
     this.reload()
   },
   methods: {
+    /**
+     * specs/358-rows-per-page: обработчик изменения поля «Строк на странице».
+     * Парсит значение, валидирует диапазон, отправляет в backend, обновляет UI
+     * только после успешного ответа (без оптимистичного обновления — см.
+     * Clarifications Q3 spec.md).
+     *
+     * @param {string|number} newValue
+     */
+    async onPerPageChange(e) {
+      // Bootstrap-vue-next `<b-form-input>` в нативном режиме передаёт в @change Event,
+      // а не значение. Извлекаем value из target.
+      const rawValue = e && e.target ? e.target.value : e
+      const parsed = parseInt(rawValue, 10)
+      if (isNaN(parsed) || parsed < 1 || parsed > 1000) {
+        // eslint-disable-next-line no-console
+        console.warn('[ShareLinks.onPerPageChange] invalid value', rawValue)
+        return
+      }
+      if (parsed === this.perPage) return
+      this.currentPage = 1 // ADR-0004: page reset
+      if (this.$store.getters.getShareLinksTableCurrentPage !== undefined) {
+        this.$store.commit('setShareLinksTableCurrentPage', 1)
+      }
+      const ok = await this.$store.dispatch('setRowsPerPage', {
+        tableKey: 'share_links',
+        value: parsed,
+      })
+      if (ok) {
+        this.perPage = this.$store.getters.getRowsPerPage('share_links')
+        await this.$store.dispatch('loadShareLinksDigest', {
+          page: this.currentPage,
+          perPage: this.perPage,
+        })
+      }
+    },
     reload() {
       this.$store.dispatch('loadShareLinksDigest', {})
     },
@@ -415,6 +471,9 @@ export default {
 .slt-table-header,
 .slt-table-body {
   width: fit-content;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 .slt-table-body :deep(th) {
   position: relative;
@@ -512,5 +571,25 @@ export default {
   color: white;
   background: transparent;
   padding: 6px 16px;
+}
+
+/* specs/358-rows-per-page: поле ввода «Строк на странице» — выровнено по центру
+   с кнопками пагинации. Bootstrap .form-control имеет min-height через padding
+   + font-size, что смещает baseline относительно .btn-sm кнопок. */
+#rows-per-page-share_links {
+  padding: 0.25rem 0.5rem !important;
+  line-height: 1.5 !important;
+  height: 31px !important;
+  font-size: 0.875rem !important;
+  text-align: center;
+  align-self: center;
+}
+
+/* specs/358-rows-per-page: убрать дефолтный margin-bottom у <b-pagination>
+   внутри header-div, чтобы pagination был выровнен по центральной оси
+   с input (без смещения baseline вниз). */
+.slt-table-header .pagination,
+.slt-table-header ul.pagination {
+  margin-bottom: 0 !important;
 }
 </style>

@@ -29,7 +29,47 @@ export default {
     getPropertiesFilterType(state) {
       return state.propertiesFilterType
     },
+    /**
+     * specs/358-rows-per-page: агрегирующий геттер, возвращает объект `params`
+     * в формате, который принимает `loadPropertiesDigests`. Используется в
+     * `PropertiesTable.onPerPageChange` чтобы сохранить текущие фильтры.
+     */
+    getPropertiesFilter(state) {
+      const params = {}
+      if (
+        state.propertiesFilterKey !== undefined &&
+        state.propertiesFilterKey !== '' &&
+        state.propertiesFilterKey !== null
+      )
+        params.filterKey = state.propertiesFilterKey
+      if (
+        state.propertiesFilterValue !== undefined &&
+        state.propertiesFilterValue !== '' &&
+        state.propertiesFilterValue !== null
+      )
+        params.filterValue = state.propertiesFilterValue
+      if (
+        state.propertiesFilterDefaultValue !== undefined &&
+        state.propertiesFilterDefaultValue !== '' &&
+        state.propertiesFilterDefaultValue !== null
+      )
+        params.filterDefaultValue = state.propertiesFilterDefaultValue
+      if (
+        state.propertiesFilterDescription !== undefined &&
+        state.propertiesFilterDescription !== '' &&
+        state.propertiesFilterDescription !== null
+      )
+        params.filterDescription = state.propertiesFilterDescription
+      if (
+        state.propertiesFilterType !== undefined &&
+        state.propertiesFilterType !== '' &&
+        state.propertiesFilterType !== null
+      )
+        params.filterType = state.propertiesFilterType
+      return params
+    },
   },
+
   mutations: {
     setPropertiesFilterKey(state, value) {
       setWebvueProp(state.propertiesFilterKey, 'propertiesFilterKey', value)

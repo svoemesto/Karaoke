@@ -66,6 +66,9 @@ export default {
       const fullParams = Object.assign({}, params, {
         target: ctx.state.listeningHistoryTarget,
         page: params.page || 1,
+        // specs/358-rows-per-page: пробросить pageSize в backend, чтобы размер
+        // страницы применялся (раньше backend использовал дефолт 500).
+        pageSize: params.pageSize,
       })
       const request = { method: 'POST', url: '/api/listeninghistory/digest', params: fullParams }
       ctx.commit('setListeningHistoryDigestIsLoading', true)

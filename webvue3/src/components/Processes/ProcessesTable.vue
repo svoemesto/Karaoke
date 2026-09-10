@@ -23,6 +23,18 @@
     />
     <ProcessBulkReportModal v-if="hasBulkReport" @close="closeBulkReport" />
     <div class="processes-bv-table-header">
+      <b-form-input
+        :id="`rows-per-page-processes`"
+        type="number"
+        min="1"
+        max="1000"
+        size="sm"
+        style="width: 65px"
+        :model-value="perPage"
+        :disabled="isSavingRowsPerPage"
+        @change="onPerPageChange($event)"
+      />
+      <b-spinner v-if="isSavingRowsPerPage" small />
       <b-pagination
         v-model="currentPage"
         :total-rows="total"
@@ -169,7 +181,7 @@
 </template>
 
 <script>
-import { BPagination, BSpinner, BTable } from 'bootstrap-vue-next'
+import { BPagination, BSpinner, BTable, BFormInput } from 'bootstrap-vue-next'
 import ProcessesFilterModal from '../../components/Processes/filter/ProcessesFilterModal.vue'
 import ProcessEditModal from '../../components/Processes/edit/ProcessEditModal.vue'
 import ProcessDeleteModal from '../../components/Processes/delete/ProcessDeleteModal.vue'
@@ -198,6 +210,7 @@ export default {
     BPagination,
     BSpinner,
     BTable,
+    BFormInput,
   },
   data() {
     return {
@@ -215,6 +228,10 @@ export default {
     }
   },
   computed: {
+    // specs/358-rows-per-page: состояние saving для индикатора loading.
+    isSavingRowsPerPage() {
+      return this.$store.getters.isSavingRowsPerPage('processes')
+    },
     processesLoading() {
       return this.$store.getters.getProcessesLoading
     },
@@ -399,10 +416,51 @@ export default {
       },
     },
   },
-  mounted() {
+  async mounted() {
+    // specs/358-rows-per-page: загрузить настройки таблиц (один раз при старте SPA,
+    // защищён флагом `loaded` в store `tableSettings`). Важно: ждём завершения
+    // ДО первой загрузки данных, чтобы limit/offset корректно передавались в backend.
+    await this.$store.dispatch('loadTableSettings')
+    this.perPage = this.$store.getters.getRowsPerPage('processes')
     this.loadPage()
   },
   methods: {
+    /**
+     * specs/358-rows-per-page: обработчик изменения поля «Строк на странице».
+     * Парсит значение, валидирует диапазон, отправляет в backend, обновляет UI
+     * только после успешного ответа (без оптимистичного обновления — см.
+     * Clarifications Q3 spec.md).
+     *
+     * @param {string|number} newValue
+     */
+    async onPerPageChange(e) {
+      // Bootstrap-vue-next `<b-form-input>` в нативном режиме передаёт в @change Event,
+      // а не значение. Извлекаем value из target.
+      const rawValue = e && e.target ? e.target.value : e
+      const parsed = parseInt(rawValue, 10)
+      if (isNaN(parsed) || parsed < 1 || parsed > 1000) {
+        // eslint-disable-next-line no-console
+        console.warn('[Processes.onPerPageChange] invalid value', rawValue)
+        return
+      }
+      if (parsed === this.perPage) return
+      this.currentPage = 1 // ADR-0004: page reset
+      const ok = await this.$store.dispatch('setRowsPerPage', {
+        tableKey: 'processes',
+        value: parsed,
+      })
+      if (ok) {
+        this.perPage = this.$store.getters.getRowsPerPage('processes')
+        // specs/358-rows-per-page: backend `/api/admin/processes` принимает
+        // `limit` (= perPage) и `offset` (= (page - 1) * perPage). Преобразуем
+        // page+perPage в limit+offset.
+        await this.$store.dispatch('loadProcesses', {
+          ...this.buildFilters(),
+          limit: this.perPage,
+          offset: (this.currentPage - 1) * this.perPage,
+        })
+      }
+    },
     buildFilters() {
       return {
         status: this.$store.getters.getProcessesFilterStatus,
@@ -540,6 +598,9 @@ export default {
 
 .processes-bv-table-header {
   width: fit-content;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .processes-bv-table-body {
@@ -726,5 +787,25 @@ export default {
 .icon-40 {
   width: 40px;
   height: 40px;
+}
+
+/* specs/358-rows-per-page: поле ввода «Строк на странице» — выровнено по центру
+   с кнопками пагинации. Bootstrap .form-control имеет min-height через padding
+   + font-size, что смещает baseline относительно .btn-sm кнопок. */
+#rows-per-page-processes {
+  padding: 0.25rem 0.5rem !important;
+  line-height: 1.5 !important;
+  height: 31px !important;
+  font-size: 0.875rem !important;
+  text-align: center;
+  align-self: center;
+}
+
+/* specs/358-rows-per-page: убрать дефолтный margin-bottom у <b-pagination>
+   внутри header-div, чтобы pagination был выровнен по центральной оси
+   с input (без смещения baseline вниз). */
+.processes-bv-table-header .pagination,
+.processes-bv-table-header ul.pagination {
+  margin-bottom: 0 !important;
 }
 </style>

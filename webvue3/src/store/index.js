@@ -38,6 +38,7 @@ import stemJobs from '../components/StemJobs/store'
 import subscriptions from '../components/Subscriptions/store'
 import listeningHistory from '../components/ListeningHistory/store'
 import shareLinks from '../components/ShareLinks/store'
+import tableSettings from './modules/tableSettings'
 import { useToast } from 'bootstrap-vue-next'
 
 export default createStore({
@@ -69,6 +70,7 @@ export default createStore({
     subscriptions,
     listeningHistory,
     shareLinks,
+    tableSettings,
     songFilter,
     smartCopy,
     healthReport,

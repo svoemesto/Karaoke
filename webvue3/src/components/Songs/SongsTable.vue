@@ -24,6 +24,18 @@
       @reviewed="onAssignmentReviewed"
     />
     <div class="songs-bv-table-header">
+      <b-form-input
+        :id="`rows-per-page-songs`"
+        type="number"
+        min="1"
+        max="1000"
+        size="sm"
+        style="width: 65px"
+        :model-value="perPage"
+        :disabled="isSavingRowsPerPage"
+        @change="onPerPageChange($event)"
+      />
+      <b-spinner v-if="isSavingRowsPerPage" small />
       <b-pagination
         v-model="currentPage"
         :total-rows="countRows"
@@ -519,7 +531,7 @@
 </template>
 
 <script>
-import { BPagination, BSpinner, BTable, BFormRating } from 'bootstrap-vue-next'
+import { BPagination, BSpinner, BTable, BFormRating, BFormInput } from 'bootstrap-vue-next'
 import SongEditModal from '../../components/Songs/edit/SongEditModal.vue'
 import SongsFilter from '../../components/Songs/filter/SongsFilterModal.vue'
 import SmartCopyModal from '../../components/Common/SmartCopy/SmartCopyModal.vue'
@@ -605,9 +617,13 @@ export default {
     BSpinner,
     BTable,
     BFormRating,
+    BFormInput,
   },
   data() {
     return {
+      // specs/358-rows-per-page: значение берётся из глобального store `tableSettings`,
+      // который читает параметр `ui.songs.rows_per_page` из `KaraokeProperties`.
+      // Fallback (если store ещё не загружен) — hardcoded 50 (FR-010).
       perPage: 50,
       // Восстанавливаем последнюю страницу из store, чтобы при уходе с компонента и возврате
       // (например «Песни» → «Публикации» → «Песни») таблица открывалась на той же странице.
@@ -633,6 +649,10 @@ export default {
   computed: {
     parentRoute() {
       return 'Songs'
+    },
+    // specs/358-rows-per-page: состояние saving для индикатора loading.
+    isSavingRowsPerPage() {
+      return this.$store.getters.isSavingRowsPerPage('songs')
     },
     smartCopyButtonCaption() {
       let caption = ''
@@ -1025,6 +1045,10 @@ export default {
     },
   },
   async mounted() {
+    // specs/358-rows-per-page: загрузить настройки таблиц (один раз при старте SPA,
+    // защищён флагом `loaded` в store `tableSettings`).
+    await this.$store.dispatch('loadTableSettings')
+    this.perPage = this.$store.getters.getRowsPerPage('songs')
     // this.$store.dispatch('loadSongsDigests', { filterAuthor: 'Павел Кашин'} )
     this.allowAddSync = await this.propAllowAddSync()
     // Источник (local/server) для кнопки «Назначить» — KaraokeProperty editorAssignmentDefaultTarget.
@@ -1033,6 +1057,54 @@ export default {
     this.reloadAssignmentStatus()
   },
   methods: {
+    /**
+     * specs/358-rows-per-page: перезагрузить список песен с текущим perPage.
+     * Вызывается после изменения `perPage` (Songs использует Vuex-данные
+     * без отдельного load-action — данные обновляются через store).
+     */
+    async loadData() {
+      await this.$store.dispatch('loadTableSettings')
+      this.perPage = this.$store.getters.getRowsPerPage('songs')
+      await this.$store.dispatch('loadSongsDigests', {
+        page: this.currentPage,
+        perPage: this.perPage,
+        ...this.$store.getters.getSongsFilter,
+      })
+    },
+    /**
+     * specs/358-rows-per-page: обработчик изменения поля «Строк на странице».
+     * Парсит значение, валидирует диапазон, отправляет в backend, обновляет UI
+     * только после успешного ответа (без оптимистичного обновления — см.
+     * Clarifications Q3 spec.md).
+     *
+     * @param {string|number|Event} e — Event из `<b-form-input>` или значение.
+     */
+    async onPerPageChange(e) {
+      // Bootstrap-vue-next `<b-form-input>` в нативном режиме передаёт в @change Event,
+      // а не значение. Извлекаем value из target.
+      const rawValue = e && e.target ? e.target.value : e
+      const parsed = parseInt(rawValue, 10)
+      if (isNaN(parsed) || parsed < 1 || parsed > 1000) {
+        // eslint-disable-next-line no-console
+        console.warn('[SongsTable.onPerPageChange] invalid value', rawValue)
+        return
+      }
+      if (parsed === this.perPage) return
+      this.currentPage = 1 // ADR-0004: page reset
+      this.$store.commit('setSongsTableCurrentPage', 1)
+      const ok = await this.$store.dispatch('setRowsPerPage', {
+        tableKey: 'songs',
+        value: parsed,
+      })
+      if (ok) {
+        this.perPage = this.$store.getters.getRowsPerPage('songs')
+        await this.$store.dispatch('loadSongsDigests', {
+          page: this.currentPage,
+          perPage: this.perPage,
+          ...this.$store.getters.getSongsFilter,
+        })
+      }
+    },
     songTypeLetter(value) {
       const map = { song: 'S', instrumental: 'I', poetry: 'P' }
       return map[value] || ''
@@ -1837,6 +1909,9 @@ export default {
 
 .songs-bv-table-header {
   width: fit-content;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .songs-bv-table-body {
@@ -2210,5 +2285,25 @@ export default {
 }
 .b-form-rating {
   margin: 0 !important;
+}
+
+/* specs/358-rows-per-page: поле ввода «Строк на странице» — выровнено по центру
+   с кнопками пагинации. Bootstrap .form-control имеет min-height через padding
+   + font-size, что смещает baseline относительно .btn-sm кнопок. */
+#rows-per-page-songs {
+  padding: 0.25rem 0.5rem !important;
+  line-height: 1.5 !important;
+  height: 31px !important;
+  font-size: 0.875rem !important;
+  text-align: center;
+  align-self: center;
+}
+
+/* specs/358-rows-per-page: убрать дефолтный margin-bottom у <b-pagination>
+   внутри header-div, чтобы pagination был выровнен по центральной оси
+   с input (без смещения baseline вниз). */
+.songs-bv-table-header .pagination,
+.songs-bv-table-header ul.pagination {
+  margin-bottom: 0 !important;
 }
 </style>

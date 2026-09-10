@@ -18,7 +18,29 @@ export default {
     getDictionariesFilterDictValue(state) {
       return state.dictionariesFilterDictValue
     },
+    /**
+     * specs/358-rows-per-page: агрегирующий геттер, возвращает объект `params`
+     * в формате, который принимает `loadDictionariesDigests`. Используется в
+     * `DictionariesTable.onPerPageChange` чтобы сохранить текущие фильтры.
+     */
+    getDictionariesFilter(state) {
+      const params = {}
+      if (
+        state.dictionariesFilterDictName !== undefined &&
+        state.dictionariesFilterDictName !== '' &&
+        state.dictionariesFilterDictName !== null
+      )
+        params.filterDictName = state.dictionariesFilterDictName
+      if (
+        state.dictionariesFilterDictValue !== undefined &&
+        state.dictionariesFilterDictValue !== '' &&
+        state.dictionariesFilterDictValue !== null
+      )
+        params.filterDictValue = state.dictionariesFilterDictValue
+      return params
+    },
   },
+
   mutations: {
     setDictionariesFilterDictName(state, value) {
       setWebvueProp(state.dictionariesFilterDictName, 'dictionariesFilterDictName', value)

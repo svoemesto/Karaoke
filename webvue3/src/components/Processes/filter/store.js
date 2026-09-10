@@ -34,7 +34,53 @@ export default {
     getProcessesFilterName(state) {
       return state.processesFilterName
     },
+    /**
+     * specs/358-rows-per-page: агрегирующий геттер, возвращает объект `params`
+     * в формате, который принимает `loadProcessesDigests`. Используется в
+     * `ProcessesTable.onPerPageChange` чтобы сохранить текущие фильтры.
+     */
+    getProcessesFilter(state) {
+      const params = {}
+      if (
+        state.processesFilterStatus !== undefined &&
+        state.processesFilterStatus !== '' &&
+        state.processesFilterStatus !== null
+      )
+        params.filterStatus = state.processesFilterStatus
+      if (
+        state.processesFilterType !== undefined &&
+        state.processesFilterType !== '' &&
+        state.processesFilterType !== null
+      )
+        params.filterType = state.processesFilterType
+      if (
+        state.processesFilterThreadId !== undefined &&
+        state.processesFilterThreadId !== '' &&
+        state.processesFilterThreadId !== null
+      )
+        params.filterThreadId = state.processesFilterThreadId
+      if (
+        state.processesFilterChainId !== undefined &&
+        state.processesFilterChainId !== '' &&
+        state.processesFilterChainId !== null
+      )
+        params.filterChainId = state.processesFilterChainId
+      if (
+        state.processesFilterIncludeDeleted !== undefined &&
+        state.processesFilterIncludeDeleted !== '' &&
+        state.processesFilterIncludeDeleted !== null
+      )
+        params.filterIncludeDeleted = state.processesFilterIncludeDeleted
+      if (
+        state.processesFilterName !== undefined &&
+        state.processesFilterName !== '' &&
+        state.processesFilterName !== null
+      )
+        params.filterName = state.processesFilterName
+      return params
+    },
   },
+
   mutations: {
     setProcessesFilterStatus(state, value) {
       setWebvueProp(state.processesFilterStatus, 'processesFilterStatus', JSON.stringify(value))

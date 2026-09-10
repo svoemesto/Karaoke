@@ -18,6 +18,18 @@
       @close="closeAuthorAlbums"
     />
     <div class="authors-bv-table-header">
+      <b-form-input
+        :id="`rows-per-page-authors`"
+        type="number"
+        min="1"
+        max="1000"
+        size="sm"
+        style="width: 65px"
+        :model-value="perPage"
+        :disabled="isSavingRowsPerPage"
+        @change="onPerPageChange($event)"
+      />
+      <b-spinner v-if="isSavingRowsPerPage" small />
       <b-pagination
         v-model="currentPage"
         :total-rows="countRows"
@@ -195,7 +207,7 @@
 </template>
 
 <script>
-import { BPagination, BSpinner, BTable } from 'bootstrap-vue-next'
+import { BPagination, BSpinner, BTable, BFormInput } from 'bootstrap-vue-next'
 import AuthorsFilter from '../../components/Authors/filter/AuthorsFilterModal.vue'
 import CustomConfirm from '../Common/CustomConfirm.vue'
 import PictureEditModal from '../../components/Pictures/edit/PictureEditModal.vue'
@@ -219,6 +231,7 @@ export default {
     BPagination,
     BSpinner,
     BTable,
+    BFormInput,
   },
   data() {
     return {
@@ -247,6 +260,10 @@ export default {
     },
     authorsDigests() {
       return this.$store.getters.getAuthorsDigest
+    },
+    // specs/358-rows-per-page: состояние saving для индикатора loading.
+    isSavingRowsPerPage() {
+      return this.$store.getters.isSavingRowsPerPage('authors')
     },
     countRows() {
       return this.authorsDigests ? this.authorsDigests.length : 0
@@ -449,10 +466,51 @@ export default {
       },
     },
   },
-  mounted() {
+  async mounted() {
+    // specs/358-rows-per-page: загрузить настройки таблиц (один раз при старте SPA,
+    // защищён флагом `loaded` в store `tableSettings`). Важно: ждём завершения
+    // ДО любых действий с perPage, чтобы данные загружались с правильным значением.
+    await this.$store.dispatch('loadTableSettings')
+    this.perPage = this.$store.getters.getRowsPerPage('authors')
     // this.$store.dispatch('loadAuthorsDigests', { filterAuthor: 'Павел Кашин'} )
   },
   methods: {
+    /**
+     * specs/358-rows-per-page: обработчик изменения поля «Строк на странице».
+     * Парсит значение, валидирует диапазон, отправляет в backend, обновляет UI
+     * только после успешного ответа (без оптимистичного обновления — см.
+     * Clarifications Q3 spec.md).
+     *
+     * @param {string|number} newValue
+     */
+    async onPerPageChange(e) {
+      // Bootstrap-vue-next `<b-form-input>` в нативном режиме передаёт в @change Event,
+      // а не значение. Извлекаем value из target.
+      const rawValue = e && e.target ? e.target.value : e
+      const parsed = parseInt(rawValue, 10)
+      if (isNaN(parsed) || parsed < 1 || parsed > 1000) {
+        // eslint-disable-next-line no-console
+        console.warn('[AuthorsTable.onPerPageChange] invalid value', rawValue)
+        return
+      }
+      if (parsed === this.perPage) return
+      this.currentPage = 1 // ADR-0004: page reset
+      if (this.$store.getters.getAuthorsTableCurrentPage !== undefined) {
+        this.$store.commit('setAuthorsTableCurrentPage', 1)
+      }
+      const ok = await this.$store.dispatch('setRowsPerPage', {
+        tableKey: 'authors',
+        value: parsed,
+      })
+      if (ok) {
+        this.perPage = this.$store.getters.getRowsPerPage('authors')
+        await this.$store.dispatch('loadAuthorsDigests', {
+          page: this.currentPage,
+          perPage: this.perPage,
+          ...this.$store.getters.getAuthorsFilter,
+        })
+      }
+    },
     editPicture(id) {
       this.$store.commit('setPictureCurrentId', id)
       this.isPictureEditVisible = true
@@ -743,6 +801,9 @@ export default {
 
 .authors-bv-table-header {
   width: fit-content;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .authors-bv-table-body {
@@ -960,5 +1021,25 @@ export default {
 .icon-40 {
   width: 40px;
   height: 40px;
+}
+
+/* specs/358-rows-per-page: поле ввода «Строк на странице» — выровнено по центру
+   с кнопками пагинации. Bootstrap .form-control имеет min-height через padding
+   + font-size, что смещает baseline относительно .btn-sm кнопок. */
+#rows-per-page-authors {
+  padding: 0.25rem 0.5rem !important;
+  line-height: 1.5 !important;
+  height: 31px !important;
+  font-size: 0.875rem !important;
+  text-align: center;
+  align-self: center;
+}
+
+/* specs/358-rows-per-page: убрать дефолтный margin-bottom у <b-pagination>
+   внутри header-div, чтобы pagination был выровнен по центральной оси
+   с input (без смещения baseline вниз). */
+.authors-bv-table-header .pagination,
+.authors-bv-table-header ul.pagination {
+  margin-bottom: 0 !important;
 }
 </style>

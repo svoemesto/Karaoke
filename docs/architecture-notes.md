@@ -213,3 +213,19 @@
 > ADR-нарушение: фича использует `KaraokeProperties` для UI-настроек
 > (не только render-config), что переопределяет первоначальную интерпретацию
 > ADR `local-0001`. Решение владельца зафиксировано в spec.md § Clarifications.
+
+> **Pass 361** (2026-09-10): Bugfix #76 (OP) — редактор на публичном сайте видел
+> только альбомы с готовыми песнями, как гость. Root cause: `ZakromaAlbumsView.vue`
+> — единственный клиент эндпоинта `/api/public/authors/{authorId}/albums`, который
+> делал наивный `fetch` без `Authorization: Bearer <token>`-заголовка.
+> `SiteUserResolver.resolve` (`SiteUserResolver.kt:25`) берёт токен **только** из
+> `Authorization`-заголовка (контракт спеки 017), поэтому бэкенд всегда видел
+> анонимного пользователя → `onlyPublishedFor(request) == true` → выборка гостя.
+> Бэкенд уже корректен с Pass 360 (спек 356, `Album.loadAlbumTilesWithCounts` +
+> `PublicApiController.onlyPublishedFor`); fix — только 5 строк кода во фронте
+> (+ JSDoc) по образцу `useZakromaStreamProgress.js:144-146` и `services/api.js:15-18`.
+> Валидация (автор #17 АнимациЯ): гость → 22 альбома, 0 с `readySongCount=0`;
+> редактор → 29 альбомов, 7 с `readySongCount=0`. Без изменений в БД, миграциях,
+> триггерах, DTO, других контроллерах. См. `specs/360-editor-sees-all-albums/`,
+> `docs/features/zakroma-albums-by-author.md` (секция «Bugfix #76 — Pass 361»).
+> Pass 350 hooks `tracker-implement-done.sh` отработали: `#76 → In review`.

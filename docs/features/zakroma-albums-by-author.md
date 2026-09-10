@@ -143,3 +143,19 @@ ORDER BY a.year ASC NULLS LAST, a.name ASC
 - API `/api/public/authors/{authorId}/albums` — backward compatible (новый endpoint).
 - Бэкенд принимает `?albumId=N` на `/api/public/zakroma` и `/api/public/zakroma/stream` — фронт передаёт `albumId` из `selectedAlbumId` (Pass 360).
 - `ZakromaSettings.vue` (Pass 359) — компонент и `useZakromaSettings.js` композабл сохранены в репо (НЕ удалены), но сейчас НЕ используются на странице альбомов. Можно переиспользовать в будущем, если понадобится панель настроек размера/режима.
+
+## Bugfix #76 (spec 360 — Pass 361, 2026-09-10)
+
+Спека `360-editor-sees-all-albums` исправляет баг: редактор (`SiteUser.isEditor == true`) на публичном сайте видел только альбомы с готовыми песнями, как обычный пользователь, хотя контракт FR-011 спеки 356 явно требует, чтобы редактор видел **все** альбомы автора.
+
+**Root cause**: `karaoke-public/src/views/ZakromaAlbumsView.vue:111` (Pass 360) — единственный клиент `/api/public/authors/{authorId}/albums`, который делал наивный `fetch` без `Authorization: Bearer <token>`-заголовка. `SiteUserResolver.resolve(request)` (`SiteUserResolver.kt:25`) берёт токен **только** из `Authorization`-заголовка (контракт спеки 017), поэтому бэкенд всегда видел анонимного пользователя → `onlyPublishedFor(request) == true` → `Album.loadAlbumTilesWithCounts(authorId, onlyPublished=true)` отдавал выборку гостя.
+
+**Фикс** (Pass 361): добавить передачу `Authorization: Bearer ${localStorage.getItem('km_auth_token')}` в `fetch`. Паттерн — точно как в `useZakromaStreamProgress.js:144-146` и `services/api.js:15-18` (`authHeader()`). Бэкенд уже умеет bypass — никаких изменений на бэке.
+
+**Влияние**: только `ZakromaAlbumsView.vue` (1 файл). Другие клиенты (`apiGet`, `useZakromaStreamProgress`) уже передавали заголовок — bypass для них работал с Pass 360.
+
+**Валидация**:
+- Автор #17 (АнимациЯ): гость → 22 альбома, 0 с `readySongCount=0`; редактор → 29 альбомов, 7 с `readySongCount=0` (id=244, 252, 254, 257, 261, 265, 270). Все 7 ожидаемых альбомов (по БД) видны.
+- Без токена / с невалидным токеном: поведение как у гостя (как до фикса).
+
+**См. также**: [specs/360-editor-sees-all-albums/spec.md](../specs/360-editor-sees-all-albums/spec.md), [specs/360-editor-sees-all-albums/contracts/albums-tiles-authorization.md](../specs/360-editor-sees-all-albums/contracts/albums-tiles-authorization.md).

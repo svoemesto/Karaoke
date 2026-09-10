@@ -141,6 +141,7 @@ MLT-конвейером).
 - `185-song-dto-audit-sponsr-remove` — очистка DTO.
 - `186-zakroma-songs-fast-load` — оптимизация загрузки.
 - [`356-zakroma-albums-by-author`](../../../docs/features/zakroma-albums-by-author.md) — промежуточный этап «Альбомы автора» в навигации `/zakroma`; песни привязаны к альбому через FK `tbl_songs.album_id` (Pass 357); бэкенд фильтрует стрим по `?albumId=N`.
+- [`360-editor-sees-all-albums`](../../../specs/360-editor-sees-all-albums/spec.md) — bugfix #76 (Pass 361): редактор на публичном сайте видел только альбомы с готовыми, как гость; root cause — `ZakromaAlbumsView.vue` не передавал `Authorization: Bearer <token>` в fetch (`SiteUserResolver` берёт токен только из заголовка). Бэкенд уже корректен с Pass 360; фикс — только фронт, ~5 строк.
 
 ## Связанные ADR
 

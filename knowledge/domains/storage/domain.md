@@ -142,14 +142,16 @@ black-hole, ломает SigV4-подпись). Поэтому — nginx-про�
    [processing](../processing/domain.md)). Для длинных — через
    `KaraokeProcess`.
 
-## Hot paths (связанные с задачами #65, #69)
+## Hot paths (связанные с задачами #65, #69, #75)
 
 | Путь | Частота | Где болит | Status |
 |---|---|---|---|
 | `HealthReport.getHealthReportList` → `actionsLocalStorage` / `actionsRemoteStorage` → `cachedFileExists` (Pass 344+ через `StorageMetadataCache`) | ~72k раз на страницу Songs в webvue3 → после кеша ~144/страница (уникальные ключи) | OpenProject #69 | **FIXED (Pass 344, спека #344)** |
 | `Song.loadFromDbById` → `KaraokeStorageService.fileExists` / `fileIsActual` | 1 раз на каждую песню при загрузке Songs | то же | **FIXED** (через `cachedFileExists`) |
 | `SongEdit.vue` (webvue3) → `getHealthReportList` для одной песни | 1 раз на открытие редактирования | то же | **FIXED** |
-| `StorageApiClient.fileExists` HTTP round-trip | 50-100ms каждый (через nginx-proxy на проде) | OpenProject #65 (race) | in progress — кеш смягчает, root cause не починен |
+| `StorageApiClient.fileExists` HTTP round-trip (REMOTE) | 120-250ms каждый (холодный кеш) | OpenProject #75 | **OPTIMIZED (Pass 364, US2): async cold-start, 50ms max** |
+| `actionsLocalStorage` → MinIO (LOCAL) | 25-55ms каждый (холодный кеш) | OpenProject #75 | **FIXED (Pass 364, US3): circuit breaker** |
+| `startRepairAll` → executeResolvable | sync, блокирует HTTP thread | OpenProject #75 | **FIXED (Pass 364, US3): async via repairExecutor** |
 | `MinioClient.statObject` (внутри `fileExists`) | 10-30ms (прямой SDK на admin) | локальная задержка | OK (минимальная) |
 
 ## Связь с OpenProject и задачами
@@ -159,7 +161,12 @@ black-hole, ломает SigV4-подпись). Поэтому — nginx-про�
   Детальный анализ — TODO (см. Known gaps).
 - **#69** «Кеширование информации из хранилища»: спека 339 (2026-09-09)
   была провалена из-за пропуска Knowledge-first (Pass 340). После
-  Pass 341 Knowledge достаточно для новой спеки.
+  Pass 341 Knowledge достаточно для новой спеки. **FIXED (Pass 344, спека #344)**.
+- **#75** «Ускорение HealthReport» (Pass 364, спека #364):
+  - US1 (≤200ms): частично достигнуто (LOCAL_STORAGE 25-55ms, REMOTE async 50ms)
+  - US2 (async cold-start): **IMPLEMENTED** (`getFileExistsAsync`, 50ms timeout)
+  - US3 (non-blocking repair): **IMPLEMENTED** (`repairExecutor`, fire-and-forget)
+  - FR-006 (circuit breaker): **IMPLEMENTED** (`StorageCircuitBreaker` в `actionsLocalStorage`)
 
 ## Код (физическая реализация)
 

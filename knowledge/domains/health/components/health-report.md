@@ -103,30 +103,50 @@ enum class HealthReportStatus(val color: String) {
 
 ### Hot spots и производительность
 
-`getHealthReportList` — главный источник MinIO-запросов:
+`getHealthReportList` — источник MinIO-запросов. Оптимизировано в OpenProject #75:
 
-- Для каждой песни вызывает **`StorageApiClient.fileExists`** для
-  каждого `KaraokeFileType`, для которого `willBeInRemoteStorage=true`.
-- Для 18k песен × 4 типов = ~72k HTTP round-trips к MinIO.
-- Это и есть проблема OpenProject #69 «кеширование».
+**Кеширование (Pass 344, #69)**:
+- `StorageMetadataCache` — вечный in-process кеш результатов `fileExists`.
+- Таблица `tbl_storage_metadata_cache` в локальной БД (persists across restarts).
+- Write-through: `uploadFile`/`deleteFile` автоматически инвалидируют кеш.
+
+**Async cold-start (Pass 364, #75, US2)**:
+- `StorageMetadataCache.getFileExistsAsync()` — fire-and-forget на cache miss.
+- `cachedFileExistsAsync()` в `HealthReport` companion.
+- REMOTE storage: max 50ms block (вместо 200ms), safe default `true`.
+- Warm cache: <1ms (cache hit).
+
+**Circuit breaker (Pass 364, #75, FR-006)**:
+- `StorageCircuitBreaker` защищает local MinIO в `actionsLocalStorage`.
+- State machine: CLOSED → OPEN → HALF_OPEN → CLOSED.
+- При OPEN: `FATAL_ERROR("Storage unavailable")` немедленно.
+
+**Async repair (Pass 364, #75, US3)**:
+- `startRepairAll()` — fire-and-repair через `repairExecutor` (4-thread pool).
+- HTTP-тред не блокируется: `executeResolvable` выполняется в фоне.
+- UI получает initial SSE мгновенно.
 
 ### Repair-loop: `startRepairAll` / `recomputeAndBroadcast`
 
-Точка входа: `HealthReport.kt:2259`. Используется при:
+Точка входа: `HealthReport.kt:2259` (Pass 364 — async, не блокирует HTTP). Используется при:
 
 1. Завершении `KaraokeProcess*` (`onRepairProcessFinished`, строка 2277).
 2. Ручном запуске из webvue3 «Починить всё».
 3. Старте admin-машины (cold start).
 
+**Pass 364 (OpenProject #75):** `startRepairAll` выполняется асинхронно.
+HTTP-тред отправляет initial SSE и сразу возвращает ответ.
+`executeResolvable` работает в `repairExecutor` (4-thread pool).
+
 Цикл:
 ```
-startRepairAll →
-  for each Song (через SearchResult/songId):
-    getHealthReportList
-    for each HealthReport where canResolve:
-      executeSolutionActions()         // выполнить лямбды
-  recomputeAndBroadcast()              // пересчитать PlayerReady, SSE
-  reconcilePlayerReadinessFlags()      // Song.status синхронизировать с реальностью
+startRepairAll (async, HTTP thread) →
+  recomputeAndBroadcast()              // initial SSE
+  repairExecutor.execute {             // background thread
+    recomputeAndBroadcast()            // before repair
+    executeSolutionActions()           // выполнить лямбды
+    recomputeAndBroadcast()           // after repair, SSE update
+  }
 ```
 
 После repair пользователь видит обновление **через SSE**
@@ -182,7 +202,7 @@ fun recomputeAndBroadcast(songId, database, storageService, storageApiClient):
 
 ### `executeResolvable`
 
-`HealthReport.kt:2252-2256`. Простой helper:
+`HealthReport.kt`. Простой helper:
 
 ```kotlin
 private fun executeResolvable(reports: List<HealthReport>) {
@@ -194,13 +214,16 @@ private fun executeResolvable(reports: List<HealthReport>) {
 
 Фильтрует отчёты, которые система **может** решить сама (`canResolve`)
 и которые сейчас в `ERROR`, и выполняет их `solutionActions`.
+**Pass 364 (OpenProject #75):** выполняется асинхронно в `repairExecutor`
+(не блокирует HTTP).
 
 ### `startRepairAll` / `recalculatePlayerReadiness`
 
-`HealthReport.kt:2259` — точка входа каскадного «Исправить всё»:
+`HealthReport.kt` — точка входа каскадного «Исправить всё»:
 пометить песню и выполнить всё решаемое сейчас.
+**Pass 364 (OpenProject #75):** async, fire-and-forget.
 
-`HealthReport.kt:2188` — разовый backfill персистентных флагов
+`HealthReport.kt` — разовый backfill персистентных флагов
 готовности плеера для уже существующих песен (после миграции
 `26_player_readiness_flags.sql`). Параметр `author` (null/пусто →
 **все** песни). Логирует прогресс каждые `PROGRESS_LOG_EVERY = 200`

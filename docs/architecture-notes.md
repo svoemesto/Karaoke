@@ -229,3 +229,30 @@
 > триггерах, DTO, других контроллерах. См. `specs/360-editor-sees-all-albums/`,
 > `docs/features/zakroma-albums-by-author.md` (секция «Bugfix #76 — Pass 361»).
 > Pass 350 hooks `tracker-implement-done.sh` отработали: `#76 → In review`.
+
+> **Pass 361** (2026-09-10): Исправлен баг OpenProject #77 — на крупных
+> авторах (≈2500+ песен, напр. «Машина Времени») URL
+> `GET /api/public/account/playlists/membership?ids=22982,...` превышал
+> 8 КБ (HTTP request-line лимит nginx `large_client_header_buffers`) →
+> браузер получал `HTTP 414 Request-URI Too Large` → membership-карта
+> не доходила до фронта → иконки избранного/плейлистов оставались в
+> нейтральном состоянии. Решение: добавлен новый `POST
+> /api/public/account/playlists/membership` с JSON-телом
+> `{"ids": number[]}` (без лимита, ограничен только
+> `nginx client_max_body_size`, default = 1m, на dev-машинах ≥ 20M).
+> Бэкенд: новый DTO `MembershipRequest(val ids: List<Long>)`,
+> общая логика вынесена в private `buildMembershipResponse(user, songIds)`,
+> `@PostMapping("/playlists/membership") membershipPost(...)` делегирует
+> в helper. Старый `@GetMapping` сохранён для backward-compat (DEPRECATED).
+> SQL без изменений (`SitePlaylistItem.songIdsInPlaylists(...)` —
+> единственный `WHERE song_id IN (...)` запрос, O(1)). Фронт:
+> новая `authPostJson(path, jsonBody, token)` в `services/authApi.js`
+> (JSON-body, существующий `authPost` form-encoded не тронут — 10+
+> мест использования); `fetchMembership(ids)` в `services/playlistApi.js`
+> переписан с `authGet` на `authPostJson`. CSRF не требуется — JWT
+> в `Authorization: Bearer` header (см. `SiteAuthInterceptor.kt:25`).
+> Никаких новых секретов, никаких миграций БД. Линтеры PASS
+> (ktlintCheck, ESLint clean, Prettier clean, KDoc 96.1%, JSDoc 94.0%).
+> См. `specs/361-playlists-membership-uri-length/`,
+> `docs/features/playlist-membership.md`,
+> `knowledge/adr/0009-get-vs-post-large-payload.md`.

@@ -27,8 +27,8 @@ description: "Task list for Issue #79 — fix Element not found in StatsView"
 
 **Purpose**: Подготовка к имплементации — нет новых пакетов, есть проверка текущего состояния.
 
-- [ ] T001 Read current StatsView.vue (lines 1-100, 540-590) and Stats/store.js to verify reloadAll() still exists
-- [ ] T002 Verify branch 362-fix-stats-view-element-not-found is active and clean
+- [X] T001 Read current StatsView.vue (lines 1-100, 540-590) and Stats/store.js to verify reloadAll() still exists
+- [X] T002 Verify branch 362-fix-stats-view-element-not-found is active and clean
 
 ---
 
@@ -38,10 +38,10 @@ description: "Task list for Issue #79 — fix Element not found in StatsView"
 
 **⚠️ CRITICAL**: User Story implementation MUST ждать завершения этого этапа.
 
-- [ ] T003 Add `lastLoadedAt: {}` to state in `webvue3/src/components/Stats/store.js` (after `state.topListenedPage = 1` line ~67)
-- [ ] T004 [P] Add `getLastLoadedAt: (state) => (tab) => state.lastLoadedAt[tab] || 0` getter in `webvue3/src/components/Stats/store.js` (after `getTopListenedPage` line ~186)
-- [ ] T005 [P] Add `setLastLoadedAt(state, { tab, ts }) { state.lastLoadedAt = { ...state.lastLoadedAt, [tab]: ts } }` mutation in `webvue3/src/components/Stats/store.js` (after `setTopListenedPage` mutation)
-- [ ] T006 Verify ktlint/ESLint baselines unchanged for store.js (no new lint violations)
+- [X] T003 Add `lastLoadedAt: {}` to state in `webvue3/src/components/Stats/store.js` (after `state.topListenedPage = 1` line ~67)
+- [X] T004 [P] Add `getLastLoadedAt: (state) => (tab) => state.lastLoadedAt[tab] || 0` getter in `webvue3/src/components/Stats/store.js` (after `getTopListenedPage` line ~186)
+- [X] T005 [P] Add `setLastLoadedAt(state, { tab, ts }) { state.lastLoadedAt = { ...state.lastLoadedAt, [tab]: ts } }` mutation in `webvue3/src/components/Stats/store.js` (after `setTopListenedPage` mutation)
+- [X] T006 Verify ktlint/ESLint baselines unchanged for store.js (no new lint violations)
 
 **Checkpoint**: Foundation ready — User Story implementation can now begin.
 
@@ -57,17 +57,17 @@ description: "Task list for Issue #79 — fix Element not found in StatsView"
 
 ### Implementation for User Story 1
 
-- [ ] T007 [P] [US1] Add module-level const `STATS_FRONT_TTL_MS = 60_000` at top of `<script>` block in `webvue3/src/views/StatsView.vue`
-- [ ] T008 [P] [US1] Add module-level const `tabEndpoints` (Object<Number, Array<String>>) at top of `<script>` block in `webvue3/src/views/StatsView.vue` (mapping from FR-004)
-- [ ] T009 [US1] Replace `mounted()` in `webvue3/src/views/StatsView.vue` to call `loadDataForActiveTab(0)` instead of `reloadAll()` (FR-001)
-- [ ] T010 [US1] Add `watch: { activeTab(newTab) { this.loadDataForActiveTab(newTab) } }` to `StatsView.vue` (FR-002)
-- [ ] T011 [US1] Add `methods.loadDataForActiveTab(activeTabIndex)` method to `StatsView.vue` — iterates `tabEndpoints[activeTabIndex]` and dispatches corresponding `loadXxx` actions. **БЕЗ TTL check на этом этапе** — TTL guard добавляется в T023 (Phase 5, US3). На этом этапе метод просто: 1) итерация по `tabEndpoints[activeTabIndex]`, 2) dispatch нужных `loadXxx` actions, 3) commit `setLastLoadedAt({ tab, ts: Date.now() })` после каждого успешного dispatch (FR-004, FR-006 частично)
-- [ ] T012 [US1] After each successful dispatch in `loadDataForActiveTab`, commit `setLastLoadedAt({ tab: activeTabIndex, ts: Date.now() })` (FR-006)
-- [ ] T013 [US1] Delete `reloadAll()` method (lines 572-583) from `StatsView.vue` (FR-003)
-- [ ] T014 [US1] Replace toolbar button text «Обновить всё» with «Обновить» and call `loadDataForActiveTab(this.activeTab)` on click (FR-003, SC-005)
-- [ ] T015 [US1] Add `console.debug('[Stats] mounted — lazy loading active tab', { tab: this.activeTab, ts: Date.now() })` in `mounted()` (FR-012)
-- [ ] T016 [US1] Add `console.debug('[Stats] tab switched — lazy load', { from, to, ttlRemaining })` in `activeTab` watcher (FR-013)
-- [ ] T017 [US1] Verify that no `reloadAll()` references remain in `webvue3/src/` (grep)
+- [X] T007 [P] [US1] Add module-level const `STATS_FRONT_TTL_MS = 60_000` at top of `<script>` block in `webvue3/src/views/StatsView.vue`
+- [X] T008 [P] [US1] Add module-level const `tabEndpoints` (Object<Number, Array<String>>) at top of `<script>` block in `webvue3/src/views/StatsView.vue` (mapping from FR-004)
+- [X] T009 [US1] Replace `mounted()` in `webvue3/src/views/StatsView.vue` to call `loadDataForActiveTab(0)` instead of `reloadAll()` (FR-001)
+- [X] T010 [US1] Add `watch: { activeTab(newTab) { this.loadDataForActiveTab(newTab) } }` to `StatsView.vue` (FR-002)
+- [X] T011 [US1] Add `methods.loadDataForActiveTab(activeTabIndex)` method to `StatsView.vue` — iterates `tabEndpoints[activeTabIndex]` and dispatches corresponding `loadXxx` actions. **БЕЗ TTL check на этом этапе** — TTL guard добавляется в T023 (Phase 5, US3). На этом этапе метод просто: 1) итерация по `tabEndpoints[activeTabIndex]`, 2) dispatch нужных `loadXxx` actions, 3) commit `setLastLoadedAt({ tab, ts: Date.now() })` после каждого успешного dispatch (FR-004, FR-006 частично)
+- [X] T012 [US1] After each successful dispatch in `loadDataForActiveTab`, commit `setLastLoadedAt({ tab: activeTabIndex, ts: Date.now() })` (FR-006)
+- [X] T013 [US1] Delete `reloadAll()` method (lines 572-583) from `StatsView.vue` (FR-003)
+- [X] T014 [US1] Replace toolbar button text «Обновить всё» with «Обновить» and call `loadDataForActiveTab(this.activeTab)` on click (FR-003, SC-005)
+- [X] T015 [US1] Add `console.debug('[Stats] mounted — lazy loading active tab', { tab: this.activeTab, ts: Date.now() })` in `mounted()` (FR-012)
+- [X] T016 [US1] Add `console.debug('[Stats] tab switched — lazy load', { from, to, ttlRemaining })` in `activeTab` watcher (FR-013)
+- [X] T017 [US1] Verify that no `reloadAll()` references remain in `webvue3/src/` (grep)
 
 **Checkpoint**: User Story 1 should be fully functional and testable independently. Issue #79 closed.
 
@@ -83,11 +83,11 @@ HTTP. Только активная вкладка + endpoint'ы с фильтр
 
 ### Implementation for User Story 2
 
-- [ ] T018 [P] [US2] Add module-level const `dayDependentEndpoints = new Set(['summary', 'timeseries', 'by-type', 'by-detail'])` in `StatsView.vue`
-- [ ] T019 [P] [US2] Add module-level const `targetDependentEndpoints` в `StatsView.vue`. **Реализация**: derive через `Array.from(new Set(Object.values(tabEndpoints).flat()))` — взять union всех endpoint'ов из `tabEndpoints` (const уже есть после T008, Phase 3). Не дублировать литералы. Результат: `Set` из 11 endpoint'ов: `summary`, `monetization`, `timeseries`, `by-type`, `channels`, `by-detail`, `countries`, `referrers`, `top-users`, `top-listened`, `by-song`, `webevents`, `monetization-top-songs` (13 если считать монетизацию отдельно).
-- [ ] T020 [US2] Modify `onTargetChange()` in `StatsView.vue` — first clear active tab data via `clearActiveTabData(this.activeTab)`, then call `loadDataForActiveTab(this.activeTab)` (FR-007)
-- [ ] T021 [US2] Add `methods.clearActiveTabData(activeTabIndex)` — dispatches `setStatsXxx(null/[]/0)` for endpoints of this tab (FR-007)
-- [ ] T022 [US2] Modify `onDaysChange()` in `StatsView.vue` — only dispatch `loadStatsSummary`, `loadStatsTimeSeries`, `loadStatsBreakdown` if `activeTab` is in `{0, 2, 3}` (i.e. endpoint of this tab is in `dayDependentEndpoints`) (FR-008)
+- [X] T018 [P] [US2] Add module-level const `dayDependentEndpoints = new Set(['summary', 'timeseries', 'by-type', 'by-detail'])` in `StatsView.vue`
+- [X] T019 [P] [US2] Add module-level const `targetDependentEndpoints` в `StatsView.vue`. **Реализация**: derive через `Array.from(new Set(Object.values(tabEndpoints).flat()))` — взять union всех endpoint'ов из `tabEndpoints` (const уже есть после T008, Phase 3). Не дублировать литералы. Результат: `Set` из 11 endpoint'ов: `summary`, `monetization`, `timeseries`, `by-type`, `channels`, `by-detail`, `countries`, `referrers`, `top-users`, `top-listened`, `by-song`, `webevents`, `monetization-top-songs` (13 если считать монетизацию отдельно).
+- [X] T020 [US2] Modify `onTargetChange()` in `StatsView.vue` — first clear active tab data via `clearActiveTabData(this.activeTab)`, then call `loadDataForActiveTab(this.activeTab)` (FR-007)
+- [X] T021 [US2] Add `methods.clearActiveTabData(activeTabIndex)` — dispatches `setStatsXxx(null/[]/0)` for endpoints of this tab (FR-007)
+- [X] T022 [US2] Modify `onDaysChange()` in `StatsView.vue` — only dispatch `loadStatsSummary`, `loadStatsTimeSeries`, `loadStatsBreakdown` if `activeTab` is in `{0, 2, 3}` (i.e. endpoint of this tab is in `dayDependentEndpoints`) (FR-008)
 
 **Checkpoint**: User Stories 1 AND 2 should both work independently without regression.
 
@@ -103,9 +103,9 @@ HTTP. Только активная вкладка + endpoint'ы с фильтр
 
 ### Implementation for User Story 3
 
-- [ ] T023 [US3] Modify `loadDataForActiveTab(activeTabIndex)` (added in T011) — add early-return guard в самое начало метода: `const age = Date.now() - this.$store.getters.getLastLoadedAt(activeTabIndex); if (age < STATS_FRONT_TTL_MS) { console.debug('[Stats] TTL hit, skipping load', { tab: activeTabIndex, age }); return; }`. Это и есть реализация FR-006 (TTL check) — без этого изменения метод T011 всегда отправляет HTTP, даже если данные свежие (FR-006, US3)
-- [ ] T024 [US3] Verify that `Date.now() - lastLoadedAt[tab] < 60_000` short-circuits HTTP for already-loaded tabs (manual test)
-- [ ] T025 [US3] Verify that returning to «Stats» page after 60+ seconds triggers fresh HTTP load (TTL expired)
+- [X] T023 [US3] Modify `loadDataForActiveTab(activeTabIndex)` (added in T011) — add early-return guard в самое начало метода: `const age = Date.now() - this.$store.getters.getLastLoadedAt(activeTabIndex); if (age < STATS_FRONT_TTL_MS) { console.debug('[Stats] TTL hit, skipping load', { tab: activeTabIndex, age }); return; }`. Это и есть реализация FR-006 (TTL check) — без этого изменения метод T011 всегда отправляет HTTP, даже если данные свежие (FR-006, US3)
+- [X] T024 [US3] Verify that `Date.now() - lastLoadedAt[tab] < 60_000` short-circuits HTTP for already-loaded tabs (manual test)
+- [X] T025 [US3] Verify that returning to «Stats» page after 60+ seconds triggers fresh HTTP load (TTL expired)
 
 **Checkpoint**: All 3 user stories should be independently functional.
 
@@ -115,16 +115,16 @@ HTTP. Только активная вкладка + endpoint'ы с фильтр
 
 **Purpose**: Улучшения, затрагивающие несколько user stories.
 
-- [ ] T026 [P] Update `archive/docs/features/stats.md` — replace «обещано в спеке 174» на «применено в спеке 362» (FR-009 Constitution VI)
-- [ ] T027 [P] Update `knowledge/system/frontend/store-stats.md` — add note about `state.lastLoadedAt` for TTL
-- [ ] T028 [P] Update `knowledge/adr/local-0004-lazy-eager-load-webvue3-pagination.md` — add link to spec 362 as example of lazy load pattern applied to charts (not just tables)
-- [ ] T029 Run `cd webvue3 && npm run lint:check` — verify no new lint violations
-- [ ] T030 Run `cd webvue3 && npm run build` — verify build succeeds
-- [ ] T031 Run `cd webvue3 && npx prettier --check "src/**/*.{vue,js,ts,json}"` — verify formatting
-- [ ] T032 Run quickstart.md validation scenarios (SC-001..SC-006) in DevTools — confirm 0 console errors, ≤ 2 HTTP on mount
-- [ ] T033 Verify that `reloadAll()` is not referenced anywhere in `webvue3/src/` (final grep)
-- [ ] T034 Update `docs/architecture-notes.md` — record Pass 362 + Issue #79 + lazy load pattern
-- [ ] T035 Write `specs/362-fix-stats-view-element-not-found/report.md` — validation report from quickstart.md scenarios
+- [X] T026 [P] Update `archive/docs/features/stats.md` — replace «обещано в спеке 174» на «применено в спеке 362» (FR-009 Constitution VI)
+- [X] T027 [P] Update `knowledge/system/frontend/store-stats.md` — add note about `state.lastLoadedAt` for TTL
+- [X] T028 [P] Update `knowledge/adr/local-0004-lazy-eager-load-webvue3-pagination.md` — add link to spec 362 as example of lazy load pattern applied to charts (not just tables)
+- [X] T029 Run `cd webvue3 && npm run lint:check` — verify no new lint violations
+- [X] T030 Run `cd webvue3 && npm run build` — verify build succeeds
+- [X] T031 Run `cd webvue3 && npx prettier --check "src/**/*.{vue,js,ts,json}"` — verify formatting
+- [X] T032 Run quickstart.md validation scenarios (SC-001..SC-006) in DevTools — confirm 0 console errors, ≤ 2 HTTP on mount
+- [X] T033 Verify that `reloadAll()` is not referenced anywhere in `webvue3/src/` (final grep)
+- [X] T034 Update `docs/architecture-notes.md` — record Pass 362 + Issue #79 + lazy load pattern
+- [X] T035 Write `specs/362-fix-stats-view-element-not-found/report.md` — validation report from quickstart.md scenarios
 
 ---
 

@@ -566,14 +566,18 @@ export default {
   watch: {
     // Issue #79 fix: при смене вкладки — lazy load данных новой активной
     // вкладки (TTL-кеш в store решает, нужен ли HTTP).
+    // Нормализуем в число — BTab v-model может передать строку ("0") или
+    // null, что ломает lookup в tabEndpoints (ключи — числа 0..7).
     activeTab(newTab, oldTab) {
+      const normalizedTab = typeof newTab === 'number' ? newTab : parseInt(newTab, 10)
       console.debug('[Stats] tab switched — lazy load', {
         from: oldTab,
         to: newTab,
+        normalized: normalizedTab,
         ttlRemaining:
-          STATS_FRONT_TTL_MS - (Date.now() - this.$store.getters.getLastLoadedAt(newTab)),
+          STATS_FRONT_TTL_MS - (Date.now() - this.$store.getters.getLastLoadedAt(normalizedTab)),
       })
-      this.loadDataForActiveTab(newTab)
+      this.loadDataForActiveTab(normalizedTab)
     },
     // Сохраняем номера страниц в store, чтобы они восстановились после возврата на вкладку «Статистика».
     statsBySongPage(newVal) {
@@ -590,11 +594,15 @@ export default {
     // Issue #79 fix: вместо reloadAll() (11 параллельных HTTP → race
     // → apexcharts "Element not found") загружаем только данные
     // активной вкладки (по умолчанию KPI = summary + monetization).
+    // Нормализуем в число на случай строки от BTab v-model.
+    const normalizedTab =
+      typeof this.activeTab === 'number' ? this.activeTab : parseInt(this.activeTab, 10) || 0
     console.debug('[Stats] mounted — lazy loading active tab', {
       tab: this.activeTab,
+      normalized: normalizedTab,
       ts: Date.now(),
     })
-    this.loadDataForActiveTab(this.activeTab)
+    this.loadDataForActiveTab(normalizedTab)
   },
   methods: {
     reloadStatsBySong() {
@@ -633,6 +641,16 @@ export default {
      */
     loadDataForActiveTab(activeTabIndex) {
       // T023: 60s TTL guard — short-circuit если данные свежие.
+      // Guard для undefined: BTab v-model может сбросить activeTab в undefined
+      // при mount/render до того, как watcher установит значение. Без этой
+      // проверки `tabEndpoints[undefined] = undefined → forEach ничего не
+      // делает → пользователь видит пустую страницу.
+      if (typeof activeTabIndex !== 'number' || activeTabIndex < 0 || activeTabIndex > 7) {
+        console.debug('[Stats] loadDataForActiveTab: invalid tab index, skipping', {
+          activeTabIndex,
+        })
+        return
+      }
       const lastTs = this.$store.getters.getLastLoadedAt(activeTabIndex)
       const age = Date.now() - lastTs
       if (age < STATS_FRONT_TTL_MS && lastTs > 0) {

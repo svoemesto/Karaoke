@@ -626,12 +626,19 @@ export default {
      * Загрузить данные для указанной вкладки.
      * Issue #79 fix: вместо reloadAll() (11 параллельных HTTP → race →
      * apexcharts "Element not found") — загружаются только endpoint'ы
-     * активной вкладки. TTL-guard (60s) добавляется в фазе US3 (T023),
-     * здесь метод без него.
+     * активной вкладки. 60s TTL-guard: если данные этой вкладки
+     * загружались менее 60s назад — HTTP НЕ отправляется (US3, T023).
      *
      * @param {Number} activeTabIndex — индекс вкладки (0..7)
      */
     loadDataForActiveTab(activeTabIndex) {
+      // T023: 60s TTL guard — short-circuit если данные свежие.
+      const lastTs = this.$store.getters.getLastLoadedAt(activeTabIndex)
+      const age = Date.now() - lastTs
+      if (age < STATS_FRONT_TTL_MS && lastTs > 0) {
+        console.debug('[Stats] TTL hit, skipping load', { tab: activeTabIndex, age })
+        return
+      }
       const endpoints = tabEndpoints[activeTabIndex] || []
       endpoints.forEach((ep) => {
         const ts = Date.now()

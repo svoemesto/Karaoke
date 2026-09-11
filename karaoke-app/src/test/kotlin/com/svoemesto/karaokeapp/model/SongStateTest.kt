@@ -215,4 +215,117 @@ class SongStateTest {
         assertEquals("#00FF00", Song.colorByIdStatus(6L))
         assertEquals("#FFFFFF", Song.colorByIdStatus(999L))
     }
+
+    // === specs/369-free-after-onair-flag: freeAfterOnAir flag ===
+
+    @Test
+    fun `freeAfterOnAir true и истёкшее окно эфира даёт ON_AIR (а не DONE)`() {
+        // Кейс A: песня прошла эфир давно, окно истекло, freeAfterOnAir=true → ON_AIR
+        // (без флага был бы DONE).
+        val fixedNow = now(2026, 8, 6, 10, 0)
+        val state =
+            SongStateResolver.resolve(
+                idStatus = 6L,
+                free = false,
+                dateTimePublish = dateTime(2026, 1, 1, 12, 0),
+                now = fixedNow,
+                freeAfterOnAir = true,
+            )
+        assertEquals(SongState.ON_AIR, state)
+        assertEquals("#33FF33", state.color)
+    }
+
+    @Test
+    fun `freeAfterOnAir true но эфир ещё не наступил остаётся прежним поведением`() {
+        // Кейс B: clarification 2026-09-11 Q2 — флаг действует только после эфира.
+        // Здесь эфир в будущем (через неделю), флаг не должен превратить это в ON_AIR.
+        val fixedNow = now(2026, 8, 6, 10, 0)
+        val state =
+            SongStateResolver.resolve(
+                idStatus = 6L,
+                free = false,
+                dateTimePublish = dateTime(2026, 8, 13, 12, 0),
+                now = fixedNow,
+                freeAfterOnAir = true,
+            )
+        assertEquals(SongState.DONE, state)
+    }
+
+    @Test
+    fun `freeAfterOnAir true и эфир сегодня в прошлом даёт ON_AIR`() {
+        // Кейс C: эфир ровно сегодня и момент уже прошёл (т.е. внутри бесплатного окна).
+        // С флагом freeAfterOnAir — однозначно ON_AIR (как и без флага в этой ситуации).
+        val fixedNow = now(2026, 8, 6, 20, 0)
+        val state =
+            SongStateResolver.resolve(
+                idStatus = 6L,
+                free = false,
+                dateTimePublish = dateTime(2026, 8, 6, 10, 0),
+                now = fixedNow,
+                freeAfterOnAir = true,
+            )
+        assertEquals(SongState.ON_AIR, state)
+    }
+
+    @Test
+    fun `free имеет приоритет над freeAfterOnAir`() {
+        // Кейс D: оба флага = true. free=true имеет приоритет; поведение не отличается
+        // от обычного free=true (т.е. ON_AIR).
+        val fixedNow = now(2026, 8, 6, 10, 0)
+        val state =
+            SongStateResolver.resolve(
+                idStatus = 6L,
+                free = true,
+                dateTimePublish = dateTime(2026, 8, 6, 20, 0),
+                now = fixedNow,
+                freeAfterOnAir = true,
+            )
+        assertEquals(SongState.ON_AIR, state)
+    }
+
+    @Test
+    fun `freeAfterOnAir и idStatus меньше 6 всё равно даёт IN_WORK`() {
+        // Кейс E: даже с флагом — песня в работе не считается эфирной.
+        val fixedNow = now(2026, 8, 6, 10, 0)
+        val state =
+            SongStateResolver.resolve(
+                idStatus = 5L,
+                free = false,
+                dateTimePublish = dateTime(2026, 1, 1, 12, 0),
+                now = fixedNow,
+                freeAfterOnAir = true,
+            )
+        assertEquals(SongState.IN_WORK, state)
+    }
+
+    @Test
+    fun `freeAfterOnAir true без dateTimePublish даёт EXCLUSIVE`() {
+        // Кейс F: нет расписания эфира — флаг не превращает это в ON_AIR
+        // (нет даты, к которой «привязать» семантику).
+        val state =
+            SongStateResolver.resolve(
+                idStatus = 6L,
+                free = false,
+                dateTimePublish = null,
+                now = now(2026, 8, 6),
+                freeAfterOnAir = true,
+            )
+        assertEquals(SongState.EXCLUSIVE, state)
+    }
+
+    @Test
+    fun `freeAfterOnAir по умолчанию false сохраняет обратную совместимость`() {
+        // Кейс G: старые callers (без указания параметра) получают поведение,
+        // идентичное SongStateResolver без этого PR.
+        val fixedNow = now(2026, 8, 6, 10, 0)
+        val state =
+            SongStateResolver.resolve(
+                idStatus = 6L,
+                free = false,
+                dateTimePublish = dateTime(2026, 1, 1, 12, 0),
+                now = fixedNow,
+                // freeAfterOnAir не передан — дефолт false
+            )
+        assertEquals(SongState.DONE, state)
+    }
 }

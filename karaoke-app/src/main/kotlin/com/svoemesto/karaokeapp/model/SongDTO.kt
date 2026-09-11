@@ -146,6 +146,7 @@ data class SongDTO(
     val audioSimilarityPercent: Int,
     val audioDeltaMs: Long,
     val free: Boolean,
+    val freeAfterOnAir: Boolean,
     val idTariff: Int,
     // 0 = песня не привязана к альбому (сингл). Entity-уровень (Song.albumId) — Long? (null =
     // нет альбома, настоящий SQL NULL из-за FK); здесь, как и у прочих Long-полей DTO (rootId,
@@ -249,6 +250,7 @@ data class SongDTO(
         entity.audioSimilarityPercent = audioSimilarityPercent
         entity.audioDeltaMs = audioDeltaMs
         entity.free = free
+        entity.freeAfterOnAir = freeAfterOnAir
         entity.idTariff = idTariff
         entity.fields[SongField.SONG_TYPE] = songType
         entity.tags = tags

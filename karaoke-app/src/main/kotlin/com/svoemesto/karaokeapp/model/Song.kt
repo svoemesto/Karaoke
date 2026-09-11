@@ -661,8 +661,11 @@ class Song(
     // onAir/isPubliclyWatchable — те управляют одноразовым триггером авто-новости "вышла в эфир"
     // (SongReleaseAnnouncementService, specs/089) и намеренно не должны меняться этой формулой.
     // free=true ("всегда бесплатно") даёт доступ независимо от даты эфира/окна.
+    // freeAfterOnAir=true (specs/369) — после эфира песня остаётся доступной даже после окончания
+    // стандартного окна (см. Song.freeAfterOnAir KDoc). Флаги независимы и хранятся раздельно.
     val isFreelyAvailableNow: Boolean get() = (
         free ||
+            (freeAfterOnAir && onAir) ||
             (
                 onAir &&
                     Calendar.getInstance(TimeZone.getTimeZone("Europe/Moscow")).time < freeAccessWindowEnd
@@ -905,6 +908,33 @@ class Song(
         }
         set(value) {
             fields[SongField.FREE] = value.toString()
+        }
+
+    /**
+     * Флаг «не снимать с эфира» (см. specs/369-free-after-onair-flag/spec.md,
+     * OpenProject #81).
+     *
+     * Семантика: после наступления [dateTimePublish] песня остаётся публично
+     * доступной (ON_AIR / AccessMode.open) даже после истечения стандартного
+     * окна бесплатного доступа (1 календарный месяц).
+     *
+     * Не путать с:
+     * - [free] — «всегда бесплатно, независимо от эфира»;
+     * - `isExclusive` — «premium-only по бизнес-решению»;
+     * - [dateTimePublish] — «момент выхода в эфир».
+     *
+     * Флаги [free] и `freeAfterOnAir` независимы и хранятся в БД раздельно
+     * (см. clarification 2026-09-11). Приоритет в логике доступа: сначала
+     * `idStatus < 6` → IN_WORK, затем `free=true` → ON_AIR, затем
+     * `freeAfterOnAir=true && onAir` → ON_AIR, затем стандартное окно.
+     */
+    var freeAfterOnAir: Boolean
+        get() {
+            val txt = fields[SongField.FREE_AFTER_ON_AIR] ?: false.toString()
+            return txt == true.toString()
+        }
+        set(value) {
+            fields[SongField.FREE_AFTER_ON_AIR] = value.toString()
         }
 
     // Персистентная готовность файлов песни к онлайн-плееру (см. SongField.PLAYER_READINESS_FLAGS)
@@ -7054,6 +7084,7 @@ class Song(
                     result.add(RecordDiff("audio_compare_history", settA.audioCompareHistory, settB.audioCompareHistory))
                 }
                 if (settA.free != settB.free) result.add(RecordDiff("free", settA.free, settB.free))
+                if (settA.freeAfterOnAir != settB.freeAfterOnAir) result.add(RecordDiff("free_after_on_air", settA.freeAfterOnAir, settB.freeAfterOnAir))
                 if (settA.playerReadinessFlags != settB.playerReadinessFlags) {
                     result.add(RecordDiff("player_readiness_flags", settA.playerReadinessFlags, settB.playerReadinessFlags))
                 }
@@ -7763,6 +7794,7 @@ class Song(
                     Pair("filter_audio_parent_id", "audio_parent_id"),
                     Pair("filter_exclusive", "exclusive"),
                     Pair("filter_free", "free"),
+                    Pair("filter_free_after_on_air", "free_after_on_air"),
                 )
 
             listFields.forEach { (filterFldName, fldName) ->
@@ -8032,6 +8064,7 @@ class Song(
                     rs.getLong("audio_delta_ms").let { value -> song.audioDeltaMs = value }
                     rs.getString("audio_compare_history")?.let { value -> song.audioCompareHistory = value }
                     rs.getBoolean("free").let { value -> song.free = value }
+                    rs.getBoolean("free_after_on_air").let { value -> song.freeAfterOnAir = value }
                     rs.getString("player_readiness_flags")?.let { value -> song.playerReadinessFlags = value }
 
                     song.statusProcessLyrics = rs.getString("status_process_lyrics") ?: ""
@@ -8742,6 +8775,7 @@ class Song(
             audioSimilarityPercent = audioSimilarityPercent,
             audioDeltaMs = audioDeltaMs,
             free = free,
+            freeAfterOnAir = freeAfterOnAir,
             idTariff = idTariff,
             songType = songType.dbValue,
             haveSourceText = haveSourceText,

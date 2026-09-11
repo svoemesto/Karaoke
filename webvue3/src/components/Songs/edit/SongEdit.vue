@@ -2183,7 +2183,7 @@
             Изменить обложку альбома
           </button>
           <div class="label-and-input">
-            <div class="label-medium">Всегда бесплатно (вечный эфир):</div>
+            <div class="label-medium">Всегда бесплатно:</div>
             <button
               class="group-button-round-wide"
               :class="freeButtonClass(true)"
@@ -2204,7 +2204,38 @@
             </button>
           </div>
           <div class="label-and-input">
-            <div class="label-medium">Разрешить подписку на эту песню:</div>
+            <!--
+              Флаг «не снимать с эфира» (см. specs/369-free-after-onair-flag/spec.md,
+              OpenProject #81 «Флаг не снимать с эфира»).
+              Семантика: после выхода песни в эфир (dateTimePublish прошёл) она
+              остаётся публично доступной, даже после окончания стандартного
+              окна бесплатного доступа. Не путать с «Всегда бесплатно» (free)
+              — это разные флаги, хранятся независимо. Приоритет в логике
+              доступа: сначала free=true, потом freeAfterOnAir=true.
+              @see docs/features/song-air-access.md
+            -->
+            <div class="label-medium">Не снимать с эфира:</div>
+            <button
+              class="group-button-round-wide"
+              :class="freeAfterOnAirButtonClass(true)"
+              type="button"
+              value="true"
+              @click="setFreeAfterOnAir(true)"
+            >
+              ДА
+            </button>
+            <button
+              class="group-button-round-wide"
+              :class="freeAfterOnAirButtonClass(false)"
+              type="button"
+              value="false"
+              @click="setFreeAfterOnAir(false)"
+            >
+              НЕТ
+            </button>
+          </div>
+          <div class="label-and-input">
+            <div class="label-medium">Разрешить подписку:</div>
             <button
               class="group-button-round-wide"
               :class="songSubscriptionButtonClass(true)"
@@ -4005,6 +4036,15 @@ export default {
     setFree(free) {
       this.song.free = free
     },
+    /**
+     * Установить флаг «не снимать с эфира» (см. specs/369-free-after-onair-flag).
+     * После эфира песня остаётся публично доступной, не уходит в premium-only
+     * по таймеру стандартного окна.
+     * @param {boolean} freeAfterOnAir - желаемое значение флага
+     */
+    setFreeAfterOnAir(freeAfterOnAir) {
+      this.song.freeAfterOnAir = freeAfterOnAir
+    },
     // Разрешение подписки на песню: 0 = разрешено (тариф по умолчанию), -1 = автор запретил.
     setSongSubscriptionAllowed(allowed) {
       this.song.idTariff = allowed ? 0 : -1
@@ -4021,6 +4061,14 @@ export default {
     },
     freeButtonClass(free) {
       return free === this.song.free ? 'group-button-round-wide-active' : ''
+    },
+    /**
+     * Класс для активной кнопки флага «не снимать с эфира».
+     * @param {boolean} freeAfterOnAir - проверяемое значение
+     * @returns {string} CSS-класс активной кнопки или пустая строка
+     */
+    freeAfterOnAirButtonClass(freeAfterOnAir) {
+      return freeAfterOnAir === this.song.freeAfterOnAir ? 'group-button-round-wide-active' : ''
     },
     copyFieldsFromAnother() {
       this.customConfirmParams = {

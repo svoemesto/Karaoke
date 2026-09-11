@@ -39,6 +39,11 @@ two-DB sync, поиск lyrics, авто-публикация.
 - `idStatus` (0..7) — см. [dictionaries.md#idstatus](dictionaries.md).
 - `lastUpdate` — последнее обновление.
 - Флаги ремонта: `isAudioAnalizeNeed`, `isMelodyNeed`, и т.п.
+- `free` — «всегда бесплатно», см. [dictionaries.md](dictionaries.md).
+- `freeAfterOnAir` — «не снимать с эфира» после стандартного окна доступа
+  (Pass 369, OpenProject #81). См.
+  [dictionaries.md#флаг-freeafteronair--не-снимать-с-эфира-pass-369-openproject-81](dictionaries.md).
+- `isExclusive` — «premium-only по бизнес-решению».
 
 **Внешние ссылки**:
 

@@ -245,6 +245,15 @@ jobs:
         # domain.md файлах.
         run: bash tools/check-knowledge-structure.sh
 
+      - name: Check no legacy tbl_settings references
+        # Прецедент (Pass 369, 2026-09-11): агент в specs/369 взял имя
+        # таблицы `tbl_settings` из устаревших recordhash-файлов, не
+        # проверив реальное состояние БД. Таблица была переименована в
+        # tbl_songs в миграции 28 (28_rename_settings_to_songs.sql).
+        # Скрипт падает, если новые файлы используют tbl_settings вне
+        # комментариев и исторических миграций.
+        run: bash tools/check-no-legacy-tbl-settings.sh
+
       - name: Check Knowledge cross-links
         # Проверяет относительные пути ../X.md и related: в knowledge/
         # (исключая adr/, который может содержать legacy ссылки на

@@ -55,10 +55,40 @@
 
 **Использование**:
 
-- В БД: колонка `tbl_settings.song_type` (varchar).
+- В БД: колонка `tbl_songs.song_type` (varchar).
 - В API: поле `SongDTO.songType`.
 
 **Запрещено**: другие литералы, кроме `song`/`instrumental`/`poetry`.
+
+### Флаг `freeAfterOnAir` — не снимать с эфира (Pass 369, OpenProject #81)
+
+| Значение | Описание |
+| --- | --- |
+| `true` | После наступления `dateTimePublish` песня остаётся публично доступной, не уходит в premium-only по таймеру стандартного окна. |
+| `false` | Стандартное поведение: после окончания окна (1 календарный месяц) песня становится premium-only. Default. |
+
+**Место определения**: `karaoke-app/.../model/Song.kt`, поле
+`freeAfterOnAir: Boolean` (геттер/сеттер через `fields[SongField.FREE_AFTER_ON_AIR]`).
+
+**Использование**:
+
+- В БД: колонка `tbl_songs.free_after_on_air` (`BOOLEAN NOT NULL DEFAULT false`,
+  миграция `deploy/karaoke-db/50_tbl_songs_free_after_on_air.sql`).
+- В API: поле `SongDTO.freeAfterOnAir`.
+- В UI: пара кнопок ДА/НЕТ «Не снимать с эфира (после окна доступа)» в
+  `SongEdit.vue`.
+
+**Контракт**:
+
+- Действует **только после наступления эфира** (`dateTimePublish ≤ now`),
+  см. clarification 2026-09-11 в `specs/369-free-after-onair-flag/spec.md`
+  (Q2).
+- Приоритет: `free=true` > `freeAfterOnAir=true` (оба флага независимы и
+  хранятся раздельно — см. clarification Q1).
+- `exclusive=true` > всё остальное (`premium-only` по бизнес-решению).
+
+**Запрещено**: использовать флаг как «всегда бесплатно» (для этого есть
+`free=true`) или как «опубликовать досрочно» (флаг не действует до эфира).
 
 ### Тег `SKIP` — скрытая песня
 

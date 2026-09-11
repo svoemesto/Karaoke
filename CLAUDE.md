@@ -73,15 +73,58 @@ When you need to understand:
 
 ---
 
-## 🚦 ОБЯЗАТЕЛЬНО перед каждым `git commit`
+## 🚦 Sandbox DSH (Pass 367)
 
-> ⚠️ **NON-NEGOTIABLE**: все `./gradlew ...` команды ДОЛЖНЫ идти с
-> `GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle` (папка `.gradle` ВНУТРИ проекта,
-> writable). Без этого wrapper пытается писать в `/home/nsa/.gradle/wrapper/dists/...` —
-> read-only для sandbox'а DSH, билд падает. См. `AGENTS.md` § «Gradle: запуск с GRADLE_USER_HOME».
+> ⚠️ **NON-NEGOTIABLE**: в режиме workspace-write НЕ эскалируй на
+> `danger-full-access` для gradle compile/ktlint/bootJar, docker build/restart/logs,
+> npm/vite/prettier — для всего есть workspace-обход через
+> `/home/nsa/Karaoke/.gradle/` и `/home/nsa/Karaoke/.docker/`.
+>
+> **Эскалируй** только если (а) операция меняет состояние **вне** workspace
+> (прод-БД, файлы на сервере, `/etc/...`), **и** (б) нет технического обхода,
+> **и** (в) задача не может быть отложена без потери смысла.
+
+**Pre-flight** (в начале сессии, перед первым gradle/docker/npm вызовом):
 
 ```bash
-# 1. Линтеры (все gradle — с GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle)
+bash /home/nsa/Karaoke/tools/check-sandbox-ready.sh
+```
+
+Скрипт probe'ит read-only границы, создаёт workspace-аналоги, печатает
+готовые команды. При `source` экспортирует `GRADLE_USER_HOME`,
+`DOCKER_CONFIG` и функцию-обёртку `docker()`.
+
+**Рецепты** (использовать всегда, см. таблицу в `AGENTS.md` § «Sandbox DSH»):
+
+```bash
+# Gradle — обязательно GRADLE_USER_HOME
+GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle ./gradlew :karaoke-web:compileKotlin --parallel
+GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle ./gradlew :karaoke-web:ktlintCheck
+GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle ./gradlew :karaoke-web:bootJar --parallel
+
+# Docker — обязательно --config
+docker --config=/home/nsa/Karaoke/.docker build ...
+docker --config=/home/nsa/Karaoke/.docker restart karaoke-web
+
+# npm / vite — workspace-local cache, обход не нужен
+cd webvue3 && npm run lint && npm run build
+```
+
+Подробности: [`AGENTS.md` § «Sandbox DSH: границы и fallback-пути»](AGENTS.md),
+[`knowledge/adr/local-0010-sandbox-recipes.md`](knowledge/adr/local-0010-sandbox-recipes.md).
+
+---
+
+## 🚦 ОБЯЗАТЕЛЬНО перед каждым `git commit`
+
+> ⚠️ **NON-NEGOTIABLE** (Pass 367): все `./gradlew ...` команды ДОЛЖНЫ идти с
+> `GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle`; все `docker` команды —
+> через `docker --config=/home/nsa/Karaoke/.docker`. Без этого wrapper/buildx
+> пытается писать в read-only `~/.gradle/wrapper/dists/` и `~/.docker/buildx/activity/`.
+> См. `AGENTS.md` § «Sandbox DSH» и раздел «Sandbox DSH» выше.
+
+```bash
+# 1. Линтеры (все gradle — с GRADLE_USER_HOME, все docker — с --config)
 GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle ./gradlew ktlintCheck                                      # Kotlin
 cd webvue3       && npm run lint:check && cd ..            # webvue3
 cd karaoke-public && npm run lint:check && cd ..          # karaoke-public
@@ -226,7 +269,12 @@ git pull && git status
 
 ---
 
-**Версия**: 1.1.0 (2026-09-09, Pass 340 — governance-knowledge-first)
+**Версия**: 1.2.0 (2026-09-11, Pass 367 — sandbox-recipes)
+**Изменения 1.2.0** (Pass 367):
+- Добавлен раздел «Sandbox DSH» — синхронизация с `AGENTS.md` § «Sandbox DSH: границы и fallback-пути». Pre-flight `tools/check-sandbox-ready.sh`, рецепты для gradle/docker/npm без эскалации на `danger-full-access`.
+- В чеклисте «Перед каждым git commit» добавлены docker-команды с `docker --config=/home/nsa/Karaoke/.docker`.
+- Версия `AGENTS.md` синхронизирована: 2.4.0.
+
 **Изменения 1.1.0**:
 - MUST-CHECKLIST приведён в соответствие с MUST #0 (Knowledge-first pre-flight).
 - Правило про `codegraph` переписано: ТОЛЬКО ПОСЛЕ Knowledge-first (раньше было «ПЕРЕД grep/Read», что прямо противоречило MUST #0).

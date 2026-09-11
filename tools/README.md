@@ -36,6 +36,12 @@
 | `build-lock.sh` | Сериализация параллельных Gradle-сборок (flock). |
 | `lint-*.sh` | Прочие линтеры/проверки (не-документация). |
 
+## DSH Sandbox (Pass 367)
+
+| Скрипт | Назначение |
+|--------|------------|
+| [`check-sandbox-ready.sh`](check-sandbox-ready.sh) | **NEW (Pass 367)** pre-flight для DSH-sandbox (workspace-write). Probe read-only границ (`~/.gradle/wrapper/dists`, `~/.docker/buildx/activity`, `~/.npm`, `~/.cache`), создаёт workspace-аналоги (`Karaoke/.gradle/`, `Karaoke/.docker/`), печатает готовые команды. При `source` экспортирует `GRADLE_USER_HOME`, `DOCKER_CONFIG`, `BUILDX_CONFIG` и функцию-обёртку `docker()`. Использовать в начале сессии (Pass 367 ADR: [knowledge/adr/local-0010-sandbox-recipes.md](../knowledge/adr/local-0010-sandbox-recipes.md)). |
+
 ## OpenProject Tracker (Pass 295/349/350)
 
 | Скрипт | Назначение |

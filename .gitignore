@@ -15,6 +15,7 @@ deploy/whisper_models/
 
 # Dependencies
 .gradle/
+.docker/         # DSH-sandbox workspace-аналог для docker buildx activity (см. ADR local-0010)
 node_modules/
 venv/
 .venv/

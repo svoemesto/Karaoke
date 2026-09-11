@@ -182,6 +182,45 @@
 > * Создана task #71 «Graceful degradation для remote StorageApiClient
 >   (#65 follow-up)». assignee пока не назначен.
 
+> **Pass 367** (2026-09-11, governance amendment — sandbox DSH recipes):
+> Рецепты адаптации к песочнице DSH (workspace-write). До этого pass'а
+> агенты в 5+ спеках (`#302`, `#361`, `#363`) помечали `docker build` /
+> `gradle bootJar` как `DEFERRED — sandbox restriction` и ждали владельца
+> для ручного выполнения на его машине. Прецедент: спека 305
+> требовала ~1 ч на ожидание full-access из-за блокировки
+> `~/.gradle/wrapper/dists/` (read-only).
+>
+> **Что сделано** (ветка `367-sandbox-recipes`):
+> * **Pre-flight скрипт** [`tools/check-sandbox-ready.sh`](../tools/check-sandbox-ready.sh):
+>   probe'ит read-only границы (`~/.gradle/wrapper/dists/`, `~/.docker/buildx/activity/`,
+>   `~/.npm/`, `~/.cache/`), создаёт workspace-аналоги (`/home/nsa/Karaoke/.gradle/`,
+>   `/home/nsa/Karaoke/.docker/`), печатает готовые команды. При `source`
+>   экспортирует `GRADLE_USER_HOME`, `DOCKER_CONFIG`, `BUILDX_CONFIG` и
+>   функцию-обёртку `docker()`.
+> * **ADR** [`knowledge/adr/local-0010-sandbox-recipes.md`](../knowledge/adr/local-0010-sandbox-recipes.md):
+>   таблица блокировок/обходов, критерии эскалации, DEFERRED-формат.
+> * **`AGENTS.md` 2.3.0 → 2.4.0** — новый раздел «Sandbox DSH: границы и
+>   fallback-пути» + обновлённый Gradle-раздел + шаг 5 «Обязательной
+>   проверки» теперь использует `docker --config=/home/nsa/Karaoke/.docker`.
+> * **`CLAUDE.md` 1.1.0 → 1.2.0** — синхронизация с `AGENTS.md`: новый
+>   раздел «Sandbox DSH», обновлённый «Перед каждым git commit».
+> * **`.gitignore`** — добавлен `.docker/` (workspace-аналог, не должен
+>   коммититься).
+> * **`tools/README.md`** — обновлён индекс скриптов (Pass 367 секция).
+>
+> **Верификация** (на nsa-i9, в workspace-write, без full-access):
+> * `GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle ./gradlew :karaoke-app:compileKotlin :karaoke-web:compileKotlin --parallel` → BUILD SUCCESSFUL (Kotlin daemon fallback).
+> * `GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle ./gradlew :karaoke-web:ktlintCheck` → BUILD SUCCESSFUL.
+> * `GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle ./gradlew :karaoke-web:bootJar --parallel` → BUILD SUCCESSFUL.
+> * `docker --config=/home/nsa/Karaoke/.docker build` (alpine sanity-test) → SUCCESS, image run/rm clean.
+> * `cd webvue3 && npm run lint:check && npx prettier --check` → exit 0.
+> * `cd webvue3 && npm run build` (vite) → exit 0, dist/ сгенерирован.
+>
+> **Эффект**: агенты теперь могут пройти полный pipeline (compile → ktlint
+> → bootJar → docker build → restart) без единой эскалации прав.
+> Specs #302/#361/#363 — больше не требуют DEFERRED для gradle/docker
+> операций (могут быть unblocked в соответствующем follow-up).
+
 > **Pass 357 (2026-09-10)**: спека 357 — Folder Import Overwrite (Audit #73).
 > Расширение спеки 299 (`saveToDbLocked`). Аудит всех 49 мест `Song.saveToDb()`
 > в `karaoke-app/src/main/kotlin/`: 30 мест категории B1 (долгие процессы с IO/ML/

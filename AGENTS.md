@@ -351,6 +351,16 @@ DOCKER_CONFIG=/home/nsa/Karaoke/.docker GRADLE_USER_HOME=/home/nsa/Karaoke/.grad
   операция `start_*` / `restart_*` (см. Pass 282 — на nsa-i9 перезапуск
   `karaoke-app` только по явному согласию).
 - Проверить что новый образ собран: `DOCKER_CONFIG=/home/nsa/Karaoke/.docker docker images <repo>:<tag> --format '{{.ID}} {{.CreatedSince}}'`.
+- **Проверить что в образе правильный bootJar** (Spring Boot с ENTRYPOINT `java -jar /app.jar`):
+  `docker run --rm <image>` без `--entrypoint` сразу стартует Spring и падает вне compose-сети.
+  Использовать `docker create + docker cp`:
+  ```bash
+  DOCKER_CONFIG=/home/nsa/Karaoke/.docker docker create --name tmp-<tag> <image>:<tag>
+  DOCKER_CONFIG=/home/nsa/Karaoke/.docker docker cp tmp-<tag>:/app.jar /tmp/check.jar
+  sha256sum /tmp/check.jar /home/nsa/Karaoke/karaoke-web/build/libs/*.jar
+  DOCKER_CONFIG=/home/nsa/Karaoke/.docker docker rm tmp-<tag>
+  ```
+  Хеши должны совпасть. Это валидирует, что в образе именно тот jar, что собрал gradle.
 
 ### Когда эскалировать на `danger-full-access`
 

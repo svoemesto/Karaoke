@@ -324,6 +324,34 @@ bash /home/nsa/Karaoke/tools/check-sandbox-ready.sh
 | Docker ps / logs / exec (без записи в activity) | `docker ps`, `docker logs`, `docker exec` — не требуют обхода |
 | psql к локальной karaoke-db | `docker exec -it karaoke-db psql -U ...` (контейнер доступен через daemon) |
 
+### Karaoke-specific build pipeline (Pass 367 follow-up, верифицировано 2026-09-11)
+
+Для сборки образов **через `deploy/do.sh`** (а не ручные `gradle` + `docker build`)
+нужны **обе** переменные окружения — иначе `do.sh` упадёт на read-only
+`~/.docker/buildx/activity/` или `~/.gradle/wrapper/dists/`:
+
+```bash
+cd /home/nsa/Karaoke/deploy
+DOCKER_CONFIG=/home/nsa/Karaoke/.docker GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle \
+  bash do.sh build_app           # сборка karaoke-app
+DOCKER_CONFIG=/home/nsa/Karaoke/.docker GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle \
+  bash do.sh build_web           # сборка karaoke-web (webvue3)
+DOCKER_CONFIG=/home/nsa/Karaoke/.docker GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle \
+  bash do.sh build_public        # сборка karaoke-public
+DOCKER_CONFIG=/home/nsa/Karaoke/.docker GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle \
+  bash do.sh build_start_app     # сборка + перезапуск (nsa-i9: перезапуск karaoke-app по согласию)
+```
+
+**Тонкости**:
+- `DOCKER_CONFIG` — нативная переменная docker CLI; работает для всех вызовов
+  `docker` внутри `do.sh` без необходимости передавать `--config` явно.
+- `GRADLE_USER_HOME` — нужен для `gradlew clean bootJar`, который `do.sh` запускает
+  первым шагом.
+- После `build_*` контейнер **не перезапускается автоматически** — это отдельная
+  операция `start_*` / `restart_*` (см. Pass 282 — на nsa-i9 перезапуск
+  `karaoke-app` только по явному согласию).
+- Проверить что новый образ собран: `DOCKER_CONFIG=/home/nsa/Karaoke/.docker docker images <repo>:<tag> --format '{{.ID}} {{.CreatedSince}}'`.
+
 ### Когда эскалировать на `danger-full-access`
 
 Только если выполнены **все три** условия:

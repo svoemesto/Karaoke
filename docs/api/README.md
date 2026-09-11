@@ -283,4 +283,4 @@ components игнорируются (для них нужен `typedoc-plugin-vu
 - [CONTRIBUTING.md](../../CONTRIBUTING.md#kotlin-kdoc-public-api) — MUST-правило
 - [specs/001-code-standards-docs/spec.md#fr-006](../../specs/001-code-standards-docs/spec.md) — формальное требование
 - [specs/001-code-standards-docs/plan.md#phase-6](../../specs/001-code-standards-docs/plan.md) — план реализации
-- [docs/features/README.md](../features/README.md) — список 9 фич
+- [docs/features/README.md](../features/zakroma-albums-by-author.md) — пример per-feature документа

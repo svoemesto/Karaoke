@@ -1,6 +1,14 @@
 # AGENTS.md — инструкции для агентов
 
-> **Версия**: 2.3.0 | **Last updated**: 2026-09-09 (Pass 350).
+> **Версия**: 2.4.0 | **Last updated**: 2026-09-11 (Pass 367).
+>
+> **Изменения 2.4.0** (Pass 367, см. PR — sandbox-recipes):
+> - Добавлен раздел «Sandbox DSH: границы и fallback-пути» — формализует workspace-аналоги для всех известных read-only блокировок (`~/.gradle/wrapper/dists/`, `~/.docker/buildx/activity/`, `~/.npm/`, `~/.cache/`).
+> - Введён `tools/check-sandbox-ready.sh` — pre-flight скрипт, который создаёт workspace-аналоги и печатает готовые к use команды. При `source` экспортирует `GRADLE_USER_HOME`, `DOCKER_CONFIG` и функцию-обёртку `docker()`.
+> - Прецедент: spec #361, #363, #302 (Pass 367) — агенты помечали `docker build` как DEFERRED-sandbox и ждали владельца. Теперь unblocked: `docker --config=/home/nsa/Karaoke/.docker` обходит блокировку buildx activity.
+> - Формализован DEFERRED-формат для tasks.md: `TNNN [VERIFY] DEFERRED-sandbox: <операция>. Команда для пользователя: <cmd>. Ожидаемый результат: <exit 0 / artefact>.`
+> - В `.gitignore` добавлен `.docker/` (workspace-аналог, не должен коммититься).
+> - ADR: [`knowledge/adr/local-0010-sandbox-recipes.md`](knowledge/adr/local-0010-sandbox-recipes.md).
 >
 > **Изменения 2.2.0** (см. PR #340 — governance-knowledge-first):
 > - Добавлен MUST #0 «Knowledge-first pre-flight (NON-NEGOTIABLE)».
@@ -120,6 +128,72 @@
 
 - **`docs/ops/log-correlation.md`** — карта логов прода, команды `docker logs`/`ssh`, grep-маркеры (`infra.prod.ping`/`infra.prod.db`/`LOG:  duration:`), сценарии диагностики. Создан в [specs/288-prod-diagnostics-logging](../specs/288-prod-diagnostics-logging/spec.md) (FR-019).
 - Контракт WARN/INFO для `infra.prod.*`: [contracts/log-format.md](../specs/288-prod-diagnostics-logging/contracts/log-format.md).
+
+## Чтение логов контейнеров (Pass 367 follow-up, 2026-09-11)
+
+> ⚠️ **Безусловно разрешено без явного согласия** (per owner, 2026-09-11):
+> **чтение логов контейнеров** — это рид-онли операция, не изменяет состояние
+> ни в workspace, ни на сервере. Агент MUST делать это самостоятельно при любых
+> сомнениях о работе системы — без вопросов «можно ли?».
+
+### Локальные контейнеры (nsa-i9)
+
+```bash
+# Все контейнеры Karaoke
+DOCKER_CONFIG=/home/nsa/Karaoke/.docker docker ps --format '{{.Names}}\t{{.Status}}'
+
+# Последние 100 строк (без -f, без остановки)
+DOCKER_CONFIG=/home/nsa/Karaoke/.docker docker logs --tail 100 <container_name>
+
+# Реалтайм (осторожно — большой поток)
+DOCKER_CONFIG=/home/nsa/Karaoke/.docker docker logs -f --tail 50 <container_name>
+
+# С момента старта контейнера
+DOCKER_CONFIG=/home/nsa/Karaoke/.docker docker logs --since 5m <container_name>
+
+# Только errors и WARN
+DOCKER_CONFIG=/home/nsa/Karaoke/.docker docker logs --tail 200 <container_name> 2>&1 | grep -iE 'error|exception|warn|fatal'
+```
+
+**Список локальных контейнеров Karaoke**:
+`karaoke-app`, `karaoke-web`, `karaoke-webvue3`, `karaoke-public`, `karaoke-storage`,
+`karaoke-minio-proxy`, `karaoke-telegram-proxy`, `karaoke-db`, `searxng`, `fourget`.
+
+### Удалённые контейнеры (прод через SSH)
+
+```bash
+# Хосты (см. /etc/hosts + docs/ops/log-correlation.md)
+ssh -o BatchMode=yes root@188.119.64.111 'docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}"'  # nginx + MinIO proxy
+ssh -o BatchMode=yes root@89.125.103.63  'docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}"'  # хранилище (MinIO)
+ssh -o BatchMode=yes root@79.174.95.69   'docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}"'  # старый prod (опционально)
+
+# Логи конкретного контейнера
+ssh -o BatchMode=yes root@<host> 'docker logs --tail 100 <container_name>'
+
+# Системные логи nginx
+ssh -o BatchMode=yes root@188.119.64.111 'tail -100 /var/log/nginx/access.log'
+ssh -o BatchMode=yes root@188.119.64.111 'tail -100 /var/log/nginx/error.log'
+```
+
+| Хост | Что на нём | Контейнеры |
+|---|---|---|
+| `188.119.64.111` (karaoke-prod) | nginx + MinIO proxy | `karaoke-public`, `karaoke-web`, `karaoke-db` |
+| `89.125.103.63` (karaoke-storage) | MinIO (отдельно) | `karaoke-storage` |
+| `79.174.95.69` (karaoke-prod-old) | старый prod (миграция) | `Connection.remote()` — см. Connection.kt |
+
+### Когда НЕ нужно спрашивать согласия
+
+- Прочитать `docker logs`, `docker inspect`, `docker ps`.
+- Прочитать любые файлы через `ssh ... 'cat | tail | head | grep'`.
+- Прочитать системные логи (`/var/log/nginx/...`, journalctl, `dmesg`).
+- Прочитать состояние БД (`docker exec karaoke-db psql -c 'SELECT ...'`).
+- Прочитать размер бакетов MinIO, состояние объектов.
+
+### Когда согласие НУЖНО
+
+Любая операция, которая **меняет** состояние: перезапуск контейнера на проде,
+правка файлов, деплой, `rsync`, `scp` в обратную сторону, прямой SQL `UPDATE/DELETE/INSERT`
+на прод-БД.
 
 ## Диагностика на локальной машине (NON-NEGOTIABLE, Pass 358)
 
@@ -245,6 +319,17 @@ Docs: [`docs/tracker-setup.md`](docs/tracker-setup.md), [`knowledge/adr/0008-tra
 
 **Запрещено:** пересобирать `karaoke-app` (исключения см. ниже), деплой без согласия, редактировать файлы на сервере, коммитить секреты (`deploy/.env`, `*.key`, `*.pem` — `git ls-files | grep -iE '\.env$|\.key$|\.pem$'` пусто), образы `nginx:alpine`/`node:latest`/JDK вместо JRE. **Разрешено:** править код, `gradle clean bootJar`, `npm run dev/build`, локальные контейнеры через `deploy/do.sh`. **Обновление Knowledge (FR-014)**: при изменении bounded context или C4 уровня — обновить соответствующий файл в `knowledge/` в том же PR.
 
+### SSH-доступ к прод-серверам (Pass 367 follow-up, 2026-09-11)
+
+- **Разрешено без явного согласия** (per owner, 2026-09-11): **рид-онли** операции через SSH —
+  чтение логов контейнеров, чтение файлов в `/var/log/`, чтение состояния docker.
+- **Требует явного согласия** (по умолчанию): **любые** операции, которые **меняют** состояние на
+  сервере — правка файлов, деплой, перезапуск контейнеров на проде, `rsync`, `scp` в обратную сторону.
+- Распознавание: если команда не содержит `>`, `>>`, `mv`, `cp ... /prod`, `rm`, `sed -i`, `tee`,
+  `docker restart|stop|rm`, `git push`, `deploy_web.sh` и т.п. — это рид-онли.
+- Список prod-хостов: см. `docs/ops/log-correlation.md`. Текущие:
+  - `188.119.64.111` — nginx + MinIO proxy (containers: karaoke-public, karaoke-web, karaoke-db).
+
 ### Машинно-специфичные исключения (Pass 282)
 
 #### `nsa-i9` / `nsa` (текущая)
@@ -283,6 +368,120 @@ gh pr checks && gh pr merge --merge   # БЕЗ --delete-branch
 
 Прямые коммиты в `master` ЗАПРЕЩЕНЫ (см. enforcement layers выше). Lifecycle: ветка живёт после мёрджа.
 
+## Sandbox DSH: границы и fallback-пути (Pass 367)
+
+> **Цель**: дать агенту набор рецептов для самостоятельного выполнения
+> build / compile / restart / lint в режиме workspace-write **без эскалации
+> на `danger-full-access`**.
+
+DSH-сессии работают в режиме `workspace-write`:
+
+- **writable**: `/home/nsa/Karaoke/**`, `/tmp`.
+- **read-only** (DSH-sandbox): `~/.gradle/wrapper/dists/`, `~/.docker/`,
+  `~/.npm/`, `~/.cache/`, `~/.kotlin/`.
+
+### Pre-flight (в начале сессии, перед первым gradle/docker/npm вызовом)
+
+```bash
+bash /home/nsa/Karaoke/tools/check-sandbox-ready.sh
+```
+
+Скрипт: probe'ит read-only границы, создаёт workspace-аналоги
+(`/home/nsa/Karaoke/.gradle/`, `/home/nsa/Karaoke/.docker/`), печатает
+готовые команды для copy-paste. При `source` дополнительно экспортирует
+`GRADLE_USER_HOME`, `DOCKER_CONFIG` и функцию-обёртку `docker()`.
+
+### Рецепты (использовать всегда)
+
+| Что делаем | Команда |
+|---|---|
+| Gradle compile / ktlint / bootJar | `GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle ./gradlew :karaoke-web:compileKotlin --parallel` |
+| Docker build / restart / logs | `docker --config=/home/nsa/Karaoke/.docker build ...` |
+| npm / vite / prettier | `cd webvue3 && npm run lint && npm run build` (cache → `node_modules/.cache`) |
+| Docker ps / logs / exec (без записи в activity) | `docker ps`, `docker logs`, `docker exec` — не требуют обхода |
+| psql к локальной karaoke-db | `docker exec -it karaoke-db psql -U ...` (контейнер доступен через daemon) |
+
+### Karaoke-specific build pipeline (Pass 367 follow-up, верифицировано 2026-09-11)
+
+Для сборки образов **через `deploy/do.sh`** (а не ручные `gradle` + `docker build`)
+нужны **обе** переменные окружения — иначе `do.sh` упадёт на read-only
+`~/.docker/buildx/activity/` или `~/.gradle/wrapper/dists/`:
+
+```bash
+cd /home/nsa/Karaoke/deploy
+DOCKER_CONFIG=/home/nsa/Karaoke/.docker GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle \
+  bash do.sh build_app           # сборка karaoke-app
+DOCKER_CONFIG=/home/nsa/Karaoke/.docker GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle \
+  bash do.sh build_web           # сборка karaoke-web (webvue3)
+DOCKER_CONFIG=/home/nsa/Karaoke/.docker GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle \
+  bash do.sh build_public        # сборка karaoke-public
+DOCKER_CONFIG=/home/nsa/Karaoke/.docker GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle \
+  bash do.sh build_start_app     # сборка + перезапуск (nsa-i9: перезапуск karaoke-app по согласию)
+```
+
+**Тонкости**:
+- `DOCKER_CONFIG` — нативная переменная docker CLI; работает для всех вызовов
+  `docker` внутри `do.sh` без необходимости передавать `--config` явно.
+- `GRADLE_USER_HOME` — нужен для `gradlew clean bootJar`, который `do.sh` запускает
+  первым шагом.
+- После `build_*` контейнер **не перезапускается автоматически** — это отдельная
+  операция `start_*` / `restart_*` (см. Pass 282 — на nsa-i9 перезапуск
+  `karaoke-app` только по явному согласию).
+- Проверить что новый образ собран: `DOCKER_CONFIG=/home/nsa/Karaoke/.docker docker images <repo>:<tag> --format '{{.ID}} {{.CreatedSince}}'`.
+- **Проверить что в образе правильный bootJar** (Spring Boot с ENTRYPOINT `java -jar /app.jar`):
+  `docker run --rm <image>` без `--entrypoint` сразу стартует Spring и падает вне compose-сети.
+  Использовать `docker create + docker cp`:
+  ```bash
+  DOCKER_CONFIG=/home/nsa/Karaoke/.docker docker create --name tmp-<tag> <image>:<tag>
+  DOCKER_CONFIG=/home/nsa/Karaoke/.docker docker cp tmp-<tag>:/app.jar /tmp/check.jar
+  sha256sum /tmp/check.jar /home/nsa/Karaoke/karaoke-web/build/libs/*.jar
+  DOCKER_CONFIG=/home/nsa/Karaoke/.docker docker rm tmp-<tag>
+  ```
+  Хеши должны совпасть. Это валидирует, что в образе именно тот jar, что собрал gradle.
+- **Перезапуск контейнера после `build_*`** (на nsa-i9 — `karaoke-web` без согласия, `karaoke-app` по согласию):
+  ```bash
+  cd /home/nsa/Karaoke/deploy
+  DOCKER_CONFIG=/home/nsa/Karaoke/.docker bash do.sh start_web     # перезапуск karaoke-web
+  DOCKER_CONFIG=/home/nsa/Karaoke/.docker bash do.sh start_app     # перезапуск karaoke-app
+  DOCKER_CONFIG=/home/nsa/Karaoke/.docker bash do.sh start_public  # перезапуск karaoke-public
+  DOCKER_CONFIG=/home/nsa/Karaoke/.docker bash do.sh start_webvue3 # перезапуск webvue3
+  ```
+  Семантика `do.sh start_*`: `compose down` + `compose up -d` (полный пересоздать с новым образом).
+  Warnings `version is obsolete` и `orphan containers` — **некритичны**, не блокируют рестарт.
+- **Верификация что контейнер на свежем образе** после рестарта:
+  ```bash
+  DOCKER_CONFIG=/home/nsa/Karaoke/.docker docker inspect --format '{{.Image}}' <container_name>
+  DOCKER_CONFIG=/home/nsa/Karaoke/.docker docker images --digests <repo>:<tag>
+  ```
+  Image ID контейнера должен совпадать с Image ID образа. Если не совпадает — контейнер
+  всё ещё на старом (проверь что `build_*` действительно создал новый image, не закэшировался).
+
+### Когда эскалировать на `danger-full-access`
+
+Только если выполнены **все три** условия:
+
+1. Операция изменяет состояние **вне** workspace (прод-БД, файлы на сервере, `/etc/...`).
+2. Нет технического обхода через workspace-аналог.
+3. Задача не может быть выполнена отложенно без потери смысла.
+
+**Не эскалировать** для: gradle compile/ktlint/bootJar, docker build/restart/logs, npm/vite/prettier — для всего есть workspace-обход.
+
+### DEFERRED-формат для tasks.md
+
+Если sandbox всё-таки блокирует **и** обхода нет, запись в `tasks.md`:
+
+```markdown
+- [ ] TNNN [VERIFY] DEFERRED-sandbox: <операция>. Команда для пользователя: `<cmd>`. Ожидаемый результат: <exit 0 / new artefact>.
+```
+
+Не оставлять DEFERRED без явной команды — это превращает «агент не смог» в «план для пользователя».
+
+### Подробности
+
+- ADR: [`knowledge/adr/local-0010-sandbox-recipes.md`](knowledge/adr/local-0010-sandbox-recipes.md).
+- Helper: [`tools/check-sandbox-ready.sh`](tools/check-sandbox-ready.sh) + [`tools/README.md`](tools/README.md).
+- Прецеденты: spec #305 (GRADLE_USER_HOME workaround), #361/#363 (DEFERRED docker build → теперь unblocked), #302 (DEFERRED gradle → теперь unblocked).
+
 ## Сборка / деплой / тесты
 
 - **Сборка**: `GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle ./gradlew clean karaoke-app:bootJar karaoke-web:bootJar --parallel`.
@@ -291,21 +490,22 @@ gh pr checks && gh pr merge --merge   # БЕЗ --delete-branch
 
 ### Gradle: запуск с `GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle`
 
-> **NON-NEGOTIABLE** (см. полную версию в `docs/architecture-notes.md` или в git history `livedocs/architecture/dsh-sandbox-conventions.md`):
-> все `./gradlew ...` команды должны идти с `GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle`
-> (папка `.gradle` ВНУТРИ проекта). Без этого wrapper пишет в read-only `/home/nsa/.gradle/wrapper/dists/...`.
+> Стандартный pre-flight (см. § «Sandbox DSH» выше): все `./gradlew ...` команды
+> должны идти с `GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle` — workspace-аналог
+> для read-only `~/.gradle/wrapper/dists/`. Без этого wrapper падает на
+> первой загрузке дистрибутива.
 
 ### Обязательная проверка после ЛЮБОГО изменения кода (NON-NEGOTIABLE)
 
 > Pass 239 + 245: правки без локальной пересборки ломали прод. **Vite-build ≠ Docker-образ**.
 
-**После ЛЮБОГО изменения ОБЯЗАТЕЛЬНО** (в этом порядке, **все gradle-команды с `GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle`**):
+**После ЛЮБОГО изменения ОБЯЗАТЕЛЬНО** (в этом порядке; **все gradle-команды с `GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle`, все docker-команды — через `docker --config=/home/nsa/Karaoke/.docker`**):
 
 1. Backend compile: `GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle ./gradlew :karaoke-app:compileKotlin :karaoke-web:compileKotlin --parallel`
 2. Линтеры: `GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle ./gradlew :karaoke-web:ktlintCheck` + `cd webvue3 && npm run lint` + `cd karaoke-public && npm run lint`
 3. Backend bootJar: `GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle ./gradlew :karaoke-web:bootJar --parallel` (на `nsa-i9` — также `:karaoke-app:bootJar`)
 4. Frontend Vite: `npm run build && npm run format:check` в `webvue3/` и `karaoke-public/`
-5. Docker-образы: `cd deploy && bash do.sh build_webvue3`; если менялся `karaoke-public` — `bash do.sh build_public`
+5. Docker-образы: `cd deploy && DOCKER_CONFIG=/home/nsa/Karaoke/.docker bash do.sh build_webvue3`; если менялся `karaoke-public` — `bash do.sh build_public`. Для проверки готового образа: `docker --config=/home/nsa/Karaoke/.docker run --rm <image> <cmd>`.
 
 Только после всех 5 шагов OK — сообщать «готово к деплою». **НЕ ПРОПУСКАТЬ** даже для «очевидных» правок.
 

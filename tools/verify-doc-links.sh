@@ -53,4 +53,15 @@ if ! command -v lychee >/dev/null 2>&1; then
 fi
 
 echo "==> Запуск lychee (${OFFLINE_FLAG:-online}) на: ${TARGETS[*]}"
-lychee $OFFLINE_FLAG --no-progress --exclude-loopback "${TARGETS[@]}"
+
+# Lychee 0.24+ возвращает exit 0 даже при broken links (by design). Для строгого
+# поведения оборачиваем в grep по выводу: если есть [ERROR] строки — exit 1.
+# Это нужно, чтобы pre-commit/CI ловили регрессии, а не просто печатали warnings.
+LYCHEE_OUTPUT=$(lychee $OFFLINE_FLAG --no-progress "${TARGETS[@]}" 2>&1) || true
+echo "$LYCHEE_OUTPUT"
+
+if echo "$LYCHEE_OUTPUT" | grep -q '\[ERROR\]'; then
+  echo "==> verify-doc-links: найдены broken links (см. [ERROR] строки выше)"
+  exit 1
+fi
+exit 0

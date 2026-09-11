@@ -21,6 +21,9 @@
 >   `SongDTO.freeAfterOnAir` добавлен.
 > - UI: пара кнопок ДА/НЕТ «Не снимать с эфира» в `SongEdit.vue` (рядом
 >   с блоком «Всегда бесплатно»).
+> - UI таблица `SongsTable.vue`: столбец `IA` (`flagFreeAfterOnAir`) рядом с
+>   `FR` (`flagFree`). Аналогичный формат ("-" / "✓"), отдельный CSS-класс
+>   `.fld-flag-free-after-on-air`.
 > - API: фильтр `filter_free_after_on_air` в `/api/songs/list`.
 > - Тесты: добавлены 7 новых тестов в `SongStateTest` (Pass 369 фикс
 >   приоритетов: `free=true` > `freeAfterOnAir=true && onAir` > стандартное окно).

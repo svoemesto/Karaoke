@@ -1762,6 +1762,12 @@ class Song(
 
     val flagFree: String get() = if (!free) "-" else "✓"
 
+    // specs/369-free-after-onair-flag: «IA» (Infinity Air) — флаг "не снимать с эфира"
+    // после окончания стандартного окна бесплатного доступа. Тот же формат что flagFree:
+    // "-" если флаг не установлен, "✓" если установлен. Не путать с flagFree — оба
+    // флага независимы (см. Song.freeAfterOnAir KDoc).
+    val flagFreeAfterOnAir: String get() = if (!freeAfterOnAir) "-" else "✓"
+
     val pathToResultedModel: String get() = "$rootFolder/$DEMUCS_MODEL_NAME"
     val pathToSymlinkFolderMP4: String get() = "$rootFolder/symlink_mp4"
     val pathToSymlinkFolderPNG: String get() = "$rootFolder/symlink_png"
@@ -8695,6 +8701,7 @@ class Song(
             flagMaxChords = flagMaxChords,
             flagMaxMelody = flagMaxMelody,
             flagFree = flagFree,
+            flagFreeAfterOnAir = flagFreeAfterOnAir,
             processColorPlayerDemo = processColorPlayerDemo,
             idBoosty = idBoosty,
             idBoostyFiles = idBoostyFiles,

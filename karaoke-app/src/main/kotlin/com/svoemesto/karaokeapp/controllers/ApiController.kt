@@ -2977,9 +2977,11 @@ class ApiController(
         song.saveToDb()
         song.saveToFile()
 
-        // specs/143-song-free-access-window + specs/286-author-song-counts-cache:
-        // уведомляем karaoke-web только если free/idStatus реально изменились.
-        if (applyResult.freeChanged || applyResult.idStatusChanged) {
+        // specs/143-song-free-access-window + specs/286-author-song-counts-cache +
+        // specs/369-free-after-onair-flag: уведомляем karaoke-web только если
+        // free/freeAfterOnAir/idStatus реально изменились (влияют на
+        // «В открытом доступе» / авто-новости на главной странице).
+        if (applyResult.freeChanged || applyResult.freeAfterOnAirChanged || applyResult.idStatusChanged) {
             notifyStatsDirty()
         }
 

@@ -367,6 +367,17 @@
             v-text="data.value ? data.value : '-'"
           />
         </template>
+        <template #cell(flagFreeAfterOnAir)="data">
+          <!-- specs/369-free-after-onair-flag: «IA» — аналог flagFree, тот же стиль. -->
+          <div
+            class="fld-flag-free-after-on-air"
+            :style="{
+              backgroundColor: data.item.color,
+              color: currentSongId === data.item.id ? 'blue' : 'black',
+            }"
+            v-text="data.value ? data.value : '-'"
+          />
+        </template>
         <!--        <template #cell(flagPlLyrics)="data">-->
         <!--          <div-->
         <!--              class="fld-flag-pl-lyrics"-->
@@ -948,6 +959,21 @@ export default {
           key: 'flagFree',
           sortable: true,
           label: 'FR',
+          style: {
+            minWidth: '20px',
+            maxWidth: '20px',
+            textAlign: 'center',
+            fontSize: 'small',
+          },
+        },
+        {
+          // specs/369-free-after-onair-flag: «IA» (Infinity Air) — флаг "не снимать с эфира"
+          // после окончания стандартного окна бесплатного доступа. По аналогии с FR —
+          // тот же формат ("-" / "✓"), тот же стиль колонки. Не путать с FR — оба
+          // флага независимы (см. Song.freeAfterOnAir).
+          key: 'flagFreeAfterOnAir',
+          sortable: true,
+          label: 'IA',
           style: {
             minWidth: '20px',
             maxWidth: '20px',
@@ -2194,6 +2220,16 @@ export default {
   color: #fd7e14;
 }
 .fld-flag-free {
+  min-width: 20px;
+  max-width: 20px;
+  text-align: center;
+  font-size: small;
+  white-space: nowrap;
+  overflow: hidden;
+}
+/* specs/369-free-after-onair-flag: «IA» (Infinity Air) — флаг "не снимать с эфира".
+   Стиль идентичен .fld-flag-free (FR), оба независимы. */
+.fld-flag-free-after-on-air {
   min-width: 20px;
   max-width: 20px;
   text-align: center;

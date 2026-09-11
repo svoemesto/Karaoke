@@ -58,6 +58,10 @@ data class SongDTOdigest(
     val flagMaxChords: String,
     val flagMaxMelody: String,
     val flagFree: String,
+    // specs/369-free-after-onair-flag: «IA» (Infinity Air) — флаг "не снимать с эфира"
+    // после окончания стандартного окна бесплатного доступа. "-" / "✓" (тот же формат
+    // что flagFree). Не путать с flagFree — оба флага независимы.
+    val flagFreeAfterOnAir: String = "-",
     val processColorPlayerDemo: String,
     val resultVersion: Long,
     val versionBoosty: Int,

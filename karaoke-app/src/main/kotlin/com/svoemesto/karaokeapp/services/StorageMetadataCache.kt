@@ -392,6 +392,9 @@ class StorageMetadataCache {
      * **Use case**: non-blocking cold-start for HealthReport — the caller receives `null`
      * on cache miss and treats it as `IN_PROGRESS`, while the cache is filled in background.
      *
+     * **SSE update**: caller that receives `null` is responsible for sending SSE update
+     * after the HTTP response is sent (using the background thread or a separate mechanism).
+     *
      * @return `CompletableFuture<Boolean?>` — null means "unknown (async fill in progress)".
      */
     fun getFileExistsAsync(

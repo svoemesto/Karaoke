@@ -361,6 +361,23 @@ DOCKER_CONFIG=/home/nsa/Karaoke/.docker GRADLE_USER_HOME=/home/nsa/Karaoke/.grad
   DOCKER_CONFIG=/home/nsa/Karaoke/.docker docker rm tmp-<tag>
   ```
   Хеши должны совпасть. Это валидирует, что в образе именно тот jar, что собрал gradle.
+- **Перезапуск контейнера после `build_*`** (на nsa-i9 — `karaoke-web` без согласия, `karaoke-app` по согласию):
+  ```bash
+  cd /home/nsa/Karaoke/deploy
+  DOCKER_CONFIG=/home/nsa/Karaoke/.docker bash do.sh start_web     # перезапуск karaoke-web
+  DOCKER_CONFIG=/home/nsa/Karaoke/.docker bash do.sh start_app     # перезапуск karaoke-app
+  DOCKER_CONFIG=/home/nsa/Karaoke/.docker bash do.sh start_public  # перезапуск karaoke-public
+  DOCKER_CONFIG=/home/nsa/Karaoke/.docker bash do.sh start_webvue3 # перезапуск webvue3
+  ```
+  Семантика `do.sh start_*`: `compose down` + `compose up -d` (полный пересоздать с новым образом).
+  Warnings `version is obsolete` и `orphan containers` — **некритичны**, не блокируют рестарт.
+- **Верификация что контейнер на свежем образе** после рестарта:
+  ```bash
+  DOCKER_CONFIG=/home/nsa/Karaoke/.docker docker inspect --format '{{.Image}}' <container_name>
+  DOCKER_CONFIG=/home/nsa/Karaoke/.docker docker images --digests <repo>:<tag>
+  ```
+  Image ID контейнера должен совпадать с Image ID образа. Если не совпадает — контейнер
+  всё ещё на старом (проверь что `build_*` действительно создал новый image, не закэшировался).
 
 ### Когда эскалировать на `danger-full-access`
 

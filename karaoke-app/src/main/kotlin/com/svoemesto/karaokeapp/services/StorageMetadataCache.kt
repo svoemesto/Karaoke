@@ -51,6 +51,13 @@ class StorageMetadataCache {
         private val log = LoggerFactory.getLogger("infra.cache.storage")
 
         /**
+         * String logger `infra.cache.storage.waiting` (спека #368) — события fill
+         * с durationMs (для hit rate анализа). Отдельная категория от `infra.cache.storage`,
+         * чтобы не дублировать `cache:miss`/`cache:write-through` шум.
+         */
+        private val waitingLog = LoggerFactory.getLogger("infra.cache.storage.waiting")
+
+        /**
          * Shared cached thread pool for async cache fill (US2, spec #364).
          * Size adapts automatically: creates new threads as needed, reuses idle threads.
          * Bounded by `corePoolSize=0, maxPoolSize=16` — enough for burst of cache fills.
@@ -110,8 +117,17 @@ class StorageMetadataCache {
      * @param bucket bucket name (NOT hardcoded; per Constitution).
      * @param fileName file name (URL-decoded caller'ом).
      * @param loader blocking `() -> Boolean` — вызывается только при cache miss.
+     * @param onFillComplete callback, вызываемый ПОСЛЕ успешного fill (спека #368).
+     *   Если кеш уже заполнен (hit) — callback НЕ вызывается. Используется для
+     *   recompute+SSE после cold-start (см. HealthReport.cachedFileExists).
      */
-    fun getFileExists(source: String, bucket: String, fileName: String, loader: () -> Boolean): Boolean {
+    fun getFileExists(
+        source: String,
+        bucket: String,
+        fileName: String,
+        loader: () -> Boolean,
+        onFillComplete: (() -> Unit)? = null,
+    ): Boolean {
         validate(source, bucket, fileName)
         val cached = selectExists(source, bucket, fileName)
         if (cached != null) {
@@ -119,12 +135,19 @@ class StorageMetadataCache {
             return cached
         }
         miss(source)
+        val startedAt = System.currentTimeMillis()
         val value = loader()
         upsert(source, bucket, fileName, exists = value, etag = null, sizeBytes = null)
+        val durationMs = System.currentTimeMillis() - startedAt
         log.info(
             "cache:miss key={} bucket={} fileName={} source={} operation=fileExists value={}",
             buildKey(source, bucket, fileName), bucket, fileName, source, value,
         )
+        waitingLog.info(
+            "cache:filled source={} bucket={} fileName={} operation=fileExists status=FILLED durationMs={}",
+            source, bucket, fileName, durationMs,
+        )
+        onFillComplete?.invoke()
         return value
     }
 
@@ -392,6 +415,10 @@ class StorageMetadataCache {
      * **Use case**: non-blocking cold-start for HealthReport — the caller receives `null`
      * on cache miss and treats it as `IN_PROGRESS`, while the cache is filled in background.
      *
+     * **Спека #368 (Pass 368)**: после успешного background fill вызывается
+     * `onFillComplete` callback. Используется для recompute+SSE после cold-start.
+     * На cache hit callback НЕ вызывается.
+     *
      * @return `CompletableFuture<Boolean?>` — null means "unknown (async fill in progress)".
      */
     fun getFileExistsAsync(
@@ -399,6 +426,7 @@ class StorageMetadataCache {
         bucket: String,
         fileName: String,
         loader: () -> Boolean,
+        onFillComplete: (() -> Unit)? = null,
     ): CompletableFuture<Boolean?> {
         validate(source, bucket, fileName)
         val cached = selectExists(source, bucket, fileName)
@@ -409,18 +437,31 @@ class StorageMetadataCache {
         miss(source)
         // Fire-and-forget: fill cache in background
         cacheFillerExecutor.submit {
+            val startedAt = System.currentTimeMillis()
             try {
                 val value = loader()
                 upsert(source, bucket, fileName, exists = value, etag = null, sizeBytes = null)
+                val durationMs = System.currentTimeMillis() - startedAt
                 log.info(
                     "cache:miss:async key={} bucket={} fileName={} source={} operation=fileExists value={}",
                     buildKey(source, bucket, fileName), bucket, fileName, source, value,
                 )
+                waitingLog.info(
+                    "cache:filled source={} bucket={} fileName={} operation=fileExists status=FILLED durationMs={}",
+                    source, bucket, fileName, durationMs,
+                )
+                onFillComplete?.invoke()
             } catch (e: Exception) {
+                val durationMs = System.currentTimeMillis() - startedAt
                 log.warn(
                     "cache:miss:async:error key={} bucket={} fileName={} source={} error={}",
                     buildKey(source, bucket, fileName), bucket, fileName, source, e.message,
                 )
+                waitingLog.warn(
+                    "cache:fillFailed source={} bucket={} fileName={} operation=fileExists status=FAILED durationMs={} error={}",
+                    source, bucket, fileName, durationMs, e.message,
+                )
+                // onFillComplete НЕ вызывается — US2/AC3 спеки: остаёмся в WAITING
             }
         }
         return CompletableFuture.completedFuture(null)

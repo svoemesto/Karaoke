@@ -35,7 +35,7 @@ scp -P [порт] [путь к файлу на локальной машине] 
 
 `docker exec -it <container-name-or-id> bash`
 `docker exec -it karaoke-app bash`
-docker exec -it karaoke-webvue bash
+docker exec -it karaoke-webvue3 bash
 
 Смена версии Java:
 

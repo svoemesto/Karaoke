@@ -106,21 +106,41 @@ data class HealthReport(
             storageCircuitBreaker = circuitBreaker
         }
 
+        /**
+         * Sync version: blocking cache lookup (Pass 344).
+         *
+         * @param onFillComplete callback, вызываемый ПОСЛЕ успешного fill (спека #368).
+         *   Если кеш уже заполнен (hit) — callback НЕ вызывается. Используется для
+         *   recompute+SSE после cold-start. Default `null` — backward compatible
+         *   со всеми существующими вызовами (8 мест в HealthReport.kt).
+         */
         @JvmStatic
-        fun cachedFileExists(source: String, bucket: String, fileName: String, loader: () -> Boolean): Boolean =
-            storageMetadataCache?.getFileExists(source, bucket, fileName, loader) ?: loader()
+        fun cachedFileExists(
+            source: String,
+            bucket: String,
+            fileName: String,
+            loader: () -> Boolean,
+            onFillComplete: (() -> Unit)? = null,
+        ): Boolean =
+            storageMetadataCache?.getFileExists(source, bucket, fileName, loader, onFillComplete)
+                ?: loader()
 
         /**
          * Async version: non-blocking cold-start (US2, spec #364, FR-007).
          * Returns `CompletableFuture<Boolean?>` — null means "cache miss, async fill in progress".
+         *
+         * @param onFillComplete callback, вызываемый ПОСЛЕ background fill (спека #368).
+         *   Hit case — callback НЕ вызывается. Используется для recompute+SSE после
+         *   cold-start, чтобы UI автоматически обновился с WAITING → OK без F5.
          */
         fun cachedFileExistsAsync(
             source: String,
             bucket: String,
             fileName: String,
             loader: () -> Boolean,
+            onFillComplete: (() -> Unit)? = null,
         ): CompletableFuture<Boolean?> =
-            storageMetadataCache?.getFileExistsAsync(source, bucket, fileName, loader)
+            storageMetadataCache?.getFileExistsAsync(source, bucket, fileName, loader, onFillComplete)
                 ?: CompletableFuture.completedFuture(loader())
 
         private fun actions(
@@ -957,22 +977,52 @@ data class HealthReport(
 
             // US2 (spec #364, FR-007): async cold-start для REMOTE storage.
             // cachedFileExistsAsync запускает async fill и сразу возвращает CompletableFuture.
-            // .get(50, MILLISECOND) блокирует max 50ms — fallback на safe default=true.
-            // Это non-blocking: cold cache = 50ms вместо 200ms, warm cache = 0ms.
+            // .get(50, MILLISECOND) блокирует max 50ms — fallback на WAITING (спека #368):
+            // если future вернул null (cache miss) или бросил exception — НЕ угадываем safe default,
+            // а сразу возвращаем WAITING, чтобы UI не показывал ложные ERROR.
+            // onFillComplete callback (спека #368): после успешного background fill
+            // вызывается recomputeAndBroadcast для рассылки SSE HEALTH_REPORTS,
+            // чтобы UI автоматически обновил запись с WAITING → OK/ERROR без F5.
             val remoteFileExistsFuture: java.util.concurrent.CompletableFuture<Boolean?> =
                 cachedFileExistsAsync(
                     "REMOTE",
                     storageBucketName,
                     storageFileName,
-                ) {
-                    storageApiClient.fileExists(bucketName = storageBucketName, fileName = storageFileName)
-                }
-            val existsInRemoteStore =
+                    loader = {
+                        storageApiClient.fileExists(bucketName = storageBucketName, fileName = storageFileName)
+                    },
+                    onFillComplete = {
+                        // Спека #368: после успешного background fill в StorageMetadataCache
+                        // пересчитываем HealthReport для этой песни и рассылаем SSE.
+                        // Рекомпьют берёт свежие данные из кеша и шлёт HEALTH_REPORTS.
+                        try {
+                            recomputeAndBroadcast(song.id, database, storageService, storageApiClient)
+                        } catch (e: Exception) {
+                            println("recomputeAndBroadcast failed for song ${song.id} in actionsRemoteStorage onFillComplete: ${e.message}")
+                        }
+                    },
+                )
+            val existsInRemoteStore: Boolean? =
                 try {
-                    remoteFileExistsFuture.get(50, TimeUnit.MILLISECONDS) ?: true
+                    remoteFileExistsFuture.get(50, TimeUnit.MILLISECONDS)
                 } catch (_: Exception) {
-                    true // timeout или error → safe default, async fill в фоне
+                    null // timeout → cache miss, async fill в фоне
                 }
+            // Спека #368: если cache miss (existsInRemoteStore == null) — сразу вернуть
+            // WAITING-запись, не угадывая. UI получит обновление через SSE после fill.
+            if (existsInRemoteStore == null) {
+                return listOf(
+                    HealthReport(
+                        song = song,
+                        description = description,
+                        healthReportType = FILE_VIOLATION,
+                        healthReportStatus = WAITING,
+                        canResolve = false,
+                        problemText = "Кеш ещё не заполнен, проверка в фоне",
+                        solutionText = "Дождитесь окончания проверки (обновление через SSE)",
+                    ),
+                )
+            }
             val uploadInProgress =
                 KaraokeProcess
                     .loadList(

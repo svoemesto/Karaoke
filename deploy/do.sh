@@ -83,9 +83,6 @@ function build_images() {
    -t "$DOCKER_REGISTRY/karaoke-web:${BUILD_VERSION}" \
    -f $DEPLOY_DIR/karaoke-web/Dockerfile
 
-  ${DOCKER} image build $BASE_DIR/ --build-arg VERSION=${BUILD_VERSION} \
-    -t "$DOCKER_REGISTRY/karaoke-webvue:${BUILD_VERSION}" -f $DEPLOY_DIR/karaoke-webvue/Dockerfile
-
   announce "Все модули собраны" "Все м+одули с+обраны"
 }
 
@@ -99,12 +96,6 @@ function build_start_web() {
   echo "Building WEB module and start"
   do_build_web
   do_start_web
-}
-
-function build_start_webvue() {
-  echo "Building WEBVUE module and start"
-  do_build_webvue
-  do_start_webvue
 }
 
 function build_start_webvue3() {
@@ -177,12 +168,6 @@ function do_build_web() {
   bl_release
 }
 
-function do_build_webvue() {
-  echo "Building WEBVUE module"
-  ${DOCKER} image build $BASE_DIR/ --build-arg VERSION=${BUILD_VERSION} \
-    -t "$DOCKER_REGISTRY/karaoke-webvue:${BUILD_VERSION}" -f $DEPLOY_DIR/karaoke-webvue/Dockerfile
-}
-
 function do_build_webvue3() {
   echo "Building WEBVUE3 module"
   ${DOCKER} image build $BASE_DIR/ --build-arg VERSION=${BUILD_VERSION} \
@@ -237,24 +222,11 @@ function do_stop_web() {
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-web.yml down
 }
 
-function do_start_webvue() {
-  do_stop_webvue
-  echo "Старт WEBVUE"
-  ${COMPOSE} -f $DEPLOY_DIR/docker-compose-webvue.yml up -d
-  announce "Старт WEBVUE" "Адм+инка зап+ущена"
-}
-
 function do_start_webvue3() {
   do_stop_webvue3
   echo "Старт WEBVUE3"
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-webvue3.yml up -d
   announce "Старт WEBVUE3" "Адм+инка зап+ущена"
-}
-
-function do_stop_webvue() {
-  echo "Остановка WEBVUE"
-  ${COMPOSE} -f $DEPLOY_DIR/docker-compose-webvue.yml down
-  announce "Остановка WEBVUE" "-"
 }
 
 function do_stop_webvue3() {
@@ -277,7 +249,6 @@ function do_stop_public() {
 }
 
 function do_start_app() {
-  do_stop_webvue
   echo "Старт APP"
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-app.yml ${APP_GPU_COMPOSE_FILE} up -d
   announce "Старт APP" "Бэк+энд зап+ущен"
@@ -294,7 +265,6 @@ function do_push() {
   ${DOCKER} login --username ${DOCKER_REGISTRY} --password ${DOCKER_PASSWORD}
   ${DOCKER} image push "$DOCKER_REGISTRY/karaoke-app:${BUILD_VERSION}"
   ${DOCKER} image push "$DOCKER_REGISTRY/karaoke-web:${BUILD_VERSION}"
-  ${DOCKER} image push "$DOCKER_REGISTRY/karaoke-webvue:${BUILD_VERSION}"
   ${DOCKER} image push "$DOCKER_REGISTRY/karaoke-webvue3:${BUILD_VERSION}"
   announce "Pushing!"
 }
@@ -318,13 +288,6 @@ function do_push_web() {
   ${DOCKER} login --username ${DOCKER_REGISTRY} --password ${DOCKER_PASSWORD}
   ${DOCKER} image push "$DOCKER_REGISTRY/karaoke-web:${BUILD_VERSION}"
   announce "П+ушинг веб"
-}
-
-function do_push_webvue() {
-  echo "Pushing WEBVUE"
-  ${DOCKER} login --username ${DOCKER_REGISTRY} --password ${DOCKER_PASSWORD}
-  ${DOCKER} image push "$DOCKER_REGISTRY/karaoke-webvue:${BUILD_VERSION}"
-  announce "П+ушинг вебвь+ю"
 }
 
 function do_push_webvue3() {
@@ -353,7 +316,6 @@ function do_rmi() {
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose.yml -f $DEPLOY_DIR/docker-compose-database.yml rm
   ${DOCKER} image rm "$DOCKER_REGISTRY/karaoke-app:${BUILD_VERSION}"
   ${DOCKER} image rm "$DOCKER_REGISTRY/karaoke-web:${BUILD_VERSION}"
-  ${DOCKER} image rm "$DOCKER_REGISTRY/karaoke-webvue:${BUILD_VERSION}"
   ${DOCKER} image rm "$DOCKER_REGISTRY/karaoke-webvue3:${BUILD_VERSION}"
   announce "Removing!"
 }
@@ -382,12 +344,10 @@ build_app) do_build_app ;;
 build_app_nocache) do_build_app_nocache ;;
 build_demucs) do_build_demucs ;;
 build_web) do_build_web ;;
-build_webvue) do_build_webvue ;;
 build_webvue3) do_build_webvue3 ;;
 build_public) do_build_public ;;
 build_start_app) build_start_app ;;
 build_start_web) build_start_web ;;
-build_start_webvue) build_start_webvue ;;
 build_start_webvue3) build_start_webvue3 ;;
 build_start_public) build_start_public ;;
 images) build_images ;;
@@ -395,14 +355,12 @@ start) do_start ;;
 start_db) do_start_db ;;
 start_app) do_start_app ;;
 start_web) do_start_web ;;
-start_webvue) do_start_webvue ;;
 start_webvue3) do_start_webvue3 ;;
 start_public) do_start_public ;;
 stop) do_stop ;;
 stop_db) do_stop_db ;;
 stop_app) do_stop_app ;;
 stop_web) do_stop_web ;;
-stop_webvue) do_stop_webvue ;;
 stop_webvue3) do_stop_webvue3 ;;
 stop_public) do_stop_public ;;
 load) do_load ;;
@@ -410,7 +368,6 @@ push) do_push ;;
 push_app) do_push_app ;;
 push_demucs) do_push_demucs ;;
 push_web) do_push_web ;;
-push_webvue) do_push_webvue ;;
 push_webvue3) do_push_webvue3 ;;
 push_public) do_push_public ;;
 pull) do_pull ;;
@@ -440,10 +397,8 @@ rmi) do_rmi ;;
     build_demucs - builds demucs image (GPU/CUDA-enabled), tagged \$DOCKER_REGISTRY/demucs:latest
     push_demucs - pushes demucs image to DOCKER_REGISTRY
     build_web - builds karaoke-web image
-    build_webvue - builds karaoke-webvue image
     build_start_app - builds karaoke-app image and (re)starts containers
     build_start_web - builds karaoke-web image and (re)starts containers
-    build_start_webvue - builds karaoke-webvue image and (re)starts containers
     build_public - builds karaoke-public image
     build_start_public - builds karaoke-public image and (re)starts containers
     start_public / stop_public - (re)starts/stops karaoke-public container

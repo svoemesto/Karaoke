@@ -1,7 +1,7 @@
 # Корреляция логов прода — `docs/ops/log-correlation.md`
 
 **Дата**: 2026-09-01
-**Привязка**: [specs/288-prod-diagnostics-logging/spec.md](../specs/288-prod-diagnostics-logging/spec.md) — FR-019, FR-020
+**Привязка**: [specs/288-prod-diagnostics-logging/spec.md](../../specs/288-prod-diagnostics-logging/spec.md) — FR-019, FR-020
 **Где мы**: при диагностике инцидента «прод подвис» разработчик/administrator открывает этот документ и за ≤15 минут находит причину.
 
 > Прод-сервер: `188.119.64.111` (`sm-karaoke.ru`). Admin-машина, где запущен `karaoke-app`: обычно `nsa-i9`. Все логи пишутся в TZ `Europe/Moscow` (MSK) после фичи 288-prod-diagnostics-logging.

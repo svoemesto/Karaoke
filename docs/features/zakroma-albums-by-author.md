@@ -2,7 +2,7 @@
 
 > **Slug**: `zakroma-albums-by-author`
 > **Feature branch**: `356-zakroma-albums-by-author`
-> **Spec**: [specs/356-zakroma-albums-by-author/spec.md](../specs/356-zakroma-albums-by-author/spec.md)
+> **Spec**: [specs/356-zakroma-albums-by-author/spec.md](../../specs/356-zakroma-albums-by-author/spec.md)
 > **Status**: Implemented (Pass 360)
 
 ## Что делает фича
@@ -124,17 +124,17 @@ ORDER BY a.year ASC NULLS LAST, a.name ASC
 
 ## Связанные документы
 
-- [specs/356-zakroma-albums-by-author/](../specs/356-zakroma-albums-by-author/) — полная спецификация (User Stories, FR, SC, Clarifications).
-- [specs/356-zakroma-albums-by-author/research.md](../specs/356-zakroma-albums-by-author/research.md) — технические решения (R1-R11).
-- [specs/356-zakroma-albums-by-author/data-model.md](../specs/356-zakroma-albums-by-author/data-model.md) — модель данных.
-- [specs/356-zakroma-albums-by-author/contracts/albums-tiles-api.md](../specs/356-zakroma-albums-by-author/contracts/albums-tiles-api.md) — контракт API.
-- [specs/356-zakroma-albums-by-author/quickstart.md](../specs/356-zakroma-albums-by-author/quickstart.md) — пошаговая валидация.
-- [specs/286-author-song-counts-cache/spec.md](../specs/286-author-song-counts-cache/spec.md) — прецедент (кэш счётчиков авторов через DB-триггер).
-- [specs/307-special-authors-zakroma-order/spec.md](../specs/307-special-authors-zakroma-order/spec.md) — прецедент (zakroma-tiles + `<slot name="leading" />`).
+- [specs/356-zakroma-albums-by-author/](../../specs/356-zakroma-albums-by-author/) — полная спецификация (User Stories, FR, SC, Clarifications).
+- [specs/356-zakroma-albums-by-author/research.md](../../specs/356-zakroma-albums-by-author/research.md) — технические решения (R1-R11).
+- [specs/356-zakroma-albums-by-author/data-model.md](../../specs/356-zakroma-albums-by-author/data-model.md) — модель данных.
+- [specs/356-zakroma-albums-by-author/contracts/albums-tiles-api.md](../../specs/356-zakroma-albums-by-author/contracts/albums-tiles-api.md) — контракт API.
+- [specs/356-zakroma-albums-by-author/quickstart.md](../../specs/356-zakroma-albums-by-author/quickstart.md) — пошаговая валидация.
+- [specs/286-author-song-counts-cache/spec.md](../../specs/286-author-song-counts-cache/spec.md) — прецедент (кэш счётчиков авторов через DB-триггер).
+- [specs/307-special-authors-zakroma-order/spec.md](../../specs/307-special-authors-zakroma-order/spec.md) — прецедент (zakroma-tiles + `<slot name="leading" />`).
 - [docs/features/zakroma-tiles-sort-order.md](zakroma-tiles-sort-order.md) — историческая фича zakroma-tiles.
-- [deploy/karaoke-db/49_albums_song_counts.sql](../deploy/karaoke-db/49_albums_song_counts.sql) — миграция.
-- [knowledge/adr/local-0007-album-tile-sort-order.md](../knowledge/adr/local-0007-album-tile-sort-order.md) — ADR фиксирует выбор year+name сортировки.
-- [knowledge/adr/local-0007-zakroma-album-id-in-stream-dto.md](../knowledge/adr/local-0007-zakroma-album-id-in-stream-dto.md) — ADR про обязательность `albumId` в стрим-DTO.
+- [deploy/karaoke-db/49_albums_song_counts.sql](../../deploy/karaoke-db/49_albums_song_counts.sql) — миграция.
+- [specs/307-special-authors-zakroma-order/spec.md](../../specs/307-special-authors-zakroma-order/spec.md) — спека фиксирует сортировку year+name.
+- [knowledge/adr/local-0007-zakroma-album-id-in-stream-dto.md](../../knowledge/adr/local-0007-zakroma-album-id-in-stream-dto.md) — ADR про обязательность `albumId` в стрим-DTO.
 
 ## Контрактные точки (для будущих фич)
 
@@ -158,4 +158,4 @@ ORDER BY a.year ASC NULLS LAST, a.name ASC
 - Автор #17 (АнимациЯ): гость → 22 альбома, 0 с `readySongCount=0`; редактор → 29 альбомов, 7 с `readySongCount=0` (id=244, 252, 254, 257, 261, 265, 270). Все 7 ожидаемых альбомов (по БД) видны.
 - Без токена / с невалидным токеном: поведение как у гостя (как до фикса).
 
-**См. также**: [specs/360-editor-sees-all-albums/spec.md](../specs/360-editor-sees-all-albums/spec.md), [specs/360-editor-sees-all-albums/contracts/albums-tiles-authorization.md](../specs/360-editor-sees-all-albums/contracts/albums-tiles-authorization.md).
+**См. также**: [specs/360-editor-sees-all-albums/spec.md](../../specs/360-editor-sees-all-albums/spec.md), [specs/360-editor-sees-all-albums/contracts/albums-tiles-authorization.md](../../specs/360-editor-sees-all-albums/contracts/albums-tiles-authorization.md).

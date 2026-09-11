@@ -253,6 +253,17 @@ Docs: [`docs/tracker-setup.md`](docs/tracker-setup.md), [`knowledge/adr/0008-tra
 
 **Запрещено:** пересобирать `karaoke-app` (исключения см. ниже), деплой без согласия, редактировать файлы на сервере, коммитить секреты (`deploy/.env`, `*.key`, `*.pem` — `git ls-files | grep -iE '\.env$|\.key$|\.pem$'` пусто), образы `nginx:alpine`/`node:latest`/JDK вместо JRE. **Разрешено:** править код, `gradle clean bootJar`, `npm run dev/build`, локальные контейнеры через `deploy/do.sh`. **Обновление Knowledge (FR-014)**: при изменении bounded context или C4 уровня — обновить соответствующий файл в `knowledge/` в том же PR.
 
+### SSH-доступ к прод-серверам (Pass 367 follow-up, 2026-09-11)
+
+- **Разрешено без явного согласия** (per owner, 2026-09-11): **рид-онли** операции через SSH —
+  чтение логов контейнеров, чтение файлов в `/var/log/`, чтение состояния docker.
+- **Требует явного согласия** (по умолчанию): **любые** операции, которые **меняют** состояние на
+  сервере — правка файлов, деплой, перезапуск контейнеров на проде, `rsync`, `scp` в обратную сторону.
+- Распознавание: если команда не содержит `>`, `>>`, `mv`, `cp ... /prod`, `rm`, `sed -i`, `tee`,
+  `docker restart|stop|rm`, `git push`, `deploy_web.sh` и т.п. — это рид-онли.
+- Список prod-хостов: см. `docs/ops/log-correlation.md`. Текущие:
+  - `188.119.64.111` — nginx + MinIO proxy (containers: karaoke-public, karaoke-web, karaoke-db).
+
 ### Машинно-специфичные исключения (Pass 282)
 
 #### `nsa-i9` / `nsa` (текущая)

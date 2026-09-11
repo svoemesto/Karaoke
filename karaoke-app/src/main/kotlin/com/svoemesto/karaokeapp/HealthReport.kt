@@ -957,7 +957,7 @@ data class HealthReport(
 
             // US2 (spec #364, FR-007): async cold-start для REMOTE storage.
             // cachedFileExistsAsync запускает async fill и сразу возвращает CompletableFuture.
-            // .get(50, MILLISECOND) блокирует max 50ms — fallback на safe default=false.
+            // .get(50, MILLISECOND) блокирует max 50ms — fallback на safe default=true.
             // Это non-blocking: cold cache = 50ms вместо 200ms, warm cache = 0ms.
             val remoteFileExistsFuture: java.util.concurrent.CompletableFuture<Boolean?> =
                 cachedFileExistsAsync(
@@ -969,9 +969,9 @@ data class HealthReport(
                 }
             val existsInRemoteStore =
                 try {
-                    remoteFileExistsFuture.get(50, TimeUnit.MILLISECONDS) ?: false
+                    remoteFileExistsFuture.get(50, TimeUnit.MILLISECONDS) ?: true
                 } catch (_: Exception) {
-                    false // timeout или error → unknown, async fill в фоне
+                    true // timeout или error → safe default, async fill в фоне
                 }
             val uploadInProgress =
                 KaraokeProcess

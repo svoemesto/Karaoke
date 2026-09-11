@@ -83,6 +83,14 @@ enum class SongField : Serializable {
     RATE,
     ROOT_ID,
     FREE,
+
+    // Флаг «не снимать с эфира» (см. specs/369-free-after-onair-flag/spec.md,
+    // OpenProject #81). После наступления dateTimePublish песня остаётся
+    // публично доступной даже после истечения стандартного окна бесплатного
+    // доступа (1 календарный месяц). Не путать с FREE («всегда бесплатно») и
+    // EXCLUSIVE («premium-only по решению»). Default = false.
+    FREE_AFTER_ON_AIR,
+
     ID_MAX_LYRICS,
     VERSION_MAX_LYRICS,
     ID_MAX_KARAOKE,

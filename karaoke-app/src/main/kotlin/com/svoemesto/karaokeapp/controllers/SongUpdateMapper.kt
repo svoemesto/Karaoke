@@ -25,6 +25,9 @@ import org.slf4j.LoggerFactory
  * @property fileNameRenameError null если переименование прошло успешно (или не запрашивалось),
  *   иначе — понятное для пользователя сообщение об ошибке.
  * @property freeChanged true если поле [Song.free] реально изменилось (для notifyStatsDirty).
+ * @property freeAfterOnAirChanged true если поле [Song.freeAfterOnAir] реально изменилось
+ *   (для notifyStatsDirty; влияет на «В открытом доступе» на главной странице — см.
+ *   specs/369-free-after-onair-flag/spec.md).
  * @property idStatusChanged true если поле [Song.idStatus] реально изменилось (для notifyStatsDirty).
  * @property baselineAutoFilled true если baseline-логика автозаполнила [SongField.NAME_CENSORED]
  *   из [Song.songName] (для логирования/observability).
@@ -35,6 +38,7 @@ data class SongUpdateApplyResult(
     val albumLinkValid: Boolean = true,
     val fileNameRenameError: String? = null,
     val freeChanged: Boolean = false,
+    val freeAfterOnAirChanged: Boolean = false,
     val idStatusChanged: Boolean = false,
     val baselineAutoFilled: Boolean = false,
 )
@@ -163,6 +167,7 @@ object SongUpdateMapper {
             "audioSimilarityPercent" to SongField.AUDIO_SIMILARITY_PERCENT,
             "audioDeltaMs" to SongField.AUDIO_DELTA_MS,
             "free" to SongField.FREE,
+            "freeAfterOnAir" to SongField.FREE_AFTER_ON_AIR,
             "idTariff" to SongField.ID_TARIFF,
             "indexTabsVariant" to SongField.INDEX_TABS_VARIANT,
             "idSponsr" to SongField.ID_SPONSR,
@@ -215,6 +220,7 @@ object SongUpdateMapper {
     ): SongUpdateApplyResult {
         // Снимки ДО применения правок (для diff в Phase E).
         val freeBefore = song.free
+        val freeAfterOnAirBefore = song.freeAfterOnAir
         val idStatusBefore = song.idStatus
 
         var albumLinkValid = true
@@ -318,6 +324,7 @@ object SongUpdateMapper {
             albumLinkValid = albumLinkValid,
             fileNameRenameError = fileNameRenameError,
             freeChanged = song.free != freeBefore,
+            freeAfterOnAirChanged = song.freeAfterOnAir != freeAfterOnAirBefore,
             idStatusChanged = song.idStatus != idStatusBefore,
             baselineAutoFilled = baselineAutoFilled,
         )

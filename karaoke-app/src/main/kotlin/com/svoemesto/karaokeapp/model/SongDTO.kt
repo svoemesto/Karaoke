@@ -65,6 +65,12 @@ data class SongDTO(
     val flagMaxChords: String,
     val flagMaxMelody: String,
     val flagFree: String,
+    /**
+     * specs/369-free-after-onair-flag: «IA» (Infinity Air) — флаг "не снимать с эфира"
+     * после окончания стандартного окна бесплатного доступа. "-" если флаг не установлен,
+     * "✓" если установлен. Не путать с [flagFree] — оба флага независимы.
+     */
+    val flagFreeAfterOnAir: String,
     val processColorPlayerDemo: String,
     val idBoosty: String,
     val idBoostyFiles: String,
@@ -146,6 +152,7 @@ data class SongDTO(
     val audioSimilarityPercent: Int,
     val audioDeltaMs: Long,
     val free: Boolean,
+    val freeAfterOnAir: Boolean,
     val idTariff: Int,
     // 0 = песня не привязана к альбому (сингл). Entity-уровень (Song.albumId) — Long? (null =
     // нет альбома, настоящий SQL NULL из-за FK); здесь, как и у прочих Long-полей DTO (rootId,
@@ -249,6 +256,7 @@ data class SongDTO(
         entity.audioSimilarityPercent = audioSimilarityPercent
         entity.audioDeltaMs = audioDeltaMs
         entity.free = free
+        entity.freeAfterOnAir = freeAfterOnAir
         entity.idTariff = idTariff
         entity.fields[SongField.SONG_TYPE] = songType
         entity.tags = tags
@@ -323,6 +331,7 @@ data class SongDTO(
             flagMaxChords = flagMaxChords,
             flagMaxMelody = flagMaxMelody,
             flagFree = flagFree,
+            flagFreeAfterOnAir = flagFreeAfterOnAir,
             processColorPlayerDemo = processColorPlayerDemo,
             resultVersion = resultVersion,
             versionBoosty = versionBoosty,

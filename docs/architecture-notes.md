@@ -4,6 +4,37 @@
 высокоуровневого контекста; детали фич — в `specs/NNN-*/spec.md` и
 `docs/features/<slug>.md`.
 
+> **Pass 369** (2026-09-11): Задача #81 (OP) — добавлен флаг
+> `free_after_on_air` (Kotlin: `freeAfterOnAir`) на `Song`. Семантика:
+> после наступления `dateTimePublish` песня остаётся публично доступной,
+> даже после окончания стандартного окна бесплатного доступа (1 месяц).
+> Не путать с `free=true` («всегда бесплатно») и `exclusive=true`
+> (premium-only по бизнес-решению). Default = false (обратная совместимость
+> для 18 097 песен на проде).
+> - БД: `ALTER TABLE tbl_songs ADD COLUMN free_after_on_air BOOLEAN NOT NULL DEFAULT false`
+>   (миграция `deploy/karaoke-db/50_tbl_songs_free_after_on_air.sql`).
+>   Пересозданы **оба** `recordhash`-триггера (`tbl_songs` И
+>   `tbl_songs_sync`) — иначе md5 sync разойдётся (Constitution III).
+> - Kotlin: `Song.freeAfterOnAir: Boolean`, `Song.isFreelyAvailableNow`
+>   дополнен, `SongStateResolver.resolve(...)` принимает параметр
+>   `freeAfterOnAir: Boolean = false` (default — обратная совместимость).
+>   `SongDTO.freeAfterOnAir` добавлен.
+> - UI: пара кнопок ДА/НЕТ «Не снимать с эфира» в `SongEdit.vue` (рядом
+>   с блоком «Всегда бесплатно»).
+> - UI таблица `SongsTable.vue`: столбец `IA` (`flagFreeAfterOnAir`) рядом с
+>   `FR` (`flagFree`). Аналогичный формат ("-" / "✓"), отдельный CSS-класс
+>   `.fld-flag-free-after-on-air`.
+> - API: фильтр `filter_free_after_on_air` в `/api/songs/list`.
+> - Тесты: добавлены 7 новых тестов в `SongStateTest` (Pass 369 фикс
+>   приоритетов: `free=true` > `freeAfterOnAir=true && onAir` > стандартное окно).
+> - Per-feature документ: `docs/features/song-air-access.md` (новый).
+> - Knowledge: `knowledge/domains/catalog/components/dictionaries.md`
+>   (добавлен раздел «Флаг freeAfterOnAir»),
+>   `knowledge/domains/catalog/components/song-entity.md` (поле в списке).
+> - Спека: `specs/369-free-after-onair-flag/spec.md` (OpenProject #81).
+> - Clarifications 2026-09-11: Q1 «флаги независимы, хранятся раздельно»;
+>   Q2 «действует только после эфира».
+
 > **Pass 300** (2026-09-03): Исправлен баг #50 (OP) — добавлен watcher на
 > `countRows` в admin tables (Authors, Albums, Pictures, SiteUsers) для сброса
 > `currentPage` при уменьшении выборки после фильтра. Эталон — `Songs/SongsTable.vue:998-1009`.

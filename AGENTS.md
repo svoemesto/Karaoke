@@ -129,6 +129,72 @@
 - **`docs/ops/log-correlation.md`** — карта логов прода, команды `docker logs`/`ssh`, grep-маркеры (`infra.prod.ping`/`infra.prod.db`/`LOG:  duration:`), сценарии диагностики. Создан в [specs/288-prod-diagnostics-logging](../specs/288-prod-diagnostics-logging/spec.md) (FR-019).
 - Контракт WARN/INFO для `infra.prod.*`: [contracts/log-format.md](../specs/288-prod-diagnostics-logging/contracts/log-format.md).
 
+## Чтение логов контейнеров (Pass 367 follow-up, 2026-09-11)
+
+> ⚠️ **Безусловно разрешено без явного согласия** (per owner, 2026-09-11):
+> **чтение логов контейнеров** — это рид-онли операция, не изменяет состояние
+> ни в workspace, ни на сервере. Агент MUST делать это самостоятельно при любых
+> сомнениях о работе системы — без вопросов «можно ли?».
+
+### Локальные контейнеры (nsa-i9)
+
+```bash
+# Все контейнеры Karaoke
+DOCKER_CONFIG=/home/nsa/Karaoke/.docker docker ps --format '{{.Names}}\t{{.Status}}'
+
+# Последние 100 строк (без -f, без остановки)
+DOCKER_CONFIG=/home/nsa/Karaoke/.docker docker logs --tail 100 <container_name>
+
+# Реалтайм (осторожно — большой поток)
+DOCKER_CONFIG=/home/nsa/Karaoke/.docker docker logs -f --tail 50 <container_name>
+
+# С момента старта контейнера
+DOCKER_CONFIG=/home/nsa/Karaoke/.docker docker logs --since 5m <container_name>
+
+# Только errors и WARN
+DOCKER_CONFIG=/home/nsa/Karaoke/.docker docker logs --tail 200 <container_name> 2>&1 | grep -iE 'error|exception|warn|fatal'
+```
+
+**Список локальных контейнеров Karaoke**:
+`karaoke-app`, `karaoke-web`, `karaoke-webvue3`, `karaoke-public`, `karaoke-storage`,
+`karaoke-minio-proxy`, `karaoke-telegram-proxy`, `karaoke-db`, `searxng`, `fourget`.
+
+### Удалённые контейнеры (прод через SSH)
+
+```bash
+# Хосты (см. /etc/hosts + docs/ops/log-correlation.md)
+ssh -o BatchMode=yes root@188.119.64.111 'docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}"'  # nginx + MinIO proxy
+ssh -o BatchMode=yes root@89.125.103.63  'docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}"'  # хранилище (MinIO)
+ssh -o BatchMode=yes root@79.174.95.69   'docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}"'  # старый prod (опционально)
+
+# Логи конкретного контейнера
+ssh -o BatchMode=yes root@<host> 'docker logs --tail 100 <container_name>'
+
+# Системные логи nginx
+ssh -o BatchMode=yes root@188.119.64.111 'tail -100 /var/log/nginx/access.log'
+ssh -o BatchMode=yes root@188.119.64.111 'tail -100 /var/log/nginx/error.log'
+```
+
+| Хост | Что на нём | Контейнеры |
+|---|---|---|
+| `188.119.64.111` (karaoke-prod) | nginx + MinIO proxy | `karaoke-public`, `karaoke-web`, `karaoke-db` |
+| `89.125.103.63` (karaoke-storage) | MinIO (отдельно) | `karaoke-storage` |
+| `79.174.95.69` (karaoke-prod-old) | старый prod (миграция) | `Connection.remote()` — см. Connection.kt |
+
+### Когда НЕ нужно спрашивать согласия
+
+- Прочитать `docker logs`, `docker inspect`, `docker ps`.
+- Прочитать любые файлы через `ssh ... 'cat | tail | head | grep'`.
+- Прочитать системные логи (`/var/log/nginx/...`, journalctl, `dmesg`).
+- Прочитать состояние БД (`docker exec karaoke-db psql -c 'SELECT ...'`).
+- Прочитать размер бакетов MinIO, состояние объектов.
+
+### Когда согласие НУЖНО
+
+Любая операция, которая **меняет** состояние: перезапуск контейнера на проде,
+правка файлов, деплой, `rsync`, `scp` в обратную сторону, прямой SQL `UPDATE/DELETE/INSERT`
+на прод-БД.
+
 ## Диагностика на локальной машине (NON-NEGOTIABLE, Pass 358)
 
 > **Прецедент** (Pass 358, issue #70 follow-up): при тестировании фичи в локальных

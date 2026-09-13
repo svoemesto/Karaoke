@@ -4,7 +4,9 @@ import com.svoemesto.karaokeapp.Connection
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import java.util.concurrent.CompletableFuture
-import java.util.concurrent.Executors
+import java.util.concurrent.LinkedBlockingQueue
+import java.util.concurrent.ThreadPoolExecutor
+import java.util.concurrent.TimeUnit
 
 /**
  * Persistent (eternal) cache для метаданных MinIO — спека #348 (Pass 345), supersede #344.
@@ -58,12 +60,29 @@ class StorageMetadataCache {
         private val waitingLog = LoggerFactory.getLogger("infra.cache.storage.waiting")
 
         /**
-         * Shared cached thread pool for async cache fill (US2, spec #364).
-         * Size adapts automatically: creates new threads as needed, reuses idle threads.
-         * Bounded by `corePoolSize=0, maxPoolSize=16` — enough for burst of cache fills.
+         * Shared thread pool for async cache fill (US2, spec #364).
+         *
+         * Жёстко ограничен `maxPoolSize=16` (см. OP #83): раньше использовался
+         * `Executors.newCachedThreadPool()` без аргументов, что фактически означало
+         * `maxPoolSize = Integer.MAX_VALUE`. Каждый REMOTE cache miss создавал НОВЫЙ
+         * поток + НОВЫЙ ThreadLocal JDBC-connection через `Connection.local().getConnection()`,
+         * и при быстром переключении страниц в SongsTable.vue это превышало
+         * Postgres `max_connections=100` за минуты.
+         *
+         * Семантика сохранена: `corePoolSize=0` + `keepAliveTime=60s` ведут себя как
+         * cached pool — потоки умирают после простоя. `LinkedBlockingQueue` без
+         * bound обеспечивает unbounded очередь submit'ов; рост упирается в maxPoolSize.
+         *
+         * Подробнее: `research/83-db-pool-root-cause/REPORT.md`.
          */
         private val cacheFillerExecutor =
-            Executors.newCachedThreadPool().also { executor ->
+            ThreadPoolExecutor(
+                0,
+                16,
+                60L,
+                TimeUnit.SECONDS,
+                LinkedBlockingQueue(),
+            ).also { executor ->
                 Runtime.getRuntime().addShutdownHook(Thread { executor.shutdown() })
             }
     }

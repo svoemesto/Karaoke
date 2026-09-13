@@ -53,6 +53,19 @@ repos:
         always_run: true
         stages: [pre-commit]
 
+      # === Guard: frontend-build (Pass 375, OP #83 follow-up) ===
+      # Ловит запуск `npm run <cmd>` без `cd webvue3`/`cd karaoke-public` в shell-файлах.
+      # См. AGENTS.md § «Frontend build: cd <frontend-dir> && npm run <cmd> (Pass 375)».
+      # Проверяет только .sh/.bash файлы + deploy/do.sh + .github/workflows/.
+      # Markdown и ADR НЕ проверяются (там могут быть примеры).
+      - id: frontend-build-guard
+        name: frontend-build guard (Pass 375)
+        entry: bash tools/check-frontend-build.sh --quiet
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
+
       # === Kotlin: ktlint ===
       - id: ktlint
         name: ktlint (Kotlin formatter)

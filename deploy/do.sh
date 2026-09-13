@@ -20,6 +20,15 @@ if [[ -z "${JAVA_HOME:-}" ]] && [[ -d /usr/lib/jvm/jdk-18 ]]; then
   export JAVA_HOME=/usr/lib/jvm/jdk-18
 fi
 
+# Pass 373 (OP #83 follow-up): правило DOCKER_CONFIG применяется ТРАНЗИТИВНО.
+# Этот скрипт вызывает ${DOCKER} image build / buildx внутри себя (do_build_app,
+# do_build_web, …). Без правильного DOCKER_CONFIG buildx падает с read-only в
+# ~/.docker/buildx/activity. В DSH-sandbox нужно явно указывать на проектную
+# /home/nsa/Karaoke/.docker/ (которая writable).
+if [[ -z "${DOCKER_CONFIG:-}" ]]; then
+  export DOCKER_CONFIG=/home/nsa/Karaoke/.docker
+fi
+
 DEPLOY_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null && pwd)"
 BASE_DIR="$(cd "${DEPLOY_DIR}" && cd .. && pwd)"
 GRADLE="$BASE_DIR/gradlew"

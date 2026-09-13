@@ -1,6 +1,15 @@
 # AGENTS.md — инструкции для агентов
 
-> **Версия**: 2.3.0 | **Last updated**: 2026-09-09 (Pass 350).
+> **Версия**: 2.4.0 | **Last updated**: 2026-09-13 (Pass 372).
+>
+> **Изменения 2.4.0** (см. PR #374 — governance-gradle-user-home-transitive):
+> - Дополнена секция «Gradle: запуск с `GRADLE_USER_HOME`» правилом **транзитивности**:
+>   правило применяется не только к прямому `./gradlew`, но и к скриптам, которые
+>   его вызывают (`pre-commit`, `deploy/do.sh`, IDE-runner). Прецедент (Pass 372, OP #83).
+> - Добавлен guard-скрипт `tools/check-gradle-user-home.sh` для pre-commit и CI.
+> - `.pre-commit-config.yaml`: ktlint-hook теперь передаёт `GRADLE_USER_HOME` явно
+>   (`bash -c 'GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle ...'`).
+> - `deploy/do.sh`: устанавливает `GRADLE_USER_HOME` и `JAVA_HOME` в начале, если не заданы.
 >
 > **Изменения 2.2.0** (см. PR #340 — governance-knowledge-first):
 > - Добавлен MUST #0 «Knowledge-first pre-flight (NON-NEGOTIABLE)».
@@ -294,6 +303,45 @@ gh pr checks && gh pr merge --merge   # БЕЗ --delete-branch
 > **NON-NEGOTIABLE** (см. полную версию в `docs/architecture-notes.md` или в git history `livedocs/architecture/dsh-sandbox-conventions.md`):
 > все `./gradlew ...` команды должны идти с `GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle`
 > (папка `.gradle` ВНУТРИ проекта). Без этого wrapper пишет в read-only `/home/nsa/.gradle/wrapper/dists/...`.
+
+#### Правило применяется ТРАНЗИТИВНО (Pass 372)
+
+Прецедент (Pass 372, OP #83): агент помнит правило для прямого вызова `./gradlew`, но
+**забывает применить его к скриптам, которые сами вызывают `./gradlew`**:
+
+- `pre-commit run` → внутри хука `ktlint` запускается `./gradlew ktlintCheck`
+  (см. `.pre-commit-config.yaml:20`) — **падает** без `GRADLE_USER_HOME`.
+- `bash deploy/do.sh build_app` → внутри скрипта вызывается `${GRADLE}` (т.е. `./gradlew`)
+  (см. `deploy/do.sh:13, 64, 118, 138`) — **падает** без `GRADLE_USER_HOME`.
+- IDE-runner (Gradle Task Runner в IntelliJ IDEA / VSCode) — если запускается
+  из shell'а без переменной — **падает**.
+
+**Перед ЛЮБЫМ вызовом** `./gradlew` или скрипта, который его вызывает, проверь:
+
+```bash
+# Если НЕ задан — ОБЯЗАТЕЛЬНО установить.
+export GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle
+export JAVA_HOME=/usr/lib/jvm/jdk-18
+```
+
+**НЕПРАВИЛЬНО** (Pass 372 failure):
+```bash
+./gradlew :karaoke-app:compileKotlin              # ❌ read-only FS
+pre-commit run --all-files                        # ❌ хук ktlint упадёт
+bash deploy/do.sh build_app                       # ❌ gradle внутри упадёт
+```
+
+**ПРАВИЛЬНО**:
+```bash
+export GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle JAVA_HOME=/usr/lib/jvm/jdk-18
+./gradlew :karaoke-app:compileKotlin              # ✅
+pre-commit run --all-files                        # ✅ ktlint-хук работает
+bash deploy/do.sh build_app                       # ✅ gradle внутри работает
+```
+
+**Enforcement**: `tools/check-gradle-user-home.sh` — guard-скрипт для pre-commit
+и CI (Pass 372). Проверяет, что `$GRADLE_USER_HOME` либо `=/home/nsa/Karaoke/.gradle`,
+либо не пуста и проектная `.gradle/` writable.
 
 ### Обязательная проверка после ЛЮБОГО изменения кода (NON-NEGOTIABLE)
 

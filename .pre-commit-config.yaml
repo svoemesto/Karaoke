@@ -15,10 +15,24 @@
 repos:
   - repo: local
     hooks:
+      # === Guard: GRADLE_USER_HOME (Pass 372, OP #83) ===
+      # Ловит ситуацию, когда pre-commit вызывают без export GRADLE_USER_HOME=...
+      # и хук ktlint упадёт с read-only FileNotFoundException.
+      # См. AGENTS.md § «Gradle: запуск с GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle».
+      - id: gradle-user-home-guard
+        name: gradle-user-home guard (Pass 372)
+        entry: bash tools/check-gradle-user-home.sh --quiet
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
+
       # === Kotlin: ktlint ===
       - id: ktlint
         name: ktlint (Kotlin formatter)
-        entry: ./gradlew ktlintCheck
+        # Pass 372: правило GRADLE_USER_HOME применяется ТРАНЗИТИВНО —
+        # этот hook сам вызывает ./gradlew, поэтому ОБЯЗАН передать env var.
+        entry: bash -c 'GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle JAVA_HOME=/usr/lib/jvm/jdk-18 ./gradlew ktlintCheck'
         language: system
         pass_filenames: false
         types_or: [kotlin, java]

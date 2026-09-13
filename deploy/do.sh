@@ -8,6 +8,18 @@ clear
 set -a
 echo "Starting do.sh"
 
+# Pass 372 (OP #83): правило GRADLE_USER_HOME применяется ТРАНЗИТИВНО.
+# Этот скрипт вызывает ./gradlew внутри себя (do_build_app, do_build_web, …).
+# Если GRADLE_USER_HOME не задан И /home/nsa/Karaoke/.gradle не существует —
+# wrapper упадёт с read-only FileNotFoundException. Устанавливаем явно.
+if [[ -z "${GRADLE_USER_HOME:-}" ]]; then
+  export GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle
+fi
+# JAVA_HOME часто приходит из /etc/profile.d, но для надёжности — fallback.
+if [[ -z "${JAVA_HOME:-}" ]] && [[ -d /usr/lib/jvm/jdk-18 ]]; then
+  export JAVA_HOME=/usr/lib/jvm/jdk-18
+fi
+
 DEPLOY_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null && pwd)"
 BASE_DIR="$(cd "${DEPLOY_DIR}" && cd .. && pwd)"
 GRADLE="$BASE_DIR/gradlew"

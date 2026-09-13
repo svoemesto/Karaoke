@@ -39,6 +39,20 @@ repos:
         always_run: true
         stages: [pre-commit]
 
+      # === Guard: container-restart (Pass 374, OP #83 follow-up) ===
+      # Ловит прямые `docker restart <container>` / `docker stop <container>` /
+      # `docker-compose restart` в shell-файлах (вместо `bash deploy/do.sh restart_*`).
+      # См. AGENTS.md § «Перезапуск контейнеров через deploy/do.sh (Pass 374)».
+      # Проверяет только .sh/.bash файлы + deploy/do.sh + .github/workflows/.
+      # Markdown и ADR НЕ проверяются (там могут быть примеры в документации).
+      - id: container-restart-guard
+        name: container-restart guard (Pass 374)
+        entry: bash tools/check-container-restart.sh --quiet
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
+
       # === Kotlin: ktlint ===
       - id: ktlint
         name: ktlint (Kotlin formatter)

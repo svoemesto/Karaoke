@@ -1,6 +1,17 @@
 # AGENTS.md — инструкции для агентов
 
-> **Версия**: 2.5.0 | **Last updated**: 2026-09-13 (Pass 373).
+> **Версия**: 2.6.0 | **Last updated**: 2026-09-13 (Pass 374).
+>
+> **Изменения 2.6.0** (см. PR #377 — governance-container-restart-transitive):
+> - Добавлена секция «Перезапуск контейнеров через `deploy/do.sh`» (Pass 374, OP #83 follow-up):
+>   правило применять ТРАНЗИТИВНО для **ВСЕХ** способов перезапуска —
+>   `deploy/do.sh start_*`, `restart_*`, прямые `docker restart`/`docker stop`+`start`.
+> - Прецедент: правила о перезапуске были **разбросаны по 3 местам** (AGENTS.md § Ограничения,
+>   AGENTS.md § Диагностика, deploy/do.sh help) и **не machine-readable** —
+>   не было guard-скрипта, блокирующего прямой `docker restart karaoke-app` без согласия.
+> - Добавлен guard-скрипт `tools/check-container-restart.sh` для pre-commit и CI.
+> - Правило: **`deploy/do.sh start_*`** — единственный путь для агента.
+>   **`docker restart <container>`** НЕ ДОЛЖЕН использоваться напрямую.
 >
 > **Изменения 2.5.0** (см. PR #376 — governance-docker-config-transitive):
 > - Добавлена секция «Docker build: `DOCKER_CONFIG`» (Pass 373, OP #83 follow-up):
@@ -401,6 +412,78 @@ bash deploy/do.sh build_app                                     # ✅ gradle + d
 **Enforcement**: `tools/check-docker-config.sh` — guard-скрипт для pre-commit
 и CI (Pass 373). Проверяет, что `$DOCKER_CONFIG` либо `=/home/nsa/Karaoke/.docker`,
 либо проектная `.docker/` writable.
+
+### Перезапуск контейнеров через `deploy/do.sh` (Pass 374)
+
+> **NON-NEGOTIABLE** (Pass 374, OP #83 follow-up): правила о перезапуске контейнеров
+> были **разбросаны по 3 местам** (AGENTS.md § «Ограничения агента»,
+> AGENTS.md § «Диагностика на локальной машине», `deploy/do.sh help`) и
+> **не machine-readable**. Агент мог случайно использовать прямые
+> `docker restart` / `docker stop` + `docker start` для контейнеров, которые
+> требуют согласия (`karaoke-app`).
+
+**Решение**: **единственный путь** для агента перезапустить контейнер —
+через `deploy/do.sh start_<container>` или `restart_<container>`. Эти команды
+выполняют `docker-compose` корректно (с зависимостями, в правильном порядке)
+и **уважают машинно-специфичные исключения** из § «Ограничения агента».
+
+#### Доступные команды
+
+| Контейнер | Scoped start | Scoped restart | Build + start | Когда можно агенту |
+|---|---|---|---|---|
+| `karaoke-db` | `bash deploy/do.sh start_db` | `bash deploy/do.sh restart_db` | `bash deploy/do.sh build_start_db` | ✅ Без согласия |
+| `karaoke-web` | `bash deploy/do.sh start_web` | `bash deploy/do.sh restart_web` | `bash deploy/do.sh build_start_web` | ✅ Без согласия |
+| `karaoke-webvue` | `bash deploy/do.sh start_webvue` | `bash deploy/do.sh restart_webvue` | `bash deploy/do.sh build_start_webvue` | ✅ Без согласия |
+| `karaoke-webvue3` | `bash deploy/do.sh start_webvue3` | `bash deploy/do.sh restart_webvue3` | `bash deploy/do.sh build_start_webvue3` | ✅ Без согласия |
+| `karaoke-public` | `bash deploy/do.sh start_public` | `bash deploy/do.sh restart_public` | `bash deploy/do.sh build_start_public` | ✅ Без согласия |
+| `karaoke-app` | `bash deploy/do.sh start_app` | `bash deploy/do.sh restart_app` | `bash deploy/do.sh build_start_app` | ❌ Только по согласию (`nsa-i9`/`nsa`, Pass 282) |
+| `minio` / `nginx` | `bash deploy/do.sh start_minio` | `bash deploy/do.sh restart_minio` | `bash deploy/do.sh build_start_minio` | ⚠️ По согласованию |
+
+Полный список: `bash deploy/do.sh help` (для агента **только чтение**, не запуск).
+
+**НЕПРАВИЛЬНО** (Pass 374 failure):
+```bash
+docker restart karaoke-web                # ❌ минует do.sh, теряет зависимости (karaoke-minio-proxy)
+docker restart karaoke-app                # ❌ ЗАПРЕЩЕНО без явного согласия (Pass 282)
+docker stop karaoke-web && docker start karaoke-web   # ❌ то же
+docker-compose -f deploy/docker-compose-web.yml restart   # ❌ не через do.sh
+```
+
+**ПРАВИЛЬНО**:
+```bash
+export GRADLE_USER_HOME=/home/nsa/Karaoke/.gradle
+export DOCKER_CONFIG=/home/nsa/Karaoke/.docker
+bash deploy/do.sh start_web                # ✅ scoped: только karaoke-web (без сборки)
+bash deploy/do.sh restart_web              # ✅ scoped restart
+bash deploy/do.sh build_start_web          # ✅ собрать И запустить
+
+# Только для karaoke-app — с явным согласием пользователя:
+# "Перезапусти karaoke-app"
+bash deploy/do.sh start_app                # ✅ после явного согласия
+```
+
+**Перед ЛЮБЫМ перезапуском** агент MUST:
+1. Проверить, что у него есть разрешение для конкретного контейнера (таблица выше).
+2. Установить `GRADLE_USER_HOME` и `DOCKER_CONFIG` (Pass 372, Pass 373).
+3. Использовать **ТОЛЬКО** `bash deploy/do.sh start_*` / `restart_*`.
+4. После перезапуска — проверить логи (`docker logs --tail 50 <container>`) —
+   см. § «Диагностика на локальной машине», правило 2.
+
+**Enforcement**: `tools/check-container-restart.sh` — guard-скрипт для pre-commit
+и CI (Pass 374). Проверяет, что **новые коммиты** не содержат запрещённых
+прямых вызовов `docker restart <container>` или `docker stop <container>`.
+
+#### Scope rule (Pass 374)
+
+- `build_start_app` — агент НЕ ДОЛЖЕН использовать без явного согласия.
+  `build_app` (только сборка) — ✅ разрешено.
+- `start_app` / `restart_app` — агент НЕ ДОЛЖЕН без явного согласия.
+- **Scoped-команды** (например, `bash deploy/do.sh build_app && start_app` — где `&&`
+  между двумя командами) — это **не то же самое** что `build_start_app`. Если
+  `&&` стоит между `build_app` и `start_app` — последняя тоже требует согласия.
+
+Полная таблица ограничений: см. `AGENTS.md § Ограничения агента →
+Машинно-специфичные исключения → nsa-i9 / nsa`.
 
 ### Обязательная проверка после ЛЮБОГО изменения кода (NON-NEGOTIABLE)
 

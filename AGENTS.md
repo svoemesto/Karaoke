@@ -1,6 +1,19 @@
 # AGENTS.md — инструкции для агентов
 
-> **Версия**: 2.6.0 | **Last updated**: 2026-09-13 (Pass 374).
+> **Версия**: 2.7.0 | **Last updated**: 2026-09-13 (Pass 375).
+>
+> **Изменения 2.7.0** (см. PR #378 — governance-frontend-build-transitive):
+> - Добавлена секция «Frontend build: `npm run` для webvue3 и karaoke-public (Pass 375)»:
+>   правила применять ТРАНЗИТИВНО — agent должен запускать `npm run lint`/`build`/`format:check`
+>   из правильного каталога (`cd webvue3` или `cd karaoke-public`), иначе результат
+>   некорректный (node_modules ищется в текущей директории).
+> - Прецедент: правила о фронтенд-сборке были **разбросаны по 30+ файлам**
+>   (AGENTS.md, CLAUDE.md, knowledge/code-style.md, tasks.md для каждой спеки)
+>   и **не machine-readable** — не было guard-скрипта, который бы ловил
+>   запуск `npm run lint` без `cd webvue3`/`cd karaoke-public`.
+> - Добавлен guard-скрипт `tools/check-frontend-build.sh` для pre-commit и CI.
+> - Правило: **`cd <frontend-dir> && npm run <command>`** — единственный путь.
+>   **`npm run lint`** из корня проекта — НЕ ДОЛЖЕН использоваться.
 >
 > **Изменения 2.6.0** (см. PR #377 — governance-container-restart-transitive):
 > - Добавлена секция «Перезапуск контейнеров через `deploy/do.sh`» (Pass 374, OP #83 follow-up):
@@ -472,6 +485,90 @@ bash deploy/do.sh start_app                # ✅ после явного сог�
 **Enforcement**: `tools/check-container-restart.sh` — guard-скрипт для pre-commit
 и CI (Pass 374). Проверяет, что **новые коммиты** не содержат запрещённых
 прямых вызовов `docker restart <container>` или `docker stop <container>`.
+
+### Frontend build: `cd <frontend-dir> && npm run <cmd>` (Pass 375)
+
+> **NON-NEGOTIABLE** (Pass 375, OP #83 follow-up): правила о фронтенд-сборке
+> были **разбросаны по 30+ файлам** (AGENTS.md, CLAUDE.md, knowledge/code-style.md,
+> tasks.md для каждой спеки) и **не machine-readable**. Не было guard-скрипта,
+> который бы ловил запуск `npm run lint` без `cd webvue3`/`cd karaoke-public`.
+
+**Решение**: `npm` ищет `node_modules` и `package.json` в **текущей директории**.
+Запуск `npm run lint` из корня проекта найдёт корень `package.json` (если он есть)
+или упадёт. **Правильный паттерн** — `cd <frontend-dir> && npm run <cmd>`.
+
+Прецедент (Pass 375, OP #83 follow-up): на этой машине есть **только два**
+фронтенд-проекта с собственным `node_modules`:
+- `webvue3/` — админка (Vue 3 + bootstrap-vue-next).
+- `karaoke-public/` — публичный SPA (Vue 3 + Bootstrap 5).
+- В **корне проекта** `package.json` **нет** (есть только в подкаталогах).
+
+#### Доступные команды
+
+| Frontend | Команды lint | Команды build | Команды format | Docker (Pass 245) |
+|---|---|---|---|---|
+| `webvue3/` | `cd webvue3 && npm run lint` | `cd webvue3 && npm run build` | `cd webvue3 && npm run format:check` | `cd deploy && bash do.sh build_webvue3` |
+| `karaoke-public/` | `cd karaoke-public && npm run lint` | `cd karaoke-public && npm run build` | `cd karaoke-public && npm run format:check` | `cd deploy && bash do.sh build_public` |
+
+**НЕПРАВИЛЬНО** (Pass 375 failure):
+```bash
+npm run lint                       # ❌ нет package.json в корне — node_modules не найден
+npm run build                      # ❌ то же
+npm run lint:check                 # ❌ то же (или baseline-проверка работает на чужих файлах)
+./gradlew :webvue3:test           # ❌ это не gradle-проект
+```
+
+**ПРАВИЛЬНО**:
+```bash
+cd webvue3 && npm run lint        # ✅ node_modules в webvue3/
+cd webvue3 && npm run build       # ✅ vite build (8.03s, exit 0)
+cd webvue3 && npm run format:check # ✅ prettier
+
+cd karaoke-public && npm run lint  # ✅
+cd karaoke-public && npm run build # ✅ vite build (3.98s, exit 0)
+cd karaoke-public && npm run format:check  # ✅
+
+# После — Docker (Pass 245: Vite-build ≠ Docker multi-stage)
+cd deploy && bash do.sh build_webvue3     # ✅
+cd deploy && bash do.sh build_public      # ✅
+```
+
+#### Правила
+
+1. **`cd <frontend-dir>` обязателен** перед каждым `npm run <cmd>` —
+   иначе `npm` не найдёт `package.json`/`node_modules` в текущей директории.
+2. **`package.json` есть ТОЛЬКО в `webvue3/` и `karaoke-public/`** — не в корне.
+3. **`node_modules` — локальный** (per-frontend, не общий). После `git pull` —
+   может потребоваться `npm install`.
+4. **Vite-build ≠ Docker-образ** (Pass 245) — после `npm run build` обязательно
+   ещё `cd deploy && bash do.sh build_webvue3` / `build_public`.
+5. **ESLint baseline**: `webvue3/.eslint-baseline.json` и
+   `karaoke-public/.eslint-baseline.json` фиксируют legacy-нарушения.
+   Новые нарушения **не должны** расти — иначе упасть CI.
+
+#### Перед ЛЮБЫМ** `npm run` агент MUST:
+
+1. Определить, **какой** frontend менялся: `webvue3/` или `karaoke-public/`.
+2. `cd <frontend-dir>` перед командой (не выполнять из корня).
+3. Запустить **lint + build + format:check** в этом каталоге.
+4. Если ошибки — исправить, **НЕ** через `--no-verify` или baseline.
+5. После merge — `cd deploy && bash do.sh build_<frontend>` для Docker multi-stage.
+
+**Enforcement**: `tools/check-frontend-build.sh` — guard-скрипт для pre-commit
+и CI (Pass 375). Проверяет, что **новые коммиты** в shell-файлах не содержат
+запрещённых паттернов (`npm run lint` без `cd webvue3`/`cd karaoke-public`).
+
+#### Scope rule (Pass 375)
+
+- `cd webvue3 && npm run <cmd>` — ✅ правильно.
+- `cd karaoke-public && npm run <cmd>` — ✅ правильно.
+- `(cd webvue3 && npm run lint)` — ✅ правильно (subshell).
+- `bash -c 'cd webvue3 && npm run lint'` — ✅ правильно.
+- `npm run lint` из корня — ❌ **запрещено**.
+- `npx eslint webvue3/src/...` из корня — ⚠️ допустимо (npx находит бинарь),
+  но **не рекомендуется** (нет baseline-проверки).
+
+Полная таблица ограничений: см. `AGENTS.md § Ограничения агента`.
 
 #### Scope rule (Pass 374)
 

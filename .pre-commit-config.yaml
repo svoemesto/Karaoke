@@ -27,6 +27,18 @@ repos:
         always_run: true
         stages: [pre-commit]
 
+      # === Guard: DOCKER_CONFIG (Pass 373, OP #83 follow-up) ===
+      # Ловит ситуацию, когда docker build выполняется без правильного
+      # DOCKER_CONFIG, и buildx падает с read-only в ~/.docker/buildx/activity.
+      # См. AGENTS.md § «Docker build: DOCKER_CONFIG=/home/nsa/Karaoke/.docker».
+      - id: docker-config-guard
+        name: docker-config guard (Pass 373)
+        entry: bash tools/check-docker-config.sh --quiet
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
+
       # === Kotlin: ktlint ===
       - id: ktlint
         name: ktlint (Kotlin formatter)

@@ -1,6 +1,14 @@
 # AGENTS.md — инструкции для агентов
 
-> **Версия**: 2.4.0 | **Last updated**: 2026-09-13 (Pass 372).
+> **Версия**: 2.5.0 | **Last updated**: 2026-09-13 (Pass 373).
+>
+> **Изменения 2.5.0** (см. PR #376 — governance-docker-config-transitive):
+> - Добавлена секция «Docker build: `DOCKER_CONFIG`» (Pass 373, OP #83 follow-up):
+>   правило `DOCKER_CONFIG=/home/nsa/Karaoke/.docker` для всех `docker build` /
+>   `bash deploy/do.sh build_*` (mirror-аналог Pass 372 для gradle).
+> - Прецедент: buildx пишет в `~/.docker/buildx/activity/` (read-only в DSH-sandbox)
+>   → read-only error. Решение — проектная `/home/nsa/Karaoke/.docker/` writable.
+> - Добавлен guard-скрипт `tools/check-docker-config.sh` для pre-commit и CI.
 >
 > **Изменения 2.4.0** (см. PR #374 — governance-gradle-user-home-transitive):
 > - Дополнена секция «Gradle: запуск с `GRADLE_USER_HOME`» правилом **транзитивности**:
@@ -342,6 +350,57 @@ bash deploy/do.sh build_app                       # ✅ gradle внутри ра
 **Enforcement**: `tools/check-gradle-user-home.sh` — guard-скрипт для pre-commit
 и CI (Pass 372). Проверяет, что `$GRADLE_USER_HOME` либо `=/home/nsa/Karaoke/.gradle`,
 либо не пуста и проектная `.gradle/` writable.
+
+### Docker build: `DOCKER_CONFIG=/home/nsa/Karaoke/.docker` (Pass 373)
+
+> **NON-NEGOTIABLE** (Pass 373, OP #83 follow-up): docker build в DSH-sandbox
+> **падает** с `failed to update builder last activity time: open
+> /home/nsa/.docker/buildx/activity/.tmp-default...: read-only file system`,
+> если используется системная `~/.docker` директория.
+
+**Решение**: docker-cli (включая `buildx` под капотом) при работе с buildx
+записывает временные файлы в `$DOCKER_CONFIG/buildx/activity/`. В DSH-sandbox
+`~/.docker` read-only, поэтому buildx падает. Но проектная
+`/home/nsa/Karaoke/.docker/` (внутри проекта) — **writable**.
+
+Прецедент (Pass 373, OP #83 follow-up): агент потратил несколько итераций,
+пробуя разные флаги (`DOCKER_BUILDKIT=0`, `--load`, `BUILDX_CACHE_DIR=/tmp/buildx-cache`),
+прежде чем нашёл правильный паттерн — `DOCKER_CONFIG=/home/nsa/Karaoke/.docker`.
+
+**Перед ЛЮБЫМ** `docker build` / `docker image build` / `bash deploy/do.sh build_*`
+проверь:
+
+```bash
+# Если НЕ задан — ОБЯЗАТЕЛЬНО установить.
+export DOCKER_CONFIG=/home/nsa/Karaoke/.docker
+```
+
+**НЕПРАВИЛЬНО** (Pass 373 failure):
+```bash
+docker image build -t foo -f Dockerfile .   # ❌ ~/.docker/buildx/activity read-only
+DOCKER_BUILDKIT=0 docker build ...           # ❌ legacy builder не поможет (mount=type=cache нужен BuildKit)
+BUILDX_CACHE_DIR=/tmp docker buildx build   # ❌ buildx всё равно пишет в ~/.docker/buildx/activity
+bash deploy/do.sh build_app                  # ❌ gradle OK (Pass 372 фикс), но docker внутри упадёт
+```
+
+**ПРАВИЛЬНО**:
+```bash
+export DOCKER_CONFIG=/home/nsa/Karaoke/.docker
+docker image build -t foo -f Dockerfile .                       # ✅ legacy builder
+docker buildx build --load -t foo -f Dockerfile .               # ✅ buildx с локальным config
+bash deploy/do.sh build_app                                     # ✅ gradle + docker оба работают
+```
+
+**Важно**:
+- `DOCKER_CONFIG` указывает docker-cli где искать конфиги и где хранить buildx state.
+- Legacy `docker image build` тоже использует `$DOCKER_CONFIG` (для `config.json`,
+  `token_seed`, `buildx/`).
+- В DSH-sandbox `~/.docker` read-only — **НИКОГДА** не работает.
+- В **продакшене** (DSH **нет**) — дефолт `~/.docker` writable, переменная не нужна.
+
+**Enforcement**: `tools/check-docker-config.sh` — guard-скрипт для pre-commit
+и CI (Pass 373). Проверяет, что `$DOCKER_CONFIG` либо `=/home/nsa/Karaoke/.docker`,
+либо проектная `.docker/` writable.
 
 ### Обязательная проверка после ЛЮБОГО изменения кода (NON-NEGOTIABLE)
 

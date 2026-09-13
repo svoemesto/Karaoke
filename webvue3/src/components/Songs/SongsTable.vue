@@ -78,30 +78,44 @@
           />
         </template>
         <template #cell(rootId)="data">
-          <div
-            v-b-tooltip.hover
-            class="fld-root-id"
-            :style="{
-              backgroundColor: data.item.color,
-              color: currentSongId === data.item.id ? 'blue' : 'black',
-            }"
-            :title="formatTooltipTitle(data.value)"
-            @mouseenter="setTooltipTitle(data.value, $event.target)"
-            v-text="data.value"
-          />
+          <b-tooltip
+            :title="rootTooltipTitle(data.value)"
+            placement="top"
+            :hover="true"
+            :focus="false"
+          >
+            <div
+              class="fld-root-id"
+              :class="{ 'fld-root-link': data.value > 0 }"
+              :style="{
+                backgroundColor: data.item.color,
+                color: currentSongId === data.item.id ? 'blue' : 'black',
+              }"
+              @mouseenter="loadRootInfo(data.value)"
+              @click.left="openRootSong(data.value)"
+              v-text="data.value ? data.value : '-'"
+            />
+          </b-tooltip>
         </template>
         <template #cell(audioParentId)="data">
-          <div
-            v-b-tooltip.hover
-            class="fld-audio-parent-id"
-            :style="{
-              backgroundColor: data.item.color,
-              color: currentSongId === data.item.id ? 'blue' : 'black',
-            }"
-            :title="formatTooltipTitle(data.value)"
-            @mouseenter="setTooltipTitle(data.value, $event.target)"
-            v-text="data.value ? data.value : '-'"
-          />
+          <b-tooltip
+            :title="rootTooltipTitle(data.value)"
+            placement="top"
+            :hover="true"
+            :focus="false"
+          >
+            <div
+              class="fld-audio-parent-id"
+              :class="{ 'fld-root-link': data.value > 0 }"
+              :style="{
+                backgroundColor: data.item.color,
+                color: currentSongId === data.item.id ? 'blue' : 'black',
+              }"
+              @mouseenter="loadRootInfo(data.value)"
+              @click.left="openRootSong(data.value)"
+              v-text="data.value ? data.value : '-'"
+            />
+          </b-tooltip>
         </template>
         <template #cell(songName)="data">
           <div
@@ -542,7 +556,14 @@
 </template>
 
 <script>
-import { BPagination, BSpinner, BTable, BFormRating, BFormInput } from 'bootstrap-vue-next'
+import {
+  BPagination,
+  BSpinner,
+  BTable,
+  BFormRating,
+  BFormInput,
+  BTooltip,
+} from 'bootstrap-vue-next'
 import SongEditModal from '../../components/Songs/edit/SongEditModal.vue'
 import SongsFilter from '../../components/Songs/filter/SongsFilterModal.vue'
 import SmartCopyModal from '../../components/Common/SmartCopy/SmartCopyModal.vue'
@@ -629,6 +650,7 @@ export default {
     BTable,
     BFormRating,
     BFormInput,
+    BTooltip,
   },
   data() {
     return {
@@ -1204,39 +1226,44 @@ export default {
       }
     },
     /**
-     * Формирует статичный fallback-заголовок тултипа по id.
-     * Используется до загрузки реальных данных.
+     * Реактивный заголовок тултипа для ячеек root/A-root.
+     * Читает кэш `songShortInfoCache`; до прихода ответа возвращает плейсхолдер.
      *
      * @param {number} id - id связанной песни
      * @returns {string}
      */
-    formatTooltipTitle(id) {
+    rootTooltipTitle(id) {
       if (!id || id <= 0) return 'Нет связанной песни'
-      return 'Загрузка...'
-    },
-    /**
-     * Формирует текст тултипа для ячеек root/A-root.
-     * Асинхронно загружает информацию о песне и обновляет title элемента.
-     *
-     * @param {number} id - id связанной песни
-     * @param {HTMLElement} el - DOM-элемент, на который повешен тултип
-     */
-    async setTooltipTitle(id, el) {
-      const info = await this.getSongShortInfo(id)
-      if (!el) return
-      let title
-      if (!info) {
-        title = id <= 0 ? 'Нет связанной песни' : 'Не найдено'
-      } else {
-        title = [info.author, info.year, info.album, info.songName]
+      // 'id in cache' — реактивно отслеживается Vue 3 Proxy-has;
+      // `cache[id] === null` означает, что запрос выполнился и песня не найдена.
+      if (id in this.songShortInfoCache) {
+        const info = this.songShortInfoCache[id]
+        if (!info) return 'Не найдено'
+        return [info.author, info.year, info.album, info.songName]
           .filter((part) => part !== null && part !== undefined && part !== '')
           .join(' — ')
       }
-      el.setAttribute('title', title)
-      // Принудительно обновляем тултип, если он уже инициализирован.
-      if (el.__tooltip) {
-        el.__tooltip.setContent({ '.tooltip-inner': title })
-      }
+      return 'Загрузка...'
+    },
+    /**
+     * Запускает асинхронную загрузку краткой информации о связанной песне для тултипа.
+     * Результаты кэшируются в `songShortInfoCache` — реактивный `rootTooltipTitle`
+     * подхватит их и обновит контент b-tooltip без пересоздания.
+     *
+     * @param {number} id - id связанной песни
+     */
+    loadRootInfo(id) {
+      if (!id || id <= 0) return
+      this.getSongShortInfo(id)
+    },
+    /**
+     * Открывает SongEdit для связанной песни (root или A-root) по клику на ячейку.
+     *
+     * @param {number} id - id связанной песни
+     */
+    openRootSong(id) {
+      if (!id || id <= 0) return
+      this.editSong(id)
     },
     openPlayer(id) {
       window.open('/player/' + id, '_blank')
@@ -1993,6 +2020,12 @@ export default {
   font-size: smaller;
   white-space: nowrap;
   overflow: hidden;
+}
+.fld-root-link {
+  cursor: pointer;
+}
+.fld-root-link:hover {
+  text-decoration: underline;
 }
 .fld-song-name {
   min-width: 250px;

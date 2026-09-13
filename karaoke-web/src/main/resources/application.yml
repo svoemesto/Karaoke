@@ -1,5 +1,14 @@
 server:
   port: 7799
+  tomcat:
+    threads:
+      # specs/087-fix-shared-db-connection: симметрично karaoke-app.
+      # С переходом KaraokeConnection на ThreadLocal-кеш соединений каждый поток
+      # Tomcat, обратившийся к WORKING_DATABASE, держит своё физическое соединение
+      # с БД. Дефолт Spring Boot (200) даёт запас потоков больше, чем max_connections
+      # у PostgreSQL (100, дефолт образа postgres:16) — консервативно снижаем,
+      # чтобы держать заведомый запас под лимитом БД. См. #83 + research/83-db-pool-root-cause.
+      max: 50
 
 spring:
   servlet:

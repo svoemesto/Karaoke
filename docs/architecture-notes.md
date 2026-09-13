@@ -314,3 +314,64 @@
 >   `archive/docs/features/stats.md` (обновлён), `knowledge/system/frontend/store-stats.md`
 >   (добавлен `lastLoadedAt` в Changelog), `knowledge/adr/local-0004-lazy-eager-load-webvue3-pagination.md`
 >   (StatsView как пример lazy load для графиков).
+
+> **Pass 370 + 371** (2026-09-13): Задача OpenProject **#82** —
+> «Root и A-Root в таблице песен» (admin SPA `webvue3`, компонент
+> `Songs/SongsTable.vue`). Три UX-дефекта:
+> 1. Двойной тултип при ховере на ячейки root / A-root: первый
+>    плейсхолдер («Загрузка…» / «Нет связанной песни») не исчезал,
+>    когда второй (с результатом поиска) появлялся. Root cause —
+>    директива `v-b-tooltip.hover` из `bootstrap-vue-next` 0.40.5
+>    читает атрибут `title` с DOM ровно один раз на `mounted` и
+>    хранит инстанс в `el.$__tooltip` (НЕ `el.__tooltip`, как
+>    старый код полагал — `setContent` был no-op); реактивный
+>    `:title` при ре-рендере ячейки восстанавливал DOM-атрибут →
+>    рядом с b-tooltip появлялся **нативный браузерный тултип** с
+>    другим стилем. Итого: два тултипа одновременно, первый «висит».
+> 2. Нулевые значения root-колонки не отображались прочерком
+>    (на A-root уже было).
+> 3. Не-нулевые значения root и A-root не были кликабельны —
+>    требовалось открывать `SongEdit` для родительской песни.
+>
+> Решение (`Pass 370`, PR #467 → `Pass 371`, PR #468): контент
+> тултипа передаётся через **объектный binding**
+> `v-b-tooltip.hover="{ title: rootTooltipTitle(data.value) }"`.
+> По `resolveContent` (директива bootstrap-vue-next) если
+> `binding.value` — объект с полем `title`, DOM-атрибут **не
+> читается и не удаляется** → нативный тултип не появляется →
+> единственный источник контента. Контент реактивен: при
+> обновлении `songShortInfoCache` (через `getSongShortInfo(id)`
+> на `mouseenter`) `rootTooltipTitle(id)` пересчитывается,
+> директива в `updated`-hook пересоздаёт BPopoverTemplate,
+> текст тултипа меняется «на лету». `v-text` на обеих ячейках
+> рендерит прочерк для `data.value <= 0`. `@click.left="openRootSong(id)"`
+> + класс `.fld-root-link` (`cursor: pointer`, hover-underline)
+> через `:class="{ 'fld-root-link': data.value > 0 }"`. Изменения
+> только в `webvue3/src/components/Songs/SongsTable.vue`.
+>
+> **Регрессия PR #467 + fail-fast владельца.** PR #467 первоначально
+> перевёл ячейки с директивы на компонент `<b-tooltip>`-обёртку —
+> это сломало рендеринг b-table cell slot (b-table ожидает
+> single DOM-element в cell slot, а `<b-tooltip>` рендерит
+> фрагмент с teleport / BPopoverTemplate wrapper). Владелец
+> поймал регрессию на скриншоте `localhost:7906/songs` ДО сборки
+> docker-образа — критический fail-fast (без этого регрессия
+> ушла бы на прод). PR #468 откатил компонент обратно к
+> директиве с объектным binding. Владелец — единственный источник
+> визуальной верификации до прода: регрессии в UI не ловит ни
+> ktlintCheck, ни JSDoc, ни Vite-build.
+>
+> **Архитектурный урок.** bootstrap-vue-next 0.40.x: `vBTooltip`
+> директива хранит инстанс в `el.$__tooltip` (НЕ `el.__tooltip`);
+> компонент `<b-tooltip>` не использовать как wrapper в b-table
+> cell slot. Lesson зафиксирован в report.md (#82, comment id=393).
+>
+> **CI.** Оба PR — 9/9 PASS (ktlint, ESLint+Prettier для
+> `webvue3` и `karaoke-public`, JSDoc ≥50%, KDoc ≥50%, Knowledge
+> SSoT impact, Knowledge SSoT structure, Docs structure + offline
+> links, Baseline stats informational). JSDoc strict webvue3 —
+> 99.4%. Все новые методы (`rootTooltipTitle`, `loadRootInfo`,
+> `openRootSong`) с JSDoc-комментариями. Изменения только в
+> одном файле (`webvue3/src/components/Songs/SongsTable.vue`),
+> никаких изменений backend'а, SQL, БД. См. `specs/082-songs-root-tooltip/`
+> (report.md), `docs/architecture-notes.md` (эта запись).

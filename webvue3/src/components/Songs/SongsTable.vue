@@ -78,44 +78,32 @@
           />
         </template>
         <template #cell(rootId)="data">
-          <b-tooltip
-            :title="rootTooltipTitle(data.value)"
-            placement="top"
-            :hover="true"
-            :focus="false"
-          >
-            <div
-              class="fld-root-id"
-              :class="{ 'fld-root-link': data.value > 0 }"
-              :style="{
-                backgroundColor: data.item.color,
-                color: currentSongId === data.item.id ? 'blue' : 'black',
-              }"
-              @mouseenter="loadRootInfo(data.value)"
-              @click.left="openRootSong(data.value)"
-              v-text="data.value ? data.value : '-'"
-            />
-          </b-tooltip>
+          <div
+            v-b-tooltip.hover="{ title: rootTooltipTitle(data.value) }"
+            class="fld-root-id"
+            :class="{ 'fld-root-link': data.value > 0 }"
+            :style="{
+              backgroundColor: data.item.color,
+              color: currentSongId === data.item.id ? 'blue' : 'black',
+            }"
+            @mouseenter="loadRootInfo(data.value)"
+            @click.left="openRootSong(data.value)"
+            v-text="data.value ? data.value : '-'"
+          />
         </template>
         <template #cell(audioParentId)="data">
-          <b-tooltip
-            :title="rootTooltipTitle(data.value)"
-            placement="top"
-            :hover="true"
-            :focus="false"
-          >
-            <div
-              class="fld-audio-parent-id"
-              :class="{ 'fld-root-link': data.value > 0 }"
-              :style="{
-                backgroundColor: data.item.color,
-                color: currentSongId === data.item.id ? 'blue' : 'black',
-              }"
-              @mouseenter="loadRootInfo(data.value)"
-              @click.left="openRootSong(data.value)"
-              v-text="data.value ? data.value : '-'"
-            />
-          </b-tooltip>
+          <div
+            v-b-tooltip.hover="{ title: rootTooltipTitle(data.value) }"
+            class="fld-audio-parent-id"
+            :class="{ 'fld-root-link': data.value > 0 }"
+            :style="{
+              backgroundColor: data.item.color,
+              color: currentSongId === data.item.id ? 'blue' : 'black',
+            }"
+            @mouseenter="loadRootInfo(data.value)"
+            @click.left="openRootSong(data.value)"
+            v-text="data.value ? data.value : '-'"
+          />
         </template>
         <template #cell(songName)="data">
           <div
@@ -556,14 +544,7 @@
 </template>
 
 <script>
-import {
-  BPagination,
-  BSpinner,
-  BTable,
-  BFormRating,
-  BFormInput,
-  BTooltip,
-} from 'bootstrap-vue-next'
+import { BPagination, BSpinner, BTable, BFormRating, BFormInput } from 'bootstrap-vue-next'
 import SongEditModal from '../../components/Songs/edit/SongEditModal.vue'
 import SongsFilter from '../../components/Songs/filter/SongsFilterModal.vue'
 import SmartCopyModal from '../../components/Common/SmartCopy/SmartCopyModal.vue'
@@ -650,7 +631,6 @@ export default {
     BTable,
     BFormRating,
     BFormInput,
-    BTooltip,
   },
   data() {
     return {

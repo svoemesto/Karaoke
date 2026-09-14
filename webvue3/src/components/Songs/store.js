@@ -2658,7 +2658,7 @@ export default {
      * @see research/92-backend-queue-size/REPORT.md
      */
     loadCacheQueueCount(ctx) {
-      return promisedXMLHttpRequest({ method: 'GET', url: '/api/health/cacheStats' })
+      return promisedXMLHttpRequest({ method: 'POST', url: '/api/health/cacheStats' })
         .then((data) => {
           const json = JSON.parse(data)
           if (json && json.cacheFiller && typeof json.cacheFiller.pendingTotal === 'number') {

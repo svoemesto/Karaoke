@@ -94,7 +94,6 @@ class StorageMetadataCache {
     data class CacheStatsDto(
         val local: StatsBucket,
         val remote: StatsBucket,
-        val cacheFiller: CacheFillerMetrics,
     )
 
     data class StatsBucket(
@@ -103,25 +102,6 @@ class StorageMetadataCache {
         val misses: Long,
         val hitRatio: Double,
         val evictions: Long,
-    )
-
-    /**
-     * Pass 95/98 — метрики [cacheFillerExecutor] для бейджа счётчика в UI
-     * (см. OP #92, Pass 96 — `webvue3/src/components/Common/CacheQueueBadge.vue`).
-     *
-     * `pendingTotal = activeCount + queueSize` — общее количество ещё-не-завершённых задач,
-     * UI-ready (без вычислений на frontend).
-     *
-     * Подробнее: `research/92-backend-queue-size/REPORT.md`.
-     */
-    data class CacheFillerMetrics(
-        val corePoolSize: Int,
-        val maximumPoolSize: Int,
-        val activeCount: Int,
-        val poolSize: Int,
-        val queueSize: Int,
-        val completedTaskCount: Long,
-        val pendingTotal: Int,
     )
 
     private val localHits =
@@ -319,28 +299,7 @@ class StorageMetadataCache {
                     hitRatio = hitRatio(remoteHits.sum(), remoteMisses.sum()),
                     evictions = remoteDeletes.sum(),
                 ),
-            cacheFiller = cacheFillerMetrics(),
         )
-
-    /**
-     * Pass 95/98 — метрики [cacheFillerExecutor]. Читает напрямую executor
-     * (он в companion object, всегда доступен). Используется в [stats]
-     * и для бейджа счётчика в UI (см. OP #92, Pass 96).
-     */
-    private fun cacheFillerMetrics(): CacheFillerMetrics {
-        val executor = cacheFillerExecutor
-        val queueSize = executor.queue.size
-        val activeCount = executor.activeCount
-        return CacheFillerMetrics(
-            corePoolSize = executor.corePoolSize,
-            maximumPoolSize = executor.maximumPoolSize,
-            activeCount = activeCount,
-            poolSize = executor.poolSize,
-            queueSize = queueSize,
-            completedTaskCount = executor.completedTaskCount,
-            pendingTotal = activeCount + queueSize,
-        )
-    }
 
     /**
      * Утилита: открыть локальное JDBC-соединение и выполнить блок. Закрывает

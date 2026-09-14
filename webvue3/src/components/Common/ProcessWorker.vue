@@ -20,9 +20,6 @@
         <img v-if="!isWork" alt="start" class="icon-40" src="../../assets/svg/icon_play.svg" />
         <img v-else alt="stop" class="icon-40" src="../../assets/svg/icon_stop.svg" />
       </button>
-      <!-- Pass 96 — бейдж счётчика cache queue (правый ВЕРХНИЙ угол).
-           В implementation-фазе подключить к Vuex store через /api/health/cacheStats (Pass 95). -->
-      <cache-queue-badge :count="cacheQueueCount" />
       <div class="text-count-waiting" v-text="countWaiting" />
     </div>
     <custom-confirm
@@ -35,7 +32,6 @@
 
 <script>
 import CustomConfirm from './CustomConfirm.vue'
-import CacheQueueBadge from './CacheQueueBadge.vue'
 
 /**
  * UI-компонент для отображения статуса KaraokeProcess-воркера.
@@ -49,15 +45,12 @@ import CacheQueueBadge from './CacheQueueBadge.vue'
  * Подписывается на SSE `PROCESS_WORKER_STATE` и `PROCESS_COUNT_WAITING`
  * для live-обновления.
  *
- * Pass 96 — добавлен бейдж счётчика cache queue (правый ВЕРХНИЙ угол кнопки).
- *
  * @see archive/docs/features/async-process-queue.md
  */
 export default {
   name: 'ProcessWorker',
   components: {
     CustomConfirm,
-    CacheQueueBadge,
   },
   props: {
     // Если hideButton = true то не показывать кнопку старт/стоп
@@ -83,9 +76,6 @@ export default {
     return {
       isConfirmVisible: false,
       confirmParams: undefined,
-      // Pass 96 — stub для прототипа бейджа. В implementation-фазе
-      // заменить на подключение к Vuex store (см. Pass 95 — /api/health/cacheStats).
-      cacheQueueCount: 5,
     }
   },
   computed: {

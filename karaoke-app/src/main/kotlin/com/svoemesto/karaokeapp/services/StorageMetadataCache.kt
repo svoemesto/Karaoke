@@ -327,7 +327,7 @@ class StorageMetadataCache {
      * (он в companion object, всегда доступен). Используется в [stats]
      * и для бейджа счётчика в UI (см. OP #92, Pass 96).
      */
-    fun cacheFillerMetrics(): CacheFillerMetrics {
+    private fun cacheFillerMetrics(): CacheFillerMetrics {
         val executor = cacheFillerExecutor
         val queueSize = executor.queue.size
         val activeCount = executor.activeCount

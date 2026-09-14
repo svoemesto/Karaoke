@@ -53,27 +53,5 @@ data class SseNotification(
             )
 
         fun monitorAlerts(alerts: List<MonitorAlertDto>): SseNotification = SseNotification(SseNotificationType.MONITOR_ALERTS, alerts)
-
-        /**
-         * Pass 92/98 — factory для cacheFiller метрик. Используется в
-         * [com.svoemesto.karaokeapp.services.StorageMetadataCache] для периодической
-         * рассылки счётчика задач в пуле проверки кеша (Pass 97 Q6 — SSE, не polling).
-         *
-         * @see CacheFillerMetricsMessage
-         * @see research/92-backend-queue-size/REPORT.md
-         */
-        fun cacheFillerMetrics(metrics: com.svoemesto.karaokeapp.services.StorageMetadataCache.CacheFillerMetrics): SseNotification =
-            SseNotification(
-                SseNotificationType.CACHE_FILLER_METRICS,
-                mapOf(
-                    "corePoolSize" to metrics.corePoolSize,
-                    "maximumPoolSize" to metrics.maximumPoolSize,
-                    "activeCount" to metrics.activeCount,
-                    "poolSize" to metrics.poolSize,
-                    "queueSize" to metrics.queueSize,
-                    "completedTaskCount" to metrics.completedTaskCount,
-                    "pendingTotal" to metrics.pendingTotal,
-                ),
-            )
     }
 }

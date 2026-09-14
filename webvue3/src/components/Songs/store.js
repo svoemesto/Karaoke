@@ -1666,17 +1666,12 @@ export default {
       state.songsTableCurrentPage = page
     },
     /**
-     * Pass 92/98 — SSE-обработчик для cacheFiller метрик (см. OP #92).
+     * Pass 95/98 — счётчик задач в пуле проверки кеша (см. OP #92).
      * Используется в `ProcessWorker.vue` для бейджа счётчика cache queue
      * (`CacheQueueBadge.vue`, Pass 96).
-     *
-     * @param data {pendingTotal, queueSize, activeCount, corePoolSize, ...}
-     * @see CacheFillerMetricsMessage на backend.
      */
-    setCacheQueueCount(state, data) {
-      if (data && typeof data.pendingTotal === 'number') {
-        state.cacheQueueCount = data.pendingTotal
-      }
+    setCacheQueueCount(state, count) {
+      state.cacheQueueCount = count
     },
     updateSongsDigestByIds(state, songsAndIndexesForUpdate) {
       // console.log('songsAndIndexesForUpdate', songsAndIndexesForUpdate)
@@ -2651,6 +2646,28 @@ export default {
     loadSongsDigestsPromise(ctx, params) {
       let request = { method: 'POST', url: '/api/songsdigests', params: params }
       return promisedXMLHttpRequest(request)
+    },
+    /**
+     * Pass 95/98 — polling счётчика задач в пуле проверки кеша.
+     * Используется в `ProcessWorker.vue` для бейджа счётчика cache queue
+     * (`CacheQueueBadge.vue`, Pass 96).
+     *
+     * Pass 97 — было решено использовать SSE, но polling проще для v1 и не
+     * требует новых SSE-каналов на backend. Polling interval = 5 сек.
+     *
+     * @see research/92-backend-queue-size/REPORT.md
+     */
+    loadCacheQueueCount(ctx) {
+      return promisedXMLHttpRequest({ method: 'GET', url: '/api/health/cacheStats' })
+        .then((data) => {
+          const json = JSON.parse(data)
+          if (json && json.cacheFiller && typeof json.cacheFiller.pendingTotal === 'number') {
+            ctx.commit('setCacheQueueCount', json.cacheFiller.pendingTotal)
+          }
+        })
+        .catch(() => {
+          // Тихо игнорируем — polling продолжит работать.
+        })
     },
     searchTextForAll(ctx, payload) {
       // payload: { engine, timeout } — оба опциональны (specs/015-search-engine-selection,

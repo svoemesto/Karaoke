@@ -49,28 +49,6 @@ data class ProcessCountWaitingMessage(
 )
 
 /**
- * Класс Cache Filler Metrics Message (Pass 92/98).
- *
- * Метрики [com.svoemesto.karaokeapp.services.StorageMetadataCache.CacheFillerMetrics],
- * отправляемые через SSE (`SseNotificationType.CACHE_FILLER_METRICS`).
- *
- * Используется в webvue3 `CacheQueueBadge.vue` для отображения бейджа счётчика
- * количества задач в пуле проверки кеша обращения к хранилищу.
- *
- * @see research/92-backend-queue-size/REPORT.md
- * @see specs/_wayfinder-92-hrqueue-priority/97-grilling-resolution.md
- */
-data class CacheFillerMetricsMessage(
-    val corePoolSize: Int,
-    val maximumPoolSize: Int,
-    val activeCount: Int,
-    val poolSize: Int,
-    val queueSize: Int,
-    val completedTaskCount: Long,
-    val pendingTotal: Int,
-)
-
-/**
  * Класс Record Delete Message.
  *
  * @see archive/docs/features/dual-db-sync.md

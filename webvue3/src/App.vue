@@ -363,12 +363,6 @@ export default {
           this.setCountWaiting(userEvent.data)
           break
         }
-        case 'CACHE_FILLER_METRICS': {
-          // Pass 92/98 — SSE-событие для счётчика cache queue.
-          // Подписка вместо polling (Pass 97 Q6).
-          this.setCacheQueueCount(userEvent.data)
-          break
-        }
         case 'MESSAGE': {
           this.showMessageByUserEvent(userEvent.data, create)
           break
@@ -442,14 +436,6 @@ export default {
     },
     setCountWaiting(userEventData) {
       this.$store.dispatch('setCountWaiting', userEventData)
-    },
-    /**
-     * Pass 92/98 — обработчик SSE-события CACHE_FILLER_METRICS.
-     * Принимает `{pendingTotal, queueSize, activeCount, ...}` из backend.
-     * @see Pass 95 — CacheFillerMetricsMessage
-     */
-    setCacheQueueCount(userEventData) {
-      this.$store.dispatch('setCacheQueueCount', userEventData)
     },
     deleteSongByUserEvent(userEventData) {
       this.$store.dispatch('deleteSongByUserEvent', userEventData)

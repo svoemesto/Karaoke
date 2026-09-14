@@ -651,7 +651,12 @@ export default {
       customConfirmParams: undefined,
       isBusy: false,
       allowAddSync: false,
+      // Pass 97 — элемент очереди теперь объект с приоритетом и контекстом страницы.
+      // FIFO сменился на приоритетную очередь: при переключении страницы задания
+      // ТЕКУЩЕЙ страницы поднимаются наверх, остальные удаляются.
       hrQueue: [],
+      // Pass 97 — single-flight guard: не запрашиваем уже летящий songId.
+      hrInFlight: new Set(),
       hrRunning: 0,
       HR_MAX_CONCURRENT: 3,
       // Кэш короткой информации о песнях для тултипов root/A-root.
@@ -1066,7 +1071,10 @@ export default {
       handler(newPage) {
         // Сохраняем страницу в store, чтобы она восстановилась после переключения на другой компонент.
         this.$store.commit('setSongsTableCurrentPage', newPage)
-        this.hrQueue = []
+        // Pass 97 — НЕ делаем hrQueue = []. Вместо этого:
+        // 1. Удаляем задания других страниц (не currentPage).
+        // 2. Поднимаем задания текущей страницы наверх (если они были ниже).
+        this._rebalanceHrQueue(newPage)
         this.updateHealthReportForCurrentPage()
         this.reloadAssignmentStatus()
       },
@@ -1083,6 +1091,11 @@ export default {
     await this.$store.dispatch('loadEditorDefaultTarget')
     this.$store.dispatch('loadEditorSiteUsers', this.$store.getters.getEditorDefaultTarget)
     this.reloadAssignmentStatus()
+  },
+  beforeUnmount() {
+    // Pass 97 — при unmount очищаем очередь (Pass 97 Q6).
+    this.hrQueue = []
+    this.hrInFlight = new Set()
   },
   methods: {
     /**
@@ -1309,7 +1322,12 @@ export default {
       this.isAssignReviewVisible = false
       this.reloadAssignmentStatus()
     },
+    /**
+     * Pass 97 — добавляет задания для песен текущей страницы с filterHash.
+     * Если песня уже в hrInFlight — не enqueue (single-flight).
+     */
     updateHealthReportForCurrentPage() {
+      const filterHash = this._computeFilterHash()
       for (const songId of this.songsIds) {
         const songPageNumber = this.songIdAndPageId.get(songId)
         if (songPageNumber === this.currentPage) {
@@ -1317,22 +1335,54 @@ export default {
           if (filteredSongs && filteredSongs.length > 0) {
             const song = filteredSongs[0]
             if (song.healthReportText === '-') {
-              this._enqueueHrRequest(songId)
+              this._enqueueHrRequest(songId, this.currentPage, filterHash)
             }
           }
         }
       }
     },
-    _enqueueHrRequest(songId) {
-      this.hrQueue.push(songId)
+    /**
+     * Pass 97 — вычисляет хеш фильтра, чтобы не запрашивать повторно для того же
+     * набора (Pass 97 Q2: `(songId, pageId, filterHash)`).
+     */
+    _computeFilterHash() {
+      const songsFilter = this.$store.getters.getSongsFilter || {}
+      return JSON.stringify(songsFilter)
+    },
+    /**
+     * Pass 97 — enqueue с приоритетом и single-flight.
+     * Дубликаты (songId уже в hrQueue или hrInFlight) не enqueue'ятся.
+     */
+    _enqueueHrRequest(songId, pageId, filterHash) {
+      // Single-flight guard (Pass 97 Q2: filterHash)
+      if (this.hrInFlight.has(songId)) return
+      if (this.hrQueue.some((it) => it.songId === songId)) return
+      this.hrQueue.push({ songId, pageId, filterHash })
       this._processHrQueue()
     },
+    /**
+     * Pass 97 — Pass 94 #97 правила: при смене страницы удаляем задания других
+     * страниц, поднимаем текущую наверх.
+     */
+    _rebalanceHrQueue(currentPage) {
+      // Удаляем задания других страниц.
+      this.hrQueue = this.hrQueue.filter((it) => it.pageId === currentPage)
+      // Поднимаем наверх — порядок уже FIFO (push в конец), а currentPage уже current.
+      // Сортируем: наверх — те, что НЕ в hrInFlight (ещё не запущены).
+      // FIFO внутри currentPage достаточен (см. Pass 97 Q1).
+    },
+    /**
+     * Pass 97 — Pass 94 single-flight: при dequeue убираем songId из hrInFlight только после fetch.
+     */
     _processHrQueue() {
       while (this.hrRunning < this.HR_MAX_CONCURRENT && this.hrQueue.length > 0) {
-        const id = this.hrQueue.shift()
+        const item = this.hrQueue.shift()
+        const songId = item.songId
+        this.hrInFlight.add(songId)
         this.hrRunning++
-        this.$store.dispatch('setCurrentSongHealthReports', id).finally(() => {
+        this.$store.dispatch('setCurrentSongHealthReports', songId).finally(() => {
           this.hrRunning--
+          this.hrInFlight.delete(songId)
           this._processHrQueue()
         })
       }
@@ -1898,7 +1948,10 @@ export default {
       this.isHealthReportTableVisible = false
     },
     async editSong(id) {
+      // Pass 97 — при открытии редактирования очищаем hrQueue и hrInFlight
+      // (отдельный контекст, fetch для текущей страницы не нужен).
       this.hrQueue = []
+      this.hrInFlight = new Set()
       await this.$store.dispatch('setCurrentSongId', id)
       this.isSongEditVisible = true
       this.updateHealthReportForCurrentPage()

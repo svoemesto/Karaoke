@@ -237,6 +237,10 @@ export default {
     totalDuration: '',
 
     searchResultsListIsLoading: false,
+
+    // Pass 95/98 — счётчик задач в пуле проверки кеша (OP #92).
+    // Используется в `ProcessWorker.vue` для бейджа счётчика cache queue.
+    cacheQueueCount: 0,
   },
   watch: {
     currentSongId: {
@@ -934,6 +938,12 @@ export default {
     },
     getSongsTableCurrentPage(state) {
       return state.songsTableCurrentPage
+    },
+    /**
+     * Pass 95/98 — getter счётчика задач в пуле проверки кеша.
+     */
+    getCacheQueueCount(state) {
+      return state.cacheQueueCount
     },
     songAuthorsPromise() {
       let request = { method: 'POST', url: '/api/songs/authors' }
@@ -1654,6 +1664,14 @@ export default {
     },
     setSongsTableCurrentPage(state, page) {
       state.songsTableCurrentPage = page
+    },
+    /**
+     * Pass 95/98 — счётчик задач в пуле проверки кеша (см. OP #92).
+     * Используется в `ProcessWorker.vue` для бейджа счётчика cache queue
+     * (`CacheQueueBadge.vue`, Pass 96).
+     */
+    setCacheQueueCount(state, count) {
+      state.cacheQueueCount = count
     },
     updateSongsDigestByIds(state, songsAndIndexesForUpdate) {
       // console.log('songsAndIndexesForUpdate', songsAndIndexesForUpdate)
@@ -2628,6 +2646,28 @@ export default {
     loadSongsDigestsPromise(ctx, params) {
       let request = { method: 'POST', url: '/api/songsdigests', params: params }
       return promisedXMLHttpRequest(request)
+    },
+    /**
+     * Pass 95/98 — polling счётчика задач в пуле проверки кеша.
+     * Используется в `ProcessWorker.vue` для бейджа счётчика cache queue
+     * (`CacheQueueBadge.vue`, Pass 96).
+     *
+     * Pass 97 — было решено использовать SSE, но polling проще для v1 и не
+     * требует новых SSE-каналов на backend. Polling interval = 5 сек.
+     *
+     * @see research/92-backend-queue-size/REPORT.md
+     */
+    loadCacheQueueCount(ctx) {
+      return promisedXMLHttpRequest({ method: 'POST', url: '/api/health/cacheStats' })
+        .then((data) => {
+          const json = JSON.parse(data)
+          if (json && json.cacheFiller && typeof json.cacheFiller.pendingTotal === 'number') {
+            ctx.commit('setCacheQueueCount', json.cacheFiller.pendingTotal)
+          }
+        })
+        .catch(() => {
+          // Тихо игнорируем — polling продолжит работать.
+        })
     },
     searchTextForAll(ctx, payload) {
       // payload: { engine, timeout } — оба опциональны (specs/015-search-engine-selection,

@@ -1681,32 +1681,42 @@ export default {
           let color = '#99FF99'
 
           if (healthReportDtoList && healthReportDtoList.length > 0) {
-            const reportsWarning = healthReportDtoList.filter(
-              (healthReport) => healthReport.healthReportStatusName === 'WARNING',
-            )
-            if (reportsWarning && reportsWarning.length > 0) {
-              color = reportsWarning[0].color
-            }
-
-            const reportsInProgress = healthReportDtoList.filter(
-              (healthReport) => healthReport.healthReportStatusName === 'IN_PROGRESS',
-            )
-            if (reportsInProgress && reportsInProgress.length > 0) {
-              color = reportsInProgress[0].color
-            }
-
-            const reportsErrors = healthReportDtoList.filter(
-              (healthReport) => healthReport.healthReportStatusName === 'ERROR',
-            )
-            if (reportsErrors && reportsErrors.length > 0) {
-              color = reportsErrors[0].color
-            }
-
+            // Выбираем цвет по наихудшему статусу (FATAL_ERROR > ERROR > WARNING > IN_PROGRESS > WAITING).
+            // Порядок важен: ищем наиболее серьёзный статус, чтобы цвет строки в таблице
+            // совпадал с цветом строки в модалке HealthReportTable.vue.
             const reportsFatalErrors = healthReportDtoList.filter(
               (healthReport) => healthReport.healthReportStatusName === 'FATAL_ERROR',
             )
             if (reportsFatalErrors && reportsFatalErrors.length > 0) {
               color = reportsFatalErrors[0].color
+            } else {
+              const reportsErrors = healthReportDtoList.filter(
+                (healthReport) => healthReport.healthReportStatusName === 'ERROR',
+              )
+              if (reportsErrors && reportsErrors.length > 0) {
+                color = reportsErrors[0].color
+              } else {
+                const reportsWarning = healthReportDtoList.filter(
+                  (healthReport) => healthReport.healthReportStatusName === 'WARNING',
+                )
+                if (reportsWarning && reportsWarning.length > 0) {
+                  color = reportsWarning[0].color
+                } else {
+                  const reportsInProgress = healthReportDtoList.filter(
+                    (healthReport) => healthReport.healthReportStatusName === 'IN_PROGRESS',
+                  )
+                  if (reportsInProgress && reportsInProgress.length > 0) {
+                    color = reportsInProgress[0].color
+                  } else {
+                    const reportsWaiting = healthReportDtoList.filter(
+                      (healthReport) => healthReport.healthReportStatusName === 'WAITING',
+                    )
+                    if (reportsWaiting && reportsWaiting.length > 0) {
+                      color = reportsWaiting[0].color
+                    }
+                  }
+                }
+              }
             }
           }
 

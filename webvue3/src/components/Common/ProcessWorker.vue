@@ -50,8 +50,11 @@ import CacheQueueBadge from './CacheQueueBadge.vue'
  * для live-обновления.
  *
  * Pass 96 — добавлен бейдж счётчика cache queue (правый ВЕРХНИЙ угол кнопки).
+ * Pass 98 — счётчик обновляется через SSE-событие `CACHE_FILLER_METRICS`
+ * (см. `CacheFillerMetricsScheduler` на backend), не polling.
  *
  * @see archive/docs/features/async-process-queue.md
+ * @see research/92-backend-queue-size/REPORT.md
  */
 export default {
   name: 'ProcessWorker',
@@ -83,12 +86,10 @@ export default {
     return {
       isConfirmVisible: false,
       confirmParams: undefined,
-      // Pass 95/98 — счётчик берётся из Vuex store через polling
-      // /api/health/cacheStats каждые 5 сек (см. mounted()).
+      // Pass 92/98 — счётчик берётся из Vuex store через SSE-событие
+      // CACHE_FILLER_METRICS (см. App.vue → setCacheQueueCount).
+      // Pass 97 Q6: SSE вместо polling.
       cacheQueueCount: this.$store.getters.getCacheQueueCount || 0,
-      // Интервал polling в ms. Pass 95: 5-10 сек достаточно.
-      cacheQueuePollInterval: 5000,
-      cacheQueuePollTimer: null,
     }
   },
   computed: {
@@ -153,11 +154,8 @@ export default {
   mounted() {
     this.checkUpdateProcessesWorker()
     this.checkCountWaiting()
-    // Pass 95/98 — polling счётчика cache queue каждые 5 сек.
-    this.startCacheQueuePolling()
-  },
-  beforeUnmount() {
-    this.stopCacheQueuePolling()
+    // Pass 92/98 — счётчик cache queue приходит через SSE (Pass 97 Q6),
+    // а не через polling. См. watcher на cacheQueueCountFromStore.
   },
   methods: {
     clickStartStopWorkerButton() {
@@ -211,22 +209,9 @@ export default {
 
       return front + '...' + back
     },
-    // Pass 95/98 — polling счётчика cache queue (Pass 97 выбрал polling, не SSE).
-    startCacheQueuePolling() {
-      this.checkCacheQueueCount()
-      this.cacheQueuePollTimer = setInterval(() => {
-        this.checkCacheQueueCount()
-      }, this.cacheQueuePollInterval)
-    },
-    stopCacheQueuePolling() {
-      if (this.cacheQueuePollTimer) {
-        clearInterval(this.cacheQueuePollTimer)
-        this.cacheQueuePollTimer = null
-      }
-    },
-    checkCacheQueueCount() {
-      this.$store.dispatch('loadCacheQueueCount')
-    },
+    // Pass 92/98 — polling удалён (Pass 97 Q6: SSE вместо polling).
+    // Счётчик cache queue обновляется через watcher на cacheQueueCountFromStore,
+    // который срабатывает на SSE-событие CACHE_FILLER_METRICS из backend.
   },
 }
 </script>

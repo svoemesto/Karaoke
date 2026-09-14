@@ -22,6 +22,11 @@ enum class SseNotificationType(
     HEALTH_REPORTS("healthReports"),
     MONITOR_ALERTS("monitorAlerts"),
 
+    // Pass 92/98 — счётчик задач в пуле проверки кеша обращения к хранилищу.
+    // Broadcast (не addressed) — доставляется всем подписчикам SSE.
+    // Используется в webvue3 `CacheQueueBadge.vue` для отображения бейджа счётчика.
+    CACHE_FILLER_METRICS("cacheFillerMetrics"),
+
     // specs/316-search-timeout-configurable (FR-010, rev 3): сводка массового поиска текста
     // (minIntervalMs между успешными запросами). Broadcast (не addressed) — доставляется всем вкладкам.
     MASS_SEARCH_SUMMARY("massSearchSummary"),

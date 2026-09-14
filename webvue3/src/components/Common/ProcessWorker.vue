@@ -83,9 +83,12 @@ export default {
     return {
       isConfirmVisible: false,
       confirmParams: undefined,
-      // Pass 96 — stub для прототипа бейджа. В implementation-фазе
-      // заменить на подключение к Vuex store (см. Pass 95 — /api/health/cacheStats).
-      cacheQueueCount: 5,
+      // Pass 95/98 — счётчик берётся из Vuex store через polling
+      // /api/health/cacheStats каждые 5 сек (см. mounted()).
+      cacheQueueCount: this.$store.getters.getCacheQueueCount || 0,
+      // Интервал polling в ms. Pass 95: 5-10 сек достаточно.
+      cacheQueuePollInterval: 5000,
+      cacheQueuePollTimer: null,
     }
   },
   computed: {
@@ -137,9 +140,24 @@ export default {
       }
     },
   },
+  computed: {
+    cacheQueueCountFromStore() {
+      return this.$store.getters.getCacheQueueCount
+    },
+  },
+  watch: {
+    cacheQueueCountFromStore(newCount) {
+      this.cacheQueueCount = newCount
+    },
+  },
   mounted() {
     this.checkUpdateProcessesWorker()
     this.checkCountWaiting()
+    // Pass 95/98 — polling счётчика cache queue каждые 5 сек.
+    this.startCacheQueuePolling()
+  },
+  beforeUnmount() {
+    this.stopCacheQueuePolling()
   },
   methods: {
     clickStartStopWorkerButton() {
@@ -192,6 +210,22 @@ export default {
       const back = name.substring(name.length - backChars)
 
       return front + '...' + back
+    },
+    // Pass 95/98 — polling счётчика cache queue (Pass 97 выбрал polling, не SSE).
+    startCacheQueuePolling() {
+      this.checkCacheQueueCount()
+      this.cacheQueuePollTimer = setInterval(() => {
+        this.checkCacheQueueCount()
+      }, this.cacheQueuePollInterval)
+    },
+    stopCacheQueuePolling() {
+      if (this.cacheQueuePollTimer) {
+        clearInterval(this.cacheQueuePollTimer)
+        this.cacheQueuePollTimer = null
+      }
+    },
+    checkCacheQueueCount() {
+      this.$store.dispatch('loadCacheQueueCount')
     },
   },
 }

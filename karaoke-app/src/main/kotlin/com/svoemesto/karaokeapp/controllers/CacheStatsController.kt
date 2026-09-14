@@ -8,15 +8,19 @@ import org.springframework.web.bind.annotation.RestController
 
 /**
  * REST-эндпоинт для метрик persistent metadata cache (спека #348, Pass 345) +
- * circuit breaker (Pass 351, #71).
+ * circuit breaker (Pass 351, #71) + cacheFiller metrics (Pass 95/98, OP #92).
  *
  * `GET /api/health/cacheStats` → JSON с hit/miss/evictions/entries/networkFailures
- * для local и remote + `circuitBreaker` block. `entries` — COUNT(*) по таблице
- * `tbl_storage_metadata_cache`. Переживает рестарт.
+ * для local и remote + `circuitBreaker` block + `cacheFiller` block. `entries` —
+ * COUNT(*) по таблице `tbl_storage_metadata_cache`. Переживает рестарт.
+ *
+ * Pass 95/98: `cacheFiller.pendingTotal` используется в webvue3 для бейджа
+ * счётчика cache queue (см. `CacheQueueBadge.vue`, Pass 96).
  *
  * @see specs/348-storage-cache-eternal/spec.md
  * @see specs/352-storage-graceful-degradation/spec.md (FR-005, FR-008)
  * @see docs/features/storage-metadata-cache.md (V2 → V2.1)
+ * @see research/92-backend-queue-size/REPORT.md
  */
 @RestController
 @RequestMapping("/api/health")
@@ -27,12 +31,13 @@ class CacheStatsController(
     /**
      * Wraps [StorageMetadataCache.CacheStatsDto] with circuit breaker info.
      * Backwards compatible: existing fields (entries, hits, ...) preserved;
-     * new fields (networkFailures, circuitBreaker) are additive.
+     * new fields (networkFailures, circuitBreaker, cacheFiller) are additive.
      */
     data class CacheStatsResponse(
         val local: StorageMetadataCache.StatsBucket,
         val remote: StorageMetadataCache.StatsBucket,
         val circuitBreaker: StorageCircuitBreaker.Metrics,
+        val cacheFiller: StorageMetadataCache.CacheFillerMetrics,
     )
 
     @GetMapping("/cacheStats")
@@ -43,6 +48,7 @@ class CacheStatsController(
             local = base.local,
             remote = base.remote,
             circuitBreaker = cb,
+            cacheFiller = base.cacheFiller,
         )
     }
 

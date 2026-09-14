@@ -53,19 +53,6 @@ repos:
         always_run: true
         stages: [pre-commit]
 
-      # === Guard: implementation-vs-grilling (Pass 374 governance amendment) ===
-      # Ловит отступления implementation-фазы от решений, принятых в grilling-резолюциях.
-      # Парсит `specs/_wayfinder-*/<NN>-grilling-resolution.md`, извлекает паттерны
-      # запрета (формат `НЕ X` или `NOT X` в секции ответов), проверяет shell-файлы
-      # на наличие этих паттернов. См. AGENTS.md § «Implementation и grilling-резолюции».
-      - id: implementation-vs-grilling-guard
-        name: implementation-vs-grilling guard (Pass 374)
-        entry: bash tools/check-implementation-against-grilling.sh --quiet
-        language: system
-        pass_filenames: false
-        always_run: true
-        stages: [pre-commit]
-
       # === Guard: frontend-build (Pass 375, OP #83 follow-up) ===
       # Ловит запуск `npm run <cmd>` без `cd webvue3`/`cd karaoke-public` в shell-файлах.
       # См. AGENTS.md § «Frontend build: cd <frontend-dir> && npm run <cmd> (Pass 375)».

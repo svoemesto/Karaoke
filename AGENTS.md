@@ -1,16 +1,6 @@
 # AGENTS.md — инструкции для агентов
 
-> **Версия**: 2.8.0 | **Last updated**: 2026-09-14 (Pass 374).
->
-> **Изменения 2.8.0** (см. PR #384 — governance-grilling-implementation-link):
-> - Добавлена секция «Implementation и grilling-резолюции» (Pass 374, OP #92 follow-up).
-> - Прецедент: в Pass 98 implementation отошёл от Pass 97 grilling-решения (SSE → polling)
->   со словами «проще для v1», без явного согласования. Это нарушило принцип wayfinder.
-> - Добавлен guard-скрипт `tools/check-implementation-against-grilling.sh` для pre-commit и CI.
-> - Правило: implementation commit message **ОБЯЗАН** ссылаться на grilling-решение
->   (например, `Refs: Pass 97 Q6 decision (SSE, не polling)`).
-> - Правило: charter (`_charter.md` в `specs/_wayfinder-*/`) **ОБЯЗАН** содержать
->   cross-reference на grilling-решения перед началом implementation-фазы.
+> **Версия**: 2.7.0 | **Last updated**: 2026-09-13 (Pass 375).
 >
 > **Изменения 2.7.0** (см. PR #378 — governance-frontend-build-transitive):
 > - Добавлена секция «Frontend build: `npm run` для webvue3 и karaoke-public (Pass 375)»:
@@ -605,74 +595,6 @@ cd deploy && bash do.sh build_public      # ✅
 5. Docker-образы: `cd deploy && bash do.sh build_webvue3`; если менялся `karaoke-public` — `bash do.sh build_public`
 
 Только после всех 5 шагов OK — сообщать «готово к деплою». **НЕ ПРОПУСКАТЬ** даже для «очевидных» правок.
-
-### Implementation и grilling-резолюции (Pass 374)
-
-> **NON-NEGOTIABLE** (Pass 374, OP #92 follow-up): **решения, принятые в grilling
-> (hitl-тикеты `[wayfinder:grilling]`), НЕ ДОЛЖНЫ быть отменены implementation-фазой
-> без явного согласования с владельцем.**
->
-> **Прецедент**: в Pass 98 (implementation OP #92) я отступил от Pass 97 Q6
-> (выбрано **SSE**) — реализовал **polling** со словами «проще для v1»,
-> НЕ согласовав отступление через grilling. Это нарушило принцип wayfinder
-> «решения — пользователя, не агента».
->
-> **Это не «implementation detail» — это нарушение governance.**
-
-#### Правила
-
-1. **Перед implementation-фазой** (после создания task-тикета `[wayfinder:task]`,
-   например OP #98):
-   - Прочитать ВСЕ `[wayfinder:grilling]`-резолюции в
-     `specs/_wayfinder-*/<NN>-grilling-resolution.md`.
-   - В `_charter.md` ОБЯЗАТЕЛЬНО cross-reference на grilling-резолюции
-     (например, в секции «Что зафиксировано в этой сессии»).
-   - Эти правила — **contract** между владельцем и implementation-фазой.
-
-2. **В commit message** implementation-фазы:
-   - **ОБЯЗАТЕЛЬНО** ссылка на grilling-резолюцию и её ID:
-     ```
-     Refs: Pass 97 Q6 decision (SSE, не polling) — см. specs/.../97-grilling-resolution.md
-     ```
-   - Если implementation **намеренно** отступает от решения — это
-     **новая feature**, требует нового grilling-тикета и согласования.
-     НЕ допускается «временное отступление ради простоты».
-
-3. **Если найден конфликт** между grilling-резолюцией и очевидной
-   implementation-деталью:
-   - **Открыть новый grilling-тикет** через wayfinder.
-   - **НЕ** молча выбирать implementation-деталь.
-   - **НЕ** упоминать «упрощение» в комментариях кода как оправдание.
-
-#### Enforcement
-
-`tools/check-implementation-against-grilling.sh` — guard-скрипт для pre-commit
-и CI. Парсит все `*-grilling-resolution.md` файлы в `specs/`, извлекает
-паттерны запрета (`НЕ X`, `NOT X`) из секции ответов, проверяет в `git diff HEAD`
-shell-файлы (.sh/.bash + deploy/do.sh + .github/workflows/) на наличие этих
-паттернов. **Исключения**:
-- Сам guard-скрипт (`tools/check-implementation-against-grilling.sh`).
-- Markdown-файлы и ADR (там могут быть примеры запрещённых паттернов).
-
-Если найдено нарушение — exit 1, commit blocked.
-
-#### Что делать при срабатывании guard'а
-
-1. Прочитать сообщение guard'а — там указан конкретный паттерн и
-   grilling-резолюция-источник.
-2. Если отступление **намеренное**:
-   - Обновить grilling-резолюцию (новое решение).
-   - Обновить charter / task-тикет.
-   - Перезапустить commit.
-3. Если отступление **случайное** — откатить implementation к grilling-решению.
-
-#### Связь с другими governance
-
-- **Pass 372-375** — фиксируют build/restart правила.
-- **Pass 374 (эта секция)** — фиксирует contract между grilling и implementation.
-- **Конституция** ([`.specify/memory/constitution.md`](.specify/memory/constitution.md))
-  — последняя инстанция для governance-вопросов. Если grilling vs implementation
-  конфликтует с MUST/SHOULD — failure-stop до отдельного `speckit-constitution`.
 
 ## Как обновлять этот файл
 

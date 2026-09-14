@@ -29,6 +29,8 @@
  * Бейдж счётчика количества задач в пуле проверки кеша.
  *
  * В Pass 96 (прототип) данные берутся из локального prop (stub).
+ * Pass 98 — данные приходят через SSE-событие `CACHE_FILLER_METRICS`
+ * (см. `CacheFillerMetricsScheduler` на backend), не polling.
  * В implementation-фазе (Pass 95 + этот бейдж) подключить к Vuex store
  * через расширенный `/api/health/cacheStats` response (поле `cacheFiller.pendingTotal`).
  *

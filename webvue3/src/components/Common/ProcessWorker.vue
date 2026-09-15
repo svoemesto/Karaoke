@@ -192,14 +192,14 @@ export default {
     },
     // specs/118 #123: initial poll для lane-специфичного счётчика.
     checkCountWaitingByThreadId(threadId) {
-      this.$store.dispatch('getProcessesCountWaitingByThreadIdPromise', { threadId }).then(
-        (data) => {
+      this.$store
+        .dispatch('getProcessesCountWaitingByThreadIdPromise', { threadId })
+        .then((data) => {
           this.$store.dispatch('setCountWaitingByThreadId', {
             threadId,
             countWaiting: typeof data === 'number' ? data : Number(data),
           })
-        },
-      )
+        })
     },
     truncateString(name, maxSymbols) {
       if (name.length <= maxSymbols) {

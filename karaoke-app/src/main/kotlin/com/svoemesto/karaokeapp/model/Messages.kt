@@ -49,20 +49,6 @@ data class ProcessCountWaitingMessage(
 )
 
 /**
- * Класс Process Lane Count Waiting Message.
- *
- * specs/118 #123: WAITING-счётчик для конкретного lane (thread_id).
- * Используется для бейджа «размер пула HealthReport» (threadId=1) в правом
- * верхнем углу кнопки Старт/Стоп.
- *
- * @see archive/docs/features/async-process-queue.md
- */
-data class ProcessLaneCountWaitingMessage(
-    val threadId: Int,
-    val countWaiting: Long,
-)
-
-/**
  * Класс Record Delete Message.
  *
  * @see archive/docs/features/dual-db-sync.md

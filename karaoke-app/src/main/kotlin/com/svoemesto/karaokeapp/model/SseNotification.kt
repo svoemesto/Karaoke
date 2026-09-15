@@ -28,10 +28,6 @@ data class SseNotification(
         fun processCountWaiting(processCountWaitingMessage: ProcessCountWaitingMessage): SseNotification =
             SseNotification(SseNotificationType.PROCESS_COUNT_WAITING, processCountWaitingMessage)
 
-        // specs/118 #123: factory для per-lane WAITING-счётчика.
-        fun processLaneCountWaiting(processLaneCountWaitingMessage: ProcessLaneCountWaitingMessage): SseNotification =
-            SseNotification(SseNotificationType.PROCESS_LANE_COUNT_WAITING, processLaneCountWaitingMessage)
-
         fun message(message: Message): SseNotification = SseNotification(SseNotificationType.MESSAGE, message)
 
         fun error(error: Message): SseNotification = SseNotification(SseNotificationType.ERROR, error)

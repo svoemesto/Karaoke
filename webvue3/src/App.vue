@@ -103,7 +103,7 @@
             <BackendConsole />
             <ProcessWorker :hide-button="true" :excluded-thread-id="[0]" />
             <div class="start-stop-and-limit-group">
-              <ProcessWorker :hide-button="false" :included-thread-id="[0]" :pool-thread-id="1" />
+              <ProcessWorker :hide-button="false" :included-thread-id="[0]" />
               <ResourceLimitToggle />
               <MonitorLight />
               <ChatNotifyButton />
@@ -363,11 +363,6 @@ export default {
           this.setCountWaiting(userEvent.data)
           break
         }
-        // specs/118 #123: live-update WAITING-счётчика по lane (для бейджа пула).
-        case 'PROCESS_LANE_COUNT_WAITING': {
-          this.setCountWaitingByThreadId(userEvent.data)
-          break
-        }
         case 'MESSAGE': {
           this.showMessageByUserEvent(userEvent.data, create)
           break
@@ -441,17 +436,6 @@ export default {
     },
     setCountWaiting(userEventData) {
       this.$store.dispatch('setCountWaiting', userEventData)
-    },
-    // specs/118 #123: обработчик SSE-события PROCESS_LANE_COUNT_WAITING.
-    setCountWaitingByThreadId(userEventData) {
-      if (!userEventData || userEventData.threadId === undefined) return
-      this.$store.dispatch('setCountWaitingByThreadId', {
-        threadId: userEventData.threadId,
-        countWaiting:
-          typeof userEventData.countWaiting === 'number'
-            ? userEventData.countWaiting
-            : Number(userEventData.countWaiting),
-      })
     },
     deleteSongByUserEvent(userEventData) {
       this.$store.dispatch('deleteSongByUserEvent', userEventData)

@@ -66,6 +66,22 @@ repos:
         always_run: true
         stages: [pre-commit]
 
+      # === Guard: docker-image-tags (Pass 379, OP #106 follow-up, wayfinder #106) ===
+      # R-04 + R-05: `FROM nginx:` и `FROM node:` должны быть в whitelist
+      # (nginx:stable, node:22-alpine и т.д.). Ловит запрещённые теги:
+      # nginx:alpine (нет bash), nginx:latest, node:alpine, node:latest, node:lts.
+      # Source-of-truth: knowledge/guidelines/architecture-conventions.md L20-21,
+      # CLAUDE.md § TOP-10 ловушек (п.3 nginx:alpine, п.4 node:latest).
+      # Игнорирует backup-файлы (DockerfileOld, DockerfileBackup, DockerfileFull,
+      # DockerfileDemucs) — только активные Dockerfile.
+      - id: docker-image-tags-guard
+        name: docker-image-tags guard (R-04, R-05)
+        entry: bash tools/check-docker-image-tags.sh --quiet
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
+
       # === Kotlin: ktlint ===
       - id: ktlint
         name: ktlint (Kotlin formatter)

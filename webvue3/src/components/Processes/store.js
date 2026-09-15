@@ -43,6 +43,11 @@ export default {
     processWillStopAfterThreadIsDone: false,
     workingProcessByThreadId: {},
     countWaiting: '...',
+    // specs/118 #123: WAITING-счётчики по lane (thread_id). Используется для
+    // бейджа «размер пула HealthReport» в правом верхнем углу кнопки
+    // Старт/Стоп (для threadId=1).
+    // Ключи — threadId (Int), значения — count (Int).
+    countWaitingByThreadId: {},
     // Текущая страница пагинации в ProcessesTable. Сохраняем в сторе, чтобы при уходе с компонента
     // и возврате — открывалась страница, на которой остановился пользователь.
     processesTableCurrentPage: 1,
@@ -92,6 +97,10 @@ export default {
     },
     getCountWaiting(state) {
       return state.countWaiting
+    },
+    // specs/118 #123: вернуть WAITING-счётчик для конкретного lane.
+    getCountWaitingByThreadId: (state) => (threadId) => {
+      return state.countWaitingByThreadId[threadId] || 0
     },
     getProcessesTableCurrentPage(state) {
       return state.processesTableCurrentPage
@@ -195,6 +204,15 @@ export default {
     },
     setCountWaiting(state, userEventData) {
       state.countWaiting = userEventData.countWaiting
+    },
+    // specs/118 #123: обновить WAITING-счётчик для конкретного lane.
+    setCountWaitingByThreadId(state, { threadId, countWaiting }) {
+      if (threadId === undefined || threadId === null) return
+      // Создаём новый объект для реактивности Vuex.
+      state.countWaitingByThreadId = {
+        ...state.countWaitingByThreadId,
+        [threadId]: countWaiting,
+      }
     },
     setProcessWillStopAfterThreadIsDone(state, processWillStopAfterThreadIsDone) {
       state.processWillStopAfterThreadIsDone = processWillStopAfterThreadIsDone
@@ -311,11 +329,24 @@ export default {
       let request = { method: 'POST', url: '/api/processes/countwaiting' }
       return promisedXMLHttpRequest(request)
     },
+    // specs/118 #123: запросить WAITING-счётчик для конкретного lane.
+    // Backend: POST /api/processes/countwaiting?threadId={threadId} (#125).
+    getProcessesCountWaitingByThreadIdPromise: (ctx, { threadId }) => {
+      const request = {
+        method: 'POST',
+        url: `/api/processes/countwaiting?threadId=${threadId}`,
+      }
+      return promisedXMLHttpRequest(request)
+    },
     setProcessIsWorking(ctx, processIsWorking) {
       ctx.commit('setProcessIsWorking', processIsWorking)
     },
     setCountWaiting(ctx, userEventData) {
       ctx.commit('setCountWaiting', userEventData)
+    },
+    // specs/118 #123: action-обёртка для setCountWaitingByThreadId.
+    setCountWaitingByThreadId(ctx, payload) {
+      ctx.commit('setCountWaitingByThreadId', payload)
     },
     setProcessWillStopAfterThreadIsDone(ctx, processWillStopAfterThreadIsDone) {
       ctx.commit('setProcessWillStopAfterThreadIsDone', processWillStopAfterThreadIsDone)

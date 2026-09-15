@@ -13,6 +13,10 @@ enum class SseNotificationType(
     RECORD_DELETE("recordDelete"),
     PROCESS_WORKER_STATE("processWorkerState"),
     PROCESS_COUNT_WAITING("processCountWaiting"),
+
+    // specs/118 #123: WAITING-счётчик по конкретному lane (для бейджа пула HR).
+    PROCESS_LANE_COUNT_WAITING("processLaneCountWaiting"),
+
     MESSAGE("message"),
     ERROR("error"),
     DUMMY("dummy"),

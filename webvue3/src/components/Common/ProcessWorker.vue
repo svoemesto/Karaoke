@@ -21,6 +21,14 @@
         <img v-else alt="stop" class="icon-40" src="../../assets/svg/icon_stop.svg" />
       </button>
       <div class="text-count-waiting" v-text="countWaiting" />
+      <!-- specs/118 #123: синий бейдж размера пула в правом верхнем углу.
+           Показывается только если задан poolThreadId и есть хотя бы одно
+           WAITING-задание в этом lane. -->
+      <div
+        v-if="poolThreadId !== undefined && poolCountWaiting > 0"
+        class="text-pool-size"
+        v-text="poolCountWaiting"
+      />
     </div>
     <custom-confirm
       v-if="isConfirmVisible"
@@ -71,6 +79,14 @@ export default {
       required: false,
       default: () => [],
     },
+    // specs/118 #123: если задан — показывать синий бейдж в правом верхнем углу
+    // кнопки Старт/Стоп с количеством WAITING-заданий в этом lane.
+    // Например, poolThreadId=1 для THREAD_LANE_HEALTH_REPORT.
+    poolThreadId: {
+      type: Number,
+      required: false,
+      default: undefined,
+    },
   },
   data() {
     return {
@@ -93,6 +109,11 @@ export default {
     },
     countWaiting() {
       return this.$store.getters.getCountWaiting
+    },
+    // specs/118 #123: WAITING-счётчик для lane из poolThreadId.
+    poolCountWaiting() {
+      if (this.poolThreadId === undefined) return 0
+      return this.$store.getters.getCountWaitingByThreadId(this.poolThreadId)
     },
     disabled() {
       return this.isWork && this.stopAfterThreadIsDone
@@ -130,6 +151,10 @@ export default {
   mounted() {
     this.checkUpdateProcessesWorker()
     this.checkCountWaiting()
+    // specs/118 #123: initial poll для lane-специфичного счётчика.
+    if (this.poolThreadId !== undefined) {
+      this.checkCountWaitingByThreadId(this.poolThreadId)
+    }
   },
   methods: {
     clickStartStopWorkerButton() {
@@ -164,6 +189,17 @@ export default {
       this.$store.dispatch('getProcessesCountWaitingPromise').then((data) => {
         this.$store.dispatch('setCountWaiting', { countWaiting: data })
       })
+    },
+    // specs/118 #123: initial poll для lane-специфичного счётчика.
+    checkCountWaitingByThreadId(threadId) {
+      this.$store.dispatch('getProcessesCountWaitingByThreadIdPromise', { threadId }).then(
+        (data) => {
+          this.$store.dispatch('setCountWaitingByThreadId', {
+            threadId,
+            countWaiting: typeof data === 'number' ? data : Number(data),
+          })
+        },
+      )
     },
     truncateString(name, maxSymbols) {
       if (name.length <= maxSymbols) {
@@ -244,6 +280,19 @@ export default {
   padding: 0 4px;
   border-radius: 5px;
   background-color: gray;
+}
+/* specs/118 #123: синий бейдж пула — правый верхний угол кнопки. */
+.text-pool-size {
+  font-size: x-small;
+  color: white;
+  position: absolute;
+  pointer-events: none;
+  top: 0;
+  right: 0;
+  transform: translate(50%, -50%);
+  padding: 0 4px;
+  border-radius: 5px;
+  background-color: var(--bs-primary, #0d6efd);
 }
 .wrapper-bar {
   display: flex;

@@ -363,6 +363,13 @@ export default {
           this.setCountWaiting(userEvent.data)
           break
         }
+        // specs/118 #397: отдельный SSE-канал для размера cache-очереди.
+        // Аналог PROCESS_COUNT_WAITING, но другая структура данных
+        // (cacheQueueSize вместо countWaiting). Не смешиваем с PROCESS_COUNT_WAITING.
+        case 'CACHE_QUEUE_SIZE': {
+          this.setCacheQueueSize(userEvent.data)
+          break
+        }
         case 'MESSAGE': {
           this.showMessageByUserEvent(userEvent.data, create)
           break
@@ -458,6 +465,12 @@ export default {
     },
     setCountWaiting(userEventData) {
       this.$store.dispatch('setCountWaiting', userEventData)
+    },
+    // specs/118 #397: SSE-обработчик для отдельного канала CACHE_QUEUE_SIZE.
+    setCacheQueueSize(userEventData) {
+      // userEvent.data: { cacheQueueSize: N } — вытаскиваем число.
+      const size = userEventData?.cacheQueueSize ?? 0
+      this.$store.dispatch('setCacheQueueSize', size)
     },
     deleteSongByUserEvent(userEventData) {
       this.$store.dispatch('deleteSongByUserEvent', userEventData)

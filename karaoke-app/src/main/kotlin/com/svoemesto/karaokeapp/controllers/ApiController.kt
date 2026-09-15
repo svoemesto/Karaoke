@@ -12,6 +12,7 @@ import com.svoemesto.karaokeapp.services.SNS
 import com.svoemesto.karaokeapp.services.SongReleaseAnnouncementService
 import com.svoemesto.karaokeapp.services.SseNotificationService
 import com.svoemesto.karaokeapp.services.StorageApiClient
+import com.svoemesto.karaokeapp.services.StorageMetadataCache
 import com.svoemesto.karaokeapp.services.WVP
 import com.svoemesto.karaokeapp.sync.SyncDirection
 import com.svoemesto.karaokeapp.sync.SyncOperation
@@ -7687,6 +7688,56 @@ class ApiController(
             ).errorsOnly()
             .map { it.toDTO() }
 
+    // specs/118 #397: batch-версия healthReportList — web шлёт все песни страницы одним
+    // запросом, backend через StorageMetadataCache.cacheFillerExecutor (corePoolSize=0,
+    // maxPoolSize=4) обрабатывает их чанками. Не нагружает браузер 50 одновременными
+    // HTTP-запросами.
+    //
+    // HTTP response — СРАЗУ (минимальный: queued + activeSongIds). Сама обработка
+    // submit'ится в cacheFillerExecutor (НЕ в CompletableFuture.runAsync — это
+    // использует ForkJoinPool.commonPool, который не лимитирован и создаёт
+    // worker'ов сколько угодно → exhaust Postgres connections).
+    //
+    // Результат по каждой песне прилетает через SSE-событие HEALTH_REPORTS (см.
+    // HealthReport.recomputeAndBroadcast и onFillComplete в
+    // StorageMetadataCache.getFileExistsAsync).
+    @PostMapping("/song/healthReportList/batch")
+    @ResponseBody
+    fun getHealthReportListBatch(
+        @RequestParam(name = "ids", required = false, defaultValue = "") idsRaw: String,
+    ): Map<String, Int> {
+        // ids приходит как semicolon-separated строка (конвенция проекта).
+        val ids: List<Long> =
+            idsRaw
+                .split(";")
+                .mapNotNull { it.trim().toLongOrNull() }
+        // Submit'им в cacheFillerExecutor — он уже ограничен maxPoolSize=4 и
+        // использует connection через свою thread-local. Executor сам управляет
+        // concurrency (4 параллельных worker'а, остальные ждут в очереди).
+        for (id in ids) {
+            StorageMetadataCache.submitBack(
+                Runnable {
+                    try {
+                        HealthReport.recomputeAndBroadcast(
+                            songId = id,
+                            database = WORKING_DATABASE,
+                            storageService = storageService,
+                            storageApiClient = storageApiClient,
+                        )
+                    } catch (e: Exception) {
+                        println(
+                            "[getHealthReportListBatch] recomputeAndBroadcast failed for song $id: ${e.message}",
+                        )
+                    }
+                },
+            )
+        }
+        return mapOf(
+            "queued" to ids.size,
+            "activeSongIds" to StorageMetadataCache.getActiveSongIds().size,
+        )
+    }
+
     // Асинхронный батч-запрос healthReportList (OpenProject #128, specs/128-async-health-report-list).
     // Принимает список id одной строкой с разделителем `;` (конвенция проекта — см.
     // KaraokeProcessAdminController.kt:185 и webvue3/src/components/Processes/store.js).
@@ -7694,6 +7745,12 @@ class ApiController(
     // ставится в приоритетный пул HealthReportBatchPool; готовые отчёты приходят
     // на веб через SSE-канал HEALTH_REPORTS (та же payload, что у синхронного
     // /song/healthReportList — фронт уже умеет).
+    //
+    // NB: на master параллельно существует /song/healthReportList/batch (specs/118 #397),
+    // использующий StorageMetadataCache.cacheFillerExecutor. Оба endpoint'а
+    // работают независимо: master-версия через cacheFillerExecutor (4 worker'а,
+    // batched chunk), эта — через HealthReportBatchPool (10 worker'ов,
+    // приоритетная очередь с move-to-front). Владелец решит, что убирать.
     @PostMapping("/song/healthReportListBatch")
     @ResponseBody
     fun healthReportListBatch(

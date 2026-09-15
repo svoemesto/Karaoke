@@ -49,6 +49,16 @@ data class ProcessCountWaitingMessage(
 )
 
 /**
+ * specs/118 #397: размер cache-очереди StorageMetadataCache (для бейджа в UI).
+ * Аналогично ProcessCountWaitingMessage — отдельный канал, не смешивается.
+ *
+ * @see archive/docs/features/async-process-queue.md
+ */
+data class CacheQueueSizeMessage(
+    val cacheQueueSize: Int,
+)
+
+/**
  * Класс Health Report Pool Count Message.
  *
  * SSE-payload для [com.svoemesto.karaokeapp.model.SseNotificationType.HEALTH_REPORT_POOL_COUNT]

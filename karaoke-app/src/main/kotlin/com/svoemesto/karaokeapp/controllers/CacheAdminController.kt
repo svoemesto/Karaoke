@@ -2,6 +2,7 @@ package com.svoemesto.karaokeapp.controllers
 
 import com.svoemesto.karaokeapp.services.StorageMetadataCache
 import org.springframework.web.bind.annotation.DeleteMapping
+import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
@@ -67,4 +68,45 @@ class CacheAdminController(
             "rowsDeleted" to deleted,
         )
     }
+
+    /**
+     * specs/118 #397: POST `/api/health/active-song-ids`
+     *
+     * Устанавливает множество активных songId (песен текущей страницы админки) —
+     * backend приоритезирует cache-fill задачи для этих songId (вставка в начало
+     * очереди, всплытие при смене страницы).
+     *
+     * Query param: `?activeSongIds=123;456;789` (semicolon-separated).
+     * По конвенции проекта (см. `KaraokeProcessAdminController.bulkRetry`,
+     * `bulkForceStop`, и т.д.) массивы передаются как String с `;` разделителем.
+     *
+     * Returns: `Map { "activeSongIds" -> установленное множество (size) }`.
+     */
+    @PostMapping("/active-song-ids")
+    fun setActiveSongIds(
+        @RequestParam(name = "activeSongIds", required = false, defaultValue = "") activeSongIdsRaw: String,
+    ): Map<String, Any> {
+        // Парсим `123;456;789` в Set<Long>. По конвенции проекта (см. комментарий в
+        // `KaraokeProcessAdminController.kt:181`): фронт шлёт ids.join(';'), бэк парсит split(";").
+        val activeSongIds: Set<Long> =
+            activeSongIdsRaw
+                .split(";")
+                .mapNotNull { it.trim().toLongOrNull() }
+                .toSet()
+        StorageMetadataCache.setActiveSongIds(activeSongIds)
+        return mapOf(
+            "activeSongIds" to activeSongIds.size,
+            "queueSize" to StorageMetadataCache.cacheQueueSize(),
+        )
+    }
+
+    /**
+     * specs/118 #397: GET `/api/health/cache-queue-size`
+     *
+     * Текущий размер очереди cache-fill (`StorageMetadataCache.cacheFillerExecutor`).
+     * Используется для бейджа в UI (правый верхний угол кнопки Старт/Стоп в SongsTable).
+     */
+    @org.springframework.web.bind.annotation.GetMapping("/cache-queue-size")
+    fun cacheQueueSize(): Map<String, Any> =
+        mapOf("queueSize" to StorageMetadataCache.cacheQueueSize())
 }

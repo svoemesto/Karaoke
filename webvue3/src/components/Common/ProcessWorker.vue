@@ -31,6 +31,9 @@
            углу кнопки Старт/Стоп (симметрично серому снизу). Обновляется через
            SSE HEALTH_REPORT_WAITING_COUNT (см. App.vue). -->
       <div class="text-count-waiting-blue" v-text="healthReportWaitingCount" />
+      <!-- specs/118 #397: бейдж размера cache-очереди StorageMetadataCache (правый верхний угол).
+           Показывается всегда (даже если queueSize=0), чтобы пользователь видел индикатор активности. -->
+      <div class="text-cache-pool-size" v-text="cacheQueueSize" />
     </div>
     <custom-confirm
       v-if="isConfirmVisible"
@@ -114,7 +117,7 @@ export default {
     countWaiting() {
       return this.$store.getters.getCountWaiting
     },
-    // specs/129-hrpool-badge (OpenProject #129): размер пула HealthReportBatchPool.
+// specs/129-hrpool-badge (OpenProject #129): размер пула HealthReportBatchPool.
     healthReportPoolCount() {
       return this.$store.getters.getHealthReportPoolCount
     },
@@ -122,6 +125,10 @@ export default {
     // песням, для которых получен HR.
     healthReportWaitingCount() {
       return this.$store.getters.getHealthReportWaitingCount
+    },
+    // specs/118 #397: размер cache-очереди StorageMetadataCache.
+    cacheQueueSize() {
+      return this.$store.getters.getCacheQueueSize
     },
     disabled() {
       return this.isWork && this.stopAfterThreadIsDone
@@ -159,6 +166,10 @@ export default {
   mounted() {
     this.checkUpdateProcessesWorker()
     this.checkCountWaiting()
+    // specs/118 #397: cacheQueueSize обновляется через SSE-событие PROCESS_COUNT_WAITING
+    // (см. App.vue) — нет необходимости в poll. Initial fetch через REST API оставлен
+    // на случай если SSE ещё не подключился.
+    this.checkCacheQueueSize()
   },
   methods: {
     clickStartStopWorkerButton() {
@@ -190,8 +201,32 @@ export default {
       })
     },
     checkCountWaiting() {
-      this.$store.dispatch('getProcessesCountWaitingPromise').then((data) => {
-        this.$store.dispatch('setCountWaiting', { countWaiting: data })
+      this.$store.dispatch('getProcessesCountWaitingPromise').then((raw) => {
+        // promisedXMLHttpRequest возвращает xhr.responseText (string). Backend
+        // возвращает просто Long, не объект. Парсим как JSON (для простого числа
+        // JSON.parse("12345") === 12345 — Number).
+        let count = 0
+        try {
+          count = typeof raw === 'number' ? raw : Number(JSON.parse(raw))
+        } catch (e) {
+          console.warn('[ProcessWorker.checkCountWaiting] parse failed:', e)
+        }
+        this.$store.dispatch('setCountWaiting', { countWaiting: count })
+      })
+    },
+    // specs/118 #397: загрузить размер cache-очереди.
+    checkCacheQueueSize() {
+      this.$store.dispatch('getCacheQueueSizePromise').then((raw) => {
+        // promisedXMLHttpRequest возвращает xhr.responseText (string), не parsed object.
+        // Парсим JSON: {"queueSize": N}.
+        let size = 0
+        try {
+          const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw
+          size = parsed?.queueSize ?? 0
+        } catch (e) {
+          console.warn('[ProcessWorker.checkCacheQueueSize] JSON parse failed:', e)
+        }
+        this.$store.dispatch('setCacheQueueSize', size)
       })
     },
     truncateString(name, maxSymbols) {
@@ -312,5 +347,18 @@ export default {
   font-size: 0.75rem;
   background-color: #e9ecef;
   border-radius: 0.25rem;
+}
+/* specs/118 #397: синий бейдж размера cache-очереди — правый верхний угол кнопки. */
+.text-cache-pool-size {
+  font-size: x-small;
+  color: white;
+  position: absolute;
+  pointer-events: none;
+  top: 0;
+  right: 0;
+  transform: translate(50%, -50%);
+  padding: 0 4px;
+  border-radius: 5px;
+  background-color: var(--bs-primary, #0d6efd);
 }
 </style>

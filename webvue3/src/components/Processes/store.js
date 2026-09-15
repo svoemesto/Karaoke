@@ -53,6 +53,8 @@ export default {
     // Показывается голубым бейджем в ProcessWorker.vue справа сверху над кнопкой
     // Старт/Стоп (симметрично серому снизу).
     healthReportWaitingCount: '...',
+    // specs/118 #397: размер cache-очереди StorageMetadataCache (см. GET /api/health/cache/cache-queue-size).
+    cacheQueueSize: 0,
     // Текущая страница пагинации в ProcessesTable. Сохраняем в сторе, чтобы при уходе с компонента
     // и возврате — открывалась страница, на которой остановился пользователь.
     processesTableCurrentPage: 1,
@@ -110,6 +112,10 @@ export default {
     // specs/130-hrwaiting-badge (OpenProject #130).
     getHealthReportWaitingCount(state) {
       return state.healthReportWaitingCount
+    },
+    // specs/118 #397: размер cache-очереди StorageMetadataCache.
+    getCacheQueueSize(state) {
+      return state.cacheQueueSize
     },
     getProcessesTableCurrentPage(state) {
       return state.processesTableCurrentPage
@@ -221,6 +227,10 @@ export default {
     // specs/130-hrwaiting-badge (OpenProject #130). payload: { count: Long }.
     setHealthReportWaitingCount(state, userEventData) {
       state.healthReportWaitingCount = userEventData.count
+    },
+    // specs/118 #397: установить размер cache-очереди.
+    setCacheQueueSize(state, size) {
+      state.cacheQueueSize = typeof size === 'number' ? size : 0
     },
     setProcessWillStopAfterThreadIsDone(state, processWillStopAfterThreadIsDone) {
       state.processWillStopAfterThreadIsDone = processWillStopAfterThreadIsDone
@@ -337,6 +347,11 @@ export default {
       let request = { method: 'POST', url: '/api/processes/countwaiting' }
       return promisedXMLHttpRequest(request)
     },
+    // specs/118 #397: запросить размер cache-очереди.
+    getCacheQueueSizePromise: () => {
+      const request = { method: 'GET', url: '/api/health/cache/cache-queue-size' }
+      return promisedXMLHttpRequest(request)
+    },
     setProcessIsWorking(ctx, processIsWorking) {
       ctx.commit('setProcessIsWorking', processIsWorking)
     },
@@ -350,6 +365,10 @@ export default {
     // specs/130-hrwaiting-badge (OpenProject #130).
     setHealthReportWaitingCount(ctx, userEventData) {
       ctx.commit('setHealthReportWaitingCount', userEventData)
+    },
+    // specs/118 #397: action-обёртка для setCacheQueueSize.
+    setCacheQueueSize(ctx, size) {
+      ctx.commit('setCacheQueueSize', size)
     },
     setProcessWillStopAfterThreadIsDone(ctx, processWillStopAfterThreadIsDone) {
       ctx.commit('setProcessWillStopAfterThreadIsDone', processWillStopAfterThreadIsDone)

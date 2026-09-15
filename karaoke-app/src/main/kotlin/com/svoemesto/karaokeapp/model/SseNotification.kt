@@ -28,6 +28,11 @@ data class SseNotification(
         fun processCountWaiting(processCountWaitingMessage: ProcessCountWaitingMessage): SseNotification =
             SseNotification(SseNotificationType.PROCESS_COUNT_WAITING, processCountWaitingMessage)
 
+        // specs/118 #397: factory для CACHE_QUEUE_SIZE — отдельный SSE-канал
+        // (не смешивается с PROCESS_COUNT_WAITING).
+        fun cacheQueueSize(cacheQueueSizeMessage: CacheQueueSizeMessage): SseNotification =
+            SseNotification(SseNotificationType.CACHE_QUEUE_SIZE, cacheQueueSizeMessage)
+
         // specs/129-hrpool-badge (OpenProject #129): размер пула HealthReportBatchPool.
         // Рассылается broadcast (не addressed — нужен всем вкладкам с бейджем).
         fun healthReportPoolCount(message: HealthReportPoolCountMessage): SseNotification =

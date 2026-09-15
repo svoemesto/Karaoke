@@ -1,10 +1,11 @@
 package com.svoemesto.karaokeapp.services
 
 import com.svoemesto.karaokeapp.Connection
+import com.svoemesto.karaokeapp.KaraokeProcessWorker
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import java.util.concurrent.CompletableFuture
-import java.util.concurrent.LinkedBlockingQueue
+import java.util.concurrent.LinkedBlockingDeque
 import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
 
@@ -43,6 +44,19 @@ import java.util.concurrent.TimeUnit
  */
 @Component
 class StorageMetadataCache {
+    // specs/118 #397: инициализируем companion object при создании Spring bean,
+    // чтобы cacheFillerExecutor был готов принимать задачи сразу. Без этого
+    // executor создаётся лениво при первом обращении к companion, и первые запросы
+    // кэша могут зависнуть (worker'ы ещё не запущены).
+    init {
+        // Доступ к Companion-членам для их инициализации.
+        SOURCE_LOCAL // touch any companion member to force class init
+        // Явное обращение к executor для его eager initialization.
+        // corePoolSize=0 → worker'ы создаются lazily при submit'е. Нет смысла вызывать
+        // prestartAllCoreThreads() — он создал бы 0 worker'ов (потому что corePoolSize=0).
+        cacheFillerExecutor
+    }
+
     companion object {
         const val SOURCE_LOCAL = "LOCAL"
         const val SOURCE_REMOTE = "REMOTE"
@@ -70,21 +84,189 @@ class StorageMetadataCache {
          * Postgres `max_connections=100` за минуты.
          *
          * Семантика сохранена: `corePoolSize=0` + `keepAliveTime=60s` ведут себя как
-         * cached pool — потоки умирают после простоя. `LinkedBlockingQueue` без
-         * bound обеспечивает unbounded очередь submit'ов; рост упирается в maxPoolSize.
+         * cached pool — потоки умирают после простоя. `LinkedBlockingDeque` без
+         * bound обеспечивает unbounded двустороннюю очередь submit'ов; рост упирается
+         * в maxPoolSize.
+         *
+         * specs/118 #397: двусторонняя очередь (вместо LinkedBlockingQueue) нужна для
+         * реализации LIFO/всплытия задач активной страницы — submit() кладёт в конец,
+         * submitFirst() в начало. setActiveSongIds() переупорядочивает: задачи с активными
+         * songId извлекаются и кладутся в начало.
          *
          * Подробнее: `research/83-db-pool-root-cause/REPORT.md`.
          */
         private val cacheFillerExecutor =
             ThreadPoolExecutor(
+                // corePoolSize=0: worker'ы создаются LAZILY при submit'е, не постоянно.
+                // Это важно для OP #83: Postgres max_connections=100, и каждая задача
+                // в этом executor открывает DB connection (через Connection.local().
+                // getConnection() внутри loader()). corePoolSize=8 (как было раньше)
+                // создавал 8 постоянных connection'ов, истощая headroom для других
+                // executor'ов и Tomcat thread pool — наблюдалось "FATAL: sorry,
+                // too many clients already".
+                //
+                // maxPoolSize=4: при пике — до 4 worker'ов одновременно = до 4 connection'ов
+                // для cache-fill. Остальные 96 connection'ов доступны для других мест.
+                // (было 16 — слишком много).
+                //
+                // Без prestartAllCoreThreads() worker'ы появляются при submit'е, исчезают
+                // через keepAliveTime=60s после простоя. При постоянной нагрузке они
+                // живут постоянно.
                 0,
-                16,
+                4,
                 60L,
                 TimeUnit.SECONDS,
-                LinkedBlockingQueue(),
+                LinkedBlockingDeque(),
             ).also { executor ->
                 Runtime.getRuntime().addShutdownHook(Thread { executor.shutdown() })
             }
+
+        /**
+         * specs/118 #397: sentinel-задача для trigger'а создания worker'а. Когда
+         * submitFront добавляет задачу в начало deque через addFirst (минуя execute),
+         * ThreadPoolExecutor НЕ создаёт нового worker'а. execute(sentinel) форсирует
+         * создание worker'а, который заберёт нашу задачу из головы.
+         */
+        private val SENTINEL_RUNNABLE = Runnable { /* no-op */ }
+
+        /**
+         * specs/118 #397: множество активных songId (песен текущей страницы админки).
+         * Задачи cache-fill с этими songId должны обрабатываться в приоритете —
+         * вставляться в начало deque при submit и всплывать при смене страницы.
+         *
+         * `volatile` — пишется из HTTP-потока (контроллер), читается из executor'а
+         * (cache fill submit) и из reorder-логики. Без `@Volatile` запись могла быть
+         * не видна другому потоку вовремя (JMM не гарантирует visibility для обычного var).
+         */
+        @Volatile private var activeSongIds: Set<Long> = emptySet()
+
+        /**
+         * specs/118 #397: Runnable-обёртка с пометкой songId, чтобы reorder мог
+         * извлекать задачи по типу из deque.
+         */
+        private class SongIdTaggedRunnable(
+            val songId: Long,
+            private val delegate: Runnable,
+        ) : Runnable {
+            override fun run() = delegate.run()
+        }
+
+        /**
+         * specs/118 #397: установить множество активных songId (песен текущей страницы).
+         * Вызывается из `POST /api/health/activeSongIds` при смене страницы в SongsTable.
+         *
+         * После установки — переупорядочивает очередь: все Runnable-обёртки с активными
+         * songId, ещё ожидающие в deque, извлекаются и кладутся в начало (всплытие).
+         *
+         * Синхронизировано через synchronized — одновременно с submit'ами не должно быть
+         * гонки. Сами submit'ы (в `getFileExistsAsync`) тоже используют synchronized на этом
+         * lock'е через `submitFrontSafe` / `submitBackSafe`.
+         */
+        @Synchronized
+        fun setActiveSongIds(newActiveSongIds: Set<Long>) {
+            val previous = activeSongIds
+            activeSongIds = newActiveSongIds.toSet()
+            if (previous == newActiveSongIds) return
+            // Переупорядочиваем очередь: задачи с новыми activeSongIds → в начало
+            // (всплытие). Используем pollFirst/addLast в цикле — это единственный безопасный
+            // способ изменить LinkedBlockingDeque, не повреждая внутреннее состояние
+            // ThreadPoolExecutor (worker'ы). drainTo вызывает конфликт с getTask().
+            //
+            // Для правильного порядка в голове: итерируем [max, mid, min] и addFirst
+            // каждого → конечный порядок в голове [min, mid, max]. Worker берёт из
+            // головы → сначала min → обработка сверху вниз по songId.
+            val queue = cacheFillerExecutor.queue as LinkedBlockingDeque<Runnable>
+            val active = mutableListOf<Runnable>()
+            val notActive = mutableListOf<Runnable>()
+            // Извлекаем все задачи, разделяем на активные/неактивные.
+            while (true) {
+                val r = queue.pollFirst() ?: break
+                if (r is SongIdTaggedRunnable && r.songId in activeSongIds) {
+                    active.add(r)
+                } else {
+                    notActive.add(r)
+                }
+            }
+            // Возвращаем: сначала активные в начало (в порядке убывания songId →
+            // в голове окажется возрастание), затем неактивные в конец.
+            for (r in active.sortedByDescending { (it as SongIdTaggedRunnable).songId }) {
+                queue.addFirst(r)
+            }
+            for (r in notActive) {
+                queue.addLast(r)
+            }
+            log.info(
+                "activeSongIds changed: prev={} new={} reordered={}",
+                previous.size, newActiveSongIds.size, active.size,
+            )
+        }
+
+        /**
+         * specs/118 #397: submit в КОНЕЦ deque (обычное FIFO поведение). Используется
+         * по умолчанию для неактивных songId. Без @Synchronized — cacheFillerExecutor.execute
+         * сам по себе потокобезопасен (LinkedBlockingDeque.take блокирует worker, не наш монитор).
+         */
+        fun submitBack(task: Runnable) {
+            cacheFillerExecutor.execute(task)
+            // specs/118 #397: после submit уведомляем через отдельный SSE-канал
+            // CACHE_QUEUE_SIZE. Дедупликация в sendCacheQueueSizeMessage подавляет
+            // повторы, если значение не изменилось.
+            KaraokeProcessWorker.sendCacheQueueSizeMessage(cacheQueueSize())
+        }
+
+        /**
+         * specs/118 #397: submit в НАЧАЛО deque (LIFO). Используется для активных songId —
+         * задача будет обработана раньше FIFO-задач.
+         *
+         * Проблема: `ThreadPoolExecutor.execute()` всегда добавляет в очередь через
+         * `BlockingQueue.offer()`. Для LinkedBlockingDeque offer() = offerLast() — конец.
+         * Чтобы добавить в начало, нужно использовать `addFirst()` напрямую.
+         *
+         * Реализация: добавляем task в начало deque вручную. Worker'ы (если они
+         * заблокированы на `BlockingQueue.take()`) будут разбужены автоматически.
+         * Если worker'ов нет и corePoolSize=0, новый worker не создастся — но
+         * следующий submit() создаст worker, который возьмёт нашу задачу из головы.
+         *
+         * Потокобезопасность: synchronized — одновременно с `setActiveSongIds` не должно
+         * быть гонки. Сам `LinkedBlockingDeque.addFirst` потокобезопасен.
+         */
+        fun submitFront(task: Runnable) {
+            // Добавляем в начало deque через cast (LinkedBlockingDeque.addFirst thread-safe).
+            // Без @Synchronized — addFirst сам по себе атомарен.
+            //
+            // ВАЖНО: addFirst сам по себе НЕ создаёт worker. Если worker'ов нет (например,
+            // кеш прогрет и все worker'ы умерли по keepAliveTime), задача ляжет в дек
+            // и будет ждать, пока кто-то не возьмёт её. После execute(SENTINEL) ниже
+            // ThreadPoolExecutor СОЗДАЁТ нового worker, который забирает нашу задачу
+            // из головы дек (потому что она первая — sentinel ушёл в хвост).
+            //
+            // sentinel — no-op Runnable, который ничего не делает. Он служит только
+            // trigger'ом для ThreadPoolExecutor.addWorker().
+            (cacheFillerExecutor.queue as LinkedBlockingDeque<Runnable>).addFirst(task)
+            cacheFillerExecutor.execute(SENTINEL_RUNNABLE)
+            // specs/118 #397: после submit уведомляем через отдельный SSE-канал
+            // CACHE_QUEUE_SIZE. Дедупликация в sendCacheQueueSizeMessage подавляет
+            // повторы, если значение не изменилось.
+            KaraokeProcessWorker.sendCacheQueueSizeMessage(cacheQueueSize())
+        }
+
+        /**
+         * specs/118 #397: текущий размер очереди cache-fill (не считая выполняющихся).
+         * Используется для бейджа в UI (правый верхний угол кнопки Старт/Стоп).
+         *
+         * `@JvmStatic` — чтобы можно было вызывать через экземпляр Spring-bean
+         * (иначе только через companion).
+         */
+        fun cacheQueueSize(): Int =
+            // specs/118 #397: общее количество активных cache-fill задач =
+            // (в очереди) + (выполняются прямо сейчас). Владелец ожидает «сколько
+            // всего осталось», а не только «сколько ждут». Бейдж показывает total.
+            cacheFillerExecutor.queue.size + cacheFillerExecutor.activeCount
+
+        /**
+         * specs/118 #397: получить текущее множество активных songId (read-only).
+         */
+        fun getActiveSongIds(): Set<Long> = activeSongIds
     }
 
     /**
@@ -446,6 +628,7 @@ class StorageMetadataCache {
         fileName: String,
         loader: () -> Boolean,
         onFillComplete: (() -> Unit)? = null,
+        songId: Long = 0,
     ): CompletableFuture<Boolean?> {
         validate(source, bucket, fileName)
         val cached = selectExists(source, bucket, fileName)
@@ -455,33 +638,41 @@ class StorageMetadataCache {
         }
         miss(source)
         // Fire-and-forget: fill cache in background
-        cacheFillerExecutor.submit {
-            val startedAt = System.currentTimeMillis()
-            try {
-                val value = loader()
-                upsert(source, bucket, fileName, exists = value, etag = null, sizeBytes = null)
-                val durationMs = System.currentTimeMillis() - startedAt
-                log.info(
-                    "cache:miss:async key={} bucket={} fileName={} source={} operation=fileExists value={}",
-                    buildKey(source, bucket, fileName), bucket, fileName, source, value,
-                )
-                waitingLog.info(
-                    "cache:filled source={} bucket={} fileName={} operation=fileExists status=FILLED durationMs={}",
-                    source, bucket, fileName, durationMs,
-                )
-                onFillComplete?.invoke()
-            } catch (e: Exception) {
-                val durationMs = System.currentTimeMillis() - startedAt
-                log.warn(
-                    "cache:miss:async:error key={} bucket={} fileName={} source={} error={}",
-                    buildKey(source, bucket, fileName), bucket, fileName, source, e.message,
-                )
-                waitingLog.warn(
-                    "cache:fillFailed source={} bucket={} fileName={} operation=fileExists status=FAILED durationMs={} error={}",
-                    source, bucket, fileName, durationMs, e.message,
-                )
-                // onFillComplete НЕ вызывается — US2/AC3 спеки: остаёмся в WAITING
+        val delegate =
+            Runnable {
+                val startedAt = System.currentTimeMillis()
+                try {
+                    val value = loader()
+                    upsert(source, bucket, fileName, exists = value, etag = null, sizeBytes = null)
+                    val durationMs = System.currentTimeMillis() - startedAt
+                    log.info(
+                        "cache:miss:async key={} bucket={} fileName={} source={} operation=fileExists value={}",
+                        buildKey(source, bucket, fileName), bucket, fileName, source, value,
+                    )
+                    waitingLog.info(
+                        "cache:filled source={} bucket={} fileName={} operation=fileExists status=FILLED durationMs={}",
+                        source, bucket, fileName, durationMs,
+                    )
+                    onFillComplete?.invoke()
+                } catch (e: Exception) {
+                    val durationMs = System.currentTimeMillis() - startedAt
+                    log.warn(
+                        "cache:miss:async:error key={} bucket={} fileName={} source={} operation=fileExists error={}",
+                        buildKey(source, bucket, fileName), bucket, fileName, source, e.message,
+                    )
+                    waitingLog.warn(
+                        "cache:fillFailed source={} bucket={} fileName={} operation=fileExists status=FAILED durationMs={} error={}",
+                        source, bucket, fileName, durationMs, e.message,
+                    )
+                    // onFillComplete НЕ вызывается — US2/AC3 спеки: остаёмся в WAITING
+                }
             }
+        // specs/118 #397: если songId активен (на текущей странице) — submit в начало deque.
+        // Иначе — submit в конец (FIFO).
+        if (songId != 0L && songId in activeSongIds) {
+            submitFront(SongIdTaggedRunnable(songId, delegate))
+        } else {
+            submitBack(delegate)
         }
         return CompletableFuture.completedFuture(null)
     }

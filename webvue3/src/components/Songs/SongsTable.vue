@@ -551,6 +551,7 @@ import SmartCopyModal from '../../components/Common/SmartCopy/SmartCopyModal.vue
 import CustomConfirm from '../../components/Common/CustomConfirm.vue'
 import HealthReportTable from '../Common/HealthReport/HealthReportTable.vue'
 import ReviewModal from '../SongEditor/ReviewModal.vue'
+import { promisedXMLHttpRequest } from '../../lib/utils'
 
 const ASSIGN_STATUS_LABELS = {
   assigned: 'Назначено',
@@ -651,9 +652,6 @@ export default {
       customConfirmParams: undefined,
       isBusy: false,
       allowAddSync: false,
-      // specs/128-async-health-report-list (#128): старый синхронный каскад
-      // (hrQueue/hrRunning/HR_MAX_CONCURRENT) удалён — фронт больше не делает
-      // HTTP round-trip на каждую песню. Один батч → бэк → SSE-push.
       // Кэш короткой информации о песнях для тултипов root/A-root.
       // Ключ — id песни, значение — { author, year, album, songName }.
       songShortInfoCache: {},
@@ -1066,6 +1064,10 @@ export default {
       handler(newPage) {
         // Сохраняем страницу в store, чтобы она восстановилась после переключения на другой компонент.
         this.$store.commit('setSongsTableCurrentPage', newPage)
+        // specs/118 #397: уведомляем backend о смене страницы — песни этой страницы
+        // становятся активными для LIFO/всплытия cache-fill задач.
+        this.notifyBackendActivePage()
+        this.updateHealthReportForCurrentPage()
         // specs/128-async-health-report-list (#128): старый синхронный каскад
         // hrQueue/hrRunning удалён — фронт больше не делает HTTP round-trip на
         // каждую песню. Вместо этого отправляем ОДИН батч на бэк, бэк сам
@@ -1086,6 +1088,10 @@ export default {
     await this.$store.dispatch('loadEditorDefaultTarget')
     this.$store.dispatch('loadEditorSiteUsers', this.$store.getters.getEditorDefaultTarget)
     this.reloadAssignmentStatus()
+    // specs/118 #397: уведомить backend о песнях текущей страницы при монтировании
+    // (debounce внутри notifyBackendActivePage). Вызываем после того, как songsIds
+    // инициализируются через loadSongsDigests; если список ещё пуст — пропускаем.
+    setTimeout(() => this.notifyBackendActivePage(), 500)
   },
   methods: {
     /**
@@ -1101,6 +1107,38 @@ export default {
         perPage: this.perPage,
         ...this.$store.getters.getSongsFilter,
       })
+      // specs/118 #397: после загрузки списка песен уведомляем backend о текущей странице.
+      this.notifyBackendActivePage()
+    },
+    // specs/118 #397: уведомить backend о песнях текущей страницы — для LIFO/всплытия
+    // cache-fill задач (см. StorageMetadataCache.setActiveSongIds).
+    // Debounce 250ms — чтобы не спамить при быстром переключении страниц.
+    notifyBackendActivePageDebounce: undefined,
+    notifyBackendActivePage() {
+      if (this.notifyBackendActivePageDebounce) {
+        clearTimeout(this.notifyBackendActivePageDebounce)
+      }
+      this.notifyBackendActivePageDebounce = setTimeout(() => {
+        this.notifyBackendActivePageDebounce = undefined
+        const activeSongIds = this.currentPageSongIds
+        if (!activeSongIds || activeSongIds.length === 0) return
+        this.sendActiveSongIds(activeSongIds)
+      }, 250)
+    },
+    async sendActiveSongIds(activeSongIds) {
+      try {
+        // specs/118 #397: по конвенции проекта (см. KaraokeProcessAdminController
+        // bulkRetry/bulkForceStop) массивы передаются как String с ';' разделителем —
+        // `activeSongIds.join(';')`. Бэкенд принимает @RequestParam String и парсит
+        // split(";"). Это application/x-www-form-urlencoded, не JSON.
+        await promisedXMLHttpRequest({
+          method: 'POST',
+          url: '/api/health/cache/active-song-ids',
+          params: { activeSongIds: activeSongIds.join(';') },
+        })
+      } catch (e) {
+        console.warn('[SongsTable.notifyBackendActivePage] failed:', e?.message || e)
+      }
     },
     /**
      * specs/358-rows-per-page: обработчик изменения поля «Строк на странице».
@@ -1313,10 +1351,30 @@ export default {
       this.reloadAssignmentStatus()
     },
     updateHealthReportForCurrentPage() {
-      // specs/128-async-health-report-list (#128): старый синхронный каскад
-      // (hrQueue + HR_MAX_CONCURRENT + по одному HTTP round-trip на песню)
-      // заменён на ОДИН fire-and-forget батч. Делегируем в _enqueueHrBatch,
-      // который теперь сам собирает недостающие songId для текущей страницы.
+      // specs/118 #397: один batch-запрос вместо HR_MAX_CONCURRENT=3 параллельных.
+      // Backend через StorageMetadataCache.cacheFillerExecutor обрабатывает чанками
+      // (corePoolSize=8, maxPoolSize=16) — самостоятельно управляет concurrency.
+      const idsToFetch = []
+      for (const songId of this.songsIds) {
+        const songPageNumber = this.songIdAndPageId.get(songId)
+        if (songPageNumber === this.currentPage) {
+          const filteredSongs = this.songsDigests.filter((song) => song.id === songId)
+          if (filteredSongs && filteredSongs.length > 0) {
+            const song = filteredSongs[0]
+            if (song.healthReportText === '-') {
+              idsToFetch.push(songId)
+            }
+          }
+        }
+      }
+      if (idsToFetch.length > 0) {
+        this.sendBatchHealthReports(idsToFetch)
+      }
+      // specs/128-async-health-report-list (#128): дополнительно шлём батч
+      // через /api/song/healthReportListBatch (HealthReportBatchPool, 10 worker'ов).
+      // Оба endpoint'а работают параллельно (master endpoint + наш #128 endpoint),
+      // результат через SSE одинаковый. Это дублирование намеренно — владелец решит,
+      // какой из них оставить.
       this._enqueueHrBatch(this._collectMissingHrSongIds(this.currentPage))
     },
     _collectMissingHrSongIds(page) {
@@ -1341,6 +1399,18 @@ export default {
       // mutation healthReportMessageByUserEvent.
       if (!songIds || songIds.length === 0) return
       this.$store.dispatch('loadHealthReportBatch', songIds)
+    },
+    // specs/118 #397: fire-and-forget POST — backend шлёт SSE HEALTH_REPORTS для
+    // каждой песни (cache-hit сразу, cache-miss после worker'а). HTTP response не
+    // нужен, не дожидаемся. Ошибки логируются, но не блокируют UI.
+    sendBatchHealthReports(ids) {
+      promisedXMLHttpRequest({
+        method: 'POST',
+        url: '/api/song/healthReportList/batch',
+        params: { ids: ids.join(';') },
+      }).catch((e) => {
+        console.warn('[SongsTable.sendBatchHealthReports] failed:', e?.message || e)
+      })
     },
     repairAllForCurrentPage() {
       for (const songId of this.songsIds) {

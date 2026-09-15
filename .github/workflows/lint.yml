@@ -326,3 +326,34 @@ jobs:
         # knowledge/guidelines/architecture-conventions.md L20-21,
         # CLAUDE.md § TOP-10 ловушек (п.3 nginx:alpine, п.4 node:latest).
         run: bash tools/check-docker-image-tags.sh --quiet
+
+  # === no-jpa-imports guard (Pass 379, R-07, wayfinder #105) ===
+  # Локальный guard-скрипт enforce'ит R-07 (JPA/Hibernate запрет, Constitution II).
+  # Запускается ТОЛЬКО в CI — локально через .pre-commit-config.yaml.
+  no-jpa-imports-guard:
+    name: no-jpa-imports guard (Pass 379, R-07)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: no-jpa-imports guard (Pass 379, R-07)
+        # Ловит импорты JPA/Hibernate в .kt/.java исходниках karaoke-app и karaoke-web.
+        # Constitution Principle II «Сырой JDBC + дифф по хэшам (NON-NEGOTIABLE)».
+        run: bash tools/check-no-jpa-imports.sh --quiet
+
+  # === no-mp4-mentions guard (Pass 379, R-11, wayfinder #107) ===
+  # Локальный guard-скрипт enforce'ит R-11 (MP4/скачивание запрет по оферте).
+  no-mp4-mentions-guard:
+    name: no-mp4-mentions guard (Pass 379, R-11)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: no-mp4-mentions guard (Pass 379, R-11)
+        # Ловит упоминания \bmp4\b и `скачивани` в production коде по оферте
+        # «доступ только онлайн». Baseline: tools/check-no-mp4-mentions.baseline.
+        run: bash tools/check-no-mp4-mentions.sh --quiet

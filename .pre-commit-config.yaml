@@ -82,6 +82,30 @@ repos:
         always_run: true
         stages: [pre-commit]
 
+      # === Guard: No JPA/Hibernate imports (Pass 379, wayfinder #105) ===
+      # Ловит импорты org.springframework.data.jpa|javax.persistence|hibernate в .kt/.java
+      # файлах karaoke-app/src/main и karaoke-web/src/main (Constitution Principle II).
+      # Тесты (*/test/*) и build-артефакты (*/build/*) исключены.
+      - id: no-jpa-imports-guard
+        name: no-jpa-imports guard (R-07)
+        entry: bash tools/check-no-jpa-imports.sh --quiet
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
+
+      # === Guard: No MP4 mentions (Pass 379, wayfinder #107) ===
+      # R-11 (MP4/скачивание запрет по оферте «доступ только онлайн»).
+      # Ловит упоминания \bmp4\b и `скачивани` в production коде (webvue3, karaoke-public, karaoke-app, karaoke-web).
+      # Baseline: tools/check-no-mp4-mentions.baseline (130 строк legacy-исключений).
+      - id: no-mp4-mentions-guard
+        name: no-mp4-mentions guard (R-11)
+        entry: bash tools/check-no-mp4-mentions.sh --quiet
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
+
       # === Kotlin: ktlint ===
       - id: ktlint
         name: ktlint (Kotlin formatter)

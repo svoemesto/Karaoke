@@ -1366,16 +1366,17 @@ export default {
         this.sendBatchHealthReports(idsToFetch)
       }
     },
-    async sendBatchHealthReports(ids) {
-      try {
-        await promisedXMLHttpRequest({
-          method: 'POST',
-          url: '/api/song/healthReportList/batch',
-          params: { ids: ids.join(';') },
-        })
-      } catch (e) {
+    // specs/118 #397: fire-and-forget POST — backend шлёт SSE HEALTH_REPORTS для
+    // каждой песни (cache-hit сразу, cache-miss после worker'а). HTTP response не
+    // нужен, не дожидаемся. Ошибки логируются, но не блокируют UI.
+    sendBatchHealthReports(ids) {
+      promisedXMLHttpRequest({
+        method: 'POST',
+        url: '/api/song/healthReportList/batch',
+        params: { ids: ids.join(';') },
+      }).catch((e) => {
         console.warn('[SongsTable.sendBatchHealthReports] failed:', e?.message || e)
-      }
+      })
     },
     repairAllForCurrentPage() {
       for (const songId of this.songsIds) {

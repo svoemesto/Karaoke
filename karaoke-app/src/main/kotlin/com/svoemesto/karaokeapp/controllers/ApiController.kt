@@ -57,6 +57,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.*
+import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
@@ -7690,6 +7691,12 @@ class ApiController(
     // запросом, backend через StorageMetadataCache.cacheFillerExecutor (corePoolSize=8,
     // maxPoolSize=16) обрабатывает их чанками. Не нагружает браузер 50 одновременными
     // HTTP-запросами.
+    //
+    // HTTP response — СРАЗУ (минимальный: queued + activeSongIds). Сама обработка
+    // recomputeAndBroadcast запускается в CompletableFuture.runAsync() — fire-and-forget.
+    // Результат по каждой песне прилетает через SSE-событие HEALTH_REPORTS (см.
+    // HealthReport.recomputeAndBroadcast и onFillComplete в
+    // StorageMetadataCache.getFileExistsAsync).
     @PostMapping("/song/healthReportList/batch")
     @ResponseBody
     fun getHealthReportListBatch(
@@ -7700,16 +7707,25 @@ class ApiController(
             idsRaw
                 .split(";")
                 .mapNotNull { it.trim().toLongOrNull() }
-        // Каждый вызов recomputeAndBroadcast добавляет задачи в cacheFillerExecutor.
-        // Executor обрабатывает их параллельно (до 16 worker'ов) — backend сам
-        // управляет concurrency, не frontend.
+        // Fire-and-forget: запускаем обработку в фоновом потоке, HTTP response
+        // возвращается сразу. recomputeAndBroadcast шлёт SSE HEALTH_REPORTS для каждой
+        // песни — для cache-hit синхронно, для cache-miss — после worker'а через
+        // onFillComplete.
         for (id in ids) {
-            HealthReport.recomputeAndBroadcast(
-                songId = id,
-                database = WORKING_DATABASE,
-                storageService = storageService,
-                storageApiClient = storageApiClient,
-            )
+            CompletableFuture.runAsync {
+                try {
+                    HealthReport.recomputeAndBroadcast(
+                        songId = id,
+                        database = WORKING_DATABASE,
+                        storageService = storageService,
+                        storageApiClient = storageApiClient,
+                    )
+                } catch (e: Exception) {
+                    println(
+                        "[getHealthReportListBatch] recomputeAndBroadcast failed for song $id: ${e.message}",
+                    )
+                }
+            }
         }
         return mapOf(
             "queued" to ids.size,

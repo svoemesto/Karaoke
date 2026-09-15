@@ -306,3 +306,41 @@ jobs:
             exit 1
           fi
           echo "✅ No direct commits to master in last 24h"
+
+  # === Governance guards (Pass 372-375, 379) ===
+  # Запускает guard-скрипты, которые machine-readable enforce'ят правила
+  # из AGENTS.md/constitution.md. Каждый guard — отдельный шаг, чтобы failure
+  # в одном не маскировал успех другого. См. .pre-commit-config.yaml
+  # (client-side mirrors).
+  governance-guards:
+    name: Governance guards (Pass 372-375, 379)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: GRADLE_USER_HOME guard (Pass 372)
+        # Проверяет, что $GRADLE_USER_HOME либо не задан И проектная .gradle writable,
+        # либо = /home/nsa/Karaoke/.gradle. AGENTS.md § «Gradle: запуск с GRADLE_USER_HOME».
+        run: bash tools/check-gradle-user-home.sh --quiet
+
+      - name: DOCKER_CONFIG guard (Pass 373)
+        # Проверяет, что $DOCKER_CONFIG либо не задан И проектная .docker writable,
+        # либо = /home/nsa/Karaoke/.docker. AGENTS.md § «Docker build: DOCKER_CONFIG».
+        run: bash tools/check-docker-config.sh --quiet
+
+      - name: container-restart guard (Pass 374)
+        # Ловит прямые docker restart/stop/start контейнеров Karaoke вне deploy/do.sh.
+        # AGENTS.md § «Перезапуск контейнеров через deploy/do.sh».
+        run: bash tools/check-container-restart.sh --quiet
+
+      - name: frontend-build guard (Pass 375)
+        # Ловит npm run <cmd> без cd webvue3 / cd karaoke-public.
+        # AGENTS.md § «Frontend build: cd <frontend-dir> && npm run <cmd>».
+        run: bash tools/check-frontend-build.sh --quiet
+
+      - name: no-jpa-imports guard (Pass 379, R-07)
+        # Ловит импорты JPA/Hibernate в .kt/.java исходниках karaoke-app и karaoke-web.
+        # Constitution Principle II «Сырой JDBC + дифф по хэшам (NON-NEGOTIABLE)».
+        run: bash tools/check-no-jpa-imports.sh --quiet

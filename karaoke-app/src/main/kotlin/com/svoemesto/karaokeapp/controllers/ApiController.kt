@@ -11,6 +11,7 @@ import com.svoemesto.karaokeapp.services.SNS
 import com.svoemesto.karaokeapp.services.SongReleaseAnnouncementService
 import com.svoemesto.karaokeapp.services.SseNotificationService
 import com.svoemesto.karaokeapp.services.StorageApiClient
+import com.svoemesto.karaokeapp.services.StorageMetadataCache
 import com.svoemesto.karaokeapp.services.WVP
 import com.svoemesto.karaokeapp.sync.SyncDirection
 import com.svoemesto.karaokeapp.sync.SyncOperation
@@ -7684,6 +7685,37 @@ class ApiController(
                 storageApiClient = storageApiClient,
             ).errorsOnly()
             .map { it.toDTO() }
+
+    // specs/118 #397: batch-версия healthReportList — web шлёт все песни страницы одним
+    // запросом, backend через StorageMetadataCache.cacheFillerExecutor (corePoolSize=8,
+    // maxPoolSize=16) обрабатывает их чанками. Не нагружает браузер 50 одновременными
+    // HTTP-запросами.
+    @PostMapping("/song/healthReportList/batch")
+    @ResponseBody
+    fun getHealthReportListBatch(
+        @RequestParam(name = "ids", required = false, defaultValue = "") idsRaw: String,
+    ): Map<String, Int> {
+        // ids приходит как semicolon-separated строка (конвенция проекта).
+        val ids: List<Long> =
+            idsRaw
+                .split(";")
+                .mapNotNull { it.trim().toLongOrNull() }
+        // Каждый вызов recomputeAndBroadcast добавляет задачи в cacheFillerExecutor.
+        // Executor обрабатывает их параллельно (до 16 worker'ов) — backend сам
+        // управляет concurrency, не frontend.
+        for (id in ids) {
+            HealthReport.recomputeAndBroadcast(
+                songId = id,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            )
+        }
+        return mapOf(
+            "queued" to ids.size,
+            "activeSongIds" to StorageMetadataCache.getActiveSongIds().size,
+        )
+    }
 
     // Каскадное «Исправить всё»: помечает песню как «в авто-ремонте» и выполняет всё решаемое сейчас.
     // Дальнейшие шаги цепочки (upload в локальное/удалённое хранилище после создания файла на диске)

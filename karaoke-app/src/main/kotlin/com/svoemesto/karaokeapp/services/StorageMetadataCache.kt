@@ -52,7 +52,11 @@ class StorageMetadataCache {
         // Доступ к Companion-членам для их инициализации.
         SOURCE_LOCAL // touch any companion member to force class init
         // Явное обращение к executor для его eager initialization.
-        cacheFillerExecutor
+        // specs/118 #397: corePoolSize=8, но ThreadPoolExecutor создаёт core workers LAZILY.
+        // Без prestartAllCoreThreads() worker'ы появятся только при первом submit'е.
+        // Чтобы 8 worker'ов существовали сразу при старте Spring bean — вызываем
+        // prestartAllCoreThreads().
+        cacheFillerExecutor.prestartAllCoreThreads()
     }
 
     companion object {
@@ -95,7 +99,18 @@ class StorageMetadataCache {
          */
         private val cacheFillerExecutor =
             ThreadPoolExecutor(
-                0,
+                // corePoolSize=8: создаём 8 worker'ов постоянно, чтобы при submit'ах
+                // executor СРАЗУ создавал worker'ов для параллельной обработки (а не
+                // ждал бы создания нового после каждой задачи). Без этого с
+                // corePoolSize=0 executor обрабатывает задачи последовательно одним
+                // worker'ом (см. PR #499 обсуждение), хотя maxPoolSize=16 позволяет
+                // параллелизм.
+                //
+                // Безопасность: idle worker'ы НЕ держат DB connection (Connection —
+                // ThreadLocal, создаётся только при выполнении задачи через
+                // Connection.local().getConnection()). Поэтому нет риска OP #83
+                // (исчерпание max_connections=100 в Postgres).
+                8,
                 16,
                 60L,
                 TimeUnit.SECONDS,
@@ -194,7 +209,7 @@ class StorageMetadataCache {
             // specs/118 #397: после submit уведомляем через отдельный SSE-канал
             // CACHE_QUEUE_SIZE. Дедупликация в sendCacheQueueSizeMessage подавляет
             // повторы, если значение не изменилось.
-            KaraokeProcessWorker.sendCacheQueueSizeMessage(cacheFillerExecutor.queue.size)
+            KaraokeProcessWorker.sendCacheQueueSizeMessage(cacheQueueSize())
         }
 
         /**
@@ -230,7 +245,7 @@ class StorageMetadataCache {
             // specs/118 #397: после submit уведомляем через отдельный SSE-канал
             // CACHE_QUEUE_SIZE. Дедупликация в sendCacheQueueSizeMessage подавляет
             // повторы, если значение не изменилось.
-            KaraokeProcessWorker.sendCacheQueueSizeMessage(cacheFillerExecutor.queue.size)
+            KaraokeProcessWorker.sendCacheQueueSizeMessage(cacheQueueSize())
         }
 
         /**
@@ -240,7 +255,11 @@ class StorageMetadataCache {
          * `@JvmStatic` — чтобы можно было вызывать через экземпляр Spring-bean
          * (иначе только через companion).
          */
-        fun cacheQueueSize(): Int = cacheFillerExecutor.queue.size
+        fun cacheQueueSize(): Int =
+            // specs/118 #397: общее количество активных cache-fill задач =
+            // (в очереди) + (выполняются прямо сейчас). Владелец ожидает «сколько
+            // всего осталось», а не только «сколько ждут». Бейдж показывает total.
+            cacheFillerExecutor.queue.size + cacheFillerExecutor.activeCount
 
         /**
          * specs/118 #397: получить текущее множество активных songId (read-only).

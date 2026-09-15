@@ -652,9 +652,6 @@ export default {
       customConfirmParams: undefined,
       isBusy: false,
       allowAddSync: false,
-      hrQueue: [],
-      hrRunning: 0,
-      HR_MAX_CONCURRENT: 3,
       // Кэш короткой информации о песнях для тултипов root/A-root.
       // Ключ — id песни, значение — { author, year, album, songName }.
       songShortInfoCache: {},
@@ -1067,7 +1064,6 @@ export default {
       handler(newPage) {
         // Сохраняем страницу в store, чтобы она восстановилась после переключения на другой компонент.
         this.$store.commit('setSongsTableCurrentPage', newPage)
-        this.hrQueue = []
         // specs/118 #397: уведомляем backend о смене страницы — песни этой страницы
         // становятся активными для LIFO/всплытия cache-fill задач.
         this.notifyBackendActivePage()
@@ -1350,6 +1346,10 @@ export default {
       this.reloadAssignmentStatus()
     },
     updateHealthReportForCurrentPage() {
+      // specs/118 #397: один batch-запрос вместо HR_MAX_CONCURRENT=3 параллельных.
+      // Backend через StorageMetadataCache.cacheFillerExecutor обрабатывает чанками
+      // (corePoolSize=8, maxPoolSize=16) — самостоятельно управляет concurrency.
+      const idsToFetch = []
       for (const songId of this.songsIds) {
         const songPageNumber = this.songIdAndPageId.get(songId)
         if (songPageNumber === this.currentPage) {
@@ -1357,24 +1357,24 @@ export default {
           if (filteredSongs && filteredSongs.length > 0) {
             const song = filteredSongs[0]
             if (song.healthReportText === '-') {
-              this._enqueueHrRequest(songId)
+              idsToFetch.push(songId)
             }
           }
         }
       }
+      if (idsToFetch.length > 0) {
+        this.sendBatchHealthReports(idsToFetch)
+      }
     },
-    _enqueueHrRequest(songId) {
-      this.hrQueue.push(songId)
-      this._processHrQueue()
-    },
-    _processHrQueue() {
-      while (this.hrRunning < this.HR_MAX_CONCURRENT && this.hrQueue.length > 0) {
-        const id = this.hrQueue.shift()
-        this.hrRunning++
-        this.$store.dispatch('setCurrentSongHealthReports', id).finally(() => {
-          this.hrRunning--
-          this._processHrQueue()
+    async sendBatchHealthReports(ids) {
+      try {
+        await promisedXMLHttpRequest({
+          method: 'POST',
+          url: '/api/song/healthReportList/batch',
+          params: { ids: ids.join(';') },
         })
+      } catch (e) {
+        console.warn('[SongsTable.sendBatchHealthReports] failed:', e?.message || e)
       }
     },
     repairAllForCurrentPage() {
@@ -1938,7 +1938,6 @@ export default {
       this.isHealthReportTableVisible = false
     },
     async editSong(id) {
-      this.hrQueue = []
       await this.$store.dispatch('setCurrentSongId', id)
       this.isSongEditVisible = true
       this.updateHealthReportForCurrentPage()

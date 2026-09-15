@@ -1,5 +1,24 @@
 <!--
   Sync Impact Report
+  - Version change: 2.3.0 → 2.4.0 (MINOR: сокращение Principles I-IX до
+    компактной формы с cross-references, Pass 379 wayfinder #101 #111).
+  - Modified principles: все 9 Principles (I-IX) переписаны в компактный
+    формат «Rule + 1-2 строки + cross-ref». Детали перенесены в:
+    - knowledge/guidelines/architecture-conventions.md (R-04, R-05, R-06, R-08, R-11, R-44).
+    - knowledge/adr/ (ADR-0001, ADR-0005, ADR-0006, etc.).
+    - docs/features/ (per-feature docs по FR-009).
+    - AGENTS.md (MUST #0, subagent isolation, etc.).
+    - CLAUDE.md (operational checklist).
+  - Added sections: none (только сокращение существующих).
+  - Removed sections: длинные «Рациональ» параграфы в Principles I, II, IV, VI,
+    VII, VIII — перенесены в cross-refs.
+  - Templates requiring updates: none (consumers — AGENTS.md, knowledge/, ADR).
+  - New artifacts to reference:
+      - knowledge/guidelines/architecture-conventions.md (после wayfinder #108).
+  - Follow-up TODOs: none.
+  - Sync: pass-through с wayfinder #111 (Pass 379) — semver 2.3.0 → 2.4.0.
+
+  Sync Impact Report (предыдущая версия, 2.2.0 → 2.3.0)
   - Version change: 2.2.0 → 2.3.0 (MINOR: добавление Principle IX.3 — Subagent
     workspace isolation, синхронизация с AGENTS.md v2.8.0 Pass 379 follow-up).
   - Modified principles: добавлен Principle IX.3 — Subagent workspace isolation.
@@ -84,272 +103,132 @@
 
 ## Core Principles
 
+> **Формат**: каждый Principle содержит **название**, **1-2 строки утверждения**,
+> **cross-reference** на детали. Это **нормативная база** — детали реализации
+> живут в `knowledge/` (домены, компоненты), `ADR-XXXX-*.md`, `architecture-conventions.md`.
+
 ### I. Self-contained автопайплайн (NON-NEGOTIABLE)
 
-Пайплайн производства караоке-видео (ffmpeg, melt/MLT, Demucs, Sheetsage) выполняется
-на admin-машине через `ProcessBuilder` без зависимости от внешних SaaS в рантайме
-обработки аудио/видео. Допускаются локально развёрнутые ML-модели (Ollama, Silero TTS,
-Sheetsage) и локальный SearXNG. Любая новая фича, требующая внешнего API в горячем
-пути обработки медиа, должна сначала получить одобрение пользователя.
+**Rule**: Пайплайн Karaoke (ffmpeg, melt/MLT, Demucs, Sheetsage) выполняется
+на admin-машине через `ProcessBuilder` **без зависимости от внешних SaaS** в рантайме.
+Допускаются локально развёрнутые ML (Ollama, Silero TTS, Sheetsage, SearXNG).
 
-Рациональ: исторически проект развивался в условиях ограниченного/нестабильного
-интернета на admin-машине; cloud-only зависимости ломали прод.
+**Детали / рациональ**: см. ADR-0005 (self-hosted ML), sections
+«Технологический стек» + «Рабочий процесс» ниже.
 
 ### II. Сырой JDBC + дифф по хэшам (NON-NEGOTIABLE)
 
-Доступ к БД — только через сырой JDBC (`KaraokeConnection`, `Connection.local()/remote()/`virtual()`).
-Никакого JPA/Hibernate/Exposed. Сравнение LOCAL↔SERVER — через `recordhash` (md5 от
-канонизированной строки таблицы), реализованный триггерами в БД + reflection-diff
-в `KaraokeDbTable.save()`. **Любое сравнение рекордов между двумя БД обязано идти
-через `associateBy { it.id }` (O(n)) — не через вложенные `.any`/`.none` (O(n²))**.
-Загрузка записей для diff — пакетно `WHERE id IN (..)`, не по одной в цикле.
+**Rule**: БД — только через сырой JDBC (`KaraokeConnection`). Никакого
+JPA/Hibernate/Exposed. Сравнение LOCAL↔SERVER — через `recordhash` + `associateBy { it.id }`.
 
-Рациональ: 18k+ записей на проде; O(n²) сравнения занимали 3+ минуты, O(n) — секунды.
+**Enforcement**: `tools/check-no-jpa-imports.sh` (Pass 379, R-07).
+
+**Детали**: см. ADR-0001-raw-jdbc.
 
 ### III. Двух-БД синхронизация через SyncRegistry
 
-Любая сущность, которая должна расходиться между LOCAL и SERVER, обязана быть
-явно добавлена в `SyncRegistry.all` (`sync/SyncTarget.kt`) и получить свои
-8 флагов `sync_<key>_<push|pull>_<insert|update|delete|move>_allowed` в
-`KaraokeProperties.kt`. Наличие `recordhash`-триггера в SQL-миграции **не**
-означает участие в «Синхронизации в 1 клик». При добавлении/изменении колонок
-таблицы, участвующей в sync, **обязательно** пересоздаётся `recordhash`-триггер
-для затронутых таблиц (LOCAL и PROD) — иначе md5 разойдётся и sync сломается.
+**Rule**: Сущности с LOCAL↔SERVER sync обязаны быть в `SyncRegistry.all`
++ 8 флагов `sync_<key>_<push|pull>_<insert|update|delete|move>_allowed`
+в `KaraokeProperties.kt`.
+
+**Детали**: см. `sync/SyncTarget.kt`.
 
 ### IV. Async-очередь задач с парсингом stdout
 
-Все длительные операции (ffmpeg, melt, Demucs, Sheetsage, загрузка в MinIO,
-стим-джебы) — через `KaraokeProcess*` как OS-подпроцесс (`ProcessBuilder`).
-Прогресс парсится из stdout по регексам (ffmpeg `time=`, Sheetsage `NN%|`).
-**ProcessBuilder.redirectErrorStream(false) ЗАПРЕЩЁН** — буфер stderr переполняется
-и блокирует процесс; всегда `redirectErrorStream(true)`. Задания имеют приоритет
-и `threadId`-лейны (`HEAVY_RENDER=0`, `LIGHT_BACKGROUND=-1`, `REMOTE_STORE_UPLOAD=-2`,
-`STEM_JOBS=…`); CPU ограничивается тремя слоями (docker `--cpus`, `MLT_CPU_LIMIT`,
-`docker update`).
+**Rule**: Длительные операции — через `KaraokeProcess*` (OS subprocess).
+**ProcessBuilder.redirectErrorStream(true) обязательно**. Задания имеют
+приоритет и `threadId`-лейны (`HEAVY_RENDER=0`, `LIGHT_BACKGROUND=-1`, etc).
 
-### V. Двух-фронтенд: админка и публичный сайт — разные приложения
+**Детали**: см. ADR-0006 (redirectErrorStream).
 
-- `webvue3` — admin SPA (Vue 3 + Vite + Vuex + Bootstrap-vue-next), `permitAll()` в
-  `SecurityConfig.kt`, без авторизации. Хранит состояние через Vuex-модули
-  (`<Entity>/store.js`) и персистит фильтры таблиц через `<Entity>/filter/store.js` +
-  `setWebvueProp`/`getWebvueProp` (server-side key/value, переживает F5).
-- `karaoke-public` — публичный SPA (Vue 3 + Vite + Bootstrap 5) с двумя дизайнами
-  (`classic` / `modern`, выбор в `localStorage`), CSS-переменные `--km-*`.
-- Смешивание ответственностей между admin и public ЗАПРЕЩЕНО. `<select>` в обеих SPA
-  — с классом `form-select` (не `form-control`). Картинки — только MinIO, поле
-  `picture_full` всегда `""`. Тег `SKIP` отдаёт заглушку «удалено по требованию
-  правообладателя», теги наружу не утекают.
+### V. Двух-фронтенд: admin и public — разные приложения
+
+**Rule**: `webvue3` (admin) и `karaoke-public` (public) — **разные приложения**.
+Смешивание ЗАПРЕЩЕНО.
+
+**Детали**: см. CLAUDE.md § «Двух-фронтенд» + cross-machine test setup.
 
 ### VI. Code Standards (NON-NEGOTIABLE)
 
-- **FR-006**: Публичные API (`class`, `fun`, `interface`, `export default` Vue-компонент)
-  MUST сопровождаться KDoc/JSDoc-комментариями с `@see`-ссылкой на соответствующий
-  per-feature документ (`docs/features/<slug>.md`). Документация генерируется через
-  Dokka (`./tools/generate-docs.sh` → `docs/api/dokka/`) и typedoc
-  (`docs/api/typedoc-*/`); CI/pre-commit MUST падать при `missing description`.
-- **FR-007**: Линтеры ktlint (Kotlin) и ESLint (Vue/JS) MUST запускаться через
-  pre-commit hooks (см. `.pre-commit-config.yaml`) и в `./tools/baseline-stats.sh`.
-  Известные нарушения фиксируются в per-module baseline-файлах
-  (`config/ktlint/baseline-*.xml`, `webvue3/.eslint-baseline.json`,
-  `karaoke-public/.eslint-baseline.json`); CI MUST падать на **новые** нарушения
-  через `./tools/check-eslint-baseline.sh` и `./gradlew ktlintCheck`. Темп
-  сокращения baseline — **≥10%/мес** (SC-002 `spec.md`).
-- **FR-009**: При правке кода одной из 9 ключевых подсистем
-  (`docs/features/README.md`) разработчик MUST в том же PR обновить
-  соответствующий per-feature документ (см. секцию «Контракт per-feature документа»
-  в `specs/001-code-standards-docs/contracts/per-feature-doc.md`). Чек-лист
-  включается в `.github/PULL_REQUEST_TEMPLATE.md`.
-- **Рациональ**: единые стандарты кода снижают bus-factor, ускоряют онбординг и
-  делают рефакторинг безопасным. Сокращение baseline — ежемесячная метрика
-  качества, отслеживаемая в `tools/baseline-stats.sh` (текущее значение —
-  см. `git log -p baseline-*.xml`).
+**Rule (FR-006)**: публичные API MUST иметь KDoc/JSDoc + `@see` на
+`docs/features/<slug>.md`. CI падает на missing description.
+
+**Rule (FR-007)**: ktlint/ESLint в pre-commit + CI. Baseline в per-module
+файлах. CI падает на **новые** нарушения. Темп сокращения ≥10%/мес.
+
+**Rule (FR-009)**: при правке кода MUST обновить per-feature документ
+в том же PR (чеклист в `.github/PULL_REQUEST_TEMPLATE.md`).
+
+**Детали**: см. `specs/001-code-standards-docs/contracts/per-feature-doc.md`.
 
 ### VII. Cross-Machine Setup (NON-NEGOTIABLE)
 
-> **Контекст.** Phase 002 (PR #27-#30) зафиксировала правила для
-> **нескольких разработчиков** с **разными AI-агентами** (opencode / Claude
-> Code / Cursor / другие). Эти правила НЕОБХОДИМЫ для согласованной работы
-> на разных машинах.
+**Rule**: Локальные AI-конфиги (`CLAUDE.md`, `.cursorrules`, `.aider*`,
+`AGENTS.md.local`, `.claude/`) MUST быть в `.git/info/exclude` или
+`~/.gitignore_global`. Только общие правила — в `AGENTS.md`.
 
-- **VII.1. Локальные AI-конфиги НЕ коммитить.** Персональные файлы
-  (`CLAUDE.md`, `.cursorrules`, `.aider*`, `AGENTS.md.local`, `.claude/`)
-  MUST быть в `.git/info/exclude` или `~/.gitignore_global`. Только общие
-  правила (для всех opencode-сессий) — в `AGENTS.md` (в гите).
-  **Рациональ**: личные настройки отличаются у разных разработчиков;
-  коммит в master = `git pull` merge conflict + потерянная локальная работа
-  (см. PR #29 как пример).
-- **VII.2. `.git-blame-ignore-revs`** MUST содержать хэши **всех** коммитов,
-  которые меняли сотни файлов без изменения логики (prettier formatting,
-  baseline healing, авто-KDoc/JSDoc, документация). После настройки
-  `git config blame.ignoreRevsFile .git-blame-ignore-revs` (один раз на машине)
-  `git blame` показывает автора оригинальной строки, а не автора рефакторинга.
-  **Рациональ**: 7 коммитов Phase 001 затронули 548 файлов (+57K/−28K строк);
-  без `.git-blame-ignore-revs` `git blame` показывает шум.
-- **VII.3. `.gitattributes`** MUST нормализовать line endings (`* text=auto eol=lf`)
-  и помечать бинарные файлы (`*.png binary`, `*.jar binary`). Без этого
-  разработчики на Windows получают `git diff` «всё изменилось» в каждом PR.
-  **Рациональ**: CRLF→LF нормализация при commit + lock-файлы `-diff`.
-- **VII.4. Cross-machine документация** MUST включать как минимум:
-  - [`docs/onboarding.md`](../docs/onboarding.md) — общий setup для любого AI-агента.
-  - [`docs/claude-code-setup.md`](../docs/claude-code-setup.md) — настройка Claude Code
-    (локальный `CLAUDE.md`, FAQ, troubleshooting).
-  - [`docs/architecture-notes.md`](../docs/architecture-notes.md) — датированный
-    changelog (Pass 1-14), чтобы новый разработчик понимал «почему так, а не иначе».
-  **Рациональ**: новый разработчик за 30-60 минут должен привести машину
-  в состояние «готова к PR, который пройдёт CI без правок».
-- **Рациональ**: Phase 002 зафиксировала, что «общее в гите, персональное
-  локально» — единственный масштабируемый подход для команд с разными
-  AI-агентами. Без этих правил каждый разработчик изобретает свой setup,
-  что ломает consistency и on-call.
+**Rule**: `.git-blame-ignore-revs` MUST содержать хэши массовых коммитов
+(prettier, baseline healing). `.gitattributes` — нормализация line endings.
+
+**Детали**: см. `docs/onboarding.md`, `docs/claude-code-setup.md`,
+`docs/architecture-notes.md`.
 
 ### VIII. Секреты и git-гигиена (NON-NEGOTIABLE)
 
-> **Контекст.** Инцидент 2026-08-03: при миграции прода обнаружено, что
-> `deploy/.env` (с паролями Postgres, MinIO key/secret, Docker Hub PAT)
-> **трекался в публичном git-репозитории github.com/svoemesto/Karaoke
-> с мая 2023 года** — более 3 лет. Файл был в `.gitignore`, но был закоммичен
-> **до** добавления в `.gitignore`; git продолжает трекать файл, даже если
-> он позже добавлен в `.gitignore`. То же самое с `deploy/do.env`,
-> `deploy/web-server-deploy/deploy/.env`, `deploy/new_comp/sm-karaoke-system/deploy/.env`.
-> Утёкшие секреты: `KaRaOkE-47912130-password` (Postgres prod, активен),
-> `minio_key`/`minio_secret` (MinIO, активны), `dckr_pat_SxLnc...` /
-> `dckr_pat_p8qXV...` (Docker Hub PAT, старые). Все секреты доступны
-> кому угодно в публичной истории git.
+**Прецедент**: 2026-08-03 — `deploy/.env` с паролями Postgres/MinIO/Docker Hub
+трекался в публичном github.com/svoemesto/Karaoke **3 года**.
 
-- **VIII.1. Секрет-файлы MUST быть в `.gitignore` И НЕ трекаться git.**
-  `.gitignore` игнорирует только **ещё не трекаемые** файлы. Если файл
-  уже в индексе git — добавление в `.gitignore` НЕ убирает его из трекинга.
-  Проверка: `git ls-files deploy/.env` — MUST возвращать пусто. Если
-  возвращает путь — файл трекается, срочно `git rm --cached <file>`.
+**Rule (VIII.1)**: Секрет-файлы MUST быть в `.gitignore` И НЕ трекаться git.
+`.gitignore` НЕ достаточно — `git rm --cached` обязательно для файлов
+уже в индексе.
 
-- **VIII.2. Список файл-паттернов, которые MUST быть в `.gitignore`
-  и НЕ трекаться git (never commit):**
-  - `deploy/.env`, `deploy/do.env` (секреты: пароли БД, MinIO, Docker PAT,
-    YOOKASSA, VK)
-  - `deploy/web-server-deploy/deploy/.env`,
-    `deploy/web-server-deploy/deploy/do.env`
-  - `deploy/new_comp/sm-karaoke-system/deploy/.env`,
-    `deploy/new_comp/sm-karaoke-system/deploy/do.env`
-  - `*.key`, `*.pem`, `*.p12`, `*.pfx` (SSL-сертификаты и приватные ключи)
-  - `deploy/ollama_data/`, `dist/`, `node_modules/`
-  - `CLAUDE.md`, `.cursorrules`, `.aider*` (см. Principle VII.1)
+**Rule (VIII.2)**: Never commit: `deploy/.env`, `deploy/do.env`,
+`*.key`, `*.pem`, `*.p12`, `*.pfx`, `deploy/ollama_data/`, `dist/`,
+`node_modules/`, `CLAUDE.md`, `.cursorrules`, `.aider*`.
 
-- **VIII.3. Pre-commit check MUST верифицировать, что ни один секрет-файл
-  не попадает в индекс.** Перед каждым `git add` / `git commit`:
-  ```bash
-  git ls-files | grep -iE '\.env$|do\.env$|\.key$|\.pem$|\.p12$|\.pfx$'
-  ```
-  MUST возвращать пусто. Если возвращает пути — коммит ЗАПРЕЩЁН,
-  сначала `git rm --cached <file>` для каждого.
+**Rule (VIII.3)**: Pre-commit check MUST верифицировать, что ни один
+секрет-файл не попадает в индекс:
+`git ls-files | grep -iE '\.env$|do\.env$|\.key$|\.pem$'` → пусто.
 
-- **VIII.4. При обнаружении утёкшего секрета в истории git:**
-  1. **НЕМЕДЛЕННО** сменить секрет (пароль / ключ / PAT) на новый —
-     даже до переписывания истории. Смена секрета — приоритет выше
-     очистки истории, потому что переписывание не отменяет того, что
-     секрет уже мог быть скопирован.
-  2. Убрать файл из индекса: `git rm --cached <file>`.
-  3. Проверить `.gitignore` — паттерн MUST присутствовать.
-  4. Переписывание истории (`git filter-repo` / BFG) — опционально,
-     если репо приватное и доступ ограничен. Если репо публичное —
-     **обязательно** после смены всех утёкших секретов (старые значения
-     уже невалидны, но переписывание убирает их из клонов/forks).
-  5. Зафиксировать инцидент в `docs/architecture-notes.md`.
+**Rule (VIII.4)**: При обнаружении утёкшего секрета — **НЕМЕДЛЕННО**
+сменить секрет (приоритет выше очистки истории), потом `git rm --cached`,
+потом опционально `git filter-repo`.
 
-- **VIII.5. Секреты в коде (hardcoded) ЗАПРЕЩЕНЫ.** IP-адреса серверов,
-  пароли, ключи, токены MUST приходить из env-переменных (`@Value`,
-  `System.getenv`), не быть захардкожены в `.kt`/`.yml`/`.sh` файлах.
-  Дефолты в `${VAR:default}` допустимы, но дефолт MUST быть невалидным
-  или публичным значением (доменное имя, localhost), не секретом.
-  Проверка: `grep -rE 'password|secret|token|pat' --include='*.kt'`
-  MUST возвращать только `@Value`/`System.getenv`/пустые дефолты.
+**Rule (VIII.5)**: Секреты в коде (hardcoded) ЗАПРЕЩЕНЫ — только через
+env-переменные (`@Value`, `System.getenv`). Дефолт в `${VAR:default}`
+допустим, но дефолт MUST быть невалидным или публичным.
 
-- **Рациональ**: публичный репозиторий с утёкшими паролями = компрометация
-  всей инфраструктуры. `.gitignore` без `git rm --cached` = иллюзия
-  защиты. Смена секрета после утечки — единственный надёжный путь;
-  переписывание истории — косметика (секрет уже мог быть скопирован).
+**Детали**: см. `docs/migration-prod-server.md`.
 
 ### IX. Knowledge-first при разработке фич (NON-NEGOTIABLE)
 
-> **Прецедент**: 2026-09-09, spec #339 («Кеширование информации из
-> хранилища», задача OpenProject #69). Агент пропустил Knowledge-first
-> pre-flight, пошёл сразу в `codegraph_explore` по `HealthReport` и
-> `fileExists`, и **изобрёл форму кеша** вместо использования устоявшихся
-> паттернов из `knowledge/domains/caching/components/caching-patterns.md`.
-> Результат: спека приведена в негодность, ветка удалена, NNN 339 освобождён.
+**Прецедент**: spec #339 — агент изобрёл форму кеша вместо паттернов
+из `knowledge/domains/caching/components/caching-patterns.md`.
 
-**IX.1. Перед ЛЮБОЙ новой фичей / спекой / серьёзной правкой кода агент MUST:**
+**Rule**: Перед ЛЮБОЙ новой фичей — 5 шагов Knowledge-first (README + 3+ grep
++ domain.md + components + ADR). Только после — `codegraph_explore` / grep.
 
-1. Прочитать `knowledge/README.md` + `knowledge/domains/README.md` —
-   полностью.
-2. Определить релевантные домены через `grep -r '<keyword>' knowledge/` —
-   минимум 3 попытки с разными ключевыми словами.
-3. Прочитать `domain.md` + **все** `components/*.md` для каждого
-   релевантного домена — до обращения к коду.
-4. Прочитать **все** `local-*.md` ADR из `knowledge/adr/` — они
-   фиксируют принятые решения, которые запрещено переизобретать.
-5. Только после шагов 1-4 — идти в `codegraph_explore` / `grep` по
-   `src/`.
+**Failure-stop**: codegraph ДО Knowledge = нарушение Constitution.
+Search без результатов = зафиксировать в spec.md явно.
 
-**IX.2. Failure-stop правила:**
+**Enforcement**: `tools/spec-knowledge-preflight.sh` (Pass 340).
 
-- Если grep по `knowledge/` не дал результата — зафиксировать в `spec.md`
-  явно: «Searched: `<queries>` → `<files checked>` → no relevant docs».
-- Если релевантное содержимое найдено, но проигнорировано — спека
-  считается сломанной и MUST быть возвращена на `/speckit.clarify` для
-  переработки.
-- `codegraph_explore` / `grep` по `src/`, выполненные ДО Knowledge-first
-  pre-flight, считаются нарушением Constitution (см. также п. 5
-  «Категорически запрещено» — добавлен явный пункт).
+**Single source of truth**: `AGENTS.md` MUST #0 + constitution.md § IX.
 
-**IX.3. Синхронизация с другими правилами:**
-
-- Дублируется в `AGENTS.md` MUST #0 (Pass 340).
-- Enforcement: `tools/spec-knowledge-preflight.sh` (Pass 340) —
-  пре-хуковый скрипт, который enforce'ит шаги 1-4 перед
-  `tools/specify-bootstrap.sh`.
-- В `spec.md` (`.specify/templates/spec-template.md`) секция
-  «Knowledge References» — MANDATORY (Pass 340).
-- В `checklists/requirements.md` секция «Knowledge Compliance» —
-  MANDATORY (Pass 340).
-- В `AGENTS.md` MUST #0 — failure-stop формулировки с прецедентом #339.
-
-**Рациональ**: Knowledge-first — это **первый** уровень защиты от
-повторения инцидента #339. Каждый раз, когда агент обходит Knowledge,
-он рискует либо изобрести форму того, что уже решено (как #339), либо
-нарушить принятое решение (как локальный ADR `local-0003-shared-minio-image-cache.md`
-уже зафиксировал MinIO+TTL для image-cache). Знание паттернов и ADR —
-это не «полезное дополнение», а обязательный baseline для любого
-проектирования.
+**Детали**: см. AGENTS.md § MUST #0, `docs/governance/knowledge-first.md` (layer 2).
 
 #### IX.3 — Subagent workspace isolation (NON-NEGOTIABLE, Pass 379)
 
-**Rule**: При запуске нескольких субагентов для **параллельных PR-веток**
-каждый субагент MUST работать в **отдельном `git worktree`** (или в отдельной
-рабочей копии репо).
-
-**Запрещено**:
-- ❌ Несколько субагентов в одном `cwd` одновременно.
-- ❌ `git stash` поверх чужой ветки (вместо своей).
-- ❌ `git checkout <branch-other-than-mine>` в работающем субагенте.
-- ❌ `git push` в чужую ветку.
-
-**Прецедент (Pass 379, wayfinder #101)**: 3 параллельных субагента
-(R-07 JPA, R-04/05 docker, R-11 MP4) в одном workspace привели к
-race condition — через `git checkout` + `git stash` субагенты переключались
-на чужие ветки, и в PR #484 оказался чужой commit `66946300` (JPA),
-а в `.pre-commit-config.yaml` / `.github/workflows/lint.yml` — лишние hooks/steps.
-Чинилось через rebase + amend + force-push вручную (~30 минут).
+**Rule**: Несколько субагентов для параллельных PR-веток MUST работать в
+отдельных `git worktree`. Прецедент Pass 379 — race condition привела к
+30 минутам на rebase всех PRов.
 
 **Mandatory Action**: `git worktree add ../Karaoke-${N}-${slug} -b "${N}-${slug}" master`
-для каждого субагента ПЕРЕД запуском.
+перед запуском каждого субагента.
 
-**Failure-stop**: Субагент запущен в общем workspace → 30+ минут на rebase
-всех PR'ов, потенциально потеря коммитов, corrupted force-push.
+**Enforcement**: `tools/check-subagent-isolation.sh` (Pass 379).
 
-**Синхронизация**:
-- `AGENTS.md` § «Subagent workspace isolation» (Pass 379 follow-up, semver 2.7.0 → 2.8.0).
-- `tools/check-subagent-isolation.sh` (guard, proposed).
-- Прямой governance-PR #389 (Pass 379 follow-up).
+**Single source of truth**: `AGENTS.md` § «Subagent workspace isolation» (Pass 379 follow-up, semver 2.7.0 → 2.8.0).
 
 ## Технологический стек
 
@@ -498,4 +377,4 @@ race condition — через `git checkout` + `git stash` субагенты п
    - `docker exec karaoke-web env | grep <VAR>` для проверки реально прокинутых
      env-переменных.
 
-**Version**: 2.1.0 | **Ratified**: 2026-07-20 | **Last Amended**: 2026-08-03
+**Version**: 2.4.0 | **Ratified**: 2026-07-20 | **Last Amended**: 2026-09-15 (Pass 379 wayfinder #111)

@@ -78,6 +78,18 @@ repos:
         always_run: true
         stages: [pre-commit]
 
+      # === Guard: No JPA/Hibernate imports (Pass 379, wayfinder #105) ===
+      # Ловит импорты org.springframework.data.jpa|javax.persistence|hibernate в .kt/.java
+      # файлах karaoke-app/src/main и karaoke-web/src/main (Constitution Principle II).
+      # Тесты (*/test/*) и build-артефакты (*/build/*) исключены.
+      - id: no-jpa-imports-guard
+        name: no-jpa-imports guard (R-07)
+        entry: bash tools/check-no-jpa-imports.sh --quiet
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
+
       # === Kotlin: ktlint ===
       - id: ktlint
         name: ktlint (Kotlin formatter)

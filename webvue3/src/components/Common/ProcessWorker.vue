@@ -21,6 +21,9 @@
         <img v-else alt="stop" class="icon-40" src="../../assets/svg/icon_stop.svg" />
       </button>
       <div class="text-count-waiting" v-text="countWaiting" />
+      <!-- specs/118 #397: бейдж размера cache-очереди StorageMetadataCache (правый верхний угол).
+           Показывается всегда (даже если queueSize=0), чтобы пользователь видел индикатор активности. -->
+      <div class="text-cache-pool-size" v-text="cacheQueueSize" />
     </div>
     <custom-confirm
       v-if="isConfirmVisible"
@@ -94,6 +97,10 @@ export default {
     countWaiting() {
       return this.$store.getters.getCountWaiting
     },
+    // specs/118 #397: размер cache-очереди StorageMetadataCache.
+    cacheQueueSize() {
+      return this.$store.getters.getCacheQueueSize
+    },
     disabled() {
       return this.isWork && this.stopAfterThreadIsDone
     },
@@ -130,6 +137,8 @@ export default {
   mounted() {
     this.checkUpdateProcessesWorker()
     this.checkCountWaiting()
+    // specs/118 #397: initial poll размера cache-очереди.
+    this.checkCacheQueueSize()
   },
   methods: {
     clickStartStopWorkerButton() {
@@ -163,6 +172,13 @@ export default {
     checkCountWaiting() {
       this.$store.dispatch('getProcessesCountWaitingPromise').then((data) => {
         this.$store.dispatch('setCountWaiting', { countWaiting: data })
+      })
+    },
+    // specs/118 #397: загрузить размер cache-очереди.
+    checkCacheQueueSize() {
+      this.$store.dispatch('getCacheQueueSizePromise').then((data) => {
+        const size = typeof data === 'number' ? data : (data?.queueSize ?? 0)
+        this.$store.dispatch('setCacheQueueSize', size)
       })
     },
     truncateString(name, maxSymbols) {
@@ -253,5 +269,18 @@ export default {
   font-size: 0.75rem;
   background-color: #e9ecef;
   border-radius: 0.25rem;
+}
+/* specs/118 #397: синий бейдж размера cache-очереди — правый верхний угол кнопки. */
+.text-cache-pool-size {
+  font-size: x-small;
+  color: white;
+  position: absolute;
+  pointer-events: none;
+  top: 0;
+  right: 0;
+  transform: translate(50%, -50%);
+  padding: 0 4px;
+  border-radius: 5px;
+  background-color: var(--bs-primary, #0d6efd);
 }
 </style>

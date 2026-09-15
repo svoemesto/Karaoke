@@ -43,6 +43,8 @@ export default {
     processWillStopAfterThreadIsDone: false,
     workingProcessByThreadId: {},
     countWaiting: '...',
+    // specs/118 #397: размер cache-очереди StorageMetadataCache (см. POST /api/health/cache-queue-size).
+    cacheQueueSize: 0,
     // Текущая страница пагинации в ProcessesTable. Сохраняем в сторе, чтобы при уходе с компонента
     // и возврате — открывалась страница, на которой остановился пользователь.
     processesTableCurrentPage: 1,
@@ -92,6 +94,10 @@ export default {
     },
     getCountWaiting(state) {
       return state.countWaiting
+    },
+    // specs/118 #397: размер cache-очереди StorageMetadataCache.
+    getCacheQueueSize(state) {
+      return state.cacheQueueSize
     },
     getProcessesTableCurrentPage(state) {
       return state.processesTableCurrentPage
@@ -195,6 +201,10 @@ export default {
     },
     setCountWaiting(state, userEventData) {
       state.countWaiting = userEventData.countWaiting
+    },
+    // specs/118 #397: установить размер cache-очереди.
+    setCacheQueueSize(state, size) {
+      state.cacheQueueSize = typeof size === 'number' ? size : 0
     },
     setProcessWillStopAfterThreadIsDone(state, processWillStopAfterThreadIsDone) {
       state.processWillStopAfterThreadIsDone = processWillStopAfterThreadIsDone
@@ -311,11 +321,20 @@ export default {
       let request = { method: 'POST', url: '/api/processes/countwaiting' }
       return promisedXMLHttpRequest(request)
     },
+    // specs/118 #397: запросить размер cache-очереди.
+    getCacheQueueSizePromise: () => {
+      const request = { method: 'GET', url: '/api/health/cache-queue-size' }
+      return promisedXMLHttpRequest(request)
+    },
     setProcessIsWorking(ctx, processIsWorking) {
       ctx.commit('setProcessIsWorking', processIsWorking)
     },
     setCountWaiting(ctx, userEventData) {
       ctx.commit('setCountWaiting', userEventData)
+    },
+    // specs/118 #397: action-обёртка для setCacheQueueSize.
+    setCacheQueueSize(ctx, size) {
+      ctx.commit('setCacheQueueSize', size)
     },
     setProcessWillStopAfterThreadIsDone(ctx, processWillStopAfterThreadIsDone) {
       ctx.commit('setProcessWillStopAfterThreadIsDone', processWillStopAfterThreadIsDone)

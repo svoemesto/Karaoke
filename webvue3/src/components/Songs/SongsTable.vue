@@ -551,6 +551,7 @@ import SmartCopyModal from '../../components/Common/SmartCopy/SmartCopyModal.vue
 import CustomConfirm from '../../components/Common/CustomConfirm.vue'
 import HealthReportTable from '../Common/HealthReport/HealthReportTable.vue'
 import ReviewModal from '../SongEditor/ReviewModal.vue'
+import { promisedXMLHttpRequest } from '../../lib/utils'
 
 const ASSIGN_STATUS_LABELS = {
   assigned: 'Назначено',
@@ -1067,6 +1068,9 @@ export default {
         // Сохраняем страницу в store, чтобы она восстановилась после переключения на другой компонент.
         this.$store.commit('setSongsTableCurrentPage', newPage)
         this.hrQueue = []
+        // specs/118 #397: уведомляем backend о смене страницы — песни этой страницы
+        // становятся активными для LIFO/всплытия cache-fill задач.
+        this.notifyBackendActivePage()
         this.updateHealthReportForCurrentPage()
         this.reloadAssignmentStatus()
       },
@@ -1083,6 +1087,10 @@ export default {
     await this.$store.dispatch('loadEditorDefaultTarget')
     this.$store.dispatch('loadEditorSiteUsers', this.$store.getters.getEditorDefaultTarget)
     this.reloadAssignmentStatus()
+    // specs/118 #397: уведомить backend о песнях текущей страницы при монтировании
+    // (debounce внутри notifyBackendActivePage). Вызываем после того, как songsIds
+    // инициализируются через loadSongsDigests; если список ещё пуст — пропускаем.
+    setTimeout(() => this.notifyBackendActivePage(), 500)
   },
   methods: {
     /**
@@ -1098,6 +1106,36 @@ export default {
         perPage: this.perPage,
         ...this.$store.getters.getSongsFilter,
       })
+      // specs/118 #397: после загрузки списка песен уведомляем backend о текущей странице.
+      this.notifyBackendActivePage()
+    },
+    // specs/118 #397: уведомить backend о песнях текущей страницы — для LIFO/всплытия
+    // cache-fill задач (см. StorageMetadataCache.setActiveSongIds).
+    // Debounce 250ms — чтобы не спамить при быстром переключении страниц.
+    notifyBackendActivePageDebounce: undefined,
+    notifyBackendActivePage() {
+      if (this.notifyBackendActivePageDebounce) {
+        clearTimeout(this.notifyBackendActivePageDebounce)
+      }
+      this.notifyBackendActivePageDebounce = setTimeout(() => {
+        this.notifyBackendActivePageDebounce = undefined
+        const activeSongIds = this.currentPageSongIds
+        if (!activeSongIds || activeSongIds.length === 0) return
+        this.sendActiveSongIds(activeSongIds)
+      }, 250)
+    },
+    async sendActiveSongIds(activeSongIds) {
+      try {
+        const request = {
+          method: 'POST',
+          url: '/api/health/active-song-ids',
+          data: { activeSongIds },
+          headers: { 'Content-Type': 'application/json' },
+        }
+        await promisedXMLHttpRequest(request)
+      } catch (e) {
+        console.warn('[SongsTable.notifyBackendActivePage] failed:', e?.message || e)
+      }
     },
     /**
      * specs/358-rows-per-page: обработчик изменения поля «Строк на странице».

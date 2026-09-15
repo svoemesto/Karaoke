@@ -2,6 +2,8 @@ package com.svoemesto.karaokeapp.controllers
 
 import com.svoemesto.karaokeapp.services.StorageMetadataCache
 import org.springframework.web.bind.annotation.DeleteMapping
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
@@ -67,4 +69,45 @@ class CacheAdminController(
             "rowsDeleted" to deleted,
         )
     }
+
+    /**
+     * specs/118 #397: POST `/api/health/active-song-ids`
+     *
+     * Устанавливает множество активных songId (песен текущей страницы админки) —
+     * backend приоритезирует cache-fill задачи для этих songId (вставка в начало
+     * очереди, всплытие при смене страницы).
+     *
+     * Body: `{ "activeSongIds": [123, 456, ...] }`
+     *
+     * Returns: `Map { "activeSongIds" -> установленное множество (size) }`.
+     */
+    @PostMapping("/active-song-ids")
+    fun setActiveSongIds(
+        @RequestBody body: Map<String, Any>,
+    ): Map<String, Any> {
+        val rawIds = body["activeSongIds"]
+        val activeSongIds: Set<Long> = parseActiveSongIds(rawIds)
+        StorageMetadataCache.setActiveSongIds(activeSongIds)
+        return mapOf(
+            "activeSongIds" to activeSongIds.size,
+            "queueSize" to StorageMetadataCache.cacheQueueSize(),
+        )
+    }
+
+    private fun parseActiveSongIds(rawIds: Any?): Set<Long> =
+        when (rawIds) {
+            is List<*> -> rawIds.mapNotNull { (it as? Number)?.toLong() }.toSet()
+            is Array<*> -> rawIds.mapNotNull { (it as? Number)?.toLong() }.toSet()
+            else -> emptySet()
+        }
+
+    /**
+     * specs/118 #397: GET `/api/health/cache-queue-size`
+     *
+     * Текущий размер очереди cache-fill (`StorageMetadataCache.cacheFillerExecutor`).
+     * Используется для бейджа в UI (правый верхний угол кнопки Старт/Стоп в SongsTable).
+     */
+    @org.springframework.web.bind.annotation.GetMapping("/cache-queue-size")
+    fun cacheQueueSize(): Map<String, Any> =
+        mapOf("queueSize" to StorageMetadataCache.cacheQueueSize())
 }

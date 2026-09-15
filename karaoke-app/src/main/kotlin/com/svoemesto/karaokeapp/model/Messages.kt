@@ -49,6 +49,16 @@ data class ProcessCountWaitingMessage(
 )
 
 /**
+ * specs/118 #397: размер cache-очереди StorageMetadataCache (для бейджа в UI).
+ * Аналогично ProcessCountWaitingMessage — отдельный канал, не смешивается.
+ *
+ * @see archive/docs/features/async-process-queue.md
+ */
+data class CacheQueueSizeMessage(
+    val cacheQueueSize: Int,
+)
+
+/**
  * Класс Record Delete Message.
  *
  * @see archive/docs/features/dual-db-sync.md

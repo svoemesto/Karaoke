@@ -8,6 +8,7 @@ import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.SAC_APP
 import com.svoemesto.karaokeapp.services.SNS
 import com.svoemesto.karaokeapp.services.StorageApiClient
+import com.svoemesto.karaokeapp.services.StorageMetadataCache
 import com.svoemesto.karaokeapp.services.TelegramAutoPublishService
 import org.springframework.stereotype.Component
 import java.io.BufferedReader
@@ -214,6 +215,8 @@ class KaraokeProcessThread(
                                 )}] KaraokeProcessThread[${karaokeProcess.threadId}]: Начинаем работу с заданием: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}",
                             )
                             KaraokeProcessWorker.sendCountWaitingMessage(KaraokeProcess.getCountWaiting(database = karaokeProcess.database))
+                            // specs/118 #397: отдельный SSE-канал для cache-очереди.
+                            KaraokeProcessWorker.sendCacheQueueSizeMessage(StorageMetadataCache.cacheQueueSize())
                         }
                         val inputStream = startedProcess.inputStream
                         var duration: String? = null
@@ -377,6 +380,8 @@ class KaraokeProcessThread(
                     KaraokeProcessWorker.sendCountWaitingMessage(
                         KaraokeProcess.getCountWaiting(database = karaokeProcess.database),
                     )
+                    // specs/118 #397: отдельный SSE-канал для cache-очереди.
+                    KaraokeProcessWorker.sendCacheQueueSizeMessage(StorageMetadataCache.cacheQueueSize())
                 } catch (e: Exception) {
                     println(
                         "[${Timestamp.from(
@@ -677,7 +682,12 @@ class KaraokeProcessWorker {
             // ровно одно начальное сообщение `countWaiting` при старте воркера —
             // даже если число совпало с предыдущим значением до остановки.
             lastSentCountWaiting = null
+            // specs/118 #397: сбрасываем дедупликацию cache-очереди для гарантии
+            // начального SSE-события при старте воркера.
+            lastSentCacheQueueSize = null
             sendCountWaitingMessage(KaraokeProcess.getCountWaiting(database))
+            // specs/118 #397: начальное SSE-событие для cache-очереди (отдельный канал).
+            sendCacheQueueSizeMessage(StorageMetadataCache.cacheQueueSize())
             Thread {
                 try {
                     var attempt = 0
@@ -814,6 +824,35 @@ class KaraokeProcessWorker {
                 )
             try {
                 SNS.send(messageProcessCountWaiting)
+            } catch (e: Exception) {
+                println(e.message)
+            }
+        }
+
+        /**
+         * specs/118 #397: аналог [sendCountWaitingMessage] для размера cache-очереди
+         * StorageMetadataCache. Отдельный канал SSE (CACHE_QUEUE_SIZE), не смешивается с
+         * PROCESS_COUNT_WAITING. Дедупликация через [lastSentCacheQueueSize].
+         *
+         * Вызывается из [submitFront] и [submitBack] companion-объекта
+         * StorageMetadataCache после каждого submit'а (асинхронно через Executor SNS).
+         */
+        @Volatile private var lastSentCacheQueueSize: Int? = null
+
+        fun sendCacheQueueSizeMessage(cacheQueueSize: Int) {
+            // Подавление дублей: если значение не изменилось — не рассылаем повторно.
+            // `null` (старт/рестарт) — всегда шлём.
+            val previous = lastSentCacheQueueSize
+            if (previous != null && previous == cacheQueueSize) return
+            lastSentCacheQueueSize = cacheQueueSize
+            val message =
+                SseNotification.cacheQueueSize(
+                    CacheQueueSizeMessage(
+                        cacheQueueSize = cacheQueueSize,
+                    ),
+                )
+            try {
+                SNS.send(message)
             } catch (e: Exception) {
                 println(e.message)
             }

@@ -79,8 +79,6 @@ export default {
     return {
       isConfirmVisible: false,
       confirmParams: undefined,
-      // specs/118 #397: interval для periodic poll размера cache-очереди.
-      cacheQueueSizeInterval: null,
     }
   },
   computed: {
@@ -139,16 +137,10 @@ export default {
   mounted() {
     this.checkUpdateProcessesWorker()
     this.checkCountWaiting()
-    // specs/118 #397: initial poll + periodic poll каждые 5с для размера cache-очереди.
+    // specs/118 #397: cacheQueueSize обновляется через SSE-событие PROCESS_COUNT_WAITING
+    // (см. App.vue) — нет необходимости в poll. Initial fetch через REST API оставлен
+    // на случай если SSE ещё не подключился.
     this.checkCacheQueueSize()
-    this.cacheQueueSizeInterval = setInterval(() => this.checkCacheQueueSize(), 5000)
-  },
-  beforeUnmount() {
-    // specs/118 #397: очистить interval при unmount.
-    if (this.cacheQueueSizeInterval) {
-      clearInterval(this.cacheQueueSizeInterval)
-      this.cacheQueueSizeInterval = null
-    }
   },
   methods: {
     clickStartStopWorkerButton() {

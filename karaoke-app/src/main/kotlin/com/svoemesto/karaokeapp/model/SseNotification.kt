@@ -28,6 +28,11 @@ data class SseNotification(
         fun processCountWaiting(processCountWaitingMessage: ProcessCountWaitingMessage): SseNotification =
             SseNotification(SseNotificationType.PROCESS_COUNT_WAITING, processCountWaitingMessage)
 
+        // specs/118 #397: factory для CACHE_QUEUE_SIZE — отдельный SSE-канал
+        // (не смешивается с PROCESS_COUNT_WAITING).
+        fun cacheQueueSize(cacheQueueSizeMessage: CacheQueueSizeMessage): SseNotification =
+            SseNotification(SseNotificationType.CACHE_QUEUE_SIZE, cacheQueueSizeMessage)
+
         fun message(message: Message): SseNotification = SseNotification(SseNotificationType.MESSAGE, message)
 
         fun error(error: Message): SseNotification = SseNotification(SseNotificationType.ERROR, error)

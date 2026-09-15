@@ -1,6 +1,7 @@
 package com.svoemesto.karaokeapp.services
 
 import com.svoemesto.karaokeapp.Connection
+import com.svoemesto.karaokeapp.KaraokeProcessWorker
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import java.util.concurrent.CompletableFuture
@@ -190,6 +191,10 @@ class StorageMetadataCache {
          */
         fun submitBack(task: Runnable) {
             cacheFillerExecutor.execute(task)
+            // specs/118 #397: после submit уведомляем через отдельный SSE-канал
+            // CACHE_QUEUE_SIZE. Дедупликация в sendCacheQueueSizeMessage подавляет
+            // повторы, если значение не изменилось.
+            KaraokeProcessWorker.sendCacheQueueSizeMessage(cacheFillerExecutor.queue.size)
         }
 
         /**
@@ -222,6 +227,10 @@ class StorageMetadataCache {
             // trigger'ом для ThreadPoolExecutor.addWorker().
             (cacheFillerExecutor.queue as LinkedBlockingDeque<Runnable>).addFirst(task)
             cacheFillerExecutor.execute(SENTINEL_RUNNABLE)
+            // specs/118 #397: после submit уведомляем через отдельный SSE-канал
+            // CACHE_QUEUE_SIZE. Дедупликация в sendCacheQueueSizeMessage подавляет
+            // повторы, если значение не изменилось.
+            KaraokeProcessWorker.sendCacheQueueSizeMessage(cacheFillerExecutor.queue.size)
         }
 
         /**

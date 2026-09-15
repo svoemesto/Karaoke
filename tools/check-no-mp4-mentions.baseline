@@ -21,6 +21,8 @@ karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcess.kt:1650
 karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcess.kt:1653
 karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcess.kt:1875
 karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcessWorker.kt:499
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcessWorker.kt:503
+karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcessWorker.kt:504
 karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProperties.kt:1868
 karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProperties.kt:1874
 karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProperties.kt:1890

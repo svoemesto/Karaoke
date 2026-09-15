@@ -13,6 +13,12 @@ enum class SseNotificationType(
     RECORD_DELETE("recordDelete"),
     PROCESS_WORKER_STATE("processWorkerState"),
     PROCESS_COUNT_WAITING("processCountWaiting"),
+
+    // specs/118 #397: размер cache-очереди StorageMetadataCache. Отдельный канал —
+    // не смешивается с PROCESS_COUNT_WAITING (другая структура данных, другой источник
+    // обновлений — submit'ы в StorageMetadataCache, а не KaraokeProcess). Broadcast.
+    CACHE_QUEUE_SIZE("cacheQueueSize"),
+
     MESSAGE("message"),
     ERROR("error"),
     DUMMY("dummy"),

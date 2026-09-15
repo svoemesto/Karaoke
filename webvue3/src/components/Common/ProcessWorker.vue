@@ -137,7 +137,9 @@ export default {
   mounted() {
     this.checkUpdateProcessesWorker()
     this.checkCountWaiting()
-    // specs/118 #397: initial poll размера cache-очереди.
+    // specs/118 #397: cacheQueueSize обновляется через SSE-событие PROCESS_COUNT_WAITING
+    // (см. App.vue) — нет необходимости в poll. Initial fetch через REST API оставлен
+    // на случай если SSE ещё не подключился.
     this.checkCacheQueueSize()
   },
   methods: {

@@ -6,6 +6,7 @@ import com.svoemesto.karaokeapp.llm.LyricsFinderService
 import com.svoemesto.karaokeapp.model.*
 import com.svoemesto.karaokeapp.services.APP_WORK_IN_CONTAINER
 import com.svoemesto.karaokeapp.services.AutoOneClickSyncScheduler
+import com.svoemesto.karaokeapp.services.HealthReportBatchPool
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.SNS
 import com.svoemesto.karaokeapp.services.SongReleaseAnnouncementService
@@ -201,6 +202,7 @@ class ApiController(
     private val lyricsFinderService: LyricsFinderService,
     private val albumCoverService: AlbumCoverService,
     private val autoOneClickSyncScheduler: AutoOneClickSyncScheduler,
+    private val healthReportBatchPool: HealthReportBatchPool,
 ) {
     private val lenientJson = Json { ignoreUnknownKeys = true }
 
@@ -7684,6 +7686,25 @@ class ApiController(
                 storageApiClient = storageApiClient,
             ).errorsOnly()
             .map { it.toDTO() }
+
+    // Асинхронный батч-запрос healthReportList (OpenProject #128, specs/128-async-health-report-list).
+    // Принимает список id одной строкой с разделителем `;` (конвенция проекта — см.
+    // KaraokeProcessAdminController.kt:185 и webvue3/src/components/Processes/store.js).
+    // Мгновенно возвращает 202 Accepted, не дожидаясь результата. Каждый songId
+    // ставится в приоритетный пул HealthReportBatchPool; готовые отчёты приходят
+    // на веб через SSE-канал HEALTH_REPORTS (та же payload, что у синхронного
+    // /song/healthReportList — фронт уже умеет).
+    @PostMapping("/song/healthReportListBatch")
+    @ResponseBody
+    fun healthReportListBatch(
+        @RequestParam songIds: String,
+    ): ResponseEntity<Void> {
+        val ids = HealthReportBatchPool.parseSongIds(songIds)
+        if (ids.isNotEmpty()) {
+            healthReportBatchPool.enqueue(ids)
+        }
+        return ResponseEntity.accepted().build()
+    }
 
     // Каскадное «Исправить всё»: помечает песню как «в авто-ремонте» и выполняет всё решаемое сейчас.
     // Дальнейшие шаги цепочки (upload в локальное/удалённое хранилище после создания файла на диске)

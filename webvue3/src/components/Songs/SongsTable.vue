@@ -651,9 +651,9 @@ export default {
       customConfirmParams: undefined,
       isBusy: false,
       allowAddSync: false,
-      hrQueue: [],
-      hrRunning: 0,
-      HR_MAX_CONCURRENT: 3,
+      // specs/128-async-health-report-list (#128): старый синхронный каскад
+      // (hrQueue/hrRunning/HR_MAX_CONCURRENT) удалён — фронт больше не делает
+      // HTTP round-trip на каждую песню. Один батч → бэк → SSE-push.
       // Кэш короткой информации о песнях для тултипов root/A-root.
       // Ключ — id песни, значение — { author, year, album, songName }.
       songShortInfoCache: {},
@@ -1066,8 +1066,11 @@ export default {
       handler(newPage) {
         // Сохраняем страницу в store, чтобы она восстановилась после переключения на другой компонент.
         this.$store.commit('setSongsTableCurrentPage', newPage)
-        this.hrQueue = []
-        this.updateHealthReportForCurrentPage()
+        // specs/128-async-health-report-list (#128): старый синхронный каскад
+        // hrQueue/hrRunning удалён — фронт больше не делает HTTP round-trip на
+        // каждую песню. Вместо этого отправляем ОДИН батч на бэк, бэк сам
+        // разрулит приоритет и SSE-push обновит state.
+        this._enqueueHrBatch(this._collectMissingHrSongIds(newPage))
         this.reloadAssignmentStatus()
       },
     },
@@ -1310,32 +1313,34 @@ export default {
       this.reloadAssignmentStatus()
     },
     updateHealthReportForCurrentPage() {
+      // specs/128-async-health-report-list (#128): старый синхронный каскад
+      // (hrQueue + HR_MAX_CONCURRENT + по одному HTTP round-trip на песню)
+      // заменён на ОДИН fire-and-forget батч. Делегируем в _enqueueHrBatch,
+      // который теперь сам собирает недостающие songId для текущей страницы.
+      this._enqueueHrBatch(this._collectMissingHrSongIds(this.currentPage))
+    },
+    _collectMissingHrSongIds(page) {
+      // Возвращает массив songId песен на странице `page`, у которых ещё нет
+      // подгруженного healthReport (healthReportText === '-' или '?').
+      const ids = []
       for (const songId of this.songsIds) {
         const songPageNumber = this.songIdAndPageId.get(songId)
-        if (songPageNumber === this.currentPage) {
-          const filteredSongs = this.songsDigests.filter((song) => song.id === songId)
-          if (filteredSongs && filteredSongs.length > 0) {
-            const song = filteredSongs[0]
-            if (song.healthReportText === '-') {
-              this._enqueueHrRequest(songId)
-            }
+        if (songPageNumber === page) {
+          const song = this.songsDigests.find((s) => s.id === songId)
+          if (song && song.healthReportText === '-') {
+            ids.push(songId)
           }
         }
       }
+      return ids
     },
-    _enqueueHrRequest(songId) {
-      this.hrQueue.push(songId)
-      this._processHrQueue()
-    },
-    _processHrQueue() {
-      while (this.hrRunning < this.HR_MAX_CONCURRENT && this.hrQueue.length > 0) {
-        const id = this.hrQueue.shift()
-        this.hrRunning++
-        this.$store.dispatch('setCurrentSongHealthReports', id).finally(() => {
-          this.hrRunning--
-          this._processHrQueue()
-        })
-      }
+    _enqueueHrBatch(songIds) {
+      // Fire-and-forget: action loadHealthReportBatch ставит песни в pending
+      // ('?' + серый цвет) локально и шлёт один POST на /api/song/healthReportListBatch.
+      // Результаты придут через SSE HEALTH_REPORTS — фронт обновит state в
+      // mutation healthReportMessageByUserEvent.
+      if (!songIds || songIds.length === 0) return
+      this.$store.dispatch('loadHealthReportBatch', songIds)
     },
     repairAllForCurrentPage() {
       for (const songId of this.songsIds) {
@@ -1898,7 +1903,6 @@ export default {
       this.isHealthReportTableVisible = false
     },
     async editSong(id) {
-      this.hrQueue = []
       await this.$store.dispatch('setCurrentSongId', id)
       this.isSongEditVisible = true
       this.updateHealthReportForCurrentPage()
